@@ -1,0 +1,1685 @@
+--- Page 1 ---
+arXiv:cs/0407038v1  [cs.SE]  16 Jul 2004ModelCheckingof StatechartModels
+Survey and ResearchDirections
+Purandar Bhaduri
+TRDDC, TataConsultancyServices
+54B, HadapsarIndustrialEstate
+Pune 411013,INDIA.
+Email:pbhaduri@pune.tcs.co.in
+S. Ramesh
+Dept. ofComputerScience &Engineering
+IndianInstituteofTechnologyBombay
+Powai,Mumbai400076,INDIA.
+Email:ramesh@cse.iitb.ac.in
+February 1,2008
+Abstract
+We survey existing approaches to the formal veriﬁcation of s tatecharts using
+model checking. Although the semantics and subset of statec harts used in each
+approach varies considerably, along with the model checker s and their speciﬁca-
+tion languages, most approaches rely on translating the hie rarchical structure into
+the ﬂat representation of the input language of the model che cker. This makes
+model checking difﬁcult to scale to industrial models, as th e state space grows
+exponentially with ﬂattening. We look at current approache s to model checking
+hierarchical structures and ﬁnd that their semantics is sig niﬁcantly different from
+statecharts. We propose to address the problem of state spac e explosion using a
+combination oftechniques, which are proposed as direction s forfurther research.
+1 Introduction
+Modelchecking[16]isaformalveriﬁcationtechniquebased onexhaustivestatespace
+explorationofthemodelofaﬁnitestatesystem(FSM).Given aninputFSMmodeland
+a property in temporal logic, a model checker determines whe ther the property holds
+inthemodel,andreturnswith acounterexampletraceincase thepropertyfails.
+In this paper we review variousapproachesto model checking of statecharts [21],
+which extend conventional state machines with hierarchy, c oncurrency and commu-
+nication. We compare existing approaches to model checking of statecharts in the
+literature, identify gaps and limitations in these approac hes, and trace out a path for
+1
+
+--- Page 2 ---
+future research that addresses the crucial issues of scale- up, and exploiting hierarchy
+andmodularity.
+1.1 The Statechart Model
+Statecharts were introduced by David Harel in 1987 [21] as a v isual formalism for
+complexreactive systems [25]: event-driven systems which continuously react to ex-
+ternal stimuli. Examples of such systems include communica tion networks, operat-
+ingsystems, and embeddedcontrollersfortelephony,autom obiles,trainsandavionics
+systems. The primary motivation behind this model was to ove rcome the limitations
+inherentin conventionalstate machinesin describingcomp lexsystems – proliferation
+of states with system size and lack of means of structuring th e descriptions. The stat-
+echarts model extends state machines along three orthogona l dimensions – hierarchy,
+concurrency and communication – resulting in a compact visu al notation that allows
+engineerstostructureandmodularisesystemdescriptions .
+1. Hierarchy is the ability to cluster states into a supersta te (anORstate), or reﬁne
+an abstract state into more detailed states; when a system is in a superstate, it
+is inexactly one of its sub-states. Visually the hierarchyis denoted by phys ical
+encapsulationofstates (roundedrectangles).
+2. Concurrency denotes orthogonal subsystems that proceed (more or less) inde-
+pendently and is described by an ANDdecomposition of states: when a system
+is ina composite ANDstate, it isin allofitsANDcomponents. Visually an AND
+state isdepictedbyphysicallysplittingastate usingdash edlines.
+3. Communicationbetweenconcurrentcomponentsis via a bro adcastmechanism.
+Variants using directed communication along named channel s is also common.
+Both synchronous and asynchronous styles of communication have been pro-
+posed.
+All these featuresentail a rather complexstructureon the t ransitions. A simple transi-
+tionmayhaveatriggeringevent(whoseoccurrencecausethe transitiontotakeplace),
+an enabling guard condition (which must be true for the trans ition to be taken), and
+output event and actions, all of which are optional. Transit ions can have ORandAND
+states as source and targets, can be between states at differ ent levels of the state hier-
+archy and can be composed from simple transitions using fork , join and conditional
+connectives. Inaddition, ORstatesmayhaveadefaultinitialstate(indicatedbyasmall
+incomingarrowwithablackcircleattheirtail)andhistory statestoindicatethatwhen
+entering an ORstate, the substate entered is the most recently visited. Fo r details the
+readerisreferredto Harel’soriginalpaper[21]orthe book byHarelandPoliti [27].
+Example1.1 The statechart in Figure 1 is taken from [41]. The top level st ateTV
+is anORstate, whose substates are WORKING andWAITING .WORKING is anAND
+state whose orthogonal substates are IMAGEandSOUND, each of which is an OR
+state. Thetopleveldefaultstateis WAITING .Thetransitionlabelst0throught8are
+used for ease of exposition and are not part of the statechart s syntax. The transition
+2
+
+--- Page 3 ---
+t3: soundPICTURE
+TEXTON
+OFFSTANDBYWORKING WAITINGTV
+DISCONNECTEDIMAGE SOUND
+t0: txt t1: txtt7: offt6: on
+t8: outt4: out t5: int2: mute
+Figure1: Examplestatechart
+with triggeroutfrom the ANDstateWORKING toDISCONNECTED is an inter-level
+transition,with itssourceandtargetat differentlevelso fthestate hierarchy.
+Over the years, a number of variants of the statecharts model have been proposed
+–MODECHARTS[32],RSML [35],OMT[47],ROOM[48]andUML[9], tonamea
+few. Theyretaintheoriginalstatechartsstructuringmech anismofhierarchyandgroup
+transitions, but differ signiﬁcantly in semantic aspects. The most popular of these
+variations is the one used in the Uniﬁed Modeling Language (U ML) [9], a variant of
+statechartssuitableforobject-orientedmodelling. We wi lldescribesomeofthesestat-
+echartsvariantsinsubsequentsectionswhenwediscussapp roachestomodelchecking
+ofthesemodels.
+1.2 The Semantics ofStatecharts
+Central to the question of formal veriﬁcation of statechart s is their semantics . Unfor-
+tunately,deﬁningthesemanticsofa complexnotationlikes tatechartsisnotastraight-
+forward task. The original statecharts paper by Harel [21] o nly hinted informally at
+howasemanticscouldbedeﬁned. Theﬁrst rigoroussemanticd eﬁnitionwasproposed
+in [26], followed by a series of semantic proposals (see [18, 24,30,31,44] for a sam-
+pler). We brieﬂy describe the design decisions taken by the STATEMATE semantics of
+statecharts,aspresentedin[24]. STATEMATE [23]isaCASE-toolfromi-Logixforthe
+model based development of complex reactive systems. STATEMATE uses the visual
+notation of statecharts for the description of control, dat a transformations and timing
+3
+
+--- Page 4 ---
+aspects of systems. The main difference between the STATEMATE semantics and the
+one proposed in [26,44] is that changes that occur in a given s tep take effect in the
+next step. The semantics of a system is a set of possible runs, where each run is the
+response of the system to a sequence of external stimuli. A ru n can be thought of as
+a sequence of snapshots (status) of the system, where each st atus is obtained from its
+predecessor by executing a step. The move to a new status by a step is triggered by
+external stimuli provided by the environment at the beginni ng of the step, as well as
+changesthatoccurredduringandsincethepreviousstep. Th eexecutionofastepitself
+takes zerotime. The main difﬁculty in deﬁningthe effect of a step is in handlinga set
+of enabled transitionspossibly containingconﬂicting one s, and in handlinginter-level
+transitions, i.e., those crossing the boundariesof nested states. The ﬁrst step in deﬁn-
+ing an operational semantics of statecharts is to deﬁne a conﬁguration as a maximal
+set of states that the system can be in simultaneously. From t he intuition behind OR
+andANDstates, a conﬁguration Cis a nonemptyupward closed (under ORhierarchy)
+set of states, such that for every ORstateSinC, there is exactly one substate of S
+inC, and for every ANDstateTinC, all its substates are in C. The exact details of
+howcompoundtransitions,actionsandconﬂictsarehandled canbefoundin[24]. The
+salientfeaturesofthesemanticsare:
+1. Reactions and changes that take place in a step can only be s ensed in the next
+step.
+2. Eventsliveforthe durationofonestepandarelost hencef orth.
+3. Computationsina stepare basedonthestatusat thebeginn ingofthestep.
+4. A maximalsubset ofnonconﬂictingtransitionsisalwayse xecuted.
+Therearetwodistinctmodelsoftimeinthissemantics: the synchronous andtheasyn-
+chronous (orsuper-step )model. Inthesynchronousmodelthesystemexecutesasingl e
+stepeveryclocktick,reactingtoallthechangesthatoccur redintheonetimeunitsince
+thepreviousstep. Intheasynchronousmodel,thesystemrea ctstoanexternalstimulus
+byperformingasequenceofreactions(called steps). Ateachstep,amaximalconﬂict-
+free set of enabled transitions is selected based on events a nd conditions generated
+in the previous step. While all events live for one step, exte rnal events are consulted
+onlyat the ﬁrst step and are communicatedto the environment aftercompletionof the
+last step in a super-step. Super-steps are executed inﬁnite ly fast, with the clock being
+incrementedonlyat super-stepboundaries.
+One of the most popularvariants of statecharts used in softw are engineeringprac-
+tice isthestate machinemodelinUML [9],asdescribedin [22 ,42]. Thisisanobject-
+oriented variant of statecharts, which captures the dynami cs of an object’s internal
+behaviourin responseto service requests fromother object sand the environment. We
+brieﬂymentionthedifferencesbetweenUML statechartsand theclassical model. The
+mechanism for inter-object interaction includes, in addit ion to events, invocation of
+an operation on an object. When an object generates an event f or another object it
+is queued in a system queue (in a single threaded system); whe n the sending object
+reaches a stable condition (all orthogonal components are i n states and no transitions
+4
+
+--- Page 5 ---
+enabled due to local conditions), the system delivers the ev ent to the appropriate ob-
+ject’sstatemachineforprocessing. Whenanobjectcallsan operationofanotherobject,
+thecallingobject’sstatechartissuspended,andthecalle eobjectexecutesamethodon
+itsbehalf. Atriggerforatransitioniseitheraneventoran operationrequest. Asinthe
+STATEMATE semantics, reactionsto eventstake placein steps, with eve ntsandactions
+generated in one step being detected in the next step, after a stable situation has been
+reached. Unlike the STATEMATE semantics, events are queued instead of being trans-
+mittedwithoutdelay. Thereisalsoadifferenceintransiti onpriorities,withUMLstate
+machines giving priority to transitions deeper in the state hierarchy. The main differ-
+ence, however, is in the run-to-completion (RTC) semantics of UML statecharts: all
+thelocallyenabledtransitionsofa statechartcausedbyth eprocessingofaneventwill
+be executed before the next event will be taken for execution . For a formal treatment
+ofthesemanticsreferto [17].
+1.3 Challenges intheVeriﬁcation ofStatecharts Models
+The graphical statecharts language offers a rich set of feat ures for extending standard
+state transition diagrams with parallelism, hierarchy and broadcast or directed com-
+munication. Some of these featuresare: complexstate hiera rchiesand conﬁgurations,
+inter-leveltransitions,grouptransitions,transitionp riorityandsimultaneousexecution
+of maximal non-conﬂicting sets of transitions. These compl ex features interact in in-
+tricate and unexpected ways. It is a veritable challenge to p rovide a coherent formal
+semanticstothesesemanticallyrichfeaturesandfaithful lyimplementtheminaCASE
+tool, as witnessed by the ﬂood of proposals for statecharts v ariants and their formal
+semantics.
+The same challenges are encountered in model checking of sta techarts. In the
+model checking framework, the system is represented as a tra nsition system (equiv-
+alently, a Kripke structure1[16]). A transition system is deﬁned as a tuple (Q, ι, R ),
+where Qis the set of states, usually speciﬁed by assignments of values to a set of
+variables V;ιis a set of states (expressed as predicates on V) deﬁning the initial set
+of states; and Ris the transition relation, usually expressed by predicate s containing
+unprimed and primed variables from Vfor the pre- and post-state. Model checking
+ofstatechartsinthisframeworkrequiresaninterpretatio nofthestatechartsmodelasa
+transition system. This has proved to be a signiﬁcant challe nge. We list below some
+features of statecharts that complicate this interpretati on of statecharts as transition
+systems,makingautomatedveriﬁcationofstatechartsmode lsa difﬁcultproblem.
+State Hierarchy The straightforward way to represent a statechart as a trans ition
+system is toﬂatten its hierarchy. However,thiscanlead to a nexponentialblow-
+up in size, particularly when there is a lot of sharing of stat es and transitions.
+While model checking of hierarchical state machines have be en investigated in
+the literature [5,6] using hierarchical Kripke structures , this model is not the
+1Kripke structures have an additional component: a labellin g of each state with the set of propositions
+that hold in that state; in a transition system, the set of pro positions that hold in a state is given by the set of
+predicates on state variables that evaluate to true in that s tate.
+5
+
+--- Page 6 ---
+original statecharts model: inter-level transitions, con current states and reading
+andwritingofvariablesarenotconsidered.
+Non-compositionality: inter-level transitions A syntax-directed, hierarchical se-
+manticsandtranslationschemeforstatechartsiscrucialf orefﬁcientveriﬁcation
+of their correctness. A compositionalsemantics would interpret the meaning of
+a composite statechart in terms of the semantics of its const ituent components,
+without having to consult their internal structure. Unfort unately,the statecharts
+model has inter-level transitions as a rich transfer of control mechanism across
+statehierarchies. Thesemanticsofinter-leveltransitio nsviolatesthestateencap-
+sulation hierarchy and hence compositionality. Inter-lev el transitions combined
+with transition priorities have intricate semantics and pr ecludes any straightfor-
+wardformalisationortranslation.
+Conﬂicting Transitions and Transition Priority Two transitions are in conﬂict if
+there is a common state shared by their source states. If two c onﬂicting tran-
+sitions are at the same level of the state hierarchy, the resu lt isnondetermin-
+ism, which is an undesirablephenomenonin the executionof a rea ctive system,
+because it implies the same sequence of inputs can lead to dif ferent output se-
+quences in different runs. On the other hand, if the source st ates of one transi-
+tion subsume another, i.e., if the ﬁrst transition is at a hig her level in the state
+hierarchy,thenit isgiven higherpriority in theSTATEMATE semantics(thesitu-
+ationisreversedin theUMLsemantics). Handlingnondeterm inismandpriority
+schemesareoftenachallengeinformalmodelsofstatechart s. Automaticdetec-
+tion of deadlockis also a challenge,since the enablednesso f transitionsdepend
+onconditionsondatavalues,andtheproblemis undecidable ingeneral.
+Concurrency A faithful modelling of concurrency in statecharts (either at the level
+of concurrent substates or multiple statecharts) requires the scheduling of con-
+current execution of transitions at a ﬁne level of granulari ty. Issues like multi-
+threaded and single-threaded execution complicate the mat ter. Most modelling
+formalismshave two principalmeansof handlingconcurrenc y: by synchronous
+executionandinterleaving,with verylittle controlinmix ingthetwo.
+Communication Several dimensions of communication mechanisms can be iden ti-
+ﬁed in statecharts variants: broadcast versus point-to-po int,synchronousversus
+asynchronous,instantaneousversustimed. Modellingof as ynchronouscommu-
+nicationintransitionsystemscausessubtleproblems,bec ausethelevelsofgran-
+ularity of interleavingin statechartsmay be differentfro mthe oneemployedby
+the modelling language, which in most cases is ﬁxed. Asynchr onous models
+also lead to a blow-up in the size of the state space, making mo del checking
+impracticalforreallife examples.
+HistoryThe statecharts model has two history connectors: H(shallow history) and
+H∗(deep history). When entering an ORstate by shallow history, the substate
+enteredis the one most recentlyvisited; thisappliedto onl y the top levelimme-
+diate substates – at deeper levels the entry is to the default states. On the other
+hand,onentrybydeephistory,thebasic conﬁguration(incl udingall recursively
+6
+
+--- Page 7 ---
+containedsubstates)lastvisitedrelativetothe ORstateisentered. Themodelling
+ofdeephistoryimpliesallstateconﬁgurationsarestoredi navariablethatretains
+its valuebetweentransitions,whereasforshallowhistory onlythe state variable
+correspondingtothetoplevelsubstatelastvisitedshould beretained. Thiscom-
+plicates the treatment of variables in the model, with some v ariables requiring
+special treatment.
+Models of Time The deﬁnition of what constitutes a step is central to the sem antics
+of statecharts. The synchronous semantics of statecharts r eferred to above is
+simplertomodelusingtransitionsystems. Thegreedinesso ftransitionexecution
+inherent in the asynchronous semantics makes it difﬁcult to model. The same
+remark applies to the run-to-completion semantics of the UM L state machine
+model.
+2 Survey of StatechartsModel Checking Approaches
+2.1 Model Checking ofStatecharts by translating to SMV
+SMV[39] is a model checking tool for the veriﬁcation of FSMs agai nst speciﬁcation
+in the temporal logic CTL[16]. The input language of SMVallows the description
+of FSMs that range from completely synchronous to completel y asynchronous. SMV
+uses BDDs [11] to represent state sets and transition relati ons and a symbolic model
+checkingalgorithmforveriﬁcation. Ithasbeenappliedsuc cessfullytomanyindustrial
+scale hardware circuits. Its application to the analysis of software speciﬁcations has
+beensomewhatlimited.
+CTLModelCheckingusing SMVThetemporallogicmodelcheckingproblemisto
+answerthe question: doesthe modelofa (softwareor hardwar e)system, givenas a ﬁ-
+nitestatetransitionsystem,satisfyagivenpropertyspec iﬁedinalanguageoftemporal
+logic. Onesuchlogicisthebranching-timetemporallogic CTL[16]. Temporallogics
+fortransition systemsprovideoperatorsfor describingpr opertiesof individualrunsof
+the transition system together with mechanisms for quantif ying over such runs. For
+example, “all execution sequences starting in state seventually lead to state s′.” The
+logicCTL∗deﬁnes such properties using state formulas and path formulas, starting
+froma givenset ofpropositions(usuallypredicatesonthes tate variables). A pathfor-
+mula is either a state formula,a Booleancombinationof path formulas, XP(Pholds
+inthe next-state)or PUQ(Pholdsuntil Qholds)where PandQare pathformulas.
+Derivedpathformulassuch as FP≡TRUEUP(eventually P) andGP≡ ¬F(¬P)
+(always P) are frequently used. A state formula is either a propositio n, any Boolean
+combination of state formulas, or AP(Pholds along all paths), where Pis a path
+formula. The derived state formula EP≡ ¬A(¬P)(there exists a path along which
+Pholds) is also used frequently. CTLformulas are state formulas where every path
+modality( X,U,ForG)isimmediatelyprecededbyapathquantiﬁer( AorE). Examples
+ofCTLformulasare:
+7
+
+--- Page 8 ---
+AG(¬cs1∨ ¬cs2): In all reachable states, processes p1andp2are not both in their
+critical section(where csiindicatesprocess iisinits criticalsection).
+AG AF stable: Thesystem isstableinﬁnitelyoften.
+AG(sent→AFreceived ): Everymessagesent isreceived.
+AG EF reset: It ispossibleto resetthesystemin anyreachablestate.
+Atransitionsystem T= (S, ι, R )satisﬁesaformula φifφholdsinallinitialstates
+inφ. A model checker tries to verify that Tsatisﬁes φby an exhaustive but efﬁcient
+state space search. If the formula does not hold, the model ch ecker returns a coun-
+terexample trace leading to a state where the formula is viol ated. A model checker
+based on explicit state enumeration veriﬁes the truth of a CTLformula by traversing
+thestatediagraminadepth-ﬁrstorbreadth-ﬁrstmanner. Th etimecomplexityislinear
+in the state space and the length of the formula [15]. However , the state space grows
+exponentiallywiththenumberofsystemvariablesandcompo nents,leadingtothe state
+explosionproblem . INthelateeightiesanimportantadvanceinveriﬁcationte chnology
+took place with the invention of symbolic model checking [39], the transition relation
+is not explicitly constructed but represented implicitly b y a Boolean function. Sets
+of states are also represented by Boolean functions. Boolea n functions are succinctly
+represented using BDDs [11], which are efﬁcient ways of repr esenting Boolean func-
+tionsusingsharingof subexpressionsandeliminationof re dundantvariablesin binary
+decision trees. Instead of visiting individual states as in explicit state space search,
+symbolic model checking relies on visiting a setsof states at a time, using efﬁcient
+BDD representationsofbothstates andtransitionrelation s.
+SMV[39] is a symbolic model checker for propertiesexpressed in CTL. AnSMV
+model of a system consists of a ﬁnite-state system descripti on and a list of CTLfor-
+mulas. Thestate spaceis deﬁnedbystate variabledeclarati ons,forexample:
+VAR
+state0: {noncritical, trying, critical};
+state1: {noncritical, trying, critical};
+turn: boolean;
+Thetransitionrelationandtheinitialstatesarespeciﬁed byacollectionofsimulta-
+neousassignmentstostate variables:
+ASSIGN
+init(state0) := noncritical;
+next(state0) :=
+case
+(state0 = noncritical) : {trying,noncritical};
+(state0 = trying) & (state1 = noncritical): critical;
+(state0 = trying) & (state1 = trying) & (turn = turn0): critic al;
+(state0 = critical) : {critical,noncritical};
+8
+
+--- Page 9 ---
+1: state0;
+esac;
+init(turn) := 0;
+next(turn) :=
+case
+turn = turn0 & state0 = critical: !turn;
+1: turn;
+esac;
+For any variable v,init(v) refers to the initial value of vandnext(v) refers
+to the value of vin the next state. Next state values of variables are often de ﬁned as
+partsofa caseexpression,asintheaboveexample. In SMV,1and0represent TRUE
+andFALSErespectively. The logical operators AND,ORandNOTare represented by
+&,|and!, respectively. It is important to note that the assignments to the variables
+state0 andturnare concurrent: all state variablesin an SMVmoduleare assigned
+new valuessimultaneouslyat the beginningof a new transiti on. An alternativeway to
+specify the transition relation between states is to use pro positional formulas relating
+theoldandnewstates:
+INIT
+output = 0
+TRANS
+next(output) = !input | next(output) = output
+SMValso allowstheuse ofmacrodeﬁnitionsto abbreviateexpres sions:
+DEFINE
+carry_out := value & carry_in;
+Thesedeﬁnitionsdonotaddvariablestothestatespacebuta reconvenientshortcuts
+thatareexpandedwhengeneratingthestate machine.
+SMVallowsthedeﬁnitionofreusablemodulesandexpressions:
+MODULE counter_cell(carry_in)
+VAR
+value : boolean;
+ASSIGN
+init(value) := 0;
+next(value) := value + carry_in mod 2;
+DEFINE
+carry_out := value & carry_in;
+MODULE main
+VAR
+bit0 : counter_cell(1);
+bit1 : counter_cell(bit0.carry_out);
+9
+
+--- Page 10 ---
+bit2 : counter_cell(bit1.carry_out);
+SPEC
+AG AF bit2.carry_out
+The examples above describe synchronous systems, where the assignment state-
+ments are executed simultaneously. SMVcan also model asynchronous systems by
+deﬁningacollectionofparallelprocesses,whoseactionsa reinterleaved:
+MODULE inverter(input)
+VAR
+output : boolean;
+ASSIGN
+init(output) := 0;
+next(output) := !input;
+FAIRNESS
+running
+MODULE main
+VAR
+gate1 : process inverter(gate3.output);
+gate2 : process inverter(gate1.output);
+gate3 : process inverter(gate2.output);
+SPEC
+(AG AF gate1.out) & (AG AF !gate1.out)
+The example above describes a ring of three asynchronousinv erting gates. Asyn-
+chronous processes are declared by the keyword process before instantiating the
+module. At a given instant only one process is chosen nondete rministically for exe-
+cution, and all its assignments executed in parallel. The FAIRNESS running con-
+straintforceseveryinstanceofinvertertoexecuteinﬁnit elyoften.
+2.1.1 RSMLModel Checking [Chanetal1998]
+One of the ﬁrst applications of SMVto the analysis of statecharts models was in [12],
+wheretheauthorsuseRSML [35],a variationofHarel statech arts,asthe inputmodel.
+RSML borrows the notions of superstates, ANDdecomposition and broadcast com-
+munication from statecharts. It adds features like interfa ce description and directed
+communication between state machines, in addition to some s yntactic variations for
+specifying guardsand conditions. The RSML models were tran slated to SMVand the
+authorsclaimthattheywereabletocontrolthesizeoftheBD Dsrepresentingthespec-
+iﬁcation to analyse a number of robustness and safety-criti cal properties. The salient
+featuresoftheirtranslationschemeare:
+1.SMVvariablesareintroducedforstate hierarchy,inputsandev ents,asfollows:
+•Eventstranslateto booleanvariables.
+10
+
+--- Page 11 ---
+•Inputvariabletranslatetovariableswithanenumeratedor subrangetype.
+•EachOR-state translates to an enumerated variable which ranges ov er the
+substates of the OR-state. The values of these variables completely deter-
+minethecurrentconﬁgurationofthestate machine.
+2. Adeﬁnedbooleansymbolindicatestheconditionunderwhi chthemachineisin
+a particularstate.
+3. A deﬁned boolean symbol for each transition expresses whe n the transition is
+enabled – when the machine is in the source state, the trigger event occurs and
+theguardingconditionistrue.
+4. The state change is speciﬁed using the nextstate update of SMVinside an
+ASSIGN clause. Aninner casestatementrangingoverall thetransitionsspec-
+iﬁesthe nextstate andanother nextstatementspeciﬁestheeventgenerated.
+5. Statesandeventsareinitialisedusingan initclause.
+6. Inputs to the machine are modelled non-deterministicall yto allow arbitrary en-
+vironmentalbehaviourwhile satisfyingthe synchronyhypo thesis: inputsdo not
+changewhenthemachineisnotstable.
+Example2.1 TheSMVprogramforthestatechartinFigure1isshownbelow:
+MODULE main
+VAR
+-- events
+txt: boolean;
+mute: boolean;
+sound: boolean;
+out: boolean;
+in: boolean;
+on: boolean;
+off: boolean;
+-- OR states
+TV: {WORKING, WAITING};
+IMAGE: {PICTURE, TEXT};
+SOUND: {ON, OFF};
+WAITING: {STANDBY, DISCONNECTED};
+DEFINE
+-- state machine is in stable state
+stable := !(txt | mute | sound | out | in | on | off)
+-- condition under which machine is in a particular state
+in-TV := 1;
+in-WORKING := in-TV & TV = WORKING;
+in-WAITING := in-TV & TV = WAITING;
+in-IMAGE := in-WORKING;
+in-SOUND := in-WORKING;
+11
+
+--- Page 12 ---
+in-PICTURE := in-IMAGE & IMAGE = PICTURE;
+in-TEXT := in-IMAGE & IMAGE = TEXT;
+in-ON := in-SOUND & SOUND = ON;
+in-OFF := in-SOUND & SOUND = OFF;
+in-STANDBY := in-WAITING & WAITING = STANDBY;
+in-DISCONNECTED := in-WAITING & WAITING = DISCONNECTED;
+-- enabledness of transitions
+t0 := in-PICTURE & txt;
+t1 := in-TEXT & txt;
+t2 := in-ON & mute;
+t3 := in-OFF & sound;
+t4 := in-STANDBY & out;
+t5 := in-DISCONNECTED & in;
+t6 := in-STANDBY & on;
+t7 := in-WORKING & off;
+t8 := in-WORKING & out;
+ASSIGN
+init(TV) := WAITING;
+next(TV) :=
+case
+t6: WORKING;
+t7: WAITING;
+t8: WAITING;
+1: TV;
+esac;
+init(IMAGE) := PICTURE; -- default state
+next(IMAGE) :=
+case
+t0: TEXT;
+t1: PICTURE;
+t6: PICTURE; -- entry to default state
+1: IMAGE;
+esac;
+init(SOUND) := ON;
+next(SOUND) :=
+case
+t2: OFF;
+t3: ON;
+t6: ON; -- entry to default state
+1: SOUND;
+esac;
+init(WAITING) := STANDBY;
+12
+
+--- Page 13 ---
+next(WAITING) :=
+case
+t4: DISCONNECTED;
+t5: STANDBY;
+t7: STANDBY;
+t8: DISCONNECTED;
+1: WAITING;
+esac;
+-- events
+next(txt) :=
+case
+stable: {0,1}
+1: 0;
+esac;
+.
+.
+.
+Note that all the events in this example are generated by the e nvironment, and hence
+they are nondeterministic, except they are not allowed to ch ange when the machine is
+notstable. If outputeventsaregeneratedby themachine,th eirhandlingsimilarto the
+handlingofstate changesby the nextstatement.
+Discussion
+Nondeterminism The translation scheme presented above works only for deter min-
+istic machines. Since SMVhas a concurrent evaluation semantics in which all
+transitions enabled by a given input event ﬁre simultaneous ly, the translation
+does not preserve the semantics of nondeterministic statec harts. Nondetermin-
+ism can be handled in the following way. Instead of represent ing transitions as
+deﬁned symbols, they should be declared as ordinary Boolean variables. Then
+the enabledness of transitions can be represented as a ﬁrst- order logic formula
+over the ﬁnitely many auxiliary variables and the global sta te variables. This
+methodisinefﬁcientbecausethenumberoftransitionsisus uallylarge.
+Synchrony Hypothesis The RSML semantics of statecharts is similar to the STATE-
+MATEsemanticsdiscussedabove,exceptforthesynchronyhypoth esisinthefor-
+mer. Thesynchronyhypothesiscanbedroppedbydeﬁningthes ymbolstable
+to1.
+Transition Priority RSML does not use the priority scheme for transitions used by
+STATEMATE to resolve certain conﬂicting transitions. To interpret pr iority, cer-
+tain modiﬁcationsin thetransitionrulesare necessary.
+Other features RSML does not have history connectors, synchronisation thr ough
+activitiesand optionaltriggerevents. Inprinciple,thes e featurescanbe handled
+bynewtranslationrules.
+13
+
+--- Page 14 ---
+2.1.2 Translationof STATEMATE statechartsto SMV[Clarkeand Heinle,2000]
+The STP-approachto translating STATEMATE statecharts to SMV, reported in [14], at-
+temptstoreﬂectthehierarchicalstructuringofstatechar tsascloselyaspossiblein SMV
+toachieveamodulartranslation. Thisisincontrasttothet ranslationbyChanetal[12]
+discussed in the previous section. The notion of hierarchy i n this context entails that
+anystatemaycontainentirestatecharts(called subcharts ),andthetranslationofastate
+dependsonlyonthesubchartitdenotes. Oneimplicationoft hisisthatinter-leveltran-
+sitions are not handled by the translation. The translation toSMVis via a temporal
+languageETLwhichformalisestheinputlanguageof SMV. Thesalientfeaturesofthe
+translationarelisted below.
+1. Statecharts are translated as individual SMVmodules. The top level statechart
+is representeddirectlyin the MAINmodulewith declarationsforall globalvari-
+ablesforeventsandconditions.
+2. The module representing a direct subchart of a statechart is instantiated in the
+module corresponding to the parent statechart. The transla tion thus follows a
+hierarchicalstructureofstatecharts.
+3. Three types of SMVmodules arise in the translation: the main-module, chart-
+modules containing translations of subcharts, and monitor-moduleswhich han-
+dleglobaleventandconditionvariables.
+4. The following ETL predicates are used in the formalisatio n of statechart opera-
+tions. The predicate chart(s) =scis true if the state sis contained at the top
+levelofstatechart sc. Ifs′isadirectsubchartcontainedinthestate s, thisisde-
+noted by subchart (s′, s). The predicate state(sc) =sdenotes chart(s) =sc
+and control of the statechart is in s. The predicates active (sc)andactive (s)
+are used to represent when control is in the statechart scand is in the state s
+respectively.
+5. The state of each statechart is modelled with a local varia blestatewhich
+rangesovervaluesin therespectivestate set.
+6. Initialisation and activity are communicated to the modu le corresponding to a
+subchartvia twoparameters default andactive.
+7.ORstateshaveonlyonesubchartwhereas ANDstateshaveatleasttwosubcharts.
+8. State transitions are modelled by a TRANSpredicate relating the current and
+the next state in SMV. This has the advantage over using an ASSIGN as in the
+translation of Chan et al in that it represents a nondetermin isticchoice between
+conﬂictingtransitionsina statechartmorefaithfully.
+9. Events are represented by global boolean variables. An ev ent variable is set
+the moment the event happens and reset automatically in the n ext step, unless
+it is generated again. On the other hand, condition variable s persist until they
+are explicitly modiﬁed. Both event and condition variables are represented by
+monitormodulestomanipulatethecorrespondingglobalvar iable.
+14
+
+--- Page 15 ---
+t3: soundPICTURE
+TEXTON
+OFFSTANDBYWORKINGTV
+DISCONNECTEDIMAGE SOUND
+t0: txt t1: txtt7: offt6: on
+t8: outt4: out t5: int2: mute
+Figure2: StatechartofFigure1withoutinter-leveltransi tions
+10. Actions and event generation are handled by a nextwithin an ASSIGN state-
+ment.
+Example2.2 The statechart in Figure 2 is a modiﬁed version of the one in Fi gure 1,
+withoutthetop-levelstate WAITING .Notethatthisremovesallinter-leveltransitions,
+which the current approach does not handle. Part of the trans latedSMVcode for the
+statechart TV is shown below, assuming that TVis not the top level state, i.e., TVis
+containedina biggerstatechart.
+MODULE TV(on,off,out,in,active,default)
+VAR
+state: {WORKING, STANDBY, DISCONNECTED};
+INIT
+active & default -> state = STANDBY;
+TRANS
+next(active) & next(default) -> next(state = STANDBY);
+TRANS
+( (active & state = WORKING & ( (out & next(state) = DISCONNECT ED)
+| (off &next(state) = STANDBY)
+| (!(out|off) & next(state) = state)))
+| (active & state = STANDBY & ( (on & next(state) = WORKING)
+| (out &next(state) = DISCONNECTED)
+| (!(on|out) & next(state) = state)))
+| (active & state = DISCONNECTED & ( (in & next(state) = STANDB Y)
+15
+
+--- Page 16 ---
+| (!in & next(state) = state)))
+| !active)
+.
+.
+.
+Discussion
+Events and Condition Variables The translation is actually more involved than the
+aboveexample suggests. An eventsis representedas a global Boolean variable,
+which is set at the instant the event happens and automatical ly reset one time
+steplater. Theproblemwiththisschemeisthataneventcanb egeneratedbyany
+module, which may involve multiple assignmentsto the same v ariables. This is
+not allowed by SMV. To overcome this hurdle, events and condition variables
+arerepresentedbyusinga monitormodule,aconceptborrowedfromconcurrent
+programming.
+Modularity Modules are only syntactically convenient mechanisms that make the
+SMVcode more readable. The internal representation in SMVis a ﬂattened out
+transitionsystem.
+ORhierarchy There is no subroutine style hierarchical composition of mo dules in
+SMV– when a module is active, all its submodules are. This makes t heSMV
+module construct suitable for Modeling the statecharts AND-hierarchy but not
+theOR-hierarchy.
+Inter-level transitionsand Priority The modulartranslationof statechartscomesat
+a price. AS pointedout above,inter-leveltransitionscann otbehandled,norcan
+theSTATEMATE priorityschemeforconﬂictingtransitions.
+State Explosion It is not clear to what extent the state explosion problem can be
+avoided through the BDD based symbolic model checking proce dure that SMV
+uses. This remark also applies to the translation of Chan et a l, and indeed, any
+translationschemethat followsthe SMVroute.
+2.2 Model Checking ofStatecharts by translating to SPIN
+In contrast to SMV,SPIN[29] is a model checker for the veriﬁcation of asynchronous
+processes. SPINusesLinearTemporalLogic( LTL)ratherthan CTL,forspecifyingthe
+correctness properties. Further, SPINuses an on-the-ﬂy explicit state model checking
+rather than the symbolic method employedby SMV.SPINuses a number of optimisa-
+tion techniquesto reduce the size of the state space, includ ingpartial order reduction.
+PROMELA ,theinputlanguageof SPIN,isasimpleprogramlikenotationforspecifying
+processinteractionsusingDijkstra’s guardedcommandsan dHoare’sCSP. Processin-
+teractionscanbe speciﬁedwithrendezvousprimitives,asy nchronousmessagepassing
+through buffered channels, shared variables or combinatio ns of these. SPINhas been
+usedextensivelyforverifyingcommunicationprotocolsan ddistributedsystems.
+16
+
+--- Page 17 ---
+LTLmodelcheckingusing SPINLinear-timetemporallogic,or LTL[37],isafrag-
+mentof CTL∗inwhichpathformulascontainnooccurrencesofthepathqua ntiﬁers A
+andE. Asystem satisﬁesthe LTLformula Pif it satisﬁesthe the CTL∗formula AP.
+InLTL, the modalities FandGare usually written as ♦and/square, e.g., ♦/squarePforFGP,
+“eventuallyalways P”.
+Model checking of LTLspeciﬁcations in SPINis based on the automata theoretic
+approach of Vardi and Wolper [52]. The inputs to the SPINmodel checker are a de-
+scription of a concurrentsystem in PROMELA and its correctnesspropertiesexpressed
+inLTL. ThePROMELA description consists of user-deﬁned process templates (us ing
+proctype deﬁnitions) and at least one process instantiation (using t heruncom-
+mand). SPINtranslates each process template into a ﬁnite automaton. Th e global be-
+haviouroftheconcurrentsystemisobtainedbycomputingth easynchronousinterleav-
+ing product of the automata corresponding to each process. T o perform veriﬁcation,
+SPINalso convertsthe correctnessclaim in LTLto a B¨ uchi automaton[51], and com-
+putesthe synchronous productoftheclaimandtheautomatonfortheglobalbehavio ur.
+If the languageaccepted by the resulting B¨ uchi automatoni s empty the original claim
+doesnotholdontheoriginalsystem. SPINactuallyusesthe negationofthecorrectness
+claim as the input, so a non-emptyintersection gives counte r-examplesto the correct-
+nessclaim. AB¨ uchiautomatonacceptsasystemruniffitfor cestheautomatontopass
+throughoneormoreofits acceptingstatesinﬁnitelyoften. Suchacceptingbehaviours
+ofaB¨ uchiautomatonarecalledits acceptance cycles. Toprovethatnoexecutionofthe
+systemsatisﬁesthenegatedcorrectnessclaim,itsufﬁcest oprovethatthesynchronous
+productofthesystemandthe(B¨ uchiautomatonrepresentin gthe)negatedclaimhasno
+acceptancecycles. SPINdoesthecomputationofautomataforconcurrentcomponents ,
+their asynchronous product representing the global system , the B¨ uchi automaton for
+the correctnessclaim, in an on-the-ﬂyway using a nested dep th-ﬁrst search algorithm
+(see[29]fordetails.).
+The language PROMELA (Process or Protocol Meta Language) allows for the dy-
+namic creationof concurrentprocesses. Communicationvia message channelscan be
+deﬁnedtobesynchronous(i.e.,rendezvous),orasynchrono us(i.e.,buffered). Weillus-
+tratetheuse of PROMELA throughaversionofthealternatingbit protocolfrom[28].
+mtype = { msg, ack };
+chan to_sndr = [2] of { mtype, bit };
+chan to_rcvr = [2] of { mtype, bit };
+active proctype Sender()
+{ bool seq_out, seq_in;
+/* obtain first message */
+do
+:: to_rcvr!msg(seq_out) ->
+to_sndr?ack(seq_in);
+if
+:: seq_in == seq_out ->
+17
+
+--- Page 18 ---
+/* obtain new message */
+seq_out = 1 - seq_out;
+:: else
+fi
+od
+}
+active proctype Receiver()
+{ bool seq_in;
+do
+:: to_rcvr?msg(seq_in) ->
+to_sndr!ack(seq_in)
+:: timeout ->/* recover from msg loss */
+to_sndr!ack(seq_in)
+od
+}
+PROMELA allowsmessagetypedeﬁnitionsusing mtypestatementtodeclaresym-
+bolicvaluestpabstractfromthespeciﬁcvaluestobeusedin messagepassing. Message
+channelsare used to model the transfer of data from one proce ss to another. They are
+declaredeitherlocallyorgloballyusingthe chanstatement withthe size ofthe chan-
+nelinsquarebracketsandalistofmessagetypesinbraces. T heproctype statement
+declaresa processwith parameters,but it doesnotrun them. Sucha processis instan-
+tiatedbya runoperation,whichcanalsospecifyactualparameters. Alter natively,the
+active modiﬁer can be used to make an instance of the proctype to be ac tive in the
+initialsystemstate. Formessagepassingsyntax, PROMELA usesch!expr tosendthe
+valueofexpression exprtothechannel ch,andch?msg toreceivethemessage. The
+messageisretrievedfromtheheadofthechannel,andstored inthevariable msg. The
+channelspassmessagesinﬁrst-in-ﬁrst-outorder.
+The basic control ﬂow constructs in PROMELA arecase section usingif...fi ,
+andrepetition usingdo ...od constructs, which use the syntax of guarded com-
+mands. However,thesemanticsoftheselectionandrepetiti onstatementsin PROMELA
+aredifferentfromotherguardedcommandlanguages. First, thecommunicationcanbe
+eitherCSPstylerendezvousorasynchronous. Moreover,the statementsarenotaborted
+when all guards are false but they block, providing the requi red synchronisation. In
+PROMELA thereis nodifferencebetweenconditionsandstatements– t he executionof
+every statement is conditional on its executability . State ments are either executable
+or blocked ( FALSE). The executability is the basic means of synchronisation. A pro-
+cess can wait for an event to happen by waiting for a statement to become executable
+(TRUE).PROMELA accepts two different statement separators: an arrow ->and the
+semicolon ;. The two statement separators are equivalent. The arrow is s ometimes
+usedasaninformalway toindicateacausalrelationbetween two statements.
+Thetimeout statement modelsa special conditionthat allowsa processt o abort
+waiting for a condition that may never become true. It provid es an escape from a
+deadlocked or hang state. The timeout condition becomes tru e only when no other
+18
+
+--- Page 19 ---
+statementswithinthedistributedsystem isexecutable.
+Thefollowingexampleillustratestheimplementationofa D ijkstrasemaphore,us-
+ing binary rendezvous communication. This is achieved by de claring semato be a
+channelofsize 0.
+#define p 0
+#define v 1
+chan sema = [0] of { bit };
+proctype dijkstra()
+{ byte count = 1;
+do
+:: (count == 1) ->
+sema!p; count = 0
+:: (count == 0) ->
+sema?v; count = 1
+od
+}
+proctype user()
+{ do
+:: sema?p;
+/* critical section */
+sema!v;
+/* non-critical section */
+od
+}
+init
+{ run dijkstra();
+run user();
+run user();
+run user()
+}
+A system described in PROMELA can be automatically analysed for correctness
+violations. Thefollowingtypesofviolationsaretypical.
+Assertions Thestatement assert(exp) statementhasnoeffectifthebooleancon-
+ditionexpholds. If the conditiondoesnot necessarily hold, i.e., the re is an ex-
+ecution sequence in which the condition is violated, the sta tement will produce
+anerrorreportduringveriﬁcationswithSpin.
+End-states Valid end-states are those system states in which every proc ess instance
+and the initprocess has either reached the end of its deﬁning program bod y
+19
+
+--- Page 20 ---
+orisblockedatastatementthatislabelledwithalabelthat startswiththepreﬁx
+end. All other states are invalid end-states, signifying deadl ocks. During veri-
+ﬁcation an error is reported if there is an execution that ter minates in an invalid
+end-state.
+Progress states A progressstate is any system state in which some process ins tance
+is at a statement with a label that starts with the preﬁx progress . Anon-
+progress cycle is detected by the veriﬁer if there is an execution that does n ot
+visitaprogressstateinﬁnitelyoften. Non-progresscycle sindicatethepossibility
+ofstarvationorlock-out.
+Acceptance states An acceptance state is any system state in which some process
+instance is at a statement with a label that starts with the pr eﬁxaccept. An
+error is reported by the veriﬁer if there is an executionthat visits an acceptance
+state inﬁnitelyoften.
+Temporal claims LTLformulae can be used to express general safety and liveness
+properties. SPINcompiles an LTLformulae into a never claim , the negation of
+the correctness property. A never claim never {statements} is a special
+type of process that, if present, is instantiated once. It is equivalent to a B¨ uchi
+automaton representing the negated property, and is used to detect behaviours
+that are considered undesirable or illegal. When checking f or state properties,
+such as assertions, the veriﬁer reports an error if there is a n execution that ends
+in a state in which the never claim has terminated. i.e., has r eached the end of
+its body. When checking for acceptance cycles, the veriﬁer r eports an error if
+thereisanexecutionthat visitsinﬁnitelyoftenanaccepta ncestate. Thus,a tem-
+poralclaimcandetectillegalinﬁnite(hencecyclic)behav iourbylabellingsome
+statements in the never claim with an acceptance label. In su ch situations the
+neverclaimis saidtobe matched. Inthe absenceofacceptanc elabels,nocyclic
+behaviourcanbematchedbyatemporalclaim. Also,tochecka cyclictemporal
+claim, acceptance labels should only occur within the claim and nowhere else
+in thePROMELA system. A never claim is intended to monitor every execution
+step in the rest of the systemfor illegalbehaviourandforth isreasonit executes
+in lock-step with the other processes (synchronous product ). Such illegal be-
+haviour is detected if the never claim matches along a comput ation. If a claim
+blocks(becausenostatement inits bodyisenabled)butit is notat theendof its
+bodythenthereisnoneedtoexplorethiscomputationanyfur ther.
+2.2.1 Implementing STATEMATE statechartsin SPIN[Mikk et al,1998]
+Theworkreportedin[41]usestheextendedhierarchicalaut omata(EHA)modelof[40]
+as an intermediate format for translating STATEMATE statecharts to SPIN. The choice
+of EHA was motivated by the need for a structural operational semantics deﬁnition
+for statecharts which is difﬁcult in the presence of interle vel transitions. The EHA
+model uses transitions between states at the same level by li fting interlevel transitions
+to the uppermoststates that are exited and entered, with ann otationson the transitions
+todescribethe actualsourceandtarget.
+20
+
+--- Page 21 ---
+Deﬁnition2.1 AnEHAconsistsofa set ofsequentialautomata. A sequentialautoma-
+tonAisa4-tuple (Σ, s0, L, δ)where Σisthesetofstates, s0∈Σistheinitialstateof
+A,Listhe set oftransitionlabelsand δ⊆Σ×L×Σisthetransitionrelation. Fora
+set of sequentialautomata F={A1, . . ., A n}with mutuallydisjoint state spaces, the
+compositionfunction γ:/uniontext
+A∈FΣA→℘(F)mapsastate sofasequentialautomaton
+toasetofautomata G⊆F;sissaidtobe reﬁnedby Ginsuchacase. Acomposition
+functionisrequiredtobe tree-likewith designatedroot au tomaton γroot. If|γ(s)|= 1
+thensis reﬁned by a single automaton; if |γ(s)|>1thensis reﬁned into a parallel
+compositionof automata. If γ(s) = 0,sisabasic state .
+Asinusualindeﬁningthesemanticsofstatecharts,systems tatesofanEHA Hare
+modelledbyconﬁgurations. A conﬁguration isasetofstatesofthecomponentsequen-
+tial automata of H, with every sequential automaton contributing at most one s tate to
+a conﬁguration. The root automaton γrootis part of every conﬁguration. Whenever a
+non-basicstate isina conﬁguration,eachofitsdirectsub- automatamust contributeto
+theconﬁguration,andviceversa. Thesetofallconﬁguratio nsisdenoted Conf(γ). The
+initialconﬁgurationisderivedfromheinitialstatesofth esetofsequentialautomatain
+atop-downmannerstartingfromtherootautomaton.
+Thelabel Lofatransitionfromsourcestate stotargetstate s′isa4-tuple (sr, ex, ac, td ):
+•Thesourcerestriction sr∈Conf(γ↾s)ofa labelis usedtorestrict theenabled-
+nessofthetransitiontoaset ofsub-conﬁgurationsbelow s.
+•Thetransitionguard is a proposition exovereventsandstate names. Theset of
+eventsofanEHA isdenoted E. Modelsof exarestatuses: pairs(C,E) where C
+isa conﬁgurationand E isa set ofevents.
+•Theset ofgeneratedeventsis ac.
+•Thetarget determinator td∈Conf(γ↾s′)is used to determine the states to be
+enteredin thesub-automataofthetransitiontarget.
+A transition t= (s,(sr, ex, ac, td ), s′)of an automaton A∈Fisenabledin a
+status (C,E) where C ∈Conf(γ)and E ⊆E, iff the source state is active i.e., s∈C,
+the sourcerestriction is an active sub-conﬁguration sr⊆C, and transitionguard exis
+enabled,(C,E) |=ex.
+Example2.3 The EHA corresponding to the statechart in Figure 1 is shown i n Fig-
+ure 3. The original statechart is transformed to sequential automata TV,IMAGE,
+SOUNDandPOWER, depicted by dashed rounded boxes. The state WORKING of se-
+quentialautomaton TVisreﬁnedintothesetofsequentialautomata {IMAGE,SOUND },
+denoting their parallel composition. The state WAITING is reﬁned into the singleton
+set{POWER }. The interlevel transitions labelled t6,t7andt8in Figrefexample-1
+arereplacedbytransitionslabelled l3,l1andl2,respectively. Notethatincontrast
+tostatecharts,atransitioninanEHAalwaysresideswithin onesequentialautomaton.
+The transition labelled l3is enabled if WAITING andSTANDBY are active and the
+eventonis present. The effect of taking the transition is that the st atesWORKING ,
+PICTURE andONareentered.
+21
+
+--- Page 22 ---
+l3TV
+txt insoundWORKING WAITING
+PICTURE
+TEXTON
+OFFSTANDBY
+DISCONNECTEDtxtmuteoutl1
+l2
+LabelSourcerestriction Guard Targetdeterminator
+l1 ∅ off {STANDBY }
+l2 ∅ out {DISCONNECTED }
+l2 {STANDBY }on {DISCONNECTED }
+Figure3: ExtendedHierarchicalAutomatonforFigure1
+The translationfromstatechartsto SPINis basedon the formaloperationalseman-
+tics ofSTATEMATE as presented in [40], based on the informal presentation in [ 24].
+The semantics of an EHA H= (F, E, γ )is given in terms of a Kripke structure
+K= (S,s0,STEP→), where S=Conf(γ)×℘(E)is the set of states (or statuses)
+ofK,s0= (C0,∅)istheinitial state of KandSTEP→ ⊆S×Sisthetransitionrelation
+ofKdeﬁningtheoperationalsemanticsofEHA.Theoperationals emantics,presented
+inSOS style,is intermsofthreeprincipalrules:
+ProgressRule : Thisrule applied to a sequential automaton Aif one of its states sis
+in conﬁgurationC andifoneof theoutgoingtransitionsisen abled;oneofthem
+is taken non-deterministically. The transition label dete rmines the effect of the
+transition: the target state s′and the target determinator states are entered, and
+eventsof acaregenerated.
+Composition Rule : This rule applies to an automaton Athat has one of its states
+sin the conﬁguration C but all outgoing transitions are disab led. If the state s
+is reﬁned to a set of automata {A1, . . . , A n}, the rule delegates the step to the
+sub-automatabycollectingthe resultsofthestepsperform edbythe Ai.
+StutteringRule : Thisruleappliestoa basic state sin theconﬁgurationC with none
+of its outgoing transitions enabled. The effect is to remain in state swithout
+generatinganyevents.
+Thedetailsoftheoperationalsemanticscanbefoundin[40, 41].
+22
+
+--- Page 23 ---
+The paper presents two translation frameworks from EHA to SPIN, leading to se-
+quential or parallel code, of which the former can be veriﬁed more efﬁciently. The
+sub-language of statecharts considered in the paper restri cts the set of actions to only
+generatedeventsanddoesnotconsiderdatatransformation s,historyandtimingissues.
+Given an EHA and its operational semantics in terms of a Kripk e structure K,
+the translation maps the EHA to a PROMELA model P. The salient features of the
+translationarelisted below.
+1. The PROMELA model Pcontainsvariablesnecessary to encodestates of Kand
+aPROMELA processorprocessesencodingthetransitionrelationof K.
+2. The operational semantics of STATEMATE statecharts in terms of EHA is used
+to achieve a structural translation – rules of the semantics are used as generic
+patternwhilegeneratingcodeforEHA.
+3. Conﬁgurationsof anEHA are implementedbydeﬁningforeve rysequentialau-
+tomatawith nstatesavariablethatdistinguishesatleast n+ 1differentvalues–
+nvalues represent the states of the automaton and the extra va lue to model that
+theautomatondoesnothaveanactivestate inthecurrentcon ﬁguration.
+4. Eventsarerepresentedbybooleanvariables.
+5. Because parallel composition in PROMELA has an interleaving rather than syn-
+chronous semantics, to implement concurrent access to the v ariables encoding
+states and events, two copies of each variableare neededto e ncodethe pre- and
+post-state.
+6. The translation supports closed systems only, i.e., the s peciﬁcation should con-
+tain anabstractmodeloftheenvironment.
+7. To implementthebehaviourof ANDstates, a parallelcompositionof EHA must
+be implemented. The challenge is to implement it in PROMELA , which uses an
+interleavingmodelofparallelism. Therearetwochoicesfo rthisimplementation:
+•Parallel solution. Transitionsin parallel automataare ex ecutedin an inter-
+leaved fashion, i.e., parallel automata are mapped to PROMELA processes.
+Thisrequiresaschedulertoimplementthetransitionsina“ lock-step”man-
+ner,asdictatedbythe semantics.
+•Sequential solution. An arbitrary interleaving of paralle l transitions is de-
+termined at compile-time and translated to a fully sequenti al implementa-
+tion.
+8. The operational semantics of STATEMATE statecharts in terms of EHA induces
+a depth-ﬁrst search traversal strategy of the hierarchical structure of EHA. First
+the root automaton is considered for enabled transitions. I f it does not have an
+enabled transition in the active state then the sub-automat a of the active state
+are scheduled, control being passed to each of them in arbitr ary order. This
+translationschemahastwoadvantages:
+23
+
+--- Page 24 ---
+•Hierarchical structure is mapped to if-clauses of PROMELA , faithfully im-
+plementingthehierarchyof STATEMATE statecharts.
+•Redundantchecksare avoidedby checkinghigher-leveltran sitionsfor en-
+ablednessﬁrst.
+9. The implementation of a sequential automaton either exec utes one of its transi-
+tions, depends on the execution of its subcomponents or rema ins in its current
+state. All these cases are implementedas conditionsover th e pre-state variables
+andassignmentstopost-statevariables.
+10. In orderto generateinﬁniterunsof the PROMELA modelthe codeforthe transi-
+tionrelationiswrappedintoaninﬁniteloop.
+Discussion
+Statecharts subset The translation handles a limited subset of STATEMATE state-
+charts- no data transformations(suchas actionswith assig nmentsto variables),
+timing primitives or history are supported. In principle, s ome of these limita-
+tions can be handled by adding more features to the EHA semant ic model and
+correspondingtranslationrules.
+Model extractor and SPINback end for error reporting The translator automati-
+cally translatesgraphical STATEMATE modelsinto PROMELA with aSPINback-
+endthattranslatescounterexamplesbackintotermsoftheo riginalspeciﬁcation.
+Thusthetranslationto PROMELA ishiddenfromtheuser.
+2.2.2 TranslatingUMLStatechartsto PROMELA /SPIN[Latellaetal,1999]
+ThepaperbyLatellaetal[33]proposesatranslationfromas ubsetofUMLstatecharts
+intoPROMELA . The work is based on an operational semantics of UML statech arts
+presented in [34] which is similar to the approach in [40], th e basis for the work by
+Mikketaldescribedintheprevioussection. Liketheprevio uswork,thesubsetofstat-
+echarts considered does not include history, action and act ivity states. Further, events
+are restricted to signal and call events, without parameter s; time and change events,
+object creation and destruction events and deferred events and branch transitions are
+notnotconsidered. Variablesanddataarenotconsideredso that actionscanonlygen-
+erate events. Entry and exit actions of states are also abstr acted away. The translation
+toPROMELA followsthe basic approachof Mikk et al, with appropriatemo diﬁcations
+to account for UML statecharts semantics. Some of these cons iderationsare the com-
+plications induced by the UML transition priorities and the ir reverse relation with the
+hierarchical structure of states. The translation is param etric with respect to a notion
+of priority schema, which can be instantiated with the UML sp eciﬁc case. It is also
+parametricwith respect to the environment,unlike the prev iouswork, where the envi-
+ronmentis representedas a set of events at each step. The aut horsclaim that the code
+generatedisalso muchsimpleranddoesnotneedtouse pre-an dpost-variables.
+Herearethe importantfeaturesofthetranslationfromEHA t oSPIN:
+24
+
+--- Page 25 ---
+1. Eventsaretreatedasuninterpretedsymbolsandrepresen tedasintegervalues.
+2. Since the UML semantics of statecharts do not specify the s emantics of queues
+for storing events directed to an object, the speciﬁer is fre e to choose among a
+set, a multi-set and a FIFO queue, as the representation. The choice is an input
+parameterforthetranslator.
+3. Setsandmultisetsarerepresentedbytheircharacterist icfunction( none-bitvari-
+ables) and multiplicity functions ( ninteger variables), respectively. A FIFO
+queue is directly mapped to a PROMELA channel whose length LTis speciﬁed
+bythedesigner.
+4. An individual state is modelled by a single bit variable. A conﬁguration corre-
+spondstothosestateswhosebitsareset to 1.
+5. ThestepsoftheKripkestructurecorrespondingtotheEHA aregeneratedbythe
+PROMELA processcalled STEP,whichhasthefollowingfourphases:
+(a) selectionofaneventfromtheenvironment;
+(b) identiﬁcationofall thecandidatetransitionsforﬁrin g;thisincludesidenti-
+ﬁcationofenabledtransitionsandresolutionofconﬂictsb asedontransition
+priority;
+(c) selection of those transitions among the candidate ones that will be ﬁred;
+thisincludesselectionamongconcurrent(orthogonalsubs tates)andchoice
+amongnondeterministicalternatives;
+(d) actual ﬁring of the selected transitions, including ide ntiﬁcation of the re-
+sultingconﬁgurationandgenerationofnewevents.
+6. The STEPprocessincludesalooptogeneratesuccessivestepsoftheE HA.The
+atomicityofeachstepisensuredbyusingthe atomic directivein PROMELA ˙This
+impliesthattheonlyvaluesavailableforveriﬁcationaret heonesobtainedatthe
+endofeachcycle.
+7. The PROMELA code generated for selecting an event from the input queue, i n
+case thequeueisrepresentedbya set, usestheselectioncom mand:
+if
+:: Qe_1 -> Ev = e_1; Qe_1 = 0
+.
+.
+.
+:: Qe_n -> Ev = e_n; Qe_n = 0
+fi
+HereQe_iisthebitrepresentingthepresenceofevent e_i. Incase amulti-set
+representationisused,theguardis Qe_i >= 1 andtheactionis Qe_i--. Ifa
+channelisused,theinputcommand Q?Evisused.
+25
+
+--- Page 26 ---
+8. Inordertoidentifythecandidatetransitionsforﬁring, abooleanvariable Cand_i
+corresponding to the transition t_iin the EHA is used. An assignment to
+Cand_i correspondstoimplementingtheprogressrulein thelast se ction.
+9. Theactualtransitionselectionphaseinvolvesresoluti onofconﬂictsandselection
+of one transition among the candidates. This is done by nonde terministically
+assigning 1to the bit variable Sel_iifCand_i holds. The code for such an
+assignmentisgeneratedrecursivelyfollowingthetreestr uctureoftheEHA.
+10. The actual ﬁring of the selected transition t_iinvolvessetting the bit variables
+forthestatesthatareenteredandresettingthevariablesf orstatesthatareexited.
+Inaddition,all generatedeventshaveto storedin theinput queue.
+Example2.4 An optimised version of the PROMELA code generated from the state-
+chartinFigure1bythisapproachisshownbelow. Notethatth etranslationreﬂectsthe
+UMLsemanticsoftransitionpriorityandconcurrentexecut ion,whichisdifferentfrom
+theintendedsemanticsintheoriginalstatechart.
+/* events */
+#define txt 1
+#define mute 2
+#define sound 3
+#define on 4
+#define off 5
+#define out 6
+#define in 7
+/*states */
+bit WORKING, PICTURE, TEXT, ON, OFF, WAITING, STANDBY, DISC ONNECTED
+/* set of events in the current environment */
+bit Q_txt, Q_mute, Q_sound, Q_on, Q_off, Q_out, Q_in;
+/* selected event */
+int Ev;
+/* whether transition t_i is a candidate for firing */
+#define Cand_0 (WORKING & PICTURE & (Ev == txt))
+#define Cand_1 (WORKING & TEXT & (Ev == txt))
+#define Cand_2 (WORKING & ON & (Ev == mute))
+#define Cand_3 (WORKING & OFF & (Ev == sound))
+#define Cand_4 (WAITING & STANDBY & (Ev == out))
+#define Cand_5 (WAITING & DISCONNECTED & (Ev == in))
+#define Cand_6 (WAITING & STANDBY & (Ev == on)) & \
+!(WAITING & STANDBY & (Ev == out))
+#define Cand_7 (WORKING & (Ev == off)) & \
+!(WORKING & PICTURE & (Ev == txt)) & \
+!(WORKING & TEXT & (Ev == txt)) & \
+!(WORKING & ON & (Ev == mute)) & \
+26
+
+--- Page 27 ---
+!(WORKING & OFF & (Ev == sound))
+#define Cand_8 (WORKING & (Ev == out)) & \
+!(WORKING & PICTURE & (Ev == txt)) & \
+!(WORKING & TEXT & (Ev == txt)) & \
+!(WORKING & ON & (Ev == mute)) & \
+!(WORKING & OFF & (Ev == sound))
+proctype STEP()
+{do
+::
+atomic{
+if
+:: Q_txt -> Ev = txt; Q_txt = 0
+:: Q_mute -> Ev = mute; Q_mute = 0
+:: Q_sound -> Ev = sound; Q_sound = 0
+:: Q_out -> Ev = out; Q_out = 0
+:: Q_in -> Ev = in; Q_in = 0
+:: Q_on -> Ev = on; Q_on = 0
+:: Q_off -> Ev = off; Q_off = 0
+fi;
+if
+::Cand_6 -> WAITING = 0; STANDBY = 0; WORKING = 1; PICTURE = 1; O N = 1;
+::Cand_7 -> WORKING = 0; PICTURE = 0; TEXT = 0; ON = 0; OFF = 0;
+WAITING = 1; STANDBY = 1;
+::Cand_8 -> WORKING = 0; PICTURE = 0; TEXT = 0; ON = 0; OFF = 0;
+WAITING = 1; DISCONNECTED = 1;
+::Cand_0 -> PICTURE = 0; TEXT = 1;
+::Cand_1 -> TEXT = 0; PICTURE = 1;
+::Cand_2 -> ON = 0; OFF = 1;
+::Cand_3 -> OFF = 0; ON = 1;
+::Cand_4 -> STANDBY = 0; DISCONNECTED = 1;
+::Cand_5 -> DISCONNECTED = 0; STANDBY = 1;
+::else -> skip
+fi}
+od}
+init
+{
+atomic{
+/* initial configuration */
+WAITING = 1; STANDBY = 1; DISCONNECTED = 0; WORKING = 0; PICTUR E = 0;
+TEXT = 0; ON = 0; OFF = 0;
+}
+run STEP()
+27
+
+--- Page 28 ---
+}
+Discussion
+Statechartssubset The subset of UML statecharts considered coversthe aspects re-
+lated to concurrency and state hierarchy. Variables, histo ry states, structured
+events and completiontransitions are not coveredbut can be handled conceptu-
+ally.
+Multiplestatecharts Thetranslationdoesnotconsidermultiplestatechartswit hmul-
+tiple input queues, one for each object, which communicate w ith each other.
+However, the authors claim that the translation can be easil y adapted to handle
+multiplestatechartsaswell.
+Complexity The semantic rules and the translation scheme are more invol ved than
+theworkinthe previoussection.
+2.2.3 Translating UML statecharts to PROMELA /SPINusing vUML [Lilius et al,
+1999]
+TheworkbyLiliusand Paltor[36]discussa formalisationof UML state machinesfor
+translation to PROMELA /SPINas part of their veriﬁcation tool vUML [43]. The main
+featuresofthisformalisationare listedbelow.
+•Theworkhastwo parts:
+–A formalisationof the structure of UML state machinesthat is simple and
+declarative,andallowsonetoformulatethetransitionsel ectionalgorithm.
+–A formalisation of the operational semantics of UML state machines that
+isrelativelycomplete,coveringallits interestingaspec ts.
+•The veriﬁcation performedby the tool vUML is limited to the a utomatic veriﬁ-
+cationperformedby SPINwithoutuserintervention,viz. deadlockcheckingand
+somerobustnesschecks.
+•The formalisation of the structure of UML statecharts uses l inear ground terms
+overasignaturewithstatesasoperationstodescribestate conﬁgurations. Transi-
+tionsaredeﬁnedastuplesofsourceandtargetconﬁguration sanda label,which
+deﬁnesthetrigger,guardandthe effectofthetransition.
+•The UML run-to-completion(RTC) step is modelled by an algor ithm that calls
+theoperationsinan abstractdatatype(ADT)modellingthe e ventqueue.
+Discussion
+Statechartssubset The subset of UML statechartsconsideredis biggerthan in mo st
+otherworks.
+28
+
+--- Page 29 ---
+Scope of Veriﬁcation The veriﬁcation performed in SPINrequires no user interven-
+tion,andisthereforelimited–essentially deadlockdetec tion.
+TranslationschemeThedetailsofthetranslationto PROMELA arenotprovidedinthe
+citedpapers.
+2.3 The STATEMATE VeriﬁcationEnvironment [Damm etal,2000]
+This work is reported in a series of papers by Werner Damm and h is coworkers at
+OFFIS, Universityof Oldenburg[7,8,10],which describe th e transition froma proto-
+type veriﬁcation system for STATEMATE to a commercial product from i-Logix. The
+salientfeaturesofthe STATEMATE VeriﬁcationEnvironmentare listedbelow.
+1. TheenvironmentusesanintermediatelanguagecalledSMI fortranslating STATE-
+MATEmodelsintotheinputlanguageofamodelchecker.
+2. The current version (2000) is based on a tight integration with the VISmodel
+checker [20] and the CUDD BDD package [50]. VISis a BDD-based symbolic
+modelcheckerthatuses CTLto specifysystemproperties.
+3. Theunderlyingveriﬁcationtechnologyiscompletelyhid denfromtheuser,using
+push-buttonanalysistechniquesandvisualspeciﬁcationo fpropertiesintheform
+of a pre-deﬁned speciﬁcation pattern library. The pre-deﬁn ed properties can be
+used to expressboth correctnesspropertiesof the designan dassumptionsabout
+theenvironment.
+4. To perform model analysis by symbolic model checking, the FSM describing
+the model’s behaviour is extended automatically with observers , which allows
+thespeciﬁcationofrobustnesspropertiesasatomicpropos itionsp. Thesepropo-
+sitionsarethencheckedusingsimple CTLformula AGpforinvariants. Acoun-
+terexamplepathforthiscorrectnessformulacanbeusedtod rivethe STATEMATE
+simulator.
+5. Thecorrectnesspropertiesspeciﬁedintheuserinterfac earetranslatedautomati-
+callyintotemporallogicformulas,whileassumptionsabou ttheenvironmentare
+translatedintoobserverautomata.
+6. Veriﬁcation is done by adding the observers for the assump tions and fairness
+constraintstothemodel,andperformingmodelcheckingusi ngVIS.
+7. The veriﬁcation environment supports push-button analy sis for veriﬁcation of
+thefollowingrobustnesspropertiesof STATEMATE designs:
+•simultaneousactivationofconﬂictingtransitions
+•multiplewrite accessestoa singledataitemin thesamestep
+•parallelread-andwrite-accesstothesame object
+8. Simplereachabilitymechanismsareprovidedtodrivethe simulationofa STATE-
+MATEmodeltosomeuserspeciﬁedstate orproperty.
+29
+
+--- Page 30 ---
+9. To overcome the state explosion problem associated with m odel checking, the
+environmentusesboth compositionalreasoning andabstraction techniques.
+10. The veriﬁcation environment computes the cone-of-inﬂuence (COI) of a model
+Mwithrespecttoaproperty φ,whichrestrictsthemodeltoonlythosevariables
+that may inﬂuence the truth of φ. The propositional abstraction supported in
+theSTATEMATE veriﬁcationenvironmentprovidesamechanismtoautomatic ally
+computean over-approximation Mαwith respecttoa set ofvariableschosenby
+the user from within the COI. Both the COI and the computation required to
+to build Mαare performed on the intermediate representation of the mod el in
+SMIbeforetranslationto VIS. Theabstractiontechniquecanalsohandlemodels
+containinginﬁniteobjects.
+11. The veriﬁcation methodology is to use repeated COI reduc tions, abstractions
+and model checking. If the abstracted model satisﬁes the pro perty,then so does
+the original model. If the model checking reports failure of the property, the
+counterexample is analysed, either to conclude that it is a g enuine one or to
+identifyfurtherreﬁnementsinthe abstraction,in caseit i sa spuriousone.
+2.4 VeriﬁcationofStatechartsusingEsterelTools[Seshia etal1999]
+In [49], a method of translating statecharts to Esterel is pr oposed. A prototype im-
+plementation has also been developed by the authors. The aim of this translation is
+to extend the powerful veriﬁcation and code generation tool s of Esterel to statecharts.
+Theimportantfeaturesofthisproposalis:
+1. The STATEMATE semanticsofstatechartsisused.
+2. Since Esterel is deterministic, only the deterministic f ragment of statecharts is
+consideredfortranslation.
+3. Almost all the featuresof statecharts, like history and i nter-leveltransitions, are
+consideredinthetranslation.
+4. Inthetranslationofastatechart,thereisanEsterelmod ulecorrespondingtoeach
+OR-state. Themodulesimulatesthebehaviourofthe state.
+5. The signals of statecharts are translated to correspondi ngEsterel signals. In ad-
+dition,eachEsterelmodulehasasetofsignalscorrespondi ngtoeverytransition
+in the state machines. The latter signals are used to impleme nt the transfer of
+controlfromonemoduletoanother.
+6. A special STEP signal is used for implementing the super st ep semantics of
+statecharts.
+Thereareanumberofproblemswith theproposedscheme:
+•Since each OR-state is translated into a module, there is a state space exp losion
+whichwouldrestrict thesize ofmodelsthat canbeveriﬁed.
+30
+
+--- Page 31 ---
+•Estereltoolshaveaverylimitedveriﬁcationsupportandhe ncecomplexproperty-
+basedveriﬁcationscannotbecarriedoutusingthetool.
+•Thereisnotmuchexperienceinusingthetoolin anindustria lsetting andhence
+it isnotclearwhetherit will scale up.
+•When the veriﬁcation fails in the translated code, there is n o traceability to the
+originalmodel.
+2.5 VeriﬁcationofCommunicatingReactiveStatemachines[ Ramesh
+etal]
+In [46], a pictorial language based upon statecharts, calle d Communicating Reac-
+tive State Machines (CRSM), has been proposed for programmi ng distributed real-
+time controlapplications. A comprehensiveenvironmentfo r developingandverifying
+CRSMdescriptionshasbeendeveloped[13,53]. Theenvironm entenableseditingand
+simulation of CRSM descriptions. Formal veriﬁcation of the designs can also be car-
+riedoutinthisenvironment. Veriﬁcationisbasedupona tra nslationofCRSM designs
+toPROMELA code. Properties are speciﬁed using distributed observer a utomata. Dis-
+tributedobserversare state machines,one foreachCRSM nod e,which checkwhether
+any safety constraint is violated. The state machines of the distributed observers can
+communicatewith each otherand hencecan specify bothgloba l andlocal constraints.
+ThetranslationofCRSM into PROMELA codeconsistsofthe followingsteps:
+1. Eachnodeistranslatedintoa PROMELA process.
+2. The PROMELA process correspondingto a node (the node process) executes re-
+peatedlyat discreteintervalsoftime, thedifferenttrans itionsofthenode.
+3. At each step, the node process performs an atomic sequence of transitions that
+aretriggeredbytheexternalinputsortheinternaltransit ionsfromthesamenode.
+4. Theenvironmentismodelledasadifferentprocesswhichc ontrolstheexecution
+ofthenodeprocess.
+5. Theobserverprocessisalsotranslatedaspartofthenode process. Aspecialkind
+oflabelsaregeneratedin the PROMELA codewhichareusedinthe veriﬁcation.
+6. The properties for veriﬁcation are automatically genera ted and fed to the SPIN
+modelchecker.
+7. If the veriﬁcation fails, traceability to the original CR SM designs is also built
+into.
+Relatedtostatechartsveriﬁcation,therearea fewproblem swith thetool:
+•ThesemanticofCRSM is baseduponEsterelratherthanclassi cal statecharts.
+•Onlysafetypropertiescanbeveriﬁedusingthetool.
+•Moreexperimentsareneededtoseethescalabilityofthetoo lforlargeindustrial
+applications.
+31
+
+--- Page 32 ---
+2.6 Exploiting Behavioural Hierarchy for Efﬁcient Model Ch eck-
+ing [Aluretal 2002]
+In a series of papers [1–6] Rajeev Alur and his coworkers have proposed a method
+for model checking of hierarchical state machines by exploi ting the modularity in the
+design. This is in contrast to the above approacheswhich tra nslate statecharts speciﬁ-
+cationsintotheinputlanguagesofexistingmodelcheckers ,thuslosingthehierarchical
+structureinthe inputspeciﬁcation.
+The input language to the model checker in this work is based o nhierarchic re-
+active modules (HRMs) [4], a variant of statecharts where the notion of hier archy in
+behaviour descriptions is semantic rather than syntactic. More precisely, HRMs have
+an observational trace-based semantics that allows deﬁnin g a reﬁnement preorder on
+hierarchic states. Further, HRMs support extended state ma chines where the commu-
+nication is via shared variables. The central component of a n HRM is a mode, which
+roughly resembles an OR-state in a statechart. A mode consists of local and global
+variables, well-deﬁned control points, classiﬁed into ent ry and exit points, and sub-
+modes that are connected with each other by transitions. The transitions are labelled
+with guarded commands that access the variables according t o natural scoping rules.
+Thetransitionscanconnecttoamodeonlyatitsentry/exitp oints,unlikeinstatecharts.
+Thus a mode is a black box whose internal structure is not visi ble from outside. The
+mode has a default exit point, whose outgoing transitions are applicable at all con trol
+points within the mode and its submodes. The default exit ret ains the history, and the
+state uponexit isautomaticallyrestoredbytransitionsen teringthe defaultentrypoint.
+The operational semantics of modes speciﬁes that transitio ns are executed repeatedly
+until there are no more enabled transitions. The transition s are tried for execution in-
+side out, i.e., internal transitions have higher priority o ver the group transitions of the
+enclosing mode. The language allows multiple instantiatio ns of a single mode, thus
+promotingreuse. Thebehaviourofamodecanbeviewedasagam einwhichtheenvi-
+ronmenttransferscontroltothemodeatoneofitsentrypoin ts,andthemodetransfers
+the control back to the environment at one of its exit points. These macro-transitions
+froman entrypointto an exit point are usedto associate a set of executionsand a cor-
+responding set of traces with a mode. The traces of a mode can b e constructed from
+thetracesofa submode,givinga denotationalsemanticsofa mode.
+The model checker, whether enumerative or symbolic, works b y performing a
+reachabilityanalysisoftheinputHRM model,asfollows.
+1. Themodelisparsedintoaninternalrepresentationthatd irectlyreﬂectsthehier-
+archicalstructureinthe input.
+2. Theauthorshaveimplementedanenumerativecheckerbase dondepth-ﬁrstsearch
+anda symbolicsearchthatusesBDD packagesfrom VIS[20].
+3. Theenumerativealgorithmhasthefollowingfeatures.
+(a) It takes as input a set of top-level modes and a set of globa l variables that
+these modes can read and modify. The property to be veriﬁed (s ay, an in-
+variant)isalsoaninput. Toplevelmodesareassumedtobese quentialand
+32
+
+--- Page 33 ---
+run concurrently by interleaving their macro-steps. A stat e of the system
+consistsofthevaluesofalltheglobalvariablesandthesta te ofeachofthe
+top-levelmodes.
+(b) In each round one of the modes may modify the variables and change its
+own internal state. The set of states of the system can be view ed as a
+directedgraphwhere,if sandtarestatesofthesystem, (s, t)isanedgein
+thegraphiff syields tafteroneroundofexecution.
+(c) Tosearchallstates,adepth-ﬁrstsearchisperformedon thegraphbeginning
+from an initial state. For each state encountered in the sear ch the desired
+invariant is checked. If the invariant doesn’t hold then the DFS algorithm
+supplies a path in the graph from an initial state to the state violating the
+invariant.
+(d) The set of states visited is stored in a hash table, so that membership can
+bedecidedinconstanttime.
+(e) The set of successorsof a state is computedby examiningt he modes. The
+hierarchical structure of the modes is retained throughout the search. The
+analysisalgorithmsattempttoexploitthisstructurein di fferentways:
+i. The transition relation is maintained indexed by the mode s and their
+controlpointsforquickaccessto potentiallyenabledtran sitions.
+ii. States are representedas stacks of vectorsrather than v ectors. This is
+usefulforhandlingprioritiesoftransitions.
+iii. Variable scoping is also exploited for efﬁcient repres entation of state
+space. Thestackrepresentationleadstosmallermodestate sizescom-
+pared to a system where all variables are global. The total si ze of the
+state ofa modeisproportionalto thedepthofitshierarchy.
+iv. The stack structure of a mode’s state also allows conserv ing memory
+bysharingpartsofthestate.
+v. Whenonemodeisinstantiatedinmanyplacesinan HRM all of them
+exhibit the same behaviour when their global variables are t he same.
+Themodelcheckeravoidsrecomputingamode’sbehaviourifa nother
+instanceofthatmodehasalreadybeensearchedforanequiva lentcon-
+text.
+4. Thesymbolicsearchalgorithmhasthefollowingfeatures .
+(a) The algorithm does not assume that the top-level modes ar e sequential.
+A state in this case is not a stack, but a map (context) from var iables to
+their values. This context varies dynamically, depending o n the currently
+accessiblevariables.
+(b) InsteadofﬂatteningtheinputHRMmodeintoatransition relationandthen
+represent the reached states and the transition relation by ordered multi-
+valued decision diagrams (MDDs), the algorithm keeps the MD Ds in a
+decomposed way, as suggested by the modular structure. This results in a
+moreefﬁcientuseofmemory.
+33
+
+--- Page 34 ---
+(c) The reachable state-sets are represented not by a single MDD, but as a
+mappingofthecurrentlyreachedcontrolpointstotheirass ociatedreached
+region MDD. Such a representation allows us to partition the state space
+intuitively,with eachregioncontainingall the states wit h the same control
+point.
+(d) The transition relation is representedas a map fromcont rol pointsto a list
+of pairs containing destinations of edges along with MDDs en coding the
+corresponding guarded commands. In this representation ea ch transition
+is much smaller than the counterpart used in a ﬂat representa tion. This is
+possible because local variables in distinct modes are not s imultaneously
+activeandthemappingprovidesinformationoncontrolpoin ts. Thetyping
+andscopinginformationoftheoriginalmodelismaintained duringcompi-
+lationtoachievethiseconomy.
+(e) The reachability computation computes reachable state s at each control
+point. When a top mode Migets control for the ﬁrst time, it starts the
+image computation from its entry point by following the tran sitions until
+thecontrolgetsstuck.
+(f) The image computation returns an MDD Sithat contains the information
+aboutwhereandhowthecontrolinside Migetsstuck.
+(g) In the ﬁrst iteration, each top mode is given a chance to do the ﬁrst image
+computation. The next iteration is started by building a cur rent onion ring
+for top mode Mibased on the stuck sets/uniontext
+iSi. The current onion ring is
+a map from the control points where the control became stuck d uring the
+lastimagecomputationat Mitonewlyreachedstatesobtainedfromimage
+computationsat topmodesotherthan Mi.
+(h) By applying the image computation to the current onion ri ng atMi, the
+controlmaycontinuefromthosestuckcontrolpoints.
+(i) Thealgorithmterminatesifalltheonionringsfortopmo desareemptyi.e.,
+nonewstatescanbereachedat anycontrolpoint.
+Discussion
+1. Unlike statecharts, HRMs have well-deﬁned entry and exit points and the tran-
+sitions can connect to a mode only at its entry/exit points. A mode in an HRM,
+unlike a state, can be instantiated more than once, leading t o sharing. The com-
+munication between the top-level modes is via shared variab les. The local and
+globalvariablesinHRMsfollowtheusualscopingrulesinbl ockstructuredlan-
+guages. Actions (guarded commands) are associated with onl y transitions and
+not modes or control points. All this makes the model substan tially different
+from the statecharts model, and difﬁcult to apply the techni que to traditional
+statecharts.
+2. The authorsstate in [1] that the experimentalevidenceto supportthe thesis that
+the proposed solution leads to more tractable analysis than compilation into a
+34
+
+--- Page 35 ---
+non-hierarchical checker is small. However, they claim tha t there is adequate
+conceptualevidencein theirfavour.
+3 Future Directions
+We have reviewed a number of approachesfor veriﬁcation of st atecharts-like descrip-
+tions. All the tools except [7] are prototypical academic to ols accepting a subset of
+features and having a wide variety of semantics ranging from STATEMATE semantics,
+UML semantics to synchronous semantics. All the tools trans late statechart descrip-
+tionsinto anothermodellinglanguagewhich can thenbe veri ﬁed. The back-endmod-
+elling languages, except the one in [3], do not exhibitthe hi gh level featureslike hier-
+archy and synchronous or step semantics of statecharts. In t he process of translation,
+these high level features are removed. For example, hierarc hical statecharts are ﬂat-
+tened leading to large state space. This will come in the way o f scalability of the
+proposed approaches. On the other hand, the input language o f HRMs in Alur et al,
+though retaining the hierarchical structure, is signiﬁcan tly different from statecharts.
+Also, except for the work reported in [7,41,46], there is no t raceability between the
+front-endandback-enddesignmodels,whichisanimportant requirement,ifonewants
+to debug the design based upon the veriﬁcation report. Final ly, very few of the tools,
+withtheexceptionofthe STATEMATE VeriﬁcationEnvironmentdescribedinSecrefsve,
+havebeentestedonactualindustrialexamples.
+Our future work will focus on all these aspects to arrive at a m ore mature tool for
+veriﬁcation of statecharts. Here we identify some research issues that would address
+thegapsin thecurrentapproachestoveriﬁcationofstatech arts.
+Veriﬁcationof statechartswithout ﬂattening the hierarch yAlthoughthe work of
+Aluretal[1–6]citedaboveisastepinthisdirection,thehi erarchicalreactivemodules
+(HRMs) model is signiﬁcantly different from statecharts. T he challenge would be to
+adopttheideaspresentedtoreﬂectthesemanticsofstatech arts. Statechartsdonothave
+the block structured push-down hierarchy displayed by HRMs . The hierarchy is bro-
+kenbyinterleveltransitionsandhigherpriorityforouter transitionsinthe STATEMATE
+semantics (the UML priority scheme is very much like HRMs). M oreover, since all
+variablesin statechartsareglobal,therewill benosaving in state spacesize byhaving
+a stack of vectors as a representation of the state space. The enumerative search al-
+gorithmproposedin [1,3] will have to be suitably modiﬁed to take into accountthese
+differences.
+Compositional Veriﬁcation based Approaches In a recent paper [45], some efﬁ-
+cient techniques for veriﬁcation of synchronous programs e xpressed in the language
+Argos[38]havebeenproposed. Inthiswork,theconditionsu nderwhichtheresultsof
+veriﬁcationof subcomponentscan be extendedto the veriﬁca tionof the wholesystem
+or programare explored. Here the subcomponentcould be a con currentautomatonor
+top-levelautomatonwithsomeofthehierarchicalstatesbe ingconvertedtobasicstates
+(i.e., the innerstate machinesremoved). Veriﬁcationof th e latter is easier than the en-
+tirestatemachine,asthenumberofconcurrentorhierarchi calcomponentscontributing
+35
+
+--- Page 36 ---
+to the global states is reduced. Obviously, not all properti es can be proved using this
+approach. If the input formula satisﬁes certain conditions , like it is local (referring to
+afewerlocalisedevents)andit doesnotstate anynegativep ropertiesabouteventsand
+statesnotpresentin thesubcomponents,thentheresulthol ds.
+Based upon this idea, a compositional veriﬁcation strategy is proposed: given a
+propertytobeveriﬁed,breakthepropertyintosub-propert iesandverifytheindividual
+propertiesseparately. Veriﬁcationofthelatterisquitel ikelytoberestrictedtorelatively
+few componentsand hencewouldbe less expensivethan verify ingthe whole property
+onthewholesystem.
+Currently,themethodworksforArgos[38]. TheArgossemant icsisa bitdifferent
+fromstatechartsandthereis aneedforextendingtheabovem ethodstostatecharts.
+Static Analysis, Slicing and Abstraction based Approaches Another way of re-
+ducing complexity of veriﬁcation is as follows: based on the property to be veriﬁed,
+the input statechart can be reduced by using slicing or cone- of-inﬂuence reduction.
+This is a promising approach which has not been sufﬁciently i nvestigated, although
+there are some early work [7,19]. Abstraction techniques ar e a powerful mechanism
+for reducing inﬁnite or large state spaces to small ones suit able for model checking.
+Butabstractionisnotanautomatedprocessandrequiresdis chargingproofobligations.
+Thisrequiresaninteractionbetweentheoremprovingandmo delcheckingwhichisan
+activeareaofresearch.
+Assumptionsabouttheenvironment Assumptionsabouttheenvironmentofastat-
+echart can lead to substantial reductions in state space siz e. These assumptions could
+beonthesequenceofinputsfromtheenvironment,aswellast hesize ofthedata.
+Reﬁnement Anotherpossibleapproachtoveriﬁcationwouldbetoreﬁnea highlevel
+abstract speciﬁcation into a detailed design speciﬁcation . Both these speciﬁcations
+would be in the form of statecharts. Veriﬁcation would amoun t to checking that the
+design implements the abstract speciﬁcation by specifying reﬁnement maps between
+thetwo.
+4 Acknowledgements
+TheauthorsthankSushilBirla,TomFuhrmanandShengbingJi angofGeneralMotors
+and Mathai Joseph of TRDDC, Pune for many discussions on this subject. The sec-
+ond author thanks the Centre for Formal Design and Veriﬁcati on of Software for the
+support.
+References
+[1] R. Alur, R. Grosu, and M. McDougall. Efﬁcient reachabili ty analysis of hier-
+archic reactive machines. In 12th International Conference on Computer-Aided
+Veriﬁcation ,volume1855of LNCS, pages280–295,2000.
+36
+
+--- Page 37 ---
+[2] R. Alur, S. Kannan, and M. Yannakakis. Communicating hie rarchical state ma-
+chines. InJ.Wiedermann,P.vanEmdeBoas,andM.Nielsen,ed itors,Automata,
+LanguagesandProgramming26thICALP’99 ,volume1644of LNCS,pages169–
+178,1999.
+[3] R. Alur, M. McDougall, and Z. Yang. Exploiting behaviora l hierarchy for ef-
+ﬁcient model checking. In 14th International Conference on Computer-Aided
+VeriﬁcationCAV’02 ,LNCS, 2002.
+[4] Rajeev Alur and Radu Grosu. Modular reﬁnement of hierarc hic reactive ma-
+chines. In Proceedingsofthe27thACMSIGPLAN-SIGACTSymposiumonPri n-
+ciples of Programming Languages (POPL-00) , pages 390–402, N.Y., January
+19–212000.ACM Press.
+[5] Rajeev Alur and Mihalis Yannakakis. Model checking of hi erarchical state ma-
+chines. In Proceedings of the ACM SIGSOFT 6th International Symposium on
+the Foundations of Software Engineering (FSE-98) , volume 23, 6 of Software
+EngineeringNotes ,pages175–188,NewYork,November3–51998.ACMPress.
+[6] Rajeev Alur and Mihalis Yannakakis. Model checking of hi erarchical state ma-
+chines.ACMTransactionsonProgrammingLanguagesandSystems ,23(3):273–
+303,May2001.
+[7] Tom Bienmller, Werner Damm, and Hartmut Wittke. The STAT EMATE Veriﬁ-
+cationEnvironment- MakingIt Real. In E. Allen Emersonand A . Prasad Sistla,
+editors,Computer Aided Veriﬁcation, 12th InternationalConferenc e, CAV 2000 ,
+volume 1855 of Lecture Notes in Computer Science , pages 561–567. Springer,
+2000.
+[8] TomBienmuller,UdoBrockmeyer,WernerDamm,GertD¨ ohm en,ClausEßmann,
+Hans-J¨ urgenHolberg,HardiHungar,BernhardJosko,Raine rSchlor,GunnarWit-
+tich, Hartmut Wittke, GeoffreyClements, John Rowlands, an d Eric Sefton. For-
+mal veriﬁcationof an avionicsapplicationusingabstracti onandsymbolicmodel
+checking. In Felix Redmill and Tom Anderson, editors, Towards System Safety:
+ProceedingsoftheSeventhSafety-CriticalSystemsSympos ium,Huntingdon,UK
+1999,pages150–173.Springer,1999.
+[9] GradyBooch, JamesRumbaugh,andIvar Jacobson. The UniﬁedModelingLan-
+guageUserGuide . Addison-Wesley,1998.
+[10] Udo Brockmeyer and Gunnar Wittich. Tamagotchis need no t die — veriﬁcation
+ofSTATEMATE designs.LectureNotesinComputerScience ,1384:217–??,1998.
+[11] Randal E. Bryant. Graph-based algorithms for boolean f unction manipulation.
+IEEETransactionsonComputers , 35(8):677–691,August1986.
+[12] William Chan, Richard J. Anderson, Paul Beame, Steve Bu rns, Francesmary
+Modugno,DavidNotkin,andJonD.Reese. Modelcheckinglarg esoftwarespec-
+iﬁcations. IEEETransactionsonSoftwareEngineering ,24(7),1998.
+37
+
+--- Page 38 ---
+[13] N.Chandra,S.Sonalkar,andN.Korade. AProgrammingEn viornmentforCom-
+municating Reative State Machines. In Technical Report - TR 02 - 11 . CFDVS,
+IITBombay,2002.
+[14] E.M. ClarkeandW. Heinle. Modulartranslationofstate chartstoSMV. Techni-
+cal Report CMU-CS-00-XXX, Carnegie-MellonUniversity Sch ool of Computer
+Science,2000.
+[15] Edmund M. Clarke, E.A. Emerson, and A.P. Sistla. Automa tic veriﬁcation
+of ﬁnite-state concurrent systems using temporal logic spe ciﬁcations. ACM
+TOPLAS,8(2):244–263,April1986.
+[16] Edmund M. Clarke, Orna Grumberg, and Doron Peled. Model Checking . MIT
+Press,1999.
+[17] W. Damm, B. Josko, A. Votintseva, A. Pnueli, I. Ober, and S. Graf. A formal
+semanticsfora UML kernel language,2002. IST-2001-33522O MEGA, Correct
+Development of Real-Time Embedded Systems, Public documen t, available at
+http://www-omega.imag.fr/doc/d1000009_6/D112_KL.pdf .
+[18] Werner Damm, Bernhard Josko, Hardi Hungar, and Amir Pnu eli. A composi-
+tionalreal-timesemanticsofSTATEMATEdesigns.InWillem P.deRoever,Hans
+Langmaack, and Amir Pnueli, editors, Compositionality: The Signiﬁcant Differ-
+ence, International Symposium, COMPOS’97, Bad Malente, Ge rmany, Septem-
+ber 8-12, 1997. Revised Lectures , volume 1536 of Lecture Notes in Computer
+Science.Springer,1998.
+[19] Vinod Ganapathy and S. Ramesh. Slicing synchronous rea ctive programs. In
+Alain Girault Florence Maraninchi and ric Rutten, editors, Electronic Notes in
+TheoreticalComputerScience ,volume65.ElsevierSciencePublishers,2002.
+[20] TheVISGroup.VIS:ASystemforVeriﬁcationandSynthes is.InRajeevAlurand
+Thomas A. Henzinger, editors, Computer Aided Veriﬁcation, 8th International
+Conference,CAV ’96 ,volume1102of LectureNotesinComputerScience ,pages
+428–432.Springer,1996.
+[21] D. Harel. Statecharts: A Visual Formalism for Complex S ystems.Science of
+ComputerProgramming ,8(3),June1987.
+[22] D.HarelandE.Gery. ExecutableObjectModelingwithSt atecharts. IEEECom-
+puter,pages31–42,July1997.
+[23] D. Harel, H. Lachover, A. Naamad, Amir Pnueli, M. Politi , R. Sherman,
+A.Shtull-Trauring,andM.Trakhtenbrot. STATEMATE:Awork ingenvironment
+forthedevelopmentofcomplexreactivesystems. IEEETransactionsonSoftware
+Engineering ,SE-16(4):403–414,April1990.
+[24] D. Harel and A. Naamad. The STATEMATE semantics of state charts.ACM
+TransactionsonSoftwareEngineeringMethodology ,5(4),October1996.
+38
+
+--- Page 39 ---
+[25] D. Harel andA. Pnueli. On the developmentof reactive sy stems. In Krzystof R.
+Apt, editor, Logic and Model of Concurrent Systems , volume 13 of NATO ASI ,
+pages477–498.Springer-Verlag,October1984.
+[26] D. Harel, A. Pnueli, J. P. Schmidt, and R. Sherman. On the formal semantics of
+statecharts(extendedabstract).In Proceedings,SymposiumonLogicinComputer
+Science,pages54–64,Ithaca,NewYork,June1987.TheComputerSoci etyofthe
+IEEE.
+[27] D.HarelandM.Politi. ModelingReactiveSystemswithStatecharts: TheSTATE-
+MATEApproach . McGraw-Hill,New York,1998.
+[28] GerardJ.Holzmann. TheSPINMODELCHECKER:PrimerandReferenceMan-
+ual. Addison-WesleyPearsonEducation,September2003.
+[29] G.J. Holzmann. The model checker Spin. IEEE Trans. on Software Engineer-
+ing, 23(5):279–295, May 1997. Special issue on Formal Methods i n Software
+Practice.
+[30] J. J. M. Hooman,S. Ramesh, and W. P. de Roever. A composit ionalaxiomatiza-
+tionofStatecharts. TheoreticalComputerScience ,101(2):289–335,July1992.
+[31] C. Huizing, R. Gerth, and W. P. deRoever. Modeling state charts behavior in a
+fully abstract way. In Proceedings on the Colloquium on Trees in Algebra and
+Programming , volume 299 of Lecture Notes in Computer Science , pages 271–
+294.Springer-Verlag,1988.
+[32] JahanianandMok. Agraph-theoreticapproachfortimin ganalysisanditsimple-
+mentation. IEEETC:IEEETransactionsonComputers ,36,1987.
+[33] Diego Latella, Istvan Majzik, and Mieke Massink. Autom atic veriﬁcation of a
+behavioural subset of UML statechart diagrams using the SPI N model-checker.
+FormalAspectsofComputing ,11(6):637–664,1999.
+[34] DiegoLatella, Istvan Majzik, andMieke Massink. Towar dsa formaloperational
+semanticsofUMLstatechartdiagrams. In Proc.FMOODS’99,IFIPTC6/WG6.1
+Third InternationalConference on Formal Methodsfor Open O bject-Based Dis-
+tributedSystems,Florence,Italy,February15-18,1999 .Kluwer,1999.
+[35] N. G. Leveson, M. P. E. Heimdahl, H. Hildreth, and J. D. Re ese. Requirements
+speciﬁcation for process control systems. IEEE Transactionson Software Engi-
+neering,20(9),1994.
+[36] JohanLilius andIvan PorresPaltor. FormalisingUML st ate machinesformodel
+checking. InRobertFranceandBernhardRumpe,editors, UML’99-TheUniﬁed
+ModelingLanguage.BeyondtheStandard.SecondInternatio nalConference,Fort
+Collins, CO, USA, October 28-30. 1999, Proceedings , volume 1723 of LNCS,
+pages430–445.Springer,1999.
+39
+
+--- Page 40 ---
+[37] Z. Manna and A. Pnueli. The Temporal Logic of Reactive and Concurrent Sys-
+tems,Speciﬁcation . Springer-Verlag,1992.
+[38] Florence Maraninchi and Yann R´ emond. Argos: an automa ton-based syn-
+chronouslanguage. ComputerLanguages ,27(1–3):61–92,April–October2001.
+[39] K. McMillan. Symbolic model checking: An approach to the state explosion
+problem. KluwerAcademicPublishers,1993.
+[40] Erich Mikk, Yassine Lakhnech, and Michael Siegel. Hier archical automata as
+model for statecharts. In Proc. of the Asian Computing Science Conference
+(ASIAN’97). ,volume1345of LNCS. Springer-Verlag,1997.
+[41] Erich Mikk, Yassine Lakhnech, Michael Siegel, and Gera rd J. Holzmann. Im-
+plementing statecharts in PROMELA/SPIN. In Proceedings of the 2nd IEEE
+WorkshoponIndustrial-StrengthFormalSpeciﬁcationTech niques,pages90–101.
+IEEEComputerSociety,October21-231998.
+[42] OMG. The Uniﬁed Modeling Language (UML) Speciﬁcation - Version 1.4,
+September 2001. Joint submission to the Object Management G roup (OMG)
+http://www.omg.org/technology/uml/index.htm .
+[43] Ivan Paltor and Johan Lilius. vUML: A tool for verifying UML models. In
+Robert J. Hall and Ernst Tyugu, editors, Proc. of the 14th IEEE International
+ConferenceonAutomatedSoftwareEngineering,ASE’99 .IEEE,1999.
+[44] Amir Pnueli and M. Shalev. What is in a step: On the semant ics of statecharts.
+In Takayasu Ito and Albert R. Meyer, editors, Theoretical Aspects of Computer
+Software, International Conference TACS ’91, Sendai, Japa n, September 24-27,
+1991,Proceedings ,volume526of LectureNotes inComputerScience .Springer,
+1991.
+[45] S. Ramesh. Reﬁnement and efﬁcient veriﬁcation of synch ronous programs. In
+Proc. of IFAC Distributed Computing and Control Conference . PergamonPress,
+2000.
+[46] S.Ramesh. CommunicatingReactiveStateMachines: Des ign,ModelandImple-
+mentation. In IFAC Workshop on Distributed Computer Control Systems . Perga-
+monPress, September1998.
+[47] J. Rumbaugh, M. Blaha, W. Premerlani, F. Eddy, and W. Lor ensen.Object-
+orientedModelingandDesign . Prentice-HallInternational,1991.
+[48] BranSelic,GarthGullekson,andPaulT.Ward. Real-TimeObject-OrientedMod-
+eling. JohnWiley&Sons,1994.
+[49] S. Seshia, R. K. Shyamasundar, A. K. Bhattacharjee, and S. D. Dhodapkar. A
+TranslationofStatechartstoEsterel. In Proceedingsofthe1stWorldCongresson
+FormalMethods(FM’99) ,LectureNotesinComputerScience.Springer,Septem-
+ber1999.
+40
+
+--- Page 41 ---
+[50] FabioSomenzi. CUDD:CUDecisionDiagramPackageRelea se2.3.1. Available
+athttp://vlsi.colorado.edu/˜fabio/CUDD/cuddIntro.html .
+[51] Wolfgang Thomas. Automata on inﬁnite objects. In J. van Leeuwen, editor,
+Handbookof Theoretical Computer Science , chapter 4, pages 133–191.Elsevier
+SciencePublishersB. V., 1990.
+[52] M.Y.VardiandP.Wolper. Anautomata-theoreticapproa chtoautomaticprogram
+veriﬁcation. In Proc.IEEESymp.onLogicinComputerScience ,pages332–344,
+Boston,July 1986.
+[53] B. Vijayalakshmi. Veriﬁcation of Communicating Reati ve State Machines. In
+M.Tech.Thesis . IITBombay,2003.
+41

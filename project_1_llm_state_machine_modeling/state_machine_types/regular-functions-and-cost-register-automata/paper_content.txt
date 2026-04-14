@@ -1,0 +1,1218 @@
+--- Page 1 ---
+1
+Regular Functions and Cost Register Automata
+Rajeev Alur, Loris D’Antoni, Jyotirmoy Deshmukhy, Mukund Raghothamanand Yifei Yuan
+University of PennsylvaniayToyota Technical Center
+(Invited Paper)
+Abstract —We propose a deterministic model for associating
+costs with strings that is parameterized by operations of interest
+(such as addition, scaling, and minimum), a notion of regularity
+that provides a yardstick to measure expressiveness, and study
+decision problems and theoretical properties of resulting classes
+of cost functions. Our deﬁnition of regularity relies on the theory
+of string-to-tree transducers, and allows associating costs with
+events that are conditioned on regular properties of future events.
+Our model of cost register automata allows computation of regular
+functions using multiple “write-only” registers whose values can
+be combined using the allowed set of operations. We show that
+the classical shortest-path algorithms as well as the algorithms
+designed for computing discounted costs can be adapted for
+solving the min-cost problems for the more general classes of
+functions speciﬁed in our model. Cost register automata with
+the operations of minimum and increment give a deterministic
+model that is equivalent to weighted automata , an extensively
+studied nondeterministic model, and this connection results in
+new insights and new open problems.
+I. I NTRODUCTION
+A. Motivation
+The classical shortest path problem is to determine the
+minimum-cost path in a ﬁnite graph whose edges are labeled
+with costs from a numerical domain. In this formulation, the
+cost at a given step is determined locally, and this does not
+permit associating alternative costs in a speculative manner.
+For example, one cannot specify that “the cost of each coffee
+either $1 or $2, depending on whether or not you ﬁll out a
+survey.” Such constraints can be captured by the well-studied
+framework of weighted automata ([24], [12]). A weighted
+automaton is a nondeterministic ﬁnite-state automaton whose
+edges are labeled both with symbols in a ﬁnite alphabet 
+and costs in a numerical domain. Such an automaton maps a
+stringwover to the minimum over costs of all accepting
+paths of the automaton over w. Motivated by the successful
+application of the theory of regular languages to formal
+veriﬁcation of ﬁnite-state systems, there is a renewed interest
+in weighted automata as a plausible foundation for analyzing
+quantitative properties (such as power consumption) of ﬁnite-
+state systems ([7], [4], [1]). Weighted automata, however, are
+inherently nondeterministic, and are restricted to cost domains
+that support two operations with the algebraic structure of a
+semiring : one operation for summing up costs along a path
+(such as +), and one for aggregating costs of alternative
+paths (such as minimum). Thus, weighted automata, and other
+existing frameworks (see [9], [22]), do not provide guidance
+on how to combine and deﬁne costs in presence of multiple
+The full version of this paper may be found at http://www.cis.upenn.edu/
+alur/rca12.pdf. This research was partially supported by the NSF Expeditions
+in Computing award 1138996.operations such as paying incremental costs, scaling by dis-
+counting factors, and choosing minimum. The existing work
+on “generalized shortest paths” considers extensions that allow
+costs with future discounting, and while it develops interesting
+polynomial-time algorithms ([15], [23]), does not attempt to
+identify the class of models for which these algorithmic ideas
+are applicable. This motivates the problem we address: what
+is a plausible deﬁnition of regular functions from strings to
+cost domains, and how can such functions be speciﬁed and
+effectively analyzed?
+B. Proposed Deﬁnition of Regularity
+When should a function from strings to a cost domain, say
+the set Nof natural numbers, be considered regular ? Ideally,
+we wish for an abstract machine-independent deﬁnition with
+appealing closure properties and decidable analysis questions.
+We argue that the desired class of functions should be pa-
+rameterized by the operations supported on the cost domain.
+Our notion of regularity is deﬁned with respect to a regular
+setTof terms speciﬁed using a grammar. For example, the
+grammart:= +(t;t)jcspeciﬁes terms that can be built
+from constants using a binary operator +, and the grammar
+t:= +(t;c)j(t;d)jcspeciﬁes terms that can be built from
+constants using two binary operators +andin a restricted
+way. Given a function gmapping strings to terms in T, and
+an interpretation J:Kfor the function symbols over a domain
+D, we can deﬁne a cost function fthat maps a string wto the
+value Jg(w)Kin the cost domain D. The theory of tree trans-
+ducers, developed in the context of syntax-directed program
+transformations and processing of XML documents, suggests
+that the class of regular string-to-term transformations has the
+desired trade-off between expressiveness and analyzability as
+it has appealing closure properties and characterizations using
+transducer models as well as monadic second order logic ([14],
+[10], [3], [16]). As a result, we call a cost function ffrom
+strings to a cost domain Dregular with respect to a set T
+of terms and an interpretation J:Kfor the function symbols,
+exactly when fcan be expressed as a composition of a regular
+function from strings to Tand an evaluation according to the
+interpretation J:K.
+C. Machine Model: Cost Register Automata
+Having chosen a notion of regularity as a yardstick for
+expressiveness, we now need a corresponding machine model
+that associates costs with strings in a natural way. Guided
+by our recent work on streaming transducers ([2], [3]), we
+propose the model of cost register automata : a CRA is a
+deterministic machine that maps strings over an input alphabet
+
+--- Page 2 ---
+2
+to cost values using a ﬁnite-state control and a ﬁnite set of cost
+registers. At each step, the machine reads an input symbol,
+updates its control state, and updates its registers using a
+parallel assignment, where the deﬁnition is parameterized by
+the set of expressions that can be used in the assignments. For
+example, a CRA with increments can use multiple registers
+to compute alternative costs, perform updates of the form
+x:=y+c, wherexandyare registers and cis a constant,
+at each step, and commit to the cost computed in one of the
+registers at the end. Besides studying CRAs with operations
+such as increment, addition, minimum, and scaling by a factor,
+we explore the following two variants. First, we consider
+models in which registers hold not only the cost values , but
+(unary) cost functions : we allow registers to hold pairs of
+values, where a pair (c;d)can represent the linear function
+f(n) =c+nd. Operations on such pairs can simulate
+“substitution” in trees, and allow computing with contexts,
+where parameters can be instantiated at later steps. Second, we
+consider “copyless” models where each register can be used
+at most once in the right-hand-sides of expressions updating
+registers at each step. This “single-use-restriction” plays an
+important role in the theory of regular tree transducers ([14],
+[3]), and ensures that the costs (or the sizes of the terms that
+capture the costs) grow only linearly with the length of the
+input.
+D. Contributions
+In Section IV we study the class of cost functions over a
+domain Dwith a commutative and associative function
+; in
+Section V, we study the class of cost functions over a semiring
+structure with domain Dand binary operations (such as
+min) and
+(such as addition); and in Section VI, we consider
+different forms of discounted cost functions with scaling and
+addition. In each case, we identify the operations a CRA must
+use to be equivalent in expressiveness to the corresponding
+class of regular functions, and present algorithms for comput-
+ing the min-cost value and for checking equivalence of two
+CRAs.
+We summarize some interesting insights that emerge from
+our results about speciﬁc cost models. First, our notion of
+regularity implies that regular cost functions are closed under
+operations such as string reversal and regular look-ahead,
+leading to an appealing symmetry between the past and the
+future. Second, the use of multiple registers and explicit
+combinators allows CRAs to compute all regular functions in a
+deterministic manner. Third, despite this added expressiveness,
+decision problems for CRAs are typically analyzable. In partic-
+ular, we get algorithms for solving min-cost problems for more
+general ways of specifying discounting than known before.
+Fourth, since CRAs “construct” costs over an inﬁnite domain,
+it sufﬁces to use registers in a “write-only” mode without any
+tests. This critically distinguishes our model from the well-
+studied models of register machines , and more recently, data
+automata ([17], [22], [6]). Fifth, it is known that weighted
+automata are not determinizable, which has sparked extensive
+research ([12], [19]). Our results show that in presence of mul-
+tiple registers that can be updated by explicitly applying boththe operations of the semiring, the classical subset construction
+can be modiﬁed to get a deterministic machine. Finally, the
+class of regular functions over the semiring turns out to be
+astrict subset of functions deﬁnable by weighted automata
+due to the copyless restriction. It is known that checking
+equivalence of weighted automata over the Min-Plus semiring
+(natural numbers with min and addition) is undecidable ([20],
+[1]). Existing proofs critically rely on the “copyful” nature
+raising the intriguing prospect that equivalence is decidable
+for regular functions over the Min-Plus semiring.
+II. C OST REGISTER AUTOMATA
+A. Cost Grammars
+A ranked alphabet Fis a set of function symbols, each
+of which has a ﬁxed arity. The arity-0 symbols, also called
+constants, are mapped to domain elements. To allow inﬁnite
+domains we need a way of encoding constants as strings over a
+ﬁnite set of symbols either in unary or binary, but we suppress
+this detail, and assume that there are inﬁnitely many constant
+symbols. The set TFof terms over a ranked alphabet is deﬁned
+in the standard fashion: if cis a constant symbol in F, then
+c2TF, and ift1;:::;tk2TFandfis an arity-ksymbol in
+F, fork>0, thenf(t1;:::;tk)2TF. Acost grammar Gis
+deﬁned as a tuple (F;T)whereFis a ranked alphabet and Tis
+aregular subset ofTF(that is, the set of parse trees is a regular
+tree language). Usually we deﬁne this regular subset using
+a grammar containing a single nonterminal. In particular, we
+focus on the following grammars: for a binary function symbol
++, the terms of the additive-grammar G(+) are speciﬁed
+byt:= +(t;t)jc, and the terms of the increment-grammar
+G(+c), which restricts the use of the addition operation are
+speciﬁed by t:= +(t;c)jc. Given binary functions min and
++, the terms of the min-inc-grammar G(min;+c)are given
+byt:= min(t;t)j+(t;c)jc. Given binary functions +and,
+the terms of the inc-scale-grammar G(+c;d)are generated
+by the left-linear grammar t:= +(t;c)j(t;d)jc, that uses
+both operations in a restricted manner, and candddenote
+constants, ranging over possibly different subsets of domain
+elements.
+B. Cost Models
+Given a cost grammar G= (F;T), a cost model Cis
+deﬁned as the tuple (G;D;J:K), where the cost domain D
+is a ﬁnite or inﬁnite set; for each constant cinF,JcKis a
+unique value in the domain D, and for each function symbol
+fof arityk,JfKdeﬁnes a function JfK:Dk7!D. We can
+inductively extend the deﬁnition of J:Kto assign semantics
+to the terms in Tin a standard fashion. For a numerical
+domain Dsuch as N(the set of natural numbers) and Z(the
+set of integers), we use C(D;+)to denote the cost model
+with the cost grammar G(+), domain D, and J+Kas the
+standard addition operation. Similarly, C(N;+c)denotes the
+cost model with the cost grammar G(+c), domain N, and
+J+Kas the standard addition operation. C(Q+;+c;[0;1];d)
+denotes the cost model with the cost grammar G(+c;d), the
+setQ+of non-negative rational numbers as the domain for the
++operator (interpreted as standard addition), and the closed
+
+--- Page 3 ---
+3
+q0a=
+x:=x+1
+y:=y+1b
+x:=x
+y:=y+1
+e
+x:=y+1
+y:=y+1
+(q0) =x
+M1: CRA over
+(+c)q0x:=1
+a=
+x:=x
+y:=y+1
+z:=zb,x:=x
+y:=y
+z:=z+1
+e,x:=min (x;y;z )
+y:= 0
+z:= 0
+(q0) =min (x;y;z )
+M2: Copyless CRA
+over (min; +c)q0 q1
+a=
+x:=x+1
+y:=yb=
+x:=x
+y:=y
+e
+x:=x
+y:=xa=
+x:=x+1
+y:=y
+b=
+x:=x
+y:=y+1
+e=
+x:=x
+y:=min (x;y)
+(q0) =x
+(q1) =min (x;y)
+M3: CRA over
+(min; +c)q0 q1a=x :=x+10
+e=x :=xb=x :=x
+e=
+x:= 0:95xa;b=
+x:=x
+(q0) =x
+(q1) =x
+M4: CRA over
+(+c;d)
+Fig. 1. Examples of Cost Register Automata
+interval [0;1]of rational numbers as the domain for the 
+operator (interpreted as multiplication).
+C. Cost Register Automata
+Acost register automaton (CRA) is a deterministic ma-
+chine that maps strings over an input alphabet to cost values
+using a ﬁnite-state control and a ﬁnite set of cost registers.
+The deﬁnition of such a machine is parameterized by the
+set of updates to its registers. For the set Xof registers
+and a cost grammar G, we deﬁne the set of assignment
+expressions E(G;X )by extending the set of terms in Gso
+that each leaf node in a term can be replaced by a register
+name. For example, for the additive grammar G(+), we
+get the setE(+;X)of expressions deﬁned by the grammar
+e:= +(e;e)jcjx, forx2X; and for the G(+c;d), we
+get the expressions E(+c;d;X)deﬁned by the grammar
+e:= +(e;c)j(e;d)jcjx, forx2X. We assume that the
+ranked alphabet contains a special constant symbol 0, which
+will be used to initialize the registers.
+Formally, a cost register automaton Mover a cost grammar
+Gis a tuple (;Q;q 0;X;;; )where is a ﬁnite input
+alphabet,Qis a ﬁnite set of states, q02Qis the initial state,
+Xis a ﬁnite set of registers, :Q7!Qis the state-
+transition function, :QX7!E(G;X )is the register
+update function, and :Q7!E(G;X )is apartial ﬁnal cost
+function.
+The semantics of such an automaton is deﬁned with respect
+to a cost model C= (G;D;J:K), and is a partial function
+JM;CKfrom toD. A conﬁguration of Mis of the form
+(q;), whereq2Qand the function :X7!Dmaps each
+register to a cost in D. Valuations naturally map expressions to
+cost values using the interpretation of function symbols given
+by the cost model. The initial conﬁguration is (q0;0), where
+0maps each register to the initial constant 0(dependent on
+the domain). Given a string w=a1:::an2, the run of
+Monwis a sequence of conﬁgurations (q0;0):::(qn;n)
+such that for 1in,(qi1;ai) =qiand for each x2
+X,i(x) = Ji1((qi1;a;x))K. The output of Monw,
+denoted by JM;CK(w), is undeﬁned if (qn)is undeﬁned,
+and otherwise it equals Jn((qn))K.D. CRA-deﬁnable Cost Functions
+Each cost model C= (G;D;J:K)deﬁnes a class of cost
+functions F(C): a partial function ffrom toDbelongs to
+this class iff there exists a CRA Mover the cost grammar G
+such thatfequals JM;CK. The class of cost functions corre-
+sponding to the cost model C(N;+)is abbreviated as F(N;+),
+the class corresponding to the cost model C(Q+;+c;[0;1];d)
+asF(Q+;+c;[0;1];d), etc.
+E. Examples
+Figure 1 shows examples of cost register automata for  =
+fa;b;eg. Consider the cost function f1that maps a string wto
+the length of the substring obtained by deleting all b’s after the
+last occurrence of einw. The automaton M1computes this
+function using two cost registers and increment operation. The
+registeryis incremented on each symbol, and hence equals
+the length of string processed so far. The register xis not
+incremented on bsymbols, but is updated to the total length
+stored inywhenesymbol is encountered.
+For a string wand symbol a, letjwjadenote the count
+ofasymbols in w. For a given string wof the form
+w1ew2:::ewn1ewn, where each block wicontains only
+a’s andb’s, letf2(w)be the minimum of the set fjwija;jwijbj
+8i;1ing. The CRA M2over the grammar G(min;+c)
+computes this function using three registers by an explicit
+application of the min operator.
+For a given string w=w1ew2e:::ewn, where each wi
+contains only a’s andb’s, consider the function f3that maps
+wtominn1
+j=1(jw1ja+jw2ja+jwjja+jwj+1jb++jwnjb).
+This function is computed by the CRA M3over the grammar
+G(min;+c).
+The ﬁnal example concerns use of scaling. Consider a
+computation where we wish to charge a cost of 10upon seeing
+anaevent until a bevent occurs. Once a bevent is triggered,
+for every subsequent eevent, the cost is discounted by 5%.
+Such a cost function is computed by the CRA M4over the
+grammarG(+c;d).
+F . Copyless Restriction
+A CRAMis said to be copyless if each register is used at
+most once at every step: for each state qand each input symbol
+
+--- Page 4 ---
+4
+aand each register x2X, the register xappears at most once
+in the set of expressions f(q;a;y )jy2Xgandxappears
+at most once in the output expression (q). Each cost model
+C= (G;D;J:K)then deﬁnes another class of cost functions
+Fc(C): a partial function ffrom toDbelongs to this class
+iff there exists a copyless CRA Mover the cost grammar G
+such thatfequals JM;CK. In Figure 1, the automata M2and
+M4are copyless, while M1andM3are not.
+G. Regular Look-Ahead
+A CRAMRwith regular look-ahead (CRA-RLA) is an
+extension of the CRA model in which the machine can make
+its decisions based on whether the remaining sufﬁx of the
+input word belongs to a regular language. Let Lbe a regular
+language, and let Abe a DFA for reverse (L)(such a DFA
+exists, since regular languages are closed under the reverse
+operation). Then, while processing an input word, testing
+whether the sufﬁx aj:::akbelongs toLcorresponds to testing
+whether the state of Aafter processing ak:::ajis an accepting
+state ofA. This motivates the following formalization. Let
+w=a1:::akbe a word over , and letAbe a DFA with
+statesRprocessing words over . Then the A-look-ahead
+labeling ofw, is the word wA=r1r2:::rkover the alphabet
+Rsuch that for each position 1jk, the corresponding
+symbol is the state of the DFA Aafter reading ak:::aj(it
+reads the reverse of the word). A CRA-RLA consists of a
+DFAAover with statesR, and a CRA Mover the input
+alphabetR. The output of CRA-RLA (M;A )onw, denoted
+byJ(M;A );CK(w), is deﬁned as JM;CK(wA).
+Figure 2 shows an example of CRA-RLA. The left side
+of the ﬁgure shows a CRA-RLA over G(+c)corresponding
+toM1in Figure 1. The right side shows the corresponding
+labeling automaton A. The states of Acorrespond to the
+languages used in the informal description of M1.
+q0r3=x:=x+ 1
+r2=x:=xr1=x:=x+ 1
+(q0) =xr0r1
+r2r3a;e
+ba;e
+b
+ba;eba;e
+Fig. 2. CRA with Regular Look-Ahead
+III. R EGULAR COST FUNCTIONS
+Consider a cost grammar G= (F;T). The terms in T
+can be viewed as trees: an internal node is labeled with
+a function symbol fof arityk > 0and haskchildren,
+and each leaf is labeled with a constant. A deterministic
+streaming string-to-tree transduction is a (partial) function
+f: 7!T. The theory of such transductions has been
+well studied, and in particular, the class of regular string-
+to-tree transductions has appealing closure properties, and
+multiple characterizations using Macro-tree-transducers (withsingle-use restriction and regular look-ahead) [14], Monadic-
+Second-Order logic deﬁnable graph transformations [10], and
+streaming tree transducers [3]. We ﬁrst brieﬂy recap the model
+of streaming string-to-tree transducers.
+A. Streaming String-to-Tree Transducers (SSTT)
+A streaming string-to-tree transducer is a deterministic
+machine model that can compute regular transformations from
+strings to ranked trees in a single pass. An SSTT can be viewed
+as a variant of CRA where each register stores a term, that
+is, an uninterpreted expression , and these terms are combined
+using the rules allowed by the grammar. To obtain a model
+whose expressiveness coincides with the regular transductions,
+we must require that the updates are copyless, but need to
+allow terms that contain “holes”, i.e., parameters that can be
+substituted by other terms.
+LetG= (F;T)be a cost grammar. Let ?be a special
+0-ary symbol that denotes a place holder for the term to
+be substituted later. We obtain the set T?by adding the
+symbol ?toF, and requiring that each term has at most
+one leaf labeled with ?. For example, for the cost grammar
+G(+c), the setT?of parameterized terms is deﬁned by the
+grammart:= +(t;c)jcj?; and for the cost grammar G(+),
+the setT?of parameterized terms is deﬁned by the grammar
+t0:= +(t;t0)j+ (t0;t)jcj?, wheretstands for (complete)
+terms generated by the original grammar t:= +(t;t)jc.
+A parameterized term such as min(5;? + 3) stands for an
+incomplete expression, where the parameter ?can be replaced
+by another term to complete the expression. Registers of
+an SSTT hold parameterized terms. The expressions used
+to update the registers at every step are given by the cost
+grammar, with an additional rule for substitution : given a
+parameterized expression eand another expression e0, the
+expressione[e0]is obtained by substituting the sole ?-labeled
+leaf inewith the expression e0.
+Given a set Xof registers, the set E?(G;X )represents
+parameterized expressions that can be obtained using the rules
+ofG, registers in X, and substitution. For example, for the
+grammarG(+c)and a setXof registers, the set E?(+c;X)is
+deﬁned by the grammar e:= +(e;c)jcj?jxje[e], forx2X.
+The output of an SSTT is a (complete) term in Tdeﬁned using
+the ﬁnal cost function. The register update function and the
+ﬁnal cost function are required to be copyless : each register
+is used at most once on the right-hand-side in any transition.
+The semantics of an SSTT gives a partial function from 
+toT. We refer the reader to [3] for details.
+B. Regular Cost Functions
+Letbe a ﬁnite input alphabet. Let Dbe a cost domain.
+Acost function fmaps strings in to elements of D. Let
+C= (G;D;J:K)be a cost model. A cost function fis said to be
+regular with respect to the cost model Cif there exists a regular
+string-to-tree transduction gfrom toTsuch that for all
+w2,f(w) = Jg(w)K. That is, given a cost model, we can
+deﬁne a cost function using an SSTT: the SSTT maps the input
+string to a term, and then we evaluate the term according to
+the interpretation given by the cost model. The cost functions
+
+--- Page 5 ---
+5
+obtained in this manner are the regular functions. We use
+R(C)to denote the class of cost functions that are regular
+with respect to the cost model C.
+As an example, suppose  =fa;bg. Consider a vocabulary
+with constant symbols 0,caandcb, and the grammar G(+c).
+Consider the SSTT Uwith a single register that is initialized
+to0, and at every step, it updates xto+(x;ca)on inputa,
+and+(x;cb)on inputb. Given the input w1:::wn, the SSTT
+generates the term e= +(+ (+(0;c1);c2)cn), where
+eachci=caifwi=aandci=cbotherwise. To obtain
+the corresponding cost function, we need a cost model that
+interprets the constants and the function symbol +, and we get
+the cost of the input string by evaluating the expression e. Now,
+consider another SSTT U0that uses a single register initialized
+to?. At every step, it updates xtox[+(?;ca)]on inputa, and
+x[+(?;cb)]on inputb, using the substitution operation. The
+output is the term x[0]obtained by replacing the parameter
+by 0. Given the input w1:::wn, the SSTT generates the term
+e0= +(+ (0;cn);c1), where each ci=caifwi=a
+andci=cbotherwise. Note that the SSTT Ubuilds the cost
+term by adding costs on the right, while the SSTT U0uses
+parameter substitution to build costs terms in the reverse order.
+If the interpretation of the function +is not commutative, then
+these two mechanisms allow to compute different functions,
+both of which are regular.
+C. Closure Properties
+Iffis a regular cost function from to a cost domain D,
+then the domain off,i.e., the set of strings wsuch thatf(w)
+is deﬁned, is a regular language.
+For a string w, letwrdenote the reverse string. We deﬁne
+thereverse function fr: 7!Dsuch that for all w2,
+fr(w) =f(wr). Given regular cost functions f1;f2from 
+toDand a language L, the choice function “if Lthen
+f1elsef2” maps an input string wtof1(w)ifw2L, and to
+f2(w)otherwise. As the SSTT class is closed under reverse
+and regular choice, closure under these properties for regular
+cost functions follows.
+Theorem 1 (Closure Properties of Regular Cost Func-
+tions) For every cost model C, if a cost function fbelongs
+to the class R(C), then so does the function fr. If two cost
+functionsf1andf2belong to the R(C), then so does the
+function “if Lthenf1elsef2” for every regular language L.
+An SSTT with regular look ahead is a pair (U;A)whereAis
+a DFA,Uis an SSTT whose alphabet is the set of states of A.
+As discussed earlier regular-look-ahead tests allow machines
+to make its decisions based on whether the remaining sufﬁx of
+the input word belongs to a given regular language. SSTT are
+closed under the operation of regular-look-ahead [3], which
+implies the same for regular cost functions.
+Theorem 2 (Closure Under RLA) For every SSTT with
+regular-look-ahead (U;A), there exists an SSTT U0without
+regular-look-ahead which computes the same function.D. Linear Outputs
+When an SSTT Ucomputes the output term corresponding
+to an input string w, while processing each symbol of w, it
+uses exactly one transition with copyless update, and thus,
+the sum of the sizes of all terms stored in registers grows
+only by a constant additive factor. It follows that jU(w)jis
+O(jwj). Viewed as a tree, the depth of U(w)can be linear
+in the length of w, but its width is constant, bounded by the
+number of registers. This implies that if fis a cost function
+inR(N;+c), thenjf(w)jmust beO(jwj), and in particular,
+the function f(w) =jwj2is not regular in this cost model.
+Revisiting the examples in Section 2, it turns out that the
+functionf1is regular for C(N;+c), and the function f2is
+regular for C(N;min;+c). The function f3is not regular for
+C(N;min;+c), as it requires O(jwj2)terms to construct it.
+IV. C OMMUTATIVE -MONOID COST FUNCTIONS
+Assume that the cost model is a commutative monoid
+(D;
+):Dis a set, the interpretation J
+Kis a commutative
+and associative function, and the interpretation of the initial
+constant J0Kis the identity element of this function.
+A. Expressiveness
+Given a cost model (D;
+), we can use regular string-to-
+tree transductions to deﬁne two (machine-independent) classes
+of functions: the class R(D;
+c)deﬁned via the grammar
+G(
+c)and the class R(D;
+)deﬁned via the grammar G(
+).
+Relying of commutativity and associativity, we show these two
+classes to be equally expressive. This class of “regular additive
+cost functions” corresponds exactly to functions computed by
+CRAs with increment operation, and also, by copyless-CRAs
+with addition.
+Theorem 3 (Expressiveness of Additive Cost Functions)
+For cost domain Dwith a commutative associative operation
+
+,F(D;
+c) =Fc(D;
+) =R(D;
+c) =R(D;
+).
+Proof Sketch: We ﬁrst show that the function-classes R(D;
+)
+andR(D;
+c)are equivalent. This proof is based on the
+properties of the model of streaming tree transducers (STT)
+that map trees to trees [3]. Given an STT Ufrom to
+terms ofG(
+), we show how to construct an STT U0from
+terms over G(
+)to equivalent terms over G(
+c)relying
+on the associativity of
+to rewrite the parse tree in a left-
+linear form. The proof follows since STTs are closed under
+sequential composition. Next we show that the class F(D;
+c)
+is included in the class R(D;
+c). Given a CRA Musing the
+increment operation, we construct an SSTT Uthat captures
+its computations. The proof relies on the observation that at
+every step of the computation of M, at most one register
+can contribute to the ﬁnal output, and this variable can be
+speciﬁed using a regular-look-ahead (a test that checks whether
+the input sufﬁx is in a regular language). The proof follows
+from the fact that SSTTs are closed under regular look-ahead.
+For the inclusion of the class R(D;
+c)in the class Fc(D;
+),
+observe that the parameter substitution in a unary tree can be
+simulated by a normal assignment for a commutative operator
+(e[e0]is equivalent to
+(e;e0)). Finally, given a copyless CRA
+
+--- Page 6 ---
+6
+Mwith
+, we construct an equivalent CRA M0that uses
+only increments. For every subset Sof registers in M,M0
+maintains a register xSthat maintains the sum of all the values
+of the registers in S. The simulation requires updates in M0
+to allow the same subset to be used in different ways, that is,
+in a non-copyless manner. 
+We can also establish the following results regarding ex-
+pressiveness of different classes. First, requiring CRAs with
+only increment to be copyless is too limiting: there exists a
+regular additive cost function that is not in Fc(D;
+c). Second,
+removing the copyless restriction from CRAs with addition is
+too permissive as it would allow computing cost functions
+that grow exponentially: the cost function f(w) = 2jwjis
+not additive regular, but is in F(N;+). Third, having multiple
+registers is essential for expressive completeness: for every k,
+consider the cost function fk:N!N(over unary alphabet)
+deﬁned byfk(n) = ((nmodk) + 1)n; every CRA with
+increment implementing fkmust have at least kregisters.
+B. Weighted Automata
+A weighted automaton [12] over an input alphabet is
+anondeterministic ﬁnite-state automaton whose edges are
+labeled with input symbols in and costs in domain D. For
+an input string w, the automaton can have multiple accepting
+paths from its initial state to some accepting state. The
+semantics of the automaton is deﬁned using two commutative
+and associative functions and
+such that
+distributes
+over. The cost of a path is the sum of the costs of all
+the transitions along the path according to
+, and the cost of
+a stringwis obtained by applying to the set of costs of
+all the accepting paths of the automaton over w. A weighted
+automaton is called single valued if each input string has at
+most one accepting path. Thus to interpret a single-valued
+weighted automaton, we need only the interpretation for
+:
+Theorem 4 (Single-valued Weighted Automata)
+A cost function f: 7!Dis in R(D;
+c)iff it is
+deﬁnable by a single-valued weighted automaton.
+Proof Sketch: For every single-valued weighted automaton
+W, we can construct an SSTT Uthat constructs the cost
+term corresponding to the sum of costs along the accepting
+path. Even though the automaton Wis nondeterministic, since
+it is single-valued, the SSTT can use regular-look-ahead to
+choose deterministically the next transition that contributes to
+the accepting path. The proof then relies on the closure under
+regular-look-ahead for SSTTs. In the other direction, consider
+a CRAMusing increments. At every step, the weighted
+automaton needs to guess which register of the machine M
+will contribute to the ﬁnal output. The states of the weighted
+automaton are state-register pairs (q;x). There is a transition
+of costkand labelafrom (q;x)to(q0;x0)to simulate the
+update:x0:=
+(x;k)on thea-labeled transition from qtoq0.
+
+C. Decision Problems
+The min-cost problem for a CRA Mis to ﬁnd a string
+wwhose cost is the minimum, i.e.,minfM(w)jw2g.For CRAs with increment interpreted over numerical domains
+(that support addition), we can solve the min-cost problem by
+reducing it to the classical shortest path computation using
+the translation from CRAs with increment to single-valued
+weighted automata. If the CRA has nstates andkregisters,
+the graph has nkvertices:
+Theorem 5 (Min-cost for CRAs with +c)Given a CRA M
+over the cost model (Q;+c), computing minfM(w)jw2g
+is solvable in PTIME .
+Even though F(D;
+c) =Fc(D;
+), the model with binary
+addition is more succinct. To solve the min-cost problem for
+copyless-CRAs over the cost model (D;
+), we can translate
+these to CRAs over (D;
+c). However, this causes a blow-up
+exponential in the number of registers: essentially each register
+of the CRA represents a subset of the registers in the original
+copyless-CRA. We can establish that the min-cost problem is
+NP- HARD by a simple reduction from 3SAT.
+Theorem 6 (Min-cost for CRAs with +)Given a
+copyless-CRA Mover (Q;+)withnstates andkregisters,
+computing minfM(w)jw2gis solvable in time poly-
+nomial innand exponential in k. Given a copyless CRA M
+over the cost model (N;+)and a constant K2N, deciding
+whether minfM(w)jw2gKisNP-HARD .
+Given two cost register automata using addition over a
+numerical domain, checking whether they deﬁne exactly the
+same function is solvable in polynomial time relying on the
+properties of systems of linear equations.
+Theorem 7 (Equivalence of CRAs with Addition)
+Given two CRAs M1andM2over the cost model (Q;+),
+deciding whether for all w,M1(w) =M2(w)is solvable in
+PTIME .
+Proof Sketch: We ﬁrst take the product M=M1M2.
+We want to check if along every path of the product, and for
+every ﬁnal state (v1;v2), the equation 1(v1) =2(v2)holds.
+The algorithm propagates such an equation over the register
+values backwards along each transition: for an edge from u
+tov, every equation e1=e2that must hold at vyields an
+equatione0
+1=e0
+2that must hold at u, where the expressions
+e0
+1ande0
+2are obtained from e1ande2using substitution to
+account for the update of registers along the edge from utov.
+At every step of the back propagation, we maintain the basis of
+the set of equations in every state using Gaussian elimination.
+If we reach a system of equations with no solution the two
+machines are inequivalent, while if we reach a ﬁx point where
+no independent equations can be added, the two machines are
+equivalent. As shown in [21], such a propagation terminates
+inO(nk3)wherenis the size of the machine (in our case
+jQ1jjQ2jjj) andkis the number of variables (in our case
+jX1j+jX2j).
+We can also establish the following results regarding de-
+cision problems for additive CRAs: (1) Inclusion: given two
+CRAsM1andM2over the cost model (Q;+c), deciding
+whether for all w,M1(w)M2(w)is solvable in P TIME ;
+(2)Range-Membership: given a CRA Mover the cost model
+(Z;+c)andK2Z, deciding whether there exists wsuch that
+
+--- Page 7 ---
+7
+M(w) =Kis solvable in NL OGSPACE .
+V. S EMIRING COST FUNCTIONS
+In this section, we consider the cost models with two binary
+operations,and
+, that impose a semiring structure. This
+structure has been studied extensively in the literature on
+weighted automata and rational power series. A speciﬁc case
+of interest is the Min-Plus semiring , where the cost domain is
+N[f1g ,is the min operation with identity 1, and
+is
+arithmetic addition with identity 0. While choosing a grammar,
+we can restrict either or both of and
+to be “unary”,
+i.e., where one of the arguments of the operator is a constant
+symbol. To study the Min-Plus semiring, it makes sense to
+choose min to be binary, while addition to be unary ( i.e.
+increment by a constant). Hence, we will focus on the grammar
+G(;
+c), and the class R(D;;
+c)of cost functions.
+A. CRA Models
+Our ﬁrst task is to ﬁnd a suitable set of operations for cost
+register automata so as to have expressiveness same as the
+classR(D;;
+c). It turns out that (unrestricted) CRAs with
+and
+care too expressive, while their copyless counterparts
+are too restrictive. We need to enforce the copyless restriction,
+but allow substitution. In the proposed model, each register x
+has two ﬁelds ranging over values from D:(x:c;x:d ). The
+intuitive understanding is that xrepresents the expression
+(x:d
+?)x:cwhere ?denotes the parameter. Such a pair can
+be viewed as the “most evaluated” form of a parameterized
+term in the corresponding SSTT. Expressions used for the
+update are given by the grammar e:= (c;d)jxje1e2j
+e1
+dje1[e2], wherexis a register, and canddare
+constants. For the min-inc interpretation, the initial values
+are of the form (1;0)corresponding to the additive and
+multiplicative identities. We require that registers be used in
+a copyless manner, so that any particular register xappears
+in the update of at most one variable. The semantics of
+the operators on pairs is deﬁned below: e1e2is deﬁned
+to be (e1:ce2:c;e 1:d);e1
+dequals (e1:c
+d;e 1:d
+d);
+ande1[e2]is given by (e1:ce1:d
+e2:c;e 1:d
+e2:d).
+The resulting model of CRA-deﬁnable cost functions is
+Fc(DD;;
+d;[]).
+We summarize the relationships between functions deﬁnable
+by CRAs over semiring cost models in the following theorem:
+Theorem 8 (Expressiveness of Semiring Cost Functions)
+If(D;;
+)forms a semiring, then Fc(D;;
+c)
+Fc(DD;;
+c;[])R(D;;
+d)F(D;;
+c).
+Proof Sketch: The copyless-CRAs with operations of 
+and
+ccan be simulated by copyless-CRAs that maintain
+pairs with operations of ,
+c, and []. The correspon-
+dence between the terms constructed by SSTTs and their
+most evaluated forms maintained by CRAs as pairs leads to
+the equivalence of Fc(DD;;
+c;[])andR(D;;
+d).
+Finally, we establish that this class is included in F(D;;
+c).
+Consider a CRA Mthat maintain pairs using operations of
+,
+c, and []. We perform a form of a subset construction
+over the registers to get a non-copyless CRA with and
+c.Intuitively, the subset construction amounts to pre-emptively
+computing the result of substituting variable xintoy.
+B. Relation to Weighted Automata
+In Section 4, we noted that single-valued weighted automata
+correspond exactly to CRAs with addition. Nondeterministic
+weighted automata and (deterministic) CRAs (without the
+copyless restriction) with and
+cexpress exactly the same
+class of functions. The translation from weighted automata to
+CRAs can be viewed as a generalization of the classical subset
+construction for determinization:
+Theorem 9 (Weighted Automata Expressiveness) If
+(D;;
+)forms a semiring, then the class of functions
+F(D;;
+c)exactly coincides with the class of functions
+computable by weighted automata.
+Proof Sketch: Consider a weighted automaton Wwith states
+P. The corresponding CRA Mhas state-set 2Pas in standard
+determinization. For each p2P, the CRA Mmaintains a
+cost register xp. The value of xpafter reading input wis
+the-sum over costs of all the paths from the initial state
+to the state pon the input w, where the cost of a path is
+the
+-sum of the weights of the transitions along the path.
+Given an input symbol a, the update of cost registers is given
+by:xq:=fxp
+cjpa;c!qg. The correctness depends on
+the distributivity of
+over. Note that the same register
+xpcontributes to all xq’s for all its a-successor states q’s.
+Thus, the update is not necessarily copyless. In the reverse
+direction, consider a CRA Mwith statesQand registers X.
+The weighted automaton Whas statesQX. Consider a
+transition from a state qto a stateq0inMon an input symbol
+awith the update x:=y
+c. Then, the automaton Whas
+an edge from (q;y)to(q0;x)labeled with the input symbol
+aand weightc. Consider a transition from a state qto a state
+q0inMon an input symbol awith the update x:=(y;z).
+Then, the automaton Whas an edge from (q;y)to(q0;x)
+labeled with the input asymbol and weight 0, and from (q;z)
+to(q0;x)labeled with input aand weight 0.
+C. Decision Problems for Min-Plus Models
+Now we turn our attention to semirings in which the
+cost domain is a numerical domain such as N,is the
+minimum operation, and
+is the addition. Given a CRA M
+over (Q;min;+c), we can construct an equivalent weighted
+automaton linear in the size of Min linear time. The min-cost
+problem for weighted automata can be solved in polynomial-
+time using standard algorithms.
+Theorem 10 (Min-cost for CRAs over min and +c)Given
+a CRAMover the cost model (Q;min;+c), computing
+minfM(w)jw2gis solvable in PTIME .
+It is known that the equivalence problem for weighted au-
+tomata over the Min-Plus semiring is undecidable. It fol-
+lows that checking whether two CRAs over the cost model
+(N;min;+c)compute the same cost function is undecidable.
+The existing proofs of the undecidability of equivalence rely
+
+--- Page 8 ---
+8
+on the unrestricted non-deterministic nature of weighted au-
+tomata, and thus on the copyful nature of CRAs with min and
++c. We conjecture that the equivalence problem for copyless
+CRAs over (N;min;+c), and also for the class R(N;min;+c)
+is decidable.
+VI. D ISCOUNTED COSTS
+We now analyze the class of regular cost functions deﬁnable
+using +candd.
+A. Past Discounts
+First let us focus on CRAs over the cost model
+C(Q;+c;d). At every step, such a machine can set a register
+xto the value dx+c: this corresponds to discounting
+previously accumulated cost in xby a factord, and paying an
+additional cost c. We call such machines past-discount CRAs
+(an example is M4of Figure 1). Thanks to the use of multiple
+registers this class of cost functions is closed under regular
+choice and regular look-ahead: the discount factors can depend
+conditionally upon future events. Our main result for past-
+discount CRAs is that the min-cost problem can be solved in
+polynomial-time.
+Theorem 11 (Min-Cost for Past Discounts) Given a past-
+discount CRA Mover the cost model (Q;+c;d), computing
+minfM(w)jw2gis solvable in PTIME .
+B. Future Discounts
+Symmetric to past discounts are future discounts: at every
+step, the machine wants to pay an additional cost c, and
+discount all future costs by a factor d. While processing an
+inputw1:::wn, if the sequence of costs is c1;:::cnand the
+sequence of discount factors is d1;:::dn, then the cost of the
+string is the value of the term (c1+d1(c2+d2())).
+Future-discount CRAs are able to compute such cost functions
+using registers that range over QQand discounted-sum
+operator +: each register holds a value of the form (c;d)
+wherecis the accumulated cost and dis the accumulated
+discount factor, and updates are deﬁned by the grammar
+e:= (c;d)je+(c;d)jx. The interpretation for e+(c;d)is
+deﬁned to be (e:c+ce:d;e:dd)(that is, the discount factor
+e:dis scaled by the new discount d, and the cost e:cis updated
+by adding the new cost c, scaled by the discount factor e:d).
+Like past-discount CRAs, future-discount CRAs are closed
+under regular choice and regular look-ahead. Processing of
+future discounts in forward direction needs maintaining a pair
+consisting of cost and discount, and the accumulated costs
+along different paths is not totally ordered due to these two
+objectives. However, if we consider “reverse” paths, a single
+cost value updated using assignments of the form x:=dx+c
+as in past-discount CRAs sufﬁces.
+Theorem 12 (Shortest Paths for Future Discounts) For a
+future-discount CRA Mover the cost model (Q;+c;d), the
+problem of computing minfM(w)jw2gis solvable in
+PTIME .C. Global Discounts
+Aglobal-discount CRA is capable of scaling the global cost
+(the cost of the entire path) by a discount factor. Like for
+future-discount CRAs, it uses registers that hold cost-discount
+pairs. We now assume that discounts range over [0;1]and costs
+range over Q+. The registers are updated using the grammar
+e:= (0;1)j(0;d) +e+(c;1)jx(that is, the current discount
+factore:dis scaled by the new discount d, and the current
+coste:cis updated by ﬁrst scaling it by the new discount, and
+then adding the new cost cscaled by the discount factor e:d).
+Analyzing paths in a global-discount CRA requires keeping
+track of both the accumulated cost and discount. We can show
+a pseudo-polynomial upper bound; it remains open whether
+there is a strongly polynomial algorithm for shortest paths for
+this model:
+Theorem 13 (Min-cost Paths for Global Discounts)
+Given a global-discount CRA Mover the cost model
+(Q+;+c;[0;1];d)and a constant K2Q+, deciding if
+minfM(w)jw2gKis solvable in NP. Computing
+the minimum is solvable in PTIME if increments are restricted
+to natural numbers in unary encoding.
+Proof Sketch: We can reduce the min-cost problem to ﬁnding
+a shortest path in a graph Gwhose edges are labeled with
+(c;d)pairs, and the cost of a path containing edges labeled
+with(c1;d1)(cn;dn)is(ici)(jdj). First, observe that if
+there is a reachable cycle that contains an edge with discount
+factor<1, then repeating this cycle drives the global discount
+to 0, and thus, existence of such a cycle implies that the
+(limiting) min-cost is 0. Since the shortest path need not
+involve a cycle in which all discount factors are equal to 1,
+the NP-bound follows. Suppose all costs ci’s are small natural
+numbers. The pseudo-polynomial algorithm for this case relies
+on the following: given a value cand a vertex v, computing
+the “best” global discount over all paths from source to vwith
+sum of incremental costs equal to c, can be solved by adopting
+shortest path algorithms, and the set of interesting choices of
+cis bound by nkfor a graph with nvertices if each increment
+is a number smaller than k.
+D. Regular Functions for Inc-Scale Model
+The class of regular functions for the cost model (Q;+c;d)
+is deﬁned via SSTTs over the inc-scale grammar G(+c;d).
+It is easy to show that:
+Theorem 14 (Expressiveness of Inc-Scale Models) The
+cost functions deﬁnable by past-discount CRAs, by future-
+discount CRAs, and by global-discount CRAs all belong to
+R(Q;+c;d).
+The min-cost problem for this class of functions is still
+open. However, we can show the equivalence problem to be
+decidable. First, using the construction similar to the one used
+to establish R(D;;
+d)F(D;;
+c)(see Theorem 8),
+we can represent cost functions in R(Q;+c;d)using CRAs
+that use +andd. Such CRAs have linear updates, and the
+algorithm for checking equivalence of CRAs with addition can
+be adopted.
+
+--- Page 9 ---
+9
+Theorem 15 (Equivalence of Inc-Scale Models) Given two
+functionsf1;f22R(Q;+c;d)represented by SSTTs over the
+cost grammar G(+c;d), checking equivalence can be solved
+in time polynomial in the number of states and exponential in
+the number of registers.
+VII. R ELATED WORK
+Weighted Automata and Logics: Finite-state weighted au-
+tomata have been an active area of research, with numerous
+articles studying their algebraic and algorithmic properties. See
+[12] for a comprehensive exposition. An important problem
+forWAis that of determinization ([12], [19]): it is known that
+there are weigthed automata with no equivalent deterministic
+ones.
+It has been shown that the equivalence problem for weighted
+automata over the Min-Plus semiring is undecidable using a
+reduction from Hilbert’s tenth problem [20], and by a reduc-
+tion from the halting problem for two counter machines [1].
+The only known class of weighted automata over the Min-Plus
+semiring with decidable equivalence is that of ﬁnite-valued
+weighted automata [25]. For a given k, a weighted automaton
+is said to be k-valued if the number of distinct values computed
+along all accepting paths is at most k. A weighted automaton
+is called ﬁnite-valued if there exists a ksuch that it is k-
+valued. We conjecture that the equivalence problem for CRAs
+over minand+cwith the copyless restriction is decidable.
+In [11], the authors discuss a weighted MSO-logic that
+disallows universal second order quantiﬁcation and places
+restrictions on universal ﬁrst order quantiﬁcation. The authors
+show that the formal power series deﬁnable in this logic
+coincides with the set of behaviors of weighted automata.
+Discounted Shortest Paths: Generalized network ﬂow prob-
+lems extend ﬂow problems on directed graphs by specifying
+multipliers on edges in addition to costs ([15], [23]). The
+problem of ﬁnding the minimum cost ﬂow (which in some
+cases is equivalent to the shortest path) from a source to a
+target can be solved in polynomial time ([23], [5]). Future dis-
+count machines that we introduce in this paper provide a nice
+formalism that subsumes such problems, and have strongly
+polynomial time algorithms for determining the minimum
+cost path. In this paper, we also introduce past discount and
+global discount machines that also have efﬁcient algorithms
+for determining the minimum cost paths.
+In [13], the authors introduce weighted logic for inﬁnite
+words. In order to address convergence of the weighted sum,
+the authors assume discounting along later edges in a path
+(i.e., future discounting). Extending the results of this paper to
+discounted weighted computations over inﬁnite words remains
+open.
+Transducer Models: A wide variety of different models
+have been proposed to model string and tree transductions.
+The models that are most relevant to this paper are MSO-
+deﬁnable transductions [10] and macro tree transducers [14].
+An MSO-deﬁnable graph transduction speciﬁes a function
+between sets of graphs; the nodes, edges and labels of the
+output graph are described in terms of MSO formulas over
+the nodes, edges and labels of a ﬁnite number of copies of theinput graph. A macro tree transducer (MTT) is a top-down
+tree to tree transducer equipped with parameters. Parameters
+can store temporary trees and append them to the ﬁnal tree
+during the computation. In general, MTT are more expressive
+than MSO-deﬁnable tree transductions. A subclass of MTTs
+obtained by restricting the number of times a subtree and a
+parameter can be used has been shown to be equi-expressive
+as MSO-deﬁnable tree transductions [14].
+Streaming tree transducers [3] (STTs) are a new formalism
+for expressing MSO-deﬁnable tree-to-tree and string-to-tree
+transductions. In comparison to some of the transducer models
+discussed above, STTs have distinguishing features that make
+them desirable as a canonical model for specifying MSO-
+deﬁnable transductions: (1) STTs produce the output in linear
+time by performing a single pass over the input, (2) they
+preserve desirable properties such as closure under sequen-
+tial composition and regular look-ahead, and (3) they have
+good algorithmic properties such as decidability of functional
+equivalence.
+Regularity over Data Languages: Data languages allow
+ﬁnite strings over data values that can be drawn from a
+possibly inﬁnite data domain ([22], [17], [6]). Register au-
+tomata are often used as acceptors for data languages. A key
+feature of such automata is that they allow registers to store
+and test data values. Almost every variant of data automata
+allows testing equality of data values, which mostly causes
+interesting decision problems to become undecidable. Cost
+register automata use the cost registers in a strictly write-only
+fashion, which makes them incomparable to variants of data
+automata that use read/write registers.
+Regular Cost Functions: In [8], Colcombet deﬁnes a regular
+cost function as a mapping from words to N!(the set of
+nonnegative integers and the ordinal !). A cost function is
+precisely deﬁned as an equivalence class over mappings from
+the set of words to N!, such that functions fandgare in the
+same equivalence class if for all words w,f(w)is bounded by
+some constant iff g(w)is bounded by some constant. The au-
+thor then deﬁnes two classes of automata ( B- andS-automata),
+each of which uses a ﬁnite set of counters and allows the
+counters to be incremented, reset or checked for equality with a
+constant. The operational semantics of these automata are that
+the automaton computes the least upper bound or the greatest
+lower bound over the set of counter values encountered during
+its run. A cost function is then called regular if it is accepted
+by a history-deterministic B- orS-automaton. The author also
+provides an algebraic characterization of regular cost functions
+in terms of stabilization monoids and equates recognizability
+of cost functions with regularity.
+Afﬁne Programs: In [18], and more recently in [21], the
+authors present the problem of deriving afﬁne relations among
+variables of a program. An afﬁne relation is a property of the
+forma0+Pn
+i=1ai:vi= 0, where v1;:::;vnare program
+variables that range over a ﬁeld such as the rationals or reals
+andaiare constants over the same domain. An afﬁne program
+is a program with nondeterministic branching where each edge
+of the program is labeled with an assignment statement of
+the formv1:=v2+ 2:v3+ 3,i.e., where the RHS is an
+afﬁne expression. We could deﬁne a CRA over the cost model
+
+--- Page 10 ---
+10
+Global Discounts
+R(D;c;
+d)F(D;c;
+d)R(D;
+c)R(D;
+)
+F(
+c)Fc(
+)
+Single-valued WAPast
+Disc-
+ountsFuture
+Disc-
+ountsFc(;
+c)R(D;;
+c)F(;
+c)
+Weighted Automata
+CRA with Equivalence Min-Cost
+(+c) PTIME PTIME
+Copyless (+) PTIME EXPTIME
+(min;+c) Undecidable PTIME
+Copyless (min;+c) ? PTIME
+Past-discounts Polynomial PTIME
+Future-discounts in states PTIME
+Global-discounts Exp. in Pseudo-Poly
+Inc-Scale registers ?
+Fig. 3. Summary of Results
+C(Q;+;d), with the cost grammar t:= +(t;t)j(t;d)jc.
+While the cost functions deﬁned by such CRAs do not have
+interesting regularity properties, we remark that the equiva-
+lence of such CRAs can be checked in polynomial time by
+using ideas similar to the ones in [21].
+Quantitative Languages: A quantitative language [7], [1],
+[4] over inﬁnite words is a function !7!R. Such languages
+are generated by weighted automata, where the value of a
+wordwis set as the maximal value of all runs over w. By
+deﬁning various value functions such as Max ,Sum ,LimSup ,
+LimInf , different values can be computed for the run of a
+weighted automaton on the string w. Quantitative languages
+use the ﬁxed syntax of weighted automata, and thereby re-
+stricted to having a single weight along each transition in their
+underlying automata. Moreover, they face similar difﬁculties in
+determinization: for interesting models of value functions, the
+corresponding automata cannot be determinized. An extension
+of CRA to!-regular cost functions could prove to be a more
+expressive and robust model to specify quantitative languages
+and to analyze their decision problems.
+VIII. C ONCLUSIONS
+We have proposed a new approach to deﬁne regular func-
+tions for associating costs with strings. The results for various
+classes of functions are summarized in Figure 3. We hope
+that our work provides new insights into the well-studied
+topic of weighted automata, and opens a whole range of new
+problems. First, it is plausible that there is a compelling notion
+of congruences and canonicity for CRAs with increment.
+Second, the decidability of copyless-CRAs with minimum and
+increment remains an intriguing open problem. Third, we don’t
+have algorithms for the min-cost problem for the class of
+regular functions with increment and scaling. While we have
+not succeeded even in establishing decidability, we suspect
+that this problem admits efﬁcient approximation algorithms.Fourth, we have considered only a small set of combinations
+of operations; studying the effects of adding operators such
+asmax would be worthwhile. Fifth, our notion of regularity
+and cost register automata for mapping strings to costs can
+be extended to inﬁnite strings and trees, as well as to timed
+and probabilistic systems. Finally, we would like to explore
+practical applications: our framework seems suitable for ex-
+pressing complex, yet analyzable, pricing policies, say, for
+power distribution.
+REFERENCES
+[1] S. Almagor, U. Boker, and O. Kupferman. What’s decidable about
+weighted automata? In Automated Technology for Veriﬁcation and
+Analysis , Lecture Notes in Computer Science, pages 482–491, 2011.
+[2] R. Alur and P. ˇCern ´y. Streaming Transducers for Algorithmic Veriﬁca-
+tion of Single-pass List-processing Programs. In Proc. of Principles of
+Programming Languages , pages 599–610, 2011.
+[3] R. Alur and L. D’Antoni. Streaming tree transducers. In Proc. of the 39th
+Intl. Colloquium on Automata, Languages, and Programming - Volume
+Part II , pages 42–53, 2012.
+[4] B. Aminof, O. Kupferman, and R. Lampert. Reasoning about online
+algorithms with weighted automata. ACM Transactions on Algorithms ,
+2010.
+[5] V . Batagelj, F. J. Brandenburg, P. O. D. Mendez, and A. Sen. The
+generalized shortest path problem, 2000.
+[6] H. Bj ¨orklund and T. Schwentick. On notions of regularity for data
+languages. Theor. Comput. Sci. , 411(4-5):702–715, 2010.
+[7] K. Chatterjee, L. Doyen, and T. A. Henzinger. Quantitative languages.
+ACM Trans. Comput. Log. , 11(4), 2010.
+[8] T. Colcombet. The theory of stabilisation monoids and regular cost
+functions. pages 139–150, 2009.
+[9] T. Colcombet and C. Loding. Regular cost functions over ﬁnite trees.
+InSymposium on Logic in Computer Science , pages 70–79, 2010.
+[10] B. Courcelle. Graph Operations, Graph Transformations and Monadic
+Second-Order Logic: A survey. Electronic Notes in Theoretical Com-
+puter Science , 51:122 – 126, 2002.
+[11] M. Droste and P. Gastin. Weighted automata and weighted logics. In
+Proc. of Intl. Colloquium on Automata, Languages and Programming ,
+pages 513–525, 2005.
+[12] M. Droste, W. Kuich, and H. V ogler. Handbook of Weighted Automata .
+Springer, 2009.
+[13] M. Droste and G. Rahonis. Weighted automata and weighted logics with
+discounting. Theor. Comp. Sci. , 410(37):3481 – 3494, 2009.
+[14] J. Engelfriet and S. Maneth. Macro tree transducers, attribute grammars,
+and mso deﬁnable tree translations. Information and Computation ,
+154(1):34 – 91, 1999.
+[15] A. V . Goldberg, S. A. Plotkin, and ´E. Tardos. Combinatorial Algorithms
+for the Generalized Circulation Problem. In Foundations of Computer
+Science , pages 432–443, 1988.
+[16] H. Hosoya. Foundations of XML Processing: The Tree-Automata
+Approach . Cambridge University Press, 2011.
+[17] M. Kaminski and N. Francez. Finite-memory automata. Theor. Comput.
+Sci., 134(2):329–363, 1994.
+[18] M. Karr. Afﬁne relationships among variables of a program. Acta Inf. ,
+6:133–151, 1976.
+[19] D. Kirsten and I. M ¨aurer. On the determinization of weighted automta.
+J. Autom. Lang. Comb. , 10:287–312, 2005.
+[20] D. Krob. The equality problem for rational series with multiplicities in
+the tropical semiring is undecidable. In Intl. Colloquium on Automata,
+Languages and Programming , pages 101–112, 1992.
+[21] M. M ¨uller-Olm and H. Seidl. A note on Karr’s algorithm. In Intl.
+Colloquium on Automata, Languages and Programming , pages 1016–
+1028, 2004.
+[22] F. Neven, T. Schwentick, and V . Vianu. Finite state machines for strings
+over inﬁnite alphabets. ACM Trans. Comput. Log. , 5(3):403–435, 2004.
+[23] J. D. Oldham. Combinatorial Approximation Algorithms for Generalized
+Flow Problems. In Symp. On Discrete Algorithms , pages 704–714, 1999.
+[24] M. P. Sch ¨utzenberger. On the deﬁnition of a family of automata.
+Information and Control , 4:245–270, 1961.
+[25] A. Weber. Finite-valued distance automata. Theor. Comput. Sci. ,
+134:225–251, November 1994.

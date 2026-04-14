@@ -1,0 +1,1289 @@
+--- Page 1 ---
+Optimal Scheduling for Linear-Rate Multi-Mode Systems
+Dominik Wojtczak
+University of Liverpool, Liverpool, UK
+d.wojtczak@liverpool.ac.uk
+Abstract. Linear-Rate Multi-Mode Systems is a model that can be seen both as a
+subclass of switched linear systems with imposed global safety constraints and as
+hybrid automata with no guards on transitions. We study the existence and design of a
+controller for this model that keeps the state of the system within a given safe set for
+the whole time. A sufﬁcient and necessary condition is given for such a controller to
+exist as well as an algorithm that ﬁnds one in polynomial time. We further generalise
+the model by adding costs on modes and present an algorithm that constructs a safe
+controller which minimises the peak cost, the average-cost or any cost expressed as a
+weighted sum of these two. Finally, we present numerical simulation results based on
+our implementation of these algorithms.
+1 Introduction
+Optimisation of electricity usage is an increasingly important issue because of the growing
+energy prices and environmental concerns. In order to make the whole system more efﬁ-
+cient, not only the average electricity consumption should be minimised but also its peak
+demand. The energy produced during the peak times, typically occurring in the afternoon
+due to the heaters or air-conditioning units being switched on at the same time after peo-
+ple come back from work, is not only more expensive because the number of consumers
+outweighs the suppliers, but also the peaking power plants that provide the supply at that
+time are a lot less efﬁcient. Therefore, the typical formula that is used for charging compa-
+nies for electricity is a weighted average of its peak and average electricity demand [14,1].
+Optimisation of the usage pattern of heating, ventilation and air-conditioning units (HV AC)
+not only can save electricity but also contribute to their longer lifespan, because they do not
+have to be used just as often.
+In [9] Nghiem et al. considered a model of an organisation consisting of a number of
+decoupled zones whose temperature have to remain within a speciﬁed comfort temperature
+interval. Each zone has a heater with a number of possible output settings, but the controller
+can pick only one of them. That is, the heater can either be on in that one setting or it has
+to be off otherwise. A further restriction is that only some ﬁxed number of heaters can be
+on at any time. The temperature evolution in each zone is governed by a linear differential
+equation whose parameters depend on the physical characteristics of the zone, the outside
+temperature, the heater’s picked setting and whether it is on or off. The aim is to ﬁnd a safe
+controller, i.e. a sequence of time points at which to switch the heaters on or off, in order for
+the temperature in each zone to remain in its comfort interval which is given as the input.
+In the end, it was shown that a sufﬁcient condition for such a controller to exist is whether a
+simple inequality holds. This fact can be used to minimise the peak number of heaters usedarXiv:1302.4406v1  [cs.FL]  18 Feb 2013
+
+--- Page 2 ---
+at the same time, but if heaters can have different costs, then this may not correspond to
+minimising the peak energy cost.
+We strictly generalise the model in [9] and deﬁne linear-rate Multi-Mode Systems (MMS).
+The evolution of our system is the same, speciﬁcally it consists of a number of zones, which
+we will call variables, whose evolution do not directly inﬂuence each other. However, we
+do not assume that all HV AC units in the zones are heaters, so the system can cope with a
+situation when cooling is required during the day and heating during the night. Moreover,
+rather than having all possible combinations of settings allowed, our systems have a list of
+allowable joint settings for all the zones instead; we will call each such joint setting a mode .
+This allows to model speciﬁc behaviours, for instance, heat pumps, i.e. when the heat moves
+from one zone into another, and central heating that can only heat all the zones at the same
+time. Finally, we will be looking for the actual minimum peak cost without restricting our-
+selves to just one setting per heater nor the number of heaters being switched on at the same
+time, while keeping the running time polynomial in the number of modes. We also show
+how to ﬁnd the minimum average-cost schedule and ﬁnally how to minimise the energy bill
+expressed as a weighted sum of the peak and the average energy consumption.
+Related work . Apart from generalising the model in [9], MMSs can be seen both as switched
+linear systems (see, e.g. [5,12]) with imposed global safety constraints or as hybrid automata
+([3,6]) with no guards on transitions. The analysis of switched linear systems typically fo-
+cuses on several forms of stabilisation, e.g. whether the system can be steered into a given
+stable region which the system will never leave again. However, all these analyses are done
+in the limit and do not impose any constraints on the state of the system before it reaches
+the safe region. Such an analysis may sufﬁce for systems where the constraints are soft, e.g.
+nothing serious will happen if the temperature in a room will brieﬂy be too high or too low.
+However, it may not be enough when studying safety-critical systems, e.g. when cooling
+nuclear rectors. Each zone in an MMS is given a safe value interval in which the zone has
+to be at all times. This causes an interesting behaviour, because even if the system stabilises
+while staying forever in any single mode, these stable points may be all unsafe and therefore
+the controller has to constantly switch between different modes to keep the MMS within the
+safety set. For instance, a heater in a room has to constantly switch itself on and off as
+otherwise the temperature will become either too high or too low. On the other hand, even
+the basic questions are undecidable for hybrid automata (see, e.g. [7]) and therefore MMSs
+constitute its natural subclass with decidable and even tractable safety analysis.
+In [2] we recently studied a different incomparable class of constant-rate Multi-Mode
+Systems where in each mode the state of a zone changes with a constant-rate as opposed
+to being govern by a linear differential equation as in linear-rate MMS. Speciﬁcally, in ever
+mode m2Mthe value of each variable xiafter time tincreases by cm
+itwhere cm
+i2R
+is the constant rate of change of xiin mode m. That model was a special case of linear
+hybrid automata ([3]), which has constant-rate dynamics and linear functions as guards on
+transitions. We showed a polynomial-time algorithm for both safe controllability and safe
+reachability questions, as well as ﬁnding optimal safe controllers in the generalised model
+where each mode has an associated cost per time unit.
+There are many other approaches to reduce energy consumption and peak usage in build-
+ings. One particularly popular one is model predictive control [4] (MPC). In [11] stochastic
+MPC was used to minimize building’s energy consumption, while in [8] the peak electricity
+2
+
+--- Page 3 ---
+demand reduction was considered. The drawback of using MPC in our setting is its high
+computational complexity and the fact it cannot guarantee optimality.
+Results . The key contribution of the paper is an algorithm for constructing a safe controller
+for MMSs with any starting point in the interior of the safety set that we present in Section
+3. Unlike in [9], we not only show a sufﬁcient, but also necessary, condition for such a safe
+controller to exist. The condition is a system of linear inequalities that can be solved using
+polynomial-time algorithms for linear programming (see, e.g. [13]) and because that system
+does not depend on the starting state, we show that either all points in the interior of the safe
+set have a safe controller or none of them has one. Furthermore, we show that if there is a
+safe controller then there is a periodic one with the minimum dwell time , i.e. the smallest
+amount of time between two mode switches, being of polynomial-size. Such a minimum
+dwell time may be still too low for practical purposes. However, we prove that the problem
+of checking whether there is a safe controller with the minimum dwell time higher than 1 (or
+for any other constant) is PS PACE -hard. This means that any approximation of the largest
+minimum dwell time among all safe controllers is unlikely to be tractable.
+In Section 4 we generalise the MMS model by associating cost per time unit with each
+mode and looking for a safe schedule that minimises the long-time average-cost. Similarly
+as before, if there is at least one safe controller, then the optimal cost do not depend on the
+starting point and there is always a periodic optimal controller. In order to prove that the
+controller that we construct has the minimum average-cost it is crucial that the condition
+found in Section 3 is both sufﬁcient and necessary. Furthermore, in order to check whether
+there exists a safe controller with a peak cost at most p, it sufﬁces to check safe controllabil-
+ity for the set of all modes whose cost do not exceed p. This allows us to ﬁnd the minimum
+peak cost using binary search on p.
+We show that all these periodic safe (and optimal) controllers can be constructed in time
+polynomial in the number of modes. However, if one considers the set of modes to be given
+implicitly as in [9] where each zone has a certain number of settings and all their possible
+combinations are allowed then the number of modes becomes exponential in the size of the
+input. We try to cope with the problem by performing a bottom-up binary search in order
+to avoid analysing large sets of modes and use other techniques to keep the running time
+manageable in practice.
+Finally, we show how to ﬁnd the minimum total cost calculated as a weighted sum of
+the peak cost and the average cost. The challenging part is that peak cost generally in-
+creases when the set of modes is expanded while the average-cost decreases. Therefore, the
+weighted cost may not be monotone in the size of set of modes and so binary search may
+not work and ﬁnding its minimum may require checking many possible subsets of the set of
+modes. However, we show a technique how one can narrow down this search signiﬁcantly
+to make it practical even for a large sets of modes.
+In the end, we conclude and point out some possible future work in Section 6.
+2 Linear Multi-Mode Systems
+Let us start by setting the notation. We write Nfor the set of natural numbers, N>0for the
+set of positive integers and Zfor the set of integers. For a set X, letjXjdenote the number of
+3
+
+--- Page 4 ---
+elements in X. Also, we write R,R0, andR>0for the sets of all, non-negative and strictly
+positive real numbers, respectively. States of our system will be points in the Euclidean
+spaceRnequipped with the standard Euclidean normkk. By x;ywe denote points in this
+state space, by ~f;~vvectors, while x(i)and~f(i)will denote the i-th coordinate of point x
+and vector ~f, respectively. For 32f;<;;>g, we write x3yifx(i)3y(i)for all i. For a
+n-dimensional vector ~vby diag (~v)we denote a nndimensional matrix whose diagonal is
+~vand the rest of the entries are 0. We can now formally deﬁne our model.
+Deﬁnition 1. A linear-rate multi-mode system (MMS) is a tuple H= (M;N;A;B)where
+M is a ﬁnite nonempty set of modes , N is the number of continuous-time variables in the
+system, and A :M!RN
+>0;B:M!RNgive for each mode the coefﬁcients of the linear
+differential equation that govern the dynamics of the system.
+In all further computational complexity considerations, we assume that all real numbers
+are rational and represented in the standard way by writing down the numerator and denom-
+inator in binary. Throughout the paper we will write am
+iandbm
+ias a shorthand for A(m)(i)
+andB(m)(i), respectively.
+Acontroller of an MMS speciﬁes a timed sequence of mode switches. Formally, a
+controller is deﬁned as a ﬁnite or inﬁnite sequences of timed actions , where a timed ac-
+tion(m;t)2MR>0is a tuple consisting of a mode and a time delay. We say that an
+inﬁnite controllerh(m1;t1);(m2;t2);:::iisZeno ifå¥
+k=1tk<¥and is periodic if there ex-
+istsl1 such that for all k1 we have (mk;tk) = ( m(kmod l)+1;t(kmod l)+1). Zeno con-
+trollers require inﬁnitely many mode-switches within a ﬁnite amount of time, and hence,
+are physically unrealizable. However, one can argue that a controller that switches after
+tk=1=kamount of time during the k-th timed action is also infeasible, because it requires
+the switches to occur inﬁnitely frequently in the limit. Therefore, we will call a controller
+feasible if its minimum dwell time, i.e. the smallest amount of time between two mode
+switches, is positive. We will relax this assumption and allow for the modes that are not
+used at all by a feasible controller to occur in its sequence of time actions with timed
+delays equal to 0, but we still require any feasible controller to be non-Zeno. For a con-
+troller s=h(m1;t1);(m2;t2);:::i, we write Tk(s)def=åk
+i=1tifor the total time elapsed up to
+step kof the controller s,Tm
+k(s)def=åik:mi=mtifor the total time spent in mode mup to
+step k, and ﬁnally tmin(s) =inffk:tk>0gtkdeﬁnes the minimum dwell time of s. For any
+non-Zeno controller swe have that lim k!¥Tk(s) =¥and for any feasible controller s
+we also have tmin(s)>0. Finally, for any t0 lets(t)denote the mode the controller
+sdirects the system to be in at the time instance t. Formally, we have s(t) =mkwhere
+k=minfi:tTi(s)g.
+The state of MMS Hinitialized at a starting point x0under control sis aN-tuple of
+continuous-time variables x(t) = ( x1(t);:::; xN(t))such that x(0) =x0and.
+x(t) =B(s(t))
+diag(A(s(t)))x(t)holds at any time t2R0. It can be seen that if His in mode mdur-
+ing the entire time interval [t0;t0+t]then the following holds xi(t0+t) =bm
+i=am
+i+(xi(t0)
+bm
+i=am
+i)eam
+it. Notice that this expression is monotonic in tand converges to bm
+i=am
+i, because
+based on the deﬁnition of MMS we have am
+i>0 for all mandi.
+Given a set SRNof safe states, we say that a controller sisS-safe for MMS H
+initialised at x0if for all t0 we have x(t)2S. We sometimes say safe instead of S-
+safe if Sis clear from the context. In this paper we restrict ourselves to safe sets being
+4
+
+--- Page 5 ---
+hyperrectangles, which can be speciﬁed by giving lower and upper bound value for each
+variable in the system. This assumption implies that controller sisS-safe iff x(t)2Sfor all
+t2fTk(s):k0g, because each xi(t)is monotonic when Hremains in the same mode
+and so if system is S-safe at two time points, the system is S-safe in between these two
+time points as well. This fact is crucial to the further analysis and allows us to only focus
+onS-safety at the mode switching time points of the controller. Formally, to specify any
+hyperrectangle S, it sufﬁces to give two points l;u2RN, which deﬁne the region as follows
+S=fx:lxug. The fundamental decision problem for MMS that we solve in this paper
+is the following.
+Deﬁnition 2 (Safe Controllability). Decide whether there exists a feasible S-safe con-
+troller for a given MMS H, a hyperrectangular safe set S given by two points l and u
+and an initial point x02S.
+The fact that am
+i>0 for all mandimake the system stable in any mode, i.e. if the
+system stays in any ﬁxed mode forever, it will converge to an equilibrium point. However,
+none of these equilibrium points may be S-safe and as a result the controller may need
+to switch between modes in order to be S-safe. We present an algorithm to solve the safe
+controllability problem in Section 3 and later, in Section 4, we generalise the model to MMS
+with costs associated with modes and the aim being ﬁnding a feasible S-safe controller with
+the minimum average-cost, peak cost, or some weighted sum of these. As the following
+example shows, safe controllability can depend on the starting point if it lies on the boundary
+of the safe set. We will not analyse this special case and assume instead that the starting point
+belongs to the interior of the safe set.
+It should be noted that the deﬁnition of MMS allows for an arbitrary switching between
+modes. Restricting the possible order the modes can be used in a timed sequence will be the
+subject of Corollary 1.
+Example 1. Consider an apartment with two rooms and one heater. The heater can only
+heat one room at a time. When it is off, the room temperature converges to the outside
+temperature of 12C, while if it is constantly on, the temperature of the room converges to
+30C. We assume the comfort temperature to be between 18C and 22C. The table below
+shows the coefﬁcients bm
+ifor all modes mand rooms i, while all the am
+i-s are assumed to be
+equal to 1. Intuitively, when heating room 1 and 2 half of the time each, the temperature in
+each room should oscillate around (30C +12C)/2 = 21C and never leave the comfort zone
+assuming the switching occurs frequently enough. We will prove this intuition formally in
+Section 3. Therefore, as long as the temperature in one of the rooms is above 18C at the
+very beginning, a safe controller exists. However, if the temperature in both rooms start at
+18C (a state which is safe), a safe controller does not exists, because in every mode the
+temperature has to drop in at least one of the rooms and so the state becomes unsafe under
+any control.
+Modes m1m2m3
+bm
+1(Room 1) 123012
+bm
+2(Room 2) 121230
+5
+
+--- Page 6 ---
+3 Safe Schedulability
+Let us ﬁx in this section a linear-rate MMS H= (M;N;A;B)and a safe set Sgiven by two
+points l;u2RN, such that l<uandS=fx:lxug. We call any vector ~f2RM
+0such that
+åm2M~f(m) =1 afrequency vector . Also, let us deﬁne Fi(~f;y):=åm2M~f(m)(bm
+iam
+iy).
+Notice that for a ﬁxed iand frequency vector ~f, function Fi(~f;y)is continuous and strictly
+decreasing in y. Moreover, Fi(a~f+b~g;y) =aFi(~f;y) +bFi(~g;y). For a frequency vector
+~f, variable xiis called critical ifFi(~f;li) =0 orFi(~f;ui) =0 holds.
+Deﬁnition 3. A frequency vector ~f isgood if for every variable xithe following conditions
+hold (I) F i(~f;l)0, and (II) F i(~f;u)0. A frequency vector ~f isimplementable if it is
+good and for every variable xiwe additionally have (III) if F i(~f;l) =0then~f(m) =0for
+every m2M such that bm
+i=am
+i6=li, and (IV) if F i(~f;u) =0then~f(m) =0for every m2M
+such that bm
+i=am
+i6=ui.
+Theorem 1. If there exists a feasible S-safe controller then there exists an implementable
+frequency vector.
+Proof. Denote the feasible S-safe controller by s. Let f(m)
+k=Tm
+k(s)=Tk(s)be the fraction
+of the time spent by sin mode mup to its k-th timed action; note that f(m)
+k2[0;1], and
+åm2Mf(m)
+k=1 for all k. Let us look at the sequence of vectors h~fk2[0;1]Mi¥
+k=1where
+we set ~fk(m) =f(m)
+k. Since this sequence is bounded, by the Bolzano-Weierstrass theorem,
+there exists an increasing integer sequence j1;j2;:::such that lim k!¥~fjkexists and let us
+denote this limit by ~f. We prove by contradiction that ~fis an implementable frequency
+vector.
+First, ~fis a frequency vector as a limit of a sequence of frequency vectors. So if it was
+not an implementable one then for some variable xiat least one of the following would
+hold (I) Fi(~f;li)<0, or (II) Fi(~f;ui)>0, or (III) Fi(~f;li) =0 and the set M0:=fm2M:
+~f(m)>0&bm
+i=am
+i6=ligis nonempty, or (IV) Fi(~f;ui) =0 and the setfm2M:~f(m)>
+0&bm
+i=am
+i6=uigis nonempty. We will consider only cases (I) and (III) as the other two are
+symmetric and their proofs are essentially the same.
+Let us ﬁrst look at case (I). Denote c:=Fi(~f;li)<0. Let cm(t)be equal to 1 if s(t) =m
+and let it be 0 otherwise. Notice that xi(Tk), the value of the variable xiafter the k-th timed
+action of s, is equal to xi(0)+RTk
+0.xi(t)dt=xi(0)+åm2MRTk
+0(bm
+iam
+ixi(t))cm(t)dtui+
+åm2MTm
+k(bm
+iam
+ili), because if the system is S-safe, then for every mode mwe have bm
+i
+am
+ixibm
+iam
+ili. From the deﬁnition of ~f, for any e>0 we can pick Ksuch that for all
+k>Kandm2Mwe havej~fjk(m)~f(m)j<e. So
+xi(Tjk)ui+å
+m2MTm
+jk(bm
+iam
+ili) =ui+Tjkå
+m2M~fjk(m)(bm
+iam
+ili)
+=ui+Tjkå
+m2M~f(m)+(~fjk(m)~f(m))
+(bm
+iam
+ili)
+ui+Tjk(å
+m2M~f(m)(bm
+iam
+ili)+ejMjcmax)) = ui+Tjk(c+ejMjcmax)
+6
+
+--- Page 7 ---
+where cmax:=max m2Mjbm
+iam
+ilijjFi(~f;li)j>0.
+If we now set eto bec=(2jMjcmax), which is >0, then xi(Tjk)ui+1
+2Tjkc, and so
+limk!¥xi(Tjk) =¥, because sis non-Zeno and c<0. This is a contradiction with the
+assumption that sisS-safe, i.e. xi(t)lifor all t0.
+Now let us move on to case (III). Let amax:=max m2M0jam
+ij,cmin:=min m2M0jbm
+iam
+ilij
+andtmin:=tmin(s). Of course cmin>0, because bm
+i=am
+i6=liform2M0andtmin>0, because
+sis feasible. Let g:=tmincmin
+2+tminamax, which is >0.
+Lemma 1. For at least half of the time duration of every timed action of swhich uses
+mode2M0,xi(t)li+gholds.
+The proof of Lemma 1 can be found in the appendix. We can now proceed similarly as
+in case (I). We have that xi(Tk)is equal to xi(0) +RTk
+0.xi(t)dt=xi(0) +åm2MRTk
+0(bm
+i
+am
+ixi(t))cm(t)dtui+åm2MTm
+k(bm
+iam
+ili) +åm2M01
+2Tm
+kam
+ig, because using Lemma 1
+we know that for at least half of the time spent in any mode m2M0we have bm
+iam
+ixi(t)
+bm
+iam
+i(li+g)and for the other half and any other m2MnM0we have bm
+iam
+ixi(t)
+bm
+iam
+ili. Again, from the deﬁnition of ~f, for any e>0 we can pick Ksuch that for all
+k>Kandm2Mwe havej~fjk(m)~f(m)j<eand so
+xi(Tjk)ui+å
+m2MTm
+jk(bm
+iam
+ili)+å
+m2M01
+2Tm
+jkam
+ig
+=ui+Tjkå
+m2M~fjk(m)(bm
+iam
+ili)1
+2Tjkgå
+m2M0~fjk(m)am
+i
+=ui+Tjkå
+m2M~f(m)+(~fjk(m)~f(m))
+(bm
+iam
+ili)1
+2Tjkgå
+m2M0~f(m)+(~fjk(m)~f(m))
+am
+i
+ui+Tjk(å
+m2M~f(m)(bm
+iam
+ili)+ejMjcmax))1
+2Tjkgå
+m2M0~f(m)e)amax
+ui+Tjk(0+ejMjcmax+1
+2egjM0jamax1
+2gå
+m2M0~f(m)):
+If we now set e:=1
+2gåm2M0~f(m)=(2jMjcmax+gjM0jamax), which is >0, then we get
+xi(Tjk)ui1
+4Tjkgåm2M0~f(m), and so lim k!¥xi(Tjk) =¥, because gåm2M0~f(m)>0
+andsis non-Zeno. This is a contradiction with the assumption that sisS-safe.
+Similarly we can show that neither case (II) nor case (IV) can hold which ﬁnishes the
+proof that ~fis an implementable frequency vector. u t
+Theorem 2. If there exists an implementable frequency vector then there exists a periodic
+S-safe controller for any initial state in the interior of the safety set.
+Proof. Let~fbe the implementable frequency vector. We ﬁrst remove from Mall modes m
+such that ~f(m) =0. We claim that the following periodic controller s=h(mk;tk)i¥
+k=1with
+periodjMjisS-safe for sufﬁciently small s:mk=(kmodjMj)+1 and tk=~f(mk)s. As we
+already know it sufﬁces to check S-safety of the system at time points Tkfor all k. We will
+focus here on checking just the lower bound, x(Tk)l, because the estimations concerning
+7
+
+--- Page 8 ---
+the upper bound are very similar. Note that for any variable xiwe have
+xi(T1) =bm1
+i
+am1
+i+
+x0(i)bm1
+i
+am1
+i
+eam1
+it1;and
+xi(T2) =bm2
+i
+am2
+i+bm1
+i
+am1
+ibm2
+i
+am2
+i
+eam2
+it2+
+x0(i)bm1
+i
+am1
+i
+eam1
+it1am2
+it2
+and further by induction we get
+xi(Tk) =bmk
+i
+amk
+i+k1
+å
+n=1bmn
+i
+amn
+ibmn+1
+i
+amn+1
+i
+eåk
+j=kn+1amj
+itj+
+x0(i)bm1
+i
+am1
+i
+eåk
+j=1amj
+itj(1)
+Now, because ~fis implementable, if Fi(~f;li) =0 then it has to be bm
+i=am
+i=lifor all m. In
+such a case, it is easy to see from equation (1) that xi(Tk)>lifor all k, because x0(i)>li.
+Therefore, we can assume Fi(~f;li)>0. Let xldef=x(TljMj)for all l2N,Sl
+kdef=ål
+j=kamj
+itj=
+sål
+j=kamj
+i~f(mj),a(s)def=eSjMj
+1, and
+b(s)def=bmjMj
+i
+amjMj
+i+jMj1
+å
+n=1bmn
+i
+amn
+ibmn+1
+i
+amn+1
+i
+eSjMj
+jMjn+1bm1
+i
+am1
+ieSjMj
+1:
+Notice that since sis periodic with period jMjfrom equation (1) we can deduce xl+1(i) =
+a(s)xl(i) +b(s)for all l. Now, because 0 <a(s)<1 for all s, sequence xl(i)converges
+monotonically to b(s)=(1a(s))asl!¥for any initial value x0(i).
+We will now ﬁnd sof polynomial size such that b(s)=(1a(s))li. The last condition
+is equivalent to b(s)li+a(s)li0, because 1a(s)>0. It is well-known that 1 x
+ex1x+x2for all x0. Let us also denote d:=jlij+juij+2max m2Mjbm
+i=am
+ij. Notice
+that for all m;m02Mwe havejbm
+i=am
+ibm0
+i=am0
+ijd,jlibm
+i=am
+ijd, as well asjx0(i)
+bm
+i=am
+ijd. Therefore, b(s)li+a(s)li= (bmjMj
+i
+amjMj
+ili)+åjMj1
+n=1(bmn
+i
+amn
+ibmn+1
+i
+amn+1
+i)eSjMj
+jMjn+1+
+(libm1
+i
+am1
+i)eSjMj
+1(bmjMj
+i
+amjMj
+ili)+
+åjMj1
+n=1(bmn
+i
+amn
+ibmn+1
+i
+amn+1
+i)(1SjMj
+jMjn+1)d(SjMj
+jMjn+1)2
++
+(libm1
+i
+am1
+i)(1SjMj
+1)d(SjMj
+1)2=åjMj
+j=1bmj
+itmjliSjMj
+iåjMj1
+n=1d(SjMj
+jMjn+1)2d(SjMj
+1)2
+s
+åjMj
+j=1~f(mj)bmj
+iåjMj
+j=1~f(mj)amj
+ili
+djMj(SjMj
+1)2=sFi(~f;li)s2djMj(åjMj
+j=1~f(mj)amj
+i)2.
+If we now set s:=Fi(~f;li)
+djMj(åm~f(m)am
+i)2then the last expression will be 0. Notice that this bound
+does not depend on the order of the modes in the period nor on the starting state. So if for
+anyk<jMjwe repeat this estimation for the initial point x(Tk), controller s0(t):=s(t+Tk)
+and exactly the same s, the value of xi(TljMj+kTk)under control s0will also monotoni-
+cally converge to some value liasl!¥. Therefore, as long as x(Tk)is aS-safe for all
+k<jMjfor the just selected s, all states of the system that follow will be S-safe as well.
+Now, if we repeat the same analysis for the upper bound uithen we would get an expression
+s:=Fi(~f;ui)
+djMj(åm~f(m)am
+i)2, so it sufﬁces to set sto be the minimum of these two.
+Now, to ﬁnd ssuch that the system is S-safe for the ﬁrstjMjsteps, we can estimate xi(Tk)
+to bex0(i)Tkmax mjbm
+iam
+ix(0)jandx0(i)+Tkmax mjbm
+iam
+ix(0)j. We have Tks
+8
+
+--- Page 9 ---
+fork<jMjfrom the deﬁnition of sand so it sufﬁces to set s:=minfuix0(i);x0(i)
+lig=max mjbm
+iam
+ix0(i)jif max mjbm
+iam
+ix(0)j6=0 and otherwise set sto an arbitrary high
+value in order for the variable xito be S-safe in the ﬁrstjMjsteps.
+Finally, if we pick the minimum value from these estimates on sover all possible vari-
+ables xi, we will guarantee that the system is both S-safe in the ﬁrstjMjsteps as well as
+after that, because xi(TljMj+k)will monotonically converge for every ﬁxed iandk<jMjto
+a safe state as l!¥. u t
+Theorem 3. Algorithm 1 returns in polynomial time a S-safe feasible controller from x0if
+there exists one.
+Proof. We ﬁrst need the following lemma whose proof can be found in the appendix.
+Lemma 2. Either there is a variable which is critical for all good frequency vectors or
+there is a good frequency vector in which no variable is critical.
+Now, let sbe the controller returned by Algorithm 1. Notice that the frequency vector
+~fthe controller sis based on is implementable, because ~fsatisﬁes the constraints at line
+11 which imply the conditions (I) and (II) of ~fbeing implementable and from Lemma 2 it
+follows that all modes that could violate the conditions (III) and (IV) were removed in the
+loop between lines 5–10. Moreover, constant sused in the construction of sis exactly the
+same as the one used in Theorem 2 which guarantees sto be S-safe.
+On the other hand, from Theorem 1, if there exists a feasible S-safe controller then there
+also exists an implementable frequency vector ~f. Such a vector will satisfy the constraints
+of being good at line 2 of the algorithm. In the loop between the lines 5–10, all variables that
+are critical in ~fare ﬁrst checked whether they satisfy conditions (III) and (IV), and they will
+satisfy them because ~fis implementable, and after that these critical variables are removed.
+Finally, ~fconsisting of just the remaining variables will satisfy the constraints at line 7 of
+being implementable with no critical variables. Therefore, Algorithm 1 will always return a
+controller if there exists a S-safe one.
+It is easy to see that Algorithm 1 runs in polynomial time, because at least one critical
+variable is removed in each iteration of the loop between lines 5–10, one iteration checks at
+most Nremaining variables, and each such a check requires calling a linear programming
+solver which runs in polynomial time. Finally, steps 4 and 13 of Algorithm 1 are achievable,
+because if a linear program has a solution then it has a solution of polynomial size (see, e.g.
+[13]). This shows that the size of the returned controller is always polynomial. u t
+Notice that the controller returned by Algorithm 1 has a polynomial-size minimum
+dwell time. We do not know whether ﬁnding a safe controller with the largest possible dwell
+time is decidable, nor is checking whether such a minimum dwell time can be greater than
+1. We now show that the last problem is PS PACE -hard, so it is unlikely to be tractable.
+The details of the proof are in the appendix. Finally, this also implies PS PACE -hardness of
+checking whether a safe controller exists in the case the system is controlled using a digital
+clock, i.e. when all timed delays have to be a multiple of some given sampling rate D>0.
+Theorem 4. For a given MMS H, hyperrectangular safe set S described by two points l;u,
+starting point x02S, checking whether there exits a S-safe controller with minimum dwell
+time1isPSPACE -hard.
+9
+
+--- Page 10 ---
+Algorithm 1: Finds a S-safe feasible controller from a given x02S.
+Input : MMS H, two points landuthat deﬁne a hyperrectangle S=fx:lxugand an
+initial point x02Ssuch that l<x0<u.
+Output : NO if no S-safe feasible controller exists from x0, and a periodic such controller,
+otherwise.
+1I:=M;
+2Check whether the following linear program is satisﬁable for some frequency vector ~f:
+Fi(~f;li)0 for all i2I
+Fi(~f;ui)0 for all i2I:
+ifno satisfying assignment exists then
+3 return NO
+4Let~fbe any frequency vector of polynomial size that satisﬁes conditions in step 2.
+5repeat
+6 foreach j2Ido
+7 Check whether the following linear program is satisﬁable for some frequency vector
+~f:
+Fi(~f;li)0 for all i2Infjg
+Fi(~f;ui)0 for all i2Infjg
+Fj(~f;lj)>0 and Fj(~f;uj)<0:
+ifno satisfying assignment exists then
+8 IfFj(~f;li) =0, remove all modes for which bm
+i=am
+i6=liand otherwise remove
+all modes for which bm
+i=am
+i6=ui.
+9 Remove jfrom I.
+10until no mode was removed from M in this iteration ;
+11Check whether the following linear program is satisﬁable for any frequency vector ~f:
+Fi(~f;li)>0 for all i2I
+Fi(~f;ui)<0 for all i2I:
+ifno satisfying assignment exists or M =/ 0then
+12 return NO
+13Let~fbe any frequency vector of polynomial size that satisﬁes conditions in step 11.
+14Let
+s:=min
+i2I 
+minfx0(i)li;uix0(i)g
+max mjbm
+iam
+ix0(i)j;min(Fi(~f;li);Fi(~f;ui))
+(jlij+juij+2max mjbm
+i=am
+ij)(åmam
+i~f(m))2!
+:
+15return the following periodic controller with period jMj:mk=(kmodjMj)+1 and
+tk=~f(mk)s.
+10
+
+--- Page 11 ---
+Proof. (Sketch) The proof is similar to the PS PACE -hardness proof in [2] of the discrete-
+time reachability in constant-rate MMS that reduces from the acceptance problem for linear
+bounded automata (LBAs), but our reduction is a lot more involved, because of the differ-
+ences in the dynamics of the system. For instance, we deal with a decision problem for the
+minimum dwell time of a safe continuous-time controller instead of a discrete-time one.
+Also, unlike for constant-rate MMS, there is no possibility to keep the value of any variable
+constant over time regardless of its current value. To overcome this problem, we will take
+advantage of the fact that for every LBA and input word, there exists an exponential upper
+bound on the number of steps this LBA can take before the input word is accepted. u t
+Notice that the periodic controller returned by Algorithm 1 just cycles forever over the
+set of modes in some ﬁxed order which can be arbitrary. This allows us to extend the model
+by specifying an initial mode m0and a directed graph GMM, which speciﬁes for each
+mode which modes can follow it. Formally, we require any controller h(m1;t1);(m2;t2);:::i
+to satisfy (mi;mi+1)2Gfor all i1 and m1=m0. The proof is in the appendix.
+Corollary 1. Deciding whether there exists a feasible S-safe controller for a given MMS
+Hwith a mode order speciﬁcation graph G, initial mode m 0, a hyperrectangular safe set S
+given by two points l and u and an initial point l<x0<u can be done in polynomial time.
+4 Optimal Schedulability
+In this section we extend our results on S-safe controllability of MMS to a model with costs
+per time unit on modes. We will call this model priced linear-rate multi-mode systems . The
+aim is to ﬁnd an S-safe controller with the minimum cost where the cost is either deﬁned as
+the peak cost, the (long-time) average cost or a weighted sum of these.
+Deﬁnition 4. A priced linear-rate multi-mode system (MMS) is a tuple H= (M;N;A;B;p)
+where (M;N;A;B)is a MMS and p:M!R0is a cost function such that p(m)charac-
+terises the cost per-time unit of staying in mode m.
+We deﬁne the (long-time) average cost of an inﬁnite controller s=h(m1;t1);(m2;t2);:::i
+as the long-time average of the cost per time-unit over time, i.e.
+AvgCost (s)def=limsup
+k!¥åk
+i=1p(mi)ti
+åk
+i=1ti:
+For the results to hold it is crucial that limsup is used in this deﬁnition instead of liminf. In
+the case of minimising the average cost, it is more natural to minimise its limsup anyway,
+which intuitively is its reoccurring maximum value. On the other hand, the peak cost is
+simply deﬁned as PeakCost (s)def=supfk:tk>0gp(mk):
+We will try to answer the following question for priced MMS.
+Deﬁnition 5 (Optimal Controllability). Given a priced MMS H, a hyperrectangular safe
+set S deﬁned by two points l and u, an initial point x02S such that l<x0<u, and constants
+mavg;mpeak0, ﬁnd an S-safe controller swith the minimum value of mavgAvgCost (s) +
+mpeakPeakCost (s).
+11
+
+--- Page 12 ---
+The following example shows that such a weighted cost does not always increase with
+the increase in the peak cost.
+Example 2. The table below shows the values of bm
+ifor each mode m2M=fm1;m2;m3g
+and variable xias well as the cost of each mode. We assume that all am
+i-s are equal to 1. The
+safe value interval for each variable is [0;1], i.e. li=0,ui=1 for all i.
+Modes m1m2m3m4
+bm
+11215
+bm
+21125
+p(cost) 0334
+One can compute that the optimal average cost of any S-safe controller which uses only
+modes from M0=fm1;m2;m3gis equal to 2 and that average cost is achieved when the
+frequency of each mode from M0is equal to1
+3. At the same time, the peak cost of that
+controller is 3. On the other hand, there is a S-safe controller for the whole set of modes
+Mwith peak cost 4 and average cost just5
+6, when the frequency of mode m1is5
+6and
+the frequency of mode m4is1
+6. If we assume that the weighted cost of a controller sis
+PeakCost (s) +AvgCost (s), then clearly the second controller has a lower weighted cost
+although it has a higher peak cost.
+The algorithm that we deﬁne is designed to cope with systems where the set of modes
+is large and given implicitly like in [9], where the input is a list of heaters with different
+output levels and energy costs. Each heater is placed in a different zone and any possible
+on/off combination of the heaters gives us a different mode in our setting, which leads to
+exponentially many modes in the size of the input. The cost of a mode is the sum of the
+energy cost of all heaters switched on in that particular mode. We try to deal with this
+setting by using binary search and a speciﬁc narrowing down technique to consider only the
+peak costs for which the weighted cost can be optimal. Unfortunately our algorithm will
+not run in time polynomial in the number of heaters, but the techniques used can reduce the
+running time in practice. If we assume that modes are given explicitly as the input then there
+is a much simpler algorithm which runs in polynomial time and is presented in Appendix E
+as Algorithm 3. Let us now ﬁx a MMS with costs H= (M;N;A;B;p), the safe set Sand a
+starting point x0in the interior of S.
+Theorem 5. Algorithm 2 ﬁnds a S-safe feasible periodic controller that optimises the weighted
+cost deﬁned by the peak and average cost coefﬁcients mpeakandmavg.
+Proof. LetMpdenote the set of modes with cost at most p. First, to ﬁnd the minimum
+peak cost among all S-safe controllers we can ﬁrst order all the modes according to their
+costs and then the algorithm makes a binary search on the possible peak cost p, i.e. guesses
+initial pand checks whether Mphas a S-safe controller; if it does not then it doubles the
+value of pand if it does then halves the value of p. In may be best to start with a small value
+ofpﬁrst, because the bigger pis, the bigger is the set of modes and the slower is checking
+its feasibility.
+Second, to ﬁnd the minimum average cost among all S-safe controllers, notice that the
+average cost of the periodic controller returned by Algorithm 1 based on the frequency vec-
+tor~fisåm2M~f(m)p(m). Therefore, if we ﬁnd an implementable frequency vector which
+12
+
+--- Page 13 ---
+Algorithm 2: Finds an optimal S-safe feasible controller from a given x02S.
+Input : A priced MMS H, two points landuthat deﬁne a hyperrectangle S=fx:lxug
+and an initial point x02Ssuch that l<x0<u, and constants mavgandmpeakwhich
+deﬁne the weighted cost of a controller.
+Output : NO if no S-safe feasible controller exists from x0, and an periodic such controller s
+for which mpeakPeakCost (s)+mavgAvgCost (s)is minimal, otherwise.
+1min-size : =1;
+2repeat
+3 min-size : =2min-size;
+4 Pick minimal psuch that Mp, the set of all modes with cost at most p, has size at least
+min-size.
+5 Call Algorithm 1 for the set of modes Mp.
+6until min-size <jMjandthe call returned NO ;
+7ifthe last call to Algorithm 1 returned NO then
+8 return NO.
+9Perform a binary search to ﬁnd the minimal psuch that Mpis feasible using the just found
+upper bound on the minimal feasible set of modes.
+10Modify Algorithm 1 by adding the objective function Minimise åm2M~fmp(m)to the linear
+program at line 11. Let OptAvgCost (M0)be the value of this objective when Algorithm 1 is
+called for the set of modes M0.
+11p0:=p0+mavg
+mpeakOptAvgCost (Mp);
+12repeat
+13 p0:=p0+mavg
+mpeak
+OptAvgCost (Mp)OptAvgCost (Mp0)
+;
+14until p0decreases ;
+15Pick a peak value p2[p;p0]for which mpeakp+mavgOptAvgCost (Mp)is the smallest.
+16return the periodic controller returned by the modiﬁed version of Algorithm 1 called for the
+set of modes Mp.
+minimises that value, then we will also ﬁnd a safe controller with the minimum average-cost
+among all periodic safe controllers. This can be easily done by adding the objective Mini-
+mizeåm~f(m)p(m)to the linear program at line 11 of Algorithm 1. However, using similar
+techniques as in Theorem 1 we can show that no other controller can have a lower average-
+cost. The key observation is the fact that AvgCost (s) =limsupk!¥åm2Mf(m)
+kp(m)
+limsupk!¥åm2Mf(m)
+jkp(m) =åm~f(m)p(m)where just like in the proof of Theorem 1, f(m)
+k
+is the frequency of being in mode mup to the k-th timed action and hjkik2Ndeﬁnes a sub-
+sequence of f(m)
+kthat converges for every m. The second inequality holds because a limsup
+of a subsequence is at most equal to the limsup of the whole sequence.
+For any set of modes M0M, let OptAvgCost (M0)denote the minimum average cost
+when only modes in M0can be used. Now, if mpeak=0 then it sufﬁces to compute the optimal
+average cost for the whole set of modes to ﬁnd the minimum weighted cost. Otherwise,
+to ﬁnd a safe controller with the minimum value of mpeakPeakCost (s) +mavgAvgCost (s)
+the algorithm ﬁrst ﬁnds a feasible set of modes with the minimum peak cost and let us
+denote that peak cost by pmin. Ifmavg=0 then this sufﬁces. Otherwise, observe that from
+the deﬁnition the cost of each mode is always nonnegative and so the average cost has to
+13
+
+--- Page 14 ---
+be as well. Even if we assume that the average cost is equal to 0 for some larger set of
+modes with peak cost p, the weighted cost will at least be equal to mpeakpas compared
+tompeakpmin+mavgOptAvgCost (Mpmin), which gives us an upper bound on the maximum
+value of pworth considering to be p0=pmin+mavg
+mpeak(OptAvgCost (Mpmin)). But now we
+can check the actual value of OptAvgCost (Mp0)instead of assuming it is =0 and calculate
+again a new bound on the maximum peak value worth considering and so on. To generate
+modes on-the-ﬂy in the order of increasing costs, we can use Dijkstra algorithm with a
+priority queue. u t
+5 Numerical Simulations
+Fig. 1. Comparison of temperature evolution under optimal and lazy control in an organisa-
+tion consisting of two zones. The safe temperature is between 18C and 22C. On the left, a
+periodic controller with the minimum peak cost which was then optimised for the minimal
+average-cost. On the right, the behaviour of the lazy controller. The y-axis is temperature
+inC and the x-axis measures time in hours. The optimal controller used 3 modes and its
+minimum dwell time was 43 seconds. On the other hand, the lazy controller used 5 different
+modes and its minimum dwell time was 180 seconds.
+We have implemented Algorithms 1 and 2 using a basic implementation of the simplex
+algorithm as their underlying linear program solver in Java. The tests were run on Intel
+Core i5 1.7 GHz with 1GB memory available. The examples are based on the model of
+an organisation with decoupled zones as in [9] and were randomly generated with exactly
+the same parameters as described there. We implemented also a simple lazy controller to
+compare its peak and average energy consumption to our optimal one. Simply asking the
+lazy controller to let the temperature oscillate around the minimum comfort temperature
+in each room is risky and causes high peak costs, so our “lazy” controller uses a different
+14
+
+--- Page 15 ---
+approach. It switches any heater to its minimum setting if its zone has reached a temperature
+in the top 5% of its allowable value range. On the other hand, if the temperature in a zone is
+in the bottom 5% of its allowable value range, then the lazy controller ﬁnds and switches its
+heater to the minimum setting that will prevent the temperature in that zone dropping any
+further. However, before it does that, it ﬁrst checks whether there are any zones with their
+temperature above 10% of their allowable value range and switches them off ﬁrst. This tries
+to minimise the number of heaters being switched on at the same time and thus also tries to
+minimise the peak cost.
+We have tested our systems for an organisation with eight zones and each heater having
+six possible settings, which potentially gives 68>106possible modes. Zones parameters
+and their settings were generated using the same distribution as described in [9] and the
+outside temperature was set to 10C. The simulation of the optimal and the lazy controller
+was performed with a time step of three minutes and the duration of nine hours.
+First, in Figure 1 we can compare the difference in the behaviour of the optimal con-
+troller as compared to the lazy one in the case of just two zones. In the case of the optimal
+controller, we can see that the temperature in each zone stabilises around the lower safe
+bound by using a constant switching between various modes. On the other hand, for the
+lazy controller the temperature oscillates between the lower and upper safe value, which
+wastes energy. The peak cost was 15 kW for the optimal controller and 18.43 kW for the
+lazy one, while the average energy usage was 13.4 kW and 15.7 kW, respectively. This
+gives 23% savings in the peak energy consumption and 17% savings in the average energy
+consumption. Note that any safe controller cannot use more than 16.9 kW of energy on the
+average, because otherwise it would exceed the upper comfort temperature for one of the
+rooms, so the maximum possible savings in the average energy consumption cannot exceed
+26%. For a building with eight rooms, the running time of our algorithm was between less
+than a second to up to a minute with an average 40 seconds, depending on how many modes
+were necessary to ensure safe controllability of the system. The lazy controller was found
+to have on the average 40% higher peak cost than the optimal controller and 15% higher
+average-cost. In the extreme cases it had 70% higher peak cost and 22% higher average-cost.
+Again, the reason why the lazy controller did better in the average energy consumption than
+the peak consumption is that the comfort zone is so narrow and any safe controller cannot
+waste too much energy without violating the upper comfort temperature in one of the rooms.
+6 Conclusions
+We have proposed and analysed a subclass of hybrid automata with dynamics govern by
+linear differential equations and no guards on transitions. This model strictly generalises
+the models studied by Nghiem et al. in [9] in the context of peak minimisation for energy
+consumption in buildings. We gave a sufﬁcient and necessary condition for the existence of
+a controller that keeps the state of the system within a given safe set at all times as well as
+an algorithm that ﬁnd such a controller in polynomial time. We also analysed an extension
+of this model with costs per time unit associated with modes and gave an algorithm that
+constructs a safe controller which minimises the peak cost, the average cost or any cost ex-
+pressed as a weighted sum of these two. Finally, we implemented some of these algorithms
+and showed how they perform in practice.
+15
+
+--- Page 16 ---
+From the practical point of view, the future work will involve turning the prototype
+implementation of the algorithms in this paper into a tool. Our model can be extended by
+adding disturbances and interactions between zones to the dynamics of the model like in
+[10]. This, however, would further complicate the already complicated formula given for
+the switching frequency of each mode of the safe controller as deﬁned in Algorithm 1.
+The special cases that could be looked at are the initial state being on the boundary of the
+safe set and checking whether Theorem 1 also holds for all non-Zeno controllers not just
+for controllers with a positive minimum dwell time. An interesting problem left open is the
+decidability of ﬁnding a safe controller with the minimum dwell time above a ﬁxed constant.
+Acknowledgments
+We would like to thank Rajeev Alur, Ashutosh Trivedi and Sasha Rubin for the discus-
+sions related to some aspects of this work. This research was supported by EPSRC grant
+EP/G050112/2.
+References
+1. M.H. Albadi and E.F. El-Saadany. Demand response in electricity markets: An overview. In
+Power Engineering Society General Meeting, 2007. IEEE , pages 1 –5, june 2007.
+2. R. Alur, A. Trivedi, and D. Wojtczak. Optimal scheduling for constant-rate mulit-mode systems.
+InProc. of Hybrid Systems: Computation and Control 2012 .
+3. Rajeev Alur, Costas Courcoubetis, Thomas Henzinger, and Pei Ho. Hybrid automata: An algo-
+rithmic approach to the speciﬁcation and veriﬁcation of hybrid systems. In Hybrid Systems , pages
+209–229. Springer Berlin / Heidelberg, 1993.
+4. E.F. Camacho, C. Bordons, E.F. Camacho, and C. Bordons. Model predictive control , volume
+303. Springer Berlin, 1999.
+5. A. Giua, C. Seatzu, and C. Van der Mee. Optimal control of switched autonomous linear systems.
+InProc. of the 40th IEEE Conference on Decision and Control. , volume 3, pages 2472 –2477
+vol.3, 2001.
+6. T. A. Henzinger. The theory of hybrid automata. In Proc. of the 11th IEEE LICS’96 Symposium ,
+Washington, DC, USA, 1996.
+7. T. A. Henzinger, P. W. Kopke, A. Puri, and P. Varaiya. What’s decidable about hybrid automata?
+Journal of Comp. and Sys. Sciences , 57:94–124, 1998.
+8. Yudong Ma, F. Borrelli, B. Hencey, B. Coffey, S. Bengea, and P. Haves. Model predictive control
+for the operation of building cooling systems. In American Control Conference (ACC), 2010 ,
+pages 5106 –5111, 30 2010-july 2 2010.
+9. T. X. Nghiem, M. Behl, R. Mangharam, and G. J. Pappas. Green scheduling of control systems
+for peak demand reduction. In Proc. of Conference on Decision and Control , 2011.
+10. T. X. Nghiem, M. Behl, G. J. Pappas, and R. Mangharam. Green scheduling for radiant systems
+in buildings. In Proc. of Conference on Decision and Control , 2012.
+11. F. Oldewurtel, A. Ulbig, A. Parisio, G. Andersson, and M. Morari. Reducing peak electricity
+demand in building climate control using real-time pricing and model predictive control. In
+Decision and Control (CDC), 2010 49th IEEE Conference on , pages 1927 –1932, 2010.
+12. Shuzhi S. and Zhendong Sun Ge. Switched linear systems: Control and design . Springer, 2005.
+13. Alexander Schrijver. Theory of linear and integer programming . John Wiley & Sons, Inc., New
+York, NY , USA, 1986.
+14. TRFund Energy Study. Understanding PECO’s general service tariff.
+16
+
+--- Page 17 ---
+Appendix
+A Proof of Lemma 1
+We ﬁrst prove the following proposition.
+Proposition 1. IfHis in the same mode m during the time interval [t0;t0+t]we have that
+xi(t0)+t(bm
+iam
+ixi(t0+t))sgn(.xi(t0))xi(t0+t)xi(t0)+t(bm
+iam
+ix(t0))holds, where
+sgnis the signum function.
+Proof. Recall that sgn (x) =1 ifx>0, sgn (x) =1 ifx<0, and sgn (x) =0 ifx=0. Notice
+that.xi(t) =biaixi(t)attains its minimum and maximum at the ends of the time interval
+[t0;t0+t], because xiis monotone in t. Therefore, if.xi(t0)>0, i.e. sgn (.xi(t0)) = 1 and xi
+is increasing in t, then for all c2[t0;t0+t]we have.xi(c).xi(t0)and.xi(c).xi(t0+t).
+From the mean value theorem, we know that for some c2[t0;t0+t]we have xi(t0+t) =
+xi(t0)+t.xi(c); the inequality follows and we proceed similarly in the other cases.
+Lemma 1 .For at least half of the time duration of every timed action of swhich uses
+mode2M0,xi(t)li+gholds.
+Proof. Recall that amax:=max m2M0jam
+ij,cmin:=min m2M0jbm
+iam
+ilijandtmin:=tmin(s).
+Of course cmin>0, because bm
+i=am
+i6=liform2M0andtmin>0, because sis feasible. Let
+g:=tmincmin
+2+tminamax, which is >0.
+Let us consider the k-th timed action of ssuch that mk2M0. Of course we have tktmin.
+Notice that g<1
+2tmincmin, because tminamax>0 and also, easy calculations show g<cmin
+amax.
+Ifxi(Tk1)li+gandxi(Tk)li+gthen we are done, because xiis monotonic in the
+time interval [Tk1;Tk]and so xi(t)li+gwould hold for the whole k-th timed action.
+We will estimate the longest amount of time the system can be in the same mode while
+xi(t)2[li;li+g]holds. First, notice that for every m2M0we either have bm
+iam
+ix>0 for
+allx2[li;li+g]or it is bm
+iam
+ix<0 for all x2[li;li+g]. Otherwise, there would be x2
+[li;li+g]such that bm
+iam
+ix=0 and so bm
+iam
+ili=am
+i(xli)amaxg<amaxcmin
+amax=cmin;
+a contradiction with the deﬁnition of cmin. Because we just showed that the process cannot
+coverage to any point in the interval [li;li+g], either it reaches the lower or upper boundary
+of this interval or it runs out of the allocated amount of time tk.
+Now, assume that bm
+iam
+ix<0 holds in that interval, i.e. the value of xi(t)is decreasing
+int. The amount of time xi(t)2[li;li+g]holds is the greatest if the value of variable xi
+starts at li+gand ends at li. Using Proposition 1, we can estimate this time to be at most
+g=(am
+ilbm
+i)<1
+2tmincmin=cmin=1
+2tmin, which means that during the remaining time equal
+totm
+k1
+2tmin>1
+2tmin, the value of xi(t)stays above li+g.
+Finally, if bm
+iam
+ix>0 holds in that interval, then we can again estimate using Propo-
+sition 1 the time xi(t)2[li;li+g]can hold to be at most g=(bm
+iam
+i(li+g))<g=(cmin
+am
+ig) =1=(cmin
+gam
+i) =1=(2+tminamax
+tminam
+i)<1
+2tmin. Therefore, again the amount of time
+the value of xistays outside of the interval [li;li+g]is greater than the amount of time spent
+inside of it. u t
+17
+
+--- Page 18 ---
+B Proof of Lemma 2
+Lemma 2 .Either there is a variable which is critical for all good frequency vectors or there
+is a good frequency vector in which no variable is critical.
+Proof. Recall that Fi(~f;y):=åm2M~f(m)(bm
+iam
+iy)and for a frequency vector ~f, variable
+xiis called critical if Fi(~f;li) =0 orFi(~f;ui) =0 holds. Finally, a frequency vector ~fisgood
+if for every variable xithe following conditions hold (I) Fi(~f;l)0, and (II) Fi(~f;u)0.
+Now, let us assume that there is no variable which is critical for all good frequency
+vectors. If so, for each variable xiwe can ﬁnd a good frequency vector ~fifor which xi
+is not critical. But if we consider the frequency vector ~f=1
+jNjåj~fj, then no variable can
+be critical in ~f, because Fi(1
+Nåj~fj;li) =1
+NåjFi(~fj;li)N1
+Nli+1
+NFi(~fi;li)>liand also
+Fi(1
+Nåj~fj;ui) =1
+NåjFi(~fj;ui)N1
+Nui+1
+NFi(~fi;ui)<ui, which also proves that such de-
+ﬁned frequency vector ~fwould be good. u t
+C Proof of Theorem 4
+Theorem 4 .For a given MMS H, hyperrectangular safe set S described by two points l;u,
+starting point x02S, checking whether there exits a S-safe controller with minimum dwell
+time1isPSPACE -hard.
+Proof. As mentioned before, the proof is similar to the PS PACE -hardness proof in [2] of
+the discrete-time reachability in constant-rate MMS, which reduces from the acceptance
+problem for linear bounded automata (LBAs), so we ﬁrst formally deﬁne LBAs.
+An LBA Ais a tuple (S;Q;q0;qA;d), where Sis a ﬁnite alphabet, Qis a ﬁnite set
+of states, q02Qis the initial state, and qA2Qis a distinguished accepting state, and
+dQSQSf1;0;+1gis the transition relation. We can assume the alphabet
+Sto be the binary alphabet f0;1g. Let us explain the interpretation of the elements of the
+transition relation. Let t= (q;a;q0;b;D)2dbe a transition. If LBA Ais in state q2Qand
+its (read/write) tape head reads character a, then it writes character bat the current cell and
+moves its head in the direction D(left if D=1, right if D= +1, and unchanged in D=0),
+and it changes the state to q0. Let w2SLbe an input word. Without loss of generality we
+assume that the LBA uses exactly Ltape cells, which hold the whole input word of size Lat
+the very beginning. Hence conﬁguration of the LBA can be written as (q;p;b0b1:::bL1)
+where qis the current state, pis the position of head such that 0 p<L, and b0b1:::bL1
+is the current contents of the tape. Notice that such an LBA has only jQjLjSjLdifferent
+conﬁgurations and so if LBA does not enter the accepting state qAfor a given input word
+after that many steps then it never will.
+We show a reduction from the acceptance problem for LBAs to the problem of the
+existence of a safe controller with its minimum dwell time 1 for linear-rate MMSs. For a
+given LBA Aand input word w=b0b1:::bL1, we deﬁne LBA HA= (M;N;A;B)where
+there is one variable xq;pfor each state q2Qand head position 0 p<L, one variable
+xifor each input cell biwhere 0i<L, and one variable xp;tfor each head position
+0p<Land direction t2f1;0;+1g. The safety condition Ssimply requires that the
+value of all these variables at all time belong to the interval [1;1]. Recall that Tk(s)def=
+18
+
+--- Page 19 ---
+åk
+i=1tiis the total time elapsed up to step kof the controller sofHA. A conﬁguration
+(q0;p0;b0b1:::bL1)of machine Aat step kis encoded in the variables of HAin a way
+thatxq;p(Tk(s))>0 iff q=q0&p=p0and we have xq;p(Tk(s))<0 otherwise; and also
+for all 0i<Lwe have xi(Tk(s))>0 iff the input cell bi=1 and we have xi(Tk(s))<0
+iffbi=0. There is also a special variable xAwhich deals with the case when the input word
+is accepted and special variable xTwhich as the only variable has a different safety interval
+[1;0:9].
+We will now construct a gadget used in our reduction. We say that variable xv(where
+v2fi: 0i<Lg[f(q;p):q2Q;0p<Lg) in mode mis of (i) type 1ifbm
+v=2 and am
+v=
+1, (ii) type -1ifbm
+v=2 and am
+v=1, (iii) type 0ifbm
+v=0 and am
+v=1=(11jQjLjSjL).
+Assume that the current mode is m, time is t0and the value of variable xvis safe, i.e. x:=
+xv(t0)2[1;1]. Notice that if the type of this variable is 1in mode m, then after time tits
+value becomes 2 +(x2)etwhich belongs to the safe set if t=1 and x2e0:718,
+but for t1:1>ln3 its value is never safe. Similarly for type -1, the new value is safe
+fort=1 and xe20:718, but after time t1:1>ln3 it is never safe. Finally, for a
+variable xvof type 0, we can compute that the relative change in the value of this variable
+after time t1:1jQjLjSjLto bejeamvtxxj=jxj=1eamvt1e1
+10<0:1, i.e. its
+value does not change by more than 10%. Moreover, a constant switching between a mode
+of type 1and-1for some variable while spending in each mode amount of time t=1 results
+in a trajectory that converges to4e12e22
+1e20:924 on odds steps and 0:924 on even
+steps independently of the starting point. Therefore, assuming the initial value of a variable
+is either 1 or -1, only modes of type 1or-1are used, and the system is safe at all time, the
+closest this variable can get to value 0 is after the ﬁrst step of length t=1. That value is
+23e10:896 for a variable that starts at 1 and0:896 for a variable that starts at 1. If
+we now allow that variable to switch to type 0as well, then the closest such a process can
+get to 0 is to let the just computed value decay towards 0 by using modes where it has type
+0only. Its absolute value after time t1:1jQjLjSjLwould be still >0:8960:90:8
+which is >0:718. Assuming the number of timed actions in controller sdoes not exceed
+jQjLjSjL, the minimum dwell time of each action is 1 and each mode has at least one
+variable of a nonzero type then we have the following. A variable can remain safe in two
+consecutive timed actions if and only if its type changes from 1to0or-1, from -1to0or
+1, and from 0to0or to type - dwhere dwas the last nonzero type this variable had before
+0. If we interpret the value of a variable above 0 :718 as 1 and below 0:718 as 0, then we
+can look at each timed action in a mode of type 1,-1, and 0as adding 1, subtracting 1, or
+keeping the value of that binary value constant, respectively.
+Now, each transition t= (q;a;q0;b;D)2dand head position pis simulated using two
+modes Mp;tandM0
+p;t. Mode Mp;tchecks whether the letter in the p-th cell is a2S=f0;1g,
+while the mode M0
+p;tchanges the content of the p-th cell to b2f0;1g, and moves the head
+to a new position. The rates of various variables in these modes are set in such a manner that
+a schedule is safe if and only if it respects the transition structure of A. The main features
+of the construction are the following.
+–In mode Mp;tthe type of variable xpis-1ifa=1 and is 1otherwise; the type of all
+other variables is 0. This mode checks whether the character at head position pisa.
+–In mode M0
+p;tthe type of variable xpis0ifa6=b. Ifa=bthen the type of variable xp
+is1. IfD=1 (D= +1) then variable xq;phas type -1andxq0;p1has type 1(xq0;p+1
+19
+
+--- Page 20 ---
+has type 1). While if D=0 then xq;phas type 0for all q2Qand 0p<n. The type
+of all other variables is 0.
+–To make sure that mode Mp;tis immediately followed by mode M0
+p;tin every safe run,
+the type of the variable xp;tis1in mode Mp;t, and -1in mode M0
+p;t, while it is of type
+0in every other mode.
+–The special variable xThas type 0in every mode and safe set [1;0:9], so the system
+is safe as long as the decay from its initial value 1 is not greater than 10%, which does
+not happen before 1 :1jQjLjSjLamount of time has elapsed. This guarantees that
+MMSHAbecomes unsafe once we cannot guarantee that it follows the transitions of
+LBAAexactly.
+–For each head position 0 p<Lwe have two special modes MA;pandM0
+A;p, which
+deals with the case when LBA Aenters the accepting state qA. InMA;pvariable xqA;p
+has type -1, variable xAhas type 1, and all other variables xvhave a special safe type
+Ssuch that bMA;p
+v=1 and aMA;p
+v=1. On the other hand, in M0
+A;pvariable xqA;phas
+type 1,xAhas type -1, and all other variables have type S. Notice that once the system
+enters mode MA;pit can keep switching between modes MA;pandM0
+A;pforever while
+being safe. This is because, as it was pointed out before when all timed actions have
+delay t=1, the values of variables xqA;pandxAin the limit keep switching between
+0:924 and0:924 and all other variables, which have type S, will converge from
+above to1; which belongs to the safe set of all of them.
+Note that each of the constructed modes has at least one variable of a nonzero type. Let the
+initial state x0ofHAbe such that xi(0) =1 if the i-th input character bi=1,xq0;0(0) =1
+(i.e. the initial state of Ais(q0;0)), and for all other variables we have xv(0) =1. Notice
+that if the LBA Aaccepts the input word then there exists a S-safe controller in MMS HA
+from the initial state x0, which at some point enters mode MA;pfor some head position p
+and keep switching between MA;pandM0
+A;p. This has to happen before the value of variable
+xTbecomes too close to 0 to violate its safety condition; until that moment HAmodels
+precisely the conﬁgurations of LBA Aand its transitions. On the other hand, there is a
+safe feasible controller only if MA;pis entered at some point, because otherwise variable
+xTwill violate its safety condition eventually. So if a safe feasible controller for HAwith
+minimum dwell time 1 exists, then LBA Ahas to enter the accepting state qAwithin
+its ﬁrstjQjLjSjLtimed actions. This shows that Aaccepts the input iff HAhas a safe
+feasible controller with minimum dwell time 1. u t
+D Proof of Corollary 1
+Corollary 1 .Deciding whether there exists a feasible S-safe controller for a given MMS
+Hwith a mode order speciﬁcation graph G, initial mode m 0, a hyperrectangular safe set S
+given by two points l and u and an initial point l<x0<u can be done in polynomial time.
+Proof. Recall that a controller h(m1;t1);(m2;t2);:::irespects the mode order speciﬁcation
+graph Gwith initial mode m0, if for all i1 we have (mi;mi+1)2Gandm1=m0. Notice
+that the system Hunder any feasible S-safe controller will eventually end up in one of
+the strongly connected components (SCC) of the graph Greachable from m0, because the
+controller is non-Zeno and each timed action takes only a ﬁnite amount of time. Also note
+20
+
+--- Page 21 ---
+that the safe controller returned by Algorithm 1 returns a periodic controller which cycles
+over all the modes given to it in exactly the same order as they were passed. Therefore, we
+can make sure the controller returned satisﬁes the mode order speciﬁcation Gby passing
+the mode sequence in a particular order. For an SCC CofGconsisting of modes C=
+hm0
+1;m0
+2;:::; m0
+kithat sequence of modes, denoted by rC, is as follows: it starts at m0
+1, then
+follows any path of modes in Gtom0
+2,:::, then any path of modes to m0
+k, and ﬁnally any
+path of modes to m0
+1; all these paths exist because Cis an SCC. The sequence of modes rC
+can repeat some modes, but it satisﬁes the mode order speciﬁcation graph G, each mode of
+Coccurs at least once and no mode outside Coccurs along rC. It is quite easy to see that
+there is a feasible S-safe controller for an initial state in the interior of the safe set for the
+set of modes Ciff there is one for the sequence of modes rC.
+Now, for each SCC CofGreachable from the initial mode m0we check using Algorithm
+1 whether there is a feasible S-safe controller for the mode sequence rCand initial point x0.
+If there is no such SCC then there is no feasible S-safe controller which respects the mode
+order speciﬁcation from x0either, because while using such a controller the system Hhas
+to eventually repeat only modes from a single SCC of G. On the other hand, if there is such
+an SCC C, then we construct a feasible S-safe controller from x0as follows. First, we ﬁnd
+any path in Gfrom m0to the very ﬁrst mode in the mode sequence rC. We create a ﬁnite
+timed actions sequence based on this path where the time delay of each mode is set to such
+a small value that when starting at x0the system will still remain within the safe set Sat the
+very end of it. Such a value always exists when the initial point of His in the interior of
+the safe set. To be precise, it sufﬁces to set it to min i2I
+minfx0(i)li;uix0(i)g
+max mjbm
+iam
+ix0(i)j
+. Let the point
+reached at the end of this ﬁnite timed sequence be x12Sand, because the coordinates of
+that point are likely to be irrational, let xlandxube any two points with rational coordinates
+such that l<xlx1xu<uholds. In other words, xlandxuare simply some polynomial
+size lower and upper bounds on the coordinates of the point x1. Notice that the feasible
+controller for the mode sequence rCthat we found earlier may not be safe when the system
+starts at x1instead of x0, because the value of smay need to be smaller for the system
+to remain safe. The new value of sshould be the minimum of the value of sfor the mode
+sequence rCwhen the initial point is xland when it is xu. Finally, once we combine the ﬁnite
+timed action sequence, which starts at the mode m0andx0, with the feasible controller for
+the mode sequence rC, which is safe for any initial point between xlandxu, we will get a
+feasible S-safe controller that respects the mode order speciﬁcation graph G.u t
+Notice that if one would like to extend the model and allow the system to remain in the
+same mode forever, instead of forcing it to constantly switch between modes, it sufﬁces to
+add in Gan edge from each mode to itself.
+21
+
+--- Page 22 ---
+E Simpler Algorithm for Finding an Optimal Controller
+Algorithm 3: Finds an optimal S-safe feasible controller from a given x02S.
+Input : A priced MMS H, two points landuthat deﬁne a hyperrectangle S=fx:lxug
+and an initial point x02Ssuch that l<x0<u, and constants mavgandmpeakwhich
+deﬁne the cost of a controller.
+Output : NO if no S-safe feasible controller exists from x0, and an periodic such controller s
+for which mpeakPeakCost (s)+mavgAvgCost (s)is minimal, otherwise.
+1Modify Algorithm 1 by adding the objective function Minimise åm2M0~fmp(m)to the linear
+program at line 11. Let OptAvgCost (M0)be the value of this objective when Algorithm 1 is
+called for the set of modes M0.
+2LetP=fp(m):m2Mgbe the set of all different costs of modes of H. (Notice that only
+these costs can be potential peak costs.) For a given pletMpdenote the set of modes with
+cost at most p.
+3Iterate over p2Pand ﬁnd the one with the smallest value of mpeakp+mavgOptAvgCost (Mp)
+and denote it by p.
+4return the periodic controller returned by the modiﬁed version of Algorithm 1 called for the
+set of modes Mp.
+22

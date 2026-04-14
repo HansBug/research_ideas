@@ -1,0 +1,555 @@
+--- Page 1 ---
+Towards a Tool: TIMES-Pro for Modeling,
+Analysis, Simulation and Implementation
+of Cyber-Physical Systems
+Jakaria Abdullah1(B), Gaoyang Dai1, Nan Guan2, Morteza Mohaqeqi1,
+and Wang Yi1
+1Uppsala University, Uppsala, Sweden
+{jakaria.abdullah,gaoyang.dai,morteza.mohaqeqi,yi }@it.uu.se
+2Northeastern University, Shenyang, China
+Abstract. We consider a Cyber-Physical System (CPS) as a network of
+components that are either physical plants with continuous behaviors ordiscrete controllers. To build CPS’s in a systematic manner, the TIMES-
+Pro tool is designed to support modeling, analysis and code generation
+for real-time simulation and ﬁnal deployment. In this paper, we presentour decisions in designing the modeling language, the tool architecture
+and features of TIMES-Pro, and also a case study to demonstrate its
+applicability.
+Keywords: Cyber-Physical System
+·Timing analysis ·Real-time
+simulation ·Automated code generation
+1 Introduction
+Cyber-Physical Systems are systems that contain both discrete components such
+as digital controllers that generate and react to discrete events according to con-
+trol laws and continuous components such as physical plants whose behaviorschange continuously according to natural laws. Existing design tools for design-
+ing such hybrid systems such as Simulink [ 1] and Modelica [ 2] have inherent
+limitation due to the lack of expressiveness in their underlying modeling lan-guage and ability for analysis. In this paper, we present an integrated system
+design tool TIMES-Pro which adopts an expressive yet analytically tractable
+modeling language based on the Digraph Real-Time (DRT) task model [ 3–5]t o
+model discrete components and conditional diﬀerential equations to model con-
+tinuous physical components (diﬀerential equations with mode switches). Foranalysis, the continuous components of a system will be abstracted according to
+a set of predicates of interests, controlling the interaction with the discrete com-
+ponents of the system. DRT models will be used to approximate the continuouscomponents for automated analysis. Our goal is to develop a toolbox supporting
+modeling and abstraction of both discrete and continuous components, timing
+c/circlecopyrtSpringer International Publishing AG 2017
+L. Aceto et al. (Eds.): Larsen Festschrift, LNCS 10460, pp. 623–639, 2017.DOI: 10.1007/978-3-319-63121-9
+31
+
+--- Page 2 ---
+624 J. Abdullah et al.
+analysis and code generation for real-time simulation as well as ﬁnal deploy-
+ment on a given execution platform for the discrete components. The rest of thepaper is organized as such, ﬁrst we present diﬀerent design decisions related to
+our system design tool. Next, we brieﬂy introduce our modeling language and
+its existing analysis and code generation supports. Then we present the statusof our tool implementation. Finally, we present an intended case study involving
+a pacemaker and a random heart model.
+2 Design Decisions
+In this section we summarize design decisions concerning mainly the design of the
+modeling language as well as the architecture and the features of TIMES-Pro.
+Trade-Oﬀ Between Expressiveness and Analysis Eﬃciency. Ideally, the modeling
+language of a tool should be as expressive as possible to enable faithful modeling
+of complex system behaviors such as dynamic branching and looping. As theexpressiveness of models grows, so grows the complexity of their analysis. For
+example, timed automata have been found to be the most expressive model
+for real-time workload [ 6], but its analysis suﬀers from state-space explosion
+problem which makes it impractical to be used in large system design. To study
+the trade-oﬀ, diﬀerent real-time models have been developed to compromise the
+expressiveness and analysis eﬃciency [ 7].
+The DRT task model [ 3] is a rather expressive model allowing large ﬂexibility
+to express release patterns accurately by representing each computation task as
+a directed graph. It generalizes most existing models in real-time scheduling the-ory [7]. It is shown that the feasibility problem of DRT can be solved in pseudo-
+polynomial time [ 3]. Additionally, eﬃcient techniques of exact response-time
+analysis for DRT task models, for both static-priority and EDF scheduling have
+been developed using over-approximation of workload abstraction and reﬁne-
+ment methods [ 5]. Finally, DRT model is extended to support rendezvous-style
+synchronizations with eﬃcient analysis using over-approximation and under-
+approximation of workload abstractions [ 8]. Based on availability of these eﬃ-
+cient analysis methods we choose DRT as the core modeling language of ourdesign tool.
+Separation of Communication and Computation Concerns. The two major
+aspects of computer systems embedded in a CPS are computation and commu-
+nication. Computational elements of a system should be independently designedwithout adherence to any speciﬁc communication mechanism. This allows not
+only, separation of concerns, in system design but also eﬃcient analysis. From
+our previous work on task automata and scheduling analysis [ 9], it is known
+that many decision problems are computationally hard (even undecidable) for
+systems where feedback is allowed. Allowing communication to occur during the
+execution of a computation task may easily bring the feedback eﬀects and changethe workload of the system dynamically [ 9]. Obviously, making communication
+independent of computation may also allow modularity in system design, and
+ﬂexible and portable design.
+
+--- Page 3 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 625
+We impose this principle by allowing communication to occur only on the
+release of computational jobs. This means that the released computation jobinvolves no blocking or non-blocking communication primitives and thus com-
+munication can not happen during the execution of the job, which makes it easier
+to analyse the timing properties of a computation job and also the global timingproperties of a system when scheduling is involved.
+Functional Correctness Independent of Non-functional Behavior. The functional
+correctness of a system should be maintained during design-space exploration for
+satisfying the non-functional requirements. For example, changing the execution
+time of a task should not change its output or its logical correctness. This soundsa simple principle to implement if only the functional correctness of a task is
+concerned. On the system level, this is a challenging problem. For example, a
+functionality of a system is implemented by the execution of a number of tasks.The system designer should make sure that the execution order of tasks by
+the scheduler will not change the functionality. Technically, this requires that
+the scheduling policies adopted by the scheduler should ensure the functionalcorrectness implied by system-level global invariants.
+System Development in a Simulated Environment. A popular engineering tech-
+nique to validate or certify CPS is emulation. Emulation, popularly known as
+hardware-in-the-loop simulation, is used to validate controllers by running them
+in closed-loop with the actual plant. However, in many cases the actual plantis not available for emulation. Firstly, the plant may be a hardware which is
+developed at the same time. Secondly, actual plant may be too sensitive and can
+not tolerate an error during simulation (such as human organs). Finally, con-struction of the actual plant may be too expensive for the test of a prototype of
+concept. To encounter these deﬁciencies, we decide that our system design tool
+should provide simulated environment using realistic but approximated modelof the actual plant.
+Here the challenge lies in modeling the continuous semantics of a physical
+process using discrete software so that all important plant behavior necessary
+for the simulation can be generated. Current practice of using numerical solvers
+for evaluating continuous state is either too slow or too complex for any real-time simulation. To counter this, we tend to explore computationally eﬃcient
+approximation techniques for solving diﬀerential equations which we can model
+using only software components. Our ﬁnal goal in this regard is to generate codeof plant to allow real-time co-simulation.
+Analysis Based on Abstraction Reﬁnement Techniques. Analysis of complex sys-
+tem behavior is computationally challenging as possible combinations of con-current component behaviors grow exponentially with the number of active
+system components. However, for analysis of many properties such as non-
+functional properties (e.g. schedulability) partial orders may be derived for the
+search space, preserving the properties of interests. Thus a hierarchy of abstrac-
+tions may be generated and systematically evaluated using diﬀerent levels ofthe abstractions until an acceptable solution is found. This is the fundamental
+
+--- Page 4 ---
+626 J. Abdullah et al.
+behind combinatorial abstraction reﬁnement approach [ 5] which is generalized
+in [10,11]. We intend to use this abstraction reﬁnement framework for diﬀerent
+analysis problems of our design tool.
+3 Modeling Language
+This section introduces the modeling language of our tool. In particular, we
+describe the model used to represent independent real-time tasks and its exten-
+sion with inter-task synchronization.
+3.1 Task Model
+The core of our modeling language is the Digraph Real-Time (DRT) task model
+[3]. A DRT task Tis represented by a directed graph G(T) with vertex and
+edge labels. Each vertex v∈G(T) represents a type of real-time job that Tcan
+release. Here a real-time job is a piece of recurrent sequential code. A vertex v
+is labeled with worst-case execution time e(v) and relative deadline d(v)o ft h e
+corresponding job. Both values are assumed to be positive integers.
+The graph structure of G(T) denotes the order in which jobs generated by
+Tis released. Each edge ( u,v) is labeled with a positive integer p(u,v) denoting
+the minimum job inter-release separation time. We assume a job deadline d(u)
+is bounded by the minimal of p(u,v) for all outgoing edges ( u,v). Finally, we
+describe a system with a DRT task set τ={T1,...,T N}.
+We assume the execution of each DRT task to be independent of each other.
+While DRT tasks can generate independent real-time jobs of a system, in realitymany systems contain jobs with inter-task dependencies. To support such inter-
+task synchronization requirements we extend DRT task model to Synchronous
+Digraph Real-Time (SDRT) task model [ 8]. An SDRT task has the same syntax
+as a DRT task, except that an edge ( u,v) may be labeled with an action a(u,v).
+The actions are used to model synchronization among tasks. Two SDRT tasks
+T
+1andT2are said to have a synchronization on action sif there exist some edges
+(u,v)∈G(T1) and ( u/prime,v/prime)∈G(T2) such that a(u,v)=sanda(u/prime,v/prime)=s.T o
+model these actions as rendezvous synchronization primitives of programming
+language we deﬁne two types of valid actions. We use s? ending with ? to rep-
+resent a get/accept action in a pairwise rendezvous. At the same time, we use
+s! ending with ! to denote the corresponding send/call action of s?.a(u,v)=[ ]
+means that an edge ( u,v) is not associated with any synchronization.
+In a synchronous execution, the jobs of two SDRT tasks associated to a
+common synchronization action must be released at the same time. If one of thesynchronizing jobs is ready to be released while the other one is not, the former
+one will be blocked until the latter one becomes ready. This synchronization
+behavior is a special case of rendezvous synchronization where synchronizationonly happens when two synchronous jobs release together.
+
+--- Page 5 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 627
+v1 v2
+v3/angbracketleft2,20/angbracketright/angbracketleft 1,10/angbracketright
+/angbracketleft2,15/angbracketright25
+40
+18 15s1?
+[]
+[] s2?
+(a) SDRT task T1
+v1 v2
+v4 v3/angbracketleft1,10/angbracketright/angbracketleft 3,20/angbracketright
+/angbracketleft2,20/angbracketright /angbracketleft1,15/angbracketright10
+30
+20
+2510s1!
+[]
+[] []
+s2!
+(b) SDRT task T2
+Fig. 1. Two SDRT tasks with two synchronizations on actions s1and s2.
+Example 1. Figure 1shows two SDRT tasks which have two synchronizations on
+actions s1ands2. Here, the release of job v3of task T1 is synchronized with
+the release of job v4of task T2 on action s2. As a result, v3andv4must be
+released at the same time after satisfying their respective minimum job inter-
+release separation times. The jobs that have no synchronization such as v1of
+taskT1 can be released without considering release of any jobs of T2.
+3.2 System Model
+A CPS system model contains components which model software, hardware and
+the surrounding physical environment. A software or hardware component may
+be modeled with a set of discrete states and corresponding transitions among
+
+--- Page 6 ---
+628 J. Abdullah et al.
+them. Continuous states of a physical component is usually expressed using dif-
+ferential equations. A simple way to model such physical component is to adopta discrete time-step based approach where the continuous behavior is sampled
+every time-step of length δ. The granularity of such time-step δis chosen accord-
+ing to the nature of modeled system and the diﬀerential equations involved.
+A major challenge in CPS simulation is to integrate hardware, software, and
+physical components so that their combined system behavior conforms to the
+reality. The heterogeneity of their behaviors makes this integration diﬃcult asa discrete-time component may need to communicate with a continuous-time
+component. A way to tackle this problem is to use assertions in component
+interfaces that conﬁrm certain component behaviors. These types of assertionsestablish a clear interface of the component with precise obligations for caller,
+callee and environment. This idea is similar to Design-by-contract [ 12]w h i c h
+is a software engineering technique that exploits runtime assertions to deﬁne
+precise veriﬁable interface speciﬁcations with so-called invariants and pre- and
+post-conditions.
+A system model Sin TIMES-Pro is a set of interacting components
+C
+1,C2,...,C N. Each component Ciis described by SDRT tasks with timing
+and synchronization constraints. Tasks in two diﬀerent components can be con-nected/glued by a common synchronization action. Direction of communica-
+tion between two connected components is deﬁned based on the type of inter-
+component synchronization actions. This direction is from the component with“send” action to the components with “accept” actions. We allow two types
+of inter-component connections using synchronization in TIMES-Pro. In a con-
+ditional (orbranching ) connection, a component connects with several other
+components using the same synchronization action. As a result, communica-
+tion can only happen with one component at a time, among those are ready
+to communicate. This means diﬀerent components can share a communicationchannel to receive from/send to the same component. In multi-way connection,
+a component connects with diﬀerent components using diﬀerent synchronization
+actions. As a result, diﬀerent components use diﬀerent communication channels
+to receive from/send to the same component.
+For the purpose of analysis and simulation, a CPS system model needs all
+types of components (software, hardware and physical environment). However,
+only software components are required for code generation.
+4 Analysis and Synthesis
+In TIMES-Pro, a system design is represented by a DRT or SDRT task set.
+Currently the tool oﬀers two main functions: timing analysis of design modelsand generation of executable code from the models. In this section, ﬁrst we
+describe the analysis techniques implemented in TIMES-Pro. Then we show the
+code generation approach used in the tool to generate Ada code.
+
+--- Page 7 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 629
+4.1 Analysis
+DRT/SDRT is supported by a rich theoretical foundation for timing analysis.
+Eﬃcient feasibility and schedulability analysis algorithms have been developed,
+even for those problems that are generally intractable (from the computational
+complexity point of view). The following analysis algorithms are currently imple-
+mented as Python scripts in our tool:
+1. Feasibility analysis (or EDF schedulability analysis) of DRT tasks in
+uniprocessor. It is based on an iterative graph exploration procedure based
+on a novel path abstraction technique [ 3].
+2. Static priority (SP) schedulability analysis of DRT/SDRT tasks using com-
+binatorial abstraction reﬁnement techniques [ 5,8].
+3. Exact response-time calculation of DRT tasks under SP and EDF scheduling.
+It is also based on the combinatorial abstraction reﬁnement framework to
+achieve exact results from initial overapproximations [ 13].
+4. DRT workload partitioning on multiprocessors for Partitioned SP and EDF
+scheduling algorithm. The partitioning algorithms are based on bin-packingalgorithms for sporadic task in multiprocessors [ 14] but extended to support
+DRT tasks. These algorithms must determine two criteria:
+Task ordering criteria: Diﬀerent measures can be used to determine the
+order by which the tasks are selected to be assigned to a core. These ordering
+criteria can be considered as either “increasing” or “decreasing”. Currently,
+two ordering metrics have been used in TIMES-Pro:
+Utilization: The utilization of each cycle in the DRT graph is deﬁned as the
+ratio between WCET sum of nodes in that cycle, and sum of their inter-
+release times. The utilization of a task is deﬁned as the maximum utilizationamong all the (simple) cycles in the graph.
+Density: The density of a job is obtained by dividing its execution time by
+its relative deadline. Intuitively, the density of a job shows that how stringent
+the deadline of a job is with respect to its execution demand. The density of
+a task is the maximum density among all of its jobs.
+Core selection criteria: Diﬀerent bin-packing heuristics can be used to
+select a core to test for the possibility to accommodate the selected task. Cur-rently TIMES-Pro supports two bin-packing heuristics Best-Fit and Worst-
+Fit [14]. In Best-Fit packing, cores are sorted according to the decreasing
+utilization order while in Worst-Fit cores are sorted in the increasing utiliza-
+tion order. Uniprocessor schedulability tests of DRT for SP and EDF are used
+to decide where the selected task can be assigned to that core. In case of SP,the priorities are assumed to be unspeciﬁed. Thus, the partitioning algorithm
+is free to assign suitable priorities to the tasks for better schedulability.
+4.2 Code Generation
+The goal of code generation is to transform a design model to executable code
+while preserving the execution behavior of the model. We use the Ada pro-
+gramming language [ 15] for code generation, as it provides a run-time system
+
+--- Page 8 ---
+630 J. Abdullah et al.
+suitable for executing real-time tasks. The following important behaviors of the
+DRT/SDRT task model need to be handled carefully for code generation:
+Synchronization in Job Release: In SDRT, release of jobs from two diﬀerent tasks
+can be synchronized based on an action. In Ada, rendezvous is a similar mecha-
+nism for controlled synchronization between two tasks. Ada’s rendezvous is basedon aclient-server model. A client task requests a rendezvous with a server task
+by making entry calls just as if the server is a protected object. Server tasks indi-
+cate willingness to accept a rendezvous on an entry by executing an accept state-
+ment. For the rendezvous to take place, both the server and the client task must
+have issued their requests. A task issuing a rendezvous request is blocked until
+the rendezvous happens. As described earlier, we deﬁned two types of actionsin SDRT. The send/call action s! directly maps to Ada rendezvous entry calls.
+Similarly, the get/accept action s? of SDRT matches the Ada rendezvous accept
+statement. However, in SDRT semantics, a rendezvous is only allowed during a
+job release. If an SDRT job release has both timing and synchronization con-
+straints, then the timing one must be satisﬁed ﬁrst. This can be implementedin Ada code by ﬁrst waiting for a delay and then executing the respective ren-
+dezvous operation. For the purpose of simplicity, we only use simple rendezvous
+(without exchange of parameters) of Ada to implement this behavior. As we seenext, rendezvous behaviors can be combined with branching in job releases.
+Branching in Job Release: A DRT/SDRT task can release jobs sporadically, i.e.,
+after the release of a job, the next job can only arrive after waiting for theminimal inter-release separation time. This sporadic behavior may be combined
+with the branching of jobs in the sense that diﬀerent types of jobs can be released
+if their respective inter-release times after the predecessor job are satisﬁed. Togenerate code for this behavior, we have two options.
+Inbranching based on condition , the next job to be released is determined
+according to the satisfaction of some conditions. It is assumed that the conditionsare checked in an if-then-else structure which, at run-time, deterministically
+determines which path the program should follow. For example, in Fig. 1(b) the
+jobv
+2has two successors v1andv3. We illustrate corresponding Ada branching
+code in Listing 1.1. However, this interpretation of branching can not handle
+job release constrained by a synchronization action where blocking is needed.
+Therefore this type of branching is only preferable in DRT tasks.
+1case Current_job is
+2 when v2 =>
+3 v2_code;
+4 ifBranch_condition then
+5 Current_job := v1;
+6 Next := Next + v2_v1_del;
+7 delay until Next;
+8 else
+9 Current_job := v3;
+10 Next := Next + v2_v3_del;
+11 delay until Next;
+12 end if ;
+13 .........
+Listing 1.1. Branching Ada code for job v2of Fig. 1(b).
+
+--- Page 9 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 631
+Inbranching based on synchronization , the next job to be released is decided
+non-deterministically based on satisfaction of both timing and synchronizationconstraints. Here we observe three cases: (a) releases of all branch jobs that
+have both timing and synchronization constraints, (b) some of the branch jobs
+have release constrained by synchronization constraints but not the rest and(c) releases of branch jobs that are only constrained by timing constraints.
+Case (c) can be implemented using branching based on condition as described
+earlier. An example of situation (b) is depicted for job v
+2in Fig. 1(a). Here v2has
+two successors v1andv3. The release of v3has to be synchronized with action s2
+while v1can be released upon expiration of minimum inter-release separation.
+To implement this behavior, we use selective accept feature of Ada. As men-
+tioned earlier, we allow a synchronization action to be either a call or an accept
+action. In selective accept of Ada, branching of code is only allowed using accept
+action of rendezvous. For the case of entry call synchronization action, we assume
+it to be executed once the timing requirement of the job is satisﬁed. This behav-
+ior is implemented in the following steps: ﬁrst, we sort all outgoing transitions oredges from a job in increasing order of their inter-release times. After observing
+the smallest possible delay, we insert a selective accept (which means now we
+can accept an synchronization action and release the branch with the smallestinter-release time) with a delay alternative until the time point when it is also
+possible to release the next branch. These selective accept blocks are iteratively
+generated until there is a branch which can be immediately released. The imme-diate release of a job satisfying both its timing and synchronization constraints
+is similar to an urgent transition in timed automata. We illustrate Ada branch-
+ing code for job v
+2in Fig. 1(a) using selective accept in the code segment in
+Listing 1.2.
+1case Current_job is
+2 when v2 =>
+3 v2_code;
+4 Next := Next + v2_v3_del;
+5 delay until Next;
+6 Next := Next + v2_v1_del;
+7 select
+8 accept s2;
+9 Current_job := v3;
+10 Next := Clock;
+11 goto end_of_case;
+12 or
+13 delay until Next;
+14 end select ;
+15 ..............
+Listing 1.2. Branching Ada code for job v2of Fig. 1(a).
+5T o o l O v e r v i e w
+In this section, we present the main features of TIMES-Pro, the tool architecture
+and the main components in the implementation. Architecture of our tool is
+shown in Fig. 2.
+
+--- Page 10 ---
+632 J. Abdullah et al.
+Fig. 2. Tool architecture of TIMES-Pro.
+5.1 Features
+–Editor (see Fig. 3) to graphically model a system and its associated timing,
+execution resource and synchronization requirements. A system descriptionconsists of either a DRT or SDRT task set. The list of all tasks with their
+assigned priorities is shown in the left side of the main graphical editor. Tim-
+ing properties of the jobs of a selected task is presented in a table below the
+task set. All the properties (including the names) of both the task set and
+jobs properties table are editable.In the main graphical editor, a task is described by its directed cyclic graph
+structure. User can deﬁne a jobtype by assigning its WCET, relative deadline
+and associated execution code segment. Diﬀerent job types are connected byedges where the user can specify the minimum inter-release time between
+the two jobs. As an incoming edge denotes release constraints of the job, a
+synchronization action relevant to this job is also speciﬁed as the edge prop-erty. In the ﬁrst option, the system designer explicitly states the branching
+condition variable together with the job code. Branching conditions are also
+allowed inside a job.
+Fig. 3. System modeling using SDRT tasks in TIMES-Pro editor.
+
+--- Page 11 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 633
+–Simulator (see Fig. 4) to dynamically visualise the execution behavior and
+the resource utilization of a system model. The simulator generates possibleexecution traces with zero or random initial phase. This trace is displayed
+either stepwise or continuously up to the ﬁrst deadline miss. It is possible
+to conﬁgure the speed of visual simulation within a scale of 1 to 10. Systemutilization is dynamically displayed below the main simulation. Currently
+the simulator supports ﬁxed priority and EDF scheduling simulation on a
+uniprocessor.
+Fig. 4. Visualization of job execution simulation in TIMES-Pro simulator.
+–Analyzer to check that the tasks associated to a system model satisfy their
+timing requirements. The analysis suite includes schedulability analysis of
+tasks under Fixed Priority and EDF scheduling, computation of worst-caseresponse times of tasks and partitioning of workload into multiprocessors. To
+help testing the algorithms, analyzer has a conﬁgurable random task genera-
+tor which can generate task sets of diﬀerent size and utilization. Additionally,analyzer provides visualization data of diﬀerent abstractions used for analysis
+like request functions.
+–Code Generator to generate executable Ada code from task sets. The code
+generator realises a subset of the behavior speciﬁed in the DRT/SDRT taskmodel and assumes Ada runtime system will ensure proper execution of the
+generated code.
+5.2 Implementation
+Current implementation of the tool is logically divided into three parts:
+–Graphical User Interface consists of the editor, simulator, visualization
+of analysis and code generator. It also includes an abstraction visualizationtab to visualize workload abstractions to be used in analysis (see Fig. 5). It is
+possible to check syntax of the model before analysis and the whole system
+model can be load from or save to an XML ﬁle. Currently, the complete GUIhas been implemented using JAVA.
+
+--- Page 12 ---
+634 J. Abdullah et al.
+Fig. 5. Workload abstraction visualization in TIMES-Pro abstraction tab.
+–Analysis Engine implements analysis algorithms using Python scripts.
+Schedulability analysis and WCRT calculation algorithms for DRT tasks are
+included in a Python library called libdrt. All these algorithms are available
+for both preemptive Fixed Priority and EDF scheduling algorithms. Analysisengine has a set of workload partitioning algorithms for multiprocessors. Cur-
+rently implemented algorithms include Best-Fit and Worst-Fit bin-packing
+algorithms [ 14] using density or utilization criterion for both partitioned Fixed
+priority and EDF scheduling. Figure 6shows diﬀerent options available in cur-
+rent implementation of the analyzer integrated with GUI. A random task set
+generator is implemented for creating task sets with diﬀerent utilizations, sizeand timing constraints (see Fig. 7).
+Fig. 6. A sample analysis scenario in TIMES-Pro analyzer using Best-Fit bin-packing
+in dual core multiprocessor.
+
+--- Page 13 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 635
+Fig. 7. Conﬁgurations for random task generation in TIMES-Pro.
+–Code Generation is currently implemented with a separate editor. The
+code generator translates the graphical model of a task set loaded in the
+editor into a single Ada implementation ﬁle (with .adb extension). It allows
+editing and syntax checking of auto-generated Ada code. The generated codecan be compiled to run on top of generic Ada runtime system.
+5.3 Ongoing and Future Extensions
+Currently we are working on following feature extensions for TIMES-Pro:
+– We are developing novel timing analysis techniques to precisely model the
+controller software driven by physical system behavior. As a ﬁrst step, westudy an engine control application and present an exact timing analysis by
+partitioning the state space of the engine behaviors [ 17]. In future, we intend
+to generalize this result for any control software driven by physical processand integrate the method to TIMES-Pro.
+– We are extending the Code Generator for C code generation that can run
+using the FreeRTOS [ 18] real-time operating system. In future, we will gener-
+ate executable code for multicore platforms based on partitioned multiproces-
+sor scheduling [ 14].
+6 Case Study
+We use the heart and dual chamber DDD pacemaker model used in [ 16]a sa
+case study to illustrate CPS system modeling with our tool.
+
+--- Page 14 ---
+636 J. Abdullah et al.
+Fig. 8. System-level view of the heart and pacemaker.
+6.1 System Modeling
+We deal with a closed-loop system with two main components, a pacemaker and
+a human heart. A pacemaker monitors the Atrial and Ventricular events in the
+heart and generates required pacing actions based on the state of the heart. Thesystem model is shown in Fig. 8.
+The pacemaker receives Aget and Vget events from the heart. These are
+internally recognized as the signals AS (Atrial Sense) and VS (Ventricular Sense)which are used to synchronize diﬀerent states of the diﬀerent tasks of the pace-
+maker. There is another internal signal called AR (Atrial refractory) which is
+used for the monitoring purpose. The pacemaker generates AP (Atrial pacing)and VP (Ventricular pacing) action signals to the heart model.
+6.2 Component Modeling
+The pacemaker has ﬁve main tasks capturing diﬀerent timing requirements based
+on inputs from the heart. Here we describe each of these tasks using SDRT
+models:
+– PVARP: Post Ventricular Atrial Refractory Period (PVARP) task receives
+Atrial events (Agets) and detects them as AS for synchronizing the other
+tasks. With each Ventricular event (VP or VS) there will be a period oft
+PVAB+tPVARP when Agets are not recognized as AS. During the period
+oftPVAB all Agets will be ignored. However during the period of tPVARP
+the incoming Agets are recorded as AR signals.
+– VRP (Ventricular Refractory Period): This task receives Vget events from the
+heart and recognize them as VS. After each Ventricular event (VS or VP) the
+task should wait for a period of tTVRPto generate next Ventricular event.
+– LRI (Lower Rate Interval): This task keeps the heart rate above desired min-
+imum value. If no AS is received after tTLRI−tTAVItime period following
+a Ventricular event then AP is delivered.
+– AVI (Atrio-Ventricular Interval): This task maintains the delay between the
+Atrial and the Ventricular activations. If no VS has been sensed within tTAVI
+after an Atrial event (AS, AP), the task will generate VP. The task shouldmaintain an interval of t
+TURIbetween two Ventricular events (VP, VS).
+
+--- Page 15 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 637
+– URI (Upper Rate Interval): This task works as a timer to limit Ventricular
+pacing events. Two consecutive VPs should be separated by an interval oft
+TURI.
+The simple version of the random heart model has two tasks, one for gener-
+ating the Atrial events and another for generating the Ventricular events. Bothof these components can randomly generate an intrinsic heart event within a
+range of valid intervals.
+Fig. 9. SDRT model of the VRP component in TIMES-Pro.
+1when Init =>
+2 Init_code;
+3 Next := Next + Init_to_temp_delay;
+4 delay until Next;
+5 Next := Next + Init_to_VRP_delay;
+6 select
+7 accept Vget;
+8 Current_State := temp;
+9 Next := Clock;
+10 goto end_of_case;
+11 or
+12 delay until Next;
+13 end select ;
+14 select
+15 accept Vget;
+16 Current_State := temp;
+17 Next := Clock;
+18 goto end_of_case;
+19 or
+20 accept VP;
+21 Current_State := VRP;
+22 Next := Clock;
+23 goto end_of_case;
+24 end select ;
+25 .........
+Listing 1.3. Partial view of the code generated for the component VRP by TIMES-
+Pro.
+
+--- Page 16 ---
+638 J. Abdullah et al.
+Currently we have modeled these pacemaker and heart components in our
+tool using SDRT tasks. We generated Ada executable code from the model. Forexample, Fig. 9shows the VRP component of pacemaker in TIMES-Pro and
+Listing 1.3 partially shows the generated code. In future we would like to use
+more complex heart models and visualize the simulation.
+7 Conclusions and Future Work
+This paper presents an integrated system design tool TIMES-Pro for the designand implementation of CPS. Diﬀerent design decisions are explained and moti-
+vated; the tool architecture and the current state of implementation are pre-
+sented. As future work, we will further develop the modeling language to supportcontinuous components of CPS, and abstraction techniques for the analysis of
+combined behaviors by both types of components and generation of executable
+code to simulate the behaviors in real-time.
+References
+1. Simulink. http://www.mathworks.com/products/simulink/
+2. Modelica. http://modelica.org
+3. Stigge, M., Ekberg, P., Guan, N., Yi, W.: The digraph real-time task model. In:
+Proceedings of RTAS, pp. 71–80. IEEE Press, New York (2011)
+4. Stigge, M., Yi, W.: Hardness results for static priority real-time scheduling. In:
+Proceedings of ECRTS, pp. 189–198 (2012)
+5. Stigge, M., Yi, W.: Combinatorial abstraction reﬁnement for feasibility analysis.
+In: Proceedings of RTSS, pp. 340–349. IEEE Press, New York (2013)
+6. Amnell, T., Fersman, E., Mokrushin, L., Pettersson, P., Yi, W.: TIMES — a tool
+for modelling and implementation of embedded systems. In: Katoen, J.-P., Stevens,
+P. (eds.) TACAS 2002. LNCS, vol. 2280, pp. 460–464. Springer, Heidelberg (2002).doi:10.1007/3-540-46002-0
+32
+7. Stigge, M., Yi, W.: Models of real-time workload: a survey. In: Audsley, N., Baruah,
+S. (eds.) Real-Time Systems: The Past, the Present, and the Future, pp. 133–160(2013)
+8. Mohaqeqi, M., Abdullah, J., Guan, N., Yi, W.: Schedulability analysis of synchro-
+nous digraph real-time task. In: Proceedings of ECRTS 2016, pp. 176–186 (2016)
+9. Fersman, E., Krcal, P., Pettersson, P., Yi, W.: Task automata: schedulability, decid-
+ability and undecidability. Inf. Comput. 205 (8), 1149–1172 (2007)
+10. Stigge, M.: Real-time workload models: expressiveness vs. analysis eﬃciency. Ph.D.
+dissertation, Uppsala University (2014)
+11. Guan, N., Tang, Y., Abdullah, J., Stigge, M., Yi, W.: Scalable timing analysis
+with reﬁnement. In: Baier, C., Tinelli, C. (eds.) TACAS 2015. LNCS, vol. 9035,
+pp. 3–18. Springer, Heidelberg (2015). doi: 10.1007/978-3-662-46681-0
+1
+12. Meyer, B.: Applying “design by contract”. Computer 25(10), 40–51 (1992).
+http://dx.doi.org/10.1109/2.161279
+13. Stigge, M., Guan, N., Yi, W.: Reﬁnement-based exact response-time analysis. In:
+Proceedings of ECRTS, pp. 143–152 (2014)
+
+--- Page 17 ---
+TIMES-Pro: Modeling, Analysis, Simulation and Implementation of CPS 639
+14. Davis, R.I., Burns, A.: A survey of hard real-time scheduling for multiprocessor
+systems. ACM Comput. Surv. 43(4), 35:1–35:44 (2011)
+15. Ada programming language. http://www.adacore.com/
+16. Jiang, Z., Pajic, M., Moarref, S., Alur, R., Mangharam, R.: Modeling and veriﬁca-
+tion of a dual chamber implantable pacemaker. In: Flanagan, C., K¨ onig, B. (eds.)
+TACAS 2012. LNCS, vol. 7214, pp. 188–203. Springer, Heidelberg (2012). doi: 10.
+1007/978-3-642-28756-5 14
+17. Mohaqeqi, M., Abdullah, J., Ekberg, P., Yi, W.: Reﬁnement of workload models
+for engine controllers by state space partitioning. In: Proceedings of ECRTS (2017,
+to appear)
+18. FreeRTOS Real-time Operating System. http://www.freertos.org

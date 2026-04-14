@@ -1,0 +1,683 @@
+--- Page 1 ---
+The Impressive Power of Stopwatches⋆
+FranckCassez1andKimLarsen2
+1IRCCyN/CNRS UMR 6597, France
+Franck.Cassez@irccyn.ec-nantes.fr
+2Dep. of Computer Science, Aalborg University, Denmark
+kgl@cs.auc.dk
+Abstract. In this paper we deﬁne and study the class of stopwatch au-
+tomatawhich are timed automata augmented with stopwatches andun-
+observable behaviour . In particular, we investigate the expressive power
+of this class of automata, and show as a main result that any ﬁnite or
+inﬁnite timed language accepted by a linear hybrid automaton is also ac-
+ceptable by a stopwatch automaton. The consequences of this result aretwo-fold: ﬁrstly, it shows that the seemingly minor upgrade from timed
+automata to stopwatch automata immediately yields the full expressive
+power oflinear hybridautomata. Secondly,reachability analysis of linearhybrid automata may eﬀectively be reduced to reachability analysis of
+stopwatch automata. This, in turn, may be carried out using an easy
+(over-approximating) extension of the eﬃcient reachability analysis fortimed automata to stopwatch automata. We report on preliminary ex-
+periments on analyzing translations of linear hybrid automata using a
+stopwatch-extension of the real-time veriﬁcation tool UPPAAL.
+1 Introduction
+Hybrid systems. Hybridsystems[ ACH+95,AHH96,Hen96]areastrongextension
+oftimedautomata[ AD94] used tomodel systems whichcombine discreteand
+continuousevolutions.The reachabilityandω-language emptiness problems(RP
+andLEP)arekeyproblemsfortheveriﬁcationofhybridautomata:theseprob-
+lemsaredecidablefor timed automata (TA)[AD94](andPSPACE-complete)but
+notfor linear hybrid automata (LHA)[ACH+95]forwhichthereachabilityprob-
+lemisonlysemi-decidable.DecidabilityofRPandLEPhavebeen extensively
+studied for subclasses of hybrid automata [ KPSY93,AR95,Cer92,JP94,AP94]
+[HKPV98]. We investigate here a related issue which is the characterization
+oftheexpressivepowerofvarioussubclassesofhybridautomata.
+Related work. Concerningexpressivenessoftimedautomataastimedlanguage
+acceptors,itwasprovenin[ AD94]thatTimedMullerAutomata(TMA)areas
+⋆This work is partially supported by the European Community Esprit-LTR Project
+26270 VHS (Veriﬁcation of Hybrid systems) and by the FIREworks Esprit WG
+23531; it was carried out while the ﬁrst author was visiting BRICS@Aalborg duringthe fall 1999.
+C. Palamidessi (Ed.): CONCUR 2000, LNCS 1877, pp. 138– 152, 2000.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2000
+
+--- Page 2 ---
+The Impressive Power of Stopwatches 139
+expressiveasTimedB¨ uchiAutomata(TBA),whichinturnaremoreexpressive
+thanDeterministicTMA(DTMA),whicharethemselvesmoreexpressivethanDeterministicTBA(DTBA).
+More recent results concern the expressiveness of clocks and the power of
+(silent)τ-transitions:
+–In[HKWT95],Henzingerandal.investigatedthepoweroftimingrestrictions
+on ﬁnite automata and showed that clock constraints together with time
+divergenceenablesonetoexpressB¨ uchi,Muller,Streett,Rabinacceptance
+andfairnessconditionsforﬁniteautomata;In[ ACH94]Alurandal.studieda
+varietyof(un)timedequivalencesfortimedautomataandthedistinguishing
+powerofclocksasobservers.
+–there are also papers devoted to the expressive power of τ-transitions for
+timedautomata;in[ BGP96]itisproventhat τ-transitionsstrictlyincrease
+the power of timed automata (as timed language acceptors) if they reset
+clocks; moreover timed automata with τ-transitions are more robust than
+timedautomatawithoutinthesensethatanylanguagerecognizedwhenthetimedomainin Nremainsrecognizablewhenthedomainis R.Theexpressive
+powerofτ-transitionswhichresetclocksissettledin[ DGP97];[BDGP98]is
+asynthesisofthetwoabovementionedpapers.
+–otherrelevantresults[ HK97,HK96]concernasubclassofhybridautomata:
+rectangular hybrid automata (RHA);in[HKPV98]itisshownthatinitialized
+RHA(IRHA)areequivalenttotimedautomataandthusRPandLEParedecidableforthissubclass.Theinitializationpropertystatesthatwhenever
+a slope of a variable changes it must be reset. The authors showed that
+relaxing either the rectangular or the initialization assumptions leads to
+undecidabilityofRPandLEP,thusprovingthatIRHAareattheborderor
+decidabilityandundecidability.
+Our contribution. Wecomparetheexpressivepoweroflinearhybridautomata
+(LHA) andcertainofits subclasses.Moreprecisely,we showthat, in termsof
+expressiveness,oneimportantclassistheoneobtainedbyasimpleadditionof
+stopwatchestotheclassoftimedautomata(TA)
+1:werefertotheresultingclass
+astheclassof stopwatch automata (SWA).
+Extendinghybridautomatawith unobservable timedtransitions2,w eprov e
+thatSWAwithunobservabledelaysareasexpressiveasLHA.Thatis,every( ω-)
+languageacceptedbyaLHAisalsoacceptedbysomeSWAwithunobservable
+delays.Weconsiderthisresultinterestingfortworeasons:
+1. it indicates that undecidability ofRP and LEPoriginatesfrom the ability
+tostoptime,and
+2. ithasapracticalapplicationtoveriﬁcationoflinearhybridsystems.
+The applicationto veriﬁcationis basedonaneasy extensionofalgorithms
+formodel-checking(safetypropertiesof)TAto(over-approximating)algorithms
+1here TA refers to timed automata with simple constraints as deﬁned in [ AD94].
+2i.e. some durations are unobservable for this class of hybrid automata.
+
+--- Page 3 ---
+140 Franck Cassez and Kim Larsen
+formodel-checkingSWA.Inparticular,thisextensionmayapplythefullrange
+ofeﬃcientdata-structures[ LLPY97,ABK+97,BLP+99]currentlyappliedinver-
+iﬁcationtoolsfortimedautomata[ Yov97,LPY97].AnalysisofaLHAmaynow
+be reducedtoasimilaranalysisonthe equivalentSWA, avoidingthe need for
+representingandmanipulatinggeneralpolyhedra.
+Outline of the paper. Inthenextsection 2wegivethedeﬁnitionsofLHAand
+of the subclasses of hybrid automata we will be interested in and we deﬁne
+unobservable delays . Section3states the main result: the fact that SWA have
+thesameexpressivepowerasLHA.InSection 4wefocusonthepracticalinterest
+of this equivalence and give examples of LHA we are able to verify using our
+translationandtheSWA-extensionof UPPAAL.Finallyweconcludeinsection 5.
+2L i n e a r H y b r i d A u t o m a t a
+2.1 Preliminaries
+For a given alphabet Σ,Σ∗denotes the set of ﬁnite words and Σωthe set of
+inﬁnite words over Σ.A l s oΣ∞=Σ∗∪Σω.W ea l s ou s et h es e to fb o o l e a n s
+B={tt,ﬀ}.
+Avaluationisanelementof RV,whereVisaﬁnitesetofvariables.If |V|=n,
+avaluation vcanbeinterpretedasavector
+ vofRn.IfV/prime⊆Vandν∈RV,we
+denotebyproj V/prime(ν)thevaluation ν/prime∈RV/primedeﬁnedby ν/prime(x)=ν(x),∀x∈V.
+Alinear expression φ(
+v)o v erVisoftheform/summationtextaiviwithai∈Z,vi∈V.
+Alinear constraint isapropositionalformulausingtheconnectives ∨,∧,¬over
+atomic formulæ of the form φ(
+x)⊿ytriangleleft c,w h e r e⊿ytriangleleft∈{<,=,>},φ(
+x) is a linear
+expressionand c∈N.LC(V) is the set oflinear constraints.If werestrict the
+linearexpressionstooneofthesimpleforms v−v/prime⊿ytriangleleft corv⊿ ytriangleleftc,v,v/prime∈Vwe
+obtaintheset SC(V)of simple constraints overV.Alinear assignment overV
+is of the form
+ v:=A.
+v+
+bwhereAis an×nmatrix with coeﬃcients in Z
+and
+bisavectorof Zn.LA(V)isthesetoflinearassignmentsover V.Asimple
+assignmentissuchthatallentriesof Aareeither0or1,andeveryrowof Ahas
+atmostonenon-nullcoeﬃcient.
+Given a valuation vand a constraint γ, the boolean value γ(v) describes
+whetherγissatisﬁedby vornot.
+Acontinuous change of the variables is deﬁned w.r.t. an element dofZV
+correspondingtotheﬁrstderivativeofeachvariable:given t∈R≥0,thevaluation
+v+d.tisdeﬁnedby( v+d.t)(x)=v(x)+d(x).t.
+2.2 Hybrid Automata
+Hybrid automata [ACH+95,AHH96,Hen96] are used to model systems which
+combine discreteand continuousevolutions.Forgeneralhybridsystemstheac-
+tivities canbe anycontinuousfunctions. However,werestrictourattentionto
+
+--- Page 4 ---
+The Impressive Power of Stopwatches 141
+thesubclassof linearhybridsystems3.Moreoverweassumethattheinitialvalue
+ofeachvariableis0(thecorrespondinginitialvaluationisdenoted v0).
+Deﬁnition 1 (Linear hybrid automaton). Alinear hybrid automaton (in
+the sequel LHA) His a 7-tuple(N,l 0,V,A,E,Act,Inv )where:
+–Nis a ﬁnite set of locations ,
+–l0∈Nis theinitiallocation ,v0is theinitialvaluation ,
+–Vis a ﬁnite set of real-valued variables ,
+–Ais a ﬁnite set of actions ,
+–E⊆N×LC(V)×A×LA(V)×Nis a ﬁnite set of edges ;e=/angbracketleftl,γ,a,α,l/prime/angbracketright∈E
+represents an edge from the location lto the location l/primewith the linear guard
+γ,t h el a b e laand the linear assignment α.
+–Act∈/parenleftbig
+(Z×Z)V/parenrightbigNwhereAct(l)(x)=[u1,u2]means that the ﬁrst derivative
+ofxin location llies in the compact bounded interval [u1,u2]ofZ.
+–Inv∈L C(V)Nassigns a linear invariant to any location.
+To this standard deﬁnition we add the following features: the set of locations N
+is partitioned into two subsets No∪Nu;No(resp.Nu) is the set of locations
+where time-elapsing is observable (resp.unobservable ). We also denote the un-
+observable action τand consider hybrid automata with τmoves. We denote Aτ
+the setA∪{τ}and∆τthe set R≥0∪{τ(t),t∈R≥0} ✷
+Example 1 (Water-level monitor [ ACH+95]).Asarunningexample,weconsider
+thewater-levelmonitordescribedin[ ACH+95]andillustrated4inFigure1.The
+aimistocontrolthewaterlevelinatankwithamonitor.Apumpcanbeturned
+onandoﬀtocontrolthelevel.Whenthepumpisoﬀ(locations ylscript2andylscript3)the
+waterlevelfallsbytwocmspersecond;whenthepumpison(locations ylscript0and
+ylscript1), the levelrisesby one cm per second.The delayto turn the pump on and
+oﬀis2timeunits(measuredbythevariable x).Timeelapsingisobservablein
+eachlocationofthewaterlevelmonitor. ✷
+2.3 Semantics
+Deﬁnition 2. The semantics of a hybrid automaton H=(N,l 0,V,Σ,E,Act,
+Inv)is a timed transition system SH=(Q,q 0,Σ,→)whereQ=N×RV,
+q0=(l0,v0)is the initial state ( v0(x)=0 ,∀x∈V)a n d →is deﬁned by:
+/angbracketleftl,v/angbracketrighta−−−→/angbracketleftl/prime,v/prime/angbracketrightiﬀ∃(l,γ,a,α,l/prime)∈Es.t./braceleftBigg
+γ(v)= tt,v/prime=α(v)and
+Inv(l/prime)(v/prime)= tt
+/angbracketleftl,v/angbracketrighte−−−→/angbracketleftl/prime,v/prime/angbracketrightiﬀ
+
+e=difl∈No,e=τ(d)ifl∈Nu
+l=l/primeand∃d∈Act(l)s.t.v/prime=v+d.tand
+∀0≤d/prime≤d,v+d/prime.t∈Inv(l)
+τ(d)stands for an unobservable delay of duration d. ✷
+3The example of the thermostat in [ ACH+95] is a hybrid automata which is not
+linear.
+4automata designed with GasTeX(http://www.liafa.jussieu.fr/ ˜gastin/gastex ).
+
+--- Page 5 ---
+142 Franck Cassez and Kim Larsen
+y=1
+x=0/lscript0˙x=˙y=1
+y≤10
+/lscript1˙x=˙y=1
+x≤2
+/lscript2
+˙x=1,˙y=−2
+y≥5/lscript3
+˙x=1,˙y=−2
+x≤2y=1 0
+x:= 0
+x=2y=5
+x:= 0x=2
+Fig. 1.Thewater-levelmonitor
+Arunfrom a state s0of a linear hybrid automaton His a sequence of
+alternatingdiscreteandcontinuoustransitionsof SH:
+ρ=s0δ0−−−−→s/prime
+0a0−−−−→...s iδi−−−−→s/prime
+iai−−−−→...
+whereai∈Aτandδi∈∆τ.Intuitivelytime δi+1elapsesbetweentheactions ai
+andai+1.Wealsointroducethefollowingderivednotations:
+s0=⇒s/primeiﬀ∃d∈R≥0s.t.sτ(d)−→s/prime
+sε=⇒s/primeiﬀs(τ−→ ∪0=⇒)∗s/prime
+sd=⇒s/primeiﬀsε=⇒d1−→ε=⇒d2− →···ε=⇒dn−→s/primewithd=/summationtext
+idi
+sa=⇒s/primeiﬀsε=⇒a−→s/prime
+2.4 Timed Languages and Bisimulation for Hybrid Automata
+The deﬁnition of hybrid automata may be extended with two sets of states:
+F⊆Nbeingasetof ﬁnalstatesandR⊆Nbeingthesetof repeatedstates.
+The ﬁnite (resp. inﬁnite) run ρisacceptingifρends in a ﬁnal state(resp.
+if there are inﬁnitely many states from Rinρ). With every ﬁnite (resp. in-
+ﬁnite) run we associate a ﬁnite (resp. inﬁnite) τ-timed word:w i t he v e r ya c -
+tionaiweassociatea timestamp ti,which isthe accumulatedobservabletime
+since the initial instant. Formally ti=/summationtexti
+k=0{δk∈ R≥0}.T h u st h er u n ρ
+accepts the τ-timed word ( a0,t0)...(an,tn)...∈(Aτ×R≥0)∞and sinceτ-
+transitions are unobservable we remove all pairs ( τ,t)t oo b t a i na timed word
+(ai0,ti0)...(ain,tin)...∈(A×R≥0)∞
+The timed language L(H)acceptedbythehybridautomaton Histhesetof
+timedwordswhichhaveacceptingrunsfromtheinitialstateof SH.
+Asymmetricrelation B⊆Q×Qisa weak timed bisimulation ifwhenever
+(s,t)∈B, the following holds: (1) s∈F⇔t∈F(resp.s∈R⇔t∈R), and
+(2)whenever sd=⇒a−→s/primethentd=⇒a−→t/primeforsomet/primewith(s/prime,t/prime)∈B.W esay
+
+--- Page 6 ---
+The Impressive Power of Stopwatches 143
+/lscript
+˙x∈[1,2]mx=2 ; a
+(a) Initial LHA: H/lscript
+˙x=0
+˙t=1/lscript/prime
+˙x=1
+˙t=0
+y≤tm/prime
+˙x=1
+˙t=0
+y≤tmτ;y:= 0y=t
+τ;y:= 0 x=2 ; a
+(b) Corresponding SWA: H/prime
+Fig. 2.Twoequivalentlinearhybridautomata, HandH/prime.
+thatsandtareweakly timed bisimilar (s≈t)p r o v i d e d( s,t) is contained in
+someweaktimedbisimulation B.Itfollowseasilythatourchosendeﬁnitionof
+weaktimedbisimilaritybetweenstates sandtimpliesequalityintermsoftimed
+wordsaccepted.
+Example 2.Consider the linear hybrid automaton Hin Figure2.A s s u m i n g
+thatmisﬁnalandboth ylscriptandmareobservable,thetimed languageaccepted
+byHistheset {(a,d)|1≤d≤2}.Forthelinearhybridautomaton H/primeatypical
+runisoftheform5:
+/angbracketleftylscript,t=0,x=0,y=0/angbracketrightd−→τ−→ /angbracketleftylscript/prime,t=d,x=0,y=0/angbracketright
+τ(d)−→τ−→ /angbracketleftm/prime,t=d,x=d,y=0/angbracketright
+τ(d/prime)−→ /angbracketleftm/prime,t=d,x=2,y=d/prime/angbracketright
+a−→ /angbracketleftm,t=d,x=2,y=d/prime/angbracketright
+ford/prime≤dandd/prime+d=2.Assuming againthat mis accepting,and removing
+theunobservablepartoftheaboverun,yields( a,d)asanacceptedtimedword.
+In fact it is not hard to see, that the timed words of the form ( a,d), where
+1≤d≤2,arepreciselythewordsacceptedby H/prime;hencethat L(H)=L(H/prime).✷
+Remark 1.Invariantsarenotusefulwhenconsideringtimedlanguageacceptance
+forhybridautomata:wemayremoveeveryinvariant6,bytranslatingeverytran-
+sition /angbracketleftl,γ,a,α,l/prime/angbracketrightintotwoconsecutivetransitions: /angbracketleftl,γ∧Inv(l),τ,α.[t:=0],m/angbracketright
+/angbracketleftm,t=0∧Inv(l/prime),a,Id,l/prime/angbracketright,w h e retisafresh clockwith ˙t=1inm.Lea ving
+thesetofﬁnal(resp.repeated)statesunchangedweobtainthesameaccepted
+language.Inthesequelwewillnotconsiderinvariantsanymorebutassumethat
+thissimpletranslationhasalreadybeendoneforanyLHA. ✷
+5assuming that /lscript, mare observable and /lscript/prime,m/primeare unobservable.
+6this works only for convex invariants as pointed out by an anonymous referee; for a
+union of convex invariants in /lscriptwe may add copies of /lscriptwith convex invariants and
+apply our translation schema.
+
+--- Page 7 ---
+144 Franck Cassez and Kim Larsen
+2.5 Subclasses of LHA
+In the sequel we will consider the following subclasses of LHA (or extended
+classesofTA)7:
+TA: theclassoftimedautomataistheonedeﬁnedin[ AD94];thatis,onlysimple
+constraintsareallowed,thederivativesofthevariables(clocks)areallequal
+to1andonlylinearassignments( A,
+b)withA=0and
+b≥0areallowed.
+SWA: the class of TA extended with stopwatches; that is the derivative of a
+variableinalocationcanbeeither0or1.
+LSWA: theclassofLHA,wherethederivativeofavariableinalocationcanbe
+either0or1.Alternatively,thisclassistheextensionofSWAwhichallows
+linearconstraintsandassignments.
+The set of timed languages accepted by a class Cof hybrid automata is
+denoted TLC.
+Remark 2.ForSWAwecanallowassignmentsoftheform x:=x/prime+kasthey
+canbe writtenasashorthandfor(1)reset x;(2) letanunobservabledelayof
+x/prime+kelapsewhilestoppingalltheothervariables.Wewillusethisshorthand
+insection3.1.NoticethatallowingthistypeofassignmentsinTAmakeRPand
+LEPundecidable[ BDFP00].
+We also point out that stopwatchesallowus to use unbounded integers: it
+suﬃcestouseavariablewhichisstoppedineverylocation. ✷
+3F r o m L H A t o S W A
+In this section we will show that every language accepted by a LHA is also
+acceptedbyaSWAwithunobservabledelays.
+Theorem 1 (Expressiveness of SWA). The classes LHA and SWA are
+equally expressive in the sense that TL SWA=TL LHA . ✷
+The proof of theorem 1is implied by the following two proof steps: (1)
+TL SWA=TL LSWA,a n d( 2 ) TL LSWA=TL LHA. According to remark 1we
+willonlyconsiderLHAwith ttinvariantineverylocation.
+3.1 From LSWA to SWA
+LetL=(N,l 0,V,Σ,E,Act,Inv )beaLSW A(with ttinvariants).Weshowhow
+to translate the linear guards and linear assignments of Linto simple guards
+andsimpleassignmentsthusobtainingaSWA.However,topreparethesetrans-lations,weﬁrsttransform Linordertoensurethatno(stopwatch)variablewill
+everobtainanegativevalue.
+
+--- Page 8 ---
+The Impressive Power of Stopwatches 145
+/lscript
+˙x=1/lscript/primex:=−3.x
+(a) Initial LHA: L˜/lscript
+˙x+=1
+˙x−=0˜/lscript/prime−3.x++3.x−≥0
+x+:=−3.x++3.x−;x−:= 0
+−3.x++3.x−<0
+x+:= 0; x−:= 3.x+−3.x−
+(b) Corresponding SWA: ˜L
+Fig. 3.Translatingassignmentstoavoidnegativevalues
+Avoiding negative values. AsLis a LSWA, the stopwatchvariables are guar-
+anteedneverto decreaseinanylocation.However,variablesmayobviouslybe
+assignednegativevalueswhentransitionsaretaken(asimpleexampleisgivenin
+Figure3).First,anytransition /angbracketleftylscript,a,g,x:=φ(
+x),ylscript/prime/angbracketright8issplitintotwotransitions
+/angbracketleft˜ylscript,a,g ∧φ(
+x)≥0,x:=φ(
+x),˜ylscript/prime/angbracketrightand/angbracketleft˜ylscript,a,g ∧φ(
+x)<0,x:=φ(
+x),˜ylscript/prime/angbracketright.Obviously,
+thistranslationdoesnotalterthebehaviorof Lbutprovidestheknowledgeof
+the sign of the value assigned to x. Nowfor eachvariable xwe introduce two
+new(stopwatch)variables x+andx−intendingthat x=x+−x−andx+≥0
+andx−≥0willholdinvariantly.Toensurethis,wedothefollowing:
+1. ineachlocation lofLwhere ˙x=1weset(˙ x+,˙x−)=(1,0);if ˙x=0weset
+(˙x+,˙x−)=(0,0);
+2. weaddthe(obvious)assignments
+–(x+,x−):=(φ(
+x),0)fortransitionswhere φ(
+x)≥0isintheguard,and
+–(x+,x−):=(0,−φ(
+x))fortransitionswithguard φ(
+x)<0.
+Finally,wemaycompletelyremovetheoldvariable xbyreplacingitwith x+−
+x−in all terms (in guardsor assignments). Figure 3shows an example of the
+transformation.
+Translating linear guards. Nowwefocusontransforminglinearguardsintransi-
+tionsintosimpleones.Thusconsiderageneraltransition /angbracketleftl,a,φ(
+x)⊿ytriangleleft c, α, l/prime/angbracketright:a
+isthelabel,and αthelinearassignment;theguard φ(
+x)⊿ytriangleleft cisalinearconstraint
+overVwith⊿ytriangleleft∈{<,=,>}.Noticethatitispossibletorewritethisguardinthe
+form/summationtextn
+i=1aixi−/summationtext2n
+i=n+1aixi⊿ytriangleleft c/primewithc/prime∈Nand Z/ownerai≥0.Wedemonstrate
+howtocomputethesetwosumswithtwonewfreshvariables uandv.Afterthis
+itonlyremainstoreplacetheguardbythesimple u−v⊿ ytriangleleftc/prime.
+Thetranslation9worksasfollows(seeFigure 410):
+7the notion of unobservable delay is included in all of those classes.
+8For simplicity we only consider transitions with a single assignment.
+9˙V=0me a ns ∀v∈V,˙v=0 .
+10when no label is written on a transition this is a silent τ-transition.
+
+--- Page 9 ---
+146 Franck Cassez and Kim Larsen
+1. we introduce the new stopwatch variables uandvto sum up the terms
+aixi,i∈[1...n]andaixi,i∈[n+1...2n]respectively,
+2. between the locations ˜land˜l/primewe introduce new locations ˜liwhere time
+elapsingisunobservabletoperformthecomputationsof uandv.
+Notethatthistranslationonlyworksbecausewe(byoverpreviousprepara-
+tionstep)mayassumethat xiwill nothavenon-negativevalues: inparticular
+inlocation˜liwelettime xielapsewhichispossibleonlyif xi≥0.
+Let˜V=V∪{u,v,t}andν,ν/prime∈RV,˜ν,˜ν/prime∈R˜Vs.t.proj V(˜ν)=ν;w e
+then havethe following: /angbracketleft˜l,˜ν/angbracketrightd=⇒a−→ /angbracketleft˜l/prime,˜ν/prime/angbracketrightiﬀ/angbracketleftl,ν/angbracketrightd=⇒a−→ /angbracketleftl/prime,ν/prime/angbracketrightwhenever
+proj V(˜ν/prime)=ν/prime;thus /angbracketleft˜l,˜ν/angbracketrightand/angbracketleftl,ν/angbracketrightareweaklytimedbisimilarandconsequently
+acceptthesametimedwords.
+˜l˜l1
+˙V=˙v=0
+˙t=˙u=1··· ˜li˙V=˙v=0
+˙t=˙u=1
+˜ln+1 ˜l/prime ˜l2nu:= 0
+k:=a1
+t:= 0k=t=0
+k:=a2
+t:= 0k=t=0
+k:=ai
+t:= 0
+k=t=0
+k:=ai+1
+t:= 0
+k=t=0
+k:=an+1
+t:= 0
+v:= 0
+k=t=0∧u−v⊿ /triangleleftc/prime;a;αt=x1∧k≥1
+k:=k−1
+t:= 0t=xi∧k≥1
+k:=k−1
+t:= 0
+Ci,i≤n
+V(˙u=0 )
+Fig. 4.Computationof uandvbeforeevaluatingtheguard u−v⊿ ytriangleleftc/prime
+Linear assignments. Fortranslatinglinearassignmentsweapplytheexactsame
+techniqueasabovewhendealingwithlinearguards.Let A=(aij)and
+b=(bi)
+withi,j∈[1..n].Weintroduce nnewfreshvariables uitocompute/summationtext
+j≤naijxj.
+Attheendweperformtheassignments xi:=ui+bi(thisispossibleaccording
+to remark2). Notice we need nnew fresh variables as for two simultaneous
+assignments x:=yandz:=xwe have to keep track of the old value of x
+neededinz:=x.Forageneraltransitionwithaguardandanassignmentwe
+perform the computation of the guard described previously and after the last
+unobservable state we update the variables according to the assignment using
+
+--- Page 10 ---
+The Impressive Power of Stopwatches 147
+newunobservablestates.Timeelapsingisunobservableinalltheintermediate
+locations.Thuswehavethefollowingtheorem:
+Theorem 2. The classes LSWA and SWA are equally expressive in the sense
+thatTL LSWA=TL SWA . ✷
+Complexity.Wedonotconsidertheadditionofintegervariables.ForaLSWA L
+withnstates,mtransitionsand kstopwatches,theresultingSWAhasatmost
+3k+3stopwatchesatmost n+4m(3k+3)states.
+3.2 From LHA to LSWA
+LetH=(N,l 0,V,Σ,E,Act,Inv ) be a LHA (with true invariants).In the fol-
+lowing we show how to transform Hinto a LSWA accepting the same timed
+language.
+Integer slopes. Weﬁrstdealwithinteger positiveslopes:l∈Nisalocationof H
+andxavariableof Vs.t.Act(l)(x)=u1∈N.Wetranslatelocation lasfollows:
+1. we introduce a fresh variable twhich is reset when entering ˜l1and will
+measurethetimetheautomatonstaysin ˜l1,
+2. anauxiliaryvariable vusedtoupdate x,
+3. 2locations ˜liwheretimeelapsingisunobservable.
+ThetranslationisgiveninFigure 5withinthedashedrectangle(automaton S).
+Note that if we enter ˜l2with the value x0forxandt0fortwe reach˜l
+withx=x0+u1.t0. So we can easily prove the following: if ν,ν/prime∈RVand
+˜ν,˜ν/prime∈RV∪{t,v}s.t.proj V(˜ν)=νandd∈R≥0then
+/angbracketleft˜l,˜ν/angbracketrightd=⇒/angbracketleft˜l/prime,˜ν/prime/angbracketrightiﬀ/angbracketleftl,ν/angbracketrightd=⇒/angbracketleftl/prime,ν/prime/angbracketright (1)
+Then it suﬃces to replace location linHby the sequence described by the
+automaton SonFigure5toobtainanautomatonwhichacceptsthesametimed
+languageas H.
+Toallowfornegativeslope,weintroduce11twonewvariables x+andx−:for
+locationswheretheslopeof xisu≥0,weset ˙x+=uand ˙x−=0.Whenthe
+slopeofxisu<0weusetheslopes˙ x+=0and˙x−=u.Thentheactualvalue
+ofxisx+−x−.Itremainstoreplaceanyoccurrenceof xinHbyx+−x−to
+obtainaLHAwithonlypositiveslopes.
+Interval slopes. Wenowupgradethepreviousconstructiontodealwithslopes
+belonging to closed integer intervals. We assume Act(l)(x)∈[u1,u2],u1,u2∈
+Z≥0(for the caseoneofthe value is negativewe splitthe intervalinto a pos-
+itive part and negative part and apply the translation of xinx+−x−.) The
+constructionisgivenonFigure 5(ignorethedashedtransition).
+Statement(1)alsoholdsinthiscase.Finallyweobtainthefollowingtheorem:
+11very similar to the handling of negative values.
+
+--- Page 11 ---
+148 Franck Cassez and Kim Larsen
+˜l1
+˙x=0
+˙t=1˜l2
+˙t=0
+˙v=˙x=1˜l3˙t=0
+˙v=˙x=1
+˜l
+˙t=˙x=0
+˙v=0t:= 0
+v:= 0,k:=u1k=0∧v=0
+k:=u2−u1
+v:= 0
+k≥1∧v≤t
+v:= 0k=v=0k=v=0t=v∧k≥1
+k:=k−1,v:= 0t=v∧k≥1
+k:=k−1,v:= 0
+S
+Fig. 5.Translatingpositiveintegerslopes
+Theorem 3. The classes LHA and LSWA are equally expressive in the sense
+thatTL LHA=TL LSWA . ✷
+Thisendstheproofoftheorem 1.
+Complexity. The translation from LHA to LSWA does not require any new
+variables as we may use those introduced in the translation from LSWA to
+SWA. We only need to add two states per variable in eachlocation.Then foraL H Aw i t h nstates,mtransitions and kvariablesthe resulting SWA has at
+most3k+3variablesandatmost2(3 k+3).(n+4m(3k+3)+1)states.The
+translationisthenin O(k)forthenumberofvariablesandin O(n.m.k
+2)forthe
+numberofstates.
+4 Application to Symbolic Analysis of Hybrid Automata
+Theorem1suggests a potential practical application as reachability analysis
+foraLHA Lmayeﬀectivelybetransformedintoareachabilityanalysisonthe
+corresponding SWA ˜L. Indeed, it follows from our translation12that for any
+w∈(Σ∪R≥0)∗
+/angbracketleftl0,ν0/angbracketrightw=⇒∗/angbracketleftl,ν/angbracketrightiﬀ/angbracketleft˜l0,˜ν0/angbracketrightw=⇒∗/angbracketleft˜l,˜ν/angbracketright (2)
+wheneverproj V(˜ν0)=ν0andproj V(˜ν)=ν[V/(V+−V−)] whereν[V/(V+−
+V−)] stands for νwith all the variables x∈Vreplaced by x+−x−.T h u s
+reachabilitypropertiesof Land˜Lareinaone-to-onecorrespondence.
+12=⇒∗stands for the transitive closure of = ⇒.
+
+--- Page 12 ---
+The Impressive Power of Stopwatches 149
+4.1 Termination of Symbolic Analysis
+Despite the close correspondence in ( 2), the usual forward reachability algo-
+rithm[AHH96]13maybehavediﬀerentlyon ˜LandLwithrespecttotermination.
+Ideally,wewantthealgorithmtoterminateon ˜Lwheneveritterminateson L.
+Thisisnotalwaysthecasewiththeroughtranslationwehavegiven.
+As o l u t i o n14is to ensure that every variable has a single representative
+(x+,x−)ineachlocation.
+4.2 Approximate Analysis – Preliminary Experiments
+We have successfully analyzed a number of LHA using a stopwatch-extended
+version of the tool UPPAAL. The extension oﬀers an approximate reachability
+algorithm for SWA obtained as a rather immediate extension of the existing
+reachabilityalgorithmforTA.Inparticular,theexistingeﬃcientdata-structures
+ofUPPAALhavebeenreused.
+WhenanalyzingSWAusingdiﬀerenceboundedmatrices(DBMs[ LLPY97]),
+the onlyoperationapplied during (symbolic) state-spaceexplorationrequiring
+redeﬁnitionisthatofcomputingthe futureofaDBM.
+The DBM-based algorithm for SWA yields an over-approximation of the
+reachable state-space as DBMs only allow to encode the diﬀerence between 2
+variables.Ingeneral,anexactcharacterizationofthereachablestate-spaceofa
+SWAmayrequireconstraintsinvolvingseveralvariables.Nevertheless,wehaveimplemented a DBM-based, stopwatch-extension of UPPAAL. Combined with
+our translationfromLHA to SWA we have successfully analyzeda number of
+examplesdemonstratingthattheprizeofover-approximationisnottoohigh.
+Theexamplesincludethewater-levelmonitor[ ACH
++95]ofFigure1forwhich
+the SWA is depicted in Figure 6. Another example is the parameterized ver-
+sion of Fischer’s protocol [ ACH+95]. Other successfully investigated examples
+include the gas burner [ ACH+95] and the scheduler of [ AHH96]. Also, we are
+currentlyinvestigatingthe toolsapplicability to casestudies such asthe ABR
+protocol[BF99]andthewater-tankcasestudy[ KLPW]oftheVHSproject.
+5 Conclusion and Future Work
+Inthis paperwehaveextendedhybridautomatawiththe notionofunobserv-
+abledelays.Wehaveprovedthatstopwatchautomata(SWA)withunobservable
+delays(timedautomataextendedwithstopwatches)areasexpressiveaslinear
+hybridautomata(LHA)inthesensethateverylanguageacceptedbyaLHAis
+alsoacceptedbyaSWA.Apracticalapplicationofthisresultisthatreachabil-ityanalysisforLHAmaybereducedtoreachabilityanalysisforSWA.Wehave
+extended the real-time veriﬁcation tool UPPAALto SWA reusing its eﬃcient
+data-structures,allowingforratherlargeSWAtobeanalyzed.Combinedwith
+13as used in HyTech
+14we cannot develop the proof in this paper.
+
+--- Page 13 ---
+150 Franck Cassez and Kim Larsen
+S0yp<=ym+10,
+ym’==0
+S1x<=2,ym’==0
+S2
+yp’==0
+S3
+x’==0,yp’==0,t’==0
+S4
+ym<=yp-5,
+x’==0,yp’==0,ym’==0S5
+x<=2,yp’==0S6
+x<=2,x’==0,
+yp’==0,t’==0S7
+x<=2,
+x’==0,yp’==0,ym’==0,t’==0S8
+x<=0yp==ym+10
+x:=0,yp:=10,ym:=0
+x==2
+t:=0
+v:=0
+v==t
+yp==ym+5x:=0,t:=0,ym:=0,yp:=5v:=0v==tym:=0,yp:=1,x:=0
+x==2
+Fig. 6.TheSWAwaterlevelmonitorwith UPPAAL
+ourtranslationresultthis oﬀersacompletely newmethodforanalyzingLHA.
+However,the analysisisbasedonanover-approximationwhichforsomecases
+maybetoocoarsetosettleagivenreachabilityproperty.
+ThetranslationgiveninthispaperdemonstratesthatSWAequalsLHAinex-
+pressivepower.However,severalalternativetranslationsmighthavebeengiven
+and from a practical point of view there are good reasons for looking at suchalternativetranslationsastheymaybesuperiorinvariousways:(1)thetransla-
+tionmaywellhaveanimpactonthe accuracyofourtool’sapproximateanalysis
+ontheresultingSWA;(2)fromaperformancepointofviewitisimportantto
+limit the complexityof the translated stopwatch version of a LHA; in partic-
+ular, translations introducing few additional variables are to be preferred; (3)wewantourtranslationofLHAtoSWAtopreserveterminationwhenapplying
+non-approximatingveriﬁcationtoolssuchasHyTech.
+Ourfutureinvestigationsinclude:(1)ratherthanperforminganapproximate
+reachability analysis on the SWA (resulting from a translation), it might be
+possible(andperformance-wisesuperior)toextendtheDBM’sdata-structures
+to encode exactly the region of a SWA automaton and to perform an exactreachabilityanalysis;(2)asatheoreticalaspectswearecurrentlystudyingthe
+expressivepowerofunobservabledelaysforLHAandtryingtoextendourresult
+tomoregeneralclassesofhybridautomata(e.g.linearderivatives).
+Acknowledgement
+The authors would like to thank Gerd Behrmann, Johan Bengtsson and PaulPettersson for numerous discussions and assistance in making the stopwatch-
+extensionof UPPAAL.
+
+--- Page 14 ---
+The Impressive Power of Stopwatches 151
+References
+ABK+97. E. Asarin, M. Bozga, A.Kerbrat,O.Maler, A.Pnueli, andA.Rasse. Data-
+Structures for the Veriﬁcation of Timed Automata. In Proc. of HART’97,
+LNCS 1201 , 1997.140
+ACH94. Rajeev Alur, Costas Courcoubetis, and Thomas A. Henzinger. The obser-
+vational power of clocks. In Bengt Jonsson and Joachim Parrow, editors,
+CONCUR ’94: Concurrency Theory, 5th International Conference ,v o l u m e
+836 of Lecture Notes in Computer Science , pages 162–177, Uppsala, Swe-
+den, 22–25August 1994. Springer-Verlag. 139
+ACH+95. R. Alur, C. Courcoubetis, N. Halbwachs, T. Henzinger, P. Ho, X. Nicollin,
+A. Olivero, J. Sifakis, and S. Yovine. The algorithmic analysis of hybridsystems. Theoretical Computer Science B , 137, January 1995. 138,140,
+141,149
+AD94. Rajeev Alur and David Dill. A theory of timed automata. Theoretical
+Computer Science B , 126:183–235, 1994. 138,139,144
+AHH96. Rajeev Alur, Thomas A. Henziger, and Hei-Hsin Ho. Automatic symbolic
+veriﬁcation of embedded systems. IEEE Transactions On Software Engi-
+neering, 22(3):181–201, March 1996. 138,140,149
+AP94. A. Puri and P. Varaiya. Decidability of hybrid systems with rectangular
+diﬀerential inclusions. In David L. Dill, editor, Proceedings of the sixth In-
+ternational Conference on Computer-Aided Veriﬁcation CAV , volume 818
+ofLecture Notes in Computer Science , pages 95–104, Standford,California,
+USA, June 1994. Springer-Verlag. 138
+AR95. A. Bouajjani and R. Robbana. Verifying omeg-regular properties for a
+subclass of linear hybrid systems. In P. Wolper, editor, Proceedings of the
+7th International Conference On Computer Aided Veriﬁcation , volume 939
+ofLecture Notes in Computer Science , pages 437–450, Liege, Belgium, July
+1995. Springer Verlag. 138
+BDFP00. Patricia Bouyer, Christine Dufourd,Eric Fleury,and AntoinePetit. Decid-
+able updatable timed automata are bisimilar to timed automata. Research
+report, LSV, ENS Cachan, 2000. Forthcoming. 144
+BDGP98. B. B´ erard, V. Diekert, P. Gastin, and A. Petit. Characterization of the
+expressive power of silent transitions in timed automata. Fundamenta In-
+formaticæ , 36:145–182, 1998. 139
+BF99. B. B´ erard and L. Fribourg. Automated veriﬁcation of a paramet-
+ric real-time program: the ABR conformance protocol. In Proc. 11th
+Int. Conf. Computer Aided Veriﬁcation (CAV’99), Trento, Italy, July 1999 ,
+volume1633of Lecture Notes in Computer Science ,pages96–107. Springer,
+1999.149
+BGP96. B´ eatrice Berard, Paul Gastin, and Antoine Petit. On the power of non-
+observable actions in timed automata. In 13th Annual Symposium on The-
+oretical Aspects of Computer Science , volume 1046 of lncs, pages 257–268,
+Grenoble, France, 22–24 February 1996. Springer. 139
+BLP
++99. GerdBehrmann,KimG.Larsen,JustinPearson, CarstenWeise,andWang
+Yi. Eﬃcient timed reachability analysis using clock diﬀerence diagrams. In
+11th Computer-Aided Veriﬁcation , Trento, Italy, July 1999. 140
+Cer92. K. Cerans. Algorithmic problems in analysis in analysis of real-time speci-
+ﬁcations. PhD thesis, University of Latvia, 1992. 138
+
+--- Page 15 ---
+152 Franck Cassez and Kim Larsen
+DGP97. Volker Diekert, Paul Gastin, and Antoine Petit. Removing ε-transitions in
+timed automata. In R. Reischuk, editor, Proceedings of the 14th Annual
+Symposium on Theoretical Aspects of Computer Science 1997 ,number1200
+in Lecture Notes in Computer Science, pages 583–594, Berlin-Heidelberg-
+New York, 1997. Springer. 139
+Hen96. Thomas A. Henzinger. The theory of hybrid automata. In Proceedings,
+11thAnnual IEEE Symposium on Logic in Computer Science , pages 278–
+292,NewBrunswick,NewJersey,27–30 July1996.IEEEComputerSociety
+Press.138,140
+HK96. Thomas A. Henzinger and Peter W. Kopke. State equivalences for rectan-
+gular hybrid automata. In Ugo Montanari and Vladimiro Sassone, editors,
+CONCUR ’96: Concurrency Theory, 7th International Conference ,v o l u m e
+1119 of Lecture Notes in Computer Science , pages 530–545, Pisa, Italy,
+26–29 August 1996. Springer-Verlag. 139
+HK97. Thomas A. Henzinger and Peter W. Kopke. Discrete-time control for rect-
+angular hybrid automata. In Pierpaolo Degano, Robert Gorrieri, and Al-
+berto Marchetti-Spaccamela, editors, Automata, Languages and Program-
+ming, 24th International Colloquium ,volume1256of Lecture Notes in Com-
+puter Science , pages 582–593, Bologna, Italy, 7–11 July 1997. Springer-
+Verlag.139
+HKPV98. Thomas A. Henzinger, Peter W. Kopke, Anuj Puri, and Pravin Varaiya.
+What’s decidable about hybrid automata? Journal of Computer and Sys-
+tem Sciences , 57(1):94–124, August 1998. 138,139
+HKWT95. Thomas A. Henzinger, Peter W. Kopke, and Howard Wong-Toi. The ex-
+pressive power of clocks. In Zolt´ an F¨ul¨op and Ferenc G´ ecseg, editors,
+Automata, Languages and Programming, 22nd International Colloquium ,
+volume 944 of Lecture Notes in Computer Science , pages 417–428, Szeged,
+Hungary, 10–14 July 1995. Springer-Verlag. 139
+JP94. J. McManis and P. Varaiya. Suspension automata: A decidable class of
+hybrid automata. In David L. Dill, editor, Proceedings of the sixth Inter-
+national Conference on Computer-Aided Veriﬁcation CAV , volume 818 of
+Lecture Notes in Computer Science , pages 105–117, Standford, California,
+USA, June 1994. Springer-Verlag. 138
+KLPW. K. J. Kristoﬀersen, K. G. Larsen, P. Pettersson, and C. Weise. Veriﬁcation
+of an experimental batch plant. VHS internal document. 149
+KPSY93. Y. Kesten, A. Pnueli, J. Sifakis, and S. Yovine. Integration graphs: A class
+of decidable hybrid systems. In R. L. Grossman, A. Nerode, A. P. Ravn,a n dH .R i s c h e l ,e d i t o r s , Hybrid Systems , volume 736 of Lecture Notes in
+Computer Science , pages 179–208. Springer-Verlag, 1993. 138
+LLPY97. K. G. Larsen, F. Larsson, P. Pettersson, and W. Yi. Eﬃcient veriﬁcation
+of real-time systems: Compact data structure and state-space reduction.
+InProc. of the 18th IEEE Real-Time Systems Symposium, RTSS’97 . IEEE
+Computer Society Press, December 1997. 140,149
+LPY97. K. G. Larsen, P. Pettersson, and W. Yi. UPPAAL in a Nutshell. Journal
+of Software Tools for Technology Transfer , 1(1/2):134–152, October 1997.
+140
+Yov97. S. Yovine. Kronos: A Veriﬁcation Tool for real-Time Systems. Journal
+of Software Tools for Technology Transfer , 1(1/2):123–133, October 1997.
+140

@@ -1,0 +1,975 @@
+--- Page 1 ---
+International Journal on Software Tools for Technology Transfer (STTT)
+Volume 9, Numbers 5-6, October 2007; Special section FASE’04/05, Pages 447–456
+An Operational Semantics for Stateﬂow⋆
+Gr´ egoire Hamon and John Rushby
+1The MathWorks, Natick, MA, USA
+2Computer Science Laboratory, SRI International, Menlo Park CA, USA
+Abstract. We present a formal operational semantics
+for Stateﬂow, the graphical Statecharts-like language of
+the Matlab/Simulink tool suite that is widely used in
+model-based development of embedded systems. State-
+ﬂow has many tricky features but our operational treat-
+ment yields a surprisingly simple semantics for the sub-
+set that is generally recommended for industrial appli-
+cations. We have validated our semantics by developing
+an interpreter that allows us to compare its behavior
+against the Matlab simulator. We have used the seman-
+tics as a foundation for developing prototype tools for
+formal analysis of Stateﬂow designs.
+1 Introduction
+The design process for embedded systems has changed
+dramatically over the last few years. Increasingly, design-
+ers use model-based development environments ; these al-
+low the system, including its software, the plant that it
+will control, and the environment in which it will oper-
+ate, to be represented in graphical form at a high level
+of abstraction. Model-based development environments
+provide extensive tools for validation through simula-
+tion, and code generators that can compile an executable
+controller from its graphical representation. One of the
+most widely used environments of this kind is the Mat-
+lab suite from Mathworks which, with more than 500,000
+licensees, is widespread throughout aerospace, automo-
+tive, and several other industries, and ubiquitous in en-
+gineering education.
+⋆This material is based on work performed at SRI and sup-
+ported by the National Science Foundation under Grant No. CCR-
+0086096 through the University of Illinois and by NASA Langley
+Research Center under Contract NAS1-00079. This version was
+prepared while the ﬁrst author was with Chalmers Institute of
+Technology, G¨ oteborg, Sweden.Stateﬂow is a component of the Simulink graphi-
+cal language used in Matlab. It combines hierarchical
+state-machine diagrams of the kind introduced by Stat-
+echarts [10] with traditional ﬂowchart diagrams. State-
+ﬂow is generally used to specify the discrete controller
+(i.e., the software) in the model of a hybrid system where
+the continuous dynamics (i.e., the behavior of the plant
+and environment) are speciﬁed using other capabilities
+of Simulink. As part of the Matlab tool suite, Stateﬂow
+inherits all its simulation and code generation capabili-
+ties.
+The evolution of industrial practice toward model-
+based development has been driven by the growing num-
+ber of embedded systems, and their increasing complex-
+ity. Alongside these developments has been an increase in
+the criticality of embedded systems, with regard to both
+human safety (e.g., ﬂy-by-wire control systems) and the
+cost of faults (e.g., systems deployed in huge quantities
+in automobiles and domestic appliances). This increas-
+ing criticality creates a need for improved methods of
+analysis and veriﬁcation and provides an opportunity
+for formal methods. Formal methods can provide tools
+to check properties of a design and they can also apply
+a computational procedure, such as generation of test
+cases, systematically and automatically, to all parts of a
+design. However, notations like Stateﬂow were not built
+with formal methods in mind, and do not appear to be
+well suited to formalization.
+1.1 Understanding Stateﬂow
+Stateﬂow is a complex language (its User’s Guide [12]
+is 896 pages long) with numerous, complicated, and of-
+ten overlapping features lacking any formal deﬁnition.
+Its documentation [12, Chapter 4] describes the seman-
+tics in informal operational terms supported by many
+examples, but the actual deﬁnition of the language is
+the “simulation semantics” given by its behavior when
+
+--- Page 2 ---
+2 Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow
+simulated in the Matlab environment. Proposing formal
+tools for Stateﬂow requires ﬁrst giving it a formal deﬁ-
+nition.
+This complexity of the language can be seen as an ob-
+stacle to formalization. On the other hand, it makes the
+need for tools to help programmers clearly visible, and
+users of the language are asking for them. For example,
+a Stateﬂow program can fail with a runtime exception
+for any of several reasons, and it is desirable to be able
+to avoid such failures, or at least be able to detect when
+a program may be vulnerable to them. One popular way
+to do this is to rely on programming guidelines [2, 5]
+that restrict the language to a safe subset. But these
+guidelines have no more formal basis than the language
+itself and are based on experience. Precisely identifying
+the reasons for runtime errors or, dually, giving a formal
+deﬁnition for a safe subset, would allow development of
+static analysis tools that could guarantee their absence.
+1.2 A framework for formal tools
+In this work, we propose a formalization of Stateﬂow
+that can be used as a starting point for the deﬁnition of
+formal tools. Thus, we choose not to idealize the lan-
+guage but to follow strictly the simulation semantics
+given by the Mathworks documentation and tools, even
+in its shortcomings. The main result lies in understand-
+ing that although Stateﬂow is superﬁcially similar to
+other statechart notations, it is in truth a sequential im-
+perative language. As such, the problems arising when
+formalizing the language are diﬀerent in nature than
+those for other statechart languages, and diﬀerent solu-
+tions are required. We use a formal operational seman-
+tics as it precisely captures the order of execution of the
+diﬀerent components of a Stateﬂow chart and is able to
+express the more complicated features of the language.
+We have used this formalization in the development
+of several tools for Stateﬂow; it provides a detailed un-
+derstanding of the language, and readily supports the
+construction of static analyzers and translation to for-
+mal tools such as model checkers.
+1.3 Overview of the paper
+We ﬁrst introduce Stateﬂow through an example. Sec-
+tion 3 then develops a formalization for a subset of the
+language (the subset is comparable to that generally rec-
+ommended for industrial applications) and gives it an op-
+erational semantics. We describe how this semantics has
+been used to develop prototype static analysis, model
+checking, and test generation tools for Stateﬂow. In Sec-
+tion 4, we outline a recently developed denotational se-
+mantics for Stateﬂow that complements the operational
+semantics described here. Finally, in Section 5 we com-
+pare our approach with related work and suggest direc-
+tions for further research.2 Introduction to Stateﬂow
+The Stateﬂow language provides hierarchical state ma-
+chines, similar to those of Statecharts (although these
+two languages give diﬀerent semantics to the state ma-
+chines). It includes complicated features like interlevel
+transitions, complex transitions through junctions (these
+appear as small circles in Stateﬂow diagrams such as Fig-
+ure 1) and event broadcasting. Stateﬂow also provides
+ﬂowcharts, which are speciﬁed using internal transitions
+leading to terminal junctions. Describing the whole lan-
+guage is beyond the scope of this paper, so we present
+here a simple example program that includes both kinds
+of notation and sketch its execution.
+2.1 A stopwatch in Stateﬂow
+Figure 1 presents the Stateﬂow speciﬁcation for a stop-
+watch with lap time measurement. This stopwatch con-
+tains a counter represented by three variables ( min,sec,
+cent ) and a display, also represented as three variables
+(disp min,disp sec,disp cent ).
+The stopwatch is controlled by two command but-
+tons, START and LAP. The START button switches the
+time counter on and oﬀ; the LAPbutton freezes the dis-
+play to show the lap time when the counter is running
+and resets the counter when the counter is stopped. This
+behavior can be modeled as four exclusive states:
+–Reset : the counter is stopped. A LAPevent resets
+the counter and the display, while START causes a
+transition to the Running state.
+–LapStop : the counter is stopped. A LAPevent causes
+a transition to the Reset state, while START causes a
+transition to the Lapstate.
+–Running : the counter is running, and the display up-
+dated. A START event causes a transition to the Stop
+state, while LAPcauses a transition to the Lapstate.
+–Lap: the counter is running, but the display is not up-
+dated, thus showing the last value it received. Receiv-
+ing a START event causes a transition to LapStop ,
+while LAPcauses a transition to Running .
+These four states are here grouped by pairs inside two
+main states: RunandStop , active respectively when the
+counter is counting or stopped. The counter itself is spec-
+iﬁed within the Runstate as a ﬂowchart, incrementing its
+value every time a clock TICis received (every 1/100s).
+2.2 Executing the stopwatch chart
+A Stateﬂow chart always has one active state. Execut-
+ing the chart means executing the active state (which
+may then make another state active) each time an event
+occurs in the environment. Events here are either an ac-
+tion on one of the buttons ( START orLAP) or a clock tick
+(TIC). Executing the active state is done in three steps:
+
+--- Page 3 ---
+Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow 3
+[sec==60] {
+  sec=0;
+  min=min+1;
+}[cent==100] {
+  cent=0;
+  sec=sec+1;
+}TIC {
+  cent=cent+1;
+}LAP {
+  cent=0; sec=0; min=0;
+  disp_cent=0; disp_sec=0;  
+  disp_min=0;
+}Run
+Running
+Lapduring:
+disp_cent=cent;
+disp_sec=sec;
+disp_min=min;
+LAP LAPStop
+Reset
+Lap_stopLAPSTART
+START
+START
+START
+Fig. 1. A simple stopwatch in Stateﬂow
+1. See if a transition leaving the state can be taken, else
+goto step 2.
+2. Execute internal actions (internal transitions, then
+during actions).
+3. Execute any internal state that is active.
+Transitions can be guarded by events or conditions or
+both, and they can trigger actions. The internal transi-
+tion in state Reset for example is guarded by the LAP
+event and triggers a series of actions reinitializing the
+counter and the display. Supposing that the Runstate is
+active, with the Running substate active, receiving the
+START event will trigger the following sequence of reac-
+tions:
+–there is no transition leaving the state (the transi-
+tions guarded by START belong to its substates),
+–the ﬂowchart is executed, but is guarded by TIC, thus
+does nothing,
+–the active substate is executed, it has a transition
+which can be ﬁred, leading to Reset , itself a substate
+ofStop ;Running and then Runare exited, and Stop
+and then Reset are entered.
+This step is completed, and execution will continue from
+the newly active state next time an event is received from
+the environment.
+The model contains a ﬂowchart that implements the
+counter. Flowcharts are described using transitions be-
+tween junctions. Unlike states, a junction is exited in-
+stantaneously when entered, and the ﬂowchart executes
+until a terminal junction (one without outgoing tran-
+sitions) is reached, or all paths have failed. Backtrack-
+ing can occur if a wrong path is tried. In our example,
+the ﬂowchart is guarded by the TICevent. If activated
+by this event, the cent variable is incremented and the
+ﬁrst junction reached. Two transitions leave it, and the
+guarded one is always executed ﬁrst. If cent is equal
+to 100, the guarded transition is taken, cent is reset to
+0 and secincremented, the second junction is reached,
+and execution continues. If cent is not equal to 100, the
+guarded transition fails, the unguarded one is tried and,
+being unguarded, succeeds, leading to the third junction,
+which is terminal, so execution ends.This short example does not present all Stateﬂow
+features, but it introduces hierarchical states, inter-
+level transitions, and mixed design with statecharts and
+ﬂowcharts. Our informal description of the execution of
+this example is actually close to the presentation of the
+language’s semantics in its documentation.
+3 Formalizing Stateﬂow
+Studying the language, we came to realize that, although
+superﬁcially similar to other statechart notations, State-
+ﬂow greatly diﬀers from them. In particular, all possibil-
+ities of non-determinism are avoided by relying on strict
+ordering rules, and the scheduling between concurrent
+components is always statically known. Thus, we decided
+to consider Stateﬂow as an imperative language, and to
+use a structural operational semantics (SOS) [15], which
+is well-adapted to the description of such languages. This
+semantics is eﬃcient in dealing with the complexity of
+Stateﬂow, which lies in the intricacy of its constructions,
+not in concurrency or non-determinism.
+3.1 A Stateﬂow subset
+We now introduce a linear language that encodes a strict
+subset of Stateﬂow. This language eliminates some dif-
+ﬁculties of the graphical notation, by making the order
+between components explicit. We then give this language
+a formal semantics.
+The language is presented in Figure 2. Its basic com-
+ponents (reading from the bottom) are states s, junc-
+tions j, events e, actions a, and conditions c. We also de-
+ﬁne active states sa(which may be nothing or a state),
+transition events et(nothing or an event), and paths
+(lists of states).
+Transitions tare guarded by a transition event and
+a condition, can execute two actions and go to a desti-
+nation d(either a path or a junction). The ﬁrst action
+is executed as soon as the transition is valid; the sec-
+ond one is executed only if taking the transition leads
+somewhere.
+
+--- Page 4 ---
+4 Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow
+composition C=Or(sa, p, T, SD )|And(b, SD )
+state deﬁnition sd= (( a, a, a ), C, T i, To, J)
+state deﬁnition list SD={s0:sd0;...;sn:sdn}
+junction deﬁnition list J={j0:T0;...;jn:Tn}
+transition t= (et, c, a, a, d )
+transition list T=∅T|t.T
+state s active state sa=∅s|s
+junction j
+path p=∅p|s.p destination d=p|j
+event e transition event et=∅e|e
+action a condition c
+Fig. 2. The language
+Transitions are grouped into lists T. Junction deﬁni-
+tion lists Jassociate lists of transitions with junctions.
+State deﬁnition lists SDassociate state deﬁnitions sd
+with states. A state deﬁnition is a triplet of actions, exe-
+cuted respectively upon entering, during, and exiting the
+state, an internal composition, a list of inner transitions,
+a list of outgoing transitions, and a junction deﬁnition
+list. State deﬁnitions will be written ( A, C, nT i, To, J),
+with Arepresenting a triplet of actions: the entering ,
+during , and exit actions, which will be noted respec-
+tively as A.e,A.d, and A.x.
+Finally, a composition Cis a composition of states,
+and is either an Andor an Orcomposition. An Andcom-
+position is deﬁned by a Boolean ( true if the composition
+is active) and a state deﬁnition list. An Orcomposition
+is an active state, a path, a set of default transitions,
+and a state deﬁnition list.
+We note the following properties of this language.
+–Actions aand conditions care expressions of the ac-
+tion language , which is distinct from Stateﬂow itself;
+we keep this distinction here. The action language
+is a very simple imperative language. For the same
+reason we do not have variables here, they are part
+of the action language, not of Stateﬂow itself.
+–Transition lists Tand state deﬁnition lists SDare
+ordered, and their order is signiﬁcant. When using
+the graphical representation of a program, the order
+is determined by the position of the components on
+the chart: states are ordered top to bottom and then
+left to right. Transitions are ordered following the
+12 o’clock rule : they are ﬁrst ordered using a par-
+tial ordering on the form of their guards (transitions
+guarded by an event are evaluated before transitions
+guarded only by a condition, and unguarded transi-
+tions come last), and when this ordering fails, they
+are ordered by following their source clockwise start-
+ing from a 12 o’clock position.To illustrate the language, the Stop state from the
+stopwatch is shown in Figure 3. The /diamondmathsymbol represents
+both an empty action and an empty condition. The name
+jcorresponds to the terminal junction found in state
+Reset (junctions being anonymous in Stateﬂow, they are
+given unique ids during the translation).
+We see here that Stop is a state, containing an
+Orcomposition made from states Reset and LapStop .
+Reset contains an internal transition guarded by LAP
+and a transition guarded by START going to state
+Run.Running ;LapStop contains two transitions, one
+guarded by LAPgoing to state Stop.Reset , the other
+guarded by START going to state Run.Lap .
+3.2 Operational semantics
+Executing a Stateﬂow program consists, on each (dis-
+crete) step, in processing an input event through the pro-
+gram. This processing can modify the value of variables
+in the environment, raise output events, and change the
+program itself as it may change the active states if tran-
+sitions occur.
+We propose here an SOS semantics for the language.
+This semantics precisely expresses the sequence of ac-
+tions involved in processing an event through a chart. It
+is made of rules with the following general form:
+e, D/turnstileleftPD/prime
+→P/prime, tv
+Processing an event ein an environment D(a binding
+of variables to values) through a program component P
+produces a new environment D/prime, a new program P/prime, and
+a transition value tv.Phere can denote any syntactic
+class of the language. Transition values tvare used for
+communication between diﬀerent parts of the chart. The
+rules for some of the particular syntactic classes given
+below extend and slightly diﬀer from this general form.
+
+--- Page 5 ---
+Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow 5
+Stop: ((/diamondmath,/diamondmath,/diamondmath),
+Or(∅s,Stop, (∅e,/diamondmath,/diamondmath,/diamondmath,Stop.Reset ).∅T,
+{Reset : ((/diamondmath,/diamondmath,/diamondmath),Or(∅s,Stop.Reset ,∅t,{}),
+(LAP,/diamondmath, (cent←0;sec←0;min←0;disp cent←0;disp sec←0;disp min←0),/diamondmath,j).∅T,
+(START ,/diamondmath,/diamondmath,/diamondmath,Run.Running ).∅T,{j:∅T});
+Lapstop: ((/diamondmath,/diamondmath,/diamondmath),Or(∅s,Stop.Lap stop,∅T,{}),∅T,
+(LAP,/diamondmath,/diamondmath,/diamondmath,Stop.Reset ).
+(START ,/diamondmath,/diamondmath,/diamondmath, Run.Lap).∅T,{})
+}),
+∅T,∅T,{})
+Fig. 3. The Stop state from the stopwatch in the linear language
+Deﬁnition 1 (Environment D).Environments D
+contain bindings from variables of the action language
+to values and the list of output events that are raised in
+the current instant.
+D::= [x0:v0;...;xn:vn;e0;...ek]
+Deﬁnition 2 (Transition value tv).Transition val-
+ues indicate if a transition has ﬁred or not. If no transi-
+tion has ﬁred, two distinct values, EndandNo, are nec-
+essary to distinguish a failing transition from the ﬁnal
+transition of a ﬂowchart. If a transition has ﬁred, we
+keep track of its destination and of an eventual pending
+action.
+tv::=Fire (d, a)|End|No
+We abstract from the details of the action language
+and assume that we have semantic rules for actions and
+conditions such that
+e, D/turnstilelefta /arrowhookleft→D/primee, D/turnstileleftc→b
+Evaluating an action when processing event ein envi-
+ronment Dproduces a new environment D/prime; evaluating
+a condition when processing einDproduces a Boolean
+value b.
+We now present the semantic rules for the diﬀerent
+syntactic classes. For compactness, we detail only the
+rules for transitions, transition lists and parallel compo-
+sitions; the remaining rules are available in the appendix.
+Transitions (Figure 4) – A transition ( e0, c, a c, at, d) ﬁres
+to destination dife0corresponds to the processed
+event eor is empty, and if the condition cistrue. In
+this case, the action acis immediately executed and
+atis left pending in the returned value (rule t-Fire ).
+Ife0is diﬀerent from the processed event and is not
+empty (rule t-No 1) or if the condition is false (rule
+t-No 2), the transition fails and returns No.
+Transition lists (Figure 5) – Lists of transitions, to-
+gether with junctions, are used to model both
+ﬂowcharts and complex transitions between states.
+The important point here is that a list of transitions
+is processed sequentially and the ﬁrst transition that
+can ﬁre is taken, as shown by rules T-No andT-Fire .If a transition ﬁres to a junction, the list of transitions
+associated with this junction needs to be processed:
+evaluation continues instantaneously when reaching
+a transition. This goes on until we ﬁre to a path
+(rule T-Fire-j-F ), we reach a terminal junction (rule
+T-End ) or we fail, in which case we have to back-
+track and try the next transition in our ﬁrst list (rule
+T-Fire-j-N ).
+State deﬁnitions (Figure 8 in the Appendix)
+– The rules exhibit the order of execution. Diﬀerent
+rules are necessary for entering, executing, and exit-
+ing a state. When executing a state, outgoing tran-
+sitions are tested ﬁrst; if they fail, the during code
+is executed, then the internal transitions and then
+the internal composition. If the composition ﬁres, the
+transition actions are executed followed by the exit
+code. If the outgoing transitions ﬁre, the transition
+actions are executed, the internal composition exited,
+and the exit code executed.
+Or compositions (Figures 9 and 10 in the Appendix) –
+Rules for Or compositions take care of the control
+changes between states and handle interlevel transi-
+tions. The currently active state is executed. If this
+state ﬁres, either it ﬁres to one of its siblings, in which
+case this sibling is entered and becomes the active
+state, or it ﬁres outside of the composition.
+And compositions (Figure 6) – Executing an And com-
+position consists in sequentially entering, executing,
+or exiting all its parallel substates, each state being
+executed in the environment returned by the execu-
+tion of its predecessor. It is important to notice here
+that the parallel construction is in fact completely se-
+quential, and the order of execution statically known:
+none of the problems associated with concurrency ap-
+pears here.
+3.3 Supporting local events
+We now extend our treatment to include one of the trick-
+iest features of Stateﬂow, the local events mechanism,
+which the preceding semantics does not consider. This
+mechanism allows actions to send an event to a state;
+
+--- Page 6 ---
+6 Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow
+t-Fire
+(e=e0)∨(e0=∅e) e, D/turnstileleftc→true e, D/turnstileleftac/arrowhookleft→D/prime
+e, D/turnstileleft(e0, c, a c, at, d)D/prime
+→Fire(d, at)t-No 1
+(e/negationslash=e0)∧(e0/negationslash=∅e)
+e, D/turnstileleft(e0, c, a c, at, d)D→No
+t-No 2
+(e=e0)∨(e0=∅e) e, D/turnstileleftc→false
+e, D/turnstileleft(e0, c, a c, at, d)D→No
+Fig. 4. Rules for transitions t
+∅t
+e, D, J/turnstileleft∅tD→EndT-Fire
+e, D/turnstilelefttD/prime
+→Fire(p,act)
+e, D, J/turnstileleftt.TD/prime
+→Fire(p,act)T-No-Last
+e, D/turnstilelefttD1→No
+e, D, J/turnstileleftt.∅TD1→No
+T-No
+T/negationslash=∅T e, D/turnstilelefttD1→No e, D 1, J/turnstileleftTD2→tv
+e, D, J/turnstileleftt.TD2→tvt-Fire-j-F
+e, D/turnstilelefttD1→Fire(j, a1) e, D 1, J[j:Tj]/turnstileleftTjD2→Fire(p, a2)
+e, D, J [j:Tj]/turnstileleftt.TD2→Fire(p, a1;a2)
+t-End
+e, D/turnstilelefttD1→Fire(j, a1) e, D 1, J[j:Tj]/turnstileleftTjD2→End
+e, D, J [j:Tj]/turnstileleftt.TD2→End
+t-Fire-j-N
+e, D/turnstilelefttD1→Fire(j, a1) e, D 1, J[j:Tj]/turnstileleftTjD2→No e, D 2, J[j:Tj]/turnstileleftTD3→tv
+e, D, J [j:Tj]/turnstileleftt.TD3→tv
+Fig. 5. Rules for transition list T
+And
+(tv=No)∨(tv=End)∀i∈[0..n], e, D i, J/turnstileleftsdiDi+1→sd/prime
+i,No
+e, D 0, J, tv/turnstileleftAnd({s0:sd0;...;sn:sdn})Dn+1→And({s0:sd/prime
+0;...;sn:sd/prime
+n}),No
+And-Init
+pj=p∀i/negationslash=j, pi=∅p∀i∈[0..n], e, D i, pi/turnstileleftsdiDi+1
+⇑sd/prime
+i
+e, D 0, sj.p/turnstileleftAnd({s0:sd0;...;sn:sdn})Dn+1
+⇑And({s0:sd/prime
+0;...;sn:sd/prime
+n})
+And-Exit
+∀i∈[0..n], e, D i/turnstileleftsdn−iDi+1
+⇓sd/prime
+n−i
+e, D 0/turnstileleftAnd({s0:sd0;...;sn:sdn})Dn+1
+⇓And({s0:sd/prime
+0;...;sn:sd/prime
+n})
+Fig. 6. Rule for AND compositions
+
+--- Page 7 ---
+Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow 7
+when this occurs, the current processing is interrupted
+while the sent event is processed through the receiving
+state. The receiving state acts here as a function, the ac-
+tion of sending it an event being the function call. How-
+ever, this mechanism also introduces some complicated
+cases and fully supporting it in the general case appears
+diﬃcult. We exhibit a restricted form of this mechanism
+that is both expressive and supports a simple semantics.
+We ﬁrst try to extend our semantics with a simple in-
+terpretation of local events. The action send (e, s) sends
+event eto a named state s(broadcasting an event to
+the whole chart consists in sending an event to the main
+state). Its behavior can be expressed by the following
+rule:
+Send
+e/prime, D[s:sd],∅J/turnstileleftsdD/prime
+→sd/prime, tv
+e, D[s:sd]/turnstileleftsend (e/prime, s)/arrowhookleft→D/prime[s:sd/prime]
+Sending e/primeto state sresults in processing it through the
+deﬁnition of s. We have extended environments by the
+deﬁnitions of states:
+Deﬁnition 3 (Extended Environment D).
+D::= [x0:v0;...;xn:vn;e0;...ek;SD]
+where SDis a list of state deﬁnitions. The notation D[s:
+sd] denotes the environment Din which sis associated
+with sd.
+However, this rule alone does not fully handle event
+sending; deeper modiﬁcations of the semantics are
+needed. Processing the local event changes the deﬁni-
+tion of the destination state (in the rule, the deﬁnition
+ofsissd/primeafter processing the event). The destination
+state can be an ancestor of the current state, which might
+have been modiﬁed. It is necessary, whenever an action
+is performed, to read the (eventually new) deﬁnition of
+the current state and continue the execution at the cor-
+responding control point in this new deﬁnition. If the
+active state has been modiﬁed by the call, the return
+point may even not be active anymore, which leads in
+Stateﬂow to a runtime error.
+Investigating this mechanism to understand its be-
+havior and its expressive power, we distinguished two
+diﬀerent usages:
+–Describing recursive behaviors. Recursion occurs if
+the caller sends an event to itself or one of its ances-
+tors. In practice, those recursions are very diﬃcult to
+control (the event sending action might get executed
+by the recursive call) and to understand. Providing
+tools to check that the recursion will stop is diﬃcult
+(see [18]). Moreover, these recursions easily lead to
+runtime errors and their use is discouraged in indus-
+trial applications.
+–Explicit scheduling of parallel states. Parallel states
+are normally ordered statically given their position
+on the chart. Local events can be used to make someexplicit, or dynamic, scheduling of parallel states,
+guarding the states by local events and having a
+caller that executes them in the expected order. This
+particular use is much simpler to understand.
+Our proposal is to limit the use of local events to the
+deﬁnition of sequencing behaviors. This can be obtained
+by imposing the following restrictions:
+–Local events can be sent only to parallel states.
+–Transitions out of parallel states are forbidden (this
+is already imposed by Stateﬂow, see Section 3.4 for
+more details).
+–Loops in the broadcasting of events are forbidden
+(i.e., if state Abroadcasts an event to state B,B
+cannot in turn broadcast an event to A).
+Given these restrictions1sending an event can really
+be seen as a function call. Forbidding transitions out
+of parallel states ensures that context modiﬁcations are
+kept local to the destination. Forcing sending to parallel
+states and forbidding loops ensures that no inﬁnite calls
+will occur. The rule for sending an event is the rule pre-
+sented before. In addition to this, we need to change only
+the rule for parallel execution to that shown in Figure 7.
+This rule is similar to the original one, with the addition
+of the state deﬁnitions in the environment, where they
+are updated during execution.
+This deﬁnition of local events in our opinion captures
+the most interesting of their uses in Stateﬂow, supports
+a simple semantics, and does not introduce new runtime
+error or inﬁnite loop possibilities. The Ford guidelines
+for Stateﬂow [5] make use of local events in this exact
+same way.
+3.4 Additional and unsupported features
+Our subset supports nearly the whole language with the
+restrictions on local events presented above. The only
+interesting feature still missing is the history junction
+mechanism that keeps track of the conﬁguration a state
+was in before it was last exited, and re-enters it in this
+conﬁguration. Our semantics easily extends to support
+this mechanism; we omitted it here for the sake of sim-
+plicity. The necessary modiﬁcations are to add a history
+component (a Boolean) in the state deﬁnitions to de-
+termine whether they carry such junctions, and to add
+rules to handle this component when entering and leav-
+ing states and compositions.
+Two restrictions are also imposed on transitions:
+transitions out of a parallel compositions and interlevel
+transitions going to a junction are forbidden. Transitions
+directly out of a parallel state are already forbidden in
+Stateﬂow, but can be simulated by taking an interlevel
+1To keep equivalence with Stateﬂow, we further impose that
+local events can be sent only to already-visited states; this is due
+to initialization problems in Stateﬂow itself.
+
+--- Page 8 ---
+8 Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow
+And
+(tv=No)∨(tv=End)∀i∈[0..n], e, D i, J/turnstileleftsdiDi+1→sd/prime
+i,No
+e, D 0, J, tv/turnstileleftAnd({s0:sd0;...;sn:sdn})Dn+1→And({s0:sd/prime
+0;...;sn:sd/prime
+n}),No
+Fig. 7. Modiﬁed rule for AND compositions with local events
+transition from a substate of a parallel state. The be-
+havior of such transitions is quite unpredictable, and
+introduces possible runtime errors (e.g., two states ﬁre
+simultaneously out of the composition to diﬀerent des-
+tinations). Forbidding interlevel transitions to a junc-
+tion allows the semantics to be local. When taking an
+interlevel transition to a state, pending actions can be
+executed and the state closed before entering the desti-
+nation. If the transition goes to a junction, we cannot be
+sure that it is leading somewhere, and cannot close the
+state before opening the destination.
+3.5 Equivalence with the simulation semantics
+Our language is intended to be a strict subset of State-
+ﬂow, so that tools developed for it will apply to pro-
+grams designed using Mathworks’ tools—as long as the
+programs are within our subset (which is checked by a
+tool, see Section 3.6).
+For this to succeed, the semantics we are using and
+the simulation semantics of Stateﬂow must be equivalent
+on our subset. Our semantics was conceived with this
+goal in mind, precisely following Stateﬂow documenta-
+tion but, because the simulation semantics is not formal,
+it is not possible to prove this equivalence. However, our
+SOS semantics is directly executable and can easily be
+used to deﬁne a Stateﬂow interpretor whose outputs can
+be compared to those from the Matlab simulator. We
+have done this and systematically examined many ex-
+amples; for all these examples, the traces obtained by
+the two tools were the same.
+3.6 Applications
+Our goal was to propose a formalization of Stateﬂow that
+provides a good foundation for construction of formal
+tools for the language. The presented semantics appears
+to meet this goal very well: while sometimes large, the
+rules of the semantics are simple and syntax directed,
+which makes them well adapted to automatic processing.
+One kind of tool in which we are interested is static
+analysis for detecting ﬂaws in programs and to enforce
+or enhance programming guidelines such as [5]. The pro-
+posed semantics, by giving a low-level view of a pro-
+gram’s execution makes it possible to detect and under-
+stand causes of runtime errors (through lack of an appli-
+cable rule in the semantics). We have developed such atool that checks for possible runtime errors and that also
+detects non fatal ﬂaws, such as possible backtracking or
+reliance on the 12 o’clock rule. Having a syntax-directed
+semantics allows a precise diagnosis to be given to the
+user. This tool also veriﬁes that a program lies within
+the subset considered by our semantics.
+We are also interested in model checking Stateﬂow,
+which can be used to check properties of designs and
+to automate test case generation. Our operational se-
+mantics provides a basis for eﬃciently compiling State-
+ﬂow to an imperative language or to the input language
+of a model checker. We have developed a translator to
+the SAL language used by SRI’s model checkers [14];
+the translation produces eﬃcient code similar in size to
+the Stateﬂow model. The SAL translation can be used
+to verify properties or to detect errors through model
+checking: for example, the Stopwatch of Figure 1 con-
+tains a bug which the model-checker easily ﬁnds (updat-
+ing the display is only done when staying at least one
+instant in the Running state; if several LAPand START
+events occur between two TICs, the display can show
+an erroneous value). This translation is also able to in-
+sert the “trap variables” used in automated test gen-
+eration [8]; the manual for the sal-atg automated test
+generator [9] describes experiments in test generation for
+a gearbox shift-selector speciﬁed in Stateﬂow.
+4 A Denotational Semantics for Stateﬂow
+In recent work [7], we propose another approach to State-
+ﬂow semantics, which is denotational. Our motivation
+for developing this new semantics were twofold: ﬁrst, to
+remove the restrictions on the language imposed by the
+semantics presented here, in particular the ones on inter-
+level transitions leading to junctions; second, to formal-
+ize a compilation process for Stateﬂow. The denotational
+semantics addresses both these questions.
+The key to the operational semantics presented here
+was to recognize that Stateﬂow, although looking like a
+statechart notation, is in fact an imperative language,
+thanks to (albeit complex) total ordering rules, and the
+absence of nondeterminism. This recognition also pro-
+vides the key to a denotational semantics. If Stateﬂow is
+an imperative language, its transitions are governed by
+a mechanism that can modify the control point of the
+program, possibly in a non-local way. The denotational
+
+--- Page 9 ---
+Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow 9
+semantics thus considers the whole Stateﬂow transition
+mechanism as a complex and highly specialized form of
+non-local control structure. Denotational semantics for
+many forms of such non-local constructions have been
+given by means of continuations [17], and we use contin-
+uations to describe the complete transition system for
+Stateﬂow. The denotational treatment is able to give
+a concise semantics to interlevel transitions leading to
+junctions that were excluded from the operational se-
+mantics in order to keep its rules tractable.
+Although more recent than the semantics presented
+here, the denotational semantics does not replace the
+present work, but complements it in our overall goal,
+which is to understand Stateﬂow and to design formal
+tools for it. Our main purpose in designing the de-
+notational semantics was to formalize the compilation
+process that we use to translate Stateﬂow to SAL and
+to imperative programs. This complements the syntax-
+directed static analysis tools for Stateﬂow that are based
+on the operational semantics presented here. Between
+these two approaches, we now have a very strong basis
+for developing formal tools for Stateﬂow.
+5 Conclusion and related work
+We have presented an operational semantics for the
+Stateﬂow language. Our semantics covers virtually the
+whole language, excluding only those features that are
+generally discouraged in industrial applications [5]. A
+formal semantics is the necessary basis for building for-
+mal tools for the language. The operational approach
+chosen here leads to a surprisingly simple semantics and
+thus constitutes a good starting point for such develop-
+ments.
+5.1 Related work
+Little work has directly addressed the semantics of State-
+ﬂow. A natural idea when considering Stateﬂow is to
+evaluate work on formalization of Statecharts [10]. How-
+ever, the two languages have very diﬀerent semantics
+(and Stateﬂow also includes ﬂowcharts), so denotational
+approaches proposed for Statecharts semantics do not
+easily or usefully adapt to Stateﬂow.
+A popular approach to Statecharts semantics is to
+translate the language into a simpler formalism for which
+a semantics is already known. This approach was fol-
+lowed by Mikk et al. for Statemate [13] by translation to
+hierarchical automata. Their semantics was adapted to
+UML-Statecharts by Gnesi, Latella and Massink [6]. A
+similar semantics was proposed for Stateﬂow by Tiwari,
+Shankar and Rushby [18] by translation to push-down
+automata. However, encoding the complex Stateﬂow lan-
+guage constructions requires introduction of a vast num-
+ber of control variables that make using the translation
+by formal tools diﬃcult.L¨ uttgen, von der Beeck, and Cleaveland [11] have
+proposed an SOS semantics for a subset of Statecharts.
+They wanted to deﬁne a compositional semantics and
+do not consider interlevel transitions. We can notice the
+same eﬀect here: although our semantics is not com-
+positional (the language contains absolute reference to
+states), it can be made compositional by forbidding in-
+terlevel transitions. They also need to consider execution
+on a micro and on a macro level, which is not necessary
+here due to the completely deterministic nature of State-
+ﬂow.
+The appeal of the proposed SOS semantics for State-
+ﬂow, and what makes it work, is that it exhibits the
+sequential behavior of Stateﬂow: the language does not
+have true concurrency nor any kind of nondeterminism.
+Seeing Stateﬂow as an imperative language, the choice
+for an operational approach is natural, and has the ad-
+vantage of scaling well to a rich language allowing a large
+subset to be considered.
+A similar approach is implicit in the work of Ban-
+phawatthanarak, Krogh, and Butts [1], who describe a
+translator from Stateﬂow into the input language of the
+SMV model checker. Although they do not construct an
+explicit semantics, the considerations that guide their
+translation are very close to ours and reﬂect a similar fo-
+cus on the sequential nature of Stateﬂow execution and
+the importance of accurately representing its sequencing
+rules. Similar approaches can also be found in the works
+of Caspi et al. [16], which points to the present work for
+a formal deﬁnition of the language, and in the work of
+Anton, da Costa, and Errington [4]. Finally, we have al-
+ready mentioned our own work presenting a denotational
+semantics for the language [7].
+In future work, we plan to investigate the formaliza-
+tion of the whole Simulink/Stateﬂow environment. One
+possible direction is to combine this work with existing
+work on Simulink [3].
+References
+1. Banphawatthanarak, C., Krogh, B.H., Butts, K.: Sym-
+bolic veriﬁcation of executable control speciﬁcations. In:
+Proceedings of the Tenth IEEE International Symposium
+on Computer Aided Control System Design, pp. 581–586.
+Kohala Coast—Island of Hawai’i, HI (1999)
+2. Buck, D., Rau, A.: On modelling guidelines: Flowchart
+patterns for Stateﬂow. Softwaretechnik-Trends 21(2)
+(2001)
+3. Caspi, P., Curic, A., Maignan, A., Sofronis, C., Tripakis,
+S.: Translating discrete-time Simulink to Lustre. In:
+Third International ACM Conference on Embedded Soft-
+ware, Lecture Notes in Computer Science , vol. 2855, pp.
+84–99. Springer-Verlag (2003)
+4. Errington, L.: FORGES: Formal synthesis of generators
+for embedded systems. Tech. Rep. KES.U.05.04, Kestrel
+Technology (2005)
+
+--- Page 10 ---
+10 Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow
+5. Ford: Structured analysis and design using
+Matlab/Simulink/Stateﬂow—modeling style guide-
+lines. Tech. rep., Ford Motor Company (1999). URL
+http://vehicle.me.berkeley.edu/mobies/papers/
+stylev242.pdf . Available at http://vehicle.me.
+berkeley.edu/mobies/papers/stylev242.pdf
+6. Gnesi, S., Latella, D., Massink, M.: Modular semantics
+for a UML Statechart diagrams kernel and its extension
+to Multicharts and branching time model checking. The
+Journal of Logic and Algebraic Programming 51(1), 43–
+75 (2002)
+7. Hamon, G.: A denotational semantics for Stateﬂow. In:
+EMSOFT 2005: Proceedings of the Fifth ACM Work-
+shop on Embedded Software, pp. 164–172. Association
+for Computing Machinery, Jersey City, NJ (2005)
+8. Hamon, G., de Moura, L., Rushby, J.: Generating eﬃ-
+cient test sets with a model checker. In: 2nd Interna-
+tional Conference on Software Engineering and Formal
+Methods, pp. 261–270. IEEE Computer Society, Beijing,
+China (2004)
+9. Hamon, G., de Moura, L., Rushby, J.: Automated test
+generation with SAL. Technical note, Computer Sci-
+ence Laboratory, SRI International, Menlo Park, CA
+(2005). Available at http://www.csl.sri.com/users/
+rushby/abstracts/sal-atg
+10. Harel, D.: Statecharts: A visual formalism for complex
+systems. Science of Computer Programming 8(3), 231–
+274 (1987)
+11. L¨ uttgen, G., von der Beeck, M., Cleaveland, R.: A
+compositional approach to Statecharts semantics. In:
+D. Rosenblum (ed.) Eighth International ACM Sympo-
+sium on Foundations of Software Engineering, pp. 120–
+129. San Diego, California (2000)
+12. The Mathworks: Stateﬂow and Stateﬂow Coder,
+User’s Guide, release 13sp1 edn. (2003). Avail-
+able at http://www.mathworks.com/access/helpdesk/
+help/pdf doc/stateflow/sf ug.pdf
+13. Mikk, E., Lakhnech, Y., Petersohn, C., Siegel, M.: On
+formal semantics of Statecharts as supported by Statem-
+ate. In: 2nd BCS-FACS Northern Formal Methods Work-
+shop. BCS-EWIC (1997)
+14. de Moura, L., Owre, S., Rueß, H., Rushby, J., Shankar,
+N., Sorea, M., Tiwari, A.: SAL 2. In: R. Alur, D. Peled
+(eds.) Computer-Aided Veriﬁcation, CAV ’2004, Lec-
+ture Notes in Computer Science , vol. 3114, pp. 496–500.
+Springer-Verlag, Boston, MA (2004). SAL home page:
+http://sal.csl.sri.com/
+15. Plotkin, G.: A structural approach to operational seman-
+tics. Tech. Rep. DAIMI-FN-19, Aarhus University (1981)
+16. Scaife, N., Sofronis, C., Caspi, P., Tripakis, S., Maran-
+inchi, F.: Deﬁning and translating a “safe” subset of
+Simulink/Stateﬂow into Lustre. In: EMSOFT 2004:
+Proceedings of the Fourth ACM Workshop on Embed-
+ded Software, pp. 259–268. Pisa, Italy (2004)
+17. Strachey, C., Wadsworth, C.P.: Continuations: A mathe-
+matical semantics for handling full jumps. Higher-Order
+and Symbolic Computation 13, 135–152 (2000). Origi-
+nally published 1974
+18. Tiwari, A., Shankar, N., Rushby, J.: Invisible formal
+methods for embedded control systems. Proceedings of
+the IEEE 91(1), 29–39 (2003)A The complete semantics
+We give here the complete operational semantics, with
+rules for all syntactic classes of the language:
+–transitions and transition lists in Figures 4 and 5.
+–state deﬁnitions in Figure 8.
+–OR compositions in Figures 9 and 10.
+–AND compositions in Figure 6, as updated by Figure
+7.
+
+--- Page 11 ---
+Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow 11
+sd-No
+e, D 0, J0/turnstileleftToD1→tv (tv=No)∨(tv=End) e, D 1/turnstileleftA.d /arrowhookleft→D2 e, D 2, J/turnstileleftTiD3→tv e, D 3, J, tv/turnstileleftCD4→C/prime,No
+e, D 0, J0/turnstileleft(A, C, T o, Ti, J)D4→(A, C/prime, To, Ti, J),No
+sd-Int-Fire
+e, D 0, J0/turnstileleftToD1→tv (tv=No)∨(tv=End)
+e, D 1/turnstileleftA.d /arrowhookleft→D2 e, D 2/turnstileleftTiD3→tv e, D 3, J, tv/turnstileleftCD4→C/prime,Fire(d, a) e, D 4/turnstilelefta /arrowhookleft→D5 e, D 5/turnstileleftA.x /arrowhookleft→D6
+e, D 0, J0/turnstileleft(A, C, T o, Ti, J)D5→(A, C/prime, To, Ti, J),Fire(d,/diamondmath)
+sd-Fire
+e, D 0, J0/turnstileleftToD1→Fire(d, a) e, D 1/turnstilelefta /arrowhookleft→D2 e, D 2/turnstileleftCD3
+⇓C/primee, D 3/turnstileleftA.x /arrowhookleft→D4
+e, D 0, J0/turnstileleft(A, C, T o, Ti, J)D4→(A, C/prime, To, Ti, J),Fire(d,/diamondmath)
+sd-Init
+e, D 0/turnstileleftA.e /arrowhookleft→D1 e, D 1, p/turnstileleftCD2
+⇑C/prime
+e, D 0, p/turnstileleft(A, C, T o, Ti, J)D2
+⇑(A, C/prime, To, Ti, J)sd-Exit
+e, D 0/turnstileleftCD1
+⇓C/primee, D 1/turnstileleftA.x /arrowhookleft→D2
+e, D 0/turnstileleft(A, C, T o, Ti, J)D2
+⇓(A, C/prime, To, Ti, J)
+Fig. 8. Rules for state deﬁnitions
+Or-Ext-Fire
+e, D 0/turnstilelefta /arrowhookleft→D1 e, D 1/turnstileleftsd0D2
+⇓sd/prime
+0 e, D 2, p/prime/turnstileleftsd1D3
+⇑sd/prime
+1
+e, D 0, J,Fire(p.s1.p/prime, a)/turnstileleftOr(s0, p, T, SD [s0:sd0;s1:sd1])D3→Or(s1, p, T, SD [s0:sd/prime
+0;s1:sd/prime
+1]),No
+Or-Ext-Fire-Out
+¬prefix (p/prime, p) e, D 0/turnstilelefta /arrowhookleft→D1 e, D 1/turnstileleftsdD2
+⇓sd/prime
+e, D 0, J,Fire(p/prime, a)/turnstileleftOr(s, p, T, SD [s:sd])D2→Or(∅s, p, T, SD [s:sd/prime]),Fire(p/prime,/diamondmath)
+Or-No
+(tv=No)∨(tv=End) e, D 0, J/turnstileleftsd0D1→sd/prime
+0,No
+e, D 0, J, tv/turnstileleftOr(s0, p, T, SD [s0:sd0])D1→Or(s, p, T, SD [s0:sd/prime
+0]),No
+Or-Int-Fire
+(tv=No)∨(tv=End) e, D 0, J/turnstileleftsd0D1→sd/prime
+0,Fire(p/prime,act) p/prime=p.s1.p/prime/primee, D 1, p/prime/prime/turnstileleftsd1D2
+⇑sd/prime
+1
+e, D 0, J, tv/turnstileleftOr(s0, p, T, SD [s0:sd0;s1:sd1])D2→Or(s1, p, T, SD [s0:sd/prime
+0;s1:sd/prime
+1]),No
+Or-Fire
+(tv=No)∨(tv=End) e, D 0, J/turnstileleftsdD1→sd/prime,Fire(p/prime, a)¬prefix (p/prime, p)
+e, D 0, J, tv/turnstileleftOr(s, p, T, SD [s:sd])D1→Or(∅s, p, T, SD [s:sd/prime]),Fire(p/prime, a)
+Fig. 9. Rules for Or-compositions
+
+--- Page 12 ---
+12 Gr´ egoire Hamon and John Rushby: An Operational Semantics for Stateﬂow
+Or-Init-No-State
+e, D,∅p/turnstileleftOr(∅s, p,∅T,[])D
+⇑Or(∅s, p,∅T,[])Or-Init-∅p
+e, D 0, J/turnstileleftTD1→Fire(s.p, a ) e, D 1, p/turnstileleftsdD2
+⇑sd/primee, D 2/turnstilelefta /arrowhookleft→D3
+e, D 0,∅p/turnstileleftOr(∅s, p0, T, SD [s:sd])D3
+⇑Or(s, p0, T, SD [s:sd/prime])
+Or-Init
+e, D 0, p/turnstileleftsdD1
+⇑sd/prime
+e, D 0, s.p/turnstileleftOr(∅s, p0, T, SD [s:sd])D1
+⇑Or(s, p0, T, SD [s:sd/prime])Or-Exit
+e, D 0/turnstileleftsdD1
+⇓sd/prime
+e, D 0/turnstileleftOr(s, p, T, SD [s:sd])D1
+⇓Or(∅s, p, T, SD [s:sd/prime])
+Fig. 10. Rules for entering and exiting Or-compositions

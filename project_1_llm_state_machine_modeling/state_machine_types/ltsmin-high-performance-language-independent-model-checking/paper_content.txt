@@ -1,0 +1,769 @@
+--- Page 1 ---
+LTSmin: High-Performance
+Language-Independent Model Checking
+Gijs Kant1,⋆, Alfons Laarman1,2,§, Jeroen Meijer1, Jaco van de Pol1
+Stefan Blom1,‡,a n dT o mv a nD i j k1,/bardbl
+1Formal Methods and Tools, University of Twente, The Netherlands
+2Formal Methods in Systems Engineering, Vienna University of Technology, Austria
+Abstract. Inrecentyears,the LTSmin modelcheckerhasbeenextended
+with support for several new modelling languages, including probabilis-
+tic (Mapa) and timed systems ( Uppaal). Also, connecting additional
+language front-ends or ad-hoc state-space generators to LTSmin was sim-
+pliﬁed using custom C-code. From symbolic and distributed reachability
+analysis and minimisation, LTSmin’s functionality has developed into a
+modelcheckerwithmulti-corealgorithmsforon-the-ﬂyLTLcheckingwith
+partial-orderreduction,andmulti-coresymboliccheckingforthemodal μ-
+calculus, basedon themulti-core decision diagram package Sylvan.
+InLTSmin, the modelling languages and the model checking algo-
+rithms are connected through a Partitioned Next-State Interface ( Pins),
+that allows to abstract away from language details in the implementation
+of the analysis algorithms and on-the-ﬂyoptimisations. In thecurrent pa-
+per, we present an overview of the toolset and its recent changes, and we
+demonstrate its performance and versatility in two case studies.
+1 Introduction
+TheLTSmin model checker has a modular architecture which allows a number
+of modelling language front-ends to be connected to various analysis algorithms,
+throughacommoninterface.Itprovidesbothsymbolicandexplicit-stateanalysis
+algorithmsformanydiﬀerentlanguages,enablingmultiplewaystoattackveriﬁca-
+tionproblems.Thisconnectinginterfaceiscalled P
+artitionedN
+ ext-S
+tateI
+nterface
+(Pins),thebasisofwhichconsistsofastate-vectordeﬁnition,aninitialstate,a par-
+titionedsuccessorfunction( NextState ),andlabellingfunctions. Pinsdeﬁnesan
+implicit statespace,abstractingawayfrommodellinglanguagedetails.
+The maindiﬀerence with otherlanguageinterfaces,suchasthe Open/Cæsar
+interface[21]ofCADP[22]andtheCESMIinterfaceof DiVinE [3],isthestructure
+thatPinsexposes by exporting dependencies between the partitioned successor
+⋆Supported by the NWO under g rant 612.000.937 (VOCHS).
+§Supported by the Austrian National Research Network S11403-N23 (RiSE) of the
+Austrian Science Fund (FWF) and by the Vienna Science and Technology Fund
+(WWTF) grant VRG11-005.
+‡Partially funded by NWO unde r grant 612.063.817 (SYRUP).
+/bardblSupported by the NWO under g rant 612.001.001 (MaDriD).
+©Springer-Verlag Berlin Heidelberg 2015
+C. Baier and C. Tinelli (Eds.): TACAS 2015, LNCS 9035, pp. 692–707, 2015.
+DOI: 10.1007/978-3-662-46681-0 _61
+
+--- Page 2 ---
+LTSmin: High-Performance Language-Independent Model Checking 693
+Language frontends
+Pins 2Pins wrappers
+Algorithmic backends (analysis tools)Uppaal
+opaal*Mapa
+mapa*Dve
+dve*Promela
+prom*mCRL2
+lps*Pbes
+pbes*ETF
+etf*C-code
+pins*
+Pins
+POR
+--porLTL
+--ltlμ-calculus
+--mucalcRegroup
+-rCaching
+-c
+Pins
+multi-core
+*2lts-mcdistributed
+*2lts-distsymbolic
+*2lts-symJTorx
+*2torxCADP
+*-open
+/bracehtipupleft
+ /bracehtipdownright/bracehtipdownleft
+ /bracehtipupright
+explicit-state/bracehtipupleft
+/bracehtipdownright/bracehtipdownleft
+/bracehtipupright
+symbolic/bracehtipupleft
+ /bracehtipdownright/bracehtipdownleft
+ /bracehtipupright
+external-tool connectors
+Fig. 1. LTSmin’sPinsarchitecture
+function and the variables in the state vector in the form of dependency matrices .
+Ourapproachisalsodissimilarfrom NuSMV ’s[9],wherethetransition relationis
+speciﬁeddirectly,imposingrestrictionsonthelanguage.Inthepast,wehaveshown
+thatthesedependenciesenablesymbolicreachabilityusingBDDs/MDDswithmul-
+tipleordersofmagnitudeperformanceimprovement[7,8]aswellas(explicit-state)
+distributedreachabilitywith statecompression[6].
+Recently,weextended Pinswithseparatereadandwritedependencymatrices,
+specialstatelabelsforguards,andguard/transitiondependencymatrices.Thisex-
+tendedinterface,whichwecall Pins +,enablesfurtherperformanceimprovements
+forthesymbolictools[40]andon-the-ﬂy partial-orderreduction (POR)[32]forthe
+explicit-statetools. Pins +willbepresentedin Section2.
+LTSmin oﬀersextensiveanalysisofimplicitstatespacesthrough Pins:reac ha-
+bilityanalysis,includingdeadlockdetection,actiondetectionandinvariant/asser-
+tionchecking,butsincerecentlyalsover iﬁcationofLinearTime(LTL)andmodal
+μ-calculus properties. The toolset and i t sa r c h i t e c t u r eh a v eb een previously pre-
+sentedin,e.g.,[7],[5]and[8].Thisarticlecoversthechangessincethen.Anup-to-
+dateoverviewof LTSmin isinFigure1;thispaperfocusesonthepink(dark)boxes.
+Thetoolsetisopensource.1
+Thelanguagessupportedby LTSmin arelistedinTable1,includingnewlyadded
+support for probabilistic ( Mapa) and timed systems ( Uppaal)a n df o rb o o l e a n
+equationsystemswithdatatypes( Pbes).Newisalsothepossibilitytoaddanew
+language front-end by providing a dynamically loaded .so-library implementing
+thePinsinterface.Theseadditionswillbepresentedin Section3.
+Table 1. Languages supported by LTSmin
+Uppaal Timed automata.
+Mapa Process algebra for Markov automata from the Scoop tool.
+Dve The modelling language of the DiVinE model checker.
+Promela The modelling language of the Spin model checker.
+mCRL2 Process algebra.
+Pbes Parameterised Boolean Equation Systems.
+Etf Built-in symbolic format.
+1Source code available at: https://github.com/utwente-fmt/ltsmin
+
+--- Page 3 ---
+694 G. Kant et al.
+In the explicit-state tools, new multi-core algorithms provide scalable LTL
+checkingwithPORandstatecompression.Thesymbolictoolshavebeenextended
+with the multi-core decision diagram (DD) packages Sylvan andLDDmc,e n -
+abling multi-core symbolic analysis algorithms by parallelising their DD opera-
+tions.Asymbolicparitygamesolverhasbeenadded,enablingmulti-coresymbolic
+μ-calculus checking. These additions will be described in Section 4 and 5.
+2T h e Pins -Architecture of LTSmin
+Thestartingpointofourapproachisageneralisedimplicitmodelofsystems,called
+theP
+artioned N
+ ext-S
+tate I
+nterface (Pins). An overview of Pinsf u n c t i o n si si n
+Table2.Thefunctions InitialState ,NextState andStateLabel aremanda-
+tory,aswellasthe statevectorlength N,thenumberoftransitiongroups K,and
+thenamesandtypesoflabels,slotsandactions.Together,thesegiverisetoatran-
+sitionsystem,seeSection2.1.
+On top of this basic Pinsinterface, we distinguish several axes of extensions,
+A1 till A ∞, which together form the extended Pins +interface. These extensions
+allowtoexposeenoughstructure,intheformofinformationaboutdependencyre-
+lations,toenablehigh-performancealgorithms.Theﬁrstaxisofsuchinformation
+is providedbythe functions labelled A1: the read andwrite dependency matrices
+(see[40]). LTSmin’sPORlayer(seeSection4.3)requiresguards,exportedasspe-
+cial state labels, and the GuardMatrix ,StateLabelM andDoNotAccord
+dependencymatrices–thefunctionslabelledA2.Thedeﬁnitionsofthedependen-
+ciesandguardsaregiveninSection2.2.
+The simulation relation over states provided by the CoveredBy function, la-
+belled A3,allowspowerful subsumptionabstraction [14]inouralgorithms.Timed
+languageformalismsallowsuchabstractionsasdescribedinSection3.2.Inthefu-
+ture,asymmetry-reductionlayer,ala[17],couldimplement CoveredBy .
+Othernamedmatrices,canbeaddedtothegeneric GetMatrix function,which
+we label A ∞.ThisisusedtoincreasePOR’sprecisionandfacilitatestatisticalsys-
+temssuchaswith Mapa(seeSection3.1).
+We write Matrix(x) asshorthandfor {y|(x,y)∈Matrix}.
+Table 2. Functions in Pins +are divided along multiple axes
+Level Function Type Description
+B0 InitialState SP Initial state.
+B0 NextState iSP→℘(A×SP) Successors and action label for group i.
+B0 StateLabel SP×L→ N State label.
+A1 ReadMatrix BK×NRead dependency matrix (Deﬁnition 2).
+A1 WriteMatrix BK×NWrite dependency matrix (Deﬁnition 3).
+A2 GuardMatrix BK×GGuard/transition group matrix (Deﬁnition 5).
+A2 StateLabelM BG×NState label dependency matrix (Deﬁnition 4).
+A2 DoNotAccord BK×KMatrix for non-commutativity of groups [32].
+A3 CoveredBy SP×SP→B State covering function.
+A∞ GetMatrix Name BX×YPredeﬁned X×Ymatrix named Name .
+
+
+--- Page 4 ---
+LTSmin: High-Performance Language-Independent Model Checking 695
+2.1 Partitioned Transition Systems
+InPins,statesarevectorsof Nvalues. We write /angbracketlefts1,...,s N/angbracketright,forvectorvariables,
+orsimply sforthestatevector.Eachposition jinthevector(1 ≤j≤N)iscalled
+aslotandhasauniqueidentiﬁerandatype,whichareusedinthelanguagefront-
+endstospecifyconditionsandupdates.The NextState function,whichcomputes
+thesuccessorsofastate,ispartitionedin Kdisjunctive transitiongroups ,suchthat
+NextState (s)=/uniontext
+1≤i≤KNextState i(s). We have action labels a∈Aand a
+setofMstatelabels L.Amodel,availablethrough Pins,givesrisetoa Partitioned
+TransitionSystem (PTS).
+Deﬁnition 1. APTS isastructure P=/angbracketleftbig
+SP,→P,s0,L/angbracketrightbig
+,wher e
+–SP=S1×···×SNis theset ofstates s∈SP, which are vectorsof Nvalues,
+–→P=/uniontextK
+i=1→iis the labelled transition relation, which is a union of the K
+transitiongroups →i⊆SP×A×SP(for1≤i≤K),
+–s0=/angbracketleftbig
+s0
+1,...,s0
+N/angbracketrightbig
+∈SPis theinitial state,and
+–L:SP×L→ Nis astatelabelling function.
+We write sa−→itwhen(s,a,t)∈→ifor1≤i≤K,a n d sa−→Ptwhen(s,a,t)∈
+→P.Considering Lasbinarystatelabels, L(s)denotesthesetoflabelsthatholdin
+state s,i.e. wedeﬁne L(s): ={/lscript|L(s,/lscript)/negationslash=0}.
+WhentheLTLlayerisused,theoutputPTSisinterpretedasa B¨uchiautomaton ,
+where accepting states are marked usin g a special state label. When using the μ-
+calculuslayerorthe Pbesfront-end,theoutputPTSisinterpretedasa paritygame ,
+where two state labels encode the playerand thepriority. When using the Mapa
+front-end,theoutputisa Markovautomaton ,wheretransitionsaredecoratedwith
+labels,representinghyperedgeswithrates.Foralltheseinterpretations,thesame
+Pinsinterfaceisused.
+2.2 Dependencies and Guards
+The partitioning of the state vector into slotsand of the transition relations into
+transitiongroups ,enablestospecifythe dependencies betweenthetwo,i.e.,which
+transitiongroupstouchwhichslotsofthevector.
+Previously, we used a single notion of dependency; now we distinguish read,
+write and label dependencies [32,40]. The read and write dependencies allow to
+projectstatevectorstorelevantslotsonly,improvingperformanceofbothcaching,
+state compression and the symbolic tools. Label dependencies enable POR. Thefollowingdeﬁnitions apply to eachPTS P=/angbracketleftbig
+S
+P,→P,s0,L/angbracketrightbig
+.
+Deﬁnition 2 (Read independence). Transition group iisread-independent
+fromstateslot j,if for all s,t∈SPwith s→it,we have:
+∀rj∃r/prime
+j∈Sj:/angbracketlefts1,...,r j,...,s N/angbracketright→i/angbracketleftbig
+t1,...,r/prime
+j,...,tN/angbracketrightbig
+∧r/prime
+j∈{rj,tj},
+i.e.,whatevervalue rjweplugin,thetransitionisstillpossible,thevalues tk(k/negationslash=j)
+donotdependonthevalueof rj,andthevalueofstateslot jiseithercopied( r/prime
+j=rj)
+oroverwritten ( r/prime
+j=tj).
+
+--- Page 5 ---
+696 G. Kant et al.
+Deﬁnition 3 (Write independence). Transition group iiswrite-independent
+fromstateslot j,if:
+∀s,t∈SP:/angbracketlefts1,...,s j,...,s N/angbracketright→i/angbracketleftt1,...,tj,...,tN/angbracketright⇒(sj=tj),
+i.e., stateslot jis nevermodiﬁed intransitiongroup i.
+Deﬁnition 4 (Label independence). Labell∈Lisindependent fromstateslot
+j,if:
+∀s∈SP,tj∈Sj:L(/angbracketlefts1,...,s j,...,s N/angbracketright,l)=L(/angbracketlefts1,...,tj,...,s N/angbracketright,l).
+Deﬁnition 5 (Guards). Transition guards are represented as a subset of labels
+G⊆L.Witheachtransition groupweassociateasetofguards.Theguards associ-
+atedwithgroup i,denote d G(i),areevaluated conjunctively,i.e., transitiongroup i
+isonly enabled instate sifall guards g∈G(i)hold: if s→itthenG(i)⊆L(s).
+Wehaveprovidedsemanticrequirementsforread,writeandlabelindependence
+relations.Thelanguagefront-endmustprovidethesedependencymatrices.Itcan
+approximate dependencies using static analysis, for instance by checking occur-renceofvariablesinexpressions.Note thatit isalwayssafe to assumethatgroup-
+s/labelsdodepend onastateslot.
+3 Language Front-Ends
+LTSmin already supported the languages mCRL2 [11],DiVinE [3], and Spin’s
+Promela [26](through SpinS[4]).Sincerecently,also Mapa,Uppaal andPbes
+are available, as well as the ability to load a model from a binary .so-ﬁle, all of
+whichwillbediscussedinthe currentsection.
+3.1 MAPA: Markov Automata Process Algebra
+Forveriﬁcationofquantitativeaspectsofsystems,wesupport Mapa:MarkovAu-
+tomataProcessAlgebra .MA’sareautomatawithnon-deterministicchoice,proba-
+bilistic choice and stochastic rates, generalisingLTS, PA, MDP and CTMC. The
+Scooptool[43]oﬀersstate-spacegenerationfor Mapaspeciﬁcations,applyingsev-
+eralreductiontechniques.Itispartofthe MaMatoolchain[25]forthequantitative
+analysisofMarkovautomata. LTSmin hasbeenextended with a Mapalanguage
+modulebasedon Scoop,allowingforhigh-performancestatespacegenerationfor
+Mapaspeciﬁcations. This languagemodule uses Pins +A∞to add an inhibit ma-
+trixandaconﬂuencematrix .Themaximumprogressassumptioninthesemantics
+of Markov automata forbids taking stochastic rate transitions when some action-labelled transition is enabled. This has been implemented using a inhibit matrix :
+whenthehigherprioritytransitionisenabled,othertransitionsareinhibited.The
+distributed and symbolic tools of LTSmin have been extended to handle inhibit
+matricesfor Mapa. Thedistributedtoolalsoincludesconﬂuencereduction.
+
+--- Page 6 ---
+LTSmin: High-Performance Language-Independent Model Checking 697
+3.2 Uppaal: Timed Automata
+The langaguefrontend for Uppaal timed automata is based on Opaal[12]. The
+C-codegeneratedby Opaalimplementsthe Pins +A3interface.Timedautomata
+require symbolic states to handle time, for which Opaalrelies on the diﬀerence
+bounds matrices fromthe DBM-library.This is supported by Pins, bydedicating
+tworeservedstateslotsforapointertoasymbolictimeabstraction.
+Subsumption abstractioncanprunelargepartsofthePTSon-the-ﬂy. LTSmin
+checks if two states subsume each other ( s/subsetsqequalt) via the CoveredBy -relation
+inPins +, which is implemented by a call to the DBM-library. The reduced state
+space only consists of /subsetsqequal-maximalstates.Since /subsetsqequalis a simulation relation [14], the
+reducedPTSisavalidabstractionoftheoriginalPTS.Thereachabilityalgorithms
+in the multi-coretoolperformthis abstraction( opaal2lts-mc -u2 ).Tomaintain
+/subsetsqequal-maximalstates,thepointerstotheDBMsarestoredinaseparatelocklessmulti-
+map[12].
+Anew LTLmodel checkingalgorithmwith subsumption [36] isalsosupported,
+byextendingthemulti-core cndfsalgorithm(seeSection5.1).
+3.3 PBES: Parameterized Boolean Equation Systems
+Parameterised Boolean Equation Systems ( Pbess) extend Boolean equations
+with nested ﬁxed points and data parameters [24,39]. Several veriﬁcation tasks
+are mapped to Pbessb yt h e mCRL2 and CADP toolsets, such as model check-
+ingmodal μ-calculuspropertiesandequivalencechecking.The mCRL2 toolsetof-
+fersvarioustoolsformanipulatingandsolving Pbess.LTSmin nowprovideshigh-
+performancegenerationofparitygamesfrom Pbess[29],byviewingthemasPTSs
+with special labels for players and priorities. The Pbeslanguage module is avail-
+able via the pbes2lts-* tools. The generated parity games can be solved by the
+meansdescribedinSection5.
+3.4 C-Code via the Dlopen Interface
+TheUNIX/POSIX dlopen -interfaceallowstospecifyamodeloralanguagedirectly
+inC.WeshowanexampleofhowthiscanbedonefortheSokobangameboardin
+Figure2. The goal of sokoban is for the player ( @)t om o v ea l lb o x e s( $)
+#####
+#.$@#
+#####
+Fig. 2.
+Example
+boardintheroomtodestinationlocations( .)withouthittingwalls( #).This
+behaviourisimplementedinthefunction next
+ stateinListing1.For
+each place in the board, we reserve one slot in the state vector. We
+add a state label goal, to distinguish states where the game is ﬁn-
+ished. Finally, an initial
+ statefunction is deﬁned, and functions
+returningdependencymatrices.Theseneedtobesetusingthe GBset*
+functionsinListing2.Settingthenameofthepluginisalsorequired.
+sokoboard.c isthencompiledassharedlibrary:
+gcc -shared -o sokoboard.so dlopen-impl.o sokoboard.o .
+Toanalysethereachabilityofthegoallabel,call,e.g.,themulti-coretool:
+pins2lts-mc sokoboard.so --invariant="!goal" --trace=solution.gcf .
+
+--- Page 7 ---
+698 G. Kant et al.
+Listing 1. sokoboard.c
+void next_state(int group, int* src,
+void (*callback)(int* dst, int action))
+{ int dst[3]; int action;
+memcpy(dst, src, 3);
+if (group == 0
+&& src[1] == EMPTY && src[2] == MAN)
+{ dst[1] = MAN; dst[2] = EMPTY;
+action = WALK_LEFT;
+callback(dst, action);
+}
+else if (group == 1
+&& src[1] == MAN && src[2] == EMPTY)
+{ dst[1] = EMPTY; dst[2] = MAN;
+action = WALK_RIGHT;
+callback(dst, action);
+}
+else if (group == 2 && src[0] == EMPTY
+&& src[1] == BOX && src[2] == MAN)
+{ dst[0] = BOX; dst[1] = MAN;
+dst[2] = EMPTY; action = PUSH_LEFT;
+callback(dst, action);
+}
+}
+int state_label(int* src, int label)
+{return label == LABEL_GOAL && src[0] == BOX;}int* initial_state()
+{ return {EMPTY, BOX, MAN}; }
+int* read_matrix()
+{ return {{0,1,1}, {0,1,1}, {1,1,1}}; }
+int* write_matrix()
+{ return {{0,1,1}, {0,1,1}, {1,1,1}}; }
+int* label_matrix()
+{ return {{1,0,0}}; }
+Listing 2. dlopen-impl.c
+#include <ltsmin/pins.h>
+#include <ltsmin/dlopen-api.h>
+#include <sokoboard.h>
+char pins_plugin_name[] = "sokoban";
+void pins_model_init(model_t m)
+{ GBsetInitialState(m, initial_state());
+GBsetNextStateLong(m, next_state);
+GBsetStateLabelLong(m, state_label);
+GBsetDMInfoRead(m, read_matrix());
+GBsetDMInfoMustWrite(m, write_matrix());
+GBsetStateLabelInfo(m, label_matrix());
+}
+4 Intermediate Layers
+Between language front-ends and the model checking back-ends, pins2pins -
+wrappersprovideperformanceoptimisations,statespacereductions,andsupport
+for veriﬁcation of LTL and μ-calculus properties. The caching layer reduces the
+numberofnext-statecallstothelanguagemodulebystoringtheprojectedresults
+ofpreviouscalls. The regrouping layer providesvariablereordering,useful forthe
+symbolic analysis tool, and reduces overhead by merging transition groups. The
+current section describes recentinnovation s in the intermediate layers,which are
+alllanguage-independentandagnosticoftheunderlyingmodelcheckingalgorithm.
+4.1 The LTL Layer
+LTSmin supportsLinearTimeLogic(LTL) formulaedeﬁnedbythe grammar:
+λ::=true |false |v==n|!λ|[]λ|<>λ|Xλ|λ&&λ|λ||λ|λ->λ|λ<->λ|λUλ|λRλ
+The negated formula is translated to a B¨ uchi automaton using ltl2ba[23]. The
+productofthePTSandtheB¨ uchiautomatoniscomputedon-the-ﬂy,i.e.,thelayer
+doesnotperformreachabilityin advance.Instead,itwrapsthe NextState func-
+tionofalanguagemoduleinitsown NextState function,whichsynchronisesthe
+translated B¨ uchi automaton on the state labels or slot values of successor states
+(the expression v==ncan refer to a label or a slot named v). The synchronised
+successors are then passed to the analysis algorithm. A label added by the layer
+allows the algorithm to distinguish B¨ uchi accepting states . On-the-ﬂy accepting
+cycledetectionalgorithmsa redescribedinSection5.1.
+
+--- Page 8 ---
+LTSmin: High-Performance Language-Independent Model Checking 699
+4.2 The µ-calculus Layer
+Themodal μ-calculuslayersupportsformulaedeﬁnedbythegrammar:
+ϕ::=true |false |{v=e}|!{v=e}|ϕ&&ϕ|ϕ||ϕ|Z|σZ.ϕ|[α]ϕ|<α>ϕ,
+wherevisastatevariable, eisavalue, σ∈{mu,nu}is aminimal ( mu)ormaximal
+(nu)ﬁxpointoperator,and αisanactionlabel.
+Theμ-calculus Pins2Pinslayerreadsamodal μ-calculusproperty ϕfromaﬁle,
+provided using the --mucalc option, and generates a parity game, which is the
+productP×ϕoftheformulaandasystem Pthatisexploredthrough Pins.Like
+theB¨uchiautomaton,thisgameisgeneratedon-the-ﬂy.Theexplicit-statetoolscan
+writetheparitygametoaﬁlewhichcanbeconvertedtoaformatthatisreadableby
+thetools pgsolver [20]and pbespgsolve (from mCRL2).Thesymbolictoolscan
+write the gameto a ﬁle, which can be solved by the new LTSmin toolspgsolver .
+The symbolic tools also have an alternative implementation for μ-calculus model
+checking(availablethroughthe --muoption),whichisaﬁxpointalgorithmapplied
+tothesystemafterreachability.ThisimplementationalsosupportsCTL*throughthetranslationin[13](the --ctl-star option).
+4.3 The Partial-Order Reduction Layer
+Partial-OrderReduction (POR, [30,44]) greatlyreduces a PTS by pruning irrele-
+vantinterleavings. LTSmin implementsPORasanintermediatelayer(cf.Figure1).
+ThisPORlayer( --por)wrapsthenext-statefunctionofanylanguagemodule,and
+providesareducedstatespacetoanya nalysistoolbyreplacingitwithan on-the-ﬂy
+reductionfunction: PorState (s)⊆NextState (s).
+We rephrased the stubborn set method [44] in terms of guards [32] to achieve
+languageindependence.Foranystate,asetof(enabledordisabled)stubborntran-
+sitionsiscomputed,and PorState (s)correspondstotheenabledstubborntran-
+sitions.The stubborn set should(1) containat leastoneenabled transitionif oneexists; (2) contain all non-commuting transitions for the enabledselected transi-
+tions; and (3) contain a necessary-enabling set of transitions for the disabled se-
+lectedtransitions.
+Tocomputestubbornsets, LTSmin needsstructuralmodelinformationviathe
+Pins +A2interface.ForeﬀectivePOR,weextended Pinstransitionswith guards
+(Deﬁnition 5).Inparticular,alanguagemodulemustdeclarewhentransitionscom-
+mute, and the dependencies of guards(Deﬁnition 4). The former is declared with
+theDoNotAccord :BK×K-matrix.Itshouldsatisfy:
+Deﬁnition 6 (Do-not-accord). Transitiongroups iandjareaccording, if
+∀s,si,sj∈s:s→isi∧s→jsj⇒∃t∈s:si→jt∧sj→it
+Otherwise, theymustbedeclared conﬂicting inthe DoNotAccord matrix.
+Next, the POR layer derives an enabling relation from the provided depen-
+dency information. A transition ican only enable guard g,i fiwrites to a vari-
+able that gdepends on: EnableMatrixK×G≡{(i,g)|WriteMatrix (i)∩
+
+--- Page 9 ---
+700 G. Kant et al.
+StateLabelM (g)/negationslash=∅}. A set of necessary-enabling transitions for a disabled
+transition jcan then be found by selecting onedisabled guard gofjand taking
+alltransitionsthatmayenable g:EnableMatrix (g).
+Optionally, these notions can be further reﬁned by the language module for
+morereduction,byprovidingadditional Pins +A∞matrices.Forexample,thelan-
+guagemodulecancomputeadetailed EnableMatrix bystaticanalysisonassign-
+ment expressionsand guards, or a DisableMatrix and a co-enabled-matrix
+onguardstoleveragethepowerof necessarydisabling sets [32].
+LTSmin containsheuristicstocomputesmallstubbornsetseﬃciently.Theuser
+can select a fast heuristic search( --por=heur )or the subset-minimal deletion al-
+gorithm( --por=del ).POR preservesat leastall deadlockstates. The multi-core
+algorithmsin LTSmin preservesalllivenessproperties,butthisrequiresadditional
+interactionwiththe LTLlayer(toknowthevisiblestateproperties)andthe anal-
+ysisalgorithm(toavoidtheso-calledignoringproblem,seeSection5.1).
+The POR layer is incompatible with the symbolic analysis tool, since after
+partial-order reduction all locality and dependence information is lost. The dis-tributedanalysistoolcurrentlyonlysupportsPORfordeadlockdetection.
+5 Algorithmic Back-Ends
+LTSmin hasdistributed [6],multi-core [12,19,35,37],and symbolic [16]back-ends.
+Furthermore,connectorsto the model-basedtesting tool JTorx, areavailableas
+the*2torxtools,andtotheCADPtoolset,throughthe Open/Cæsar interface,as
+the*-opentools.Sinceitsearlyorigins, LTSmin hasasequential( ltsmin-reduce )
+andadistributed( ltsmin-reduce-dist )reductiontool.Bothprovidestrongand
+branchingbisimulationminimisation,whilethesequentialtoolalsosupportsdiver-gencesensitivity, cycleelimination andminimisationmodulolumping.In thecur-
+rentsection,wehighlightthemulti-corealgorithmsforexplicit-stateandsymbolic
+modelchecking,andthesymbolicparitygamesolver.
+5.1 Multi-core Reachability, POR and LTL Checking
+Since[37], LTSmin’smulti-coretoolswereextendedbeyondreachabilityanalysis,
+whileimprovingstatecompression.
+At the basis of our multi-core algorithms is still a lockless hash or tree table
+(--state=table/tree )for sharedstate storagecoupledwithadynamic loadbal-
+ancer [33,34]. However, state compre ssion has been enhanced by extending the
+treewithaconcurrentClearycompacthashtable[10,45]( --state=cleary-tree ),
+regularlyyieldingcompressedsizesof4bytesperstate[35,Tab.11.4]withoutcom-
+promising completeness. Incremental tree compression [35, Sec. 3.3.4] uses the
+WriteMatrix from Pins +to limit the number of hash computations, ensuring
+scalabilityandperformancesimilartothatofplainhashtables[34].
+LTSmin’sstatestorageprovidesampleﬂexibilityfordiﬀerentsearchorders,en-
+ablingLTLveriﬁcationbytraditionallinear-timealgorithms,inparticularnested
+
+--- Page 10 ---
+LTSmin: High-Performance Language-Independent Model Checking 701
+depth-ﬁrst search(NDFS). The cndfsalgorithm( --strategy=cndfs )runs mul-
+tiplesemi-independentDFSsearcheswhicharecarefullysynchronisedintheback-
+track[19]. dfs ﬁfo(--strategy=dfsfifo )combinesthiswith breadth-ﬁrstsearch
+to ﬁnd livelocks, an important subet of LTL [31]. The latter algorithm avoidsthe
+ignoringproblem inPOR[18],butthecombinationofPORandfullLTLwasuntil
+recentlynotpossibleinmulti-core LTSmin.
+The ignoringproblemoccurswhenPORc onsistentlyprunes the samerelevant
+actioninﬁnitelyoften[18].Itcanbesolvedbyfullyexploringonestate salongeach
+cycleinthePTS( PorState (s): =NextState (s)).Theproblemofdetectingcy-
+cles while constructing the PTS on-the-ﬂy is usually solved with DFS [18], which
+is hard to parallelise[2]. Exploitingthe DFS-based parallelalgorithms, this prob-
+lem is eﬃciently solvedwith a new parallel cycle proviso [38] ( --proviso=cndfs ).
+CyclesareexchangedwiththePORlayervia Pins.
+Wehaveshownbefore[4,31]thatourmulti-corereachabilityapproachexhibits
+almostidealscalabilityupto48cores,evenforveryfast NextState implementa-
+tions, like SpinS.cndfsoutperforms [4,19] other algorithms for multi-core LTL
+modelchecking[1,27].Forfurtherinformationonmulti-corealgorithmsanddata
+structures,see[35].
+5.2 Multi-core Decision Diagrams
+The symbolic back-end of LTSmin has been improved in several ways. First,i t
+has been extended with the multi-core decision diagram packages Sylvan and
+LDDmc [16] ( --vset=sylvan/lddmc ).Second, two parallel reachability algo-
+rithmshavebeenadded,basedonthetask-basedparallelismframework Lace[15,
+16].Third,thedistinctionbetweenreadandwritedependenciesin Pins +improves
+thesymbolicalgorithmsbyreducingthesizeoftransitionsrelations[40].
+5.3 Symbolic Parity Game Solving
+WeimplementedZielonka’srecursivealgorithm[46]usingdecisiondiagrams,which
+isavailablein thesymbolictools( --pg-solve )orstand-alonein spgsolver .The
+tool solves symbolic parity games, gener ated by the symbolic tool, and returns
+whether the game has a winning strategy for player 0. When the game has been
+generatedusingthe μ-calculuslayer,thisanswercorrespondstowhether P|=ϕ.
+6 Case Studies
+The following two case studies demonstrate the use of having both explicit-state
+and symbolic approaches to attack problems. The second case also demonstrates
+thepowerof μ-calculusmodelcheckingforsolvinggames.2
+2Installation instructions and case-study data:
+https://github.com/utwente-fmt/ltsmin-tacas2015 .W eu s e d LTSmin v2.1 on
+AMD Opterons with Ubuntu14.04.
+
+--- Page 11 ---
+702 G. Kant et al.
+6.1 Attacking the RERS Challenge
+LTSmin participatedinthe RERS [28,42] challengesof2012,2013[41] and2014,
+winning several ﬁrst prizes. The ﬂexibility of LTSmin allowed us to address the
+RERSchallengeproblemsfromdiﬀerentangles.Wewilldiscussthreewaystocon-
+nectLTSmin tothechallengeproblems.Wealsodemonstratehow LTSmin’sback-
+endtoolscheckforassertionerrorsandtemporalproperties.
+EachRERSproblemconsistsofalargeC-program,encodingasystemofEvent-
+Condition-Action rules. The program operates in an inﬁnite loop modifying the
+globalstate.Ineachiteration,theprogramgetsaninputfromasmallalphabetand
+checks for assertionerrors.If the conditi on of one of the rules is met, it generates
+anoutput symbolandchangesthe stateforthenextiteration.
+Linking LTSmin to RERS Programs. In the ﬁrst approach, a RERS C-program
+is translated to a modelling language that is already supported by LTSmin.W e
+took this approach in 2012, by translating RERS programs to Promela and to
+mCRL2.Thetranslationsareratherstraightforward,sincetheECA-rulescanbe
+readilyreverse-engineeredfromtheC-programs.
+A fundamentally diﬀerent approach is to create a new language module for (a
+subclassof)C-programs.Thiswasourapproachin2013and2014.In2013,wejust
+wrapped the body of the main-loop into a single, monolithic next-state function,
+compiledinaseparatebinary( .soﬁle).Thisisarobustsolution,sincetheoriginal
+codeisrunduringmodelchecking.
+This monolithic approachworkedﬁne for multi-coremodel checking.However,
+itleadstoalackof“locality”:thereisonlyonetransition,whichreadsandwritesallstatevariables.Inordertoapplysymbolicmodelchecking,our2014approachwas
+toadapttheC-languagemodule,byprovidingaseparatetransitiongroupforeach
+ECA rule, checking its conditions and applying the state change. Edge labels areadded,toindicatetheinputandoutputvaluesandtheassertionviolations.Inthis
+partitionedview,everytransitiongrouponlytouchesacoupleofvariables,enabling
+symbolicmodelchecking.With Sylvanlinkedto LTSmin,RERS2014wastheﬁrst
+largecasetowhichweappliedmulti-coresymbolicmodelchecking.
+Using LTSmin to Check Properties. We show here how LTSmin c a nb eu s e dt o
+checkpropertiesofProblem2.cfromtheRERSchallenge2014.TheoriginalC-code
+isoptimizedandtransformedasindicate dabove.Weassumethatthetransformed
+codeiscompiledandavailableinasharedobject Problem.so .
+In the following dialogue, we request the symbolic model checkerto ﬁnd all ac-
+tions with preﬁx error. Flag --no-exit avoids that LTSmin exits after ﬁnding
+theﬁrsterror.Wealsorequesttostoreconcreteerrortracesinasubdirectoryand
+printoneoftheminhumanreadableformat. LTSmin quicklyﬁnds23errors.
+> pins2lts-sym Problem.so --action=error --trace=Error/ --no-exit
+pins2lts-sym: writing to file: Error/error_6.gcf
+pins2lts-sym: writing to file: Error/error_8.gcf
+^C> ltsmin-printtrace Error/error_6.gcf | grep action | cut -f3 -d=
+"input_3" "output_20" ... "input_3" "output_26" "error_6"
+
+--- Page 12 ---
+LTSmin: High-Performance Language-Independent Model Checking 703
+Actually, the state space of this example is very big and LTSmin keeps search-
+ingformoreerrors.Inorderto doanexhaustivesearch,wethrowmorepower,byusingtheparallelBFSstrategyand Sylvan’s(enlarged)multi-coremulti-wayde-
+cisiondiagrams[16].Wealsorequeststaticvariablereordering,tokeeptheMDDs
+small.With --when,werequesttiminginformation.Thefollowingexperimentsare
+runona48-coremachinewith132GBRAM.Theparallelsymbolicmodelchecker
+ofLTSmin computes the full state space within 2 minutes. All 1.75 billion states,
+dividedover480BFSlevels,arestoredinabout1millionMDDnodes.
+> pins2lts-sym Problem.so --order=par-prev --regroup=gs --when \
+--vset=lddmc --lddmc-tablesize=30 --lddmc-cachesize=28
+pins2lts-sym: Using 48 CPUs
+pins2lts-sym, 28.076: level 90 is finished
+pins2lts-sym, 113.768: level 480 is finishedpins2lts-sym: ... 1750528171 (~1.75e+09) states, 1158486 BDD nodes
+Alternatively,wemaydecidetoswitchtothe explicit-state multi-corereachabil-
+ity engine[33]. We requesta strictbreadth-ﬁrststrategy,to facilitate comparison
+with the symbolic run. To squeeze the max imum out ofour machine, we combine
+recursive tree compression [34] with Cleary’s compact hashing [10,45]. Within a
+minutewelearnthattherearenonewerrorsuptodepth90. LTSmin isabletotra-
+versethefullstatespaceexhaustivelywithin5minutes,generatingover1.75billion
+statesand2.4billiontransitions.
+> pins2lts-mc Problem.so --strategy=sbfs --state=cleary-tree --when
+pins2lts-mc(23/48), 46.067: ~90 levels ~125829120 states ~191380560 trans
+pins2lts-mc( 0/48), 296.759: Explored 1750528171 states 2445589869 trans
+The explicit multi-core tool can also check LTL properties, using multi-core
+NDFS ( cndfs, [19]). The LTL formula refers to integer variables in the original
+C-program a94anda95.With --ltl-semantics=ltsmin weinsistoncheckingin-
+ﬁnite paths only, i.e., we don’t consider traces that end in an assertionerror.The
+violatedtracecanbe printedasabove,andwillendinalasso.
+> pins2lts-mc Problem.so --ltl=’a94==9 U a95==12’ \
+--strategy=cndfs --ltl-semantics=ltsmin --trace=Error/ltl.gcf
+pins2lts-mc( 0/48): Accepting cycle FOUND at depth 11!pins2lts-mc( 3/48): Writing trace to ltl.gcf
+6.2 Solving Connect Four
+WeexploretheConnectFourgame,originallyplayedona7 ×6boardbetweentwo
+players:yellowandred,whichisavailableintheexamplesdirectoryof mCRL2.F or
+theﬁrstrun,wereducedtheboardsizeto5 ×4,forwhichthemodelhas7,039,582
+states.
+
+--- Page 13 ---
+704 G. Kant et al.
+rrrrrrrrrrrrrrrrrrrr+rrrrrrrrrrrrrrrrrrrr++----+----+----+----+--+----+----+----+--+-+----+----+----+---+----+----+----+----++---+----+----+----+-++----+----+----+----+--+----+----+----+--+-+----+----+----+---+----+----+----+----++---+----+----+----+-+
+(a)Monolithic.
++----+----+----+----+--+----+----+----+--+-+----+----+----+---+----+----+----+----++---+----+----+----+-+rrrr--------------------r---r---r---r-----r-----r-----r-----r--r----r----r----r---------------rrrr------------rrrr-------------rrrr--------------------r---r---r---r-----r-----r-----r-----r---r----r----r----r----r----r----r----r-------------------rrrr-------------rrrr------------rrrr---------------r----r----r----r----r----r----r----r------------------rrrr-
+(b)Separated
+Fig. 3.MatrixThe matrix is in Fig. 3a. LTS generation using lps2lts
+(mCRL2) takes 157 seconds and 540 MB. Using 64 cores,
+multi-core LTSmin t a k e s6 8s e c o n d sa n d6 3M B .B u ts y m -
+bolic LTSmin needs80seconds.
+Thisiscausedbythemonolithicsummandsinthespeciﬁca-
+tion (the dense rows in Figure3a), representingthe winning
+condition.Wesplittheconditioninseparatepartsandletthe
+gamecontinueaftera winning movehasbeen done.The ma-
+trixoftheproblembecomesmor esparse,seeFigure3b.Note
+thatthefour r’sinarowcorrespondtothefourwinningtiles.
+Thesymbolictoolnowgeneratesadiﬀerentstatespaceofthe
+same game (5,464,758 states) in one second. mCRL2 takes
+167secondsforthisversion.Theexplorationtimeof LTSmin
+fora6×5boardis2.6seconds,for9 .78×109statesin41,239
+MDDnodes.
+Next, wegenerateaPBESwith mCRL2, toencodethe μ-
+calculus property (in ﬁle yellow
+ wins.mcl )that playerYel-
+lowhasawinningstrategy,andsolveitwith LTSmin:
+mu X . [Wins(Red)]false && <Move>(<Wins(Yellow)>true || [Move]X)
+> lps2pbes -s -f yellow_wins.mcl four5x4.lps four5x4.pbes
+> pbes2lts-sym --mcrl2=-rjitty --regroup=gs --pg-solve \
+--vset=lddmc --order=par-prev four5x4.pbes
+For the 5 ×4-board mCRL2 takes 199 seconds, but the symbolic tool of LTSmin
+8seconds,tocomputethatthestartingplayerhasnowinningstrategy.
+7 Discussion
+Thereareseveraltoolsetsthattakeasimilarapproach,supportingagenericinter-
+face,oroﬀersimilar,multi-coreorsymbolic,analysisalgorithms.Thetablebelow
+providesabriefqualitativecomparisonoftheavailabletypesofalgorithmsandthe
+supportedlogics.Thelastcolumnindicateswhethermultipleinput languagesare
+supported,andifso,throughwhichinterface.
+ThePinsinterface is the main diﬀerentiator of LTSmin. It is suﬃciently gen-
+eraltosupportawiderangeofmodellinglanguages.Atthe sametime,thedepen-
+dencymatricesprovidesuﬃcientstructuralmodelinformationtoexploitlocalityin
+Toolset multi-coredistributedsymbolicμ-calculusLTLPORconﬂuenceLanguage
+LTSmin
+ yes yes yes yes yes yes yes
+ any(Pins)
+mCRL2 [11]
+no no no yes no no yes
+ fixed
+CADP [22]
+ n oy e sn oy e s *n on oy e s
+ any(Open/C )
+DiVinE [3]
+yes yes no no yes yes no
+ any(CESMI)
+Spin
+ yes yes no no yes yes no
+ fixed
+NuSMV [9]
+no no yes no yes no no
+ fixed
+* CADP supports μ-calculus formulae up to alternation depth 2.
+
+--- Page 14 ---
+LTSmin: High-Performance Language-Independent Model Checking 705
+the analysisalgorithms.Asaconsequence, LTSmin is theonlylanguage-agnostic
+model checker that supports on-the-ﬂy symbolic veriﬁcation and full LTL modelcheckingwithPOR.Duetothemodulararchitecture,theusercanfreelychoosea
+veriﬁcationstrategydependingonthe problemathand.
+References
+1. Barnat, J., Brim, L.,Roˇ ckai,P.:A Time-OptimalOn-the-FlyParallel Algorithmfor
+Model Checking of Weak LTL Properties. In: Breitman, K., Cavalcanti, A. (eds.)
+ICFEM 2009. LNCS, vol. 5885, pp. 407–425. Springer, Heidelberg (2009)
+2. Barnat, J., Brim, L., Roˇ ckai, P.: Parallel Partial Order Reduction with Topological
+Sort Proviso. In: SEFM 2010, pp. 222–231. IEEE (2010)
+3. Barnat, J., et al.: DiVinE 3.0 – An Explicit-State Model Checker for Multithreaded
+C &C++Programs. In:Sharygina,N.,Veith,H.(eds.)CAV 2013. LNCS,vol. 8044,pp. 863–868. Springer, Heidelberg (2013)
+4. vanderBerg,F.I.,Laarman,A.W.:SpinS:ExtendingLTSminwithPromelathrough
+SpinJa. In: PDMC 2012. ENTCS, vol. 296, pp. 95–105 (2013)
+5. Blom, S.C.C., van de Pol, J.C., Weber, M.: Bridging the Gap between Enumerative
+and Symbolic Model Checkers. University of Twente (2009)
+6. Blom, S.,Lisser, B., vandePol, J., Weber,M.: ADatabaseApproachtoDistributed
+State-Space Generation. Journal of Logic and Computation 21(1), 45–62 (2009)
+7. Blom, S., vande Pol, J.: Symbolic Reachability for Process Algebras with Recursive
+Data Types.In:Fitzgerald, J.S., Haxthausen,A.E., Yenigun,H.(eds.)ICTAC 2008.
+LNCS, vol. 5160, pp. 81–95. Springer, Heidelberg (2008)
+8. Blom,S.C.C.,vandePol,J.C.,Weber,M.:LTSmin:DistributedandSymbolicReach-
+ability. In: Touili, T., Cook, B., Jackson, P. (eds.) CAV 2010. LNCS, vol. 6174, pp.
+354–359. Springer, Heidelberg (2010)
+9. Cimatti, A., et al.: NuSMV Version 2: An OpenSource Tool for Symbolic Model
+Checking.In:Brinksma,E.,Larsen,K.G.(eds.)CAV2002.LNCS,vol.2404,pp.359–
+364. Springer, Heidelberg (2002)
+10. Cleary,J.G.:CompactHashTablesUsingBidirectionalLinearProbing.IEEETrans-
+actions on Computers C-33(9), 828–834 (1984)
+11. Cranen, S., others: An Overview of the mCRL2 Toolset and Its Recent Advances.
+In: Piterman, N., Smolka, S.A. (eds.) TACAS 2013. LNCS, vol. 7795, pp. 199–213.Springer, Heidelberg (2013)
+12. Dalsgaard, A.E., others: Multi-core Reachability for Timed Automata. In: Jur-
+dzi´nski, M., Niˇ ckovi´c, D. (eds.) FORMATS 2012. LNCS, vol. 7595, pp. 91–106.
+Springer, Heidelberg (2012)
+13. Dam, M.: Translating CTL* into the modal μ-calculus. Report ECS-LFCS-90-123,
+LFCS, University of Edinburgh (1990)
+14. Daws, C., Tripakis, S.: Model checking of real-time reachability properties using ab-
+stractions.In:Steﬀen,B.(ed.)TACAS1998.LNCS,vol.1384,pp.313–329.Springer,
+Heidelberg (1998)
+15. van Dijk, T., van de Pol, J.C.: Lace: non-blocking split deque for work-stealing. In:
+Lopes,L.,etal.(eds.)Euro-Par2014,PartII.LNCS,vol.8806,pp.206–217.Springer,Heidelberg (2014)
+16. van Dijk, T., van de Pol, J.C.: Sylvan: Multi-core Decision Diagrams. In: TACAS
+2015. Springer (2015)
+
+--- Page 15 ---
+706 G. Kant et al.
+17. Emerson, E.A., Wahl, T.: Dynamic symmetry reduction. In: Halbwachs, N., Zuck,
+L.D.(eds.)TACAS2005. LNCS,vol.3440, pp.382–396. Springer,Heidelberg(2005)
+18. Evangelista, S., Pajault, C.: Solving the Ignoring Problem for Partial Order Reduc-
+tion. STTT 12, 155–170 (2010)
+19. Evangelista, S., et al.: Improved Multi-core Nested Depth-First Search. In:
+Chakraborty, S., Mukund, M. (eds .) ATVA 2012. LNCS , vol.7561, pp. 269–283.
+Springer, Heidelberg (2012)
+20. Friedmann, O., Lange, M.: PGSolver (2008),
+https://github.com/tcsprojects/pgsolver
+21. Garavel, H.: OPEN/CÆSAR: An open software architecture for veriﬁcation, simu-
+lation, and testing. In: Steﬀen, B. (ed.) TACAS 1998. LNCS, vol. 1384, pp. 68–84.Springer, Heidelberg (1998)
+22. Garavel, H., Lang, F., Mateescu, R., Serwe, W.: CADP 2011: a toolbox for the con-
+struction and analysis of distributed processes. STTT 15(2), 89–107 (2013)
+23. Gastin, P., Oddoux, D.: Fast LTL to B¨ uchi Automata Translation. In: Berry, G.,
+Comon, H., Finkel, A. (eds.) CAV 2001. LNCS, vol. 2102, pp. 53–65. Springer, Hei-
+delberg (2001)
+24. Groote,J.F.,Willemse,T.A.C.:Model-checkingprocesseswithdata.ScienceofCom-
+puter Programming 56(3), 251–273 (2005)
+25. Guck,D., etal.: Analysisof Timed andLong-RunObjectivesfor Markov Automata.
+Logical Methods in Computer Science 10(3) (2014)
+26. Holzmann, G.J.: The model checker SPIN. IEEE TSE 23, 279–295 (1997)
+27. Holzmann, G.J.: Parallelizing the SPIN Model Checker. In: Donaldson, A., Parker,
+D. (eds.) SPIN 2012. LNCS, vol. 7385, pp. 155–171. Springer, Heidelberg (2012)
+28. Howar, F., et al.: Rigorous examination of reactive systems. STTT 16(5) (2014)29. Kant, G., van de Pol, J.: Generating and Solving Symbolic Parity Games. In:
+GRAPHITE 2014. EPTCS, vol. 159, pp. 2–14 (2014)
+30. Katz, S., Peled, D.: An eﬃcient veriﬁcation method for parallel and distributed pro-
+grams. In: de Bakker, J.W., de Roever, W.-P., Rozenberg, G. (eds.) Linear Time,
+Branching Time and Partial Order in Logics and Models for Concurrency. LNCS,
+vol. 354, pp. 489–507. Springer, Heidelberg (1989)
+31. Laarman, A., Farag´ o, D.: Improved On-The-Fly Livelock Detection. In: Brat, G.,
+Rungta, N., Venet, A. (eds.) NFM 2013. LNCS, vol. 7871, pp. 32–47. Springer, Hei-
+delberg (2013)
+32. Laarman, A., Pater, E., van de Pol, J.C., Hansen, H.: Guard-based partial-order re-
+duction. STTT (2014)
+33. Laarman, A., van de Pol, J., Weber, M.: Boosting Multi-Core Reachability Perfor-
+mance with Shared Hash Tables. In: FMCAD 2010, pp. 247–255. IEEE (2010)
+34. Laarman, A., van de Pol, J., Weber, M.: Parallel Recursive State Compression for
+Free. In: Groce, A., Musuvathi, M. (eds.) SPIN Workshops 2011. LNCS, vol. 6823,pp. 38–56. Springer, Heidelberg (2011)
+35. Laarman, A.: Scalable Multi-Core Model Checking. Ph.D. thesis, University of
+Twente (2014)
+36. Laarman, A., Olesen, M.C., Dalsgaard, A.E., Larsen, K.G., van de Pol, J.: Multi-
+coreEmptinessCheckingofTimedB¨ uchiAutomataUsingInclusionAbstraction.In:
+Sharygina, N., Veith, H. (eds.) CAV 2013. LNCS, vol. 8044, pp. 968–983. Springer,Heidelberg (2013)
+37. Laarman, A., van de Pol, J., Weber, M.: Multi-Core LTSmin: Marrying Modularity
+andScalability.In:Bobaru, M.,Havelund,K.,Holzmann, G.J.,Joshi,R.(eds.)NFM
+2011. LNCS, vol. 6617, pp. 506–511. Springer, Heidelberg (2011)
+
+--- Page 16 ---
+LTSmin: High-Performance Language-Independent Model Checking 707
+38. Laarman,A.,Wijs,A.:Partial-OrderReductionforMulti-CoreLTLModelChecking.
+In: Yahav, E. (ed.) HVC 2014. LNCS, vol. 8855, pp. 267–283. Springer, Heidelberg
+(2014)
+39. Mateescu,R.:LocalModel-CheckingofanAlternation-FreeValue-BasedModalMu-
+Calculus. In: VMCAI 1998 (1998)
+40. Meijer,J.J.G.,Kant,G.,vandePol,J.C.,Blom,S.C.C.:Read,WriteandCopyDepen-
+denciesforSymbolicModelChecking.In:Yahav,E.(ed.)HVC2014.LNCS,vol.8855,
+pp. 204–219. Springer, Heidelberg (2014)
+41. van dePol, J., Ruys,T.C., teBrinke,S.: Thoughtfulbrute-force attack of theRERS
+2012 and 2013 Challenges. STTT 16(5), 481–491 (2014)
+42. RERS–RigorousExaminationofReactiveSystems, http://rers-challenge.org/
+43. Timmer,M.:Eﬃcientmodelling,generationandanalysisofMarkovautomata.Ph.D.
+thesis, University of Twente (2013)
+44. Valmari,A.:EliminatingRedundantInterleavingsDuringConcurrentProgramVer-
+iﬁcation. In:Odijk,E.,Rem,M.,Syre,J.-C. (eds.)PARLE1989. LNCS,vol.366, pp.89–103. Springer, Heidelberg (1989)
+45. van der Vegt, S., Laarman, A.W.: A parallel compact hash table. In: Kot´ asek, Z.,
+Bouda,J., ˇCern´a,I.,Sekanina,L.,Vojnar,T.,Antoˇ s,D.(eds.)MEMICS2011.LNCS,
+vol. 7119, pp. 191–204. Springer, Heidelberg (2012)
+46. Zielonka, W.: InﬁniteGames on Finitely Coloured Graphs with Applications to Au-
+tomata on Inﬁnite Tr ees. Theoretical Computer Science 200(1–2), 135–183 (1998)

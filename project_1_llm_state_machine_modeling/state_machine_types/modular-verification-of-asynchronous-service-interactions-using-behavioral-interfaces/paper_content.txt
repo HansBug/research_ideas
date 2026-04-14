@@ -1,0 +1,1603 @@
+--- Page 1 ---
+DRAFT1
+ModularVeriﬁcationof AsynchronousService
+InteractionsUsingBehavioralInterfaces
+AysuBetin-Can†,Member, IEEE ,SylvainHallé‡,Member, IEEE , TevﬁkBultan§,Member, IEEE
+Abstract—Acrucialprobleminserviceorientedcomputingisthespec iﬁcationandanalysisofinteractionsamongmultiplepeers
+that communicate via messages. We propose a design pattern t hat enables the speciﬁcation of behavioral interfaces acti ng as
+communication contracts between peers. This “peer control ler pattern” provides a modular, assume-guarantee style ve riﬁcation
+strategy that consists of three phases. 1) Each individual p eer is statically veriﬁed for conformance to its part of the c ontract,
+using software model checking. 2) Alternately, a runtime en forcement mechanism blocks the communication events that v iolate
+the interface speciﬁcation at runtime. 3) Using either of th ese two mechanisms, it can be assumed that the participating peers
+behave according to their interfaces and safety and livenes s properties about the global behavior of the composite web s ervice
+can then be veriﬁed directly on the communication contract. Theinterface veriﬁcation of each peer and the behaviorveri ﬁcation
+are hence handled in separate steps. A Java implementation o f this pattern is developed and tested on a series of examples ;
+we show that by working in such a modular fashion, it is possib le to automatically and efﬁciently verify properties about service
+interactions that would otherwisebe impossibleto verify.
+IndexTerms —Webservices, automated veriﬁcation, runtime enforcemen t, asynchronous communication, design patterns
+✦
+1 INTRODUCTION
+The advent of web services in the last decade provided
+a framework for decoupling the interfaces of applications
+from their implementations. A composite web service con-
+sists of a collection of individual web services, called
+peers, working in a collaborative manner. A set of core
+characteristics contributes to the growing success of com-
+posite web services: transmission of messages is standard-
+ized by the use of XML, interacting services are loosely
+coupled through standardized and documented interfaces,
+and communications can be performed asynchronously. As
+an example of this growing trend, bandwidth utilized by
+Amazon.com web services in the fourth quarter of 2007
+was greater than bandwidth consumed in the same period
+by all of Amazon.com’s global websites combined [1].
+A fundamental problem in developing reliable web ser-
+vices is to analyze their interactions. This has long been
+argued as a sine qua non condition for the emergence
+of compositions between services going beyond trivial
+request-response patterns. The characteristics mentione d
+above present both opportunities and challenges in this
+direction. A loose couplingof services allows more ﬂexible
+interactions; on the other hand, interface descriptions of ten
+overlook constraints on the sequential ordering of the
+interactions. This can cause a service to diverge from the
+behavior expected by its peers. Similarly, without asyn-
+chronouscommunication,performancecanbedegradeddue
+to latency, and the unresponsiveness of a peer can unnec-
+essarily block the progress of another peer that is trying to
+†Middle East Technical University, 06531, Ankara, Turkey; e -mail:
+aysu@ii.metu.edu.tr.‡Université du Québec à Chicoutimi, Canada G7H
+2B1; e-mail: shalle@acm.org.§University of California, Santa Barbara,
+CA 93106-5110; e-mail: shalle@acm.org, bultan@cs.ucsb.e du.
+This work is supported by NSF grant CCF-1117708.send a message. Yet, asynchronous communication makes
+veriﬁcation of web services more challenging, as senders
+and receivers consume messages at arbitrary times and can
+drift into states inconsistent with one another. In this lat ter
+case the problem is not merely theoretical: asynchronous
+messagingwith unboundedmessagequeuesissupportedby
+messaging platforms such as Java Message Service (JMS),
+Microsoft Message Queuing Service (MSMQ) and Java
+API for XML Messaging (JAXM).
+In this paper, we demonstrate that the challenges in
+verifying web services that use asynchronous communi-
+cations can be remedied using a “design for veriﬁcation”
+approach that preserves the advantages of asynchronous
+communication while enabling efﬁcient veriﬁcation. We
+propose a behavioral design pattern called the Peer Con-
+troller Pattern (PCP) that separatesthe operationsrelatedto
+the application logic from the communication details, and
+show that this design pattern enables a modularveriﬁcation
+approach.
+Typical implementations of peers include both
+application-speciﬁc code and asynchronouscommunication
+routines. A monolithic approach to contract compliance
+aims at ensuring that the global system made of all
+peer implementations interacts in a way that fulﬁlls a
+predeﬁned behavioral speciﬁcation. This can be done
+through extensive testing of each peer (involving actual
+communications), or statically through software model
+checking (by exhaustively exploring the execution traces
+of this composite system).
+However monolithic approaches are not feasible for
+realisticsystems.Looselycoupledwebservicestypically do
+not belong to the same organization. An exhaustive model
+checking of the closed system becomesimpossible unless a
+running instance of each peer is made available speciﬁcally
+
+--- Page 2 ---
+DRAFTfor that purpose; the same applies for live testing of a
+peer implementation. Even when such a situation occurs,
+in most cases the composition of each peer’s complete
+implementation generates a state space too large to explore
+in reasonable time. This is especially true of asynchronous
+communications, where the presence of unbounded mes-
+sage queues at each receiver makes a priorireasoning on
+their possible interactions impossible to check exhaustiv ely
+in many situations.
+In the PCP, the communication component responsi-
+ble for asynchronous messaging is separated from the
+implementation and abstracted by an interface called a
+Communicator , one for each peer. The Communicator
+imposes the designer to specify a communication contract
+specifying acceptable sequences of incoming and outgoing
+messages. Compliance of the composite web service to this
+communication contract is then broken down into three
+subproblems.
+First, the interface veriﬁcation phase can be conducted
+using apeermodular approachwhereeach peerisanalyzed
+separately to guarantee that it conforms to its interface
+speciﬁcation. The Communicator uses the speciﬁcation to
+simulate the outside world and provide a closed environ-
+ment over which software model checkers can then verify
+each peer in isolation. Second, the use of a well-deﬁned
+behavioralinterfaceforeachpeerallowstheCommunicator
+to perform runtime enforcement , by tracking messages at
+a peer’s interface, and only allowing those that conform to
+the speciﬁcation to cross that interface. This is especiall y
+useful when model checkingof a peer cannot be performed
+for variousreasons. Finally, in the third step, behavior veri-
+ﬁcation is performed directly on the global communication
+contract, assuming that each peer conforms to its interface
+speciﬁcation. Any of the previous two steps guarantees this
+assumption, either statically or at runtime.
+Thecontributionsofthispapercanbesummarizedasfol-
+lows: The PCP provides a unique communication interface
+for three purposes: 1) simulate the outside environment for
+testing or software model checking of a single peer imple-
+mentation; 2) act as a contract enforcement mechanism on
+eachpeeratruntime;3)use thesemechanismsinanassume
+guarantee strategy to verify properties of global commu-
+nication contracts efﬁciently. We develop a Java package
+implementation of the PCP, and implement it on top of
+Java implementations of a set of web services, including
+a client for the Amazon.com E-Commerce Service (AWS-
+ECS). A series of experiments is made on these services
+and show that the PCP can be seamlessly integrated with
+an application to perform the previous tasks efﬁciently.
+2 PEERINTERFACES AS CONTRACTS
+A web service exposes an interface through which other
+peers can collaborate. Even when not explicitly docu-
+mented, this interface imposes constraints, acting as a
+“contract”, that deﬁne valid interactions with other peers .
+In this section, we deﬁne the basic building blocks used to
+specify and analyze these contracts, and illustrate them on
+a set of examples.2.1 DeﬁningaPeer Interface
+Thepeer interface is a formal description of the form,
+content, and sequences of operations representing a valid
+interaction with a given web service.
+Form and Content of Operations: We focus on SOAP
+interactions, where web services interact through the ex-
+change of XML messages. Obviously, not all XML doc-
+uments are valid input or output messages for a given
+service; this is why existing description languages such
+as WSDL refer to DTDs or XML Schemas specifying the
+precise structure of each message type.
+A large fraction of XML Schemas can be deﬁned by
+a compact notation called the Model Schema Language
+(MSL) [14]. We use a simpliﬁed version of MSL that han-
+dles all the portions of XML Schema we found necessary
+in our case studies, as follows:
+g→b/vextendsingle/vextendsinglet[g]/vextendsingle/vextendsingleg+/vextendsingle/vextendsingleg*/vextendsingle/vextendsingleg1, . . . , g k
+Hereg, g1, . . . , g kare all MSL types; bis a basic data type
+such as Boolean, integer, or string; tis a tag. The MSL
+type expressions are interpreted as follows: g→bspeciﬁes
+a basic type b;g→t[g0]speciﬁes a type with tag tat its
+root and with a sub-element whose contents are described
+by the type expression g0;g→g1, . . . , g kspeciﬁes an
+ordered sequence, with each of the gis listed one after the
+other. Optionally, the cardinality of any MSL type can be
+constrained with the use of “+” (the element can appear
+one or more times) and “*” (the element can appear zero
+or more times).
+Equippedwithsuchalanguage,onecandeﬁneamessage
+structure as in the following example:
+ItemSearchResponse[ Operation[string] ,
+Items[ Item[ ASIN[int] , Price[int] ]* ] ]
+This expression describes a message called ItemSearchRe-
+sponse, containing an Operation element holding a string
+value, and an Items element containingan arbitrarynumber
+of Item structures. In turn, each Item contains two integer
+elements labeled ASIN and Price. The correspondence
+between MSL and XML documents is straightforward.
+Such a message type can be used for two purposes: verify
+that a message follows a given type, and provide rules
+to generate a valid instance of a given type. These two
+facets are crucial in the framework we describe in Section
+3: the ﬁrst will be used in a communicationcomponentthat
+performs runtime enforcement, while the second is utilized
+in an alternate communication stub that can simulate the
+outside environment.
+Valid Sequences of Messages: To reason about a com-
+posite web service, we need behavioralcontractsdescribin g
+the behaviors of the individual services, i.e., peers. We
+use ﬁnite state machines to specify behaviors of the peers.
+Consider for example the state machine in Figure 1(a).
+It speciﬁes valid sequences of messages for one session
+of a Loan Approver service. The transitions are labeled
+either with !message or?message , denoting sending or
+receiving of a message, respectively. They provide condi-
+tions, called guards, made of two parts: the part before
+2
+
+--- Page 3 ---
+DRAFTthe “/”, called the guard condition , states a constraint
+on the last message processed by the state machine, and
+the latter part, called the update condition , expresses a
+condition on the current message processed by the state
+machine. As an example, consider the transition labeled
+with!approval[risk.level=high/accept=false] .
+This transition is taken only if the levelelement of the last
+riskmessage is “high”. If this guard condition holds, the
+peer sends an approval message with the acceptelement
+set to “false”.
+Using the peer interfaces, the global behavior of a
+composite web service can be modeled as a set of state
+machines communicating with asynchronous messages,
+similar to the communicating ﬁnite state machine (CFSM)
+model [12]. The interactions among peers in such a
+system are called conversations , i.e., a conversation is
+the sequence of messages exchanged among peers dur-
+ing the execution of a session of the composite web
+service, recorded in the order they are sent [22]. The
+notion of a conversation captures the global behavior of
+a composite web service where each peer executes cor-
+rectly according to its interface speciﬁcation, and every
+message ever sent is eventually consumed. For exam-
+ple, the following is a conversation of MSL messages
+that can be generated by the Loan Approval example in
+Figure 1(a): request[amount[large]], check[amount[larg e]],
+risk[level[high]], approval[accept[false]].
+The conversation model gives us a convenient frame-
+work for reasoning about and analyzing interactions of
+web services. Linear Temporal Logic (LTL) can be used
+to specify properties of conversations; a composite web
+service satisﬁes an LTL property if all the conversations
+generatedbytheservicesatisfytheproperty[19],[22],[2 3].
+2.2 Examples
+We shall now show, by means of a set of examples, how
+MSL types and guarded state machines can be used to
+describe behavioral interfaces.
+Loan Approval: In the Loan Approval example, taken
+from the BPEL 1.1 speciﬁcation [2], a customer requests
+a loan for some amount. If the amount is small, the loan
+request is approved. For large amounts, a risk assessment
+service decides a risk level. The loan request is approved
+when the risk level is low and denied when the risk level
+is high. The scenario is composed of three individual
+services (peers): CustomerRelations, LoanApprover and
+RiskAssessor. Customers make loan requests using the
+CustomerRelations service. This service sends a request
+message to the LoanApprover service. If the request is
+for a small amount, the LoanApprover service sends an
+approval message, with the accept ﬁeld set to true, to the
+CustomerRelations service. Otherwise, the LoanApprover
+service sends a checkmessage to the RiskAssessor service.
+Then,theLoanApproverservicesendsan approval message
+to the CustomerRelations service with the acceptﬁeld set
+to true or false depending on the message received from
+the RiskAssessor service.?request
+?risk!check[req.amount=large/
+amount=large]!nocheck[
+req.amount=small/true]!approval[true/
+accept=true]
+!approval[
+risk.level=low/
+accept=true]
+!approval[
+risk.level=high/
+accept=false]0 1 2
+3 45
+(a)
+?getCart[remove= ] /c94!cart[size=0]
+!cart[size 0] /c185
+?getCart!cart !getBook[id /c185/c94]
+!getBook[id /c185/c94]?book
+?book
+(b)
+!CartCreate
+!CartAdd
+!CartAdd !CartModify?CartCreateResponse
+?CartAddResponse
+?CartAddResponse?CartModifyResponse[true/.items = /g1]?CartModifyResponse?CartRemoveResponse[true/.items =    ] /g1 !CartRemove!ItemSearch
+!ItemSearch!ItemSearch?ItemSearchResponse
+?ItemSearchResponse?ItemSearchResponse
+?CartRemoveResponse[true/.items =    ] /g1
+(c)
+Fig. 1. Peer interfaces for (a) Loan Approver, (b)
+Duke’s BookstoreCart,and (c)AmazonECS Client.
+Since this service is a composition of three services, one
+can specify the peer interfaces with three ﬁnite state ma-
+chines. The state machine shown in Figure 1(a) represents
+the behavior of the Loan Approver peer.
+The Duke’s Bookstore: The Duke’s Bookstore scenario
+is taken from the example of the same name in the Java
+EE 5 tutorial [27]. Our study focuses on three of its peers:
+a Catalog service managing the bookstore’s inventory, a
+Cart service taking care of a user’s shopping cart contents
+and manipulations, and a FrontEnd service acting as an
+interface between a client and the bookstore. For example,
+the state machine in Figure 1(b) describes the behavior of
+the Cart peer. In this case, the guarded transitions prevent
+nonsensical requests to be sent by the peers. For example,
+an item can only be deleted from the cart from a preceding
+cart listing. Inthe ﬁrst state of the state machine,thislis ting
+does not precede the getCartrequest, hence the getCart
+3
+
+--- Page 4 ---
+DRAFTtransition in this state is only enabled if the “remove”
+parameters of the message is unspeciﬁed (represented by
+the⊥symbol).
+Amazon ECS: The last example is taken from the Ama-
+zon E-Commerce Service (ECS). The ECS is a free service
+thatexposesAmazon’sproductdata,andprovidesanumber
+of operations to search for items in Amazon’s catalog,
+create and manipulate the contents of a shopping cart that
+can eventually be “checked out” for payment directly on
+Amazon’s web site. Any third-party developer can obtain
+a free Amazon account and create a web application that
+interacts in the background with the ECS, through SOAP
+request-response messages. The documentation of the ECS
+is also publicly available.
+Although each of the shopping cart operations in Ama-
+zon’s ECS is intended as a simple request-response pattern
+of interaction, the semantics of each operation is such
+that theordering of the operations is also important. For
+example, it does not make sense (and is actually an error,
+according to Amazon’s documentation) to add contents to
+a shopping cart if no shopping cart has ﬁrst been created.
+Similarly, one cannot delete an item from a shopping cart
+before adding anything to it. We produced the behavioral
+speciﬁcation shown in Figure 1(c) from the constraints on
+message sequences stated in Amazon’s online documenta-
+tion.
+2.3 Discussion
+While a formal description of message types is generally
+easy to ﬁnd, thanks to the widespread use of WSDL,
+the behavioral part of the speciﬁcation, in the form of a
+state machine, is generally not readily available. In the
+previous examples, we had to peruse the documentation
+of the respective examples, and generate a state machine
+speciﬁcation for each peer by hand; yet, all the information
+to build that state machine was available. For example, the
+shopping cart constraints in Amazon ECS can all be found
+in the online documentation for the web service intended
+for developers. We argue that this interface speciﬁcation
+step does not represent an undue burden for the application
+developer. First, one can see from the examples that the
+state machines are in general small, even for real-world
+examples such as the Amazon ECS. Second, the developer
+ofan applicationshouldbeawareof theprotocolofinterac-
+tion in order to successfully interact with another peer. Fo r
+example, the Amazon ECS returns an error message when
+a client tries to modify an empty cart. Hence, the required
+useofstate machinespeciﬁcationsinourframeworksimply
+forces the developerto explicitly providea speciﬁcation f or
+a protocol that should anyway be known by the developer,
+and can be seen as an incentive for a good development
+practice.
+In all systems, the communication among the peers is
+done throughasynchronousmessaging. The Loan Approval
+service can process more than one customer application
+at a time; each loan request generates a new session. The
+control logic described above is the same for each ses-
+sion. Similarly, the Duke’s Bookstore can process multipleclients, which each use a different shopping cart instance.
+Finally, the Amazon ECS also serves multiple clients at a
+time. For the cases where multiple sessions are possible,
+our behavioral speciﬁcation is session modular —that is,
+the same behavior is assumed for every session. Therefore,
+one instance of state machine is required to keep track of
+each session individually. Virtually all web services exhi bit
+this behavior; as a matter of fact, the opposite is not ap-
+pealing, since it would require a peer communicating with
+some service to have information about other transactions
+occurring in parallel to correctly interact with it.
+Note that, during the execution of the Loan Approval
+service which generates the above conversation, the input
+queueof eachpeercontainsat most one message.However,
+this may not always be the case. It is easy to write
+speciﬁcations with inﬁnite state spaces where message
+queues grow without a bound. In fact, model checking
+conversationsof asynchronouslycommunicatingﬁnite stat e
+machines is an undecidable problem [22]. In Section 5.2
+we discuss conditions under which asynchronous commu-
+nication (with unboundedmessage queues) can be replaced
+with synchronous communication without changing the
+conversation set generated by the composite web service.
+3 THEPEERCONTROLLER PATTERN
+In this section we present the Peer Controller Pattern
+(PCP), which resolvesthe followingdesign forcesthat aris e
+in the development of reliable composite web services:
+1) To achieveinteroperability,the interface of a peershou ld
+be speciﬁedexplicitlyandshouldserveas abehavioralcon-
+tract, specifying everything other peers need to know about
+a peer to interact with it. The interface of a peer should
+not be affected by the changes in the peer implementation
+that are not relevant to this contract. 2) The application
+logic of a peer should be implemented independent from
+the communication logic handling the asynchronous com-
+munication.Thisseparationis necessaryforstandardizat ion
+of the communication and maintainability of the code.
+3) The implementation should be amenable to automated
+veriﬁcation.
+By separatingthe applicationlogic from the communica-
+tion component and by requiring the explicit identiﬁcation
+of the peer interfaces, PCP enables the modularveriﬁcation
+approach presented in the next section, and, hence, is an
+instance of design for veriﬁcation [15].
+3.1 Overviewof thePCP
+The class diagram of the PCP is shown in Figure 2. The
+main elements of this pattern are provided by the Java
+package edu.ucsb.cs.pcp , which we brieﬂy review
+below. The classes a developer needs to write are drawn in
+bold. Other classes are helper classes that can be used as
+is, without modiﬁcation. As was discussed previously, the
+proposed pattern is session based. The application logic of
+a peer is the same for each session, and is implemented in
+the ApplicationThread class.
+4
+
+--- Page 5 ---
+DRAFTApplicationThread Communicator
++send(String,Message)
++receive():Message
++setEndpoint(String,int)
++set(Communicator)
+Message
++getField(String)
++toString():String
++parseFromString(String)PeerServlet
++send(SOAPMessage,Endpoint,Endpoint)
++receive():Message
++wrap(Message):SOAPMessage
+ThreadContainer
++putMessage(Message)
++getMessage():Message
++newSession()sessionIdCommunicatonController CommunicationStub CommunicatonMonitor
+MessagePrototype
++accepts(Message):boolean
++instantiate(Guard):Message
++parseFromString(String)edu.cs.ucsb.pcp
+StateMachine
++send(Message):boolean
++receive(Message):boolean
++pickTransition(Direction):Transition
++reset()Transition
++source:int
++target:int
++dir:Direction
++guardExp:TransitionGuard
+Guard
++evaluate(Message):
+booleanTransitionGuard
++Guard:before
++Guard:after
++evaluate(Message,
+Message):boolean
+Fig.2. Class Diagram forthe Peer Controller Pattern
+Communicator: The Communicator is the interface
+specifying the main communication functionalities. It pro -
+vides a send method, which takes a String representation
+of an endpoint (such as an URL) and a Message to send as
+arguments.Similarly,thenextmessageintheinputqueueof
+aCommunicatorcanbefetchedthroughthereceivemethod.
+Communication Controller: This is the ﬁrst implemen-
+tation of the Communicator interface and it is the only one
+performing actual communication with the outside world.
+Since it is tedious to write such a class, we provide a
+servlet implementation (PeerServlet) that uses JAXM in
+asynchronous mode. This helping servlet deals with open-
+ing an asynchronous connection, creating SOAP messages,
+and sending/receiving a SOAP message through the JAXM
+provider. The CommunicationController class extends the
+PeerServlet and implements the Communicator interface.
+The helping servlet is associated with a ThreadContainer
+that contains application thread references indexed by the
+sessionidentiﬁer.Webservicessupportingmultiplesessi ons
+(such as the Amazon ECS) provide a session identiﬁer in
+their messages that can be used to dispatch an incoming
+message to the thread indexed with that session ID.
+CommunicationMonitor: Thisisthesecondimplemen-
+tation of the Communicator interface and its purpose is to
+performruntime enforcement of a peerinterfaceby keeping
+track of the current state of a peer in its state machine.
+When a message is to be sent by a peer, if the transition
+is indeed allowed by the state machine, the monitor calls
+the send method of its linked Communicator and the state
+machine is updated according to the appropriate transition ;
+otherwise, the monitor can either fail an assertion, or repo rt
+an error back to its servlet, or discard the message. The
+monitor ﬁlters incoming messages in the same way, pre-
+venting messages that are incompatible with the receiver’s
+current state to be consumed.State Machine: This class is a straightforward imple-
+mentation of a state machine, whose transitions are labeled
+with TransitionGuards made of two parts identifying the
+guard and the update conditions for that transition. The
+pickTransition method is used for selecting a transition th at
+is consistent with the current state.
+Communication Stub: The CommunicationStub is the
+third implementation of the Communicator interface. It
+is used during the static interface veriﬁcation stage and
+enables veriﬁcation of each peer in isolation. Like the
+monitor, the stub updates an internal state machine and
+ﬁlters outgoing messages. However, the stub does not
+relay these messages to another communicator, nor does it
+fetch incoming messages from an external source. Instead,
+calling its receive method makes it randomly pick a receive
+transition(usingtheStateMachine’spickTransitionmeth od)
+from its current state, and generate a message that fulﬁlls
+the guard conditions on this transition. This way, the stub
+can simulate the outside world based on the behavioral
+interface deﬁnition.
+Messages and Prototypes: The peers interact with each
+other with messages implementing the Message interface.
+A Message must be constructable from a String represen-
+tation, and must support a way of fetching values from a
+query string using the getField method. Depending on the
+particularmessage implementation,the syntaxandmeaning
+of query strings will vary.
+Eachmessageinstanceisexpectedtofollowadescription
+of its structure called a MessagePrototype. The Communi-
+cationMonitor uses a prototype’s accepts method to check
+whethera givenmessagefollowsitsexpectedstructure.The
+CommunicationStub’s receive method uses the prototype’s
+instantiate method to generate a message that fulﬁlls both
+the prototype, and the additional conditions expressed by
+the guard forthe transition it picked.This way, the stub can
+not only choose a transition, but also generate a realistic
+5
+
+--- Page 6 ---
+DRAFTinstance of a message for that transition.
+MSL Package: In addition to these basic classes, we
+developed a companion package, edu.cs.ucsb.pcp.msl, pro-
+viding implementations for the Messages and MessagePro-
+totype, and Guard where messages and conditions over
+messages are expressed in the Model Schema Language
+described earlier. MSL Guards are conjunctions of indi-
+vidual conditions of the form element = value. Nested
+elements of a message can be fetched using a period;
+for example, to specify that the Operation element in
+an ItemSearchResponse message is not null, one writes
+!ItemSearchResponse.Operation=null.Anadditionalfron t-
+end is provided to convert MSL messages to/from their
+XML equivalents.
+3.2 Semantics ofCompositeWeb Services
+In this section we formalize the semantics of the composite
+web services developed based on the PCP. We use the
+interface of a peer as the speciﬁcation of its behavior.
+This semantic deﬁnition is the formal model we use during
+behavior veriﬁcation. We omit the guard and update con-
+ditions in the semantic model to simplify our presentation.
+However, it is easy to extend the model below to handle
+guard and update conditions by adding the control data for
+the messages to the model. In fact, as long as the control
+data is of ﬁnite domain, one can model the semantics of a
+composite web service with guard and update conditions
+using the semantic model given below by storing the
+contents of the messages in the states of the ﬁnite state
+machines.
+Inoursemanticmodel,acompositewebserviceisatuple
+W= (M, P 1, . . . , P k).Mis a ﬁnite set of message types
+andPiis the interface of the peer i, where 1≤i≤k
+andkis the number of peers in the composition. For
+eachm∈M,sender (m)∈ {P1, . . . , P k}andreceiv-
+er(m)∈ {P1, . . . , P k}denote the peers that send and
+receive the message m, respectively. We assume that there
+is one sender and one receiver for each message type.
+Each peerinterface Pi= (SPi, TP i, IPi, FP i)is a ﬁnite
+state machine specifying the behavior of the peer i.SPiis
+the set of states, IPi∈SPiis the initial state, and FPi⊆
+SPiis the set of ﬁnal states. The transition relation TPiis
+deﬁned as follows. Let m∈Mandr1, r2∈SPi. Each t∈
+TPiis in the form of t= (r1,!m, r2)wheresender (m) =
+Pi, ort= (r1,?m, r2)wherereceiver (m) =Pi.
+Note that the peer interface is the semantic model for the
+state machines used by the CommunicationMonitorand the
+CommunicationStub.Althoughwe use ﬁnite state machines
+in this semantic model, a different representation can also
+be used as long as it implements the Communicator inter-
+face. Therefore, our veriﬁcation approach can in principle
+be used with other languages, such as propositional and
+ﬁrst-order temporal logics [19], [24], and choreography
+languages such as Let’s Dance [18].
+The semantics of a composite web service is a transition
+system T(W) = ( IT, ST, RT )where STis the set of
+states, IT⊆STis the set of initial states, and RTis thetransition relation of the system. The set of states is deﬁne d
+asST=SP1×Q1×· · ·× SPk×Qkwhere kis the number
+of peers in the composition and Qiis the conﬁguration of
+the message queue that holds the incoming messages to
+peerPifor1≤i≤k.
+We introduce the following notation. Given a state s∈
+STand a peer identiﬁer i,s(SPi)denotes the state of
+the peer Piin state s, ands(Qi)denotes the conﬁguration
+of input queue Qiin state s. We deﬁne two functions.
+The function append :DOM(Q)×DOM(Q)→DOM(Q)is
+used for manipulation of the queue conﬁgurations, where
+append (Q1, Q2)appends Q1to the front of Q2. The
+functionﬁrstreturns the ﬁrst element in the Q./an}bracketle{t/an}bracketri}htdenotes
+an empty queue and /an}bracketle{tm/an}bracketri}htwhere m∈Mdenotes a queue
+containing a single message m.
+The set of initial states of T(W)is deﬁned as IT=
+{s|s∈ST∧(∀1≤i≤k, s(Qi) =/an}bracketle{t/an}bracketri}ht ∧s(SPi) =IPi)}
+We deﬁne the following relation for a send operation:
+RT(r,!m,r′)={(s, s′)|s, s′∈ST∧(∃1≤i≤k,
+(r,!m, r′)∈TPi∧s(SPi) =r∧s′(SPi) =r′
+∧(∀1≤j≤k, j/ne}ationslash=i, s′(SPj) =s(SPj)))
+∧receiver (m) =Pp∧s′(Qp) =append (s(Qp),/an}bracketle{tm/an}bracketri}ht)
+∧(∀1≤l≤k, l/ne}ationslash=p, s′(Ql) =s(Ql))}
+We deﬁne the following relation for a receive operation:
+RT(r,?m,r′)={(s, s′)|s, s′∈ST∧(∃1≤i≤k,
+(r,?m, r′)∈TPi∧s(SPi) =r∧s′(SPi) =r′
+∧(∀1≤j≤k, j/ne}ationslash=i, s′(SPj) =s(SPj))
+∧ﬁrst(s(Qi)) =m∧append (/an}bracketle{tm/an}bracketri}ht, s′(Qi)) =s(Qi)
+∧(∀1≤l≤k, l/ne}ationslash=i, s′(Ql) =s(Ql)))}
+The transition relation RTfor the T(W)is deﬁned as
+RT=/uniontext
+(r,!m,r′)∈TPi,1≤i≤kRT(r,!m,r′)
+∪/uniontext
+(r,?m,r′)∈TPi,1≤i≤kRT(r,?m,r′)
+An execution sequence e=s0, s1, ...is a ﬁnite se-
+quence of states where (si, si+1)∈RTands0∈
+IT. The conversation conv(e)generated by an exe-
+cution sequence eis deﬁned recursively as follows:
+The conversation conv(s0)is the empty sequence.
+The conversation conv(s0, s1, ..., s n, sn+1)is equal to
+conv(s0, s1, ..., s n), mif there exists Qjsuch that
+sn+1(Qj) =append (sn(Qj),/an}bracketle{tm/an}bracketri}ht), and it is equal to
+conv(s0, s1, ..., s n)otherwise. A conversation is a com-
+plete conversation if in the last state of the execution
+sequence each peer is in a ﬁnal state and all the message
+queues are empty.
+4 ANASSUMEGUARANTEE VERIFICATION
+STRATEGY FOR THE PCP
+In this section we present a modular veriﬁcation approach
+for composite web services implemented based on the Peer
+Controller Pattern (PCP). Our approach follows assume-
+guarantee style reasoning where the veriﬁcation process is
+6
+
+--- Page 7 ---
+DRAFTdivided to interface conformance and behavior veriﬁcation
+phases. The propertiesveriﬁed duringthe behaviorveriﬁca -
+tion phase hold for the composite web service if each peer
+behaves according to its interface, and this assumption is
+checked during the interface veriﬁcation phase.
+4.1 Interface Conformance
+During the interface veriﬁcation phase we check that each
+peer implementation conforms to its interface —which
+deﬁnesthe orderthat a peercan send and receivemessages.
+A peer implementation conforms to its interface if all
+the call sequences to the Communicator are accepted by
+the ﬁnite state machine deﬁning the peer interface. For
+example, in the Loan Approval service, the LoanApprover
+peer should not send a checkmessage before getting a loan
+request with a large amount.
+Interface conformance can be ensured in two different
+ways: 1) Statically, by model checking the code of the peer
+communicating with a stub of the actual communication
+component, and making sure that every possible execution
+sequence conforms to the interface. 2) At runtime, by
+having a component dynamically monitor the messages at
+the peer’s interface and block any non-compliant behavior
+on-the-ﬂy.
+4.1.1 SoftwareModel Checking
+A ﬁrst option is to perform static interface veriﬁcation
+directly from a peer’s source code. To this end, we use
+the program checker Java PathFinder (JPF) [13]. JPF
+is an explicit state model checker for Java. It supports
+property speciﬁcations via assertions that are embedded
+in the source code. JPF exhaustively traverses all possible
+execution paths to look for assertion violations. Using JPF ,
+we can check whether a peer implementation generates a
+call sequence that is not allowed by the peer interface.
+As discussed in Section 3, the peer interface is speciﬁed
+by the CommunicationStub which encodes the ﬁnite state
+machine using the StateMachine class. The assertions that
+JPF checks are embedded in the StateMachine class. Since
+these stubs are ﬁnite state machines and abstract the asyn-
+chronous messaging with other peers, the efﬁciency of the
+interface veriﬁcation is improved signiﬁcantly.
+During the interface veriﬁcation, we exploit two types
+of modularity based on the PCP: 1) Peer-modular interface
+veriﬁcation: We check interface conformance for each peer
+in isolation. Thecommunicationand message stubsprovide
+an environment model for each peer enabling us to isolate
+them duringinterface veriﬁcation.This is crucial forthe e f-
+ﬁciency and feasibility of interface veriﬁcation. 2) Sessi on-
+modular interface veriﬁcation: We check the peer imple-
+mentations for a single session. Since, in the PCP, each
+session is independent and does not affect other sessions, i t
+is sufﬁcient to check the peer implementations for a single
+session, which improves the efﬁciency of the veriﬁcation
+further. Note that the semantic model we discussed in
+Section 3.2 is inherently session modular since it consider s
+the semantics of a single session. The communicationcontroller in the PCP implements the session modular
+semanticsbydelegatingmessagestotheappropriatesessio n
+based on the session ID of each incoming message.
+To perform the interface veriﬁcation, the communication
+controller and the message instances are replaced with the
+communication stub and the message stubs by a source-to-
+source transformation. With this transformation, the asyn -
+chronous communication mechanism (which cannot be
+handled by JPF) is abstracted away. However, we still
+need to write a small driver to instantiate the service. The
+reason is that JPF requires standalone programs as input,
+but a peer is a servlet without a main method. The simple
+driver class contains only a main method that consists of
+three statements: 1) instantiating the communicator stub,
+2) instantiating an application thread, and 3) starting the
+application thread. After these steps, the resulting progr am
+is given to JPF to search for interface violations.
+In the program that is given to JPF as input, each send
+action that the application thread performs is directed to
+the send method of the state machine class. This method
+computes the set of next states from the current state. If
+the set of next states is empty, it means that the application
+thread executed an illegal send action and JPF gives an
+assertion violation. Otherwise, the current state is updat ed,
+the previous value and the current value of the message to
+be sent is stored.
+Each receive action performed by the application thread
+is directed to the receive method of the state machine. This
+method computes the set of possible receive transitions
+available in the current state and asserts that this set is no t
+empty. If JPF does not report an assertion violation, this
+means that a receive action is legal at this state. One of
+the receive transitions is chosen nondeterministically an d
+the associated incoming message is returned. All of the
+nondeterministic choices are made using the Verify.random
+function which is a special method of the program checker
+JPF that forces JPF to search every possible choice exhaus-
+tively(i.e.,thisis anexhaustivesearch,notrandomtesti ng).
+4.1.2 Runtime Enforcement
+When performed successfully, static veriﬁcation guarante es
+the conformance of a peer’s implementation to its interface
+speciﬁcation. This is due to the fact that all possible
+execution paths are searched for violations of the state
+machine. However, there are cases where static veriﬁcation
+is not appropriate.
+First, the CommunicationStub used to close the envi-
+ronment assumes that the outside world communicates
+according to the peer interface; therefore, static veriﬁca tion
+will onlyﬁnderrorsthat arecausedbythe peerunderstudy.
+This assumption is reasonable if all peers involved in a
+composite service are statically checked for conformance.
+However,since web services can be dynamicallycomposed
+at runtime, a speciﬁc composition might involve a peer
+whose conformance to its part of the contract is not known
+in advance. In such a case, sequences of messages can
+be sent to a peer that violate the interface deﬁned in
+the CommunicationStub, and can lead that peer into an
+7
+
+--- Page 8 ---
+DRAFTexecution path that was not explored by JPF for that very
+reason.
+Second, there exist situations where static veriﬁcation of
+a peer is not possible. This can be due to the complexity of
+the peer’s source code, which makes exhaustive analysis of
+its execution paths intractable. Moreover, while the Com-
+municationStubcloses a peer’s environmentwith respect to
+its communications, its global environment might still not
+be closed(forexample,if the peerusesa back-enddatabase
+system,whichisacommonscenario),andhenceimpossible
+to verify without furtherabstracting its behavior. For exa m-
+ple, the JPF model checker is unable to handle native code
+and can only verify pure Java programs automatically. So,
+any peer implementation that interacts with a database or
+even writes to a ﬁle cannot be automatically veriﬁed using
+JPF. Such peer implementations would require manually
+written stubs that replace native methods. This results in a
+semi-automated partial search of the state space which can
+be effective in identifying interface violations but canno t
+guarantee interface correctness.
+A complementary approachto static veriﬁcation of inter-
+face conformance is to dynamically monitor the messages
+sent and received by a peer, and enforce the interface
+contract, given as a state machine in the PCP, at runtime.
+Independently of the previous considerations, such runtim e
+enforcement of peer interfaces can also be seen as a
+good practice. As we shall see in Section 5.1, a runtime
+enforcement mechanism incurs only a small processing
+overhead; moreover, when one of the peers violates an
+interface, runtime enforcement acts as a barrier, which wil l
+preventa bad messagefrombeingprocessedbyits receiver,
+or even prevent that message from being sent in the ﬁrst
+place.
+The PCP is designed to support runtime enforcement.
+In Section 3.1, we described the CommunicationMonitor,
+which, while working transparently like the Communica-
+tionController when every peer is well-behaved, can also
+block incoming or outgoing messages that violate a peer
+interface.
+The runtime enforcement mechanism is complementary
+to the static interface veriﬁcation and does not replace the
+need for the software model checking approach discussed
+in the previous section. We eliminate as many interface
+violations as feasible using static interface veriﬁcation and
+then use the runtime enforcement mechanism to block the
+execution of any violations that are not caught during the
+static interface veriﬁcation step. Moreover, our runtime
+enforcement mechanism will not catch an interface error
+that results from a peer terminating in a non-ﬁnal state. It
+is possible to extend runtime enforcement using timeouts
+to identify such problems, howeverthis is not currently im-
+plemented in our runtime enforcement mechanism. Finally,
+in our current implementation of runtime enforcement, we
+assume that the peer interface are deterministic. Runtime
+enforcement of non-deterministic interfaces can be done
+by keeping track of all possible states of the interface.
+As discussed earlier, the handling of runtime interface
+violations can be done in multiple ways, most of which re-sult in blockingthe message, and abortingthe conversation ,
+failing an assertion or terminatingthe executionof the pee r.
+Compensating interface violations at runtime is out of the
+scope of this paper. However, even without compensation,
+runtimeenforcementcanensureinterfaceconformance,and
+isolate a misbehaving peer from affecting other peers.
+4.2 ModularBehaviorVeriﬁcation withthePCP
+The ﬁrst phase of our analysis based on the Peer Controller
+Pattern (PCP) ensures that every peer conforms to its
+interface. During the behavior veriﬁcation phase, assuming
+that the peers behave according to their interfaces, we
+check a set of LTL properties on the global behavior of
+the composite web service using the conversation model.
+This veriﬁcationstrategysolvesthe environmentgenerati on
+problem for the peers (since we can safely substitute the
+interfacemachinesasstubsforpeersbasedontheguarantee
+provided by the interface veriﬁcation and enforcement
+steps) and improves the efﬁciency of the veriﬁcation and,
+hence, makes automated veriﬁcation of realistic web ser-
+vices feasible.
+4.2.1 Bounded Behavior Veriﬁcation
+We use the explicit and ﬁnite state model checker SPIN
+[26] forthe behaviorveriﬁcation.SPIN providesa structur e
+calledchannelwhich is suitable for modeling the asyn-
+chronous messaging among the peers.
+During the behavior veriﬁcation, we use the peer inter-
+faces to characterize the peer behaviors, and ignore the
+peer implementations (since conformance of peer imple-
+mentations to the peer interfaces are checked during the
+interface veriﬁcation step). Recall that, the peer interfa ces
+are actuallyﬁnite state machines(suchastheonesshownin
+Figure1)whicharespeciﬁedusingtheCommunicationStub
+classes (Figure 2). We have implemented a translator that
+takes these state machine speciﬁcations and the message
+stubs as input, and automatically generates a speciﬁcation
+in Promela, which is the input language of SPIN.
+The generated Promela speciﬁcation consists of three
+parts. The ﬁrst part of this speciﬁcation declares the con-
+stants,thetypesandtheglobalchannels.Themessagename
+domain is deﬁned with mtypewhich is the enumerated
+type in Promela. The domains of the control data are
+deﬁned similarly. The message types are declared as type
+constructs ( typedef ) holding the control data values. The
+global variable lastmsg holds the last message transmit-
+ted. This variable is of type message which combines all
+the message types. The global channel variables are the
+asynchronouscommunicationchannelssimulatingthe input
+message queues of the peers. These channels are deﬁned
+to store elements consisting of a message name and a
+message .
+The second part is a set of process type deﬁnitions.
+In Promela, the proctype keyword is used for deﬁning
+concurrent processes. One concurrent process deﬁnition is
+generated for each peer. These deﬁnitions are used for
+deﬁning the behavior of a peer by implementing the state
+8
+
+--- Page 9 ---
+DRAFTmachinespeciﬁedby the CommunicationStub(i.e., the peer
+interface). In the generated code, each process deﬁnition
+has a local variable called state. This variable holds the
+currentstate ofthestate machine.Eachprocessalsohasone
+local variable for each message type it sends or receives.
+The body of each process is a single loop which nondeter-
+ministically chooses an operation to execute depending on
+thestate. At each state, there is a conditional selection
+which chooses a send, a receive or a termination operation
+(which is enabled if the state is a ﬁnal state) to execute.
+During execution, one of the operations whose enabling
+condition is true is selected nondeterministically. The la st
+part is the initblock which instantiates the concurrent
+processes.
+Using this automatically generated speciﬁcation, we can
+check the LTL properties about the global behavior of
+the composite web service using the conversation model.
+The LTL properties are not generated automatically, they
+have to be speciﬁed by the user. An LTL property is
+speciﬁed using the atomic properties, the boolean logic
+operators ( ∧,∨,¬) and the temporal logic operators (G:
+globally, F: eventually, U: until). The atomic properties a re
+predicates on the messages. An example property for the
+Loan Approval service is as follows: “Whenever a request
+message with a largeamountis sent, eventuallyan approval
+message (with accept ﬁeld set to true orfalse) will be sent.”
+4.2.2 Unbounded Behavior Veriﬁcation
+SPIN is a ﬁnite state model checker, and therefore, the
+sizes of the channels need to be bounded. For example,
+in the above speciﬁcation, the sizes of the channels are
+boundedwith the sizeconstant. Boundingthe sizes of the
+communication channels, however, poses a problem since
+the veriﬁcation results only hold as long as the channel
+sizes remain within the set bounds. Hence, bounded veriﬁ-
+cation using SPIN can only give web service developers
+a certain level of conﬁdence—it cannot ensure freedom
+from violations (with respect to the speciﬁed LTL prop-
+erties). On the other hand, the general problem of model
+checkingacompositewebservicewhichusesasynchronous
+communication with unbounded queues is undecidable. A
+technique called the synchronizability analysis can be used
+to identify composite web services where replacing asyn-
+chronouscommunicationwith synchronouscommunication
+does not change the generated conversations [22]. A set of
+sufﬁcient synchronizability conditions on the control ﬂow s
+ofthepeerstatemachinescanbechecked[22],sothatwhen
+these conditions are satisﬁed, the state machines generate
+the same set of conversations under both the synchronous
+and asynchronous communication semantics. Since the
+LTL properties are deﬁned over the conversations, if these
+synchronizability conditions are satisﬁed, the veriﬁcati on
+results obtained using the synchronous semantics also hold
+for the asynchronous semantics. Note that, veriﬁcation of
+a system which consists of synchronously communicating
+ﬁnite state machines is decidable since the state space of
+the composed system is ﬁnite.We implemented the synchronizability analysis based
+on the PCP. Given the communication stubs deﬁning the
+peer interfaces, we automatically check the synchroniz-
+ability conditions by passing the peer interface deﬁnition s
+to a tool called WSAT, which returns a Boolean verdict
+whether the service is synchronizable or not [22]. If the
+composite service is synchronizable,the Promela code with
+synchronous communication semantics is generated. Note
+that, when the synchronizability conditions are not met,
+bounded veriﬁcation can still be used. Our experiments
+in Section 5.2 show how synchronizability analysis greatly
+simpliﬁes the static veriﬁcation of behavioral properties .
+The Promela codegeneratedfora synchronizableservice
+has two differences from our earlier description. First, th e
+queuesizeisﬁxedto0,whichmeansthattheprocessessyn-
+chronize when exchanging messages. The other difference
+is the implementation of the receive operations. Instead of
+inquiringthequeuecontents,themessagesare receivedﬁrs t
+and the appropriate action is performed depending on the
+message type. We need this modiﬁcation because when the
+channel size is 0, the channels do not store messages.
+With the aid of the automated synchronizabilityanalysis,
+we can both reason about the global behavior with respect
+to unbounded queues and improve the efﬁciency of the be-
+haviorveriﬁcation.Since the messages are not buffered,th e
+state space of the speciﬁcation is reduced which can lead
+to a signiﬁcant improvement in the behavior veriﬁcation.
+4.3 Discussion
+In general neither the interface veriﬁcation step nor the
+behavior veriﬁcation step can be done in a sound and com-
+plete manner since automated veriﬁcation of programs and
+communicating ﬁnite state machines are both undecidable
+problems.However,ourmodularassume-guaranteestrategy
+decomposes the veriﬁcation problem to two independent
+steps of interface and behavior veriﬁcation. So, for ex-
+ample, during behavior veriﬁcation if the given behavior
+speciﬁcation is synchronizable, we can achieve sound and
+complete veriﬁcation. The veriﬁed properties will hold for
+any implementation as long as the peer implementations
+obey the interfaces. On the other hand, if a property is
+violated during behavior veriﬁcation, that means that ther e
+exists an implementation that obeys the interfaces and
+violates the property. However, if a behavior speciﬁcation
+is not synchronizable, then all we can achieve is bounded
+veriﬁcation and soundness cannot be guaranteed.
+For interface veriﬁcation, sound and complete veriﬁca-
+tion can only be achieved if the peer implementations are
+ﬁnite state, in which case JPF can terminate its exhaustive
+search.However,formanysystemsthismaynotbethe case
+resultinginaboundedsearchforinterfaceviolations,hen ce,
+soundnesscannotbe guaranteed.On the otherhandruntime
+enforcement mechanism is a complementary approach to
+static interface veriﬁcation that blocks interface violat ions
+at runtime.
+9
+
+--- Page 10 ---
+DRAFTPeer Time (s) Memory (gc) Memory (new)
+CustomerRelations 0.70 15 1,586
+LoanApprover 0.75 25 2,209
+RiskAssessor 0.70 24 1,787
+TABLE 1
+InterfaceVeriﬁcation Performanceforthe Loan
+Approver example
+5 EXPERIMENTS
+We performed a set of experiments on the three examples
+described in Section 2, corresponding to each step of the
+veriﬁcation strategy described in the previous section.
+We ﬁrst tried to verify the whole Loan Approval service
+in a non-modular fashion using JPF, without separating the
+interface and the behaviorveriﬁcation steps. The ﬁrst prob -
+lem isthat JPF cannothandleasynchronouscommunication
+among peers. To overcome this problem, we wrote some
+Java code which simulates the JAXM provider and the
+asynchronous input queues and ran all peers in a single
+JVM. In this simulation, for each peer (aside from the
+application thread) there is a concurrentqueue instance an d
+a thread which is activated whenever a message arrives in
+the queue. We ran JPF on this simulation program for only
+one session. JPF ran out of memory without producing
+a conclusive result. Hence, without using the modular
+approach proposed in this paper, JPF is unable to verify
+properties of the Loan Approval service.
+Thisdemonstratesthatamonolithicveriﬁcationapproach
+is unsuccessful even for small systems. In our experiments
+we evaluate the appropriateness of the proposed modular
+veriﬁcation strategy based on PCP for resolving this prob-
+lem by answering the following questions: 1) Does the
+use of CommunicationStubenable peer-modularautomated
+interface veriﬁcation by closing each peer’s environment
+and how efﬁcient is it? 2) Does the runtime enforcement
+mechanism succeed in blocking interface violations at
+runtime without inducing signiﬁcant overhead? 3) Does
+the use of modular veriﬁcation strategy based on PCP
+enable veriﬁcation of properties about the global exchange
+of messages between peers where monolithic veriﬁcation
+fails?
+5.1 Interface Conformance
+Static Veriﬁcation: During static interface veriﬁcation, we
+used JPF to check whether all the peer implementations
+in the various examples obey their interfaces as described
+in Section 4.1.1. The interface veriﬁcation performance fo r
+the three peers of the Loan Approval example is given in
+Table 1. Memory(gc) givesthe numberof objectsthat have
+beengarbage-collectedduringtherunoftheprogram,while
+Memory (new) is the memory consumption in kilobytes.
+For the Duke’s Bookstore exhaustive interface veriﬁ-
+cation with JPF was not readily possible. The bookstore
+implementationusesa back-enddatabase,bothfortheman-
+agement of the catalog and each instance of the shopping100,000
+States
+Trace length80,000
+60,000
+40,000
+20,000
+0
+0 2 4 6 8 10 12500
+Time (s)
+Trace length400
+300
+200
+100
+0
+0 2 4 6 8 10 12
+Fig. 3. Number of explored states by JPF (left) and
+runningtime(right)fortheCartpeerimplementation in
+the Duke’s Bookstoreexample.
+cart. Therefore, it is not possible to close the environment
+relative to each peerwithout ﬁrst providingadditional stu bs
+for database communications. The same applies to the
+Amazon client, which manipulates shopping cart elements
+based on Amazon’s online catalog.
+However, the deﬁnition of message prototypes can be
+used to simulate a back-end database or catalog. Consider
+for example the prototype for the ItemSearchResponse
+message in Amazon ECS described earlier. By modeling
+the item ASIN and price as two bounded integers, the
+CommunicationStub can generate arbitrary lists of catalog
+elements that reasonably simulate a query to Amazon’s
+actual database. The boundedness of primitive data types
+is readily supported by our framework.
+Yet, since the behavioral interface in these two examples
+contains loops, message traces can be arbitrarily long. In
+addition, any combinationof items and prices is considered
+as a different message and will be explicitly considered
+by JPF. For larger examples, such an approach yields an
+exponential blow-up in the number of states explored.
+As an illustration, we computed the running time and
+number of states visited by JPF for the Cart peer in the
+Duke’s Bookstore example; the results are shown in Figure
+3. These results are computed for data domains of size
+4 (i.e. the catalog simulated by the CommunicationStub
+contains at most 4 different integer values). Even under
+such a restricted simulation, both ﬁgures quickly grow:
+when stopping the simulation at 12 messages exchanged,
+it still takes JPF almost 10 minutes to explore the entire
+statespace.Inaddition,becauseoftheboundedness,bothi n
+terms of data domainsand trace length, the simulation does
+not guarantee that the peer follows its behavioral interfac e
+for all traces with arbitrary values.
+Runtime Enforcement: As explained in Section 4.1.2,
+for the cases such as Duke’s Bookstore and Amazon ECS
+where static interface veriﬁcation is not feasible, runtim e
+enforcement of interfaces can be used as an alternative
+approach. However, unlike the static veriﬁcation approach ,
+which does not require any modiﬁcation to the system
+duringexecution,runtimeenforcementneedsthe communi-
+cation component to monitor the messages at the interface
+of a given peer, in order to block non-compliant behavior.
+Therefore, this method incurs an execution overhead which
+must be taken into accountin the total cost of the approach.
+In our experiments, we use a simple implementation of
+an Amazon ECS client, communicating with a stub of the
+10
+
+--- Page 11 ---
+DRAFTAmazon ECS simulating its shopping cart manipulations.
+A web service running remotely on an Apache web server
+receives the requests, and keeps track of the shopping
+cart on its side. It returns the appropriate responses cor-
+responding to the requests received by the client. On its
+side, the Java client is programmed to generate random
+traces of catalog searches and shopping cart manipulations ,
+and keeps track of the shopping cart contents locally. All
+generatedtracesare semantically sound,i.e. they follow t he
+constraints described earlier. For example, a CartRemove
+operation cannot be randomly chosen by the client if the
+cart is currently empty. All communicationis done through
+standard sockets, using the SOAP protocol over HTTP and
+XML messages following the same structure as the ECS
+documentation prescribes.
+100 random traces of 1,000 requests each were produced
+bytheclient.Forallthesetraces,wecomparedruntimeand
+memoryconsumptionof a plainimplementationofthe ECS
+client using HTTP sockets, with the same implementation,
+sending its messages through the Communicator interface
+before relaying them to the socket. Java’s pseudo-random
+number generator was used with predeﬁned seeds so that
+the same random traces could be reproduced for both
+implementations. All experiments were conducted in the
+Eclipse IDE under Windows XP, on an Intel Quad Xeon
+PC running at 2.66 GHz. Running times and memory
+consumption were recorded as reported by the Java System
+class methods. Figures 4 and 5 show the distribution of
+memory and time overhead incurred by the use of the
+CommunicationController over the 100 message traces.
+The same experiment has been performed on Java peer
+implementations for the two other scenarios shown in this
+paper. The results are summarized in Table 2.1
+A ﬁrst metric to analyze is memory consumption. The
+interface speciﬁcation for each peer is session modular :
+this entails that every session requires its own instance of
+the state machine to keep track of messages pertaining to
+that particular session. According to the formal deﬁnition
+of the PCP in Section 3, each peer controller keeps in
+memory the last instance of each message, along with its
+data parameters; it also stores an explicit representation of
+the ﬁnite state machine, including its states, transitions and
+guards over transitions. The memory consumed averages
+24.1 kilobytes per Communicator.
+A second metric we measured was execution time over-
+head, using the same experimental setting. Again, one can
+see that, due to the small size of the state machines,
+processing overhead is kept to a minimum; whether a
+message is blocked or let through is irrelevant. In some
+cases, the time difference is even below the JVM’s clock
+resolution.
+Moreover, session modularity entails that this processing
+cost per message is constant for a given state machine
+1. The Loan Approver example was statically veriﬁed with Jav a
+PathFinder, and therefore in theory no runtime enforcement is required.
+However, we also measured the overhead of a runtime enforcem ent
+monitor on peers from that example, to have awider range of ex perimental
+data.70
+60
+50
+Frequency
+Overhead (KB)40
+30
+20
+10
+0
+0 10 20 30 40 50 6050
+Frequency
+Overhead (%)40
+30
+20
+10
+0
+0 0.25 0.50 0.75 1.00 1.25
+Fig. 4. Absolute (left) and relative (right) RAM over-
+head forthe AmazonECS Javaclient usingthe PCP.
+3540
+30
+25
+Frequency
+Overhead (ms)20
+15
+10
+5
+0
+0 20 40 60 80 100 120 140 160 180 2002530
+Frequency
+Overhead (%)20
+15
+10
+5
+0
+0 1 2 3 4 5 6 7
+Fig.5. Absolute(left)andrelative(right)timeoverhead
+for theAmazonECS Javaclient using thePCP.
+and does not depend on the number of parallel sessions.
+We recall that sessions are not inter-related —that is, the
+correctnessofeachsessionwithrespecttothepeerinterfa ce
+depends only on the messages exchanged in that session.
+Therefore, each parallel session on a peer requires one
+instance of the CommunicationMonitor, running indepen-
+dently of any other instance. The only overhead associated
+with multiple sessions is the fact that each incoming
+message must be dispatched to one (and only one) monitor
+instance, depending on the session it belongs to. However,
+this ﬁltering must be done by the server code anyway,
+either by passing a session ID as an XML element in
+the messages, or as a cookie in the HTTP request that
+carries this message. The associated cost is negligible, an d
+hence the presence of concurrent sessions is irrelevant to
+the performance overhead per session.
+These ﬁgures allow us to conclude that runtime en-
+forcement is indeed an adequate substitute to static veri-
+ﬁcation for achieving interface conformance. In situation s
+where static veriﬁcation is not possible, the addition of
+a veriﬁcation layer at runtime prevents violations of the
+peer interface from occurring, while imposing a reasonable
+overhead. Typical network latencies for major Internet
+service providers are more than 1,000 times larger than
+the overhead associated with the CommunicationMonitor.2
+5.2 BehaviorVeriﬁcation
+Based on our modular veriﬁcation approach, we veriﬁed
+the global behavior of the Loan Approval service with
+the SPIN model checker using the conversation model. An
+example property we veriﬁed during behavior veriﬁcation
+is the following:“Whenevera requestmessagewith a small
+amount is sent, eventually an approval message accepting
+the loan request will be sent.” The results are shown in
+2. http://www.verizonbusiness.com/about/network/late ncy/
+11
+
+--- Page 12 ---
+DRAFTPeer Memory (KB) Time ( µs)
+CustomerRelations 16.63 (3 %) 0.000 (0 %)
+LoanApprover 33.84 (6 %) 0.000 (0 %)
+RiskAssessor 35.18 (6 %) 0.000 (0 %)
+Catalog 35.18 (6 %) 0.020 (2 %)
+Cart 33.84 (6 %) 0.000 (0 %)
+FrontEnd 16.54 (3 %) 0.000 (0 %)
+Amazon ECS Client 23.53 (1 %) 0.795 (3 %)
+TABLE 2
+Averageoverhead,bothabsoluteandrelative,forPCP
+implementations ofthe threeexamples.
+Scenario Memory (MB) Time (s)
+Loan Approval 2.302 0.015
+Duke’s Bookstore 2.302 0.031
+Amazon ECS 2.40 0.039
+TABLE 3
+Behavior veriﬁcationperformance
+Table 3. During the behavior veriﬁcation, we observed that
+the reachable state space of the Loan Approval system is
+ﬁnite (154 states). Independent of the size of the message
+queues, during any execution, there is at most one mes-
+sage in each queue at any state; therefore, increasing the
+size of message queues did not increase the state space.
+Note that, this experimental observation is not a proof
+of the fact that the results we obtained using bounded
+veriﬁcation will hold for the Loan Approval service when
+unbounded message queues are used. To guarantee this,
+we used synchronizability analysis. Our automated syn-
+chronizability analyzer identiﬁed Loan Approval service a s
+synchronizable. Therefore, we were able to verify Loan
+Approval service using synchronous communication, and
+since this service is synchronizable, the veriﬁcation resu lts
+are guaranteed to hold when unbounded message queues
+are used.
+We applied the same process to the Duke’s Bookstore
+example. We used SPIN to verify the property “Whenever
+agetCartmessage is sent, eventually a cartmessage is
+received”, which was shown to be true in less than one
+tenth of a second. Again, since we were able to verify
+that this model fulﬁlls the synchronizability conditions, the
+results obtained with a queue size of 1 imply that the same
+resultsholdforunboundedqueuesaswell. Finally,we rana
+similar experiment on the Amazon ECS, with the property
+“A CartModify message cannot be issued while the cart is
+empty” and obtained similar results.
+We shall stress that these properties cannot be proved
+by considering a single component, since the interface
+speciﬁcations for both ends of the communication must be
+compatible to ensure any communication at all. Nothing
+prevents the interface at one end to stipulate sending
+message A, while the interface at the other end expects
+message B. Only through model checking of the composite
+system can we be sure that the properties like those above
+are indeed fulﬁlled.5.3 Discussion
+Our experiments show that the modularity in the veriﬁ-
+cation process based on the PCP improves the efﬁciency
+of the veriﬁcation of composite web services signiﬁcantly.
+Simple properties of conversations, which were impossible
+to check with JPF, now become veriﬁable in fractions of
+a second, thanks to the modular decomposition provided
+by the PCP. We can verify asynchronously communicating
+web service implementations using reasonable amount of
+time and memory which are otherwise too large for a Java
+model checker to handle. With the aid of the synchroniz-
+ability analysis, during the behavior veriﬁcation, we can
+reason about the global behaviorwith respect to unbounded
+queues and perform the behavior veriﬁcation efﬁciently.
+Furthermore, the usage of the stubs during the interface
+veriﬁcationcauses a signiﬁcant reductionin the state spac e,
+thus improving the performance of the veriﬁcation process.
+6 RELATEDWORK
+Preliminary results from this paper were reported by Betin-
+Canetal.[10].Thispaperextendstheseearlierresultsby1 )
+discussing the modular veriﬁcation approach we developed
+based on the Peer Controller Pattern and identifying and
+differentiating the types of modularity used in our analysi s
+(i.e., assume-guarantee reasoning used in the behavior
+veriﬁcation and the peer and session modularity used in in-
+terfaceveriﬁcation),2) extendingthe peercontrollerpat tern
+for supporting runtime enforcement and presenting a new
+runtimeenforcementmechanismtoguaranteeinterfacecon-
+formanceatruntime,3)providinganextendedexperimental
+evaluation of the proposed modular veriﬁcation approach,
+and 4) providing an extended discussion on related work
+below.
+Behavior Speciﬁcation: A number of approaches have
+been proposed for describing behaviors of web services
+including standards such as BPEL [2] or WSFL [28], a
+language called DyLOG based on agent theory for reason-
+ing about conversations between services [4], extensions
+of temporal logics for specifying sequential and data de-
+pendencies between messages [19], [24], and a graphical
+choreographydescriptionlanguagecalled Let’sDance [18].
+State machines have been extensively studied for spec-
+ifying behaviors of web services. Fu et al. [22] show
+that other behavioral descriptions (such as BPEL) can be
+translated to state machines. Berardi et al. [8] use state
+machines as behavioral contracts. Unlike our work, their
+goal is to automatically synthesize composite web services .
+Benatallah et al. [7] use statecharts to describe service
+behavior, speciﬁcally to declare a service composition.
+They present a framework for implementing web services
+without addressing veriﬁcation of service interactions.
+None of the earlier results mentioned above,address ver-
+iﬁcation of interactions among web services implemented
+as Java programs. Although analysis of speciﬁcations writ-
+ten in languages such as BPEL is an important research
+direction, it does not eliminate the need to verify web
+service implementations that are developed directly in a
+12
+
+--- Page 13 ---
+DRAFTprogramming language such as Java without using such
+speciﬁcation languages.
+Static Veriﬁcation: There has been earlier attempts
+at applying model checking techniques to veriﬁcation of
+composite web services [3], [21], [22], [29]–[31], [34]
+Unlike these earlier veriﬁcation efforts, we consider the
+correctness of the individual peer implementations as well
+as the veriﬁcation of the global properties of the composite
+web services.
+De Alfaro et al. [17] introduce interface automata to for-
+malize temporal aspects of software component interfaces.
+Later, this formalization is used for specifying interface s
+as a set of constraints and algorithms for interface com-
+patibility checking is presented by Chakrabarti et al. [11] .
+We use ﬁnite state machines to specify interfaces and our
+approachto interfacecheckingcanbe seen asa special case
+of the interface compatibility checking. However, unlike
+Chakrabarti et al., we do not require each method to be
+annotated with interface constraints and also our goal is
+to verify both the controller behavior and conformance to
+interface speciﬁcations.
+Rajamani et al. [32] address the conformance of an
+implementation model to a speciﬁcation for asynchronous
+message passing programs.Unlike the interface veriﬁcatio n
+in our framework, their conformance check requires that
+the actual implementation of the service be modeled in
+the same formalism as the speciﬁcation, so that the two
+can be compared. The PCP works directly on top of the
+actual implementation of a service and does not require
+thisimplementationto beformalizedin anyway.Moreover,
+their approach does not separate the interface and the
+behavior veriﬁcation steps.
+An alternate approach is followed by Rouached et al.
+[33], who map BPEL constructs into equivalent Event
+Calculus (EC) expressions. Properties can then be proved
+statically against the resulting expression,which then ap ply
+directly to the original BPEL code as well. Properties can
+also be monitored at runtime; in such a case, the running
+web service generates events which are used to evaluate
+the EC expression; should the expression evaluate to false,
+a violation of the speciﬁcation is discovered at runtime.
+However,thisapproachislimitedtowebservicescomposed
+with BPEL. In addition, the approach does not suggest the
+use of a behavioral speciﬁcation as a stub to simulate the
+external environment.
+Modular Veriﬁcation and Environment Generation:
+Flanagan et al. [20] present a thread-modular reasoning
+and veriﬁes each thread separately with respect to safety
+properties.Thisissimilartopeer-modularreasoningused in
+ourapproach,however,intheirapproachtheeffectsofothe r
+threads are modeled as environment assumptions whereas
+we use stubs and drivers to reﬂect these effects. Besides,
+wecombinepeer-modularreasoningwithassume-guarantee
+reasoning and check the peer behavior against the interface
+contract and leave the property veriﬁcation to the behavior
+veriﬁcation phase.
+Godefroid et al. [16] convert an open reactive program
+into to a closed program by inserting nondeterminism intothe code and eliminating procedure arguments. Unlike this
+work, we have restrictions on the environment interactions
+caused by controllers via interfaces. Stoller [35] transfo rms
+distributed programs communicating with RMI into one
+program for model checking. Unlike this centralization
+approach, we apply peer-modular model checking, decou-
+ple the remote processes, and reduce the state space. The
+techniques presented by Tkachuk et al. [36] generate envi-
+ronments for software components by using side effect and
+points-to analyses. Although the techniques we discuss for
+isolating peers are similar to these, we base our techniques
+on the behavioral interfaces that are supported by the Peer
+Controller Pattern.
+Use of a design pattern to achieve modular veriﬁcation
+of concurrent programs has been proposed before [9].
+However these earlier results focus on concurrent threads
+accessing shared data using synchronization statements. I n
+this paper, we are focusing on interactions among web
+services and asynchronous communication; therefore, both
+the application domain and the underlying semantic model
+are different.
+Developmenttoolslike JMock allow developersto create
+“mock objects” for Java classes, that are intended to sim-
+ulate the behavior of some external component in order to
+test a class that uses that component. The Communication-
+Stub class deﬁned in our Peer Controller Pattern ﬁts that
+deﬁnition. The process of providing an external object to
+a class under test is called dependency injection . However,
+mocks still need to be implemented manually, while in the
+PCP the formal deﬁnition of the peer interface is sufﬁcient
+for the stub to automatically simulate the environment
+without further manual intervention.
+Runtime Enforcement: A runtime monitoring tool
+called JavaMOP hasbeenpresentedbyHills andRo¸ su [25].
+By treating a servlet as a special type of Java program,
+JavaMOP can be used to perform runtime enforcement
+properties. However, the state machines in JavaMOP do
+not handle guards and conditions on data parameters; to
+this end one must use PTCaRet, an input language derived
+from temporal logic.
+Halle et al. [23] present a runtime monitoring tool for
+Ajax applications, using temporal logic as the speciﬁcatio n
+language;however,thetoolonlyappliesforclient-sideve ri-
+ﬁcationinwebbrowsers,andnottowebservicesingeneral.
+The Runtime Monitoring Language (RTML) has been used
+to specify and monitor properties of web services [5]. Also
+systemsthatturndesign-timeassertionsonthebehaviorof a
+serviceintoruntimecheckshavebeendevelopedbefore[6].
+None of these works use runtime enforcement as a way
+to complement and improve static behavior veriﬁcation.
+Using the same interface speciﬁcation, our Peer Controller
+Pattern can be used either as a runtime monitor, or as a
+communication stub to perform static veriﬁcation of a web
+service.
+7 CONCLUSION
+In this paper, we presented a veriﬁable design pattern for
+developing reliable composite web services. Based on this
+13
+
+--- Page 14 ---
+DRAFTpattern, we developed a modular veriﬁcation approach that
+enables developers to check both the global behaviors of
+the composite web services (behavior veriﬁcation) and the
+conformance of peer implementations to their interfaces
+(interface veriﬁcation). We showed that the global behavio r
+of a composite web service can be veriﬁed using the
+SPIN model checker, by automatically translating the peer
+interfaces to a Promela speciﬁcation. By adapting the
+synchronizability analysis proposed in [22], we veriﬁed
+conversations of composite web services with respect to
+unbounded queues and improved the efﬁciency of the
+behavior veriﬁcation. We showed that bounded interface
+veriﬁcationcanbeperformedwiththeprogramcheckerJPF
+using the peer interfaces as stubs for the communication
+component. Since these stubs are ﬁnite state machines and
+abstract the asynchronous messaging, they improve the
+efﬁciency of the interface veriﬁcation. We also presented a
+runtime enforcement mechanism that can prevent interface
+violations without incurring signiﬁcant overhead. Anothe r
+beneﬁt of the presented approach is the explicit speciﬁca-
+tion of the peer interfaces, which can be used to improve
+interoperability.
+REFERENCES
+[1] Amazon.com Q4 2007 earnings call transcript.
+[2] T. Andrews, F. Curbera, H. Dholakia, Y. Goland, J. Klein, F. Ley-
+mann, K. Liu, D. Roller, D. Smith, S. Thatte, I. Trickovic, an d
+S. Weerawarana. Business process execution language for we b
+services, version 1.1, 2003.
+[3] J. Arias-Fisteus, L. S. Fernández, and C. D. Kloos. Apply ing model
+checking to BPEL4WS business collaborations. In Proceedings of
+the 2005 ACM Symposium on Applied Computing , pages 826–830,
+2005.
+[4] M. Baldoni, C. Baroglio, A. Martelli, and V. Patti. Reaso ning about
+interaction protocols for web service composition. Electr. Notes
+Theor. Comput. Sci. , 105:21–36, 2004.
+[5] F. Barbon, P. Traverso, M. Pistore, and M. Trainotti. Run -time
+monitoring of instances and classes of web service composit ions.
+InProceedings of the 2006 IEEE International Conference on We b
+Services, pages 63–71, 2006.
+[6] L. Baresi, D. Bianculli, C. Ghezzi, S. Guinea, and P. Spol etini.
+Validation of web service compositions. IET Software , (6):219–232,
+2007.
+[7] B. Benatallah, Q. Z. Sheng, A. H. H. Ngu, and M. Dumas. Decl ar-
+ative composition and peer-to-peer provisioning of dynami c web
+services. In Proceedings of the 18th International Conference on
+Data Engineering , pages 297–308, 2002.
+[8] D. Berardi, D. Calvanese, G. D. Giacomo, M. Lenzerini, an d
+M. Mecella. Automatic composition of e-services that expor t their
+behavior. In Proceedings of the First International Conference on
+Service-Oriented Computing , pages 43–58, 2003.
+[9] A. Betin-Can and T. Bultan. Veriﬁable concurrent progra mming
+using concurrency controllers. In Proceedings of the 19th IEEE
+International Conference on Automated Software Engineeri ng, pages
+248–257, 2004.
+[10] A. Betin-Can, T. Bultan, and X. Fu. Design for veriﬁcati on for
+asynchronously communicating web services. In Proceedings of the
+14th international conference on World Wide Web , pages 750–759,
+2005.
+[11] D. Beyer, A. Chakrabarti, and T. A. Henzinger. Web servi ce
+interfaces. In Proceedings of the 14th International Conference on
+World Wide Web , pages 148–159, 2005.
+[12] D.Brand and P.Zaﬁropulo. Oncommunicating ﬁnite-stat e machines.
+J. ACM, 30(2):323–342, 1983.
+[13] G. Brat, K. Havelund, S. Park, and W. Visser. Java Pathﬁn der:
+Second generation of a Java model checker. In Proceedings of the
+Workshop on Advances in Veriﬁcation , 2000.[14] A. Brown, M. Fuchs, J. Robie, and P. Wadler. MSL: a model f or
+W3C XML Schema. In Proceedings of the 10th International World
+Wide Web Conference , pages 191–200, 2001.
+[15] T. Bultan and A. Betin-Can. Scalable software model che cking
+using design for veriﬁcation. In Veriﬁed Software: Theories, Tools,
+Experiments, Proceedings of the IFIP TC 2/WG 2.3 Conference ,
+volume 4171, pages 337–346, 2005.
+[16] C. Colby, P. Godefroid, and L. J. Jagadeesan. Automatic ally closing
+open reactive programs. In Proceedings of the ACM SIGPLAN ’98
+Conference on Programming Language Design and Implementat ion,
+pages 345–357, 1998.
+[17] L.deAlfaro and T.A.Henzinger. Interface automata. In Proceedings
+of the 8th European Software Engineering Conference held jo intly
+with 9th ACM SIGSOFT International Symposium on Foundation s
+of Software Engineering , pages 109–120, 2001.
+[18] G. Decker, J. M. Zaha, and M. Dumas. Execution semantics for
+service choreographies. In Proceedings of the 3rd International
+Workshop on Web Services and Formal Methods , pages 163–177,
+2006.
+[19] A. Deutsch, L. Sui, V. Vianu, and D. Zhou. Veriﬁcation of
+communicating data-driven web services. In Proceedings of the
+25th ACM SIGACT-SIGMOD-SIGART Symposium on Principles of
+Database Systems , pages 90–99, 2006.
+[20] C. Flanagan and S. Qadeer. Thread-modular model checki ng. In
+Proceedings of the 10th International SPIN Workshop , pages 213–
+224, 2003.
+[21] H. Foster, S. Uchitel, J. Magee, and J. Kramer. Model-ba sed
+veriﬁcation of web service compositions. In Proceedings of the 18th
+IEEE International Conference on Automated Software Engin eering,
+pages 152–163, 2003.
+[22] X. Fu, T. Bultan, and J. Su. Synchronizability of conver sations
+among web services. IEEE Trans. Software Eng. , 31(12):1042–1055,
+2005.
+[23] S. Hallé and R. Villemaire. Browser-based enforcement of interface
+contracts in web applications with BeepBeep. In Proceedings of
+the 21st International Conference on Computer Aided Veriﬁc ation,
+pages 648–653, 2009.
+[24] S. Hallé, R. Villemaire, and O. Cherkaoui. Specifying a nd validating
+data-aware temporal web service properties. IEEE Transactions on
+Software Engineering , 35(6), November/December 2009.
+[25] M. Hills and G. Rosu. A rewriting approach to the design a nd
+evolution of object-oriented languages. In Companion to the 22nd
+Annual ACM SIGPLAN Conference on Object-Oriented Program-
+ming, Systems, Languages, and Applications , pages 827–828, 2007.
+[26] G. J. Holzmann. The SPIN Model Checker: Primer and Reference
+Manual. Addison-Wesley Professional, 2003.
+[27] E. Jendrock, J. Ball, D. Carson, I. Evans, S. Fordin, and K. Haase.
+The Java EE 5 Tutorial, Third Edition . Prentice Hall, 2006.
+[28] F.Leymann. Web services ﬂow language (WSFL),version 1 .0,2001.
+http://www306.ibm.com/software/solutions/webservice s/pdf/WSFL.pdf.
+[29] N. Lohmann, P. Massuthe, C. Stahl, and D. Weinberg. Anal yzing
+interacting BPEL processes. In Proceedings of the 4th International
+Conference on Business Process Management , pages 17–32, 2006.
+[30] S. Nakajima. Veriﬁcation of web service ﬂows with model -checking
+techniques. In Proceedings of International Symposium on Cyber
+Worlds, page 0378, 2002.
+[31] S. Narayanan and S. A. McIlraith. Simulation, veriﬁcat ion and
+automated composition of web services. In Proceedings of the 11th
+International World Wide Web Conference , pages 77–88, 2002.
+[32] S. K. Rajamani and J. Rehof. Conformance checking for mo dels of
+asynchronous message passing software. In Proceedings of the 14th
+International Conference on Computer Aided Veriﬁcation , pages
+166–179, 2002.
+[33] M. Rouached, O. Perrin, and C. Godart. Towards formal ve riﬁcation
+of web service composition. In Proceedings of the 4th International
+Conference on Business Process Management , pages 257–273, 2006.
+[34] B.-H. Schlingloff, A. Martens, and K. Schmidt. Modelin g and model
+checking web services. Electr. Notes Theor. Comput. Sci. , 126:3–26,
+2005.
+[35] S. D. Stoller and Y. A. Liu. Transformations for model ch ecking
+distributed Java programs. In Proceedings of the 8th International
+SPIN Workshop , pages 192–199, 2001.
+[36] O. Tkachuk, M. B. Dwyer, and C. S. Pasareanu. Automated
+environment generation forsoftware modelchecking. In Proceedings
+of the 18th IEEE International Conference on Automated Soft ware
+Engineering , pages 116–129, 2003.
+14

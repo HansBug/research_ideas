@@ -1,0 +1,1681 @@
+--- Page 1 ---
+Weighted Pushdo wnSystems andtheir Application to
+Inter procedural Dataﬂo wAnalysis
+
+Thomas Reps
+
+,StefanSchw oon
+
+,andSomesh Jha
+
+Comp. Sci.Dept., University ofWisconsin;
+reps,jha@cs.wisc.edu
+Fakult ¨atInf., Universit¨atStuttgart; schw oosn@informatik.uni-stuttgart.de
+Abstract. Recently ,pushdo wnsystems (PDSs) havebeen extended toweighted PDSs ,in
+which each transition islabeled with avalue, andthegoal istodetermine themeet-o ver-all-
+paths value (forpaths thatmeet acertain criterion). This paper showshowweighted PDSs
+yield newalgorithms forcertain classes ofinterprocedural dataﬂo w-analysis problems.
+1Introduction
+This paper explores aconnection between interprocedural dataﬂo wanalysis andmodel
+checking ofpushdo wnsystems (PDSs). Various connections between dataﬂo wanalysis
+andmodel checking havebeen established inpastwork,e.g., [6,9,23,27,28];however,
+with oneexception ([9]), past workhasshed light only ontherelationship between
+model checking andbit-vector dataﬂo w-analysis problems, such aslive-variable anal-
+ysisandpartial-redundanc yelimination. Incontrast, theresults presented inthispaper
+apply to(i)bit-v ector problems, (ii)theonenon-bit-v ector problem addressed in[9],as
+well as(iii)certain dataﬂo w-analysis problems thatcannot beexpressed asbit-v ector
+problems, such aslinear constant propagation. Ingeneral, theapproach canbeapplied
+toanydistrib utivedataﬂo w-analysis problem forwhich thedomain oftransfer functions
+hasnoinﬁnite descending chains. (Safe solutions arealso obtained forproblems that
+aremonotonic butnotdistrib utive.)
+The paper makesuseofarecent result thatextends PDSs toweighted PDSs ,in
+which each transition islabeled with avalue, andthegoal istodetermine themeet-
+over-all-paths value (forpaths thatmeet acertain criterion) [25]. Thepaper showshow
+weighted PDSs yield newalgorithms forcertain classes ofinterprocedural dataﬂo w-
+analysis problems. These ideas areillustrated bytheapplication ofweighted PDSs to
+linear constant propagation.
+Thecontrib utions ofthepaper canbesummarized asfollo ws:
+–Conventional dataﬂo w-analysis algorithms mergetogether thevalues forallstates
+associated with thesame program point, regardless ofthestates’ calling conte xt.
+Withthedataﬂo w-analysis algorithm obtained viaweighted PDSs, dataﬂo wqueries
+canbeposed with respect toaregular language ofstack conﬁgurations. Conven-
+tional mergeddataﬂo winformation canalso beobtained byissuing appropriate
+queries; thus, thenewapproach provides astrictly richer frame workforinterproce-
+dural dataﬂo wanalysis than isprovided byconventional interprocedural dataﬂo w-
+analysis algorithms.
+–Because thealgorithm forsolving path problems inweighted PDSs canprovide a
+witness setofpaths, itispossible toprovide anexplanation ofwhy theanswer toa
+dataﬂo wquery hasthevalue reported.
+Thealgorithms described inthepaper havebeen implemented inalibrary thatsolves
+reachability problems onweighted PDSs [24]. Thelibrary hasbeen used tocreate proto-
+type implementations ofconte xt-sensiti veinterprocedural dataﬂo w-analysis algorithms
+forlinear constant propagation [22] andthedetection ofafﬁnerelationships [16]. TheSupported byONR contract N00014-01-1-0708.
+
+--- Page 2 ---
+library isavailable ontheInternet, andmay beused bythird parties inthecreation of
+dataﬂo w-analysis tools.
+Theremainder ofthepaper isorganized asfollo ws:Section 2introduces terminol-
+ogyandnotation used inthepaper ,anddeﬁnes thegeneralized-pushdo wn-re achab ility
+(GPR) frame work. Section 3presents thealgorithm from [25] forsolving GPR prob-
+lems. Section 4presents thenewcontrib ution ofthispaper —the application oftheGPR
+frame worktointerprocedural dataﬂo wanalysis. Section 5discusses related work.Ap-
+pendix Adescribes anenhancement tothealgorithm from Section 3togenerate awit-
+ness setforananswer toaGPR problem.
+2Terminology andNotation
+Inthissection, weintroduce terminology andnotation used inthepaper .
+2.1 Pushdo wnSystems
+Apushdo wnsystem isatransition system whose states involveastack ofunbounded
+length.
+Deﬁnition 1.Apushdo wnsystem isatriple 
+	 ,wher e and 	areﬁnite
+setscalled thecontr ollocations andthestack alphabet ,respectively .Aconﬁguration
+of isapair  ,wher e  and 	 . contains aﬁnite number ofrules
+oftheform  "! #$&%'
+ ,wher e ('&%)* , *	 ,and +*	 ,whic hdeﬁne a
+transition relation ,between conﬁgur ations of asfollows:
+If -.(/)! #$
+0%1
+ ,then 23%465879 :;,$
+&%'
+<3%= forall 3% >	 .
+Wewrite?@,$A?
+%toexpressthat thereexists some rule-suchthat?
+5B7C9;:,D$E?
+%;we
+omit theindexifisunder stood. Thereﬂexivetransitive closur eof,isdenoted by,F.Given asetofconﬁgur ationsG,wedeﬁneH&I
+J:K1G.LM+N?O%"PRQS?GTL0?O%U,FV?XW
+andHRY[Z]\
+G^LM_N?
+%PXQS?`aGbL2?@,
+?
+%Wtobethesetsofconﬁgur ations that are
+reachable—bac kwar dsandforwar ds,respectively—fr omelements of Gviathetransi-
+tionrelation.
+Without lossofgenerality ,weassume henceforth thatforevery (/)! #c/%d we
+have P eP(fhg ;thisisnotrestricti vebecause everypushdo wnsystem canbesimulated
+byanother onethatobeysthisrestriction andislargerbyonly aconstant factor; e.g.,
+see[13].
+Because pushdo wnsystems haveinﬁnitely manyconﬁgurations, weneed some
+symbolic means torepresent sets ofconﬁgurations. Wewill useﬁnite automata for
+thispurpose.
+Deﬁnition 2.Leth
+	 beapushdown system. A-automaton isaquintuplei1j
+	C#k 
+lV wher ejEmn isaﬁnite setofstates ,#poqjAr>	hrsj istheset
+oftransitions ,andloj aretheﬁnal states .Theinitial states of
+iarethecontr ol
+locations.Aconﬁgur ation isaccepted by
+iifut
+vwv#x forsome ﬁnal statex.
+Asetofconﬁgur ations ofisregular ifitisrecognized bysome-automaton. (We
+frequently omit thepreﬁx andsimply referto“automata” if isunder stood.)
+Aconvenient property ofregular setsofconﬁgurations isthattheyareclosed un-
+derforw ards andbackw ards reachability .Inother words, givenanautomaton
+ithat
+accepts theset G,onecanconstruct automata
+izy|{~}
+and
+iythataccept H2I
+JKG
+and HYZ]\
+G,respecti vely.Thegeneral idea behind thealgorithm for H&I
+J: [3,8]isas
+follo ws:
+
+--- Page 3 ---
+Letp '	 Ce beapushdo wnsystem and
+icj	 ]#
+
+lV bea-
+automaton accepting asetofconﬁgurationsG.Without lossofgenerality weassume
+that
+ihasnotransition leading toaninitial state.H2I
+J;G isobtained asthelanguage
+ofanautomaton
+iy|{~} j	 ]#q
+lV derivedfrom
+ibyasaturation procedure.
+Theprocedure adds newtransitions to
+iaccording tothefollo wing rule:
+If ( ! # &%'
+ and0% t
+vwv#F xinthecurrent automaton, addatransitionU
+xK .
+In[8]anefﬁcient implementation ofthis procedure isgiven,which requiresP j P
+P >P time and
+P j P|P >PaP #
+P space. Moreo ver,another procedure (and im-
+plementation) arepresented forconstructing a -automaton thataccepts HYZ]\
+1G.In
+Section 3,wedevelop generalizations ofthese procedures. (Wepresent these extensions
+for H&IJ[;thesame basic idea applies to HRY[Z]\
+,butisomitted forlack ofspace.)
+2.2 Weighted Pushdo wnSystems
+Aweighted pushdo wnsystem isapushdo wnsystem whose rules aregivenvalues from
+some domain ofweights. Theweight domains ofinterest arethebounded idempotent
+semirings deﬁned inDeﬁnition 3.
+Deﬁnition 3.Abounded idempotent semiring isaquintuple s 
+	  ,wher eisaset, and areelements of ,and (thecombine operation) and 	(theextend
+operation) arebinary operatorsonsuchthat
+1. s. isacommutative monoid with asitsneutr alelement, and wher e is
+idempotent (i.e.,forall  ,  ).
+2.s	. isamonoid with theneutr alelement.
+3.	distrib utesover,i.e.forall&
+
+? wehave	k ?  h	 k	 ?  andO	 ?<	 ? a	 ?  
+4.isanannihilator with respect to	,i.e.,forall ,	!V"#	 .
+5.Inthepartial order$deﬁned by:%&&' s($) iff*!+ ,thereareno
+inﬁnite descending chains.
+Deﬁnition 4.Aweighted pushdo wnsystem isatriple, w .-3'// suchthat'
+	 isapushdown system,-Fs 
+	 'R isabounded idempotent semiring ,
+and/L0A#0 isafunction thatassigns avalue fromtoeachruleof.
+Let1a beasequence ofrules. Using/,wecanassociate avalue to1,i.e.,
+if1k32 -
+4|-6587 ,then wedeﬁne921  LM:/U=-
+;	<=	!/U=-85 .Moreo ver,forany
+twoconﬁgurations?and?
+%of,weletH>@?.A(?[
+?
+%denote thesetofallrulesequences2 -
+4 -65B7thattransform ?into ? %,i.e., ? 587C9 ]R ,EDD4Da5B7FO9  R|, ?O%
+Deﬁnition 5.Given aweighted pushdown system , hw G-'// ,wher e '
+	 ,
+andaregular set GEoFr@	 ,thegeneralized pushdo wnreachability (GPR) prob-
+lemistoﬁndforeach ?d Er 	
+:
+– HS'?  LMJI N921  PK1T^H>@?.AX'?K
+?
+%]?
+%sG W;
+–awitness setofpaths L3'? "o MNPORQTS
+H&@?.A?[
+? %8suchthatIU
+QKVXWYNPZ
+921 "HS'? .
+Notice thattheextender operation 	isused tocalculate thevalue ofapath. The
+value ofasetofpaths iscomputed using thecombiner operation .Ingeneral, itis
+enough for L3'?| tocontain only aﬁnite setofpaths whose values areminimal elements
+of N921 .P[1 `H>@?.A'?[?O%4] ?O%)*G W,i.e.,minimal with respect tothepartial order $
+deﬁned inDeﬁnition 3(5).
+
+--- Page 4 ---
+3Solving theGeneralized Pushdo wnReachability Problem
+This section presents thealgorithm from [25] forsolving GPR problems.
+Fortheentire section, let,denote aﬁxedweighted pushdo wnsystem:, w G-'// ,where  
+	 and- s
+ 	  ;letGdenote aﬁxedreg-
+ularsetofconﬁgurations, represented bya-automaton
+i61j
+	C#
+
+lV such
+that
+ihasnotransition leading toaninitial state.
+The GPR problem isamulti-tar getmeet-o ver-all-paths problem onagraph. The
+vertices ofthegraph aretheconﬁgurations of,andtheedges aredeﬁned by’s
+transition relation. Thetargetvertices arethevertices in G.Both thegraph andtheset
+oftargetvertices canbeinﬁnite, buthavesome built-in structure tothem; inparticular ,Gisaregular set.
+Because theGPR problem concerns inﬁnite graphs, andnotjustaninﬁnite setof
+paths, itdiffersfrom other workonmeet-o ver-all-paths problems. Asintheordinary
+pushdo wn-reachability problem [3,8],theinﬁnite nature ofthe(GPR) problem isad-
+dressed byreporting theanswer inanindirect fashion, namely ,intheform ofan(anno-
+tated) automaton. Ananswer automaton without itsannotations isidentical toan
+iey|{}
+
+automaton created bythealgorithm of[8].Foreach?>FH&I
+J:K1G ,thevalues ofHS'?|
+andL3'? canberead offfrom theannotations byfollo wing allaccepting paths for?in
+theautomaton; for? @H2I
+J[G ,thevalues ofHS? andL3? areand,respecti vely.
+Thealgorithm ispresented inseveralstages:
+–Weﬁrstdeﬁne alanguage thatcharacterizes thesequences oftransitions thatcan
+bemade byapushdo wnsystemandanautomaton
+iforG.
+–Wethen turn toweighted pushdo wnsystems andtheGPR problem. Weusethe
+language characterizations oftransition sequences, together with previously known
+results onacertain kind ofgrammar problem [15,17]toobtain asolution tothe
+GPR problem.
+–However,thesolution based ongrammars issome what inefﬁcient; toimpro vethe
+performance, wespecialize thecomputation toourcase, ending upwith analgo-
+rithm forcreating anannotated automaton thatisquite similar totheH&I
+J
+algorithm
+from [8].
+3.1 Languages that Characterize Transition Sequences
+Inthissection, wemakesome deﬁnitions thatwillaidinreasoning about thesetofpaths
+thatlead from aconﬁguration ?toconﬁgurations inaregular set G.Wecallthissetthe
+reachability witnesses for ?d>Tr	 with respect to G:Reac habilityW itnesses ?[G M
+NO
+QTSH>@?.A'?[?O%8 .
+Itisconvenient tothink ofPDS and -automaton
+i(for G)asbeing combined in
+sequence, tocreate acombined PDS, which wewillcall 
+i. 
+i’sstates are  j j,anditsrules arethose of,augmented with arulex  )! # 'x;%] foreach transitionx
+v# x[%in
+i’stransition set#
+.
+Wesaythataconﬁguration?s  (
+
+4
+	R isaccepted by
+iifthere isa
+path toaconﬁguration'x0] such thatx>l .Note thatbecause
+ihasnotransitions
+leading toinitial states,
+i’sbeha viorduring anaccepting runcanbedivided intotwo
+phases—transitions during which
+imimics,follo wed bytransitions during which
+imimics
+i:once 
+ireaches astate in j
+vV,itcanonly perform asequence of
+pops, possibly reaching astate in l.Iftherunof 
+idoes reach astate in l,interms
+ofthefeatures oftheoriginal and
+i,thesecond phase corresponds toautomaton
+i
+accepting some conﬁguration ?|%thathasbeen reached by ,starting inconﬁguration ?.
+Inother words, 
+iaccepts aconﬁguration ?iff ?d^H2I
+J;G .
+The ﬁrst language thatwedeﬁne characterizes thepopsequences of 
+i.Apop
+sequence for xFj ,  	,and xK%z jisasequence of 
+i’stransitions that(i)
+
+--- Page 5 ---
+starts inaconﬁguration'x &d ,(ii)ends inaconﬁguration'x%d ,and(iii)through-
+outthetransition sequence thestack isalwaysoftheform.%8 forsome non-empty
+sequence3%V 	,except inthelaststep, when thestack shrinks to.Because
+remains unchanged throughout apopsequence, weneed only consider popsequences
+ofacanonical form, i.e.,those that(i)start inaconﬁguration 'x /,and(ii)endina
+conﬁguration 'xK%1 .Thepopsequences foragiven x, ,and x;%canbecharacterized by
+thecomplete derivation trees3derivedfrom nonterminal PS
+W
+ O
+Z,using thegrammar
+showninFigure 1.
+Production foreach
+	PS    
+! "$#&%PS ' ( '
+ ) *,+.-0/21 3)4*56+
+7/8 :9+;*: =<6>(PS  ' ( ? PS  '@  
+ ) *,+.-0/21 3)4*
++
+-
+/A :9B+5*: =<C+2D :EGFHPS  ' ( ? PS  '
+ 
+ 
+PS 
+ 
+  
+ ) *,+.-0/21 3)4*56+
+-0 -0 /C :9B+5*= :<C+2H+! :E
+Fig.1.Aconte xt-free language forthepopsequences of
+i,andthe
+irules that
+correspond toeach production.
+Theor em1.PDS 
+ihasapopsequence for x, ,and x%iffnonterminal PS
+W
+ O
+Z
+ofthegrammar shown inFigure1hasacomplete derivation tree.Moreover,foreach
+derivation treewith rootPS
+W@
+ O
+Z,apreorderlisting ofthederivation tree’sproduction
+instances (wher eFigure1deﬁnes thecorrespondence between productions andPDS
+rules) gives asequence ofrules forapopsequence for x, ,and x;%;andevery such
+sequence ofrules hasaderivation treewith rootPS
+W
+ O
+Z.
+Proof(Sketch).Toshrink thestack byremo ving thestack symbol ontheleft-hand
+side ofeach rule of
+i,there must beatransition sequence that remo veseach of
+thesymbols thatappear inthestack component oftherule’sright-hand side. Inother
+words, apopsequence fortheleft-hand-side stack symbol must involveapopsequence
+foreach right-hand-side stack symbol.
+The left-hand andright-hand sides oftheproductions inFigure 1reﬂect thepop-
+sequence obligations incurred bythecorresponding ruleof 
+i.
+Tocapture thesetReac habilityW itnesses  (
+
+4~ 	R]CG ,where Gisrecog-
+nized byautomaton
+i,wedeﬁne aconte xt-free language givenbythesetofproduc-
+tions
+Accepting 2 
+
+4 	@7
+W4I( Z#PS
+W4I(C
+ C
+ZPS
+W@C
+KJ
+ J
+Z4PS
+W
+LHMC
+
+LN .Z
+foreachxO)sj forfQP fSR
+vUTandx  l
+Accepted2 
+
+4~ 	@7
+W4IZ#Accepting2 
+
+4~ 	[7
+W4I( GZ foreachx  l
+This language captures allwaysinwhich PDS
+icanaccept
+
+4	
+:the
+setofreachability witnesses for (
+
+4	
+corresponds tothecomplete deriva-
+tion trees derivable from nonterminal Accepted2 
+
+4~	
+7
+W4IZ.The subtree rooted at
+PS
+W
+V6MC
+
+V
+ 
+VZgivesthepopsequence that 
+iperforms toconsume symbol O.(Ifthere
+arenoreachability witnesses for(
+
+4	
+,there arenocomplete derivation trees
+with rootAccepted2 
+
+	
+7
+W4IZ.)
+3.2 Weighted PDSs andAbstract Grammar Problems
+Turning nowtoweighted PDSs, wewillconsider theweighted version of
+i,denoted
+by ,
+i,inwhich weighted PDS ,iscombined with
+i,andeach rule 'x /)! # x;%]
+3Aderivation treeiscomplete ifithasisaterminal symbol ateach leaf.
+
+--- Page 6 ---
+thatwasadded duetotransitionx
+
+v# x[%in
+i’stransition set#
+isassigned theweight.
+Weareable toreason about semiring sums ()ofweights onthepaths thatare
+characterized bytheconte xt-free grammars deﬁned aboveusing thefollo wing concept:
+Deﬁnition 6.[15,17]Let )U beasemilattice .Anabstract grammar over UU
+isacollection ofconte xt-freegrammar productions, wher eeachproduction hasthe
+form #
+	K
+4O
+5
+Parentheses, commas, and 	(wher e isaproduction) areterminal symbols. Every
+production isassociated with afunction 	2L
+5# .Thus, every string ofter-
+minal symbols derived inthisgrammar (i.e.,theyield ofacomplete derivation tree)
+denotes acomposition offunctions, andcorresponds toaunique value in ,whic hwe
+call<X (orsimplyX whenisunder stood). Let 
+denote thestrings
+ofterminals derivable fromanonterminal
+
+.Theabstract grammar problem isto
+compute ,foreachnonterminal
+
+,thevalue
+
+"LM QW(Z
+
+X 
+Because thecomplete derivation trees with root Accepted 2 
+
+4~ 	[7
+W4IZencode
+thetransition sequences bywhich ,
+iaccepts  (
+
+4 	R,tocasttheGPR asa
+grammar problem, wemerely havetoattach appropriate production functions tothe
+productions sothatforeach rulesequence 1,andcorresponding derivation tree(with
+yield) ,wehave 921   !"#<#U .This isdone inFigure 2:note howfunctions 
+, $,
+and "%place /U=-K atthebeginning ofthesemiring-product expression; thiscorresponds
+toapreorder listing ofaderivation tree’sproduction instances (cf.Theorem 1).
+Production foreach&#'(PS )+*-, ./, *0 1325476
+&98-( &;:=<><?:A@+(B2DC4
+6FE
+'&9G/(PS) HA, .7, H
+01I254KJ
+&98-( LENM O
+<>PRQ2
+M O
+@;<S/PTBVUW<O
+BYX4
+JZE\[
+&LK(&;]7(PS) HA, .7, *#1^254K_
+&PS) H
+0, .
+0, *1
+( LENM O
+<>PRQ2
+M O
+@;<>`@+PBaU3<O
+BaX<b:Bac4/_
+E\d"ef [
+&LK(hge&i=(PS) HA, .7, *#1254Aj
+&PS) H0
+, .0
+, *0
+1
+<PS)+*0
+, .0 0
+, *1
+(kLENM O
+<>PRQ2
+M O
+@<>
+@>
+@ @PBVUW<O
+BaX<b:=<?:
+@Bac4j
+E\d"ef dlmf [
+&LK(hge
+gl&9n/(Accepting o
+>6
+>Jbfpfpf
+>!q=r) H, *#12s4/t
+&PS) HA, .pu?, *#u#1
+<PS)+*#u?, .wvw, *xv?1
+<fpfyf
+<PS)+*xzA{=u?, .wz7, *1
+(:y|RBYc}<for
+'~T~3'/<and
+:BY4/t
+E\d"e6Af d"e!Jbfpfyf-d"e
+qf e6
+ge=J
+gfpfpf
+ge
+q&;7(Acceptedo
+>6
+>JRfpfyf
+>!q7r) Hp12s4/
+&Acceptingo
+>6
+>Jbfpfpf
+>!q!r) H, *1
+(:BY4/
+E\d"ef e
+Fig.2.Anabstract grammar problem fortheGPR problem.
+TosolvetheGPR problem, weappeal tothefollo wing theorem:
+Theor em2.[15,17]Theabstr actgrammar problem forandUAU canbesolved
+byaniterative computation thatﬁnds themaximum ﬁxed point when thefollowing con-
+ditions hold:
+1.ThesemilatticeUU hasnoinﬁnite descending chains.
+
+--- Page 7 ---
+2.Every production function	inisdistrib utive ,i.e.,2OC
+QC
+4|OF
+QF
+ WOC
+ OF
+ZPQC
+F
+2	OC
+44O
+OF
+
+forarbitr ary,non-empty ,ﬁnite indexsets
+4 
+5.
+3.Every production function 	in isstrict in ineachargument.
+Theabstract grammar problem giveninFigure 2meets theconditions ofTheorem 2
+because
+1.ByDeﬁnition 3,theoperator isassociati ve,commutati ve,andidempotent; hences. isasemilattice. ByDeﬁnition 3(5),s
+. hasnoinﬁnite descending
+chains.
+2.The distrib utivity ofeach oftheproduction functions 
+, 4, overarbitrary ,
+non-empty ,ﬁnite indexsetsfollo wsfrom repeated application ofDeﬁnition 3(3).
+3.Production functions 
+$, 4, arestrict in ineach argument because isan
+annihilator with respect to 	(Deﬁnition 3(4)). Production functions 
+and 
+are
+constants (i.e., functions with noarguments), andhence meet therequired condition
+trivially .
+Thus, onealgorithm forsolving theGPR problem foragivenweighted PDS ,,initial
+conﬁguration  (
+
+4 	R,andregular set G(represented byautomaton
+i)isas
+follo ws:
+–Create thecombined weighted PDS,
+i.
+–Deﬁne thecorresponding abstract grammar problem according totheschema shown
+inFigure 2.
+–Solvethisabstract grammar problem byﬁnding themaximum ﬁxedpoint using
+chaotic iteration: foreach nonterminal
+
+,theﬁxed-point-ﬁnding algorithm main-
+tains avalue 
+,which isthecurrent estimate for
+
+’svalue inthemaximum
+ﬁxed-point solution; initially ,all 
+
+values aresetto ; 
+isupdated when-
+everavalue 
+	z changes, forany used ontheright-hand side ofaproduction
+whose left-hand-side nonterminal is
+
+.
+3.3 AMor eEfﬁcient Algorithm fortheGPR Problem
+The approach givenintheprevious section isnotveryefﬁcient: foraconﬁguration(
+
+
+	R ,ittakes P j^P
+	
+P l P time andspace justtocreate thegrammar pro-
+ductions inFigure 2with left-hand-side nonterminal Accepting 2 
+
+4
+	@7
+W4I( GZ.How-
+ever,wecanimpro veonthealgorithm oftheprevious section because notallinstan-
+tiations oftheproductions listed inFigure 2arerelevanttotheﬁnal solution; wewant
+topreventthealgorithm from exploring useless nonterminals ofthegrammar shownin
+Figure 2.
+Moreo ver,allGPR questions with respect toagiventarget-conﬁguration setGin-
+volvethesame subgrammar forthePSnonterminals. Asinthe(ordinary) pushdo wn-
+reachability problem [3,8],theinformation about whether acomplete derivation tree
+with root nonterminal PS
+W 
+ O
+Zexists (i.e., whether PS
+W
+ O
+Zisaproductive nonter -
+minal) canbeprecomputed andreturned intheform ofan(annotated) automaton of
+size
+
+P j P|P >P +P #
+P .Exploring thePSsubgrammar lazily savesusfrom having
+toconstruct theentire PSsubgrammar .Producti venonterminals represent automaton
+transitions, andtheproductions that involveanygiventransition canbeconstructed
+on-the-ﬂy ,asisdone inAlgorithm 1,showninFigure 3.
+Itisrelati velystraightforw ardtoseethatAlgorithm 1solvesthegrammar prob-
+lem forthePSsubgrammar from Figure 2:  YKIZ J \contains thesetoftransitions
+
+--- Page 8 ---
+Algorithm 1
+Input: aweighted pushdo wnsystem, w .-3'// ,
+where
+	 and-s
+ 	 R4 ;
+a -automaton
+ij 
+	C#
+
+
+lV thataccepts G,
+such that
+ihasnotransitions into states.
+Output: a -automaton
+iVy|{~}
+hj	 ]#q
+lV thataccepts H2I
+JKG ;
+afunction thatmaps every 'x U
+x%8 s# tothevalue of
+ PS
+W
+ O
+Z
+intheabstract grammar problem deﬁned inFigure 2.
+1procedur eupdate ( ?]
+-[ )
+2begin
+3# LM #  N4?CW;
+4
+ ?"L 
+ ?a/U'-[ 	 
+z.
+>	!46	 z
+P  P KT
+5 if?changed value then Y[I[Z JO\L  YKIZ J \ `N6?CW
+6end
+7
+8# L #
+T "0T  Y[I[Z JO\L #
+;
+9forall ?" #
+do  ?"L< ;
+10 forall -Vh ( )! # &%"` do HK\J 
+U'0%8]
+-[|
+ ;
+11 while  Y[I[ZOJ \   do
+12 select andremo veatransition ? 'x XxK%w from  Y[I[Z JO\;
+13 forall -
+
+)! #p'x /"s do H	
+[\~J:
+
+
+x[%4]
+-[| ?
+;
+14 forall -
+
+)! #p'x 0
+"` do
+15 forall ?%&x[%1
+
+x[% %4`# do H[\~J  
+
+x[% %4]
+-[|?].?%w ;
+16 forall -
+
+)! #p
+%
+/"` do
+17 if?%&h 0%
+
+xK" #thenHK\J 
+
+
+x[%w]-[ ?%.?
+ ;
+18 return
+j	 ]#q
+lVO
+Fig.3.Anon-the-ﬂy algorithm forsolving thegrammar problem forthePSsubgrammar
+from Figure 2.
+(PSnonterminals) whose value?hasbeen updated since itwaslastconsidered; in
+line8allvalues aresetto.Afunction callupdate ?]
+-[ computes thenewvalue
+fortransition?if?canbecreated using rule-andthetransitions intheordered list.
+Lines 9–10 process therules oftypes (1)and(2),respecti vely.Lines 11–17 represent the
+ﬁxed-point-ﬁnding loop: line13,15,and17simulate theprocessing ofrules oftypes (3)
+and(4)thatinvolvetransition ?ontheir right-hand side; inparticular ,line4corresponds
+toinvocations ofproduction functions $and %.Note thatline4canchange 
+ ?only
+toasmaller value (w.r.t. $).The iterations continue until thevalues ofalltransitions
+stabilize, i.e.,  Y[I[Z JO\isempty .
+From thefactthatAlgorithm 1issimply adifferent wayofexpressing thegrammar
+problem forthePSsubgrammar ,weknowthatthealgorithm terminates andcomputes
+thedesired result. Moreo ver,apart from operations having todowith ,thealgorithm
+isremarkably similar tothe H&IJK algorithm from [8]—the only major difference being
+thattransitions arestored inaworkset andprocessed multiple times, whereas in[8]
+each transition isprocessed exactly once. Thus, thetime comple xityincreases from theP j P
+P >P comple xityoftheunweighted case [8]byafactor thatisnomore than the
+length ofthemaximal-length descending chain inthesemiring.
+
+--- Page 9 ---
+GiventheannotatedH2I
+J
+automaton, thevalue ofHS'? foranyconﬁguration?
+canberead offfrom theautomaton byfollo wing allpaths bywhich?isaccepted—
+accumulating avalue foreach path—and taking themeet oftheresulting value set.
+Thevalue-accumulation step canbeperformed using astraightforw ardextension ofa
+standard algorithm forsimulating anNFA(cf.[1,Algorithm 3.4]).
+Algorithm 1isadynamic-programming algorithm fordetermining HS'? ;Appendix A
+describes howtoextend Algorithm 1tokeepadditional annotations ontransitions so
+thatthepath set L3'? canbeobtained.
+4Applications toInter procedural Dataﬂo wAnalysis
+This section describes theapplication ofweighted PDSs tointerprocedural dataﬂo w
+analysis, andshowsthatthealgorithm from Section 3provides awaytogeneralize pre-
+viously knownframe works forinterprocedural dataﬂo wanalysis [22,26].Therunning
+example used inthissection illustrates theapplication oftheapproach tolinear con-
+stant propagation [22]. G.Balakrishnan hasalso used theapproach toimplement an
+interprocedural dataﬂo w-analysis algorithm duetoM.M¨uller-Olm andH.Seidl, which
+determines, foreach program point R,thesetofallafﬁnerelations thathold among
+program variables whene ver Risexecuted [16].
+Inter procedural Dataﬂo wAnalysis, Super graphs, andExploded Super graphs
+Interprocedural dataﬂo w-analysis problems areoften deﬁned interms ofaprogram’ s
+super graph,anexample ofwhich isshowninFigure 4.Asuper graph consists ofa
+intx;
+voidmain()
+
+n1:x=5;
+n2,n3:p();
+return;
+voidp()
+
+n4:if(...)
+
+n5:x=x+1;
+n6,n7:p();
+n8:x=x-1;
+n9:elseif(...)
+
+n10:x=x-1;
+n11,n12: p();
+n13:x=x+1;
+return;emain
+n1: x = 5
+n2: call p
+n3: ret from p
+xmainep
+n5: x = x+1
+n11: call p
+n12: ret from p
+xpn10: x = x−1
+n13: x = x+1 n8: x = x−1n6: call p
+n7: ret from pn4: if (. . .)
+n9: if (. . .)
+n14t
+tf
+fλe.e[x⊥]
+λe.e[x5]
+λe.e[x] λe.e[x] λe.e[x]
+λe.e[xe(x)+1]λe.e[xe(x)+1]λe.e[xe(x)−1]
+λe.e[xe(x)−1]
+Fig.4.Aprogram fragment anditssuper graph. The environment transformer forall
+unlabeled edges is @ .
+collection ofcontrol-ﬂo wgraphs—one foreach procedure—one ofwhich represents
+theprogram’ smain procedure. The ﬂowgraph foraprocedure phasaunique enter
+node, denoted by 
+y,andaunique exitnode, denoted by 
+y.The other nodes ofthe
+
+--- Page 10 ---
+ﬂowgraph represent statements andconditions oftheprogram intheusual way,4except
+thateach procedure callintheprogram isrepresented inthesuper graph bytwonodes, a
+callnode andareturn-site node (e.g., seethenode-pairs 6R
+ R$, 6R ; R, 6R
+  R
+ 
+inFigure 4).Inaddition totheordinary intraprocedural edges thatconnect thenodes
+oftheindividual control-ﬂo wgraphs, foreach procedure call—represented, say,bycall
+node?andreturn-site node-—the super graph contains three edges: anintraprocedural
+call-to-r eturn-site edge from?to-;aninterprocedural call-to-enter edge from?tothe
+enter node ofthecalled procedure; aninterprocedural exit-to-r eturn-site edge from the
+exitnode ofthecalled procedure to-.
+Deﬁnition 7.Apath oflength
+fromnode
+tonode Risa(possibly empty) sequence
+of
+edges,whic hwillbedenoted by 2 
+ 
+4   7,suchthatthesourceof 
+is
+,the
+targetof is R,andforall P, f P f
+v,thetargetofedge HOisthesourceofedge O
+.Pathconcatenation isdenoted by.
+Thenotion ofan(interpr ocedur ally) valid path isnecessary tocapture theidea that
+notallpaths inasuper graph represent potential execution paths. Avalidpath isone
+thatrespects thefactthataprocedure alwaysreturns tothesiteofthemost recent call.
+Wedistinguish further between asame-le velvalid path—apath thatstarts andends
+inthesame procedure, andinwhich everycallhasacorresponding return (and vice
+versa)—and avalid path—apath thatmay include oneormore unmatched calls:
+Deﬁnition 8.Thesetsofsame-le velvalid paths andvalid paths inasuper graphare
+deﬁned inductively asfollows:
+–Theempty path isasame-le velvalidpath (and thereforeavalidpath ).
+–Path 2 47isavalid path ifeither (i)isnotanexit-to-r eturn-site edgeandisavalid path, or(ii)isanexit-to-r eturn-site edgeandq 2 
+N7	
+ ,
+wher e
+isasame-le velvalid path,isavalid path, andthesourcenode of
+Nis
+thecallnode thatmatc hesthereturn-site node atthetargetof.Suchapath isa
+same-le velvalidpath if isalso asame-le velvalid path.
+Example 1.Inthesuper graph showninFigure 4,thepath # R
+# R
+# 
+y# RT%# R3# R
+%# 
+y# R$
+isa(same-le vel)validpath; thepath
+# R
+# R
+# 
+y# R%
+# R
+isa(non-same-le vel)validpath because thecall-to-start edge R
+# 
+yhasnomatching
+exit-to-return-site edge; thepath # R
+# R
+# 
+y# RT%# R3# R
+%# 
+y# R
+isnotavalidpath because theexit-to-return-site edge 
+y# Rdoes notcorrespond to
+thepreceding call-to-start edge R
+# 
+y.
+Aconte xt-sensiti veinterprocedural dataﬂo wanalysis isoneinwhich theanalysis of
+acalled procedure is“sensiti ve”totheconte xtinwhich itiscalled. Aconte xt-sensiti ve
+4The nodes ofaﬂowgraph canrepresent individual statements andconditions; alternati vely,
+theycanrepresent basic blocks.
+
+--- Page 11 ---
+analysis captures thefactthatcalls onaprocedure thatarriveviadifferent calling con-
+textscancause different setsofexecution states toarise onentry toaprocedure. More
+precisely ,thegoal ofaconte xt-sensiti veanalysis istoﬁndthemeet-o ver-all-valid-paths
+value fornodes ofasuper graph [14,22,26].
+The remainder ofthissection considers theInterprocedural Distrib utiveEnviron-
+ment (IDE) frame workforconte xt-sensiti veinterprocedural dataﬂo wanalysis [22]. It
+applies toproblems inwhich thedataﬂo winformation ataprogram point isrepresented
+byaﬁnite environment (i.e.,amapping from aﬁnite setofsymbols toaﬁnite-height do-
+main ofvalues ),andtheeffectofaprogram operation iscaptured byan“environment-
+transformer function” associated with each super graph edge. Thetransformer functions
+areassumed todistrib uteoverthemeet operation onenvironments.
+TwoIDE problems are(decidable) variants oftheconstant-propagation problem:
+copy-constant propagation andlinear -constant propagation .Theformer interprets as-
+signment statements oftheform and  .Thelatter alsointerprets statements
+oftheform
+vg  .
+Bymeans ofan“explosion transformation”, anIDE problem canbetransformed
+from apath problem onaprogram’ ssuper graph toapath problem onagraph that
+islarger,butinwhich everyedge islabeled with amuch simpler edge function (a
+so-called “micro-function”) [22]. Each micro-function onanedge 
+#
+captures
+theeffectthatthevalue ofsymbol 
+intheargument environment hasonthevalue
+ofsymbol 
+intheresult environment. Figure 5showstheexploded representations of
+fourenvironment-transformer functions used inlinear constant propagation. Figure 5(a)
+Λ
+Λv.vλv.vλv.vλx y
+x yΛ
+Λv.vλv.vλ λv.7x y
+x yΛ
+Λv.vλ v.vλx y
+x yv.vλΛ
+Λv.vλλv.−2*v+5
+v.vλx y
+x y
+(a)	
+ 
+ (b)	
+ 
+   (c)	
+ 
+  
+ ! (d)	
+ 
+  #"%$'&(
+) +*-,.
+Fig.5.Theexploded representations offour environment-transform erfunctions used in
+linear constant propagation.
+showshowtheidentity function/102 0isrepresented. Figure 5(b)–Figure 5(d) showthe
+representations ofthefunctions/102 0 3 465 798: ,/+02 0 3 ;<5 7=0 >?4A@B: ,and/+02 0 3 ;C5 7EDGFIH0>!4A@KJML: ,which arethedataﬂo wfunctions fortheassignment statements4ON68 ,;PN<4 ,
+and;QNRDGFSH4TJUL ,respecti vely.(TheVvertices areused torepresent theeffects of
+afunction thatareindependent oftheargument environment. Each graph includes an
+edge oftheformVC7WV ,labeled with/+X12 X;these edges areneeded tocapture function
+composition properly [22].)
+Figure 6showstheexploded super graph thatcorresponds totheprogram from Fig-
+ure4forthelinear constant-propagation problem.
+FromExploded Super graphs toWeighted PDSs
+Wenowshowhowtosolvelinear constant-propagation problems inaconte xt-sensiti ve
+fashion bydeﬁning ageneralized pushdo wnreachability problem inwhich thepaths
+ofthe(inﬁnite-state) transition system correspond tovalidpaths intheexploded super -
+graph from >Y0[Z]\_^a`cbdV]@ .Todothis, weencode theexploded super graph asaweighted
+PDS whose weights aredrawnfrom asemiring whose value setisthesetoffunctionse(fhgNi/+j_2lknmpoqi/1jr2)>!sHtj+Jvuw@yx{z}|[s{~M}bu%~Ib and z~-G (m2
+
+--- Page 12 ---
+emain
+n1: x = 5
+n2: call p
+xmainep
+n5: x = x+1
+xpn10: x = x−1
+n13: x = x+1 n8: x = x−1n4: if (. . .)
+n9: if (. . .)
+n14t
+tf
+fΛΛΛΛxΛΛΛΛ
+λl.5
+λl.l+1
+λl.l+1 λl.l−1λl.l−1x
+n3: ret from p n7: ret from p n12: ret from pn6: call p n11: call pλl.⊥
+Fig.6.Theexploded super graph oftheprogram from Figure 4forthelinear constant-
+propagation problem. Themicro-functions areallid,except where indicated.
+Everyfunction /  l
+N
+vN  G
+Wcanberepresented byatriple &'? ,where  ,3 ,?d ,and/   .
+	if(
+   O  ?otherwise
+Thethird component ?isneeded sothatthemeet oftwofunctions canberepresented.
+(See [22] fordetails.) Thesemiring value is  .
+;thesemiring value istheidentity
+function, whose representation is.'R
+.Wealso denote theidentity function byid.
+Byconvention, aconstant function G isrepresented as'
+.
+Theoperationsand	aredeﬁned asfollo ws:
+'
+
+?
+k
+'
+
+?
+ 
+ 
+
+
+
+
+?
+@?
+if 
+"
+and 
+!
+
+
+
+?  where ?<h
+ 
+
+@?
+@?
+
+if 
+h
+v
+S
+v
+"G'R. otherwise
+'
+
+?
+	k
+'
+
+?
+ 
+ 
+]|
+(
+
+O|
+?
+
+ ^?
+ 
+Here itisassumed that T
+
+ b  
+
+ *
+for 
+andthat  C        for`
+.Thesecond case forthecombiner
+operator isobtained byequating theterms
+]* 
+and
+ 
+andtaking the
+solution for,provided itisintegral.
+Thecontrol locations correspond totheprogram’ svariables (and also to).Stack
+symbols, such asR%,RandR,correspond tonodes ofthesuper graph.
+Withoneexception, each edge intheexploded super graph corresponds toonerule
+oftheweighted PDS. Theencoding canbedescribed interms ofthekinds ofedges that
+occur inthesuper graph.
+
+--- Page 13 ---
+Afewoftheweighted PDS’ srules forthe(exploded) intraprocedural edges areas
+follo ws:
+Intraprocedural edges inmain  R
+ ! #  3 R
+ id  R
+ ! # 	( R
+  .   R$
+ ! #  3
+ id ( R$|)! #p	(0 idIntraprocedural edges inp 3 R%
+)! #p 3 R| id	( R%
+)! #   R id 3 R|)! #p 3 R
+ id	( R
+)! #   R   .  "
+Inarulesuch as ( R)! # 	( R
+  .  " (1)
+thesecond component ofeach tuple implies thatthecurrently activeprocedure isp,and
+therestofthestack isnotchanged.
+Ateach callsite,each PDS rulethatencodes anedge intheexploded representation
+ofacall-to-enter edge hastwostack symbols onitsright-hand side. Thesecond symbol
+isthename ofthecorresponding return-site node, which ispushed onthestack:
+Transitions forcallsite R
+  R
+)! #c  
+yR$
+id ( R
+)! # 	( 
+yR$
+idTransitions forcallsite R   R
+)! #p  
+yR
+id  R
+)! #   
+yR
+idTransitions forcallsite R
+  3 R
+ )! #p  
+yR
+ id	( R
+ )! #   
+yR
+ id
+Theprocess ofreturning from pisencoded bypopping thetopmost stack symbols off
+thestack.
+Transitions toreturn from p 3
+y ! #p  id	(
+
+y)! #c (  id
+Obtaining Dataﬂo wInformation fromtheExploded Super graph’ sWeighted PDS
+Forlinear constant propagation, weareinterested inageneralized reachability problem
+from conﬁguration  3  R .Thus, toobtain dataﬂo winformation from theexploded
+super graph’ sweighted PDS, weperform thefollo wing steps:
+–Deﬁne aregular language
+fortheconﬁgurations ofinterest. This canbedone by
+creating anautomaton for
+,andgiving each edge oftheautomaton theweight id.
+–Apply Algorithm 1tocreate aweighted automaton forH&I
+J:
+.
+–Inspect the H&IJK
+-automaton toﬁnd thetransition   	
+vvvRv# 
+
+J~H&\ ZC\-[\~J .
+Return theweight onthistransition astheanswer .
+Inthefollo wing, weoften write pU ,whereisaregular expression, tomean
+thesetofallconﬁgurations  whereisinthelanguage ofstack contents deﬁned
+by.
+Example 2.ForthequeryH2I
+J
+  
+y&R
+ R|
+R$|,thesemiring value associated
+with theconﬁguration  
+is Gl,which means thatthevalue ofprogram vari-
+ablemust bewhene verpisentered with astack oftheform “
+y6R
+ R
+
+ R$”;
+i.e.,main called p,which then called itself recursi velyanarbitrary number oftimes,
+alternating between thetworecursi vecallsites.
+Awitness-path setfortheconﬁguration  3  
+isasingleton set,consisting of
+thefollo wing path:
+Semiring value Conﬁguration Rule Rule weight  ! " #%$ &! " #'$)( *+&,
+$id  -,
+$ &-,
+$.( *+/0-,
+$ 1 
+id
+/2,
+$ /2-,
+$)( *+/0435,067$id
+id
+/283
+,6
+$Conﬁguration accepted byquery automaton
+
+--- Page 14 ---
+Example 3.One example ofasituation inwhich the stack isofthe form
+y6R
+ R
+ R$iswhen main calls patR
+(R$);pcalls patR(R);andﬁnally p
+calls pat R
+ ( R
+ ).Inthiscase, thestack contains 
+yR
+ R
+R$.Asexpected, forthe
+query H&IJ[K
+  
+yR
+ R
+R$
+,thesemiring value associated with theconﬁguration  
+is  Gl.
+Inthiscase, awitness-path setfortheconﬁguration     Risasingleton set,
+consisting ofthefollo wing path:
+Semiring value Conﬁguration Rule Rule weight1  &
+! " #$  
+  " #$)( * -,
+$id1  &-,
+$ ,
+$)( *+/2-,
+$ 1 
+id
+/28,
+$ /28,
+$)( * /2-43, 67$id
+id
+/2-3
+,6
+$ /2-3
+$)( * /08,
+$id
+id
+/28,
+, 67$ /28,
+$)( * /28,4$id
+id
+/28,
+,6
+$ /28,
+$)( * /28,7$ 1 	1 
+ /28, ,6
+$ /28,7$)( * /2-3
+,4$id1 
+ /2-43,
+, 67$ /2-73 $)( * /08,
+$id1 
+ /28,
+,.,6
+$ /28,
+$)( * /28,7$id1 
+ /28,
+,
+, 67$ /28,
+$)( * /28,
+$id1 
+ /28,
+, ,6
+$ /28,
+$)( * /2-, 
+$ 1 
+
+id
+/28, 
+,
+, 67$ /28, 
+$)( * /2435, 
+$id
+id
+/2-3
+, 
+,.,6
+$Conﬁguration accepted byquery automaton
+Notice thatthewitness-path setfortheconﬁguration    R ismore compli-
+cated inthecase ofthequery H&I
+J;K
+ ( 
+yR
+ R R$| than inthecase ofthequeryH&I
+JK	( 
+y6R
+ R|
+ R$,eventhough thelatter involvesaregular operator .
+Example 4.Conventional dataﬂo w-analysis algorithms mergetogether (viameet, i.e.,)thevalues foreach program point, regardless ofcalling conte xt.The machinery
+described inthispaper provides astrict generalization ofconventional dataﬂo wanalysis
+because themergedinformation canbeobtained byissuing anappropriate query .
+Forinstance, thevalue thatthealgorithms givenin[14,22,26]would obtain forthe
+tuple 	( 
+ycanbeobtained viathequery H&I
+J;K
+  
+y6R R
+  R$.When we
+perform thisquery ,thesemiring value associated with theconﬁguration    R is . .This means thatthevalueofprogram variablemay notalwaysbethesame whenisentered with astack oftheform “
+y6R  R
+ 
+ R$”.Forthissituation, awitness-
+path setfortheconﬁguration 3   consists oftwopaths, which share theﬁrstfour
+conﬁgurations; thesemiring value associated with	( 
+yR$
+is .  id  G 
+v:
+Semiring value Conﬁguration Rule Rule weight1  & 
+! " #$  
+  " #$)( * -,
+$id1  &,
+$ ,
+$)( * /28,
+$ 1 1  /2-,
+$ /28,
+$)( * /2-43, 67$id1  /23
+,6
+$
+id
+/23
+,6
+$Conﬁguration accepted byquery automaton1 
+ /2435, 67$ /2-73 $)( * /08,
+$id1 
+ /2-,
+,6
+$ /28,
+$)( * /28,7$id1 
+ /2-,
+, 67$ /28,
+$)( * /28,
+$id1 
+ /2-,
+,6
+$ /28,
+$.( * /2-, 
+$ 1 
+
+id
+/2-, 
+, 67$ /28, 
+$.( * /2435, 
+$id
+id
+/23
+, 
+,6
+$Conﬁguration accepted byquery automaton
+
+--- Page 15 ---
+The Complexity oftheDataﬂo w-Analysis Algorithm
+Let denote thenumber ofedges inthesuper graph, andlet b[Idenote thenumber
+ofsymbols inthedomain ofanenvironment. Theencoding ofanexploded super graph
+asaPDS leads toaPDS with b[Icontrol locations and P >P )Db[I rules. If
+
+istheregular language ofconﬁgurations ofinterest, assume that
+canbeencoded by
+aweighted automaton withP j^P bKI states and?transitions. Letdenote the
+maximal length ofadescending chain inthesemiring formed bythemicro-functions.
+ThecostofaH&I
+J query toobtain dataﬂo winformation for
+istherefore noworse
+than
+
+DbKI#D D  	R[I
+$D D time and
+#DbKI D!
+R[I
+D! ?space,
+according totheresults ofSection 3and[8].
+HowClients ofDataﬂo wAnalysis Can TakeAdvantage ofthisMachinery
+Algorithm 1andtheconstruction givenaboveprovide anewalgorithm forinterprocedu-
+raldataﬂo wanalysis. Asdemonstrated byExamples 2,3,and4,with theweighted-PDS
+machinery ,dataﬂo wqueries canbeposed with respect toaregular language ofinitial
+stack conﬁgurations, which provides astrict generalization ofthekind ofqueries that
+canbeposed using ordinary interprocedural dataﬂo w-analysis algorithms.
+Forclients ofinterprocedural dataﬂo wanalysis, such asprogram optimizers and
+tools forprogram understanding, thisofferstheability toprovide features thatwere
+previously unavailable:
+–Aprogram optimizer could makeaquery about dataﬂo wvalues according toapos-
+sible pattern ofinline expansions. This would allowtheoptimizer todetermine—
+without ﬁrstperforming anexplicit expansion —whether theinline expansion would
+produce favorable dataﬂo wvalues thatwould allowthecode tobeoptimized.
+–Atoolforprogram understanding could letusers pose queries about dataﬂo win-
+formation with respect toaregular language ofinitial stack conﬁgurations.
+The ﬁrst ofthese possibilities isillustrated byFigure 7,which showsatransformed
+version oftheprogram from Figure 4.The transformed program takesadvantage of
+theinformation obtained from Example 2,namely ,thatinFigure 4thevalue ofis
+whene verpisentered with astack oftheform “
+y&R
+ R
+ R$”.Inthetransformed
+program, allcalls topthatmimic thecalling pattern “&R
+ R
+ R$”(from theorig-
+inal program) arereplaced bycalls toH %.InH/%,acopyofHhasbeen inlined (and
+simpliﬁed) attheﬁrst recursi vecallsite. Whene verthecalling pattern failstomimic
+“ 6R
+ R
+
+ R$”,theoriginal procedure piscalled instead.
+5Related Work
+Severalconnections between dataﬂo wanalysis andmodel checking havebeen estab-
+lished inpast work[27,28,23,6].Thepresent paper continues thislineofinquiry ,but
+makestwocontrib utions:
+–Previous workaddressed therelationship between model checking andbit-vector
+dataﬂo w-analysis problems, such aslive-variable analysis andpartial-redundanc y
+elimination. Inthispaper ,weshowhowatechnique inspired byonedeveloped in
+themodel-checking community [3,8]—b utgeneralized from itsoriginal form [25]—
+canbeapplied tocertain dataﬂo w-analysis problems thatcannot beexpressed as
+bit-v ector problems.
+–Previous workhasused temporal-logic expressions tospecify dataﬂo w-analysis
+problems. This paper’ sresults arebased onamore basic model-checking primiti ve,
+namely H2I
+JK .(The approach alsoextends to HRY[Z]\C .)
+These ideas havebeen illustrated byapplying them tolinear constant propagation,
+which isnotexpressible asabit-v ector problem.
+
+--- Page 16 ---
+intx;
+voidmain()
+
+x=5;
+p'();
+return;
+voidp()
+
+if(...)
+
+x=x+1;
+p();
+x=x-1;
+elseif(...)
+
+x=x-1;
+p();
+x=x+1;
+return;voidp'()
+
+if(...)
+
+if(...)
+//Inlined calln6,n7
+x=7;
+p();//n6,n7;n6,n7
+elseif(...)
+
+p'();//n6,n7;n11,n12//Endinlined calln6,n7
+elseif(...)
+
+x=4;
+p();
+x=5;
+return;
+Fig.7.Atransformed version oftheprogram from Figure 4thattakesadvantage ofthe
+factthatinFigure 4thevalue of is whene ver isentered with astack oftheform
+“ 
+y&R
+ R| R$”.
+Bouajjani, Esparza, andToulli [4]independently developed asimilar frame work,
+inwhich H2I
+JK and HRY[ZC\
+queries onpushdo wnsystems with weights drawnfrom a
+semiring areused tosolve(overapproximation sof)reachability questions onconcurrent
+communicating pushdo wnsystems. Their method ofobtaining weights onautomaton
+transitions signiﬁcantly differsfrom ours. Instead ofderiving theweights directly ,they
+areobtained using aﬁxpoint computation onamatrix whose entries arethetransitions
+oftheH&I
+J automaton. This allowsthem toobtain weights evenwhen thesemiring
+does haveinﬁnite descending chains (provided theextender operator iscommutati ve),
+butleads toalessefﬁcient solution fortheﬁnite-chain case. Inthelatter case, inthe
+terms ofSection 4,their algorithm hastime comple xity
+
+ ;
+:-[D  D
+;-  ?
+D D
+:- D|  
+:-K>D ,i.e.,proportional to
+:-
+and
+$.Allbutoneofthesemirings
+used in[4]haveonly ﬁnite descending chains, soAlgorithm 1applies tothose cases
+andprovides amore efﬁcient solution.
+The most closely related papers inthedataﬂo w-analysis literature arethose that
+address demand-dri veninterprocedural dataﬂo wanalysis.
+–Reps [19,18]presented awayinwhich algorithms that solvedemand versions
+ofinterprocedural analysis problems canbeobtained automatically from their ex-
+hausti vecounterparts (expressed aslogic programs) bymaking useofthe“magic-
+setstransformation” [2],which isageneral transformation developed inthelogic-
+programming anddeducti ve-database communities forcreating efﬁcient demand
+versions of(bottom-up) logic programs, and/or tabulation [29], which isanother
+method forefﬁciently evaluating recursi vequeries indeducti vedatabases. This ap-
+proach wasused toobtain demand algorithms forinterprocedural bit-v ector prob-
+lems.
+
+--- Page 17 ---
+–Subsequent workbyReps, Horwitz, andSagivextended thelogic-programming ap-
+proach totheclass ofIFDS problems [20].5Theyalsogaveanexplicit demand al-
+gorithm forIFDS problems thatdoes notrelyonthemagic-sets transformation [11].
+–Both exhausti veanddemand algorithms forsolving acertain class ofIDE problems
+arepresented in[22]. The relationship between thetwoalgorithms giveninthat
+paper issimilar totherelationship between theexhausti ve[20] anddemand [11]
+algorithms forIFDS problems.
+–Afourth approach toobtaining demand versions ofinterprocedural dataﬂo w-
+analysis algorithms wasinvestigated byDuesterw ald,Gupta, andSoffa[7].Intheir
+approach, foreach query acollection ofdataﬂo wequations issetupontheﬂow
+graph (butasifalledges were reversed). Theﬂowfunctions onthereverse graph
+arethe(approximate) inverses oftheforw ardﬂowfunctions. These equations are
+then solvedusing ademand-dri venﬁxed-point-ﬁnding procedure.
+None ofthedemand algorithms described abovesupport theability toanswer aquery
+with respect toauser-supplied language ofstack conﬁgurations. Aswith previous work
+ondataﬂo wanalysis, those algorithms mergetogether (viameet, i.e.,)thevalues for
+each program point, regardless ofcalling conte xt.Inaddition, past workondemand-
+drivendataﬂo wanalysis hasnotexamined theissue ofproviding awitness setofpaths
+toshowwhy theanswer toadataﬂo wquery foraparticular conﬁguration hasthevalue
+reported.
+TheIFDS frame workcanbeextended with theability toanswer aquery with re-
+spect toalanguage ofstack conﬁgurations byapplying thereachability algorithms for
+(unweighted) PDSs [3,8]onthegraphs used in[20,11]; however,thatapproach does
+notworkforthemore general IDE frame work.This paper hasshownhowtoextend the
+IDE frame worktoanswer aquery with respect toalanguage ofstack conﬁgurations,
+using ourrecent generalization ofPDS reachability algorithms toweighted PDSs [25].
+Itshould benoted that, likethealgorithms from [22], thealgorithm forsolving GPR
+problems giveninSection 3isnotguaranteed toterminate forallIDE problems; how-
+ever,likethealgorithms from [22], itdoes terminate forallcopy-constant-propagatio n
+problems, alllinear -constant-propagation problems, and, ingeneral, allproblems for
+which thesetofmicro-functions contains noinﬁnite descending chains. The asymp-
+totic costofthealgorithm inthispaper isthesame asthecostofthedemand algorithm
+forsolving IDE problems from [22]; however,thatalgorithm isstrictly lessgeneral than
+thealgorithm presented here (cf.Example 4).
+Anapplication ofthetheory ofPDSs tointerprocedural dataﬂo wanalysis hasbeen
+proposed byEsparza andKnoop [9],who considered severalbit-v ector problems, as
+well asthefaint-v ariables problem, which isanIFDS problem [21,Appendix A].These
+problems aresolvedusing certain H&IJ
+and HRY[ZC\
+queries. Withrespect tothatwork,the
+extension ofPDSs toweighted PDSs allowsourapproach tosolveamore general class
+ofdataﬂo w-analysis problems than Esparza andKnoop’ stechniques canhandle; the
+witness-set generation algorithm canalso beused toextend their algorithms. (Esparza
+andKnoop also consider bit-v ector problems forﬂow-graph systems with parallelism,
+which wehavenotaddressed.)
+M¨uller-Olm andSeidl havegivenaninterprocedural dataﬂo w-analysis algorithm
+thatdetermines, foreach program pointR,thesetofallafﬁnerelations thathold among
+program variables whene verRisexecuted [16]. This method canbere-cast assolving
+5Logic-programming terminology isnotused in[20]; however,theexhausti vealgorithm de-
+scribed there hasastraightforw ardimplementation asalogic program. Ademand algorithm
+canthen beobtained byapplying themagic-sets transformation.
+
+--- Page 18 ---
+aGPR problem (with thesame asymptotic comple xity). G.Balakrishnan hascreated a
+prototype implementation ofthismethod using theWPDS library [24].
+Model checking ofPDSs haspreviously been used forverifying security proper -
+tiesofprograms [10,12,5].The methods described inthispaper should permit more
+powerful security-v eriﬁcation algorithms tobedeveloped thatuseweighted PDSs to
+obtain abroader class ofinterprocedural dataﬂo winformation foruseintheveriﬁcation
+process.
+Ackno wledgments
+Wethank H.Seidl formaking available reference [16].
+Refer ences
+1.A.V.Aho, R.Sethi, andJ.D.Ullman.Compiler s:Principles, TechniquesandTools.Addison-
+Wesley,1985.
+2.F.Bancilhon, D.Maier ,Y.Sagiv,andJ.Ullman. Magic sets andother strange waysto
+implement logic programs. InProceedings oftheFifthACMSymposium onPrinciples of
+Database Systems ,NewYork,NY,1986. ACMPress.
+3.A.Bouajjani, J.Esparza, andO.Maler .Reachability analysis ofpushdo wnautomata: Ap-
+plication tomodel checking. InProc.CONCUR ,volume 1243 ofLec.NotesinComp.Sci.,
+pages 135–150. Springer -Verlag, 1997.
+4.A.Bouajjani, J.Esparza, andT.Touili. Ageneric approach tothestatic analysis ofconcurrent
+programs with procedures. InProc.Symp.onPrinc.ofProg.Lang.,pages 62–73, 2003.
+5.H.Chen andD.Wagner .MOPS: Aninfrastructure forexamining security properties of
+softw are.InConf.onComp.andCommun. Sec.,November 2002.
+6.P.Cousot andR.Cousot. Temporal abstract interpretation. InSymp.onPrinc.ofProg.Lang.,
+pages 12–25, 2000.
+7.E.Duesterw ald,R.Gupta, andM.L. Soffa.Demand-dri vencomputation ofinterprocedural
+dataﬂow.InSymp.onPrinc.ofProg.Lang.,pages 37–48, NewYork,NY,1995. ACMPress.
+8.J.Esparza, D.Hansel, P.Rossmanith, andS.Schw oon. Efﬁcient algorithms formodel check-
+ingpushdo wnsystems. InProc.Computer -AidedVerif.,volume 1855 ofLec.NotesinComp.
+Sci.,pages 232–247, July 2000.
+9.J.Esparza andJ.Knoop. Anautomata-theoretic approach tointerprocedural data-ﬂo wanal-
+ysis. InProceedings ofFoSSaCS'99 ,volume 1578 ofLNCS ,pages 14–30. Springer ,1999.
+10.J.Esparza, A.Kuˇcera, andS.Schw oon. Model-checking LTLwith regular valuations for
+pushdo wnsystems. InProceedings ofTACAS'01 ,volume 2031 ofLNCS ,pages 306–339.
+Springer ,2001.
+11.S.Horwitz, T.Reps, andM.Sagiv.Demand interprocedural dataﬂo wanalysis. InProceed-
+ingsoftheThirdACMSIGSOFT Symposium ontheFoundations ofSoftwareEngineering ,
+pages 104–115, NewYork,NY,October 1995. ACMPress.
+12.T.Jensen, D.LeMetayer, andT.Thorn. Veriﬁcation ofcontrol ﬂowbased security properties.
+In1999IEEESymposium onSecurityandPrivacy ,May 1999.
+13.S.JhaandT.Reps. Analysis ofSPKI/SDSI certiﬁcates using model checking. InIEEE
+Comp.Sec.Found.Workshop(CSFW) .IEEE Computer Society Press, 2002.
+14.J.Knoop andB.Steffen. Theinterprocedural coincidence theorem. InInt.Conf.onComp.
+Construct. ,pages 125–140, 1992.
+15.U.Moenck eandR.Wilhelm. Grammar ﬂowanalysis. InH.Alblas andB.Melichar ,editors,
+AttributeGrammars,Applications andSystems ,volume 545ofLec.NotesinComp.Sci.,
+pages 151–186, Prague, Czechoslo vakia, June 1991. Springer -Verlag.
+16.M.M¨uller-Olm andH.Seidl. Computing interprocedurally validrelations inafﬁne programs.
+Tech.rep., Comp. Sci.Dept., Univ.ofTrier,Trier,Ger.,January 2003.
+17.G.Ramalingam. Bounded IncrementalComputation ,volume 1089 ofLec.NotesinComp.
+Sci.Springer -Verlag, 1996.
+
+--- Page 19 ---
+18.T.Reps. Demand interprocedural program analysis using logic databases. InR.Ramakrish-
+nan, editor ,Applications ofLogicDatabases .Kluwer Academic Publishers, 1994.
+19.T.Reps. Solving demand versions ofinterprocedural analysis problems. InP.Fritzson, editor ,
+Proceedings oftheFifthInternational ConferenceonCompiler Construction ,volume 786of
+Lec.NotesinComp.Sci.,pages 389–403, Edinb urgh,Scotland, April 1994. Springer -Verlag.
+20.T.Reps, S.Horwitz, andM.Sagiv.Precise interprocedural dataﬂo wanalysis viagraph
+reachability .InSymp.onPrinc.ofProg.Lang.,pages 49–61, NewYork, NY,1995. ACM
+Press.
+21.T.Reps, M.Sagiv,andS.Horwitz. Interprocedural dataﬂo wanalysis viagraph reachabil-
+ity.Tech. Rep. TR94-14, Datalogisk Institut, Univ.ofCopenhagen, 1994. Available at
+“http://www .cs.wisc.edu/wpis/papers/diku-tr94-14.ps”.
+22.M.Sagiv,T.Reps, andS.Horwitz. Precise interprocedural dataﬂo wanalysis with applica-
+tions toconstant propagation. Theor.Comp.Sci.,167:131–170, 1996.
+23.D.Schmidt. Data-ﬂo wanalysis ismodel checking ofabstract interpretations. InSymp.on
+Princ.ofProg.Lang.,pages 38–48, NewYork,NY,January 1998. ACMPress.
+24.S.Schw oon. WPDS –alibrary forWeighted Pushdo wnSystems, 2003. Available from
+http://www7.in.tum.de/ schw oon/moped/#wpds.
+25.S.Schw oon, S.Jha,T.Reps, andS.Stubblebine. Ongeneralized authorization problems. In
+Comp.Sec.Found.Workshop ,Wash., DC, 2003. IEEE Comp. Soc.
+26.M.Sharir andA.Pnueli. Twoapproaches tointerprocedural dataﬂowanalysis. InS.S.Much-
+nick andN.D. Jones, editors,ProgramFlowAnalysis: TheoryandApplications ,chapter 7,
+pages 189–234. Prentice-Hall, Engle woodCliffs,NJ,1981.
+27.B.Steffen. Data ﬂowanalysis asmodel checking. InInt.Conf.onTheor.AspectsofComp.
+Softw.,volume 526ofLec.NotesinComp.Sci.,pages 346–365. Springer -Verlag, 1991.
+28.B.Steffen. Generating data ﬂowanalysis algorithms from modal speciﬁcations. Sci.of
+Comp.Prog.,21(2):115–139, 1993.
+29.D.S. Warren. Memoing forlogic programs. Communications oftheACM,35(3):93–111,
+March 1992.
+AGeneration ofWitness Sets
+Section 3.3givesanefﬁcient algorithm fordeterminingHS'?|;thissection addresses the
+question ofhowtoobtainL3? .Itmay help tothink ofthisproblem asthatofexamining
+aninﬁnite graph
+whose nodes arepairs?[d ,where?isaconﬁguration andavalue
+from,andinwhich there isanedge from'?
+d
+to?
+ 
+labeled with-> if
+andonly if ?
+5879 ;, ?
+and /U'-K	C
+ 
+.Foragivenconﬁguration ?,ﬁnding L3? 
+means identifying asetofpaths 1
+4|1X5 such thatpath 1O, @f PVf ,leads from
+some '?[ NO1tosome ?KO
+ ,where ?O` G,andI
+5O
+NO  HS'?|.Inother words,L3'?  N61
+44O1
+5Wprovesthat HS? really hasthevalue computed byAlgorithm 1.
+Wenote thefollo wing properties:
+–Ingeneral,may belargerthan,e.g., wemight haveasituation whereHS'? V
+O
+because oftwopaths with values
+and
+,butthere may benosingle path
+with value
+
+.
+–WewanttokeepL3'? assmall aspossible. Ifawitness setcontains twopaths1
+
+and1
+,where9&1
+ $ 9&1
+,then thesame setwithout1
+isstillawitness set.
+Like HS? , L3'?| will begivenindirectly intheform ofanother annotation (calledR)onthetransitions of
+iVy|{}.Weusetwodata structures forthis, called wnode and
+wstruc .If ?isatransition, then R  ?holds areference toawnode .(Weshall denote a
+reference tosome entity by 2 47.)Awnode isasetofwstruc items. Awstruc item is
+oftheform !042 ?P742 -47T where * , 2 ?P7isareference back to ?, -Tn isarule,
+
+--- Page 20 ---
+Algorithm 2
+1procedur eupdate (?]
+-[ )
+2begin
+3 # LM #  N4?CW;
+4  LMJ/U=-K	 zG	"8	 
+zP  P ;
+5 VLM!042 ?P742 -47|HR  ?%w<P8?%/ `;
+6 if ? $v then return;
+7 if R  ?   xor  ?then
+8 create RbL N KW;
+9 else
+10 create RbL   J   N W,where R  ? 2  7;
+11R ?L 2 R>7T
+12
+ ?"L 
+ ?0T
+13 YKIZ J \ LM  Y[I[Z JO\  N4?CW
+14 end
+Fig.8.Modiﬁed update procedure.
+andcontains asequence ofreferences townode s.References may be0x,indicating
+amissing reference.
+Wecannowextend Algorithm 1.Theidea isthatduring execution, ifR ?:2  7,
+then
+ ?I
+W
+	
+
+
+	7
+
+ (ZPQ.Anitem!042 ?P7162 -67 indenotes thefollo wing: Sup-
+pose that
+y|{~}
+hasanaccepting path starting with?,and?istheconﬁguration accepted
+bythispath. Then, inthepushdo wnsystem, there isapath (orrather ,afamily ofpaths)
+with value from ?tosome ? %)G ,andthispath starts with -.Anaccepting path (in
+y|{}
+)forasuccessor conﬁguration canbeconstructed byreplacing ?with thetransi-
+tions associated with thewnode sin .
+Theconcrete modiﬁcations toAlgorithm 1areasfollo ws:Inline8,set R  0x.In
+line9,create awnode RbLMN:.42 ?P7  x]W forevery ?`#
+andset R ?"LM 2 R>7.
+Figure 8showsarevised update procedure. Line 4ofFigure 8computes thenewly
+disco vered value fortransition ?,andline5records howthenewpath wasdisco vered.
+Inline 6,if? $ ,theupdate will notchange?andnothing further needs to
+bedone. If ?(see line8),thenewaddition isstrictly smaller than anypath
+to?sofar,andR ?only hastoreference thenewpath. Ifand
+ ?areincomparable,
+line10creates anewsetconsisting oftheprevious paths andthenewpath. Eventhoughisincomparable to
+ ?,might approximate ($)oneormore elements of.The
+procedure minimize (notshown)remo vesthese.
+Itisfairly straightforw ardtoseethat theinformation contained in allowsthe
+reconstruction ofawitness setinvolving ?(see above).Moreo ver,everywnode cre-
+ated during execution contains references only townode screated earlier .Therefore, the
+process ofreconstructing thewitness setbydecoding wnode /wstruc information must
+eventually terminate inaconﬁguration from G.
+During execution ofthemodiﬁed algorithm, severalwnode sforthesame transition ?
+canbecreated; only oneofthem isreferenced by ?atanymoment, although theother
+wnode smay stillbereferenced byother transitions. Agarbage collector canbeused to
+keeptrack ofthereferences andremo vethose nodes towhich there isnolonger any
+chain ofreferences from anytransition.

@@ -1,0 +1,1428 @@
+--- Page 1 ---
+Synthesis of Hierarchical Systems
+Benjamin Aminofa, Fabio Mogaverob, and Aniello Muranob?
+aHebrew University, Jerusalem 91904, Israel.
+bUniversità degli Studi di Napoli “Federico II”, 80126 Napoli, Italy.
+benj@cs.huji.ac.il {mogavero, murano}@na.infn.it
+Abstract In automated synthesis, given a speciﬁcation, we automatically cre-
+ate a system that is guaranteed to satisfy the speciﬁcation. In the classical tem-
+poral synthesis algorithms, one usually creates a “ﬂat” system “from scratch”.
+However, real-life software and hardware systems are usually created using pre-
+existing libraries of reusable components, and are not “ﬂat” since repeated sub-
+systems are described only once.
+In this work we describe an algorithm for the synthesis of a hierarchical system
+from a library of hierarchical components, which follows the “bottom-up” ap-
+proach to system design. Our algorithm works by synthesizing in many rounds,
+when at each round the system designer provides the speciﬁcation of the cur-
+rently desired module, which is then automatically synthesized using the initial
+library and the previously constructed modules. To ensure that the synthesized
+module actually takes advantage of the available high-level modules, we guide
+the algorithm by enforcing certain modularity criteria.
+We show that the synthesis of a hierarchical system from a library of hierarchi-
+cal components is E XPTIME -complete for µ-calculus, and 2E XPTIME -complete
+for L TL, both in the cases of complete and incomplete information. Thus, in all
+cases, it is not harder than the classical synthesis problem (of synthesizing ﬂat
+systems “from scratch”), even though the synthesized hierarchical system may
+be exponentially smaller than a ﬂat one.
+1 Introduction
+Synthesis is the automated construction of a system from its speciﬁcation. The ba-
+sic idea is simple and appealing: instead of developing a system and verifying that it
+is correct w.r.t. its speciﬁcation, we use instead an automated procedure that, given a
+speciﬁcation, constructs a system that is correct by construction. The ﬁrst formulation
+of synthesis goes back to Church [7]; the modern approach to this problem was initiated
+by Pnueli and Rosner who introduced linear temporal logic (L TL) synthesis [23], later
+extended to handle branching-time speciﬁcations, such as µ-calculus [10].
+The Pnueli and Rosner idea can be summarized as follows. Given sets SIandSO
+of inputs and outputs, respectively (usually, SI=2IandSO=2O, where Iis a set of
+input signals and Ois a set of output signals), we can view a system as a strategy
+P:S
+I!SOthat maps a ﬁnite sequence of sets of input signals into a set of output
+signals. When Pinteracts with an environment that generates inﬁnite input sequences,
+it associates with each input sequence an inﬁnite computation over SI[SO. Though
+the system Pis deterministic, it induces a computation tree. The branches of the tree
+?Partially supported by ESF GAMES grant 4112 and Vigevani Project Prize 2010-2011.
+
+--- Page 2 ---
+2 B. Aminof, F. Mogavero, A. Murano
+correspond to external nondeterminism, caused by different possible inputs. Thus, the
+tree has a ﬁxed branching degree jSIj, and it embodies all the possible inputs (and
+hence also computations) of P. When we synthesize Pfrom an L TLspeciﬁcation j, we
+require jto hold in all the paths of P’s computation tree. However, in order to impose
+possibility requirements on P, we have to use a branching-time logic like µ-calculus.
+Given a branching speciﬁcation joverSI[SO, realizability of jis the problem of
+determining whether there exists a system Pwhose computation tree satisﬁes j. Correct
+synthesis of jthen amounts to constructing such a P.
+In spite of the rich theory developed for system synthesis in the last two decades,
+little of this theory has been reduced to practice. In fact, the main approaches to tackle
+synthesis in practice are either to use heuristics (e.g., [13]) or to restrict to simple spec-
+iﬁcations (e.g., [22]). Some people argue that this is because the synthesis problem is
+very expensive compared to model-checking [16]. There is, however, something mis-
+leading in this perception: while the complexity of synthesis is given with respect to
+the speciﬁcation only, the complexity of model-checking is given also with respect to a
+program, which can be very large. A common thread in almost all of the works concern-
+ing synthesis is the assumption that the system is to be built “from scratch”. Obviously,
+real-world systems are rarely constructed this way, but rather by utilizing many pre-
+existing reusable components, i.e., a library. Using standard preexisting components is
+sometimes unavoidable (for example, access to hardware resources is usually under the
+control of the operating system, which must be “reused”), and many times has other
+beneﬁts (apart from saving time and effort, which may seem to be less of a problem
+in a setting of automatic - as opposed to manual - synthesis), such as maintaining a
+common code base, and abstracting away low level details that are already handled by
+the preexisting components. Another reason that may also account, at least partially, for
+the limited use of synthesis in practice, is the fact that synthesized systems are usually
+monolithic and look very unnatural from the system designer’s point of view. Indeed,
+in classical temporal synthesis algorithms, one usually creates a “ﬂat” system, i.e., a
+system in which sub-systems may be repeated many times. On the contrary, real-life
+software and hardware systems are hierarchical (or even recursive) and repeated sub-
+systems (such as sub-routines) are described only once. While hierarchical systems may
+be exponentially more succinct than ﬂat ones, it has been shown that the cost of solv-
+ing questions about them (like model-checking) are in many cases not exponentially
+higher [5, 6, 12]. Hierarchical systems can also be seen as a special case of recursive
+systems [2, 3], where the nesting of calls to sub-systems is bounded. However, having
+no bound on the nesting of calls gives rise to inﬁnite-state systems, and this results in a
+higher complexity.
+In this work we provide a uniform algorithm, for different temporal logics, for the
+synthesis of hierarchical systems (or, equivalently, transducers ) from a library of hi-
+erarchical systems, which mimics the “bottom-up” approach to system design, where
+one builds a system by iteratively constructing new modules based on previously con-
+structed ones1. More speciﬁcally, we start the synthesis process by providing the algo-
+rithm with an initial library L0of available hierarchical components (as well as atomic
+ones). We then proceed by synthesizing in rounds. At each round i, the system designer
+provides a speciﬁcation formula jiof the currently desired hierarchical component,
+1While for systems built from scratch, a top-down approach may be argued to be more suitable,
+we ﬁnd the bottom-up approach to be more natural when synthesizing from a library.
+
+--- Page 3 ---
+Synthesis of Hierarchical Systems 3
+which is then automatically synthesized using the currently available components as
+possible sub-components. Once a new component is synthesized, it is added to the li-
+brary to be used by subsequent iterations. We show that while hierarchical systems may
+be exponentially smaller than ﬂat ones, the problem of synthesizing a hierarchical sys-
+tem from a library of existing hierarchical systems is E XPTIME -complete for µ-calculus,
+and 2E XPTIME -complete for L TL. Thus, this problem is not harder than the classical
+synthesis problem of ﬂat systems “from scratch”. Furthermore, we show that this is
+true also in the case where the synthesized system has incomplete information about
+the environment’s input.
+Observe that it is easily conceivable that if the initial library L0contains enough
+atomic components then the synthesis algorithm may use them exclusively, essentially
+producing a ﬂat system. We thus have to direct the single-round synthesis algorithm in
+such a way that it produces modular and not ﬂat results. The question of what makes
+a design more or less modular is very difﬁcult to answer, and has received many (and
+often widely different) answers throughout the years (see [21], for a survey). We claim
+that some very natural modularity criteria are regular, and show how any criterion that
+can be checked by a parity tree automaton can be easily incorporated into our automata
+based synthesis algorithm.
+Related work The issues of speciﬁcation and correctness of modularly designed sys-
+tems have received a fair attention in the formal veriﬁcation literature. Examples of
+important work on this subject are [8, 17, 26, 27]. On the other hand, the problem
+of automatic synthesis from reusable components, which we study here, has received
+much less attention. The closest to our work is Lustig and Vardi’s work on L TLsyn-
+thesis from libraries of (ﬂat) transducers [18]. The technically most difﬁcult part of our
+work is an algorithm for performing the synthesis step of a single round of the multiple-
+rounds algorithm. To this end, we use an automata-theoretic approach. However, unlike
+the classical approach of [23], we build an automaton whose input is not a computation
+tree, but rather a system description in the form of a connectivity tree (inspired by the
+“control-ﬂow” trees of [18]), which describes how to connect library components in a
+way that satisﬁes the speciﬁcation formula. Taken by itself, our single-round algorithm
+extends the “control-ﬂow” synthesis work from [18] in four directions. (i)We consider
+not only L TLspeciﬁcations but also the modal µ-calculus. Hence, unlike [18], where
+co-Büchi tree automata were used, we have to use the more expressive parity tree au-
+tomata. Unfortunately, this is not simply a matter of changing the acceptance condition.
+Indeed, in order to obtain an optimal upper bound, a widely different approach, which
+makes use of the machinery developed in [6] is needed. (ii)We need to be able to handle
+libraries of hierarchical transducers, whereas in [18] only libraries of ﬂat transducers are
+considered. (iii)A synthesized transducer has no top-level exits (since it must be able
+to run on all possible input words), and thus, its ability to serve as a sub-transducer
+of another transducer (in future iterations of the multiple-rounds algorithm) is severely
+limited (it is like a function that never returns to its caller). We therefore need to ad-
+dress the problem of synthesizing exits for such transducers. (iv)As discussed above,
+we incorporate into the algorithm the enforcing of modularity criteria.
+Recently, an extension of [18] appeared in [19], where the problem of Nested-Words
+Temporal Logic (NWTL) synthesis from recursive component libraries has been inves-
+tigated. NWTL extends LTL with special operators that allow one to handle “call and
+return” computations [1] and it is used in [19] to describe how the components have
+to be connected in the synthesis problem. We recall that in our framework the logic
+
+--- Page 4 ---
+4 B. Aminof, F. Mogavero, A. Murano
+does not drive (at least not explicitly) the way the components have to be connected.
+Moreover, the approach used in [19] cannot be applied directly to the branching frame-
+work we consider in this paper, as we recall that already the satisﬁability problem for
+µ-calculus with “call and return” is undecidable even for very restricted cases [4].
+2 Alternating Tree Automata
+LetDbe a set. A D-treeis a preﬁx-closed subset TDsuch that if xc2T, where
+x2Dandc2D, then also x2T. The complete D-tree is the tree D. The elements
+ofTare called nodes , and the empty word eis the root ofT. Given a word x=yd,
+with y2Dandd2D, we deﬁne last(x)to be d. For x2T, the nodes xd2T, where
+d2D, are the sons ofx. Aleaf is a node with no sons. A path ofTis a set pT
+such that e2Tand, for every x2p, either xis a leaf or there is a unique d2Dsuch
+thatxd2p. For an alphabet S, aS-labeled D-tree is a pairhT;Viwhere TDis a
+D-tree and V:T!Smaps each node of Tto a letter in S.
+Alternating tree automata are a generalization of nondeterministic tree automata
+[20] (see [16], for more details). Intuitively, while a nondeterministic tree automaton
+that visits a node of the input tree sends exactly one copy of itself to each of the sons of
+the node, an alternating automaton can send several copies of itself to the same son.
+An (asymmetric) Alternating Parity Tree Automaton (APT) is a tuple A=hS;D;Q;
+q0;d;Fi, where S,D, and Qare non-empty ﬁnite sets of input letters ,directions , and
+states , respectively; q02Qis an initial state ,Fis aparity acceptance condition to be
+deﬁned later, and d:QS7!B+(DQ)is an alternating transition function , which
+maps a state and an input letter to a positive boolean combination of elements in DQ.
+Given a set SDQand a formula q2B+(DQ), we say that Ssatisﬁes q(denoted
+bySj=q) if assigning true to elements in Sandfalse to elements in (DQ)nS, makes
+qtrue. A runof an APT Aon aS-labeled D-treeT=hT;Viis a(TQ)-labeled IN-tree
+hTr;ri, where IN is the set of non-negative integers, such that (i) r(e) = (e;q0)and(ii)for
+ally2Tr, with r(y) = ( x;q), there exists a set SDQ, such that Sj=d(q;V(x)), and
+there is one son y0ofy, with r(y0) = ( xd;q0), for every (d;q0)2S. Given a node xof a
+runhTr;ri, with r(x) = ( z;q)2TQ, we deﬁne last(r(y)) = ( last(z);q). An alternating
+parity automaton Ais nondeterministic (denoted NPT), iff when its transition relation
+is rewritten in disjunctive normal form each disjunct contains at most one element of
+fdgQ, for every d2D. An automaton is universal (denoted UPT) if all the formulas
+that appear in its transition relation are conjunctions of atoms in DQ.
+Asymmetric alternating parity tree automaton with e-moves ( SAPT ) [14] does not
+distinguish between the different sons of a node, and can send copies of itself only in
+a universal or an existential manner. Formally, an SAPT is a tuple A=hS;Q;q0;d;Fi,
+where Sis a ﬁnite input alphabet; Qis a ﬁnite set of states, partitioned into universal
+(Q^), existential ( Q_),e-and ( Q(e;^)), and e-or (Q(e;_)) states (we also write Q_;^=
+Q_[Q^, and Qe=Q(e;_)[Q(e;^));q02Qis an initial state; d:QS!(Q[2Q)is
+a transition function such that for all s2S, we have that d(q;s)2Qforq2Q_;^, and
+d(q;s)22Qforq2Qe; and Fis a parity acceptance condition, to be deﬁned later. We
+assume that Qcontains in addition two special states ffandtt, called rejecting sink
+andaccepting sink , respectively, such that 8a2S:d(tt;a) =tt;d(ff;a) =ff. The
+classiﬁcation of ffandttis arbitrary. Transitions from states in Qelaunch copies of A
+that stay on the same input node as before the transition, while transitions from states
+inQ_;^launch copies that advance to sons of the current node (note that for an SAPT
+
+--- Page 5 ---
+Synthesis of Hierarchical Systems 5
+the set Dof directions of the input trees plays no role in the deﬁnition of a run). When
+a symmetric alternating tree automaton Aruns on an input tree it starts with a copy in
+state q0whose reading head points to the root of the tree. It then follows din order to
+send further copies. For example, if a copy of Athat is in state q2Q(e;_)is reading a
+node xlabeled s, and d(q;s) =fq1;q2g, then this copy proceeds either to state q1or to
+state q2, and its reading head stays in x. As another example, if q2Q^andd(q;s) =q1,
+thenAsends a copy in state q1to every son of x. Note that different copies of Amay
+have their reading head pointing to the same node of the input tree. Formally, a runof
+Aon aS-labeled D-treehT;Viis a(TQ)-labeled IN-treehTr;ri. A node in Trlabeled
+by(x;q)describes a copy of Ain state qthat reads the node xofT. A run has to satisfy
+r(e) = (e;q0)and, for all y2Trwith r(y) = ( x;q), the following hold:
+–Ifq2Q^(resp. q2Q_) and d(q;V(x)) = p, then for each son (resp. for exactly
+one son) xdofx, there is a node yi2Trwith r(yi) = ( xd;p).
+–Ifq2Q(e;^)(resp. q2Q(e;_)) and d(q;V(x)) =fp0;:::;pkg, then for all i2f0::kg
+(resp. for one i2f0::kg) the node yi2Tr, and r(yi) = ( x;pi);
+Aparity condition is given by means of a coloring function on the set of states.
+Formally, a parity condition is a function F:Q!C, where C=fCmin;:::;CmaxgIN
+is a set of colors. The size jCjofCis called the index of the automaton. For an SAPT,
+we also assume that the special state ttis given an even color, and ffis given an odd
+color. For an inﬁnite path pTrof a runhTr;ri, letmaxC (p)be the maximal color that
+appears inﬁnitely often along p. Similarly, for a ﬁnite path p, we deﬁne maxC (p)to be
+the maximal color that appears at least once in p. An inﬁnite path pTrsatisﬁes the
+acceptance condition FiffmaxC (p)is even. A runhTr;riis accepting iff all its inﬁnite
+paths satisfy F. The automaton Aaccepts an input tree hT;Viif there is an accepting
+run of AonhT;Vi. The language of A, denoted L(A), is the set of S-labeled D-trees
+accepted by A. We say that an automaton Ais nonempty iff L(A)6=/0.
+A wide range of branching-time temporal logics can be translated to alternating tree
+automata (details can be found in [16]). In particular:
+Theorem 1. [11, 16] Given a temporal-logic formula j, it is possible to construct a
+SAPT Ajsuch that L(Aj)is exactly the set of trees satisfying j. Moreover,
+–ifjis a µ-calculus formula, then Ajis an alternating parity automaton with O (jjj)
+states and index O (jjj); and
+–ifjis an LTLformula, then Ajis a universal parity automaton with 2O(jjj)states,
+and index 2.
+3 Hierarchical Transducers
+In this section, we introduce hierarchical transducers (alternatively, hierarchical Moore
+machines ), which are a generalization of classical transducers in which repeated sub-
+structures (technically, sub-transducers ) are speciﬁed only once. Technically, some of
+the states in a hierarchical transducer are boxes , in which inner hierarchical transducers
+are nested. Formally, a hierarchical transducer is a tuple K=hSI;SO;hK1;:::;Knii,
+where SIandSOare respectively non-empty sets of input and output letters, and for
+every 1in, the sub-transducer Ki=hWi;Bi;ini;Exit i;ti;di;Liihas the following
+elements.
+
+--- Page 6 ---
+6 B. Aminof, F. Mogavero, A. Murano
+–Wiis a ﬁnite set of states .ini2Wiis an initial state2, and Exit iWiis a set of
+exit-states . States in WinExit iare called internal states .
+–A ﬁnite set Biofboxes . We assume that W1;:::;Wn;B1;:::;Bnare pairwise disjoint.
+–Anindexing function ti:Bi!fi+1;:::;ngthat maps each box of the i-th sub-
+transducer to a sub-transducer with an index greater than i. Ifti(b) =jwe say that
+b refers toKj.
+–Atransition function di:(S
+b2Bi(fbgExit ti(b))[(WinExit i))SI!Wi[Bi.
+Thus, when the transducer is at an internal state u2(WinExit i), or at an exit eof
+a box b, and it reads an input letter s2SI, it moves either to a state s2Wi, or to
+a box b02Bi. A move to a box b0implicitly leads to the unique initial state of the
+sub-transducer that b0refers to.
+–Alabeling function Li:Wi!SOthat maps states to output letters.
+The sub-transducer K1is called the top-level sub-transducer of K. Thus, for exam-
+ple, the top-level boxes of Kare the elements of B1, etc. We also call in1the initial
+state of K, and Exit 1theexits ofK. For technical convenience we sometimes refer to
+functions (like the transitions and labeling functions) as relations, and in particular, we
+consider /0to be a function with an empty domain. Note that the fact that boxes can
+refer only to sub-transducers of a greater index implies that the nesting depth of trans-
+ducers is ﬁnite. In contrast, in the recursive setting such a restriction does not exist.
+Also note that moves from an exit e2Exit iof a sub-transducer Kiare not speciﬁed
+by the transition function diofKi, but rather by the transition functions of the sub-
+transducers that contain boxes that refer to Ki. The exits of Kallow us to use it as a sub-
+transducer of another hierarchical transducer. When we say that a hierarchical trans-
+ducerK=hSI;SO;hK1;:::;Kniiis a sub-transducer of another hierarchical transducer
+K0=hSI;SO;hK0
+1;:::;K0
+n0ii, we mean thatfK1;:::;KngfK0
+2;:::;K0
+n0g. The sizejKijof
+a sub-transducer Kiis the sumjWij+jBij+jdij. The sizejKjofKis the sum of the
+sizes of its sub-transducers. We sometimes abuse notation and refer to the hierarchical
+transducer Kiwhich is formally the hierarchical transducer hSI;SO;hKi;Ki+1;:::;Knii
+obtained by taking Kito be the top-level sub-transducer.
+Flat transducers A sub-transducer without boxes is ﬂat. A hierarchical transducer
+K=hSI;SO;hW;/0;in;Exit;/0;d;Liiwith a single (hence ﬂat) sub-transducer is ﬂat, and
+we denote it using the shorter notation K=hSI;SO;hW;in;Exit;d;Lii. Each hierarchi-
+cal transducer Kcan be transformed into an equivalent ﬂat transducer Kf=hSI;SO;
+hWf;in1;Exit 1;df;Lfii(called its ﬂat expansion ) by recursively substituting each box
+by a copy of the sub-transducer it refers to. Since different boxes can refer to the same
+sub-transducer, states may appear in different contexts. In order to obtain unique names
+for states in the ﬂat expansion, we preﬁx each copy of a sub-transducer’s state by the
+sequence of boxes through which it is reached. Thus, a state (b0;:::;bk;w)ofKfis a
+vector whose last component wis a state in[n
+i=1Wi, and the remaining components
+(b0;:::;bk)are boxes that describe its context. The labeling of a state (b0;:::;bk;w)is de-
+termined by its last component w. For simplicity, we refer to vectors of length one
+as elements (that is, w, rather than (w)).3Formally, given a hierarchical transducer
+2We assume a single entry for each sub-transducer. Multiple entries can be handled by dupli-
+cating sub-transducers.
+3A helpful way to think about this is using a stack — the boxes b0;:::;bkare pushed into the
+stack whenever a sub-transducer is called, and are popped in the corresponding exit.
+
+--- Page 7 ---
+Synthesis of Hierarchical Systems 7
+K=hSI;SO;hK1;:::;Knii, for each sub-transducer Ki=hWi;Bi;ini;Exit i;ti;di;Liiwe
+inductively deﬁne its ﬂat expansion Kf
+i=hWf
+i;ini;Exit i;df
+i;Lf
+iias follows.
+–The set of states WifWi[(Bi(Sn
+j=i+1Wjf))is deﬁned as follows: (i) if wis a
+state of Withen wbelongs to Wif; and (ii) if bis a box of Kiwithti(b) =j, and the
+tuple (u1;:::;uh)is a state in Wf
+j, then (b;u1;:::;uh)belongs to Wif.
+–The transition function df
+iis deﬁned as follows: (i) If di(u;s) =v, where u2Wi, or
+u= (b;e)with b2Biande2Exit ti(b), then if vis a state, we have that df
+i(u;s) =v;
+and if vis a box, we have that df
+i(u;s) = ( v;inti(v)). Note that (v;inti(v))is indeed
+a state of Wf
+iby the second item in the deﬁnition of states above; and (ii) if bis
+a box of Ki, and df
+ti(b)((u1;:::;uh);s) = ( v1;:::;vh0)is a transition of Kf
+ti(b), then
+df
+i((b;u1;:::;uh);s) = ( b;v1;:::;vh0)is a transition of Kf
+i.
+–Finally, if u2WithenLf
+i(u) =Li(u); and if u2Wifis of the form u= (b;u1;:::;uh),
+where b2Bi, then Li(u) =Lf
+ti(b)(u1;:::;uh).
+The transducerhSI;SO;hKf
+1iiis the required ﬂat expansion KfofK. An atomic trans-
+ducer is a ﬂat transducer made up of a single node that serves as both an entry and an
+exit. For each letter V2SOthere is an atomic transducer KV=hfpg;p;fpg;/0;f(p;V)gi
+whose single state pis labeled by V.
+Run of a hierarchical transducer Consider a hierarchical transducer Kwith Exit 1=
+/0that interacts with its environment. At point jin time, the environment provides K
+with an input sj2SI, and in response Kmoves to a new state, according to its transition
+relation, and outputs the label of that state. The result of this inﬁnite interaction is a
+computation of K, called the trace of the run of Kon the word s1s2. In the case
+thatExit 16=/0, the interaction comes to a halt whenever Kreaches an exit e2Exit 1,
+since top-level exits have no outgoing transitions. Formally, a runof a hierarchical
+transducer Kis deﬁned by means of its ﬂat expansion Kf. Given a ﬁnite input word
+v=s1sm2S
+I, arun(computation ) ofKonvis a sequence of states r=r0rm2
+(Wf)such that r0=in1, and rj=df(rj1;sj), for all 0 <jm. Note that since Kis
+deterministic it has at most one run on every word, and that if Exit 16=/0thenKmay
+not have a run on some words. The trace of the run of Konvis the word of inputs and
+outputs trc (K;v) = (Lf(r1);s1)(Lf(rm);sm)2(SOSI). The notions of traces and
+runs are extended to inﬁnite words in the natural way.
+The computations of Kcan be described by a computation tree whose branches
+correspond to the runs of Kon all possible inputs, and whose labeling gives the traces
+of these runs. Note that the root of the tree corresponds to the empty word e, and its
+labeling is not part of any trace. However, if we look at the computation tree of Kas
+a sub-tree of a computation tree of a transducer K0of which Kis a sub-transducer,
+then the labeling of the root of the computation tree of Kis meaningful, and it corre-
+sponds to the last element in the trace of the run of K0leading to the initial state of
+K. Formally, given s2SI, the computation tree TK;s=hTK;s;VK;si, is a (SOSI)-
+labeled (WfSI)-tree, where: (i)the root eis labeled by (Lf(in1);s);(ii)a node
+y= (r1;s1)(rm;sm)2(WfSI)+is in TK;siffin1r1rmis the run of Kon
+v=s1sm, and its label is VK;s(y) = (Lf(rm);sm). Thus, for a node y, the labels of
+the nodes on the path from the root (excluding the root) to yare exactly trc (K;v). Ob-
+serve that the leaves of TK;scorrespond to pairs (e;s0), where e2Exit 1ands02SI.
+
+--- Page 8 ---
+8 B. Aminof, F. Mogavero, A. Murano
+However, if Exit 1=/0, then the tree has no leaves, and it represents the runs of Kover
+all words in S
+I. We sometimes consider a leaner computation tree TK=hTK;VKithat
+is aSO-labeled SI-tree, where a node y2S+
+Iis in TKiff there is a run rofKony. The
+label of such a node is VK(y) =Lf(last(r)))and the label of the root is Lf(in1). Observe
+that for every s2SI, the tree TKcan be obtained from TK;sby simply deleting the ﬁrst
+component of the directions of TK;s, and the second component of the labels of TK;s.
+Recall that the labeling of the root of a computation tree of Kis not part of any trace
+(when it is not a sub-tree of another tree). Hence, in the deﬁnition below, we arbitrarily
+ﬁx some letter r2SI. Given a temporal logic formula j, over the atomic propositions
+APwhere 2AP=SOSI, we have the following:
+Deﬁnition 1. A hierarchical transducer K=hSI;SO;hK1;:::;Knii, with Exit 1=/0, sat-
+isﬁes a formula j(written Kj=j), iff the tree TK;rsatisﬁes j.
+Observe that given j, ﬁnding a ﬂat transducer Ksuch that Kj=jis the classic
+synthesis problem studied (for L TLformulas) in [23].
+Alibrary Lis a ﬁnite set of hierarchical transducers with the same input and output
+alphabets. Formally, L=fK1;:::;Klg, and for every 1il, we have that Ki=
+hSI;SO;hKi
+1;:::;Ki
+niii. Note that a transducer in the library can be a sub-transducer of
+another one, or share common sub-transducers with it. The set of transducers in Lthat
+have no top-level exits is denoted by L=/0=fKi2L:Exiti
+1=/0g, and its complement
+isL6=/0=LnL=/0.
+4 Hierarchical Synthesis
+In this section, we describe our synthesis algorithm. We start by providing the algorithm
+with an initial library L0of hierarchical transducers. A good starting point is to include
+inL0all the atomic transducers, as well as any other relevant hierarchical transducers,
+for example from a standard library. We then proceed by synthesizing in rounds. At each
+round i0, the system designer provides a speciﬁcation formula jiof the currently
+desired hierarchical transducer Ki, which is then automatically synthesized using the
+transducers in Li1as possible sub-transducers. Once a new transducer is synthesized
+it is added to the library, for use in subsequent rounds. Technically, the hierarchical
+transducer synthesized in the last round as the output of the algorithm.
+Input : An initial library L0, and a list of speciﬁcation formulas j1;:::;jm
+Output : A hierarchical transducer satisfying jm
+fori=1tomdo
+synthesize Kisatisfying jiusing the transducers in Li1as sub-transducers
+Li Li1[fKig
+end
+return Km
+Algorithm 1: Hierarchical Synthesis Algorithm
+The main challenge in implementing the above hierarchical synthesis algorithm is
+of course coming up with an algorithm for performing the synthesis step of a single
+round. As noted in Section 1, a transducer that was synthesized in a previous round
+has no top-level exits, which severely limits its ability to serve as a sub-transducer of
+another transducer. Our single-round algorithm must therefore address the problem of
+
+--- Page 9 ---
+Synthesis of Hierarchical Systems 9
+synthesizing exits for such transducers. In Section 4.1, we give our core algorithm for
+single-round synthesis of a hierarchical transducer from a given library of hierarchical
+transducers. In Section 4.2, we address the problem of enforcing modularity, and add
+some more information regarding the synthesis of exits. Finally, in Section 4.3, we
+address the problem of synthesis with imperfect information.
+4.1 Hierarchical Synthesis from a Library
+We now formally present the problem of hierarchical synthesis from a library (that
+may have transducers without top-level exits) of a single temporal logic formula. Given
+a transducer K=hSI;SO;hK1;:::;Knii2L=/0, where K1=hW1;B1;in1;/0;t1;d1;L1i,
+and a set EW1, the transducer KEis obtained from Kby setting Eto be the set of
+top-level exits, and removing all the outgoing edges from states in E. Formally, KE=
+hSI;SO;hhW1;B1;in1;E;t1;d0
+1;L1i;K2;:::;Knii, where the transition relation d0
+1is the
+restriction of d1to sources in W1nE. For convenience, given a transducer K2L6=/0we
+sometimes refer to it as KExit 1. For every K2L, we assume some ﬁxed ordering on the
+top-level states of K, and given a set EW1, and a state e2E, we denote by idx(e;E)
+the relative position of einE, according to this ordering. Given a library L, and an upper
+bound el2IN on the number of allowed top-level exits, we let Lel=L6=/0[fKE:K2
+L=/0^jEjelg. The higher the number el, the more exits the synthesis algorithm is
+allowed to synthesize, and the longer it may take to run. As we show later, elshould be
+at most polynomial4in the size of j. In general, we assume that elis never smaller than
+the number of exits in any sub-transducer of any hierarchical transducer in L. Hence,
+for every KE2Leland every e2E, we have that 1idx(e;E)el.
+Deﬁnition 2. Given a library Land a bound el2IN, we say that:
+–A hierarchical transducer K=hSI;SO;hK1;:::KniiishL;eli-composed if (i) for
+every 2in, we have that Ki2Lel; (ii) if w2W1is a top-level state, then the
+atomic transducer K L1(w)is inL.
+–A formula jishL;eli-realizable iff there is anhL;eli-composed hierarchical trans-
+ducer Kthat satisﬁes j. ThehL;eli-synthesis problem is to ﬁnd such a K.
+Intuitively, anhL;eli-composed hierarchical transducer Kis built by synthesizing
+its top-level sub-transducer K1, which speciﬁes how to connect boxes that refer to trans-
+ducers from Lel. To eliminate an unnecessary level of indirection, boxes that refer to
+atomic transducers are replaced by regular states. Note that this also solves the technical
+problem that, by deﬁnition, the initial state in1cannot be a box. This is also the reason
+why we assume from now on that every library has at least one atomic transducer. Note
+that for each transducer K02L=/0we can have as many as W(jK0j)elcopies of K0
+inLel, each with a different set of exit states. In Section 4.2 we show how, when we
+synthesize K, we can limit the number of such copies that Kuses to any desired value
+(usually one per K0).
+4In practical terms, the exits of a sub-module represent its set of possible return values. Since
+ﬁnite state modules are usually not expected to have return values over large domains (such as
+the set of integers), we believe that our polynomial bound for elis not too restrictive.
+
+--- Page 10 ---
+10 B. Aminof, F. Mogavero, A. Murano
+Connectivity trees In the classical automata-theoretic approach to synthesis [23],
+synthesis is reduced to ﬁnding a regular tree that is a witness to the non-emptiness
+of a suitable tree automaton. Such a regular tree is simply an inﬁnite labeled tree where
+its structure represents all the possible inﬁnite input sequences and the labeling repre-
+sents mapping of inputs to outputs. Since every transducer induces an execution tree,
+and every regular execution tree can be implemented by a transducer, the classical syn-
+thesis problem for a temporal logic speciﬁcation jreduces to ﬁrst constructing a tree
+automaton whose language is the set of the above described trees that also satisfy jand
+then to check the emptiness of this automaton. Here, we also reduce synthesis to the
+non-emptiness problem of a tree automaton. However, unlike the classical approach,
+we build an automaton whose input is not a computation tree, but rather a system de-
+scription in the form of a connectivity tree (inspired by the “control-ﬂow” trees of [18]),
+which describes how to connect library components in a way that satisﬁes the speci-
+ﬁcation formula. Speciﬁcally, given a library L=fK1;:::;Klgand a bound el2IN,
+connectivity trees represent hierarchical transducers that are hL;eli-composed, in the
+sense that every regular hL;eli-composed hierarchical transducer induces a connec-
+tivity tree, and vice versa. Formally, a connectivity tree T=hT;ViforLandel, is
+anLel-labeled complete (f1;:::;elgSI)-tree, where the root is labeled by an atomic
+transducer.
+Intuitively, a node xwith V(x) =KErepresents a top-level state qifKEis an atomic
+transducer, and otherwise it represents a top-level box bthat refers to KE. The label of
+a son x(idx(e;E);s)speciﬁes the destination of the transition from the exit eofb(or
+from a state q, ifKEis atomic — in which case it has a single exit) when reading s.
+Sons x(i;e), for which i>jEj, are ignored. Thus, a path p= (i0;s0)(i1;s1)in a
+connectivity tree Tis called meaningful , iff for every j>0, we have that ijis not larger
+than the number of top-level exits of V(ij1;sj1).
+A connectivity tree T=hT;Viisregular if there is a ﬂat transducer M=hf1;:::;elg
+SI;Lel;hM;m0;/0;dT;LTii, such that Tis equal to the (lean) computation tree TM. A
+regular connectivity tree induces an hL;eli-composed hierarchical transducer K, whose
+top-level sub-transducer K1is basically a replica of M(see the Appendix for the reverse
+transformation). Every node m2Mbecomes a state of K1ifLT(m)is an atomic-
+transducer and, otherwise, it becomes a box of K1which refers to the top-level sub-
+transducer of LT(m). The destination of a transition from an exit eof a box m, with
+LT(m) =KE, when reading a letter s2SI, is given by dT(m;(idx(e;E);s)). Ifmis a
+state, then LT(m)is an atomic transducer with a single exit and thus, the destination of a
+transition from mwhen reading a letter s2SI, is given by dT(m;(1;s)). For a box bof
+K1, letLT(b) =hSI;SO;hK(b;1);:::K(b;nb)ii, and denote by sub(b) =fK(b;1);:::K(b;nb)g
+the set of sub-transducers of LT(b), and by E(b)the set of top-level exits of LT(b).
+Formally, K=hSI;SO;hK1;:::;Knii, where K1=hW1;B1;m0;t1;d1;L1i, and:
+–W1=fw2M:9V2SOs.t.LT(w) =KVg. Note that since the root of a connectivity
+tree is labeled by an atomic transducer then m02W1.
+–B1=MnW1.
+–The sub-transducers fK2;:::;Kng=S
+fb2B1gsub(b).
+–Forb2B1, we have that t1(b) =i, where iis such that Ki=K(b;1).
+–Forw2W1, and s2SI, we have that d1(w;s) =dT(w;(1;s)).
+–Forb2B1, we have that d1((b;e);s) =dT(b;(idx(e;E(b));s)), for every e2E(b)
+ands2SI.
+
+--- Page 11 ---
+Synthesis of Hierarchical Systems 11
+–Finally, for w2W1we have that L1(w) =V, where Vis such that LT(w) =KV.
+From synthesis to automata emptiness Given a library L=fK1;:::;Klg, a bound
+el2IN, and a temporal logic formula j, our aim is to build an APT AT
+jsuch that AT
+j
+accepts a regular connectivity tree T=hT;Viiff it induces a hierarchical transducer K
+such that Kj=j. Recall that by Deﬁnition 1 and Theorem 1, Kj=jiffTK;ris accepted
+by the SAPT Aj. The basic idea is thus to have AT
+jsimulate all possible runs of Ajon
+TK;r. Unfortunately, since AT
+jhas as its input not the tree TK;r, but the connectivity
+treeT, this is not a trivial task. In order to see how we can solve this problem, we ﬁrst
+have to make the following observation.
+LetT=hT;Vibe a regular connectivity tree, and let Kbe the hierarchical trans-
+ducer that it induces. Consider a node u2TK;rwith last(u) = (( b;int1(b));s), where
+bis some top-level box, or state5, ofKthat refers to some transducer KE(note that
+the root of TK;ris such a node). Observe that the sub-tree Tu, rooted at u, represents
+the traces of computations of Kthat start from the initial state of KE, in the context of
+the box b. The sub-tree prune (Tu), obtained by pruning every path in Tuat the ﬁrst
+node ˆ u, with last(ˆu) = (( b;e);ˆs)for some e2Eandˆs2SI, represents the portions of
+these traces that stay inside KE. Note that prune (Tu)is essentially independent of the
+context bin which KEappears, and is isomorphic to the tree TKE;s(the isomorphism
+being to simply drop the component bfrom every letter in the name of every node in
+prune (Tu)). Moreover, every son v(inTK;r), of such a leaf ˆ uofprune (Tu), is of the
+same form as u. I.e., last(v) = (( b0;int1(b0));s0), where b0=d1((b;e);s0)is a top-level
+box (or state) of K. It follows that TK;ris isomorphic to a concatenation of sub-trees
+of the form TKE;s, where the transition from a leaf of one such sub-tree to the root
+of another is speciﬁed by the transition relation d1, and is thus given explicitly by the
+connectivity tree T.
+The last observation is the key to how AT
+jcan simulate, while reading T, all the
+possible runs of AjonTK;r. The general idea is as follows. Consider a node uofTK;r
+such that prune (Tu)is isomorphic to TKE;s. A copy of AT
+jthat reads a node yofT
+labeled by KEcan easily simulate, without consuming any input, all the portions of
+the runs of any copy of Ajthat start by reading uand remain inside prune (Tu). This
+simulation can be done by simply constructing TKE;son the ﬂy and running Ajon it.
+For every simulated copy of Ajthat reaches a leaf ˆ uofprune (Tu), (recall that last(ˆu)
+is of the form ((b;e);ˆs)), the automaton AT
+jsends copies of itself to the sons of y
+in the connectivity tree, in order to continue the simulation on the different sub-trees
+rooted at sons of ˆ uinTK;r. The simulation of a copy of Ajthat proceeds to a son
+v=ˆu((b0;int1(b0));s0), where b0is a top-level box (or state) of K, is handled by a copy
+ofAT
+jthat is sent to the son z=y(idx(e;E);s0).
+Our construction of AT
+jimplements the above idea, with one main modiﬁcation. In
+order to obtain optimal complexity in successive rounds of Algorithm 1, it is important
+to keep the size of AT
+jindependent of the size of the transducers in the library. Unfor-
+tunately, simulating the runs of AjonTKE;son the ﬂy would require an embedding of
+KEinside AT
+j. Recall, however, that no input is consumed by AT
+jwhile running such
+5Here we think of top-level states of Kas boxes that refer to atomic transducers.
+
+--- Page 12 ---
+12 B. Aminof, F. Mogavero, A. Murano
+a simulation. Hence, we can perform these simulations ofﬂine instead, in the process of
+building the transition relation of AT
+j. Obviously, this requires a way of summarizing
+the possibly inﬁnite number of runs of AjonTKE;s, which we do by employing the
+concept of summary functions from [6].
+First, we deﬁne an ordering on colors by letting cc0when cis better, from
+the point of view of acceptance by Aj, than c0. Formally, cc0if the following holds:
+ifc0is even then cis even and cc0; and if c0is odd then either cis even, or cis
+also odd and cc0. We denote by minthe operation of taking the minimal color,
+according to, of a ﬁnite set of colors. Let Aj=hSOSI;Qj;q0
+j;dj;Fji, letAq
+jbe
+the automaton Ajusing q2Qas an initial state, and let Cbe the set of colors used
+in the acceptance condition Fj. Consider a runhTr;riofAq
+jonTKE;s. Note that if
+z2Tris a leaf, then last(r(z)) = (( e;s0);q), where q2Q_;^
+j(i.e., qis not an e-state),
+ande2E. We deﬁne a function gr:ESIQ_;^
+j!C[fag , called the summary
+function ofhTr;ri, which summarizes this run. Given h2ESIQ_;^
+j, if there is
+no leaf z2Tr, such that last(r(z)) = h, then gr(h) =a; otherwise, gr(h) =c, where
+cis the maximal color encountered by the copy of Ajwhich made the least progress
+towards satisfying the acceptance condition, among all copies that reach a leaf z2Tr
+with last(r(z)) = h. Formally, let paths (r;h)be the set of all the paths in hTr;rithat end
+in a leaf z2Tr, with last(r(z)) = h. Then, gr(h) =aifpaths (r;h) =/0and, otherwise,
+gr(h) =minfmaxC (p):p2paths (r;h)g.
+LetSf(KE;s;q)be the set of summary functions of the runs of Aq
+jonTKE;s. If
+TKE;shas no leaves, then Sf(KE;s;q)contains only the empty summary function e.
+Forg2Sf(KE;s;q), letg6=a=fh2ESIQ_;^
+j:g(h)6=ag. Based on the ordering 
+we deﬁned for colors, we can deﬁne a partial order onSf(KE;s;q), by letting gg0
+if for every h2(ESIQ_;^
+j)the following holds: g(h) =a, org(h)6=a6=g0(h)and
+g(h)g0(h). Observe that if randr0are two non-rejecting runs, and grgr0, then
+extending rto an accepting run on a tree that extends TKE;sis always not harder than
+extending r0- either because Ajhas less copies at the leaves of r, or because these
+copies encountered better maximal colors. Given a summary function g, we say that a
+runhTr;riachieves g ifgrg; we say that gisfeasible if there is a runhTr;rithat
+achieves it; and we say that gisrelevant if it can be achieved by a memoryless6run
+that is not rejecting (i.e., by a run that has no inﬁnite path that does not satisfy the
+acceptance condition of Aj). We denote by Rel(KE;s;q)Sf(KE;s;q)the set of
+relevant summary functions.
+We are now ready to give a formal deﬁnition of the automaton AT
+j. Given a library
+L=fK1;:::;Klg, a bound el2IN, and a temporal-logic formula j, letAj=hSO
+SI;Qj;q0
+j;dj;Fji, letC=fCmin;:::;Cmaxgbe the colors in the acceptance condition of
+Aj, and for KE2Lel, letLEbe the labeling function of the top-level sub-transducer of
+KE. The automaton AT
+j=hLel;(f1;:::;elgSI);(SIQ_;^
+jC)[fq0g;q0;d;ai, has
+the following elements:
+–For every KE2Lelwe have that d(q0;KE) =d((r;q0
+j;Cmin);KE)ifKEis an
+atomic transducer and, otherwise, d(q0;KE) =false .
+6A run of an automaton Ais memoryless if two copies of Athat are in the same state, and read
+the same input node, behave in the same way on the rest of the input.
+
+--- Page 13 ---
+Synthesis of Hierarchical Systems 13
+–For every (s;q;c)2SIQ_;^
+jC, and every KE2Lel, we have d((s;q;c);KE) =W
+g2Rel(KE;s;q)V
+(e;ˆs;ˆq)2g6=aL
+s02SI((idx(e;E);s0);(s0;dj(ˆq;(LE(e);ˆs));g(e;ˆs;ˆq)));
+whereL=Vif ˆq2Q^
+j, andL=Wif ˆq2Q_
+j.
+–a(q0) =Cmin; and a((s;q;c)) = c, for every (s;q;c)2SIQ_;^
+jC.
+The construction above implies the following lemma:
+Lemma 1. AT
+jaccepts a regular connectivity tree T=hT;ViiffTinduces a hierar-
+chical transducer K, such that TK;ris accepted by Aj.
+Proof (sketch). Intuitively, AT
+jﬁrst checks that the root of its input tree Tis labeled by
+an atomic proposition (and is thus a connectivity tree), and then proceeds to simulate
+all the runs of AjonTK;r. A copy of AT
+jat a state (s;q;c), that reads a node yofT
+labeled by KE, considers all the non-rejecting runs of Aq
+jonTKE;s, by looking at the
+setRel(KE;s;q)of summary functions for these runs. It then sends copies of AT
+jto
+the sons of yto continue the simulation of copies of Ajthat reach the leaves of TKE;s.
+The logic behind the deﬁnition of d((s;q;c);KE)is as follows. Since every sum-
+mary function g2Rel(KE;s;q)summarizes at least one non-rejecting run, and it is
+enough that one such run can be extended to an accepting run of Ajon the remainder
+ofTK;r, we have a disjunction on all g2Rel(KE;s;q). Every (e;ˆs;ˆq)2g6=arep-
+resents one or more copies of Ajat state ˆ qthat are reading a leaf ˆ uofTKE;swith
+last(ˆu) = ( e;ˆs), and all these copies must accept their remainders of TK;r. Hence, we
+have a conjunction over all (e;ˆs;ˆq)2g6=a.
+A copy of Ajthat starts at the root of TKE;smay give rise to many copies that
+reach a leaf ˆ uofTKE;swith last(ˆu) = ( e;ˆs), but we only need to consider the copy
+which made the least progress towards satisfying the acceptance condition, as captured
+byg(e;ˆs;ˆq). To continue the simulation of such a copy on its remainder of TK;r, we
+send to a son y(idx(e;E);s0)ofyin the connectivity tree, whose label speciﬁes where
+Kshould go to from the exit ewhen reading s0, a copy of AT
+jas follows. Recall that
+the leaf ˆ ucorresponds to a node uofTK;rsuch that last(u) = (( b;e);ˆs)andbis a top-
+level box of Kthat refers to KE. Also recall that every node in TK;rhas one son for
+every letter s02SI. Hence, a copy of Ajthat is at state ˆ qand is reading u, sends one
+copy in state q0=dj(ˆq;(LE(e);ˆs))to each son of u, if ˆq2Q^
+j; and only one such copy,
+to one of the sons of u, if ˆq2Q_
+j. This explains whyLis a conjunction in the ﬁrst
+case, and is a disjunction in the second. Finally, a copy of AT
+jthat is sent to direction
+(idx(e;E);s0)carries with it the color g(e;ˆs;ˆq), which is needed in order to deﬁne the
+acceptance condition. The color assigned to q0is of course arbitrary.
+The core of the proof uses a game based approach. Recall that the game-based
+approach to model checking a ﬂat system Swith respect to a branching-time temporal
+logic speciﬁcation j, reduces the model-checking problem to solving a game (called the
+membership game ofSandAj) obtained by taking the product of Swith the alternating
+tree automaton Aj[16]. In [6], this approach was extended to hierarchical structures,
+and it was shown there that given a hierarchical structure Sand an SAPT A, one can
+construct a hierarchical membership game GS;Asuch that Player 0 wins GS;Aiff the
+tree obtained by unwinding Sis accepted by A. In particular, when Aaccepts exactly
+all the tree models of a branching-time formula j, the above holds iff Ssatisﬁes j.
+
+--- Page 14 ---
+14 B. Aminof, F. Mogavero, A. Murano
+Furthermore, it is shown in [6] that one can simplify the hierarchical membership game
+GS;A, by replacing boxes of the top-level arena with gadgets that are built using Player 0
+summary functions, and obtain an equivalent ﬂat game Gs
+S;A.
+Given a regular connectivity tree T=hT;Vi, that induces a hierarchical system K,
+we prove Lemma 1 by showing that the ﬂat membership game Gs
+S;Aj, where Sis a
+hierarchical structure whose unwinding is the computation tree TK;r, is equivalent to
+the ﬂat membership game GKT;ATj, ofAT
+jand a Kripke structure KTwhose unwinding
+isT. Thus, Ajaccepts TK;riffAT
+jaccepts T. The equivalence of these two games
+follows from the fact that they have isomorphic arenas and winning conditions. Conse-
+quently, our proof of Lemma 1 is mainly syntactic in nature, and amounts to little more
+then constructing the structures SandKT, constructing the game GS;Aj, simplifying it
+to getGs
+S;Aj, and constructing the membership game GKT;ATj. The remaining technical
+details can be found in Appendix B. u t
+We now state our main theorem.
+Theorem 2. ThehL;eli-synthesis problem is EXPTIME -complete for a µ-calculus for-
+mula j, and is 2EXPTIME -complete for an LTLformula (for el that is at most polyno-
+mial injjjfor µ-calculus, or at most exponential in jjjforLTL).
+Proof. The lower bounds follow from the same bounds for the classical synthesis prob-
+lem of ﬂat systems [15, 25], and the fact that it is immediately reducible to our problem
+ifLcontains all the atomic transducers. For the upper bounds, since an APT accepts
+some tree iff it accepts some regular tree (and AT
+jobviously only accepts trees which
+are connectivity trees), by Lemma 1 and Theorem 1, we get that an L TLor aµ-calculus
+formula jishL;eli-realizable iff L(AT
+j)6=/0. Checking the emptiness of AT
+jcan be
+done either directly, or by ﬁrst translating it to an equivalent NPT A0T
+j. For reasons that
+will become apparent in subsection 4.2, we choose the latter. Note that the known algo-
+rithms for checking the emptiness of an NPT are such that if L(AT
+j)6=/0, then one can
+extract a regular tree in L(AT
+j)from the emptiness checking algorithm [24]. The upper
+bounds follow from the analysis given below of the time required to construct AT
+jand
+check for its non-emptiness.
+By Theorem 1, the number of states jQjjand the index kofAjisjQjj=2O(jjj),
+k=2 for L TL, andjQjj=O(jjj),k=O(jjj)forµ-calculus. The most time consuming
+part in the construction of AT
+jis calculating for every (KE;s;q)2(LelSIQj),
+the set Rel(KE;s;q). Calculating Rel(KE;s;q)can be done by checking for every
+summary function g2Sf(KE;s;q)if it is relevant. Our proof of Lemma 1 also yields
+that, by [6], the latter can be done in time O((jKjjQjj)k(k+1)jEjjQjjk). Observe that
+the set Sf(KE;s;q)is of size (k+1)jEj, and that the number of transducers in Lelis
+O(lmel), where mis the maximal size of any K2L. It follows that for an L TL(resp.
+µ-calculus) formula j, the automaton AT
+jcan be built in time at most polynomial in the
+size of the library, exponential in el, and double exponential (resp. exponential) in jjj.
+We now analyze the time it takes to check for the non-emptiness of AT
+j. Recall that
+for every h2(LelSIQj), the set Rel(h)is of size at most (k+1)el, and thus, the
+size of the transition relation of AT
+jis polynomial injLjandjjj, and exponential in el.
+
+--- Page 15 ---
+Synthesis of Hierarchical Systems 15
+Checking the emptiness of AT
+jis done by ﬁrst translating it to an equivalent NPT A0T
+j.
+By [20], given an APT with jQjstates and index k, running on S-labeled D-trees, one
+can build (in time polynomial in the descriptions of its input and output automata) an
+equivalent NPT with (jQjk)O(jQjk)states, an index O(jQjk), and a transition relation
+of sizejSj(jQjk)O(jDjjQjk). It is worth noting that this blow-up in the size of the
+automaton is independent from the size of the transition relation of AT
+j. By [16, 28], the
+emptiness of A0T
+jcan be checked in time jSj(jQjk)O(jDjjQj2k2)(and if it is not empty,
+a witness is returned). Recall that jSj=jLelj=O(lmel), and thatjDj=eljSIj. By
+substituting the values calculated above for jQjandk, the theorem follows. u t
+Note that in Algorithm 1, it is conceivable that the transducer Kisynthesized at
+iteration iwill be exponential (or even double-exponential for L TL) in the size of the
+speciﬁcation formula ji. At this point it is probably best to stop the process, reﬁne the
+speciﬁcations, and try again. However, it is important to note that even if the process
+is continued, and Kiis added to the library, the time complexity of the succeeding
+iterations does not deteriorate since the single-round hL;eli-synthesis algorithm is only
+polynomial in the maximal size mof any transducer in the library.
+4.2 Enforcing Modularity
+In this section, we address two main issues that may hinder the efforts of our single-
+roundhL;eli-synthesis algorithm to synthesize a succinct hierarchical transducer K.
+The ﬁrst issue is that of ensuring that, when possible, Kindeed makes use of the
+more complex transducers in the library (especially transducers synthesized in previous
+rounds) and does not rely too heavily on the less complex, or atomic, transducers. An
+obvious and most effective solution to this problem is to simply not have some (or all)
+of the atomic transducers present in the library. The second issue is making sure that K
+does not have too many sub-transducers, which can happen if it uses too many copies of
+the same transducer K02L=/0, each with a different set of exits. We also discuss some
+other points of interest regarding the synthesis of exits. We address the above issues by
+constructing, for each constraint we want to enforce on the synthesized transducer K,
+an APT A, called the constraint monitor, such that Aaccepts only connectivity trees that
+satisfy the constraint. We then synthesize Kby checking the non-emptiness not of AT
+j,
+but of the product of AT
+jwith all the constraints monitors. Note that a nondeterministic
+monitor (i.e., an NPT) of exponential size can also be used, without adversely affecting
+the time-complexity, if the product with it is taken after we translate the product of AT
+j
+and the other (polynomial) APT monitors, to an equivalent NPT.
+A simple and effective way to enforce modularity in Algorithm 1 is that once a trans-
+ducerKiis synthesized in round i, one incorporates in subsequent rounds a monitor that
+rejects any connectivity tree containing a node labeled by some key sub-transducers of
+Ki. This effectively enforces any transducer synthesized using a formula that refers to
+atomic propositions present only in Ki(and its disallowed sub-transducers) to use Ki,
+and not try to build its functionality from scratch. As to other ways to enforce mod-
+ularity, the question of whether one system is more modular than another, or how to
+construct a modular system, has received many, and often widely different, answers.
+Here we only discuss how certain simple modularity criteria can be easily implemented
+on top of our algorithm. For example, some people would argue that a function that has
+
+--- Page 16 ---
+16 B. Aminof, F. Mogavero, A. Murano
+more than, say, 10 consecutive lines of code in which no other function is called, is not
+modular enough. A monitor that checks that in no path in a connectivity tree there are
+more than 10 consecutive nodes labeled with an atomic transducer, can easily enforce
+such a criterion. We can even divide the transducers in the library into groups, based on
+how “high level” they are, and enforce lower counts on lower level groups. Essentially,
+every modularity criterion that can be checked by a polynomial APT, or an exponential
+NPT, can be used. Enforcing one context-free property can also be done, albeit with an
+increase in the time complexity. Other non-regular criteria may be enforced by directly
+modifying the non-emptiness checking algorithm instead of by using a monitor, and we
+reserve this for future work.
+As for the issue of synthesized exits, recall that for each transducer K02L=/0,
+we can have as many as W(jK0j)elcopies of K0inLel, each with a different set of
+exit states. Obviously, we would not like the synthesized transducer Kto use so many
+copies as sub-transducers. It is not hard to see that one can, for example, build an NPT
+of size O(jLelj)that guesses for every K02L=/0a single set of exits E, and accepts a
+connectivity tree iff the labels of all the nodes in the tree agree with the guessed exits.
+Note that after the end of the current round of synthesis, we may choose to add K0Eto
+the library (in addition, or instead of K0).
+Another point to note about the synthesis of exits is that while a transducer Ksurely
+satisﬁes the formula jiit was synthesized for, KEmay not. Consider for example a
+transducer Kwhich is simply a single state, labeled with p, with a self loop. If we
+remove the loop and turn this state into an exit, it will no longer satisfy ji=p^X p
+orji=Gp. Now, depending on one’s point of view, this may be either an advantage
+(more ﬂexibility) or a disadvantage (loss of original intent). We believe that this is
+mostly an advantage, however, in case it is considered a disadvantage, a few possible
+solutions come to mind. First, for example if ji=Gp, one may wish for Kto remain
+without exits and enforce E=/0. Another option, for example if ji=p^X p, is to
+synthesize in round ia modiﬁed formula like j0
+i=p^:exit^X(p^exit), with the
+thought of exits in mind. Yet another option is to add, at iterations after i, a monitor that
+checks that if KEis the label of a node in the connectivity tree then jiis satisﬁed. The
+monitor can check that jiis satisﬁed inside KE, in which case the monitor is a single
+state automaton, that only accepts if Eis such that KEj=ji(possibly using semantics
+over truncated paths [9]); alternatively, the monitor can check that jiis satisﬁed in the
+currently synthesized connectivity tree, starting from the node labeled by KE, in which
+case the monitor is based on AT
+ji.
+4.3 Incomplete Information
+A natural setting that was considered in the synthesis literature is that of incomplete in-
+formation [15]. In this setting, in addition to the set of input signals Ithat the system can
+read, the environment also has internal signals Hthat the system cannot read, and one
+should synthesize a system whose behavior depends only on the readable signals, but
+satisﬁes a speciﬁcation which refers also to the unreadable signals. Thus, the speciﬁca-
+tion is given with respect to the alphabet SI=2I[H, but the behavior of the system must
+be the same when reading two letters that differ only in their Hcomponents. The main
+source of difﬁculty is that a ﬁnite automaton cannot decide whether or not a computa-
+tion tree is of a system that behaves in a way which is consistent with its partial view
+of the input signals. However, since the automaton at the heart of our algorithm does
+
+--- Page 17 ---
+Synthesis of Hierarchical Systems 17
+not run on computation trees, but rather on connectivity trees, handling of incomplete
+information comes at no cost at all. All we have to do is to deﬁne the connectivity trees
+to beLel-labeled complete (f1;:::;elg2I)-trees, instead of (f1;:::;elg2I[H)-trees to
+ensure that the synthesized transducer behaves in the same way on input letters that dif-
+fer only in their hidden components (this of course implies that the expressionL
+s02SI
+in the transition function of AT
+jbecomesL
+s022I). Thus, our algorithm solves, with the
+same complexity, also the hierarchical synthesis problem with incomplete information.
+5 Discussion
+We presented an algorithm for the synthesis of hierarchical systems which takes as input
+a library of hierarchical transducers and a sequence of speciﬁcation formulas. Each for-
+mula drives the synthesis of a new hierarchical transducer based on the current library,
+which contains all the transducers synthesized in previous iterations together with the
+starting library. The main challenge in this approach is to come up with a single-round
+synthesis algorithm that is able to efﬁciently synthesize the required transducer at each
+round. We have provided such an algorithm that works efﬁciently (i.e., not worst than
+the corresponding one for ﬂat systems) and uniform (i.e., it can handle different tem-
+poral logic speciﬁcations, including the modal µ-calculus). In order to ensure that the
+single-round algorithm makes real use of previously synthesized transducers we have
+suggested the use of auxiliary automata to enforce modularity criteria. We believe that
+by decoupling the process of enforcing modularity from the core algorithm for single-
+round synthesis we gain ﬂexibility that allows one to apply different approaches to
+enforcing modularity, as well as future optimizations to the core synthesis algorithm.
+References
+[1] R. Alur,M. Arenas,P. Barceló, K. Etessami,N.Immerman, and L. Libkin, First-
+Order and Temporal Logics for Nested Words. In Logical Methods in Computer
+Science, vol. 4, 2008.
+[2] R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. W. Reps, and M. Yan-
+nakakis. Analysis of recursive state machines. ACM Trans. Program. Lang. Syst. ,
+27(4):786–818, 2005.
+[3] R. Alur, S. Chaudhuri, K. Etessami, and P. Madhusudan. On-the-ﬂy reachability
+and cycle detection for recursive state machines. In TACAS’05 , LNCS 3440, pages
+61–76, 2005.
+[4] R. Alur, S. Chaudhuri, and P. Madhusudan. A ﬁxpoint calculus for local and global
+program ﬂows, In POPL’06 , ACM, pages 153–165, 2006.
+[5] R. Alur and M. Yannakakis. Model checking of hierarchical state machines. ACM
+Trans. Program. Lang. Syst. , 23(3):273–303, 2001.
+[6] B. Aminof, O. Kupferman, and A. Murano. Improved model checking of hierar-
+chical systems. In VMCAI’10 , LNCS 5944, pages 61-77. Springer, 2010
+[7] A. Church. Logic, arithmetics, and automata. In Proc. International Congress of
+Mathematicians, 1962 , pages 23–35. institut Mittag-Lefﬂer, 1963.
+[8] L. de Alfaro and T. A. Henzinger. Interface-based design. In Engineering Theories
+of Software-intensive Systems. NATO Science Series: Mathematics, Physics, and
+Chemistry , 195, pages 83–104. Springer, 2005.
+
+--- Page 18 ---
+18 B. Aminof, F. Mogavero, A. Murano
+[9] C. Eisner, D. Fisman, J. Havlicek, Y . Lustig, A. McIsaac, and D. Van Campenhout.
+Reasoning with temporal logic on truncated paths. In CAV’O3 , LNCS 2725:(27–
+39), 2003.
+[10] E.A. Emerson. Temporal and modal logic. In J. Van Leeuwen editor, Handbook of
+Theoretical Computer Science , V ol. B, chap. 16, pages 997–1072. Elsevier, MIT
+Press, 1990.
+[11] E.A. Emerson and C. Jutla. Tree automata, µ-calculus and determinacy. In
+FOCS’91 , pages 368–377, 1991.
+[12] S. Göller and M. Lohrey. Fixpoint logics on hierarchical structures. In
+FSTTCS’05 , LNCS 3821, pages 483–494. Springer, 2005.
+[13] D. P. Guelev, M. D. Ryan, and P. Y . Schobbens. Synthesising features by games.
+Electr. Notes Theor. Comput. Sci. , 145:79–93, 2006.
+[14] D. Janin and I. Walukiewicz. Automata for the modal µ-calculus and related re-
+sults. In MFCS’95 , LNCS 969, pages 552–562. Springer-Verlag, 1995.
+[15] O. Kupferman and M.Y . Vardi. µ-calculus synthesis. In MFCS’00 , LNCS
+1893:(497–507).
+[16] O. Kupferman, M.Y . Vardi, and P. Wolper. An automata-theoretic approach to
+branching-time model checking. J. of the ACM , 47(2):312–360, 2000.
+[17] R. Lanotte, A. Maggiolo-Schettini, and A. Peron. Structural model checking for
+communicating hierarchical machines. In MFCS , pages 525–536, 2004.
+[18] Y . Lustig and M. Y . Vardi. Synthesis from component libraries. In FOSSACS’09 ,
+LNCS 5504, pages 395–409. Springer, 2009.
+[19] Y . Lustig and M. Y . Vardi. Synthesis from Recursive-Components libraries. In
+GandALF’11 , EPTCS 54, pages 1–16, 2011.
+[20] D.E. Muller and P.E. Schupp. Alternating automata on inﬁnite trees. J. of Theor.
+Comp. Sc. , 54:267–276, 1987.
+[21] Peter Müller. Modular speciﬁcation and veriﬁcation of object-oriented programs .
+Springer-Verlag, 2002.
+[22] N. Piterman, A. Pnueli, and Y . Sa’ar. Synthesis of reactive designs. In VMCAI’06 ,
+LNCS 3855, pages 364–380. Springer, 2006.
+[23] A. Pnueli and R. Rosner. On the synthesis of a reactive module. In POPL’89 ,
+pages 179–190. ACM Press, 1989.
+[24] M.O. Rabin. Weakly deﬁnable relations and special automata. In Proc. Symp.
+Math. Logic and Foundations of Set Theory , pages 1–23. North Holland, 1970.
+[25] R. Rosner. Modular Synthesis of Reactive Systems . PhD thesis, Weizmann Insti-
+tute of Science, 1992.
+[26] J. Sifakis. A framework for component-based construction extended abstract. In
+SEFM’05 , pages 293–300. IEEE Computer Society, 2005.
+[27] S. Bliudze and J. Sifakis. Synthesizing Glue Operators from Glue Constraints for
+the Construction of Component-Based Systems. In SC’11 , LNCS 6708, pages
+51–67. Springer, 2011.
+[28] T. Wilke. Alternating tree automata, parity games, and modal µ-calculus. Bull.
+Soc. Math. Belg. , 8(2), 2001.
+
+--- Page 19 ---
+Synthesis of Hierarchical Systems 19
+A EveryhL;eli-composed transducer Kinduces a regular connec-
+tivity tree
+LetK=hSI;SO;hK1;:::;Knii, where K1=hW1;B1;in1;t1;d1;L1i. We construct a ﬂat
+transducer M=hf1;:::;elgSI;Lel;hM;m0;/0;dT;LTiiwhose computation tree TM
+is the required connectivity tree. The elements of Mare as follows:
+–M=W1[B1, and m0=in1.
+–Ifw2W1, then for every s2SI, we have that dT(w;(1;s)) =d1(w;s), and for
+every 1 <ielwe (arbitrarily) let dT(w;(i;s)) = m0.
+–Forb2B1, letKE2Lelbe the sub-transducer that brefers to. For every s2SI, if
+1ijEjthendT(b;(i;s)) =d1((b;e);s), where e2Eis such that idx(e;E) =i;
+and ifjEj<ielthen we (arbitrarily) let dT(b;(i;s)) = m0.
+–Forw2W1we have that LT(w) =KV, where L1(w) =V.
+–Forb2B1we have that LT(b) =Kt1(b).
+Note that a son y(i;s), of a node yin a connectivity tree T=hT;Vi, is meaningless
+ifiis larger than the number of exits of the transducer V(y). Hence, our choice to direct
+the corresponding transitions of Mto the node m0, is arbitrary, and was done only for
+technical completeness.
+B Proof of Lemma 1
+We begin by introducing the necessary deﬁnitions and constructs mentioned in the proof
+sketch. For more information see [6].
+B.1 Hierarchical Structures.
+Ahierarchical structure [5] can be viewed as a hierarchical transducer with an empty
+input alphabet. Furthermore, unlike a hierarchical transducer which is deterministic, a
+hierarchical structure has a nondeterministic transition relation. This also allows us to
+have internal moves from exit nodes. Formally, a hierarchical structure is a tuple S=
+hSO;hS1;:::;Snii, where for every 1inwe have that Si=hWi;Bi;ini;Exit i;ti;Ri;Lii.
+The elements Wi;Bi;ini;Exit i;ti;Liof the sub-structure Siare as in a hierarchical trans-
+ducer, and Ri(S
+b2Bi(fbgExit ti(b))[Wi)(Wi[Bi)is a nondeterministic transition
+relation. As for transducers, edges entering a box implicitly lead to the initial state of
+the sub-structure it refers to. The special case of a hierarchical structure with a single
+sub-structure with no boxes and no exits is simply the classical Kripke structure , and
+we denote it by S=hSO;W;in;R;Li.
+The deﬁnition of a ﬂat expansion Sf=hSO;Wf;in;Rf;Lfi, of a hierarchical struc-
+tureS, can be obtained by the natural modiﬁcations to the deﬁnition of the ﬂat expan-
+sion of a transducer (see also [6]). Observe that the ﬂat expansion Sfof a hierarchical
+structure Sis a Kripke structure, which can be unwound into a tree TS=hTS;VSi. We
+callTStheunwinding ofS. Formally, TSis aSO-labeled Wf-tree, where a node yin the
+tree has a son yd0for every d0for which there is a transition ((last(y);d0)2Rf. The
+label of a node y6=eisVS(y) =Lf(last(y)), and VS(e) =Lf(in).
+
+--- Page 20 ---
+20 B. Aminof, F. Mogavero, A. Murano
+B.2 The Product of a Transducer and a Kripke Structure
+Given a hierarchical transducer K=hSI;SO;hK1;:::;Knii, whose input alphabet SIis
+the output alphabet of a Kripke structure S=hSI;W;in;R;Li, we can build a hierar-
+chical structure K
+Sby taking the product of KandS. The hierarchical structure
+K
+Shas a sub-structure Ki;qfor every 2inand every state q2W, which is
+essentially the product of the sub-transducer KiwithS, where the initial state of Ki
+is paired with the state qofS. For i=1, we need only the sub-structure K1;in. The
+hierarchical order of the sub-structures is consistent with the one in K. Thus, the sub-
+structure Ki;qcan be referred to by boxes of a sub-structure Kj;ponly if i>j. LetKi=
+hWi;Bi;ini;Exit i;ti;di;Lii, thenKi;q=hWiW;BiW;(ini;q);Exit iW;ti;q;Ri;q;Li;qi
+is such that:
+–For(b;w)2BiW, we have that ti;q(b;w) = (ti(b);w).
+–For(u;w)2WiW, we have that ((u;w);(v;w0))2Ri;qiff(w;w0)2Randdi(u;
+L(w0)) = v.
+–For(b;w)2BiW, and an exit (e;w0)2Exit ti(b)Wof it, we have thath((b;w);
+(e;w0));(v;w00)i2Ri;qiff(w0;w00)2Randdi((b;e);L(w00)) = v.
+–For(u;w)2WiW, we have that Li;q((u;w)) = ( Li(u);L(w)).
+Given s2SI, consider the Kripke structure Ss=hSI;SI;s;SISI;SISIi, that
+has one state for every letter in SI(labeled by that letter), its initial state is s, and it has
+a transition from every letter to every letter. It is easy to see that we have the following:
+Lemma 2. Given a hierarchical transducer K, and a letter s2SI, the computation
+treeTK;scan be obtained by unwinding the hierarchical structure K
+Ss.
+B.3 Hierarchical Membership Games
+Ahierarchical two-player game [6] is a game played between two players, referred to as
+Player 0 and Player 1. The game is deﬁned by means of a hierarchical arena and a win-
+ning condition. The players move a token along the hierarchical arena, and the winning
+condition speciﬁes the objectives of the players as to the sequence of states traversed by
+the token. A hierarchical arena is a hierarchical structure with an empty output alpha-
+bet, in which the state space of each of the underlying sub-structures is partitioned into
+states belonging to Player 0 and states belonging to Player 1. When the token is in a state
+belonging to one of the players, it chooses a successor to which the token is moved. We
+refer to the underlying substructures as sub-arenas . Formally, a hierarchical two-player
+game is a pair G= (V;G), where V=hV1;:::;Vniis a hierarchical arena, and Gis a
+winning condition. For every 1 in, the sub-arena Vi=hW0
+i;W1
+i;Bi;ini;Exit i;ti;Rii,
+is simply a hierarchical structure h/0;hW0
+i[W1
+i;Bi;ini;Exit i;ti;Ri;/0iiwhose set of states
+Wi=W0
+i[W1
+iis partitioned to Player 0 states W0
+i, and Player 1 states W1
+i. The parity
+winning condition G:S
+iWi!Cmaps all states (of all sub-arenas) to a ﬁnite set of
+colors C=fCmin;:::;CmaxgIN.
+Given a hierarchical structure S=hS;hS1;:::;Sniiand an SAPT A=hS;Q;q0;d;Fi,
+the hierarchical two-player game GS;A= (V;G)forSandAis deﬁned as follows. The
+hierarchical arena Vhas a sub-arena Vi;qfor every 2inand state q2Q, which is
+essentially the product of the structure SiwithA, where the initial state of Siis paired
+with the state qofA. For i=1, we need only the sub-arena V1;q0. The hierarchical order
+
+--- Page 21 ---
+Synthesis of Hierarchical Systems 21
+of the sub-arenas is consistent with the one in S. Thus, the sub-arena Vi;qcan be referred
+to by boxes of sub-arena Vj;ponly if i>j. LetSi=hW0
+i;B0
+i;in0
+i;Exit0
+i;t0
+i;R0
+i;L0
+ii. Then,
+the sub-arena Vi;q=hW0
+i;q;W1
+i;q;Bi;qini;q;Exit i;q;ti;q;Ri;qiis deﬁned as follows.
+–W0
+i;q=W0
+i(Q_[Q(e;_)),W1
+i;q=W0
+i(Q^[Q(e;^)),ini;q= (in0
+i;q), and Exit i;q=
+Exit0
+iQ_;^.
+–Bi;q=B0
+iQ, and ti;q(b;q) = (t0
+i(b);q).
+–For a state u= (w;ˆq)2W0
+iQ, if ˆq2Qeandd(ˆq;L0
+i(w)) =fp0;:::;pkg, then
+(u;v)2Ri;qiffv2f(w;p0);:::;(w;pk)g; and if ˆ q2Q_;^, then (u;v)2Ri;qiff
+v= (w0;d(ˆq;L0
+i(w)))and(w;w0)2R0
+i.
+–For(b;p)2B0
+iQ, and an exit (e;ˆq)2Exit0
+t0
+i(b)Q_;^of this box, we have that
+(((b;p);(e;ˆq));v)2Ri;qiffv= (w0;d(ˆq;L0
+i(e)))and((b;e);w0)2R0
+i.
+The winning condition of the game GS;Ais induced by the acceptance condition of
+A. Thus, for each state (w;q)of a sub-arena Vi;q, we have that G(w;q) =F(q). For the
+deﬁnition of plays, strategies, etc., please see [6]. It is important to note that, as is the
+case for ﬂat membership games, a Player 0 strategy for GS;Acorresponds to a run of
+Aon the unwinding of S, a memoryless Player 0 strategy corresponds to a memoryless
+run, and a winning Player 0 strategy corresponds to an accepting run. Furthermore, a
+Player 0 strategy for a sub-arena Vi;qcorresponds to a run of A, starting in state q, on
+the unwinding of the sub-structure Si.
+Theorem 3. [6] Given a hierarchical structure Sand a SAPT A, we have that Aac-
+cepts the unwinding TSofS, iff Player 0has a winning strategy in the hierarchical
+gameGS;A.
+We now have all the deﬁnitions necessary to build the membership games Gs
+K
+Sr;Aj,
+andGKT;ATj.
+B.4 The Membership Games Gs
+K
+Sr;Aj, andGKT;ATj
+Given a library Lof hierarchical transducers with input and output alphabets SIandSO,
+and a bound el2IN, let T=hT;Vibe a regular connectivity tree, let M=hf1;:::;elg
+SI;Lel;hM;m0;/0;dT;LTiibe a ﬂat transducer such that Tis equal to the (lean) compu-
+tation tree TM, and let K=hSI;SO;hK1;:::;Kniibe the hierarchical transducer induced
+by it. Recall that for every b2M, we denote by E(b)the set of top-level exits of LT(b).
+For the purpose of this proof, it is much more convenient to consider a slightly different
+version of the induced hierarchical transducer K, where the top level sub-transducer
+K1contains only boxes and no states. That is, we replace every top-level state w, with
+a box that refers to the atomic transducer KV, where Vis such that LT(w) =V. We
+also relax the deﬁnition of hierarchical transducers (as well as hierarchical structures
+and arenas) to allow the top-level initial state to be not a state but a box. Formally,
+K1=h/0;M;m0;t1;d1;/0i, where:
+–Forb2M, we have that t1(b) =i, where iis such that Kiis the top-level sub-
+transducer of LT(b).
+–Forb2M, we have for every e2E(b), and every s2SI, that d1((b;e);s) =
+dT(b;(idx(e;E(b));s)).
+
+--- Page 22 ---
+22 B. Aminof, F. Mogavero, A. Murano
+It is easy to see that the difference between the version of Kwith top-level states,
+and the modiﬁed version without them, is mainly syntactic. Thus, for example, the two
+versions have isomorphic ﬂat expansions and computation trees, and Lemma 2 also
+holds if Khas no top-level states. Also, note that since the set of directions of the input
+trees of an SAPT plays no role in the deﬁnition of its run, the computation trees of these
+two versions of Kare indistinguishable by any SAPT. Finally, one can easily verify
+that Theorem 3 remains valid also if the hierarchical structure Shas no top-level states.
+By Lemma 2, the computation tree TK;rcan be obtained by unwinding the hier-
+archical structure K
+Sr. By deﬁnition, K
+Srhas a sub-structure Ki;s, for every
+2inand every s2SI, which is the product of KiwithSs, plus a top-level sub-
+structure K1;r=h/0;MSI;(m0;r);/0;t1;r;R1;r;L1;ri, where:
+–For(b;s)2MSI, we have that t1;r(b;s) = ( i;s), where iis such that Kiis the
+top-level sub-transducer of LT(b).
+–For (b;s)2MSI, and an exit (e;ˆs)2Exit t1(b)SIof this box, we have that
+h((b;s);(e;ˆs));(b0;s0)i2R1;riffdT(b;(idx(e;E(b));s0)) = b0.
+Given a temporal logic formula j, by Deﬁnition 1 and Theorem 1, Kj=jiffTK;r
+is accepted by the SAPT Aj. Hence, by Theorem 3, Kj=jiff Player 0 has a winning
+strategy in the hierarchical membership game GK
+Sr;AjofK
+SrandAj. LetAj=
+hSI[SO;Qj;q0
+j;dj;Fjibe an SAPT with Qjpartitioned to Q(e;^)
+j,Q(e;_)
+j,Q^
+j, and
+Q_
+j, and let K
+Srbe as above. By deﬁnition, GK
+Sr;Ajhas a sub-arena Vi;s;qfor
+every (i;s;q)2f1;:::;ngSIQj, which is the product of the sub-structure Ki
+Ss
+withAq
+j(recall that Aq
+jisAjwith initial state q), plus a top-level sub-arena V1;r;q0j=
+h/0;/0;MSIQj;(m0;r;q0
+j);/0;ˇt;ˇRi, where:
+–For(b;s;q)2MSIQj, we have that ˇt(b;s;q) = ( i;s;q), where iis such that
+Kiis the top-level sub-transducer of LT(b).
+–For a box (b;s;q)2MSIQj, letLT(b) =KE, and let LEbe the label-
+ing function of the top-level sub-transducer of KE. Given an exit (e;ˆs;ˆq)2E
+SIQ(e;_)
+j of this box, we have that h((b;s;q);(e;ˆs;ˆq));(b0;s0;q0)i2ˇRiffq0=
+dj(ˆq;(LE(e);ˆs))anddT(b;(idx(e;E);s0)) = b0.
+In [6], in order to solve a hierarchical game, one simpliﬁes it, turning it into an
+equivalent ﬂat game, by replacing every box of the top-level sub-arena with a gadget that
+is a 3-level DAG. We brieﬂy recall below the structure of these gadgets, and describe
+the result of the simpliﬁcation of the membership game GK
+Sr;Aj. Letb= (b;s;q)be
+a box of V1;r;q0j, letVi;s;qbe the sub-arena that it refers to, let LT(b) =KE, and let
+Rel(KE;s;q)be the set of all relevant summary functions7of the runs of Aq
+jonTKE;s.
+A gadget H(KE;s;q)contains all the nodes reachable from the root pof the following
+3-level DAG structure:
+7In [6], summary functions were deﬁned in terms of Player 0 strategies. For the special case
+of the membership game we consider, Player 0 strategies correspond to runs of Aj, and the
+deﬁnition of summary functions given in [6] coincides with the one given in Section 4.1.
+
+--- Page 23 ---
+Synthesis of Hierarchical Systems 23
+–The set of nodes of H(KE;s;q)isfpg[Rel(KE;s;q)[(ESIQ_;^
+jC). The
+Player 0 nodes arefpg[(ESIQ_
+jC), and the Player 1 nodes are Rel(KE;s;q)[
+(ESIQ^
+jC).
+–The set of edges isS
+g2Rel(KE;s;q)(f(p;g)g[f (g;(h;g(h))):h2(ESIQ_;^
+j)
+^g(h)6=ag).
+–A node (e;s;q0;c)2(ESIQ_;^
+jC)is colored by c. These are the only colored
+nodes.
+The simpliﬁcation of V1;r;q0jis performed by replacing every box b= (b;s;q)with
+a copy of the gadget H(LT(b);s;q). To prevent name clashes between copies of the same
+gadget, we let Hbbe a copy of H(LT(b);s;q)with all nodes renamed by superscripting
+them with b. A box bis substituted with Hbby replacing every transition that enters
+bwith a transition that enters the root pbofHb, and replacing every transition that
+exits bthrough an exit (e;s;q0)with one transition, going out of every leaf of the form
+(e;s;q0;c)that is present in Hb. Applying this simpliﬁcation to V1;r;q0j, we obtain the
+ﬂat game Gs
+K
+Sr;Aj= (Vs;Gs), where Vs=hW0s;W1s;/0;ins;/0;/0;Rsi, and Gsare as
+follows:
+–Ws=S
+b2(MSIQj)(Hb), where:
+W0s=S
+b=(b;s;q)2MSIQj(fpbg[f (e;ˆs;ˆq;c)b:(e;ˆs;ˆq;c)2(E(b)SIQ_
+j
+C)g)\Ws.
+W1s=S
+b=(b;s;q)2MSIQj(fgb:g2Rel(LT(b);s;q)g[f (e;ˆs;ˆq;c)b:(e;ˆs;ˆq;c)2
+(E(b)SIQ^
+jC)g)\Ws.
+–ins=p(m0;r;q0j).
+–For every b= (b;s;q)2(MSIQj), with LT(b) =KE, the following transi-
+tions are in Rs:
+ [g2Rel(KE;s;q)f(pb;gb)g
+ [g2Rel(KE;s;q)f(gb;(h;gb(h))):h2(ESIQ_;^
+j)^gb(h)6=ag.
+LetLEbe the labeling function of the top-level sub-transducer of KE. For
+every node (e;ˆs;ˆq;c)bofHb, and every b0= (b0;s0;q0)2(MSIQj), we
+have that the transition ((e;ˆs;ˆq;c)b;pb0)is inRsiffq0=dj(ˆq;(LE(e);ˆs))and
+b0=dT(b;(idx(e;E);s0)).
+–For every b2MSIQj, and every node w= (e;s0;q0;c)bofHb, we have that
+Gs(w) =c. All the other nodes8are colored by Cmin.
+Theorem 4. [6] Player 0wins the hierarchical game GK
+Sr;Ajiff it wins the simpliﬁed
+gameGs
+K
+Sr;Aj.
+Applying Theorems 3 and 4 to the constructions above we get that:
+Corollary 1. Ajaccepts TK;riff Player 0wins the game Gs
+K
+Sr;Aj.
+8In [6], these nodes were left uncolored. However, since there is no cycle that goes only through
+uncolored nodes, coloring such nodes with Cmindoes not change anything.
+
+--- Page 24 ---
+24 B. Aminof, F. Mogavero, A. Murano
+We now turn our attention to constructing the membership game GKT;ATj. As before,
+letM=hf1;:::;elgSI;Lel;hM;m0;/0;dT;LTiibe a ﬂat transducer such that Tis
+equal to the (lean) computation tree TM. It is not hard to see that Tcan be obtained by
+unwinding the following Kripke structure9KT=hLel;W;in;R;Li, where:
+–W=Mf1;:::;elgSI, and in= (m0;1;r).
+–For(b;i;s);(b0;i0;s0)2W, we have that ((b;i;s);(b0;i0;s0))2R
+iffdT(b;(i0;s0)) = b0.
+–For every (b;i;s)2W, we have that L(b;i;s) =LT(b).
+Observe that since the transitions of AT
+jmix conjunctions and disjunctions, one
+cannot construct the arena of the membership game of KTandAT
+jby directly taking
+their product. Indeed, doing so would result with nodes of the arena that cannot be
+assigned to any single player. Hence, we ﬁrst unfold the transition relation of AT
+j, and
+obtain an equivalent automaton ˜AT
+j=hLel;Q;q0;˜d;˜Fi, where the moves from every
+state are either pure conjunctions or pure disjunctions. Note that this requires that we
+allow ˜AT
+jto have e-moves. Thus, like an SAPT, the states of ˜AT
+jare divided into four
+setsQ(e;_);Q(e;^);Q_andQ^. However, unlike an SAPT, we allow states in Q_;^to
+send copies in different states to different directions. That is, for s2Q_;^, andKE2
+Lel, we have that ˜d(s;KE)(f1;:::;elgSI)Q.
+To construct ˜AT
+j, we simply have to unfold the transition relation of AT
+j. That is,
+for every state s= (s;q;c)2SIQ_;^
+jCofAT
+j, and every KE2Lel, we direct
+the transition from s, when reading KE, to the entry node of a 3-level DAG gadget
+H(KE;s;q)that unfolds d((s;q;c);KE). Since d((s;q;c);KE)is not dependent on the
+color c, the gadget only depends on s;qandKE. We use the same notation for naming
+these gadgets, as for the gadgets used in the simpliﬁcation of the game GK
+Sr;Aj, for
+the simple reason that they are exactly the same gadgets. In fact, the transition relation
+ofAT
+jis deﬁned the way it is precisely because unfolding it gives these gadgets. Note
+that resolving the outermost disjunction and conjunction of d((s;q;c);KE)amounts to
+choosing some g2Rel(KE;s;q), and some (e;s0;q0)2(ESIQ_;^
+j), and that once
+gis chosen, the only leaf of the form (e;ˆs;ˆq;c)that is reachable from gis such that
+c=g(e;ˆs;ˆq). Hence, H(KE;s;q)faithfully represents the unfolding of d((s;q;c);KE)
+even though its leaves include the extra component c. Also, note that since the gadgets
+are used to simply unfold the transition relation, only the moves going out of their leaves
+are not e-moves and correspond to real moves on the input tree. Before we formally
+describe ˜AT
+j, observe that even though every gadget H(KE;s;q)is used only once in ˜AT
+j,
+the names of nodes are not unique across different gadgets. Hence, to get unique names,
+for every h2LelSIQjwe subscript the names of nodes in Hhwithh. Formally,
+˜AT
+j=hLel;Q;q0;˜d;˜Fi, where:
+–Q= (SIQ_;^
+jC)[fq0g[S
+h2(LelSIQj)(Hh), where:
+Q(e;_)= (SIQ_;^
+jC)[fq0g[S
+h2(LelSIQj)fphg.
+9Technically, the unwinding of KThas the set of directions Mf1;:::;elgSI, whereas the set
+of directions of Tisf1;:::;elgSI. However, by simply ignoring the Mcomponent, we get
+T.
+
+--- Page 25 ---
+Synthesis of Hierarchical Systems 25
+Q(e;^)=S
+h2(LelSIQj)fgh:g2Rel(h)g.
+Q_=S
+h=(KE;s;q)2(LelSIQj)f(e;ˆs;ˆq;c)h2Hh:(e;ˆs;ˆq;c)2(ESIQ_
+j
+C)g\Q.
+Q^=S
+h=(KE;s;q)2(LelSIQj)f(e;ˆs;ˆq;c)h2Hh:(e;ˆs;ˆq;c)2(ESIQ^
+j
+C)g\Q.
+–Since certain states are only reachable via emoves, where the input does not
+change, ˜dis a partial function which is deﬁned only for s2Q, andKE2Lel,
+for which it is possible to reach swhen the current input is KE. Thus:
+˜d(q0;KE) =˜d((r;q0
+j;Cmin);KE).
+Ifs= (s;q;c)2(SIQ_;^
+jC), then ˜d(s;KE) =fp(KE;s;q)g.
+Ifs=ph, where h2(LelSIQj), then ˜d(s;KE) =fgh:g2Rel(h)g.
+Ifs=gh, where gis a summary function in Rel(KE;s;q), then ˜d(s;KE) =
+f(h;g(h)):h2(ESIQ_;^
+j)^g(h)6=ag.
+Ifs= (e;ˆs;ˆq;c)h, then ˜d(s;KE) =S
+s02SIf((idx(e;E);s0);(s0;dj(ˆq;(LE(e);ˆs));c))g, where LEis the labeling
+function of the top-level sub-transducer of KE.
+–Finally, for every s2Q, ifs= (e;ˆs;ˆq;c)h2Q_;^, ors= (s;q;c)2(SIQ_;^
+jC),
+then ˜F(s) =c; otherwise, ˜F(s) =Cmin.
+Note that since states in (SIQ_;^
+jC)[fq0g(i.e., the original states of AT
+j) have
+a single successor per input, their classiﬁcation as (e;_)states, and not as (e;^)states,
+is arbitrary. Also, note that since Lemma 1 which we are trying to prove only concerns
+connectivity trees, we do not care how ˜AT
+jbehaves on trees where the root is not labeled
+by an atomic transducer. Going over the deﬁnitions of AT
+jand ˜AT
+j, one can easily see
+that given a regular connectivity tree T, then AT
+jaccepts the unwinding of KTiff˜AT
+j
+does.
+Our last step is to construct the arena of the membership game GKT;ATj. Recall that,
+intuitively, this arena is the product of KTand ˜AT
+j, and that the successors of every
+node (w;s), where wis a state of KTandsis a state of ˜AT
+j, are pairs (w0;s0), where s0is
+a successor of sthat is sent to the successor w0ofwwhen reading the label of w. Note,
+however, that we can eliminate some redundancies, as follows. By the last item in the
+deﬁnition of the transition relation ˜d, for every node w= (b;i;s)ofKTand every state
+of the form s= (s0;q;c)2SIQ_;^
+jCof˜AT
+j, the node (w;s)of the product arena
+is reachable only if s=s0; and by the second item in the deﬁnition of ˜d, every such
+node (w;s)has only a single successor, namely, (w;p(LT(b);s;q)). Thus, we can simply
+eliminate the node (w;s)and direct every incoming transition directly to its single suc-
+cessor. Note that since all of the predecessors of (w;s)have the same color cas(w;s),
+skipping it does not affect the winning condition. For similar reasons, the initial node
+((m0;1;r);q0)of the arena can be replaced by its successor ((m0;1;r);p(LT(m0);r;q0j)).
+Formally, after removing the above redundancies, we have that GKT;ATj= (˜V;˜G), with
+˜V=h˜W0;˜W1;/0;˜in;/0;/0;˜Ri, where:
+–˜W= (Mf1;:::;elgSI)S
+h2(LelSIQj)(Hh), where:
+
+--- Page 26 ---
+26 B. Aminof, F. Mogavero, A. Murano
+˜W0= (Mf1;:::;elgSI)(S
+h=(KE;s;q)2(LelSIQj)(fphg[f (e;ˆs;ˆq;c)h:
+(e;ˆs;ˆq;c)2(ESIQ_
+jC)g))\˜W.
+˜W1= (Mf1;:::;elgSI)(S
+h=(KE;s;q)2(LelSIQj)(fgh:g2Rel(h)g[
+f(e;ˆs;ˆq;c)h:(e;ˆs;ˆq;c)2(ESIQ^
+jC)g))\˜W.
+–˜in= ((m0;1;r);p(LT(m0);r;q0j)).
+–For every w= (b;i;`s)2Mf1;:::;elgSI, with LT(b) =KE, and every h=
+(KE;s;q)2fKEgSIQj, the following transitions are in ˜R:
+ [g2Rel(KE;s;q)fh(w;ph);(w;gh)ig.
+ [g2Rel(KE;s;q)fh(w;gh);(w;(h;g(h)))i:h2(ESIQ_;^
+j)^g(h)6=ag
+LetLEbe the labeling function of the top-level sub-transducer of KE. For
+every node (e;ˆs;ˆq;c)hofHh, and every s02SI, we have that the transition
+h(w;(e;ˆs;ˆq;c)h);
+((b0;i0;s0);ph0)iis in ˜R, iffb0=dT(b;(idx(e;E);s0)), and i0=idx(e;E), and
+h0= (LT(b0);s0;dj(ˆq;(LE(e);ˆs))).
+–Finally, for every w2Mf1;:::;elgSI, for every h2(LelSIQj), and every
+s=(e;s0;q0;c)hofHh, we have that ˜G(w;s) =c. All the other nodes are colored by
+Cmin.
+Observe that for every w= (b;i;`s)2Mf1;:::;elgSI, and every h= (KE;s;q)2
+(LelSIQj), by the third item in the deﬁnition of ˜R, the only nodes of the form
+(w;ph)that have incoming edges are such that KE=LT(b), and `s=s. By the ﬁrst
+and second items in the deﬁnition of ˜Rthis property propagates, and we get that for
+every sh2Hh(be it the root, a summary function node, or a leaf) the node (w;sh)
+has incoming edges only if KE=LT(b)and`s=s. We can thus delete all the nodes
+(w;sh)in˜Vfor which the above connections between wandhdo not exist, since they
+are not reachable. Also, note that the transitions going out of a node (w;sh)of˜V, where
+w= (b;i;s)2Mf1;:::;elgSI, are completely independent of i, and that the classi-
+ﬁcation of (w;sh)as a Player 0 or a Player 1 node is also independent of i. Thus, we can
+safely merge all nodes that differ only in their f1;:::;elgcomponent into a single node
+by dropping thef1;:::;elgcomponent.
+After deleting the unreachable nodes mentioned above, and dropping the f1;:::;elg
+component, we get that for every b= (b;s;q)2MSIQj, and every state sh2
+H(LT(b);s;q), there is exactly one node left in˜Vthat corresponds to bandsh, that is, the
+node ((b;s);sh). By mapping every such node ((b;s);sh)of˜V, to the node sbof the
+arenaVsof the game Gs
+K
+Sr;Aj, we get an isomorphism between (what remained of)˜V
+andVs. That is, the two arenas (including the coloring) are identical up to the naming
+of their nodes. Hence, the games GKT;ATjandGs
+K
+Sr;Ajare equivalent. Recall that by
+the construction above Player 0 wins GKT;ATjiffAT
+jaccepts T, and that by Corollary 1
+Player 0 wins Gs
+K
+Sr;AjiffAjaccepts TK;r, which completes the proof.

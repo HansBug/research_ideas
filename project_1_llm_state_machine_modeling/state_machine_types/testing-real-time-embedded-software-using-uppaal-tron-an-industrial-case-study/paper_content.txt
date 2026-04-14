@@ -1,0 +1,688 @@
+--- Page 1 ---
+Testing Real-TimeEmbedded Softwareusing
+UPPAAL-TRON
+AnIndustrialCaseStudy
+Kim G.Larsen Marius Mikucionis Brian Nielsen Arne Skou
+Centerof Embedded Software Systems,CISS
+Aalborg University
+FredrikBajersvej 7B, DK-9220Aalborg, Denmark
+Email: {kgl|marius |bnielsen |ask }@cs.aau.dk
+ABSTRACT
+UPPAAL-TRON is a new tool for model based online black-box
+conformance testing of real-time embedded systems speciﬁed astimed automata. In thispaper we present our experiences in apply-ingourtoolandtechniqueonanindustrialcasestudy. Weconclude
+that the tool and technique is applicable to practical systems, and
+thatithaspromisingerrordetectionpotentialandexecutionperfor-mance.
+Categories and Subject Descriptors
+D.2[SoftwareEngineering ]: Miscellaneous;D.2.5[ SoftwareEn-
+gineering ]: Testing and Debugging— symbolic execution, moni-
+tors, testing tools
+General Terms
+Algorithms, Experimentation, Languages, Theory, Veriﬁcation
+Keywords
+Black-box testing, online testing, embedded systems, control soft-ware, real-time systems
+1. INTRODUCTION
+Model-based testing is a promising approach for improving the
+testing of embedded systems. Given an abstract formalized model
+(ideally developed as the design process) of the behaviour of as-pects ofthe implementation under test(IUT),atestgeneration toolautomaticallyexploresthestate-spaceofthemodeltogeneratevalidand interestingtestcases that can be executed against the IUT.Themodel speciﬁes the required and allowed behavior of the IUT.
+U
+PPAALis a mature integrated tool environment for modeling,
+veriﬁcation, simulation, and testing of real-time systems modeledas networks of timed automata [8]. U
+PPAAL-TRON (TRON for
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. Tocopy otherwise, torepublish, topostonserversortoredistribute tolists,requires priorspeciﬁc
+permission and/or a fee.
+EMSOFT’05, September 19–22, 2005, Jersey City, New Jersey, USA.
+Copyright 2005 ACM 1-59593-091-4/05/0009 ...
+$5.00.short) is a recent addition to the U PPAALenvironment. It per-
+formsmodel-based black-box conformance testing ofthereal-time
+constraints of embedded systems. TRON is an onlinetesting tool
+which means that it, at the same time, both generates and exe-cutes tests event-by-event in real-time. TRON represents a novelapproach to testing real-time systems, and is based on recent ad-
+vancesintheanalysisoftimedautomata. ApplyingTRONonsmall
+examples has shown promising error detection capability and per-formance.
+InthispaperwepresentourexperiencesinapplyingTRONonan
+industrial case study. Danfoss is a Danish company known world-wide for leadership in Refrigeration & Air Conditioning, Heating
+& Water and Motion Controls [2]. The IUT, EKC 201/301, is an
+advanced electronic thermostat regulator sold world-wide in highvolume. The goal of the case study is to evaluate the feasibility ofour technique on a practical example.
+TRONreplacestheenvironmentoftheIUT.Itperformstwolog-
+ical functions, stimulation and monitoring. Based on the timed se-
+quence of input and output actions performed so far, it stimulates
+the IUT with input that is deemed relevant by the model. At thesame time it monitors the outputs and checks the conformance ofthese against the behavior speciﬁed in the model. Thus, TRONimplements a closed-loop testing system.
+ToperformthesefunctionsTRONcomputesthesetofstatesthat
+themodelcanpossiblyoccupyafterthetimedtraceobservedsofar.
+Thus, central to our approach is the idea of symbolically comput-ing the current possible set of states. For timed automata this wasﬁrst proposed by Tripakis [16] in the context of failure diagnosis.Later that work has been extended by Krichen and Tripakis [9] to
+online testing from timed automata. The monitoring aspect of this
+workhasbeenappliedtoNASA’sMarsRoverControllerwhereex-isting traces are checked for conformance against given executionplans translated into timed automata [15]. In contrast, the workpresented in this paper performs real-time online black-box test-ing (both real-time stimulation and conformance checking) for a
+real industrial embedded device consisting of hardware and soft-
+ware. Online testing based on timed CSP speciﬁcations has beenproposed and applied in practice by Peleska [14].
+Our approach, previously presented in [5, 13, 11]; an abstract
+appeared in [12]), uses the mature U
+PPAALlanguage and model-
+checking engine to perform relativized timed input/output confor-
+mancetesting, meaning that we take environment assumptions ex-
+plicitly intoaccount.
+Compared to current control engineering testing practices, our
+299 
+
+--- Page 2 ---
+emphasis is on testing discrete mode switches (possibly non-deter-
+ministic) and on real physical time constraints (deadlines) on ob-
+servable input/output actions, and less on continuous state evolu-tion characterized by differential equations. Also many engineer-ing based approaches has no general formal correctness criteria,and correctness is assessed manually (tool assisted) by correlatinga simulated-model with observed test data. In our case we have
+an explicit correctness relation allowing us to automatically map
+events and timings into model and assign verdicts to the observedbehavioronline. Itisalsoimportanttoremarkthatourenvironmentmodels need not represent a single deterministic scenario, but rep-resentsallrelevantenvironmentbehaviors/assumptionsfromwhichsamples are randomly chosen during test execution. On the other
+hand, the strong focus and dependency on environment models
+common in control engineering testing appear new to formal soft-ware testing.
+InSection2weintroducetheconceptsbehind ourtestingframe-
+work. Section3 describes thecase, Section 4 our modeling experi-ences, and Section 5 performance results. Section 6 concludes the
+paper.
+2. TESTING FRAMEWORK
+The most important ingredients in our framework is relativized
+conformance, timed automata, environment modeling, and the testgeneration algorithm.
+2.1 Relativized Conformance Testing
+Anembeddedsysteminteractscloselywithitsenvironmentwhich
+typically consists of the controlled physical equipment (the plant)accessible viasensors andactuators,othercomputer basedsystemsor digital devices accessible via communication networks usingdedicated protocols, and human users. A major development taskis to ensure that an embedded system works correctly in its real
+operating environment.
+Thegoalof(relativized)conformancetestingistocheckwhether
+the behavior of the IUTiscorrect according to itsspeciﬁcation un-der assumptions about the behavior of the actual environment inwhich it is supposed to work. In general, only the correctness inthis environment needs to be established, or itmay be too costly or
+ineffective to achieve for the most general environment. Explicit
+environment models have many other practical applications.
+Figure1 shows thetestsetup. The testspeciﬁcationisa network
+of timed automata partitioned into a model of the environment ofthe IUT and the IUT. TRON replaces the environment of the IUT,and based on the timed sequence of input and output actions per-
+formed so far, it stimulates the IUT with input that is deemed rel-
+evant by the environment part of the model. Also in real-time itchecks the conformance of the produced timed input output se-quence against the IUT part of the model. We assume that theIUT is a black-box whose state is not directly observable. Only
+input/output actions are observable. The adapter is an IUT speciﬁc
+hardware/software component that connects TRON to the IUT. Itisresponsiblefortranslatingabstractinputtesteventsintophysicalstimuli and physical IUT output observations into abstract modeloutputs. Itisimportanttonotethatwecurrentlyassume thatinputsand outputs are discrete (or discretized) actions, and not continu-
+ously evolving.
+Dependingontheconstructionoftheadapter,TRONcanbecon-
+nected to the hardware (possibly via sensors and actuators) withembedded software forming hardware-in-the-loop testing, oritcanbe connected directly to the software forming software-in-the-looptesting.
+Weextendedtheinput/outputconformancerelation ioco[17]be-Implementation Environment
+assumptions specification
+Simulated Environmentin!out!
+in?"in"
+out?Under TestImplementation
+outputinput
+"out"
+AdapterAdapter APIUPPAAL−TRON engine
+Physical API
+Figure1: TRONtest setup.
+tween a formal speciﬁcation and its black-box implementation to
+the timed setting and relativelyto a given environment.
+Intuitively irtioco esmeans that after executing any timed in-
+put/output trace σthat is possible in the composition of the system
+speciﬁcation sand environment speciﬁcation e, the implementa-
+tioniinenvironment emayonlyproduce outputsandtimeddelays
+whichareincludedinthespeciﬁcation sunderenvironment e. Rel-
+ativized timed input/output conformance rtioco [6] is deﬁned
+formally in Equation 1.
+irtioco es=∀σ∈TTr (s, e).out`
+(i, e)after σ´
+⊆
+out`
+(s, e )after σ´ (1)
+Here after σdenotes the set of states the speciﬁcation system
+(s, e )(resp. implementation system (i, e)) may possibly occupy
+after executing the timed i/o trace σ.out`´
+denotes the possible
+outputs(includingpermissibledelays)thesystemcanproducefrom
+a given setof states.
+The output inclusion in the relation guarantees both functional
+and time-wise correctness. The IUT is not allowed produce anyoutputactions(includingthespecialoutputoflettingtimepassandnot producing outputs in time) at a time they could not be done by
+the speciﬁcation.
+2.2 Timed Automata
+We assume that a formal speciﬁcation can be modeled as a net-
+work oftimedautomata. Weexplain timedautomaton by example,and refer to [1] for formal syntax and semantics. A timed automa-ton is essentially a ﬁnite state machine with input/output actions
+(distinguished respectively by ? and !) augmented with discrete
+variables and a set of special real-valued clock variables whichmodels the time.
+Clocks and discrete variables may be used in predicates on tran-
+sitions(calledguards)todeﬁnewhenthetransitionsmaytakeplace.A location invariant is a clock predicate on an automaton location
+that deﬁnes for how long the automaton is allowed to stay in that
+location, thus forcing the automaton to make progress within thespeciﬁedtimebounds. Ontransitions,thevariablescanbeassigneda value, and clocks may be reset to zero.
+Figure 2(a) shows an U
+PPAALautomaton of a simple cooling
+controller Crwhere xis real-valued clock and ris an integer con-
+stant. Its goal is to control and keep the room temperature in Med
+range. The controller is required: 1) to turn Onthe cooling de-
+vice within an allowed reaction time rwhen the room temperature
+reachesHighrange, and2)toturnit Offwithin rwhenthetemper-
+ature drops to Lowrange.
+In the encircled initial location off, it forever awaits temperature
+inputsamples Low,MedandHigh. When CrreceivesHighitresets
+the clock xto zero and moves to location up, where the location
+invariant x≤rallows it to remain for at most rtime units. Edges
+may also have guards which deﬁne when the transition is enabled(see e.g. in Figure 2(d)). At latest when xreaches rtime units
+the output onis generated. If a Lowis received in the mean time
+300 
+
+--- Page 3 ---
+it must go back off. Transitions are taken instantaneously and time
+only elapses in locations.
+In location offthe automaton reacts non-deterministically to in-
+putMed:Crmaychoose eithertotake aloop transitionand stay in
+locationoffor move to location up. When Cris used as a speciﬁ-
+cation a relativized input/output conforming controller implemen-tation may choose to perform either. Thus non-determinism gives
+the implementation some freedom. There are two sources of non-
+determinism in timed automata: 1) in the timing (tolerances) ofactions as allowed by location invariants and guards, and 2) in thepossible state afteran action.
+Timed automata may be composed in parallel, communicate via
+sharedvariables andsynchronize rendezvous-style onmatchingin-
+put/output transitions. In a closedtimed automata network all out-
+put action transitions have a corresponding input action transition.
+U
+PPAALisanmodelcheckerforreal-timesystems,andsupports
+timed automata networks with additional integer variable types,broadcast(one-to-many)synchronizationsandotherextensions. U
+P-
+PAALprovides an efﬁcient set of symbolic model-checking algo-
+rithms for performing symbolic reachability analysis of timed au-
+tomata. Since clock values are real-valued, the state-space of themodel is inﬁnite, and cannot be represented and computed explic-itly. A symbolic state represents a (potentially inﬁnite) set of con-crete states and is implemented as particular set of linear inequa-tionsonclockvariables. Thustheevaluationofguardsand compu-
+tation of successor symbolic states isdone symbolically.
+2.3 Environment Modeling
+In this section we exemplify how our conformance relation dis-
+criminates systems, and illustrate the potential power of environ-
+ment assumptions and how this can help to increase the relevanceof the generated tests for a given environment.
+Consider the simple cooling controller of Figure 2(a) and the
+environment in Figure 2(c). Take C
+6to be the speciﬁcation and as-
+sumethattheimplementationbehaveslike C8. Clearly, C8rt✚iocoEM
+C6becausethetimedtrace 0·Med !·7·On !ispossibleintheimple-
+mentation,butnotinthespeciﬁcation. Formally, out`
+C8after 0·
+Med !·7´
+={On !}∪ R≥0/negationslash⊆out`
+C6after 0·Med !·7´
+=R≥0
+(recall that Crmay remain in location offon input Medand not
+produce anyoutput). Theimplementation canthus performanout-
+put at a time not allowed by the speciﬁcation.
+Next,suppose Crisimplementedbyatimedautomaton C/primerequal
+toCr, except the transition upLow−−→dnis missing, and replaced
+byaselfloopinlocation up. Theyaredistinguishable bythetimed
+trace 0·Med?·0·High? ·0·Low?·0·On!in the implementation that
+is not in the speciﬁcation (switches the compressor Offinstead).
+Figures 2(b) to 2(e) show four possible environment assump-
+tions for Cr. Figure 2(c) shows the universal and completely un-
+constrained environment EMwhere room temperature may change
+unconstrained and may change (discretely) with any rate. This is
+the most discriminating environment that can generate any input
+output sequence and thus (in principle) detect all errors.
+This may not be realistic in the given physical environment, and
+there may be less need to test the controller in such an environ-ment, as temperature normally evolves slowly and continuously,e.g., it cannot change drastically from LowtoHighand back un-
+lessthrough Med. Similarly,mostembedded andreal-timesystems
+also interact with physical environments and other digital systemsthat— depending on circumstances—can be assumed to be correctand correctly communicate using well deﬁned interfaces and pro-tocols. The other extreme in Figure 2(c) is the least discriminatingenvironment; it merely passively consumes output actions.
+Figure 2(d) shows the environment model E
+d
+1where the temper-ature changes through Medrange and with a speed bounded by
+d. Figure 2(e) shows an even more constrained environment E2
+thatassumes thatthecooling device works, e.g.,temperature never
+increases when cooling is on. Notice that E2andE1have less dis-
+criminatingpowerandthusmaynotrevealfaultsfoundundermorediscriminating environments. However, if the erroneous behavioris impossible in the actual operating environment the error may
+be irrelevant. Consider again the implementation C
+/primerfrom above.
+This error can be detected under E0andE3d<r
+1via the timed trace
+thatrespectstheenvironments d·Med?·d·High? ·d·Med?·d·Low?·ε·
+On!,ε≤r. Thespeciﬁcation wouldproduce Off. Theerrorcannot
+be detected under E1if it too slow 3d>r, and never under E2for
+no value of d.
+Intheextremetheenvironment behaviorcanbesorestrictedthat
+it only reﬂects a single test scenario that should be tested. In ourview, the environment assumptions should be speciﬁed explicitlyand separately.
+2.4 Online Testing Algorithm.
+Here we outline the algorithm behind TRON informally. The
+precise formal deﬁnitions and algorithms behind TRON have beendocumentedin[12,11,6,7]andwerefertotheseforfurtherdetails.
+The environment model functions as a (state-dependent) input-
+stimuli (load) generator. The IUT-model functions as as a test ora-
+cle,andisusedtoevaluatethecorrectnessoftheobservedtimedin-
+putoutputsequence. Inordertosimulatetheenvironmentandmon-itor the implementation, Algorithm 1 maintains the current reach-able symbolic state set Z⊆ S×Ethat the test speciﬁcation can
+possibly occupy afterthe timed trace observed so far.
+Based on this symbolic state-set, TRON checks whether the ob-
+served output actions and timeddelays arepermittedinthe speciﬁ-cation. In addition TRON computes the set of possible inputs thatmay be offered to the implementation.
+A
+LG.1 .Testgeneration and execution: Z:={(s0,e0)}.
+while Z/negationslash=∅∧/sharpiterations ≤Tdochoose randomly:
+offer input action :
+ifEnvOutput (Z)/negationslash=∅
+randomly choose i∈EnvOutput (Z)
+send ito IUT, Z:=Zafter i
+delay and wait foran output :
+randomly choose d∈Delays (Z)
+sleep dor wake up on output oatd/prime≤d
+ifooccursthen
+Z:=Zafter d/prime
+ifo/∈ImpOutput (Z)thenreturn fail
+elseZ:=Zafter o
+elseZ:=Zafter d
+reset and restart :Z:={(s0,e0)},resetIUT
+ifZ=∅thenreturn failelse return pass
+TRONrandomlychooses betweenone ofthreebasicactions: ei-
+thersendarandomlyselectedrelevantinputtotheIUT,lettingtimepass by some (random) amount and silently observe the IUT foroutputs, or reset the IUT and restart. The set of input actions thatarepossibleinthecurrentstate-set Z(enabledenvironmentoutput)
+is denoted by EnvOutput (Z). Similarly, ImpOutput (Z)denotes
+theallowedsetofimplementationoutputs, and Delays (Z)thepos-
+sibledelaysbeforethetestermustgive aninputtotheIUT(ascon-strained by invariants the environment model). In the practical im-plementation the probability of restarting is chosen comparativelyvery low.
+Ifthetesterobserves anoutput or atimedelay itchecks whether
+301 
+
+--- Page 4 ---
+offup
+x<=rdn
+x<=ron
+High?
+x:=0
+Med?Med?x:=0On!x:=0
+Med?x:=0
+Low?Low?x:=0High?Med?
+Off!
+x:=0High?
+x:=0Low?x:=0Med? Med?High? Low?
+(a)Cr: simple cooling con-
+troller.On?
+Off?
+(b)EL
+On?
+Off?
+Low!Med!High!
+(c)EM.HML
+On? Off?y>=d
+Low!y:=0
+y>=dMed!y:=0 y>=dHigh!y:=0y>=dMed!y:=0
+Off? On?Off? On?
+(d)Ed
+1.OnHigh
+y<=stepOnMedy<=stepOnLow OffLowy<=step
+OffMedy<=step
+OffHigh
+On?y>=dLow!y:=0
+y>=dMed!y:=0y>=dHigh!y:=0y>=dMed!y:=0
+Off?
+On?Off?
+On?
+Off?
+(e)Ed,s
+2.
+Figure2: Timedautomata of simplecontroller andvarious environments.
+thisislegalaccordingtothestateset. Thestatesetisupdatedwhen-
+ever an input is offered, an output or a delay is observed. Considerthe system (C
+r,Ed
+1). The initial state-set is the single symbolic
+state: {/angbracketleftoﬀ,L,x =0∧y=0/angbracketright}. After a delay of dor more,
+{Med}is the set of possible inputs. Suppose that TRON issues
+Medafter δ≥dtime units. The state-set now consists of two
+states: {/angbracketleftoﬀ,M,x=δ∧y=0/angbracketright,/angbracketleftup,M,x=0∧y=0/angbracketright}.I f
+Onis received later at time δ/prime≤rthe ﬁrst element in the state-set
+willbe eliminated resulting in {/angbracketlefton,M,x=0∧y=δ/prime/angbracketright}. Illegal
+occurrence or absence of an output is detected if the state set be-comes empty which is the result if the observed trace is not in the
+speciﬁcation.
+TRON uses using the U
+PPAALengine to traverse internal, de-
+lay and observed action transitions, to evaluate clock and variableguards, and to perform variable assignments. We use the efﬁcientreachability algorithm implementation [3] to implement the op-erator after. It operates on bounded symbolic states, checks
+for symbolic-state inclusions and thus always terminates even if
+the model contains loops of internal actions. Further informationabout the implementation of the required symbolic operations canbe found in[6].
+CurrentlyTRONisavailabletodownload viatheInternetfreeof
+chargeforevaluation,research,educationandothernon-commercial
+purposes [10]. TRON supports all U
+PPAALmodeling features in-
+cluding non-determinism, provides timed traces as test log and averdict as the answer to rtiocorelation, and features for model-
+coverage measurements.
+3. THE DANFOSS EKC-201 REFRIGERA-
+TIONCONTROLLER
+We applied U PPAAL-TRONon a ﬁrst industrial case study pro-
+vided by Danfoss Refrigeration Controls Division. The EKC con-trolsandmonitorsthetemperatureofindustrialcoolingplantssuchas cooling and freezer rooms and largesupermarket refrigerators.
+3.1 Control Objective
+The main control objective is to keep the refrigerator room airtemperature at a user deﬁned set-point by switching a compressor
+on and off. It monitors the actual room temperature, and soundsan alarm if the temperature is too high (or too low) for too long aperiod. In addition it offers a myriad of features (e.g. defrostingand safety modes in case of sensor errors) and approximately 40
+conﬁgurable parameters.
+The EKC obtains input from a room air temperature sensor, a
+defrost temperature sensor, and a two-button keypad that controlsapproximately 40 user conﬁgurable parameters. It delivers outputvia a compressor relay, a defrost relay, an alarm relay, a fan re-lay, and a LED display unit showing the currently calculated room
+air temperature as well as indicators for alarm, error and operating
+mode.
+Figure3 shows a simpliﬁedview ofcontrol objective, namely to
+keep the temperature within setPointandsetPoint +differential de-
+grees. The regulation istobe based on anweighted averaged roomtemperature T
+ncalculated by the EKC by periodically sampling
+(around 1.2sec.) theairtemperaturesensorsuchthatanewsample
+Tis weighted by 20% and the old average Tn−1by 80%:
+Tn=Tn−1∗4+T
+5(2)
+Acertainminimumdurationmustpassbetweenrestartsofthecom-
+pressor, and similarly the compressor must remain on for a mini-mum duration. An alarm must sound if the temperature increases(decreases)above(below) highAlarmLimit (lowAlarmLimit )foralar-
+mDelaytimeunits. Alltime constants in theEKCspeciﬁcation are
+in the order of seconds to minutes, and a feweven in hours.
+3.2 Test Adaptation.
+A few comments are necessary about the test adapter for the
+EKCsinceitdetermineswhatand howprecisetheIUTcanbecon-trolled and observed.
+Internally, the EKC is organized such that nearly every input,
+output and important system parameter is stored in a so-called pa-rameter database in the EKC that contains the value, type and per-
+mitted range of each variable. The parameter database can be in-
+302 
+
+--- Page 5 ---
+Temperature
+Timesetpointsetpoint
++differentialhighAlarm
+Deviation
+lowAlarm
+LimithighAlarmLimit
+lowAlarm
+Deviationdifferentialstart 
+compressor
+stop
+compressorstart 
+compressor
+stop
+compressorstart
+alarm
+normal min restart 
+time not elapsedmin cooling 
+time not elapsedalarm delay
+Figure3: EKCMainControl Objective.
+directly accessed from a visual Basic API on a MS Windows XP
+PChostviamonitoring softwareprovided byDanfoss. TheEKCisconnected to a MS Windows XP PC host, ﬁrst via a LON networkfrom the EKC to a EKC-gateway, and from the gateway to the PCvia a RS-232 serial connection. The required hardware and soft-
+ware were provided by Danfoss. As recommended by Danfoss we
+implemented the adaptation software by accessing the parameterdatabase using the provided interface. However, U
+PPAAL-TRON
+only existsin UNIXversions, and thus itrequired asecond UNIX-host computer connected to the MS windows PC using a TCP/IP
+connection properly conﬁgured toprevent unnecessary delaying of
+small messages. The adaptation software thus consists of a “thin”visualBasic part running on the MS windows host, and a C++ partinterfacing to theTRONnativeadaptation APIrunning on aUNIXhost. It is important to note that this long chain (three networkhops) adds both latency and uncertainty to the timing of events.
+Moreseriouslyitturnedoutthattheparametersrepresentingsen-
+sor inputs are read-only, meaning that the test host cannot changethese to emulate changes in sensor-inputs. Therefore some func-tionality (temperature based defrosting, sensor error handling, anddoor open control) related to these is not modeled and tested. Themain sensor, the room temperature, is hardwired to a ﬁxed setting
+viaaresistor,butthesensedroomtemperaturecanbechangedindi-
+rectly via a writable calibration parameter with the range ±20
+◦C.
+Itquicklybecameevidenttousthatthemonitoringsoftwarewas
+meant for “coarse grained” event logging and supervision by anoperator, not as a (real-time) test interface. An important generallesson learned is that an IUT should provide an test interface with
+suitable means for control and observation. We are collaborating
+withDanfosstoprovideabettertestinterfaceforfutureversionsofthe product.
+3.3 Model Structure
+We modeled a central subset of the functionality of the EKC as
+a network of U PPAALTimed Automata, namely basic temperature
+regulation, alarm monitoring, and defrost modes with manual andautomatic controlled (ﬁxed) periodical defrost (de)activation. Theallowed timing tolerances and timing uncertainties introduced bythe adaptation software is modeled explicitly by allowing output
+eventstobeproducedwithinacertainerrorenvelope. Forexample,
+a tolerance of 2 seconds is permitted on the compressor-relay. Ingeneral, it may be necessary to model the adaptation layer as partof the model for the system under test. The abstract input/outputactions are depicted in Figure 4.
+From the beginning it was decided to challenge our tool. There-
+fore we decided that the model should be responsible of trackingEKCdefrostRelayOn!
+defrostRelayOff!
+alarmRelayOn!
+alarmRelayOff!compressorRelayOn!
+compressorRelayOff!
+highAlarmDisplayOn!
+highAlarmDisplayOff!ekcReset?
+manualDefrostOn?
+manualDefrostOff?
+CT(int -20..20)?
+setpoint(int -50..60)?
+setAlarmDelay(int 0..90)?
+Figure4: ModelInputsandOutputs.
+the temperature as calculated by the EKC and base control actions
+onthisvalue. Tomakethiswork,thecomputationpartofthemodeland also its real-time execution must be quite precise. This part ofthe model thus approximates the continuous evolution of a param-eter, and almost approaches a model of a hybrid system, which ison the limit of the capability of timed automata. An alternative
+would be to monitor the precision of the calculated temperature in
+the adaptation software and let that generate events (e.g., alarm-
+LimitReached! ) to the model as threshold values are crossed. This
+would yielda simpleand moreabstract “pure”event driven model.
+Themodelconsistsof18concurrentcomponents(timedautomata),
+14 clock variables, and 14 discrete integer variables, and is thus
+quite large. The main components and their dependencies are de-
+picted in Figure 5 and explained below.
+OutputInputIUT-Model
+alarm
+Relaycompressor
+RelaytempMeasurement
+compressornewTemp newTemp
+on/off on/offEnvironment
+TemperatureGenerator
+defrost
+RelaydefrostautoDefrost
+on/offdefrostEventGen
+alarm
+Displayon/offhighTempAlarm
+Figure5: MainModelComponents
+TheTemperature Measurement component periodically sam-
+ples the temperature sensor and calculates a new estimated roomair temperature. The Compressor component controls the com-
+pressor relay based on the estimated room temperature, alarm anddefrost status. The High Temperature Alarm component moni-
+tors the alarm state of the EKC, and triggers the alarm relay if the
+temperature is too high for too long. The Defrostcomponent con-
+trols the events that must take place during a defrost cycle. Whendefrosting the compressor must be disengaged, and alarms mustbe suppressed until delayAfterDefrost time units after completion.
+Defrosting may be started manually by the user, and is engaged
+automatically with a certain period. It stops when the defrosting
+timehas elapsed, orwhen stopped manually by the user. The Auto
+Defrostcomponent implements automatic periodic time based de-
+frosting. It automatically engages the defrost mode periodically.TheRelaycomponent models a digital physical output (compres-
+sor relay, defrost relay, alarm relay,alarm display) that when given
+a command switches on (respectively off) within a certain time
+bound. The Temperature Generator is a part of the environment
+that simulates the variation in room temperature, currently alter-natingly increases the temperature linearly between minimum andmaximum temperature,andthereverse. Finally,the DefrostEvent
+Generator environment component randomly issues user initiated
+defrost start and stop commands.
+303 
+
+--- Page 6 ---
+4. COMPONENTMODELING AND
+REVERSE ENGINEERING
+Themodelingeffortwascarriedoutbycomputerscientistswith-
+out knowledge of that problem domain based on the EKC docu-mentation provided by Danfoss. It only consisted of the internalrequirements speci ﬁcation and the users manual, both in informal
+prose. In addition we had access to questioning the Danfoss En-gineers via email and two meetings, but no design documents or
+source code were available. In addition we were given documen-
+tation about the EKC PC-monitoring software and associated APIallowing us to writethe adaptation software.
+Ingeneralthedocumentationwasinsuf ﬁcienttobuildthemodel.
+In part this was due to a lack of a detailed understanding of theimplicit engineering knowledge of the problem domain and how
+previous generations of controllers worked. But more importantly
+much functional behavior and especially timing constraints werenotexplicitlyde ﬁned. Ingeneraltherequirementsspeci ﬁcationdid
+not state any timing tolerances, e.g, the allowed latency on com-pressor start and stop when the calculated temperature crosses thelower or higher thresholds.
+Therefore the modeling involved a lot of experimentation to de-
+duce the right model and time constraints, which to some extentbest can be characterized as reverse engineering or model-learning[4]. Typically the work proceeded by formulating a hypothesis ofthe behavior and timing tolerances as a model (of the selected as-pect/subfunctionality),andthenexecutingTRONtocheckwhether
+or not the EKC conformed to the model. If TRON gave a fail-
+verdict the model was revised (either functionally, or by looseningtime tolerances). If it passed the timing tolerances were tighteneduntil it failed. The process was then iterated a few times, and theDanfossengineerswereconsultedtocheckwhetherthebehaviorof
+the determined model was acceptable.
+In the following we give afew examples of this procedure.
+4.1 Room Temperature Tracking.
+TheEKCestimatestheroomtemperaturefromEquation2based
+on periodically samples of the room temperature sensor, and basesmostcontrolactionslikeswitchingthecompressoronoroffonthisvalue. However, the requirements only requires a certain precisiononthesamplingaccuracyofthetemperaturesensors( ±0.5
+◦C)and
+a sensor sampling period of at most 2 seconds, and nothing about
+howfrequentlythetemperatureshouldbereevaluated. Thisledtoaseries of tests where the temperature change rate, the sampling pe-riod,andtemperaturetolerancewerechanged todeterminethebestmatching con ﬁguration. The model now uses a period of 1.2 sec-
+onds, and allows ±2 seconds tolerance on compressor start/stop.
+4.2 Alarm Monitoring
+Executing TRON using our ﬁrst version of the high temperature
+alarm monitor caused TRON to give a fail-verdict: The EKC did
+not raise alarms as expected. The model shown in Figure 6 as-sumed that the user ’s clearing of the alarm would reset the alarm
+state of the EKC completely. The consequence of this is that theEKC should raise a new alarm within alarmDelay if the temper-
+ature remained above the critical limit. However, it did not, and
+closer inspection showed that the EKC was still indicating high
+temperaturealarminitsdisplay,eventhough thealarmwasclearedbytheuser. TheexplanationgivenbyDanfosswasthatclearingthealarmonlyclearsthealarmrelay(stoppingthealarmnoise),notthealarm state which remains in effect until the temperature drops be-lowthe criticallimit. Themodel wasthen re ﬁned,and includes the
+noSound
+Displaying location in Figure7.4.3 Defrosting and Alarm Handling.
+Asimilardiscrepancy between expected and actual behavior de-
+tectedbyTRONwasinthewaythatthealarmanddefrostfunctions
+interacts. Afteradefrosttheroomtemperaturenaturallyrisksbeing
+higher than the alarm limit, because cooling has been switched offduring the defrost activity for an extended period of time. There-foreahightemperaturealarmshouldbesuppressedinthissituationwhich can be done by con ﬁguring the EKC parameter alarmDe-
+layAfterDefrost . However, reading different sections of the docu-
+mentation gives several possible interpretations:
+1. When defrosting stops and the temperature is high, alarms
+mustbepostponedfor alarmDelayAfterDefrost inadditionto
+the original alarmDelay , i.e.,never alarmsduring a defrost.
+2. Sameasabove(1)exceptitismeasured fromthetimewhere
+thehighalarmtemperatureisdetected,evenduringadefrost.
+3. When defrosting stops and the temperature is high, alarms
+must be suppressed for alarmDelayAfterDefrost , i.e.,alar-
+mDelayAfterDefrost replaces theoriginal alarmDelay aftera
+defrost until the the temperature becomes below critical, af-terwhich the normal alarmDelay isused again.
+Theengineeringdepartmentcouldnotgiveanimmediateanswer
+to this (without reluctantly consulting old source code), but based
+on their experiences and requirements for other products they be-lieved that 3 is the correct interpretation. Note that we are not sug-gesting that the product was implemented without a clear under-standing of the intended behavior, only that it was not clear from
+itsdocumentation.
+4.4 Defrost Time Tolerance.
+Another discrepancy TRON found was that defrosting started
+earlier than expected or was disengaged later. Itturned out that theinternaltimerintheEKCresponsibleforcontrollingthedefrostpe-riod has a very low precision (probably because defrosting is rare
+(e.g.,onceaday)andhasalongduration (lastsseveralhours)). The
+default tolerance used in the model on the relays thus had to befurther relaxed.
+5. QUANTITATIVE EVALUATION
+Duringatest-run,thetestingalgorithmcomputes,onapertimed
+event basis, the set of symbolic states in the model that can bereached after the timed event trace observed so far, and generatesstimuli and checks the validity of IUT-outputs based on this state-
+set.
+Since we use a non-deterministic model to capture the timing
+and threshold tolerances of the IUT and since internal events ina concurrent model may be executed in (possibly combinatoriallymany) different orders, this set will usually contain numerous pos-
+siblestates. Thestate-setre ﬂectstheallowedstatesandbehaviorof
+the IUT, and intuitively, the larger the state-set, the more uncertainthe tester isabout the stateof the implementation.
+Since we generate and execute tests in real-time the state-set
+must also be updated in real-time. Obviously, the model and thestate-set size affects how much computation time this takes, and
+one might question wheter doing this is feasible in practice. In the
+following we investigate whether real-time online testing is realis-ticfor practical cases, like the Danfoss EKC.
+Figure8plots theevolution ofthe state-setsize(number of sym-
+bolic states ) for a sample test run. Also plotted in the graph is the
+input temperature, temperature threshold value for high tempera-
+ture (compressor must switch on) and high temperature alarm (the
+304 
+
+--- Page 7 ---
+alarmOfftriggered
+ta<=IUT_TADelaySounding
+S6S7IUT_calcTemp>
+IUT_setPoint+diff+highAlarmDev-err
+newTemp?
+ta:=0ta==IUT_TADelayAOn!
+ta:=0
+clearHighAlarm?
+AOff!
+ta:=0IUT_calcTemp<=
+IUT_setPoint+diff+highAlarmDev+errnewTemp?
+initDone?
+ta:=0 IUT_calcTemp<=IUT_setPoint+diff+highAlarmDev+err
+newTemp?ta:=0IUT_calcTemp>IUT_setPoint+diff+highAlarmDev-err
+newTemp?
+clearHighAlarm?clearHighAlarm?
+Figure6: FirstHigh TemperatureMonitor.
+alarmOfftriggered
+ta<=IUT_TADelay+50S5
+S6S7sounding_Displaying
+noSound_DisplayingS8S29
+postPonedIUT_calcTemp>
+IUT_setPoint+diff+highAlarmDev-err
+newTemp?
+ta:=0noDefrostDelay?
+clearHighAlarm?
+AOff!
+ta:=0IUT_calcTemp<=
+IUT_setPoint+diff+highAlarmDev+errnewTemp?
+ta:=0 initDone?
+ta:=0
+IUT_calcTemp<=IUT_setPoint+diff+highAlarmDev+errnewTemp?
+ta:=0IUT_calcTemp>IUT_setPoint+diff+highAlarmDev-errnewTemp?
+clearHighAlarm?clearHighAlarm?
+HADOn!
+IUT_calcTemp<=IUT_setPoint+diff+highAlarmDev+errnewTemp?
+ta:=0HADOff!
+ta:=0
+IUT_calcTemp>IUT_setPoint+diff+highAlarmDev-errnewTemp?AOn!ta>=IUT_TADelay-20
+IUT_calcTemp<=IUT_setPoint+diff+highAlarmDev+errnewTemp?IUT_calcTemp>IUT_setPoint+diff+highAlarmDev-errnewTemp?
+clearHighAlarm?
+Figure7: SecondHigh TemperatureMonitor
+alarmmustsoundifitremainshighformorethan alarmDelay (120
+sec) time units.
+It is interesting to observe how the state-set size depends on the
+model behavior. For instance, the ﬁrst larger increase in state-set
+size occurs after 55 seconds. At this time the temperature crossesthe limit where the compressor should switch on. But due to the
+timing tolerances, the model does not “know”if the compressor-
+relay is in on-state or off-state, resulting in a larger state-set. Thestate-setsizethendecreasesagain,onlytoincreaseagainat93sec-onds at which a manual defrost period is started. The next ma-jor jump occurs at 120 seconds and correlates nicely with the time
+wherethetemperaturecrosseshigh-alarmlimitandthealarmmon-
+itor component should switch into triggered state. Similarly, 260
+second intotherun,thetemperaturedropsbelowthethreshold,andthere is no uncertainty in the alarm state. The ﬂuctuations inside
+thisperiodiscaused byamanuallystartedandstopped defrostses-sion. In fact 5 defrost cycles are started and stopped by the tester
+in this test run. The largest state-set size (960 states) occurs at 450
+seconds and correlates to the time-out of a defrost cycle. There isa large tolerance on the timercontrolling defrosting, and hence themodel can exhibit many behaviors inthis duration.
+The state-set contains most often less than a few hundred states.
+Exploringtheseisunproblematicforamodernmodel-checking en-
+gine employed by TRON. Figure 9 plots the the cpu-time used to
+update the state-set for delay-actions (typically the most expensiveoperation)for5test-runsofourmodelonaDualPentiumXeon2.8GHz CPU (one used). It can be seen that the far majority of stateset sizes are reasonably small. Updating medium sized state-setswith around 100 states requires only a few milli-seconds (ms) of
+cpu-time. The largest encountered state-sets (around 3000 states)
+are very infrequent, and requires around 300 ms.Real-timeonline testing thus appear feasiblefor a largerange of
+embeddedsystems,butalsothatverynon-deterministicmodelsuchastheEKC-modelmaylimitthegranularityoftimeconstraintsthatcan be checked in real-time.
+Figure8: Evolution ofState-set.
+6. CONCLUSIONS AND FUTURE WORK
+Ourmodelingeffortshowsthatitispossibletoaccuratelymodel
+the behavior of EKC like devices as Timed Automata and use theresulting model as a testspeci ﬁcation for online testing.
+Itispossibletomodelonlyselecteddesiredaspectsofthesystem
+behavior, i.e. a complete and detailed behavioral description is notrequired for system testing. Thus, model based testing is feasible
+even ifaclearandcomplete formalmodel isnotavailablefromthe
+305 
+
+--- Page 8 ---
+0 500 1000 1500 2000 2500 3000 35000 50000 100000 150000 200000 250000 300000
+Initial state set sizeAverage afterDelay CPU time, microseconds
+Figure9: Cost of State-setUpdate: Delay action
+start, although it will clearly bene ﬁt from more explicit modeling
+during requirements analysis and system design.
+In the relative short testing time, we found many discrepancies
+between our model and the implementation. Although many of
+these were caused by a wrong model due to incomplete require-ments or mis-interpretations of the documentation, and not actualimplementationerrors,ourworkindicatesthatonlinetestingseemsan effective technique to ﬁnd discrepancies between the expected
+model behavior and actual behavior of the implementation under
+test. Thus there are also reasons to believe that it is effective in
+detecting actual implementation errors.
+It should be mentioned that the EKC is a mature product that
+has been produced and sold for a number of years. Future workincludes testing a less mature version of a EKClike controller.
+Performance-wise we conclude that real-time online testing ap-
+pear feasible for a large range of embedded systems. To target
+evenfasterreal-timesystemswitheventimeconstraintsinthe(sub)milli-second range we plan to separate our tool into two parts, anenvironment emulation part, and a IUT monitoring part. Monitor-ing need not be performed in real-time, and may in the extreme bedoneofﬂine. Themodelthatwillneedtobeinterpretedinreal-time
+is thus much smallerand can be done much faster.
+We are extending our tool with coverage measurements, cover-
+age based guiding, and features for error diagnosis. By import-ing a trace collected during a test run into U
+PPAALit can be run
+against the IUT model. It can also be replayed against the ac-
+tual IUT (within the limits of non-determinism). Future work also
+includes extensions for testing hybrid systems, i.e., systems withgeneral continous state evolution besides progress of time, e.g. byusinghybridautomata,butanalyzing suchsystemsexactlyandfor-mally is much more dif ﬁcultand costly.
+Acknowledgments
+We would like to thank Danfoss for providing the case-study and
+especially Finn Andersen, Peter Eriksen, and S øren Winkler Ras-
+mussenfromDanfossforengagementandconstructiveinformationand help during the project.
+7. REFERENCES
+[1] R.Alur and D.Dill.ATheory of Timed Automata.
+Theoretical Comput. Sci. ,126(2):183 –235, Apr.1994.[2] D.A/S.Danfoss internet website, http://www.danfoss.dk.
+[3] G.Behrmann, J.Bengtsson, A.David, K.Larsen,
+P.Pettersson,and W.Yi.Uppaal implementation secrets. InFormal Techniques in Real-Timeand Fault-Tolerant Systems:7th International Symposium, FTRTFT2002 , pages 3–22,
+September 2002.
+[4] T.Berg, B.Jonsson, M. Leucker, and M.S.August. Insights
+to Angluin ’s Learning. In International Workshop on
+Software Veriﬁcation and Validation(SVV 2003) , 2003.
+[5] E.Brinksma, K.Larsen, B.Nielsen, and J. Tretmans.
+Systematic Testingof Realtime Embedded SoftwareSystems(STRESS),March 2002. Research proposal submitted andaccepted by the Dutch Research Council.
+[6] K.Larsen, M. Mikucionis, and B.Nielsen. Online testing of
+real-timesystems using
+UPPAAL.InFormal Approaches to
+Testing of Software , Linz,Austria, September 21 2004.
+Lecture Notes in Computer Science.
+[7] K.Larsen, M. Mikucionis, and B.Nielsen. Online Testing of
+Real-timeSystems using Uppaal: Status and Future Work. InE.Brinksma, W.Grieskamp, J. Tretmans, and E.Weyuker,editors,Dagstuhl Seminar Proceedings volume 04371:
+Perspectives ofModel-Based Tes ting , Schloss Dagstuhl,
+D-66687 Wadern, Germany., September 2004. IBFIgem.
+GmbH, Schloss Dagstuhl.
+[8] K.Larsen, P.Pettersson,and W.Yi.UppAal in a Nutshell.
+International Journal on Software Tools for Technology
+Transfer,1(1):134 –152, 1997.
+[9] M. Krichen and S.Tripakis.Black-box Conformance Testing
+for Real-TimeSystems. In Model Checking Software: 11th
+International SPINWorkshop , volume LNCS2989. Springer,
+April2004.
+[10] M. Mikucionis. Uppaal tron internet page,
+http://www.cs.aau.dk/ ˜marius/tron.
+[11] M. Mikucionis, K.Larsen,and B.Nielsen. Online on-the- ﬂy
+testing of real-timesystems. Technical Report RS-03-49,Basic Research In Computer Science (BRICS),Dec.2003.
+[12] M. Mikucionis, B.Nielsen,and K.Larsen. Real-timesystem
+testing on-the- ﬂy. Inthe 15th Nordic Workshop on
+Programming Theory , number 34 in B,pages 36 –38, Turku,
+Finland, October 29 –31 2003. ˚Abo Akademi, Department of
+Computer Science, Finland. Abstracts.
+[13] M. Mikucionis and E.Sasnauskaite. On-the- ﬂy testing using
+U
+PPAAL.Master’s thesis, Department of Computer Science,
+Aalborg University, Denmark, June 2003.
+[14] J.Peleska. FormalMethods for TestAutomation -Hard
+Real-Time Testingof Controllers f or theAirbus AircraftFamilies.In Integrated Design and Process Technology
+(IDPT-2002) , 2002.
+[15] M. K.S.Bensalem, M. Bozga and S.Tripakis. Testing
+conformance of real-timeapplications withautomaticgeneration ofob servers.In RuntimeVeriﬁcation2004 , 2004.
+[16] S.Tripakis. FaultDiagnosis for Timed Automata. In Formal
+Techniques in Real-Timeand Fault Tolerant Systems
+(FTRTFT’02) ,volume LNCS2469. Springer, 2002.
+[17] J.Tretmans. Testing concurrent systems: Aformal approach.
+In J.Baeten and S.Mauw, editors, CONCUR’99– 10
+thInt.
+Conference on Concurrency Theory , volume 1664 of Lecture
+Notes in Computer Science , pages 46 –65. Springer-Verlag,
+1999.
+306 

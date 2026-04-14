@@ -1,0 +1,868 @@
+--- Page 1 ---
+M. Luckcuck and M. Farrell; M. Autili, L. Berardinelli,
+A. Bucaioni and C. Pompilio (Eds.):
+Formal Methods for Autonomous Systems and
+Automated and veriﬁable Software sYstem DEvelopment
+EPTCS 371, 2022, pp. 120–138, doi:10.4204/EPTCS.371.9© B. Pelletier, C. Lesire, D. Doose,
+K. Godary-Dejean & C. Dramé-Maigné
+This work is licensed under the
+Creative Commons Attribution License.SkiNet
+A Petri Net Generation Tool for the Veriﬁcation of
+Skillset-based Autonomous Systems
+Baptiste Pelletier
+ONERA/DTIS
+Université de Toulouse, France
+LIRMM
+Univ. Montpellier, CNRS France
+baptiste.pelletier@onera.frCharles Lesire David Doose
+ONERA, DTIS
+Toulouse, France
+firstname.lastname@onera.fr
+Karen Godary-Dejean Charles Dramé-Maigné
+LIRMM, Univ. de Montpellier, CNRS
+Montpellier, France
+karen.godary-dejean@umontpellier.fr charles.drame-maigne@ens-paris-saclay.fr
+The need for high-level autonomy and robustness of autonomous systems for missions in dynamic
+and remote environment has pushed developers to come up with new software architectures. A
+common architecture style is to summarize the capabilities of the robotic system into elementary
+actions, called skills, on top of which a skill management layer is implemented to structure, test
+and control the functional layer. However, current available veriﬁcation tools only provide either
+mission-speciﬁc veriﬁcation or veriﬁcation on a model that does not replicate the actual execution
+of the system, which makes it difﬁcult to ensure its robustness to unexpected events. To that end,
+a tool, SkiNet, has been developed to transform the skill-based architecture of a system into a Petri
+net modeling the state-machine behaviors of the skills and the resources they handle. The Petri net
+allows the use of model-checking, such as Linear Temporal Logic (LTL) or Computational Tree
+Logic (CTL), for the user to analyze and verify the model of the system.
+1 Introduction
+The use of autonomous systems has spread widely in the recent years, with applications in industrial au-
+tomation, scientiﬁc exploration, rescue or environment monitoring missions. They are able of executing
+critical tasks and missions that need a high level of dependability.
+For the sake of improving the trust in the autonomy of robotic systems, different validation and
+veriﬁcation methods (V&V) can be used, such as formal methods, like model-checking, to verify that
+user-deﬁned properties will be guaranteed once the system is deployed. The veriﬁcation of the system
+behavior whatever happens requires to predict all possible system conﬁgurations, failure points and their
+appropriate responses, as well as the complexity of a dynamic, sometimes unknown environment. For
+a system to answer each of these challenges, hardware and software complexity must increase, which
+makes the modelling and analysis processes more difﬁcult. Using formal methods and veriﬁcation tools
+such as model-checking, it is possible to prove the robustness of the system throughout its design stages.
+Various software control architectures have been developed with always the same objectives in mind:
+making the system easier to specify, and its robustness easier to verify. Looking at the system with
+a higher-level of abstraction can make the veriﬁcation process easier for users with few experience in
+
+--- Page 2 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 121
+middleware and low-level architecture. But abstraction becomes quickly limited when facing dynamic
+environments and complex tasks. An ideal model would then be one that is abstract enough to allow an
+easy speciﬁcation, while also providing great veriﬁcation possibilities, which is the goal of the present
+study.
+The software architectures tackled in this work are skill-based architectures, also called task-based
+[21, 1, 30], where the robotic system is decomposed into elementary actions. This approach usually
+comes with a high-level of abstraction of the software and hardware of the system, while offering a wide
+range of speciﬁcation possibilities. A controller layer is then implemented, to test the architecture and
+control the system. The architecture used for this work will be the Skillset formalization of Albore et al.
+[1], which is composed of resources, skills and events and can model the robot as well as its environment
+and operator decisions. The strength of this formalization is that a code generating tool is provided,
+which will guarantee that the execution of the system will be as speciﬁed in the skillset.
+The present work was conducted with the objective of improving the current veriﬁcation capabilities
+of the skillset architecture by using a Petri net equivalent to the skillset model. The long-term objective is
+to offer an accessible model-checking tool for this architecture, to ensure that all people involved in the
+design of a robotic system can understand and contribute to the veriﬁcation process with their own tech-
+nical knowledge. Indeed, current autonomous systems are becoming more costly and multidisciplinary,
+while being used in remote and hazardous environments, where human assistance is nearly impossible.
+This requires scientiﬁc inputs during the design phase from researchers requesting valuable data, ﬁeld
+experts that will put physical limitations to the system, and technical operators that will design the robotic
+hardware and software. In order for all these participants to contribute, the veriﬁcation process must be
+simpliﬁed. For instance, formalisms such as Linear Temporal Logic (LTL) or Computation Tree Logic
+(CTL) have important capabilities to verify the behavior of a system, but demand a solid knowledge in
+the functioning of model-checking in order to use them properly.
+Various formal methods are used for the purpose of property veriﬁcation, and the present tool we
+present in this paper, SkiNet, uses Petri nets to translate the skillset model and perform model-checking
+indirectly. The end user never manipulates the Petri net nor the model-checking tools, as SkiNet performs
+all these steps in the background and only provides to the user the valuable informations for the skillset
+design process. This is especially useful as Petri nets modelling complex systems can become difﬁcult
+to read visually, and properties to check also become proportionally more complex.
+Thus, this paper presents SkiNet and the methods it uses. Section 2 will begin by looking at the
+related work tackling the veriﬁcation of high-level software architectures using formal methods. Then,
+section 3 will sum up the background, with the deﬁnitions of Petri nets and the skillset architecture.
+Section 4 will go over the content of the generated Petri net and the generation process. Section 5 will
+prove the correctness of the generated Petri net with regards to the state-machine behavior of skills and
+resources. Finally, section 6 will show a few examples of model-checking done on the generated Petri
+net to verify the behavior of the skillset model, before moving on to the conclusion in section 7. An
+illustrating example with the Boston Dynamics Spot®robot, shown in Fig. 1, with the spot skillset, in
+Fig. 2, used for generating the controller code. The SkiNet tool and instructions are available publicly for
+the readers to try it out themselves: https://gitlab.com/onera-robot-skills/skinet-release .
+2 Related works
+To facilitate the development of autonomous systems, skill-based architectures have been designed to
+decompose the system into elementary actions. An early take on the subject was done in [21], with many
+
+--- Page 3 ---
+122 SkiNet
+new concepts emerging with an increasing demand for autonomous systems from industries [30]. The
+main advantage of such architectures are their modularity, easy reconﬁguration and repurposability, as
+well as making robotic programming easier for end users. The skills are then composed to create more
+complex tasks to achieve speciﬁc goals or missions, while using feedback from sensors and actuators
+[30, 1, 36, 35, 18]. The mission design using skill-based architecture is often coupled with deliberative
+functions to create autonomous systems capable of adapting to their environment or faulty behaviors,
+often using model-based architectures [16, 29]. This is a growing need in domains such as underground,
+underwater [23, 31, 38] or space exploration [13, 14]. However, such functions imply a precise speciﬁ-
+cation of all possible faults that can arise, for instance by designing fault-trees [12], and implementing a
+proper risk-management architecture [24, 2].
+In order to prepare the autonomous system for high-risk missions and guarantee a-priori its robust-
+ness to the dynamic environment it will evolve in and to the faults that could arise, formal methods based
+on model-checking have been developed, sometimes at a very early development stage. Formal meth-
+ods are used to tackle the veriﬁcation of either the mission design or the entire robotic system. Ingrand
+[15] gathers the state of the art of V&V formal methods for autonomous systems. Albore [1] shows
+how missions can be designed through Behavior Trees, allowing for robust mission speciﬁcation and
+fault management, however such method restricts the veriﬁcation of the system to a speciﬁc mission.
+Evans [8] proposes a Model-Based Mission Assurance approach to improve the safety and robustness
+of a system in the early development stage, using Assurance models synthesis, implementing fault trees
+and Bayesian nets as inputs for SysML diagrams, opening interesting perspectives for the implementa-
+tion of fault management into software architecture. Nardone [27] proposes a methodology for the V&V
+of satellite operational mode management speciﬁcation, using mu-calculus logic. The method offers an
+interesting insight on the use of mu-calculus logic for V&V . Gross [11] also uses formal speciﬁcation for
+the early stages of spacecraft design and attitude control system and shows the cost-reducing capabilities
+of using model-checking in a large-scale project. Finally, Louis [20] designed a mission controller based
+on a Fault Management System for an underwater automated vehicle. This approach, while being very
+safe with regards to system integrity, also demands the inputs from experts to specify the fault model and
+calibrate the controller correctly.
+Petri nets [32, 26] are used in a wide range of applications such as robotics, industrial management
+or video-games [33], with a wide range of tools readily available to manipulate and verify Petri nets,
+such as the Tina toolbox (Time Petri net Analyzer) [4, 5], and thus indirectly verify the modeled system
+or mission [18, 7, 25]. Costelha [6, 7] uses Petri nets to model and verify robotic tasks. This early
+approach is very close to our goal here: a design-analysis-design approach that improves user experience
+when designing the robot model before using the real robot. However, the nets were manually built,
+while the present work is based on written speciﬁcation synthesis. Reza [34] uses both Petri nets and
+converted Fault trees into nets for veriﬁcation and safety analysis for systems based on Requirements
+State Machine Language (RSML). This approach is similar to the present work, with automatic synthesis
+of RSML into fault trees and Petri nets. A similar approach was proposed by Yan [37] for autonomous
+mission reliability modelling. Kwon [17] uses specialized colored Petri nets to model context-aware
+agent-based applications. The systems are decomposed into context-independent patterns, which is an
+approach also considered by Figat [9], with hierarchical Petri nets, where layered patterns are used to
+describe components of multi-agent robotic systems. These approach show how much complexity can
+be put into Petri nets to model a system, and how easily customizable they are to suit the modelling
+need of every user and/or system. Multiple agents missions veriﬁcation is also tackled by [28], and such
+approaches open future perspectives on the present work for the use of skill-architecture based Petri nets
+with multiple coordinating agents. Finally, Mahulea [22] proposes an automatic generation of Petri nets
+
+--- Page 4 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 123
+for boolean based robot planning, with generation and veriﬁcation processes also similar to the present
+work, but without the skill-based architecture context.
+Finally, controller synthesis using formal methods has been widely developed to close the gap be-
+tween a safe model and a controller code that respects this model, while relieving the programmers
+from writing their own middleware. Foughali proposes the use of GenoM3 [10], a framework to specify
+robotic systems in the form of component-based timed transition systems, from which controller synthe-
+sis can be performed using templates. GenoM3 uses a lower-level approach than the skillset architecture
+presented in this work, but raises critical points on the usability of controller synthesis frameworks with
+other existing V&V tools. Figat [9] suggests hierarchical Petri nets to decompose multi-agents systems
+into functional layers. This hierarchical perspective allows for the use of ready-to-use templates to model
+low-level components, so that the user can focus on modelling and verifying the higher-level architecture.
+Controller synthesis is also performed using this framework, however the Petri nets are hand-written and
+not synthesized from user-written speciﬁcation, which can make it difﬁcult for a non-experienced user to
+manipulate. Lesire [18] creates a Skills Colored Petri net controller and synthesizes it into a ROS node to
+manage the execution of the system. Unfortunately, the resources system was not yet developed, which
+limited mission complexity. On top of this, Colored Petri nets are a special formalization of Petri nets,
+which limits the available tools for veriﬁcation.
+The present work uses the same framework as [1], where skillset speciﬁcations are written by the
+user, and a skill-manager layer is synthesized into a ROS node to complement with pre-built system
+control functions. Our work here is to provide a veriﬁcation tool for this architecture, using Petri nets.
+The goal of the tool is to translate the user-written speciﬁcation of the skillset into a Petri net, by using
+the deﬁnition of skill-nets presented in [18], with the addition of the resources system and events. We
+also removed the colored net formalism to be able to use more veriﬁcation tools. Controller code can be
+generated from the skillset speciﬁcation, and our tool can be used for V&V purpose, during both design
+and deployment phase, thus fully covering the aforementioned problematics of system development.
+3 Background
+3.1 Petri net
+This section will sum up the deﬁnitions and notions of the generated Petri net, as deﬁned by [32, 26],
+with the addition of transition priority as presented by Balbo [3].
+Deﬁnition 3.1 (Petri net) .A Petri nethN;m0iis a tuple N= (P;T;F)and an initial marking m0, where:
+•PandTare two non-empty, disjoint and ﬁnite sets of places and transitions, respectively.
+•F(PT)[(TP)a set of directed arcs.
+•m02Mthe initial distribution of tokens, called the initial marking of the net, and M=fm0;m1;:::;mng
+the set of all possible markings of N.
+This deﬁnition is extended with N= (P;T;F;), whereis the priority relation, represented by directed
+arcs between transitions, with the source transition having a higher priority. This means that if two
+transitions t1;t22Tare enabled, i.e. their input places have at least one token, and t1t2, then only t1is
+ﬁrable.
+For any transition t2T, the sets of its input and output nodes aretandtrespectively. While
+arcs are usually weighted in conventional Petri nets, only unitary arcs will appear in this paper, with an
+explanation in section 4.
+
+--- Page 5 ---
+124 SkiNet
+Letp2Pandt2Tbe a place and a transition. The marking of a place pis noted m[p]. The ﬁring
+of an enabled transition t2T, with8p2t;m[p]1, leads to a new marking, or reachable state, m0.
+All the input places of tloose a token, i.e.8p2t;m0[p] =m[p] 1, and all the output places gain one
+token, i.e.8p2t;m0[p] =m[p]+1.
+3.2 Skillset architecture
+This section summarizes the elements of a Skillset used for the modelling and programming of au-
+tonomous systems, as deﬁned by Albore [1], with some elements omitted as they are not used in this
+paper. The Skillset can represent both hardware and software elements of the system, and their interac-
+tion/execution. A tool called "robot language" generates C++ code based on the skillset speciﬁcations
+that follows this execution, with part of the execution code to be ﬁlled by the user, such as skills func-
+tions, exit conditions, events triggering, etc. More information on the skillset execution semantic can
+be found in [1]. A skillset contains resources, resource guards and resource effects. These elements are
+assembled into skillset transitions, to create events and skills. We deﬁne all the elements of a skillset in
+the following section. An example skillset is given in 2, which was used for generating controller code
+for the Boston Dynamics Spot®robot, a quadruped robot capable of carrying heavy payload and per-
+form observation tasks, shown in Fig. 1. This example showcases the syntax of the skillset speciﬁcation
+language as it would be written by the user, which is signiﬁcantly simpler than the underlying formal
+deﬁnition, given in the following section.
+Figure 1: The Spot®quadruped robot, mounted with extra payload. The controller code was generated
+from a skillset which was veriﬁed a-priori with SkiNet. The skillset in Fig 2 is an extract of the actual
+running skillset, available at https://gitlab.com/onera-robot-skills/skinet-release .
+3.2.1 Resources
+Deﬁnition 3.2 (Resources) .Resources are state-machines that represent the status of an element of the
+system (sensor, motorization status, mutex...). A resource ris a tuple (Sr;Tr), with a set of states Sr=
+
+--- Page 6 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 125
+Figure 2: Extract of the spot skillset model for the Boston Dynamics Spot®robot. Resources model
+motor power state, lease mode and control mode mutex. Events are used to represent the actions of the
+operator on the robot. Skills the robot can perform are init_power andsafe_poweroff to start and cut
+motor power respectively, and a movement skill go_to .
+fSr
+0;:::;Sr
+n 1g, and a set of transitions between each state Tr(SrSr). A resource can only be in one
+of its states at any given time during the execution of a skillset, noted state(r)2Sr, with Sr
+0the initial
+state.
+The set of states that can lead to a state Sr
+iand the set of states that can originate from Sr
+iare noted
+Sr
+iandSr
+irespectively. The transition from Sr
+ito itself is a valid transition.
+Deﬁnition 3.3 (Resources effects and guards) .Resource effects aim to change the state of a speciﬁc
+resource. An effect eis a tuple (r;Sr
+i)of a resource and its next state. The origin state of the resource
+is not speciﬁed, as effects only mention the destination state. Effects can be empty and are only valid if
+
+--- Page 7 ---
+126 SkiNet
+they contain at most one effect for each resource.
+Resource guards are used to put conditions on the triggering of effects. A resource guard, or simply
+guard, is a logical formula f:fSr;r2Rg!f True ;Falsegon the states of the resources of R.
+3.2.2 Skillset transitions
+The skillset is then assembled by coupling guards and effects to create skillset transitions. Skillset
+transitions are used in events and skills, and represent the basis of the execution of the skillset. We
+also deﬁne solutions, the set of resource states that verify a resource guard.
+Deﬁnition 3.4 (Skillset transitions) .A skillset transition is a tuple t= (f;E;s), formed with a guard f,
+a set of effect E, and a state change s. A state change is a tuple s= (state 1;state 2)which changes the
+state of a skill, later deﬁned in Def 3.6. We note R(t)the resources involved in either forE. A skillset
+transition can be triggered if its guard is true. If triggered, its effects and state change are applied.
+Deﬁnition 3.5 (Solutions) .Xtis the set of all solutions of a skillset transition t. A solution is a set of
+resource states x=fxr2Sr;r2R(t)gassociated to a guard f, such that f(x) =True .xonly contains
+up to one state per resource. The solutions Xtcan be obtained with a boolean satisfaction problem solver
+(SAT solver).
+3.2.3 Skillset
+Deﬁnition 3.6 (Skillset) .A skillset is a tuple S= (R;V;S)with:
+•Ris a set of resources fr1;r2;:::g.
+•Vis a set of events. An event is a skillset transition tnwith state change s=?. Events represent
+actions from the exterior of the system, such as from the operator or the environment, on the
+resources of the skillset. They can have a guard or none.
+•Sis a set of skills, which are elementary actions that can be executed by the system. A skill s2S
+is a tuple s= (name ;pre;inv;state ;Ts), with:
+–An identiﬁer name .
+–Preconditions pre=fpre1;pre2;:::gare a set of guards that must be veriﬁed to start the skill.
+If they are not satisﬁed while attempting to start the skill, we may have failure effects ¯ prei
+triggered on each unsatisﬁed guard.
+–inv=finv1;inv2;:::gis a set of guards, called invariants, that must remain true during the
+skill execution. An invariant failure results in an immediate termination of the skill and in
+the application of the failure effects ¯invi.
+–A set of states state : idle es, running isor terminated xs;k, with the termination mode k2
+f¯pre;¯inv;succ;f ail;intg. This notation is adapted from the colored Petri net formalism used
+by Lesire et al. [18]. At the initial state of the skillset, all skills are idle.
+–A set of skillset transitions Ts=fts;start;ts;¯pre;i;ts;¯inv;i;ts;succ;ts;f ail;ts;intg, with:
+*Start ts;start=fpre;start;es!isg, with guards pre=pre1^pre2^:::, start effects start
+and state change es!is.ts;startis triggered when a skill is started and all preconditions
+preare veriﬁed. The start effects are then applied and the skill goes from idle esto
+running is.
+
+--- Page 8 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 127
+*Precondition failures ts;¯pre;i=f:prei;¯prei;es!xs;¯pre;igare triggered if the start of a
+skill is attempted but the precondition preiis not veriﬁed, i.e. resources states do not
+verify the resource guard.
+*Invariant failures ts;¯inv;i=f:invi;¯invi;is!xs;¯inv;igare triggered if the skill is running
+and the invariant inviis not veriﬁed.
+*Success ts;succ=finv;succ;is!xs;succg, failure ts;f ail=finv;f ail;is!xs;f ailgand in-
+terrupt ts;int=finv;int;is!xs;intg, are triggered when the invariants invare still veriﬁed
+and the skill execution ends with a success, failure or interrupt respectively.
+More detail on the skill execution state-machine can be found in [1]. Note that multiple successes
+and failures can be added, but only one interrupt is possible.
+Using the spot skillset example from Fig. 2, the execution of a skill is as follows: in order to perform
+thego_to skill, the preconditions canmove andispowered must be satisﬁed. In that case, starting the
+skill will trigger the start effects. Upon starting the skill, invariants satisfaction is checked. While the
+guards is_auto andis_powered are respected, the skill is running, until the skill ends, triggering the
+associated effects int,succ orf ail.
+4 SkiNet Architecture
+SkiNet was designed with the aim to translate the skillset of a robotic system into an equivalent Petri net
+that would reproduce its behavior, in order to perform model-checking using Petri net veriﬁcation tools,
+and verify the behavior of the skillset indirectly. A graphical representation of SkiNet in its context
+is available in Fig. 3. In this section, the translation process of a skillset S= (R;V;S)into a Petri
+netN= (P;T;F;)will be explained, while section 5 will prove the correctness of the translation, and
+section 6 will show the veriﬁcation capabilities of the tool using the generated Petri net.
+Skillset Translation Petri netTina
+SELT
+MUSEVeriﬁcationSkiNet
+Code generation tool System
+Figure 3: SkiNet is a tool used to generate a Petri net from a skillset, on which model-checking can be
+performed, using tools taken from Tina [4, 5]. SkiNet acts as a layer to avoid manipulating the tools
+directly. The veriﬁed skillset can then be used for controller code generation.
+In this work, we use the foundations of skill Petri nets presented by Lesire et al. [18]. However,
+the colored Petri net formalism used has been removed. While it allowed the net to be more expressive,
+colored Petri nets don’t have the same range of veriﬁcation tools as classical Petri nets, such as the Tina
+
+--- Page 9 ---
+128 SkiNet
+toolbox [5]. The expressivity lost doing so is not relevant here, thanks to SkiNet which extracts the useful
+informations from the generated Petri net without the need for the user to look at it. Moreover, colored
+Petri nets only make the nets more compact, but do not reduce the size of the marking space M, so the
+complexity is identical.
+4.1 Places of the generated Petri net
+The places of the generated Petri net are P=Pr[Ps, with:
+•Pr=fpr
+i;0ijSrj;r2Rgthe resource state places, with a place pr
+ifor each state Sr
+i2Srof
+each resource rof the skillset S.
+•Ps=fps
+e;ps
+i;ps
+x;k;k2f ¯pre;¯inv;succ;f ail;intg;s2SgforS2S, the places representing the skills
+execution state. This representation is inspired from the work of Lesire et al. [18] and deﬁned as
+follows:
+–ps
+eis the entry place. This place must be marked, i.e. m[ps
+e]1 for the skill sto start.
+–ps
+iis the intermediate place. The start of the execution of the skill sis represented by the start
+transition which will move the token from ps
+etops
+i.
+–ps
+x;kare the exit places. Upon skill termination, the token is moved from ps
+ito the place ps
+x;k
+of the corresponding termination mode k.
+4.2 Transitions of the generated Petri net
+For each skillset transition t= (f;E;s), a set of transitions Ttis generated in the Petri net N. For each
+solution x2Xtoff, a transition tx2Ttis generated, if and only if:
+• The input places of txare the resource state places in x: for each xr2x, we have pr
+ithe Petri net
+place of the resource state Sr
+i, and pr
+i2tx. Up to one resource state place pr
+iexists intxfor each
+resource, as only one state per resource exists in each solution x, cf Def. 3.5.
+• The output places of txare the destination states Sr
+iof the effects e2E: for Sr
+i2e;e2E, we note
+pr
+ithe Petri net place of Sr
+i, and pr
+i2t
+x. Because there is at most one effect efor each resource,cf
+Def. 3.3, then there is only at most one resource state place pr
+ifor each resource.
+• The input and outputs are extended with the states in s= (state 1;state 2). We note ps
+1andps
+2the
+skill state places of each state in s, and we have:8tx2Tt;ps
+12txandps
+22t
+x. Ifs=?, then no
+place is added to the inputs and outputs of tx.
+The generation of the transitions needs to be further complexiﬁed in order to overcome the limits of
+Petri nets. Indeed, there are cases of skillset transitions twhere a resource is evaluated by the guard f
+but not present in the effects E, and vice-versa. Therefore, we need to generate the transitions according
+to these issues:
+• If a resource is nominal , i.e. both guarded and affected in t, then nothing needs to be done on
+Tt. The generated transitions simply move the tokens between the states of the resource as already
+speciﬁed in t.
+• If a resource is unaffected , i.e. guarded but with no effects in t, then the corresponding state place
+pr
+x2txwould lose a token upon ﬁring tx, and this token would not be restituted. This would mean
+that the resource could be in an empty state, which is impossible. Therefore the token must be
+returned to the same state after ﬁring tx, i.e. t
+x t
+x+pr
+x.
+
+--- Page 10 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 129
+• If a resource is unguarded , i.e. affected but not guarded in t, then the corresponding destination
+state place pr
+y2txwould receive a token, without ﬁrst taking one from the state places of the
+resource. This would mean that the resource could be in two states at the same time, which is
+also impossible. Therefore, the token must be taken somewhere among the state places pr
+iof
+the resource. However, we cannot anticipate where the token is for a given marking, therefore
+all possible resource state changes must be computed, given the transition exists among the valid
+transitions of Trthat lead to Sr
+y, i.e.Sr
+y, cf Def. 3.2. We note Xrthe set of the state places pr
+i
+corresponding to the resource states inSr
+y, and we extend Xtas:Xt Xt[Xr.
+After building all the transitions, we haveS
+tTtthe set of all transitions as deﬁned previously. To
+this set, we add a reset transitions set Treset, to allow for the repeatability of skills, which moves the token
+from the exit places ps
+x;kto the entry place ps
+e, with one reset transition per exit place, i.e.:
+8s2S;9ts;reset ;k2Treset;ts;reset ;k=ps
+x;k (1)
+t
+s;reset ;k=ps
+e;k2f ¯pre;¯inv;succ;f ail;intg (2)
+The ﬁnal set of transitions in the generated Petri net is then T= (S
+tTt)[Treset.
+Finally, transitions of invariant failures T¯inv=STt;¯invhave a higher priority than all other transitions,
+i.e.:
+8t¯inv2T¯inv;8t2T T¯inv:t¯invt (3)
+This allows to respect the execution semantic of the skills, and forces a skill to terminate ﬁrst if its
+invariant is broken before ﬁring another transition, which could potentially "repair" the invariant.
+4.3 Examples with the spot skillset model
+Using the skillset model of Spot®shown in Fig 2, the generation process of two transitions, tgo_to;start
+andtgo_to;sucess ;is_arrived of the skill go_to , will be presented, and the results shown in Fig. 4.
+• Start transition :
+tgo_to;start=ff=f(lease_status ==AutoMode^control_mode ==Idle)
+^power_status ==PowerOng;
+E=fcontrol_mode >Busyg;
+s= (ego_to;igo_to)g(4)
+The guard fof this transition is the product of the preconditions canmove andispowered , while
+the effects set Econtains the start effect. The set of solutions that satisﬁes fcontains only one
+element:
+Xt=f(AutoMode ;Idle;PowerOn )g (5)
+The resource states in xwill be used to build the input places of the start transition. Because
+power_status andlease_status are unaffected, the places PowerOn andAutoMode are both
+inputs and outputs, in order to restitute the tokens. The resource control_mode is nominal as it
+is both guarded and affected. The transition also moves the token of the skill state places from the
+idle place pgo_to
+e to the running place pgo_to
+i. In conclusion, only one transition is generated, shown
+in Fig. 4:
+Ttgo_to;start=ft_start_go_tog (6)
+
+--- Page 11 ---
+130 SkiNet
+• Success transition :
+tgo_to;success _is_arrived =ff=flease_status ==AutoMode^power_status ==PowerOng;
+E=fcontrol_mode >Idleg;
+s= (igo_to;xgo_to;success ;is_arrived )g
+(7)
+The guard fis the product of the invariants, here is_auto andis_powered , and the effects set E
+contains the success effect. The set of solutions that satisﬁes fagain contains only one element:
+Xt=f(AutoMode ;PowerOn )g (8)
+The resource lease_mode is again unaffected, so the state that solves f,AutoMode , is both input
+and output of the transitions. control_mode is unguarded this time, so two transitions are needed
+in order to account for all possible states of the resource that can lead to Idle, which are Idle
+andBusy . So one transition moves will move the token from Idle toIdle, and the other from
+Idle toBusy . Finally, the token of the skill state places is moved from pgo_to
+i to the exit place
+pgo_to
+x;success ;is_arrived. The generated transition are then, as shown in Fig. 4:
+Ttgo_to;success _is_arrived=ft_go_to_success_is_arrived_0 ;
+t_go_to_success_is_arrived_1 g(9)
+PowerOn AutoMode Idle Busye_go_to i_go_to
+x_go_to_success_is_arrivedt_go_to_start
+t_go_to_success_is_arrived_0t_go_to_success_is_arrived_1
+Figure 4: Start and success transitions of the skill go_to as generated by SkiNet. e_go_to ,i_go_to
+andx_go_to_success_is_arrived are the internal places of the skill, representing the Idle, Running
+and Ended states respectively. PowerOn ,AutoMode ,Idle andBusy are the places representing the states
+of the resources used with the skill.
+4.4 Initial Marking
+The initial marking of the net follows the initial state of the skillset. Resources are in their initial state,
+so only this place has a token, i.e:
+r2R;pr
+0=1;pr
+i6=0=0 (10)
+Skills are all idle at the initial state, so we have:
+s2S;ps
+e=1;ps
+i=0;8k;ps
+x;k=0 (11)
+
+--- Page 12 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 131
+Because resources and skills states do not stack, i.e. a resource/skill cannot be twice in the same state
+at the same time, only one token must be present in a place for any marking. This is called 1-safeness:
+8m2M;8p2P:m[p]2f0;1g (12)
+5 Approach Validation
+In this section, the validation of the translation process presented in section 4 will be conducted, using
+mathematical induction, to prove that the generated Petri net satisﬁes the state-machine properties of
+resources and skills. First, the two properties to verify will be presented, and their validity at the initial
+marking will be proven. Then, the induction for any marking will be developed, before concluding on
+the validity of the properties.
+5.1 Place invariants of state-machines
+The resources places and skills state places must share only one token at all time. It is critical that the
+generated transitions will satisfy the two following properties:
+Proposition 1 (Invariants) .For any marking of the net, i.e. 8mn2Mthe following equations are satisﬁed:
+8r2R;å
+Sr
+i2Srmn[pr
+i] =1 (13)
+8s2S;mn[ps
+e]+mn[ps
+i]+å
+kmn[ps
+x;k] =1 (14)
+By extension of this deﬁnition, because the set of places Pof the generated Petri net is only composed
+of the resources and skills places, the safeness of the net, Eq. (12), is proven if Eq. (13) and (14) are
+satisﬁed:
+Lemma 1 (Safeness) .If Eq. (13) and(14) are satisﬁed, then the Petri net is 1-safe, i.e.:
+8m2M;8p2P;m[p]1 (15)
+Let us begin the proof with the initial state.
+Proof by induction - Initial state. Atn=0,8r2R, the state-machine of ris in the initial state state(r) =
+Sr
+0, the initial marking of the net is m0[pr
+0] =1, and m0[pr
+i6=0] =0. This gives åSr
+i2Srm0[pr
+i] =1 and satisﬁes
+equation (13) for any r2R.
+Additionally,8s2S, all skills are in the idle state es, therefore m0[ps
+e] =1,m0[ps
+i] =0 andåkm0[ps
+x;k] =
+0. This gives m0[ps
+e]+m0[ps
+i]+åkm0[ps
+x;k] =1 and satisﬁes equation (14) for any s2S.
+Therefore, the proposition is true for the initial marking m0.
+Now, let us assume that, for a marking mn, properties 1 and 2 are true. mn+1is the state that follows
+the ﬁring of any enabled transition t2T= (S
+tTt)[Treset. First, the reset transitions will be studied,
+then the event and skill transitions.
+
+--- Page 13 ---
+132 SkiNet
+5.2 Reset transitions
+Let us prove that for any ﬁring of a reset transition, the properties (13) and (14) are still valid in the
+resulting marking.
+Proof by induction - Reset transitions. Ifts;reset ;k2Treset, a reset transition, is ﬁred, then it will simply
+transfer the token from one of the termination state place ps
+x;ktops
+e, i.e.ts;reset ;k=fps
+x;kgandt
+s;reset ;k=
+fps
+eg. Because equation (14) is true for mn, we have:
+mn[ps
+x;k] =1;mn[ps
+x;k06=k] =0;mn[ps
+e] =0;mn[ps
+i] =0 (16)
+Therefore, ﬁring twill yield:
+mn+1[ps
+e] =1;mn+1[ps
+x;k] =0;mn+1[ps
+x;k06=k] =0;mn+1[ps
+i] =0 (17)
+This holds Eq. (14), and because no resource is involved in the ﬁring of ts;reset ;k, then we are sure that Eq.
+(13), which is true at mn, will be true at mn+1. We conclude that reset transitions hold both propositions
+as true when ﬁred.
+5.3 Event and Skill transitions
+Now, let us prove that for any ﬁring of an event or skill transition, the properties (13) and (14) are valid
+in the resulting marking.
+Proof by induction - Event and Skill transitions. Iftx2Ttis a transition generated from a skillset transi-
+tiont= (f;E;s), then we have:
+•tx=fps
+1;pr
+n;:::gthe input places composed of the state place ps
+1and a unique resource state place
+pr
+n, corresponding to state(r)at the marking mn, for each resource r2R(t).
+•t
+x=fps
+2;pr
+n+1;:::gthe output places composed of the state place ps
+2and a unique resource state
+place pr
+n+1at the marking mn+1for each r2R(t).
+Because Eq. (13) is true, for any r2R(t), a single token is present in rat the state place pr
+nat the
+marking mn, and the ﬁring of txtransfers the token to the state place pr
+n+1at the following marking mn+1,
+i.e.:
+8r2R(t);mn[pr
+n] =1;mn[pr
+i6=n] =0 (18)
+And ﬁring tleads to:
+8r2R(t);mn+1[pr
+n+1] =1;mn+1[pr
+n] =0;mn+1[pr
+j] =0;j62fn;n+1g (19)
+Giving:8r2R;åSr
+i2Srmn+1[pr
+i] =1, so equation (13) is satisﬁed.
+N.B.: it is possible that the input state and destination places pr
+nandpr
+n+1are the same, since Sr
+i2
+Sr
+i;8Sr
+i2Sr, as deﬁned in Def. 3.2. In that case, the ﬁring of twill take the token from pr
+nand restitute
+it, so if Eq. (13) was true at mn, then it will be true at mn+1.
+For Eq. (14) , because ttransfers the token from ps
+1tops
+2, for any skill s2S, and because Eq. (14)
+is true at mn, then we can directly conclude that Eq. (14) will hold upon the ﬁring of tas both xsandys
+only contain one place among the internal places of s. Additionally, since s=?for events, then no skill
+state place is involved in the ﬁring of tx, therefore Eq. (14) is automatically veriﬁed at mn+1.
+Therefore, both properties (13) and (14) hold upon the ﬁring of any t2Tt. Finally, because the set of
+all transitions of the generated Petri net Tis the union of the set of reset transitions Tresetand the events
+and skills transitionsS
+tTt, then all transitions of Twill hold the proposition.
+
+--- Page 14 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 133
+5.4 Conclusion
+Having proven that properties 1 and 2 are true at the initial marking m0of the generated Petri net, and
+that for any mn2M, the ﬁring of any transition t2Tholds the properties from mntomn+1the marking
+reached by ﬁring t, we can conclude that, for any marking m, the proposition is true.
+This means that our generated Petri net respects the state-machine properties of resources and skills
+internal places, and that its behavior reﬂects correctly the behavior of the skillset as it would run on the
+autonomous system it models. We can now use the generated Petri net to do a priori veriﬁcation by
+using Petri net analysis tools available in the litterature.
+6 Model Veriﬁcation
+Now that the net generation aspect of SkiNet has been presented and validated, the possible model-
+checking thanks to the net will be presented in this section. SkiNet offers a simple interface to execute
+all or part of the following veriﬁcation steps, without the need for the users to use the model-checking
+tools directly. However, it will still display the formulas used, for transparency, but also to guide the
+users if they wish to check their own properties with the same model-checking tools. The corresponding
+SkiNet veriﬁcation name for each step is indicated in the subsection name, between quotation marks, and
+is tested on the spot skillset in Fig. 2. For reference, the computation time of the Petri net generation
+and its veriﬁcation take less than a minute. Adding more resources and skills increases the calculation
+time, but so far no tested skillset was found to exceed a few minutes for the whole process. For ﬂexibility
+purpose, options were added to remove events or exit places (tokens are directly moved to the entry place
+of skills upon ﬁring an exit transition, and reset transitions are removed), to increase model-checking
+capabilities, computational time and overall scalability.
+6.1 Kripke Structure of the skillset net
+In order to perform model-checking using the tools Selt (LTL) and Muse (mu-calculus, CTL) of the Tina
+toolbox, we ﬁrst need to convert the generated Petri net into a Kripke structure, on which temporal logic
+operations can be performed. Liu [19] summarizes the Kripke structure deﬁnition, generated, and later
+used as input, by the Tina toolbox. More informations and instructions can be found on the Tina toolbox
+website [5].
+6.2 Petri net Deadlocks - "dead"
+Deadlocks are markings where no transition is ﬁreable. In this context, it means that no actions from
+skills or events can be done, and no reset transition is available. This can happen purposefully, for
+instance if a resource represents the battery state of the robot, and upon entering a critical state, all skills
+and events are blocked and nothing can happen anymore. However, it can also be the result of an error
+in the speciﬁcations of the skillset, so it’s important to know what sequence of transitions led to the
+dead marking. In the tool Selt, the predicate dead has already been implemented to check if a state is a
+deadlock, therefore the LTL formula is to check for deadlocks in the net is "we never have a deadlock".
+Using the temporal operator "A" (Always):
+A:dead (20)
+
+--- Page 15 ---
+134 SkiNet
+The program will either return True if no path leads to a deadlock, False if there is one, with a counter-
+example showing a sequence of transitions leading to the dead state. In the example skillset spot from
+Fig. 2, no deadlock was found, as the events can be ﬁred inﬁnitely, so there is always an event transition
+enabled.
+6.3 Petri net Liveness - "live"
+The non-dead transitions are searched. If a transition is never ﬁreable, it is considered dead. Dead tran-
+sitions appear almost in every case of net generation, and are due to the transition generation algorithm
+presented in section 4.2, which can ﬁnd solutions that will never happen.
+For the generated Petri net, a transition is not dead if it can be ﬁred at least once, which can be
+checked with the formula:
+8t2T:A:t (21)
+If the formula is true, then the transition is dead. SkiNet will return the list of all dead transitions when
+running the "live" option. Looking at the spot skillset and the example success transition in Fig. 4,
+t_go_to_success_is_arrived_1 was found to be a dead transition. This is because the resource
+control_mode is never in the state Idle during the execution of the skill go_to_body . This veriﬁcation
+step can become quite time consuming for Petri nets with a large amount of markings, but the spot
+example is ran in only a few seconds as it is very simple.
+6.4 Skillset Invariants veriﬁcation - "safe"
+In section 5, it was veriﬁed that the transitions generated respect the resources and skills places invariants,
+i.e. only one token exist at any marking in the same resource/skill places. In order to verify Eq. (13) and
+(14) using LTL, the following formula can be used for resources, which veriﬁes that the sum of tokens
+among the places of the resource is always one:
+8r2R:A(å
+Sr
+i2Srpr
+i=1) (22)
+And for skills:
+8s2S:A(ps
+e+ps
+i+å
+kps
+x;k) =1) (23)
+Finally, the safeness of the net presented in Eq. (12) can also be checked using LTL, i.e. no place has
+more than one token for any marking:
+8p2P:A:(p>=2) (24)
+These three LTL formulas were mostly used during the development of SkiNet to verify that the code
+would generate a proper net as deﬁned in section 4 and 5.
+6.5 Skills and Skillset deadlocks - "deadskill" and "deadset"
+A property speciﬁc to the skillset architecture that can be veriﬁed is whether a skill, two concurring skills,
+or all the skills, are always alive or not. In other terms: is there a conﬁguration in the skillset that can
+render a skill forever unusable. Here, LTL cannot be used, as these properties need to be checked for all
+paths, from any state. Therefore, mu-calculus and CTL are used with the Kripke structure, through the
+Muse tool of Tina.
+
+--- Page 16 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 135
+The CTL property to check whether a skill is always eventually activatable is "For all paths globally,
+there is some path where ﬁnally ps
+i".
+AGEF ps
+i;s2S (25)
+This property either returns all the states if it is true, and none if there exist a single state where it is false.
+But because it returns no state, it does not provide sufﬁcient feedback for the user. Therefore, in order to
+know the speciﬁc transition sequences leading to a state that would make the skill forever unactivatable,
+the property "For all paths ﬁnally, there are no paths where ﬁnally ps
+i" is used, so that the Muse tool
+returns exploitable counter-examples:
+:AFEF ps
+i;s2S (26)
+The states returned are then stored and the transition paths leading to these states can be obtained using
+the Pathto tool of Tina and the Kripke structure. For now, only the ﬁrst of these states is returned by
+SkiNet. If the list of states is empty, then the skill can always be activated. It is possible to check for all
+skills at once with the property:
+:AFEF (å
+s2Sps
+i) (27)
+In our example spot , an error was found in the skillset using these properties. SkiNet pointed out
+that, when executing the go_to skill, the failure of invariants is_auto andis_powered would block all
+the other skills from executing as the resource control_mode would not go back to the Idle state upon
+exiting go_to , thus blocking the precondition canmove of the skills. This was ﬁxed by adding a failure
+effect control_mode -> Idle to the invariants (not shown in the Fig. 2).
+7 Conclusion
+The work presented in this paper aim to propose a method to verify the behavior of a software control ar-
+chitecture for critical autonomous systems. A tool was developed, called SkiNet, which generates a Petri
+net that models the behavior of the system as speciﬁed in the skillset model. Using the generated Petri
+net, SkiNet allows the users to check their skillset model by using model-checking. Basic properties such
+as Petri net deadlocks or transition liveness can be checked, as well as more skillset-speciﬁc properties
+such as skill liveness/deadlocks. Because the skillset-architecture upon which this work is based on is
+also a work-in-progress, future works will focus on proving the equivalence between the skillset semantic
+during runtime and the generated Petri net semantic, once the former is well established. Additionally,
+with always the same focus of making formal veriﬁcation accessible to all actors of a robotic project,
+regardless of their background, two extensions of SkiNet are under progres. SkiNet Mission will allow
+users to create and verify the feasability of their missions, using Petri nets and model-checking, and Sk-
+iNet Live will offer users a view of the transition ﬁring in the Petri net, synchronized with the skillset as it
+runs on the robotic system, for runtime analysis. The checking of properties during runtime is also being
+considered for the latter. Among the difﬁculties encountered, the complexity of the state space analysis
+of the generated Petri net is the biggest issue, as the addition of resources and skills to a skillset make
+the Kripke structure grow exponentially, thus increasing model-checking complexity. This is especially
+difﬁcult to handle when in the iterative phase of the model deﬁnition. Petri net reduction algorithms may
+be considered as future work if this issue remains or makes the tool inoperable in a realistic development
+process of an autonomous system.
+
+--- Page 17 ---
+136 SkiNet
+References
+[1] Alexandre Albore, David Doose, Christophe Grand, Charles Lesire & Augustin Manecy (2021): Skill-
+Based Architecture Development for Online Mission Reconﬁguration and Failure Management . In: 2021
+IEEE/ACM 3rd International Workshop on Robotics Software Engineering (RoSE) , IEEE, pp. 47–54,
+doi:10.1109/RoSE52553.2021.00015.
+[2] Benjamin J. Ayton, Marlyse Reeves, Eric Timmons, Brian C. Williams & Michel D. Ingham (2020): Toward
+Information-Driven and Risk-Bounded Autonomy for Adaptive Science and Exploration . American Institute
+of Aeronautics and Astronautics, doi:10.2514/6.2020-4149.
+[3] Gianfranco Balbo (2001): Introduction to Stochastic Petri Nets , pp. 84–155. Springer Berlin Heidelberg,
+Berlin, Heidelberg, doi:10.1007/3-540-44667-2_3.
+[4] B. Berthomieu, P.-O. Ribet & F. Vernadat (2004): The tool TINA – Construction of abstract state spaces
+for petri nets and time petri nets .International Journal of Production Research 42, pp. 2741–2756,
+doi:10.1080/00207540412331312688.
+[5] Bernard Berthomieu, François Vernadat & Silvano dal Zilio (2004): The TINA toolbox Home Page - Time
+Petri Net Analyzer - by LAAS/CNRS . Available at https://projects.laas.fr/tina/home.php .
+[6] Hugo Costelha & Pedro Lima (2007): Modelling, analysis and execution of robotic tasks using petri nets .
+In:2007 IEEE/RSJ International Conference on Intelligent Robots and Systems , IEEE, pp. 1449–1454,
+doi:10.1109/IROS.2007.4399365.
+[7] Hugo Costelha & Pedro Lima (2012): Robot task plan representation by Petri nets: modelling, identiﬁcation,
+analysis and execution .Autonomous Robots 33, pp. 337–360, doi:10.1007/s10514-012-9288-x.
+[8] John W. Evans, Frank J. Groen, Lui Wang, Rebekah Austin, Arthur Witulski, Steven L. Cornford, Martin
+Feather & Nancy Lindsey (2017): Towards a Framework for Reliability and Safety Analysis of Complex Space
+Missions . In: 19th AIAA Non-Deterministic Approaches Conference , American Institute of Aeronautics and
+Astronautics, p. 1099, doi:10.2514/6.2017-1099.
+[9] Maksym Figat & Cezary Zieli ´nski (2022): Parameterised robotic system meta-model expressed by Hierar-
+chical Petri nets .Robotics and Autonomous Systems 150, p. 103987, doi:10.1016/j.robot.2021.103987.
+[10] Mohammed Foughali, Silvano Dal Zilio & Félix Ingrand (2019): On the Semantics of the GenoM3 Frame-
+work . Available at https://hal.laas.fr/hal-01992470 .
+[11] Kerianne H. Gross (2017): Formal speciﬁcation and analysis approaches for spacecraft attitude control
+requirements . In: 2017 IEEE Aerospace Conference , IEEE, pp. 1–11, doi:10.1109/AERO.2017.7943573.
+[12] Adrien Hereau, Karen Godary-Dejean, Jeremie Guiochet & Didier Crestani (2021): A Fault Toler-
+ant Control Architecture Based on Fault Trees for an Underwater Robot Executing Transect Missions .
+In:2021 IEEE International Conference on Robotics and Automation (ICRA) , IEEE, pp. 2127–2133,
+doi:10.1109/ICRA48506.2021.9561735.
+[13] Michel Ingham, Robert Ragno & Brian Williams (2001): A Reactive Model-based Programming Lan-
+guage for Robotic Space Explorers .Proceedings of ISAIRAS-01 . Available at http://www.ai.mit.edu/
+projects/ddamba/publications/RMPL.pdf .
+[14] Michel D. Ingham, Robert D. Rasmussen, Matthew B. Bennett & Alex C. Moncada (2006): Generating
+requirements for complex embedded systems using State Analysis .Acta Astronautica 58, pp. 648–661,
+doi:10.1016/j.actaastro.2006.01.005.
+[15] Felix Ingrand (2019): Recent Trends in Formal Validation and Veriﬁcation of Autonomous Robots Soft-
+ware . In: 2019 Third IEEE International Conference on Robotic Computing (IRC) , IEEE, pp. 321–328,
+doi:10.1109/IRC.2019.00059.
+[16] Félix Ingrand & Malik Ghallab (2017): Deliberation for autonomous robots: A survey .Artiﬁcial Intelligence
+247, pp. 10–44, doi:10.1016/j.artint.2014.11.003.
+[17] Oh Byung Kwon (2004): Modeling and generating context-aware agent-based applications with amended
+colored Petri nets .Expert Systems with Applications 27, pp. 609–621, doi:10.1016/j.eswa.2004.06.008.
+
+--- Page 18 ---
+B. Pelletier, C. Lesire, D. Doose, K. Godary-Dejean & C. Dramé-Maigné 137
+[18] Charles Lesire & Franck Pommereau (2018): ASPiC: An Acting System Based on Skill Petri Net Composition .
+In:2018 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , IEEE, pp. 6952–
+6958, doi:10.1109/IROS.2018.8594328.
+[19] Zhifeng Liu & Zhihu Xing (2012): Characterizing Petri Nets with the Temporal Logic CTL . In: Proceedings
+of 2012 National Conference on Information Technology and Computer Science , Atlantis Press, pp. 372–375,
+doi:10.2991/citcs.2012.97.
+[20] Silvain Louis, Karen Godary-Dejean, Lionel Lapierre, Thomas Claverie & Sébastien Villéger (2017): Formal
+Method for Mission Controller Generation of a Mobile Robot , doi:10.1007/978-3-319-64107-2_48.
+[21] T. Lozano-Perez (1983): Robot programming . Proceedings of the IEEE 71, pp. 821–841,
+doi:10.1109/PROC.1983.12681.
+[22] Cristian Mahulea & Marius Kloetzer (2018): Robot Planning Based on Boolean Speciﬁcations Using Petri
+Net Models .IEEE Transactions on Automatic Control 63, pp. 2218–2225, doi:10.1109/TAC.2017.2760249.
+[23] Conor Mcgann, Frederic Py, Kanna Rajan, Hans Thomas, Richard Henthorn & Rob Mcewen (2008): T-REX:
+A Model-Based Architecture for AUV Control .3rd Workshop on Planning and Plan Execution for Real-
+World Systems . Available at https://www.researchgate.net/publication/242657580_T-REX_A_
+model-based_architecture_for_AUV_control .
+[24] Catharine L. R. McGhan, Richard M. Murray, Romain Serra, Michel D. Ingham, Masahiro Ono, Tara Estlin
+& Brian C. Williams (2015): A risk-aware architecture for resilient spacecraft operations . In: 2015 IEEE
+Aerospace Conference , IEEE, pp. 1–15, doi:10.1109/AERO.2015.7119035.
+[25] I. Mura & A. Bondavalli (2001): Markov regenerative stochastic petri nets to model and evalu-
+ate phased mission systems dependability .IEEE Transactions on Computers 50, pp. 1337–1351,
+doi:10.1109/TC.2001.970572.
+[26] T. Murata (1989): Petri nets: Properties, analysis and applications .Proceedings of the IEEE 77, pp. 541–
+580, doi:10.1109/5.24143.
+[27] Vittoria Nardone, Antonella Santone, Massimo Tipaldi, Davide Liuzza & Luigi Glielmo (2019): Model
+Checking Techniques Applied to Satellite Operational Mode Management .IEEE Systems Journal 13, pp.
+1018–1029, doi:10.1109/JSYST.2018.2793665.
+[28] Narcis Palomeras, Pere Ridao, Carlos Silvestre & Andres El-fakdi (2010): Multiple vehicles mission coor-
+dination using Petri nets . In: 2010 IEEE International Conference on Robotics and Automation , IEEE, pp.
+3531–3536, doi:10.1109/ROBOT.2010.5509552.
+[29] Sunandita Patra, James Mason, Malik Ghallab, Dana Nau & Paolo Traverso (2021): Deliberative act-
+ing, planning and learning with hierarchical operational models .Artiﬁcial Intelligence 299, p. 103523,
+doi:10.1016/j.artint.2021.103523.
+[30] Mikkel Rath Pedersen, Lazaros Nalpantidis, Rasmus Skovgaard Andersen, Casper Schou, Simon Bøgh,
+V olker Krüger & Ole Madsen (2016): Robot skills for manufacturing: From concept to industrial deployment .
+Robotics and Computer-Integrated Manufacturing 37, pp. 282–291, doi:10.1016/j.rcim.2015.04.002.
+[31] Enrique Fernández Perdomo, Jorge Cabrera Gámez, Antonio Carlos Domínguez Brito & Daniel Hernández
+Sosa (2010): Mission speciﬁcation in underwater robotics .Journal of Physical Agents (JoPha) 4, pp. 25–33,
+doi:10.14198/JoPha.2010.4.1.05.
+[32] James L. Peterson (1977): Petri Nets . ACM Computing Surveys 9, pp. 223–252,
+doi:10.1145/356698.356702.
+[33] Christian Reuter, Stefan Göbel & Ralf Steinmetz (2015): Detecting structural errors in scene-based Mul-
+tiplayer Games using automatically generated Petri Nets .Foundations of Digital Games, Paciﬁc Grove,
+USA .
+[34] Hassan Reza, Malvika Pimple, Varun Krishna & Jared Hildle (2009): A Safety Analysis Method Using Fault
+Tree Analysis and Petri Nets . In: 2009 Sixth International Conference on Information Technology: New
+Generations , IEEE, pp. 1089–1094, doi:10.1109/ITNG.2009.183.
+
+--- Page 19 ---
+138 SkiNet
+[35] Casper Schou, Rasmus Skovgaard Andersen, Dimitrios Chrysostomou, Simon Bøgh & Ole Madsen (2018):
+Skill-based instruction of collaborative robots in industrial settings .Robotics and Computer-Integrated Man-
+ufacturing 53, pp. 72–80, doi:10.1016/j.rcim.2018.03.008.
+[36] Franz Steinmetz & Roman Weitschat (2016): Skill parametrization approaches and skill architecture for
+human-robot interaction . In: 2016 IEEE International Conference on Automation Science and Engineering
+(CASE) , IEEE, pp. 280–285, doi:10.1109/COASE.2016.7743419.
+[37] Rundong Yan, Lisa M. Jackson & Sarah J. Dunnett (2017): Automated guided vehicle mission reliability
+modelling using a combined fault tree and Petri net approach .The International Journal of Advanced Man-
+ufacturing Technology 92, pp. 1825–1837, doi:10.1007/s00170-017-0175-7.
+[38] Enrica Zereik, Marco Bibuli, Nikola Miškovi ´c, Pere Ridao & António Pascoal (2018): Challenges and future
+trends in marine robotics .Annual Reviews in Control 46, pp. 350–368, doi:10.1016/j.arcontrol.2018.10.002.

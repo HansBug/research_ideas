@@ -1,0 +1,821 @@
+--- Page 1 ---
+eprints@whiterose.ac.uk
+https://eprints.whiterose.ac.uk
+Universities of Leeds, Sheffield and York
+Deposited via The University of York.
+White Rose Research Online URL for this paper:
+https://eprints.whiterose.ac.uk/id/eprint/134450/
+Version: Accepted Version
+Proceedings Paper:
+Foster, Simon David, Baxter, James Edward, Cavalcanti, Ana L ucia Caneca et al. (2018) 
+Automating Verification of State Machines with Reactive De signs and Isabelle/UTP. In: 
+Ölveczky, Peter Csaba and Bae, Kyungmin, (eds.) 15th Internati onal Conference on 
+Formal Aspects of Component Software. Lecture Notes in Compu ter Science (including 
+subseries Lecture Notes in Artificial Intelligence and Lecture  Notes in Bioinformatics). 
+Springer, pp. 137-155.
+https://doi.org/10.1007/978-3-030-02146-7_7
+Reuse 
+Items deposited in White Rose Research Online are protect ed by copyright, with all rights reserved unless 
+indicated otherwise. They may be downloaded and/or prin ted for private study, or other acts as permitted by 
+national copyright laws. The publisher or other rights h olders may allow further reproduction and re-use of 
+the full text version. This is indicated by the licence info rmation on the White Rose Research Online record 
+for the item. 
+Takedown 
+If you consider content in White Rose Research Online to b e in breach of UK law, please notify us by 
+emailing eprints@whiterose.ac.uk including the URL of th e record and the reason for the withdrawal request. 
+
+--- Page 2 ---
+Automating Veriﬁcation of State Machines
+with Reactive Designs and Isabelle/UTP
+Simon FosterORCiD, James Baxter, Ana Cavalcanti,
+Alvaro Miyazawa, and Jim Woodcock
+University of York
+Abstract. State-machine based notations are ubiquitous in the descrip-
+tion of component systems, particularly in the robotic domain. To ensure
+these systems are safe and predictable, formal veriﬁcation techniques are
+important, and can be cost-eﬀective if they are both automated and scal-
+able. In this paper, we present a veriﬁcation approach for a diagrammatic
+state machine language that utilises theorem proving and a denotational
+semantics based on Unifying Theories of Programming (UTP). We pro-
+vide the necessary theory to underpin state machines (including induc-
+tion theorems for iterative processes), mechanise an action language for
+states and transitions, and use these to formalise the semantics. We then
+describe the veriﬁcation approach, which supports inﬁnite state systems,
+and exemplify it with a fully automated deadlock-freedom check. The
+work has been mechanised in our proof tool, Isabelle/UTP, and so also
+illustrates the use of UTP to build practical veriﬁcation tools.
+1 Introduction
+The recent drive for adoption of autonomous robots into situations where they
+interact closely with humans means that such systems have become safety crit-
+ical. To ensure that they are both predictable and safe within their applied
+context, it is important to adequately prototype them in a variety of scenarios.
+Whilst physical prototyping is valuable, there is a limit to the breadth of sce-
+narios that can be considered. Thus, techniques that allow virtual prototyping,
+based on mathematically principled models, can greatly enhance the engineer-
+ing process. In particular, formal veriﬁcation techniques like model checking and
+theorem proving can enable exhaustive coverage of the state space.
+Diagrammatic notations are widely applied in component modelling, and par-
+ticularly the modelling of robotic controllers via state machines. Standards like
+UML1and SysML2provide languages for description of component interfaces,
+the system architecture, and the behaviour of individual components. These no-
+tations have proved popular due to a combination of accessibility and precise
+modelling techniques. In order to leverage formal veriﬁcation in this context,
+there is a need for formal semantics and automated tools. Since UML is highly
+1Uniﬁed Modelling Language. http://www.uml.org/
+2Systems Modelling Language. http://www.omgsysml.org/
+
+--- Page 3 ---
+2 Simon Foster et al.
+extensible, a speciﬁc challenge is to provide scalable semantic models that sup-
+port extensions like real-time, hybrid computation, and probability.
+RoboChart [ 1,2] is a diagrammatic language for the description of robotic
+controllers with a formal semantics based on Hoare and He’s Unifying Theories
+of Programming [3] (UTP). The core of RoboChart is a formalised state machine
+notation that can be considered a subset of UML/SysML state machine diagrams
+enriched with time and probability constructs. Each state machine has a well
+deﬁned interface describing the events that are externally visible. The behaviour
+of states and transitions is described using a formal action language that corre-
+sponds to a subset of the Circus modelling language [ 4]. The notation supports
+real-time constraints, through delays, timeouts and deadlines, and also proba-
+bilistic choices, to express uncertainty. The use of UTP, crucially, enables us to
+provide various semantic models for state machines that account for diﬀerent
+computational paradigms, and yet are linked through a common foundation.
+In previous work [ 1], model checking facilities for RoboChart have been devel-
+oped and applied in veriﬁcation. This provides a valuable automated technique
+for model development, which allows detection of problems during the early de-
+velopment stages. However, explicit state model checking is limited to checking
+ﬁnite state models. In practice this means that data types must be abstracted
+with a small number of elements. In order to exhaustively check the potentially
+very large or inﬁnite state space of many robotic applications, symbolic tech-
+niques, like theorem proving, are required. For theorem proving to be practically
+applicable, like model checking, automation is highly desirable.
+In this paper we present an automated veriﬁcation technique for a subset of
+RoboChart state machines in Isabelle/HOL [ 5]. With it, state machines can be
+veriﬁed against properties formalised in a reﬁnement statement, such as dead-
+lock freedom. We mechanise the state machine meta-model, including its data
+types, well-formedness constraints, and validation support. We use a UTP theory
+of reactive designs [ 6,7] to provide a dynamic semantics, based guarded itera-
+tion [ 8]. We also engineer automated proof support in our UTP implementation,
+Isabelle/UTP [ 9]. The semantics can, therefore, be used to perform veriﬁcation
+of inﬁnite-state systems by theorem proving, with the help of a veriﬁed induction
+theorem, and Isabelle/HOL’s automated proof facilities [ 10]. Our denotational
+approach, like UML, is extensible, and further mechanised UTP theories can
+account for real-time [ 11], probability [ 12], and other paradigms [ 13]. Our work
+also serves as a template for building veriﬁcation tools with Isabelle/UTP.
+In §2we outline background material for our work. In § 3we begin our con-
+tributions by extending reactive designs with guarded iteration and an induc-
+tion theorem for proving invariants. In § 4we mechanise reactive programs in
+Isabelle/UTP, based on the reactive-design theory, and provide symbolic eval-
+uation theorems. In § 5we mechanise a static semantics of state machines. In
+§6we provide the dynamic semantics, utilising the result from § 3, and prove a
+specialised induction law. In § 7we outline our veriﬁcation technique, show how
+to automatically prove deadlock freedom for an example state machine. Finally,
+in §8we conclude and highlight related work.
+
+--- Page 4 ---
+Automating Veriﬁcation of State Machines 3
+2 Preliminaries
+2.1 RoboChart
+RoboChart [ 1] describes robotic systems in terms of a number of controllers that
+communicate using shared channels. Each controller has a well deﬁned interface,
+and its behaviour is described by one or more state machines. A machine has
+local state variables and constants, and consists of nodes and transitions, with
+behaviour speciﬁed using a formal action language [ 4]. Advanced features such as
+hierarchy, shared variables, real-time constraints, and probability are supported.
+A machine, GasAnalysis , is shown in Figure 1; we use it as a running example.
+It models a component of a chemical detector robot [ 14] that searches for dan-
+gerous chemicals using its spectrometer device, and drops ﬂags at such locations.
+GasAnalysis is the component that decides how to respond to a sensor reading. If
+gas is detected, then an analysis is performed to see whether the gas is above or
+below a given threshold. If it is below, then the robot attempts to triangulate a
+position for the source location and turns toward it, and if it is above, it stops.
+Fig. 1. GasAnalysis state machine in RoboChart
+The interface consists of four events. The event gasis used to receive sensor
+readings, and turn is used to communicate a change of direction. The remaining
+events,resume andstop carry no data, and are used to communicate that the
+robot should resume its searching activities, or stop. The state machine uses
+four state variables: ststo store the gas analysis status, gsto store the present
+reading, insto store the reading intensity, and anlto store the angle the robot
+is pointing. It also has a constant thrfor the gas intensity threshold. RoboChart
+
+--- Page 5 ---
+4 Simon Foster et al.
+provides basic types for variables and constants, including integers, real numbers,
+sets, and sequences ( Seq(t) ). The user can also deﬁne additional types, that can
+be records, enumerations, or entirely abstract. For example, the type Status is
+an enumerated type with constructors gasD andnoGas .
+The behaviour is described by 6 nodes, including an initial node ( i); a ﬁnal
+node ( F); and four states: NoGas ,Analysis ,GasDetected , and Reading . The tran-
+sitions are decorated with expressions of the form trigger [condition ]/statement .
+When the event trigger happens and the guard condition is true, then statement
+is executed, before transitioning to the next state. All three parts can option-
+ally be omitted. RoboChart also permits states to have entry, during, and exit
+actions. In our example, both Analysis andGasDetected have entry actions.
+The syntax of actions is given below, which assumes a context where event
+and state variable identiﬁers have been speciﬁed using the nonterminal ID.
+Deﬁnition 2.1 (Action Language Syntax).
+Action := Event | skip | ID := Expr | Action ; Action |
+ifExpr then Action elseAction end
+Event := ID | ID ?ID | ID !Expr
+An action is either an event, a skip, an assignment, a sequential composition,
+or a conditional. An event is either a simple synchronisation on some identiﬁed
+evente, an input communication ( e?x) that populates a variable x, or an output
+event (e!v). We omit actions related to time and operations for now.
+Modelling with RoboChart is supported by the Eclipse-based RoboTool3,
+from which Figure 1was captured. RoboTool automates veriﬁcation via model
+checking using FDR4, and its extension to incorporate the veriﬁcation approach
+presented here is ongoing work.
+2.2 Unifying Theories of Programming
+UTP [ 3,15] is a framework for the formalisation of computational semantic do-
+mains that are used to give denotational semantics to a variety of programming
+and modelling languages. It employs alphabetised binary relations to model pro-
+grams as predicates relating the initial values of variables ( x) to their later values
+(x′). UTP divides variables into two classes: (1) program variables, that model
+data, and (2) observational variables, that encode additional semantic structure.
+For example, clock:Nis a variable to record the passage of time. Unlike a pro-
+gram variable, it makes no sense to assign values to clock , as this would model
+arbitrary time travel. Therefore, observational variables are constrained using
+healthiness conditions, which are encoded as idempotent functions on predi-
+cates. For example, application of HT(P)/defines(P∧clock≤clock′)results in a
+healthy predicate that speciﬁes there is no reverse time travel.
+The observational variables and healthiness conditions give rise to a subset
+of the alphabetised relations called a UTP theory , which can be used to justify
+3https://www.cs.york.ac.uk/circus/RoboCalc/robotool/
+
+--- Page 6 ---
+Automating Veriﬁcation of State Machines 5
+the fundamental theorems of a computational paradigm. A UTP theory is the
+set of ﬁxed points of the healthiness condition: /llbracketH/rrbracket/defines{P|H(P) =P}. A set
+of signature operators can then be deﬁned, under which the theory’s healthiness
+conditions are closed, and are thus guaranteed to construct programs that satisfy
+these theorems. UTP theories allow us to model a variety of paradigms beyond
+simple imperative programs, such as concurrency [ 3,4], real-time [ 11], object
+orientation [ 16], hybrid [ 13,17], and probabilistic systems [ 12].
+The use of relational calculus means that the UTP lends itself to automated
+program veriﬁcation using reﬁnement S⊑P: program Psatisﬁes speciﬁcation
+S. Since both SandPare speciﬁed in formal logic, and reﬁnement equates to
+reverse implication, we can utilise interactive and automated theorem proving
+technology for veriﬁcation. This allows application of tools like Isabelle/HOL to
+program veriﬁcation, which is the goal of our tool, Isabelle/UTP [ 9].
+2.3 Isabelle/HOL and Isabelle/UTP
+Isabelle/HOL [ 5] consists of the Pure meta-logic, and the HOL object logic. Pure
+provides a term language, polymorphic type system, syntax translation frame-
+work for extensible parsing and pretty printing, and an inference engine. The
+jEdit-based IDE allows L ATEX-like term rendering using Unicode. An Isabelle
+theory consists of type declarations, deﬁnitions, and theorems, which are usu-
+ally proved by composition of existing theorems. Theorems have the form of
+/llbracketP1;···;Pn/rrbracket=⇒Q, wherePiis an assumption, and Qis the conclusion. The
+simpliﬁer tactic, simp, rewrites terms using theorems of the form f(x1···xn)≡y.
+HOL implements an ML-like functional programming language founded on
+an axiomatic set theory similar to ZFC. HOL is purely deﬁnitional: mathematical
+libraries are constructed purely by application of the foundational axioms, which
+provides a highly principled framework. HOL provides inductive datatypes, re-
+cursive functions, and records. Several basic types are provided, including sets,
+functions, numbers, and lists. Parametric types are written by precomposing the
+type name, τ, with the type variables [a1,···,an]τ, for example [nat]list4.
+Isabelle/UTP [ 9,18] is a semantic embedding of UTP into HOL, including
+a formalisation of the relational calculus, fundamental laws, proof tactics, and
+facilities for UTP theory engineering. The relational calculus is constructed such
+that properties can be recast as HOL predicates, and then automated tactics,
+such as auto, and sledgehammer [10], can be applied. This strategy is employed by
+our workhorse tactic, rel-auto , which automates proof of relational conjectures.
+Proof automation is facilitated by encoding variables as lenses [ 9]. A lens
+x::τ=⇒αcharacterises a τ-shaped region of the type αusing two functions:
+getx::α→τandputx::α→τ→α, that query and update the region, respec-
+tively. Intuitively, xis a variable of type τwithin the alphabet type α. Alphabet
+types can be encoded using the alphabet r=f1::τ1···fn::τncommand, that
+constructs a new record type rwithnﬁelds, and a lens for each ﬁeld. Lenses
+4The square brackets are not used in Isabelle; we add them for readability.
+
+--- Page 7 ---
+6 Simon Foster et al.
+can be independent, meaning they cover disjoint regions, written x⊲⊳y, or con-
+tained within another, written x/precedeseq⊓aly. These allow us to express meta-logical
+style properties without actually needing a meta-logic [ 9].
+The core UTP types include predicates [α]upred , and (homogeneous) rela-
+tions[α]hrel. Operators are denoted using lenses and lifted HOL functions. An
+important operator is substitution, σ†P, which applies a state update function
+σ::α→αto an expression, and replaces variables in a similar way to syn-
+tactic substitution. Substitutions can be built using lens updates σ(x/maps⊔o→v), for
+x::τ=⇒αandv:: [τ,α]uexpr , and we use the notation /llparenthesisx1/maps⊔o→v1,···,xn/maps⊔o→vn/rrparenthesis
+for a substitution in nvariables. Substitution theorems can be applied with the
+simpliﬁer to perform symbolic evaluation of an expression.
+All the theorems and results that we present in this paper have been mechan-
+ically validated in Isabelle/UTP, and the proofs can be found in our repository5.
+2.4 Stateful-Failure Reactive Designs
+RoboChart is a reactive language, where controllers exchange events with one
+another and the robotic platform or the environment. Reactive programs can
+make decisions both internally, based on the evaluation of their own state, and
+externally, by oﬀering several events. Consequently, they pause at particular
+quiescent points during execution, when awaiting a communication. Unlike se-
+quential programs, they need not terminate but may run indeﬁnitely.
+The UTP theory of stateful-failure reactive designs [ 7,19] exists to give de-
+notational semantics to reactive programming languages, such as CSP [ 3],Cir-
+cus[4], and rCOS [ 20]. It is a relational version of the stable failures-divergences
+semantic model, as originally deﬁned in the UTP book [ 3,15] using event traces
+and refusal sets, but extended with state variables. Its healthiness condition,
+NCSP , which we previously mechanised [ 7], characterises relations that extend
+the trace, update variables, and refuse certain events in quiescent phases. The
+signature includes unbounded nondeterministic choice (/bigsqcap
+i∈IP(i)), conditional
+(P/leftsliceb/rightsliceQ), and sequential composition ( P/fatsemiQ)./llbracketNCSP /rrbracketforms a complete
+lattice under ⊑, with top element miracle and bottom chaos , and also a Kleene
+algebra [ 7], which allows reasoning about iterative reactive programs.
+The signature also contains several specialised operators. Event action, do(e),
+describes the execution of an event expression e, that ranges over state variables.
+When activated, it waits for eto occur, and then it terminates. Generalised
+assignment ( /a\}bracke⊔le{⊔σ/a\}bracke⊔ri}h⊔a) uses a substitution σto update the state, following Back [ 21].
+Basic assignment can be deﬁned as (x:=v)/defines/a\}bracke⊔le{⊔/llparenthesisx/maps⊔o→v/rrparenthesis/a\}bracke⊔ri}h⊔a, and a unit as
+skip/defines/a\}bracke⊔le{⊔id/a\}bracke⊔ri}h⊔a. External choice, ✷i∈A•P(i)indexed by set A, as in CSP,
+permits one of the branches to resolve either by an event, or by termination. A
+binary choice P✷Qis denoted by ✷X∈ {P,Q} •X. A guard, b&P, executes
+Pwhenbis true, and is otherwise equivalent to stop, the deadlocked action.
+These operators obey several algebraic laws [ 7]; a small selection is below.
+5https://github.com/isabelle-utp/utp-main/tree/master/robochart/untimed
+
+--- Page 8 ---
+Automating Veriﬁcation of State Machines 7
+Theorem 2.2. IfPisNCSP -healthy, then the following identities hold:
+miracle /fatsemiP=miracle (1)
+/a\}bracke⊔le{⊔σ/a\}bracke⊔ri}h⊔a/fatsemiP=σ†P (2)
+(do(a)✷do(b))/fatsemiP=do(a)/fatsemiP✷do(b)/fatsemiP (3)
+(1) states that miracle is a left annihilator for sequential composition. ( 2) allows
+us to push an assignment into a successor program by inserting a substitution.
+(3) allows us to left distribute through an external choice of events.
+Our theory supports speciﬁcations using reactive contracts: [P−|Q|R]. It con-
+sists of three relations over the state variables, trace variable ( tt), and refusal
+set variable ( ref).Pcharacterises assumptions of the initial state and trace, Q
+characterises quiescent behaviours, and Rcharacterises terminating behaviours.
+Our previous result [ 7] shows that any reactive program can be denoted using
+a reactive contract, which can be calculated by equational laws. This enables a
+veriﬁcation strategy that checks reﬁnements between a speciﬁcation and imple-
+mentation contract, and has been implemented in a tactic called rdes-reﬁne [6],
+that can be used to check for deadlock [ 7], and which we employ in this paper.
+3 Foundations for State Diagrams
+In this section we extend the theory of reactive designs with constructs necessary
+to denote state machines, and prove several theorems, notably an induction
+law for iterative programs. Although these programming constructs are rather
+standard, we consider their semantics in the reactive programming paradigm,
+rather than in the standard sequential programming setting. It is a pleasing
+aspect of our approach that standard laws hold in this much richer context.
+State machines describe how to transition from one node to another. The
+main construct we use to denote them is a reactive version of Dijkstra’s guarded
+iteration statement [ 8]doi∈I•b(i)/rightarrowtriangleP(i)od, which repeatedly selects an
+indexed statement P(i), based on whether its respective guard b(i)is true.I
+is an index set, which when ﬁnite gives rise to the more programmatic form of
+dob1/rightarrowtriangleP1| ··· |bn/rightarrowtrianglePnod. We begin by deﬁning Dijkstra’s alternation
+construct, ifi∈I•b(i)/rightarrowtriangleP(i)ﬁ[8], which underlies iteration.
+Deﬁnition 3.1 (Guarded Commands, Assumptions, and Alternation).
+b/rightarrowtriangleP/definesP/leftsliceb/rightslicemiracle
+[b]/definesb/rightarrowtriangleskip
+ifi∈I•b(i)/rightarrowtriangleP(i)ﬁ/defines/parenleftbig/bigsqcap
+i∈Ib(i)/rightarrowtriangleP(i)/parenrightbig
+⊓/parenleftbig/parenleftbig
+¬/logicalortext
+i∈Ib(i)/parenrightbig
+/rightarrowtrianglechaos/parenrightbig
+b/rightarrowtrianglePis a “naked” guarded command [ 22]. Its behaviour is Pwhenbis true,
+and miraculous otherwise, meaning it is impossible to execute. By Theorem 2.2,
+miracle is a left annihilator for sequential composition, and so any following
+behaviour is excluded when bis false. An assumption [b]guards skip withb,
+
+--- Page 9 ---
+8 Simon Foster et al.
+and thus holds all variables constant when bis true, and is otherwise miraculous.
+/llbracketNCSP /rrbracketis closed under both these operators since they are deﬁned only in terms
+of healthy elements /leftslice·/rightslice,miracle , and skip.
+Alternation is a nondeterministic choice of guarded commands. When b(i)is
+true fori∈I,P(i)can be executed. Any command which has b(i)false evaluates
+tomiracle and thus is eliminated. If no b(i)is true, then its behaviour is chaos . If
+multiple b(i)are true then one of the corresponding P(i)is nondeterministically
+selected. /llbracketNCSP /rrbracketis closed under alternation since it comprises only healthy
+elements. From this deﬁnition we can prove a number of characteristic laws.
+Theorem 3.2. If,∀i•P(i)isNCSP , then the following identities hold:
+ifi∈ ∅ •b(i)/rightarrowtriangleP(i)ﬁ=chaos (1)
+ifi∈ {k} •b(i)/rightarrowtriangleP(i)ﬁ=P(k)/leftsliceb(k)/rightslicechaos (2)
+/bracketleftbig/logicalortext
+i∈Ib(i)/bracketrightbig
+/fatsemiifi∈I•b(i)/rightarrowtriangleP(i)ﬁ=/parenleftbig/bigsqcap
+i∈Ib(i)/rightarrowtriangleP(i)/parenrightbig
+(3)
+In words, ( 1) shows that alternation over an empty set presents no options, and
+so is equivalent to chaos ; (2) shows that a singleton alternation can be rewritten
+as a binary conditional; ( 3) shows that, if we assume that one of its branches is
+true, then an alternation degenerates to a nondeterministic choice.
+We now deﬁne guarded iteration as the iteration of the corresponding alter-
+nation whilst at least one of the guards remains true.
+Deﬁnition 3.3 (Guarded Iteration).
+doi∈I•b(i)/rightarrowtriangleP(i)od/defines/parenleftbig/logicalortext
+i∈Ib(i)/parenrightbig
+⊛(ifi∈I•b(i)/rightarrowtriangleP(i)ﬁ)
+We use the reactive while loop ( b⊛P) to encode the operator, and can thus
+utilise our previous results [ 7] to reason about it. In keeping with the reactive
+programming paradigm, this while loop can pause during execution to await
+interaction, and it also need not terminate. However, in order to ensure that the
+underlying ﬁxed point can be calculated, we assume that for all i∈I,P(i)is
+productive [ 17]: that is, it produces at least one event whenever it terminates.
+This ensures that divergence caused by an inﬁnite loop is avoided. Iteration is
+closed under /llbracketNCSP /rrbracket, since the while loop and alternation both are.
+We can now prove the following fundamental reﬁnement law for iteration.
+Theorem 3.4 (Iteration Induction). If,∀i•P(i)isNCSP , then:
+∀i∈A•P(i)is Productive S⊑I/fatsemi[/logicalandtext
+i∈A(¬b(i))]
+∀i∈A•S⊑I/fatsemi[b(i)]/fatsemiP(i)∀i∈A•S⊑S/fatsemi[b(i)]/fatsemiP(i)
+S⊑I/fatsemidoi∈A•b(i)/rightarrowtriangleP(i)od
+The law states the provisos under which an iteration, with initialiser I, preserves
+invariant S. These are: (1) every branch is productive; (2) if Icauses the iteration
+to exit immediately then Sis satisﬁed; (3) for any i∈AifIholds initially, b(i)
+is true, and P(i)executes, then Sis satisﬁed (base case); and (4) for any i∈A
+ifb(i)is true, and P(i)executes, then Sis satisﬁed (inductive case). This law
+forms the basis for our veriﬁcation strategy.
+
+--- Page 10 ---
+Automating Veriﬁcation of State Machines 9
+4 Mechanised Reactive Programs
+In this section we turn our reactive design theory into an Isabelle/HOL type,
+so that we can use the type system to ensure well-formedness of reactive pro-
+grams, which supports our veriﬁcation strategy. The type allows eﬃcient proof
+and use of the simpliﬁer to perform rewriting and also symbolic evaluation so
+that assignments can be pushed forward and substitutions applied. We use it
+to encode both state machine actions in § 5, and the dynamic semantics in § 6.
+We ﬁrst describe a general result for mechanising programs, apply it to reactive
+programs, and also introduce a novel operator to express frame extension.
+In UTP, all programs are uniﬁed by encoding them in the alphabetised rela-
+tional calculus. Programs in diﬀerent languages of various paradigms therefore
+have a common mathematical form, and can be both compared and semantically
+integrated. This idea is retained in Isabelle/UTP by having all programs occupy
+the type [α]hrel, with a suitably specialised alphabet type α[18].
+In Isabelle/UTP, we characterise a theory by (1) an alphabet type T, which
+may be parametric; and (2) a healthiness function, H:: [T]hrel→[T]hrel. The
+theory signature consists of operators with the form fi:: ([T]hrel)k→[T]hrel,
+each of which is accompanied by a proven closure theorem
+f-H-closed :/llbracketP1isH;···;PkisH/rrbracket=⇒f(P1,···,Pk)isH
+which ensures that the operator constructs healthy elements, provided its pa-
+rameters are all healthy. For example, the reactive design theory has a theorem
+/llbracketPisNCSP;QisNCSP /rrbracket=⇒(P/fatsemiQ)isNCSP , which demonstrates that se-
+quential composition is in the signature. Theories also typically have algebraic
+laws, like those in Theorem 2.2, which can be applied to reasoning about pro-
+grams and thence to produce veriﬁcation tools [ 6,7].
+This approach has several advantages for theory engineering [ 3,15]. There is a
+uniﬁed notion of reﬁnement that can be applied across semantic domains. Oper-
+ators like nondeterminsitic choice ( ⊓) and sequential composition ( /fatsemi) can occupy
+several theories, which facilitates generality and semantic integration. General
+algebraic laws can be proved, and then directly reused in more specialised UTP
+theories. The UTP approach means that theories can be both combined and
+extended for a wide variety of computational paradigms and languages.
+However, there is a practical downside, which is that the programming the-
+orems, such as those in Theorem 2.2, require healthiness of the constituent pa-
+rameters, and therefore it is necessary to ﬁrst invoke the closure theorems. In
+the context of veriﬁcation, constantly proving closure can be very ineﬃcient,
+particularly for larger programs. This is because Isabelle’s simpliﬁer works best
+when invoked with pure equations f(x1,···,xn)≡ywith minimal provisos.
+Our solution uses the Isabelle type system to shoulder the burden of closure
+proof. We use the typedef mechanism, which creates a new type Tfrom a
+non-empty subset A::P(U)of existing type U. For a UTP theory, we create
+a type with A=/llbracketH/rrbracket, which is a subset of the UTP relations. This then allows
+optimised proof for a particular UTP theory, but at the cost of generality and
+semantic extensibility which are more suited to the UTP relational domain.
+
+--- Page 11 ---
+10 Simon Foster et al.
+In order to obtain the signature for the new type, we utilise the lifting pack-
+age [ 23], whose objective is to deﬁne operators on Tin terms of operators on
+U, provided that Ais closed under each operator. Speciﬁcally, if fis a signature
+operator in karguments, then we can create a lifted operator /hatwidef::Tk→T
+using Isabelle’s lift-deﬁnition command [ 23]. This raises a proof obligation that
+f∈/llbracketH/rrbracketk→/llbracketH/rrbracket, which can be discharged by the corresponding closure theorem.
+Programs constructed from the lifted operators are well-formed by construction.
+Finally, to lift the algebraic theorems for each lifted operator /hatwidef, we use
+thetransfer tactic [ 23]. It allows us to prove theorems like /hatwidef(P1,···,Pk) =
+/hatwideg(P1,···,Pk), wherePi::Tis a free variable, by converting it to a theorem
+of the form /llbracketQ1isH;···;QkisH/rrbracket=⇒f(Q1,···,Qk) =g(Q1,···,Qk). This
+means the closure properties of each parameter Qican be utilised in disharging
+provisos of the corresponding UTP theorems, but the lifted theorems do not
+require them. We will now use this technique for our reactive program type.
+The reactive designs alphabet is [s,e]st-csp , for state space sand event type e.
+NCSP [7], of type [[s,e]st-csp]hrel→[[s,e]st-csp]hrel, characterises the theory.
+We use it to deﬁne the reactive program type, [s,e]Action and lift each theory
+operator from § 2and § 3. For example, guard is a function (b&P) :: [s,e]Action ,
+forb:: [s]upred andP:: [s,e]Action . For the action language, we deﬁne basic
+eventse/definesdo(e), sende!v/definesdo(e.v), and receive e?x/defines✷v•do(e.v)/fatsemix:=
+v. From these lifted deﬁnitions, and using the transfer tactic, all the laws in
+Theorems 2.2and3.4can be recast for the new operators, but without closure
+conditions. We then prove substitution laws for σ†P, whereσ::s→sand
+P:: [s,e]Action , which can be used for symbolic evaluation.
+Theorem 4.1 (Symbolic Evaluation Laws).
+σ†[b] =[σ†b]/fatsemi/a\}bracke⊔le{⊔σ/a\}bracke⊔ri}h⊔a
+σ†(P/fatsemiQ) =(σ†P)/fatsemiQ
+σ†/a\}bracke⊔le{⊔ρ/a\}bracke⊔ri}h⊔a=/a\}bracke⊔le{⊔ρ◦σ/a\}bracke⊔ri}h⊔aσ†(P✷Q) =(σ†P)✷(σ†Q)
+σ†(b&P) =(σ†b) & (σ†P)
+σ†e!v=e!(σ†v)/fatsemi/a\}bracke⊔le{⊔σ/a\}bracke⊔ri}h⊔a
+These laws show how substitution applies and distributes through the operators.
+In combination with the assignment law of Theorem 2.2(2), they can be used to
+apply state updates. For example, one can automatically prove that
+(x:= 2/fatsemiy:= (3∗x)/fatsemie!(x+y)) = (e!8/fatsemi/a\}bracke⊔le{⊔x/maps⊔o→2,y/maps⊔o→6/a\}bracke⊔ri}h⊔a)
+since we can combine the assignments and push them through the send event.
+To denote state machines, we need a special variable ( actv) to record the cur-
+rently active node. This is semantic machinery, and no action is permitted access
+to it. We impose this constraint via frame extension: a:[P]+:: [s1,e]Action , for
+a::s2=⇒s1andP:: [s2,e]Action , that extends the alphabet of P. It is similar
+to a frame in reﬁnement calculus [ 22], which prevents modiﬁcation of variables,
+but also uses the type system to statically prevent access to them. Lens aiden-
+tiﬁes a subregion αof the larger alphabet β, thatPacts upon. Intuitively, αis
+the set of state machine variables, and βthis set extended with actv.Pcan only
+modify variables within α, and others are held constant. We prove laws for this
+operator, which are also be used in calculating the semantics.
+
+--- Page 12 ---
+Automating Veriﬁcation of State Machines 11
+Theorem 4.2 (Frame Extension Laws).
+a:[P/fatsemiQ]+=a:[P]+/fatsemia:[Q]+a:[e?x]+=e?(a:x)a:[x:=v]+=a:x:=v
+Frame extension distributes through sequential composition. For operators like
+event receive and assignment, the variable is extended by the lens a, which is like
+a namespace operator ( a:x). Speciﬁcally, it manipulates the region characterised
+byxwithin the region of a. This completes the mechanised reactive language.
+5 Static Semantics
+In this section we formalise a state machine meta-model in Isabelle/HOL, which
+describes the variables, transitions, and nodes. The meta-model, presented be-
+low, is based on the untimed subset of RoboChart, but note that our use
+of UTP ensures that our work is extensible to more advanced semantic do-
+mains [ 11,12,17]. For now we omit constructs concerned with interfaces, op-
+erations, shared variables, during actions, and hierarchy, and focus on basic
+machines.
+Deﬁnition 5.1 (State Machine Meta-Model).
+StMach := statemachine ID
+vars NameDecl* events NameDecl* states NodeDecl*
+initial IDﬁnals ID*transitions TransDecl*
+NameDecl := ID [ :Type]
+NodeDecl := ID entry Action exitAction
+TransDecl := ID from IDtoIDtrigger Event condition Expr action Action
+A state machine is composed of an identiﬁer, variable declarations, event decla-
+rations, state declarations, an initial state identiﬁer, ﬁnal state identiﬁers, and
+transition declarations. Each variable and event consists of a name and a type. A
+state declaration consists of an identiﬁer, entry action, and exit action. A transi-
+tion declaration consists of an identiﬁer, two state identiﬁers for the source and
+target nodes, a trigger event, a condition, and a body action. Whilst we do not
+directly consider hierarchy, this can be treated by ﬂattening out substates.
+We implement the meta-model syntax using Isabelle’s parser, and implement
+record types [s,e]Node and[s,e]Transition , that correspond to the NodeDecl and
+TransDecl syntactic categories. They are both parametric over the state-space
+sand event types e.Node has ﬁelds nname::string ,nentry:: [s,e]Action , and
+nexit:: [s,e]Action , that contain the name, entry action, and exit action. Tran-
+sition has ﬁelds src::string ,tgt::string ,trig:: [s,e]Action ,cond:: [s]upred , and
+act:: [s,e]Action , that contain the source and target, the trigger, the condition,
+and the body. We then create a record type to represent the state machine.
+Deﬁnition 5.2 (State Machine Record Type).
+record[s,e]StMach =init::ID ﬁnals :: [ID]list
+nodes:: [[s,e]Node]list transs :: [[s,e]Transition ]list
+
+--- Page 13 ---
+12 Simon Foster et al.
+It declares four ﬁelds for the initial state identiﬁer ( init), ﬁnal states identiﬁers
+(ﬁnals ), nodes deﬁnitions ( nodes ), and transition deﬁnitions ( transs ), and con-
+stitutes the static semantics. Since this corresponds to the meta-model, and to
+ensure a direct correspondence with the parser, we do not directly use sets and
+maps, but only lists in our structure. We will later derive views onto the data
+structure above, that build on well-formedness constraints.
+Below, we show how syntactic machines are translated to Isabelle deﬁnitions.
+Deﬁnition 5.3 (Static Semantics Translation).
+statemachine s
+varsx1:τv
+1···xi:τv
+i
+eventse1:τe
+1···ej:τe
+j
+statess1···skinitialini
+ﬁnalsf1···fm
+transitions t1···tn=⇒alphabet s-alpha=x1:τv
+1···xi:τv
+i
+datatype s-ev=ǫ|e1te
+1| ··· |ejte
+j
+deﬁnition machine :: [s-alpha,s-ev]StMach
+wheremachine =/llparenthesisinit=ini,
+ﬁnals= [f1···fm],
+states= [s1···sk],
+transs= [t1···tn]/rrparenthesis
+deﬁnition semantics =/llbracketmachine /rrbracketM
+For each machine, a new alphabet is created, which gives rise to a HOL record
+type s-alpha , and lenses for each ﬁeld of the form tv
+i=⇒s-alph . For the events,
+an algebraic datatype s-ev is created with constructors corresponding to each
+of them. We create a distinguished event ǫthat will be used in transitions with
+explicit trigger and ensures productivity. The overall machine static semantics is
+then contained in machine . We also deﬁne semantics that contains the dynamic
+semantics in terms of the semantic function /llbracket·/rrbracketMthat we describe in § 6.
+Elements of the meta-model are potentially not well-formed, for example
+specifying an initial state without a corresponding state declaration, and there-
+fore it is necessary to formalise well-formedness. RoboTool enforces a number of
+well-formedness constraints [ 2], and we here formalise the subset needed to en-
+sure the dynamic semantics given in § 6can be generated. We need some derived
+functions for this, and so we deﬁne nnames /definesset(mapnname (nodes)), which
+calculates the set of node names, and fnames , which calculates the set of ﬁnal
+node names. We can now specify our well-formedness constraints.
+Deﬁnition 5.4. A state machine is well-formed if it satisﬁes these constraints:
+1.Each node identiﬁer is distinct: distinct(mapnname (nodes))
+2.The initial identiﬁer is deﬁned: init∈nnames
+3.The initial identiﬁer is not ﬁnal: init/∈fnames
+4.Every transition’s source node is deﬁned and non-ﬁnal:
+∀t∈transs•src(t)∈nnames\fnames
+5.Every transition’s target node is deﬁned: ∀t∈transs•tgt(t)∈nnames
+We have implemented them in Isabelle/HOL, along with a proof tactic called
+check-machine that discharges them automatically when a generated static se-
+mantics is well-formed, and ensure that crucial theorems are available to the dy-
+namic semantics. In practice, any machine accepted by RoboTool is well-formed,
+and so this tactic simply provides a proof of that fact to Isabelle/HOL.
+
+--- Page 14 ---
+Automating Veriﬁcation of State Machines 13
+Fig. 2. State machine notation in Isabelle/UTP
+In a well-formed machine every node has a unique identiﬁer. Therefore, using
+Deﬁnition 5.4, we construct two ﬁnite partial functions, nmap::ID/maps⊔o/maps⊔o →[s,e]Node
+andtmap::ID/maps⊔o/maps⊔o →[s,e]Transition list, that obtain the node deﬁnition and list
+of transitions associated with a particular node identiﬁer, respectively, whose
+domains are both equal to nnames . We also deﬁne ninit/definesnmap init, to be the
+deﬁnition of the initial node, and inters to be the set of nodes that are not ﬁnal.
+Using well-formedness we can then prove the following theorems.
+Theorem 5.5 (Well-formedness Properties).
+1.All nodes are identiﬁed: ∀n∈set(nodes)•nmap(nname(n)) =n
+2.The initial node is deﬁned: ninit∈set(nodes)
+3.The name of the initial node is correct: nname(ninit) =init
+These theorems allow us to extract the unique node for each identiﬁer, and in
+particular for the initial node. Thus, Isabelle/HOL can parse a state machine
+deﬁnition, construct a static semantics for it, and ensure that this semantics is
+both well-typed and well-formed. The resulting Isabelle command is illustrated
+in Figure 2that encodes the GasAnalysis state machine of Figure 1.
+6 Dynamic Semantics
+In this section we describe the behaviour of a state machine using the reactive
+program domain we mechanised in § 4. The RoboChart reference semantics [ 2]
+represents a state machine as a parallel composition of CSP processes that repre-
+sent the individual variables and states. Variable access and state orchestration
+are modelled by communications between them. Here, we capture a simpler se-
+quentialised semantics using guarded iteration, which eases veriﬁcation. In par-
+ticular, state variables have a direct semantics, and require no communication.
+The relation between these two semantics can be formalised by an automated
+reﬁnement strategy that reduces parallel to sequential composition [ 4].
+We ﬁrst deﬁne alphabet type [s]rcst, parametrised by the state space type
+s, and consisting of lenses actv::ID=⇒[s]rcst andr::s=⇒[s]rcst. The
+
+--- Page 15 ---
+14 Simon Foster et al.
+former lens records the currently active state, and the latter projects the state
+machine variable space. No action is permitted to refer to actv, a constraint that
+we impose through the frame extension r:[P]+.
+We describe the dynamic semantics of a state diagram using three functions.
+Deﬁnition 6.1 (Dynamic Semantics).
+/llbracketM/rrbracketM/defines/parenleftbiggactv:=initM/fatsemi
+doN∈set(intersM)•actv=nname(N)/rightarrowtriangleM|=/llbracketN/rrbracketNod/parenrightbigg
+M|=/llbracketN/rrbracketN/definesr:[nentry(N)]+/fatsemi/parenleftbig✷t∈tmapM(nname(N))•M,N|=/llbrackett/rrbracketT/parenrightbig
+M,N|=/llbrackett/rrbracketT/definesr:[cond(t) &trig(t)/fatseminexit(N)/fatsemiaction(t)]+/fatsemiactv:=tgt(t)
+The function /llbracket·/rrbracketM:: [s,e]StMach→[[s]rcst,e]Action calculates the overall be-
+havioural semantics. It ﬁrst sets actv to the initial node identiﬁer, and then
+enters a do iteration indexed by all non-ﬁnal nodes. If a ﬁnal node is selected,
+then the iteration terminates. In each iteration, the node Nthat is named by
+actv is selected, and the semantics for it is calculated using M|=/llbracketN/rrbracketN.
+When in a node, the entry action is ﬁrst executed using nentry , and then
+an external choice is presented over all transitions associated with N, which
+are calculated using tmap . The entry and exit actions do not have actv in their
+alphabet, and therefore we apply frame extensions to them. The semantics of a
+transition, M,N|=/llbrackett/rrbracketT, is guarded by the transition condition, and awaits the
+trigger event. Once this occurs, the exit action of Nis executed, followed by the
+transition action, and ﬁnally actv is updated with the target node identiﬁer.
+The output of the semantics is an iterative program with one branch for every
+non-ﬁnal state. To illustrate, we below generate the denotational semantics for
+theGasAnalysis state machine given in Figure 1.
+Example 6.2 ( GasAnalysis Dynamic Semantics).
+actv:=InitState /fatsemi
+do
+actv=InitState →ǫ/fatsemir:gs:=/a\}bracke⊔le{⊔/a\}bracke⊔ri}h⊔/fatsemir:anl:= 0/fatsemiactv:=NoGas
+|actv=NoGas→gas?r:gs/fatsemiactv:=Analysis
+|actv=Analysis →
+r:sts:=analysis(r:gs)/fatsemi/parenleftbiggr:sts=noGas&ǫ/fatsemiresume /fatsemiactv:=NoGas
+✷r:sts=gasD&ǫ/fatsemiactv:=GasDetected/parenrightbigg
+|actv=GasDetected →r:ins:=intensity (r:gs)/fatsemi
+goreq(ins,thr) &ǫ/fatsemistop/fatsemiactv:=FinalState
+✷(¬goreq(ins,thr)) &ǫ/fatsemir:anl:=location(r:gs)/fatsemi
+turn!(r:anl)/fatsemiactv:=Reading
+
+|actv=Reading →gas?r:gs/fatsemiactv:=Analysis
+od
+In order to yield a more concise deﬁnition, we have also applied the action
+simpliﬁcation laws given in § 4. In particular, the frame extensions have all been
+expanded so that the state variables are explicitly qualiﬁed by lens r.
+
+--- Page 16 ---
+Automating Veriﬁcation of State Machines 15
+In order to verify such state machines, we need a specialised reﬁnement intro-
+duction law. Using our well-formedness theorem, we can specialise Theorem 3.4.
+Theorem 6.3. The semantics of a state machine Mreﬁnes a reactive invariant
+speciﬁcation S, that is S⊑/llbracketM/rrbracketM, provided that the following conditions hold:
+1.Mis well-formed according to Deﬁnition 5.4;
+2. the initial node establishes the invariant — S⊑M|=/llbracketninitM/rrbracketN;
+3. every non-ﬁnal node preserves S—∀N∈intersM•S⊑S/fatsemi(M|=/llbracketN/rrbracketN).
+Proof. By application of Theorem 3.4, and utilising trigger productivity. ⊓ ⊔
+We now have all the infrastructure needed for veriﬁcation of state machines, and
+in the next section we describe our veriﬁcation strategy and tool.
+7 Veriﬁcation Approach
+In this section we use the collected results presented in the previous sections to
+deﬁne a veriﬁcation strategy for state machines, and exemplify its use in veri-
+fying deadlock freedom. Our approach utilises Theorem 6.3and our contractual
+reﬁnement tactic, rdes-reﬁne , to prove that every state of a state machine satisﬁes
+a given invariant, which is speciﬁed as a reactive contract. The overall workﬂow
+for description and veriﬁcation of a state machine is given by the following steps:
+1. parse, type check, and compile the state machine deﬁnition;
+2. check well-formedness (Deﬁnition 5.4) using the check-machine tactic;
+3. calculate denotational semantics, resulting in a reactive program;
+4. perform algebraic simpliﬁcation and symbolic evaluation (Thms 2.2,4.1);
+5. apply Theorem 6.3to produce sequential reﬁnement proof obligations;
+6. apply rdes-reﬁne to each goal, which may result in residual proof obligations;
+7. attempt to discharge each remaining proof obligation using sledgehammer [10].
+Diagrammatic editors, like RoboTool, can be integrated with this by imple-
+menting a serialiser for the underlying meta-model. The workﬂow can be com-
+pletely automated since there is no need to enter manual proofs, and the ﬁnal
+proof obligations are discharged by automated theorem provers. If proof fails,
+Isabelle/HOL has the nitpick [10] counterexample generator that can be used for
+debugging. This means that the workﬂow can be hidden behind a graphical tool.
+We can use the veriﬁcation procedure to check deadlock freedom of a state
+machine using the reactive contract dlockf/defines[true−| ∃e•e/∈ref|true], an
+invariant speciﬁcation which states that in all quiescent observations, there is
+always an event that is not being refused. In other words, at least one event is
+always enabled; this is the meaning of deadlock freedom. We can use this con-
+tract to check the GasAnalysis state machine. For a sequential machine, deadlock
+freedom means that it is not possible to enter a state and then make no further
+progress. Such a situation can occur if the outgoing transitions can all be disabled
+simultaneously if, for example, their guards do not cover all possibilities.
+
+--- Page 17 ---
+16 Simon Foster et al.
+Fig. 3. Selection of deadlock freedom proof obligations in Isabelle/UTP
+The result of applying the veriﬁcation procedure up to step 5 is shown in
+Figure 3. At this stage, the semantics for each node has been generated, and
+deadlock freedom reﬁnement conjectures need to be proved. Isabelle generates
+6 subgoals, 3 of which are shown, since it is necessary to demonstrate that the
+invariant is satisﬁed by the initial state and each non-ﬁnal state. The ﬁrst goal
+corresponds to the initial state, where no event occurs and the variables gs
+andanl, along with actv, are all assigned. The second goal corresponds to the
+Analysis state. The state body has been further simpliﬁed from the form shown
+in Figure 6.2, since symbolic evaluation has pushed the entry action through the
+transition external choice, and into the two guards. This is also the case for the
+third goal, which corresponds to the more complex GasDetected state.
+The penultimate step applies the rdes-reﬁne tactic to each of the 6 goals. This
+produces 3 subgoals for each goal, a total of 18 ﬁrst-order proof obligations, and
+invokes the relational calculus tactic rel-auto on each of them. The majority are
+discharged automatically, but in this case three HOL predicate subgoals remain.
+One of them relates to the Analysis state, and requires that the constructors
+noGas andgasD ofStatus are the only cases for sts. If there was a third case,
+there would be a deadlock as the outgoing transition guards don’t cover this.
+Finally, we execute sledgehammer on each of the three goals, which provides
+proofs and so completes the deadlock freedom check. Thus, we have engineered
+a fully automated deadlock freedom prover for state machines.
+8 Conclusions and Related Work
+In this paper we have presented a veriﬁcation strategy for state machines in
+Isabelle/UTP by utilising the theory of stateful-failure reactive designs, and
+automated proof facilities. We have extended our UTP theory with the guarded
+iteration construct, which is the foundation of sequential state machines, proved
+a crucial induction law, and adapted it to an eﬃcient implementation of reactive
+programs. We have created a static semantics of state machines in Isabelle/HOL,
+including well-formedness checks, and a dynamic semantics that generates a
+reactive program. Finally, we used this to describe a veriﬁcation approach that
+utilises reactive contract reﬁnement and iterative induction.
+
+--- Page 18 ---
+Automating Veriﬁcation of State Machines 17
+In future work, we will expand our semantics to handle additional features
+of RoboChart. Hierarchy, can be handled by having the actv variable hold a
+list of nodes, and during actions by implementing a reactive interruption opera-
+tor [24]. Moreover, we are developing reasoning facilities for parallel composition
+and hiding to allow expression of concurrent state machines, which extends our
+existing work [ 6,7]. This will greatly increase veriﬁcation capabilities for robotic
+and component-based systems, allow us to handle asynchronous communication
+and shared variables, and also to mechanise the CSP reference semantics [ 2].
+A challenge that remains is handling assumptions and guarantees between
+parallel components, but we believe that abstraction of state machines to in-
+variants, using our results, can make this tractable. We will also explore other
+reasoning approaches, such as use of the simpliﬁer to algebraically transform
+state machines to equivalent forms. Going further, we emphasise that our UTP
+theory hierarchy supports more advanced semantic paradigms. We will there-
+fore develop a mechanised theory of timed reactive designs, based on existing
+work [ 11,17], and use this to denote the timing constructs of RoboChart state
+machines. We are developing a UTP theory of probability [ 12], and will use
+it to handle probabilistic junctions. We also have a theory of hybrid reactive
+designs [ 13,17], which we believe can be used to support hybrid state machines.
+In related work, while a number of state machine notations exist, such as
+UML and Stateﬂow, to the best of our knowledge, they provide limited support
+for formal veriﬁcation by theorem proving. While formalisations have been pro-
+posed [ 25,26], they typically address a subset of the target notation or focus
+on model checking. Other approaches such as [ 27], similarly restrict themselves
+to model checking or other forms of automatic veriﬁcation, which have limita-
+tions on both the types of systems that can be analysed (mostly ﬁnite) and the
+kinds of properties that can be checked (schedulability, temporal logic, etc). We
+diﬀer in that our approach is extensible, fully automated, and can handle inﬁ-
+nite state systems with non-trivial types. Also, our veriﬁcation laws have been
+mechanically validated with respect only to the axioms of Isabelle/HOL.
+Acknowledgements. This work is funded by the EPSRC projects RoboCalc6
+(Grant EP/M025756/1) and CyPhyAssure7(Grant EP/S001190/1), and the
+Royal Academy of Engineering.
+References
+1. Miyazawa, A., Ribieiro, P., Li, W., Cavalcanti, A., Timmis, J.: Automatic property
+checking of robotic applications. In: Intl. Conf. on Intelligent Robots and Systems
+(IROS), IEEE (2017) 3869–3876
+2. Miyazawa, M., Cavalcanti, A., Ribeiro, P., Li, W., Woodcock, J., Timmis, J.:
+Robochart reference manual. Technical report, University of York (June 2018)
+https://cs.york.ac.uk/circus/RoboCalc/assets/robochart-reference.pdf .
+3. Hoare, T., He, J.: Unifying Theories of Programming. Prentice-Hall (1998)
+6RoboCalc Project: https://www.cs.york.ac.uk/circus/RoboCalc/
+7CyPhyAssure Project: https://www.cs.york.ac.uk/circus/CyPhyAssure/
+
+--- Page 19 ---
+18 Simon Foster et al.
+4. Oliveira, M., Cavalcanti, A., Woodcock, J.: A UTP semantics for Circus. Formal
+Aspects of Computing 21(2009) 3–32
+5. Nipkow, T., Wenzel, M., Paulson, L.C.: Isabelle/HOL: A Proof Assistant for
+Higher-Order Logic. Volume 2283 of LNCS. Springer (2002)
+6. Foster, S., Cavalcanti, A., Canham, S., Woodcock, J., Zeyda, F.: Unifying theories
+of reactive design contracts. Submitted to Theoretical Computer Science (Dec
+2017) Preprint: https://arxiv.org/abs/1712.10233 .
+7. Foster, S., Ye, K., Cavalcanti, A., Woodcock, J.: Calculational veriﬁcation of re-
+active programs with reactive relations and Kleene algebra. In: Proc. 17th Intl.
+Conf. on Relational and Algebraic Methods in Computer Science (RAMICS)
+8. Dijkstra, E.W.: Guarded commands, nondeterminacy and formal derivation of
+programs. Communications of the ACM 18(8) (1975) 453–457
+9. Foster, S., Zeyda, F., Woodcock, J.: Unifying heterogeneous state-spaces with
+lenses. In: ICTAC. LNCS 9965, Springer (2016) 295–314
+10. Blanchette, J.C., Bulwahn, L., Nipkow, T.: Automatic proof and disproof in Is-
+abelle/HOL. In: FroCoS. Volume 6989 of LNCS., Springer (2011) 12–27
+11. Sherif, A., Cavalcanti, A., He, J., Sampaio, A.: A process algebraic framework for
+speciﬁcation and validation of real-time systems. Formal Aspects of Computing
+22(2) (2010) 153–191
+12. Bresciani, R., Butterﬁeld, A.: A UTP semantics of pGCL as a homogeneous rela-
+tion. In: IFM. LNCS 7321, Springer (2012) 191–205
+13. Foster, S., Thiele, B., Cavalcanti, A., Woodcock, J.: Towards a UTP semantics for
+Modelica. In: UTP. LNCS 10134, Springer (2016) 44–64
+14. Hilder, J., Owens, N., Neal, M., Hickey, P., Cairns, S., Kilgour, D., Timmis, J.,
+Tyrrell, A.: Chemical detection using the receptor density algorithm. IEEE Trans-
+actions on Systems, Man, and Cybernetics 42(6) (2012) 1730–1741
+15. Cavalcanti, A., Woodcock, J.: A tutorial introduction to CSP in unifying theories
+of programming. In: PSSE. Volume 3167 of LNCS. Springer (2006) 220–268
+16. Santos, T., Cavalcanti, A., Sampaio, A.: Object-Orientation in the UTP. In: UTP
+2006. Volume 4010 of LNCS., Springer (2006) 20–38
+17. Foster, S., Cavalcanti, A., Woodcock, J., Zeyda, F.: Unifying theories of time with
+generalised reactive processes. Information Processing Letters 135 (2018) 47–52
+18. Feliachi, A., Gaudel, M.C., Wolﬀ, B.: Unifying theories in Isabelle/HOL. In: UTP
+2010. Volume 6445 of LNCS., Springer (2010) 188–206
+19. Foster, S., et al.: Stateful-failure reactive designs in Isabelle/UTP. Technical
+report, University of York (2018) http://eprints.whiterose.ac.uk/129768/ .
+20. Zhan, N., Kang, E.Y., Liu, Z.: Component publications and compositions. In:
+UTP. Volume 5713 of LNCS., Springer (2008) 238–257
+21. Back, R.J., Wright, J.: Reﬁnement calculus: a systematic introduction. Springer
+(1998)
+22. Morgan, C., Vickers, T.: On the Reﬁnement Calculus. Springer (1992)
+23. Huﬀman, B., Kunčar, O.: Lifting and transfer: A modular design for quotients in
+Isabelle/HOL. In: CPP. Volume 8307 of LNCS., Springer (2013) 131–146
+24. McEwan, A.: Concurrent Program Development in Circus. PhD thesis, Oxford
+University (2006)
+25. Schäfer, T., Knapp, A., Merz, S.: Model checking UML state machines and col-
+laborations. ENCTS 55(3) (2001) 357 – 369
+26. Miyazawa, A., Cavalcanti, A.: Reﬁnement-oriented models of stateﬂow charts.
+Science of Computer Programming 77(10-11) (2012)
+27. Foughali, M., et al.: Model checking real-time properties on the functional layer of
+autonomous robots. In: ICFEM. Volume 10009 of LNCS., Springer (2016)

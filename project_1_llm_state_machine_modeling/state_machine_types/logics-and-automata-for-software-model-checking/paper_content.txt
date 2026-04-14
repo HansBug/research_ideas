@@ -1,0 +1,1105 @@
+--- Page 1 ---
+Logics and Automata for Software
+Model-Checking1
+Rajeev ALURaand Swarat CHAUDHURIa
+aUniversity of Pennsylvania
+Abstract. While model-checking of pushdown models is by now an estab-
+lished technique in software veriﬁcation, temporal logics and automata
+traditionally used in this area are unattractive on two coun ts. First, log-
+ics and automata traditionally used in model-checking cann ot express
+requirements such as pre/post-conditions that are basic to software anal-
+ysis. Second, unlike in the ﬁnite-state world, where the µ-calculus has
+a symbolic model-checking algorithm and serves as an “assem bly lan-
+guage” of temporal logics, there is no uniﬁed formalism to mo del-check
+linear and branching requirements on pushdown models. In th is survey,
+we discuss a recently-proposed re-phrasing of the model-ch ecking prob-
+lem for pushdown models that addresses these issues. The key idea is
+to view a program as a generator of structures known as nested words
+andnested trees (respectively in the linear and branching-time cases) as
+opposed to words and trees. Automata and temporal logics acc epting
+languages of these structures are now deﬁned, and linear and branch-
+ing time model-checking phrased as language inclusion and m ember-
+ship problems for these languages. We discuss two of these fo rmalisms—
+automata on nested words and a ﬁxpoint calculus on nested tre es—in
+detail. While these formalisms allow a new frontier of progr am speci-
+ﬁcations, their model-checking problem has the same worst- case com-
+plexity as their traditional analogs, and can be solved symb olically us-
+ing a ﬁxpoint computation that generalizes, and includes as a special
+case, “summary”-based computations traditionally used in interproce-
+dural program analysis.
+Keywords. Temporal and ﬁxpoint logics, Automata, Software model-
+checking, Veriﬁcation, Program analysis
+1. Introduction
+Because of concerted research over the last twenty-ﬁve years, model-checking of
+reactive systems is now well-understood theoretically as well as applied in practi ce.
+The theories of temporal logics and automata have played a foundational role
+in this area. For example, in linear-time model-checking, we are interested in
+questions such as: “do all traces of a protocol satisfy a certain safety prop erty?”
+This question is phrased language-theoretically as: is the set of all possible s ystem
+1This research was partially supported by ARO URI award DAAD1 9-01-1-0473 and NSF
+award CPA 0541149.
+
+--- Page 2 ---
+traces included in the language of safe behaviors? In the world of ﬁnite-state
+reactive programs, both these languages are ω-regular [22]. On the other hand,
+in branching-time model-checking, the speciﬁcation deﬁnes an ω-regular language
+of trees, and the model-checking problem is to determine if the tree unfolding of
+the system belongs to this language [17].
+Veriﬁcation of software is a diﬀerent ball-game. Software written in a mo dern
+programming language has many features such as the stack, the heap, and con-
+current execution. Reasoning about these features in any automated manner is
+a challenge—ﬁnding ways to model-check them is far harder. The approach that
+software model-checking takes [10] is that of data abstraction : ﬁnitely approxi-
+mate the data in the program, but model the semantics of procedure calls and
+returns precisely. The chosen abstractions are, thus, pushdown models or ﬁnite-
+state machines equipped with a pushdown stack (variants such as recursive state
+machines [1] and boolean programs [9] have also been considered). Such a ma-
+chine is now viewed as a generator of traces or trees modeling program executions
+or the program unfolding.
+There are, of course, deviations from the classical setting: since pushdown
+models have unbounded stacks and therefore inﬁnitely many conﬁgurations, an-
+swering these queries requires inﬁnite-state model-checking . Many positive results
+are known in this area—for instance, model-checking the µ-calculus, often called
+the “assembly language for temporal logics,” is decidable on sequential pushdown
+models [24,12]. However, many attractive computational properties that ho ld in
+the ﬁnite-state world are lost. For instance, consider the reachability property : “a
+state satisfying a proposition pis reachable from the current state,” expressible
+in theµ-calculus by a formula ϕ=µX.(p∨/an}bracketle{t/an}bracketri}htX). In ﬁnite-state model checking,
+ϕnot only states a property, but syntactically encodes a symbolic ﬁxpoint com-
+putation: start with the states satisfying p, add states that can reach the previous
+states in one step, then two steps, and so on. This is the reason why hardware
+model-checkers like SMV translate a speciﬁcation given in a simpler logic int o
+theµ-calculus, which is now used as a directive for ﬁxpoint computation. Known
+model-checking algorithms for the µ-calculus on pushdown models, however, are
+complex and do not follow from the semantics of the formula. In particular, they
+cannot capture the natural, “summarization”-based ﬁxpoint computations for in-
+terprocedural software analysis that have been known for years [19,21].
+Another issue with directly applying classical temporal speciﬁcations in this
+context is expressiveness. Traditional logics and automata used in model-checking
+deﬁne regular languages of words and trees, and cannot argue about the balanced-
+parenthesis structure of calls and returns. Suppose we are now interested in lo-
+cal reachability rather than reachability: “a state satisfying pis reachable in the
+same procedural context (i.e., before control returns from the current context,
+and not within the scope of new contexts transitively spawned from this context
+via calls).” This property cannot be captured by regular languages of words or
+trees. Other requirements include Hoare-Floyd-style preconditions and postcon-
+ditions [16] (“if pholds at a procedure call, then qholds on return”), interface
+contracts used in real-life speciﬁcation languages such as JML [11] and SAL [14 ],
+stack-sensitive access control requirements arising in software security [ 23], and
+interprocedural dataﬂow analysis [18].
+
+--- Page 3 ---
+While checking pushdown requirements on pushdown models is undecidable
+in general, individual static analysis techniques are available for all the a bove
+applications. There are practical static checkers for interface speciﬁcation l an-
+guages and stack inspection-type properties, and interprocedural dataﬂow anal-
+ysis [19] can compute dataﬂow information involving local variables. Thei r foun-
+dations, unfortunately, are not properly understood. What class of languages do
+these properties correspond to? Can we oﬀer the programmer ﬂexible, decidable
+temporal logics or automata to write these requirements? These are not merel y
+academic questions. A key practical attraction of model-checking is that a pro-
+grammer, once oﬀered a temporal speciﬁcation language, can tailor a program’ s
+requirements without getting lost in implementation details. A logic as ab ove
+would extend this paradigm to interprocedural reasoning. Adding syntactic sugar
+to it, one could obtain domain-speciﬁc applications—for example, one can con-
+ceive of a language for module contracts or security policies built on top of suc h
+a formalism.
+In this paper, we summarize some recent work on software model-checking [4,
+6,7,2,3] that oﬀers more insights into these issues by re-phrasing the model-
+checking problem for sequential pushdown models. In classical linear-time model-
+checking, the problem is to determine whether the set of linear behaviors of a pro-
+gram abstraction is included in the set of behaviors satisfying the speciﬁcatio n.
+In branching-time model-checking, the question is whether the tree unfolding of
+the program belongs to the language of trees satisfying the requirement. In ot her
+words, a program model is viewed as a generator of a word or tree structure.
+In the new approach, programs are modeled by pushdown models called nested
+state machines , whose executions and unfoldings are given by graphs called nested
+words andnested trees . More precisely, a nested word is obtained by augmenting
+a word with a set of extra edges, known as jump-edges , that connect a position
+where a call happens to its matching return. As calls and returns in program exe-
+cutions are properly nested, jump-edges never cross. To get a nested tree, we add
+a set of jump-edges to a tree. As a call may have a number of matching returns
+along the diﬀerent paths from it, a node may now have multiple outgoing jump-
+edges. Temporal logics and ﬁnite-state automata accepting languages of nested
+words and trees are now deﬁned. The linear-time model-checking question then
+becomes: is the set of nested words modeling executions of a program included
+in the set of nested words accepted by the speciﬁcation formula/automaton? For
+branching-time model-checking, we ask: does the nested tree generated by a pro-
+gram belong to a speciﬁed language of nested trees? It turns out that this tweak
+makes a major diﬀerence computationally as well as in expressiveness.
+Let us ﬁrst see what an automaton on nested words (NWA) [6,7] would look
+like. Recall that in a ﬁnite automaton, the state of the automaton at a posi tion
+depends on the state and the input symbol at the preceding position. In a nested
+word, a “return” position has two incoming edges—one from the preceding time
+point, and one from the “matching call.” Accordingly, the state of an NWA m ay
+depend on the states of the automaton at both these points. To see how this woul d
+help, consider the local reachability property. Consider an automaton following
+a program execution, and suppose it is in a state qthat states that a target
+state has not yet been seen. Now suppose it encounters a procedure call. A ﬁnite
+
+--- Page 4 ---
+automaton on words would follow the execution into the new procedural context
+and eventually “forget” the current state. However, an NWA can retrieve the
+stateqonce the execution returns from this call, and continue to search only
+the current context. Properties such as this can also be expressed using temporal
+logics on nested words [4,13], though we will not discuss the latter in detail i n
+this survey.
+For branching-time model-checking, we use a ﬁxpoint calculus called NT- µ[2].
+The variables of the calculus evaluate not over sets of states, but rather over sets o f
+substructures that capture summaries of computations in the “current” program
+block. The ﬁxpoint operators in the logic then compute ﬁxpoints of summari es.
+For a nodesof a nested tree representing a call, consider the tree rooted at ssuch
+that the leaves correspond to exits from the current context. In order to be able
+to relate paths in this subtree to the trees rooted at the leaves, we allow mark ing
+of the leaves: a 1-ary summary is speciﬁed by the root sand a subset Uof the
+leaves of the subtree rooted at s. Each formula of the logic is evaluated over such
+a summary. The central construct of the logic corresponds to concatenation of call
+trees: the formula /an}bracketle{tcall/an}bracketri}htϕ{ψ}holds at a summary /an}bracketle{ts,U/an}bracketri}htif the node srepresents
+a “call” to a new context starting with node t, there exists a summary /an}bracketle{tt,V/an}bracketri}ht
+satisfyingϕ, and for each leaf vthat belongs to V, the subtree/an}bracketle{tv,U/an}bracketri}htsatisﬁesψ.
+Intuitively, a formula /an}bracketle{tcall/an}bracketri}htϕ{ψ}asserts a constraint ϕon the new context, and
+requiresψto hold at a designated set of return points of this context. To state
+local reachability, we would ask, using the formula ϕ, that control returns to the
+current context, and, using ψ, that the local reachability property holds at some
+return point. While this requirement seems self-referential, it may be captured
+using a ﬁxpoint formula.
+It turns out that NWAs and NT- µhave numerous attractive properties. For
+instance, NWAs have similar closure properties such as regular languages, eas-
+ily solvable decision problems, Myhill-Nerode-style characterizations, etc. NT -µ
+can express all properties expressible in the µ-calculus or using NWAs, and has
+a characterization in terms of automata on nested trees [3]. In this survey, we
+focus more on the computational aspects as applicable to program veriﬁcation,
+in particular the model-checking problem for NT- µ. The reason is that NT- µcan
+capture both linear and branching requirements and, in spite of its expressiveness,
+can be model-checked eﬃciently. In fact, the complexity of its model-checking
+problem on pushdown models (EXPTIME-complete) is the same as that of far
+weaker logics such as CTL or the alternation-free µ-calculus. Moreover, just as
+formulas of the µ-calculus syntactically encode a terminating, symbolic ﬁxpoint
+computation on ﬁnite-state systems, formulas of NT-µdescribe a directly imple-
+mentable symbolic model-checking algorithm. In fact, this ﬁxpoint computat ion
+generalizes the kind of summary computation traditionally known in interproce-
+dural program analysis, so that, just like the µ-calculus in case of ﬁnite-state pro-
+grams, NT- µcan arguably be used as an “assembly language” for interprocedural
+computations.
+The structure of this paper is as follows. In Sec. 2, we deﬁne nested words and
+trees, and introduce nested state machines as abstractions of structured programs .
+In Sec. 3, we deﬁne speciﬁcations on nested structures, studying NWAs and NT-
+
+--- Page 5 ---
+µin some detail. In Sec. 4, we discuss in detail the symbolic model-checking
+algorithm for NT- µ.
+2. Models
+A typical approach to software model-checking uses procedure foo()
+{
+L1: write(x);
+if(*)
+L2: foo();
+else
+L3: think;
+while (*)
+L4: read(x);
+L5: return;
+}data abstraction , where the data in a structured program is
+abstracted using a ﬁnite set of boolean variables that stand
+for predicates on the data-space [8,15]. The resulting mod-
+els have ﬁnite-state but stack-based control ﬂow. In this
+section, we deﬁne nested state machines, one such model.
+The behaviors of these machines are modeled by nested
+words and trees, the structures on which our speciﬁcations
+are interpreted.
+As a running example, in the rest of this paper, we
+use the recursive procedure foo. The procedure may read
+or write a global variable xor perform an action think, has
+nondeterministic choice, and can call itself recursively. Actions of the program
+are marked by labels L1–L5 for easy reference. We will abstract this program and
+its behaviors, and subsequently specify it using temporal logics and automata .
+2.1. Nested words
+Nested words form a class of directed acyclic graphs suitable for abstracting ex-
+ecutions of structured programs. In this application, a nested word carries infor-
+mation about a sequence of program states as well as the nesting of procedure
+calls and returns during the execution. This is done by adding to a word a set
+of extra edges, known as jump-edges , connecting positions where calls happen to
+their matching returns. Because of the balanced-parentheses semantics of calls
+and returns, jump-edges are properly nested.
+Formally, let Σ be a ﬁnite alphabet. Let a ﬁnite word wof lengthnover Σ
+be a mapw:{0,1,...,n−1}→Σ, and an inﬁnite word be a map w:N→Σ.
+We sometimes view a word as a graph with positions as nodes, and edges ( i,j)
+connecting successive positions i,j. Anested word over Σ is a pairW= (w,֒→,)
+wherewis a ﬁnite or inﬁnite word over Σ, and ֒→⊆ N×(N∪∞) is a set of
+jump-edges . A position iin a nested word such that i ֒→∞ ori ֒→jfor some
+jis called a call position , and a position jsuch thati ֒→jfor someiis called
+return position ). The remaining positions are said to be local. The idea is that if a
+jump-edge ( i,j) exists, then position jis the matching return of a call at position
+i; a jump-edge ( i,∞) implies that there is a call at position ithat never returns.
+The jump-edge relation must satisfy the following conditions:
+1. ifi ֒→j, theni < j−1 (in other words, a jump-edge is a non-trivial
+forward jump in the word);
+2. for each i, there is at most one x∈N∪{∞} such thati ֒→xorx ֒→i
+(a call either never returns or has a unique matching return, and a return
+has a unique matching call);
+
+--- Page 6 ---
+...
+......
+...
+...
+call return localenen
+enen
+exex
+ex exrd
+rdrd
+rdrdwrwrwr
+wrwr
+wrtk
+tktk
+tk∞∞
+endendend
+end
+end(a) (b)s1
+s2
+s3
+s4
+s5
+s6
+s7
+s8
+s9
+Figure 1. (a) A nested word (b) A nested tree
+3. ifi ֒→jandi′֒→j′andi < i′, then either j < i′orj′< j(jump-edges
+are properly nested);
+4. ifi֒→∞, then for all calls i′<i, eitheri′֒→∞ ori′֒→jfor somej <i
+(if a call never returns, neither do the calls that are on the stack when it
+is invoked).
+Ifi֒→j, then we call ithejump-predecessor ofjandjthejump-successor ofi.
+Let an edge ( i,i+ 1) inwbe called a call and return edge respectively if iis a
+call and (i+ 1) is a return, and let all other edges be called local.
+Let us now turn to our running example. We will model an execution by a
+nested word over an alphabet Σ. The choice of Σ depends on the desired level of
+detail—we pick the symbols wr,rd,en,ex,tk, and end, respectively encoding
+write(x) ,read(x) , a procedure call leading to a beginning of a new context, the
+return point once a context ends, the statement think, and the statement return .
+Now consider the execution where foocalls itself twice recursively, then executes
+think, then returns once, then loops inﬁnitely. The word encoding this execution
+isw=wr.en.wr.en.wr.tk.rd.ex.(rd)ω. A preﬁx of the nested word is shown in
+Fig. 1-(a). The jump-edges are dashed, and call, return and local positions are
+drawn in diﬀerent styles. Note the jump-edge capturing the call that never returns.
+Now we show a way to encode a nested word using a word. Let us ﬁx a set of
+tagsI={call,ret,loc}. The tagged word Tag (W) of a nested word W= (w,֒→)
+over Σ is obtained by labeling the edges in wwith tags indicating their types.
+Formally, Tag(W) is a pair ( w,η), whereηis a map labeling each edge ( i,i+ 1)
+such thatη(i,i+ 1) equals callifiis a call, retif (i+ 1) is a return, and loc
+otherwise. Note that this word is well-deﬁned because jump-edges represent non-
+trivial forward leaps.
+While modeling a program execution, a tagged word deﬁnes the sequence
+of types (call, return or local) of actions in this execution. We note that the
+construction of Tag(W) requires us to know the jump-edge relation ֒→. More
+interestingly, the jump-edges in Ware completely captured by the tagged word
+(w,η) ofW, so that we can reconstruct a nested word from its tagged word. To
+see why, call a word β∈I∗balanced if it is of the form β:=ββ|call.β.ret|loc,
+
+--- Page 7 ---
+and deﬁne a relation ֒→′⊆N×Nas: for alli<j−1,i֒→′jiﬀiis the greatest
+integer such that the word η(i,i+ 1).η(i+ 1,i+ 2)...η(j−1,j) is balanced. It is
+easily veriﬁed that ֒→′=֒→.
+Let us denote the set of (ﬁnite and inﬁnite) nested words over Σ as NW(Σ).
+A language of nested words over Σ is a subset of NW(Σ).
+2.2. Nested trees
+While nested words are suitable for linear-time reasoning, nested trees are neces-
+sary to specify branching requirements. Such a structure is obtained by adding
+jump-edges to an inﬁnite tree whose paths encode all possible executions of the
+program. As for nested words, jump-edges in nested trees do not cross, and calls
+and returns are deﬁned respectively as sources and targets of jump-edges. In ad-
+dition, since a procedure call may not return along all possible program paths, a
+call-nodesmay have jump-successors along some, but not all, paths from it. If
+this is the case, we add a jump-edge from sto a special node ∞.
+Formally, let T= (S,r,→) be an unordered inﬁnite tree with node set S, root
+rand edge relation →⊆S×S. Let+−→denote the transitive (but not reﬂexive)
+closure of the edge relation, and let a (ﬁnite or inﬁnite) pathinTfrom node
+s1be a (ﬁnite or inﬁnite) sequence π=s1s2...s n...overS, wheren≥2 and
+si→si+1for all 1≤i.
+Anested tree is a directed acyclic graph ( T,֒→,) where֒→⊆T×(T∪∞)
+is a set of jump-edges. A node ssuch thats ֒→tors ֒→∞ (similarlyt ֒→s)
+for sometis acall(return ) node; the remaining nodes are said to be local. The
+intuition is that if s֒→t, then a call at sreturns att; ifs֒→∞, then there exists
+a path from salong which the call at snever returns. We note that the sets of
+call, return and local nodes are disjoint. The jump-edges must satisfy:
+1. ifs ֒→t, thens+−→t, and we do not have s→t(in other words, jump-
+edges represent non-trivial forward jumps);
+2. ifs ֒→tands ֒→t′, then neither t+−→t′nort′+−→t(this captures the
+intuition that a call-node has at most one matching return along every
+path from it);
+3. ifs֒→tands′֒→t, thens=s′(every return node has a unique matching
+call);
+4. for every call node s, one of the following holds: (a) on every path from s,
+there is a node tsuch thats ֒→t, and (b)s ֒→∞ (a call either returns
+along all paths, or does not);
+5. if there is a path πsuch that for nodes s,t,s′,t′lying onπwe haves+−→s′,
+s ֒→t, ands′֒→t′, then either t+−→s′ort′+−→t(jump-edges along a
+path do not cross);
+6. for every pair of call-nodes s,s′on a pathπsuch thats+−→s′, if there is
+no nodetonπsuch thats′֒→t, then a node t′onπcan satisfy s ֒→t′
+only ift′+−→s′(if a call does not return, neither do the calls pending
+when it was invoked).
+
+--- Page 8 ---
+For an alphabet Σ, a Σ-labeled nested tree is a structure T= (T,֒→,λ),
+where (T,֒→) is a nested tree with node set S, andλ:S→Σ is a node-labeling
+function. All nested trees in this paper are Σ-labeled.
+Fig. 1-(b) shows a part of the tree unfolding of our example. Note that some
+of the maximal paths are ﬁnite—these capture terminating executions of the
+program—and some are not. Note in particular how a call may return along som e
+paths from it, and yet not on some others. A path in the nested tree that takes a
+jump-edge whenever possible is interpreted as a local path through a procedure.
+Ifs ֒→t, thensis the jump-predecessor of tandtthe jump-successor of s.
+Edges from a call node and to a return node are known as callandreturn edges;
+the remaining edges are local. The fact that an edge ( s,t) exists and is a call,
+return or local edge is denoted by scall−→t,sret−→t, orsloc−→t. For a nested tree
+T= (T,֒→,λ) with edge set E, thetagged tree ofTis the node and edge-labeled
+treeTag(T) = (T,λ,η :E→{call,ret,loc}), whereη(s,t) =aiﬀsa−→t.
+A few observations: ﬁrst, the sets of call, return and local edges deﬁne a
+partition of the set of tree edges. Second, if sret−→s1andsret−→s2for distinct s1
+ands2, thens1ands2have the same jump-predecessor. Third, the jump-edges in
+a nested tree are completely captured by the edge labeling in the corresponding
+structured tree, so that we can reconstruct a nested tree TfromTag(T).
+LetNT(Σ) be the set of Σ-labeled nested trees. A language of nested trees is
+a subset of NT(Σ).
+2.3. Nested state machines
+Now we deﬁne our program abstractions: nested state machines (NSMs). Like
+pushdown system and recursive state machines [1], NSMs are suitable for precisely
+modeling changes to the program stack due to procedure calls and returns. The
+main diﬀerence is that the semantics of an NSM is deﬁned using nested structures
+rather than a stack and a conﬁguration graph.
+LetAPbe a ﬁxed set of atomic propositions, and let us set Σ = 2AP
+as an alphabet of observables . Anested state machine (NSM) is a tuple M=
+/an}bracketle{tV,vin,κ,∆loc,∆call,∆ret/an}bracketri}ht, whereVis a ﬁnite set of states, vin∈Vis the initial
+state, the mapκ:V→Σ labels each state with what is observable at it, and
+∆loc⊆V×V, ∆call⊆V×V, and ∆ ret⊆V×V×Vare respectively the local,
+call, andreturn transition relations.
+A transition is said to be from statevif it is of the form ( v,v′) or (v,v′,v′′),
+for somev′,v′′∈V. If (v,v′)∈∆locfor somev,v′∈V, then we write vloc−→v′;
+if (v,v′)∈∆call, we writevcall−→v′; if (v,v′,v′′)∈∆ret, we write ( v,v′)ret−→v′′.
+Intuitively, while modeling a program by an NSM, a transition ( v,v′) in ∆ call
+models a procedure call that pushes the current state on the stack, and a transition
+(v,v′) in ∆ locmodels a local action (a move that does not modify the stack). In a
+return transition ( v,v′,v′′), the states vandv′′are respectively the current and
+target states, and v′is the state from which the last “unmatched” call-move was
+made. The intuition is that v′is on top of the stack right before the return-move,
+which pops it oﬀ the stack.
+Let us now abstract our example program into a nested state machine Mfoo.
+The abstraction simply captures control ﬂow in the program, and consequently,
+
+--- Page 9 ---
+has statesv1,v2,v3,v4, andv5corresponding to lines L1, L2, L3, L4, and L5. We
+also have a state v′
+2to which control returns after the call at L2 is completed.
+Now, let us have propositions rd,wr,tk,en,ex, andendthat hold respectively
+iﬀ the current state represents a read, write, think statement, procedure call,
+return point after a call, and return instruction. More precisely, κ(v1) ={wr},
+κ(v2) ={en},κ(v′
+2) ={ex},κ(v3) ={tk},κ(v4) ={rd}, andκ(v5) ={end}(for
+easier reading, we will, from now on, abbreviate singletons such as {rd}just as
+rd).
+The transition relations of Mfooare given by:
+•∆call={(v2,v1)}
+•∆loc={(v1,v2),(v1,v3),(v′
+2,v4),(v′
+2,v5),(v3,v4),(v3,v5),(v4,v4),(v4,v5)},
+and
+•∆ret={(v5,v2,v′
+2)}.
+Linear-time semantics The linear-time semantics of a nested state machine
+M=/an}bracketle{tV,vin,κ,∆loc,∆call,∆ret/an}bracketri}htis given by a language L(M) oftraces; this is
+a language of nested words over the alphabet 2AP. First consider the language
+LV(M) ofnested executions ofM, comprising nested words over the alphabet
+Vof states. A nested word W= (w,֒→) is inLV(M) iﬀ the tagged word ( w,η)
+ofWis such that w(0) =vin, and for all i≥0, (1) ifη(i,i+ 1)∈{call,loc},
+thenw(i)η(i,i+1)−→w(i+ 1); and (2) if η(i,i+ 1) = ret, then there is a jsuch
+thatj ֒→(i+ 1) and we have ( w(i),w(j))ret−→w(i+ 1). Now, a trace produced
+by an execution is the sequence of observables it corresponds to. Accordingly,
+the trace language L(M) ofMis deﬁned as{(w′,֒→:) for some ( w,֒→)∈
+LV(M) and alli≥0,w′(i) =κ(wi)}. For example, the nested word in Fig. 1-(a)
+belongs to the trace language of Mfoo.
+Branching-time semantics The branching-time semantics of Mis deﬁned via a
+2AP-labeled treeT(M), known as the unfolding ofM. For branching-time se-
+mantics to be well-deﬁned, an NSM must satisfy an additional condition: every
+transition from a state vis of the same type (call, return, or local). The idea is
+to not allow the same node to be a call along one path and, say, a return along
+another. Note that this is the case in NSMs whose states model statements in
+programs.
+Now consider the V-labeled nested tree TV(M) = (T,֒→,λ), known as the
+execution tree , that is the unique nested tree satisfying the following conditions:
+1. ifris the root of T, thenλ(r) =vin;
+2. every node shas precisely one child tfor every distinct transition in M
+fromλ(s);
+3. for every pair of nodes sandt, ifsa−→t, fora∈{call,loc}, in the tagged
+tree of this nested tree, then we have λ(s)a−→λ(t) inM;
+4. for every s,t, ifsret−→tin the tagged tree, then there is a node t′such that
+t′֒→tand (λ(s),λ(t′))ret−→λ(t) inM.
+Note that this deﬁnition is possible as we assume transitions from the sam e state
+ofMto be of the same type. Now we have T(M) = (T,֒→,λ′), whereλ′(s) =
+
+--- Page 10 ---
+κ(λ(s)) for all nodes s. For example, the nested tree in Fig. 1-(b) is the unfolding
+ofMfoo.
+3. Speciﬁcations
+In this section, we deﬁne automata and a ﬁxpoint logic on nested words and
+trees, and explore their applications to program speciﬁcation. Automata on nested
+words are useful for linear-time model-checking, where the question is: “is the
+language of nested traces of the abstraction (an NSM) included in the language
+of nested words allowed by the speciﬁcation?” In the branching-time case, model
+checking question is: “is the unfolding of the NSM a member of the set of nested
+trees allowed by the speciﬁcation?” Our hypothesis is these altered views of the
+model-checking problem are better suited to software veriﬁcation.
+3.1. Automata on nested words
+We start with ﬁnite automata on nested words [7,6]. A nested B¨ uchi word au-
+tomaton (NWA) over an alphabet Σ is a tuple A=/an}bracketle{tQ,Σ,qin,δloc,δcall,δret,G/an}bracketri}ht,
+whereQis a set of states Q,qinis the initial state, and δloc⊆Q×Σ×Q,
+δcall⊆Q×Σ×Q, andδret⊆Q×Q×Σ×Qare the local, call and return
+transition relations. The B¨ uchi acceptance condition G⊆Qis a set of accepting
+states. If (q,σ,q′)∈δlocfor someq,q′∈Qandσ∈Σ, then we write qloc,σ−→q′; if
+(q,σ,q′)∈δcall, we writeqcall,σ−→q′; if (q,q′,σ,q′′)∈δret, we write ( q,q′)ret,σ−→q′′.
+The automatonAstarts in the initial state, and reads a nested word from left
+to right. At a call or local position, the current state is determined by the s tate
+and the input symbol (in case of traces of NSMs, the observable) at the previous
+position, while at a return position, the current state can additionally depend on
+the state of the run just before processing the symbol at the jump-predecessor.
+Formally, a runρof the automaton Aover a nested word W= (σ1σ2...,֒→) is
+an inﬁnite sequence q0,q1,q2,...overQsuch thatq0=qin, and:
+•for alli≥0, ifiis a call position of W, then (qi,σi,qi+1)∈δcall;
+•for alli≥0, ifiis a local position, then ( qi,σi,qi+1)∈δloc;
+•fori≥2, ifiis a return position with jump-predecessor j, then
+(qi−1,qj−1,σi,qi)∈δret.
+The automatonAaccepts a ﬁnite nested word Wif it has a run q0,q1,q2,...q n
+overWsuch thatqn∈G. An inﬁnite nested word is accepted if there is a run
+q0,q1,q2,...where a state q∈Gis visited inﬁnitely often. The language L(A) of
+a nested-word automaton Ais the set of nested words it accepts.
+A language Lof nested words over Σ is regular if there exists a nested-
+word automaton Aover Σ such that L=L(A). Observe that if Lis a regular
+language of words over Σ, then {(w,֒→)|w∈L}is a regular language of nested
+words. Conversely, if Lis a regular language of nested words, then {w|(w,֒→)∈
+Lfor some֒→}is a context-free language of words, but need not be regular.
+Let us now see an example of how NWAs may be used for speciﬁcation. Con-
+sider the following property to be tested on our running example: “in every execu-
+
+--- Page 11 ---
+tion of the program, every occurrence of write(x) is followed (not necessarily imme-
+diately) by an occurrence of read(x) .” This property can be expressed by a ﬁnite-
+state, B¨ uchi word automaton . As before, we have Σ = {wr,rd,en,ex,tk,end}.
+The automatonShas statesq1andq2; the initial state is q1. The automaton has
+transitions q1wr−→q2,q2wr−→q2,q2rd−→q1, andq1rd−→q1(on all input symbols
+other that wrandrd,Sstays at the state from which the transition ﬁres). The
+idea is that at the state q2,Sexpects to see a read some time in the future.
+Now, we have a single B¨ uchi accepting state q1, which means the automaton can-
+not get stuck in state q2, thus accepting precisely the set of traces satisfying our
+requirement.
+However, consider the property: “in every execution of the program, every
+occurrence of write(x) is followed (not necessarily immediately) by an occurrence
+ofread(x) in the same procedural context (i.e., before control returns from the
+current context, and not within the scope of new contexts transitively spawned
+from this context via calls).” A ﬁnite-state word automaton cannot state t his
+requirement, not being able to reason about the balanced-parentheses structure
+of calls and returns. On the other hand, this property can be expressed simply
+by a NWAAwith states q1,q2andqe—here,q2is the state where Aexpects to
+see a read action in the same context at some point in the future, qeis an error
+state, andq1is the state where there is no requirement for the current context.
+The initial state is q1. As for transitions:
+•we haveq1loc,wr−→q2,q1loc,rd−→q1,q2loc,rd−→q1, andq2loc,wr−→q2(these transi-
+tions are for the same reason as in S);
+•we haveq1call,en−→q1andq2call,en−→q1(as the requirement only relates reads
+and writes in the same context, we need to “reset” the state when a new
+context starts due to a call);
+•forq′∈{q1,q2}, we have ( q1,q′)ret,end−→q′(suppose we have reached the
+end of a context. So long as there is no requirement pending within this
+context, we must, on return, restore the state to where it was before the
+call. Of course, this transition is only ﬁred in contexts that are not at the
+top-level.) We also have, for q′∈{q1,q2}, (q2,q′)ret,end−→qe(in other words,
+it is an error to end a context before fulﬁlling a pending requirement).
+•Also, forq′∈{q1,q2}, we haveq′loc,tk−→q′andq′loc,ex−→q′.
+The single B¨ uchi accepting state, as before, is q1.
+More “realistic” requirements that may be stated using automata on nested
+words include:
+•Pre/post-conditions: Consider partial and total correctness requirements
+based on pre/post-conditions, which show up in Hoare-Floyd-style pro-
+gram veriﬁcation as well as in modern interface speciﬁcation languages such
+JML [11] and SAL [14]. Partial correctness for a procedure Aasserts that
+if precondition Preis satisﬁed when Ais called, then if Aterminates, post-
+condition Postholds upon return. Total correctness, additionally, requires
+Ato terminate. If program executions are modeled using nested words,
+these properties are just assertions involving the current state and jump-
+successors, and can be easily stated using automata on nested words.
+
+--- Page 12 ---
+•Access control: Speciﬁcations such as “in all executions of a proggram, a
+procedure Acan access a database only if all the frames on the stack have
+high privilege” are useful in software security and are partially enforced at
+runtime in programming languages such as Java. Such “stack inspection”
+properties cannot be stated using traditional temporal logics and automata
+on words. It can be shown, however, that they are easily stated using nested
+word languages.
+•Boundedness: Using nested word languages, we can state requirements such
+as “the height of the stack is bounded by kalong all executions,” useful to
+ensure that there is no stack overﬂow. Another requirement of this type:
+“every call in every program execution eventually returns.”
+We will now list a few properties of regular languages of nested words. The
+details may be found in the original papers [7,6,5].
+•The class of regular languages of nested words is (eﬀectively) closed under
+union, intersection, complementation, and projection.
+•Language membership, inclusion, and emptiness are decidable.
+•Automata on ﬁnite nested words can be determinized.
+•Automata on ﬁnite nested words can be characterized using Myhill-Nerode-
+style congruences, and a subclass of these may be reduced to a unique
+minimum form.
+•Automata on ﬁnite or inﬁnite nested words are expressively equivalent to
+monadic second order logic (MSO) augmented with a binary “jump” pred-
+icate capturing the jump-edge relation in nested words. This generalizes
+the equivalence of regular word languages and the logic S1S.
+An alternative way to specify linear-time behaviors of nested executions
+of programs is to use temporal logics on nested words . First consider the logic
+Caret [4], which may be viewed as an extension of LTL on nested words. Like
+LTL, this logic has formulas such as /circlecopyrtϕ(the property ϕholds at the next time
+point), /squareϕ(ϕholds at every point in the present and future), and ♦ϕ(ϕholds
+eventually). The formulas are evaluated as LTL formulas on the word win a
+nested wordW= (w,֒→.) In addition, Caret deﬁnes the notion of an “abstract
+successor” in a nested word—the abstract successor of a call position is its jump-
+successor, and that of a return or local position is its successor—and has formul as
+such as/circlecopyrtaϕ(the property ϕholds at the abstract successor) and ♦aϕ(ϕholds at
+some future point in the current context). The full syntax and semantics may be
+found in the original reference. For a concrete example, consider the property we
+speciﬁed earlier using nested word automata. In Caret , this speciﬁcation is given
+by a formula ϕ=/square(wr⇒♦ard), which is interpreted as “every write is followed
+(not necessarily immediately) by a read in the same context,” and asserted at t he
+initial program state. So far as model-checking goes, every Caret speciﬁcation
+may be compiled into an equivalent (and, at worst, exponentially larger) B ¨ uchi
+NWA, so that the model-checking problem for Caret reduces to that for NWAs.
+More recently, the linear-time µ-calculus has been extended to nested word
+models [13]. This logic has modalities /circlecopyrtand/circlecopyrta, which assert requirements
+respectively at the successor and abstract successor of a position, and, in addition,
+has set-valued variables xand ﬁxpoint formulas such as µX.ϕ(X). We will not
+
+--- Page 13 ---
+go into the details in this paper, but recall that a property “a position sati sfying
+rdis reached eventually” can be stated in the linear-time µ-calculus as ϕ=
+µX.(rd∨/circlecopyrtX) (the notation is standard and hence not deﬁned in detail). A
+property “ rdis reached eventually in the current context” is expressed in the
+linear-time µ-calculus on nested words by the formula ϕ=µX.(rd∨/circlecopyrtaX). It
+turns out that this logic has a number of attractive properties—for example, it is
+expressively equivalent to MSO-logic interpreted on nested words, and collapses
+to its alternation-free fragment on ﬁnite nested words. Like Caret , formulas in
+this logic can also be compiled into equivalent NWAs.
+3.2. A ﬁxpoint calculus on nested trees
+Now we introduce a ﬁxpoint calculus, known as NT- µ, for nested trees [2]. This
+logic may be viewed as an analog of the modal µ-calculus for nested trees. Recall
+that aµ-calculus formula is interpreted at a state sof a program, or, equivalently,
+on the full subtree rooted at a node corresponding to sin the program’s tree
+unfolding. NT- µis interpreted on substructures of nested trees wholly contained
+within “procedural” contexts; such a structure models the branching behavior
+of a program from a state sto each exit point of its context. Also, to demand
+diﬀerent temporal requirements at diﬀerent exits, we introduce a coloring of these
+exits—intuitively, an exit gets color iif it is to satisfy the i-th requirement.
+Formally, let a node tofTbe called a matching exit of a nodesif there is an
+s′such thats′+−→sands′֒→t, and there are no s′′,t′′such thats′+−→s′′+−→
+s+−→t′′, ands′′֒→t′′. Intuitively, a matching exit of sis the ﬁrst “unmatched”
+return along some path from s—for instance, in Fig. 1-(a), the node s8is the
+single matching exit of the nodes s5,s6, ands7. Let the set of matching exits of s
+be denoted by ME(s). For a non-negative integer k, asummary sinTis a tuple
+/an}bracketle{ts,U1,U2,...,U k/an}bracketri}ht, wheresis a node,k≥0, andU1,U2,...,U k⊆ME(s) (such
+a summary is said to be rooted ats). The set of summaries in a nested tree Tis
+denoted by SummT. Note that such colored summaries are deﬁned for all s, not
+just “entry” nodes of procedures.
+In addition to being interpreted over summaries, the logic NT- µ, can distin-
+guish between call, return and local edges in a nested tree via modalities such as
+/an}bracketle{tcall/an}bracketri}ht,/an}bracketle{tret/an}bracketri}ht, and/an}bracketle{tloc/an}bracketri}ht. Also, an NT- µformula can enforce diﬀerent “return con-
+ditions” at diﬀerently colored returns by passing subformulas as “parameters” t o
+callmodalities. Let APbe a ﬁnite set of atomic propositions, Varbe a ﬁnite set
+ofvariables , andR1,R2,...be a countable, ordered set of markers . Forp∈AP,
+X∈Var, andm≥0, formulas ϕof NT-µare deﬁned by:
+ϕ,ψ i:=p|¬p|X|/an}bracketle{tret/an}bracketri}ht(Ri)|[ret](Ri)|ϕ∨ϕ|ϕ∧ϕ|µX.ϕ|νX.ϕ|
+/an}bracketle{tcall/an}bracketri}ht(ϕ){ψ1,ψ2,...,ψ m}|[call](ϕ){ψ1,ψ2,...,ψ m}|/an}bracketle{tloc/an}bracketri}htϕ|[loc]ϕ.
+Intuitively, the markers Riin a formula are bound by /an}bracketle{tcall/an}bracketri}htand [call]
+modalities, and variables Xare bound by ﬁxpoint quantiﬁers µXandνX. The
+set of free variables is deﬁned in the usual way. Also, we require our call-
+formulas to bind all the markers in their scope—for example, formulas such as
+ϕ=/an}bracketle{tcall/an}bracketri}ht(p∧/an}bracketle{tret/an}bracketri}htR1){q}∧/an}bracketle{tret/an}bracketri}htR1are not permitted. A formula that satis-
+ﬁes this criterion is called closed if it has no free variables. The arityof a for-
+
+--- Page 14 ---
+(c) (b) (a)
+s1
+s2color 1 color 1
+color 2color 2s
+s′
+r1 r2 r2s′s
+fooP1
+P2P′
+1
+P′
+2
+Figure 2. (a) Local modalities (b) Call modalities (c) Matching conte xts.
+mulaϕis the maximum msuch thatϕhas a subformula /an}bracketle{tcall/an}bracketri}htϕ′{ψ1,...,ψ m}or
+[call]ϕ′{ψ1,...,ψ m}. Also, we deﬁne the constants ttandﬀin the standard way.
+Like in the µ-calculus, formulas in NT- µencode sets, in this case sets of
+summaries. Also like in the µ-calculus, modalities and boolean and ﬁxed-point
+operators allow us to encode computations on these sets.
+To understand the semantics of local (e.g. /an}bracketle{tloc/an}bracketri}ht) modalities in NT- µ, consider
+a nodesin a nested tree with a local edge to a node s′. Note that ME(s′)⊆
+ME(s), and consider two summaries sands′rooted respectively at sands′.
+Now look at Fig. 2-a. Note that the substructure Ts′captured by the summary s′
+“hangs”’ from the substructure for sby a local edge; additionally, (1) every leaf
+ofTs′is a leaf ofTs, and (2) such a leaf gets the same color in sands′. A formula
+/an}bracketle{tloc/an}bracketri}htϕasserted at srequires some s′as above to satisfy ϕ.
+Succession along call edges is more complex, because along such an edge, a
+new context gets deﬁned. Suppose we have scall−→s′, and let there be no other
+edges from s. Consider the summary s=/an}bracketle{ts,{s1},{s2,s3}/an}bracketri}ht, and suppose we want
+to assert a 2-parameter call formula /an}bracketle{tcall/an}bracketri}htϕ′{p1,p2}ats. This requires us to
+consider a 2-colored summary of the context starting at s′, where matching returns
+ofs′satisfyingp1andp2are respectively marked by colors 1 and 2. Our formula
+requires that s′satisﬁesϕ′. In general, we could have formulas of the form ϕ=
+/an}bracketle{tcall/an}bracketri}htϕ′{ψ1,ψ2,...,ψ k}, whereψiare arbitrary NT- µformulas. We ﬁnd that the
+above requires a split of the nested tree Tsfor summary sin the way shown in
+Fig. 2-b. The root of this tree must have a call-edge to the root of the tree for s′,
+which must satisfy ϕ. At each leaf ofTs′coloredi, we must be able to concatenate
+a summary treeTs′′satisfyingψisuch that (1) every leaf in Ts′′is a leaf ofTs,
+and (2) each such leaf gets the same set of colors in TsandTs′′.
+The return modalities are used to assert that we return at a point colored
+i. As the binding of these colors to requirements gets ﬁxed at a context calling
+the current context, the ret-modalities let us relate a path in the latter with the
+continuation of a path in the former. For instance, in Fig. 2-c, where the rectang le
+abstracts the part of a program unfolding within the body of a procedure foo,
+the marking of return points s1ands2by colors 1 and 2 is visible inside fooas
+well as at the call site of foo. This lets us match paths P1andP2insidefoo
+respectively with paths P′
+1andP′
+2in the calling procedure. This lets NT- µcapture
+the pushdown structure of branching-time runs of a procedural program.
+
+--- Page 15 ---
+Let us now describe the semantics of NT- µformally. An NT- µformulaϕ
+is interpreted in an environment that interprets variables in Free(ϕ) as sets of
+summaries in a nested tree T. Formally, an environment is a mapE:Free(ϕ)→
+2SummT. Let us write [ [ ϕ] ]T
+Eto denote the set of summaries in Tsatisfyingϕ
+in environmentE(usuallyTwill be understood from the context, and we will
+simply write [ [ ϕ] ]E). For a summary s=/an}bracketle{ts,U1,U2,...,U k/an}bracketri}ht, wheres∈Sand
+Ui⊆ME(s) for alli,ssatisﬁesϕ, i.e.,s∈[ [ϕ] ]E, iﬀ one of the following holds:
+•ϕ=p∈APandp∈λ(s)
+•ϕ=¬pfor somep∈AP, andp /∈λ(s)
+•ϕ=X, ands∈E(X)
+•ϕ=ϕ1∨ϕ2such that s∈[ [ϕ1] ]Eors∈[ [ϕ2] ]E
+•ϕ=ϕ1∧ϕ2such that s∈[ [ϕ1] ]Eands∈[ [ϕ2] ]E
+•ϕ=/an}bracketle{tcall/an}bracketri}htϕ′{ψ1,ψ2,...,ψ m}, and there is a t∈Ssuch that (1) scall−→t,
+and (2) the summary t=/an}bracketle{tt,V1,V2,...,V m/an}bracketri}ht, where for all 1 ≤i≤m,
+Vi=ME(t)∩{s′:/an}bracketle{ts′,U1∩ME(s′),...,U k∩ME(s′)/an}bracketri}ht∈[ [ψi] ]E}, is such
+thatt∈[ [ϕ′] ]E
+•ϕ= [call]ϕ′{ψ1,ψ2,...,ψ m}, and for all t∈Ssuch thatscall−→t, the
+summary t=/an}bracketle{tt,V1,V2,...,V m/an}bracketri}ht, where for all 1≤i≤m,Vi=ME(t)∩{s′:
+/an}bracketle{ts′,U1∩ME(s′),...,U k∩ME(s′)/an}bracketri}ht∈[ [ψi] ]E}, is such that t∈[ [ϕ′] ]E
+•ϕ=/an}bracketle{tloc/an}bracketri}htϕ′, and there is a t∈Ssuch thatsloc−→tand the summary
+t=/an}bracketle{tt,V1,V2,...,V k/an}bracketri}ht, whereVi=ME(t)∩Ui, is such that t∈[ [ϕ′] ]E
+•ϕ= [loc]ϕ′, and for all t∈Ssuch thatsloc−→t, the summary t=
+/an}bracketle{tt,V1,V2,...,V k/an}bracketri}ht, whereVi=ME(t)∩Ui, is such that t∈[ [ϕ′] ]E
+•ϕ=/an}bracketle{tret/an}bracketri}htRi, and there is a t∈Ssuch thatsret−→tandt∈Ui
+•ϕ= [ret]Ri, and for all t∈Ssuch thatsret−→t, we havet∈Ui
+•ϕ=µX.ϕ′, ands∈Sfor all S⊆SummTsatisfying [ [ ϕ′] ]E[X:=S]⊆S
+•ϕ=νX.ϕ′, and there is some S⊆SummTsuch that (1) S⊆[ [ϕ′] ]E[X:=S]
+and (2) s∈S.
+HereE[X:=S] is the environment E′such that (1)E′(X) =S, and (2)E′(Y) =
+E(Y) for all variables Y/ne}ationslash=X. We say a node ssatisﬁes a formulaϕif the 0-
+colored summary /an}bracketle{ts/an}bracketri}htsatisﬁesϕ. A nested treeTrooted ats0is said satisfy ϕif
+s0satisﬁesϕ(we denote this by T |=ϕ). The language of ϕ, denoted byL(ϕ), is
+the set of nested trees satisfying ϕ.
+While formulas such as ¬ϕ(negation of ϕ) are not directly given by the
+syntax of NT- µ, we can show that closed formulas of NT- µare closed under
+negation. Also, note that the semantics of closed NT-µformulas is independent
+of the environment. Also, the semantics of such a formula ϕdoes not depend on
+current color assignments; in other words, a summary s=/an}bracketle{ts,U1,...,U k/an}bracketri}htsatisﬁes
+a closed formula iﬀ /an}bracketle{ts/an}bracketri}htsatisﬁesϕ. Consequently, when ϕis closed, we can infer that
+“nodessatisﬁesϕ” from “summary ssatisﬁesϕ.” Finally, every NT- µformula
+ϕ(X) with a free variable Xcan be viewed as a map ϕ(X) : 2SummT→2SummT
+deﬁned as follows: for all environments Eand all summary sets S⊆SummT,
+ϕ(X)(S) = [ [ϕ(X)] ]E[X:=S].It is not hard to verify that this map is monotonic,
+and that therefore, by the Tarski-Knaster theorem, its least and greatest ﬁxed
+points exist. The formulas µX.ϕ(X) andνX.ϕ(X) respectively evaluate to these
+
+--- Page 16 ---
+two sets. This means the set of summaries satisfying µX.ϕ(X), for instance, lies
+in the sequence of summary sets ∅,ϕ(∅),ϕ(ϕ(∅)),....
+Just as the µ-calculus can encode linear-time logics such as LTL as well
+as branching-time logics such as CTL, NT- µcan capture linear and branching
+properties on nested trees. Let us now specify our example program using a couple
+of requirements. Consider the simple property Reach asserted at the initial state
+of the program: “the instruction read(x) is reachable from the current node.” Let
+us continue to use the atomic propositions rd,wr, etc. that we have been using
+through the paper. This property may be stated in the µ-calculus as ϕReach =
+(µX.rd∨/an}bracketle{t/an}bracketri}htX) (the notation is standard—for instance, /an}bracketle{t/an}bracketri}htϕholds at a node iﬀ
+ϕholds at a node reached by some edge). However, let us try to deﬁne it using
+NT-µ.
+First consider a nontrivial witness πforReach that starts with an edge scall−→
+s′. There are two possibilities: (1) a node satisfying rdis reached in the new
+context or a context called transitively from it, and (2) a matching return s′′of
+s′is reached, and at s′′,Reach is once again satisﬁed.
+To deal with case (2), we mark a matching return that leads to rdby color
+1. LetXstore the set of summaries of form /an}bracketle{ts′′/an}bracketri}ht, wheres′′satisﬁes Reach . Then
+we want the summary /an}bracketle{ts,ME(s)/an}bracketri}htto satisfy/an}bracketle{tcall/an}bracketri}htϕ′{X}, whereϕ′states that s′
+can reach one of its matching returns of color 1. In case (1), there is no return
+requirement (we do not need the original call to return), and we simply assert
+/an}bracketle{tcall/an}bracketri}htX{}.
+Before we get to ϕ′, note that the formula /an}bracketle{tloc/an}bracketri}htXcaptures the case when π
+starts with a local transition. Combining the two cases, the formula we wa nt is
+ϕReach =µX.(rd∨/an}bracketle{tloc/an}bracketri}htX∨/an}bracketle{tcall/an}bracketri}htX{}∨/an}bracketle{tcall/an}bracketri}htϕ′{X}).
+Now observe that ϕ′also expresses reachability, except (1) its target needs
+to satisfy/an}bracketle{tret/an}bracketri}htR1, and (2) this target needs to lie in the same procedural context
+ass′. It is easy to verify that: ϕ′=µY.(/an}bracketle{tret/an}bracketri}htR1∨/an}bracketle{tloc/an}bracketri}htY∨/an}bracketle{tcall/an}bracketri}htY{Y}).
+Let us now suppose we are interested in local reachability : “a node satisfying
+rdis reached in the current context.” This property cannot be expressed by
+ﬁnite-state automata on words or trees, and hence cannot be captured by the
+µ-calculus. However, we note that the property ϕ′is very similar in spirit to this
+property. While we cannot merely substitute rdfor/an}bracketle{tret/an}bracketri}htR1inϕ′to express local
+reachability of rd, a formula for this property is easily obtained by restricting the
+formula for reachability: ϕLocalReach =µX.(rd∨/an}bracketle{tloc/an}bracketri}htX∨/an}bracketle{tcall/an}bracketri}htϕ′{X}).
+Note that the highlight of this approach to speciﬁcation is the way we split a
+program unfolding along procedure boundaries, specify these “pieces” modularly,
+and plug the summary speciﬁcations so obtained into their call sites. This “in-
+terprocedural” reasoning distinguishes it from logics such as the µ-calculus that
+would reason only about global runs of the program.
+Also, there is a signiﬁcant diﬀerence in the way ﬁxpoints are computed in NT-
+µand theµ-calculus. Consider the ﬁxpoint computation for the µ-calculus formula
+µX.(rd∨/an}bracketle{t/an}bracketri}htX) that expresses reachability of a node satisfying rd. The semantics
+of this formula is given by a set SXof nodes which is computed iteratively. At
+the end of the i-th step,SXcomprises nodes that have a path with at most
+(i−1) transitions to a node satisfying rd. Contrast this with the evaluation of the
+outer ﬁxpoint in the NT-µformulaϕReach. Assume that ϕ′(intuitively, the set
+
+--- Page 17 ---
+of “jumps” from calls to returns”) has already been evaluated, and consider the
+setSXof summaries for ϕReach. At the end of the i-th phase, this set contains all
+s=/an}bracketle{ts/an}bracketri}htsuch thatshas a path consisting of ( i−1)callandloc-transitions to a node
+satisfying rd. However, because of the subformula /an}bracketle{tcall/an}bracketri}htϕ′{X}, it also includes all
+swheresreaches rdvia a path of at most ( i−1) local and “jump” transitions.
+Note how return edges are considered only as part of summaries plugged into the
+computation.
+More details about speciﬁcation using NT- µmay be found in the original
+reference [2]. Here we list some other requirements expressible in NT- µ:
+•Any closedµ-calculus formula, as well as any property expressible in Caret
+or automata on nested words, may be expressed in NT- µ. Consequently,
+NT-µcan express pre/post-conditions on procedures, access control re-
+quirements involving the stack, and requirements on the height of the stack,
+as well as traditional linear and branching-time requirements.
+•Interprocedural dataﬂow requirements: It is well-known that many classic
+dataﬂow analysis problems, such as determining whether an expression is
+very busy, can be reduced to the problem of ﬁnding the set of program
+points where a certain µ-calculus property holds [20]. However, the µ-
+calculus is unable to state that an expression is very busy at a program
+point if it has local as well as global variables and we are interested in i n-
+terprocedural paths—the reason is that dataﬂow involving global variables
+follows a program execution through procedure calls, while dataﬂow for
+local variables “jumps” across procedure calls, and the µ-calculus cannot
+track them both at the same time. On the other hand, the ability of NT- µ
+to assert requirements along jump-edges as well as tree edges lets it express
+such requirements.
+We end this discussion by listing some known mathematical properties of
+NT-µ.
+•Generalizing the notion of bisimulation on trees, we may deﬁne bisimulation
+relations on nested trees [2]. Then two nested trees satisfy the same set of
+closed NT-µformulas iﬀ they are bisimilar.
+•The satisﬁability problem for NT- µis undecidable [2].
+•Just as the modal µ-calculus is expressively equivalent to alternating parity
+tree automata, NT- µhas an automata-theoretic characterization. General-
+izing automata on nested words, we can deﬁne automata on nested trees;
+generalizing further, we can deﬁne alternating parity automata on nested
+trees. It turns out that every closed formula of NT- µhas a polynomial
+translation to such an automaton accepting the same set of nested trees,
+and vice versa [3].
+4. Model-checking
+In this section, we show how to model-check speciﬁcations on nested structures
+generated by NSMs. Our chosen speciﬁcation language in this section is the logic
+NT-µ—the reason is that it can express linear as well as branching-time temporal
+
+--- Page 18 ---
+speciﬁcations, and lends itself to iterative, symbolic model-checking. Appealing ly,
+this algorithm follows directly from the operational semantics of the lo gic and
+has the same complexity (EXPTIME) as the best algorithms for model-checking
+CTL or the alternation-free µ-calculus over similar abstractions.
+For a speciﬁcation given by a (closed) NT- µformulaϕand an NSMMab-
+stracting a program, the model-checking problem is to determine if T(M) sat-
+isﬁesϕ. It is also useful to deﬁne the model-checking problem for NWAs: here,
+a problem instance comprises an NSM Mabstracting a program, and an NWA
+A¬accepting the nested words that model program executions that are not ac-
+ceptable . The model-checking problem in this case is whether any of the possible
+program traces are “bad”, i.e., if L(M)∩L(A¬) is non-empty. Of course, instead
+of phrasing the problem this way, we could have also let the instance consist of
+an NSM and a speciﬁcation automaton A′, in which case we would have to check
+ifL(M)∩L(A′) is non-empty. However, complementation of A′, while possible,
+is costly, and this approach would not be practical.
+Now, intersection of the languages of two NWAs is done by a product con-
+struction [6]. The model-checking problem thus boils down to checking the empti-
+ness of a B¨ uchi NWA A. Let us now view Aas an NSM where a state is marked by
+a proposition giﬀ it is a B¨ uchi accepting state. An NWA on inﬁnite nested words
+is then non-empty iﬀ there are inﬁnitely many occurrences of galong some path
+in the unfolding of A, a requirement can be expressed as a ﬁxpoint formula in the
+µ-calculus, and hence NT- µ. To determine that an NWA on ﬁnite nested words is
+non-empty, we merely need to ensure that a node satisfying gis reachable in this
+unfolding—an NT- µformula for this property is as in the example in Sec. 3.2.
+We will now show how to do NT- µmodel-checking for an NSM Mwith vertex
+setVand an NT- µformulaϕ. Consider a node sin the nested tree TV(M). The
+setME(s), as well as the return-formulas that hold at a summary srooted at
+s, depend on states at call nodes on the path from the root to s. However, we
+observe that the history of call-nodes up to sis relevant to a formula only because
+they may be consulted by return-nodes in the future, and no formula interpreted
+atscan probe “beyond” the nodes in ME(s). Thus, so far as satisfaction of a
+formula goes, we are only interested in the last“pending” call-node; in fact, the
+state of the automaton at this node is all that we need to record about the past.
+Let us now try to formalize this intuition. First we deﬁne the unmatched call-
+ancestor Anc (s) of a nodesin a nested treeT. Consider the tagged tree of T, and
+recall the deﬁnition of a balanced word over tags (given in Sec. 2.1). If t=Anc(s),
+then we require that tcall−→t′for some node t′such that in the tagged tree of T,
+there is a path from t′tosthe edge labels along which concatenate to form a
+balanced word. Note that every node in a nested tree has at most one unmatched
+call-ancestor. If a node sdoes not have such an ancestor, we set Anc(s) =⊥.
+Now consider two k-colored summaries s=/an}bracketle{ts,U1,U2,...,U k/an}bracketri}htands′=
+/an}bracketle{ts′,U′
+1,U′
+2,...,U′
+k/an}bracketri}htin the unfoldingTV(M) = (T,֒→,λ) of the NSMM, and let
+Anc(s) =tandAnc(s′) =t′, wheret,t′can be nodes or the symbol ⊥(note that
+if we have Anc(s) =⊥, then ME(s) =∅, so thatUi=∅for alli).
+Now we say sands′areNSM-equivalent (written as s≡s′) if:
+•λ(s) =λ(s′);
+•eithert=t′=⊥, orλ(t) =λ(t′);
+
+--- Page 19 ---
+•for each 1≤i≤k, there is a bijection Ω i:Ui→U′
+isuch that for all u∈Ui,
+we haveλ(u) =λ(Ωi(u)).
+It is easily seen that the relation ≡is an equivalence. We can also prove that
+any two NSM-equivalent summaries sands′satisfy the same set of closed NT- µ
+formulas.
+Now note that the number of equivalence classes that ≡induces on the set
+of summaries is bounded! Each such equivalence class may be represented by a
+tuple/an}bracketle{tv,v′,V1,...,V k/an}bracketri}ht, wherev∈V,v′∈V∪{⊥} , andVi⊆Vfor alli—for the
+class of the summary sabove, for instance, we have λ(s) =vandλ(Ui) =Vi; we
+also haveλ(t) =v′in caset/ne}ationslash=⊥, andv′=⊥otherwise. Let us call such a tuple a
+bounded summary . The idea behind the model-checking algorithm of NT- µis that
+for any formula ϕ, we can maintain, symbolically, the set of bounded summaries
+that satisfy it. Once this set is computed, we can compute the set of bounded
+summaries for formulas deﬁned inductively in terms of ϕ. This computation fol-
+lows directly from the semantics of the formula; for instance, the set for the f or-
+mula/an}bracketle{tloc/an}bracketri}htϕcontains all bounded summaries /an}bracketle{tv,v′,V1,...,V k/an}bracketri}htsuch that for some
+v′′∈V, we havevloc−→v′′, and, letting V′′
+icomprise the elements of Vithat are
+reachable from v′′,/an}bracketle{tv′′,v′,V′′
+1,...,V′′
+k/an}bracketri}htsatisﬁesϕ.
+Let us now deﬁne bounded summaries formally. Consider any state uin an
+NSMMwith state set V. A stateu′is said to be the unmatched call-ancestor
+stateof stateuif there is a node slabeleduinTV(M) such that u′is the label of
+the unmatched call-ancestor of s(we have a predicate Anc V(u′,u) that holds iﬀ
+this is true). Note that a state may have multiple unmatched call-ancestor stat es.
+If there is a node slabeleduinTV(M) such that Anc(s) =⊥, we set Anc V(⊥,u).
+A statevis amatching exit state for a pair (u,u′), where Anc V(u′,u), if there
+are nodess,s′,tinTV(M) such that t∈ME(s),s′is the unmatched call-ancestor
+ofs, and labels of s,s′, andtareu,u′, andvrespectively (a pair ( u,⊥) has no
+matching exit state).
+The modeling intuition is that from a program state modeled by NSM state
+uand a stack with a single frame modeled by the state u′, control may reach a u′′
+in the same context, and then return at the state vvia a transition ( u′′,u′)ret−→v.
+Using well-known techniques for pushdown models [1], we can compute, given a
+stateu, the set ofu′such that Anc V(u′,u), and for every member u′of the latter,
+the set MES(u,u′) of matching exit states for ( u,u′), in time polynomial in the
+size ofM.
+Now, letnbe the arity of the formula ϕin whose model-checking problem we
+are interested. A bounded summary is a tuple/an}bracketle{tu,u′,V1,...,V k/an}bracketri}ht, where 0≤k≤n,
+Anc V(u′,u) and for all i, we haveVi⊆MES(u,u′). The set of all bounded
+summaries inMis denoted by BS.
+LetESL:Free(ϕ)→2BSbe an environment mapping free variables in ϕto
+sets of bounded summaries, and let E∅denote the empty environment. We deﬁne
+a map Eval(ϕ,ESL) assigning a set of bounded summaries to a NT-µformulaϕ:
+•Ifϕ=p, forp∈AP, then Eval(ϕ,ESL) consists of all bounded summaries
+/an}bracketle{tu,u′,V1,...,V k/an}bracketri}htsuch thatp∈κ(u) andk≤n.
+•Ifϕ=¬p, forp∈AP, then Eval(ϕ,ESL) consists of all bounded summaries
+/an}bracketle{tu,u′,V1,V2,...,V k/an}bracketri}htsuch thatp /∈κ(u) andk≤n.
+
+--- Page 20 ---
+•Ifϕ=X, forX∈Var, then Eval(ϕ,ESL) =ESL(X).
+•Ifϕ=ϕ1∨ϕ2thenEval(ϕ,ESL) =Eval(ϕ1,ESL)∪Eval(ϕ2,ESL).
+•Ifϕ=ϕ1∧ϕ2thenEval(ϕ,ESL) =Eval(ϕ1,ESL)∩Eval(ϕ2,ESL).
+•Ifϕ=/an}bracketle{tcall/an}bracketri}htϕ′{ψ1,...,ψ m}, then Eval(ϕ,ESL) consists of all bounded
+summaries/an}bracketle{tu,u′,V1,...,V k/an}bracketri}htsuch that for some transition ucall−→u′′of
+M, we have a bounded summary /an}bracketle{tu′′,u′′,V′
+1,V′
+2,...,V′
+m/an}bracketri}ht∈Eval(ϕ′,ESL),
+and for all v∈V′
+i, wherei= 1,...,m , we have/an}bracketle{tv,u′,V′′
+1,...,V′′
+k/an}bracketri}ht ∈
+Eval(ψi,ESL), whereV′′
+j=Vj∩MES(v,u′) for allj≤k.
+•Ifϕ= [call]ϕ′{ψ1,...,ψ m}, then Eval(ϕ,ESL) consists of all bounded sum-
+maries/an}bracketle{tu,u′,V1,...,V k/an}bracketri}htsuch that for all u′′such that there is a transition
+ucall−→u′′inM, we have a bounded summary /an}bracketle{tu′′,u′′,V′
+1,V′
+2,...,V′
+m/an}bracketri}ht ∈
+Eval(ϕ′,ESL), and for all v∈V′
+i, wherei= 1,...,m , we have
+/an}bracketle{tv,u′,V′′
+1,...,V′′
+k/an}bracketri}ht∈Eval(ψi,ESL), whereV′′
+j=Vj∩MES(v,u′) for all
+j≤k.
+•Ifϕ=/an}bracketle{tloc/an}bracketri}htϕ′, then Eval(ϕ,ESL) consists of all bounded summaries
+/an}bracketle{tu,u′,V1...,V k/an}bracketri}htsuch that for some vsuch that there is a transition uloc−→v,
+we have/an}bracketle{tv,u′,V1∩MES(v,u′),...,V k∩MES(v,u′)/an}bracketri}ht∈Eval(ϕ′,ESL).
+•Ifϕ=/an}bracketle{tloc/an}bracketri}htϕ′, then Eval(ϕ,ESL) consists of all bounded summaries
+/an}bracketle{tu,u′,V1...,V k/an}bracketri}htsuch that for some vsuch that there is a transition uloc−→v,
+we have/an}bracketle{tv,u′,V1∩MES(v,u′),...,V k∩MES(v,u′)/an}bracketri}ht∈Eval(ϕ′,ESL).
+•Ifϕ=/an}bracketle{tret/an}bracketri}htRi, then Eval(ϕ,ESL) consists of all bounded summaries
+/an}bracketle{tu,u′,V1,...,V k/an}bracketri}htsuch that (1) Vi={u′′}, (2)Mhas a transition
+(u,u′)ret−→u′′, and (3) for all j/ne}ationslash=i,Vj=∅.
+•Ifϕ=/an}bracketle{tret/an}bracketri}htRi, then Eval(ϕ,ESL) consists of all bounded summaries
+/an}bracketle{tu,u′,V1,...,V k/an}bracketri}htsuch that for all transitions of the form ( u,u′)ret−→u′′,
+we have (1) Vi={u′′}, and (2) for all j/ne}ationslash=i,Vj=∅.
+•Ifϕ=µX.ϕ′, then Eval(ϕ,ESL) =FixPoint (X,ϕ′,ESL[X:=∅]).
+•Ifϕ=νX.ϕ′, then Eval(ϕ,ESL) =FixPoint (X,ϕ′,ESL[X:=BS]).
+HereFixPoint (X,ϕ,ESL) is a ﬁxpoint computation function that uses the for-
+mulaϕas a monotone map between subsets of BS, and iterates over variable X.
+This computation is as in Algorithm 1:
+Algorithm 1 CalculateFixPoint (X,ϕ,ESL)
+X′←Eval(ϕ,ESL)
+ifX′=ESL(X)then
+returnX′
+else
+returnFixPoint (X,ϕ′,ESL[X:=X′])
+end if
+Now we can easily show that for an NSM Mwith initial state vinand a closed
+NT-µformulaϕ,T(M) satisﬁesϕif and only if/an}bracketle{tvin/an}bracketri}ht∈Eval(ϕ,E∅), and that
+Eval(ϕ,E∅) is inductively computable. To understand this more concretely, let us
+see how this model-checking algorithm runs on our running example. Consider
+the NSM abstraction Mfooin Sec. 2.3, and suppose we want to check if a write
+
+--- Page 21 ---
+action is locally reachable from the initial state. The NT- µproperty specifying
+this requirement is ϕ=µX.(wr∨/an}bracketle{tloc/an}bracketri}htX∨/an}bracketle{tcall/an}bracketri}htϕ′{X}),whereϕ′=µY.(/an}bracketle{tret/an}bracketri}htR1∨
+/an}bracketle{tloc/an}bracketri}htY∨/an}bracketle{tcall/an}bracketri}htY{Y}).
+We show how to compute the set of bounded summaries satisfying ϕ′—
+the computation for ϕis very similar. After the ﬁrst iteration of the ﬁxpoint
+computation that builds this set, we obtain the set S1={{/an}bracketle{tv5,v2,{v′
+2}/an}bracketri}ht}
+(the set of summaries satisfying /an}bracketle{tret/an}bracketri}htR1). After the second step, we obtain
+S2=S1∪{/an}bracketle{tv′
+2,v2,{v′
+2}/an}bracketri}ht,/an}bracketle{tv3,v2,{v′
+2}/an}bracketri}ht,/an}bracketle{tv4,v2,{v′
+2}/an}bracketri}ht}, and the next set computed
+isS3=S2∪{/an}bracketle{tv1,v2,{v′
+2}/an}bracketri}ht}. Note that in these two steps, we only use local
+edges in the NSM. Now, however, we have found a bounded summary starting
+at the “entry state” of the procedure foo, which may be plugged into the recur-
+sive call to foo. More precisely, we have ( v2,v1)∈∆call,/an}bracketle{tv1,v2,{v′
+2}/an}bracketri}ht∈S3, and
+/an}bracketle{tv′
+2,v2,{v′
+2}/an}bracketri}ht∈S3, so that we may now construct S4=S3∪/an}bracketle{tv2,v2,{v′
+2}/an}bracketri}ht. This
+ends the ﬁxpoint computation, so that S4is the set of summaries satisfying ϕ′.
+Let us now analyze the complexity of this algorithm. Let NVbe the number
+of states inM, and letnbe the arity of the formula in question. Then the
+total number of bounded summaries in Mthat we need to consider is bounded
+byN=N2
+V2NVn. Let us now assume that union or intersection of two sets of
+summaries, as well as membership queries on such sets, take linear time. It is easy
+to see that the time needed to evaluate a non-ﬁxpoint formula ϕof arityn≤|ϕ|
+is bounded by O(N2|ϕ|Nv) (the most expensive modality is /an}bracketle{tcall/an}bracketri}htϕ′{ψ1,...,ψ n},
+where we have to match an “inner” summary satisfying ϕ′as well asn“outer”
+summaries satisfying the ψi-s). For a ﬁxpoint formula ϕwith one ﬁxpoint variable,
+we may need Nsuch evaluations, so that the total time required to evaluate
+Eval(ϕ,E∅) isO(N3|ϕ|NV). For a formula ϕof alternation depth d, this evaluation
+takes timeO(N3dNd
+V|ϕ|), i.e., exponential in the sizes of Mas well asϕ.
+It is known that model-checking alternating reachability speciﬁcations on a
+pushdown model is EXPTIME -hard [24]. It is not hard to generate a NT- µ
+formulaϕfrom aµ-calculus formula fexpressing such a property such that (1)
+the size ofϕis linear in the size of f, and (2)Msatisﬁesϕif and only ifMsatisﬁes
+f. It follows that model-checking a closed NT- µformulaϕon an NSMMis
+EXPTIME -hard. Combining, we conclude that model-checking a NT- µformula
+ϕon an NSMMisEXPTIME -complete. Better bounds may be obtained if the
+formula has a certain restricted form. For instance, it can be shown that for l inear
+time (B¨ uchi or reachability) requirements, model-checking takes time polyno mial
+in the number of states of M. The reason is that in this case, it suﬃces to only
+consider bounded summaries of the form /an}bracketle{tv,v′,{v′′}/an}bracketri}ht, which are polynomial in
+number. The ﬁxpoint computation stays the same.
+Note that our decision procedure is very diﬀerent from known methods for
+branching-time model-checking of pushdown models [24,12]. The latter are not
+really implementable; our algorithm, being symbolic in nature, seems to be a s tep
+in the direction of practicality. An open question here is how to represent sets
+of bounded summaries symbolically. Also, note that our algorithm directly i m-
+plements the operational semantics of NT- µformulas over bounded summaries.
+In this regard NT- µresembles the modal µ-calculus, whose formulas encode ﬁx-
+point computations over sets; to model-check µ-calculus formulas, we merely need
+
+--- Page 22 ---
+to perform these computations. Unsurprisingly, our procedure is very similar to
+classical symbolic model-checking for the µ-calculus.
+References
+[1] R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. Reps, a nd M. Yannakakis. Analysis
+of recursive state machines. ACM Transactions on Programming Languages and Systems ,
+27(4):786–818, 2005.
+[2] R. Alur, S. Chaudhuri, and P. Madhusudan. A ﬁxpoint calcu lus for local and global
+program ﬂows. In Proceedings of the 33rd Annual ACM Symposium on Principles o f
+Programming Languages , 2006.
+[3] R. Alur, S. Chaudhuri, and P. Madhusudan. Languages of ne sted trees. In Computer-Aided
+Veriﬁcation, CAV’06 , 2006.
+[4] R. Alur, K. Etessami, and P. Madhusudan. A temporal logic of nested calls and returns. In
+TACAS’04: Tenth International Conference on Tools and Algo rithms for the Construction
+and Analysis of Software , LNCS 2988, pages 467–481. Springer, 2004.
+[5] R. Alur, V. Kumar, P. Madhusudan, and M. Viswanathan. Con gruences for visibly push-
+down languages. In Automata, Languages and Programming: Proceedings of the 32 nd
+ICALP , LNCS 3580, pages 1102–1114. Springer, 2005.
+[6] R. Alur and P. Madhusudan. Visibly pushdown languages. I nProceedings of the 36th
+ACM Symposium on Theory of Computing , pages 202–211, 2004.
+[7] R. Alur and P. Madhusudan. Adding nesting structure to wo rds. In Developments in
+Language Theory , 2006.
+[8] T. Ball, R. Majumdar, T.D. Millstein, and S.K. Rajamani. A utomatic predicate abstrac-
+tion of C programs. In SIGPLAN Conference on Programming Language Design and
+Implementation , pages 203–213, 2001.
+[9] T. Ball and S. Rajamani. Bebop: A symbolic model checker for boolean programs. In SPIN
+2000 Workshop on Model Checking of Software , LNCS 1885, pages 113–130. Springer,
+2000.
+[10] T. Ball and S. Rajamani. The SLAM toolkit. In Computer Aided Veriﬁcation, 13th
+International Conference , 2001.
+[11] L. Burdy, Y. Cheon, D. Cok, M. Ernst, J. Kiniry, G.T. Leave ns, R. Leino, and E. Poll. An
+overview of JML tools and applications. In Proceedings of the 8th International Workshop
+on Formal Methods for Industrial Critical Systems , pages 75–89, 2003.
+[12] O. Burkart and B. Steﬀen. Model checking the full modal mu- calculus for inﬁnite sequential
+processes. Theoretical Computer Science , 221:251–270, 1999.
+[13] H. Comon, M. Dauchet, R. Gilleron, D. Lugiez, S. Tison, a nd M. Tom-
+masi. Tree automata techniques and applications. Draft, Av ailable at
+http://www.grappa.univ-lille3.fr/tata/ , 2002.
+[14] B. Hackett, M. Das, D. Wang, and Z. Yang. Modular checking f or buﬀer overﬂows in the
+large. In ICSE, pages 232–241, 2006.
+[15] T.A. Henzinger, R. Jhala, R. Majumdar, G.C. Necula, G. S utre, and W. Weimer.
+Temporal-safety proofs for systems code. In CAV 02: Proc. of 14th Conf. on Computer
+Aided Veriﬁcation , LNCS 2404, pages 526–538. Springer, 2002.
+[16] C.A.R. Hoare. An axiomatic basis for computer programm ing.Communications of the
+ACM, 12(10):576–580, 1969.
+[17] O. Kupferman, M.Y. Vardi, and P. Wolper. An automata-th eoretic approach to branching-
+time model checking. Journal of the ACM , 47(2):312–360, 2000.
+[18] T. Reps. Program analysis via graph reachability. Information and Software Technology ,
+40(11-12):701–726, 1998.
+[19] T. Reps, S. Horwitz, and S. Sagiv. Precise interprocedu ral dataﬂow analysis via graph
+reachability. In Proceedings of the ACM Symposium on Principles of Programmi ng Lan-
+guages , pages 49–61, 1995.
+
+--- Page 23 ---
+[20] D.A. Schmidt. Data ﬂow analysis is model checking of abs tract interpretations. In Pro-
+ceedings of the 25th Annual ACM Symposium on Principles of Pr ogramming Languages ,
+pages 68–78, 1998.
+[21] M. Sharir and A. Pnueli. Two approaches to interprocedural data ﬂow analysis , chapter 7,
+pages 189–234. Prentice-Hall, Englewood Cliﬀs, NJ, 1981.
+[22] M.Y. Vardi and P. Wolper. An automata-theoretic approa ch to automatic program ver-
+iﬁcation. In Proceedings of the First IEEE Symposium on Logic in Computer Science ,
+pages 332–344, 1986.
+[23] D. S. Wallach and E. W. Felten. Understanding Java stack inspection. In IEEE Symp.
+on Security and Privacy , pages 52–63, 1998.
+[24] I. Walukiewicz. Pushdown processes: Games and model-c hecking. Information and Com-
+putation , 164(2):234–263, 2001.

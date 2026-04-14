@@ -1,0 +1,842 @@
+--- Page 1 ---
+Reachability for Updatable Timed Automata
+Made Faster and More Eﬀective
+Paul Gastin
+LSV, ENS Paris-Saclay, CNRS, Université Paris–Saclay, France
+paul.gastin@ens-paris-saclay.fr
+Sayan Mukherjee
+Chennai Mathematical Institute, India
+sayanm@cmi.ac.in
+B Srivathsan
+Chennai Mathematical Institute, India
+sri@cmi.ac.in
+Abstract
+Updatable timed automata (UTA) are extensions of classical timed automata that allow special
+updates to clock variables, like x:=x−1,x:=y+ 2, etc., on transitions. Reachability for UTA is
+undecidable in general. Various subclasses with decidable reachability have been studied. A generic
+approach to UTA reachability consists of two phases: ﬁrst, a static analysis of the automaton is
+performed to compute a set of clock constraints at each state; in the second phase, reachable sets of
+conﬁgurations, called zones, are enumerated. In this work, we improve the algorithm for the static
+analysis. Compared to the existing algorithm, our method computes smaller sets of constraints
+and guarantees termination for more UTA, making reachability faster and more eﬀective. As the
+main application, we get an alternate proof of decidability and a more eﬃcient algorithm for timed
+automata with bounded subtraction, a class of UTA widely used for modelling scheduling problems.
+We have implemented our procedure in the tool TChecker and conducted experiments that validate
+the beneﬁts of our approach.
+2012 ACM Subject Classiﬁcation Theory of computation →Timed and hybrid models
+Keywords and phrases Updatable timed automata, Reachability, Zones, Simulations, Static analysis
+Digital Object Identiﬁer 10.4230/LIPIcs.FSTTCS.2020.47
+Related Version A full version of the paper is available at https://arxiv.org/abs/2009.13260 .
+Funding Work supported by IRL ReLaX. Paul Gastin is supported by ANR project TickTac (ANR-
+18-CE40-0015). B Srivathsan is supported by CEFIPRA project IoTTTA (DST/CNRS ref. 2016-01).
+Sayan Mukherjee and B Srivathsan are additionally supported by Infosys Foundation (India).
+1 Introduction
+Timed automata [ 1] are ﬁnite automata equipped with real-time variables called clocks.
+Values of the clock variables increase at the same rate as time progresses. Transitions are
+guarded by constraints over the clock variables. During a transition, the value of a variable
+can be updated in several ways. In the classical model, variables can be reset to 0, written
+as a command x:= 0in transitions. Generalizations of this involve x:=cwithc≥0or
+x:=y+dwheredis an arbitrary integer. Automata with these more general updates
+are called Updatable Timed Automata (UTA) [8,6]. The updates provide a “discrete jump”
+facility during transitions. These are useful syntactic constructs for modeling real-time
+systems and have been used in several studies [12, 23, 19, 18, 25].
+On the one hand, variables with both a continuous and a discrete ﬂow oﬀer modeling
+convenience. On the other hand, the discrete jumps are powerful enough to simulate counter
+machines through the use of x:=x+ 1andx:=x−1updates, in fact with zero time
+©Paul Gastin, Sayan Mukherjee, and B Srivathsan;
+licensed under Creative Commons License CC-BY
+40th IARCS Annual Conference on Foundations of Software Technology and Theoretical Computer Science
+(FSTTCS 2020).
+Editors: Nitin Saxena and Sunil Simon; Article No.47; pp.47:1–47:17
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+47:2 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+elapse during the entire simulation [ 8]. This makes reachability for this model undecidable.
+Various decidable subclasses have been investigated over the years [ 8,12]. The most common
+technique to prove decidability involves showing the existence of a region automaton [ 1],
+which is a ﬁnite automaton accepting the (untimed) sequences of actions that have a timed
+run in the UTA. Although this gives decidability, the algorithm via the region construction
+is impractical due to the presence of exponentially many regions. Practical algorithms in
+current tools like UPPAAL [ 24], PAT [27], Theta [ 28] and TChecker [ 20] work with zones,
+which are bigger sets of conﬁgurations than regions and can be eﬃciently represented and
+manipulated using Diﬀerence-Bound Matrices (DBMs) [ 10]. Notably, these tools implement
+zone based algorithms only for UTA with restricted updates x:=cforc≥0, which behave
+similar to the reset x:= 0. Most of the eﬀorts in making the zone based algorithm more
+eﬃcient have concentrated on this subclass of timed automata with only resets [4, 22, 26].
+Recently, we have presented a zone based algorithm for updatable timed automata [ 14].
+Due to the undecidability of the problem, it cannot deal with the whole class of UTA. It
+however covers the subclasses tabulated in [ 8]. The algorithm consists of two phases: ﬁrst, a
+static analysis of the automaton is performed to compute a set of clock constraints at each
+state of the automaton; in the second phase, reachable sets of conﬁgurations, stored as zones,
+are enumerated. None of these phases has a guaranteed termination. If the static analysis
+terminates, a simulation relation between zones based on the constraints generated in the
+static analysis can be used to guarantee termination of the zone enumeration. Moreover, a
+smaller set of constraints in the static analysis gives a coarser simulation which leads to a
+faster zone enumeration. The simulation used in [ 14] lifts the eﬃcient LU-simulation [ 4,22]
+studied for diagonal-free reset-only timed automata to automata with diagonal constraints
+and updates.
+Contributions. In this work, we strongly improve the static analysis of [ 14]. The new
+approach accumulates fewer clock constraints and terminates for a wider class of UTA. In
+particular, it terminates for timed automata with bounded subtraction , which was not the
+case before. This class contains updates x:=x−cwithc≥0along with resets. However,
+an update x:=x−cis allowed in a transition only when there is a promise that each
+conﬁguration that can take this transition has a bounded x-value. This boundedness property
+gives decidability thanks to a ﬁnite region equivalence. This class has been used to model
+schedulability problems [ 12], where updates x:=x−chave been crucially used to model
+preemption. Thus, our new static analysis allows to use eﬃcient simulations during the zone
+enumeration for this class.
+At an algorithmic level, the new analysis is a slight modiﬁcation of the older one.
+However, this makes some of the technical questions signiﬁcantly harder: we show that
+deciding termination of the new analysis can be done in polynomial-time if the constants in
+the guards and updates are encoded in unary, whereas the problem is Pspace-complete when
+the constants are encoded in binary. The older analysis does not depend on the encoding of
+constants, and has a polynomial-time algorithm for deciding termination.
+For the experiments, the diﬀerences in the encoding and the hardness result do not carry
+much importance. The static analysis is implemented as a ﬁxed-point iteration which can
+continue for a ﬁxed number of steps determined by the size of the automaton, or can be
+stopped after a ﬁxed time-out. We have implemented the new static analysis in the open
+source tool TChecker [ 20]. We noticed that the new method terminates and produces a result
+for more cases, and when both methods produce a result, the new method is faster.
+
+--- Page 3 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:3
+Related work. Static analysis for timed automata without diagonal constraints and with
+updates restricted to x:=candx:=y+cwithc≥0was studied in [ 3] in the context of
+M-simulations, which were implemented in earlier versions of UPPAAL and KRONOS [ 29].
+Latest tools implement a more eﬃcient LU-simulation [ 4,22]. Our method clariﬁes how some
+optimizations of [ 3] can be lifted to the context of LU-simulations and more general updates,
+and also provides additional optimizations. TIMES [ 2] is a tool for modeling scheduling
+problems. It is mentioned in [ 12] that TIMES implements an algorithm using zones based
+on “the UPPAAL DBM library extended with a subtraction operator”. However, the exact
+simulations used in the zone enumeration are not clear to us. A diﬀerent approach to
+reachability is presented in [ 21] where the constraints needed for simulation are learnt during
+the zone enumeration directly. This potentially gives more relevant constraints and hence
+coarser simulations. On the ﬂip side, it requires a sophisticated zone enumeration method
+with observable overheads. Moreover [ 21] deals with timed automata without diagonal
+constraints and general updates. Static analysis is lucrative since it is cheap, and maintains
+the reachability procedure as two simple steps. Apart from veriﬁcation of UTA, studies on
+the expressive power of updates and diagonal constraints have been carried out in [ 8,7].
+Timed register automata [ 5] are a variant of UTA that have been looked at in the context of
+canonical representations.
+Organization. Section 2 gives the preliminary deﬁnitions. Section 3 introduces the new
+static analysis approach. Some classes of UTA where the new static analysis performs better
+are discussed in Section 4. The subsequent Section 5 discusses the termination problem for
+the new static analysis. Section 6 provides the results of our experiments. We conclude with
+Section 7. The extended version [ 15] contains missing proofs and details about the models
+used for the experiments.
+2 Preliminaries
+We denote by Rthe set of reals, by R≥0the non-negative reals, by Zthe integers and by N
+the natural numbers. Let Xbe a ﬁnite set of variables over R≥0calledclocks. Avaluation is
+a functionv:X→R≥0that maps every clock to a non-negative real number. For δ∈R≥0
+we deﬁne valuation v+δas(v+δ)(x) :=v(x) +δ. The set of valuations is denoted by V.
+Anon-diagonal constraint is an expression of the form x /triangleleft corc /triangleleft x, wherex∈X,
+c∈Nand/triangleleft∈{<,≤}, that is,x/triangleleft3stands for either x<3orx≤3. Adiagonal constraint
+is an expression of the form x−y /triangleleft corc /triangleleft x−ywherex,y∈Xare clocks and c∈N.
+Anatomic constraint is either a non-diagonal constraint or a diagonal constraint. We also
+consider two special atomic constraints /latticetop(true) and⊥(false). A constraintϕis either an
+atomic constraint or a conjunction of atomic constraints, generated by the following grammar:
+ϕ::=/latticetop|⊥|x /triangleleft c|c /triangleleft x|x−y /triangleleft c|c /triangleleft x−y|ϕ∧ϕwithc∈N,/triangleleft∈{<,≤}. Given
+a constraint ϕand a valuation v, we writev(ϕ)for the boolean expression that we get by
+replacing every clock xpresent inϕwith the value v(x). A valuation vis said to satisfya
+constraintϕ, written as v|=ϕ, if the expression v(ϕ)evaluates to true. For every valuation
+v, we havev|=/latticetopandv/negationslash|=⊥. Given a constraint ϕ, we deﬁne the set [ [ϕ] ] :={v|v|=ϕ}.
+Anupdateup:V/mapsto→Vis a partial function mapping valuations to valuations. The update
+upis speciﬁed by an atomic update for each clock x, given as either x:=corx:=y+d
+wherec∈N,d∈Zandy∈X(is possibly equal to x). We write upxfor the right hand
+side of the atomic update of x, that is,upxis eithercory+d. Note that we want dto be
+an integer, since we allow for decrementing clocks, and on the other hand c∈Nsince clock
+values are always non-negative. Given a valuation vand an update up, we deﬁne v(upx)to
+FSTTCS 2020
+
+--- Page 4 ---
+47:4 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+becorv(y) +ddepending on upxbeingcory+d. We sayup(v)≥0ifv(upx)≥0for all
+x∈X. In this case the valuationup(v)∈Vis deﬁned by up(v)(x) =v(upx)for allx∈X. In
+general, due to the presence of updates upx:=y+dwithd<0, the update may not yield a
+clock valuation and for those valuations v,up(v)is not deﬁned. For example, if v(x) = 5and
+upx=x−10thenup(v)is undeﬁned. Hence, the domain of the partial function up:V→V
+is the set of valuations vsuch thatup(v)≥0. Updates can be used as transformations in
+timed automata transitions. An updatable timed automaton is an extension of a classical
+timed automaton which allows updates of clocks on transitions.
+IDeﬁnition 1. Anupdatable timed automaton (UTA) A= (Q,X,q 0,T,F )is given by a
+ﬁnite setQof states, a ﬁnite set Xof clocks, an initial state q0, a setTof transitions and
+F⊆Qof accepting states. Transitions are of the form (q,g,up,q/prime)wheregis a constraint
+(also called guard) and upis an update, q,q/prime∈Qare the source and target states respectively.
+Fix a UTAA:= (Q,X,q 0,T,F )for the rest of this section. A conﬁguration of Ais a
+pair (q,v)withq∈Qandv∈V. Semantics ofAis given by a transition system over its
+conﬁgurations. There are two kinds of transitions: delayandaction. For every conﬁguration
+(q,v)and everyδ∈R≥0there is a delay transition (q,v)δ− →(q,v+δ). For every transition
+t:= (q,g,up,q/prime)in the automaton, there is an action transition (q,v)t− →(q/prime,v/prime)in the
+semantics if v|=g(vsatisﬁes the guard), up(v)≥0(the update on vis deﬁned) and
+v/prime=up(v). The initial conﬁguration is (q0,v0)withv0(x) = 0for every clock x. We
+write (q,v)δ,t−→(q/prime,v/prime)for the sequence of delay δand action tfrom (q,v). Arunis an
+alternating sequence of delay and action transitions starting from the initial conﬁguration:
+(q0,v0)δ1,t1−−−→ (q1,v1)δ2,t2−−−→···δn,tn−−−→ (qn,vn). The run is accepting if qn∈F.
+The reachability problem for UTA asks if a given UTA has an accepting run. This
+problem is undecidable in general [ 8]. Various decidable fragments with a Pspace-complete
+reachability procedure have been studied [ 8,12,14]. The basic reachability procedure
+involves computing sets of reachable conﬁgurations of the UTA stored as constraints which
+are popularly called as zones[9]. A zone is a set of valuations given by a conjunction of
+atomic constraints x/triangleleftc,c/triangleleftx,x−y/triangleleftcandc/triangleleftx−ywithc∈Nandx,y∈X. For example
+(x−y≤5)∧(2<x)is a zone. Given a state-zone pair (q,Z)(henceforth called a node) and
+a transition t:= (q,g,up,q/prime), the set of valuations Zt:={up(v) +δ|v∈Z,v|=g,up(v)≥
+0,δ≥0}is a zone. This is the set of valuations obtained from the vinZthat satisfy the
+guardgof the transition, get updated to up(v)and then undergo a delay δ. The initial node
+(q0,Z0)is obtained by delay from the initial conﬁguration: Z0:={v0+δ|δ≥0}is a zone.
+This lays the foundation for a reachability procedure: start with the initial node (q0,Z0);
+from each node (q,Z)that is freshly seen, explore the transitions t:= (q,g,up,q/prime)out ofq
+to compute resulting nodes (q/prime,Zt). If a pair (q,Z)withq∈Fis visited then the accepting
+state is reachable in the UTA. This naïve zone enumeration might not terminate [ 9]. For
+termination, simulations between zones are used.
+A simulation relation on the UTA semantics is a preorder relation (in other words, a
+reﬂexive and transitive relation) (q,v)/subsetsqequal(q,v/prime)between conﬁgurations having the same
+state such that the relation is preserved (1) on delay: (q,v+δ)/subsetsqequal(q,v/prime+δ)for allδ∈R≥0
+and (2) on actions: if (q,v)t− →(q1,v1), then (q,v/prime)t− →(q1,v/prime
+1)with (q1,v1)/subsetsqequal(q1,v/prime
+1)for
+allt= (q,g,up,q 1). This relation gets naturally lifted to zones: (q,Z)/subsetsqequal(q,Z/prime)if for all
+v∈Zthere exists a v/prime∈Z/primesuch that (q,v)/subsetsqequal(q,v/prime). Intuitively, when (q,Z)/subsetsqequal(q,Z/prime), all
+sequences of transitions enabled from (q,Z)are enabled from (q,Z/prime). Therefore, all control
+states reachable from (q,Z)are reachable from (q,Z/prime). This allows for an optimization
+in the zone enumeration: a fresh node (q,Z)is not explored if there is an already visited
+node (q,Z/prime)with (q,Z)/subsetsqequal(q,Z/prime). A simulation/subsetsqequalis said to be ﬁniteif in every sequence
+
+--- Page 5 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:5
+of the form (q,Z 0),(q,Z 1),...there are two nodes (q,Zi)and(q,Zj)withi<jsuch that
+(q,Zj)/subsetsqequal(q,Zi). Using a ﬁnite simulation in the reachability procedure ensures termination.
+Various ﬁnite simulations have been studied in the literature, the most prominent being
+LU-simulation [ 4,22,13] and more recently the G-simulation [ 14]. In addition to ensuring
+termination, one needs simulations which can quickly prune the search. One main focus
+of research in timed automata reachability has been in ﬁnding ﬁnite simulations which are
+eﬃcient in pruning the search.
+In a previous work [ 14], we introduced a new simulation relation for UTA, called the
+G-simulation . This relation is parameterized by a set of constraints G(q)associated to every
+stateqof the automaton. The sets G(q)are identiﬁed based on the transition sequences from
+q. We now present the basic deﬁnitions and properties of G-simulation. The presentation
+diﬀers from [14], but the essence of the technical content is the same.
+IDeﬁnition 2 (G-preorder).Given a ﬁnite or inﬁnite set of constraints G, we sayv/subsetsqequalGv/prime
+if for every δ≥0, and every ϕ∈G:v+δ|=ϕimpliesv/prime+δ|=ϕ.
+We simply write/subsetsqequalϕinstead of/subsetsqequal{ϕ}whenG={ϕ}is a singleton set.
+Directly from the deﬁnition of /subsetsqequalG, we get that the relation /subsetsqequalGis a preorder. The
+deﬁnition also entails the following useful property: when v/subsetsqequalGv/prime,v|=ϕimpliesv/prime|=ϕfor
+allϕ∈G. This is a ﬁrst step towards getting a simulation on the UTA semantics. It says
+that all guards that vsatisﬁes are satisﬁed by v/prime, and hence all transitions enabled at vwill
+be enabled at v/primeprovided the transition guards are present in G. Valuations get updated on
+transitions and this property needs to be preserved over these updates. This motivates the
+following deﬁnition. It gives a constraint ψsuch thatv/subsetsqequalψv/primewill implyup(v)/subsetsqequalϕup(v/prime).
+IDeﬁnition3. Given an update upand a constraint ϕ, we deﬁneup−1(ϕ)to be the constraint
+resulting by simultaneously substituting upxforxinϕ:up−1(ϕ) :=ϕ[upx/x,∀x∈X].
+For example, for ϕ=x−y /triangleleft c,up−1(x−y /triangleleft c ) =upx−upy/triangleleft c. Similarly, up−1(x /triangleleft
+c) =upx/triangleleft candup−1(c /triangleleft x ) =c /triangleleft upx. Note that, up−1(ϕ)need not be in the syntax
+deﬁned by the grammar for constraints. But, it can be easily rewritten to an equivalent
+constraint satisfying this syntax. For example: consider the constraint x−y /triangleleft cand the
+updateupx=z+dandupy=y, thenup−1(ϕ) =z+d−y/triangleleftc, which is not syntactically
+a constraint. However, it is equivalent to the constraint z−y /triangleleft c−d. Ifc−d <0, we
+further rewrite as d−c/trianglelefty−z. It is also useful to note that up−1(ϕ)may sometimes yield
+constraints equivalent to /latticetopor⊥. For example: if ϕ=x/triangleleftcandupx=dwithd>c, then
+the constraint up−1(ϕ)is equivalent to⊥, similarly, if d<cthenup−1(ϕ)is equivalent to/latticetop.
+ILemma 4. Given a constraint ϕ, an update upand two valuations v,v/primesuch thatup(v)≥0
+andup(v/prime)≥0, ifv/subsetsqequalup−1(ϕ)v/primethenup(v)/subsetsqequalϕup(v/prime).
+IDeﬁnition 5 (G-maps).LetA= (Q,X,q 0,T,F )be a UTA. AG-mapGAfor UTAAis a
+tuple (GA(q))q∈Qwith eachGA(q)being a set of atomic constraints, such that the following
+conditions are satisﬁed. For every transition (q,g,up,q/prime)∈T:
+every atomic constraint of gbelongs toGA(q),
+up−1(0≤x)∈GA(q)for everyx∈X,
+up−1(ϕ)∈GA(q)for everyϕ∈GA(q/prime)(henceforth called the propagation criterion )
+When the UTAAis clear from the context, we write Ginstead ofGA.
+The propagation criterion allows to maintain the property described after Deﬁnition 2
+even after the update occurring at transitions, and leads to a simulation relation on the
+conﬁgurations of the corresponding UTA, thanks to Lemma 4.
+FSTTCS 2020
+
+--- Page 6 ---
+47:6 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+q0 q1 q2x≤3
+x:=x−1x−y< 1
+G(q0) =
+G(q1) =
+G(q2) ={x≤3,1≤x}
+{x−y< 1}
+{}{..., x−y< 2}
+{..., x≤3,1≤x}
+{}{..., x≤4,2≤x}
+{..., x−y< 2}
+{}{..., x−y< 3}
+{..., x≤4,2≤x}
+{}...
+Figure 1 Example automaton for which the G-map computation of [14] does not terminate.
+IDeﬁnition 6 (G-simulation) .Given aG-mapG, the relation/subsetsqequalGon the UTA semantics
+deﬁned as (q,v)/subsetsqequalG(q/prime,v/prime)wheneverq=q/primeandv/subsetsqequalG(q)v/prime, is called theG-simulation.
+In general, an automaton may not have ﬁniteG-maps due to the propagation criterion
+generating more and more constraints. When a G-map is ﬁnite, there is an algorithm to
+check (q,Z)/subsetsqequalG(q)(q,Z/prime). The fewer the constraints in a G(q), the larger is the simulation
+/subsetsqequalG(q)(c.f. Deﬁnition 2). Hence there is more chance of getting (q,Z)/subsetsqequalG(q)(q,Z/prime)which in
+turn makes the enumeration more eﬃcient. Moreover, fewer constraints in G(q)give a quicker
+simulation test (q,Z)/subsetsqequalG(q)(q,Z/prime). The goal therefore is to get a G-map as small as possible.
+Notice that ifG1andG2areG-maps, then the map Gmindeﬁned asGmin(q) :=G1(q)∩G 2(q)
+is also aG-map. A static analysis of the automaton to get a G-map is presented in [ 14].
+The analysis performs an iterative ﬁxed-point computation which gives the smallest G-map
+(for the pointwise inclusion order) whenever it terminates. A procedure to detect if the
+ﬁxed-point iteration will terminate at all is also given in [14].
+3 A new static analysis with reduced propagation of constraints
+In this section we give a reﬁned propagation criterion, which cuts short certain propagations.
+We start with a motivating example. Figure 1 presents an automaton and illustrates the
+ﬁxed-point iteration computing the smallest G-map. Identity updates (like y:=y) are
+not explicitly shown. Only the newly added constraints at each step are depicted. The
+ﬁrst step adds constraints that meet the ﬁrst two conditions of Deﬁnition 5. Note that
+up−1(0≤y)is0≤ywhich is semantically equivalent to /latticetop. So we do not add it explicitly to
+theG-maps. Consider two transitions (q0,v)t− →(q1,up(v))and(q0,v/prime)t− →(q1,up(v/prime))with
+t= (q0,x≤3,x:=x−1,q1), andupbeingx:=x−1. Supposewerequire up(v)/subsetsqequalx−y<1up(v/prime).
+ByDeﬁnition2, weneedtosatisfythecondition: if up(v)|=x−y<1, thenup(v/prime)|=x−y<1.
+Rewriting in terms of v: ifv(x)−1−v(y)<1, thenv/prime(x)−1−v/prime(y)<1. In other words, we
+need: ifv|=x−y<2, thenv/prime|=x−y<2. Thisisachievedbyadding x−y<2, theconstraint
+up−1(x−y<1), toG(q0)in the second step. This is the essence of the propagation criterion
+of Deﬁnition 5, which asks that for each ϕ∈G(q1), we haveup−1(ϕ)∈G(q0). The ﬁxed-point
+computation iteratively ensures this criterion for each edge of the automaton. As illustrated,
+the computation does not terminate in Figure 1. There are three sources of increasing
+constants: (1) x≤3,x≤4,..., (2) 1≤x,2≤x,...and (3)x−y<1,x−y<2,....
+We claim that this conservative propagation is unnecessary to get the required simulation.
+Supposev/subsetsqequalG(q0)v/primeand(q0,v)t− →(q1,up(v)), witht:= (q0,x≤3,x:=x−1,q1). Sincetis
+enabled at v, we havev(x)≤3, hencev/prime(x)≤3since guard x≤3is present inG(q0). We
+getv,v/prime|=x−y≤3asy≥0for all valuations. The presence of x−y <4,x−y <5,...
+atG(q0)is useless as both v,v/primealready satisfy these guards. Stopping the propagation of
+x−y<3fromG(q1)will cut the inﬁnite propagation due to (3). A similar reasoning cuts
+
+--- Page 7 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:7
+Table 1 Cases where up−1(ϕ)can be eliminated or replaced by a constraint with a smaller
+constant. We write /triangleleftand/triangleleft1to insist that the operator /triangleleftneed not be same as the operator /triangleleft1.
+up−1(ϕ) gcontains pre(ϕ, g, up )
+1. x /triangleleft d x /triangleleft1c /latticetop
+2. d /triangleleft x x /triangleleft1cwith c < d c≤x
+3.x−y /triangleleft dord /triangleleft x−yx /triangleleft1corx−y /triangleleft1core /triangleleft1x−y/latticetops.t.c < d < e
+the propagation of x≤3fromG(q1)and stops (1). The remaining source (2) is trickier,
+but it can still be eliminated. Here is the main idea. Consider a constraint 3≤x∈G(q0)
+which propagates unchanged to G(q1)and then back to G(q0)asup−1(3≤x) = 4≤x.
+This propagation can be cut since v/subsetsqequal3≤xv/primealready ensures v/subsetsqequal4≤xv/primefor the valuations
+that are relevant: the ones that satisfy the guard x≤3oft. Indeed,v,v/prime|=x≤3and
+v/subsetsqequal3≤xv/primeimpliesv(x)≤v/prime(x)which in turn implies v/subsetsqequal4≤xv/prime. Overall, it can be shown that
+G(q0) ={x≤3,3≤x, x−y<2, x−y<3}andG(q1) ={x−y<1}∪G (q0)suﬃces for
+theG-simulation.
+Taking guards into account for propagations. The propagation criterion of Deﬁnition 5
+which is responsible for non-termination, is oblivious to the guard that is present in the
+transition. We will now present a new propagation criterion that takes the guard into
+account and cuts out certain irrelevant constraints. Consider a transition (q,g,up,q/prime)and a
+constraintϕ∈G(q/prime). All we require is a constraint ψ∈G(q)such thatv/subsetsqequalψv/primeandv|=g
+impliesup(v)/subsetsqequalϕup(v/prime). The additional “and v|=g” was missing in the intuition behind the
+previous propagation. Of course, setting ψ:=up−1(ϕ)is suﬃcient. However, the goal is to
+either eliminate the need for ψor ﬁnd aψwith a smaller constant compared to up−1(ϕ). We
+will see that in many cases, we can even get the former, when we plug in the “and v|=g”.
+IDeﬁnition 7 (pre of an atomic constraint ϕunder a “guard-update” pair (g,up)).Let(g,up)
+be a pair of a guard and an update. For a constraint ϕwe deﬁne pre(ϕ,g,up )to be an atomic
+constraint as given by Table 1, when gandup−1(ϕ)satisfy corresponding conditions. When
+the conditions of Table 1 do not apply, pre(ϕ,g,up ) =up−1(ϕ).
+For a set of constraints G, we deﬁne pre(G,g,up )to be the set/uniontext
+ϕ∈G{pre(ϕ,g,up )}.
+Our aim is to replace the up−1(ϕ)in the older propagation criterion with pre(ϕ,g,up ).
+Before showing the correctness of this approach, we state a useful lemma that follows directly
+from the deﬁnition of G-simulation.
+ILemma 8. Letv,v/primebe valuations.
+v/subsetsqequalx/triangleleftdv/primeiﬀ eitherv/negationslash|=x/triangleleftdorv/prime(x)≤v(x)
+v/subsetsqequald/triangleleftxv/primeiﬀ eitherv/prime|=d/triangleleftxorv(x)≤v/prime(x)
+Readers familiar with the LU-simulation for diagonal-free automata [ 22] may recognize
+that the above lemma is almost an alternate formulation of the LU-simulation. The lemma
+makes a ﬁner distinction between <and≤in the constraints whereas LUdoes not.
+The next proposition allows to replace the up−1(ϕ)in Deﬁnition 5 by pre(ϕ,g,up )to get
+smaller sets of constraints at each qthat still preserve the simulation. We write v/subsetsqequalgv/primefor
+v/subsetsqequalCgv/prime, whereCgis the set of atomic constraints in g.
+IProposition 9. Let(g,up)be a guard-update pair, v,v/primebe valuations such that v|=gand
+v/subsetsqequalgv/prime, andϕbe an atomic constraint. Then, v/subsetsqequalpre(ϕ,g,up )v/primeimpliesv/subsetsqequalup−1(ϕ)v/prime.
+FSTTCS 2020
+
+--- Page 8 ---
+47:8 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+Proof.When pre(ϕ,g,up ) =up−1(ϕ), there is nothing to prove. We will now prove the
+theorem for the combinations given in Table 1.
+(Case 1). From the hypothesis v/subsetsqequalgv/prime, we getv/subsetsqequalx/triangleleft1cv/prime. From the other hypothesis
+v|=g, we getv|=x/triangleleft1c. Therefore, by using the formulation of v/subsetsqequalx/triangleleft1cv/primefrom Lemma 8,
+we getv/prime(x)≤v(x). This entails v/subsetsqequalx/triangleleftdv/primefor all upper bounded guards, once again from
+Lemma 8.
+(Case 2). We have pre(ϕ,g,up ) =c≤xandc<d. Moreover, as guard gcontainsx/triangleleft1c,
+we havev/prime(x)≤v(x)as in Case 1. Since vsatisﬁes the guard, we get: v/prime(x)≤v(x)≤c<d.
+From Lemma 8, for such valuations, v/subsetsqequalc≤xv/primeimpliesv/prime(x) =v(x). Hencev/subsetsqequald/triangleleftxv/prime.
+(Case 3). There are sub-cases depending on whether the guard contains a non-diagonal
+constraint or the diagonal constraints. When the guard contains x /triangleleft 1c, we havev/prime(x)≤
+v(x)≤cas above. Hence v/prime(x−y)≤candv(x−y)≤c. Since we are given that c<d, both
+vandv/primesatisfy the diagonal constraint x−y/triangleleftdand neither of them satisﬁes d/triangleleftx−y. Notice
+that time elapse preserves the satisfaction of diagonal constraints as for every valuation u,
+(u+d)(x−y) =u(x−y). From Deﬁnition 2, v/subsetsqequalψv/primefor a diagonal constraint ψis satisﬁed
+ifv/negationslash|=ψorv/prime|=ψ. Hence,v/subsetsqequalx−y/triangleleftdv/primeandv/subsetsqequald/triangleleftx−yv/prime.
+For the other sub-cases of the guard containing x−y/triangleleft1core/triangleleft1x−y, the hypotheses
+v|=g,v/subsetsqequalgv/primeand the fact that c < d < e ensure the same eﬀect, that either vdoes not
+satisfy the diagonal constraint up−1(ϕ)orv/primedoes. Hence, by deﬁnition v/subsetsqequalup−1(ϕ)v/prime.J
+IDeﬁnition 10 (ReducedG-maps).AG-map is said to be reducedif for every transition
+(q,g,up,q/prime):
+every atomic constraint of gbelongs toG(q),
+pre(0≤x,g,up )∈G(q)for everyx∈X, and
+pre(ϕ,g,up )∈G(q)for everyϕ∈G(q/prime)(reduced propagation)
+Recall the deﬁnition of G-simulation of Deﬁnition 6. This is a relation /subsetsqequalGdeﬁned as
+(q,v)/subsetsqequalG(q/prime,v/prime)wheneverq=q/primeandv/subsetsqequalG(q)v/prime. The next theorem says that this relation
+stays a simulation even when the G-map is reduced.
+ITheorem 11. Let(G(q))q∈Qbe a reducedG-map. The relation /subsetsqequalGis a simulation.
+As in the case of (non-reduced) G-maps, notice that if G1andG2are reducedG-maps,
+the mapGmingiven byGmin(q) =G1(q)∩G 2(q)is a reducedG-map. There is therefore a
+smallest reduced G-map, given by the pointwise intersection of all reduced G-maps.
+ILemma 12. The smallest reduced G-map with respect to pointwise inclusion is the least
+ﬁxed-point of the following system of equations:
+G(q) =/uniondisplay
+(q,g,up,q/prime){atomic constraints of g}∪{pre(0≤x,g,up )|x∈X}∪{pre(ϕ,g,up )|ϕ∈G(q/prime)}
+The smallest reduced G-map can be computed by a standard Kleene iteration. For every
+stateqand everyi≥0:
+G0(q) =/uniondisplay
+(q,g,up,q/prime){atomic constraints of g}∪{ pre(0≤x,g,up )|x∈X}
+Gi+1(q) =Gi(q)∪/uniondisplay
+(q,g,up,q/prime){pre(ϕ,g,up )|ϕ∈Gi(q/prime)}
+WhenGk+1=Gk, a ﬁxed-point has been found and Gkis a reduced map satisfying Deﬁni-
+tion 10. Moreover, Gkgives the least ﬁxed-point to the system of equations of Lemma 12 and
+
+--- Page 9 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:9
+henceGkis the smallest reduced G-map. WhenGi+1/negationslash=Gifor alli, the least ﬁxed-point is
+inﬁnite and no reduced G-map for the automaton can be ﬁnite. For instance, if in the UTA
+of Figure 1, the guard x≤3is removed, the smallest reduced G-map will be inﬁnite, and
+the ﬁxed-point will continue forever, each iteration producing an x−y<cwith increasing
+constantsc.
+It is not clear apriori how to detect whether the ﬁxed-point computation will terminate,
+or will continue forever. For the non-reduced G-maps, [14] gives an algorithm that runs
+the ﬁxed-point computation (using up−1instead of pre) for a bounded number of steps
+and determines whether the computation will be non-terminating by looking for a certain
+witness. The reduced G-map ﬁxed-point is diﬀerent due to Table 1, as certain propagations
+are disallowed (Cases 1 and 3), or truncated to a constant determined by the guard (Case
+2). These optimizations are responsible for giving ﬁnite G-maps even when the non-reduced
+G-maps are inﬁnite. This makes the termination analysis signiﬁcantly more involved. We
+postpone this discussion to Section 5. In the next section, we identify some suﬃcient
+conditions that make the reduced G-maps ﬁnite and describe how it leads to new applications.
+These observations throw more light on the mechanics of the reduced G-computation and
+provide a preparation to the more technical Section 5.
+4 Applications of the reduced propagation
+We exhibit three subclasses of UTA for which the reduced G-maps are superior than the
+non-reducedG-maps: either reduced G-maps are ﬁnite whereas non-reduced G-maps are not
+guaranteed to be ﬁnite, or when both are ﬁnite, the reduced G-map gives a bigger simulation.
+Timed automata with bounded subtraction. Timed automata with diagonal constraints
+and updates restricted to classic resets x:= 0and subtractions x:=x−cwithc≥0have
+been used for modeling certain scheduling problems [ 12]. Reachability is undecidable for
+this restricted update model [ 8]. An important result in [ 12] is that reachability is decidable
+for a subclass called timed automata with bounded subtraction , and this decidability is used
+for answering the schedulability questions. Proof of decidability proceeds by constructing a
+region equivalence based on a maximum constant derived from the automaton. We prove
+that timed automata with bounded subtraction have ﬁnite reduced G-maps. This gives an
+alternate proof of decidability and a zone-based algorithm using G-simulation for this class
+of automata. This exercise also brings out the signiﬁcance of reduced G-maps: without the
+reduced computation, we cannot conclude ﬁniteness.
+IDeﬁnition 13 (Timed Automata with Bounded Subtraction [ 12]).A timed automaton with
+“subtraction” is an updatable timed automaton with updates restricted to the form x:= 0and
+x:=x−cforc≥0. Guards contain both diagonal and non-diagonal constraints.
+A timed automaton with “bounded subtraction” is a timed automaton with subtraction
+such that there is a constant Mxfor each clock xsatisfying the following property for all its
+reachable conﬁgurations (q,v): if there exists a transition (q,g,up,q/prime)such thatv|=gand
+upx=x−cwithc>0, thenv(x)≤Mx.
+It is shown in [ 12] that reachability is decidable for timed automata with bounded
+subtraction when the bounds Mxare known. This deﬁnition of bounded subtraction puts
+a semantic restriction over timed automata. Indeed, reachability is decidable only when
+the bounds Mxare apriori known. The following is a syntactically restricted class of timed
+automata, that captures the bounded subtraction model when the bounds Mxare given.
+FSTTCS 2020
+
+--- Page 10 ---
+47:10 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+IDeﬁnition 14 (Timed Automata with Syntactically Bounded Subtraction) .This is a timed
+automaton with subtraction such that, for every transition (q,g,up,q/prime)and clockx, ifupx=
+x−cwithc>0then the guard gcontains an upper bound constraint x/triangleleftc/primefor somec/prime∈N.
+ILemma 15. For every timed automaton with bounded subtraction A/primewhere the bound
+Mxfor every clock xis known, there exists a timed automaton with syntactically bounded
+subtractionAsuch that the runs of AandA/primeare the same.
+ITheorem 16. The smallest reduced G-maps are ﬁnite for timed automata with syntactically
+bounded subtraction.
+Proof.LetMbe the maximum constant appearing among the guards and updates of the
+given automaton. Deﬁne Gto be the (ﬁnite) set of all atomic constraints with constant at
+mostM. We will show that the ﬁnitemapGassigningG(q) =Gfor allqis a reducedG-map.
+This then proves the theorem.
+The ﬁrst two conditions of Deﬁnition 10 are trivially true. It remains to show that
+pre(G,g,up )⊆Gfor every transition (q,g,up,q/prime). Choose a constraint ϕ∈G. Note that
+pre(ϕ,g,up )is a constraint having a larger constant than ϕonly ifupcontains subtractions
+(since the other possible update is only a reset to 0in this class). Thus, if updoes not
+contain subtractions, from the construction of Git follows that pre(ϕ,g,up )⊆G. Now, if
+upx=x−cfor some clock xandc>0, thengcontainsx/triangleleft1c1by deﬁnition. If up−1(ϕ)is
+somex/triangleleftd, then Case 1 of Table 1 gives pre(ϕ,g,up ) =/latticetop. Ifup−1(ϕ)isd/triangleleftx, from Case 2
+of the table, we have pre(ϕ,g,up ) =c1≤xorpre(ϕ,g,up ) =d/triangleleftxwithd≤c1, which are
+both present in Gby construction.
+Finally, assume that up−1(ϕ)is a diagonal constraint x−y/triangleleftdord/triangleleftx−yand Case 3
+of Table 1 does not apply. We have upx=x−c1withc1≥0andupy=y−c2withc2≥0
+(a reset for xoryis not possible). Moreover, if c1>0(resp.c2>0) thengcontains some
+x/triangleleft1c/prime
+1(resp.y/triangleleft2c/prime
+2). Ifc1>0then, since Case 3 does not apply, we get d≤c/prime
+1≤Mand
+up−1(ϕ)belongs toG. Ifc1= 0andc2>0then the constraint ϕis respectively x−y/triangleleftd +c2
+ord+c2/triangleleftx−y. Since 0≤d<d +c2≤M, the constraint up−1(ϕ)is already in G.J
+Lemma 15 and Theorem 16 give an alternate proof of decidability and more importantly
+a zone based algorithm with optimized simulations for this model. The deﬁnition of timed
+automata with bounded subtraction can be seamlessly extended to include updates x:=y−c
+wherec≥0andx,yare potentially diﬀerent clocks. Deﬁnition 14, Lemma 15 and Theorem
+16 can suitably be modiﬁed to use y /triangleleftc/primeinstead ofx/triangleleftc/prime. This preserves the decidability,
+with similar proofs, even for this extended class.
+Clock bounded reachability. Inspired by Theorem 16, we consider the problem of clock-
+bounded reachability: given UTA and a bound B≥0, does there exist an accepting run
+(q0,v0)− →(q1,v1)− →··· (qn,vn)wherevi(x)≤Bfor alliand all clocks x? This problem is
+decidable for the entire class of UTA. The algorithm starts with a modiﬁed zone enumeration:
+each new zone is intersected with/logicalandtext
+xx≤Bbefore further exploration. This way, only the
+reachable conﬁgurations within the given bound are stored. The number of bounded zones is
+ﬁnite. Hence the enumeration will terminate without the use of any simulations. On the other
+hand, for eﬃciency, it is useful to prune the search through simulations. To use G-simulation,
+we need a ﬁniteG-map. Since we are interested in clock bounded reachability, we can inject
+the additional guard/logicalandtext
+xx≤Bin all transitions. The following theorem says that for such
+automata, the reduced G-map will be ﬁnite. This is not true with non-reduced G-maps. For
+instance, consider a modiﬁcation of the automaton in Figure 1 with all transitions having
+x≤3∧y≤3. This does not help cutting any of the three sources of inﬁnite propagation
+that have been discussed in the text below the ﬁgure.
+
+--- Page 11 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:11
+ITheorem17. Suppose every transition of a UTA has a guard containing an upper constraint
+x/triangleleftcfor every clock. The reduced G-map for such a UTA is ﬁnite.
+UTA with ﬁnite non-reduced G-maps. Given a ﬁnite set of atomic constraints G, the
+algorithm for Z/subsetsqequalGZ/primeﬁrst divides GasGnd∪GdwhereGndandGdare respectively the
+subsets of non-diagonal and diagonal constraints in G. FromGnd, two functions L:X/mapsto→
+N∪{−∞} andU:X/mapsto→N∪{−∞} are deﬁned: L(x) = max{c|c /triangleleft x∈Gnd}and
+U(x) =max{c|x /triangleleft c∈Gnd}. When there is no c /triangleleft x,L(x) =−∞. Similarly for U(x).
+Denote these functions as L(G)andU(G). OnceGis rewritten as L(G),U(G)andGd, [14]
+gives a procedure to compute Z/subsetsqequalGZ/prime.
+For twoG-mapsG1andG2we writeLU(G2)≤LU(G1)if for every qand every clock x,
+L(G2(q))(x)≤L(G1(q))(x)andU(G2(q))(x)≤U(G1(q))(x). We writeGd
+2⊆Gd
+1ifG2(q)d⊆
+G1(q)dfor everyq. It can be shown that for two G-mapsG1andG2withLU(G2)≤LU(G1)
+andGd
+2⊆Gd
+1, theG2-simulation is bigger than the G1-simulation (using Lemma 8 for non-
+diagonals and the direct Deﬁnition 2 for diagonals). The following theorem asserts that
+when the non-reduced G-map is ﬁnite, the reduced G-map is ﬁnite and it induces a bigger
+simulation. The proof of this theorem proceeds by showing that every upper constraint x/triangleleftc
+and diagonal constraint added by the reduced propagation is also added by the non-reduced
+propagation, and for every lower constraint c/triangleleftxin the reducedG, there is some c/prime/triangleleft/primexin
+the non-reducedGwithc≤c/prime.
+ITheorem 18. When the smallest (non-reduced) G-mapG1is ﬁnite, the smallest reduced
+G-mapG2is also ﬁnite. Moreover, LU(G2)≤LU(G1)andGd
+2⊆Gd
+1.
+5 Termination of the reduced propagation
+We present an algorithm and discuss the complexity for the problem of deciding whether the
+smallest reduced G-map of a given automaton is ﬁnite. Brieﬂy, we present a large enough
+boundBsuch that if the ﬁxed point iteration does not terminate in Bsteps, it will never
+terminate and hence the smallest reduced G-map given by the least ﬁxed-point is inﬁnite.
+Let us ﬁrst assume that there are no strict inequalities in the atomic constraints present
+in guards. For the termination analysis, we can convert all strict inequalities <to weak
+inequalities≤. The reduced propagation does not modify the nature of the inequality except
+in Case 2 of Table 1 where strict may change to weak. Any propagation in the original
+automaton is preserved in the converted automaton with the same constants and vice-versa.
+Hence theG-map computation terminates in one iﬀ it terminates in the other. We denote by
+cϕthe constant of an atomic constraint ϕ.
+LetA= (Q,X,q 0,T,F )be some UTA. Let M=max{c|coccurs in some guard of A}
+andL=max{|d||doccurs in some update of A}. LetGbe the smallest reduced G-map
+computed by the least ﬁxed-point of the equations in Lemma 12. We can show that this
+ﬁxed-point computation does not terminate iﬀ a constraint with a large constant is added to
+someG(q).
+IProposition 19. The reducedG-map computation does not terminate iﬀ for some state q,
+there is an atomic constraint ϕ∈G(q)with a constant cϕ>N = max(M,L ) + 2L|Q||X|2.
+For the analysis, we make use of strings of the form x≤,≤x,x−y≤and≤x−ywhere
+x,y∈Xand call them contexts. Given a context ϕand a constant c, we denote by ϕ[c]the
+atomic constraint obtained by plugging the constant into the context.
+FSTTCS 2020
+
+--- Page 12 ---
+47:12 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+In the proof, we shall use the notion of propagation sequence, which is a sequence
+(qi,ϕi[ci])→(qi+1,ϕi+1[ci+1])→···→ (qj,ϕj[cj])such that for all i≤k < jwe have
+ϕk+1[ck+1] = pre(ϕk[ck],gk,upk)for some transition (qk+1,gk,upk,qk)ofA.
+Proof of Proposition 19. The left to right implication of Proposition 19 is clear. Conversely,
+assume that ϕ[c]∈G(q)for some (q,ϕ[c])withc>max(M,L ) + 2L|Q||X|2. Consider the
+smallestn≥0such thatϕ[c]∈Gn(q). There is a propagation sequence π= (q0,ϕ0[c0])→
+(q1,ϕ1[c1])→···→ (qn,ϕn[cn])such thatϕ0[c0]∈G0(q0)and(qn,ϕn[cn]) = (q,ϕ[c]). Notice
+thatϕi[ci]∈Gi(qi)for all 0≤i≤n. We ﬁrst show that the propagation sequence πcontains
+a positive cycle with large constants.
+ILemma 20. We can ﬁnd 0< i < j≤nsuch that (qi,ϕi) = (qj,ϕj),ci< cjand
+max(M,L )<ckfor alli≤k≤j.
+Proof.First, since ϕ0[c0]∈G0(q0)we have 0≤c0≤max(M,L ). We consider the last
+occurrence of a small constant in the propagation sequence. More precisely, we deﬁne
+m= max{k|0≤k<n∧ck≤max(M,L )}. Hence,ck>max(M,L )for allm<k≤n.
+Notice that, for m<k<n , the constraint in the sequence cannot switch from an upper
+diagonal to a lower diagonal and vice-versa. Indeed, assume that ϕk[ck] = (x−y≤ck)and
+ϕk+1[ck+1] = (ck+1≤y/prime−x/prime). Then the update upkcontainsx:=x/prime+d,y:=y/prime−ewith
+ck+1=d+e−ck. This is a contradiction with d,e≤Landck,ck+1>L. Similarly, we can
+show that an upper (resp. lower) diagonal constraint cannot switch to a lower (resp. upper)
+non-diagonal constraint. On the other hand, it is possible to switch once from an upper
+(resp. lower) diagonal constraint to an upper (resp. lower) non-diagonal constraint.
+The other remark is that |ck+1−ck|≤2Lfor allm≤k<n. Sincecm≤max(M,L )and
+cn>max(M,L ) + 2L|Q||X|2, we ﬁnd an increasing sequence m < i 1< i 2<···< i/lscript≤n
+withci1< ci2<···< ci/lscriptand/lscript >|Q||X|2. As noticed above, the ϕkare either all upper
+constraints or all lower constraints, hence the set {(qk,ϕk)|m<k≤n}contains at most
+|Q||X|2elements (|X|for non-diagonals and |X|(|X|−1)for diagonals). Therefore, we ﬁnd
+i,j∈{i1,...,i/lscript}such thati<jand(qi,ϕi) = (qj,ϕj). Recall that ck>max(M,L )for all
+m<k≤n. J
+The next step is to show that a positive cycle with large constants can be iterated resulting
+in larger and larger constants.
+ILemma 21. Let(qi,ϕi[ci])→(qi+1,ϕi+1[ci+1])→···→ (qj,ϕj[cj])be a propagation
+sequence with (qi,ϕi) = (qj,ϕj),δ=cj−ci>0andM < ckfor alli≤k≤j. Then,
+(qi,ϕi[ci+δ])→(qi+1,ϕi+1[ci+1+δ])→···→ (qj,ϕj[cj+δ])is also a propagation sequence.
+This allows to conclude the proof of Proposition 19. Using Lemma 20 we obtain from πa
+positive cycle with large constants. This cycle can be iterated forever thanks to Lemma 21.
+We deduce that ϕi[ci+kδ]∈Gi(qi)for allk≥0and the reduced G-computation does not
+terminate. J
+Algorithm to detect termination. Proposition 19 gives a termination mechanism: run
+the ﬁxed-point computation G0,G1,..., stop if either it stabilises with Gn=Gn+1or if
+we add some constraint ϕ∈Gn(q)withcϕ> N. The number of pairs (q,ϕ)withcϕ≤
+Nis2N|Q||X|2(the factor 2 is for upper or lower constraints). Therefore, the ﬁxed-
+point computation stops after at most 2N|Q||X|2steps and the total computation time is
+poly(M,L,|Q|,|X|). If the constants occurring in guards and updates of the UTA Aare
+encoded in unary, the static analysis terminates in time poly(|A|). If the constants are encoded
+
+--- Page 13 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:13
+in binary, (non-)termination of the G-computation can be detected in NPspace =Pspace:
+it suﬃces to search for a propagation sequence (q0,ϕ0)→(q1,ϕ1)→···→ (qn,ϕn)such
+thatϕ0∈G0(q0)andcϕn> N. For this, we only need to store the current pair (qk,ϕk),
+guess some transition (qk+1,gk,upk,qk)ofA, and compute the next pair (qk+1,ϕk+1)with
+ϕk+1=pre(ϕk,gk,upk). This can be done with polynomial space. We can also show a
+matching Pspace lower-bound.
+Lower bound. We now show that when constants are encoded in binary, deciding termina-
+tion of the reduced propagation is Pspace-hard. To do this, we give a reduction from the
+control-state reachability of bounded one-counter automata.
+Abounded one-counter automaton [17,11] is given by (L,/lscript 0,∆,b)whereLis a ﬁnite
+set of states, /lscript0is an initial state, ∆is a set of transitions and b≥0is the global bound
+for the counter. Each transition is of the form (/lscript,p,/lscript/prime)where/lscriptis the source and /lscript/primethe
+target state of the transition, p∈[−b,+b]gives the update to the counter. A run of the
+counter automaton is a sequence (/lscript0,c0)→(/lscript1,c1)→···→ (/lscriptn,cn)such thatc0= 0, each
+ci∈[0,b]and there are transitions (/lscripti,pi,/lscripti+1)withci+1=ci+pi. All constants used in the
+automaton deﬁnition are encoded in binary. Reachability problem for this model asks if there
+exists a run starting from (/lscript0,0)to a given state /lscripttwith any counter value ct. This problem
+is known to be Pspace-complete [ 11]. We will now reduce the reachability for bounded
+one-counter automata to the problem of checking if the ﬁxed-point computing the smallest
+reducedG-map terminates (i.e, whether the smallest reduced G-map is ﬁnite).
+From a bounded one counter automaton B= (L,/lscript 0,∆,b)we construct a UTA AB. States
+ofABareL∪{/lscript/prime
+0,/lscript/prime
+t}where/lscript/prime
+0and/lscript/prime
+tare new states not in L. There are two clocks x,y.
+For each transition (/lscript,p,/lscript/prime)ofB, there is a transition (/lscript/prime,g,up,/lscript )with guard x≤b∧y≤0
+and updates x:=x−pandy:=y. We add some extra transitions using the new states /lscript/prime
+0
+and/lscript/prime
+t: (1)/lscript0x−y≤0−−−−→/lscript/prime
+0, (2)/lscript/prime
+t− →/lscripttand (3)/lscript/prime
+tx:=x,y:=y+1−−−−−−−−−−→ /lscript/prime
+t.
+In the reducedG-map computation for AB, the constraint x−y≤0is added toG0(/lscript0).
+The propagation sequence starting from (/lscript0,x−y≤0)mimicks the runs of the counter
+machineBwith the value of the diagonal constraint x−y≤cgiving the counter value. To
+keep this value bounded between 0andb, we use Case 3 of Table 1. Guard x≤bdisallows
+propagation of constraints x−y≤dwithd > b. But, it can allow dto go smaller and
+smaller, and at one point the constant becomes negative and the constraint gets rewritten:
+x−y≤b,x−y≤b−1,...,x−y≤0,1≤y−x,2≤y−x, etc. The presence of the
+constrainty≤0in the guard eliminates 1≤y−x,2≤y−x, etc. once again due to Case 3.
+ILemma 22. For every run (/lscript0,0)→(/lscript1,c1)→···→ (/lscriptn,cn)inB, there is a propagation
+sequence (/lscript0,x−y≤0)→(/lscript1,x−y≤c1)→···→ (/lscriptn,x−y≤cn)inAB.
+ILemma 23. For every propagation sequence (/lscript0,x−y≤0)→(/lscript1,x−y≤c1)→···→
+(/lscriptn,x−y≤cn)inABwith/lscripti∈Lfor0≤i≤n, there is a run (/lscript0,0)→(/lscript1,c1)→···→
+(/lscriptn,cn)inB.
+It now remains to notice that the only transition that can generate inﬁnitely many
+constraints during the propagation is the loop l/prime
+t→l/prime
+t, since the other transitions between
+states coming from the counter automaton have a guard to cut out inﬁnite propagations.
+For this to happen some constraint needs to reach lt, and propagate to l/prime
+tvial/prime
+t→lt.
+IProposition 24. The ﬁnal state is reachable in the counter automaton Biﬀ the smallest
+reducedG-map ofABis inﬁnite.
+FSTTCS 2020
+
+--- Page 14 ---
+47:14 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+Table 2# nodes is the number of nodes enumerated during a breadth-ﬁrst-search; “-” denote
+that there was no answer for 20 minutes; N/Adenotes not-applicable. Experiments were conducted
+on a MacBook Pro with 8 GB RAM, 2.3Ghz processor running macOS 10.14.
+New static analysis Static analysis of [14]
+Model Schedulable? # nodes time # nodes time
+SporadicPeriodic-5 Yes 677 1.710s - -
+SporadicPeriodic-20 No 852 1.742s - -
+Mine-Pump Yes 31352 7m 23.509s - -
+Flowertask triggering automaton: (computation time, deadline)
+(1,2), (1,2), (1,2) No 212 0.057s - -
+(1,10), (1,10), (1,10), (1,4) Yes 105242 8m 57.256s - -
+Worst-case task triggering automaton: (computation time, deadline)
+(1,2), (1,2), (1,2) No 20 0.050s - -
+(1,10), (1,10), (1,10), (1,4) Yes 429 0.454s - -
+12 copies of (1,20) Yes 786 12m 5.250s - -
+Again×3 N/A 24389 7.611s 24389 12.402s
+Again×4 N/A 707281 14m 12.369s 707281 27m 13.540s
+ITheorem 25. Deciding termination of the reduced G-map computation for a given UTA
+Ais in Ptimeif the constants in Aare encoded in unary, and Pspace-complete if the
+constants are encoded in binary.
+6 Experiments
+We report on experiments conducted using the open source tool TChecker [ 20]. The models
+are given as networks of timed automata which communicate via synchronized actions. We
+have implemented the new static analysis discussed in Section 3. The older static analysis
+and zone enumeration with the G-simulation were already implemented [14].
+Compositionality of static analysis. Both these static analyses are performed individually
+on each component. For each local state qia mapG(qi)is computed. During the zone
+enumeration the product of the automata is computed on-the-ﬂy. Each node is of the
+form (q,Z)whereq=/angbracketleftq1,q2,...,qk/angbracketrightis a tuple of local states, one from each component
+of the network and Zis a zone over all clocks of the network. The G-map is then taken
+asG(q) =/uniontext
+iG(qi). This approach creates a problem when there are shared clocks. A
+component imight update xand another component j/negationslash=imight contain a guard with
+x. TheG-maps computed component-wise will then not give a sound simulation. In our
+experiments, we construct models without shared clocks.
+Benchmarks. Our primary benchmarks are models of task scheduling problems using the
+Earliest-Deadline-First (EDF) policy. Each task has a computation time and a deadline.
+Tasks are released either periodically or via a speciﬁcation given as a timed automaton. The
+goal is to verify if for a given set of released tasks, all of them can be ﬁnished within their
+deadline. Preemption of tasks is allowed. This problem has been encoded as a reachability
+in a network of timed automata that uses bounded subtraction [ 12]. The main challenge
+is to model preemption. Each task tihas an associated clock ciwhich is reset as soon as
+the task starts to execute. While tiis running, and some other task tjpreemptsti, the
+clockcicontinues to elapse time. When tjis done, an update ci:=ci−Cjis performed,
+
+--- Page 15 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:15
+whereCjdenotes the computation time of tj. This way, when tiis scheduled again, clock ci
+maintains the computation time that has elapsed since it was started. Whenever the EDF
+scheduler has to choose between task tiandtj, it chooses the one which is closest to its
+deadline. To get this, when tiis released, a clock diis reset. Task tiis prioritized over tjif
+Di−di<Dj−djwhereDi,Djare the deadlines. We have constructed a model for the EDF
+scheduler based on these ideas (more details in [ 15]). For the experiments in Table 2, we
+consider some task release strategies given in the literature (SporadicPeriodic from TIMES
+tool, and a variant of Mine-Pump from [ 16]) and also create some of our own (Flower and
+Worst-case task triggers). The last model Againis an automaton with reset-to-zero only
+updates illustrating the gain when both static analyses terminate.
+Comparison. For all the EDF examples, the old static analysis did not terminate, as seen
+in the last two columns of Table 2. This is expected since the model contains an update of
+the formx:=x−Cwhich repeatedly adds guards x≤K,x≤K+C,x≤K+ 2C,.... The
+new static analysis cuts this out, since the update x:=x−Coccurs along with a guard
+x≤D, making it a timed automaton with bounded subtraction. The Againexample runs
+with both the static analyses. However, the new static analysis minimizes the propagation of
+diagonal constraints. The time taken by the simulation test used in the zone enumeration
+phase is highly sensitive to the number of diagonal constraints. Fewer diagonals therefore
+result in a faster zone enumeration. We have also tried our new static analysis for standard
+benchmarks of diagonal-free timed automata and observed no gain. In these models, the
+distance between a clock reset and a corresponding guard (in a component automaton) is
+small, usually within one or two transitions. Hence resets already cut out most of the guards
+and the optimizations of Table 1 do not seem to help here. We expect to gain primarily in
+the presence of updates or diagonal constraints. We also remark that the last experiment
+cannot be performed on the TIMES tool which is built for scheduling problems and the
+previous ones cannot be modeled in other timed automata tools UPPAAL, PAT and Theta
+since they cannot handle timed automata with subtraction updates. Our prototype therefore
+subsumes existing tools in terms of modeling capability.
+7 Conclusion
+We have presented a static analysis procedure for UTA. This method terminates for a wider
+class of UTA compared to [ 14], and hence makes powerful simulations applicable to these
+systems. We have experimented with a prototype implementation. At a technical level, we
+get a unifying framework to show decidability of the reachability problem for automata with
+diagonal constraints and updates x:=candx:=y+dthat covers the decidable subclasses
+of [8], [12] and [14], the only known decidable classes upto our knowledge. Our framework
+provides a high-level technique to extend to broader classes: to show decidability, check if
+there is a ﬁnite reduced G-map (c.f. proof of Theorem 16 and the subsequent remark). Earlier
+route via regions [ 8,12] requires a more involved low-level reasoning to show the correctness
+of the region equivalence. From a practical perspective, we have a prototype with a richer
+modeling language and a more eﬃcient way to handle updates than the existing real-time
+model checkers. As future work, we plan to engineer the prototype to make it applicable for
+bigger models and release the implementation and benchmarks in the public domain.
+FSTTCS 2020
+
+--- Page 16 ---
+47:16 Reachability for Updatable Timed Automata Made Faster and More Eﬀective
+References
+1Rajeev Alur and David L. Dill. A theory of timed automata. Theoretical Computer Science ,
+126(2):183–235, 1994.
+2Tobias Amnell, Elena Fersman, Leonid Mokrushin, Paul Pettersson, and Wang Yi. TIMES: A
+tool for schedulability analysis and code generation of real-time systems. In Formal Modeling
+and Analysis of Timed Systems (FORMATS) , volume 2791 of Lecture Notes in Computer
+Science, pages 60–72. Springer, 2003.
+3Gerd Behrmann, Patricia Bouyer, Emmanuel Fleury, and Kim G. Larsen. Static guard analysis
+in timed automata veriﬁcation. In Tools and Algorithms for the Construction and Analysis
+of Systems (TACAS) , volume 2619 of Lecture Notes in Computer Science , pages 254–270.
+Springer, 2003.
+4Gerd Behrmann, Patricia Bouyer, Kim G. Larsen, and Radek Pelánek. Lower and upper
+bounds in zone-based abstractions of timed automata. International Journal on Software
+Tools for Technology Transfer , 8(3):204–215, 2006.
+5Mikolaj Bojanczyk and Slawomir Lasota. A machine-independent characterization of timed
+languages. In International Colloquium on Automata, Languages and Programming (ICALP) ,
+volume 7392 of Lecture Notes in Computer Science , pages 92–103. Springer, 2012.
+6Patricia Bouyer. Forward analysis of updatable timed automata. Formal Methods in System
+Design, 24(3):281–320, 2004.
+7Patricia Bouyer and Fabrice Chevalier. On conciseness of extensions of timed automata.
+Journal of Automata, Languages and Combinatorics , 10(4):393–405, 2005.
+8Patricia Bouyer, Catherine Dufourd, Emmanuel Fleury, and Antoine Petit. Updatable timed
+automata. Theoretical Computer Science , 321(2-3):291–345, 2004.
+9Conrado Daws and Stavros Tripakis. Model checking of real-time reachability properties using
+abstractions. In Tools and Algorithms for the Construction and Analysis of Systems (TACAS) ,
+volume 1384 of Lecture Notes in Computer Science , pages 313–329. Springer, 1998.
+10David L. Dill. Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems. In
+Automatic Veriﬁcation Methods for Finite State Systems , volume 407 of Lecture Notes in
+Computer Science , pages 197–212. Springer, 1989.
+11John Fearnley and Marcin Jurdzinski. Reachability in two-clock timed automata is pspace-
+complete. Inf. Comput. , 243:26–36, 2015.
+12Elena Fersman, Pavel Krcál, Paul Pettersson, and Wang Yi. Task automata: Schedulability,
+decidability and undecidability. Inf. Comput. , 205(8):1149–1172, 2007.
+13Paul Gastin, Sayan Mukherjee, and B. Srivathsan. Reachability in timed automata with
+diagonal constraints. In International Conference on Concurrency Theory (CONCUR) , volume
+118 ofLIPIcs, pages 28:1–28:17. Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik, 2018.
+14Paul Gastin, Sayan Mukherjee, and B. Srivathsan. Fast algorithms for handling diagonal
+constraints in timed automata. In Computer Aided Veriﬁcation (CAV) , pages 41–59, Cham,
+2019. Springer International Publishing.
+15Paul Gastin, Sayan Mukherjee, and B Srivathsan. Reachability for updatable timed automata
+made faster and more eﬀective, 2020. arXiv:2009.13260 .
+16Thorsten Gerdsmeier and Rachel Cardell-Oliver. Analysis of scheduling behaviour using
+generic timed automata. Electronic Notes in Theoretical Computer Science , 42:143–157, 2001.
+Computing: The Australasian Theory Symposium (CATS).
+17Christoph Haase, Joël Ouaknine, and James Worrell. Relating reachability problems in timed
+and counter automata. Fundam. Inform. , 143(3-4):317–338, 2016.
+18Leo Hatvani, Alexandre David, Cristina Cerschi Seceleanu, and Paul Pettersson. Adaptive
+task automata with earliest-deadline-ﬁrst scheduling. ECEASST , 70, 2014.
+19Thomas A. Henzinger, Peter W. Kopke, Anuj Puri, and Pravin Varaiya. What’s decidable
+about hybrid automata? J. Comput. Syst. Sci. , 57(1):94–124, 1998.
+20Frédéric Herbreteau and Gerald Point. TChecker. URL: https://github.com/
+ticktac-project/tchecker .
+
+--- Page 17 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 47:17
+21Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Lazy abstractions for timed
+automata. In Computer Aided Veriﬁcation (CAV) , volume 8044 of Lecture Notes in Computer
+Science, pages 990–1005. Springer, 2013.
+22Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better abstractions for timed
+automata. Information and Computation , 251:67–90, 2016.
+23Pavel Krcál, Martin Stigge, and Wang Yi. Multi-processor schedulability analysis of preemptive
+real-time tasks with variable execution times. In Formal Modeling and Analysis of Timed
+Systems (FORMATS) , volume 4763 of Lecture Notes in Computer Science , pages 274–289.
+Springer, 2007.
+24Kim Guldstrand Larsen, Paul Pettersson, and Wang Yi. UPPAAL in a nutshell. International
+Journal on Software Tools for Technology Transfer , 1(1-2):134–152, 1997.
+25Yuki Osada, Tim French, Mark Reynolds, and Harry Smallbone. Hourglass automata. In
+Games, Automata, Logic and Formal veriﬁcation (GandALF) , volume 161 of EPTCS, pages
+175–188, 2014.
+26Victor Roussanaly, Ocan Sankur, and Nicolas Markey. Abstraction reﬁnement algorithms for
+timed automata. In Computer Aided Veriﬁcation (CAV) , volume 11561 of Lecture Notes in
+Computer Science , pages 22–40. Springer, 2019.
+27Jun Sun, Yang Liu, Jin Song Dong, and Jun Pang. Pat: Towards ﬂexible veriﬁcation under
+fairness. In Computer Aided Veriﬁcation (CAV) , volume 5643 of Lecture Notes in Computer
+Science, pages 709–714. Springer, 2009.
+28Tamás Tóth, Ákos Hajdu, András Vörös, Zoltán Micskei, and István Majzik. Theta: a
+framework for abstraction reﬁnement-based model checking. In Daryl Stewart and Georg
+Weissenbacher, editors, Conference on Formal Methods in Computer-Aided Design (FMCAD) ,
+pages 176–179, 2017. doi:10.23919/FMCAD.2017.8102257 .
+29Sergio Yovine. Kronos: A veriﬁcation tool for real-time systems. (Kronos user’s manual release
+2.2).International Journal on Software Tools for Technology Transfer , 1:123–133, 1997.
+FSTTCS 2020

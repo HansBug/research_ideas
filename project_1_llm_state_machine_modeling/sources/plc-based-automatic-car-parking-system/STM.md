@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：EFSM（扩展状态机）
+- 代表时间级别：T1（工程定时 / 局部定时）
+- 结构标签概况：资源互斥
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文给出了车位状态盘点、入口处门禁控制以及开门后自动复位的完整顺序说明。
 
 ## 条目 1: Slot-Guided Entry Gate Control
 - 控制对象：多层停车场的 PLC 入口门禁与车位引导控制系统
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T1（工程定时 / 局部定时）
+- 结构标签：资源互斥
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 - 一句话说明：这是智慧停车领域的停车场入口控制器，用于统计空位、向 HMI 发布车位状态，并根据入口车辆检测驱动道闸开闭。
@@ -25,13 +36,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The parking controller uses proximity sensors at each parking slot to detect whether the slots are occupied and then updates the HMI with the current slot status and vehicle count. At the entry point, another proximity sensor detects the arriving car while the LED indicates whether the car must stop or may proceed. Once the arriving car is detected, the door opens, the light goes off, and after a prescribed time the door returns to its normal position for the next vehicle.
+The parking controller uses proximity sensors at each parking slot to detect whether the slots are occupied, counts the total number of parked cars, and updates the outside HMI with both the current slot status and the available spot number for the driver. At the entry point, another proximity sensor detects the arriving car while the LED indicates whether the car must stop or may proceed. Once the arriving car is detected, the gate opens and the red stop light goes off so that the vehicle can enter the parking area. After a prescribed time the gate returns to its normal position and the light turns on again for the next vehicle.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The parking controller uses proximity sensors at each parking slot to detect whether the slots are occupied and then updates the HMI with the current slot status and vehicle count.
+1. 句子 1：The parking controller uses proximity sensors at each parking slot to detect whether the slots are occupied, counts the total number of parked cars, and updates the outside HMI with both the current slot status and the available spot number for the driver.
    对应摘录：A
 2. 句子 2：At the entry point, another proximity sensor detects the arriving car while the LED indicates whether the car must stop or may proceed.
    对应摘录：B
-3. 句子 3：Once the arriving car is detected, the door opens, the light goes off, and after a prescribed time the door returns to its normal position for the next vehicle.
+3. 句子 3：Once the arriving car is detected, the gate opens and the red stop light goes off so that the vehicle can enter the parking area.
+   对应摘录：B
+4. 句子 4：After a prescribed time the gate returns to its normal position and the light turns on again for the next vehicle.
    对应摘录：B

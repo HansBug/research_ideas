@@ -1,0 +1,989 @@
+--- Page 1 ---
+A Uniﬁed Model for Real-Time Systems:
+Symbolic Techniques and Implementation
+S. Akshay1, Paul Gastin2,4,R .G o v i n d1(B), Aniruddha R. Joshi1,
+and B. Srivathsan3,4
+1Department of CSE, Indian Institute of Technology Bombay, Mumbai, India
+{akshayss,govindr,aniruddhajoshi}@cse.iitb.ac.in
+2Université Paris-Saclay, ENS Paris-Saclay, CNRS, LMF, 91190 Gif-sur-Yvette,
+France
+paul.gastin@ens-paris-saclay.fr
+3Chennai Mathematical Institute, Chennai, India
+sri@cmi.ac.in
+4CNRS, ReLaX, IRL 2000, Siruseri, India
+Abstract. In this paper, we consider a model of generalized timed
+automata (GTA) with two kinds of clocks, history and future ,t h a tc a n
+express many timed features succinctly, including timed automata, event-clock automata with and without diagonal constraints, and automata
+with timers.
+Our main contribution is a new simulation-based zone algorithm for
+checking reachability in this uniﬁed model. While such algorithms are
+known to exist for timed automata, and have recently been shown for
+event-clock automata without diagonal constraints, this is the ﬁrst resultthat can handle event-clock automata with diagonal constraints and
+automata with timers. We also provide a prototype implementation for
+our model and show experimental results on several benchmarks. To the
+best of our knowledge, this is the ﬁrst eﬀective implementation not just
+for our uniﬁed model, but even just for automata with timers or forevent-clock automata (with predicting clocks) without going through a
+costly translation via timed automata. Last but not least, beyond being
+interesting in their own right, generalized timed automata can be used formodel-checking event-clock speciﬁcations over timed automata models.
+Keywords: Real-time systems
+·Timed automata ·Event-clock
+automata ·Clocks ·Timers ·Veriﬁcation ·Zones ·Simulations ·
+Reachability
+This work was supported by UMI ReLaX, IRL 2000 and DST/CEFIPRA/INRIA
+Project EQuaVE. S Akshay was supported in part by DST/SERB Matrics Grant
+MTR/2018/000744. Paul Gastin was partially supported by ANR project Ticktac
+(ANR-18-CE40-0015).
+c/circlecopyrtThe Author(s) 2023
+C. Enea and A. Lal (Eds.): CA V 2023, LNCS 13964, pp. 266–288, 2023.https://doi.org/10.1007/978-3-031-37706-8
+_14
+
+--- Page 2 ---
+A Uniﬁed Model for Real-Time Systems 267
+q0 q1a
+x:= 0
+y:= 0x=1 ?
+x:= 0b
+xy
+012
+q0 q1a
+tx:[ 1 ,1]
+ty:[ 0 ,]timeout (tx)
+tx:[ 1,1]b
+1<t ytx<
+Fig. 1. An automaton with clocks on left, and timers on right for same constraints.
+1 Introduction
+The idea of adding real-time dynamics to formal veriﬁcation models started as
+a hot topic of research in the 1980 s [ 6,11]. Over the years, timed automata [ 8,9]
+has emerged as a leading model for ﬁnite-state concurrent systems with real-timeconstraints. Timed automata make use of clocks , real-valued variables which
+increase along with time. Constraints over clock values can be used as guards
+for transitions, and clocks can be reset to 0 along transitions. It is notable thatthe early works in this area made use of timers to deal with real-time [ 13,22,32].
+Timers are started by setting them to some initial value within a given interval.
+Their values decrease with time, and an timeout event can be used in transitions
+to detect the instant when the timers become 0. Quoting from [ 6], the shift from
+timers to clocks in timed automata, as we know them today, is attributed to thefact that: “ apart from some technical conveniences in developing the emptiness
+algorithm and proving its correctness, the reformulation allows a simple syntac-
+tic characterization of determinism for timed automata ”. Over the last thirty
+years, the study of timed automata has led to the development of rich theory
+and industry-strength veriﬁcation tools. The use of clocks has also allowed for
+the extension of the model to more complex constraints and assignments toclocks in transitions [ 14,17]. Furthermore, considering more sophisticated rates
+of evolution for clocks gives the yet another well-established model of hybrid
+automata [ 7].
+When it comes to the reachability problem, timers do have some nice proper-
+ties. Let us explain with an example. Figure 1shows a timed automaton on the
+left, and an automaton with timers on the right, for the set of words ab
+∗such
+that the time between every consecutive letters is 1. The timed automaton sets
+clock xto 0 and checks for the guard x= 1? to enforce the timing constraint.
+The automaton with timers, on the right, sets a timer txto 1, and asks for its
+expiry in the immediate next action. Clock yand timer tyare not necessary for
+the required timing property, but we add them to illustrate a diﬀerent aspect
+that we will describe now. To solve the reachability problem, a symbolic enumer-
+ation of the state space is performed. In the timed automaton, at state q1,t h e
+enumeration gives constraints y−x=nfor every n≥0. Starting from y−x=n
+and executing bgives y−x=n+ 1, due to the combination of guard x=1 ?
+and reset x:= 0. This shows that a naïve symbolic enumeration is not bound
+
+--- Page 3 ---
+268 S. Akshay et al.
+to terminate. The question of developing ﬁnite abstractions for timed automata
+has been a central problem of study which started in the late 90s and continuestill date (see recent surveys [ 18,38]). Such an issue does not occur with timers.
+In the automaton with timers on the right, t
+xis set to 1 and tyis set to some
+arbitrary value in the transition to q1. This gives −1≤ty−tx≤∞ for the set
+of all possible timer values. When txtimes out, the value of tycould still be any
+value from 0 to ∞. When txis set to 1 again, the set of possible timer values still
+satisﬁes the same constraint −1≤ty−tx≤∞ leading to a ﬁxed point with a
+ﬁnite reachable state space. The fact that symbolic enumeration terminates on
+an automaton with timers was already observed in [ 22]. To our knowledge, later
+works on timed automata reachability never went back to timers, and there isno tool support that we know of to deal with models with timers directly. We
+ﬁnd this surprising given that timers occur naturally while modeling real-time
+systems and moreover they enjoy this ﬁniteness property.
+In addition to clocks and timers, event-clocks are another special type of clock
+variables that are used to deal with timing constraints [ 10], which are attached
+to events. An event-recording clock for event amaintains the time since the
+previous occurrence of a, whereas an event-predicting clock for agives the time
+to the next occurrence of a. Event-clocks have been used in the model of event-
+clock automata (ECA), and also in the logic of event-clocks [ 36]. These works
+argue that event-clocks can express typical real-time requirements. Theoretically,
+ECA can be determinized, and hence complemented. Therefore, model-checkingan event-clock (logic or automaton) speciﬁcation ϕover a timed automaton A
+can be reduced to reachability on the product of Aand the ECA for ¬ϕ. This
+makes event-clocks a convenient feature in speciﬁcations.
+Recently, a symbolic enumeration algorithm for ECA was proposed [ 3]. It was
+noticed that when restricted to event-predicting clocks, the symbolic enumera-
+tion terminates without any additional checks (similar to the case of timers),whereas for the combination involving event-recording clocks, one needs simu-
+lation techniques from the timed automata literature. The same work showed
+how to adapt the best known simulation technique from timed automata into
+the setting of ECA. However, as discussed above, for model-checking we need
+a model containing both conventional clocks, timers and event-clocks. To ourknowledge, no tool can directly work on such models.
+Our goal in this work is to provide a one stop solution to real-time veriﬁcation,
+be it reachability analysis or model-checking (over event-clock speciﬁcations), beit using models with clocks, or models with timers. We consider a uniﬁed model
+of a timed automaton over variables that can simulate normal clocks, timers and
+event-clocks. Here are our key contributions:
+1. We deﬁne a new model of generalized timed automata (GTA) which have
+two types of variables, called history clocks and future clocks. History clocks
+generalize normal clocks as well as event-recording clocks, while future clocks
+generalize event-predicting clocks and timers. However, unlike event-clocks,clocks in GTA are not necessarily associated with events. We also consider a
+generic syntax that allows for diagonal constraints between variables.
+
+--- Page 4 ---
+A Uniﬁed Model for Real-Time Systems 269
+2. We show undecidability of reachability for GTA, and study a safe subclass
+that makes the model decidable. Safe GTA already subsume timed automata,event-clock automata (with diagonal constraints) and automata with timers.
+3. We adapt state-of-the-art symbolic enumeration techniques from timed
+automata literature to safe GTA. While we make use of ideas presented in [ 22]
+and [ 3], these works do not contain diagonal constraints between variables.
+Our main technical and theoretical innovation lies in a new termination anal-
+ysis of the symbolic enumeration in the presence of diagonal constraints. Sur-prisingly, we show that the enumeration terminates as long as the diagonal
+constraints are restricted to usual clocks and event-clocks, but not timers.
+4. We develop a prototype implementation of our model and algorithm in
+Tchecker , an open-source platform for timed automata analysis, and show
+promising results on several existing and new benchmarks. To the best of
+our knowledge, our tool is the ﬁrst that can handle event-clock automata, a
+model that till date has been the subject of many theoretical results.
+Related Works. In the work that ﬁrst introduced ECA, a translation from ECA
+to a timed automaton was also proposed. However, this translation is not eﬃ-
+cient: in the worst case, this translation incurs a blowup in the number of clocksand states. In [ 27,28], an extrapolation approach using maximal constants has
+been studied for ECA. However, it has been observed that simulation-based tech-
+niques are both more eﬀective [ 14,16] and eﬃcient [ 5,24–26] than extrapolation
+for checking reachability. Recently, [ 3] proposed a zone-based reachability algo-
+rithm for diagonal-free ECA, using simulations for ﬁniteness, but there was noaccompanying implementation. Diagonal constraints have long been known to
+allow succinct modeling [ 15] for the class of timed-automata, but only recently a
+zone-based algorithm that directly works on such automata, was proposed. ECAwith diagonals are more expressive than ECA [ 19]. In this work, we propose a
+zone-based algorithm for a uniﬁed model that subsumes ECA with diagonals.
+The use of history clocks and prophecy clocks in ECAs is in the same spirit
+as past and future modalities in temporal logics - this makes ECAs an attractive
+model for writing timed speciﬁcations. Indeed, this has also led to a develop-
+ment of various temporal logics with event-clocks [ 1,23,36]. ECA with diagonal
+constraints have been well-studied, such as in the context of timeline based
+planning [ 19,20]. Finally, while there has been substantial advances in the the-
+ory of ECA, to the best of our knowledge, the only tool that handles ECA isTempo [37], and even this tool is restricted to just history clocks.
+Structure of the Paper. In Sect. 2we start by deﬁning the generalized model.
+Section 3examines its expressiveness, while Sect. 4deals with the reachability
+problem and the safe subclass. Section 5develops the symbolic enumeration tech-
+nique, while Sect. 6explains how distance graphs can be extended to this setting.
+Section 7is dedicated to ﬁniteness. Finally, we provide our experimental results
+in Sect. 8and conclude with Sect. 9. All the missing proofs can be found in the
+full version of the paper [ 2].
+
+--- Page 5 ---
+270 S. Akshay et al.
+2 Generalized timed automata
+In this section we introduce the uniﬁed model. While we build on classical ideas
+from timed automata, almost every aspect is extended and below we highlight
+these changes. We deﬁne X=XH/unionmultiXFto be a ﬁnite set of real-valued variables
+called clocks , where XHis the set of history clocks ,a n d XFis the set of future
+clocks . History clocks always have a non-negative value and can increase arbi-
+trarily along with time. Future clocks always have a non-positive value and canonly increase until their values hit 0. History clocks simulate the usual clocks
+in timed automata and recording clocks of event-clock automata (ECA), and
+future clocks simulate timers and prophecy clocks of ECA. Both these clockscan take a special “undeﬁned value” which marks that they are inactive. To deal
+with this naturally, we consider an extension of the reals with + ∞and−∞ as
+in [3]. The diﬀerence here is that we also have the so-called diagonal constraints.
+Extending Clock Constraints. Let
+R=R∪{ − ∞ ,+∞}denote the set of all
+real numbers along with −∞and + ∞. The usual <order on reals is extended to
+deal with {−∞ ,+∞}as:−∞<c< +∞for all c∈Rand−∞<∞. Similarly,
+Z= Z∪{ − ∞ ,+∞}denotes the set of all integers along with −∞ and + ∞.
+Let R≥0(resp. R≤0) be the set of non-negative (resp. non-positive) reals. Let
+C={(/triangleleft, c)|c∈Rand/triangleleft∈{ ≤ ,<}}, called the set of weights.
+LetX∪{0}be the set obtained by extending the clocks of GTA with the
+special constant clock 0. Note that this clock will always have the value 0. Let
+Φ(X) denote a set of clock constraints generated by the following grammar:
+ϕ::=x−y/triangleleftc |ϕ∧ϕwhere x, y∈X∪{0},(/triangleleft, c)∈C andc∈Z.T h e
+introduction of the special constant clock 0 allows us to treat constraints with
+just a single clock as special cases: the constraint x/triangleleftc is equivalent to x−0/triangleleftc
+and the constraint c/triangleleftx is equivalent to 0 −x/triangleleft−c. We often write x=c
+as a shorthand for x≤c∧c≤x. Constraints of the form x−y/triangleleftc will be
+called atomic constraints . A constraint of the form x−y/triangleleftc is adiagonal (resp.
+non-diagonal ) constraint if x, y/negationslash= 0 (resp. x=0o r y= 0).
+To evaluate the constraints allowed by Φ(X), we extend addition on real
+numbers with the convention that (+ ∞)+α=α+( + ∞)=+ ∞for all α∈R
+and ( −∞)+β=β+(−∞)=−∞, as long as β/negationslash=+∞. We also extend the
+unary minus operation from real numbers to Rby setting −(+∞)=−∞ and
+−(−∞)=+ ∞. Abusing notation, we write β−αforβ+(−α). Notice that with
+this extended addition, the minus operation does not distribute over addition1.
+Extending Valuations. A valuation of clocks is a function v:X∪{0}/mapsto→ R
+which maps the special clock 0 to 0, history clocks to R≥0∪{+∞}and future
+clocks to R≤0∪ {−∞} . We denote by V(X) or simply by Vthe set of valuations
+over X. We say that clock xisdeﬁned (resp. undeﬁned )i nvwhen v(x)∈R
+(resp. v(x)∈{ − ∞ ,+∞}). Let x, y∈X∪{0}be clocks (including 0) and let
+(/triangleleft, c) be a weight. For valuations v∈V, deﬁne v|=y−x/triangleleftc asv(y)−v(x)/triangleleftc.
+1Notice that −(a+b)=( −a)+(−b)w h e n aor bis ﬁnite or when a= b. But, when
+a=+∞and b=−∞ then −(a+b)=−∞ whereas ( −a)+(−b)=+ ∞.
+
+--- Page 6 ---
+A Uniﬁed Model for Real-Time Systems 271
+We say that a valuation vsatisﬁes a constraint ϕinΦ(X), denoted as v|=ϕ,
+when vsatisﬁes all atomic constraints in ϕ.
+By deﬁnition, we easily check that the constraint y−x/triangleleftc is equivalent to
+true (resp. false) when ( /triangleleft, c)=( ≤,+∞)( r e s p .( /triangleleft, c)=( <,−∞)). Constraints
+that are equivalent to true orfalse will be called trivial, whereas all others are
+non-trivial constraints. If ( /triangleleft, c)/negationslash=(≤,+∞) then v|=y−x/triangleleftc never holds when
+v(x)=−∞. Also, if v(x)=v(y)∈{ − ∞ ,+∞}then v|=y−x/triangleleftc only holds for
+(/triangleleft, c)=( ≤,+∞). For a non-trivial constraint y−x/triangleleftc,w eh a v e
+–v|=y−x/triangleleftc iﬀv(y)<+∞=v(x)o r( v(x) is ﬁnite and v(y)/triangleleftv(x)+c).
+–v|=y−x≤− ∞ iﬀv(y)<+∞=v(x)o rv(y)=−∞<v(x).
+–v|=y−x<+∞iﬀv(x)/negationslash=−∞ andv(y)/negationslash=+∞.
+We abuse notation and for Y⊆X, we deﬁne Y/triangleleft c as/logicalandtext
+y∈Yy/triangleleftc,a n d Y=c
+as/logicalandtext
+y∈Yy=c. We denote by v+δthevaluation obtained from valuation v
+by increasing by δ∈R≥0the value of all clocks in X. Note that, from a given
+valuation, not all time elapse result in valuations since future clocks need to stay
+at most 0. For example, from a valuation with v(x)=−3a n d v(y)=−2, where
+x, yare future clocks, one can elapse at most 2 time units.
+Extending Resets. For history clocks, the reset operation sets the clock to 0.
+For future clocks, the reset operation says that all constraints on the clock must
+be discarded, i.e., the clock is released . Given that the set of clocks is partitioned
+into history clocks and future clocks, we use the same notation [ R]vto talk about
+the change of clocks in R, whether it be reset/release. Formally, given a set of
+clocks R⊆X, we deﬁne [ R]vas{v/prime∈V|v/prime(x)=0 ∀x∈R∩XHandv/prime(x)=
+v(x)∀x/negationslash∈R}. Observe that the release operation is implicit: each future clock in
+Rcould take any value (not necessarily the same) from [ −∞,0] in [ R]v. Note that
+[R]vis a singleton when Rcontains only history clocks - this corresponds exactly
+to the reset operation in timed automata. Then, we simply write v/prime=[R]v
+instead of {v/prime}=[R]v. When Rcontains only future clocks, [ R]vis the set
+of valuations obtained by releasing each clock in Rwhile keeping the value of
+all other clocks unchanged. For W⊆ V, we let [ R]W=/uniontext
+v∈W[R]v.W eh a v e
+[R/prime∪R/prime/prime]W=[R/prime]([R/prime/prime]W).
+Extending Guards and Transitions. Before we deﬁne GTA, let us focus
+on the language to specify transitions. In normal timed automata, as shown in
+Fig.2, a transition reads a letter, checks a guard g∈Φ(XH) and then resets a
+subset Rof (history) clocks. But in any one transition only a pair of guard, reset
+is performed and one cannot interleave them.
+p qa, g, R
+p qa,prog
+Fig. 2. A transition of TA (left) and of a GTA (right)
+
+--- Page 7 ---
+272 S. Akshay et al.
+We generalize this to our setting with history and future clocks but also to
+allow arbitrary interleaving of guards and changes (to model this with a TA onemay use a sequence of multiple transitions without delays in-between.) Formally,
+aninstantaneous timed program is generated by the following grammar:
+prog := guard |change |prog; prog
+where guard = g∈Φ(X) and change = [ R] for some R⊆X. While guard and
+change are atomic programs, prog; prog refers to sequential composition. The
+set of all programs generated by the above grammar will be denoted Programs.Then on a transition, we simply have a pair of letter label and an instantaneous
+timed program, e.g., ( a,prog) in Fig. 2(right).
+The semantics for programs on a transition must generalize semantics for
+guards (deﬁned using satisfaction relation |= above) and resets/release (deﬁned
+using [ R] above). But there is an obvious diﬀerence between these two: a guard
+may be crossed only if the valuation before the guard satisﬁes it, whereas achange (reset or release) deﬁnes a relation between the valuations before and
+after the change. To capture both in a uniform way, we deﬁne the semantics
+of programs as relations on pairs of valuations. Formally, for v,v
+/prime∈V,p r o g ∈
+Programs we deﬁne ( v,v/prime)|= prog, more conveniently written as vprog−−−→v/prime,
+inductively:
+–vg−→v/primeifv|=gandv/prime=v,
+–v[R]−−→v/primeifv/prime∈[R]v,
+–vprog1;prog2−−−−−−− →v/primeif∃v/prime/prime∈Vsuch that vprog1−−−→v/prime/primeandv/prime/primeprog2−−−→v/prime.
+Now, we have all the pieces necessary to deﬁne our generalized model.
+Deﬁnition 1 (Generalized timed automata). Ageneralized timed
+automata Ais given by a tuple (Q, Σ, X, Δ, (q0,g0),(Qf,gf)),w h e r e Qis a
+ﬁnite set of states, Σis a ﬁnite alphabet of actions, X=XF/unionmultiXHis a set of
+clocks partitioned into future and history clocks, the initialization condition is a
+pair comprising of an initial state q0∈Qand an initial guard g0∈Φ(X)which
+should be satisﬁed by initial valuations, similarly, the ﬁnal condition is a pair
+comprising of a set of ﬁnal states Qf⊆Qalong with a ﬁnal guard gfthat must
+be satisﬁed by ﬁnal valuations, and Δ⊆(Q×Σ×Programs ×Q)is a ﬁnite set
+of transitions. Δcontains transitions of the form (q,a,prog,q/prime),w h e r e qis the
+source state, q/primeis the target state, ais the action triggering the transition, and
+prog is the instantaneous timed program that is executed in sequence (from left
+to right) while ﬁring the transition.
+The semantics of a GTA A=(Q, Σ, X, Δ, (q0,g0),(Qf,gf)) is given by a tran-
+sition system TSAwhose states are conﬁgurations (q,v)o fA, where q∈Qand
+v∈Vis a valuation. A conﬁguration ( q,v) is initial if q=q0andv|=g0.A
+conﬁguration ( q,v) is accepting if q∈Qfandv|=gf. Transitions of TSAare
+of two forms: (1) delay transition :(q,v)δ−→(q,v+δ)i f(v+δ)|=XF≤0, and
+
+--- Page 8 ---
+A Uniﬁed Model for Real-Time Systems 273
+(2)discrete transition :(q,v)t−→(q/prime,v/prime)i ft=(q,a,prog,q/prime)∈Δandvprog−−−→v/prime.
+Thus, a discrete transition t=(q,a,prog,q/prime), where prog = prog1;...;p r o gncan
+be taken from ( q,v) if there are valuations v1,...,v nsuch that vprog1−−−→v1prog2−−−→
+···progn−−−−→vn=v/prime.Arunof a GTA is a ﬁnite sequence of transitions from an
+initial conﬁguration of TSA. A run is said to be accepting if its last conﬁguration
+is accepting.
+3 Expressivity of GTA and Examples
+The GTA model deﬁned above is rather expressive. Figure 3illustrates an exam-
+ple which accepts words of the form anbmwith m≤n, where each aoccurs
+at time 0, after which b’s are seen one by one, with distance 1 between them.
+The history clock xis used to ensure the timing constraint. For every athat is
+read, the future clocks y,zdecrease by 1. Hence the future clocks y,zmaintain
+the opposite of the number of a’s seen. When the automaton starts reading b,
+the future clocks also start elapsing time and since they cannot go above 0, the
+number of b’s is at most the number of a’s. Such a language cannot be accepted
+by timed automata since the untimed language obtained by removing the timestamps needs to be regular in the case of timed automata. The GTA model is
+not only expressive, it is also convenient for use. To see this we now show that
+three classical models of timed systems can be easily captured using GTA. Wealso illustrate the modeling convenience provided by GTA in Sect. 8based on
+experiments.
+q0 q1a,prog1
+b,prog2b,prog2History clocks: x, Future clocks: y, z
+prog1:x=0 ; [ y];y=z 1; [z];z=y prog2:x=1 ; [ x]
+Initial condition: y=z=0 Final condition: true
+Fig. 3. Example of a GTA
+Timed automata. Timed automata (TA) of Alur-Dill [ 9] can be modeled as a
+GTA as follows: (1) The set of states of the GTA is the same as the set of states
+of the TA. (2) There are no future clocks in the GTA and its history clocks are
+the clocks of the TA. (3) Each transition of the form qa,g,R−−−→q/primein a TA , where
+gis a guard, aa letter and Ra subset of clocks to be reset, is replaced by a
+transition qa,prog−−−−→q/primewhere prog = /angbracketleftg;[R]/angbracketright. (4) Initially, all clocks must be 0,
+captured by setting g0=(XH= 0). (5) The ﬁnal guard is empty: gf=True .
+Event-clock Automata. Event-clock automata (ECA) of [ 10] can be modeled
+as a GTA as follows: (1) The set of states of the GTA is the same as the set
+of states of the ECA. (2) For each a∈Σ, the GTA has a history clock←−aand
+a future clock−→a. (3) Each transition of the form qa,g−−→q/primein a ECA, where
+
+--- Page 9 ---
+274 S. Akshay et al.
+gis a guard of the ECA, aa letter, is replaced by a transition qa,prog−−−−→q/prime
+where prog := /angbracketleft(−→a= 0); [−→a];g;[←−a]/angbracketright. (4) At initialization, history clocks must
+be undeﬁned (set to ∞), captured by g0=(XH=∞). (5) At acceptance, all
+future clocks must be undeﬁned, i.e., gf=(XF=−∞).
+Automata with Timers. The third model we consider is that of automata
+with timers. Timers are timing constructs that are started/initialized with acertain time value at some point/event and count down to 0. They measure
+the time from when they were started till the timer hits 0, where the event of
+hitting 0 is called timeout . However, they can be stopped using a stop event at
+any intermediate point instead and in which case the timer must be freed for
+reuse later. Timers are a common construct in protocol speciﬁcation, e.g., the
+ITU standard which uses timers rather than clocks [ 30] and Mealy machines
+with timers [ 31].
+In our setting, a timer can be seen as a speciﬁc instance of a future clock.
+More precisely Automata with timers ( A
+⊿/triangleleft) can be modeled as GTA as follows:
+(1) The set of states of the GTA is the same as the set of states of A
+⊿/triangleleft. (2)
+The future clocks of GTA are the timers of A
+⊿/triangleleftand there are no history clocks.
+Initially, the timers are undeﬁned, captured by g0=(XF=−∞)a n d gf=True .
+(4) A transition of A
+⊿/triangleleftwith action afrom qtoq/primeis encoded as qa,prog−−−−→q/primewith:
+– if the transition starts timer xwith value c∈ R≥0, then prog = /angbracketleftx=
+−∞;[x];x=−c/angbracketright.
+– if the transition is guarded by timeout (x), then prog = /angbracketleftx=0 ;[ x];x=−∞/angbracketright .
+– if the transition stops timer x, then prog = /angbracketleft[x];x=−∞/angbracketright .
+We note that the timer above diﬀers from a prophecy-event-clock (of ECA)
+though both are future clocks. Prophecy-clocks are released only when the event
+is seen, so at that point the value of the prophecy-clock must be 0. On the otherhand timers can be stopped and released even when their value is not 0. This
+subtle diﬀerence has a surprising impact when we allow diagonal guards.
+4 The Reachability Problem for GTA
+We are interested in the reachability problem for GTA: given a GTA A,d o e s
+it have an accepting run? For normal TA, the reachability problem is decid-
+able and PSPACE complete as shown in [ 9]. This was shown using the so-called
+region abstraction, by proving the existence of a ﬁnite time-abstract bisimu-
+lation. However, this is not the case for GTA. As explained in the previous
+subsection, GTA capture ECA, and as shown in [ 27,28], there exists ECA for
+which there is no ﬁnite time-abstract bisimulation. However, reachability is still
+decidable in the speciﬁc case of ECA, as again shown in [ 10]. We note that for
+ECA model of [ 27,28] there are no diagonal constraints. In this case they show
+decidability via zone-extrapolation. In [ 3], another approach for decidability via
+zone simulations is shown. But again even in this model diagonal constraints
+are disallowed. Even more critically in GTA, we can capture timers and a priori
+
+--- Page 10 ---
+A Uniﬁed Model for Real-Time Systems 275
+we can have diagonal constraints even among timers. So, the question we ask is
+whether reachability is still decidable for GTA. Surprisingly, the answer is no.The intuition is that with future clocks and diagonal constraints, we get the
+ability to count (cf. Fig. 3).
+Theorem 2. Reachability for GTA is undecidable.
+Proof. We reduce from counter machines. Given a counter machine, we will build
+a GTA with one future clock y
+Cfor each counter Cand one extra future clock
+z. The reduction uses diagonal constraints between zand the future clocks yC.
+Initially and after each transition, the value of the future clock zwill be 0.
+Since a future clock has to be non-positive, time elapse is impossible. As an
+invariant, the value of the future clock yCis the opposite of the value of counter
+C. The operations on counter Care encoded with the following programs: (1)
+zero C=/angbracketleftyC=0/angbracketright(2) inc C=/angbracketleft[z];z=yC−1; [yC];yC=z;[z];z=0/angbracketright(3)
+dec C=/angbracketleftyC≤−1; [z];z=yC+1;[ yC];yC=z;[z];z=0/angbracketright. In programs inc Cand
+dec C, each release of a future clock is followed by a constraint which restricts the
+value non-deterministically chosen during the release. For instance, [ z];z=yC−1
+is equivalent to z:=yC−1. Hence, the overall eﬀect of inc CisyC:=yC−1,
+maintaining all other clocks unchanged, including the invariant z=0 . /intersectionsq/unionsq
+Given this negative result, what can we do? A careful observation of the
+proof tells us that it is the interplay between diagonal constraints and arbitrary
+releases of future clocks that leads to undecidability. More precisely, the encodingdepends on the fact that clocks zandy
+Cwhich are used in diagonal constraints
+(z=yC−1,z=yC+1a n d yC=z) may have arbitrary values when they are
+released. This suggests a restricted subclass that we formalize next.
+Deﬁnition 3 (Safe GTA). LetXD⊆XFbe a subset of future clocks.
+A program prog =/angbracketleftg1;[R1];g2;[R2];...;gk;[Rk];gk+1/angbracketrightisXD-safe if
+– diagonal constraints between future clocks are restricted to clocks in XD:i f
+x−y/triangleleftc with x, y∈XFoccurs in some githen x, y∈XD;
+– clocks in XDshould be 0or−∞ before being released: if x∈XD∩Rithen
+x=0orx=−∞ occurs in gi.
+AG T A AisXD-safe if it only uses XD-safe programs on its transitions and the
+initial guard g0sets each history clock to either 0or∞.
+Observe that the three examples discussed in Sect. 3are safe. Timed
+automata do not have future clocks so the condition is vacuously true. In ECA,
+event-predicting clocks are always checked for 0 before being released, hence
+they are safe as well with XD=XF. Automata with timers without diagonal
+constraints are also trivially safe with XD=∅. The importance of safety is the
+following theorem which is the center-piece of this article.
+Theorem 4. Reachability for XD-safe GTA is decidable.
+We will establish this theorem by showing a ﬁnite, sound and complete zone
+based reachability algorithm for XD-safe GTA. If the given GTA is not XD-
+safe, then we lose proof of termination (unsurprisingly, since the problem is
+undecidable), but we still maintain soundness. Thus, even for such GTA whenour algorithm does terminate it will give the correct answer.
+
+--- Page 11 ---
+276 S. Akshay et al.
+5 Symbolic Enumeration
+We adapt the G-simulation framework presented in [ 26] for timed automata with
+diagonal constraints to GTA. Diagonal constraints oﬀer succinct modeling [ 15],
+but are quite challenging to handle eﬃciently in zone-based algorithms, and
+have led to pitfalls in the past: [ 14] showed that the erstwhile algorithm based
+on zone-extrapolations that was implemented in tools is incorrect for modelswith diagonal constraints; moreover no extrapolation based method can work
+for automata with diagonal constraints. The simulation framework by-passes this
+impossibility result and is the state-of-the-art for timed automata with diagonal
+constraints. The framework was extended to event-clock automata without diag-
+onal constraints in [ 3]. We show that the ideas from [ 26] and [ 3] can be suitably
+combined to give an eﬀective procedure for safe GTAs. This extension to GTAs
+enables us to understand the mechanics of diagonal constraints in future clocks.
+The algorithm based on the G-simulation framework involves:
+1. computation of a set of constraints at every state of the automaton by a static
+analysis of the model,
+2. a symbolic enumeration using zones to compute the zone graph ,
+3. asimulation relation between zones to ensure termination of the enumeration.
+We will next adapt the static analysis to the GTA setting. The algorithm for
+the zone graph computation and the implementation of the simulation relationover zones is taken oﬀ-the-shelf from [ 26] and [ 3], except for a minor adaptation
+to include diagonal constraints involving future clocks. What is absent, and
+requires a non-trivial analysis, is the proof of termination. Therefore, we will
+mainly focus on this aspect and devote Sect. 7for the termination argument.
+G-Simulation and the Static Analysis for GT A .We ﬁx a GTA A=
+(Q, Σ, X, T, (q
+0,g0),(Qf,gf)) for this section. Our goal is to deﬁne a simulation
+relation on the semantics of A, i.e., on TS(A). In the subsequent sections we will
+lift this to zones and show its ﬁniteness. A simulation relation on TS(A)i sa
+reﬂexive, transitive relation ( q,v)/precedesequal(q,v/prime) relating conﬁgurations with the same
+control state and (1) for every ( q,v)δ−→(q,v+δ), we have ( q,v/prime)δ−→(q,v/prime+δ)
+and ( q,v+δ)/precedesequal(q,v/prime+δ), (2) for every transition t,i f(q,v)t−→(q1,v1) for some
+valuation v1, then ( q,v/prime)t−→(q1,v/prime
+1) for some valuation v/prime
+1with ( q1,v1)/precedesequal(q1,v/prime
+1).
+For any set Gof atomic constraints, we deﬁne a preorder /precedesequalGon valuations:
+v/precedesequalGv/primeif∀ϕ∈G,∀δ≥0,v +δ|=ϕ=⇒v/prime+δ|=ϕ.
+Notice that in the deﬁnition above, we do not restrict δto those such that v+δis
+a valuation: we may have v(x)+δ>0 for some x∈XF. In usual timed automata,
+this question does not arise, as elapsing any δfrom any given valuation always
+results in a valuation. But this is crucial for the proof of Theorem 5below.
+Intuitively, the preorder above is a simulation wrt the constraints in Geven
+after time elapse. But we need this to also be a simulation wrt discrete transi-
+tions. To achieve this, the set of constraints Gshould depend on the available
+
+--- Page 12 ---
+A Uniﬁed Model for Real-Time Systems 277
+discrete transitions. In fact, we deﬁne a map Gfrom states to set of constraints,
+in such a way that it captures the simulation wrt the discrete actions. In otherwords, our focus will be to choose state-dependent sets of constraints (given by
+the map G) depending on Asuch that the resulting preorder induces a simulation
+on TS(A).
+As a ﬁrst step towards this, we deﬁne, for any set Gof constraints and any
+program prog, a set of constraints G
+/prime= pre(prog ,G) such that, if v/precedesequalG/primev/prime
+and vprog−−−→v1then there exists v/primeprog−−−→v/prime
+1such that v1/precedesequalGv/prime
+1. This set
+is deﬁned inductively as follows ( Gis a set of atomic constraints, Ris a set
+of clocks, gis an arbitrary constraint, y−x/triangleleftc is an atomic constraint):
+pre(prog1;p r o g2,G)= pre(prog1,pre(prog2,G))
+pre(g,G)= split(g)∪G
+pre([R],G)=/uniondisplay
+ϕ∈Gpre([R],{ϕ})pre([R],{y−x/triangleleftc})=⎧
+⎪⎪⎪⎨
+⎪⎪⎪⎩{y−x/triangleleftc}ifx, y /∈R
+{y/triangleleftc} ifx∈R, y /∈R
+{−x/triangleleftc} ifx/∈R, y∈R
+∅ ifx, y∈R
+where split(g) is the set of atomic constraints occurring in g.
+Now, the choice of suitable Gwill be obtained by static analysis, on the lines
+of what was done for timed automata with diagonals [ 24–26], but adapted to
+our more powerful model. More precisely, we deﬁne the map Gfrom Qto sets
+of atomic constraints as the least ﬁxpoint of the set of equations:
+G(q)={x≤0|x∈XF}∪/uniondisplay
+qa, prog−−−−→q/primepre(prog ,G(q/prime)) (1)
+Finally, based on /precedesequalGand the G(q) computation, we can deﬁne a preorder
+/precedesequalAbetween conﬁgurations of TS(A)a s( q,v)/precedesequalA(q/prime,v/prime)i fq=q/primeandv/precedesequalG(q)v/prime.
+We then show that /precedesequalAdeﬁned above is indeed a simulation relation.
+Theorem 5. The relation /precedesequalAis a simulation on the transition system TSA.
+Zones for GT A and the Zone Graph Computation . Roughly, zones [12]
+are sets of valuations that can be represented eﬃciently using constraints
+between diﬀerences of clocks. In this section, we introduce an analogous notion
+for generalized timed automata. We consider GTA zones , or simply zones ,w h i c h
+are special sets of valuations of GTA. A GTA zone is a set of valuations satisfy-
+ing a conjunction of constraints of the form y−x/triangleleftc, where x, y∈X∪{0},c∈Z
+and/triangleleft∈{ ≤ ,<}. Thus zones are an abstract representation of sets of valuations.
+Then, an abstract conﬁguration, also called a node, is a pair consisting of a state
+and a zone. Firing a transition t:= (q,a,prog,q/prime)i naG T A Afrom node ( q,Z)
+will result in another node following a sequence of operations that we now deﬁne.
+GTA Zone Operations. Letgbe a guard, R⊆Xa set of clocks and ZaG T A
+zone.
+– Guard intersection: Z∩g:={v|v∈Zandv|=g}
+– Release/Reset: [ R]Z=/uniontext
+v∈Z[R]v(as deﬁned in Sect. 2)
+– Time elapse:−→Z={v+δ|v∈Z, δ∈R≥0s.t.v+δ|=(XF≤0)}
+
+--- Page 13 ---
+278 S. Akshay et al.
+Successor Computation. We can show that starting from a zone Z, the successors
+after the above operations are also zones (see Theorem 29 in [ 2]). A guard gcan
+be seen as yet another zone and hence guard intersection is just an intersection
+operation between two zones. Similarly, the change operation preserves zones.
+Finally, as is usual with timed automata, zones are closed under the time elapseoperation.
+Thus, for a transition t:= (q,a,prog,q
+/prime)a n dan o d e( q,Z), we can deﬁne
+the successor node ( q/prime,Z/prime), and we write ( q,Z)t−→(q/prime,Z/prime), where Z/primeis the zone
+computed by the following sequence of operations: Let prog = prog1;...;p r o gn,
+where each progiis an atomic program, i.e., a guard or a change. Then we
+deﬁne zones Z1,...,Z n+1where, Z1=Z,Z/prime=−−−→Zn+1,a n df o re a c h1 ≤i≤n,
+Zi+1=Zi∩giif progiis a guard gi,a n d Zi+1=[Ri]Ziif progiis a change [ Ri].
+Now, we can lift zone graphs, simulations from TA to GTA and obtain a
+symbolic reachability algorithm for GTA.
+Deﬁnition 6 (GTA zone graph). Given a GTA A,i t s GTA zone graph,
+denoted GZG(A), is deﬁned as follows: Nodes are of the form (q,Z)where qis
+a state and Zis a GTA zone. The initial node is (q0,−→Z0)where q0is the initial
+state and Z0is the set of all valuations which satisfy the initial constraint g0:
+Z0is given by g0∧/parenleftbig
+XF≤0/parenrightbig
+∧/parenleftbig
+XH≥0/parenrightbig
+. For every node (q,Z)and every
+transition t:= (q,a,prog,q/prime)ofA, there is a transition (q,Z)t−→(q/prime,Z/prime)in the
+GTA zone graph. A node (q,Z)is accepting if q∈QfandZ∩gfis non-empty,
+i.e., there exists a valuation in Zsatisfying the ﬁnal constraint.
+Similar to the case of zone graphs for timed automata and event zone graphs
+for ECA, the GTA zone graph can be used to decide reachability for generalized
+timed automata. A node ( q,Z) is said to be reachable (in A) if there is a path
+from the initial node ( q0,−→Z0)t o( q,Z)i n GZG(A). Thus, reachability of a ﬁnal
+state in Areduces to checking reachability of an accepting node in GZG(A).
+However, as in the case of zone graphs for timed automata, GZG(A) is also not
+guaranteed to be ﬁnite. Hence, we need to compute a ﬁnite truncation of the
+GTA zone graph, which is still sound and complete for reachability.
+Deﬁnition 7 (Simulation on GTA zones and ﬁniteness). Let/precedesequalbe a sim-
+ulation relation on TS(A). For two GTA zones Z, Z/prime,w es a y (q,Z)/precedesequal(q,Z/prime)if
+for every v∈Zthere exists v/prime∈Z/primesuch that (q,v)/precedesequal(q,v/prime). The simulation /precedesequal
+is said to be ﬁnite if for every sequence (q,Z 1),(q,Z 2),... ofreachable nodes,
+there exists j>i such that (q,Z j)/precedesequal(q,Z i).
+Now, the reachability algorithm, as in TA, enumerates the nodes of the GTA
+zone graph and uses the simulation /precedesequalAfrom Theorem 5to truncate nodes that
+are smaller with respect to the simulation. In Sect. 7, we will show that /precedesequalAis
+ﬁnite when Ais safe, which implies that the reachability algorithm terminates.
+But before that we discuss the issue of implementability.
+
+--- Page 14 ---
+A Uniﬁed Model for Real-Time Systems 279
+6 Computing with GTA Zones Using Distance Graphs
+To implement the reachability algorithm described above, we will view zones as
+distance graphs , as is usually done in the literature [ 12].
+Recall the notion of weights C={(/triangleleft, c)|c∈Rand/triangleleft∈{ ≤ ,<}. An order
+relation <between weights is deﬁned as ( /triangleleft, c)<(/triangleleft/prime,c/prime) when either (1) c<c/prime,
+or (2) c=c/primeand/triangleleftis<while /triangleleft/primeis≤. Note that since ( <,−∞)<(≤,−∞)<(/triangleleft
+,c)<(<,∞)<(≤,∞) for all c∈R, this relation is a total order and therefore
+min of a ﬁnite set of weights is well deﬁned. We also use the commutative and
+associative sum operation on weights deﬁned in [ 4]. Ifc, c/prime∈Rare ﬁnite, the
+deﬁnition is as usual: ( /triangleleft, c)+(/triangleleft/prime,c/prime)=( /triangleleft/prime/prime,c+c/prime) where /triangleleft/prime/prime=≤if/triangleleft=/triangleleft/prime=≤
+and/triangleleft/prime/prime=<otherwise. Inﬁnite weights α, βfrom the list ( <,+∞),(≤,−∞),(≤
+,+∞),(<,−∞) are all ‘absorbants’ wrt. weaker weights: α+β=β+α=αifα
+is stronger than β(i.e., αis listed after β). Also, α+(/triangleleft, c)=αifc∈Ris ﬁnite.
+A distance graph Gis a weighted directed graph without self-loops, with
+vertex set X∪{0}=XF∪XH∪{0}, and edges labeled with weights from C\{(<
+,−∞)}. We deﬁne its semantics [ [ G]] : ={v∈V|v|=y−x/triangleleftc for all edges x/triangleleftc−→
+yinG}. The weight of edge x→yis denoted Gxyand we set Gxy=(≤,∞)i f
+there is no edge x→y. The weight of a path is the sum of the weights of its
+edges. A cycle in Gis said to be negative if its weight is strictly less than ( ≤,0).
+In classical timed automata, the signiﬁcance of distance graphs stems from
+the observation that a distance graph has no negative cycles iﬀ its semantics is
+non-empty. This property does not immediately hold for distance graphs overthe extended algebra [ 4, Section 4.2] However, we can convert a distance graph
+G(in time polynomial in number of clocks) into a standard form where this
+characterization continues to hold. First, we set G
+/prime
+0x= min( G0x,(≤,0)) for x∈
+XFand G/prime
+x0= min( Gx0,(≤,0)) for x∈XH. Moreover, if x∈XFthen we
+set G/prime
+x0= min( Gx0,(<,∞)) if Gxy/negationslash=(≤,∞) for some y/negationslash=x, otherwise we
+keep G/prime
+x0= Gx0. Similarly, if y∈XHthen we set G/prime
+0y= min( G0y,(<,∞))
+ifGxy/negationslash=(≤,∞) for some x/negationslash=y, otherwise we keep G/prime
+0y= G0y. Finally, for
+x, y∈Xwith x/negationslash=ywe set G/prime
+xy= Gxy. The graph G/primeconstructed above is
+called the standardization of G, it is equivalent to G(i.e., [ [ G/prime]] = [[ G]] ) a n d i t
+has a negative cycle iﬀ its semantics [ [ G/prime] ] is empty [ 4].
+Now, suppose G/prime(in standard form) has no negative cycles, then we construct
+G/prime/primeby replacing the weight of an edge x→yby the minimum of the weights of
+the paths from xtoyinG/prime. Such a G/prime/primeis called the normalization ofG/primeand has
+several useful properties.
+LetZbe a nonempty zone. Writing the constraints in Zas a distance graph,
+followed by standardizing and normalizing it, results in its canonical distance
+graph G(Z): [ [ G(Z)] ] = Zand G(Z) is minimal among the standard graphs G
+with [ [ G]] =Z. We denote by Zxythe weight of the edge x→yinG(Z).
+[3] contains the algorithms for the zone operations when there are no diagonal
+constraints. Successor computation can be done in O(|X|2·|g|) and the simula-
+tion in O(|X|2). Incorporating intersection with diagonal constraints requires an
+additional standardization step since diagonal constraints may break this prop-
+erty. A detailed explanation of the successor computation of zones is provided in
+
+--- Page 15 ---
+280 S. Akshay et al.
+[2]. For the simulation, the algorithm from [ 26] is used. However, in the presence
+of diagonal constraints, the simulation check becomes NP-complete in general,
+and makes use of heuristics that allows for a faster check in practice. What
+remains is to show that /precedesequalAis a ﬁnite simulation for XD-safe GTA.
+7 Finiteness of the Simulation Relation
+In this section, we show that the simulation relation /precedesequalAproposed in Sect. 5is
+ﬁnite for safe GTA, which proves termination of the symbolic enumeration-based
+reachability algorithm. We do this in two parts: ﬁrst, we show that the zones that
+are reached during the enumeration satisfy some invariants, in particular, only
+ﬁnitely many values occur in constraints among future clocks. This is however
+not necessarily true for history clocks. There the simulation comes into play.In the second part of the proof, we combine the invariants with an equivalence
+relation to show ﬁniteness of the simulation. Below, we sketch these arguments
+and provide intuition leaving formal details to [ 2] due to lack of space.
+Throughout this section, we ﬁx an X
+D-safe GTA A.L e t M= max {|c||c∈
+Zis used in some constraint of A}, called the maximal constant of A.W es a y
+that a zone Zis reachable if there is some reachable node ( q,Z)i n GZG(A).
+Part 1: Invariants on zones. We start by showing an important property
+of reachable zones: closure under valuations that agree on the value of history
+clocks, and satisfy the same set of safe constraints involving non-history clocks.
+We say that a constraint x−y/triangleleftc isM-bounded if either c∈Ris such that
+|c|≤Morc∈{ − ∞ ;+∞}.I ti s XD-safe if x, y∈XFimplies x, y∈XD.W es a y
+that it is ( XD,M)-safe if it is both M-bounded and XD-safe.
+Lemma 8. Letv,v/prime∈Vbe such that v/prime↓X H=v↓X Hand, for all (XD,M)-safe
+constraints y−x/triangleleftc with x, y∈XF∪{0}, we have v/prime|=y−x/triangleleftc if and only if
+v|=y−x/triangleleftc.L e t Zbe a reachable zone. Then, v∈Zif and only if v/prime∈Z.
+The proof (given in [ 2]) works by establishing that the property is true in the
+initial zone, and showing that it is invariant under the zone operations used tocompute GZG(A). This proof crucially uses the fact that AisX
+D-safe. For the
+case of releasing a clock x∈XF\XD, we use the fact that a diagonal constraint
+involving xmay not use another future clock. For the case of releasing a clock
+x∈XD, we use the fact that the value of the clock must be 0 or −∞just before
+the release. As a non-example, consider Fig. 3. Here, XD={y,z}andM=1 .
+After two iterations of a, the zone Z2reached is x=0∧y=z=−2. Pick
+v:x=0,y=z=−2a n d v/prime:x=0,y=z=−3. Notice that both of them
+satisfy the same set of ( XD,M)-safe constraints, but v∈Z2,v/prime/∈Z2. Indeed,
+the automaton is not XD-safe since yandzare released arbitrarily.
+From Lemma 8, we get the following corollary (with a more precise statement
+and proof in [ 2]). Namely, if a reachable zone Zcontains a valuation vin which
+the diﬀerence between two future clocks x, y(including the zero clock) is ﬁnite
+and large enough, then Zcontains valuations where the diﬀerence between x
+andyis any ﬁnite and large enough value.
+
+--- Page 16 ---
+A Uniﬁed Model for Real-Time Systems 281
+Corollary 9. LetZbe a reachable zone and let v∈Z.L e t n= max(1 ,|XD|).
+For al l x, y∈XF∪{0},i f−∞ <v(x)−v(y)<−nMthen, for every αwith
+−∞<α< −nM, we have a valuation v/prime∈Zwith v/prime(x)−v/prime(y)=α.
+Notice that the property above does not hold if we simply take n=1 .F o r
+instance, if we have two clocks x, z∈XDthen, applying the ( XD,M)-safe
+program /angbracketleft[x, z];z=−M∧x−z=−M/angbracketrightfrom Vresults in a zone Zwhere all
+valuations vsatisfy v(x)=−2M. So the property fails with n=1 , xandy=0 .
+This is a noteworthy diﬀerence between models with and without diagonals.
+Using Corollary 9, we can prove the main invariants satisﬁed by the zones
+obtained during the enumeration. Essentially, the weights of edges involvingnon-history clocks come from a ﬁnite set which depends on the number of future
+clocks in X
+Dand the maximum constant Mof the automaton. This also induces
+an invariant on the constraint between a history clock and a future clock.
+Before stating the result, we ﬁrst give two technical lemmas from [ 4] that we
+use extensively in the proof.
+Lemma 10 ( [4]).
+1. Let (/triangleleft, c)be a weight and α∈R.T h e n ,
+–α/triangleleftc iﬀ(≤,α)≤(/triangleleft, c)iﬀ(≤,0)≤(≤,−α)+(/triangleleft, c),
+–α/negationslash/triangleleftciﬀ(/triangleleft, c)<(≤,α)iﬀ(≤,−α)+(/triangleleft, c)<(≤,0)iﬀ(≤,−α)+(/triangleleft, c)≤
+(<,0).
+2. Let (/triangleleft, c),(/triangleleft/prime,c/prime),(/triangleleft/prime/prime,c/prime/prime)be weights with (≤,0)≤(/triangleleft, c)+(/triangleleft/prime,c/prime). Then, there
+exists α∈Rsuch that α/triangleleftc and−α/triangleleft/primec/prime. If in addition we have (/triangleleft/prime/prime,c/prime/prime)<
+(/triangleleft, c)then there exists such an αwith α/negationslash/triangleleft/prime/primec/prime/prime.
+Lemma 11 ( [4]).Let G=G(Z)for a non-empty GTA zone Z,a n dl e t x, y∈
+X∪{0}b eap a i ro fd i s t i n c tn o d e sa n d α∈R. There is a valuation v∈[[G]]with
+v(y)−v(x)=αif and only if
+1.(≤,α)≤Gxyand(≤,−α)≤Gyx,a n d
+2. if x, y∈Xandα∈Ris ﬁnite then the weights Gx0,G0x,Gy0,G0yare all
+diﬀerent from (≤,−∞),a n d
+3. if x, y∈Xandα=−∞ then G0x/negationslash=(≤,−∞)/negationslash=Gy0.
+Lemma 12. LetZbe a nonempty reachable zone. Let n= max(1 ,|XD|).T h e n ,
+the normalized distance graph G(Z)satisﬁes the following (†)conditions:
+†1For al l x∈XF,y∈XH∪{0},i fZxyis ﬁnite, then (≤,0)≤Zx0≤(≤,n M ).
+†2For al l x∈XF,i fZ0xis ﬁnite, then (<,−nM)≤Z0x≤(≤,0).
+†3For al l x∈XH,y∈XF,i fZ0yis ﬁnite, then Zx0+(<,−nM)≤Zxy.
+†4Forx, y∈XF,i fZxyis ﬁnite, then (<,−nM)≤Zxy≤(≤,n M ).
+Proof. We focus on †1,†2, leaving the more complicated cases to [ 2].
+†1First, we consider the case where y= 0. So we assume that ( ≤,0)≤Zx0<
+(<,∞) is ﬁnite. Towards a contradiction, suppose that ( ≤,n M )<Z x0<(<
+,∞). Since Zis non-empty, we know that ( ≤,0)≤Zx0+Z0x. Then, using
+
+--- Page 17 ---
+282 S. Akshay et al.
+Lemma 10, we can ﬁnd α∈Rsuch that ( ≤,α)≤Zx0,(≤,−α)≤Z0x,a n d
+nM < α . Notice that α<∞since Zx0<(<,∞). Further, using Lemma 11,
+we can get a valuation v∈Zsuch that 0 −v(x)=α. Since nM < α < ∞, this
+implies −∞<v(x)<−nM.L e t Zx0=(/triangleleft, c). We have nM < c < ∞.U s i n g
+Corollary 9, we can get a valuation v/prime∈Z, such that −∞ <v/prime(x)<−c,
+a contradiction as it violates the constraint 0 −x/triangleleftc ofZ. Next, assume
+that Zxy<(<,∞) for some y∈XH. Since Zis normal, we have Zx0≤
+Zxy+Zy0<(<,∞)a sZxy<(<,∞)a n d Zy0≤(≤,0). We now conclude
+from the ﬁrst case that ( ≤,0)≤Zx0≤(≤,n M ).
+†2We have to show that either Z0x=(≤,−∞)o r( <,−nM)≤Z0x≤(≤,0).
+LetZ0x=(/triangleleft, c). Suppose ( ≤,−∞)<Z 0x<(<,−nM). We have −∞<c<
+−nM. As before, we can ﬁnd αsuch that ( ≤,α)≤Z0x,(≤,−α)≤Zx0and
+α/negationslash=−∞. Then, by Lemma 11, we can ﬁnd v∈Zwith v(x)=α.W eh a v e
+−∞ <v(x)/triangleleftc< −nM. Now, using Corollary 9, we can get a valuation
+v/prime∈Zsuch that c<v/prime(x)<−nM, which leads to a contradiction as it
+violates the constraint x−0/triangleleftcin the zone.
+/intersectionsq/unionsq
+Part 2. Equivalence and Finiteness. We introduce below an equivalence
+relation ∼n
+Mofﬁnite index on valuations, depending on n= max(1 ,|XD|)a n d
+the maximal constant M, and show that, if Gis a set of atomic M-bounded
+integral constraints and if Zis a zone such that its canonical distance graph
+G(Z) satisﬁes ( †) conditions, then the downward closure ↓GZ={v∈V|∃v/prime∈
+Zwith v/precedesequalGv/prime}is a union of ∼n
+Mequivalence classes.
+First, we deﬁne ∼Monα, β∈R=R∪{ − ∞ ,∞}byα∼Mβif (α/triangleleftc ⇐⇒
+β/triangleleftc ) for all ( /triangleleft, c) with /triangleleft∈{<,≤}andc∈{ − ∞ ,∞} ∪ { d∈Z||d|≤M}.I n
+particular, if α∼Mβthen ( α=−∞ ⇐ ⇒ β=−∞) and ( α=∞⇐ ⇒ β=∞).
+Next, for valuations v1,v2∈ V, we deﬁne v1∼n
+Mv2by two conditions:
+v1(x)∼nMv2(x)a n d v1(x)−v1(y)∼(n+1)Mv2(x)−v2(y) for all clocks x, y∈
+X. Notice that we use ( n+1 )Mfor diﬀerences of values. Clearly, ∼n
+Mis an
+equivalence relation of ﬁnite index on valuations. Using this, we can show that
+the zones that are reachable in a safe GTA are unions of ∼n
+M-equivalence classes.
+Lemma 13. LetGbe a set of XD-safe M-bounded integral constraints which
+contains both x≤0and0≤xfor each future clock x∈XF.L e t Zbe a zone
+with a canonical distance graph G(Z)satisfying the (†)conditions of Lemma 12.
+Letv1,v2∈Vbe valuations with v1∼n
+Mv2.T h e n , v1∈↓GZiﬀv2∈↓GZ.
+Finally, from Lemmas 12and13, we obtain our main theorem of the section.
+Theorem 14. The simulation relation /precedesequalAis ﬁnite if Ais safe.
+Proof. Let ( q,Z 0),(q,Z 1),(q,Z 2),...be an inﬁnite sequence of reachable nodes
+in the zone graph of A. By Lemma 12, for all i, the distance graph G(Zi)i n
+canonical form satisﬁes conditions ( †).
+The set G(q) contains only XD-safe and M-bounded integral constraints. Let
+GbeG(q) together with the constraints x≤0 and 0 ≤xfor each future clock
+
+--- Page 18 ---
+A Uniﬁed Model for Real-Time Systems 283
+T able 1. Experimental results obtained by running our prototype implementation and,
+when possible, the standard reachability algorithm using G-simulation implemented in
+Tchecker . Both implementations use a breadth-ﬁrst search with simulation. For each
+model, we give the parameters in parenthesis - for T oyECA , we explain the parame-
+terization in [ 2], while for others, we report the number of concurrent processes. All
+experiments were run on an Ubuntu machine with an Intel-i5 7th Generation processorand 8 GB RAM, and timeout set to 60 s.
+Sl.No.Models G-Sim GTA Reach
+Visited
+nodesStorednodes Timein sec Visitednodes Storednodes Timein sec
+1Dining Phi. (6) 5480 5480 4.911 5480 5480 6.410
+2FDDI (10) 10219 459 10.139 10219 459 16.797
+3Fischer (10) 447598 260998 29.1574 447598 260998 34.6517
+4 T oyECA (10000 ,4) 150049 49 4.22 3 3 0.0003
+5 T oyECA (5000 ,6) 315193 193 15.572 3 3 0.0006
+6 T oyECA (1000 ,100) TIMEOUT 3 3 0.877
+7 T oyECA (50000 ,120) TIMEOUT 3 3 1.52
+8 Fire-alarm -pattern (5) _ 46 46 0.027
+9 CSMACD -bounded (1)_ 34 26 0.0054
+10 CSMACD -bounded (4)_ 4529 2068 2.597
+11 ABP-prop1 (1) _ 114 114 0.038
+12 ABP-prop2 (1) _ 168 168 0.026
+x∈XF.F r o mL e m m a 13we deduce that for all i,↓GZiis a union of ∼n
+M-classes.
+Since ∼n
+Mis of ﬁnite index, there are only ﬁnitely many unions of ∼n
+M-classes.
+Therefore, we ﬁnd i<j with ↓GZi=↓GZj, which implies Zj/precedesequalGZi. Since
+G(q)⊆G, this also implies Zj/precedesequalG(q)Zi. /intersectionsq/unionsq
+8 Experimental Evaluation
+We have implemented a prototype that takes as input a GTA, as given in
+Deﬁnition 1, and applies our reachability algorithm, in the open source tool
+Tchecker [29]. To do so, we extend Tchecker to allow clocks to be declared
+as one of normal ,history ,prophecy ,o rtimer , and extend the syntax of edges
+to allow arbitrary interleaving of guards and clock changes (reset/release). Ourtool, along with the benchmarks used in this paper, is available and can be
+downloaded from https://github.com/EQuaVe/GTAReach . We present selected
+results in Table 1, with further details in [ 2].
+First, we consider timed automata models from standard benchmarks
+[21,34,39]. Despite the overhead induced by our framework (e.g., maintaining
+general programs on transitions), we are only slightly worse oﬀ wrt. running
+
+--- Page 19 ---
+284 S. Akshay et al.
+time than the standard algorithm, while visiting and storing the same number
+of nodes. We illustrate this in rows 1–3 of Table 1by providing a comparison of
+our tool with the implementation of the state-of-the-art zone-based reachability
+algorithm using G-simulation introduced in [ 24–26].
+Next, we consider models belonging to the class of ECA without diagonal
+constraints. We remark that ours is the ﬁrst implementation of a reachability
+algorithm that can operate on the whole class of ECA directly. We compare
+against an implementation that ﬁrst translates the ECA into a timed automa-ton using the translation proposed in [ 10], and then runs the state-of-the-art
+reachability algorithm of [ 24–26] on this timed automaton. From rows 4–7 of
+Table 1, we observe signiﬁcant improvements, both in terms of running time as
+well as number of visited nodes and stored nodes w.r.t. the standard approach.
+Finally, in Rows 8–12, we consider the uniﬁed model GTA. As already pointed
+out, model-checking an event-clock speciﬁcation ϕover a timed automaton model
+Acan be reduced to the reachability on the product of the TA Aand the ECA
+representing ¬ϕ. In this spirit, our implementation allows the model to use any
+combination of normal clocks, history clocks, prophecy clocks or timers and
+moreover, permits diagonal guards between any of these clocks. To the best of
+our knowledge, no existing tool allows all these features. We emphasize this bythe−in the G-Sim column of Table 1.
+We model simple but useful properties using event-clocks, and check these
+properties on some standard models from literature such as CSMACD [39],
+Fire-alarm [35]a n d Alternating -bit-protocol (ABP)[33]. Note that for the bench-
+mark Fire-alarm -pattern , the speciﬁcation is modelled using an ECA with diag-
+onals. As a consequence, the product automaton that we check reachability oncontains normal clocks and event-clocks. Here, we consider the following ECA
+speciﬁcation: no three a’s occur within ktime units. The negation of this prop-
+erty can be easily modeled by an ECA with two states and a transition on awith
+the diagonal constraint←−a−−→
+a≤k, where←−ais the history clock recording time
+since the previous occurrence of a,a n d−→ais a future clock predicting the time to
+the next aoccurrence. When reading an a, the quantity←−a−−→agives the distance
+between the next and the previous occurrence. This language is used in [ 19]t o
+observe that ECA with diagonals are more expressive than ECA. Finally, weremark that the model of ABP contains timers. A more detailed discussion of
+the model and speciﬁcations in these benchmarks is provided in [ 2].
+In conclusion, as can be seen from the experimental results in Table 1,w ea r e
+able to demonstrate the full power of our reachability algorithm for the uniﬁed
+model of generalized timed automata.
+9 Conclusion
+The success of timed automata veriﬁcation can safely be attributed to the
+advances in the zone-based technology over the last three decades. In fact, [ 22],
+the precursor to the seminal works [ 8,9], already laid the foundations for zones
+by describing the Diﬀerence-Bounds-Matrices (DBM) data structure. Our goal
+
+--- Page 20 ---
+A Uniﬁed Model for Real-Time Systems 285
+in this work has been to unify timing features deﬁned in diﬀerent timed models,
+while at the same time retain the ability to use eﬃcient state-of-the-art algo-rithms for reachability. To do so, we have equipped the model with two kinds
+of clocks, history and future, and modiﬁed the transitions to contain a program
+that alternates between a guard and a change to the variables. For the algorith-mic part, we have adapted the G-simulation framework to this powerful model.
+The main challenge was to show ﬁniteness of the simulation in this extended
+setting. To aid the practical use of this generic model, we have developed a pro-totype implementation that can answer reachability for GTA. We remark that
+decidability for GTA comes via zones, and not through regions. In fact, since we
+generalize event-clock automata, we do not have a ﬁnite region equivalence forGTA [ 28].
+We conclude with some interesting avenues for future work. An immediate
+future work is to use generalized timed automata for model-checking timed spec-
+iﬁcations over real-time systems. Further, the complexity and expressivity of safe
+GTA are natural intersting theoretical open questions, but we believe they arenot obvious. Both these questions are answered in the timed automata literature
+using regions. However, we cannot have a region equivalence for our model, since
+even for the subclass of ECA, it was shown that no ﬁnite bisimulation is possible.In particular, it would be interesting to investigate if is possible to have a trans-
+lation from safe GTA to timed automata. Note that even if such a translation
+exists, it is likely to incur an exponential blowup since even the translation fromECA to TA costs an exponential. Coming to the complexity of the reachability
+problem for safe GTA, it is easy to see that our procedure runs in EXPSPACE,
+as we have shown that each reachable zone is a union of equivalence classes ofa ﬁnite index (see Lemma 13). On the other hand, PSPACE-hardness is inher-
+ited from timed automata [ 6,8]. Closing the complexity gap is open. We note
+that even in timed automata, the precise complexity of the simulation basedreachability algorithm is diﬃcult to analyze, but its selling point is that it works
+well in practice. Finally, we would also like to investigate liveness veriﬁcation for
+GTA, in particular what future clocks bring us when we consider the setting of
+ω-words.
+References
+1. Akshay, S., Bollig, B., Gastin, P.: Event clock message passing automata: a logical
+characterization and an emptiness checking algorithm. Formal Methods Syst. Des.
+42(3), 262–300 (2013)
+2. Akshay, S., Gastin, P., Govind, R., Joshi, A.R., Srivathsan, B.: A uniﬁed
+model for real-time systems: Symbolic techniques and implementation. CoRR
+abs/2305.17824 (2023)
+3. Akshay, S., Gastin, P., Govind, R., Srivathsan, B.: Simulations for event-clock
+automata. In: CONCUR. LIPIcs, vol. 243, pp. 13:1–13:18 (2022)
+4. Akshay, S., Gastin, P., Govind, R., Srivathsan, B.: Simulations for event-clock
+automata. CoRR abs/2207.02633 (2022)
+
+--- Page 21 ---
+286 S. Akshay et al.
+5. Akshay, S., Gastin, P., Prakash, K.R.: Fast zone-based algorithms for reachability
+in pushdown timed automata. In: Silva, A., Leino, K.R.M. (eds.) CAV 2021. LNCS,
+vol. 12759, pp. 619–642. Springer, Cham (2021). https://doi.org/10.1007/978-3-
+030-81685-8_30
+6. Alur, R.: Techniques for automatic veriﬁcation of real-time systems. Ph.D. thesis,
+Stanford University (1991)
+7. Alur, R., Courcoubetis, C., Henzinger, T.A., Ho, P.: Hybrid automata: An algo-
+rithmic approach to the speciﬁcation and veriﬁcation of hybrid systems. In: Hybrid
+Systems, pp. 209–229 (1992)
+8. Alur, R., Dill, D.: Automata for modeling real-time systems. In: Paterson, M.S.
+(ed.) ICALP 1990. LNCS, vol. 443, pp. 322–335. Springer, Heidelberg (1990).https://doi.org/10.1007/BFb0032042
+9. Alur, R., Dill, D.L.: A theory of timed automata. Theoret. Comput. Sci. 126,
+183–235 (1994)
+10. Alur, R., Fix, L., Henzinger, T.A.: Event-clock automata: a determinizable class
+of timed automata. Theor. Comput. Sci. 211(1–2), 253–273 (1999)
+11. de Bakker, J.W., Huizing, C., de Roever, W.P., Rozenberg, G.: Real-Time: Theory
+in Practice: REX Workshop, Mook, The Netherlands. Proceedings, vol. 600 (1992)
+12. Bengtsson, J., Yi, W.: Timed automata: semantics, algorithms and tools. In: Desel,
+J., Reisig, W., Rozenberg, G. (eds.) ACPN 2003. LNCS, vol. 3098, pp. 87–124.Springer, Heidelberg (2004). https://doi.org/10.1007/978-3-540-27755-2_3
+13. Bernstein, A.J., Jr., P.K.H.: Proving real-time properties of programs with tempo-
+ral logic. In: SOSP, pp. 1–11. ACM (1981)
+14. Bouyer, P.: Forward analysis of updatable timed automata. Formal Methods Syst.
+Des. 24(3), 281–320 (2004)
+15. Bouyer, P., Chevalier, F.: On conciseness of extensions of timed automata. J.
+Autom. Lang. Comb. 10(4), 393–405 (2005)
+16. Bouyer, P., Colange, M., Markey, N.: Symbolic optimal reachability in weighted
+timed automata. In: Chaudhuri, S., Farzan, A. (eds.) CAV 2016. LNCS, vol. 9779,pp. 513–530. Springer, Cham (2016). https://doi.org/10.1007/978-3-319-41528-
+4_28
+17. Bouyer, P., Dufourd, C., Fleury, E., Petit, A.: Updatable timed automata. Theor.
+Comput. Sci. 321(2–3), 291–345 (2004)
+18. Bouyer, P., Gastin, P., Herbreteau, F., Sankur, O., Srivathsan, B.: Zone-based
+veriﬁcation of timed automata: Extrapolations, simulations and what next? In:FORMATS. LNCS, vol. 13465, pp. 16–42. Springer (2022). https://doi.org/10.
+1007/978-3-031-15839-1_2
+19. Bozzelli, L., Montanari, A., Peron, A.: Taming the complexity of timeline-based
+planning over dense temporal domains. In: FSTTCS. LIPIcs, vol. 150, pp. 34:1–
+34:14 (2019)
+20. Bozzelli, L., Montanari, A., Peron, A.: Complexity issues for timeline-based plan-
+ning over dense time under future and minimal semantics. Theor. Comput. Sci.
+901, 87–113 (2022)
+21. Daws, C., Olivero, A., Tripakis, S., Yovine, S.: The tool Kronos . In: Alur, R., Hen-
+zinger, T.A., Sontag, E.D. (eds.) HS 1995. LNCS, vol. 1066, pp. 208–219. Springer,
+Heidelberg (1996). https://doi.org/10.1007/BFb0020947
+22. Dill, D.L.: Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems.
+In: Sifakis, J. (ed.) CAV 1989. LNCS, vol. 407, pp. 197–212. Springer, Heidelberg
+(1990). https://doi.org/10.1007/3-540-52148-8_17
+
+--- Page 22 ---
+A Uniﬁed Model for Real-Time Systems 287
+23. D’Souza, D., Tabareau, N.: On timed automata with input-determined guards. In:
+Lakhnech, Y., Yovine, S. (eds.) FORMATS/FTRTFT -2004. LNCS, vol. 3253, pp.
+68–83. Springer, Heidelberg (2004). https://doi.org/10.1007/978-3-540-30206-3_7
+24. Gastin, P., Mukherjee, S., Srivathsan, B.: Reachability in timed automata with
+diagonal constraints. In: CONCUR. LIPIcs, vol. 118, pp. 28:1–28:17 (2018)
+25. Gastin, P., Mukherjee, S., Srivathsan, B.: Fast algorithms for handling diagonal
+constraints in timed automata. In: Dillig, I., Tasiran, S. (eds.) CAV 2019. LNCS,
+vol. 11561, pp. 41–59. Springer, Cham (2019). https://doi.org/10.1007/978-3-030-
+25540-4_3
+26. Gastin, P., Mukherjee, S., Srivathsan, B.: Reachability for updatable timed
+automata made faster and more eﬀective. In: FSTTCS. LIPIcs, vol. 182, pp. 47:1–47:17 (2020)
+27. Geeraerts, G., Raskin, J.-F., Sznajder, N.: Event clock automata: from theory
+to practice. In: Fahrenberg, U., Tripakis, S. (eds.) FORMATS 2011. LNCS, vol.6919, pp. 209–224. Springer, Heidelberg (2011). https://doi.org/10.1007/978-3-
+642-24310-3_15
+28. Geeraerts, G., Raskin, J.-F., Sznajder, N.: On regions and zones for event-clock
+automata. Formal Methods Syst Design 45(3), 330–380 (2014). https://doi.org/
+10.1007/s10703-014-0212-1
+29. Herbreteau, F., Point, G.: TChecker. https://github.com/fredher/tchecker (v02 -
+April 2019)
+30. ITU-TS Recommendation Z.120: Message Sequence Chart (MSC ’99) (1999)
+31. Jonsson, B., Vaandrager, F.: Learning mealy machines with timers. Tech. rep.
+(2018). https://sws.cs.ru.nl/publications/papers/fvaan/MMT/
+32. Koymans, R., Vytopil, J., de Roever, W.P.: Real-time programming and asyn-
+chronous message passing. In: PODC, pp. 187–197. ACM (1983)
+33. Kurose, J.F., Ross, K.W.: Computer networking - a top-down approach featuring
+the internet. Addison-Wesley-Longman (2001)
+34. Lugiez, D., Niebert, P., Zennou, S.: A partial order semantics approach to the clock
+explosion problem of timed automata. Theor. Comput. Sci. 345(1), 27–59 (2005)
+35. Muñiz, M., Westphal, B., Podelski, A.: Timed automata with disjoint activity. In:
+Jurdziński, M., Ničković, D. (eds.) FORMATS 2012. LNCS, vol. 7595, pp. 188–203.Springer, Heidelberg (2012). https://doi.org/10.1007/978-3-642-33365-1_14
+36. Raskin, J., Schobbens, P.: The logic of event clocks - decidability, complexity and
+expressiveness. J. Autom. Lang. Comb. 4(3), 247–282 (1999)
+37. Sorea, M.: Tempo: A model checker for event-recording automata. Tech. rep., In:
+Proceedings of RT-Tools’01 (2001)
+38. Srivathsan, B.: Reachability in timed automata. ACM SIGLOG News 9(3), 6–28
+(2022)
+39. Tripakis, S., Yovine, S.: Analysis of timed systems using time-abstracting bisimu-
+lations. Formal Methods Syst. Des. 18(1), 25–68 (2001)
+
+--- Page 23 ---
+288 S. Akshay et al.
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any mediumor format, as long as you give appropriate credit to the original author(s) and the
+source, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the
+chapter’s Creative Commons license, unless indicated otherwise in a credit line to the
+material. If material is not included in the chapter’s Creative Commons license and
+your intended use is not permitted by statutory regulation or exceeds the permitted
+use, you will need to obtain permission directly from the copyright holder.

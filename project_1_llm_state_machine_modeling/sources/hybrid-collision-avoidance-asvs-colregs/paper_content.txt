@@ -1,0 +1,1656 @@
+--- Page 1 ---
+ORIGINAL RESEARCH
+published: 11 February 2020
+doi: 10.3389/frobt.2020.00011
+Frontiers in Robotics and AI | www.frontiersin.org 1 February 2020 | Volume 7 | Article 11Editedby:
+MarcoBibuli,
+ItalianNationalResearchCouncil,Italy
+Reviewedby:
+JingfuJin,
+GeneralMotors,UnitedStates
+RafalSzlapczynski,
+GdanskUniversityofTechnology,
+Poland
+*Correspondence:
+Bjørn-OlavH.Eriksen
+bjorn-olav.holtung.eriksen@ntnu.no
+Specialtysection:
+Thisarticlewassubmittedto
+RoboticControlSystems,
+asectionofthejournal
+FrontiersinRoboticsandAI
+Received: 28May2019
+Accepted: 20January2020
+Published: 11February2020
+Citation:
+EriksenB-OH,BitarG,BreivikMand
+LekkasAM(2020)HybridCollision
+AvoidanceforASVsCompliantWith
+COLREGsRules8and13–17.
+Front.Robot.AI7:11.
+doi:10.3389/frobt.2020.00011Hybrid Collision Avoidance for ASVs
+Compliant With COLREGs Rules 8
+and 13–17
+Bjørn-OlavH.Eriksen *,GlennBitar,MortenBreivikandAnastasiosM.Lekkas
+DepartmentofEngineeringCybernetics,CentreforAutonom ousMarineOperationsandSystems,NorwegianUniversityof
+ScienceandTechnology,Trondheim,Norway
+This paper presents a three-layered hybrid collision avoid ance (COLAV) system
+for autonomous surface vehicles, compliant with rules 8 and 13–17 of the
+International Regulations for Preventing Collisions at Se a (COLREGs). The COLAV
+system consists of a high-level planner producing an energy -optimized trajectory,
+a model-predictive-control-based mid-level COLAV algori thm considering moving
+obstacles and the COLREGs, and the branching-course model p redictive control
+algorithm for short-term COLAV handling emergency situati ons in accordance with the
+COLREGs. Previously developed algorithms by the authors ar e used for the high-level
+planner and short-term COLAV, while we in this paper further develop the mid-level
+algorithm to make it comply with COLREGs rules 13–17. This in cludes developing a
+state machine for classifying obstacle vessels using a comb ination of the geometrical
+situation,thedistanceandtimetotheclosestpointofappr oach(CPA)andanewCPA-like
+measure. The performance of the hybrid COLAV system is teste d through numerical
+simulations for three scenarios representing a range of dif ferent challenges, including
+multi-obstacle situations with multiple simultaneously a ctive COLREGs rules, and also
+obstaclesignoringtheCOLREGs.TheCOLAVsystemavoidscol lisioninallthescenarios,
+and follows the energy-optimized trajectory when the obsta cles do not interfere with it.
+Keywords: hybrid collisionavoidance,autonomous surfaceve hicle(ASV),COLREGs, COLREGs compliant,model
+predictive control (MPC), energy-optimized control
+1. INTRODUCTION
+Motivatedbythepotentialforreducedcostsandincreasedsaf ety,themaritimeindustryisrapidly
+moving toward autonomous operations. Following groundbrea king advances in the automotive
+industry, many sectors within the maritime industry are con sidering the beneﬁts of autonomy,
+which includes more environmentally friendly operations. Fo r instance, the agricultural chemical
+company Yaratogetherwiththemaritimetechnologysupplier KongsbergMaritime aredeveloping
+the electrical autonomous container vessel Yara Birkeland , which aims to replace 40,000 yearly
+truck journeys in urban eastern Norway1. Another example is the world’s ﬁrst autonomous car
+ferry,Falco,developedby Rolls-Royce (recentlybought byKongsbergMaritime)and Finferries. In
+1https://www.wsj.com/articles/norway-takes-lead-in-race-to- build-autonomous-cargo-ships-1500721202 (accessed May
+22,2019).
+
+--- Page 2 ---
+Eriksen et al. Hybrid COLAV for ASVs
+2018,Falconavigated autonomously between two ports in
+Finland2. Reports state that in excess of 75% of maritime
+accidents are due to human errors ( Chauvin, 2011; Levander,
+2017),indicatingthatthereisalsoapotentialforincreasedsaf ety
+inadditiontotheeconomicalandenvironmentalbeneﬁts.
+An obvious prerequisite for autonomous ship operations is
+thedevelopmentofrobustandwell-functioningCOLAVsystem s.
+In addition to generating collision-free maneuvers, a COLA V
+system must adhere to the “rules of the road” of the oceans,
+i.e., the COLREGs ( Cockcroft and Lameijer, 2004 ). These rules
+are written for human ship operators and include qualitative
+requirements on how to perform safe and readily observable
+maneuvers.PartBoftheCOLREGsconcernsteeringandsailing ,
+and includes the following rules that are the most relevant t o a
+motioncontrolsystem:
+Rule8 Requiresmaneuverstobereadilyobservableand
+tobedoneinampletime.
+Rules13–15 Describe the maneuvers to perform in cases
+of overtaking, head-on and crossing situations.
+Participantsincrossingsituationsaredeﬁnedby
+theterms give-wayandstand-onvessels.
+Rule16 Requires that a give-way vessel must take early
+andsubstantialactiontokeepclearofthestand-
+onvessel.
+Rule17 Consists of two main parts. The ﬁrst part
+requires a stand-on vessel to maintain its
+course and speed, while the second part
+allows/requires3astand-onvesseltotakeaction
+to avoid collision if the give-way vessel is not
+takingaction.
+Since the rules are written for humans, with few quantitativ e
+ﬁgures, a challenge for autonomous operation is to quantify
+them into behaviors that can be executed algorithmically. T he
+focus of the work in this paper is to do that, and to design
+a hybrid COLAV system that performs motion planning and
+generates maneuvers in compliance to rules 8 and 13–17 of
+theCOLREGs.
+A number of COLAV approaches considering the COLREGs
+have been proposed in the past. This includes algorithms using
+simulation-based model predictive control ( Hagen et al., 2018 ),
+velocity obstacles ( Kuwata et al., 2014 ), rule-based repairing A*
+(Campbell et al., 2014 ), and interval programming ( Benjamin
+et al., 2006 ). All these approaches are single-layer approaches,
+whereonealgorithmsolvesthecompleteCOLAVproblem.
+Another approach to the COLAV problem is to use a hybrid
+architecture, where the task of planning an obstacle-free pat h
+or trajectory, complying with the COLREGs and ultimately
+2https://www.marinemec.com/news/view,rollsroyce-and-ﬁnferries-d emonstrate-
+worlds-ﬁrst-fully-autonomous-ferry_56102.htm(accessedApril11 ,2019).
+3Rule 17allowsthe stand-on vessel to maneuver when it becomes apparent that
+thegive-wayvesseldoesmaneuvertoavoidcollision.Iftheves selsaresoclosethat
+the give-way vessel cannot avoid collision by itself, Rule 17 requiresthe stand-on
+vesseltomaneuver.FIGURE 1 | Hybrid architecture with three COLAV layers, where the
+highlighted functions mark the areas of interest in this art icle. The COLAV
+system consists of a high-level planner, a mid-level COLAV a lgorithm and a
+short-term COLAV algorithm. The COLAV system is supported b y data from
+electronic nautical charts, represented in a suitable mann er for the algorithms,
+as well as situational awareness functions that track and pr edict obstacles,
+interpret the COLREGs and perform risk assessment.
+performing safe maneuvers is divided into layers in a control
+hierarchy. The idea of hybrid architectures is to divide the
+subtasks of the COLAV problem into multiple algorithms,
+exploiting their complementary strengths. This also has the sid e
+eﬀect of making it easier for human operators or supervisors to
+understandthesystem.Mostsingle-layeralgorithmsusesampl e-
+based approaches that consider a ﬁnite number of discrete
+controlinputs,asopposedtoconventionalgradient-basedsea rch
+algorithms. The reason for this is that many gradient-based
+algorithms are not suﬃciently numerically robust, not allow ing
+a COLAV system to solely rely on such an algorithm. This
+issue can be handled in hybrid architectures, constrained by
+the bottom-level algorithm being numerically robust and abl e
+to handle extraordinary situations where the other algorit hms
+fail. Hence, hybrid architectures also allows using gradient -
+based algorithms, which are able to solve problems with large
+search spaces more eﬃciently than sample-based algorithms.
+The works by Loe (2008) andŠvec et al. (2013) are examples
+of two-layered hybrid COLAV architectures. The top layers
+perform trajectory planning among static obstacles, while the
+bottomlayersperformmovingobstacleavoidanceincompliance
+with COLREGs rules 13–16. Casalino et al. (2009) presents
+a three-layered hybrid COLAV system where the top layer
+also performs trajectory planning amongst static obstacles. T he
+middle layer avoids moving obstacles, while the bottom layer
+implements safety functions for handling cases where the two
+Frontiers in Robotics and AI | www.frontiersin.org 2 February 2020 | Volume 7 | Article 11
+
+--- Page 3 ---
+Eriksen et al. Hybrid COLAV for ASVs
+other layers fail. This approach does, however, not consider
+theCOLREGs.
+Figure1shows a three-layered hybrid COLAV system for an
+autonomous surface vehicle (ASV). The authors have previous ly
+workedextensivelyondiﬀerentcomponentsofthisarchitectu re.
+Examples include high-level COLAV algorithms ( Bitar et al.,
+2018,2019b ),amid-levelalgorithm( EriksenandBreivik,2017b;
+Bitar et al., 2019a ), short-term algorithms ( Eriksen et al., 2018,
+2019; Eriksen and Breivik, 2019 ) and the development of high-
+performance vessel controllers ( Eriksen and Breivik, 2017a,
+2018).
+In this paper, we demonstrate the three-layered hybrid
+COLAV shown in Figure1 by combining and extending
+the COLAV algorithms developed in Eriksen and Breivik
+(2017b, 2019) ,Bitar et al. (2019a,b) ,Eriksen et al. (2019) .
+The high-level planner has a long temporal horizon, and
+ﬁnds an energy-optimized nominal trajectory from an initial
+to a goal position. It considers static obstacles, which may
+include bathymetric constraints. Since the high-level plan ner
+only considers static information, it is intended to be run
+oﬄine, but it can also be run online, for instance if new
+static obstacles are detected. The mid-level algorithm att empts
+to follow the nominal trajectory, while performing COLAV
+of static and moving obstacles in compliance with COLREGs
+rules 8, 13–16, and the ﬁrst part of Rule 17. The mid-
+level algorithm is run periodically with a shorter temporal
+horizon than the high-level algorithm, and produces a modiﬁe d
+trajectory which is passed to the short-term layer. Both
+the high-level and mid-level algorithms use gradient-base d
+optimization. The short-term algorithm attempts to follow the
+modiﬁed trajectory, while it in compliance with the second
+part of Rule 17 handles situations where obstacles ignore
+the COLREGs. This algorithm also handles other emergency
+situations,andusessample-basedoptimizationtoachieveah igh
+level of robustness, ensuring safe operation if the mid-leve l
+algorithm fails to ﬁnd a solution. The following list summar izes
+ourcontributions:
+• The high-level planner from Bitar et al. (2019b) is modiﬁed
+to include the mathematical model of the Telemetron ASV in
+Bitaretal.(2019a) ,includingoceancurrents.
+• The development of a state-machine-based COLREGs
+interpretationscheme.
+• Themid-levelCOLAVfrom Bitaretal.(2019a) ismodiﬁedto
+includerules13–16andtheﬁrstpartofRule17.
+• The branching-course model predictive control (BC-MPC)
+algorithm for short-term COLAV is modiﬁed to reduce
+oscillatorybehaviorinturns.
+• The three-layered COLAV system is veriﬁed in simulations
+andshowntobecompliantwithrules8and13–17.
+The rest of the paper has the following structure: The
+mathematical model of the ASV Telemetron is described
+in section 2. The high-level planner, mid-level and short-
+term COLAV algorithms are described in sections 3–5,
+respectively. In section 6 we present and discuss the
+simulation scenarios and results, and we conclude the paper
+insection7.
+FIGURE 2 | The Telemetron ASV, designed for both manned and unmanned
+operations. Courtesy of Maritime Robotics.
+2. ASV MODELING
+ThevesselofinterestinthisarticleistheTelemetronASV, which
+is owned and operated by the Norwegian company Maritime
+Roboticsandshownin Figure2.TheTelemetronASVisahigh-
+speed dual-use vessel propelled by a steerable outboard engine ,
+capableofspeedsupto18m /s.
+Eriksen and Breivik (2017a) presents a model of the
+TelemetronASV,whichisextendedtoincludeoceancurrentsi n
+Bitaretal.(2019a) .Themodelhastheform
+˙η=R(ψ)xr+/bracketleftbig
+V⊤
+c0/bracketrightbig⊤
+M(xr)˙xr+σ(xr)=τ,(1)
+where η=[x,y,ψ]⊤∈R2×Sis the vessel pose and Vc=
+[Vx,Vy]⊤describes the ocean current, both in the Earth-ﬁxed
+North-East-Down frame {n}. The vector xr=[ur,r]⊤∈Xr⊂
+R2is the vessel velocity under the assumption of zero relative
+sway motion ( Bitar et al., 2019a ), where the set Xrdescribes
+the vessel-feasible steady-state velocities where (1) is va lid. The
+transformationmatrix R(ψ)isgivenbytheheading ψ∈Sas
+R(ψ)=
+cosψ0
+sinψ0
+0 1
+, (2)
+whiler∈Rdescribes the vessel yaw-rate. The matrix M(xr) is a
+state-dependentinertiamatrix,while σ(xr)andτ=[τm,τδ]⊤∈
+U⊂R2describe the vessel damping and control input,
+respectively. The set Udescribes the control inputs where (1)
+isvalid.
+Inthiswork,weassumethattheoceancurrent Vcisconstant
+and known. For practical applications, the ocean current can
+be measured via appropriate instrumentation, estimated via
+sensor fusion methods, or predicted based on e.g., tide table s or
+sensor networks, such as the European marine observation and
+datanetwork4.
+4http://www.emodnet.eu/(accessedDecember11,2019).
+Frontiers in Robotics and AI | www.frontiersin.org 3 February 2020 | Volume 7 | Article 11
+
+--- Page 4 ---
+Eriksen et al. Hybrid COLAV for ASVs
+3. HIGH-LEVEL PLANNER
+To plan the ASV’s nominal trajectory, we use a high-level
+trajectory planner developed in Bitar et al. (2019b) . This
+trajectory planner uses the ASV model described in section 2
+to generate an energy-optimized trajectory between the star t
+and goal positions. The planning algorithm combines an A⋆
+implementation and an optimal control problem (OCP) solver
+togenerateafeasibleandoptimizedtrajectory.
+Thehigh-levelplanningalgorithmconsistsofthreesteps:Fi rst
+the A⋆implementation ﬁnds the shortest piecewise linear path
+between the start and goal position. Secondly, artiﬁcial tem poral
+information is added to the path, converting it to a trajector y
+of states and inputs. Finally, the trajectory is used as an ini tial
+guess for an OCP solver, which ﬁnds a locally energy-optimize d
+trajectory near the shortest path. All steps account for stati c
+obstaclesintheformofellipticalboundaries.
+3.1. Static Obstacles
+Theellipticalboundariesaredescribedwiththeinequality :
+/parenleftbiggx−xc
+xa/parenrightbigg2
++/parenleftbiggy−yc
+ya/parenrightbigg2
+≥1, (3)
+wherexcandycis the ellipsis center, and xa,ya>0 are the
+ellipsis major and minor axes, respectively. To allow for angl ed
+obstacles,theellipsesarerotatedclockwisebyanangle α.Weadd
+asmallconstant ǫ>0toeachsideoftheinequality,andtakethe
+logarithmtoarriveatthefollowingobstaclerepresentatio n:
+ho(x,y,xc,yc,xa,ya,α)= −log/bracketleftbigg /parenleftbigg(x−xc)cosα+(y−yc)sinα
+xa/parenrightbigg2
++/parenleftbigg−(x−xc)sinα+(y−yc)cosα
+ya/parenrightbigg2
++ǫ/bracketrightbigg
++log(1+ǫ)≤0.(4)
+Thelogarithmoperationisappliedtoreducethenumericalrang e
+of the inequality, which helps with numerical stability of th e
+subsequently described solver, and the constant ǫis included to
+avoid singularities when (4) is evaluated for ( x,y)→(xc,yc)
+(Bitaretal.,2019a ).
+Modeling static obstacles as ellipses poses a challenge for
+handling obstacles of various shapes, from e.g., electronic
+nautical charts (ENCs). Generic obstacle shapes can be
+approximatedasasetofellipticalobstacles( Wu,2019 ),although
+this may require a large number of constraints for complex
+environments. Alternatively, the obstacle modeling can be
+modiﬁed to allow for generic shapes. Zhang et al. (2018) present
+an interesting solution to handle polygon-shaped obstacles b y
+introducing a signed distance function in the optimization
+problem.Unfortunately,thisapproachintroducesalargenumbe r
+of slack variables and constraints, limiting feasibility f or more
+thanafewstaticobstacles.
+3.2. Trajectory Generation and
+Optimization
+From a scenario consisting of static obstacles, as mentione d
+in section 3.1, we ﬁnd the piecewise linear shortest path byperforming an A⋆search on a uniformly decomposed grid.
+The resulting path is converted to a time-parameterized full-
+state trajectory by assuming a constant forward velocity, an d
+connecting the shortest path with straight segments and circ le
+arcs.Theconstantforwardvelocityis
+unom=Lpath
+tmax, (5)
+whereLpathis the length of the connected path, and tmaxis the
+maximumallowedtimetocompletethetrajectory.Thisfull-s tate
+trajectory is then used as an initial guess to solve the OCP th at
+givestheenergy-optimizedtrajectory:
+min
+z(·),τ(·)/integraldisplaytmax
+0Fhi(z(t),τ(t))dt (6a)
+subjectto
+˙z(t)=f(z(t),τ(t))∀t∈[0,tmax] (6b)
+hhi(z(t),τ(t))≤0∀t∈[0,tmax] (6c)
+ehi(z(0),z(tmax))=0. (6d)
+The solution of this OCP is a trajectory of states z(·) and inputs
+τ(·) that minimizes the cost functional in (6a). The ASV model
+from section 2 is rewritten as ˙z=f(z,τ), wherez=[η⊤,x⊤
+r]⊤
+andf(z,τ)represents(1).
+The cost functional (6a) is chosen to minimize energy. The
+cost-to-gofunctionis
+Fhi(z,τ)=KeFe(z,τ)+Kδτ2
+δ, (7)
+with tuning parameters Ke,Kδ>0. The ﬁrst term consists of a
+function that is proportional to mechanical work performed by
+theASV:
+Fe(z,τ)= |n(τm)2·cosδ(τδ)/bracehtipupleft /bracehtipdownright/bracehtipdownleft /bracehtipupright
+∝surgeforce·ur|+|n(τm)2·sinδ(τδ)·Lm/bracehtipupleft /bracehtipdownright/bracehtipdownleft /bracehtipupright
+∝yawmoment·r|.
+(8)
+The function n:R+→R+maps the control input τmto
+propeller angular velocity. The function δ:R→S maps the
+controlinput τδtooutboardmotorangle.Thesecondtermin(8)
+is a quadratic cost to yaw control, included to avoid issues w ith
+singularitywhensolvingtheOCP.
+The inequality constraints (6c) observe state boundaries a s
+well as the static obstacles as represented in section 3.1. Th e
+boundaryconditions(6d)denoteinitialandﬁnalconstraint s,i.e.,
+startandendstates.
+A detailed description of the transcription of the OCP (6) to
+a non-linear program (NLP) using multiple shooting with Nhi
+shootingintervalsisfoundin Bitaretal.(2019b) .
+4. MID-LEVEL COLAV
+The mid-level algorithm, initially presented in Eriksen and
+Breivik (2017b) and further developed in Bitar et al. (2019a) ,
+is a model predictive control (MPC)-based algorithm intended
+for long-term COLAV. The algorithm utilizes gradient-base d
+Frontiers in Robotics and AI | www.frontiersin.org 4 February 2020 | Volume 7 | Article 11
+
+--- Page 5 ---
+Eriksen et al. Hybrid COLAV for ASVs
+optimization, and takes both static and moving obstacles int o
+accountwhileattemptingtofollowanenergy-optimizednomin al
+trajectory from the high-level planner. The algorithm produc es
+maneuvers complying with Rule 8 of the COLREGs, which
+requires maneuvers to be made in ample time and be readily
+observable for other vessels. The optimization problem is
+formulated as a NLP, which gives ﬂexibility in designing the
+optimizationproblem.
+In this section, the algorithm is extended to also consider
+COLREGsrules13–16andtheﬁrstpartofRule17.
+4.1. The International Regulations for
+Preventing Collisions at Sea (COLREGs)
+The COLREGs consists of a total of 37 rules and is divided into
+ﬁveparts( CockcroftandLameijer,2004 ),wherepartB(rules4–
+19)containsrelevantrulesontheconductofvesselsinproxi mity
+of each other. The most relevant rules for designing COLAV
+systemsinpartBarerules8and13–17:
+Rule8 Action to avoid collision. This rule states that
+actions taken to avoid collision should be large
+enough to be readily observable of other ships,
+implying that series of small alternations in speed
+and/or course should not be applied. The rule
+also recommends that course changes should be
+prioritizedoverspeedchangesifthereisenoughfree
+spaceavailable,andthatmaneuversmustbemadein
+ampletime.
+Rule13 Overtaking. This rule states that a vessel is
+overtaking another if it approaches the other vessel
+with a course more than 22.5° abaft her beam. The
+overtaking vessel has to stay clear of the overtaken
+vessel,butthereisnostatementsonwhichsideofthe
+vesseloneshouldpass.
+Rule14 Head on. When two power-driven vessels approach
+each other on reciprocal, or nearly reciprocal,
+courses, they are in a head-on situation. In such a
+situation, both vessels should change their course to
+starboard, passing each other port-to-port, as shown
+inFigure3A . This rule states no explicit deﬁnition
+on what should be considered to be reciprocal,
+or nearly reciprocal, courses, but court decisions
+indicate head-on situations exist for opposing
+courses±6°. Notice that the rule does not include
+sailingvessels,whicharecoveredbyRule12.
+Rule15 Crossing. When two vessels approach each other
+such that the situation is not a head on or an
+overtaking, it is a crossing situation. The vessel with
+the other one to her starboard side is deemed the
+give-way vessel, while the other vessel is deemed the
+stand-onvessel.Asshownin Figure3B ,thegive-way
+vesselshouldmaneuvertoavoidcollision,preferably
+by passing behind the stand-on vessel, while the
+stand-onvesselshouldkeepherspeedandcourse.A
+B
+FIGURE 3 | Illustration of head-on (A)and crossing (B)situations, and how
+they should be resolved.
+Rule16 Action by the give-way vessel. Every vessel which
+is required to keep out of the way of another vessel
+should take early and large enough action to safely
+avoidcollision.
+Rule17 Actionbythestand-onvessel. Thisrulerequiresthat
+a stand-on vessel should keep its current speed and
+course.Thestand-onvesselmay,however,maneuver
+toavoidcollisionifitbecomesapparentthatthegive-
+way vessel is not taking appropriate actions to avoid
+collision. Furthermore, if the stand-on vessel ﬁnds
+itself so close to the obstacle that collision can not
+be avoided by the give-way vessel alone, the stand-
+on vessel should take such action which best aids
+to avoid collision. In a crossing situation, the stand-
+on vessel should avoid maneuvering to port, since
+this could lead to a collision if the give-way vessel
+maneuverstostarboard.
+In the hybrid architecture illustrated in Figure1, the mid-level
+algorithm is given the task of strictly enforcing COLREGs rule s
+13–16 and the stand-on requirement of Rule 17, while also
+complyingwithRule8.
+In addition, we want the mid-level algorithm to comply with
+the ﬁrst part of Rule 17, by not maneuvering to avoid collision
+in crossing situations if the ownship is the stand-on vessel .
+The hybrid COLAV system is inherently capable of adhering
+to the remaining requirement of Rule 17, where the stand-on
+vessel is allowed or required to maneuver, by having diﬀerent
+prediction horizons and safety margins in the mid-level and
+short-term layers. The BC-MPC algorithm does not have any
+limitations of not maneuvering in stand-on situations, and will
+hence maneuver in stand-on situations if we come suﬃciently
+closetotheobstacle.
+The mid-level algorithm as presented in Bitar et al. (2019a)
+only complies with Rule 8. Further in this section, we therefore
+present improvements to the mid-level algorithm to make it
+Frontiers in Robotics and AI | www.frontiersin.org 5 February 2020 | Volume 7 | Article 11
+
+--- Page 6 ---
+Eriksen et al. Hybrid COLAV for ASVs
+comply with rules 13–16 and the stand-on requirement of
+Rule17.
+4.2. COLREGs Interpretation
+A commonly used concept for interpreting obstacles in COLAV
+algorithms is to assign a spatial region to obstacles, which
+the ownship should not enter. This approach is commonly
+referred to as a domain-based approach. Specially designed ship
+domains are commonly used for interpreting the COLREGs in
+COLAV algorithms, where the required clearance to an obstac le
+is signiﬁcantly larger if the maneuver violates the COLREGs
+(Szlapczynski and Szlapczynska, 2017; Eriksen et al., 2019 ). This
+approach is attractive since it continuously captures multiple
+COLREGsrules,anddoesnotrequirelogicordiscretedecisio ns.
+However, such an approach does not strictly enforce the
+COLREGsrules,sinceitwillallowmaneuversviolatingtheru les
+iftheyarelargeenough.Inaddition,aship-domainapproachwi ll
+not be able to strictly enforce the stand-on requirement of Ru le
+17, since a domain-based approach will avoid collision with al l
+obstacles. One could ignore obstacles with give-way obliga tions,
+butthiswouldrequireanexplicitCOLREGsinterpretationwhic h
+conﬂicts with domain-based approaches’ core idea of implicit
+COLREGs interpretation. Therefore, we pursue an alternative
+approachtohandlingtheCOLREGsinthemid-levelalgorithm.
+To simplify the COLREGs interpretation task, we look at the
+situation from a static perspective, assuming that the curren t
+COLREGs situations are valid throughout the entire predictio n
+horizon of the mid-level algorithm. In reality, the COLREGs
+situations may, however, change during the prediction horiz on
+dependingonboththeownship’sandobstaclesfuturetrajecto ry.
+For instance, an obstacle approaching from head on, but far
+enough away to not be considered as a danger may be put in a
+safe state. Hence, the mid-level algorithm will (for the curr ent
+iteration) act like no COLREGs rule applies to this vessel for
+the entire prediction horizon, while the obstacle may get clo se
+enoughduringthepredictionhorizontobeconsideredasahea d-
+onsituation.AnMPCschemeofonlyimplementingasmallpart
+of the prediction horizon will reduce the implications of this ,
+since the situation is reassessed each time mid-level algor ithm is
+run,whichjustiﬁestheassumptionofconsideringtheCOLREGs
+from a static perspective. Investigating the possibilities fo r
+dynamically predicted future COLREGs situations as part of the
+MPCpredictionwillbeconsideredasfuturework.
+4.2.1. State Machine
+We propose to utilize a state machine in order to decide which
+COLREGs rule is active with respect to each obstacle in the
+vicinityoftheownship.Thestatemachinecontainsthestate s:
+SFSafestate.ThisimpliesthattheCOLREGsdonotenforce
+anyrulewithrespecttothisobstacle.
+OTOvertaking state. This implies that COLREGs Rule
+13 applies with respect to this obstacle. The state
+machine does not discriminate on whether the ownship
+is overtaking another vessel or is being overtaken, but
+thiscanbedonebylookingatwhichvesselhasthehigher
+speed(TamandBucknall,2010 ).FIGURE 4 | COLREGs state machine. The abbreviations “G SF,” “GSO,” “GOT,”
+“GGW,” and “G HO” denote geometrical situations, while “entry xx” and “exit xx”
+denote additional state-dependent entry and exit criteria s.
+HOHead-on state. This implies that COLREGs Rule 14
+applieswithrespecttothisobstacle.
+GWGive-way state. This implies that COLREGs Rule 15
+applieswithrespecttothisobstacle,andtheownshiphas
+togiveway.
+SOStand-on state. This implies that COLREGs Rule 15
+applieswithrespecttothisobstacle,andtheownshiphas
+tostandon.
+EMEmergency state. This implies that the obstacle is so
+close and/or behaves unpredictably, such that special
+considerationsmustbemade.
+Asshownin Figure4,alltransitionshavetogoeitherfromorto
+thesafestate.
+This implies that when the state machine decides that a
+COLREGs (or emergency) situation exists with respect to an
+obstacle, it will not allow switching to another state withou t the
+situation being considered as safe ﬁrst. One could argue that
+it should be able to transition between speciﬁc states, like e .g.,
+fromhead-on,give-wayandovertakingtoemergency.Thisis an
+interestingtopic,whichshouldreceiveattentioninthefut ure.To
+control the transitions between the diﬀerent states, we comb ine
+the time to and distance at the CPA, a CPA-like measure of the
+Frontiers in Robotics and AI | www.frontiersin.org 6 February 2020 | Volume 7 | Article 11
+
+--- Page 7 ---
+Eriksen et al. Hybrid COLAV for ASVs
+time until a critical point and a geometrical interpretation o f
+thesituation.
+4.2.2. Entry and Exit Criteria
+CPA is a common concept in maritime risk assessment. Given
+the current speed and course of the ownship and an obstacle,
+CPAdescribesthetimetothepointwherethetwovesselsareth e
+closest, and the distance to the obstacle at this point. Given the
+position and velocity vector of the ownship p,vand an obstacle
+po,vo,thetimetoCPAiscalculatedas( Kufoaloretal.,2018 )
+tCPA=/braceleftBigg
+0 if ∝bardblv−v0∝bardbl2≤ǫ
+(p−po)·(v−vo)
+∝bardblv−vo∝bardbl2
+2else,(9)
+whereǫ>0isasmallconstantinordertoavoiddivisionbyzero
+in the case where the relative velocity between the ownship a nd
+obstacleiszero.Given tCPA,wecalculatethedistancebetweenthe
+vesselsatCPAas
+dCPA= ∝bardbl(p+tCPAv)−(po+tCPAvo)∝bardbl2. (10)
+While the CPA is the point where the distance to an obstacle
+is at its minimum, the critical point is where the distance to a n
+obstacle crosses underneath a critical distance dcrit. This critical
+distance describes a minimum obstacle distance that the mid -
+level algorithmisdesigned for. Thetimetothecriticalpoin ttcrit
+canbecalculatedbysolvingtheequation
+∝bardbl(p+tcritv)−(po+tcritvo)∝bardbl2=dcrit. (11)
+In the cases where the distance between the ships does not fall
+belowdcrit,tcritis undeﬁned. Otherwise, there are generally two
+solutions.Theinterestingsolutionistheonewiththelowe sttcrit
+value,asthisiswhentheobstacleentersthe dcritboundary.
+Thestate-machineentrycriteriain Figure4aredeﬁnedas
+entryi=/braceleftBigg
+true ifdCPA<di,enter
+CPA∧tCPA∈[ti,enter
+CPA,ti,enter
+CPA],
+false otherwise
+∀i∈ {SO,OT,GW,HO }
+entryEM=/braceleftBigg
+true iftcrit<tEM,enter
+crit∧tCPA>0
+false otherwise,(12)
+wheredi,enter
+CPA,ti,enter
+CPA, andti,enter
+CPAfori∈ {SO,OT,GW,HO }are
+tuningparametersdenotingthresholdson dCPAandtCPAinorder
+to satisfy the entry criteria for the stand-on, overtaking, give-
+way and head-on states. The tuning parameter tEM,enter
+critdenotes
+an upper limit on tcritin order to enter the emergency state.
+Theideabehindthestand-on,overtaking,give-wayandhead -on
+entrycriteriasarethatinorderfortheobstacletorepresen tarisk,
+bothtCPAanddCPAneed to be within some tunable thresholds.
+Situations with a very low dCPA, but with a high tCPA, will not
+triggertheentrycriteria,sincethesituationswillnotocc urinthe
+nearfuture.Similarly,if tCPAiswithinthethresholds,but dCPAis
+large,thisindicatesasafepassingwhereriskofcollisiond oesnot
+exist. The lower bound on tCPAwill typically be selected as zero,and is useful to distinguish between obstacles moving toward
+of away from the ownship. For the emergency state, the entry
+criteriaisbasedonthecriticalpoint,atwhichwearesoclose that
+themid-levelalgorithmmaystrugglewithprovidingmeaningf ul
+maneuvers.Inadditionto tcritbeingunderthethreshold tEM,enter
+crit,
+we require that tCPAis positive, indicating that we are getting
+closer to the obstacle. Currently, we only allow entering th e
+emergencystateifthesituationisageometricalgive-wayo rhead-
+on,sinceanovertakingsituationrepresentsasmallerdange rand
+haslessrequirementforspecialconsideration.
+Thestate-machineexitcriteriasin Figure4aredeﬁnedas
+exiti=/braceleftBigg
+true ifdCPA≥di,exit
+CPA∨tCPA/∈[ti,exit
+CPA,ti,exit
+CPA],
+false otherwise
+∀i∈ {SO,OT,GW,HO }
+exitEM=/braceleftBigg
+true iftcrit≥tEM,exit
+crit∨tCPA≤0
+false otherwise,(13)
+wheredi,exit
+CPA,ti,exit
+CPA, andti,exit
+CPAfori∈ {SO,OT,GW,HO }are tuning
+parameters denoting thresholds on dCPAandtCPAin order to
+satisfy the exit criteria for the stand-on, overtaking, giv e-way
+and head-on states. The exit criteria for the emergency stat e is
+satisﬁed if tcritis larger than the tuning parameter tEM,enter
+exit, or
+tCPAis negative, implying that the obstacle is moving further
+away from the ownship. Note that the exit criterias are obtain ed
+bynegatingtheentrycriterias,butwithotherthresholdsi norder
+to implement hysteresis to avoid shattering. In general, we a llow
+fordiﬀerenttuningparametersforthediﬀerentstates,butino ur
+simulationsweseethatselectingthesametuningparameters for
+allstatesprovidesgoodresults.Therefore,wedeﬁne:
+di,enter
+CPA=denter
+CPA
+ti,enter
+CPA=tenter
+CPA
+ti,enter
+CPA=tenter
+CPA,(14)
+and
+di,exit
+CPA=dexit
+CPA
+ti,exit
+CPA=texit
+CPA
+ti,exit
+CPA=texit
+CPA(15)
+foralli∈ {SO,OT,GW,HO }.
+4.2.3. Geometrical Situation Interpretation
+Tam and Bucknall (2010) present a geometrical interpretation
+scheme for deciding COLREGs situations based on the relative
+position, bearing and course of the obstacle with respect to the
+ownship. We base our geometrical interpretation on a slightly
+modiﬁed version of this scheme, where we include the sign
+oftCPAto distinguish between situations where the obstacle
+moves closer toward or farther away from the ownship. The
+geometrical interpretation is shown in Figure5, where the
+geometrical situation is obtained by ﬁnding which region th e
+obstaclepositionandcourseresidesin.
+Notice that the head-on region is larger than the threshold o f
+±6° as described by the COLREGs. The reason for this is that
+Frontiers in Robotics and AI | www.frontiersin.org 7 February 2020 | Volume 7 | Article 11
+
+--- Page 8 ---
+Eriksen et al. Hybrid COLAV for ASVs
+FIGURE 5 | Illustration of the geometrical COLREGs interpretation, wh ere the ownship course is denoted as χandθ1,θ2,θ3denote symmetrical regions given as
+[22.5,90,112.5 °] offset from ahead. The circles illustrate obstacles in dif ferent relative bearing regions, and have a ﬁxed orientation with respect to the ownship. The
+geometrical situations are color-coded and denoted as G i,i∈ {SF, SO, OT, GW, HO }for safe, stand-on, overtaking, give-way and head-on situa tions, respectively.
+When two situations are given, like e.g., G SF/SO, we use the former (SF) if tCPA<0 and the latter (SO) if tCPA≥0, analogous to the obstacle moving away or toward the
+ownship. To decide the geometrical situation, we ﬁrst ﬁnd whic h relative bearing region the obstacle resides in, before ﬁnd ing which obstacle region the obstacle’s
+course resides in. The ﬁgure is inspired by Tam and Bucknall (2010) .
+Tam and Bucknall recommend using a larger region of 22.5° in
+order to increase the robustness of the geometrical COLREGs
+interpretationscheme.
+4.3. Interface to the High-Level Planner
+The high-level planner produces an energy-optimized nominal
+trajectory for the ownship to follow. However, since the hig h-
+level planner does not consider moving obstacles, the speed
+is the only time-relevant factor of the desired trajectory. In
+a case where the ownship for some reason, e.g., avoiding
+moving obstacles, lag behind the nominal trajectory, follow ing
+the nominal trajectory in absolute time would cause a speed
+increase in order to catch up with it. Therefore, the mid-
+level algorithm performs relative trajectory tracking , where it
+tracks the nominal trajectory with a time oﬀset tb∈R.
+This results in a relative nominal trajectory for the mid-le velalgorithm:
+¯pd(t)=pd(t+tb), (16)
+wherepd=[Nd(t),Ed(t)]⊤is the nominal trajectory from
+the high-level planner. The time oﬀset tbis calculated each
+time the mid-level algorithm is run by solving a separate
+optimization problem, and is selected such that ¯pd(t0) is
+the point on the nominal trajectory closest to the ownship.
+SeeBitar et al. (2019a) for a detailed description of this
+concept.
+4.4. Optimization Problem Formulation
+Themid-levelalgorithmisformalizedasanOCP:
+min
+η(·),xr(·)φ(η(·),xr(·)) (17a)
+Frontiers in Robotics and AI | www.frontiersin.org 8 February 2020 | Volume 7 | Article 11
+
+--- Page 9 ---
+Eriksen et al. Hybrid COLAV for ASVs
+subjectto
+˙η(t)=R(ψ(t))xr(t)+/bracketleftbiggVc
+0/bracketrightbigg
+∀t∈[t0,t0+Th] (17b)
+hmid(η(t),xr(t),t)≤0∀t∈[t0,t0+Th] (17c)
+emid(η(t0))=0, (17d)
+whereTh>0 is the prediction horizon, φ(·,·) is the
+objective functional, (17b) contains a kinematic vessel mo del,
+(17c) contains inequality constraints and (17d) contains
+boundaryconstraints.
+Analytical solutions of OCPs are in general not possible to
+ﬁnd. A more common approach is to transcribe the OCP to an
+NLP, and solve that using a gradient optimization scheme. In
+our case, we transcribe (17) into an NLP with Npsamples using
+multipleshooting,wherethevesselmodelisdiscretizedusi ng4th
+order Runge Kutta and the cost functional is discretized usin g
+forwardEuler.TheresultingNLPisgivenas
+min
+w,ω,µ,ξφp(w,ω,µ)+φc(w)+φCOLREGs(w)+φξ(ξ)
+subjectto
+g(w,η(t0))=0
+h(w,ξ)≤0
+¯hk(ηk,ωk,µk,¯pd,k)≤0∀k∈ {1,...,Np}
+ξ≥0,(18)
+wherew=[η⊤
+0,x⊤
+r,0,...,η⊤
+Np−1,x⊤
+r,Np−1,η⊤
+Np]⊤∈R5Np+3
+is a vector of 5 Np+3 decision variables and ¯pd,1:Np=
+[¯pd,1,¯pd,2,...,¯pd,Np] is a sequence of desired positions. The
+vectors ω∈R2Np,µ∈R2Npandξ∈RMNpcontain slack
+variables, where Mis the number of moving obstacles to be
+includedintheconstraints.
+The vector g(w,η(t0))∈R3Np+3contains shooting and
+boundary constraints, while h(w)∈R(M+D+4)Np, whereDis
+the number of static obstacles, contain inequality constra ints
+ensuring COLAV and steady-state vessel velocity feasibili ty. The
+vectors¯hk(ηk,ωk,µk,¯pd,k)∈R6,k∈ {1,Np}containconstraints
+ontheslackvariables ωandµ.
+In the following subsections, we describe the terms in (18) i n
+moredetail.
+4.4.1. Objective Function
+Theobjectivefunctioncontainsfourfunctions,where φp(w,ω,µ)
+introducescostondeviatingfromtherelativenominaltraj ectory
+¯pd(t),φc(w)introducescostonusingcontrolinput, φCOLREGs(w)
+is a COLREGs-speciﬁc function and φξ(ξ) introduces slack
+variablecost.
+To avoid that the NLP changes behavior when moving away
+from the nominal trajectory, we wish to have linear growth
+in the position error function φp(w,ω,µ). This is achieved by
+instead of using quadratic terms in the position error functi on,
+we use the Huber loss function which is quadratic around theorigin and resembles the absolute value function above a giv en
+thresholdσ >0:
+H(ρ)=/braceleftBigg
+1
+2ρ2|ρ| ≤σ
+σ(|ρ|−1
+2σ)|ρ|>σ.(19)
+The Huber loss function has a discontinuous gradient, makin g
+it slightly complicated to implement in gradient-based
+optimization problems. It can, however, be implemented in
+acontinuousfashionbyutilizinglifting,whereslackvaria blesare
+introducedtocreateaproblemofahigherdimensionalitywhic h
+iseasiertosolve.Usingthistechnique, ¯φp(w,ω,µ)isdeﬁnedas
+¯φp(w,ω,µ)=KpNp/summationdisplay
+k=1σ1⊤ωk+1
+2µ⊤
+kµk, (20)
+whereKp>0 is a tuning parameter, and ωk∈R2andµk∈R2
+areslackvariablesconstrainedby
+¯hk(w,ω,µ,¯pd,k)=
+vk+µk+pk−¯pd,k
+vk+µk−(pk−¯pd,k)
+−ωk
+≤0
+∀k∈ {1,...,Np}, (21)
+wherepkisthepredictedvesselpositionattimestep k,i.e.,ηk=
+[p⊤
+k,ψk]⊤.SeeBitaretal.(2019a) formoredetails.
+Rule 8 of the COLREGs requires that maneuvers are readily
+observable for other vessels, implying that speed and course
+changes should have a suﬃciently large magnitude, and not be
+performed as a sequence of small changes. In order to enforce
+thisintheoptimizationproblem,thecontrolcostfunction φc(w)
+introduces a non-linear cost on the change in speed and course,
+which makes the algorithm favor readily observable maneuve rs.
+Thefunctionisdeﬁnedas
+φc(w)=Np−1/summationdisplay
+k=0K˙Uq˙U(˙Uk)+K˙χq˙χ(˙χk), (22)
+whereK˙U,K˙χ>0 are tuning parameters, while q˙U(˙Uk) and
+q˙χ(˙χk) are the non-linear cost functions. Notice that neither
+the speed over ground (SOG) Unor the course χare elements
+of the search space, but they can be computed as U=√
+u2+v2andχ=ψ+arcsinv
+U. Their derivatives are
+then calculated by ﬁnite diﬀerencing. See Eriksen and Breivik
+(2017a)andBitar et al. (2019a) for more details on the control
+costfunction.
+TheφCOLREGs(w) function introduces a COLREGs-speciﬁc
+cost with respect to obstacles based on the rule currently
+applicable as deﬁned by the state machine. We hence tailor the
+NLPtothecurrentsituation.Thefunctionisdeﬁnedas
+φCOLREGs(w)=Np/summationdisplay
+k=1
+/summationdisplay
+i∈OHOKHOVHO,i,k(pk)+/summationdisplay
+i∈OGWKGWVGW,i,k(pk)
++/summationdisplay
+i∈OSOKSOVSO,k(w)+/summationdisplay
+i∈OEMKEMVEM,k(w)
+,(23)
+Frontiers in Robotics and AI | www.frontiersin.org 9 February 2020 | Volume 7 | Article 11
+
+--- Page 10 ---
+Eriksen et al. Hybrid COLAV for ASVs
+whereOHO,OGW,OSO, andOEMcontain obstacles which are
+in the head-on, give-way, stand-on and emergency states,
+respectively, and KHO,KGW,KSO,KEM>0 are tuning
+parameters.Thefunctions VHO,i,k(pk),VGW,i,k(pk),VSO,k(w),and
+VEM,k(w) describe functions capturing head-on, give-way,
+stand-on and emergency behavior with respect to obstacle i,
+respectively.Noticethatthehead-onandgive-wayfunction svary
+with both the obstacle number and time step number, which is
+due to the functions depending on the given obstacles position
+andcourseattimestep k.
+For head-on situations, we deﬁne a potential function with
+a positive value on the obstacle’s starboard side, and a negat ive
+value on its port side. When used in the objective function,
+this will favor trajectories passing a head-on obstacle on it s
+port side, in compliance with Rule 14 of the COLREGs.
+In addition, the potential function has an attenuation term,
+reducing the impact of the function when far away from
+anobstacle:
+VHO,i,k(p)=tanh/parenleftBig
+αx,HO(x0,HO−x{i,k})/parenrightBig
+2tanh(αy,HOy{i,k})∈(−1,1),
+(24)
+whereαx,HO,αy,HO>0 are tuning parameters controlling the
+steepness of the head-on potential function and ¯x0,HO>0 is
+a tuning parameter controlling the inﬂuence of the attenuati ng
+potential. The coordinate ( x{i,k},y{i,k}) ispgiven in obstacles i’s
+course-ﬁxedframe(inwhichthe x-axispointsalongtheobstacle’s
+course)attimestep k,computedas
+/bracketleftbiggx{i,k}
+y{i,k}/bracketrightbigg
+=R(χi,k)⊤/parenleftbig
+p−po,k,i/parenrightbig
+, (25)
+wherepo,k,iandχi,kare the position and course of obstacle i
+at time step k. The head-on potential function with parameters
+αx,HO=1/500,αy,HO=1/400andx0,HO=1,000 m is shown in
+Figure6A .
+Forgive-waysituations,wedeﬁneasimilarpotentialfuncti on,
+but rotated such that the function is positive in front of an
+obstacle and negative behind it. This will favor trajectorie s
+passing behind an obstacle, as desirable with respect to Rule
+15 when a give-way obligation is active. The give-way potenti al
+functionisdeﬁnedas
+VGW,i,k(p)=tanh/parenleftBig
+αy,GW(y{i,k}−y0,GW)/parenrightBig
+2tanh(αx,GWx{i,k})∈(−1,1),
+(26)
+whereαx,GW,αy,GW>0 control the steepness of the give-way
+potential function and ¯y0,GW<0 control the attenuation on the
+port side of an obstacle. The give-way potential function with
+parametersαx,GW=1/400,αy,GW=1/500andy0,GW= −500 m
+isshownin Figure6B .
+In stand-on situations, we want the mid-level algorithm to
+disregard the obstacle and keep the current speed and courseA
+B
+FIGURE 6 | Potential functions ensuring passing on the correct side in
+head-on and give-way situations. Yellow indicates a positi ve value, blue
+indicates a negative value, while the yellow patch and axis c ross show the
+obstacle location and course-ﬁxed coordinate system. Used i n a minimization
+scheme, this will favor starboard maneuvers in head-on situ ations, and
+passing behind obstacles in give-way situations. Note that the obstacle here
+has zero sideslip, resulting in the heading and course point ing in the same
+direction. (A)Head-on potential function. (B)Give-way potential function.
+in order to comply with the ﬁrst part of Rule 17. One could
+simply constrain the algorithm to not maneuver, but this would
+beperilousinsituationswheretheownshipsimultaneouslyﬁnd s
+itself in a head-on or give-way situation. In such a situatio n
+it would be of extra importance to choose readily observable
+maneuvers, and we therefore design the stand-on cost with the
+sametermsasusedinthecontrolcost(22)toamplifytheeﬀect:
+VSO,k(w)=K˙Uq˙U(˙Uk)+K˙χq˙χ(˙χk). (27)
+Ifanobstacleisinanemergencystate,theobstacleisdisrega rded
+in the mid-level algorithm and left for the short-term algor ithm
+to handle. In such a situation, it is important that the mid-le vel
+algorithmbehavespredictable,andwethereforeusethesamec ost
+functionasforstand-onsituations:
+VEM,k(w)=VSO,k(w). (28)
+Frontiers in Robotics and AI | www.frontiersin.org 10 February 2020 | Volume 7 | Article 11
+
+--- Page 11 ---
+Eriksen et al. Hybrid COLAV for ASVs
+The slack variable ξis used in a homotopy scheme, which
+we introduce to avoid getting trapped in local minima around
+moving obstacles. The homotopy scheme is described in furthe r
+detail in section 4.5. The homotopy cost function φξ(ξ)
+introducesslackcoston ξ:
+φξ(ξ)=Kξ1⊤ξ, (29)
+whereKξ>0 is iteratively increased as part of the
+homotopyscheme.
+4.5. Obstacle Handling and Steady-State
+Feasibility
+The inequality constraint h(w,ξ)≤0ensures COLAV and
+steady-statefeasibilitywithrespecttoactuatorlimitati ons.
+Static obstacles are handled similarly as in the high-level
+algorithm,with(4)representinganellipticalobstaclewith center
+(xc,yc),angleαandmajorandminoraxes xaandya,respectively.
+Theconstraint(4)needstobeenforcedateachtimestep.Henc e,
+forthei-thstaticobstacle,wedeﬁnetheconstraint
+hsi(w)=
+ho(x1,y1,xc,i,yc,i,xa,i,ya,i,αi)
+ho(x2,y2,xc,i,yc,i,xa,i,ya,i,αi)
+...
+ho(xNp,yNp,xc,i,yc,i,xa,i,ya,i,αi)
+≤0. (30)
+Moving obstacles are handled in a similar fashion, but lettin g
+the ellipsis center position and angle be time varying. Obstac les
+in stand-on situations should, however, not be included in t he
+constraints, since the mid-level algorithm is supposed to sta nd
+on in such situations. Moreover, if an obstacle has entered
+an emergency state, the obstacle is so close and behaving
+unpredictably that the mid-level algorithm should disregar d it
+and leave it for the short-term layer. Hence, for the i-th moving
+obstacle not in a stand-on or an emergency situation, we deﬁn e
+theconstraint
+hmi(w)=
+ho(x1,y1,xc,i,1,yc,i,1,xa,i,ya,i,αi,1)
+...
+ho(xNp,yNp,xc,i,Np,yc,i,Np,xa,i,ya,i,αi,Np)
+≤0, (31)
+wherexc,i,k,yc,i,k, andαi,kdenote the position and course of the
+i-thmovingobstacleattimestep k.
+GivenDstatic obstacles and Mobstacles not in stand-on or
+emergencysituations,wedeﬁnetheconstraint
+ho(w,ξ)=
+hs1(w)
+...
+hsD(w)
+hm1(w)
+...
+hmM(w)
++/bracketleftbigg0
+ξ/bracketrightbigg
+, (32)
+where we include slack variables ξ≥0on the moving obstacle
+constraints as part of a homotopy scheme. The reason for usinghomotopyisthatNLPsolversingeneralonlyﬁndslocalminima ,
+and can have issues with moving an initial guess “through”
+obstacles. Normally, this is not an issue, but for the mid-lev el
+algorithm the optimal solution can change drastically from o ne
+iteration to another. This can for instance happen if an obstac le
+enters a head-on or give-way state, where the solution can be
+trapped on the wrong side of an obstacle. In general, homotopy
+describes introducing an extra parameter which is iterative ly
+adjusted in order to iteratively move a local solution toward
+a global solution ( Deuﬂhard, 2011 ). In our homotopy scheme,
+we introduce slack variables on the moving obstacle constrain ts,
+which will allow solutions to travel through obstacles at the c ost
+of a homotopy cost (29) scaled by the homotopy parameter Kξ.
+Initially, this is selected as a low value to have a high amoun t
+of slack on the moving obstacles, while it is iteratively increa sed
+towardKξ→ ∞, which results in ξ=0and hence no slack on
+movingobstacles.Currently,weonlyintroduceslackonmov ing
+obstacles,butslackshouldalsobeintroducedtostaticobst aclesif
+theyaresmallenoughforthealgorithmtobeabletopassonbot h
+sides,likee.g.,rocks,navigationalmarks,etc.
+Similarly as in Eriksen and Breivik (2017b) andBitar et al.
+(2019a), we ensure steady-state feasible trajectories at each time
+step through a constraint hxr,k(xr,k)≤0∈R4, which captures
+the state constraint xr∈Xrat time step k. To ensure stead-
+state feasibility for the entire prediction horizon, we deﬁn e
+theconstraint
+hxr(w)=
+hxr,k(xr,0)
+hxr,k(xr,1)
+...
+hxr,k(xr,Np−1)
+≤0. (33)
+Finally,theinequalityconstraintsarecombinedas.
+h(w,ξ)=/bracketleftbiggho(w,ξ)
+hxr(w)/bracketrightbigg
+∈R(M+D+4)Np. (34)
+5. SHORT-TERM COLAV
+For the short-term layer, the branching-course model predic tive
+control (BC-MPC) algorithm is used, which is a sample-based
+MPC algorithm intended for short-term ASV COLAV. The
+BC-MPC algorithm was initially developed in Eriksen et al.
+(2019), extended to also consider static obstacles in Eriksen and
+Breivik (2019) and is experimentally validated in several full-
+scale experiments using a radar-based system for detecting a nd
+trackingobstacles.ThealgorithmcomplieswithCOLREGsrule s
+8, 13, and the second part of Rule 17, while favoring maneuvers
+complying with the maneuvering aspects of rules 14 and 15.
+Notice that Rule 17 allows a ship to ignore the maneuvering
+aspects of rules 14 and 15 in situations where the give-way
+vessel does not maneuver. The obstacle clearance will be large r
+if the algorithm ignores the maneuvering aspects of rules 14
+and 15, like e.g., passing in front of an obstacle in a crossing
+situation where the ownship is the give-way vessel. Moving
+obstacles are in general handled by the mid-level algorithm,
+making this applicable only in emergency situations and for
+Frontiers in Robotics and AI | www.frontiersin.org 11 February 2020 | Volume 7 | Article 11
+
+--- Page 12 ---
+Eriksen et al. Hybrid COLAV for ASVs
+obstacles detected so late that the mid-level algorithm is u nable
+toavoidthem.
+The algorithm constructs a search space consisting of a
+ﬁnite number of trajectories, which each contain a sequence of
+maneuvers. The maneuvers are constructed using a dynamic
+modeloftheownshipandasetofaccelerationmotionprimitiv es,
+resulting in feasible trajectories being speciﬁed to the ves sel
+controller. For each maneuver, a discrete set of SOG and cour se
+accelerationsarecreatedas
+˙Usamples=/braceleftbig˙U1,˙U2,...,˙UNU/bracerightbig
+¨χsamples=/braceleftbig
+¨χ1,¨χ2,...,¨χNχ/bracerightbig
+,(35)
+where˙Ui,i∈[1,NU] and¨χi,i∈[1,Nχ] denote NU∈N
+andNχ∈Nvessel-feasible speed and course accelerations.
+Given the acceleration samples (35) and motion primitives for
+each maneuver in a trajectory, we create a set of desired SOG
+and course trajectories Ud. These trajectories have continuous
+acceleration, and is designed in an open-loop fashion by
+using the current reference tracked by the vessel controlle r for
+initialization, rather than the current vessel SOG and cour se.
+The reason for this is that the reference to the vessel contro ller
+should be continuous in order to avoid jumps in the actuator
+commands.Toincludefeedbackinthetrajectoryprediction, aset
+offeedback-correctedSOGandcoursetrajectories ¯Udispredicted
+usingasimpliﬁederrormodelofthevesselandvesselcontrol ler.
+Finally, the feedback-corrected SOG and course trajectori es are
+usedtocomputeasetoffeedback-correctedposetrajectories :
+¯H=/braceleftbig
+¯η(·)/vextendsingle/vextendsingle(¯U(·),¯χ(·))∈¯U/bracerightbig
+, (36)
+where¯η(·) denotes a kinematic simulation procedure that given
+SOG and course trajectories, ¯U(·) and¯χ(·), in¯Udcomputes the
+vessel pose. See Eriksen and Breivik (2019) andEriksen et al.
+(2019)formoredetailsonthetrajectorygenerationprocedure.
+In order to converge toward the trajectory speciﬁed by the
+mid-levelalgorithm,adesiredaccelerationiscomputedbas edon
+a line-of-sight guidance scheme. In Eriksen and Breivik (2019)
+andEriksen et al. (2019) , the samples closest to the desired
+acceleration in (35) are replaced with the desired accelerat ion,
+given that this is vessel-feasible. A problem with this, is th at
+whenoperatingathighspeeds,thepossibleaccelerationmayno t
+be symmetric, resulting in that zero acceleration (hence ke eping
+a constant speed and course), may not be part of the search
+space. This can cause undesirable behavior, since the BC-MPC
+algorithm will be unable to keep the speed and course constant ,
+which can cause oscillatory behavior. In this paper, we theref ore
+propose to move the acceleration samples closest to zero, and
+adding the desired acceleration as a separate sample, given tha t
+it is vessel feasible. This will make sure that keeping a const ant
+speed and course, as well as a trajectory converging toward th e
+desiredtrajectoryisincludedinthesearchspace.
+Given the predicted trajectories, the algorithm ﬁnds the
+optimal desired SOG and course trajectory for the vessel
+controller u∗
+d(·)=[Ud(·)∗,χd(·)∗]as
+u∗
+d(·)=argmin
+(¯ηk(·),ud,k(·))∈(¯H,Ud)G(¯ηk(·),ud,k(·);pmid
+d(·)), (37)wheretheobjectivefunctionisgivenas
+G(¯η(·),ud(·);pmid
+d(·))=walalign(¯η(·);pmid
+d(·))
++wav,mavoidm(¯η(·))+wav,savoids(¯η(·))
++wt,UtranU(ud(·))+wt,χtranχ(ud(·)).
+(38)
+The variables wal,wav,m,wav,s,wt,U,wt,χ>0 are tuning
+parameters, while align( ¯η(·);pmid
+d(·)) measures the alignment
+between a candidate trajectory ¯η(·) and the desired trajectory
+from the mid-level algorithm pmid
+d(·). The function avoid m(¯η(·))
+ensures COLAV of moving obstacles by penalizing trajectories
+close to obstacles, using a non-symmetric obstacle ship doma in
+designed with the COLREGs in mind. The function avoid s(¯η(·))
+ensures COLAV of static obstacles by introducing an occupancy
+grid, while tran U(ud(·)) and tran χ(ud(·)) introduces transitional
+costs to avoid shattering. The transitional terms penalize
+deviations from the planned trajectory of the previous iterat ion,
+unless changing to the trajectory corresponding by the desir ed
+acceleration. See Eriksen and Breivik (2019) andEriksen et al.
+(2019)formoredetailsanddescriptionsoftheterms.
+6. SIMULATION RESULTS
+The hybrid COLAV system is veriﬁed through simulations,
+which are present in this section. The simulations include oc ean
+currentandbothstaticandmovingobstacles.Weincludemovi ng
+obstacles both acting in compliance with the COLREGs, and
+violatingtheCOLREGs.
+6.1. Simulation Setup
+ThesimulationsareperformedinMATLABonacomputerwith
+an 2.8 GHz Intel Core i7 processor running macOS Mojave,
+using CasADi ( Andersson et al., 2019 ) and IPOPT ( Wächter
+andBiegler,2005 )forimplementingthehigh-levelandmid-level
+algorithms. The simulator is built upon the mathematical mod el
+of the Telemetron ASV described in section 2, and the model-
+based speed and course controller in Eriksen and Breivik (2018)
+isusedasthevesselcontroller.
+The parameters of the high-level algorithm are listed in
+Table1.Thenumberofpredictionsteps Nhiischosentoachieve
+a time step length h=tmax/Nhi<1.5 s, which seems to be a good
+compromise between capturing the relevant system dynamics
+andhavingafeasiblecomputationalrequirement.
+Themid-levelalgorithmisimplementedusingtheparameters
+inTable2.
+The slack variable cost Kξhas ﬁve elements, implying that
+we use ﬁve steps in our homotopy scheme. The mid-level NLP
+is initially warm started with the solution from the previous
+iteration, while each step in the homotopy scheme is warm
+startedwiththesolutionfromthepreviousstepofthehomoto py
+scheme, converging toward the solution without slack on the
+constraints. To reduce the computational load and increase t he
+predictability of the mid-level algorithm, we utilize six st eps of
+each planned mid-level trajectory, only running the mid-lev el
+algorithm every 60 s. This implies that six steps of the predicte d
+Frontiers in Robotics and AI | www.frontiersin.org 12 February 2020 | Volume 7 | Article 11
+
+--- Page 13 ---
+Eriksen et al. Hybrid COLAV for ASVs
+TABLE 1 | Tuning parameters for the high-level algorithm.
+Param. Value Comment
+tmax Maximum trajectory time
+Scenario 1 1420 s
+Scenario 2 1420 s
+Scenario 3 725 s
+Nhi 1000 Number of prediction steps
+Ke 1.0 s3/m Energy penalty gain
+Kδ 1.0 Quadratic yaw control penalty gain
+Lm 4.0 m Length between control origin and outboard motor
+TABLE 2 | Tuning parameters for the mid-level algorithm.
+Param. Value Comment
+denter
+CPA 900 m State machine dCPAentry criteria
+dexit
+CPA 2000 m State machine dCPAexit criteria
+[tenter
+CPA,tenter
+CPA] [0, 270] s State machine tCPAentry criteria
+[texit
+CPA,texit
+CPA] [-20, 290] s State machine tCPAexit criteria
+tEM,enter
+crit 20 s Emergency state tcritentry criteria
+tEM,exit
+crit 25 s Emergency state tcritexit criteria
+h 10 s Step size
+Np 36 Number of prediction steps
+Kp 0.02 Position error scaling
+σ 1 Huber loss function threshold
+K˙U 0.3 SOG-derivative penalty term scaling
+K˙χ 2.5 Course-derivative penalty term scaling
+KHO 40 Head-on potential function scaling
+[αx,HO,αy,HO] [1/500,1/400] Head-on potential function steepness
+parameters
+x0,HO 1000 m Head-on potential function attenuation
+parameter
+KGW 40 Give-way potential function scaling
+[αx,GW,αy,GW] [1/400,1/500] Give-way potential function steepness
+parameters
+y0,GW −500 m Give-way potential function attenuation
+parameter
+KSO 3 Stand-on function scaling
+KEM 3 Emergency function scaling
+Kξ [0.1,1,10,100, ∞] Iterative slack variable cost
+xa 600 m Moving obstacle ellipsis major axis size
+ya 225 m Moving obstacle ellipsis minor axis size
+solution will be implemented before computing a new solution,
+which further implies that the state machine is also only run
+every 60 s. If the mid-level algorithm fails in ﬁnding a feasi ble
+solution, the algorithm will re-use the solution from the la st
+iteration. This may for instance happen if the algorithm tries
+to compute a solution while being inside a moving obstacle
+ellipse, which sometimes can be the case when an obstacle is
+exitinganemergencyorstand-onstate.TheBC-MPCalgorithm
+is run every 5 s, with parameters as described in Eriksen andBreivik (2019) . An update rate of 5 s is considered suﬃcient due
+the typically large maneuvering margins at sea. It is also wort h
+noting that the detection and tracking system can represent a
+signiﬁcanttimedelay,especiallyforradar-basedsystems( Eriksen
+et al., 2019 ). For conﬁned and congested areas the BC-MPC
+algorithm may need to be run at a higher rate, which also
+imposes requirements for high-bandwidth obstacle estimates .
+Static obstacles are padded with a safety margin of 150 m for
+the high-level and mid-level algorithms, while the BC-MPC
+algorithm uses a safety margin of 100 m for static obstacles.
+The reason for having a smaller static obstacle safety margin
+for the BC-MPC algorithm is that it tends to struggle with
+following trajectories on the static obstacle boundaries. Th e BC-
+MPC algorithm would hence not be able to follow the nominal
+trajectory if the static obstacle safety margin was the same a s for
+themid-levelandhigh-levelalgorithms.
+The simulations are performed without any noise on
+the obstacle estimates, providing the algorithms with exact
+information about the obstacles position, course, and speed.
+The BC-MPC algorithm has previously been shown to perform
+well with noisy and uncertain obstacle estimates in full-
+scale experiments using radar-based detection and tracking of
+obstacles ( Eriksen and Breivik, 2019; Eriksen et al., 2019 ). The
+mid-level algorithm is likely to have a larger requirement t o low
+noise levels on the obstacle estimates, since the state mach ine in
+themid-levelalgorithmdependsonlogicanddiscreteswitch ing.
+However, the algorithm is also run less frequently, reducing the
+required bandwidth of the obstacle estimates, possibly allow ing
+using smoothing or tracking ﬁlters with a lower process noise
+if necessary. It may also be feasible to make the mid-level
+algorithm depend on data from the automatic identiﬁcation
+system,whichtypicallyhavemuchlowernoiselevelsthanrada r-
+based tracking systems, while being subject to robustness iss ues
+(Harati-Mokhtarietal.,2007 ).
+We present three scenarios, which demonstrate diﬀerent
+importantpropertiesofthehybridCOLAVsystem:
+Scenario1 This scenario contains two static obstacles, and
+four moving obstacles of which all comply with
+theCOLREGs.Themovingobstaclesdemonstrate
+stand-on,give-wayandhead-onsituations.
+Scenario2 This scenario contains one static and ﬁve moving
+obstacles. The moving obstacles demonstrate
+stand-onwithanobstacleignoringtheCOLREGs,
+an overtaking and a simultaneous head-on,
+give-way and stand-on situation with obstacles
+complyingwiththeCOLREGs.
+Scenario3 This scenario contains two moving obstacles,
+which suddenly perform dangerous maneuvers
+close to the ownship, displaying the use of the
+emergencystate.
+6.2. Scenario 1
+Scenario 1 contains two static obstacles, four moving obstac les,
+an ocean current of [ −2,0]⊤m/s and is shown in Figure7.
+The high-level planner plans a nominal trajectory between the
+Frontiers in Robotics and AI | www.frontiersin.org 13 February 2020 | Volume 7 | Article 11
+
+--- Page 14 ---
+Eriksen et al. Hybrid COLAV for ASVs
+A
+B
+FIGURE 7 | Scenario 1: trajectory and COLREGs interpretation. The tex t
+marks denote the time steps [150,600,1100] s.(A)Trajectory plot. The initial
+position of the ownship and obstacles are shown with circles , with the blue
+ellipses illustrating the moving obstacle ellipse size. Th e vessel patches, which
+are overexaggerated for visualization, mark the ownship an d obstacle poses at
+given time stamps. The static obstacles are shown in yellow, with the BC-MPC
+and mid-level safety margins enclosed around. The black arr ow indicates the
+ocean current direction. (B)Output from the state machine for each obstacle.
+The asterisks mark time stamps, and the colors correspond to the obstacle
+patch colors in the trajectory plot.
+initial and goal positions at [7000,200]⊤m and [0,7900]⊤m,
+respectively. The ﬁrst obstacle is in a stand-on situation, w here
+it is required to maneuver in order to avoid collision with th e
+ownship, which is required to stand on. As shown in Figure7B ,
+the ﬁrst obstacle is quickly considered as a stand-on situat ion,
+at which the mid-level algorithm disregards the obstacle an d
+continues with the current speed and course. Following this,
+the obstacle maneuvers in accordance to the COLREGs, and we
+avoid collision. After the ﬁrst static obstacle, we encount er two
+crossingvesselswheretheownshipisdeemedthegive-wayve ssel.
+In accordance with the COLREGs, we maneuver to starboard in
+ordertopassbehindbothobstacles.Noticethatthesecondgi ve-
+way obstacle is detected as a give-way situation later than t he
+ﬁrst, since the entry criteria in the state machine includes the
+time to CPA, which is higher for the second give-way obstacle .A
+B
+FIGURE 8 | Scenario 1: speed and angular trajectories. The asterisks m ark
+the same time samples as in Figure 7 .(A)Speed trajectories. (B)Angular
+trajectories.
+After avoiding the two give-way obstacles, we converge towar d
+the nominal trajectory and encounter a head-on situation. T his
+is correctly identiﬁed by the state machine as head on, and we
+maneuver to starboard in order to avoid collision. Notice th at
+eventhoughtheobstaclemaneuvers,wekeeptheobstacleinth e
+head-onstateuntilwehavepassedit.
+Figure8 shows the speed and angular trajectories during
+Scenario 1, where the desired speed is calculated as the nomin al
+speed at the closest point on the nominal trajectory given the
+ownship position. From this, we see that the mid-level and BC-
+MPC algorithms manage to track the desired nominal speed
+before and after the ﬁrst static obstacle, where no obstacles
+require maneuvering away from the nominal trajectory. Noti ce
+thatwhenencounteringthetwocrossingobstacles,themid-l evel
+algorithm chooses to slowly change the course, which is due t o
+the attenuation of the give-way potential function and the la rge
+distance between the vessels. It would be better to make a clear
+coursechange,whichisasubjectoftuning.Afterpassingthe two
+crossingobstacles,themid-levelalgorithmincreasesthe speedin
+order to get back to the nominal trajectory, which is due to th e
+algorithmattemptingtokeepthespeedprojectedonthenominal
+trajectory equal as the desired nominal speed. Furthermore,
+notice that the mid-level algorithm actively controls the r elative
+surge speed in order achieve the desired SOG, which is clearly
+seenwhenpassingtheﬁrststaticobstacle.
+6.3. Scenario 2
+Scenario2,shownin Figure9,ismorecomplexthanScenario1,
+withatotalofﬁvemovingobstacles,andhasanoceancurrento f
+[−1,1]⊤m/s. The high-level planner plans a nominal trajectory
+between the initial and goal positions at [200,200]⊤m and
+[5500,7000]⊤m, respectively. The ﬁrst obstacle is a crossing
+vessel,whichsimilarlyasinScenario1isdeemedtogiveway for
+the ownship, which should keep the current speed and course.
+However,inthisscenario,theobstacleviolatestheCOLREGsb y
+Frontiers in Robotics and AI | www.frontiersin.org 14 February 2020 | Volume 7 | Article 11
+
+--- Page 15 ---
+Eriksen et al. Hybrid COLAV for ASVs
+A
+B
+FIGURE 9 | Scenario 2: trajectory and COLREGs interpretation. The tex t
+marks denote the time steps [140,550,900] s.(A)Trajectory plot. The initial
+position of the ownship and obstacles are shown with circles , with the blue
+ellipses illustrating the moving obstacle ellipse size. Th e vessel patches, which
+are overexaggerated for visualization, mark the ownship an d obstacle poses at
+given time stamps. The static obstacles are shown in yellow, with the BC-MPC
+and mid-level safety margins enclosed around. The black arr ow indicates the
+ocean current direction. (B)Output from the state machine for each obstacle.
+The asterisks mark time stamps, and the colors correspond to the obstacle
+patch colors in the trajectory plot.
+not maneuvering in order to avoid collision. Therefore, the BC-
+MPC algorithm maneuvers to avoid collision when the obstacle
+getssoclosethatthesafetymarginsoftheBC-MPCalgorithms is
+violated. The BC-MPC algorithm maneuvers to port, as advised
+by COLREGs Rule 17 for crossing situations where the stand-
+on vessel has to maneuver, and safely avoid the ﬁrst obstacle .
+The second obstacle is overtaken by the ownship, and correctl y
+considered as an overtaking situation by the state machine. For
+such an situation, there is no requirement on how the ownship
+shouldmaneuver,exceptkeepingclearfromtheovertakenvess el.
+After passing the second obstacle, we encounter a complex
+situation with simultaneous head-on, give-way and stand-o n
+obligations. In this situation, each vessel, including the ownship,
+ﬁndsitselfinasituationwhereahead-onandagive-waysitu ation
+requirestarboardmaneuvers,whileastand-onsituationre quires
+the vessel to keep the current speed and course. However, head -
+on and give-way obligations should be prioritized higher tha n
+stand-on situations, and the situation is quite easily solv ed by
+each vessel maneuvering to starboard and passing behind theA
+B
+FIGURE 10 | Scenario 2: speed and angular trajectories. The asterisks m ark
+the same time samples as in Figure 9 .(A)Speed trajectories. (B)Angular
+trajectories.
+vessel crossing from starboard. The mid-level algorithm so lves
+this situation with the desirable behavior, and converges t oward
+thenominaltrajectoryafterthesituationisresolved.Ass hownin
+Figure9B ,thestatemachineinterpretsthesituationscorrectly.
+From the speed trajectory in Figure10 it is clear that the
+mid-levelalgorithmfollowsthedesirednominalspeedalsowhe n
+overtakingthesecondobstacle.
+6.4. Scenario 3
+Scenario 3, shown in Figure11 , contains two moving obstacles
+onparallelcourseswiththeownship,andhasanoceancurrento f
+[−1,1]⊤m/s. The high-level planner plans a nominal trajectory
+between the initial and goal positions at [500,500]⊤m and
+[3328,5399]⊤m, respectively, which results in a straight line
+trajectory with a course angle of 60°. The ﬁrst obstacle trave ls at
+a higher speed than the ownship, while the second one travels
+at a lower speed and will be overtaken by the ownship. Since
+the obstacles are on parallel paths with the obstacle, the time
+to CPA is suﬃciently high such that the obstacles are in the
+safe state, even though the vessels are quite close. However,
+both obstacles make sudden maneuvers to port dangerously
+close to the ownship and enters on a crossing course with
+the ownship. With respect to the COLREGs, the ownship is
+required to give way to both obstacles since they are crossing
+from the ownship’s starboard side. One can, however, argue th at
+the maneuvers displayed by the obstacles are dangerous and
+displays poor seamanship, such that the ownship should not be
+heldaccountableifacollisionoccurred.Nevertheless,th ehybrid
+COLAV system manages to avoid both obstacles. As seen in
+Figure11B , the ﬁrst obstacle is suﬃciently far away from the
+ownship to be considered as a give-way situation when the sta te
+machine interprets the situation, and the mid-level algorit hm
+plans a trajectory passing behind the ﬁrst obstacle. The second
+obstacle maneuvers to port even closer to the ownship, resultin g
+in the distance to the critical point being within the thresho ld
+Frontiers in Robotics and AI | www.frontiersin.org 15 February 2020 | Volume 7 | Article 11
+
+--- Page 16 ---
+Eriksen et al. Hybrid COLAV for ASVs
+A
+B
+FIGURE 11 | Scenario 3: trajectory and COLREGs interpretation. The tex t
+marks denote the time steps [170,480] s.(A)Trajectory plot. The initial
+position of the ownship and obstacles are shown with circles , with the blue
+ellipses illustrating the moving obstacle ellipse size. Th e vessel patches, which
+are overexaggerated for visualization, mark the ownship an d obstacle poses at
+given time stamps. The static obstacles are shown in yellow, with the BC-MPC
+and mid-level safety margins enclosed around. The black arr ow indicates the
+ocean current direction. (B)Output from the state machine for each obstacle.
+The asterisks mark time stamps, and the colors correspond to the obstacle
+patch colors in the trajectory plot.
+for entering the emergency situation when the state machine
+interpretsthesituation.Inthissituation,themid-levela lgorithm
+disregardstheobstacleandleavesittotheBC-MPCalgorithm to
+avoidcollision.
+As seen in Figure12 , the mid-level algorithm both reduces
+the speed and changes the course to avoid the ﬁrst obstacle.
+When approaching the second obstacle, the BC-MPC algorithm
+initiates a speed reduction, and after some time also maneuve r
+to starboard in order to pass behind the obstacle and resolve
+thesituation.
+6.5. Simulation Summary
+The simulation results show that the hybrid COLAV system is
+able to handle a wide range of situations, while also behavin g in
+anenergy-optimalwaywhenmovingobstaclesarenotinterfer ing
+with the ownship trajectory. Table3shows the minimum
+distancetostaticandmovingobstaclesforthescenarios.A
+B
+FIGURE 12 | Scenario 3: speed and angular trajectories. The asterisks m ark
+the same time samples as in Figure 11 .(A)Speed trajectories. (B)Angular
+trajectories.
+TABLE 3 | Minimum distance to static and moving obstacles for the
+simulation scenarios.
+ScenarioMinimum distance to
+static obstacles (m)Minimum distance to moving
+obstacle number (m)
+1 2 3 4 5
+Scenario 1 93.7 634.3 596.3 522.7 726.8 –
+Scenario 2 118.2 185.5 228.3 1,097.2 575.6 842.3
+Scenario 3 1123.8 326.4 106.6 – – –
+The minimum distance to static obstacles is in Scenario 1
+below the safety region size of the BC-MPC algorithm, which
+is intentional and caused by the algorithm using a smooth
+penalty function for interpreting static obstacles. The penalty
+function value increases linearly when moving further into the
+safety region, see Eriksen and Breivik (2019) for more details.
+The minimum distance to moving obstacles is a bit diﬃcult
+to interpret, since the obstacle ship domains are non-circula r,
+implyingthattherequiredclearancedependsonrelativepositio n
+of the ownship with respect to the moving obstacles. However,
+we see that we have a larger clearance in head-on, give-way
+and stand-on situations where the obstacles comply with the
+COLREGs, and do not perform dangerous maneuvers (as in
+Scenario 3), compared to overtaking situations. The reason f or
+this is that when overtaking (obstacle 2 in Scenario 2), we pass
+the obstacle on a parallel course, resulting in the minor axis of
+the moving obstacle ellipsis indicating the required clearanc e.
+Furthermore, weseethatobstacle1inScenario2,whichignor es
+its give-way obligation, comes signiﬁcantly closer than oth er
+crossing obstacles except for those in Scenario 3. The reason for
+thisisthattheBC-MPCalgorithm,whichhandlesthissituatio n,
+has a lower clearance requirement than the mid-level algori thm,
+which still should be considered as safe. In Scenario 3, the
+twoobstaclesdisplaypoorseamanship,andbehavedangerously.
+Obstacle 1 is handled by the mid-level algorithm and passed
+Frontiers in Robotics and AI | www.frontiersin.org 16 February 2020 | Volume 7 | Article 11
+
+--- Page 17 ---
+Eriksen et al. Hybrid COLAV for ASVs
+with a clearance lower than the major axis of the mid-level
+algorithm, which is caused by the BC-MPC algorithm “cutting
+the corner.” The clearance should still be considered safe s ince
+we are behind the obstacle, and the clearance requirements o f
+the BC-MPC algorithm is enforced. Obstacle 2, which is placed
+in the emergency state and handled by the BC-MPC algorithm,
+is passed with a clearance of only 106.6 m. This is lower than
+the clearance to Obstacle 1 in Scenario 2 (which violated its
+stand-on requirement), and is due to the BC-MPC algorithm
+havinganon-symmetricobstacleshipdomainfunctionallow ing
+for a smaller clearance when passing behind an obstacle than
+infront.
+Forthethreescenarios,thehigh-levelplannerusedanavera ge
+of 67 s with a maximum of 93 s to compute the solution.
+Since the high-level planner is intended to be run oﬀ-line,
+this is well within reasonable limits. The mid-level algori thm
+used 0.60 s on average, and a maximum of 2.1 s, which we
+consider to be computationally feasible since the mid-level
+algorithm only is run every 60 s. The BC-MPC algorithm
+used 0.29 s on average, and a maximum of 0.63 s, which
+we also consider to be real-time feasible when the BC-MPC
+algorithm is run every 5 s. The BC-MPC algorithm is highly
+parallelizable, which could reduce the BC-MPC runtime by a
+large magnitude if required. The mid- and high-level algori thms
+may not return solutions as they are non-convex optimization
+problems,buttheBC-MPCalgorithmmakesthehybridCOLAV
+system real-time feasible since it always will ﬁnd a (potentia lly
+sub-optimal)solution.
+7. CONCLUSION
+In this paper, we have presented a three-layered hybrid COLAV
+system, compliant with COLREGs rules 8 and 13–17. As part
+of this, we have further developed the MPC-based mid-level
+COLAV algorithm in Eriksen and Breivik (2017b) andBitar
+et al. (2019a) to comply with COLREGs rules 13–16 and parts
+of Rule 17, which includes developing a state machine for
+COLREGsinterpretation.ThehybridCOLAVsystemhasawell-
+deﬁneddivisionoflabor,includinganinherentunderstand ingof
+COLREGs Rule 17, where the mid-level algorithm obeys stand-
+on situations, while the BC-MPC algorithm handles situation s
+wheregive-wayvesselsdonotmaneuver.
+The hybrid COLAV system is veriﬁed through simulations,
+where we in three scenarios challenge the system with a numbe r
+of diﬀerent situations. The scenarios include multi-obstac le
+situations with multiple simultaneously active COLREGs rule s,
+and situations where obstacles violate the COLREGs. Collisio n
+is avoided in all the scenarios, and we show that theownshipfollowsanenergy-optimizedtrajectorygeneratedby the
+high-level planner when moving obstacles do not interfere wit h
+thistrajectory.
+Forfurtherwork,wesuggestto:
+• Investigateifusingsituation-dependententryandexitcr iteria
+parametersinthestatemachineimprovestheperformance.
+• Expand the state machine with the possibility of transitioni ng
+from head-on, give-way and overtaking states to the
+emergency state for situations where obstacles behave
+dangerouslyorhostile.
+• Developamethodologyfordecidingtuningparameters.
+• Perform simulations with noisy obstacle estimates to
+investigate how the state machine and mid-level algorithm
+respondtothis.
+• Explore the possibilities for integrating the COLREGs
+interpretation in the mid-level NLP, relaxing the assumption
+of the current COLREGs situation being valid for the entire
+predictionhorizon.
+• Investigate the possibility of including static obstacles f rom
+e.g.,ENCsinthehigh-andmid-levelalgorithms.
+• Simulate scenarios where multiple vessels running the hybrid
+COLAVsysteminteractwitheachother.
+• ValidatethehybridCOLAVsysteminfull-scaleexperiments .
+DATA AVAILABILITY STATEMENT
+The datasets generated for this study are available on reque st to
+thecorrespondingauthor.
+AUTHOR CONTRIBUTIONS
+Theworkinthisarticlewastheresultofacollaborationbet ween
+B-OE and GB, supervised by MB and AL. The contributions
+to the mid-level and short-term algorithms are made by B-OE,
+while the COLREGs interpreter was developed in collaboration
+between GB and B-OE. GB has implemented the high-level
+planner, and prepared this for integration with the developed
+simulator. B-OE has taken lead on writing the paper, in
+collaboration with GB. MB and AL have provided valuable
+feedbackinthewritingprocess.
+FUNDING
+This work was supported by the Research Council of Norway
+through project number 269116, project number 244116, as
+well as the Centers of Excellence funding scheme with project
+number223254.
+REFERENCES
+Andersson, J. A. E., Gillis, J., Horn, G., Rawlings, J. B., and Dieh l, M. (2019).
+CasADi:asoftwareframeworkfornonlinearoptimizationandoptimalc ontrol.
+Math.Program.Comput. 11,1–36.doi:10.1007/s12532-018-0139-4
+Benjamin,M.R.,Leonard,J.J.,Curcio,J.A.,andNewman,P.M.( 2006).Amethod
+for protocol-based collision avoidance between autonomous marine s urface
+craft.J.FieldRobot. 23,333–346.doi:10.1002/rob.20121Bitar,G.,Breivik,M.,andLekkas,A.M.(2018).“Energy-opti mizedpathplanning
+forautonomousferries,”in Proceedingsofthe11thIFACConferenceonControl
+Applications in Marine Systems, Robotics and Vehicles (CAMS )(Opatija),
+389–394.
+Bitar, G., Eriksen, B.-O. H., Lekkas, A. M., and Breivik, M. (201 9a).
+“Energy-optimized hybrid collision avoidance for ASVs,” in Proceedings
+of the 17th IEEE European Control Conference (ECC) (Naples),
+2522–2529.
+Frontiers in Robotics and AI | www.frontiersin.org 17 February 2020 | Volume 7 | Article 11
+
+--- Page 18 ---
+Eriksen et al. Hybrid COLAV for ASVs
+Bitar, G., Vestad, V. N., Lekkas, A. M., and Breivik, M. (2019b ). “Warm-started
+optimized trajectory planning for ASVs,” in Proceedings of the 12th IFAC
+Conference on Control Applications in Marine Systems, Roboti cs, and Vehicles
+(CAMS)(Daejeon).
+Campbell, S., Abu-Tair, M., and Naeem, W. (2014). An automatic COLR EGs-
+compliant obstacle avoidance system for an unmanned surface vehi cle.
+Proc. Inst. Mech. Eng. M J. Eng. Marit. Environ. 228, 108–121.
+doi:10.1177/1475090213498229
+Casalino, G., Turetta, A., and Simetti, E. (2009). “A three-layere d architecture
+for real time path planning and obstacle avoidance for surveillance US Vs
+operatinginharbourﬁelds,”in Proceedingsofthe2009IEEEOCEANS-EUROPE
+Conference (Bremen).
+Chauvin, C. (2011). Human factors and maritime safety. J. Navig. 64, 625–632.
+doi:10.1017/S0373463311000142
+Cockcroft, A. N., and Lameijer, J. N. F. (2004). A Guide to the Collision Avoidance
+Rules.Oxford,UK:Elsevier.
+Deuﬂhard,P.(2011). NewtonMethodsforNonlinearProblems .Berlin:Springer.
+Eriksen, B.-O. H., and Breivik, M. (2017a). Modeling, Identiﬁcation and Control
+of High-Speed ASVs: Theory and Experiments . Cham: Springer International
+Publishing,407–431.
+Eriksen, B.-O. H., and Breivik, M. (2017b). “MPC-based mid-level collision
+avoidance for ASVs using nonlinear programming,” in Proceedings of the 1st
+IEEE Conference on Control Technology and Applications (CCT A)(Kohala
+Coast,HI),766–772.
+Eriksen, B.-O. H., and Breivik, M. (2018). “A model-based speed and course
+controller for high-speed ASVs,” in Proceedings of the 11th IFAC Conference
+on Control Applications in Marine Systems, Robotics and Vehi cles (CAMS)
+(Opatija),317–322.
+Eriksen, B.-O. H., and Breivik, M. (2019). Short-term ASV collision avoidance
+with static and moving obstacles. Model. Identif. Control 40, 177–187.
+doi:10.4173/mic.2019.3.4
+Eriksen, B.-O. H., Breivik, M., Wilthil, E. F., Flåten, A. L., and Bre kke, E. F.
+(2019).Thebranching-coursemodelpredictivecontrolalgorithmf ormaritime
+collisionavoidance. J.FieldRobot. 36,1222–1249.doi:10.1002/rob.21900
+Eriksen, B.-O. H., Wilthil, E. F., Flåten, A. L., Brekke, E. F., and B reivik, M.
+(2018).“Radar-basedmaritimecollisionavoidanceusingdynamic window,”in
+Proceedingsofthe2018IEEEAerospaceConference (BigSky,MT),1–9.
+Hagen, I. B., Kufoalor, D. K. M., Brekke, E., and Johansen, T. A. (2018). “MPC-
+basedcollisionavoidancestrategyforexistingmarinevesselgu idancesystems,”
+inProceedings of the 2018 IEEE International Conference on Roboti cs and
+Automation(ICRA) (Brisbane,QLD),7618–7623.
+Harati-Mokhtari, A., Wall, A., Brooks, P., and Wang, J. (2007). Au tomatic
+identiﬁcation system (AIS): data reliability and human error implica tions.J.
+Navig.60,373–389.doi:10.1017/S0373463307004298Kufoalor, D. K. M., Brekke, E. F., and Johansen, T. A. (2018). “Pro active collision
+avoidance for ASVs using a dynamic reciprocal velocity obstacles me thod,” in
+Proceedingsofthe2018IEEE/RSJInternationalConferenceonIn telligentRobots
+andSystems(IROS) (Madrid),2402–2409.
+Kuwata, Y., Wolf, M. T., Zarzhitsky, D., and Huntsberger, T. L. ( 2014).
+Safe maritime autonomous navigation with COLREGS, using velocit y
+obstacles. IEEE J. Ocean. Eng. 39, 110–119. doi: 10.1109/joe.2013.
+2254214
+Levander, O. (2017). Autonomous ships on the high seas. IEEE Spectr. 54, 26–31.
+doi:10.1109/MSPEC.2017.7833502
+Loe, Ø. A. G. (2008). Collision avoidance for unmanned surface vehicles
+(Master’s thesis), Norwegian University of Science and Techn ology (NTNU),
+Trondheim,Norway.
+Švec, P., Shah, B. C., Bertaska, I. R., Alvarez, J., Sinisterra, A. J., von Ellenrieder,
+K., et al. (2013). “Dynamics-aware target following for an autono mous surface
+vehicleoperatingunderCOLREGsinciviliantraﬃc,”in Proceedingsofthe2013
+IEEE/RSJ International Conference on Intelligent Robots an d Systems (IROS)
+(Tokyo),3871–3878.
+Szlapczynski, R., and Szlapczynska, J. (2017). Review of ship sa fety
+domains: models and applications. Ocean Eng. 145, 277–289.
+doi:10.1016/j.oceaneng.2017.09.020
+Tam, C., and Bucknall, R. (2010). Collision risk assessment for ships .J. Mar. Sci.
+Technol.15,257–270.doi:10.1007/s00773-010-0089-7
+Wächter, A., and Biegler, L. T. (2005). On the implementation of an interior-
+pointﬁlterline-searchalgorithmforlarge-scalenonlinearprogramming .Math.
+Program. 106,25–57.doi:10.1007/s10107-004-0559-y
+Wu,D.(2019). Proactivemaritimecollisionavoidancebasedonhistorica lAISdata
+(Master’s thesis), Norwegian University of Science and Techn ology (NTNU),
+Trondheim,Norway.
+Zhang, X., Liniger, A., Sakai, A., and Borrelli, F. (2018). “Autono mous parking
+using optimization-based collision avoidance,” in Proceedings of the 57th IEEE
+ConferenceonDecisionandControl(CDC) (Miami,FL),4327–4332.
+Conﬂict of Interest: The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be c onstrued as a
+potentialconﬂictofinterest.
+Copyright © 2020 Eriksen, Bitar, Breivik and Lekkas. This is an op en-access article
+distributed under the terms of the Creative Commons Attribu tion License (CC BY).
+The use, distribution or reproduction in other forums is perm itted, provided the
+original author(s) and the copyright owner(s) are credited a nd that the original
+publication in this journal is cited, in accordance with acc epted academic practice.
+No use, distribution or reproduction is permitted which doe s not comply with these
+terms.
+Frontiers in Robotics and AI | www.frontiersin.org 18 February 2020 | Volume 7 | Article 11

@@ -1,0 +1,975 @@
+--- Page 1 ---
+Dimitrova,Piskac (Eds.): FifthWorkshop on
+Synthesis (SYNT2016)
+EPTCS229, 2016, pp. 112–132, doi:10.4204/EPTCS.229.10c/circlecopyrtS.Jacobs, F.Klein& S.Schirmer
+This workis licensed under the
+Creative Commons AttributionLicense.A High-LevelLTLSynthesisFormat:
+TLSFv1.1
+Swen Jacobs
+Saarland University
+Saarbr¨ ucken, Germany
+jacobs@react.uni-saarland.deFelix Klein
+SaarlandUniversity
+Saarbr¨ ucken, Germany
+klein@react.uni-saarland.de
+Sebastian Schirmer
+SaarlandUniversity
+Saarbr¨ ucken, Germany
+s9sescir@stud.uni-saarland.de
+We present the Temporal Logic Synthesis Format (TLSF), a hig h-level format to describe syn-
+thesis problems via Linear Temporal Logic (LTL). The format builds upon standard LTL, but
+additionallyallows to use high-levelconstructs, such as s ets and functions, to providea compact
+and human-readable representation. Furthermore, the form at allows to identify parameters of a
+speciﬁcation such that a single descriptioncan be used to de ﬁne a family of problems. Addition-
+ally, we present a tool to automatically translate the forma t into plain LTL, which then can be
+used for synthesis by a solver. The tool also allows to adjust parameters of the speciﬁcation and
+toapplystandardtransformationsontheresultingformula .
+1 Introduction
+The automatic synthesis of reactive systems from formal spe ciﬁcations has been one of the major
+challenges of computer science, and an active ﬁeldof resear ch, since the deﬁnition of the problem by
+Church [6]. For speciﬁcations in linear temporal logic the p roblem is 2EXPTIME-complete, and a
+number of fundamental approaches to solve this problem have been proposed [5, 27, 26], based on a
+translation ofthespeciﬁcation intoagameor anautomaton. Recently, therehas beenalot ofworkon
+solving synthesis problems moreefﬁciently, either byrest ricting thespeciﬁcation language [4,25], or
+byasmart exploration of the search space [16,9, 13,29, 15,1 4].
+However, as already noted by Ehlers [8], it has been very hard to compare different synthesis
+tools. A major reason for this was the lack of a common languag e and a benchmark library on which
+to compare tools. As a consequence, there has also been a lack of incentive for the development of
+efﬁcient implementations of new synthesis approaches.
+To some extent, this has changed with the advent of the reacti ve synthesis competition (SYNT-
+COMP) [19, 21], which has been organized in order to encourag e the development of mature and
+efﬁcient synthesis tools. However, SYNTCOMP thus far was re stricted to safety speciﬁcations in an
+extension of the AIGERformat [17], alow-level format that i s not suited for writing expressive spec-
+iﬁcations by hand. Moreover, AIGER ﬁles directly represent a (safety) game, and the translation of a
+temporal logic speciﬁcation to a suitable game (or other int ermediate representations) is a non-trivial
+partofthesynthesisproblemthatisremovedfromthepictur eifwestartfromanAIGERspeciﬁcation.
+In this paper, we introduce the temporal logic synthesis format (TLSF), a high-level format for
+the speciﬁcation of synthesis problems. The goal of TLSF is t o create a format that (i) makes it
+
+--- Page 2 ---
+S.Jacobs, F.Klein &S.Schirmer 113
+convenient to write expressive speciﬁcations by hand, and at the same time (ii) is easy to support by
+synthesis tools .
+Toachievetheﬁrstgoal, TLSFallowstodeﬁnesynthesis prob lems withhigh-level temporal logic
+speciﬁcations, and supports a number of additional feature s. These include user-deﬁned enumeration
+types and signal buses, function declarations (including r ecursion), and the deﬁnition of parameters
+that allow to easily deﬁne parameterized families of synthe sis problems.
+Toachievethesecondgoal,wedeﬁnea basicformat thatisessentiallyrestrictedtolineartemporal
+logic (LTL) without these additional features, and we suppl y theSynthesis Format Conversion Tool
+(SyFCo) that can compile arbitrary TLSF speciﬁcations into the basic format. Hence, for synthesis
+toolsitissufﬁcient tosupport themuchsimpler basicforma t. Moreover, theSyFCotool alsosupports
+a number of additional features, including the translation to some existing speciﬁcation formats like
+PromelaLTL[1] or PSL[12], and iseasily extensible toother formats.
+Todemonstratethefeaturesofourspeciﬁcationformat,wep rovideaversionoftheAMBAarbiter
+speciﬁcation in TLSF. In addition to this, a large number of e xisting benchmarks have already been
+converted toTLSF,and can befound inour publicly available repository [2].
+TLSFwill be used as a high-level format in several new tracks of SYNTCOMPin 2016 [18, 20].
+The goal is to develop and maintain a standard format for synt hesis from high-level temporal logic
+speciﬁcations, and to use our repository of benchmarks as a s tarting point for a growing benchmark
+librarythatwillbepartofSYNTCOMP.Thedesigndecisions t hatwentintoTLSFareinspired bythe
+ﬁndingsofSchirmer[28],whocomparedexistingsynthesisf ormatsandmadeaﬁrstproposal towards
+thegoals stated above.
+Overview. Wepresent thebasic version ofthe Temporal LogicSynthesis Format (TLSF)inSect.2.
+InSect.3wediscusstheintendedsemanticsofaspeciﬁcatio n, deﬁnedintermsofdifferentimplemen-
+tation models. Thefull format isintroduced in Sect. 4,foll owed byan illustration of itsmain features
+on an example in Sect. 5. In Sect. 6, we give an overview of the S yFCo Tool. Finally, we discuss
+possible extensions of the format inSect. 7.
+2 The BasicFormat
+Aspeciﬁcation in the basic format consists of an INFOsection and a MAINsection:
+/an}bracketle{tinfo/an}bracketri}ht/an}bracketle{tmain/an}bracketri}ht
+2.1 The INFOSection
+TheINFOsection contains the meta data of the speciﬁcation, like a ti tle and some description1. Fur-
+thermore, it deﬁnes the underlying semantics of the speciﬁc ation (Mealy or Moore / standard or strict
+implication) andthetarget model ofthesynthesized implem entation. Detailed information about sup-
+ported semantics and targets can be found in Sect. 3. Finally , a comma separated list of tags can be
+speciﬁed to identify features of the speciﬁcation, e.g., th e restriction to a speciﬁc fragment of LTL.A
+/an}bracketle{ttag/an}bracketri}htcan be anystring literal and isnot restricted to anypredeﬁn ed keywords.
+1We use colored verbatim font toidentifythe syntactic eleme nts of the speciﬁcation.
+
+--- Page 3 ---
+114 A High-Level LTLSynthesis Format
+INFO {
+TITLE: " /an}bracketle{tsome title /an}bracketri}ht"
+DESCRIPTION: " /an}bracketle{tsome description /an}bracketri}ht"
+SEMANTICS: /an}bracketle{tsemantics /an}bracketri}ht
+TARGET: /an}bracketle{ttarget/an}bracketri}ht
+TAGS: /an}bracketle{ttag/an}bracketri}ht,/an}bracketle{ttag/an}bracketri}ht,...
+}
+2.2 The MAINSection
+Thespeciﬁcationiscompletedbythe MAINsection,whichcontainsthepartitioningofinputandoutpu t
+signals, followed by the main speciﬁcation. The speciﬁcati on itself is separated into assumptions on
+theenvironment anddesiredproperties ofthesystem,andca nadditionally bedistinguished intoinitial
+(INITIALLY /PRESET),invariant ( REQUIRE/ASSERT),andarbitrary ( ASSUME/GUARANTEE )properties2.
+Multiple declarations and expressions need to beseparated by a’;’.
+MAIN {
+INPUTS { (/an}bracketle{tboolean signal declaration /an}bracketri}ht;)∗}
+OUTPUTS { (/an}bracketle{tboolean signal declaration /an}bracketri}ht;)∗}
+INITIALLY { (/an}bracketle{tbasic LTLexpression /an}bracketri}ht;)∗}
+PRESET { (/an}bracketle{tbasic LTLexpression /an}bracketri}ht;)∗}
+REQUIRE { (/an}bracketle{tbasic LTLexpression /an}bracketri}ht;)∗}
+ASSERT { (/an}bracketle{tbasic LTLexpression /an}bracketri}ht;)∗}
+ASSUME { (/an}bracketle{tbasic LTLexpression /an}bracketri}ht;)∗}
+GUARANTEE { (/an}bracketle{tbasic LTLexpression /an}bracketri}ht;)∗}
+}
+All subsections except INPUTSandOUTPUTS are optional.
+2.3 BasicExpressions
+Abasic expression eiseither aboolean signal or abasic LTLexpression. Eachbas ic expression hasa
+corresponding type that is Sfor boolean signals and Tfor LTLexpressions. Basic expressions can be
+composed to larger expressions using operators. An overvie w over the different types of expressions
+and operators isgiven below.
+Boolean Signal Declarations. A signal identiﬁer is represented by a string consisting of l owercase
+and uppercase letters (’ a’-’z’, ’A’-’Z’), numbers (’ 0’-’9’), underscores (’ _’), primes (’ ’’), and at-
+signs (’@’) and does not start with a number or a prime. Additionally, k eywords like X,GorU, as
+deﬁned in the rest of this document, are forbidden. An identi ﬁer is declared as either an input or an
+outputsignal. Wedenotethesetofdeclaredinputsignalsas Iandthesetofdeclaredoutput signalsas
+O, whereI∩O=/ 0. Then, a boolean signal declaration simply consists of a s ignal identiﬁer /an}bracketle{tname/an}bracketri}ht
+fromI∪O.
+BasicLTLExpressions. AbasicLTLexpression conforms tothefollowing grammar,in cluding truth
+values, signals, boolean operators and temporal operators . For easy parsing of the basic format, we
+2In TLSF v1.0 [22], ASSERTwas called INVARIANTS ,ASSUMEwas called ASSUMPTIONS , andGUARANTEE was called
+GUARANTEES (andsubsections INITIALLY ,PRESET,andREQUIRE didnotexist). TLSFv1.1stillsupportstheoldidentiﬁers.
+
+--- Page 4 ---
+S.Jacobs, F.Klein &S.Schirmer 115
+require fully parenthesized expressions, as expressed by t he ﬁrst of the following lines:
+ϕ≡(ϕ′)
+ϕ′≡true|false|sfors∈I∪O |
+!ϕ|ϕ&&ϕ|ϕ||ϕ|ϕ->ϕ|ϕ<->ϕ
+Xϕ|Gϕ|Fϕ|ϕUϕ|ϕRϕ|ϕWϕ
+Thus, a basic LTLexpression is either true, false, or a signa l, or composed from these atomic expres-
+sions with boolean operators (negation, conjunction, disj unction, implication, equivalence) and tem-
+poral operators (next, globally, eventually, until, relea se, weak until). The semantics of the boolean
+operators aredeﬁned inthe usual way, and the temporal opera tors are deﬁned inAppendix A.1.
+3 Targetsand Semantics
+3.1 Targets
+TheTARGETof the speciﬁcation deﬁnes the implementation model that a s olution should adhere to.
+Currently supported targets are Mealy automata ( Mealy), whose output depends on the current state
+and input, and Moore automata ( Moore), whose output only depends on the current state. The differ -
+entiation is necessary since realizability of a speciﬁcati on depends on the target system model. For
+example, every speciﬁcation that is realizable under Moore semantics is also realizable under Mealy
+semantics, but not vice versa. A formal description of both a utomata models can be found in Ap-
+pendix A.2.
+3.2 Semantics
+TheSEMANTICS ofthespeciﬁcation deﬁneshowtheformulawasintended tobe evaluated, whichalso
+depends onan implementation model. Wecurrently support fo ur different semantics: standard Mealy
+semantics( Mealy),standardMooresemantics( Moore),strictMealysemantics( Mealy,Strict ),and
+strict Moore semantics ( Moore,Strict ).
+In the following, consider a speciﬁcation where INITIALLY evaluates to the LTL formula θe,
+PRESETevaluates to θs,REQUIRE evaluates to ψe,ASSERTevaluates to ψs,ASSUMEevaluates to ϕe,
+andGUARANTEE evaluates to ϕs. For speciﬁcation sections that arenot present, therespec tive formula
+isinterpreted as true.
+Standardsemantics. Ifthesemantics is(non-strict) MealyorMoore,andtheTARGETcoincides with
+thesemantics system model, then the speciﬁcation isinterp reted asthe formula
+θe→(θs∧(Gψe∧ϕe→Gψs∧ϕs))
+in standard LTL semantics (see Appendix A.1). Note that we re quire that the PRESETpropertyθs
+holds whenever the INITIALLY condition θeholds, regardless of other environment assumptions.
+Strict semantics. If the semantics is Mealy,Strict orMoore,Strict , and theTARGETcoincides
+withthe semantics system model, then the speciﬁcation is in terpreted under strict implication seman-
+tics (asused inthe synthesis of GR(1) speciﬁcations), whic h isequivalent to the formula
+θe→(θs∧(ψsW¬ψe)∧(Gψe∧ϕe→ϕs))
+
+--- Page 5 ---
+116 A High-Level LTLSynthesis Format
+instandard LTLsemantics. In this case, weadditionally req uire that the ASSERTpropertyψsneeds to
+hold at least aslong asthe REQUIRE condition ψeholds.
+Note that this gives us an easy way to convert a speciﬁcation w ith strict semantics into one with
+non-strict semantics. For details on strict implication se mantics, see Klein and Pnueli [24], as well as
+Bloem et al. [4], from which wealso take our deﬁnition and int erpretation of the GR(1) fragment.3
+Conversion between system models. If the implementation model of the SEMANTICS differs from
+theTARGETof a speciﬁcation, we use a simple conversion to get a speciﬁc ation that is realizable in
+the target system model iff the original speciﬁcation is rea lizable in the original system model: a
+speciﬁcation in Moore semantics can be converted into Mealy semantics by preﬁxing all occurrences
+of input atomic propositions with an additional X-operator. Similarly, we can convert from Mealy
+semantics toMoore semantics bypreﬁxing outputs witha X-operator.
+4 The Full Format
+Inthe full format, aspeciﬁcation consists of three section s: theINFOsection, the GLOBALsection and
+theMAINsection. The GLOBALsection isoptional.
+/an}bracketle{tinfo/an}bracketri}ht[/an}bracketle{tglobal/an}bracketri}ht]/an}bracketle{tmain/an}bracketri}ht
+TheINFOsection is the same as in the basic format, deﬁned in Sect. 2.1 . TheGLOBALsection can be
+usedtodeﬁneparameters, andtobindidentiﬁers toexpressi ons that canbeused later inthespeciﬁca-
+tion. TheMAINsection isused asbefore, but can use extended sets of declar ations and expressions.
+We deﬁne the GLOBALsection in Sect. 4.1, and the changes to the MAINsection compared to
+the basic format in Sect. 4.2. The extended set of expression s that can be used in the full format is
+introduced in Sect. 4.3, enumerations, extended signal and function declarations in Sect. 4.4 and 4.6,
+and additional notation inSect. 4.7–4.9.
+4.1 The GLOBALSection
+TheGLOBALsection consists ofthe PARAMETERS subsection, deﬁning theidentiﬁers that parameterize
+thespeciﬁcation, and the DEFINITIONS subsection, that allows todeﬁnefunctions, enumerations a nd
+to bind identiﬁers to complex expressions. Multiple declar ations need to be separated by a ’ ;’. The
+section and its subsections are optional.
+GLOBAL {
+PARAMETERS {
+(/an}bracketle{tidentiﬁer/an}bracketri}ht=/an}bracketle{tnumerical expression /an}bracketri}ht;)∗
+}
+DEFINITIONS {
+((/an}bracketle{tfunction declaration /an}bracketri}ht | /an}bracketle{tenum declaration /an}bracketri}ht | /an}bracketle{tidentiﬁer/an}bracketri}ht=/an}bracketle{texpression /an}bracketri}ht);)∗
+}
+}
+3Note that in the conversion of [4], the formula is strengthen ed by adding the formula G(Hψe→ψs), whereHϕis a
+Past-LTL formula and denotes that ϕholds everywhere in the past. However, it is easy to show that our deﬁnition of strict
+semantics matches the deﬁnitionof [4]. Weprefer this notio n, since itavoids the introduction of Past-LTL.
+
+--- Page 6 ---
+S.Jacobs, F.Klein &S.Schirmer 117
+4.2 The MAINSection
+Like in the basic format, the MAINsection contains the partitioning of input and output signa ls, as
+well as the main speciﬁcation. However, signal declaration s can now contain signal buses, and LTL
+expressions can use parameters, functions, and identiﬁers deﬁned inthe GLOBALsection.
+MAIN {
+INPUTS { (/an}bracketle{tsignal declaration /an}bracketri}ht;)∗}
+OUTPUTS { (/an}bracketle{tsignal declaration /an}bracketri}ht;)∗}
+INITIALLY { (/an}bracketle{tLTLexpression /an}bracketri}ht;)∗}
+PRESET { (/an}bracketle{tLTLexpression /an}bracketri}ht;)∗}
+REQUIRE { (/an}bracketle{tLTLexpression /an}bracketri}ht;)∗}
+ASSERT { (/an}bracketle{tLTLexpression /an}bracketri}ht;)∗}
+ASSUME { (/an}bracketle{tLTLexpression /an}bracketri}ht;)∗}
+GUARANTEE { (/an}bracketle{tLTLexpression /an}bracketri}ht;)∗}
+}
+Asbefore, all subsections except INPUTSandOUTPUTS are optional.
+4.3 Expressions
+Anexpression eiseither aboolean signal, an n-arysignal (called bus), anenumeration type, anumer-
+ical expression, a boolean expression, an LTL expression, o r a set expression. Each expression has a
+corresponding type that is either one of the basic types: S,U,E,N,B,T, or a recursively deﬁned set
+typeSXfor sometype X.
+As before, an identiﬁer is represented by a string consistin g of lowercase and uppercase let-
+ters (’a’-’z’, ’A’-’Z’), numbers (’ 0’-’9’), underscores (’ _’), primes (’ ’’), and at-signs (’ @’) and does
+not start with a number or a prime. In the full format, identiﬁ ers are bound to expressions of differ-
+ent type. We denote the respective sets of identiﬁers by ΓS,ΓU,ΓE,ΓN,ΓB,ΓT, andΓSX. Finally,
+basic expressions can be composed to larger expressions usi ng operators. In the full format, we do
+not require fully parenthesized expressions. If an express ion is not fully parenthesized, we use the
+precedence order given in Table 1. An overview over the all ty pes of expressions and operators is
+given below.
+NumericalExpressions. A numerical expression eNconforms to the following grammar:
+eN≡ifori∈ΓN|nforn∈N|eN+eN|eN-eN|eN*eN|eN/eN|eN%eN
+|eSX||MINeSN|MAXeSN|SIZEOFsfors∈ΓU
+Thus, anumerical expression either represents an identiﬁe r (bound toanumerical value), anumerical
+constant, an addition, a subtraction, a multiplication, an integer division, a modulo operation, the size
+of aset, the minimal/maximal value of a set of naturals, or th e size (i.e., width) of abus, respectively.
+Thesemantics are deﬁned in theusual way.
+Set Expressions. A set expression eSX, containing elements of type X, conforms to the following
+grammar:
+eSX≡ifori∈ΓSX|{eX,eX,...,eX}|{eN,eN..eN}|
+eSX(+)eSX|eSX(*)eSX|eSX(\)eSX
+
+--- Page 7 ---
+118 A High-Level LTLSynthesis Format
+Precedence Operator Description ArityAssociativity
+1+[·](SUM[·]) sum
+unary*[·](PROD[·]) product
+|···|(SIZE) size
+MIN minimum
+MAX maximum
+SIZEOF size of a bus
+2*(MUL) multiplication binary left-to-right
+3/(DIV) integer divisionbinary right-to-left%(MOD) modulo
+4+(PLUS) additionbinary left-to-right-(MINUS) difference
+5(*)[·](CAP[·]) intersectionunary(+)[·](CUP[·]) union
+6(\)((-),SETMINUS ) set difference binary right-to-left
+7(*)(CAP) intersection binary left-to-right
+8(+)(CUP) union binary left-to-right
+9==(EQ) equality
+binary left-to-right!=(/=,NEQ) inequality
+<(LE) smaller than
+<=(LEQ) smaller or equal than
+>(GE) greater then
+>=(GEG) greater or equal than
+10 IN(ELEM,<-) membership binary left-to-right
+11!(NOT) negation
+unaryX next
+F ﬁnally
+G globally
+&&[·](AND[·],FORALL[·])conjunction
+||[·](OR[·],EXISTS[·])disjunction
+12 &&(AND) conjunction binary left-to-right
+13 ||(OR) disjunction binary left-to-right
+14->(IMPLIES) implicationbinary right-to-left<->(EQUIV) equivalence
+15 W weakuntil binary right-to-left
+16 U until binary right-to-left
+17 R release binary left-to-right
+18˜pattern match binary left-to-right
+19 : guard binary left-to-right
+Table 1: The table lists the precedence, arity and associati vity of all expression operators. Also con-
+sider the alternative names inbrackets which can beused ins tead of the symbolic representations.
+
+--- Page 8 ---
+S.Jacobs, F.Klein &S.Schirmer 119
+Thus,theexpression eSXeither represents anidentiﬁer (bound toasetofvaluesofty peX),anexplicit
+list of elements of type X, a list of elements speciﬁed by a range (for X=N), a union of two sets, an
+intersection or a difference, respectively. The semantics of a range expression {x,y..z}are deﬁned
+forx<yvia:
+{n∈N|x≤n≤z∧∃j.n=x+j·(y−x)}.
+The semantics of all other expressions are deﬁned as usual. S ets contain either positive integers,
+boolean expressions, LTLexpressions, buses, signals, or o ther sets of aspeciﬁc type.
+Boolean Expressions. Aboolean expression eBconforms to the following grammar:
+eB≡ifori∈ΓB|eXINeSX|true|false|!eB|
+eB&&eB|eB||eB|eB->eB|eB<->eB|
+eN==eN|eN!=eN|eN<eN|eN<=eN|eN>eN|eN>=eN
+Thus, a boolean expression either represents an identiﬁer ( bound to a boolean value), a membership
+test,true,false,anegation,aconjunction, adisjunction , animplication, anequivalence, oranequation
+between two positive integers (equality, inequality, less than, less or equal than, greater than, greater
+or equal than), respectively. The semantics are deﬁned in th e usual way. Note that signals are not
+allowed inaboolean expression, but only in anLTLexpressio n.
+LTL Expressions. An LTL expression ϕconforms to the same grammar as a boolean expression,
+except that it additionally includes signals and temporal o perators.
+ϕ≡...|ifori∈ΓT|sfors∈ΓS|b[eN]forb∈ΓU|
+b0==b1forbj∈ΓUandb1−j∈ΓE|b0!=b1forbj∈ΓUandb1−j∈ΓE|
+Xϕ|Gϕ|Fϕ|ϕUϕ|ϕRϕ|ϕWϕ
+Thus, an LTL expression additionally can represent an ident iﬁer bound to an LTL formula, a signal,
+aneN-th signal of a bus, a next operation, a restriction of a bus to a set of enumeration valuations
+via equality or inequality, a globally operation, an eventu ally operation, an until operation, a release
+operation, or a weak until operation, respectively. Note th at every boolean expression is also an LTL
+expression, thus we allow the use of identiﬁers that are boun d to boolean expressions as well. A
+formal deﬁnition of the semantics of the temporal operators is given in Appendix A.1. The semantics
+of expressions involving bus operations isdeﬁned inthe sub sequent sections.
+4.4 Enumerations
+Anenumeration declaration conforms to the following gramm ar:
+enum/an}bracketle{tenumtype /an}bracketri}ht=/parenleftBig
+/an}bracketle{tidentiﬁer/an}bracketri}ht:(0|1|*)n/parenleftbig
+,(0|1|*)n/parenrightbig∗/parenrightBig+
+forsomearbitrarybutﬁxpositiveinteger n>0. Asanexampleconsider theenumeration Positions ,
+which declares the enumeration identiﬁers LEFT,MIDDLE,RIGHT, andUNDEFas members of ΓE:
+enum Position =
+LEFT: 100
+MIDDLE: 010
+
+--- Page 9 ---
+120 A High-Level LTLSynthesis Format
+RIGHT: 001
+UNDEF: 11*, 1*1, *11
+We use0to identify the absent signal, 1to identify the present signal and *for either of both. Each
+identiﬁerthenreferstoatleastoneconcretesignalvaluat ionsequence. Multiplevaluescanbedenoted
+bysequenceswitha *,aswellasbycommaseparatedlists. Furthermore,theident iﬁerofeachdeclared
+valuation has to beunique. Not all possible valuations have tobe identiﬁed.
+Enumeration identiﬁers can only be used in comparisons agai nst buses inside an LTLexpression,
+where we require that the corresponding bus has the same widt h as the valuation compared to. It
+deﬁnesaboolean constraint onthebus,restricting ittothe different valuations, boundtotheidentiﬁer,
+e.g., the expressions b == RIGHT and!b[0] && !b[1] && b[2] are semantically equivalent, as
+well asb /= UNDEF and!((b[0] && b[1]) || (b[0] && b[2]) || (b[1] && b[2])) .
+4.5 Signalsand Buses
+A single signal declaration consists of the name of the signa l. As for the basic format, signals are
+declared as either input or output signals, denoted by IandO, respectively. A bus declaration addi-
+tionally speciﬁes a signal width, i.e., a bus represents a ﬁn ite set of signals. The signal width is either
+given byanumerical value or viaan enumeration type.
+/an}bracketle{tname/an}bracketri}ht | /an}bracketle{tname/an}bracketri}ht[eN]| /an}bracketle{tenumtype /an}bracketri}ht/an}bracketle{tname/an}bracketri}ht
+Semantically,asignaldeclaration sspeciﬁesasignal s∈I∪O,whereabusdeclaration b[n]speciﬁes
+nsignalsb[0],b[1],...,b[n-1],witheither b[i]∈Iforall0≤i<n,orb[i]∈Oforall0≤i<n.
+A bus speciﬁed via an enumeration type has the same width as th e valuations of the corresponding
+enumeration.
+Buses which are declared using an enumeration type, where no t all valuations are related to an
+identiﬁer4induceanimplicitconstraint onthecorresponding signals : ifthebuscorresponds toasetof
+input signals, then the global requirement that no other tha n the deﬁned valuations appear on this bus
+isimposed. Ifitcorresponds toasetofoutput signals, then theequivalent global invariant isimposed.
+Finally, note that we use b[i]to access the i-th value of b, i.e., we use the same syntax as for
+the declaration itself5. Also note that for the declared signals s, we have s∈I∪O ⊆ ΓS, and for the
+declared buses b, wehave b∈ΓU.
+4.6 Function Declarations
+As another feature, one can declare (recursive) functions o f arbitrary arity inside the DEFINITIONS
+section. Functions canbeused todeﬁnesimplemacros, but al sotogenerate complex formulas froma
+given set of parameters. Adeclaration of afunction of arity nhas the form
+/an}bracketle{tfunction name /an}bracketri}ht(/an}bracketle{targ1/an}bracketri}ht,/an}bracketle{targ2/an}bracketri}ht,...,/an}bracketle{targn/an}bracketri}ht) =(ec)+,
+where/an}bracketle{targ1/an}bracketri}ht,/an}bracketle{targ2/an}bracketri}ht,...,/an}bracketle{targn/an}bracketri}htarefreshidentiﬁersthatcanonlybeusedinsidethesub-exp ressionsec.
+Anexpression ecconforms to the following grammar:
+ec≡e|eB:e|eP:e wheree≡eN|eB|eSX|ϕ
+4See e.g.the 000valuation ofthe example of Sect.4.5
+5C-ArraySyntaxStyle
+
+--- Page 10 ---
+S.Jacobs, F.Klein &S.Schirmer 121
+Thus,afunction canbeboundtoanyexpression e,parameterized initsarguments, whichadditionally
+maybeguarded bysomebooleanexpression eB,orapatternmatch eP. Iftheregular expression (ec)+
+consists of more than one expression ec, then the function binds to the ﬁrst expression whose guard
+evaluatesto true(intheorderoftheirdeclaration). Furthermore,thespeci alguardotherwise canbe
+used,whichevaluatesto trueifandonlyifallotherguards evaluateto false. Expressions without a
+guardareimplicitly guardedby true. Allsub-expressions ecneedtohavethesametype X. Forevery
+instantiation of a function by given parameters, we view the resulting expression eXas an identiﬁer
+inΓX, bound tothe result of the function application.
+Pattern Matching. Pattern matches arespecial guards of the form
+eP≡ϕ˜ϕ′,
+which can be used to describe different behavior depending o n the structure of an LTL expression.
+Hence,aguard ePevaluates to trueifandonlyif ϕandϕ′arestructurally equivalent, withrespect to
+their boolean and temporal connectives. Furthermore, iden tiﬁer names that are used in ϕ′need to be
+fresh, since every identiﬁer expression that appears in ϕ′is bound to the equivalent sub-expression in
+ϕ, which is only visible inside the right-hand-side of the gua rd. Furthermore, to improve readability,
+thespecial identiﬁer _(wildcard) canbeused, whichalwaysremainsunbound. Tocla rify thisfeature,
+consider the following function declaration:
+fun(f) =
+f˜a U _: a
+otherwise: X f
+The function fungets an LTL formula fas a parameter. If fis an until formula of the form ϕ1Uϕ2,
+thenfun(f)binds toϕ1,otherwise fun(f)binds toXf.
+4.7 Big OperatorNotation
+It is often useful to express parameterized expressions usi ng “big” operators, e.g., weuse Σto denote
+asumovermultiplesub-expressions, Πtodenote aproduct, or/uniontexttodenote aunion. Itisalsopossible
+touse this kind of notion inthis speciﬁcation format. Theco rresponding syntax looks asfollows:
+/an}bracketle{top/an}bracketri}ht[/an}bracketle{tid0/an}bracketri}htINeSX0,/an}bracketle{tid1/an}bracketri}htINeSX1,...,/an}bracketle{tidn/an}bracketri}htINeSXn]eX
+Letxjbe the identiﬁer represented by /an}bracketle{tidj/an}bracketri}htandSjbe the set represented by eSXj. Further, let/circleplustext
+be the mathematical operator corresponding to /an}bracketle{top/an}bracketri}ht. Then, the above expression corresponds to the
+mathematical expression:/circleplusdisplay
+x0∈S0/circleplusdisplay
+x1∈S1···/circleplusdisplay
+xn∈Sn/parenleftbig
+eX)
+Note that /an}bracketle{tid0/an}bracketri}htis already bound in expression eSX1,/an}bracketle{tid1/an}bracketri}htis bound in eSX2, and so forth. The syntax is
+supported by every operator /an}bracketle{top/an}bracketri}ht∈{+,*,(+),(*),&&,||}.
+4.8 Syntactic Sugar
+To improve readability, there is additional syntactic suga r, which can be used beside the standard
+syntax. Let nandmbe numerical expressions, then
+
+--- Page 11 ---
+122 A High-Level LTLSynthesis Format
+•X[n]ϕdenotes astack of nnext operations, e.g.:
+X[3] a≡X X X a
+•F[n:m]ϕdenotes that ϕholds somewhere between thenext nandmsteps, e.g.:
+F[2:3] a ≡X X(a || X a)
+•G[n:m]ϕdenotes that ϕholds everywhere between the next nandmsteps, e.g.:
+G[1:3] a ≡X(a && X(a && X a))
+• /an}bracketle{top/an}bracketri}ht[...,n◦1/an}bracketle{tid/an}bracketri}ht◦2m,...]eXdenotes a big operator application, where n◦1/an}bracketle{tid/an}bracketri}ht◦2mwith
+◦1,◦2∈{<,<=}denotes that /an}bracketle{tid/an}bracketri}htranges from ntom. The inclusion of nandmdepends on the
+choice of ◦1and◦2, respectively. Thus, the notation provides an alternative to membership in
+combination with set ranges, e.g.:
+&&[0 <= i < n] b[i] ≡&&[i IN {0,1..n-1}] b[i]
+4.9 Comments
+ItispossibletouseCstylecommentsanywhereinthespeciﬁc ation,i.e.,therearesinglelinecomments
+initialized by //and multi line comments between /*and*/. Multi line comments can benested.
+5 Example: ADecomposedAMBAArbiter
+To get a feeling for the interplay of the aforementioned feat ures, we present a speciﬁcation of an
+arbiter for A RM’sAdvanced Microcontroller Bus Architecture (AMBA) [3] in TLSF, decomposed
+into multiple components as depicted in Figure 1. Inputs of t he system are requests (HBUSREQ)
+from masters that want to access the bus, and a ready signal (H READY) from the clients that the
+masters want to talk to. Additionally, each master has a sign al for locking the bus (HLOCK), and
+different types of locked accesses can be requested (via HBU RST).The main output of the system is
+thenumber ofthemaster that currently ownsthebus(HMASTER ,inabinary encoding), andasignal
+forwhether thebusislocked(HMASTLOCK).Additionally, th ereareoutputsforthenextmasterthat
+will get access tothe bus (HGRANT,unary encoding).
+Our encoding is inspired by existing encodings [23], but als o includes some new design aspects
+withrespect tothedecomposition. Weonlyconsider theTLSF encoding ofthecomponents DECODE,
+ENCODE andARBITER in detail. Encodings of the remaining components can be foun d in App. A.3.
+First, consider the DECODE component, whose encoding is depicted in Figure 3. The compo nent
+reads the different values of the HBURST bus and splits them u p into separate, mutually exclusive
+signals. Clearly, enumerations are perfectly suited to des cribe such abehavior.
+
+--- Page 12 ---
+S.Jacobs, F.Klein &S.Schirmer 123
+ARBITERDECIDE
+BUSREQ ALLREADYHBUSREQ 0
+HBUSREQ 1
+...
+HBUSREQ n−1HGRANT 0
+HGRANT 1
+...
+HGRANT n−1LOCKLOCKED
+DECIDEHLOCK 0
+HLOCK 1
+...
+HLOCK n−1HGRANT 0
+HGRANT 1
+...
+HGRANT n−1
+DECODE INCR
+BURST4
+SINGLEHBURSTENCODE
+HMASTER HREADY
+HGRANT 0
+HGRANT 1
+...
+HGRANT n−1SHIFT
+HMASTLOCK
+HREADYLOCKED
+TINCRREADY 1HREADYLOCKEDDECIDEINCRBUSREQ
+TBURST4READY 2HREADYLOCKEDDECIDEBURST4TSINGLEREADY 3HREADYLOCKEDDECIDESINGLEANDHGRANTHLOCK
+HBUSREQHMASTLOCK
+HMASTER
+HBURSTHREADY
+Figure 1: Decomposition of the AMBAAHBarbiter.
+Next, consider the ARBITER component, granting the bus to the different masters. The co mpo-
+nent selects a new master, whenever all other components com pleted their tasks (signaled by ALL-
+READY).Furthermore,everymasterrequestingthebusiseve ntuallygrantedaccesstoit,whereevery
+request needs the be held until the access is granted. Additi onally, we require that every assignment
+of anewmaster triggers the DECIDE ﬂag, which hastobe raised one timestep inadvance toinform
+other components early about thechange. Finally, the reque st signal of thegranted bus ismirrored by
+
+--- Page 13 ---
+124 A High-Level LTLSynthesis Format
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: Arbiter"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+GLOBAL{
+PARAMETERS {
+n= 2;
+}
+DEFINITIONS {
+// mutual exclusion
+mutual(b) =
+||[iIN{0, 1 .. ( SIZEOFb)-1}]
+&&[jIN{0, 1 .. ( SIZEOFb)-1}(\){i}]
+!(b[i]&&b[j]);
+}
+}
+MAIN{
+INPUTS{
+HBUSREQ[n];
+ALLREADY ;
+}
+OUTPUTS {
+HGRANT[n];
+BUSREQ;
+DECIDE;
+}
+INITIALLY {
+// the component is initially idle
+ALLREADY;
+}
+ASSUME{
+// the component is not eventually disabled
+G FALLREADY;
+}
+ASSERT{
+// always exactely one master is granted
+mutual(HGRANT) && ||[0<=i<n] HGRANT[i];
+// if not ready, the grants stay unchanged
+&&[0<=i<n]
+(!ALLREADY ->(XHGRANT[i] <->HGRANT[i]));
+// every request is eventually granted
+&&[0<=i<n]
+(HBUSREQ[i] -> F(!HBUSREQ[i] ||HGRANT[i]));
+// the BUSREQ signal mirrors the HBUSREQ[i]
+// signal of the currently granted master i
+&&[0<=i<n]
+(HGRANT[i] ->(BUSREQ <->HBUSREQ[i]));
+// taking decisions requires to be idle
+!ALLREADY -> !DECIDE;
+// granting another master triggers a decision
+DECIDE<-> ||[0<=i<n]
+!(XHGRANT[i] <->HGRANT[i]);
+// if there is no request, master 0 is granted
+(&&[0<=i<n]!HBUSREQ[i]) &&DECIDE
+-> XHGRANT[0];
+}
+}INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: Encode"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+GLOBAL{
+PARAMETERS {
+n= 2;
+}
+DEFINITIONS {
+// mutual exclusion
+mutual(b) =
+||[iIN{0, 1 .. ( SIZEOFb)-1}]
+&&[jIN{0, 1 .. ( SIZEOFb)-1}(\){i}]
+!(b[i]&&b[j]);
+// checks whether a bus encodes the numerical
+// value v in binary
+value(bus,v) = value’(bus,v,0, SIZEOFbus);
+value’(bus,v,i,j) =
+i>=j : true
+bit(v,i) ==1 : value’(bus,v,i +1,j)
+&&bus[i]
+otherwise : value’(bus,v,i +1,j)
+&& !bus[i];
+// returns the i-th bit of the numerical
+// value v
+bit(v,i) =
+i<=0 : v %2
+otherwise : bit(v/2,i-1);
+// discrete logarithm
+log2(x) =
+x<=1 : 1
+otherwise : 1+log2(x/2);
+}
+}
+MAIN{
+INPUTS{
+HREADY;
+HGRANT[n];
+}
+OUTPUTS {
+// the output is encoded in binary
+HMASTER[log2(n-1)];
+}
+REQUIRE {
+// a every time exactely one grant is high
+mutual(HGRANT) && ||[0<=i<n] HGRANT[i];
+}
+ASSERT{
+// output the binary encoding of i, whenever
+// i is granted and HREADY is high
+&&[0<=i<n] (HREADY ->
+(Xvalue(HMASTER,i) <->HGRANT[i]));
+// when HREADY is low, the value is copied
+!HREADY-> &&[0<=i<log2(n-1)]
+(XHMASTER[i] <->HMASTER[i]);
+}
+}
+Figure 2: The ARBITER component (left) and the ENCODE component (right) of the decomposed
+AMBAAHBarbiter.
+
+--- Page 14 ---
+S.Jacobs, F.Klein &S.Schirmer 125
+the BUSREQ output. The encoding of the component is depicted in Figure 2 on the left. It uses
+straightforward formulations of the aforementioned prope rties in TLSF, which integrate the behavior
+informallydescribedabove. Notethatthewholeencodingis parameterizedinthenumberofmasters n.
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: Decode"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+GLOBAL{
+DEFINITIONS {
+enumhburst=
+Single: 00
+Burst4: 10
+Incr: 01
+}
+}MAIN{
+INPUTS{
+hburstHBURST;
+}
+OUTPUTS {
+SINGLE;
+BURST4;
+INCR;
+}
+ASSERT{
+HBURST==Single->SINGLE;
+HBURST==Burst4->BURST4;
+HBURST==Incr->INCR;
+!(SINGLE &&(BURST4 ||INCR))&& !(BURST4 &&INCR);
+}
+}
+Figure 3: The DECODE component of the decomposed AMBAAHBarbiter.
+As our ﬁnal example, consider the encoding of the ENCODE component depicted on the right
+side of Figure 2. The component identiﬁes the master current ly holding the bus via a binary number,
+encodedlogarithmicallyinthenumberofmasters. Furtherm ore,thecomponentisonlyenabledaslong
+as the HREADY input is high. We observe that the translation f rom unary to binary can be easily
+described using afunction mapping theunary values totheco rresponding binary ones. Inspecting the
+encodingshowsthatthesemanticsofthefunctionarederiva blestraightforwardly fromthedeclaration,
+due tothe close relation tothe equivalent mathematical rep resentation.
+Theremaining components are included inAppendix A.3.
+6 The SyFCo Tool
+We created the Synthesis Format Conversion Tool (SyFCo) [2] that can interpret the high level con-
+structs of the format and supports transformation of the spe ciﬁcation to plain LTL.The tool has been
+designed to be modular withrespect to the supported output f ormats and semantics. Furthermore, the
+tool can identify and manipulate parameters, targets and se mantics of a speciﬁcation on the ﬂy, and
+thus allows comparative studies, as it isfor example needed inthe reactive synthesis competition.
+Themainfeatures of the tool can be summarized asfollows:
+•Evaluation of high level constructs in the full format tored uce full TLSFtobasic TLSF.
+•Transformation to other existing speciﬁcation formats, li ke Promela LTL [1], PSL [12], Un-
+beast [7], Wring [30], or SLUGS[11, 10].
+•Syntactical analysis of membership in GR(k)for anyk,modulo boolean identities6.
+•Onthe ﬂyadjustment of parameters, semantics or targets.
+•Preprocessing of the resulting LTLformula, including
+6We use the setupof [4] toidentifythe transitionstructure a nd theGR(k)winning condition.
+
+--- Page 15 ---
+126 A High-Level LTLSynthesis Format
+◦conversion tonegation normal form,
+◦replacement of derived operators, and
+◦pushing/pulling next, eventually, or globally operators i nwards/outwards.
+7 Extensions
+Theformatremainsopenforfurther extensions, whichallow moreﬁne-grainedcontrol overthespeci-
+ﬁcationwithrespecttoaparticular synthesisproblem. Att hetimeofwriting,thefollowingextensions
+wereunder consideration:
+•Compositionality: The possibility to separate speciﬁcati ons into multiple components, which
+then can be used as building blocks to specify larger compone nts. E.g., it should be possible
+to express the whole decomposed speciﬁcation, as it is depic ted in Figure 1 (including the
+interconnections), inasingle speciﬁcation ﬁlein TLSF.
+•Partial Implementations: a speciﬁcation that is separated into multiple components might also
+contain components that are already implemented. Implemen ted components could be given in
+the AIGERformat that is already used in SYNTCOMP[17].
+•Libraries: Several functions and deﬁnitions are often shar ed between components, e.g., the
+functionmutualof the example in Sect. 5. Hence, it is more useful to ship them via libraries
+instead of redeclaring them each time.
+•LTL Fragment Detection: Our tool currently only supports de tection of GR(k). We aim to
+support the detection of further relevant fragments, like f or example Liveness or Safety.
+Acknowledgments
+We thank Roderick Bloem, R¨ udiger Ehlers, Bernd Finkbeiner , Ayrat Khalimov, Robert K¨ onighofer, Nir Piter-
+man,andLeanderTentrupforcommentsonTLSFanddraftsofth isdocument.
+ThedevelopmentofTLSFhasbeensupportedbytheGermanRese archFoundation(DFG)throughproject
+“AutomaticSynthesisofDistributedandParameterizedSys tems”(JA 2357/2-1)andbytheEuropeanResearch
+Council(ERC) GrantOSARES (No.683300).
+References
+[1]PromelaManualPages(PromelaLTL) . Availableat http://spinroot.com/spin/Man/ltl.html .
+[2]SynthesisFormatConversionTool . Availableat https://github.com/reactive-systems/syfco .
+[3] ARM Ltd.(1999): AMBAspeciﬁcation(rev.2) . Availableat http://www.arm.com .
+[4] Roderick Bloem, Barbara Jobstmann, Nir Piterman, Amir P nueli & Yaniv Sa’ar (2012): Synthesis of
+Reactive(1)Designs .J. Comput.Syst.Sci. 78(3),pp.911–938,doi:10.1016/j.jcss.2011.08.007.
+[5] J.R. B¨ uchi & L.H. Landweber (1969): Solving sequential conditions by ﬁnite-state strategies .Trans.
+Amer.Math.Soc. 138,pp.295–311,doi:10.2307/1994916.
+[6] Alonzo Church(1962): Logic, arithmetic andautomata . In:Proceedingsof the internationalcongressof
+mathematicians ,pp.23–35,doi:10.2307/2270398.
+[7] R¨ udiger Ehlers (2010): Unbeast - Symbolic Bounded Synthesis . Available at
+https://react.cs.uni-saarland.de/tools/unbeast .
+
+--- Page 16 ---
+S.Jacobs, F.Klein &S.Schirmer 127
+[8] R¨ udiger Ehlers (2011): Experimental Aspects of Synthesis . In:iWIGP,EPTCS50, pp. 1–16,
+doi:10.4204/EPTCS.50.1.
+[9] R¨ udiger Ehlers (2012): Symbolic boundedsynthesis .Formal Methodsin System Design 40(2), pp. 232–
+262,doi:10.1007/s10703-011-0137-x.
+[10] R¨ udiger Ehlers & Vasumathi Raman (2016): Slugs: Extensible GR(1) Synthesis . In:CAV (2),Lecture
+NotesinComputerScience 9780,Springer,pp.333–339,doi:10.1007/978-3-319-4154 0-618.
+[11] R¨ udiger Ehlers, Vasumathi Raman & Cameron Finucane (2 013):slugs - SmalL bUt Complete GROne
+Synthesizer . Availableat https://github.com/VerifiableRobotics/slugs .
+[12] Cindy Eisner & Dana Fisman (2006): A Practical Introductionto PSL . Series on IntegratedCircuits and
+Systems, Springer-Verlag,doi:10.1007/978-0-387-36123 -9.
+[13] Emmanuel Filiot, Naiyong Jin & Jean-Franc ¸ois Raskin ( 2011): Antichains and compositional
+algorithms for LTL synthesis .Formal Methods in System Design 39(3), pp. 261–296,
+doi:10.1007/s10703-011-0115-3.
+[14] Emmanuel Filiot, Naiyong Jin & Jean-Franc ¸ois Raskin ( 2013):Exploiting structure in LTL synthesis .
+STTT15(5-6),pp.541–561,doi:10.1007/s10009-012-0222-5.
+[15] Bernd Finkbeiner & Swen Jacobs (2012): Lazy Synthesis . In:VMCAI,LNCS7148, Springer, pp. 219–
+234,doi:10.1007/978-3-642-27940-9 15.
+[16] Bernd Finkbeiner & Sven Schewe (2013): Bounded synthesis .STTT15(5-6), pp. 519–539,
+doi:10.1007/s10009-012-0228-z.
+[17] Swen Jacobs (2014): Extended AIGER Format for Synthesis .CoRRabs/1405.5793. Available at
+http://arxiv.org/abs/1405.5793 .
+[18] Swen Jacobs & Roderick Bloem (2016): The Reactive Synthesis Competition: SYNTCOMP 2016 and
+Beyond. In:SYNT,ElectronicProceedingsinTheoreticalComputerScience 229,OpenPublishingAsso-
+ciation,pp.133–148,doi:10.4204/EPTCS.229.11.
+[19] Swen Jacobs, Roderick Bloem, Romain Brenguier, R¨ udig er Ehlers, Timotheus Hell, Robert K¨ onighofer,
+Guillermo A. P´ erez, Jean-Franc ¸ois Raskin, Leonid Ryzhyk , Ocan Sankur, Martina Seidl, Leander Ten-
+trup & Adam Walker (2016): The First Reactive Synthesis Competition (SYNTCOMP 2014) .STTT,
+doi:10.1007/s10009-016-0416-3. Publishedonlineﬁrst,j ournalissue toappear.
+[20] Swen Jacobs, Roderick Bloem, Romain Brenguier, Ayrat K halimov, Felix Klein, Robert K¨ onighofer,
+Jens Kreber, Alexander Legg, Nina Narodytska, Guillermo A. P´ erez, Jean-Franc ¸ois Raskin, Leonid
+Ryzhyk, Ocan Sankur, Martina Seidl, Leander Tentrup & Adam W alker (2016): The 3rd Reactive
+Synthesis Competition (SYNTCOMP 2016): Benchmarks, Parti cipants & Results . In:SYNT,Elec-
+tronic Proceedings in Theoretical Computer Science 229, Open Publishing Association, pp. 149–177,
+doi:10.4204/EPTCS.229.12.
+[21] SwenJacobs,RoderickBloem,RomainBrenguier,Robert K¨ onighofer,GuillermoA.P´ erez,Jean-Franc ¸ois
+Raskin, Leonid Ryzhyk, Ocan Sankur, Martina Seidl, Leander Tentrup & Adam Walker (2015): The
+Second Reactive Synthesis Competition (SYNTCOMP 2015) . In:SYNT 2015 ,EPTCS202, pp. 27–57,
+doi:10.4204/EPTCS.202.4.
+[22] Swen Jacobs & Felix Klein (2016): A High-Level LTL Synthesis Format: TLSF v1.0 .CoRR
+abs/1601.05228. Availableat http://arxiv.org/abs/1601.05228 .
+[23] BarbaraJobstmann(2007): ApplicationsandOptimizationsforLTLSynthesis . Ph.D.thesis,GrazUniver-
+sity ofTechnology.
+[24] Uri Klein & Amir Pnueli (2010): Revisiting Synthesis of GR(1) Speciﬁcations . In:HVC 2010. Revised
+SelectedPapers ,LNCS6504,Springer,pp.161–181,doi:10.1007/978-3-642-1958 3-916.
+[25] Andreas Morgenstern & Klaus Schneider (2011): A LTL Fragment for GR(1)-Synthesis . In:iWIGP,
+EPTCS50,pp.33–45,doi:10.4204/EPTCS.50.3.
+
+--- Page 17 ---
+128 A High-Level LTLSynthesis Format
+[26] Amir Pnueli & Roni Rosner (1989): On the Synthesis of a Reactive Module . In:POPL, ACM Press, pp.
+179–190,doi:10.1145/75277.75293.
+[27] Michael O. Rabin (1969): Decidability of second-order theories and automata on inﬁn ite trees.Trans.
+Amer.Math.Soc. 141,pp.1–35,doi:10.1090/S0002-9947-1969-0246760-1.
+[28] Sebastian Schirmer (2015): A Speciﬁcation Format for Reactive Synthesis . Bachelor Thesis. Saarland
+University,ComputerScience.
+[29] Saqib Sohail & Fabio Somenzi (2013): Safety ﬁrst: a two-stage algorithm for the synthesis of reac tive
+systems.STTT15(5-6),pp.433–454,doi:10.1007/s10009-012-0224-3.
+[30] FabioSomenzi&RoderickBloem(2000): EfﬁcientB ¨uchiAutomatafromLTLFormulae . In:CAV,LNCS
+1855,Springer,pp.248–263,doi:10.1007/10722167 21.
+
+--- Page 18 ---
+S.Jacobs, F.Klein &S.Schirmer 129
+A Appendix
+A.1 Linear Temporal Logic
+Linear Temporal Logic (LTL)is a temporal logic, deﬁned over aﬁnite set of atomic propositions AP.
+Thesyntax of LTLconforms to the following grammar:
+ϕ:=true|p∈AP| ¬ϕ|ϕ∨ϕ|Xϕ|ϕUϕ
+The semantics of LTLare deﬁned over inﬁnite words α=α0α1α2···∈(2AP)ω. A word αsatisﬁes a
+formulaϕat position i∈N:
+•α,i/satisfiestrue
+•α,i/satisfiespiffp∈αi
+•α,i/satisfies¬ϕiffα,i/ne}ationslash/satisfiesϕ
+•α,i/satisfiesϕ1∨ϕ2iffα,i/satisfiesϕ1orα,i/satisfiesϕ2
+•α,i/satisfiesXϕiffα,i+1/satisfiesϕ
+•α,i/satisfiesϕ1Uϕ2iff∃n≥i.α,n/satisfiesϕ2and∀i≤j<n.α,j/satisfiesϕ1
+Awordα∈2APsatisﬁesaformula ϕiffα,0/satisfiesϕ. Besidethestandardoperators,wehavethefollowing
+derived operators:
+•ϕ1∧ϕ2≡¬(¬ϕ1∨¬ϕ2)
+•ϕ1→ϕ2≡¬ϕ1∨ϕ2
+•ϕ1↔ϕ2≡(ϕ1→ϕ2)∧(ϕ2→ϕ1)
+•Fϕ≡trueUϕ
+•Gϕ≡¬F¬ϕ
+•ϕ1Rϕ2≡¬(¬ϕ1U¬ϕ2)
+•ϕ1Wϕ2≡(ϕ1Uϕ2)∨Gϕ1
+A.2 Mealyand MooreAutomata
+AMealy automaton isatuple Me=(I,O,Q,q0,δ,λe), where
+• Iisaﬁnite set of input letters,
+• Oisaﬁnite set of output letters,
+•Qis ﬁniteset of states,
+•q0∈Qisthe initial state,
+•δ:Q×I →Qisthe transition function, and
+•λe:Q×I →O isthe output function.
+Hence, the output depends onthe current state of the automat on and thelast input letter.
+A Moore automaton is a tuple Mo= (I,O,Q,q0,δ,λo), whereI,O,Q,q0andδare deﬁned as for
+Mealy automata. However, the output function λo:Q→Odetermines the current output only on the
+current state of theautomaton, but not the current input.
+
+--- Page 19 ---
+130 A High-Level LTLSynthesis Format
+A.3 TLFS encoding ofShift, TSingle, TIncr, TBurst4 andLock
+Shift.
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: Shift"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+MAIN{
+INPUTS{HREADY;LOCKED; }
+OUTPUTS {HMASTLOCK ; }
+ASSERT{
+// if HREADY is high, the component copies LOCKED to HMASTLOC K, shifted by one time step
+HREADY->(XHMASTLOCK <->LOCKED);
+// if HREADY is low, the old value of HMASTLOCK is copied
+!HREADY->(XHMASTLOCK <->HMASTLOCK);
+}
+}
+TSingle.
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: TSingle"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+MAIN{
+INPUTS{SINGLE;HREADY;LOCKED;DECIDE; }
+OUTPUTS {READY3; }
+INITIALLY {
+// initially no decision is taken
+!DECIDE;
+}
+PRESET{
+// at startup, the component is ready
+READY3;
+}
+REQUIRE {
+// decisions are only taken if the component is ready
+!READY3-> X !DECIDE;
+}
+ASSUME{
+// a slave cannot block the bus
+G FHREADY
+}
+ASSERT{
+// for each single, locked transmission, the bus is locked fo r one time step
+DECIDE->
+X[2] (((SINGLE &&LOCKED) ->(!READY3U(HREADY && !READY3&& XREADY3))) &&
+(!(SINGLE &&LOCKED) ->READY3));
+// the component stays ready as long as there is no decision
+READY3&& X !DECIDE-> XREADY3;
+// if there is a decision the component blocks the bus for at le ast two time steps
+READY3&& XDECIDE-> G[1:2]!READY3;
+}
+}
+
+--- Page 20 ---
+S.Jacobs, F.Klein &S.Schirmer 131
+TIncr.
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: TIncr"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+MAIN{
+INPUTS{INCR;HREADY;LOCKED;DECIDE;BUSREQ; }
+OUTPUTS {READY1; }
+INITIALLY {!DECIDE; }
+PRESET{ READY1; }
+REQUIRE {
+// decisions are only taken if the component is ready
+!READY1-> X !DECIDE;
+}
+ASSUME{
+// slaves and masters cannot block the bus
+G FHREADY&& G F ! BUSREQ;
+}
+ASSERT{
+// for each incremental, locked transmission, the bus is loc ked as long as requested
+DECIDE->
+X[2] (((INCR &&LOCKED) ->(!READY1W(HREADY && !BUSREQ))) &&
+(!(INCR&&LOCKED) ->READY1));
+// the component stays ready as long as there is no decision
+READY&& X !DECIDE-> XREADY1;
+// if there is a decision the component blocks the bus for at le ast two time steps
+READY1&& XDECIDE-> G[1:2]!READY1;
+}
+}
+TBurst4.
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: TBurst4"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+MAIN{
+INPUTS{BURST4;HREADY;LOCKED;DECIDE; }
+OUTPUTS {READY2; }
+INITIALLY {!DECIDE; }
+PRESET{ READY2; }
+REQUIRE {
+// decisions are only taken if the component is ready
+!READY2-> X !DECIDE;
+}
+ASSUME{
+// a slave block the bus
+G FHREADY;
+}
+ASSERT{
+// for each burst4, locked transmission, the bus is locked fo r four time steps
+DECIDE->
+X[2] (((BURST4 &&LOCKED) ->(!READY2U(HREADY && !READY2&& X(!READY2U(HREADY &&
+!READY2&& X(!READY2U(HREADY && !READY2&& X(!READY2U(HREADY &&
+!READY2&& XREADY2))))))))) &&(!(BURST4 &&LOCKED) ->READY2))
+// the component stays ready as long as there is no decision
+READY2&& X !DECIDE-> XREADY2;
+// if there is a decision the component blocks the bus for at le ast two time steps
+READY2&& XDECIDE-> G[1:2]!READY2;
+}
+}
+
+--- Page 21 ---
+132 A High-Level LTLSynthesis Format
+Lock.
+INFO{
+TITLE: "AMBA AHB Arbiter"
+DESCRIPTION :"Component: Lock"
+SEMANTICS :Mealy
+TARGET:Mealy
+}
+GLOBAL{
+PARAMETERS {
+n= 2;
+}
+DEFINITIONS {
+// mutual exclusion
+mutual(b) =
+||[iIN{0, 1 .. ( SIZEOFb)-1}]
+&&[jIN{0, 1 .. ( SIZEOFb)-1}(\){i}]
+!(b[i]&&b[j]);
+}
+}
+MAIN{
+INPUTS{
+DECIDE;
+HGRANT[n];
+HLOCK[n];
+}
+OUTPUTS {
+LOCKED;
+}
+REQUIRE {
+// a every time exactely one grant is high
+mutual(HGRANT) && ||[0<=i<n] HGRANT[i];
+}
+ASSERT{
+// whenever a decicion is taken, the LOCKED signal is updated to
+// the HLOCK value of the granted master
+&&[0<=i<n] (DECIDE && XHGRANT[i] ->(XLOCKED<-> XHLOCK[i]));
+// otherwise, the value is copied
+!DECIDE->(XLOCKED<->LOCKED);
+}
+}

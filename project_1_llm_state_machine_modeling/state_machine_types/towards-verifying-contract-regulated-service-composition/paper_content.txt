@@ -1,0 +1,717 @@
+--- Page 1 ---
+Towards verifyingcontract regulated servicecomposition
+AlessioLomuscio,HongyangQu,MonikaSolanki
+DepartmentofComputing,ImperialCollegeLondon
+{a.lomuscio,hongyang.qu,m.solanki }@imperial.ac.uk
+Abstract
+We report on a novel approach to (semi-)automatically
+compileandverify contract-regulated servicecompositions.
+We specify web services and the contracts governing them
+as WSBPEL behaviours. We compile WSBPEL behaviours
+intothespecialisedsystemdescriptionlanguageISPL,tob e
+used with the model checker MCMAS to verify behaviours
+automatically. We use the formalism of temporal-epistemic
+logic suitably extended to deal with compliance/violation s
+of contracts. We illustrate these concepts using a motivat-
+ing example whose state space is approximately 106and
+discussexperimentalresults.
+1 Introduction
+Web services (WS) are now considered one of the key
+technologies for building new generations of digital busi-
+ness systems. Industrial strength distributed applicatio ns
+canbebuiltacrossorganisationalboundariesusingservic es
+as basic building blocks. When services are combined,
+a signiﬁcant challenge is to regulate the business interac-
+tions between them. In an environment where previously
+unknown services are dynamically discovered and binded,
+theircompositionis usuallyunderpinnedby bindingagree-
+mentsor“contracts”. Shouldacontractbebrokenbyoneof
+the parties, “legal remedies” may be applicable in the form
+of penalties, additional rights to some party, and, possibl y,
+additionalpenaltieswith respecttothirdparties.
+Conventionally, contracts have been deﬁned and inter-
+preted using natural languages. In electronic business en-
+vironments, new formal models and tools are needed to
+enable the successful enforcement of dynamic contractual
+agreements between services. While designing a contract-
+regulated composition, an important aspect is the rigorous
+analysisofpossible executionbehavioursofindividualse r-
+vices as well as the overall behaviour of the composition.
+A system made of few localised services may only inter-
+act in a small number of ways governedby a limited set of
+contractclauses. Howeverwhenseveralsubsystemscoordi-nateinanopenenvironment,thecontractsbindingthemare
+non-trivialandcomplex,makingit difﬁcultto forseeall th e
+possible executions. Additionally, while trying to comply
+to their respective contractuallydeﬁnedbehaviours,cert ain
+components may fail, some may be incapacitated to pro-
+vide the services in the expected timeline, and others still
+mayhaveto prioritisecertainrequests.
+In this paper, we propose a novel approach towards the
+veriﬁcationofservices,wheretransactionsarecontrolle dby
+bindingelectroniccontracts. VeriﬁcationofWSisanactiv e
+topic of research (e.g., see [16, 18]). However it has so far
+been concerned with checking safety and liveness proper-
+ties only. Our proposed framework, builds upon existing
+work in the domain of multi agent systems (MAS) [17, 1].
+We take the view that a web service can be modelled as an
+“agent” [5]. When WS are phrased as a contract-regulated
+MAS, severalpropertiesbecomeworth studying,including
+various notions of correctness and violations of the con-
+tracts during a run, the evolution of the agents’ knowledge
+aboutthemselves,thecontractsand theexpectedpeers’ be-
+haviours,etc.
+The speciﬁcation and analysis of agent behaviour in a
+MAS has been widely explored. Several formal models
+have been investigated to specify formally and unambigu-
+ouslythebehaviourofthesystem. Manyoftheseare based
+on modal logic, including temporal, epistemic, and deotic
+logic. Developments in veriﬁcation of MAS via model
+checking techniques [15, 4, 9] has kept pace with the ad-
+vancementinthespeciﬁcationtechniques. Alongwithtem-
+poral languages, it is now also possible to verify a variety
+of modalities describing the informational and intentiona l
+state oftheagents.
+Theaboveleadsustoexploretheveriﬁcationofcontract-
+basedWSimplementedbymeansofMASmodelcheckers.
+To this end, we propose a veriﬁcation methodology where
+services or “contract parties” (CP) are speciﬁed using WS-
+BPEL [13]. The contractually correct behavioursfor every
+CP arealso speciﬁedin WSBPEL. Inourapproach,a com-
+piler of our design takes as input both these behaviour de-
+scriptions, and generates an ISPL program, which is fed to
+thesymbolicmodelcheckerMCMASforveriﬁcation.
+1
+
+--- Page 2 ---
+The rest of the paper is organised as follows. In Sec-
+tion 2 we brieﬂy introduce WSBPEL, ISPL and MCMAS.
+Section 3 introduces a motivating example and some of its
+keyproperties. Section4presentsourproposedframework.
+Section5discussestheimplementationofthecompilerand
+Section 6 gives experimental results from veriﬁcation. We
+concludeinSection7.
+2 Preliminaries
+2.1 MCMAS and ISPL
+MCMAS[11]isaspecialisedmodelcheckerfortheveri-
+ﬁcationofmulti-agentsystems. Itbuildsonsymbolicmodel
+checking via OBDDs as its underlyingtechnique, and sup-
+portsCTL,epistemicanddeonticlogic. Thecurrentversion
+ofMCMAS[10]hasthefollowingfeatures: (1)Supportfor
+variablesofthe followingtypes: Boolean,enumerationand
+bounded integer. Arithmetic operations can be performed
+on bounded integers. (2) Counterexample/witness genera-
+tionforquickandefﬁcientdisplayoftracesfalsifying/sa tis-
+fying properties. (3) Support for fairness constraints. Th is
+is useful in eliminating unrealistic behaviours. (4) Suppo rt
+for interactive execution mode. This allows users to step
+throughtheexecutionoftheirmodel.
+MCMAS uses ISPL as its input language. A system en-
+codedinISPLiscomposedoftheenvironment eandasetof
+agents A={1, . . ., n }. Eachagent i∈Ahasa setof local
+states Liandaset oflocalactions Acti. Theprotocolfunc-
+tionofagent i,Pi:Li→2Act i, deﬁnesforeachlocalstate
+li∈Lithe set of actionsthat are allowedto be executedin
+li. Similarly, the environment has its local states Le, local
+actions Acteand protocol function Pe. The transition rela-
+tionamonglocalstatesofagent iisdeﬁnedbythe evolution
+function Evi:Li×Act1× · · · × Actn×Acte→Li. The
+deﬁnitionof Evisuggeststhat the local actionsof an agent
+can be observed by other agents. The evolution function
+Eveoftheenvironmentisdeﬁnedinthesame way.
+Toreasonaboutthebehavioursofagent iwithrespectto
+correctness [12], Liis further partitioned into two disjoint
+sets: a non-empty set Giof allowed (“green”) states and a
+setRiof disallowed (“red”) states. In this paper, we use
+green states to denote the behaviours in compliance with
+contracts and red states to denote violations, by means of
+temporalepistemicproperties.
+ISPL allows user deﬁned atomic propositions over
+globalstates ofthesystem. Aglobalstate iscomposedofa
+localstatefromeveryagentandtheenvironment. Thelogic
+formulae to be checked by MCMAS are deﬁned over the
+atomicpropositions.2.2 WSBPEL
+WSBPEL [13] is a popular and de facto industrial stan-
+dard for describing service composition. The speciﬁcation
+hasbeenelaboratelyexplainedinseveralwebservicebased
+literature[13]. ishighlyrecommended.
+WSBPEL deﬁnes a model and an XML based gram-
+mar for the orchestration of executable and abstract busi-
+nessprocesses. A BPEL processdeﬁnesthe interactionbe-
+tweenpartners. Thespeciﬁcationprovidesthecontrollogi c
+to coordinate arbitrarily complex web services, deﬁned in
+WSDL. A BPEL process can interact synchronously or
+asynchronously with its partners, i.e., its clients, and wi th
+theservicestheprocessorchestrates.
+The buildingblocksfora BPEL processarethe descrip-
+tionsofthepartiesparticipatingintheprocess,thedatat hat
+ﬂows throughthe process and the activities performeddur-
+ing the execution of the process. Some examples of activ-
+ities include “receive”, “reply”, “assign”, “sequence” an d
+“wait”. WSBPEL also introduces systematic mechanisms
+for dealing with business exceptions and processing faults .
+Moreover,WSBPELintroducesamechanismtodeﬁnehow
+individual or composite activities within a unit of work are
+to be compensated in cases where exceptions occur or a
+partnerrequestsreversal.
+3 A MotivatingCaseStudy
+Inthissectionwepresentacompositionofservices,reg-
+ulated as a pre-deﬁned contract. The case study was ﬁrst
+presented in earlier work on verifying service composition
+withMCMAS[1]. Here,wefocusontheautomaticcompi-
+lationofservicesfromWSBPEL intoISPL.
+In the example, the participating contract parties, as
+illustrated in Figure 1, comprise: a principal software
+provider ( PSP), a software provider ( SP), a software
+client ( C), an insurancecompany( I), a testing agency( T),
+a hardware supplier ( H), and a technical expert ( E). The
+high-level workﬂow of the composition is deﬁned as fol-
+lows: Client Cwants to get a software developed and de-
+ployed on hardware supplied by H. To deploy the soft-
+ware, the technical expert Eis needed. Componentsof the
+software are provided by different software providers. We
+consider two software providers here: PSPandSP. The
+components need to be integrated by the providers before
+thesoftwareisdeliveredto C.
+The software integration is carried out by PSP, when
+SPdelivers its component. PSPandSPtwice update
+each other and Cabout the progress of the software devel-
+opment. Shouldthe clientlike anychangesin the software,
+he can request them before the second round of updates.
+Anychangesuggestedby theclient afterthe secondupdate
+isconsidereda violationandtheclientischargedapenalty .
+2
+
+--- Page 3 ---
+Figure 1. Interaction between various part-
+ners in the composition.
+PSP’sobligations:
+1. Update SPandCtwice about theprogress of the software.
+2. Integrate the components and send them to Tfor testing.
+3. If components fail, integrate the revised software and se nd them for
+testing.
+4. Make payment to SPafter successful deployment of software.
+C’sobligations:
+1. Request changes before the second round of updates.
+2. Pay penalty if changes arerequested after second round of updates.
+3. Make payment to the PSPafter every update.
+Figure 2. Obligations of Contract parties
+The client can recover from this violation by paying the
+penaltyorbywithdrawingtherequestforchanges. If PSP
+andSPdo not send their updates as per schedule, this is
+also considered a violation and they are charged a penalty.
+Everyupdateis followedby a paymentin partbythe client
+Cto the PSP. Payment to SPis handled by PSPand is
+doneoncethesoftwareisdeployedsuccessfully.
+PSPintegratesthecomponentsandsendstheintegrated
+component to Tfor testing. Results from testing are made
+available to all the parties, i.e., PSP,SP, andC. If the
+integrationtest fails, the componentsare revised and test ed
+again. Components can be revised twice. If the third test
+fails,Ccancels the contract with PSP. If the testing suc-
+ceeds, Cinvokes Ito get the software insured. Cthen in-
+vokes Hto order the hardware. Finally Cinvokes Eto
+get the software deployed. If the software cannot be de-
+ployed then the hardware and the components have to be
+re-evaluated. Componentscanberevisedtwice. Ifthe third
+test fails Calways cancels the contract with PSPandH.
+Figure2illustratestheobligationsofthe PSPandC.
+Fromtheabovescenarioitcanbeseenthatcontractsbe-
+tweenservicescanbeusefullyemployedtoillustratetheno -
+tionofcorrectnessinbehaviour. Anydeviationfromthebe-Agent Violation condition Recovery
+1 PSP -doesnotsendmessages
+toSPand/or Cin the
+ﬁrstand/or second runof
+update.pay penalty charge
+2 - does not send payment
+toSP.no
+3 SP - does not send update
+messages to PSPorC.pay penalty charge
+4 - does not send its com-
+ponents to PSP.no
+5 C - request changes after
+second update.pay penalty charge or
+withdraw changes
+6 - does not send the pay-
+mentto PSP.no
+7 T - does not send the test-
+ing report to C,PSP
+and/or SP.no
+8 H - does not deliver the
+hardware system to C.no
+9 - ignores the deployment
+failure.no
+10 E - does not deploy the
+softwareonthehardware
+system.no
+11 I - does not process the
+claim of C.no
+Figure 3. Agents and their violation condi-
+tions.
+haviour identiﬁed in the contract is considered a violation .
+The contract might in some cases also specify mechanisms
+forrecoveringfromviolations.
+The contract between various parties can be violated in
+manyways. Figure3illustratesinformallysomeofthecon-
+ditionsunderwhichsomelocalviolationsmayoccur.
+4 Veriﬁcation framework
+In this section we discuss our framework for the veriﬁ-
+cation of contracts. Figure 4 illustrates the proposed arch i-
+tecture. Ourapproachtargetstwolevelsofveriﬁcation:
+•conformanceofthebehaviourofanindividualcontract
+partyto itscontractuallycorrectbehaviour.
+•conformanceofthecombinedbehaviourofallthecon-
+tractpartiesto theoverallcontract.
+For the sake of clarity in the ﬁgure and the paper, we elab-
+orate on the components of the architecture and the veriﬁ-
+cationmethodology,onlyforcontractparty C1. Notethata
+similar mechanism would be replicated for all the contract
+partiesinthecomposition.
+1.Natural language contracts: Conventionally con-
+tracts are speciﬁed in a natural language. A contract
+3
+
+--- Page 4 ---
+Figure 4. Veriﬁcation architecture
+stipulates the obligations of parties entering the con-
+tract. It deﬁnes behaviours that are considered to be
+violation of some obligations, and may outline penal-
+ties and/or recovery actions from the violations. For
+veriﬁcation, a conventional contract is encoded as an
+e-contract in WSBPEL.
+2.Contract party: A contract party (CP) is a service,
+that is a ﬁrst class citizen of the contract regulated
+composition. The behaviour of a CP is governed by
+the rights, obligations and violations stipulated in the
+contract, and agreed to by the CP. The overall fulﬁll-
+ment of a contract depends on the adherence of each
+CPinthecompositiontoitsspeciﬁedbehaviour. Inour
+framework, each contract party is an agentwith well
+deﬁnedgreenandredstates corresponding to states
+of compliance and violation respectively. Our pro-
+posed methodology aims to verify the adherence of
+each agent’s behaviour to what has been speciﬁed as
+contractuallycorrectbehaviorfortheagent.
+3.Contract party/agent behaviour: The behaviour of
+an agent can be deﬁned in terms of a two-part be-
+haviour: allpossiblebehavioursandcontractuallycor-
+rect behaviours. In order to automate the veriﬁcation,
+weencodeboththesebehavioursinBPEL.Notethatit
+ispossibletodescribecontractuallycorrectbehaviours
+usingaspeciﬁcationlanguage,tailor-madefordescrib-
+ing contracts e.g., [14]. However, keeping both these
+behaviours at the same level of abstraction, provides
+thesystemdesignerwiththeﬂexibilityneededtocom-bine and compilethe behavioursinto a modelsuitable
+forveriﬁcation.
+For an agent, we refer to its all possible behaviours
+asBPEL-behaviour and the contractually correct be-
+haviours as its BPEL-contract . Note that both the be-
+havioursareinter-dependentandreplicateinformation
+suchasvariableandactiondescriptionfortheagent,in
+theirspeciﬁcation.
+4.Compiler: The compiler is a novel and integral com-
+ponent of our architecture. The compiler takes as in-
+puttheBPEL-behaviourandtheBPEL-contractforan
+agent and combines them to generate an ISPL pro-
+gram. The compiler parses the BPEL-behaviour to
+generate a partial model that enumerates the local
+states but abstracts fromdeﬁningred andgreenstates.
+The BPEL-contract is then parsed to enumerate the
+green/red states for the agent. The internal details of
+thecompilerareillustratedinSection5.
+5.ISPL and MCMAS: The ISPL program compiled
+semi-automatically from the BPEL speciﬁcation, en-
+codes the overall and desired behaviour of an agent.
+The program is fed to MCMAS for veriﬁcation of the
+agent’sbehaviour.
+5 Implementation
+The core component of our framewrok is the compiler
+that translates a WSBPEL speciﬁcation into an ISPL pro-
+gram. It generatesbasic atomicpropositionsandpropertie s
+automatically for veriﬁcation. The internal architecture of
+thecompilerisillustratedinFigure5.
+Figure 5. Internal architecture of thecompiler
+4
+
+--- Page 5 ---
+Given the two speciﬁcations (BPEL-behaviours and
+BPEL-contracts), we propose a three step methodology to
+generatethecorrespondingISPL program:
+1. We represent a BPEL process by an automaton. The
+BPEL-behaviourisﬁrstreadintomemory,followedby
+theBPEL-contract. Bothbehavioursaretranslatedinto
+automata. We use behaviour automata to denote the
+automata representing the BPEL-behaviour and con-
+tractautomata fortheBPEL-contract.
+2. Foreachstate inthecontractautomata,welookforits
+counterpart in the behaviour automata and label it as
+green. We then label all other states in the behaviour
+automata as red. Based on these labels, basic prop-
+erties speciﬁed in temporal-epistemic logic are gener-
+ated.
+3. Thelabelledbehaviourautomataandthepropertiesare
+writtentotheISPL ﬁleinputtothechecker.
+Inwhatfollows,we discussthe methodologyin detail.
+5.1 Translating BPEL programs into au-
+tomata
+The compiler uses the following rules to do the transla-
+tion.
+•“Assign”, “receive”, “invoke” and “empty” activities
+aretranslatedintotransitionsconnectingtherespective
+source state andtarget state . A “sequence” activity is
+translatedintoa sequenceoftransitions.
+•An “if” activity is translated into two sequences of
+transitions, one for the if-branch and another for the
+else-branch. The ﬁrst transition in the if-branch uses
+theconditioninthe“if”activityasitsguard,whilethe
+ﬁrst transition in the else-branch uses the negation of
+theconditionas the guard. A “while”activity istrans-
+latedinthesamewayasan“if”activityexceptthatthe
+targetstateofthelasttransitionandthesourcestateof
+theﬁrst transitionin the if-brancharethe same.
+•“OnMessage” activities and “onAlarm” activities in a
+“pick” activity are translated into transitions with a
+commonsourcestate.
+•A branchin a “ﬂow” activity is translated into a sepa-
+rateautomaton. Thebeginningandtheendoftheseau-
+tomataaresynchronisedwiththeautomatonrepresent-
+ingtheBPEL process. Indoingso,we differfrom[8],
+wherea“ﬂow”istranslatedsuchthat: allbranchesare
+executedsequentiallyandallpossiblepermutationsare
+representedasa singleautomaton.
+Theautomatageneratedfrom“if”,“while”,“pick”and
+“ﬂow”activitiesareillustratedinFigure6.Figure 6. Translated automaton
+•Fault handlers and exceptionsare translated into tran-
+sitions as well. The latter transition assigns a speciﬁc
+value to a variable and the guard of the former transi-
+tion tests if the variable has this value. Other kinds of
+handlersaredealtwithinthesameway. Theoretically,
+ineverystatewhereanexceptioncouldhappenacopy
+of the exception/handler transition is produced using
+thisstateasitssourcestate(notethatthesecopieshave
+the same target state). Thus one transition would be
+replicated many times. In practice, however, we have
+a succinct wayto implementit due to theﬂexibilityof
+ISPL,asdiscussedlater.
+As remarked in the literature review, much work has
+been appeared on translating BPEL into model checkers’
+input languages, e.g., [8, 7, 2]. However, only few of them
+can process all BPEL structures. A detailed discussion can
+befoundin [2].
+5.2 Colouring the model
+We use the green and red of labelling in ISPL code
+to differentiate between contractually correct and incorr ect
+behaviours, as shown in Figure 7. This is possible be-
+Figure 7. Labelling behaviours
+5
+
+--- Page 6 ---
+cause the BPEL-contract speciﬁcation deﬁnes behaviours
+included also in the BPEL-behaviour speciﬁcation. La-
+belling the states in the behaviour automata is done as fol-
+lows:
+1. The initial state of a behaviour automaton is labelled
+asgreen.
+2. For every transition in the contract automata, we ﬁnd
+thesametransitioninthebehaviourautomataandlabel
+itstargetstate asgreen.
+3. Forall statesthat arenotgreen,welabelthemasred.
+We do not look for matched states directly because the
+states are named in a numerical way and, therefore, the
+same state in the behaviour automata and the contract au-
+tomata might have different names. However, transitions
+get theirname fromthe BPEL activities, eachof which has
+auniquename.
+Afterthelabellingprocessﬁnishes,thecompilerencodes
+threekindsofatomicpropositions,whichareusedtodeﬁne
+basicformulaetobecheckedinthefollowingway. Foreach
+BPELprocess p,we deﬁne
+•anatomicproposition pgreenholdinginallgreenstates
+oftheprocess;
+•an atomic proposition pendholding in the last state of
+process p;
+•anatomicproposition prediholdinginthecorrespond-
+ingredstate i.
+Two kinds of basic properties are generated based on the
+atomicproperties. ForeachBPELprocess p,deﬁne
+E(pgreenU pend). (1)
+Thispropertyspeciﬁesthat phasawaytoconductawhole
+run in compliance with its contract obligations. For each
+atomicproposition pred∈ {pred0, pred1, . . .},deﬁne
+EF p red. (2)
+This property represents a test to check whether a agent
+mayviolateitscontractualbehaviours.
+Theabovepropertiesverifythebasicbehavioursofcon-
+tract parties. Morepropertiescan bemanuallyaddedto the
+automaticallygeneratedISPLcodeinordertotest otherin-
+terestingbehaviours(seebelow).
+5.3 Generating an ISPL program
+Once the behaviour automatas are labelled, they are
+ready to be written to an ISPL ﬁle for veriﬁcation. Each
+automaton is mapped to an agent in the ﬁle. Let A=
+{1, . . ., n }be the set of automata and A={1, . . ., n }the
+setofagents. Hereweonlyenumeratethekeystepstogen-
+erateanagent i∈Afromanautomaton Ai∈ A.1. Local states generation. A local state l∈Liis a val-
+uation for the set of local variables V ar i. Thus, the
+generation of Liis performed through the generation
+ofV ar i. IfAiis generated from a BPEL process p,
+then
+V ar i=V ar p∪ {state },
+where V ar pis the set of variables deﬁned in pand
+stateis an additional enumeration variable. Each
+value of staterepresents a unique state of Ai. IfAi
+isa “ﬂow”branchin p,then
+V ar i=V ar′
+p∪ {state },
+where V ar′
+p⊆V ar pis the set of variables used by
+Ai. Inordertoreducetheagent’sstatespace,thecom-
+piler monitors the usage of every variable v∈V ar p.
+Ifvis never read by any transitions in Ai, then it is
+discarded.
+2. Local actions generation. Actiis obtained from the
+transitions of Ai. Each transition is mapped into an
+action; additionally if two transitions have the same
+name,theyaremappedintothe sameaction.
+3. Protocolgeneration. Let l(state)be the value of vari-
+ablestateinstate l∈LiandEltheset ofallowedac-
+tionsin l. Foranytransition twhosesourcestateisrep-
+resented by l(state), the action to which tis mapped
+is included in El. Obviously, two states l1, l2∈Li
+have the same set of allowed actions if l1(state) =
+l2(state).
+4. Evolution function generation. Each transition in Ai
+is translated to an evolution item. For a transition t
+with source state s1, target state s2, and guard c, the
+evolutionitemisdeﬁnedto beofthefollowingform:
+state=s2ifstate= s1andc and Action=t.
+Thisitemmeansthatifinthecurrentstate,thevariable
+statehasvalue s1andtheguard cissatisﬁed,theexe-
+cution of tmakes agent imove to a state where state
+has value s2. Iftis synchronised with another transi-
+tiont′in the automaton Aj∈ A, then the evolution
+itemis
+state=s2ifstate= s1and c andAction=t and Aj.Action=t’.
+Iftassignsavalue exprtoavariable v,theassignment
+istranslatedonthe leftsideof“if”,i.e.
+state=s2and v= exprif· · ·.
+If there are multiple copies of t, e.g., trepresents a
+fault handler, we use the following form to specify an
+evolutionitemforall copies:
+6
+
+--- Page 7 ---
+state=sif(state= s1or state= s2or. . .)and c andAction=t
+and· · ·,
+where s1ands2are the source states of these copies
+andsis their target state. If tis allowed in all states,
+theaboveformcanbesimpliﬁedto
+state=sifc and Action=t and · · ·.
+6 Experimental Analysis
+We evaluated the compilation and veriﬁcation mecha-
+nism on the case study illustrated in Section 3. We rep-
+resented the composition in terms of a WSBPEL orches-
+tration. The following BPEL code represents the full be-
+haviouroftheclient C, whenreceivingupdatesfrom PSP
+andSP. Notethat forbrevity,onlyessential informationis
+shown. TheBPEL-contractisthesameasBPEL-behaviour
+except that it deﬁnes only contractually correct and there-
+forelimitedbehaviours.
+<pick name="Update1">
+<onMessage partnerLink="PSP_C"
+operation="recPSP" portType="ns1:recMsg"
+variable="RecPSPIn">
+<empty name="Empty1"/>
+</onMessage>
+<onMessage partnerLink="PSP_C_int"
+operation="recPSP" portType="ns1:recMoney"
+variable="SendSPIn1">
+<receive name="recUpdate1"
+createInstance="no" partnerLink="PSP_C1"
+operation="recPSP" portType="ns1:recMsg"
+variable="RecPSPIn">
+</receive>
+</onMessage>
+<onMessage partnerLink="PSP_NoC"
+operation="recNoPSP" portType="ns1:recMsg"
+variable="RecPSPIn">
+<exit name="Exit347"/>
+</onMessage>
+</pick>
+The translation generates the following ISPL program
+fortheclient.
+Agent Client
+Vars:
+state : { Client_0, Client_1, ...};
+count : 0 .. 3;
+...
+end Vars
+Actions={Client_Upd1_0, Client_Upd1_1,...};
+Protocol :
+state=Client_0:{Client_Upd1_0, Client_Upd1_1,
+Client_Upd1_2, Client_While1};
+state=Client_1:{Client_Empty1};
+...
+end Protocol
+Evolution :
+state=Client_0 and count=count+1 if
+state=Client_24 and Action=Client_Assign375;state=Client_1 if state = Client_0 and
+count<2 and Action = Client_Upd1_0 and
+PSP.Action = PSP_updateClient;
+...
+end Evolution
+end Agent
+Thefollowinglistinggivesanexampleabouthowto de-
+ﬁneatomicpropositionsandpropertiesinISPL.
+Evaluation
+Client_green if Client.state = Client_0 or
+Client.state = Client_1 or ...;
+Client_end if Client.state = Client_51;
+Client_red0 if Client.state = Client_11;
+...
+end Evaluation
+Formulae
+E ( Client_green U Client_end );
+EF Client_red0;
+...
+end Formulae
+In addition to the basic properties automatically gen-
+erated by the compiler, we manually added a few more
+complex properties to the model. Those properties were
+also studied in [1]. Some atomic propositions, e.g., “re-
+ceiveSoftware”and“softwareTested”,are alsoaddedtothe
+ISPL code manually. In particular, we considered the fol-
+lowing:
+•Whenever PSPisinacompliancestate,heknowsthe
+contractcanbeeventuallyfulﬁlledsuccessfully.
+AG(PSP green→KPSPEF(PSP end))
+•There exists a path where Cis always in compliance
+with the contract until he eventually receives the soft-
+ware.
+E(Cgreen U receiveSoftware )
+•PSPknows that it is possible that PSP,SP,C,I,
+H,TandEareall in complianceuntilthe softwareis
+delivered.
+KPSPE(allgreen U softwareDelivered ),
+where allgreenrepresents PSP green ∧
+SPgreen ∧Cgreen ∧TGreen ∧Hgreen ∧
+Egreen ∧Igreen.
+•Thereisatraceinwhichtheclientisalwaysincontract
+compliant states until the software is delivered (while
+theclientremainscompliant)beforethecliententersa
+violation.
+E(Cgreen U
+E((Cgreen∧softwareDeployed )U¬Cgreen ))
+The generated ISPL model was encoded automatically
+by MCMAS by using 134 BDD variables: 49 BDD vari-
+ables for local states (the same number of BDD variables
+are constructed for the transition relation) and 36 for loca l
+actions. The total numberof global states is approximately
+7
+
+--- Page 8 ---
+106. On a machinerunningLinuxFedora8 x86 64version
+(kernel 2.6.24.3-50) on Intel Core 2 Duo E4500 2.2GHz
+with 4GB memory, it took about 24 seconds with 34 MB
+memoryspaceforMCMAS toverify25properties.
+In this example, all basic properties hold on the model,
+which means not only all parties can fulﬁl their contrac-
+tual obligationssuccessfully, but also that all the violat ions
+showninFigure3canactuallyhappen. Amongstthemanu-
+allyaddedproperties,theﬁrstonedoesnothold. Thereason
+isthateventhough PSPfulﬁllsitscontractualobligations,
+the software might not pass testing hence not be deployed.
+Fora similarreason,thethirdonedoesnotholdeither.
+7 Conclusions
+Inthispaperwe presenteda noveltechniqueforthe ver-
+iﬁcation of contract-regulatedservice compositions. In o ur
+approach, services and contracts are speciﬁed as WSBPEL
+behaviours. We showed how these behaviours could be
+semi-automatically compiled into ISPL, and then veriﬁed
+using the symbolic model checker MCMAS. The salient
+feature of the approach is the possibility of checking agent
+compliance with respect to contracts and the potential of
+compilingafairlylargesubsetofBPELconstructstoISPL.
+We illustrated the methodologyusing a realistic case study
+witha reasonablylargestate space.
+It is worth mentioning that there are two limitations in
+the current framework: (1) Since MCMAS cannot handle
+real-time systems, some BPEL constructs such as dead-
+lineandtimeouthavetobetranslatedintonon-deterministic
+behaviours. For real-time properties, a secondary model
+checker,suchasU PPAAL[3]orVerics[6],canbeintegrated
+intotheframework. (2)Thecontractsthatcanbedealtwith
+are written in natural languages and translated into BPEL
+code manually. Nowadays, some contracting languages,
+e.g., [14], have been proposed in order to construct elec-
+tronic contracts to be processed by computers. Currently,
+weareworkingoncompilingelectroniccontractsintoISPL
+toallowmoreautomation.
+Acknowledgements. The research described in this pa-
+per is partly supported by the European Commission
+Framework 6 funded project CONTRACT (IST Project
+Number034418).
+References
+[1] A. Lomuscio and H. Qu and M. Solanki. Towards verify-
+ingcomplianceinagent-basedwebservicecompositions. In
+Proceedings of The Seventh International Joint Conference
+on Autonomous Agents and Multi-agent systems (AAMAS-
+08). ACMPress,2008.[2] L. Baresi, D. Bianculli, C. Ghezzi, S. Guinea, and P. Spo-
+letini. Validation of web service compositions. IET Softw. ,
+1(6):219–232, December 2007.
+[3] J.Bengtsson,K.Larsen,F.Larsson,P.Pettersson,W.Yi ,and
+C.Weise. NewgenerationofU PPAAL.InProceedingsofthe
+International Workshop on Software Tools for Technology
+Transfer,1998.
+[4] R. Bordini, M. Fisher, C. Pardavila, W. Visser, and
+M.Wooldridge. Model checkingmulti-agentprograms with
+CASP. In CAV’03, volume LNCS 2725, pages 110–113.
+Springer-Verlag,2003.
+[5] D Booth, H Haas, F McCabe, E Newcomer, M Cham-
+pion, C Ferris and D Orchard. Web service architec-
+ture. W3c working group note 11 february 2004, 2004.
+http://www.w3.org/TR/ws-arch/.
+[6] P. Dembi´ nski, A. Janowska, P. Janowski, W. Penczek,
+A. P´ olrola, M. Szreter, B. Wo´ zna, and A. Zbrzezny. Ver ICS:
+A tool for verifying Timed Automata and Estelle speciﬁca-
+tions. InProc.of the 9thInt. Conf.on Tools andAlgorithms
+for the Construction and Analysis of Systems (TACAS’03) ,
+volume 2619 of LNCS, pages 278–283. Springer-Verlag,
+2003.
+[7] H.Foster,S.Uchitel,J.Magee,andJ.Kramer. Model-bas ed
+veriﬁcationof webservice compositions. In Proceedings of
+the10th IEEEInternational Conference onAutomatedSoft-
+ware Engineering . IEEEPress,2003.
+[8] X. Fu, T. Bultan, and J. Su. Analysis of interacting BPEL
+web services. In 13th international conference on World
+Wide Web , pages 621–630. ACMPress,2004.
+[9] P.Gammie and R. van der Meyden. MCK: Model checking
+thelogicofknowledge. In Proceedingsof16thInternational
+Conference on Computer Aided Veriﬁcation (CAV’04) , vol-
+ume 3114 of LNCS,pages 479–483. Springer-Verlag,2004.
+[10] A. Lomuscio, H. Qu, and F. Raimondi. Mcmas 0.9 alpha.
+http://sourceforge.net/projects/ist-contract/, 2008.
+[11] A. Lomuscio and F. Raimondi. MCMAS: A model checker
+for multi-agent systems. In Proceedings of TACAS 2006 ,
+volume 3920, pages 450–454. Springer Verlag,2006.
+[12] A. Lomuscio and M. Sergot. Deontic interpreted systems .
+StudiaLogica , 75(1):63–92, 2003.
+[13] OASIS Web service Business Process Execution Language
+(WSBPEL) TC. Web service Business Process Execution
+Language Version2.0, 2007.
+[14] S. Panagiotidi, J. Vazquez-Salceda, S. Alvarez-Napag ao,
+S. Ortega-Martorell, S. Willmott, and P. S. R. Confalonieri .
+Contracting agent language. In Symposium on Behaviour
+RegulationinMulti-Agent Systems , 2008.
+[15] W. Penczek and A. Lomuscio. Verifying epistemic prop-
+erties of multi-agent systems via bounded model checking.
+Fundamenta Informaticae , 55(2):167–185, 2003.
+[16] M. Pistore, F. Barbon, P. Bertoli, D. Shaparau, and
+P.Traverso. Planningand monitoringwebservice composi-
+tion. InAIMSA, pages 106–115, 2004.
+[17] M. Wooldridge. An introduction to multi-agent systems .
+JohnWiley, England, 2002.
+[18] X. Fu T. Bultan and J. Su. Conversation Protocols: A For-
+malism for Speciﬁcation and Veriﬁcation of Reactive Elec-
+tronic Services. In CIAA, volume LNCS 2759, pages 188–
+200. Springer-Verlag,2003.
+8

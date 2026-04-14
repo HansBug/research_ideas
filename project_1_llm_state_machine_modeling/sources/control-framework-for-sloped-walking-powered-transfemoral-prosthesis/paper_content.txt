@@ -1,0 +1,875 @@
+--- Page 1 ---
+ORIGINAL RESEARCH
+published: 11 January 2022
+doi: 10.3389/fnbot.2021.790060
+Frontiers in Neurorobotics | www.frontiersin.org 1 January 2022 | Volume 15 | Article 790060Editedby:
+DongmingGan,
+PurdueUniversity,UnitedStates
+Reviewedby:
+JiahaoChen,
+InstituteofAutomation,Chinese
+AcademyofSciences(CAS),China
+DeepakJoshi,
+IndianInstitutesofTechnology(IIT),
+India
+XikaiTu,
+NorthCarolinaStateUniversity,
+UnitedStates
+*Correspondence:
+PilwonHur
+pilwonhur@gist.ac.kr
+Received: 06October2021
+Accepted: 06December2021
+Published: 11January2022
+Citation:
+AnilKumarN,PatrickS,HongWand
+HurP(2022)ControlFrameworkfor
+SlopedWalkingWithaPowered
+TransfemoralProsthesis.
+Front.Neurorobot.15:790060.
+doi:10.3389/fnbot.2021.790060Control Framework for Sloped
+Walking With a Powered
+Transfemoral Prosthesis
+NamitaAnilKumar1,ShawaneePatrick1,WoolimHong1andPilwonHur2*
+1DepartmentofMechanicalEngineering,TexasA&MUniversit y,CollegeStation,TX,UnitedStates,2Departmentof
+MechanicalEngineering,GwangjuInstituteofScienceandTe chnology,Gwangju,SouthKorea
+User customization of a lower-limb powered Prosthesis cont roller remains a challenge
+to this date. Controllers adopting impedance control strat egies mandate tedious tuning
+for every joint, terrain condition, and user. Moreover, no r elationship is known to exist
+between the joint control parameters and the slope conditio n. We present a control
+frameworkcomposedofimpedancecontrolandtrajectorytra cking,withthetransitioning
+between the two strategies facilitated by Bezier curves. Th e impedance (stiffness and
+damping) functions vary as polynomials during the stance ph ase for both the knee and
+ankle. These functions were derived through least squares o ptimization with healthy
+human sloped walking data. The functions derived for each sl ope condition were
+simpliﬁedusingprincipalcomponentanalysis.Theweights oftheresultingbasisfunctions
+were found to obey monotonic trends within upslope and downs lope walking, proving
+the existence of a relationship between the joint parameter functions and the slope
+angle. Using these trends, one can now design a controller fo r any given slope angle.
+Amputeeandable-bodiedwalkingtrialswithapoweredtrans femoralprosthesisrevealed
+the controller to generate a healthy human gait. The observe d kinematic and kinetic
+trends with the slope angle were similar to those found in hea lthy walking.
+Keywords: transfemoral prosthesis control, impedance contro l, rehabilitation, sloped walking, biomedical
+1. INTRODUCTION
+Despitedecadesofresearchintheﬁeldofhumanrehabilitatio n,energeticallypassivedevicesarethe
+onlycommerciallyavailablesolutionstoapopulationof1.3mi llionlower-limbamputees( Ziegler-
+Grahametal.,2008 ).Anenergeticallypassivedeviceisonethatstoresanddiss ipatesenergywithout
+providing net positive work to the gait cycle. The lacking positi ve work is compensated for by the
+user’s residual limb, which overexerts the hip and pelvic mus cles, eventually leading to severe gait
+asymmetries( Kaufmanetal.,2012 ).Poweredprostheses,ontheotherhand,provideanetpositive
+workandconsequentlylowerauser’smetaboliccost( HerrandGrabowski,2012;Goldfarb,2013 ).
+The Ossur Power knee is the only powered prosthesis currently o n the market, however it tends
+to not fair well with middle aged and older users ( Hafner and Askew, 2015 ). It also performs
+poorlywhilewalkingonslopedterrain( Wolfetal.,2012;Morgenrothetal.,2018 ).OtherPowered
+prosthesiskneesremainviableonlyinacademicsettingsdue tonumerouschallenges.Settingaside
+the more obvious challenges like battery limitations and th e bulkiness of motors, a less tackled
+obstacleisthediﬃcultyincustomizingthepoweredprosthesi stotheuser.
+
+--- Page 2 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+User customization of a prosthesis involves changes to the
+mechanical and control system. Mechanical customization is
+actively studied and some solutions include customized soc kets,
+adjustable height and foot stiﬀness ( Colombo et al., 2010; Fey
+et al., 2013; Comotti et al., 2015; Beck et al., 2017; Lecomte
+et al., 2021 ). Customization of control systems, on the contrary,
+has seen minor contributions with the most signiﬁcant being
+the implementation of machine learning for auto-tuning leve l
+walking control parameters ( Wen et al., 2020 ). The lack of
+contributions on this topic is primarily due to the problem’s
+sheer magnitude. Since each mode of operation (e.g., standin g,
+walking, stair ascent or descent) has its own control law,
+user customization of the control system involves tuning an
+unmanageable large number of tuning parameters. At this
+point, any solution that simpliﬁes this behemoth of a task is
+appreciated. In this paper, we will focus on walking controllers
+for transfemoral prostheses on sloped terrain. We will study th e
+complexitiesofwalkingonslopesandthenproposeaframework
+with far fewer tuning parameters than the state-of-the-art, thus
+simplifyinguser-customizationofprosthesiscontrol.
+1.1. Background on Sloped Walking
+Control
+There are two well-known approaches to prosthesis walking
+control: impedance control and variants of feedback
+linearization. The known implementations of the latter are
+limited to level and upslope walking ( Paredes et al., 2016 ). The
+former has been extensively used for level and sloped walking
+(both upslope and downslope). Almost all implementations
+of impedance control involves sectioning a gait cycle into 4– 6
+phases. These phases form the states in a ﬁnite state machine.
+A gait cycle is deﬁned to begin and end with a heel-strike on
+the same limb. We will refer to the progress in a gait cycle usin g
+twhich is 0 at gait cycle initiation and 1 (equivalent to 100%)
+at completion. Important kinematic moments in the gait cycle
+like heel-oﬀ and maximum knee ﬂexion during swing phase are
+chosen as switching points between states. Figure1presents the
+gaitcyclewithimportantkinematicinstances.Thecontroli nput
+atanyinstant tisgivenby
+τ(t)=K(θ(t)−θref)+D˙θ(t) (1)
+whereKandDrepresentthejointstiﬀnessandviscousdamping,
+respectively. The term θrefis the reference or equilibrium angle
+of the joint, while θ(·) and˙θ(·) signify the joint’s position
+andvelocity.
+Within each state of the ﬁnite state machine, the joint
+parameters (i.e., K,D, andθref) can be assigned constant values
+or vary as a function of some gait characteristic. In Sup et al.
+(2008), the joint parameters were constant within each state
+in the ﬁnite state machine. Estimates for the parameters were
+determinedthroughaleastsquaresoptimizationthatminimi zed
+thediﬀerencebetweenthetorquefromEquation(1)andthejoi nt
+torque from healthy human walking data. While this approach
+has been proven to emulate healthy walking kinematics and
+kinetics, it involves careful tuning of the initially estim ated joint
+parameters (numbering at 12–18 per joint). In Sup et al. (2011) ,the authors recognized similarities between gait kinemati cs
+and kinetics on diﬀerent slope angles, and suggested using
+the same impedance control strategy as in Sup et al. (2008)
+but with diﬀerent joint parameters. Despite its success, this
+process involved re-tuning the joint parameters for every slo pe
+angle.Wen et al. (2020) attempted solving this issue through
+machinelearning,buttheirattemptsarelimitedtolevelwal king.
+Additionally,themannerinwhichweproducealabeleddata-se t
+is debatable since we are yet to quantify crucial parameters l ike
+usercomfort.
+Varying the parameters as a function of gait characteristics
+has the beneﬁt of fewer states in the ﬁnite state machine and
+hence fewer tuning parameters. Fey et al. (2014) andBhakta
+et al. (2019) variedKandθrefas functions of the joint angle
+and the vertical ground reaction force during mid and termin al
+stancephases.Theparameterswereheldconstantduringalloth er
+statesintheﬁnitestatemachine.Whileamputeetrialsproved the
+controller’ssuccess,theresultsin Feyetal.(2014) werelimitedto
+levelandupslopewalkingand Bhaktaetal.(2019) didnotdiscuss
+gaitkinetics.Furthermore, the controller’s reliance ona load cell
+increases the ultimate cost and weight of the prosthesis. In Anil
+Kumar et al. (2020) , the joint parameters varied as a function
+oftduring stance phase, thus no longer requiring a load cell.
+However, the proposed control scheme was limited to the ankle
+jointandlevelwalking.Whiletheaboveapproacheslessenedth e
+number of states during the stance phase, Lawson et al. (2014)
+andHong et al. (2019) lessened the number of states during
+the swing phase by tracking healthy human walking trajectori es.
+In fact,Hong et al. (2019) exploited the similarities between
+the sloped walking knee swing trajectories by tracking the lev el
+walking trajectory regardless of the slope angle. The smooth
+transitioning between stance and swing phases was facilitat ed
+by Bezier curves and a low gain PD controller toward the end
+of the gait cycle helped with terrain adaptation. Despite havin g
+fewertuningparameters,theapplicationoftheaboveapproaches
+to sloped walking still requires re-tuning several parameters for
+everyslopeangle.
+1.2. Objectives
+The problem of re-tuning the joint parameters for every slope
+angle is worsened by the absent relationship between the joi nt
+parameters and the slope angle. Our primary objective is to
+ﬁll this gap in knowledge. The methods used in Anil Kumar
+et al. (2020) andHong et al. (2019) form the foundation of
+our work. We ﬁrst study the kinematics and kinetics of sloped
+walking, based on which we determine the objectives of our
+control framework for sloped walking (refer to section 2). In
+section 3, we present the control framework with our estimate s
+of the joint control parameters across all slope angles. The
+estimation is an extension of the one presented in Anil Kumar
+et al. (2020) wherein KandDare polynomials of t. Upon
+estimating the joint control parameters for all slope angles, we
+extract basis functions spanning the entire set and propose a
+mapping between the joint parameters and the slope angle. Said
+mapping and the basis functions form the two contributions of
+this paper. In section 4, we discuss the implementation of our
+control framework on a powered transfemoral prosthesis. We
+Frontiers in Neurorobotics | www.frontiersin.org 2 January 2022 | Volume 15 | Article 790060
+
+--- Page 3 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 1 | Gait cycle with important kinematic moments used as switchi ng conditions in a ﬁnite state machine.
+also present a thorough tuning regime for our control strateg y.
+The experimental results with an amputee and an able-bodied
+subject are then reported and discussed in section 5. Section 6
+willhaveourconcludingremarks.
+2. A BRIEF ANALYSIS OF SLOPED
+WALKING
+General practice in the ﬁeld of walking assistive devices dee ms
+a device successful if it can emulate healthy gait kinetics a nd
+kinematics. In accordance to this norm, we determined contr ol
+objectives by studying sloped walking kinematics and kineti cs.
+Useful resources include: a n=20 study by Montgomery and
+Grabowski (2018) , an=10 study by Embry et al. (2018b)
+whichalsohasapubliclyavailabledata-set( Embryetal.,2018a ).
+Thestudy( MontgomeryandGrabowski,2018 )presentsdatafor
+7 slope angles ( −9◦to+9◦at 3◦increments), while the study
+(Embry et al., 2018a )presents results for 9 slope angles ( −10◦to
++10◦at2.5◦increments).Wediscussthekinematicsandkinetics
+of sloped walking in the following sections. Since our goal is to
+design a controller for a transfemoral prosthesis, we limit o ur
+discussion to the knee and ankle joint. The highlighted point s
+will form the means by which we evaluate the performance of
+ourcontroller.
+2.1. Kinematics
+Some important kinematic aspects of sloped walking are as
+follows. (i) The switching conditions of a ﬁnite state machi ne
+(shown in Figure1) change with the slope and walking speed.
+The instants of ﬂat-foot ( φFF) and heel-oﬀ ( φHO) occur earlier
+as the slope angle varies from steep downslope to steep upslope.
+On the other hand, toe-oﬀ ( φTO) is delayed as the slope varies.
+(ii) The amount of ankle plantar-ﬂexion at toe-oﬀ increases a s
+the slope varies from steep downslope to steep upslope. (iii) The
+ankle angle at the beginning of the gait cycle changes with th e
+slope angle to facilitate terrain adaptation (i.e., the ankle is more
+dorsiﬂexedonupslopes).(iv)Theamountofknee-ﬂexiondurin g
+initialstancephaseincreaseswiththesteepnessoftheslopeb eit
+upslopeordownslope.2.2. Kinetics
+The most important trends in sloped walking kinetics are: (i)
+the increase in push-oﬀ peak ankle torque and power as the
+slope varies from steep downslope to upslope; (ii) more knee
+ﬂexion torque during initial stance phase on steeper slopes; (i ii)
+more knee extension torque during terminal stance phase on
+upslopes. These trends are more strictly obeyed in Montgomery
+and Grabowski (2018) , while the data pertaining to −5◦,−2.5◦
+inEmbryetal.(2018a) deviatefromthetrends.Infact,theentire
+downslope walking torque data from Embry et al. (2018a) is
+higher than that found in Montgomery and Grabowski (2018)
+by a factor of 1.3–1.5. We believe ( Montgomery and Grabowski,
+2018) to be more accurate owing to the larger sample size.
+On the other hand, the data in Embry et al. (2018a) spans
+more slope conditions which helps greatly while determining
+therelationshipbetweencontrolparametersandtheslopeang le.
+So, we continue to use the data from Embry et al. (2018a) ,
+keeping in mind some anomalies are to be expected during
+downslope walking. We will account for these anomalies during
+implementation and accordingly adjust our ﬁnal proposed
+controlscheme.
+3. PROPOSED CONTROL FRAMEWORK
+Asstatedin Lawsonetal.(2014) ,itisbeneﬁcialtouseimpedance
+control during stance phase since the limb is in contact with t he
+terrain. During swing phase, it suﬃces to merely track health y
+human trajectories. We thus propose a ﬁnite state machine with
+4 states for the ankle and 5 for the knee. Both joints have thre e
+statesduringstancephasewiththeswitchesat φFF,φHO,andφTO.
+In other words, State 1 begins at heel-strike and ends with φFF,
+followedbyState2whichconcludesat φHO.State3,thelaststate
+in the stance phase, ends at φTO. During these three states, we
+adopted the same strategy as in Anil Kumar et al. (2020) . That
+is,KandDvaryaspolynomialfunctionsof t,whileθrefassumes
+constantvaluesduringeachstate.
+During swing phase, ankle angle does not vary much
+regardlessoftheslopeangle–amotionachievableusingconstan t
+K,D, andθrefvalues. The knee, on the contrary, is more
+animated, requiring a more motion rich trajectory. To achie ve
+the desired motion while having few tuning parameters, we
+Frontiers in Neurorobotics | www.frontiersin.org 3 January 2022 | Volume 15 | Article 790060
+
+--- Page 4 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+adopted the strategy proposed in Hong et al. (2019) to control
+thekneejoint.Thatis,asinglelevel-walkingtrajectoryi stracked
+using a PD controller regardless of the slope angle. The level
+walkingtrajectoryin Embryetal.(2018a) wasusedasthedesired
+trajectory.ABeziercurvewasgeneratedinreal-timetosmo othly
+transitionfromtheinstantaneouspositionandvelocityat φTOto
+a predeﬁned point in the level-walking desired swing trajecto ry.
+RefertoSupplementaryFigure1 forapictorialrepresentationof
+thecontrolframework.
+3.1. Estimation of Joint Parameter
+Functions
+To emulate healthy human gait kinetics using the impedance
+controlstrategy,weselectjointsparameterssuchthatthet orque
+produced is similar to that of healthy human walking, say τdata.
+This study used the sloped walking data reported in Embry
+et al. (2018a) forτdata,θ, and˙θ. The latter two are replaced by
+real-time angle and velocity feedback during implementatio n.
+We formulate an optimization that minimizes the norm of the
+diﬀerence between τin (Equation 1) and τdata. Since the knee
+is controlled via impedance control only during stance phase,
+theknee’simpedanceestimation(andtherebycostfunction) was
+limitedtothestancephase.
+Supposing mandnrepresent the order of the KandD
+polynomials, respectively, the impedance parameters at instan t
+t∈[0,1]canbecomputedasfollows,
+K(t)=/braceleftBigg/summationtextm
+i=0kitifor0≤t<φTO
+k0 forφTO≤t≤1(2)
+D(t)=/braceleftBigg/summationtextn
+i=0ditifor0≤t<φTO
+d0 forφTO≤t≤1(3)
+The coeﬃcients of the stiﬀness and damping polynomials are
+given by kianddi, respectively. The stiﬀness and damping
+parameters are assigned the values k0andd0during the swing
+phase.Doingsoenforcescontinuityoftheimpedanceparameter s
+at heel-strike [i.e., K(0)=K(1) andD(0)=D(1)]. Presented
+belowistheoptimizationproblem:
+min
+θref,ki,di/bardblτdata−τ/bardbl2 (4)
+Subjectto: K(t)≥0 D(t)≥0 (5)
+Continuityof KandDatt=φTO(6)
+|θref| ≤c1 (7)
+|/Delta1τ//Delta1t| ≤c2 (8)
+The decision variables are {θref,ki,di}, whereθrefis a set of
+referenceangles,oneforeachstateoftheﬁnitestatemachi ne.The
+constraints listed in Equation (5) force KandDto be positive.
+The constraint Equation (8) assures continuity of the joint
+parameter functions at toe-oﬀ. The scalar, c1, is a bound on the
+referenceangles. c1=16◦fortheankleand c1=36◦fortheknee.
+Further, the constraint Equation (8) forces the resulting τto be
+Lipschitz continuous with constant c2. Additional bounds were
+added,asneeded,torestrictthevalueofthedampingparamete rs.TABLE 1 | Ankle and knee reference angles that resulted from solving t he
+optimization problem and post tuning.
+From optimization Post tuning
+Ankle reference angles (deg)
+Slope State 1 State 2 State 3 State 4 State 1 State 2 State 3 Stat e 4
+−10.0◦−0.03−3.94−5.56 3.58 0.00 2.50 −5.00 0.00
+−5.0◦−2.45−5.30−14.59 2.75 0.00 0.50 −7.50 0.00
+0◦5.60−11.06−16.00 0.84 0.00 −2.00−10.00 2.00
++5◦4.82−14.78−16.00 0.75 4.00 −2.00−10.00 4.00
++10.0◦7.19−15.0−16.00 6.37 8.00 −2.00−10.00 8.00
+Knee reference angles (deg)
+Slope State 1 State 2 State 3 State 1 State 2 State 3
+−10.0◦8.90 10.36 30.00 11.97 10.26 16.33
+−5.0◦13.32 14.21 26.00 11.12 8.04 13.86
+0◦10.26 5.83 13.86 10.26 8.00 13.86
++5.0◦23.52 15.80 20.17 11.12 8.04 13.85
++10.0◦36.00 24.61 20.00 11.97 10.26 13.85
+Valuesfortheslopeanglesnotincludedcanbefoundthroughlinearinterpola tion.
+TheoptimizationproblemwassolvedusingScipy’sminimization
+function. Owing to the non-convex nature of the problem, a
+uniquesolutiondoesnotexist.Resultsfromperturbationstud ies
+(Lee et al., 2016 ) and past studies using least squares approaches
+(Sup et al., 2011 ) helped judge the feasibility of the estimated
+joint parameter functions. Future eﬀorts will involve solvin g the
+optimization problem using heuristics to decouple the stiﬀness
+andreferenceangles,andguaranteeconvergence.
+3.2. Joint Control Parameter Functions
+For both the ankle and the knee, m=n=4 achieved the best
+results. The resulting ankle control parameter functions ob eyed
+some monotonic trends across slope angles: (A1) Ankle stiﬀnes s
+during State 1-2 ( φHStoφHO) was higher on steeper downslope
+and upslope terrain. The higher stiﬀness aids in stability duri ng
+load transference from the trailing limb to the leading limb .
+(A2)DuringState3,anklestiﬀnessincreasedasdownslopeangl e
+grew less steep and the upslopes angle grew more steep. Here,
+the higher stiﬀness helps store more potential energy, resulti ng
+in higher push-oﬀ work. (A3) Ankle damping was found to
+be higher in downslope walking during State 1–2. The higher
+damping helps counter the higher heel-strike impact. (A4) The
+ankle reference angle during State 1 and State 4 was close to
+0◦during level and downslope walking, while it was dorsiﬂexed
+to match the slope angle during upslope walking. (A5) In State
+2-3, the ankle reference angle greatly inﬂuences the genera ted
+push-oﬀ work. The angle is mildly plantarﬂexed during State 2,
+followedbyahigherplantarﬂexedangleinState3.Thesteepnes s
+of the reference angles increased with the steepness of the sl ope
+angle.Thevaluesoftheangleshavebeenreportedin Table1.
+The following points are some of the key trends observed
+in the knee joint parameter functions. (K1) The knee stiﬀness
+Frontiers in Neurorobotics | www.frontiersin.org 4 January 2022 | Volume 15 | Article 790060
+
+--- Page 5 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 2 | Basis joint parameter functions: panels (A1,B1)represent the ankle stiffness (Nm/rad/kg) and damping (Nm/rad /kg) basis functions, while panels (A2,B2)
+are the corresponding weights. Panels (C1,D1)represent the knee stiffness (Nm/rad/kg) and damping (Nms/rad /kg) basis functions, while panels (C2,D2)are the
+corresponding weights.
+during State 1–2 was higher at steeper downslope angles, aidin g
+again in countering heel-strike impact and load-transferen ce.
+(K2) On upslope terrain, the knee stiﬀness obeyed an opposite
+trend during State 1–2. The decrease in knee stiﬀness with the
+steepness in the upslope angle is believed to enable the require dhigher knee ﬂexion for terrain adaptation. (K3) During State 3,
+thekneestiﬀnessishigheronsteeperupslopeanglesallowingfor
+more propulsive knee extension while climbing up. (K4) Knee
+damping was found to be high during State 2 at steeper slopes
+(upslope or downslope), while remaining relatively the same
+Frontiers in Neurorobotics | www.frontiersin.org 5 January 2022 | Volume 15 | Article 790060
+
+--- Page 6 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 3 | Experimental set up: panel (A)is the powered transfemoral
+prosthesis, AMPRO II, panel (B)shows the amputee walking with AMPRO II in
+a motion capture environment.
+during less steep slopes. (K4) The knee reference angles were
+moreﬂexedonsteeperslopes(downslopeandSupslope).
+Basis functions spanning all stiﬀness and damping functions
+for each joint were extracted using Principal Component
+Analysis. The functions and their weights have been shown in
+Figure2. The entire set of stiﬀness and damping functions can
+be found in SupplementaryFigure2 . The weights of the basis
+functions were found to vary monotonically within downslope
+and upslope walking. Some aberrations were observed, namely:
+(i)theanklestiﬀnessweightswerehigherthananticipateddu ring
+downslope walking, leading to a discontinuity in weights fro m
+downslope to level walking. (ii) the ankle damping weights
+during downslope walking did not portray strong monotonicity .
+(ii) the weights corresponding to the knee’s functions at
+−2.5◦did not abide by the monotonic trends. We attribute
+these observations to the anomalies in the data set (discuss ed
+in section 2.2). We account for these peculiarities during
+controller implementation and tuning. The corrective measu res
+arereportedinthesectionsthatfollow.
+4. IMPLEMENTATION
+The proposed controller was tested on a powered transfemoral
+prosthesis, AMPRO II (shown in Figure3A ). The following
+subsections present details on the hardware, controller
+implementation, and the experiment with an amputee and
+anable-bodiedsubject.
+4.1. Hardware
+AMPRO II is operated by an embedded system (BeagleBone
+Black, element14, Leeds, United Kingdom) that controls an
+actuated ankle and knee joint. The prosthesis is equipped with
+a 3D printed foot with a toe joint. A force sensor (FlexiForce
+A502, Tekscan, South Boston, MA) placed under the heel helps
+detect heel-strike, while an Inertial Measurement Unit (MPU
+9150,SparkFunElectronics,Niwot,CO)aﬃxedtotheuser’sth ighmeasures the thigh angle. These two parameters help determin e
+the state in the ﬁnite state machine and the progress within
+eachstate.
+4.2. State Estimation
+The progress in the gait cycle ( t) is identiﬁed using a phase
+variable that monotonically increases from 0 to 1 as the gait
+progresses from 0 to 100%. The variable is initialized upon heel -
+strike detection. A phase portrait of the thigh angle against i ts
+integral over the course of gait cycle presents an ellipse. The
+arc-tangent of the two plotted parameters is among the most
+successfulandpopularcandidatesforaphasevariable( Villarreal
+and Gregg, 2016 ). Normalizing factors determined in real-time
+from prior gait cycles, help manipulate the usual elliptical phase
+portrait into a more circular one. Doing so results in a more
+linearly varying phase variable and consistent state estimatio n
+(Hongetal.,2021 ).
+4.3. Controller Tuning
+Given the slope’s angle, an initial guess for joint stiﬀness an d
+damping can be found using the impedance basis functions and
+their weights. The resulting stiﬀness and damping functions c an
+be tuned further to generate the desired gait kinematics and
+kinetics. Prior to tuning, both joint parameter functions sh ould
+be multiplied by the subject’s body mass. This study proposes
+tuningthejointparameterfunctionsasfollows.
+Ktuned(t)=αK(t)+γ (9)
+Dtuned(t)=βD(t) (10)
+whereαandβare scaling factors, and γis an oﬀset. Each joint
+has its own scaling and oﬀset terms. Enumerated below is the
+tuning procedure. This study recommends tuning the controll er
+forlevel,−10◦,and+10◦slope,followedbylinearlyinterpolating
+parametersforotherslopeangles.
+1. The factor αaﬀects the amount of resistance provided by the
+systemtoankledorsiﬂexionandkneeﬂexion.Withtheankle,
+loweringαreduces push-oﬀ assistance, while with the knee,
+loweringαchallenges the stability of a ﬂexed knee. Perform
+thefollowinginiterations.
+(a) Decrease αuntil the desired ankle dorsiﬂexion and knee
+ﬂexionisobservedinState2.Thisstudytargeted5◦ofankle
+dorsiﬂexionand10◦ofkneeﬂexion.
+(b) According to the participant’s preference, increase or
+decrease push-oﬀ assistance by, respectively, increasing or
+decreasing the ankle’s plantarﬂexed reference angle during
+State3.
+2. Tuneβto reach a compromise between the amount of
+damping preferred by the participant at heel-strike and
+smoothterrainadaptationpostheel-strike.
+3. Increase the oﬀset γto counter gravity and maintain ankle
+dorsiﬂexion during swing phase and knee ﬂexion during
+terminalstancephase.
+4. Fordownslopewalking:
+(a) Settheankle’sswingreferenceangleto0◦.
+Frontiers in Neurorobotics | www.frontiersin.org 6 January 2022 | Volume 15 | Article 790060
+
+--- Page 7 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 4 | Amputee results for upslope walking and downslope walking. The subﬁgures labeled (A)correspond to the AMPRO II ankle joint, (M)are for the
+Microprocessor knee prosthesis.
+(b) Reduce the knee’s reference angles to within the
+acceleration limits of the actuators while maintaining
+more ﬂexion than level walking. The reference angle
+during State 2 ensures smooth transition from State 1 to
+State3.5. Forupslopewalking:
+(a) Increase ankle dorsiﬂexion and knee ﬂexion in State 1 to
+facilitate terrain adaptation while respecting the actuators’
+accelerationlimits.
+Frontiers in Neurorobotics | www.frontiersin.org 7 January 2022 | Volume 15 | Article 790060
+
+--- Page 8 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 5 | Able-bodied subject results for upslope walking and downsl ope walking. The subﬁgures labeled (U)correspond to the upslope walking, while those
+labeled(D)are for downslope walking.
+(b) Set the ankle’s swing reference angle to be equal to that i n
+State1.
+(c) Reduce the knee’s reference angle during State
+2 to be lower than that in State 1. Accordingly
+reduce State 3 reference angle to obey the actuators’
+accelerationlimits.6. Tune the ankle’s State 2 reference angle to allow easy
+transitioningfromState1toState3.
+4.4. Experiment
+An indoor experiment was conducted with a transfemoral
+amputee (female, 164 cm, 66 kg w/o prosthesis). She utilizes
+Frontiers in Neurorobotics | www.frontiersin.org 8 January 2022 | Volume 15 | Article 790060
+
+--- Page 9 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 6 | Peak ankle push-off power experienced by the amputee with th e
+microprocessor knee and AMPRO II. Also shown is the peak push-o ff power
+experienced by the able-bodied subject with AMPRO II.
+a microprocessor knee, X3 Knee (Ottobock), with a Freedom
+Runaway Foot (Ottobock). Figure3 depicts the amputee
+walking with Ampro II. The amputee found walking on
+slopes uncomfortable even with the accustomed microprocesso r
+prosthesis. Thus the amputee was only asked to walk on slopes
+angles−5◦,+5◦with both AMPRO II and her microprocessor
+knee. The amputee underwent 8 training sessions with AMPRO
+II before data collection. To demonstrate feasibility of th e
+controller on steeper slopes, a healthy young subject (female ,
+164 cm, 50 kg) was asked to walk with the prosthesis used a L-
+shape simulator. The healthy subject walked at −10◦,−5◦, 0◦,
++5◦, and+10◦. All trials were conducted on an AMTI force-
+sensingtandemtreadmillinamotioncapturefacilitywithVic on
+Vantage motion capture cameras. The amputee chose to walk
+at 0.54 m/s on slopes, while the able-bodied subject walked at
+0.62 m/s. A low speed was selected to avoid fatigue and assure
+safety. The chosen walking speed was ﬁxed across all slope
+conditions. The controller was also tested with the amputee a t
+0.72 m/s on level ground to demonstrate the feasibility of th e
+proposedcontrolleratdiﬀerentwalkingspeeds.Thesafetyofth e
+participant was assured with handrails located on either side of
+the treadmill. More images of the experiment can be found in
+SupplementaryFigures3 ,4. The experiment protocol has been
+approvedbytheInstitutionalReviewBoard(IRB)atTexasA&M
+University(IRB2015-0607F).
+Toassesstheamputee’sgaitdynamicswiththemicroprocessor
+knee markers were places on the lower body bony landmarks.
+Vicon Nexus was used to capture, ﬁlter, and interpolate marker
+data.Visual3Dsoftwarewasthenusedtocreateamodelspeciﬁ c
+totheuserandcalculateanglesandtorques.
+5. RESULTS AND DISCUSSION
+Forbothamputeeandable-bodiedsubject,theankle’sandkne e’s
+tuning parameters were as follows. α=1,β=1, and
+γ=50 for level and upslope walking. During downslope
+walking,α=0.67. This value is consistent with our observation
+in section 2.1, i.e., the downslope walking kinematic data inEmbry et al. (2018a) is higher than the expected value by a
+factor of 1.5 =1/α. The tuned reference angles can be found
+inTable1. The ﬁnal proposed scheme in section 6 accounts
+for this corrective factor. The results for the amputee have
+been presented in Figures4 ,7, while those for the able-bodied
+subject can be found in Figure5. The gathered kinematics and
+kinetics were ﬁltered using a Butterworth ﬁlter with a cut-oﬀ
+frequency of 20 Hz. The results correspond to the average of
+10 gait cycles. Figure6 reports the peak ankle push-oﬀ for
+bothsubjects.
+5.1. Amputee Trials
+Figure7 presents the amputee’s walking data with AMPRO
+II at two speeds. As the walking speed increased, we noted
+an increase in ankle dorsiﬂexion during terminal stance phas e
+and ankle plantarﬂexion during toe-oﬀ. The amputee’s gait
+with both AMPRO II and the microprocessor knee on slopes
+(Figure4) portrayed some trends similar to those found in
+healthy walking (see section 2). The ankle push-oﬀ moment,
+amount of knee extension moment between 40 and 60% of
+the gait cycle, and peak ankle push-oﬀ power increased as the
+slope varied from downslope to upslope. Also observed was
+higher ankle dorsiﬂexion at the beginning and end of the gait
+cycle during upslope walking. During downslope walking, the
+amputee’s microprocessor knee was heavily ﬂexed during stanc e
+phase,resultinginhighkneeﬂexionmoment.
+The amputee was able to walk with AMPRO II at various
+walking speeds. The push-oﬀ assistance and the kinematic
+diﬀerences noted earlier have been well-documented in able-
+bodied walking studies ( Embry et al., 2018a; Montgomery and
+Grabowski, 2018 ). This proves the feasibility of the control
+scheme at diﬀerent walking speeds. While using AMPRO II,
+the amputee’s sloped walking kinematics and kinetics obeyed
+the monotonic trends found in healthy walking. With more
+gait training, these results are expected to improve. While usi ng
+the microprocessor knee on downslopes, knee ﬂexion gradually
+increasedfromheel-striketoapproximately70%ofthegaitcy cle
+(Figure4M3 ). This gradual yielding is due to the passive nature
+of the device, i.e., the device oﬀers no active resistance to kn ee
+ﬂexion.Studiessuchas Alexanderetal.(2017) havemadesimilar
+observations with other microprocessor knees. Additionally , the
+higher ankle dorsiﬂexion at the beginning and end of the gait
+cycle while walking upslope implies terrain adaptation. These
+resultsprovethefeasibilityofthecontrolschemeforampute es.
+5.2. Able-Bodied Trials
+Some notable trends observed in ankle kinematics include:
+(i) higher dorsiﬂexed ankle at the beginning and end of the
+gait cycle on upslopes with the dorsiﬂexion increasing as the
+steepness of the slope increased, (ii) lesser toe-oﬀ plantarﬂe xion
+on downslopes, (iii) higher knee ﬂexion during initial stanc e
+phase on sloped terrain than level ground. In terms of kinetics ,
+weobserved:(i)thattheanklepeaktorqueandpower( Figure7)
+varied monotonically with the angle as it varied from −10◦to
++10◦,(ii)higherkneeextensiontorqueonupslopes.
+The variation in ankle angle at the beginning and end of the
+gaitcyclefacilitatesterrainadaptation.Thehigherplantar ﬂexion
+Frontiers in Neurorobotics | www.frontiersin.org 9 January 2022 | Volume 15 | Article 790060
+
+--- Page 10 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+FIGURE 7 | Amputee results for level walking with AMPRO II at different s peeds. The subﬁgures labeled (A1,A2)correspond to the ankle, while those labeled (K1,K2)
+are for the knee.
+attoe-oﬀduringupslopewalkingiscorrelatedtothehigherpus h-
+oﬀ torque and power. Higher push-oﬀ assistance is required as
+theslopevaries −10◦to+10◦.Thehigherextensiontorque,ankle
+push-oﬀtorqueandpoweronupslopedterrainareallcorrelated
+with this need for higher push-oﬀ assistance. All of these tre nds
+are observed in healthy walking (detailed in section 2), prov ing
+thefeasibilityofthecontrolschemeonsteeperslopes.
+5.3. Comparison Against the
+State-of-the-Art
+As mentioned in section 1.1, other attempts at sloped walking
+with impedance control strategies include ( Sup et al., 2011; Fey
+et al., 2014; Bhakta et al., 2019 ). In this section, we will compare
+our results against the cited works using three metrics: num ber
+of tuning parameters per joint, capability of terrain adaptatio n,
+and variation in push-oﬀ assistance with the slope angle. Sup
+et al. (2011) had 15 tuning parameters per joint, of which 8–12
+parameters were manually tuned for each tested slope conditio n
+(0◦,+5◦,+10◦).Theresultsindicatedterrainadaptationand
+increase in push-oﬀ power as the slope angle increased. Both
+Fey et al. (2014) andBhakta et al. (2019) implemented control
+strategieswhereintheparametersvariedaslinearfunction softhe
+instantaneous joint angle or shank force. Overall, there wer e at
+least 12 tuning parameters per joint. Fey et al. (2014) tested the
+strategy at 0◦and+10◦. The results showed no sign of terrain
+adaptation, however the push-oﬀ torque increased from level
+to inclined walking. Bhakta et al. (2019) , on the other hand,
+testedthecontrolstrategyonvariousupanddownslopewalkin g
+conditions: 0◦,±7.8◦,±11.0◦,±12.4◦,±14.0◦). The kinematicTABLE2 | Thecoefﬁcientsoftheimplementedstiffnessanddampingpol ynomials.
+Comp. k4 k3 k2 k1 k0
+Ankle stiffness (Nm/rad/kg)
+Comp. 1 −108.61 234.61 −160.63 35.23 0.66
+Comp. 2 −476.16 493.56 −146.91 14.63 0.52
+Knee stiffness (Nm/rad/kg)
+Comp. 1 −13.291 −74.669 96.030 −27.672 2.525
+Comp. 2 77.418 −41.999 −8.480 2.949 2.317
+Comp. d4 d3 d2 d1 d0
+Ankle damping (Nms/rad/kg)
+Comp. 1 −3.41 5.75 −3.18 0.58 0.00
+Comp. 2 1.75 −1.60 0.36 −0.02 0.01
+Knee damping (Nms/rad/kg)
+Comp. 1 3.905 −4.844 1.622 −0.074 0.001
+Comp. 2 −13.022 16.146 −6.402 0.866 0.000
+ThewordComponenthasbeenabbreviatedtoComp.
+results showed some signs of terrain adaptation from level to
+sloped walking, but there was no identiﬁable diﬀerence from
+oneslopeangletoanotherwithindownslopeorupslopewalking
+results. Moreover, Bhakta et al. (2019) does not present kinetic
+results,limitingourabilitytogaugethecontroller’sperf ormance.
+Of all prior listed works, Sup et al. (2011) is the only
+study that successfully accomplished terrain adaptation and
+slope-based power assistance scaling during upslope walking.
+Our controller accomplishes the same with far fewer tuning
+Frontiers in Neurorobotics | www.frontiersin.org 10 January 2022 | Volume 15 | Article 790060
+
+--- Page 11 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+TABLE 3 | Weight functions for the ankle and knee joint control parame ter basis
+functions.
+Ankle Knee
+wK1(ψ) −0.137ψ−0.060 for
+ψ <0, 0 otherwise0.005ψ2+0.090ψ−
+0.270
+wK2(ψ) 0.032 ψ+0.84 −0.001ψ2−0.065ψ+
+1.106
+wD1(ψ) −0.05ψforψ <0, 0
+otherwise0.001ψ3+0.014ψ2−
+0.002ψ−0.621
+wD2(ψ) 0.5 −0.003ψ2−0.007ψ+
+1.118
+parameters per joint (7–8 parameters per joint) than all three
+listed works. Unlike ( Sup et al., 2011; Fey et al., 2014 ), our
+controller was tested on both up and downslope walking
+conditions, further strengthening our controller’s perfor mance.
+Further,unlike( Bhaktaetal.,2019 )whichislimitedtokinematic
+analysis, our controller can reproduce both kinematic and
+kinetic trends of healthy human sloped walking. Said trend
+reproduction is observable not only from downslope to upslope
+walking, but also from one slope angle to another within
+both downslope and upslope walking. Thus, our controller is a
+signiﬁcant improvement on existing sloped walking impedance
+controlstrategies.
+6. CONCLUSION
+We propose a sloped walking control framework with fewer
+tuning parameters than the state-of-the-art controllers. T he
+framework includes impedance control during stance phase
+and trajectory tracking during swing phase. The smooth
+transition between the two is facilitated by Bezier curves.
+The joint control parameters were determined through
+a data-driven optimization. Basis functions spanning the
+entire set of joint parameter functions were found through
+Principle Component Analysis. Given any slope angle, the
+stiﬀness and damping control parameters can be found
+asfollows:
+Ktuned(t)=α(wK1(ψ)KComp1(t)+wK2(ψ)KComp2(t))+γ
+(11)
+Dtuned(t)=β(wD1(ψ)DComp1(t)+wD2(ψ)DComp2(t)) (12)
+whereKComp1,KComp2represent stiﬀness basis functions,
+whileDComp1,DComp2are the damping basis functions. The
+associated polynomial coeﬃcients can be found in Table2. The
+weights for these basis polynomials vary as functions of the
+slope angle and are represented by wK1(ψ),wK2(ψ),wD1(ψ)
+andwD2(ψ). The coeﬃcients of the weights have been
+tabulated in Table3. A thorough tuning routine has also
+been prescribed in this paper. The tuning process can be
+automated using rule-based fuzzy logic. Testing with anamputee and able-bodied subject proved the feasibility of the
+proposed scheme at varying slope angles. Monotonic trends
+consistent with healthy human walking data were observed
+in both kinematics and kinetics. To name a few: push-oﬀ
+assistance (from both ankle and knee joint) increased as
+the slope angle increased from downslope angles to upslope
+angles, and the ankle angle at the beginning and end of
+the gait cycle varied according to the slope angle–enabling
+terrainadaptation.
+Future work involves improving the phase variable based
+estimation scheme for sloped walking. Currently, phase varia ble
+schemes do not account the relationship between toe-oﬀ timi ng
+and slope angle (i.e., toe-oﬀ timing is delayed as the slope
+variesfromsteepdownslopetosteepupslopeterrain).Improving
+the scheme would greatly reduce the standard deviations of
+peak push-oﬀ power seen in Figure6. A possible approach
+is to mount a force sensor at the toe and update the toe-
+oﬀ timing–in the ﬁnite state machine–from one gait cycle to
+another. Another improvement to the existing control scheme
+involves employing a continuously varying reference angle.
+Doing so would improve the stability of the system under
+uncertainties in state estimation ( Mohammadi and Gregg,
+2019). Additionally, a continuously varying reference angle
+could further reduce the number of states in the ﬁnite state
+machine, further easing user customization of the proposed
+controlscheme.
+DATA AVAILABILITY STATEMENT
+The raw data supporting the conclusions of this article will be
+madeavailablebytheauthors,withoutunduereservation.
+ETHICS STATEMENT
+The studies involving human participants were reviewed
+and approved by Institutional Review Board at Texas
+A&M University. The patients/participants provided
+their written informed consent to participate in
+thisstudy.
+AUTHOR CONTRIBUTIONS
+NA was the primary contributor for the proposed control
+scheme, data collection and processing. SP contributed to da ta
+collection and analysis. WH assisted with implementation
+of the control scheme. PH served as the principal
+investigator. All authors contributed to writing and revie wing
+thispaper.
+SUPPLEMENTARY MATERIAL
+The Supplementary Material for this article can be found
+online at: https://www.frontiersin.org/articles/10.338 9/fnbot.
+2021.790060/full#supplementary-material
+Frontiers in Neurorobotics | www.frontiersin.org 11 January 2022 | Volume 15 | Article 790060
+
+--- Page 12 ---
+Anil Kumar et al. Prosthesis Control for Sloped Walking
+REFERENCES
+Alexander, N., Strutzenberger, G., and Schwameder, H. (2017). T he use of the
+gradualyieldingmechanismduringdownhillwalkingintransfemorala mputee
+gait-acasestudy. ISBSProc.Arch .35:249.doi:10.1097/JPO.0000000000000293
+Anil Kumar, N., Hong, W., and Hur, P. (2020). “Impedance control of a
+transfemoral prosthesis using continuously varying ankle impedances and
+multiple equilibria,” in 2020 IEEE International Conference on Robotics and
+Automation (Paris:ICRA),1755–1761.doi:10.1109/ICRA40945.2020.91 97565
+Beck, O. N., Taboga, P., and Grabowski, A. M. (2017). Prostheti c model,
+but not stiﬀness or height, aﬀects the metabolic cost of running for
+athletes with unilateral transtibial amputations. J. Appl. Physiol . 123, 38–48.
+doi:10.1152/japplphysiol.00896.2016
+Bhakta, K., Camargo, J., Kunapuli, P., Childers, L., and Young, A .
+(2019). Impedance control strategies for enhancing sloped and leve l
+walking capabilities for individuals with transfemoral amputation
+using a powered multi-joint prosthesis. Military Med . 185, 490–499.
+doi:10.1093/milmed/usz229
+Colombo,G.,Filippi,S.,Rizzi,C.,andRotini,F.(2010).Anewde signparadigmfor
+the development of custom-ﬁt soft sockets for lower limb prostheses. Comput.
+Indus.61,513–523.doi:10.1016/j.compind.2010.03.008
+Comotti, C., Regazzoni, D., Rizzi, C., and Vitali, A. (2015). “ Multi-material
+design and 3D printing method of lower limb prosthetic sockets,”
+inACM International Conference Proceeding Series (Lisbon), 42–45.
+doi:10.1145/2838944.2838955
+Embry,K.,Villarreal,D.,Macaluso,R.,andGregg,R.(2018a).Theeﬀe ctofwalking
+inclineandspeedonhumanlegkinematics,kinetics,andEMG. IEEEDataport .
+doi:10.21227/gk32-e868
+Embry, K. R., Villarreal, D. J., Macaluso, R. L., and Gregg, R. D. (2018b ).
+Modeling the kinematics of human locomotion over continuously vary ing
+speeds and inclines. IEEE Trans. Neural Syst. Rehabil. Eng . 26, 2342–2350.
+doi:10.1109/TNSRE.2018.2879570
+Fey, N. P., Klute, G. K., and Neptune, R. R. (2013). Altering prosthe tic foot
+stiﬀness inﬂuences foot and muscle function during below-knee a mputee
+walking: a modeling and simulation analysis. J. Biomech . 46, 637–644.
+doi:10.1016/j.jbiomech.2012.11.051
+Fey,N.P.,Simon,A.M.,Young,A.J.,andHargrove,L.J.(2014) .Controllingknee
+swinginitiationandankleplantarﬂexionwithanactiveprosthes isonleveland
+inclinedsurfacesatvariablewalkingspeeds. IEEEJ.Transl.Eng.HealthMed .2,
+1–12.doi:10.1109/JTEHM.2014.2343228
+Goldfarb, M. (2013). Consideration of powered prosthetic component s as they
+relate to microprocessor knee systems. J. Prosthet. Orthot . 25, P65–P75.
+doi:10.1097/JPO.0b013e3182a8953e
+Hafner, B. J., and Askew, R. L. (2015). Physical performance and self-report
+outcomesassociatedwithuseofpassive,adaptive,andactivepro sthetickneesin
+personswithunilateral,transfemoralamputation:Randomizedcrossov ertrial.
+J.Rehabil.Res.Dev .52,677–700.doi:10.1682/JRRD.2014.09.0210
+Herr,H.M.,andGrabowski,A.M.(2012).Bionicankle-footprosthes isnormalizes
+walking gait for persons with leg amputation. Proc. R. Soc. B Biol. Sci . 279,
+457–464.doi:10.1098/rspb.2011.1194
+Hong, W., Kumar, N. A., and Hur, P. (2021). A phase-shifting based human gait
+phase estimation for powered transfemoral prostheses. IEEE Robot. Automat.
+Lett.6,5113–5120.doi:10.1109/LRA.2021.3068907
+Hong, W., Paredes, V., Chao, K., Patrick, S., and Hur, P. (2019). “ Consolidated
+control framework to control a powered transfemoral prosthesis over
+inclined terrain conditions,” in 2019 International Conference on Robotics and
+Automation(ICRA) ,2838–2844.doi:10.1109/ICRA.2019.8794140
+Kaufman,K.R.,Frittoli,S.,andFrigo,C.A.(2012).Gaitasymmetry oftransfemoral
+amputees using mechanical and microprocessor-controlled prosthetic kn ees.
+Clin.Biomech .27,460–465.doi:10.1016/j.clinbiomech.2011.11.011
+Lawson, B. E., Mitchell, J., Truex, D., Shultz, A., Ledoux, E., an d Goldfarb, M.
+(2014). A robotic leg prosthesis: design, control, and implementation .IEEE
+Robot.Automat.Mag .21,70–81.doi:10.1109/MRA.2014.2360303Lecomte, C., Ármannsdóttir, A. L., Starker, F., Tryggvason, H., Bri em, K., and
+Brynjolfsson,S.(2021).Variablestiﬀnessfootdesignandvalid ation.J.Biomech .
+122:110440.doi:10.1016/j.jbiomech.2021.110440
+Lee, H., Rouse, E. J., and Krebs, H. I. (2016). Summary of human ankle
+mechanicalimpedanceduringwalking. IEEEJ.Transl.Eng.HealthMed .4,1–7.
+doi:10.1109/JTEHM.2016.2601613
+Mohammadi,A.,andGregg,R.D.(2019).Variableimpedancecontrolof powered
+knee prostheses using human-inspired algebraic curves. J. Comput. Nonlinear
+Dyn.14,1–10.doi:10.1115/1.4043002
+Montgomery, J. R., and Grabowski, A. M. (2018). The contribution s of ankle,
+knee and hip joint work to individual leg work change during uphill
+and downhill walking over a range of speeds. R. Soc. Open Sci . 5:180550.
+doi:10.1098/rsos.180550
+Morgenroth, D. C., Roland, M., Pruziner, A. L., and Czerniecki, J . M.
+(2018). Transfemoral amputee intact limb loading and compensatory gait
+mechanics during down slope ambulation and the eﬀect of prosthetic
+knee mechanisms. Clin. Biomech . 55, 65–72. doi: 10.1016/j.clinbiomech.2018.
+04.007
+Paredes, V., Hong, W., Patrick, S., and Hur, P. (2016). “Upslope walkin g with
+transfemoral prosthesis using optimization based spline generation, ” in2016
+IEEE/RSJ International Conference on Intelligent Robots an d Systems (IROS)
+(Daejeon),3204–3211.doi:10.1109/IROS.2016.7759495
+Sup, F., Bohara, A., and Goldfarb, M. (2008). Design and control o f
+a powered transfemoral prosthesis. Int. J. Robot. Res . 27, 263–273.
+doi:10.1177/0278364907084588
+Sup, F., Varol, H. A., and Goldfarb, M. (2011). Upslope walking with a powe red
+knee and ankle prosthesis: initial results with an amputee subject. IEEE Trans.
+NeuralSyst.Rehabil.Eng .19,71–78.doi:10.1109/TNSRE.2010.2087360
+Villarreal, D. J., and Gregg, R. D. (2016). “Uniﬁed phase variables of rela tive
+degree two for human locomotion,” in 2016 IEEE 38th Annual International
+Conference of the Engineering in Medicine and Biology Societ y (EMBC)
+(Orlando:IEEE),6262–6267.doi:10.1109/EMBC.2016.759216 0
+Wen, Y., Si, J., Brandt, A., Gao, X., and Huang, H. H. (2020). Online
+reinforcement learning control for the personalization of a robotic knee
+prosthesis. IEEETrans.Cybernet .50,2346–2356.doi:10.1109/TCYB.2019.2890
+974
+Wolf, E. J., Everding, V. Q., Linberg, A. L., Schnall, B. L., Czerni ecki, J. M., and
+Gambel, J. M. (2012). Assessment of transfemoral amputees using C-leg and
+power knee for ascending and descending inclines and steps. J. Rehabil. Res.
+Dev.49,831–842.doi:10.1682/JRRD.2010.12.0234
+Ziegler-Graham, K., MacKenzie, E. J., Ephraim, P. L., Travison, T. G ., and
+Brookmeyer, R. (2008). Estimating the prevalence of limb loss in the
+United States: 2005 to 2050. Arch. Phys. Med. Rehabil . 89, 422–429.
+doi:10.1016/j.apmr.2007.11.005
+Conﬂict of Interest: The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be c onstrued as a
+potentialconﬂictofinterest.
+Publisher’sNote: Allclaimsexpressedinthisarticlearesolelythoseoftheauthors
+and do not necessarily represent those oftheir aﬃliated organizat ions, or those of
+thepublisher,theeditorsandthereviewers.Anyproductthatmayb eevaluatedin
+this article, or claim that may be made by its manufacturer, is not gua ranteed or
+endorsedbythepublisher.
+Copyright © 2022 Anil Kumar, Patrick, Hong and Hur. This is an open-a ccess
+articledistributedunderthetermsoftheCreativeCommons AttributionLicense(CC
+BY). The use, distribution or reproduction in other forums is permitted, provided
+the original author(s) and the copyright owner(s) are credit ed and that the original
+publication in this journal is cited, in accordance with acc epted academic practice.
+No use, distribution or reproduction is permitted which doe s not comply with these
+terms.
+Frontiers in Neurorobotics | www.frontiersin.org 12 January 2022 | Volume 15 | Article 790060

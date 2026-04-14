@@ -1,0 +1,772 @@
+--- Page 1 ---
+EXECUTION CONTROL OF ROBOTIC TASKS
+FOR MARINE SYSTEMS
+
+Massimo Caccia, Gabriele Bruzzone*
+
+* CNR-ISSIA Sez. di Genova
+Via De Marini 6
+16149 Genova
+
+Abstract: The problem of controlling the execution of navigation, guidance and
+control tasks of a mobile robot, reconfiguring their states according to the demands
+
+of the human operator or automatic coordinator, is faced in this paper focusing
+on the design and implementation of a Petri net based execution controller for
+
+© 2005 IFAC.
+
+marine robots Copyright
+
+Keywords: Petri-nets, discrete-event systems, marine systems, supervision,
+
+architectures.
+
+1. INTRODUCTION
+
+The concept of execution control as interface be-
+tween the asynchronous, event-driven, decision
+making and planning levels and the synchronous,
+continuous time, functional execution level was
+introduced and discussed in the work carried out
+by CNRS-LAAS on architectures for autonomous
+mobile robots (Alami et al., 1998), where the
+role of the execution controller in handling the
+conflicts between different functional modules and
+maintaining a logical description of their oper-
+ating states was pointed out. In particular, this
+layer guarantees the safety of the system by check-
+ing the commands sent to the functional level
+preventing it from entering in an unconsistent
+condition with respect to a model of desirable or
+undesirable states (Ingrand and Py, 2002). The
+execution control level is synchronous with the
+underlying functional modules, in the sense that
+it processes all the commands sent to and reports
+coming back from them, and acts in guaranteed
+real-time. The need for the pilot of an advanced
+ROV of reconfiguring the set of active motion
+estimation and control tasks according to the cur-
+rent goal and environmental conditions motivated
+
+he research on execution control in the field of
+underwater robotics (Coletta et al., 2001). Indeed,
+when the system is complex, it is impossible for
+he human operator remembering and executing
+in a few tenths of seconds relatively long sequences
+of task activation and deactivation commands
+in order to switch from different sets of active
+asks maintaining the system consistent. On the
+other hand, embedding all the task dependencies
+and conflicts, and the consequent sequences of
+ask activation and deactivation commands when
+switching between different operating contexts, in
+he software is not reliable as soon as the num-
+er of tasks increases. Research in the field of
+ROVs focused on the definition of a set of rules,
+governing the behaviour of the execution control
+level, which can be derived by the analysis of
+he hierarchical I/O relationships between tasks
+and variables (the so called task-variable graph),
+independently from the semantics of the specific
+asks. Since these rules can be easily translated in
+constraints on the state of a generic finite state
+machine representing the execution level, the no-
+able results of (Yamalidou et al., 1996) in au-
+omatically generating a controlling net from the
+marking of the original one, and the well-known
+
+ 
+
+ 
+
+
+--- Page 2 ---
+capabilities of Petri nets in modelling concurrency,
+parallelism and resource contention, Petri nets
+were used to represent the execution level as a
+discrete event system. Results, including suitable
+Petri net search algorithm for system reconfigura-
+tion, are summarised in (Bruzzone et al., 2003),
+while an examples of the use of Petri net for
+mission control of marine systems is reported
+in (Oliveira et al., 1998). This research pointed
+out strong differences in controlling the execution
+of estimate and control tasks. In particular, the
+fundamental requirement of a monitoring-oriented
+sensing and perception architecture, activating as
+more as sensors and estimators is possible and
+making available all the data processing results,
+makes the part of the execution controller con-
+cerning the motion estimation tasks basically a
+free evoluting system, mainly conditioned by the
+uncontrollable results of estimator inizializations.
+On the other hand activation and deactivation
+of control tasks can be executed instantaneously
+without any initialization phase. This motivated
+the separation of the execution control of motion
+estimation and control tasks, producing, as a con-
+sequence, a more effective capability in managing
+the switch between different configurations of the
+guidance and control system executing the same
+high level function.
+
+ 
+
+2. EXECUTION LEVEL
+
+The Execution level embeds a set T of elemen-
+ary tasks, i.e., software components capable of
+erforming specific motion estimation and control
+‘unctions, which communicate through variables,
+i.e., shared memory used for task I/O. According
+o their semantics, the set V of variables can
+e divided in the distinct subsets of estimation
+variables EV , containing the values measured by
+sensors as well as the outputs of the filtering al-
+gorithms, and control variables CV , representing
+he references to be tracked by the control tasks.
+For each task t € T , the symbols Z(t) and O(t)
+denote the sets of input and output variables of
+he task, and the symbols CZ(t), CO(t), EZ(t),
+and €O(t) indicate the control input variables,
+control output variables, estimation input vari-
+ables, and estimation output variables, respec-
+ively. Moreover, the symbol CT denotes the set
+of control tasks, i.e., CT 全 {teT:EO(t) =},
+and €T represents the set of estimation tasks,
+
+ie, ETS {te T: €O(t) 40}.
+
+ 
+
+   
+
+2.1 DES task representation
+
+From the point of view of its execution state, a
+generic task can be running (R) or idle (I), and
+the state transitions are caused by the operations
+
+of activating (A) or deactivating (D) the task.
+When the activation of a task may fail, as, for in-
+stance, in the case of estimation tasks which may
+sometimes converge too slowly (or not converging
+at all), the init (In) state has to be introduced to
+complete the task description. Depending on the
+conclusion of the initialization phase, the success
+(S) and fail (F) transitions lead the task in the
+running and idle state respectively. It is worth
+noting that these transitions are uncontrollable
+(their triggering is function of the perceived data),
+but observable. Petri net representation of tasks
+is shown in Figure 1. Denoting with «(X) the
+
+>
+
+@        ta aro
+La        D       @
+ot a
+Fig. 1. Petri Net representation of tasks.
+
+number of tokens in place X, the place invariants
+x(R)+a(1) =1and «(R)+2(1)+a(Un) =1
+hold in the case of not initialized and initialized
+tasks respectively.
+
+2.2 Properties and rules
+
+The execution of complex missions requires that
+he connections between tasks are dynamically es-
+ablished according to mission events and require-
+ments. Each task does not a priori know which
+asks will produce/consume its input/output vari-
+ables, and suitable task activation and deactiva-
+ion operations determine these connections at
+any time instant. A set of run-time constraints,
+inking the task I/O relationships to the structure
+of the control and motion estimation architecture,
+enable the verification of the correctness of any
+ask configuration, guaranteeing that fundamen-
+al properties of data consistency, from bottom
+upward activation and hierarchical structure of
+he control leg are complied. In particular, data
+consistency is guaranteed by the property of no
+concurrent writing stating that there cannot be
+
+ 
+
+wo or more running tasks sharing a common
+output variable
+
+wev, >
+
+t€T vEO(t)
+
+«(R) <1         (1)
+
+The assumption that this property holds at any
+time instant is the basic rule controlling the be-
+haviour of the guidance and control system, while,
+due to the need of distinguishing each estimate
+variable for system monitoring purposes, it gets a
+
+
+--- Page 3 ---
+design constraint in the case of the motion estima-
+tion system. The from bottom upward activation
+of the execution level is guaranteed by the rules of
+complete writing of consumed estimation variables
+(2) and complete tracking of written control vari-
+ables (3), stating that, at any time instant, each
+used estimate must be generated by a running
+task and all the computed control values must be
+tracked.
+
+VW € EV, Vte T: v € ET(t)         (2)
+eh)+ > a(R) >1
+
+TET vEEO(r)
+VW €CY, Vt ECT :v € CO(t)        (3)
+
+e(h)+ So a(R) 21
+
+T€TvECT(r)
+
+In addition to rule (3), the hierarchical nature of
+the control architecture is established by the no
+concurrent tracking property, which guarantees at
+any time the uniqueness of the control strategy:
+
+Vu €CY,      >
+
+tE€CT :vECT(t)
+
+a(R) <1           (4)
+
+It is worth noting that rules (1) and (4) represent
+mutual exclusion constraints between tasks, while
+tules (2) and (3) express the dependency of task
+t from the set of tasks T.
+
+3. EXECUTION CONTROL
+
+As shown in section 2.2 the execution of the
+estimate tasks is controlled only by the design
+constraint (1) and rule (2), while control tasks,
+as well as switch between estimation variables
+(Bruzzone et al., 2003), do not involve any ini-
+tialization phase. In addition, the requirement
+of having, at any time, a representation of the
+robot and environment state as wider as possible
+forces the execution controller to automatically
+activate any estimate task as soon as it is pos-
+sible, while control tasks must be activated only
+to satisfy specific requests of the decision layer.
+Thus, the different behaviour in the management
+of control and estimate tasks suggested the im-
+plementation of a Motion Estimation Execution
+Controller (MEEC) supervising the free evolu-
+tion, i.e. complete activation, of the sensing and
+perception system and executing external com-
+mands establishing some task has to be idle, and
+of a Guidance and Control Execution Controller
+(GCEC), managing, through Petri net control and
+reconfiguration, mission control commands and
+sensing failure events. The Petri net based GCEC
+will be discussed in the following.
+
+3.1 Controlling net generation
+
+Since rules (1)-(4) on the behavior of the exe-
+cution level are expressed as predicates on the
+Petri net marking, the Petri net can be modified
+such that it enforces the requested predicates.
+According the approach proposed and discussed in
+(Yamalidou et al., 1996), this can be done adding
+a controlling net, obtaining a resulting net of the
+form (the classical matrix notation for Petri nets
+is used):
+
+HE). Ele Ble ©
+
+where the vectors x and D denote the state and
+the transition matrix of the original net, while x,
+and D, denote the state and the transition matrix
+of the controlling net, respectively. Details on the
+application of the above-mentioned approach to
+the an execution level structure including estimate
+tasks too can be found in (Bruzzone et al., 2002).
+Here, it is worth noting that information about
+the conflicts and dependencies among the tasks
+is completely embedded by the controlling net.
+In order to simplify the reconfiguration of the
+net, it is quite important to minimise the size of
+the controlling net, i.e. the number of introduced
+constraints on the marking of the net. This can
+be done on the basis of some simple observations.
+
+(1) Given two sets of constraints Sox <1
+teA
+and Sox < 1 such that B C A then the
+teB
+constraint on places B is redundant. This can
+be, for instance, the case of mutex constraints
+between tasks originated by the application
+of rules (1) and (4) to different variables.
+(2) Defined a set of consumers C and a set of
+producers P of a resource r, if any consumer
+is active then at least one producer must be
+
+active, i.e.
+Soe   (Rp) = win {1   > >   x(Re  |     (6)
+PE刀                       cEC
+
+In the case > x(R-) < 1 the constraint (6)
+
+cEC
+can be written as
+
+Sori.      )+ )+ Sox   (Rp) >card(C) (7)
+
+cEC               pEeP
+
+and if   So x(
+
+peP
+the mutual exclusion of the consumers is
+
+redundant. Considering the sets of produc-
+ers {tr €T:v€CZ(r)} and of consumers
+{r€T:vECO(r)}, this property can be
+immediately used to group multiple instances
+
+Ry) < 1 the constraint on
+
+
+--- Page 4 ---
+of task dependency constraints originated by
+applying rule (3) to control variables gen-
+erated by more than one task. The fact
+that the number of running tasks for each
+set is < 1 is guaranteed by rules (1) and
+(4). As far as rule (2) is concerned, the set
+of producers {tr € T : v € EO(r)} is guaran-
+teed to be of cardinality one by the de-
+sign constraint (1), while constraints can
+be grouped only for the subsets M of
+the consumers {r € T : v € EZ(r)} such that
+SO 2(Rm) <1.
+meM
+
+(3) Given two multiple dependency constraints
+
+of the type consumer-producer denoted by
+subscripts a and b respectively, if Ca C Cy
+and Py, C P, then constraint a is redundant.
+
+3.2 Petri net reconfiguration
+
+The execution control module is triggered by
+events, i.e. external commands on the desired
+state of some tasks. A goal is defined as the
+desired presence of a token in a subset of places
+of the original net. Denoting with G the set of the
+indexes of the desired places, the corresponding
+
+goal vector x": 7Z9 = {a 42  is satisfied by
+any marking of the net z such that
+x. \ a* = x*
+{?  Z>0                  (8)
+
+where ./ is the element-wise AND operator and
+the condition x > Q represents the admissibility,
+ie. non negative marking, of the Petri net config-
+uration x. Unlike the case discussed in (Caccia
+et al., 2001), the reduction of the problem to
+controlling the execution of guidance and control
+asks, which have no initialization phase, allows
+he assumption that all the transitions are in-
+stantaneous and can be fired simultaneously. This
+simplifies the work of the execution controller,
+hat, when a goal x, is established, has to find
+a firing vector fy such that 2» + Df, = &,, being
+po the actual state of the net, without taking any
+care of the consistency of the net with respect to
+he transition firing order. Thus, a simple search
+algorithm based on the boolean backward spread-
+ing of the utility throgh Petri net transitions and
+controlling places is proposed. At first, given a
+Petri net with state a9, all the predecessor tran-
+sitions of the marked places of the original net
+are inhibited from firing (state-inhibition). Then
+he algorithm is initialized by constructing a set
+of useful transitions consisting of the predeces-
+sors of the goal places. It is worth noting that,
+since the goal places are in the original net their
+correspondence with the predecessor transitions is
+
+ 
+
+biunique. At the generic step, given a set of useful
+transitions J, and the associated firing vector
+f(T): £, = {0 fer.  leading the net to the
+state x = 2) + Df (TZ,), a set of useful controlling
+places is defined as P,, = {p: 2p <0, p> nr},
+where n, denotes the size of the original net. In
+practice, the empty places, where the presence of
+a token is needed to allow the firing of a set of
+transitions TJ,,, are considered useful for T,,. Of
+course, if ty+Df (Tu) > 0 then T,, is an admissible
+solution. If transitions can be seen as a logical
+AND in the backward propagation of utility, each
+useful place p € P,, behaves as logical OR between
+its np» not state-inhibited predecessor transitions
+Tu(p) = {tp, ---tpagy }. Thus, the set of useful
+places P,, generates all the possible combinations
+of useful transitions T°” = {t1,..., tm} with
+ty € Tu(pi),---, tm € Tu(pm) and m = card(P,.).
+Each combination of useful transitions is then ap-
+plied to the Petri net iterating the algorithm. If a
+combination of useful transitions 7," is equal to
+the previous set T,,, this means that the backward
+propagation of utility has encountered a deadlock
+condition.Since the above-proposed algorithms al-
+lows to find all the possible solutions, i.e. sets
+of firing transitions satisfying the goal, that is
+compatible with the typical complexity of guid-
+ance and control systems of marine robots and the
+state-of-the-art computing power, the problem is
+to define some suitable critera to select the, in
+some sense, optimal solution. As shown in section
+4, the basic criterium of minimising the number of
+fired transitions can force the deactivation of high
+level guidance functions which could be executed
+by alternative set of tasks involving, to be consis-
+tently activated, the firing of a higher number of
+transitions. The execution controller has to take
+into account, in some way, the level of the tasks
+in the guidance and control hierarchy. Defining
+a task chain of order n an ordered list of tasks
+Cn = {tn,---, T1} such that Vj € [1, n— 1], au €
+CV: v €CO(T;41)Av € CL (r7;), a task 7 is of order
+N, when N is the maximum order of the task
+chains led by 7. The order of a solution is defined
+as the maximum order of the tasks whose state
+is modified by its transitions. Thus, among the
+solutions of minimum order, the one constituted
+by the minimum number of transitions is selected.
+
+ 
+
+ 
+
+ 
+
+4. EXPERIMENTAL RESULTS
+
+The above described methodology for controlling
+the execution of a robot execution level repre-
+sented through Petri nets, which is the natural
+evolution of a system already implemented in the
+control system of the Romeo ROV, is part of the
+Free Robot Architecture project, currently under
+development at CNR-ISSIA Sez. di Genova, rep-
+
+
+--- Page 5 ---
+resenting the temptative of developing an archi-
+tecture for the rapid prototyping, design, imple-
+mentation and running of robotic control systems
+completely based on free operating systems and
+software tools. In this framework a gcpetrinetgen-
+erator, generating a controlled Petri net from a
+description of the guidance and control system
+based on a task-variable graph, and a gcerecution-
+controller, controlling the execution of the guid-
+ance and control tasks, have been implemented
+in the Linux 2.6.6 operating system using the
+GNU C+4 3.2.3 compiler and run on a 3.06 GHz
+laptop. In the following an example of managing
+the guidance and control tasks of a marine robot
+on the horizontal plane is examined, pointing out
+the system capabilities in dealing with alternative
+possibilities of executing high order guidance func-
+tions. The I/O relationships between the guidance
+and control tasks and variables of the steering
+system of a marine vehicle are shown in the task-
+variable graph of Figure 2, where x, psi, r and Tr
+denote position, heading, yaw rate and yaw torque
+respectively, and the *s indicate the reference val-
+ues. In particular, Figure 2 represents different
+
+                                                                                                                                                                                                         
+
+下<
+
+Fig. 2. Task-Variable Graph representation of the
+execution level.
+guidance and control strategies of steering a vehi-
+cle to reach a desired position 7% p, assuming that.
+the vehicle surge speed is controlled by some other
+module. Mutual exclusion constraints guarantee-
+ing the consistency of the data and the uniqueness
+of the adopted control strategy are visible by the
+reader at a glance, and are summarised in table 1
+as computed by gcpetrinetgenerator. In this case
+there are no redundant mutual exclusion con-
+straints. The constraints, computed by gcpetrinet-
+generator by applying the compact consumer-
+producer form of rules (2) and (3) discussed in
+section 3.1, observation (2), are reported in table
+
+Table 1. Mutual exclusion constraints
+
+R(1): no concurrent writing
+
+conflicting tasks                          on variable
+TrRefOp xCntrl psiCntrl rCntrl           TrRef
+rRefOp xGuid psiGuid                      rRef
+psiRefOp xRoute                            psiRef
+R(4): no concurrent tracking
+
+conflicting tasks                          on variable
+xRoute xGuid xCntrl                       xRef
+psiGuid psiCntrl                             psiRef
+Rule (1) and (4) MUTEX constraints
+TrRefOp xCntrl psiCntrl rCntrl
+
+rRefOp xGuid psiGuid
+
+psiRefOp xRoute
+
+xRoute xGuid xCntrl
+
+psiGuid psiCntrl
+
+Table 2. Task dependence constraints.
+
+R(2): complete writing of consumed estimates
+
+on variable consumer (Idle)     producer (Run)
+
+r              psiCntrl rCntrl       rSensor
+
+x                xRoute xGuid xC- __xSensor
+ntrl
+
+psi              xCntrl psiCntrl       psiSensor
+
+psi            xGuid psiGuid       psiSensor
+
+psi            xGuid xCntrl         psiSensor
+
+psi             psiGuid psiCntrl     psiSensor
+
+R(3): complete tracking of written controls
+on variable consumer (Idle)     producer (Run)
+
+TrRef         TrRefOp xCntrl  TrActuator
+psiCntrl rCntrl
+rRef           rRefOp     xGuid — rCntrl
+psiGuid
+xRef            xRefOp                 xRoute xGuid xC-
+ntrl
+psiRef         psiRefOp xRoute     psiGuid psiCntrl
+
+Redundant MUTEX constraints of consumers
+TrRefOp xCntrl psiCntrl rCntrl
+
+rRefOp xGuid psiGuid
+
+psiRefOp xRoute
+
+xRoute xGuid xCntrl
+
+psiGuid psiCntrl
+
+Table 3. Constraint summary.
+Rule (1) and (4) MUTEX constraints
+
+Rule (2) and (3) dependence constraints
+
+consumer (Idle)             producer (Running)
+
+psiCntrl rCntrl                rSensor
+
+xRoute xGuid xCntrl         xSensor
+
+xCntrl psiCntrl              psiSensor
+
+xGuid psiGuid               psiSensor
+
+xGuid xCntrl                  psiSensor
+
+psiGuid psiCntrl              psiSensor
+
+TrRefOp xCntrl psiCntrl TrActuator
+
+rCntrl
+
+rRefOp xGuid psiGuid       rCntrl
+
+xRefOp                        xRoute xGuid xCntrl
+
+psiRefOp xRoute                 psiGuid psiCntrl
+
+2. In particular, the constraints on the variable psi
+are grouped according the subsets of the above-
+computed MUTEX constraints. It is worth noting
+how the constraints on the mutual exclusion are
+redundant, reducing the constraints originated by
+the application of rules (1) to (4) to those reported
+in table 3. Once built the controlled Petri net,
+
+
+--- Page 6 ---
+Table 4. ZRejfOp task activation .
+
+Goal: xRefOp RUNNING           solutions: 4
+
+Solution 1:         order 4,             size 8
+xSensor             ACTIVATE
+psiSensor            ACTIVATE
+rSensor              ACTIVATE
+xRefOp             ACTIVATE
+xRoute              ACTIVATE
+psiGuid             ACTIVATE
+rCntrl               ACTIVATE
+TrActuator         ACTIVATE
+
+Solution 2:         order 4,            size 5
+xSensor             ACTIVATE
+psiSensor            ACTIVATE
+xRefOp             ACTIVATE
+xCntrl               ACTIVATE
+TrActuator         ACTIVATE
+
+Solution 3:         order 4,            size 7
+xSensor             ACTIVATE
+psiSensor            ACTIVATE
+rSensor              ACTIVATE
+xRefOp             ACTIVATE
+xRoute              ACTIVATE
+psiCntrl             ACTIVATE
+TrActuator         ACTIVATE
+
+Solution 4:         order 4,             size 7
+xSensor             ACTIVATE
+psiSensor            ACTIVATE
+rSensor              ACTIVATE
+xRefOp             ACTIVATE
+xGuid               ACTIVATE
+rCntrl               ACTIVATE
+TrActuator         ACTIVATE
+
+Selected solution: 2       elapsed time: 7.146 ms
+
+Running Tasks
+xSensor psiSensor xRefOp xCntrl TrActuator
+
+the execution controller can process the operator
+commands according to the rules defined in 3.2.
+At first the gcerecutioncontroller is commanded
+to activate the tracking of the desired position,
+i.e. to put the xRefOp task in the running state,
+starting from a complete idle state. As shown
+in table 4, the execution controller individuated
+all the possible ways of executing the desired
+command, and selected the one of minimum size.
+Indeed, all the computed solutions were of order
+4, imposed by firing a transition of task «Ref Op.
+Once applied the selected solution, the execution
+controller is asked to deactivate the xC'ntrl task.
+In this case, as shown in table 5, the solution with
+the minimum number of firing transitions would
+deactivate any position tracking function. This
+system capability is maintained active thanks to
+the minimum order criterium, introduced at the
+end of section 3.2, which forces the selection of
+solution 4 involving the swith between position
+control and guidance. The capability of handling
+the switch between different control strategies
+without inserting any switch transition explicitely
+in the Petri net is the main advance of this re-
+search with respect to previous work summarised
+in (Bruzzone et al., 2003).
+
+Table 5. xCntrl task deactivation.
+
+Goal: xCntrl IDLE                  solutions: 4
+
+Solution 1:         order 3,            size 5
+rSensor            ACTIVATE
+xRoute             ACTIVATE
+xCntrl             DEACTIVATE
+psiGuid           ACTIVATE
+rCntrl             ACTIVATE
+Solution 2:         order 4,            size 2
+xRefOp            DEACTIVATE
+xCntrl             DEACTIVATE
+Solution 3:         order 3,            size 4
+rSensor            ACTIVATE
+xRoute             ACTIVATE
+xCntrl             DEACTIVATE
+psiCntrl            ACTIVATE
+Solution 4:         order 2,            size 4
+rSensor            ACTIVATE
+xGuid             ACTIVATE
+xCntrl             DEACTIVATE
+rCntrl             ACTIVATE
+
+Selected solution: 4       elapsed time: 6.045 ms
+
+Running Tasks
+xSensor psiSensor rSensor xRefOp xGuid rCntrl TrAc-
+tuator
+
+REFERENCES
+
+Alami, R., R. Chatila, S. Fleury, M. Ghallab
+and F. Ingrand (1998). An architecture for
+autonomy. International Journal of Robotic
+Research 17(4), 315-337.
+
+Bruzzone, Ga., M. Caccia, P. Coletta and
+G. Veruggio (2002). A reconfigurable control
+architecture for mobile robots. In: Proc. of
+MCCA 2002. Lisboa, Portugal.
+
+Bruzzone, Ga., M. Caccia, P. Coletta and
+G. Veruggio (2003). Execution control and
+reconfiguration of navigation, guidance and
+control tasks for UUVs. In: Proc. of MCMC
+2008. Girona, Spain. pp. 137-142.
+
+Caccia, M., P. Coletta, G. Bruzzone and G. Verug-
+gio (2001). Petri net-based execution control
+of robotic tasks. In: Proc. of MCCA 2001.
+Dubrovnik, Croatia.
+
+Coletta, P., R. Bono, G. Bruzzone, M. Caccia
+and G. Veruggio (2001). Execution control of
+the NGC tasks for ROVs. In: Proc. of 2001
+IEEE International Conference on Robotics
+and Automation. pp. 2369-2374.
+
+Ingrand, F. and F. Py (2002). An execution con-
+trol system for autonomous robots. In: Proc.
+of ICRA 702. Vol. 2. pp. 1333-1338.
+
+Oliveira, P., A. Pascoal, V. Silva and C. Sil-
+vestre (1998). The mission control system of
+MARIUS AUV: System design, implementa-
+tion, and tests at sea. Int. J. on Sys. Sci-
+ence - Special Issue on Underwater Robotics
+29(10), 1065-1080.
+
+Yamalidou, K., J. Moody, J. Lemmon and P.J.
+Antsaklis (1996). Feedback control of Petri
+nets based on place invariants. Automatica
+32(1), 15-28.
+

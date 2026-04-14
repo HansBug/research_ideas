@@ -1,0 +1,576 @@
+--- Page 1 ---
+Weak and Nested Class Memory Automata
+Conrad Cotton-Barratt1;?, Andrzej S. Murawski2;??, and C.-H. Luke Ong1,;? ? ?
+1Department of Computer Science, University of Oxford, UK
+fconrad.cotton-barratt,luke.ong g@cs.ox.ac.uk
+2Department of Computer Science, University of Warwick, UK
+a.murawski@warwick.ac.uk
+Abstract. Automata over innite alphabets have recently come to be
+studied extensively as potentially useful tools for solving problems in
+verication and database theory. One popular model of automata studied
+is the Class Memory Automata (CMA), for which the emptiness problem
+is equivalent to Petri Net Reachability. We identify a restriction { which
+we call weakness { of CMA, and show that they are equivalent to three
+existing forms of automata over data languages. Further, we show that in
+the deterministic case they are closed under all Boolean operations, and
+hence have an ExpSpace -complete equivalence problem. We also extend
+CMA to operate over multiple levels of nested data values, and show that
+while these have undecidable emptiness in general, adding the weakness
+constraint recovers decidability of emptiness, via reduction to coverability
+in well-structured transition systems. We also examine connections with
+existing automata over nested data.
+Keywords: Automata, Data Languages, Nested Data
+1 Introduction
+A data word is a word over a nite alphabet in which every position in the
+word also has an associated data value , from an innite domain. Data languages
+provide a useful formalism both for problems in database theory and verication
+[13, 16, 3]. For example, data words can be used to model a system of a potentially
+unbounded number of concurrent processes: the data values are used as identiers
+for the processes, and the data word then gives an interleaving of the actions
+of the processes. Having expressive, decidable logics and automata over data
+languages then allows properties of the modelled system to be checked.
+Class memory automata (CMA) [3] are a natural form of automata over data
+languages. CMA can be thought of as nite state machines extended with the
+ability, on reading a data value, to remember what state the automaton was in
+when it last saw that data value. A run of a CMA is accepting if the following
+two conditions hold: (i) the run ends in a globally accepting state; and (ii) each
+?Supported by an EPSRC Doctoral Training Grant
+??Supported by EPSRC (EP/J019577/1)
+? ? ?Partially supported by Merton College Research Fund
+
+--- Page 2 ---
+2 C. Cotton-Barratt, A. S. Murawski, and C. -H. L. Ong
+data value read in the run was last seen in a locally accepting state. If using
+data values to distinguish semi-autonomous parts of a system, while the rst
+condition can check the system as a whole has behaved correctly, the second of
+these conditions can be used to check that each part of the system independently
+behaved correctly. The emptiness problem for CMA is equivalent to Petri net
+reachability, and while closed under intersection, union, and concatenation, they
+are not closed under complementation, and do not have a decidable equivalence
+problem.
+We earlier described how data words can be used to model concurrent systems:
+each process can be identied by a data value, and CMA can then verify properties
+of the system. What happens when these processes can spawn subprocesses, which
+themselves can spawn subprocesses, and so on? In these situations the parent-
+child relationship between processes becomes important, and a single layer of
+data values cannot capture this; instead we want a notion of nested data values,
+which themselves contain the parent-child relationship. In fact, such nested data
+values have applications beyond just in concurrent systems: they are prime
+candidates for modelling many computational situations in which names are
+used hierarchically. This includes higher-order computation where intermediate
+functional values are being created and named, and later used by referring to
+these names. More generally, this feature is characteristic of numerous encodings
+into the-calculus [14].
+This paper is concerned with nding useful automata models which are
+expressive enough to decide properties we may wish to verify, as well as having
+good closure and decidability properties, which make them easy to abstract our
+queries to. We study a restriction of class memory automata, which we nd leads
+to improved complexity and closure results, at the expense of expressivity. We
+then extend class memory automata to a nested data setting, and nd a decidable
+class of automata in this setting.
+Contributions. In Section 3 we identify a natural restriction of Class Memory
+Automata, which we call weak Class Memory Automata, in which the local-
+acceptance condition of CMA is dropped. We show that these weak CMA are
+equivalent to: (i) Class Counting Automata, which were introduced in [12];
+(ii) non-reset History Register Automata, introduced in [18]; and (iii) locally
+prex-closed Data Automata, introduced in [5].
+These automata have an ExpSpace -complete emptiness problem. The primary
+advantage of having this equivalent model as a kind of Class Memory Automaton
+is that there is a natural notion of determinism, and we show that Deterministic
+Weak CMA are closed under all Boolean operations (and hence have decidable
+containment and equivalence problems).
+In Section 4 we introduce a new notion of nesting for data languages, based
+on tree-structured datasets. This notion does not commit all letters to be at
+the same level of nesting and appears promising from the point of view of
+modelling scenarios with hierarchical name structure, such as concurrent or
+higher-order computation. We extend Class Memory Automata to operate over
+these nested datasets, and show that this extension is Turing-powerful in general,
+
+--- Page 3 ---
+Weak and Nested Class Memory Automata 3
+but reintroducing the Weakness constraint recovers decidability. We show how
+these Nested Data CMA recognise the same string languages as Higher-Order
+Multicounter Automata, introduced in [2], and also how the weakness constraint
+corresponds to a natural weakness constraint on these Higher-Order Multicounter
+Automata. Finally, we show these automata to be equivalent to the Nested Data
+Automata introduced in [5].
+Related Work. Class memory automata are equivalent to data automata
+(introduced in [4]), though unlike data automata, they admit a notion of deter-
+minism. Data automata (and hence class memory automata) were shown in [4] to
+be equiexpressive with the two-variable fragment of existential monadic second
+order logic over data words. Temporal logics have also been studied over data
+words [6], and the introduction of locally prex-closed data automata and of
+nested data automata in [5] is motivated by extensions to BD-LTL, a form of
+LTL over multiple data values introduced in [10].
+Fresh register automata [17] are a precursor to the History Register automata
+[18] which we examine a restriction of in this paper. Class counting automata,
+which we show to be equivalent to weak CMA, have been extended to be as
+expressive as CMA by adding resets and counter acceptance conditions [12, 11].
+We note that our restriction of class memory automata, which we call weak
+class memory automata, sound similar to the weak data automata introduced in
+[9]. However, these are two quite dierent restrictions, with emptiness problems
+of dierent complexities, and the two automata models should not be confused.
+In the second part of this paper we examine automata over nested data values.
+First-order logic over nested data values has been studied in [3], where it was
+shown that the <predicate quickly led to undecidability, but that only having the
++1 predicate preserved decidability. They also examined the link between nested
+data and shue expressions. In [5] Decker et al. introduced ND-LTL, extending
+BD-LTL to nested data values. To show decidability of certain fragments of
+ND-LTL they extended data automata to run over nested data values, giving the
+nested data automata we examine in this paper.
+Further Work. We would like to understand better whether there is a natural
+fragment of the -calculus that corresponds to the new classes of automata. On
+the logical side, an interesting outstanding question is to characterize languages
+accepted by our classes of automata with suitable logics.
+2 Preliminaries
+Letbe a nite alphabet, and Dan innite set of data values. A data alphabet ,
+D, is of the form D. The set of nite data words over Dis denoted D.
+Class Memory Automata and Data Automata . Given a set S, we write
+S?to meanS[f?g , where?is a distinguished symbol (representing a fresh data
+value). A Class Memory Automaton [3] is a tuplehQ;;q I;;F L;FGiwhere
+Qis a nite set of states, is a nite alphabet, qI2Qis the initial state,
+FGFLQare sets of globally- and locally-accepting sets (respectively), and
+is the transition map :QQ?!P(Q). The automaton is deterministic
+
+--- Page 4 ---
+4 C. Cotton-Barratt, A. S. Murawski, and C. -H. L. Ong
+if each set in the image of the transition function is a singleton. A class memory
+function is a mapf:D!Q?such thatf(d)6=?for only nitely many d2D.
+We viewfas a record of the history of computation: it holds the state of the
+automaton after the data value dwas last read, where f(d) =?means that dis
+fresh. A conguration of the automaton is a pair ( q;f) whereq2Qandfis a
+class memory function. The initial conguration is ( q0;f0) wheref0(d) =?for
+everyd2D. Suppose (a;d)2D is the input. The automaton can transition
+from conguration ( q;f) to conguration ( q0;f0) just ifq02(q;a;f (d)) and
+f0=f[d7!q0]. A data word wisaccepted by the automaton just if the automaton
+can make a sequence of transitions from the initial conguration to a conguration
+(q;f) whereq2FGandf(d)2FL[f?g for every data value d.
+AData Automaton [4] is a pair (A;B) whereAis a letter-to-letter string
+transducer with output alphabet , called the Base Automaton, and Bis a NFA
+with input alphabet , called the Class Automaton. A data word w=w1:::w n2
+Dis accepted by the automaton if there is a run of Aon the string-projection
+ofw(to) with output b1:::bnsuch that for each maximal set of positions
+fx1;:::;x kgf 1;:::;ngsuch thatwx1;:::;w xkshare the same data value, the
+wordbx1:::bxkis accepted byB.
+CMA and DA are expressively equivalent, with PTime translation [3]. The
+emptiness problem for these automata is decidable, and equivalent to Petri Net
+Reachability [4]. The class of languages recognised by CMA is closed under
+intersection, union, and concatenation. It is not closed under complementation
+or Kleene star. Of the above, the class of languages recognised by deterministic
+CMA is closed only under intersection.
+Locally Prex-Closed Data Automata. A Data Automaton D= (A;B)
+is locally prex-closed (pDA) [5] if all states in Bare nal. The emptiness problem
+for pDA is ExpSpace -complete [5].
+Class Counting Automata. AbagoverDis a function h:D!Nsuch
+thath(d) = 0 for all but nitely many d2D. LetC=f=;6=;<;>gN, which
+we call the set of constraints. If c= (op;e)2Candn2Nwe writenci
+nope. AClass Counting Automaton (CCA) [12] is a tuple hQ;;;q 0;Fiwhere
+Qis a nite set of states, is a nite alphabet, q0is the initial state, FQis
+the set of accepting states, and , the transition relation, is a nite subset of
+QCf"+;#gNQ. A conguration of a CCA, C=hQ;;;q 0;Fi,
+is a pair (q;h) whereq2Qandhis a bag. The initial conguration is ( q0;h0)
+whereh0is the zero function. Given a data word w= (a1;d1)(a2;d2):::(an;dn)
+a run ofwonCis a sequence of congurations ( q0;h0)(q1;h1):::(qn;hn) such
+that for all 0i<n there is a transition ( q;a;c;;m;q0) whereq=qi,q0=qi+1,
+a=ai+1,hi(di+1)c, andhi+1=hi[di+17!hi(di+1) +m] if="+or
+hi+1=hi[di+17!m] if=#The run is accepting if qn2F. The emptiness
+problem for Class Counting Automata was shown to be ExpSpace -complete in
+[12].
+Non-Reset History Register Automata. For a positive integer kwrite
+[k] for the setf1;2:::;kg. Fixing a positive integer m, dene the set of labels
+Lab=P([m])2. A non-reset History Register Automaton (nrHRA) of type m
+
+--- Page 5 ---
+Weak and Nested Class Memory Automata 5
+with initially empty assignment is a tuple A=hQ;;;q 0;Fiwhereq02Qis
+the initial state, FQis the set of nal states, and QLabQ. A
+conguration ofAis a pair (q;H) whereq2QandH: [m]!P fn(D) where
+Pfn(D) is the set of nite subsets of D. We callHanassignment , and ford2Dwe
+writeH1(d) for the setfi2[m] :d2H(i)g. The initial conguration is ( q0;H0),
+whereH0assigns every integer in [ m] to the empty set. When the automaton is
+in conguration ( q;H), on reading input ( a;d) it can transition to conguration
+(q0;H0) providing there exists X[m] such that ( q;a;(H1(d);X);d)2and
+H0is obtained by removing dfromH(i) for eachithen adding dto eachH(i)
+such thati2X. A run is dened in the usual way, and a run is accepting if it
+ends in a conguration ( q;H) whereq2F.
+Higher-Order Multicounter Automata. A multiset over a set Ais a
+functionm:A!N. A level-1 multiset over Ais a nite multiset over A. A
+level-(k+ 1) multiset over Ais a nite multiset of level- kmultisets over A. We
+can visualise this with nested set notation: e.g. ffa;ag;fg;fggrepresents the
+level-2 multiset containing one level-1 multiset containing two copies of a, and
+two empty level-1 multisets. A multiset is hereditarily empty if, written in nested
+set notation, it contains no symbols from A.
+Higher-Order Multicounter Automata (HOMCA) were introduced in [2], and
+their emptiness problem was shown to be Turing-complete at level-2 and above.
+A level-kmulticounter automaton is a tuple hQ;;A;;q 0;FiwhereQis a
+nite set of states, is the input alphabet, Ais the multiset alphabet, q0is
+the initial state, and Fis the set of nal states. A conguration is a tuple
+(q;m 1;m2;:::;m k) whereq2Qand eachmiis either undened ( ?) or a level- i
+multiset over A. The initial conguration is ( q0;?;:::;?).is the transition
+relation, and is a subset of QopsQwhereopsis the set of possible
+counter operations. These operations, and meanings, are as follows: (i) newi
+(ik) turnsmifrom?into the empty level- imultiset; (ii) inca(a2A) addsa
+tom1; (iii)deca(a2A) removesafromm1; (iv)store i(i<k ) addsmitomi+1
+and setsmito?; (v)load i(i < k ) non-deterministically removes an mfrom
+mi+1and turnsmifrom?tom. This can happen only when m1:::m iare all
+?. The automaton reads the input word from left to right, updating m1:::m k
+as determined by the transitions. A word is accepted by the automaton just if
+there is a run of the word such that the automaton ends up in conguration
+(q;m 1;:::;m k) whereq2Fand eachmiis hereditarily empty.
+3 Weak Class Memory Automata
+In this section we introduce a restriction of class memory automata, weak class
+memory automata (WCMA), that have improved closure and complexity proper-
+ties. We show that WCMA correspond to a natural restriction of data automata,
+locally-prex closed data automata, as well as two other independent automata
+models, class counting automata and non-reset history register automata.
+Denition 1. A class memory automaton hQ;;;q 0;FL;FGiisweak if all
+states are locally accepting (i.e. FL=Q).
+
+--- Page 6 ---
+6 C. Cotton-Barratt, A. S. Murawski, and C. -H. L. Ong
+When dening a weak CMA (WCMA) we may omit the set of locally accepting
+states, and just give one set of nal states, F.
+The emptiness problem for class memory automata is reducible (in fact, equiva-
+lent) to emptiness of multicounter automata (MCA) [4, 3]. This reduction works by
+using counters to store the number of data values last seen in each state. The local-
+acceptance condition is checked by the zero-test of each counter at the end of a run
+of an MCA. In the weak CMA case, this check is not necessary, and so emptiness
+is reducible to emptiness of weak MCA. Just as MCA emptiness is equivalent to
+Petri net reachability, weak MCA emptiness is equivalent to Petri net coverability.
+p1 p2t2 t1
+p1 p2t2 t1
+Fig. 1. An example Petri net with ini-
+tial and target markingsExample 2. We give an example showing
+how a very simple Petri net reachability
+query can be reduced to an emptiness of
+CMA problem, and the small change re-
+quired to reduce coverability queries to
+emptiness of WCMA. The idea is to en-
+code tokens in the Petri net using data
+values: the location of the token is stored
+by the class memory function's memory
+for the data value. Transitions in the Petri net will be simulated by sequences of
+transitions in the automaton, which change class memory function appropriately.
+Consider the Petri net shown in Figure 1, with initial marking above and target
+marking below.
+s0 start
+s1s2
+s4s5s3
+s6s7
+?
+
+s1s3
+??
+s5s5
+Fig. 2. A class memory automaton simulating
+the Petri net query shown in Figure 1We give the automaton which
+models this reachability query in
+Figure 2. The rst transitions from
+the initial state just set up the
+initial marking. As there is only
+one token in the initial marking,
+this just involves reading one fresh
+data value: this is the transition
+froms0tos1below. Once the
+initial marking has been set up
+(reachings2below), the automa-
+ton can simulate the transitions
+ring any number of times. Each
+loop froms2back to itself repre-
+sents one transition in the Petri
+net ring: the loop above represents t1ring, and the loop below represents t2
+ring. Fort1to re, no preconditions must be met, and a new data value can be
+read in state s3, thus data values last seen in either of states s1ands3represent
+tokens inp1. Fort2to re, a token must be removed from p1, since tokens in
+p1are represented by tokens in either s1ors3, the rst transition in this loop {
+tos4{ involves reading a data value last seen in one of these states. Thus data
+values seen in s4represent removed tokens, which we do not use again. Then a
+
+--- Page 7 ---
+Weak and Nested Class Memory Automata 7
+new token is placed in p2by reading a fresh data value in s5. Once back in s2
+these loops can be taken more, or the fact that a marking covering the target
+marking has been reached can be checked by reading two data values last seen in
+s5to reach a nal state. The only globally accepting state is s7, and all states
+except those which are used to represent tokens { i.e. all except s1,s3, ands5{
+are locally accepting. The local acceptance condition thus checks that no other
+tokens remain in the simulated Petri net.
+If we were interested in a coverability query, the same automaton, but without
+the local acceptance condition, would obviously suce. Thus emptiness of WCMA
+is equivalent to Petri net coverability, which is ExpSpace -complete.
+We now give the main observation of this section: that weak CMA are
+equivalent to three independent existing automata models.
+Theorem 3. Weak CMA, locally prex-closed DA, class counting automata, and
+non-reset history register automata are all PTime -equivalent.
+Proof. That Weak CMA and pDA are equivalent is a simple alteration of the
+proof of equivalence of CMA and DA provided in [3].
+Recall that CCA use a \bag", which essentially gives a counter for each data
+value. Weak CMA can easily be simulated by CCA by identifying each state with
+a natural number; then the bag can easily simulate the class memory function,
+by setting the data value's counter to the appropriate number when it is read. To
+simulate a CCA with a WCMA, we rst observe that for any CCA, since counter
+values can only be incremented or reset, there is a natural number, N, above
+which dierent counter values are indistinguishable to the automaton. Thus we
+need only worry about a nite set of values. This means the value for the counter
+of each data value can be stored in the automaton state, and thereby the class
+memory function.
+In [18] the authors already show that nrHRA can be simulated by CMA.
+Their construction does not make use of the local-acceptance condition, so the
+fact that nrHRA can be simulated by WCMA is immediate. In order to simulate
+a given WCMA with state set [ m], one can take a nrHRA of type m, with place
+istoring the data values last seen in state i.
+Data automata, and hence pDA, unlike CMA and WCMA, do not have a natural
+notion of determinism, nor a natural restriction corresponding to deterministic
+CMA or WCMA. What about for CCA? We dene CCA to be deterministic if
+for each state qand input letter a, the transitions ( q;a;c;::: )2are such that
+thec's partition N. The same translations given in Theorem 3 also show that
+deterministic WCMA and deterministic CCA are equivalent. We can ask the
+same question of non-reset HRA. We nd that the natural notion of determinism
+here is: for each q2Q;a2, andX[m] there is precisely one Y[m] and
+q02Qsuch that (q;a;(X;Y );q0)2. Similarly, the translations discussed above
+show deterministic WCMA to be equivalent to deterministic nrHRA.
+It follows from the results for CCA in [12] that Weak CMA, like normal
+CMA, are closed under intersection and union, though these closures can easily
+be shown directly using product constructions (and these constructions preserve
+
+--- Page 8 ---
+8 C. Cotton-Barratt, A. S. Murawski, and C. -H. L. Ong
+determinism). In fact, Deterministic Weak CMA have even nicer closure properties:
+the language recognised can be complemented using the same method as for
+DFA: complementing the nal states.
+Proposition 4. Deterministic Weak CMA are closed under all Boolean opera-
+tions.
+Corollary 5. The containment and equivalence problems for Deterministic Weak
+CMA are ExpSpace -complete.
+4 Nested Data Class Memory Automata
+In Section 1 we discussed how data values fail to provide a good model for
+modelling computations in which names are used hierarchically, such as a system
+of concurrent processes which can spawn subprocesses. Motivated by these
+applications, in this section we introduce a notion of nested data values in which
+the data set has a forest-structure. This is a stylistically dierent presentation to
+earlier work on nested data in that [3, 5] require that each position in the words
+considered have a data value in each of a xed number of levels. By giving the
+data set a forest-structure, we can explicitly handle variable levels of nesting
+within a word. However, we note that there is a natural translation between the
+two presentations.
+Denition 6. Arooted tree (henceforth, just tree) is a simple directed graph
+hD;predi, where pred :D*D is the predecessor map dened on every node of
+the tree except the root, such that every node has a unique path to the root. A
+nodenof a tree has levelljust if predl1(n)is the root (thus the root has level
+1). A tree has bounded level just if there exists a least l1such that every node
+has level no more than l; we say that such a tree has level l.
+We dene a nested datasethD;predito be a forest of innitely many trees
+of levellwhich is fullin the sense that for each data value dof level less than l,
+dhas innitely many children (i.e. there are innitely many data values d0s.t.
+pred(d0) =d).
+We now extend CMA to nested data by allowing the nested data class memory
+automaton (NDCMA), on reading a data value d, to access the class memory
+function's memory of not only d, but each ancestor of din the nested data
+set. Once a transition has been made, the class memory function updates the
+remembered state not only of d, but also of each of its ancestors. Formally:
+Denition 7. Fix a nested data set of level l. ANested Data CMA of level lis
+a tuplehQ;;;q 0;FL;FGiwhereQis a nite set of states, q02Qis the initial
+state,FGFLQare sets of globally and locally accepting states respectively,
+andis the transition map. is given by a union =S
+1iliwhere each iis
+a function:
+i:Q(fig(Q?)i)!P(Q)
+
+--- Page 9 ---
+Weak and Nested Class Memory Automata 9
+The automaton is deterministic if each set in the image of is a singleton;
+and is weak ifFL=Q. A conguration is a pair (q;f)whereq2Q, and
+f:D !Q?is a class memory function (i.e. f(d) =?for all but nitely
+manyd2D). The initial conguration is (q0;f0)wheref0is the class memory
+function mapping every data value to ?. A conguration (q;f)is nal ifq2
+FGandf(d)2FL[f?g for alld2D. The automaton can transition from
+conguration (q;f)to conguration (q0;f0)on reading input (a;d)just ifdis a
+level-idata value, q02(q;a;(i;f(predi1(d));:::;f (pred(d));f(d))), andf0=
+f[d7!q;pred (d)7!q;:::;predi1(d)7!q]. A run (q0;f0);(q1;f1);:::; (qn;fn)
+is accepting if the conguration (qn;fn)is nal.w2L(A)if there is an accepting
+run ofAonw.
+It is clear that level-1 NDCMA are equivalent to normal CMA. We know that
+emptiness of class memory automata is equivalent to reachability in Petri nets; it
+is natural to ask whether there is any analogous correspondence { to some kind
+of high-level Petri net { once nested data is used.
+Example 8. In Example 2, we showed how CMA (resp. WCMA) can encode Petri
+net reachability (resp. coverability). A similar technique allows reachability (resp.
+coverability) of Petri nets with reset arcs to be reduced to emptiness of NDCMA
+(resp. weak NDCMA). The key idea is to have, for each place in the net, a level-1
+data value { essentially as a \bag" holding the tokens for that place. Nested
+under the level-1 data value, level-2 data values are used to represent tokens just
+as before. When a reset arc is red, the corresponding level-1 data value is moved
+to a \dead" state { from where it and the data values nested under it are not
+moved again { and a fresh level-1 data value is then used to hold subsequently
+added tokens to that place.
+Theorem 9. The emptiness problem for NDCMA is undecidable. Emptiness of
+Weak NDCMA is decidable, but Ackermann-hard.
+Proof. This result follows from Theorem 12 together with results in [5], though
+we also provide a direct proof.
+We show decidability by reduction to a well-structured transition system [8]
+constructed as follows: a class memory function on a nested data set can be
+viewed as a labelling of the data set by labels from the set of states. Since we only
+care about the shape of the class memory function (i.e. up to automorphisms
+of the nested data set), we can remove the nodes labelled by ?, and view a
+class memory function as a nite set of labelled trees. The set of nite forests
+of nite trees of bounded depth with the order given by FF0i there is a
+forest homomorphism from FtoF0(where a forest is the natural extension of
+tree homomorphisms to forests) is a well-quasi-order [7], which provides the basis
+for the well-structured transition system.
+Undecidability for NDCMA and Ackermann-hardness for Weak NDCMA
+follow from the ideas in Example 8: the reachability (resp. coverability) problem
+for Petri nets with reset arcs is encodable in NDCMA (resp. Weak NDCMA),
+and this is undecidable [1] (resp. Ackermann-hard [15]).
+
+--- Page 10 ---
+10 C. Cotton-Barratt, A. S. Murawski, and C. -H. L. Ong
+Weak Nested Data CMA have similar closure properties to Weak CMA (and this
+can be shown using the same techniques as for DFA).
+Proposition 10. (i)Weak NDCMA are closed under intersection and union.
+(ii) Deterministic Weak NDCMA are closed under all Boolean operations.
+Hence, as for weak CMA, the containment and equivalence problems for Deter-
+ministic Weak NDCMA are decidable.
+4.1 Link with Nested Data Automata
+In [5] Decker et al. also examined \Nested Data Automata" (NDA), and showed
+the locally prex-closed NDA (pNDA) to have decidable emptiness (via reduction
+to well-structured transition systems). In fact, these NDA precisely correspond
+to NDCMA, and again being locally prex-closed corresponds to weakness. In
+this section we briey outline this connection.
+Nested Data Automata. ([5]) Ak-nested data automaton ( k-NDA) is a
+tuple (A;B1;:::;Bk) where (A;Bi) is a data automaton for each i. Such automata
+run on words over the alphabet Dk, whereDis a (normal, unstructured)
+dataset. As for normal data automata, the transducer, A, runs on the string
+projection of the word, giving output w. Then for each ithe class automaton Bi
+runs on each subsequence of wcorresponding to the positions which agree on the
+rstidata values. The NDA is locally prex-closed if each ( A;Bi) is.
+Since these NDA are dened on a slightly dierent presentation of nested
+data, we provide the following presentation of NDCMA over multiple levels of
+data.
+Denition 11. ANested Data CMA of level kover the alphabet Dkis a
+tuplehQ;;;q 0;FL;FGiwhereQis a nite set of states, q02Q,FGFLQ,
+and:Q(Q?)k!P(Q)is the transition map.
+A conguration is a tuple (q;f1;f2;:::;f k), where each fi:Di!Q?maps an
+i-tuple of data values to a state in the automaton (or ?). The initial conguration
+is(q0;f0
+1;:::;f0
+k)wheref0
+imaps every tuple in the domain to ?. A conguration
+(q;f1;:::;f k)is nal if each fimaps intoFL[f?g . The automaton can transition
+from conguration (q;f1;:::;f k)to conguration (q0;f0
+1;:::;f0
+k)on reading input
+(a;d 1;:::;d k)just ifq02(q;a;(f1(d1);f2(d1;d2);:::;f k(d1;:::;d k))), and each
+f0
+i=fi[(d1;:::;d i)7!q0].
+Using ideas from the proof of equivalence between CMA and DA in [3], we can
+show the following result:
+Theorem 12. NDCMA (resp. weak NDCMA) and NDA (resp. pNDA) are
+expressively equivalent, with eective translations.
+4.2 Link with Higher-Order Multicounter Automata
+In [2] the authors examined a link between nested data values and shue
+expressions. In doing so, they introduced higher-order multicounter automata
+
+--- Page 11 ---
+Weak and Nested Class Memory Automata 11
+(HOMCA). While not explicitly over nested data values, they are closely related
+to the ideas involved, and we show that, just as multicounter automata and
+CMA are equivalent, there is a natural translation between HOMCA and the
+NDCMA we have introduced. Further, just as the equivalence between MCA and
+CMA descends to one between weak multicounter automata and weak CMA,
+we nd an equivalence between weak NDCMA and \weak" HOMCA in which
+the corresponding acceptance condition { hereditary emptiness { is dropped.
+To show this, we introduce HOMCA', which add restrictions to the store iand
+newicounter operations analogous to the restriction for the load ioperation.
+HOMCA
+weak HOMCA oo
+
+HOMCA'OO
+weak HOMCA' ooOO
+
+NDCMAOO
+weak NDCMA ooOO
+Fig. 3. Translations between HOMCA,
+HOMCA', NDCMA, and their weak
+counterpartsWe show that these HOMCA' are equiv-
+alent to HOMCA, and that HOMCA' are
+equivalent to NDCMA, with both of these
+equivalences descending to the weak ver-
+sions. These equivalences are summarised
+in Figure 3.
+Denition 13. We dene weak HOMCA
+to be just as HOMCA, but without the
+hereditary-emptiness condition on accep-
+tance, i.e. a run is accepting just if it ends
+in a nal state.
+Denition 14. We dene HOMCA' to be
+the same as HOMCA, except for the fol-
+lowing changes to the counter operations: (i) store ioperations are only enabled
+whenm1=m2==mi1=?; and (ii)newioperations are only enabled
+whenmk6=?;mk16=?;:::;m i+16=?andmi1=mi2==m1=?.
+As for HOMCA, we dene weak HOMCA' to be HOMCA' without the
+hereditary-emptiness condition.
+This means that each reachable conguration ( q;m 1;:::;m k) is such that there
+is a unique 0iksuch that for all ji,mj=?and eachl>i,ml6=?.
+Theorem 15. HOMCA (respectively weak HOMCA) and HOMCA' (resp. weak
+HOMCA') are expressively equivalent, with eective translations between them.
+Proof. This requires simulating the HOMCA operations store iandnewiin
+HOMCA': which can be dicult if, for instance, the HOMCA is carrying out a
+store ioperation when it has a current level-( i1) multiset in memory. The trick is
+to move the level-( i1) multiset across to be nested under a new level- imultiset,
+and this can be done one element at a time in a \folding-and-unfolding" method.
+The hereditary emptiness condition checks that the each of these movements was
+completed, i.e. no element was left unmoved. In the weak case some elements not
+being moved could not change an accepting run to a non-accepting run, so the
+fallibility of the moving method does not matter.
+Theorem 16. For every (weak) level- kNDCMA,A, there is a (weak) level-
+kHOMCA',A0, such thatL(A0)is equal to the -projection ofL(A), and
+vice-versa.
+
+--- Page 12 ---
+12 C. Cotton-Barratt, A. S. Murawski, and C. -H. L. Ong
+Proof. This proof rests on the strong similarity between the nesting of data values,
+and the nesting of level- imultisets in level-( i+ 1) multisets. For a NDCMA to
+simulate a HOMCA', we use level- kdata values to represent instances of the
+multiset letters, level-( k1) data values to represent level-1 multisets, and so
+on, up to level-1 data values representing level-( k1) multisets. Since each run
+of a HOMCA' can have at most one level- kmultiset, this does not need to be
+encoded in data values. Conversely, when simulating a NDCMA with a HOMCA',
+a level-kdata value is represented by an instance of an appropriate multiset
+letter. The letter contains the information on which state the data value was last
+seen in. Level-( k1) data values are represented by level-1 multisets, which also
+include a multiset letter storing the state that data value was last seen in.
+References
+1.Araki, T., Kasami, T.: Some decision problems related to the reachability problem
+for Petri nets. Theor. Comput. Sci. 3(1), 85{104 (1976)
+2.Bj orklund, H., Bojanczyk, M.: Shue expressions and words with nested data. In:
+Proceedings of MFCS. LNCS, vol. 4708, pp. 750{761 (2007)
+3.Bj orklund, H., Schwentick, T.: On notions of regularity for data languages. Theor.
+Comput. Sci. 411(4-5), 702{715 (2010)
+4.Bojanczyk, M., Muscholl, A., Schwentick, T., Segoun, L., David, C.: Two-variable
+logic on words with data. In: LICS. pp. 7{16. IEEE Computer Society (2006)
+5.Decker, N., Habermehl, P., Leucker, M., Thoma, D.: Ordered navigation on multi-
+attributed data words. In: CONCUR 2014. pp. 497{511. Springer (2014)
+6.Demri, S., Lazic, R.: LTL with the freeze quantier and register automata. ACM
+Trans. Comput. Log. 10(3) (2009)
+7.Ding, G.: Subgraphs and well-quasi-ordering. J. Graph Theory 16, 489{502 (1992)
+8.Finkel, A., Schnoebelen, P.: Well-structured transition systems everywhere! Theor.
+Comput. Sci. 256(1-2), 63{92 (2001)
+9.Kara, A., Schwentick, T., T.: Feasible automata for two-variable logic with successor
+on data words. In: LATA. LNCS, vol. 7183, pp. 351{362. Springer (2012)
+10.Kara, A., Schwentick, T., Zeume, T.: Temporal logics on words with multiple data
+values. In: FSTTCS. LIPIcs, vol. 8, pp. 481{492. Schloss Dagstuhl (2010)
+11.Manuel, A.: Counter automata and classical logics for data words. Ph.D. thesis,
+Institute of Mathematical Sciences, Chennai (2011)
+12.Manuel, A., Ramanujam, R.: Counting multiplicity over innite alphabets. In: RP.
+LNCS, vol. 5797, pp. 141{153. Springer (2009)
+13.Neven, F., Schwentick, T., Vianu, V.: Finite state machines for strings over innite
+alphabets. ACM Trans. Comput. Log. 5(3), 403{435 (2004)
+14.Sangiorgi, D.: Expressing Mobility in Process Algebras: First-Order and Higher-
+Order Paradigms. Ph.D. thesis, University of Edinburgh (1992)
+15.Schnoebelen, P.: Verifying lossy channel systems has nonprimitive recursive com-
+plexity. Inf. Process. Lett. 83(5), 251{261 (2002)
+16.Segoun, L.: Automata and logics for words and trees over an innite alphabet. In:
+CSL. LNCS, vol. 4207, pp. 41{57. Springer (2006)
+17.Tzevelekos, N.: Fresh-register automata. In: POPL 2011. pp. 295{306. ACM (2011)
+18.Tzevelekos, N., Grigore, R.: History-register automata. In: FoSSaCS. Lecture Notes
+in Computer Science, vol. 7794, pp. 17{33. Springer (2013)

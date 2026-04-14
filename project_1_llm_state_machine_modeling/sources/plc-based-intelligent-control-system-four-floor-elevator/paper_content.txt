@@ -1,0 +1,325 @@
+--- Page 1 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 475  
+ PLC -Based Intelligent Control System for Four -Floor Elevator  
+Mabia Khatun1, Md. Ariful Islam2, Merina Akter3  
+1Masters of Electrical Engineering, Anhui University of Science and Technology, Anhui, China  
+1Masters of Mechanical Engineering, Changan Universit y, xian, China  
+2Masters of Computer Science and Technology, Changan University, xian, China   
+ --------------------------------------------------------------------- ***---------------------------------------------------------------------
+Abstract : Elevators  are essential for moving people and goods in multi -story buildings; however, traditional relay -based controls 
+are prone to wear and have inflexible designs. This paper presents a PLC -based control system for a four -floor elevator that 
+improves its functio nality and maintainability. Using the Siemens TIA Portal, we developed ladder logic (LD) and function block 
+diagram (FBD) programs to manage car calls, hall calls, motion scheduling, and door operations. The system offers automatic a nd 
+manual modes with sa fety interlocks for the overload and door obstruction. This modern PLC implementation significantly reduces 
+wiring complexity, enhances expandability, and increases reliability compared with conventional relay systems.  
+Key words : Programmable Logic Control ler (PLC) , Ladder Logic, Elevator, Function Block Diagram, Automation, Industrial 
+Control .  
+1 Introduction  
+Elevators are vital for efficient vertical transportation in modern high -rise buildings. As structures grow taller and more 
+complex, the demand for r eliable and flexible elevator systems increases. Historically, elevator controls have relied on 
+hardwired relay circuits, which are prone to mechanical wear, failures, and limited functionality. For example, the John 
+Hancock Center in Chicago, one of the t allest skyscrapers in the U.S., uses 50 Otis -manufactured elevators, including high -speed 
+express cars that travel up to 1,800 ft/min (≈9.1 m/s) [1], [2]. Achieving safe and efficient operation at such speeds is dif ficult 
+for relay -based systems. In contra st, Programmable Logic Controllers (PLCs) are the industry standard for industrial 
+automation because of their robustness and reprogrammability [3]. Unlike fixed relays, PLC programs can be updated in 
+software, making them more flexible and easier to modif y than fixed relays. Moreover, PLCs are designed to tolerate harsh 
+environments (dust, moisture, and temperature extremes) while offering extensive input/output (I/O) connectivity [3].  
+This study applied a PLC to control a four -floor elevator system, achie ving intelligent operation by managing car and hall calls, 
+determining motion direction, and controlling doors and safety interlocks [10]. The PLC implements collective call scheduling , 
+which is a standard elevator strategy that groups and sequences reques ts in the direction of travel [11]. This functionality is 
+cumbersome with relays but is straightforward in software. The objectives of the project are twofold: (1) to design a complet e 
+system architecture (hardware and software) that meets all functional r equirements, and (2) to develop detailed PLC programs 
+and wiring for implementation. The result is a flexible and reliable four -floor elevator control system that outperforms 
+traditional relay -based designs.  
+2. PLC Architecture and Control Strategy  
+The PLC -based elevator control system integrates various hardware modules and logic routines to ensure smooth, efficient 
+operation. The PLC interfaces with floor sensors, call buttons, motors, door actuators, and safety devices, forming the core 
+control system.  
+2.1 PLC Hardware Components  
+A typical PLC system comprises a rack or chassis that holds several modules: a power supply, a CPU (processor) module, I/O 
+signal modules, and optional communication or specialty modules. Figure 1 illustrates the modular rack -mounted PL C 
+configuration. In our case, we used a Siemens SIMATIC S7 -1200 series CPU and the corresponding power/I/O modules. For 
+example:  
+PLC hardware conponents:  
+ Power Supply:  Mounted in the leftmost rack slot, it converts AC mains to +24 VDC and distributes power  to all modules 
+via the backplane.            International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+               Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+
+--- Page 2 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 476  
+  CPU: The brain of the system (e.g. Siemens SIMATIC CPU 1215C) contains a processor, ROM, and RAM. It executes the user 
+control program.  
+ I/O Modules:  Interface cards for digital and analogue inputs/outputs. Digital inputs connect sensors and buttons to the 
+PLC, and digital outputs drive actuators (motors, relays, and lamps).  
+ Communication Module (CP):   For example, an Ethernet interface allowing connection to an HMI (Human -Machine 
+Interface) or higher -level systems.  
+Fig. 1 shows the arrangement of these modules on the PLC backplane. The power module fed the CPU and I/O modules with 
++24 VDC. Input modules scan external signals (buttons, switches, and sensors) and send them to the CPU, whereas output 
+modules send control signa ls (e.g. motor up/down and door open) to external devices. The CPU was programmed via a PC 
+using an Ethernet link. This modular design allows easy expansion; adding more floors simply requires additional I/O modules 
+and program adjustments [9].  
+ 
+Fig. 1 Rack-Mounted Modular PLC System Architecture  
+2.2  Control Logic Strategy  
+The PLC program implements all elevator control logics, processes the inputs, and drives the outputs accordingly. The system is 
+connected to the following components:  
+ Car Motor:  Two outputs  control the drive motor direction (Up and Down). Each output energises a relay/contactor for the 
+upward or downward motion.  
+ Door Actuators:  OOne output controls the door mechanism (opening and closing of both cabin and landing doors).  
+ Floor Sensors:  Each floor has a sensor (limit switch) that signals the car’s arrival; these reset the current floor variable in 
+the PLC.  
+ Obstruction Sensor:  A sensor at the door detects whether the doorway is blocked, inhibiting door closing.  
+ Overload Sensor:  A weight (load) sensor in the cabin signals if the car is overloaded; if true, the program disallows 
+motion until cleared.  
+ Car Call Buttons (Inputs):  Inside the cabin, there is a push button for each floor. Pressing one latches a car -call request to 
+the system.  
+ Hall Call Buttons (Inputs):  On each landing, Up and/or Down call buttons set hall -call requests in PLC.  
+The PLC logic maintains a state machine that processes these inputs and controls the outputs. Key features include:  
+ Collective Call Scheduling:  When moving in one  direction, the elevator serves all requests in that direction before 
+reversing. For example, if the car is travelling up and there are pending requests above the current floor, it continues           International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+                 Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+
+--- Page 3 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 477  
+ upward until they are cleared and then changes direction. This si ngle -direction priority is efficient and standard in 
+modern elevator systems.  
+ Direction State Machine:  The program has three states: Ascending, Descending, and Stopped. Transitions depend on 
+pending calls and the current state. For instance, if there are a scending and no further up -calls exist above, the car 
+transitions to Stopped, pauses, and then checks for down -calls. From Stopped, it chooses a new direction based on pending 
+requests above or below the current position. This strategy avoids abrupt revers als and ensures that all calls are 
+eventually served  
+ Door Control: When the car arrives at the requested floor (detected by a floor sensor), the PLC opens the doors for a fixed 
+interval. If the obstruction sensor is triggered during closing, the PLC reopen s the door and waits until the obstruction is 
+cleared before resuming closing. This prevents the doors from closing passenger doors.  
+ Safety Interlocks:  If the overload sensor is active, any motion commands are inhibited. Similarly, if any unsafe condition 
+is detected, the program ignores the drive commands to prevent accidents.  
+In our implementation, the PLC program was developed in the Siemens TIA Portal using Ladder Logic (LD) and Function Block 
+Diagram (FBD) languages [4]. All I/O points were assigned in  the software to match the physical wiring. The flowchart of the 
+state machine (Fig. 4) and the logical relationships are encoded in the networks of ladder rungs. For example, a rung may 
+energise the Up motor coil only when an up request exists and no high er requests remain. This logic ensures that at most one 
+drive output (Up or Down) is active at a time and that safety signals (overload, door obstruction) immediately disable the 
+motors.  
+Combined, the PLC hardware and software form a complete elevator cont roller for four floors of the building. The modular 
+architecture makes it straightforward to add floors by including more I/O modules and adjusting the program’s addressing.  
+3. Hardware Design  
+This section details the specific hardware setup for the four -floor elevator and the I/O -point assignments. Our lab -scale system 
+(or simulation) includes a traction motor with a pulley, car and landing doors, and floor sensors. The PLC’s outputs drive th e 
+motor and doors, and the inputs read the sensor and button signal s. In this design, two digital outputs control the motor’s Up 
+and Down relays, and one output controls the door open/close actuator. Digital inputs include one floor sensor per floor 
+(detecting car arrival), an overload sensor, and a door obstruction senso r [10]. Car -call and hall -call buttons were also wired as 
+inputs.  
+Table 1  shows a sample PLC I/O address mapping for our four -floor elevator.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ PLC Address  Description  Type   
+I0.0 Floor 1 sensor (at 1st floor)  Input   
+I0.1 Floor 2 sensor  Input   
+I0.2 Floor 3 sensor  Input   
+I0.3 Floor 4 sensor  Input   
+I0.4 Car-call Button Floor 1 (inside)  Input   
+I0.5 Car-call Button Floor 2  Input   
+I1.0 Hall -call Up (1st floor)  Input   
+I1.1 Hall -call Down (2nd floor)  Input   
+Q0.0  Motor Up output  Output   
+Q0.1  Motor Down outp ut Output   
+Q0.2  Door Open/Close output  Output   
+Q0.3  (Spare)  Output             International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+                 Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+
+--- Page 4 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 478  
+ Figure 2 shows the I/O wiring diagram of the elevator system. It shows how the PLC input channels (I0.0 –I1.1) connect to the 
+floor sensors and call buttons (which supply +24 V to the PLC when activated) and how the PLC outputs (Q0.0 –Q2.7) drive 
+lamps and actuators. The outputs control indicator lamps for each floor (L1 –L4), direction indicators (UP/DOWN), and hall -call 
+lamps (UP1 –UP3, DN2 –DN4) are controlled. Each output sinks  or sources +24 V to the respective device. A single 24 V DC 
+power supply fed both the inputs and outputs (with common rails of 1M for inputs and 2M for outputs). For example, when 
+floor sensor S2 (I0.2) is triggered, the PLC energises floor -2 lamp L2 (on Q0.2) and landing -call lamp SL2 (on Q2.0). This wiring 
+diagram ensures that the elevator direction, arrival, and call signals are processed efficiently. Technicians use this diagra m to 
+wire each device to the correct PLC terminal, thereby enabling the accu rate control of the elevator operation [8].  
+Fig. 2.  I/O wiring diagram for the four -floor elevator, showing connections from sensors and buttons to PLC inputs and from 
+PLC outputs to motors, doors, and indicator lamps.  
+ 
+Fig. 2 I/O Wiring Diagram for Eleva tor System  
+The chosen PLC hardware was a Siemens SIMATIC S7 series (S7 -1200) in a 9 -slot rack (Fig. 3). A Siemens KTP700 colour HMI 
+panel provided the operator interface (not shown). In our setup, the modules (power supply, CPU, and I/O) were mounted in 
+the rack as per the addressing in Table 1.  
+ 
+Fig. 3. Rack -Mounted PLC Chassis (9 -Slot Siemens Configuration)            International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+                 Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+
+--- Page 5 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 479  
+ Fig. 3. 9 -slot rack -mounted PLC chassis (backplane) used in industrial controllers. The power supply, CPU, and I/O modules are 
+plugged into the slots  on the backplane. In our setup, a Siemens SIMATIC PLC and I/O modules were mounted similarly.  
+In the hardware wiring, each elevator input device (call button or sensor) is connected to a unique PLC input terminal, and e ach 
+actuator coil (motor Up, motor D own, and door actuator) is connected to a PLC output terminal. Special safety signals (overload 
+and obstruction) are wired to dedicated inputs that immediately disable motion outputs when activated. All the 
+interconnection diagrams followed the standard PL C wiring practices. The PLC program’s I/O addressing is then set so that 
+each physical terminal maps to the intended variable (for example, I0.0 = 1st -floor sensor, Q0.0 = Motor Up coil). This mapping 
+ensures that when the PLC sets Q0.0, the elevator car m oves upward.  
+4.  Software Design  
+The elevator control logic was implemented in the Siemens TIA Portal using the Ladder Logic (LD)  and Function Block Diagram 
+(FBD)  programming languages. These graphical languages allow the PLC to react dynamically to input sig nals, maintain the 
+state, and drive outputs. The overall software design included routines for call processing, motion control, door control, an d 
+safety checks.  
+4.1 Ladder Logic Design  
+The core control logic is implemented as a state machine with three pri mary states: Ascending, Descending, and Stopped  (Fig. 
+4). The PLC continuously monitors the current floor, pending car and hall calls, and the current motion direction. Based on 
+these conditions, the system transitions between states to operate the elevato r efficiently. For instance, when a car -call or hall -
+call button is pressed, the PLC latches the request and processes it by prioritizing the calls in the current direction of tr avel. The 
+elevator serves all calls above it before reversing, ensuring energy -efficient operation. Once no calls remain in the current 
+direction, the logic transitions to stopped  and then to the opposite direction, if needed.  
+Fig. 4. Elevator control flowchart showing the Ascending, Descending, and Stopped states and transitions.  
+ 
+Fig. 4 Elevator Ascending and Descending flow chart            International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+                 Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+
+--- Page 6 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 480  
+ During motion, the PLC activates the appropriate Motor Up output: in the ascending  state, Q0.0 (Motor Down) is energized if 
+any up -requests exist above the car; in the descending  state, Q0.1 (motor do wn) is energized if any down -requests exist below. 
+Q0.0 and Q0.1 were never active simultaneously. When the car is in the stopped  state (e.g., doors opening), both motor outputs 
+are off.  
+4.2 Door Control  
+The door control subsystem ensures that the doors o perate safely at each stop (Fig. 5). When the car arrives at the requested 
+floor (indicated by a floor sensor), the PLC triggers Q0.2 to open the doors for a fixed dwell time (e.g., 3 s). After the in terval, the 
+PLC signals the door to close. If the obstru ction sensor becomes active during closing, the program reopens the doors and 
+restarts the closing timer, preventing the doors from closing on any obstruction [5]. Doors only open if there is a valid req uest 
+for that floor and remain closed otherwise.  
+Fig. 5. Door operation flowchart. The doors open upon arrival at the requested floor. If an obstruction is detected, the door 
+reopens and waits until the path is clear before closing.  
+ 
+Fig. 5 Door operation  flow chart  
+4.3 Main Ladder Networks  
+Primary ladder l ogic networks perform the following tasks:  
+ State monitoring:  Detects the current motion state (Up, Down, Stopped) and floor arrival via sensors. When the car 
+reaches the requested floor, the door -control routine is triggered.  
+ Call Handling:  Latch car -call and hall -call inputs. The logic scans the pending requests in the current direction of travel.  
+ Direction Control:  Decide when to continue moving, stop, or reverse. All calls in the current direction are served before 
+the direction is changed.  
+ Output Contro l: Energize Q0.0 (up motor) when ascending or Q0.1 (down motor) when descending, based on pending 
+requests. In the Stopped state or during door opening, both motor outputs are off.            International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+                 Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+
+--- Page 7 ---
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 481  
+  Door and Safety:  When a floor is reached, Q0.2 is activated to open doors f or the set interval (Fig. 5). During door 
+opening, the motor outputs are disabled. If an obstruction is detected, the doors are reopened, and the closing timer is 
+restarted. If the overload input is true, the motor outputs are inhibited until the condition  clears [5].  
+During testing, the PLC program correctly managed various call sequences, ensuring that the elevator stopped smoothly at all 
+requested floors. The ladder logic was compact and easy to debug for this discrete control task [6]. Any future change s (e.g., 
+adjusting door -openingopen time or adding an extra floor) would require only software updates rather than hardware 
+rewiring.  
+PLC Ladder Diagram of the Elevator Control:  
+Figure 6 illustrates the ladder logic used to control the four -floor elevator  system. The diagram includes key functional blocks, 
+such as floor call registration, call reset, direction control (up/down), door control, elevator movement control, floor indi cation, 
+and safety interlocks. Each rung of the ladder corresponds to a specif ic operation. For example, when a car -call or hall -call 
+button is pressed, the input is latched and stored in a memory register for future reference. The program then evaluates the 
+current state and activates either the Up or Down motor (Q0.0 or Q0.1), dep ending on the requested direction. Simultaneously, 
+the floor sensors updated the car’s position, and the door output (Q0.2) was triggered upon arrival. The ladder logic ensures  
+that only one directional output is active at any time and checks for overload and obstruction conditions before allowing 
+motion. The structure of this diagram helps visualize and validate the program flow, making it easy to troubleshoot and modif y 
+the program.  
+ 
+ 
+Floor Call Registration  Call Reset  
+ 
+ 
+Call Handling  Elevator Move ment Control            International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395- 0056  
+                  Volume: 12 Issue: 07 | Jul 202 5                    www.irjet.net                                                                     p-ISSN: 2395- 0072  
+   
+
+--- Page 8 ---
+          International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395 -0056  
+                 Volume: 1 2 Issue: 07 | Jul 202 5                   www.irjet.net                                                                     p-ISSN: 2395 -0072  
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 482  
+ 
+ 
+ 
+Door  Control Direction Control (up/down) 
+ 
+  
+Floor Indicator  Safety Interlock  
+Fig. 6 PLC Ladder Diagram  
+5. Implementation and Testing  
+PLC -based control was validated by simulating various call scenarios in the TIA Portal environment . In one test, the car -call 
+buttons for floors 1, 3, and 4 were pressed. Starting from floor 1, the elevator ascended, stopped at floor 3 to open the doo rs, 
+and then proceeded to floor 4. In another test, hall -call Up on floor 2 and hall -call Down on floor  4 were entered; the elevator 
+moved up from 1 to 2, then reversed direction and stopped at 4. In all scenarios, the doors opened for the programmed interva l 
+at each stop, and the simulated obstruction or overload signals were handled correctly (doors reope ned or motion halted) [7].  
+The system operated efficiently and without errors. Ladder logic programming maintains the control logic organized and is 
+easy to troubleshoot. Any modification to the logic (for example, changing door timings or adding another f loor) only requires 
+editing the program, not rewiring. Overall, the PLC -controlled elevator met all the design specifications and demonstrated 
+higher reliability and flexibility than a comparable relay -based system.  
+Conclusion  
+This study demonstrates a PL C-based intelligent control system for a four -floor elevator, which replaces the traditional 
+hardwired relay logic. The resulting system offers enhanced reliability, flexibility, and improved maintainability. Using lad der 
+logic and function -block diagrams,  the PLC program was compact and easy to debug, which simplified future modifications and 
+expansion. In a lab -scale simulation, the system performed as expected. In future work, the design could be scaled to more 
+floors or augmented with features such as p redictive maintenance or remote monitoring. PLC -based elevator controls provide 
+significant advantages for modern buildings because of their scalability, ease of modification, and robustness against harsh 
+conditions.  
+
+--- Page 9 ---
+          International Research Journal of Engineering and Technology  (IRJET)        e-ISSN: 2395 -0056  
+                 Volume: 1 2 Issue: 07 | Jul 202 5                   www.irjet.net                                                                     p-ISSN: 2395 -0072  
+  
+© 2025, IRJET       |       Impact Factor value: 8.315       |       ISO 9001:2008 Certified Journal       |     Page 483  
+ References  
+[1] G. Shi (ed.), Electrical Con trol and Programmable Controller Technology . Beijing, China: Chemical Industry Press, 2012.  
+[2] G. Yu, Principles and System Design of Programmable Controllers . Beijing, China: Tsinghua University Press, 2004.  
+[3] Q. Wu, Practical Guide to Integrated Appli cation Technology of Inverter, Programmable Controller and Touch Screen , 2nd ed.  
+Beijing, China: China Machine Press, 2010.  
+[4] G. Shi and Y. Ju, Electrical Control and Programmable Controller Technology Training Course . Beijing, China: Chemical 
+Industry P ress, 2010.  
+[5] Y. Li, “Design of Remote Intelligent Monitoring System for Traffic Intersection Signals Based on GPRS and PLC,” M.S. thes is, 
+Inner Mongolia Univ. of Sci. & Tech., 2012.  
+[6] L. Xu, “Application of FluidSIM Simulation Software in the Teaching  of Electromechanical Equipment Installation and 
+Commissioning Course,” Dissertation, Nanjing Vocational & Technical College of Mech. & Elec. Eng., 2017.  
+[7] P. Zhao and H. Jing, “Design of Traffic Light Monitoring System Based on PLC,” M.S. thesis, Yulin Univ., 2016.  
+[8] X. Zhang, “Complex Traffic Light Control System Based on S7 -200,” M.S. thesis, Xianyang Normal Univ., 2010.  
+[9] Y. Cui, “Application of PLC Technology in ‘Crossroads Traffic Light Control’,” Thesis, Fularji Branch, Heilongjiang Radio  & TV 
+Univ., 2011.  
+[10] H. Li, Elevator Control Technology . Beijing, China: China Machine Press, 2002.  
+[11] “Programmable logic controller,” Wikipedia, The Free Encyclopedia . [Online]. Available: 
+https://en.wikipedia.org/wiki/Programmable_logic_controller (acces sed July 2025).  
+BIOGRAPHIES  
+ Mabia Khatun received the Bachelor's Degree in Electrical Engineering form Nanjing 
+University of Information Science and Technology, Jiangsu, China. She is currently pursuing 
+Master's degree in Electrical Engineering from the Anhui University of Science and 
+Technology, Anhui, China. Her current research interests include, PLC -based elevator 
+controls, Bayesian Optimization Machine Learning, DC -DC Circuits, Soft Fault. She can be 
+contacted at email : mabiakhatun.njpichina@gmail.com.  
+ Md. Ariful Islam received the Bachelor's Degree in Electrical Engineering form Nanjing 
+Unive rsity of Information Science and Technology, Jiangsu, China . He is currently pursuing  
+Master's degree in Mechanical Engineering from the Changan Univ ersity, Xian, China . His 
+current research interests include, Research on the Compilation  Method of Transmission 
+Shaft Load Spectrum for ZL50 Wheel Loader Used in Mines. He can be contacted at email: 
+arifkhan271848 @gmail.com. 
+ 
+ Merina Akter received the Bachelor's Degree in Software Engineering form Jiangsu Normal 
+Unive rsity, Jiangsu, China . She is currently pursuing Master's degree in Compute r Scie nce & 
+Technology from the Changan University, Xian, China. Her current research interests include, 
+Data Scie nce and Artificia l Intelligence for Ethical and Scalable AI Solution s. She can be 
+contacted at email: merinahawla1999@ gma il.com.  
+ 
+  
+ 
+ 
+ 

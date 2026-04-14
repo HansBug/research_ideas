@@ -1,0 +1,608 @@
+--- Page 1 ---
+Towards Formal Interfaces for Web Services with
+Transactions?
+Zhenbang Chen, Ji Wang, Wei Dong, and Zhichang Qi
+National Laboratory for Parallel and Distributed Processing,
+Changsha 410073, China
+{z.b.chen,jiwang,dong.wei}@mail.edu.cn
+Abstract. The accuracy of interface description is very important to service
+composition and dynamic selection of service-oriented systems. It is desirable
+to describe Web service formally so as to improve the ability of service orches-
+tration. This paper presents a formal interface theory for specifying Web ser-
+vice by extending the existing with the ability to model interface behaviour with
+transactions at the levels of signature, conversation and protocol. Signature in-
+terface and conversation interface model the static invocation relations in Web
+service interfaces, and protocol interface describes the temporal invocation in-
+formation. A formal semantics of protocol interface is presented. Based on the
+semantics, the protocol interface can be transformed into a Labeled Transition
+System (LTS). Additionally, the compatibility and substitutivity relation condi-
+tions between Web services are also proposed.
+Key words: Web service, Interface theory, Composition, Transaction
+1 Introduction
+Service orientation is a new trend in software engineering [1]. It makes the separa-
+tion of service provider and requester possible, and allows the run-time composition of
+services. Meanwhile, it is a challenge to understand and ensure a high conﬁdence of
+service-oriented software systems.
+Web service is emerging as a standard framework for service-oriented computing.
+Business integration raises the need for Web service composition languages such as
+BPEL4WS (BPEL) [2]. There are many works on formalization and veriﬁcation for
+Web service composition languages, and their main aim is to ensure the correctness of
+Web service composition.
+In service-oriented architecture, service providers publish the service interface de-
+scriptions to the service registry. It is important to ensure the interface accuracy for
+service-oriented computing. As a formal foundation of component-based design, de
+?Supported by the National Natural Science Foundation of China under Grant No.60233020,
+60303013, 90612009; the National High-Tech Research and Development Plan of China under
+Grant No.2005AA113130; the National Grand Fundamental Research 973 Program of China
+under Grant No.2005CB321802; Program for New Century Excellent Talents in University
+under Grant No.NCET-04-0996.
+
+--- Page 2 ---
+Alfaro and Henzinger [3] proposed a theory of interface automata for specifying the
+component interfaces. Recently, Beyer et al. [4] presented a Web service interface de-
+scription language, which can describe the Web service interfaces in three levels, i.e.
+signature, consistency and protocol. However, transactions are not considered in the
+existing interface theories, though it is one of the essential features in distributed com-
+puting such as Web service systems. How to describe transaction information of Web
+service is a problem. Web service-based transactions differ from traditional transactions
+in that they execute over long periods, require commitments to the transactions to be
+“negotiated” at runtime, and isolation levels must be relaxed [5].
+The main contribution of this paper is to extend the formalism of Web service inter-
+faces proposed in [4] for describing the transaction information in all three levels of sig-
+nature, conversation and protocol. In each level, we separate the transaction description
+from the normal behaviour description. This separation makes the transaction informa-
+tion of Web service interfaces to be easier to describe and maintain. The compatibility
+and substitutivity relation conditions of the Web service interfaces are proposed for
+supporting Web service system development.
+The rest of this paper is organized as follows. Section 2 presents the framework of
+the interface theory for Web services with transactions, including the signature inter-
+face, conversation interface and protocol interface. As a key element, Section 3 gives
+a complete semantics of protocol interface. Section 4 exempliﬁes the theory by a case
+study. In Section 5, related work is reviewed and compared with ours. Section 6 con-
+cludes the paper and presents some future work.
+2 Web Service Interface Theory
+A Web service interface description contains some method declarations, and clients can
+use the functionalities of Web services through method calls. A Web service may pro-
+vide or request some methods which may return some different values. An action is one
+case of a method call. From the perspective of action , the interface behaviour of Web
+service contains three parts . The ﬁrst part is the normal behaviour of action invocations.
+If an exception action is invoked and completes, it will be handled by its correspond-
+ing fault handling behaviour, which is the second part of the interface behaviour. If an
+exception action can invoke some successful actions before the exception occurrence,
+the successful actions should be compensated by the corresponding compensation be-
+haviour, which is the third part of the interface behaviour.
+There are different detailed interface descriptions from Web service providers. For
+this reason, we propose the interface theory for describing the transaction information
+at three different abstract levels of signature, conversation and protocol. Inspired by the
+ideas of Aspect-Oriented Programming (AOP) [6], we separate the descriptions of fault
+handling and compensation behaviour from those of normal behaviour in the interface
+description. In the interface semantics, the fault handling and compensation behaviour
+can be weaved with the normal behaviour to describe the transaction information.
+LetMbe a ﬁnite set of Web methods, Obe a ﬁnite set of outcomes, and dom(f)
+denote the domain of the function f. Each level of the interface theory will be presented
+as follows.
+
+--- Page 3 ---
+Deﬁnition 1 (Signature Interface, SI). A signature interface P=(A,S,SC,SF), where
+A µ M £ O is a set of actions that can appear in P,S:A ! 2Ais a partial function
+that assigns to an action aa set of actions that can be invoked by a,SC:A ! 2Ais a
+partial function that assigns to an action aa set of actions that can be invoked by the
+compensation for a,SF:A ! 2Ais a partial function that assigns to an action aa set
+of actions that can be invoked by the fault handling for a, and dom(SC)\dom(SF) =;,
+dom(SC)[dom(SF) =dom(S).
+Signature interface describes the direct invocation relation of Web service inter-
+faces. An action may have different types . An action a2Ais asupported action ifS(a)
+is deﬁned. A Web method m2M is asupported method if there exists a supported ac-
+tiona=hm; oi. An action ais asuccess action ifSC(a)is deﬁned. An action ais an
+exception action ifSF(a)is deﬁned. An action ais arequired action if it can be in-
+voked by a supported action or compensation or fault handling, which can be expressed
+by the formula deﬁned as follows:
+required (a0) = (9a2dom(S): a02 S(a))_(9a2dom(SC): a02 SC(a))_
+(9a2dom(SF): a02 SF(a)).
+Service registries often require service providers to publish solid interface descrip-
+tions. Well-formedness can be used to assure the integrity. A signature interface is
+well-formed if the following conditions hold: every required action whose method is
+a supported method is a supported action, and no exception action can be invoked in
+compensation or fault handling.
+Given two Web service interfaces, it is desirable to check whether they can cooper-
+ate properly. First, two Web services cannot support the same actions. Second, the new
+Web service interface, which is composed of them, should be well-formed. Formally,
+given two signature interfaces P1= (A1;S1;SC1;SF1)andP2= (A2;S2;SC2;SF2),
+they are compatible (denoted by comp (P1;P2)) if the following conditions are satisﬁed:
+dom(S1)\dom(S2) =;, andPc=P1[ P2= (A1[ A2;S1[ S2;SC1[ SC2;SF1[ SF2)
+is well-formed. If two signature interfaces P1andP2are compatible, their composition
+(denoted by P1k P2) isPc. The composition operator is commutative and associative.
+To enable top-down design, it is desirable to replace a Web service in a system (en-
+vironment) with a new Web service without affecting the running of the system. After
+replacement, all parts of the system can still cooperate properly as before. Intuitively,
+the supported, success and exception actions are the guarantees of the Web service, and
+the required actions are the assumptions of the environment. The replacing Web service
+should guarantee more and assume fewer than the replaced Web service.
+Given two signature interfaces P1= (A1;S1;SC1;SF1)andP2= (A2;S2;SC2;SF2),
+P2reﬁnes P1(P24P1) if the following conditions are satisﬁed:for every a2 A, ifP1
+supports a, thenP2supports a; for every a2 A, ifais a success action in P1, then a
+is a success action in P2; for every a2 A, ifais an exception action in P1, then ais
+an exception action in P2; for every a; a02 A, and a2dom(S1), ifa02³2(a), where
+³22 fS 2;SC2;SF2g, then a02³1(a); for every unsupported Web method m2 M in
+P2, ifhm; oiis a required action in P2, thenhm; oiis a required action in P1.
+The ﬁrst three conditions ensure that the replacing Web service guarantees every ac-
+tion guaranteed by the replaced one. The last two conditions ensure that every required
+action in P2is required by P1, and they describe that P2assumes fewer actions which
+
+--- Page 4 ---
+are supported by environment than P1. Given three signature interfaces P1,P2, andP3,
+ifcomp (P1;P3),comp (P2;P3), andP24P1, then P2k P34P1k P3.
+An action may invoke different action sets in different conditions. Signature in-
+terface cannot describe this feature. Conversation interface is proposed for specifying
+different cases of action invocation. A conversation is a set of actions that are invoked
+together. Propositional formulae are used to represent different conversations. The set
+ofconversation expressions over an action set Ais given by the following grammar,
+where a2A.
+!::> jaj!1t!2j!1u!2
+>is the propositional constant, which represents no action is needed to be invoked.
+Action arepresents a single action is needed to be invoked. The expression !1t!2
+represents that each conversation represented by !1or!2can be invoked. The expres-
+sion!1u!2represents that one conversation must contain each conversation from !1
+and!2. The set of all conversation expressions on the action set Ais denoted by !(A).
+A conversation interface I=(A,E,EC,EF), where A µ M £ O is a set of actions
+that can appear in I,E,ECandEFare partial functions, whose deﬁnitions are same
+asA!!(A). The meanings of functions are similar to those of signature interface, ex-
+cept that each function assigns to an action a conversation expression to describe the
+interface behaviour.
+A conversation is a set of actions, which do not have any sequence information.
+[4] presented protocol interface to depict the sequences of actions. In this paper, the
+protocol interface is extended to enable transaction description. In Web service, the
+modes of action invocations include thread creation, choice, parallel executions, join
+after parallel execution, and sequence etc. We use terms to represent these different
+modes. The set of terms over an action set Ais given by the following grammar, where
+a; b2 A.
+term ::¿jajatbjaubja¢bja;bj[term ]
+The set of all terms over Ais denoted by Term (A), and [[term ]] = [ term ]. The
+term¿is an Empty term , which represents that no action is invoked. The term a=hm; oi
+is aCall term , which represents a call to Web method mwith expected outcome o. The
+termatbis aChoice term , which represents a nondeterministic choice between actions
+aandb. The term aubis aFork term , which represents parallel invocations of actions
+aandb, and the parent waits for both actions to return. If any action is an exception
+action, the parent fails. The term a¢bis aFork-Choice term , which represents parallel
+invocations of actions aandb, while the return of any action will return the parent. a¢b
+fails only when both actions are exception actions. The term a;bis aSequence term ,
+which represents two sequential calls. The term [term ]is aTransaction term , which
+represents that any exception action invoked from the term in the brackets will cause
+the compensation or fault handling to the actions which are invoked before from the the
+term in the brackets. For the sake of simplicity, it is assumed that the term of transaction
+term must result in exceptions.
+The sequences of invocations between Web services can be speciﬁed in automata.
+To indicate the place where exceptions occur, we propose extended protocol automata
+as follows.
+
+--- Page 5 ---
+Deﬁnition 2 (Extended Protocol Automata, EPA). An extended protocol automaton
+Gis a triple (A;L; ±), where Ais a set of actions, Lis a set of locations, there are two
+special locations ?;£inL,? 2 L is the return location, and £2 L is the exception
+location, ±µ(L n f? ;£g)£Terms (A)£ L is the transition relation set.
+A location is terminating in EPA if there exists a trace starting from the location and
+ending with ?or£. Based on EPA, we deﬁne protocol interface as follows.
+Deﬁnition 3 (Protocol Interface, PI). A protocol interface Tis 4-tuple (G;R;RC;RF),
+where Gis an extended protocol automaton to specify interface behaviour, R:A ! L is
+a partial function that assigns to an action the start location in G,RC:A ! L is a par-
+tial function that assigns to an action athe start location in Gof the compensation for
+a,RF:A ! L is a partial function that assigns to an action athe start location in Gof
+the fault handling for a, and dom(RC)\dom(RF) =;,dom(RC)[dom(RF) =dom(R).
+A location is terminating in PIif it is terminating in EPA and the start location of
+each action in the terminating trace is also terminating in PI. Given a protocol interface
+T= (G;R;RC;RF), the underlying signature interface ofT(denoted by psi(T)) is
+(As;S;SC;SF), where As=A;S(a) =sigl(R(a))ifR(a)is deﬁned, otherwise S(a)
+is undeﬁned; SC(a) =sigl(RC(a))ifRC(a)is deﬁned, otherwise SC(a)is undeﬁned;
+SF(a) =sigl(RF(a))ifRF(a)is deﬁned, otherwise SF(a)is undeﬁned. The function
+sigl:L ! 2Ais deﬁned as follows:
+sigl(?) =;; sigl(£) =;,sigl(q) =S
+9(q;term;q0)2±'(term )[sigl(q0),
+'(¿) =;; '(a) =fag; '([term ]) ='(term ),'(a¤b) =fa; bg;¤2 ft;u;¢;;g.
+A protocol interface Tiswell-formed if the following conditions hold: psi(T)is
+well-formed; if a2dom(R), then R(a)is terminating; if a2dom(RC), then RC(a)
+is terminating; if a2dom(RF), then RF(a)is terminating. For the sake of simplicity,
+it is assumed that: no transaction term can be invoked by exception action, nor can
+it be invoked by compensation or fault handling; transaction term cannot be invoked
+recursively or parallelly. The types of an action ain a protocol interface Tare same as
+those of ainpsi(T).
+Given two protocol interfaces T1= (G1;R1;RC1;RF1)andT2= (G2;R2;RC2;RF2),
+they are compatible if the following conditions are satisﬁed: psi(T1)andpsi(T2)are
+compatible, and L1\L2=f?;£g;Tc=T1[T2= (G1[G2;R1[R2;RC1[RC2;RF1[
+RF2)is well-formed, where G1[G2= (A1[ A 2;L1[ L2; ±1[±2). IfT1andT2are
+compatible (denoted by comp (T1;T2)), their composition (denoted by T1k T2) isTc.
+The composition operator is commutative and associative. The substitutivity relation
+between protocol interfaces should be deﬁned based on the semantics to ensure the
+temporal correctness.
+Signature interface and conversation interface describe the static invocation rela-
+tions of Web service interfaces, and their semantics are simple and show the static as-
+pects of the Web service interface. Protocol interface describes dynamic invocations in
+Web service interfaces. The interface behaviour of protocol interface should ensure not
+only the invocation process should been recorded for compensation or fault handing, but
+also the sequence of compensation and fault handling should agree to the long-running
+transaction model.
+
+--- Page 6 ---
+3 The Semantics of Protocol Interface
+The action invocation process is a pushdown system which can continue only after the
+completion of every invoked action. The sequence of compensation and fault handling
+should be reverse of the sequence of the previous invocations, and the recorded actions
+should be ﬁrst in last out. Therefore, we use a binary tree nested by a stack to interpret
+the protocol interface behaviour.
+Abinary tree over a ﬁnite set of labels Lis a partial function t:B¤!L, where
+B¤denotes the set of ﬁnite words over B=f0;1g, and ½denotes the empty word.
+T(L)denotes the set of all trees over a ﬁnite label set L. Astack over a ﬁnite set of
+labels Lis a partial function s(m) :N!L, whereNis the natural number set, and
+dom(s(m)) =fnjn < m ^n2Ng.s(0)is the empty stack. s(m)(m¡1)is the top
+element of the stack s(m).S(L)denotes the set of all stacks over a ﬁnite label set L.
+Given a protocol interface (G;R;RC;RF), its semantics is deﬁned by a labeled
+transition system (LTS). The set of states is T(Qt)£B¤£S(Term (A)), that is, the
+Cartesian products of trees over Qt=L£A¤£}, the set of tree nodes B¤, and stacks over
+Term (A), where Lis the location set of EPA G ,A¤is the set of words over the action
+setAinG,}=f±;;c;d;¢;¢c;¢d;4;r;¯;gis the node type set, and the tree
+node inB¤is the corresponding node of the stack. The underlying transition relation of
+Tis a transition relation !Tµ(T(Qt)£B¤£S(Term (A)))£2A[fret;exp;cfstart;end g£
+(T(Qt)£B¤£S(Term (A))). The label of state transition is the set of elements from
+A[fret; exp; cfstart; end g. We write º!Bº0for(º;B; º0)2!T, where º= (t; ª; s (n))
+andB µ A [ f ret; exp; cfstart; end g. The transition rules have two parts, the ﬁrst part
+consists of the rules for normal behaviour transitions, and the second part consists of the
+rules for transitions made by compensation or fault handling. The second part weaves
+the transaction behaviour into the normal behaviour.
+The beginning of normal behaviour is the invocation of a supported action. The ini-
+tial state is a tree that has only one node and a stack whose content is decided by the type
+of the supported action. Supposing we start from invoking a supported action a, ifais
+a success action, the initial state is ºinital = (tinital; ª; s(0)) = ( f(½;(R(a); ½;±))g; ½;;),
+else if ais an exception action, the initial state is ºinital = (tinital; ª; s(1)) = ( f(½;(R(a);
+½;±))g; ½;f(0; a)g). The operations in normal transaction rules can be divided into two
+parts: tree operations andstack operations . The tree operations depict a pushdown sys-
+tem. Only leaf nodes of the tree can be operated. Call, Choice and Sequence terms lead
+to pushing down the leaf node. Fork and Fork-Choice terms lead to branching the leaf
+node. Transaction term leads to pushing down the leaf node with a transaction node.
+For pushdown operations, if current node location is reached from a success supported
+action, or the leaf node is not pushed from a transaction term node, no stack opera-
+tions is needed. If current node location is reached from a supported exception action,
+or the node is branched from a transaction term node and the transaction node is not
+under compensation or fault handling, stack operations is needed. Main operations in
+the normal rules are illustrated in Figure 1.
+There are ﬁve normal transition rules. As a shorthand, the rules ( Pushdown ) and
+(Exception ) are listed in Appendix. The rule ( Pushdown ) describes the operations
+of different invoked terms. The rule ( Exception ) describes that when an exception
+location is reached, some coordination should be taken. There are two complicated
+
+--- Page 7 ---
+       
+ No Branching  qa     a 
+qa   a ⊓b 
+qa qb    a ⊞b 
+qa qb    a;b 
+qa    q(a) 
+qa    [term ] 
+⊥⊙ 
+Child Trees 
+   a 
+⊥   a ⊓b 
+Child Trees  ⊥ qa   a ⊞b 
+Child Trees  ⊥ 
+   a 
+⊠ qa   a ⊓b 
+Child Trees  qb 
+⊠  No Branching  qa   a ⊞b 
+Child Trees  qb 
+⊠  Changed to ⊠ 
+No Branching  ⊠   a ⊞b 
+ qb 
+⊠  Push term  into Stack  No stack operation  No stack operation  
+Pushdown  Return  Excep tion     a ⊔b 
+qc Fig. 1. Illustrations of operations in normal transition rules.
+cases. The ﬁrst case is that the exception location is reached from a Fork term, and
+it will cause the global exception and the other branch should be terminated. Another
+case is that the exception location is reached from a Fork-Choice term, and whether it
+can cause the global exception is determined by the other branch. If the other branch
+returns successfully, the parent is successful. If the other branch does not return, this
+branch should wait until the return of the other branch. If exception also occurs in the
+other branch, the global exception occurs. The invocation of the unsupported action is
+supposed to return immediately.
+The compensation and fault handling occur in the condition that some exception ac-
+tions have been invoked. After normal transitions, actions in the execution must return,
+and the state of the execution must reach (f(½;(?; ½;±))g; ½; s(0))or(f(½;(£; ½;±))g; ½;
+s(n))with n > 0. If it is (f(½;(?; ½;±))g; ½; s(0)), the invocation is successful, and
+no compensation or fault handling is needed. If the state is (f(½;(£; ½;±))g; ½; s(n)),
+some exceptions occur in the invocation process, and compensation or fault handling
+should be taken. After compensation or fault handling, the state must ﬁnally reach
+(f(½;(?; ½;±))g; ½; s(0)), which represents that the whole invocation process completes.
+If the invocation returns on a node whose corresponding label is (£; ½;¯),©6=½, and
+the stack is not empty, it represents that a transaction term invocation has returned, and
+compensation or fault handling should be taken.
+It is assumed that no exception will appear in compensation or fault handling. The
+compensation and fault handling do not need stack operation. The operations in com-
+pensation and fault handling transition rules are simpler than those in normal transition
+rules. The transition rules specify that the recorded term in the stack should be popped
+out in sequence, and whether compensation or fault handling will be taken is deter-
+mined by the action type. After completing compensation and fault handling, whether
+the invocation process terminates is determined by the exception reason. If the begin-
+ning action is a supported exception action, the invocation process terminates. If the
+exception is resulted from a Transaction term , the invocation process will continue.
+Based on the transition rules, we can use the LTS simulation relation to deﬁne the
+substitutivity relation of protocol interfaces. A labeled transition system is a 4-tuple
+(S; I; L; ¢ ), where Sis the set of states, IµSis the set of initial states, Lis the set
+
+--- Page 8 ---
+of labels, and ¢µS£L£Sis the transition relation set. Given a protocol interface
+T= (G;R;RC;RF), and a supported action a, the underlying labeled transition system
+of invoking a(denoted by LTS(T; a)) is(Sa; Ia; La; ¢a), which can be given as follows:
+Sa=T(Qt)£B¤£S(Term (A)); ifais a success action, Ia=f(f(½;(R(a); ½;±))g; ½;;)g;
+ifais an exception action, Ia=f(f(½;(R(a); ½;±))g; ½;f(0; a)g)g;La= 2A[fret;exp;cfstart;end g;
+¢ais the underlying transition relation set of Tusing the transition rules.
+Because ret; exp; cfstart; andendare not external Web service actions, the tran-
+sitions labeled by them do not assume to the environment. The simulation relation of the
+underlying labeled transition systems can be extended to relax the conditions that substi-
+tutivity should satisfy. We denote (s1; a; s0
+1)2¢ass1!as0
+1. Ift=a1a2:::an2L¤,
+s1!a1!a2:::!ans0
+1is denoted as s1!ts0
+1.
+Given two LTSs M1= (S1; I1; L1; ¢1)andM2= (S2; I2; L2; ¢2)and a label set W,
+M2isweakly simulated byM1over the label set Wif there exists a relation 4WµS1£S2
+such that: for every s12M1; s22M2, ifs24Ws1, then for every (s2; a; s0
+2)2¢2, there
+exists s1Ãas0
+1in¢1, such that s0
+24Ws0
+1, where s1Ãas0
+1represents s1!ts0
+1, in
+which t=a1a2:::an, and there exists only one aithatai=a, and all the other labels are
+all in W; for every s22M2, there exists s12M1such that s24Ws1.
+Given two protocol interfaces T1= (G1;R1;RC1;RF1)andT2= (G2;R2;RC2;RF2),
+we say T2reﬁnes T1(T24T1)if the following conditions are satisﬁed: psi(T2)4
+psi(T1), and for every a2dom(R1),LTS(T2; a)is weakly simulated by LTS(T1; a)
+over2fret;exp;cfstart;end g. Given three protocol interfaces T1,T2, andT3, ifcomp (T1;T3),
+comp (T2;T3), andT24T1, then T2k T34T1k T3.
+4 Case Study
+Figure 2 shows a classical Web service-based system, supply chain management sys-
+tem. The system is composed of six Web services. Each labeled arrow from one service
+to another indicates the Web method call from the caller to the callee. Shop supports the
+Web method SellItem that can be called by the Client to start the selling process. When
+the selling process starts, the Shop will ﬁrst check the availability of items to be sold by
+calling the method ChkAvail , which requires the Web method ChkStore implemented
+byStore to check whether the desirable items are in stock and deduct the number of
+items if the stock checking is successful. If the stock is inadequate, the selling process
+fails. If the stock is inadequate or the stock after deducting is below a certain amount,
+theStore department will make an order from the Supplier and get some new items. If
+the availability checking is successful, the Shop will parallelly process the payment by
+calling the method ProcPay and the delivery by calling the method ShipItem .ProcPay
+is implemented by the Bank and its success can be compensated by calling the method
+Compensate .ProcPay is implemented by Transport and its success can be compensated
+by calling the method Withdraw . If all the above steps are successful, the selling process
+is successful, otherwise the successful steps before failure should be compensated and
+the failed steps should be handled. For instance, the Shop will call the method Apologize
+implemented by itself to send an apologetic letter to the Client because of the failure
+of the selling process. After composition, the supply chain management system con-
+tains six Web services. The protocol interface for the system and a trace of the action
+
+--- Page 9 ---
+ Shop 
+Bank Transport  Store 
+Supplier Post office 
+Client SellItem  
+Recede  
+Compensate  
+ProcPay  ShipItem  WithDraw  Apologize  ChkAvail  
+ChkStore  
+RStore  
+GetOffer  Order  SendLetter Fig. 2. Supply chain management system.
+hSellItem, FAIL iinvocation is shown in Figure 3, and the reason of purchasing failure
+is the invocation of action hProcPay, FAIL i.
+ As a shorthand, we use the set whose elements are 
+formed in (l, term, l') to represent the transition  
+relation set in EPA, where l and l' are the locatio ns 
+of EPA. The partial functions are indicated by 
+adding an action before a transition and the 
+corresponding location of the action is simply the 
+source location of the transition at the head 
+position. 
+{… 〈SellItem , OK 〉R→(q0, 〈ChkAvail, OK 〉, q1), 
+(q1, 〈ProcPay, OK 〉 /intersectionsq 〈ShipItem, OK 〉, ⊥), 
+〈SellItem , FAIL 〉R→(q3, 〈ChkAvail, FAIL 〉, /squaremultiply), 
+(q3, 〈ChkAvail, OK 〉, q4) 
+(q4, 〈ProcPay, FAIL 〉 /intersectionsq 〈ShipItem, FAIL 〉, /squaremultiply), 
+   (q4, 〈ProcPay, OK 〉 /intersectionsq 〈ShipItem, FAIL 〉, /squaremultiply), 
+   (q4, 〈ProcPay, FAIL 〉 /intersectionsq 〈ShipItem, OK 〉, /squaremultiply), 
+〈ChkAvail , OK 〉R→(q6, 〈ChkStore, OK 〉, ⊥), 
+〈Apologize , OK 〉R→(q8, 〈SendLetter, OK 〉, ⊥), 
+〈ProcPay , FAIL 〉R→(q22 , τ , /squaremultiply), 
+〈Compensate , OK 〉R→ ⊥, 〈RStore , OK 〉R→ ⊥, 
+〈ChkStore , OK 〉R→ ⊥, 〈WithDraw , OK 〉R→ ⊥, 
+〈ShipItem , OK 〉R→(q21, 〈Package, OK 〉, ⊥),… 
+〈ChkAvail , OK 〉CR→ ⊥, 
+〈ChkStore , OK 〉CR→(q17 , 〈RStore, OK 〉, ⊥) 
+〈ShipItem , OK 〉CR→(q20 , 〈WithDraw, OK 〉, ⊥),… 
+〈ChkAvail , FAIL 〉FR→ ⊥, 
+〈SellItem , FAIL 〉FR→(q13 , 〈Apologize, OK 〉, ⊥), 
+…}.  {<ProcPay, OK>,<ShipItem,OK>}  
+    q4
+q6  q3 q4 
+⊥ 
+⊥ {<ChkAvail, OK>}  
+  q4 
+⊥  {<ChkStore, OK>}  {ret} 
+ q4 {ret} 
+  ⊠ 
+q22 q21     ⊠ 
+q22  q21  
+ ⊥    ⊠ 
+⊠ q21 
+ ⊥ {<Package, OK>}  No action   ⊠ 
+{exp}  
+  ⊠ 
+⊥ {cfstart}  
+ ⊠ {ret} 
+   ⊠ 
+⊥ q20  {cfstart}  
+   ⊠ 
+⊥ ⊥ 
+ ⊥ {<WithDraw, OK>}  
+ ⊠ {ret},{ret},{ret}  
+  ⊠ 
+q17 
+  ⊠ 
+⊥ 
+⊥  {cfstart}  
+{<RStore, OK>}  
+  ⊠ 
+q13 {ret},{ret},{cfstart},{ret},{cfstart}  
+  ⊠ 
+⊥ {<Apologize, OK>}  
+ q8 
+ ⊠ 
+⊥ 
+⊥  
+ ⊥  {<SendLetter, OK>}  
+ ⊠  ⊥ {ret},{ret},{ret}  {end}  
+Fig. 3. The protocol interface for the supply chain management system and a trace of the action
+hSellItem,FAIL iinvocation.
+5 Related Work
+There are many researches on formalization and veriﬁcation of Web service interface
+behaviour, which can be divided by the underlying semantic theory as follows:
+
+--- Page 10 ---
+Petri net . [8] used Petri net to formalize the Web service compositions. [9] used
+WF-nets (workﬂow nets) to formalize the BPEL description, and a mapping from BPEL
+process model to WF-net was proposed.
+Process algebra . Foster [10] used ﬁnite state process (FSP) to formalize BPEL
+and WS-CDL [11], and the speciﬁcations are veriﬁed on LTSA WS-Engineer, which
+can perform safety and liveness analysis, and interface compatibility checking. In [12],
+BPEL-Calculus was proposed to formalize BPEL, and the description can be veriﬁed
+on Concurrency WorkBench (CWB) by a syntax compiler plug-in for BPEL-Calculus.
+Automata . In [13], guarded ﬁnite state automata (GFSA) was used to describe ser-
+vice composition, and the description can be translated to Promela which can be veriﬁed
+on SPIN. In [14], hierarchical state machine (HSM) was used to specify Web service
+interfaces, and Java PathFinder (JPF) was used to verify that the implementation of
+each peer of Web service system conforms to its interface, and the interface behaviour
+models can be veriﬁed on SPIN.
+The above approaches are deﬁcient in modeling transaction behaviour of Web ser-
+vice interfaces, especially in compensation and fault handling. Because of the deﬁ-
+ciency in formalism, the above veriﬁcation methods cannot verify the properties which
+specify transaction behaviour part in Web service interfaces. By extending [4], the for-
+malism presented in this paper can rigorously describe the transaction behaviour of
+Web service interfaces. The above veriﬁcation methods mainly take into account the
+temporal interface behaviour and properties of Web services. In practice, some Web
+service providers cannot publish interfaces with temporal information. The approaches
+in [8–10, 12–14] cannot handle this situation. Additionally, there are some researches on
+formalization of long-running transactions. Butler et al. [16] extended communicating
+sequential process (CSP) to enable the description of long-running transactions. In [17],
+an enhanced Sagas language is proposed for specifying compensation in ﬂow compo-
+sition languages. Their approaches mainly aim at description of dynamic transactional
+behaviour. Our approach takes into account different abstract levels and separates the
+transaction description from the normal behaviour description.
+6 Conclusions
+Web service is the most popular implementing framework for service-oriented comput-
+ing. In this paper, we aim at formalization of Web service interfaces with transactions.
+The ﬁnal goal is to ensure the correctness of Web service interfaces. This paper presents
+an interface theory for specifying interface behaviour with transactions in Web services.
+The signature interface speciﬁes the direct invocation relations and the conversation in-
+terface speciﬁes different invocations for the same call. With protocol interface, tem-
+poral invocations can be speciﬁed. To serve as a dynamic semantics of interfaces, a
+set of operational rules are presented to transform the protocol interface behaviour into
+labeled transition systems. The relation conditions of compatibility and substitutivity
+between Web services are also presented in this paper. The separate description method
+used in this paper reﬂects some ideas of AOP, and different parts of behaviour can be
+weaved together in the semantics.
+
+--- Page 11 ---
+Through our approach, one can precisely describe Web service interface transaction
+information. The interface theory for Web services will form as a formal foundation of
+service-oriented software engineering, especially in the speciﬁcation and veriﬁcation of
+service-oriented systems.
+Currently, a model checking based veriﬁcation method has been proposed [7] and
+our interface theory has been be applied to BPEL [18], and the application raises some
+issues which need improvements of the interface theory, such as data handling descrip-
+tion. Other ongoing and future works are to investigate an integrated formalism for both
+service orchestration and choreography by Web service interface theory, and to build the
+corresponding tools for speciﬁcation and veriﬁcation.
+References
+1.Humberto, C., Richard, S.H.: Technical Concepts of Service Orientation. Service-Oriented
+Software System Engineering: Challenges and Practices , pp. 1-47, 2005.
+2.Curbera, F., et al.: Business Process Execution Language For Web Services Version 1.1 .
+ftp://www6.software.ibm.com/software/developer/library/ws-bpel.pdf .
+3.de Alfaro, L., Henzinger, T.A.: Interface automata. In Proc. of ESEC/FSE’01 , pp. 109-120,
+2001.
+4.Beyer, D., Chakrabarti, A., Henzinger, T.A.: Web Service Interfaces. In Proc. of WWW’05 ,
+pp. 148-159, ACM Press, 2005.
+5.Little, M.: Transactions and Web Services. Communication of the ACM , 46(10):49-54, 2003.
+6.Kiczales, G., et al.: Aspect-Oriented Programming. In Proc. of ECOOP’97 , LNCS 1241,
+pp. 220-242, Springer, 1997.
+7.Chen, Z.B., Wang, J., Dong, W., Qi, Z.C., Yeung, W.L.: An Interface Theory Based Approach
+to Veriﬁcation of Web Services. In Proc. of COMPSAC’06 , pp. 139-144, IEEE Press, 2006.
+8.Hamadi, R., Benatallah, B.: A Petri Net-based Model for Web Service Composition. In
+Proc. of ADC’03 , pp. 191-200, IEEE Press, 2003.
+9.Verbeek, H.M.W., van der Aalst, W.M.P.: Analyzing BPEL Processes using Petri Nets. In
+Proc. of the 2th International Workshop on Applications of Petri Nets to Coordination, Work-
+ﬂow and Business Process Management at the Petri Nets’05 , pp. 59-78, 2005.
+10.Foster, H., Uchitel, S., Magee, J., Kramer, J.: Compatibility for Web Service Choreography.
+InProc. of ICWS’04 , pp. 738-741, IEEE Press, 2004.
+11.Kavantzas, N., et al.: Web Services Choreography Description Language Version 1.0 .
+http://www.w3.org/TR/ws-cdl-10/ .
+12.Koshkina, M.: Veriﬁcation of Business Processes for Web Services. [MS. Thesis]. York
+University, 2003.
+13.Fu, X., Bultan, T., Su, J.W.: Analysis of Interacting BPEL Web Services. In Proc. of
+WWW’04 , pp. 621-630, ACM Press, 2004.
+14.Betin-Can, A., Bultan, T.: Veriﬁable Web Services with Hierarchical Interfaces. In Proc. of
+ICWS’05 , pp. 85-94, IEEE Press, 2005.
+15.Beyer, D., Chakrabarti, A., Henzinger, T.A.: An Interface Formalism for Web Services. In
+Proc. of the WorkShop FIT at CONCUR’05 , San Francisco, CA, 2005.
+16.Butler, M., Ripon, S.: Executable Semantics for Compensating CSP. In Proc. of WS-FM’05 ,
+LNCS 3670, pp. 243-256, Springer, 2005.
+17.Bruni, R., Melgratti, H., Montanari, U.: Theoretical Foundations for Compensations in Flow
+Composition Languages. In Proc. of POPL’05 , pp.209-220, ACM Press, 2005.
+18.Chen, Z.B., Wang, J., Dong, W., Qi, Z.C.: Interface Theory based Formalization and Veriﬁca-
+tion of Orchestration in BPEL4WS. In Proc. of the Workshop SOT at ICEC’06 , Fredericton,
+New Brunswick, Canada, 2006.
+
+--- Page 12 ---
+Appendix. Some Important Normal Transition Rules
+Due to the space limitations, we only give two normal transition rule deﬁnitions, where
+–Letpjdenote the concatenation of the word pwithj2B, and pp0denote the concate-
+nation of the words pandp0. For a tree tand a node p2dom(t),leaf(t) =fp2
+dom(t)j 8j2B; pj =2dom(t)g,child (p)=fqj 9j2B; q=pj^q2dom(t)g, and
+parent (p) =fqj 9j2B; p=qj^q2dom(t)g.ancestor (p1; p2) = ( p12
+parent (p2))_(9q2parent (p2): ancestor (p1; q))denotes whether a node p1is the an-
+cestor of another node p2.ancestor -y(p; ¯)denotes the node p’s youngest ancestor whose
+node type is ¯;
+–in a transition, the source state is deﬁned as º= (t; ª; s (n)), and the target state as º0=
+(t0; ª0; s0(m)).q(w)¯represents (q; w; ¯ )inQt, and if w=½,q¯is used to represent it.
+For example, q¢represents (q; ½;¢);
+–±(q) = (a; q0)denotes that there exists a transition relation (q; a; q0)in the extended protocol
+automaton. »(p) =¤if the type of the tree node pis¤2}. If action cis supported by R,
+qc=R(c), otherwise qc=?.
+(Pushdown )º!Mº0
+If there exists a node psuch that p2leaf(t),t(p) =q¯, where ¯2},±(q) = (r; q0), and
+ª=½_(ª6=½^»(ª) =¯):
+–r=a:t0= (tn f(p; q¯)g)[ f(p; q0¯);(p0; qa¯)g,term 1=a, andM=fag;
+–r=atb:t0= (tn f(p; q¯)g)[ f(p; q0¯);(p0; qc¯)g, where c2 fa; bg,term 1=c, and
+M=fcg;
+–r=aub:t0= (tn f(p; q¯)g)[ f(p; q0®);(p0; qac);(p1; qbc)g, where (¯=± ^®=
+)_(¯=c^®=d)_(¯=¢c^®=r),term 1=aub, andM=fa; bg;
+–r=a¢b:t0= (tn f(p; q¯)g)[ f(p; q0®);(p0; qa¢c);(p1; qb¢c)g, where (¯=± ^®=
+¢)_(¯=¢c^®=¢d)_(¯=c^®=4),term 1=a¢b, andM=fa; bg;
+–r=a;b:t0= (tn f(p; q¯)g)[ f(p; q0(b)¯);(p0; qa¯)g,term 1=a, andM=fag;
+–ift(p) =q(a)¯, where ¯2}, then t0= (tn f(p; q(a)¯)g)[ f(p; q¯);(p0; qa¯)g, and
+term 1=a;M=fag.
+Ifn= 0_(ª6=½^p6=ªp0), then s0(m) =s(n); m=n. If(n >0)^((ª=½)_(ª6=
+½^p=ªp0^»(ª) =¯)), then m=n+ 1, ands0(m) =s(n)[ f(n; term 1)g.
+(Exception )º!fexpgº0
+If there exists a node pµsuch that pµ2leaf(t), where µ2B; t(pµ) =£¯, where ¯2},
+andª=½_(ª6=½^»(ª) =¯):
+–¯=±andt(p) =q¯:t0= (tn f(pµ;£±);(p; q¯)g)[ f(p;£¯)g;
+–¯=c,t(pa) =q®, where ®2 f;d;r;¯g, and ancestor -y(pµ; ®) =pa:t0=
+(tn f(pap0; q0)jp02B¤^q0=t(pap0)g)[ f(pa;£¯)g, where (®=^¯=±)_(®=
+d^¯=c)_(®=r ^¯=¢c)_(®=¯ ^¯=¯);
+–¯=¢c, andt(pa) =q®, where ®2 f¢;¢d;4;¯gandancestor -y(pµ; ®) =pa: if there
+exists pb2 fp0jchild (pa)^ :ancestor (p0; p)g, and #child (pb)>0_»(pb) =?, then
+t0= (tn f(pcp0; q0)jp02B¤^q0=t(pcp0)g)[ f(pc;£¯)g, where pc2child (pa)^
+ancestor (pc; p), and t(pc) =qc¯; if all nodes in fp0jchild (pa)^ :ancestor (p0; p)g
+have no child, and the types of all nodes are same as £, then t0= (tn f(pap0; q0)jp02
+B¤^q0=t(pap0)g)[f(pa;£¯)g, where (®=¢^¯=±)_(®=¢d^¯=¢c)_(®=
+4 ^¯=c)_(®=¯ ^¯=¯);
+–t(p) =q(a)¯, where a2 A:t0= (tn f(pµ;£¯);(p; q(a)¯)g)[ f(p;£¯)g.
+In all conditions, s0(m) =s(n), andm=n.

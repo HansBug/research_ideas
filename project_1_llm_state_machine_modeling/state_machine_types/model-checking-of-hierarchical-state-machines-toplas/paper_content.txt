@@ -1,0 +1,2004 @@
+--- Page 1 ---
+Model Checking of Hierarchical State Machines
+
+RAJEEV ALUR
+
+University of Pennsylvania and Bell Laboratories
+and
+
+MIHALIS YANNAKAKIS
+
+Bell Laboratories
+
+ 
+
+Model checking is emerging as a practical tool for detecting logical errors in early stages of system
+design. We investigate the model checking of sequential hierarchical (nested) systems, i.c., finite-
+state machines whose states themselves can be other machines. This nesting ability is common
+in various software design methodologies and is available in several commercial modeling tools.
+The straightforward way to analyze a hierarchical machine is to flatten it (thus, incurring an
+exponential blow up) and apply a model checking tool on the resulting ordinary FSM. We show
+that this flattening can be avoided. We develop algorithms for verifying linear-time requirements
+whose complexity is polynomial in the size of the hierarchical machine. We address also the
+verification of branching-time requirements and provide efficient algorithms and matching lower
+bounds.
+
+Categories and Subject Descriptors: D.2.2 [Software Engineering]: Design Tools and Techniques—
+Object-oriented design methods; state diagrams; D.2.4 [Software Engineering]: Software/Program
+Verification—formal methods; model checking; F.3.1 [Logics and Meanings of Programs]:
+Specifying and Verifying and Reasoning about Programs—mechanical verification; specification
+techniques
+
+General Terms: Algorithms, Design, Theory, Verification
+Additional Key Words and Phrases: Hierarchical state machines, model checking, temporal logic,
+statecharts
+
+ 
+
+1. INTRODUCTION
+
+Finite-state machines (FSMs) are widely used in the modeling of systems in various
+areas. Descriptions using FSMs are useful to represent the flow of control (as
+
+ 
+
+A preliminary version of this paper appeared in the Proceedings of the Sitth ACM Symposium on
+Foundations of Software Engineering (FSE), pp. 175-188, 1998. The research of the first author
+was supported in part by NSF CAREER award CCR97-34115, NSF grant CCR99-70925, SRC
+contract 99-TJ-688, Alfred P. Sloan Faculty Fellowship, and by DARPA/ITO Mobies program.
+Authors’ addresses: R. Alur, Department of Computer and Information Science, 200 South
+33rd Street, University of Pennsylvania, Philadelphia, PA 19104; email: alur@cis.upenn.edu;
+URL: http://www.cis.upenn.edu/“alur. M. Yannakakis, Bell Labs, Lucent Technologies,
+600 Mountain Avenue, Murray Hill, NJ 07974; email: mihalis@research.bell-labs.com; URL:
+http: //cm.bell-labs.com/who/mihalis/.
+
+Permission to make digital/hard copy of all or part of this material without fee is granted
+provided that the copies are not made or distributed for profit or commercial advantage, the
+ACM copyright/server notice, the title of the publication, and its date appear, and notice is given
+that copying is by permission of the Association for Computing Machinery, Inc. (ACM). To copy
+otherwise, to republish, to post on servers, or to redistribute to lists requires prior specific
+permission and/or a fee.
+
+© 1999 ACM 0164-0925/99/0100-0111 $00.75
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. ??, ??, Pages 1-31.
+
+
+--- Page 2 ---
+2    .     R. Alur and M. Yannakakis
+
+opposed to data manipulation) and are amenable to formal analysis such as model
+checking. In the simplest setting, an FSM consists of a labeled graph whose vertices
+correspond to system states and edges correspond to system transitions. In practice,
+to describe complex systems using FSMs, several extensions are useful. We focus on
+hierarchical FSMs (or, nested FSMs) in which vertices of an FSM can be ordinary
+states or superstates which are FSMs themselves.
+
+The notion of hierarchical FSMs was popularized by the introduction of Stat-
+echarts [Harel 1987], and exists in many related specification formalisms such as
+Modecharts [Jahanian and Mok 1987] and RSML [Leveson et al. 1994]. It is a
+central component of various object-oriented software development methodologies
+developed in recent years, such as OMT [Rumabaugh et al. 1991], ROOM [Selic
+et al. 1994], and the Unified Modeling Language (UML [Booch et al. 1997]). Hierar-
+chical modeling is commonly available also in commercial computer-aided software
+engineering tools such as Statemate (by i-Logix), ObjecTime Developer (by Objec-
+Time), and RationalRose (by Rational).
+
+The nesting capability is useful also in formalisms and tools for the requirements
+and testing phases of the software development cycle. On the requirements side, it
+is used to specify scenarios (or use cases [Jacobson 1992]) in a structured manner.
+For instance, the new ITU standard Z.120 (MSC’96) for message sequence charts
+Rudolph et al. 1996] formalizes scenarios of distributed systems in terms of hier-
+archical graphs built from basic MSCs. FSMs are also used to model systems for
+he purpose of test generation, and again the nesting capability is useful to model
+arge systems. For example, Teradyne’s commercial tool TestMaster [Apfelbaum
+1995] is based on a hierarchical FSM model, and so is an internal Lucent test tool
+developed over many years for the testing of a large enterprise switch. Although
+hese models are primarily developed for test generation, they can be used also for
+ormal analysis. This is useful for systems with informal and incomplete require-
+ments and design documentation, as is often the case, and especially for software
+hat was developed and evolved over a long period of time, when the test models
+are updated for continued regression testing as the system evolves.
+As a simple example of a hierarchical FSM, consider a specification of a digital
+clock. The top-level machine consists of a cycle though 24 superstates, one per
+hour of the day. Each such state, in turn, is a hierarchical state machine consisting
+of a cycle containing 60 superstates counting minutes, each of which, in turn, is
+an (ordinary) state machine consisting of a cycle counting seconds. As illustrated
+y this example, hierarchical state machines have two descriptive advantages over
+ordinary FSMs. First, superstates offer a convenient structuring mechanism that
+allows us to specify systems in a stepwise refinement manner, and to view them at
+different levels of granularity. Such structuring is particularly essential for specify-
+ing large FSMs via a graphical interface. Second, by allowing sharing of component
+FSMs (for instance, the 24 superstates of the top-level FSM of digital clock are
+mapped to the same hierarchical FSM corresponding to an hour), we need to spec-
+ify components only once and then can reuse them in different contexts, leading to
+modularity and succinct system representations. In fact, as shown in a recent pa-
+per [Alur et al. 1999], there is an exponential gap between ordinary and hierarchical
+FSMs as generators of regular languages.
+
+In this paper, we consider algorithms for model checking when the description
+
+ 
+
+ 
+
+ 
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 3 ---
+Model Checking of Hierarchical State Machines     .    3
+
+is given as a hierarchical state machine. Model checking is emerging as a practical
+method for automated debugging of complex reactive systems such as embedded
+controllers and network protocols (see [Clarke and Kurshan 1996] and [Clarke and
+Wing 1996] for surveys). Commercial tools for verification of hardware systems
+have appeared in the market in the last two years (e.g. FormalCheck, marketed
+originally by Lucent, and now by Cadence). On the software side, model check-
+ers such as Spin [Holzmann 1997] have been shown to be useful in the design and
+analysis of software in telecommunication and other areas. In model checking, a
+high-level description of a system is compared against a logical correctness require-
+ment to discover inconsistencies [Clarke and Emerson 1981; Queille and Sifakis
+1982]. Given a hierarchical FSM, one can obtain an ordinary FSM by flattening it,
+that is, by recursively substituting each superstate with its associated FSM. Such a
+flattening, however, can cause a blow-up, particularly when there is a lot of sharing.
+For instance, the hierarchical description of the digital clock has 24+60+60 = 144
+vertices, while the flattened description has 24 * 60 « 60 = 86, 400 vertices.! Thus,
+if we first flatten the machine, and then employ the existing model-checking algo-
+rithms, the worst-case complexity would be exponential in the original description
+of the structure. Our results establish that such a flattening is unnecessary by
+providing polynomial-time algorithms.
+
+In this paper we consider only sequential hierarchical machines. To capture
+the full range of modeling features of design languages such as Statecharts, we
+would have to consider two additional, orthogonal extensions of FSMs: (1) multiple
+FSMs operating in parallel and communicating with each other, and (2) extended
+FSMs whose transitions involve reading and writing of variables. The impact of
+both these extensions on the analysis problems has been well understood: both
+the extensions, by themselves, cost an exponential, leading to the so-called state-
+explosion problem. By considering sequential hierarchical machines, we can focus
+on the impact of hierarchy on the analysis problems. It should be noted that the
+models used in testing and hierarchical MSCs are sequential, and the model we use
+is representative of such models.
+
+Our first result concerns the invariant verification problem, that is, the problem
+of establishing that all reachable states are included within the region of states
+satisfying the specified invariant. Invariant verification is the most common model
+checking problem in practice, and can model safety requirements such as mutual
+exclusion and absence of deadlocks. We show, that even though some FSM may
+appear repeatedly in different contexts, it needs to be searched just once. We give
+a depth-first search algorithm that performs the reachability analysis with time
+complexity linear in the size of the hierarchical structure. While reachability is in
+Nlogspace for ordinary FSMs, we establish that reachability problem for hierarchical
+FSMs is P-complete.
+
+Our second verification problem concerns verification of linear-time requirements
+[Pnueli 1977; Vardi and Wolper 1986] such as eventual reception. The commonly
+used formalisms for specifying requirements of system behaviors are automata and
+
+ 
+
+ 
+
+ 
+
+1 Alternatively, we can model the system as a collection of three communicating FSMs, one corre-
+sponding to the hours, one for the minutes, and one for the seconds. Analysis, then, would require
+constructing the product of these three machines, leading to the same blow-up.
+
+ACM Transactions on Programming Languages and Systems Vol. ??7, No. 2?, 22.
+
+
+--- Page 4 ---
+4    .     R. Alur and M. Yannakakis
+
+linear temporal logic. In the automata-theoretic formulation, we are given a hier-
+archical FSM K and a Biichi automaton A that accepts undesirable behaviors, and
+we wish to check whether or not the languages of K and A have a nonempty inter-
+section. We show that this problem can be solved in time O(|K|-|A|*) (if K were
+an ordinary FSM, this complexity would be O(|A| - |A|)). When the linear-time
+specification is given by a formula ¢ of (propositional) linear temporal logic (LTL),
+using the known translations from LTL to Biichi automata [Vardi and Wolper 1986],
+we get an algorithm for LTL model checking with time complexity O(|K|-8!*!). We
+note that usually the formulas ¢ and automata A that specify correctness proper-
+ties are very small (few temporal operators or states), while the system model K’
+is very large.
+
+Our third verification problem concerns branching-time requirements specified in
+the logic CTL [Clarke and Emerson 1981; Queille and Sifakis 1982]. The logic CTL
+can express both existential and universal path properties. For model checking
+of CTL, due to nesting of quantifiers, it is necessary to compute all the states
+that satisfy a particular subformula, and the fact that the same FSM can appear
+in different contexts has a greater impact on the resulting verification problem.
+In fact, the complexity depends on the number of exit-nodes of an FSM (exit-
+nodes of a hierarchical FSM K are the states that are connected directly to the
+states of a higher-level hierarchical FSM in which K is embedded; some systems
+restrict to one exit-node, while other systems allow multiple exit-nodes). We give
+an algorithm for verifying that a hierarchical FSM K satisfies a CTL formula »
+with time complexity O(|K|-2!¥!¢), where each of the machines has at most d exit-
+nodes. We prove matching lower bounds by establishing that (1) the problem is
+Pspace-complete in the size of the formula for single-exit machines, and (2) there
+is a fixed CTL formula for which the problem is Pspace-complete in the size of the
+machine, when multiple exits are allowed.
+
+1.1 RELATED WORK
+
+Model checking for ordinary finite-state machines was first introduced in [Clarke
+and Emerson 1981], and has been studied extensively since then. The complexity of
+analysis of concurrent finite-state machines is also well understood (see, for instance,
+[Drusinsky and Harel 1994]); concurrency makes the analysis problem exponentially
+harder. The standard way of applying model checking to hierarchical state machines
+is by translating them to ordinary state machines by flattening. There have been
+some attempts to develop heuristics based on the hierarchical structure in symbolic
+model checking, for example, for choosing variable ordering or for exploiting locality
+of variables [Chan et al. 1998; Behrmann et al. 1999; Alur et al. 2000; Ball and
+Rajamani 2000]. However, there has been no systematic study of the impact of
+hierarchical descriptions with sharing on the analysis problem. It is worth noting
+that hierarchical FSMs can be viewed as a special case of pushdown automata,
+where the size of the stack is bounded a priori by a constant. Model checking of
+pushdown automata is known to be decidable, both for linear-time and branching-
+time requirements in Exptime [Burkart and Steffen 1992; Boujjani et al. 1997].
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 5 ---
+Model Checking of Hierarchical State Machines     .    5
+
+ 
+
+~\
+
+   
+ 
+
+>
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 1. A sample hierarchical structure.
+
+2. HIERARCHICAL STATE MACHINES
+
+There are many variants of finite-state machines. We choose to present our results
+in terms of Kripke structures due to their prevalent use in the model checking
+iterature [Clarke and Emerson 1981]. Analogous results hold for the other variants
+of FSMs such as Mealy- and Moore-type FSMs where inputs and/or outputs occur
+on the states or transitions.
+
+Kripke structures are state-transition graphs whose states are labeled with atomic
+ropositions. Formally, given a finite set P of atomic propositions, a (flat) Kripke
+structure M over P consists of
+
+1) a finite set W of states,
+
+2) an initial state in © W,
+
+3) aset R of transitions, where each transition is a pair of states, and
+4) a labeling function L that labels each state with a subset of P.
+
+A hierarchical Kripke structure K over a set P of atomic propositions is a tuple
+(Ky,...Kn) of structures, where each K; has the following components:
+
+1) A finite set Nj; of nodes.
+
+2) A finite set B; of bores (or supernodes). The sets N; and B; are all pairwise
+disjoint.
+
+3) An initial node in; € Nj.
+
+4) A subset O; of Nj, called exrit-nodes.
+
+5) A labeling function X;:N; + 2? that labels each node with a subset of P.
+
+6) An indexing function Y; : By; 4 {i+1...n} that maps each box of the ith
+
+structure to an index greater than i. That is, if Y;(b) = j, for a box b of structure
+K;, then b can be viewed as a reference to the definition of the structure K;.
+
+ 
+
+ 
+
+ 
+
+7) An edge relation E;. Each edge in E; is a pair (u,v) with source u and sink v:
+
+—-source u either is a node of Kj, or is a pair (wi, w2), where w; is a box of K;
+with Y;(w,) = j and wy is an exit-node of K;
+
+—sink v is either a node or a box of Kj.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 6 ---
+6    “     R. Alur and M. Yannakakis
+
+The edges connect nodes and boxes with one another. Edges entering a box
+implicitly connect to the unique entry-node of the structure associated with that
+box. On the other hand, edges exiting a box need to explicitly specify the identity
+of the exit-node among the possible exit-nodes of the structure associated with that
+box. An example of a hierarchical Kripke structure is shown in Figure 1. The top-
+level structure A, has two boxes, tryl and try2, both of which are mapped to Ko.
+The structure Ky represents an attempt to send a message. The attempt fails if a
+timeout occurs before the receipt of an acknowledgment, or if the acknowledgment
+is not consistent with the message sent. In the structure Kj, if the first attempt
+fails, a second attempt is tried.
+
+With each hierarchical structure, we can associate an ordinary flat structure
+by recursively substituting each box by the structure indexed by the box. Since
+different boxes can be associated with the same structure, each node can appear
+in different contexts. The expanded structure corresponding to the hierarchical
+structure of Figure 1 is shown in Figure 2. The expanded flat structure will be
+denoted K}’. Note that each node of Ky appears twice in K/: for instance, the
+node send appears as (tryl,send) and (try2,send). In general, a state of the
+expanded structure is a vector whose last component is a node, and the remaining
+components are boxes that specify the context.
+
+Now we proceed to a formal definition of expansion of a hierarchical Kripke
+structure K = (Ky,...K,). For each structure Kj,
+
+(1) The set W; of states of K}* is defined inductively:
+—every node of K; belongs to W;
+—if u is a box of K; with Y;(u) = j, and v is a state of Kj’, then (u,v) belongs
+to W;.
+(2) The set R; of transitions of K}* is defined inductively:
+—for (u,v) € Ej, if the sink v is a node then (u,v) € Rj, and if v is a box with
+Yi(v) = j then (u, (v,inj)) € Ri
+—if w is a box of K; with Y;(w) = j, and (u,v) is a transition of Kj’, then
+((w, u), (w, v)) belongs to R;.
+(3) The labeling function L; : W; ++ 2? of KF is defined inductively:
+—if w is a node of Kj, then L;(w) = X;(w)
+—if w = (u,v), where u is a box of K; with Y;(u) = j, then L;(w) equals L;(v).
+
+ 
+
+The structure (W;, in;, Ri, L;) is a flat Kripke structure over P, and is called the
+expanded structure of K;, denoted K}’. The structure K? is also denoted K”, the
+expanded structure of K’.
+
+The size of K;, denoted |K;|, is the sum of |N;|, |B;|, and |E;|. The size of K is
+the sum of the sizes of K;. The nesting depth of K, denoted nd(K), is the length
+of the longest chain 71, %2,...%; of indices such that a box of Kj, is mapped to i)41.
+Observe that each state of the expanded structure is a vector of length at most the
+nesting depth, and the size of the expanded structure K” can be exponential in
+the nesting depth, and is O(|K|"4(*)),
+
+Note that by our definition the last component of every state is a node, and the
+propositional labeling of the last component determines the propositional labeling
+of the entire state. This implies that the state assertions cannot refer to the context,
+and this choice is important for the algorithms and the complexity bounds.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. ??, 2?.
+
+
+--- Page 7 ---
+Model Checking of Hierarchical State Machines     .    7
+
+ou         oa           bort
+|= (ER)           7
+
+adie
+
+ 
+
+一
+
+                                                                                                                                                
+ 
+
+ 
+
+ole
+
+ 
+
+ 
+
+lcces
+
+Fig. 2. The expanded structure.
+
+Other variants of this definition are possible. First, we can allow multiple entry-
+nodes in the definition. Such a structure can be captured by our definition by
+replacing a structure with k entry-nodes with k structures, each with a single entry-
+node. Note that each box within a structure also may need to be repeated k times,
+and consequently, the blow-up in the total size due to the translation would be a
+‘actor of k? in the worst case. We allow explicitly multiple exit-nodes because the
+number of exit-nodes dramatically affects the complexity of the analysis problems
+o be studied (particularly, for branching time). Second, we can allow edges of the
+‘orm (u,v) where u is a box meaning that the edge may be taken whenever the
+control is inside the box u. That is, for an edge (u,v), the expanded structure has
+an edge from every state with first component u to v. Such a definition is useful
+‘or modeling interrupts, and can be captured by our definition by introducing a
+dummy exit-node. With these two extensions, the definition would closely resemble
+he hierarchical state machines in UML-RT without the features of concurrency and
+variables.
+
+Finally, the basic (unnested) nodes of the hierarchical structure could themselves
+e other types of objects; for example, they could be basic message sequence charts,
+in which case the hierarchical structure specifies a hierarchical (or high-level) MSC
+Holzmann et al. 1997; Rudolph et al. 1996]. In this case there is concurrency
+within each basic MSC, but the hierarchical graph provides a global view of the
+system. The propositions on the nodes reflect properties for the basic objects (e.g.,
+asic MSCs), from which we can infer properties of the executions of the whole
+hierarchical system.
+
+ 
+
+3. LINEAR-TIME PROPERTIES
+3.1 Reachability
+
+For a hierarchical structure K, a state v is reachable from state u if there is a
+path from state u to state v in the expanded structure K’. The input to the
+reachability problem consists of a hierarchical structure kK, and a subset TC U;,N;
+of nodes, called the target region. Given (K,T), the reachability problem is to
+determine whether or not some state whose last component is in the target region
+T is reachable from the top-level entry-node in,. The target region is usually
+specified implicitly, for instance, by a propositional formula over P. We assume,
+that given a node u, the test u € T can be performed in O(1) time. The reachability
+problem can be used to check whether a hierarchical structure satisfies an invariant.
+
+3.1.1 Algorithm for Reachability. The reachability algorithm is shown in Fig-
+ure 3. We assume that the sets of nodes and boxes of all the structures are disjoint.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 8 ---
+8    “     R. Alur and M. Yannakakis
+
+Input: A hierarchical structure K and a target region T.
+Output: The answer to the reachability problem (K,T).
+
+visited: set of nodes and boxes, initially empty.
+
+procedure DFS(u)
+ifu¢ T then
+print (“Target is reachable”);
+break —_// terminate the execution of the entire algorithm
+fi;
+visited := visited U {u};
+ifucé N then
+foreach (u,v) € E do
+if v ¢ visited then DFS(v) fi
+od
+else
+i= Y(u);
+if in; ¢ visited then DFS(in;) fi ;
+foreach ((u,v),w) € E do
+if v € visited and w ¢ visited then DFS(w) fi
+od
+fi
+end DFS.
+
+DFS(in);
+print (“Target is not reachable”).
+
+Fig. 3. Reachability Algorithm.
+
+We use N to denote U;N;, E to denote U;E;, etc. The algorithm performs a depth-
+first search using the global data structure visited to store the nodes and boxes.
+While processing a box b with Y(b) = i, the algorithm checks if the entry-node in;
+of the ith structure was visited before. The first time the algorithm visits some box
+b with index i, it searches the structure K; by invoking DFS(in;). At the end of
+this search, the set of exit-nodes of K; that are reachable from in; will be stored
+in the data structure visited. If the algorithm visits subsequently some other box
+c with index i, it does not search K; again, but simply uses the information stored
+in visited to continue the search. It is easy to verify that Algorithm 3 invokes, for
+every u€ NUB, DFS(u) at most once. The cost of processing a node or a box u
+equals the number of edges with source u. Consequently, the running time of the
+algorithm is linear in the size of the input structure.
+
+THEOREM 1. (REACHABILITY). The depth-first search algorithm of Figure 3
+correctly solves the reachability problem (K,T) with time complexity O(|K]|).
+
+Proor. First note that for any structure Kj, if the depth-first search DFS(in;)
+is invoked, then at the time of invocation, the set visited does not contain any node
+or box of K;. Second, the search DFS(in;) does not encounter any node or box of
+a structure Kj with 7 < i. Now, we prove by backward induction on i that for each
+K;, when DFS(in,) is invoked, if a node in the target set is reachable from in,, the
+routine terminates after printing “Target is reachable”; else the routine terminates
+after inserting all the nodes reachable from in, in the set visited.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 9 ---
+Model Checking of Hierarchical State Machines     .    9
+
+The structure K, has no boxes, and is like an ordinary Kripke structure. Since
+visited contains no node of K,, when DFS(inn) is invoked, it behaves like a standard
+depth-first search. By the correctness of the standard search, DFS(inn) either
+aborts by encountering a node in the target set, or visits all the nodes reachable
+from inn.
+
+Now consider a structure K;, with i <n, with a possibly nonempty set of boxes.
+By the semantics of hierarchical structures, for the purpose of the search, A; can be
+viewed as an ordinary Kripke structure where each box b with index 7 is replaced
+by the entry and exit-nodes of K;, and edges that connect the entry-node with
+every exit-node reachable from it. The routine DF'S(in;) behaves like the standard
+depth-first search on this structure.
+
+Each structure is searched at most once. The running time follows from the fact
+that the standard depth search requires time proportional to the number of nodes
+and edges. O
+
+3.1.2 Complexity of Reachability. For flat Kripke structures, deciding reacha-
+bility between two states is in NLOGSPACE. For hierarchical structures, however,
+the reachability problem becomes PTIME-hard even if we require a single exit for
+every structure.
+
+THEOREM 2. (REACHABILITY: COMPLEXITY). The reachability problem (K,T)
+is Ptime-complete.
+
+Proor. The proof is by reduction from the alternating reachability problem.
+Consider an AND-OR, graph, ie., a graph with two disjoint sets V4 and Vo of
+vertices, called AND and OR vertices, respectively, and a set E of edges. Given
+a set T of target vertices, and an initial vertex v, consider the following 2-player
+game. The initial game state is vertex v. Whenever the game state is an OR-vertex,
+player-1 chooses the successor vertex by following an edge in EF, and whenever the
+game state is an AND-vertex, player-2 chooses the successor vertex by following an
+edge in E. If the game state is a vertex in the target set, the player-1 wins, and
+if the game continues forever, player-2 wins. The problem of determining whether
+player-1 has a winning strategy is known to be Ptime-complete. Note that if player-
+1 has a winning strategy, then it has a memoryless winning strategy that ensures
+victory within at most n — 1 steps, where n is the total number of vertices.
+
+Given an AND-OR graph and a target set, we construct a hierarchical Kripke
+structure as follows. Without loss of generality, assume that each node has precisely
+two successors. Suppose the graph has n vertices. Then for each 1 < i < n, and
+each vertex u, we construct a hierarchical Kripke structure K,,;. Each Ky; has
+two nodes, the entry-node in,,;, and the single exit-node out, ;.
+
+The structures Ky,» have no boxes. If u is in the target set, then there is an edge
+from iny,n to outyn; Otherwise there are no edges.
+
+For i < n, the structures K,,; are shown in Figure 4. If wu is in the target set,
+then there are no boxes, and an edge connecting the entry-node to the exit-node.
+Otherwise, there are two boxes, mapped to Ky j41 and Kw 41, corresponding to
+the two successors v and w of u. The edges are as shown in Figure 4: if wu is an
+OR-vertex, then the exit-node can be reached after visiting one of the boxes, while
+for an AND-vertex, the exit-node can be reached only after visiting both the boxes.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 10 ---
+10     “     R. Alur and M. Yannakakis
+
+ 
+
+Out,
+
+ 
+
+ 
+
+AND vertex u with successors v and w
+
+ 
+
+Target vertex u
+
+ 
+
+ 
+
+OR, vertex u with successors v and w
+
+Fig. 4. Reduction from AND-OR reachability.
+
+The correctness of the reduction is captured by the following claim: for each
+1<i<vn, the exit-node of Ky,,; can be reached from its entry-node iff the player-1
+has a winning strategy to reach a target vertex starting from the vertex u in at most
+n—i steps. This claim is proved by induction on i, and the proof is straightforward.
+Consequently, existence of a winning strategy from an initial vertex wu reduces to
+reachability of outy1 from iny1.
+
+Note that the size of each K,,,; is constant, and thus, the total size of the hierar-
+chical structure is quadratic in the size of the input AND-OR graph. O
+
+3.2 Cycle Detection
+
+The basic problem encountered during verification of liveness requirements is to
+check whether a specified state can be reached repeatedly [Vardi and Wolper 1986;
+Holzmann 1991]. As in the reachability problem, the input to the cycle-detection
+problem consists of a hierarchical Kripke structure A, and a target region T C N.
+Given (K,T), the cycle-detection problem is to determine whether there exists a
+state u whose last component is in the target region T such that (1) u is reachable
+from the entry-node in, and (2) u is reachable from itself.
+
+The cycle-detection algorithm is shown in Figure 5. The algorithm involves two
+searches, a primary and a secondary. The algorithm uses a global data structure
+visited p to store the states encountered during the primary search, and visited 5 to
+store the states encountered during the secondary search. The primary search is
+performed by the procedure DFS'p. When the search backtracks from a node in the
+target region, it initiates a secondary search. The secondary search is performed
+by the procedure DF'Sg, and it searches for a cycle. Since the stack stores a path
+leading to the node or the box from which the secondary search was initiated, the
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. ??, 2?.
+
+
+--- Page 11 ---
+Model Checking of Hierarchical State Machines
+
+Input: A hierarchical structure K and a target region T.
+
+Output: The answer to the cycle-detection problem (K,T).
+
+visited p, visited: sets of nodes and boxes, initially empty
+Stack: Stack of nodes and boxes, initially empty
+
+procedure DFS p(u)
+Push(u, Stack);
+visited p := visited p U {u};
+ifu¢ N then
+foreach (u,v) € E do
+if v ¢ visitedp then DFS p(v) fi
+od ;
+ifu €T and u ¢ visiteds then DFS s(u) fi
+else
+i:= Y(u);
+if in; ¢ visited p then DFS p(in;) fi;
+foreach ((u,v),w) € E do
+if v € visitedp and w ¢ visitedp then DFS p(w) fi;
+if v € visiteds then
+if w € Stack then
+print(“Cycle found”); break
+fi;
+if w ¢ visiteds then DFS 5(w) fi ;
+fi:
+od ;
+fi;
+Pop( Stack);
+end DFS p.
+
+ 
+
+procedure DFS's5(u)
+visiteds := visiteds U {u};
+ifu¢ N then
+foreach (u,v) € E do
+if v € Stack then
+print (“Cycle found” );break
+fi;
+if v ¢ visiteds then DFS 5(v) fi
+od
+else
+i:= Y(u);
+foreach ((u,v),w) € E do
+if v € visitedp then
+if w € Stack then
+print(“Cycle found”); break
+fi;
+if w ¢ visitedg then DFS 5(w) fi
+fi
+od
+fi
+end DFS 5s.
+
+DFS p(in1);
+print (“Cycle not found”).
+
+Fig. 5. Cycle-detection algorithm.
+
+.   11
+
+ACM Transactions on Programming Languages and Systems Vol. ??7, No. 2?, 22.
+
+
+--- Page 12 ---
+12     .     R. Alur and M. Yannakakis
+
+secondary search terminates with a positive response when it encounters a node or
+a box on the stack. The interleaving of the two searches is similar to the cycle-
+detection algorithm for ordinary Kripke structures [Courcoubetis et al. 1992], except
+that we have both boxes and nodes here. When the primary search backtracks from
+a box b, it invokes a secondary search from an exit-node v of the box 6 if there is a
+path from the entry-node to v involving a node in the target region, equivalently,
+when v has already been encountered during the secondary search.
+
+THEOREM 3. (CYCLE DETECTION). The nested depth-first search algorithm of
+
+Figure 5 correctly solves the cycle-detection problem (K,T) with time complexity
+O(|K|).
+
+Proor. Let us call a path/cycle to be a T-path/T-cycle if it contains a state
+whose last component is in T. We establish, that for every i, if the primary search
+DFS p(in;) is invoked by the algorithm of Figure 5, then
+
+(1) If the expanded structure K}’ contains a T-cycle reachable from in;, then
+DFS p(in;) detects such a cycle and terminates by printing “Cycle found.”
+
+(2) If the expanded structure K/’ does not contain a reachable T-cycle, then
+
+DFS p(in,) terminates, and upon termination
+
+(a) anode or a box of K; belongs to visited p iff it is reachable from in; in KY,
+
+(b) a node or a box of K; belongs to visited sg iff it is reachable from node in;
+
+in KF along a T-path.
+
+This claim is proved by induction on the index i from n down to 1.
+
+First, consider the invocation DFSp(in,). At this point, the sets visitedp and
+visiteds do not contain any node of K,. Since A’, has no boxes, the primary search
+behaves like a standard depth-first search. When the primary search from a node
+u terminates, the stack contains a trajectory from in, to u. If u belongs to T, a
+secondary search is initiated, and if this search encounters a node on the stack, we
+can conclude that there is a cycle containing u.
+
+The proof that if K, has a reachable T-cycle, then DFS p(in,) detects it, is
+similar to the proof in [Courcoubetis et al. 1992]. Let us order the nodes of Ky,
+according to the termination times of the primary search: if DFS p(w) terminates
+before DFS p(v), then u gets a lower number than v. Suppose K, contains a
+reachable T-cycle. Let uo,..., be the ordering of reachable nodes in T according
+to our numbering. Let u; be the first node in this list that belongs to a cycle. Then,
+no node of this cycle can be reachable from u,; for j < i (else there will be a cycle
+containing u;). Consequently, when the primary search from u; is over, the set
+visited does not contain any node of the cycle, which guarantees that DFS 5(u;)
+will discover the cycle.
+
+When K’, has no reachable T-cycle, DFS p is invoked from every node reachable
+from inp, and all these nodes will be inserted in visitedp. The secondary search is
+initiated from every reachable node in T, and visiteds will contain nodes that are
+reachable from such nodes.
+
+Now consider the claim for i <n. Again, when DFS p(in;) is invoked, the sets
+visited p and visiteds do not contain any elements of K;. Whenever the primary
+search is invoked from a node or a box of Kj, the stack contains a trajectory from
+in, to that element. Since the claim holds for j > i, by definition of the hierarchical
+
+ 
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 13 ---
+Model Checking of Hierarchical State Machines    .    13
+
+structure, a box b mapped to index j can be replaced by its entry-node, exit-nodes,
+edges connecting the entry-node to those exit-nodes reachable from it. Furthermore,
+if an exit-node v is in the set visiteds, Kj has a T-path from the entry-node to v.
+It follows, that if the secondary search encounters a node on the stack, there is a
+T-cycle, reachable from in,;.
+
+We proceed to establish, that if K; has a reachable T-cycle, then DFS p(in;)
+discovers it. The proof is quite similar as in the case of K, except that now
+we need to consider boxes also. Let us order the reachable boxes and nodes of
+4; according to the termination times of the primary search. Let u be the first
+element in this ordering such that u is a node in T that belongs to a cycle, or u is
+a box mapped to j such that there is a cycle that contains (u, inj) and some node
+in T. If u is a node, then by an argument as in the base case, when DFS 5(u) is
+invoked, none of the elements in the cycle containing u are in visitedg, and hence,
+DFS 5(u) will discover the cycle. Suppose wu is a box mapped to index j > i. If Kj
+contains a reachable T-cycle, by induction hypothesis, DFS p(in;) should discover
+it. Suppose that A; does not contain a reachable T-cycle. Then the cycle contains
+a T-path from in; to an exit-node v of Kj. There may be multiple choices of v,
+and in that case, consider the least one according to their order in the list of edges
+of the form ((u, v),w). By induction hypothesis, v will be in visiteds. Consider the
+edge ((u,v),w) that participates in the cycle (if there are multiple choices for w,
+consider the least one according to the order in the list of edges). Either w will be
+on stack, or the call DFSg(w) will discover the cycle.
+
+For complexity analysis observe, that for every u€ NU B, DFS p(u) is invoked
+at most once, and DFS5(u) is invoked at most once. This gives linear-time com-
+plexity. O
+
+ 
+
+Note that if all nodes of a hierarchical Kripke structure have self-loops then the
+cycle-detection problem is the same as the reachability problem. Consequently, the
+cycle-detection problem is also Ptime-hard, and thus, Ptime-complete.
+
+3.3. Automata Emptiness
+
+Let M = (W, in, R,L) be a Kripke structure over proposition set P. For a state
+w € W, a source-w trajectory of M is an infinite sequence wow; w2... of states
+in W such that wo = w and w;Rw;+1 for all i > 0. An initialized trajectory is a
+source-in trajectory. The trace corresponding to the trajectory wow1w2... is the
+infinite sequence L(wo)L(w1)... over 2” obtained by replacing each state with its
+label. The language £(M/) consists of all the traces corresponding to the initialized
+trajectories of M.
+
+A Biichi automaton A over P consists of a Kripke structure M over P and a
+set T of accepting states. An accepting trajectory of A is an initialized trajectory
+wow we... of M such that w; € T for infinitely many i. The language L(A) consists
+of all traces corresponding to accepting trajectories of A.
+
+The input to the automata-emptiness problem consists of a hierarchical structure
+K over P and an automaton A over P. Given (K, A), the automata-emptiness
+problem is to determine whether the intersection £(A) MN £L(K*") is empty. This
+is the automata-theoretic approach to verification: if the automaton A accepts
+undesirable or bad behaviors, checking emptiness of £(A)N £(K") corresponds to
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 14 ---
+14    .     R. Alur and M. Yannakakis
+Q2®Q
+@) ©)
+
+Fig. 6. A sample Biichi automaton.
+
+ensuring that the model has no bad behaviors.
+
+As an example, consider the 3-state automaton of Figure 6 over the single propo-
+sition p. The only accepting state is the rightmost state, and thus any accepting run
+must eventually keep cycling on this state. Thus, the language of the automaton
+contains all infinite words in which p is true only finitely many times. If infinite
+repetition of the property p is the desired requirement, then the automaton cap-
+ures all the bad behaviors (see [Vardi and Wolper 1986], [Kurshan 1994], [Thomas
+1990], and [Holzmann 1991] for more details on w-automata and their role in formal
+verification).
+
+We solve the automata-emptiness problem (K, A) by reduction to a cycle-detection
+roblem for the hierarchical structure obtained by constructing the product of A
+with A as follows. Let K = (Aj,...K,) with K; = (Nj, Bi, ini,Oj, Xi, Yi, E:),
+and let A = (W = {w1,...wm},wi,R,L,T). The product structure K @ A is the
+hierarchical structure (Ay1,...Kim,---Kni,...Knm) with nm structures. Each
+structure K; is repeated m times, one for every possible way of pairing its entry-
+node with a state of A. Each structure Kj; has the following components:
+
+1) A node of Kj; is a pair (u,w), where u € N;, w € W, and X(u) = L(w); the
+label of (u, w) equals X (uw).
+2) A box of Kj; is a pair (b,w), where b € B; and w € W; the index of (6, w) is
+
+m(i'—1) +9" if Y(b) =7@' and w = wy.
+
+3) The entry-node of Kj; is (inj, wj), and a node (u, w) is an exit-node of Kj; if
+u€ Oj.
+
+4) Consider a transition (w, x) of A. While pairing it with the edges in E;, there
+are four cases to consider, depending on whether the edge connects a node to
+
+a node, a node to a box, a box to a node, or a box to a box.
+
+—For an edge (u,v) of K; with u,v € Nj, X(u) = L(w), and X(v) = L(a),
+there is an edge ((u,w), (v,x)) in Kyy.
+
+—For an edge (u,b) of K; with u € Nj, b € Bi, X(u) = L(w), and X (iny()) =
+L(a), there is an edge ((u, w), (b, x)) in Kj;.
+
+—For an edge ((b,u),v) of Ki with b € Bi, u € Oy), v € Ni, X(u) = L(w),
+and X(v) = L(x), for every y € W, there is an edge (((b,y), (u, w)), (v, x))
+in Kjj.
+
+—For an edge ((b,u),¢) of K; with b,c € Bi, u € Oy), X(u) = L(w), and
+X(iny(c)) = L(x), for every y € W, there is an edge (((b, y), (u, w)), (¢,2))
+in Kjj.
+
+ 
+
+Note that if the propositional labeling of in; and w; is different, then the entry-
+node of Kj; is not defined; the rules for edges ensure that a box mapped to such
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 15 ---
+Model Checking of Hierarchical State Machines    .    15
+
+a structure is not reachable, and thus the structure Kj; can be omitted. The
+structures Ky2,...AKim are not reachable from the entry-node of Ay1, and hence
+can also be omitted. The correctness of the product construction is captured by
+the following lemma which says that some trace of K” is accepted by A iff there is
+a reachable cycle in K ® A containing a node of the form (u, w) with w e€ T.
+
+LemMMA 4. (PRODUCT ConsTRUCTION). The intersection L(K") MN L(A) is
+nonempty iff the answer to the cycle-detection question (K @ A,N x T) is YES.
+
+Proor. The first step is to establish that the flattening of K @ A is isomorphic
+to the product of K” and A. This follows directly from the definitions of flattening
+and the product. The lemma follows from the standard property of the product
+construction: the language of the (ordinary) product of two automata is the inter-
+section of their languages. O
+
+ 
+
+Hence, we can solve the automata-emptiness question using the cycle-detection
+algorithm. Note that the algorithm allows us to explore the graph on-the-fly. That
+is, we do not need to construct K @ A explicitly in advance, but rather its nodes
+and boxes can be generated on-the-fly when needed. In the construction of K @ A,
+the number of structures gets multiplied by the number of states of A. Within
+each structure, each node and box in the original hierarchical structure gets paired
+with a state of A in the worst case, and within each box each exit-node gets paired
+with a state of A. Consequently, the total number of edges in the structure Ky; is
+bounded by the product of the number of edges in A;, the number of edges in A,
+and the number of states in A. This leads to the following bound:
+
+THEOREM 5. (AUTOMATA EMPTINESS). The automata emptiness question (K, A)
+can be solved by reduction to the cycle-detection problem in time O(a? - | A]: |K]),
+where a is the number of states in A.
+
+3.4 Linear Temporal Logic
+
+Requirements of trace-sets can be specified using the temporal logic LTL [Pnueli
+1977; Manna and Pnueli 1991]. For instance, the requirement that “p should be
+repeated infinitely often” is specified by the LTL-formula 00 p. A formula y of
+LTL over propositions P is interpreted over an infinite sequence over 2”. A hierar-
+chical structure K satisfies a formula y, written K — y, iff every trace in £(K")
+satisfies the formula y. The input to the LTL model-checking problem consists of
+a hierarchical structure K and a formula y of LTL. The model-checking problem
+K,y) is to determine whether or not K satisfies y.
+
+To solve the model-checking problem, we construct a Biichi automaton A, such
+hat the language C(A.,) consists of precisely those traces that do not satisfy y.
+This can be done using one of the known translations from LTL to Biichi automata
+Lichtenstein and Pnueli 1985; Vardi and Wolper 1986]. The number of states of
+ALg is O(2!?!). Then, the hierarchical structure K satisfies y iff L(K") N L(Asy)
+is empty. Thus, the model-checking problem reduces to the automata-emptiness
+roblem. The complexity of solving the automata-emptiness problem, together with
+he cost of translating an LTL formula to a Biichi automaton, yields the following.
+
+ 
+
+ 
+
+THEOREM 6. (LTL MopeEL CHECKING). The LTL model-checking problem
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 16 ---
+16     “     R. Alur and M. Yannakakis
+
+(K,) can be solved in time O(|K|-8!¥!).
+
+An alternative approach to solve the LTL model-checking problem (Ky) is to
+search for an accepting cycle in the product of the expanded structure K? with
+the automaton A_,. This product has |K|"¢ . 2I?! states, and each state of this
+product can be represented in space O(|K|-|y|). Transitions of the product can be
+computed efficiently using standard techniques, and consequently the search can
+be performed in space O(|K|- |y|). This gives a Pspace upper bound on the LTL
+model-checking problem. It is known that the LTL model-checking problem for
+ordinary Kripke structures is Pspace-hard. This leads to the following
+
+Tueorem 7. (LTL Compiexity). The LTL model-checking problem (K,) is
+Pspace-complete.
+
+4. BRANCHING-TIME PROPERTIES
+
+Now we turn our attention to verifying requirements specified in the branching-time
+temporal logic CTL [Clarke and Emerson 1981]. Branching-time logics provide
+quantification over computations of the system allowing specification of require-
+ments such as “along some computation, eventually p” and “along all computations,
+eventually p.” Formally, given a set P of propositions, the set of CTL formulas is
+defined inductively by the grammar
+
+e:=P|-~| 9A o| IO y| Oy | pAUy
+
+where p € P. For a Kripke structure M = (W, in, R,L) and a state w € W, the
+satisfaction relation w  y is defined below:
+
+wep         if pe L(w);
+
+wee       if why;
+
+weEpAw iff wEypandwEy;
+
+wEiOy iff there exists a state u with wRu and uF y;
+
+w  3Oy     iff there exists a source-w trajectory wow, ... such that
+w; - ¢ for all i > 0;
+
+wE pil iff there exists a source-w trajectory wow, ... such that
+wr Fw for some k > 0, and w; F for allO <i<k.
+
+Many additional temporal operators can be defined as derived connectives. Some
+standard derived operators include 407 (along some trajectory, eventually w) for
+(true AUw), VOw (wv holds in all reachables states) for 40-7, and VCO w (w holds
+in all successor states) for “AQ 7.
+
+The Kripke structure M satisfies the formula y, written MF y, iff in Ey. A
+hierarchical Kripke structure K satisfies the CTL formula ¢ iff K” | y. The CTL
+model-checking problem is to decide, given a hierarchical Kripke structure K and a
+CTL formula y, whether K satisfies %.
+
+ 
+
+4.1  Single-Exit Case
+
+First, we consider the case when every structure has a single exit-node. In this case,
+the edges from boxes need not specify the exit-node of the structure associated with
+the box, and we assume that each £; is a binary relation over N;U B;. We will use
+out; to denote the unique exit-node of Kj.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 17 ---
+Model Checking of Hierarchical State Machines    .    17
+
+Input: A hierarchical structure K and a CTL formula y.
+Output: The answer to the model-checking problem (K,y).
+
+sub(~p) = list of subformulas of ~ in increasing order of size.
+
+foreach  € sub(y) do
+
+ 
+
+case w:
+w € P: skip;
+pany:
+foreach u € N do
+if yx ¢ X(u) then X(u) := X(u) U {y} fi
+od;
+wav A wa:
+foreach u € N do
+if yi € X(u) and yw € X(u) then X(u) = X(u)U {y} fi
+od;
+wy =3Ox: K := CheckNeat(K, x);
+= 1 Wye: K := Check Until(K, 1, v2)
+ay = sOy: K := CheckAlways(K, x);
+
+   
+
+od
+
+if y € X(ini) then print (“gy satisfied”) else print (“y not satisfied”) fi.
+
+Fig. 7. CTL model checking.
+
+4.1.1 Model-Checking Algorithm. The main loop of the model-checking algo-
+rithm is shown in Figure 7. At the beginning, for each node u, the labeling set
+X(u) is initialized to contain the atomic propositions that are true at the node w.
+The algorithm considers subformulas of y starting with the innermost subformulas,
+and extends the label X (uw), at each node u, with the subformulas that are satisfied
+at u. A node can appear in multiple contexts, and whether it satisfies a subformula
+can depend on the context. Consequently, the algorithm repeatedly transforms the
+hierarchical structure K, and is designed to maintain the following property:
+
+After the algorithm processes a subformula 2%, if a node u is labeled with
+w then in the current expanded structure K?, every state with the last
+component w satisfies y, and if a node wu is not labeled with w then in
+K", no state with the last component wu satisfies w.
+
+At the end, if the entry-node of the first structure is labeled with y, then the original
+structure satisfies ~. Processing of atomic propositions and subformulas of the
+form 7x and ¢ A w2 is straightforward. Handling of temporal operators requires
+modifying the structure; each subformula can double the number of structures. We
+will consider the cases corresponding to the temporal operators.
+
+4.1.2 CheckNext: Processing of 3}. To illustrate the ideas, first consider a hi-
+erarchical structure K = (K,,K.2). Consider a formula y = 4Q p for an atomic
+proposition p. We wish to compute the set of nodes at which 7) is satisfied. Consider
+a node u of A». Multiple boxes of K, may be mapped to Ko, and hence, u may
+appear in multiple contexts in the expanded structure (i.e., there may be multiple
+states whose last component is uw). If wu is not the exit-node, then the successors
+of u do not depend on the context. Hence, the truth of 7 is identical in all states
+corresponding to uw, and can be determined from the successors of u within Ky: 7
+holds at u if some successor node of u is labeled with p. If u is the exit-node of
+
+ 
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 18 ---
+18     “     R. Alur and M. Yannakakis
+
+Ky, then the truth of ~ may depend on the context. For instance, the truth of 3D
+abort at the exit-node fail of the structure A» of Figure 1 is different in the two
+instances; the formula is false in (try, fail) and is true in (try2, fail). In this case,
+we need to create two copies of K>: K} and K}. The superscript indicates whether
+or not the exit-node of Ky has some successor that satisfies p and is outside Ko.
+The exit-node of K} is labeled with 7. The exit-node of K9 is labeled with 7 only
+if it has a successor within K>2 that satisfies p. The mapping of boxes of kK’, must be
+consistent with the intended meaning: a box of K, which has a successor satisfying
+pis mapped to K} and to K$ otherwise.
+
+Now we proceed to define the computation of CheckNezt for the general case.
+The input to CheckNect is a hierarchical structure K and a subformula y. Let
+K = (Kj,... Kn) where each K; = (Nj, Bi, ini, out;, X;,Yi, E;). Assume that the
+nodes of K are already labeled with the formula x, and let / = 3Q yx. For
+u € N,U B,, define u |, ~ if either (i) there exists a node v of K; with (u,v) € E;
+and y € X;(v), or (ii) there exists a box b of K; with index k such that (u,b) € E;
+and x € X(in,). Thus, u ; ~ means that u has a y-successor within K; or
+substructures nested within K;. For a given u, whether u —; w holds can be
+determined simply by examining the edges out of u.
+
+CheckNext(K, y) returns a hierarchical structure K' = (K?, Ki,...K®, K}) by
+replacing each K; with two structures K? = (Nj, B;, ini, out;, X?, Y/, E;) and K} =
+(N;, Bi, ini, out;,X},Y/, Ei), where the revised mapping Y/ of boxes to indices is
+defined as follows:
+
+ 
+
+For a box b of K; with Y;(b) = j, if b |e; v then Y/(b) = 2j, and
+otherwise, Y/(b) = 2j — 1.
+
+The revised labeling functions X? and X} that extend X; to include labeling of
+nodes with 7 are defined as follows:
+
+(1) For a node u of K®, if uk; v then v € X?(u), and otherwise,  ¢ XP(u).
+(2) For a node u of K}, if u ; v or if u is the exit-node of Kj, then w € X}(u),
+and otherwise, 7 ¢ X}(w).
+
+Observe that if the exit-node out; =; 7 then K? and K} are identical, and in this
+case, we can delete one of them (i.e., there is no need to create two instances).
+
+4.1.3 CheckUntil: Processing of SU. Whether a node u of a structure K; sat-
+isfies the until-formula ~ = % SU. may depend on what happens after exiting
+K;, and thus, different occurrences may assign different truth values to % WU,
+requiring splitting of each structure into two. The input to CheckUntil consists of
+a hierarchical structure K and formulas yy and w2. Let K = (Ky,...Kn), where
+each K; = (Nj, Bj, ini, out;, Xi, Y;, E;). The computation proceeds in two phases.
+
+In the first phase, we partition the index-set {1,...n} into three sets, YES, NO,
+and MAYBE, with the following interpretation. An index i belongs to YES when
+the entry-node in; satisfies the until-formula ~ within the expanded structure K/’.
+Then, in K”, every occurrence of the entry-node in; satisfies y. Now consider an
+index i that does not belong to YES. It belongs to MAYBE if within K/’ there
+is a finite trajectory from in; to exit; that contains only states labeled with q1.
+In this case, it is possible that for some occurrences of KY in K”, the entry-node
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 19 ---
+Model Checking of Hierarchical State Machines    .    19
+
+YES:= 6; NO:= 0; MAYBE:= 0;
+for i= n downto | do
+if ing EF; (Yi V MAYBE) AU (2 V YES)
+then YES := YES U {i}
+else
+if ing Fi (1 V MAYBE) SU (out; A v1)
+then MAYBE := MAYBE U {i}
+else NO := NOU {i}
+fi
+fi
+od
+
+ 
+
+ 
+
+Fig. 8. First phase of CheckUntil.
+
+satisfies 7 depending on whether or not the corresponding exit-node satisfies w.
+In the last case, the index i belongs to NO, and in every occurrence of K}’, the
+entry-node does not satisfy the formula 7. This happens when upon entering K}’,
+a trajectory is guaranteed to encounter a node violating 77 before visiting a node
+satisfying q2 or the exit-node of Kj.
+
+To express the computation succinctly, define the satisfaction relation -,; that
+considers the structure A; to be an ordinary structure over vertices N; U B;. In
+this interpretation, a box is considered like an ordinary vertex, which is labeled
+with YES, NO, or MAYBE, according to the characterization of the index that it
+is mapped to. In addition, we modify the definition of the satisfaction so that an
+3U-formula can be satisfied along a finite trajectory. For example,
+
+u Fi (v1 V MAYBE) Sl/(¢2 V YES),
+
+or a node or a box wu of the structure K;, translates to the requirement that there
+exists a finite path vov, ...v, of vertices v, € N; U B; such that
+
+1) vo equals u,
+
+2) vr Fs (2 V YES) meaning that if v, is a box such that Y;(v%,) = j then
+j € YES, and if v;, is a node then 2 € X;(v,), and
+
+3) for 0 <1 < k, w % (1 V MAYBE) meaning that if v is a box such that
+Y;(v)) = j then 7 € MAYBE, and if 1 is a node then y € X;(w).
+
+The desired partitioning is computed by the procedure of Figure 8. The com-
+utation for each index i can be performed by a simple depth-first search over the
+nodes and boxes of K; starting at the node in, in time |Kjj.
+
+For example, consider the hierarchical structure shown in Figure 9. The atomic
+ropositions are p and q, and each node is labeled with the atomic propositions true
+at that node. The structure K, has two boxes both of which are mapped to the
+structure Ky. The formula of interest is p 3U/q. In the first phase, we first consider
+he structure Ky, and conclude that it corresponds to the case MAYBE, since
+here is a path from its entry-node to exit-node that visits only the nodes satisfying
+p. Then, we process the structure K,. At this step, the boxes are considered as
+vertices labeled with MAYBE (see Figure 10). Since the entry-node satisfies the
+ormula (pV MAYBE) 3U/(qV YES), we conclude that the structure A corresponds
+o the case YES. Thus, after executing the algorithm of Figure 8, the set MAYBE
+contains the index 2, and the set YES contains the index 1.
+
+ 
+
+ 
+
+ACM Transactions on Programming Languages and Systems Vol. ??7, No. 2?, 22.
+
+
+--- Page 20 ---
+20     “     R. Alur and M. Yannakakis
+
+  
+
+Fig. 9. Example for illustrating checking of 3U/ formulas.
+
+MAYBE  q
+
+Dp
+BO uh
+
+MAYBE
+Fig. 10. Ilustration of phase 1 of CheckUntil.
+
+In the second phase, the new hierarchical structure K' along with the labeling
+of w is constructed. To obtain K', each structure K; is split into two: K? and K}.
+A box 6 that is previously mapped to K; will be mapped to K} if there is a path
+starting at b that satisfies 7, and otherwise to K?. Consequently, nodes within K}
+can satisfy W along a path that exits K;, while nodes within K? can satisfy q only if
+they satisfy it within K;. The new structure K’ = (K?, K},... K°, K}1) is obtained
+by replacing each K; of K with two structures K? = (Nj, Bj, inj, out;, X°, YP, Ei)
+and K} = (Nj, Bi, in:, out;, X}, Y;', E;), where the new components are defined as
+follows:
+
+(1) For the indexing of boxes of K?, consider a box b with Y;(b) = j.
+If b =; AO [(¢1 VV MAYBE) 3U/(2V YES)] then ¥°(b) = 2j, else ¥°(b) = 2j—1.
+
+(2) For the indexing of boxes of K}, consider a box b with Y;(b) = j.
+If b Ei FO [(v1 V MAYBE) 2U/(v2 V YES V (out; Av1))], then ¥(b) = 2), else
+Yi (b) =2j-1.
+
+(3) For labeling of a node u of K®9, if u =; (v1 V MAYBE) AU/(2 V YES) then
+X°(u) equals X;(u) with y added to it; else it equals X;(w).
+
+(4) For labeling of a node u of K}, if u i (Yi V MAYBE) 3U/(v2 V YES V (out; A
+w1)), then X}(u) equals X;(u) with added to it; else it equals X;(u).
+
+The hierarchical structure K' computed by the phase 2 on the example of Figure 9
+is shown in Figure 11. Each of the structures kK, and K2 are split into two. In
+K$, the exit-node is assumed not to satisfy pUq, while in K}, the exit-node is
+assumed to satisfy pdl/q, and the truth of pAl/q at other nodes is determined based
+on these assumptions. In particular, the entry-node of K} is labeled with pq,
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 21 ---
+Model Checking of Hierarchical State Machines    .    21
+
+KY
+Ki     9, p3Uq
+2
+Pp, p Aug        O
+—>                OS
+NN  0        了
+Kt
+T     q, pauq
+Ky     O
+p,p Aug
+—+O              OS
+NN, Ki       p,p Uy
+2
+
+ 
+
+ 
+
+ 
+
+Fig. 11. Ilustration of phase 2 of CheckUntil.
+
+as it satisfies (p V MAYBE) 3U(q V YES V (out2 A p)) (see rule (4) above). The
+labeling of nodes with pl/q in the two copies of Ky is determined analogously.
+The mapping of boxes to structures is determined according to rules 1 and 2 above.
+For the upper box, the formula p 3l/q holds upon exit in Ay, and hence in both the
+copies K? and K}, the upper box gets mapped to K3. For the lower box, the truth
+of the formula pil/q upon exit coincides with its truth at the exit-node of Ay, and
+hence, the lower box is mapped to K$ in KP and to Kd in Kk}.
+
+The construction of K’ is immediate if we have computed, for each K;, the sets
+
+{u €.N;UB; | u &; (v1 V MAYBE) 5U(h2 V YES)}
+and
+{ue€ N;UB; | ui (v1 V MAYBE) SU (v2 V YES V (out; A v1))}-
+
+Since the nodes of K; are already labeled with ¢; and ¢2, and the boxes are labeled
+with YES, MAYBE, or NO, these two sets can be computed in time O(|K]), as
+in the standard labeling algorithm of CTL [Clarke and Emerson 1981].
+
+4.1.4 CheckAlways: Processing of 30. Finally, we consider the processing of
+subformulas of the type SO. The input to CheckAlways is a hierarchical structure
+K and a formula y. Let K = (Ky,... Kp) with Ky = (Ni, Bi, ini, out;, Xi, Yi, Ei),
+and let y = 30 y. The computation proceeds in two phases as in case of CheckUntil.
+
+The first phase partitions the index-set {1,...n} into three sets, YES, NO, and
+MAYBE, with the following interpretation. An index 7 belongs to YES when the
+entry-node in; satisfies the always-formula w within the expanded-structure Kf’.
+An index i, that does not belong to YES, belongs to MAYBE if within K} there
+is a (finite) trajectory from in; to out; that contains only states labeled with y.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 22 ---
+22     .     R. Alur and M. Yannakakis
+
+YES:= 6; NO:= 0; MAYBE:= 0;
+for i= n downto | do
+if in; ; [(y V MAYBE) 3 YES] v 30(x V MAYBE)
+then YES := YESU {i}
+else
+if ing Ei (x V MAYBE) AU(out; A x)
+then MAYBE := MAYBE U {i}
+else NO := NOU {i}
+fi
+fi
+od.
+
+ 
+
+Fig. 12. First phase of CheckAlways.
+
+Remaining indices belong to NO. As before, define the satisfaction relation —; that
+considers the structure Kj; to be an ordinary structure over vertices N;U B;. The
+desired partitioning is computed by the procedure of Figure 12.
+
+n the second phase, we construct two copies of each K;. Nodes within K} can
+satisfy 7 along a path that exits K;, while nodes within K? can satisfy 7 only if
+they satisfy it within K;. The new structure K’ = (K?, K},... K°, K}) is obtained
+
+by replacing each K; of K with two structures K? = (Nj, Bj, inj, out;, X2, Y;°, Ei)
+
+and K} = (Nj, Bi, in;, out;, X},Y;, E;), where the new components are defined as
+follows:
+
+(1) For the indexing of boxes of K?, consider a box b with Y;(b) = j.
+
+If b KE; SO [(v V MAYBE) 3 YES V 30(y V MAYBE)], then ¥?(6) = 2:
+
+else Y,°(b) = 2j — 1.
+
+(2) For the indexing of boxes of K}, consider a box b with Y;(b) = j.
+
+If b =; 4O [(y V MAYBE) 4U(YES V (out; A x)) V 30(y V MAYBE), then
+
+Y}(b) = 24; else Y (6) =2j -1.
+
+(3) For labeling of a node wu of K9, if ui JO [(v V MAYBE) 3U YES v 30(yV
+
+MAYBE)], then X?(u) equals X;(u) with w added to it; else it equals X;(u).
+
+(4) For labeling of a node u of K}, if u &; JO [(vy V MAYBE) 3U(YES V (out; A
+x)) V 30(x VMAYBE)], then X}(w) equals X;(u) with ¢ added to it; else it
+equals X;(u).
+
+ 
+
+The structure K’ can be computed from K in time O(|K|) using the standard CTL
+model-checking algorithm. This leads us to the following theorem:
+
+THEOREM 8. (CTL MopEL CHECKING: SINGLE Exit). The algorithm of Fig-
+ure 7 solves the CTL model-checking problem (K, p), for a single-exit hierarchical
+structure K, in time O(|K|-2I1).
+
+Proor. For correctness, let Ky, be the structure after processing of the subfor-
+mula w. We claim, that for every node u that is reachable from the entry-node of
+the top-level structure of Ay, if wu is labeled with 7 then in the expanded struc-
+ture K every reachable state with the last component wu satisfies , and if u is
+not labeled with w then no reachable state with the last component w satisfies 4).
+This can be established by induction on the length of w from the definitions of the
+temporal operators and the constructions in the algorithm. Note that the restric-
+tion to reachable states is needed. For instance, while processing an until-formula
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 23 ---
+Model Checking of Hierarchical State Machines    .    23
+
+w = 1 Wd, the nodes in the copy K} are labeled assuming that 7) is satisfied
+upon exit. The consistency of this assumption is verified for any box mapped to
+Kj. If no box is mapped to K}, then there may be inconsistency, but in this case,
+nodes in K} are not reachable from the top-level entry-node.
+
+A CTL-formula y has at most |y| subformulas. Processing of each subformula
+requires time linear in the size of the current structure, as discussed in different
+cases. Processing each temporal subformula at worst doubles the size of the current
+ructure. This leads to the complexity bound of O(|K|-2I?!), where |K| is the size
+of the input structure.
+
+wn
+
+ 
+
+ 
+
+ 
+
+4.1.5 Lower Bound. It is known that deciding whether a flat Kripke structure
+M satisfies a CTL formula ¢y can be solved in space O(|y| - log |M|) [Bernholtz
+al. 1994]. For a hierarchical structure K, the size of the expanded structure K”
+is O(|K|"4)), The expanded structure need not be constructed explicitly. Each
+state of the expanded structure can be represented in space O(nd(K) - |K|). The
+number of successors of a state of K” is only polynomial in the size of K: the
+number of successors of an expanded state whose last component is the node x
+of the structure AK; equals the number of successors of x if x is not an exit-node,
+and is bounded by the product of the number of edges in AK and the number of
+boxes mapped to the index i, if x is an exit-node. The successors of any state of
+the expanded structure can be computed in space polynomial in the size of K. It
+follows that the space-efficient algorithm of [Bernholtz et al. 1994] requires space
+polynomial in the size of A’, and consequently, CTL model checking for hierarchical
+structures is in Pspace. We now establish a Pspace lower bound for the case of
+single-exit structures.
+
+THEOREM 9. (CTL Complexity: SINGLE ExiT). Model checking of CTL
+formulas for single-exit hierarchical structures is Pspace-complete.
+
+ 
+
+o
+
+ 
+
+ 
+
+Proor. We establish Pspace-hardness by reduction from quantified boolean
+formulas. Consider a quantified formula @ = Q121.Qor9....Qntn-U(21,---2n),
+where w is a boolean formula over the boolean variables x1,...@n, and each Q; is
+a quantifier (universal or existential). Determining the truth of ¢ is Pspace-hard.
+Given such a formula ¢, we construct a formula ¢! of CTL, and a hierarchical
+structure K such that K | ¢! iff ¢ is true.
+
+The formula ¢’ is defined to be the CTL-formula
+
+Q10 .Q20...- Qn O W021, Jr... dO rn).
+
+That is, in the inside formula w, we replace each occurrence of the proposition 2x;
+by the formula 402;, and in the quantifier prefix, we replace Vz; by VW) and Az;
+by 30. The construction of the hierarchical structure K is illustrated in Figure 13.
+For i = 1,...n, the structure K; has one entry-node, one exit-node, and two boxes,
+b;,9 and b;, both mapped to K;,1. The structure K,,,; has a single node. The
+entry-node of A’; has two successors. Intuitively, choosing b;,1 corresponds to setting
+a, to true, and the formula 402; will be true at every subsequent node until K; is
+exited. On the other hand, choosing b;,9 corresponds to setting «; to false, and the
+formula 402; will be false at every subsequent node. Since we define our semantics
+with respect to only infinite trajectories, we add a self-loop on the exit-node of the
+structure Ky.
+
+ACM Transactions on Programming Languages and Systems Vol. ??7, No. 2?, 22.
+
+
+--- Page 24 ---
+24     .     R. Alur and M. Yannakakis
+
+Kn41
+
+ 
+
+Fig. 13. Construction for Pspace complexity of Theorem 9.
+
+More precisely, observe that the node of K,+41 appears in 2” contexts. Each
+context is given by a tuple (b1,j,,62,j.,---bnj,), Where each j; can be 0 or 1. In
+this context the node satisfies the formula (4021, 4Or2... Oz) iff y evaluates to
+true under the interpretation that assigns each variable z; to the value j;. For i < n,
+the entry-node of each structure K;,1 appears in 2* contexts, where each context.
+given by (b1j,,...6;3,) with each j, being 0 or 1. In this context, the entry-node
+satisfies the formula Q; O....Qn O .W(SO21, 4On2... 402) iff Qizi...-Qntn-v
+evaluates to true under the interpretation that assigns each free variable zk， for
+k <i, to the truth value j,. This claim can be proved by induction. O
+
+4.2 Multiple-Exit Case
+
+Now consider the case when the hierarchical structure K has multiple exits. The
+model-checking algorithm is similar to the algorithm for the single-exit case, except
+now more splitting may be required. For instance consider a structure kK; with 2
+exit-nodes wu and v, and a formula 7) = 4C p. For different boxes mapped to K;,
+whether the exit-node u satisfies 7 can vary, and similarly, whether the exit-node v
+satisfies ~ can vary. Consequently, we need to split A; into four copies, depending
+whether both, only u, only v, or none, have a w-successor outside K;. In general,
+if there are d exit-nodes, processing of a single temporal subformula can generate
+2¢ copies of each structure in the worst case. The modifications required to the
+algorithm of Section 4.1 are left to the reader.
+
+THEOREM 10. (CTL MopeL CHECKING). The CTL model-checking problem
+(K,) can be solved in time O(|K|-2!?!¢), where each structure of K has at most
+d exit-nodes.
+
+ 
+
+The alternative approach of applying known model-checking procedures to the ex-
+panded structure gives a time bound of O(|y|-|K|"¢*), or alternatively, a Pspace
+bound. Note that in practice the size of the system (structure) KC is orders of mag-
+nitude greater than the size of the formula ¢; thus it is much preferable to have the
+formula size in the exponent than to have the structure. In fact, typically formulas
+to be checked are quite small in size. The next result states that the lower bound
+of Pspace applies even for some small fixed CTL formula. This suggests that the
+appearance of the number d of exit-nodes in the exponent in the running time of
+Theorem 10 is unavoidable, and CTL model checking becomes indeed harder with
+multiple exit-nodes.
+
+THEOREM 11. (CTL Comptexity). The structure-complexity of CTL model
+checking for hierarchical structures is Pspace-complete.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. ??, 2?.
+
+
+--- Page 25 ---
+Model Checking of Hierarchical State Machines    .    25
+
+   
+
+Structure Ky41
+
+ 
+
+ 
+
+Structure K; for universal quantifier
+
+Fig. 14. Construction for Pspace complexity of Theorem 11.
+
+Proor. We again establish Pspace-hardness by reduction from quantified boolean
+formulas. Consider a quantified formula ¢ = Q121.Qoro.... Qntn-W(21,---2n),
+where w is a boolean formula over the boolean variables x71,...%n, and each Q; is
+a quantifier (universal or existential). We assume that 7 is in conjunctive normal
+form, where each conjunct has 3 literals. That is, = wi A-:-A dx, where each
+Wy = 11 Vij2 Vij3 such that each of the literals 1;1, 1j2,1)3 is either a boolean variable
+or its negation.
+
+We build a hierarchical structure with n + 1 substructures over 3 propositions p,
+g, and r (see Figure 14). The first n structures correspond to the n quantifiers and
+variables, while the last substructure K,41 encodes the clauses of the formula ).
+For i = 1,...n, each structure K; has an entry-node, two boxes mapped to Ky41
+(they are named b;,9 and b;,; and correspond to setting variable x; to 0 and to 1
+respectively), one sink node, one exit-node called out, and 2(i — 1) additional exit-
+nodes corresponding to the variables x;,...2;_; and their negations Z,,...;_1.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 26 ---
+26
+
+R. Alur and M. Yannakakis
+
+ 
+
+Fig. 15. Example of substructure K,41.
+
+The entry-node and the exit-node out are labeled with (ie. satisfy) p, while the
+sink node is labeled with r; the literal nodes 2; and #;, j = 1,...,i—1 are not
+labeled with any proposition.
+
+The edges of K;, i =1,...n, are as shown in Figure 14, and depend on whether
+
+the
+
+&; of the Kj41 boxes b,9, b;,1 are the same in the two cases:
+
+the
+exit
+
+quantifier Q; is universal or existential. The edges inci
+
+exit-node x; (respectively, Z;) of each of the two Kj41
+
+ent to the exit-nodes «;,
+for each j = 1,...,i-1,
+oxes has an edge to the
+
+-node «x; (respectively, %;) of K;. The exit-nodes %; of box bio and 2; of bj1
+
+have edges to the sink node (the node labeled r in the figure), while the exit-nodes
+
+a; Of bj.9 and 2%; of box bj, have no outgoing edges. The ot
+
+her edges depend on the
+
+quantifier. If Q; is an existential quantifier, then the entry-node of K; has edges
+
+to
+
+he entries of both boxes b;,9 and 6; and the exit-nodes out of both boxes have
+
+edges to the exit-node out of K;. If Q; is a universal quantifier, then the entry-node
+of K; has an edge only to the entry-node of b;,9, the exit-node out of bj9 has an
+
+edge to the entry-node of bj and the exit-node out of bj,1
+
+no’
+out
+
+to
+pos
+out
+no’
+to
+
+e out of K;. In addition, the sink nodes labeled r of a
+
+he clauses @; of , an exit-node out, and 2n exit-no
+
+are labeled p, and the clause-nodes are labeled with p
+es are not labeled with any proposition. There is an e
+
+has an edge to the exit
+1 K;, and the exit-node
+
+of structure K, have a self-loop (not shown in Figure 14).
+The bottom structure A,,1 has an entry-node, a series of k nodes corresponding
+
+es corresponding to all
+
+sible literals (variables and their negations). The entry-node and the exit-node
+
+as well as gq; the literal
+ge from the entry-node
+
+he first clause node and an edge from the last clause node to the owt node.
+
+Furthermore, each node corresponding to a clause 7; has three edges connecting it
+
+ 
+
+to
+
+show an example of the substructure K,41 for the formu
+
+(x1
+
+he exit-nodes corresponding to its 3 literals 1j1, lj2, and 1j3. In Figure 15 we
+
+ 
+
+V & V &3) A (@1 V t2 V 23).
+
+aw = (x1 V a2 V23) A
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 27 ---
+Model Checking of Hierarchical State Machines         27
+
+Now consider the CTL formula
+ay  = 370 [p A  (q >  3O  (-DA3cr))].
+
+We claim that the entry-node of Ky satisfies ~' iff the given quantified formula
+¢ holds. In words, the CTL formula states that there is a path x (starting from
+the entry-node of K,) each of whose nodes satisfies p, and each node of the path
+that is labeled q has a successor which does not satisfy p and which can reach
+a node labeled r. Note that the only nodes labeled p are the entry-nodes of the
+substructures, the exits nodes out, and the nodes of K,+41 corresponding to the
+clauses. Thus, a path a, along which p holds continuously, exits each structure
+A; at the exit-node marked out. Each structure K; has two occurrences of Kj41:
+
+one box b;9 corresponding to se
+to setting x; to true.
+universally quantified, both boxe
+existentially quantified, only one
+
+Suppose that the given quanti
+
+ting x; to false, and one box b;1 corresponding
+
+The edges connecting out nodes ensure, that when x; is
+
+s must be entered by the path a, and when 2; is
+box is entered.
+fied formula ¢ is true. Then the required path 7
+
+starts at the entry-node of Ay and can be formed incrementally as follows. Assume
+
+that the path 7 is at the entry-n
+is nested inside boxes correspon
+
+context of nested boxes be represented by the sequence (b1,;,,.-.
+
+each j; is either 0 or 1. Suppose
+a; with quantifier Q;. If Q; is an
+variable x;, given the values b; for
+the quantified formula ¢, and let
+or bj, of Kj, exit at the out no
+
+ode of an instance of K;. Note that this instance
+ing to the substructures K;, with t < i. Let this
+»bi—1,5;-,) where
+first that 7 <n, i.e., A; corresponds to a variable
+existential quantifier, then choose a value for the
+the variables 2;, for t < i, appropriately to satisfy
+the path a proceed to the corresponding box b; 9
+e of that box, and proceed to exit the structure
+
+Kj; at the out node. If Q; is a universal quantifier, then the path 7 proceeds to the
+box b;9, exits at its out node, proceeds to box 6,1, exits at its out node, and then
+proceeds to exit K; at the out node. Suppose that 1 = n+1, i.e., x enters an instance
+of the structure Kp41 in the context (b1j,,...bn,j,); then the context corresponds
+to an assignment for the variables that satisfies the formula ~ (from our choices
+in the path above for the existentially quantified variables). The path 7 traverses
+all the nodes that correspond to the clauses and exits the structure from node out.
+Clearly, all the nodes of the constructed path a satisfy p. The only nodes labeled q¢
+are the clause nodes in Ky41. Since the variable assignment corresponding to the
+context satisfies all the clauses, each clause node has a successor | corresponding
+to a true literal, i.e., either the literal / is 2; and the context includes box b;,; (i.e.,
+ji = 1) or the literal | is Z; and the context includes box bj,9. This successor node |
+satisfies ap and can reach a node labeled r, by exiting each structure Ka, for a >i
+at the exit-point corresponding to the same literal | = x; or @;; note, that because
+of the truth value of the variable x;, the exit-node of the box b;,;, has an edge to
+the sink node of K; that is labeled r.
+
+Conversely, suppose that the CTL formula w’ is satisfied. That is, there is an
+infinite path z all whose nodes satisfy p and every node labeled gq has a successor
+that satisfies ap A 4Or. Since all nodes of x satisfy p, the path exits every box at
+the node out, and within structure K,,,, it traverses the nodes corresponding to the
+clauses. By the construction, whenever the path enters Kj, i <n, for an existential
+(respectively, universal) quantifier, it traverses one (respectively, both) of the boxes
+
+ 
+
+ 
+
+ 
+
+ACM Transactions on Programming Languages and Systems Vol. ??7, No. 2?, 22.
+
+
+--- Page 28 ---
+28     “     R. Alur and M. Yannakakis
+
+ 
+
+ 
+
+ 
+
+    
+
+     
+                                                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                                 
+
+ 
+
+ 
+
+Ordinary Structure M | Hierarchical Structure K
+Reachability                    O([M])                     O(|K])
+Automata-emptiness         O(|M]- |A])
+LTL model checking         O(|M]- le!)                            )
+CTL model checking        O(|M|- le)              O(K|- 21414)
+
+ 
+
+ 
+
+Table I. Summary of results.
+
+corresponding to a truth assignment for z;. Consider the traversal of the path 7
+through an occurrence of the structure K,41 in the context (b1,j,,...bn,j,), where
+each j; is either 0 or 1 denoting the assignment to 2;. The proposition q holds at.
+nodes corresponding to the clauses Wj. Each such node must satisfy JO (=pA3¢Or),
+ie., it has a successor which satisfies sp and 4Or. Hence the successor must be
+an exit-node corresponding to a literal | = x; or £; of the clause. Since the node
+can reach a node labeled r, the literal / must be true in the context: note that the
+path following this literal node of K,41 is completely forced; it goes through the
+corresponding literal exit-node I of the structures Ka, for a > i. If literal | was not
+true in the assignment corresponding to the context then the exit-node | of the K;
+would not have any outgoing edge and thus would not reach r. It follows that the
+given quantified formula ¢ is true. O
+
+5. CONCLUSIONS
+
+In this paper, we have established that verification of hierarchical machines can
+be done without flattening them first. Among the three popular extensions of
+state machines, communicating state machines, extended state machines, and hi-
+erarchical state machines, it is already known that the first two offer exponential
+succinctness at an exponential cost, but as our results show, hierarchical specifi-
+cations offer exponential succinctness at a minimal price. We presented efficient
+algorithms, and matching lower bounds, for the model-checking problem for all the
+commonly used specification formalisms. Our results are summarized in Table I.
+For hierarchical structures, model checking of branching-time formulas seems more
+expensive than model checking of linear-time formulas. This difference is intuitively
+due to the different complexities of the local and global model-checking problems.
+In local model checking, we want to check whether some (or all) paths starting at
+a specified state (e.g., an initial state) satisfy a linear-time property, while in the
+global model checking, we want to compute all (reachable) states such that some
+(or all) paths starting at that state satisfy a linear-time property. For ordinary
+state machines, both local and global variants can be solved in time linear in the
+size of the structure (even though the local, or on-the-fly, algorithms for checking
+linear-time properties are preferred in practice). For hierarchical structures, the lo-
+cal variant can be solved efficiently by our algorithm that avoids repeated analysis
+of a shared substructure. The global variant is more expensive, as it requires split-
+ting of a substructure because the satisfaction of formulas can vary from context to
+context. CTL model checking requires solving the global problem repeatedly, due
+to the nesting of path quantifiers in the formula.
+
+Our results can be useful more generally in the analysis of hierarchical structures
+other than hierarchical state machines, i.e., in the analysis of structures that are
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+
+
+--- Page 29 ---
+Model Checking of Hierarchical State Machines    .    29
+
+defined hierarchically where the basic (unnested) nodes are other types of objects
+rather than simple states. From the given properties of the basic objects, our
+algorithms can be used to infer efficiently the properties of the hierarchical structure
+and of its executions. For example, a hierarchical MSC (HMSC) is just like a
+hierarchical state machine except that the basic objects are basic message sequence
+charts instead of states. It is shown in [Alur and Yannakakis 1999] how to use
+the algorithms of this paper to check, without flattening, an HMSC for properties
+such as boundedness of message buffers, divergence of processes, and for general
+LTL properties under a certain choice of semantics for the concatenation of message
+sequence charts; we refer the reader to [Alur and Yannakakis 1999] for more details.
+
+In this paper, we have presented results about hierarchical structures in the
+absence of variables and concurrency. In the presence of variables, our algorithms
+can be adopted in a natural way by augmenting nodes with the values of the
+variables. In particular, suppose we have an extended hierarchical structure K with
+k, boolean variables, and the edges have guards and assignments that read/write
+these variables. Then, we can construct a hierarchical structure of size at most
+8*.| |: a blow-up of 2* is immediate, as a node must be considered in combination
+with different values of the variables, and the additional blow-up arises from the
+facts that a box can be entered in 2* possible ways, and translation from multi-
+entry case to single-entry case causes a factor quadratic in the number of entry-
+nodes. Thus, reachability problems for an extended hierarchical structure K with
+k boolean variables can be solved in O(8* - ||) (in contrast, reachability problems
+for an extended ordinary structure M with k boolean variables can be solved in
+O(2* - |M|)). In presence of concurrency, our algorithms are applicable in the
+case when one of the communicating systems is modeled as a hierarchical state
+machine and the rest are modeled as ordinary state machines, using the product
+construction of Section 3.3. If two or more systems are modeled as hierarchical
+machines, as recent results indicate [Alur et al. 1999], in the worst case, there is no
+better strategy than taking the product of flattened machines.
+
+ 
+
+ 
+
+ACKNOWLEDGMENTS
+
+We thank Kousha Etessami, Radu Grosu, and Sampath Kannan for fruitful discus-
+sions, and anonymous reviewers for careful comments.
+
+REFERENCES
+
+Aur, R. AND YANNAKAKIS, M. 1999. Model checking of message sequence charts. In CONCUR’99:
+Concurrency Theory, Tenth International Conference. LNCS 1664. Springer-Verlag, 114-129.
+
+Aur, R., Grosu, R., AND McDouGat., M. 2000. Efficient reachability analysis of hierarchical
+reactive machines. In Computer Aided Verification, 12th International Conference. LNCS 1855.
+Springer, 280-295.
+
+Atur, R., KANNAN, S., AND YANNAKAKIS, M. 1999. Communicating hierarchical state machines.
+In Automata, Languages and Programming, 26th International Colloquium. Springer, 169-178.
+
+APFELBAUM, L. 1995. Automated functional test generation. In Proceedings of the IEEE Au-
+totestcon Conference.
+
+BALL, T. AND RAJAMANI, S. 2000. Bebop: A symbolic model checker for boolean programs. In
+SPIN 2000 Workshop on Model Checking of Software. LNCS 1885. Springer, 113-130.
+
+BEHRMANN, G., LARSEN, K., ANDERSEN, H., HULGAARD, H., AND LInD-NIELSEN, J. 1999. Verifica-
+tion of hierarchical state/event systems using reusability and compositionality. In TACAS ’99:
+
+ACM Transactions on Programming Languages and Systems Vol. ??7, No. 2?, 22.
+
+
+--- Page 30 ---
+30     .     R. Alur and M. Yannakakis
+
+Fifth International Conference on Tools and Algorithms for the Construction and Analysis of
+Software. LNCS 1579. Springer, 163-177.
+
+BERNHOLTZ, O., VARDI, M., AND WOLPER, P. 1994. An automata-theoretic approach to branching
+time model checking. In Computer Aided Verification, Proc. 6th Int. Conference. LNCS 818.
+Springer-Verlag, 142-155.
+
+Boocnu, G., JAcospson, I., AND RumBAuGH, J. 1997. Unified Modeling Language User Guide.
+Addison Wesley.
+
+BoussAnt, A., ESPARZA, J., AND MALER, O. 1997. Reachability analysis of pushdown automata:
+Applications to model checking. In CONCUR’97: Concurrency Theory, Eighth International
+Conference. LNCS 1243. 135-150.
+
+BurKART, O. AND STEFFEN, B. 1992. Model checking for context-free processes. In CONCUR’92:
+Concurrency Theory, Third International Conference. LNCS 630. 123-137.
+
+CHAN, W., ANDERSON, R., BEAME, P., Burns, S., MopuGno, F., Norxin, D., AND REESE, J. 1998.
+Model checking large software specifications. IEEE Transactions on Software Engineering 24, 7,
+498-519.
+
+CLARKE, E. AND EMERSON, E. 1981. Design and synthesis of synchronization skeletons using
+branching time temporal logic. In Proc. Workshop on Logic of Programs. LNCS 131. Springer-
+Verlag, 52-71.
+
+CLARKE, E. AND KurRSHAN, R. 1996. Computer-aided verification. IEEE Spectrum 33, 6, 61-67.
+
+CLARKE, E. AND WING, J. 1996. Formal methods: State of the art and future directions. ACM
+Computing Surveys 28, 4, 626-643.
+
+CourcousETis, C., VARDI, M., WOLPER, P., AND YANNAKAKIS, M. 1992. Memory efficient al-
+gorithms for the verification of temporal properties. Formal Methods in System Design 1,
+275-288.
+
+Drusinsky, D. AND HAREL, D. 1994. On the power of bounded concurrency I: finite automata.
+Journal of the ACM 41, 3, 517-539.
+
+FLorA-HotmaQuist, A., O'GRADY, J., AND STASKAUSKAS, M. 1995. In Proceedings of the Inter-
+national Switching Symposium. 103-107.
+
+Haret, D. 1987. Statecharts: A visual formalism for complex systems. Science of Computer
+Programming 8, 231-274.
+
+HOLzMANN, G. 1991. Design and Validation of Computer Protocols. Prentice-Hall.
+
+HouzMANN, G. 1997. The model checker SPIN. [EEE Trans. on Software Engineering 23, 5,
+279-295.
+
+HOLzMANN, G., PELED, D., AND REDBERG, M. 1997. Design tools for for requirements engineering.
+Lucent Bell Labs Technical Journal 2, 1, 86-95.
+
+Jacosson, I. 1992. Object-oriented software engineering — A use case driven approach. Addison-
+Wesley.
+
+JAHANIAN, F. AND MoK, A. 1987. A graph-theoretic approach for timing analysis and its imple-
+mentation. [EEE Transactions on Computers C-36, 8, 961-975.
+
+KursHan, R. 1994. Computer-aided Verification of Coordinating Processes: the automata-
+theoretic approach. Princeton University Press.
+
+  
+
+Leveson, N., HEIMDAHL, M., HILDRETH, H., AND REESE, J. 1994. Requirements specification for
+process control systems. [EEE Transactions on Software Engineering 20, 9, 684-707.
+
+LICHTENSTEIN, O. AND PNueti, A. 1985. Checking that finite-state concurrent programs sat-
+isfy their linear specification. In Proceedings of the 12th ACM Symposium on Principles of
+Programming Languages. 97-107.
+
+MANNA, Z. AND PNUELI, A. 1991. The temporal logic of reactive and concurrent systems: Speci-
+fication. Springer-verlag.
+
+Pnueut, A. 1977. The temporal logic of programs. In Proceedings of the 18th IEEE Symposium
+on Foundations of Computer Science. 46-77.
+
+QUEILLE, J. AND SIFAKIS, J. 1982. Specification and verification of concurrent programs in CESAR.
+In Proceedings of the Fifth International Symposium on Programming. LNCS 137. Springer-
+Verlag, 195-220.
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 2?, 22.
+
+
+--- Page 31 ---
+Model Checking of Hierarchical State Machines    .    31
+
+Rupopu, E., GRAUBMANN, P., AND GABOWSKI, J. 1996. Tutorial on message sequence charts.
+Computer Networks and ISDN Systems 28, 12, 1629-1641.
+
+RuMABAUGH, J., BLAHA, M., PREMERLANI, W., Eppy, F., AND LORENSEN, W. 1991. Object-
+oriented Modeling and Design. Prentice-Hall.
+
+SELIC, B., GULLEKSON, G., AND WARD, P. 1994. Real-time object oriented modeling and design.
+J. Wiley.
+
+Tuomas, W. 1990. Automata on infinite objects. In Handbook of Theoretical Computer Science,
+J. van Leeuwen, Ed. Vol. B. Elsevier Science Publishers, 133-191.
+
+VarpI, M. AND WoLpER, P. 1986. An automata-theoretic approach to automatic program verifi-
+cation. In Proceedings of the First IEEE Symposium on Logic in Computer Science. 332-344.
+
+Received August 1999; revised December 2000; accepted April 2001
+
+ACM Transactions on Programming Languages and Systems Vol. ??, No. 22, ?2.
+

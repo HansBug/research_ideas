@@ -1,0 +1,1192 @@
+--- Page 1 ---
+Computing and Informatics, Vol. 35, 2016, 338{368
+TOWARDS A TRANSFORMATION APPROACH
+OF TIMED UML MARTE SPECIFICATIONS
+FOR OBSERVER-BASED FORMAL VERIFICATION
+Nadia Menad
+University of Science and Technology of Oran Mohamed Boudiaf
+Department of Computer Science
+Faculty of Mathematics and Computer Science, Algeria
+e-mail: nadia.menad@univ-usto.dz
+Philippe Dhaussy , Zo e Drey
+UEB, Lab-STICC Laboratory UMR CNRS 6285
+ENSTA Bretagne, France
+e-mail:fphilippe.dhaussy, zoe.drey g@ensta-bretagne.fr
+Rachida Mekki
+University of Science and Technology of Oran Mohamed Boudiaf
+Department of Computer Science
+Faculty of Mathematics and Computer Science, Algeria
+Abstract. Modeling timing constraints of distributed systems and multi-clock elec-
+tronic systems aims to describe dierent time requirements aspects at a higher ab-
+straction level. An important aspect is the logical time of the behavior of these
+systems. To model the time requirements, a specication language with multiple
+clock domains called Clock Constraint Specication Language (CCSL) has been in-
+troduced, in order to enrich the formalisms of existing modeling tools and also to
+facilitate the description and analysis of temporal constraints. Once the software
+has been modeled, the diculty lies in both expressing the relevant properties and
+verifying them formally. For that purpose formal transformation techniques must
+be introduced. However, it remains dicult to exploit initial models as such, and to
+
+--- Page 2 ---
+Transformation of Timed UML MARTE for Verication 339
+integrate them into a formal verication process. This paper introduces a method-
+ology and the original tool chain for exploiting UML MARTE models enriched with
+CCSL specication. These will be integrated together with a range of tools for
+expressing and verifying time constraints. We propose a more general translation
+approach that veries not only CCSL constraints implementations but also prop-
+erties of the complete model including all the functional components. We evaluate
+our approach with a case study.
+Keywords: Formal verication, model-checking, CCSL time constraints, observer
+automata
+1 INTRODUCTION
+In the eld of modeling software architectures of control-command systems, dis-
+tributed systems or multi-clock electronic systems, the specication of systems is
+often associated with temporal constraint specications. These systems are often
+critical and the requirements to be respected during the modeling step, concern not
+only the determinism but also temporal constraints at a functional level. In the sys-
+tem development process the designers look for methods and languages that allow
+them to describe their architectures throughout the cycle and at various levels of
+abstraction. At each level, the modeling of such systems should allow the expression
+and the manipulation of time requirements, and the evaluation of the accuracy and
+eciency of applications in terms of temporal and measurable requirements.
+For this purpose, the concept of abstract modeling of logical clocks has been
+introduced with the Clock Constraint Specication Language (CCSL) [1] within
+MARTE [2] and has been adopted by the OMG [3]. CCSL is a language to de-
+ne causal, chronological and temporal relationships. It aims to complement the
+existing formalisms and to provide models that can be analyzed so as to assess their
+accuracy with regard to requirements expressed by the designer. It is therefore
+essential to adopt temporal analysis approaches by integrating verication and val-
+idation processes based on robust formal notions, in order to meet current quality
+requirements of these systems.
+To address this issue, several studies have proposed an engineering approach
+founded on models, and the use of semi-formal notations such as UML, enriched with
+formal notations. For example, the UML MARTE prole aims to express temporal
+constraints on UML models. The models that are built must not only be simulated
+but also formally analyzed so as to check the temporal requirements dened by the
+designer. However, few approaches integrate formal verication to UML MARTE
+models. In this study, we use model-checking verication techniques [4, 5] to enable
+formal analysis of requirements on UML MARTE models. These techniques have
+become highly popular due to their ability to automatically conrm software model
+properties. A range of model-checking tools have been developed for this purpose [6,
+
+--- Page 3 ---
+340 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+7, 8, 9, 10]. However, these techniques are dicult to exploit for both expressing
+and verifying the functional properties and the time properties of a software model
+under development.
+This paper is an extension of a former publication [11] which studies the associ-
+ation of CCSL constraint specication and a model-checking tool named Observer-
+Based Prover (OBP)1[12]. The verications carried out by OBP are based on the
+exploration of programs expressed in a high-level language dedicated to the speci-
+cation of distributed systems called FIACRE2[13].
+We have dened a transformation process to verify that UML MARTE mod-
+els extended with CCSL specications guarantee functional and time properties on
+their behavior. These properties are expressed as invariants and observer automata
+in a language called Context Description Language (CDL). The automatic transfor-
+mation of UML MARTE models to FIACRE code is described in other paper [14]
+and not detailed here. Only the transformation of CCSL properties is described in
+this article. Our contributions are as follow:
+We provide a verication methodology and tool-chain to facilitate the verica-
+tion of distributed system models.
+We dene a transformation approach to generate a FIACRE model from a CCSL
+specication integrated in UML MARTE models.
+We show how to specify time properties in the form of CDL observer automata,
+given as input of the OBP tool together with a specication of MARTE models.
+We provide a full description of a case study and we show a quantitative exper-
+iment of our verication process on this case study.
+In this article, we integrate our transformation process into a general verication
+methodology that veries not only CCSL constraints implementations, but also
+properties on the complete model including all the functional components. We
+provide a detailed description of a case study dened in MARTE.
+This paper is organized as follows: Section 2 presents related work in formal
+verication of CCSL constraints. We present the context of our approach and the
+CCSL language in Section 3. An illustrative case study is presented in Section 4 and
+the principles of transformation of CCSL constraints into FIACRE are introduced in
+Section 5. Section 6 describes the CDL specication of properties based on observers
+and invariants (scenarios). In Section 7, we introduce and discuss some results of
+property proofs. Our conclusions are in Section 8.
+2 RELATED WORK
+This section is divided into three parts. We have separated each part according to
+two criteria, which are:
+1http://www.obpcdl.org
+2For a detailed description the reader can refer to the FIACRE documentation on:
+http://projects.laas.fr/fiacre/papers.php
+
+--- Page 4 ---
+Transformation of Timed UML MARTE for Verication 341
+1. input specications of the transformation process for formal verication,
+2. time specications consideration in the transformation process.
+The rst part 2.1 concerns transformation approaches dealing with transforming
+general specications (UML, UML MARTE, etc.) into the input language for for-
+mal verication purposes. The second part 2.2 deals with approaches dedicated
+to extending a formal language with logical time for verication. Finally, the last
+part 2.3 is dealing with approaches which concern only the transformation of CCSL
+specications into a formal representation to be veried by a model checker tool.
+2.1 Transforming a Specication Language into the Input Language
+for Model Checking Tool
+A number of model checking based techniques have been proposed for specifying
+and analyzing temporal constraints in several behavioral models, such as activity
+diagrams and state machines (e.g. [15, 16, 17, 18, 19, 20]). In order to apply such
+techniques, the semi-formal specication models must be transformed to the tool-
+specic input languages. Many approaches to transform a specication language into
+an input language of adequate model-checking tool have been proposed. For exam-
+ple, Ge et al. present a verication-driven approach in [15] consisting in translating
+UML MARTE Activity Diagrams into Time Transition System (TTS) in order to
+guarantee the correctness of time properties. The authors use a formal semantics of
+Time Petri Nets (TPN) to avoid the state space explosion on the TIme petri Net
+Analyzer (TINA) model-checking tool. This approach is limited as it only veries
+a particular type of properties (i.e. synchronization and schedulability).
+In [16], Ge et al. present a framework dedicated to time property verication
+for UML MARTE. This work relies on a property-driven transformation from both
+UML architecture and behavior models to executable and veriable TPN models,
+by translating time properties into a set of property patterns corresponding to TPN
+observers. Another approach to formalizing and validating temporal requirements
+is proposed by Cimatti et al. in [21]. A formalism for representing and analyzing
+requirements using the NuSMV [10] model checker is proposed, where temporal
+constraints are expressed by means of temporal operators, resulting in a fragment
+of rst order temporal logic. The formalism builds on class diagrams, and combines
+fragments of rst order logic with temporal operators to describe the evolution of
+scenarios. The drawback of the approach is that only a part of the scenario is
+considered to be controllable.
+2.2 Extending a Formal Language with Discrete Time
+Bosnacki et al. proposed a discrete time extension of Promela for concurrent systems
+in [22]. A variable named \ timer " is dened and corresponds to the discrete time
+countdown timer . However, the proposed extension would be dicult to use in order
+to express the coincidence clock tickings. Bosnacki et al. also proposed another
+
+--- Page 5 ---
+342 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+work, which can can be found in [23], that models time specications from Algebra
+of Communicating Processes, (ACP) by macro denitions on the level of Promela .
+This work presents an extension of Promela and the SPIN model checker [6] with
+discrete time that provides an opportunity to model systems the correct functioning
+of which crucially depends on timing parameters.
+2.3 CCSL Language Transformation for Verication
+Several approaches based on model transformation have been published to enable
+the formal verication of CCSL time requirements. This includes work by Mal-
+let [24], who presented a technique for standard VHDL based design environment
+and synchronous languages ( Esterel ). This work addressed VHDL generating observers to
+check the compliance of a CCSL specication. The paper denes a state-based semantics
+for some CCSL operators based on labeled transition systems.
+Peters et al. presented a work in [25] in which they propose to translate CCSL into
+SystemC which allows the simulation of the specied clocks in SystemC . The approach
+adds a TimeController, which corresponds to one further module for handling the clock
+behavior. The disadvantage of this approach is that the user has to implement the policy
+interface manually, which is not desired during the process of specication.
+Yu et al. [26] propose a framework for translating CCSL specications into dynamic
+systems, which are handled using the Sigali [27] model-checker to verify specied con-
+straint relations. This approach only focuses on the implementation of CCSL constraints
+withSignal programs. Additionally, the handling of the non-deterministic parts cannot
+be chosen in this work, as polychrony can only be generated after eliminating the non-
+determinism. The approach is too restrictive, as it does not take into account mixed clock
+expressions, that deal with multiple future scheduled ticks. So the approach does not
+resolve all existing CCSL constraints. Moreover, the generated executable controller only
+enforces the satisfaction of the specied timing constraints without considering functional
+properties.
+Andr e [28] proposed an approach for implementing observers [29] for the formal veri-
+cation of CCSL specications. Observers, encoding CCSL constraints are translated into
+Esterel code. Mallet et al. [24] describe a technique to generate observers from a CCSL
+specication. In this approach, a reachability analysis allows the determination of whether
+or not an observer has reached an error state. The Times Square Environment [30], dedi-
+cated to solving CCSL constraints and computing solutions, implements a code generator
+inEsterel . The tool allows the detection of inconsistencies in CCSL specications such
+as deadlocks. It provides the user with chronograms showing the dierent temporal evo-
+lutions of executions to facilitate the development of those specications. However, the
+environment is a simulator that allows the analysis of execution traces but it does not
+verify the most general properties on execution graphs as do model-checkers.
+Gascon et al. [31] contribute to the comparison of CCSL and Property Specication
+Language, PSL [32] expressiveness. They identify CCSL constructs that cannot be ex-
+pressed in PSL temporal logic. The article also designates the class of PSL formulas that
+can be encoded in CCSL. It denes a translation between fragments of CCSL and PSL
+using the automata formalism as an intermediate representation. However, this approach
+does not take into account the CCSL constructs that cannot be expressed in PSL.
+
+--- Page 6 ---
+Transformation of Timed UML MARTE for Verication 343
+In [33], Yin et al. propose a translation of CCSL specications into a Promela model
+to formally verify the CCSL constraints by the SPIN model checker. We have been in-
+spired by this work to design the automatic translation of CCSL constraints into FIACRE
+automata. Also, in this approach the properties to be checked are expressed in Linear
+Temporal Logic (LTL) logic. The vUML [34] tool automatically converts UML state ma-
+chines to Promela specications and then invokes the SPIN model checker to verify the
+desired properties. Although the system is modeled as UML state machines, the temporal
+properties are specied in LTL. UML and OCL analysis tools, such as OCLE [35] and
+USE [36] provide support for validating structural properties. However, it is dicult to
+express specic time constraints with OCLE and USE, so these latters are limited when
+analyzing temporal properties. We propose to express properties with the CDL language
+with observer automata which allow a better expressiveness. For example, in our paper,
+we show a property (illustrated in Figure 12) that would be tedious to express in LTL.
+Another work by Romenska et al. [37] deals with CCSL unbounded operators. More
+precisely, it denes a state-based representation of CCSL operators. In this approach,
+a lazy evaluation is used to represent intentionally innite transition systems, by providing
+an algorithm to make the synchronized product of such transition systems with studying
+its complexity. Recent work has been proposed by Suryadevara et al. in [38], that presents
+a technique for transforming MARTE CCSL mode behavior into Timed automata for
+model-checking using the UPPAAL tool, which enables verication of both logical and
+chronometric properties of the system. This work only considers time specication and
+analysis. In contrast, we have proposed a more general translation approach that veries
+not only CCSL constraints, but also functional properties. Furthermore, in our approach,
+these properties are separated from the application model thanks to a high level language
+(CDL) which facilitates the separation of the concerns. These properties, whether time-
+related or functional, are expressed in the CDL language [39]. In addition, we use the
+notion of contexts, also expressed in CDL, which in some cases allows to reduce the
+combinatorial explosion during the exploration of models.
+3 PRINCIPLES OF THE APPROACH
+The goal of our work is to integrate formal verication techniques with real-time systems
+described with semi-formal modeling languages such as UML, with respect to behavior
+and time requirements that must be guaranteed by such systems. To do so, we dene
+an approach that is based on a tool-chain (Figure 1) that bridges the gap between UML
+MARTE and formal specications. In this section, we rst present our approach. We then
+provide a denition of time constraints specied by the CCSL language.
+3.1 A Tool-Chain for the Verication of Models
+The entry point of our tool-chain (Figure 1) is a semi-formal specication model of a real-
+time system architecture (the structural model) and its behavioral model using the UML
+MARTE prole, a language that is dedicated to the specication of real-time systems. The
+UML MARTE models can be enriched with time constraints that describe causality (i.e.,
+relations between the input/output states of a system), chronological and timing properties
+on the models. These constraints are described in a dedicated language called CCSL, which
+
+--- Page 7 ---
+344 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+has been dened as an annex of the UML MARTE prole. An UML MARTE model aims
+to describe the requirements that are written by the user for whom the real-time system
+model is designed. These requirements informally describe behavioral properties that
+should be guaranteed by the real-time system model.
+Semi-formal	speciﬁca0on	(UML-Marte)	Formal	speciﬁca0on	(Fiacre)						(CDL)	error	report	
+Legend data	input output func0onal	proper0es	Time	proper0es	Requirements	
+Automated	transla.on	
+Expression	step	Veriﬁca.on	(OBP	Explorer) 	Time	constraints	(CCSL)	
+Figure 1. Overview of the proposed model transformation
+Tooling of Our Approach
+To be veried, the UML MARTE models need to be transformed into a formalism for
+which verication tools exist. To do so, our approach consists of a tool-chain (Figure 1)
+that leverages three elements:
+1.CDL , a language to formally express requirements of the system,
+2.FIACRE , a tool to model the system as a set of automata and
+3.OBP , a tool to explore a system with respect to CDL properties.
+CDL (Context Description Language) is a language to formally specify properties
+on the behavior of a system. CDL denes high-level syntactic constructs that ease
+the expression of properties in terms of input/output states, representing scenarios
+of execution that must be veried by a FIACRE specication. In so doing, CDL
+contributes to bridging the gap between the user requirements and the formal model
+of a system.
+FIACRE is a language for dening state-machine based representations of real-time
+systems, aimed at being used as inputs for formal verication and simulation purposes.
+The choice of FIACRE for our approach is driven by (1) the need to formally describe
+real-time systems with a formal semantics, (2) the need to make models (in the sense
+of model-driven engineering) of systems amenable to verication.
+The OBP tool3is based on model-checking techniques and is aimed at the exploration
+of the execution states of a model. It takes CDL and FIACRE specications as its
+3http://www.obpcdl.org
+
+--- Page 8 ---
+Transformation of Timed UML MARTE for Verication 345
+inputs. OBP generates an exploration graph representing all the possible behaviors of
+a system, given some input data representing the environment with which the system
+should interact, and returns an error report (e.g. by means of counter-examples) when
+CDL properties are violated.
+The UML MARTE specication is automatically translated into FIACRE together
+with the CCSL constraints with which it is associated. The translation from UML MARTE
+(without CCSL) to FIACRE is described in [14, 40] and is not the subject of this paper.
+The requirements are formalized into CDL properties. These properties are either func-
+tional (i.e., they express a functionality that the system must achieve), or time-related (i.e.,
+they express timing constraints that the system should take into account when achieving
+a functionality).
+Finally both the generated FIACRE specication and the CDL properties are given as
+inputs to the OBP tool, which veries the FIACRE specications against the CDL proper-
+ties. We use the OBP tool to conduct our experiments and verify that a system (initially
+described in MARTE) containing time constraints (expressed in CCSL) guarantees the
+expected requirements (expressed in CDL).
+3.2 Time Constraints and the CCSL Language
+CCSL [1], introduced as an annex of MARTE, is a declarative language used to specify time
+constraints by means of binary relations between events based on logical clock concepts.
+CCSL is based on a mathematical model giving a formal semantics to time. In a MARTE
+model, any event (for example a communication, transmission or reception action, as
+computing start) may be used to dene a time base, by means of logical clocks ( clock ).
+Aclock represents a set of occurrences of discrete events, called instants . These instants
+are strictly ordered and provide a temporal reference.
+For modeling distributed applications (distributed systems or digital circuits) it is
+necessary to identify a set of temporal or clock repositories and causal relations between
+events. Logical clocks can be referenced in the expression of temporal constraints to express
+causal relations such as synchronous or precedence constraints. These clocks can also be
+used to provide sampled clocks (sub-clocks) or ltering (see [28] for the specication of
+a set of relations). This vision of time allows the manipulation of the simultaneity notion
+in a succession of discrete instants [41]. In a given instant, events can be executed; these
+events are causally inter-dependent and considered to be simultaneous just like the instant
+reaction concept, the abstraction exploited in synchronous languages [42].
+4 ILLUSTRATING CASE STUDY
+We consider a data acquisition circuit ( C), with two channels, consisting of acquisition
+components ( Sensor iandAcq i) (i2 f1;2g), an acquired data processing component
+(Comput ) and a lter ( Filter ) sampling the calculated values. Each acquisition channel i
+is associated with a pair of components Sensor iandAcq i. We assume that, for each
+channel i, the component Sensor ireceives data from the environment (from a device
+Dev ioutside the circuit) and transmits the value to Acq ithrough a shared memory Mi.
+
+--- Page 9 ---
+346 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+Each Dev isends Ndatadata ik; k2[0: : : N1].Acq iprovides Comput with each datum
+data ikvia a synchronous communication4portportAcq i.
+Comput applies the addition of data 1kanddata 2krespectively received from Dev 1
+andDev 2and provides the Filter with the sum via a fifo.Filter provides the sampled
+data (one in every three values) to Dev out, external to the circuit.
+Sensor1 Acq1 Mem1 Sensor2 Acq2 Mem2 Comput write1 
+Filter DevOut Dev1 Dev2 write2 read2 read1 filterOut comput 
+Figure 2. Circuit architecture C
+The temporal requirements associated with this circuit are:
+Req1a: Each acquired datum data 1is written in the memory M1before being read by
+Acq1.
+Req1b: Each acquired datum data 2is written in the memory M2before being read by
+Acq2.
+Req2:Comput starts the calculation of a sum after two receptions of data ikfrom each
+Acqi(with i2f1;2g).
+Req3:Filter provides the environment with a sampled value from a sequence of one
+in every three values calculated by Comput .
+In summary, all the timing requirements for our case study are specied using the
+CCSL language as follows:
+write 1alternatesWith read 1 (Req1a)
+write 2alternatesWith read 2 (Req1b)
+read 1strictPrec comput (Req2a)
+read 2strictPrec comput (Req2b)
+lterOut =comput lteredBy (001)w(Req3)
+In addition to the above time constraints, we express the requirements that are specif-
+ically associated with the expected behavior of the circuit. For example, we can express
+the following requirement:
+4Synchronous communication uses passive port, it needs synchronization with other
+ports to initiate an interaction.
+
+--- Page 10 ---
+Transformation of Timed UML MARTE for Verication 347
+Req4 : the data result j; j2[0: : :(N1)=3] provided to the environment after the
+sampling operation (one value in 3) must have the values data 1k+data 2kwith k=
+(3j) + 2.
+4.1 The MARTE Model
+Figure 3 illustrates the model of this circuit using the concepts of the MARTE prole.
+A package named CircuitApplication contains the description of the application circuit.
+We consider Sensor1 ,Sensor2 ,Acq1,Acq2.Comput ,Filter ,Dev1 ,Dev2 and DevOut as
+active objects (stereotyped with RtUnit ). Each of these units has a possibility to invoke
+other real-time actions, such as sending and receiving data.
+CircuitApplication « RtUnit » Dev1 
+« RtUnit » Dev2 
+« RtUnit » DevOut    « DataPool » FifoFrom_Filter : integer {DataPool_BindableInstance.ordering (FIFO)}  
+   « RtUnit » Sensor1   « Clock »  write1:Op_Write1        « RtUnit » Sensor2  « Clock » write2:Op_Write_2     « DataPool » FifoFrom_Dev1 : integer {DataPool_BindableInstance.ordering (FIFO)}  
+« DataPool » FifoFrom_Dev2 : integer {DataPool_BindableInstance.ordering (FIFO)}        « SharedDataComResource » M1 {SharedDataComResource_Classifier.writeServices (Op_Write1)} {SharedDataComResource_Classifier.readServices (Op_Read1)}         « RtUnit » Acq1  « Clock » read1:Op_Read1         « RtUnit » Acq2  « Clock » read2:Op_Read2       « RtUnit » Comput    « RtUnit » Filter     
+« DataPool » FifoFrom_Comput : integer {DataPool_BindableInstance.ordering (FIFO)}  
+portAcq1 
+portAcq2 ReceiveFrom_Acq1 ReceiveFrom_Acq2       « SharedDataComResource » M2 {SharedDataComResource_Classifier.writeServices (Op_Write2)} {SharedDataComResource_Classifier.readServices (Op_Read2)}      
+« Clock » filter:Op_Filter « Clock » comput: Op_Comput  
+Figure 3. Circuit architecture
+The CircuitApplication package also introduces two shared resources called M1and
+M2, stereotyped by SharedDataComResource . We dene two read and write services that
+read/write the shared data as the objects OpRead1 and OpWrite1 .Comput and Acq1
+(resp. Acq2 ) exchange data with synchronous communication. To specify this communi-
+cation, we associate Comput with two ports ReceivedFrom Acq1 and ReceivedFrom Acq2,
+and we associate Acq1 (resp. Acq2 ) with the portAcq1 (resp. portAcq2 ) port. We then
+connect portAcq1 and portAcq2 toReceivedFrom Acq1 and ReceivedFrom Acq2 ), respec-
+tively. When a computation is completed, the Comput object generates a datum that is
+transmitted to the Filter object through a dedicated port which is connected to a data-
+Pool (contained in Filter ) named FifoFrom Comput . This dataPool is characterized by
+
+--- Page 11 ---
+348 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+the attribute ordering which is set to FIFO value to specify the kind of the asynchronous
+communication.
+     « ClockType» L_clock  {ClockType_Class.isLogical} ClockType_Class.nature (discrete)}      
+  « Clock» filter: L_clock   
+« ClockConstraint » {  Constraint: read1 AlternatesWith  write1;       read2  AlternatesWith  write2;        read1  StrictPrecedence comput;        read2  StrictPrecedence  comput;       filter = comput  FilteredBy  (001); }  « TimedDomain » TimedDomain  
+  « Clock» comput: L_clock   
+  « Clock» read2: L_clock   
+  « Clock» read1: L_clock   
+  « Clock» write2: L_clock   
+  « Clock» write1: L_clock   
+Figure 4. TimedDomain and CCSL specications
+All the active objects provide real-time actions through their interface which carry
+operations stereotyped by rtAction5orrtService6(not shown in Figure 3). These oper-
+ations are dened in the OpWrite1 ,OpWrite2 ,OpRead1 ,OpRead2 ,OpComput and
+OpFilter interfaces, bounded to dedicated ports. These ports also carry a clock stereo-
+type (typed by clock specications), indicating that the actions/services of the provided
+interface operations are considered as events which are invoked by those clocks. For in-
+stance, Acq1 accesses the shared resource object ( M1) by a reader service, invoking the
+reading real-time action. A boundary port can be connected to a port owning an interface
+so as to relay an action/service invocation or a data 
+ow to a real-time unit. In that case,
+port directions are relayed as well.
+5A real-time action is an action that species real-time characteristics. It denes
+a synchronization kind related to the execution of the action.
+6A real-time service is a service specialized with the additional pre-dened attributes
+of real-time constraints, which are applied for all the invocations of the rtService.
+
+--- Page 12 ---
+Transformation of Timed UML MARTE for Verication 349
+4.2 The CCSL Constraints
+Once the application model has been described, we need to dene a set of clock relations
+between the the dierent events of the system involved. These relations describe the
+desired access policies, e.g., preventing readers and writers to concurrently access the
+same resource. To do so and as illustrated in Figure 4, a package named TimedDomain
+species a clock for each operation. Specically, each clock is an instance of the LClock
+class, expressing a logical clock, which we dened with the MARTE ClockType stereotype.
+In this example, only one time domain is considered.
+CCSL constraints are dened within the specic ClockConstraint MARTE stereotype.
+Each constraint denes a relation between the clocks as dened in the TimedDomain
+package. For example, an alternance between read and write operations is required in our
+application model. Such dependency between the read and write operations of Sensor1
+(resp. Sensor2 ) and Acq1 (resp. Acq2 ), is specied by the AlternatesWith constraint.
+Another constraint ( FilteredBy ) indicates that lter is derived from Comput , with a pattern
+value equal to 001.
+5 TRANSLATION OF MARTE-CCSL MODELS
+INTO FIACRE PROGRAMS
+This section presents the FIACRE language and the principles of the translation of
+MARTE models enriched with CCSL constraints into FIACRE programs.
+5.1 Overview of the Translation Process
+We present here the principles of the translation of MARTE models enriched with CCSL
+constraints (Figure 5 a)) into FIACRE code (Figure 5 b)). We illustrate these principles
+on the circuit architecture introduced in Section 4. Specically, we detail how the CCSL
+constraints ( Req1a,Req1b,Req2a,Req2band Req3) are transformed into FIACRE pro-
+cesses.
+The translation consists in generating the following FIACRE elements (Figure 5 b)):
+1. a set of processes corresponding to the active objects of the MARTE model,
+2. processes corresponding to the CCSL constraints,
+3. a Scheduler process for synchronizing the execution of the generated processes and
+4. a FIACRE component describing the architecture containing all the generated pro-
+cesses.
+The translation method of CCSL constraints into FIACRE processes and the gener-
+ation of the Scheduler process are inspired by the work described in [33]. In the next
+sections, we detail how FIACRE code is generated.
+5.2 Mapping a MARTE Model into FIACRE
+The transformation of the UML MARTE concepts into FIACRE constructs is summarized
+in Table 1. Note that we do not explain the complete transformation principle, which has
+
+--- Page 13 ---
+350 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+Functional  process1  Scheduler  (a) (b)    CCSL  constraints  
+Functional  processn Functional  process2 sync1 syncn sync2 RtUnit1 RtUnitn RtUnit2 Constraint  process1 Constraint  processk Constraint  process2 
+UML-MARTE … … FIACRE Code Automatic translation 
+a) b)
+Figure 5. Global view of the translation principles
+been the subject of another work (see [14, 40]). The active objects of the UML MARTE
+model (i.e. the RtUnit elements) correspond to the functional parts of the model. They
+are generated into FIACRE processes that we call functional processes . In our case study,
+the translation is applied to the following RtUnit elements: Sensor1 ,Sensor2 ,Acq1,Acq2,
+Comput ,Filter .
+The CCSL constraints that are attached to the MARTE model are also translated
+into FIACRE processes, named constraint processes . The DataPool elements (for the
+asynchronous communication) are translated into the FIACRE predened queue data
+structure, and the Shared resource becomes a shared variable associated to the FIACRE
+processes corresponding to the involved RtUnit elements. The two ports used for the
+synchronous communication of two RtUnit elements are translated into the FIACRE pre-
+dened port constructs. Finally, the ports associated with an interface are translated into
+a FIACRE conditional statement that we detail in Section 5.4.
+MARTE FIACRE
+RtUnit functional process
+Clock Constraint constraint process
+DataPool queue structure
+SharedDataComResource shared variable
+Synchronous port 2!2 synchronous communication port
+Port with interface O)!2triggering port
+Table 1. Mapping from MARTE to FIACRE concepts
+
+--- Page 14 ---
+Transformation of Timed UML MARTE for Verication 351
+In our case study, the objects Dev 1,Dev 2andDev outrepresent actors executed in
+the environment of the circuit. Their behavior is expressed in the CDL language, as we
+will see in Section 6.2.
+5.3 Mapping a CCSL Time Constraint into FIACRE
+We translate each CCSL constraint into a FIACRE process that implements the corre-
+sponding automaton. We call this process a constraint process .
+These constraint processes are synchronized by a generated specic process, the Sched-
+uler, which is described in Section 5.4. The Scheduler synchronizes the constraint processes
+via three ports, start,update andend, for the activation of the transitions in the constraint
+automaton. For example, in our case study, the transitions of AlternatesWith process are
+synchronized with the Scheduler via the ports startA ,updateA andendA .AlternatesWith
+automaton updates the values of clock state that allow the triggering of process Sensor1
+and Acq1 (respectively Sensor2 and Acq2) by ports sync pw1and sync pr1(respectively
+sync pw2and sync pr2) (cf Section 5.4.1).
+The automaton corresponding to AlternatesWith constraint is shown in Figure 6. The
+encoding principle for the two other constraints, strict precedence and ltering is similar.
+alternance 
+startA/ write i not read i 
+s0 s1 
+startA/ not write i read i s2 
+s4 
+endA/  endA/  s3 updateA/  
+s5 updateA/  
+Figure 6. Automaton for the constraint write ialternatesWith read i
+5.4 Interpreting Time Constraints with Scheduler
+The role of the Scheduler process is to determine the order of execution of functional
+processes based on the constraint process state. The interpretation of time constraints is
+done through a Scheduler. It is in charge of triggering the functional processes according
+to the constraint states.
+5.4.1 The Scheduler and Connection with Processes
+Figure 7 is an excerpt of the FIACRE program generated for two functional processes
+(Sensor1 and Acq1 ) and a constraint process ( alternatesWith ). Dash lines represent syn-
+chronization links. For example, Sensor1 is synchronized with the Scheduler via the port
+sync pw1 to execute a writing operation of a given datum data in memory M1 shared
+between Sensor1 and Acq1 processes.
+
+--- Page 15 ---
+352 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+ Scheduler  
+(a) (b)    # CCSL write1  alternatesWith  read1 « RtUnit »  Sensor1  « RtUnit »  Acq1  Constraint Process AlternatesWith1  
+UML-MARTE FIACRE Code Automatic translation M1  
+# Synchronization  write1, clockNo: 0, sync_pw1, none to Sensor1;  read1,  clockNo: 1, sync_pr1, none  to Acq1; Shared var  tab_Clock [ ]  startA1, updateA1, endA1 read/ write read/ write sync_pw1 sync_pr1 Process  Sensor1  Process  Acq1  Shared var  M1  fifoToSensor1  portAcq1  (to Comput) (from  Dev1) (from  Dev1) 
+(to Comput) 
+a) b)
+Figure 7. Illustration of a part of the generated FIACRE program
+Acq1 and Comput communicate through the portAcq1 port with an integer value.
+Comput and Filter communicate through a shared variable foFromComput of the fo
+type. Filter is synchronized with the Scheduler viasync lter for ltering operation and
+sync lter carries a boolean value required by the Filter behavior. The Scheduler process
+and constraint processes share logical clocks (Table tabClocks structure, cf Section 5.4.2)
+that correspond to events occurring in the circuit computation ( write1 ,write2 ,read1 ,
+read2 ,comput ,lterOut ).
+5.4.2 The Scheduler Behavior
+The Scheduler process consists in an innite loop. For each iteration of the loop, it executes
+four steps as shown in Figure 8 a):
+1. The Start step for the declared clocks initialization and the activation of constraint
+processes.
+2. The End step for the synchronization at the end of the constraint processes.
+3. An active phase during which the Scheduler synchronizes with each functional process
+so that each process runs.
+4. An intermediate phase Update is interposed between the Start steps and Endsteps to
+synchronize some constraints if required.
+
+--- Page 16 ---
+Transformation of Timed UML MARTE for Verication 353
+An iteration is called an execution period and corresponds to the time between two Start
+steps. The algorithm executed by the Scheduler is repeated to simulate the coincident
+moment sequence (an instant ). Interleaving or simultaneous execution of functional pro-
+cesses is simulated by synchronization between the Scheduler and the functional processes
+involved, at every temporally bounded instants.
+For example, Figure 8 b) shows two clocks ck1 and ck2 that are activated in each case
+at the same time. ck3 alternates with ck1 orck2.
+StartS1S2ActiveEndClock value  initialization  end  Synchronization (k th instant) Evaluation and activation of  all clocks which are associated with the k th instant Triggering synchronization  of the functional processes 
+update  start  
+ck1 ck3 instant ck2 end start update active end start update active start (a) (b) 
+a) b)
+Figure 8. Scheduler process automaton
+Each event in the model gives rise to a clock which is located by a FIACRE structure
+tabClocks . This structure is declared as follows (Listing 3):
+type T_CLOCK is record clock_state:nat, enable_tick, dead: bool end
+type T_ARRAY_CLOCK is array 7 of T_CLOCK
+tab_Clocks: T_ARRAY_CLOCK
+Listing 3. FIACRE declaration of structure TCLOCK .
+In each iteration of the Scheduler , each constraint process updates its variable
+clock state which takes the integer values 0, 1 or 2, in accordance with the execution
+of the automaton it encodes. Once the process has executed a constraint, the Scheduler
+evaluates this variable and sets another variable enable ticto either true orfalse . If
+enable ticis evaluated as true, the functional process associated with the event is synchro-
+nized with the Scheduler , which triggers an execution step in the functional process (for
+example with sync pw1for triggering Sensor1 as shown in Figure 7). The assessment of
+the value enable ticis set to true only if the clock state value is equal to 2. In other cases,
+enable ticare set to false . The value dead is set at truewhen the associated clock should
+not be active in the rest of the execution.
+The Scheduler process that is generated thus includes the following code (Listing 4)
+which is executed during the Active step:
+
+--- Page 17 ---
+354 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+... if (tab_Clocks [0].enable_tick) then sync_pw1
+elsif (tab_Clocks [1].enable_tick) then sync_pr1
+elsif (tab_Clocks [2].enable_tick) then sync_pw2
+elsif (tab_Clocks [3].enable_tick) then sync_pr2
+elsif (tab_Clocks [4].enable_tick) then sync_comput
+elsif (tab_Clocks [5].enable_tick) then sync_filter (true)
+elsif (tab_Clocks [6].enable_tick) then sync_filter (false)
+end ...
+Listing 4. Excerpt of FIACRE code of the Scheduler for functional process synchronization
+5.5 Generated FIACRE Architecture
+Figure 9 illustrates the FIACRE architecture of our case study, resulting from the trans-
+lation of the MARTE /CCSL source model.
+In our case study, the code generator produces 12 processes: the Scheduler , 5 constraint
+processes (2 for alternatesWith , 2 for strictPrec , 1 for filterBy ) and 6 functional processes
+(Sensor1 ,Sensor2 ,Acq1,Acq2,Comput and Filter ). Figure 9 shows that the Scheduler
+process is connected to each functional process via synchronous communication ports
+called triggering communications . The Scheduler controls the execution of the connected
+functional processes and gives an explicit rhythm of execution of the dierent processes.
+The functional processes Sensor1 ,Sensor2 ,Acq1,Acq2,Comput andFilter are respectively
+synchronized with the Scheduler viasync pw1,sync pr1,sync pw2,sync pr2,sync comput
+andsync lter ports. For example, Sensor1 andAcq1 are respectively synchronized by the
+Scheduler for writing and reading operations in M1. Likewise, Filter is synchronized with
+theScheduler viasync lter for the ltering operation, where sync lter carries a boolean
+value.
+In addition, the Scheduler is connected to all the declared constraint processes via
+the shared Table tabclock , in order to update the clock state values according to the
+constraints states to make a decision if such clock can tic or not in each specic instant.
+Generation of Top Level Program
+The processes representing MARTE elements, the CCSL constraints, and the interpre-
+tation of these constraints are nally instantiated in a FIACRE component called C,
+and specied as independent running entities through the jjoperator. The scheduler,
+the constraint processes and the functional processes are all synchronized through their
+communication ports.
+As a result of our generation algorithm, the codes of functional processes, constraint
+processes and the Scheduler are built within C.
+To enable automatic code generation, we must explicitly declare clock numbers (cloc-
+kNo) and links between clocks and synchronization triggers provided by the Scheduler .
+For example, the read1 clock is associated with the sync pr1 synchronization port to syn-
+chronize the rst instance ( Acq:1 ) of the Acqprocess. The filter clock is associated with
+sync filter synchronization port which carries a boolean value. For this last clock, two
+clock numbers are declared, one for each boolean value. These attributes are specied as
+
+--- Page 18 ---
+Transformation of Timed UML MARTE for Verication 355
+ Scheduler  AlternatesWith1  AlternatesWith2  StrictPrec1  StrictPrec2  FilteredBy  Shared var  tab_Clock [ ]  sync_comput sync_filter  Filter  Comput  fifoToFilter  fifoFromFilter  Acq1  M1 sync_pr1 portAcq1   Acq2  M2 sync_pr2 portAcq2  sync_pw1 Sensor1  fifoToSensor1  Sensor2  fifoToSensor2  sync_pw2 
+Figure 9. Structure of the generated FIACRE code
+follows (Listing 5)7:
+# Synchronization
+write1: clockNo: 0, synchro: sync_pw1 none to: Sensor:1;
+read1: clockNo: 1, synchro: sync_pr1 none to: Acq:1;
+write2: clockNo: 2, synchro: sync_pw2 none to: Sensor:2;
+read2: clockNo: 3, synchro: sync_pr2 none to: Acq:2;
+comput: clockNo: 4, synchro: sync_comput none to: Comput:1;
+filterOut: clockNo: 5, synchro: sync_filter bool:true,
+clockNo: 6, synchro: sync_filter bool:false to: Filter:1;
+Listing 5. Explicit declaration of clock numbers and links between clocks
+and synchronization triggers
+6 SPECIFICATION OF PROPERTIES AND CONTEXTS USING CDL
+In order to check the requirements expressed for a real-time system model, it is necessary
+to specify them as formal properties that can be interpreted by the targeted model checker.
+7The complete code of the case study can be found on the site http://www.obpcdl.
+org.
+
+--- Page 19 ---
+356 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+Additionally, to validate the requirements, the environment in which the system is aimed
+to evolve may need to be described. In our approach, we use the CDL language
+1. to express the properties of the system model as observer automata , and
+2. to specify the interaction between the environment and the system model.
+In doing so, we are able to achieve two complementary objectives: one to verify that
+the implementation of CCSL constraints is correct, the other to ensure that the func-
+tional parts of the circuit ( Sensor1 ,Sensor2 ,Acq1,Acq2,Comput ,Filter ) are properly
+implemented.
+In this section, we show how CDL properties are expressed for CCSL, and how to
+specify the interaction between the system model and its environment using contexts.
+6.1 Properties Associated with CCSL Constraints
+Here we illustrate the specications of some properties associated with CCSL constraints
+included in our system model. The goal is to prove the correct FIACRE implementation
+of the Scheduler and constraint automata.
+Alternance Properties
+To verify the alternation requirements Req1aandReq1bdescribed in Section 4, we declare
+the CDL events evtwrite1 ,evtread1 ,evtwrite2 and evtread2 (Figure 10).
+event evt_write1 is {sync sync_pw1 from {Scheduler}1 to {Sensor}1}
+event evt_write2 is {sync sync_pw2 from {Scheduler}1 to {Sensor}2}
+event evt_read1 is {sync sync_pr1 from {Scheduler}1 to {Acq}1}
+event evt_read2 is {sync sync_pr2 from {Scheduler}1 to {Acq}2}
+Listing 7. Declaration of CDL events
+With these events, we specify two properties P1aandP1b:P1a(resp. P1b) satises
+the alternating synchronization write1 and read1 (respectively write2 and read2 ). The
+CDL code of properties P1aandP1bis as follows (Listing 8).
+Both properties correspond to observers, as illustrated in Figure 10. The initial state
+of the observer P1a(resp. P1b) is the Start state and has an error state ( Reject ). Each
+transition of the observer is triggered by the occurrence of an event evtwrite1 orevtread1
+(respectively evtwrite2 orevtread2 ).
+The CDL language also allows the specication of predicates that can be veried
+during the exploration of the model. For example, if we want to check those clocks, in
+an instant, write1 and read1 (respectively write2 and read2 ) do not \tick" at the same
+instant, we rst dene the following predicates.
+We then declare the following invariants, using the assert operator8.
+During the exploration of the model, the OBP tool checks that the invariants are not
+violated.
+8See detailed syntax of the CDL language available at http://www.obpcdl.org .
+
+--- Page 20 ---
+Transformation of Timed UML MARTE for Verication 357
+property P1a is {
+start -- / / evt_write1 / -> Sw; // writing into M1
+Sw -- / / evt_read1 / -> start; // reading
+//----- errors ------
+start -- / / evt_read1 / -> reject;
+Sw -- / / evt_write1 / -> reject
+}
+property P1b is {
+start -- / / evt_write2 / -> Sw; // writing into M2
+Sw -- / / evt_read2 / -> start; // reading
+//----- errors ------
+start -- / / evt_read2 / -> reject;
+Sw -- / / evt_write2 / -> reject
+}
+Listing 8. Declaration of CDL properties P1aandP1b
+evt_write1  
+Start Sw 
+Reject evt_write1  evt_read1  
+evt_read1  (a) 
+evt_write2  
+Start Sw 
+Reject evt_write2  evt_read2  
+evt_read2  (b) 
+a) b)
+Figure 10. Observer automata corresponding to properties P1aandP1b
+predicate enable_tick_pw1_true is
+{{C}1:tab_Clocks [0].enable_tick = true}
+predicate enable_tick_pr1_true is
+{{C}1:tab_Clocks [1].enable_tick = true}
+predicate enable_tick_rw1_together is
+{enable_tick_pw1_true and enable_tick_pr1_true}
+predicate enable_tick_pw2_true is
+{{C}1:tab_Clocks [2].enable_tick = true}
+predicate enable_tick_pr2_true is
+{{C}1:tab_Clocks [3].enable_tick = true}
+predicate enable_tick_rw2_together is
+{enable_tick_pw2_true and enable_tick_pr2_true}
+Listing 9. Declaration of CDL predicates
+assert not act_tick_rw1_together
+assert not act_tick_rw2_together
+Listing 10. Declaration of CDL invariants
+
+--- Page 21 ---
+358 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+Precedence Properties
+In a similar way, we can specify observers to verify properties of the requirements Req2a
+and Req2bby declaring the event evtcomput :
+event evt_comput is {sync sync_comput from {Scheduler}1 to {Comput}1}
+The CDL code of their corresponding properties P2aandP2bis as follows (Listing 11).
+property P2a is {
+start -- / / evt_read1 / -> Sr;
+Sr -- / / evt_comput / -> start;
+//------- error --------
+start -- / / evt_comput / -> reject;
+Sr -- / / evt_read1 / -> reject
+}
+property P2b is {
+start -- / / evt_read2 / -> Sr;
+Sr -- / / evt_comput / -> start;
+//------- error --------
+start -- / / evt_comput / -> reject;
+Sr -- / / evt_read2 / -> reject
+}
+Listing 11. Declaration of CDL properties P2aandP2b
+evt_read1  
+Start Sr 
+Reject evt_read1  evt_comput  
+evt_comput  (a) 
+evt_read2  
+Start Sr 
+Reject evt_read2  evt_comput  
+evt_comput  (b) 
+a) b)
+Figure 11. Observer automata corresponding to properties P2a and P2b
+Filtering Property
+The CDL predicates can also facilitate the writing of more complex observers when they
+refer to a large number of events. For example, the requirement Req3 associated with
+the generation of data byComput and the ltering constraint is expressed by the CCSL
+term: lterOut =comput lteredBy (001)w. During the exploration, we need to verify
+that the sequence of data generated from Filter is the sequence generated by Comput
+with a sampling of every third value. In the current version of the model, the lter word
+(001) is stored in an array variable tabFilter of the constraint process FilteredBy . The
+
+--- Page 22 ---
+Transformation of Timed UML MARTE for Verication 359
+(imodulo 3)thdatum of the sequence generated by Comput will be copied in the sequence
+derived from Filter if the value tabFilter [imodulo 3] is equal to 1. Otherwise, it is not
+copied into the sequence of data supplied to the environment. To verify this constraint,
+we therefore declare the following predicates (for x2f0;1;2g):
+predicate bitx_true is {{FilteredBy}1:tabFilter[x] = 1}
+predicate bitx_false is {{FilteredBy}1:tabFilter[x] = 0}
+The transitions of an observer can be decorated with one of the predicates together
+with the events evtcomput ,evtlterTrue andevtlterFalse which trigger the transitions;
+they are declared as follows:
+event evt_filterTrue is
+{sync filter (true) from {Scheduler}1 to {Filter}1}
+event evt_filterFalse is
+{sync filter (false) from {Scheduler}1 to {Filter}1}
+Figure 12 illustrates the observer encoding property P3 for requirement Req3 and
+referencing the above predicates and events.
+bit0_true /  evt_comput  
+Start wFilterT1 reject wComput3 
+wFilterF1 
+bit1_false /  evt_comput  wComput2 bit1_true /  evt_comput  
+bit2_false /  evt_comput  
+Observateur pour le filtrage bit0_false /  evt_comput  
+evt_filterTrue  
+evt_filterFalse  bit2_true /  evt_comput  wFilterF2 
+wFilterT2 wFilterT3 
+wFilterF3 
+evt_filterTrue  evt_filterFalse  
+evt_filterFalse  
+evt_filterTrue  
+evt_filterFalse  
+evt_filterTrue  evt_filterTrue  evt_filterFalse  evt_filterFalse  evt_filterTrue  reject reject 
+evt_filterTrue  or evt_filterFalse  
+evt_filterTrue  evt_filterFalse  
+evt_filterTrue  evt_filterFalse  evt_filterTrue  
+Figure 12. Observer automaton corresponding to property P3 for requirement Req3
+A range of properties can be further specied on the behavior of our model. For
+example, the Req4 requirement, expressed in Section 4, can be expressed by an observer
+automaton using predicates and appropriate events.
+6.2 CDL Context Specication for Case Study
+The core of the CDL language is based on the concept of context , which has an acyclic
+behavior communicating asynchronously with the system. The environment is specied
+
+--- Page 23 ---
+360 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+through a number of such contexts. To illustrate CDL scenarios, we suppose that two
+devices Dev1, Dev2 each emit 3 values. Then we describe these interactions with CDL by
+(event ) as follows.
+event evt_send_data1_sensor1 is {send DATA1 to {Sensor}1};
+event evt_send_data2_sensor1 is {send DATA2 to {Sensor}1};
+event evt_send_data3_sensor1 is {send DATA3 to {Sensor}1};
+event evt_send_data1_sensor2 is {send DATA1 to {Sensor}2};
+event evt_send_data2_sensor2 is {send DATA2 to {Sensor}2};
+event evt_send_data3_sensor2 is {send DATA3 to {Sensor}2};
+Listing 13. Declaration of CDL events for scenarios
+These events allow the behavior of devices Dev1, Dev2 to be specied with activities
+as follows.
+activity Dev1 is
+{
+event evt_send_data1_sensor1;
+event evt_send_data2_sensor1;
+event evt_send_data3_sensor1
+}
+activity Dev2 is
+{
+event evt_send_data1_sensor2;
+event evt_send_data2_sensor2;
+event evt_send_data3_sensor2
+}
+Listing 14. Declaration of CDL activities Dev1 and Dev2
+The behavior of DevOut that receives three values of the Filter process is specied as
+follows.
+event evt_recv_dataOut is {receive ANY from {Filter}1 to {env}1}
+activity DevOut is { loop 3 {event evt_recv_dataOut} }
+Listing 15. Declaration of CDL activity DevOut
+The context is nally described as follows (Listing 16).
+cdl2dev species that the environment is composed of 3 devices Dev1, Dev2 and De-
+vOut. During the exploration by OBP, the properties P1a,P1b,P2a,P2b,ptyFilteredBy ,
+notacttick rw1 together and not acttick rw2 together will be checked.
+7 EXPERIMENTS AND DISCUSSION
+To conduct the experiments for verifying properties of our case study, we use the OBP tool
+which has been developed in our group. The system model and the CDL specications
+
+--- Page 24 ---
+Transformation of Timed UML MARTE for Verication 361
+cdl cdl_2dev is
+{
+properties P1a, P1b, P2a, P2b, pty_FilteredBy
+assert not act_tick_rw1_together;
+assert not act_tick_rw2_together
+main is { Dev1 || Dev2 || DevOut }
+}
+Listing 16. Declaration of CDL context cdl2dev
+that we dened in the previous Section are fed to the OBP tool that generates a Labeled
+Transition System (LTS) . It is a state-transition graph that represents all the behaviors of
+the model, given input data representing the environment in which the model is intended
+to evolve. On this LTS, the verication of the properties is carried out by applying
+a reachability analysis of the reject/success states of the observers.
+OBP is structured in three modules. The front end OBP imports FIACRE models
+corresponding to a translation of UML MARTE models including CCSL specications. In
+addition, it imports CDL programs which describe the properties and context scenarios if
+required. OBP Explorer explores the model, and after each transition model run, it hands
+over to the Observation Engine . It captures the occurrences of events and evaluates the
+value of predicates and the status of all involved observers, at each step of the running
+model. A verication of all invariants and reachability analysis of error state observers is
+thus conducted.
+At the end of exploration, a report is generated by OBP, revealing the list of properties
+evaluated to true or false. In addition, OBP provides counter examples when reaching
+a state of reject or when the invariant has been violated.
+These indications may refer the user to the scenario having the defeated properties.
+7.1 Result Verication Using the OBP Tool
+With CDL, we specied observers and invariants to express and verify a range of proper-
+ties corresponding to requirements ( Req1atoReq4) as expressed in Section 4. In addition,
+we specied CDL scenario diagrams as shown in Section 6.2. From these diagrams, OBP
+generates an acyclic graph (called context graph) that represents all the possible interac-
+tions between the model and the environment. To verify properties, OBP composes the
+Circuit model with the context graph. Each property referenced in the CDL is checked
+on the result of this composition.
+Table 2 shows the result of the OBP explorations. For example, we show the results
+if we consider three devices and 16 values issued by each device. It shows the number
+of LTS congurations and transitions that are generated during exploration by OBP.
+For this execution, we vary the fo size shared between the environment and the Sensor
+components9. For example, for the case where the size of fo is equal to 1, the number of
+explored congurations is then 744 592 and the number of transitions is 3 295 261.
+9All tests are run with a machine such as Windows 32-bit { 10 GB RAM with OBP
+vers.1.4.5.
+
+--- Page 25 ---
+362 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+Fifo Number of Number of
+Size Congurations Transitions
+1 744 592 3 295 261
+2 3 328 269 17 797 040
+3 Explosion Explosion
+Table 2. Complexity with 3 devices and 16 values received from the environment
+With 16 values and a fo size of 3, we notice a state explosion because of the explored
+congurations number and the limited memory of our computer. In other experiments,
+if we increase the number of devices ( >3), we notice an explosion in the number of
+congurations and transitions. In this case, the analysis of the properties cannot be
+brought to completion.
+7.2 Handling the Complexity with Automatic Splitting
+The principal challenges regarding software verication of real-time systems deal with
+devising solutions that scale up to the increasing complexity of these systems. Actually,
+resources to verify these systems are limited, both in terms of time and memory size. We
+treat in this section how our approach attempts to take into account the larger models
+corresponding to the sizes of industrial models.
+The context-aware Verication (CaV) has been proposed [43, 44, 45] and oers a so-
+lution for addressing some of these issues. With CaV, independent contexts are exploited
+by the verication tools by using new algorithms for ghting the state space explosion
+problem. In this section, we present a context driven reachability algorithm for automati-
+cally partitioning contexts [43, 44]. OBP integrates a powerful context-guided state-space
+reduction technique which relies on the automated recursive partitioning (splitting) of
+a given context in independent sub-contexts [12]. This technique is systematically applied
+by OBP when a given reachability analysis fails due to lack of memory resources to store
+the state-space.
+The idea is to automatically split each identied context into a set of ksmaller sub-
+contexts context i. After splitting, each sub-contexts context iis composed with the model
+for exploration and the properties associated with context iare checked on the resulting
+global system. If the exploration fails with a context i, it is automatically and recursively
+partitioned into a set of sub-contexts. Actually, we transform the global verication prob-
+lem into ksmaller verication sub problems. In our approach, the complete context model
+can be split into pieces that have to be composed separately with the system model (see
+the details in [12]). This technique allows models with a greater number of ranged states
+to be explored.
+For example, Table 3 shows results in the case of three channels with a transmission
+of 16 dierent values. Without context splitting, the exploration does not end. Then
+applying the partitioning of contexts, we obtain the following results: The behavior of the
+environment is partitioned into four sub-contexts. The number of explored congurations
+(cumulative) is then 27 564 280 and 159 993 196 transitions.
+
+--- Page 26 ---
+Transformation of Timed UML MARTE for Verication 363
+Splitting Fifo Number of Number of Number of
+Size Congurations Transitions Sub-Contexts
+yes 3 27 564 280 159 993 196 4
+Table 3. Complexity with 3 devices and 16 values received from the environment with
+splitting
+These results show us that we can contain the combinatorial explosion with this spe-
+cic technique of model exploration with splitting. OBP tool can provide an assessment
+of the validity of the property, even with a machine having a limited memory size (10 GB).
+If the model has a number of behaviors compatible with an exhaustive search, the ver-
+ication results can be obtained without using the partitioning technique implemented
+in OBP. If the circuit is connected with an interacting environment, partitioning may be
+used. However, this is not always the case if the circuit has a large number of behaviors
+that do not interact with an environment. In this case, the method cannot be applied.
+Therefore it is necessary to have a machine with a larger memory, or to focus on parts of
+the model.
+Table 4 shows exploration results in another case: 6 devices, fo size equal to 3 and
+3 values received from the devices. Without splitting, there is a state explosion because
+of the limited memory of our computer. With splitting and 7 sub-contexts, the checking
+is possible.
+Splitting LTS Congurations LTS Transitions Sub-Contexts
+no explosion { {
+yes 77 225 206 607 639 474 7
+Table 4. Complexity with 6 devices, fo size equal to 3, and 3 values received from the
+environment
+We will not go into more detail here as this has already been published [12, 45]. The
+necessity of clear methodologies (e.g. the splitting process) has also to be identied, since
+the context partitioning is still not trivial, i.e., it requires the formalization of the context
+of the subset of functions under study (out of scope of this paper). Therefore, an associated
+methodology must be dened to help users for modeling contexts.
+7.3 Discussion
+Now, the question is: Is the proof still relevant (applicable) to a number greater than
+16 values? In the above part we argue that the correctness of the properties is always
+veried for all natural numbers sent from the given devices. To demonstrate the correctness
+of the generated FIACRE model, we take the following reasoning: The behavior of the
+FIACRE processes does not depend on the acquired input values by Sensor processes. To
+achieve this goal, we introduce a stand alone code version in order to point out that the
+behavior of the circuit model involved is not exchangeable whatever the values sent from
+the environment. We transform our model by integrating two actors Dev1 and Dev2 in
+
+--- Page 27 ---
+364 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+the model as FIACRE processes. Both processes iterate on sending of the same value.
+The complexity of the exploration of the model is then 45 328 congurations and 168 664
+transitions. So, we can check properties with observers and invariants described above.
+If we increase the number of values to over 16, the complexity increases but the same
+congurations will result. We show here that if the sent values are constants, and in innite
+time, the conguration of the exploration graph is still nite. Moreover, the behavior of
+the circuit is independent from the input data values. This proves that we can verify all
+the expressed properties in this graph independently from the data values.
+8 CONCLUSION
+In this work, we have dened an automatic translation approach to generate FIACRE
+programs from UML MARTE models enriched with CCSL constraints. This approach
+allows the formal verication of the implementation of CCSL constraints and functional
+requirements. We carried out a verication technique of properties by model-checking
+using the CDL language and the OBP tool. Functional as well as temporal properties
+can be easily expressed in CDL as predicates and observers which are checked during the
+exhaustive model exploration by OBP. We have shown that this language facilitates the
+expression of properties. They can be expressed with a very ne granularity, referencing
+variables and process states.
+Our CDL language can be compared with the Property Specication Language
+(PSL) [31]. In future work, we aim to compare CDL expressiveness with PSL and the
+discussion in [31] is very interesting on this topic. Additionally, we are currently working
+to facilitate the interpretation of data provided by OBP and to display understandable
+data in the user's models, allowing ease of diagnosis.
+We can take advantage of the CCSL automata encoding. These automata are reusable
+inputs to apply the verication. Our translation approach can be an important step to-
+wards the formal verication process of both MARTE models and CCSL specications.
+Once the translation of CCSL constraints into FIACRE is completed, the operation re-
+quires only a single verication as it does not depend on the modeled application. Even
+though the model may change, the FIACRE code is reusable as this translation principle
+is independent of the application. We think that our approach contributes to clarifying its
+role when addressing this domain by expressing temporal properties dedicated to CCSL
+relation constraints.
+REFERENCES
+[1]Andr e, C. : Syntax and Semantics of the Clock Constraint Specication Language
+CCSL. Technical Report 6925, INRIA, 2009.
+[2]Mallet, F.|Andr e, C.|Simone, R. D. : CCSL: Specifying Clock Constraints
+with UML/MARTE. Innovations in Systems and Software Engineering, Springer Ver-
+lag, Vol. 4, 2008, No. 3, pp. 309{314.
+[3] OMG: Uml Prole for Marte, v1.1. Object Managment Group, Document number:
+PTC/10-08-32, August 2010.
+
+--- Page 28 ---
+Transformation of Timed UML MARTE for Verication 365
+[4]Queille, J.-P.|Sifakis, J. : Specication and Verication of Concurrent Systems
+in Cesar. Proceedings of the 5thColloquium on International Symposium on Pro-
+gramming, London, UK, Springer-Verlag, 1982, pp. 337{351.
+[5]Clarke, E.|Emerson, E.|Sistla, A. : Automatic Verication of Finite-State
+Concurrent Systems Using Temporal Logic Specications. ACM Transactions on Pro-
+gramming Languages and Systems (TOPLAS), Vol. 8, 1986, No. 2, pp. 244{263.
+[6]Holzmann, G. : The Model Checker SPIN. Software Engineering, Vol. 23, 1997,
+No. 5, pp. 279{295.
+[7]Larsen, K. G.|Pettersson, P.|Yi, W. : UPPAAL in a Nutshell. International
+Journal on Software Tools for Technology Transfer, Vol. 1, 1997, No. 1-2, pp. 134{152.
+[8]Berthomieu, B.|Ribet, P.-O.|Verdanat, F. : The Tool TINA { Construction
+of Abstract State Spaces for Petri Nets and Time Petri Nets. International Journal
+of Production Research, Vol. 42, July 2004, pp. 2741{2756.
+[9]Fernandez, J.-C.|Garavel, H.|Kerbrat, A.|Mounier, L.|Mate-
+escu, R.|Sighireanu, M. : CADP: A Protocol Validation and Verication Tool-
+box. Proceedings of the 8thInternational Conference on Computer Aided Verication
+(CAV '96), London, UK, Springer-Verlag, 1996, pp. 437{440.
+[10]Cimatti, A.|Clarke, E.|Giunchiglia, F.|Roveri, M. : NUSMV: A new
+Symbolic Model Checker. International Journal on Software Tools for Technology
+Transfer, Vol. 2, 2000, No. 4, pp. 410{425.
+[11]Menad, N.|Dhaussy, P. : A Transformation Approach for Multiform Time Re-
+quirements. 11thInternational Conference on Software Engineering and Formal Meth-
+ods (SEFM '13), Madrid, Spain, Lecture Notes in Computer Science, Vol. 8137, 2013,
+pp. 16{30.
+[12]Dhaussy, P.|Boniol, F.|Roger, J.-C.|Leroux, L. : Improving Model
+Checking with Context Modelling. Advances in Software Engineering, Vol. ID 547157,
+2012, 13 pp.
+[13]Farail, P.|Gaufillet, P.|Peres, F.|Bodeveix, J.-P.|Filali, M.|Ber-
+thomieu, B.|Rodrigo, S.|Vernadat, F.|Garavel, H.|Lang, F. : FI-
+ACRE: An Intermediate Language for Model Verication in the TOPCASED En-
+vironment. European Congress on Embedded Real-Time Software (ERTS), Toulouse,
+SEE, 2008.
+[14]Jouault, F.|Teodorov, C.|Delatour, J.|Roux, L. L.|Dhaussy, P. :
+Transformation de Mod eles UML vers FIACRE, via les Langages Interm ediaires
+tUML et ABCD. In Revue Genie Logiciel, No. 109, June 2014.
+[15]Ge, N.|Pantel, M.|Cr egut, X. : Time Properties Dedicated Transformation
+from UML-MARTE Activity to Time Transition System. ACM SIGSOFT Software
+Engineering Notes, Vol. 37, 2012, No. 4, pp. 1{8.
+[16]Pantel, M.|Ge, N.|Cr egut, X. : A Framework Dedicated to Time Properties
+Verication for UML-MARTE Specications. Conf erence en Ing enieriE du Logiciel
+(CIEL), June 2012, pp. 1{6.
+[17]Ribeiro, L.|dos Santos, O. M.|Dotti, F. L.|Foss, L. : Correct Transfor-
+mation: From Object-Based Graph Grammars to PROMELA. Science of Computer
+Programming, Vol. 77, 2012, No. 3, pp. 214{246.
+
+--- Page 29 ---
+366 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+[18]Poddar, R. K.|Bhaduri, P. : Verication of Giotto Based Embedded Control
+Systems. Nordic Journal of Computing, Vol. 13, 2006, No. 4, pp. 266{293.
+[19]Romero, A. G.|Vieira Ferreira, M. G. : An Approach to Model-Driven Archi-
+tecture Applied to Space Real-Time Software. SpaceOps 2012 Conference, 2012.
+[20]Peraldi-Frati, M.-A.|Sorel, Y. : From High-Level Modelling of Time in
+MARTE to Real-Time Scheduling Analysis. MoDELS '08 ACES-MB Workshop Pro-
+ceedings, 2008, pp. 129{143.
+[21]Cimatti, A.|Roveri, M.|Susi, A.|Tonetta, S. : Formalizing Require-
+ments with Object Models and Temporal Constraints. Software & Systems Modeling,
+Vol. 10, 2011, No. 2, pp. 147{160.
+[22]Bosnacki, D.|Dams, D. : Integrating Real Time into Spin: A Prototype Imple-
+mentation. Formal Description Techniques and Protocol Specication, Testing and
+Verication. FORTE XI/PSTV XVIII '98, IFIP TC6 WG6.1 Joint International Con-
+ference on Formal Description Techniques for Distributed Systems and Communi-
+cation Protocols (FORTE XI) and Protocol Specication, Testing and Verication
+(PSTV XVIII), Paris, France, 1998, pp. 423{438.
+[23]Bosnacki, D.|Dams, D. : Discrete-Time Promela and Spin. Formal Techniques in
+Real-Time and Fault-Tolerant Systems, 5thInternational Symposium (FTRTFT '98),
+Lyngby, Denmark, September 14{18, 1998, Lecture Notes in Computer Science,
+Vol. 1486, 1998, pp. 307{310.
+[24]Mallet, F. : Automatic Generation of Observers from MARTE/CCSL. International
+Symposium on Rapid System Prototyping (RSP 2012), Tampere, Finland, IEEE,
+October 2012, pp. 86{92.
+[25]Peters, J.|Wille, R.|Drechsler, R. : Generating SystemC Implementations
+for Clock Constraints Specied in UML/MARTE CCSL. 2014 19thInternational Con-
+ference on Engineering of Complex Computer Systems, Tianjin, China, August 4{7,
+2014, pp. 116{125.
+[26]Yu, H.|Talpin, J.-P.|Besnard, L.|Gautier, T.|Marchand, H.|Le
+Guernic, P. : Polychronous Controller Synthesis from MARTE CCSL Timing Spec-
+ications. 2011 9thIEEE/ACM International Conference on Formal Methods and
+Models for Codesign (MEMOCODE), 2011, pp. 21{30.
+[27]Dutertre, B. : Specication et Preuves de Systemes Dynamiques. Ph.D. thesis,
+Universit e de Rennes 1, 1992.
+[28]Andr e, C. : Verication of Clock Constraints: CCSL Observers in Esterel. Research
+Report 7211, INRIA, 2010.
+[29]Halbwachs, N.|Lagnier, F.|Raymond, P. : Synchronous Observers and the
+Verication of Reactive Systems. In: Nivat, M., Rattray, C., Rus, T., Scollo, G.
+(Eds.): Third International Conference on Algebraic Methodology and Software Tech-
+nology (AMAST '93), Twente, June 1993, Workshops in Computing, Springer, 1993,
+pp. 83{96.
+[30]DeAntoni, J.|Mallet, F.|Andr e, C. : Timesquare: On the Formal Execution
+of UML and DSL Models. Tool Session of the 4thModel Driven Development for
+Distributed Real Time Systems, 2008.
+
+--- Page 30 ---
+Transformation of Timed UML MARTE for Verication 367
+[31]Gascon, R.|Mallet, F.|Deantoni, J. : Logical Time and Temporal Logics:
+Comparing UML MARTE/CCSL and PSL. Research Report 7459, INRIA, 2012.
+[32] 1850{2005 { IEEE Standard for Property Specication Language (PSL), 2005.
+[33]Yin, L.|Mallet, F. : Correct Transformation from CCSL to PROMELA for Ver-
+ication. Research Report 7491, INRIA, 2011.
+[34]Lilius, J.|Paltor, I. : vUML: A Tool for Verifying UML Models. 14thIEEE Inter-
+national Conference on Automated Software Engineering (ASE), 1999, pp. 255{258.
+[35]Chiorean, D.|Pas ca, M.|C ^arcu, A.|Botiza, C.|Moldovan, S. : Ensur-
+ing UML Models Consistency Using the OCL Environment. Electronic Notes in The-
+oretical Computer Science (ENTCS), Vol. 102, 2004, pp. 99{110.
+[36]Gogolla, M.|B uttner, F.|Richters, M. : USE: A UML-Based Specication
+Environment for Validating UML and OCL. Science of Computer Programming,
+Vol. 69, 2007, No. 1-3, pp. 27{34.
+[37]Romenska, Y.|Mallet, F. : Lazy Parallel Synchronous Composition of Innite
+Transition Systems. International Conference on ICT in Education, Research and
+Industrial Applications (ICTERI), CEUR-WS.org, Vol. 1000, 2013, pp. 130{145.
+[38]Suryadevara, J.|Seceleanu, C. C.|Mallet, F.|Pettersson, P. : Verify-
+ing MARTE/CCSL Mode Behaviors Using UPPAAL. Software Engineering and For-
+mal Methods, Lecture Notes in Computer Science, Vol. 8137, 2013, pp. 1{15.
+[39]Dhaussy, P.|Roger, J.-C. : Cdl (Context Description Language): Syntax and
+Semantics. Technical report, ENSTA-Bretagne, 2011.
+[40]Jouault, F.|Delatour, J. : tUML: Syntax and Semantic. Technical report,
+ESEO, 2014.
+[41]Andr e, C. : Le Temps Dans le Prol UML MARTE. Technical Report, ISRN
+I3S/RR-2007-19-FR, Laboratoire I3S, 2007.
+[42]Benveniste, A.|Berry, G. : The Synchronous Approach to Reactive and Real-
+Time Systems. Technical Report RR-1445, INRIA, 1991.
+[43]Dhaussy, P.|Pillain, P.-Y.|Creff, S.|Raji, A.|Le Traon, Y.|Bau-
+dry, B. : Evaluating Context Descriptions and Property Denition Patterns for
+Software Formal Validation. 12thIEEE/ACM Conference Model Driven Engineering
+Languages and Systems (MODELS), Springer-Verlag, Lecture Notes in Computer
+Science, Vol. 5795, 2009, pp. 438{452.
+[44]Dhaussy, P.|Roger, J.-C.|Boniol, F. : Reducing State Explosion with Con-
+text Modeling for Model-Checking. 13thIEEE International High Assurance Systems
+Engineering Symposium (HASE), Boca Raton, USA, 2011, pp. 130{137
+[45]Teodorov, C.|Leroux, L.|Dhaussy, P. : Context-Aware Verication of
+a Cruise-Control System. 4thInternational Conference on Model and Data Engi-
+neering (MEDI 2014), Larnaca, Cyprus, September 2014, Lecture Notes in Computer
+Science, Vol. 8748, 2014, pp. 53{64.
+
+--- Page 31 ---
+368 N. Menad, P. Dhaussy, Z. Drey, R. Mekki
+Nadia Menad is a Ph.D. student at University of Science and Technology of Oran Mo-
+hamed Boudiaf and STIC Laboratory within ENSTA-Bretagne. She is now working under
+the supervision of Prof. Philippe Dhaussy and Prof. Rachida Mekki on her Ph.D. thesis
+\Formal verication of logical time requirements with model checking process". Her re-
+search interests include model-driven software engineering and model transformation for
+formal verication of real time systems.
+Philippe Dha ussy is the Director at STIC Laboratory within
+ENSTA-Bretagne. His expertise and his research interests in-
+clude model-driven software engineering, formal validation for
+real time systems and embedded software design. He received
+his engineer degree in computer science from ISEN (French In-
+stitute of Electronics and Computer Science) in 1978, his Ph.D.
+degree at Telecom { Bretagne (France) in computer science do-
+main in 1994 and his HDR in 2014. He joined ENSTA-Bretagne
+in 1996 as Associate Professor and he has been building up a re-
+search group on real-time embedded systems modelling within
+the STIC laboratory.
+Zo e Drey is Associate Professor at the ENSTA Bretagne En-
+gineering School. She received her Ph.D. degree in computer
+science in 2010 from the University of Bordeaux. Her research
+is focused on the concepts and techniques for the construction
+of domain-specic languages and dedicated tools for their imple-
+mentation and verication.
+Rachida Mekki is Professor in the Department of Computer Science at University of
+Science and Technology of Oran { Mohamed Boudiaf. Her research interests are in dis-
+tributed systems and computer networks elds, mainly mobile agents and middlewares
+using dierent communication models in distributed systems.

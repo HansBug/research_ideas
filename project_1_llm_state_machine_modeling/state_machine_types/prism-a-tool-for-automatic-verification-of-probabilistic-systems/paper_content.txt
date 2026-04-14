@@ -1,0 +1,159 @@
+--- Page 1 ---
+PRISM: A Tool for Automatic Veriﬁcation of
+Probabilistic Systems⋆
+Andrew Hinton, Marta Kwiatkowska, Gethin Norman, and David Parker
+School of Computer Science, University of Birmingham,
+Birmingham B15 2TT, United Kingdom
+{ug60axh,mzk,gxn,dxp }@cs.bham.ac.uk
+Abstract. Probabilistic model checking is an automatic formal veriﬁ-
+cation technique for analysing quantitative properties of systems which
+exhibit stochastic behaviour. PRISM is a probabilistic model checking
+tool which has already been successfully deployed in a wide range of
+application domains, from real-time communication protocols to biolog-
+ical signalling pathways. The tool has recently undergone a signiﬁcant
+amount of development. Major additions include facilities to manually
+explore models, Monte-Carlo discrete-event simulation techniques for ap-
+proximate model analysis (including support for distributed simulation)
+and the ability to compute cost- and reward-based measures, e.g. “the ex-
+pected energy consumption of the system before the ﬁrst failure occurs”.
+This paper presents an overview of all the main features of PRISM. More
+information can be found on the website: www.cs.bham.ac.uk/˜dxp/prism .
+1 Overview
+Probabilistic model checking is an automatic formal veriﬁcation technique for the
+analysis of systems which exhibit stochastic behaviour. Examples of such systems
+include well-known communication protocols such as FireWire and Bluetooth,
+which employ randomisation, and a wide range of computer and communica-
+tion systems, unpredictable characteristics of which, such as message delays or
+times to failure, are best represented in a probabilistic fashion. Like traditional
+model checking, this technique involves constructing, from a description in some
+high-level formalism, a ﬁnite-state model of a real-life system, but additionally
+including information about the likelihood and timing of transitions between
+states occurring. From this model, a wide range of quantitative measures of the
+original system can be automatically computed.
+PRISM is a probabilistic model checking tool which has already been used to
+apply these techniques to a large and diverse set of case studies. In the following
+sections we describe the types of probabilistic model supported by PRISM and
+the properties of these models which can be analysed. We then give an overview
+of the main features of the tool. Finally, we summarise the case studies to which
+the tool has already been applied and the various resources which are available.
+⋆Supported in part by EPSRC grants GR/S11107 and GR/S46727 and Microsoft
+Research Cambridge contract MRL 2005-44.
+
+--- Page 2 ---
+2 PRISM model speciﬁcation
+PRISM has direct support for three types of probabilistic models: discrete-time
+Markov chains (DTMCs), Markov decision processes (MDPs) and continuous-
+time Markov chains (CTMCs). In DTMCs, time is modelled as discrete time-
+steps and the probabilities of transitions occurring are also discrete. They are
+suitable for analysing systems with simple probabilistic behaviour and no con-
+currency e.g. synchronous randomised distributed algorithms. MDPs extend
+DTMCs by permitting a combination of nondeterminism and probability, mak-
+ing them well suited to modelling multiple probabilistic processes executing in
+parallel or to cases where some parameters of the system or the behaviour of
+the environment in which it is operating are unknown. CTMCs do not support
+nondeterminism but model time in a continuous fashion, through the use of
+the negative exponential distributions, allowing accurate representation of the
+timing characteristics of e.g. component failures and job arrivals.
+PRISM now also allows models to be augmented with costs andrewards , real
+values assigned to states and transitions of the model. This permits reasoning
+about a much wider range of quantitative measures of a system, e.g. “completion
+time”, “energy consumption” or “number of messages lost”.
+Models are speciﬁed using the PRISM modelling language, a simple, state-
+based language based on the Reactive Modules formalism. Systems are described
+as the parallel composition of a set of modules. Each module’s state is given
+by a set of ﬁnite-ranging variables and its behaviour by a set of probabilistic
+guarded commands. The language also supports global variables, synchronisation
+and various process algebraic operations. See the PRISM documentation and
+example repository at [1] for more information.
+3 PRISM property speciﬁcation
+The speciﬁcation language for properties of the probabilistic models to be anal-
+ysed in PRISM is based on temporal logic, in particular PCTL and CSL, proba-
+bilistic extensions of the logic CTL. The principal operators are P,SandRwhich
+refer, respectively, to the probability of an event occurring, the long-run prob-
+ability of some condition being satisﬁed and the expected value of the model’s
+costs or rewards. For precise details of the speciﬁcation language, see the PRISM
+documentation [1]. For the theoretical background and further references, see [2].
+For illustrative purposes, a selection of example properties is shown below:
+–P≥0.9 [ !repair U≤200done ] - “with probability 0.9 or more, the process
+will successfully complete within 200 hours and without requiring repairs”
+–P=? [ F≤T error {init}{max}] - “what is the worst-case probability, over
+all possible initial conﬁgurations, that an error has occurred by time T”
+–S=? [ num sensors ≥min sensors ] - “what is the long-run probability
+that an acceptable number of sensors are operational?”
+–R<3 [C≤T] - “the expected number of messages lost during the ﬁrst T
+minutes of execution of the communication protocol is less than 3”
+
+--- Page 3 ---
+–R=? [ Fshutdown {error detected }{max}] - “from all situations where an
+error has been detected, what is the worst-case expected power consumption
+before the system shuts itself down?”
+Note that is possible to either determine whether a probability or expected quan-
+tity satisﬁes a given bound or obtain the actual value. In the latter case, it is often
+beneﬁcial to compute a range of values in order to identify trends or anomalies.
+The ability to examine worst-case (or best-case) scenarios, as illustrated in the
+examples above, is also very powerful.
+4 The PRISM tool
+The core functionality of PRISM, namely constructing a probabilistic model, and
+then evaluating the result of one or more corresponding properties, is available
+from either a command-line or a graphical user interface. The latter includes
+editors for the PRISM modelling and property speciﬁcation languages. It also
+facilitates generation of series of quantitative results and plotting of graphs to
+visualise them. A recent addition is the ability to view speciﬁc traces of model
+execution for the purposes of debugging or sanity checks. These are generated
+either by manual exploration or automatically in probabilistic fashion. Figure 1
+shows screenshots of some of this functionality in operation.
+Fig. 1. Screenshots of PRISM running. Left: graphical visualisation of quantitative
+model checking results. Right: manual exploration of model traces
+PRISM incorporates a range of model analysis techniques. These include qualita-
+tive methods, such as graph-based algorithms for reachability, and quantitative
+methods for numerical computation of probabilities and expected cost or reward
+values. For the latter, multiple implementations are provided. In particular, this
+includes state-of-the-art symbolic approaches which use data structures based
+on binary decision diagrams (BDDs) to exploit model structure and regularity.
+The most recent addition is support for approximate numerical computation
+using Monte-Carlo methods and discrete event simulation. PRISM can gener-
+ate multiple executions through a model based on a faithful simulation of its
+
+--- Page 4 ---
+probabilistic and timing characteristics. These samples are then used to com-
+pute approximate quantitative results. Since this approach avoids the (costly)
+construction of the full probabilistic model, working instead with the PRISM
+language description, it is potentially applicable to much larger models than the
+alternative numerical solution approach. Furthermore, samples can be generated
+independently, so it is possible to distribute the simulation process over multiple
+computers. The PRISM user interface includes a tool to manage this process.
+Connections to other tools and formalisms
+To allow connections with external tools, PRISM allows the export of a model’s
+transition matrix and state space in a variety of formats: either plain text or tai-
+lored for speciﬁc tools, including Matlab, ETMCC and MRMC. Models speciﬁed
+in alternative formalisms can also be imported via translation. PRISM already
+has native support for a subset of the stochastic process algebra PEPA and oth-
+ers are underway. It is now also possible to import the transition matrix and
+state space of a model directly in a simple textual format.
+Examples and case studies
+PRISM has been successfully applied to a large number of case studies from a
+wide array of application areas, on several occasions resulting in the identiﬁcation
+of interesting or anomalous behaviour. The website [1] provides details of over
+thirty case studies, developed both by members of the PRISM team and external
+research groups, including links to the corresponding publications and source
+code. Examples include analysis of the performance, reliability or correctness of:
+–real-time communication protocols, including IEEE 1394 FireWire, Blue-
+tooth, Zeroconf, IEEE 802.3 CSMA/CD and IEEE 802.11 wireless LANs;
+–probabilistic security protocols for anonymity (Crowds protocol, synchronous
+batching), contract signing, fair exchange and non-repudiation;
+–randomised distributed algorithms for leader election, consensus, Byzantine
+agreement, self-stabilisation and mutual exclusion;
+–dynamic power management and voltage scaling schemes;
+–biological signalling pathways.
+Tool availability and resources
+PRISM is a free and open source tool, distributed under the GNU General Public
+License (GPL), and now supports most major operating systems: Linux, Solaris,
+Windows and Mac OS X. Ports have also been developed for 64-bit architectures.
+The PRISM website [1] contains a wealth of further information and resources,
+including related publications, the tool source code and binaries, user manual
+and a large repository of illustrative example models.
+References
+[1] PRISM web site. www.cs.bham.ac.uk/˜dxp/prism.
+[2] J. Rutten, M. Kwiatkowska, G. Norman, and D. Parker. Mathematical Techniques
+for Analyzing Concurrent and Probabilistic Systems, P. Panangaden and F. van
+Breugel (eds.), volume 23 of CRM Monograph Series . AMS, 2004.

@@ -1,0 +1,1892 @@
+--- Page 1 ---
+Dynamic  state  machines  for modelling  railway  control
+systems
+M. Benerecettia, R. De Guglielmoc, U. Gentilea, S. Marroneb, N. Mazzoccaa,
+R. Nardonea,∗, A. Perona, L. Velardic, V. Vittorinia
+aDepartment  of Electrical  Engineering  and Information  Technology,  University  of Naples Federico  II, Naples, Italy
+bDepartment  of Mathematics  and Physics,  Second University  of Naples, Naples, Italy
+cAnsaldo  STS, Naples, Italy
+a b s t r a c t
+Keywords:
+Dynamic  ST
+ate machines 
+Promela  model
+ERTMS/ETCS
+Control  system 
+Veriﬁcation  and validationVeriﬁcation and Validation of railway controllers is the most critical and time-consuming 
+phase in a system development life-cycle. It is regulated by international standards, which 
+explicitly  recommend the usage of state machines to model the speciﬁcation of the system 
+under test. Despite the great deal of works addressing the usage of state machines and 
+their extensions, model-based veriﬁcation and validation processes still lack concise and 
+expressive-enough  notations able to easily capture peculiar features of the speciﬁc domain 
+of multi-process control systems, on which proper tool chains can be implemented in order 
+to realize  effective and automated environments.
+This paper introduces a novel class of hierarchical state machines, called Dynamic STate 
+Machines  (DSTMs), and proposes an approach for modelling and validating railway control 
+systems,  based on the new speciﬁcation language. Key features of DSTM are recursive 
+execution,  parallelism, parameter passing, abortion transition, and communication through 
+global variables and channels, but its main peculiarity resides in the semantics of fork and 
+join operators which allows for dynamic instantiation of machines (processes). T he formal 
+semantics  of
+ DSTM allows for the deﬁnition of veriﬁcation and validation methodologies 
+supported  by automated tools. The paper also describes how DSTM speciﬁcations may 
+be mapped to Promela models in order to achieve automated generation of test cases by 
+model  checking and Spin.
+The work presented in this paper was carried out in the context of an European project 
+and is strongly driven by the industrial necessity of tackling issues concerning the 
+automation  of functional system-level testing of modern railway signalling systems. Hence, 
+the language and the proposed approach are illustrated and motivated by applying them to 
+a speciﬁc functionality of the Radio Block Centre, the vital core of the ERTMS/ETCS Control 
+System.
+*Corresponding author.
+E-mail address: roberto.nardone@unina.it (R. Nardone).
+Preprint submitted to Science of Computer Programming
+
+--- Page 2 ---
+1.Introduction
+Veriﬁcation  and Validation  (V&V)  of critical  control  systems  is partly  conducted  according  to model-based  approaches.
+International  standards  in the railway  domain  explicitly  recommend  the usage  of Finite State Machines  (for example  in 
+the CENELEC  norms  EN50128 [12]and EN50129 [11]), since the dynamics  of critical  control  systems  based  on a sequen-
+tial computation  can be abstracted  as a state-transition  system.  An upward  trend is to automate  the V&V processes  by 
+providing  toolchains  for effective  model-based  approaches  and integrating  well-known  and assessed  tools for quality  and 
+architecture  management [36,34,3] . As the V&V activities  often amount  to more than ﬁfty percent  of the total development  
+costs, automated  solutions  are very appealing  in industrial  settings [33]: they can enhance  abstraction  and reuse,  enable  
+automated  veriﬁcation,  improve  productivity  and reduce  the time to market.  A key issue is the automated  generation  of test 
+cases from the system  model  and its requirement  speciﬁcations [21,2]. However,  we have experienced  that, if not properly  
+applied,  model-based  approaches  may introduce  complexity  rather  than simplify  industrial  processes,  and that the available  
+solutions  could not ﬁt the safety  requirements  that dictate  a strict control  over methods,  techniques  and tools employed  
+in all phases  of the product  life-cycle.  Essential  elements  for success  are the high-level  modelling  language  which  should  
+capture  and describe  speciﬁc  features  of the system  in a natural  way, and the tools/techniques  supporting  the V&V process.  
+In this direction,  the main contribution  of this paper  is the deﬁnition  of a formal  language  for modelling  critical  control  
+systems  and a transformational  approach  enabling  the automated  generation  of test cases.
+The work presented  in this paper  originates  within  the context  of the ongoing  ARTEMIS  Joint Undertaking  project  CRYS-
+TAL (CRitical  sYSTem  engineering  AcceLeration) [35]. CRYSTAL  is strongly  industry-oriented  and aims at achieving  technical  
+innovation  by a user-driven  approach,  based  on the idea to apply engineering  methods  to real-world  industrial  Use Cases
+from the automotive,  aerospace,  rail and health-care  sectors.
+The modelling  language  proposed  in the paper  emerged  in an attempt  to ﬁt the modelling  requirements  and the design  
+practises of  the industrial  partners  of the project,  speciﬁcally  of Ansaldo  STS (ASTS),  within  a rigorous  and well-founded  
+formal  speciﬁcation  and veriﬁcation  approach.  ASTS is an international  transportation  company,  leader  in the ﬁeld of railway  
+signalling  and integrated  transport  systems  for passenger  traﬃc  and freight  operation.  This work is part of the development  
+of an interoperable  testing  environment  for ERTMS/ETCS  control  systems [5]addressing  one among  the project’s  objectives:  
+provide  ready-to-use  integrated  tool chainsto reduce  V&V and test effort.
+In the industrial  setting  we experienced,  one of the main requirements  for a modelling  language  is to be small, namely,  
+according  to Martin  Glinz’s  insightful  remarks [15], “as simple  as possible  and as rich as needed”.  It is widely  acknowledged  
+that, in order to avoid encoding  tricks during  the implementation  phase,  an adequate  system  speciﬁcation  language  should  
+provide  a suﬃciently  rich set of primitive  constructs  to allow for a natural  modelling  of the system  of interest.  Indeed,  the 
+larger  the gap between  the design  speciﬁcation  and the actual  implementation  is, the less useful  the results  of the design  
+analysis  would  be. Whenever  real industrial  systems,  as opposed  to simple  toy examples,  need to be designed,  the use 
+of complex  control  ﬂow and data ﬂow constructs  is essentially  unavoidable.  Hence,  in order to provide  adequate  design  
+support  tools for industrial-scale  safety  critical  systems,  these complex  constructs  need to be conﬁned  within  a formal  
+speciﬁcation  framework,  equipped  with a rigorous  and well-deﬁned  semantics,  so as to make the resulting  designs  amenable  
+to standard  and well-accepted  formal  analysis  processes.  In this context,  the essential  speciﬁcation  primitives  must be able 
+to describe  concurrent  processes,  dynamic  instantiation  and recursive  execution  of processes,  parameter  passing,  preemptive  
+termination,  inter-process  communication.  In addition,  it should  allow for the deﬁnition  of suitable  data types in order to 
+model  complex  data ﬂows,  such as different  classes  of structured  messages  and their contents.
+To meet these requirements,  we propose  Dynamic  STate Machine  (DSTM),  a formal  language  explicitly  devised  for model-
+based  veriﬁcation  and validation  of industrial  control  systems.  Although  the deﬁnition  of DSTM  is primarily  oriented  towards  
+high-level  modelling  of railway  control  systems  and motivated  by the modelling  issues  raised  by ASTS, we believe  that it 
+is general-enough  to model  the speciﬁcations  of control  systems  in different  domains.  Indeed,  DSTMs  are an extension  of 
+Hierarchical  State Machines,  originally  proposed  in[18]. The key features  of DSTM  are: a novel semantics  for fork and join 
+constructs  that allows  for the dynamic  and recursive  instantiation of machines,  the introduction  of preemptive  termination and 
+the possibility  of passing  parameters  to machines  at instantiation  time. This paper  introduces  the formal  syntax  and se-
+mantics  of DSTMs  and the encoding  of DSTM  models  into Promela,  the description  language  adopted  by the Spin model  
+checker [22]. This translation  enables  both the automated  veriﬁcation  of behavioural  properties  on the modelled  system  
+and the automated  generation  of test cases,  by exploiting  the model  checker’s  ability  to extract  counterexamples  of violated  
+properties.  We apply the proposed  approach  to the industrial  case study proposed  by ASTS in CRYSTAL.
+Comparison  with previous  works  The work described  in this paper  is part of a wider  research  activity,  whose  primary  ob-
+jective  is to contribute  to the effective  usage  of formal  methods  and notations  in industrial  processes.  In this context,  our 
+research  investigates  the automated  generation  of formal  models  from high-level  speciﬁcations  in different  application  do-
+mains  (e.g., in[27,8,28,29] ). As already  mentioned,  this paper  presents  some of the results  obtained  within  the CRYSTAL  
+project.  Automated  test cases generation  is only one step of a more complex  workﬂow,  leading  to the development  of an 
+interoperable  testing  environment [5]. DSTM  was formerly  introduced  in[31], where  a preliminary  version  of the language  
+is described.  With respect  to that work, the paper  contains  a complete  and stable  deﬁnition  of DSTM,  including  its formal  
+semantics,  a detailed  deﬁnition  of the control  ﬂow and of the data ﬂow (types  and variables).  The features  of DSTM  are 
+illustrated  by means  of a case study proposed  by ASTS. In[30], instead,  the mapping  from DSTM  models  to Promela  was 
+
+--- Page 3 ---
+only outlined,  the focus being on the issues  concerning  the modelling  of the non-deterministic  environment  in Promela.  
+With respect  to that work, here a complete  semantic-preserving  translation  from DSTM  to Promela  is outlined.  In particular,  
+we show how the hierarchical  structure  of a DSTM  model  is translated  into ﬂat state machines,  how machine  dynamic  in-
+stantiation,  termination  and parallelism  are translated,  and datatypes  are mapped  into Promela.  In addition,  we also provide  
+a description  of the test cases generation  phase  and report  some experimental  results,  thereby  providing  a comprehensive  
+picture  of the approach.
+Related  work A number  of formal  methods  and techniques  have been developed  by the scientiﬁc  community  in the past 
+decades  and applied  to the development  of critical  systems,  including  railway  applications [9]. Though  their usage  is not 
+largely  common  in industrial  settings,  Finite State Machines  (FSMs)  are widely  used for modelling  systems  where  control  
+handling  aspects  are predominant.  Statecharts [18]extend  FSMs with hierarchy,  concurrency  and communication  among  
+concurrent  components.  Hierarchy  is achieved  by injecting  FSMs into states  of other FSMs.  Concurrency  is achieved  by 
+composing  FSMs in parallel  and by letting  them run synchronously.
+Among  the different  variants  of Statecharts  (see[26]for a comparison  of their semantics  variants),  those integrated  in 
+UML 2.0[32]are of widespread  use. UML State Machines  admit  parallel  execution  by means  of composite  states  and regions.  
+In this formalism,  fork (and join) constructs  are used to split (and merge)  incoming  transitions  into two or more transitions,  
+terminating  on orthogonal  target  vertexes  (i.e., vertexes  in different  regions  of a composite  state).  Recursive  activation  and 
+dynamic  instantiation  are not allowed.  Communicating  Hierarchical  Machines  (CHMs) [1]are a variant  of Statecharts  intro-
+duced  for succinctness  reasons.  They introduce  the idea of a collection  of ﬁnite state machines  (modules)  having  nodes  and 
+boxes.  Each box is associated  with one or more instances  of modules  and a transition  entering  a box corresponds  to a call 
+to the associated  modules.  In a Statechart  there is no notion  of module  and instance,  hence,  if multiple  instances  of the 
+same module  are required  by the speciﬁcation,  each instance  has to be explicitly  deﬁned.  The introduction  of the notion  
+of module  also allows  for the deﬁnition  of Recursive  State Machines  (RSMs),  where  a module  can recursively  call itself[1]. 
+Note that Recursive  State Machines  admit  an unbounded  number  of states,  hence  they do not belong  to the category  of 
+Finite State Machines.  More recently,  a real-time  version  of this formalism,  called  Timed  Recursive  State Machines [6,7], has 
+also been proposed,  which  allows  for the explicit  modelling  of continuous-time  systems.  Dynamic  Hierarchical  Machines  
+(DHMs)  have been introduced  as an extension  of CHMs  with dynamic  activation  of machines [24]: any DHM M1can send 
+a DHM M3to a concurrent  DHM M2, M3starts running  either  in parallel  with M1and M2, or inside  M2, depending  on 
+contextual  information.
+An extension  of Extended  Finite State Machines  (EFSMs) [38]is supported  by Modbat [4], a tool to test state-based  
+software  systems  with potential  non-determinism.
+Among  the commercial  speciﬁcation  environments  based  on Statecharts,  we considered  STATEMATE [19]and Stateﬂow.  
+STATEMATE  is the ﬁrst speciﬁcation  environment  adopting  Statecharts  with the original  semantics  deﬁned  for the formalism  
+and revised  in[19]. STATEMATE  does not allow for fork and join constructs  and do not consider  dynamic  activation  of 
+modules.  Stateﬂow  is part of the Simulink  graphical  language  used in Matlab.  In this formalism,  hierarchical  state machines  
+can be combined  with ﬂow chart diagrams  and used to specify  the discrete  controller  in the model  of a hybrid  system  
+(the continuous  dynamics  are speciﬁed  by the capabilities  of Simulink).  Despite  Stateﬂow  being syntactically  similar  to 
+the Statecharts  notation,  from the semantic  viewpoint  [17,16] it prevents  any form of non-determinism,  and it imposes  
+an explicit  strict scheduling  in presence  of concurrency.  Therefore,  it essentially  corresponds  to a graphical  notation  for 
+sequential  imperative  languages.
+As opposed  to Statecharts,  the language  proposed  in this paper  adopts  the possibility  of dynamically  instantiate  modules  
+in a native  manner.  The dynamic  (possibly  recursive)  activation  of modules  is obtained  by means  of explicit  structural  con-
+structs  of fork and join (and not by message  passing  as in DHMs).  The language  here proposed  departs  from the languages  
+mentioned  above  mainly  by (i)allowing  for dynamic  instantiation  of machines  and (ii)removing  the assumptions,  implicitly  
+intended  in many languages,  that control  ﬂows exiting  from a fork must always  be merged  by a join operator.  DSTM,  in fact, 
+allows  for recursive  activation  of the same machine  by specifying  a novel semantics  for fork and join operators.  In doing  
+this, we follow  the approach  adopted  in many works.  For instance,  Requirements  State Machines,  proposed  in[25], enrich  
+the graphical  representation  of state machines  with an explicit  speciﬁcation  of the data ﬂow component  of the model,  in 
+order to facilitate  the reviewing  process  by application  experts.  The modelling  language  is inspired  by Statecharts  at the 
+syntactic  level for the control  ﬂow part, but the semantics  is revised  and adapted  so as to account  for the characteristics  of 
+the speciﬁc  application  domain  (i.e., avionic  systems).
+In our case, the syntactical  elements  are similar  to the ones provided  by UML 2.0,  with the exception  of the introduction  
+of the concept  of box, the asynchronous  characterization  of the fork and the additional  notion  of preemptive  join. Some 
+other concepts  have been removed,  as they can easily  be realized  in other ways and become  redundant:  for example,  
+regions  inside  composite  states  can be obtained  by means  of parallel  instantiation  of machines.  The semantics  of DSTM,  
+instead,  is completely  different  for what concerns  parallel  executions.  Similarly  to Hierarchical  Machines,  we assume  an 
+idea of hierarchy  between  machines,  but enrich  this notion  with recursive  instantiation  and parallel  execution  of machines.  
+This is done by means  of the syntactic  elements  fork and join, borrowed  from UML. Hence,  the resulting  formalism  is 
+substantially  different,  both in syntax  and semantics,  from Hierarchical  State Machines,  which  do not allow for recursion,  
+from Recursive  State Machines,  which  do not permit  parallelism,  and from Communicating  Hierarchical  Machines,  which  
+prevent  both recursion  and dynamic  instantiation.
+
+--- Page 4 ---
+Several  works  exist which  describe  concrete  applications  of model-based  testing  and model  checking  in the railway  
+domain [20]. As for the speciﬁc  application  to railway  controllers  and test case generation,  as proposed  in this paper,  in[10]
+a test model  based  on UML/SysML  state machines  and a black-box  test suite are presented  for the ETCS Ceiling  Speed  
+Monitor.  Although  this last paper  shows  that UML/SysML  state machines  can be associated  with a fully formal  semantics,  
+neither  dynamic  instantiation  or recursive  activation  of the same machine  is allowed.
+Structure  of the paper The paper  is organized  as follows.  Starting  from the description  of the ASTS case study in CRYSTAL,  
+Section 2illustrates  the modelling  issues  and the requirements  for the proposed  modelling  language.  The ASTS case study 
+concerns  a functionality  of the Radio Block Centre,  the vital core of the ERTMS/ETCS  control  system,  which  is used as a 
+running  example  throughout  the paper.  Section3provides  the syntax  of DSTM  while Section4deﬁnes  its formal  semantics;  
+the features  of the new language  are illustrated  by using the ASTS case study.  Section 5describes  the translation  process  
+from DSTM  to Promela.  The transformations  introduced  in Section 5are applied  to the DSTM  model  described  in Section 3
+and Section4. The resulting  Promela  model  is used in Section6to obtain  a complete  test suite for the modelled  functionality  
+of the Radio Block Centre  and the related  performance  issues  are reported.  Finally,  Section 7provides  some closing  remarks  
+and directions  for future  work.
+2.Domain  and modelling  requirements
+In this section,  we ﬁrst describe  the requirements  for the speciﬁcation  language  for modelling  control  systems  as ex-
+pressed  by ASTS and derived  from the analysis  of the Radio Block Centre,  the core component  of modern  railway  signalling  
+systems.  The nature  of the case study also allows  us to illustrate  the main motivations  for the choices  we made in the 
+deﬁnition  of the new formalism.  Section2.1provides  a high-level  description  of ERTMS/ETCS  and of the Radio Block Centre,  
+Section 2.2describes  the requirements  to be addressed  by a speciﬁcation  language  able to model  a multi-process  railway  
+control  system,  Section 2.3describes  the Communication  Management,  a speciﬁc  functionality  of the Radio Block Centre,  
+on which  the ASTS Use Casein the CRYSTAL  project  is based.  We will use the Communication  Management procedure  as a 
+running  example  and case study throughout  the rest of the paper.
+2.1. An ERTMS/ETCS  railway  control  system
+The European  Rail Traﬃc  Management  System/European  Train Control  System  (ERTMS/ETCS) [37]is a standard  for the 
+interoperability  of the European  railway  signalling  systems,  ensuring  both technological  compatibility  among  trans-European  
+railway  networks  and integration  of the new signalling  systems  with the existing  national  interlocking  systems  (IXL). The 
+ERTMS/ETCS  speciﬁcation  identiﬁes  three functional  levels  featuring  growing  complexity.  They can be implemented  singu-
+larly or jointly,  and mainly  differ in the communication  mechanisms  adopted  in controlling  trains.  Functional  Levels 2 and  3
+represent  two more cutting-edge  solutions  than Level 1. Currently,  Level 2i s the most widespread  choice,  according  to the 
+deployment  statistics.1A reference  architecture  for ERTMS/ETCS  systems  consists  of three main subsystems:  the on-board  
+systemis the core of the control  activities  located  on the train; the line-side  systemis responsible  for providing  geographical  
+position  information  to the on-board  subsystem;  the track-side  systemis in charge  of monitoring  the movement  of the trains.
+The CRYSTAL  Use Case, provided  by ASTS, is the ERTMS/ETCS  interoperable  testing  of the Radio Block Centre  (RBC),  the 
+most important  component  of the track-side  system.  RBC is a computing  system,  whose  aim is to ensure  a safe inter-train  
+distance  on the track area under  its supervision.  As shown  in Fig. 1,  RBC interacts  with the on-board  system  by managing  a 
+Communication  Session  using the EURORADIO  protocol  and the GSM-R  network.
+A single  RBC is in charge  of continuously  and concurrently  controlling  a ﬁxed maximum  number  of connections  with 
+trains,  depending  on the physical  characteristics  of the GSM-R  network  (usually,  it manages  about  30 trains).  The main 
+objective  of the train control  system  is to timely  transmit  to each train its up-to-date  Movement  Authority  (MA) and the 
+related  speed  proﬁle.  The MA contains  information  about  the distance  the train may safely  cover,  depending  on the status  
+of the forward  track. RBC is also in charge  of managing  emergency  situations  if the communication  with one or more trains  
+is compromised.  Speciﬁcally,  when a train is approaching  the area supervised  by a RBC, it sends  a connection  request.  If the 
+request  can be accepted,  RBC tries to establish  and manage  the connection  while the train remains  under  its control.  This is 
+performed  by dynamically  instantiating  a new thread  for each connection  request  received  by a train; each thread  manages  
+the communication  with a speciﬁc  train and performs  a certain  number  of data checks  and actions  based  on the content  of 
+the messages  received  from that train. As a communication  can be lost at any time, each thread  handles  several  errors  and 
+termination  conditions.  In particular,  if a communication  is deﬁnitely  lost, all pending  processes  which  refer to the delivery  
+of MA to a speciﬁc  train are terminated  and an emergency  procedure  is started.
+2.2. Modelling  issues
+The high-level  description  of the RBC control  system,  given in the previous  section,  provides  the context  and the appli-
+cation  domain  which  inspired  the modelling  formalism  proposed  in this paper.  The ultimate  goal is to provide  the designer  
+1http :/ /www.ertms  .net.
+
+--- Page 5 ---
+Fig. 1.ERTMS/ETCS Level 2.
+with a formal  notation  suﬃciently  rich to allow for a natural  modelling  of control  systems  of industrial  scale. Such a lan-
+guage  must provide  primitives suitable  to express  speciﬁc  modelling  issues  and to avoid intricate  encodings  of complex  
+behaviours.  While  the language  has been devised  in the context  of railway  control  systems,  it has a very general  ﬂavour  
+that makes  it applicable  in other industrial  contexts.
+The description  of RBC in Section 2.1suggests  that the language  should  provide  primitives  able to naturally  describe  
+concurrent  threads,  dynamic  instantiation  and recursive  execution  of processes,  parameter  passing,  preemptive  termination  
+and interprocess  communication.  In addition,  it should  allow for deﬁning  suitable  data types in order to model  complex  
+data ﬂows,  such as ERTMS-compliant  protocols,  which  naturally  requires  ﬁelds-structured  messages.
+Another  important  requirement  is that such a language  should  have rigorous  and executable  semantics,  so as to allow 
+for standard  and automated  V&V activities,  such as simulation,  formal  veriﬁcation  via model  checking  techniques,  and 
+automated  test cases generation.
+Speciﬁcally,  the key features  that need to be naturally  handled  by the language  are the following.
+R1Concurre ncy: processes  may need to run and handle  multiple  subprocesses,  which  can execute  synchronously  (the 
+parent  process  waits for the termination  of the child, similarly  to the call/return  paradigm)  or asynchronously  (i.e., 
+concurrently).  In addition,  the number  of subprocesses  may be dynamically  determined  (dynamic  instantiation).
+R2Modularity  and parametric  processes:  the deﬁnition  of parametric  process  schemas  that can be instantiated  either  stati-
+cally or dynamically,  possibly  with different  parameter  values.  This feature  allows  for succinct  and reusable  speciﬁca-
+tions, and it is a crucial  feature  for any speciﬁcation  language  oriented  to the modelling  of large-scale  systems.
+R3Preemptive  termination  of processes:  error handling  is a vital part of the control  process,  therefore  a succinct  process  
+abortion  mechanism  becomes  an essential  element  of the language.
+R4Interprocess  communication:  both point-to-point  and broadcast  communication  mechanisms  should  be provided  as prim-
+itives.  In particular,  communication  should  not be intended  in a pure form, but as conveying  structured  data either  via 
+communication  channels  or shared  variables.
+R5User -deﬁned  data types:  in order to deal with complex  data ﬂows,  a suitable  set of user deﬁned  data types should  be 
+available  (e.g., enumeration  typed  and ﬂat records).
+As a consequence,  an approach  adopting  a modelling  language  based  on standard  UML 2.0 [32]state diagrams,  as orig-
+inally proposed  in[27], does not seem adequate  in the context  of railway  control  systems.  In fact, UML state diagrams,  on 
+the one hand, lack a standard  and well-accepted  formal  semantics  and, on the other,  do not allow for some crucial  features,  
+such as explicit  constructs  for modelling  dynamic  instantiation  and parametric  instantiation  of processes.
+2.3. The ASTS case study
+The ASTS case study in the CRYSTAL  project  is the Communication  Management functionality  of RBC, which  exhibits  all 
+the characteristics  described  in Section2.2. It is in charge  of establishing  and managing  the communication  session  with the 
+
+--- Page 6 ---
+trains.  It also handles  possible  failures,  by managing  the activation  of proper  emergency  procedures  after the occurrence  of 
+permanent  failures.  The Communication  Management procedure  includes  three steps, from the entering  of a train in the track 
+area controlled  by RBC to its leaving.  A concise  description  of these steps, covering  all the main issues,  is detailed  below.  The 
+described  procedure  does not differ signiﬁcantly  from the functionality  implemented  in a real system,  nevertheless  it has 
+been slightly  modiﬁed  in respect  of any intellectual  property  rights  of ASTS. It also involves  a lower  number  of exchanged  
+messages,  but its functional  behaviour  and the complexity  of data are the same of a real-world  industrial  system.  For the 
+sake of exposition,  the version  of the procedure  considered  below  omits some of the messages  and focuses,  instead,  on the 
+dynamic  and parametric  instantiation  of processes,  on the preemptive  termination  and on the deﬁnition  of complex  data 
+structures.
+Step 1: communication  establishment  When  a train needs  to establish  a safe connection  with RBC, it sends  a connection  
+requestmessage  for the initiation  of the communication  session.  RBC may accept  only connection  requests  from a limited  
+number  of trains:  this number  depends  on the physical  features  of the communication  radio channel.  If the request  can be 
+handled,  RBC sends  to the train a connection  accepted notiﬁcation.  If the new connection  request  exceeds  the bound,  RBC 
+refuses  the connection,  by sending  a connection  refusedmessage  to the train. After the acceptance  of a request,  this process  
+remains  active  and waits for other communication  requests (Requirements  R1, R2).
+Step 2: session  establishment  Once a connection  request  is accepted,  the communication  session  between  the train and RBC 
+must be established.  If this procedure  succeeds,  RBC authorizes  the train to start the mission procedure  (Start of Mission,  
+SoM) and perform  the set of actions  required  to enter the high-speed  area under  its control.  Finally,  RBC sends  the System  
+Versionmessage  to the train and the train answers  with an Ackand a Session  Established message.  The Session  Established
+message  is a structured  message  containing  an areaﬁeld used by RBC to distinguish  between  a train that needs  to start its 
+mission  (L0 area)and a train coming  from outside  a high-speed  area (L1 area). In fact, depending  on the case, two different  
+procedures  need to be performed:  the Start of Mission procedure  in the former  case, and the Entryprocedure,  in the latter 
+case. If a message  different  from the expected  one is received  during  this protocol,  the session  establishment  procedure  
+aborts  and the communication  with the train is closed (Requirements  R3, R5).
+Step 3: management  of train movement  RBC periodically  sends  the Movement  Authority  (MA) to each train and checks  for 
+the reception  of commands  from the Centralized  Traﬃc  Control  (CTC),  where  a human  operator  may raise alarms  requiring  
+the train to stop. In this case an Unconditional  Emergency  Stop (UES)message  is sent to the train. When  the train successfully  
+ends its trip, RBC performs  the End of Mission  (EoM)procedure (Requirements  R3, R4).
+3.Modelling  railway  control  systems  in DSTM
+In this section  we provide  the full syntax  of the DSTM  speciﬁcation  language.  Throughout  this section,  we use the case
+study introduced  above  as a running  example,  so as to exemplify  the features  of the language  and its effectiveness  in 
+modelling  for real-world  applications  in a quite natural  and structured  way. The DSTM  formalization  is given by separating  
+the elements  belonging  to the control  ﬂow (e.g., vertexes,  transitions)  and those regarding  the data ﬂow modelling  (e.g., 
+data types,  data structures).  We start by giving  the syntax  for modelling  the control  ﬂow in a parametric  way with respect  
+to the syntactic  categories  for the dataﬂow  in Section3.1. The syntax  for the speciﬁcation  of the dataﬂow  is, then, presented  
+in Section 3.2.
+3.1. Syntax:  control  ﬂow
+A Dynamic  STate Machine  (DSTM) represents  a complete  speciﬁcation.  Given  a set Pof parameters,  a DSTM  consists  
+of a sequence  of parametric  Machine s, M1, ..., Mn, communicating  via a set Xof global  Variables and a set Cof global  
+Channels. Parameters  are parametric  names  for channels  or variables,  which  are actualized  when a machine  is instantiated  at 
+execution  time. Channels  and variables  allow for different  kinds of communication  among  machines,  which  will be detailed  
+in Section 3.2where  the dataﬂow  language  is deﬁned.  Both channels  and variables  are global  in scope,  and are declared  at 
+the same level of the machines.  Neither  local channels  nor local variables  are considered  in this version  of DSTM.
+A (parametric)  Machine M irepresents  a module  of the speciﬁcation  exploiting  a set of parameters  Pi⊆P. It is a state-
+transition  diagram  composed  by vertexes and transitions connecting  vertexes.  At least two vertexes  must be present  in a 
+machine.  Different  kinds of vertexes  (with different  features  and constraints)  may occur in the deﬁnition  of a machine.  
+Possible  kinds of vertexes  are:
+•node:basic control  state of a machine;
+•entering  node:initial  (pseudo)node  of a machine  (a machine  may specify  more than one entering  node, which  represent
+different  entry conditions);
+•initial  node:default  entering  (pseudo)node  of a machine  (exactly  one for each machine);
+•exit node:exit (or ﬁnal) node of a machine  (a machine  may specify  more than one exit node, in order to model  different
+termination  conditions);
+
+--- Page 7 ---
+•box:models  the activation  of one or more processes,  instances  of the machines  associated  with the box. A transition
+entering  a box corresponds  to the instantiation  of the machine(s)  associated  with that box, and a transition  leaving  a
+box corresponds  to a return  from that machine  call;
+•fork:control  (pseudo)node  which  splits an incoming  control  ﬂow into more outgoing  ﬂows.  It allows  for instantiat-
+ing one or more processes,  either  synchronously  (the behaviour  of the forking  process  is suspended  waiting  for the
+termination  of the activated  processes)  or asynchronously  (the forking  process  behaves  in parallel  with the activated
+processes)  with the currently  executing  processes;
+•join:control  (pseudo)node  which  merges  outgoing  control  ﬂows from concurrently  executing  processes.  It synchronizes
+the termination  of concurrently  executing  processes  or allows  to force their terminations,  when a preemptive termination
+is required.
+Notice  that we distinguish  between  nodes,  which  corresponds  to stable  control  points  during  the execution,  and pseudon-
+odes, which  represent  transient  control  points.  Initial,  entering,  join and fork nodes  are pseudonodes,  which  only have a 
+syntactic  role but no semantic  counterpart,  as opposed  to all the other nodes.
+Entering  (including  initial)  and exit nodes  deﬁne  the interface of a machine.  In particular,  the ﬁrst pseudonode  of a 
+machine  is either  the initial  node or an entering  node;  exit nodes  correspond  to termination  states  of a machine,  and can 
+be seen as a way to specify  different  possible  return  values.
+As usual,  a transition  represents  a change  of the control  state. The ﬁring of a transition  is activated  when a triggeroccurs  
+(an input event is issued  by environment)  and a guardon the current  content  of variables  and channels  is fulﬁlled.  When  
+a transition  ﬁres, an actionis performed  with a possible  side effect on the content  of variables  and channels.  In the rest of 
+this section,  we shall assume  the availability  of a set of parameters  P, and suitably  deﬁned  syntactic  categories  of triggers
+/Xi1P, guards /Phi1P, and actions AP, all deﬁned  over parameters  in P. The precise  deﬁnition  of these syntactic  categories  will 
+be given in Section 3.2. We shall denote  the trivial  trigger  (no external  signal  required)  with τ, the trivial  guard  with True
+and the empty  action  with /epsilon1.
+When  a transition  enters  a box, the associated  parametric  machines  need to be instantiated  with suitable  values  for 
+the parameters.  A parameter  substitution function,  mapping  parameters  to actual  values,  is associated  with this kind of 
+transitions.  For this reason,  in the following  deﬁnition  of DSTM,  we shall assume  the existence  of the syntactic  category  
+of the parameter  substitution  functions  over the set of parameters  P, denoted  by ϒP. A precise  deﬁnition  of this syntactic  
+category  is not essential  at this point,  and is, therefore,  relegated  to Section 3.2.
+Deﬁnition  1 (Dynamic  STate Machine).  A DSTM  Dis a tuple /angbracketleftM1, ..., Mn, X, C, P/angbracketright, where:
+•X(resp.,  Cand P) is a ﬁnite set of variables  (resp.,  channels  and parameters);
+•M1is the initial  machine  over X, C(no parameters  are allowed  in the initial  machine);
+•Mi, with i ∈{1, ..., n}, is a machine  over X, Cand Pof the form
+/angbracketleftPi,Ni,Eni,dfi,Exi,Bxi,Yi,Fki,Jni,/Lambda1i/angbracketright,w h e r e :
+–Pi⊆Pis the local set of parameters  of machine  i(P1must be the empty  set);
+–Niis a ﬁnite set of nodes;
+–Eniis a ﬁnite set of entering  pseudonodes;
+–dfi∈Eniis the initial  pseudonode  (default);
+–Exi⊆Niis a set of exit nodes;
+–Bxiis a ﬁnite set of boxes;
+–Yi:Bxi→{1, ..., n}⋆assigns  to every box a sequence  (list) of machine  indices;
+–Fkiis a ﬁnite set of fork pseudonodes;
+–Jniis a ﬁnite set of join pseudonodes;
+–/Lambda1i=/angbracketleftTi, Srci, Dec i, Trgi, Inst i/angbracketrightis the structure  deﬁning  the set of transitions  of Mi, where:
+∗Tiis a ﬁnite set of transition  labels;
+∗Srci:Ti→Source iassociates  a source  to each transition  label, where  Source i=(Ni\Exi) ∪Eni∪Bxi∪(Bxi×Ex(D)) ∪
+Fki∪(Fki×{ ↓ }) ∪Jniand Ex(D) =/uniontext
+1≤j≤nExj;
+∗Dec i:Ti→/Xi1Pi×/Phi1Pi×APiassociates  each transition  with its decoration,  namely  the trigger,  guard  and action  of
+/Lambda1i;
+∗Trgi:Ti→Targetiassociates  a target  to each transition,  where  Targeti=Ni∪Bxi∪(Bxi×En(D)) ∪Fki∪Jni∪(Jni×
+{})and En(D) =/uniontext
+1≤j≤nEnj;
+∗Inst i:Ti/arrowrighttophalf( ϒ P)∗is a partial  function  assigning  a sequence  of parameter  substitution  over Pto a transition.
+The pairing  of Fkiwith the symbol  ↓(resp.,  of Jniwith the symbol  ) is used to qualify  a source  fork as asynchronous  
+(resp.,  a destination  join as preemptive).
+Running  example  (part 1). As an example,  let us consider  the DSTM:
+D=/angbracketleftM1,M2,M3,M4,..., M12,X,C,P/angbracketright,w h er e:
+
+--- Page 8 ---
+Fig. 2.COMM model: M _ CommunicationEstablishment .
+Table 1
+The transition  structure  /Lambda11of the machine  M _ CommunicationEstablishment .
+T1 Src1 Trg1 Dec1 Inst1
+T01 initial idle /angbracketleftτ,True,V_count:=0/angbracketright∅
+T02 idle idle /angbracketleftC_request?,V_count=4, ∅
+C_answer !<answer ::refused >/angbracketright
+T03 idle fk /angbracketleftC_request?,V_count≤3, ∅
+C_request [?]<V_chFrom ,V_chTo>;
+C_answer !<answer ::accepted >;
+V_count:= ++ V_count/angbracketright
+T04 (fk,↓) idle /angbracketleftτ,True,/epsilon1/angbracketright∅
+T05 fk manageTrain /angbracketleftτ,True,/epsilon1/angbracketright P_chFromMMT =V_chFrom
+P_chToMMT =V_chTo
+T06 idle jn /angbracketleftτ,True,/epsilon1/angbracketright∅
+T07 manageTrain jn /angbracketleftτ,True,/epsilon1/angbracketright∅
+T08 jn idle /angbracketleftτ,True,V_count:= −− V_count/angbracketright∅
+M1is the machine  M_CommunicationEstablishment of Fig. 2and M2is machine  M_ManageTrain . Here we shall focus on 
+the control  ﬂow structure  of the machine,  ignoring  the data ﬂow details  that will be discussed  and explained  in the next 
+subsection.  Nodes  and boxes  are depicted  as rounded  boxes  and squares,  respectively.  The default  initial  node is depicted  as 
+a black bullet.  Fork and join pseudonodes  are drawn  as horizontal  bars. As for transition  decorations,  the ﬁrst element  is a 
+trigger,  guard  is included  in square  brackets,  action  is preﬁxed  by the symbol  /, while the symbol  ;is used as separator  of 
+atomic  actions.  Finally,  parameter  substitution  functions  are preﬁxed  by inst:.
+The machine  is deﬁned  as follows:
+M1=/angbracketleftP1,N1,En1,df1,Ex1,Bx1,Y1,Fk1,Jn1,/Lambda11/angbracketright,w h er e:
+•P1=∅; N1={idle}; En1={initial}; df1=initial; Ex1=∅; Bx1={manageTrain };
+Y1={(manageTrain , 2)}; Fk1={fk}; Jn1={jn};
+•/Lambda11=/angbracketleftT1, Src1, Dec1, Trg1, Inst1/angbracketrightdeﬁnes  the set of transitions  of M1as reported  in Table 1.
+Note that the fork pseudonode  fkis an asynchronous  fork since the transition  T04is marked  by ↓in Table 1,  and that 
+T05is the only transition  associated  with a parameter  substitution  being the only transition  activating  a parametric  machine  
+(the parameter  substitution  actualizes  two parametric  channel  names  with actual  channel  names).  /squaresolid
+The transitions  allowed  in a DSTM  belong  to predeﬁned  classes,  reported  in Table 2,  based  on the types of their sources,  
+targets  and decorations.  The decorations  of the transitions  belonging  to some of those classes  may not contain  triggers,  
+guards  or actions.  To this end, we say that a machine  Mihas well-formed  transitions if each transition  t∈Ticomplies  to 
+one of the forms  reported  in Table 2.  For instance,  an implicit transition  of machine  Mistarts from an entering  node (Eni) 
+of Mi, leads to a node (Ni) of Miand its decoration  must have a trivial  trigger  τ, a trivial  guard  Trueand can have some 
+(parametric)  action  α∈APi(where  Piis the set of parameters  of Mi).
+
+--- Page 9 ---
+Table 2
+The syntactic  constraints  on DSTM transitions  (ξ∈/Xi1, ˆξ∈/Xi1 \{τ}, φ∈/Phi1Piand 
+α∈APi).
+Type Source Target Decoration
+implicit Eni Ni /angbracketleftτ,True,α/angbracketright
+internal Ni Ni /angbracketleftξ,φ,α/angbracketright
+entering fork Ni Fki /angbracketleftξ,φ,α/angbracketright
+asynchronous fork Fki×{ ↓ } Ni /angbracketleftτ,True,α/angbracketright
+entering join Ni Jni∪(Jni×{}) /angbracketleftξ,φ,/epsilon1/angbracketright
+exiting join Jni Ni /angbracketleftτ,True,α/angbracketright
+return by default Bxi Jni∪(Jni×{}) /angbracketleftτ,True,/epsilon1/angbracketright
+Bxi Ni∪Bxi∪Fki /angbracketleftτ,True,α/angbracketright
+return by exiting Bxi×Ex(D) Jni∪(Jni×{}) /angbracketleftτ,True,/epsilon1/angbracketright
+Bxi×Ex(D) Ni∪Bxi∪Fki /angbracketleftτ,True,α/angbracketright
+return by interrupt Bxi Jni×{}/angbracketleft ˆξ,True,/epsilon1/angbracketright
+Bxi Ni∪Bxi∪Fki /angbracketleftˆξ,True,α/angbracketright
+call by entering Ni∪Bxi Bxi×En(D) /angbracketleftξ,φ,α/angbracketright
+Fki∪Jni Bxi×En(D) /angbracketleftτ,True,α/angbracketright
+call by default Ni∪Bxi Bxi /angbracketleftξ,φ,α/angbracketright
+Fki∪Jni Bxi /angbracketleftτ,True,α/angbracketright
+In addition  to the general  constraints  in Table 2,  the source  of a return  by exitingtransition  must be a pair of the form 
+(bx, ex), where  bx∈Bxiis a box of Miand ex∈Exj, with j =Yi(bx), is an exit node of the machine  Mj, associated  with bx
+by the function  Yi. Similarly,  for a call by entering transition,  the target  node must be of the form (bx, en), where  bx∈Bxi
+is a box of Miand en∈Enjis an entering  node of machine  Mj, with j =Yi(bx). Note that, when a call by entering (resp.,  
+return  by exiting) transition  is used, the target  (resp.,  source)  box must instantiate  exactly  one machine.
+Every transition  entering  a join pseudonode  cannot  perform  actions  (the decoration  allows  only the empty  action).  Ac-
+tions are instead  allowed  on the transition  exiting  from the a join pseudonode.  Moreover,  a return  by interrupt transition  
+cannot  have the trivial  trigger  τas trigger.
+An empty  parameter  substitution  function  is associated  with all the transition  types except  for call by entering and call 
+by defaulttransitions.  If tis a call by entering transition,  then Inst i(t) =/lscriptfor some /lscript ∈ϒPideﬁned  on all the parameters  in 
+Pj. If tis a call by defaulttransition  and Yi(Trgi(t)) =j1···jsis the sequence  of indices  of (parallel)  machines  associated  
+with the target  box, then Inst i(t) =/lscript1···/lscript s, for some parameter  substitutions  /lscript1, ..., /lscripts∈ϒPiand, for all i ∈[1, ..., s], /lscriptiis 
+deﬁned  on all the parameters  in Pjiof the called  machine  Mji.
+Running  example  (part 2). With reference  to the machine  of Fig. 2,  transition  T01is an implicittransition,  T02is an internal
+transition,  T03is an entering  forktransition,  T04is an asynchronous  forktransition,  T05is a call by defaulttransition,  T06is 
+an entering  jointransition,  T07is a return  by defaulttransition,  and T08is an exiting  jointransition.
+Observe  that the asynchronous  forktransition  T04creates  a loop with transition  T03, involving  node idleand the fork 
+pseudo  node, and that the loop does not include  any join pseudo  node. It is important  to note that this form of control  ﬂow 
+is not allowed  in UML state machines.  DSTM  overcomes  this limitation,  thus allowing  for dynamic  activation  of processes.  
+The idea is that when process  M_CommunicationEstablishment performs  the asynchronous  fork T04 , it continues  its execution  
+in parallel  with the activated  process  M_ManageTrain . Being still active,  process  M_CommunicationEstablishment might  ﬁre 
+transition  T03again,  and a second  activation  of machine  M_ManageTrain would  occur.  Hence,  this new instance  would  run 
+in parallel  with both process  M_CommunicationEstablishment and the previously  activated  instance  of M_ManageTrain itself.
+In the example,  the number  of activations  of machine  M_ManageTrain that can be concurrently  active  is at most 4, since 
+the activation  process  is bounded  by a counter  (variable  V_countin the guards  of T02and T03). Different  activations  of the 
+same machine  can also be distinguished  by different  substitutions  of its parameters.  In fact, the call by defaulttransition  T05
+of machine  M_CommunicationEstablishment instantiates  the parametric  channel  names  P_chFromMMT and P_chToMMT with 
+the two concrete  names  of channels  that are contained  in variables  V_chFromand V_chTo(the details  will be clearer  after the 
+presentation  of the dataﬂow  syntax).  The underlying  idea in the example  is, then, that one can activate  an arbitrary  number  
+of processes  and that each activation  can be endowed  with a private  communication  channel.
+Conversely,  when an active  instance  of M_ManageTrain ends its execution,  the return  by defaulttransition  T07may ﬁre, 
+by synchronizing  with the entering  jointransition  T06. This results  in the deactivation  of that instance  (the counter  of 
+the activations  of M_ManageTrain is decremented).  Notice  that, by exploiting  this basic mechanism,  an unbounded  number  
+of activations  and deactivation  of a machine  can be performed.  A rigorous  semantics  of all these features  is provided  in 
+Section 4.
+
+--- Page 10 ---
+Fig. 3.COMM model: M_MovAuth .
+Let us now consider  machine  M_MovAuth in Fig. 3.  This machine  has an input and output  interface.  This interface  corre-
+sponds  to, beyond  the initial  node initial, the entering  node afterEntry and the exit node exiting, represented  as a circle and 
+a crossed  circle overlapping  the square  border  of the machine,  respectively.  Analogously,  the exit node uesis the terminat-
+ing state of machine  M_CentralControl , which  is activated  within  box centralManag . The transition  T07is a return  by exiting
+transition,  since its source  is the couple  (centralManag ,ues), where  uesis the exit node of the machine  corresponding  to the 
+box centralManag . Instead,  transitions  T08, T09, T10are return  by defaulttransitions.  Moreover,  transitions  T07and T10enter 
+the join pseudonodes  (jn1and jn2, respectively),  whose  endpoints  are marked  with a crossed  circle,  graphically  representing  
+the fact that those transitions  perform  a preemptive  synchronization  of the processes  involved  in their respective  join. In 
+particular,  when process  M_CentralControl (resp. M_PeriodicMA ) terminates  at its exit node ues(resp.,  at whatever  exit node),  
+transition  T07(resp.,  T10) ﬁres and the execution  of process  M_PeriodicMA (resp.,  M_CentralControl ) is interrupted.  As a conse-
+quence,  termination  of the process  M_CentralControl at its exit node uesleads to the termination  of the process  M_PeriodicMA
+and to the subsequent  activation  of process  M_EmergencyManagement . Similarly,  termination  of process  M_PeriodicMA leads 
+to the termination  of the process  M_CentralControl and to the activation  of process  M_EndOfMission . /squaresolid
+Finally,  we have to introduce  some restrictions  in the use of fork and join transitions,  in order to guarantee  that at each 
+time instant  there is at most one node in which  the control  of a machine  can be located.  The following  well-formedness  
+constraints  enforce  a correspondence  between  join pseudonodes  and fork pseudonodes,  requiring  the synchronization  of all 
+the processes  activated  by the corresponding  fork transition.  The correspondence  from join to fork is total (i.e., every join 
+has a corresponding  fork) but neither  onto nor injective.  Indeed,  a fork may have no corresponding  join (synchronization  is 
+not mandatory)  or may have more than one corresponding  join (multiple  synchronization  forms).  More precisely,  a machine  
+Miis well-formed if all its transitions  are well formed  and the following  constraints  are satisﬁed:
+1. if a box bx∈Bxiis the target  of either  a call by entering or a call by defaulttransition  having  as source  a fork pseudonode,
+then
+•there is no other transition  entering  in bx;
+•each transition  exiting  from bx(return  by default,  return  by exitingor return  by interrupt ) has a join pseudonode  as
+target.
+2.
+for each join pseudonode  jn∈Jnithere is a single  corresponding  fork pseudonode  fk∈Fkiand
+•if there is an asynchronous  forktransition  exiting  from fk, then there is an entering  jointransition  to pseudonode jn;
+•if a box bx∈Bxiis the target  of a call transition  (call by entering or call by default) exiting  from fk, then either  there
+is no exiting  transition  from bxor there is at least a return  transitions  (return  by default,  return  by exitingor return  by
+interrupt ) from bxto jn.
+The ﬁrst constraint  ensures  that a box called  by a fork transition  cannot  be called  in any other way and can only have 
+exiting  transitions  leading  to a join. The second  constraint  enforces  the correspondence  mentioned  above  between  a join 
+pseudonode  and a fork pseudonode.  It also requires  that a machine  Mperforming  an asynchronous  fork, which  gives the 
+control  back to the M, must participate  to all the possible  joins in correspondence  with that fork, so as to ensure  that 
+a single  control  state of Mresults  from each join. Moreover,  a box bxcalled  by a fork either  participates  with a return  
+transition  in all the joins corresponding  to that fork, or it never exits.
+
+--- Page 11 ---
+Running  example  (part 3). With reference  to Fig. 2, machine  M_CommunicationEstablishment is indeed  well formed.  The 
+ﬁrst requirement  is fulﬁlled  by transition  T05, which  is the only transition  having  box manageTrain as target.  The second  
+requirement  is fulﬁlled  as well, since the join  jnis in correspondence  with the fork fk, and the asynchronous  forktransition  
+T04is in correspondence  with internal transition  T06entering  the join jn.
+Let us now consider  the machine  depicted  in Fig. 3. Machine  M_MovAuth is well formed  as well. In fact, both T05and T06
+fulﬁl the  ﬁrst requirement.  The second  requirement  is also fulﬁlled,  since both the joins jn1and jn2are in correspondence  
+with the fork fk, and both jn1and jn2synchronize  the two processes  activated  by the fork. /squaresolid
+3.2. Syntax:  data ﬂow
+Let us now consider  the speciﬁcation  of the data ﬂow in a DSTM.  We shall start by providing  the precise  syntax  of 
+triggers,  guards  and actions  allowed  in the decoration  of transitions.  We ﬁrst introduce  the type system  of the language  and 
+the associated  domains,  then we introduce  channels  and (global)  variables.
+Types The set of basic types BT={Int, BT1, ..., BTk, Chn}provides  a type Intfor the integers,  a type Chnfor channels  
+names,  and a set of user deﬁned  enumeration  types BT1, ..., BTk. The domain  D(Int)of integers  is Z, the domain  D(Chn)
+is a set of channel  names  C={c1, ..., ch}, and the domain  D(BTi)of enumeration  type BTiis a set of labels  {li
+1, ..., li
+si}. 
+We denote  with D(BT)the union  of the domains  of the basic types.  For each basic type we assume  that a default  value is 
+provided  in the corresponding  domain.  For this purpose  we introduce  a function  default :BT→D(BT).
+More complex  types can be obtained  by composing  basic types to form compound  types. A compound  type CT=
+(BTj1, ···, BTjk)is deﬁned  as a tuple of basic types BTji, for i ∈[1, ..., k]. Each element  of the domain  D(CT)of CTis 
+a tuple of the form /angbracketleftd1, ..., dk/angbracketright, where  dz∈D(BTjz)for z∈[1, ..., k]. In other words,  the domain  D(CT)is the set of tuples  
+of elements  of the basic types composing  it. Basic and compound  types form the class of simple  types.
+Simple  types can be further  composed  by means  of a union  operator  to form multi-types.  A multi-type  MT=
+{STj1, ···, STjz}groups  together  a set of simple  types,  thus allowing  the domain  of the resulting  type for elements  be-
+longing  to the domain  of any of the simple  types STji, with z∈[1, ..., k]. Hence,  the domain  of MTcorresponds  to the 
+union  of the domains  of the composing  types.  We denote  with Tthe set of all types.
+Channels  To each channel  name cin Ca concrete  channel /hatwidecis associated.  The set of concrete  channels  is denoted  by /hatwideC. 
+Channels  allow for asynchronous  communication  both with the environment  and among  internal  components  via bounded  
+buffers.  Therefore,  we have a function  bd :C→Nassigning  the bound  of the buffer  associated  with any channel  name.  Each 
+concrete  channel  has an associated  type, either  a simple  type or a multi-type.  Formally,  type:/hatwideC→T. The type of a concrete  
+channel  is actually  the type of the message  conveyed  by the concrete  channel.  The domain  of the contents  of a concrete  
+channel  /hatwidec∈/hatwideC(i.e., the contents  of the bounded  length  buffer  associated  with the channel)  is the set of sequences  of length  
+at most bd(c)of elements  of its associated  type, namely  D(/hatwidec) =(D(type(/hatwidec)))≤bd(c). In order to keep trace of the type of the 
+corresponding  concrete  channel,  the type Chnof the channels  names  can be further  decorated  with the type of the named  
+channel.  Given  a channel  ˆcof type T, we denote  with Chn[T]the decorated  type of the name cof ˆc. We denote  with BT+
+the set of decorated  basic type, containing  type Int, the enumeration  types BTiand all the decorated  types for channel  names  
+of the form Chn[T], for T∈T.
+We recall that we distinguish  between  internal and external channels.  Internal  channels  are used for communication  
+among  internal  components  and the set of their names  is CI⊆C. External  channels  are used to interact  with the environ-
+ment and the set of their names  is CE⊆C.
+The set of internal  and external  channels  are mutually  disjoint  and form a partition  of C(C=CI∪CE). In addition,  the 
+bound  of external  channels  is restricted  to 1, i.e., bd(c) =1, for every c∈CE. Moreover,  external  channels  can be either  of a 
+simple  type or of a multi-type,  whereas  internal  channels  are restricted  to simple  types.
+Variables  Let Xbe the set of (global)  variables  and Pa set of parameters.  A typing  function  type:X∪P→BT+assigns  a 
+decorated  basic type to each variable  and parameter:  variables  and parameters  of compound  types are not allowed.  For each 
+variable  parameter  x(parameter  p), the domain  of x(p), in symbols  D(x)(D(p)), coincides  with the domain  D(type(x))
+(D(type(p))) of its type.
+Running  example  (part 4). Let us consider  the machine  of Fig. 2.  The set of basic types are Int, Chnand the enumeration  
+type answer, whose  domain  values  are {refused , accepted }. The external  channels  are C_answerand C_request. The type of 
+the concrete  channel  for C_answeris the enumeration  type answer(the channel  is used to deliver  an answer  to an issued  
+request  in transitions  T02and T03). The type of the concrete  channel  for C_requestis a compound  type consisting  of a pair 
+of channel  type Chn. The channel  C_requestis used to receive  from the environment  a pair of channel  names  (see transition  
+T03) which  will be used to instantiate  the machine  M_ManageTrain , activated  by transition  T05.
+The machine  uses a variable  V_countof type Intwhich  is used to count  the number  of activated  instances  of 
+M_ManageTrain . Moreover,  it has two parameters  P_chFromMMT and P_chToMMT both of type Chnwhich  are used to en-
+dow the instantiated  machine  M_ManageTrain with a couple  of names  of channels  for input and output  communication. /squaresolid
+
+--- Page 12 ---
+We can now introduce  the syntax  of triggers,  guards  and actions  for DSTM  transitions.  Preliminary,  we need to deﬁne  
+the notion  of terms,  which  occur both in the deﬁnition  of guards  and actions.
+Terms  Terms  are freely  constructed  over variables,  parameters,  domains  of basic types (i.e., basic types literals)  and a set 
+Op1of unary  operators  (e.g., ++, −−, ...) and a set Op2of binary  operators  (like, e.g., +, −, ∗, /, ...).
+More formally,  the set of terms  over the parameters  in P, in symbols  Trm P, is deﬁned  as follows
+trm::=x|p|Ti::l|Chn::c|d|len(c)|1trm|trm2trm
+where  x ∈X, p ∈P, l ∈D(Ti), c∈D(Chn), d ∈D(Int), 1∈Op1and 2∈Op2. Notice  that an enumeration  literal  is preﬁxed  
+by its type, and a channel  name is preﬁxed  by type Chn. The term len(c)denotes  the actual  length  of the buffer  associated  
+with channel  c.
+In order to have admissible  term constructions  using unary  and binary  operators  (which,  for simplicity,  are assumed  to 
+have only integer  operands),  we give a type to each term. Terms  with undeﬁned  type are not admissible.  The type Type(trm)
+of a term trmis deﬁned  as follows:
+•Type(x) =type(x)and Type(p) =type(p);
+•Type(Ti::l) =Ti, Type(Chn::c) =Chn, Type(d) =Type(len(c)) =Int;
+•Type(trm12trm2) =Type(1trm1) =Int, if trm1and trm2are of type Int, undeﬁned  otherwise.
+A term is well-typed if its type is deﬁned.  In the following  we assume  that all terms  under  consideration  are well-typed.
+Actions  We deﬁne  now the notion  of action  as a sequence  (possible  empty)  of atomic  actions.  An atomic  action  can 
+take one of the following  forms:  assignment  of a term to a variable;  the sending  of a tuple of values  over a chan-
+nel (γ! /angbracketlefttrm1, ..., trm kγ/angbracketright); reading  (and removing)  a tuple of values  from a channel  and storing  them into variables  
+(γ? /angbracketleftη1, ..., ηkγ/angbracketright); reading  a tuple of values  from a channel  and storing  them into variables  without  altering  the content  
+of the channel  (γ[?] /angbracketleftη1, ..., ηkγ/angbracketright). Each element  of the tuple /angbracketleftη1, ..., ηkγ/angbracketrightis either  a variable,  to which  the corresponding  
+element  within  the message  is assigned,  or the don’t-care  symbol  _t o skip the corresponding  element  within  the message.  
+The set APof atomic  actions  over the set of parameters  Pis, therefore,  deﬁned  as follows:
+act::=x:=trm|γ!/angbracketlefttrm1,..., trm kγ/angbracketright|γ?/angbracketleftη1,...,ηkγ/angbracketright|γ[?]/angbracketleftη1,...,ηkγ/angbracketright
+where  x ∈X, type(x) =Type(trm), γ∈P∪C, type(γ) =Chn, ηi∈X∪{_}and if γ∈C, then type(/hatwideγ) =(Type(trm1), ...,
+Type(trm kc)). Notice  that, since parameters  can be assigned  to a channel  name only at runtime  no static type-checking  can 
+be deﬁned  for these cases.  In addition,  parameters  cannot  be assigned  a value by an action.
+An action  is a sequence  of atomic  actions,  with /epsilon1denoting  the empty  sequence.
+α::=/epsilon1|a;α with a∈act.
+Triggers  A trigger  over Pis a boolean  expression  freely  constructed  from a set of events  (an event is essentially  the 
+availability  of a message  on a channel)  by means  of standard  connectives  using parameters  in the set P. The deﬁnition  is as 
+follows:
+ξ::=τ|γ?|γ?T|ξ∧ξ|ξ∨ξ|¬ξwithγ∈C∪P
+where  τis the silent trigger  (no event is required  for triggering),  while a trigger  of the form γ?( r e s p . ,  γ?T) signals  the 
+presence  of a message  (resp.,  a message  of type T) in channel  γ. An event of the form γ?i s sensed  when a message  is 
+conveyed  in channel  γ, while the event γ?Tallows  to sense whether  a message  of a speciﬁc  type is present  in the channel,  
+in particular  when the type of the channel  is a multi-type.  When  Tis a multi-type,  the trigger  signals  that the channel  γ
+contains  a message  belonging  to one of the types in T.
+Guards  A guard  over a set of parameters  Pis a boolean  expression  freely  constructed  from a set of atomic  guards  by means  
+of boolean connectives.  Let us consider  a concrete  channel  /hatwidecof (simple)  type (BT1, ..., BTk), atomic  guards  of the form c[?/latticetop]
+and c[?⊥]check  whether  the (buffer  of) channel  /hatwidecis full or empty,  respectively.  Moreover,  if trm1, ..., trm k∈Trm∪{_}are 
+terms,  an atomic  guard  of the form c[?/angbracketlefttrm1, ..., trm k/angbracketright]checks  the content  of the message  contained  in the head of (the 
+buffer  of) the channel,  namely,  for all i ∈[1, ..., k], either  trm i=_( t h e  i-th component  of the structured  message  is ignored)  
+or the i-th component  of the message  at the head of channel  /hatwidecis equal to the value of term trm i, which  must be of type 
+BTi. In addition,  an atomic  guard  can compare  the values  of two terms  with respect  to standard  equality  and ordering  
+relations  (if ordering  relations  are considered,  we assume  that terms  are of integer  type).
+The formal  syntax  of guards  is as follows:
+φ::=True|γ[?/latticetop] |γ[?⊥] |γ[?/angbracketlefttrm1,...trm kc/angbracketright] |trm⊙trm|φ∧φ|φ∨φ|¬φ
+where  γ∈C∪Pand ⊙ ∈{ ≥, ≤, =}.
+
+--- Page 13 ---
+Table 3
+Types declared  in the speciﬁcation  of the COMM case study.
+Basic types
+TypeName Domain Description
+bool {true,false} boolean  values
+answer {accepted ,refused } answer  to connection  requests
+area {L0,L1} area ﬁeld of Session  Established
+messages
+ve
+rsion {V0,V1,V2} version  ﬁeld of System  Version
+messages
+r
+egistration {registered ,notRegistered } registration  ﬁeld for Train Registration
+messages
+msgId {SessionEstablished ,Ack,TrainRegistration , values for message identiﬁers
+SystemVersion ,MovementAuthority }
+Compound types
+TypeName Fields Types Description
+M_Request /angbracketleftChn, Chn/angbracketright connection  request  messages:  contains
+a pair of channel  names
+M_SessionEstablished /angbracketleftmsgId, area, Int, Int/angbracketright Session  Established  message:  contains
+two identiﬁers  and two integers
+M_Ack /angbracketleftmsgId, bool/angbracketright acknowledge  messages:  contains  an
+identiﬁer  and a boolean  value
+M_TrainRegistration /angbracketleftmsgId, registration /angbracketright Train Registration  messages:  contain
+an identiﬁer  and a registration  mes-
+sage
+M_SystemVersion /angbracketleftmsgId, version /angbracketright System  Version  messages:  contains  an
+identiﬁer  and a version message
+M_MovementAuthority /angbracketleftmsgId, Int/angbracketright Movement  Authority  messages:  con-
+tains an identiﬁer  and an integer
+Let /Xi1P, /Phi1Pand APbe the syntactic  categories  of triggers,  guardsand actions,  respectively,  over the set Pof parameters.  
+An element  of /Xi1P(resp. /Phi1P, AP) is a trigger  (resp. guard,  action)  expression.
+Terms,  guards,  triggers  and actions  in which  no parameters  occur are called  ground  terms, ground  guards, ground  triggers,  
+ground  actions,  respectively.
+Parameter  substitution  A parameter  substitution function  over ¯P⊆P, is a partial  function  subst ¯P:P/arrowrighttophalfTrm¯Pwhose  domain  is 
+the set of parameters  Pand the range is the set of a terms  over ¯P. Let ϒ¯Pdenote  the set of possible  parameter  substitutions  
+over ¯P.
+Running  example  (part 5). Let us consider  the machine  of Fig. 2.  The transition  T02has: a trigger  C_request?r e q u i r i n g  the 
+presence  of a signal  in the external  channel  C_request; a guard  V_count=4, requiring  that variable  V_countbe equal to 4; an 
+action  C_answer !<answer ::refused >which  transmits  the value answer ::refusedon the external  channel  C_answer. Similarly,  
+the transition  T03has an action  consisting  of the sequentialization  of three atomic  actions:  C_request [?]<V_chFrom ,V_chTo>
+reads the content  of the external  channel  C_requestand assigns  the pair of conveyed  channel  names  to the pair of chan-
+nel variables  V_chFrom and V_chTo; C_answer !<answer ::accepted >transmits  the value answer ::accepted on the external  
+channel  answer; V_count:= ++ V_countis a short hand for action  V_count:=V_count+1, which  increments  variable  V_count.
+The parameter  substitution  function  associated  with transition  T05assigns  the terms  V_chFromand V_chTo(two channel  
+variables)  to the parameters  P_chFromMMT and P_chToMMT , respectively.  /squaresolid
+3.3. ASTS case study:  theCommunication  Procedure
+Now that the syntax  of DSTM  has been discussed,  we close the presentation  of DSTM  modelling  the COMM  Procedure,  
+introduced  in Section2. The complete  speciﬁcation  consists  of ten machines,  the four most relevant  of which  are completely  
+described  here. The machines  are depicted  in F i g s .2 ,3 ,4a n d5 . We start by describing  the data ﬂow speciﬁcation.
+Declaration  of types, variables  and channels  Table 3 reports  the deﬁnitions  and descriptions  of the types that need to 
+be declared  for the speciﬁcation  of the case study.  Two additional  multi-types  are declared  and used to model  ex-
+ternal  channels  that can convey  messages  of different  types to or from the trains.  The ﬁrst multi-type  MT_tois de-
+ﬁned as the set of compound  types {M_SystemVersion , M_MovementAuthority }, while the second  one MT_fromis deﬁned  as 
+{M_SessionEstablished , M_Ack, M_TrainRegistration }.
+Among  the declared  channels,  C_requestis used by RBC to receive  the connection  requests  from the trains.  Each train 
+transmits  on C_requestthe names  of the two channels  used to communicate  with RBC. Channel  C_answeris used by RBC to 
+convey  an answer  to the train request.  In addition,  a pair of multi-type  channels  is used to receive  and send messages  to 
+the i-th train: C_fromTrain _i, typed  as MT_from, and C_toTrain_ i, typed  as MT_to.
+
+--- Page 14 ---
+As already  discussed  in the running  example,  the global  variables  used in the model  are the following:  the channel  
+variables  V_chFromand V_chTo, and the integer  variable  V_count.
+(Step 1) Machine  M _ CommunicationEstablishment (Fig. 2)  The machine  already  presented  in the running  examples  is in charge  
+of modelling  the management  of connection  requests  coming  from the trains  (Step 1 in the COMM  procedure).  When  
+receiving  a connection  request,  the machine  checks  the current  number  of already  connected  trains,  stored  in the variable  
+V_count, and if this number  is lower  then the bound  of 4, then it instantiates  a new machine  M_ManageTrain by entering  the 
+box manageTrain . Variable  V_countis initialized  to zero by the implicit transition  T01, incremented  every time a connection  
+request  is accepted  (transition  T03) and decremented  by transition  T08every time a machine  M_ManageTrain is deactivated.
+Call by defaulttransition  T05activates  an instance  of the machine  M_ManageTrain , and instantiates  its parameters  
+P_chFromMMT and P_chToMMT by assigning  the two channel  names  that are sent over channel  C_request when the con-
+nection  request  is issued.  Note that the control  ﬂow exiting  from the fork pseudonode  is asynchronous  and leads back to 
+the node idle. This means  that the current  instance  of machine  M_CommunicationEstablishment executes  in parallel  with the 
+newly  activated  instance  of M_ManageTrain . Machine  M_CommunicationEstablishment is, therefore,  ready to listen to new train 
+connection  requests  or to manage  a deactivation  of the running  instances  of machine  M_ManageTrain . When  an instance  of 
+the machine  M_ManageTrain terminates  its execution,  the machine  instance  is deactivated  by joining  transitions  T06and 
+T07. The counter  variable  V_countis decremented  accordingly.  As soon as the number  of currently  activated  instances  of 
+M_ManageTrain equals  the upper  bound,  any other request  is refused  (transition  T02).
+(Step 2) Machine  M_M a n a g e Tra i n ( Fig. 4 ) and Machine  M _ SessionEstablishment ( Fig. 5 ) Machine  M_ManageTrain is instantiated  
+by M_CommunicationEstablishment when a train connection  request  is accepted.  This machine  models  the communication  
+with a speciﬁc  train (Step 2 in the COMM  procedure).  Parameters  P_chFromMMT and P_chToMMT are associated  (at instanti-
+ation time) with concrete  names  retrieved  from the multi-type  channels  over which  the train and RBC communicate.  This 
+machine  enters  node idleand, then, instantiates  machine  M_SessionEstablishment , which  models  the session  establishment  
+protocol.  Notice  that machine  M_SessionEstablishment has two parametric  channels,  P_chFromMSE and P_chToMSE , which  are 
+instantiated  by transition  T02with the concrete  channel  names  associated  with parameters  P_chFromMMT and P_chToMMT .
+The called  machine  M_SessionEstablishment sends  the System  Version  message  to the train over the parametric  output  
+channel  P_chToMSE , speciﬁcally  message  version ::V1. Then, it waits for an acknowledgement  message  from the train on 
+the parametric  input channel  P_chFromMSE (node  waitForAck ). Notice  that channel  P_chFromMSE is a multi-type  channel  of 
+type MT_fromthat includes  the type of an acknowledgement  message  M_Ack. Therefore,  in order to check  the presence  
+of an acknowledgement message,  the trigger  used by transition  T03is P_chFromMSE ?M_Ack, requiring  that the multi-type  
+channel  currently  contains  a message  of the speciﬁc  type M_Ack. If the currently  delivered  message  is not of type M_Ack
+(P_chFromMSE ?& & !P_chFromMSE ?M_Ack), the protocol  terminates  reaching  the abortexit node (transition  T02).
+After receiving  the acknowledgement,  the machine  waits for the communication  of a session  establishment  message  
+in node waitForSessEstab . To check  the presence  of the communication  of session  establishment  message,  transitions  T05
+and T06use the trigger  P_chFromMSE ?M_SessionEstablished , requiring  that the corresponding  multi-type  channel  currently  
+contains  a message  of type M_SessionEstablished . Messages  of type M_SessionEstablished are structured  messages  with four 
+ﬁelds (i.e., {msgId, area, Int, Int}). The guards  of transitions  T05and T06constrain  the value of the second  ﬁeld of the 
+message,  requiring  the presence  of the concrete  values  area::L0and area::L1, respectively,  but leaving  unconstrained  the 
+values  of the other ﬁelds (using  the symbol  _). (We recall that area::L0is a code for a train that starts its mission,  whereas  
+area::L1is the code from a train coming  from a non-high-speed area,  and that different  protocols  are required  in the 
+two cases.)  Therefore,  the different  values  of the area ﬁeld lead to different  exit nodes  (somand entry, respectively).  If 
+the currently  delivered  message  is not of type M_SessionEstablished , the protocol  terminates  reaching  the abortexit node 
+(transition  T04).
+At this point,  if the session  establishment  protocol  terminates  in the abortexit node, the instance  of M_ManageTrain
+terminates  its activity  as well. Termination  of the session  establishment  protocol  in the entryor somexit nodes  leads to the 
+activations  of machines  M_Entryand M_StartOfMission , respectively.  This allows  for specifying  the different  procedures  for 
+trains  coming  from non-high-speed area  and trains  starting  their mission,  respectively.
+After termination  of the entry procedures  (M_Entry, for non-high-speed trains,  or M_StartOfMission , for high-speed  ones),  
+Step 2of the  Communication  Management procedure  is concluded  and machine  M_MovAuth is instantiated  in order to give 
+periodically  the MA to the train (Step 3). Notice  that, after the termination  of procedure  M_Entry, machine  M_MovAuth is 
+activated  in its entering  node afterEntry (by the call by entering transition  T06). Otherwise,  it is activated  by a call by default
+(transition  T05), allowing  to record  the area of the connection  establishment.
+(Step 3) Machine  M_M ov Au t h ( Fig. 3 ) Machine  M_MovAuth models  the activities  of Step 3in the communication  management  
+procedure.  As already  mentioned,  it has two entering  modalities.  After the activation,  it starts two parallel  processes  by 
+ﬁring fork transition  T04: an instance  of machine  M_CentralControl , which  checks  for the reception  of commands  from the 
+Centralized  Traﬃc  Control,  and an instance  of machine  M_PeriodicMA , which  periodically  sends  the Moving  Authority  to the 
+train. The two preemptive  joins guarantee  that termination  of one process  forces  the termination  of the other.  For instance,  
+the termination  of machine  M_CentralControl due to a raised  alarm,  forces  the termination  of machine  M_PeriodicMA and 
+
+--- Page 15 ---
+Fig. 4.COMM model: M_ManageTrain .
+Fig. 5.COMM model: M_SessionEstablishment .
+activates  an instance  of machine  M_EmergencyManagement . If the train successfully  ends the trip, machine  M_PeriodicMA ter-
+minates,  causing  the termination  of machine  M_CentralControl and the activation  of an instance  of machine  M_EndOfMission . 
+This last machine  successfully  terminates  the activities  of machine  M_MovAuth . Termination  of machine  M_MovAuth causes,  
+in turn, the termination  of its caller process  that is an instance  of machine  M_ManageTrain .
+4.Semantics  of DSTM
+The evolution  of a DSTM  is deﬁned  as a sequence  of instantaneous  reactions,  called  steps. A step is a maximal  set of 
+transitions  that are triggered  by the current  set of available  events,  namely  messages  conveyed  in the external  channels.  The 
+signals  which  have been communicated  by means  of external  channels  during  the ﬁring of a transition  cannot  trigger  other 
+transitions  in the same step but only in the next one. For this reason,  we distinguish  between  the content  of channels  in 
+the current  step and the content  of external  channels  generated  in the current  step and available  in the next one.
+The central  notion  of the semantics  of a DSTM  is the evaluation  context,  relative  to which  the semantics  of terms,  actions,  
+triggers  and guards  is deﬁned.  An evaluation  context  θis, therefore,  a tuple /angbracketleftρ, χ, η/angbracketright, where
+•ρ:X→D(BT)is the evaluation  function  for the variables  in X;
+•χ:CI∪CE→(D(T) ∪{⊥})∗is the valuation  function  of the internal  and external  channels  for the current  step, assigning
+to each channel  a sequence  of messages  (or ⊥for empty  locations);
+•η:CE→D(T) ∪{ ⊥ }is the valuation  function  for the next step, assigning  to each external  channel  either  a message  or
+the symbol  ⊥when the channel  is empty.
+We denote  with /Theta1the set of evaluation  contexts.
+In the rest of this section  we shall assume  the availability  of the following  three elements:
+•a denotation  function JtrmKθ, which  provides  the evaluation  of a ground  term trmw.r.t. an evaluation  context  θ;
+•a satisfaction  relation |=, such that θ|=βholds if β, a ground  trigger  or a ground  guard,  is satisﬁed  w.r.t. to θ;
+•an action  application  function θα− →θ/primethat maps an evaluation  context  θand a ground  action  sequence  αto a new 
+evaluation  context  θ/prime, the result  from the execution  of that action  on θ.
+
+--- Page 16 ---
+The formal  deﬁnition  of these three elements  is fairly standard  and provided  in the appendix.  The control  ﬂow semantics  
+of DSTM  does not crucially  depend  on how those objects  are actually  deﬁned,  except  for the fact that actions  are assumed  
+to be non-blocking,  i.e., any action  sequence  is always  executable  in any evaluation  context.
+DSTM  allows  for parametric  machines,  whose  parameters  are instantiated  at execution  time when call transitions  are 
+performed.  As opposed  to variables,  parameters  do not hold values  during  the execution.  They serve as placeholders  for the 
+actual  values  that are dynamically  substituted  to the parameters  when a call operation  is executed.  The binding  of param-
+eters to values  is performed  by the parameters  substitution  functions  associated  with the corresponding  call transition.  As 
+a consequence,  the semantics  of a DSTM  is deﬁned  over ground  machines,  i.e. machines,  where  terms  occurring  in actions,  
+triggers  and guards  do not contain  parameters.  Ground  machines  are obtained  from parametric  ones by applying  the ap-
+propriate  parameter  substitutions.  Let us ﬁrst describe  how ground  machines  are obtained  from the parametric  machines  
+contained  in a DSTM.  We shall presents  the notion  of machine  instantiation  ﬁrst, then the semantics  of a ground  DSTM  is 
+provided  as a Labelled  Transition  System  (LTS) composed  of states,  corresponding  to the possible  locations  of the control  
+during  execution,  and transitions,  encoding  the actual  dynamics  of the evolution.
+Machine  instantiation  Let Pbe a set of parameters,  /lscripta ground  parameter  substitution  function  whose  domain  of deﬁnition  
+is Pand the co-domain  is the set of ground  terms,  namely  terms  where  no parameters  occur.  Let trmbe a term such 
+that the set of parameters  occurring  in it, namely  Parms(trm), is contained  in P. We denote  with trm[/lscript]the term obtained  
+from trmby substituting  each occurrence  of every parameter  p ∈Parms(trm)in trmwith J/lscript(p)Kθ, the valuation  of the term 
+associated  with pby the substitution  function  /lscript. Notice  that under  the assumptions  that trmonly contains  parameters  in 
+Pand that /lscriptis a ground  substitution  with domain  P, the term trm[/lscript]is always  ground.  Similarly,  for an action  α(resp.,  
+at r i g g e r  ξ, a guard  φ), we deﬁne  α[/lscript](resp.,  ξ[/lscript], φ[/lscript]) as the action  (resp.,  trigger,  guard)  obtained  from α(resp.,  ξ, φ) by 
+substituting  each term trmoccurring  on α(resp.,  ξ, φ) with trm[/lscript]and each occurrence  of a parameter  p ∈Pin a channel  
+expression  of the form p?/angbracketleft.../angbracketright, p[?]/angbracketleft.../angbracketright, p[?/angbracketleft.../angbracketright]and p!/angbracketleft.../angbracketright, with J/lscript(p)Kθ.
+A parameter  substitution  function  associated  with a call transition  maps parameters  into terms,  which  need not be 
+ground.  For instance,  in Fig. 4the parametric  machine  M_ManageTrain , whose  parameters  are P_chFromMMT , P_chToMMT , 
+has the call transition  T02to machine  M_SessionEstablishment . The parameter  instantiation  function  of this transition  re-
+quires  the substitution  parameter  P_chFromMSE of M_SessionEstablishment with P_chFromMMT , and parameter  P_chToMSE with 
+P_chToMMT . Clearly,  such a substitution  is not ground.  However,  the idea is that when transition  T02actually  ﬁres, the pa-
+rameters  P_chFromMMT and P_chToMMT have been already  replaced  by concrete  values  and the overall  substitution  will be 
+ground.
+To capture  this intuition,  we need to extend  the application  of a ground  substitution  /lscriptto another,  non-necessarily  ground,  
+substitution  /lscript/prime. Let /lscript/primebe a parameter  substitution  and Parms(/lscript/prime)be the set of parameters  occurring  in the terms  contained  
+in the image  of /lscript/prime, i.e., Parms(/lscript/prime) ={p |p ∈Parms(/lscript/prime(p/prime)),f o r p/prime∈P}. Assume,  in addition,  that Parms(/lscript/prime) ⊆P. Then /lscript/prime[/lscript]is 
+a (ground)  parameter  substitution  such that for all p/prime∈P, /lscript/prime[/lscript](p/prime) =/lscript/prime(p/prime)[/lscript], whenever  /lscript/prime(p/prime)is deﬁned.
+In the example  above,  let /lscript ={(P_chFromMMT , V_chFrom ), (P_chToMMT , V_chTo)}be the substitution  associated  with tran-
+sition T05in Fig. 2, which  maps parameters  to corresponding  variables,  and /lscript/prime={(P_chFromMSE , P_chFromMMT ), (P_chToMSE ,
+P_chToMMT )}be the parameter  substitution  associated  with transition  T02in Fig. 4,  of the example  above.  Then, Parms(/lscript) =
+∅, since /lscriptis a ground  substitution,  while Parms(/lscript/prime) ={P_chFromMSE , P_chToMSE }. Therefore,  we have /lscript/prime[/lscript](P_chFromMSE ) =
+J/lscript(P_chFromMMT )Kθ=JV_chFrom Kθ, as expected.  Analogously,  /lscript/prime[/lscript](P_chToMSE ) =JV_chToKθ.
+We can now deﬁne  the ground  instantiation  M[/lscript]of a parametric  machine  Mw.r.t. the parameter  substitution  /lscript, when 
+the set of parameters  occurring  in Mis Parms(M) ⊆P. Formally,  M[/lscript]is the machine  obtained  by substituting  for each 
+action  α, trigger  ξ, condition  φand parameter  substitution  /lscript/primeof Mthe corresponding  ground  object  α[/lscript], ξ[/lscript], φ[/lscript]
+and/lscript/prime[/lscript].
+Given  a DSTM  D =/angbracketleftM1, ..., Mn, X, C, P/angbracketright,
+M(D)={M|M=Mi[/lscript],with i∈[1,..., n]and/lscript∈ϒPi}
+is the set of the possible  ground  machine  instantiations  of the (parametric)  machines  in D.
+Control  tree and states of a DSTM As usual,  formal  semantics  can be provided  by means  of a Labelled  Transition  System  (LTS) 
+which  is a 4-tuple  L =/angbracketleftS, /Sigma1, /Delta1, S0/angbracketright, where:
+•Sis a non-empty  set of states;
+•/Sigma1is a non-empty  alphabet  of labels;
+•/Delta1is a transition  relation,  i.e., a subset  of S×/Sigma1×S;
+•S0⊆Sis a set of initial  states.
+With reference  to a DSTM  D =/angbracketleftM1, ..., Mn, X, C, P/angbracketright(see Deﬁnition  1), a state s ∈Srepresents  the currentstate of Dand 
+includes  the current  control  locations  and the evaluation  context.  The following  abbreviations  are used: N(D) =/uniontextn
+1Niand 
+Bx(D) =/uniontextn
+1Bxi.
+The semantics  of a DSTM  is given as an LTS containing  sequences  of a maximal  set of transitions  (i.e., steps).  As we 
+anticipated,  the messages  generated  during  a step and sent over an external  channel  cannot  trigger  other transitions  in 
+
+--- Page 17 ---
+Fig. 6.Control trees (I).
+the same step. In addition,  a node/box  cannot  be entered  and exited  simultaneously  in the same step (this is however  
+possible  for pseudonodes).  As a consequence,  if a transition  tienters  into a node n(resp. box b) in a step, and a transition  
+tjexits from n(resp. b), then tjcannot  ﬁre in the same step. So, sequential  ﬁring of transitions  is not allowed  within  a 
+step and only transitions  affecting  concurrent  processes  can be performed  within  the same step. Let us consider  ﬁrst the 
+representation  of the current  control  locations  contained  in a LTS state. Such a representation  describes  the currently  active  
+processes  (instantiated  ground  machines),  the activating  processes  (calling  ground  machines)  and for each active  process  
+the current  internal  node. Since a process  can in general  instantiate  several  concurrent  processes  by means  of call transition  
+or a fork transition,  the current  control  information  is represented  by a tree, called  the control  tree, labelled  by machines,  
+boxes  and nodes.
+Running  example  (part 6). Fig. 6depicts  three control  trees, representing  some possible  control  trees for machine  
+M_CommunicationEstablishment of Fig. 2.
+Control  tree (a) describes  the instance  of the machine  currently  in node idle. Control  tree (b) results  from control  tree 
+(a) due to the ﬁring of transition  T03. The asynchronous  fork corresponding  to that transition  runs the current  instance  
+of M_CommunicationEstablishment in parallel  with an instance  of the machine  M_ManageTrain (instantiated  by transition  
+T05, which  is executed  together  with T03), enveloped  in box manageTrain . Machine  M_CommunicationEstablishment is still 
+in node idle, since the internal  branch  of the fork transition  (i.e., transition  T04) leads back to that node. The instan-
+tiated  machine  M_ManageTrain is currently  in node idle. A step further  ahead,  starting  from control  tree (b) and ﬁring 
+concurrently  transition  T03of M_CommunicationEstablishment (again)  and transition  T02of M_ManageTrain , we obtain  con-
+trol tree (c). The ﬁring of call transition  T02of M_ManageTrain activates  an instance  of machine  M_SessionEstablishment
+enveloped  in the box establishment entering  the default  node waitForAck . The (second)  ﬁring of the fork transition  T03
+of M_CommunicationEstablishment launches  (via transition  T05) a second  instance  of machine  M_ManageTrain . Fig. 7depicts  
+three control  trees, representing  the control  trees obtained  by three further  steps starting  from the control  tree (c). In 
+particular,  (d) is obtained  by two parallel  transitions:  T02in the ﬁrst activated  instance  of machine  M_SessionEstablishment
+leading  to abortexit state; T02in the second  activated  instance  of machine  M_ManageTrain leading  to the second  activation  
+of machine  M_SessionEstablishment in its default  node waitForAck . The control  tree (e) is obtained  again by two parallel  tran-
+sitions:  the return  by exiting  transition  T07in the ﬁrst activated  instance  of machine  M_ManageTrain which  deactivates  the 
+ﬁrst activation  of machine  M_SessionEstablishment and leads to an exit node exiting; the internal  transition  T03the second  
+activation  of machine  M_SessionEstablishment leading  to node waitForSessEstab . Finally,  the control  tree (f) is obtained  by two 
+parallel  transitions:  the join transition  T08of machine  M_CommunicationEstablishment , which  deactivates  the ﬁrst activation  
+of machine  M_ManageTrain , and transition  T06in the second  activation  of machine  M_SessionEstablishment , leading  to the 
+exit node entry. /squaresolid
+In general,  the root of a control  tree represents  the highest  level process  (the instantiation  of the starting  machine  
+M_CommunicationEstablishment in the example  above),  the leaves  represent  speciﬁc  nodes  in which  each currently  active  
+process  is waiting,  while internal  vertexes  represent  callers  and called  processes.  If a vertex  of the tree is labelled  by a node 
+or a box of a machine,  then its parent  is necessarily  labelled  by that (ground)  machine.  If a vertex  is labelled  by a machine,  
+then either  it is the root or its parent  is necessarily  labelled  by the box used to instantiate  that machine.
+Following  these ideas we formally  deﬁne  the notion  of control  tree. A labelled  tree Tis a pair /angbracketleftVx, λ/angbracketright, where  Vx⊆N⋆
+is a preﬁx  closed  set of vertexes  (i.e., if n ∈Vxand n/prime≺nthen n/prime∈Vxwith ≺the usual preﬁx  relation  between  strings)  
+and λis a function  labelling  vertexes  over a suitable  alphabet.  The intuition  is that each string  that encodes  a vertex  v ∈Vx
+represents  the path from the root (represented  by the empty  string  /epsilon1) to the vertex  vitself. For instance,  the string  n
+
+--- Page 18 ---
+Fig. 7.Control trees (II).
+represents  the n-th descendant  of the root; the string  n.mcorresponds  to the m-th descendant  of n, and so on. We denote  
+Leaves (T)the set of leaves  of T.
+Deﬁnition  2 (ControlTree).  A Control  Tree CTover a DSTM  Dis a pair /angbracketleftVxct, λ/angbracketright, where
+•Vxctis a tree such that each vertex  is the parent  of at most one leaf;
+•λis a labelling  function  λ :Vxct→M(D) ∪N(D) ∪Bx(D)satisfying  the following  constraints:
+1.λ(/epsilon1) =M1;
+2.n ∈Leaves (Vxct)iff λ(n) ∈N(D);
+3. if n =n/prime.i(i.e., n/primeis the parent  of n) with i ∈N:
+–n ∈Leaves (Vxct)implies  λ(n) ∈Njand λ(n/prime) =Mj, for some j ∈{1, ..., n};
+–n /∈Leaves (Vxct)and λ(n) =bxwith bx∈Bxjimplies  λ(n/prime) =Mj;
+–n /∈Leaves (Vxct)and λ(n) =Mjimplies  λ(n/prime) =bx∈Bxkand joccurs  in Yk(bx), for some k ∈{1, ..., n}.
+Notice  that a vertex  of a control  tree cannot  be labelled  by a pseudonode,  in accordance  with the intuition  that control  
+cannot  steadily  remain  in a pseudonode.  Moreover,  the constraint  requiring  that each internal  vertex  be the parent  of at 
+most one leaf ensures  that a machine  cannot  be in more than one node at the same time.
+A state of a DSTM  collects  the current  control  information  encoded  in a control  tree and an evaluation  context  encoding  
+the current  value of variables  and channels.  Formally:
+Deﬁnition  3 (DSTM  state).  The stateof a DTSM  is a tuple
+/angbracketleftCT,Fr,θ/angbracketright,where:
+1.CTis a control  tree of the DTSM,  which  describes  the current  state of the control  ﬂow;
+2.Fr, the frontierof CT, contains  the vertexes  of CTthat can be source  of transitions  in the current  step;
+3.θ=/angbracketleftρ, χ, η/angbracketrightis an evaluation  context.
+The frontier  Frwithin  a state is the subset  of vertexes  of the control  tree CT, which  can be updated  due to a transition  
+ﬁring in the LTS. The frontier  is used to avoid the ﬁring of sequences  of transitions  in the same step. In fact, in order to ﬁre, 
+a transition  has to exit only from vertexes  belonging  to Fr. When  a transition  of the DSTM  ﬁres, the control  tree and the 
+evaluation  context  are updated,  while the vertexes  corresponding  to the sources  of the transition  are removed  from Fr, so 
+as to keep track of the portion  of CTthat has been already  updated.
+In the following,  for a state s =/angbracketleftCT, Fr, θ/angbracketrightand a guard  φ(resp.,  trigger  ξ), we shall write s |=φ(resp.,  s |=ξ), when 
+θ|=φ(resp.,  θ|=ξ). For an implicit  transition  t∈Tiof a ground  machine  Mi, with source  a pseudonode  pn∈Eni∪{dfi}
+and target  n ∈Ni, we deﬁne  explicitMi(pn) =n.
+The set of initial  states  S0contains  states  of the form /angbracketleftCT0, Fr0, θ0/angbracketright, such that:
+•CT0=/angbracketleftVx0, λ0/angbracketright, where  Vx0={/epsilon1, 1}, λ0(/epsilon1) =M1, λ0(1) =explicitM1(df1);
+•Fr0=Vx0;
+•θ0=/angbracketleftρ0, χ0, η0/angbracketrightis an initialevaluation  context,  where
+
+--- Page 19 ---
+–ρ0gives the initial  (default)  values  of the variables  in X, namely  ρ0(x) =default (type(x))for all x ∈X;
+–χ0assigns  the empty  buffer  /epsilon1to each channel  in CIand a (non-deterministically  chosen)  value,  possibly  /epsilon1itself, to
+each external  channel  in CE;
+–η0assigns  ⊥to each external  channel  in CE.
+As an example,  the control  tree in Fig. 6(a)  is the control  tree of the initial  state of machine  M_CommunicationEstablishment
+of Fig. 2.
+Semantics  of DSTM transitions  In order to provide  the transitions  of the LTS of a DSTM,  we have to generalize  the notion  of 
+DSTM  transition.  Some DSTM  transitions  have sources  and targets  which  are pseudonodes.  This is the case of transitions  (i)
+having  source  in the entering  node of a machine;  (ii)leading  to a fork or join, and (iii)exiting  from a fork or a join. In 
+particular,  a fork can be seen as a hyper  transition  taking  from a source  and leading  to many targets  simultaneously,  being 
+the composition  of a transition  leading  to the fork pseudonode  and many transitions  taking  from that fork. Analogously,  a 
+join transition  can be seen as an hyper  transition  taking  from many sources  and leading  to a target,  being the composition  
+of many transitions  leading  to the join and one transition  taking  from the join pseudonode.  Therefore,  we introduce  a 
+notion  of compound  transition . Given  a machine  Mia compound  transition  of Miis a pair of sequences  of transitions  ct=
+/angbracketleft/angbracketleftt1..., tk/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright/angbracketrightwhere  {t1..., tk, t/prime
+1, ..., t/prime
+d} ⊆Ti. We shall call t1..., tkthe incoming  transitions of ct, and t/prime
+1, ..., t/prime
+d
+the outgoing  transitions of ct. Besides  a trigger  ξ(ct)and a guard  φ(ct), to each compound  transition  two sets of actions  are 
+associated:  the set αpre(ct)collects  the actions  of the transitions  /angbracketleftt1..., tk/angbracketright, while αpost(ct)collects  those of the outgoing  
+transitions  /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright.
+We distinguish  between  three different  types of compound  transitions:
+[simple] having the form ct=/angbracketleft /angbracketleftt/angbracketright, /angbracketleftt/angbracketright/angbracketrightwith ta (non-implicit)  transition  such that Srci(t), Trgi(t) /∈Jni∪Jni×{} ∪Fki∪
+Fki×{ ↓ }; ξ(ct) =ξ(t), φ(ct) =φ(t), and αpre(ct) =∅and αpost(ct) =α(t);
+[join] having the form ct=/angbracketleft /angbracketleftt1..., tk/angbracketright, /angbracketleftt/prime
+1/angbracketright/angbracketrightsuch that there exists  a join pseudonode  jn∈Jniand {t1..., tk}is the set
+of (all) transitions  having  target  either  jnor /angbracketleftjn, /angbracketrightand t/prime
+1is the transition  such that Srci(t/prime
+1) =jn; we deﬁne
+ξ(ct) =k/logicalanddisplay
+i=1ξ(ti), φ(ct) =k/logicalanddisplay
+i=1φ(ti), αpre(ct) =∅, and αpost(ct) =α(t/prime
+1). In addition,  if there is a jsuch that the target
+of tjis /angbracketleftjn, /angbracketright, then ctis a preemptive  join and (ct) =Srci(tj);
+[fork] having the form ct=/angbracketleft /angbracketleftt1/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright/angbracketrightsuch that there exists  a fork pseudonode  fk∈Fkiand {t/prime
+1..., t/prime
+d}is the set
+of (all) transitions  having  source  either  fkor /angbracketleftfk, ↓/angbracketrightand t1is the transition  such that Trgi(t1) =fk; we deﬁne  
+ξ(ct) =ξ(t1), φ(ct) =φ(t1), αpre(ct) ={α(t1)}, and αpost(ct) =/uniondisplay
+1≤k≤dα(t/prime
+k).
+For example,  in machine  M_CommunicationEstablishment of Fig. 2there is an internal  transition  /angbracketleft/angbracketleftT02/angbracketright, /angbracketleftT02/angbracketright/angbracketright(im-
+plicit transitions  are not considered),  there is a compound  fork /angbracketleft/angbracketleftT03/angbracketright, /angbracketleftT04, T05/angbracketright/angbracketrightand a compound  join transition  
+/angbracketleft/angbracketleftT06, T07/angbracketright, /angbracketleftT08/angbracketright/angbracketright.
+Let s =/angbracketleftCT, Fr, θ/angbracketrightand N⊆Frbe a set of nodes  of (the frontier  of) the control  tree of sand ta compound  transition.  The 
+semantics  of transition  trequires  to deﬁne:  (i)when tis enabled  in a given state sof the LTS; and (ii)the subtrees  to add 
+to/remove  from the control  tree of sto obtain  the new state s/prime. Let us consider  in turn these two elements.
+Notice,  ﬁrst, that a (proper)  DSTM  transition  tis enabled  w.r.t. (the frontier  of) a state sonly depending  on the form of 
+its source  node. Given  a state s =/angbracketleftCT, Fr, θ/angbracketright(with CT=/angbracketleftVx, λ/angbracketright), a DSTM  transition  t∈Tiand a vertex  n ∈Vxof the control  
+tree of s, we introduce  a predicate  Enabled (t, n)(meaning  that transition  tis enabled  in vertex  nof the control  tree) and 
+deﬁne  that s |=Enabled (t, n)iff the subtree  of CTrooted  in vertex  nis contained  in the frontier  Frand one of the following  
+conditions,  depending  on the kind of the transition  t, holds:
+[internal transition] Srci(t) ∈Ni, n ∈Leaves (Vx), λ(n) =Srci(t), s |=φ(t)and s |=ξ(t);
+[return by interrupt] Srci(t) ∈Bxi, ξ(t) /negationslash=τ, λ(n) =Srci(t), s |=φ(t)and s |=ξ(t);
+[return by default] Srci(t) ∈Bxi, ξ(t) =τ, λ(n) =Srci(t), s |=φ(t)and if n ·j ·z∈Vxthen λ(n ·j ·z) ∈Ex;
+[return by exit] Srci(t)is of the form (bx, ex), with bx∈Bxi, λ(n) =bx, n ·j ·z∈Vx, for some jand z, with λ(n ·j ·z) =ex, 
+s |=φ(t)and s |=ξ(t).
+Notice  that the condition  requiring  that the subtree  rooted  in nis contained  in the frontier  veriﬁes  that the source  of the 
+transition  has not been generated  during  the current  execution  step and was present  in the control  tree already  at the 
+beginning  of the step. This condition  prevents  the sequential  ﬁring of transitions  within  the same step. Moreover,  in the 
+case of an internal  transition  the source  must be mapped  onto a leaf nof the control  tree. In the case of a return  by 
+interrupt,  the source  is mapped  onto a vertex  nlabelled  by a box and no condition  is required  on the subtree  rooted  in n. 
+In a return  by default,  the source  is mapped  onto a vertex  nlabelled  by a box and each path departing  from vertex  nhas 
+length  2 and ends in an vertex  labelled  by an exit node (all the processes  inside  the box have terminated  their activities).  
+
+--- Page 20 ---
+In a return  by exit, the source  is mapped  onto a vertex  nlabelled  by a box and there is a path departing  from nof length  
+2 and ending  in a vertex  labelled  by the required  exit node (the process  inside  the box has terminated  its activities).
+For instance,  consider  a state swhose  control  tree is the one depicted  in Fig. 7(e). Assume  that vertexes  of the tree 
+are {/epsilon1, 1, 2, 3, 2 ·1, 2 ·1 ·1, 3 ·1, 3 ·1 ·1, 3 ·1 ·1 ·1, ·1}. Assume,  further,  that the guard  and trigger  of transition  T03are 
+satisﬁed  by s(i.e., the value of variable  V_countis less than 4 and  a message  is currently  in channel  C_request). Then, if the 
+subtree  containing  vertex  1i s in the frontier  of s, then s |=Enabled (T03, 1). Similarly,  if the subtree  rooted  at vertex  2i s also 
+contained  in the frontier  of s, then s |=Enabled (T05, 2)as well (a return  by exiting  transitions).  If, however,  state sresults  
+from the execution  of transition  T07of machine  M_ManageTrain applied  to vertex  2i n the current  step, then the subtree  
+rooted  at vertex  2w o u l d  not be in the frontier  of s, as we shall see later in this section.  In this last case, we would  have 
+that s /negationslash|=Enabled (T07, 2).
+Given  a state s =/angbracketleftCT, Fr, θ/angbracketright, a set of vertexes  N={n ·i1, ..., n ·ik}of Vx(kdistinct  children  of vertex  n) and a compound  
+join transition  ct=/angbracketleft /angbracketleftt1, ..., tk/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright/angbracketrightof Mi, we lift the notion  of enabledness  (as introduced  for proper  transitions)
+to compound  transitions  as follows.  Formally,
+s|=Enabled (ct,N)holds iff
+1.λ(n) =Miand:
+2. for  all ¯n∈Nand compound  transition  ct/prime, if N/prime⊆Vx,
+n/prime∈N/primeand n/prime≺¯n(and n/prime/negationslash=¯n), then s /negationslash|=Enabled (ct/prime, N/prime)(no proper  ancestor  of a node in Ncan be involved  in an
+enabled  compound  transition);
+3. if ctis not a preemptive  join, then, for all j ∈{1, ..., k}, s |=Enabled (tj, n ·ij);
+4. if ctis a preemptive  join then, for all j ∈{1, ..., k}:
+•if tj=(ct), then s |=Enabled (tj, n ·ij), and
+•if Src(tj) =(bx, ex), then λ(n ·ij) =bx, otherwise  λ(n ·ij) =Src(tj).
+The ﬁrst condition  requires  that the parent  nof the vertexes  in Nbelongs  to the same machine  Miof the compound  
+transition  ct. The second  condition  ensures  that none of the ancestors  of the vertexes  in Nis involved  in a currently  enabled  
+compound  transition  (in particular,  no ancestors  can be interrupted  in the current  step either  by an interrupt  transition  or 
+by a preemptive  join). This condition  is crucial  as it guarantees  that an interrupting  transition,  enabled  in some internal  
+nodes  of the control  tree, has a higher  priority  over any other transition  enabled  in lower  subtrees.  The third condition  
+requires  that when ctis not a preemptive  join compound  transition,  each “source”  proper  transition  tjof ctbe enabled  in 
+the corresponding  vertex  n ·ij∈N. Finally,  the last condition  for a preemptive  join compound  transition  ctensures  that its 
+source  preemptive  proper  transition  (namely,  (ct)) is enabled,  while for each of the remaining  source  proper  transitions,  
+say tj, it suﬃces  that the corresponding  source  vertex  n ·ij∈Nbe (labelled with)  the source  node of tj.
+Consider  again the example  above,  where  sis a state whose  control  tree (and frontier)  is that of Fig. 7(e). The compound  
+transition  ct=/angbracketleft /angbracketleftT06, T07/angbracketright/angbracketleftT08/angbracketright/angbracketrightof machine  M_CommunicationEstablishment is enabled  in state sat vertexes  1 (labelled with  
+node idle) and 2 (labelled  with box manageTrain ), i.e., s |=Enabled (ct, {1, 2}). Indeed,  no other compound  transition  is en-
+abled in the only ancestor  /epsilon1and both the incoming  transitions  T06and T07of ctare enabled  in s: s |=Enabled (T06, 1)and 
+s |=Enabled (T07, 2).
+The effects  of a compound  transition  correspond  to the changes  of the structure  of the control  tree and of the valuations  
+of the state in which  the transition  is taken.  With each such transition  we, therefore,  associate  a sequence  of trees that will 
+be added  to the current  control  tree, so as to account  for the changes  in the conﬁguration  of the control  ﬂow. Given  a (com-
+pound)  transition  ct=/angbracketleft /angbracketleftt1, ..., tk/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright/angbracketrightof the machine  Mi, we deﬁne  sequence  of trees Trees(ct, s) =/angbracketleftCT1, ..., CTd/angbracketright
+as follows,  depending  on the target  states  of the outgoing  transitions  /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketrightof ct. For each t/prime
+j, with j ∈{1, ..., d}:
+•if Trgi(t/prime
+j) =n ∈N, then the control  tree CTj=/angbracketleftVxj, λj/angbracketright, where  Vxj={/epsilon1}and λj(/epsilon1) =n;
+•if Trgi(t/prime
+j) =(bx, en), then the control  tree CTj=/angbracketleftVxj, λj/angbracketright, where:
+–Vxj={/epsilon1, 1, 1 ·1}and,
+–λ(/epsilon1) =bx, λ(1) =Mh[/lscript], with /lscript =Inst(t/prime
+j), and λ(1 ·1) =nh, where  h =Yi(bx)and nh=explicitMh(en);
+•if Trgi(t/prime
+j) =bx∈Bxi, then the control  tree CTj=/angbracketleftVxj, λj/angbracketright, where:
+–Vxj={/epsilon1} ∪{z|1 ≤z≤|Yi(bx)|} ∪{z·1 |1 ≤z≤|Yi(bx)|}and,
+–λ(/epsilon1) =bx, for each 1 ≤z≤|Yi(bx)|, λ(z) =Mh[/lscriptz], with /lscriptz=(Inst(t/prime
+j))z(the z-th parameter  substitution  function  of
+t/prime
+j), and λ(z·1) =nh, where  hoccurs  in Yi(bx)at position  zand nh=explicitMh(dfh).
+Running  example  (part 7). Fig. 8depicts  the control  trees in Trees(ct1, s)and Trees(ct2, s), for the compound  transitions  
+ct1=/angbracketleft /angbracketleftT03/angbracketright, /angbracketleftT04, T05/angbracketright/angbracketright(see Fig. 2) and ct2=/angbracketleft /angbracketleftT02/angbracketright, /angbracketleftT02/angbracketright/angbracketright(seeFig. 4), and a state s, where  we assume  both transitions  are 
+enabled  having,  for instance,  the control  tree (b) in Fig. 6.
+According  to the deﬁnition  above,  the two control  trees (see Fig. 8(a))  generated  by the execution  of ct1are due to its 
+outgoing  transitions  T04and T05. Since T04leads to a node, the ﬁrst case applies  and a tree containing  a single  vertex  is 
+generated.  Transition  T05is a call by default  transition  to box manageTain , which  corresponds  to machine  M_ManageTrain . 
+
+--- Page 21 ---
+Fig. 8.The trees resulting form the ﬁring the compound transitions /angbracketleft/angbracketleftT03/angbracketright,/angbracketleftT04,T05/angbracketright/angbracketrightinFig. 2and/angbracketleft/angbracketleftT02/angbracketright,/angbracketleftT02/angbracketright/angbracketrightinFig. 4.
+Therefore,  the third case applies  and a tree is generated  where  the root /epsilon1is labelled  by manageTrain , its only child 1i s 
+labelled  by M_ManageTrain and the leaf 1 ·1i s labelled  by explicitM_ManageTrain (df) =idle.
+Similarly,  Fig. 8(b)  contains  the single  tree generated  by the ﬁring of compound  transition  ct2. This is a simple  tran-
+sition containing  a call by default  to box establishment associated  with machine  M_SessionEstablishment . Once again,  the 
+third case above  applies.  This time the root of the tree /epsilon1is labelled  by establishment and its child 1i s labelled  by 
+M_SessionEstablishment . Moreover,  we have a node 1 ·1, labelled  by explicitM_SessionEstablishment (df) =waitForAck . /squaresolid
+In order to account  for the changes  in the control  tree induced  by the ﬁring of a compound  transition,  we introduce  
+suitable  tree transformation  operations.  Given  two trees T=/angbracketleftVx, λ/angbracketrightand T/prime=/angbracketleftVx/prime, λ/prime/angbracketright, a node n ∈Vxand i ∈N, the ﬁrst 
+operation,  T#n·iT/prime, produces  the tree T/prime/prime=/angbracketleftVx/prime/prime, λ/prime/prime/angbracketrightobtained  by substituting  the i-th subtree  of nin T(notice  that such 
+a subtree  may be empty)  with the tree T/prime. Formally,  T/prime/prime=T#n·iT/primeiff, for every node ¯n∈Vx/prime/prime, one of following  conditions  
+holds:
+•either  ¯n∈Vx, n ·i ⊀¯n, and λ/prime/prime(¯n) =λ(¯n);
+•or ¯n=n ·i ·n/prime, for some n/prime∈Vx/prime, and λ/prime/prime(¯n) =λ/prime(n/prime).
+The two main operators,  Remove and Update, are used to delete  subtrees  consumed  by the ﬁring of a transition  and 
+to attach  the new resulting  subtrees.  The operator  Remove (CT, N), for a set of vertexes  Nof CT, removes  from CTall the 
+subtrees  rooted  in the vertexes  in N, while Update (C/prime, n, /angbracketleftCT1, ..., CTk/angbracketright)), for a vertex  nof CT, replaces  kempty  subtrees  of 
+nin CTwith the ktrees occurring  in the sequence  /angbracketleftCT1, ..., CTk/angbracketright. We deﬁne  Remove (CT, N)as the control  tree CT/prime=/angbracketleftVx/prime, λ/prime/angbracketright
+where  all the nodes  of Vxcontained  in the subtree  rooted  in some node of Nhave been removed,  while preserving  the 
+same labelling  as CTon the remaining  nodes.  Formally,  CT/primemust satisfy  the following  two conditions:
+•n ∈Vx/primeiff n ∈Vxand n/prime/notprecedesoreqln, for all n/prime∈N;
+•λ/prime=λ/harpoonupright|Vx/prime, where  λ/harpoonupright|Vx/primedenotes  the restriction  of λto Vx/prime.
+In addition,  we deﬁne  the operator  Update (CT, n, /angbracketleftCT1, ..., CTk/angbracketright)) inductively  as follows:
+•Update (CT, n, /epsilon1)) =CT;
+•Update (CT, n, /angbracketleftCT1, ..., CTk/angbracketright)) =Update ((CT#n·iCT1), n, /angbracketleftCT2, ..., CTk/angbracketright)), where  iis the smallest  number  such that n ·i /∈
+CT.
+The ﬁrst condition  sets the base case: updating  CTat node nwith the empty  sequence  /epsilon1of control  trees leaves  CT
+unchanged.  According  to the second  condition,  CTis updated  at node nby ﬁrst inserting  the control  tree CT1in place of 
+the ﬁrst empty  subtree  of n, thus obtaining  the tree (CT#n·iCT1), and then recursively  updating  the resulting  tree with the 
+remaining  sequence  of trees.
+Finally,  we have to suitably  account  for the data ﬂow induced  be the ﬁring of a (compound)  transition.  For a transition  t∈
+Ti, we introduce  the notion  of implicit  actions αimpl(t)as the set of actions  associated  with the possible  implicit  transitions  
+triggered  by the execution  of t. In particular,  if tperforms  a call operation,  namely  the target  of tis a box or a pair of 
+the form (b, en), the implicit  transitions  starting  from each default  node dfMof the machines  associated  with bby Yi(b)
+or from the implicit  node enare all executed  immediately  after t. Therefore,  the action  performed  by each such implicit  
+transition  must be executed  immediately  after the action  of the transition  t. Examples  of such implicit  transitions  are the 
+transitions  T01and T02of machine  M_MovAuth , triggered  by the ﬁring of transitions  T05and T06, respectively  of machine  
+M_ManageTrain (see Figs. 3 and 4).
+
+--- Page 22 ---
+Observe  that, when the call box contains  more than one machine,  several  implicit  transitions  may be triggered  by the 
+execution  of t. For this reason,  the implicit  action  of tis deﬁned  as a set of actions.  More formally:
+αimpl(t)=⎧
+⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎩/braceleftBigg
+α(t/prime)/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleSrcj(t/prime)=dfMjand
+joccurs in Yi(b)/bracerightBigg
+ifTrgi(t)=b∈Bxi;
+{α(t/prime)}ifTrgi(t)=(b,en)
+and Srcj(t/prime)=en;
+∅ otherwise.
+Notice  that, for t∈Ti, the set αimpl(t)contains  actions  associated  with transitions  of another  machine,  therefore  it may still 
+contain  non-ground  actions,  even when Miis a ground  machine.
+We can now provide  the semantics  of compound  transitions  ct=/angbracketleft /angbracketleft t1, ..., tk/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright/angbracketrightw.r.t. a state s =/angbracketleftCT, Fr, θ/angbracketright.
+Assume  ctis enabled  at s, i.e., there is a set of nodes  of the frontier  Frthat are all children  of the same node n ∈Fr, and 
+such that s |=Enabled (ct, N). The nodes  in Nare labelled with  the sources  of the incoming  transitions  /angbracketleftt1, ..., tk/angbracketrightof ct. 
+A successor  state s/primeof sis obtained  by ﬁrst removing  from CTand from Fr(using  the operator  Remove) all the subtrees  
+of nrooted  in the source  nodes  in N, and by adding  (using  the operator  Update) the control  trees in Trees(/angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright)as
+additional  children  of n. These  operations  take care of modiﬁcation  of the control  tree at state s.
+To account  for the modiﬁcation  data ﬂow at s, we have to consider  the effects  on the evaluation  context  θof the 
+actions  of the compound  transition  ct, which  results  in the evaluation  context  θ/primeof the target  state s/prime. As explained  above,  
+the action  of a compound  transition  ctconsists  of a pair of sets /angbracketleftαpre(ct), αpost(ct)/angbracketrightof actions  associated  with the DSTM  
+transitions  composing  ct, where  αpre(ct)is the set of actions  performed  by the incoming  transitions  of ctand αpost(ct)the 
+set containing  those performed  by the outgoing  DSTM  transitions  of ct. Clearly,  the execution  of a compound  transition  may 
+involve  the parallel  execution  of multiple  incoming  transitions,  possibly  followed  by the parallel  execution  multiple  outgoing  
+transitions.  Hence,  we need to take into consideration  the different  possible  orderings  of execution  of the actions  of those 
+transitions.  In other words,  any permutation  of the actions  of the incoming  transitions  followed  by a permutation  of the 
+actions  of the outgoing  transitions  is a possible  outcome  for the execution  of the action  of the compound  transition.
+Let us consider  ﬁrst a fork compound  transition  of the form /angbracketleft/angbracketleftt/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+k/angbracketright/angbracketright. Then, αpre(ct) =∅(no action  is allowed
+for the incoming  transition  t) and αpost(ct)collects  the actions  of the outgoing  DSTM  transitions  /angbracketleftt/prime
+1, ..., t/prime
+k/angbracketright. All those
+transitions,  with the possible  exception  of the asynchronous  fork transition,  must be call transitions  and, by the constrains  
+of a fork transitions,  all the called  box must contain  a single  machine.  Let bjbe the box called  by transition  t/prime
+1and Mbjthe
+(parametric)  machine  associated  with bj. On entering  that box, either  the implicit  transition  from the default  pseudo-node  
+(call by default)  or from one of its entering  nodes  (call by entering)  is taken and let tjbe such a transition.  The ﬁring of t/prime
+j
+must perform  the action  α/prime
+jof transition  t/prime
+jimmediately  followed  by the single  implicit  action  contained  in αimpl(t/prime
+j) ={αj}
+due to the implicit  transition  tj. In other words,  the execution  of t/prime
+jtriggers  the execution  of the sequence  of actions
+α/prime
+j; αj. Since the transitions  /angbracketleftt/prime
+1, ..., t/prime
+k/angbracketrightare executed  concurrently,  the sequences  of actions  executed  for j ∈[1, ..., k]can
+be executed  in any order.
+Consider  the case where  ctis a join compound  transition  /angbracketleft/angbracketleftt/prime
+1, ..., t/prime
+k/angbracketright, /angbracketleftt/angbracketright/angbracketrightand tis a call transition.  In this case, since
+no action  is associated  with the incoming  transitions  /angbracketleftt/prime
+1, ..., t/prime
+k/angbracketright, the only possible  actions  are due to the outgoing  call
+transition  tand to the possible  implicit  transitions,  one for each machine  associated  with the box called  by t, if tis indeed  a 
+call transition.  These  implicit  transitions  are executed  in parallel  and any permutation  of them can occur.  As a consequence,  
+the actions  executed  in this case consist  of the action  αof transition  tfollowed  by any permutation  of the implicit  actions  
+in αimpl(t), associated  with those implicit  transitions  (if tis not a call transition  then αimpl(t) =∅). Similar  considerations  
+also apply when ctis a simple  compound  transition  /angbracketleft/angbracketleftt/angbracketright, /angbracketleftt/angbracketright/angbracketright, where  the DSTM  transition  tis a call transition.
+In all the cases considered  above,  the implicit  actions  may still contain  parameters,  since they are associated  with implicit  
+transitions  belonging  to machines  different  from the one where  the compound  transition  ctis taken.  Therefore,  they all must 
+be instantiated  with the appropriate  parameter  instantiation  function  associated  with the call transitions  involved.
+The intuitions  above  are formalized  by the following  deﬁnition  of transition  relation.  Given  a state s =/angbracketleftCT, Fr, θ/angbracketrightand a 
+compound  transition  ct=/angbracketleft /angbracketleftt1, ..., tk/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright/angbracketrightof machine  Mi, we have that
+/angbracketleftCT,Fr,θ/angbracketrightct−→/angbracketleftCT/prime,Fr/prime,θ/prime/angbracketrightiff
+there exist a vertex  nand a set N⊆Frof children  of nin the frontier  of ssuch that:
+1.s |=Enabled (ct, N);
+2.CT/prime=/angbracketleftVx/prime, λ/prime/angbracketright =Update (CT/prime/prime, n, Trees(/angbracketleftt/prime
+1, ..., t/prime
+d/angbracketright))and CT/prime/prime=/angbracketleftVx/prime/prime, λ/prime/prime/angbracketright =Remove (CT, N);
+3.Fr/prime=Remove (Fr, N);
+4.θα1;α2−−−→ θ/prime, where  α1=αpre(ct)and
+(a) if ctis a fork compound  transition  of the form /angbracketleft/angbracketleftt/angbracketright, /angbracketleftt/prime
+1, ..., t/prime
+k/angbracketright/angbracketright, then α2is a permutation  of the set of actions
+/braceleftBig
+α(t/prime
+j);α[/lscriptj]|j∈[1,..., k],αimpl(t/prime
+j)={α}and/lscriptj=Inst(t/prime
+j)/bracerightBig
+;
+
+--- Page 23 ---
+Fig. 9.Simulation of three steps. ( Mis for M_ManageTrain and M/primeforM_SessionEstablishment .)
+(b) if ctis a join compound  transition  of the form /angbracketleft/angbracketleftt1, ..., tk/angbracketright, /angbracketleftt/angbracketright/angbracketrightor a simple  transition  of the form /angbracketleft/angbracketleftt/angbracketright, /angbracketleftt/angbracketright/angbracketright, then 
+α2=αpost(ct); α, where,  if tis a call transition  to box b, then αis a permutation  of the set
+/braceleftBigg
+α(¯tj)[/lscriptj]/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleα(¯tj)∈αimpl(t),j∈[1,...,| Y(b)|],Srcz(¯tj)=dfMz,
+z=(Y(b))jand/lscriptj=(Inst(t))j/bracerightBigg
+and α=/epsilon1, otherwise.
+When  no more transitions  of the current  step can be performed  on CT(depending  on the values  of variables,  channels  
+contents,  control  tree and frontier),  the LTS has a transition  corresponding  to the completion  of the current  step and the 
+initialization  of the next step:
+/angbracketleftCT,Fr,θ/angbracketrightnext− −→/angbracketleftCT,Fr/prime,θ/prime/angbracketright
+where  Fr/prime=T, CT=/angbracketleftT, λ/angbracketright, θ=/angbracketleftρ, χ, η/angbracketrightand θ/prime=/angbracketleftρ, χ/prime, ∅/angbracketrightsuch that:
+•for all c∈CI, χ/prime(c) =χ(c), and
+•for all c∈CE, χ/prime(c) ∈{/epsilon1} ∪D(c)and if η(c) /negationslash= ⊥then χ/prime(c) =/angbracketleftη(c)/angbracketright.
+Running  example  (part 8). Fig. 9exempliﬁes  three distinct  steps of the running  example.  In the initial  state machine  
+M_CommunicationEstablishment is located  in state idle. We assume  that in that state the compound  transition  ct1=
+/angbracketleft/angbracketleftT03/angbracketright, /angbracketleftT04, T05/angbracketright/angbracketrightis enabled  at the set of nodes  {1}, with λ(1) =idle. The ﬁring of that compound  transition  generates  
+the two control  trees in Fig. 8(a).  According  to condition  2. above,  we ﬁrst remove  the subtree  rooted  in the vertex  labelled  
+idlefrom the control  tree, and then append  as children  of its parent  the root /epsilon1and the two trees in Fig. 8(a). This results  in 
+the second control  tree from the left in Fig. 9.  This completes  the step, since both the new added  leaves  (both labelled  by 
+idle) do not belong  to the frontier.  Therefore,  a new step is initialized.
+In the second  step, two compound  transitions,  namely  ct2=/angbracketleft /angbracketleft T02/angbracketright, /angbracketleftT02/angbracketright/angbracketrightand again ct1, are enabled.  The ﬁring of ct1, 
+similarly  to the previous  case, ﬁrst removes  the subtree  rooted  in the vertex  labelled  idle, and then adds the two control  
+trees in Fig. 8(a)  as children  of the root. Since the subtree  rooted  in vertex  2i s in the frontier,  transition  ct2can ﬁre in the 
+same step after the ﬁring of ct1. The ﬁring of transition  ct2removes  the leaf of the subtree  rooted  in 2 labelled  by idle, and 
+appends  the control  tree in Fig. 8(b)  to vertex  2 ·1 ·1. The resulting  control  tree is the third control  tree in Fig. 9.  Notice  
+that the two transitions  could be executed  in any order.  At this point,  the second  step is maximal,  as none of the leaves  in 
+the resulting  control  tree belongs  to the frontier  and the third step can be initialized.
+In the third step we assume  that transition  ct1is not enabled  (for instance  because  its trigger  does not hold),  whereas  
+transition  ct2is enabled  in the leaf of the path rooted  in vertex  3. Moreover,  we assume  that the compound  transition  
+ct3=/angbracketleft /angbracketleftT02/angbracketright, /angbracketleftT02/angbracketright/angbracketright, with T02the transition  of machine  M_SessionEstablishment , is enabled  in the leaf labelled  by waitForAck . 
+As in the previous  case, those two transitions  can ﬁre in any order,  leading  to the last control  tree in Fig. 9.  Now the only 
+leaf of the control  tree still in the frontier  is the vertex  labelled  by idle. Since we have assumed  that the trigger  C_request?
+
+--- Page 24 ---
+does not hold, transition  T02of machine  M_CommunicationEstablishment cannot  ﬁre. Moreover,  the compound  transition  
+ct4=/angbracketleft /angbracketleft T06, T07/angbracketright, /angbracketleftT08/angbracketright/angbracketrightis not enabled  to ﬁre either,  since T07is not enabled  in the considered  state, hence  this step is 
+maximal  and the next step starts.  /squaresolid
+5.From DSTM  to Promela
+The DSTM  formalism  has a great expressive  power  and can be used in different  stages  of the system  life-cycle,  spanning
+from speciﬁcation  to veriﬁcation  and validation.  It can also be used as a source  formalism  to derive  formal  models  expressed  
+with different  lower-level  formats,  so as to enable  property  veriﬁcation  and/or  test case generation.  In particular,  we devel-
+oped an automated  process  to derive  models  expressed  in Promela,  the speciﬁcation  language  supported  by the Spin model  
+checker [22]. Even though  our approach  is not tied to any speciﬁc  technology,  we had to take a speciﬁc  direction  within  the 
+CRYSTAL  project,  where  our ultimate  goal is to develop  a process  for automated  test case generation,  exploiting  the model  
+checkers’  ability  to generate  counterexamples  for violated  properties.  Among  the available  model-checking  back ends, we 
+chose  Spin, as it supports  many of the control  ﬂow and data ﬂow constructs  contained  in the DSTM  formalism,  such as 
+buffered  message  passing,  communication  via shared  memory  and dynamic  instantiation  of processes.  These  features  make 
+Spin a natural  choice  to tackle  the problem  at hand. In addition,  Spin is a well known  on-the-ﬂy  model  checker,  able to 
+handle  eﬃciently  problems  of large size.
+The objective  of this section  is to present  the main issues  underlying  the mapping  from DSTM  to Promela,  and explain  
+how the step semantics  is realized  by means  of a dedicated  Promela  process,  called  Engine, which  is also responsible  
+for modelling  the non-deterministic  external  environment  of the system  under  consideration.  This section  focuses  on the 
+translation  of the DSTM  control-ﬂow,  with particular  attention  to the dynamic  instantiation  of machines,  concurrency  issues  
+and machine  preemptive  termination.  The crucial  issues  concerning  the binding  of the data-ﬂow  constructs  with Promela  is 
+also sketched.  A detailed  discussion  about  this binding  is, however,  out of the scope  of this paper.
+We show that the mapping  from DSTM  machines  to Promela  is fully automatable.  To this end, we propose  a chain of 
+model  transformations,  in part implemented  in the ATLAS  language [23]and in part in Java. At the time of writing,  a ﬁrst 
+version  of the required  transformations  is available.
+The transformation  into Promela  is performed  in two steps. The ﬁrst step converts  a DSTM  model  into classic  (ﬂat) state 
+machines,  by getting  rid of the hierarchical  structure  (the vertical  modularity)  and suitably  rewriting  machine  instantiation,  
+termination  and the horizontal  modularity  (i.e., parallelism).  This ﬁrst step is essential,  since Promela  does not support  
+hierarchical  speciﬁcations.  The second  step, instead,  transforms  the resulting  state machines  into an actual  Promela  model.  
+The two steps are described  below.
+5.1. Step 1: from DSTM to ordinary  state machine
+In this step all fork and join pseudonodes  and the boxes,  which  envelop  inner machines  inside  the DSTM  model,  are 
+removed.  The removed  elements  are substituted  by nodes  and transitions,  which  are also used to model  activation  and 
+termination  of machines.  Nodes,  implicit  transitions  and internal  transitions  in the source  DSTM  are left unchanged,  as they 
+correspond  to elements  that can easily  be encoded  in Promela.
+As we will describe  later with more details,  each machine  is translated  into a Promela  processtype, and an instance  of a 
+machine  corresponds  to a Promela  process.  A unique  identiﬁer  is associated  to each process  and recorded  at creation  time 
+in a variable  named  pid. The identiﬁers  of the DSTM  nodes  in which  the active  instances  of the same machine  Mcurrently  
+reside,  are recorded  in a vector  state_M, indexed  by the process  identiﬁers.  The size of such vector  is, therefore,  equal to 
+the maximum  number  of processes  that can run concurrently  in the system.
+When  removing  a box, three different  situations  may occur,  depending  upon the source  and target  of the transitions  
+entering  and exiting  from the box (see Table 2in Section3for possible  cases).  Hence,  we distinguish  three different  mapping  
+schemata  for boxes:
+1.simple box: the source  of the transition  entering  the box is either  another  box or a node;
+2.async hronous  fork: the source  of the transition  entering  the box is a fork pseudonode  and an asynchronous  transition
+exists  from the fork pseudonode  to a node;
+3.sync hronous  fork: the source  of the transition  entering  the box is a fork pseudonode  and no asynchronous  transition
+exits the fork pseudonode.
+Simple  box In this case all the boxes  are removed  and substituted  by nodes  having  the same name.  The transitions  enter-
+ing and exiting  from the boxes  are substituted  with transitions  entering  and exiting  from the corresponding  nodes.  Such 
+transitions  inherit  all the component  of the decorations  of the original  transitions.  However,  in order to model  the call and 
+termination  operations  of the machines  associated  with the original  boxes,  such decorations  need to be augmented  with 
+additional  actions  and guards.
+Let us consider  entering  transitions  ﬁrst. The guard  is preserved  as in the original  transition.  However,  two actions  
+need to be added.  A ﬁrst action  performs  the activation  of the machine  and involves  a special  construct  run, which  
+corresponds  to the Promela  instruction  with the same name that performs  process  activations.  This action  has the 
+
+--- Page 25 ---
+Fig. 10.Flattening of machine M_ManageTrain .
+form run Machine _Name(parameter list ), where  Machine _Nameis the name of the machine  associated  with the replaced  
+box. The runconstruct  returns  a process  identiﬁer  which  is stored  in the variable  pid. The second  action  is responsi-
+ble for initializing  the initial  state of the activated  machine  (either  the default  or an entering  node)  and has the form 
+state_MachineName [pid] =init−state. If more than one machine  is associated  with a box, a sequence  of such actions  is 
+used.
+This is illustrated  in Fig. 10, where  the result  of the ﬂattening  of machine  M_ManageTrain of Fig. 4,  is reported,  where  the 
+four boxes  of that machine  are replaced  by four nodes.
+In Fig. 4transitions  T02, T03, T04and T05are call by defaulttransitions,  whereas  T06is a call by entering transition  which  
+speciﬁes  the entering  node afterEntry of machine  M_MovAuth .
+In Fig. 10only transitions  T02, T03and T06are fully detailed,  for sake of space.
+T02activates the machine  M_SessionEstablishment , hence  its decoration  is modiﬁed  by adding  the action:
+pid:=run M_SessionEstablishment (parameter list )
+In addition,  the position  pidof the vector  state_M_SessionEstablishment is initialized  to the default  entering  node initial. 
+Notice  that, as T06is a call by entering transition,  the initial  state of the machine  M_MovAuth is assigned  to the entering  
+node afterEntry .
+The parameter  list within  a runconstruct  contains  all the parameters  of the original  box (as speciﬁed  by the domain  of 
+the instantiation  function  Instof the box). Additional  parameters  are, however,  needed  to correctly  model  the termination  of 
+the called  machines.  In particular,  for each machine  with nexit nodes,  n +1internal channels  are introduced.  With each exit 
+node of MachineName an exit channel chTerm _BoxName _MachineName _ExitNodeName is associated.  Each of these channels  is 
+used by the called  process  to signal  its caller the reaching  of the corresponding  exit node. Moreover,  the additional  termi-
+nation  channel chTerm_BoxName _MachineName is used by the caller to issue a termination  signal  to the called  MachineName , 
+after it has reached  an exit node.
+Fig. 10 exempliﬁes  the termination  of the machine  instance  M_SessionEstablishment , by detailing  the return  by exiting
+transitions  T03and return  by defaulttransition  T06of Fig. 4. For example,  the parameter  list of the runconstruct  for transition  
+T02, instantiating  machine  M_SessionEstablishment , contains  four channels:  one for each exit node of the machine,  plus the 
+channel  used by the caller M_ManageTrain to send the termination  message.
+Let us now consider  the transitions  exiting  from a box. Each of them is replaced  by a suitable  transition  exit-
+ing from the node replacing  the box. If the original  transition  is a return  by exiting,  then the transition  must be 
+taken only if the called  machine  has terminated.  Therefore,  the decoration  of the replacing  transition  must also check  
+that an exit message  has been sent over the channel  associated  with that exit node ExitNodeName . Hence,  the guard  
+chTerm_BoxName _MachineName _ExitNodeName ? <1 >is added  in conjunction  to the guard  of the original  replaced  tran-
+sition.  If, on the other hand, the transition  is a return  by default,  then it can be taken as soon as the called  process  has 
+reached  any exit node. In this case, the guard  of the transition  is augmented  with the disjunction  of all the guards  of the 
+form chTerm_BoxName _MachineName _ExitNodeName ? <1 >, one for each exit node. In either  case, when the transition  is 
+taken,  the called  must terminate.  This is achieved  by executing  an action  where  the caller sends  a termination  message  over 
+channel  chTerm_BoxName _MachineName to the called  process.
+
+--- Page 26 ---
+Fig. 11.Flattening of machine M_CommunicationEstablishment .
+In Fig. 10 a condition  is added  on transition  T03that checks  for the reception  of the notiﬁcation  message  from 
+M_CommunicationEstablishment over the channel  associated  to the exit node entry. Two actions  are added  on T03: the ﬁrst 
+models  the transmission  of the termination  message  from M_ManageTrain to M_SessionEstablishment , the latter is needed  to 
+consume  the message  on the same channel  (as it is an internal  channel).  The same holds for transition  T06.
+Notice  that, as T06is a return  by defaulttransition,  all the exit nodes  of the terminating  machine  must be considered.  In 
+this speciﬁc  case machine  M_Entryhas just one exit node and only the condition  chTerm_entry_M_Entry[? <1 >]is added  to 
+the guard.
+Asynchronous  fork In case of an asynchronous  fork, the calling  process  continues  to run concurrently  with the invoked  
+machines.  Since,  by well-formedness  (see Section3), every join transition  is always  paired  with a previous  fork transition,  we 
+can consider  each pair of fork and join transitions  as a single  block.  In addition,  the control-ﬂow  between  the two transitions  
+is entirely  contained  within  the boxes  entered  by the fork, i.e., the fork enters  a set boxes  and the return  transitions  from 
+those boxes  lead directly  to a corresponding  join. Remember  that a transition  exiting  from a fork pseudonode  can specify  
+neither  trigger  nor condition,  it may, however,  perform  an action.  According  to the DSTM  semantics  (see Section 4), the 
+actions  associated  with the transitions  exiting  from a fork pseudonode  can be executed  in any order.
+Therefore,  the entire  block,  containing  the fork, a corresponding  join and the called  boxes,  is removed  and substituted  by 
+suitable  internal transitions.  Some of these internal transitions  model  the fork operation  and lead from the source  node of 
+the fork to the target  of the asynchronous  fork transition.  These  transitions  take care of modelling  the possible  permutations  
+of the actions  associated  with the transitions  exiting  from the fork pseudonode  (see case 4.a in the semantic  of compound  
+transitions  in Section 4). Similarly,  to model  the join operation  we need to add one or more internal  transitions,  depending  
+on whether  the considered  join is non-preemptive  or preemptive.  Each such transition  leads from the source  node of the 
+fork to the target  of the join.
+Let us consider  the transitions  modelling  the fork ﬁrst. The decoration  of each such new transition  is obtained,  similarly  
+to the case of a simple  boxdescribed  above,  by keeping  the same guard  and trigger  of the entering  fork transition,  and 
+adding  to the actions  the corresponding  runconstructs  that activate  the called  machines.
+This situation  is exempliﬁed  in Fig. 11 for machine  M_CommunicationEstablishment , described  in detail in Section 3.1
+and depicted  in Fig. 2.  In this case, box M_ManageTrain is removed  and transitions  T03, T04and T05are replaced  by the 
+single  transition  T03_T04_T05from the source  node of the internal  entering  forktransition  T03to the target  node of the 
+internal  asynchronous  forktransition  T04exiting  from the fork. As node idleis both the source  and the target  node of this 
+transition,  the new transition  forms  a self-loop  on that node. The trigger  and the condition  of T03are inherited  by transition  
+T03_T04_T05. The action  on the new transition  includes  all the actions  on the original  transitions  and, in addition,  the actions  
+needed  for the activation  of the machine  inside  the box. Since only transition  T03has an associated  action,  a single  new 
+transition  is required  in this case. Notice  that node idlein Fig. 2has been renamed  idle_manageTrain in order to keep track 
+of the removed  box.
+Remember  that an exiting  jointransition  can specify  neither  a trigger  nor a condition,  but it may have an associated  
+action.  On the contrary,  no transition  entering  the join can have actions.
+If the join is non-preemptive,  it is replaced  by a single  internal transition  with no trigger  and a guard  checking  for the 
+termination  of all the machines  associated  with the joined  boxes.  The action  of the transition  must include  the action  of 
+exiting  jointransition  as well as the actions  necessary  to deal with the termination  of the joined  boxes,  similarly  to the 
+simple  boxcase described  above.
+In case of preemptive  join, namely  if at least one preemptive  entering  joinis present,  each entering  joincan trigger  the 
+termination  of all the other parallel  machines,  regardless  of their current  state. In this case, we need a distinct  internal
+transition  for each preemptive  entering  join. The internal transition  inherits  the same trigger  as the original  entering  join. 
+Guards  and actions  are treated  as in the non-preemptive  case.
+
+--- Page 27 ---
+Fig. 12.Flattening of machine M_MovAuth .
+In Fig. 11, transition  T06_T07_T08replaces  the non-preemptive  join transitions  T06, T07and T08. The actions  on this 
+new transition  include  those speciﬁed  on the exiting  jointransition  T08. The guard  is chTerm_manageTrain _M_ManageTrain _
+exit[? <1 >], checking  for the reception  of the exit message  from machine  M_ManageTrain . The action  associated  with 
+transition  T06_T07_T08is the action  of transition  T08(V_Cont:= − −V_Cont) followed  by the consumption  of the 
+exit message  from M_ManageTrain and the sending  of the termination  message  toM_ManageTrain along channel  chTerm_
+manageTrain _M_ManageTrain .
+Synchronous  fork In case of a synchronous  fork the currently  executing  process  is suspended  to wait for the termination  of 
+the called  machines.  In this case, the entire  block,  containing  the fork, the join and the boxes,  is substituted  with a new 
+node (called  waitnode),  which  models  the state of the suspended  calling  process.  In addition,  the transitions  in the block 
+are replaced  by a set of internal transitions  to and from the waitnode.
+The internal transition,  modelling  the fork operation  from the source  of the fork to the waitnode, is deﬁned  as in the 
+case of the asynchronous  forkillustrated  above.  The ones from the wait node to the target  of the join, modelling  the join 
+operation,  are deﬁned  precisely  in the previous  case.
+This construction  is exempliﬁed  in Fig. 12on machine  M_MovAuth , depicted  in Fig. 3and described  in detail in Sec-
+tion3.1. The state machine  in the ﬁgure  is obtained  by removing  the two boxes  that activate  machines  M_CentralControl and 
+M_PeriodicMA . Those  boxes  are replaced  by the waitnode named  centralManag _periodicMA .
+Transitions  T04, T05and T06are replaced  by transition  T04_T05_T06, whose  decoration  is not completely  reported  in the 
+ﬁgure.  Its action  performs  the instantiation  of the two machines  M_CentralControl and M_PeriodicMA by means  of suitable  
+runconstructs,  according  to the mapping  rules explained  above.
+Transitions  T07, T09and T11are replaced  by the internal transition  T07_T09_T11, while transitions  T08, T10and T12are 
+replaced  by transition  T08_T10_T12.
+The example  allows  us to illustrate  an instance  of a preemptive  join. In fact, the transition  T07(resp.,  T10) in Fig. 3is 
+preemptive.  The guard  of transition  T07_T09_T11(resp.,  T08_T10_T12) holds when the exit message  is received  from the 
+machine  M_CentralControl (resp.,  M_PeriodicMA ) on channel  chTerm_centralManag _M_CentralControl _ues. The suspended  caller 
+wakes  up and sends  the termination  message  to the machines  M_CentralControl (on chTerm_centralManag _M_CentralControl ) 
+and M_PeriodicMA (on chTerm_periodicMA _M_PeriodicMA ).
+5.2. Step 2: Promela  encoding
+Below  we describe  how the data ﬂow and the control  ﬂow of the ﬂat model,  obtained  in the previous  section,  is trans-
+lated into Promela.
+Translating  datatypes  Table 4 reports  the mapping  between  DSTM  types,  variables  and channels  into their Promela  equiva-
+lents. The mapping  of most of the DSTM  types and variables  is quite straightforward,  the only exception  is the translation  
+of DSTM  channels  which  are mapped  into global  Promela  channels.
+As for internal  channels,  the size of the buffer  is equal to the boundof the corresponding  DSTM  channels.  The type of 
+the messages  conveyed  on internal  channels,  with the exception  of multi-type  channels,  is mapped  onto the corresponding  
+Promela  type. Each multi-type  internal  channel,  instead,  is modelled  by a set of Promela  channels,  one for each simple  type 
+contained  in the multi-type.  The set of Promela  channels  associated  with a multi-type  channel  is managed  so as to ensure  
+that at each instant  at most one of them contains  a message.
+
+--- Page 28 ---
+Table 4
+Mapping  of types, variables  and channels.
+DSTM Promela equivalent
+Data types
+tInteger int
+tEnum mt ype ={literals 0, literals 1, ..., literals n};
+Variables
+tInteger variable int v;
+tEnum variable mtype v ;
+tChannel variable chan v;
+Channels
+external channel of tInteger chan c =[2] of{bit, int};
+i n t e r n a lc h a n n e lo ft I n t e g e r chan c =[bound ] of{int};
+external channel of tEnum chan c =[2] of{bit, mtype };
+i n t e r n a lc h a n n e lo ft E n u m chan c =[bound ] of{mtype };
+external channel of tCompound chan c =[2] of{bit, ...};
+i n t e r n a lc h a n n e lo ft C o m p o u n d chan c =[bound ] of{...};
+external channel of tMultiType chan c_ST1 =[2] of{bit, ...};
+chan c_ST2 =[2] of{bit, ...};
+...
+i n t e r n a lc h a n n e lo ft M u l t i T y p e chan c_ST1 =[bound ] of{...};
+chan c_ST2 =[bound ] of{...};
+...
+As for external  channels,  according  to the DSTM  semantics  they shall maintain  both the message  valid in the current  step 
+execution  and the message  to be delivered  in the next step (if produced  during  the execution  of the current  step). Hence,  
+external  channels  are translated  into Promela  channels  whose  buffer  size is 2: the ﬁrst position  is used to store the current  
+message,  the second  position  is used to store the message  to be delivered  in the next step. In order to avoid that a message  
+produced  by the system  during  the current  step could be read in the same step by other machines,  the ﬁrst position  of 
+each external  channel  must be always  ﬁlled. At this aim a fake message  (0) is used if the ﬁrst position  does not contain  a 
+valid message.  By this mechanism,  possible  messages  produced  by a machine  during  a step are surely  stored  in the second
+location  of external  channels  through  the sendstatement  of Promela  and they are not sensed  during  the execution  of the 
+current  step.
+The engine  process  and the step semantics  In order to obtain  a suitable  Promela  speciﬁcation,  we have to correctly  implement  
+the step semantics  and the ﬁring of transitions  according  to the enabledness condition  deﬁned  in Section 4for compound  
+transitions.  This condition  requires  that for a transition  of an active  machine  to ﬁre, none of its ancestors  in the control  tree 
+must be currently  enabled  to interrupt  the execution  of the machine  (either  by an interrupt  transition  or by a preemptive  
+join). This condition  will be guaranteed  by imposing  an execution  priority  among  the machines,  which  is compliant  with the 
+hierarchical  activation  of machines.  We also recall that the step semantics  prevents  sequential  ﬁring of transitions  within  
+the same execution  step. Since in the ﬂat model  compound  transitions  have been removed,  we only need to guarantee  that 
+at most one enabled  transition  can ﬁre for each active  process.
+Each Promela  process,  modelling  a DSTM  machine,  owns a token in order to ﬁre an enabled  transition.  When  a process  
+owning  a token is scheduled,  it consumes  its token and:
+•if none of its transitions  is enabled,  the process  generates  and sends  a token to each of its children;
+•otherwise,  an enabled  transition  is selected  and executed.
+At the beginning  of each step only the process  corresponding  to the initial  machine  owns the token.  The token prop-
+agation  guarantees  both that the enabledness condition  mentioned  above  is correctly  simulated  and that the sequential  
+ﬁring of transitions  within  the same step, ensured  by the notion  of frontier  in the semantics,  is prevented  by the encoding.  
+The non-deterministic  nature  of the Spin scheduler  ensures  that all the feasible  steps allowed  by the DSTM  semantics  are 
+preserved.
+A special  Promela  process,  called  Engine, is in charge  of (i) simulating  the test environment  by conveying  over the 
+external  channels  messages  generated  by the environment  or by the processes  during  the previous  step, and (ii) starting  the 
+token propagation  mechanism  for each step.
+The execution  of a single  step is then performed  by iterating  the following  two phases:
+1.Step execution. Each process  is scheduled  and if it owns the token,  then it is allowed  to execute  at most one of its
+enabled  transitions.  If more transitions  are enabled,  one of them is non-deterministically  chosen.  This phase  ends when
+all tokens  have been consumed:  according  to the run-to-completion semantics  the model  of the system  reaches  a stable
+state in which  no transition  can be executed  without  an input change.
+
+--- Page 29 ---
+Fig. 13.Promela template of the Engineprocess.
+2.Next step initialization. The Engineprocess  removes  all the messages  contained  in the external  channels.  Then it inserts
+in the external  channels  the messages  sent over those channels  by the processes  in the currently  terminating  step. It
+may also generate  new messages  (whose  values  are non-deterministically  chosen)  to insert  in external  channels  still
+empty,  so as to simulate  the behaviour  of the external  environment.  Finally,  it generates  a new token and sends  it to
+the initial  machine,  thus enabling  the execution  of the next step.
+Engineis the ﬁrst process  of the Promela  model  to be activated  and it is the only process  required  to be running  in the 
+initial  model  state. As it always  performs  the two phases  just described,  it can be automatically  generated  by instantiating  
+the Promela  template  shown  in Fig. 13with the channels  and the data deﬁnition  provided  by the system  model.
+First, the Engineprocess  runs the main machine  and stores  its pidin the local variable  PidMain (PidMain =run
+M_Main(chTerm_main);) and initializes  the external  channels  with dummy  values  (this operation  is exempliﬁed  by the 
+channel  C_answer in Fig. 13). Then, the Engineprocess  starts an atomic  block (after the label generation ), in which  it 
+non-deterministically  generates  the messages  to be sent over the external  channels.  As explained  above,  the evolution  
+of the processes  is driven  by a suitable  message-handling  mechanism,  which  guarantees  that during  the execution  of each 
+step a suitable  message  is always  stored  in the ﬁrst position  of the external  channels.  This is exempliﬁed  for the chan-
+nel C_answerby the nested  if-constructs  in Fig. 13. In detail,  process  Enginechecks  if C_answeronly stores  one message  
+(len(C_answer )==1). In this case, the second  position  is empty  and a new message  is non-deterministically  generated  by 
+the environment  (which  can choose  between  an empty  and the valid message).  Otherwise,  the second  position  already  
+contains  a message,  produced  by the system,  to be delivered  in the next step (else− >skip;).
+At this point,  process  Engineconsumes  the message  stored  in the ﬁrst position  (C_answer?temp1,temp2;). This moves  the 
+message  available  for the next step to the ﬁrst position  of the channel.  The generation  block ends by assigning  the token to 
+the main process  (HasToken [PidMain ] =1;).
+Finally,  the Engineprocess  enters  the last doconstruct,  where  it keeps  waiting  until the Promela  global  variable  timeout
+evaluates  to true. This occurs  when the system  reaches  a stable  state, in which  no transition  of the current  step can be 
+executed.  In this case, the Enginejumps  to the generation label, starting  a new execution  step (goto start ).
+Encoding  a single machine  in Promela  Fig. 14shows  a fragment  of the translation  for the machine  M_ManageTrain in Fig. 4.  
+Each machine  is translated  into a Promela  proctype . In this way, each instantiated  machine  corresponds  to a distinct  Promela  
+process.
+
+--- Page 30 ---
+Fig. 14.Control ﬂow mapping.
+Two enumeration  types (declared  as mtypein Promela)  allow for the introduction  of symbolic  names  for nodes  and 
+transitions.  Speciﬁcally,  the ﬁrst mtypedeclaration  in Fig. 14lists all the names  of the nodes  of the machine  M_ManageTrain
+and the second  one lists all the names  of the transitions.  For each machine,  two global  variables,  state_M_ManageTrain
+(already  mentioned  in the previous  section)  and transition _M_ManageTrain both typed  as mtypearray, are used to store, in 
+their i-th position,  the current  state and the last ﬁred transition  of the Promela  process  whose  _pidis equal to i.
+A global  variable  HasToken , typed  as a bit array, is used to simulate  the step semantics  as described  above.  Speciﬁcally,  
+the i-th position  of this array is set to 1i f the process,  whose  _pidis equal to i, currently  holds the token,  meaning  that it 
+can evolve.  Note that this array is unique  for the entire  Promela  model.
+The body of the process  consists  in an iteration  (a repetition  construct—do ) repeated  until the termination  message  is 
+received  from the calling  process  over the channel  chTerm(exchanged  as parameter).  The termination  message  is then 
+propagated  to all the children  of the current  process,  if any. In Fig. 14, this propagation  mechanism  is abstracted  into the 
+operation  propagate _abort_to_children (my_children ).
+Each node of the machine  is translated  into a guarded  statement . The guard  is satisﬁed  if the speciﬁed  node is the cur-
+rent state of the process  and the process  holds the token.  In Fig. 14 the guarded  statement  corresponding  to the state 
+establishment is reported  as an example;  the guard  is veriﬁed  if the current  state is establishment (state_M_ManageTrain ==
+establishment ) and HasToken [_pid] ==1. The atomic  statement associated  to the guard  contains  a sequence  of statements  
+executed  indivisibly.  The ﬁrst statement  in the sequence  consumes  the token (e.g., HasToken [_pid=0i n Fig. 14). Then a 
+conditional  statement  (a selection  construct—if ) contains  one guarded  statement  for each transition  exiting  from that node, 
+where  the guard  corresponds  to the enabling  condition  of the transitions  (presence  of the trigger  and truth of the condi-
+tion) and the associated  statements  translate  the actions  (if any). Each action  is translated  into basic Promela  statements  
+and operators,  and executed  when the associated  guarded  statement  is selected  for the execution.  If more than one guarded  
+statement  is executable,  one of them is non-deterministically  selected.  The elsebranch  in the conditional  statement  guar-
+antees  from one hand that the process  is not blocked  if no transition  can ﬁre, from the other hand it executes  a block of 
+statements  which  propagates  the token to the children  of the current  process.
+The guarded  statement  resulting  from the translation  of the transition  T03is shown:  the guard  translates  the condition  
+and the related  statement  translates  the action,  which  performs  the termination  of the machine  M_CommunicationEstablish-
+mentand the activation,  via a runstatement,  of machine  M_Entry. Additional  statements  properly  update  the global  variables  
+transition _M_ManageTrain and state_M_ManageTrain .
+
+--- Page 31 ---
+Fig. 15. M_SessionEstablishment with the annotation of Req01.
+6.Application  to test case generation
+As mentioned  in Section1and in Section2, DSTM  is a high-level  formalism,  devised  to model  system-level  speciﬁcations
+of control  systems.  Starting  from a DSTM  speciﬁcation,  different  transformation  chains  can be applied  with the objective  
+of deriving  artefacts  of interest  by an automated  approach.  The application  described  in this section  has the objective  of 
+automatically  generating  test cases starting  from DSTM  models  of railway  control  systems.  Speciﬁcally,  this section  describes  
+how functional  test cases,  which  lead the system  to cover a speciﬁc  transition  or node of its DSTM  speciﬁcation,  can be 
+generated  by applying  the two steps transformation  described  in the previous  section.
+In the present  work, we consider  the generation  of test cases for transition  coverage  only, as it was the main requirement  
+by ASTS in the CRYSTAL  project.  Different  classes  of test cases can actually  be tackled  by the framework [14]. In order 
+to trace the coverage  of transitions  back to the speciﬁcation  requirements,  transitions  and nodes  of a DSTM  model  are 
+annotated  with strings  representing  the requirements’  identiﬁers  and, therefore,  the generation  of a test case covering  that 
+element  is requested.
+A transition  coverage request  is translated  into a Promela  never claim,  which  models  a linear  time temporal  logic formula.  
+A never claiminvolving  some model  element  (e.g., a transition),  requires  that the crossing  of that model  element  must never 
+occur.  The never claimuses two global  variables  (i.e., LastTransition and LastNode , typed  as mtype) that must be speciﬁed  into 
+the Promela  model.  These  variables  record  the names  of the last ﬁred transition  and the last entered  node, respectively,  in 
+the current  execution.  The two variables  are automatically  updated  contextually  to the execution  of a statement  encoding  
+the ﬁring of a transition.  The never claimdeﬁnes  a behaviour  in which  the variable  LastTransition (or LastNode ) never assumes  
+the value of the element  to cover.  When  an execution  does not satisfy  the never claim,  a counterexample  of the violated  
+property  is produced.  If the never claimis satisﬁed  by all the executions  of the model,  the test case is infeasible,  namely  the 
+model  element  of interest  is unreachable  from the initial  node of the main machine.  Without  loss of generality,  we assume  
+uniqueness  of each model  element  name.
+Listing  1 Never  claim.
+never {
+step1: if
+:: (LastTransition == M_SessionEstablishment_T06) -> goto endStep
+:: else -> goto step1fi;
+endStep: skip
+}
+As an example,  Listing 1 reports  a never claim,  requiring  that variable  LastTransition never assumes  the value 
+M_SessionEstablishment _T06. This never claimcan easily  be generated  starting  from a DSTM  model,  where  the transition  
+T06of the machine  M_SessionEstablishment is annotated  with a requirement  (i.e., Req01), as shown  in Fig. 15. The possible  
+counterexample  generated  by Spin corresponds  to a trace that leads to the ﬁring of the speciﬁed  transition.
+We annotated  the DSTM  model  of the Communication  Management functionality  with the requirement  identiﬁers  provided  
+by ASTS. Each transition  has been annotated  with at least one requirement,  hence,  the ﬁnal test suite requires  the coverage  
+of all the 43 transitions  of the case study,  numbered  from 0t o 42. In the next subsections  we report  the results  obtained  on 
+three requirements,  as well as the related  test cases generated  by the Spin model  checker.  In order to assess  the feasibility  
+of the approach,  we also report  the execution  time and the state-space  size for each of the 43 test  cases.
+
+--- Page 32 ---
+Table 5
+Req01: test case.
+Step Machine Current  values
+0 M_CommunicationEstablishment current  node: initial
+ﬁring transition:  T01
+1 M_CommunicationEstablishment current  node: idle
+ﬁring transition:  T03_T04_ T05
+run of manageTrain _M_ManageTrain
+M_ManageTrain current  node: initial
+ﬁring transition:  T01
+2 M_CommunicationEstablishment current  node: idle
+M_ManageTrain current  node: idle
+ﬁring transition:  T02
+run of establishment _M_SessionEstablishment
+M_SessionEstablishment current  node: initial
+ﬁring transition:  T01
+3 M_CommunicationEstablishment current  node: idle
+M_ManageTrain current  node: establishment
+M_SessionEstablishment current  node: waitForAck
+ﬁring transition:  T03
+4 M_CommunicationEstablishment current  node: idle
+M_ManageTrain current  node: establishment
+M_SessionEstablishment current  node: waitForSessEstab
+ﬁring transition:  T06
+6.1. Requirements  and test cases
+For the sake of the presentation,  we discuss  here only three of the 43 requirements  included  in the case study.  Two of 
+them (namely,  Req01and Req02) result  in test cases spanning  multiple  machines.  The last requirement  (i.e., Req03) results  
+in a test case involving  the ﬁring of asynchronous  forktransitions,  which,  in turn, requires  the dynamic  instantiation  of 
+machines.  The selected  requirements  are deﬁned  as follows:
+1.Req01: when receiving  the SessionEstablished message  from a train and if the area ﬁeld of the received  message  is L1,
+RBC must perform  the Entryaction;
+2.Req02: when receiving  the End of Mission  message  (EoM)  from a train, RBC must initiate  the de-registration  of the train
+by performing  the EoMprocedure;
+3.Req03: when receiving  the connection  requestmessage  from a train and if the RBC has already  reached  the maximum
+number  of connections,  it must answer  with a connection  refusedmessage.
+Transition  T06of machine  M_SessionEstablishment has been annotated  with Req01(see Fig. 15), Similarly,  transition  T10of 
+the machine  M_MovAuth has been annotated  with Req02, and transition  T02of machine  M_CommunicationEstablishment with 
+Req03. The three test cases,  generated  according  to these requirements,  are reported  in Table 5 (Req01), in Table 6 (Req02) 
+and in Table 7 (Req03), respectively.
+These  test cases describe  the evolution  of the model  from the initial  node of the initial  machine  (i.e., the main machine  
+M_CommunicationEstablishment ) to the ﬁring of the transition  annotated  with the corresponding  requirement.  In order to 
+generate  the test cases,  a complete  DSTM  speciﬁcation  is required.  Nevertheless,  the Communication  Management functional-
+ity depends  on other procedures,  whose  formal  deﬁnition  is out of the scope  of this work.  For this reason,  the DSTM  model  
+has been completed  by substituting  these procedures  with stubmachines  containing  a single  node, named  working, an en-
+tering  and an exit node that correspond  to the interface  of the speciﬁc  machine.  Hence,  machines  M_Entry, M_StartOfMission , 
+M_CentralControl , M_PeriodicMA , M_EmergencyManagement , M_EndOfMission are modelled  by stub machines.  Notice  that, the 
+mapping  from DSTM  to Promela  has been deﬁned  to preserve  the information  needed  to trace back the elements  of the 
+counterexample  generated  by Spin to the ones of the original  DSTM  model.
+In fact, step 1in Table 5 reports  a complete  execution  involving  the ﬁring of transition  T03_T04_T05in the machine  
+M_CommunicationEstablishment , where  the asynchronous  fork pseudonode  is crossed  four times.  The test case in Table 7
+is obtained  as an execution  path from the initial  node to the transition  T02of the initial  machine,  which  ﬁres only if a 
+connection  request  is refused  (i.e., only when four connections  have already  been granted).  This requires  that four instances  
+of machine  M_ManageTrain have been instantiated  and are currently  running  (steps 1,  2, 3, 4in Table 7).
+
+--- Page 33 ---
+Table 6
+Req02: test case.
+Step Machine Current values
+0 M_CommunicationEstablishment current node: initial
+ﬁring transition: T01
+1 M_CommunicationEstablishment current node: idle
+ﬁring transition: T03_ T04_T05
+run of manageTrain _M_ManageTrain
+M_ManageTrain current node: initial
+ﬁring transition: T01
+2 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: idle
+ﬁring transition: T02
+run of establishment _M_SessionEstablishment
+M_SessionEstablishment current node: initial
+ﬁring transition: T01
+3 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: establishment
+M_SessionEstablishment current node: waitForAck
+ﬁring transition: T03
+4 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: establishment
+M_SessionEstablishment current node: waitForSessEstab
+ﬁring transition: T05
+5 M_CommunicationEstablishment current node: idle
+M_ManageT rain current node: establishment
+ﬁring transition: T04
+run of som_M_StartOfMission
+M_StartOfMission current node: initial
+ﬁring transition: T01
+6 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: som
+M_StartOfMission current node: working
+ﬁring transition: T02
+7 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: som
+ﬁring transition: T05
+run of giveMA_M_MovAuth
+M_MovAuth current node: initial
+ﬁring transition: T01
+8 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: giveMA
+M_MovAuth current node: sendMovementAuthority
+ﬁring transition: T04_ T05_T06
+run of periodicMA _M_PeriodicMA
+run of centralManag _M_CentralControl
+M_PeriodicMA current node: initial
+ﬁring
+transition: T01
+M_CentralControl current node: initial
+ﬁring transition: T01
+9 M_CommunicationEstablishment current node: idle
+M_ManageTrain current node: giveMA
+M_MovAuth current node: centralManag _periodicMA
+M_PeriodicMA current node: working
+ﬁring transition: T03
+M_CentralControl current node: working
+ﬁring transition: T02
+10 M_CommunicationEstablishment current node: idle
+M_MovAuth current node: centralManag _periodicMA
+ﬁring transition: T08_ T10_T12
+
+--- Page 34 ---
+Table 7
+Req03: test case.
+Step Machine Current values
+0 M_CommunicationEstablishment current node: initial
+ﬁring transition: T01
+1 M_CommunicationEstablishment current node: idle
+ﬁring transition: T03_ T04_ T05
+run of manageTrain _M_ManageTrain
+M_ManageTrain current node: initial
+ﬁring transition: T01
+2 M_CommunicationEstablishment current node: idle
+ﬁring transition: T03_ T04_ T05
+run of manageTrain _M_ManageTrain
+M_ManageTrain current node: idle
+M_ManageTrain current node: initial
+ﬁring transition: T01
+3 M_CommunicationEstablishment current node: idle
+ﬁring transition: T03_ T04_ T05
+run of manageTrain _M_ManageTrain
+M_ManageTrain current node: idle
+M_ManageTrain current node: idle
+M_ManageTrain current node: initial
+ﬁring transition: T01
+4 M_CommunicationEstablishment curr ent node: idle
+ﬁring transition: T03_ T04_ T05
+run of manageTrain _M_ManageTrain
+M_ManageTrain current node: idle
+M_ManageTrain current node: idle
+M_ManageTrain current node: idle
+M_ManageTrain current node: initial
+ﬁring transition: T01
+5 M_CommunicationEstablishment current node: idle
+ﬁring transition: T02
+M_ManageTrain current node: idle
+M_ManageTrain current node: idle
+M_ManageTrain current node: idle
+M_ManageTrain current node: idle
+Fig. 16.Execution times.
+6.2. Execution  times
+The analysis  of the execution  times has been performed  by generating  43 test  cases covering  all transitions  of the DSTM  
+model.  For each test case, the generation  time and the size of the explored  state space have been collected.
+No advanced  Spin optimization  techniques  have been applied,  except  for the safetycompiling  directive,  that uses less 
+memory  in case no cycle detection  is needed.  The experiments  have been executed  on a laptop  computer,  equipped  with 
+an Intel Quad-core  i7-2670QM  CPU 2.20 GHz and  8 GB of RAM.
+The execution  times (in seconds)  are reported  in Fig. 16, where  the x-axis  reports  the test case identiﬁers  (from 0 to 
+42). Most of test cases were generated  in about  1 second,  while eight of them of the test cases required  between  20 to 
+
+--- Page 35 ---
+Fig. 17.Number of stored states.
+40 seconds.  Fig. 17reports  the number  of states  explored  by Spin during  the generation  of the corresponding  test case. 
+The maximum  number  of stored  states  (1.3M)  has been obtained  for the generation  of test case 17, and corresponds  to 
+the maximum  execution  time of 40 seconds.  The higher  generation  time and state-space  size for some of the test cases 
+seems  to be connected  to the degree  of communication  with the external  environment  (i.e., with the trains)  required  to 
+reach the ﬁring of the corresponding  transition.  This, in turn, results  in a higher  number  of non-deterministic  choices  for 
+the simulation  of the messages  received  from the trains,  and, therefore,  ah i g h e r  degree  of backtracking  performed  by the 
+model  checking  procedure.  Nonetheless,  the results  are very encouraging,  since the automatic  generation  of the entire  suite 
+of test cases required  about  3 minutes.
+7.Conclusions
+In this paper  we have presented  a framework  for the speciﬁcation  of the behaviour  of critical  control  systems  and
+the automated  generation  of test cases for black-box  system-level  testing  using model  checking  techniques.  The critical  
+nature  of the systems  to model  and the high-level  of usability  required  by the application  domain  suggested:  (1) a strong  
+formalization  of the language;  (2) the synthesis  and the extension  of some of the features  of existing  FSM-based  languages,  
+and (3) the capability  to be integrated  into modern  model-based  processes.  The proposed  speciﬁcation  formalism  is Dynamic  
+STate Machines  (DSTMs),  a new class of hierarchical  state machines  to be used in model-based  veriﬁcation  contexts.  The 
+language  has its main strengths  in the extended  semantics  of fork and join which  allows  for the dynamic  instantiation  of 
+parametric  machines  and their preemptive  termination.  The proposed  language  has been endowed  with a formal  deﬁnition  
+of syntax  and semantics.  A prototypical  implementation  (actually  an executable  semantics)  has been deﬁned  in the model  
+checking  environment  Spin by using the executable  speciﬁcation  language  Promela.  The generation  of test cases exploits  the 
+well understood  technique  of counterexample  generation  for never claims.  The modelling  approach  and the test generation  
+has been applied  to a modern  railway  control  system  in order to exemplify  the natural  expressiveness  of the speciﬁcation  
+language  and its potentialities  for test generation.  The prototypical  translation  of speciﬁcations  in Promela  deserves  further  
+steps:  (i) optimization  techniques  have to be introduced  to reduce  the semantics  state space (ii) performance  and scalability  
+issues  have to be systematically  investigated  (iii) more structured  forms  of test case generation  will be considered.  Moreover  
+we are currently  designing  a translation  of the DSTM  models  in an alternative  model  checker  environment,  NuSMV [13]. 
+Such a translation  will allow us to compare  the performance  obtained  by applying  different  model  checking  techniques  and 
+tools.
+Acknowledgements
+This paper  is partially  supported  by research  project  CRYSTAL  (Critical  System  Engineering  Acceleration),  funded  by the 
+ARTEMIS  Joint Undertaking  under  Grant agreement  No. 332830  and by ARTEMIS  member  states  Austria,  Belgium,  Czech  
+Republic,  France,  Germany,  Italy, Netherlands,  Spain,  Sweden,  United  Kingdom.
+Appendix A.  Data ﬂow semantics
+We now provide  the notion  of trigger  and guard  satisfaction  w.r.t. an evaluation  context  θand the change  of evaluation  
+context  due to the execution  of an action.
+Evaluation  of ground  transition  decorations  A satisﬁability  relation  of a ground  trigger  ξw.r.t. θ=/angbracketleftρ, χ, η/angbracketright, written  θ|=ξ, is 
+recursively  deﬁned  as follows:
+•θ|=τ;
+•θ|=c?, with c∈CE, if |χ(c)| =1( t h e  channel  is not empty);
+
+--- Page 36 ---
+•θ|=c?Ti, with c∈CE, if |χ(ci)| =1, head(χ(c)) ∈D(Ti)and either  type(c) ∈MT, Ti∈type(c), or type(c) ∈STand
+Ti=type(c);
+•θ|=ξ1∧ξ2if θ|=ξ1and θ|=ξ2;
+•θ|=ξ1∨ξ2if θ|=ξ1or θ|=ξ2;
+•θ|= ¬ξif it is not the case that θ|=ξ.
+Both actions  and guards  contain  terms.  Therefore,  we need to preliminary  introduce  the evaluation  JtrmKθof a ground  
+term trmw.r.t. an evaluation  context  θ=/angbracketleftρ, χ, η/angbracketright, namely  a function  J·K·:trm P×/Theta1 →D(T), recursively  deﬁned  as fol-
+lows:
+•JdKθ=d, for d ∈D(Int);
+•JT::dKθ=dfor d ∈D(Ti);
+•JChn::cKθ=c, for c∈D(Chn);
+•JxKθ=ρ(x), for x ∈X;
+•Jtrm12trm2Kθ=Jtrm1Kθ2Jtrm2Kθ;
+•J1trmKθ=1JtrmKθ;
+•Jlen(c)Kθ=|χ(c)|.
+Given  a sequence  α, let head(α)denote  the ﬁrst element  of the sequence  and tail(α)denote  the sequence  obtained  
+from αby removing  its ﬁrst element.  A satisﬁability  relation  for an evaluation  context  θ=/angbracketleftρ, χ, η/angbracketrightand a ground  guard  φ, 
+written  θ|=φ, is recursively  deﬁned  as follows:
+•θ|=True;
+•θ|=c[?/latticetop]if c∈Cand |χ(c)| =bd(c);
+•θ|=c[?⊥]if c∈Cand |χ(c)| =0;
+•θ|=c[?/angbracketlefttrm1, ..., trm k/angbracketright]if c∈C, |χ(c)| >0 and  head(χ(c)) =/angbracketleftt1, ..., tk/angbracketright, where,  for i ∈[1, ....k], ti=Jtrm iKθ, if trm i∈
+trm, and ti=(head(χ(c)))i, if trm i=_;
+•θ|=trm1⊙trm2, if ⊙ ∈{ ≤, ≥}, type(trm1) =type(trm2) =Intand Jtrm1Kθ⊙Jtrm2Kθ;
+•θ|=trm1=trm2if type(trm1) =type(trm2) ∈Tand Jtrm1Kθ=Jtrm2Kθ;
+•θ|=φ1∧φ2if θ|=φ1and θ|=φ2;
+•θ|=φ1∨φ2if θ|=φ1or θ|=φ2;
+•θ|= ¬φif it is not the case that θ|=φ.
+Most of the cases above  are obvious,  with the possible  exception  of the guard  c[?/angbracketlefttrm1, ..., trm k/angbracketright]. The corresponding  
+semantic  condition  simply  requires  that the ﬁrst message  in the non-empty  channel  c(head(χ(c))) be equal to the tuple 
+obtained  by substituting  each term in /angbracketlefttrm1, ..., trm k/angbracketrightdifferent  from the wild card symbol  _w i t h  their valuation  (Jtrm iKθ), 
+and all the wild cards with the message  component  in the same position  within  the actual  message  ((head(χ(c)))i).
+Given  a function  f:X→Yand two elements  x ∈Xand y ∈Y, we denote  with f[x :=y]the function  f/primewhich  is equal 
+to fon all the elements  of Xexcept  for x, to which  it assigns  the value y. For a sequence  αand i ∈[1, ..., |α|], we denote  
+with (α)ithe i-th projection  of α, i.e., the element  of αoccurring  in the i-th position  in the sequence.  We can now provide  
+the semantics  of actions  by illustrating  how their execution  changes  the evaluation  context.  To this end, given an evaluation  
+context  θ=/angbracketleftρ, χ, η/angbracketright, we deﬁne  θa−→/angbracketleftρ/prime, χ/prime, η/prime/angbracketright, for each atomic  action  a ∈A, as follows:
+•θx:=trm−−−−→/angbracketleftρ/prime, χ, η/angbracketright, where  ρ/prime=ρ[x :=JtrmKθ];
+•θc[?]/angbracketleftt1,...,tk/angbracketright−−−−−−− →/angbracketleftρ/prime, χ, η/angbracketright, where  c∈CI∪CE, |χ(c)| >0 and
+–ρ/prime(ti) =(head(χ(c)))i, if ti∈X;
+–ρ/prime(x) =ρ(x), for all x ∈X\{t1, ..., tk};
+•θc?/angbracketleftt1,...,tk/angbracketright−−−−−− →/angbracketleftρ/prime, χ/prime, η/angbracketright, where  c∈CI∪CE, ρ/primeis deﬁned  as in the previous  case, and
+–i f c∈CIand |χ(c)| >0, then χ/prime=χ[c:=tail(χ(c))];
+–χ/prime=χ, otherwise;
+•θc!/angbracketlefttrm1,...,trm k/angbracketright−−−−−−−−− →/angbracketleftρ/prime, χ/prime, η/prime/angbracketright, where
+–c∈CIimplies  η/prime=ηand
+-i f |χ(c)| <bd(c), then χ/prime=χ[c:=χ(c) ·/angbracketleftJtrm1Kθ, ..., Jtrm kKθ/angbracketright];
+-χ/prime=χ, otherwise;
+–c∈CEimplies  χ/prime=χand
+-i f η(c) =⊥, then η/prime=η[c:= /angbracketleftJ trm1Kθ, ..., Jtrm kKθ/angbracketright];
+-η/prime=η, otherwise;
+
+--- Page 37 ---
+Notice  that the “read with side effect”  action  c?/angbracketleftt1, ..., tk/angbracketrightis executable  also over external  channel.  However,  the side effect 
+only occurs  when applied  on internal  channels,  while the content  of the channel  is retained  when it is an external  channel.  
+Hence,  when applied  on external  channels,  this action  coincides  with the action  c[?]/angbracketleftt1, ..., tk/angbracketright. Notice  also that actions  are 
+modelled  as non-blocking  operations:  they are always  executable  and, when the relevant  condition  is not satisﬁed,  they act 
+as null operations  that leave the evaluation  context  unchanged.
+The relation  a− →can be extended  inductively  to sequences  of atomic  actions  in the obvious  way. Formally:
+•θ/epsilon1− →θ;
+•θa;α/prime
+− − →θ/prime, if θa− →θ/prime/primeand θ/prime/primeα/prime
+− →θ/prime.
+References
+[1]R. Alur, S. Kannan,  M. Yannakakis,  Communicating  hierarchical  state machines,  in: Automata,  Languages  and Programming,  in: Lect. Notes Comput.  Sci.,
+vol. 1644,  Springer,  Berlin, Heidelberg,  1999, pp. 169–178.
+[2]D. Amalﬁtano,  N. Amatucci,  A.R. Fasolino,  U. Gentile,  G. Mele, R. Nardone,  V. Vittorini,  S. Marrone,  Improving  code coverage  in android  apps testing by
+exploiting  patterns  and automatic  test case generation,  in: Proceedings  of the 2014 International  Workshop  on Long-Term  Industrial  Collaboration  on
+Software  Engineering,  ACM, 2014, pp. 29–34.
+[3]S. Anand, E.K. Burke, T.Y. Chen, J.A. Clark, M.B. Cohen, W. Grieskamp,  M. Harman,  M.J. Harrold,  P. McMinn,  An orchestrated  survey of methodologies  for
+automated  software  test case generation,  J. Syst. Softw. 86 (2013) 1978–2001.
+[4]C. Artho, A. Biere, M. Hagiya,  E. Platon, M. Seidl, Y. Tanabe,  M. Yamamoto,  Modbat:  a model-based  API tester for event-driven  systems,  in: Proc. 9th
+Haifa Veriﬁcation  Conference,  HVC 2013, Haifa, Israel, in: Lect. Notes Comput.  Sci., vol. 8244,  Springer,  2013, pp. 112–128.
+[5]G. Barberio,  B. Di Martino,  N. Mazzocca,  L. Velardi,  A. Amato, R. De Guglielmo,  U. Gentile,  S. Marrone,  R. Nardone,  A. Peron, V. Vittorini,  An interoperable
+testing environment  for ERTMS/ETCS control  systems,  in: Computer  Safety, Reliability,  and Security,  in: Lect. Notes Comput.  Sci., vol. 8696,  Springer
+International  Publishing,  2014, pp. 147–156.
+[6]M. Benerecetti,  S. Minopoli,  A. Peron, Analysis  of timed recursive  state machines,  in: 17th International  Symposium  on Temporal  Representation  and
+Reasoning,  TIME, IEEE, 2010, pp. 61–68.
+[7]M. Benerecetti,  A. Peron, Timed recursive  state machines:  expressiveness  and complexity,  Theor. Comput.  Sci. 625 (2016) 85–124.
+[8]S. Bernardi,  F. Flammini,  S. Marrone,  N. Mazzocca,  J. Merseguer,  R. Nardone,  V. Vittorini,  Enabling  the usage of UML in  the veriﬁcation  of railway
+systems:  the dam-rail  approach,  Reliab. Eng. Syst. Saf. 120 (2013) 112–126.
+[9] D. Bjørner,  New results and trends in formal techniques  and tools for the development  of software  for transportation  systems:  a review,  in: Proceedings
+4th Symposium  on Formal Methods  for Railway  Operation  and Control  Systems,  FORMS03,  LHarmattan  Hongrie,  Budapest,  2003.
+[10]C. Braunstein,  A.E. Haxthausen,  W. Huang, F. Hübner,  J. Peleska,  U. Schulze,  L.V. Hong, Complete  model-based  equivalence  class testing for the ETCS
+ceiling speed monitor,  in: Proceedings  of the Formal Methods  and Software  Engineering,  16th International  Conference  on Formal Engineering  Methods,
+ICFEM 2014, Luxembourg,  Luxembourg,  November  3–5, 2014, pp. 380–395.
+[11]CENELEC,  En50129,  Railway  Applications—Communication,  Signaling  and Processing  Systems—Safety  Related  Electronic  Systems  for Signalling,  BSI,
+2003.
+[12]CENELEC,  EN50128  Communication,  Signalling  and Processing  Systems—Software  for Railway  Control  and Protection  Systems,  2011.
+[13]A. Cimatti,  E. Clarke, F. Giunchiglia,  M. Roveri, NuSMV:  a new symbolic  model checker,  Int. J. Softw. Tools Technol.  Transf. 2 (2000) 2000.
+[14]U. Gentile,  S. Marrone,  G. Mele, R. Nardone,  A. Peron, Test speciﬁcation  patterns  for automatic  generation  of test sequences,  in: Formal Methods  for
+Industrial  Critical  Systems,  Springer  International  Publishing,  2014, pp. 170–184.
+[15] M.  Glinz, Statecharts  for requirements  speciﬁcation—as  simple as possible,  as rich as needed,  in: Proceedings  of the ICSE 2002 International  Workshop
+on Scenarios  and State Machines:  Models,  Algorithms  and Tools, Orlando,  Florida,  USA.
+[16]G. Hamon,  A denotational  semantics  for stateﬂow,  in: Proceedings  of the 5th ACM International  Conference  on Embedded  Software,  EMSOFT’05,  ACM,
+New York, NY, USA, 2005, pp. 164–172.
+[17]G. Hamon,  J. Rushby,  An operational  semantics  for stateﬂow,  Int. J. Softw. Tools Technol.  Transf. 9 (2007) 447–456.
+[18]D. Harel, Statecharts:  a visual formalism  for complex  systems,  Sci. Comput.  Program.  8 (1987) 231–274.
+[19]D. Harel, A. Naamad,  The statemate  semantics  of statecharts,  ACM Trans. Softw. Eng. Methodol.  5 (1996) 293–333.
+[20]A.E. Haxthausen,  J. Peleska,  Model checking  and model-based  testing in the railway  domain,  in: Formal Modeling  and Veriﬁcation  of Cyber-Physical
+Systems,  Springer,  2015, pp. 82–121.
+[21]R.M. Hierons,  K. Bogdanov,  J.P. Bowen,  R. Cleaveland,  J. Derrick,  J. Dick, M. Gheorghe,  M. Harman,  K. Kapoor,  P. Krause,  et al., Using formal speciﬁcations
+to support  testing,  ACM Comput.  Surv. 41 (2009) 9.
+[22]G. Holzmann,  The Spin Model Checker:  Primer and Reference  Manual,  ﬁrst edition,  Addison–Wesley  Professional,  2003.
+[23]F. Jouault,  F. Allilaire,  J. Bézivin,  I. Kurtev, ATL: a model transformation  tool, Sci. Comput.  Program.  72 (2008) 31–39.
+[24]R. Lanotte,  A. Maggiolo-Schettini,  A. Peron, S. Tini, Dynamic  hierarchical  machines,  Fundam.  Inform.  54 (2002) 237–252.
+[25]N. Leveson,  M. Heimdahl,  H. Hildreth,  J. Reese, Requirements  speciﬁcation  for process-control  systems,  IEEE Trans. Softw. Eng. 20 (1994) 684–707.
+[26]A. Maggiolo-Schettini,  A. Peron, S. Tini, A comparison  of statecharts  step semantics,  Theor. Comput.  Sci. 290 (2003) 465–498.
+[27]S. Marrone,  F. Flammini,  N. Mazzocca,  R. Nardone,  V. Vittorini,  Towards  model-driven  V&V assessment  of railway  control  systems,  Int. J. Softw. Tools
+Technol.  Transf. 16 (2014) 669–683.
+[28]S. Marrone,  R. Nardone,  A. Tedesco,  P. D’Amore,  V. Vittorini,  R. Setola, F. De Cillis, N. Mazzocca,  Vulnerability  modeling  and analysis  for critical infras-
+tructure  protection  applications,  Int. J. Crit. Infrastruct.  Prot. 6 (2013) 217–227.
+[29]S. Marrone,  R.J. Rodríguez,  R. Nardone,  F. Flammini,  V. Vittorini,  On synergies  of cyber and physical  security  modelling  in vulnerability  assessment  of
+railway  systems,  Comput.  Electr. Eng. 47 (2015) 275–285.
+[30]R. Nardone,  U. Gentile,  M. Benerecetti,  A. Peron, V. Vittorini,  S. Marrone,  N. Mazzocca,  Modeling  railway  control  systems  in Promela,  in: Formal
+Techniques  for Safety-Critical  Systems,  vol. 596,  Springer  International  Publishing,  2016, pp. 121–136.
+[31]R. Nardone,  U. Gentile,  A. Peron, M. Benerecetti,  V. Vittorini,  S. Marrone,  R. De Guglielmo,  N. Mazzocca,  L. Velardi,  Dynamic  state machines  for formal-
+izing railway  control  system speciﬁcations,  in: Formal Techniques  for Safety-Critical  Systems,  Springer  International  Publishing,  2014, pp. 93–109.
+[32] OMG-UML2,  Uniﬁed  Modeling  Language:  Infrastructure  and Superstructure,  OMG, 2011, Version  2.4.1 formal/11-08-05.
+[33]J. Peleska,  Industrial-strength  model-based  testing—state  of the art and current  challenges,  Electron.  Proc. Theor. Comput.  Sci. 111 (2013) 3–28.
+
+--- Page 38 ---
+[34]A. Petrenko,  A. da Silva Simão, J.C. Maldonado,  Model-based  testing of software  and systems:  recent advances  and challenges,  Int. J. Softw. Tools
+Technol.  Transf. 14 (2012) 383–386.
+[35]H. Pﬂügl, C. El-Salloum,  I. Kundner,  CRYSTAL,  critical system engineering  acceleration,  a truly European  dimension,  ARTEMIS  Mag. 14 (2013) 12–15.
+[36]D.C. Schmidt,  Guest editor’s  introduction:  model-driven  engineering,  Computer  39 (2006) 25–31.
+[37]UIC, ERTMS/ETCS  Class1 System  Requirements  Speciﬁcation,  Ref. SUBSET-026,  Issue 2.2.2 2002.
+[38]M. Utting, B. Legeard,  Practical  Model-Based  Testing:  A Tools Approach,  Morgan  Kaufmann  Publishers  Inc., San Francisco,  CA, USA, 2007.

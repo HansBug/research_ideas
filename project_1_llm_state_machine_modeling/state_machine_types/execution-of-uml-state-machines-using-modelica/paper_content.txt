@@ -1,0 +1,773 @@
+--- Page 1 ---
+3rd International Workshop on Equation -Based Object -Oriented
+Modeling Languages and Tools, October, 2010, Oslo, Norway.
+Copyright is held by the author/owner(s). The proceedings are published by
+Linköping University Electronic Press. Proceedings av ailable at:
+http://www.ep.liu.se/ecp/047 /
+EOOLT 2010 website:
+http://www.eoolt.org/2010 /Execution of UML State Machines Using Modelica
+Wladimir Schamai1,Uwe Pohlmann2,Peter Fritzson3,Christiaan J.J. Paredis4,
+Philipp Helle1,Carsten Strobe l1
+1EADS Innovation Works, Germany
+2University of Paderborn, Department of Computer Science, Ge rmany
+3Linköping University, PELAB –Programming Environm ent Lab , Sweden
+4Georgia Institute of Technology, Atlanta, USA
+Abstract
+ModelicaML is a UML profile for the creation of execut a-
+blemodels. ModelicaML supports the Model -Based Sy s-
+tems Engineering (MBSE ) paradigm and combines the
+power of the OMG UML standardized graphical not ation
+for systems and software modeling ,and the simul ation
+power of Modelica. This addresses the increasing need for
+precise integrated modeling of products co ntaining both
+softwar e and hardware. This paper focuses on the impl e-
+mentation of executable UML state machines in Model i-
+caML and demonstrates thatusing Modelica as anaction
+language enables theintegrated modeling and simulation
+of continuous -time and reactive or event -based system
+dynamics. More speci fically, this paper highlights issues
+that are ident ified in the UML specification and that are
+exper ienced with typical executable implementations of
+UML state machine s.The issues identified are resolved
+andrational esfor des ign deci sions taken are di scussed .
+Keywords UML, Modelica, ModelicaML, Execution
+Semantic s,State Machine, State chart
+1Introdu ction
+UML [2],SysML [4]and Modelica [1]are object -oriented
+modeling languages. They provide means to represent a
+system as object sand to describe its internal structure and
+behavior. UML -based la nguages facilitate thecapturing of
+information relevant tosystem requir ements, design ,or
+test data by means of graphical formalisms, crosscu tting
+constructs and views (diagrams) on the model -data.
+Mod elica is defined as a textual language with standar d-
+ized graphical annotations for icons and di agrams ,and is
+designed for thesimulation of system -dynamic beha vior.1.1 Motivation
+By integrating UML and Modelica the strength of UML in
+graphical and descriptive modeling is compl emented with
+theModelica formal executable modeling for system d y-
+namic simulation . Conversely, Mod elica will benefit from
+using the selected subset of the UML -based graphical n o-
+tation (visual formalisms) for editing, visua lizing and
+maintaining Modelica models.
+Graphical modeling, as promoted by the OMG [12],
+promises to be more effective and efficient regarding edi t-
+ing, human -reader perception of models, and mai ntaining
+models compared to a traditional textual represent ation. A
+unified standardized graphical notation for systems mo d-
+eling an d simulation will facilitate the common unde r-
+standing of models for allparties involved in the deve l-
+opment of systems (i.e., system engineers, designers, and
+testers; software developers, customers or other stak e-
+holder s).
+From a simulation perspective, th e behavior d escribed
+in the UML state machine is typically translated into and
+thereby limited to time -discrete or event -based simul a-
+tions. Modelica enables mathematical modeling of hybrid
+(continuous -time and discrete -time d ynamic description)
+simulation. By integrating UML and Mo delica, UML -
+based modeling will become applic able to thephysical -
+system modeling domain, and UML mo dels will become
+executable while covering simul ation of hardware and
+software, with integrated continuous -time and event -based
+ortime-discrete be havior. Furthermore, translating UML
+state machines into exec utable Modelica code enables
+engineers to use a co mmon set of formalisms for behavior
+modeling and enables model ing of software parts (i.e.,
+discrete or event -based behavior )tobe simulated together
+with physical behavior (which is typically continuous -
+time behavior )in an int egrated way.
+One of the ModelicaML design goals is to provide the
+modeler with precise and clear execution semantics. In
+terms of UML state machines this i mplies that semantic
+variation points or ambiguities of the UML sp ecification
+have to resolved .
+1
+
+--- Page 2 ---
+The main contribution of this paper is a discussion of
+issues that were identified when implementing UML state
+machines in Modeli caML. Moreover, proposals for the
+resolution of these issues are presented . The issues ident i-
+fiedor design decisions taken are not specific to theMod-
+elicaML state machines implementation. The questions
+addressed in this paper will most likely beraised by an y-
+one who intends to genera te executable code from UML
+state m achines.
+1.2 Paper Structure
+The rest of this paper is structured as follows :Chapter 2
+provides a brief introduction toModelica and Model i-
+caML and gives an overview ofrelated research work .
+Chapter 3describes how state machines are used in Mod e-
+licaML and highlights which UML state machines con-
+cepts are supported in ModelicaML so far .Chapter 4dis-
+cusses theidentified issues and explain sboth resolution
+and implementation in ModelicaML .Chapter 5provides a
+conclusion.
+2Background and Related Work
+2.1 The Modelica Language
+Modelica is an object -oriented equation -based mode ling
+language that is primarily aimed at physical sy stems. The
+model behavior is based on ordinary and differential alg e-
+braic equation (OAE and DAE) systems co mbined with
+discrete events, so -called hybrid DAEs. Such models are
+ideally suited for representing physical behavior and the
+exchange of energy, signals, or other continuous -time or
+discrete -time interactions between system comp onents.
+2.2 Model icaML –UML Profile for Modelica
+This paper presents the further development of the Mod e-
+lica Graphical Modeling Language (Model icaML [15]), a
+UML profile for Modelica. The main purpose of Model i-
+caML is to enable an efficient and effective way to create,
+visualize and mai ntain combined UML and Modelica
+models. ModelicaML is defined as a graphical notation
+that facilitates di fferent views (e.g., composition, inher i-
+tance, behavior) on system models. It is based on a subset
+of UML and reuses some concepts from SysML. Model i-
+caML is designed for Modelica code generat ionfrom
+graphical models. Since the ModelicaML profile is an
+extension of the UML meta -model it can be used as an
+extension for both UML and SysML1.The tools used for
+modeling with Model icaML and generating Modelica
+code can be downloaded from [15].
+1SysML itself is also a UML Profile. All ModelicaML stereotypes tha t
+extend UML meta -classes are also applicable to the corr esponding
+SysML elements.2.3 Related Work
+Inprevious work ,research ershave already identified the
+need to integrate UML/SysML and Mod elica, and have
+partially implemented such anintegration. For example, in
+[7]the basic mapping of thestructural co nstructs from
+Modelica to S ysML is identified .The a uthors also point
+outthat the SysML Parametrics concept is not suff icient
+for m odelingtheequation -based behavior of a class. In
+contrast, [9]leverages theSysML Parametrics concept f or
+theintegration of continuous -time behavior into SysML
+models, whereas [8]presents a concept to use SysML to
+integrate models of continuous -time dynamic system be-
+havior with SysML information models represen ting sy s-
+tems engineering problems and provides rules for the
+graph -based bid irectional transformation of SysML and
+Modelica mo dels.
+In Modelica only one type of diagram is defined: the
+connection diagram that present sthestruc ture of a class
+and shows cl ass-components and connections between
+them. Modelica does not provide any graph ical notation to
+describe thebehavior of a class . In[13] an approach for
+using theUML -based notation of a subset of state m a-
+chines and activity diagrams for modeling the behavior of
+a Modelica class is presented.
+Regarding state machines, a list of general challenges
+with respect to regarding statecharts is presented in[10]
+andasummary on existing statechartvariants is provided .
+In[11] the fact is stressed thatdifferent statechartvariants
+are not compatible even though the syntax (graphical n o-
+tation) is the same. Itisalso pointed out that the executio n
+semantic sstrongly depend on theimplementation dec i-
+sions taken ,which arenot sta ndardized in UML .
+Few implementation sof the translation of statecharts
+into Modelica exist ([6],[5]2).However, none implements
+acomprehensive setof state machines co ncepts as defined
+in the UML specification .
+The main focus of this paper is the resolution of i ssues
+related to theexecution semantics of UML state machines.
+A detai led description of the execution s emantics of the
+implementation of UML state machines in Model icaML
+andadditional extensions are provided in [15] andareout
+ofthescope of this p aper.
+3State Machines in ModelicaML
+3.1 Simple E xample
+Assume onewould like to simulate the behavior d efined
+by the state machines depicted in Figure 1using Mod e-
+lica. This state machine defines part of the beha vior of the
+2StateGraph [5]uses a different graphical notation co mpared to the
+UML notation for state machines.
+2
+
+--- Page 3 ---
+class SimpleStateMachine .In UML ,this class is referr ed
+to as thecontext of Stat eMachine_0 .
+The UML graphical notation for state machines co n-
+sists of rectangles with round edcorner srepresen ting
+states ,andedges represent ingtransitions between states.
+Transitions can only be executed ifappropriate trigg ers
+occur and if the associated guard condition (e.g.,[t>1
+and x<3 ]) evaluates to true. If no triggers are defined
+then an empty trigger, which is always activated, is a s-
+sumed. In addition, transitions can have effects(e.g.,
+/x:=1 ).
+The UML semantic s define that a state machine can
+only be in one of the (simple) states in a region3at the
+same instance of time. The filled circle and its outgoing
+transition mean that, by default ,(i.e. when the exec ution is
+started) the state machine is in its initial sta te,State_0
+(i.e., when the execution is started) . The expected execu-
+tionbehavior isas fo llows:
+When the execution is started the state m achine is in
+its initial state ,State_0 .
+As soon as the guard condition, [t>1 and x<3 ],is
+true,State_0 is exited, thetransition effect, x := 1 ,is
+executed and State_1 is entered. The state machine is
+again in a stable configuration that is r eferred to as an
+active configuration .
+As soon as the guard condition, t>1.5 and x> 0,
+becomes true, State_1 is exited, the eff ect,x:=2,is
+executed and State_2 is entered .
+As soon as the condition x>1 becomes true, State_2 is
+exited, the transition effect ,x:=3 ,is executed and
+State_0 is entered.
+Figure 2shows Modelica code that performs the b e-
+havior described above. Figure 3presents thevisua lized
+simulation results.
+3If a composite state or multiple regions are defined for a state machine,
+then it means that the state machine is in multiple (simple) states at the
+same time.
+Figure 1: State machine defines part of class beha vior
+Figure 2:Corresponding Modelica code
+Figure 3: Simulation results
+3
+
+--- Page 4 ---
+3.2 State Machines in ModelicaML
+UML 2defines two types of state machines: behavior state
+machines and protocol state machines. Behavior state m a-
+chines are used to model parts of class behavior. Model i-
+caML state machines are derived from UML behavior
+state machines. Compared to behavior state machines,
+protocol state machines are limited in terms of expre s-
+siveness and are tailored to the need to express protocols
+or to de fine the lifecycle of o bjects. Since this is not the
+main intended area of application for ModelicaML, prot o-
+col state machines are not taken into account. Cons e-
+quently, none of the chapters of the UML specification
+that address the protocol state m achines are considered.
+State machines are used in ModelicaML to model parts
+of class behavior. A behavioral class (i.e., Mod elica class,
+model or block) can have 0..* state m achines as well as
+0..* other behaviors (e.g. equation or alg orithm sections).
+This is di fferent from a typical UML applic ation where
+usually only one state machine is used to represent the
+classifierBehavior .In Model icaML it is possible to define
+multiple state machines for one class which are executed
+in parallel . This poss ibility allows t he modeler to structure
+the behavior by separating it into individual state m a-
+chines. When mu ltiple state machines are defined for one
+class they are translated into separate algorithm sections in
+the generated Modelica code . This implies that they ca n-
+notset the same class variables (e.g., in entry/do/exit or
+transition e ffects) because itwould result in an over -
+determined sy stem.
+UML state machines are typically used to model the
+reactive (event -based) behavior of objects. Usually an
+event queue is impl emented that collects all previously
+generated events which are then di spatched one after the
+other (the order is not fully spec ified by UML) to the state
+machine and may cause state machine rea ctions. Strictly
+speaking ,a UML state machine reacts (is evalu ated) only
+when events are taken from the event queue and di s-
+patched to the state m achine.
+ModelicaML uses Modelica as the execution (action)
+language. In contrast to the typical implement ations of
+UML state machines, the Modelica code for a Model i-
+caML st ate machine is evaluated continuously, namely,
+after each continuous -time integration step and, if there
+are event iterations, at each event iteration. Event iter a-
+tions concept is defined by Modelica ( [1], p.25) as fo l-
+lows: “A new event is triggered if at least for one variable
+v “pre(v) <> v” after the active model equations are
+evaluated at an event instant. In this case, the model is at
+once re -evaluated. This evaluation s equence is called
+“event iteration”. T he integration is restarted, if for all v
+used in pre -operators the follo wing condition holds:
+“pre(v) == v”. ”.The definition of p re(v) is the following:
+“Returns the “left limit” y(tpre
+) of var iable y(t) at a timeinstant t. At an event instant, y(tpre
+)is the value of y after
+the last event iteration at time i nstant t … ” (see [1], p.24 ).
+Furthermore, the following definition is essential to
+understand the execution of Modelica code (see Mod elica
+specification [1], p.84 ):“Modelica is based on the sy n-
+chronous data flow principle and the single assig nment
+rule, which are defined in the follo wing way:
+All variables keep their actual values until these values
+are explic itly changed. Variable values can be a c-
+cessed at any time instant during continuous integr a-
+tion and at event i nstants.
+At every time instant, during continuous integration
+and at event instants, the active equations express r e-
+lations between variables whic h have to be fulfilled
+concurrently (equations are not active if the corr e-
+sponding if -branch, when -clause or block in which the
+equation is present is not active).
+Computation and communication at an event instant
+does not take time. [If computation or com munic ation
+time has to be simulated, this property has to be e x-
+plicitly modeled].
+The total number of equations is identical to the t otal
+number of unknown variables (= single assig nment
+rule).”
+3.2.1 Transformation of State Machines to Mod e-
+lica Code
+Two main qu estions need to be considered when transla t-
+ing a ModelicaML state machine into Mo delica:
+The f irst question is whether a library should be used
+or whether a code generator should be implemented.
+One advantage of using a library is that the execution
+seman tics can be understood simply by inspecting the
+library classes. In order to understand the execution
+semantics of generated code one also needs to unde r-
+stand the code gener ation rules.
+The behavior of a ModelicaML state machine can be
+expressed by using M odelica algorithmic code or by
+using equations. Note that the statements inside an a l-
+gorithm section in Modelica are executed exactly in
+the sequence they are defined. This is different from
+theequation section swhich are declar ative so that the
+order of equations is independent from the order of
+their evaluation .The Modelica StateGraph library [5]
+uses equations to express b ehavior that is similar to the
+UML state machine b ehavior.
+In ModelicaML, t he behavior of onestate m achine is
+translated into algorithmic code that is generated into one
+algorithm section of the containing class4. The r ationale
+4A Modelica class can have 0..* algorithm se ctions .
+4
+
+--- Page 5 ---
+for the decision to implement a specific code generator
+instead of implementing a library and to use algorithm
+statements instea d of equations is the follo wing:
+The behavior expressed by a state machine is a lways
+causal. There is no need to use the acausal modeling
+capability of Modelica. By using algorithm ( with pre-
+defined causality) no sorting of equ ations is required.
+Furthermor e, for the implementation of inter -level
+transitions , i.e. transitions which cross states hiera rchy
+borders ,the deactivation and activation of states and
+the execution sequence of associated actions
+(exit/entry action of states or state transitions effect s)
+has to be per formed in a n explicitly defined order . This
+is hard to achieve when using equations thatare sorted
+based on their data depen dencies.
+3.2.2 Combining Continuous -Time and Di screte -
+Time Behavior
+The fact that a ModelicaML state machine is translate d
+into algorithmic Modelica code implies that all actions
+(transition effects, orentry/do/exit actions of states) can
+only be defined using algorithmic code. Hence, it is not
+possible to insert equations into transition effects oren-
+try/do/exit actions of states. However, it is possible to
+relate the activ ation of particular equations based on the
+activation or deactiv ation of state machine states. This is
+supported by the dedicated IsInState() -macro in
+ModelicaML. Vice versa, state m achines can react on t he
+status of any continuous -time var iable.
+3.2.3 Event Processing (Run -To-Completion S e-
+mantic sApplicability)
+UML, [2]p.565, defines the run-to-completion sema ntics
+for processing events. When an event is dispatched to a
+state mac hine, the state machine must process all a ctions
+associated with the reaction to this event before reacting to
+further events ( which might possibly begenerated by the
+transitions taken). This definition i mplies that, even if
+events occur simultaneously, t hey are still processed s e-
+quentially. In practice, this requires an implementation of
+an event queue that ultimately prevents events from being
+processed in parallel . This can lead to ambiguous execu-
+tionsemantics as is pointed out in se ction4.2.
+The problem with event queues , as discussed in se c-
+tion 4.2,does not exist in ModelicaML .If events occur
+simultaneously (at the same simulated time instant or
+event iteration) in ModelicaML state machines they are
+processed (i.e. consumed) in parallel in the next evalu a-
+tion of the state machine.
+However, t he definition of the run-to-completion se-
+mantic sisstillapplicable to Modelica and, thus, to Mod e-
+licaML state machines in the sense that when an event h as
+occurred a state machine first finishes its r eaction sto thisevent before processing events that are generated during
+thesereaction s.
+4State Machines Execution Semantics I s-
+sues Discussion
+4.1 Issues with Instantaneous States :Deadlocks
+(Infinite Looping)
+In Modelica the global variable time represents the sim u-
+lated real time. Computation satevent iterations do not
+consume simulated time. Hence, states can be e ntered and
+exited at the same simulated point in time. For instance,
+Figure 3shows State_2 being e ntered and exited at the
+same simulated point in time. However, i n ModelicaML, a
+state cannot be entered and exited du ring the same event
+iteration cycle, i.e., variables that represent states cannot
+be set and unset in the sam eevent iteration cycle. This is
+ensured by using the pre(state activation status) function
+in the cond itions of state transition code. This enforces
+that the entire behavior first reacts to an event before r e-
+acting to the events that are generated during event iter a-
+tions (i.e. re -evaluation of theequation system).
+When instantaneous states are allowed it is possible to
+model deadlocks that lead to aninfinite loop at the same
+simulated point in time. Consi derFigure 4(left): The be-
+havior will loop infinitely without advancing the sim u-
+lated time and a simulation tool will stop the sim ulation
+and report an issue .
+If such a behavior is intended and the state machine
+should loop continuously and execute actions, the mo deler
+can brea k the infinite looping by adding a time d elay5to
+one of the involved transitions (see the right state machine
+inFigure 4). In doing so the simulation time is advanced
+and the tool will continue sim ulating.
+In large models deadl ocks can exist which are not as
+obvious as in the simple example depicted in Figure 4.
+Infinite looping is often not modeled on pu rpose and is
+hard to prevent or to detect. This issue is subject to f uture
+research in ModelicaML.
+Figure 4:Deadlocks (infinite looping )example
+5AFTER(expression) is a ModelicaML macro. It is e xpanded to the
+guard condition state_local_timer > expre ssion .
+5
+
+--- Page 6 ---
+4.2 Issues With Concur rency W hen Using Event
+Queue s
+Consider the state machine inFigure 5modeled in IBM
+Rational Rhapsody [14].The events ev1andev2are ge n-
+erated simultaneously atthe same time instant when ente r-
+ing the initial states of both regions .However, it is not
+obvious to the modeler in which order thegene rated
+events aredispatched to the state m achine .
+When the simula tion is started Rhapsody shows that
+the events are generated and put into the event queue in
+the following order: ev1, ev2 . When restarting the simul a-
+tion the order of events in thequeue will always be the
+same. Obviously, there is a mechanism that d etermines the
+order of region executions based on the mo del data.
+Next, these events are dispatched to the state m achine
+one after the other. First the event ev1is dispatched and
+the trans ition to state_1 is executed, then the event ev2is
+dispatched and the transition from state_1 tostate_2 is
+executed, as shown in Figure 6.
+Figure 5: Events queue issue 1
+Figure 6: Events queue issue 1 simulation . The state
+machine ends up in s tate_2 in both regions .
+According to this behavior the occurrence of ev2is
+delayed. However, with the state machine in state_1 noev2occur s.The event ev2occurs when the state m achine
+isinstate_0 . This behavior seems to be similar to the co n-
+cept of deferred events described in the UML specific a-
+tion ( [2],p.554): “ An event that does not trigger any tra n-
+sitions in the current state, will not be di spatched if its
+type matches one of the types in the d eferred event set of
+that state. Instead, it remains in the event pool while a n-
+other non -deferred event is dispatched instead. This situ a-
+tion pe rsists until a state is reached where either the event
+is no longer deferred or where the event triggers a trans i-
+tion.”.
+Consider Figure 7. Itshows a slightly modified state
+machine. The event e v2is generated inside the left r egion
+and the ev1is generated in side the right region .The order
+of events in the queue is now r eversed :ev2, ev1.
+Figure 8shows the simulation result. In contrast to the
+assumption above, the event ev2is not deferred. It is di s-
+patched to the state machine and discarded after the trans i-
+tion to state_1 is taken. The state machine finally stays in
+state_1 , which i s a di fferent behavior than in Figure 6.
+Figure 7: Events queue issue 2
+Figure 8: Events queue issue 2 simulation . The state
+machine ends up in state_1 in both regions.
+Along with the fact that the modeler cannot control the
+execution order of the parallel regions ( this issue is ad-
+6
+
+--- Page 7 ---
+dressed insection 4.3)and, thus, the order in which events
+are generated, the main issue here is that it leads to b ehav-
+iorthatisunpredictable andcannotbeexpected from the
+modeler ’sperspective .
+Figure 9shows the same model in ModelicaML. In
+contrast to the examples above, regardless ofwhether the
+event ev2is generated in the right re gion or in the left r e-
+gion,the execution behavior is the same –the state m a-
+chine always end sup in state_1 in both regions .
+This is because the events that occur simultaneously
+are processed (i.e., dispatched and consumed) in para llel
+during the next st ate machine evaluation cycle. When the
+transitions from the states state_0 tostate_1 in both r e-
+gions are executed, event ev2is also co nsumed and the
+state machine stays in both states state_1 because with the
+state machines in states state_1 in both regi ons no event
+ev2 is generated .
+Figure 9: Same model in ModelicaML . The state
+machine ends up in state_1 in both regions.
+4.3 Issue with Concurrent Execution inRegions
+Regions are executed in paral lel, i.e. at the same sim ulated
+time instant . However, the corresponding Mod elica code
+in the algorithm section is still sequential (procedural) .To
+ensure determinism and make the semantic sexplicit to the
+modeler ,in ModelicaML each region isautomatically
+given a priority relative toitsneighbo ringregions (a lower
+priority number implies higher execution order prio rity).
+This may be necessary when there are actions thatsetthe
+same variables in multiple parallel re gions6, as illustrated
+inFigure 10.
+6This example is artificial and is meant for illustr ationpurposes only .
+Normally, modeling such behaviour will probably be avoided.
+Figure 10:Definition of priority for parallel regions
+Since Region_0 is given a higher execution pr iority, it
+will be executed prior to Region_1 , which has lower prio r-
+ity. The r esult is that openValve is set tofalse . Note
+thatifState_0 inRegion_0 wasa composite state, thenits
+internal behavior would also be executed before the b e-
+havior of State_0 inRegion_1 .
+Priorities are set by default by the ModelicaML mode l-
+ingtool. Themodeler can change priorities and, in doing
+so,define the execution sequence expli citlytoensure the
+intended behavior .
+The regions prio rity definition is also used for exiting
+and entering composite states as well as inte r-level trans i-
+tions as discussed in sections 4.5and4.6.
+4.4 Issues w ith Conflicting Trans itions
+When astate has multiple outgoing transitions and tri gger
+and guard condition soverlap, i.e. they can be true at the
+same time ,then the transitions aresaid to be in conflict
+([2],p.566) :“Two transitions are said to co nflict if they
+both exit the same state, or, more precisely, that the inte r-
+section of the set of states they exit is non -empty. Only
+transitions that occur in mutually orthog onal regions may
+be fired simultaneously. ”When tri ggers are defined for a
+transition, then there is no issue with overlapping guard
+conditions because simultan eous events are not processed
+in parallel in UML. This is different in ModelicaM Lbe-
+cause events are processed in parallel and can overlap.
+However, it is not clear from the UML specification what
+should happenif co nflicting transitions do not have any
+triggers but only have guard conditions defined, that can
+evaluate to true at the same time .This issue is addressed
+in section 4.4.1
+Furthermore, i n case the conflicting transitions areat
+different hierarchy levels, UML defines the follo wing:“In
+situations where there are conflicting transitions, the s e-
+lection of which transitions will fire is based in part on an
+implicit priority. These priorities resolve some transition
+conflicts, but not all of them. The pr iorities of conflicting
+transitions are based on their relative position in the state
+hierarchy. ”This issue is described in section4.4.2 .
+7
+
+--- Page 8 ---
+4.4.1 Priorities for State -Outgoing Tra nsitions
+Consider the state machine in Figure 11.Ifxandyare
+greater tha n2at the same time both guard co nditions
+evaluate to true. In ModelicaML, which transition willbe
+taken then is determined by the transition execution prior-
+ity defined by the modeler.
+Figure 11: Priorities definition for state -outgoing
+transitions
+As for re gions (discussed in section 4.3), conflicting
+transitions coming out of a state are prioritized in Model i-
+caML. Priorities for transitions are set by default by the
+modeling tool. The modeler can change priorities and
+thereby ensure deterministic b ehavior.
+4.4.2 Priority Schema forConflicting Trans itions at
+Different State Hierarchy Levels
+UML defines the priority schema for conflicting trans i-
+tions that are at different levels as fo llows (see p. 567):“…
+By definition, a transition or iginating from a su bstate has
+higher priority than a conflicting transition originating
+from any of its containing states.” Norational eis doc u-
+mented for this decision as pointed out in[11].
+Consider the stat e machine in Figure 12.What should
+happen when xandyaregreater than 2at the same time ?
+This case is not addressed in the UML specification be-
+cause no triggers aredefined for the setransition s.One
+possible a nswer could be :Transition to state NOT OK is
+taken. Another answer could be: Transition to state NOT
+OKis taken and then transition to state OKis taken. Yet
+another answer could be : Transition to state OKis taken
+and since State_0 is deact ivated no fur ther reaction inside
+State_0 is to be e xpected. The latter is implemented in
+Model icaML.
+Figure 12: Transition at higher level shave higher
+priority
+In ModelicaML thepriority scheme isdifferent from
+UML . In ModelicaML, o utgoin gtransitions of a compo s-
+ite state have h igher execution priority than transitions
+inside the composite state .The rational efor this decision
+isas follows :
+This semantic sismore intuitive and clear .For exa m-
+ple, ifstates are describe dusing sub -state m achines
+(presented intheir own diagram s),the mo delercannot
+know if a particular transition is taken unless heorshe
+hasinspect edall lower -level sub -state machines di a-
+grams. The UML prior ity scheme can also lead to b e-
+havior where the composite state i s never exited be-
+cause events are consumed at some level further down
+thehierarchy ofthecomposite state .
+The ModelicaML priority schem ereduces the co m-
+plexity of the code genera tor.For example, asalready
+mentioned above, event queue sare not used inMod e-
+lica.Toavoid that transition sof a composite state co n-
+sume events that are already consumed inside the
+composite states, events need to be marked or removed
+from the queue .Such an implementation would drast i-
+cally increase the size and complexity of thecode gen-
+erator as well as ofthegenerated Modelica code.
+4.5 Issues with Inter -Level Transitions
+This section discusses issues concerning the execution
+order of actions as a result of transition execution s.Ac-
+tions can be entry/do/exit actions of states o reffect actions
+of transitions. The order in which actions are ex ecuted is
+important when actions are dependable, i.e. ifdifferent
+actions set or read the same variables.
+Consider the state machine inFigure 13.Assume that
+eachstate has entry and exit actions, and that Region_0 is
+always given the highest priority and Region_x the lowest.
+When the state machine is in state aandcond1 istrue,
+the question is in which order the states are act ivated and
+therespective entry ac tions are executed .This case is not
+addressed in the UML specif ication.
+From the general UML state machine semantic sdefi-
+nition we can deduce that sub -statescannot be act ivated as
+long as their conta ining (i.e. composite ) state isnotacti-
+vated.For exa mple, it is clear that the state bhas to be
+8
+
+--- Page 9 ---
+activated before the state scandican become active.Fur-
+thermore, we can argue that since the modeler e xplicitly
+created an inter -level transition the state e2should be act i-
+vated first, i.e. before states in neighboring regions at the
+same (i.e.f)or at a higher state hi erarchy level (i.e.g, h, or
+i).Hence, when the inter-level transition from state ato
+state e2is taken the pa rtial states activation sequence and
+its resulting order of entry -actions execut ionshould be: b,
+c, d, e2 .However, in which sequence shall the states f,g,
+handibe activated? Possible a nswers are :i,h, g, f ,ori, g,
+h, f, orf, g, h, i , orf, h, g, i .
+In ModelicaML, this issue is resolved as follows: First
+all states contai ning the target state and the target state
+itself are activated. Next, based on the region ex ecution
+priority, theinitial states from neighboring r egions are
+activated. Since the priority in this example is d efined for
+regions from left (highest) to right (lowest) for each co m-
+posite state, the act ivation order would be b, c, d, e2, f, g,
+h, i. Vice versa, if the region priority would be defined the
+other way around (from right to left) the act ivation order
+would be b, c, d, e2, i, h, g, f .
+A similar issue exist sregarding the transition to state a
+whenthe state machine isin state e2andwhen cond2 is
+true. Here the states deactivation and exit actions exec u-
+tion order are involved. The resulting deactivation s e-
+quence in ModelicaML would be: e2, f, d, g andh(based
+on the region priority def inition), c, iandb.
+Figure 13: Inter -level transition example
+4.6 Issues with Fork and Join
+Like section 4.5, this section addresses issues regar ding
+the activatio n and deactivation of states . However, in this
+case,UML fork andjoinconstructs areregarded .Consider
+the state machine on Figure 14.With the state machine in
+state athe que stionsare:
+In which sequence arestates b, c, d, e, andfactivated
+when the transition s (fork construct) from state ais
+executed ?In which sequence are states b, c, d, e, andfdeact i-
+vated when the transitions (join construct) to state g
+are ex ecuted?
+This case is also not addressed in theUML specific a-
+tion. In ModelicaML, first the parent states of the trans i-
+tion target -states are activated. Then the target states
+themselves are activated based on the fork -outgoing tra n-
+sition priority. Next the initial states in the neig hboring
+regions are activated base d on theregion priority defin i-
+tion.
+Again a ssume that each state has entry and exit a c-
+tions, and that Region_0 is always given the highest prio r-
+ity and Region_x the lowest. The resulting states activ a-
+tion sequence (and respe ctive execution of entry action s)
+for the fork construct would be: b, d ande(based on the
+fork-outgoing transitions prio rity), candf(based on their
+region priority). The resulting deactiv ation for the join
+construct would be: dande(based on the join -incoming
+transitions priority ),candf(based on their region priority
+definition), b. In any case, the modeler can define the ex e-
+cution order expli citly.
+Figure 14: Fork and join example
+5Conclusion
+This paper present sa proof of concept f orthe transl ation
+of UML state machines into executable Modelica code. It
+presents how theexecutable semantics of UML state m a-
+chines are defined in ModelicaML and how state m a-
+chines are used to model parts of class behavior in Mod e-
+licaML .The ModelicaML prot otypescan be downloaded
+from [15].
+Furthermore ,this paper highlights issues that should
+be addressed in theUML specification and makes propos-
+alson how to resolve them .Section 4.2questions the us e
+ofaneventqueue that prevent ssimultaneous events from
+being processed in parallel .When procedural code is used
+fortheimplementation of state machines execution ,sec-
+9
+
+--- Page 10 ---
+tion 4.3makes a proposal toinclude priority for regions.
+Aregionspriority also su pports the definition of states
+activation or deactiv ationorder in case of inter -level state
+transitions (section 4.5)or fork/join constructs (section
+4.6).Section 4.4.1 introduces execution priority for con-
+flicting state-outgoing transitions in order to allow the
+modeler to control the execution and toensure that the
+state m achine behaves as intended .
+References
+[1] Modelica Association. Modelica: A U nified O bject-
+Oriented Language for Physical Systems Modeling: La n-
+guage Specification Version 3.0, Sept 2007.
+www.modelica.org
+[2] OMG. OMG Unified Modeling LanguageTM(OMG
+UML). Superstructure Version 2.2, Fe bruary 2009.
+[3] Peter Fritzson. Principles of Object -Oriented Mo deling
+and Simulation with Modelica 2.1. Wiley -IEEE Press,
+2004.
+[4] OMG. OMG Systems Modeling Language (OMG
+SysML™), Version 1.1, November 2008.
+[5] Martin Otter, Martin Malmheden, Hilding Elmqvist,
+Sven Eri k Mattsson, Charlotta Johnsson. A New
+Formalism for Modeling of Reactive and Hybrid
+Systems. Proceedings of the 7th International Mo d-
+elica Conference, Como, Italy. September 20 -22,
+2009.
+[6] Ferreira J. A. and Estima de Oliveira J. P., Modelling
+Hybrid System s Using Statecharts And Modelica. De-
+partment of Mechanical Engineering, Un iversity of
+Aveiro, 3810 Aveiro (PORTUGAL), Department of Ele c-
+tronic Engineering, University of Aveiro, 3810 Aveiro
+(PORT UGAL)[7] Adrian Pop, David Akhvlediani, Peter Fritzson .Towards
+Unified Systems Modeling with the ModelicaML UML
+Profile. International Workshop on Equation -Based O b-
+ject-Oriented Languages and Tools. Berlin, Germany,
+Linköping University Electronic Press, www.ep.liu.se ,
+2007
+[8] Thoma s Johnson, Christian Paredis, Roger Burkhart. I n-
+tegrating Models and Simulations of Continuous Dyna m-
+ics into SysML. www.omgsysml.org
+[9] Johnson, T. A. Integrating Models and Simulations of
+Continuous Dynamic System Be havior into SysML. M.S.
+Thesis, G.W. Wood ruff School of Mechanical Enginee r-
+ing, Georgia Institute of Tec hnology. Atlanta, GA. 2008
+[10] M. von der Beeck. A Comparison of Statecharts
+Variants. In Formal Techniques in Real -Time and
+Fault -Tolerant Systems, LNCS 86 3, pages 128 -148.
+Springer, 1994.
+[11] Michelle L. Crane and Juergen Dingel. UML vs. Classical
+vs. Rhapsody Statecharts: Not All Models are Created
+Equal School of Computing, Queen's University Kin g-
+ston, Ontario, Canada
+[12] Object Management Group (OMG) .www.omg.org
+[13] Wladimir Schamai, Peter Fritzson, Chris Par edis, Adrian
+Pop. Towards Unified System Modeling and Simulation
+with ModelicaML: Modeling of Executable Behavior U s-
+ing Graphical Notations . Proceedings of the 7th Intern a-
+tional Modelica Conference, Como, Italy. Se ptember 20 -
+22, 2009
+[14] IBM® Rational® Rhapsody® Designer for Systems E n-
+gineers, http://www -
+01.ibm.com/software/rational/products/rha psody/designer
+/
+[15] ModelicaML -A UML Profile for Modelica.
+www.openmodelica.org/index.php/developer/tools/134
+10

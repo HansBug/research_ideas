@@ -1,0 +1,1012 @@
+--- Page 1 ---
+Theoretical Computer Science 354 (2006) 230 – 249
+www.elsevier.com/locate/tcs
+Modular strategies for recursive game graphs/H22817
+Rajeev Alura, Salvatore La Torreb, P. Madhusudanc,∗
+aUniversity of Pennsylvania, USA
+bUniversità degli Studi di Salerno, Italy
+cUniversity of Illinois at Urbana-Champaign, USA
+Abstract
+Many problems in formal veriﬁcation and program analysis can be formalized as computing winning strategies for two-player
+games on graphs. In this paper, we focus on solving games in recursive game graphs which can model the control ﬂow in sequentialprograms with recursive procedure calls. While such games can be viewed as the pushdown games studied in the literature, thenatural notion of winning in our framework requires the strategies to be modular with only local memory; that is, resolution ofchoices within a module does not depend on the context in which the module is invoked, but only on the history within the currentinvocation of the module. While reachability in (global) pushdown games is known to be E
+XPTIME -complete, we show reachability
+in modular games to be N P-complete. We present a ﬁxed-point computation algorithm for solving modular games such that in the
+worst case the number of iterations is exponential in the total number of returned values from the modules. If the strategy within amodule does not depend on the global history, but can remember the history of the past invocations of this module, that is, if memoryis local but persistent, we show that reachability becomes undecidable.© 2005 Published by Elsevier B.V .
+Keywords: Model-checking; Games in veriﬁcation; Pushdown systems
+1. Introduction
+The original motivation for studying games in the context of formal analysis of systems comes from the controller
+synthesis problem. Given a description of the system where some of the choices depend upon the input and some ofthe choices represent uncontrollable internal non-determinism, designing a controller that supplies inputs to the system
+so that the product of the controller and the system satisﬁes the correctness speciﬁcation corresponds to computingwinning strategies in two-player games. This question has been studied extensively in the literature (see [10,26,20] for
+sample research and [31] for a survey). Besides the long-term dream of synthesizing correct programs from formalspeciﬁcations, games are relevant in two different contemporary contexts. First, model checking for branching-timelogics such as the /afii9839-calculus, as well as several procedures that use tree automata emptiness for deciding various
+/H22817This research was supported in part by ARO URI award DAAD19-01-1-0473, and NSF awards CCR-9970925, ITR/SY 0121431, and CCR-
+030638. The second author was also supported by the MIUR Grant 60% 2002/2003. A preliminary version appeared in the Proceedings of the 9thInternational Conference on Tools and Algorithms for the Construction and the Analysis of Systems (TACAS), Lecture Notes in Computer Science,vol. 2619, 2003, pp. 363–378.
+∗Corresponding author.
+E-mail addresses: alur@cis.upenn.edu (R. Alur), latorre@dia.unisa.it (S. La Torre), madhu@cs.uiuc.edu ,madhusud@saul.cis.upenn.edu
+(P. Madhusudan).
+0304-3975/$ - see front matter © 2005 Published by Elsevier B.V .
+doi:10.1016/j.tcs.2005.11.017
+
+--- Page 2 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 231
+logics, can be reduced to solving games [15,30]. Second, games have been shown to be relevant for veriﬁcation of
+open systems. For instance, the Alternating T emporal Logic allows speciﬁcation of requirements such as “module A
+can ensure delivery of the message no matter how module B behaves” [4]; module checking deals with the problem
+of checking whether a module behaves correctly no matter in which environment it is placed [21]; the framework ofinterface automata allows assumptions about the usage of a component to be built into the speciﬁcation of the interface
+of the component, and formulates compatibility of interfaces using games [14,12]; recent work in interface synthesisfor Java classes [2] uses games to capture dynamic requirements a class demands of its environment.
+In traditional model checking, the model is a ﬁnite state machine whose vertices correspond to states, and whose
+edges correspond to transitions. To deﬁne two-player games in this model, the vertices are partitioned into two setscorresponding to the two players, where a player gets to choose the transition when the current state belongs to its ownpartition.
+1In this paper, we consider the richer system model of recursive state machines (RSMs), in which vertices
+can either be ordinary states or can correspond to invocations of other state machines in a potentially recursive manner.Recursive state machines can model the control ﬂow in typical sequential imperative programming languages withrecursive procedure calls.
+More precisely, a recursive state machine consists of a set of component machines called modules . Each module has
+a set of nodes (atomic states) and boxes (each of which is mapped to a module), a well-deﬁned interface consisting of
+entry and exitnodes, and edges connecting nodes/boxes. An edge entering a box models the invocation of the module
+associated with the box, and an edge leaving a box corresponds to a return from that module. To deﬁne two-playergames on recursive state machines, we partition the nodes into two sets such that a player gets to choose the transitionwhen the current node belongs to its own partition. We focus on solving games with reachability and safety winning
+conditions. For reachability games, the problem is to decide whether one of the players has a strategy to force thesystem starting from a speciﬁed node to enter one of the target nodes. In a safety game, the player must force the systemto stay within a given “good” set of nodes.
+Due to recursion, the underlying global state-space is inﬁnite and behaves like a pushdown system. While reachability
+in pushdown games is already studied [32,11], we are interested in developing algorithms for games on RSMs for tworeasons. First, RSMs is a more natural model of recursive systems, and studying reachability (without games) on RSMshas led to reﬁned bounds on complexity in terms of parameters such as the number of entry and exit nodes of modules[3]. Second, existing algorithms for solving pushdown games assume that each player has access to the entire globalhistory which includes the information of the play in all modules. The ﬁrst contribution of the paper is the notion ofmodular strategies for games on RSMs. A modular strategy is a strategy that has only local memory, and thus, resolution
+of choices within a module does not depend on the context in which the module is invoked, but only on the historywithin the current invocation of the module. This permits a natural deﬁnition of synthesis of recursive controllers: acontroller for a module can be plugged into any context where the module is invoked. Clearly, there are cases wherethere is no modular winning strategy while there is a global one. Recent work on the interface compatibility checking forsoftware modules implements the global games on pushdown systems [12], but we believe that checking for existenceof modular strategies matches better with the intuition for compatibility. Due to recursion, a recursive state machinebehaves like a pushdown system and therefore its underlying global state space is inﬁnite. Reachability in pushdown
+games has been studied [24,17,32,11] under the assumption that each player has access to the entire global historywhich includes the information of the play in all modules. The ﬁrst contribution of our paper is the notion of modular
+strategies for games on RSMs. A modular strategy is a strategy that has only local memory, and thus the resolution ofchoices within a module does not depend on the context in which the module is invoked, but only on the history withinthe current invocation of the module. This permits a natural deﬁnition of synthesis of recursive controllers: a controllerfor a module can be plugged into any context where the module is invoked. Clearly, there are cases where there is nomodular winning strategy while there is a global one.
+After formulating the notion of modular strategies, we show that deciding existence of modular winning strategies
+for reachability games is N
+P-complete. In contrast, global reachability games are E XPTIME -complete [32]. Then, we
+proceed to formulate a ﬁxed-point computation algorithm that generalizes the symbolic solution to reachability games.For ordinary game graphs, the ﬁxed-point algorithm, starting with the target vertices, iteratively grows the set of verticesfrom which winning is ensured. In our case, when a node is found to be winning, we also need to keep track of the
+1More interesting forms of interactions between the two players are possible, for instance, see alternating transition systems [4], but we will use
+a simple game model for this paper.
+
+--- Page 3 ---
+232 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+strategies within different modules that were used. This labeling is needed to make sure that the same set of module
+strategies is used consistently everywhere to ensure modularity. When a play enters a module, the strategy used for themodule always drives the play such that the play exits only in a subset Eof the exit nodes of the module. Also, the
+strategy only allows certain modules Mto be called from the current module. It turns out that these two sets, Eand
+M, are the only relevant aspects of the strategy that needs to be recorded. Consequently, in the worst case, the number
+of iterations of our ﬁxed-point computation is exponential in the number of exit nodes of the modules.
+We then turn to safety winning conditions for recursive game graphs. Since we restrict to modular strategies for
+one player, the protagonist, on recursive game graphs safety is not dual to reachability. We prove that determining theexistence of a modular strategy for a safety recursive game is also N
+P-complete.
+Finally, we consider the case when the strategy within a module is required to have only local memory, and does
+not depend on the global history, but where this memory can be persistent and can remember the history of the past
+invocations of this module. In this case, we prove reachability games to be undecidable by a reduction from theundecidability of multi-player games with incomplete information [25].
+Related work : We have already explained the relation to the global games on pushdown systems [9,11,32]. The
+notion of modular strategies may remind the reader of games with partial information, but this is technically quitedifferent from the standard notion of partial information, and, in fact, lowers the complexity class of the decisionproblem, while introducing partial information typically adds an exponential to the complexity. Another context wheremodular strategies have been studied is in the realm of concurrent or distributed games for synthesizing distributedcontrollers for a system (see [27,22,28] and references therein). In that setting, however, looking for modular strate-gies quickly leads to undecidability. There are some restricted architectures that are decidable, a prominent one beingthe hierarchic architectures [25,27]. Our problem, however, is quite different from these works since in our set-
+ting the control is always in one module, while in the concurrent setting, control can be in several modules at anygiven time.
+2. Games on recursive graphs
+In this section we introduce recursive games and the decision problem we wish to solve. We start by recalling the
+notion of games on “ﬂat graphs” which are the standard games on And–Or graphs.
+2.1. Flat game graphs
+Aﬂat game graph is a tuple G=/angbracketleftV,V
+0,V1,/afii9828/angbracketrightwhere Vis a ﬁnite set of vertices, V0andV1deﬁne a partition of
+V, and /afii9828:V→2Vis a function giving for each vertex u∈Vthe set of its successors inG. The game is played by
+two players, player 0 (the protagonist ) and player 1 (the adversary ). For p=0,1, the vertices in Vpare those from
+which only player pcan move and the allowed moves are given by the function /afii9828. Intuitively, after a play u0u1...uj,
+ifuj∈Vp, then player pchooses a successor vertex uj+1∈/afii9828(uj).
+Formally, a play in a game graph Gis a (ﬁnite or inﬁnite) path in G.A strategy for player pis a function f:V∗.V→
+Vmapping sequences (and hence plays) to vertices such that for every sequence /afii9843u∈V∗.V,i fu∈Vpand/afii9828(u)/negationslash=∅,
+thenf(/afii9843u)∈/afii9828(u). The idea is that when a play /afii9843uhas been played, where u∈Vp, the strategy frecommends the
+movef(/afii9843u). Unless uis a sink vertex, we require that fpicks a successor vertex of u. A play /afii9843=u0u1...isaccording
+tofif for every 0 /lessorequalslantj<|/afii9843|such that uj∈Vp,f( u 0...uj)=uj+1. If a strategy for player pdepends only on the
+current vertex of a play, i.e., if f(/afii9843x)=f(/afii9843/primex), for all plays /afii9843,/afii9843/primeandx∈Vp, it is called a memoryless strategy .A
+play/afii9843according to a strategy is said to be maximal if it cannot be continued (i.e. if /afii9843is inﬁnite, or, /afii9843is ﬁnite and there
+is nov∈Vsuch that /afii9843vis a play according to the strategy).
+Since we are interested in reachability and safety games in this paper, we have a winning condition for the game
+given by a subset of vertices X. For reachability games, Xrepresents the target set that must be reached, and in safety
+games, Xrepresents the “good” set that the play must stay within. A ﬂat reachability (safety) game is then a tuple
+/angbracketleftG, v 0,X/angbracketrightwhere Gis a ﬂat game graph, v0is the initial vertex where the plays start, and Xis a subset of the vertices.
+In a reachability game, a play is winning for the protagonist if it contains a vertex in X(i.e. a play /afii9843=u0u1...,where
+u0=v0, is winning if there is an i<|/afii9843|such that ui∈X). A play /afii9843is winning for the protagonist in a safety game
+if all vertices in the play are in X. A strategy for the protagonist is winning if all maximal plays according to it are
+
+--- Page 4 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 233
+winning, while a strategy for the adversary is winning if all maximal plays according to it are not winning. We recall
+that ﬂat reachability and safety games are solvable in linear time and are P TIME -complete. Moreover, if a player has a
+winning strategy, then it also has a memoryless winning strategy [23].
+2.2. Recursive game graphs
+Our main objective is to study reachability and safety games in hierarchical and recursive graph structures that are
+deﬁned using several component game graphs (or game modules) that can invoke each other. We concentrate mainlyon reachability games and brieﬂy overview how the results translate to safety games in Section 5.
+In this section we introduce our model. It is the recursive state machine model deﬁned in [3,8] generalized to game
+graphs.
+Deﬁnition 1. Arecursive game graph Ais given by a tuple /angbracketleftA
+1,...,A n/angbracketright, where each game module Ai=(Ni,Bi,V0
+i,
+V1
+i,Yi,Eni,Exi,/afii9829i)consists of the following components:
+•A ﬁnite nonempty set of nodes Ni.
+•A nonempty set of entry nodes Eni⊆Niand a nonempty set of exitnodes Exi⊆Ni.
+•A set of boxes Bi.
+•Two disjoint sets V0
+iandV1
+ithat partition the set of nodes and boxes into two sets, i.e. V0
+i∪V1
+i=Ni∪Biand
+V0
+i∩V1
+i=∅. The set V0
+i(V1
+i) denotes the places where it is the turn of player 0 (respectively player 1) to play.
+•A labeling Yi:Bi→{1,...,n }that assigns to every box an index of the game modules A1,...,A n.
+•Let Calls i={(b, e) |b∈Bi,e∈Enj,j=Yi(b)}denote the set of calls of module Aiand let Retns i={(b, x) |
+b∈Bi,x∈Exj,j=Yi(b)}denote the set of returns inAi. Then, /afii9829i:Ni∪Retns i→2Ni∪Calls iis a transition
+function .
+Nodes of Ni, for any i, which are in Vp
+iare called p-nodes while returns of the form (b, u) , where b∈Vp
+i, for
+somei, are called p-returns . An element in Calls iof the form (b, e) represents a call from Aito the module Aj, where
+b∈Bi,j=Yi(b)ande∈Enjis an entry node of Aj. An element in Retns iof the form (b, x) corresponds to the
+associated return of control from AjtoAiwhen the call exits from Ajat exit node x∈Exj. The transition function
+hence deﬁnes moves from nodes and returns to a set of nodes and calls.
+To illustrate the deﬁnitions, consider the example shown in Fig. 1. It comprises two modules A1andA2, where
+A1has three boxes ( b1,b2andb3) that invoke A2. The nodes of player 0 (the protagonist) are denoted by circles
+and the nodes of player 1 (the adversary) are denoted by squares (all boxes belong to player 0). The only adversarynode in the example is e
+1, the entry node of A1. The only place at which the protagonist has more than one enabled
+move is e2, the entry node of A2. The node e1is an entry node of A1,(b2,e2)is a call in A1and(b2,x2)is a return
+inA1.
+We make some assumptions of these graphs in the sequel that enables a more readable presentation:
+(R1) There is only oneentry node in every module, i.e. |Ei|=1 for every i. We refer to this unique entry node of Ai
+asei.
+(R2) For every u∈Ni∪Retns i,ei/∈/afii9829i(u)holds, and for every x∈Exi,/afii9829i(x)is empty. That is, there are no transitions
+from a module to its own entry nodes and no transitions from its exit nodes. Also, there are no transitions fromreturns to calls.
+(R3) The nodes and boxes of all modules are disjoint. Let B=/uniontext
+iBidenote the set of all boxes and N=/uniontext
+iNi
+denote the set of all nodes.
+The restriction (R1) of having only a single entry is for convenience. We address how to handle multiple entries in
+Section 5.
+The condition (R3) is without loss of generality. Hence we can extend the functions {Yi}n
+i=1to a single function
+Y:B→{1,...,n }. The restriction (R2) is also without loss of generality as one can always introduce new entry
+nodes (exit nodes) that do not have incoming (outgoing) transitions and turn the original entry nodes (exit nodes) tointernal nodes. In the second case too, for every transition from a return to a call, we can introduce a new dummy nodein between them.
+
+--- Page 5 ---
+234 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+Fig. 1. A recursive game graph.
+Note that the above deﬁnition allows recursive calls—a module can call itself directly or indirectly. We say that a
+recursive game graph is hierarchic if this cannot happen. Formally, a recursive game graph /angbracketleftA1,...,A n/angbracketrightis hierarchic
+if there is an ordering /lessorequalslanton the modules such that for every Ai,Aihas no calls to any Ajwhere Aj/lessorequalslantAi(i.e. there is
+no box binAisuch that AY(b)/lessorequalslantAi). For example, the game graph in Fig. 1 is hierarchic.
+To deﬁne the notions of play and strategy for a recursive game graph, we ﬁrst give the semantics of our model by
+deﬁning a ﬂat game graph associated with it. This is similar to the way one associates a ﬂat model that describes thebehavior of a recursive state machine.
+A (global) state of a recursive game graph A=/angbracketleftA
+1,...,A n/angbracketrightis a tuple /angbracketleft/afii9835,u/angbracketrightwhere /afii9835=b1,...,b ris a ﬁnite
+(perhaps empty) sequence of boxes from B(the stack of recursive calls), and uis a node in N(the current control
+point). Consider a state /angbracketleftb1,...,b r,u/angbracketrightand let ji,1/lessorequalslanti/lessorequalslantr, be such that bi∈Bji, and let jbe such that u∈Nj. Such
+a state is well-formed if Y(bi)=ji+1for 1/lessorequalslanti<r , and if r/greaterorequalslant1,Y(br)=j.I f/afii9848denotes the empty sequence, note
+that any state of the form /angbracketleft/afii9848,u/angbracketrightis well-formed; we henceforth use /angbracketleftu/angbracketrightto denote /angbracketleft/afii9848,u/angbracketright. Intuitively, a well-formed state
+/angbracketleftb1,b2,u/angbracketrightdenotes the conﬁguration where b1is a call to a module which in turn called another module using b2in
+which the current node is u. When the last module exits, the control goes back to the corresponding return of b2, and
+so on. Henceforth, we assume states to be well-formed and denote by QAthe set of global states of A.
+According to the partition of nodes and boxes in the recursive game graph, the states are also classiﬁed as protagonist
+and adversary states. For p=0,1, a state /angbracketleftb1,...,b r,u/angbracketrightis ap-state if either uis not an exit node and is a p-node, or
+(br,u )is ap-return. (If r=0 anduis an exit node, the deﬁnition will not matter since there are no transitions from
+it; we hence choose these states to be, say, 0-states.) We denote by Qpthe set of p-states.
+Deﬁnition 2. Given a recursive game graph A=/angbracketleftA1,...,A n/angbracketright, the global game graph corresponding to AisGA=
+(QA,Q0,Q1,/afii9829)where the global transition function /afii9829is given as follows. Let s=/angbracketleftb1,...,b r,u/angbracketrightbe a state with
+u∈Nj. Then for any s/prime∈QA,s/prime∈/afii9829(s)provided one of the following holds:
+Internal move :u∈Nj\Exj,u/prime∈/afii9829j(u), for some u/prime∈Nj, ands/prime=/angbracketleftb1,...,b r,u/prime/angbracketright.
+Call a module :u∈Nj,(b/prime,e)∈/afii9829j(u)(where b/prime∈Bj) ands/prime=/angbracketleftb1,...,b r,b/prime,e/angbracketright.
+Return from a call :r/greaterorequalslant1,(br,u )∈Retns j,u/prime∈/afii9829j(br,u ), for some u/prime∈Nj, ands/prime=/angbracketleftb1,...,b r−1,u/prime/angbracketright.
+The ﬁrst case above corresponds to an internal move within a module, the second case is when a new mod-
+ule is called and the box gets pushed onto the stack, and the last case corresponds to returns from calls whenthe transition is taken from the return node determined by popping the stack. Note that the set of reachable statesfrom a given state could be inﬁnite if the recursive game graph is not hierarchic, while it is certainly ﬁnite if it ishierarchic.
+
+--- Page 6 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 235
+Deﬁnition 3. Arecursive (reachability )game is a tuple /angbracketleftA,e 1,X/angbracketrightwhere A=/angbracketleftA1,...,A n/angbracketrightis a recursive game graph,
+e1is the entry node of A1, andX⊆Ex1is the target set, which is a subset of the exit nodes of A1.2
+The global recursive game corresponding to /angbracketleftA,e 1,X/angbracketrightis the ﬂat game /angbracketleftGA,/angbracketlefte1/angbracketright,X/prime/angbracketrightwhere X/primeis the set of all
+global states s=/angbracketleftb1,...,b r,u/angbracketrightwhere u∈X. A (winning) global strategy in a recursive game is a (winning) strategy
+in the global recursive game.
+If we adopt the notion of global strategies on the global recursive games, it will lead us to a deﬁnition equivalent
+to that of pushdown games [32]. One can show that for every recursive game, there is a polynomial-sized pushdownautomaton whose conﬁguration game graph (as in [32]) is isomorphic to the global graph of the recursive game, and viceversa. This is an extension of how recursive state machines and pushdown automata are related (see [1] for a detailedexplanation). We depart from pushdown games at this point in that we require a particular kind of strategy (namelya modular strategy) that wins these games. We now introduce this class of strategies and deﬁne the correspondingdecision problem.
+2.3. Modular strategies
+In this section, we introduce the concept of a modular strategy for the protagonist. A modular strategy comprises
+a set of local strategies, one for each game module, such that when the local strategies are put together into a globalstrategy, the protagonist wins the game. A local strategy for a module A
+iis restricted in the sense that it can only refer
+to the “local memory” of module Ai, that is, the portion of the play corresponding to the “current” invocation of the
+module.
+To deﬁne formally a modular strategy for a recursive game graph A, we introduce some notation. For a play /afii9843, the
+control after /afii9843is inAiif the current node is in Ai; however, if the current node is an exit node, then the control is in the
+module that made the last call. Formally, for a play /afii9843s, we say that the control after /afii9843sis inAiifs=/angbracketleftb1,...,b r,u/angbracketright,
+withu∈Ni\Exior(br,u )∈Retns i. Note that the control after a play can be in at most one module.
+Consider a play /afii9843=s0s1...skand let the control after /afii9843be inAi. Letsk=/angbracketleftb1,...,b r,u/angbracketright. Then we deﬁne the
+current stack of /afii9843to be /afii9826(/afii9843)=/angbracketleftb1,...,b r/angbracketright,i fuis not an exit node or r=0, and /afii9826(/afii9843)=/angbracketleftb1,...,b r−1/angbracketright, otherwise.
+Now, let jbe the largest index 0 /lessorequalslantj/lessorequalslantksuch that sj=/angbracketleft/afii9826(/afii9843), ei/angbracketright. Intuitively, sjcorresponds to the activation of Ai
+that led to sk. The states sj/prime, where j/lessorequalslantj/prime/lessorequalslantkare all of the form /angbracketleft/afii9826(/afii9843), b/prime
+1,...,b/prime
+r/prime,u/prime/angbracketright, for some r/prime/greaterorequalslant0. Note that there
+may be states sj/prime,j<j/prime/lessorequalslantksuch that sj/prime=/angbracketleft/afii9826(/afii9843), b/prime
+1,...,b/prime
+r/prime,ei/angbracketright, withr/prime/greaterorequalslant1, which denote recursive entries into Ai,
+but which return before sk. We will now be interested in the sufﬁx of /afii9843fromsj,/afii9825(/afii9843)=sj...sk.
+What we want to do now is to project /afii9825(/afii9843)to the nodes, calls and returns in Ai, discarding fragments of runs in
+modules called from Ai. To do this, let us deﬁne a projection function /afii9845i
+/afii9835, for a sequence /afii9835=/angbracketleftb1,...,b r/angbracketright,o fa n y
+statesas follows: if s=/angbracketleft/afii9835,u/angbracketright, where u∈Ni, then /afii9845i
+/afii9835(s)=u;i fs=/angbracketleft/afii9835,b,u/angbracketright, where (b, u) ∈Calls i∪Retns i, then
+/afii9845i
+/afii9835(s)=(b, u) ; in all other cases, /afii9845i
+/afii9835(s)=ε, the empty word. We extend /afii9845i
+/afii9835to sequences of states: /afii9845i
+/afii9835(s/prime
+1...s/prime
+l)=
+/afii9845i
+/afii9835(s/prime
+1).../afii9845i
+/afii9835(s/prime
+l).
+We can now deﬁne a function /afii9839ithat extracts the local memory for module Aifrom the play /afii9843:/afii9839i(/afii9843)=/afii9845i
+/afii9826(/afii9843)(/afii9825(/afii9843)).
+Thus the local memory of a play /afii9843ending in a state skstands for the fragment of the play in the current module that
+gives the sequence of nodes, calls and returns in Aithat led to the state sk, ignoring the sub-plays in called modules
+(including recursive calls to itself).
+For example, consider the recursive game graph in Fig. 1. The play /afii9843=/angbracketlefte1/angbracketright/angbracketleftb2,e2/angbracketright/angbracketleftb2,x1/angbracketright/angbracketleftb3,e2/angbracketright/angbracketleftb3,x1/angbracketrightis a ﬁnite
+play in this game and the control after /afii9843is inA1. The current stack /afii9826(/afii9843)is the empty sequence. /afii9825(/afii9843)=/afii9843and the
+local memory of /afii9843is/afii98391(/afii9843)=/afii9843. However, for /afii9843/prime=/angbracketlefte1/angbracketright/angbracketleftb2,e2/angbracketright/angbracketleftb2,x1/angbracketright/angbracketleftb3,e2/angbracketright, control after /afii9843/primeis inA2,/afii9826(/afii9843/prime)=/angbracketleftb3/angbracketright,
+/afii9825(/afii9843/prime)=/angbracketleftb3,e2/angbracketrightand/afii98392(/afii9843/prime)=e2. Note that after /afii9843/prime, the local memory has “forgotten” the previous entry into A2where
+it went through the nodes e2andx1.
+2Note that we could deﬁne the target set to be an arbitrary subset of nodes. However, our choice will be convenient and is without loss of generality.
+For example, given a target set of nodes, we can modify the recursive game graph such that as soon as a target is hit, the play is forced to exit allcalls along a new exit all the way up to A
+1where it exits at a particular exit node x.
+
+--- Page 7 ---
+236 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+We are ready now to deﬁne modular strategies. A modular strategy for player 0 is intuitively a set of functions, one
+for each module, that encodes how player 0 must play the game in that module. However, the choice of a move at astate can depend only on the local memory of the play so far in the current module. Formally:
+Deﬁnition 4. Given a recursive game graph A=/angbracketleftA
+1,...,A n/angbracketright, a modular strategy ˆffor player 0 is a set of functions,
+{fi}n
+i=1, one for each module, where for every i,fi:(Ni∪Calls i∪Retns i)+→(Ni∪Calls i)such that whenever
+u∈(Ni∪Calls i∪Retns i)such that /afii9829i(u)/negationslash=∅,fi(wu)∈/afii9829i(u), for each w∈(Ni∪Calls i∪Retns i)∗. A play /afii9843is
+according to ˆfif for every preﬁx /afii9843/primess/primeof/afii9843: if the control after /afii9843/primesis inAiandsis inQ0, then /afii9839i(/afii9843ss/prime)=wuwhere
+w=/afii9839i(/afii9843/primes)andu=fi(w).3
+Modular strategies can be seen as global strategies fsuch that the following property holds:
+(P1) For all plays /afii9843,/afii9843/primeofA, if the control after /afii9843and the control after /afii9843/primeare both in Aiand/afii9839i(/afii9843)=/afii9839i(/afii9843/prime), then
+f(/afii9843)=f(/afii9843/prime)holds.
+In fact, we have the following:
+Proposition 1. F or any modular strategy ˆffor player 0,there exists a strategy fsuch that (P1) holds and the set of
+plays according to ˆfis equal to the set of plays according to f.Conversely ,for any strategy fsuch that (P1) holds
+there exists a modular strategy ˆfsuch that the set of plays according to fis equal to the set of plays according to ˆf.
+Proof. For a modular strategy ˆf={fi}n
+i=1, let/afii9843sbe a play, let the control after /afii9843sbe inAi, and let /afii9835=/afii9826(/afii9843s). Then
+f(/afii9843s)=s/primewhere s/primeis the unique successor of ssuch that /afii9845i
+/afii9835(s/prime)=fi(/afii9839i(/afii9843s)). Clearly, property (P1) holds for f
+sincef(/afii9843s)is uniquely determined by /afii9839i(/afii9843s). Moreover, it is easy to see from the deﬁnitions that the set of plays
+according to fis the same as the set of plays according to ˆf. Conversely, let fbe a strategy that satisﬁes (P1). Then,
+deﬁne ˆf={fi}n
+i=1such that for any play /afii9843, if the control after /afii9843is inAi, thenfi(/afii9839i(/afii9843))=/afii9845i
+/afii9835(f (/afii9843)), where /afii9835=/afii9826(/afii9843)
+(the function fion other values can be deﬁned arbitrarily). Then, from the fact that fsatisﬁes (P1), it follows that such
+a modular strategy can be deﬁned and it is easy to see that the plays according to fare precisely the plays according
+toˆf./square
+We sometimes refer to a component fjof a modular strategy {fi}as a local strategy . We denote modular strategies
+also as f(instead of ˆf) and freely switch between whether it stands for a tuple of strategies or a global strategy that
+satisﬁes (P1).
+We consider the following decision problem.
+Deﬁnition 5 (Recursive game reachability problem). Given a recursive game /angbracketleftA,e 1,X/angbracketright, is there a modular winning
+strategy for the protagonist?
+Observe that there are recursive games in which the protagonist can win only if it uses a global non-modular strategy.
+To see this, consider again the game graph in Fig. 1. The only place where the protagonist has a choice is in picking
+the move from e2. If the target set is {x/prime
+2,x/prime
+3}then the protagonist has a winning modular strategy where it chooses to
+move to the exit node x2frome2inA2. For the target set {x/prime
+1,x/prime
+3}, there is no modular strategy for the protagonist that
+is winning. However, it is easy to see that there is a global winning strategy (which chooses x1ifb1is on the stack and
+chooses x2ifb2is on the stack).
+Rather than allow a strategy for a module Aito remember only the play from the lastcall to Ai, we could allow the
+strategy to remember allparts of the play when it was inside Ai. That is, we could allow strategies to have a persistent
+memory where it is allowed to remember how the play evolved in all the previous calls to the module. For example, inthe recursive game in Fig. 1, though there is no modular strategy for the protagonist for the target set {x
+/prime
+1,x/prime
+3}, there is
+3Technically, the deﬁnition of modular strategy may seem similar to that of innocent strategy in the literature on game semantics for programming
+languages [19]. In both innocent and modular strategies (in fact, even for distributed strategies [25]), the move of the protagonist depends on a partial
+history of the play and not on the complete play. However, they differ in both the associated semantics and the way the partial history is extracted.
+
+--- Page 8 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 237
+Fig. 2. Component architecture of a digital system.
+a persistent strategy (the strategy for A2picksx1when it is ﬁrst called and picks x2on the second call). Checking for
+persistent strategies, however, turns out to be undecidable (see Section 5 for details).
+From now on, when the context is clear, we use the term strategy to mean a modular strategy.
+2.4. Potential applications
+In this section, we brieﬂy illustrate settings where the use of modular and persistent strategies is quite natural and
+appropriate.
+2.4.1. Synthesis of interfaces for components
+In modular approaches to system design, a system is decomposed into components arranged according to a global
+architecture [29]. This approach heavily relies on interfaces—an interface abstracts from a component the informationthat is needed to compose it with the other parts of a system, thus allowing each component to be designed independentlyof others.
+Consider a general architecture of a system as shown in Fig. 2, where a component Cinteracts with a set of components
+C
+1,...,C n. For each Cj, the interface IjofCjtoCcaptures the ways in which Cjwill behave when fed a sequence
+of inputs by C. Now, suppose that we want to synthesize the interface assumptions I1,...,I n, one for each component,
+that assure that the component Cis correct with respect to a speciﬁcation. Note that any interface Ijshould depend
+only on the information explicitly passed by CtoCj.
+For sequential models (that is, when at any time the control can be in at most one component), this scenario
+can be naturally captured using modular/persistent strategies. We can model each interface as a module with thenondeterminacy in the interface modeled as choices for the protagonist. Determining the strategy for the protagonist inthese modules that will make Csatisfy its speciﬁcation corresponds to synthesizing interfaces. Moreover, the modularity
+of interfaces is captured by strategies that are “local” to each module. In particular, if along any execution, at eachinvocation of a component C
+j,Cjdoes not keep memory of the previous invocations of itself (for example, this is
+the case when Ccalls each Cjas a purely functional call), then the above interface synthesis problem corresponds to
+that of computing modular strategies. On the other hand, if components can keep track of previous invocations, theninterface synthesis corresponds to computing persistent strategies.
+2.4.2. Software veriﬁcation using abstraction
+A recent approach to software veriﬁcation consists of abstracting a computer program with a boolean program
+(boolean predicates are used to abstract data domains) and then checking the boolean program against the speciﬁcation[7,18]. A boolean program is a program with the usual control-ﬂow constructs of imperative languages such as C, butwith the restriction that all the variables are boolean.
+In the existing approaches, when the boolean program is constructed, function calls to other modules or library calls
+are often completely abstracted away (or treated as uninterpreted functions). Since the function calls may indeed proveimportant to verify the speciﬁcation, a more robust approach is to ask what requirements the functions must satisfyin order for the program to meet its speciﬁcation. For example, the fact that a call to a function that squares its input
+
+--- Page 9 ---
+238 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+always returns a positive value may be required to prove the correctness of the program, if boolean predicates keep
+track of whether variables are positive or not.
+More precisely, given a boolean program that makes function calls g1,...,g n(the same function gimay be called
+in different parts of the program), instead of modeling each call as an abstract stub, we want to synthesize a model ofthese functions (over the boolean variables) that ensure that the program meets its speciﬁcation. We can model each g
+i
+as a module, capture its nondeterministic output using protagonist moves, and check for a winning modular strategy.
+The modularity of the strategy ensures that the model of each function is independent of the context in which it isinvoked. The synthesized assumptions for each function g
+ican then be checked against the concrete implementation
+ofgi.
+3. Solving reachability in recursive games
+In this section, we show how to solve the recursive game reachability problem and show it is N P-complete.
+Let us ﬁx a reachability game /angbracketleftA,e 1,X/angbracketrightfor the rest of this section, where A=/angbracketleftA1,...,A n/angbracketright, and each Ai=
+(Ni,Bi,V0
+i,V1
+i,Yi,Eni,Exi,/afii9829i). Recall that the target set Xis a subset of Ex1, the exit nodes of A1.
+Consider f, a modular strategy for /angbracketleftA,e 1,X/angbracketright. The key to deciding recursive games is the observation that whether
+fis winning or not is primarily determined by ﬁnding, for each Ai, the set of exit nodes of Aiwhich the local strategy
+fiwill lead a play entering Aito. Let Xf
+idenote the set of exit nodes a play can reach if it enters Aiand continues
+according to f; that is, an exit node x∈Exiis inXf
+iif there is a play according to fof the form /angbracketleftei/angbracketright/afii9843/prime/prime/angbracketleftx/angbracketright. In fact, if
+we take a winning modular strategy ˆfand replace an fiinˆfwith a different strategy f/prime
+iwhich calls the same modules
+thatficalls and leads to the same set of exit nodes of Ai, then this will also be a winning strategy. This motivates the
+following deﬁnition.
+Deﬁnition 6. For a modular strategy ffor/angbracketleftA,e 1,X/angbracketright, the call graph of fisCf=(V,→,/afii9838)such that (V,→)is a
+graph where:
+•V⊆{A1,...,A n}is the set of all Aisuch that there is a play from /angbracketlefte1/angbracketrightaccording to fthat enters Ai. (In particular,
+A1∈V.)
+•Ai→Ajiff there is some play according to ffrom/angbracketlefte1/angbracketrightwhich has a call from AitoAj(i.e. there is a play of the
+form/angbracketlefte1/angbracketright/afii9843/angbracketleftb1,...,b r,e/angbracketrightwithbr∈BiandY(br)=Aj).
+•/afii9838(Ai)=Xf
+i, for every Ai∈V.
+We ﬁrst make a simple observation:Lemma 2. Letfbe a modular winning strategy for /angbracketleftA,e
+1,X/angbracketrightand let Cf=(V,→,/afii9838)be the call graph of f.Then ,
+(V,→)is acyclic .
+Proof. Assume there is a cycle in Cf. Then we can ﬁnd a path Ai1Ai2...A imAim+1...A ijinCfsuch that i1=1,
+the elements i1,...,i j−1are distinct and ij=im. By the deﬁnition of a call graph, we know that for every 1 /lessorequalslantl<j ,
+there is a play according to fstarting from /angbracketlefte1/angbracketrightthat reaches a point in Ailwhere Ail+1is called. Since fis modular,
+this means that for every play /afii9843that ends in the entry node of Ail,1/lessorequalslantl<j , there is a continuation of it according to
+fthat reaches a point in Ailwhere Ail+1is called. However, before Ail+1is called, there may be several calls to other
+modules (that return).
+We can now construct a play according to fthat starts from /angbracketlefte1/angbracketrightthat goes through ei2, then through ei3,... then
+through eij−1and then back to eim, then through eim+1, etc. forever.
+Now there are two cases. If along this play, we happen to call A1again (note that A1may not be Aijfor any j) then
+we can, instead of continuing the play in the fashion described above, continue the play as we did at the beginningstarting from /angbracketlefte
+1/angbracketright. In this case, we have a play that repeatedly calls A1and never exits these A1calls, and hence avoids
+X, which contradicts the assumption that fwas winning.
+Otherwise, the play never enters A1and instead will enter Aimthrough Aij−1again and again. Hence the call from
+A1never returns and the play will never reach Xwhich again contradicts the assumption that fis winning. /square
+
+--- Page 10 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 239
+For a strategy fon/angbracketleftA,e 1,X/angbracketright, we say that fishierarchic if the plays according to fmake no recursive calls (i.e.,
+no play from /angbracketlefte1/angbracketrightaccording to freaches a state of the form s=/angbracketleftb1,...,b i,u/angbracketrightsuch that u∈Nlandbj∈Blfor some
+l∈{1,...,n }andj∈{1,...,i }). The following is immediate from the above lemma:
+Corollary 3. Recursive reachability games admit only hierarchic modular winning strategies .
+We recall that the target set Xis a subset of the exit nodes of module A1. An interesting consequence of the above
+result is that when we consider modular strategies, the only global states of the target set that can be reached accordingto a winning modular strategy are /angbracketleftx/angbracketright,x∈X.
+Motivated by the above lemma, we give a general deﬁnition of a call graph:
+Deﬁnition 7. Acall graph for a game /angbracketleftA,e
+1,X/angbracketrightis a tuple C=(V,→,/afii9838)where V⊆{A1,...,A n},(V,→)is an
+acyclic graph and /afii9838(Ai)⊆Exi, for each Ai∈V.
+LetC=(V,→,/afii9838)be a call graph for the game /angbracketleftA,e 1,X/angbracketright. LetAibe a module of the game. We now deﬁne a game
+graph AC
+iwhich is a ﬂat game graph associated with AiandC, where, intuitively, we replace each call (b, ej)to a
+module Ajby a vertex where player 1 can take the game to any return (b, xj)where xjis in/afii9838(Aj). In other words,
+we are deﬁning a game graph under the assumption that a call to a module Ajcould result in returns corresponding to
+/afii9838(Aj)and we want to solve the game for Aiunder these assumptions. The game graph AC
+iwill also prohibit any calls
+to modules that it is not supposed to call, in accordance with the call graph C.
+Formally, if Cis a call graph, AC
+iis deﬁned as follows: AC
+i=(Si,S0
+i,S1
+i,/afii9828i)where
+•Si=Ni∪Calls i∪Retns i;
+•S0
+i=(V0
+i∩Ni)∪{(b, x) ∈Retns i|b∈V0
+i};
+•S1
+i=(V1
+i∩Ni)∪{(b, x) ∈Retns i|b∈V1
+i}∪ Calls i.
+•The transition function /afii9828iis deﬁned as follows:
+(1) If u∈Ni∪Retns i,/afii9828i(u)=/afii9829i(u).
+(2) If (b, e) ∈Calls iandAY(b)is a successor of AiinC(i.e.Ai→AY(b)inC), then /afii9828i((b, e)) ={(b, x) |x∈
+/afii9838(AY(b))}.
+(3) If (b, e) ∈Calls iandAY(b)is not a successor of AiinC, then /afii9828i((b, e)) =∅.
+The graph AC
+iis thus obtained by taking the vertices as the nodes, calls and returns of Ai. The nodes and re-
+turns are partitioned into 0-nodes and 1-nodes as in Ai. Also, the calls are all deemed to be 1-nodes. The transition
+function follows the transition function of Aifor nodes and returns. For a call (b, e) , the transition function maps
+it to an empty set if Aiis not permitted to call AY(b) according to the call graph C. Note that if a play reaches
+such a call, then it is maximal and hence losing for player 0. If Aiis permitted to call AY(b), then we take the al-
+lowed set of exit nodes /afii9838(AY(b))from the call graph and have edges to each of the returns corresponding to these
+exit nodes.
+We can now state the main result for which we have developed the deﬁnitions above:
+Lemma 4. There exists a modular winning strategy for a recursive reachability game /angbracketleftA,e 1,X/angbracketrightif and only if there
+exists a call graph C=(V,→,/afii9838)such that A1∈V,/afii9838(A1)⊆Xand for every Ai∈V,player 0wins the reachability
+game in the ﬂat game graph /angbracketleftAC
+i,ei,/afii9838(Ai)/angbracketright.
+Proof. Iffis a winning strategy for /angbracketleftA,e 1,X/angbracketright, we show that its call graph, Cf=(V,→,/afii9838), satisﬁes the requirements
+of the lemma. Directly from the deﬁnition we have that A1∈Vand/afii9838(A1)⊆X. Moreover, for a module Ai∈V, the
+strategy fiinffor module Aiis basically a strategy that drives a play entering Aito/afii9838(Ai)under the assumption that
+calls from Aito any module Ajwill result in the play exiting Ajin some return corresponding to an exit in /afii9838(Aj).
+In/angbracketleftACf
+i,ei,/afii9838(Ai)/angbracketrightall moves are as in Aiexcept for the moves at the calls where the adversary can move from a
+call to Ajto any return corresponding to an exit in /afii9838(Aj),i fAjis a successor of AiinCf. Hence the construction
+precisely captures the assumption fimakes, and therefore, the strategy fiforAiitself serves as a winning strategy in
+/angbracketleftACf
+i,ei,/afii9838(Ai)/angbracketright.
+
+--- Page 11 ---
+240 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+Conversely, if there is a call graph C=(V,→,/afii9838)that satisﬁes the properties of the lemma, then the strategy for any
+AC
+iserves as a local strategy for Aiin the recursive game. Since the call graph is acyclic, we can show that in any play
+according to this strategy, if the play enters a module Ai, it will eventually exit in some exit in /afii9838(Ai). Since /afii9838(A1)⊆X,
+the play will eventually reach some node in Xand hence these local strategies constitute a winning modular strategy
+for/angbracketleftA,e 1,X/angbracketright./square
+We say that a modular strategy {fi}n
+i=1ismemoryless if for every pair of sequences /afii9846u,/afii9846/primeu∈(Ni∪Calls i∪Retns i)∗,
+fi(/afii9846u)=fi(/afii9846/primeu). That is, if the selection made by the modular strategy depends only on the current node of the play.
+As a corollary to the above lemma we have:
+Corollary 5. If there is a modular winning strategy for a recursive reachability game ,then there is a modular memo-
+ryless winning strategy for it .
+Proof. By Lemma 4, we know that there is a call graph C=(V,→,/afii9838)such that each of the games /angbracketleftAC
+i,ei,/afii9838(Ai)/angbracketright
+is winning. Since these games are simple ﬂat reachability games, they admit a memoryless winning strategy [23]. Bythe proof of Lemma 4, these memoryless winning strategies translate to a modular memoryless winning strategy forthe recursive game. /square
+Another corollary is immediate:Corollary 6. Given a recursive reachability game ,the problem of checking whether player 0wins the game is in N
+P.
+Proof. The N Pprocedure works as follows. First, we guess a call graph C=(V,→,/afii9838)such that A1∈Vand/afii9838(A1)⊆
+X, where Xis the target set. The size of this guess is clearly polynomial. Then, for every module Ai∈V, we check
+if there is a winning strategy for player 0 in /angbracketleftAC
+i,ei,/afii9838(Ai)/angbracketright. This graph can be constructed in polynomial time.
+Also, such a ﬂat reachability game can be solved in polynomial time (alternating reachability) [13]. If all the games
+are winning for player 0, we report that player 0 wins the recursive game. The correctness follows fromLemma 4. /square
+In fact, the problem is of solving recursive games is N
+P-complete:
+Theorem 7. The recursive game reachability problem (even for hierarchic game graphs )isNP-complete .
+Proof. Corollary 6 establishes membership in N P. We need to show that reachability on hierarchic game graphs is
+NP-hard. We do this by a reduction from the satisﬁability of 3-C NFformulas, which is known to be N P-complete [16].
+The intuition is that there will be modules for each variable in the C NFformula, where player 0 has to pick a
+valuation for the variable by picking an exit node. The initial module enables player 1 to pick any clause and call amodule corresponding to that clause. The module for this clause will check whether the clause is satisﬁed by callingthe modules corresponding to the variables in the clause. Player 0 wins if all clauses are satisﬁed.
+Let/afii9850=c
+2∧···∧ cmbe a 3-C NFformula over the variables y1,...,y n. Deﬁne a hierarchic game graph A=
+/angbracketleftA1,A2,...,A m,Am+1,...,A m+n/angbracketrightwhere:
+•Forj=1,...,n , module Am+jhas an entry node em+j, two exit nodes xm+jand¯xm+j, and no boxes. Node em+j
+is a 0-node.
+•Fori=2,...,m , module Aihas an entry node ei, an exit node xiand boxes bih,bij,biksuch that Yi(bil)=m+l
+and literals of ciare from variables yh,yj, andyk. Function /afii9829iis deﬁned by: /afii9829i(ei)={(bih,em+h), (bij,em+j), (bik,
+em+k)}; forl∈{h, j, k },i fylis a literal of cithenxi∈/afii9829i(bil,xm+l)and if ¬ylis a literal of ci, then xi∈/afii9829i(bil,
+¯xm+l). The node eiis a 0-node.
+•A1has an entry node e1, an exit node x1, and boxes b2,...,b m. For every i=2,...,m ,Y1(bi)=i,(bi,ei)∈/afii9829(e1)
+andx1∈/afii98291(bi,xi). The node e1is a 1-node.
+The construction of Ais illustrated in Fig. 3. It is easy to verify that /afii9850is satisﬁable if and only if there exists a
+winning strategy of the protagonist in the reachability game /angbracketleftA,e 1,{x1}/angbracketright.
+
+--- Page 12 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 241
+Fig. 3. Reduction from 3-C NF: graphical representation of module A1, module Aiwithi∈{2,...,m }, and module Am+jwithj∈{1,...,n }.
+Note that the requirement that the strategy be modular is important as we want the valuation for the variables to be
+chosen independent of the context in which it is called (i.e. independent of the clause that is being checked). Also, notethat the above game is hierarchic. /square
+4. A labeling algorithm
+In this section, we describe an exponential-time realization of the nondeterministic procedure sketched in the previous
+section. The algorithm we present is an extension of the usual attractor set construction on ﬂat graphs [23] adapted to
+our setting, and it computes the vertices where player 0 can win in an incremental fashion.
+Our algorithm iteratively labels vertices of a recursive game graph with tuples of sets of exit nodes according to
+some initialization and update rules. The algorithm halts when the computed labeling reaches its ﬁxed-point, i.e., thereare no new labels that can be added.
+LetA=/angbracketleftA
+1,...,A n/angbracketrightbe a recursive game graph. Consider the reachability game /angbracketleftA,e 1,X/angbracketright. We use a special
+symbol /latticetopand we overload the set union operator with the rule /latticetop∪E=E, for any set E.W eu s e vto denote a node,
+a call, or a return of Aj, for any j. We describe now the algorithm R EACH (Fig. 4) that solves the modular reachability
+problem. Algorithm R EACH consists of labeling iteratively each v, with tuples of the form /angbracketleftE1,...,E n/angbracketright, where each
+Eiis either a subset of Exior is the symbol /latticetop. Each vcould be labeled at any time with a setof such labels.
+The reason we need to keep these labels, as opposed to just a set in the attractor-set computation, is to ensure that
+the strategy we construct is modular. It turns out that to ensure this for each module Ai, it is enough to keep track of
+the set of exit nodes of Aithat the strategy will force any play entering Aiinto.
+For a set of maximal ﬁnite plays /afii9811, let Final(/afii9811)={s|there is a play of the form /afii9843s∈/afii9811}. Intuitively, Final(/afii9811)is
+the exact set of states the plays in /afii9811end in.
+When v∈Ni∪Calls i∪Retns igets a label /angbracketleftE1,...,E n/angbracketright, it is supposed to mean that there exists a modular strategy
+ˆf={fi}such that the following hold:
+A1. If /afii9811vis the set of all maximal plays starting at /angbracketleftv/angbracketrightand consistent with ˆf, then /afii9811vcontains only ﬁnite plays
+and Final(/afii9811v)={ /angbracketleftxi/angbracketright|xi∈Ei}. Further, the plays in /afii9811vdo not enter any module Aj, where Ej=/latticetop , nor does it
+re-enter Ai.
+A2. Let lbe such that El/negationslash=/latticetop andl/negationslash=i. Let /afii9811lbe the set of maximal plays starting at /angbracketleftel/angbracketrightand consistent with ˆf.
+Then /afii9811lconsists of only ﬁnite plays and Final(/afii9811)={ /angbracketleftxl/angbracketright|xl∈El}. Further, the plays in /afii9811lnever enter any module
+Aj, where Ej=/latticetop, nor does it enter Ai.
+Intuitively, when a node in Aiis labeled with /angbracketleftE1,...,E n/angbracketright, it means that there is a set of strategies for each module
+Aj, where Ej/negationslash=/latticetop, such that the strategies drive the play from the current node to some node in Ei. Moreover, these
+strategies never make the play enter a module Aj/primefor which strategies are not assumed (i.e. where Ej/prime=/latticetop). Also, the
+strategy for Ajdrives any play entering it to the set Ej. Finally, the strategies are guaranteed not to call Ai.
+
+--- Page 13 ---
+242 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+Algorithm R EACH
+Initially, each exit node x∈Xis labeled by the tuple /angbracketleftE1,...,E n/angbracketright, where E1={x}and
+Ei=/latticetop, for every i>1. All the other nodes, calls, and returns are unlabeled.
+Labels are updated according to the following rules:Rule 1
+: For a 0-node (or a 0-return) vofAi,i f/angbracketleftE1,...,E n/angbracketrightlabels v/prime∈/afii9829i(v)then add
+/angbracketleftE1,...,E n/angbracketrightto the labels of v.
+Rule 2 : For a 1-node (or a 1-return) vofAi,/afii9829i(v)={v1,...,v k},i f( a ) /angbracketleftEh
+1,...,Eh
+n/angbracketright
+labels vhforh=1,...,k , and (b) for every l/negationslash=i,E1
+l,...,Ek
+lare pairwise consistent,
+then add /angbracketleftE/prime
+1,...,E/prime
+n/angbracketrightto the labels of v, where E/prime
+j=/uniontextk
+h=1Eh
+jforj=1,...,n .
+Rule 3 : For a return (b, x) ofAilabeled by /angbracketleftE1,...,E n/angbracketrightwhere Yi(b)=j, add/angbracketleftE/prime
+1,...,E/prime
+n/angbracketright
+to labels of xwhere E/prime
+j={x}andE/prime
+l=/latticetop forl/negationslash=j.
+Rule 4 : For a call (b, e) ofAisuch that Yi(b)=j, let(b, x 1) ,...,( b,x k)be any k
+distinct returns of box b. Suppose that for h=1,...,k ,/angbracketleftEh
+1,...,Eh
+n/angbracketrightlabels (b, xh)and
+/angbracketleftE0
+1,...,E0
+n/angbracketrightlabels einAj.I fE0
+i=/latticetop,E0
+j={x1,...,x k}, andE0
+l,...,Ek
+lare pairwise
+consistent for every l/negationslash=i, then add /angbracketleftE1,...,E n/angbracketrightto labels of (b, e) , where El=/uniontextk
+h=0Eh
+l
+forl=1,...,n .
+The algorithm halts when there are no more labels that can be added. Then, it gives an
+afﬁrmative answer if and only if e1is labeled with a tuple /angbracketleftE1,...,E n/angbracketrightsuch that E1⊆X.
+Fig. 4. Algorithm R EACH .
+For any E/prime,E/prime/prime∈2Exi∪ {/latticetop} , we say that E/primeandE/prime/primeare consistent ifE/prime=/latticetop,o rE/prime/prime=/latticetop,o rE/prime=E/prime/prime.
+The intuition behind the rules are as follows:Rule 1: This rule makes a 0-node or 0-return uinherit a label of a successor. Clearly, if there is a strategy ˆffrom the
+successor which meets conditions A1 and A2, we have a similar strategy from uwhich ﬁrst picks this successor and
+then follows ˆf.
+Rule 2: 1-nodes and 1-returns uget labeled using this rule. First, we check if the labels on all successors are consistent
+with respect to strategies for other modules. Note that a play starting at ucan be taken to any of its successors by player
+1. If the protagonist then plays according to the strategies prescribed at that node (by the inductive hypothesis), thenwe could reach any of the nodes in/uniontext
+k
+h=1Eh
+i; this is why we set E/prime
+ito this set. Note that for any other module Aj,
+E/prime
+jis set to the common set of exit nodes which the successor labels agree upon. But there is a subtle point here—we
+must make sure that the strategies we pick for other modules be non-recursive. This will be explained in the proofsbelow.
+Rule 3: This rule activates an exit node of a module A
+jwhen there is a box bin a module Aiwhich is a call to Aj
+and which has a return (b, x) that has a label. Note that the activation of this exit node is similar to the initialization
+step for module A1—we label the exit node with /latticetopfor all components except the jth one, which is labeled {x}.
+Rule 4: Calls are labeled using this rule. A call in AitoAjcan get labeled if the entry node of Ajensures that there
+is a strategy which will take plays entering Ajto some exit nodes X/primeand the returns in Aicorresponding to these exit
+nodes are labeled such that they agree on the assumptions on all modules. Note that we require E0
+i=/latticetop , which by
+(A1) demands that the strategy for Ajmust not call Ai, and hence we avoid recursive calls. The rest of the intuition is
+same as for Rule 2.
+We prove now that R EACH solves the reachability problem for recursive games.
+
+--- Page 14 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 243
+Lemma 8 (Soundness ).LetA=/angbracketleftA1,...,A n/angbracketrightbe a recursive game graph. If a node ,a call ,or a return vof
+Aiis labeled by REACH with/angbracketleftE1,...,E n/angbracketright,then there exists a modular strategy ˆf={fi}such that (A1) and
+(A2) hold.
+Proof. We prove the lemma by induction on the number of applications of the update rules. For the initial labeling the
+lemma is trivially true. Suppose by induction that after the hth updating, the lemma holds. We distinguish the following
+cases for the (h+1)th updating, depending on which rule was used.
+Rule 1: Suppose that v∈/afii9829(u)where uis a 0-node (or a 0-return), u, v∈Aiandvhas already been labeled with
+/angbracketleftE1,...,E n/angbracketright. By the inductive hypothesis, there exists a modular strategy ˆf={fj}satisfying A1 and A2 with respect
+to the labeling /angbracketleftE1,...,E n/angbracketrightatv.
+Using Rule 1, if uis labeled /angbracketleftE1,...,E n/angbracketright, then let a new modular strategy ˆf/prime={f/prime
+j}be such that f/prime
+j=fjfor
+j/negationslash=iandf/prime
+i(u)=v, andf/prime
+i(uv/afii9846)=fi(v/afii9846)for any sequence uv/afii9846. Using the fact that ˆfsatisﬁes properties A1 and
+A2, clearly ˆf/primealso satisﬁes A1 and A2.
+Rule 2: Suppose that {v1,...,v k}=/afii9829(u)where uis a 1-node (or a 1-return) of Aiand for l=1,...,k ,vlhas been
+labeled already with /angbracketleftEl
+1,...,El
+n/angbracketright. Let the condition of Rule 2 hold: i.e. for l/negationslash=i,E1
+l,...,Ek
+lare pairwise consistent.
+Assume Rule 2 is used and ugets labeled with /angbracketleftE1,...,E n/angbracketrightby R EACH using the labels /angbracketleftEl
+1,...,El
+n/angbracketrightforl=1,...,k .
+By the inductive hypothesis, for each l∈{1,...,k }there exists a strategy ˆfl={fl
+j}satisfying the properties A1
+and A2 with respect to the labeling /angbracketleftEl
+1,...,El
+n/angbracketrightatvl. We deﬁne a strategy ˆf={fj}for meeting the conditions A1
+and A2 for the new label for the node uas follows. For j/negationslash=i, setfj=fl
+jwhere lis the least index hsuch that
+Eh
+j/negationslash=/latticetop. Also, let fi(uvl/afii9846)=fl
+i(vl/afii9846), for every l∈{1,...,k }and/afii9846∈(Ni∪Calls i∪Retns i)∗.
+The only subtle point here is to make sure that the call graph for the strategy ˆfis indeed acyclic. If this is so, it is
+easy to see that ˆfsatisﬁes the properties A1 and A2, using the fact for any l/negationslash=i, the sets E1
+l,...,Ek
+lare pairwise
+consistent.
+LetJ={j|j/negationslash=i,Ej/negationslash=/latticetop } . The problem is that for any module Aj(j∈J), we pick strategies from the various
+strategies recommended at the successor vertices vl(l=1,...,k ). We must make sure that while doing this, we do
+not introduce recursive calls.
+First note that the call graph of every ˆfjmust be acyclic (Lemma 2). For any j∈J, let us say that fjgets deﬁned
+athifhis the least index for which Eh
+j/negationslash=/latticetop. Now note that if fjis deﬁned at h, then for any play entering Aj,i ft h e
+play when within AjcallsAj/prime, then fj/primeis deﬁned at h/primewhere h/prime/lessorequalslanth. Using this fact it is easy to argue that the call
+graph of ˆfis acyclic.
+Rule 3: In case we update the label of x∈Exiby Rule 3, the lemma is trivially true since the ith component of the
+new label of xis{x}and the other components are /latticetop.
+Rule 4: Consider the call (b, e) , with b∈Biande∈Nj. Suppose that (b, v 1) ,...,( b,v k)are returns and let
+/angbracketleftEl
+1,...,El
+n/angbracketrightbe a label of (b, vl), for every l=1,...,k , already computed by R EACH . Also, let /angbracketleftE0
+1,...,E0
+n/angbracketright
+be a label of ealready computed by R EACH . Denote by /angbracketleftE1,...,E n/angbracketrightthe labeling of vcomputed by R EACH from
+/angbracketleftEl
+1,...,El
+n/angbracketright, forl=0,...,k , applying Rule 4. We construct a strategy fsimilar to the case for Rule 2, giving
+priorities starting from f0up tofk. One can argue, in a similar fashion as we did for Rule 2, that fsatisﬁes the
+properties A1 and A2 of the lemma with respect to /angbracketleftE1,...,E n/angbracketright. However, there is one extra property we have to show
+in this case: that the strategy starting at (b, e) does not call Aiagain. This is, however, true because of the condition of
+the rule which checks that E0
+i=/latticetop. Since E0
+i=/latticetop, the play when in Ajcannot call Aiagain. When the return node
+(b, vl)is reached, we know that the play can no longer call Aiby induction hypothesis. /square
+Lemma 9 (Completeness ).LetA=/angbracketleftA1,...,A n/angbracketrightbe a recursive game graph and X⊆Ex1.If there exists a winning
+strategy for the protagonist in the reachability game /angbracketleftA,e 1,X/angbracketright,thene1is labeled by algorithm REACH with some label
+/angbracketleftE1,...,E n/angbracketright,where E1⊆X.
+Proof. Letfbe a winning strategy of the protagonist in the reachability game /angbracketleftA,e 1,X/angbracketright.
+Before proving the lemma, we deﬁne a tree corresponding to the winning strategy f. Let /afii9811be the set of all plays
+starting from /angbracketlefte1/angbracketrightthat are consistent with f. Since fis winning, each play in /afii9811reaches a state /angbracketleftb1,...,b r,x/angbracketrightwhere
+
+--- Page 15 ---
+244 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+x∈X. However, since we know that fmust be hierarchic, it is easy to see that all plays in /afii9811in fact end in /angbracketleftx/angbracketrightwith
+x∈X. Note that /afii9811has no inﬁnite plays.
+LetVfbe the set of all elements (/afii9843,v)∈(/afii9811×/uniontextn
+i=1(Ni∪Calls i∪Retns i))such that /afii9843is of the form /afii9843/primeswhere
+s=/angbracketleftb1,...,b r,u/angbracketrightand where either v=u,o ruis an entry/exit node and v=(br,u ). Hence, for every /afii9843∈/afii9811, where
+/afii9843=/afii9843/primeswiths=/angbracketleftb1,...,b r,u/angbracketright, we add an element of the form (/afii9843,v)intoVfifuis a node in N, and two elements
+of the form (/afii9843,v)intoVfifuis an entry or an exit node.
+LetTf=(Vf,→f)be a graph such that (/afii9843,v)→f(/afii9843/prime,v/prime)iff the following holds:
+•Ifv=(b, e) is a call, then /afii9843/prime=/afii9843andv/prime=e.
+•Ifv=xis an exit node, and /afii9843=/afii9843/prime/primeswhere s=/angbracketleftb1,...,b r,x/angbracketright, with r/greaterorequalslant1, then /afii9843/prime=/afii9843andv/prime=(br,x).
+•Ifvis not a call nor an exit node, then /afii9843/prime=/afii9843sfor some sandv/primeis a non-entry node or a call.
+It is easy to see that Tfis a tree rooted at (/angbracketlefte1/angbracketright,e1)and has leaves of the form (/afii9843/angbracketleftx/angbracketright,x)where x∈X.I ti sv e r y
+similar to the usual strategy-tree of a strategy, except that we explicitly label each play with the current node where theplay is and add edges from calls to entry nodes, and exit nodes to returns which are implicit moves in the game.
+Denote by E
+i, fori=1,...,n , the set of all exit nodes in Exivisited along any maximal play of fstarting at /angbracketlefte1/angbracketright
+(we assume that if a module Aiis not visited, then Ei=/latticetop).
+We claim that for every v∈Ni∪Calls i∪Retns isuch that there is a node of the form (/afii9843,v)inTf,vis labeled by
+REACH with some label /angbracketleftEv
+1,...,Ev
+n/angbracketrightwhere:
+(1) Let Zibe the smallest subset of the exit nodes of Aisuch that the plays starting at /angbracketleftv/angbracketrightand consistent with fend
+in/angbracketleftx/angbracketright, for some x∈Zi. Then Ev
+i=Zi.
+(2) For j/negationslash=i,Ev
+j=/latticetop orEv
+j=Ej.
+(3) For j/negationslash=i,Ev
+j=/latticetop ifAi/negationslash→∗Aj, where →∗is the transitive closure of the relation deﬁned by the edges of the
+call graph of f(see Deﬁnition 6).
+If this claim is true, then since (/angbracketlefte1/angbracketright,e1)∈Tf,e1must get a label /angbracketleftEe1
+1,...,Ee1n/angbracketrightsuch that Ee1
+1=E1⊆X, which
+proves the lemma.
+We prove the above claim by structural induction on Tf, from the leaves up to the root. The base case is trivially true
+since all leaves of Tfcorrespond to a target vertex and the claim is true by the initialization step of R EACH . Consider
+now a node (/afii9843,v)such that the claim is true for all the nodes in the subtree under it. If v∈(Ni\Exi)∪Retns iis
+either a 0-node or a 0-return, then (/afii9843,v)has a single successor (/afii9843/prime,v/prime)and by update Rule 1 R EACH labels vwith the
+label of v/prime, and the claim is true by the inductive hypothesis. If v∈(Ni\Exi)∪Retns iis either a 1-node or a 1-return,
+let(/afii98431,v1) ,...,( /afii9843k,vk)be all the successors of (/afii9843,v)and/angbracketleftEv1
+1,...,Ev1n/angbracketright,...,/angbracketleftEvk
+1,...,Evkn/angbracketrightbe, respectively, the
+labels associated with them by R EACH which must exist by the induction hypothesis. By property (2) of the inductive
+hypothesis, for j/negationslash=i, the sets Ev1
+j,...,Evk
+jare pairwise consistent, the update Rule 2 of R EACH can be applied and
+the label /angbracketleftE/prime
+1,...,E/prime
+n/angbracketrightis computed for v, where E/prime
+j=/uniontextk
+l=1Evl
+jforj=1,...,n . It is easy to see that properties (1)
+and (2) hold with respect to this label for v. Also, property (3) holds, since by property (3) of the inductive hypothesis
+ifAi/negationslash→∗Aj,j/negationslash=i, thenEvl
+j=/latticetop for every l=1,...,k . Thus, by update Rule 2, E/prime
+j=/latticetop. By update Rule 3 and the
+inductive hypothesis the claim clearly holds when v∈Exi.
+Ifv=(b, ej)∈Calls i, then since fis modular we know that for every xj∈Ejthere is a play starting at /angbracketleftej/angbracketrightthat
+ends up in /angbracketleftxj/angbracketright. Thus, for every xj∈Ejthere is a node in Tfof the form /angbracketleft/afii9843j,xj/angbracketrightbelow /angbracketleft/afii9843,v/angbracketright. By the induction
+hypothesis, these have labels that satisfy properties (1)–(3). Also, /angbracketleft/afii9843,ej/angbracketright, which is the only successor of /angbracketleft/afii9843,v/angbracketrightinTf,
+must be labeled by some /angbracketleftE/prime
+1,...,E/prime
+n/angbracketrightsuch that: (1) E/prime
+j=Ej, since fis modular and thus plays starting at /angbracketleftej/angbracketrightend
+up in{/angbracketleftxj/angbracketright|xj∈Ej}; (2)E/prime
+i=/latticetop , directly by property (3) of the induction hypothesis on /angbracketleft/afii9843,ej/angbracketrightsinceAi→Aj.
+We can now show, using arguments similar to those for the case when vwas a 1-node, that Rule 4 can be applied to
+get a label for vthat satisﬁes the claim. /square
+The soundness of R EACH follows from Lemma 8, by condition A1 (with v=e1), while Lemma 9 proves its
+completeness. R EACH can require exponential time since it can generate exponentially many labels. A careful analysis
+shows that it works in fact in time exponential in the total number of exit nodes and linear in the size of the recursivegame graph. Also, note that R
+EACH can stop once the initial node gets the appropriate label, even before reaching the
+ﬁxed-point. We have the following theorem.
+
+--- Page 16 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 245
+Theorem 10. Algorithm REACH solves the recursive reachability game problem in time that is linear in the size of the
+game graph and exponential in the number of exit nodes.
+Proof. By Lemmas 8 and 9, R EACH solves the reachability game on recursive game graphs. Let A=/angbracketleftA1,...,A n/angbracketrightbe
+a recursive game graph. Let ex=/summationtextn
+i=1|Exi|denote the total number of exits in A, letKv=|N∪Calls∪Retns|denote
+the number of vertices and let Kedenote the number of edges in A. Since the ith component of each label is either a
+subset of Exior/latticetop, the number of labels used by our algorithm is bounded by 2ex. A simple implementation, which
+maintains for each label a list of vertices that have that label, works in time at most cubic in Kv+Keand exponential
+inex. However, a more efﬁcient implementation can be obtained if we look upon the rules of the algorithm as solving
+a reachability game on a ﬂat ﬁnite graph. This graph will have vertices of the form (u,/angbracketleftE1,...,E n/angbracketright), for every node
+uand label /angbracketleftE1,...,E n/angbracketright. The set we want to reach is the set of vertices that corresponds to the initial labeling of the
+algorithm, that is, {(x,/angbracketleftE1,...,E n/angbracketright)|E1={x}andEj=/latticetop,∀j> 1}. The initial set of vertices are those of the
+form(e1,/angbracketleftE1,...,E n/angbracketright)where E1⊆X.
+To implement the rules as a game that is not too large, we need to carefully choose auxiliary vertices that witness
+the various conditions that the rules demand. For example, to encode Rule 2 for (u,/angbracketleftE/prime
+1,...,E/prime
+n/angbracketright),uis a vertex of Ai,
+we can build auxiliary nodes that step through the successors v1,...,v kofu, one at a time. For this, we need to make
+sure that the successors have labels that are consistent with /angbracketleftE/prime
+1,...,E/prime
+n/angbracketrightand also that for every E/prime
+jsuch that E/prime
+j/negationslash=/latticetop,
+there is some successor vlwhich has a label /angbracketleftEl
+1,...,El
+n/angbracketrightsuch that El
+j=E/prime
+j. Technically, this can be achieved for
+example by guessing at each vithe sets E/prime
+j/negationslash=/latticetop that still need to be matched and the subset of exits within E/prime
+ithat still
+need to be covered by the remaining successor vertices vi+1,...,v k. The encoding for Rule 4 is similar, except that
+one ﬁrst has to guess a subset of exits of the called module.
+One can deﬁne such a graph which has (Kv+Ke)2O( ex)vertices and edges. Since reachability games on ﬂat graphs
+can be solved in time linear in the number of vertices and edges of the game graph [33], we obtain an implementationof the algorithm that runs in time (K
+v+Ke)2O( ex)./square
+5. Extensions
+5.1. Safety recursive games
+Consider a recursive game graph A. A safety condition requires that the plays stay within a set of good vertices,
+or equivalently that badvertices are avoided. A safety recursive game is/angbracketleftA,e 1,Xgood/angbracketright, where Ais a recursive game
+graph, e1is the entry node of the game module A1, andXgood is a subset of nodes of A. A play of such a game is
+winning if all visited states are of the form /angbracketleftb1,...,b r,u/angbracketrightwhere u∈Xgood. If we restrict to modular strategies, safety
+recursive games are not dual to reachability recursive games. This is because in both deﬁnitions, while the protagonistis forced to use a modular strategy, the adversary is allowed to use an arbitrary strategy. In contrast with reachability,winning modular strategies in safety recursive games may not be hierarchic (in particular, Lemma 2 and Corollary 3do not hold). Despite this, deciding safety recursive games is also N
+P-complete:
+Theorem 11. Solving safety games on recursive (as well as hierarchic )game graphs is NP-complete .
+Proof. The hardness result is directly obtained from the reduction given in the proof of Theorem 7. For membership
+in N P, we can design an algorithm that ﬁrst guesses a set of modules V(withA1∈V) and for each Ai∈V, a set
+Ei⊆Exi∩Xgood. The algorithm then builds a ﬂat game graph A/prime
+i(which is similar to the graph AC
+ideﬁned in Section 3)
+where calls to Aj/∈Vare declared unsafe, each call to Aj∈Vis replaced with a player 1 node that has edges to
+returns corresponding to exits in Ej, and for all the other nodes u,uis unsafe if either u/∈Xgood oru∈Exi\Ei.
+Each ﬂat safety game A/prime
+iis then solved and the algorithm declares that the protagonist wins if all these safety games
+are winning. Intuitively, each ﬂat game graph A/prime
+ichecks whether the protagonist can keep the play safe in Aiwithout
+making any call to modules not in V, either forever or till the play reaches an exit node in Ei. While doing so, we
+assume that calls to any Aj∈Vwill return (if at all) at returns corresponding to exits in Ej. It is easy to see that the
+protagonist wins iff there is such a witness. /square
+
+--- Page 17 ---
+246 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+5.2. Handling multiple entries
+Consider a recursive game /angbracketleftA,e 1,X/angbracketrightwhere each module is allowed to have multiple entry nodes. The semantics of
+the game and modular strategies are the natural extensions of those for the single-entry setting. When a play enters amodule, since the strategy for the module knows the entry node where the play enters, it could follow different strategiesfor the different entry nodes and still remain modular. Hence, we can replace every module which has, say, mentry
+nodes with a set of mmodules, one for each entry node, but where each new module has only one entry node. We
+suitably change the calls from other modules so that they call the corresponding modules with the appropriate entrynode. It is easy to see that one can check for a modular strategy on the original game by checking for a modular strategyin this game. Note that in a game with multiple entry nodes, there could be a winning strategy such that plays accordingto it call modules recursively—however, by the above reduction, there cannot be recursive calls to modules with the
+same entry node . Consider a recursive game Gwithnmodules and let m
+ebe the maximum number of entry nodes of
+any module. Then, it is easy to see that the above reduction produces a game graph with at most n·mesingle-entry
+modules and the overall size of the game graph is at most |G|3, where |G|is the size of G.
+5.3. Recursive games with variables
+In modeling programs, it is natural to have variables over a ﬁnite domain that are abstractions of actual variables
+and which can be passed from module to module (see, for instance, the SLAM model checker [6]). We can extend our
+setup to handle this by augmenting nodes with the values of variables. These variables can be local, global or passedas parameters when calls are made to other modules. If a module A
+ihasriinput variables, rooutput variables and k
+internal variables, then we can model this by having 2ri·|Eni|entry nodes, 2ro·|Exi|exit nodes, and 2ri+ro+k·|Ni|
+internal nodes (we assume all variables to be boolean). Note that a modular strategy will be such that the strategy for amodule can take into account the parameters that are sent and returned when calling any module, but cannot know theexact evolution of the called module. This makes our setting a natural setup where we can deal with the constructionof skeletons of program modules which achieve a particular speciﬁcation.
+5.4. Persistent memory strategies
+Modular strategies, where a strategy is allowed to remember only the part of the play since it last entered a module,
+are one way of realizing the idea that each module must have its own strategy and is not allowed to know what happensin other modules. However, we can relax this condition and instead ask for a persistent strategy where a strategy for a
+module can remember not only the play from the last call to the module, but allparts of the play when the play was
+in this module. We can realize such a strategy for a module as a program which has a static memory to store all thathappens within the module, and use this information to drive the play. Formally, we deﬁne a projection operator thatprojects a play onto a module A
+i. For any i∈{1,...,n }, let/afii9833i(s), for any state s, be deﬁned as follows: if s=/angbracketleft/afii9835,u/angbracketright,
+where u∈Ni, then /afii9833i(s)=u;i fs=/angbracketleft/afii9835,b,u/angbracketright, where (b, u) ∈Calls i∪Retns i, then /afii9833i(s)=(b, u) ; in all other cases,
+/afii9833i(s)=ε, the empty word. We extend /afii9833ito sequences of states: /afii9833i(s/prime
+1...s/prime
+l)=/afii9833i(s/prime
+1).../afii9833i(s/prime
+l).
+Apersistent strategy ffor player 0 is a strategy for player 0 such that for all plays /afii9843,/afii9843/primeofA, if the control after /afii9843
+and/afii9843/primeare both in Aiand/afii9833i(/afii9843)=/afii9833i(/afii9843/prime)thenf(/afii9843)=f(/afii9843/prime)holds. In other words, the advice of the strategy ffor any
+play/afii9843that is currently in Aidepends only on the projection /afii9833i(/afii9843)of the play onto the nodes, calls, and returns of the
+module.
+This subtle difference with modular strategies, however, changes the problem of solving games dramatically and it
+turns out that checking whether there is a persistent strategy in a given recursive game is undecidable .
+The reduction is from the undecidability of solving multi-player games with incomplete information [25] which we
+formalize below.
+5.4.1. Multi-player games
+Peterson and Reif in [25] show that multi-player games with incomplete information, where there are a set of
+cooperating players who play against an adversary but have incomplete information about each other, are undecidableto solve. We present here a similar simpliﬁed problem, 2Pl-1Ad , which is a game where two players play against one
+
+--- Page 18 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 247
+adversary and the two players have incomplete information about each other. Note that in this game, there is no game
+graph; instead the players choose letters from some alphabets in turns.
+Let/afii9825and/afii9826be two players playing against an adversary. Players /afii9825and/afii9826form team 0 and play against team 1
+comprising a lone player, the adversary. Let us ﬁx four disjoint alphabets /afii9814/afii9828
+i, where i∈{0,1}and/afii9828∈{/afii9825,/afii9826}. The
+game is played as follows. The adversary picks /afii9828∈{/afii9825,/afii9826}, and plays a letter in /afii9814/afii9828
+1. Player /afii9828responds to this by playing
+a letter in /afii9814/afii9828
+0. Now it is again the adversary’s turn, and it picks a /afii9828and continues as before.
+In addition, we have a special symbol $ /afii9828∈/afii9814/afii9828
+0which the player /afii9828uses to signal that it has ﬁnished playing the game.
+In case $ /afii9828is played, the adversary can no longer pick /afii9828(though it may continue playing with the other player). Thus
+plays are restricted: a play is a sequence in ((/afii9814/afii9825
+1·/afii9814/afii9825
+0)+(/afii9814/afii9826
+1·/afii9814/afii9826
+0))∗such that if /afii9843=/afii9843/prime$/afii9828/afii9843/prime/prime, for any /afii9828,/afii9843/primeand/afii9843/prime/prime, then
+/afii9843/prime/prime/harpoonupright(/afii9814/afii9828
+1∪/afii9814/afii9828
+0)=ε(where /harpoonuprightstands for the projection operation).
+LetL⊆((/afii9814/afii9825
+1·/afii9814/afii9825
+0)+(/afii9814/afii9826
+1·/afii9814/afii9826
+0))∗be a regular language which identiﬁes the winning plays for team 0, i.e. a play is
+winning for team 0 iff it belongs to L.
+A strategy for team 0 is a pair of functions ˆg={g/afii9825,g/afii9826}where g/afii9828:/afii9814/afii9828
+1.(/afii9814/afii9828
+0·/afii9814/afii9828
+1)∗→/afii9814/afii9828
+0,/afii9828∈{/afii9825,/afii9826}. A play /afii9843is said
+to be according to a strategy ˆgfor team 0 if for every preﬁx /afii9843/primeaa/primeof/afii9843, if the length of /afii9843/primeis even and a∈/afii9814/afii9828
+1, then it
+must be that a/prime=g/afii9828(/afii9843/harpoonupright(/afii9814/afii9828
+1∪/afii9814/afii9828
+0)). In other words, a play /afii9843is according to ˆgif at every point in the play, if it is the
+turn of /afii9828to play, then /afii9828plays according to the strategy g/afii9828which selects a symbol depending only on the projection of
+the play to the moves it can see, namely /afii9814/afii9828
+1∪/afii9814/afii9828
+0.
+A strategy for team 0 is said to be winning if all plays according to it are ﬁnite and are winning. The problem 2Pl-1Ad
+is now this: given a set of alphabets /afii9814/afii9828
+i,i∈{0,1},/afii9828∈{/afii9825,/afii9826}, and given a regular language L⊆((/afii9814/afii9825
+1·/afii9814/afii9825
+0)+(/afii9814/afii9826
+1·/afii9814/afii9826
+0))∗,
+is there a winning strategy for team 0?
+The following is easy to see from the proof of the undecidability of multi-player games in [25]:
+Proposition 12 (Peterson and Reif ).The problem 2Pl-1Ad is undecidable .
+5.4.2. Reduction to recursive games with persistent strategies
+Let us reduce 2Pl-1Ad to the problem of checking whether there is a persistent strategy for player 0 in a recursive
+game.
+Let us ﬁx an instance of 2Pl-1Ad by ﬁxing the alphabets /afii9814/afii9828
+i,i∈{0,1},/afii9828∈{/afii9825,/afii9826}, and a regular language Lgiven
+as a deterministic ﬁnite automaton A=(Q, q in,/afii9829,F) with the usual interpretation.
+There are three modules A1,A2andA3.A1, the initial module, will make calls to A2andA3;A2andA3do not
+call any other module. A2has an entry node for each letter in /afii9814/afii9825
+1and an exit node for each letter in /afii9814/afii9825
+0. Similarly,
+A3has entries and exits for /afii9814/afii9826
+1and/afii9814/afii9826
+0, respectively. A1can call A2with entry nodes corresponding to any letter in
+/afii9814/afii9825
+1andA2will pick an exit corresponding to a letter in /afii9814/afii9825
+0. Similarly, A1will call A3with letters in /afii9814/afii9826
+1and get back
+letters in /afii9814/afii9826
+0. The moves to exit nodes in A2andA3will be controlled by player 0 and hence will correspond to some
+strategies g/afii9825andg/afii9826for the 2Pl-1Ad -game. The moves in A1are controlled by player 1, which nondeterministically
+picks /afii9828and calls the module corresponding to /afii9828with a nondeterministically chosen letter in /afii9814/afii9828
+1.A1also keeps track
+of whether a player returns $ /afii9828, in which case the game graph is such that it cannot call the module corresponding to
+/afii9828again.
+A1also keeps track of the current state of the automaton Aon the play that is being generated. Since A1has complete
+information of the play (it generates the letters in /afii9814/afii9828
+1and observes the response through the return from the module
+that it calls), it can keep track of this information. At the nodes corresponding to ﬁnal states, however, we force themodule to exit at an exit node x
+1ofA1.
+It is now easy to see that there is a winning strategy for team 0 in the 2Pl-1Ad -game iff there is a persistent winning
+strategy for player 0 in the above recursive game with the target set {x1}. This is because persistent strategies for A2
+andA3directly translate back and forth to strategies for player /afii9825and/afii9826, respectively, and preserves the property of
+being winning in the respective games. We hence have:
+Theorem 13. The problem of checking whether there is a winning persistent strategy in a given hierarchical game is
+undecidable .
+
+--- Page 19 ---
+248 R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249
+6. Conclusions
+The main contribution of this paper is the study of a new notion of a strategy for games on recursive/hierarchic state
+machines, namely the notion of a modular strategy. This is a very natural notion and in fact corresponds to a gamebetween a team of players (one player for each module) against a global adversary. While such team games have beenstudied before, they usually turn out to be undecidable; however, solving for modular strategies in our framework isdecidable.
+In terms of applications, we believe that modular strategies are natural and appropriate in the context of synthesizing
+assumptions a set of modules makes about its environment in order to satisfy its speciﬁcation. For example, in [12],
+the authors design interfaces for software modules by solving global games on pushdown systems; these interfacesare however interfaces to a global environment. If the environment itself is made of several components, then ourframework of modular strategies allows the synthesis of separate interfaces to each of these environment componentsin a natural way. In this paper, we have concentrated solely on reachability and safety speciﬁcations. Further, thesespeciﬁcations were stated simply in terms of a set of states of the game graph, and not as a separate speciﬁcationindependent of the game. Recently, in [5], we have removed both these restrictions and studied recursive games againstspeciﬁcations given by automata (over inﬁnite words) or temporal logics such as L
+TL. The results of the current paper
+scale well to these speciﬁcations and result in algorithms that are still polynomial in the game graph and exponentialin the number of exits.
+References
+[1]R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. Reps, M. Yannakakis, Analysis of recursive state machines, ACM Trans. Programming
+Languages and Systems, 2004, to appear.
+[2]R. Alur, P. ˇCerný, P. Madhusudan, W. Nam, Synthesis of interface speciﬁcations for Java classes, in: 32nd ACM Symp. Principles of Programming
+Languages, 2005, pp. 98–109.
+[3]R. Alur, K. Etessami, M. Yannakakis, Analysis of recursive state machines, in: Proc. 13th Internat. Conf. Computer Aided Veriﬁcation, CA V’01,
+Lecture Notes in Computer Science, V ol. 2102, Springer, Berlin, 2001, pp. 207–220.
+[4]R. Alur, T.A. Henzinger, O. Kupferman, Alternating-time temporal logic, J. ACM 49 (5) (2002) 1–42.
+[5]R. Alur, S. La Torre, P. Madhusudan, Modular strategies for inﬁnite games on recursive graphs, in: Proc. CA V 2003, 15th Internat. Conf.
+Computer Aided Veriﬁcation, Lecture Notes in Computer Science, V ol. 2725, Springer, Berlin, 2003, pp. 67–79.
+[6]T. Ball, S.K. Rajamani, Bebop: a symbolic model checker for boolean programs, in: Proc. SPIN 2000 Workshop on Model Checking of Software,
+Lecture Notes in Computer Science, V ol. 1885, Springer, Berlin, 2000, pp. 113–130.
+[7]T. Ball, S. Rajamani, The SLAM project: debugging system software via static analysis, in: Proc. 29th Annu. ACM Symp. Principles of
+Programming Languages, 2002, pp. 1–3.
+[8]M. Benedikt, P. Godefroid, T. Reps, Model checking of unrestricted hierarchical state machines, in: Proc. ICALP 2001, 28th Internat. Colloq.
+Automata, Languages, and Programming, Lecture Notes in Computer Science, V ol. 2076, Springer, Berlin, 2001, pp. 652–666.
+[9]A. Bouajjani, J. Esparza, O. Maler, Reachability analysis of pushdown automata: applications to model-checking, in: Proc. Eighth Conf.
+Concurrency Theory, Warsaw, July 1997, Lecture Notes in Computer Science, V ol. 1243, Springer, Berlin, 1997, pp. 135–150.
+[10] J.R. Büchi, L.H.G. Landweber, Solving sequential conditions by ﬁnite-state strategies, Trans. AMS 138 (1969) 295–311.
+[11] T. Cachat, Symbolic strategy synthesis for games on pushdown graphs, in: Proc. 29th Internat. Colloq. Automata, Languages and Programming,
+ICALP’02, Lecture Notes in Computer Science, V ol. 2380, 2002, pp. 704–715.
+[12] A. Chakrabarti, L. de Alfaro, T.A. Henzinger, M. Jurdzinski, F.Y .C. Mang, Interface compatibility checking for software modules, in: Proc. 14th
+Internat. Conf. Computer-Aided Veriﬁcation (CA V ’02), Lecture Notes in Computer Science, V ol. 2404, Springer, Berlin, 2002, pp. 428–441.
+[13] A.K. Chandra, D.C. Kozen, L.J. Stockmeyer, Alternation, J. Assoc. Comput. Mach. 28 (1) (1981) 114–133.
+[14] L. de Alfaro, T.A. Henzinger, Interface automata, in: Proc. Ninth Annu. Symp. Foundations of Software Engineering (FSE), ACM Press, 2001,
+pp. 109–120.
+[15] E.A. Emerson, Model checking and the mu-calculus, in: N. Immerman, Ph. Kolaitis (Eds.), Proc. DIMACS Symp. Descriptive Complexity and
+Finite Models, American Mathematical Society Press, 1997, pp. 185–214.
+[16] M. Garey, D.S. Johnson, Computers and Intractability: A Guide to the Theory of NP-completeness, W. Freeman and Co., San Francisco, 1979.
+[17] D. Harel, D. Raz, Deciding emptiness for stack automata on inﬁnite trees, Inform. and Comput. 113 (2) (1994) 278–299.
+[18] T.A. Henzinger, R. Jhala, R. Majumdar, G.C. Necula, G. Sutre, W. Weimer, Temporal-safety proofs for systems code, in: CA V 02: Proc. 14th
+Conf. Computer Aided Veriﬁcation, Lecture Notes in Computer Science, V ol. 2404, Springer, Berlin, 2002, pp. 526–538.
+[19] J.M.E. Hyland, C.-H.L. Ong, On full abstraction for PCF: I, II, and III, Inform. and Comput. 163 (2) (2000) 285–408.
+[20] O. Kupferman, M.Y . Vardi, Church’s problem revisited, Bull. Symbolic Logic 5 (2) (1999) 245–263.
+[21] O. Kupferman, M. Vardi, P. Wolper, Module checking, Inform. and Comput. 164 (2) (2001) 322–344.
+[22] P. Madhusudan, P.S. Thiagarajan, A decidable class of asynchronous distributed controllers, in: Proc. 13th Internat. Conf. Concurrency Theory
+(CONCUR ’02), Lecture Notes in Computer Science, V ol. 2421, Springer, Berlin, 2002, pp. 145–160.
+
+--- Page 20 ---
+R. Alur et al. / Theoretical Computer Science 354 (2006) 230 –249 249
+[23] R. McNaughton, Inﬁnite games played on ﬁnite graphs, Ann. Pure Appl. Logic 65 (1993) 149–184.
+[24] D.E. Muller, P.E. Schupp, The theory of ends, pushdown automata, and second-order logic, Theoret. Comput. Sci. 37 (1985) 51–75.
+[25] G.L. Peterson, J.H. Reif, Multiple-person alternation, in: Proc. 20th IEEE Symp. Foundations of Computer Science, 1979, pp. 348–363.
+[26] A. Pnueli, R. Rosner, On the synthesis of a reactive module, in: Proc. 16th ACM Symp. Principles of Programming Languages, Austin, January
+1989.
+[27] A. Pnueli, R. Rosner, Distributed reactive systems are hard to synthesize, in: Proc. 31st IEEE Symp. Foundation of Computer Science, 1990,
+pp. 746–757.
+[28] K. Rudie, W.M. Wonham, Think globally, act locally: decentralized supervisory control, IEEE Trans. Automat. Control 37 (11) (1992)
+1692–1708.
+[29] C. Szyperski, D. Gruntz, S. Mure, Component Software—Beyond Object-Oriented Programming, Addison-Wesley, ACM Press, 2002.
+[30] W. Thomas, Languages, automata, and logic, in: G. Rozenberg, A. Salomaa (Eds.), Handbook of Formal Language Theory, V ol. III, Springer,
+Berlin, 1997, pp. 389–455.
+[31] W. Thomas, Inﬁnite games and veriﬁcation, in: Proc. Internat. Conf. Computer Aided Veriﬁcation CA V’02, Lecture Notes in Computer Science,
+V ol. 2404, Springer, Berlin, 2002, pp. 58–64.
+[32] I. Walukiewicz, Pushdown processes: games and model-checking, Inform. and Comput. 164 (2) (2001) 234–263.
+[33] M. Yannakakis, Graph-theoretic methods in database theory, in: Proc. Ninth ACM Symp. Principles of Database Systems, 1990, pp. 230–242.

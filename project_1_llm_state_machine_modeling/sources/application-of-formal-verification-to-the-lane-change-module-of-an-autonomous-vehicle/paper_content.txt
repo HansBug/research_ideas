@@ -1,0 +1,675 @@
+--- Page 1 ---
+Chalmers Publication Library
+Application of Formal Verification to the Lane Change Module of an Autonomous
+Vehicle
+This document has been downloaded from Chalmers Publication Library (CPL). It is the author´s
+version of a work that was accepted for publication in:
+13th IEEE Conference on Automation Science and Engineering  August 20-23,Xi'an, China,
+2017
+Citation for the published paper:
+Zita, A. ; Mohajerani, S. ; Fabian, M. (2017) "Application of Formal Verification to the Lane
+Change Module of an Autonomous Vehicle". 13th IEEE Conference on Automation Science
+and Engineering  August 20-23,Xi'an, China, 2017
+Downloaded from: http://publications.lib.chalmers.se/publication/251650
+Notice: Changes introduced as a result of publishing processes such as copy-editing and
+formatting may not be reflected in this document. For a definitive version of this work, please refer
+to the published source. Please note that access to the published version might require a
+subscription.
+Chalmers Publication Library (CPL) offers the possibility of retrieving research publications produced at Chalmers
+University of Technology. It covers all types of publications: articles, dissertations, licentiate theses, masters theses,
+conference papers, reports etc. Since 2006 it is the official tool for Chalmers official publication statistics. To ensure that
+Chalmers research results are disseminated as widely as possible, an Open Access Policy has been adopted.
+The CPL service is administrated and maintained by Chalmers Library.
+(article starts on next page)
+
+--- Page 2 ---
+Application of Formal Veriﬁcation to the Lane Change Module o f an
+Autonomous Vehicle
+Anton Zita1, Sahar Mohajerani1,2, Martin Fabian2
+Abstract — For autonomous vehicles correct behavior is of
+the utmost importance, as unexpected incorrect behavior can
+have catastrophic outcomes. However, as with any large-scale
+software development, it is not easy to get the system correct.
+As the system is made up of multiple sub-modules that interact
+with each other, unexpected behavior can arise from incorrect
+interactions when one module may have unfulﬁlled expectations
+on the other. This paper describes how formal veriﬁcation was
+applied to the lane change module of the decision and control
+software (under development) for an autonomous vehicle. The
+module was manually modelled as an extended ﬁnite-state
+machine, as were some of the requirements. When applying
+theSupremica software to perform the formal veriﬁcation, some
+bugs were discovered in the model. Setting up additional unit
+tests triggering the incorrect behavior showed that this behavior
+was also present within the actual code. For some of the errors,
+applied corrections resulted in the absence of the particular
+error, thus demonstrating the power of true formal veriﬁcation .
+Index Terms — Extended ﬁnite-state machines, Model check-
+ing, Non-blocking, Compositional veriﬁcation, Supervisory con-
+trol theory, Discrete event systems.
+I. I NTRODUCTION
+When implementing complex software systems, typically
+with multiple interacting sub-modules, even highly skille d
+programmers may introduce logical errors. Thus, especiall y
+for safety critical systems it is important to ﬁnd and elimin ate
+errors before they propagate into the implementation. This
+calls for tools to support the programmers.
+One way of trying to eliminate logical errors is to use
+formal veriﬁcation. This means to create a formal model
+of the system, and use mathematically proven methods to
+ﬁnd errors. These types of formal methods [1] can show not
+only presence, but also absence of logical errors according
+to a given speciﬁcation, assuming that the models capture
+the desired behavior in enough detail. However, formal
+veriﬁcation has not yet found its place in industry to any
+signiﬁcant extent, and it is still an active ﬁeld of research .
+One example of safety-critical software can be found
+in the automotive industry, which is rapidly moving to-
+wards autonomous vehicles that are capable of maneuvering
+themselves without any human input. Most of the major
+car companies are developing self-driving cars for the near
+future. To be able to drive autonomously, the vehicles are
+equipped with a number of different sensors to gather data
+*This work has been performed with support from the Swedish Re search
+Council (VR) under grant number 2016-00529.
+1Anton Zita and Sahar Mohajerani are with V olvo Car Corporati on,
+Gothenburg, Sweden firstname.lastname@volvocars.com
+2Sahar Mohajerani and Martin Fabian are with the Department of Signals
+and Systems, Chalmers University of Technology, Gothenburg, Sweden
+{mohajera,fabian }@chalmers.seabout their surroundings. This data is then processed on-
+board, and depending on the current situation the software
+takes different actions. Since the vehicles will be in real
+trafﬁc, software problems could potentially be disastrous , and
+great effort is therefore made to guarantee the correctness of
+the system.
+Guaranteeing correctness is not easy, though. The vehicles
+operate within an unpredictable environment and creating
+test cases to cover all possible scenarios is impossible. As
+noted by [2], if a ﬂeet of 100 autonomous vehicles drives
+24 hours/day, 365 days/year, at an average speed of 25 mph,
+it takes 400 years to demonstrate with 95% conﬁdence that
+their failure rate is 20% better than the human driver failur e
+rate of 1.09 fatalities per 100 million miles (US, 2013).
+To further illustrate this, in 2007, CalTech built an au-
+tonomous car for the DARPA Urban Challenge [3], named
+Alice. All the participant’s vehicles were required to navi -
+gate through an urban-like environment. The tasks included
+parking, driving while adhering all trafﬁc safety, etc. In p art
+of the route during the competition Alice’s behaviour was
+unsafe and almost led to a collision. After examination it wa s
+discovered that the reason for the failure was bad interacti ons
+between the reactive obstacle avoidance subsystem and the
+reacting path planner. This failure only happened in a very
+speciﬁc situation and no matter how many test cases were
+designed, it was very unlikely for the bug to be found [4].
+One of the leading companies in autonomous driving is
+V olvo Car Corporation, VCC. VCC has an ongoing project
+called Drive Me . In this project a number of XC90’s with
+autonomous driving capability will be launched to VCC-
+customers in 2017, to drive autonomously on some of the
+main roads around Gothenburg. Within this project, formal
+veriﬁcation techniques were applied on a small part of the
+Drive Me software to show that this could indeed help in
+raising the conﬁdence of code correctness. For this, the
+existing MATLAB [5] code was manually translated into
+Extended Finite State Machines (EFSM) [6], [7], which were
+then loaded into the formal veriﬁcation (and synthesis) too l
+Supremica [8]–[10]. Existing veriﬁcation techniques [11]
+were then applied to check whether the EFSM was able to
+reach any bad states, which would signify not fulﬁlling the
+given speciﬁcations. As it turned out, such bad states were
+found.
+This paper is structured as follows. Section II collects the
+preliminary background of EFSMs, and Section III illustrat es
+by an example how source code can be modeled in the EFSM
+formalism. Then, Section IV gives an overview of the overall
+system together with the model of it. Section V then presents
+
+--- Page 3 ---
+two speciﬁcations that the systems should fulﬁll. The actua l
+veriﬁcation process is then described in Section VI where
+also the found errors are discussed. The paper concludes wit h
+Section VII where things are summed up and some future
+work is suggested.
+II. P RELIMINARIES
+For modeling the kind of logical behavior dealt with
+here, where continuous dynamics can be disregarded and
+ﬂoating point data is used mainly for comparisons, it is
+beneﬁcial to think in terms of states andevents , where states
+represent situations where certain properties hold, and ev ents
+are associated to transitions between the states that effec t
+changes of those properties. A typical formalism for this is
+ﬁnite-state machines (FSM) [12], [13].
+A. Extended Finite-State Machines
+Extended ﬁnite-state machines (EFSM) are similar to con-
+ventional ﬁnite-state machines, but augmented with updates
+associated to the transitions [6], [7]; formulas construct ed
+from variables, integer constants, the Boolean literals true
+andfalse , and the usual arithmetic and logic connectives.
+Avariable vis an entity associated with a bounded
+discrete domain dom(v)and an initial value v◦∈dom(v).
+LetV={v0,...,v n}be the set of variables with do-
+maindom(V) = dom( v0)× ··· ×dom(vn). An element
+ofdom(V)is called a valuation and is denoted by ˆv=
+(ˆv0,...,ˆvn)withˆvi∈dom(vi), and the value associated to
+variablevi∈Vis denoted ˆv[vi] = ˆvi. The initial valuation
+isv◦= (v◦
+0,...,v◦
+n).
+A second set of variables, called next-state variables ,
+denoted by V′={v′|v∈V}withdom(V′) = dom( V),
+is used to describe the values of the variables after executi on
+of a transition. Variables in Vare referred to as current-state
+variables to differentiate them from the next-state variables
+inV′. The set of all update formulas using variables in V
+andV′is denoted by ΠV.
+For an update p∈ΠV, the terms vars(p)andvars′(p)
+denote the sets of all variables, and all next-state variabl es,
+respectively, that occur in p. For example, if p≡x′=y+1
+thenvars(p) ={x,y}andvars′(p) ={x}. Here and in the
+following, the relation ≡denotes syntactic identity of updates
+to avoid ambiguity when an update contains the equality
+symbol=. An update pwithout any next-state variables,
+vars′(p) =∅, is called a pure guard .
+One way to rewrite updates is substitution , which performs
+syntactic replacement of subformulas.
+Deﬁnition 1: Asubstitution is a mapping [z1/mapsto→
+a1,...,z n/mapsto→an]that maps variables zito terms ai.
+Given an update p∈ΠV, the substitution instance p[z1/mapsto→
+a1,...,z n/mapsto→an]is the update obtained from pby simulta-
+neously replacing each occurrence of zibyai.
+For example, (x′=x+y)[x′/mapsto→1,x/mapsto→0]≡1 = 0+y.
+With slight abuse of notation, updates p∈ΠVare
+also interpreted as predicates over their variables, and th ey
+evaluate to TorF, i.e.,p: dom(V)×dom(V′)→ {T,F}.
+For example, if V={x}withdom(x) ={0,1}, then theupdatep≡x′=x+1means that the value of the variable x
+in the next state will be increased by 1 over its current-stat e
+value. Its predicate p(x,x′)evaluates as p(0,1) =Tand
+p(1,1) =p(0,0) =p(1,0) =F
+Deﬁnition 2: Anextended ﬁnite-state machine (EFSM) is
+a tupleE=/a\}bracketle{tΣ,Q,→,Q◦,Qω/a\}bracketri}ht, whereΣis a set of events,
+thealphabet ;Qis a ﬁnite set of locations ;→ ⊆Q×Σ×
+ΠV×Qis the conditional transition relation ;Q◦⊆Qis
+the set of initial locations ; andQω⊆Qis the set of marked
+locations .
+The expression q0σ:p→q1denotes the presence of a
+transition in E, from location q0to location q1with event
+σand update p. Such a transition can occur if the EFSM is
+in location q0and the update pevaluates to T, and when
+the transition occurs, the EFSM changes its location from q0
+toq1while updating the variables in vars′(p)in accordance
+withp; variables not contained in vars′(p)are unchanged.
+For example, let xbe a variable with domain dom(x) =
+{0,...,5}. A transition with update x′=x+1changes the
+variablexby adding 1to its current value, if it currently is
+less than 5. Otherwise (if x= 5) the transition is disabled
+and no update is performed. An update x= 3 disables a
+transition unless x= 3 in the current state, and the value
+ofxin the next state is not changed. Differently, the update
+x′= 3 always enables its transition, and the value of xin
+the next state is forced to be 3.
+Given an EFSM E=/a\}bracketle{tΣ,Q,→,Q◦,Qω/a\}bracketri}ht, itsvariable set
+isvars(E) =/uniontext
+(q0,σ,p,q 1)∈→vars(p), and it contains all the
+variables that appear on some transitions of E.
+Usually, EFSM models consist of several interacting com-
+ponents. Such a model is called an EFSM system .
+Deﬁnition 3: AnEFSM system is a collection of interact-
+ing EFSMs,
+E={E1,...,E n}. (1)
+The alphabet of the system EisΣE=/uniontext
+E∈EΣE, and the
+variable set of Eisvars(E) =/uniontext
+E∈Evars(E).
+Component interaction in an EFSM systems is modeled by
+synchronous composition, where shared events are executed
+in a “lock-step” fashion, while non-shared events are inter -
+leaved. In addition, updates of transitions labeled by shar ed
+events are combined by conjunction.
+Deﬁnition 4: Given two EFSMs E1=/a\}bracketle{tΣ1,Q1,→1,Q◦
+1,
+Qω
+1/a\}bracketri}htandE2=/a\}bracketle{tΣ2,Q2,→2,Q◦
+2,Qω
+2/a\}bracketri}ht, the synchronous
+composition ofE1andE2isE1/bardblE2=/a\}bracketle{tΣ1∪Σ2,Q1×Q2,
+→,Q◦
+1×Q◦
+2,Qω
+1×Qω
+2/a\}bracketri}ht, where:
+(x1,x2)σ:p1∧p2− −−−− → (y1,y2)ifσ∈Σ1∩Σ2, x1σ:p1− −− →1y1,
+andx2σ:p2− −− →2y2;
+(x1,x2)σ:p1− −− →(y1,x2)ifσ∈Σ1\Σ2andx1σ:p1− −− →1y1;
+(x1,x2)σ:p2− −− →(x1,y2)ifσ∈Σ2\Σ1andx2σ:p2− −− →2y2.
+Using Def. 4, the global behaviour of a system E={E1,
+...En}is given by E1/bardbl···/bardblEn.
+In an EFSM, the current state of the system is given by
+the current location together with the current values of all
+the variables. Since the variables are discrete and bounded ,
+
+--- Page 4 ---
+1function [out] = f1()
+2in = randi([1 5],1,1);
+3ifin>3
+4 out=in-1;
+5else
+6 out=f2(in);
+7end
+8end
+9
+10function [out]=f2(in)
+11out=in+1;
+12end
+Fig. 1. MATLAB-code for the example in Section III
+f1:in′=randi([1 5],1,1)e1:in >3∧out′=in−1
+f2
+e2:out′=in+ 1s0
+s1
+s2M
+Fig. 2. EFSM model of the MATLAB-code shown in Fig. 1. The initi al
+location is identiﬁed by the small arrow pointing into it, and marked
+locations are shaded.
+the EFSM can be ﬂattened , which introduces states for the
+combinations of locations and variable values [1].
+Deﬁnition 5: LetE=/a\}bracketle{tΣ,Q,→,Q◦,Qω/a\}bracketri}htbe an EFSM
+with variable set vars(E) =V. The monolithic ﬂattening of
+EisU(E) =/a\}bracketle{tΣ,QU,→U,Q◦
+U,Qω
+U/a\}bracketri}htwhere
+•QU=Q×dom(V);
+•(x,ˆv)σ→U(y,ˆw)ifEcontains a transition xσ:p→ysuch
+thatp(ˆv,ˆw) =T;
+•Q◦
+U=Q◦×{v◦};
+•Qω
+U=Qω×dom(V).
+U(E)is the FSM representation of the EFSM, where all
+the variables have been removed and their values ˆvembedded
+into the state set QU. This ensures the correct sequencing of
+transitions in the FSM.
+III. E XAMPLE
+This section illustrates by an example how a function
+call in MATLAB [5] code can be modeled as an EFSM.
+The approach of the modelling is not to be considered as a
+general method that could, or should, be applied to all types
+of MATLAB-code, but rather how the modelling needed for
+the speciﬁc code of interest was performed.
+Consider the MATLAB code shown in Fig. 1. The code
+consists of two functions f1andf2. Whenf1is called
+the variable inis assigned a random value between one
+and ﬁve, randi([1 5],1,1). Then, if inis larger than 3,
+the output variable out is assigned in−1, and if inis
+smaller or equal to 3, f2is called where the variable outis
+assigned in+1. Fig. 2 shows the EFSM model of the code.
+It uses the variables inandoutwith domain {1,2,3,4,5}
+and{0,1,2,3,4}respectively to represent the MATLAB
+variables. The updates on the transitions match the stateme ntsLSM
+NoRequestS1 S2
+S3S4
+Finished
+S5
+Fig. 3. The high level lateral state manager; the locations ke ep track of
+where in the process of the lane change the car is.
+in the code. The transitions labeled with f1andf2represent
+calling functions f1andf2, respectively. The variable inis
+assigned its random value in the update on the f1transition.
+IV. S YSTEM DESCRIPTION AND MODELING
+This paper focuses on a part of the lane change module
+called the lateral state manager . The implementation of the
+lane change module is written in object oriented MATLAB-
+code and simulations are made in the MATLAB/Simulink
+environment.
+A. Planner
+The lane change module is implemented with the use
+of several classes, all with different responsibilities. I n this
+paper, the class Planner is considered. Planner has the
+responsibility to decide and control how the lane change
+should be done. Planner is cyclically updated at a high
+frequency with the current status of the vehicle, surroundi ng
+trafﬁc situation, and current reference signals. The refer ence
+signals hold for example the current lane change request.
+With this information, Planner returns a path and required
+control signals to make a lane change in a safe and efﬁcient
+way. Since the task of Planner is to calculate a path for
+the current inputs there is, with the exception of the latera l
+state manager (see below), no need to use data from previous
+updates.
+B. Lateral state manager
+Contrary to Planner , though, the Lateral State Manager
+(LSM ) has to keep track of where in the process of lane
+change the car currently is, and thus it is implemented as a
+state machine as depicted in Fig. 3.
+This state machine consists of seven locations, two of
+which are NoRequest andFinished . Each time that Planner
+is updated, the current state of LSM is changed based on the
+current location. Note that at most one transition can be ﬁre d
+each time Planner is updated.
+When no lane change is requested LSM should be in
+NoRequest , which is also the initial state. Once a request
+comes, LSM moves to S1, and from there to either S2, S3 or
+back to NoRequest depending on the situation. Finally, when
+the lane change is done LSM will be in Finished and from
+there, on the next update, transit back to NoRequest .
+
+--- Page 5 ---
+call from Planner
+updateState(. . . )
+duringCurrentState(. . . )
+state
+changed?
+terminateenterNewState(. . . )yes
+no
+Fig. 4. Flow chart showing the execution sequence of methods u sed in
+lateral state manager.
+C. Implementation
+The implementation of LSM is done with a set of methods
+and variables in Planner , where the current state is one of
+the variables.
+LSM consists of three different types of methods. The ﬁrst
+type, of which there is only one implementation, is called
+updateState . This method is called from Planner every time
+that Planner is updated. The purpose of the updateState
+method is to call the current state’s duringUpdate method,
+which is the second type of method; each state has its own
+duringUpdate method, named like duringNoRequest . The
+duringUpdate methods are where the decisions are taken
+and different parts of the code are executed depending on
+the inputs. Before the duringUpdate method terminates, it
+will either change the state or keep the current state. In the
+latter case, the same duringUpdate method will be called in
+the next update. If the state is changed by the duringUpdate
+method, the new state’s enterUpdate method is called, which
+is the third type of method, before updateState is ﬁnished.
+In contrast to the duringUpdate methods which are executed
+repeatedly on each update while the state stays current,
+theenterUpdate methods are executed only once when the
+transition into the state occurs. This is illustrated by the ﬂow
+chart in Fig. 4.
+Modeling LSM ’s 223 lines of MATLAB-code in Suprem-
+icawas done manually, similar to what is described in
+Section III. This resulted in a single EFSM with 75 locations ,
+123 transitions, and 17 variables (14 Boolean, 2 three-valu ed,
+and a 7-valued variable holding the current location). The
+ﬂattening of this EFSM plant model has 1443104 states
+(using Supremica ’s per-event compiler), since combinations
+of the seventeen variables’ values in the locations are repr e-
+sented as different states in the FSM.R
+s0
+s1update :direction /negationslash=requestupdate :direction /negationslash=requestupdate :direction =request
+update :direction =requests2
+Fig. 5. Speciﬁcation describing that the direction variable should always
+on each update be equal to the input parameter request .
+V. S PECIFICATIONS
+Two properties of the code modeled in the previous section
+will be speciﬁed; that a lane change is always made to the
+side, left or right, that is requested by Planner , and that some
+variables that should be incremented at most once each cycle
+are actually never incremented more than once.
+A. Lane change request
+LSM receives requests from Planner to change lane to
+either left or right. Thus, it does make sense to make sure
+that when a lane change is performed, it accords with the
+currently active request. In practice this means to check if
+the value of an internal variable, direction , and the incoming
+request parameter could be different from each other for
+two consecutive updates. A difference for one update would
+probably be sufﬁcient, but a difference that persists over
+several updates would indicate that this was not only relate d
+to variable initialization in the model, but actually a prop erty
+of the MATLAB-code. Fig. 5 shows R, the EFSM model of
+the lane change request speciﬁcation.
+WhenRof Fig. 5 is in its initial state s0and an update
+occurs, then if direction and request have the same value,
+Rremains in s0, whereas if the values differ, Rtransits to
+s1. When in s1, if on the update the variables now have the
+same values, Rtransits back to s0. However, if the variables
+again have different values, then Rtransits to s2. Now, from
+s2it is not possible to come back to the initial state, and so
+Rblocks in s2. The task of veriﬁcation is to ﬁnd whether
+this blocking state is reachable from the initial state or no t,
+whenRis synchronized with LSM .
+B. Timer increment
+InLSM there are three variables that are used as timers:
+timer1,timer2andtimer3. These “timers” are really counters
+that keep track of during how many consequtive updates
+certain Boolean variables have been true, one timer for each
+such variable. When the value of the variable is false, the
+respective timer will be set to zero. When the value is true,
+the timer should be incremented on each update.
+To check that a timer is incremented at most once per
+update, speciﬁcations for this were formulated for each of
+the timers. Fig. 6 shows T, the EFSM model of the timer
+speciﬁcation. Just as in Fig. 5, the event update represents the
+update call from Planner . The timerInc event represents that
+the timer is incremented. If the timer is incremented and an
+update occurs before the next increment, everything is ﬁne.
+But if two timer increments occur without an intermediate
+update the speciﬁcation blocks.
+
+--- Page 6 ---
+Ts0
+s1update
+updatetimerInc timerInc
+s2
+Fig. 6. Speciﬁcation describing that a timer should be increme nted not
+more than once per update.
+VI. V ERIFICATION
+Given the LSM model and the speciﬁcations RandT,
+the task of veriﬁcation is now to determine whether the bad
+states can be reached in LSM/bardblRandLSM/bardblT, respectively.
+Due to the way that the speciﬁcations are formulated, the
+bad states are unreachable if and only if the system is non-
+blocking. Thus we are to verify whether LSM/bardblRand
+LSM/bardblTare non-blocking or not. However, due to the
+state-space explosion exhaustive enumeration of the state s
+is time consuming (though possible), so instead Supremica ’s
+compositional abstraction-based conﬂict check [11] is use d.
+A. Compositional approach
+The notion of non-blocking concerns being able to al-
+ways reach some marked state. This is formally deﬁned for
+FSM [12], [13], but using the ﬂattening of an EFSM (Def. 5),
+the notion can be directly applied also to EFSM.
+Deﬁnition 6: An EFSM Eis non-blocking if its mono-
+lithic ﬂattening U(E)is non-blocking.
+Similarly, non-blocking can be deﬁned for an EFSM sys-
+temE={E1,...,E n}(Def. 3), as its monolithic ﬂattening
+U(E) =U(E1/bardbl···/bardblEn)being non-blocking.
+In this paper, there are two EFSM systems, ER=
+{LSM,R}andET={LSM,T}, and since LSM is itself
+non-blocking, if ERorETwould be blocking, then it is
+known that the blocking states are introduced by the speciﬁ-
+cation, and hence the speciﬁcation is not fulﬁlled. However ,
+calculating the monolithic ﬂattening of the EFSM system
+when checking non-blocking leads to an (in the worst case)
+exponential increase in the number of states; the monolithi c
+ﬂattening of ERhas3191904 states, and EThas1256608 .
+Thus, this should be avoided.
+The compositional abstraction-based approach [11] avoids
+the ﬂattening of an EFSM system. Instead, at each step
+the individual EFSMs are abstracted . When no more ab-
+straction is possible, either some components are composed
+(Def. 4) or some variables are partially unfolded , substituting
+(Def. 1) some variables with possible values and creating
+new EFSMs called variable EFSMs [11]. This procedure is
+continued until it leads to a single FSM, which is an abstract
+representation of the system, simple enough to be veriﬁed
+monolithically by standard means.
+Abstraction means removing redundancy, and an ab-
+stracted component has less locations and/or transitions
+compared to the original component. This requires that
+the abstracted components relate properly to the original
+components. For compositional non-blocking veriﬁcationthis requires that the non-blocking property of the system
+does not change after the abstraction. To that end, conﬂict
+equivalence was introduced in [14], and [11] deﬁnes a variety
+of conﬂict equivalent abstraction methods for EFSMs. These
+all guarantee that the ﬁnal abstracted system is non-blocki ng
+if and only if the original system was.
+When Supremica ’s compositional non-blocking veriﬁca-
+tion algorithm (called Conﬂict check in the Supremica GUI)
+ﬁnds a blocking state, it generates a counterexample . This is
+a trace of events from the initial state to the blocking state .
+The counterexample can then be investigated in Supremica ’s
+simulator, where it can also be simulated event by event, by
+clicking on the events of the trace.
+B. False positives
+As the model is built manually, errors not present in the
+code may be introduced into the model. A counterexample
+for such an error is called a false positive . Thus, when a
+counterexample is found, it must ﬁrst be made sure that
+this is not a false positive. One way to do this is to write
+manually a unit-test that aims to trigger the issue in the act ual
+code. However, this may fail, maybe because some coupling
+between variables is unknown, and then the validity of the
+model has to be carefully checked. For the speciﬁcations in
+Fig. 5 and Fig. 6 counterexamples were found that could be
+shown to exist in the actual code.
+C. Veriﬁcation of lane change request
+With the lane change request speciﬁcation of Fig. 5, the
+global system LMS||Rhas3191904 reachable states. How-
+ever, using the compositional approach the largest EFSM
+encountered during the compositional approach has 102
+locations and 315 transitions, and the algorithm terminates
+in0.07seconds. The non-blocking veriﬁcation showed that
+the speciﬁcation is violated. In fact, there are 1033440
+blocking states, each of which represents a situation where
+the direction of lane change has been different from the cur-
+rent request for at least two consecutive updates. Supremica
+returned a 34 events long counterexample to one of these bad
+states, which indicated that when a ﬁrst request was issued
+to go, say right, and then a second request to go left was
+issued in a later update, when LSM was in a speciﬁc region
+of its state-space and without cancelling the ﬁrst request i n-
+between, then the system entered a blocking state.
+Since LSM is only a part of the lane change module it
+was not obvious what this discrepancy between the variable
+values could possibly lead to. Therefore, Supremica ’s coun-
+terexample guided the design of a unit-test. The unit-test
+could also be visualized in a simulation environment used by
+the developers to run and test the actual code. The unit-test
+and simulations showed that for the counterexample scenari o
+the vehicle checked for trafﬁc in the (left) lane that it was
+supposed to change to according to the second request, but
+when the trafﬁc was clear on that side, the vehicle in fact
+changed lane to the other (right) side in accordance with the
+ﬁrst request. Thus was shown the existence of the issue in
+the actual code.
+
+--- Page 7 ---
+From the counterexample it seemed like that the problem
+could possibly be solved by adding an extra transition from
+S2 to NoRequest . Such a transition was added to the model.
+Unfortunately, verifying the system again showed that the
+problem had now moved to another region of the state-space.
+Since this indicated that the problem was not just a slip
+in one part, but probably a logical error that required an
+extensive over-haul of the code, no further investigation w as
+made about ﬁnding solutions.
+D. Veriﬁcation of timers
+With the timer increment speciﬁcation, Fig. 6, the global
+system has 1256608 reachable states. However, using the
+compositional approach, for each of the three timers, the
+largest EFSM encountered during the compositional ap-
+proach has 102locations and 169transitions, and the algo-
+rithm terminates in 0.06seconds. The veriﬁcation showed
+that two of the timers, timer1and timer2, were indeed
+incremented not more than once on each update, but timer3
+could in certain situations be incremented twice. In the wor st
+case, timer3could thus hold a value representing double the
+time that its corresponding Boolean variable was true.
+With the help of the counterexample in Supremica it could
+be shown that the root of the problem was that timer3was
+incremented not only in a duringUpdate method, but also in
+anenterUpdate method. Thus, the increment of timer3in the
+enterUpdate method was removed in the Supremica model,
+and the veriﬁcation was performed once again. This showed
+that the problem was solved and the code could easily be
+corrected in the same way.
+VII. C ONCLUSION
+Using an EFSM model of a part of the lane change module
+for an autonomous vehicle, it was shown that unexpected
+interactions between that module and the higher level tacti cal
+decision module, such as ﬁrst issuing a request and then
+issuing a different request without cancelling the ﬁrst req uest
+in-between, resulted in incorrect behavior of the vehicle. This
+error was shown to exist also in the actual code. Furthermore ,
+veriﬁcation of suggested corrections to the problem showed
+that the issue was not straightforwardly resolved but moved
+to other parts of the system. Though this means that absence
+of the error could not be shown, it still gave valuable input a s
+different ﬁxes could be tried on the model before eventually
+(and hopefully) ﬁnding one that did resolve the issue.
+In addition it was shown that a variable counting the
+number of updates, and which should be incremented only
+once per cycle, could in fact be incremented more than once,
+thus holding incorrect values. Here, formal veriﬁcation di d
+show that the suggested correction for the counter indeed
+removed that erroneous behavior.
+Research is currently ongoing regarding how to incorpo-
+rate these types of formal techniques into the daily enginee r-
+ing work ﬂow. The two main obstacles being how to get the
+model from the code, and ﬁnding the speciﬁcations, many
+of which are not written down explicitly.Future work includes the application of synthesis tech-
+niques, where the model is algorithmically adjusted to be
+guaranteed to fulﬁll the given speciﬁcations. The compo-
+sitional synthesis feature of Supremica can do this, but
+the result is due to the abstractions incomprehensible to
+humans, and very hard (practically impossible) to relate ba ck
+to the original model. Thus, more research is needed here
+concerning how to use the synthesis result in practice.
+Further details, and other issues revealed by the veriﬁca-
+tion process, are reported in [15].
+VIII. A CKNOWLEDGMENTS
+The authors thank Pontus Peterson for the collaboration
+with the modeling and veriﬁcation. We also thank Moham-
+mad Ali and Roozbeh Kianfar at V olvo Car Corporation and
+Zenuity for insightful comments and giving us access to the
+relevant parts of the code.
+REFERENCES
+[1] C. Baier and J.-P. Katoen, Principles of Model Checking (Represen-
+tation and Mind Series) . The MIT Press, 2008.
+[2] N. Kalra and S. M. Paddock, Driving to Safety: How Many
+Miles of Driving Would It Take to Demonstrate Autonomous
+Vehicle Reliability? RAND Corporation, 2016. [Online]. Available:
+http://www.jstor.org/stable/10.7249/j.ctt1btc0xw
+[3] DARPA, “DARPA Urban Challenge,”
+http://archive.darpa.mil/grandchallenge/, accessed 201 7-03-10.
+[4] T. Wongpiromsarn, “Formal methods for design and veriﬁcati on
+of embedded control systems : application to an autonomous
+vehicle,” Ph.D. dissertation, California Institute of Tec hnology,
+2010. [Online]. Available: http://resolver.caltech.edu /CaltechTHESIS:
+05272010-153304667
+[5] MathWorks, https://www.mathworks.com/products/matlab .html.
+[6] K. T. Cheng and A. S. Krishnakumar, “Automatic functional t est
+generation using the extended ﬁnite state machine model,” in
+Proceedings of the 30th International Design Automation Co nference ,
+ser. DAC ’93. New York, NY , USA: ACM, 1993, pp. 86–91.
+[Online]. Available: http://doi.acm.org/10.1145/157485 .164585
+[7] M. Sk ¨oldstam, K. ˚Akesson, and M. Fabian, “Modeling of discrete
+event systems using automata with variables,” in Proceedings of the
+46th IEEE Conference on Decision and Control , 2007, pp. 3387–3392.
+[8] K. ˚Akesson, M. Fabian, H. Flordal, and R. Malik, “Supremica - an
+integrated environment for veriﬁcation, synthesis and simul ation of
+discrete event systems,” in Proceeding os the 8th Workshop on Discrete
+Event Systems (WODES’06), Ann Arbor, MI, USA , 2006, pp. 384–385.
+[9] R. Malik, M. Fabian, and K. ˚Akesson, “Modelling large-scale discrete-
+event systems using modules, aliases, and extended ﬁnite-sta te au-
+tomata,” in IFAC Proceedings Volumes. 18th IFAC World Congress,
+Milano, 28 August - 2 September 2011 , 2011, pp. 7000–7005.
+[10] K. ˚Akesson, “Supremica,” http://www.supremica.org/, 2016, on line,
+accessed 2016-04-29.
+[11] S. Mohajerani, R. Malik, and M. Fabian, “A framework for c ompo-
+sitional nonblocking veriﬁcation of extended ﬁnite-state machines,”
+Discrete Event Dynamic Systems: Theory and Applications , vol. 26,
+pp. 33–84, 2016.
+[12] P. J. G. Ramadge and W. M. Wonham, “The control of discrete e vent
+systems,” Proceedings of the IEEE , vol. 77, no. 1, pp. 81–98, 1989.
+[13] C. G. Cassandras and S. Lafortune, Introduction to Discrete Event
+Systems, 2nd Edition . Springer, 2010.
+[14] R. Malik, “On the set of certain conﬂicts of a given langu age,” in
+Proceedings of the 7th International Workshop on Discrete E vent
+Systems (WODES’04) . IFAC, Sep. 2004, pp. 277–282.
+[15] P. Petersson and A. Zita, “Logical modelling and formal ve riﬁcation
+of decision and control functions for autonomous vehicles,” Master’s
+thesis, Chalmers University of Technology, Gothenburg, Swe den,
+2016.

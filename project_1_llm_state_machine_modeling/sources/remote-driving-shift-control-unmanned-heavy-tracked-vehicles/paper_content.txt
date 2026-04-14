@@ -1,0 +1,685 @@
+--- Page 1 ---
+An efficient remote driving shift 
+control method of unmanned 
+heavy tracked vehicles based on 
+manned data mining
+Weijian Jia, Yao Zhao, Haiwen Zheng, Penglei Hu & Yufei Gao
+After the unmanned transformation of the transmission system of a heavy track ed vehicle, there 
+are problems of low shift smoothness and long shift time during remote driving. Aiming to realize 
+the smooth shift of tracked vehicles by remote driving, this study mines the manned driving data of 
+the vehicle and develops an auxiliary decision-making model for the shift timing of remote driving. 
+In addition, an integrated shift control strategy of tracked vehicle power transmission based on a 
+hierarchical finite state machine is designed. The effectiveness of the proposed remote control shift 
+strategy for tracked vehicles is verified by bench test and real vehicle test. During the entire shifting 
+process, the average shift impact of the tracked vehicle is 9.02 m/s3, the average shift time is 4.6 s, 
+and the vehicle has good ride comfort 。The research results can provide useful guidance and lay a 
+foundation for the research of driving control and trajectory tracking control of this type of heavy 
+tracked vehicle after unmanned transformation.
+Keywords Unmanned heavy tracked vehicles, Shift smoothness control, Data mining
+Developing heavy unmanned tracked vehicles using unmanned transformation of a transmission system of 
+the existing heavy-duty tracked vehicles represents an effective method for equipping vehicles with remote 
+control and unmanned driving functions. The heavy tracked vehicles studied in this paper include traditional 
+transmission devices, such as diesel engines, fixed-axis gearboxes, dry clutches, etc. During the unmanned 
+transformation, the original mechanical control mechanism was replaced by a hydraulic control mechanism. 
+When a vehicle is driving remotely, its controller controls a clutch, gear, and throttle control mechanism to 
+complete the shift automatically according to the given remote-control shift command. After the unmanned 
+transformation of the vehicle, the vehicle has the basis of remote driving and unmanned driving. Therefore, 
+future research should put forward an integrated control strategy of power and transmission and realize a 
+smooth shift of vehicle remote control1.
+Recently, advanced intelligent algorithms such as deep learning2 and reinforcement learning3 have been 
+widely applied in the field of unmanned vehicle driving. Y ang4 addressed the overfitting problem in current path 
+planning algorithms by proposing a path planning algorithm based on improved deep reinforcement learning. 
+They also verified the effectiveness of this method through experiments. Wang5 developed a deep Q-network 
+(DQN) model to solve the route decision-making problem of unmanned vehicles in complex traffic environments; 
+this model takes dynamic traffic information as input and typical driving decisions as action outputs. Simulation 
+results show that this model has significant potential for enabling unmanned vehicles to learn challenging 
+driving decisions. Wu6 focused on the driving safety of unmanned vehicles in highly complex environments and 
+proposed a risk-aware reinforcement learning method based on driving task decomposition. The method aims 
+to minimize risks from various sources. Chen6 integrated deep learning into the perception and localization of 
+autonomous platforms and proposed a deep learning-enhanced visual SLAM (Simultaneous Localization and 
+Mapping) framework. This framework has improved navigation accuracy by 5%. Han7 addressed the limitations 
+of multi-sensor data assimilation in the environmental perception process of unmanned ground vehicles (UGVs) 
+and proposed a multi-sensor fusion method based on long short-term memory (LSTM) networks. This method 
+alleviates the attenuation of environmental perception information during the navigation of unmanned vehicles. 
+In general, the application of intelligent algorithms in the field of unmanned driving is mostly concentrated on 
+Zhengzhou Campus, Army Artillery and Air Defense Forces Defense Academy, Zhengzhou 450052, China. email: 
+jwjyxsl@163.com; zhaoyaodaxuede@163.com; optimist07@163.com
+OPEN
+Scientific Reports  |        (2025) 15:44817 1 | https://doi.org/10.1038/s41598-025-28676-1
+www.nature.com/scientificreports
+
+
+--- Page 2 ---
+environmental perception and behavioral decision-making. Research on vehicle drive control remains relatively 
+scarce, especially for heavy tracked vehicles equipped with diesel engines.
+Research on vehicle drive systems mostly focuses on the integrated power transmission control of vehicles8–10. 
+Zhang11 studied the shift control of pure electric vehicles and proposed a motor coupling control strategy and 
+a shift coordination control method for the vehicle shift process, which could effectively improve the shift  
+quality of pure electric vehicles. Mishra12 designed an integrated power transmission shift controller based on a 
+gain scheduling observer using linear variable parameter control technology. The experimental results showed 
+that the scheme could effectively control the shift inertia phase under different throttle opening conditions. 
+Oncken13 proposed a predictive control strategy for optimal mode selection and a power transmission 
+integrated shift control method for multi-mode hybrid electric vehicles. The experimental results demonstrated 
+that the proposed method could reduce the energy consumption of electric vehicles by 4%–10% under standard 
+conditions. For mild hybrid vehicles, Kargar14 established an enhanced model that includes vehicle external 
+dynamics and powertrain dynamics, and proposed a customized control strategy based on approximate 
+dynamic programming, which effectively improved the vehicle’s shift fuel economy. To address the poor shift  
+quality of heavy-duty vehicles, Wang15 proposed a power downshift control method based on adaptive sliding 
+mode control, which effectively improved the shift quality of heavy-duty vehicles. Considering the same type 
+of tracked heavy vehicle as that studied in this work, Liu16 proposed a prediction model of gearing time based 
+on the CART decision tree algorithm, which could improve the reliability of integrated control of vehicle power 
+transmission. Wang17 developed a state analysis method of a planetary transmission mechanism for the vehicle 
+shift process and designed an integrated shift control strategy for power transmission. Zhang18 applied the 
+time slice rotation scheduling method to design the automated mechanical transmission(AMT)shift program 
+architecture on a single-chip microcomputer. Wang19 designed an electronic control system for an engine and 
+proposed an incremental PID control strategy, which could realize the double closed-loop control of the fuel 
+supply gear rod’s position and engine speed. Although the solutions proposed in the above-mentioned studies 
+can effectively improve the shift success rate of the tracked vehicle, these studies have not performed research on 
+the shift smoothness and reliability of the tracked vehicle under remote driving conditions.
+Motivated by the previous research and aiming at the problem of low shift smoothness after the modification 
+of the transmission system of heavy tracked vehicles, this work studies the integrated control of power and 
+transmission of a vehicle during remote driving. First, the manned driving data of a vehicle are collected, and 
+an auxiliary decision-making model of remote driving shift timing is established based on the support vector 
+machine (SVM) algorithm to ensure that the tracked vehicle performs shift operation at the right time and 
+improve the shift smoothness of the vehicle. Then, an integrated shift control strategy of a tracked vehicle’s power 
+transmission based on the hierarchical finite state machine (HFSM) is designed to improve the reliability and 
+safety of vehicle remote control shift. Finally, the proposed shift control strategy is verified by tests. The proposed 
+method can not only provide a reference for the driving control of heavy-duty unmanned vehicles equipped with 
+diesel engines after unmanned modification, but also lay a foundation for further realizing automatic shifting of 
+heavy-duty tracked vehicles and longitudinal speed tracking control for autonomous driving.
+The remainder of this thesis is organized as follows. In Sect.  Shift auxiliary Decision-making model , a vehicle 
+shift auxiliary decision-making model is established, which consists of two parts: data mining of shift timing 
+based on the K-Means algorithm, and the development of the vehicle shift auxiliary decision-making model 
+based on the SVM algorithm. In Sect.  Integrated shift control strategy for tracked vehicle power and transmission 
+systems based on HFSM , an integrated power and transmission control strategy for vehicles based on the HFSM 
+is proposed. In Sect.  Experimental verification , the proposed shift strategy is verified through bench tests and 
+real-vehicle tests. Specifically, the bench tests validate the control effects under various scenarios, including the 
+vehicle’s second-gear start, shift-up, return to the original gear after a failed shift-up, and fault handling; the real-
+vehicle tests verify the control effect of the vehicle’s continuous shifting. Finally, in Sect.  Conclusion , conclusions 
+regarding the controller are presented.
+Shift auxiliary Decision-making model
+In the process of driving a tracked vehicle by remote control, it is challenging for a driver to perceive the vehicle’s 
+state in real time because the driver is not in the cockpit, and the choice of shift timing is prone to deviation. 
+The shift timing refers to the time when a driver starts the clutch separation operation, and its selection has a 
+significant impact on improving the success rate of the shift, as well as the shift quality. To ensure the shift success 
+rate of a tracked vehicle’s remote driving and improve the shift smoothness, this paper has proposed an auxiliary 
+decision-making method of shift timing for remote driving based on data mining of manned driving training.
+Data mining of shift timing decision based on K-Means algorithm
+To mine the manned driving data, it is necessary to collect the manual driving data of the vehicle first. Sensors 
+are installed at the engine and throttle of a tracked vehicle to collect the manned driving data, and an engine 
+speed ne and a throttle opening βt at the time of shift operation are extracted from the data. Based on the 
+K-Means algorithm20, a driver’s shift timing is analyzed, and the number of cluster datasets Nk is set to 3. 
+The K-Means algorithm can rapidly cluster the driving operation information on different drivers to form an 
+obviously separated cluster dataset. The objective function of the K-Means algorithm is:
+ JK=∑NK
+iK=1∑MK
+kK=1riKkK∥xiK−ukK∥2
+ (1)
+where kK is the cluster dataset, and ukK is the mean vector of kK.
+Scientific Reports  |        (2025) 15:44817 2 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 3 ---
+In Eq. ( 1), when a sample xiK is divided into the cluster dataset kK, riKkK=1; otherwise, riKkK=0, 
+which can be expressed as follows:
+ riKkK={1 ,xiK∈kK
+0 ,xiK/∈kK (2)
+By defining an objective function Jk at a mean vector ukK, the mean vector expression corresponding to the 
+optimal objective function can be derived as follows :
+ ∂JK
+∂uiK=∑NK
+iK=1∑MK
+kK=1riKkK(xiK−ukK)=∑NK
+iK=1riKkK(xiK−ukK)=0  (3)
+The expression of mean vector ukK corresponding to the optimal objective function can be expressed as follows:
+ uiK=∑NK
+iK=1riKkKxiK∑NK
+iK=1riKkK (4)
+Figure 1 shows the relationship between the ne and βt parameters at the shift time when a driver performs 
+the upshift operation. Figure  1(a) shows the throttle opening and engine speed at the starting and shifting times 
+of the second gear of the vehicle. As displayed in Fig.  1(a), most drivers perform a slight throttle action when 
+starting in the second gear. At this time, the engine speed is in the range from 650 r/min  to 850 r/min , and the 
+engine speed of the cluster center is nc
+e=721 r/min . Figure  1(b) shows the variation of the values of ne and βt 
+during the vehicle’s 2nd-to-3rd gear shift. Before shifting gears, the driver will take actions such as increasing the 
+throttle opening and raising the vehicle speed. At this time, the βt value is generally from 30% to 60%, the ne 
+value is in the range of 1,200 r/min –1,500 r/min , and the engine speed of the cluster center is nc
+e=1431r/min . 
+Figure  1(c) shows the variation of the values of ne and βt during the vehicle’s 3rd-to-4th gear shift. At this 
+time, the βt value is generally approximately 60%, the ne value is from 1,400 r/min  to 1,700 r/min , and the 
+Fig. 1 . The relationship between the ne and βt parameters at the shift time when a driver performs the 
+upshift operation: ( a) the driver starts the vehicle in the second gear; ( b) the driver performs the two- to three-
+gear operation; ( c) the driver performs the three- to four-gear operation; ( d) the driver performs the four- to 
+five-gear operation. 
+Scientific Reports  |        (2025) 15:44817 3 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 4 ---
+cluster center engine speed is nc
+e=1,567 r/min . Figure  1(d) shows the variation of the values of ne and βt 
+during the vehicle’s 4th-to-5th gear shift. At this time,, the throttle opening generally has a value from 60% to 
+80%, the ne value is in the range of 1,500 r/min –1,800 r/min , and the engine speed of the cluster center is 
+nc
+e=1,628 r/min . In this phase, the driver will perform the throttle opening operation when the gear is up. 
+With the increase in the gear value, the engine speed will gradually increase at the time of shift. It should be 
+noted that some drivers will increase the engine speed to a larger value during the upshift operation. A larger 
+engine speed is likely to increase the shift impact and reduce the shift quality.
+Figure 2 presents the neand βt values at the time the driver performs the downshift operation. Unlike the 
+upshift operation, in the downshift operation, a driver mostly reduces the throttle opening to reduce the engine 
+speed. The reason for this action is that a vehicle’s downshift transmission ratio increases, and the speed of the 
+passive part of the clutch decreases after the gear is completed. To reduce the friction work and effect during the 
+clutch engagement, the engine speed should not be too high. When the driver performs a 5th-to-4th gear shift, 
+the throttle opening is generally reduced to decrease the engine speed to the range of 1,100 r/min –1,400 r/min . 
+Similarly, the engine speed is mostly reduced to the range of 1,000 r/min –1,300 r/min  when the 4th-to-3rd and 
+3rd-to-2nd operations are performed. During the two-gear shift operation, the engine speed is generally at the 
+lowest stable speed level.
+Auxiliary Decision-making model of shift timing based on SVM algorithm
+In this study, the manual driving data of tracked vehicles are used, the driving data shift process fragments are 
+screened, and the shift timing assistance model is designed. The shift process fragment information mainly 
+includes the current gear value gear cur, the target gear value gear cmd, an engine speed ne, a throttle opening βt, 
+and a vehicle speed v. By setting the evaluation criteria, the rationality of the shift timing decision is judged. The 
+shift timing decision rationality flag, denoted by flagd
+g, is set to mark the shift segment. The flowchart of the 
+specific process is displayed in Fig.  3.
+The selection of shift timing has an important influence on shift quality. The shift quality is used as a judgment 
+criterion of the shift timing decision rationality, and the collected driving data are classified. The judgment 
+criteria mainly include a shift duration tg, an engine speed fluctuation during shift ∆n eg, the maximum jerk 
+during shift jg, and an average shift speed vg. The maximum impact degree takes the standard value of the 
+Fig. 2 . The ne and βt values at the time of shift when a driver performs the downshift operation: ( a) the 
+driver performs the five- to four-gear operation; ( b) the driver performs the four- to three-gear operation; ( c) 
+the driver performs the three- to two-gear operation; ( d) the driver performs the two-gear shift operation. 
+Scientific Reports  |        (2025) 15:44817 4 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 5 ---
+impact degree of heavy tracked vehicles as /hatwidejg= 31.6m/s3. The standard values of the shift duration /hatwidetg, engine 
+speed fluctuation ∆/hatwideneg, and shift average speed /hatwidevg are set as the average value of the relevant data analyzed 
+in Sect.  Data mining of shift timing decision based on K-Means algorithm ; the specific values are presented in 
+Table  1.
+The rationality marking method of the shift time decision of a shift segment can be defined as follows:
+ flagd
+g=/braceleftbigg
+1 ,tg≤/hatwidetg,jg≤/hatwidejg,∆n eg≤∆/hatwideneg,vg≥/hatwidevg
+0 , others (5)
+After marking the rationality of the shift decision-making result for each shift-process segment, the SVM 
+algorithm is employed to design an auxiliary decision-making model of shift timing. The SVM algorithm is 
+a supervised learning algorithm which has been widely used to solve binary classification problems. Its basic 
+principle is to find the maximum interval hyperplane between the sample points of various datasets. The specific 
+linear equation is as follows:
+ wT
+SxS+bS=0 (6)
+where wS is the normal vector of the hyperplane, and bS is the distance from the hyperplane to the origin of 
+the coordinate axis.
+The distance from any point xSi to wT
+SxSi+bS=0 in the hyperspace, denoted by rS, can be calculated 
+by:
+ rS=/vextendsingle/vextendsinglewT
+Six+bS/vextendsingle/vextendsingle
+∥wS∥ (7)gcur gcmd/hatwidetg(s)∆/hatwideneg(r/min) /hatwidevg(km/h)
+0 2 5.6 209 1.29
+2 3 4.3 562 10.1
+3 4 4.1 811 18.23
+4 5 3.7 723 22.96
+5 4 4.35 647 25
+4 3 4.4 578 18.67
+3 2 5.23 538 12.08
+2 0 3.25 132 5.42
+Table 1 . The shift timing judgment standard values. 
+Fig. 3 . The flowchart of the marking process of shift time decision rationality. 
+Scientific Reports  |        (2025) 15:44817 5 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 6 ---
+Next, define a point ySi=1 in the distance hyperplane of the sample point of the dataset, and ySi=−1 when 
+the distance is negative. Then, the distance function distance expression of the sample point of the data set from 
+the hyperplane is:
+ ySi(wT
+SxS+bS) (8)
+By combining Eqs. ( 7) and ( 8), the value of distance rS can be obtained by:
+ rS=ySi(
+wT
+Six+bS)
+∥wS∥ (9)
+The SVM hyperplane segmentation diagram is shown in Fig.  4. The support vector is located on the support 
+plane, and the function distance is 1. The other sample points are located outside the support plane, and the 
+distance from the hyperplane function is greater than 1. Setting the distance of the sample point function as a 
+constraint condition, the optimal hyperplane can be expressed as follows:
+ min
+wS,bS1
+2∥wS∥2s.t. y Si(wT
+SxS+bS)≤1 (10)
+Further, the Lagrangian multiplier method is used to transform the constraint condition, and the Lagrangian 
+function about the hyperplane is derived. The specific expression is as follows:
+ L(wS,bS,αS)=1
+2∥wS∥2+∑mS
+i=1αSi(1−ySi(wT
+SxSi+bS)) (11)
+where mS is the number of sample points, and αS is the Lagrange multiplier.
+The partial derivatives of wS and bS are obtained by:
+ {∂L
+∂wS=wS−∑mS
+i=1αSixSiySi=0
+∂L
+∂bS=∑mS
+i=1αSiySi=0 (12)
+By transforming Eq. ( 11) into strong duality and substituting Eq. ( 11) into Eq. ( 12), the following expression can 
+be obtained:
+ L(w S,bS,αS)=max
+αS∑ mS
+i=1αi−1
+2∑ mS
+i=1∑ mS
+j=1αSiαSjySiySjxT
+SixSj (13)
+The Sequential Minimal Optimization (SMO) algorithm is used to solve Eq.  ( 13) and calculate the optimal 
+Lagrange multipliers. The obtained optimal Lagrange multipliers are then substituted into Eq. ( 11) to solve for 
+the optimal hyperplane.
+By collecting the manned driving data on the tracked vehicle, a total of 2,160 shift process segments are 
+screened. Then, each shift segment is marked by the rationality standard of shift timing decision. The values of 
+the engine speed ne, throttle opening βt, current gear gear cur, and target gear gear cmd in the shift process 
+fragment are selected as decision input characteristic parameters of the shift time. The shift process flag flagd
+g is 
+used as a rationality output feature of the shift time decision. The SVM algorithm is employed to train the driving 
+data, and the auxiliary decision model of shift timing is constructed. Further, 85% of the collected shift process 
+segments is used for model training, and the remaining 15% is used for model validity testing. Among them, 
+Fig. 4 . The SVM hyperplane segmentation diagram. 
+Scientific Reports  |        (2025) 15:44817 6 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 7 ---
+the key parameters of the SVM algorithm used in this paper are set to: the penalty parameter cs= 10  and the 
+kernel parameter gs=0 .01.
+Figure 5 displays the training result of the shift timing auxiliary decision model using the SVM algorithm. 
+Figure  5(a) depicts the training result obtained on the training set. The training set contains a total of 1,836 shift 
+process segments, including 954 reasonable decision segments of shift timing and 882 unreasonable decision 
+segments of shift timing. The model is trained using 954 reasonable decision fragments, and the trained model 
+has been shown to be able to make correct judgments on the rationality of 926 fragments, achieving an accuracy 
+rate of 97.1%. Similarly, the model is trained using 882 unreasonable decision fragments, and the results have 
+indicated that the trained model can make correct judgments on the rationality of 853 fragments, with a success 
+rate of 96.7%. Figure  5(b) displays the prediction result obtained by the trained model on the test set. The test 
+set contains a total of 325 shifting process segments, of which 166 are reasonable decision segments for shifting 
+timing. Based on the results, the model can correctly predict 160 of the 166 reasonable decision fragments, 
+having a correct rate of 96.4% and the prediction of unreasonable decision fragments of 97.5%. Thus, the 
+auxiliary decision-making model of remote driving shift timing based on the SVM algorithm has high decision-
+making accuracy. Next, the model is applied to the shift control of tracked vehicle remote driving, which can 
+effectively improve the shift smoothness of a vehicle.
+Integrated shift control strategy for tracked vehicle power and transmission systems 
+based on HFSM
+To ensure that the vehicle controller can control each shift actuator to complete the shift process successfully 
+and improve the smoothness of the vehicle shift, this study uses a hierarchical finite state machine to design the 
+vehicle shift control system. The upper control system state mainly divides the driving control state of a tracked 
+vehicle into the remote driving power transmission integrated shift control state, denoted by S4, and the shift  
+exception handling state, denoted by S6. In state S4, a driver sends the shift instruction through the remote-
+control terminal. The vehicle controller controls the throttle, clutch, and shift control device to automatically 
+realize the power transmission integrated shift control.
+Figure 6 shows the conversion relationship between the remote driving state and the vehicle driving exception 
+handling state. When a state transition condition CS4→ S6 is satisfied, the vehicle controller will convert from 
+state S4 to state S6, which can be expressed as follows:
+Fig. 6 . The conversion relationship between the remote driving state and the vehicle driving exception 
+handling state. 
+Fig. 5 . The training results of the shift timing assistant decision model based on the SVM algorithm: ( a) The 
+prediction results for the training data ( b) The prediction results for the test data set. 
+Scientific Reports  |        (2025) 15:44817 7 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 8 ---
+ F(S6,C S4→ S6)=S4 (14)
+When the state generates the entry and exit actions, their functions are triggered accordingly. Namely, a specific 
+function is triggered only once when the state produces the corresponding action, that is, the entry or exit action, 
+which is used to assign the control variables and start and close the timer. Some control parameters for finite 
+state machine control are shown in Table  2.
+Design of shift control state machine based on shift timing auxiliary decision
+Referring to a driver ‘s shift operation process, the remote driving integrated shift control state S4 is divided 
+into six sub-states: the on-gear control state ( S41), the shift timing auxiliary decision state ( S42), the clutch 
+separation state ( S43), the off-gear control state ( S44), the gear shift state ( S45), and the clutch engagement 
+state ( S46).
+Figure 7 displays the state transition diagram of the shift control sub-state in state S4, and the state transition 
+conditions are defined as follows:
+ 
+
+F(S41,C S41→ S42)=S42
+F(S42,C S42→ S43)=S43
+F(S43,C S43→ S44)=S44
+F(S44,C S44→ S45)=S45
+F(S45,C S45→ S44)=S44
+F(S45,C S45→ S46)=S46
+F(S46,C S46→ S41)=S41 (15)
+In the S41 state, a tracked vehicle has successfully hung into the command gear. The driver has controlled the 
+vehicle to achieve acceleration, deceleration, and steering in the remote control. When the driver needs to shift, 
+he presses the remote control corresponding to the shift key to send the shift instruction. The vehicle controller 
+monitors and collects the driver’s control information in real time. When the driver’s shift signal is judged to 
+meet a state transition requirement CS41→ S42, the control state enters state S42 from state S41. A variable 
+gear org in state S41 exits action function S41_exit (), which is responsible for recording the original gear, 
+Fig. 7 . The schematic diagram of the shift sub-state transition in state S4. Parameter Meaning Function
+flag s Upper state flag flag s is used to mark the upper state; the flag svalues corresponding to different states are different.
+flagsub
+sLower state flag In the sub-state of state S4, the flagsub
+s values corresponding to different shift sub-states differ.
+flagc
+gShift instruction 
+flagflagc
+gis used to mark the shift instruction, and its value indicates whether the vehicle controller receives different shift instructions, where 
+zero represents that the empty gear instruction is received, one indicates the receipt of the starting instruction, two denotes the receiving of an 
+upshift command, there stands for receiving the downshift instruction, six represents receiving the reverse gear instruction, and 11 represents 
+keeping the original gear.
+flagerr
+gFlag of shift 
+abnormalityflagerr
+g is used to mark the cause of abnormal shift; different abnormal shift marks correspond to different abnormal shift treatment measures.
+flagsuc
+gSuccessful flag of 
+gearingflagsuc
+g is used to mark whether the gearing is successful, and its value indicates different gearing states, where 1 represents the first shift 
+failure back to the original gear, and 2 means that it is not possible to return to the original gear, take out the empty gear, and stop.
+Table 2 . The meanings and functions of the finite state machine control parameters. 
+Scientific Reports  |        (2025) 15:44817 8 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 9 ---
+and gear org=gear cur. At the same time, the expected gear gear exp is obtained using the shift flag flagc
+g as 
+follows gearcmd exp.
+The S42 state is an auxiliary decision state of shift timing. After the vehicle controller receives the shift  
+command, the shift timing decision is made, and the engine speed adjustment is performed. For the control of 
+engine speed, the speed servo control based on the fuzzy PID algorithm21 is adopted. In Sect. Data mining of 
+shift timing decision based on K-Means algorithm , the manned driving data of tracked vehicles are mined, and 
+it has been concluded that a driver generally increases the throttle opening and vehicle speed before performing 
+the upshift operation. However, before the downshift operation, the operation of reducing the throttle opening 
+and vehicle speed is generally conducted. An engine speed cluster center nc
+e, presented in Sect. Data mining of 
+shift timing decision based on K-Means algorithm , is set as a target engine speed nexp
+e, that is, nexp
+e=nc
+e. In 
+the process of engine speed adjustment, the shift timing auxiliary decision model monitors the values of engine 
+speed ne and throttle opening βt in real time. When the model determines that the shift timing is reasonable, 
+the vehicle enters the S43 state from the S42 state and starts the clutch separation operation. The specific 
+operational process is illustrated in Fig. 8.
+State S43 represents the clutch separation state. After entering this state, the vehicle controller controls the 
+clutch hydraulic cylinder to perform the clutch separation operation. When a clutch displacement xclh is larger 
+than the preset value, the state transition condition CS43→ S44 is satisfied, and the control state changes from 
+state S43 to state S44.
+After entering the S44 state, the vehicle controller controls the corresponding gear hydraulic cylinder to 
+perform the operation of hanging the empty gear. When the vehicle is removed into the empty gear, the control 
+state enters the S45 state from the S44 state. After entering the S45 state, the vehicle controller controls the 
+shift actuator to change into the corresponding gear. At this time, the control state changes from state S45 to 
+state S46. In addition, to solve the problem of too-long gearing caused by the top teeth of the synchronizer 
+during the gearing process, this study sets the time variables ts and tth
+g in S45_enter (), where ts is used to 
+calculate the gearing duration, and tth
+g is the gearing time threshold. When ts≥tth
+g, the system determines 
+the abnormal shift operation. The control system returns from state S45 to state S44, and let gear orgexp. The 
+tracked vehicle is removed into the neutral gear and returned to the original gear.
+After entering the S46 state, the vehicle controller controls the clutch hydraulic cylinder to perform the 
+clutch engagement operation, and after the clutch is combined, the controller enters the S41 state. The driver 
+continues to control the tracked vehicle in the S41 state. The state transition rules of the power transmission 
+integrated shift controller are presented in Table  3.
+Design of shift fault handling state machine based on fixed time threshold method
+To increase the driving safety of tracked vehicles, the state of each actuator during the shifting process is 
+monitored in real time. By setting the time threshold tth
+s value, the smooth execution of each shift state is 
+judged. The value of a time variable ts is set in the action function of each state, and the ts value indicates the 
+Fig. 8 . The workflow of the shift timing auxiliary decision state. 
+Scientific Reports  |        (2025) 15:44817 9 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 10 ---
+execution time of a shift sub-state. When ts≥tth
+s, the state execution time exceeds the preset state execution 
+time threshold, and it can be considered that the actuator does not perform the shift action smoothly, which 
+results in an abnormal shift. At this time, to ensure the ride comfort and safety of a vehicle, it is necessary to 
+handle the abnormal shift. In the S45 state, to avoid frequent parking of a tracked vehicle, the controller returns 
+the original gear after the first shift failure. If the time to change back to the original gear also exceeds the preset 
+threshold, the shift of the vehicle is judged as abnormal, and the abnormal shift situation is handled accordingly.
+Figure 9 depicts the schematic diagram of the shift exception handling sub-state transition process. As shown 
+in Fig.  9, the shift exception handling state is divided into three sub-states: a clutch separation state ( S61), a 
+neutral gear state ( S62), and a braking stop state ( S63). The purpose of states S61 and S62 is to cut off the 
+power rapidly when a tracked vehicle experience an abnormal shift. State S63 represents a vehicle braking 
+parking state, and in this state, the vehicle controller takes different parking measures according to the particular 
+causes of the abnormal shift. When the clutch separation fault occurs, aiming to address the difficulty of cutting 
+off the engine’s output power, emergency braking is performed, and the engine is extinguished. Considering the 
+other reasons that can yield the cutting of the output power of the engine to avoid frequent start-up of the engine, 
+this study does not perform the engine flameout treatment in the S63 state. Whether the brake stops or not is 
+controlled by the driver sending the brake command at the remote-control end. The time threshold of each shift 
+sub-state and the corresponding abnormal flags and shift exception handling measures are displayed in Table  4.Statetth
+s (s)flagsub
+s Specific treatment measures
+S43 2 43 Brake and shut down the engine
+S44 2 44 Separate the clutch
+S45 3.2 45 Shift into the neutral gear
+S46 2.5 46 Disengage the clutch and take off neutral
+Table 4 . The shift exception handling state transition rules. 
+Fig. 9 . The shifting exception handling state transition diagram. Stateflagsub
+s Transition condition Condition setting Target state
+S41 41 CS41→ S42 flagc
+g ̸= 11S42
+S42 42 CS42→ S43 flagd
+g=1S43
+S43 43 CS43→ S44 xclh≥48mm S44
+S44 44 CS44→ S45 gear cur=0 S45
+S45 45CS45→ S44 ts≥4s,gear cur̸=gear exp S44
+CS45→ S46 ts<4s, gear cur=gear exp S46
+S46 46 CS46→ S41 xclh≤1.8mm S41
+Table 3 . The state transition rules from S41 to S46. 
+Scientific Reports  |        (2025) 15:44817 10 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 11 ---
+Experimental verification
+The effectiveness of the proposed shift control strategy for tracked vehicles was verified by bench test and 
+real vehicle test. The structure of the test bench is shown in Fig.  10. The test bench mainly includes hydraulic 
+pump-motor mechanism, clutch, gearbox, brake and pneumatic load mechanism. The hydraulic pump-motor 
+mechanism replaces the engine to generate power. The pneumatic load mechanism provides load for the 
+transmission system and simulates the vehicle running on the ground. The hydraulic pump station provides 
+power for each hydraulic actuator. Each transmission mechanism is equipped with a speed sensor to measure 
+the speed of each component. In the tests, the vehicle controller received the remote control end shift command 
+through an image transmission station and controlled the throttle, clutch, and other shift actuators for shift  
+operation. After the bench test, we conducted a real vehicle test. Throughout the entire test process, the values of 
+the vehicle’s impact degree jg were measured via sensors. The jg were then compared with the impact degree 
+standard for heavy tracked vehicles /hatwidejg= 31.6m/s3 to analyze the shift smoothness. Due to the inconvenient 
+disclosure of some shape parameters of the vehicle, there is no picture of the real vehicle test scene in the paper. 
+The way to obtain relevant data was explained at the end of the article. The control program of the vehicle 
+controller was written in C + + based on QT software, and the core processor is STM32F103 controller. The 
+driving data recorder was responsible for recording vehicle driving data, which was convenient for vehicle data 
+analysis and control optimization.
+Bench test
+Tracked vehicle neutral-to-second-gear shift control under no-load condition
+The in-situ no-load shifting experiment of the tracked vehicle was performed. The process of the driver’s remote 
+control driving the tracked vehicle to complete the two-gear starting in the case of in-situ no-load is illustrated 
+in Fig.  11. At a time t1=1 .5s, the driver sent a start command to the vehicle controller through the remote 
+control terminal. At that time, flagc
+g=1 satisfied a state transition condition CS41→ S42. The shift control 
+changed from state S41 to state S42, and flagsub
+s= 42 . In the S42 state, the vehicle controller realized the 
+engine speed servo control, and the engine speed was significantly increased. The shift timing auxiliary decision 
+model monitored the values of engine speed ne and throttle opening βt in real time. When t2=5 .35s  the 
+auxiliary decision-making model of shift timing judged that the shift operation could be carried out at the 
+current moment, changing from state S42 to state S43. At that moment, the vehicle controller was in the state 
+control clutch separation. After the clutch was separated at t3=5 .9s, the vehicle controller controlled the 
+vehicle to start gearing in the S44 state; gear cur=−1 indicated that the vehicle was in the state of hanging 
+gear. At t4=8 .2s, the vehicle completed the block, and gear cur=2. After the vehicle controller controlled 
+the clutch to combine at t5=8 .87s , the vehicle entered state S41 from state S46. After the vehicle started, the 
+driver pushed the remote control rocker forward and issued refueling instructions to increase the speed.
+Tracked vehicle 2nd-to-3rd gear shift control under no-load condition
+Figure  12 showed the changes of parameters in the process of 2nd-to-3rd gear shift control of tracked vehicle 
+under no-load condition. At t1=5 .1s, the driver sent an upshift command to the vehicle controller through the 
+remote control terminal, and flagc
+g=2. The shift control changed from state S41 to state S42. At that time, 
+the shift timing auxiliary decision model judged that the engine speed neand the throttle opening βt at the 
+current moment met the shift requirements without the need for adjusting the engine speed and directly entered 
+Fig. 10 . The test bench structure diagram. 
+Scientific Reports  |        (2025) 15:44817 11 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 12 ---
+state S43 from state S42. At t2=8 .3s, the vehicle controller controlled the tracked vehicle to complete the 
+upshift operation, and the whole shift process took 3.2 s. In the S41 state, the vehicle controller re-accepted the 
+throttle and steering instructions of the remote control end to control the vehicle.
+Tracked vehicle control process of returning to 4th gear after 4th-to-5th gear shift failure
+The changing trend of each parameter when the vehicle controller controlled the tracked vehicle to perform the 
+four- to five-gear operation is depicted in Fig.  13. The results indicated, that at t1=3 .03s , the driver sent an 
+upshift command to the vehicle controller through the remote control terminal. The vehicle controller entered 
+the S42 state and performed engine speed servo control to increase the engine speed to a suitable shift range. 
+At t2= 10.95s , the shift timing auxiliary decision model judged that the current values of engine speed ne and 
+throttle opening βt state could meet the shift requirements, and flagd
+g=1. The shift state changed from state 
+S42 to state S43. The vehicle controller controlled the clutch separation and starts shifting. Further, at time 
+t3= 12.3s , the vehicle controller entered the S45 state and began to hang five gears. In the synchronization 
+process, the synchronizer failed, which increased the hanging time. At t4= 15.3s , the gearing time exceeded 
+the preset time threshold, and the vehicle controller judged that the gearing failed. The vehicle controller 
+controlled the vehicle to re-enter the S44 state and the hanging cylinder to return to the neutral gear and 
+set gear cmd=gear org in the exit action function S44_exit ()of the S44 state. After the vehicle controller 
+controlled the tracked vehicle to return to the neutral gear, it re-entered the S45 state from the S44 state, and 
+gear cmd=4. The vehicle controller controlled the vehicle to re-hang into four gears at t5= 16.87s . After the 
+4th gear was completed, the vehicle controller controlled the clutch to combine and return to the S41 state.
+Tracked vehicle shift abnormal handling
+In order to ensure the safety of the vehicle’s remote driving, the experimental verification of the shift failure 
+processing state machine developed in this paper was carried out. When the tracked vehicle performed shift  
+control, the vehicle controller monitored the status of each shift actuator in real time. When an actuator fault was 
+Fig. 11 . The change of each parameter in the process of the second gear starting shift control of the tracked 
+vehicle under no-load condition. 
+Scientific Reports  |        (2025) 15:44817 12 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 13 ---
+judged to cause an abnormal shift, the vehicle controller conducted the corresponding measures timely to ensure 
+driving safety. Considering an abnormal shift caused by clutch engagement failure, the developed abnormal shift 
+handling strategy for tracked vehicles was verified. The control process of the vehicle to return to the neutral 
+gear after the clutch combination failure was monitored by the vehicle controller during the starting process of 
+the tracked vehicle, as shown in Fig.  14. When t1=2 .9s, the driver sent the vehicle start signal to the remote-
+control terminal, and the vehicle controller started to adjust the engine speed, made an auxiliary decision of the 
+shift timing, and realized the clutch separation control. Due to the failure of the clutch cylinder displacement 
+sensor, the sensor feedback signal showed that the clutch was in a separate state. The vehicle controller directly 
+entered the state and controlled the hanging cylinder to carry out the two-gear operation. At t2=8 .8s, the 
+vehicle was successfully hung into 2nd gear, and the vehicle controller started to control the clutch engagement. 
+At t3= 11.3s , the vehicle controller judged the clutch engagement fault according to the feedback information 
+obtained by the clutch cylinder displacement sensor. Next, the state of the upper control system was converted 
+from the shift control state S4 to the shift exception handling state S6, flag s= 60 , flagsub
+s= 61 . At that 
+time, the vehicle controller started to control the tracked vehicle to remove the empty gear parking operation 
+and returned to the neutral gear at t4= 11.9s .
+Real vehicle test
+In this experiment, the tracked vehicle performed a remote driving continuous shift test. The continuous lifting 
+gear operation speed, gear, and clutch displacement of the tracked vehicle are presented in Fig.  15. After the 
+vehicle controller received the remote-control terminal’s upshift command, it briefly increased the throttle 
+opening, aiming to improve the speed of tracked vehicles, avoid excessive loss of vehicle speed due to long 
+shift time, and improve the shift success rate. After receiving the downshift command, the vehicle controller 
+employed the speed reduction method by reducing the throttle. The purpose was to avoid too-large differences 
+between the spindle speed and the speed of the passive gear, as well as to decrease the synchronization time 
+Fig. 12 . The changes of parameters in the process of two-gear to three-gear control of tracked vehicles under 
+no-load conditions. 
+Scientific Reports  |        (2025) 15:44817 13 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 14 ---
+of the gear. The maximum speed of the tracked vehicle was 6.43 m/s . The changing trend of the longitudinal 
+impact degree of the tracked vehicle during the shift process is presented in Fig.  16. During the start-up and 
+downshift of the tracked vehicle, the longitudinal impact of the vehicle was large, and the maximum impact was 
+19.23 m/s3 when the three-gear downshift was two-gear. The average longitudinal impact of the shift process of 
+the tracked vehicle was 9.02 m/s3. The average shift control time of the entire shift process of the tracked vehicle 
+was 4.6 s, which was close to the average shift control time of the manned vehicle, presented in Sect.  1.1. The 
+test results showed that the proposed integrated shift control strategy of power transmission could coordinately 
+control the shift actuator, achieving a smooth shift of the tracked vehicle.
+Conclusion
+In this paper, a remote driving shift control strategy for tracked vehicles based on driving data mining was 
+proposed for unmanned heavy tracked vehicles, which effectively improved the shift smoothness of vehicles 
+under remote driving conditions. Based on the test results, the following conclusions can be drawn:
+(1) In this study, the manned driving data are deeply mined using the K-Means algorithm, and the SVM 
+algorithm is employed to design an auxiliary decision-making model for the shift timing of tracked vehicle 
+remote driving. The proposed model can effectively address the problem of low shift smoothness caused by the 
+unreasonable shift timing decision when a tracked vehicle is driving remotely.
+(2) The integrated shift control strategy of power transmission based on the finite state machine design 
+can control each shift actuator to cooperate to achieve a shift. In the case of an unsuccessful shift caused 
+by a synchronizer failure, the vehicle controller can control the shift actuator to return to the original gear 
+automatically, thus avoiding a large speed loss caused by the vehicle. For the abnormal shift caused by the failure 
+of a clutch combination, the vehicle controller controls the shift cylinder to return to the neutral gear timely, thus 
+effectively improving the driving safety of the vehicle.
+Fig. 13 . The tracked vehicle’s results in the situ test of no-load hanging five-gear failure and returned to the 
+four-gear. 
+Scientific Reports  |        (2025) 15:44817 14 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 15 ---
+(3) Tracked vehicles shift continuously, and during the start-up and downshift processes of a tracked vehicle, 
+the longitudinal impact of the vehicle is large, and the maximum impact is 19.23 m/s3 when the three and two 
+gears are down. During the entire shifting process, the average shift impact of the tracked vehicle is 9.02 m/s3, 
+the average shift time is 4.6 s, and the vehicle has good ride comfort.
+(4) Due to constraints on research costs and conditions, we only used relatively mature control algorithms to 
+control the vehicle. There is insufficient research on the application of advanced algorithms to the vehicle’s drive 
+system. The content of this study is a preliminary exploration of the driving control of heavy tracked vehicles 
+undergoing unmanned modification. Integrating advanced algorithms such as deep learning into the existing 
+control framework to improve the vehicle’s control performance will be the focus of the next phase of research.
+Fig. 14 . The results in the situation when the clutch failure leads to an abnormal shift; the action of each 
+actuator in the shift process is analyzed. 
+Scientific Reports  |        (2025) 15:44817 15 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 16 ---
+Fig. 15 . The results obtained when the tracked vehicles continuously shifted the vehicle speed, gear, and clutch 
+displacement changes. 
+Scientific Reports  |        (2025) 15:44817 16 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 17 ---
+Data availability
+The datasets generated and analyzed during the current study are not publicly available due to secret vehicle 
+parameters, but are available from the corresponding author (Weijian Jia) on reasonable request.
+Received: 17 May 2025; Accepted: 11 November 2025
+References
+ 1. Meng, F., Tao, G. & Chen, H. Smooth shift control of an automatic transmission for heavy-duty vehicles. Neurocomputing  159, 
+197–206 (2015).
+ 2. Al-lQubaydhi, N. et al. Deep learning for unmanned aerial vehicles detection: A review. Comput. Sci. Rev.  51, 100614 (2024).
+ 3. Liu, H. et al. Reinforcement learning applications in unmanned vehicle control: A comprehensive overview. Unmanned Syst.  11 
+(01), 17–26 (2023).
+ 4. Y ang, K. & Liu, L. An improved deep reinforcement learning algorithm for path planning in unmanned driving. IEEE Access.  12, 
+67935–67944 (2024).
+ 5. Wang, H. et al. Tactical driving decisions of unmanned ground vehicles in complex highway environments: A deep reinforcement 
+learning approach, Proceedings of the Institution of Mechanical Engineers, Part D: Journal of Automobile Engineering , 235(4), 1113–
+1127 (2021).
+ 6. Wu, S. et al. Continuous decision-making in lane changing and overtaking maneuvers for unmanned vehicles: A risk-aware 
+reinforcement learning approach with task decomposition. IEEE Trans. Intell. Veh.  9 (4), 4657–4674 (2024).
+ 7. Han, Z., Chen, P ., Zhou, B. & Yu, G. Real-Time navigation of unmanned ground vehicles in complex terrains with enhanced 
+perception and Memory-Guided strategies. IEEE Trans. Veh. Technol.  74 (3), 3723–3735 (2025).
+ 8. Wang, W ., Li, J. & Sun, F. Pseudo-spectral optimisation of smooth shift control strategy for a two-speed transmission for electric 
+vehicles. Veh. Syst. Dyn.  58 (4), 604–629 (2020).
+ 9. Li, Y . et al. Sustainable improvement and evaluation of the shifting smoothness of vehicle transmission. Sci. Rep.  11 (1), 22610 
+(2021).
+ 10. Wang, Z., Zhou, J. & Rizzoni, G. A review of architectures and control strategies of dual-motor coupling powertrain systems for 
+battery electric vehicles. Renew. Sustain. Energy Rev.  162, 112455 (2022).
+ 11. Bingli, Z., Bo, T., Deming, Z. & Xingping, W . Study of coordinated control strategy of automatic shift based on AMT. J. Hefei Univ. 
+Technology(Natural Science) . 39 (09), 1178–1183 (2016).
+Fig. 16 . The changing trend of the jg value in the process of a continuous shift of a tracked vehicle. 
+Scientific Reports  |        (2025) 15:44817 17 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/
+
+--- Page 18 ---
+ 12. Mishra, K. D. & Srinivasan, K. In Improved integrated powertrain control of gearshifts using linear parameter varying control, 
+2019 American Control Conference (ACC) , 4553–4558 (2019).
+ 13. Oncken, J., Sachdeva, K., Wang, H. & Chen, B. Integrated predictive powertrain control for a multimode plug-in hybrid electric 
+vehicle. IEEE/ASME Trans. Mechatron.  26 (3), 1248–1259 (2021).
+ 14. Kargar, M., Zhang, C. & Song, X. Integrated optimization of power management and vehicle motion control for autonomous 
+hybrid electric vehicles. IEEE Trans. Veh. Technol.  72 (9), 11147–11155 (2023).
+ 15. Wang, E. & Meng, F. Down shift control with power of planetary-type automatic transmission for a heavy-duty vehicle. Mech. Syst. 
+Signal Process.  159, 107828 (2021).
+ 16. Liu, H. & Lu, J. Research on redundant control of AMT system gear shifting process based on decision tree algorithm. Trans. 
+Beijing Inst. Technol.  42 (01), 63–73 (2022).
+ 17. Wang, X. & Li, C. Research on the powertrain control method for tracked vehicle with high power engine and Hydraulic-
+mechanical integral transmission Devide. Veh. Power Technol.  01, 15–19 (2010).
+ 18. Zhang, R. Longitudinal speed control of an unmanned tracked vehicle based on axis-fixed transmission gearbox. Beijing Inst. 
+Technolog y  (2016).
+ 19. Wang, C. Research on the Unmanned Tracked Vehicle with Engine Position-type Control  (Beijing Institute of Technology, 2018).
+ 20. Hossain, M. Z., Akhtar, M. N., Ahmad, R. B. & Rahman, M. A dynamic K-means clustering for data mining. Indonesian J. Electr. 
+Eng. Comput. Sci.  13 (2), 521–526 (2019).
+ 21. Jia, W . & Liu, X. Longitudinal expected speed control method for AMT vehicle. J. Armored Forces . 1 (03), 82–88 (2022).
+Author contributions
+Conceptualization, W .J. and H.Z.; Methodology, Y .Z. and W .J.; Software, W .J. and P .H.; Validation, Y .Z. and P .H.; 
+Formal analysis, H.Z.; Investigation, P .H.; Data curation, H.Z.; Writing—original draft, Y .G. and W .J.; Writing—
+review & editing, W .J.; Project administration, Y .G. All authors have read and agreed to the published version of 
+the manuscript.
+Funding
+Comprehensive research project (LJ20232B010028, LJ2023B010205).
+Declarations
+Competing interests
+The authors declare no competing interests.
+Additional information
+Correspondence  and requests for materials should be addressed to W .J., Y .Z. or H.Z.
+Reprints and permissions information  is available at www.nature.com/reprints .
+Publisher’s note Springer Nature remains neutral with regard to jurisdictional claims in published maps and 
+institutional affiliations.
+Open Access   This article is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 
+4.0 International License, which permits any non-commercial use, sharing, distribution and reproduction in 
+any medium or format, as long as you give appropriate credit to the original author(s) and the source, provide 
+a link to the Creative Commons licence, and indicate if you modified the licensed material. Y ou do not have 
+permission under this licence to share adapted material derived from this article or parts of it. The images or 
+other third party material in this article are included in the article’s Creative Commons licence, unless indicated 
+otherwise in a credit line to the material. If material is not included in the article’s Creative Commons licence 
+and your intended use is not permitted by statutory regulation or exceeds the permitted use, you will need to 
+obtain permission directly from the copyright holder. To view a copy of this licence, visit  h t t p : / / c r e a t i v e c o m m o 
+n s . o r g / l i c e n  s e s / b y - n c - n d / 4 . 0 /     .  
+© The Author(s) 2025 
+Scientific Reports  |        (2025) 15:44817 18 | https://doi.org/10.1038/s41598-025-28676-1www.nature.com/scientificreports/

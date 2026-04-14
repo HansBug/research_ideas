@@ -1,0 +1,932 @@
+--- Page 1 ---
+  
+ 
+ 
+Appl. Sci.  2021 , 11, 4222. https://doi.org/10.3390/app11094222 www.mdpi.com/journal/applsci 
+Article 
+State Machine-Based Hybrid Position/Force Control  
+Architecture for a Waste Management Mobile Robot with 
+5DOF Manipulator 
+Ionel-Alexandru Gal 1,*, Alexandra-C ătălina Ciocîrlan 1 and Mihai M ărgăritescu 2 
+1 Institute of Solid Mechanics of Romanian Academy, 010141 Bucharest, Romania;  
+alexandra.ciocirlan@imsar.ro 
+2 National Institute of Research and Developm ent for Mechatronics and Measurement Technique—
+INCDMTM, 022404 Bucharest, Romania; mihai.margaritescu@gmail.com 
+* Correspondence: alexandru.gal@imsar.ro; Tel.: +40-741-575-553 
+Featured Application: Robots with specific joint motors, with high potential for use in Industry 
+4.0 automated assembly lines. 
+Abstract: When robots are built with state-driven motors, task-planning increases in complexity and 
+difficulty. This type of actuator is difficult to control, because each type of control position/force 
+requires different motor parameters. To solve this  problem, we propose a state machine-driven hy-
+brid position/force control architecture (SmHPFC). To achieve this, we take the classic hybrid posi-
+tion/force control method, while us ing only PID regulators, and add a state machine on top of it. In 
+this way, the regulators will not help the control ar chitecture, but the architecture will help the entire 
+control system. The architecture acts both as a parameter update process and as a switching mech-
+anism for the joints’ decision S-matrix. The obtained control architecture was then applied to a 5DOF 
+serial manipulator built with Festo motors. Using SmHPFC, the robot was then able to operate with 
+position or force control depending on its design ated task. Without the proposed architecture, the 
+robot joint parameters would have to be updated using a more rigid approach; each time a new task 
+begins with new parameters, the control type wo uld have to be changed. Using the SmHPFC, the 
+robot reference generation and task complexity is reduced to a much simpler one. 
+Keywords: hybrid control; state machine;  Festo; PLC; friction force 
+ 
+1. Introduction 
+Waste management is a growing concern and problem [1] around the world and es-
+pecially in the European Union. To help to solve this problem, rules, policies, and guide-
+lines were presented to the public [2], as wa ys of lowering the amount of recyclable ma-
+terial going to waste dumps [3]. Communities are trying to recover more and more recy-
+clable materials from day-to-day garbage, even when people are not using selective waste collection methods. For this, waste recycling companies usually hire people [4] to do the tedious work of selective recycling for different  types of objects and materials (plastic and 
+glass bottles, metal cans, etc.). 
+In order to aid companies wh en the workforce is scarce or to help employees when 
+the work conditions are bad, automated processes have been developed to try and sort 
+the waste [5] brought by garbage trucks. To this end, Diya et al. [6] proposed an intelligent 
+system to help communities aim towards a gr eener environment. This goal can also be 
+achieved through conventional selective me thods using water for paper and plastic or 
+magnets for ferrite-containing waste, while  the remaining waste was compacted and in-Citation:  Gal, I.-A.; Ciocîrlan, A.-C.; 
+Mărgăritescu, M. State-Machine 
+Based Hybrid Position/Force Control 
+Architecture for a Waste  Management Mobile Robot with 5DOF Manipulator. Appl. Sci. 2021 , 
+11, 4222. https://doi.org/10.3390/ 
+app11094222 
+Academic Editor: Alessandro  
+Gasparetto 
+Received: 7 April 2021 
+Accepted: 3 May 2021 Published: 6 May 2021 
+Publisher’s Note:  MDPI stays neu-
+tral with regard to jurisdictional claims in published maps and institu-tional affiliations. 
+ 
+Copyright:  © 2021 by the authors. Li-
+censee MDPI, Basel, Switzerland. 
+This article is an open access article 
+distributed under the terms and con-ditions of the Creative Commons At-tribution (CC BY) license (http://crea-tivecommons.org/licenses/by/4.0/). 
+
+
+--- Page 2 ---
+Appl. Sci.  2021 , 11, 4222 2 of 24 
+ 
+cinerated or deposited in landfills. The othe r methods were to use video cameras on con-
+veyors as Kokoulin et al. [7] proposed, or to use artificial intelligence as Sousa et al. [8] showed, to detect recyclable materials. Through different methods, using an intelligent city platform created by Popa et al. [9], or by using a distributed architecture and machine 
+learning built by Ziouzios et al. [10], recyclable waste can be moved to sorted containers, 
+or even by combining both methods to maximize the selection efficiency. Both methods 
+have their advantages and disadvantages [4,11], while using big and costly machinery. 
+An alternative to the automated conveyors and manual process of waste selective 
+recycling is to use mobile robots that move inside a warehouse where the garbage is laid 
+on the floor. While several robots conduct the search and recycle mission, stopping only 
+to recharge their batteries, the process can co ntinue practically non-stop without the need 
+for human intervention, only requiring humans to replace the search material. This type 
+of selective waste collection can reduce the n eed for human workers, therefore preventing 
+the risks that arise from working with garbage and decomposing organic materials. 
+The proposed mobile robot has a mechanical arm/manipulator to grab the desired 
+material and a video camera to detect recyclab le objects. The serial mechanical manipula-
+tor has four positioning and orientation degr ees of freedom and one degree of freedom 
+for the gripper, resulting in a 5DOF mechanical arm for picking recyclable objects and placing them in a waste selective storage container. 
+The video camera detection method [7,8,12] is reliable and provides the position and 
+orientation of the object with small detection er rors that increase the sorting capability of 
+recyclable material. Once the coordinates or th e object is known, these are fed as a refer-
+ence to the control algorithm. Having a certai n robot architecture [1 3] and using specific 
+Festo hardware [14], we created a hybrid position/force control method to achieve the best 
+performance for this application. The main re ason behind using the hybrid position/force 
+control is to avoid the inverse matrix singularities of direct kinematics equations required 
+when computing the end-effector reference values. 
+Starting with Raibert and Craig [15], the forefathers of the hybrid position/force con-
+trol, the method has been developed [16] and used [17] in recent years to improve the 
+interaction between robots and the environmen t [18], which is especially useful in our 
+application. In 2019, Wang et al. [18] presented a hybrid position/force control used on a 
+manipulator for close wall inspection, where the robot–environment interaction is treated 
+as a mission consequence, and in 2020, Liu et al. [19] developed and used a hybrid posi-
+tion/force-controlled robot to drill and rivet metal plates with high precision (±0.1 mm). 
+The hybrid position/force control (HPFC) methods [20] can and have been used in 
+multiple areas of robot environments [21], combining them with new mathematical con-
+cepts [22] or fuzzy inference systems [23]. In 2011, Vladareanu and Smarandache [22] used 
+neutrosophic logic to improve hybrid position/force control. In 2019, Ballesteros et al. [24] 
+designed a second-order control feedback cont roller using the sliding mode control (SMC) 
+[25] for an active orthotic mechanism, by using the system’s dynamics and controlling 
+each joint through a combined force and positi on reference, while gathering force sensor 
+information. This approach uses the highly complex solution of designing a dynamic reg-
+ulator while maintaining stability in a Lyapun ov sense, while Rani et al. [26] developed 
+an HPFC for task-coordinated manipulators  using non-modeled system dynamics. Even 
+if the dynamic equations were not used within the control diagram, they still ensured overall stability. Using the same approach, Peng  et al. [27] created a hybrid control while 
+using joint neural network observations on uncertain parameters and external perturba-
+tions which also uses dynamic equations and the Lyapunov stability to track and follow a path reference. Others have developed pa rallel manipulators with redundant actuation 
+[28], some that learn the dynamics uncertainties to ensure stability [29], and even some hybrid control methods that use a fuzzy-neur al network for multiple robot control [30]. 
+When considering the type of regulator or control method to use, we took into ac-
+count the sliding mode control (SMC) [25]. One reason was the experience the authors 
+have in developing such control methods [25], and the other was that it has very good 
+
+--- Page 3 ---
+Appl. Sci.  2021 , 11, 4222 3 of 24 
+ 
+precision in compensating robot dynamics and external disturbances. As Zhang et al. [31], 
+Solanes et al. [32], and Ravandi et al. [33] have proven, the slidin g mode control method 
+can be combined with other methods to create  different control algorithms depending on 
+the required application. This approach may provide high accuracy where not needed, 
+but it adds complexity to the mathematical model used in designing and developing the 
+final control system. Because of this, the approach used in this paper was to avoid the high 
+complexity of the model and focus on the appl ication results, keeping the accuracy within 
+the required parameters. 
+Different research papers have developed HPFC methods for specific applications 
+when dynamic precision was required. Gao et al. [34] developed a 6DOF hydraulic ma-nipulator that uses force and vision for positioning, while Han et al. [35] created a manip-ulator with a highly compliant end-effector. Some research handles the classic approach [18,19], while others combine the usefulness of the HPFC [20] with advantages of other 
+methods [24–30] to increase stability and precis ion, to prevent perturbation or to compen-
+sate for uncertainties. These approaches, as re viewed in scientific papers [16,36,37], are 
+necessary when the robot environment interaction requires high precision in positioning tasks or in order to combine position and force to safely interact with human patients or operators. Most of the published HPFC methods use a static approach in defining the joint 
+matrix that separates the position-controlled joints from the force-controlled joints. 
+One way of preventing the static use of the S-matrix is to create a state feedback de-
+cision as Pasolli et al. [38] proposed. Their approach was to switch between position and 
+force control on certain robot joints when the system required it, thus improving upon the 
+classic hybrid position/force control of Raibert and Craig [15] by adding a decision layer 
+to constantly change the position and force di agonal matrix S when certain events occur. 
+Building on this method, we have proposed the hybrid position/force control combined 
+with a state machine which will be called st ate machine-based hybrid position/force con-
+trol (SmHPFC). This new method will update the parameters of the S-matrix as the need 
+arises and depending on the task state of selective waste recycling. 
+The proposed method architecture was comb ined with a stick–slip analysis of the 
+gripper’s fingers to use a low force for gripping  the detected recyclable waste objects, such 
+as plastic bottles that can deform on a higher gripping force, or glass bottles that may slip 
+with weaker force or break with a higher on e. All of these were then implemented using 
+Festo motors, Festo motor controllers, and Festo central control unit PLC. 
+2. System Description 
+The waste sorting robot is presented in Figure 1 [39,40] and Figure 2 [40,41], and is 
+built from several separate systems that will work as a whole. The robot is the main ob-
+jective of a national research grant [40] wh ich aims to build a working prototype of the 
+municipal waste sorting robot. Figure 1 pres ents one of several proposed 3D concepts, 
+while Figure 2 presents the 3D design of the robot that has the following main compo-
+nents: (1) chassis, (2) housing, (3) drive wheel s, (4) free wheels, (5) XYZ handling system, 
+(6) gripper and (7) waste container [35]. The robot structure is already defined and pub-
+lished in a previous paper [41] and is not the subject of this paper. 
+ 
+
+
+--- Page 4 ---
+Appl. Sci.  2021 , 11, 4222 4 of 24 
+ 
+Figure 1. Initial concept of the waste sorting robot system [39,40]. 
+ 
+Figure 2. The mobile robot 3D model with the incorporated 5DOF manipulator [40,41]. 
+An important component of the mobile robot is the drive wheels system for navi-
+gating through the waste, which was previously laid on the ground as a uniform thin 
+layer. Another component that is not visible in  Figure 2 is the vision system, which detects 
+recyclable objects and sends the information to the 5DOF manipulator. The manipulator 
+is the third important component of the mobi le waste sorting robot, which grabs the de-
+tected recyclable materials and stores them in the attached waste container. 
+The gripping system is made of a five-d egree-of-freedom serial robot, mounted on 
+the mobile chassis and it was chosen as the simple approach in building the municipal 
+waste sorting robots’ manipulator. This is intended as a simple and easy solution for re-
+placing the human workforce in searching for scattered recyclable materials such as plas-
+tic and glass bottles or aluminum cans, and it lowers the percentage of recyclable materials 
+with a high decomposing time that reach a landfill. 
+The 5DOFs of the manipulator can be separated into three categories: positioning, 
+orientation, and interaction. Th e first set, required for positioning the end-effector, is com-
+posed of three linear motors. These 3DOFs move the gripper on all three axes (OX, OY 
+and OZ), achieving a positioning system within the robot manipulators’ confined work-space. In our robotic system, the horizontal XOY movement is ensured by a Festo planar surface gantry EXCM, while the OZ vertical di splacement is given by a Festo electrical 
+slide EGSK. The orientation system uses a one-degree-of-freedom Festo rotary motor 
+ERMO to rotate the end-effector around the vertical axis OZ to align the gripper with the 
+object/bottle. Once the position  and orientation are set, the la st degree of freedom is the 
+end-effector which, in our case, is a Festo HGPLE gripper that uses a dual linear motor 
+that moves two rigid bodies (the gripper jaws) in two opposite directions on a single axis. The first direction, which is considered to be the positive one, is when the two jaws of the 
+gripper are closing into each other and the second is when both move away from each other in the negative direction.  
+To control the serial robot fo r selecting the recyclable mate rials, we chose the hybrid 
+position/force control that allows us to posi tion and orient the gr ipper within the work-
+space, through a position-based control law, and to grip the object using a force-based approach. Moreover, the gripper can be controlled in position for opening the jaws or in force for gripping the objects. The control type  of the gripper has to switch in real-time, 
+depending on the state of the robot and the mi ssion objective. This is why a hybrid posi-
+tion/force control law with a state-machine decision system was chosen as the control al-gorithm that drives the 5DOF manipulator. 
+3. Decision Algorithm 
+The decision algorithm is the component that turns the static hybrid position/force 
+control method into a dynamic control by changing the Raibert and Craig [15] static con-figuration of the S-matrix, and updating its values depending on a deterministic state ma-chine. The diagram of the overall state machine is presented in Figure 3. Here, one can see 
+
+
+--- Page 5 ---
+Appl. Sci.  2021 , 11, 4222 5 of 24 
+ 
+multiple system states followed  by one or more transitions. Table 1 presents the state de-
+scription and Table 2 presents the description of the transition. 
+ 
+Figure 3. The main 5DOF robot state machine for waste selection. 
+Table 1. State machine states list and descriptions. 
+State Diagram Description 
+Si1 Main The initial state of the entire system. 
+Si2 Main/Homing Initialization complete. 
+Si2.1 Homing Homing process started. 
+Si3 All Homing done or motion complete. 
+SC1 Main Positioning in XOY plane and rotate gripper. 
+SC2 Main/Force Control Positioning on OZ axis (move gripper up or down) and rotate 
+around OZ for gripper orientation. 
+SC3 Main/Force Control Ready to start force control (grip object). 
+SC3.1 Force Control Doing force cont rol for selected reference. 
+SC3.2 Force Control Gripping force is stable while holding the object. 
+SC4 Main/Position Con-
+trol/Force Control Stop force control (done). Swit ching to position control and 
+open gripper. 
+SC5 Position Control Doing position control for selected reference. 
+SES Position Con-
+trol/Force Control Emergency stop. 
+
+
+--- Page 6 ---
+Appl. Sci.  2021 , 11, 4222 6 of 24 
+ 
+To keep the state machine clear and easy to understand, several components were 
+detailed in additional diagrams presented in Figure 4a–c. These are the homing state ma-chine, the position control st ate machine, and the force control state machine. Their state 
+and transition descriptions can be also found in Table 1. 
+ 
+ 
+ 
+(a) (b) (c) 
+Figure 4. State machine sub-sections: ( a) the homing state machine; ( b) the position control state 
+machine; ( c) the force control state machine.  
+The homing state machine is very simple. Th e homing process is started sequentially 
+on all five DOFs (state S i2.1). When the homing process is complete, the 5DOF system tran-
+sitions to the stable state S i3. This state is the starting point for all following control se-
+quences. When a new task is received (transition T C1), the system begins to complete it, 
+starting with the first two translation joints  for positioning on XOY plane. Then, the ver-
+tical motion and orientation begin (S C2) and on its completion, th e force control takes over 
+for the gripper joint by changing the control type for this degree of freedom within the S-
+matrix. Thus, by using force control, the gripper attempts to grab the target object using 
+the reference force given as input to the cont rol system. Figure 4c details how the force 
+control handles different events. While the gr ipper force holds, the 4DOF positioning sys-
+tem lifts the object and position the gripper above the recycling tray. At this moment, the gripper force control ends by updating the S- matrix, and the object is dropped by opening 
+the gripper’s jaws using position control. Af ter the object is dropped into the recycling 
+tray, the task is complete, and the 5DOF system can start a new task. 
+To better explain the sequence, the decision Algorithm 1 that can be more easily un-
+derstood is outlined below. 
+Algorithm 1  Recycling process using the hybrid position/force control 
+for (i ∈ [1; 5]) 
+Init (M i) 
+Homing (M i) 
+while (!ES &&New Task) 
+
+
+--- Page 7 ---
+Appl. Sci.  2021 , 11, 4222 7 of 24 
+ 
+get (Obj Type, Txyz, Rz) 
+if (∆P + z > εPz) 
+GripperMove (T top) 
+if (!G open) 
+Jaws (open) 
+Compute (F jaws) 
+GripperMove (T xy) 
+GripperRotate (R z) 
+GripperMove (T z) 
+Switch (To ForceControl ) 
+Update (S P, SF) 
+Jaws (close) 
+while (∆Fjaws ≤ εFjaws) 
+GripperMove (T top) 
+GripperRotate (R tray) 
+GripperMove (T tray) 
+Switch (To PositionControl ) 
+Update (S P, SF) 
+Jaws (o pen) 
+where: 
+Mi = motor i, 
+ES = Emergency Stop, 
+Obj Type = Object type (metal, glass, plastic), 
+Txyz = target coordinates vector, 
+Ttop = coordinates of top gripper position, 
+Ttray = coordinates of waste tray position, 
+Rz = target rotation on the Z-axis, 
+Rtray = waste tray rotation on the Z-axis, 
+Fjaws = gripper reference force required to grab the current target, 
+∆Pz = position error on the Z-axis, 
+εPz = maximum allowed positioning error on the Z-axis, 
+∆Fjaws = gripper jaws force error, 
+εFjaws = maximum allows gripper jaws force error, 
+SP = position matrix joints, 
+SF = force matrix joints. 
+4. Influence of Friction Force Analys is on the Gripper’s Control Method 
+To pick up recyclable objects from the municipal waste collection, the gripper needs 
+at least two fingers. For this, we created a 3D  finger design which is presented in Figure 
+5a–c. These were designed as simple fingers that can grab different object types and shapes. From the 3D design, the fingers were 3D printed using ABS material and a Zortrax M200 3D printer. 
+When complete, the fingers were attached to the linear motor, resulting in a two-
+finger gripper mechanism presented in Figure 6. One can observe in Figure 6 a small de-formation of the ABS fingers during the grippi ng action. This ABS finger’s flexibility and 
+deformability ensure a slower transmission of the force towards the actuation of the grip-per. Certain protection of the electric ac tuation of the gripper is thus ensured. 
+
+--- Page 8 ---
+Appl. Sci.  2021 , 11, 4222 8 of 24 
+ 
+   
+(a) ( b) ( c) 
+Figure 5. Gripper 3D fingers: ( a) front view; ( b) bottom side view; ( c) top side view. 
+ 
+Figure 6. The gripper mechanism in action. 
+Once the gripper is attached, we can calcul ate the required force needed to grab cer-
+tain recyclable materials/objects. To achieve th is, we can use the stick–slip conditions [42] 
+derived from the Coulomb friction law [43]. Fi gure 7 presents the forces acting between 
+the gripper’s fingers and the object being manipulated, where: 
+𝐹⃗௙ಽ = Friction force between left finger and the object 
+𝐹⃗௙ೃ = Friction force between right finger and the object 
+𝐹⃗஼ಽ = Control force on the left finger 
+𝐹⃗஼ೃ = Control force on the right finger 
+𝐺⃗ = Object’s weight 
+𝑁ሬሬ⃗௅ = Normal force on left fingers’ contact surface 
+𝑁ሬሬ⃗ோ = Normal force on right fingers’ contact surface 
+ 
+Figure 7. Forces acting on gripper fingers and the grabbed object. 
+
+
+--- Page 9 ---
+Appl. Sci.  2021 , 11, 4222 9 of 24 
+ 
+Coulomb friction law states that for the object to not slide from the gripper fingers, 
+the forces must follow Inequality (1), where th e friction forces are defined in Equations (2) 
+and (3): 
+𝐹⃗௙ಽ+𝐹⃗௙ೃ≥𝐺⃗ (1) 
+𝐹⃗௙ಽ=𝜇𝑁ሬሬ⃗௅ (2) 
+𝐹⃗௙ೃ=𝜇𝑁ሬሬ⃗ோ (3) 
+In our case, the control forces 𝐹⃗஼ಽ and 𝐹⃗஼ೃ are equal with the gripper’s control force 
+𝐹⃗஼, resulting Equations (4) and (5): 
+𝐹⃗஼ಽ=𝐹⃗஼ೃ=𝐹⃗஼, (4) 
+𝑁ሬሬ⃗௅=𝐹⃗஼ಽ
+𝑁ሬሬ⃗ோ=𝐹⃗஼ೃൡ=>൝𝐹⃗௙ಽ=𝜇𝐹⃗஼ಽ=𝜇𝐹⃗஼
+𝐹⃗௙ೃ=𝜇𝐹⃗஼ೃ=𝜇𝐹⃗஼ൡ. (5) 
+From Equations (1)–(5) we calculate that the required condition for the gripper to 
+hold the recyclable object is the one from the relation: 
+2𝜇𝐹⃗஼≥𝐺⃗ (6) 
+Using this inequality, we can further analyze the required force depending on the 
+estimated weight of the object and the friction  coefficient for certain types of recyclable 
+materials. However, before analyzing the mi nimum required control force, we have to 
+take into consideration the gripper motion on the same axis as the friction forces. Since 
+the gripper will move up after the object is  grabbed, the dynamic motion will add a new 
+acceleration to the object, which will, in turn, translate into an inertial force that has the same direction as the weight of the object. This means that we need to increase the force acting on the object. Equations (7)–(9) add the new inertial force to the control force con-
+dition from Equation (6). 
+The maximum acceleration for the motor placed  on the vertical axis, as given by the 
+manufacturer [44] is: 
+𝑎
+௜=1 0m sଶ⁄. (7) 
+Then, the inertial force added to the weight is: 
+𝐹⃗௜=𝑚×𝑎௜. (8) 
+From Relations (1) and (8) we obtain: 
+2𝜇𝐹⃗஼≥𝐺⃗+𝐹⃗௜. (9) 
+Expanding this relation, we get: 
+2𝜇𝐹⃗஼≥𝑚ሺ𝑔+𝑎௜ሻ, (10) 
+where: 
+𝐹⃗௜ = Inertial force due to vertical motion 
+𝑎௜ = inertial acceleration due to vertical motion 
+𝑚 = Objects’ mass 
+𝑔=9 . 8 1m sଶ⁄ = Gravitational acceleration 
+𝜇 = Friction coefficient 
+Knowing the maximum acceleration (Equat ion (11)) and the maximum force [45] 
+(Equation (12)) that the gripper can sustain, we can compute the maximum object mass 
+that our gripper can hold for certain mate rials with known friction coefficients: 
+
+--- Page 10 ---
+Appl. Sci.  2021 , 11, 4222 10 of 24 
+ 
+𝑎௠௔௫ =𝑔+𝑎௜=1 9 . 8 1 m sଶ⁄ (11) 
+𝐹⃗஼೘ೌೣ=2 5 0  N . (12) 
+From Relations (10) and (12) we can compute the required force for grabbing an ob-
+ject and we can compare it with the maximum force the gr ipper can apply: 
+𝐹⃗஼≥𝑚ሺ𝑔+𝑎௜ሻ
+2𝜇. (13) 
+If we consider the recommendations presente d by online references [46,47], the con-
+trol force should be four times higher than th e required force for gripping the object, with-
+out considering the vertical acceleration, and is given by the relation: 
+𝐹⃗஼=௠௚
+ଶఓ×4 .  (14) 
+This means that we can add a safety margin and all objects regardless of the systems’ 
+accelerations will be firmly held by the gripping system. However, since Relation (13) takes into account the maximum acceleration of the vertical axis, and we do not expect any other forces to influence the system, we will use Relation (13) as the reference for computing the force needed by the system to pi ck up objects with different friction coef-
+ficients and weight. While the maximum accele ration is given by Relation (11), we can 
+relate to Relation (14) and present the new force control as: 
+𝐹⃗
+஼=𝑚𝑔
+2𝜇×2 ,  (15) 
+where the new safety margin is 2. However, in real experiments, we wi ll use Relation (13) 
+as it is more accurate. 
+In our case, the recyclable materials of interest are plastic bottles, glass bottles, and 
+aluminum cans. Knowing this, we will continue  the analysis using these materials. Thus, 
+Table 2 presents the known static friction coefficients between the ABS fingers and PET, 
+glass and aluminum objects, where we consider them more dry than wet. 
+Table 2. Static friction coefficients. 
+Material Friction Coefficient 
+ABS—PET 0.33 [48] 
+ABS—Glass  0.3 [49] 
+ABS—Aluminum  0.25 [49] 
+Once we have the maximum force relation and the friction coefficients, we can com-
+pute the required force for the gripper to pick up a certain object. Figure 5 presents the 
+computed force control value for different ob ject mass and material types. The figure 
+shows the maximum force limit, represented by the top dashed rectangle. Using this dia-
+gram (Figure 8), we can visual ize the maximum weight of the recyclable objects that the 
+gripper can pick up and transfer to the recycling tray. Since for all three materials the 
+maximum weight is above 6 kg, we can presume that all recyclable objects that fit the 
+recycling criteria can be grabbed by our 5DOF gripper. 
+
+--- Page 11 ---
+Appl. Sci.  2021 , 11, 4222 11 of 24 
+ 
+ 
+Figure 8. Gripper force by object mass and friction coefficient. 
+By using Equation (13) and the friction coefficients of the recyclable materials of in-
+terest (Table 2) we can now use this informat ion in the hybrid position/force control ar-
+chitecture to compute the gripper reference force. 
+5. The 5DOF Hybrid Position/Force Control 
+To achieve a functional control method, th e mobile robots’ manipulator, used for 
+sorting waste materials, has to be able to move at target points and then grab the recycling 
+materials using a simple gripper. For this, the hybrid position/force control method [15] 
+was chosen and then modified to integrate the systems’ state, changing the control type 
+of the manipulator when needed, between po sition and force control mode. Thus, we 
+changed the static selection of control type fo r each degree of freedom to a deterministic 
+state of the S-matrix that separates each DOF into two categories: control mode and force 
+mode. Figure 9 presents the new hybrid position/force control architecture used to drive 
+the 5DOF manipulator. 
+Figure 9 presents the data flow of information between each control block, where: 
+𝑂ሺ𝑝,𝑡𝑦𝑝𝑒ሻ = Object (position, type); 
+type = Glass, Aluminum, Plastic; 
+𝑂ሺ𝑑𝑒𝑝𝑡ℎሻ = Object (depth); 
+Depth = distance from the robot refere nce system to the detected object. 
+In the new architecture of the hybrid position/force control method of Figure 9, we 
+have included several control blocks that grou p the control architecture by task, while the 
+arrows present the data flow. The control di agram starts with the reference generation 
+block. This block receives information from the video detection system that will provide 
+the objects’ position in XOY coordinates and the object type. The type is then used by the reference generation to compute the required force according to the friction force coeffi-
+cient influence. Another input is received fr om the proximity sensors, which will provide 
+the distance to the target object, which represents the third coordinate in the 3D space, the OZ axis. 
+
+
+--- Page 12 ---
+Appl. Sci.  2021 , 11, 4222 12 of 24 
+ 
+ 
+Figure 9. Hybrid position/force control diagram. 
+The video detection system [50] uses neural networks to detect the type, position, 
+and orientation of the recyclable objects and will send this information as input for the 
+5DOF manipulator, through a TCP network interface. Combining both video detection for XOY coordinates and orientation with the pr oximity sensors for depth distance, we get 
+the OXYZ coordinates with θ angle orientation. The detection system was developed by 
+our project team and is already published by Melinte et al. [50], which is why we will not focus on its results in this paper, but we are using the AI detection module as input to our control architecture. The video camera used has an RGB resolution of 1280 × 1024 pixels, which is more than enough for our AI detection system to use, with a detection confidence of 75.54% and over 95% accuracy [50], using a 9 FPS image analysis rate. 
+Added to the input data, the systems’ state,  provided by the state machine, the robot 
+can now decide what to do next, to achieve the given recycling task. If the robot is in search mode, the manipulator is resting at the starting  position. Then, when an object is detected, 
+the systems’ state switches to the start state of the pick-and-drop process. When the state 
+of the system requires the manipulators’ gripper to switch in order to force control then 
+the “S-matrix control” block will update the S- matrix, by switching the control type of the 
+gripper DoF. Equation (16) presents the way the S-matrix is composed out of the S
+p and Sf 
+matrix: 
+𝑆=൥1⋯ 0
+⋮⋱⋮
+0⋯ 1൩=𝑆௣+𝑆௙=
+⎣⎢⎢⎢⎡1. . . 0
+.1 ..1 .
+.1 .
+0 . . . 0/1 ⎦⎥⎥⎥⎤
++
+⎣⎢⎢⎢⎡0. . . 0
+.0 ..0 .
+.0 .
+0. . .1 / 0 ⎦⎥⎥⎥⎤
+. (16) 
+After the reference values are calculated, the hybrid method splits into two control 
+branches, each dealing with a specific control type: position control and force control. Each 
+control block uses a PID to compute the joint- specific drive inputs (Equations (17)–(19)): 
+𝑈௫=𝑋௉ூ஽(𝑆௣,∆𝑋), (17) 
+𝑈௙=𝐹௉ூ஽(𝑆௙,∆𝐹,𝐹ௌିௌ), (18) 
+𝑈=𝑈௫+𝑈௙. (19) 
+
+
+--- Page 13 ---
+Appl. Sci.  2021 , 11, 4222 13 of 24 
+ 
+One can see that while the position PID re gulator depends on the positioning error 
+between the reference and the computed value, using the direct kinematics method and 
+Denavit-Hartenberg notation [51], the force PID regulator will have as input the force con-
+trol error computed using the reference value, the real force taken as a function of motor 
+current and the force required to compensate the object weight through the friction force 
+compensator control block. 
+Equation (20) presents the function that receives the robot joint information and 
+sends it to the state machine and direct kinematics blocks: 
+𝑓(𝑑ଵ,𝑑ଶ,𝑑ଷ,𝑑ସ,𝜃ଵ). (20)
+Using the joint information, Equations (21) –(23) present the elements required to 
+compute the positioning and forc e errors, which are inputs to PID regulators that, in the 
+end, drive the 5DOF manipulators’ motors. 
+𝑈=𝑋௉ூ஽൫𝑆௣,∆𝑋൯+𝐹௉ூ஽൫𝑆௙,∆𝐹൯, (21)
+where:  
+∆𝑋=𝑋௉൫𝑆𝑡𝑎𝑡𝑒 ,𝑂𝑏𝑗(𝑝,𝑡𝑦𝑝𝑒 ),𝑂𝑏𝑗(𝑑𝑒𝑝𝑡ℎ )൯െ𝑋௥൫𝑅𝑜𝑏௞௜௡(𝑑ଵ,𝑑ଶ,𝑑ଷ,𝑑ସ,𝜃ଵ)൯ (22)
+∆𝐹=𝐹௉(𝑆𝑡𝑎𝑡𝑒 )+𝐹௦ି௦൫𝑂𝑏𝑗(𝑡𝑦𝑝𝑒 )൯െ𝐹௥൫𝐹௖௢௡௩ (𝐼௠)൯ (23)
+To obtain the PID position control values, we used the direct kinematics equations 
+through Denavit-Hartenberg notation that are shown in Figure 10 and presented in Equa-tion (24). 
+ 
+Figure 10. Kinematics diagram and D-H notation s of the 5DOF, TTTRT manipulator. 
+Since α is 0°, then the direct kinematic coordinates are given by Relation (24), where 
+a1 and a 2 are constants given by the mechanical structure dimensions. The gripper’s de-
+gree of freedom is not taken into account when computing the direct kinematics matrix. This is because we had to position the grippe r near the desired object, and then close the 
+gripper’s jaws (5th degree of freedom). 
+Using the direct kinematics matrix: 
+൦𝑐𝑜𝑠𝜃
+ଵെ𝑠𝑖𝑛𝜃ଵ0െ𝑎ଵ+𝑑ଵ
+𝑠𝑖𝑛𝜃ଵ𝑐𝑜𝑠𝜃ଵ 0𝑑ଶ
+00 1 െ𝑎ଶെ𝑑ଷ
+00 0 1൪, (24)
+and the PID general control equation: 
+𝑃𝐼𝐷 =𝐾௉𝑒(𝑡)+𝐾௜׬𝑒(𝑡)𝑑𝑡௧
+଴+𝐾ௗௗ௘(௧)
+ௗ௧, (25)
+the position and force controllers were comput ed following classic methods [52]. Since the 
+PID controllers are not in the scope of this paper, we will not present their design and 
+tuning procedure. 
+The hybrid method we have proposed in th is paper uses hardware components that 
+have a clear separation between position and force control. Because of this, the stability 
+problem is avoided, since when switching the control method, the regulator method is 
+
+
+--- Page 14 ---
+Appl. Sci.  2021 , 11, 4222 14 of 24 
+ 
+changed for that specific motor (DoF), and th e motor is in a paused state (not moving). 
+When changing the control method, we can say that the control mission is restarted, which 
+is why there is no stability issue at the switching moment within the control law. 
+6. Experiment 
+The hybrid position/force control is designed for the 5DOF manipulator which will 
+be mounted on the mobile robot. The manipu lator has several hardware components that 
+build the positioning and orientation system and one linear motor for the end effector. 
+Figure 11 presents the interaction diagra m of the hardware components. One can see 
+that the system has only one PLC system that sends the reference information to the planar 
+XOY movement (Festo EXCM), to the vertical OZ positioning (Festo EXCM), and the ro-
+tary motor (Festo ERMO), through CANopen,  Modbus TCP or Input/Output Link (IO-
+Link) communication with integrated motor drivers. The gripper’s motor requires a sep-
+arate motor driver (Festo CCEC-X-M1) that controls the linear motor (Festo HGPLE), 
+which forms the gripper with the attach ment of two 3D printed ABS fingers. 
+ 
+Figure 11. The robot control components interaction diagram. 
+The experiment uses a video detection came ra, which uses a neural network [50,53] 
+to detect different recyclable materials (gla ss bottles, aluminum cans, PET bottles) and 
+sends their position and orientation to the 5DOF manipulator as input information. This 
+information was simulated in the first stage of  the experiment, since we had to prove that 
+the hybrid position/force control has a good performance in the process of controlling the 
+manipulator throughout the recycling operation. 
+Because the gripper’s control was the one that  will switch between position and force 
+control, we can say that this joint (DoF) is the most important one when deciding if the 
+hybrid control can be used for this particular task, and we will describe its process in more 
+detail. 
+
+
+--- Page 15 ---
+Appl. Sci.  2021 , 11, 4222 15 of 24 
+ 
+The 5DOF manipulator is controlled by a Festo PLC, programmed using the CoDeSys 
+software. Using the state machine presented in Figures 3 and 4, one can see that the entire 
+system has several control steps. The first stag e is to initialize the motors and start the 
+homing process for each motor, and then wait for the detection system to send the first 
+signal of position, orientation, and type for th e object to recycling. After the initialization 
+is complete, the recycling system can receive the pick-and-drop commands. 
+To control the 5DOF mechanical system, a decision algorithm that implements the 
+state machine was developed outside the PLC, with communication capabilities through 
+Ethernet-UDP protocol (Figure 12). This syst em receives state messages from the manip-
+ulator and the video detection system, and, through a transi tion mechanism, sends appro-
+priate commands to the manipulator. The messages have two parts: command name and 
+value. The message is then decoded by the PLC through a decoding method. The decoded 
+information is used to set motor parameters and then activate the command. While the motor is acting on the last received comman d, it will send status information through a 
+transducer to the motor driver which, in turn, is received by the PLC that will send status information through Ethernet UDP to the state machine. 
+ 
+Figure 12. Motor control through PLC programming and state machine commands. 
+To test the gripper’s commands and states, we designed a CoDeSys visualization 
+interface that shows the state of each command or status bit. 
+Figure 13 presents all the main stages of the gripper’s control. The left part of each 
+figure contains the control bits, and the right part contains the status bits. As the name 
+suggests, the control bits are the values sent to the motor driver and the status bits are the 
+values received. Grey status means that the bi t is not used by the driver, dark green means 
+that the bit value is 0 (false) and light green means that the bit value is 1 (true). Using these 
+control bits, we can set the motor driver states  from initialization and homing to the start 
+of positioning or force control. Thus, Figure 13a,b present the configuration bits for the 
+initialization and homing functions of the moto r driver, respectively. After the initial step 
+and homing have been completed, the motor driver, and consequently the HGPLE motor, 
+are in stand-by mode to receive control values. The first values that will be sent to the 
+driver are the control mode: position control  mode (Figure 13c) or force control mode 
+(Figure 13e). After these values comes the speed reference with which the gripper will 
+move, while trying to reach its position or fo rce reference. The third step is to send the 
+position and force reference va lues and to start the control process. Figure 13d shows po-
+sition control and Figure 13f shows force co ntrol. While the positioning mode will stop 
+after the position is reached, the force control will continuously try to hold the set force. 
+
+
+--- Page 16 ---
+Appl. Sci.  2021 , 11, 4222 16 of 24 
+ 
+The force control can be stopped by setting th e control force to 0, by manually stopping 
+the control process, or by switching the control type to positioning mode. 
+ 
+(a) 
+ 
+(b) 
+ 
+(c) 
+ 
+(d) 
+
+
+--- Page 17 ---
+Appl. Sci.  2021 , 11, 4222 17 of 24 
+ 
+ 
+(e) 
+ 
+(f) 
+Figure 13. CoDeSys visualization interface: ( a) initialization stage; ( b) homing stage; ( c) positioning 
+mode control; ( d) start positioning control; ( e) force mode control; ( f) start force control. 
+Using the described steps, the gripper can be used in the hybrid position/force control 
+method for the 5DOF manipulator. While the positioning and orientation system will al-
+ways be controlled in position, the gripper will switch between position and force control 
+states depending on the system’s state machine. 
+Figures 14 and 15 present the control phas e for position contro l and force control, 
+respectively, for the manipulator’s gripper. 
+ 
+Figure 14. Gripper position control states. 
+
+
+--- Page 18 ---
+Appl. Sci.  2021 , 11, 4222 18 of 24 
+ 
+ 
+Figure 15. Gripper force control states. 
+The color code used in Figures 14 and 15 is: 
+• Purple line = speed reference; 
+• Brown line = force and/or position reference; 
+• Black line = start command and auto-stop state; 
+• Red line = gripper jaws position; 
+• Yellow line = gripper applied force. 
+For positioning control, Figure 14 is quit e self-explanatory, where the reference ve-
+locity is the first to be set, followed by the position reference. Once these two have been 
+set, the start command can be given, and the positioning regulator will start moving the 
+motor to the desired position with the configured speed. The gripper jaws will stop when 
+the target position is reached or when an alarm is detected. The alarm can be triggered by 
+an overcurrent due to an obstacle within the jaws’ path. When the position is set to 0 to 
+open the gripper jaws, and the start command is given once again, the gripper jaws will 
+move with the newly set speed. 
+For the force control, the control diagram is  more complex and is presented in Figure 
+15. This control process starts similarly to the positioning process, with setting the speed 
+reference. The next step is to set the target force and to start the control process. Before the target force is reached, the gripper will move  until an object/obstacle is reached and the 
+control force will increase. When the reference force is reached, the regulator will not stop 
+and will continue to feed current to the motor. At this point, the manipulator’s 4DOF po-sitioning and orientation system can move th e recyclable object. When the target OXYZ 
+position is reached, the gripper’s state is switched from force to position control, set the reference position to 0, and start the positioning control to open the gripper’s jaws. 
+Using the described process of the hybrid position/force control to pick-and-drop re-
+cyclable waste, we tested it for several objects and materials. Figure 16a–c present three of the objects being grabbed and held until the movement state is complete and the gripper 
+can drop the recyclable material. As one can see, Figure 16a–c present the orientation and gripper components. We tested the two degrees of freedom more thoroughly than the entire 5DOF system, since, for these two, th e hybrid position/force control is more im-
+portant. 
+
+
+--- Page 19 ---
+Appl. Sci.  2021 , 11, 4222 19 of 24 
+ 
+   
+(a) ( b) ( c) 
+Figure 16. Experiments on object gripping: ( a) experiment for aluminum pickup; ( b) experiment for PET bottle pickup; ( c) 
+experiment for glass bottle pickup. 
+7. Discussion 
+In order to use a mobile robot with a 5DOF manipulator for picking up recyclable 
+material, the first stage is to initialize the robot’s components. This means that for each 
+motor and actuator, a homing process is required when the robot starts up. 
+After the first initialization stage is complete, the robot is ready to start its search-
+and-recycle task. For that, a human operator starts the mission, and the robot will move 
+within the mission area to search for recyclable materials, using its neural network-driven 
+detection video camera. At this stage, the manipulator is resting in the homing-done-
+ready-for-task state. 
+When the robot detects a target object, it will compute the next stage reference for the 
+position, orientation, and type of the object to pick up. At this moment, the state of the system’s manipulator changes from resting to st art-task. All reference values are, at this 
+stage, being used to provide accurate task in formation for the manipulator. This data in-
+cludes a position in 3D space, orientation of  the target object, and estimated friction be-
+tween the gripper’s fingers and the target. Using these values, the robot will start its mis-sion with a positioning task, followed by a hybrid position/force control to grab the object and place it in the recycling tray. The last task is to position the manipulator in a starting position with the gripper jaws open. 
+As seen from the main stages of the pick-and-drop process, the proposed hybrid po-
+sition/force control architecture based on a state machine is very useful for this type of robot and mission. 
+For hybrid methods that require an online switch mechanism, the interest is quite 
+high between researchers and manufacturers. However, only certain types of motors can 
+be controlled in this way. An example is the research of Pasolli and Ruderman [38,54], which proposed a hybrid control to be used on actuators which may not require different 
+control parameters, and should be used wher e the actuators’ parame ters rarely change, 
+while the control values can be modeled as a single transfer function, within the control 
+architecture diagram. 
+The main difference between our approach and the one used by  Pasolli and Ruder-
+man [38,54] is that our hardware has parameters that require an update every time the 
+
+
+--- Page 20 ---
+Appl. Sci.  2021 , 11, 4222 20 of 24 
+ 
+control mode is switched. This is because modern motors and actuators are produced with 
+built-in regulators or fail-safe mechanisms to protect the hardware and provide the engi-
+neer with a basic motor controller. With these types of motors and actuators, you need a different type of hybrid control, one that can update the parameters of the motor while 
+switching the control type with certain degrees  of freedom, and one that can use different 
+control methods. 
+Similar hybrid control with a built-in switching mechanism developed by Pasolli and 
+Ruderman [38,54] is used by the majority of hybrid control methods [16,18,19,24,26–30,33–35,38,54,55], where the motor allo ws position or force control just by increasing the driv-
+ing current or motor torque. These are better used with a dynamic control law integrated into the hybrid position/force control method . The built-in switching mechanism that al-
+lows the hybrid control to control a certain moto r either in position or in force requires a 
+stability analysis, but when the motor has to switch parameters to commute between po-sition and force control, the stability analysis  is not needed. Since specific motors require 
+new parameters to switch between control ty pes, kinematic control methods are enough 
+to drive the robot joints. 
+The hybrid position/force control with an online switch is not unfamiliar to us [20], 
+but it was considered to be unnecessary for the task at hand. We have developed other control methods that require stability analysis [20], and ones that use dynamic control methods [20,25], along with the hybrid position/force control to drive robots in their mis-
+sion. Compared to our previous research, the approach presented in this paper makes it 
+easier to implement the control method, but it  has a higher complexity when using these 
+motors. The complexity comes from the multitude of parameters required to adjust not 
+only when commissioning the motor, but also  at run time when switching the required 
+parameters to drive the motor in either position or force/torque. 
+Knowing this, the proposed architecture of  the state machine-driven hybrid posi-
+tion/force control is useful for many other ro bots [55,56] that are being used in different 
+environments and for different tasks, but more  importantly, for those that are being used 
+in automated processes within Industry 4.0 type  factories. These factories rely on the fact 
+that the robots can switch tasks whenever the supervisor asks them to change the produc-
+tion line. Since our proposed architecture is based on a state machine, one can design a 
+way to update the state machine for each type  of mission and task the robot is given, 
+gaining not only a hybrid position/force cont rol method but also an adaptable robot with 
+a set of missions to choose from. 
+8. Conclusions 
+The proposed architecture of the state machine-based hybrid position/force control 
+(SmHPFC) can be implemented for robots an d actuator-driven mechatronics, which use 
+motors with different control parameters be tween position and force control. One exam-
+ple is the HGPLE Festo linear motor. This type of motor tends to include feedback infor-
+mation on the real position and force/torque that can be easily included in a feedback 
+control loop such as the SmHP FC. Using this information, one can design a position con-
+trol feedback loop, knowing that the received information is showing the actual actuator 
+position. At the moment, when the control type is changed from position to force or torque 
+and vice versa, the same information value must be interpreted with a different scope, 
+which will disturb the real-time control lo op since the motor control parameter has 
+changed. In the standard approach, a motor is usually controlled in position, force/torque, 
+or direct current, and uses different techniqu es to get the control va lue, starting from a 
+position or force/torque reference. This approach cannot be used by a state-driven actua-tor such as the one used on the presented 5DOF manipulator. 
+One advantage of the SmHPFC architecture is that it is quite easy to integrate it into 
+an automated assembly line or use it to change the behavior of the robot since the stability problem was mitigated due to th e way the motors are built. Th is advantage translates into 
+
+--- Page 21 ---
+Appl. Sci.  2021 , 11, 4222 21 of 24 
+ 
+reconfiguring the automated line with ease, which is the backbone of the Industry 4.0 con-
+cept. 
+As an example of Industry 4.0 usage, the robots from an assembly line can be pro-
+grammed to complete different tasks, while in  a standard production line, the extra pro-
+grammed tasks are not required. A robot can have a task to move certain components 
+from a top shelf to the conveyor in a certain factory configuration, but can also stack prod-
+ucts to a designated area, depending on the factory requirements. This can happen if all 
+the robots are pre-programmed with multiple tasks and a control unit will change the robot state from a shelf-stacking robot to one that can pick up faulty products from the conveyor. Another advantage of the SmHPFC architecture is that not only can it provide easy access to multiple types of tasks for a single robot, but that these tasks can have very different control parameters and objectives: po sition control, contour following, force con-
+trol, etc. 
+This type of architecture has some disadvantages. The main one is that it cannot 
+switch between control modes while the robot is moving and it must perform a very short stop while reconfiguring the input parameters . This stage is dependent on the communi-
+cation rate between the PLC and the motor, and on the time the motor can come to a stop. It takes only a few communicated messages for the motor to stop, reconfigure and start a new job. For example, to switch the Festo linea r motor from position to force, we need to 
+send just one control byte. However, since the motor parameters cannot be changed while 
+it runs, we have to send two additional contro l bytes, to stop and restart the motor. On a 
+ModBus 9600 bps communication rate, it would translate to 2.5 ms, only to send the new 
+configuration. To this, we need to add the time it takes the motor to come to a stop if not 
+already stopped, and a maximum of eight more bytes to send the new motor reference. 
+This also depends on whether the motor can restart with ease. This disadvantage can turn 
+into an advantage if the robot task requires separate motion steps during which the robot 
+can be reconfigured to handle different control methods on a different degree of freedom. 
+Our proposed SmHPFC architecture does not depend on the joint regulators, and 
+their analysis was not included in this paper. Thus, the presented applied research is 
+meant to prove the behavior of our architecture and provide new means of control for 
+automated Industry 4.0 lines, but also for motors that are not as easy to integrate into a 
+fully automated robot due to restrictions in their control and parameterization functions. 
+Future work will focus on inte grating the deterministic artificial intelligence [57] that 
+provides clear analytic methods for reference traj ectory generation on each type of control. 
+By improving the reference aspect, we expect  to improve the overall architecture, trans-
+forming the reference generati on component into a more robust and reliable component 
+that can provide the best data for the robot’s current task and control type. 
+Author Contributions: Control architecture, I.-A.G.; conceptualization, I.-A.G.; control algorithm, 
+I.-A.G., formal analysis, I.-A.G., A.-C.C. and M.M.; resources, I.-A.G., A.-C.C. and M.M.; writing—
+original draft preparation, I.-A.G. and A.-C.C.; writing—review and editing, I.-A.G.; funding acqui-
+sition, I.-A.G. and M.M. All authors have read an d agreed to the published version of the manu-
+script. 
+Funding: This work was supported by a grant from th e Romanian Ministry of Research and Inno-
+vation, CCCDI—UEFISCDI, project number PN-I II-P1-1.2-PCCDI-2017-0086/contract no. 22 
+PCCDI/2018, within PNCDI III, and with the support  of the Robotics and Mechatronics Department, 
+Institute of Solid Mechanics of the Romanian Academy. 
+Institutional Review Board Statement:  Not applicable. 
+Informed Consent Statement:  Not applicable.  
+Data Availability Statement: Not applicable. 
+Acknowledgments: This work was supported by a grant from the Romanian Ministry of Research 
+and Innovation, CCCDI-UEFISCDI, MultiMonD2 project number PN-III-P1-1.2-PCCDI2017-
+0637/33PCCDI/01.03.2018, within PNCDI III, and by the European Commission Marie Sklodowska-
+
+--- Page 22 ---
+Appl. Sci.  2021 , 11, 4222 22 of 24 
+ 
+Curie SMOOTH project, Smart Robots for Fire-Fighting, H2020-MSCA-RISE-2016-734875 and by 
+inter-academic project IMSAR–Yans han University: “Joint Laboratory of Intelligent Rehabilitation 
+Robot”, KY201501009, collaborative research ag reement between Yanshan University, China and 
+Romanian Academy by IMSAR, RO. The authors than k S.C. Festo S.R.L., Bucharest, Romania, for 
+their technical guidance and assistance in usin g the Festo products concerned in this paper. 
+Conflicts of Interest: The authors declare no conflict of inte rest. The funders had no role in the 
+design of the study; in the collection, analyses, or interpretation of data; in the writing of the manu-
+script, or in the decision to publish the results. 
+References 
+1. Del Borghi, A.; Gallo, M.; Del Borghi, M. A survey of life cycle approaches in waste management. Int. J. Life Cycle Assess. 2009 , 
+14, 597–610. 
+2. Coopers, L. Cost-Benefit Analysis of the Different Mu nicipal Solid Waste Management Systems: Objectives and Instruments for the Year 
+2000 ; Office for Official Publications of the European Communities: Luxembourg, 1997. 
+3. Skovgaard, M.; Hedal, N.; Villanueva, A.; Andersen, F.M.; Larsen, H. Municipal Waste Management and Greenhouse Gases ; Euro-
+pean Environment Agency: Co penhagen, Denmark, 2008. 
+4. Awasthi, A.K.; Zeng, X.; Li, J. Relationship between e-waste re cycling and human health risk in India: A critical review. Environ. 
+Sci. Pollut. Res. 2016 , 23, 11509–11532. 
+5. Gundupalli, S.P.; Hait, S.; Thakur, A. A review on automated sorting of source-separated municipal solid waste for recycling. 
+Waste Manag. 2017 , 60, 56–74. 
+6. Diya, S.Z.; Proma, R.A.; Islam, M.N.; Anannya, T.T.; Al Mamun,  A.; Arefeen, R.; Rabbi, M.F. De veloping an intelligent waste 
+sorting system with robotic arm: A step towards green environm ent. In Proceedings of the 2018 International Conference on 
+Innovation in Engineering and Technology, Dhak a, Bangladesh, 27–28 December 2018; pp. 1–6. 
+7. Kokoulin, A.N.; Uzhakov, A.A.; Tur, A.I. The Automated Sortin g Methods Modernization of Municipal Solid Waste Processing 
+System. In Proceedings of the 2020 International Russian Automati on Conference, Sochi, Russia, 6–12 September 2020; pp. 1074–
+1078. 
+8. Sousa, J.; Rebelo, A.; Cardoso, J.S. Automa tion of Waste Sorting with Deep Learning . In Proceedings of the 2019 XV Workshop 
+de Visão Computacional, Sao Paulo, Brazil, 9–11 September 2019; pp. 43–48. 
+9. Popa, C.L.; Carutasu, G.; Cotet, C.E.; Carutasu, N.L.; Dobrescu , T. Smart city platform development for an automated waste 
+collection system. Sustainability  2017 , 9, 2064. 
+10. Ziouzios, D.; Tsiktsiris, D.; Baras, N.; Dasygenis, M. A Distri buted Architecture for Smart Recycling Using Machine Learning. 
+Future Internet 2020 , 12, 141. 
+11. Grigore, M.E. Methods of Recycling, Properties and Applications  of Recycled Thermoplastic Polymers. Recycling  2017 , 2, 24. 
+12. Hua, D.; Gao, J.; Mayo, R.; Smedley, A.; Puranik, P.; Zhan, J.  Segregating Hazardous Waste Using Deep Neural Networks in 
+Real-Time Video. In Proceedings of the 10th Annual Comput ing and Communication Workshop and Conference, Las Vegas, 
+NV, USA, 6–8 January 2020; pp. 1016–1022. 
+13. Stankovski, S.; Ostoji ć, G.; Šaponji ć, M.; Stanojevi ć, M.; Babi ć, M. Using micro/mini PLC/PAC in the Edge Computing Architec-
+ture. In Proceedings of the 19th International Symposium INFOTEH-JAHORINA, East Sarajevo, Bosnia, 18–20 March 2020; pp. 
+1–4. 
+14. Festo. Parallel Grippers HGPLE, Sturdy wi th Long Stroke, Electric. Available online: 
+https://www.festo.com/cat/enus_us /data/doc_enus/PDF/US/HGPLE_ENUS.PD F (accessed on 23 October 2020). 
+15. Raibert, M.H.; Craig, J.J. Hybrid Po sition/Force Control of Manipulators. J. Dyn. Syst. Meas. Control  1981 , 103, 
+doi:10.1115/1.3139652. 
+16. Ortenzi, V.; Stolkin, R.; Kuo, J.; Mistry, M. Hybrid motion/force control: A review. Adv. Robot. 2017 , 31, 1102–1113. 
+17. Rani, M.; Kumar, N.; Singh, H.P. Efficient position /force control of constrained mobile manipulators. Int. J. Dyn. Control. 2018 , 
+6, 1629–1638. 
+18. Wang, T.; Umemoto, K.; Endo, T.; Matsuno, F. Dynamic hybrid po sition/force control for the quadrotor with a multi-degree-of-
+freedom manipulator.  Artif. Life Robot 2019 , 24, 378–389. 
+19. Liu, Y.; Fang, Q.; Ke, Y. Hybrid Position/Force Co ntrol for Dual-Machine Drilling and Riveting System. Math. Probl. Eng. 2020 , 
+doi:10.1155/2020/3493715. 
+20. Vladareanu, L.; Gal, I.A. A Multi-Functional Approach of the HFPC Walking Robots. In Procee dings of the 15th WSEAS Inter-
+national Conference on Systems, Recent Researches in System Science, Corfu Island, Greece, 14–16 July 2011. 
+21. Vladareanu, V.; Munteanu, R.I.; Mumtaz, A.; Smarandache, F.; Vlad areanu, L. The Optimization of Intelligent Control Interfaces 
+Using Versatile Intelligent Portable Robot Platform. Procedia Comput. Sci.  2015 , 65, 225–232. 
+22. Smarandache, F.; Vl ădăreanu, L. Applications of neutrosophic logic to robotics: An introduction. In Proceedings of the 2011 
+IEEE International Conference on Granular Computing, Kaohsiung, Taiwan, 8–10 No vember 2011; pp. 607–612. 
+23. Vladareanu, V.; Vladareanu, L.; Munteanu, R.I.; Capitanu, L.; Do brescu, E.M.; Radulescu, M.; Grosu, V.A. Adaptive neural 
+network fuzzy inference system for HFC processes. Period. Eng. Nat. Sci.  2019 , 7, 311–317. 
+
+--- Page 23 ---
+Appl. Sci.  2021 , 11, 4222 23 of 24 
+ 
+24. Ballesteros-Escamilla, M.; Cruz-Ortiz, D.; Salgado, I.; Chairez, I. Hybrid position/force output feedback second-order sliding 
+mode control for a prototype of an active or thosis used in back-assisted mobilization. Med. Biol. Eng. Comput. 2019 , 57, 1843–
+1860. 
+25. Gal, A.I.; Vladareanu, L. Sliding mode control with bond graph modeling applied on a robot leg. In Proceedings of the 2014 
+International Conference on Circuits, Systems and Control, Interlaken, Switzerland, 22–24 February 2014; pp. 40–45. 
+26. Rani, M.; Kumar, N. A new hybrid posi tion/force control scheme for coordi nated multiple mobile manipulators. Arab. J. Sci. 
+Eng. 2019 , 44, 2399–2411. 
+27. Peng, J.; Ding, S.; Yang, Z.; Zhang, F. Neural Network-Based Hy brid Position/Force Tracking Control for Robotic Systems with-
+out Velocity Measurement. Neural Process. Lett. 2020 , 51, 1125–1144. 
+28. Zhang, H.; Fang, H.; Zou, Q.; Song, M.; Zhu, T. Force-Position Hybrid Control of a Novel Parallel Manipulator with Redundant 
+Actuation. In Proceedings of the WRC Symp osium on Advanced Robotics and Automati on, Beijing, China, 21 August 2019; pp. 
+128–133. 
+29. Rani, K.; Kumar, N. Design of Intelligent Hybrid Force and Position Control of Robot Manipulator. Procedia Comput. Sci. 2018 , 
+125, 42–49. 
+30. Xu, Z.; Zhou, X.; Cheng, T.; Sun, K.; Huang, D. Fuzzy-neural-network based position/force hybrid control for multiple robot 
+manipulators. In Proceedings of the IEEE International Conferen ce on Cybernetics and Intelligen t Systems and IEEE Conference 
+on Robotics, Automation and Mechatronics, Ningbo, China, 19–21 November 2017; pp. 94–99. 
+31. Zhang, H.; Li, L.; Zhao, J.; Zhao, J.; Liu, S.; Wu, J. Design and implementation of hybrid force/position control for robot aut o-
+mation grinding aviation blade based on fuzzy PID. Int. J. Adv. Manuf. Technol. 2020 , 107, 1741–1754. 
+32. Solanes, J.E.; Gracia, L.; Muñoz-Benavent, P.; Miro, J.V.; Vidal, C.P.; Tornero, J.; Solanes, E. Robust Hybrid Position-Force C on-
+trol for Robotic Surface Polishing. J. Manuf. Sci. Eng.  2018 , 141, 011013, doi:10.1115/1.4041836. 
+33. Ravandi, A.K.; Khanmirza, E.; Daneshjou, K. Hybrid force/positi on control of robotic arms manipulating in uncertain environ-
+ments based on adaptive fuzzy sliding mode control. Appl. Soft Comput.  2018 , 70, 864–874. 
+34. Gao, C.; Cong, D.; Liu, X.; Yang, Z.; Tao, H. Hybrid position/f orce control of 6-dof hydraulic parallel manipulator using force  
+and vision. Ind. Robot. Int. J.  2016 , 43, 274–283, doi:10.1108/ir-10-2015-0192. 
+35. Han, D.; Duan, X.; Li, M.; Cui, T.; Ma, A.; Ma, X. Interaction Control for Manipulator with Compliant End-Effector Based on 
+Hybrid Position-Force Control. In Proceedings of the Internat ional Conference on Mechatroni cs and Automation, Takamatsu, 
+Japan, 8–11 August 2017; pp. 863–868. 
+36. Shoushtari, A.L.; Dario, P.; Mazzoleni, S. A review on  the evolvement trend of robotic interaction control. Ind. Robot. Int. J. 2016 , 
+43, 535–551, doi:10.1108/ir-02-2016-0073. 
+37. Ruderman, M.; Iwasaki, M.; Chen, W.-H. Motion-control techniqu es of today and tomorrow: A review and discussion of the 
+challenges of controlled motion. IEEE Ind. Electron. Mag.  2020 , 14, 41–55, doi:10.1109/mie.2019.2956683. 
+38. Pasolli, P.; Ruderman, M. Hybrid state feed back position-force control of hydraulic cy linder. In Proceedings of the 2019 IEEE 
+International Conference on Mechatronics, Ilmenau, Germany, 18–20 March 2019. 
+39. Dumitriu, D.; Ionescu, M.; Melinte, D.O. New scissor-grasping tool for parallel grippers, ensuring stroke enhancement. In Pro-
+ceedings of the 36th Danubia-Adria Symposium on Advances in  Experimental Mechanics, Plzen, Czech, 24–27 September 2019. 
+40. Dumitriu, D.; Melinte, O.D.; Gal, I.A. Autonomous Robot Syst ems for Waste Management in the Context of Smart City. Avail-
+able online: https://www.incdmtm.ro/siramand/en/presentation (accessed on 14 January 2021). 
+41. Mărgăritescu, M.; Ancu ța, P.N.; Canale, E.V.; Stanciu, D.I.; Dumitriu, D.; Bri șan, C.M. Control of an Autonomous Mobile Waste 
+Collection Robot. In Proceedings of the International Conferen ce of Mechatronics and Cyber-Mixmechatronics, Bucharest, Ro-
+mania, 5–6 September 2019; pp. 51–63. 
+42. Pop, N.; Vladareanu, L.; Popescu, I.N.; Ghi ţă, C.; Gal, I.A.; Cang, S.; Deng, M. A nu merical dynamic behaviour model for 3D 
+contact problems with friction. Comput. Mater. Sci. 2014 , 94, 285–291. 
+43. Cho, H.; Barber, J.R. Stability of the three-dimensional Coulomb friction law. Proc. R. Soc. Lond.  1999 , 455, 839–861. 
+44. Festo. Planar Surface Gantry EXCM-30, Mechanical Insta llation, Dynamic Data of Ste pper Motor. Available online: 
+https://www.festo.com/net/SupportPortal/Files/327102/EXCM -30_2013–06_8025431g1.pdf (accessed on 3 November 2020). 
+45. Festo. Parallel Grippers HGPLE. Availa ble online: https://www.festo.com/net/Su pportPortal/Files/10495/HGPLE_ENUS.pdf 
+(accessed on 23 November 2020). 
+46. Electric Grippers RoHS LES Series, Calculating Required Gripping Force. Available online: http://content2.smce-
+tech.com/pdf/LEH.pdf (accessed on 3 November 2020). 
+47. SMC. Gripping Solutions, Pneumatic & Electric Grippers, Quick Overview. Available online: https://www.smc.eu/por-
+tal_ssl/WebContent/corporative/modules/Re pository_e-matters/130_03 –19-e-matters_pro/Grippers_leaflet_en.pdf (accessed 
+on 3 November 2020). 
+48. Kurdi, A.; Chang, L. Recent Advances in Hi gh Performance Polymers—Tribological Aspects. Lubricants  2019 , 7, 2. 
+49. Tasdemir, M.; Babat, V.; Yerlesen, U. Effect of friction and we ar parameters on acrylonitrile butadiene styrene/aluminum-boron 
+carbide-glass spheres polymer composites. Mechanics 2014 , 20, 407–413. 
+50. Melinte, D.O.; Travediu, A.M.; Dumitriu, D. Deep Convolutiona l Neural Networks Object Detector for Real-Time Waste Iden-
+tification. Appl. Sci. 2020 , 10, 7301. 
+51. Corke, P. Denavit-Hartenberg Notation for Common Robots ; PeterCorke: Brisba ne, Australia, 2014. 
+
+--- Page 24 ---
+Appl. Sci.  2021 , 11, 4222 24 of 24 
+ 
+52. Kuyvenhoven, N. PID Tuning Methods an Automatic PID Tuning Stud y with MathCad ; Calvin University Engineering Department: 
+Grand Rapids, MI, USA, 2002; p. 315. 
+53. Melinte, D.O.; Vladareanu, L. Facial Expressions Recognition for Human–Robot Interaction Usin g Deep Convolutional Neural 
+Networks with Rectified Adam Optimizer. Sensors  2020 , 20, 2393, doi:10.3390/s20082393. 
+54. Pasolli, P.; Ruderman, M. Hybrid Position/Force Control for Hy draulic Actuators. In Proceedi ngs of the 28th Mediterranean 
+Conference on Control and Automation, Saint-Raphaël, France, 15–18 September 2020. 
+55. Vladareanu, L.; Tont, G.; Ion, I.; Vladareanu, V.; Mitroi, D. Modeling and hybrid position-force control of walking modular 
+robots. In Proceedings of the American Co nference on Applied Mathematics, Madison, WI, USA, 24–26 May 2010; pp. 510–518. 
+56. Wang, H.; Zhang, D.; Lu, H.; Feng, Y.; Xu, P.; Mihai, R.V.; Vladar eanu, L. Active training resear ch of a lower limb rehabilitat ion 
+robot based on constrained trajectory. In Proceedings of the 20 15 International Conference on Advanced Mechatronic Systems, 
+Beijing, China, 22–24 August 2015. 
+57. Sands, T. Deterministic Artificial Intelligence ; IntechOpen: London, UK, 2020. 

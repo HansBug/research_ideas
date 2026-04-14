@@ -1,0 +1,1076 @@
+--- Page 1 ---
+TheInsandOutsofTheProbabilisticModelCheckerMRMC
+Joost-PieterKatoen∗,IvanS.Zapreev†,ErnstMoritzHahn‡,HolgerHermanns‡,DavidN.Jansen§
+∗RWTH AachenUniversity,52056 Aachen,Germany
+†CWI,1098 XG A msterdam,TheNetherlands
+‡SaarlandUniversity,66123 Saarbr¨ucken,Germany
+§Radboud Universiteit,6500 GLNijmegen,TheNetherlands
+Abstract
+TheMarkovRewardModelChecker(MRMC)isa
+softwaretool forverifying p ropertiesoverprobab ilistic
+models.Itsuppo rtsPCTLand CSLmodelchecking,and
+their rewardextensions.DistinguishingfeaturesofMRMC
+areits suppo rt forcomputingtime-and reward-bound ed
+reachabilityprobab ilities,(property-driven)bisimulation
+minimization,and p reciseon-the-ﬂysteady-statedetection.
+Recent tool featuresincludetime-bound edreachability
+analysisforuniformCTMDPsand CSLmodelchecking
+bydiscrete-eventsimulation.Thispaperpresentsthetool’s
+currentstatusanditsimplementation details.
+1.Introduction
+Quantitativeperformance and dependabilityanalysisof
+computerisedsystemsisgainingconsiderableimportance
+in dailylife.Ensuringminimumbreakdown probabilities
+of,forinstance,componentsofsteer-and b rake-by-wire
+systemsincars,isvital tofulﬁlsafetyrequirementspec-
+iﬁcations suchastheinternationalstandardIEC61508 .
+Hence,answeringtimedreachability questionslike:“What
+istheworstcaseriskto hitasafety-criticalsystemstate
+within 7 d aysofmissiontime?” a searlyaspossibleinthe
+systemdesign processisbecomingindispensable.
+Onewaytoensurethatasystemdesignmeetsits
+safetyrequirementspeciﬁcationistocreate andanalyse a
+formalmodelofthe envisaged design.Probabilisticmodel
+checkingisanautomatedtechniquetocheckwhether
+M|=ϕfora(typically)MarkovianmodelManda
+temporal logicformulaϕ.The advanceoftimeinM
+can be eithercontinuou sordiscrete,the choicebetween
+probability distributionsmay benon-deterministic,and
+rewardsmay be attachedtostatesand/ortransitions.Logics
+are eitherlinear-time(LTL)inwhichcasetheprobability
+ofMsatisfyingϕiscomputed,oraprobabilisticvariant
+This researchwasperformed aspartof theMC=MCprojectﬁnan ced by
+theNetherlandsOrganizationforScientiﬁcResearch(NWO)andtheDFG
+ResearchTrainingGroup 623 on Leistungsgarantienf¨urRechnersysteme.
+WethankManeeshKhattri(OxfordUniv.),ChristinaJansen(RWTH
+Aachen),andTimKemna(Univ.Twente)fortheirimplementationefforts.ofthebranching-timelogicCTL,suchasPCTLand
+CSL.This spansawiderangeofmodelsandlogics,each
+requiringtailoredandspeciﬁcmodel-checkingalgorithms.
+TheMarkov RewardModelChecker (MRMC)isan
+explicit-stateveriﬁcationtool.The coreofMRMCisa
+numericalsolutionenginethatsuppo rtstheveriﬁcation
+ofcontinuou s-and d iscrete-timeMarkovchains(CTMCs
+andDTMCs)againstPCTLandCSLrespectively using
+the(by no w)standard numericalanalysistechniques[18],
+[3].Thiscoreisenrichedwiththesuppo rtforverifying
+rewardextensionsofCTMCsandDTMCs—so-called
+Markov rewardmodels(MRMs)—againstappropriate
+PCTLandCSLextensions[43],[1],[2],mostnotably
+theveriﬁcation o ftime-andreward-bound edreachability
+probabilities.Thisallowsforverifying properties suchas
+“theprobabilitytoreachabadstatewithindtimeunits
+andEunitsofenergyexceeds0.98”.
+MRMCisa command-linetool thathasaneasy-to-
+graspinputformat.Theinput isonthelevelofanexplicit
+statespace.ThisfacilitatesusingMRMCasback-endto
+modellingtoolsforvariousmodellingformalisms.Italso
+makesthetoolapotential testbedfor rapidexperimentation
+with nov elandimprovedalgorithms,becausenospecial
+syntacticstructureneedsto berespected by the algorithm
+designer.Thisdedication hasfound anaudience:Sinceits
+ﬁrstappearanceinthescientiﬁc arena[30],ithasbeen
+usedseveral timesasamodel-checking b ack-end.Some
+exampleformalismsarestochasticprocessalgebras[50],
+[23],Petrinets[14],Statemate[7],andAAD L[8].
+Theintentionto provide a testbedforalgorithmic
+advanceshasturned ou t to be a fruitfulconcept.Over
+thepastfewyears,the core enginewasextendedwith
+severaldistinguishingfeatures:(1)Toalleviatethestate-
+space e xplosion p roblem,MRMCsuppo rtsbisimulation
+minimization o ftheinputmodel.Theminimizationcan
+betailoredtotheformulaunderconsiderationto ob tain
+smallerquotients.Furthermore,(2)MRMChasbeenex-
+tendedwithsuppo rtforCTMDPs,avariantofCTMCs
+with non -determinism,thatcan beregardedasthe common
+semanticmodelofmanyspeciﬁcationformalismsforcon-
+currentstochasticsystems.MRMCimplementsanefﬁcient
+algorithmtocomputemaximal time-bound edreachability
+probabilitiesin uniformCTMDPs[4].Finally,(3)MRMC
+
+--- Page 2 ---
+includesadiscrete-eventsimulationengineforsimulative
+CSLmodelchecking[55].MRMCisthustheﬁrst tool
+withsimulation-basedmodelchecking of fullCSL.
+MRMCisrealisedintheCprogramminglanguage,
+whichallowsthetool to besmallandfastdueto
+compiler-based op timisationsandsmartmemoryman-
+agementwithintheimplementation.Tostorethestate
+space,itusesaslightlymodiﬁed version o fthewell-
+knowncompressed-row,compressed-columnrepresenta-
+tion o fprobability(rate)matricesthat istailoredto
+fastmatrix-vectormultiplication.Itsuppo rtsallmajor
+platforms(MicrosoftWindows,Linux andMacOSX),
+isdistributed und ertheGNU G eneralPublicLicense
+(GPL) [17],andisavailablefor freedownloadat[37].
+Thispapergivesan overviewofthe current toolstatus,
+withaparticular focusontherecentextensions.Wede-
+scribeMRMCv1.4.1asitwillbereleasedinAugust2009 .
+OtherProbabilisticModelCheckers.Inthelastyears,
+modelchecking p robabilisticsystemshasbeenanac-
+tiveresearchﬁeld.Thishasresultedinawholevariety
+ofprobabilisticmodelcheckers,suchasAPMC[21],
+FHP-Murphi[40],Liquor [12],PASS[24],PRISM[25],
+VESTA[45],andYmer [51].Probabilisticmodelchecking
+facilitiesare also present inthestochasticPetrinetstools
+GreatSPN[6]theAPNN Toolbox [9].Someofthese
+toolsaimatspeciﬁcmodels,logicsandmodel-checking
+techniques.Forexample,FHP-Murphi istailoredtoﬁnite
+horizonsafety properties,APMCusesMonte-Carlotech-
+niquesforbound ed-modelchecking ofMarkovchains,and
+PASSexploitspredicate abstractionandcounterexample
+guidedreﬁnementforverifying p robabilisticprograms.
+Ymerimplements statisticalCSLmodel-checkingtech-
+niquesbased on d iscrete eventsimulation[46]andsequen-
+tialacceptancesampling[53].Italsoincorporates simple
+acceptancesamplingandadoptedanumericalenginefrom
+PRISM.VESTAallowsto verifyCSL(PCTL)proper-
+tiesonCTMC(DTMC)models.Thetool implements
+model-checkingtechniques(based on simplehypo thesis
+testing[26])discussedin[53]and[45].PRISM—the
+mostpopu larandadvancedtool intheﬁeld—allows
+fornumericalmodelchecking o fPCTLandCSL.Italso
+suppo rtstheveriﬁcation ofexpectedrewardmeasuresand
+has somefacilitiesfordiscrete-eventsimulation.Unlike
+MRMC,PRISMisasymbolicmodelcheckerusingmulti-
+terminalBDDsfor representingMarkov modelsandin
+contrast toMRMCsuppo rtstheveriﬁcation o fdiscrete-
+timeMDPs.Finally,wementionSMARTasarelated
+toolwhichsuppo rtsthesimulative andsymbolicnumerical
+analysisofCTMCsmodelledasPetrinets,aswellasCTL
+model-checking o fsuchmodels[11].SMARTisusing
+multi-decision diagrams(MDDs) ratherthanMTBDDs.
+OrganizationofThePaper.Section 2 ou tlinesthesup-
+portedmodelsandlogicalformalisms.Section 3 p resents
+theinputformatsaccepted by MRMCand,bymeansof
+examples,introducesthetool’sinteractiveshell.Therecent
+featuresofMRMCarethorough ly discussedinSection 4.Thisincludes:(i)time-bound edreachabilityforCTMDPs,
+(ii)completesuppo rtforsimulation-basedmodelchecking
+ofCSL,(iii)using(strong)bisimulationminimization prior
+tomodel-checking,and(iv)precisesteady-statedetection
+fortime-bound edreachability problems.Section 5 p resents
+implementation details,suchasarchitecturalsolutionsand
+somesource codemetrics.Section 6 concludes.
+2.ProbabilisticVeriﬁcationwithMRMC
+2.1.ModelsandLogics
+MRMCisaimedatperformance a nd d ependability
+evaluationand h asthereforebeenfocused on v erifying
+discrete-andcontinuou s-timeMarkovchains(DTMCsand
+CTMCs)andrewardsextensionsthereof (DMRMsand
+CMRMs,repectively).Itsuppo rtsthelogics:
+modelDTMC CTMCDMRMCMRM uCTMDP
+logicPCTL CSLPRCTLCSRLtime-bound ed
+reachability
+Thekeyingredientoftheselogicsistheprobabilistic
+operator,denotedP; theformulaP≤1
+2(♦Φ)holdsinstate
+swheneverthetotalprobabilitymassofallpathsthat
+start insandeventuallyreachsomeΦ-stateisatmost1
+2.
+(Here,it isassumedthatΦcharacterizesasetofstates.)
+ForDTMCs,theveriﬁcation o fsuch propertiesreduces
+tosolvingasystemoflinearequationswithavariable
+foreachstate.ForCTMCs,thetimeuntilreachingaΦ-
+state can beindicated(asparameterofthe♦modality),
+and v eriﬁcationreducestosolvingasetofVolterrainte-
+gralequations,or,equivalently,toagraphtransformation
+followed by astandardtransientCTMCanalysis.These
+propertiesare complementedwithlong-run properties.
+InDMRMs,statesare equippedwithcosts,called
+rewards,whichareincurredinleaving(orentering)a
+state.KeyformulaeinPRCTLarebesidesthe expected
+accumulatedrewardinΦ-states,e.g.,P≤1
+2(♦≤cΦ)which
+restrictsattentiontothosepathsthatreachaΦ-statewithin
+atotalcostofatmostc.Inasimilarway,CSRLallows
+torequestreachabilitywithinatime-andareward-bound .
+Notethat inCMRMstheincurredrewardinastateis
+proportional totherewardassociatedtothestate andthe
+stateresidencetime.Finally,MRMCsuppo rtsasub-class
+ofCTMCswith non -determinism,viz.so-calledCTMDPs.
+Although itdoesnotcoverafull logic,itcancompute
+maximalprobabilitiesfortime-bound edreachability.
+2.2.State­SpaceRepresentation
+StoringaMarkov chainmay bequite a c hallenge,
+sincemostreal-lifemodelsarerepresented by chainswith
+millionsofstatesandtransitions.Fortunately,most tran-
+sitionmatricesthatappearin probabilisticmodelcheck-
+ing h ave a verysparsestructure,i.e.,containalarge
+numberofzeroes.Thereforeusingsparsematrices,such
+
+--- Page 3 ---
+1
+null
+nullsucc
+pred
+rowsnrows = 3
+ncols = 31
+0.5col
+val
+diag = 0.5
+back_set 1
+valcol
+diag = 0.0
+back_set 00 2
+0.25 0.75
+col
+val
+back_setdiag = 1.0
+11 2 0
+1 1
+Figure1:Anexampleofthesparsematrixrepresentation usedinMRMC
+asa compressed-row(compressed-column) representation
+(see[41] formoredetails),asadatastructureforprob-
+ability(rate)matricesisadvantageous.Thesestructures
+allowtoavoidthestorageof,andcomputation on ,alarge
+numberofzeroeswhilekeepingthemanipulationsofdata
+relativelycheap.
+ForMRMC,asrecommendedin[48],wehave chosen
+thecompressed-rowrepresentationbecauseitassuresa
+highefﬁciency ofmatrix–vectormultiplicationswhichare
+at the coreofnumericalmodelchecking.Similardata
+structureswereimplementedinthe(by 2004 ) fastestserial
+and parallelexplicitMarkovchainsolver [5].
+In ou rimplementationasparsematrixisrepresented
+byastructure containinganumberof rowsnrows; the
+numberofcolumnsncols;anarraythatstoresthenumber
+ofnon-zero off-diagonalelementsforeachrowsucc;an
+array ofpointerstothestructurerepresentingamatrixrow
+rows;andanarraypred,thatcontainsthenumberof
+non-zero off-diagonalelementsforeachcolumn.Rowand
+columnindices startat0.Notethatself-loopsarenot taken
+intoaccountbysuccnorpred.
+Therowstructurefor rowihas severalﬁelds,namely
+thediagonalelementdiag;anarray ofnon-zero off-
+diagonalvaluesval;anarray ofcorrespond ingcolumn
+indexescol;andanarraybackset,thatcontainstherow
+indicesofnon-zero off-diagonalelementsincolumni.The
+backsetarrayisusedforbisimulationminimizationand
+inthemodel-checkingalgorithmsofPCTLandCSL.
+Example1:ConsiderthematrixP:
+P=2
+40.50 0 .50 0 .00
+0.25 0 .00 0 .75
+0.00 0 .00 1 .003
+5
+Figure1showsthedatastructuresthatare allocatedfor
+matrixPinMRMC.Thematrixstructure(ontheleftof
+theﬁgure)hasthenumberofcolumnsandrows set to 3.
+Itssuccarraycontainsvalues1,2and 0 b ecauserowzero
+hasonly on enon-zero off-diagonalelement0.5,rowone
+hastwoelements0.25and 0 .75,androwtwo hasnone.
+Thepredarraycontainsonesbecause eac hcolumn has
+onenon-zeroelement(beneaththediagonal).The arrayelementrows[0]storesthepointertothe
+structurerepresentingrow0.Thisrowstructurehasthefol-
+lowingﬁelds: the arraycolcontainsone element(column
+index 1)becausetheonly non -zero off-diagonalelement
+oftherowisP01.Thevalueofthiselement is storedinthe
+correspond ingelementofthe arrayval.Theﬁelddiagis
+set to 0.5,thediagonalelementP00.The arraybackset
+containstherowindex 1,becauseP10isnon-zero.
+Anadvantageofthe compressed-rowrepresentationis
+that itgivesaneasyaccesstothematrixrows.Thelatteris
+crucialforthe efﬁciency ofmatrix–vectormultiplications,
+whichare at theheartofthenumericalmodelchecking.
+Storingrows separatelysimpliﬁestheprocedureofmaking
+statesabsorbing.Thefact that thematrix diagonalelements
+arestoredseparatelyfromthenon-diagonalelementsfa-
+cilitatesoptimisationsofmatrixtransformations,suchas
+computation ofanembeddedMarkovchain.
+2.3.ModelCheckingMarkovChains
+The algorithmsforPCTLmodelcheckingthathave
+beenrealizedinMRMCaregivenin[18].Priortocheck-
+ingan until-formula,agraphanalysisidentiﬁesthestates
+fromwhichthegoalstateisunreachabletoreducethe
+numberofvariablesinthelinearequationsystem.MRMC
+extendsPCTL[18]withalong-run op erator,whichis
+checked by a combination o fgraphanalysis(toﬁnd
+bottomstronglyconnectedcomponents[BSCCs]),reacha-
+bility probabilities(oftheseBSCCs),andsolvingasystem
+oflinearequations(oneperBSCC).Thisrecipeisvery
+similartothetreatmentofthesteady-stateoperatorinCSL.
+MRMCusestheiterativeGauss–SeidelandGauss–Jacobi
+techniquesforsolvingsystemsoflinearequations[48].
+ThePRCTLalgorithmsinMRMCaredescribedin[1].
+CSLmodel-checkingtechniquesinMRMCstemfrom[3]
+andforitsrewardextensionCSRLfrom[2],[13],[20].For
+time-andreward-bound ed untilformulaewehaveimple-
+mentedtwoalgorithms:onebased on d iscretization[49]
+and on ebased on un iformizationand pathtruncation[43].
+The algorithmsforPRCTLandCSRLsuppo rtbothstate
+andimpulserewards,i.e.,instantaneousrewardsonedges.
+The algorithmformaximalprobabilitiesfortime-bound ed
+reachability on CTMDPshasbeen givenin[4].
+3.MRMC:LookandFeel
+TheMRMCInputFormat.Consideradiewithfour
+facesnumbered 1through 4 .Thedieisbiasedsuchthat
+theoutcomesareobtainedwith probability 0.4,0.3,0.2,
+and 0.1,respectively.TheDMRMinFig.2consistsofﬁve
+stateswherestate0representsthetossandstates1through
+4thepossibleoutcomes.Thestaterewards,indicated
+as statelabelsbetweensquarebrackets,model thegains
+obtained.Inagame,thedieistossedrepeatedly.Thedice
+gameiswoniftheoutcomeis4(propositiongoal)and
+thegain,i.e.,the acc umulatedrewardisbetween 5and
+50,andlostoncetheoutcomeis1(propositionloss).
+
+--- Page 4 ---
+02
+1 43
+0.2
+1.0
+1.00.1
+0.41.00.31.0
+{loss} { goal}[4] [1][2] [3]
+Figure2:A DMRMmodelofasimpledicegame
+Table1liststheMRMCinputﬁlesto describetheDMRM.
+Theﬁlegame.tra liststhestatetransitionswiththeir
+probability; theﬁlegame.lab containslabeldeclarations
+and providesthestate-labeling;ﬁnally,theﬁlegame.rew
+containsthestaterewards.Possibleimpulserewards(not
+present inthe example)would beprovidedinaseparate
+ﬁlename.rewi ﬁle.
+game.tra game.lab game.rew
+STATES5 #DECLARATION1 1
+TRANSITIONS8lossgoal 2 2
+0 1 0 .4 #END 3 3
+0 2 0 .3 1loss 4 4
+0 3 0 .2 4 goal
+0 4 0 .1
+1 0 1 .0
+2 0 1 .0
+3 0 1 .0
+4 0 1 .0
+Table1:MRMCinputﬁlesforthedicegame
+TheMRMCInteractiveShell.MRMCisa command
+linetool thatprovidesashell-like environment(a com-
+mand prompt)where ausercanspecifythetoolrun-time
+options suchastheuseofspeciﬁcnumericalalgorithms
+orcertainrun-timeparameters,andthepropertiesto be
+veriﬁed.Uponstartup,MRMCaccepts severalcommand-
+lineoptions,e.g.,thatspecifythemodel.In ordertostart
+MRMCwiththe aforementionedinputﬁles,thefollowing
+commandshould beissued:
+MRMC/bin> ./mrmc dmrm game.tra
+game.lab game.rew
+Subsequently,MRMCoutputsitslogo,somegeneral in-
+formationabout the acce ptedmodel(likememorycon-
+sumption)andtheprompt>>signallingthat thetool isup
+andrunning,readytoacceptusercommands.Forevery
+veriﬁcation problemthetool liststhestates satisfyingthe
+given propertyand,ifapplicable,theprobability ofthe
+required path orstateformula.Let’sconsiderasmall
+example.Suppo sewewant to kno wthe answerto:“Isthe
+probabilitytowinthisgamewithin 100 tosses,largerthan
+0.5?”We canaskMRMCbyenteringaPRCTLformula:
+>> P>0.5[ !loss U[0,199][5,50] goal]
+whereitshould benotedthat100 tossescorrespond to
+199timesteps.MRMCthen outputs:$RESULT: ( 0.0647999, 0.0000000,
+0.0959998, 0.1199998, 0.1199997 )
+wheretheprobability vector$RESULT indicatesthelike-
+lihood o fstateisatisfying¬lossU[0,199]
+[5,50]goal,and
+$STATE: { }
+The model-checking time is 45 milli
+sec(s).
+>>
+where$STATE isthesetofstates satisfyingtheformula.
+Asforeachstatethelikelihood is≤0.5,it isempty.
+4.MRMC RecentFeatures
+4.1.TimedReachabilityinCTMDPs
+Acontinuou s-timeMarkov d ecision process(CTMDP)
+extendsCTMCswith non -deterministic choices.Asfor
+CTMCs,themodelconsistsofstates,andthetimed
+behaviourisgoverned by expon entialdistributions.But
+differentfromCTMCs,eachstatemayfeature anumberof
+non-deterministicdecisionsofnext-step distributions.The
+classofCTMDPsisofinterest,becauseitcan beviewed
+asa commonsemanticmodelforvariousperformance and
+dependabilitymodellingformalismsincluding generalized
+stochasticPetrinets[10],Markovianstochastic activity
+networks[44],andinteractiveMarkov chains[22].So
+far,the analysisofmodelsdevelopedinthese andrelated
+formalismswasrestrictedtothesubset thatcorrespond s
+toCTMCs,usuallyreferredtoas“non-confused”,“well-
+deﬁned”,or“well-speciﬁed”.
+Non-deterministicdecisionsaredecisionswe ca nnot
+actuallyconnectaprobability distributionwith,asit is
+unkno wn ornotapplicable.Suchchoicesmayresultfrom
+underspeciﬁcation ofthemodel,orbyleaving ou tproba-
+bilitieswedo no thave enough informationabout,likeuser
+actionsorcertainenvironmental inﬂuences.Usually,labels
+areusedto distinguishthenon-deterministic alternatives,
+andthisisindeedalsothe caseinthemodelsuppo rted
+byMRMC.However,MRMCalsosuppo rtsmodelswhere
+thereisinternalnon-determinismbetweenequallylabelled
+nextsteps.Insummary,aCTMDPspeciﬁcationconsists
+ofstatetransitions,correspond ing d istributions,anda
+labellingfunctionthatmapstransitionstolabels.
+Aswehavenon-deterministicdecisions,we cannot talk
+abouttheprobability ofaproperty ofthemodel.Instead,
+probabilitiesresultfromchoosinganinstancewhichre-
+solvesthenon-deterministicdecisions,ascheduler.The
+toolsuppo rtsthe computation ofthemaximumprobability
+withwhichasetoftargetstatescan bereachedwithin
+agiventimebound .Forthisitassumes(butdoesnot
+check)that themodel isuniform,whichmeansthat there
+isauniquerateEsuchthatforeachstate andeach non -
+deterministic alternative,thetotaloutgoingrateofthis
+alternativeisE.
+AlgorithmicDetails.MRMCimplementsanalgorithm
+thatefﬁcientlycalculatestime-bound edreachability proba-
+bilitiesin uniformCTMDPs[4].Theschedulersconsidered
+
+--- Page 5 ---
+N...21
+left
+switchbackbon eright
+switch
+N...21 failrepair
+workstation500 h 0.5 h
+switch 4000 h 4 h
+backbon e5000 h 8 h
+Figure3:FTWC withmeanfailandrepairtimes
+arehistorydependent,i.e.they haveinformationaboutall
+previous statesvisitedandtransitionstaken,but they do
+nothaveinformationabout the exactpointoftime astate
+isentered.Tocomputethemaximumit isenough consider
+schedulerswhich on ly kno wthelengthofthehistory.
+Algorithmically,agreedy backwardsalgorithmisusedto
+achievethis,andthisiswhat isintegratedinMRMC.
+ExperimentalResults.Asanexample application,we
+showresultsobtainedforafault-tolerantworkstationclus-
+ter (FTWC),originallystudiedin[19].Thegeneraldesign
+oftheworkstationclusteris shown on theleft-handsideof
+Fig.3.Itconsistsoftwosub-clusterswhichare connected
+via abackbon e.There areNworkstationsineachsub-
+clusterwhichare connectedtogetherinastar-topology
+withaswitchascentralnode.Theswitchesprovide
+additionallytheinterfacetothebackbon e.Each ofthe
+componentsinthefault-tolerantworkstationclustercan
+break do wn(fail)andthen needsto berepaired before
+becomingavailable again.Themeantimetofailure and
+themeanrepairtimeforeachcomponent inisolationare
+depicted on theright-handsideofFig.3.Theycorrespond
+tomean du rationsofexpon entialdistributions.Thereis
+asinglerepairunitforthe entire cluster,notdepictedin
+theﬁgure,whichisonlycapableof repairing on efailed
+componentatatime.Essentially,thismeansthatwhen
+multiple componentsaredown,theymustbehandledin
+sequence,andthereisanon-deterministicdecisionto be
+takenwhich ofthefailedcomponentstherepairunit is
+assignedtoﬁrst(ornext).
+To generatetheCTMDPrepresentingtheoverallsystem
+weusedtheIMCcalculusas suppo rted by theCADP
+toolset;detailsare explainedin[28].Asin[19]wesay
+thatoursystemoperatesin premiumqualitywhenat least
+Nworkstationsareoperational.Theseworkstationshave
+to be connectedtoeach otherviaoperationalswitches.
+Whenthenumberofoperationalworkstationsin onesub-
+clusterisbelowN,premiumqualitycan be ensured by an
+operationalbackbon eunderthe conditionthat there areN
+operationalworkstationsintotal.We areinterestedinthe
+following property:“What istheworstcaseprobab ilityto
+hitastateinwhich premiumserviceisnotguaranteed
+withinttimeunits?”forwhichwereportresultsand
+statisticsinTable2.Theﬁrstcolumn depictsthenumber
+ofworkstationsoneachside,thenext twocolumns show
+theoverallmemoryrequiredandthenumberofstatesof
+theCTMDP.Theremainingcolumns showtheresultsof
+the computationfortimebound srangingfrom100h to
+50000h .ForeachNwedisplaythe computationtimein
+theupperpartoftherowandthe computed probabilityin
+thelowerpart.N memory states100 h 1000 h 5000 h 10000 h 50000 h
+1 4.12MB 1100s 0s 0s 0s 2stime
+0.00 0.01 0.04 0.09 0.36prob.
+4 4.26MB 8180s 0s 2s 3s 15stime
+0.00 0.02 0.09 0.18 0.62prob.
+16 5.25MB 101300s 2s 10s 19s1m34stime
+0.01 0.08 0.32 0.54 0.98prob.
+64 22.16MB1510586s 38s3m6s5m41s28m0stime
+0.03 0.23 0.73 0.93 1.00prob.
+256 288.31MB23736501m39s12m33s59m11s118m22s642m3stime
+0.05 0.43 0.94 1.00 1.00prob.
+Table2:StatisticsfortheFTWC analysis
+Aswe cansee,theCTMDPalgorithmperformswell
+evenforexampleswith verylargestatespaces:Themodel
+inthelastrowhasabout2millionstatesandabout20
+million non zeromatrixentries.Thisholdsalsoforother
+examples,see[28].
+Theinherentnon-determinisminthespeciﬁcation h as
+beenignoredintheoriginalmodel[19]andinsubsequent
+work,e.g.,intheFTWCmodelusedand generated by the
+modelcheckerPRISM[42].There,thenon-deterministic
+decision ofwhichsystemtorepairifseveralsystemsfailed
+hasbeenmodelled usingaveryfast,butprobabilisticdeci-
+sion,encoded viatheuseofvery highrates(ofexpon ential
+distributions)assignedtothedecisivetransitions.These
+highratesare absent intheoriginalproblemstatement
+wheretherepairunit isassigned non -deterministically.
+Remarkably,thismodellingtrickresultsinan overesti-
+mation o fthetrueprobabilities(obtained viatheCTMC
+engineofMRMC,reconﬁrmedwithPRISM).Thisisquite
+surprising,becausetheCTMDPalgorithmaccountsforthe
+worst-case.Nothingworseispossibleinthemodel,and
+wewouldthusexpect,that thisprobabilitywillbehigher
+thaninanycorrespond ingCTMCmodelofthesystem.
+Thisoverestimation,whichindicatesamodellingﬂawin
+theCTMCapproach,can be explainedasfollows.When
+replacinganon-deterministicselection by h ighrates,cer-
+tain pathsbecomepossible(though withlowprobability),
+that inanon-deterministicinterpretationwould be absent,
+andthusnotcontributetothereachability probability.For
+amoredetailedexplanation ofthisphenomenonwerefer
+theinterestedreaderto[28].
+4.2.Simulation­BasedCTMCModelChecking
+ThenumericalanalysisalgorithmsinMRMChave
+recently beencomplemented by simulation-basedmodel-
+checkingalgorithmsforCSL.Asoppo sedtothe ap-
+proachestaken by Ymer [51],[54]andVESTA[45]that
+exploitstatisticalhypo thesistesting,MRMCusesclassical
+discrete-eventsimulation(DES)techniquesforCTMCs.
+Inessence,we exploitcontinuou s-timeterminatingsimu-
+lationsfortime-bound ed untilformulae(wherethetermi-
+nationconditionsarenaturallyinduced by theformula),
+standardregenerativesimulation on embeddedDTMCs
+forsteady-stateformulae,andterminatingsimulationson
+
+--- Page 6 ---
+embeddedDTMCsforunbound ed un til-formulae(where
+reachinga certain nu mberofstepsactsasterminating
+condition;see also below).Inthe currentversion,it is
+assumedthat thestructureoftheCTMCathand—infact,
+itsBSCCs—isknown priortothesimulation,i.e.,it is
+notafully on-the-ﬂysimulationengine.Inanextversion
+ofMRMC,it isplannedto ob tainthisduringstate-space
+generationfromAAD Lspeciﬁcations.Fulldetailsofthe
+simulationalgorithmsareprovidedin[55,Ch.6].
+BasicStrategy.Tocheckwhethere.g.,s|=P>b(ϕ),
+anestimate/tildewidepoftheprobabilitymasspofallϕ-paths
+startinginsisdetermined usingstandardDEStechniques.
+Letξbetheuser-speciﬁedconﬁdenceoftheresultand
+δ′themaximumwidth ofthe conﬁdenceinterval.The
+probability ofobtaininga correctanswertothemodel-
+checking problems|=P>b(ϕ)isnowguaranteedto be at
+leastξprovidedδ′≤|b−/tildewidep|.
+ConﬁdenceIntervals.Aslightadaptation o fstandard
+sequentialconﬁdenceintervalsisexploitedinwhichthe
+samplesize a ndsimulation d epthcan be adapted on
+demand.IncombinationwiththeAgresti–Coullconﬁdence
+intervalsforBernoulli trials,quite acc urateresultsare
+obtained.WeillustratethisbymeansoftheCPScase
+study wherewe checkP≥0.99/parenleftbig
+♦[40,80]serve1/parenrightbig
+wherethe
+propositionserveiuniquelyidentiﬁesastateinwhich
+stationiisbeingserved.ForN∈{6,9},whereNis
+thenumberofstations,p=0.9988andp=0.9888,
+respectively,whichisveryclosetothebound b=0.999.
+Thisleads(cf.Fig.4)toa conﬁdencesigniﬁcantly below
+theuser-deﬁnedξ=0.95 usingYmerandYmerP—the
+variantofYmerthatuses sequentialconﬁdence-interval
+approach based on [39].Although δ′>|b−/tildewidep|,MRMC
+providesmore acc urate answersasitsalgorithmﬁrstsimu-
+latesuntil the conﬁdenceinterval istighterthanδ′andthen
+continues simulation un til it reachesthedeﬁnite answerto
+themodel-checking p roblem.This strategyincreasesthe
+accuracy becausethewidth oftheresultingconﬁdence
+intervalcan bemuchsmallerthanδ′.(NotethatVESTA
+doesnotsuppo rt intervalslike[40,80]astimebound s.)
+Thepenaltyforthisincreasedaccuracyisanincreasein
+ 0.5 0.6 0.7 0.8 0.9 1
+ 2  4  6  8  10  12  14  16  18Confidence, probability
+NMRMC
+Ymer
+Ymer P
+Figure4:ConﬁdencelevelsforP≥0.99`♦[40,80]serve1´
+thesamplesize,i.e.,thenumberofstatesthatarevisitedduringthesimulation(cf.Fig.5),and,accordingly,yields
+largermodel-checkingtimes.Despitethelargernumber
+of requiredstatesthanYmerP,MRMCisaboutafactor
+8timesfaster.Ymerneedsless statesforlargerNsince
+b−˜pbecomeslargerinthatcase,andthusYmercan
+decidethevalidity oftheformulawithless samples.
+Ourexperimentswith othercases showedthatfor (time-
+ 10000 100000 1e+06 1e+07 1e+08
+ 2  4  6  8  10  12  14  16  18Number of required observations
+NMRMC
+Ymer
+Ymer P
+Figure5:#observationsforcheckingP≥0.99`
+♦[40,80]serve1´
+bound ed)untilformulaethepeak-memoryconsumption
+(VSZ)ofMRMCislinearly proportional tothemodelsize.
+SimpleReachabilityProperties.Forunbound edcondi-
+tionalreachability properties,MRMCusestwoindepen-
+dentsamples soastoensurethe correctconﬁdencelevel.
+Incontrast toVESTAthatusesaso-called“stopping”
+probabilityto gu esswhether fromastate agoalstateis
+never reached,MRMCusestheCTMC’sgraphstructureto
+ruleoutstatesthat lieinBSCCs.Thenthesimulation bo ils
+downtoestimatingthestationary probabilitiesto beina
+goalstate,whichcan be estimated by thestateprobabilities
+oftransientstates.Thisyieldsadrasticreduction o fthe
+needed numberofsimulatedstates,cf.Fig.6.Infact,we
+simulateuntil theN-thepoch,increasingitalong with
+increasingthesamplesizeM(alternatingtheincreaseof
+MandN).The conﬁdenceintervalsareformedfromthe
+conﬁdenceintervalfortheprobabilityto beinagood
+absorbingstate(i.e.,agoalstate)andtheprobabilitiesto
+beinagood absorbing ortransientstate,atepochN.
+ 1000 10000 100000 1e+06 1e+07
+ 1  10  100  1000Number of required observations
+NMRMC
+VESTA
+Figure6:SamplesizesforcheckingP≤0.03(¬full1Ufull2)
+
+--- Page 7 ---
+CheckingSteady-StateFormulae.Forsteady-statefor-
+mulae,theprobabilityestimate˜pisbased on combining
+estimatesofstationary probabilitiesintheBSCCsand
+estimatesforthesimplereachability probabilitiesofthese
+BSCCs.Thelatteronesareobtained by regeneration-
+basedsimulation o fthe embeddedDTMCasoriginally
+proposedin[27].Thisapproachisjustiﬁed by thefact
+thatonlythe exitratesoftheCTMCareof relevancefor
+obtainingapointestimate andconﬁdenceinterval.For
+realfunctionfonthestatespace a ndα=E[f(X)]
+whereXistherandomvariabledescribingtheCTMC
+inequilibrium,thepointestimateforαisobtained by
+simply dividingthe expectedaccumulated valueoffalong
+allregenerationcyclesbythe expected du ration o fsuch
+cycles.In ordertoselectaregeneration po int,MRMC
+offerstwo po ssibilities:adeterministic choice,ortheuse
+ofasimpleheuristicwhereit ischosenasthemost
+recurringstateinatestrun p recedingtheveriﬁcation.
+ExperimentshaveshownthatforergodicMarkovchains,
+modelcheckingresultscould beobtainedinamatterof
+secondsusingtheheuristic,whereasaﬁxedchoiceof
+regeneration po intdid notyieldresultswithin 15 minutes.
+MRMCalso offersthe choicebetween dyn amic(D)and
+constant(C)sample-sizesincrease.Thelatterallowsto
+improvetool’sperformanceonsmallermodels,cf.Fig.7.
+NeitherYmernorVESTAprovidesuppo rtforsteady-
+ 100 1000 10000
+ 2  4  6  8  10  12  14  16  18Computation time, milli sec(s)
+NMRMCCMRMCD
+Figure7:Model-checkingtimesforS>0.19(busy1)(time)
+stateproperties.Ourexperimentsrevealedthat thememory
+consumptionforsimulatingsteady-stateformulaeismuch
+higher (aboutafactor5)thanforuntil-formuladueto
+thestorageofsamples.Inaddition,computingconﬁdence
+intervalsrequiresmuchmore effortasestimatesare condi-
+tionalprobabilities.Forefﬁciencyreasons,we excludethe
+computation o fconﬁdenceintervalsforBSCCsthatare
+almostsurely(non-)reachable.Amore extensive empirical
+evaluation o fMRMC’s simulationengine can befound
+in[32].
+4.3.BisimulationMinimization
+Bisimulationminimizationisa(by no w)standard
+method toreducethesizeofaMarkov chainwhile
+preservinginteresting properties suchasthevalidity of full
+CSL.Basically,statesthatexhibit thesameprobabilisticbehaviouraredeﬁnedto be equivalent,and on etakesthe
+quotientunderthisequivalencerelation.The appealing
+featureofthisabstractiontechniqueisthat it i sfully
+automated.MRMCoffersbisimulationminimizationfor
+PCTL,CSL,PRCTLandCSRLmodels(inthelattertwo
+caseswithout impulserewards).
+AlgorithmicDetails.MRMCimplementsthetime-optimal
+partitionreﬁnementalgorithmof [16].Themainstepin
+partitionreﬁnement issplitting.LetΠbe apartition o f
+thestatespaceS.Asplitter forsometentative equivalence
+classB∈ΠisasetofstatesSp∈Πsuchthat the
+probabilitytoenterSpisnot thesameforeachstatein
+B.Aslong as splittersexist,the algorithmsplitsBinto
+subclasses suchthateachsubclassconsistsofstatesswith
+identicalP(s,Sp).This stepisrepeated untilaﬁxpoint is
+reached.Theﬁnalpartitionisthe coarsestbisimulationthat
+respectstheinitialstatespacepartition.
+Evensmallerquotientscan beobtainedwhentailor-
+ingtheinitialpartitiontotheCSL/PCTLformulato be
+checked.Whereasordinary bisimulation groups stateswith
+equalatomicpropositions,property-driven bisimulation
+startswithapartitionthatonly preservestheimmediate
+subformulasofthepropertyathand(3–4subsets).
+DataStructures.Theworst-casetime complexity of
+thisalgorithmisO(|P|log|S|)ifoneuses splaytrees
+tostorethesubclasses.Asplaytreeisaself-balancing
+binarysearchtreewiththe additionalpropertythatrecently
+accessedelementsarequicktoaccessagain[47].One
+basically hastosortamultiset,i.e.,asetwherethe
+sametransition p robabilityP(s,Sp)mayappearmore
+than on ce[38],andsplaytrees servetoimplementsuch
+asortalgorithm.Withageneralsortalgorithm,thetime
+complexityraisestoO(|P|log2|S|).In[15],it is suggested
+thatred–blacktreesforsortingmay bemore efﬁcient
+in practice,butourexperimentshaveshownthat thisis
+not the casein general.Thismay beduetothemuch
+more compleximplementation o fthedatastructure and
+operationsonit.MRMCthereforeusesanefﬁcient imple-
+mentation ofsplaytreesdeveloped by Sleator.Werecently
+experimentedwith othersortalgorithms:heapsortand
+quicksortcan be adaptedtomultisets.(Ourimplementation
+of)heapsort isapproximatelyasfastas splaytrees,and
+with quicksortwe couldacceleratethe averageruntimeof
+MRMCbyafactorof1.3–2.5forlargermodels.
+ExperimentalResults.Traditionalbisimulationminimiza-
+tion o ftenleadsto drastic(uptoexpon ential)decreases
+instate-spacesize,butmostlycomesatatimepenalty,
+i.e.,CTLandLTL modelchecking oftheoriginalmodel
+isfasterthanﬁrstminimizingand v erifyingthequo-
+tient.However,thetime-complexity ofprobabilisticmodel
+checkingis suchthat itoftenisadvantageoustocalculate
+thebisimulation quo tientﬁrst.Extensive experimentswith
+awiderangeofbenchmarkcasestudies—withand
+withoutstaterewards—has shownthepracticalusability
+ofbisimulationminimization;for fulldetails see[29].
+
+--- Page 8 ---
+Weoften ob tainsigniﬁcantstate-space reductions,and
+inmostcasesaspeed-upisachieved.ForDTMCsand
+CTMCs,thetotalruntimeisreduced by afactor2–10 ,
+withextremesofupto 60 (fortheCPSwithN=15
+stationsandan unbound ed-untilformula).Randomized
+mutualexclusion(RME)could be checkedabout3times
+fasterwithoutbisimulationminimization.(Using qu icksort
+instead ofsplaytreesdid no t improvetheruntimevery
+much here.)Because checkingmodelswithrewardsis
+rathertime-consuming,astronomicalsavingsare achieved
+there.Thetimereductionstrongly dependsonthenumber
+oftransitionsintheMarkovchain,its structure,aswellas
+onthe convergencerateofnumericalcomputations.1
+Property-driven bisimulation p aysoffinevenmore
+cases:e.g.,intheRMEcasestudy,it is1–1.7timesfaster
+than verifyingtheoriginalmodel.Forproperty-driven
+bisimulation on modelswithoutrewards,thespeedup
+comeswithalmostnomemory penalty: thepeakmemory
+usemay beincreased by up to 8%,although typicallyit is
+reduced or remainsunchanged;forordinary bisimulation
+some experiments showedanincreaseofpeakmemory up
+to 50 %.InexperimentswithMRMs,we experienceda
+21–46 %reductionin peakmemory use.
+ExperimentswiththeP2Pcasestudyshowedthatbisim-
+ulationminimizationleadstoasigniﬁcantlystrongerstate-
+spacereductionthansymmetryreduction[33].Symmetry
+reductionis—asexpected—muchfasterthan bisimulation
+minimizationasitoperatesonasyntaticlevel,but thisisa
+somewhatunfaircomparisonasthesymmetrieswereindi-
+catedmanually.Theseresults suggest that it isaffordable
+toﬁrstapplya(fast)symmetryreduction,followed by a
+bisimulation quo tienting on theobtainedreducedsystem.
+4.4.On­The­FlySteady­StateDetection
+Sinceveriﬁcation oftime-bound edreachability proper-
+tiesofCTMCsreducestotransientanalysis,it iscommon
+practiceto use—especiallyforlargetimespans—on-
+the-ﬂysteady-statedetection,cf.[35],[52].Theidea
+behindthistechniqueistosave expensiveiterationsteps
+by d etectingthat theCTMChasreacheditsequilibrium
+beforethe end ofthetimebound .Mostprobabilisticmodel
+checkersadopt thistechniqueasis,thus sufferingfrom
+apossibleprematuresteady-statedetection,e.g.,when
+theCTMCmovesataveryslowrate.Thisisbecause
+fortransientanalysisthere arenosufﬁcientand veriﬁable
+convergence criteria,cf.[48].MRMCistheonlytool that
+incorporatesprecisesteady-statedetection,cf.[31].This
+techniqueisbased on thefact that,whencheckingfor
+time-bound edreachability,theoriginalCTMCismade
+absorbing.Its statespaceisthensplit intotransientstates
+thatareneutral,andabsorbingstatesthateithersatisfy or
+violatetheproperty.Then,the convergenceisdetermined
+bytheprobabilitymass stillresidinginthetransientstates.
+1.The experimentswereperformed usingMRMCv1.2releasedin
+November2006 ;sincethenthebisimulationenginehasnotchanged. 1e-09 1e-08 1e-07 1e-06 1e-05 0.0001 0.001 0.01 0.1 1 10
+ 0  1  2  3  4  5  6  7  8Probability (log-scale)
+ODETMCC
+Prism (abs)
+Prism (rel)
+MRMC, SSD On
+UltraSAN
+Figure8:Prematuresteady-statedetection
+Letusconsidertheveriﬁcation o favariantofthe
+centralizedmediumaccessprotocoloftheIEEE 802.11
+standard,forwhichMassinket.al.reportedtheprema-
+turesteady-statedetectionin[36].Asinthatwork,we
+determinetheprobabilitythatamessageoriginatingfrom
+the acce sspoint isnotreceived by at leastonestation
+withintheduration ofthetime-criticalphase,i.e.,t=2.4
+seconds.Thistimespanisextremelylarge,comparedtothe
+duration o feach protocol’soperation.Figure8indicates
+that theresultsofMRMCv1.4.1,coincidewiththe(exact)
+valuescomputed by UltraSAN[44],whereasPRISMv3.2
+(absolute andrelative criteria),andE⊢MC2v1.0suffer
+fromprematuresteady-statedetection.TheparameterOD
+onthex-axis standsfortheomission degreeoftheprotocol
+and denotesthemaximalnumberofconsecutivelossesof
+thesamemessage.Thisparameterdeterminesthesizeof
+thestatespace.Notethat,theprotocol’smodelandits
+parameterswere adoptedfrom[36],thetools’optionsare
+asinSection 3.5 of [55].
+Tosummarize,thesteady-statedetection o fMRMC
+isprecise and do esnotchangethemodel-checktime
+complexity.For runtime,itrequirestostore andcompute
+one extraprobability vector.Theveriﬁcationtimes,priorto
+steady-state,(rough ly)doub le.Ifthe equilibriumisreached
+at timet′,thesteady-statedetectionwillreduceveriﬁcation
+timesforthepropertieswithtimespanst≥2·t′.
+5.MRMC ArchitectureandImplementation
+An overviewofthetoolarchitectureofMRMCisgiven
+inFig.9.Itsmaincomponentsare:
+Optionsanalyzer:isresponsibleforparsingthe command-
+lineoptionsofMRMC.It invok esreading o ftheinput
+ﬁlesandsetstherun-timeparametersofthetool,such
+asthelogic andtheuseof (property-driven)bisimulation
+minimization.
+Runtimesettings:storestherun-timesettingsofMRMC,
+e.g.,the errorbound s,themaximumnumberofiterations
+forthenumericalmethods.
+Input-ﬁlereader:isresponsiblefor readingthe.tra ,
+
+--- Page 9 ---
+Internal−data storage:
+Sparse matrices, etc.Command−prompt interpreterOptions analyzer
+Runtime settingsMRMCInput−file reader.lab fileAP labeling
+Numerical engines:
+Fox−Glynn,
+Gauss−Seidel,
+Gauss−JacobiengineminimizationBisimulation.rew/.rewi filesRewards
+Yes/NoCommands
+PRCTL
+PCTL
+CSRL
+CSLDMRM
+DTMCPCTLPRCTL
+CMRM
+CTMC.tra fileCTMC DTMC
+Options
+State probabilitiesCommon model checkingSimulation EngineCSRL
+CSL
+CTMDP.ctmdp fileCTMDP
+Figure9:ToolarchitectureofMRMC
+.lab ,.rew and.rewi ﬁlesthatspecifytheinputmodel.
+Internaldatastorage:containsimplementationsofdata
+structuresusedinMRMC,suchas:sparsematrix,abit
+set,structuresforstoringstatelabels,andsplaytreesused
+in bisimulationminimization.
+Command-prompt interpreter:isbased onyacc and
+lex,andisresponsiblefor: interpretingtheMRMCshell
+commands(suchas settingerrorbound s,desired numerical
+methods)andformulas,controllingthebottom-uprecur-
+sivedescentovertheformula,and printingtheresults.
+Commonmodelchecking:containsasetofgenerally-used
+algorithmsappliedinmodelchecking,e.g.,proceduresfor
+searchingBSCCs,andsteersthemodelchecking.
+Bisimulationengine:provideslumpingalgorithms.
+Numericalengines:implementationsofnumericalmeth-
+odsforcomputingPoisson probabilitiesanditerativemeth-
+odsforsolvingsystemsoflinearequations.
+Simulationengine:DES-basedCTMCmodelchecking.
+AccordingtoCCCC (v3.1.4) [34],MRMCv1.4.1con-
+tainsabout12,000 non -blank,non-comment linesofsource
+code,andaround 15 ,500linesofcomments.ItsMcCabe’s
+cyclomatic complexity(thenumberoflinearlyindependent
+routesthrough the controlﬂowgraph)is2,354.Note
+thatvaluesexceeding 50 are consideredtoindicatevery
+complex programs.MRMCisconstantlytested by an
+automatedtest-suite[37].Thelatterincludesmostofthe
+casestudiesdiscussedinthispaper.
+6.Conclusions
+Thispaperpresentedthe currentstatusofthemodel
+checkerMRMC,atoolforthe automated veriﬁcation
+ofMarkov rewardmodels.Themaincontributionsof
+thispaperare:aﬁrstreportontheinternalsofMRMC,
+andamore extensivedescription o ftherecentlyadded
+features suchascheckingtime-bound edreachability prop-
+ertiesin(uniform)CTMDPs,simulation-basedCTMCmodelchecking,bisimulationminimization,and on -the-ﬂy
+steady-statedetection.
+Themainstrength ofMRMCisitseasy use asa
+back-endcomponent.It isbeing u sedasback-end ofthe
+performancemodelingtoolsGreatSPNv2.0[10],thePEPA
+Workbench[50],andinatoolchainSTATEMATE[7].
+PRISMalso hasan outputfacilityto generateMRMCinput
+ﬁles.Currently,it isusedtogetherwiththemodelchecker
+NuSMVintheESA-projectCOMPASS[8].
+References
+[1]S.Andov a,H.Hermanns,andJ.-P.Katoen,“Discrete-
+timerewardsmodel-checked,”inFormalModeling and
+AnalysisofTimed Systems(FORMATS),ser.LNCS,vol.
+2791 .Berlin:Springer,2003 ,pp.88–104 .
+[2]C.Baier,B.Haverkort,H.Hermanns,andJ.-P.Katoen,“On
+thelogicalcharacterisation o fperformability properties,”
+inAutomata,Languag es,and Programming(ICALP),ser.
+LNCS,no.1853 .Berlin:Springer,2000 ,pp.780–792 .
+[3]—— ,“Model-checkingalgorithmsforcontinuou s-time
+Markovchains,”IEEE Trans.SoftwareEng.,vol.29,no.6,
+pp.524–541 ,2003 .
+[4]C.Baier,H.Hermanns,J.-P.Katoen,andB.R.Haverkort,
+“Efﬁcientcomputation o ftime-bound edreachability prob-
+abilitiesin uniformcontinuou s-timeMarkov d ecision p ro-
+cesses,”Theor.Comp.Sc.,vol.345,no.1,pp.2–26 ,2005 .
+[5]A.Bell,“Distributedevaluation o fstochasticPetrinets,”
+Ph.D.dissertation,RWTH AachenUniv.,Germany,2004 .
+[6]S.Bernardi,S.Donatelli,andA.Horv´ath,“Compositional-
+ityintheGreatSPNtoolanditsapplicationtothemodelling
+ofindustrialapplications,”inPracticalUseofHigh-level
+PetriNets,no.PB–547 .Univ.ofAarhus,Dept.Computer
+Science,2000 ,pp.127–146 .
+[7]E.B¨ode,M.Herbstritt,H.Hermanns,S.Johr,
+T.Peikenkamp,R.Pulungan,R.Wimmer,andB.Becker,
+“CompositionalperformabilityevaluationforSTATEMATE,”
+inQuantitativeEvaluation o fSystems(QEST). Los
+Alamitos,CA:IEEE CS,2006 ,pp.167–178 .
+[8]M.Bozzano,A.Cimatti,J.-P.Katoen,V.Y.Nguyen,
+T.Noll,andM.Roveri,“TheCOMPASSapproach:Correct-
+ness,modellingand p erformability ofaerospacesystems,”
+inComputerSafety,Reliabilityand S ecurity:28thint’l
+conf.,SAFECOMP,ser.LNCS,2009 (toappear).
+[9]P.Buchholz,M.Fischer,P.Kemper,andC.Tepper,“Model
+checking o fCTMCsand d iscrete eventsimulationinte-
+gratedintheAPNN-toolbox,”inMeasurement,Modelling,
+and Evaluation o fComputer-Comm.Systems,vol.781.
+FachbereichInformatik,Univ.Dortmund,2003 ,pp.30–33 .
+[10]D.Cerotti,D.D’Aprile,S.Donatelli,andJ.Sproston,
+“Verifyingstochasticwell-formed netswithCSLmodel-
+checkingtools,”inApplication o fConcurrencyto System
+Design(ACSD).LosAlamitos,CA:IEEE CS,2006 ,pp.
+143–152 .
+[11]G.Ciardo,R.L.J.III,A.S.Miner,andR.I.Siminiceanu,
+“Logic andstochasticmodelingwithSMART,”Perfor-
+manceEvaluation,vol.63,no.6,pp.578–608 ,2006 .
+[12]F.CiesinskiandC.Baier,“LiQuor:Atoolforqualitative
+and qu antitativelineartime analysisof reactivesystems,”in
+QuantitativeEvaluation ofSystems(QEST).LosAlamitos,
+CA:IEEE CS,2006 ,pp.131–132 .
+[13]L.Cloth,J.-P.Katoen,M.Khattri,andR.Pulungan,“Model
+checkingMarkovrewardmodelswithimpulserewards,”in
+2005 Int’lConf.Dependab leSystemsandNetworks.Los
+Alamitos,CA:IEEE CS,2005 ,pp.722–731 .
+
+--- Page 10 ---
+[14]D.D’Aprile,S.Donatelli,andJ.Sproston,“CSLmodel
+checkingfortheGreatSPNtool,”inComputerand Infor-
+mation Sciences,ISCIS 2004 ,ser.LNCS,vol.3280 .Berlin:
+Springer,2004 ,pp.543–553 .
+[15]S.Derisavi,“Solution o fLargeMarkov Modelsusing
+LumpingTechniquesandSymbolicDataStructures,”Ph.D.
+dissertation,Univ.of Illinois,Urbana-Champaign,2005 .
+[16]S.Derisavi,H.Hermanns,andW.H.Sanders,“Optimal
+state-spacelumpinginMarkov chains,”InformationPro-
+cessingLetters,vol.87,no.6,pp.309–315 ,2003 .
+[17]“GNU :GPL,”http://www .gnu.org/copyleft/gpl.html.
+[18]H.HanssonandB.Jonsson,“Alogicfor reasoningabout
+time andreliability,”FormalAspectsofComputing,vol.6,
+no.5,pp.512–535 ,1994 .
+[19]B.Haverkort,H.Hermanns,andJ.-P.Katoen,“Ontheuse
+ofmodelcheckingtechniquesfordependabilityevaluation,”
+inThe19thIEEE Symp.ReliableDistributed Systems.Los
+Alamitos,CA:IEEE CS,2000 ,pp.228–237 .
+[20]B.Haverkort,L.Cloth,H.Hermanns,J.-P.Katoen,and
+C.Baier,“Modelchecking p erformability properties,”in
+Int’lConf.Dependab leSystemsandNetworks.LosAlami-
+tos,CA:IEEE CS,2002 ,pp.103–112 .
+[21]T.Herault,R.Lassaigne,andS.Peyronnet,“APMC3.0:
+Approximateveriﬁcation o fdiscrete andcontinuou stime
+Markov chains,”inQuantitativeEvaluation o fSystems
+(QEST).LosAlamitos:IEEE CS,2006 ,pp.129–130 .
+[22]H.Hermanns,InteractiveMarkovChains:TheQuest for
+QuantiﬁedQuality,ser.LNCS.Berlin:Springer,2002 ,
+vol.2428 .
+[23]H.HermannsandS.Johr,“Uniformity by construction
+inthe analysisofnond eterministicstochasticsystems,”in
+Dependab leSystemsandNetworks(DSN).LosAlamitos,
+CA:IEEE CS,2007 ,pp.718–728 .
+[24]H.Hermanns,B.Wachter,andL.Zhang,“ProbabilisticCE-
+GAR,”inComputerAidedVeriﬁcation(CAV),ser.LNCS,
+vol.5123 .Berlin:Springer,2008 ,pp.162–175 .
+[25]A.Hinton,M.Kwiatkowska,G.Norman,andD.Parker,
+“PRISM:Atoolforautomaticveriﬁcation ofprobabilistic
+systems,”inToolsandAlgorithmsfortheConstruction and
+AnalysisofSystems(TACAS),ser.LNCS,vol.3920 .Berlin:
+Springer,2006 ,pp.441–444 .
+[26]R.V.HoggandA.T.Craig,IntroductiontoMath.Statistics,
+4thed.New York,NY:MacMillan,1978 .
+[27]A.Hordijk,D.L.Iglehart,andR.A.Schassberger,“Dis-
+cretetimemethodsforsimulatingcontinuou stimeMarkov
+chains,”Adv.inAppl.Prob.,vol.8,pp.772–788 ,1976 .
+[28]S.Johr,“ModelCheckingCompositionalMarkovSystems,”
+Ph.D.dissertation,Univ.desSaarlandes,Germany,2007 .
+[29]J.-P.Katoen,T.Kemna,I.Zapreev,andD.N.Jansen,
+“Bisimulationminimisationmostlyspeedsup probabilistic
+modelchecking,”inToolsand AlgorithmsfortheCon-
+struction and AnalysisofSystems(TACAS),ser.LNCS,vol.
+4424 .Berlin:Springer,2007 ,pp.87–101 .
+[30]J.-P.Katoen,M.Khattri,andI.S.Zapreev,“AMarkovre-
+wardmodelchecker,”inQuantitativeEvaluation ofSystems
+(QEST).LosAlamitos,CA:IEEE CS,2005 ,pp.243–244 .
+[31]J.-P.KatoenandI.S.Zapreev,“Safeon-the-ﬂysteady-state
+detectionfortime-bound edreachability,”inQuantitative
+Evaluation ofSystems(QEST).LosAlamitos,CA:IEEE
+CS,2006 ,pp.301–310 .
+[32]—— ,“Simulation-basedCTMCmodelchecking:Anem-
+piricalevaluation,”inQuantitativeEvaluation o fSystems
+(QEST).LosAlamitos,CA:IEEE CS,2009 .
+[33]M.Kwiatkowska,G.Norman,andD.Parker,“Symmetry
+reductionforprobabilisticmodelchecking,”inComputer
+AidedVeriﬁcation(CAV),ser.LNCS,vol.4114 .Berlin:
+Springer,2006 ,pp.234–248 .
+[34]T.Littlefair,“CCCC web page,”http://cccc.sourceforge.net/.[35]M.Malhotra,J.K.Muppala,andK.S.Trivedi,“Stiffness-
+tolerantmethodsfortransientanalysisofstiffMarkov
+chains,”Microelectronicsand Reliability,vol.34,no.11,
+pp.1825–1841 ,1994 .
+[36]M.Massink,J.-P.Katoen,andD.Latella,“Modelchecking
+dependabilityattributesofwirelessgroupcommunication,”
+inDependab leSystemsandNetworks(DSN).LosAlami-
+tos,CA:IEEE CS,2004 ,pp.711–720 .
+[37]“MRMC:Downloads,”http://www .mrmc-tool.org/.
+[38] I.MunroandP.M.Spira,“Sortingandsearchingin
+multisets,”SIAMJ.Computing,vol.5,no.1,pp.1–8,1976 .
+[39]A.Nadas,“Anextension ofatheoremofChowandRobbins
+onsequentialconﬁdenceintervalsforthemean,”Annalsof
+Math.Statistics,vol.40,no.2,pp.667–671 ,1969 .
+[40]G.D.Penna,B.Intrigila,I.Melatti,E.Tronci,andM.V.
+Zilli,“FinitehorizonanalysisofMarkov chainswiththe
+Murphiveriﬁer,”SoftwareToolsforTechnologyTransfer,
+vol.8,no.4–5,pp.397–409 ,2006 .
+[41]S.Pissanetzky,SparseMatrixTechnology.London ,UK:
+AcademicPress,1984 .
+[42]“Prism: Workstation cluster example,”
+http://www.prismmodelchecker.org/casestudies/clust
+http://www .http://www.prismmodelchecker.org/casestudi
+prismmodelchecker.org/casestudies/cluster.php.
+[43]M.A.QureshiandW.H.Sanders,“Anewmethodo logy
+forcalculating d istributionsof rewardaccumulated du ring
+aﬁniteinterval,”inFault-TolerantComputing(FTCS).Los
+Alamitos,CA:IEEE CS,1996 ,pp.116–125 .
+[44]W.H.Sanders,W.D.Obal,M.A.Qureshi,andF.K.
+Widjanarko,“TheUltraSANmodelingenvironment.”Per-
+formanceEvaluation,vol.24,no.1-2,pp.89–115 ,1995 .
+[45]K.Sen,M.Viswanathan,andG.Agha,“Onstatistical
+modelchecking ofstochasticsystems,”inComputerAided
+Veriﬁcation(CAV),ser.LNCS,vol.3576 .Berlin:Springer,
+2005 ,pp.266–280 .
+[46]G.S.Shedler,RegenerativeStochasticSimulation.Boston,
+MA:AcademicPress,1993 .
+[47]D.D.SleatorandR.E.Tarjan,“Self-adjusting binarysearch
+trees,”J.ACM,vol.32,no.3,pp.652–686 ,1985 .
+[48]W.J.Stewart,IntroductiontotheNumericalSolution o f
+MarkovChains.Princeton,NJ:PrincetonUniv.Pr.,1994 .
+[49]H.C.TijmsandR.Veldman,“Afastalgorithmforthe
+transientreward distributionincontinuou s-timeMarkov
+chains,”ORLetters,vol.26,no.4,pp.155–158 ,2000 .
+[50]M.Tribastone andS.Gilmore,“AnewgenerationPEPA
+workbench,”inProcessAlgebra and S tochasticallyTimed
+Activities(PASTA).http://pastaworkshop.org/2006 /,2006 .
+[51]H.L.S.Younes,“Ymer:Astatisticalmodelchecker,”in
+ComputerAidedVeriﬁcation(CAV),ser.LNCS,vol.3576 .
+Berlin:Springer,2005 ,pp.429–433 .
+[52]H.L.S.Younes,M.Kwiatkowska,G.Norman,and
+D.Parker,“Numericalvs.statisticalprobabilisticmodel
+checking,”SoftwareToolsforTechnologyTransfer,vol.8,
+no.3,pp.216–228 ,2006 .
+[53]H.L.S.YounesandR.G.Simmons,“Probabilisticveriﬁca-
+tion ofdiscrete eventsystemsusingacceptancesampling,”
+inComputerAidedVeriﬁcation(CAV),ser.LNCS,vol.
+2404 .Berlin:Springer,2002 ,pp.223–235 .
+[54]—— ,“Statisticalprobabilisticmodelcheckingwithafocus
+ontime-bound ed properties,”Information and Computation,
+vol.204,no.9,pp.1368–1409 ,2006 .
+[55] I.S.Zapreev,“ModelCheckingMarkovChains:Techniques
+andTools,”Ph.D.dissertation,Univ.ofTwente,2008 .

@@ -1,0 +1,790 @@
+--- Page 1 ---
+Automatic Veriﬁcation of Component-Based Real-Time CORBA
+Applications∗
+Gabor Madl Sherif Abdelwahed Gabor Karsai
+{gabe,sherif,gabor }@isis.vanderbilt.edu
+Institute for Software Integrated Systems
+Vanderbilt University, Nashville, TN, 37205
+Abstract
+Distributed real-time embedded (DRE) systems of-
+ten need to satisfy various time, resource and fault-
+tolerance constraints. To manage the complexity of
+scheduling these systems many methods use Rate Mono-
+tonic Scheduling assuming a time-triggered architecture.
+This paper presents a method that captures the reac-
+tive behavior of complex time- and event-driven systems,
+can provide simulation runs and can provide exact char-
+acterization of timed properties of component-based
+DRE applications that use the publisher/subscriber com-
+munication pattern. We demonstrate our approach on
+real-time CORBA avionics applications.
+1. Introduction
+Computing systems are increasingly distributed,
+real-time and embedded (DRE) and must operate un-
+der highly unpredictable conditions. Component-based
+middleware provides a means to manage the complex-
+ity of designing these systems. To deal with the com-
+plexity of analyzing DRE systems we need to raise
+the abstraction level from the implementation to sys-
+tem models that capture crucial concepts of the system
+such as structure, behavior, environment and the prop-
+erties the system must satisfy.
+In this paper we present a solution that captures the
+reactive behavior of event-driven systems and can au-
+tomatically verify quantitative dense time properties.
+Our approach is not limited to periodic systems and
+can be used with any component-based event-driven
+system that uses the publisher/subscriber communica-
+tion pattern.
+∗This work is sponsored in part by NSF ITR project ”Founda-
+tions of Hybrid and Embedded Software Systems”The Boeing Bold Stroke DRE architecture [30] is
+used at Boeing to develop mission-critical avionics ap-
+plications that control weapons systems on a common
+platform. It is built on the real-time CORBA open mid-
+dleware standard and has been successfully deployed
+in several military systems. We chose this platform to
+demonstrate that our approach is feasible for real-life
+systems. We use the Uppaal veriﬁcation tool [28] for
+the analysis. We map the ESML application models to
+theUppaal timed automata [24]using graph transfor-
+mations implemented by the Graph Rewriting And Trans-
+formation (GReAT )language [1].
+This paper is organized as follows: Section 2 ex-
+plains the modeling language of the component-based
+applications, Section 3 explains the Boeing Bold Stroke
+architecture, Section 4 gives a brief overview of our
+approach, Section 5 gives a formal description of the
+timed automata and the scheduling problem, Section 6
+illustrates the key concepts that we have used in mod-
+eling the scheduling, Section 7 demonstrates the ver-
+iﬁcation of an example application and Section 8 dis-
+cusses the related work on the ﬁeld. We end by draw-
+ing conclusions and discussing future directions.
+2. The Embedded Systems Model-
+ing Language (ESML)
+ESML [22] is a modeling language for embedded
+systems that tries to overcome a few shortcomings of
+UML [21], such as the lack of a component model, inter-
+action modeling, component and system conﬁguration ,
+etc. ESML models are automatically transformed into
+theAnalysis Interchange Format (AIF) that is used to
+exchange models between tools of diﬀerent vendors.
+ESML is based on Real-Time Event Channel tech-
+nology deﬁned in the CORBA [26] speciﬁcation, imple-
+mented in TAO [17], and also related to the CORBA
+Component Model [27]. In this model, components are
+
+--- Page 2 ---
+Figure 1. Periodic event-driven control push -
+data pull processing
+complex objects that encapsulate multiple instances of
+diﬀerent classes. The interaction between instances of
+diﬀerent components is modeled with ports. Ports are
+interfaces for reaching classes inside the components.
+The method invocations follow the traditional syn-
+chronous blocking call-return semantics, where one
+component executes a method invocation on another
+component. The event propagation mechanism follows
+a non-blocking asynchronous publisher/subscriber se-
+mantics supported by event channels. When the pub-
+lisher pushes an event to the event channel the sub-
+scribed components will be notiﬁed.
+To allow the modeling of time-driven tasks, compo-
+nents can receive notiﬁcations from special predeﬁned
+components, called Timers. Timers publish events with
+a constant period. These events periodically initiate the
+processing of data read from physical devices, but the
+processing of the data is usually not synchronized to
+clocks but triggered by events.
+Figure 1 illustrates the periodic event-driven model
+used in ESML. The TimerDriven component is sub-
+scribed to the Timer and receives notiﬁcations peri-
+docially. This will trigger the execution of an action
+encapsulated in the component. This action will pub-
+lish events to the EventDriven component. When the
+EventDriven component is notiﬁed about the avail-
+ability of data it will issue a remote method call on
+its receptacle to the facet of the TimerDriven com-
+ponent to retrieve that data. This approach separates
+the ﬂow of control from the ﬂow of data and allows
+ﬁne-grain scheduling and the incorporation of quality
+of service (QoS) properties that allow ﬁne-tuned con-
+ﬁguration of the system for optimal performance [17].
+3. The Boeing Bold Stroke architecture
+The Boeing Bold Stroke architecture is a
+component-based execution framework built on
+top of the ACE/TAO real-time CORBA imple-
+mentation [29] and uses the publisher/subscriber
+communication pattern. It uses a proprietary com-
+ponent model called PRISM [30], which emulates
+the CORBA Component Model (CCM) [27]. While
+CCM allows components to be dynamically cre-
+Figure 2. The Boeing Bold Stroke execution
+framework
+ated and connected, PRISM follows a typical prac-
+tice in safety/mission-critical systems and employs a
+static component allocation and conﬁguration pol-
+icy by creating and connecting components only
+in the system initialization phase. Stateful com-
+ponents can support dynamic reconﬁguration by
+changing behavior based on the system mode set-
+tings.
+Bold Stroke is event-driven, although driven by
+Timers. Figure 2 shows the physical model of the Bold
+Stroke execution framework. Components contain ac-
+tions that are the smallest units of processing. Bold
+Stroke uses priority-based scheduling, actions that have
+the same priorities are scheduled non-preemptively in
+apriority band (sometimes referred to as rate group )
+based on their sub-priorities and preemptive schedul-
+ing is used between priority bands . An action has an
+assigned priority and sub-priority (importance) value
+for every event channel it is subscribed to. If two ac-
+tions have the same sub-priority they will be ordered or
+scheduled non-deterministically according to the con-
+ﬁguration. Every action has a measured worst-case ex-
+ecution time in the given scenario in which it is used.
+Actions can be initiated by two ways; method invoca-
+tions and event propagations. The scheduling strategy
+is also conﬁgurable and uses Rate Monotonic Schedul-
+ingby default.
+A priority band is implemented by three threads;
+thedispatcher (work) thread which executes all the ac-
+tions initiated by event propagations, the interval time-
+out thread which simply pushes timeout events at pre-
+deﬁned intervals, and the ORB thread which contin-
+ually processes inputs from the Object Request Bro-
+ker (ORB), executing actions initiated by method in-
+vocations. This is the implementation of the Thread
+Pool policy for multi-threading in which a ﬁxed num-
+ber of threads are generated in the server at the ini-
+tialization phase to service all incoming requests. This
+approach oﬀers scalable applications with low latency
+
+--- Page 3 ---
+times for small duration requests [10].
+Facet-initiated actions (that were initiated by a re-
+mote method invocation) inherit the Quality of Service
+execution semantics from the invoking component and
+do not interact with the runtime scheduler therefore
+we do not distinguish them from the invoking action in
+the scheduling perspective. The smallest unit of schedul-
+ing is an event-initiated action together with all the re-
+mote method calls it can invoke . Since facet-initiated ac-
+tions can also call other actions using remote method
+calls the complete call chain is an acyclic graph with
+the event-initated action as root element. We call this
+smallest unit of scheduling an invocation unit .
+An executing action may initiate actions on other
+priority bands, otherwise known as cross rate actions.
+All processing inside a priority band needs to ﬁnish
+within the ﬁxed execution period of the Timer assigned
+to the band. This periodicity divides processing into
+frames. A priority band failing to complete outputs
+prior to the start of the next frame is said to be in
+aframe overrun condition, meaning that the band did
+not meet its completion deadline or frame time.
+4. Approach
+The presence of Timers in the Bold Stroke archi-
+tecture is an attempt to increase the analyzability of
+the system by turning it into a time-triggered archi-
+tecture. This eﬀort is also reﬂected in the terminology
+(rate group, Rate Monotonic Scheduling) . Many meth-
+ods assume a time-triggered architecture and try to an-
+alyze the scheduling of the Bold Stroke architecture by
+performing Rate Monotonic Analysis. This approach is
+widely accepted for ﬁxed priority scheduling.
+The Boeing Bold Stroke architecture is driven by
+Timers, however the system itself is event-driven. As-
+suming a time-triggered architecture may introduce
+anomalies in some cases. The main reason behind this
+is the reactive behavior of the system; certain ac-
+tions (e.g. identifying targets) will be invoked when
+external events - coming from the environment non-
+deterministically as sensor values - are triggered. Ac-
+tions are not invoked by Timers but by other actions
+if certain constraints are satisﬁed, and since the event
+ﬂow can change the invocations might be aperiodic.
+Even if we assume that actions have constant execu-
+tion times an action can publish an event anytime be-
+tween the execution time and the deadline, since it can
+wait for other executing processes and the initiation
+of processes depends on external (non-deterministic)
+events. The semantics for conditional event triggering
+and the propagation of missed deadlines is also inex-
+pressible by this approach. This makes it hard to iden-tify vulnerable points in the system, because the im-
+pact of a single component failure is undetectable.
+In this paper we present a solution that captures the
+event-driven nature of the Boeing Bold Stroke system and
+can be used to verify timed properties of aperiodic sys-
+tems. We show that timed automata [2] as a compu-
+tational model can describe asynchronous event pass-
+ing as well as time constraints. It has the necessary tool
+support [7] [28] and does not need to be extended to
+handle quantitative dense time features like SPIN [31].
+Timed automata has a nice graphical representation
+that makes the graph transformations suitable. Sev-
+eral model-checking tools use automata theory - usu-
+ally with some extensions - as a computational model.
+A few examples are Hytech [19],Kronos [7] and Up-
+paal [28]. We chose the Uppaal model-checker tool
+which is widely used [13] [16] [12] for schedulability
+analysis and model checking. We map the ESML appli-
+cation models to the Uppaal timed automata [24]us-
+ing graph transformations and prove system properties
+by checking the generated timed automata. The graph
+transformation has been implemented in the Graph
+Rewriting and Transformation ( GReAT ) language [1].
+TheGReAT tool uses the Generic Modeling Environ-
+ment (GME) [25] and allows users to specify graph
+transformations in a graphical form.
+5. Problem Description
+The system under consideration in this paper con-
+sists of a set of dynamics tasks (invocation units). Each
+task is attributed with its worst case execution time
+(WCET ), deadline ( DL), and priority ( PID) speciﬁcation.
+With respect to timing analysis, computation tasks can
+be represented by a generic timed automaton model.
+The task mode is composed of four states: Idle,Ready ,
+Executing , and Timeout . Initially tasks start at an Idle
+state and are triggered ( Idle→Ready ) by events which
+may be received from other tasks or at regulars inter-
+vals from a Timer. If the task is scheduled for execution
+- according to the given scheduling policy - the transi-
+tion ( Ready →Executing ) will be triggered. After exe-
+cution, the task may also initiate other tasks by send-
+ing the corresponding event1. The task will move to a
+blocking Timeout state if the deadline is exceeded.
+Tasks are executed based on a given scheduling pol-
+icy which determines at a given time the eligibility of a
+“ready” task to proceed for execution. In other words,
+the scheduling policy is responsible for triggering the
+transition ( Ready →Executing ). When this transition
+1 In general, this may occur during the execution state. How-
+ever, for non-preemptive scheduling the event would not have
+any eﬀect until the task terminates
+
+--- Page 4 ---
+Figure 3. Generic timed automata model for the
+Task, Scheduler and Timer
+is enabled, the automaton has to take this transition
+with no time delay. For static scheduling, the policy
+can be represented by a vector that indicates the eli-
+gibility of tasks for execution. A task can move to Ex-
+ecuting from Ready only if no higher priority task can
+make a similar transition at the same time.
+The above task model and scheduling policy can be
+represented as timed automata. A timed automaton is
+a state machine equipped with clock and data (inte-
+ger) variables, with precise formal deﬁnition [2] [24],
+tool support [7] [28] and is widely used [4] [11] [3] [13]
+[16] [12] for schedulability analysis and model check-
+ing. Since the focus of this paper is the application of
+timed automata we refer the reader to these sources
+for a more formal deﬁnition of the timed automata.
+Transitions in a timed automaton can have guards and
+reset operations on clock and data variables. Transi-
+tions are enabled if the corresponding guard evaluates
+toTrue . An enabled transition can execute instanta-
+neously while resetting certain variables to new values
+according to the underlying reset assignments. States
+in timed automata can be associated with an invari-
+ant that determines the validity of clock assignment in
+the state. The system can be in a given state only if
+the underlying invariant is True .
+Figure 3 shows a generic timed automata model for
+a set of time- and event-driven tasks and the under-
+lying scheduler based on the above description. In this
+ﬁgure a task can be initiated by another task or a timer
+(or both).
+The scheduler will move to a committed state if any
+of the tasks will be eligible for execution. Time can-
+not pass in this location: the scheduler must take an
+enabled transition with no time delay. Transitions will
+be enabled based on the scheduling policy. When tak-
+Figure 4. Generic model of an invocation unit
+ing the transition it will send out an event scheduling a
+task for execution from a set of ready tasks. The sched-
+uler moves to the wait (initial) state if no task is ready
+for execution. The scheduling policy is encoded in three
+functions: Add(w, i) which increases the current prior-
+ity level when task ibecomes ready, Sub(w, i) which de-
+creases the current priority level when task ibecomes
+ready, and Enable( w, i)which evaluates to True if the
+ith task is eligible for execution. For example, in a sim-
+ple index based priority scheme, Add(w, i) =w+ 2i−1,
+Sub(w, i) =w−2i−1, and Enable (w, i) = 2i−1≤w <
+2i. Other scheduling schemes can be established by
+deﬁning appropriate formulas for the above three func-
+tions.
+In this paper we consider the problem of deciding the
+schedulability of a given set of tasks with both event-
+and time-driven interactions. The timed automata for-
+mulation of the problem in eﬀect translates the schedu-
+lability problem into a reachability problem in which
+the set of tasks are schedulable if the Timeout state
+is not reachable in any of the task timed automata, in
+other words all tasks are completed before their respec-
+tive deadlines.
+6. Generic modeling of the event-ﬂow
+Figure 4 shows the generic model of an invocation
+unit. This model is the extension of the generic timed
+automaton model shown on Figure 3. Since the Up-
+paal timed automata semantics is unambigous (the
+automata executes on the Uppaal virtual machine)
+we have formally deﬁned our model by giving Figure 4
+
+--- Page 5 ---
+and using the Uppaal timed automata execution se-
+mantics [24]. In the following we give an informal de-
+scription of the model to explain how the key concepts,
+such as concurrency, asynchronous thread invocation,
+inter-process communication (IPC) andnon-preemptive
+scheduling are represented in the model.
+The inactive location corresponds to the Idleloca-
+tion of the generic automaton, the frameOverrun loca-
+tion corresponds to the Timeout location. The Ready lo-
+cation of the generic timed automaton model is repre-
+sented by two states ( schedule and waitForExecution ) in
+order to express that the enabled transition to the Ex-
+ecuting location has to be taken when the transition
+is enabled. To model the event passing we modeled
+the Executing location by three locations ( executing ,
+publish and dispatch ). This timed automaton has two
+clocks ( clock 1andclock 2) working at the same rate.
+Attributes can be local ( pid, deadline, wcet ) and
+global ( execute ).
+Concurrency: This timed automaton type may
+have multiple instances. These instances can communi-
+cate with each other using synchronizations orshared
+global variables . The execute variable is used to re-
+strict that only one action can execute in the prior-
+ity band at any given time. It acts as a global ﬂag that
+is set everytime an action starts executing and reset
+when it ﬁnishes the execution.
+Asynchronous thread invocation/IPC: When a
+publisher pushes an event the subscribed components
+will be eligible for execution. We model this by syn-
+chronizing the publish → dispatch transition of the
+publisher with the inactive →schedule transition of
+the subscribed components.
+Non-preemptive scheduling: The priority-based
+scheduling is encoded in the guard condition of the
+schedule → executing transition. Urgent locations
+(schedule ) are simple constructs in Uppaal to express
+time constraints. When a location is urgent, time can-
+not pass in that location. If no transitions are en-
+abled at that time the system is deadlocked. This is
+also true for committed locations ( publish ,dispatch ,
+frameOverrun ), but their outgoing transitions have to
+be taken ﬁrst. In other words, transitions belonging
+to committed locations have preference, while this is
+not the case for urgent locations. In this particular
+example we can use these constructs to describe the
+fact that we want invocation units to publish before
+any rescheduling happens. We can also formalize clock
+constraints (invariance) for the locations. These are
+shown next to the locations on Figure 4. When the con-
+straint is violated a transition has to occur otherwise
+the timed automaton is deadlocked. In the schedule
+state every timed atomaton checks whether higher sub-priority invocation units are eligible for execution, if
+yes they move in to the waitForExecution state. If there
+are multiple highest sub-priority invocation units one
+will be chosen non-deterministically. Whenever an in-
+vocation unit ﬁnishes the execution it broadcasts an
+event ( wakeup ) to all the timed automata. This will
+force them to check the guard conditions again.
+7. Case study: Timed analysis of a Bold
+Stroke application
+In this section we show a case study on how we use
+the modeling concepts desribed in Section 6 to verify
+a Bold Stroke application shown on Figure 5. This ap-
+plication is driven by a single Timer therefore it cor-
+responds to a single rate group/priority band. Each
+component contains exactly one event-initiated action
+therefore when we refer to the scheduling of the compo-
+nents we mean the scheduling of the invocation units
+(the event-initiated action together with the recepta-
+cle calls).
+The INSand GPScomponents are both subscribed
+to the same event channel. When the Timer pushes
+an event both components will be notiﬁed. These two
+components correspond to two time-driven invocation
+units. Since both components receive the same events,
+they will be eligible for execution at the same time.
+The scheduler will choose one component according to
+the scheduling algorithm while the other must wait un-
+til the ﬁrst ﬁnishes execution.
+The AIRFRAME component is subscribed to both
+time-driven components. The semantics of handling the
+events is conﬁgurable. If we assume ANDsemantics then
+the component has to wait until all events have ar-
+Figure 5. Bold Stroke application model
+
+--- Page 6 ---
+rived for which the component is subscribed. If we as-
+sume ORsemantics, any event can trigger the compo-
+nent’s execution. In this particular example ORseman-
+tics is assumed, because the AIRFRAME component up-
+dates its state if any of the INS orGPS components
+have new data. When the AIRFRAME component is ex-
+ecuted, it calls back to the INSand GPScomponents
+using a remote method call and publishes an event to
+theDISPLAY component after it has made the neces-
+sary computations. The DISPLAY component will call
+back into the AIRFRAME component during its execu-
+tion - in order to display the new data.
+7.1. Decomposition rules for the execution
+paths
+We claim that the non-preemptive scheduling of Bold-
+Stroke applications can be veriﬁed without explicitly mod-
+eling the buﬀering of the event channel. In order to show
+this, we have to check the properties of the call chains.
+We already deﬁned the call chains for remote method
+calls when we introduced the concept of the invocation
+unit. In that context, the call chain is an acyclic graph
+with the event-initated action as root element. We can
+deﬁne call chains for the event-ﬂow as well. In a single
+priority band, the Timer will publish events to the sub-
+scribed components. These components will also pub-
+lish events etc. There are no cycles in the event ﬂow,
+otherwise we would end up in a loop that can possi-
+bly execute forever. The call chain of the event ﬂow in
+a priority band can be represented as a directed graph
+forest with the Timers as roots of the trees. The ver-
+tices correspond to invocation units, the edges corre-
+spond to the published events. The trees can be con-
+nected to each other, but the whole graph is acyclic.
+The event ﬂow graph for this example is shown on Fig-
+ure 6.
+Figure 6. The event ﬂow represented as a Di-
+rected Acyclic Graph (DAG)
+The AIRFRAME component can receive events from
+both the INSandGPScomponents, therefore it is more
+complex than the other components. Since the num-
+ber of vertices and the number of edges is ﬁnite, wecan deﬁne a ﬁnite number of execution paths on this
+event ﬂow, that is a path from the root element to
+a leaf. We need to decompose the AIRFRAME compo-
+nent to get the execution paths. If we assume ORse-
+mantics for receiving the events the event ﬂow can be
+decomposed into the execution paths depicted on Fig-
+ure 7.
+Figure 7. The execution paths assuming ORse-
+mantics
+The main idea used in the decomposition is that
+we keep track of the event channel buﬀer in the state
+of the timed automata. For every event received the
+component publishes at most one event in any of its
+PublishPorts . We keep track of the events received in
+the state of the timed automata. This allows us to ex-
+press AND semantics for receiving the events as well.
+Figure 8 shows this scenario. This rule is shown only
+to demonstrate that diﬀerent semantics can also be ex-
+pressed.
+Figure 8. The execution paths assuming ANDse-
+mantics
+The dotted line denotes synchronization between the
+corresponding timed automata. We force the automata
+to start executing at the same time. This constraint -
+together with the guards on the transitions that con-
+trol when the automaton is scheduled for execution -
+will enable the set of timed automata for execution if
+all of them are eligible. Since the component executes
+only once - unlike with the ORsemantics - we allow
+sending out only one event.
+
+--- Page 7 ---
+7.2. Analysis using timed automata
+We model each invocation unit on these call chains
+by a timed automaton. In this example - assuming OR
+semantics for receiving the events - we will have a net-
+work of 6 timed automata representing the 4 compo-
+nents. The event-ﬂow corresponds to Figure 7. The
+time-driven invocation units will be represented as a
+single timed automaton while the event-driven invoca-
+tion units will be represented by two concurrently ex-
+ecuting timed automata.
+Figure 9 shows the Uppaal models for the example
+application shown on Figure 5. These models extend
+the generic model of the invocation unit introduced in
+section 6.
+7.3. Veriﬁcation
+In the previous sections we have shown how to
+model the non-preemptive scheduling of component-
+based real-time CORBA applications. The timed prop-
+erties of the model can be checked by the Uppaal ver-
+iﬁcation tool. Uppaal uses a subset of the Computa-
+tional Tree Logic (CTL) [5] temporal logic to formalize
+statements about the system models. Note that model
+checking is a formal proof that the model satisﬁes the
+desired properties.
+To show that the system is correct we checked that
+the system is deadlock-free by using the following Up-
+paal macro:
+A[] not deadlock
+We also need to show that all invocation units
+meet their deadlines. We claim that this requires
+no additional checking of properties. We have set
+theframeOverrun location to be committed to re-
+duce the state space. However, we also introduced
+a nice side-eﬀect in the system using this con-
+straint. Whenever a timed automaton reaches the
+frameOverrun location time cannot pass in that au-
+tomaton. Since we cannot leave that location, this
+will deadlock the system. If the above reachabil-
+ity macro evaluates to true, we have proved that there
+are no deadlocks in the system and every action al-
+ways ﬁnishes the execution before the deadline. We also
+prove that every published event is properly con-
+sumed in the system and the event channels operate
+with limited buﬀer size.
+In the previous section we have described a system
+with correct deadlines. Figure 10 shows a slightly dif-
+ferent scenario in which we set the deadline of the
+AIRFRAME component to 32 ms. The deadlock is de-tected and a short trace is produced automatically by
+Uppaal . The simulation runs help us ﬁnding the cause
+of the frame overrun by simulating the execution trace
+that lead to the fault.
+Figure 10. Detected deadlock with the shortest
+trace
+Additional timed properties can also be checked be-
+cause all the time and dependencies are captured in
+the models. We claim that our veriﬁcation can be used
+to verify the correctness of non-preemptive scheduling
+and pinpoint components that have frame overrun con-
+ditions. Our results show that the deadline is not the
+function of the period and using slower Timers may
+produce the same properties in the system allowing
+better resource allocation and performance gain.
+7.4. Performance
+The example used in the case study turned out to be
+analyzable and correct. In order to ﬁnd the limitations
+on the size of analyzable systems we have carried out a
+series of performance tests on a hyperthreaded machine
+with a 3.4GHz Pentium 4 processor and 1GB RAM. We
+used the generic timed automata model shown on Fig-
+ure 4. We have assigned 1 unit of time as WCET to all
+automata and we allowed non-deterministic schedul-
+ing between the automata to increase the state space.
+This simple system was introduced solely to measure
+the performance. We checked the system for deadlock
+using the methods shown in section 7.3.
+In the ﬁrst series of tests we veriﬁed applications in
+which the event ﬂow can be represented as a balanced
+tree. This case turned out to be exponential propor-
+
+--- Page 8 ---
+Figure 9. The network of timed automata for the Bold Stroke apllication shown on Figure 5
+
+--- Page 9 ---
+tional to the number of components. Then we have
+built a simple path of components consisiting of a sin-
+gle action that publishes to only one component. This
+system was easily analyzable (it took less than one sec-
+ond) even for 63 components. Our results show that if
+we limit non-determinism and the branching of event
+paths the system will be simpler to analyze. As part of
+out future work we would like to conduct research on
+how to speed up the veriﬁcation process.
+8. Related work
+The DARPA MoBIES (Model-Based Integration of
+Embedded Systems) program - started in 2000 - fo-
+cuses on integrating physical application domains with
+model-based design, composition and analysis of em-
+bedded software. The key objectives are to increase
+dependability, productivity while reducing the costs of
+development and analysis of automatically generated
+embedded system software. These objectives drive the
+development of domain-speciﬁc embedded software de-
+sign tools to the target environment that allow the evo-
+lution of correct-by-construction code generation tech-
+nologies. Within the context of the MoBIES program,
+researchers from multiple institutions have been work-
+ing together to produce an end-to-end tool-chain with
+the Boeing Bold Stroke DRE architecture as the main
+application domain. Results of the research on Bold
+Stroke scheduling and veriﬁcation are the AIRES, Ca-
+dena and Time Weaver - TimeWizR/circlecopyrttools.
+The AIRES tool extracts system-level depen-
+dency information from the application models, in-
+cluding event- and invocation-dependencies, and con-
+structs port- and component-level dependency graphs.
+Various polynomial-time analysis tasks are sup-
+ported such as checking for dependency cycles as well
+as forward/backward slicing to isolate relevant com-
+ponents [14]. It performs real-time analysis [15] using
+Rate Monotonic Analysis techniques [23].
+The Cadena [18] framework is an integrated envi-
+ronment for building and analyzing CORBA Compo-
+nent Model (CCM) based systems. Its main function-
+alities include CCM code generation in Java, depen-
+dency analysis and model-checking with dSPIN [9], an
+extension of the SPIN model-checker [20]. The empha-
+sis of veriﬁcation in Cadena is on software logical prop-
+erties. The generated transition system does not repre-
+sent time explicitly and requires the modeling of logi-
+cal time that does not allow quantitative reasoning.
+Time Weaver (Geodesic) [8] is a component-based
+framework that supports the reusability of components
+across systems with diﬀerent para-functional require-
+ments. It supports code generation as well as auto-mated analysis. It builds a response chain model [23]
+of the system to verify timing properties. This model is
+used by real-time analysis tools such as the TimeWizR/circlecopyrt
+model-checker to build a task set that can be analyzed
+with Rate-Monotonic Analysis techniques.
+Several authors [4] [11] [3] [13] [16] [12] have pro-
+posed the use of model checking techniques and tools
+for dynamics analysis of real-time computation sys-
+tems. The underlying models are variants of the timed
+automata model. Early work on this approach has been
+reported in [6] which uses the HyTech tool to ana-
+lyze multi-tasking programs. A generic form to ana-
+lyze scheduling behavior based on the timed automata
+model was proposed in [13] for single processor schedul-
+ing using the Immediate Ceiling Priority protocol and
+the Earliest Deadline First algorithm.
+9. Conclusion and future directions
+This paper presents a solution that captures
+the event-driven nature of component-based real-time
+CORBA applications that use the publisher/subscriber
+communication pattern. This approach captures the re-
+active behavior as well as the non-determinism present
+in these systems and demonstrates that timed au-
+tomata can represent component interactions and
+asynchronous event passing allowing the veriﬁcation
+of quantitative dense time properties. The veriﬁca-
+tion process can provide simulation runs and pinpoint
+components that fail to meet deadlines and cap-
+tures the propagation of failures in the system. This
+approach allows ﬁnding the “bottlenecks” in the sys-
+tem that limit the performance of the veriﬁed sys-
+tem.
+Our solution has been implemented using the
+GReAT graph transformation tool that allows auto-
+matic veriﬁcation of the system models by providing a
+tool-chain to the Uppaal model checker. As the per-
+formance tests show the state space explosion prob-
+lem can be managed by restricting the branching of
+the event ﬂow between components. As part of our fu-
+ture work we would like to include the modeling of
+preemptive scheduling in the models as well as the ver-
+iﬁcation of dynamic scheduling algorithms. In order
+to keep the models analyzable we want to exam-
+ine how to decrease the complexity of the veriﬁca-
+tion.
+References
+[1] A. Agrawal, G. Karsai, and A. Ledeczi. An End-to-
+End Domain-Driven Development Framework. In Pro-
+ceedings of the 18th Annual ACM SIGPLAN Conference
+
+--- Page 10 ---
+on Object-Oriented Programming, Systems, Languages,
+and Applications (OOPSLA) , Oct 2003.
+[2] R. Alur and D. L. Dill. A theory of timed automata. The-
+oretical Computer Science , 126(2):183–235, 1994.
+[3] V. A. Braberman and M. Felder. Veriﬁcation of Real-
+Time Designs: Combining Scheduling Theory with Au-
+tomatic Formal Veriﬁcation. In Software Engineering-
+ESEC/FSE 99 , pages 494–510, 1999.
+[4] S. Bradley, W. Henderson, and D. Kendall. Using Timed
+Automata for Response Time Analysis of Distributed
+Real-Time Systems . In 24th IFAC/IFIP Workshop
+on Real-Time Programming WRTP 99 , pages 143–148,
+1999.
+[5] E. Clarke and E. Emerson. Design and synthesis of syn-
+chronisation skeletons using branching time temporal
+logic. Logic of Programs, Lecture Notes in Computer Sci-
+ence, 131:52–71, 1981.
+[6] J. Corbett. Timing Analysis of Ada Tasking Programs.
+IEEE Transactions on Software Engineering , 22:1–23,
+1996.
+[7] C. Daws, A. Olivero, S. Tripakis, and S. Yovine. The
+tool KRONOS. In Proceedings of the DIMACS/SYCON
+workshop on Hybrid systems III : veriﬁcation and con-
+trol, pages 208–219. Springer-Verlag New York, Inc.,
+1996.
+[8] D. de Niz and R. Rajkumar. Time Weaver: A Software-
+Through-Models Framework for Real-Time Systems. In
+Proceedings of LCTES , 2003.
+[9] C. Demartini, R. Iosif, and R. Sisto. dSPIN: A Dynamic
+Extension of SPIN. In Proceedings of the 5th and 6th In-
+ternational SPIN Workshops on Theoretical and Prac-
+tical Aspects of SPIN Model Checking , pages 261–276.
+Springer-Verlag, 1999.
+[10] M. Deshpande, D. C. Schmidt, C. O’Ryan, and D. Brun-
+sch. Design and Performance of Asynchronous Method
+Handling for CORBA. In Proceedings of Distributed
+Objects and Applications (DOA) , October/November
+2002.
+[11] C. Ericsson, A. Wall, and W. Yi. Timed Automata as
+Task Models for Event-Driven Systems. In Proceedings
+of RTSCA ’99 , 1999.
+[12] A. Fehnker. Scheduling a Steel Plant with Timed Au-
+tomata. In Sixth International Conference on Real-Time
+Computing Systems and Applications (RTCSA’99) .
+IEEE Computer Society Press, 1999.
+[13] T. Gerdsmeier and R. Cardell-Oliver. Analysis of
+Scheduling Behaviour using Generic Timed Automata.
+42, 2001.
+[14] Z. Gu, S. Kodase, S. Wang, and K. G. Shin. A Model-
+Based Approach to System-Level Dependency and Real-
+Time Analysis of Embedded Software. In Proceedings of
+Real-Time Applications Synopsium , 2003.
+[15] Z. Gu, S. Wang, S. Kodase, and K. G. Shin. An End-to-
+End Tool Chain for Multi-View Modeling and Analysis
+of Avionics Mission Computing Software. In Proceed-
+ings of Real-Time Systems Synopsium , 2003.[16] L. Halkjaer, K. Haervig, and A. Ingolfsdottir. Veriﬁca-
+tion of the legOS Scheduler using Uppaal . In F. Corra-
+dini and P. Inverardi, editors, Electronic Notes in Theo-
+retical Computer Science , volume 39. Elsevier, 2000.
+[17] T. H. Harrison, D. L. Levine, and D. C. Schmidt. The
+Design and Performance of a Real-Time CORBA Event
+Service. In Proceedings of the 12th ACM SIGPLAN con-
+ference on Object-oriented programming, systems, lan-
+guages, and applications , pages 184–200. ACM Press,
+1997.
+[18] J. Hatcliﬀ, X. Deng, M. B. Dwyer, G. Jung, and V. P.
+Ranganath. Cadena:An Integrated Development,Anal-
+ysis, and Veriﬁcation Environment for Component-
+based Systems. In Proceedings of International Confer-
+ence on Software Engineering , 2003.
+[19] T. A. Henzinger, P.-H. Ho, and H. Wong-Toi. HYTECH:
+A Model Checker for Hybrid Systems. International
+Journal on Software Tools for Technology Transfer , 1(1–
+2):110–122, 1997.
+[20] G. J. Holzmann. The SPIN model checker: Primer and
+reference manual . Addison Wesley, 2004. HOL g 03:1
+1.Ex.
+[21] J.Rumbaugh, I. Jacobson, and G. Booch. The Uniﬁed
+Modeling Language Reference Manual. 1998.
+[22] G. Karsai, S. Neema, A. Bakay, A. Ledeczi, F. Shi, and
+A. Gokhale. A Model-based Front-end to TAO/ACE.
+InProceedings of the 2nd Workshop on TAO , 2002.
+[23] M. H. Klein, T. Ralya, B. Pollak, and R. Obenza. A
+Practitioners’ Handbook for Real-Time Analysis: Guide
+to Rate Monotonic Analysis for Real-Time Systems .
+Kluwer Academic Publishers, 1993.
+[24] K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a
+Nutshell. Int. Journal on Software Tools for Technology
+Transfer , 1(1–2):134–152, Oct. 1997.
+[25] A. Ledeczi, A. Bakay, M. Maroti, P. Volgyesi, G. Nord-
+strom, and J. Sprinkle. Composing Domain-Speciﬁc De-
+sign Environments. Computer , pages 44–51, Nov 2001.
+[26] Object Management Group. Common Object Request
+Broker Architecture (CORBA/IIOP). 2002.
+[27] Object Management Group. CORBA Component
+Model. 2002.
+[28] P. Pettersson and K. G. Larsen. Uppaal 2k.Bulletin of
+the European Association for Theoretical Computer Sci-
+ence, 70:40–44, feb 2000.
+[29] D. C. Schmidt, A. Gokhale, T. H. Harrison, and
+G. Parulkar. A High-Performance Endsystem Archi-
+tecture for Real-Time CORBA. IEEE Communications
+Magazine , 14(2), 1997.
+[30] D. C. Sharp and W. C. Roll. Model-Based Integration
+of Reusable Component-Based Avionics Systems. In
+Proceedings of the Workshop on Model-Driven Embed-
+ded Systems in RTAS 2003 , May 2003.
+[31] S. Tripakis and C. Courcoubetis. Extending PROMELA
+and SPIN for Real Time. In Proceedings of TACAS ’96,
+LNCS 1055 , 1996.

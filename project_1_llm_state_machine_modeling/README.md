@@ -44,11 +44,16 @@
    - 样本来源论文集。
    - 收录真实控制系统论文，并从中提取可用于状态机建模的自然语言描述与控制逻辑证据。
    - 这里重点沉淀“可作为我们建模输入样本的数据源”。
+3. [state_machine_types/](./state_machine_types/)
+   - 状态机类型谱系论文集。
+   - 收录主流状态机族形式主义、相关标准/DSL/交换格式、基础设施论文以及综述论文。
+   - 这里重点沉淀“我们到底应该生成哪一类状态机、这些类型各自有什么表达边界和工具生态”。
 
-因此，这个项目当前可以理解为两条主线并行：
+因此，这个项目当前可以理解为三条主线并行：
 
 1. **方法线**：看已有工作如何从自然语言或邻近工件生成状态机模型，对应 [baselines/](./baselines/)。
 2. **数据线**：从真实控制系统论文中整理可用的描述样本和控制逻辑证据，对应 [sources/](./sources/)。
+3. **类型线**：梳理主流状态机族形式主义、构造方式和基础设施，为目标形式主义选型提供依据，对应 [state_machine_types/](./state_machine_types/)。
 
 ## 4. 各下属论文集分别是什么
 
@@ -95,30 +100,57 @@
 3. [sources/SUMMARY.md](./sources/SUMMARY.md)
 4. 若涉及 `STM.md`，再读 [sources/STM_GUIDE.md](./sources/STM_GUIDE.md)
 
+### 4.3 `state_machine_types/`
+
+[state_machine_types/](./state_machine_types/) 是本项目的“状态机类型谱系” collection，负责维护：
+
+1. 主流状态机族形式主义的定义型、教程型、标准型和工具型论文。
+2. 各类形式主义的表达能力、构造方式、配套基础设施、适用场景与需求前提。
+3. 综述/调查/系统映射文献中对状态机族形式主义的分类框架和比较轴。
+
+它回答的核心问题是：
+
+1. `project_1` 最值得重点对齐的状态机类型有哪些。
+2. 各类形式主义在时间、并发、层次、数据、连续动态等维度上有什么差异。
+3. 它们分别通过图形、DSL、XML、JSON、元模型还是标准载体落地。
+4. 哪些形式主义已经具备成熟的编辑、执行、验证和交换生态。
+
+进入该 collection 后，应先读：
+
+1. [state_machine_types/README.md](./state_machine_types/README.md)
+2. [state_machine_types/GUIDE.md](./state_machine_types/GUIDE.md)
+3. [state_machine_types/SUMMARY.md](./state_machine_types/SUMMARY.md)
+4. 若涉及普通条目，再读 [state_machine_types/DESC_GUIDE.md](./state_machine_types/DESC_GUIDE.md)
+5. 若涉及综述条目，再读 [state_machine_types/SURVEY_GUIDE.md](./state_machine_types/SURVEY_GUIDE.md)
+
 ## 5. 本项目整体工作流
 
 围绕 `project_1` 工作时，默认应遵循以下逻辑：
 
-1. 先明确你是在做“baseline 方法整理”，还是在做“控制系统样本整理”。
+1. 先明确你是在做“baseline 方法整理”、“控制系统样本整理”，还是“状态机类型谱系整理”。
 2. 如果是比较已有方法、寻找可对照论文、整理输入输出方法字段，进入 [baselines/](./baselines/)。
 3. 如果是寻找真实控制系统语料、提取状态机描述样本、建设后续数据基础，进入 [sources/](./sources/)。
-4. 先读对应 collection 的 `README.md`、再读 `GUIDE.md`、再读 `SUMMARY.md`。
-5. 只有在明确 collection 边界和当前总账后，才进入具体单论文目录处理。
+4. 如果是梳理主流形式主义类型、构造方式和工具生态，进入 [state_machine_types/](./state_machine_types/)。
+5. 先读对应 collection 的 `README.md`、再读 `GUIDE.md`、再读 `SUMMARY.md`。
+6. 只有在明确 collection 边界和当前总账后，才进入具体单论文目录处理。
 
 本项目默认的研究信息流可概括为：
 
-`真实控制系统自然语言样本` + `已有 LLM baseline 方法` -> `面向控制系统的状态机自动建模方法设计`
+`真实控制系统自然语言样本` + `已有 LLM baseline 方法` + `状态机类型谱系与基础设施地图` -> `面向控制系统的状态机自动建模方法设计`
 
 ## 6. 单论文与论文集的关系
 
 本项目统一采用“论文集路径 + 单论文路径”两级结构。
 
-当前已经明确的两类单论文派生物如下：
+当前已经明确的三类单论文派生物如下：
 
 1. `baselines/` 下以 `DESC.md` 为核心。
    - 用于沉淀单篇 baseline 论文的方法、实验、相关工作和与本研究的关系。
 2. `sources/` 下以 `STM.md` 为核心。
    - 用于沉淀单篇控制系统论文中的状态机自然语言描述与控制逻辑证据。
+3. `state_machine_types/` 下以 `desc.md` 或 `survey.md` 为核心。
+   - `desc.md` 用于沉淀单一形式主义或单一标准/工具线。
+   - `survey.md` 用于沉淀跨多个形式主义的综述/比较论文。
 
 因此，不应在未看所属 collection 规范的情况下，擅自决定某篇论文该写什么派生文件。
 
@@ -127,7 +159,7 @@
 对人类读者和 AI，都推荐按以下顺序进入本项目：
 
 1. 先读本文件 [README.md](./README.md)，理解 `project_1` 的总体目标与目录分工。
-2. 判断当前任务属于 [baselines/](./baselines/) 还是 [sources/](./sources/)。
+2. 判断当前任务属于 [baselines/](./baselines/)、[sources/](./sources/) 还是 [state_machine_types/](./state_machine_types/)。
 3. 进入对应 collection 后，先读其 `README.md`。
 4. 再读其 `GUIDE.md`。
 5. 再读其 `SUMMARY.md`。
@@ -138,14 +170,16 @@
 
 优先做的事：
 
-1. 保持 [baselines/](./baselines/) 和 [sources/](./sources/) 两条线的边界清晰，不混收。
-2. 让 baseline 比较字段、数据集口径、单篇派生文件格式持续一致。
+1. 保持 [baselines/](./baselines/)、[sources/](./sources/) 和 [state_machine_types/](./state_machine_types/) 三条线的边界清晰，不混收。
+2. 让各条线的比较字段、数据集口径、单篇派生文件格式持续一致。
 3. 优先补齐那些能直接服务“自然语言控制系统描述/设计/需求 -> 状态机模型”主线的问题材料。
-4. 任何正式收录的论文，都应回写对应 collection 的 [SUMMARY.md](./baselines/SUMMARY.md) 或 [SUMMARY.md](./sources/SUMMARY.md) 总账。
+4. 尽快把“状态机类型谱系”这条线的定义型论文、综述型论文和工具/标准型论文接起来。
+5. 任何正式收录的论文，都应回写对应 collection 的 [baselines/SUMMARY.md](./baselines/SUMMARY.md)、[sources/SUMMARY.md](./sources/SUMMARY.md) 或 [state_machine_types/SUMMARY.md](./state_machine_types/SUMMARY.md) 总账。
 
 应避免的事：
 
 1. 把 `project_1` 变成泛泛的“LLM 建模论文堆放目录”。
 2. 把控制系统样本论文和 baseline 方法论文混在一个 collection 里。
-3. 只新增论文目录，不回写各自 collection 的总账。
-4. 在项目级目录继续堆放临时 markdown，而不及时把内容收敛进对应论文集。
+3. 把形式主义类型论文误收进 baseline 或 source collection。
+4. 只新增论文目录，不回写各自 collection 的总账。
+5. 在项目级目录继续堆放临时 markdown，而不及时把内容收敛进对应论文集。

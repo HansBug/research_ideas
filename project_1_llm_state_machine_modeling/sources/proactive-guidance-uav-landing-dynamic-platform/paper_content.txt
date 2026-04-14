@@ -1,0 +1,1105 @@
+--- Page 1 ---
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046Citation: Chang, C.-W.; Lo, L.-Y.;
+Cheung, H.C.; Feng, Y.; Yang, A.-S.;
+Wen, C.-Y.; Zhou, W. Proactive
+Guidance for Accurate UAV Landing
+on a Dynamic Platform: A
+Visual–Inertial Approach. Sensors
+2022 ,22, 404. https://doi.org/
+10.3390/s22010404
+Academic Editor: Shuanggen Jin
+Received: 17 December 2021
+Accepted: 1 January 2022
+Published: 5 January 2022
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+sensors
+Article
+Proactive Guidance for Accurate UA V Landing on a Dynamic
+Platform: A Visual–Inertial Approach
+Ching-Wei Chang1
+, Li-Yu Lo2
+, Hiu Ching Cheung1, Yurong Feng2, An-Shik Yang3, Chih-Yung Wen2
+and Weifeng Zhou4,*
+1Department of Mechanical Engineering, The Hong Kong Polytechnic University, Kowloon, Hong Kong;
+chingwei.chang@connect.polyu.hk (C.-W.C.); hiu-ching-athena.cheung@connect.polyu.hk (H.C.C.)
+2Department of Aeronautical and Aviation Engineering, The Hong Kong Polytechnic University,
+Kowloon, Hong Kong; liyu.lo@connect.polyu.hk (L.-Y.L.); yurong.feng@connect.polyu.hk (Y.F.);
+chihyung.wen@polyu.edu.hk (C.-Y.W.)
+3Department of Energy and Refrigerating Air-Conditioning Engineering,
+National Taipei University of Technology, Taipei 10608, Taiwan; asyang@ntut.edu.tw
+4School of Professional Education and Executive Development, The Hong Kong Polytechnic University,
+Kowloon, Hong Kong
+*Correspondence: chandler.zhou@cpce-polyu.edu.hk; Tel.: +852-3746-0127
+Abstract: This work aimed to develop an autonomous system for unmanned aerial vehicles (UAVs) to
+land on moving platforms such as an automobile or a marine vessel, providing a promising solution
+for a long-endurance ﬂight operation, a large mission coverage range, and a convenient recharging
+ground station. Unlike most state-of-the-art UAV landing frameworks that rely on UAV onboard
+computers and sensors, the proposed system fully depends on the computation unit situated on the
+ground vehicle/marine vessel to serve as a landing guidance system. Such a novel conﬁguration can
+therefore lighten the burden of the UAV , and the computation power of the ground vehicle/marine
+vessel can be enhanced. In particular, we exploit a sensor fusion-based algorithm for the guidance
+system to perform UAV localization, whilst a control method based upon trajectory optimization
+is integrated. Indoor and outdoor experiments are conducted, and the results show that precise
+autonomous landing on a 43 cm 43 cm platform can be performed.
+Keywords: UAV; VTOL; object tracking; deep learning; sensor fusion; kalman ﬁlter; autonomous
+landing; optimal trajectory
+1. Introduction
+In recent years, the development and application of unmanned aerial vehicles (UAVs)
+have been rapid. For instance, agricultural industries, construction sectors, commercial
+delivery corporations, and many others are now eager to adopt aerial robots to boost their
+working efﬁciency [ 1–3]. Nevertheless, the payload of a UAV is limited by the ﬁxed capacity
+of the battery, and frequent landing operations are required for battery replacement or
+recharging. There is hence a signiﬁcant need for a system for autonomous landing of UAVs
+on moving platforms, which would also further increase operation efﬁciency.
+In order to address this issue, this work set out to design a system framework for
+a quadrotor UAV to perform landing on unmanned ground vehicles (UGV), a ﬁeld of
+research in which several pioneering works have been published [ 4,5]. For instance, DHL’s
+AMP Electric Vehicle has been used to test the applicability of UAV pairing with delivery
+trucks, where aerial robots deliver parcels that are outside of the main truck delivery route.
+During operation, the aerial vehicles are positioned on top of the delivery truck. After
+loading, the UAV schedules the route to the delivery point via GPS and take off from the
+moving track. Meanwhile, the truck continues its rounds. After a successful delivery, the
+UAV ﬂies back to the truck for its next delivery run, where it can also wirelessly recharge
+Sensors 2022 ,22, 404. https://doi.org/10.3390/s22010404 https://www.mdpi.com/journal/sensors
+
+--- Page 2 ---
+Sensors 2022 ,22, 404 2 of 17
+its battery [ 6]. Obviously, with such an autonomous landing system, the delivery efﬁciency
+of a single UAV can be increased. A similar technology is also under preliminary research
+in Amazon Prime Air [7].
+The system can be further applied to marine purposes. With a robust and reliable
+autonomous landing system, UAVs can conduct missions on a moving unmanned surface
+vehicle (USV) or ship, such as auto marine condition surveying, including the detection
+of detailed air quality or weather conditions above the sea [ 8,9]. With an automatic UAV
+system equipped on ships, the offshore marine devices can be deployed in a much faster
+manner [ 10,11]. In addition, the UAV system can help the maritime safety department
+to monitor any unidentiﬁed boats or ships in the open sea in a much faster and safer
+manner [ 12,13]. Additionally, it can also be of great assistance in maritime search and
+rescue (SAR) missions to assist any boat or ship under threat [ 14–17]. The landing system
+can also be seen in aerial operations. In the test in [ 18], for example, UAVs carried by a
+larger ﬂying platform could greatly reduce the time to reach the target and dramatically
+increase the operation range of UAVs.
+In terms of the utilized sensors in this research scope, several variations can be ob-
+served. The study in [ 19] utilized a DJI F450 drone equipped with an infrared (IR) camera
+and a laser ranging sensor, in which IR beacons were installed on a moving platform. This
+method has the advantage of enabling landing during the night or in low-light environ-
+ments. However, the low resolution of small onboard IR cameras strictly limits the sensing
+distance, making the detection results unreliable over middle and long ranges. Furthermore,
+the small angle of view of the onboard IR camera imposes a tight restriction on the heading
+control of the UAV . Any disturbance that affects the heading of the UAV can cause the
+beacon to become out of view and lead to the termination of the landing process. Moreover,
+in [20], the authors tried to land a UAV on top of a moving ground vehicle with an AprilTag
+marker on the landing pad. Two cameras were installed on the UAV to detect the marker
+from far and near. However, carrying two cameras onboard a UAV will signiﬁcantly reduce
+its payload and increase power consumption. Additionally, the hardware platform in [ 21]
+utilized a DJI Matrice 100 quadrotor, which was equipped with a DJI Guidance System
+including a DJI Zenmuse X3 Gimbal and Camera system, an SF30 altimeter, and a DJI
+Manifold onboard computer. This research demonstrated its feasibility after conducting a
+ﬁeld test of the UAV landing on a moving vehicle. Nonetheless, the approach was deemed
+to be nonapplicable in most scenarios, as it may overload most quadrotors with the onboard
+equipment. Similarly, other systems proposed by researchers [ 22,23] also suffered from the
+problem of an overweight onboard payload.
+Many of the proposed works mentioned above were vision-based systems. However,
+such systems may suffer from accuracy issues, as conventional computer vision techniques
+are applied in most systems. Therefore, utilizing object detection techniques to conduct
+position estimation is considered an excellent alternative to increase precision. The devel-
+opment of object detection has received much attention in recent decades, and the research
+outputs in this area have been signiﬁcant. Learning-based approaches, in particular, are
+deemed to be breakthrough contributions within the ﬁeld, such as the work presented
+in [24,25]. Regarding vision-based robotics systems, several studies integrating learning-
+based approaches have been conducted. For instance, YOLOv4 was applied to develop
+an autonomous UAV system for electrical and mechanical devices in [ 26], and a support
+vector machine (SVM) was utilized in [ 27] for a quadrotor to track and follow a moving
+target. Additionally, the deep learning algorithm-based tracker was further adopted to
+conduct a surveillance mission on a UAV system [ 28]. However, severe motion blur could
+still be seen in most of the UAV’s landings, induced by the installation of cameras on the
+UAV . Notably, the conﬁguration that has been proposed in most prior research may also
+result in a limited ﬁeld of view (FoV).
+The control module of the landing process is deemed to be one of the most important
+modules for a complete landing system. In particular, the trajectory of the descent to the
+landing pad is important, which should be varied according to the conﬁguration of the
+
+--- Page 3 ---
+Sensors 2022 ,22, 404 3 of 17
+UAV . In [ 29], two stages of landing were designed: (1) approaching from long range, and (2)
+landing after hovering above the landing platform. Moreover, a stage for the UAV to land
+after the approach was speciﬁcally developed; however, there was no descending trajectory
+for the UAV to follow. Such a preliminary landing approach could then lead to an unstable
+landing, as external factors such as wind disturbance may have an impact. To address such
+a problem, the study presented in [ 30] speciﬁcally focused on controller development for
+wind disturbance rejection during the landing process. However, their proposed system
+was considered to be compromised in certain scenarios, as it purely relied on artiﬁcial
+pattern tags for the perception module. Therefore, in the current work, an optimized
+landing trajectory is included and addressed to ensure the robustness of the system.
+In this study, inspired by the instrument landing system (ILS) in the real-world aviation
+industry, a UAV landing framework based upon a guidance system located on a UGV
+is proposed. We proposed a sensor-fusion and estimation method comprising multiple
+sources, including the ArUco marker, YOLO object detector, stereo depth information, and
+IMU information. A depth camera is mounted at the landing platform, as shown in Figure 1,
+and an ArUco tag is attached to a square pad at the front of the UAV . With this design, it is
+expected that the capacity of the computation unit can be increased compared to that of
+UAV conﬁgurations with a companion computer onboard. In the proposed system, a ﬁnite
+state machine is designed to track and control the landing process, as shown in Figure 2.
+This state machine includes four stages, which are Stage 1—GPS following, Stage 2—vision
+position following, Stage 3—ground-effect free trajectory, and Stage 4—shutdown. In
+particular, the state of the ground-effect free trajectory signiﬁes the generation of optimized
+trajectories for the UAV to track and follow. It is deemed that the elucidated framework
+can provide a faster, smoother, and safer landing than the previous works.
+The innovations of this research include the following: (1) Promoting a new installation
+method for the auxiliary equipment, such as the camera and the onboard computer, on a
+moving platform, such as the USV/UGV , instead of on the UAV itself. This arrangement
+can minimize the demand of the UAV payload and simultaneously maximize the usage of
+the computational power. (2) Proposing the application of a ground-effect free trajectory
+to the autolanding system, which shows a signiﬁcant improvement from the ordinary
+vertical landing path of other research. (3) Fusing the position estimation results from IMU,
+YOLO, and ArUco for automatic landing systems in order to simultaneously achieve high
+estimation precision and a high updating rate. (4) Designing a ﬁnite state machine of the
+UAV to land on a moving platform for the consideration of robustness and safety.
+Sensors 2022 , 22, x FOR PEER REVIEW  3 of 18 
+ 
+ The control module of the  landing process is deemed to be one of the most important 
+modules for a complete landing system. In particular, the trajectory of the descent to the 
+landing pad is important, which should be varied according to the configuration of the 
+UAV. In [29], two s tages of landing were designed: (1) approaching from long range, and 
+(2) landing after hovering above the landing platform. Moreover, a stage for the UAV to 
+land after the approach was specifically developed ; however, there was no descending 
+trajectory for the UAV to follow. Such a preliminary landing approach could then lead to 
+an unstable landing, as external factors such as wind disturbance may have an impact. To 
+address such a problem, the study presented  in [30] specifically focused on controller de-
+velopment for wind disturbance rejection during the landing process. However, their pro-
+posed system was considered to be compromised in certain scenarios, as it purely relied 
+on artificial pattern tags for the perception module. Therefore, in the current work, an 
+optimized landing trajectory is included and addressed to ensure the robustness of the 
+system.  
+In this study, inspired by the instrument landing system (ILS) in the real -world avi-
+ation industry, a UAV l anding framework based upon a guidance system located on a 
+UGV is proposed. We proposed a sensor -fusion and estimation method comprising mul-
+tiple sources, including the ArUco marker, YOLO object detector, stereo depth infor-
+mation, and IMU information. A de pth camera is mounted at the landing platform, as 
+shown in Figure 1, and an ArUco tag is attached to a square pad at the front of the UAV. 
+With this design, it is expected that the capacity of the computation unit can be increased 
+compared to that of UAV c onfigurations with a companion computer onboard. In the pro-
+posed system, a finite state machine is designed to track and control the landing process, 
+as shown in Figure 2. This state machine includes four stages, which are Stage 1 —GPS 
+following, Stage 2 —vision position following, Stage 3 —ground -effect free trajectory, and 
+Stage 4—shutdown. In particular, the state of the ground -effect free trajectory signifies the 
+generation of optimized trajectories for the UAV to track and follow. It is deemed that the 
+elucidated framework can provide a faster, smoother, and safer landing than the previous 
+works.  
+ 
+Figure 1. Prototype of the proactive guidance UGV and the UAV.  
+Figure 1. Prototype of the proactive guidance UGV and the UAV .
+
+--- Page 4 ---
+Sensors 2022 ,22, 404 4 of 17
+Sensors 2022 , 22, x FOR PEER REVIEW  4 of 18 
+ 
+  
+Figure 2. Schematic of the four stages of the automatic landing strategy.  
+The innovations of th is research include the following: (1) Promoting a new installa-
+tion method for the auxiliary equipment, such as the camera and the onboard computer, 
+on a moving platform, such as the USV/UGV, instead of on the UAV itself. This arrange-
+ment can minimize the demand of the UAV payload and simultaneously maximize the 
+usage of the computational power. (2) Proposing the application of a ground -effect free 
+trajectory to the autolanding system, which shows a significant improvement from the 
+ordinary vertical landing  path of other research. (3) Fusing the position estimation results 
+from IMU, YOLO, and ArUco for automatic landing systems in order to simultaneously 
+achieve high estimation precision and a high updating rate. (4) Designing a finite state 
+machine of the U AV to land on a moving platform for the consideration of robustness and 
+safety.  
+The remainder of this paper is structured as follows: Section 2 provides the detailed 
+system architecture, including the vision -based position detection, the UAV position esti-
+mation method, the design of the finite state machine, and the development of the trajec-
+tory planner free from the ground effect. Section 3 describes the experimental platform 
+and test environment. Section 4 then presents the experimental results and discus sion, 
+and Section 5 concludes this work.  
+2. System Architecture  
+The landing system consists of several modular components, including the following: 
+(1) vision -based position detection, (2) UAV position estimation, (3) a finite state machine, 
+and (4) a ground -effect free trajectory planner. The relationship of each module is pre-
+sented in Figure 3. This modular framework enables the use of different operating fre-
+quencies in independent modules, and can be easily modified or replaced with other al-
+gorithms.  
+Figure 2. Schematic of the four stages of the automatic landing strategy.
+The remainder of this paper is structured as follows: Section 2 provides the detailed
+system architecture, including the vision-based position detection, the UAV position estima-
+tion method, the design of the ﬁnite state machine, and the development of the trajectory
+planner free from the ground effect. Section 3 describes the experimental platform and
+test environment. Section 4 then presents the experimental results and discussion, and
+Section 5 concludes this work.
+2. System Architecture
+The landing system consists of several modular components, including the following:
+(1) vision-based position detection, (2) UAV position estimation, (3) a ﬁnite state machine,
+and (4) a ground-effect free trajectory planner. The relationship of each module is presented
+in Figure 3. This modular framework enables the use of different operating frequencies in
+independent modules, and can be easily modiﬁed or replaced with other algorithms.
+Sensors 2022 , 22, x FOR PEER REVIEW  5 of 18 
+ 
+  
+Figure 3. The system architecture of the autonomous landing system.  
+2.1. Vision -Based Position Detection  
+In the proposed system, computer vision technologies are applied to perform vision -
+based landing guidance. To achieve this, the system must be able to perceive an aerial 
+vehicle in a 3D world, which can act as a feedback signal for the control system.  
+Specifically, computer vision markers and a learning -based detector are used. ArUco 
+markers are exploited and attached to the front of the quadroto r. Due to the high color 
+contrast, the marker can be easily detected from the landing platform. By solving the Per-
+spective -n-Point (PnP) problem, the relative position of the ArUco marker from the cam-
+era can be known. The inferred position information is t hen processed to acquire the po-
+sition of the UAV. The major advantage of utilizing an ArUco marker is that it provides 
+an extremely high update rate at a certain level of accuracy; however, the system suffers 
+severely from frequent detection loss due to oc casional motion blur when the UAV con-
+ducts aggressive maneuvers . When the vehicle is relatively distant or has severe illumina-
+tion problems due to unstable weather, the small marker size becomes the major limita-
+tion.  
+Therefore, to increase the robustness, in addition to the ArUco marker, the state -of-
+the-art YOLOv4 algorithm is also deployed, by which the loss of detection can be ad-
+dressed. To apply YOLOv4, the foremost and most crucial step is to establish a meticu-
+lously labeled dataset and conduct model t raining to generate a custom model. Accord-
+ingly, the dataset should consist of diverse images of the UAV under different sizes, an-
+gles, resolutions,  backgrounds, and illumination conditions. Despite being relatively com-
+putationally demanding, it is deemed that the high accuracy and robustness detector can 
+increase the stability of the proposed system. Furthermore, in real application scenarios, 
+the moving platforms, such as automobiles or marine vessels, are capable of carrying com-
+putation  facilities with p owerful GPUs. It is deemed that YOLOv4 can perform UAV de-
+tection in real time, giving the system a sufficiently high update rate. Regarding the train-
+ing phase of the YOLO detector, we manually labelled 2500 images, including 500 images 
+of the validation da taset, while providing 2000 objectless background images. Specifically, 
+the images varied in terms of the illumination conditions, angle, object size, and back-
+grounds. Figure 4 shows some of the training dataset for our YOLO detector.  
+Figure 3. The system architecture of the autonomous landing system.
+2.1. Vision-Based Position Detection
+In the proposed system, computer vision technologies are applied to perform vision-
+based landing guidance. To achieve this, the system must be able to perceive an aerial
+vehicle in a 3D world, which can act as a feedback signal for the control system.
+Speciﬁcally, computer vision markers and a learning-based detector are used. ArUco
+markers are exploited and attached to the front of the quadrotor. Due to the high color
+contrast, the marker can be easily detected from the landing platform. By solving the
+Perspective-n-Point (PnP) problem, the relative position of the ArUco marker from the
+camera can be known. The inferred position information is then processed to acquire the
+
+--- Page 5 ---
+Sensors 2022 ,22, 404 5 of 17
+position of the UAV . The major advantage of utilizing an ArUco marker is that it provides
+an extremely high update rate at a certain level of accuracy; however, the system suffers
+severely from frequent detection loss due to occasional motion blur when the UAV conducts
+aggressive maneuvers. When the vehicle is relatively distant or has severe illumination
+problems due to unstable weather, the small marker size becomes the major limitation.
+Therefore, to increase the robustness, in addition to the ArUco marker, the state-of-the-
+art YOLOv4 algorithm is also deployed, by which the loss of detection can be addressed.
+To apply YOLOv4, the foremost and most crucial step is to establish a meticulously labeled
+dataset and conduct model training to generate a custom model. Accordingly, the dataset
+should consist of diverse images of the UAV under different sizes, angles, resolutions,
+backgrounds, and illumination conditions. Despite being relatively computationally de-
+manding, it is deemed that the high accuracy and robustness detector can increase the
+stability of the proposed system. Furthermore, in real application scenarios, the moving
+platforms, such as automobiles or marine vessels, are capable of carrying computation
+facilities with powerful GPUs. It is deemed that YOLOv4 can perform UAV detection in
+real time, giving the system a sufﬁciently high update rate. Regarding the training phase
+of the YOLO detector, we manually labelled 2500 images, including 500 images of the
+validation dataset, while providing 2000 objectless background images. Speciﬁcally, the
+images varied in terms of the illumination conditions, angle, object size, and backgrounds.
+Figure 4 shows some of the training dataset for our YOLO detector.
+Sensors 2022 , 22, x FOR PEER REVIEW  6 of 18 
+ 
+  
+Figure 4. Examples of the training dataset.  
+During a landing process, both ArUco and YOLO modules first conduct predictions 
+on the streaming frame. The ArUco detector then generates 3D position information of 
+the observed ArUco marker, and the YOLO model produces a Region of  Interest (ROI) 
+that possibly contains the aerial vehicle. For the retrieved results from the ArUco marker, 
+the information is in the body frame (𝐵), and thus the 3D position of the ArUco in the 
+world frame (𝑊) is then calculated by the following:  
+[𝑋𝑖𝑊
+1]=𝑇𝐵𝑊[𝑋𝑖𝐵
+1],𝑇𝐵𝑊∈𝑆𝑂(3), (1) 
+where 𝑋𝑖𝐵 is the object position vector in the body frame ( 𝐵), and 𝑋𝑖𝑊 is the 3D object 
+state vector in the world frame ( 𝑊). 𝑇𝐵𝑊 is the transformation matrix between the body 
+frame (𝐵) and the world frame (𝑊). 
+Regarding the object detection model, the 2D bounding box is further integrated with 
+the stereo reconstruction techniques. The depth of the pixels proximate to the center of the 
+ROI is then obtained, followed by the calculation of the 3D position rela tive to the camera 
+pose. To further acquire the 3D position information in the world frame (𝑊), coordination 
+transformation is then applied:  
+[𝑋𝑖𝑊
+1]=𝑇𝐵𝑊𝑇𝐶𝐵[𝑋𝑖𝐶
+1],𝑇𝐵𝑊,𝑇𝐶𝐵∈𝑆𝑂(3), (2) 
+where 𝑋𝑖𝐶 is the object position vector retrieved in the camera frame (𝐶). 
+From the limited sensors available, we further filter the two different estimations in 
+order to retrieve the final optimal estimation. The section below discusses the details of 
+the filter -based estimation.  
+Figure 4. Examples of the training dataset.
+During a landing process, both ArUco and YOLO modules ﬁrst conduct predictions
+on the streaming frame. The ArUco detector then generates 3D position information of the
+
+--- Page 6 ---
+Sensors 2022 ,22, 404 6 of 17
+observed ArUco marker, and the YOLO model produces a Region of Interest (ROI) that
+possibly contains the aerial vehicle. For the retrieved results from the ArUco marker, the
+information is in the body frame ( B), and thus the 3D position of the ArUco in the world
+frame ( W) is then calculated by the following:
+XW
+i
+1
+=TW
+BXB
+i
+1
+,TW
+B2SO(3), (1)
+where XB
+iis the object position vector in the body frame ( B), and XW
+iis the 3D object state
+vector in the world frame ( W).TW
+Bis the transformation matrix between the body frame
+(B) and the world frame ( W).
+Regarding the object detection model, the 2D bounding box is further integrated with
+the stereo reconstruction techniques. The depth of the pixels proximate to the center of the
+ROI is then obtained, followed by the calculation of the 3D position relative to the camera
+pose. To further acquire the 3D position information in the world frame ( W), coordination
+transformation is then applied:
+XW
+i
+1
+=TW
+BTB
+CXC
+i
+1
+,TW
+B,TB
+C2SO(3), (2)
+where XC
+iis the object position vector retrieved in the camera frame (C).
+From the limited sensors available, we further ﬁlter the two different estimations in
+order to retrieve the ﬁnal optimal estimation. The section below discusses the details of the
+ﬁlter-based estimation.
+2.2. UAV Position Estimation
+As explained in the previous section, the vision-based position detection module
+detects and calculates the UAV’s position in the world frame ( W). However, due to the
+limitation of the camera frame rate (max. 30 Hz, and the object is not always detectable),
+computational power, and sudden loss of visualization, the reliability of the position
+reference is not high enough for control of the UAV in some circumstances. Furthermore,
+having a faster estimating rate of the position also increases the response of the ﬂight
+controller to provide better ﬂying performance. To address these problems, a sensor fusion
+of multiple sources of position input (ArUco and YOLO Depth) and a position estimation
+approach were developed for the system.
+To increase the updating rate and enhance the reliability of the position estimation,
+information from the onboard controller of the UAV is collected and implemented in the po-
+sition estimating system in addition to the position information from the ArUco and YOLO
+depth. In this approach, a Kalman ﬁlter (KF) was designed for this position estimation task
+of a ﬂying UAV . The UAV’s state vector is written as follows: s=
+px,py,pz,vx,vy,vzT,
+where px,py,pzrepresent the position, and vx,vy,vzrepresent the velocity according to the
+x,y,zcoordinates in the world frame ( W). The UAV’s state in the system is predicted with
+the following model:
+sk=Aksk 1+wk, (3)
+where sk,wk, and Akare the state of the system, the processing noise (which is assumed to
+be a white Gaussian noise), and the state transition matrix of the ﬂying UAV , respectively.
+The measurement model of the system is also considered to be subject to white Gaussian
+noise vk, and is expressed as:
+zk=H(sk)+vk. (4)
+In the proposed system, the measurement can be either from the vision system or the
+onboard sensors. However, due to the different updating rates of the ArUco module, the
+YOLO module, and the IMU in the ﬂight controller, data are not synchronized. To overcome
+this problem, the ﬁrst-come-ﬁrst-served algorithm is adopted. At every update stage, the
+ﬁlter updates the velocity measurements from the ﬂight controller (the highest updating
+
+--- Page 7 ---
+Sensors 2022 ,22, 404 7 of 17
+rate), and then checks the state from the vision system. If there are new updated position
+data, the ﬁlter also updates the measured position result. When the system retrieves
+two measured positions in the same step, it uses the result from the vision system as the
+measurement input.
+According to the structure of the Kalman ﬁlter, the system contains two modules,
+namely, the prediction module and the measurement-correction module. The two mod-
+ules alternate continuously. During the predicting stage, the state skof the UAV is ﬁrst
+predicted by Equation (3), in addition to the calculation of the uncertainty of the system,
+the covariance Ck, as:
+Ck=AkCk 1AT
+k+Q, (5)
+where Qis another random Gaussian noise term. In the following measurement-correcting
+stage, the Kalman gain Kkis calculated as follows:
+Kk=CkHT
+H C kHT+Q 1
+. (6)
+Finally, the output state s 
+kand the covariance C 
+kare corrected with the Kalman gain
+in the following equations:
+s 
+k=sk+Kk(zk H s k), (7)
+C 
+k=(I KkH)Ck. (8)
+2.3. Finite State Machine
+The ﬁnite state machine (FSM) module aims to help the recovery and landing stages
+of an entire ﬂying mission. At the beginning of the state machine, the state of the UAV is
+assumed to be under hovering mode waiting for landing. There are a total of four stages
+(states), including:
+1. GPS following;
+2. Vision position following;
+3. Ground-effect free trajectory following;
+4. Shutdown.
+Figure 5 describes the logical connection of each state in the ﬁnite state machine and
+the criteria of state changing. The following subsections provide the detail.
+Sensors 2022 , 22, x FOR PEER REVIEW  8 of 18 
+ 
+ 2.3. Finite State Machine  
+The finite state machine (FSM) module aims to help the recovery and landing stages 
+of an entire flying mission. At the beginning of the state machine, the state of the UAV is 
+assumed to be under hovering mode waiting for landing. There are a total of four stages 
+(states), including:  
+1. GPS following;  
+2. Vision position following ; 
+3. Ground -effect free trajectory following;  
+4. Shutdown.  
+Figure 5 describes the logical connection of each state in the finite stat e machine and 
+the criteria of state changing. The following subsections provide the detail.  
+ 
+Figure 5. The framework of the finite state machine.  
+2.3.1. First Stage—GPS Following  
+In this first stage, the UAV is commanded to follow the landing platform at a prepro-
+grammed distance and height difference. These parameters differ for different UAV mod-
+els. The main purpose of this stage is to use the GPS, which has limited positioning accu-
+racy, to lead the UAV to enter the FoV of the autonomous landing system. W henever the 
+positioning estimation module starts to provide a reasonable (or convergence) reading of 
+the position, it triggers the state machine to switch to the next stage.  
+2.3.2. Second Stage—Vision Position Following  
+After switching to this stage, the F SM begins to pass velocity but not position com-
+mands to the UAV’s flight controller. The velocity setpoints are generated by the FSM’s 
+internal PID position (including x, y, z, and yaw) controller using the position reference 
+from the position estimation m odule. The UAV continues to follow at the same desired 
+position as the first stage, but is controlled through the proposed landing system without 
+any GPS information. The goal of this stage is to ensure the stability of position controlling 
+and to wait for  the landing platform to be ready for approaching. When the position dif-
+ference between the landing platform and the UAV is in the desired domain, the stage 
+then proceeds to the following motion. Note that the desired domain is defined as a sphere 
+with a r adius of 0.1 m. The center of this sphere is 1.1 m behind the landing pad in the 
+horizontal direction and 0.7 m above. Furthermore, if the UAV’s visibility is lost in the 
+vision system and no position estimation result is provided, the system rapidly moves  the 
+stage backward to guide the UAV using GPS.  
+2.3.3. Third Stage—Ground -Effect Free Trajectory Following  
+The purpose of this stage is to carry out the approaching maneuver in a smooth and 
+safe trajectory, which generates fewer ground effects compared to landing vertically. A 
+detailed description of the method is described in Section 2.4. When the UAV meets the 
+landing position, the state machine then switches to the last stage. Several failsafe condi-
+Figure 5. The framework of the ﬁnite state machine.
+2.3.1. First Stage—GPS Following
+In this ﬁrst stage, the UAV is commanded to follow the landing platform at a pre-
+programmed distance and height difference. These parameters differ for different UAV
+models. The main purpose of this stage is to use the GPS, which has limited positioning
+accuracy, to lead the UAV to enter the FoV of the autonomous landing system. Whenever
+the positioning estimation module starts to provide a reasonable (or convergence) reading
+of the position, it triggers the state machine to switch to the next stage.
+
+--- Page 8 ---
+Sensors 2022 ,22, 404 8 of 17
+2.3.2. Second Stage—Vision Position Following
+After switching to this stage, the FSM begins to pass velocity but not position com-
+mands to the UAV’s ﬂight controller. The velocity setpoints are generated by the FSM’s
+internal PID position (including x, y, z, and yaw) controller using the position reference
+from the position estimation module. The UAV continues to follow at the same desired
+position as the ﬁrst stage, but is controlled through the proposed landing system without
+any GPS information. The goal of this stage is to ensure the stability of position controlling
+and to wait for the landing platform to be ready for approaching. When the position
+difference between the landing platform and the UAV is in the desired domain, the stage
+then proceeds to the following motion. Note that the desired domain is deﬁned as a sphere
+with a radius of 0.1 m. The center of this sphere is 1.1 m behind the landing pad in the
+horizontal direction and 0.7 m above. Furthermore, if the UAV’s visibility is lost in the
+vision system and no position estimation result is provided, the system rapidly moves the
+stage backward to guide the UAV using GPS.
+2.3.3. Third Stage—Ground-Effect Free Trajectory Following
+The purpose of this stage is to carry out the approaching maneuver in a smooth
+and safe trajectory, which generates fewer ground effects compared to landing vertically.
+A detailed description of the method is described in Section 2.4. When the UAV meets
+the landing position, the state machine then switches to the last stage. Several failsafe
+conditions are considered while the UAV is conducting this approaching maneuver: (1) the
+divergence of the UAV’s position with the desired trajectory; (2) insufﬁcient remaining
+altitude of the UAV to meet the ﬁnal approach’s requirement; and (3) the amount of
+overshoot of the UAV’s position to the landing platform. If any of these criteria are out of
+bounds, the state machine immediately switches back to the previous stage and rapidly
+separates the UAV from the landing platform to maintain a safe distance.
+2.3.4. Fourth Stage—Shutdown
+The ﬁnal stage is used to ensure the safety and stability of the UAV upon its contact
+with the landing platform. As the UAV enters the landing platform, ground effects start to
+affect the stability of the UAV . When the UAV moves toward the landing platform within a
+reasonable distance (<5 cm in this study) above the landing pad, the FSM commands the
+UAV to drastically reduce the throttles of the motors until the motors are all shut down,
+after which the UAV lands solidly on the platform.
+2.4. Ground-Effect Free Trajectory Planner
+In this section, the landing trajectory planner is introduced. There are two main
+purposes of this trajectory planner: (1) ensuring the smoothness and continuity of the
+approaching maneuver; and (2) minimizing the instability caused by the ground effect.
+Based on the work in [ 31], in which a super computational efﬁcient optimal spatial–
+temporal trajectory planner was proposed, we developed our method to ensure the smooth-
+ness throughout the approaching and landing maneuver. This method can improve the
+computational efﬁciency, which enables this planner to generate a trajectory within a few
+microseconds. Moreover, by setting up the parameters with the trajectory generator, the
+physical actuation constraints of the UAV can be easily secured.
+To reduce the signiﬁcant ground effect and aerodynamic drag from the UAV , the
+desired trajectory is expected to reduce its vertical movements only. In the proposed
+trajectory, the UAV is expected to rapidly reduce its altitude in open air before gliding
+onto the landing pad to prevent the possibility of causing ground effects. Therefore, the
+Brachistochrone curve, which has the characteristic of using the shortest time to move
+
+--- Page 9 ---
+Sensors 2022 ,22, 404 9 of 17
+an object with gravity from a higher point to a lower destination, is introduced to this
+trajectory planner. The equation of the curve is written as:
+Horizontal path =a
+2(q sinq),
+Vertical path = a
+2(1 cosq),
+0<q<p.(9)
+where is the altitude difference between the UAV and landing pad. The proposed
+trajectory considers the initial state of the UAV and the landing pad’s dynamic to generate
+a series of discrete waypoints according to the Brachistochrone curve.
+3. Experimental Architecture
+To validate the proposed UAV system, both indoor and outdoor experiments were
+carried out. In this section, the detailed system architecture and the test environment are
+introduced.
+3.1. Landing Platform Hardware Design
+In the experiments, a small Scout Mini (AgileX Robotics, Shenzhen, China) UGV was
+chosen to be the moving platform of the system. Figure 6 shows the setup of the UGV . An
+acrylic square pad (43 43 cm) was mounted directly on the top of the vehicle, and a set of
+Intel RealSense D455 stereo cameras (Intel Corporation, Austin, TX, USA) was ﬁxed in front
+of the landing platform with an upward-facing angle of 20. The cameras were connected
+to an Intel NUC minicomputer (NUC8i7BEH, Intel Corporation, USA) for image collecting
+and processing.
+Sensors 2022 , 22, x FOR PEER REVIEW  10 of 18 
+ 
+ NUC minicomputer (NUC8i7BEH, Intel Corporation, USA) for image collecting and pro-
+cessing.  
+ 
+Figure 6. The hardware setup of the UGV landing platform . 
+3.2. UAV Hardware Design  
+Figure 7 shows the UAV applied in the flight tests, which is a typical X -type quad-
+rotor with a diameter of 210 mm. The four motors are EMAX RS2205 (EMAX model, 
+China) controlled through four T -MOTOR F35A (T -MOTOR, China) Electronic Speed 
+Controllers (ESC). The ESCs are c ommanded by the flight controller, which is a mRo 
+Pixracer (Mayan Robotics LLC, USA). The flight controller is equipped with several 
+onboard sensors, including a gyroscope, accelerometer, compass, and barometer, to self -
+control its attitude during the flig ht. In addition, The Pixracer is also equipped with an 
+onboard WIFI module, which can directly connect to the ROS system with MAVROS. This 
+small quadrotor is also equipped with a front facing 3D -printed ArUco plate (45 × 45 mm) 
+to be recognized by the visi on-based system.  
+  
+Figure 7. The hardware setup of the quadrotor UAV.  
+3.3. Test Environment  
+Figure 6. The hardware setup of the UGV landing platform.
+3.2. UAV Hardware Design
+Figure 7 shows the UAV applied in the ﬂight tests, which is a typical X-type quadrotor
+with a diameter of 210 mm. The four motors are EMAX RS2205 (EMAX model, Shenzhen,
+China) controlled through four T-MOTOR F35A (T-MOTOR, Nanchang, China) Electronic
+Speed Controllers (ESC). The ESCs are commanded by the ﬂight controller, which is
+a mRo Pixracer (Mayan Robotics LLC, Chula Vista, CA, USA). The ﬂight controller is
+equipped with several onboard sensors, including a gyroscope, accelerometer, compass,
+and barometer, to self-control its attitude during the ﬂight. In addition, The Pixracer is also
+
+--- Page 10 ---
+Sensors 2022 ,22, 404 10 of 17
+equipped with an onboard WIFI module, which can directly connect to the ROS system
+with MAVROS. This small quadrotor is also equipped with a front facing 3D-printed ArUco
+plate (4545 mm) to be recognized by the vision-based system.
+Sensors 2022 , 22, x FOR PEER REVIEW  10 of 18 
+ 
+ NUC minicomputer (NUC8i7BEH, Intel Corporation, USA) for image collecting and pro-
+cessing.  
+ 
+Figure 6. The hardware setup of the UGV landing platform . 
+3.2. UAV Hardware Design  
+Figure 7 shows the UAV applied in the flight tests, which is a typical X -type quad-
+rotor with a diameter of 210 mm. The four motors are EMAX RS2205 (EMAX model, 
+China) controlled through four T -MOTOR F35A (T -MOTOR, China) Electronic Speed 
+Controllers (ESC). The ESCs are c ommanded by the flight controller, which is a mRo 
+Pixracer (Mayan Robotics LLC, USA). The flight controller is equipped with several 
+onboard sensors, including a gyroscope, accelerometer, compass, and barometer, to self -
+control its attitude during the flig ht. In addition, The Pixracer is also equipped with an 
+onboard WIFI module, which can directly connect to the ROS system with MAVROS. This 
+small quadrotor is also equipped with a front facing 3D -printed ArUco plate (45 × 45 mm) 
+to be recognized by the visi on-based system.  
+  
+Figure 7. The hardware setup of the quadrotor UAV.  
+3.3. Test Environment  
+Figure 7. The hardware setup of the quadrotor UAV .
+3.3. Test Environment
+In Figure 8, the framework of the experimental system is demonstrated. The landing
+platform and UAV are connected through a WIFI access point to the ground station com-
+puter, which also acts as the major computational center. This ground station computer
+is equipped with an Intel I7-10700KF (Intel Corporation, Austin, TX, USA) processor and
+two NVIDIA RTX 3090 (Nvidia Corporation, Santa Clara, CA, USA) Graphics Processing
+Units (GPU), ensuring the computational capacity of the system. The ﬂight experiments
+were ﬁrst held in an indoor laboratory (blue), which was equipped with a VICON (Vicon
+Motion Systems, Oxford, UK) motion capture system providing the real-time ground truth
+information to the ground station computer. Then, the experiments were moved to the
+outdoors for testing the system in a real-world environment (red). During the outdoor
+tests, individual GPS modules were placed on both UGV and UAV , such that they could be
+guided roughly by the GPS coordinates information.
+Sensors 2022 , 22, x FOR PEER REVIEW  11 of 18 
+ 
+ In Figure 8, the framework of the experimental system is demonstrated. The landing 
+platform and UAV are connected through a WIFI access point to the ground station  com-
+puter, which also acts as the major computational center. This ground station computer is 
+equipped with an Intel I7 -10700KF (Intel Corporation, USA) processor and two NVIDIA 
+RTX 3090 (Nvidia Corporation , Santa Clara, C A, USA) Graphics Processing Units (GPU), 
+ensuring the computational capacity of the system. The flight experiments were first held 
+in an indoor laboratory (blue), which was equipped with a VICON (Vicon Motion Systems,  
+Oxford,  UK) motion capture system providing the real -time ground truth i nformation to 
+the ground station computer. Then, the experiments were moved to the outdoors for test-
+ing the system in a real -world environment (red). During the outdoor tests, individual 
+GPS modules were placed on both UGV and UAV, such that they could be guided roughly 
+by the GPS coordinates information.  
+Notably, the current setup only served as a demonstration. The UGV, which was the 
+current experimental platform, was unable to carry a full -size computer onboard. The 
+ground station computer was remotely c onnected to the UAV and UGV through a high 
+bandwidth wireless network. In future  real applications, the ground station can be di-
+rectly installed on the landing platform with multiple cameras linking to it, providing 
+seamless and powerful computational powe r. 
+ 
+Figure 8. The framework of the experimental setup.  
+4. Results and Discussion  
+This section presents and discusses a series of indoor experiments and outdoor flight 
+experiments.  
+4.1. Indoor Experiment Results  
+This section summarizes the experiment results that were conducted in a controlled 
+indoor environment. Ground truth data from the VICON system were used to validate 
+the proposed vision -based position estimation result. The proposed trajectory generating 
+method and conventional vertical landing method were also compared.  
+4.1.1. Vision -Based Position Estimation Validation  
+In this section, two flight tests were conducted with the quadrotor UAV in the con-
+trolled laboratory for validating the position estimation performance. The first flight test, 
+shown in Figure 9, demonstrated the landing of the quadrotor UAV on the UGV. Figure 
+9 shows that, at the beginning of the mission, the estimation results from the ArUco (green 
+line) indicated two outliers. When the UAV approached the UGV, the estimation resu lts 
+from both the ArUco and YOLO (blue line) tightly followed the ground truth value (black 
+Figure 8. The framework of the experimental setup.
+Notably, the current setup only served as a demonstration. The UGV , which was the
+current experimental platform, was unable to carry a full-size computer onboard. The
+ground station computer was remotely connected to the UAV and UGV through a high
+bandwidth wireless network. In future real applications, the ground station can be directly
+
+--- Page 11 ---
+Sensors 2022 ,22, 404 11 of 17
+installed on the landing platform with multiple cameras linking to it, providing seamless
+and powerful computational power.
+4. Results and Discussion
+This section presents and discusses a series of indoor experiments and outdoor ﬂight
+experiments.
+4.1. Indoor Experiment Results
+This section summarizes the experiment results that were conducted in a controlled
+indoor environment. Ground truth data from the VICON system were used to validate
+the proposed vision-based position estimation result. The proposed trajectory generating
+method and conventional vertical landing method were also compared.
+4.1.1. Vision-Based Position Estimation Validation
+In this section, two ﬂight tests were conducted with the quadrotor UAV in the con-
+trolled laboratory for validating the position estimation performance. The ﬁrst ﬂight test,
+shown in Figure 9, demonstrated the landing of the quadrotor UAV on the UGV . Figure 9
+shows that, at the beginning of the mission, the estimation results from the ArUco (green
+line) indicated two outliers. When the UAV approached the UGV , the estimation results
+from both the ArUco and YOLO (blue line) tightly followed the ground truth value (black
+dashed line). By applying sensor fusion, the estimation results (red line) could precisely
+follow the ground truth value during the whole experiment.
+Sensors 2022 , 22, x FOR PEER REVIEW  12 of 18 
+ 
+ dashed line). By applying sensor fusion, the estimation results (red line) could precisely 
+follow the ground truth value during the whole experiment.  
+ 
+Figure 9. Flight test 1 —Position estimation results using the proposed vision -based system and sen-
+sor fusion method in a moving platform landing mission.  
+Figure 10 shows the second validation flight test, which was a scenario designed for 
+the UAV to follow the landing  platform with a large separation. Some unwanted straight 
+horizontal lines are shown in the ArUco state (green line) in Figure 10, especially from 
+18.5 to 22.5 s. Additionally, its performance in the z -direction was the worst among all 
+directions throughou t the entire experiment. These straight horizontal lines indicate that, 
+in these time segments, the ArUco marker on the UAV was not recognized by the vision 
+position detector on the UGV. This was mainly because the ArUco marker was relatively 
+small in the captured image and, as a result, it was difficult for the ArUco algorithm to 
+recognize the marker. Therefore, the ArUco estimation result in this circumstance was 
+unstable and inaccurate.  
+By comparison, the YOLO (blue line) result maintained a very close d istance to the 
+ground truth (black dashed line), which shows that the proposed learning -based system 
+has a much more stable and accurate recognition ability. With the help of the YOLO, the 
+overall estimation (red line) was able to maintain a tight track to  the ground truth through-
+out the experiment period. This result shows that it is critical to include learning -based 
+recognition in the system for large separation situations.  
+However, this does not mean that the ArUco estimation  method should be aban-
+doned.  In small separation situations, the ArUco estimation  method plays an important 
+role. When the UAV is very close to the landing pad, the view of the UAV in the camera 
+may be too large to be recognized by the YOLO. Moreover, whenever there are small rel-
+ative movements, the UAV can easily fall out of the field of view . The position estimated 
+by YOLO will be unstable and inaccurate in this type of circumstance, as shown in Section 
+4. The proposed sensor fusion method can reject inaccurate results from the ArUc o or 
+YOLO estimations, resulting in a reliable and precise position estimation.  
+2 4 6 8 10 12 14 16 18 20 22-0.4-0.200.20.4X (m)YOLO ArUco Estimation Ground Truth
+2 4 6 8 10 12 14 16 18 20 22-1-0.500.5Y (m)
+2 4 6 8 10 12 14 16 18 20 22
+time(s)00.51Z (m)
+Figure 9. Flight test 1—Position estimation results using the proposed vision-based system and
+sensor fusion method in a moving platform landing mission.
+Figure 10 shows the second validation ﬂight test, which was a scenario designed for
+the UAV to follow the landing platform with a large separation. Some unwanted straight
+horizontal lines are shown in the ArUco state (green line) in Figure 10, especially from
+18.5 to 22.5 s. Additionally, its performance in the z-direction was the worst among all
+directions throughout the entire experiment. These straight horizontal lines indicate that,
+in these time segments, the ArUco marker on the UAV was not recognized by the vision
+position detector on the UGV . This was mainly because the ArUco marker was relatively
+small in the captured image and, as a result, it was difﬁcult for the ArUco algorithm to
+recognize the marker. Therefore, the ArUco estimation result in this circumstance was
+unstable and inaccurate.
+
+--- Page 12 ---
+Sensors 2022 ,22, 404 12 of 17
+Sensors 2022 , 22, x FOR PEER REVIEW  13 of 18 
+ 
+  
+Figure 10. Flight test 2 —Special case of  position estimation using the proposed vision -based system 
+to demonstrate the drawbacks of the ArUco and the advantages of the sensor  fusion method.  
+Table 1 displays the root mean square error (RMSE) of the estimated position to the 
+ground truth, which shows that the overall performance of the position estimator was 
+stable and precise enough to perform the auto landing task. The overall  error was less 
+than 8 cm compared to the size of the landing platform of 43 cm. Therefore, the proposed 
+estimation system is precise enough to perform the autonomous landing task.  
+Table 1. Calculated RMSE of UAV position estimation . 
+Error Evaluation  X (m)  Y (m)  Z (m)  
+Flight test 1  0.0437  0.0747  0.0536  
+Flight test 2  0.0335  0.0275  0.0312  
+4.1.2. Landing Trajectories Experiments  
+As presented in this section, the UAV was commanded to perform two kinds of land-
+ing trajectories toward a non -moving landing platform. These experiments were also con-
+ducted in the controlled VICON laboratory, where the position reference was directly de-
+tected and provided by the VICON system for accurate validation.  
+Figure 11 shows the first landing trajectory experiment, which was a conventional 
+vertical landing trajectory. As the figure shows, while the UAV started to move down-
+ward vertically, its horizontal position started to wobble, and it was unable to precisely 
+maintain the commanded setpoint. Furthermore, during the last 15 centimeters (29 –34 s) 
+before touching down in the z -direction, the UAV had great difficulty in maintaining its 
+descent because the ground effect began to take effect. In this specific period of time, the 
+horizontal position in the x - and y -directions wa s even more unstable.  
+16 18 20 22 24 26 28 30-3-2-101X (m)Yolo ArUco Estimation Ground Truth
+16 18 20 22 24 26 28 30-101Y (m)
+16 18 20 22 24 26 28 30
+time(s)0.70.80.91Z (m)
+Figure 10. Flight test 2—Special case of position estimation using the proposed vision-based system
+to demonstrate the drawbacks of the ArUco and the advantages of the sensor fusion method.
+By comparison, the YOLO (blue line) result maintained a very close distance to the
+ground truth (black dashed line), which shows that the proposed learning-based system has
+a much more stable and accurate recognition ability. With the help of the YOLO, the overall
+estimation (red line) was able to maintain a tight track to the ground truth throughout the
+experiment period. This result shows that it is critical to include learning-based recognition
+in the system for large separation situations.
+However, this does not mean that the ArUco estimation method should be abandoned.
+In small separation situations, the ArUco estimation method plays an important role. When
+the UAV is very close to the landing pad, the view of the UAV in the camera may be
+too large to be recognized by the YOLO. Moreover, whenever there are small relative
+movements, the UAV can easily fall out of the ﬁeld of view. The position estimated by
+YOLO will be unstable and inaccurate in this type of circumstance, as shown in Section 4.
+The proposed sensor fusion method can reject inaccurate results from the ArUco or YOLO
+estimations, resulting in a reliable and precise position estimation.
+Table 1 displays the root mean square error (RMSE) of the estimated position to the
+ground truth, which shows that the overall performance of the position estimator was
+stable and precise enough to perform the auto landing task. The overall error was less
+than 8 cm compared to the size of the landing platform of 43 cm. Therefore, the proposed
+estimation system is precise enough to perform the autonomous landing task.
+Table 1. Calculated RMSE of UAV position estimation.
+Error Evaluation X (m) Y (m) Z (m)
+Flight test 1 0.0437 0.0747 0.0536
+Flight test 2 0.0335 0.0275 0.0312
+4.1.2. Landing Trajectories Experiments
+As presented in this section, the UAV was commanded to perform two kinds of
+landing trajectories toward a non-moving landing platform. These experiments were also
+conducted in the controlled VICON laboratory, where the position reference was directly
+detected and provided by the VICON system for accurate validation.
+Figure 11 shows the ﬁrst landing trajectory experiment, which was a conventional
+vertical landing trajectory. As the ﬁgure shows, while the UAV started to move downward
+vertically, its horizontal position started to wobble, and it was unable to precisely maintain
+
+--- Page 13 ---
+Sensors 2022 ,22, 404 13 of 17
+the commanded setpoint. Furthermore, during the last 15 cm (29–34 s) before touching
+down in the z-direction, the UAV had great difﬁculty in maintaining its descent because
+the ground effect began to take effect. In this speciﬁc period of time, the horizontal position
+in the x- and y-directions was even more unstable.
+Sensors 2022 , 22, x FOR PEER REVIEW  14 of 18 
+ 
+  
+Figure 11. Position results of a quadrotor UAV conducting a conventional vertical landing trajec-
+tory.  
+On the contrary, the experiment shown in Figure 12 applied the proposed ground -
+effect free trajectory. The UAV entered the landing  state at an initial position of 1 meter 
+from the AGV in the x -direction and 0.25 meters in the y -direction. Then, the UAV started 
+to follow the gliding and landing trajectory, which descended in the z -direction while also 
+approaching the AGV in the x - and y-directions. The effectiveness of the ground effect 
+was shown to gradually reduce in the final period. Additionally, the horizontal position 
+performance was also better than the previous results shown in Figure 11.  
+ 
+Figure 12. Position results of a quad rotor UAV conducting the proposed ground -effect free landing 
+trajectory.  
+4.2. Outdoor Experiment Results  
+These experiments tested the system in a real -world environment. In this flight test, 
+the quadrotor UAV was trying to land on the UGV, which was moving  at a constant 
+20 22 24 26 28 30 32 34 360.811.21.4X (m)UAV UGV Setpoint
+20 22 24 26 28 30 32 34 3600.20.40.6Y (m)
+20 22 24 26 28 30 32 34 36
+time(s)0.40.60.81Z (m)
+20 21 22 23 24 25 26 27 28 29 30 3100.51X (m)UAV UGV Setpoint
+20 21 22 23 24 25 26 27 28 29 30 3100.20.40.6Y (m)
+20 21 22 23 24 25 26 27 28 29 30 31
+time(s)0.40.60.8Z (m)
+Figure 11. Position results of a quadrotor UAV conducting a conventional vertical landing trajectory.
+On the contrary, the experiment shown in Figure 12 applied the proposed ground-
+effect free trajectory. The UAV entered the landing state at an initial position of 1 m from the
+AGV in the x-direction and 0.25 m in the y-direction. Then, the UAV started to follow the
+gliding and landing trajectory, which descended in the z-direction while also approaching
+the AGV in the x- and y-directions. The effectiveness of the ground effect was shown to
+gradually reduce in the ﬁnal period. Additionally, the horizontal position performance was
+also better than the previous results shown in Figure 11.
+Sensors 2022 , 22, x FOR PEER REVIEW  14 of 18 
+ 
+  
+Figure 11. Position results of a quadrotor UAV conducting a conventional vertical landing trajec-
+tory.  
+On the contrary, the experiment shown in Figure 12 applied the proposed ground -
+effect free trajectory. The UAV entered the landing  state at an initial position of 1 meter 
+from the AGV in the x -direction and 0.25 meters in the y -direction. Then, the UAV started 
+to follow the gliding and landing trajectory, which descended in the z -direction while also 
+approaching the AGV in the x - and y-directions. The effectiveness of the ground effect 
+was shown to gradually reduce in the final period. Additionally, the horizontal position 
+performance was also better than the previous results shown in Figure 11.  
+ 
+Figure 12. Position results of a quad rotor UAV conducting the proposed ground -effect free landing 
+trajectory.  
+4.2. Outdoor Experiment Results  
+These experiments tested the system in a real -world environment. In this flight test, 
+the quadrotor UAV was trying to land on the UGV, which was moving  at a constant 
+20 22 24 26 28 30 32 34 360.811.21.4X (m)UAV UGV Setpoint
+20 22 24 26 28 30 32 34 3600.20.40.6Y (m)
+20 22 24 26 28 30 32 34 36
+time(s)0.40.60.81Z (m)
+20 21 22 23 24 25 26 27 28 29 30 3100.51X (m)UAV UGV Setpoint
+20 21 22 23 24 25 26 27 28 29 30 3100.20.40.6Y (m)
+20 21 22 23 24 25 26 27 28 29 30 31
+time(s)0.40.60.8Z (m)
+Figure 12. Position results of a quadrotor UAV conducting the proposed ground-effect free landing
+trajectory.
+
+--- Page 14 ---
+Sensors 2022 ,22, 404 14 of 17
+4.2. Outdoor Experiment Results
+These experiments tested the system in a real-world environment. In this ﬂight test,
+the quadrotor UAV was trying to land on the UGV , which was moving at a constant speed,
+and the functionality of the state machine was validated. In this outdoor experiment, the
+threshold of the UAV’s position to the landing platform was 5 cm above the landing pad
+(in the vertical direction) and 15 cm from the center line of the landing platform (on the
+horizontal plane). The position of the UGV was determined by the onboard GPS, and the
+position of the UAV was derived from the proposed position estimating system.
+Figure 13 shows that the UAV made three attempts to approach the landing pad, which
+were at 20.8–23.3 s, 26.3–28.4 s, and 31.5–35 s. In the ﬁrst attempt, the state machine entered
+the third stage—ground-effect free trajectory following at 20.8 s. During the approach
+maneuver (20.8–23.3 s), the positions in the x- and z-directions were well followed with only
+one second of delay. However, there was an overshoot in the y-direction at 24 s (red arrow),
+which triggered the failsafe and rewound the state machine to the second stage—vision
+position following.
+Sensors 2022 , 22, x FOR PEER REVIEW  15 of 18 
+ 
+ speed, and the functionality of the state machine was validated. In this outdoor experi-
+ment, the threshold of the UAV’s position to the landing platform was 5 cm above the 
+landing pad (in the vertical direction) and 15 cm from the center lin e of the landing plat-
+form (on the horizontal plane). The position of the UGV was determined by the onboard 
+GPS, and the position of the UAV was derived from the proposed position estimating 
+system.  
+Figure 13 shows that the UAV made three attempts to approa ch the landing pad, 
+which were at 20.8 –23.3 s, 26.3 –28.4 s, and 31.5 –35 s. In the first attempt, the state machine 
+entered the third stage —ground -effect free trajectory following  at 20.8 s. During the ap-
+proach maneuver (20.8 –23.3 s), the positions in the x - and z -directions were well followed 
+with only one second of delay. However, there was an overshoot in the y -direction at 24 s 
+(red arrow), which triggered the failsafe and rewound the state machine to the second 
+stage—vision position following.  
+The second attempt (26.3 –28.4 s) showed a similar phenomenon; however, an over-
+shoot occurred in the z -direction at 28.5s (green arrow), which means the altitude of the 
+UAV dropped beneath the expected level. The state machine also switched back to the 
+second s tage immediately. In the third attempt (31.5 –35 s), the UAV finally met all the 
+safety requirements and landed safely on the landing platform.  
+ 
+Figure 13. Position results of the UAV landing on a moving platform in an outdoor experiment.  
+The red and green  arrow show the overshoots of the  UAV in experiment, which cause the failsafe 
+to trigger.  
+Furthermore, Figure 14 shows the results from the vision system. The figure shows 
+that, particularly during the second approach (27–30 s) , in which the UAV was very c lose 
+to the camera, the YOLO (blue line) started to lose track of the UAV. At the same time, the 
+ArUco was functioning appropriately, which kept the position estimation results on track. 
+Hence, these results show the importance of sensor fusion and redunda ncy in the vision 
+system.  
+Figure 13. Position results of the UAV landing on a moving platform in an outdoor experiment.
+The red and green arrow show the overshoots of the UAV in experiment, which cause the failsafe
+to trigger.
+The second attempt (26.3–28.4 s) showed a similar phenomenon; however, an over-
+shoot occurred in the z-direction at 28.5s (green arrow), which means the altitude of the
+UAV dropped beneath the expected level. The state machine also switched back to the
+second stage immediately. In the third attempt (31.5–35 s), the UAV ﬁnally met all the
+safety requirements and landed safely on the landing platform.
+Furthermore, Figure 14 shows the results from the vision system. The ﬁgure shows
+that, particularly during the second approach (27–30 s), in which the UAV was very close
+to the camera, the YOLO (blue line) started to lose track of the UAV . At the same time,
+the ArUco was functioning appropriately, which kept the position estimation results on
+track. Hence, these results show the importance of sensor fusion and redundancy in the
+vision system.
+
+--- Page 15 ---
+Sensors 2022 ,22, 404 15 of 17
+Sensors 2022 , 22, x FOR PEER REVIEW  16 of 18 
+ 
+  
+Figure 14. Position estimation results of the UAV landing on a moving platform in an outdoor ex-
+periment.  
+5. Conclusions  
+In this study, the objective was to develop a proactive guidance system for UAVs to 
+land accurately on a moving platform. As a result of the proposed system structure, the 
+UAV’s onboard instruments can be greatly reduced. Two sets of vision -based position 
+detection modules were first introduced , followed by sensor fusion and estimation tech-
+niques aimed at enhancing position estimation . Next, a finite state machine system with 
+an optimal trajectory generating method was designed to accomplish this landing gu id-
+ance task.  
+Flight experiments were undertaken in both indoor and outdoor environments. The 
+vision -based estimation results were first validated and tested in a controlled laboratory. 
+The results demonstrated the reliability of the vision -based system. In  the landing trajec-
+tory experiments, a feasible means to prevent the unstable movement caused by ground -
+effects during the landing progress was developed. Finally, the system was tested in a 
+real-world environment, in which the UAV safely landed.  
+To furthe r improve the UAV landing guidance system, attention will focus on the 
+estimation of the relative movement of the UAV and the landing platform. In marine ap-
+plications, the landing platform is expected to heave and shake on waves. The system 
+must be able to  accurately measure and rapidly estimate the relative movements to 
+achieve a safe landing in a more unstable environment.  
+Supplementary Material s: The following are available online at https://youtu.be/OfGBQfCveiM, 
+Video: Proactive Guidance for Accurate UA V Landing on a Dynamic Platform: A Visual –Inertial 
+Approach.  
+Author Contribution s: Conceptualization, C. -W.C.; methodology, C. -W.C. and L. -Y.L.; software, 
+C.-W.C., L. -Y.L. and Y.F.; validation, C. -W.C., L. -Y.L. and H.C.C .; formal analysis, C. -W.C. and Y.F. ; 
+data curation, C. -W.C., H.C.C. and Y.F.; writing —original draft preparation, C. -W.C.; writing, re-
+view and editing, W.Z., A. -S.Y. and C. -Y.W.; supervision, W.Z., A. -S.Y. and C. -Y.W. All authors 
+have read and agreed to the published version of the manuscri pt. 
+Funding:  This work was supported by the Innovation and Technology Commission of Hong Kong 
+under grant number ITT/027/19GP.  
+Data Availability Statement: Not applicable.  
+Conflicts of Interest: The authors declare no conflicts of interest.  
+18 20 22 24 26 28 30 32 34 3634567X (m)Yolo ArUco Estimation
+18 20 22 24 26 28 30 32 34 36345Y (m)
+18 20 22 24 26 28 30 32 34 36
+time(s)0.40.60.8Z (m)
+Figure 14. Position estimation results of the UAV landing on a moving platform in an outdoor
+experiment.
+5. Conclusions
+In this study, the objective was to develop a proactive guidance system for UAVs
+to land accurately on a moving platform. As a result of the proposed system structure,
+the UAV’s onboard instruments can be greatly reduced. Two sets of vision-based posi-
+tion detection modules were ﬁrst introduced, followed by sensor fusion and estimation
+techniques aimed at enhancing position estimation. Next, a ﬁnite state machine system
+with an optimal trajectory generating method was designed to accomplish this landing
+guidance task.
+Flight experiments were undertaken in both indoor and outdoor environments. The
+vision-based estimation results were ﬁrst validated and tested in a controlled laboratory.
+The results demonstrated the reliability of the vision-based system. In the landing trajectory
+experiments, a feasible means to prevent the unstable movement caused by ground-effects
+during the landing progress was developed. Finally, the system was tested in a real-world
+environment, in which the UAV safely landed.
+To further improve the UAV landing guidance system, attention will focus on the
+estimation of the relative movement of the UAV and the landing platform. In marine
+applications, the landing platform is expected to heave and shake on waves. The system
+must be able to accurately measure and rapidly estimate the relative movements to achieve
+a safe landing in a more unstable environment.
+The following are available online at https://youtu.be/OfGBQfCveiM (accessed on
+1 December 2021), Video: Proactive Guidance for Accurate UAV Landing on a Dynamic
+Platform: A Visual–Inertial Approach.
+Author Contributions: Conceptualization, C.-W.C.; methodology, C.-W.C. and L.-Y.L.; software,
+C.-W.C., L.-Y.L. and Y.F.; validation, C.-W.C., L.-Y.L. and H.C.C.; formal analysis, C.-W.C. and Y.F.;
+data curation, C.-W.C., H.C.C. and Y.F.; writing—original draft preparation, C.-W.C.; writing, review
+and editing, W.Z., A.-S.Y. and C.-Y.W.; supervision, W.Z., A.-S.Y. and C.-Y.W. All authors have read
+and agreed to the published version of the manuscript.
+Funding: This work was supported by the Innovation and Technology Commission of Hong Kong
+under grant number ITT/027/19GP .
+Data Availability Statement: Not applicable.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+
+--- Page 16 ---
+Sensors 2022 ,22, 404 16 of 17
+References
+1. Zhang, H.; Wang, L.; Tian, T.; Yin, J. A Review of Unmanned Aerial Vehicle Low-Altitude Remote Sensing (UAV-LARS) Use in
+Agricultural Monitoring in China. Remote Sens. 2021 ,13, 1221. [CrossRef]
+2. Liu, J.; Xiang, J.; Jin, Y.; Liu, R.; Yan, J.; Wang, L. Boost Precision Agriculture with Unmanned Aerial Vehicle Remote Sensing and
+Edge Intelligence: A Survey. Remote Sens. 2021 ,13, 4387. [CrossRef]
+3. Chiang, W.-C.; Li, Y.; Shang, J.; Urban, T.L. Impact of drone delivery on sustainability and cost: Realizing the UAV potential
+through vehicle routing optimization. Appl. Energy 2019 ,242, 1164–1175. [CrossRef]
+4. Ham, A.M. Integrated scheduling of m-truck, m-drone, and m-depot constrained by time-window, drop-pickup, and m-visit
+using constraint programming. Transp. Res. Part C Emerg. Technol. 2018 ,91, 1–14. [CrossRef]
+5. Stone, R.; Clarke, G. Optimization of Transition Manoeuvres for a Tail-Sitter Unmanned Air Vehicle. Available online: http:
+//rexresearch.com/stone/aiac-optim.pdf (accessed on 1 December 2021).
+6. DHL. Unmanned Aerial Vehicles in Logistics. Available online: https://www.dhl.com/global-en/home/insights-and-
+innovation/thought-leadership/trend-reports/unmanned-aerial-vehicles.html (accessed on 1 December 2021).
+7. Amazon Prime Air. Available online: https://www.amazon.com/Amazon-Prime-Air/b?ie=UTF8&node=8037720011 (accessed
+on 1 December 2021).
+8. Leighton, J. System Design of an Unmanned Aerial Vehicle (UAV) for Marine Environmental Sensing ; Massachusetts Institute of Tech
+Cambridge Department of Mechanical Engieneering: Cambridge, MA, USA, 2013.
+9. Bayırhan, ˙I.; Gazio˘ glu, C. Use of Unmanned Aerial Vehicles (UAV) and Marine Environment Simulator in Oil Pollution Inves-
+tigations. In Proceedings of the International Symposium on Applied Geoinformatics, Istanbul, Turkey, 7–9 November 2019;
+pp. 1–6.
+10. Xu, G.; Shen, W.; Wang, X. Applications of Wireless Sensor Networks in Marine Environment Monitoring: A Survey. Sensors 2014 ,
+14, 16932–16954. [CrossRef] [PubMed]
+11. Mills, G.; Fones, G. A review of in situ methods and sensors for monitoring the marine environment. Sensor Rev. SENS REV 2012 ,
+32, 17–28. [CrossRef]
+12. Klimkowska, A.; Lee, I.; Choi, K. Possibilities of UAS for maritime monitoring. Int. Arch. Photogramm. Remote Sens. Spat. Inf. Sci.
+2016 ,41, 885. [CrossRef]
+13. Healey, A.J.; Homer, D.; Kragelund, S.; Wring, B.; Monarrez, A. Collaborative Unmanned Systems for Maritime and Port Security
+Operations ; Naval Postgraduate School Monterey CA Center for Autonomous Underwater: Monterey, CA, USA, 2007.
+14. Dahana, U.; Gurning, R. Maritime aerial surveillance: Integration manual identiﬁcation system to automatic identiﬁcation system.
+IOP Conf. Ser. Earth Environ. Sci. 2020 ,557, 012014. [CrossRef]
+15. Waharte, S.; Trigoni, N. Supporting search and rescue operations with UAVs. In Proceedings of the International Conference on
+Emerging Security Technologies IEEE, Canterbury, UK, 6–7 September 2010; pp. 142–147.
+16. Li, W.; Zhang, H.; Osen, O.L. A UAV SAR Prototype for Marine and Arctic Application. In Proceedings of the International
+Conference on Offshore Mechanics and Arctic Engineering, Trondheim, Norway, 25–30 June 2017; American Society of Mechanical
+Engineers: New York, NY, USA, 2017; Volume 57748.
+17. Schuldt, D.W.; Kurucar, J. Maritime Search and Rescue via Multiple Coordinated UAS ; MIT Lincoln Laboratory Lexington United
+States: Cambridge, MA, USA, 2016.
+18. Losey, S. DARPA nabs Gremlin Drone in Midair for First Time. Available online: https://www.defensenews.com/unmanned/20
+21/11/05/darpa-nabs-gremlin-drone-in-midair-for-ﬁrst-time/ (accessed on 1 December 2021).
+19. Xuan-Mung, N.; Hong, S.K.; Nguyen, N.P .; Le, T.-L. Autonomous quadcopter precision landing onto a heaving platform: New
+method and experiment. IEEE Access 2020 ,8, 167192–167202. [CrossRef]
+20. Borowczyk, A.; Nguyen, D.-T.; Nguyen, A.P .-V .; Nguyen, D.Q.; Saussi é, D.; Le Ny, J. Autonomous landing of a multirotor micro
+air vehicle on a high velocity ground vehicle. IFAC-Pap. 2017 ,50, 10488–10494.
+21. Keipour, A.; Pereira, G.A.; Bonatti, R.; Garg, R.; Rastogi, P .; Dubey, G.; Scherer, S. Visual Servoing Approach for Autonomous
+UAV Landing on a Moving Vehicle. arXiv 2021 , arXiv:2104.01272.
+22. Demirhan, M.; Premachandra, C. Development of an Automated Camera-Based Drone Landing System. IEEE Access 2020 ,8,
+202111–202121. [CrossRef]
+23. Lee, D.; Ryan, T.; Kim, H.J. Autonomous landing of a VTOL UAV on a moving platform using image-based visual servoing. In
+Proceedings of the 2012 IEEE International Conference on Robotics and Automation, Saint Paul, MN, USA, 14–18 May 2012;
+pp. 971–976.
+24. Liu, W.; Anguelov, D.; Erhan, D.; Szegedy, C.; Reed, S.; Fu, C.; Berg, A.C. Ssd: Single shot multibox detector. In European Conference
+on Computer Vision ; Springer: Amsterdam, The Netherlands, 2016; pp. 21–37.
+25. Redmon, J.; Divvala, S.; Girshick, R.; Farhadi, A. You only look once: Uniﬁed, real-time object detection. In Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recognition, Las Vegas, NV , USA, 27–30 June 2016; pp. 779–788.
+26. Feng, Y.; Tse, K.; Chen, S.; Wen, C.-Y.; Li, B. Learning-Based Autonomous UAV System for Electrical and Mechanical (E&M)
+Device Inspection. Sensors 2021 ,21, 1385. [CrossRef] [PubMed]
+27. Metni, N.; Hamel, T. A UAV for bridge inspection: Visual servoing control law with orientation limits. Autom. Constr. 2007 ,17,
+3–10. [CrossRef]
+
+--- Page 17 ---
+Sensors 2022 ,22, 404 17 of 17
+28. Lo, L.-Y.; Yiu, C.H.; Tang, Y.; Yang, A.-S.; Li, B.; Wen, C.-Y. Dynamic Object Tracking on Autonomous UAV System for Surveillance
+Applications. Sensors 2021 ,21, 7888. [CrossRef] [PubMed]
+29. Wang, L.; Bai, X. Quadrotor Autonomous Approaching and Landing on a Vessel Deck. J. Intell. Robot. Syst. 2017 ,92, 125–143.
+[CrossRef]
+30. Paris, A.; Lopez, B.T.; How, J.P . Dynamic landing of an autonomous quadrotor on a moving platform in turbulent wind conditions.
+arXiv 2019 , arXiv:1909.11071.
+31. Wang, Z.; Zhou, X.; Xu, C.; Chu, J.; Gao, F. Alternating minimization based trajectory generation for quadrotor aggressive ﬂight.
+IEEE Robot. Autom. Lett. 2020 ,5, 4836–4843. [CrossRef]

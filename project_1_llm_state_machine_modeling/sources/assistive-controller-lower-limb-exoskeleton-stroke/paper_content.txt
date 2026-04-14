@@ -1,0 +1,309 @@
+--- Page 1 ---
+An Assistive Controller for a Lower-Limb Exoskeleton for 
+Rehabilitation after Stroke, and Preliminary Assessment Thereof
+Spencer A. Murray [IEEE Student Member] , Kevin H. Ha [IEEE Student Member] , and 
+Michael Goldfarb [IEEE Member]
+Vanderbilt University, Nashville, TN 37209 USA
+Spencer A. Murray: spencer.a.murray@vanderbilt.edu; Kevin H. Ha: kevin.h.ha@vanderbilt.edu; Michael Goldfarb: 
+michael.goldfarb@vanderbilt.edu
+Abstract
+This paper describes a novel controller, intended for use in a lower-limb exoskeleton, to aid gait 
+rehabilitation in patients with hemiparesis after stroke. The controller makes use of gravity 
+compensation, feedforward movement assistance, and reinforcement of isometric joint torques to 
+achieve assistance without dictating the spatiotemporal nature of joint movement. The patient is 
+allowed to self-select walking speed and is able to make trajectory adaptations to maintain balance 
+without interference from the controller. The governing equations and the finite state machine 
+which comprise the system are described herein. The control architecture was implemented in a 
+lower-limb exoskeleton and a preliminary experimental assessment was conducted in which a 
+patient with hemiparesis resulting from stroke walked with assistance from the exoskeleton. The 
+patient exhibited improvements in fast gait speed, step length asymmetry, and stride length in each 
+session, as measured before and after exoskeleton training, presumably as a result of using the 
+exoskeleton.
+I. Introduction
+Each year, approximately 800,000 people in the US suffer a stroke or cerebrovascular 
+accident (CVA), of which approximately 200,000 survivors are affected by lower-extremity 
+hemiparesis to an extent that prevents walking without assistance six months after [ 1, 2]. 
+Typical gait deficits in lower-limb-affected post-stroke individuals involve a combination of 
+impaired muscle strength, coordination and proprioception, and often excessive muscle tone 
+in the paretic limb. The two most immediate biomechanical effects of these impairments are 
+instability of the paretic leg during the stance phase of gait, and insufficient foot clearance 
+on the paretic side during the swing phase of gait. Given these biomechanical deficits, the 
+movement objectives of post-stroke gait training primarily entail improving load acceptance 
+on the paretic leg during stance, and improving foot clearance of the paretic leg via 
+increased hip and knee flexion in the paretic leg during swing. These objectives have 
+traditionally been pursued by a combination of physiotherapy (e.g., mat exercises, weight 
+training, use of fitness equipment) and assisted overground gait training. These may be 
+supplemented with body-weight-supported treadmill training (BWSTT) or robotically 
+assisted treadmill training. Various methods have been proposed to control the patient-robot 
+interaction in robotically-assisted BWSTT systems [ 3–7].
+HHS Public Access
+Author manuscript
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Published in final edited form as:
+Conf Proc IEEE Eng Med Biol Soc . 2014 ; 2014: 4083–4086. doi:10.1109/EMBC.2014.6944521.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 2 ---
+Emerging lower limb exoskeletons are wearable robots which permit overground walking. 
+Thus an exoskeleton may permit the patient, rather than the treadmill belt speed, to set the 
+pace of gait, which may be advantageous. Further, without the artificially stabilizing effect 
+of an overhead suspension point, an exoskeleton may better promote balance recovery. 
+Despite the efficacy of the aforementioned control methods [ 3–7] in robotically-assisted 
+systems, such methods are less well-suited to walking overground in an exoskeleton. Such 
+control methods either dictate or substantially influence the user’s footpath, which may 
+interfere with a patient’s ability to quickly deviate from a prescribed path in order to adjust 
+and maintain balance. As such, a control methodology for gait assistance for an exoskeleton 
+should assist movement without governing the spatiotemporal nature of the footpath.
+This paper describes a control approach which provides floor-referenced walking assistance 
+without substantially affecting the user’s ability to select a desired step length or time. 
+Following a description of the control structure, the authors describe the implementation of 
+the controller in a lower limb exoskeleton, and additionally describe some preliminary 
+results of implementing the exoskeleton and controller on three post-stroke subjects.
+II. Controller to Facilitate Recovery following Stroke
+The general intent of the exoskeleton is to help a patient to recover the neural coordination 
+associated with walking. The authors hypothesize that such recovery is facilitated by 
+allowing the patient, rather than the exoskeleton, to provide movement coordination. The 
+controller, described herein, therefore consists of the combination of three types of 
+behaviors: gravity compensation, reinforcement of isometric joint torques, and 
+supplementation of active joint torques, none of which act to enforce a specified trajectory. 
+The respective components of the control approach, and the state machine within which they 
+operate, are described in the following sections.
+A. Control States and Notation
+The exoskeleton controller is governed by a finite state machine consisting of three states, as 
+illustrated in Fig. 1, where the affected leg is shown as a solid line, and the unaffected leg as 
+a dashed line. Each state is comprised of two sub-states, as follows: sub-states 1a and 1b 
+correspond to the portions of swing in which the affected knee is in a state of flexion and 
+extension respectively; sub-states 2a and 2b correspond to double-support following heel 
+strike of the affected leg and unaffected leg, respectively; and sub-states 3a and 3b 
+correspond to the portions of swing in which the unaffected knee is in a state of flexion and 
+extension, respectively. The sequence of states through which the controller would transition 
+under normal walking conditions is illustrated in Fig. 1. The controller assumes an 
+exoskeleton with four actuators, which provide sagittal plane torques at both the affected 
+and unaffected hip and knee joints. The actuator torque vector corresponding to the four 
+actuator torques can therefore be defined as:
+(1)
+where τak, τah, τuk, and τuh are the torque commands corresponding to the affected knee, 
+affected hip, unaffected knee, and unaffected hip joints, respectively. A torque vector Murray et al. Page 2
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 3 ---
+corresponding to state i (as described above) may be denoted by τi. For cases in which the 
+control torque changes as a function of sub state, the torque commands can be further 
+indicated by τia or τib. Within each state, the control torque may consist of a combination of 
+multiple assistive torque components which are identified by the subscript j, such that the 
+individual control torques can be denoted by τij. Given this notation, the control torques 
+corresponding to the various assistive components are described below.
+B. Exoskeleton Gravity Compensation
+A gravity compensation component of the controller is intended to remove the gravitational 
+burden of the exoskeleton mass from the user, and is described by the following control law:
+(2)
+(3)
+(4)
+where θas and θat are the angles with respect to the vertical of the affected shank and thigh 
+segments, respectively, and θus and θut are the angles with respect to the vertical of the 
+unaffected shank and thigh segments, respectively; m eh, met, and m es are the respective 
+masses of the exoskeleton hip, thigh and shank segments; l ceh, lcet, and l ces are the respective 
+distances of the center of mass of the hip, thigh and shank segments of the exoskeleton from 
+the hip, hip, and knee joints, respectively; l et is the length of the exoskeleton thigh segment; 
+and g is the magnitude of the gravitational acceleration.
+C. Partial Compensation of Swing Leg Weight
+Hemiparetic patients frequently exhibit reduced muscle strength in the affected limb, which 
+can impair the ability to achieve healthy joint excursions. In order to provide movement 
+assistance without dictating joint trajectories, one of the components of the exoskeleton 
+controller is a partial limb-weight compensation of the affected leg during the swing phase 
+of gait. The weight of the limb assists movement when movement is in the direction of 
+gravity, such that active compensation could potentially increase the energetic output 
+required of the user in these instances. As such, partial limb weight compensation is only 
+exerted by the controller when the torque works against the energy gradient (i.e. when the Murray et al. Page 3
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 4 ---
+exoskeleton joint is generating power). As such, the partial limb-weight compensation 
+controller is described by:
+(5)
+(6)
+(7)
+(8)
+where γak and γah are the joint angles of the affected knee and hip joints, respectively; m t, 
+and m s are the respective masses of the user’s thigh and shank segments; l t is the length of 
+the thigh segment (note that this is the same value as l et); lct, and l cs are the respective 
+distances of the center of mass of the user’s thigh and shank segments from the hip and knee 
+joints, respectively; and r ∈[0,1) is a user-selectable gain that determines the extent of limb 
+weight compensation during the affected-limb swing phase.
+D. Feedforward Movement Assistance during Swing
+Reducing the apparent weight of the swing limb reduces the burden of movement, while 
+maintaining an energetically passive character of human/exoskeleton interaction. Such 
+assistance, however, may not be sufficient to achieve suitable joint excursion during swing. 
+In order to provide additional assistance without dictating joint trajectories, the controller 
+allows the user to initiate a given movement, then supplements that movement with a brief 
+torque pulse at the respective joint, as follows:
+(9)
+(10)
+(11)
+(12)Murray et al. Page 4
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 5 ---
+(13)
+(14)
+where P kf and T kf are the torque pulse amplitude and duration, respectively, for the knee 
+flexion torque pulse; P hf and T hf are the torque pulse amplitude and duration, respectively, 
+for the hip flexion torque pulse; P ke and T ke are the torque pulse amplitude and duration, 
+respectively, for the knee extension torque pulse; and t a and t b are the length of time since 
+the controller entered sub-states 1a and 1b, respectively. Note that the amplitude and 
+duration of each torque pulse are selected and adjusted as needed by a particular patient.
+E. Reinforcement of Isometric Torques during Stance
+The affected stance limb is often subject to instability, particularly at the knee joint, which 
+can result in buckling, either in flexion or hyperextension. In order to prevent such buckling, 
+the controller provides “soft” stops during single-support at the stance knee of the affected 
+leg, which consist of emulated spring and damper couples as follows:
+(15)
+(16)
+(17)
+where k is the stiffness of the soft stop; b is the damping associated with the soft stop; and 
+γfss and γess are the angular positions of the flexion and hyperextension soft stops, 
+respectively, at the knee. The composite assistive controller, is collectively described within 
+each finite state i by summing the torque components enumerated in equations (1) through 
+(17):
+(18)
+F. Structure of the State Machine
+The switching conditions that describe movement between the finite states of the state 
+machine are shown in Fig. 2. In particular, switching between sub-states 1a and 1b, or 3a 
+and 3b, is based on a change in the sign of the knee angular velocity in the affected and 
+unaffected swing leg, respectively. The controller switches from single-support to double-Murray et al. Page 5
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 6 ---
+support states via detection of heel strike of the respective swing leg. Finally, the controller 
+switches from double-support to swing (i.e., out of 2a or 2b) when the angular velocity of 
+the respective thigh exceeds a given threshold.
+III. Experimental Implementation and Assessment
+A. Exoskeleton Prototype
+The previously described assistive control approach was implemented on the Vanderbilt 
+lower limb exoskeleton, Fig. 3a. [ 8]. The exoskeleton incorporates brushless DC motors and 
+backdrivable transmissions at each of the four joints, is powered by a lithium polymer 
+battery contained in the hip piece, and is used with a standard ankle foot orthosis (AFO). 
+The combined weight of the exoskeleton and battery is approximately 12 kg.
+B. Assessment Procedure
+In order to provide a preliminary assessment of the efficacy of the exoskeleton controller, 
+the authors implemented the assistive controller on the Vanderbilt exoskeleton, and 
+conducted a preliminary evaluation on a subject with lower limb hemiparesis following 
+stroke. Specifically, the subject was a 39-year-old female, 3 months post a left-side (i.e., 
+right-affected) ischemic stroke at the time of the assessments. Prior to conducting the 
+preliminary evaluations, the exoskeleton was fit to the subject, and the assistive control 
+parameters were tuned such that the combined effort of the subject and exoskeleton achieved 
+appropriate foot clearance during swing and knee stability during stance. Walking metrics 
+were measured prior to using the exoskeleton, and immediately after doffing the 
+exoskeleton. Three assessment metrics were utilized, including fast gait speed (FGS), step 
+length asymmetry (SLA), and stride length (SL). Each session began with an approximately 
+5-minute warm-up which consisted of therapist-assisted overground walking. Following the 
+warm-up period, each subject was allowed to rest if desired, after which the subject 
+performed a ten meter walk test (10MWT). The subject was instructed to “walk as fast as 
+you safely can” over a 14 m distance, with the middle 10 m segment being timed. Note that 
+FGS was calculated using a stopwatch as the average speed during the (middle 10 m portion 
+of the) 10MWT, while SLA and SL were both measured via video post-processing of the 
+recorded 10MWT. SLA is defined as:
+(19)
+where xu is the average step length of the unaffected leg, and xa is the average step length of 
+the affected leg. This definition of SLA is slightly modified from other similar definitions 
+present in the literature to evaluate step length asymmetry [ 9, 10]. Specifically, in the 
+definition given in equation (19), a smaller value indicates increased symmetry, while a 
+larger value indicates reduced symmetry. A perfectly symmetric gait would have an SLA 
+score of 0.
+Following the “pre-session 10MWT” the subject donned the exoskeleton, and walked 
+overground in the exoskeleton, with a physical therapist providing balance support as 
+needed, as shown in Fig. 3b. Specifically, the subject walked for approximately 20–30 Murray et al. Page 6
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 7 ---
+minutes, in approximately 5 minute segments, resting as needed between walking segments. 
+Following the period of walking in the exoskeleton, the subject doffed the exoskeleton and 
+conducted a post-session 10MWT. The full single-session protocol typically lasted 
+approximately one hour. The single-session protocol was performed three times, each 
+spaced three weeks apart to reduce the potential effects of carryover from previous sessions. 
+The subject had baseline metrics, measured during the first pre-session 10MWT, of 0.33 m/s 
+for FGS, 29% for SLA, and 88.7 cm for SL.
+C. Single-Session Results
+Single-session effects were assessed by comparing the pre-session and post-session 
+measures of FGS, SLA, and SL, with the difference presumably attributed to the session of 
+overground exoskeleton walking. Figure 4 shows the average improvement for each 
+outcome measurement across the three trials. When comparing post-session to pre-session 
+values, the percent change is indicated by the ratio of post and pre-session values of FGS 
+and SL, while it is indicated by the difference between post and pre-session values of SLA, 
+since SLA is already a ratio. The subject showed average improvements across the three 
+trials of 37%, 22%, and 39% in FGS, SLA, and SL, respectively.
+This preliminary assessment indicates the exoskeleton and assistive controller may have 
+promise for assisting persons with hemiparesis in the recovery of walking. In future work, 
+the authors will assess the exoskeleton and control method on additional subjects with 
+hemiparesis following stroke.
+Acknowledgments
+Research supported by U.S. Department of Health and Human Services under National Institute of Health Grant 
+1R01HD059832-01A1.
+IV. References
+1. Kelly-Hayes M, Beiser A, Kase CS, Scaramucci A, D’Agostino RB, Wolf PA. The influence of 
+gender and age on disability following ischemic stroke: the Framingham study. Journal of Stroke 
+and Cerebrovascular Diseases. 2003; 12:119–126. [PubMed: 17903915] 
+2. Roger VL, Go AS, Lloyd-Jones DM, Adams RJ, Berry JD, Brown TM, et al. Heart disease and 
+stroke statistics—2011 update a report from the American Heart Association. Circulation. 2011; 
+123:e18–e209. [PubMed: 21160056] 
+3. Marchal-Crespo L, Reinkensmeyer DJ. Review of control strategies for robotic movement training 
+after neurologic injury. Journal of NeuroEngineering and Rehabilitation. Jun 16.2009 6
+4. Banala SK, Seok Hun K, Agrawal SK, Scholz JP. Robot Assisted Gait Training With Active Leg 
+Exoskeleton (ALEX). Neural Systems and Rehabilitation Engineering, IEEE Transactions on. 2009; 
+17:2–8.
+5. Vallery, H.; Duschau-Wicke, A.; Riener, R. Generalized elasticities improve patient-cooperative 
+control of rehabilitation robots. Rehabilitation Robotics, 2009. ICORR 2009; IEEE International 
+Conference on; 2009; p. 535-541.
+6. Emken JL, Harkema SJ, Beres-Jones JA, Ferreira CK, Reinkensmeyer DJ. Feasibility of Manual 
+Teach-and-Replay and Continuous Impedance Shaping for Robotic Locomotor Training Following 
+Spinal Cord Injury. Biomedical Engineering, IEEE Transactions on. 2008; 55:322–334.
+7. Veneman JF, Kruidhof R, Hekman EEG, Ekkelenkamp R, Van Asseldonk EHF, van der Kooij H. 
+Design and Evaluation of the LOPES Exoskeleton Robot for Interactive Gait Rehabilitation. Neural 
+Systems and Rehabilitation Engineering, IEEE Transactions on. 2007; 15:379–386.Murray et al. Page 7
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 8 ---
+8. Quintero HA, Farris RJ, Hartigan C, Clesson I, Goldfarb M. A Powered Lower Limb Orthosis for 
+Providing Legged Mobility in Paraplegic Individuals. Topics in Spinal Cord Injury Rehabilitation. 
+2011; 17:25–33. [PubMed: 22707874] 
+9. Kahn JH, Hornby TG. Rapid and long-term adaptations in gait symmetry following unilateral step 
+training in people with hemiparesis. Physical therapy. 2009; 89:474–483. [PubMed: 19282361] 
+10. Balasubramanian CK, Bowden MG, Neptune RR, Kautz SA. Relationship between step length 
+asymmetry and walking performance in subjects with chronic hemiparesis. Archives of physical 
+medicine and rehabilitation. 2007; 88:43–49. [PubMed: 17207674] Murray et al. Page 8
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 9 ---
+Fig. 1. 
+Finite states corresponding to the assistive controller, where the affected leg is shown as a 
+solid line and the unaffected leg as a dashed line. The three main states correspond to the 1) 
+affected leg in swing, 2) double-support, and 3) unaffected leg in swing.Murray et al. Page 9
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 10 ---
+Fig. 2. 
+Finite state machine switching conditions corresponding to the assistive controller.Murray et al. Page 10
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 11 ---
+Fig. 3. 
+a) Vanderbilt lower limb exoskeleton, and b) Experimental subject walking in the 
+exoskeleton during a training session. A physical therapist offers assistance as needed.Murray et al. Page 11
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 12 ---
+Fig. 4. 
+Average single-session gains across all sessions for each measure. Error bars indicate plus/
+minus one standard deviation.Murray et al. Page 12
+Conf Proc IEEE Eng Med Biol Soc . Author manuscript; available in PMC 2015 June 24.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript

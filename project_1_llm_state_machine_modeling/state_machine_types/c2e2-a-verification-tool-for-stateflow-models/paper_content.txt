@@ -1,0 +1,645 @@
+--- Page 1 ---
+C2E2: A Veriﬁcation Tool For Stateﬂow Models
+Parasara Sridhar Duggirala1, Sayan Mitra2, Mahesh Viswanathan1, and
+Matthew Potok2
+1Department of Computer Science, University of Illinois at Urbana Champaign,
+duggira3@illinois.edu, vmahesh@illinois.edu
+2Department of Electrical and Computer Engineering, University of Illinois at Urbana
+Champaign,
+mitras@illinois.edu
+Abstract. Mathwork’s Stateﬂow is a predominant environment for mod-
+eling embedded and cyberphysical systems where control software inter-
+act with physical processes. We present Compare-Execute-Check-Engine
+(C2E2)—a veriﬁcation tool for continuous and hybrid Stateﬂow models.
+It checks bounded time invariant properties of models with nonlinear dy-
+namics, and discrete transitions with guards and resets. C2E2 transforms
+the model, computing simulations using a validated numerical solver,
+and then computes reachtube over-approximations with increasing pre-
+cision. For this last step it uses annotations that have to be added to the
+model. These annotations are extensions of proof certiﬁcates studied in
+Control Theory and can be automatically obtained for linear dynamics.
+The C2E2 algorithm is sound and it is guaranteed to terminate if the sys-
+tem is robustly safe (or unsafe) with respect to perturbations to the of
+guards and invariants of the model. We present the architecture of C2E2,
+its workﬂow, and examples illustrating its potential role in model-based
+design, veriﬁcation, and validation.
+1 Introduction
+Cyberphysical systems (CPS) are systems that involve the close interaction be-
+tween a software controller and a physical plant. The state of the physical plant
+evolves continuously with time and is often modeled using ordinary differ-
+ential equations (ODE). The software controller, on the other hand, evolves
+through discrete steps and these steps inﬂuence the evolution of the physical
+process. This results in a “hybrid” behavior of discrete and continuous steps
+that makes the formal analysis of these models particularly challenging, so
+much so, that even models that are mathematically extremely simple are com-
+putationally intractable. In addition, many physical plants have complicated
+continuous dynamics that are described by nonlinear differential equations.
+Such plants, even without any interaction with a controlling software, are often
+unamenable to automated analysis.
+On the other hand, the widespread deployment of cyberphysical systems in
+safety critical scenarios like automotives, avionics, and medical devices, have
+made formal, automated analysis of such systems necessary. This is evident
+
+--- Page 2 ---
+2
+from the extensive activity in the research community [19,18,7]. Given the chal-
+lenges of formally verifying cyberphysical systems, the sole analysis technique
+that is commonly used to analyze nonlinear systems is numerical simulation.
+However, given the large, uncountable space of behaviors, using numerical
+simulations to discover design ﬂaws is like searching for a needle in the prover-
+bial haystack. In this paper we present a tool C2E2 (Compare-Execute-Check-
+Engine) that leverages the power of numerical simulations to formally prove or
+disprove the safety of cyberphysical systems over a bounded time interval.
+Systems analyzed by C2E2 are described using Stateﬂow diagrams. Math-
+work’s Stateﬂow is the predominant, even de facto standard, environment for
+designing and developing embedded and cyberphysical systems both in the in-
+dustry and in academia. C2E2 interprets Stateﬂow designs as hybrid automata [13],
+which is a popular mathematical model, with precise semantics, for describing
+cyberphysical systems. The models given as input to C2E2 must be annotated .
+The annotations here are similar in spirit to code assertions and contracts used
+in the software veriﬁcation domain. Each mode in the Stateﬂow diagram has to
+be annotated with what we call a discrepancy function by the user. Discrepancy
+functions are a generalization of several proof certiﬁcates used in control theory
+for analyzing convergence and divergence of trajectories. In[8] we deﬁne dis-
+crepancy functions and discuss how they can be computed automatically for
+a reasonably expressive class of models. C2E2 transforms the input model and
+compiles it with a numerical simulation library to produce a validated sim-
+ulator for the model. This simulator is then used for computing increasingly
+precise reach set over-approximations until it proves or disproves the bounded
+time safety property.
+Our simulation based veriﬁcation approach underlying C2E2, was ﬁrst pre-
+sented in [8] and was subsequently used for a signiﬁcant case study in [9]. The
+current paper outlines several enhancements to the C2E2 tool that have been
+made since then. First the veriﬁcation algorithm presented in [8] only worked
+forswitched systems3where the time of mode switches is explicitly given in the
+input. In this paper, we extend the algorithm to analyze “full hybrid automata”,
+i.e., continuous variables can be reset on mode switches, and mode switches
+take place based on enabling guards rather than explicitly given times. These
+theoretical improvements enable us to use C2E2 on a new set of examples. We
+report our experience in using C2E2 on these examples and its performance as
+experimental results. Next, C2E2 has been engineered to be more robust, mov-
+ing from an in-house prototype, to something that can be used by the wider
+academic community. Finally, the tool now has a few additional features that
+make for a better user experience. First, it has been integrated with Stateﬂow, to
+make it useful for a wider community. Second, it can be used through a graph-
+ical user interface. And lastly, visualization tools have been added to enable
+users to plot various aspects of the reachable state space.
+3Switched system here refers to a design where the state of the physical plant does not
+change when a discrete transition is taken.
+
+--- Page 3 ---
+3
+1.1 Related Work
+Tools for verifying CPS vary widely based on the complexity of the complex-
+ity of the continuous dynamics. Uppaal [14], HyTech [12], and SpaceEx [11] are
+tools verifying timed automata, rectangular hybrid automata and linear hybrid
+automata respectively. Current tools available for verifying nonlinear dynamics
+are d/dt [2], Flow* [5] and Ariadne [3]. Typically these tool use symbolic mod-
+els for computing reachable set of states (or their overapproximations) from a
+given initial set for inferring safety of the system. Such tools provide formal
+soundness guarantees, however, do not typically provide relative complete-
+ness. Further, these tools do not analyze Stateﬂow models and hence a user
+has to specify model in the a speciﬁc input language, which requires additional
+learning curve for using these tools.
+Given the popularity of Simulink-Stateﬂow framework to model CPS, there
+are several MATLAB based tools which verify such models. Breach [7] uses
+sensitivity analysis for analyzing MTL properties of systems using simulations.
+This analysis is sound and relatively complete for linear systems, but does
+not provide formal guarantees for nonlinear systems. S-Taliro [18] is a falsiﬁ-
+cation engine that search for counterexamples using Monte-Carlo techniques
+and hence provides only probabilistic guarantees. STRONG [6] uses robust-
+ness analysis for coverage of all executions from the initial set, using Lyapunov
+functions, however cannot handle nonlinear systems. C2E2, although requires
+additional annotations, can handle nonlinear systems speciﬁed in Stateﬂow
+and provide rigorous soundness and completeness guarantees. The simulation
+based veriﬁcation algorithm in [8] has been extended for more general proper-
+ties in [9] and to networked input output systems in [10].
+2 Hybrid Models and Safety Veriﬁcation
+Hybrid automata is a convenient and widely used mathematical framework for
+modeling cyberphysical systems. One of its key features is that it combines two
+distinct modeling styles, namely, differential equations and automata. For CPS,
+this enables the physical environment to be modeled by differential equations
+and software and communication to modeled by discrete state transitions.
+Figure 1(a) shows an example of a simpliﬁed hybrid model of cardiac cell
+with a pacemaker created using MathworksTMStateﬂowTM. The pacemaker has
+two modes or locations of operation: in the stimOn mode the cell is electrically
+stimulated by the pacemaker, and in stimOff the stimulus is absent. The con-
+tinuous variables uandvmodel certain electrical properties of the cell. The
+stimulus is applied to the cell at regular time intervals as measured by the clock
+t. The resulting evolution of one of the continuous variables over time is shown
+in Figure 1(b).
+Although there is no published formal semantics of StateﬂowTMmodels, it
+is standard to consider them as hybrid automata [16,4,7]. Let us denote the set
+of all the variables (both continuous and discrete) in the model as the set V.
+
+--- Page 4 ---
+4
+This set includes a special variable locto denote the current location. In this
+case, loccan be either stimOff orstimOn . The rest of the variables in Vare con-
+tinuous and real-valued. The set of all possible valuations of all variables in V
+is denoted as val(V)—this deﬁnes the set of states of the model. The continu-
+ous evolution of the variables is modeled by trajectories . A single trajectory is
+a function: [0;t]!val(V), wheret0is the duration . The state of the
+system at a given time tinis(t), and the value of a particular variable v2V
+at that state is denoted by (t):v. A set of trajectories is speciﬁed by differen-
+tial equations involving the continuous variables (see, for example, Figure 1).
+A trajectory satisﬁes an ordinary differential equation (ODE) _v=f(v)if at
+each timetin the domain of the trajectory,d((t):v)
+dt=f((t):v). Whenfis a
+nice4function, the ODE has a unique solution for a given initial state and a
+duration. With different initial states and time bounds, an ODE deﬁnes a set of
+trajectories.
+(a) Model.
+ (b) Behavior.
+Fig. 1: (a) Simpliﬁed StateﬂowTMmodel of a cardiac cell and a pacemaker. (b) A
+simulation of the model from an initial state.
+The discrete transitions between the two locations are speciﬁed by a set A
+of actions (see Figure 1). An action a2Ais enabled at a state whenever the
+state satisﬁes a special predicate Guardathat is associates with the action. The
+discrete transition from the location stimOn tostimOff is enabled only when
+t>= 5, that is the clock has counted 5units in stimOn . When the system takes
+a discrete transition, the new state of the system after the transition is deﬁned
+by a function Resetathat maps the old state to a new state (and possibly a
+new location). For example, the reset function for stimOn tostimOff setst= 0,
+loc=stimO , and leaves the other continuous variables uandvunchanged.
+All of these components together deﬁnes the behavior of the hybrid automaton
+in terms of a sequence of alternating trajectories and transitions.
+Deﬁnition 1. A Hybrid Automata (HA) Ais a tuplehV;Loc;A;D;Tiwhere
+4For example, Lipschitz continuous or smooth. A continuous function f:RnR!R
+issmooth if all its higher derivatives and partial derivatives exist and are also contin-
+uous. It has a Lipschitz constant K0if for every x1;x22Rn,jjf(x1)f(x2)jj
+Kjjx1x2jj.
+
+--- Page 5 ---
+5
+(a)V=X[flocgis a set of variables. Here locis a discrete variable of ﬁnite type
+Loc. Valuations of locare called locations . Eachx2Xis a continuous variable
+of type R. Elements of val(V)are called states .
+(b)Ais a ﬁnite set of actions or transition labels.
+(c)Dval(V)Aval(V)is the set of discrete transitions . A transition (v;a;v0)2
+Dis written as va!v0. The discrete transitions are speciﬁed by ﬁnitely many
+guards and reset maps involving V.
+(d)Tis a set of trajectories for Xwhich is closed under sufﬁx, preﬁx and concatenation
+(see [13] for details). For each l2Loc, a set of trajectories Tlfor location lare
+speciﬁed by differential equations Eland an invariant Ilval(X). Over any
+trajectory2Tl,locremains constant and the variables in Xevolve according to
+Elsuch that for all at each time in the domain of ,(t)satisﬁes the invariant Il.
+An execution of a hybrid automaton Arecords all the information (about
+variables) over a particular run. Formally, an execution is an alternating se-
+quence of trajectories and actions =0a11:::where each iis a closed trajec-
+tory andi(t)ai+1!i+1(0), wheretis the last time point in i. The duration of an
+execution is the total duration of all the trajectories. The set of all executions is
+denoted as execs (A). In this paper, we only consider executions with bounded
+number of switches and with bounded duration. Given a set of initial states
+val(V), the set of executions from are those executions in execs (A)with
+their ﬁrst state, 0(0), in. The set of executions starting from of duration at
+mostTand with at most Ntransitions will be denoted as exec(A;;T;N ).
+Deﬁnition 2 (Safe and Unsafe). Given a hybrid automata Awith an initial set ,
+unsafe setU, time bound T, and transition bound N, it is said to be unsafe, if there
+exists an execution 0a1:::k2exec(A;;T;N )such thatk(t)2U, wheretis the
+last time point in k. Otherwise,Ais said to be safe.
+Our algorithm for safety veriﬁcation as well as its analysis rely heavily on
+the notion of distance between continuous states and trajectories of the automa-
+ton. To state our results formally, we need to introduce a we notations ﬁrst.
+For a vector x2Rn,jjxjjdenotes the `2norm. For x1;x22Rn,jjx1x2jj
+is the Euclidean distance between the points. For  > 0,B(x1)Rnde-
+notes the set of points that is a closed ball of radius centered at x1. For a
+setSRn,B(S) =[x2SB(x).B(S)expandsSby. We will ﬁnd it con-
+venient to also deﬁne the notion of shrinking Sby: For < 0, andSRn,
+B(S) =fx2SjB(x)Sg. For a bounded set S, a-cover ofSis a ﬁnite
+collection of balls X=fB(xi)gm
+i=1such thatSSm
+i=1B(xi). Its diameter
+dia(S)= supx1;x22Sjjx1x2jj.
+Deﬁnition 3 (Perturbing a Hybrid Automata). Given a hybrid automata A=
+hV;Loc;A;D;Ti, we deﬁne an -perturbation ofAas a new automaton Athat has
+identical components as A, except, (a) for each location `2Loc,IA
+`=B(IA
+`)and
+(b) for each action a2A,GuardA
+a=B(GuardA
+a).
+
+--- Page 6 ---
+6
+HereIA
+locis the invariant of the location of a hybrid automata AandGuardA
+a
+denotes the guard set for action a. The deﬁnition permits <0for perturbation
+of a hybrid automaton. Informally, a positive perturbation of a hybrid automata
+Abloats the invariants and guard sets and therefore enlarges the set of execu-
+tions. A negative perturbation on the other hand, shrinks the invariants and the
+guards and therefore reduces the set of executions.
+Deﬁnition 4 (Robust safety and unsafety). Given a hybrid automata Awith an
+initial set, unsafe set U, time bound T, and bound on discrete transitions N, it is
+said to be robustly safe if and only if9>0, such thatA, with initial set , unsafe
+setU, time bound T, and transition bound Nis safe. It is said to be robustly unsafe
+if and only if9 <0such thatA, with initial set , unsafe set U, time bound T,
+and transition bound N, is unsafe.
+For safety veriﬁcation C2E2 expects the users to provide annotations for
+the ODEs deﬁning the trajectories of the hybrid automaton in question. These
+annotations are called discrepancy function. For a differential equation _x=
+f(x;t), the general deﬁnition of discrepancy function is given in [8]. In this pa-
+per, we consider a special form of discrepancy function given in Deﬁnition 5.
+Deﬁnition 5. Given a differential equation _x=f(x), the tuplehK;iis called an
+exponential discrepancy function for the dynamics, if and only if for any two trajectories
+1,2satisfying the differential equation, it holds that:
+jj1(t)2(t)jjKjj1(0)2(0)jjet(1)
+We callKas the multiplicity factor and as the exponential factor of the annotation.
+Along with the input models, we expect the user to specify the discrep-
+ancy function by providing values for hK;i. Also, if the differential equation
+is Lipschitz continuous with constant L, thenhK;i=h1;Liwould be a valid
+annotation. In Figure 1, the annotations for both the locations are provided as
+hK;i=h3:8;0:2i.
+3 Verifying Hybrid Systems From Simulations
+We give an overview of the veriﬁcation algorithm implemented in C2E2. In
+brief, the algorithm generates a cover of the initial set and then performs four
+steps repeatedly until it reaches a safe/unsafe decision for each cover or its
+reﬁnement. In making this decision, it generates a simulation from the cover
+and then bloats this simulation by a factor computed from the given anno-
+tation to compute an over-approximation of the reachable states. If the over-
+approximation, decides safe/unsafe then it moves on to another cover, other-
+wise, it reﬁnes the cover. These operations are performed by several subrou-
+tines which we describe next.
+
+--- Page 7 ---
+7
+3.1 Building Blocks
+The ﬁrst building block for the algorithm is a subroutine called valSim that gen-
+erates validated simulations for the individual dynamical systems or locations
+of the hybrid automaton. Given a trajectory starting from a given state, valSim
+subroutine computes overapproximation of with speciﬁc error.
+Deﬁnition 6 (Validated Simulation). Given an error bound  > 0, a time step
+h>0, a time bound T= (k+ 1)h, and an initial state x0, an(x0;;h;T )-simulation
+of the differential equation _x=f(x)is a sequence set of continuous states =
+R0;R1;:::;Rksuch that (a) for any iin the sequence dia(Ri), and (b) for
+any timetin the interval [ih;(i+ 1)h], the solution from x0at timetis inRi, i.e.,
+(t)2Ri.
+The subroutine valSim (x0;h;T;f )returns a tupleh;isuch thatis an (x0;;h;T )-
+simulation. In C2E2, validated simulation engines such as VNODE-LP [17] and
+CAPD [1] are used for implementing valSim . For the completeness of our algo-
+rithm, we require that the error can be made arbitrarily small by decreasing
+h. In systems with ﬁnite precision arithmetic, simulation engines produce accu-
+rate simulations up to the order of 107, and also there are libraries supporting
+arbitrary precision integration for some differential equations.
+Next, the computeReachTube subroutine: it uses simulations to compute over-
+approximations of a set of trajectories from a set of initial states.
+Deﬁnition 7 (Overapproximate Reach T ube). For a set of initial states S, error
+bound >0, time steph > 0, andT= (k+ 1)h, an(S;;h;T )-reachtube of the
+differential equation _x=f(x)is a sequence  =R0;R1;:::;Rksuch that (a) for any
+iin the sequence dia(Ri), (b) for any trajectory starting fromSand for each
+timet2[ih;(i+ 1)h],(t)2Ri.
+IfSis large and is small then the strict inclusion may preclude a (S;;h;T )-
+reachtube from existing. To compute reachtubes from a compact set Scentered
+atx0,computeReachTube performs the following three steps:
+1.h;1i valSim (x0;h;T;f ), let=R0;:::;Rk.
+2.2= supfKjjx1x2jjetjx1;x22S;t2[0;T]g, wherehK;iis the annota-
+tion for the dynamics given by f.
+3. =B2(R1);:::;B2(Rk).
+From Deﬁnition 5 it follows that  is a(S; 1+2;h;T )-reachtube. It can be
+shown [8] that !0as!0andh!0. In summary, the subroutine call
+computeReachTube (S;h;T;f )returnsh ;iusing the above steps. To provide
+formal guarantees from reachtube over-approximations, we need to distinguish
+when a given reachtube must satisfy a predicate Pfrom when it may satisfy it.
+The next subroutine tagRegion marks or tags each region in a reachtube with
+respect to a given predicate.
+Deﬁnition 8 (Tagging). Given two sets R;PRnthe subroutine tagRegion (R;P)
+returns must ,may or?such that, (a) if RP, then return must , (b) ifR\P6=;
+andR*Pthen return may , and (c) otherwise ( R\P=;), return tag=?.
+
+--- Page 8 ---
+8
+The above subroutines are used for over-approximating reach sets and de-
+ciding safety for individual differential equations of individual locations of
+a hybrid automaton. In order to reason about, invariants, guards and resets
+which are essential for capturing the hybrid behavior of mode switches, we
+have to (a) detect the reachable states that satisfy the respective location invari-
+ants and (b) identify the states from which location switches or transitions can
+occur. The next subroutine invariantPrex ( ;S)takes a reachtube and a set S
+and returns the longest contiguous preﬁx of  that intersects with S. This is
+later used in solving problem (a).
+Deﬁnition 9 (Invariant Preﬁx). Given a reachtube  =R0;:::;Rkand a setS,
+invariantPrex ( ;S)returns the longest sequence =hR0;tag0i:::hRm;tagmi,
+such that80im,tagi=must when8ji;tagRegion (Rj;S) = must and
+tagi=may when8ji;tagRegion (Rj;S)6=?and9ki;tagRegion (Rk;S) =
+may . That is, ifm<k , then tagRegion (Rm+1;S) =?.
+Intuitively, a region Riis tagged must in an invariant preﬁx, if all the regions
+beforeRi(including itself) are contained within the set S. It is tagged may if all
+the regions before it have nonempty intersection with S, and at least one of
+them (including itself) is not contained within the set S. Given a reachtube  
+from a setQ, =invariantPrex ( ;Invloc)returns the over-approximation of
+the valid set of trajectories from Qthat respect the invariant of the location locof
+the hybrid automata. If a region Riinis tagged must , then there exists at least
+one trajectory from Qthat can reach Ri. Also, the set of all reachable states from
+Qthat satisfy the invariant are contained in . Subroutine checkSafety checks
+whether such an invariant preﬁx is safe with respect to an unsafe set U. It
+deﬁned as:
+checkSafety (;U) =8
+><
+>:safe;if8hR;i2;?=tagRegion (R;U)
+unsafe;if9hR;musti2;must =tagRegion (R;U)
+unknown;otherwise
+Notice that is inferred to be safe only when all the regions in the invari-
+ant preﬁx are tagged ?with respect to U(i.e. empty intersection). It is unsafe
+only when there is a must region in the invariant preﬁx is contained within U.
+This is the core of the soundness argument for the veriﬁcation algorithm, i.e., if
+checkSafety (;U)returns safe orunsafe , then indeed that is the correct answer
+for the set of initial states covered by .
+The ﬁnal subroutine nextRegions computes over-approximation of the reach-
+able states that serve as the initial states in a new location after a transition to
+it. A discrete transition ais enabled at the instance trajectory satisﬁes the
+guard condition Guardaand the state after the discrete transition is obtained
+by applying the reset map Reseta. Given a sequence of tagged regions, the sub-
+routine nextRegions returns the tagged set of reachable regions after a discrete
+transition.
+Deﬁnition 10 (Next Regions). Given=hR0;tag0i;:::;hRm;tagmi, a sequence
+of tagged regions, the subroutine nextRegions ()returns a set of tagged regions R.
+
+--- Page 9 ---
+9
+hR0;tag0i2Rif and only if there exists an action aof the automaton and a region Ri
+insuch thatR0=Reseta(Ri)and one of the following conditions hold:
+(a)RiGuarda;tagi=must ,tag0=must .
+(b)Ri\Guarda6=;;Ri*Guarda;tagi=must ,tag0=may .
+(c)Ri\Guarda6=;;tagi=may ,tag0=may .
+A tagged regionhR0;tag0i2Ris labeled must only when the region Riis a
+must region and is contained within the Guarda. In all other cases, the region is
+tagged may whenRi\Guarda6=;. This ensures that a regions tagged must are
+indeed reachable after the discrete transition, and all the regions tagged may
+contain the reachable states after the discrete transition.
+3.2 Veriﬁcation Algorithm
+The C2E2 algorithm for veriﬁcation is given in Algorithm 1. Lines 4 - 19 imple-
+ment the main loop that computes a cover the initial set, computes the over-
+approximation of reachtube, checks safety, and reﬁnes the cover if needed. The
+subroutine taggedCover (line 3), ﬁrst computes a cover of with sets of diam-
+eter and tags them (with tagRegion ) with respect to . The resulting tagged sets
+are collected inX. We add additional attributes to each tagged region: Time
+tracks the time of the trajectory leading to a region, Loc tracks its current lo-
+cation, and Switches tracks the number of discrete transitions taken. Although
+not explicitly mentioned in the algorithm, we update the tags for regions in the
+reachtube based on the time taken by trajectories and the discrete transitions
+encountered during veriﬁcation. The algorithm checks whether all the execu-
+tions of hybrid automata from the regions in the cover of the initial set are safe
+or unsafe. If it is safe, then the region is removed from the initial set (line 15);
+if it is unsafe, then the algorithm returns unsafe (line 11); and if it is neither then
+the initial cover is reﬁned (line 17).
+For each of the regions in the tagged -cover of the initial set, the inner loop
+(lines 6 - 13) computes over-approximations of the reachable states. The sub-
+routine computeReachTube (line 7) computes an overapproximation of all the
+trajectories starting from the tagged region in the initial set cover. Subroutine
+invariantPrex (line 8) computes , an overapproximation of the valid set of
+trajectories which respect the invariant of the current location. Safety of is
+checked using the subroutine checkSafety (line 9). The regions in where dis-
+crete transitions are enabled and the initial states for the trajectories in the next
+location are computed in subroutine computeNext (line 10). This loop continues
+until either the time bound for veriﬁcation or the bound for number of discrete
+transitions is satisﬁed.
+The reachtubes computed in lines 7, 8 are an overapproximation of all the
+reachable states of hybrid automata A, given in Lemma 1. The regions in the
+reachtubes are must only when they satisfy the invariant of each location and
+completely contained within the guard set it follows that these regions are
+reachable by at least one execution of A, given as Lemma 2. For the set of re-
+gionsRtagged may , it follows that =maxfdia(R)jR2Rg bloating of the
+
+--- Page 10 ---
+10
+invariants and guard sets would ensure that these regions are also reachable,
+given in Lemma 3. As the reachtubes can be made arbitrarily precise by de-
+creasing the time step and the initial partitioning, it follows that given any ,
+the precision of reachtubes can be bounded by by using small vales for and
+h. Lemma 1 helps in proving soundness and Lemmas 2 and 3 help in proving
+relative completeness. This guarantees that if the system is robustly safe, then
+the algorithm terminates and returns safe, and if the system is robustly unsafe,
+then the algorithm terminates and returns unsafe, given in Theorem 1.
+input :A,,U,T,N
+output : System issafe orunsafe
+1S ;h h0; 0;
+2whileS6=;do
+3X taggedCover (;);
+4 forelem2X do
+5QC felemg;
+6 fore2QC^e:Time<T^e:Switches<N do
+7h ;i computeReachTube (e:R;e:Loc;h;Te:Time );
+8  invariantPrex ( ;Inv e:Loc );
+9 result checkSafety (;U );
+10 ifresult ==safe thenQC QC[nextRegions ();
+11 else ifresult ==unsafe^elem: tag==must then return unsafe ;
+12 else break ;
+13 end
+14 ifresult ==safe then
+15 S Snelem:R ;
+16 else
+17  =2;h h=2;;
+18 end
+19 end
+20end
+21returnsafe ;
+Algorithm 1: Algorithm for safety veriﬁcation of hybrid automata using
+simulations and annotations.
+Lemma 1. All the regions Rtagged may ormust in(line 7 of algorithm 1) contains
+the reachable set of states of hybrid automata Astarting from withinTtime andN
+discrete transitions.
+Lemma 2. If a regionRis tagged must in(line 7 of algorithm 1), then there exists
+at least one execution of Afrom the initial set that reaches RwithinTtime andN
+discrete transitions.
+Lemma 3. LetR, be the set of all regions tagged may in(line 7 of algorithm 1) and
+=maxfdia(R)jR2Rg . Given any region R2R, there exists at least one execution
+ofAfrom the initial set that reaches RwithinTtime andNdiscrete transitions.
+
+--- Page 11 ---
+11
+Theorem 1 (Soundness and Relative Completeness). Given initial set , unsafe
+setU, time bound T, bound on discrete transitions N, and hybrid automata A, if the
+algorithm 1 returns safe or unsafe, then the system Ais safe or unsafe. The algorithm
+will always terminate whenever the system is either robustly safe or robustly unsafe.
+4 C2E2: Internals and User Experience
+4.1 Architecture of C2E2
+The architecture for C2E2 is shown in Figure 2. The front end parses the input
+models, connects to the veriﬁcation engine, provides a property editor and a
+plotter. It is developed in Python and vastly extends the Hylink parser [16] for
+Stateﬂow models. The veriﬁcation algorithm (Algorithm 1) is implemented in
+C++. The frontend parses the input model ﬁle (.mdl or .hyxml) into an inter-
+mediate format and generates the simulation code. The properties are obtained
+from the input ﬁle or from the user through the front end’s GUI. The simulation
+code is compiled using a validated simulation engine provided by Computer
+Assisted Proofs in Dynamic Groups (CAPD) library [1]. This compiled code
+and the property are read by the C2E2 veriﬁcation algorithm which also uses
+the GLPK libraries. The veriﬁcation result and the computed reachable set are
+read by the frontend for display and visualization. This modular architecture
+allows us to extend the functionality of the tool to new types of models (such
+as Simulink, DAEs), different simulation engines (for example, Boost, VNODE-
+LP), and alternative checkers (such as Z3).
+Fig. 2: Architecture of C2E2
+4.2 Models, Properties, and Annotations
+C2E25takes as input annotated Stateﬂow models (such as in Figure 1(a)) with
+ODEs (possibly nonlinear) and discrete transitions deﬁned by guards and re-
+sets. The guards have to be conjunctions of polynomial predicates over the state
+5https://publish.illinois.edu/c2e2-tool/
+
+--- Page 12 ---
+12
+variables and the reset maps have to be polynomial real-valued functions. The
+properties can be speciﬁed in the .hyxml model ﬁles or using the GUI. C2E2 can
+verify bounded time safety properties speciﬁed by a time bound, a polyhedral
+set of initial states and another set of unsafe states.
+Annotations The user has to write annotations for each ODE in the model. This
+is done by specifying the multiplicity factor Kand the exponential factor 
+as comments in the Stateﬂow model, shown in Figure 1(a). For a broad range
+of nonlinear systems such annotations can be found. We illustrate with some
+examples.
+Example 1. Consider a linear system _x=Ax, where all the eigenvalues of ma-
+trixAis nonzero. Let mbe the maximum among the real parts of all the
+eigenvalues of A. Then, for any two trajectories 1and2of the linear system
+jj1(t)2(t)jj  jjAjjemtjj1(0)2(0)jjis an annotation. Here the matrix
+normjjAjjis deﬁned as supfxTAxjjjxjj= 1gand it can be computed using
+semideﬁnite programming. The input format would be K=jjAjjand=m.
+Example 2. Consider the differential equation in stimOn mode of the cardiac
+cell example: _u= (0:1u)(u1)uvand _v=u2v. By computing the
+maximum eigenvalues of the Jacobian matrix of the differential equation and
+the maximum norm of the contraction metric [15], we get that jj1(t)2(t)jj
+3:8e0:2tjj1:(0)2:(0)jjas an annotation. The input is speciﬁed as K= 3:8
+and=0:2.
+Example 3. Consider the differential equation _x= 1+x2y2:5x; _y= 1:5xx2y
+y. By analyzing the auxiliary system (x1;y1)and(x2;y2), using the incremental
+stability, we have that
+d
+dt[(x1x2)2+ 2(x1x2)(y1y2) + (y1y2)2] =2(x1x2+y1y2)2<0:
+Therefore, for trajectories 1and2of the differential equations it hence fol-
+lows that (1(t):x2(t):x)2+ 2(1(t):x2(t):x)(1(t):y2(t):y) + (1(t):y
+2(t):y)2(x1x2)2+ 2(x1x2)(y1y2) + (y1y2)2wherei= 1;2;xi=
+i:fstate:x;yi=i:fstate:y. The functionjj1(t)2(t)jj 2jj1(0)2(0)jje0t
+is an annotation and is speciﬁed as K= 2;= 0.
+4.3 User Experience
+In this section, we discuss the C2E2 interface for handling veriﬁcation, prop-
+erties and visualization. The users can add, edit, copy, delete or verify several
+properties. As each property is edited, the smart parser provides real-time feed-
+back about syntax errors and unbounded initial sets (Figure 3(b)). Once prop-
+erties are edited the veriﬁer can be launched. Visual representation of reachable
+states and locations can aid debugging process. To this end, we have integrated
+a visualizer into C2E2 for plotting the projections of the reachable states. Once a
+
+--- Page 13 ---
+13
+property has been veriﬁed, the user can plot the valuations of variables against
+time or valuations of pairs of variables (phase plots). The unsafe set is projected
+on the set of plotting variables. The property parser and visualizer uses the
+Parma Polyhedra Library6and matplotlib7. Example plot for the cardiac cell is
+shown in Figure 3(c).
+(a) Model.
+ (b) Property.
+ (c) Reachable Set.
+Fig. 3: Figure showing a snippet of cardiac cell model in (a), property dialog for
+specifying properties in (b), plot of reachable set for cardiac cell model in (c).
+4.4 Stateﬂow Model Semantics
+The annotated Stateﬂow models when given as input are interpreted as hybrid
+automaton as C2E2. Nondeterminism, which is allowed in hybrid automata
+framework is prohibited in Stateﬂow models. All the discrete transitions in
+Stateﬂow models are deterministic and are interpreted as “urgent” i.e. a transi-
+tion is taken by the system as soon as it is enabled. In our fronted, we construct
+hybrid automaton for Stateﬂow models respecting the “urgent” semantics. Un-
+der such interpretation, the guard sets are only allowed to be hyperplanes.
+In general, the veriﬁcation algorithm in Section 3 may not terminate for such
+guard conditions. We therefore use a heuristic and verify an perturbed model
+of the Stateﬂow model to ensure termination of veriﬁcation algorithm.
+4.5 Experiments
+Simulation based veriﬁcation approach for annotated models has been demon-
+strated to outperform other veriﬁcation tool such as Flow* and Ariadne in [8].
+In this paper, we present the veriﬁcation results for some of the nonlinear and
+linear hybrid automata benchmarks in Table 1. The annotations for each of these
+benchmarks have been obtained by procedures given in Section 4.2. All the ex-
+periments have been performed on Intel i-7 Quad core processor with 8GB ram
+running Ubuntu 11.10.
+6http://bugseng.com/products/ppl/
+7http://matplotlib.org/
+
+--- Page 14 ---
+14
+Benchmark Vars. Num. Loc. TH VT (sec) Result
+Cardiac Cell 3 2 15 17.74 safe
+Cardiac Cell 3 2 15 1.91 unsafe
+Nonlinear Navigation 4 4 2.0 124.10 safe
+Nonlinear Navigation 4 4 2.0 4.94 unsafe
+Inverted Pendulum 2 1 10 1.27 safe
+Inverted Pendulum 2 1 10 1.32 unsafe
+Navigation Benchmark 4 4 2.0 94.35 safe
+Navigation Benchmark 4 4 2.0 4.74 unsafe
+Table 1: Experimental Results for benchmark examples. Vars: Number of Vari-
+ables, Num. Loc. : Number of discrete locations in hybrid automata, TH: Time
+Horizon for Veriﬁcation, VT (sec) : Veriﬁcation time for C2E2 in seconds, Result:
+Veriﬁcation result of C2E2.
+This early termination strategy for unsafe behavior of the system (Algo-
+rithm 1, line 11) when the system is unsafe is reﬂected in Table 1. On stan-
+dard examples C2E2 can successfully verify these systems within the order of
+minutes and also handle nonlinear differential equations with trigonometric
+functions of inverted pendulum.
+5 Conclusions and Future Work
+C2E2 presented in this paper is a tool for verifying a broad class of hybrid
+and dynamical systems models. It uses validated simulations and model an-
+notations to prove the most commonly encountered type of properties, namely
+bounded-time invariants. It can handle models created using the Stateﬂow en-
+vironment that is the de facto standard in embedded control design and imple-
+mentation. The improvements presented in this paper beyond the version of [8],
+include the complete support for hybrid models implemented in a new algo-
+rithm and the supporting theory, the new user interface for editing properties,
+and the reachtube plotting function. The tool is freely available for academic
+and research use from https://publish.illinois.edu/c2e2-tool/ .
+Our future plans include implementation of features to support temporal
+precedence properties [9] and compositional reasoning [10,4]. Another avenue
+of work leverages the “embarrassing parallelism” in the simulation-based ap-
+proach. We anticipate that the C2E2’s architecture and its open interfaces, for
+example, the .hyxml input format, text-based representation of reachtubes, will
+support research and eduction in embedded and hybrid systems community by
+helping explore new ideas in modeling, veriﬁcation, synthesis, and and testing.
+Acknowledgements: The authors were supported by the National Science
+Foundation research grant CSR 1016791.
+
+--- Page 15 ---
+15
+References
+1. Computer assisted proofs in dynamic groups (capd).
+http://capd.ii.uj.edu.pl/index.php.
+2. E. Asarin, T. Dang, and O. Maler. The d/dt tool for veriﬁcation of hybrid systems.
+InComputer Aided Veriﬁcation , pages 365–370. Springer, 2002.
+3. A. Balluchi, A. Casagrande, P . Collins, A. Ferrari, T. Villa, and A. Sangiovanni-
+Vincentelli. Ariadne: a framework for reachability analysis of hybrid automata. In
+M.T.N.S. , 2006.
+4. A. Biere and R. Bloem, editors. Computer Aided Veriﬁcation - 26th International Con-
+ference, CAV 2014, Held as Part of the Vienna Summer of Logic, VSL 2014, Vienna, Aus-
+tria, July 18-22, 2014. Proceedings , volume 8559 of Lecture Notes in Computer Science .
+Springer, 2014.
+5. X. Chen, E. ´Abrah ´am, and S. Sankaranarayanan. Flow*: An analyzer for non-linear
+hybrid systems. In Computer Aided Veriﬁcation , pages 258–263. Springer, 2013.
+6. Y. Deng, A. Rajhans, and A. A. Julius. Strong: A trajectory-based veriﬁcation toolbox
+for hybrid systems. In QEST , pages 165–168, 2013.
+7. A. Donz ´e. Breach, a toolbox for veriﬁcation and parameter synthesis of hybrid sys-
+tems. In C.A.V . 2010.
+8. P . S. Duggirala, S. Mitra, and M. Viswanathan. Veriﬁcation of annotated models
+from executions. In EMSOFT , 2013.
+9. P . S. Duggirala, L. Wang, S. Mitra, M. Viswanathan, and C. Mu ˜noz. Temporal prece-
+dence checking for switched models and its application to a parallel landing proto-
+col. In FM 2014: Formal Methods - 19th International Symposium, Singapore, May 12-16,
+2014. Proceedings , pages 215–229, 2014.
+10. M. Fr ¨anzle and J. Lygeros, editors. 17th International Conference on Hybrid Systems:
+Computation and Control (part of CPS Week), HSCC’14, Berlin, Germany, April 15-17,
+2014 . ACM, 2014.
+11. G. Frehse, C. Le Guernic, A. Donz ´e, S. Cotton, R. Ray, O. Lebeltel, R. Ripado, A. Gi-
+rard, T. Dang, and O. Maler. Spaceex: Scalable veriﬁcation of hybrid systems. In
+Computer Aided Veriﬁcation , pages 379–395. Springer, 2011.
+12. T. A. Henzinger, P .-H. Ho, and H. Wong-Toi. Hytech: A model checker for hybrid
+systems. In Computer aided veriﬁcation , pages 460–463. Springer, 1997.
+13. D. K. Kaynar, N. Lynch, R. Segala, and F. Vaandrager. The Theory of Timed I/O Au-
+tomata . Synthesis Lectures on Computer Science. Morgan Claypool, November 2005.
+Also available as Technical Report MIT-LCS-TR-917.
+14. K. G. Larsen, P . Pettersson, and W. Yi. Uppaal in a nutshell. International Journal on
+Software Tools for Technology Transfer (STTT) , 1(1):134–152, 1997.
+15. W. Lohmiller and J. J. E. Slotine. On contraction analysis for non-linear systems.
+Automatica , 1998.
+16. K. Manamcheri, S. Mitra, S. Bak, and M. Caccamo. A step towards veriﬁcation and
+synthesis from simulink/stateﬂow models. In H.S.C.C , 2011.
+17. N. Nedialkov. Vnode-lp: Validated solutions for initial value problem for odes. Tech-
+nical report, 2006.
+18. T. Nghiem, S. Sankaranarayanan, G. Fainekos, F. Ivancic, A. Gupta, and G. Pappas.
+Monte-carlo techniques for falsiﬁcation of temporal properties of non-linear hybrid
+systems. In H.S.C.C , 2010.
+19. L. Zou, N. Zhan, S. Wang, M. Franzle, and S. Qin. Verifying simulink diagrams via
+a hybrid hoare logic prover. In EMSOFT , 2013.

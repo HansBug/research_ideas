@@ -1,0 +1,606 @@
+--- Page 1 ---
+Prepared for submission to JINST
+Design and Verification of the JUNO Liquid Filling
+Control System
+Jiajun Li,𝑎,1Yuekun Heng,𝑏Tao Huang,𝑎Jiajie Ling,𝑎,2Xiao Tang,𝑏Zhi Wu,𝑏,3
+Chengfeng Yang,𝑎Fan Ye,𝑐Shiqi Zhang,𝑎Yinhong Zhang,𝑏
+𝑎Sun Yat-sen University, No. 135, Xingang Xi Road, Guangzhou, China
+𝑏Institute of High Energy Physics, 19B Yuquan Road, China
+𝑐Spallation Neutron Source Science Center, 1 Zhongziyuan Road, Dongguan ,China
+E-mail:lijj295@mail2.sysu.edu.cn (Jiajun Li),lingjj5@mail.sysu.edu.cn
+(Jiajie Ling),wuz@ihep.ac.cn.cn (Zhi Wu)
+Abstract: Jiangmen Underground Neutrino Observatory (JUNO) is a large-scale neutrino ex-
+periment with multiple physics goals including neutrino mass hierarchy, accurate measurement
+of neutrino oscillation parameters, neutrino detection from supernova, sun, and earth, etc. This
+paper presents the design, implementation, and verification of a high-reliability automated control
+system for the liquid Filling, Overflow, and Circulation system in the JUNO experiment. The
+systemis builtupon aProgrammable LogicController architecture,integrated withhigh-precision
+sensors and actuators. It implements advanced control strategies, including Proportional-Integral-
+Derivative regulation, sequential logic, and safety interlocks, to achieve closed-loop control of
+critical parameters such as flow rate, liquid level, and pressure. Commissioning tests with both
+purewaterandliquidscintillatordemonstratethesystem’sexceptionalperformance,achievingflow
+control stability within 0.5% of the setpoint with a rapid stabilization time. The robust design,
+featuringhardwareredundancyandsoftwaresafeguards,ensuresthesystemmeetsthestringentre-
+quirementsforthesafefillingandlong-termstableoperationofJUNO’s20-kilotoncentraldetector
+and provides a scalable reference for large underground fluid control experiments.
+Keywords:JUNO, central detector, liquid scintillator, FOC system, automatic control
+1Corresponding author.
+2Corresponding author.
+3Corresponding author.arXiv:2507.09192v3  [hep-ex]  4 Oct 2025
+
+--- Page 2 ---
+Contents
+1 Introduction 1
+2 System requirement and design 3
+2.1 System requirement 3
+2.2 System design 3
+2.2.1 Sensor layer 3
+2.2.2 Controller layer 6
+2.2.3 Actuator layer 7
+2.2.4 Alarm and data management layer 8
+3 Control logic 8
+3.1 Architecture of the control logic 8
+3.2 Typical control logic types and application scenarios 9
+4 Test and performance 10
+4.1 Test with pure water system 11
+4.2 Test with LS purification system 11
+4.3 Internal test of FOC system 11
+5 Conclusion 12
+1 Introduction
+The Jiangmen Underground Neutrino Observatory (JUNO) [1] is the next generation neutrino
+experiment, located about 53 km from the Taishan and Yangjiang nuclear power plants in south
+China to optimize the precise measurement of the reactor neutrino oscillation parameters. Its
+primarygoalistodeterminetheneutrinomassordering-afundamentalquestionwithimplications
+forneutrinomassoriginsandphysicsbeyondtheStandardModel-whilealsomeasuringoscillation
+parameters (𝜃 12,Δ𝑚2
+21,|Δ𝑚2
+32|) with per-mil precision. JUNO can also advance the research
+associated with solar, atmospheric, supernova neutrinos, geoneutrinos, proton decay, etc.
+TheJUNOCentralDetector(CD)isthelargestliquidscintillator(LS)detectorwith20-kiloton
+LS contained by a 35.4 meter diameter acrylic sphere, achieving 3% energy resolution at 1 MeV.
+The acrylic sphere and photo-multiplier tubes (PMT) are supported by a 41.1 meter in diameter
+stainless steel shell [2]. The whole detector is submerged in 40-kiloton pure water (PW) in water
+pool (WP) for radiation shielding and active cosmic-ray muon tagging.
+SincethepioneeringexperimentofReinesandCowan[3],LShasbeenwidelyusedinneutrino
+experiments[4]duetoitshomogeneity,easeofhandling,cost-effectiveness,large-scaleavailability,
+and purifiability. JUNO’s LS requires ultra-high purity standards [5]: optical attenuation length
+– 1 –
+
+--- Page 3 ---
+>20m,dustcontent<10mg,andsystemleakagerate≤10−6mbar·L·s−1tominimizeradioactive
+impurities (238U,232Th,40K) and gaseous contaminants (222Rn,85Kr,39Ar). To maximize scin-
+tillation light generation and propagation, the optimal LS composites linear alkyl benzene (LAB)
+with2.5g/L diphenyloxazole (PPO) and3mg/L bis(2-methylstyryl)benzene (bis-MSB) [6]. The
+JUNOLSproductionandpurificationsystemisdevelopedforstoring,filteringanddistillingLAB,
+mixingPPOandbis-MSBwithLAB,removingwater-solubleandgaseouselements. Itcanprovide
+purified LS at a rate of7m3/h to fill into CD.
+Thefilling,overflow,andcirculation(FOC)systemisinresponsibleforLSfilling,overflowing
+or refilling, and online circulation for LS re-purification [2]. Filling the CD with purified LS is
+the final step in the detector construction. The process must preserve the structural integrity of the
+detector and the chemical and optical properties of the LS. During detector filling and data taking,
+thesystem shouldalsobe abletomaintain LSpressureandcontrol theLSlevel fordetectorsafety.
+Tomeettheaboverequirements,theFOCsystemisdesignedwithanoperationlifetimeof20years.
+TheFOCsystemconsistsprimarilyofonestoragetankasabuffercontainerforLSfillingand
+circulation,andtwooverflowtankscompensatingforLSvolumefluctuationscausedbytemperature
+changes during detector operation. The system also includes pipes, top and bottom chimneys,
+nitrogen gas system preventing the LS from exposure to oxygen, moisture, and radon. It also
+featuresacontrolsystemtoimplementtheabovefunctionsofFOC.ThecorrespondingPipingand
+Instrument Diagram (P&ID) of the FOC system is shown in Figure 1.
+Inlet
+TankProduct
+TankOSIRIS
+Storage TankOverflow Tank A Overflow Tank B
+ 
+Filter
+ElementsLS Filling Pipeline
+ 
+Catchpit Water/LS Drainage Pipeline
+Central
+DetectorWater
+Pool
+Calibration
+House
+``
+  
+  
+BackwaterPure Water
+ProductionPure Water for CD
+Pure Water for WPUltrafiltration
+UnitsLevel guage
+Pressure transmitter
+Temperature sensor
+FlowmeterCDR pump
+ Regulating valve
+Test pipelineLS exchanging
+PW filling From H igh-purity 
+Nitrogen Plant
+Nitrogen
+BufferNitrogen
+Buffer
+Nitrogen Supply PipelineFOC Nitrogen system
+From H igh-purity 
+Nitrogen PlantWater 
+Pool (WP)
+Central 
+Detector
+(CD)
+CD/WP water filling 
+from bottomCD water/LS drainage 
+from bottomCD LS filling 
+from top
+Figure 1: Primary P&ID of the FOC system
+ThispaperfocusesonthecontrolsystemoftheFOCsystem. Thepaperisorganizedasfollows.
+InSection2,wedescribethedesign,specifications,andprinciplesrelatedtothecontrolsystem. In
+Section 3, we describe the principles of control logic and their application scenarios. We present
+the test performances of the control system in Section 4.
+– 2 –
+
+--- Page 4 ---
+2 System requirement and design
+2.1 System requirement
+The filling process consists of: (1) synchronous pure water injection into both the CD and WP, (2)
+replacing pure water in the CD with LS. During the data-taking period, the system must maintain
+stable CD pressure while limiting liquid level fluctuations to within 20 cm (overflow and refilling
+condition), and support online LS circulation. To ensure these functions, the control system must
+meet several major requirements: precision, robustness, scalability, stability, anti-interference,
+safety and long time data traceability.
+Firstly, the control system of FOC must exhibit extremely high accuracy. The measurement
+deviations of all sensors shall be strictly constrained within the allowed range permitted by the
+processtoensurethateveryparameterduringthefillinganddetectorrunningaccuratelyreflectsthe
+system’s status. High-precision sensors provide a solid foundation for precise system control, with
+specific accuracy requirements such as the liquid level sensor measurement accuracy≤0.2%full
+scale (FS) and the flow sensor accuracy reaching±0.1%FS. The system is designed to maintain
+deviationswithin1%betweenthesetpointandfeedbackvalueinaclosed-loopcontrol. Pumpsshall
+maintain rotational speed stability within±0.2%of setpoint with≤10seconds standby activation.
+Regulating valves require±1%positioning accuracy, while on-off valves must achieve < 1 second
+response time and<10−6mbar·L·s−1leak rate.
+Secondly, the control system must possess security and scalability. Specifically, it requires
+safety interlock mechanisms to mitigate risks to detectors during abnormal conditions. A physical
+emergency stop function is needed to ensure process termination even during system failures.
+For safety, we also use a "dual-confirmation" protocol to prevent hazardous operations caused by
+mistakes. Considering potential changes and upgrades in FOC system, the control system must
+feature modular expandability to avoid system redesigns.
+Intheend,thecontrolsystemrequireshighstability,robustnessandanti-interferencecapability.
+It must maintain precise control during prolonged continuous operation to avoid risks caused by
+control deviations and equipment failures. The system should be able to handle environmental
+fluctuations (e.g., electromagnetic interference, temperature variations, mechanical vibrations) or
+internal signal noise.
+2.2 System design
+Basedontheaboverequirements,thelayoutofthecontrolsystemisshowninFigure2. Thesystem
+integrates35sensors,20controlvalves,and8pumpunits,formingasophisticatedcontrolnetwork.
+In this configuration, the system manages more than 80 sets of analog input/output (I/O) control
+quantities and more than 150 digital I/O control and alarm signals. Therefore, it mainly consists
+of 4 layers: the sensor layer, the controller layer, the actuator layer, as well as the alarm and data
+storage layer.
+2.2.1 Sensor layer
+As the critical monitoring terminal, all sensors selected for the FOC system (including level,
+pressure, temperature, flow rate, etc.) are sourced from Endress+Hauser (E+H) [7], renowned
+– 3 –
+
+--- Page 5 ---
+Sensor layer
+Actuator layer
+AI signal
+AO DO signal
+DI signal
+Valve
+PumpLevel gaugeFlowmeter
+Controller layer
+Optical 
+fiber
+Switch
+Touch screen
+(TIA HMI)Industrial PC
+(EPICS HMI
+&
+Data management)PLC Module
+(cabinet)
+ssh
+Monitor PC
+(ground duty room)DCS
+HTML monitor
+Sound and light alarmWiring
+Flashing highlight
+Flashing highlight
+&
+Alarm data 
+recording
+Heartbeat packetEthernet
+Alarm and data management layer (underground)
+Alarm and data management layer (ground)Figure 2: Layout of the control system
+for their stability and reliability with an accuracy better than 0.2% FS. The instrument selection
+underwentmultipleroundsofdemonstration,aligningwiththesystempipelineortanksdesignand
+meetingthecorrespondingfillingindexrequirements. Forinstance,theflowmeterswerespecifically
+chosen to match the LS filling rate of7m3/h with optimal measuring range and precision. These
+deviceshaveundergonerigorousacceptancetesting,includingfactorytests,offlinetests,andonline
+tests. All sensors come pre-equipped with functions such as preset alarm thresholds, alarm signal
+output, and fault diagnostics. The surface roughness of sensor interfaces in contact with LS meets
+design requirements and maintains sufficient cleanliness.
+The sensor specifications are summarized in Table 1, which aligns with the system’s require-
+ments. Specifically, redundant sensors are deployed at critical points as follows: (1) For CD level
+monitoring: 2pairsofelectronicremotedifferentialpressuregauges,1lasergauge,and2chimney
+differential pressure gauges; (2) For WP level monitoring: 5 static pressure gauges installed at
+different heights; (3) For tank level monitoring: dual level sensors for each tank; (4) For nitrogen
+pressure monitoring: 3 sensors installed at 3 connected tanks; (5) For LS temperature monitoring:
+four temperature sensors distributed throughout the pipelines and tanks.
+These redundant instruments monitor the same parameter simultaneously, with primary and
+backupdevicesclearlydefined. Whentheprimaryinstrumentfails,thestandbydeviceautomatically
+switches to active mode within seconds, leveraging real-time diagnostics and failover algorithms.
+This hot standby mechanism ensures continuous and accurate data collection, effectively reducing
+measurement errors and system risks caused by single-instrument failures.
+The sensor layer incorporates comprehensive anti-interference measurement to ensure signal
+reliability. Allanalogsignaltransmissionsemploysingle-endgroundedshieldedtwisted-paircables
+tominimizeelectromagneticinterference,whileLCfiltermodulesareconnectedinserieswiththe
+– 4 –
+
+--- Page 6 ---
+Table 1: Main sensor selection for control system
+Sensor type Quantity Accuracy (%FS) Purpose
+Electronic remote dif-
+ferential pressure level
+gauge4 0.20 Measure CD liquid level (vertical
+tube & horizontal tube)
+Laser level gauge 1 0.10 Measure CD liquid level
+Differential pressure
+level gauge2 0.20 Measure liquid level in the upper
+chimney
+Static pressure liquid
+level gauge5 0.20 Measure WP liquid level (bottom &
+surface)
+Differential pressure
+level gauge5 0.20 Measure tank liquid level
+Radar wave level gauge 3 0.10 Measure tank liquid level
+Temperature sensor 3 0.20 Measure LS temperature inside
+tanks
+Coriolismassflowmeter 2 0.10 Measure flow of exchanging
+LS/water
+Pressure transmitter 3 0.15 Measure tank gas pressure
+Pressure transmitter 3 0.15 Measure pump discharge pressure
+Pressure transmitter 1 0.20 Measure pressure of calibration
+house
+Double-flange pressure
+transmitter1 0.10 Measure pressure difference before
+and after the filter
+Vortex flowmeter 2 0.20 Measure water flow during water
+filling period
+sensor power supply to suppress power ripple. Critical analog signals undergo through barrier
+isolators to prevent ground loops. These hardware protection measures work in tandem with
+the software filtering strategies described in Section 3.1, collectively achieving the goal of signal
+interference reduction.
+Besides, a rigorous multi-stage calibration and acceptance procedure was implemented for all
+sensors. First,eachdevicewassuppliedwithfactorycalibrationcertificates,andtheirdocumented
+accuracy and stability met the experiment’s stringent requirements. Then, our acceptance process
+comprised two phases: an off-line acceptance without load, and an on-line acceptance after in-
+stallation. During these tests, the calibration of all sensors was verified. For those that could be
+calibrated within the FOC system itself—such as tank level gauges, pressure transmitters, temper-
+ature sensors, and pump discharge pressure sensors—we employed cross-comparison methods. A
+typicalexampleisusingtwoindependentlevelgaugestovalidateeachother’sreadings. Thesuccess
+of these calibration checks is further demonstrated by the system’s performance during integrated
+testing, as detailed in Section 4. For critical sensors that could not be fully calibrated on-site prior
+to the JUNO detector filling—specifically, the CD and WP level gauges—a qualitative validation
+– 5 –
+
+--- Page 7 ---
+wasperformedusingasmall-scalemock-up. Thissetupallowedforcross-checkingamongmultiple
+sensor groups, verifying their consistent response and functionality, thereby providing confidence
+in their readiness for the final operation.
+2.2.2 Controller layer
+TheSiemensS7-300seriesProgrammableLogicController(PLC)ischosenasthecorecomponent
+of the control system. Equipped with a high-performance CPU, it has powerful computing and
+processing capabilities. It can analyze and judge various input signals in micro-second and then
+quickly issue control commands including equipment start-stop operations and process parameter
+adjustments. Its modular design enables flexible configuration to meet diverse control require-
+ments while ensuring system reliability through independent module replacement, maintaining
+uninterrupted operation.
+The modular configuration is chosen for FOC PLC as follows: one CPU module for compu-
+tation, one interface module (IM) for data exchange, six 8-channel analog input (AI) modules for
+sensor signals, two 8-channel analog output (AO) modules for control, and three digital modules
+(two 32-channel DI and one 32-channel DO) for switch/alarm handling.
+The control software was developed using the Siemens Totally Integrated Automation (TIA)
+Portal [8], which provides integrated planning, diagnostic, and comprehensive monitoring capa-
+bilities. The primary human-machine interface (HMI) for local operation and real-time control is
+also developed and hosted within the TIA Portal environment, running on a dedicated industrial
+computer. This TIA-based HMI (shown in Figure 3) is the main interface for operators to perform
+controlactions,suchasadjustingvalveopeningsandcontrollingpumpfrequency,andfordisplaying
+real-time process parameters during routine operations.
+Figure 3: HMI based on TIA Portal
+ForintegrationintothebroaderJUNODetectorControlSystem(DCS),aseparatemonitoring
+andcontrolprogramisdevelopedbasedontheExperimentalPhysicsandIndustrialControlSystem
+(EPICS) [9] framework. The PLC, the TIA Portal HMI station, and the EPICS Input/Output Con-
+– 6 –
+
+--- Page 8 ---
+troller (IOC) – running on a Linux-based industrial computer – are interconnected via a dedicated
+industrial Ethernet switch.
+ThedatasynchronizationbetweenthePLCandtheEPICSIOCisestablishedthroughanetwork
+communicationprotocol(e.g.,OPCUAornativeSiemensS7),allowingtheEPICSsystemtoaccess
+all critical process variables. While the TIA HMI remains the primary interface for direct control,
+the EPICS channel serves two pivotal functions:
+•Itenablescomprehensivemonitoring,historicaldataquerying,andalarmmanagementforthe
+FOC system from the unified JUNO-wide DCS interface, facilitating coordinated operation
+with other subsystems.
+•It implements a heartbeat monitoring program. The EPICS IOC continuously checks the
+operational status of the PLC. A loss of this heartbeat signal triggers a global alarm within
+the DCS, notifying operators of a potential PLC failure.
+This dual-interface architecture ensures both robust, low-latency local control via the TIA
+ecosystem and seamless integration into the experiment’s global monitoring and safety framework
+via EPICS.
+2.2.3 Actuator layer
+Thislayermainlyincludescontrollableon-offandregulatingvalvesaswellaspumpsandfrequency
+converter sets. SED valves [10], CDR pumps [11] and Yamei vacuum self-priming pumps [12]
+are used. The specification of pumps are listed in Table 2. All electromagnetic pumps operate in
+Table 2: Pump specifications for control system
+Pump type Quantity Purpose
+Electromagnetic pump 2 Deliver LS from LS product tank to FOC system
+Electromagnetic pump 2 Deliver LS from FOC system to CD or return it to
+purification system
+Electromagnetic pump 2 Extract LS from CD and pump to the purification
+system for circulation
+Vacuumself-primingpump 2 Extract pure water from CD during LS exchanging
+the "one operation and one standby" configuration. Real-time pump status monitoring is achieved
+throughdigitalfeedbacksignals(ready,fault,running)andanalogfeedbackoftheactualoperating
+frequency, which are compared against control signals. Pressure sensors downstream of pumps
+monitor hydraulic pressure to prevent overpressure, while upstream level interlocks safeguard
+against dry running. All valves come with ample spare parts and manual bypass valves. On-off
+valves provide “opened” or “closed” status feedback signals, while regulating valves offer analog
+feedbackonopeningdegrees. Bothpumpsandvalveshaveadditionalmonitoringmethodsinclude
+local inverter displays and regular operator rounds, ensuring system stability.
+The actuators underwent rigorous acceptance testing to verify their performance aligns with
+the control system’s requirements. Regulating valves were characterized to establish their flow
+– 7 –
+
+--- Page 9 ---
+coefficientcurves,ensuringthePIDcontrolloopscanaccuratelyrelatevalveopeningpercentageto
+flow rate. The positioning feedback of these valves is continuously monitored, and any significant
+deviation from the commanded signal triggers a maintenance alert.
+Similarly, the electromagnetic pumps were tested to confirm their rotational speed stability
+andresponsetimeundervariousloadconditions. Thischaracterizationprocessforbothvalvesand
+pumpsisintrinsicallycoupledwiththesystemperformancetestsdescribedinSection4. Thestable
+flow control and precise pressure maintenance achieved during those tests (e.g., as summarized
+in Table 3) serve as the ultimate validation of the actuator calibration and integration. This
+proactive approach, combined with real-time status monitoring and the "one operation and one
+standby" configuration, minimizes the uncertainty in system actuation and provides a high-degree
+of operational reliability.
+2.2.4 Alarm and data management layer
+The control system integrates a variety of alarm methods. In the control cabinet, an industrial
+sound and light alarm siren horn is installed. Once the system malfunctions, the alarm device will
+immediatelytriggeraudiovisualalertson-siteoperatorstodealwithitinatimelymanner. TheHMI
+displays anomalies through red flashing widgets and pop-up alerts for rapid identification. The
+physical emergency stop button ensures immediate system shutdown under extreme conditions.
+In terms of data management, all data related to FOC are properly stored. The system
+employs a dual data storage architecture, with local hard disk storage enabling real-time analysis
+and troubleshooting, while synchronized DCS storage facilitates distributed access and multi-
+department data sharing. This integrated approach, coupled with web-based remote monitoring
+capabilities, ensures comprehensive data traceability.
+3 Control logic
+3.1 Architecture of the control logic
+BuildingonthehardwarearchitecturedescribedinSection2.2,drawingonthehierarchicalcontrol
+theory ISA-88 [13], the control system employs a closed-loop control framework through three
+functional layers: detection, control, and monitoring & safety. This hierarchical design enables
+preciseregulationofLSparameterswhilemaintainingsystemstabilityduringlong-termoperation.
+•Detection layer: signal acquisition and processing
+This layer interfaces with high-reliability sensors to collect real-time process parameters,
+employing a hybrid filtering strategy to mitigate noise. Arithmetic mean filtering reduces
+high-frequency fluctuations such as radar level gauge noise from 30 mm to 5 mm, while
+the time hysteresis filter combines dual conditions of threshold and duration, avoiding false
+triggers caused by transient interference signals of Coriolis flow meters.
+•Control layer: algorithm implementation
+Thecontrollayeroperatesthroughfourcomplementarycontrollogic. Continuouscontrolvia
+Proportional-Integral-Derivative (PID) algorithms dynamically adjusts valve opening and
+– 8 –
+
+--- Page 10 ---
+pumping speed. State-machine-based sequential control enforces step-by-step execution,
+such as initiating LS exchanging only after tank level and temperature thresholds are met.
+The layer also integrates split-range control (which coordinates multiple actuators via a
+singlecontroller)andselectivecontrol(whichprioritizescriticalparametersundercompeting
+constraints). Boolean logic interlocks provide additional protection, triggering actions such
+as shutting down pumps automatically if pressure goes beyond the safety limits. Detailed
+design and application scenarios will be introduced in Section 3.2.
+•Monitoring and safety layer: redundant safeguard
+DetailedspecificationsofthemonitoringandsafetylayerhavebeenelaboratedinSection2.2.
+This layer incorporates HMI monitoring and multiple alarm modes, enabling operators to
+monitortheprocessparametersandmanuallyinterveneinthecontrollogictotriggercritical
+actions timely during system failures.
+3.2 Typical control logic types and application scenarios
+Multiple typical control logic functions guarantee the operation of the FOC system safely and
+efficiently, which includes: PID control, sequential control, safety interlock, and split-range &
+selective control logic.
+•PID control
+Following Ziegler-Nichols tuning rules [14], the PID control logic is primarily used for the
+closed-loop control of continuous variables such as flow rate. In the LS filling process,
+precise control of the liquid flow rate is critical. An excessive flow rate may undermine the
+structural safety of the CD, while an extremely slow flow will reduce the filling efficiency.
+The logical principle of PID control is described as follows:
+𝑢(𝑡)=𝐾 𝑝
+𝑒(𝑡)+1
+𝑇𝑖∫𝑡
+0𝑒(𝜏)𝑑𝜏+𝑇 𝑑𝑑𝑒(𝑡)
+𝑑𝑡
+,(1)
+where𝑢(𝑡)denotes the control output signal to actuators (e.g., regulating valves),𝐾 𝑝is
+the proportional gain, which is directly scaled to the current deviation𝑒(𝑡)(setpoint minus
+actualvalue)forimmediateresponse,𝑇 𝑖(integraltimeconstant)accumulatespastdeviations
+to eliminate steady-state errors, ensuring long-term accuracy, while𝑇 𝑑(derivative time
+constant) predicts system trends by reacting to the rate of change of the deviation, damping
+overshoots.
+Taking LS filling control as an example: the PID controller dynamically adjusts the flow
+throughthreecoordinatedactions. Whentheactualflowfallsbelowthesetpoint,thepropor-
+tionaltermimmediatelybooststheoutput. Thederivativetermcountersrapidflowincreases
+by generating opposing signals based on the rate of deviation change, preventing overshoot.
+Simultaneously, theintegral term continuouslyeliminates residual errors- during initialfill-
+ing, strong proportional action dominates, while the integral term handles fine adjustments
+asflownearsthetarget,withderivativeactionmaintainingstabilitythroughoutthetransition.
+– 9 –
+
+--- Page 11 ---
+•Sequential control
+The sequential control logic employs a state-machine design to enforce strict stepwise exe-
+cution of operations through condition-action chains, where each process phase has defined
+prerequisites and actions. For instance, LS exchanging initiation requires the storage tank
+to reach a preset level while meeting both the LS temperature specifications and calibration
+house pressure threshold, with the system only ramping up exchange speed after verifying
+stable low-flow filling to ensure detector safety.
+•Safety interlock
+The safety interlock logic mitigates accidents by sensing process parameters out of range
+and acting immediately. Risks during detector filling or operation–such as detector pressure
+exceedingthesetpoint,abnormalLSexchangeflux,orabnormalLStemperature–maydamage
+the detector. The safety interlock logic follows two basic principles: independence and fail-
+safety,whicharealignedwiththeguidanceoffunctionalsafetystandardssuchasIEC61508
+[15] and IEC 61511 [16].
+Fortheindependenceprinciple,thesafetylogicoperatesindependentlyofthenormalcontrol
+logic to avoid common-cause failures. For example, the detector calibration house pressure
+monitoring uses independent sensors in the safety interlock system, ensuring accurate mon-
+itoring and triggering of safety actions even if normal control sensors fail. The fail-safety
+principle means the system will start the safe action by default in case of failure. Criti-
+cal equipment such as pumps and valves shut down automatically in case of CD pressure
+imbalance.
+Furthermore, the selection of specific equipment also incorporates inherent safety interlock
+features, thereby reinforcing the overall system’s reliability. A prime example is the use of
+ABB ACS580 [17] variable frequency drives for the electromagnetic pumps. These drives
+provide a critical, equipment-level layer of protection by continuously monitoring motor
+current and speed. Should any parameter exceed its predefined safe operating limit, the
+drive will immediately initiate a safe stop, independently of the higher-level control system.
+Thisbuilt-infunctionalityembodiesthefail-safetyprincipledirectlyattheactuatorleveland
+complements the system-wide interlock architecture.
+•Split-range and selective control
+Split-rangecontrolplaysanimportantroleinflowcontrolofthewaterfillingprocess;asingle
+controller output drives multiple actuators (valve group composed of two regulating valves)
+to work coherently and precisely. In selective control scenarios, the system implements
+priority-based logic that dynamically selects control commands from multiple controllers,
+wherecriticalparameters(e.g.,pressureandliquidlevel)areassignedhigherprecedenceover
+secondary variables to ensure operational safety.
+4 Test and performance
+In alignment with different operational scenarios, multiple simulated condition experiments were
+conducted to replicate the real FOC working conditions.
+– 10 –
+
+--- Page 12 ---
+4.1 Test with pure water system
+Before pure water filling operations, several functional tests were performed in the FOC and water
+systemsusingthetestpipeline(Fig. 1). Theincomingwaterwasdividedintotwostreams[5]: one
+feeds directly to the WP, while the other undergoes ultrafiltration for CD use. The water flow is
+routedthroughcontrolvalvesandtestpipelinestothebackwater,withvortexmetersprovidingPID
+feedback for valve adjustment.
+Thetestresults(Fig. 4)demonstratetherapidresponseandpreciseflowcontrolofthecontrol
+system, with the WP (39.3m3/h) and CD (18.9m3/h) pipelines reached the target flows in 2
+minutes and maintained stability within 0.5% uncertainty during the test period, met all design
+specifications.
+(a) WP filling automatic control
+ (b) CD filling automatic control
+Figure 4: WP and CD filling automatic control at test stage
+4.2 Test with LS purification system
+The joint test between the FOC system and the LS purification system successfully verified two
+operational modes: (1) LS transfer during LS filling (with OSIRIS radioactivity monitoring)
+and (2) continuous purification recirculation. The test confirmed reliable LS transfer, stable pump
+performance,andproperexecutionofsequentialcontrollogicandsafetyinterlocksbetweensystems,
+while maintaining all purity requirements throughout the process.
+During test, LS was transferred from the purification system to FOC tanks at varying flow
+rates, with automatic pump control triggered by tank level thresholds. Figure 5 shows the changes
+in liquid level at4.5m3/h during the transfer of LS between tanks. Although the comparison
+between differential pressure and radar level gauges confirms measurement accuracy (deviation <
+0.2%), some limitations exist: (1) the differential pressure gauge exhibits a 0-0.3 m dead zone
+due to installation constraints; (2) The radar gauge demonstrates both a 0.2 m dead zone (for FOC
+horizontal tanks) and measurable response lag.
+4.3 Internal test of FOC system
+Overflowingtestevaluatedtwokeyoperationalmodes: (1)overflowingtestingthroughLStransfer
+from storage to overflow tanks, verifying automatic replenishment when CD/overflow tank levels
+dropped below lower thresholds, and (2) overfill protection validation, where overflow valves
+– 11 –
+
+--- Page 13 ---
+00.30.60.91.21.51.8
+0 30 60 90 120 150 180 210 240 270 300 330Liqudi Level changes [m]Differential pressure level gauge of storage tank
+Radar wave level gauge of storage tank
+-0.4-0.200.20.4
+0 30 60 90 120 150 180 210 240 270 300 330Deviation between gauge [%]
+Time[min]Figure 5: Liquid level changes during the test with LS purification system
+automaticallyredirectedexcessLSbacktostorageafterexceedingupperlevellimits. Thetestsalso
+confirmed tank connectivity, selective control algorithms, and safety interlocks.
+LSfillingtestutilizedtheoverflowtankandtemporarypipelinestovalidateautomaticcontrol
+performance. LSwaspumpedfromthestoragetankthroughacontrollingvalve,Coriolisflowmeter,
+and filter, with PID feedback maintaining the target flow rate (1500L/h) with0.5%accuracy after
+a 3-minute stabilization period. This test not only verifies the accuracy matching of the flowmeter,
+but also visually demonstrates the dynamic response capability of the PID algorithm.
+Theperformanceofthecontrolsystemacrossalltestedscenariosisquantitativelysummarized
+in Table 3. The results demonstrate the system’s capability to meet or exceed the design speci-
+fications outlined in Section 2.1. Key achievements include the rapid stabilization of flow rates
+within1–3minutesandthemaintenanceofcontrolaccuracywithin0.5%underbothwaterandLS
+conditions. The LS transfer test further verified the high precision of the sensor suite, with level
+gauge deviations remaining below 0.2% of the full scale. These comprehensive tests confirm the
+system’s robustness, safety, and precision, establishing its readiness for the JUNO detector filling
+and long-term operation.
+5 Conclusion
+The FOC system serves as the central platform for LS filling, overflow, and circulation in the
+JUNO experiment. Integrating a high-stability PLC architecture, precision sensors (accuracy <
+0.2% FS), and advanced control strategies—including PID regulation, sequential logic, and safety
+interlocks—the system achieves closed-loop control of critical parameters with high reliability.
+Commissioning tests demonstrate rapid flow stabilization within 3 minutes and a control accuracy
+of 0.5% during water/LS filling and transfer operations. Redundancy measures such as modular
+– 12 –
+
+--- Page 14 ---
+Table 3: Summary of key performance metrics from tests
+Test Scenario Parameter Performance Summary
+Pure Water Filling (WP) Flow RateSetpoint:39.3 m3/h, Measured:39.3±0.2 m3/h
+Deviation:≤0.5%, Stabilized in1 min
+Pure Water Filling (CD) Flow RateSetpoint:18.9 m3/h, Measured:18.9±0.2 m3/h
+Deviation:≤0.5%, Stabilized in1 min
+LS Transfer Liquid LevelSetpoint:1500 mm, Measured:1500±3 mm
+Deviation:<0.2%FS
+LS Filling Flow RateSetpoint:1500 L/h, Measured:1500±10 L/h
+Deviation:≤0.5%, Stabilized in3 min
+PLCs, one-operational-one-standby pumps, and software safeguards (e.g., dual HMIs and multi-
+level alarms) ensure system-level fault tolerance and anti-interference capability.
+These accomplishments establish a solid foundation for the safe and efficient filling of the
+20-kiloton central detector, directly enabling JUNO’s primary scientific missions, including the
+determination of neutrino mass ordering and high-precision oscillation measurements. The sys-
+tem’sabilitytomaintainlong-termLSstabilityandpurityisessentialthroughouttheexperiment’s
+projected 20-year lifespan.
+Lookingahead,upgradepathsareunderconsiderationtofurtherenhancesystemperformance,
+suchastheimplementationofmodelpredictivecontrol(MPC)forprocessoptimizationandmachine
+learning–based diagnostic tools for predictive maintenance. Moreover, the FOC system provides a
+ready-made infrastructure for future physics programs at JUNO, such as neutrinoless double-beta
+decay searches, which demand extreme LS purity and stability supported by online circulation.
+BeyondJUNO,thedesignprinciplespresentedhere—includingtherobustintegrationofindus-
+trial PLCs with experimental control frameworks, hierarchical safety interlocks, and large-volume
+liquidhandlingsolutions—offervaluableinsightsfornext-generationlarge-scaledetectors,suchas
+Hyper-Kamiokande and DUNE, which face similar liquid-target control challenges.
+Acknowledgments
+This work is supported by NO.2023YFA1606100, National Key R&D Program of China.
+References
+[1] JUNO collaboration. Juno physics and detector.Progress in Particle and Nuclear Physics,
+123:103927, 2022.
+[2] JUNO collaboration. The design and technology development of the JUNO central detector.Eur.
+Phys. J. Plus, 139(12):1128, 2024.
+[3] C. L. Cowan, F. Reines, F. B. Harrison, H. W. Kruse, and A. D. McGuire. Detection of the free
+neutrino: A Confirmation.Science, 124:103–104, 1956.
+– 13 –
+
+--- Page 15 ---
+[4] Milind Vaman Diwan. Liquid scintillators; technology and challenges, 2024.
+[5] J. Shao and X. Sun. Ultra-pure liquid scintillators for JUNO and beyond.JINST, 19(04):C04009,
+2024.
+[6] A. Abusleme et al. Optimization of the JUNO liquid scintillator composition using a Daya Bay
+antineutrino detector.Nucl. Instrum. Meth. A, 988:164823, 2021.
+[7] Endress+hauser official website.https://www.endress.com.cn/zh.
+[8] Siemens AG.SIMATIC STEP 7 Basic/Professional V16 and SIMATIC WinCC V16, 2019.
+[9] M.R.Kramer. EPICS:Input/outputcontroller(IOC)applicationdeveloper’sguide,epicsrelease3.12
+specific documentation. Technical Report Tech.Rep. ANL/ASD/RP - 106228, Exper imental Physics
+and Industrial Control System, New York, NY, USA, 2002.
+[10] Samson sed valves official website.https://sed.samsongroup.com/en/.
+[11] Cdr pump official website.https://www.cdrpompe.com/en/.
+[12] Yamei pump official website.https://www.jsyamei.com/.
+[13] Ansi/isa-88.00.01-2010, batch control – part 1: Models and terminology, 2010. Batch control
+foundational standard defining models and terminology.
+[14] K. J. Åström and T. Hägglund. Revisiting the ziegler-nichols step response method for pid control.
+Journal of Process Control, 14(6):635–650, 2004.
+[15] International Electrotechnical Commission, Geneva, Switzerland.IEC 61508-1:2010 Functional
+safety of electrical/electronic/programmable electronic safety-related systems - Part 1: General
+requirements, 2010.
+[16] International Electrotechnical Commission, Geneva, Switzerland.IEC 61511-1:2016 Functional
+safety - Safety instrumented systems for the process industry sector - Part 1: Framework, definitions,
+system, hardware and application programming requirements, 2016.
+[17] ABB.ACS580-01 drives 0.75 to 250 kW, 1.0 to 350 hp hardware manual for frames R1-R9, 2020.
+Document ID: 3AXD50000044794.
+– 14 –

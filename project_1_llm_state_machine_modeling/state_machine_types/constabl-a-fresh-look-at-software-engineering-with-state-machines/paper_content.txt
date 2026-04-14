@@ -1,0 +1,1006 @@
+--- Page 1 ---
+arXiv:2307.03790v2  [cs.SE]  11 Jul 2023ConStaBL - A Fresh Look at Software
+Engineering with State Machines
+Karthika Venkatesan1,2and Sujit Kumar Chakrabarti1
+1International Institute of Information Technology Bangal ore, INDIA
+{karthika.venkatesan,sujitkc}@iiitb.ac.in
+2Centre for Development of Advanced Computing Bangalore, IN DIA
+Abstract. Statechart is a visual modelling language for systems. In th is
+paper, we extend our earlier work on modular statecharts wit h local vari-
+ables and present an updated operational semantics for stat echarts with
+concurrency. Our variant of the statechart has local variab les, which in-
+teract signiﬁcantly with the remainder of the language sema ntics. Our
+semantics does not allow transition conﬂicts in simulation s and is stricter
+than most other available semantics of statecharts in that s ense. It al-
+lows arbitrary interleaving of concurrently executing act ion code, which
+allows more precise modelling of systems and upstream analy sis of the
+same. We present the operational semantics in the form of the simula-
+tion algorithm. We also establish the criteria based on our s emantics for
+deﬁning conﬂicting transitions and valid simulations. Our semantics is
+executable and can be used to simulate statechart models and verify their
+correctness. We present a preliminary setup to carry out fuz z testing of
+Statechart models, an idea that does not seem to have a preced ent in
+literature. We have used our simulator in conjunction with a well-known
+fuzzer to do fuzz testing of statechart models of non-trivia l sizes and
+have found issues in them that would have been hard to ﬁnd thro ugh
+inspection.
+1 Introduction
+Statecharts have been a popular modelling notation for seve ral decades now.
+Many implementations are in use: Stateﬂow [26], Yakindu [21 ], Boost [29], Sis-
+mic [13], Raphsody [15], QM [4], Specgen [28], and Uppaal [23 ], both in the com-
+mercial and free domains, to name a few. There have been numer ous surveys on
+statecharts so far, indicating their eﬀectiveness and usef ulness in modelling com-
+plex systems [8] [6] [10]. Semantics, formal veriﬁcation, a nd testing of statecharts
+are subjects that have been extensively studied on various s tatechart variants.
+Although the research on Statechart notation seems to have v isibly slowed down
+over the last decade or so, we think that there are a number of l oose ends to tie
+before we call the work complete.
+1. The inherent complexity of Statechart models needs eﬀort s in the direction of
+simpliﬁcation and moduralisation of notation to make State chart modelling
+a scalable practice.
+
+--- Page 2 ---
+2 Karthika et al.
+2. The semantics of widely available distributions have imp ortant shortcomings
+[24]. These need investigation and proposals for mitigatio n.
+3. Due to their higher level of abstraction and complex struc ture, Statecharts
+need sophisticated veriﬁcation, testing, and simulation c apabilities to be in-
+tegrated as a part of the modelling environment.
+In this paper, we present ConStaBL ( Concurrent StateBased on Language)
+a statechart variant that includes local variables. Local v ariables increase modu-
+larity but have a bearing on the semantics of the rest of the St atechart language.
+Hence, we take a fresh look at the operational semantics of Co nStaBL. Through
+this work, we make the following contributions:
+1. ConStaBL: an extension of StaBL, a state-based speciﬁcat ion language with
+local variables, to include concurrency.
+2. Operational semantics of ConStaBL.
+3. Simulator for ConStaBL.
+4. Fuzz testing of Statecharts, presented as an application of the simulator.
+We present a novel statechart language that serves as both a h igh-level mod-
+elling and rapid prototyping language. As a high-level mode lling language, it
+enables the construction of abstract representations of th e system’s states, tran-
+sitions, and events, taking inspiration from design integr ated development tools
+like Simulink [1], LabView [2], and many other statechart mo delling tools [6].
+This abstraction enables a clear visualisation of the syste m’s functionality and
+behaviour to capture complex system dynamics and specify de sired system be-
+haviours in a concise and intuitive manner. In addition, our statechart language
+is an eﬀective rapid prototyping tool as it allows system des igners to rapidly
+run simulations. This feature enables developers to rapidl y validate and evalu-
+ate the system’s behaviour, test various scenarios, and ide ntify potential issues
+or enhancements during the earliest stages of development. However, there are
+notable distinctions in our approach to handling the action language, as we have
+discussed in Section 2.
+We start by presenting the language of ConStaBL statecharts in Section 3
+that details the Abstract Syntax andStructural Semantics . The deﬁnitions in
+this section are described with a common example in Fig. 2. Th e operational
+semantics are described in Section 4. We present the design d etails of a simu-
+lator for this language and an illustration of how our simula tor can be used by
+performing fuzz testing on statecharts using our simulator in Section 5.
+2 Related Works
+David Harel introduced statecharts [16] in 1987 as a visual m odeling language
+for complex reactive systems. While there is no consensus on a "one right way"
+to build semantics for statecharts [19], various approache s have been proposed
+to accurately capture system behaviour, given their abilit y to model real-time,
+
+--- Page 3 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 3
+event-driven systems. Over time, more than 100 variants [6, 8, 10, 33] of state-
+charts have been proposed, each with diﬀerent features, sem antics, and domains.
+As research on the execution semantics of statecharts progr essed [19] [18] [32]
+[31] [21] [14], the topic of concurrency-related semantics became signiﬁcant. Two
+major divisions of statechart semantics, namely interleav ing and true concur-
+rency [8], have been proposed. Interleaving semantics use p riorities to ensure de-
+terminism and resolve data races. Transition priorities de termine the execution
+preference in cases of non-determinism, while sequential o rdering of substates
+within an AND composition determines the execution order in the presence of
+concurrent enabled transitions. This mechanism, though wi dely used in commer-
+cial tools like Yakindu, StateMate, and Stateﬂow, may limit the analysis of more
+realistic behaviour in concurrent systems that use multipr ocessing architectures.
+The semantics of UML 2.5.1 mentions that the order in which th e enabled tran-
+sitions in an orthogonal region are executed is left undeﬁne d. Whereas, certain
+variants of statecharts and tools [21] that follow UML seman tics, requires the ad-
+dition of priorities and sequential ordering during design . These design decisions
+perculates into implementation, as these tools generate se quential code from
+statecharts (to imperative languages like C, Java, and Type Script etc.). This
+may not align with the original intention of designing and an alysing concurrent
+systems. Rhapsody [18], an execution semantics of UML, allo ws modeling of
+non-prioritised orthogonal states and acknowledges the un determined execution
+order among orthogonal siblings. The arbitrary order of exe cution is achieved
+by "locking" each AND state once a transition is triggered within one of its
+components [5]. Raphsody insists that tools should to permi t design without
+transition priorities as it is impossible to determine duri ng compile time, if the
+guards of two enabled transitions may evaluate to true, thou gh they may respond
+to the same trigger/ event. SCXML [7] resolves the execution order in parallel
+states by its document order. Sismic [13], an execution engi ne for SCXML (that
+also support majority of UML features) takes a diﬀerent appr oach by processing
+enabled transitions based on the decreasing order of the dep th of their source
+states. This aligns with the inner-ﬁrst and source-state se mantics, processing
+transitions from deeper states before those from less neste d ones. In case of ties,
+the lexicographic order of the source state names is conside red. It also prefers to
+ﬂag non-determinism rather than following a priority based design. As far as we
+are aware, none of these semantic approaches provide speciﬁ c details on how to
+interleave the action code.
+Our focus is primarily on analysing concurrency behaviour i n ConstaBL stat-
+echarts with local variables in a priority-agnostic manner . The presence of local
+variables in our language makes it important to dvelve into t he detailed seman-
+tics at the action code level. We provide a detailed perspect ive on how action
+code within AND compositions is executed in the interleaved manner at the
+statement level. While our approach may appear close to toke nized mechanism
+of Petri nets [27], there is a signiﬁcant distinction. Each n ode in the Code graph
+that we construct is a Control ﬂow graph on its own. Also, nest ing anAND
+state within another, the composition of action blocks comb ines sequential and
+
+--- Page 4 ---
+4 Karthika et al.
+concurrent patterns which needs a special attention. Our me thodology formalises
+this process and enables the early detection and analysis of concurrency-related
+issues.
+3 The Language
+In this section, we present the upgrades to the abstract synt ax and structural
+semantics of StaBL [11] with the constructs and terminologi es that are necessary
+to discuss the concurrency semantics of ConStaBL .
+A B
+C DE
+FG
+H I
+J KL
+MNM
+tAB:e1
+tCD:e1tHI:e2
+tJK:e2tGN:e
+Fig. 1: A concurrent statechart model in a conﬁguration C={A,C}
+3.1 Abstract Syntax
+A statechart model consists of three components: a set of sta tes (S), a set of
+transitions (T), and a set of events (E).
+Astate is atupleof(p,I,Vl,Vp,Vs,aN,aX,τ). Here,Vl,Vp,Vsare the vari-
+able sets declared within the state with storage classes: pa rameter, local, and
+static, respectively. aN,aXare the entry and exit actions. Iis the set of default
+or initial substates of the state. τ∈ {statechart,atomic,composite,shell }is the
+type of the state.
+Atransition is atupleof(p,s,d,e,g,a ). A transition is annotated as ”e[g]/a”
+on the arrow that connects the source (s) and destination (d) states. eis the event,
+gis a guard or condition that has to be true, andais the action code.
+In these tuples ,pis the parent state of the state/ transition and ais an
+arbitrary piece of code in an imperative programming langua ge, as shown in
+Listing 1.1.
+B::={ s l i s t }
+s l i s t ::= ǫ| s ; s l i s t
+s ::= v:=e | if( cond ) then B1elseB2|while ( cond ) B1
+e ::= e+e | e∗e | e −e | e/e | v | const |−e | function (a1 , a2 , . . )
+// s l i s t : statement l i st , s : statement , v : variable , e :
+expression
+Listing 1.1: A minimal representative action language.
+
+--- Page 5 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 5
+A statechart model has only one state of the statechart type, which is itself. The
+states contained within shellexecute concurrently. A shellstate bears resem-
+blance to an AND state, but it distinguishes itself in terms of how transitio ns
+are deﬁned as described in Section 3.2. The substates of the shellstate are of
+typecomposite , aka. regions , and all of them will be active during execution, so
+Iwill contain all of its substates. For a composite state, Iis one of its substates,
+and for an atomic state, Iisempty . Execution semantics are detailed in Section
+4.
+Example 1. In theMin Fig. 1 is of type statechart . The state G- ashell
+state is represented as G: (M,{E,F},{x1},{p1},{n1},{x1:= 0;p1:= 0;n1:=
+0},{x1:= 1;p1:= 1;n1:= 1},shell).Icorresponds to {E,F}(all substates of
+G).tABis a transition from source state Ato destination state B, denoted as
+tAB:e1[x1= 1]/p2:= 1. Here,tABis the name of the transition, e1is the event,
+x1= 1is the guard, and p2:= 1is the transition action. ⊓ ⊔
+3.2 Structural Semantics
+Containment (denoted by ≺) is function between two states s1,s2, denoted
+bys1≺is2, whereiis the level of containment. Containment is antisymmetric
+(i.e.,∀s1,s2∈S,(s1≺∗s2)∧(s2≺∗s1) =⇒(s1=s2)), not reﬂexive (i.e.,
+∀s∈S,(s/ne}a⊔ionslash≺∗s)) and transitive (i.e., ∀s1,s2,s3∈S,(s1≺∗s2)∧(s2≺∗s3) =⇒
+(s1≺∗s3)). When i= 1,s2is the parent ofs1ands1ischild/substate ofs2.
+Wheni=∗,s2is the ancestor ofs1ands1isdescendent ofs2at an arbitrary
+level.
+Only a few type containments are valid. There are 4 state type s:statechart ,
+shell,composite andatomic . The root state of a model must be of type statechart ,
+and it can have substates of any type but itself. A composite state must have
+substates of type composite ,shell, oratomic . A shell state must have substates
+of type composite only. An atomic state cannot have substates. Substates is a
+function that gives the set of all children of state s(i.e.,substates (s) ={s′∈
+S|s′≺1s}).
+Common Ancestors(CA) For a set of states, S′={s1,s2...,sn},CA(S′)is
+the set of states from Sthat is an ancestor of all the states in S′.
+CA({s1,s2,...sn}) ={s∈S|s1≺∗s∧s2≺∗s∧....sn≺∗s}
+Closest common ancestors(CCA) (denoted by ⊔) of two states s1,s2(de-
+noted by s1⊔s23) is a state sfrom the common ancestors set,which is an
+ancestor of both s1ands2such that it is not the ancestor of any other common
+ancestor ( s′).
+s1⊔s2=s|s∈CA({s1,s2})∧∄s′∈CA({s1,s2})∧s′≺∗s
+⊔({s1,s2,..,sn}) =s|s∈CA(s1,s2...sn)∧∄s′∈CA(s1,s2,..sn)∧s′≺∗s
+CCA of set of transitions is the CCA of the source and destinat ion of those
+transitions (i.e., CCA({t1,t2...,tn}) =⊔({t1.s,t1.d,t2.s,t2.d,...,t n.s,tn.d})).
+3inﬁx short-form of ⊔({s1,s2})
+
+--- Page 6 ---
+6 Karthika et al.
+Interlevel transitions. When the parents of the source and destination of a
+transition are not the same, it is an interlevel transition ( i.e.∃t∈T|t.s.p/ne}a⊔ionslash=t.d.p).
+1. There can be no inter-level transitions between the regio ns of a shell state
+(i.e.,∄t∈T|⊔({t.s,t.d}).τ=shell).
+2. There can be no transition between a descendent and an ance stor (i.e., ∄t∈
+T,(t.s≺∗t.d)∨(t.d≺∗t.s)).
+3. The state of type statechart cannot have any incoming or ou tgoing transi-
+tions (i.e., ∄t∈T,t.s.τ∨t.d.τ=statechart ).
+Example 2. In Fig. 1, M ≺1GmeansMis the parent of Gandsubstates (M) =
+{G,N}. Also,Mis the ancestor of states like E,L,M andF(it is also the
+ancestor of all the states contained within these states). H ere,E.τ=F.τ=
+composite andG.τ=shell.
+CA({A,D}) ={G,M}and CA({A,J}) ={M}
+⊔({A,B,C,D }) =G
+CCA({tAB}) =⊔({A,B}) =E
+CCA({tAB,tCD}) =⊔({A,B,C,D }) =G
+⊓ ⊔
+4 Operational semantics
+StaBL statecharts have integrated action language and vari able scoping. During
+execution, processing an event starts by identiﬁcation of t ransitions which are
+triggered by an event for which the guard evaluates to true. Subsequently exe-
+cution proceeds from the source state to the destination sta te through various
+intermediate conﬁgurations by executing the correspondin g action blocks of the
+states and identiﬁed transitions.
+Environment( σ)The binding of variables to current values is given by σ.σ
+maintains the latest valuation of each variable.
+Conﬁguration (denoted by C) is a set of atomic states that are active at
+a given point. In a statechart model with only hierarchical c omposition, Cis a
+singleton set. However, in concurrent models, Cmay have multiple atomic states.
+A conﬁguration can also be represented by its conﬁguration s tate tree(CST).
+CST(C)is a state tree stof statechart states such that each state in Cis a leaf
+inst. All ancestors of all atomic states in Care contained in st. No other state is
+included as a node in st. Not all sets of atomic states are valid conﬁgurations .
+A setCof atomic states is a valid conﬁguration iﬀ:
+1. For each composite state s∈st,smust have only one child in stcorrespond-
+ing to one of its substates.
+2. For each shell state s∈st,shas a child node in stcorresponding to each of
+its regions.
+
+--- Page 7 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 7
+M
+G N
+E F L M
+A B C D H I J K
+(a)M
+G N
+E F L M
+A B C D H I J K
+(b)
+Fig. 2: Conﬁguration and conﬁguration state tree of statech art shown in Fig. 1:
+(a) A valid conﬁguration state tree for {A,C} is marked by dot ted green edges;
+An invalid conﬁguration (composite state E has both its subs tates in the state
+tree) marked by red edges; (b) Another invalid conﬁguration (shell state G does
+not have both its regions E and F in the state tree).
+There are three major steps that happen as a part of a simulati on step. In
+the ﬁrst stages, the code that has to be executed during the si mulation step is
+identiﬁed. In the second stage, the identiﬁed code is execut ed. In the third step,
+the conﬁguration is changed from the source conﬁguration to the destination
+conﬁguration.
+4.1 Computing Transition Code
+We now present the details of the ﬁrst stage, i.e. identiﬁcat ion of the code to be
+execution or computation of transition code .
+Enabled Transition. In a given conﬁguration C, when an event ehas arrived,
+a transition tis enabled when all three of the following conditions hold:
+1.t.s∈CST(C), (i.e.t’s source state is one of the vertices of the conﬁguration
+state tree of C).
+2.t.e=e, (i.e.t’s trigger event is the same as the one that has arrived).
+3.σ⊢t.g⇓true, (i.e. in the given value environment σ,t’s guard evaluates to
+true).
+It is possible that, for a given conﬁguration Cand event e, the number of enabled
+transitions is zero, one, or more than one. Hence, to perform the next step, we
+compute the set of enabled transitions T. For example, in the example model in
+Fig. 2, if C={A,C}ande=e1, thenT={tAB,tCD}.
+We deﬁne a constructor tree:node×treeset→treeas function such that
+tree(n,S)creates a tree rooted at node nwith all trees is set Sas subtrees of
+n.
+Subtree . The subtree of a node n, given by T(n), is given by
+T(n) =tree(n,{T(c)∀c∈childnodes (n)})
+
+--- Page 8 ---
+8 Karthika et al.
+1
+2 3
+4 5 6
+7
+891011 12
+1314 15
+16 17
+18 19 20 21
+22 2324 2526
+2728
+29 30
+313233 34 35
+36 37
+Fig. 3: Transition state trees
+Sliced subtree ( /hatwideT).For any node n, the sliced subtree /hatwidetr=/hatwideT(n,C)w.r.t. to
+node set Cis a subtree of nsuch that each path in /hatwidetrfrom its root goes to a
+member of C. Here,Cis a set of nodes that contains some of the leaves of T(n)
+possibly along with other nodes not in T(n).
+Initial subtree ( STi).For any node n, the initial subtree STi(n)is given by
+the following:
+STi(n) =tree(n,{STi(n.I)})ifn.τ∈ {Composite,Statechart }
+tree(n,{})ifn.τ=Atomic
+tree(n,{STi(c),∀c|c∈childnodes (n)})ifn.τ=Shell
+Transition state tree. When an enabled transition is ﬁred, a collection of code
+blocks get executed. They are called source side code which corresponds to the
+exit blocks of the states in source conﬁguration state tree, the action code block
+of the transition and destination side code which are the entry code blocks of the
+states in destination conﬁguration state tree, in that orde r. In a non-concurrent
+case, both the source side code and the destination side code are a sequence of
+code blocks. However, in a concurrent case, the code blocks a re non-sequential,
+and in general, can be viewed as two trees corresponding to th e containment
+hierarchy of the states that they are a part of. These two tree s are in turn called
+thesource side state tree (STs(t,C)) and the destination side state tree (STd(t))
+of a transition being ﬁred in a particular conﬁguration. The direction of the
+arrows are along the general ﬂow of control of the code execut ion during the
+simulation step. STsandSTdare deﬁned as follows:
+
+--- Page 9 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 9
+STs(t,C) =
+letl=t.src⊔t.destin
+lets=
+ift.src≺1lthent.src
+else such that s≺1l∧t.src≺∗sin
+/hatwideT(s,C)
+STd(t) =
+lets=
+ift.dest≺1lthent.dest
+else such that s≺1l∧t.dest≺∗sin
+STi(s)
+Example 3. Figure 3 shows a state containment hierarchy. We have used re ct-
+angular boxes to indicate shell states, and circular boxes t o show other types of
+states. The red dashed line from state 13 to state 29 shown an e nabled transition
+twhich is ﬁred. The current conﬁguration is C={9,23,24,34,36}and the cor-
+responding states are shown ﬁlled with brown colour. State 1 = 13⊔29. Hence,
+state 2 is the last state to be exited on the source side and sta te 3 is the ﬁrst
+state to enterred on the destination side. The source side st ate tree STs(t,C)
+and the destination side state tree STd(t)are highlighted in red and blue edges
+respectively. ⊓ ⊔
+Control Flow Graph Tree. As mentioned above, the source side code tree
+for an enabled transition tin a conﬁguration Cis the tree of exit code blocks of
+the corresponding source side state tree STs(t,C)oft. Similarly, the destination
+side code tree for an enabled transition tin a conﬁguration Cis the tree of
+entry code blocks of the corresponding destination side sta te treeSTs(T)oft.
+Mathematically:
+CFGTree s(t,C) =treemap(s→cfg(s.X),STs(t,C))
+CFGTree d(t) =treemap(s→cfg([init(s.V),s.N]),STd(t))
+Here, the constructor cfgtakes a code block (in the form of its abstract
+syntax tree) and gives its control ﬂow graph (CFG). Control ﬂ ow graphs are
+presented in detail in Section 4.2 where it will be needed to d iscuss code ex-
+ecution. Here, it suﬃces to proceed with an informal underst anding of control
+ﬂow graphs. treemap : (α→β)×α tree→β tree is a function such that
+treemap(f,t)gives a tree t′that is identical in shape as the texcept that the
+value on each node of t′isv′=f(v)wherevis the value on the correspond-
+ing node of t. While computing the source side CFG tree CFGTree s(t,C), we
+include the CFGs of the exit code of each state in the source si de state tree
+STs(t,C). While computing the destination side CFG tree CFGTree d(t), we
+
+--- Page 10 ---
+10 Karthika et al.
+include the CFGs of the concatenation of the variable initia lisation code and
+entry code of each state in the destination side state tree STd(t).
+Code. The code that gets executed during a simulation step is repre sented by
+the following data-type Code as follows:
+Code=Seq([c1,c2,...,cn])wherec1,c2,...,cn:Code
+=Conc({c1,c2,...,cn})wherec1,c2,...,cn:Code
+=CFGCode (cfg)wherecfg=cfg(b)andba code block
+Henceforth, we abbreviate Seq([c1,c2,...,cn])as/an}bra⌋ke⊔le{⊔c1,c2,...cn/an}bra⌋ke⊔ri}h⊔andConc({c1,c2,...,cn})
+as[c1|c2|...|cn].
+Example 4. In Figure 2, when transition tGNis ﬁred in conﬁguration {A,C},
+the code that gets executed is:
+C(tGN) =Seq([Conc({Seq([A.X,E.X]),Seq([C.X,F.X])}),G.X,
+tGN.a,
+N.N,Conc({Seq([N.N,H.N]),Seq([M.N,J.N])})])
+In abbreviated form, the above is written as:
+C(tGN) =/an}bra⌋ke⊔le{⊔[/an}bra⌋ke⊔le{⊔A.X,E.X/an}bra⌋ke⊔ri}h⊔|/an}bra⌋ke⊔le{⊔C.X,F.X/an}bra⌋ke⊔ri}h⊔],G.X,tGN.a,N.N,[/an}bra⌋ke⊔le{⊔L.N,H.N/an}bra⌋ke⊔ri}h⊔|/an}bra⌋ke⊔le{⊔M.N,J.N/an}bra⌋ke⊔ri}h⊔]/an}bra⌋ke⊔ri}h⊔
+⊓ ⊔
+The function ⌋:StateTree →Code takes a State tree st, and gives its code
+as follows: if stis source tree then s.cfg→s.Xand ifstis destination tree then
+s.cfg→[init(s.Vl),s.N].
+⌋(st) =CFGCode (s.cfg)ifst=tree(s,{})
+Seq([CFGCode (s.cfg),C(c)])ifst=tree(s,{c})
+Seq([CFGCode (s.cfg), Conc({C(st1),C(st2),...,C(stn)})])
+ifst=tree(s,{c1,c2,...,cn})
+Transition Code The code to be executed with a transition tgets ﬁred in a
+conﬁguration Cis given by:
+Code(t,C) =Seq([Cs(t,C),cfg(t.a),Cd(t,C)])
+where,Cs(t,C) =C(CFGTree s(t,C))and
+Cd(t,C) =rev(CFGTree d(t))and
+CFGTree s(t,C) =treemap(s→cfg(s.X),STs(t,C))and
+CFGTree d(t) =treemap(s→cfg(Seq([init(s.Vl),s.N]),STd(t))
+
+--- Page 11 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 11
+Note the code reversal done to compute Cd(t,C). Code reversal function done
+to a code c:Code is deﬁned as follows:
+rev(c) =
+cifcisCFGCode
+/an}bra⌋ke⊔le{⊔rev(cn),rev(cn−1)...,rev(c2),rev(c1)/an}bra⌋ke⊔ri}h⊔ifcis/an}bra⌋ke⊔le{⊔c1,c2,...,cn/an}bra⌋ke⊔ri}h⊔
+[rev(c1)|rev(c2)|...|rev(cn−1)|rev(cn)]ifcis[c1|c2|...|cn]
+Finally, the entire code to be executed during a simulation s tep is the concur-
+rent composition of the codes of the enabled transitions. Fo r the set of enabled
+transitions T={t1,t2,...,tn}, code is given by:
+C(T) = [C(t1,C)|C(t2,C),...|C(tn,C)]
+AB t1:e[g]
+t2:e[g]
+(a)A
+BC
+t2:e[g]
+t1:e[g]
+(b)
+Fig. 4: Conﬂicting Transitions: (a) Both t1andt2would cause A. Xand B.Xto
+execute; (b) Both t1andt2would cause C. Xto execute.
+Conﬂicting transitions. For a given conﬁguration Cand event e, two enabled
+transitions are said to conﬂict if, ﬁred concurrently, they would lead to repeated
+execution of some code block.
+σ,C⊢ ∀t1,t2∈ T,
+conflict(t1,t2) =trueifC(t1,C)∩C(t2,C)/ne}a⊔ionslash=φ
+In the above, we use the set intersection ( ∩) to indicate the intersection
+between the code blocks in C(t1,C)andC(t2,C).
+Example 5 (Conﬂicting transitions). Figure 4 shows two scenarios in which tran-
+sitions may conﬂict. Figure 4(a) shows a case in a sequential (non-concurrent)
+scenario where two enabled transitions t1andt2emerge from two states which are
+in ancestor-descendent relationship. This case which we ca llnon-determinism ,
+makes it impossible to determine which transition to take, u nless we use an ex-
+ternal conﬂict resolution rule (e.g. clockwise arrangemen t [26], outside-in [12]
+
+--- Page 12 ---
+12 Karthika et al.
+etc). We consider such conﬂict resolution undesirable as it may sneak in undesir-
+able behaviour without the knowledge of the modelling engin eer. Instead, such
+cases should be ﬂagged out wherever possible, and the engine er should be given
+the choice to resolve in a way as desirable to him/her. Figure 4(b) shows a case
+of a concurrent model. Two enabled transitions emerge out of the two regions A
+and B of a shell state C. Both transitions would lead to the exe cution of C. X,
+which would be invalid.
+Valid simulation step. In any simulation step, any code block must execute at
+most once. Therefore, conﬂicting transitions are not allow ed in a valid simulation.
+4.2 Executing Transition Code
+After the transition code C(t,C)is computed, the simulator will proceed to
+execute it. In this subsection, we present the details of thi s process.
+Each step in code execution involves interpretation of sing le statements in
+the code. The code can be concurrent. Unlike many existing im plementations
+of Statecharts [26] [20] [9] [25] [21] [13], we allow arbitra ry interleaving between
+concurrently executing code. We assume individual instruc tions to execute atom-
+ically. Though ﬁner grained interleaving is possible in pri nciple, we consider that
+not to be necessary feature at the statechart modelling leve l.
+Example 6 (Transition Code). Consider the model shown in Figure 2. Source
+conﬁguration C={A,C}. For this example, assume that the code blocks in the
+model are as follows:
+– Entry codes: A.N={iAN1;iAN2;},B.N={iBN1;iBN2;}etc.
+– Exit codes: A.X={iAX1;iAX2;},B.X={iBX1;iBX2;}etc.
+– Transition action codes: tAB={iAB1;iAB2;},tCD={iCD1;iCD2;}etc.
+1.Case 1 (Concurrent and disjoint). Suppose, the input event is e1. The
+code to be executed in this case is {C(tAB,C),C(tCD,C)}={A.XtAB.aB.N,C.XtCD.aD.N}.
+A possible trace generated when the above code executes: iAX1,iCX1,iAX2,
+iCX2,iAB1,iCD1,iAB2,iCD2,iBN1,iDN1,iBN2,iDN2.
+2.Case 2 (Concurrent, joining and forking). Suppose, the input event is
+e. The code to be executed is
+C(tGN,C)=/an}bra⌋ke⊔le{⊔[/an}bra⌋ke⊔le{⊔A.X,E.X/an}bra⌋ke⊔ri}h⊔|/an}bra⌋ke⊔le{⊔C.X,F.X/an}bra⌋ke⊔ri}h⊔],G.X,tGN.a,N.N,
+[/an}bra⌋ke⊔le{⊔L.N,H.N/an}bra⌋ke⊔ri}h⊔|/an}bra⌋ke⊔le{⊔M.N,J.N/an}bra⌋ke⊔ri}h⊔]/an}bra⌋ke⊔ri}h⊔. A possible trace generated when the
+above code executes: iAX1,iCX1,iAX2,iCX2,iEX1,iFX1,iEX2,iFX2,iGX1,
+iGX2,iGN1,iGN2,iNN1,iNN2,iLN1,iMN1,iLN2,iMN2,iHN1,iJN1,iHN2,
+iJN2.
+⊓ ⊔
+
+--- Page 13 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 13
+Code Containment Tree. As is clear, the codetype is recursive and can
+represent a hierarchical arrangement of code blocks. We cal l this hierarchy as
+code hierarchy and represent the same by a tree called code containment tree .
+Sequence code and concurrent code form the internal nodes of this tree and
+CFG code form the leaf nodes of this tree. This tree is useful i n navigating the
+code during code execution. Please note that this is diﬀeren t from the code tree
+mentioned in Section 4.1 which mimics the state hierarchy.
+Example 7 (Code containment tree).
+The code shown in Example 6 are pictorially illustrated in th e form of code
+containment trees in Figure 5. We use rectangular nodes with pointed vertices
+to show a concurrent code, rectangular nodes with rounded co rners to show a
+sequential code and an unbordered node to show CFG codes. ⊓ ⊔
+C(e1,C)
+C(tAB,e1)
+A.XtAB.aB.NC(tAB,e1)
+C.XtCD.aD.NC(e,C)
+G.XtGN.aN.N
+A.XE.XC.XF.XL.NH.NM.NJ.N
+(a) (b)
+Fig. 5: Example: Code containment tree of the code in Example 6.
+Control ﬂow graph (CFG). A control ﬂow graph G(V,E,N,X)is a graph
+with a set of vertices/nodes Vand (control ﬂow) edges E.V=VI∪VD. Here,
+–Nis a unique node, called the entry node of the CFG g, referred to as g.N.
+–Xis unique node X, called the exit node of the CFG g, referred to as g.X.
+The exit node has no successors.
+–VIis the set of instruction nodes, i.e. nodes with an instructi on in them with
+a possible side-eﬀect in the action language. An instructio n nodevI∈VI
+has zero or one successor (referred to as vI.s).
+–VDis the set of decision nodes. Each decision node vD∈VDhas a boolean
+expression in the action language called the condition, ref erred to as vD.c.
+A decision node has two successors, namely the thensuccessor (referred to
+asvD.t) and the elsesuccessor (referred to as vD.e).
+Additionally:
+–A CFG may have a single node, in which case, N=X.
+–N ∈V.VX∈VI.
+Example 8 (Control ﬂow graph).
+
+--- Page 14 ---
+14 Karthika et al.
+1
+C.X3
+F.X
+2
+A.X4
+E.X5
+G.X6
+tGN.a7
+N.N8L.N9
+H.N
+M.N10
+J.N
+(a)
+1
+iCX11.1
+iCX23C.X
+iFX13.1
+iFX2F.X
+2
+iAX12.1
+iAX24
+A.XiEX14.1
+iEX2
+E.X5
+(b)
+Fig. 6: Example: code and control points
+x = 0;
+while(x < 10)
+x++;x←0i1
+x <10 d1
+x←x+1 i2
+skipi3
+g.N=i1,g.X=i3,g.VI={i1,i3},g.Vd={d1},i1.s=d1,d1.t=i2,d1.e=i3
+Fig. 7: Control ﬂow graph
+
+--- Page 15 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 15
+Control Points. To compute the sequence in which the code blocks get ex-
+ecuted, we can think of a partial order (or the corresponding directed acyclic
+graph) of code blocks such that code blocks in the same sequen ce are in that
+order. The nodes of the code sequence DAG correspond to the le af nodes of
+the code containment tree. The ordering relations between v arious nodes of this
+DAG can be directly derived from the structure of the code con tainment tree.
+Example 9 (Code partial order). The model in Figure 2(a) in conﬁguration C=
+{A,C}with input event ecausestGNto ﬁre. The code partial order correspond-
+ing to this simulation step is shown in Figure 6(a). As can be s een, the nodes
+of this DAG correspond to the leaves of the code containment t ree shown in
+Figure 5(b).
+⊓ ⊔
+As we have pointed out, instructions in concurrently compos ed pieces of code
+can interleave. Hence, we work with the idea of control points – points in the
+executing code which are visible to the simulator and are sub ject to interleaving
+in case of concurrent composition.
+Example 10 (Control Points). A portion of the code partial order shown in Fig-
+ure 6(a) is shown in Figure 6(b). The control points here are: 1, 1.1, 3, 3.1, 2,
+2.1, 4, 4.1, 5 and so on. Here, control points like 1, 2, 3, 4, 5 e tc. are control
+points outside individual control ﬂow graphs. However, con trol points like 1.1,
+2.1, 3.1, 4.1 etc. are control points inside individual cont rol ﬂow graphs.
+In Figure 6(b), the two sequences – 1, 1.1, 3, 3.1 and 2, 2.1, 4, 4.1 – are
+concurrently composed and execute in two concurrent thread s. As is clear from
+the ﬁgure, 1.1 is reached strictly after reaching 1; 3 after 1 .1 etc. However, Any
+of 1.1 or 2.1 may be reached earlier depending on which of the t wo concurrent
+threads progresses ﬁrst. At a point when the execution progr esses beyond 3.1
+and 4.1, the two threads join and give place to a single thread which is at control
+point 5. ⊓ ⊔
+During code execution, there can be multiple active threads . The simulator
+keeps track of its progress through each running thread by ma intaining a set of
+control points CP. Every code simulation step will cause the execution of one
+of the instructions immediately after one of the control poi ntscp∈CP. Choice
+ofcpis done randomly. After this, cpgets removed from CPand gets replaced
+by zero, one or more control points, as the case may be, which s ucceedcpin the
+code partial order.
+
+--- Page 16 ---
+16 Karthika et al.
+parent(n) =n′ifn′=Seq([...n...])orConc({...n...})
+nilotherwise.
+first(n) =ifnis aCFGCode then{n.N}
+ifn=Seq([c1,c2,...cn])thenfirst(c1)
+ifn=Conc({c1,c2,...,cn})then/uniondisplay
+ci∈{c1,c2,...,cn}first(ci)
+nextCFGCodes (c) =ifparent(n) =nilthen{}
+ifparent(n) =Seq([c1,c2,...cn])∧c=cithen
+ifci/ne}ationslash=cnthenfirst(ci+1)
+elsenextCFGCodes (parent(n))
+ifn.parent =Conc({c1,c2,...,cn})then
+nextCFGCodes (parent(n))
+nextCP (n) =if(n=n.cfg.X)thennextCFGCodes (n)
+elsesucc(n,n.cfg )
+The function nextCP computes the set of control points that replace the
+currently processed control point. An internal control poi ntcpwill be replaced
+by one of its successors in cp.cfg , the CFG it belongs to. However, if cpis an
+exit node of cp.cfg , then the next of control points to replace it in CPare
+the entry node other CFGs. Such CFGs (and their unique entry n ode) can be
+identiﬁed using the functions nextCFGCodes andfirst. Please note that these
+are computed through an implicit traversal of code containm ent tree, discussed
+in Section 4.2.
+When a member cp′∈nextCP(cp)happens to be a join point, (i.e. hav-
+ing multiple predecessor control points), the situation ne eds to be dealt with
+separately. This is a point where multiple threads will coll apse into one at an
+appropriate time. This is when all predecessors of cp′have been processed, thus
+bringing the control points of all these thread to cp′. This concludes their exe-
+cution. Hence, when the ﬁrst of these threads reaches cp′, we start keeping track
+of the number of threads waiting to join at cp′, andcp′is kept waiting. When,
+all these threads reach cp′, we insert cp′intoCPscheduling it for execution in
+the next code simulation step.
+Note that due to the complex hierarchy in which the code block s in a stat-
+echart may be arranged at runtime, it may appear that keeping track of them
+would be very complex. However, with the above approach, we a re able to es-
+sentially collapse the control front (the control points of all the active threads)
+into a ﬂat set.
+Example 11 (Code Simulation Trace). Consider the code partial order shown in
+Figure 6(b). We track the successive values of the current co ntrol point set CP
+and the join points JPin a typical code simulation.
+(CP,JP) = ({},{}),({1,2},{}),({1,2.1},{}),({1,4},{}),({1.1,4},{})
+({3,4},{}),({3.1,4},{}),({4},{5/maps⊔o→ {4.1}}),
+({4.1},{5/maps⊔o→ {4.1}}),({5},{}),...({7.1},{}),({8},{}),
+({8.1,8.2},{}),...({9.1,10.1},{}),({9.1},{}),({},{})
+Following points in the above trace are noteworthy:
+
+--- Page 17 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 17
+–The set CPand map JP, both start oﬀ empty and end up empty over a
+simulation step.
+–The join point 5is reached when the control front passes control point 3.1.
+At this point, an entry is added to JPwith5as key and {4.1}as value, as 4.1
+is the previous control point to 5in the currently active threads (only one in
+this case, as the thread corresponding to 3.1has already ﬁnished execution)
+which will eventually join at 5.
+–As the control front passes 4.1, it gets removed from the values of key 5in
+JP. This makes the value set of 5empty in JP. Therefore, 5is removed
+fromJP, and added to CP.
+–Control point 8is fork point. 8.1and8.2are the internal control points of
+L.NandM.Nrespectively. As soon as the control front moves past 8, it is
+replaced by 8.1and8.2inCP.
+–Code simulation for this simulation step concludes when CPbecomes empty.
+Operational Semantics – Code Simulation. During the code simulation
+of a simulation step, the code data structure Cthat gets executed remains con-
+stant. In this part of the discussion, we will omit mentionin g it in most places.
+The ﬁrst step of code simulation involves populating the con trol front CPwith
+appropriate set of CFG Nodes in the code. These are nothing bu t the initial
+entry nodes of the initial CFGCodes of the code. In Figure 8, w e show this in
+rulecode-sim-init . Rule code-sim-internal presents the operational seman-
+tics when the currently processed CFG node nis not an exit node of its CFG. Its
+successor node in the CFG n′is computed as nextCFGNode (n,σ). This is a di-
+rect successor if ncorresponds to an instruction node. However, if nis a decision
+node,n′depends on valuation of the condition expression n.cofn. Ifn.ceval-
+uates to true in the current value environment σ, thenn′isn’s then-successor;
+otherwise, it is the else-successor of n.
+The rule code-sim-exit-node handles the case when the current CFG node
+nchosen randomly from the control front CP(using the function any) is the
+exit node of its CFG. As discussed above, this step could lead to joining (i.e.
+two threads collapsing into one) or forking (one thread givi ng place to multiple
+threads) of code execution. This could also lead us to the com pletion of code
+simulation when CPbecomes empty again. In this step, all successors of nwhich
+are not join points (shown by set N), directly get added to CP. The other set of
+successors are join points, shown by set J=Ji∪Jc∪Jo.Jiis the set of new join
+points, i.e. for each member of Ji,nis the ﬁrst of the predecessors to have got
+processed. In this step, all members of Jiget added to JP.Jcis the set of those
+join point successors, one of whose predecessors have alrea dy been processed in
+an earlier code simulation step, and hence, they had previou sly been added to
+JP. Even after the processing of n, there are other predecessors of the members
+ofJcwhich await processing; hence all members of Jccontinue to be part of
+JP.Joare those join point successors, all of whose predecessors h ave completed
+their processing in this step, nbeing the last of them. Hence, all members of Jo
+are removed from JCand inserted to the control front CP.
+
+--- Page 18 ---
+18 Karthika et al.
+Note that code-sim-exit-node subsumes the case when the control front
+CPempties out, which means that the code execution halts.
+code-sim-init
+σ,{},{}−→σ′,first(C),{}
+code-sim-internal
+n=any(CP)
+n′=nextCFGNode (n,σ)σ⊢n.inst⇓σ′CP′=CP\{n}∪{n′}
+σ,CP,{}−→σ′,CP′,{}
+code-sim-exit-node
+n=any(CP)n=n.cfg.Nσ⊢n.inst⇓σ′
+next(n) =N∪Ji∪Jc∪JoN={n′|pred(n′) ={n}∧n′∈CP′}
+Ji={j||pred(j)|>1,j/\e}a⊔io\slash∈JP∧JP′(j) =pred(j)\{n}}
+Jc={j||pred(j)|>1∧|JP(j)|>1∧JP′(j) =pred(j)\{n}}
+Jo={j|JP(j) ={n}}CP′=CP\{n}∪N∪JoJP′=JP∪Ji\Jo
+σ,CP,JP−→σ′,CP′,JP′
+Fig. 8: Operational semantics of code simulation
+Example 12 (Operational semantics – Code simulation). In Table 1, we present
+an example of the trace shown in Example 11 to illustrate the r ole of sets Ji,Jc
+andJo.
+CP JP nNJiJcJoCP′JP′
+{}{} -{}{}{}{}{}{}
+{1,2}{} 2{2.1}{}{}{}{1,2.1}{}
+{1,2.1}{} 2.1{4}{}{}{}{1,4}{}
+{1,4}{} 1{1.1}{}{}{}{1.1,4}{}
+{1.1,4}{} 1.1{3}{}{}{}{3,4}{}
+{3,4}{} 3{3.1}{}{}{}{3.1,4}{}
+{3.1,4}{} 3.1{}{5}{}{}{4}{5/maps⊔o→{4.1}}
+{4}{5/maps⊔o→{4.1}}4{4.1}{}{5}{}{4.1}{5/maps⊔o→{4.1}}
+{4.1}{5/maps⊔o→{4.1}}4.1{}{}{}{5}{5}{}
+{5} ... ............ ... ...
+Table 1: Details of code simulation trace tracking the sets Ji,JcandJoas per
+the operational semantics.
+⊓ ⊔
+4.3 Computing the New Conﬁguration
+The new conﬁguration C′is given by the following function:
+
+--- Page 19 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 19
+C′=ifT={}thenC
+/uniondisplay
+t∈Tleaves(STd(t))otherwise.
+If there are no enabled transitions, the conﬁguration does n ot change. The event
+gets lost. If there are one or more enabled transitions, the n ew conﬁguration is
+the union of the set of leaf nodes of the destination side stat e tree of each of
+these transitions.
+5 Fuzz Testing of Statecharts
+We have implemented a simulator as per the operational seman tics presented in
+section 4. Fig. 9 shows an overview of the integral units of th e simulator. The
+grammar for the language StaBL has been enhanced to include the concurrency
+construct. The statechart of the system written in ConStaBL and its grammar
+are given as input to the parser that generates the abstract syntax tree (AST) .
+Both the type checker andsimulation engine work on the generated AST. The
+typechecker module takes the AST and structural semantics as input to indi-
+cate any type checking errors. The simulator is the simulation engine operate
+in two modes: autoandinteractive , which implement our operational semantics.
+It works on the AST, and the simulation (procedure simulate ) consumes a se-
+quence of events, each causing a simulation step (procedure simulationStep ).
+The engine maintains the execution state, conﬁguration, en vironment, and state
+at each execution point. Our simulator allows users to simul ate the models writ-
+ten in ConStaBL and is available in our github repository [30]. Statecharts are
+ConStaBL
+ModelFrontend Simulator TraceTypechecked
+model
+Fig. 9: Overview of the ConStaBL Simulator
+widely used in various domains [17], including safety-crit ical systems like avion-
+ics and automotive control systems. These systems often inc orporate subsystems
+for navigation, obstacle detection, and vehicle communica tion, resulting in com-
+plex interactions and numerous possible execution scenari os. Manual simulation
+of such systems becomes challenging due to the sheer number o f valuations and
+execution traces. To address this challenge, we have harnes sed the advantages of
+fuzz testing speciﬁcally for statecharts. Fuzz testing inv olves generating a large
+volume of inputs and observing how the system responds, aimi ng to uncover
+software bugs and anomalies. Integrating fuzz testing with statecharts is a novel
+concept that has not been explored in existing literature. B y employing fuzz
+testing on statecharts, we can leverage several advantages , including:
+1. It aids in evaluating the robustness of a system by subject ing it to a di-
+verse array of inputs, including unusual data, edge cases, a nd unexpected
+
+--- Page 20 ---
+20 Karthika et al.
+sequences. This veriﬁes the system’s ability to handle such scenarios eﬀec-
+tively, without encountering crashes or displaying errone ous behaviour.
+2. It enables rigorous testing and veriﬁcation by systemati cally exploring an
+extensive number of paths in statecharts, which can be pract ically inﬁnite.
+3. It can be automated, reducing the manual eﬀort required in testing various
+combinations of interleavings in a concurrent code. It faci litates compre-
+hensive coverage which signiﬁcantly enhances the detectio n of challenging
+concurrency-related bugs that might otherwise remain elus ive.
+4. The counterexample traces obtained during fuzz testing c an be used to easily
+replicate and analyse the identiﬁed issues, further simpli fying the debugging
+process.
+Our semantic approach enables a thorough analysis of system models, ex-
+amining intricate details at the action language level. We d etect the following
+through fuzz testing:
+1.Non-determinism Though we do not utilise priorities, it is still valuable
+for designers to be aware of the existence of non-determinis m (we have ex-
+plained this in detail in section 4 - conﬂicting transitions ). Detecting non-
+determinism at compile time based on triggers may result in f alse-positives,
+as they depend on the runtime valuation of variables in the guard .
+2.Concurrency conﬂicts occur when two enabled transitions within an or-
+thogonal composition attempt to modify the same variable. D etecting such
+conﬂicts can be challenging, especially in nested concurre nt code where con-
+trol ﬂow becomes complex. It becomes diﬃcult to manually ide ntify all pos-
+sible cases in which concurrency conﬂicts may arise.
+3.Undesired conﬁgurations can occur in concurrent statecharts when mul-
+tiple regions enter a combination of states that, while indi vidually valid, lead
+to undesired behaviour. For example, while it is acceptable for two traﬃc
+signals to be independently green, if they are in the same jun ction displaying
+opposite signals, it can result in accidents. Therefore, it is crucial to examine
+the orthogonal composition of traﬃc lights and determine if there are any
+scenarios where the conﬁguration becomes {green,green }.
+4. To test the reachability of all states and transitions, which is a common
+concern in traditional testing. Reachability serves as the counterpart to un-
+desired conﬁguration by aiming to validate the accessibili ty of all desired
+states and transitions within the system.
+Fuzz testing, like any testing practice, may not guarantee c omplete and sound
+results. However, it is a highly eﬀective technique when app lied to statecharts
+for detecting bugs. Its randomised execution closely resem bles the input streams
+experienced by real-world systems, such as autonomous vehi cles. In such systems,
+multiple subsystems interact with their environment, proc ess inputs from sensors
+and radars, and control actuators like throttle, steering, and brake. Fuzzing
+provides a better replication of these scenarios compared t o manual simulation.
+Our experiments were conducted using an automotive dataset [22] that in-
+cludes seven subsystems: Cruise Control (CC), Collision Av oidance (CA), Park-
+ing Assistant (PA), Lane Guidance (LG), Emergency Vehicle A voidance (EVA),
+
+--- Page 21 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 21
+Parking Space Centering (PSC), and Reversing Assistance (R A). We trans-
+formed the dataset from Statemate to Constabl semantics, om itting the transi-
+tion priorities in our model intentionally to test it in a non -prioritised system.
+Additionally, we merged the subsystems through orthogonal composition prior
+to conducting the experiments. While these models initiall y did not contain any
+inherent errors, we deliberately injected errors at variou s locations in the models
+to evaluate the eﬀectiveness of our fuzzing implementation in detecting them
+within a short timeframe.
+We integrated Jazzer [3], a Java-based fuzz testing tool, to perform fuzzing
+and generate counterexample traces upon encountering fail ures. We could iden-
+tify conﬂicts where two subsystems issue conﬂicting action s, such as modifying
+theSpeed of the vehicle concurrently (same-actuator conﬂicts). Als o, the subsys-
+tems can result in undesired conﬁgurations like {Slow,Mitigate }, whereEVA
+instructs the system to slow down where as CAinstructs the system to mitigate
+the risk of colliding by halting the vehicle. As halting the v ehicle may hinder
+the movement of emergency vehicle, this is an undesired conﬁ guration. We also
+injected non-determinism inducing guards in transitions a t various levels of hi-
+erarchy and could ﬂag them using our simulator at run-time. T he experiments
+were performed on an Ubuntu machine with 16 GB RAM. Simulatio ns were
+conducted by generating event sets of sizes 5000, 10000, and 20000 using the au-
+tomotive model consisting of all seven subsystems, which in cludes approximately
+80 states and 175 transitions. The results of these simulati ons can be found in
+our github repository4.
+In addition, we applied our tool to several other examples to assess the reach-
+ability from one random conﬁguration to another random conﬁ guration using
+fuzzing as part of our tool’s coverage testing. This experim entation has provided
+us with conﬁdence in the eﬀectiveness of fuzz testing in stat echart scenarios. It
+has also opened up possibilities for employing fuzzing to ve rify diﬀerent proper-
+ties, which could be an area for future research.
+Finally, the entire experiments stands testimony to the cla im that upstream
+modelling can allow early validation and detection of bugs. In all these experi-
+ments, the models were developed using the semantics presen ted in this paper
+proving its practicality. The experiments were run using ou r prototype simulator
+proving it a useful engine to implement early stage model val idation steps.
+6 Conclusion and Future work
+Statecharts are valuable tools for analysing, designing, a nd implementing com-
+plex systems due to their ability to represent diﬀerent leve ls of abstraction and
+intricate system interactions. In this paper, we introduce d ConStaBL, a variant
+of concurrent statecharts. Our contribution was the develo pment of a semantics
+and simulator that allow for the interleaved execution of ac tion code, enabling
+4https://github.com/sujitkc/statechart-veriﬁcation/t ree/skc-simulator-
+test/src/dfa/outputs/uwfms
+
+--- Page 22 ---
+22 Karthika et al.
+the detection of concurrency-related issues at an early sta ge. With the emer-
+gence of parallel processing systems and distributed execu tion of entities, there
+is a need to further enhance our approach to handle paralleli sm and incorporate
+analysis methodologies during the design phase.
+We presented a novel way to do fuzz testing on statechart mode ls directly. To
+the best of our knowledge, this idea has not been tried earlie r. This illustrates
+how to do early detection of defects at an early stage of SDLC u sing testing.
+It also demonstrates the applicability of the semantics pre sented in this paper
+to model realistic systems, and the ability of our simulator as a powerful aid in
+analysis.
+We aim to leverage the ﬁne-grained nature of our simulator to detect a wider
+range of defects in systems involving interleaved concurre ncy. Additionally, we
+plan to explore extensions discussed in the work [22], such a s establishing an
+accepted threshold for actuator conﬂicts by comparing vari able valuations in the
+value environment. These extensions will be a focal point of our future studies.
+References
+1.https://ch.mathworks.com/discovery/state-diagram.ht ml
+2.https://www.ni.com/docs/en-US/bundle/labview-statec hart-module/page/lvscconcepts/sc_c_top.html
+3. Codeintelligencetesting/jazzer: Coverage-guided, in -process fuzzing for the jvm,
+https://github.com/CodeIntelligenceTesting/jazzer
+4. Qm model-based design tool, https://www.state-machine.com/products/qm
+5. Semantics of transition selection algorithm in ibm en-
+gineering lifecycle management suite: Design rhapsody.
+https://www.ibm.com/docs/en/engineering-lifecycle-m anagement-suite/design-rhapsody/9.0.1?topic=semanti cs-transition-selection-algorithm ,
+accessed on: [17-July-2023]
+6. André, E., Liu, S., Liu, Y., Choppy, C., Sun, J., Dong, J.S. : Formalizing uml
+state machines for automated veriﬁcation – a survey. ACM Com put. Surv. (jan
+2023).https://doi.org/10.1145/3579821 ,https://doi.org/10.1145/3579821 ,
+just Accepted
+7. Barnett, J.: Introduction to scxml. Multimodal Interact ion with W3C Standards:
+Toward Natural User Interfaces to Everything pp. 81–107 (20 17)
+8. Von der Beeck, M.: A comparison of statecharts variants. I n: Formal Techniques
+in Real-Time and Fault-Tolerant Systems: Third Internatio nal Symposium Orga-
+nized Jointly with the Working Group Provably Correct Syste ms—ProCoS Lübeck,
+Germany, September 19–23, 1994 Proceedings 3. pp. 128–148. Citeseer (1994)
+9. von der Beeck, M.: A structured operational semantics for
+uml-statecharts. Software and Systems Modeling 1 (2002).
+https://doi.org/10.1007/s10270-002-0012-8
+10. Bhaduri, P., Ramesh, S.: Model checking of statechart mo d-
+els: Survey and research directions. CoRR cs.SE/0407038 (2004),
+http://arxiv.org/abs/cs.SE/0407038
+11. Chakrabarti, S.K., Venkatesan, K.: Stabl: Statecharts with local vari-
+ables. In: Proceedings of the 13th Innovations in Software E ngineer-
+ing Conference on Formerly Known as India Software Engineer ing
+Conference. ISEC 2020, Association for Computing Machiner y, New
+York, NY, USA (2020). https://doi.org/10.1145/3385032.3385040 ,
+https://doi.org/10.1145/3385032.3385040
+
+--- Page 23 ---
+ConStaBL - A Fresh Look at Software Engineering with State Ma chines 23
+12. Croll, P., Duval, P.Y., Jones, R., Kolos, S., Sari, R., Wh eeler, S.: Use
+of statecharts in the modelling of dynamic behaviour in the a tlas daq
+prototype-1. IEEE Transactions on Nuclear Science 45(4), 1983–1988 (1998).
+https://doi.org/10.1109/23.710975
+13. Decan, A., Mens, T.: Sismic—a python library for statech art execution and testing.
+SoftwareX 12(7 2020). https://doi.org/10.1016/J.SOFTX.2020.100590
+14. Eshuis, R.: Reconciling statechart semantics. Science of Computer Programming
+74(2009).https://doi.org/10.1016/j.scico.2008.09.001
+15. Gery, E., Harel, D., Palachi, E.: Rhapsody: A complete li fe-cycle model-based de-
+velopment system. In: Butler, M., Petre, L., Sere, K. (eds.) Integrated Formal
+Methods. pp. 1–10. Springer Berlin Heidelberg, Berlin, Hei delberg (2002)
+16. Harel, D.: Statecharts: a visual formalism for complex s ys-
+tems. Science of Computer Programming 8(3), 231–274 (1987).
+https://doi.org/https://doi.org/10.1016/0167-6423(8 7)90035-9 ,
+https://www.sciencedirect.com/science/article/pii/0 167642387900359
+17. Harel, D.: Statecharts in the making: a personal account . In: Proceedings of the
+third ACM SIGPLAN conference on History of programming lang uages. pp. 5–1
+(2007)
+18. Harel, D., Kugler, H.: The rhapsody semantics of statech arts (or, on the executable
+core of the uml). In: Integration of Software Speciﬁcation T echniques for Applica-
+tions in Engineering, pp. 325–354. Springer (2004)
+19. Harel, D., Naamad, A.: The statemate semantics of statec harts. ACM Transactions
+on Software Engineering and Methodology (TOSEM) 5(4), 293–333 (1996)
+20. Harel, D., Naamad, A.: The statemate semantics of statec harts. ACM Trans. Softw.
+Eng. Methodol. 5, 293–333 (10 1996). https://doi.org/10.1145/235321.235322 ,
+http://doi.acm.org/10.1145/235321.235322
+21. Itemis: Yakindu statecharts, https://www.itemis.com/en/yakindu/state-machine/doc umentation/user-guide
+22. Juarez-Dominguez, A.L., Day, N.A., Fanson, R.T.: A prel iminary report on tool
+support and methodology for feature interaction detection . Tech. rep., Technical
+Report CS-2007-44, University of Waterloo (2007)
+23. Larsen, K.G., Pettersson, P., Yi, W.: Uppaal in a nutshel l. International journal
+on software tools for technology transfer 1, 134–152 (1997)
+24. Li, J., Tang, J., Wan, S., Zhou, W., Xu, J.: Performance ev aluation from
+stochastic statecharts representation of ﬂexible reactiv e systems: A simulation ap-
+proach. Journal of Systems Engineering and Electronics 25(1), 150–157 (2014).
+https://doi.org/10.1109/JSEE.2014.00018
+25. paul-j lucas: Github - paul-j-lucas/chsm: Concurrent h ierarchical ﬁnite state ma-
+chine language system. (Jul 2018), https://github.com/paul-j-lucas/chsm
+26. Mathworks: Semantics of stateﬂow, http://www.ece.northwestern.edu/local-apps/matlabhe lp/toolbox/stateflow/semantic.html
+27. Peterson, J.L.: Petri nets. ACM Computing Surveys (CSUR )9(3), 223–252 (1977)
+28. Shapiro, B., Casinghino, C.: specgen: A tool for modelin g statecharts in csp. In:
+Barrett, C., Davies, M., Kahsai, T. (eds.) NASA Formal Metho ds. pp. 282–287.
+Springer International Publishing, Cham (2017)
+29. States, P.: The boost statechart library. Library (2006 )
+30. sujitkc: Github - sujitkc/statechart-veriﬁcation: A f ormal
+speciﬁcation language based on statecharts (Aug 2018),
+https://github.com/sujitkc/statechart-verification
+31. Than, X., Miao, H., Liu, L.: Formalizing the semantics of uml stat-
+echarts with z. In: The Fourth International Conference onC omputer
+and Information Technology, 2004. CIT ’04. pp. 1116–1121 (2 004).
+https://doi.org/10.1109/CIT.2004.1357344
+
+--- Page 24 ---
+24 Karthika et al.
+32. Uselton, A.C., Smolka, S.A.: A process algebraic semant ics for statecharts via state
+reﬁnement. In: PROCOMET. vol. 94, pp. 262–281. Citeseer (19 94)
+33. Van Mierlo, S., Vangheluwe, H.: Statecharts: A Formalis m
+to Model, Simulate and Synthesize Reactive and Autonomous
+Timed Systems, pp. 155–176. Springer International Publis hing,
+Cham (2020). https://doi.org/10.1007/978-3-030-43946-0_6 ,
+https://doi.org/10.1007/978-3-030-43946-0_6
+A Glossary of Terms
+–M: The statechart model
+–S: The set of states
+–s1,s2,...: states
+–C: Conﬁguration
+–CST(C): Conﬁguration state tree for conﬁguration C
+–σ: Value environment
+–Ttr(n): Subtree of node nin treetr
+–/hatwideTtr(n,C): Subtree of node nin treetrsliced with C, a subset of all leaf
+nodes of tr
+–STs(t,C): Source side state tree for enabled transition tin conﬁguration C
+–STd(t,C): Destination state tree for enabled transition tin conﬁguration C
+–CTs(t,C): Source side code tree for enabled transition tin conﬁguration C
+–CTd(t,C): Destination side code tree for enabled transition tin conﬁguration
+C
+–codes(t,C): Source side code for enabled transition tin conﬁguration C
+–coded(t,C): Destination side code for enabled transition tin conﬁguration C
+–code(t,C) =codes(t,C)t.a code d(t,C): Code for enabled transition tin
+conﬁguration C
+–C(t,C): The code that gets executed when an transition tin conﬁguration
+Cis ﬁred.
+–Cs(t,C): The source side code that gets executed when an transition tin
+conﬁguration Cis ﬁred.
+–Cd(t,C): The source side code that gets executed when an transition tin
+conﬁguration Cis ﬁred.

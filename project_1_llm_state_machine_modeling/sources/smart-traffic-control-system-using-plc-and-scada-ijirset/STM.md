@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：EFSM（扩展状态机）
+- 代表时间级别：T1（工程定时 / 局部定时）
+- 结构标签概况：-（无代表标签）
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文给出了基于重量与拥堵计数的交通放行/限行逻辑，但很多细节依赖流程图，正文可提取度中等。
 
 ## 条目 1: Weight-Based Diversion and Congestion Gating
 - 控制对象：道路交通分流与拥堵放行控制器
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T1（工程定时 / 局部定时）
+- 结构标签：-（无额外结构标签）
+- 原文细节充实度：🟢 A（细节完备）
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -26,13 +37,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC-based traffic diversion controller classifies vehicles at the toll booth by weight and issues diversion information accordingly. For the congestion-controlled road segment, the controller maintains an UP counter at the road entrance and a DOWN counter at the road exit to estimate occupancy. It blocks new entries with a red signal when the segment is full, switches to yellow when vehicles should prepare to enter, and allows entry with a green signal when the downstream side is sufficiently clear.
+The PLC-based traffic diversion controller first senses the vehicle weight at the toll booth, generates a barcode slip containing the vehicle information, and uses the sensed weight to decide how the vehicle should be diverted. For the congestion-controlled road segment, the controller maintains an UP counter at the road entrance and a DOWN counter at the road exit, each with a maximum value of 100, to estimate occupancy. It shows red and blocks new entries when `UP Counter = 100` and `DOWN Counter = 0`, changes to yellow when `100 > UP Counter > 80` and `20 > DOWN Counter > 0`, and shows green when `UP Counter < 60` and `DOWN Counter > 40`. In this way, the toll-booth diversion rule and the congestion-gating rule are combined into one PLC-controlled traffic-admission mechanism.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The PLC-based traffic diversion controller classifies vehicles at the toll booth by weight and issues diversion information accordingly.
+1. 句子 1：The PLC-based traffic diversion controller first senses the vehicle weight at the toll booth, generates a barcode slip containing the vehicle information, and uses the sensed weight to decide how the vehicle should be diverted.
    对应摘录：A
-2. 句子 2：For the congestion-controlled road segment, the controller maintains an UP counter at the road entrance and a DOWN counter at the road exit to estimate occupancy.
+2. 句子 2：For the congestion-controlled road segment, the controller maintains an UP counter at the road entrance and a DOWN counter at the road exit, each with a maximum value of 100, to estimate occupancy.
    对应摘录：B
-3. 句子 3：It blocks new entries with a red signal when the segment is full, switches to yellow when vehicles should prepare to enter, and allows entry with a green signal when the downstream side is sufficiently clear.
+3. 句子 3：It shows red and blocks new entries when `UP Counter = 100` and `DOWN Counter = 0`, changes to yellow when `100 > UP Counter > 80` and `20 > DOWN Counter > 0`, and shows green when `UP Counter < 60` and `DOWN Counter > 40`.
    对应摘录：B
+4. 句子 4：In this way, the toll-booth diversion rule and the congestion-gating rule are combined into one PLC-controlled traffic-admission mechanism.
+   对应摘录：A, B

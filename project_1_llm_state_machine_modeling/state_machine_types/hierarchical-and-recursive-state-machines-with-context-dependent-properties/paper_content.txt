@@ -1,0 +1,566 @@
+--- Page 1 ---
+Hierarchical and Recursive State Machines with
+Context-Dependent Properties?
+Salvatore La Torre, Margherita Napoli, Mimmo Parente, and
+Gennaro Parlato
+Dipartimento di Informatica e Applicazioni
+Universitµ a degli Studi di Salerno
+Abstract. Hierarchical and recursive state machines are suitable abstract mod-
+els for many software systems. In this paper we extend a model recently in-
+troduced in literature, by allowing atomic propositions to label all the kinds of
+vertices and not only basic nodes. We call the obtained models context-dependent
+hierarchical/recursive state machines . We study on such models cycle detection,
+reachability and Ltlmodel-checking. Despite of a more succinct representation,
+we prove that Ltlmodel-checking can be done in time linear in the size of the
+model and exponential in the size of the formula, as for standard Ltlmodel-
+checking.
+Reachability and cycle detection become NP-complete, and if we place some
+restrictions on the representation of the target states, we can decide them in time
+linear in the size of the formula and the size of the model.
+Keywords: Model Checking, Automata, Temporal Logic.
+1 Introduction
+Due to their complexity, the veri¯cation of the correctness of many modern digital sys-
+tems is infeasible without suitable automated techniques. Formal veri¯cation has been
+very successful and recent results have led to the implementation of powerful design
+tools (see [CK96]). In this area one of the most successful techniques has been model
+checking [CE81]: a high-level speci¯cation is expressed by a formula of a logic and this
+is checked for ful¯llment on an abstract model (state machine) of the system. Though
+model checking is linear in the size of the model, it is computationally hard since the
+model generally grows exponentially with the number of variables used to describe a
+state of the system ( state-space explosion ). As a consequence, an important part of the
+research on model checking has been concerned with handling this problem.
+Complex systems are usually composed of relatively simple modules in a hierar-
+chical manner. Hierarchical structures are also typical of object-oriented paradigms
+[BJR97,RBP+91,SGW94]. We consider systems modeled as hierarchical ¯nite state ma-
+chines , that is, ¯nite state machines where a vertex can either expand to another hi-
+erarchical state machine or be a basic vertex (in the former case we call the vertex a
+supernode , in the latter simply a node).
+The model we consider in this paper generalizes instead the model studied in [AY01].
+There the authors consider the model checking on Hierarchical State Machines (HSM)
+?This research was partially supported by the MIUR in the framework of the project \Metodi
+Formali per la Sicurezza e il Tempo" (MEFISTO) and MIUR grant 60% 2002.
+
+--- Page 2 ---
+where only the nodes are labeled with atomic propositions ( AP). We relax this constraint
+and thus we allow to associate atomic propositions also with vertices that expand to a
+machine. Expanding a supernode vto a machine M, all vertices of Minherit the atomic
+propositions of v(context ), so that di®erent vertices expanding to Mcan place Minto
+di®erent contexts. For this reason, we call such a model a hierarchical state machine with
+context-dependent properties (in the following denoted by Context-dependent Hier-
+archical State Machine ). The semantics of a CHSM is given by the corresponding
+natural °at model which is a Kripke structure.
+By allowing this more general labeling, for a given system it is possible to obtain very
+succinct abstract models. In the following example, we show that the gain of succinctness
+can be exponential compared to the models used in [AY01]. Consider a digital clock with
+hours, minutes, and seconds. We can construct a hierarchical ¯nite state machine M
+composed of three machines M1,M2, and M3such that the supernodes of M3expands
+toM2and the supernodes of M2expands to M1. Machine M1is a chain of nodes.
+Machines M2andM3are chains of supernodes except for the initial and the output
+vertices that are nodes. In M3each supernode corresponds to a hour and they are linked
+accordingly to increasing time. Analogously, M2models minutes and M1seconds. A °at
+model for the digital clock has at least 24 ¢60¢60 = 86 ;400 vertices, while the above
+hierarchical model has only 24 + 60 + 60 + 6 = 150 vertices (6 are simply initial and
+output nodes). Assume that we are interested in checking properties that refer to a
+precise time expressed in hours, minutes and seconds. Clearly, it is not su±cient to label
+only the nodes (we would be able to capture only that an event happens at a certain
+second, but we would have no clue of the actual hour and minute). In the model de¯ned
+in [AY01], at least 86 ;400 nodes are needed, that is, there would be no gain with respect
+to a minimal °at model. In our model, we are able to label each supernode in M3with
+atomic propositions encoding the corresponding hour. Analogously we can use atomic
+propositions to encode minutes and seconds on M2andM1, respectively. This way, each
+state of the corresponding °at model is labeled with the encoding of a hour, a minute
+and a second in a day and vertices are linked by increasing time.
+A simple way of analyzing hierarchical systems is ¯rst to °atten them into equivalent
+non-hierarchical systems and then apply existing veri¯cation techniques on ¯nite state
+systems. The drawback of such an approach is that the size of the °at system can
+be exponential in the hierarchical depth. In many recent papers, it has been shown
+that it is possible to reduce the complexity growth caused by handling large systems,
+by performing veri¯cation in a hierarchical manner [AGM00,AG00,BLA+99,AY01]. We
+follow this approach and study on CHSM s standard decision problems which are related
+to system veri¯cation, such as reachability, cycle detection, and model checking. In this
+paper, we also consider Context-dependent Recursive State Machines (CRSM )
+which generalize CHSM s by allowing recursive expansions and we study on them the
+veri¯cation-related problems listed above. Recursive generalizations of the hierarchical
+model presented in [AY01] are studied in [AEY01,BGR01]. Recursive machines can be
+used to model the control °ow of programs with recursive calls and thus are suitable for
+abstracting the behavior of reactive software systems.
+Results. Given a transition system, a state sand a set of target states T, (usually
+expressed by a propositional boolean formula), the reachability problem is the problem
+of determining whether a state of Tcan be reached from son a run of the system. In
+practice, this problem is relevant in the veri¯cation of systems, for example it is related
+
+--- Page 3 ---
+to the veri¯cation of safety requirements : we want to check whether all the reachable
+states of the system belong to a given \safe" region ( invariant checking problem ).
+We prove that reachability on CRSM s is NP-complete, and NP-hardness still holds
+if we restrict to CHSM s. We then give an algorithm to decide reachability on CRSM s
+that runs in time linear in the size of the model and exponential in the size of the
+formula. Finally, given a CHSM M, we show e®ective su±cient conditions for solving
+reachability in time linear in both the size of the formula and the size of the model.
+Let us remark that these conditions are satis¯ed when we consider an instance of the
+reachability problem where the model is given by a Hierarchical State Machine (HSM)
+as de¯ned in [AY01].
+Thecycle detection problem is the problem of verifying whether a given state can be
+reached repeatedly. Cycle detection is the basic problem for the veri¯cation of liveness
+properties : \some good thing will eventually happen".
+We also consider the model checking of Ltlformulas on CRSM s. Given a set of
+atomic propositions AP, alinear temporal logic (Ltl) formula is built up in the usual
+way from atomic propositions, the boolean connectives, the temporal operators next
+anduntil. AnLtlformula is interpreted over an in¯nite sequence over 2AP. ACRSM
+satis¯es a formula 'if every run in the corresponding °at model satis¯es '. Given an Ltl
+formula 'and a CRSM M, the model checking problem forMand'is the problem to
+determine whether Msatis¯es '. We give a decision algorithm that runs in O(jMj¢ 8j'j)
+time for CHSM s and an algorithm in O(jMj ¢ 16j'j) time for CRSM s. Our algorithms
+do not need to °atten the system and mainly consist of reducing the model checking
+problem to the emptiness problem of recursive BÄ uchi automata [AEY01].
+The rest of the paper is organized as follows. In the next section de¯nitions and
+notation are given. The NP-completeness of the cycle detection and of the reachability
+problems is shown in section 3 (actually the proofs for the cycle detection problems are
+omitted in this version, due to the lack of space). In section 4 we give the linear time
+algorithms for CHSM s and CRSM s. In Section 5, we discuss the model checking of
+Ltlformulas. We conclude with few remarks in Section 6.
+2 Context-dependent State Machines
+In this section we introduce the de¯nitions and the notation we will use in the rest of the
+paper. We consider Kripke structures , that is, state-transition graphs where each state
+is labeled by a subset of a ¯nite set of atomic propositions ( AP). AContext-dependent
+Recursive State Machine (CRSM ) over APis a tuple M= (M1; : : : ; M k) of Kripke
+structures with:
+{a set of vertices N, split into disjoint sets N1; : : : ; N k; a set IN=fin1; : : : ; in kg
+of initial vertices, where ini2Ni, and a set of output vertices OUT split into
+OUT 1; : : : ; OUT k, with OUT iµNi;
+{a mapping expand :N¡! f 0;1; : : : ; k gsuch that expand (u) = 0, for each u2
+IN[OUT . We de¯ne the closure of expand ,expand+:N¡! 2f0;1;:::;kg, as:
+h2expand+(u) if either h=expand (u) or u02Nexpand (u)exists such that
+h2expand+(u0).
+{the sets of edges Ei, for 1 ·i·k, such that each edge in Eiis either a pair ( u; v),
+with u; v2Niandexpand (u) = 0, or a triple (( u; z); v) with z2OUT expand (u), and
+u; v2Ni;
+
+--- Page 4 ---
+{a mapping true :N¡!2AP, such that true(u)\true(v) =;, for v2Nh; u62Nh
+andh2expand+(u).
+Informally, a CRSM is a collection of graphs which can call each other recursively.
+Each graph has an initial vertex and some output vertices. The mapping expand gives
+the recursive-call structure. If expand (u) =j >0, then the vertex uexpands to the
+graph Mjanduis called a supernode ; when expand (u) = 0 the vertex uis called a node.
+The mapping true labels each vertex with a set of atomic propositions holding at that
+vertex. The starting node of a CRSM M= (M1; : : : ; M k) is the initial node inkofMk.
+The Semantics of CRSMs. Every CRSM Mcorresponds to a °at model MFwhich
+is a directed graph with (possibly in¯nite) vertices ( states ) labeled with atomic propo-
+sitions. Informally speaking, the °at machine MFis obtained starting from Mkand
+iteratively replacing every supernode uin it with the graph Mexpand (u). The °at ma-
+chineMFis de¯ned as follows. A state of MFis a tuple X= [u1; : : : ; u m] where u12Nk,
+uj+12Nexpand (uj)forj= 1; : : : ; m ¡1, and expand (um) = 0. State Xis labeled by a
+set of atomic proposition true(X), consisting of the union of true(uj), for j= 1; : : : ; m .
+State [ ink] is the initial state of MF. The set of transitions Eis de¯ned as follows. Let
+X= [u1; : : : ; u m] be a state with um2Nhandum¡12Nj. Then, ( X; X0)2Eprovided
+that one of the following cases holds:
+1.(um; u0)2Eh,u02Nh, and if expand (u0) = 0 then X0= [u1; : : : ; u m¡1; u0], other-
+wiseX0= [u1; : : : ; u m¡1; u0; inl] forl=expand (u0).
+2.um2OUT h, ((um¡1; um); u0)2Ej,u02Nj, and if expand (u0) = 0 then X0=
+[u1; : : : ; u m¡2; u0], otherwise X0= [u1; : : : ; u m¡2; u0; inl] forl=expand (u0).
+Let [u1; : : : ; u n] be a state of MF, apre¯x of [u1; : : : ; u n] isu1; : : : ; u ifori·n.
+AContext-dependent Hierarchic State Machine (CHSM ) is a CRSM such that
+expand (u)< i, for every u2Ni. ACHSM is a collection of graphs which are organized
+to form a hierarchy and expand gives the hierarchical structure. The graph Mkis clearly
+thetop-level graph of the hierarchy, i.e., no vertices expand to it and, as for CRSM s,
+its initial node inkis the starting node of the CHSM .
+3 Reachability and cycle detection problems: computational
+complexity
+In this section we discuss the computational complexity of the reachability and cycle
+detection problems for CRSM s and CHSM s. Given a CRSM M= (M1; : : : ; M k) and
+a propositional boolean formula ', the reachability problem is the problem of deciding
+if a path in MFexists from [ ink] to a state Xon which 'is satis¯ed. Analogously, the
+cycle detection problem is the problem of deciding if a cycle in MFexists containing a
+reachable state Xon which 'is satis¯ed.
+We prove that for CRSM s and CHSM s these decision problems are NP-complete
+by showing NP-hardness for CHSM s and giving nondeterministic polynomial-time al-
+gorithms for CRSM s.
+Lemma 1. Reachability and cycle detection for CHSM s are NP-hard.
+Proof : We give a reduction in linear time with respect to the size of the formula from
+the satis¯ability problem SAT. Given a boolean formula 'over the variables x1; : : : ; x m,
+
+--- Page 5 ---
+we construct a CHSM M= (M1; M2; : : : ; M m) over AP=fP1; P2; : : : ; P mg, as follows.
+Each graph Mihas four vertices ini; pi; notp i; out iforming a chain. Each vertex piis
+labeled by fPigwhereas the vertices notp i,iniandoutiare labeled by the empty set.
+Since an atomic proposition Pidoes not label vertices in graphs other than Mi, this
+labeling implicitly corresponds to assigning :Pitonotp i. Vertices piandnotp i, for
+i >1, are supernodes which expand into Mi¡1, and p1andnotp 1are instead nodes.
+Thus there are 2mstates of MFof type [ u1; : : : ; u m] such that um¡i+12 fpi; notp ig
+fori= 1; : : : ; m , and it is easy to verify that all these states are reachable from [ inm].
+Clearly, given a truth assignment ºofx1; : : : ; x m, a state XofMFexists such that º
+assigns True toxiif and only if pioccurs in Xand, in turns, if and only if Pi2true(X).
+Thus a reachable state XofMFexists whose labeling corresponds to a truth assignment
+ful¯lling 'if and only if 'is satis¯able.
+By de¯nition of the cycle detection problem, checking for the existence of a cycle
+containing a state on which 'is satis¯ed requires to check for reachability ¯rst. Thus,
+NP-hardness is inherited from reachability. u t
+To prove membership to NP of the reachability on CRSM s, we need to consider a
+notion of connectivity of vertices in a CRSM . We say that a vertex u2Nisconnected
+if a reachable state [ u1; : : : ; u m] ofMFexists, where u=uifor some i= 1; : : : ; m .
+Observe that the starting node inkis clearly connected and a vertex u2Njis connected
+if and only if injis connected and a path ¼inMjfrom injtouexists, such that
+if¼goes through an edge (( v; z); v0)2Ejthen zis a connected vertex (recall that
+z2OUT expand (v)). From this the following proposition holds.
+Proposition 1. A state [u1; : : : ; u m]ofMFis reachable if and only if all the vertices
+ui, for i= 1; : : : ; m , are connected.
+The above observation suggests also an algorithm to determine in linear time the
+connected vertices. We omit the proof of this result which is given by a rather simple
+modi¯cation of a depth-¯rst search on a graph (see also [AEY01]).
+Proposition 2. Given a CRSM M, the set of connected vertices of Mcan be deter-
+mined in O(jMj).
+To prove membership to NP of the reachability on CRSM s, we need to prove the
+following technical lemma. Notice that this lemma is not needed for CHSM s, where
+the number of supernodes that compose a state of MFis bounded from above by the
+number of component graphs.
+Lemma 2. Given a CRSM M, for each state X= [u1; : : : ; u m]such that m > n2+ 1,
+where nis the number of supernodes of M, a state X0= [u0
+1; : : : ; u0
+m0]exists such that
+m0< m andtrue(X) =true(X0). Moreover, if Xis reachable then also X0is reachable.
+Proof : Consider a sequence v1; : : : ; v h2N. We say that a sub-sequence vi: : : v j,
+1·i < j , is a cycle ifvi=vj. Moreover, we say that a cycle vi: : : v j, iserasable
+iffvi+1; : : : ; v jg µ f v1; : : : ; v ig. It is easy to verify that for a sequence u1: : : u msuch
+that X= [u1; : : : ; u m] is a state of MFandui: : : u jis a cycle, we have that X0=
+[u1; : : : ; u i; uj+1; : : : ; u m] is a state of MFand if ui: : : u jis also erasable then true(X) =
+true(X0). Moreover, by Proposition 1, if Xis reachable then also X0is reachable.
+To conclude the proof we only need to show that for each state X= [u1; : : : ; u m]
+such that m > n2+ 1, where nis the number of supernodes in M,u1: : : u mcontains
+
+--- Page 6 ---
+an erasable cycle. Notice that m > n2+ 1 implies that a supernode uexists, occuring
+at least ( n+ 1) times in u1: : : u m. Suppose u1: : : u m=®0u®1u : : : ® nu¯, where each
+®idoes not contain occurrences of u. A cycle u®iuis not erasable only if it contains
+a supernode that is not in ®0u : : : ® i¡1u. By a simple count, if ®0u : : : ® n¡1does not
+contain erasable cycles, then all supernodes occur in it. Thus, u®nuis erasable. u t
+Now, we can prove membership to NP of the reachability and the cycle detection
+problems on CRSM s.
+Lemma 3. Reachability and cycle detection for CRSM s are decidable in nondetermin-
+istic polynomial-time.
+Proof : Consider the instance of the reachability problem given by a CRSM Mand
+a propositional boolean formula '. By Proposition 2 we can determine in O(jMj) time
+the set of the connected vertices, and then, given a state XofMF, by Proposition
+1 we can check if Xis reachable in O(jMj+jXj) time. Verifying the ful¯llment of '
+onXtakes O(j'j+jXj) time. Moreover, by Lemma 2 we need only to consider states
+X= [u1; : : : ; u m] form·n2+ 1, where nis the number of supernodes of M. Thus, we
+can conclude that the reachability problem on CHSM s is in NP. u t
+By Lemmas 1 and 3 we have the following theorem.
+Theorem 1. Reachability and cycle detection for CRSM s (CHSM s) are NP-complete.
+4 E±cient solutions to reachability and cycle detection
+problems.
+In this section, we give a linear time algorithm that solves reachability and cycle de-
+tection problems for CHSM s which are related to target sets by a particular condition
+(speci¯ed later). As a corollary we get three consequences: ¯rst the results regarding
+reachability and cycle detection for the model considered in [AY01] are obtained as par-
+ticular cases, second we characterize a class of formulas guaranteeing that the algorithm
+works correctly and ¯nally we show that the algorithm works also for DNF formulas,
+thus obtaining a general solution for any formula with a tight worst case running time
+ofO(jMj ¢ 2j'j).
+Finally, we give a linear time reduction from the reachability problem on CRSM s
+for DNF formulas to the corresponding problem on CHSM s, thus the above general
+solution still holds for CRSM s.
+Consider now CHSM s. Clearly a propositional formula 'can be evaluated in a
+state XofMFby instantiating to true the variables corresponding to the atomic
+propositions in true(X) and to false all the others. Now we wish to evaluate 'without
+constructing the graph MF, to this aim we use a greedy approach in a top-down fashion
+on the hierarchy: at each supernode we instantiate as many variables as possible. By
+traversing the hierarchy in a top-down fashion, once a node is reached, 'can only
+partially evaluated. On a supernode uof aCHSM all the variables instantiated to
+true correspond to the atomic propositions in true(u). Determining the variables to
+instantiate to false is not so immediate. We de¯ne AP(h) as the union of the sets
+labeling either the vertices in Nhor those having an ancestor in Nh, that is, AP(h) =S
+v2Nh(true(v)[AP(expand (v))) where AP(0) = ;. Moreover, for u2Nh, we de¯ne
+the set false (u) asAP(h)n(true(u)[AP(expand (u))). This set contains the atomic
+propositions that can be instantiated to false atu, since a proposition p2false (u)
+
+--- Page 7 ---
+Algorithm Reachability (M; ')
+return( Reach (Mk; ')).
+Function Reach (Mh; ')
+VISITED[ h]ÃMARK ;
+foreach u2Nhdo
+'0= Eval( '; u);
+if('0==TRUE )then return TRUE ;
+if('0==FALSE )then continue ;
+if( (expand(u) >0) AND ( V ISITED [expand (u)]! = MARK ))then
+if Reach (Mexpand (u); '0)then return TRUE ;
+endfor
+return FALSE ;
+Fig. 1. Algorithm Reachability.
+if and only if p62true(X), for every state XofMFhaving the supernode uas a
+component. It is easy to see that the sets false (u),u2N, can be preprocessed in time
+O(jMj), by visiting Min a bottom-up way.
+For a propositional boolean formula 'we denote by Eval( '; u) the formula obtained
+by instantiating 'with true(u) and false (u). We generalize this notation to sequences
+of vertices de¯ning Eval( '; u1;¢¢¢; ui) as Eval(Eval( '; u1); u2;¢¢¢; ui). Finally, we will
+denote by AP(') the set of atomic propositions corresponding to 'variables.
+We consider a condition relating a CHSM Mand a target set speci¯ed by a formula
+'asserting that "when two supernodes expand to the same graph, then any partial
+evaluation of 'ending on them coincides". Formally, the condition is as follows:
+Condition 1 Letx1;¢¢¢; xiandy1;¢¢¢; yjbe two pre¯xes of MFstates such that expand (xi) =
+expand (yj). If neither Eval ('; x1;¢¢¢; xi)nor Eval ('; y1;¢¢¢; yj)is one of the constants
+fTRUE; FALSE g, then Eval ('; x1;¢¢¢; xi) =Eval('; y1;¢¢¢; yj).
+When reachability and cycle detection become tractable.
+Theorem 2. The reachability and cycle detection problems on a CHSM Mand a
+formula 'satisfying Condition 1 are decidable in time O(jMj ¢ j 'j).
+Proof : Consider a CHSM M= (M1; : : : ; M k) and without loss of generality assume
+that all the vertices of Mare connected (see Proposition2). Algorithm Reachability (M; ')
+(Figure 1), returns TRUE if and only if 'is evaluated to true on a reachable state of
+MF. The function Reach uses a global array VISITED (initially unmarked in all the
+positions) to mark the visited graphs Mh. For each node uofMh,'is evaluated on it
+according to true(u) and false (u), call '0the returned formula. If '0evaluates true
+onu, then Reach stops returning TRUE . (and the main algorithm stops too returning
+TRUE ). If'0evaluates false , another vertex of Mhwhich has not yet been explored
+is processed. In case uis a supernode and Mexpand (u)has never been visited, then the
+function is called on the graph Mexpand (u)and'0. Now note that Condition 1 assures
+that it is not necessary to visit a graph Mhmore than once, thus the overall complexity
+of the algorithm is linear in jMjandj'jand clearly returns TRUE if and only if a node
+XinMFexists on which 'isTRUE . u t
+
+--- Page 8 ---
+It is easy to see that given any formula 'and a Hierarchical State Machine (HSM)
+introduced in [AY01] (where only nodes are labeled with the mapping true, see the in-
+troduction), Condition 1 always holds, thus the linear time solutions for the reachability
+and cycle detection problems for HSM given in that paper are here obtained as particular
+cases.
+Now we present a characterization of formulas for which Theorem 2 holds. A proposi-
+tional boolean formula 'is said to be in M-normal form if'='1^: : :^'mand for every
+'iand for every vertex uofMit holds that either AP('i)\(true(u)[false (u)) =;
+orAP('i)\(true(u)[false (u)) = AP('i). It is easy to see that also in this case
+Condition 1 holds.
+Theorem 2 can be generalized for a ¯nite disjunction of formulas satisfying Condi-
+tion 1. Since a conjunction of literals is in M-normal form , for all possible M, then this
+generalization can be applied to DNF formulas. Thus, as any formula 'can always be
+transformed in a DNF formula, we have an algorithm for reachability and cycle detection
+problems whose worst case running time is O(jMj¢DNF (')), where DNF (') is the cost
+of the transformation of 'in Disjunctive Normal Form. All this yields a tight upper
+bound of O(jMj ¢ 2j'j).
+Reachability and cycle detection are also tractable on CRSM s if we restrict to
+formulas in disjunctive normal form as shown in the following theorem.
+Theorem 3. Reachability and cycle detection problems for a CRSM Mand a formula
+'in DNF are decidable in time O(jMj ¢ j 'j).
+Proof : Consider a CRSM Mand a DNF formula '=Ã1_: : :_Ãmwhere each Ãi
+is a conjunction of literals. Our algorithm consists of reducing in O(j'j ¢ jMj ) time the
+reachability problem for MandÃito the reachability problem for a CHSM ¹MandÃi,
+where size of ¹MisO(jMj). Then the result follows from Theorem 2.
+Consider a disjunct clause Ãof'. We simplify Musing the following two steps.
+1.for each graph Mi, delete all the existing edges and insert an edge from inito any
+other connected vertex of Mi;
+2.ifuis not an initial node and true(u) contains an atomic proposition corresponding
+to a variable which is negated in Ã, then delete ufrom Mi.
+This transformation can be performed in O(jÃj¢jMj ) time and preserves the reachability
+of the states of MFsatisfying Ã, thanks to Proposition 2.
+Now, de¯ne a supernode u2Niasrecursively expansible ifi2expand+(u) and a
+graph Miasrecursively expansible if it contains at least a recursively expansible supern-
+ode. We de¯ne the equivalence relation ¼on the indices of recursively expansible graphs:
+i¼jif and only if vertices u2Niandv2Njexist such that i2expand+(v) and
+j2expand+(u). We want to de¯ne a CHSM ¹M= (¹M1;¹M2; : : : ; ¹Mk0) such that ¹Mhas
+a component graph for each equivalence class of the relation ¼. Let f:f1; : : : ; k g ¡!
+f1; : : : ; k0gbe the function that maps each itojsuch that iis in the equivalence class
+corresponding to ¹Mj.
+For a graph Miwhich is not recursively expansible (i.e., [ i] =fig), we de¯ne ¹Mf(i)
+asMiexcept for the mapping expand , since expand ¹M(u) =f(expand M(u)). For a
+recursively expansible graph Miwe de¯ne ¹Mf(i)as follows. All vertices u2Njwhich
+are not recursively expansible, with j¼i, are vertices of ¹Mf(i), the edges between them
+inMiare edges of ¹Mf(i)as well and OUT f(i)=S
+j;j¼iOUT j. Moreover, we add a
+new initial node ¹inf(i)and insert edges from ¹inf(i)to all vertices inj,j¼i. For each
+
+--- Page 9 ---
+supernode uof¹Mf(i)we de¯ne expand ¹M(u) =f(expand M(u)). Let SM(i) be the set of
+all recursively expansible vertices belonging to all graphs Mjsuch that j¼i. We de¯ne
+true ¹M(¹inf(i)) astrue ¹M(inj) for an arbitrary j¼i, and for each vertex uof¹Mf(i),
+true ¹M(u) asS
+v2SM(i)trueM(v)[trueM(u) (note that no atomic proposition added in
+this way to the label of ucorresponds to a variable which is negated in Ã).
+Now observe that, by the above part 2 of the above simpli¯cation, if Xis a state
+ofMFsatisfying ÃandYis a state of ¹MFsuch that trueM(X)µtrue ¹M(Y) and
+true ¹M(Y)ntrueM(X) does not contain an atomic proposition corresponding to a variable
+which is negated in Ã, then Ysatis¯es Ãas well. Since the initial simpli¯cation also
+preserves reachability, we have that if a reachable state of MFful¯lling Ãexists, then
+a state of ¹MFful¯lling Ãalso exists. Since by construction, states of ¹MFcorresponds
+to states of MF, the vice-versa also holds. u t
+As a consequence of Theorem 3 and the arguments for CHSM s and DNF formulas,
+the following theorem holds.
+Theorem 4. The reachability and cycle detection problems on a CRSM Mand a
+propositional boolean formula 'are decidable in O(jMj ¢ 2j'j)time.
+5LtlModel Checking
+Here we consider the veri¯cation problem of linear-time requirements, expressed by Ltl-
+formulas [Pnu77]. We follow the automata theoretic approach to solving model checking
+[VW86]: given an Ltlformula 'and a Kripke structure M, it is possible to reduce
+model checking to the emptiness problem of BÄ uchi automata. To use this approach, we
+extend the Cartesian product between Kripke structures.
+Given a transition graph with states labeled by subsets of atomic propositions and a
+state s, atrace is an in¯nite sequence ®1®2: : : ® i: : :of labels of states occuring in a path
+starting from s. Moreover, given a CRSM M, we de¯ne the language L(M) as the set of
+the traces of MFstarting from its initial state. A BÄ uchi automaton A= (Q; q1; ¢; L; T )
+is a Kripke structure ( Q; ¢; L ) together with a set of accepting states Tand a starting
+state q1. The language L(A) accepted by Ais the set of the traces corresponding to
+paths visiting in¯nitely often a state of T.
+LetM= (M1; : : : ; M k) be a CRSM andA= (Q; q1; ¢; L; T ), for Q=fq1; : : : ; q mg,
+be a BÄ uchi automaton. Let 1 ·i·k, 1·j·m, and Pbe such that PµAPand
+P[trueM(ini) =L(qj), we de¯ne the graphs M(i;j;P)as follows. Each M(i;j;P)contains
+vertices [ u; q; j; P ] such that ( u; q) belongs to the standard Cartesian product of Miand
+A, and the labeling of qcoincides with the labeling of uaugmented with the atomic
+propositions that uinherits from its ancestors in a given context. The inherited set of
+atomic propositions is given by P. The property P[trueM(ini) =L(qj) assures that
+we consider only graphs M(i;j;P)whose initial vertex is compatible with the automaton
+state. Formally, we have:
+{The set N(i;j;P)of the vertices of M(i;j;P)contains quadruples [ u; q; j; P ], where
+u2Ni,q2Q, and
+²either expand M(u) = 0 and L(q) =trueM(u)[P
+²orexpand M(u) =h >0 and L(q) =trueM(u)[trueM(inh)[P.
+{The initial vertex of M(i;j;P)is [ini; qj; j; P] and the output nodes are [ u; q; j; P ] for
+u2OUT iandq2Q;
+{M(i;j;P)contains the following edges:
+
+--- Page 10 ---
+²([u; q0; j; P];[v; q00; j; P]), with ( q0; q00)2¢and ( u; v)2Ei,
+²(([u; qj0; j; P];[z; q0; j0; P[trueM(u)]);[v; q00; j; P]), with ( q0; q00)2¢, ((u; z); v)2
+Ei, and L(q) =trueM(u)[trueM(inh)[Pforexpand M(u) =h.
+From the above de¯nition we observe that if uis a supernode then the labeling of q
+has to match also with the labeling of inexpand M(u)since [ u; q; j; P ] is a supernode of M0
+and one has to assure the correctness, with respect to the labeling, of its expansion. Note
+that when only the value of jvaries, we have graphs which di®er one each other only for
+the choice of the the initial vertex [ ini; qj; j; P]. Moreover, the edges in M(i;j;P)are given
+by coupling the transitions ( q0; q00) ofAwith both kinds of edges ( u; v) and (( u; z); v) in
+Ei. For h=expand M(u), we have edges (([ u; q; j; P ];[z; q0; h; P[trueM(u)]);[v; q00; j; P])
+for every q2Qsuch that L(q) =trueM(u)[trueM(inh)[P. Thus, there might be as
+many as jQjedges, for every pair of edges (( u; z); v) and ( q0; q00).
+We can now de¯ne M0=MNAas aCRSM constituted by some of the graphs
+M(i;j;P), and de¯ned inductively as follows:
+{M(k;1;;)is the graph containing the starting node of M0;
+{LetM(i;j;P)be a graph of M0, and [ u; qt; j; P] be a vertex of M(i;j;P).
+²Ifexpand M(u) = 0 then expand M0([u; qt; j; P]) = 0;
+²Ifexpand M(u) =h >0, and P0=P[trueM(u) then M(h;t;P0)is a graph of
+M0andexpand M0([u; qt; j; P]) =hh; t; P0iwhere hh; t; P0idenotes the index of
+M(h;t;P0);
+{trueM0([u; q; j; P ]) =trueM(u), for every [ u; q; j; P ].
+Observe that M0=MNAis aCRSM and if Mis aCHSM , then M0is aCHSM ,
+as well. To determine the size of M0, ¯rst consider the size of each graph M(i;j;P). The
+number of the edges is bounded by the product of the number of edges in Miand the
+number of transitions in Amultiplied at most by m, since we have at most jQjedges
+for any ( q0; q00)2¢and (( u; z); v)2Ei. Thus, an upper bound to the size of M(i;j;P)is
+given by ( m¢ jEij ¢ jAj). The size of M0can be obtained now by counting the number of
+its component graphs.
+Lemma 4. Given a CRSM M,M0=MNAis aCRSM that can be constructed in
+O(m2¢ jMj ¢ j Aj ¢ j2APj)time. Moreover, if Mis aCHSM , then M0is aCHSM that
+can be constructed in O(m2¢ jMj ¢ j Aj)time.
+Proof : First recall that a graph M(i;j;P)ofM0has the property that P[trueM(ini) =
+L(qj). Therefore, Pis the union of two disjoint sets P1andP2, such that P1is the
+set of the atomic propositions of L(qj) that do not belong to trueM(ini), and P2=
+P\trueM(ini) is a subset of trueM(ini). Thus, for ¯xed values of iandj,P1is ¯xed
+and the number of di®erent graphs M(i;j;P)is bounded above by the number of di®erent
+subsets of trueM(ini). Therefore, the size of M0is bounded above byPm
+j=1Pk
+i=1(2jAPj¢
+m¢ jMij ¢ jAj).
+Now, let Mbe aCHSM . Given a graph M(i;j;P)ofM0,Pis de¯ned as the set
+of the propositions that the vertices of Miinherit. Thus, P\trueM(u) =;, for every
+vertex uofMiand then P\trueM(ini) =;. Hence, in this case, P2is empty and then
+at most one graph M(i;j;P)exists for ¯xed values of iandj. Therefore, the size of M0is
+bounded above byPm
+j=1Pk
+i=1(m¢ jMij ¢ jAj). u t
+TheCRSM MNAcan be used to check for the emptiness of the language given
+by the intersection of L(M) and L(A), as shown in the following lemma.
+
+--- Page 11 ---
+Lemma 5. There exists an algorithm checking whether L(M)\L(A) =;in time linear
+in the size of M0=MNA.
+Proof : First, observe that if we consider as set of ¯nal states the vertices [ u; q; h; P ]
+such that q2T, theCRSM M0is a recursive BÄ uchi automaton. Moreover, the set of
+the traces of M0Fis the same as the set of traces of the Cartesian product of MFand
+A. Thus L(M)\ L(A)6=;if and only L(M0)6=;. From [AEY01], for recursive BÄ uchi
+automata with a single initial node for each graph, non-emptiness can be checked in
+linear time. u t
+As a consequence of the above lemmas, we obtain an algorithm to solving the Ltl
+model checking for CRSM s. Following the automata theoretic approach, one can con-
+struct a BÄ uchi automaton A:'of size O(2j'j) accepting the set L(A:') of the se-
+quences which do not satisfy ', and then 'is satis¯ed on all paths of Mif and only
+ifL(M)\ L(A:') is empty. From Lemma 4, one can now construct MNA:', whose
+size is O(m2¢ jMj ¢ j A:'j ¢2jAPj) =O(jMj ¢ 16j'j) (since m=jA:'j=O(2j'j) and
+2jAPj·2j'j). Moreover, this size reduces to O(m2¢ jMj ¢ j A:'j) =O(jMj ¢ 8j'j), when
+Mis aCHSM . Hence, by Lemma 5 we obtain the main result of this section.
+Theorem 5. TheLtlmodel checking on a CRSM Mand a formula 'can be solved in
+O(jMj¢16j'j)time. Moreover, if M is a CHSM the problem can be solved in O(jMj¢8j'j)
+time.
+6 Discussion
+We have proposed new abstract models for sequential state machines: the context-
+dependent hierarchical and recursive state machines. On these models we have studied
+reachability, cycle detection and the more general problem of model checking with re-
+spect to linear-time speci¯cations. An interesting feature of CHSM s is that they allow
+very succinct representations of systems, and this comes substantially at no cost if com-
+pared to analogous hierarchical models studied in the literature. Moreover, we prove
+that for some particular formulas we improve the complexity of previous approaches.
+Several extensions of the introduced models can be considered.
+Our models are sequential. If we add concurrency to CHSM s, the computational
+complexity of the considered decision problems grows signi¯cantly (we recall that reach-
+ability in communicating hierarchical state machines is Expspace -complete [AKY99]).
+While for CRSM s with concurrency, reachability becomes undecidable since sequential
+CRSM s are as expressive as pushdown automata [AEY01,BGR01].
+We have only considered models where a single entry node is allowed for each compo-
+nent machine. We can relax this limitation allowing multiple entry points. The semantics
+of this extension naturally follows from the semantics given for the single entry case. In
+the hierarchic setting, we can translate a multiple-entry CHSM Minto an equivalent
+single-entry CHSM M0of size at most cubic in the size of M. In fact, each component
+machine of Mcan be replaced in M0by multiple copies, each copy corresponding to
+an entry point and having as unique entry point the entry point itself. Expansions are
+redirected to the proper components in order to match the expansions in M. Thus, su-
+pernodes may need to be replaced by multiple copies each pointing to the proper machine
+inM0. If we apply this construction to a multiple-entry CRSM , the obtained single-
+entry CRSM does not satisfy the property true(u)\true(v) =;, for v2Nh; u62Nh
+andh2expand+(u) (see de¯nition of CRSM ). This is a consequence of the fact that if
+
+--- Page 12 ---
+a machine of the multiple-entry CRSM can directly or indirectly call itself, then there
+are two copies of this machine that may call each other recursively. We recall that the
+above property is su±cient to ensure that Condition 1 holds for conjunctions of literals,
+and thus is crucial to obtain the results given in Section 4. However, it is possible to
+prove that Theorem 3 also holds for multiple-entry CRSM s. We leave the details of this
+proof to the full paper.
+For modeling purposes it is useful to have variables over a ¯nite domain that can
+be passed from a component to another. We can extend our models to handle input,
+output and local variables. Consider a component machine Mwith heentry nodes, hx
+exit nodes, and htinternal vertices. If Mis equipped also with kiinput boolean variables,
+kooutput boolean variables, and kllocal boolean variables, we can model by a machine
+having 2ki¢heentry nodes, 2ko¢hxexit nodes, and 2ki+kl+ko¢htinternal vertices.
+References
+[AEY01] R. Alur, K. Etessami, and M. Yannakakis. Analysis of recursive state machines. In
+Proc. of the 13th International Conference on Computer Aided Veri¯cation, CAV'01 ,
+LNCS 2102, pages 207{220. Springer, 2001.
+[AG00] R. Alur and R. Grosu. Modular re¯nement of hierarchic reactive machines. In Proc.
+of the 27th Annual ACM Symposium on Principles of Programming Languages , pages
+390{402, 2000.
+[AGM00] R. Alur, R. Grosu, and M. McDougall. E±cient reachability analysis of hierarchical
+reactive machines. In Computer Aided Veri¯cation, 12th International Conference ,
+LNCS 1855, pages 280{295. Springer, 2000.
+[AKY99] R. Alur, S. Kannan, and M. Yannakakis. Communicating hierarchical state ma-
+chines. In Proc. of the 26-th International Colloquium on Automata, Languages and
+Programming, ICALP'99 , LNCS 1644, pages 169{178. Springer-Verlag, 1999.
+[AY01] R. Alur and M. Yannakakis. Model checking of hierarchical state machines. ACM
+Transactions on Programming Languages and Systems (TOPLAS) , 23(3):273 { 303,
+2001.
+[BGR01] M. Benedikt, P. Godefroid, and T. W. Reps. Model checking of unrestricted hier-
+archical state machines. In Proc. of the 28th International Colloquium Automata,
+Languages and Programming, ICALP'01 , LNCS 2076, pages 652{666. Springer, 2001.
+[BJR97] G. Booch, I. Jacobson, and J. Rumbaugh. Uni¯ed Modeling Language User Guide .
+Addison Wesley, 1997.
+[BLA+99]G. Behrmann, K.G. Larsen, H.R. Andersen, H. Hulgaard, and J. Lind-Nielsen. Ver-
+i¯cation of hierarchical state/event systems using reusability and compositonality.
+InProc. of the Tools and Algorithms for the Construction and Analysis of Systems,
+TACAS'99 , LNCS 1579, pages 163{177. Springer, 1999.
+[CE81] E.M. Clarke and E.A. Emerson. Design and synthesis of synchronization skeletons
+using branching time temporal logic. In Proc. of Workshop on Logic of Programs ,
+LNCS 131, pages 52 { 71. Springer-Verlag, 1981.
+[CK96] E.M. Clarke and R.P. Kurshan. Computer-aided veri¯cation. IEEE Spectrum ,
+33(6):61 { 67, 1996.
+[Pnu77] A. Pnueli. The temporal logic of programs. In Proc. of the 18th IEEE Symposium
+on Foundations of Computer Science , pages 46 { 77, 1977.
+[RBP+91]J. Rumabaugh, M. Blaha, W. Premerlani, F. Eddy, and W. Lorensen. Object-
+oriented Modeling and Design . Prentice-Hall, 1991.
+[SGW94] B. Selic, G. Gullekson, and P.T. Ward. Real-time object oriented modeling and design .
+J. Wiley, 1994.
+[VW86] M.Y. Vardi and P. Wolper. Automata-theoretic techniques for modal logics of pro-
+grams. Journal of Computer and System Sciences , 32:182 { 211, 1986.

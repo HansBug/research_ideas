@@ -1,0 +1,605 @@
+--- Page 1 ---
+electronics
+Article
+Development and Veriﬁcation of Infrastructure-Assisted
+Automated Driving Functions
+Martin Rudigier
+ , Georg Nestlinger
+ , Kailin Tong and Selim Solmaz *
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Citation: Rudigier, M.; Nestlinger,
+G.; Tong, K.; Solmaz, S. Development
+and Veriﬁcation of Infrastructure-
+Assisted Automated Driving
+Functions. Electronics 2021 ,10, 2161.
+https://doi.org/10.3390/
+electronics10172161
+Academic Editor: Maysam Abbod
+Received: 29 July 2021
+Accepted: 1 September 2021
+Published: 4 September 2021
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2021 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).Virtual Vehicle Research GmbH, Inffeldgasse 21a, 8010 Graz, Austria; martin.rudigier@v2c2.at (M.R.);
+georg.nestlinger@v2c2.at (G.N.); kailin.tong@v2c2.at (K.T.)
+*Correspondence: selim.solmaz@v2c2.at; Tel.: +43-316-873-9730
+Abstract: Automated vehicles we have on public roads today are capable of up to SAE Level-3
+conditional autonomy according to the SAE J3016 Standard taxonomy, where the driver is the
+main responsible for the driving safety. All the decision-making processes of the system depend
+on computations performed on the ego vehicle and utilizing only on-board sensor information,
+mimicking the perception of a human driver. It can be conjectured that for higher levels of autonomy,
+on-board sensor information will not be sufﬁcient alone. Infrastructure assistance will, therefore, be
+necessary to ensure the partial or full responsibility of the driving safety. With higher penetration rates
+of automated vehicles however, new problems will arise. It is expected that automated driving and
+particularly automated vehicle platoons will lead to more road damage in the form of rutting. Inspired
+by this, the EU project ESRIUM investigates infrastructure assisted routing recommendations utilizing
+C-ITS communications. In this respect, specially designed ADAS functions are being developed
+with capabilities to adapt their behavior according to speciﬁc routing recommendations. Automated
+vehicles equipped with such ADAS functions will be able to reduce road damage. The current paper
+presents the speciﬁc use cases, as well as the developed C-ITS assisted ADAS functions together with
+their veriﬁcation results utilizing a simulation framework.
+Keywords: automated vehicles; ADAS/AD functions; C-ITS; IVIM; infrastructure assistance; routing
+recommendations
+1. Introduction
+Advanced driver assistance systems (ADAS) are becoming more widespread in mod-
+ern automotive vehicles with the promise to reduce the cognitive load on drivers and to
+increase the driving safety in general. Such assistance systems are also helping with the
+user acceptance of automated driving (AD) systems with the view of a fully autonomous
+future mobility. In doing so, however, there are still many hurdles to be cleared in reach-
+ing this dream, especially in controlling and effecting the automated vehicle behavior in
+dynamic trafﬁc conditions. This is particularly important for the transition phase from
+conventional to automated trafﬁc at different penetration rates.
+Automated vehicles that we have on public roads today are capable of up to SAE Level-
+3 autonomy, which implies conditional automation according to the SAE J3016 Standard
+taxonomy of automated road vehicles [ 1]. At this level of autonomy, the driver holds the
+main responsibility for ensuring the driving safety. Although, all the decision-making
+processes of this class of automated vehicles depend on the computations performed
+on the ego vehicle, utilizing only on-board sensor information. This procedure, mimics
+the perception process of a human driver. However, it is conjectured that for higher
+levels of autonomy (SAE Level-4 and Level-5), infrastructure assistance will indeed be
+helpful to ensure partial or full responsibility of the driving safety. In the simplest terms,
+infrastructure communication can be utilized to convey the dynamic trafﬁc and hazard
+information ahead and beyond the range of on-board sensors in the form of real-time
+routing and driving recommendations for connected automate vehicles (CAV).
+Electronics 2021 ,10, 2161. https://doi.org/10.3390/electronics10172161 https://www.mdpi.com/journal/electronics
+
+--- Page 2 ---
+Electronics 2021 ,10, 2161 2 of 13
+Motivated by this, the EU-H2020 funded project ESRIUM [ 2] strives for the high-level
+goal of increased safety and resource efﬁciency of transport on European roads. In doing
+this, its key innovation is a digital map of road surface damage and road wear. This shall
+help reduce both the number of road works and the associated problems by using new
+digital services for managing the trafﬁc, as well as by controlling the utilization of the road.
+The road wear map will contain unique information for the road operators to enhance the
+road maintenance planning, as well as to provide route and driving recommendations
+to CAVs and connected vehicles. These recommendations will be used for adjusting the
+driving path (in-lane and between lanes), which shall help with gradual degradation of the
+road surface, thereby reducing the regular maintenance actions.
+The development of CAVs and infrastructure-assisted automated driving functions
+have attracted increasing attention in recent years, as summarized in [ 3,4]. Particularly,
+lane change and merge maneuvers present a challenge for vehicle automation. The authors
+in [5] provided a survey in this area, including vehicle positioning systems, communication
+systems, control systems and system validation. The energy saving potentials of CAVs, on
+the other hand, have been highlighted in [ 6]. The conservative assessment in [ 6] shows 3%
+energy saving in highway driving in presence of static environment information, and 10%
+energy saving in arterial driving if trafﬁc signals are provided via vehicle-to-infrastructure
+(V2I) communications. However, the effect of automated vehicles (AVs) on mixed trafﬁc
+might be negative. The authors in [ 7] used real trafﬁc data together with the trafﬁc
+simulation tool simulation of urban mobility (SUMO) [ 8] to accomplish the trafﬁc efﬁciency
+analysis of mixed trafﬁc, and they claimed that maximum trafﬁc ﬂow rate reduces with
+higher penetration rate of AVs in mixed trafﬁc. Another important application for CAVs is
+truck platooning and many problems remain unsolved [9].
+In addition to perception and control, trajectory planning is an indispensable function
+to realize high level of autonomous driving [ 10]. The conﬁguration space of AVs or
+CAVs on a 2D plane comprises three dimensions: two dimensions indicating the vehicle’s
+position (x,y), and one dimension indicating the vehicle’s heading q. However, the
+time dimension or velocity dimension has to be added, if differential constraints and
+vehicle dynamics are considered. Quite a lot of work tries to tackle this high dimensional
+problem using the so-called spatiotemporal planning. McNaughton and et al. proposed
+conformal spatiotemporal lattice to represent search space for structured environments [ 11].
+However, the high dimension of the state space makes the lattice expensive to be repeatedly
+constructed and searched in a dynamical environment. Recently, Sun and et al. attempted
+to address this problem by using intelligent driver model (IDM) as a velocity feedback
+policy [12]. Therefore, the number of dimensions of the lattice planner is reduced.
+To balance the trade-off between computation time and quality of the trajectory
+planning result, a framework of combining graph search and optimization was proposed
+in [13] and has been augmented recently. In [ 14,15], an A* search is used to ﬁnd a rough
+reference spatiotemporal trajectory along with a collision-free driving corridor, which
+is subsequently reﬁned by optimization considering safety and dynamical constraints.
+Moreover, [ 16] proposed a different approach to identify the spatiotemporal constraints
+(collision-free driving corridors) using set-based reachability analysis. By combining their
+approach with optimization-based spatiotemporal planning, arbitrary trafﬁc scenarios can
+be solved.
+Wheel wander, which is related to road surface damage, is of interest for infrastructure
+designers. Gungor analyzed the literature about wheel wander and its impact on the
+pavement [ 17]. According to this report, wheel wander was deﬁned as uncertainty of
+the lateral position of wheel loads on a lane. The lateral position of the wheels of human
+driven cars is not uniformly distributed over the whole lane but can be modeled as a
+normal distribution with non-zero mean and known standard deviation. It was shown
+in simulation, that wheel wander reduces rutting in comparison to the case without
+wheel wander.
+
+--- Page 3 ---
+Electronics 2021 ,10, 2161 3 of 13
+CAVs, especially heavy-duty trucks in platoon formations, are per design expected to
+have no wheel wander, and without any measure will lead to more road damage in the
+from of rutting of the road surface. This is, in fact, very different than the effects of human
+driven trucks on the road networks, and can cause infrastructure maintenance issues as
+the penetration of such vehicles increase. In the recent paper [ 18], this problem was also
+described and some counter measures were analyzed. Particularly, optimization strategies
+using V2I communication are proposed for a desired lane off-set the vehicles should drive.
+On another strand of work, Bouchihati [ 19] analyzed the impact of truck platooning
+on pavement structure on Dutch motorways. It is stated in this publication that automated
+truck platoons will lead to substantial higher damage on the pavement as result of rut
+development and fatigue. As a potential solution, smart lanes were proposed. Accordingly,
+sensors can be used to measure the positions of all previous passed truck platoons and the
+optimum lateral position can be communicated to the leading truck who will then adjust
+its lateral position according to the given recommendation. With this method, an optimal
+use of the road surface can be achieved.
+Inspired by these, the EU project ESRIUM investigates infrastructure assisted routing
+and driving recommendations utilizing C-ITS communications. In this respect, specially
+designed ADAS functions (i.e., lateral and longitudinal tracking controllers and a trajec-
+tory planner) are being developed with capabilities to adapt their behavior according to
+speciﬁc routing and driving recommendations received in the form of infrastructure to
+vehicle information message (IVIM). The current paper presents the speciﬁc use-cases to
+demonstrate the utilization of this approach for reduction in road rutting (due to reduced
+wheel wander of CAVs), and to initiate informed lane changes to avoid potential hazard
+situations. The paper further describes the developed C-ITS assisted ADAS functions
+together with their veriﬁcation results utilizing a simulation framework.
+The paper is organized as follows: First, we introduce the two use cases of the C-ITS
+assisted routing and driving recommendation in Section 2. In Section 3, the simulation
+framework is introduced. Next, the ADAS functions are deﬁned in Section 4. Simulation
+implementation and veriﬁcation results are ﬁnally given in Section 5 followed by the
+conclusions and outlook in Section 6.
+2. Descriptions of the Use Case Scenario and Performance Indicators
+In this paper, two use case scenarios of ESRIUM are described. The ﬁrst one is an
+in-lane off-set recommendation for connected automated vehicles (CAVs) and the second
+is a strategic lane change and lane utilization information for CAVs. In both cases, the ego
+vehicle receives the information via the C-ITS message type IVIM [20].
+In the in-lane off-set recommendation scenario, as sketched in Figure 1, the ego
+vehicle shall drive in automated mode (SAE Level-3 equivalent Motorway Chauffeur
+combining adaptive cruise control (ACC) and lane keeping assist (LKA) driving functions)
+in a detection zone when it receives an IVIM containing a recommended lane-off-set
+information. This C-ITS routing recommendation in the form of a IVIM comes from an
+infrastructure road-side unit (RSU) and is received by an on-board unit (OBU) and the
+linked automated driving functions on the ego vehicle interpret it. The detection zone
+deﬁnes the region, where the vehicle is expected to be in a bi-lateral communication link
+with the RSU. Before entering the relevance zone (this is the zone, where the recommended
+action by the IVIM needs to be implemented), the ego vehicle adapts the typical LKA task
+of tracking the center of the existing lane and transitions to driving along the same lane
+with the given in-lane off-set. The ego vehicle is expected to drive throughout the relevance
+zone with the recommended in-lane off-set in case trafﬁc conditions permit it. Immediately
+after leaving the relevance zone, the ego vehicle is expected to follow the default centerline
+tracking task unless otherwise recommended.
+
+--- Page 4 ---
+Electronics 2021 ,10, 2161 4 of 13
+Figure 1. In-lane off-set recommendation scenario description.
+In the lane change recommendation scenario (see Figure 2) , the ego vehicle shall
+drive in automated mode (SAE Level-3 equivalent Motorway Chauffeur combining ACC
+and LKA driving functions) in a detection zone when it receives an IVIM containing a set
+of three relevance zones with instructions to avoid the rightmost lane, because of road
+damage. When the ego vehicle is driving on the rightmost lane in relevance zone 1, it will
+change the lane to next lane if trafﬁc allows it, and in relevance zone 2 it will continue
+driving on the remaining lanes and avoid the rightmost lane. In relevance zone 3, the
+rightmost lane is cleared and the ego vehicle uses the most appropriate lane according to
+the trafﬁc situation.
+Figure 2. Lane change recommendation scenario description (see Table 1 for the deﬁnitions of the
+pictogram symbols)
+3. Simulation Environment and Setup
+3.1. Driving Functions and Vehicle Dynamics
+For the development of the driving functions, a co-simulation environment based
+on Matlab/Simulink and the vehicle dynamics software IPG Carmaker was utilized (see
+Figure 3a ). This simulation environment was preferred since it is well suited for rapid-
+prototyping purposes. As depicted in the ﬁgure, all driving functions in terms of trajectory
+planner, as well as longitudinal and lateral tracking controllers were developed and imple-
+mented in Matlab/Simulink. Those include the vehicle state, an object list and lane marking
+information. The vehicle state includes actuation signals (steering angle, brake and gas
+pedal), velocities and accelerations. For the object list, no sensor dynamics were assumed
+considering only occlusion effects. Taking into account limitations of a prospective real
+world demonstration of the presented implementations, lateral vehicle guidance was based
+on lane marking information only. For that purpose, a polynomial lane marking model
+was recreated in simulation, which describes lane boundaries as third order polynomials
+and related polynomial domains.
+The routing recommendations based on IVIM messages were implemented as preset
+messages. Future demonstrations will be performed on sections of the Austrian motorway
+A2. Therefore, the corresponding UHDmaps(®) [21] in the OpenDRIVE format was used
+in the CarMaker driving scenario.
+
+--- Page 5 ---
+Electronics 2021 ,10, 2161 5 of 13
+Vehicle Dynamics 
+(IPG-CarMaker)
+Driving Func�ons
+(Matlab/Simulink)
+UHDmaps(®)
+Rou�ng 
+Recommenda�ons
+(IVIM)Vehicle 
+Posi�onScenario 
+Model
+Vehicle
+Posi�onVehicle State
+Steer/Gas/Brake
+Parsed &
+hard-coded
+(a)
+-6-4-20246
+x (m)0102030405060708090y (m)t = 86.68 sec
+100 100 0 4
+10 1 (b)
+Figure 3. Simulation environment, setup, and ego vehicle aligned visualization. ( a) Co-simulation
+architecture utilizing Matlab/Simulink and IPG Carmaker. ( b) Visualization of objects (blue boxes)
+and assigned ID, lane markings and quality of detection (black), and ego prediction (red).
+Object list and lane marking inputs to the driving function were visualized in an
+ego-centered view online (Figure 3b), i.e., in parallel with the simulation. This allowed to
+validate driving function inputs and outputs.
+3.2. C-ITS Message Structure and Simulation Implementation
+In the ﬁnal implementation, the recommendations for lane off-set and lane change
+will be sent using the IVIM messages. IVIM information will be broadcast according to
+TS 103 301 V2.1.1 and ISO 19321: 2020 standard. The automated vehicle container of the
+broadcast IVIM message will include the pictograms of the recommended action. In the
+case of lane change recommendations, one of the four categories of recommendations
+associated with corresponding pictograms according to the ISO 14823:2017 “Intelligent
+transport systems-Graphic data dictionary”, as indicated in Table 1, will be used.
+Table 1. IVIM lane choice recommendation according to the ISO 14823:2017 code.
+Recommendation ISO14823 Code Pictogram
+Keep the current lane 13,660
+Move to the left lane 13,661
+Move to the right lane 13,662
+Lane closed 13,669
+The lane off-set recommendation will also be broadcast using the free text option
+in the automated vehicle container of the IVIM message. The free text will contain the
+signage followed by the off-set in centimeters. In this setting “+” sign indicates an off-set
+to the right of the lane center whereas “ ” sign indicates an off-set to the left relative to the
+lane center. The example information content of the lane off-set IVIM message is given in
+Table 2.
+
+--- Page 6 ---
+Electronics 2021 ,10, 2161 6 of 13
+Table 2. IVIM lane off-set messages information structure.
+A V-Container
+PartDetection-
+Zone IdsRelevance-
+Zone IdsApplicable
+Lane ±Offset [cm]
+1 1 11 1 20
+2 1 13 2 10
+...............
+In the scope of the simulation based development of the driving functions, the im-
+plementation of sending and receiving of the IVIM communications is not considered.
+Although parsing of the message standard structure described above is not part of this ﬁrst
+simulations. For both use case scenarios a simple emulation subsystem was developed. Its
+aim is to check if the ego vehicle is inside the detection or relevance zones and to provide
+the trajectory planner with the necessary information. In the case of the ﬁrst scenario (i.e.,
+in-lane off-set recommendation), this information is the desired off-set for each lane in a
+give relevance zone. For the lane change recommendation scenario, on the other hand,
+the speciﬁc information that is provided to the driving functions includes one detection
+zone and three relevance zones. Therefore, the developed emulation block checks and
+interprets whether the ego vehicle is inside one of these areas and consequently speciﬁes
+the desired lane to the trajectory planner. The speciﬁc implementation of the IVIM parser
+will be conducted as part of the real vehicle tests. The ego vehicle has to be equipped
+with a GNSS-receiver and compares its position with the deﬁnitions of the detection and
+relevance zones to evaluate if it is inside of a zone.
+4. AD Functions Development
+The AD functions presented in this article are discussed in the well known sense–
+plan–act scheme. As mentioned in Section 3, the sensing task is delegated to CarMaker,
+which provides all the required ego vehicle states, as well as obstacle and road information.
+The sensors are therefore modeled as low-ﬁdelity ideal sensors providing object lists
+within speciﬁed cones representing their respective ﬁeld of view. The planning task is
+accomplished by a rule-based trajectory planner adapted to utilize C-ITS messages, as
+described below in Section 4.1.
+4.1. Planning: Rule-Based Trajectory Planner
+The planning task is accomplished by a rule-based trajectory planner (TP) that was
+developed for structured environments like highways with well deﬁned lane boundaries. It
+uses a ﬁnite state machine and a set of discrete decisions to trigger lane changes or keep the
+vehicle on its current lane. By default, the ego vehicle drives in the middle of the rightmost
+lane. If a slower vehicle prevents the ego vehicle from reaching its desired cruising speed,
+and the target lane is not occupied, a Bézier curve is planned to perform a lane change.
+The value of the Bézier curve at a tunable look-ahead distance is then used as the
+desired lateral off-set for the underlying lateral controller. As can be seen from Figure 4 ,
+this off-set is deﬁned with respect to the center of the current lane. Therefore, the TP needs
+to handle a change of reference during the lane change maneuver. This allows future
+deployment of the proposed algorithm to a demonstrator vehicle which utilizes only a
+vision sensor for lane marking based in-lane localization.
+Together with emulations blocks for parsing the IVIM (see Section 3.2), the TP is able
+to generate the input signals for the lateral and longitudinal controllers to accomplish the
+described scenarios in Section 2.
+Bézier Based Path Planning Approach
+Path planning relies on a Bézier curve approach [ 22] that was enhanced to handle
+speciﬁc limitations that are common in real world applications. Apart from using HD
+
+--- Page 7 ---
+Electronics 2021 ,10, 2161 7 of 13
+maps, currently available sensors lack the ability of providing trustworthy lane information,
+speciﬁcally the lane width, besides the current lane. To overcome this issue, the planned
+path consists of two quadratic Bézier curves connected via a straight segment as shown in
+Figure 4.
+  actual lane target lane w
+P0
+(c/0)P1P2
+(a/b)center of target lane
+center of actual lane 
+lQ0Q1 Q2
+(0/0)
+Figure 4. Lane change with two quadratic Bézier curves and a linear segment.
+The Bézier curves provide a smooth transition to initiate and ﬁnish the lane change,
+while the straight segment can be shortened or extended during the lane change maneuver
+according to the width of the target lane.
+The path as shown in Figure 4 can then be written as a spline
+S(t) =8
+><
+>:G1(t)0t1,
+G2(t)1t2,
+G3(t)2t3.(1)
+with three segments Gi(i=0, 1, 2 ) and the path parameter t. Considering a quadratic
+Bézier curve
+C(t,C0,C1,C2) =C0(1t)2+2C1(1t)t+C2t2,t2[0, 1] (2)
+with control points Ci(i=0, 1, 2 ), the spline segments G1andG3were chosen as
+G1(t):=C(t,P0,P1,P2)and G3(t):=C(t,Q0,Q1,Q2). (3)
+For the terminal points of S(t), we can immediately state from Figure 4:
+P0= (0, 0)and Q2= (l,w). (4)
+To achieve a comfortable lane change, the length lof the lane change is chosen
+according to the current vehicle speed, while the lane change off-set wis pre-deﬁned by
+the widths of the current and target lane:
+w=wactual +wtarget
+2. (5)
+Since G3is skew-symmetric to G1, the relations
+Q0=Q2P2and Q1=Q2P1 (6)
+hold, leaving only P1:= (c, 0)and P2:= (a,b)undetermined. The straight segment G2
+shown in magenta connects the points P2and Q0, therefore
+G2(t) = ( Q0P2)t+P2= (Q22P2)t+P2. (7)
+
+--- Page 8 ---
+Electronics 2021 ,10, 2161 8 of 13
+Claiming geometric continuity at the transition from G1toG2(and, therefore, from G2
+toG3), the relation
+b
+ac=w2b
+l2a. (8)
+must be fulﬁlled. According to Figure 4, it is reasonable to restrict b1
+2wactual , which is
+usually fulﬁlled by setting bto half the width of the ego vehicle. Then, introducing fc=c
+a
+as a tunable parameter, (8) can be solved for
+a=bl
+w+2b fcw fc. (9)
+To conclude the path planning approach, the control points are
+P0= (0, 0),P1= (c, 0),P2=(a,b),
+Q0= (la,wb),Q1= (la/2,w),Q2= (l,w).(10)
+As mentioned, bwas set to half the ego vehicle width, while fcwas determined
+empirically considering the trade-off between the slope and continuity of the spline S. For
+the simulations presented in Section 5, b=0.9 and fc=0.5 were used.
+4.2. Actuation: Lateral and Longitudinal Control
+For tracking the lateral and longitudinal references from the trajectory planner, two
+proven controller implementations were reused. The lateral controller implements a
+state-feedback control law based on [ 23], modiﬁed according to [ 24] as motivated from a
+demonstrator vehicle application. It makes use of the reference path from the trajectory
+planner up to the second geometric continuity, i.e., lateral error, heading error, and path
+curvature. The actuated signal is the steering wheel angle. Although, the dynamics of a
+steer-by-wire actuator are considered.
+The longitudinal controller is implemented as a time-discrete PI (proportional-integral)
+controller with an anti-wind-up measure providing the control signal pkat time step k
+according to
+pk=kPek+ak (11)
+ak=kIek+max(100, min (ak1, 100)). (12)
+Here, ekis the acceleration error, kPand kIare the proportional and integral gain
+and pkis the commanded brake pedal position for pk<0and the throttle position for
+pk>0. The anti-wind-up measure is implemented via max()andmin()functions ensuring
+pk2[100, 100 ]. To ensure bumpless activation of the longitudinal controller, a0is
+initialized according to the current pedal positions.
+Both controllers execute with a sample time of 20 ms.
+5. Simulation Results and Analysis
+The described use case scenarios in Section 2 were simulated on a straight section of
+the A2 motorway without other trafﬁc elements. The vehicle speed was set to 130 km/h
+for the longitudinal tracking controller.
+Figure 5 shows the results of the in-lane off-set recommendation scenario. For this
+simulation a detection zone with a length of 200 m was chosen and a relevance zone with
+a length of 1000 m and the in-lane off-set recommendation is only valid for the rightmost
+lane. In Figure 5a, the steering wheel angle during the maneuver is depicted. Moreover,
+the lateral acceleration in Figure 5b, the yaw rate in Figure 5c, and the desired and driven
+off-sets in Figure 5d are shown, respectively.
+According to the simulated scenario, at approximately 2.5 s the ego vehicle starts the
+transition to the desired in-lane off-set. In this example the vehicle reaches its desired
+steady-state off-set value of 0.2 m at approximately 7 s. The total time it took to reach the
+
+--- Page 9 ---
+Electronics 2021 ,10, 2161 9 of 13
+set off-set value is, therefore, about 4.5 s, which matches the in the controller deﬁned value.
+According to the designed scenario, the ego vehicle drives through the relevance zone (RZ)
+with the desired off-set and leaves it at about second 35 returning back to zero off-set value.
+As seen from the results in Figure 5, the developed enhanced driving functions are
+quite effective in achieving the desired off-set value. The difference between the desired
+and achieved off-set values are quite small except a small overshoot. The overshoot in
+the lateral position was smaller than 2 cm in this case. The small oscillation in the middle
+point of the maneuver (which should not be existing at all, at about 21 s) was caused by the
+CarMaker itself and is believed to be a modeling bug, as it varied when the vehicle model
+was changed, but could not be avoided completely.
+0 5 10 15 20 25 30 35 40 45
+time (s)-0.500.5 (deg)
+(a)
+0 5 10 15 20 25 30 35 40 45
+time (s)-0.0500.05ay (m/s2)
+(b)
+0 5 10 15 20 25 30 35 40 45
+time (s)-202yawrate (rad/s)10-3
+(c)
+051015202530354045
+time (s)-0.3-0.2-0.100.1yoffset (m)
+ DZ RZyoffset,driven
+yoffset,desired
+(d)
+Figure 5. Result of the in-lane off-set recommendation scenario: ( a) steering wheel angle, ( b) lateral
+acceleration, ( c) yaw rate, and ( d) lane off-set.
+Figure 6 shows the use case scenario simulation results for the strategic lane change
+and lane utilization recommendation for CAVs. Figure 6a shows the steering wheel angle
+variation during this example recommended lane change maneuver. Furthermore, the
+lateral acceleration in Figure 6b, the yaw rate in Figure 6c, and, ﬁnally, the vehicle lateral
+
+--- Page 10 ---
+Electronics 2021 ,10, 2161 10 of 13
+position relative to the desired lane in Figure 6d are shown, respectively. According to
+this example scenario, the ego vehicle enters the relevance zone 1 (RZ1) at about 6.6 s and
+the desired lane, therefore, switches from 0 to 1. Note that in the TP the rightmost lane
+is indexed with 0 and the index is increased while going towards the left side, which is
+different to the numbering convention in the IVIM. Since there is no hindering trafﬁc in
+the scenerio, the TP initiates immediately a lane change maneuver to lane 1, where it stays
+while passing the relevance zones 1 and 2 (RZ1 and RZ2). In relevance zone 3 (RZ3) the
+TP computes a lane change maneuver back to the original starting lane (i.e., lane 0). In
+this use case as well, the recommended maneuvers were conducted effectively with little
+overshoot. It can be observed that the total lane change maneuver was achieved with less
+than 5 s transition times between steady state driving positions.
+0 5 10 15 20 25 30 35 40 45
+time (s)-505 (deg)
+(a)
+0 5 10 15 20 25 30 35 40 45
+time (s)-101ay (m/s2)
+(b)
+0 5 10 15 20 25 30 35 40 45
+time (s)-0.0200.02yawrate (rad/s)
+(c)
+051015202530354045
+time (s)-4-2024ypos (m)
+ DZ RZ1  RZ2  RZ3ypos
+desired lane
+(d)
+Figure 6. Result of the lane change recommendation scenario: ( a) steering wheel angle, ( b) lateral
+acceleration, ( c) yaw rate, ( d) lateral vehicle position.
+As a further simulation use case example, we implemented also a combined in-lane
+off-set and lane change recommendations, as seen in Figure 7. In this scenario, the ego
+vehicle starts in the right lane and ﬁrst receives a in-lane off-set recommendation and than
+
+--- Page 11 ---
+Electronics 2021 ,10, 2161 11 of 13
+consecutively a lane change to the left lane followed by reverse maneuvers to return to
+the right lane lateral 0-off-set position. In this case, the in-lane off-set values were varied
+with speciﬁc values { 1 m,0.5 m,0.2 m,0.1 m, 0 m, 0.1 m, 0.2 m, 0.5 m, 1 m} and
+the resulting trajectories were displayed in Figure 7 as a superimposed plot. The results
+indicate that complex maneuvers combining the two speciﬁc recommendations can also be
+achieved with efﬁcacy.
+Figure 7. Combined in-lane off-set and lane change recommendations with varying lateral off-set
+values. The lane boundaries were shown to aid the visualization.
+6. Conclusions and Outlook
+Given that the number of automated vehicles increase rapidly, their behavior on
+the motorways can have abnormal ramiﬁcations on the road surface wear. Consider, for
+example, automated truck platoons driving along same road stretch, which will surely
+lead to frequent rutting. Motivated by this, we introduced in this paper a new model for
+operation of automated driving functions, namely by using speciﬁc infrastructure routing
+recommendations for enhancing or adapting their behavior.
+The recommendations are in the form of speciﬁc lane-change and in-lane off-set
+suggestions. It is envisaged that from the collective behavior of the automated vehicles
+(and connected vehicles in general) with a capability to adapt their behavior according to
+the routing recommendations will beneﬁt both the road operators and the vehicle owners.
+These vehicles will, on the one hand, reduce rutting of the surface, as well as unbalanced
+wear of the road surface, especially when their penetration rates increase. On the other
+hand, such vehicles will avoid rutted or damaged road sections and blocked lanes thanks
+to the routing recommendations, providing a safer and more comfortable ride. This is an
+idea being developed within the recently started EU-H2020 funded project ESRIUM, where
+the complete value chain for implementing this basic idea is being developed to investigate
+its feasibility.
+In this paper we described the speciﬁc ADAS/AD functions including longitudinal
+and lateral tracking controllers, as well as a rule based trajectory planner, which are utilized
+to achieve the routing recommendations. We also introduced the speciﬁc use cases that will
+be implemented in this context, and the structure of the routing recommendations based on
+the IVIM message standard. The corresponding ADAS/AD functions were developed in a
+
+--- Page 12 ---
+Electronics 2021 ,10, 2161 12 of 13
+high-ﬁdelity simulation framework based on Matlab/Simulink and Carmaker software
+with the view of deploying the same functions in a test vehicle for real-life implementation.
+The ADAS/AD functions were demonstrated for representative use cases to verify their
+basic operation. In the future extensions, the same driving functions will be imported to an
+automated drive demonstrator vehicle to implement and realize the demonstration of the
+routing recommendations in real-life use cases on a public road. It is planned to conduct
+this demonstration during the progress of the ESRIUM project.
+Author Contributions: Conceptualization, M.R., G.N. and S.S.; methodology, M.R., G.N. and S.S.;
+software, M.R. and G.N.; validation, M.R., G.N. and S.S.; formal analysis, M.R., G.N. and S.S.;
+investigation, M.R., K.T. and S.S.; data curation, M.R and G.N.; writing—original draft preparation,
+M.R., G.N., K.T. and S.S.; writing—review and editing, M.R., G.N., K.T. and S.S.; visualization, M.R.,
+G.N. and S.S.; supervision, S.S.; project administration, S.S.; All authors have read and agreed to the
+published version of the manuscript.
+Funding: This work was conducted in the scope of the ESRIUM Project, which has received funding
+from the European Union Agency for the Space Programme under the European Union’s Horizon
+2020 research and innovation programme and under grant agreement No 101004181. The content
+of this paper reﬂects only the authors’ view. Neither the European Commission nor the EUSPA is
+responsible for any use that may be made of the information it contains.
+Acknowledgments: Virtual Vehicle Research GmbH has received funding within COMET Compe-
+tence Centers for Excellent Technologies from the Austrian Federal Ministry for Climate Action, the
+Austrian Federal Ministry for Digital and Economic Affairs, the Province of Styria (Dept. 12) and the
+Styrian Business Promotion Agency (SFG). The Austrian Research Promotion Agency (FFG) has been
+authorised for the programme management.
+Conﬂicts of Interest: The authors declare no conﬂict of interest. The content of this paper reﬂects
+only the authors’ view. Neither the European Commission nor the EUSPA is responsible for any use
+that may be made of the information it contains. The funders had no role in design of the study, in
+the collection, analyses, or interpretation of data; in the writing of the manuscript, or in the decision
+to publish the results.
+References
+1. SAE-J3016. Surface Vehicle Recommended Practice–(R) Taxonomy and Deﬁnitions for Terms Related to Driving Automation Systems for
+On-Road Motor Vehicles ; Standard SAE J3016:APR2021; Society of Automotive Engineers: Warrendale, PA, USA, 2018.
+2. ESRIUM. EGNSS-Enabled Smart Road Infrastructure Usage and Maintenance for Increased Energy Efﬁciency and Safety on
+European Road Networks. Available online: https://esrium.eu/ (accessed on 14 July 2021).
+3. Pendleton, S.; Andersen, H.; Du, X.; Shen, X.; Meghjani, M.; Eng, Y.; Rus, D.; Ang, M. Perception, Planning, Control, and
+Coordination for Autonomous Vehicles. Machines 2017 ,5, 6. [CrossRef]
+4. Guanetti, J.; Kim, Y.; Borrelli, F. Control of connected and automated vehicles: State of the art and future challenges. Annu. Rev.
+Control 2018 ,45, 18–40. [CrossRef]
+5. Bevly, D.; Cao, X.; Gordon, M.; Ozbilgin, G.; Kari, D.; Nelson, B.; Woodruff, J.; Barth, M.; Murray, C.; Kurt, A.; et al. Lane Change
+and Merge Maneuvers for Connected and Automated Vehicles: A Survey. IEEE Trans. Intell. Veh. 2016 ,1, 105–120. [CrossRef]
+6. Vahidi, A.; Sciarretta, A. Energy saving potentials of connected and automated vehicles. Transp. Res. Part C Emerg. Technol. 2018 ,
+95, 822–843. [CrossRef]
+7. Berrazouane, M.; Tong, K.; Solmaz, S.; Kiers, M.; Erhart, J. Analysis and Initial Observations on Varying Penetration Rates
+of Automated Vehicles in Mixed Trafﬁc Flow utilizing SUMO. In Proceedings of the 2019 IEEE International Conference on
+Connected Vehicles and Expo (ICCVE), Graz, Austria, 4–8 November 2019; pp. 1–7.
+8. Lopez, P .A.; Behrisch, M.; Bieker-Walz, L.; Erdmann, J.; Flötteröd, Y.P .; Hilbrich, R.; Lücken, L.; Rummel, J.; Wagner, P .; Wießner,
+E. Microscopic Trafﬁc Simulation using SUMO. In Proceedings of the 21st IEEE International Conference on Intelligent
+Transportation Systems, Maui, HI, USA, 4–7 November 2018.
+9. Bhoopalam, A.K.; Agatz, N.; Zuidwijk, R. Planning of truck platoons: A literature review and directions for future research.
+Transp. Res. Part B Methodol. 2018 ,107, 212–228. [CrossRef]
+10. Tong, K.; Ajanovic, Z.; Stettinger, G. Overview of tools supporting planning for automated driving. In Proceedings of the 2020
+IEEE 23rd International Conference on Intelligent Transportation Systems (ITSC), Rhodes, Greece, 20–23 September 2020; pp. 1–8.
+11. McNaughton, M.; Urmson, C.; Dolan, J.M.; Lee, J.W. Motion planning for autonomous driving with a conformal spatiotemporal
+lattice. In Proceedings of the 2011 IEEE International Conference on Robotics and Automation, Shanghai, China, 9–13 May 2011;
+pp. 4889–4895. [CrossRef]
+
+--- Page 13 ---
+Electronics 2021 ,10, 2161 13 of 13
+12. Sun, K.; Schlotfeldt, B.; Chaves, S.; Martin, P .; Mandhyan, G.; Kumar, V . Feedback Enhanced Motion Planning for Autonomous
+Vehicles. In Proceedings of the 2020 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Las Vegas, NV ,
+USA, 24 October–24 January 2020; pp. 2126–2133. [CrossRef]
+13. Hubmann, C.; Aeberhard, M.; Stiller, C. A generic driving strategy for urban environments. In Proceedings of the 2016 IEEE 19th
+International Conference on Intelligent Transportation Systems (ITSC), Rio de Janeiro, Brazil, 1–4 November 2016; pp. 1010–1016.
+[CrossRef]
+14. Zhang, T.; Fu, M.; Song, W.; Yang, Y.; Wang, M. Trajectory Planning Based on Spatio-Temporal Map with Collision Avoidance
+Guaranteed by Safety Strip. IEEE Trans. Intell. Transp. Syst. 2020 , 1–14. [CrossRef]
+15. Xin, L.; Kong, Y.; Li, S.E.; Chen, J.; Guan, Y.; Tomizuka, M.; Cheng, B. Enable faster and smoother spatio-temporal trajectory
+planning for autonomous vehicles in constrained dynamic environment. Proc. Inst. Mech. Eng. Part D J. Automob. Eng. 2021 ,
+235, 1101–1112. [CrossRef]
+16. Schäfer, L.; Manzinger, S.; Althoff, M. Computation of Solution Spaces for Optimization-based Trajectory Planning. IEEE Trans.
+Intell. Veh. 2021 . [CrossRef]
+17. Gungor, O.E. A Literature Review on Wheel Wander ; Technical Report; Illinois Asphalt Pavement Association: Springﬁeld, MO,
+USA, 2018.
+18. Gungor, O.E.; Al-Qadi, I.L. All for one: Centralized optimization of truck platoons to improve roadway infrastructure sustainabil-
+ity.Transp. Res. Part C Emerg. Technol. 2020 ,114, 84–98. [CrossRef]
+19. el Bouchihati, M. The Impact of Truck Platooning on the Pavement Structure of Dutch Motorways. Master’s Thesis, Delft
+University of Technology, Delft, The Netherlands, 2020.
+20. ISO. ISO/TS 19321:2020 Intelligent Transport Systems—Cooperative ITS—Dictionary of In-Vehicle Information (IVI) Data Structures ;
+ISO: Geneva, Switzerland, 2020.
+21. Tihanyi, V .; Tettamanti, T.; Csonthó, M.; Eichberger, A.; Ficzere, D.; Gangel, K.; Hörmann, L.B.; Klaffenböck, M.A.; Knauder, C.;
+Luley, P .; et al. Motorway Measurement Campaign to Support R&D Activities in the Field of Automated Driving Technologies.
+Sensors 2021 ,21, 2169. [CrossRef] [PubMed]
+22. Choi, J.W.; Curry, R.; Elkaim, G. Path Planning Based on Bézier Curve for Autonomous Ground Vehicles. In Proceedings of
+the Advances in Electrical and Electronics Engineering—IAENG Special Edition of the World Congress on Engineering and
+Computer Science 2008, San Francisco, CA, USA, 22–24 October 2008; pp. 158–166. [CrossRef]
+23. Nestlinger, G.; Stolz, M. Bumpless Transfer for Convenient Lateral Car Control Handover. IFAC-PapersOnLine 2016 ,49, 132–138.
+[CrossRef]
+24. Solmaz, S.; Nestlinger, G.; Stettinger, G. Compensation of Sensor and Actuator Imperfections for Lane-Keeping Control Using a
+Kalman Filter Predictor. SAE Int. J. Connect. Autom. Veh. 2021 ,4, 97–106. [CrossRef]

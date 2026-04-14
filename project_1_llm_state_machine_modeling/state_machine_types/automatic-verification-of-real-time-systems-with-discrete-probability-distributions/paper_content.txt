@@ -1,0 +1,2426 @@
+--- Page 1 ---
+Automatic Veriﬁcation of Real-time Systems
+with Discrete Probability Distributions⋆
+Marta Kwiatkowskaa, Gethin Normana, Roberto Segalaband
+Jeremy Sprostona
+aUniversity of Birmingham, Birmingham B15 2TT, United Kingdom
+bUniversit `a di Bologna, Mura Anteo Zamboni 7, 40127 Bologna, Italy
+Abstract
+We consider the timed automata model of [3], which allows the analysis of real-
+time systems expressed in terms of quantitative timing constraints. Traditional ap-
+proaches to real-time system description express the model purely in terms of non-
+determinism; however, it is often desirable to express the likelihood of the system
+making certain transitions. In this paper, we present a model for real-time systems
+augmented with discrete probability distributions. Furthermore, two approaches to
+model checking are introduced for this model. The ﬁrst uses the algorithm of [6]
+to provide a veriﬁcation technique against temporal logic formulae which can refer
+both to timing properties and probabilities. The second, generally more eﬃcient,
+technique concerns the veriﬁcation of probabilistic, real-time reachability properties.
+1 Introduction
+The proliferation of digital technology embedded into real-life environments
+has led to increased interest in computer systems expressed in terms of quan-
+titative timing constraints. Examples of such real-time systems include com-
+munication protocols, digital circuits with uncertain delay lengths, and media
+synchronization protocols. A number of frameworks exist for modelling, anal-
+ysis and veriﬁcation of such systems. A formalism that has received much
+attention, both in terms of theoretical and practical developments, is that of
+timed automata ; in particular, the theory of automatically verifying timed au-
+tomata against properties expressed in a real-time temporal logic is advanced,
+and is supported by a number of tools [7,10].
+⋆supported in part by EPSRC grants GR/M04617, GR/M13046, and GR/N22960.
+Preprint submitted to Elsevier Science 3 February 2004
+
+--- Page 2 ---
+Traditional approaches to the formal description of real-time systems express
+the system model purely in terms of nondeterminism. However, it may be
+desirable to express the relative likelihood of the system exhibiting certain
+behaviour. For example, we may wish to model a system for which the likeli-
+hood of a certain event occurring changes with respect to the amount of time
+elapsed. This notion is particularly important when considering fault-tolerant
+systems. Furthermore, we may also wish to refer to the likelihood of certain
+properties being satisﬁed by the real-time system, and to have a model check-
+ing algorithm for verifying the truth of these assertions. The remit of this
+paper is to address these problems.
+We present a model for real-time systems that are described partially in terms
+of discrete probability distributions, and two automatic veriﬁcation methods
+for this model against probabilistic timed properties. The system model is
+called a probabilistic timed automaton , and diﬀers from the traditional timed
+automaton model of [2,3] in the following respect: the edge relation of proba-
+bilistic timed automaton is both nondeterministic and probabilistic in nature.
+More precisely, instead of making a purely nondeterministic choice over the
+set of currently enabled edges, we choose amongst the set of enabled discrete
+probability distributions, each of which is deﬁned over a ﬁnite set of edges. We
+then make a probabilistic choice as to which edge to take according to the se-
+lected distribution. As with usual timed automata techniques, the underlying
+model of time is assumed to be dense ; that is, the time domain is modelled
+by the reals ( R) or rationals ( Q).
+In addition, we require appropriate languages to specify properties of prob-
+abilistic real-time systems. Firstly, a speciﬁcation language commonly used
+for stating real-time system requirements, TCTL (Timed Computation Tree
+Logic) [21], is adapted to cater for probability. A common approach taken in
+probabilistic temporal logics is to add the probabilistic operator [ ·]≥pwhere
+pis a probability bound. For example, [ φ1∃Uφ2]≥pis true if the probability
+ofφ1∃Uφ2is at least p. Therefore, we develop our speciﬁcation language,
+PTCTL (Probabilistic Timed Computation Tree Logic), by adding such prob-
+abilistic operators to TCTL. The resulting logic allows us to express such
+quality of service properties as “with probability 0.7, there will be a response
+between 5 and 7 time units after a query”. Secondly, we also consider the
+less expressive class of reachability properties, an example of which is “with
+probability 0.99 or greater, a data packet is delivered within 5 time units”.
+The denseness of the time domain means that the state space of timed au-
+tomata is inﬁnite. Therefore, automatic veriﬁcation of timed automata is per-
+formed by constructing a ﬁnite-state quotient of the system model. This quo-
+tient takes the form of a state-labelled transition system which represents all of
+the timed automaton’s behaviours, and which can be analyzed using analogues
+of traditional model checking techniques. We adopt this method in order to
+2
+
+--- Page 3 ---
+construct a ﬁnite quotient of probabilistic timed automata, and note that cer-
+tain desirable properties required for model checking in the non-probabilistic
+case are preserved in our context. The addition of discrete probability distri-
+butions to timed automata means that the transitions of the resulting ﬁnite
+quotient structure are both nondeterministic and probabilistic in nature, and
+therefore the model checking methods employed must accommodate this char-
+acteristic. For the case in which PTCTL properties are considered, the veriﬁ-
+cation algorithms of [6] are used for this purpose. However, they are deﬁned
+with respect to PBTL (Probabilistic Branching Time Logic), which does not
+allow the expression of dense timing constraints. Hence, we present a method
+for translating a given PTCTL formula into a corresponding PBTL formula.
+The model checking algorithm of [6] is then used to verify the PBTL proper-
+ties over our probabilistic-nondeterministic quotient structure, the results of
+which allow us to conclude whether the original probabilistic timed automaton
+satisﬁes its PTCTL speciﬁcation. In the case of such temporal logic properties,
+the quotient structure is obtained by application of the region equivalence of
+[3].
+Unfortunately, for many real-life examples of timed systems, region equiva-
+lence induces an unnecessarily ﬁne granularity on the inﬁnite state space of
+system model, making model checking impractical. Therefore, we also consider
+probabilistic real-time reachability properties, which, while lacking the expres-
+sive power of PTCTL, can express a number of useful requirements. Consid-
+eration of such a narrower class of properties means that we can abstract
+more information when constructing the quotient structure of the probabilis-
+tic timed automaton, and therefore the size of the quotient can be smaller.
+Our approach is to adapt the forward reachability algorithms of [13,24,27] for
+timed automata to cater for probability. Unfortunately, the adaptation ne-
+cessitates the loss of an appealing characteristic of these algorithms, namely
+that they are on-the-ﬂy (that is, the algorithms may terminate as soon as an
+answer to the veriﬁcation problem is found, without searching exhaustively
+through the state space). Furthermore, the probability of reachability that we
+can compute is not exact, but is instead an upper bound on the true reachabil-
+ity probability. However, our approach results in a quotient structure which is
+no larger than that obtained via the associated region construction, and which
+may, in practice, be signiﬁcantly smaller. The probability bound obtained by
+our method is useful in certain contexts; for example, in the case of invariance
+properties for which we are interested in the probability of reaching an ‘unsafe’
+state.
+An example of a real-time system which could be subject to these techniques
+is the bounded retransmission protocol, which is modelled as a network of
+purely nondeterministic timed automata in [12]. Each communication chan-
+nel is represented as a timed automaton which features a nondeterministic
+choice over two edges, one of which corresponds to the correct transmission
+3
+
+--- Page 4 ---
+of the message, the other to the message’s loss. Using our framework, the
+relative likelihood of such a loss occurring could be represented by replacing
+this nondeterministic choice by a probabilistic choice between the two edges;
+for example, a probabilistic timed automaton could be used to model that a
+message is lost with probability 0.05 each time a communication channel is
+used. Similarly, the system requirements of the bounded retransmission pro-
+tocol could be expanded to admit reasoning about the probability of certain
+system behaviours. For instance, we may require that, with probability at least
+0.99, any data chunk transmitted by the sender is successfully processed by
+the receiver within 10 time units.
+The model presented in this paper has similarities with other frameworks
+for probabilistic real-time systems. In particular, the approach of [18] is also
+to augment timed automata with discrete probability distributions; however,
+these distributions are obtained by normalization of edge-labelling weights.
+Furthermore, the model checking algorithm of [18] is with respect to an action-
+based logic, rather than a state-based logic such as PTCTL. A dense time,
+automata-based model with discrete and continuous probability distributions
+is presented in [1], along with a quotient construction and TCTL model check-
+ing method similar to that of [2]. However, the model of [1] does not permit
+any nondeterministic choice, and its use of continuous probability distribu-
+tions, while a highly expressive modelling mechanism, does not permit the
+model to be automatically veriﬁed against logics which include bounds on
+probability. Furthermore, note that the temporal logic of [19] has syntactic
+similarities with the logic PTCTL, although this former logic is interpreted
+with respect to discrete, not dense time.
+The paper proceeds as follows. Section 2 introduces some preliminary con-
+cepts and notation relating to probability distributions, execution sequences
+and dense state spaces. Probabilistic timed automata are deﬁned in Section 3
+as our model for probabilistic-nondeterministic real-time systems, and an ex-
+ample of how the framework can be used to model a simple communication
+protocol is presented. Section 4 presents the underlying model of probabilistic
+timed automata, which are used to interpret formulae of the logic, PTCTL, in-
+troduced in Section 5. Section 6 explores the PTCTL model checking problem
+for probabilistic timed automata, and presents a ﬁnite-state quotient construc-
+tion for this model, a method for translating a PTCTL formula into an equiv-
+alent PBTL formula, and ﬁnally a veriﬁcation method. Section 7 considers the
+veriﬁcation of probabilistic timed automata against reachability properties. To
+conclude, Section 8 analyzes the complexity of the model checking techniques,
+and suggests further directions of research. A preliminary version of this paper
+appeared as [22].
+4
+
+--- Page 5 ---
+2 Preliminaries
+Probability distributions. We denote the set of (ﬁnite) discrete probability
+distributions over a set Sbyµ(S). Therefore, each p∈µ(S) is a function
+p:S→[0,1] such that/summationtext
+s∈Sp(s) = 1 and the set {s|s∈Sandp(s)>0}is
+ﬁnite.
+Markov decision processes. A Markov decision process is a tuple ( Q,Steps ),
+where Qis a set of states, and Steps :Q→2µ(Q)is a function assigning a
+set of probability distributions to each state. Our intuition is that the Markov
+decision process traverses the state space by making transitions determined
+bySteps ; that is, in the state q, a transition is made by ﬁrst nondeterminis-
+tically selecting a probability distribution pfrom the set Steps (q), and then
+performing a probabilistic choice according to pas to which state to move to.
+If the state selected by pisq/prime, then we denote such a transition by qp− →q/prime.
+Throughout the paper, we present variants of Markov decision processes as
+necessary. For example, occasionally we will require an additional “event” in
+the deﬁnition of Steps , so that, for some set Σ, Steps :Q→2Σ×µ(Q)is now
+a function assigning a pair ( σ, p), comprising of an event and a probability
+distribution, to each state (a transition is now denoted by qσ,p− →q/prime). Further-
+more, we often require state labelling functions of the form L:Q→2APto be
+included in the deﬁnition of a Markov decision process. Such functions assign
+a set of atomic propositions from the set AP to each state. Then, in this case,
+a (labelled) Markov decision process is a tuple ( Q,Steps , L).
+Paths. Labelled paths (or execution sequences) are non-empty ﬁnite or inﬁnite
+sequences of the form:
+ω=q0l0− →q1l1− →q2l2− → ···
+where qiare states and liare labels for transitions. We use the following
+notation for such paths. Take any path ω. Then the ﬁrst state of ωis denoted
+byﬁrst(ω). Ifωis ﬁnite then the last state of ωis denoted by last(ω). The
+length of a path, |ω|, is deﬁned in the usual way: if ωis the ﬁnite path ω=
+q0l0− →q1l1− → ···ln−1− − → qn, then |ω|=n; ifωis an inﬁnite path, then we let
+|ω|=∞. Ifk≤ |ω|then ω(k) denotes the k-th state of ωandstep(ω, k) is
+the label of the k-th step (that is, ω(k) =qkandstep(ω, k) =lk).ω(k)is the
+k-th preﬁx of ω; that is, if k <|ω|then ω(k)=q0l0− →q1l1− → ···lk−1− − → qk, and
+ifk≥ |ω|then ω(k)=ω. Ifω=q0l0− →q1l1− → ···ln−1− − → qnis a ﬁnite path and
+ω/prime=q/prime
+0l/prime
+0− →q/prime
+1l/prime
+1− → ··· is a ﬁnite or inﬁnite path with last(ω) =ﬁrst(ω/prime), then
+we let the concatenation ofωandω/primebe:
+ωω/prime=q0l0− →q1l1− →q2···ln−1− − → qnl/prime
+0− →q/prime
+1l/prime
+1− → ···
+5
+
+--- Page 6 ---
+Clocks and clock valuations. Aclock is a real-valued variable which in-
+creases at the same rate as real-time. Let X={x1, . . . , x n}be a set of clocks,
+and let ν:X →Rbe a function assigning a real value to each of the clocks in
+this set. Such a function is called a clock valuation . We denote the set of all
+clock valuations of XbyRX. Let0be the clock valuation that assigns 0 to all
+clocks in X. For some X⊆ X, we write ν[X:= 0] for the clock valuation that
+assigns 0 to clocks in X, and agrees with νfor all clocks in X \X(that is,
+∀x∈X . ν [X:= 0]( x) = 0 and ∀x∈ X \ X . ν [X:= 0]( x) =ν(x)). Informally,
+we write ν[x:= 0] if Xcontains the single clock x. In addition, for every t∈R,
+ν+tdenotes the clock valuation for which all clocks x∈ X take the value
+ν(x) +t.
+Constraints. Aconstraint overXis an expression of the form xi∼cor
+xi−xj∼c, where 1 ≤i/negationslash=j≤n,∼∈ { <,≤,≥, >}andc∈N∪ {∞} .
+By convention (see [14]), a “dummy” variable x0, which is always taken to
+represent 0, is assumed. The presence of x0allows all constraints to be written
+uniformly as xi−xj∼cwhere 0 ≤i/negationslash=j≤n,∼∈ { <,≤}andc∈Z∪ {∞} .
+A clock valuation νsatisﬁes a constraint xi−xj∼ciﬀν(xi)−ν(xj)∼c.
+Zones. Azone ofX, written ζ, is a convex subset of the valuation space
+RXdescribed by a conjunction of constraints. Formally, a zone ζis the set of
+valuations which satisfy the conjunction of n·(n+ 1) constraints given by:
+/logicalanddisplay
+0≤i/negationslash=j≤nxi−xj∼i,jci,j.
+LetZXbe the set of all zones of X. We denote by cmax(ζ) the largest constant
+used in the description of a zone; that is, cmax(ζ) = max {|ci,j| |0≤i/negationslash=j≤n},
+where |c|is the absolute value of cifc∈Zand 0 if c=∞.
+Observe that more than one conjunction of constraints may correspond to the
+same subset of RX. Therefore, in the sequel, we only consider zones that are
+incanonical form ; that is, when their constraints are as ‘tight’ as possible (see
+[17] for an O(n3) algorithm to achieve this for any zone). Such a canonical
+form allows us to use the semantic interpretation of zones as sets of valua-
+tions interchangeably with the original, syntactic interpretation of zones as
+conjunctions of constraints. Observe that this means that semantic equality
+can be reduced to syntactic equality. Other semantic operations, such as in-
+tersection ζ1∩ζ2, are well-deﬁned operations on polyhedra such as zones, and
+have their corresponding syntactic transformations. However, we generally use
+the semantic interpretation throughout this paper.
+In the following deﬁnition we introduce the clock reset operation on zones.
+Deﬁnition 1 For any zones ζ, ζ/prime∈ZX, and a set of clocks X⊆ X , let
+6
+
+--- Page 7 ---
+ζ[X:= 0] = {ν[X:= 0]|ν∈ζ}.
+We write ζ0for the zone which contains the single clock valuation 0. Let
+ζ∈ZXbe a zone and ν∈RXbe a valuation. Given that we return to
+our syntactic view of zones as conjunctions of constraints, ζ[ν] is the boolean
+value obtained by replacing each occurrence of a clock x∈ X inζbyν(x).
+Ifζ[ν] =true then we say that νsatisﬁes ζ, also denoted by ν∈ζ(such
+set membership notation tallies with the semantic view of zones as sets of
+valuations).
+3 Probabilistic Timed Automata
+This section introduces probabilistic timed automata as a modelling framework
+for real-time systems with probability; this formalism is derived from timed
+automata [2,3]. Here, we extend timed automata with discrete probability dis-
+tributions over edges, so that the choice of the next location of the automaton
+is now probabilistic, in addition to nondeterministic, in nature. Furthermore,
+we incorporate invariant conditions [21] into the probabilistic timed automa-
+ton in order to enforce upper bounds on the time at which certain probabilistic
+choices are made.
+Deﬁnition 2 (Probabilistic Timed Automaton) A probabilistic timed au-
+tomaton is a tuple G= (S,L,¯s,X,inv,prob,/angbracketleftτs/angbracketrights∈S)which contains:
+•a ﬁnite set Sof nodes,
+•a function L:S → 2APassigning to each node of the automaton the set of
+atomic propositions that are true in that node,
+•a start node ¯s∈ S,
+•a ﬁnite set Xof clocks,
+•a function inv :S →ZXassigning to each node an invariant condition,
+•a function prob :S → P fn(µ(S × 2X))assigning to each node a (ﬁnite,
+non-empty) set of discrete probability distributions on S ×2X,
+•a family of functions /angbracketleftτs/angbracketrights∈Swhere, for any s∈ S,τs:prob(s)→ZX
+assigns to each p∈prob(s)an enabling condition.
+The behaviour of the system takes the form of transitions between states,
+which can be as a result of either the passage of time or the execution of a
+discrete transition. The role of the invariant condition is to describe the set
+ofadmissible states of the probabilistic timed automaton; therefore, we forbid
+transitions to inadmissible states.
+The system starts in node ¯ swith all of its clocks initialized to 0. The values
+of all the clocks increase uniformly with time. At any point in time, if the
+7
+
+--- Page 8 ---
+system is in node sand the invariant condition will no longer be satisﬁed by
+letting any time advance, then the system can either (a) remain in its current
+node and let time advance, or (b) make a discrete transition if there exists
+a distribution p∈prob(s) whose corresponding enabling condition τs(p) is
+satisﬁed by the current values of the clocks. Alternatively, if the invariant
+condition will be violated by letting time advance then the system must make
+a discrete transition. Discrete transitions are instantaneous and consist of
+the following two steps performed in succession: ﬁrstly, the system makes a
+nondeterministic choice between the set of distributions p∈prob(s) whose
+corresponding enabling condition τs(p) is satisﬁed by the current values of
+the clocks. Secondly, supposing that the probability distribution pis chosen,
+the system then makes a probabilistic transition according to p; that is, for
+anys/prime∈ S andX⊆ X , the probability that the system will make a state
+transition to node s/prime, and reset all the clocks in Xto 0, is given by p(s/prime, X).
+For simplicity, the invariant and enabling conditions are subject to the follow-
+ing assumptions: ﬁrst, if, in some state in the execution of G, allowing any
+amount of time to elapse would violate the invariant condition of the current
+node, then the enabling condition of at least one probability distribution is
+satisﬁed1. Second, we assume that it is never possible to perform a discrete
+transition to a node for which the invariant condition is not satisﬁed by the
+current values of the clocks. Formally, for each node s∈ S and each distri-
+bution of that node p∈prob(s), assume that, for all s/prime∈ S,X⊆ X such
+that p(s/prime, X)>0, it is the case that τs(p)[X:= 0]⊆inv(s/prime). We refer to this
+assumption as that of admissible targets .
+We use ZX(G) to denote the set of all zones appearing as an invariant or
+enabling condition of G. Formally, let:
+ZX(G) ={inv(s)∈ZX|s∈ S} ∪ { τs(p)∈ZX|s∈ Sandp∈prob(s)}.
+Furthermore, let cmax(G) = max {cmax(ζ)|ζ∈ZX(G)}be the maximal con-
+stant used in the description of G. In later sections, this constant will be used
+to ensure the decidability of our model checking methods.
+3.1 Example
+An example of a probabilistic timed automaton which models a simple com-
+munication protocol operating with an unreliable, lossy channel is shown in
+Figure 1. The system consists of a sender and a receiver which communicate
+1Another solution is to identify an additional discrete probability distribution
+pinv
+s∈µ(S ×2X) with each s∈ S, which becomes enabled in sat the points for
+which progression of any amount of time would violate the node’s invariant inv(s).
+8
+
+--- Page 9 ---
+x≥2x=y= 0
+r:receiveds:waitAck
+y≤1s:hasData
+r:idle
+x≤3{x, y:= 0}
+{x:= 0} {x, y:= 0}
+s:received
+r:idle
+true{x:= 0}{x, y:= 0}
+r:abort
+true{x, y:= 0}
+{x, y:= 0}truex≥2
+y= 7
+10.05
+0.95
+0.010.05
+10.95
+1
+0.99x≤3∧
+y≤7r:idles:waitAck
+s:aborttrue
+Fig. 1. The probabilistic timed automaton G1.
+over a single channel, and two global clocks xandy(we make the assumption
+of the existence of global clocks for simplicity). Transit across the medium
+is instantaneous. Operation of the protocol commences with the delivery of
+new data to the sender, and with both clocks xandyset to 0. The sender
+retains the data for between 2 and 3 time units before transmitting it onto
+the medium and resetting the clock xto 0. With probability 0.95, the data is
+correctly received, in which case the receiver waits for not more than 1 time
+unit to attempt to return an acknowledgement to the sender. This attempt is
+successful with probability 0.99, after which an arbitrary length of time may
+elapse before another data packet is delivered to the sender for transmission
+across the medium. However, if either the acknowledgement or the original
+data packet was lost by the channel, then the receiver is idle, whereas the
+sender is still waiting for an acknowledgement; therefore, the sender attempts
+to re-send the data at a frequency varying between 2 and 3 time units. If
+exactly 7 time units have elapsed since the data ﬁrst arrived at the sender, or
+the receiver last received the data, then the system aborts.
+This communication protocol is modelled by the probabilistic timed automa-
+tonG1in the following way. Consider the initial node, s:hasData ,r:idle,
+henceforth abbreviated to hi. The invariant of hiis the zone described by the
+constraint written in the body of the node, x≤3, which represents the fact
+that the clock xis not allowed to exceed 3. The node hihas one probability
+distribution associated with it, as represented by the edges connected by a
+dashed arc, which is only enabled when x≥2. Therefore, when xis between
+9
+
+--- Page 10 ---
+2 and 3, this distribution, which corresponds to the sender transmitting the
+data onto the medium, may be nondeterministically chosen. Furthermore, if
+xequals 3 then the invariant condition requires that the distribution must be
+taken. This distribution is deﬁned over two edges: the ﬁrst leads to s:waitAck ,
+r:received (abbreviated to wr), and corresponds to the successful delivery of
+the data across the medium; as such, it is labelled with the probability 0.95.
+The second edge leads to s:waitAck ,r:idle(abbreviated to wi), and rep-
+resents loss of data with probability 0.05. If the former edge is taken, both
+clocks xandyare reset, whereas, in the latter case, only xis reset, as de-
+noted by the edge labels {x, y:= 0}and{x:= 0}respectively. More formally,
+p∈prob(hi), where p(wr,{x, y}) = 0 .95,p(wi,{x}) = 0 .05. Another aspect of
+probabilistic timed automaton behaviour can be witnessed in the node wi: it is
+possible for both of the distributions associated with wi,p/prime
+1, p/prime
+2∈prob(wi), to
+be enabled at the same time. In such a case, there can be a nondeterministic
+choice between choosing p/prime
+1and choosing p/prime
+2. From this description of the be-
+haviour in the nodes hiandwi, the behaviour of G1in other nodes follows in a
+straightforward manner. The reader can verify that G1does indeed model the
+communication protocol described in the previous paragraph. In subsequent
+sections, we will refer back to this example, using the abbreviations rifor
+s:received ,r:idle, and aafors:abort ,r:abort .
+In addition to considering the way in which the communication protocol can
+be modelled, we must also identify a set of requirements which we wish the
+protocol to satisfy, and to formalize them in an appropriate manner. Their
+validity with respect to the probabilistic timed automaton G1could then be
+veriﬁed using the model checking techniques presented in the remainder of
+this paper (although, as we will see later, not all of these properties can be
+veriﬁed by both of our presented approaches). Four types of requirements are
+now presented, along with examples relevant to the communication protocol.
+Reachability The system can reach a certain set of states with a given prob-
+ability. For example, “with probability 0.9999 or greater, it is possible to
+correctly deliver a data packet”.
+Time bounded reachability The system can reach a certain set of states
+within a certain time deadline with a given probability. For example, “with
+probability 0.975 or greater, it is possible to correctly deliver a data packet
+within 5 time units”
+Invariance The system does not leave a certain set of states with a given
+probability. For example, “with probability 0.875 or greater, the system
+never aborts”.
+Bounded response The system inevitably reaches a certain set of states
+within a certain time deadline with a given probability. For example, “with
+probability 0.99 or greater, a data packet will always be delivered within 5
+time units”.
+10
+
+--- Page 11 ---
+In Section 5 and Section 7, we will see how each of these properties may be
+expressed in formalisms for which probabilistic timed automaton veriﬁcation
+is possible.
+4 Probabilistic Timed Structures
+In this section, we introduce an underlying model for probabilistic timed au-
+tomata, called probabilistic timed structures , which are obtained by augment-
+ing the timed structures of [20] with a probabilistic choice over transitions, and
+take the form of a variant of Markov decision processes. More precisely, in-
+stead of a nondeterministic choice over transitions that consist of a real-valued
+duration and a next state, as is the case in traditional timed structures, the
+transition function of probabilistic timed structures results in a choice over
+pairs consisting of a duration and a discrete probability distribution over next
+states.
+Deﬁnition 3 (Probabilistic Timed Structure) Aprobabilistic timed str-
+ucture Mis a labelled Markov decision process (Q,Steps , L)where Qis a set
+of states, Steps :Q→2R×µ(Q)is a function which assigns to each state q∈Q
+a set Steps (q)of pairs of the form (t, p)where t∈Randp∈µ(Q), and
+L:Q→2APis a state labelling function.
+Steps (q) is the set of transitions that can be nondeterministically chosen in
+state q. Each transition takes the form ( t, p), where trepresents the duration
+of the transition and pis the probability distribution used over the set of suc-
+cessor states. Therefore, given the nondeterministic choice of ( t, p)∈Steps (q)
+in state q, then, after ttime units have elapsed, a probabilistic transition is
+made to state q/primewith probability p(q/prime).
+Paths in a probabilistic timed structure arise by resolving both the nondeter-
+ministic and probabilistic choices. A path of the probabilistic timed structure
+M= (Q,Steps , L) is a non-empty ﬁnite or inﬁnite sequence:
+ω=q0t0,p0− − → q1t1,p1− − → q2t2,p2− − → ···
+where qi∈Q, (ti, pi)∈Steps (qi) and pi(qi+1)>0 for all 0 ≤i≤ |ω|.
+Sets of labelled paths are denoted in the following way. Path ﬁnis the set of
+ﬁnite paths, and Path ﬁn(q) is the set of paths in Path ﬁnsuch that ω(0) = q.
+Path fulis the set of inﬁnite paths and Path ful(q) is the set of paths in Path ful
+such that ω(0) = q.
+Consider an inﬁnite path ωofM. Aposition ofωis a pair ( i, t/prime), where i∈N
+andt/prime∈Rsuch that 0 ≤t/prime≤ti. The state at position (i, t/prime), denoted by
+11
+
+--- Page 12 ---
+qi+t/prime. Given a path ω,i, j∈Nandt, t/prime∈Rsuch that i≤ |ω|,t≤tiand
+t/prime≤tj, then we say that the position ( j, t/prime)precedes the position ( i, t), written
+(j, t/prime)≺(i, t), iﬀ j < i , orj=iandt/prime< t.
+Deﬁnition 4 (Duration of a Path) For any path ωof a probabilistic timed
+structure Mand0≤i≤ |ω|we deﬁne Dω(i), the elapsed time until the ith
+transition, as follows: Dω(0) = 0 and for any 1≤i≤ |ω|:
+Dω(i) =i−1/summationdisplay
+j=0tj.
+Furthermore, an inﬁnite path ωisdivergent if for any t∈R, there exists
+j∈Nsuch that Dω(j)> t.
+We now introduce adversaries of probabilistic timed structures as functions
+which resolve all of the nondeterministic choices of the model.
+Deﬁnition 5 (Adversary of a Probabilistic Timed Structure) Anad-
+versary (or scheduler) of a probabilistic timed structure M= (Q,Steps , L)
+is a function Amapping every ﬁnite path ωofMto a pair (t, p)such that
+A(ω)∈Steps (last(ω)). LetAbe the set of all adversaries of M.
+For an adversary Aof a probabilistic timed structure M= (Q,Steps , L)
+we deﬁne PathA
+ﬁnto be the set of ﬁnite paths such that step(ω, i) =A(ω(i))
+for all 1 ≤i≤ |ω|, and PathA
+fulto be the set of paths in Path fulsuch that
+step(ω, i) =A(ω(i)) for all i∈N.
+With each adversary we associate a sequential Markov chain, which can be
+viewed as a set of paths in M. Formally, if Ais an adversary of the probabilistic
+timed structure M, then MCA= (PathA
+ﬁn,PA) is a Markov chain where:
+PA(ω, ω/prime) =
+
+p(q) ifA(ω) = (t, p) and ω/prime=ωt,p− →q
+0 otherwise.
+For any probabilistic timed structure and adversary A, letFA
+Pathbe the small-
+estσ-algebra on PathA
+fulwhich contains the sets:
+{ω|ω∈PathA
+fulandω/primeis a preﬁx of ω}
+for all ω/prime∈PathA
+ﬁn.
+We now deﬁne a measure ProbAon the σ-algebra FA
+Path, by ﬁrst deﬁning the
+following function on the set of ﬁnite paths PathA
+ﬁn.
+12
+
+--- Page 13 ---
+Deﬁnition 6 LetAbe an adversary of the probabilistic timed structure M.
+Let ProbA
+ﬁn:PathA
+ﬁn→[0,1]be the mapping inductively deﬁned on the length
+of paths in PathA
+ﬁnas follows. If |ω|= 0, then ProbA
+ﬁn(ω) = 1 .
+Letω/prime∈PathA
+ﬁnbe a ﬁnite path of A. Ifω/prime=ωt,p− →qfor some ω∈PathA
+ﬁn,
+then we let:
+ProbA
+ﬁn(ω/prime) =ProbA
+ﬁn(ω)·PA(ω, ω/prime).
+Deﬁnition 7 The measure ProbAonFA
+Pathis the unique measure such that:
+ProbA{ω|ω∈PathA
+fulandω/primeis a preﬁx of ω}=ProbA
+ﬁn(ω/prime).
+When clear from the context, we drop the superscript denoting the adversary
+from the function ProbA
+ﬁnand the measure ProbA.
+A common restriction imposed in the study of real-time systems is that of
+time divergence . This requires that paths of a real-time system which are
+not divergent in the manner of Deﬁnition 4 are disregarded during analysis,
+because they exhibit unrealisable behaviour in which time is not allowed to
+pass beyond some bound. We now introduce the class of divergent adversaries ,
+which resolve nondeterminism in such a way as to result in divergent behaviour
+with probability 1. Our aim is to disregard adversaries that are not divergent,
+as they exhibit unrealisable behaviour with positive probability.
+Deﬁnition 8 (Divergent Adversary) An adversary Aof a probabilistic
+timed structure (Q,Steps , L)isdivergent if and only if :
+Prob{ω|ω∈PathA
+fulandωis divergent }= 1.
+LetAdivbe the set of all divergent adversaries.
+Note that we only consider such probabilistic time divergent adversaries as
+opposed to a stronger deﬁnition in which an adversary is divergent if allof
+its corresponding paths are divergent. We motivate this choice in the next
+section.
+4.1 Obtaining a Probabilistic Timed Structure from a Probabilistic Timed
+Automaton
+This section will now show that the behaviour of a probabilistic timed au-
+tomaton Gcan be stated formally in terms of a probabilistic timed structure
+MG. This structure consists of three components: the set of admissible states
+ofG(those that satisfy the invariant condition); a transition relation that
+13
+
+--- Page 14 ---
+is both nondeterministic and probabilistic in nature, and includes time pas-
+sage information; and a labelling function, which is derived from the labelling
+function LofG.
+For convenience, we categorise distributions of MGby assigning them a type.
+That is, if a distribution over states ˜ pofMGis derived from a particular
+distribution p∈/uniontext
+s∈Sprob(s) ofG, then we say that ˜ phas type p. We abuse
+notation to denote this by type(˜p) =p. As we wish to allow for the fact that
+Gmay let time elapse without necessarily performing a subsequent discrete
+transition, we use the special symbol ⊥to denote the type of distribution of
+MGthat is induced by the passage of time only (that is, without a subsequent
+discrete transition made according to a distribution of G).
+Deﬁnition 9 For any probabilistic timed automaton G, deﬁne the probabilis-
+tic timed structure MG= (QG,StepsG, LG)as follows:
+States Astate ofMGis a pair /angbracketlefts, ν/angbracketright, where s∈ S is a node and ν∈RXis
+a valuation such that νsatisﬁes inv (s). Let QGbe the set of states of MG.
+Transitions The function StepsG:QG→2R×µ(QG)assigns to each state
+inQGa set of transitions, each of which take the form of a pair (t,˜p),
+comprising of a time duration t∈Rand a probability distribution ˜ p∈
+µ(QG)over the set of states QG. Transitions are deﬁned in two ways. For
+every /angbracketlefts, ν/angbracketright ∈QG:
+(1) Let (t,˜p)∈StepsG/angbracketlefts, ν/angbracketrightif there exists p∈prob(s)such that:
+(a) the valuation ν+tsatisﬁes τs(p);
+(b) the valuation ν+t/primesatisﬁes the invariant condition inv (s)for all
+0≤t/prime≤t; and
+(c) for any /angbracketlefts/prime, ν/prime/angbracketright ∈QG:
+˜p/angbracketlefts/prime, ν/prime/angbracketright=/summationdisplay
+X⊆X&
+(ν+t)[X:=0]= ν/primep(s/prime, X).
+We refer to ˜pas having type p; that is, type(˜p) =p.
+(2) Let (t,˜p)∈StepsG/angbracketlefts, ν/angbracketrightif:
+(a) the valuation ν+t/primesatisﬁes inv (s)for all 0≤t/prime≤t; and
+(b) for any /angbracketlefts/prime, ν/prime/angbracketright ∈QG:
+˜p/angbracketlefts/prime, ν/prime/angbracketright=
+
+1if/angbracketlefts/prime, ν/prime/angbracketright=/angbracketlefts, ν+t/angbracketright
+0otherwise.
+We refer to ˜pas having type ⊥; that is, type(˜p) =⊥.
+Labelling function The labelling function L:Q→2APis deﬁned as follows.
+For each /angbracketlefts, ν/angbracketright ∈QG, letLG/angbracketlefts, ν/angbracketright=L(s).
+It is now possible to deﬁne the set AGof adversaries of MGusing Deﬁnition 5.
+14
+
+--- Page 15 ---
+Note that AG
+divdenotes the divergent adversaries of G. Where Gis clear from
+the context, we drop the superscript from AGandAG
+div.
+The following example motivates our choice of probabilistic time divergent ad-
+versaries, as given in Deﬁnition 8. Consider the probabilistic timed automaton
+G2in Figure 2. If we consider any adversary of the corresponding probabilistic
+x= 0
+trues1
+x≤1s2
+0.5x≤10.5
+Fig. 2. The probabilistic timed automaton G2
+timed structure MG2, then there will always exist a unique inﬁnite path of
+the adversary which loops continually in s1; that is, the adversary exhibits a
+path of the form
+ω=/angbracketlefts1, ν0/angbracketrightt0,p− − → /angbracketleft s1, ν1/angbracketrightt1,p− − → /angbracketleft s1, ν2/angbracketrightt2,p− − →. . .
+such that/summationtext∞
+i=0ti≤1. It is clear that ωis not time divergent. Therefore, using
+a stronger deﬁnition of divergent adversaries which requires allof the paths of
+the adversary to be divergent, there would not exist anydivergent adversaries
+of this model. However, the probability of the above path ωoccurring is 0.
+Therefore, Deﬁnition 8 is motivated by the view that adversaries for which
+there exist unrealisable, non-divergent paths should be considered, provided
+that the probability measure of these paths is 0.
+5 Probabilistic Timed Computation Tree Logic
+We now describe the probabilistic real-time logic PTCTL (Probabilistic Timed
+Computation Tree Logic) which can be used to specify properties of proba-
+bilistic timed systems. PTCTL synthesizes elements from two extensions of the
+branching temporal logic CTL, namely the real-time temporal logic TCTL [21]
+and the essentially equivalent, probabilistic temporal logics pCTL and PBTL
+[8,6]. In particular, the temporal operator U(“until”) and the path quantiﬁers
+∀and∃(“for all” and “there exists”, respectively) are taken from CTL, the
+reset quantiﬁer z.φand the facility to refer directly to clock values are taken
+from TCTL, and the probabilistic operators [ φ1∃Uφ2]/supersetsqequalλand [ φ1∀Uφ2]/supersetsqequalλare
+taken from PBTL. Note that the reset quantiﬁer z.φis used to reset the clock
+z, so that φis evaluated from a state at which z= 0. Using our new logic, we
+15
+
+--- Page 16 ---
+can express properties such as, “with probability 0.6 or greater, the value of
+the system clock xdoes not exceed 3 before 5 time units have elapsed”, which
+is represented as the PTCTL formula z.[(x≤3)∀U(z= 5)] ≥0.6.
+Similarly, we can write the properties of Section 3.1 in terms of PTCTL formu-
+lae. The property,“with probability 0.9999 or greater, it is possible to correctly
+deliver a data packet”, can be written as [ true∃Uri]≥0.9999. The time bounded
+reachability property “with probability 0.975 or greater, it is possible to cor-
+rectly deliver a data packet within 5 time units”, can be expressed by the
+formula z.[true∃U(ri∧ ≤5)]≤0.975. The PTCTL formula ¬[true∃Uaa]>0.125
+represents the property “with probability 0.875 or greater, the system never
+aborts” (that is, it is not true that the abort state aacan be reached with
+with probability greater than 0.125). The bounded response property, “with
+probability 0.99 or greater, a data packet will always be delivered within 5
+time units”, can be written as z.[true∀U(ri∧z≤5)]≥0.99.
+As with TCTL, PTCTL employs a set of clock variables in order to express
+timing properties; for this purpose, we introduce a set of formula clocks ,Z,
+which is disjoint from X. Such clocks are assigned values by a formula clock
+valuation E:Z → R, which uses the notation for clock valuations in the
+standard way.
+Deﬁnition 10 (Syntax of PTCTL )The syntax of PTCTL is deﬁned as fol-
+lows:
+φ::=true |a|ζ|φ∧φ| ¬φ|z.φ|[φ∃Uφ]/supersetsqequalλ|[φ∀Uφ]/supersetsqequalλ
+where a∈APis an atomic proposition ,ζ∈ZX∪Z is azone,z∈ Z,λ∈[0,1],
+and/supersetsqequalis either ≥or>.
+Note that the values of system clocks in Xand formula clocks in Zcan
+be obtained from a state and a formula clock valuation, respectively. Take
+a particular ζ∈ZX∪Z, and consider the syntactic interpretation of ζas a
+conjunction of constraints. Then, given a state /angbracketlefts, ν/angbracketrightand a formula clock
+valuation E, we denote by ζ[/angbracketlefts, ν/angbracketright,E] the boolean value obtained by replacing
+each occurrence of a system clock x∈ X inζbyν(x), and each occurrence of
+a formula clock z∈ Z inζbyE(z).
+As in the case of probabilistic timed automata, it is useful to identify the
+maximal integer constant that is referred to in a zone appearing in a PTCTL
+formula φ. Let ZX∪Z(φ) ={ζ∈ZX∪Z|ζis a subformula of φ}be the set of
+zones occurring in φ, and deﬁne cmax(φ) = max {cmax(ζ)|ζ∈ZX∪Z(φ)}be
+the required maximal constant.
+Deﬁnition 11 (Satisfaction Relation for PTCTL )Given a probabilistic
+timed structure M= (Q,Steps , L)and a set Aof adversaries of M, then
+16
+
+--- Page 17 ---
+for any state qofM, formula clock valuation E, and PTCTL formula φ, the
+satisfaction relation q,E |=Aφis deﬁned inductively as follows:
+q,E |=Atrue for all qandE
+q,E |=Aa ⇔a∈L(q)
+q,E |=Aζ ⇔ζ[q,E] =true
+q,E |=Aφ1∧φ2 ⇔q,E |=Aφ1andq,E |=Aφ2
+q,E |=A¬φ ⇔q,E /negationslash|=Aφ
+q,E |=Az.φ ⇔q,E[z:= 0]|=Aφ
+q,E |=A[φ1∃Uφ2]/supersetsqequalλ⇔Prob ({ω|ω∈PathA
+ful(q) &ω,E |=Aφ1Uφ2})/supersetsqequalλ
+for some A∈ A
+q,E |=A[φ1∀Uφ2]/supersetsqequalλ⇔Prob ({ω|ω∈PathA
+ful(q) &ω,E |=Aφ1Uφ2})/supersetsqequalλ
+for all A∈ A
+ω,E |=Aφ1Uφ2 ⇔there exists a position ( i, t) ofωsuch that
+ω(i) +t,E+Dω(i) +t|=Aφ2,and
+for all positions ( j, t/prime) ofωsuch that ( j, t/prime)≺(i, t),
+ω(j) +t/prime,E+Dω(j) +t/prime|=Aφ1∨φ2.
+6 Model Checking Probabilistic Timed Automata Against PTCTL
+Properties
+Note that, because all clocks are real-valued, the state space of a probabilistic
+timed automaton is inﬁnite. However, a fundamental result of [3] is that the
+space of clock valuations of a timed automaton can be partitioned into a ﬁnite
+set of zones called clock regions , each containing a ﬁnite or inﬁnite number of
+valuations which, as noted by [2], satisfy the same TCTL formulae. Combi-
+nation of this partitioning with the discrete transitions of a timed automaton
+induces a structure called a region graph , which can be used for model check-
+ing. This section will show that a similar construction can be used for model
+checking probabilistic timed automata against PTCTL formulae.
+17
+
+--- Page 18 ---
+6.1 Equivalence of Clock Valuations
+We ﬁrst deﬁne an equivalence relation on the space of clock valuations, which
+can then be used to obtain a ﬁnite partitioning of this space. Consider the prob-
+abilistic timed automaton G, and let c=cmax(G). Deﬁnition 12 to Lemma 14
+recall standard notions of equivalence of clock valuations [2,3].
+Deﬁnition 12 For any t∈R,⌊t⌋denotes the integral part of t. Then, for
+anyt, t/prime∈R,tandt/primeagree on their integral parts if and only if:
+(1)⌊t⌋=⌊t/prime⌋, and
+(2) both tandt/primeare integers or neither is an integer.
+Deﬁnition 13 (Clock equivalence) The valuations ν, ν/prime∈RXareclock
+equivalent , denoted by ν∼=ν/prime, if and only if they satisfy the following condi-
+tions:
+(1)∀x∈ X, either ν(x)andν/prime(x)agree on their integral parts, or both ν(x)>
+candν/prime(x)> c, and
+(2)∀x, x/prime∈ X, either ν(x)−ν(x/prime)andν/prime(x)−ν/prime(x/prime)agree on their integral
+parts, or both ν(x)−ν(x/prime)> candν/prime(x)−ν/prime(x/prime)> c.
+Lemma 14 Let the valuations ν, ν/prime∈RXbe such that ν∼=ν/prime. Then the
+following conditions hold:
+(1)ν[X:= 0]∼=ν/prime[X:= 0] for all X⊆ X,
+(2) for any zone ζ∈ZX(G)appearing in the description of G,νsatisﬁes ζ
+if and only if ν/primesatisﬁes ζ.
+PROOF. The proof follows from the deﬁnition of ∼=.2
+Note that clock equivalence classes can be regarded as special types of zones
+(see [3]). Let [ ν] denote the equivalence class of ∼=to which νbelongs. We
+refer to elements such as /angbracketlefts,[ν]/angbracketrightasregions . Observe that, for ﬁnite c, clock
+equivalence has a ﬁnite number of classes. As cmax(G) is ﬁnite, and Sis a ﬁnite
+set, we conclude that the set of the regions of Gis also ﬁnite.
+Remark. Note that a smaller set of clock equivalence classes can be obtained
+if, for each clock x∈ X, we maintain a maximal constant cxwith which xis
+compared in a zone of G, and then use the resulting maxima in the deﬁnition of
+clock equivalence. Although this may result in fewer regions, and thus improve
+the eﬃciency of the model checking techniques presented in this paper, we do
+18
+
+--- Page 19 ---
+not use this approach for reasons of convenience. All of the results of this
+paper continue to hold if this approach is taken.
+We now extend the concept of clock equivalence to formula clocks. Let ( ν,E) :
+X ∪ Z → Rbe the clock valuation that assigns a real value to each of the
+system and formula clocks, and let RX∪Zbe the set of all such valuations for
+G. For a ( ν,E)∈RX∪Z, and X⊆ X ∪ Z , we use the notation ( ν,E)[X:= 0]
+in the usual way. For some t∈R, (ν+t,E+t) denotes the clock valuation for
+which all clocks xinX ∪ Z take the value ( ν,E)(x) +t.
+The equivalence relation for such a valuation is deﬁned with respect to a
+particular PTCTL formula φ. LetE/primebe the restriction of Eover the clocks of
+Zthat are referred to in φ. We can then extend the equivalence relation from
+∼=to∼=∗simply by taking ( ν,E/prime) instead of νandX ∪ Z instead of X, and
+requiring that c= max {cmax(G), cmax(φ)}; the deﬁnition of equivalence classes
+of the form [ ν,E/prime] then follows in an obvious manner. Furthermore, Lemma 14
+holds for ∼=∗(in particular, part (2) applies to all zones ζ∈ZX(G)∪ZX∪Z(φ)
+appearing either in Gorφ). Because our construction of the equivalence classes
+will always be with respect to a particular φ, we henceforth write EforE/prime.
+An element of the form /angbracketlefts,[ν,E]/angbracketrightis called an augmented region . Ascmax(φ) is
+ﬁnite, we conclude that the set of augmented regions is also ﬁnite.
+Letαbe an equivalence class of the form [ ν,E]. Observing that αis a zone,
+we recall the deﬁnition of clock resets on zones to denote by α[X:= 0] the
+equivalence class obtained from αby setting all of the clocks in Xto 0.
+6.2 The Region Graph
+6.2.1 Deﬁnition of the Region Graph
+We now deﬁne an edge relation over the augmented regions to obtain the
+region graph . The non-probabilistic region construction of [2] results in a state-
+labelled transition system which can be model checked using well-established
+methods. However, in our case the region graph takes the form of a Markov
+decision process for which there exist model checking techniques for temporal
+logics with probability bounds [8,6].
+First, we require some preliminary deﬁnitions. We explain how a region may
+be thought of as satisfying a a conjunction of clock constraints represented as
+a zone; then we categorize regions in a number of ways.
+Deﬁnition 15 (Satisfaction of clock constraints) Letαbe an equivalence
+class of the relation ∼=∗onRX∪Zandζ∈ZX(G)∪ZX∪Z(φ)be a zone either
+appearing in the description of Gor as a subformula of φ. Then αsatisﬁes ζ
+19
+
+--- Page 20 ---
+if and only if, for any (ν,E)∈α, the value of ζafter substituting each occur-
+rence of x∈ X with ν(x), and each occurrence of z∈ Z withE(z), istrue .
+(Note that the value of ζwill be the same for all (ν,E)∈α, by the extension
+of Lemma 14 (2)to augmented regions.)
+Deﬁnition 16 (Categorization of regions) Letαandβbe distinct clock
+equivalence classes of RX∪Z.
+Successor class The equivalence class βis said to be the successor ofαif
+and only if, for each (ν,E)∈α, there exists a positive t∈Rsuch that
+(ν+t,E+t)∈β, and (ν+t/prime,E+t/prime)∈α∪βfor all t/prime≤t.
+x-zero class For a clock x∈ X ∪ Z , the equivalence class αis said to be
+x-zero if and only if, for each (ν,E)∈α,(ν,E)(x) = 0 .
+x-unbounded class For a clock x∈ X ∪ Z , the equivalence class αis
+said to be x-unbounded if and only if, for each (ν,E)∈α,(ν,E)(x)>
+max( cmax(G), cmax(φ)).
+The successor relation can be extended to augmented regions in the following
+way:/angbracketlefts/prime, β/angbracketrightis the successor region of/angbracketlefts, α/angbracketrightifs/prime=sandβ=succ(α). Simi-
+larly, the region /angbracketlefts, α/angbracketrightisx-zero ( x-unbounded) if αisx-zero ( x-unbounded).
+We now deﬁne a region graph which captures both the probabilistic tran-
+sitions in Gand the movement to new regions due to the passage of time,
+and which takes the form of a Markov decision process. As with probabilis-
+tic timed structures, transitions are made according to a two-phase process:
+ﬁrstly, a nondeterministic choice of a probabilistic distribution is made, and
+then a transition to a state in the support of the distribution is executed
+probabilistically. Naturally, in contrast to probabilistic timed structures, the
+transition relation of the region graph abstracts from exact timing informa-
+tion. Note that we associate a notion of type with certain transitions of the
+region graph, and use the notation type as introduced in Section 4.1.
+The labelling function of the region graph requires the introduction of addi-
+tional atomic propositions, which are taken to represent the satisfaction of the
+zones appearing as subformulae of φ. More precisely, for every zone ζappear-
+ing in the given PTCTL formula φ(that is, for every zone in the set ZX∪Z(φ)),
+we extend the set AP with the atomic proposition aζ. We denote the resulting
+set of atomic propositions by AP∗.
+Deﬁnition 17 (Region Graph) The region graph R(G, φ)is deﬁned to be
+the Markov decision process (V∗,Steps∗, L∗). The vertex set V∗is the set of
+augmented regions. The transition function Steps∗:V∗→ P fn(µ(V∗))includes
+three classes of transitions2. For each augmented region /angbracketlefts, α/angbracketright ∈V∗:
+2If the model includes the distributions pinv
+sthen we need to add an extra condition
+in the deﬁnition of transitions.
+20
+
+--- Page 21 ---
+Passage of time: if the invariant condition inv (s)is satisﬁed by succ (α),
+then ps,α
+succ∈Steps∗/angbracketlefts, α/angbracketrightwhere for any /angbracketlefts/prime, β/angbracketright ∈V∗:
+ps,α
+succ/angbracketlefts/prime, β/angbracketright=
+
+1 if/angbracketlefts/prime, β/angbracketright=/angbracketlefts,succ(α)/angbracketright
+0 otherwise .
+Let the type of ps,α
+succbe⊥; that is, type(ps,α
+succ) =⊥.
+Discrete transitions of G:ps,α
+p/prime∈Steps∗/angbracketlefts, α/angbracketrightif there exists p/prime∈prob(s)
+andαsatisﬁes the enabling condition τs(p/prime)such that for any s/prime∈ S and
+equivalence class β:
+ps,α
+p/prime/angbracketlefts/prime, β/angbracketright=/summationdisplay
+X⊆X&
+α[X:=0]= βp/prime(s/prime, X).
+Let the type of ps,α
+p/primebep/prime; that is, type(ps,α
+p/prime) =p/prime.
+Self loops: letps,α
+loop∈Steps∗/angbracketlefts, α/angbracketright, where for any /angbracketlefts/prime, β/angbracketright ∈V∗:
+ps,α
+loop/angbracketlefts/prime, β/angbracketright=
+
+1 if/angbracketlefts/prime, β/angbracketright=/angbracketlefts, α/angbracketright
+0 otherwise .
+Let the type of ps,α
+loopbe⊥; that is, type(ps,α
+loop) =⊥.
+The labelling function L∗:V∗→2AP∗is deﬁned in the following way. For
+each augmented region /angbracketlefts, α/angbracketright ∈V∗, we let:
+L∗/angbracketlefts,[ν,E]/angbracketright=L(s)∪ {aζ|[ν,E]satisﬁes ζ,forζ∈ZX∪Z(φ)}.
+Self loops are included purely for technical convenience, and could be removed
+in certain contexts (for example, in an implementation of the model checking
+method).
+Deﬁnition 18 (Path on the Region Graph) Given an augmented region
+/angbracketlefts, α/angbracketright, a/angbracketlefts, α/angbracketright-path is a ﬁnite or inﬁnite path of the form:
+ω∗=/angbracketlefts0, α0/angbracketrightps0,α0− − − → /angbracketleft s1, α1/angbracketrightps1,α1− − − → /angbracketleft s2, α2/angbracketrightps2,α2− − − → ···
+where /angbracketlefts0, α0/angbracketright=/angbracketlefts, α/angbracketright,si∈ S,αiis an equivalence class of ∼=∗onRX∪Zand
+psi,αi∈Steps∗/angbracketleftsi, αi/angbracketrightsuch that psi,αi/angbracketleftsi+1, αi+1/angbracketright>0.
+We deﬁne adversaries on the region graph R(G, φ) as follows:
+Deﬁnition 19 (Adversaries on the Region Graph) An adversary A∗on
+the region graph is a function A∗mapping every ﬁnite path ω∗ofR(G, φ)to
+a distribution psuch that p∈Steps∗(last(ω∗)).
+21
+
+--- Page 22 ---
+We can then deﬁne the sets of paths Path∗
+ﬁnandPath∗
+ful, and those associated
+with an adversary, PathA∗
+ﬁnandPathA∗
+ful, as before. Note that an adversary on
+the region graph R(G, φ) corresponds to an inﬁnite number of adversaries on
+the underlying probabilistic timed structure. This is because the time com-
+ponent tin the choice of a transition ( t,˜p) ofMGallows positive reals to be
+chosen, whereas the passage of time in any state /angbracketlefts, α/angbracketrightof the region graph is
+given by the single distribution ps,α
+succ.
+With each adversary A∗we can associate a Markov chain. If A∗is an adversary
+of the region graph R(G, φ), then MCA∗= (PathA∗
+ﬁn,PA∗) is a Markov chain
+where, for the augmented regions /angbracketlefts, α/angbracketright,/angbracketlefts/prime, α/prime/angbracketright, and last(ω∗) =/angbracketlefts, α/angbracketright:
+PA∗(ω∗, ω/prime∗) =
+
+ps,α/angbracketlefts/prime, α/prime/angbracketrightifA∗(ω∗) =ps,αandω/prime∗=ω∗ps,α
+− − → /angbracketleft s/prime, α/prime/angbracketright
+0 otherwise.
+As in, for example, [6,8], we deﬁne the function ProbA∗
+ﬁnon the set of ﬁnite paths
+PathA∗
+ﬁnand extend to the unique measure ProbA∗on the σ-algebra FA∗
+Path.
+6.2.2 Divergence on the Region Graph
+We now introduce our notion of divergence on region graph paths, which is
+deﬁned in terms of the classiﬁcation of regions appearing inﬁnitely often along
+such paths. The following deﬁnition is inspired by that of [9], and diﬀers from
+that of [2] because, we allow for the possibility of an inﬁnite number of discrete
+transitions in zero time. The deﬁnition proceeds by identifying two subsets of
+region graph paths. Possibly progressive paths are those which, for all clocks
+x∈ X ∪ Z , feature either inﬁnitely many x-zero regions or, from some point
+onwards, the regions appearing along the path are x-unbounded. The intuition
+underlying the identiﬁcation of such paths is that we are interested in charac-
+terizing behaviours in which, for each clock, either the clock is reset inﬁnitely
+often, or eventually the value of the clock could be arbitrarily large. However,
+possibly progressive paths do not capture the concept of the divergence of
+time: consider a path for which there exists a clock x∈ X ∪Z such that, from
+some point onwards, all the regions along the path are x-zero. Then this paths
+is possibly progressive, but, because it has an inﬁnite suﬃx for which all of
+the regions are x-zero, it only corresponds to the passage of a ﬁnite amount
+of time. We call such paths zero. Therefore, we say that a region graph path
+isdivergent provided that it is possibly progressive but not zero.
+Deﬁnition 20 (Divergent region graph paths) Letω∗=/angbracketlefts0, α0/angbracketrightps0,α0− − − →
+/angbracketlefts1, α1/angbracketrightps1,α1− − − → ··· be an inﬁnite path of the region graph.
+Possibly progressive The path ω∗ispossibly progressive if and only if, for
+22
+
+--- Page 23 ---
+each clock x∈ X ∪ Z , either:
+(1) for every i∈N, there exists j≥isuch that αjis an x-zero class, or
+(2) there exists i∈Nsuch that, for all j≥i,αjis an x-unbounded class.
+Zero The path ω∗iszero if and only if there exists a clock x∈ X andi∈N
+such that, for all j > i ,αjisx-zero.
+Divergent The path ω∗isdivergent if and only if it is possibly progressive
+and not zero.
+Deﬁnition 21 (Divergent Adversaries on the Region Graph) An adver-
+sary A∗isdivergent if and only if
+Prob∗{ω∗|ω∗∈PathA∗
+fulandω∗is divergent }= 1.
+LetA∗
+divbe the set of divergent adversaries on the region graph.
+Such divergent adversaries on the region graph R(G, φ) correspond to an in-
+ﬁnite number of adversaries on the underlying probabilistic timed structure
+MG, some of which will be divergent in the sense of Deﬁnition 8. Conversely,
+for any divergent adversary of MG, the corresponding adversary on R(G, φ)
+is divergent.
+6.3 Model Checking for PTCTL Using the Region Graph
+A method for model checking probabilistic timed automata against PTCTL
+formulae will now be presented. This approach proceeds in three steps: con-
+struction of the region graph as a ﬁnite state representation of the proba-
+bilistic timed automaton in question; translating a formula of an extension
+of the probabilistic logic PBTL from the original PTCTL formula; and then
+resolving this new formula on the region graph.
+First, we present an adjusted syntax of PBTL. Note that we omit PBTL’s
+“bounded until” operator, because an equivalent, dense time, concept can be
+deﬁned by nesting a PTCTL until operator within a reset quantiﬁer, and its
+“next step” operator, which has no analogue in the case of dense real-time.
+However, we extend PBTL with a reset quantiﬁer expression.
+Deﬁnition 22 (Syntax of PBTL )The syntax of PBTL is deﬁned as fol-
+lows:
+Φ ::= true |a|Φ∧Φ| ¬Φ|z.Φ|[Φ∃UΦ]/supersetsqequalλ|[Φ∀UΦ]/supersetsqequalλ
+where a∈AP∗is an atomic proposition, z∈ Z,λ∈[0,1], and /supersetsqequalis either ≥
+or>.
+Deﬁnition 23 (Satisfaction Relation for PBTL )Given a region graph
+23
+
+--- Page 24 ---
+R(G, φ)and a set A∗of adversaries on R(G, φ), then for any augmented
+region /angbracketlefts,[ν,E]/angbracketrightofR(G, φ), and PBTL formula Φ, the satisfaction relation
+/angbracketlefts,[ν,E]/angbracketright |=A∗Φis deﬁned inductively as follows:
+/angbracketlefts,[ν,E]/angbracketright |=A∗true for all /angbracketlefts,[ν,E]/angbracketright
+/angbracketlefts,[ν,E]/angbracketright |=A∗a ⇔a∈L∗/angbracketlefts,[ν,E]/angbracketright
+/angbracketlefts,[ν,E]/angbracketright |=A∗Φ1∧Φ2 ⇔ /angbracketlefts,[ν,E]/angbracketright |=A∗Φ1and/angbracketlefts,[ν,E]/angbracketright |=A∗Φ2
+/angbracketlefts,[ν,E]/angbracketright |=A∗¬Φ ⇔ /angbracketlefts,[ν,E]/angbracketright /negationslash|=A∗Φ
+/angbracketlefts,[ν,E]/angbracketright |=A∗z.Φ ⇔ /angbracketlefts,[ν,E[z:= 0]]/angbracketright |=A∗Φ
+/angbracketlefts,[ν,E]/angbracketright |=A∗[Φ1∃UΦ2]/supersetsqequalλ⇔Prob∗({ω|ω∈PathA∗
+ful/angbracketlefts,[ν,E]/angbracketright&
+ω|=A∗Φ1UΦ2})/supersetsqequalλfor some A∗∈ A∗
+/angbracketlefts,[ν,E]/angbracketright |=A∗[Φ1∀UΦ2]/supersetsqequalλ⇔Prob∗({ω|ω∈PathA∗
+ful/angbracketlefts,[ν,E]/angbracketright&
+ω|=A∗Φ1UΦ2})/supersetsqequalλfor all A∗∈ A∗
+ω|=A∗Φ1UΦ2 ⇔there exists i∈N,such that ω(i)|=A∗Φ2,
+and for all j∈Nsuch that 0 ≤j < i and
+ω(j)|=A∗Φ1.
+For technical reasons, we require the following lemma, which follows immedi-
+ately from the deﬁnition of the semantics of the formula Φ 1UΦ2as given in
+Deﬁnition 23. Intuitively, the lemma gives a slightly diﬀerent, but equivalent,
+semantics for the formula Φ 1UΦ2.
+Subformula of φiSubformula of Φ i
+true true
+a a
+ζ aζ
+φ1∧φ2 Φ1∧Φ2
+¬φ ¬Φ
+z.φ z.Φ
+[φ1∃Uφ2]/supersetsqequalλ [Φ1∃UΦ2]/supersetsqequalλ
+[φ1∀Uφ2]/supersetsqequalλ [Φ1∀UΦ2]/supersetsqequalλ
+Fig. 3. Rules for the derivation of a PBTL formula from a PTCTL formula.
+24
+
+--- Page 25 ---
+Lemma 24 For any path ωof(R(G, φ), L∗), set of adversaries A∗onR(G, φ),
+and PBTL formulae Φ1,Φ2, we have ω|=A∗Φ1UΦ2if and only if there ex-
+istsi∈Nsuch that ω(i)|=A∗Φ2, and for all j∈Nsuch that 0≤j≤i,
+ω(j)|=A∗Φ1∨Φ2.
+Furthermore, a PBTL formula, Φ, can be derived from a PTCTL formula, φ,
+by applying the rules in Figure 3 inductively.
+Consider the probabilistic timed automaton given in Figure 4. A region con-
+s1 s2
+x≤1∧y≤1 x≤1∧y≤1x=y= 0
+{x, y:= 0}
+{x, y:= 0}x= 1
+y= 1{x:= 0}y >00.3
+0.7
+1
+1
+Fig. 4. The probabilistic timed automaton G3
+struction of the probabilistic timed automaton of G2is given in Figure 5 (note
+that we omit self loops of the form ps,α
+loopfrom the ﬁgure). As before, the proba-
+bilistic transitions are linked with an arc at their source vertex. In order for the
+reader to easily comprehend the behaviour of the region graph, each vertex has
+been labelled with a constraint that is satisﬁed by all of the clock valuations
+within that augmented region. Consider the following PTCTL formula:
+φ1= [(y= 0)∃U(x >0)∧[(x >0)∃U(y= 0)] ≥0.7]≥1.
+φ1can be interpreted over this graph by ﬁrst converting it into the equivalent
+PBTL formula:
+Φ1= [a(y=0)∃Ua(x>0)∧[a(x>0)∃Ua(y=0)]≥0.7]≥1.
+Φ1is satisﬁed by this region graph, and therefore we conclude that the prob-
+abilistic timed automaton G2satisﬁes φ1. Note that the following PTCTL
+formula, φ2, isnotsatisﬁed by the region graph:
+φ2= [(y= 0)∃U(x >0)∧[(x >0)∃U(y= 0)] >0.7]≥1
+25
+
+--- Page 26 ---
+H I J
+KEG L
+M0=x<y=1
+0=x<y=1
+x=y=1x=y=0
+0<x=y<1
+0<x=y<1
+x=y=10=x<y<1 0=x<y<1
+0<x<y<1
+0<x<y=10<x<y<1
+0<x<y=1B CF
+DAs2
+s1
+s1s1
+s1
+s2
+s2s1 s2
+s1
+s1s2
+s21
+0.3
+1succsucc
+0.70.3
+0.30.7succ
+0.7succ
+1succsuccsucc
+0.70.30.7
+0.3
+0.70.3Fig. 5. The region graph of the probabilistic timed automaton G3
+Proposition 25 (Correctness of the model checking procedure) Given
+the probabilistic timed automaton G, we say that the state /angbracketlefts, ν/angbracketrightofMGand
+formula clock valuation Esatisfy the PTCTL formula φif and only if vertex
+/angbracketlefts,[ν,E]/angbracketrightofR(G, φ)satisﬁes the PBTL formula Φ, where Φis derived from
+φ.
+PROOF. We proceed to show this by induction on the structure of φ. The
+case of true and the boolean connectives, ¬and∧, are self-evident.
+Ifφ=a, where a∈AP, then it is true for state /angbracketlefts, ν/angbracketrightofMGand all formula
+clock valuations if and only if a∈L/angbracketlefts, ν/angbracketright. We also know that a∈L/angbracketlefts, ν/angbracketrightif
+and only if a∈ L(s). By Deﬁnition 17, a∈L∗/angbracketlefts,[ν,E]/angbracketrightifa∈ L(s), so Φ = a
+is true for the vertex /angbracketlefts,[ν,E]/angbracketright.
+Ifφ=ζ, then the state /angbracketlefts, ν/angbracketrightofMGand formula clock valuation Esatisﬁes
+ζifζ[/angbracketlefts, ν/angbracketright,E] =true . Then, from Deﬁnition 17, aζ∈L∗/angbracketlefts,[ν,E]/angbracketright. Because
+Φ =aζ, and Φ is derived from φ, both φand Φ resolve to true in /angbracketlefts, ν/angbracketright,Eand
+/angbracketlefts,[ν,E]/angbracketrightrespectively.
+Ifφ=z.φ 1, then, for a given state /angbracketlefts, ν/angbracketrightand formula clock valuation Ethat
+satisﬁes φ, we know that the augmented region /angbracketlefts,[ν,E]/angbracketrightwill also satisfy z.Φ1,
+26
+
+--- Page 27 ---
+by observing the following argument. By Deﬁnition 11:
+/angbracketlefts, ν/angbracketright,E |=AG
+divz.φ⇔ /angbracketlefts, ν/angbracketright,E[z:= 0]|=AG
+divφ
+⇔ /angbracketlefts,[ν,E[z:= 0]]/angbracketright |=A∗
+divΦ by induction
+⇔ /angbracketlefts,[ν,E]/angbracketright |=A∗
+divz.Φ by Deﬁnition 23.
+Now we show that /angbracketlefts, ν/angbracketright,E |=AG
+div[φ1∃Uφ2]/supersetsqequalλ, if and only if /angbracketlefts,[ν,E]/angbracketright |=A∗
+div
+[Φ1∃UΦ2]/supersetsqequalλ. Our presentation is split into three sections:
+1.showing that, for a path ωofMG, a corresponding path of R(G, φ), [ω], can
+be constructed. Furthermore, ωis divergent if and only if [ ω] is divergent.
+It also follows that, given path ω∗of the region graph, we can construct ω
+such that [ ω] =ω∗.
+2.showing that the two ﬁnite paths ωand [ ω] are associated with the same
+probability value.
+3.showing ω,E |=AG
+divφ1Uφ2if and only if [ ω]|=A∗
+divΦ1UΦ2, where the
+initial augmented state of [ ω] comprises of E.
+1.Consider the following property, which shall henceforth be referred to as the
+sequence property . Take a particular node of G,s∈ S, and a clock valuation
+(ν,E). We say the sequence of equivalence classes, [ ν+d1,E+d1], . . . , [ν+
+dk,E+dk], has the sequence property if each equivalence class satisﬁes inv(s),
+di∈Rfor all 1 ≤i≤k, and for all 1 ≤l < k ,succ([ν+dl,E+dl]) =
+[ν+dl+1,E+dl+1]. Then, for every time value d∈R, where d1≤d≤dk, we
+know that ( ν+d,E+d)∼=∗(ν+dj,E+dj), for some 1 ≤j≤k. We can then
+write ( ν+d,E+d)∈[ν+dj,E+dj].
+The sequence property allows us to state the following. Consider the path ω
+ofMG, such that:
+ω=/angbracketlefts0, ν0/angbracketrightt0,˜p0− − → /angbracketleft s1, ν1/angbracketrightt1,˜p1− − → ···
+Take a particular i≥0. From /angbracketleftsi, νi/angbracketright, and letting titime units elapse, we
+may pass through a number of equivalence classes before taking the discrete
+transition ˜ pi. We let mibe this number. Let vi0=/angbracketleftsi,[νi,E+Dω(i)]/angbracketright, and, if
+mi>0, let vij=/angbracketleftsi,[νi+dj,E+Dω(i) +dj]/angbracketrightfor all 1 ≤j≤mi, and some
+dj∈R.
+Furthermore, we emulate the choice of the distribution ˜ piby the choice of pvimi
+i
+in the vertex vimiso that type(˜pi) = type(pvimi
+i). That is, we choose pvimi
+ito
+be derived from a discrete transition of the same type as ˜ pi, or a self loop if
+type(˜pi) =⊥. Then we can construct the ﬁnite path [ ωi] of the region graph,
+such that:
+[ωi] =vi0pvi0succ− − → vi1pvi1succ− − → ··· vimipvimi
+i− − − → v(i+1)0.
+27
+
+--- Page 28 ---
+Note that [ ωi] must comprise of at least one transition. Let [ ω] = [ω0][ω1]···
+be the concatenation of all such segments.
+This construction also works in the opposite direction. Let ω∗=/angbracketlefts0, α0/angbracketrightps0,α0− − − →
+/angbracketlefts1, α1/angbracketrightps1,α1− − − → ··· be a path of the region graph. We proceed to construct the
+path ωofMGinductively by progressing along the length of the path ω∗.
+For the base case of length 0, let /angbracketlefts0, ν0/angbracketrightbe the state such that ν0,E ∈ α0
+for some formula clock valuation E ∈RZ; then, /angbracketlefts0, ν0/angbracketrightis the ﬁrst state of
+the path ω. Now say we have partially constructed ωup to length i, for
+some i∈N. Let/angbracketleftsi, νi/angbracketright=ω(i). Then the transition /angbracketleftsi, αi/angbracketrightpsi,αi− − − → /angbracketleft si+1, αi+1/angbracketright
+ofω∗can be copied by a transition /angbracketleftsi, νi/angbracketrightti,˜pi− − → /angbracketleft si+1, νi+1/angbracketright, where ti∈R,
+type(˜pi) = type(psi,αi), and νi+1,E+Dω(i+ 1)∈αi+1. Then it follows that,
+given ω∗ofR(G, φ), we can construct ωofMGsuch that [ ω] =ω∗.
+We now show that, if the path ωofMGis divergent, then [ ω] will also be di-
+vergent, where [ ω] is the region graph path constructed from ω. First, suppose
+for a contradiction that [ ω] is a zero path, then by deﬁnition there exists i∈N
+andx∈ X ∪ Z such that [ ω](j) isx-zero for all j > i . By the construction
+of [ω] above, this corresponds to the situation in which the value of xdoes
+not advance from some point on in the path ω, and therefore time also cannot
+advance. However, this contradicts the fact that ωis divergent, and hence [ ω]
+is not zero.
+Secondly, for any clock x∈ X ∪Z , if there exists i∈Nsuch that there does not
+exist an x-zero region after the vertex [ ω](i), then the clock xis not reset after
+this point in the path. Therefore, since the total time elapsed in ωmust exceed
+any bound, the value of the clock xmust also exceed any bound. Therefore,
+there must exist a j≥ifor which all regions appearing along the path after
+[ω](j) are x-unbounded. We conclude that [ ω] must be possibly progressive,
+and therefore [ ω] is also be divergent.
+Conversely, we can show that, if the region graph path ω∗is divergent, then
+the path ωofMGthat is constructed from ω∗can be chosen to be divergent.
+Firstly, as ω∗is not a zero path, it follows that it is possible to select the
+states and transitions along ωsuch that it is possible for a positive amount
+of time to elapse inﬁnitely often. Secondly, as ω∗is possibly progressive, it
+follows that the value of each clock is either reset inﬁnitely often or is not
+bounded from above from some point along the path onwards. Therefore, the
+durations of time transitions are not forced to converge to 0 to prevent a clock
+from exceeding an upper bound. We conclude that the transitions along ωcan
+be chosen in such a way as to ensure divergence.
+2.Now we show that the probability value associated with all of the ﬁnite
+preﬁxes of ωand [ ω] are the same. Consider the segment of ω,ωi=/angbracketleftsi, νi/angbracketrightti,˜pi− − →
+28
+
+--- Page 29 ---
+/angbracketleftsi+1, νi+1/angbracketright, and the corresponding segment of [ ω], constructed as in 1:
+[ωi] =vi0pvi0succ− − → vi1pvi1succ− − → ··· vimipvimi
+i− − − → v(i+1)0,
+where pvimi
+iis either a discrete transition or a self loop. We wish to show that
+Prob ﬁn(ωi) =Prob∗
+ﬁn([ωi]). Say mi≥1, and consider the transition vijpvij
+succ− − →
+vi(j+1), for 1 ≤j < m i. Then, from the sequence property and the above
+construction of [ ω], we know that vi(j+1)is a time successor of vij, and therefore
+pvijsucc= 1. Therefore (and in the case in which mi= 0), our problem reduces
+to showing that:
+Prob ﬁn(/angbracketleftsi, νi/angbracketrightti,˜pi− − → /angbracketleft si+1, νi+1/angbracketright) =Prob∗
+ﬁn(vimipvimi
+i− − − → v(i+1)0).
+By the deﬁnitions of Prob andProb∗, this reduces to showing that:
+˜pi/angbracketleftsi+1, νi+1/angbracketright=pvimi
+i/angbracketleftsi,[νi+1,E+Dω(i+ 1)]/angbracketright.
+We have two cases, depending on whether type(˜pi) = type(pvimi
+i) =⊥or
+type(˜pi) =type(pvimi
+i)/negationslash=⊥.
+Case: type(˜pi) =type(pvimi
+i)/negationslash=⊥.Then type(˜pi) =type(pvimi
+i) =pi, for some
+distribution pi∈prob(si). Recall from Deﬁnition 9 that:
+˜pi/angbracketleftsi+1, νi+1/angbracketright=/summationdisplay
+X⊆X&
+(νi+ti)[X:=0]= νi+1pi(si+1, X),
+and from the deﬁnition of the region graph:
+psi,α
+i/angbracketleftsi+1, β/angbracketright=/summationdisplay
+X⊆X&
+α[X:=0]= βpi(si+1, X),
+where α= [νi+dmi,E+Dω(i) +dmi] and β= [νi+1,E+Dω(i+ 1) + di+1].
+We know that, for any X⊆ X, (νi+ti)[X:= 0]∈[νi+dmi][X:= 0], and,
+trivially, that νi+1∈[νi+1], and so the combinations of X⊆ X used in both
+summations above will be the same. Therefore, the same probability values
+will be summed in the case of MGand that of R(G, φ), and we can conclude
+that ˜ pi/angbracketleftsi+1, νi+1/angbracketright=psi,α
+i/angbracketleftsi+1, β/angbracketright.
+Case: type(˜pi) =type(pvimi
+i) =⊥.Observe that, as pvimi
+iis not a time succes-
+sor transition, then it must be a self loop. Then, from the deﬁnitions of
+transitions with type ⊥in Deﬁnition 9 and self loops in Deﬁnition 17:
+˜pi/angbracketleftsi+1, νi+1/angbracketright=pvimi
+i/angbracketleftsi,[νi+1,E+Dω(i+ 1)]/angbracketright= 1.
+We can repeat such a process for all i∈Nand, by the deﬁnitions of Prob ﬁn
+andProb∗
+ﬁn, show that the probability value associated with all of the ﬁnite
+preﬁxes of ωand [ ω] are the same.
+29
+
+--- Page 30 ---
+3.Next we prove ω,E |=AG
+divφ1Uφ2if and only if [ ω]|=A∗
+divΦ1UΦ2. If
+ω(i) =/angbracketleftsi, νi/angbracketrightfor all i∈N, then ω,E |=AG
+divφ1Uφ2
+⇔exists position ( i, t) ofωsuch that ω(i) +t,E+Dω(i) +t|=AG
+divφ2
+and for all positions ( j, t/prime) ofωsuch that ( j, t/prime)≺(i, t),
+ω(j) +t/prime,E+Dω(j) +t/prime|=AG
+divφ1∨φ2
+by Deﬁnition 11
+⇔exists position ( i, t) ofωsuch that /angbracketleftsi,[νi+t,E+Dω(i) +t]/angbracketright |=A∗
+divΦ2
+and for all positions ( j, t/prime) ofωsuch that ( j, t/prime)≺(i, t),
+/angbracketleftsj,[νj+t/prime,E+Dω(j) +t/prime]/angbracketright |=A∗
+divΦ1∨Φ2
+by induction
+⇔ ∃i/prime∈Nsuch that [ ω](i/prime)|=A∗
+divΦ2and [ ω](j/prime)|=A∗
+divΦ1∨Φ2∀j/prime≤i/prime
+by construction of [ ω]
+⇔[ω]|=A∗
+divΦ1UΦ2 by Lemma 24.
+It follows by the deﬁnition of adversaries, both on probabilistic timed struc-
+tures and the region graph, and the construction in 1, that for all A∈ AG
+div,
+there exists an adversary [ A]∈ A∗
+divsuch that, for some E,
+Path[A]
+ful/angbracketlefts,[ν,E]/angbracketright={[ω]|ω∈PathA
+ful/angbracketlefts, ν/angbracketright}.
+Similarly, we can show that, for all adversaries A∗∈ A∗
+divof the region graph,
+there exists an adversary A∈ AG
+divsuch that [ A] =A∗.
+From 2, we know that the probability values associated with all ﬁnite preﬁxes
+ofωand [ ω] are the same. Then we can conclude that:
+Prob∗{ω∗|ω∗∈PathA∗
+ful/angbracketlefts,[ν,E]/angbracketright&ω|=A∗
+divΦ1UΦ2}
+=Prob{ω|ω∈PathA
+ful/angbracketlefts, ν/angbracketright&ω,E |=AG
+divφ1Uφ2}
+for some A∈ AG
+div.2
+Using the transformation presented above, we can obtain a PBTL formula, Φ,
+from the PTCTL formula, φ. Now we can use the model checking algorithm
+of [6] in order to verify whether the PBTL formula Φ holds in an initial state
+of the region graph, /angbracketleft¯s,(0,E)/angbracketright, where, for all x∈ X, (0,E)(x) = 0 and Eis an
+arbitrary formula clock valuation.
+30
+
+--- Page 31 ---
+7 Model Checking Probabilistic Timed Automata Against Reach-
+ability Properties
+Although the veriﬁcation technique of the previous section can establish the
+correctness of a probabilistic timed automaton model against a broad class of
+properties, it suﬀers from potential ineﬃciency as a result of the high granular-
+ity involved in the region construction of the ﬁnite state space. In particular,
+the size of the region graph is exponential in the number of clocks and the
+magnitude of the maximal constants with which they are compared in zones,
+either in the system description or in the temporal logic formula. Consider-
+ation of a narrower class of properties than those of PTCTL allows us to
+adopt a diﬀerent approach when constructing a ﬁnite-state representation of
+a probabilistic timed automaton.
+Here, we extend the real-time reachability properties of [13,24] with proba-
+bility to obtain probabilistic real-time reachability properties . Such properties
+are expressed in terms of a target set of states and a probability bound; for
+example, the property “with probability 0.9999 or greater, it is possible to cor-
+rectly deliver a data packet” from the example in Section 3.1 can be expressed
+as a probabilistic real-time reachability property. It will also be shown how
+to represent invariance properties, such as “with probability 0.875 or greater,
+the system never aborts”, and time bounded reachability properties, such as
+“with probability 0.975 or greater, it is possible to correctly deliver a data
+packet within 5 time units”, as reachability properties.
+As in the non-probabilistic, real-time reachability case, our ﬁnite state model
+derived from the probabilistic timed automaton Gis obtained, not by the re-
+gion construction, but by forward search through the inﬁnite state space of G.
+Once this has been done, probabilistic reachability analysis is then performed
+on the ﬁnite state model through computation of probabilities using linear
+programming [15,16]. We introduce the reachability algorithm in Section 7.1
+and Section 7.2, and, in Section 7.3, give an example of its application to the
+communication protocol of Section 3.1. In Section 7.4, it will be shown that
+the maximal probability of reaching the target set of states computed for the
+ﬁnite state representation is an upper bound on the actual maximal probability
+of the probabilistic timed automaton Greaching the target set. We conclude
+that our technique is less appropriate for the veriﬁcation of reachability prop-
+erties, for which we wish to establish whether the maximal probability of
+reaching a target set of states exceeds some bound, than invariant properties,
+for which we wish to establish whether the maximal probability of reaching
+certain “unsafe” states is less than some bound.
+31
+
+--- Page 32 ---
+7.1 Introduction to probabilistic real-time reachability
+Given a probabilistic timed automaton G= (S,L,¯s,X,inv,prob,/angbracketleftτs/angbracketrights∈S), let
+Rbe a set of nodes called the target set , let/supersetsqequal∈ {≥ , >}, and let λ∈[0,1] be
+thetarget probability . Then the probabilistic real-time reachability problem for
+Gcan be deﬁned as the triple ( R,/supersetsqequal, λ), with the intuition that the answer to
+the problem is “ Yes” if and only if Gcan reach a state in the target set R
+with probability /supersetsqequalλ, and “ No” otherwise.
+To formalize probabilistic real-time reachability, we ﬁrst must weaken the
+notion of divergent adversaries of probabilistic timed structures to take ac-
+count of reachable states. Intuitively, an adversary of MGisR-divergent if
+the probability measure over its paths which either reach Ror exhibit realiz-
+able behaviour is 1. For a state /angbracketlefts, ν/angbracketright, we deﬁne discrete /angbracketlefts, ν/angbracketright=s.
+Deﬁnition 26 LetAbe an adversary of MG. A path ω∈PathA
+fulisR-
+divergent if it is either divergent or there exists i∈Nsuch that discrete (ω(i))∈
+R.
+An adversary AofMGisR-divergent if and only if
+Prob{ω|ω∈PathA
+fulandωisR-divergent }= 1.
+LetARdivbe the set of all R-divergent adversaries of MG.
+Then the answer to the real-time reachability problem ( R,/supersetsqequal, λ) is “Yes” if
+and only if there exists an R-divergent adversary A∈ A Rdivsuch that:
+Prob{ω|ω∈PathA
+ful/angbracketleft¯s,0/angbracketright&∃i∈N.discrete (ω(i))∈R} /supersetsqequalλ ,
+and “No” otherwise. That is, the answer is “ Yes” if and only if an R-divergent
+adversary can be found for which the probability measure over paths which
+reach a node in Ris/supersetsqequalλ. In contrast to non-probabilistic real-time reachability
+problems [14,27], which consider ﬁnite paths only, in accordance with standard
+notions of reachability in probabilistic systems [15] we consider the reachability
+of states in inﬁnite paths.
+Consider the fact that probabilistic real-time reachability properties require
+that it is possible to reach a certain set of states with probability λor greater. It
+then follows that we are able to verify properties which specify the inevitability
+of reaching a certain set of states with a given probability λorless. Clearly,
+such a property is true if it is not possible to reach the set of states with
+probability greater than λ. Note that inevitability properties with which we
+associate a lower bound on probability, such as the bounded response property
+of Section 3.1, “with probability 0.99 or greater, a data packet will always be
+delivered within 5 time units”, cannot be expressed as a probabilistic real-time
+32
+
+--- Page 33 ---
+reachability property introduced in this section. However, veriﬁcation of such
+a property is possible using PTCTL and the region graph.
+Special case: reachability of symbolic states. As in the non-probabilistic
+context (see [27]), the reachability problem for symbolic states of a proba-
+bilistic timed automaton G= (S,L,¯s,X,inv,prob,/angbracketleftτs/angbracketrights∈S) can be reduced
+to a problem of reachability of nodes, without loss of generality. By a sym-
+bolic state we mean a pair of the form /angbracketlefts, ζ/angbracketright, where s∈ S andζ∈ZX.
+The method is based on the addition of extra transitions to Gwhich are en-
+abled when the target symbolic state is reached, and lead to another node s/prime,
+which we then regard as the target node. Formally, we can reduce the proba-
+bilistic real-time reachability problem for symbolic states of G, (Rsymb,/supersetsqequal, λ),
+where Rsymb={/angbracketlefts1, ζ1/angbracketright, . . . ,/angbracketleftsm, ζm/angbracketright}is a set of symbolic states, and /supersetsqequalandλ
+have their usual meanings, to the standard real-time reachability problem
+on a new probabilistic timed automaton G/primein the following manner. Let
+G/prime= (S ∪ { s/prime},L/prime,¯s,X,inv/prime,prob/prime,/angbracketleftτ/prime
+s/angbracketrights∈S∪{ s/prime}), where:
+• L/prime(s/prime) =∅,inv/prime(s/prime) = true , and prob/prime(s/prime) ={p}, where p(s/prime,∅) = 1 and
+τ/prime
+s/prime(p) =true ,
+•for all s∈ S, letL/prime(s) =L(s),inv/prime(s) =inv(s),prob/prime(s) =prob(s)∪{p/angbracketlefts,ζ/angbracketright|
+/angbracketlefts, ζ/angbracketright ∈Rsymb}, where p/angbracketlefts,ζ/angbracketright(s/prime,∅) = 1, τ/prime
+s(p/angbracketlefts,ζ/angbracketright) = ζ, and, for all other
+p∈prob(s),τ/prime
+s(p) =τs(p).
+The problem ( Rsymb,/supersetsqequal, λ) on Gis then reduced to the associated problem
+({s/prime},/supersetsqequal, λ) onG/prime.
+Application 1: time bounded reachability. In certain cases, we may be
+interested in the reachability of certain nodes either before or after a time
+deadline has expired. For example, recall the communication protocol of Sec-
+tion 3.1, and consider the property, “with probability 0.975 or greater, it is
+possible to correctly deliver a data packet within 5 time units”. Problems
+of this type can be solved in our framework in the following manner. First,
+the probabilistic timed automaton of interest, G, is augmented with a sin-
+gle clock z, which is intended to count the total elapsed time of system ex-
+ecution. The clock zdoes not feature in any of the invariant or enabling
+conditions, or in any clock resets of the new probabilistic timed automaton,
+which will be denoted by G+z(although observe that, as usual, zis 0 ini-
+tially). Say that we are interested in the reachability of the set Rof nodes in
+time∼c, where ∼∈ { <,≤,=,≥, >}andc∈N. Then this problem can be
+phrased as the reachability problem ( R∼c
+symb,/supersetsqequal, λ) on symbolic states, where
+R∼c
+symb={/angbracketlefts, z∼c/angbracketright |s∈R}.G+zthen undergoes a further transformation to
+G/prime
++zin the manner described in the previous paragraph, on which the standard
+probabilistic real-time reachability analysis is then performed.
+Application 2: invariance veriﬁcation. Another type of property of inter-
+33
+
+--- Page 34 ---
+est requires that the probabilistic timed automaton Gdoes not leave a certain
+set of nodes I⊆ S with a given probability or greater. For example, in Sec-
+tion 3.1, the property, “with probability 0.875 or greater, the system never
+aborts”, falls into this category. Such invariance veriﬁcation properties can
+be reduced to standard probabilistic real-time reachability problems in the
+following way. Let the probabilistic invariance veriﬁcation problem Ibe the
+tuple ( I,/supersetsqequal, λ), where /supersetsqequalandλhave their usual meanings. Then Ireduces to
+the probabilistic real-time reachability problem ( S \I,¯/supersetsqequal,1−λ), where ¯/supersetsqequal=>
+if/supersetsqequal=≥and ¯/supersetsqequal=≥if/supersetsqequal=>. That is, we solve the problem of reachability of
+nodes that are not in the required invariant Iwith probability 1 −λor greater.
+If the answer to the problem ( S \I,¯/supersetsqequal,1−λ) is “Yes”, then the answer to I
+is “No”, otherwise the answer to Iis “Yes”.
+Reachability properties and PTCTL. In the non-probabilistic context,
+property speciﬁcation languages such as TCTL do not capture reachable states
+[27], for the simple reason that the former are evaluated over inﬁnite, diver-
+gent paths, whereas the latter are deﬁned by ﬁnite paths. This characteristic
+also transfers to the probabilistic context, albeit in a slightly diﬀerent manner;
+that is, PTCTL is interpreted over divergent adversaries, whereas reachabil-
+ity properties are interpreted over R-divergent adversaries. However, if all
+adversaries of the probabilistic timed structure MGofGare divergent (re-
+call that the property of divergence is stronger than that of R-divergence),
+then we can identify correspondences between PTCTL formulae and reach-
+ability properties. Without loss of generality, for a given set Sof nodes, we
+extend the labelling function Lof the probabilistic timed automaton Gto
+LS:S → 2AP∪{aS}where, for each s∈ S,LS(s) =L(s)∪ {aS}ifs∈S, and
+LS(s) =L(s) otherwise.
+7.2 Probabilistic real-time reachability algorithm
+7.2.1 Preliminaries
+Before the probabilistic real-time reachability algorithm is introduced formally,
+we present the following concepts for representing and manipulating state
+sets of a probabilistic timed automaton. The concepts of c-equivalence and
+c-closure are deﬁned in a similar manner to [27] (note that they are related
+to the extrapolation abstraction of [14]). Given c∈N, two valuations ν, ν/primeare
+described as c-equivalent if:
+•for any clock x∈ X, either ν(x) =ν/prime(x), or ν(x)> candν/prime(x)> c; and,
+•for any two clocks x1, x2∈ X,ν(x1)−ν(x2) =ν/prime(x1)−ν/prime(x2), or ν(x1)−
+ν(x2)> candν/prime(x1)−ν/prime(x2)> c.
+34
+
+--- Page 35 ---
+We deﬁne the c-closure ofζ, denoted by close(ζ, c), to be the greatest zone
+ζ/prime⊇ζsatisfying, for all ν/prime∈ζ/prime, there exists ν∈ζsuch that νandν/primeare
+c-equivalent. Intuitively, the c-closure of a zone is obtained by removing all of
+its boundaries which correspond to constraints which refer to integers greater
+than c. Observe that, for a given c, there are only a ﬁnite number of c-closed
+zones.
+Consider a particular probabilistic timed automaton G. Recall a pair of the
+form/angbracketlefts, ζ/angbracketright, where s∈ S andζ∈ZXis a zone, is called a symbolic state .
+We say that a state /angbracketlefts, ν/angbracketrightiscontained within a symbolic state /angbracketlefts/prime, ζ/angbracketright, written
+/angbracketlefts, ν/angbracketright ∈ /angbracketlefts, ζ/angbracketright, ifs=s/primeandν∈ζ.
+The function close is extended to symbolic states, by deﬁning close(/angbracketlefts, ζ/angbracketright, c) =
+/angbracketlefts,close(ζ, c)/angbracketright. We also overload the function discrete to the case of symbolic
+states; that is, for a symbolic state /angbracketlefts, ζ/angbracketright, we deﬁne discrete /angbracketlefts, ζ/angbracketright=s.
+For the purposes of the forward reachability algorithm, it is convenient to
+regard the discrete transitions of a probabilistic timed automaton Gas deﬁning
+edges between the nodes of G. Formally, an edge eis a tuple of the form
+(s, s/prime, X, p )∈ S2×2X×µ(S × 2X). We deﬁne the setEof edges of the
+probabilistic timed automaton Gsuch that ( s, s/prime, X, p )∈Eif and only if
+p∈prob(s) and p(s/prime, X)>0. For any s∈ S, the set out(s) contains all edges
+of the form ( s,,,).
+Our aim of forward exploration through the state space of a probabilistic timed
+automaton requires operations to return the successor states of all of the states
+in a particular set (where the set is represented as a symbolic state). More
+precisely, we introduce a discrete successor operation which, given an edge e∈
+Eand a symbolic state /angbracketlefts, ζ/angbracketright, returns all of the states obtained by traversing e
+from a state in /angbracketlefts, ζ/angbracketright. Similarly, our time successor operation on the symbolic
+state/angbracketlefts, ζ/angbracketrightreturns the set of states which can be obtained from a state in
+/angbracketlefts, ζ/angbracketrightby letting some time elapse. These two operations can be composed to
+deﬁne a generalized successor operation, called the post operation. For a given
+symbolic state /angbracketlefts, ζ/angbracketrightand an edge e∈E, the post operation returns the set
+of states that can be obtained from /angbracketlefts, ζ/angbracketrightby traversing the edge eand then
+letting time elapse. Note that we also parameterize the post operation by an
+integer c∈N, and only compute the c-closure of symbolic states obtained by
+the time successor operation; in Section 7.2.2, this fact will be used to ensure
+the termination of our forward reachability algorithm.
+Deﬁnition 27 (Successor operations) The forward projection of a zone
+ζ∈ZXis deﬁned to be the zone /arrownortheastζinZX, such that ν∈/arrownortheastζif and only if
+∃t∈R. ν−t∈ζ.
+For a symbolic state /angbracketlefts, ζ/angbracketright:
+35
+
+--- Page 36 ---
+Time successor The time successor of/angbracketlefts, ζ/angbracketrightis deﬁned as time succ/angbracketlefts, ζ/angbracketrightdef=
+/angbracketlefts,/arrownortheastζ∩inv(s)/angbracketright.
+Discrete successor The discrete successor of/angbracketlefts, ζ/angbracketrightwith respect to the edge
+e= (s, s/prime, X, p )is deﬁned as:
+disc succ(e,/angbracketlefts, ζ/angbracketright)def=/angbracketlefts/prime,((ζ∩τs(p))[X:= 0]) ∩inv(s/prime)/angbracketright.
+Post For a constant c∈Nand an edge e∈out(s), the post operation is
+deﬁned according to:
+post[e, c]/angbracketlefts, ζ/angbracketrightdef=close(time succ(disc succ(e,/angbracketlefts, ζ/angbracketright)), c).
+Observe that all of the operations in Deﬁnition 27 preserve the convexity of
+zones [27].
+7.2.2 The algorithm ForwardReachability
+An algorithm for generating a ﬁnite representation of the state space of a
+probabilistic timed automaton for a given set of target states Ris presented
+in Figure 6. As in the case of similar algorithms in the non-probabilistic context
+[13,24], the algorithm searches forward through a reachable portion of the state
+space of the system by successively iterating the transition relation a ﬁnite
+number of times. Note that the introduction of probabilistic information in
+the discrete transition relation of probabilistic timed automata means that we
+now regard the portion of the state space that is computed by this method to
+be reachable with non-zero probability . Given that this set has been generated
+for the probabilistic timed automaton G, we can then obtain an upper bound
+on the maximal probability of computations of Greaching the target set; this
+is achieved by solving a linear programming problem on the generated state
+space, in the manner of [15,16]. Therefore, our strategy consists of twodistinct
+computation steps: ﬁrstly, generation of the state space which is reachable with
+non-zero probability from the initial state, and secondly, performing another
+computation on this state space to ﬁnd the maximum probability relevant to
+our problem.
+One important diﬀerence between the algorithm in Figure 6 and analogous
+algorithms in the non-probabilistic, real-time literature, is the fact that the
+on-the-ﬂy property of the latter algorithms is compromized in our context.
+This property refers to the fact that, if a symbolic state which reaches the
+target set is computed, then the algorithm can terminate immediately with
+a “Yes” answer to the reachability problem. Such a strategy is insuﬃcient
+for probabilistic timed automata. For example, consider the case in which we
+have found a path of symbolic states reaching the target set R, and which
+corresponds to the probability λ. Then it may be possible to ﬁnd another
+path to R, thus increasing the probability of reaching this target set. Given
+36
+
+--- Page 37 ---
+the expense of the probability computation step, we opt to perform it only
+after all of the relevant symbolic states which are reachable with positive
+probability have been computed.
+ForwardReachability (/angbracketleft¯s, ζ0/angbracketright, R){
+c:=cmax(G)
+Z:=∅
+Reached :=∅
+Fringe :={close(time succ/angbracketleft¯s, ζ0/angbracketright, c)}
+repeat
+choose /angbracketlefts, ζ/angbracketright ∈Fringe
+Fringe :=Fringe \ {/angbracketlefts, ζ/angbracketright}
+ifs∈Rthen Reached :=Reached ∪ {/angbracketlefts, ζ/angbracketright}
+else
+for each e∈out(s)do
+let/angbracketlefts/prime, ζ/prime/angbracketright:=post[e, c]/angbracketlefts, ζ/angbracketright
+ifζ/prime/negationslash=∅and/angbracketlefts/prime, ζ/prime/angbracketright /negationslash∈Zthen
+Fringe :=Fringe ∪ {/angbracketlefts/prime, ζ/prime/angbracketright}
+end if
+end for each
+end if
+Z:=Z∪ {/angbracketlefts, ζ/angbracketright}
+until Fringe =∅
+return Z,Reached
+}
+Fig. 6. The algorithm ForwardReachability
+The portion of the state space that is generated by ForwardReachability
+takes the form of a set Zof symbolic states /angbracketlefts, ζ/angbracketright. The set Fringe is used to
+represent the set of symbolic states that are reachable from the initial state
+with non-zero probability, but whose successors may not have been explored.
+Given the probabilistic timed automaton G= (S,L,¯s,X,inv,prob,/angbracketleftτs/angbracketrights∈S),
+and the target set R⊆ S, the sets ZandReached , obtained by the algorithm
+ForwardReachability , are now used to deﬁne a Markov decision process
+NR
+G= (QR
+G,StepsR
+G) called the zone graph , which contains the information
+relevant to the probabilistic real-time reachability problem. As in Section 4.1
+and Section 6.2, we associate a notion of type with the transitions of the zone
+graph, and overload the notation type for this purpose.
+Deﬁnition 28 (Zone Graph) The zone graph NR
+Gof the probabilistic timed
+automaton Gwith respect to Ris the Markov decision process (QR
+G,StepsR
+G)
+such that QR
+G=Zis the set of symbolic states computed by ForwardReach-
+37
+
+--- Page 38 ---
+ability , and StepsR
+G:QR
+G→ P fn(µ(QR
+G))is a set of transitions of the following
+form:
+Discrete transitions For all /angbracketlefts, ζ/angbracketright ∈Z\Reached and p∈prob(s)where
+ζ∩τs(p)/negationslash=∅, there exists ˆp∈StepsR
+G/angbracketlefts, ζ/angbracketright, such that, for each /angbracketlefts/prime, ζ/prime/angbracketright ∈Z:
+ˆp/angbracketlefts/prime, ζ/prime/angbracketright=/summationdisplay
+X⊆X&
+/angbracketlefts/prime,ζ/prime/angbracketright=post[(s,s/prime,X,p ),c]/angbracketlefts,ζ/angbracketrightp(s/prime, X).
+Lettype(ˆp) =p.
+Self loops For every /angbracketlefts, ζ/angbracketright ∈Z, let ˆploop∈StepsR
+G/angbracketlefts, ζ/angbracketright, where ˆploop/angbracketlefts/prime, ζ/prime/angbracketright=
+1if and only if /angbracketlefts/prime, ζ/prime/angbracketright=/angbracketlefts, ζ/angbracketright. Let type(ˆploop) =⊥.
+The initial state of the zone graph is close(time succ/angbracketleft¯s, ζ0/angbracketright, c), which we denote
+by ¯q. As in the standard manner for Markov decision processes [8,6], we can
+deﬁne notions of paths, the function Prob/prime
+ﬁnon ﬁnite paths, and the probability
+measure Prob/primeon inﬁnite paths. Furthermore, the notion of adversaries of
+Markov decision processes is also standard; we denote the set of all adversaries
+of the zone graph by B.
+Recall that, for a given c∈N, there are a ﬁnite number of c-closed zones.
+Lemma 29 then follows from the cmax(G)-closure of all symbolic states of NR
+G,
+and the fact that the number of nodes is ﬁnite [14,27].
+Lemma 29 For any probabilistic timed automaton Gand target set R⊆ S,
+QR
+Gis ﬁnite.
+Observe that Lemma 29 also implies the termination of the algorithm. Note
+that, as any symbolic state is a union of regions, and that the algorithm only
+generates distinct symbolic states, the size of the zone graph, and therefore the
+complexity of the veriﬁcation problem, is the same as that of the associated
+region graph only in the worst case .
+7.2.3 Computation of the maximal reachability probability
+Given that the zone graph of the probabilistic timed automaton Gwith respect
+to the target set Rhas been constructed, the probabilistic real-time reachabil-
+ity problem ( R,/supersetsqequal, λ) can be solved in the following way. First, observe that if
+Reached =∅, then the forward search through the reachable state space has
+found that Ris not reachable with positive probability, and therefore we con-
+clude that the answer to the problem is “ No” (the problem for which /supersetsqequal=≥and
+λ= 0 is meaningless, and therefore is not considered here). If Reached /negationslash=∅,
+we propose to perform a maximal reachability probability computation on the
+state space of the zone graph, following established techniques for ﬁnite state
+Markov decision processes [11,15,16]. Unfortunately, the probability obtained
+38
+
+--- Page 39 ---
+via this approach may be greater than the probability of reaching the target
+set via anyadversary of the probabilistic timed automaton.
+¯ssR
+x=y= 0trues1
+0.5{x:= 0}
+0.51 1{y:= 0}
+s2x= 0∧y= 1 x= 0∧y= 0
+0.5 0.5/angbracketlefts1, x≤y/angbracketright1 1
+/angbracketleft¯s, x=y/angbracketright11
+1
+1/angbracketleftsR, x=y/angbracketright
+/angbracketlefts2, x=y/angbracketright
+Fig. 7. The probabilistic timed automaton G4and the zone graph N{sR}
+G4
+This is illustrated by the example of the probabilistic timed automaton G4,
+and its associated zone graph shown in Figure 7. Say that the target set of
+interest consists of the single node sR. Then it is clear that there are only two
+adversaries of G4(or, rather, of its probabilistic timed structure MG4) such
+that there is a non-zero probability of reaching sR. Intuitively, these correspond
+to two possible times at which the probability distribution associated with the
+initial state is chosen: either when x=y= 0, or when x=y= 1. In the former
+case, if the left-hand edge to s1is taken, then the outgoing edge of s1can never
+be taken, and so we must remain in this node; however, if the right-hand edge
+tos2is taken, then the outgoing edge to sRcan be selected immediately. The
+case for the selection of the transition of ¯ swhen x=y= 1 is symmetrical.
+Therefore, for each of the two adversaries that have been described informally,
+the probability of reaching the target node sRis 0.5. Now consider the zone
+graph N{sR}
+G4shown in Figure 7 (the reader can verify that this is indeed
+the zone graph corresponding to the reachability problem in question). If, in
+/angbracketleft¯s, x=y/angbracketright, the distribution to /angbracketlefts1, x≤y/angbracketrightand/angbracketlefts2, x=y/angbracketrightis selected, and then,
+whichever symbolic state is chosen, a transition to /angbracketleftsR, x=y/angbracketrightis made, then the
+probability of reaching a symbolic state for which the discrete part is sRis 1.
+If the probabilistic real-time reachability problem in question is ( {sR},≥,0.7),
+then the maximal reachability probability that is computed on the zone graph
+will be greater than or equal to 0.7, whereas the answer to the probabilistic
+real-time reachability problem, as presented in Section 7.1, will be “ No”.
+Therefore, we advocate the strategy of returning an answer of “ Maybe ”,
+rather than “ Yes” if the maximal reachability probability computed on the
+zone graph is /supersetsqequalλ, and “ No” otherwise.
+The maximal reachability probability problem on a Markov decision pro-
+39
+
+--- Page 40 ---
+cess is solved by reduction to an appropriate linear programming problem
+[11,15,16]. We now apply this solution to the Markov decision process NR
+G,
+where the set of destination states (see [15]) is set equal to Reached . Let
+Pr(close(time succ/angbracketleft¯s, ζ0/angbracketright, c) be the maximal reachability probability value com-
+puted for the state close(time succ/angbracketleft¯s, ζ0/angbracketright, c). Then, for a given probabilis-
+tic timed automaton Gand a probabilistic real-time reachability problem
+(R,/supersetsqequal, λ), the answer to the problem is:
+•“Maybe ”, if Reached /negationslash=∅and Pr( close(time succ/angbracketleft¯s, ζ0/angbracketright, c))/supersetsqequalλ, and
+•“No”, otherwise.
+Recall that invariance properties can be stated in terms of reachability prop-
+erties, and that if the answer to the reachability property is “ Yes” (“No”)
+then the answer to the invariant property is “ No” (“Yes”, respectively). The
+introduction of the possibility of a “ Maybe ” result to the probabilistic real-
+time reachability problem has the following implications for the veriﬁcation
+of invariance properties: if the answer to the reachability problem obtained
+from the invariance problem is “ Maybe ”, then the answer to the invariance
+problem is also “ Maybe ”; however, if “ No” is returned, then the answer to
+the invariance problem is “ Yes”. This leads us to conclude that our forward
+reachability method may be particularly appropriate for establishing the sat-
+isfaction of probabilistic, real-time invariance properties.
+7.3 Example of probabilistic real-time reachability
+Consider again the probabilistic timed automaton G1of Figure 1. Say we
+are interested in the untimed, reachability property “with probability 0.9999
+or greater, it is possible to correctly deliver a data packet” (we consider an
+untimed property for simplicity). This requirement can be speciﬁed in terms
+of the probabilistic real-time reachability problem ( {ri},≥,0.9999), with the
+computation of the algorithm ForwardReachability taking the form given
+in Figure 8. A typical iteration of the algorithm consists of the following steps:
+ﬁrst, a symbolic state /angbracketlefts, ζ/angbracketrightis taken from Fringe ; second, for all edges that are
+enabled in /angbracketlefts, ζ/angbracketright, the discrete successor is generated; third, the time successors
+of the discrete successors computed in the previous step are generated; ﬁnally,
+the sets Fringe andZare adjusted, so that Fringe now contains the newly
+generated symbolic states (provided that they do not already exist in Fringe
+orZ), and /angbracketlefts, ζ/angbracketrightis added to Z. Note that the second and third steps relate
+to the application of the post[., .](.) operation, and that the cmax(G)-closure
+of the time successors is implicit (as cmax(G) = 7, we take the 7-closure of
+the time successors). The notation s→s/prime, for nodes s, s/prime∈ S, refers to the
+edge from node stos/prime. A special case is iteration 4, in which the node of the
+symbolic state /angbracketleftri, x=y/angbracketrightis found to be in the target set R, and therefore
+40
+
+--- Page 41 ---
+/angbracketleftri, x=y/angbracketrightis added to Reached .
+The resulting zone graph N{ri}
+G1is shown in ﬁgure Figure 9 (we omit the self
+loops that are associated with every symbolic state for simplicity). Observe
+that the most important nondeterministic choice made in this Markov deci-
+sion process is featured in the symbolic state /angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright,
+and that the single destination state of N{ri}
+G1is the symbolic state in Reached ,
+/angbracketleftri, x=y/angbracketright. After application of a linear programming problem, we ﬁnd that
+the maximal reachability probability value of reaching /angbracketleftri, x=y/angbracketrightfrom the
+initial state /angbracketlefthi, x=y≤3/angbracketrightis 0.9998737375. As this value is less than
+that as 0.9999, we conclude that the answer to the reachability problem,
+“with probability 0.9999 or greater, it is possible to correctly deliver a data
+packet”, is “ No.” Observe that the region graph of G1and the PTCTL
+property [ true∃Uri]≥0.9999, which is equivalent to the reachability property
+({ri},≥,0.9999), consists of 101 reachable states, compared to the 8 states
+constructed by the forward reachability method of Figure 6.
+Note that it is straightforward to verify G1against a time bounded reachability
+property such as “with probability 0.975 or greater, it is possible to correctly
+deliver a data packet within 5 time units”. As explained in Section 7.1, all
+that is required is to augment G1with an additional clock z, an extra node
+s/prime, and an additional distribution in the node ri, which is enabled only when
+z≤5 and leads to the new target node s/primewith probability 1. We then perform
+reachability analysis on the new probabilistic timed automaton in a similar
+way to that described above. It also follows that veriﬁcation of invariance
+properties of G1, such as “with probability 0.875 or greater, the system never
+aborts” is possible.
+7.4 Proof of the partial correctness of the probabilistic real-time reachability
+algorithm
+We have shown that our forward reachability procedure will compute a max-
+imal reachability probability on the zone graph that may be greater than the
+actual maximal probability on the probabilistic timed automaton G. How-
+ever, we now show that the computed probability will not be less than the
+actual probability by proving that, for every adversary of the probabilistic
+timed structure MGofG, there exists a suﬃciently “similar” adversary of
+NR
+G, where the notion of “similarity” means that the probability of reach-
+ing the target set Ris the same for both adversaries. The proof proceeds in
+two steps: ﬁrst, properties of single transitions of the zone graph NR
+Gand the
+probabilistic timed structure MGofGare studied, providing the basis of the
+second step, which concerns the paths and adversaries of MGandNR
+G.
+41
+
+--- Page 42 ---
+Initially: Fringe ={/angbracketlefthi, x=y≤3/angbracketright},Z=∅
+Iteration 1: take /angbracketlefthi, x=y≤3/angbracketrightfrom Fringe
+disc succ hi→wr:/angbracketleftwr, ζ0/angbracketright hi→wi:/angbracketleftwi, x= 0∧2≤y≤3/angbracketright
+time succ hi→wr:/angbracketleftwr, x=y≤1/angbracketright hi→wi:/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright
+Fringe ={/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright},Z={/angbracketlefthi, x=y≤3/angbracketright}
+Iteration 2: take /angbracketleftwr, x=y≤1/angbracketrightfrom Fringe
+disc succ wr→ri:/angbracketleftri, x=y≤1/angbracketright wr→wi:/angbracketleftwi, x=y≤1/angbracketright
+time succ wr→ri:/angbracketleftri, x=y/angbracketright wr→wi:/angbracketleftwi, x=y≤3/angbracketright
+Fringe ={/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright,/angbracketleftri, x=y/angbracketright,/angbracketleftwi, x=y≤3/angbracketright},
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright}
+Iteration 3: take /angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketrightfrom Fringe
+disc succ wi→wr:/angbracketleftwr, ζ0/angbracketright wi→wi:/angbracketleftwi, x= 0∧4≤y≤6/angbracketright
+time succ wi→wr:/angbracketleftwr, x=y≤1/angbracketrightwi→wi:/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright
+Fringe ={/angbracketleftri, x=y/angbracketright,/angbracketleftwi, x=y≤3/angbracketright,/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright},
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright}
+Iteration 4: take /angbracketleftri, x=y/angbracketrightfrom Fringe
+Add/angbracketleftri, x=y/angbracketrighttoReached
+Fringe ={/angbracketleftwi, x=y≤3/angbracketright,/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright},
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright,/angbracketleftri, x=y/angbracketright}
+Iteration 5: take /angbracketleftwi, x=y≤3/angbracketrightfrom Fringe
+disc succ wi→wr:/angbracketleftwr, ζ0/angbracketright wi→wi:/angbracketleftwi, x= 0∧2≤y≤3/angbracketright
+time succ wi→wr:/angbracketleftwr, x=y≤1/angbracketrightwi→wi:/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright
+Fringe ={/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright},
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright,/angbracketleftri, x=y/angbracketright,/angbracketleftwi, x=y≤3/angbracketright}
+Iteration 6: take /angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketrightfrom Fringe
+disc succ wi→wr:/angbracketleftwr, ζ0/angbracketright wi→wi:/angbracketleftwi, x= 0∧6≤y≤7/angbracketright wi→aa:/angbracketleftaa, ζ0/angbracketright
+time succ wi→wr:/angbracketleftwr, x=y≤1/angbracketrightwi→wi:/angbracketleftwi, x≤1∧x+ 6≤y≤7/angbracketrightwi→aa:/angbracketleftaa, x=y/angbracketright
+Fringe ={/angbracketleftwi, x≤1∧x+ 6≤y≤7/angbracketright,/angbracketleftaa, x=y/angbracketright},
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright,/angbracketleftri, x=y/angbracketright,/angbracketleftwi, x=y≤3/angbracketright,
+/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright}
+Iteration 7: take /angbracketleftwi, x≤1∧x+ 6≤y≤7/angbracketrightfrom Fringe
+disc succ wi→aa:/angbracketleftaa, ζ0/angbracketright
+time succ wi→aa:/angbracketleftaa, x=y/angbracketright
+Fringe ={/angbracketleftaa, x=y/angbracketright},
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright,/angbracketleftri, x=y/angbracketright,/angbracketleftwi, x=y≤3/angbracketright,
+/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright,/angbracketleftwi, x≤1∧x+ 6≤y≤7/angbracketright}
+Iteration 8: take /angbracketleftaa, x=y/angbracketrightfrom Fringe
+disc succ aa→aa:/angbracketleftaa, ζ0/angbracketright
+time succ aa→aa:/angbracketleftaa, x=y/angbracketright
+Fringe =∅,
+Z={/angbracketlefthi, x=y≤3/angbracketright,/angbracketleftwr, x=y≤1/angbracketright,/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright,/angbracketleftri, x=y/angbracketright,/angbracketleftwi, x=y≤3/angbracketright,
+/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright,/angbracketleftwi, x≤1∧x+ 6≤y≤7/angbracketright,/angbracketleftaa, x=y/angbracketright}
+Fringe =∅, therefore terminate
+Fig. 8. Computations of ForwardReachability onG1.
+42
+
+--- Page 43 ---
+0.990.01
+0.05
+0.05
+0.05
+10.950.950.950.95 0.05
+11/angbracketleftwi, x =y≤3/angbracketright
+/angbracketleftwi, x≤1∧x+ 6≤y≤7/angbracketright/angbracketleftwi, x≤3∧x+ 4≤y≤7/angbracketright/angbracketleftwi, x≤3∧x+ 2≤y≤x+ 3/angbracketright
+/angbracketleftwr, x =y≤1/angbracketright
+/angbracketleftri, x =y/angbracketright/angbracketlefthi, x =y≤3/angbracketright
+/angbracketleftaa, x =y/angbracketright
+Fig. 9. The zone graph N{ri}
+G1.
+7.4.1 Properties of single-step transitions of the zone graph
+We commence by exploring the way in which a single transition of the prob-
+abilistic timed structure MGofGmay be mimicked by a transition of the
+zone graph NR
+G, such that both transitions have the same type (as given by
+the functions denoted by type). Our concerns are twofold: ﬁrst we show that,
+for any state /angbracketlefts, ν/angbracketrightofMGcontained within a symbolic state /angbracketlefts, ζ/angbracketrightofNR
+G, any
+transition from /angbracketlefts, ν/angbracketrightcan be mimicked by a transition from /angbracketlefts, ζ/angbracketrightof the same
+type; then we show that, for any target state /angbracketlefts/prime, ν/prime/angbracketrightof the transition from
+/angbracketlefts, ν/angbracketright, the set of clock resets which can be used to obtain /angbracketlefts/prime, ν/prime/angbracketrightcan be used
+to obtain a set of successor symbolic states of /angbracketlefts, ζ/angbracketright,each element of which
+contains /angbracketlefts/prime, ν/prime/angbracketright.
+Existence of transitions
+First, we show that the existence of a transition from a state /angbracketlefts, ν/angbracketrightofMG
+implies the existence of a transition with the same type from any symbolic
+state of NR
+Gwhich contains /angbracketlefts, ν/angbracketright.
+Lemma 30 For any symbolic state /angbracketlefts, ζ/angbracketright ∈QR
+G, state /angbracketlefts, ν/angbracketright ∈QGsuch that
+/angbracketlefts, ν/angbracketright ∈ /angbracketlefts, ζ/angbracketright, and transition /angbracketlefts, ν/angbracketrightt,˜p− → /angbracketlefts/prime, ν/prime/angbracketrightofMG, there exists a transition
+/angbracketlefts, ζ/angbracketrightˆp− → /angbracketlefts/prime, ζ/prime/angbracketrightofNR
+G, such that type(˜p) =type(ˆp)and/angbracketlefts/prime, ν/prime/angbracketright ∈ /angbracketlefts/prime, ζ/prime/angbracketright.
+43
+
+--- Page 44 ---
+PROOF. The correctness of this lemma follows from the deﬁnitions of post
+and of the zone graph NR
+G(Deﬁnition 27 and Deﬁnition 28). We have two
+cases, depending on whether type(˜p) =p, for some p∈prob(s), or whether
+type(˜p) =⊥.
+Case: type(˜p) =p.Observe that there must exist an X⊆ X such that both
+ν/prime=ν[X:= 0] and p(s/prime, X)>0. Furthermore, from p(s/prime, X)>0, there
+exists an edge e= (s, s/prime, X, p ) in the set of edges of G. From the deﬁnition
+ofpost[., .](.) (and the fact that the initial symbolic state of the zone graph
+isclose(time succ/angbracketleft¯s,0/angbracketright, c)), all of the time successors of any state in /angbracketlefts, ζ/angbracketright
+(and all of the state that are c-equivalent to such time successors) are also in
+/angbracketlefts, ζ/angbracketright. Because the transition /angbracketlefts, ν/angbracketrightt,˜p− → /angbracketlefts/prime, ν/prime/angbracketrightand the fact that p=type(˜p)
+encode the information of letting ttime units elapse from the state /angbracketlefts, ν/angbracketright,
+and then choosing the distribution p, we conclude that ν+t∈τs(p), and,
+since ν+t∈ζ, we have ζ∩τs(p)/negationslash=∅. Furthermore, by the assumption
+of admissible targets of G, ((ζ∩τs(p))[X:= 0]) ∩inv(s/prime)/negationslash=∅. This gives
+us that disc succ(e,/angbracketlefts, ζ/angbracketright) =/angbracketlefts/prime, ζ/prime/prime/angbracketright, where ζ/prime/prime/negationslash=∅. As ν+t∈τs(p), and
+ν/prime= (ν+t)[X:= 0], it must be the case that ν/prime∈ζ/prime/prime, and therefore
+/angbracketlefts/prime, ν/prime/angbracketright ∈ /angbracketlefts/prime, ζ/prime/prime/angbracketright. Next, because close(time succ/angbracketlefts/prime, ζ/prime/prime/angbracketright, c)⊇ /angbracketlefts/prime, ζ/prime/prime/angbracketright, it must
+be the case that /angbracketlefts/prime, ν/prime/angbracketright ∈post[e, c]/angbracketlefts, ζ/angbracketright. Then we let /angbracketlefts/prime, ζ/prime/angbracketright=post[e, c]/angbracketlefts, ζ/angbracketright
+and/angbracketlefts/prime, ν/prime/angbracketright ∈ /angbracketlefts/prime, ζ/prime/angbracketrightas required.
+Case: type(˜p) =⊥.From Deﬁnition 9, it must be the case that /angbracketlefts/prime, ν/prime/angbracketright=
+/angbracketlefts, ν+t/angbracketright. Furthermore, by Deﬁnition 28, the only distribution available in
+/angbracketlefts, ζ/angbracketrightwith type ⊥is a self loop ˆ ploop; therefore, we mimic the transition
+/angbracketlefts, ν/angbracketrightt,˜p− → /angbracketleft s, ν+t/angbracketrightwith the transition /angbracketlefts, ζ/angbracketrightˆploop− − → /angbracketleft s/prime, ζ/prime/angbracketright, where /angbracketlefts/prime, ζ/prime/angbracketright=
+/angbracketlefts, ζ/angbracketright. Because all of the time successors of any state in /angbracketlefts, ζ/angbracketright, together with
+all of the states that are c-equivalent to any such time successor, are also
+in/angbracketlefts, ζ/angbracketright, we have that /angbracketlefts, ν+t/angbracketright ∈ /angbracketleft s, ζ/angbracketright, which is equivalent to /angbracketlefts/prime, ν/prime/angbracketright ∈
+/angbracketlefts/prime, ζ/prime/angbracketright.2
+Targets of transitions
+We now proceed to the main lemma of this section. Intuitively, we highlight
+the correspondence between transitions of the probabilistic timed structure
+MGand the zone graph NR
+Gby establishing the following facts. Consider
+the state /angbracketlefts, ν/angbracketright, the symbolic state /angbracketlefts, ζ/angbracketrightsuch that /angbracketlefts, ν/angbracketright ∈ /angbracketleft s, ζ/angbracketright, and the
+distributions ˜ p,ˆpwhich are available in /angbracketlefts, ν/angbracketrightand/angbracketlefts, ζ/angbracketrightrespectively, and for
+which type(˜p) =type(ˆp) =p. Then:
+•every state of MGwhich is in the support of ˜ pis contained in a symbolic
+state in the support of ˆ p; conversely, every symbolic state of NR
+Gin the
+support of ˆ pcontains a state in the support of ˜ p;
+•furthermore, with the intuition that the probability ˜ p/angbracketlefts/prime, ν/prime/angbracketrightis equal to the
+sum of probabilities assigned by pto edges whose target is s/primeand which
+44
+
+--- Page 45 ---
+reset clocks in such a way as to result in the valuation ν/prime, then traversing
+each of these edges from the symbolic state will result in a target symbolic
+state/angbracketlefts/prime, ζ/prime/angbracketright(not necessarily the same for each edge) which contains /angbracketlefts/prime, ν/prime/angbracketright.
+First, consider the following facts concerning the eﬀects of clock resets on
+valuations and zones. Given a valuation ν∈RX, a particular valuation ν/prime∈RX
+may be obtained via more than one clock reset. For example, if X={x, y},
+andν(x) = ν(y) = 0, then ν[{x}:= 0] = ν[{y}:= 0] = ν[{x, y}:= 0].
+However, note that the application of these reset sets to a given zone ζmay
+result in diﬀerent zones. Consider the zone ζgiven by the constraint x≤y.
+Then ν∈ζ, yet ζ[{x}:= 0] is deﬁned by 0 = x≤y, whereas ζ[{y}:= 0] is
+deﬁned by 0 = y≤x, and ζ[{x, y}:= 0] is deﬁned by x=y= 0.
+These concepts can be described formally in the following way.
+Lemma 31 Given ζ∈ZX,X1, X2⊆ X such that ζ[X1:= 0] = ζ[X2:= 0] , if
+ν∈ζ, then ν[X1:= 0] = ν[X2:= 0] .
+The lemma states that, if the application of two diﬀerent resets to a zone ζ
+results in the same zone ζ/prime, then the application of these resets to a valuation
+νcontained in ζmust result in the same valuation ν/prime. However, the converse
+of Lemma 31 (that, if ν[X1:= 0] = ν[X2:= 0] and ν∈ζ, then ζ[X1:= 0] =
+ζ[X2:= 0]) is notnecessarily true. Therefore, although multiple reset sets may
+result in the same valuation, these sets may result in diﬀerent zones, although
+it is clear that the valuation will be contained within allsuch zones. Consider
+again the above example. Although ζ[{x}:= 0]/negationslash=ζ[{y}:= 0]/negationslash=ζ[{x, y}:= 0],
+it is the case that ν/prime=ν[{x}:= 0] = ν[{y}:= 0] = ν[{x, y}:= 0] is such that
+ν/prime∈ζ[{x}:= 0], ν/prime∈ζ[{y}:= 0] and ν/prime∈ζ[{x, y}:= 0].
+We now introduce three functions in order to reason about the relationship
+between valuations and zones.
+•SResets :RX×RX→22Xis the function such that, for any ν, ν/prime∈RX,
+SResets (ν, ν/prime)def={X⊆ X | ν[X:= 0] = ν/prime}.
+•Similarly, ZResets :ZX×ZX→22Xis the function such that, for any
+ζ, ζ/prime∈ZX,ZResets (ζ, ζ/prime)def={X⊆ X | ζ[X:= 0] = ζ/prime}.
+•Finally, NewZones :ZX×22X→2ZXis the function such that, for any ζ∈
+ZXandY ⊆ 2X,NewZones (ζ,Y)def={ζ/prime∈ZX|ζ/prime=ζ[X:= 0] for some X∈
+Y}.
+The intuition underlying these functions is as follows. SResets (ν, ν/prime) is the set
+of clock resets which, if applied to the valuation ν, result in the valuation ν/prime,
+and ZResets (ζ, ζ/prime) is the set of clock resets which, if applied to the zone ζ,
+result in the zone ζ/prime(note that SResets (ν, ν/prime) and ZResets (ζ, ζ/prime) may contain
+the empty clock reset ∅).NewZones (ζ,Y) is the set of zones which can be
+obtained by the application of clock resets in Ytoζ.
+45
+
+--- Page 46 ---
+The following lemma follows immediately from Lemma 31 and these deﬁni-
+tions.
+Lemma 32 Letζ∈ZXbe a zone.
+(1) For any valuations ν, ν/prime∈RX, and zone ζ/prime∈ZX, such that ν∈ζand
+ν/prime∈ζ/prime, then ZResets (ζ, ζ/prime)⊆SResets (ν, ν/prime).
+(2) For any distinct zones ζ/prime, ζ/prime/prime∈ZX,ZResets (ζ, ζ/prime)∩ZResets (ζ, ζ/prime/prime) =∅.
+(3) For any valuations ν, ν/prime∈RX, and zone ζ/prime∈ZX, such that ν∈ζ
+andν/prime∈ζ/prime, then/uniontext{ZResets (ζ, ζ/prime)|ζ/prime∈NewZones (ζ,SResets (ν, ν/prime))}=
+SResets (ν, ν/prime).
+Observe that part (2) of Lemma 32 implies that the elements of the set
+{ZResets (ζ, ζ/prime)|ζ/prime∈NewZones (ζ,SResets (ν, ν/prime))}are themselves disjoint sets,
+and therefore the union in part (3) of the lemma is a disjoint union.
+We now proceed to the main lemma of this section.
+Lemma 33 Let/angbracketlefts, ν/angbracketright ∈QGbe a state of MG, and /angbracketlefts, ζ/angbracketright ∈QR
+Gbe a symbolic
+state of NR
+Gsuch that /angbracketlefts, ν/angbracketright ∈ /angbracketleft s, ζ/angbracketright. If(t,˜p)∈StepsG/angbracketlefts, ν/angbracketrightand type(˜p) =p
+for some p∈µ(S ×2X), then for any /angbracketlefts/prime, ν/prime/angbracketright ∈QGsuch that ˜p/angbracketlefts/prime, ν/prime/angbracketright>0:
+˜p/angbracketlefts/prime, ν/prime/angbracketright=/summationdisplay
+ζ/prime∈NewZones (ζ∩τs(p),SResets (ν+t,ν/prime))ˆp(close(time succ/angbracketlefts/prime, ζ/prime/angbracketright, c))
+where ˆpis the corresponding distribution of StepsR
+G/angbracketlefts, ζ/angbracketrightgiven by Lemma 30.
+PROOF. From the deﬁnition of the distribution ˜ pin Deﬁnition 9, and from
+the deﬁnition of SResets (., .):
+˜p/angbracketlefts/prime, ν/prime/angbracketright=/summationdisplay
+X⊆X&
+(ν+t)[X:=0]= ν/primep(s/prime, X) =/summationdisplay
+X∈SResets (ν+t,ν/prime)p(s/prime, X). (1)
+Furthermore, by the deﬁnition of the distribution ˆ pin Deﬁnition 28, and from
+the deﬁnition of ZResets (., .), for each ζ/prime∈NewZones (ζ∩τs(p),SResets (ν+
+t, ν/prime)):
+ˆp(close(time succ/angbracketlefts/prime, ζ/prime/angbracketright, c)) =/summationdisplay
+X⊆X&
+/angbracketlefts/prime,ζ/prime/angbracketright=disc succ((s,s/prime,X,p )/angbracketlefts,ζ/angbracketright)p(s/prime, X)
+=/summationdisplay
+X∈ZResets (ζ∩τs(p),ζ/prime)p(s/prime, X).
+Summing over all zones in NewZones (ζ∩τs(p),SResets (ν+t, ν/prime)) gives the
+following equation:
+46
+
+--- Page 47 ---
+/summationdisplay
+ζ/prime∈NewZones (ζ∩τs(p),SResets (ν+t,ν/prime))ˆp(close(time succ/angbracketlefts/prime, ζ/prime/angbracketright, c))
+=/summationdisplay
+ζ/prime∈NewZones (ζ∩τs(p),SResets (ν+t,ν/prime))
+/summationdisplay
+X∈ZResets (ζ∩τs(p),ζ/prime)p(s/prime, X)
+. (2)
+We now reconcile equations (1) and (2). The following equation relies on the
+crucial observation of Lemma 32 that all of the elements of the set {ZResets (ζ∩
+τs(p), ζ/prime)|ζ/prime∈NewZones (ζ∩τs(p),SResets (ν, ν/prime))}are themselves disjoint sets:
+/summationdisplay
+X∈SResets (ν+t,ν/prime)p(s/prime, X)
+=/summationdisplay
+ζ/prime∈NewZones (ζ∩τs(p),SResets (ν+t,ν/prime))
+/summationdisplay
+X∈ZResets (ζ∩τs(p),ζ/prime)p(s/prime, X)
+.
+Therefore, from (1) and (2), after performing appropriate substitutions:
+˜p/angbracketlefts/prime, ν/prime/angbracketright=/summationdisplay
+ζ/prime∈NewZones (ζ∩τs(p),SResets (ν+t,ν/prime))ˆp(close(time succ/angbracketlefts/prime, ζ/prime/angbracketright, c)).2
+We now present an analogous result to Lemma 33 for the case in which
+type(˜p) = type(ˆp) =⊥, which follows immediately from the deﬁnition of the
+probabilistic timed structure and the zone graph (Deﬁnition 9 and Deﬁni-
+tion 28, respectively).
+Lemma 34 Let/angbracketlefts, ν/angbracketright ∈QGbe a state of MG, and /angbracketlefts, ζ/angbracketright ∈QR
+Gbe a symbolic
+state of NR
+Gsuch that /angbracketlefts, ν/angbracketright ∈ /angbracketlefts, ζ/angbracketright. If(t,˜p)∈StepsG/angbracketlefts, ν/angbracketrightsuch that type(˜p) =
+⊥andˆpis the corresponding distribution of StepsR
+G/angbracketlefts, ζ/angbracketrightgiven by Lemma 30,
+then ˜p/angbracketlefts, ν+t/angbracketright= ˆp/angbracketlefts, ζ/angbracketright= 1.
+We conclude this section with the following observation. For a distribution ˜ p
+of the probabilistic timed structure, there will be a ﬁnite number l∈Nof
+states in the support of ˜ p; then, for a related distribution ˆ pof the zone graph,
+which is of the same type as ˜ p, there will be at least lsymbolic states within
+the support of ˆ p. Intuitively, the transitions of the zone graph can be though
+of as “probabilistically branching more than” the associated transitions of the
+probabilistic timed structure.
+7.4.2 Properties of adversaries of the zone graph
+The properties of Section 7.4.1 can be extended to reason about the corre-
+spondence between the paths and adversaries of both the probabilistic timed
+structure MGand the zone graph NR
+G.
+47
+
+--- Page 48 ---
+Adversary construction process. The lemmas of Section 7.4.1 suggest
+the following result: for any adversary AofMG, an adversary BofNR
+Gcan
+be constructed. This construction process will proceed by starting from the
+initial states of MGandNR
+G, progressing along the length of paths of Aand
+successively adding transitions to the partially constructed paths of B. In
+particular, for a path ω∈PathA
+ﬁn/angbracketleft¯s,0/angbracketright, we construct a set of paths Π ω⊆
+Path ﬁn(¯q) which mimic the transitions of ω.
+We proceed by induction on the length of paths of ω∈PathA
+ﬁn/angbracketleft¯s,0/angbracketright. Our aim
+is to construct the set of paths Π ω⊆Path ﬁn(¯q), deﬁning the choices of the
+adversary Bas we proceed along their length. Our base case concerns paths
+of length 0; that is, paths comprising of only the initial states /angbracketleft¯s,0/angbracketrightand ¯q
+ofMGandNR
+Grespectively. As ¯ q=close(time succ/angbracketleft¯s, ζ0/angbracketright, c), it follows that
+/angbracketleft¯s,0/angbracketright ∈¯q.
+Next, consider any path ω∈PathA
+ﬁn/angbracketleft¯s,0/angbracketrightof length i+ 1, then ωis of the form
+ω/primet,˜p− → /angbracketleft s, ν/angbracketrightfor some path ω/primeof length iand/angbracketlefts, ν/angbracketright ∈QG. By induction we
+have constructed the set of paths π∈Πω/prime, and we show how to extend this
+set to form Π ω. We consider the following cases:
+Case: Rhas already been reached. That is, there exists a j≤isuch that
+discrete (ω/prime(j))∈R. From the induction hypothesis (recall that this says that
+a state along a path ω/primeis contained within a symbolic state at the same point
+along the path π/prime∈Πω/prime), we conclude that discrete (π/prime(j)) = discrete (ω/prime(j)).
+From the deﬁnition of the zone graph (Deﬁnition 28), once a state of NR
+Ghas
+reached a node in R, then it loops in its current symbolic state. Therefore,
+regardless of the transition made by Aafter ω/prime, we let B(π/prime) = ˆploopfor all
+π/prime∈Πω/prime, and deﬁne Π ωas the set of paths {π/primeˆploop− − → last(π/prime)|π/prime∈Πω/prime}.
+Case: Rhas not already been reached. Consider any π/prime∈Πω/primeand say
+π/prime(i) =/angbracketlefts/prime, ζπ/prime/angbracketrightandω/prime(i) =/angbracketlefts/prime, ν/prime/angbracketright. Then from our induction hypothesis and
+Lemma 30, there exists ˆ pπ/prime∈StepsR
+G/angbracketlefts/prime, ζπ/prime/angbracketrightsuch that type(ˆpπ/prime) = type(˜p)
+and we simply let B(π) = ˆpπ/prime.
+Now we must consider the preservation of the induction hypothesis by
+the transition; that is, we extend π/primeby a set of transitions for which we are
+certain that the target symbolic state contains /angbracketlefts, ν/angbracketright. Then, to construct
+the set Π ω, we take the union of these extensions over all π/prime∈Πω/prime.
+Iftype(˜p) =⊥, then by Lemma 34 we have /angbracketlefts, ν/angbracketright ∈ /angbracketlefts/prime, ζπ/prime/angbracketrightand we simply
+extend π/primeto a single path π/primeˆpπ/prime− → /angbracketleft s/prime, ζπ/prime/angbracketright.
+On the other hand, if type(˜p) = pfor some p∈µ(S × 2X), then by
+Lemma 30, there exists at least one symbolic state /angbracketlefts, ζ/angbracketrightin the support
+of ˆpπ/primesuch that /angbracketlefts, ν/angbracketright ∈ /angbracketleft s, ζ/angbracketright. Furthermore, for all ζ∈NewZones (ζ/prime∩
+τs/prime(p),SResets (ν/prime+t, ν)), it must be the case that ν∈ζ, and therefore
+/angbracketlefts, ν/angbracketright ∈close(time succ/angbracketlefts, ζ/angbracketright, c). Then we extend the path π/primeto the set of
+48
+
+--- Page 49 ---
+paths of the form
+π/primeˆpπ/prime− → close(time succ/angbracketlefts, ζ/angbracketright, c)
+such that ζ∈NewZones (ζ/prime∩τs/prime(p),SResets (ν/prime+t, ν)∩ {X|p(s, X)>
+0}). Note that for any such ζ, by Deﬁnition 27 and our assumption of
+admissible targets: close(time succ/angbracketlefts, ζ/angbracketright, c) = post[(s/prime, s, X, p ), c]/angbracketlefts/prime, ζ/prime/angbracketrightfor
+some ( s/prime, s, X, p )∈out(s/prime).
+Furthermore, repeating the construction procedure for all ω∈PathA
+ﬁn/angbracketleft¯s,0/angbracketright
+results in an adversary BonNR
+G. We say that Bisconstructed from A. Next,
+we present the fundamental property of B: that the probability with which it
+reaches the target set Rof nodes is equal to the probability of Areaching the
+setR.
+Lemma 35 LetAbe an adversary of MG, and Bbe the adversary of NR
+G
+constructed from A. Ifω∈PathA
+ﬁn/angbracketleft¯s,0/angbracketrightand discrete (ω(i))/negationslash∈Rfor all 0≤
+i <|ω|, then
+Prob ﬁn(ω) =Prob/prime
+ﬁn(Πω).
+PROOF. The proof is by induction on the length of ω. If|ω|= 0, then by def-
+inition of Prob ﬁnandProb/prime
+ﬁn, and construct of Π ω:Prob ﬁn(ω) =Prob/prime
+ﬁn(Πω) =
+1 as required.
+Now suppose that the lemma holds for all paths of length at most k, and
+consider any path ω∈PathA
+ﬁn/angbracketleft¯s,0/angbracketrightof length k+1 such that discrete (ω(i))/negationslash∈R
+for all 0 ≤i <|ω|. IfA(ω(k)) = (t,˜p), then ωis of the form
+ω/primet,˜p− → /angbracketlefts, ν/angbracketright
+for some /angbracketlefts, ν/angbracketright ∈QGsuch that ω/primeis of length kand discrete (ω/prime(i))/negationslash∈Rfor all
+0≤i <|ω/prime|, and hence by induction we have:
+Prob ﬁn(ω/prime) =Prob/prime
+ﬁn(Πω/prime). (3)
+For any π/prime∈Πω/prime, let last(π/prime) =/angbracketlefts/prime, ζπ/prime/angbracketrightand let ˆ pπ/prime∈StepsR
+G/angbracketlefts/prime, ζπ/prime/angbracketrightbe the
+distribution given by Lemma 30 and ˜ p. We now have the following two cases
+to consider.
+Case: type(˜p) =⊥.By construction Π ω={π/primeˆpπ/prime− → /angbracketleft s/prime, ζπ/prime/angbracketright|π/prime∈Πω/prime}, and
+49
+
+--- Page 50 ---
+hence
+Prob/prime
+ﬁn(Πω) =/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/primeˆpπ/prime− → /angbracketleft s/prime, ζπ/prime/angbracketright)
+=/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/prime)·ˆpπ/prime/angbracketlefts/prime, ζπ/prime/angbracketrightby deﬁnition of Prob/prime
+ﬁn
+=/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/prime)·˜p/angbracketlefts, ν/angbracketright by Lemma 34
+=/parenleftBigg
+/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/prime)/parenrightBigg
+·˜p/angbracketlefts, ν/angbracketrightrearranging
+=Prob ﬁn(ω/prime)·˜p/angbracketlefts, ν/angbracketright by (3)
+=Prob ﬁn(ω/primet,˜p− → /angbracketlefts, ν/angbracketright) by deﬁnition of Prob ﬁn
+=Prob ﬁn(ω) by construction.
+Case: type(˜p) =pfor some p∈µ(S ×2X). Suppose last(ω/prime) =/angbracketlefts/prime, ν/prime/angbracketright, then
+by the deﬁnition of Prob/prime
+ﬁnand the construction of Bwe have:
+Prob/prime
+ﬁn(Πω) =
+/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/prime)·/parenleftBigg
+/summationtext
+ζ∈NewZones (ζπ/prime∩τs/prime(p),SResets (ν/prime+t,ν))ˆpπ/prime(close(time succ/angbracketlefts, ζ/angbracketright, c))/parenrightBigg
+.
+Furthermore, by Lemma 33 and the construction of Bfor any π∈Πω:
+˜p/angbracketlefts, ν/angbracketright=/summationdisplay
+ζ∈NewZones (ζπ/prime∩τs/prime(p),SResets (ν/prime+t,ν))ˆpπ/prime(close(time succ/angbracketlefts, ζ/angbracketright, c)).
+Putting this together, we have:
+Prob/prime
+ﬁn(Πω) =/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/prime)·˜p/angbracketlefts, ν/angbracketright
+=/parenleftBigg
+/summationtext
+π/prime∈Πω/primeProb/prime
+ﬁn(π/prime)/parenrightBigg
+·˜p/angbracketlefts, ν/angbracketrightrearranging
+=Prob/prime
+ﬁn(Πω/prime)·˜p/angbracketlefts, ν/angbracketright by deﬁnition of Prob/prime
+ﬁn
+=Prob ﬁn(ω/prime)·˜p/angbracketlefts, ν/angbracketright by (3)
+=Prob ﬁn(ω/primet,˜p− → /angbracketlefts, ν/angbracketright) by deﬁnition of Prob ﬁn
+=Prob ﬁn(ω) by construction
+as required. 2
+Proposition 36 LetAbe an adversary of MG, and Bbe the adversary of
+NR
+Gconstructed from A. Then:
+50
+
+--- Page 51 ---
+Prob{ω|ω∈PathA
+ful/angbracketleft¯s,0/angbracketright&∃i∈N.discrete (ω(i))∈R}
+=Prob/prime{π|π∈PathB
+ful(¯q) &∃i∈N.discrete (π(i))∈R}.
+PROOF. The proof follows from Lemma 35 and the fact that the probability
+measures Prob andProb/primeare induced from the functions Prob ﬁnandProb/prime
+ﬁn
+respectively. 2
+Divergence on the zone graph. The following notion of divergence of paths
+of the zone graph agrees with the deﬁnition given for the non-probabilistic case
+in [9]. We use the predicate unbounded (., .) of [27] to express the unbounded-
+ness of a clock in a certain zone. Given a clock x∈ X and a zone ζ∈ZX, we
+deﬁne:
+unbounded (x, ζ)def=
+
+true if∀t∈R.∃ν∈ζ . ν(x)> t
+false otherwise.
+This predicate is now used to express the manner in which the value of clock x
+may become arbitrarily large before a certain discrete transition is executed.
+The intuition underlying the following deﬁnition of divergent paths on the zone
+graph is that, for each clock x∈ X, we require that xis either reset inﬁnitely
+often, or, from some point on, xis unbounded. Because of the presence of
+reachable states, we deﬁne R-divergence in the usual way.
+Deﬁnition 37 (Divergent zone graph paths) Letπ=/angbracketlefts0, ζ0/angbracketrightˆp0− → /angbracketlefts1, ζ1/angbracketright
+ˆp1− → ··· be an inﬁnite path of the zone graph.
+Divergent The path πisdivergent if and only if, for each clock x∈ X ,
+either:
+(1) for every i∈N, there exists j≥iand edge e= (sj, sj+1, X,type(ˆpj))∈
+out(sj)such that x∈Xand/angbracketleftsj+1, ζj+1/angbracketright=post[e, c]/angbracketleftsj, ζj/angbracketright, or
+(2) there exists i∈Nsuch that, for all j≥i:
+•iftype(ˆpj) =⊥then the predicate unbounded (x, ζj)is true;
+•iftype(ˆpj)/negationslash=⊥, then the predicates unbounded (x, τsj(type(ˆpj)))and
+unbounded (x, ζj)are true.
+R-divergent The path πisR-divergent if and only if either:
+(1) there exists i∈Nsuch that si∈R, or
+(2)πis divergent.
+We now deﬁne divergent adversaries on the zone graph in the obvious manner.
+Deﬁnition 38 An adversary Bof the zone graph NR
+GisR-divergent if and
+51
+
+--- Page 52 ---
+only if
+Prob/prime{π|π∈PathB
+fulandπisR-divergent }= 1.
+Proposition 39 For any R-divergent adversary AofMG, the adversary B
+ofNR
+Gthat is constructed from AisR-divergent.
+PROOF. We proceed by showing that, if the path ωofAisR-divergent,
+then all paths π∈Πωare also R-divergent (where Π ωis the set of paths
+introduced in the construction procedure for B). Firstly, we consider the case
+in which there exists i∈Nsuch that discrete (ω(i))∈R; that is, the path ω
+reaches a target node. Then, by the construction procedure for B, for all paths
+π∈Πω,discrete (π(i)) = discrete (ω(i)). Therefore, discrete (π(i))∈R, and πis
+R-divergent.
+Secondly, we consider the case in which ωdoes not reach the target set R.
+Consider the zone graph path π∈Πω. Say that there exists a clock x∈ X
+such that xisnotreset from the ith transition in πonwards, for some i∈
+N; that is, for the clock x,πdoes not satisfy part (1) of the deﬁnition of
+divergent zone graph paths. Then, as the path ωis divergent, and therefore
+corresponds to time passing above any bound, it must be the case that the
+value of xis not constrained by either an invariant condition or an enabling
+condition which is associated with a probability distribution of Gtaken at
+some point along ωfrom the ith transition onwards. Therefore, condition (2)
+of the deﬁnition of divergent zone graph paths must be satisﬁed by π, and π
+is then R-divergent. 2
+We conclude that, for the target set of nodes R, and for any R-divergent
+adversary Aof the probabilistic timed structure of G, we can construct an R-
+divergent adversary of the zone graph NR
+Gsuch that the probability of reaching
+a node in Rare the same for both AandB.
+Therefore, for the adversary of MGwith the maximal probability of reaching
+a node in R, there exists an adversary of NR
+Gwith the same probability of
+reaching R. Hence, the maximal reachability probability computed on NR
+G
+must be an upper bound on the maximal probability of reaching a node in R
+forMG.
+8 Conclusions
+We conclude with a brief analysis of the complexity of our methods. First,
+consider the PTCTL model checking method based on the region graph. The
+52
+
+--- Page 53 ---
+time complexity of PBTL model checking is polynomial in the size of the sys-
+tem (measured by the number of states and transitions) and linear in the size
+of the formula [6] (see also the recent improvement [4]). Since the translation
+from PTCTL to the extended PBTL has no eﬀect on the size of the formula,
+it follows that the model checking for PTCTL against probabilistic timed sys-
+tems will be polynomial in the size of the region graph and linear in the size
+of the PTCTL formula. Note that the addition of probability distributions to
+timed automata does not signiﬁcantly increase the size of the region graph
+over the size of the non-probabilistic region graph, and that the reset quan-
+tiﬁer formulae we have added to PBTL can be handled in a straightforward
+manner.
+Future work could address the potential ineﬃciencies of this method. Model
+checking of real-time systems is expensive, with its complexity being exponen-
+tial in the number of clocks and the magnitude of their upper bounds (denoted
+bycmax(G) and cmax(φ) in our presentation). However, this complexity relates
+to the region construction, which we established in Section 7 would only be
+constructed by the forward reachability algorithm in the worst case; in prac-
+tice, the zone graph may be signiﬁcantly smaller than the region graph. Note
+that forward reachability is not the only technique in the ﬁeld of timed au-
+tomaton model checking which exhibits the characteristic of being typically
+more eﬃcient than the region construction approach. For instance, the back-
+wards reachability algorithm of [21] has this property, and has already been
+extended to the veriﬁcation of probabilistic timed automata against proper-
+ties of a fragment of PTCTL involving only existential quantiﬁcation over
+adversaries [23]. Another approach concerns the computation of the coarsest
+bisimulation quotient of a probabilistic timed automaton. In our setting, this
+notion of bisimulation borrows concepts from both the time-abstract bisimu-
+lation of [29] and the probabilistic bisimulation of [25]. It is anticipated that
+judicious combination of the algorithms of [29] and [5], which compute the
+coarsest bisimilarity quotient for timed automata and Markov decision pro-
+cesses respectively, will provide the basis of a similar algorithm for probabilistic
+timed automata. It follows from the arguments of [27,26] that such probabilis-
+tic time-abstract bisimilarity preserves PTCTL, implying that model checking
+for the full class of PTCTL properties will be possible on the bisimilarity quo-
+tient structure, which, as with structures obtained via forwards or backwards
+reachability, may be signiﬁcantly smaller than the region graph.
+As noted in [27,28], the existence of behaviours of a timed automaton which
+are not time divergent corresponds to modelling errors, as no real-life sys-
+tem can block the progress of time. Therefore, [27,28] present algorithms for
+the detection of such errors using forward reachability algorithms. Subsequent
+work could address the adaptation of these techniques to probabilistic timed
+automata, using our notion of probabilistic time divergence of Deﬁnition 8.
+Another potential avenue of research is to aid the modelling of complex proba-
+53
+
+--- Page 54 ---
+bilistic real-time systems by developing an adequate notion of parallel compo-
+sition for probabilistic timed automata. This would permit the description of
+a system as a network of probabilistic timed automaton components executing
+in parallel.
+Acknowledgements
+We would like to thank Colin Stirling, the members of the British Coun-
+cil/DAAD ARC project 1031 “Stochastic Modelling and Veriﬁcation” and the
+anonymous referees for many valuable comments and suggestions.
+References
+[1] R. Alur, C. Courcoubetis, and D. Dill. Model-checking for probabilistic real-
+time systems. In Automata, Languages and Programming: Proceedings of the
+18th ICALP , volume 510 of Lecture Notes in Computer Science , pages 115–126,
+1991.
+[2] R. Alur, C. Courcoubetis, and D. Dill. Model-checking in dense real-time.
+Information and Computation , 104(1):2–34, 1993.
+[3] R. Alur and D. Dill. A theory of timed automata. Theoretical Computer Science ,
+126:183–235, 1994.
+[4] C. Baier. On algorithmic veriﬁcation methods for probabilistic systems, 1998.
+Habilitation thesis, University of Mannheim.
+[5] C. Baier, B. Engelen, and M. Majster-Cederbaum. Deciding bisimilarity and
+similarity for probabilistic processes. Journal of Computer and System Sciences ,
+60(1):187–231, 2000.
+[6] C. Baier and M. Kwiatkowska. Model checking for a probabilistic branching
+time logic with fairness. Distributed Computing , 11:125–155, 1998.
+[7] J. Bengtsson, K. Larsen, F. Larsson, P. Pettersson, W. Yi, and C. Weise.
+New generation of UPPAAL. In Proceedings of the International Workshop
+on Software Tools for Technology Transfer , Aalborg, Denmark, July 1998.
+[8] A. Bianco and L. de Alfaro. Model checking of probabilistic and
+nondeterministic systems. In Proceedings of Foundations of Software Technology
+and Theoretical Computer Science (FST&TCS) , volume 1026 of Lecture Notes
+in Computer Science , pages 499–513, 1995.
+[9] A. Bouajjani, S. Tripakis, and S. Yovine. On-the-ﬂy symbolic model checking
+for real-time systems. In 18th IEEE Real-Time Systems Symposium (RTSS’97) ,
+1997.
+54
+
+--- Page 55 ---
+[10] M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine.
+Kronos: a model-checking tool for real-time systems. In A. Hu and M. Vardi,
+editors, Proceedings of the 10th International Conference on Computer-Aided
+Veriﬁcation (CAV’98) , volume 1427 of Lecture Notes in Computer Science .
+Springer-Verlag, 1998.
+[11] C. Courcoubetis and M. Yannakakis. Markov decision processes and regular
+events. IEEE transactions on automatic control , 43(10):1399–1418, 1998.
+[12] P. D’Argenio, J.-P. Katoen, T. Ruys, and J. Tretmans. The bounded
+retransmission protocol must be on time! In E. Brinksma, editor, Proceedings
+of Tools and Algorithms for the Construction and Analysis of Systems,
+(TACAS’97) , volume 1217 of Lecture Notes in Computer Science , pages 416–
+431. Springer-Verlag, 1997.
+[13] C. Daws, A. Olivero, S. Tripakis, and S. Yovine. The tool Kronos. In R. Alur,
+T. A. Henzinger, and E. D. Sontag, editors, Hybrid Systems III , volume 1066
+ofLecture Notes in Computer Science , pages 208–219. Springer-Verlag, 1996.
+[14] C. Daws and S. Tripakis. Model–checking of real–time reachability properties
+using abstractions. In B. Steﬀen, editor, Proceedings of Tools and Algorithms for
+the Construction and Analysis of Systems (TACAS’98) , volume 1384 of Lecture
+Notes in Computer Science . Springer-Verlag, 1998.
+[15] L. de Alfaro. Formal veriﬁcation of probabilistic systems . PhD thesis, Stanford
+University, Department of Computer Science, 1997.
+[16] L. de Alfaro. Computing minimum and maximum reachability times in
+probabilistic systems. In J. Baeten and S. Mauw, editors, Proceedings of the
+International Conference on Concurrency Theory (CONCUR’99) , volume 1664
+ofLecture Notes in Computer Science , pages 66–81. Springer Verlag, 1999.
+[17] D. Dill. Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems.
+In J. Sifakis, editor, Automatic veriﬁcation methods for ﬁnite state systems ,
+volume 407 of Lecture notes in computer science . Springer-Verlag, 1989.
+[18] H. Gregersen and H. E. Jensen. Formal design of reliable real time systems.
+Master’s thesis, Department of Mathematics and Computer Science, Aalborg
+University, 1995.
+[19] H. Hansson and B. Jonsson. A logic for reasoning about time and reliability.
+Formal Aspects of Computing , 6(5):512–535, 1994.
+[20] T. Henzinger and O. Kupferman. From quantity to quality. In O. Maler, editor,
+Proceedings of the International Workshop on Hybrid and Real-time Systems
+(HART’97) , volume 1201 of Lecture Notes in Computer Science , pages 48–62.
+Springer-Verlag, 1997.
+[21] T. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine. Symbolic model checking
+for real-time systems. Information and Computation , 111(2):193–244, 1994.
+55
+
+--- Page 56 ---
+[22] M. Kwiatkowska, G. Norman, R. Segala, and J. Sproston. Automatic
+veriﬁcation of real-time systems with discrete probability distributions. In J.-
+P. Katoen, editor, Proceedings of the 5th International AMAST Workshop on
+Real-Time and Probabilistic Systems (ARTS’99) , volume 1601 of Lecture Notes
+in Computer Science , pages 75–95. Springer Verlag, 1999.
+[23] M. Kwiatkowska, G. Norman, and J. Sproston. Symbolic model checking of
+probabilistic timed automata using backwards reachability. Technical Report
+CSR-00-1, University of Birmingham, 2000.
+[24] K. G. Larsen, P. Pettersson, and W. Yi. Uppaal in a nutshell. Software Tools
+for Technology Transfer , 1(1+2), 1997.
+[25] K. G. Larsen and A. Skou. Bisimulation through probabilistic testing.
+Information & Computation , 94:1–28, 1991.
+[26] R. Segala and N. Lynch. Probabilistic simulations for probabilistic processes.
+Nordic Journal of Computing , 2(2):250–273, 1995.
+[27] S. Tripakis. L’Analyse Formelle des Syst` emes Temporis´ es en Pratique . PhD
+thesis, Universit´ e Joseph Fourier, 1998.
+[28] S. Tripakis. Verifying progress in timed systems. In J.-P. Katoen, editor,
+Proceedings of the 5th International AMAST Workshop on Real-Time and
+Probabilistic Systems (ARTS’99) , volume 1601 of Lecture Notes in Computer
+Science , pages 299–314. Springer Verlag, 1999.
+[29] S. Tripakis and S. Yovine. Analysis of timed systems based on time-abstracting
+bisimulations. In R. Alur and T. A. Henzinger, editors, Proceedings of the Eighth
+International Conference on Computer Aided Veriﬁcation (CAV’96) , volume
+1102 of Lecture Notes in Computer Science , pages 232–243. Springer-Verlag,
+1996.
+56

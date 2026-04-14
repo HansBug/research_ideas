@@ -1,0 +1,1081 @@
+--- Page 1 ---
+Loading web-font Gyre-Pagella/Size1/Regular Journals Topics Information Author Services Initiatives About
+Sign In / Sign Up Submit Search for Articles: Sustainability All Article Types Advanced Journals Sus-
+tainability Volume 15 Issue 8 10.3390/su15086375 Submit to this Journal Review for this Journal Propose
+a Special Issue Article Menu Academic Editor Juneyoung Park Recommended Articles Related Info Link
+More by Authors Links Article Views 5262 Citations 13 Table of Contents Abstract Introduction Overall
+Structure of the Framework Decision-Making Procedure Trajectory Planning Trajectory Tracking Controller
+Design Simulation and Results Conclusions Author Contributions Funding Institutional Review Board State-
+ment Informed Consent Statement Data Availability Statement Conflicts of Interest References share Share
+announcement Help format_quote Cite question_answer Discuss in SciProfiles first_page settings Order
+Article Reprints Open AccessArticle A Hierarchical Framework of Decision Making and Trajectory Tracking
+Control for Autonomous Vehicles by Tao Wang,Dayi Qu ,Hui Song andShouchen Dai School of Mechanical
+and Automotive Engineering, Qingdao University of T echnology, Qingdao 266520, China Author to whom
+correspondence should be addressed. Sustainability 2023, 15(8), 6375; https://doi.org/10.3390/su15086375
+Submission received: 3 February 2023 / Revised: 29 March 2023 / Accepted: 31 March 2023 / Published: 7
+April 2023 Download keyboard_arrow_down Browse Figures Review Reports Versions Notes
+Abstract Most of the existing research in the field of autonomous vehicles (AVs) addresses decision making,
+planning and control as separate factors which may affect AV performance in complex driving environments.
+A hierarchical framework is proposed in this paper to address the problem mentioned above in environments
+with multiple lanes and surrounding vehicles. Firstly, high-level decision making is implemented by a finite-
+state machine (FSM), according to the relative relationship between the ego vehicle (EV) and the surrounding
+vehicles. After the decision is made, a cluster of quintic polynomial equations is established to generate
+the path connecting the initial position to the candidate target positions, according to the traﬀic states
+of the EV and the target vehicle. The optimal path is selected from the cluster, based on the quadratic
+programming (QP) framework. Then, the speed profile is generated, based on the longitudinal displacement–
+time graph (S–T graph), considering the vehicle motion state constraints and collision avoidance. The
+smoothed speed profile is created through another QP formulation, in the space created by the dynamic-
+programming (DP) method. Finally, the planned path and speed profile are combined and sent to the
+lower level control module, which consists of the linear quadratic regulator (LQR) for lateral trajectory
+tracking control, and a double PID controller for longitudinal control. The performance of the proposed
+framework was validated in a co-simulation environment using PreScan, MATLAB/Simulink and CarSim,
+and the results demonstrate that the proposed framework is capable of addressing most ordinary scenarios on
+a structured road, with reasonable decisions and controlling abilities. Keywords: decision making; trajectory
+tracking control; autonomous vehicles; finite-state machine; quadratic programming; dynamic programming;
+linear quadratic regulator
+1. Introduction With the increasing development of sensor and communication engineering, the AV has
+been brought to the forefront, due to its great potential for improving traﬀic safety, eﬀiciency and
+energy reduction [1,2]. A significant factor in the development of the AV has been the annual Defense
+Advanced Research Projects Agency (DARPA) Grand Challenge, from whence AV has received great
+interest from academia, governments and industry [3]. Among these groups, the topic of safety is always
+the highest priority, underlined by statistics revealing that more than 94% of traﬀic accidents are caused
+by human factors [4]. The advanced driving assistant system (ADAS)—which includes lane-keeping
+assistants, autonomous emergency braking and adaptive cruise-control technologies—with which AVs
+are equipped is capable of reducing the chances of traﬀic accidents, and of improving driving safety
+[5]. The core part of the technology in AVs typically includes perception, decision making, planning
+and control [6]. In this paper, we study the decision making, planning and controlling features of
+AVs, as the information from the perception and localization module is assumed to be satisfactory.
+The perception module is responsible for retrieving information from the driving environment of the
+AV. With the progress of sensor fusion and communication technology, AVs equipped with vehicle-
+to-vehicle (V2V) or vehicle-to-infrastructure (V2I) systems are referred to as connected autonomous
+vehicles (CAVs). Through onboard sensors, CAVs are linked with one another, the infrastructure is
+able to share information and the data obtained have higher accuracy and a wider range [7]. The
+decision-making module, which is the indicator of the intelligence level of AVs, and which is deemed to
+be the “brain” of the autonomous driving system, is based on the obtained environmental information,
+1
+
+--- Page 2 ---
+and ensures driving safety and comfort. The typical functions of the decision-making module include
+task planning, global route planning, decision making and local motion planning. Task planning can
+be considered a typical driving operation-scheduling problem, and global route planning is responsible
+for planning the rough driving trajectory which connects the start and end points in the road network.
+The trajectory obtained from global route planning only determines the road on which the vehicle
+should drive; hence, the smoothness of the trajectory is not guaranteed to guide the vehicle at the
+local motion level. The decision-making module, which is also called the behavior-planning module,
+is always applied to determine driving behavior at a micro-level. Typical driving behaviors on a
+structured road include nudging, side passing, lane changing, yielding, overtaking, car-following and
+stopping. During the process of decision making, safety, legitimacy, comfort and eﬀiciency are the
+indispensable elements that should be considered. The decision-making process is always categorized
+into rule-based and learning-based methods. The FSM method is a representative model in the rule-
+based category, which has an interpretable and simple structure based on if-then-else logic, and on
+the small size of the tuning parameters [8]. A hierarchy state machine was proposed in [9], which
+addresses the lane-changing decisions for AVs, and a heuristic-based FSM was proposed in [10] for
+evaluating safety regions and generating reasonable driving behavior. For learning-based methods,
+deep learning, reinforcement learning and inverse reinforcement learning are usually applied. A decision
+method based on the attention mechanism was proposed in [11], which addresses decision making
+in dense traﬀic environments. Some researchers have applied the long short-term memory (LSTM)
+neural network and conditional random field (CRF) to generate human-like decisions that increase
+lane-changing success rates [12,13]. For the reinforcement learning and inverse-reinforcement-learning
+methods, the research in [14] proposed a reinforcement Q-learning method based on rewarding and
+update functions for decision making. For highway-road simulation environments, the research in [15]
+proposed an inverse reinforcement learning (IRL) approach, using Deep Q-Networks to extract the
+rewards in problems with large-state spaces; the simulation results showed that the simulated agent
+could generate collision-free motions and perform human-like lane-changing behavior. However, the
+game-theory method has always been applied in the decision-making field, by modeling the interaction
+behaviors between AVs as either cooperative or non-cooperative games; further details can be found
+in [16,17,18]. With regard to local motion planning, graph search methods from the robotics field
+are widely used, including the A* method [19] and its variants, i.e., weighted A , anytime A , anytime
+repairing A* and anytime dynamic A* [20]; the D* method [21] and its variants, i.e., focused D* and D*
+lite [22]; and the rapid-exploring random tree method (RRT) and its variants, i.e., RRT* [23]. However,
+the smoothness of the path cannot be guaranteed by the graph search method. Some other popular
+methods are utilized to address this problem, such as potential field algorithms [24], parametric and
+semi-parametric methods (Bézier curves [25], the polynomial method [26], sigmoid functions [27], the
+spline-based method [28]) and numerical optimization approaches [29,30]. Trajectory tracking control
+has always been widely studied, and can be decoupled into longitudinal and lateral control. The lateral
+tracking control is responsible for following the planned trajectory, while in the longitudinal direction,
+the task is to track the planned speed profile. Commonly used trajectory tracking control methods
+include pure pursuit control [31], proportional integral derivative (PID) control [32], fuzzy logic control
+[33], sliding mode control [34] and LQR control [35]. As a typical strategy, model predictive control
+has also been studied by many researchers [36,37,38,39,40]. As mentioned above, the AV applies
+the decision made by the decision-making module based on the perception module to plan a feasible
+trajectory that reflects the expected driving behavior, which reacts to the dynamic environment. Then,
+the trajectory is sent to the control module and the actuators on the AV are controlled to follow the
+trajectory while considering constraints such as vehicle dynamics, safety and comfort. However, most
+studies consider the decision-making, planning and control modules as separate parts, rather than in
+an integrated manner. Based on the fact that the framework proposed in this paper integrates the
+decision-making, trajectory-planning and control modules, it has the following characteristics:
+(1) The framework considers that the driving environment consists of multi-lane curved roads and multiple
+surrounding vehicles.
+(2) The FSM is utilized to determine the reasonable driving maneuver based on the relative safe distance
+and speed between the EV and surrounding vehicles under the constrained traﬀic conditions.
+2
+
+--- Page 3 ---
+(3) A cluster of quintic polynomial equations is established to generate the path connecting the initial
+position and the candidate target positions according to the traﬀic states of the EV and target vehicle.
+(4) The S–T graph and DP framework are applied to create the searching space for the speed profile.
+(5) The QP method is used to select the optimal path and speed profile under the constrained searching
+space.
+(6) The LQR controller and a double PID controller are responsible for the lateral and longitudinal tracking
+control, respectively.
+2. Overall Structure of the Framework A typical driving scenario is shown in Figure 1. The vehicles
+surrounding the EV considered in this paper include the current-lane front vehicle (CF), left-lane
+front vehicle (LF), left-lane rear vehicle (LR), right-lane front vehicle (RF) and right-lane rear vehicle
+(RR). The road considered in this paper has three lanes by default and the driving behavior is an
+element from a finite set {car following, free driving, left lane change, right lane change}. If the driving
+condition is the same for the left lane and right lane, the EV is expected to perform a left-lane change
+since the left lane is supposed to allow for a higher velocity. Figure 1. The lane-changing schematic
+diagram. The overall structure of the framework is shown in Figure 2. The framework is a hierarchical
+structure which consists of a sensor system, decision-making module, trajectory-planning module and
+control module. At the top, the sensor system equipped on the AV is assumed to be ideal. The
+required vehicle state information such as positions, velocities, accelerations and headings of the EV
+and surrounding vehicles can be obtained and broadcast to each other. Figure 2. The hierarchical
+decision and control framework. The decision-making module is implemented by an FSM, which is
+responsible for adopting reasonable driving behavior according to the relationship between the EV and
+the surrounding vehicles. The relative distance and velocity are used to judge whether the adjacent
+lane is safe, which is the criterion for potentially changing lanes. After the reasonable decision signal is
+made, the target vehicle is also available and the decision signal is sent to the planning module, which
+is mainly responsible for trajectory generation. The starting point and ending points are determined
+according to the decision made and the position of the target vehicle. Then, a cluster of the trajectories
+is generated by the quintic polynomials that connect the starting point and ending points, from which
+the optimal one is selected based on the cost function of each trajectory. After that, the speed profile
+is generated according to the S–T graph formulated under the constrained driving environment. The
+planning module works in the Frenet frame and coordinate transformation is applied to transform the
+trajectory, combining the local path and the speed profile into the Cartesian frame. For the controller
+layer, the longitudinal and lateral control are implemented by an LQR and a double PID controller,
+respectively. The LQR controller is applied for tracking the planned trajectory in the lateral direction,
+and the PID controller with the inverse model is used for tracking the trajectory in the longitudinal
+direction while keeping a safe distance from the front vehicle and the desired velocity as much as
+possible by determining the required throttle opening or master cylinder pressure of CarSim. Finally,
+the EV is controlled by the framework to perform reasonable driving behavior and track the planned
+trajectory under the constrained driving environment.
+3. Decision-Making Procedure The decision-making procedure is implemented using an FSM algorithm in
+Stateflow to make reasonable and safe driving-behavior decisions according to the relationship between
+the EV and the other surrounding vehicles. The FSM is shown in Figure 3; the input to the FSM is
+the surrounding vehicles’ information and the output is the desired driving state based on the current
+driving conditions. Figure 3. Transition diagram of the finite-state machine. The decision is made
+according to the information of the surrounding vehicles, such as whether the front vehicle in the
+current lane is slower than the desired speed; the lane-changing decision or car-following decision is
+made according to the safe distance between the EV and the surrounding vehicles. The criterion for
+judging the safe distance is based on the longitudinal safe distance described in the RSS model, which
+was first introduced in [41]. The longitudinal safe distance is described as follows: ￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ( 0 , ￿
+￿ ￿
+• 1 2 ￿ ￿ ￿ ￿ , ￿ ￿ ￿ ￿ 2
+• ( ￿ ￿
+• ￿ ￿ ￿ ￿ , ￿ ￿ ￿ ￿ ) 2 2 ￿ ￿ ￿ ￿ ￿ ￿ , ￿ ￿ ￿ − ￿ ￿ 2 2 ￿ ￿ ￿ ￿ ￿ ￿ , ￿ ￿ ￿ )
+3
+
+--- Page 4 ---
+(1) where ￿ ￿ and ￿ ￿ are the velocity of the front and rear vehicles, respectively; ￿ is the maximum response
+time that the rear vehicle may take to initiate the required braking [42]; ￿ ￿ ￿ ￿ , ￿ ￿ ￿ is the maximum
+acceleration of the rear vehicle; and ￿ ￿ ￿ ￿ ￿ ￿ , ￿ ￿ ￿ and ￿ ￿ ￿ ￿ ￿ ￿ , ￿ ￿ ￿ are the minimum and maximum
+braking rates of the rear vehicle and front vehicle, respectively. If the adjacent lanes’ safe distances
+are satisfied, then the EV is able to perform the lane-changing behavior, and if that is not the case,
+the safe distance will also take effect in the car-following scenarios. The detailed description and the
+graphic representation of the RSS safe distance can be found in [43]. There are four driving states (car
+following, free driving, left lane change and right lane change) and six transition conditions ( ￿ 1 , ￿ 2 , ￿
+3 , ￿ 4 , ￿ 5 and ￿ 6 ) in Figure 3. Here, the assumption that the left lane will always have a higher speed
+limit is made, so if there is a lane-changing need the left-lane-changing safe conditions will be verified
+first. The transition conditions that are used for generating driving states are described in Table 1. The
+target vehicle described in the transition condition ￿ 1 means the front vehicle under different driving
+states (e.g., left front vehicle for left lane changing state, same-lane front vehicle for car-following state
+and right front vehicle for right-lane-changing state). The output state of the FSM will be transmitted
+into the following trajectory planning module. Table 1. Transition condition description.
+4. Trajectory Planning After the decision is made, the next step is to plan a reasonable trajectory, which
+consists of a local path and a speed profile for the trajectory-tracking controller. In this study, the path–
+speed decoupling method is used, which will reduce the complexity of the trajectory-planning task.
+The trajectory-planning module includes a reference-line generation module, path-planning module
+and speed-profile generation module. First, the reference line is a set of waypoints that are extracted
+from the lane centerline and smoothed by the smoothness cost function. The reference line forms the
+basis for the trajectory planning since it will determine the projection of the EV and construct the
+Frenet frame. In the path-planning module, the lane-changing target points are generated based on
+the target-point selection mechanism according to the current motion status of the EV and LF. Then,
+quintic polynomials are used for connecting the starting points and target points and the optimal path
+is selected based on the designed cost function. In the speed-profile generation module, the S–T graph
+space is constructed based on the optimal path for modeling the motion status of the surrounding
+environment, after which the S–T space is sliced by the sampling points in both S and T dimensions
+and the rough dynamic programming solution is obtained by calculating the cost for each sampling
+point. Finally, a smoothed speed profile is obtained through the QP framework by considering the
+constraints and the fact that a collision may occur during the lane-changing process. The optimal
+trajectory is the combination of the optimal path and the speed profile, which will be sent to the
+control layer for tracking. 4.1. Reference-Line Generation Under the structured road environments,
+there is always a global path to guide the vehicle driving and the lane centerline is a common choice.
+The generation of the reference line relies on the position information of a series of waypoints, which
+are sampled from the lane centerline with the same interval. However, the sampled waypoints cannot
+be used as a whole if the reference line is too long, since this will increase the cost of determining
+the projections of the vehicle and obstacle positions relative to the centerline. In addition, there may
+be several projections of the vehicle onto the reference line and the centerline does not always have
+continuous curvature, which poses diﬀiculties for the subsequent planning and controlling modules.
+The plan is first to find the location point in the centerline waypoint set that has the smallest distance
+to the vehicle position; then, from this point, we search backward and forward in the set to create
+a subset of waypoints and, finally, apply the smoothing method to this subset to create a smoothed
+waypoint set; this is termed as the reference line. The problem is how to find the location point
+eﬀiciently and it is not wise to consider all the waypoints in the original set in each planning period.
+Here, a hot-start and early-stop mechanism is applied to facilitate the eﬀiciency of the algorithm. The
+algorithm used to find the location point is shown in Algorithm 1. Algorithm 1: Finding location
+points array
+Input :    The vehicle position information array ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ;    The original
+waypoints array ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ;    The global variable denotes first run of algorithm ￿ ￿ ￿ ￿ ￿ ￿
+￿ ;    The global array denotes previous period location point index ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ; Output:    Location point index array ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ;    Location point array ￿
+4
+
+--- Page 5 ---
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ; 1 initialize ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ and ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ; 2 if ￿ ￿ ￿ ￿ ￿ ￿ ￿ then 3  ￿ ￿
+￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ￿ ￿ ; 4  initialize ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ; 5  for ￿ = 1 : ￿ ￿ ￿ ￿ ￿ ￿ ( ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ) do 6    ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = + ∞ ; 7    ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = 0 ; 8    for ￿ = 1 : ￿ ￿ ￿ ￿ ￿ ￿ ( ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ) do 9      ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+=       ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ( ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿] , ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿] ) ;
+10      if ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ < ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ then 11       ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ; 12       ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿] = ￿ ; 13       ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ = 0 ; 14      else 15       ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ + 1 ; 16      end 17      if ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ > ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ then 18       ￿ ￿ ￿ ￿ ￿ ; 19      end 20    end 21    ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿] = ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿]] ; 22  end 23  ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ; 24 else 25  for ￿ = 1 : ￿ ￿ ￿ ￿ ￿ ￿ ( ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ ￿ ) do 26    ￿ = ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ [ ￿] ; 27    the rest of the process is
+the same as the isFirst run branch; 28  end 29 end In Algorithm 1, the ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+contains the vehicle position information in the Cartesian frame, while the ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ contains the
+lane centerline information in the Frenet frame. The global variable ￿ ￿ ￿ ￿ ￿ ￿ ￿ is used to decide whether the
+last period result is adopted. However, since it is not eﬀicient to traverse all the waypoints to calculate the
+distance, once a minimum location point is found it will continue to search for the next ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ waypoints to verify the property. If another minimum location point is acquired during the process, the
+variable ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ is cleared to zero and the whole process is repeated. Next, based
+on the location point with index ￿ ￿ in the ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ , we search backward ￿ ￿ and forward ￿ ￿ points,
+respectively, to create the subset of waypoints. The subset is smoothed by the following QP framework to
+create the local reference line:
+￿ ￿ ￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ￿ = ￿ ￿ − ￿ ￿ ￿ ￿ + ￿ ￿ − 2 ( ￿ ￿ + ￿ ￿ + 2 − 2 ￿ ￿ + 1 ) 2 + ( ￿ ￿ + ￿ ￿ + 2 − 2 ￿ ￿ + 1 ) 2
+• ￿ ￿ ￿ ￿ = ￿ ￿ − ￿ ￿ ￿ ￿
+• ￿ ￿ − 1 ( ￿ ￿ − ￿ ￿
+• 1 ) 2
+• ( ￿ ￿ − ￿ ￿
+• 1 ) 2
+• ￿ ￿ ￿ ￿ = ￿ ￿ − ￿ ￿ ￿ ￿
+• ￿ ￿ ( ￿ ￿ − ￿ ￿ ￿ ) 2
+• ( ￿ ￿ − ￿ ￿ ￿ ) 2
+(2) where ￿ ￿ and ￿ ￿ are the coordinates of the original waypoints, ￿ ￿ is the weight for curvature, ￿ ￿ is
+the weight for controlling the deviation from the original waypoints and ￿ ￿ is used for controlling the
+compactness of the points in the set. The objective function in (2) is readily transformed into the
+standard QP form. 4.2. Frenet Frame and Transformation The Frenet frame, which is also known as
+the curvilinear frame, is prevalent in the planning of the on-road trajectory frame [44]. An evident
+merit is that any type of road in the Cartesian frame can be transformed into a straight counterpart
+in the Frenet frame. Furthermore, it will relieve the diﬀiculty of the planning and controlling task
+by decoupling the task into independent ones in longitudinal and lateral directions [45]. Moreover, it
+is relatively simple to calculate the deviation of the vehicle from the lane centerline and the driving
+distance along the lane centerline under the Frenet frame. The planned trajectories under the Frenet
+frame should be converted back into the Cartesian frame for the controlling task. In the Frenet frame
+constructed based on the reference line, the longitudinal direction is supposed to be the direction
+along the reference line, while the lateral direction is supposed to be the direction perpendicular to the
+longitudinal direction. Limited by the properties of vehicle kinematics, dynamics and road geometry,
+the actual driving trajectory is rather different from the reference trajectory. In the Cartesian frame,
+the vehicle motion state can be described as [ ￿ ￿ → , ￿ ￿ , ￿ ￿ , ￿ ￿ → , ￿ ￿ →] . Here, ￿ ￿ → = ( ￿ , ￿ ) is the
+vehicle’s position, ￿ ￿ is the heading angle, ￿ ￿ is the curvature, ￿ ￿ → is the velocity vector of the vehicle’s
+center of mass (COM) and ￿ ￿ → is the acceleration vector. Let the unit direction vector of the velocity
+vector of the vehicle’s COM ￿ ￿ → and its unit normal vector be ￿ ￿ → . In the Frenet frame, ￿ ￿ → = (
+5
+
+--- Page 6 ---
+￿ ￿ , ￿ ￿ ) is the position vector of the projection point P of the vehicle position Q. The motion state of
+the vehicle is expressed as [ ￿ , ￿ ˙ , ￿ ¨ , ￿ , ￿ ˙ , ￿ ¨ , ￿ ￿ , ￿ ￿] , where s is the longitudinal displacement, ￿
+˙ is the longitudinal velocity, ￿ ¨ is the longitudinal acceleration, l is the lateral displacement, ￿ ˙ is the
+lateral velocity, ￿ ¨ is the lateral acceleration, ￿ ￿ is the first derivative of the lateral displacement with
+respect to the arc length and ￿ ￿ is the second derivative of the lateral displacement with respect to the
+arc length. Let ￿ ￿ → , ￿ ￿ → and ￿ ˙ → denote the unit tangent vector, unit normal vector and velocity
+vector, respectively. Moreover, Δ ￿ = ￿ ￿ − ￿ ￿ . All the above descriptions are expressed in Figure
+4. Figure 4. Relationship between Cartesian frame and Frenet frame. From Figure 4, the following
+equations can be obtained and will be applied later: ￿ ￿ ˙ → = ￿ ￿ → = | ￿ → ￿ | ￿ → ￿
+(3) ￿ ￿ ˙ → = d ￿ ￿ → d ￿ = d ￿ ￿ → d ￿ d ￿ d ￿ = ￿ ￿ → ￿ ˙
+(4) ￿ ￿ ˙ → = d ￿ ￿ → d ￿ = d ￿ ￿ → d ￿ ￿ d ￿ ￿ d ￿ = ￿ ￿ ￿ ￿ → | ￿ ￿ → |
+(5) ￿ ￿ ˙ → = d ￿ ￿ → d ￿ = d ￿ ￿ → d ￿ ￿ d ￿ ￿ d ￿ = − ￿ ￿ ￿ ￿ → | ￿ ￿ → |
+(6) ￿ ￿ ˙ → = d ￿ ￿ → d ￿ = d ￿ ￿ → d ￿ d ￿ d ￿ = ￿ ￿ ￿ ￿ → ￿ ˙
+(7) ￿ ￿ ˙ → = d ￿ ￿ → d ￿ = d ￿ ￿ → d ￿ d ￿ d ￿ = − ￿ ￿ ￿ ￿ → ￿ ˙
+(8) ￿ ￿ → = | ￿ ￿ ˙ → | ￿ ￿ →
+• ￿ ￿ | ￿ ￿ → | 2 ￿ ￿ →
+(9) The lateral displacement l can be expressed as: ￿ = ( ￿ ￿ → − ￿ ￿ → ) · ￿ ￿ →
+(10) By taking the derivatives of both sides of the equation ￿ ￿ →
+• ￿ ￿ ￿ → = ￿ ￿ → and combining (3), (4), (7) and (8) with it, we obtain: ￿ ˙ ￿ ￿ →
+• ￿ ( − ￿ ￿ ￿ ˙ ￿ ￿ → )
+• ￿ ˙ ￿ ￿ → = ￿ ￿ →
+(11) Taking the dot product on both sides of (11) by ￿ ￿ → , we obtain: ￿ ˙ = ￿ ￿ → · ￿ ￿ →
+(12) Taking the dot product on both sides of (11) by ￿ ￿ → , we obtain: ￿ ˙ = ￿ ￿ → · ￿ ￿ → 1 − ￿ ￿ ￿
+(13) Combining the definition of ￿ ￿ and Equations (12) and (13), ￿ ￿ can be obtained from the following
+equation: ￿ ￿ = d ￿ d ￿ = d ￿ d ￿ d ￿ d ￿ = ￿ ˙ ￿ ˙ = ( 1 − ￿ ￿ ￿ ) ￿ ￿ → · ￿ ￿ → ￿ ￿ → · ￿ ￿ →
+(14) Taking the derivative of Equation (13), we obtain ￿ ¨ as follows: ￿ ¨ = d ￿ ˙ d ￿ = ￿ ￿ → · ￿ ￿ → 1 − ￿ ￿ ￿
+• ￿ ˙ 2 1 − ￿ ￿ ￿ ( ￿ ￿ ￿ ￿
+• 2 ￿ ￿ ￿ ￿ )
+(15) Taking the derivative of Equation (12) and taking into account (8), we obtain: ￿ ¨ = ￿ ￿ → · ￿ ￿ → −
+￿ ￿ ( 1 − ￿ ￿ ￿ ) ￿ ˙ 2
+(16) Since ￿ ¨ = d ￿ ˙ d ￿ = d ( ￿ ￿ ￿ ˙ ) d ￿ = d ￿ ￿ d ￿ ￿ ˙
+• ￿ ￿ ￿ ¨ = d ￿ ￿ d ￿ d ￿ d ￿ ￿ ˙
+• ￿ ￿ ￿ ¨ = ￿ ￿ ￿ ˙ 2
+• ￿ ￿ ￿ ¨ , ￿ ￿ can be expressed as: ￿ ￿ = ￿ ¨ − ￿ ￿ ￿ ¨ ￿ ˙ 2
+(17) From Equations (12) and (13), we can obtain: | ￿ ￿ → | sin Δ ￿ = ￿ ˙
+(18) ￿ ￿ → | cos Δ ￿ = ( 1 − ￿ ￿ ￿ ) ￿ ˙
+6
+
+--- Page 7 ---
+(19) tan Δ ￿ = ￿ ˙ ( 1 − ￿ ￿ ￿ ) ￿ ˙ = ￿ ￿ 1 − ￿ ￿ ￿
+(20) The expression of ￿ ￿ → and ￿ ￿ can be obtained from (18)–(20): ￿ ￿ = ￿ ￿
+• arctan ( ￿ ￿ 1 − ￿ ￿ ￿ )
+(21) ￿ ￿ → | = [ ￿ ˙ 2
+• ( 1 − ￿ ￿ ￿ ) 2 ￿ ˙ 2 ] 1 2
+(22) Then, ￿ ￿ → and ￿ ￿ → are expressed as: ￿ ￿ → = ( cos ￿ ￿ , sin ￿ ￿ )
+(23) ￿ ￿ → = ( − sin ￿ ￿ , cos ￿ ￿ )
+(24) Following the same style of ￿ ￿ → by considering (15) and (16), ￿ ￿ → can be expressed as follows: | ￿ ￿
+→ | = [ ￿ ¨
+• ￿ ￿ ( 1 − ￿ ￿ ￿ ) ￿ ˙ 2 ] 2
+• [ ￿ ¨ ( 1 − ￿ ￿ ￿ ) − ￿ ˙ 2 ( ￿ ￿ ￿ ￿
+• 2 ￿ ￿ ￿ ￿ ) ] 2 1 2
+(25) ￿ ￿ ￿ = ￿ ￿
+• arctan ( ￿ ¨
+• ￿ ￿ ( 1 − ￿ ￿ ￿ ) ￿ ˙ 2 ￿ ¨ ( 1 − ￿ ￿ ￿ ) − ￿ ˙ 2 ( ￿ ￿ ￿ ￿
+• 2 ￿ ￿ ￿ ￿ ) )
+(26) Finally, by taking the dot product on both sides of (9), we can obtain ￿ ￿ ￿ ￿ = ￿ ￿ → · ￿ ￿ → | ￿ ￿ → | 2
+(27) 4.3. Quintic Polynomial The trajectory planned for the lane-changing scenarios should be simple,
+safe and comfortable. For lateral control, the vehicle is supposed to follow the expected trajectory
+as close as possible, while in longitudinal control the vehicle is supposed to follow the target speed.
+Typically, the indicator used for measuring the comfort and safety is jerk, which is the derivative of
+the acceleration. A high jerk value means the passengers will experience discomfort. Suppose p is the
+system to be calculated; then, for any time interval [ ￿ 0 , ￿ 1] , the process by which the system evolves
+from [ ￿ ( ￿ 0 ) , ￿ ˙ ( ￿ 0 ) , ￿ ¨ ( ￿ 0 )] to the target state [ ￿ ( ￿ 1 ) , ￿ ˙ ( ￿ 1 ) , ￿ ¨ ( ￿ 1 )] can be expressed
+as a one-dimensional integrator system [46]: ￿ ˙ ( ￿ ) = 0
+1
+0
+0
+0
+1
+0
+0
+0 ￿ ( ￿ ) + 0
+0
+1 ￿ ￿( ￿ )
+7
+
+--- Page 8 ---
+(28) where ￿ ( ￿ ) = [ ￿ ( ￿ ) , ￿ ˙ ( ￿ ) , ￿ ¨ ( ￿ )] ￿ and ￿ ￿( ￿ ) denotes jerk. It is proven in [46] that for the
+system in (28), the optimal trajectory sequence based on jerk exists in the set of quintic polynomials,
+and there exists a solution in the set that is capable of minimizing the cost function as follows: ￿ ￿ ( ￿
+) = ￿ ￿ 0 ￿ 1 ￿ ￿2 ( ￿ ) d ￿
+(29) On a structured road, the AV is expected to move along the road either with the desired speed or the
+lane speed limit if there are no requirements (slow-moving preceding vehicle or obstacles) to change
+the current movement status. Otherwise, the vehicle needs to perform obstacle avoidance and lane-
+changing maneuvers. Similar to [47], the lateral trajectory planning in this study adopts a quintic
+polynomial under the Frenet framework to represent the lateral movement. For lateral planning, if the
+initial state at ￿ 0 is ￿ ￿ 0 = [ ￿ ( ￿ 0 ) , ￿ ˙ ( ￿ 0 ) , ￿ ¨ ( ￿ 0 )] and the terminal state at ￿ 1 is ￿ ￿ 1 =
+[ ￿ ( ￿ 1 ) , ￿ ˙ ( ￿ 1 ) , ￿ ¨ ( ￿ 1 )] , then the lateral movement ￿ ( ￿ ) can be described using a quintic
+polynomial as ￿ ( ￿ ) = ￿ 0
+• ￿ 1 ￿
+• ￿ 2 ￿ 2
+• ￿ 3 ￿ 3
+• ￿ 4 ￿ 4
+• ￿ 5 ￿ 5
+(30) Taking derivatives of (30), the expressions for ￿ ˙ ( ￿ ) and ￿ ¨ ( ￿ ) are ￿ ˙ ( ￿ ) = ￿ 1
+• 2 ￿ 2 ￿
+• 3 ￿ 3 ￿ 2
+• 4 ￿ 4 ￿ 3
+• 5 ￿ 5 ￿ 4
+(31) ￿ ¨ ( ￿ ) = 2 ￿ 2
+• 6 ￿ 3 ￿
+• 12 ￿ 4 ￿ 2
+• 20 ￿ 5 ￿ 3
+(32) In order to calculate the six coeﬀicients of the polynomial, the above equations integrated with the initial
+and terminal conditions can be transformed into a matrix formation with six independent equations
+as follows: ￿ ( ￿ 0 )
+￿ ˙ ( ￿ 0 )
+￿ ¨ ( ￿ 0 )
+￿ ( ￿ 1 )
+￿ ˙ ( ￿ 1 )
+￿ ¨ ( ￿ 1 ) = 1
+￿ 0
+￿ 0 2
+￿ 0 3
+￿ 0 4
+￿ 0 5
+0
+8
+
+--- Page 9 ---
+1
+2 ￿ 0
+3 ￿ 0 2
+4 ￿ 0 3
+5 ￿ 0 4
+0
+0
+2
+6 ￿ 0
+12 ￿ 0 2
+20 ￿ 0 3
+1
+￿ 1
+￿ 1 2
+￿ 1 3
+￿ 1 4
+￿ 1 5
+0
+1
+2 ￿ 1
+3 ￿ 1 2
+4 ￿ 1 3
+5 ￿ 1 4
+0
+0
+2
+6 ￿ 1
+12 ￿ 1 2
+20 ￿ 1 3 ￿ 0
+￿ 1
+￿ 2
+￿ 3
+￿ 4
+￿ 5
+(33) ￿ 0
+9
+
+--- Page 10 ---
+￿ 1
+￿ 2
+￿ 3
+￿ 4
+￿ 5 = 1
+￿ 0
+￿ 0 2
+￿ 0 3
+￿ 0 4
+￿ 0 5
+0
+1
+2 ￿ 0
+3 ￿ 0 2
+4 ￿ 0 3
+5 ￿ 0 4
+0
+0
+2
+6 ￿ 0
+12 ￿ 0 2
+20 ￿ 0 3
+1
+￿ 1
+￿ 1 2
+￿ 1 3
+￿ 1 4
+￿ 1 5
+0
+1
+2 ￿ 1
+3 ￿ 1 2
+4 ￿ 1 3
+5 ￿ 1 4
+0
+0
+10
+
+--- Page 11 ---
+2
+6 ￿ 1
+12 ￿ 1 2
+20 ￿ 1 3 − 1 ￿ ( ￿ 0 )
+￿ ˙ ( ￿ 0 )
+￿ ¨ ( ￿ 0 )
+￿ ( ￿ 1 )
+￿ ˙ ( ￿ 1 )
+￿ ¨ ( ￿ 1 )
+(34) 4.4. Path Planning Given the initial motion status, the target points of the lane-changing process
+need to be determined to create the set of optional paths from which the optimal path is selected.
+Usually, the target motion status is [ ￿ ( ￿ ￿ ￿ ￿ ) , 0] and the coeﬀicients can be determined by the above
+equations. However, selecting the target points for the lane-changing process arbitrarily will harm the
+safety and comfort of the path [48]. Hence, in this study, a mechanism is proposed to select the target
+points for the lane-changing process and, finally, select the optimal path. In this mechanism, the range
+of the longitudinal position along the s axis needs to be determined first according to the surrounding
+environment of the EV. The range here is defined as [ 3 min { ￿ ￿ ￿ , ￿ ￿ ￿ } , 6 max { ￿ ￿ ￿ , ￿ ￿ ￿ }] based
+on the lane-changing model proposed by [49,50,51] with ￿ ￿ ￿ and ￿ ￿ ￿ as the velocity of the EV and
+LF, respectively (the same mechanism also applies for the RF and CF). The ending points for each
+candidate trajectory with different color for the lane-changing process are shown in Figure 5. Figure 5.
+Ending points of lane changing. The cost function shown below is designed for selecting the optimal
+path within the set of paths. Here, ￿ ￿ represents the sampling points along each path. The first three
+terms represent the smoothness cost of the path, while the last term represents the length cost of the
+path.
+￿ ￿ = ￿ 1 ￿ ￿ = 1 ￿ ￿ ￿ ￿ ( ￿ ￿ ) 2 + ￿ 2 ￿ ￿ = 1 ￿ ￿ ￿ ￿ ( ￿ ￿ ) 2 + ￿ 3 ￿ ￿ = 1 ￿ ￿ ￿ ￿ ( ￿ ￿ ) 2
+• ￿ 4 ￿ ￿ = 1 ￿ ￿ − 1 ( ￿ ￿
+• 1 − ￿ ￿ ) 2
+• ( ￿ ( ￿ ￿
+• 1 ) − ￿ ( ￿ ￿ ) ) 2
+(35) 4.5. Speed-Profile Generation The speed-profile generation procedures include three parts: S–T-graph
+generation, rough-solution generation and delicate-solution generation. During the lane-changing pro-
+cess, the vehicle needs to adjust its driving strategy according to its surrounding environment. The
+whole lane-changing process is divided into two stages for considering the rear and front vehicles in the
+current and target lanes, respectively. The S–T graph is an eﬀicient way to represent the configuration
+of the surrounding vehicles in the s and t dimensions. The S–T graph for a typical lane-changing
+scenario is shown in Figure 6 and if ￿ ￿ ￿ > ￿ ￿ ￿ − 0.5 ￿ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ , with L as the vehicle
+length, the effect that LF (red vehicle) has on the trajectory of the EV (white vehicle) should be taken
+into account. As shown in Figure 6, if at ￿ 1 there is a latent collision, the inflated rectangle of the
+LF will be projected onto the trajectory of the EV and subsequently take up the range between ￿ 1
+and ￿ 2 (green rectangle area). ￿ ￿ ￿ ￿ and ￿ ￿ ￿ ￿ are the length of the trajectory and the planning time,
+respectively. Figure 6. S–T graph. Next, the space is sampled into discrete intervals in both the s
+and t dimensions, as shown in Figure 7, and DP is applied for deriving the optimal path (red dashed
+line), which consists of the minimal cost of every sample point in the space. Figure 7. Sampled S–T
+space. The cost function designed for each sample point in the space includes the cost of distance to
+the obstacle vehicle, cost of acceleration, desired speed and jerk. ￿ ￿ ￿ = ￿ 1 ￿ ￿ ￿ ￿ ￿ ￿ ￿
+11
+
+--- Page 12 ---
+• ￿ 2 ( ￿ ¨ ) 2
+• ￿ 3 ( ￿ ￿) 2
+• ￿ 4 ( ￿ ˙ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ) 2
+(36) The cost of distance to the obstacle vehicle is based on the distance from the COM of the EV to the
+line segment of each edge of the inflated rectangle, which represents the obstacle vehicle. The vector
+from the COM of the EV to the starting point of the line segment is ￿ 1 → and to the ending point of
+the line segment is ￿ 2 → ; the vector representing the line segment is ￿ 3 → . Then, the distance from
+the COM of the EV to the line segment can be calculated using (37). After calculating the four line
+segments of the rectangle, the distance is the minimum one. ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = ￿ ￿ ￿ ( | ￿ 1 → | , | ￿ 2 →
+| )
+if ￿ ￿ ￿ ￿ ( ￿ 1 → · ￿ 3 → ) = ￿ ￿ ￿ ￿ ( ￿ 2 → · ￿ 3 → )
+￿ 1 → × ￿ 3 → | | ￿ 3 → |
+otherwise
+(37) The DP solution is a rough solution for the final speed profile and it will create a searching space for
+the QP framework as shown in Figure 8. The QP takes the constraints implemented by the search
+space and physical limitations, etc. The elements needed for the QP framework are shown in (38) and
+(39). The constraints for s and ￿ ˙ are imposed by the obstacle vehicle and the speed limit of the lane.
+Since the S–T graph is constructed based on the planned path, the lateral acceleration is related to the
+curvature of the planned path. After the QP solution of speed profile is obtained, it will be combined
+with the planned path as a whole and sent to the control layer for tracking control. ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ =
+￿ ￿ ￿ [ ￿ ￿ ￿ ( ￿ ￿ ) , ￿ ￿ ￿ ( ￿ ￿ )]
+￿ ˙ ￿ ￿ [ 0 , ￿ ￿ ￿ ￿ ￿ ￿]
+￿ ￿ ¨ ￿ [ ￿ ¨ ￿ ￿ ( ￿ ￿ ) , ￿ ¨ ￿ ￿ ( ￿ ￿ )]
+￿ ￿ < = ￿ ￿ + 1
+￿ ￿ + 1 = ￿ ￿ + ￿ ￿ ˙ ￿ ￿ + 1 2 ￿ ￿ ¨ ￿ ￿ 2 + 1 6 ( ￿ ¨ ￿ + 1 − ￿ ¨ ￿ ) ￿ ￿ 2
+￿ ˙ ￿ + 1 = ￿ ￿ ˙ + ￿ ￿ ¨ ￿ ￿ + 1 2 ( ￿ ¨ ￿ + 1 − ￿ ¨ ￿ ) ￿ ￿
+(38) ￿ ￿ ￿ = ￿ 1 ￿ ￿ = 1 ￿ ￿ ( ￿ ￿ ˙ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ) 2
+• ￿ 2 ￿ ￿ = 1 ￿ ￿ ( ￿ ￿ ¨ ) 2
+• ￿ 3 ￿ ￿ = 1 ￿ ￿ ( ￿ ￿ ￿) 2
+(39) Figure 8. Created space for QP.
+5. Trajectory Tracking Controller Design 5.1. Vehicle Modeling A vehicle dynamics model that reflects
+the vehicle characteristics is a decisive factor to determine the quality of trajectory planning and motion
+control for an AV. There are many different kinds of vehicle models according to research objectives
+[52]. Although higher precision for trajectory planning and motion control is acquired by a vehicle
+dynamics model with more degrees of freedom (DOF), this will increase the cost for computation and
+decrease the convergence speed for algorithms. Therefore, some reasonable assumptions are made as
+follows [33]:
+(1) The vehicles are assumed to drive along a flat road, therefore ignoring vertical movement.
+(2) The suspension system and the vehicle are rigid bodies, therefore ignoring the suspension motion and
+its influence on the coupling relationship.
+12
+
+--- Page 13 ---
+(3) A fixed transmission ratio is assumed, which means the steering wheel angle input is applied on the
+wheels directly.
+(4) The moment of inertia of the vehicle model is constant and the COM cannot move for the lateral load
+transfer.
+(5) The influences of longitudinal and lateral aerodynamics are ignored.
+(6) We only consider the tire-cornering characteristics and ignore the coupling relationship of the longitu-
+dinal and lateral tire forces.
+(7) A small-angle assumption is made for the steering angle.
+(8) The vehicle travels with a constant longitudinal velocity in the vehicle body coordinate system. 5.2.
+Vehicle Dynamics Based on the previous assumptions, the actual vehicle can be simplified into a two-
+DOF bicycle model, which only considers two directions of motion, i.e., lateral and yaw motions; see
+Figure 9. The coordinate system OXYZ represents the geodetic coordinate system, while OXYZ is
+the vehicle body coordinate system in which o is the COM, and both coordinate systems follow the
+right-hand rule. Moreover, the three directions of motion refer to longitudinal motion along the x axis,
+lateral motion along the y axis and yaw motion around the z-axis, which is perpendicular to the oxy
+plane. Figure 9. Vehicle dynamics model. Let us define ￿ ￿ as the velocity of the COM according to
+the instant center of the vehicle with a certain rotation radius, ￿ as the yaw angle between the axial
+line of the vehicle and the X axis, ￿ as the side slip angle of the COM between the velocity of the COM
+and the x axis, and ￿
+• ￿ as the heading angle between the velocity of the COM and the X axis; ￿ ￿ and ￿ ￿ are the lengths
+between the COM and the rear wheel and front wheel, respectively; L = ￿ ￿
+• ￿ ￿ is the wheel base and ￿ ￿ is the front wheel angle. In the case of low-speed scenarios, it is assumed
+that only the front wheel can be steered; therefore, ￿ ￿ 0 and ￿ ￿ ￿ 0 . After some basic geometric
+manipulations, the kinematics characteristic is expressed as: ￿ ˙ = ￿ ￿ cos ￿
+(40) ￿ ˙ = ￿ ￿ sin ￿
+(41) ￿ ˙ = ￿ ￿ tan ￿ ￿ ￿
+(42) As can be seen in the above equations, the kinematics characteristic has the property of nonlinearity and
+the coupling effect between ￿ ￿ and ￿ ￿ , which makes it inappropriate for the motion controller design in
+the longitudinal and lateral directions. Therefore, it will be applied for the coordinate transformation
+between the Cartesian and Frenet frames described later. In order to overcome the limitations of the
+kinematics model for high-speed scenarios, the property of the tires should be included in the modeling
+process, which will be presented in the vehicle dynamics model. For the front steering vehicle based
+on the small-angle assumption, the lateral tire force can be linearized as follows: ￿ ￿ ￿ = ￿ ￿ ￿ ￿
+(43) ￿ ￿ ￿ = ￿ ￿ ￿ ￿
+(44) where ￿ ￿ and ￿ ￿ are the cornering stiffness values of the front and rear tires, respectively, which are
+always negative values according to the right-hand rule, and ￿ ￿ and ￿ ￿ are the side slip angles of the
+front and rear tires. According to Newton’s second law, the force analysis is carried out based on the
+force and moment balance, which establishes the following dynamic equations: ￿ ￿ ￿ = ￿ ￿ ￿ cos ￿ ￿
+• ￿ ￿ ￿
+(45) ￿ ￿ ￿ ¨ = ￿ ￿ ￿ cos ￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿
+(46) where m is the mass of the vehicle and ￿ ￿ represents the moment of inertia around the z axis. The
+absolute acceleration component of the vehicle COM along the y axis is expressed as ￿ ￿ = ￿ ¨
+• ￿ ￿ ￿ ￿ ˙
+13
+
+--- Page 14 ---
+(47) The side slip angles of the front and rear wheels can be approximately expressed as follows based on
+the small-side-slip-angle assumption: ￿ ￿ = ￿ ˙ ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿ − ￿ ￿
+(48) ￿ ￿ = ￿ ￿ ￿ − ￿ ˙ ￿ ￿ ￿ ￿ ￿
+(49) Substituting Equations (43), (44), (47), (48) and (49) into (45) and (46) while considering cos ￿ ￿ ￿ 1
+results in: ￿ ( ￿ ˙ ￿ ￿
+• ￿ ￿ ￿ ￿ ˙ ) = ￿ ￿ ( ￿ ˙ ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿ − ￿ ￿ )
+• ￿ ￿ ( ￿ ￿ ￿ − ￿ ˙ ￿ ￿ ￿ ￿ ￿ )
+(50) ￿ ￿ ￿ ¨ = ￿ ￿ ￿ ￿ ( ￿ ˙ ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿ − ￿ ￿ ) − ￿ ￿ ￿ ￿ ( ￿ ￿ ￿ − ￿ ˙ ￿ ￿ ￿ ￿ ￿ )
+(51) Furthermore, (50) and (51) can be translated into the state space model with ￿ = [ ￿ ˙ , ￿ ˙] ￿ and ￿ = ￿
+￿ as: ￿ ˙ = ￿ ￿
+• ￿ ￿
+(52) with A and B as: ￿ = ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ − ￿ ￿ ￿
+￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ 2 ￿ ￿ + ￿ ￿ 2 ￿ ￿ ￿ ￿ ￿ ￿ ￿
+(53)
+￿
+− ￿ ￿ ￿
+− ￿ ￿ ￿ ￿ ￿ ￿
+(54) 5.3. Tracking Error Model Trajectory tracking is mainly about controlling the vehicles to track a
+planned reference trajectory stably and rapidly [53]. In order to facilitate the controller design for
+trajectory tracking, the tracking error model should be used. Similar to Figure 4, with the reference
+line being replaced by the reference trajectory, let ￿ = ( ￿ , ￿ ) be the vehicle’s position and the projection
+point of the vehicle on the reference trajectory be ￿ = ( ￿ ￿ , ￿ ￿ ) . According to the projection point
+P, s is the curvilinear distance along the reference trajectory and the unit tangent vector, unit normal
+vector and velocity vector are built, which are ￿ ￿ → , ￿ ￿ → and ￿ ˙ → , respectively. The lateral error
+is ￿ ￿ = ￿ ￿ → , while the desired heading angle and the actual heading angle are ￿ ￿ and ￿ ￿ = ￿
+14
+
+--- Page 15 ---
+• ￿ , respectively. Therefore, the heading error is ￿ ￿ − ￿ ￿ . The unit direction vector of the velocity vector
+of the vehicle’s COM ￿ ￿ → is ￿ ￿ → and its unit normal vector is ￿ ￿ → . According to the geometric
+relations, the lateral error is ￿ ￿ = ( ￿ ￿ → − ￿ ￿ → ) · ￿ ￿ → . Considering that ￿ ￿ → is not a constant
+vector and taking the derivative of both sides of the equation, we obtain ￿ ￿ ˙ = ( ￿ ￿ ˙ → − ￿ ￿ ˙ → ) ·
+￿ ￿ →
+• ( ￿ ￿ → − ￿ ￿ → ) · ￿ ￿ ˙ →
+(55) The real and desired position vector can be expressed as: ￿ ￿ ˙ → = | ￿ ￿ → | ￿ ￿ →
+(56) ￿ ￿ ˙ → = | ￿ ˙ → | ￿ ￿ →
+(57) Let us define ￿ ￿ = ￿ − ￿ ￿ , which is small based on the assumption. Then, let us substitute (56) and
+(57) into (55) while considering the Serret–Frenet equation; then, we obtain: ￿ ￿ ˙ = ￿ ￿ ￿ sin ￿ ￿
+• ￿ ￿ ￿ cos ￿ ￿
+(58) Omitting the large curvature of the trajectory scenarios, a group of equations from (58) is obtained: ￿
+￿ ￿ = ￿ ￿ ˙ − ￿ ￿ ￿ ￿ ￿
+(59) ￿ ￿ ￿ ˙ = ￿ ￿ ¨ − ￿ ￿ ￿ ￿ ￿ ˙
+(60) ￿ ˙ = ￿ ￿ ˙
+• ￿ ￿ ˙
+(61) ￿ ¨ = ￿ ￿ ¨
+(62) Choosing the state as ￿ ￿ = [ ￿ ￿ ˙ , ￿ ￿ ¨ , ￿ ￿ ˙ , ￿ ￿ ¨] ￿ and combining with the previous vehicle dynamics
+model results in the following state-space tracking error model: ￿ ￿ ˙ = ￿ ￿ ￿ ￿
+• ￿ ￿ ￿
+• ￿ ￿ ￿ ￿ ˙
+(63) and ￿ ￿ , ￿ ￿ and ￿ ￿ are: ￿ ￿ = 0
+1
+0
+0
+0
+￿ ￿ + ￿ ￿ ￿ ￿ ￿ ￿
+− ￿ ￿ + ￿ ￿ ￿
+￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+0
+0
+0
+1
+0
+￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿
+− ￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ 2 ￿ ￿ + ￿ ￿ 2 ￿ ￿ ￿ ￿ ￿ ￿ ￿
+15
+
+--- Page 16 ---
+(64) ￿ ￿ = 0
+− ￿ ￿ ￿
+0
+− ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ = 0
+￿ ￿ ￿ ￿ − ￿ ￿ ￿ ￿ ￿ ￿ ￿ ￿ − ￿ ￿ ￿
+0
+￿ ￿ 2 ￿ ￿ + ￿ ￿ 2 ￿ ￿ ￿ ￿ ￿ ￿ ￿
+(65) 5.4. LQR Controller Design Based on the lateral error ￿ ￿ and the deviation of yaw angle ￿ ￿ , the
+LQR controller provides the vehicle with the steering angle in an optimal way. The previous tracking
+error model should be converted to a discrete form to obtain the LQR control law. The term ￿ ￿ ˙ is
+omitted here (it will be considered later). Using the midpoint Euler method, the model is discretized
+with sampling time T as follows:
+￿ ￿ ( ￿ + 1 ) = ￿ ￿ ¯ ￿ ￿ ( ￿ ) + ￿ ￿ ¯ ￿ ( ￿ )
+= ( ￿ − ￿ ￿ ￿ 2 ) − 1 ( ￿ + ￿ ￿ ￿ 2 ) ￿ ￿ ( ￿ ) + ￿ ￿ ￿ ￿ ( ￿ )
+(66) The discretized state space model (66) is considered as the constraint in the following objective function:
+￿ = ￿ ￿ = 0 ∞ ￿ ￿ ( ￿ ) ￿ ￿ ￿ ￿ ( ￿ )
+• ￿ ( ￿ ) ￿ ￿ ￿ ( ￿ )
+(67) Therefore, applying the Lagrangian multiplier method, the optimal control law ￿ ( ￿ ) = − ￿ ￿ ￿ ( ￿ ) can
+be obtained as: ￿ = ￿
+• ￿ ￿ ¯ ￿ ￿ ￿ ￿ ¯ − ￿ ￿ ¯ ￿ ￿ ￿ ￿ ¯ ( ￿
+• ￿ ￿ ¯ ￿ ￿ ￿ ￿ ¯ ) − 1 ￿ ￿ ¯ ￿ ￿ ￿ ￿ ¯
+(68)
+￿
+( ￿
+• ￿ ￿ ¯ ￿ ￿ ￿ ￿ ¯ ) − 1 ￿ ￿ ¯ ￿ ￿ ￿ ￿ ¯
+(69) 5.5. Feedforward Control In the previous section, the term ￿ ￿ ˙ was ignored to derive the optimal
+control of LQR. However, it can be seen from the following that the steady-state error will not be zero:
+￿ ￿ ˙ = ( ￿ ￿ − ￿ ￿ ￿ ) ￿ ￿
+• ￿ ￿ ￿ ￿ ˙
+(70) Therefore, the feedforward control law is integrated into the LQR as follows to eliminate the steady-
+state error: ￿ = − ￿ ￿ ￿
+• ￿ ￿
+16
+
+--- Page 17 ---
+(71) After introducing the feedforward control and by setting ￿ ￿ ˙ = 0 , the steady-state error is expressed
+as ￿ ￿ = ( ￿ ￿ − ￿ ￿ ￿ ) − 1 ( ￿ ￿ ￿ ￿
+• ￿ ￿ ￿ ￿ ˙ )
+(72) The exact expression of ￿ ￿ can be obtained using the scientific computing software Mathematica as
+follows: ￿ ￿ = 1 ￿ 1 ￿ ￿ − ￿ ￿ ˙ ￿ ￿ ￿ ￿ ￿
+• ￿ ￿ − ￿ ￿ ￿ 3 − ￿ ￿ ￿ ￿ 2 ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ 3 − ￿ ￿ ￿ ￿
+0
+− ￿ ￿ ˙ ￿ ￿ ￿ ￿ ￿ + ￿ ￿ ￿ ￿ + ￿ ￿ ￿ ￿ ￿ ￿ 2 ￿ ￿
+0
+(73) where ￿ = [ ￿ 1 , ￿ 2 , ￿ 3 , ￿ 4] and ￿ ￿ ˙ = 0 when ￿ ￿ = ￿ ￿ ˙ ￿ ￿ ￿ ￿ ￿
+• ￿ ￿ − ￿ ￿ ￿ 3 − ￿ ￿ ￿ ￿ 2 ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ 3 − ￿ ￿ ￿ ￿
+(74) It can be seen that ￿ ￿ = − ￿ ￿ ˙ ￿ ￿ ￿ ￿ ￿
+• ￿ ￿ ￿ ￿
+• ￿ ￿ ￿ ￿ ￿ ￿ 2 ￿ ￿ seems not to be controlled by ￿ ￿ and K. However, based on the previous assumption, the
+expression of ￿ ￿ can be reduced to ￿ ￿ = − ￿ , which means the heading error ￿ − ￿ ￿ = 0 and verifies
+the definition ￿ ￿ = ￿ − ￿ ￿ ￿ − ￿ = ￿ − ￿ ￿ ￿ ￿
+•
+￿
+￿ ￿ . 5.6. Discrete Trajectory-Error Calculation From the previous section, it can be seen that in order
+to calculate the state error, the coordinate of projection point P of the vehicle position p under the
+Cartesian frame is needed. Since the position, velocity and yaw rate are available from the sensor
+system, only the unknowns ￿ ￿ , ￿ ￿ , ￿ ￿ and ￿ are left. It is worth noting that if the planned trajectory
+is continuous, the projection point of the vehicle position on the trajectory may not be unique (e.g., if
+the reference trajectory is circular and the vehicle position is at the center). Therefore, the trajectory
+planned in this paper is the set of a series of discrete waypoints. The process of calculating the state
+error is summarized as follows. First, find the point ￿ ￿ with the max index in the waypoint set that
+has the shortest distance to the vehicle position. The information included in ￿ ￿ is ( ￿ ￿ , ￿ ￿ , ￿ ￿ , ￿ ￿ ) .
+Then, in order to find the projection point, the assumption is that the curvatures at ￿ ￿ and ￿ ￿ are the
+same, which means that an arc is a proper substitution for the trajectory between these two points.
+Finally, the following equations are derived from Figure 4: ￿ ￿ = ( ￿ → − ￿ ￿ → ) · ￿ ￿ →
+(75) ￿ ￿ = ( ￿ → − ￿ ￿ → ) · ￿ ￿ →
+(76) ￿ ￿ = ￿ ￿
+17
+
+--- Page 18 ---
+• ￿ ￿ ￿ ￿
+(77) ￿ ￿ = ￿ ￿
+(78) 5.7. Longitudinal Controller The longitudinal controller is implemented with a double PID controller,
+which is shown in Figure 10. The inputs of the PID controller are the reference state from the trajectory-
+planning module and the vehicle state from the CarSim vehicle model. The inverse model consists of
+the inverse powertrain model and the inverse-brake-system model. After receiving the controlling signal
+from the PID controller, the inverse model will transform the controlling signal into throttle or brake,
+send it to the CarSim vehicle model and generate the updated vehicle state. Figure 10. Longitudinal
+controller. The throttle angle ( ￿ ￿ ) and the braking pressure ( ￿ ￿ ) are ￿ ￿ ￿ ￿ ￿ = ( ￿ ￿ ￿ ￿ ￿
+• ￿ ￿ ￿
+• ￿ ￿ ￿ 2 ) ￿ ￿ ￿ ￿ ￿ ￿ ￿
+￿ ￿ = ￿ ￿ ￿ − 1 ( ￿ ￿ , ￿ ￿ ￿ ￿ ￿ )
+￿ ￿ = ( ￿ ￿ ￿ ￿ ￿ + ￿ ￿ ￿ 2 + ￿ ￿ ￿ ) ￿ ￿
+(79) where MAP(•) is a nonlinear tabular function representing engine torque characteristics, ￿ ￿ ￿ ￿ is the
+output of the double PID controllers, m is the vehicle mass, ￿ ￿ is the gear ratio, ￿ ￿ is the ratio of the
+final gear, ￿ ￿ is the engine speed, r is the rolling radius of the wheels, g is the gravity coeﬀicient, f is
+the coeﬀicient of the rolling resistance, ￿ ￿ is the coeﬀicient of the aerodynamic drag, v is the vehicle
+velocity, ￿ ￿ is the total braking gain of the wheels and ￿ ￿ is the mechanical eﬀiciency of the driveline.
+6. Simulation and Results The proposed framework was implemented on the co-simulation platforms
+MATLAB/Simulink R2020a, PreScan8.5 and CarSim 2020, as shown in Figure 11. The four scenarios
+were constructed in PreScan, which provides the driving environment including the road information,
+surrounding vehicles and EV information; the main part of the proposed framework was implemented
+in MATLAB/Simulink, which connects PreScan and CarSim, as it receives the driving environment
+information from PreScan and sends the control signal to CarSim, while CarSim provides the high-
+definition vehicle model and sends the updated state information to PreScan. Figure 11. Simulation
+platform consists of PreScan, CarSim and MATLAB/Simulink. The simulation parameters are shown
+in Table 2. The planning module will work at a frequency of 10 Hz since the vehicle state will not
+change too much during the short updated period and a higher frequency will consume more computing
+resources. However, the control module works at a frequency of 100 Hz since the control task needs to
+be performed at a higher frequency than the planning module in order to ensure the accuracy, safety
+and comfort of the trajectory tracking [54]. In order to further reduce the computation burden of the
+simulation platform, the LQR controller gain is calculated offline in advance, which creates a lookup
+table covering the simulation scenarios under different velocities ranging from 0.01 m/s to 50 m/s,
+with an interval of 0.01 m/s. Table 2. Parameters in simulation. It should be noted that labeled
+vehicles such as LR, LF, CF, RF and RR may change during the simulation process. For example,
+the CF vehicle may change to the RR vehicle or the LR vehicle after the left lane-changing or right
+lane-changing behavior. Therefore, the label used for the surrounding vehicle is based on the initial
+relative position of the EV and surrounding vehicles. The testing road constructed in PreScan is a
+three-lane road, which consists of a straight section and a curved section. The centerline coordinate
+of the middle lane starts with (0, 0) and the counterparts of the left lane and right lane are 3.5 m
+in the positive and negative directions of the y axis, respectively. The proposed trajectory planning
+and controller are expected to track the reference trajectory as closely as possible. The centerline of
+the middle lane is shown in Figure 12a, and the effectiveness of the controller is validated through the
+acceleration, ￿ ￿ , ￿ ￿ , ￿ ￿ and the velocity of the EV as shown in Figure 12b–f. The desired velocity
+is 25 m/s and the tracking error is within the acceptable region, and it can be concluded that the
+proposed trajectory planning and tracking controller are capable of tracking the reference trajectory
+while keep the desired velocity as much as possible in the curved road. Figure 12. Trajectory tracking
+18
+
+--- Page 19 ---
+results: (a) global trajectory, (b) acceleration, (c) lateral tracking error, (d) deviation of yaw angel,
+(e) longitudinal tracking error, and (f) velocity. In the first scenario, the simple lane-changing scenario
+is simulated, as shown in Figure 13. The EV is driving with an initial speed of 20 m/s at position
+(250, 0), its desired speed is 25 m/s and the adjacent lanes are empty. The CF vehicle is located at
+(300, 0) and the lane-changing command is generated after the preceding vehicle moves slower than
+the desired speed. At first, the velocity of the preceding vehicle is 25 m/s and at around the third
+second the preceding vehicle starts to decelerate, as shown in Figure 13. After the minimum safe
+distance is reached, the sensor detects the slower preceding vehicle and finds the left lane is empty;
+the left-lane-change command is generated to reach the desired velocity. The results show that the
+controller can guarantee a smooth lane-change maneuver, which is represented by the yaw angle, yaw
+rate and steering angle. One can also see from the planned trajectory and the tracking process in the
+figure that there is not much overshooting during the process. After the lane change is completed,
+the EV performs the overtaking maneuver to maintain its desired velocity, which shows the feasibility
+of the proposed framework. Figure 13. Simulation results of first scenario: (a) yaw rate, (b) yaw
+angle, (c) acceleration, (d) velocities of EV and CF, (e) steering angle, and (f) global trajectories of
+EV and CF. The second scenario simulation result is shown in Figure 14; there is an LR in the left
+lane located at (220, 3.5). The EV is at (250, 0) and the CF position is (300, 0), and both vehicles
+possess similar speed profiles to the first scenario. The LR starts with the initial velocity of 20 m/s
+and lies 30 m behind the EV, while the CF starts with an initial velocity of 25 m/s and lies 50 m
+ahead. The CF starts to brake harshly and the LR starts to accelerate around the fourth second and
+after the minimum distance with the CF is reached, the left lane-change command is generated around
+the seventh second when the left lane is safe. However, during the lane-changing process, the left lane
+is not safe anymore due to the acceleration of the LR; the EV decides to change back to its original
+lane and after around 3 s it returns to the car-following maneuver. Then, the EV finds the right lane
+is empty and performs a right-lane change, finally reaching the desired velocity of 25 m/s. Figure
+14. Simulation results of second scenario: (a) yaw rate, (b) yaw angle, (c) acceleration, (d) velocities
+of EV, CF and LR, (e) steering angle, and (f) global trajectories of EV, CF and LR. In the third
+scenario, the positions for the EV, RF, LF and CF are (250, 0), (319.991, −2.9899), (280, 3.5) and
+(349.869, 3.1322), respectively, and the simulation results are shown in Figure 15. The EV starts with
+the initial velocity of 20 m/s and its desired velocity is 25 m/s; the CF starts with an initial velocity
+of 18 m/s and lies 100 m ahead, while the LF starts with an initial velocity of 21 m/s and lies 30 m
+ahead in the left lane, and there is also an RF which starts with an initial velocity of 15 m/s and lies
+70 m ahead. The safe condition is satisfied at the start, which guarantees the free-driving maneuver
+of the EV; at around the sixth second, the driving state changes to car following due to the slower
+CF and unsafe left lane and right lane. The left-lane-change signal is generated at around the tenth
+second due to the faster LF in the adjacent lane and the safe distance is reached. Since the LF is
+slower than the desired velocity, another car-following maneuver is performed at around the fifteenth
+second, and after around 5 s the EV starts to change to the middle lane due to the safe distance from
+the previous current-lane vehicle and reaches the desired velocity of 25 m/s. This case shows that the
+proposed framework could generate a reasonable driving strategy adaptively for the EV to seek the
+desired velocity while maintaining road safety by automatically switching between different driving
+states. Figure 15. Simulation results of third scenario: (a) yaw rate, (b) yaw angle, (c) acceleration,
+(d) velocities of EV, RF, LF and CF, (e) steering angle, and (f) global trajectories of EV, RF, LF and
+CF. In the fourth scenario, a more complex driving environment is implemented. The EV starts at
+(0, 0) with an initial desired velocity of 25 m/s, and there are six vehicles around it corresponding to
+positions sedan2 (20, 3.5), sedan3 (40, −3.5), sedan4 (40, 0), sedan5 (30, 3.5), sedan6 (50, −3.5) and
+sedan7 (50, 0), traveling at speeds of 18 m/s, 15 m/s, 20 m/s, 22 m/s, 20 m/s and 20 m/s, respectively.
+The simulation results are shown in Figure 16. During the first 4 s, the EV is free driving and after
+the safe distance limit is reached with respect to sedan4, the EV decelerates to change to the car-
+following state. At around the eighth second, sedan5 decelerates to about 19 m/s while sedan6 reaches
+about 21.5 m/s, which means a potential faster right lane to reach the desired speed. Hence, the EV
+performs the right-lane-change maneuver and drives freely since the safe distance from sedan6 is still
+ensured. At around the tenth second, when the safe distance between the EV and sedan6 decreases
+to the threshold, the EV starts to follow sedan6. However, the relative distance between sedan7 and
+19
+
+--- Page 20 ---
+the EV is expanding due to the acceleration of sedan7 during this time. When the middle lane is safe
+for a lane change at around the twenty-first second, the EV performs the left lane change to pursue
+the desired speed. During the process, the EV accelerates first to finish the lane change and switch
+to car following again due to the safe distance diminishing. At around the twenty-sixth second, the
+EV performs another left-lane-change maneuver to finally reach the desired speed. This case further
+illustrates the effectiveness of the proposed framework, which guides the vehicle to drive safely at the
+desired velocity as best as possible under the complex surrounding environment. Figure 16. Simulation
+results of fourth scenario: (a) yaw rate, (b) yaw angle, (c) acceleration, (d) velocities of EV and its
+surrounding vehicles, (e) steering angle, and (f) global trajectories of EV and its surrounding vehicles.
+7. Conclusions In this paper, we proposed a novel framework combining decision-making, trajectory-
+planning and tracking control schemes for AVs based on the state machine for intelligent decision
+making and LQR and PID controllers for trajectory tracking. The state machine is proposed for the
+decision making of the AV (free driving, car following, and lane changing) adaptively to ensure driving
+safety and achieve the expected velocity requirements. The LQR and PID controllers are responsible for
+tracking the planned trajectory based on quintic polynomials and conduct car-following or lane-change
+maneuvers according to the command of the finite-state machine. A comprehensive scenario-study
+analysis, including both straight and curved roads, was conducted to evaluate the performance of the
+proposed framework. The results demonstrate that the proposed framework has reasonable perfor-
+mance in the simulation scenarios. The framework was able to guide the vehicle in driving safely under
+complex driving environments while maintaining its ability to pursue the desired velocity as much
+as possible. Future work will be directed toward decision making and motion planning for different
+driving styles. For example, the desired velocity was preset manually in this study and the method can
+be improved if the desired velocity can be decided according to different driving conditions and driving
+styles. Some artificial-intelligence (AI) technologies such as deep learning or reinforcement learning
+[55] can be implemented to improve the intelligence of the decision and planning framework by learning
+driving principles and styles from real driving data. Furthermore, the proposed framework needs to
+be generalized to be suitable for other common studies on structured driving environments, such as
+highway merging, unsignalized intersections, and roundabouts, etc. However, the challenge lies in the
+formulation of these complex scenarios, and the performance of the framework needs to be validated by
+taking diverse driving characteristics into account, which will be the focus of future research. Author
+Contributions Conceptualization, T.W. and D.Q.; methodology, T.W.; software, T.W. and H.S.; vali-
+dation, S.D.; formal analysis, T.W. and H.S.; investigation, S.D.; resources, H.S.; data curation, S.D.;
+writing—original draft preparation, T.W.; writing—review and editing, T.W.; visualization, H.S. and
+S.D.; supervision, D.Q.; project administration, T.W. and H.S.; funding acquisition, D.Q. All authors
+have read and agreed to the published version of the manuscript. Funding The project was supported by
+the National Natural Science Foundation of China (Grant No. 52272311). Institutional Review Board
+Statement Not applicable. Informed Consent Statement Not applicable. Data Availability Statement
+Not applicable. Conflicts of Interest The authors declare no conflict of interest. References Liang, Y.;
+Li, Y.; Khajepour, A.; Huang, Y.; Qin, Y.; Zheng, L. A Novel Combined Decision and Control Scheme
+for Autonomous Vehicle in Structured Road Based on Adaptive Model Predictive Control. IEEE Trans.
+Intell. Transp. Syst. 2022, 23, 16083–16097. [Google Scholar] [CrossRef] Han, J.; Wang, X.; Wang, G.
+Modeling the Car-Following Behavior with Consideration of Driver, Vehicle, and Environment Factors:
+A Historical Review. Sustainability 2022, 14, 8179. [Google Scholar] [CrossRef] Hu, X.; Chen, L.; Tang,
+B.; Cao, D.; He, H. Dynamic Path Planning for Autonomous Driving on Various Roads with Avoidance
+of Static and Moving Obstacles. Mech. Syst. Signal Process. 2018, 100, 482–500. [Google Scholar]
+[CrossRef] Van Brummelen, J.; O’Brien, M.; Gruyer, D.; Najjaran, H. Autonomous Vehicle Perception:
+The Technology of Today and Tomorrow. Transp. Res. Part C Emerg. Technol. 2018, 89, 384–406.
+[Google Scholar] [CrossRef] Liu, Y.; Zhou, B.; Wang, X.; Li, L.; Cheng, S.; Chen, Z.; Li, G.; Zhang, L.
+Dynamic Lane-Changing Trajectory Planning for Autonomous Vehicles Based on Discrete Global Tra-
+jectory. IEEE Trans. Intell. Transp. Syst. 2022, 23, 8513–8527. [Google Scholar] [CrossRef] Huang,
+Y.; Wang, H.; Khajepour, A.; Ding, H.; Yuan, K.; Qin, Y. A Novel Local Motion Planning Framework
+for Autonomous Vehicles Based on Resistance Network and Model Predictive Control. IEEE Trans.
+Veh. Technol. 2020, 69, 55–66. [Google Scholar] [CrossRef] Chen, K.; Pei, X.; Okuda, H.; Zhu, M.;
+Guo, X.; Guo, K.; Suzuki, T. A Hierarchical Hybrid System of Integrated Longitudinal and Lateral
+20
+
+--- Page 21 ---
+Control for Intelligent Vehicles. ISA Trans. 2020, 106, 200–212. [Google Scholar] [CrossRef] Am-
+mour, M.; Orjuela, R.; Basset, M. A MPC Combined Decision Making and Trajectory Planning for
+Autonomous Vehicle Collision Avoidance. IEEE Trans. Intell. Transp. Syst. 2022, 23, 24805–24817.
+[Google Scholar] [CrossRef] Xiong, G.; Kang, Z.; Li, H.; Song, W.; Jin, Y.; Gong, J. Decision-Making
+of Lane Change Behavior Based on RCS for Automated Vehicles in the Real Environment. In Pro-
+ceedings of the 2018 IEEE Intelligent Vehicles Symposium (IV), Changshu, China, 26–30 June 2018;
+pp. 1400–1405. [Google Scholar] [CrossRef] Palatti, J.; Aksjonov, A.; Alcan, G.; Kyrki, V. Planning
+for Safe Abortable Overtaking Maneuvers in Autonomous Driving. In Proceedings of the 2021 IEEE
+International Intelligent Transportation Systems Conference (ITSC), Indianapolis, IN, USA, 19–22
+September 2021; pp. 508–514. [Google Scholar] [CrossRef] Leurent, E.; Mercat, J. Social Attention for
+Autonomous Decision-Making in Dense Traﬀic. arXiv 2019, arXiv:1911.12250. [Google Scholar] Wang,
+X.; Wu, J.; Gu, Y.; Sun, H.; Xu, L.; Kamijo, S.; Zheng, N. Human-Like Maneuver Decision Using
+LSTM-CRF Model for On-Road Self-Driving. In Proceedings of the 2018 21st International Confer-
+ence on Intelligent Transportation Systems (ITSC), Maui, HI, USA, 4–7 November 2018; pp. 210–216.
+[Google Scholar] [CrossRef] Xu, J.; Luo, Q.; Xu, K.; Xiao, X.; Yu, S.; Hu, J.; Miao, J.; Wang, J. An
+Automated Learning-Based Procedure for Large-scale Vehicle Dynamics Modeling on Baidu Apollo
+Platform. In Proceedings of the 2019 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS), Macao, China, 4–8 November 2019; pp. 5049–5056. [Google Scholar] [CrossRef] Gao,
+Z.; Sun, T.; Xiao, H. Decision-Making Method for Vehicle Longitudinal Automatic Driving Based on
+Reinforcement Q-Learning. Int. J. Adv. Robot. Syst. 2019, 16, 1729881419853185. [Google Scholar]
+[CrossRef] Sharifzadeh, S.; Chiotellis, I.; Triebel, R.; Cremers, D. Learning to Drive using Inverse
+Reinforcement Learning and Deep Q-Networks. arXiv 2016, arXiv:1612.03653. [Google Scholar] Li,
+D.; Pan, H. Two-Lane Two-Way Overtaking Decision Model with Driving Style Awareness Based on
+a Game-Theoretic Framework. Transp. A Transp. Sci. 2022, 1–26. [Google Scholar] [CrossRef] Qu,
+D.; Zhang, K.; Song, H.; Jia, Y.; Dai, S. Analysis and Modeling of Lane-Changing Game Strategy for
+Autonomous Driving Vehicles. IEEE Access 2022, 10, 69531–69542. [Google Scholar] [CrossRef] Liao,
+Y.; Yu, G.; Chen, P.; Zhou, B.; Li, H. Modelling Personalised Car-Following Behaviour: A Memory-
+Based Deep Reinforcement Learning Approach. Transp. A Transp. Sci. 2022, 1–29. [Google Scholar]
+[CrossRef] Paden, B.; Čáp, M.; Yong, S.Z.; Yershov, D.; Frazzoli, E. A Survey of Motion Planning and
+Control Techniques for Self-Driving Urban Vehicles. IEEE Trans. Intell. Veh. 2016, 1, 33–55. [Google
+Scholar] [CrossRef] Likhachev, M.; Gordon, G.; Thrun, S. ARA : Anytime A with Provable Bounds
+on Sub-Optimality. Adv. Neural Inf. Process. Syst. 2003, 16, 767–774. [Google Scholar] Stentz,
+A. Optimal and Eﬀicient Path Planning for Partially Known Environments. In Intelligent Unmanned
+Ground Vehicles: Autonomous Navigation Research at Carnegie Mellon; Springer: Berlin/Heidelberg,
+Germany, 1997; pp. 203–220. [Google Scholar] [CrossRef] Feizollahi, A.; Mayorga, R. Optimized Mo-
+tion Planning of Manipulators in Partially-known Environment Using Modified D* Lite Algorithm.
+WSEAS Trans. Syst. 2017, 16, 69–75. [Google Scholar] Wang, X.; Li, X.; Guan, Y.; Song, J.; Wang,
+R. Bidirectional Potential Guided RRT* for Motion Planning. IEEE Access 2019, 7, 95046–95057.
+[Google Scholar] [CrossRef] Wang, P.; Gao, S.; Li, L.; Sun, B.; Cheng, S. Obstacle Avoidance Path
+Planning Design for Autonomous Driving Vehicles Based on an Improved Artificial Potential Field
+Algorithm. Energies 2019, 12, 2342. [Google Scholar] [CrossRef] Qian, X.; Navarro, I.; de La Fortelle,
+A.; Moutarde, F. Motion Planning for Urban Autonomous Driving Using Bézier Curves and MPC.
+In Proceedings of the 2016 IEEE 19th International Conference on Intelligent Transportation Systems
+(ITSC), Rio de Janeiro, Brazil, 1–4 November 2016; pp. 826–833. [Google Scholar] [CrossRef] Zhang,
+Y.; Wang, J.; Lv, J.; Gao, B.; Chu, H.; Na, X. Computational Eﬀicient Motion Planning Method
+for Automated Vehicles Considering Dynamic Obstacle Avoidance and Traﬀic Interaction. Sensors
+2022, 22, 7397. [Google Scholar] [CrossRef] Ammour, M.; Orjuela, R.; Basset, M. Trajectory Reference
+Generation and Guidance Control for Autonomous Vehicle Lane Change Maneuver. In Proceedings of
+the 2020 28th Mediterranean Conference on Control and Automation (MED), Saint-Raphael, France,
+15–18 September 2020; pp. 13–18. [Google Scholar] [CrossRef] Zhang, T.; Fu, M.; Song, W.; Yang, Y.;
+Wang, M. Trajectory Planning Based on Spatio-Temporal Map With Collision Avoidance Guaranteed
+by Safety Strip. IEEE Trans. Intell. Transp. Syst. 2022, 23, 1030–1043. [Google Scholar] [Cross-
+Ref] Dang, D.; Gao, F.; Hu, Q. Motion Planning for Autonomous Vehicles Considering Longitudinal
+and Lateral Dynamics Coupling. Appl. Sci. 2020, 10, 3180. [Google Scholar] [CrossRef] Ma, C.;
+21
+
+--- Page 22 ---
+Wang, C.; Xu, X. A Multi-Objective Robust Optimization Model for Customized Bus Routes. IEEE
+Trans. Intell. Transp. Syst. 2021, 22, 2359–2370. [Google Scholar] [CrossRef] Samuel, M.; Hussein,
+M.; Binti, M. A Review of Some Pure-Pursuit Based Path Tracking Techniques for Control of Au-
+tonomous Vehicle. Int. J. Comput. Appl. 2016, 135, 35–38. [Google Scholar] [CrossRef] Marino, R.;
+Scalzi, S.; Netto, M. Nested PID steering control for lane keeping in autonomous vehicles. Control
+Eng. Pract. 2011, 19, 1459–1467. [Google Scholar] [CrossRef] Fan, J.; Liang, J.; Tula, A.K. A Lane
+Changing Time Point and Path Tracking Framework for Autonomous Ground Vehicle. IET Intell.
+Transp. Syst. 2022, 16, 860–874. [Google Scholar] [CrossRef] Hu, C.; Gao, H.; Guo, J.; Taghavifar, H.;
+Qin, Y.; Na, J.; Wei, C. RISE-Based Integrated Motion Control of Autonomous Ground Vehicles with
+Asymptotic Prescribed Performance. IEEE Trans. Syst. Man Cybern. Syst. 2021, 51, 5336–5348.
+[Google Scholar] [CrossRef] Xu, S.; Peng, H.; Tang, Y. Preview Path Tracking Control With Delay
+Compensation for Autonomous Vehicles. IEEE Trans. Intell. Transp. Syst. 2021, 22, 2979–2989.
+[Google Scholar] [CrossRef] Berntorp, K.; Quirynen, R.; Uno, T.; Cairano, S.D. Trajectory Tracking
+for Autonomous Vehicles on Varying Road Surfaces by Friction-adaptive Nonlinear Model Predictive
+Control. Veh. Syst. Dyn. 2020, 58, 705–725. [Google Scholar] [CrossRef] Hashemi, E.; Jalali, M.;
+Khajepour, A.; Kasaiezadeh, A.; Chen, S.K. Vehicle Stability Control: Model Predictive Approach
+and Combined-Slip Effect. IEEE/ASME Trans. Mechatron. 2020, 25, 2789–2800. [Google Scholar]
+[CrossRef] Li, M.; Cao, H.; Li, G.; Zhao, S.; Song, X.; Chen, Y.; Cao, D. A Two-Layer Potential-
+Field-Driven Model Predictive Shared Control Towards Driver-Automation Cooperation. IEEE Trans.
+Intell. Transp. Syst. 2022, 23, 4415–4431. [Google Scholar] [CrossRef] Liu, J.; Guo, H.; Song, L.;
+Dai, Q.; Chen, H. Driver-Automation Shared Steering Control for Highly Automated Vehicles. Sci.
+China Inf. Sci. 2020, 63, 190201. [Google Scholar] [CrossRef] Song, H.; Qu, D.; Guo, H.; Zhang,
+K.; Wang, T. Lane-Changing Trajectory Tracking and Simulation of Autonomous Vehicles Based on
+Model Predictive Control. Sustainability 2022, 14, 3272. [Google Scholar] [CrossRef] Shalev-Shwartz,
+S.; Shammah, S.; Shashua, A. On a Formal Model of Safe and Scalable Self-driving Cars. arXiv 2017,
+arXiv:1708.06374. [Google Scholar] Hasuo, I. Responsibility-Sensitive Safety: An Introduction with
+an Eye to Logical Foundations and Formalization. arXiv 2022, arXiv:2206.03418. [Google Scholar]
+Kim, M.J.; Yu, S.H.; Kim, T.H.; Kim, J.U.; Kim, Y.M. On the Development of Autonomous Vehicle
+Safety Distance by an RSS Model Based on a Variable Focus Function Camera. Sensors 2021, 21, 6733.
+[Google Scholar] [CrossRef] Li, B.; Ouyang, Y.; Li, L.; Zhang, Y. Autonomous Driving on Curvy Roads
+Without Reliance on Frenet Frame: A Cartesian-Based Trajectory Planning Method. IEEE Trans. In-
+tell. Transp. Syst. 2022, 23, 15729–15741. [Google Scholar] [CrossRef] Li, X.; Sun, Z.; Cao, D.; He,
+Z.; Zhu, Q. Real-Time Trajectory Planning for Autonomous Urban Driving: Framework, Algorithms,
+and Verifications. IEEE/ASME Trans. Mechatron. 2016, 21, 740–753. [Google Scholar] [CrossRef]
+Werling, M.; Kammel, S.; Ziegler, J.; Gröll, L. Optimal Trajectories for Time-Critical Street Scenar-
+ios Using Discretized Terminal Manifolds. Int. J. Robot. Res. 2012, 31, 346–359. [Google Scholar]
+[CrossRef] Lim, W.; Lee, S.; Sunwoo, M.; Jo, K. Hybrid Trajectory Planning for Autonomous Driving
+in On-Road Dynamic Scenarios. IEEE Trans. Intell. Transp. Syst. 2021, 22, 341–355. [Google
+Scholar] [CrossRef] Wang, Y.; Wei, C. A Universal Trajectory Planning Method for Automated Lane-
+Changing and Overtaking Maneuvers. Math. Probl. Eng. 2020, 2020, 1023975. [Google Scholar]
+[CrossRef] Yang, D.; Zheng, S.; Wen, C.; Jin, P.J.; Ran, B. A Dynamic Lane-Changing Trajectory
+Planning Model for Automated Vehicles. Transp. Res. Part C Emerg. Technol. 2018, 95, 228–247.
+[Google Scholar] [CrossRef] Wei, C.; Wang, Y.; Asakura, Y.; Ma, L. A Nonlinear Programing Model
+for Collision-Free Lane-Change Trajectory Planning Based on Vehicle-To-Vehicle Communication. J.
+Transp. Saf. Secur. 2021, 13, 936–956. [Google Scholar] [CrossRef] Kuwata, Y.; Fiore, G.A.; Teo,
+J.; Frazzoli, E.; How, J.P. Motion planning for urban driving using RRT. In Proceedings of the 2008
+IEEE/RSJ International Conference on Intelligent Robots and Systems, Nice, France, 22–26 Septem-
+ber 2008; pp. 1681–1686. [Google Scholar] Tan, B.; Chen, Y.; Liao, Q.; Zhang, B.; Zhang, N.; Xie, Q.
+A Condensed Dynamic Model of a Heavy-Duty Truck for Optimization of the Powertrain Mounting
+System Considering the Chassis Frame Flexibility. Proc. Inst. Mech. Eng. Part D J. Automob. Eng.
+2020, 234, 2602–2617. [Google Scholar] [CrossRef] Cao, H.; Zhao, S.; Song, X.; Bao, S.; Li, M.; Huang,
+Z.; Hu, C. An Optimal Hierarchical Framework of the Trajectory Following by Convex Optimisation
+for Highly Automated Driving Vehicles. Veh. Syst. Dyn. 2019, 57, 1287–1317. [Google Scholar]
+[CrossRef] Jian, Z.; Chen, S.; Zhang, S.; Chen, Y.; Zheng, N. Multi-Model-Based Local Path Planning
+22
+
+--- Page 23 ---
+Methodology for Autonomous Driving: An Integrated Framework. IEEE Trans. Intell. Transp. Syst.
+2022, 23, 4187–4200. [Google Scholar] [CrossRef] Liu, Y.; Wu, F.; Lyu, C.; Li, S.; Ye, J.; Qu, X. Deep
+dispatching: A deep reinforcement learning approach for vehicle dispatching on online ride-hailing
+platform. Transp. Res. Part E Logist. Transp. Rev. 2022, 161, 102694. [Google Scholar] [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely
+those of the individual author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or
+the editor(s) disclaim responsibility for any injury to people or property resulting from any ideas, methods,
+instructions or products referred to in the content.
+© 2023 by the authors. Licensee MDPI, Basel, Switzerland. This article is an open access article
+distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license
+(https://creativecommons.org/licenses/by/4.0/). Share and Cite
+MDPI and ACS Style
+Wang, T.; Qu, D.; Song, H.; Dai, S. A Hierarchical Framework of Decision Making and Trajectory Tracking
+Control for Autonomous Vehicles. Sustainability 2023, 15, 6375. https://doi.org/10.3390/su15086375
+AMA Style
+Wang T, Qu D, Song H, Dai S. A Hierarchical Framework of Decision Making and Trajectory Tracking
+Control for Autonomous Vehicles. Sustainability. 2023; 15(8):6375. https://doi.org/10.3390/su15086375
+Chicago/Turabian Style
+Wang, Tao, Dayi Qu, Hui Song, and Shouchen Dai. 2023. “A Hierarchical Framework of Decision
+Making and Trajectory Tracking Control for Autonomous Vehicles” Sustainability 15, no. 8: 6375.
+https://doi.org/10.3390/su15086375
+APA Style
+Wang, T., Qu, D., Song, H., & Dai, S. (2023). A Hierarchical Framework of Decision Making and Trajectory
+Tracking Control for Autonomous Vehicles. Sustainability, 15(8), 6375. https://doi.org/10.3390/su15086375
+Note that from the first issue of 2016, this journal uses article numbers instead of page numbers. See further
+details here. Article Metrics Citations Crossref 12 Web of Science 13 Scopus 13 ads 1 Google Scholar
+[click to view] Article Access Statistics Article access statistics Article Views 8. Jan 9. Jan 10. Jan 11. Jan
+12. Jan 13. Jan 14. Jan 15. Jan 16. Jan 17. Jan 18. Jan 19. Jan 20. Jan 21. Jan 22. Jan 23. Jan 24. Jan
+25. Jan 26. Jan 27. Jan 28. Jan 29. Jan 30. Jan 31. Jan 1. Feb 2. Feb 3. Feb 4. Feb 5. Feb 6. Feb 7. Feb
+8. Feb 9. Feb 10. Feb 11. Feb 12. Feb 13. Feb 14. Feb 15. Feb 16. Feb 17. Feb 18. Feb 19. Feb 20. Feb 21.
+Feb 22. Feb 23. Feb 24. Feb 25. Feb 26. Feb 27. Feb 28. Feb 1. Mar 2. Mar 3. Mar 4. Mar 5. Mar 6. Mar
+7. Mar 8. Mar 9. Mar 10. Mar 11. Mar 12. Mar 13. Mar 14. Mar 15. Mar 16. Mar 17. Mar 18. Mar 19.
+Mar 20. Mar 21. Mar 22. Mar 23. Mar 24. Mar 25. Mar 26. Mar 27. Mar 28. Mar 29. Mar 30. Mar 31.
+Mar 1. Apr 2. Apr 3. Apr 4. Apr 5. Apr 6. Apr 7. Apr 0k 2k 4k 6k For more information on the journal
+statistics, click here. Multiple requests from the same IP address are counted as one view. Sustainability,
+EISSN 2071-1050, Published by MDPI RSS Content Alert Further Information Article Processing Charges
+Pay an Invoice Open Access Policy Contact MDPI Jobs at MDPI Guidelines For Authors For Reviewers For
+Editors For Librarians For Publishers For Societies For Conference Organizers MDPI Initiatives Sciforum
+MDPI Books Preprints.org Scilit SciProfiles Encyclopedia JAMS Proceedings Series Follow MDPI LinkedIn
+Facebook X
+Subscribe to receive issue release notifications and newsletters from MDPI journals
+Select options Subscribe © 1996-2026 MDPI (Basel, Switzerland) unless otherwise stated Disclaimer Terms
+and Conditions Privacy Policy Accessibility
+23

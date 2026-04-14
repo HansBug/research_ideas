@@ -1,0 +1,1768 @@
+--- Page 1 ---
+Academic Editor: Gang Zhang
+Received: 20 January 2026
+Revised: 26 February 2026
+Accepted: 27 February 2026
+Published: 1 March 2026
+Copyright: © 2026 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+A Finite State Machine Guidance Architecture for Autonomous
+Rendezvous with Arbitrarily Elliptic Targets
+Diego Buratti1,*, Gabriella Gaias2
+, Stefano Torresan1, Thomas Vincent Peters1and Pedro Roque3
+1OHB System AG, Universitätsallee 27, 28359 Bremen, Germany; stefano.torresan@ohb.de (S.T.);
+thomas.peters@ohb.de (T.V .P .)
+2Department of Aerospace Science and Technology, Politecnico di Milano, 34, Via La Masa, 20156 Milan, Italy;
+gabriella.gaias@polimi.it
+3Division of Decision and Control Systems, KTH Royal Institute of Technology, 11428 Stockholm, Sweden;
+padr@kth.se
+*Correspondence: diego.buratti@ohb.de
+Abstract
+This paper details the design of a guidance architecture, in the form of a layered, finite
+state machine, meant to enable safe and autonomous rendezvous operations. The onboard
+software uses relative state parametrization based on relative orbital elements which
+provide significant geometrical insight into the shape of the relative orbit. The development
+is structured in two main steps: first, novel closed-form impulsive control schemes, derived
+from the Gauss Variational Equations expressed in a velocity-aligned frame, are formulated.
+These complement available strategies from the literature and generalize them for arbitrarily
+eccentric reference orbits. Secondly, the definition of the guidance layer provides the chaser
+spacecraft with the capability to select, schedule, and execute the proper maneuvers to
+complete a given rendezvous scenario, ensuring operational safety and predictability. The
+functionality and performance of the implemented architecture are analyzed through
+numerical tests in a linear propagator and a high-fidelity non-linear simulator. The results
+provide validation of the developed maneuvers’ strategies, as well as demonstrating how
+the proposed guidance architecture can be used in a straightforward fashion across different
+target orbit scenarios, while guaranteeing the same level of passive safety.
+Keywords: GNC; rendezvous; formation flying; guidance; finite state machine; autonomy;
+relative orbital elements
+1. Introduction
+On-Orbit Servicing (OOS) mission architectures are being designed to enhance sus-
+tainability of the space environment by mitigating the increasing amount of orbiting debris
+through life extension, repair and removal of satellites. These kinds of operations require
+the capability of a maneuvering chaser spacecraft (or servicer) to safely rendezvous with a
+non-cooperative target to begin proximity operations.
+This study focuses on the design of an autonomous maneuver planning architecture for
+general, on-board use across different mission scenarios, which relies on computationally-
+efficient, analytical impulsive control techniques to command the relative state of the
+servicer. Such schemes are based on closed-form solutions to Gauss Variational Equations
+(GVEs), following an approach successfully adopted in past technology demonstrations in-
+cluding TanDEM-X Autonomous Formation Flying (TAFF) [ 1], the Spaceborne Autonomous
+Formation Flying Experiment (SAFE) [ 2] and the Autonomous Vision Approach and Target
+Aerospace 2026 ,13, 230 https://doi.org/10.3390/aerospace13030230
+
+--- Page 2 ---
+Aerospace 2026 ,13, 230 2 of 35
+Identification (AVANTI) [ 3]. The considered closed-form maneuvers result from analytical
+inversion of the model of relative dynamics parametrized using Relative Orbital Elements
+(ROEs). Notably, D’Amico [4]presented a framework within which single- and double-
+impulse solutions for formation reconfiguration in near-circular orbits were developed,
+assuming the chaser (or deputy) spacecraft to have 3D maneuvering capability. To provide
+an extensive characterization which did not focus on problem-specific maneuvering solu-
+tions, Gaias and D’Amico [5]presented a survey of impulsive control schemes characterized
+by two or three firings, investigating the availability of an analytical solution and the related
+delta-v cost by changing the direction and location of each burn. The search of fuel-optimal
+reconfiguration maneuvers naturally shifted the focus towards control schemes which
+employ firings oriented in the velocity direction. These impulsive techniques were further
+expanded by Riggi and D’Amico [6]and Chernick and D’Amico [7]by providing new
+formulations for J2-perturbed circular orbits and for unperturbed eccentric targets; for the
+second case, it was not possible to converge to a closed-form solution for the location of
+the firings of the in-plane maneuver. On the other hand, more recent studies have focused
+their attention on closed-form maneuvers which use radial firings to enhance passive safety
+of the reconfiguration at the expense of a higher delta-v consumption. Lim and Mok [8]
+presented solutions for (sub-)optimal formation reconfiguration in near-circular targets
+using two and three firings, while Peters et al. [9]discussed a two-point transfer which can
+be executed at any point along the orbit. To take advantage of the existing large body of
+literature which deals with impulsive control schemes, this work provides a way to extend
+their range of validity across arbitrary target eccentricities through the adoption of a local
+velocity-aligned (TAN) reference frame, which is obtained through a rotation equal to the
+flight path angle γaround the out-of-plane direction of the widely-adopted Local-Vertical
+Local-Horizontal (LVLH) reference frame.
+Within the context of non-cooperative rendezvous, Passive-Abort Safety (PAS) is a key
+feature in the design of the relative trajectory, as it reduces the risk of collision by preventing
+the chaser spacecraft from entering a safe zone around the target, even in the case of a loss
+of thrust control [ 10]. This is obtained by defining proper geometric margins which account
+for navigation and actuation errors, and represents a major requirement also for standard
+collaborative rendezvous and docking between spacecraft [ 11]. In practice, one of the ways
+by which it is possible to impose PAS is by means of the relative eccentricity/inclination
+(E/I) separation concept, which allows coping with the uncertainty related to the along-
+track distance between the satellites by maintaining consistent separation between the
+two on the plane orthogonal to the orbital velocity. This concept has been widely adopted
+in past technology demonstrations like the aforementioned AVANTI [ 3] and TanDEM-
+X/TerraSAR-X [1] as well as for future on-orbit servicing missions like ClearSpace-1 [12].
+PAS can easily be imposed for the trajectory by using relative state parametrization
+based on ROEs, which are defined as functions of the absolute Keplerian elements of
+the maneuvering and target spacecraft. In fact, the relative E/I separation concept was
+formalized for formation design in [ 4] using a set of quasi-nonsingular ROEs, which, unlike
+the linear differences between Keplerian elements adopted in [ 13–15], also provides a
+nonsingular state representation for zero eccentricities. An extension of the presented
+concept of relative E/I separation to obtain PAS orbits in arbitrarily eccentric targets has
+been proposed by Peters and Noomen [16], who introduced the C-elements set to aid
+the design of guidance algorithms in highly elliptical orbits. The presented development
+exploits this last set to design a relative trajectory which safely spirals around the velocity
+axis of the target to avoid entering its Keep-Out Zone (KOZ), a surface which wraps the
+geometry of the spacecraft and which is defined to reduce the risk of collision.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 3 ---
+Aerospace 2026 ,13, 230 3 of 35
+The growing interest among the scientific community towards an increase in spacecraft
+autonomy in rendezvous missions, mainly motivated by the reduction in operational load
+on control centers and inactivity periods due to coverage problems and large communica-
+tion delays [ 12], is addressed in the presented work through the adoption of a rules-based
+architecture in the form of a layered, Finite State Machine (FSM). This approach defines the
+behavior of the chaser spacecraft using a state machine model, characterized by a set of
+predefined modes and transitions between them [ 17]. The use of an FSM has been recently
+formally proposed and studied by Vela et al. [18] in the context of formation maintenance
+and control, but a layered decision architecture for autonomous elliptic orbit rendezvous
+was also discussed by Peters and Strippoli [19]. At the highest level, this study implements
+guidance software that switches between a Walking Safe Ellipse (WSE) and a Stationary
+Safe Ellipse (SSE) state, based on the estimated value of the relative drift between satellites.
+Along with the definition of hold points and relative orbit sizes, the chaser can take au-
+tonomous decisions according to typical GO/NO-GO conditions which need to be satisfied
+in the rendezvous scenario [ 10]. Such a modeling technique makes the approach attractive
+from an implementation perspective, owing to the low computing power required and the
+predictability of the decisions being taken, and is also suitable for future adaptations to
+comply with new operational standards in close proximity operations.
+The current study therefore presents a control architecture for autonomous rendezvous
+applications that can feasibly be reused across different scenarios with varying target
+eccentricities, while still complying with typical mission requirements. Although the use of
+a finite state machine as a control framework for embedded systems is not, in itself, a novel
+concept, the contribution of this work lies in its specific declination as a layered decision-
+making structure tailored to in-orbit rendezvous; to the best of the authors’ knowledge,
+such a formulation has not been extensively explored in the literature. In order to enable
+this architecture, a further significant contribution consists in the formulation of new closed-
+form impulsive guidance solutions for arbitrarily elliptic targets, derived from existing
+maneuvering schemes.
+This paper is organized as follows. In Section 2, the necessary theoretical background
+on relative motion models is provided. Section 3 illustrates the process by which the
+different closed-form maneuvers are derived, whereas Section 4 provides details on the
+design of the finite state machine guidance used to autonomously execute a rendezvous
+mission scenario. Lastly, Section 5 illustrates numerical tests to separately validate the
+developed maneuvers (Section 5.1) and the integrated guidance software (Section 5.2).
+2. Relative Motion Models
+The research here presented is mostly developed within local reference frames, which
+are centered on the target spacecraft’s center of mass and rotate during its revolution
+around the Earth. They are used to describe the relative motion of the chaser with respect
+to the target, and two different types are considered (visualized in Figure 1):
+1. The Local-Vertical Local-Horizontal (LVLH) frame defines its z-axis aligned with
+the position vector, positive towards the Nadir direction, and the y-axis directed in
+the opposite direction to the target’s orbital angular momentum vector. The x-axis
+completes the right-handed triad. This frame is widely adopted in near-circular ren-
+dezvous research in the form of the Radial–Transversal–Normal frame (RTN), which
+slightly differs in the definition of the main axes ( XRTN=−ZLVLH ,YRTN=XLVLH
+and ZRTN=−YLVLH ). In this work, the LVLH frame is only adopted when validat-
+ing the developed closed-form maneuvers using a linear propagator based on the
+Yamanaka–Ankersen State Transition Matrix (STM) [20] (see Section 5.1).
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 4 ---
+Aerospace 2026 ,13, 230 4 of 35
+2. The Tangential (TAN) frame is obtained from the LVLH through a simple rotation
+in the orbit plane of the target equal to the flight path angle γsuch that its x-axis
+is always aligned with the target velocity vector (the related rotation matrix can
+be found in Appendix A of [ 16]). Within this work, this frame is adopted both
+for control purposes in the derivation of the maneuvers as well as to assess the
+PAS of the rendezvous trajectory for eccentric targets. This is because for non-zero
+eccentricities the z coordinate of the LVLH frame becomes dependent on the along-
+track position of the relative orbit, significantly increasing the complexity of the safety
+evaluation [ 16]. Working in the TAN frame therefore allows the retention of simplicity
+in the analysis by only considering two dimensions (cross-track yz-plane, orthogonal
+to the velocity direction).
+Figure 1. LVLH and TAN frames in the target orbital plane.
+Relative Orbital Elements
+The absolute state of a spacecraft orbiting around the Earth can be represented in a
+quasi-inertial frame centered on the planet using a set of Keplerian elements:
+α=
+a
+e
+i
+Ω
+ω
+forM
+, (1)
+where ais the semi-major axis of the orbit, ethe eccentricity, ithe inclination, Ωthe Right
+Ascension of the Ascending Node (RAAN), ωthe anomaly of perigee and fthe true
+anomaly of the satellite, whereas Mis the mean anomaly.
+Relative motion of the chaser spacecraft with respect to the target is instead
+parametrized using Relative Orbital Elements (ROEs), which are defined as nonlinear
+combinations of the Keplerian elements of the two spacecraft, defined in Equation (1). The
+quasi-nonsingular ROEs are defined as in the following:
+δα=
+δa
+δλ
+δex
+δey
+δix
+δiy
+=
+(ac−a)/a
+(uc−u) + (Ωc−Ω)cosi
+ex,c−ex
+ey,c−ey
+ic−i
+(Ωc−Ω)sini
+, (2)
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 5 ---
+Aerospace 2026 ,13, 230 5 of 35
+where δλis defined as the relative mean longitude between the spacecraft, and the eccen-
+tricity vector components ex=e·cosω,ey=e·sinωhave been introduced. Quantities
+with the subscript <.>crefer to absolute elements of the chaser spacecraft, while elements
+without a subscript refer to the target. The introduced relative eccentricity and inclination
+vectors can also be expressed in polar notation as
+δe=δe 
+cosφ
+sinφ!
+,δi=δi 
+cosϑ
+sinϑ!
+(3)
+where φandϑrespectively identify the pericenter and the ascending node of the relative
+orbit. Due to the definition of the set (given in Equation (2)), which matches the integration
+constants of the solution to the Clohessy–Wiltshire equations [ 21], the ROEs provide direct
+insight into the shape of the relative orbit for circular targets. Moreover, the concept of
+relative E/I separation establishes that the chaser spacecraft maintains non-vanishing
+minimum separation from the target on the cross-track plane if the vectors δeandδiare
+maintained collinear, provided that the shift aδaof the orbit in the radial direction is less
+than the in-plane (IP) dimension aδe[1].
+The C-elements set generalizes this concept to arbitrarily elliptic targets and is defined
+as in the following [16]:
+C=
+C1
+C2
+C3
+C4
+C5
+C6
+=
+η2∆a−2ae∆e
+e∆p−p∆e
+−ep(∆ω+cosi∆Ω)
+a(∆ω+cosi∆Ω+η−1∆M)
+−p(cosω∆i+sini·sinω∆Ω)
+p(sinω∆i−sini·cosω∆Ω)
+(4)
+where the semi-latus rectum of the orbit p=aη2and the eccentricity factor η=√
+1−e2
+have been introduced, while the notation ∆αrefers to differences in orbital elements,
+computed as αc−α. According to [ 16], to generalize the relative E/I separation con-
+cept, the following in-plane (IP) and out-of-plane (OOP) phase angles and dimensions
+are introduced:
+σ=atan2 (C3/C2), β=atan2 (C6/C5)
+CIP=q
+C2
+2+C2
+3, COOP=q
+C2
+5+C2
+6(5)
+The newly defined vectors can again be expressed in polar notation, as in Equation (3):
+δegen=CIP 
+cosσ
+sinσ!
+,δigen=COOP 
+cosβ
+sinβ!
+(6)
+where δegenandδigenrepresent dimensional, generalized relative eccentricity and inclina-
+tion vectors. In general, by imposing collinearity between the two and by only changing σ
+(orβ), a family of safe orbits is obtained, as shown in Figure 2.
+To simplify the problem, safe sizing of the relative orbit can be achieved by considering
+the inner boundary (IB) of the trajectory family, which is formed by the perigee positions of
+each relative orbit:
+yIB
+TAN=−COOP
+(1+e)sin(f−σ)
+zIB
+TAN=−(C1+CIP·cos(f−σ))
+(1+e)2(7)
+The direct and inverse linear mappings used to convert between the quasi-nonsingular
+ROEs and C-elements are provided in Appendix A. These conversion matrices are always
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 6 ---
+Aerospace 2026 ,13, 230 6 of 35
+defined as long as i̸=0andη̸=0(e̸=1), due to the singularities of the adopted sets of
+Relative Orbit Elements.
+Figure 2. Safe trajectory family generated by varying σvalues, e=0.5.
+3. Closed-Form Maneuvers Using ROEs
+This section describes the derivation of analytical impulsive control techniques starting
+from the GVEs expressed in a velocity-aligned frame, which can be retrieved from [ 22]. This
+set of equations was originally used as a tool to incorporate small perturbing accelerations,
+but can also be used in the context of impulsive control by integrating the perturbations
+to obtain a direct map between a velocity increment ∆vand a discrete change in orbital
+elements [ 21]. The adoption of impulsive control, which assumes that the propulsion
+system of the the controlled spacecraft can generate the commanded velocity change over
+a negligibly short time interval, allows the derivation of analytical formulations for the
+maneuvers and is justified in the present work by the use of thrusters which, as discussed
+in Section 5.2, are required to fire only for a few seconds. As shown by the numerical tests
+in [23], this approximation only leads to significant propagation errors for burns lasting
+several minutes and is therefore feasibly applicable to many rendezvous scenarios, with the
+clear exception of missions which employ low-thrust propulsion systems; in those cases,
+finite-burn solutions must be considered.
+By substituting the GVEs into the definition of the quasi-nonsingular ROEs (Equation (2)) ,
+and by considering constant orbital elements of the target (not being maneuvered), the
+following input matrix is obtained:
+∆δα=BTAN∆v=
+2av
+µ0 0
+2 sin f
+vq
+1−η
+1+η−2reηsinf
+vp
+0
++2
+v+rcosf
+vaq
+1−η
+1+η
+2ecosω
+v+2
+vcos(ω+f)
+−esinω·rsin(f+ω)cosi
+hsini−r
+vasin(ω+f)−2esinω
+v
+2esinω
+v+2
+vsin(ω+f)ecosω·rsin(f+ω)cosi
+hsinir
+vacos(ω+f) +2ecosω
+v
+0
+−rcos(f+ω)
+h
+0
+0
+−rsin(f+ω)
+h
+0
+
+∆vx
+∆vy
+∆vz
+ (8)
+where the input ∆vvector is also defined in the TAN frame. The following observations
+concern the derivation of BTAN:
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 7 ---
+Aerospace 2026 ,13, 230 7 of 35
+• It has been carried out under the linearizing assumption that, when computing each
+individual entry of BTAN, the target’s absolute orbital elements can be approximated
+as equal to those of the chaser.
+• It is valid for arbitrary eccentricities of the target, as no circularizing assumptions on e
+have been introduced. Still, it is not valid for equatorial orbits ( i=0), owing to the
+singularity of the original ROEs set.
+The derived input matrix can be used to build closed-form maneuvering schemes
+which are suitable for on-board implementation, and are discussed in the next sections.
+3.1. Single-Point Maneuvers
+In the current treatment, single-point maneuvers refer to impulsive control schemes
+which are executed at a single anomaly on the reference orbit. The objectives of this class of
+maneuvers include the following:
+• Control of the shape of the relative orbit by means of changes in the relative eccentricity
+δeand inclination δi.
+• Control of the drift of the relative orbit through changes in δa.
+Mathematically, a single-point scheme can provide complete control of the out-of-
+plane (OOP) motion (two desired variations and two unknowns (maneuver location and
+amplitude of OOP firing)), but the same cannot be achieved for the in-plane (IP) motion,
+which is characterized by four ROEs.
+3.1.1. Out-of-Plane Control
+From Equation (8) it is possible to see that a single firing in the OOP direction is
+sufficient to achieve a desired change in both components of the relative inclination vector.
+In fact, by defining the true argument of latitude of the maneuver as ϑman=fman+ω, the
+location of the firing can be found by dividing the equation for ∆δiyby the one for ∆δix:
+ϑman=atan2 (∆δiy,∆δix) (mod π) (9)
+whereas the magnitude of the firing can be found by taking the squared sum of the two
+equations and defining r=p/(1+ecosf)(conic equation from Keplerian motion):
+∆vy=−r
+µ
+a1+ecosfman
+η||∆δi|| (10)
+where ||∆δi||=q
+∆δi2x+∆δi2y. Since the TAN and LVLH (or RTN) frames share the same
+OOP direction, the derived Equations (9) and (10) can also be found in Equation (39) of [ 7]
+with a sign change in the magnitude expression. This is because, as highlighted in Section 2,
+the RTN frame defines the OOP axis in the direction of the angular momentum, opposite to
+that of the defined TAN frame. It should be noted that Equation (9) provides two solutions
+for the firing anomaly, separated by a half orbit period. It should also be observed from
+Equation (10) that, in the general case for e̸=0, the two locations yield different costs
+for the maneuver, meaning that the choice of either one could be based on timing or fuel
+minimization requirements.
+3.1.2. In-Plane Shape Control
+As introduced, the in-plane problem is more complex owing to the inter-dependencies
+and number of variables to be controlled, doubled with respect to the OOP case. Never-
+theless, thanks to the adoption of the TAN reference frame, the problem can be simplified
+by only controlling the relative eccentricity components using single radial firings (along
+ZTAN), which do not change the relative drift. While this choice goes against the typical
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 8 ---
+Aerospace 2026 ,13, 230 8 of 35
+objective of minimizing the maneuver cost through firings in the velocity direction, it allows
+decoupling of the walking (or stationary) motion of the relative orbit from shape corrections
+through changes in δe. A similar procedure to the ∆δicontrol may be followed. In fact,
+the true anomaly at which the firing needs to be delivered can once again be computed by
+taking the ratio of the equations modeling the effect of a radial firing onto the components
+of∆δe:
+∆δex
+∆δey=−r
+vasin(ω+fman) +2esinω
+v
+r
+vacos(ω+fman) +2ecosω
+v(11)
+The solution is obviously less trivial in the non-circular case; still, by re-arranging
+Equation (11) asK1cosf+K2sinf=K3, the two potential locations of the maneuver can
+be computed using the auxiliary angle method [24]:
+fman=arccosK3
+R
++atan2K2
+K1
+, f′
+man=2π−arccosK3
+R
++atan2K2
+K1
+C=∆δex
+∆δey, K1=Cp
+acosω+2Ce2cosω+p
+asinω+2e2sinω,
+K2=−Cp
+asinω+p
+acosω, K3=−2Cecosω−2esinω, R=q
+K2
+1+K2
+2(12)
+whereas the magnitude of the radial firing is easily found by taking the squared sum of the
+two relevant equations:
+∆vz=−||∆δe||vaη2
+r(e2+2ecosfman+1)(13)
+where ||∆δe||=q
+∆δe2x+∆δe2y. Note that in the general case for e̸=0, as also observed
+for the previous control scheme, executing the maneuver at either fmanorf′
+manyields
+different delta-v costs. Another point to be highlighted is the influence of the radial firing
+on the relative mean longitude δλ, which determines the mean along-track position of the
+relative orbit. In fact, as will be seen in the numerical test in Section 5.1, a large maneuver
+required for in-plane phasing can move the chaser forward or backward with respect to
+the original position on the velocity direction. As for rendezvous applications, where
+inter-satellite distance has a crucial effect on operational safety, such coupling may generate
+an undesirable side effect. One way to cope with it is to select the one anomaly between
+the two computed which increases the absolute value of δλrather than reducing it. For
+the present application, higher priority is given to the reactivity of the control, since the
+single-point maneuvers used to correct ∆δewill only be employed for small IP phase-angle
+correction maneuvers and consequently small movements on the along-track axis are
+considered negligible as long as passive safety is guaranteed.
+A point which deserves considerably more attention is the observed coupling between
+OOP firings and undesired variations on δexandδeyshown in Equation (8). Such an effect
+becomes problematic when the autonomous guidance schedules a relative orbit resizing in
+both the IP and OOP dimensions. To account for this, one possible solution is to express
+the OOP change in velocity from the last part of Equation (8) as
+∆vh=h
+rsin(f+ω)∆δiy (14)
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 9 ---
+Aerospace 2026 ,13, 230 9 of 35
+The actual required variations on the relative eccentricity components, accounting for
+the coupling effect produced by an OOP maneuver, become
+∆δeactual
+x =∆δedes
+x−esinω
+tani∆δiy
+∆δeactual
+y =∆δedes
+y+ecosω
+tani∆δiy(15)
+where the superscript desis the desired change in δecomponents and actual refers to the
+change to be obtained through in-plane delta-v components. Accordingly, this compensa-
+tion scheme can be implemented in practice to cope with concurrent relative E/I separation
+corrections on both IP and OOP dimensions and is also valid for multiple-point maneuvers.
+3.1.3. Relative Drift Control
+In order to implement relative drift control the relative semi-major axis has to be
+changed. As shown by Equation (8), a single tangential impulse can be used at any point of
+the orbit; however, since tangential maneuvers also yield an effect on the other ROEs, a
+decision on the actual location of the correction has to be taken. In the context of rendezvous
+towards uncooperative targets, priority is given to enforcing PAS through E/I separation.
+Accordingly, the true anomaly of the firing is selected in such a way to always enlarge the
+relative orbit IP size, which is described by the squared sum of δexandδey. As underlined
+in the previous subsection, the tangential firing also has the effect of changing the relative
+mean longitude δλ, but, according to the specific application of the rendezvous, this side
+effect is once again neglected in favor of maintaining safe E/I separation. Using the
+elements BTAN
+31andBTAN
+41from the input matrix, this means selecting an anomaly that
+satisfies both of the following equations:
+(
+sign(∆δa)·sign(δex)·(Acosf−Bsinf+Ae)>0
+sign(∆δa)·sign(δey)·(Bcosf+Asinf+Be)>0
+A=cosω B=sinω(16)
+Once the firing anomaly is picked, vcan be computed and the required change in
+velocity is simply derived by inverting the first equation of Equation (8). Within this
+work, the anomaly is selected numerically by evaluating the two sign conditions over a
+discretized domain and retaining only the values of fthat satisfy both inequalities. Among
+these feasible values, the guidance selects the one that minimizes the sum of the first and
+second equations of (16).
+3.2. Multiple-Point Maneuvers
+The previous subsections discussed the development of maneuvering schemes which
+are realized through a single change in velocity in one of the three directions identified
+by the TAN reference frame. To increase the control authority on the IP problem (i.e.,
+the number of ROEs controlled in a single maneuver), the number of degrees of freedom
+available needs to be increased. The current section moves from known multiple-point
+maneuvering schemes from the relevant literature and provides a new closed-form for each
+which extends their validity to arbitrary eccentricities of the target spacecraft.
+3.2.1. Three-Point Tangential Firing Scheme
+This maneuver was first formulated for near-circular targets in the survey presented by
+Gaias and D’Amico [5](maneuver ID: N12) and proven to achieve the absolute minimum
+possible ∆vcost when the variation of the in-plane dimension ∆δeis the dominant cost
+factor among the IP elements. Because of its predictability and efficiency, the scheme was
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 10 ---
+Aerospace 2026 ,13, 230 10 of 35
+selected for implementation in the control layer for the autonomous guidance software of
+the AVANTI experiment [ 25] and studied in successive publications. In particular, in [ 6,7]
+it was argued that the minimum ∆vbound for in-plane reconfiguration found in [ 5] could
+be easily extended to eccentric targets, and the scheme was reformulated for unperturbed
+elliptic orbits. However, because of the adoption of the LVLH frame in both derivations,
+the maneuver locations could only be provided as a formula to be solved iteratively (see
+Equation (44) of [7]).
+Since the location of the firings needs to be aligned along the desired ∆δedirection,
+these can be found by once again taking the ratio of the B31
+TANandB41
+TANelements of the
+derived input matrix from Equation (8):
+∆δex
+∆δey=ecosω+cos(ω+fman)
+esinω+sin(ω+fman)(17)
+By again using the auxiliary angle method as in Equation (12) the solution is com-
+puted as
+fman=arccosK3
+R
++ξ, f′
+man=2π−arccosK3
+R
++ξ
+K1=∆δex
+∆δeysinω−cosω,K2=∆δex
+∆δeycosω+sinω,
+K3=ecosω−∆δex
+∆δeyesinω, R=q
+K2
+1+K2
+2,ξ=atan2K2
+K1(18)
+The true anomalies of the maneuvers fmanand f′
+manrepresent the two points per
+orbit where the firing may be delivered. Logically, if the maneuver execution time is to be
+minimized and the next closest anomaly to the chaser’s current position is fman, the three
+maneuvering points to consider are [fman,f′
+man,fman+2π]. Accordingly, it can be proven
+that the minimum required time duration of the reconfiguration (since the moment the
+maneuver is computed) is 1.5 orbits. Alternatively, if fuel minimization represents a more
+stringent requirement, the planner may prioritize the use of the one opportunity per orbit
+which requires a smaller ∆v. Other types of mission constraints may also require spreading
+the firings over larger time periods.
+As for the firing amplitudes, they are derived by considering the effect of the i-th
+firing and unperturbed Keplerian propagation (modeled from time titotjwith the STM
+Φij) to express the evolution of the in-plane ROEs as δαF=Φ0Fδα0+∑3
+i=1ΦiF∆δαi, where
+the subscripts <.>0and<.>Frespectively define initial and final conditions of the
+maneuver. By expressing each component one obtains
+
+
+∆δa=δaF−δα0=2av1
+µδvT1+2av2
+µδvT2+2av3
+µδvT3
+∆δλ=M0Fδa0+M1F2av1
+µδvT1+M2F2av2
+µδvT2+B1
+21δvT1+B2
+21δvT2+B3
+21δvT3
+∆δex=B1
+31δvT1+B2
+31δvT2+B3
+31δvT3
+∆δey=B1
+41δvT1+B2
+41δvT2+B3
+41δvT3(19)
+Mij=−3
+2n(tj−ti)
+where Bi
+kjrefers to the kjcomponent of the input matrix and is evaluated at the time instant
+of the i-th firing. It should be noted that the maneuver is concluded after the third firing,
+hence t3=tFand the propagation term M3Fis zero. Once the spacing between the three
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 11 ---
+Aerospace 2026 ,13, 230 11 of 35
+burns is fixed, the three unknown firing amplitudes can be obtained by only considering
+three equations of Equation (19):
+
+µ
+2a∆δa
+∆δλ−M0fδa0
+∆δex
+=
+v1 v2 v3
+B1
+21+M1F2av1
+µB2
+21+M2F2av2
+µB3
+21
+B1
+31B2
+31B3
+31
+
+δvT1
+δvT2
+δvT3
+
+=
+v1v2v3
+C∗
+1C∗
+2C3
+D1D2D3
+
+δvT1
+δvT2
+δvT3
+=M ·δvT(20)
+The closed-form solution is found by analytically inverting the matrix:
+
+δvT1
+δvT2
+δvT3
+=1
+|M|
+C∗
+2D3−C3D2−v2D3+v3D2v2C3−v3C∗
+2
+−C∗
+1D3+C3D1v1D3−v3D1−v1C3+v3C∗
+1
+C∗
+1D2−C∗
+2D1−v1D2+v2D1v1C∗
+2−v2C∗
+1
+
+µ
+2a∆δa
+∆δλ−M0fδa0
+∆δex
+
+|M|=v1(C∗
+2D3−C3D2)−v2(C∗
+1D3−C3D1) +v3(C∗
+1D2−C∗
+2D1)(21)
+It should be noted that the matrix Mbecomes singular in the case in which the user
+chooses to use the same true anomaly for all three firings (as two rows of Mbecome
+proportional), even if separated by integer multiples kof the orbit period; this means that
+both fmanand f′
+man(+2kπ) need to be used at least once. Taking this into account, the
+presented formulation provides a new closed-form solution to the three-point tangential
+maneuver for arbitrarily eccentric target orbits, building upon previous generalization
+efforts found in [6,7].
+3.2.2. Two-Point Radial Firing Scheme
+In terms of fuel consumption, the in-plane reconfiguration using tangential firings is
+physically more efficient than the radial ones owing to the higher controllability of the orbit
+energy in the velocity direction. Nonetheless, in some scenarios the reduced influence of
+radial maneuvers on the orbital energy can be considered as a benefit:
+• By employing radial burns only, the effect of thrust errors on the in-plane elements
+is minimized and higher control accuracy can be achieved, as demonstrated by the
+flight results of the SAFE formation flying guidance experiment [2];
+• A maneuvering scheme which does not impact the relative drift can increase passive
+safety in formations where a separation on the relative longitude needs to be main-
+tained. In many rendezvous applications, radial maneuvers are also used in the V-bar
+approach to safely close the distance to the target using “hops” [26].
+Lim and Mok [8]proposed two and three-point schemes using radial burns in circular
+target orbits; to generalize the idea to eccentric reference orbits, the TAN frame is adopted
+once again to define the control scheme.
+In this problem only the changes of three IP components can be commanded, since δa
+is not controllable through radial burns. Accordingly, two firings are sufficient to grant full
+controllability of the problem. The idea is once again to choose the true argument of latitude
+of the firings in such a way that the individual corrections on δeare collinear to the total
+desired ∆δe; therefore, the two locations can be computed according to Equation (12). As
+in the previous scheme, the choice on the maneuver locations (which is the same as the one
+found in [ 8] for delta-v-optimal reconfiguration with circular targets) allows minimizing
+the distance traveled in the space of δex/δey, making this maneuver a (sub-)optimal choice
+for in-plane size reconfiguration.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 12 ---
+Aerospace 2026 ,13, 230 12 of 35
+The amplitudes are also computed in a similar way to the previous scheme:
+
+
+∆δλ=M0Fδa0+B1
+23δvR1+B2
+23δvR2
+∆δex=B1
+33δvR1+B2
+33δvR2
+∆δey=B1
+43δvR1+B2
+43δvR2(22)
+Mij=−3
+2n(tj−ti)
+Upon inversion of the first two parts of Equation (22) one obtains
+"
+δvR1
+δvR2#
+=1
+B1
+23B2
+33− B1
+33B2
+23 
+B2
+33−B2
+23
+−B1
+33B1
+23!"
+∆δλ−M0Fδa0
+∆δex#
+(23)
+Once again, the algorithm gives freedom in the choice of the firing locations
+(fman/f′
+man+2kπ) but choosing the same anomaly for both leads to a singularity in the ma-
+trix to invert. It should also be highlighted that, since in general δa0̸=0, the correction on
+δλstrongly depends on the final time considered tF, which determines M0F. The presented
+formulation provides a new closed-form solution to the two-point radial firing maneuver.
+It represents one of the possible generalizations of the two-point algorithm presented in [ 8]
+to arbitrarily eccentric targets. For the current application, a three-point scheme, adopted
+in [8] only to more evenly distribute the impulses, is not considered since the number of
+degrees of freedom is already sufficient to control the three in-plane variables δex,δeyand
+δλ.
+3.2.3. Two-Impulse Non-Drifting Transfer Scheme
+Peters et al. [9]provided the generalization of the classic “radial hop” maneuver from
+rendezvous in circular orbits to elliptic, using both a Cartesian and a differential orbit
+elements formulation. The second of these, which provides a more intuitive parametriza-
+tion for moving between safe relative orbits, is, however, singular for orbits with zero
+eccentricity owing to the adoption of the differential elements. To provide a formulation
+which is singularity-free with respect to the value of the target eccentricity, the set of quasi-
+nonsingular ROEs is used instead to follow a similar derivation. This maneuvering scheme
+represents the particular case of δa0=0of the scheme described in Section 3.2.2. A further
+feature is that, instead of fixing the firing locations a priori, this design offers flexibility on
+the choice of the first anomaly of the burn.
+Zero Initial Relative Drift
+The algorithm is first developed by assuming δa0=0. A further simplification of the
+overall derivation relies on the fact that the submatrix of the unperturbed STM describing
+the evolution of the three IP elements is equal to the identity matrix if δa=0. This allows
+us to write the propagation equation from the first to the second point of the maneuver as
+δα2+=δα1−+B{2 : 4, 3 }|1δvR1+B{2 : 4, 3 }|2δvR2 (24)
+where the notation |iindicates which of the two burns the quantities refer to, while the
+superscript i+/−denotes whether the ROE state is achieved immediately before or after
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 13 ---
+Aerospace 2026 ,13, 230 13 of 35
+the impulsive maneuver. By expanding the previous equation, it is possible to obtain
+(ϑ=f+ω):
+
+δλ2+−δλ1−
+δex,2+−δex,1−
+δey,2+−δey,1−
+=
+2
+v+rcosf
+vaq
+1−η
+1+η
+−r
+vasinϑ−2esinω
+v
+r
+vacosϑ+2ecosω
+v
+
+1δvR1
+v1+
+2
+v+rcosf
+vaq
+1−η
+1+η
+−r
+vasinϑ−2esinω
+v
+r
+vacosϑ+2ecosω
+v
+
+2δvR2
+v2(25)
+where vindicates the factorization of the velocity term outside of the bracket. By expressing
+r=aη2/ρ, where ρ=1+ecosf, the velocity impulses can be scaled using the formula
+eδv=δvR
+ρv(26)
+The Equation (25) can be reorganized in the following form:
+
+δλ∆v,1δλ∆v,2
+δex,∆v,1δex,∆v,2
+δey,∆v,1δey,∆v,2
+"eδv1
+eδv2#
+=
+∆δλ
+∆δex
+∆δey
+
+where:
+δλ∆v=2ρ+η2cosfs
+1−η
+1+η
+δex,∆v=−η2sinν−2ρesinω
+δey,∆v=η2cosν+2ρecosω(27)
+The Equation (27) represents three equations in the three unknowns eδv1,eδv2and f2.
+Using two equations of (27) (the second and third are arbitrarily picked) it is possible to
+find the expressions for the scaled velocity changes as
+eδv1=δex,∆v2∆δey−δey,∆v2∆δex
+δex,∆v2·δey,∆v1−δey,∆v2·δex,∆v1
+eδv2=δey,∆v1∆δex−δex,∆v1∆δey
+δex,∆v2·δey,∆v1−δey,∆v2·δex,∆v1(28)
+The scaled velocities found in Equation (28) can be substituted into the first of (27). By
+simplifying the resulting equation and expressing it as a function of the only unknown f2, it
+is possible to once again arrive at the familiar trigonometric form K1cosf2+K2sinf2=K3
+and solve it using the already employed auxiliary angle method (see Equation (18)), the
+respective coefficients of which are reported in Appendix B. To summarize, the maneuver
+computation takes on the following steps:
+1. The maneuver is called at an arbitrary anomaly f1;
+2. The anomaly of the second firing is computed through the auxiliary angle method
+solution (Equation (18)) using the provided coefficients K1,K2, and K3. Two solutions
+are found; the implementation needs to select the anomaly which is neither coinci-
+dent with f1nor separated by a full orbit period, avoiding the singularity found in
+Equation (28) for a transfer angle ϕ=f2−f1=2kπ. Note that this singularity is the
+same as the one found for the more general formulation in Section 3.2.2.
+3. The amplitude of the two required radial firings can be retrieved using (26) and (28).
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 14 ---
+Aerospace 2026 ,13, 230 14 of 35
+Non-Zero Initial Relative Drift
+To nullify an initial non-zero relative drift δa0, the first velocity needs to include a
+component along the velocity direction. The tangential component of the first firing δvT1is
+found from the first equation of Equation (8), where the velocity vis computed on the first
+arbitrary point of the maneuver f1. The effect of δvT1can easily be accounted for in the rest
+of the derivation by defining a “reduced” set for the remaining ROEs:
+
+δλ
+δex
+δey
+
+RED=
+δλ
+δex
+δey
+
+0+
+B1
+21
+B1
+31
+B1
+41
+·δvT1 (29)
+These reduced elements are essentially the initial conditions to be used in the two-pulse
+radial non-drifting transfer described in the previous case, with δα1−=δαRED.
+From an operational point of view, the non-drifting transfer gives complete freedom
+in the selection of the first anomaly of the maneuver, which can therefore be executed at
+any point along the orbit. This paves the way for possible improvements in the algorithm
+based on what has already been discussed in Section 3.1.3. The first tangential firing can,
+for example, be placed in such a way to enforce the PAS of the approach by minimizing the
+IP re-phasing of the intermediate configuration. Such a feature would enable an even safer
+transfer between the initial and final relative orbits, which are characterized by relative E/I
+separation. Moreover, if the first of the radial firings is executed at a different point on the
+orbit with respect to the tangential one, its anomaly can also be picked to achieve a safe
+maneuver or one which minimizes its fuel cost.
+To conclude this section, a high-level summary of the presented maneuvering schemes
+is provided in Table 1, where the use cases, advantages and disadvantages of each solution
+are briefly discussed.
+Table 1. Summary of maneuvering schemes.
+Maneuver Use Advantages Disadvantages Solution
+1PT OOPFull control of out-of-
+plane relative motionOnly one firing needed,
+short reconfiguration time
+windowHigh∆vcost and cou-
+pling effect on δecom-
+ponentsFiring location: Equation (9)
+Firing amplitude: Equation (10)
+δeprecompensation: Equation (15)
+1PT RADControl of rela-
+tive eccentricity
+componentsNo effect on relative drift,
+allows to execute quick
+and small corrections to
+compensate perturbation
+effectsHigher ∆vcost than
+tangential schemes, not
+suitable for large shape
+reconfigurationsFiring location: Equation (12)
+Firing amplitude: Equation (13)
+1PT TANControl of drifting
+motion of relative or-
+bitFiring can be executed at
+any point on the orbitInfluence on relative ec-
+centricity and relative
+mean longitude needs
+to be accounted forFiring location: Equation (16)
+Firing amplitude:
+δvT=∆δaµ
+2av
+3PT TANFull control of IP rela-
+tive motionFuel consumption nears
+minimum ∆vbound for
+large reconfigurations of
+the relative eccentricity
+componentsPotentially unsafe inter-
+mediate configurations
+(see numerical tests in
+Section 5.1.4)Firing locations: Equation (18)
+Firing amplitudes: Equation (21)
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 15 ---
+Aerospace 2026 ,13, 230 15 of 35
+Table 1. Cont.
+Maneuver Use Advantages Disadvantages Solution
+2PT RADControl of relative ec-
+centricity and relative
+mean longitudeNo effect on relative drift,
+minimisation of effect of
+thrust errors on controlled
+IP elementsHigher ∆vcost than
+tangential schemes for
+IP reconfigurationsFiring locations: Equation (12)
+Firing amplitudes: Equation (23)
+2PT non-
+drifting
+transferPassively safe transfer
+between relative sta-
+tionary orbitsInitial orbit can be drifting,
+first firing can be executed
+at any point on the orbitHigh∆vdue to radial
+firings, potentially un-
+safe intermediate con-
+figurationsSecond firing location:
+Equation (18), using coefficients
+K1,K2,K3from Appendix B
+Firing amplitudes: Equation (26),
+Equation (28)
+PT—Point; OOP—Out-Of-Plane ( YTAN); RAD—Radial ( ZTAN); TAN—Tangential ( XTAN).
+4. Guidance Layer Definition
+Having completed the development of the manoeuvring schemes which change the
+relative state of the chaser spacecraft, the discussion can now shift to the higher layer of the
+guidance software, defined to meet typical mission requirements and constraints. To build
+a finite state machine logic around the rendezvous concept, a geometry of the approach
+region which may be generalized to a variety of missions is devised and is visualized in
+Figure 3.
+Figure 3. Approach geometry for Finite State Machine guidance, TAN frame.
+A spiraling trajectory is selected, characterized by the following features:
+• Based on the definition of a cross-track size of a KOZ around the target position (in
+red), a safety tube (in orange) is considered around the along-track axis xin order to
+enforce PAS for the entirety of the approach.
+• The approach trajectory is based on the definition of a series of holding states (or gates,
+in light blue) which are defined by two characteristics:
+– A waiting time, during which the chaser is required to station-keep (maintain its
+position and relative orbit), allowing it to accommodate a variety of functions,
+including switch of sensors for relative navigation and holding for convergence
+of filters or ground contact. In the presented test cases the waiting times are pre-
+defined as input parameters, but they can potentially be decided autonomously
+by the spacecraft and fed as input to the guidance function.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 16 ---
+Aerospace 2026 ,13, 230 16 of 35
+– A geometric size, which defines the nominal position and allowed excursion of
+the center of the stationary relative orbit along x, as well as minimum distances
+(margins) to be maintained from the safety tube when sizing the relative trajectory.
+Ultimately, the realization of the FSM is based on the autonomous maneuvering capability
+of the chaser to switch between two main states: a Walking Safe Ellipse (WSE) and a
+Stationary Safe Ellipse (SSE) state, which are distinguished mainly by the value of the
+estimated relative drift δa.
+Figure 4 provides a visualization of the layered structure of the implemented state
+machine, based on the MATLAB/Stateflow model. At the upper layer, three truth tables
+command the high-level behavior of the agent: the Timeline Manager evaluates whether the
+chaser spacecraft is outside or inside the prescribed next hold point based on the definition
+of error bands, which should be related to the expected control and navigation performance,
+whereas the WSE/SSE status analyzes the current relative orbit to decide whether a certain
+type of correction needs to be applied. For example, an SSE characterized by an estimated
+drift aδahigher than a prescribed threshold is termed as “drifting”. The information from
+the higher layer is then used as in the following:
+• Decisions from the timeline manager determine the transitions between the main
+states of the FSM, in practice commanding to stop or move the relative orbit in a
+specific direction. As will be discussed in Section 5.2, these decisions can also be based
+on concurring objectives such as estimation of differential drag effects.
+• Classification from the WSE/SSE status truth tables is used to inform decisions in
+the control layer to choose the proper maneuver within the guidance library (see
+Section 3).
+SSE WSEStand-byTimeline Manager WSE Status SSE Status
+SSE Control WSE Control
+ New ManeuverCompute 
+ManeuverScheduleand 
+Execute
+SSE ControlSafe Sizing
+Sta�on Keeping
+Shape ControlTTLSafe SizingCompute dri�
+Enter SSE slot: 
+3pt TAN + 1pt OOP
+Enter SSE slot: 
+3pt TAN + 1pt OOP
+Adjust dri�:
+1pt TANAdjust dri�:
+1pt TAN
+Adjust shape + re-center:
+2pt RAD + 1pt OOPAdjust shape:
+1pt RAD + 1pt OOPStand-by
+Stand-byWSE Control
+Figure 4. Code structure of the FSM.
+Lastly, the lower layer implements maneuver computation and execution and inter-
+faces the guidance software with the thrusters model used to command the spacecraft, and
+is not discussed in detail. Figure 5 illustrates the structure of the control layer for the WSE
+and SSE states.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 17 ---
+Aerospace 2026 ,13, 230 17 of 35
+SSE WSEStand-byTimeline Manager WSE Status SSE Status
+SSE Control WSE Control
+New ManoeuvreCompute 
+ManoeuvreSchedule and 
+Execute
+SSE ControlSafe Sizing
+Sta�on Keeping
+Shape ControlTTLSafe SizingCompute dri�
+Enter SSE slot: 
+3pt TAN + 1pt OOP
+Enter SSE slot: 
+3pt TAN + 1pt OOP
+Adjust dri�:
+1pt TANAdjust dri�:
+1pt TAN
+Adjust shape + re-center:
+2pt RAD + 1pt OOPAdjust shape:
+1pt RAD + 1pt OOPStand-by
+Stand-byWSE Control
+Figure 5. Structure of WSE and SSE control layer.
+As can be seen from the figure, both states benefit from the decoupling between drift
+and shape corrections obtained by adopting a velocity-aligned reference frame for the
+control; moreover, whenever both an IP and OOP maneuvers are commanded, the relative
+eccentricity precompensation scheme illustrated in Equation (15) is adopted. Further
+observations on the structure presented in Figure 5 are discussed:
+• Transitions to the stand-by (or waiting) states are triggered by completion of a selected
+maneuver scheme, communicated by the lowest layer in Figure 4.
+• “Safe Sizing” refers to a call to a function that returns the relative eccentricity and
+inclination components based on user-defined margins to be maintained from the
+KOZ on the cross-track plane and the nominal drift.
+• Given user-defined minimum and maximum drift values of the WSE, “Compute drift”
+provides the necessary aδato reach the next hold point in a prescribed time. The
+function is called again if after the drifting time the SSE state has not been reached yet,
+triggered by temporal transition logic (TTL). If the chaser reaches the next hold point
+within the drifting time, the guidance simply switches to the SSE control submodule.
+It is emphasized here that the presented approach can be explicitly tied to any specific
+mission timeline (defined in terms of, e.g., holding and drifting periods), a feature that is
+particularly valuable for mission management and ground support of ongoing operations.
+The following subsections detail the external functions called by the FSM during SSE and
+WSE control.
+4.1. Safe Relative Orbit Sizing
+To ensure PAS for any eccentricity of the target orbit, safe relative orbit sizing is based
+on the described relative orbit C-elements (see Section 2). In their dedicated section, it was
+shown how the inner bound of the family of orbits generated by different IP phasing γof
+the generalized eccentricity vector could be used to conservatively size the relative orbit.
+Based on Equation (7), the in-plane and out-of-plane dimensions can be computed as in
+the following:
+CIP=|C1|+ (KOZ Z+MZ)·(1+e)2
+COOP= (KOZ Y+MY)·(1+e)(30)
+where C1can be computed on the nominal drift of the relative orbit and KOZ and Mrefer
+to the keep-out-zone and the defined margin sizes, respectively, of the next waypoint along
+a particular dimension. To choose a phasing for the vectors, the OOP component was
+selected in order to minimize stationkeeping effort against perturbations; in fact the effect
+ofJ2on the relative inclination vector is contained by adopting a configuration with δix=0
+(a different choice on the phasing of the IP/OOP vectors might be needed to enhance
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 18 ---
+Aerospace 2026 ,13, 230 18 of 35
+visibility on the target spacecraft, for example to support vision-based navigation.), which
+according to the ROE definition in Equation (2) implies having two orbits with the same
+inclination. This same choice has also been adopted in past technology demonstrations
+such as in [1,25]. From the direct mapping in Appendix A, this means that
+C5=−sinω·δiy, C6=−cosω·δiy (31)
+from which the phasing βcan be computed according to Equation (5). The IP phasing γ
+can then be fixed on either a parallel or anti-parallel condition, depending on the initial
+state. The C-element state vector can then be converted to the quasi-nonsingular ROE set
+to be used to call the guidance maneuvers.
+4.2. Relative Drift Computation
+As already stated, this function is used by the FSM to compute the relative drift δa
+required to reach the next waypoint. In order to preserve efficiency against differential drag
+perturbations, the computation also accounts for the estimated change rate δ˙a. Taking into
+account the effect of a piece-wise constant δ˙athe evolution of the relative mean argument
+of longitude, derived from linearized relative motion [4], can be written as
+∆δλ=−3
+2nτδa0−3
+4nτ2δ˙a (32)
+where τ= (t−t0). The main ideas of the algorithm are the following:
+1. A nominal user-defined drift period τbetween two waypoints is considered and used
+to compute the relative drift required by inverting Equation (32).
+2. Having defined limit values aδaMINand aδaMAX, if the absolute value of the relative
+drift aδa0to be commanded is either too high or too low the value is saturated and
+the drifting time is recomputed by solving Equation (32) for τ. Care must be taken in
+the presence of opposing differential drag ( δ˙a·∆δλ>0) and of maximum saturation
+of the drift value, in which case it might be possible that the next waypoint cannot be
+reached with a single firing. By setting the discriminant of the quadratic Equation (32)
+equal to zero the maximum distance that can be traveled is found as
+∆δλMAX=3
+4nδa2
+0
+δ˙a(33)
+for which the drifting time can be computed.
+3. The relative drift to command is used to safely size the relative orbit as explained in
+the previous section and the drifting time is used as an argument in the TTL condition
+in Figure 5.
+5. Results
+This section details the numerical tests that have been conducted to validate both
+the developed closed-form maneuvers as well as the integrated guidance software. First,
+Section 5.1 uses a linear propagator based on the Yamanaka–Ankersen STM [ 20] for unper-
+turbed relative motion to verify the correct derivation of the maneuvers by impulsively
+changing the chaser’s orbital velocity. The presented tests use close-range scenarios to
+avoid introducing significant linearization errors. Secondly, Section 5.2 analyses the results
+obtained by completing two distinct rendezvous scenarios in a high-fidelity simulator
+which integrates the nonlinear equations of motion of the two satellites considering a
+complex gravitational model which accounts for the Earth’s mass distribution as well
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 19 ---
+Aerospace 2026 ,13, 230 19 of 35
+as orbit perturbations, including a differential drag model based on the geometry of the
+two satellites.
+5.1. Maneuvers Using Linear Propagation
+5.1.1. Out-of-Plane Control
+Table 2 presents the initial and final conditions used to test the maneuver in the linear
+propagator, which takes as input a guidance ∆vtable specifying firing time (computed
+through Kepler’s law from fman) and x,y,zcomponents of the velocity change.
+Table 2. Initial and final data for OOP single-point maneuver test.
+a [km] e [-] i [deg] Ω[deg] ω[deg] f0[deg]
+9000 0.2 40 45 100 40
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial −4 −500 0 −40 30 0
+Aimed - - - - 0 20
+The results of the propagation for five orbital periods are plotted in Figure 6. On the
+left side, the trajectory evolution in the target LVLH frame is shown, while the right side
+showcases the values of relative inclination over time, plotted in the δix/δiyplane.
+(a)
+ (b)
+Figure 6. OOP maneuver results with linear propagation from Table 2 for 5 orbit periods. ( a) Trajectory
+evolution in the LVLH frame of the target spacecraft. ( b) Results in the δix/δiyphase plane.
+Because of the unperturbed ideal propagation, the values taken by δix/δiyare changed
+when the impulsive velocity jump is applied. A further observation is that the trajectory
+with firing in the LVLH space periodically intersects the original one (two times per orbit)
+on the relative descending and ascending nodes between the initial/final relative orbit.
+Indeed, these are the locations of the possible single-burn plane-change maneuvers fman,
+which are found by solving Equation (9) or graphically from the true argument of latitude
+ϑmanspanned from the axis δix.
+5.1.2. In-Plane Shape Control
+The single-point maneuver is validated using the linear propagator with data reported
+in Table 3.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 20 ---
+Aerospace 2026 ,13, 230 20 of 35
+Table 3. Initial and final data for IP single-point maneuver test.
+a [km] e [-] i [deg] Ω[deg] ω[deg] f0[deg]
+18348 0.5 40 45 100 100
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial 0 −4000 −200 150 0 200
+Aimed - - 0 −300 - -
+The resulting LVLH trajectory is reported on the left of Figure 7, whereas the time
+evolution of the in-plane ROEs, plotted in the δex/δeyplane, is illustrated on the right side.
+Once again, a single-pulse maneuver is able to achieve the desired change in the
+components of the relative eccentricity vector, and the developed function picks the closest
+maneuvering anomaly between the computed fmanand f′
+man; moreover, as also confirmed
+by the evolution of aδaover time, it can be seen that the initial and final orbits are both
+stationary thanks to the velocity change in the radial direction.
+A further test is presented to validate the precompensation scheme presented in
+Equation (15), which accounts for the coupling between in-plane elements and velocity
+changes in the out-of-plane direction for arbitrarily eccentric targets. The same absolute
+orbital elements given in Table 3 are used, but the final ROEs are defined in Table 4.
+(a)
+ (b)
+Figure 7. IP maneuver results with linear propagation from Table 3 ( a) Trajectory evolution in the
+LVLH frame of the target spacecraft for 5 orbit periods. ( b) IP ROEs over time.
+Table 4. Aimed ROE for OOP precompensation test.
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial 0 −4000 −200 150 0 200
+Aimed - - 0 −300 40 150
+The results of the linear propagation obtained by calling both maneuvering functions
+validated so far and by using the described compensation scheme in Equation (15) are
+shown in Figure 8.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 21 ---
+Aerospace 2026 ,13, 230 21 of 35
+(a)
+ (b)
+Figure 8. IP+OOP maneuver results with linear propagation using Table 4 ( a) Trajectory evolution in
+the LVLH frame of the target spacecraft for 5 orbit periods. ( b) IP ROEs over time.
+As it can be seen, the precompensation allows us to precisely account for the deviation
+of∆δecaused by the OOP firing (which is visualized as the second smaller jump on the
+right plot of Figure 8), successfully reaching the desired point in the phase plot. It should
+be noted that the same results would have been obtained if the OOP maneuver had been
+executed first, leaving to the on-board guidance the freedom to choose to execute the IP
+maneuver at either the fmanorf′
+mananomaly.
+5.1.3. Relative Drift Control
+Drift control is demonstrated using linear propagation for the “braking” ( aδafrom
+−50 to 0) and “accelerating” ( aδafrom 0 to 50) cases using the data reported in Table 5.
+Table 5. Initial and final data for drift control single-point maneuver test.
+a [km] e [-] i [deg] Ω[deg] ω[deg] f0[deg]
+17,000 0.01 10 50 220 50
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial −50/0 400 10 190 0 100
+Aimed 0/50 - - - - -
+The results of the trajectory propagation in the LVLH frame are reported in Figure 9.
+(a)
+ (b)
+Figure 9. Drift control maneuver results with linear propagation from Table 5 for 5 orbital periods.
+(a) Braking case. ( b) Accelerating case.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 22 ---
+Aerospace 2026 ,13, 230 22 of 35
+On the left side, the maneuver is called to stop a trajectory which is drifting away
+from the target, whereas on the right side drift is commanded to initiate a spiraling motion
+around the target position. Based on the presented formulation, the function picks a ma-
+neuvering anomaly which in both cases enlarges the relative orbit in-plane size, enhancing
+the passive abort safety of the maneuver.
+5.1.4. Three-Point Tangential Control
+To validate the generality of the implemented maneuver, propagation results are
+presented for both a circular and eccentric target orbit case, using the data reported in
+Table 6.
+Table 6. Initial and final data for 3 pt tangential control maneuver tests.
+a [km] e [-] i [deg] Ω[deg] ω[deg] f0[deg]
+30,500 0/0.75 −5 357 88 90
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial −20 −700 130 −50 40 0
+Aimed 0 −500 150 0 - -
+Figure 10 reports the linear propagation results in the in-plane LVLH frame of the
+target for both eccentricity cases; later firings are represented with a progressively de-
+saturated color. As already explained in Section 2, within this frame one can notice that the
+in-plane size along zis increasingly amplified for higher along-track distances xfrom the
+origin when e̸=0.
+(a)
+ (b)
+Figure 10. The 3 pt tangential maneuver results with linear propagation from Table 6. ( a) Circular
+case. ( b) Eccentric case.
+A further observation, which is specific to the considered tests, is that in both cases
+the first firing introduces an intermediate relative drift which is higher than the initial
+one, making the chaser drift away faster in the case of loss of thrust control during the
+maneuver. Figure 11 shows instead the paths followed in the ROE space throughout the
+entire maneuver execution.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 23 ---
+Aerospace 2026 ,13, 230 23 of 35
+(a)
+ (b)
+Figure 11. The 3 pt tangential maneuver results in ROE space. ( a) Circular case. ( b) Eccentric case.
+Based on these plots, some observations can be made:
+• The maneuver follows a minimum distance path in the δex/δeyspace in both cases,
+owing to the choice on the placing of the firing anomalies.
+• The main notable difference introduced when dealing with non-zero eccentricities of
+the target is that the jumps caused by the tangential firings in the δλ/δaspace are no
+longer exactly vertical. This is explained by the fact that the relative mean longitude
+δλis not affected by velocity changes in the tangential direction when e=0(and
+η=1), as can be verified by the second line of Equation (8).
+• A further significant difference is that in the eccentric scenario the maneuver produces
+an intermediate relative orbit (after the first firing) which drifts tens of meters past the
+aimed along-track position of −500 m. This is something which needs to be accounted
+for when deciding which maneuver to use during proximity operations, owing to the
+strict requirements coming from other GNC functions (e.g., vision-based navigation).
+• The circular reconfiguration examined requires a total ∆v≈0.006 m/s, whereas the
+eccentric one amounts to ∆v≈0.009 m/s.
+5.1.5. Two-Point Radial Control
+The maneuver is validated using the data in Table 7, which represents a case where
+the chaser shrinks and re-centers the relative orbit on the target position.
+Table 7. Initial and final data for 2 pt radial control maneuver test.
+a [km] e [-] i [deg] Ω[deg] ω[deg] f0[deg]
+24,500 0.44 39 357 0 350
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial 0 100 230 −50 230 0
+Aimed - 0 150 25 - -
+Figure 12 reports the linear propagation results in the LVLH frame.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 24 ---
+Aerospace 2026 ,13, 230 24 of 35
+Figure 12. The 2 pt radial maneuver results using linear propagation from Table 7.
+The main notable feature of the trajectory is the fact that the intermediate orbit (in
+green) used to reach the final desired one is drift free, by design of the adopted radial
+control strategy, increasing the safety of the reconfiguration. A comparison may also be
+drawn to the three-point tangential scheme to analyze the differences between the two
+maneuvers using the same test data as reported in Table 7, with a final aimed aδaequal to
+zero. Figure 13 shows the in-plane trajectory obtained using the two design strategies.
+As expected from previous discussions, the key drawback of the tangential scheme is
+the reduced PAS of the reconfiguration owing to induced non-zero intermediate relative
+drifts, which lead to significant risk of collision in the case of anomalies occurring during
+the firings. As for fuel consumption, the radial scheme requires a total of ∆v≈0.019 m/s,
+whereas the second amounts to ∆v≈0.010 m/s, which means that almost half of the fuel
+is saved. The main conclusion is that the choice of either maneuver is to be based on the
+specific reconfiguration scenario, in particular the following factors:
+• The use of the tangential scheme is ideal whenever the relative orbit reconfiguration
+asks for large variations in the in-plane size (which would amount to large amounts
+of fuel being consumed) and for control of the relative drift.
+• The radial scheme is instead suitable for close proximity operations which do not
+require large reconfigurations. As seen in the previous section, this maneuver might
+also be preferred in order to avoid “overshoots” of δλduring the reconfiguration.
+(a)
+ (b)
+Figure 13. Reconfiguration maneuver results using ( a) 3 pt tangential and ( b) 2 pt radial scheme.
+5.1.6. Two-Impulse Non-Drifting Transfer
+The algorithm is validated in an elliptic target case as well as in a zero eccentricity
+case (for which the original formulation in ROE is singular) using the data in Table 8.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 25 ---
+Aerospace 2026 ,13, 230 25 of 35
+Table 8. Initial and final data for non-drifting transfer maneuver test.
+a [km] e [-] i [deg] Ω[deg] ω[deg] f0[deg]
+14,500 0/0.21 39 357 28 90
+ROE [m] aδa a δλ aδex aδey aδix aδiy
+Initial −5 −650 100 10 100 0
+Aimed 0 −200 50 0 - -
+The propagation results are reported in Figure 14. The initial relative orbit is character-
+ized by a relative drift which is nullified with the tangential component of the first firing.
+(a)
+ (b)
+Figure 14. Non-drifting transfer maneuver results using linear propagation from Table 8. ( a) Circular
+case. ( b) Eccentric case.
+This generates a transfer orbit which returns to the initial firing point in case the
+second firing cannot be executed (see green trajectory arc), increasing the passive safety
+of the approach. Figure 15 reports the evolution of the in-plane ROE over time, plotted
+in the ROE space. The plots demonstrate that the algorithm is able to successfully reach
+the desired in-plane ROE for both eccentricity cases. However, it should be noted that in
+general the intermediate relative eccentricity vector δecan deviate significantly from the
+shortest path between the initial and final values of the reconfiguration, depending on the
+anomaly at which the first firing is executed. This implies that PAS during the maneuver,
+intended as compliance with the KOZ dimensions or minimum distance in the cross-track
+plane, needs to be assessed on a case-by-case basis.
+(a)
+ (b)
+Figure 15. Non-drifting transfer maneuver results in ROE. ( a) Circular case. ( b) Eccentric case.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 26 ---
+Aerospace 2026 ,13, 230 26 of 35
+5.2. Rendezvous Scenarios in High-Fidelity Simulator
+The guidance and control layers are finally validated in a nonlinear simulator through
+the completion of two rendezvous scenarios for non-cooperative targets. The following
+points summarize the main observations regarding the integration of the guidance software
+in the simulator:
+• As introduced, with respect to previous numerical tests, the relative motion between
+the two spacecraft is now propagated through the direct integration of the nonlinear
+equations of motion of each satellite. This allows for including realistic orbit per-
+turbations which make the actual relative motion deviate from linear, unperturbed
+propagation models. To cope with this, the osculating Keplerian elements are con-
+verted to mean elements, which remove short/long oscillations generated by the J2
+term of the Earth’s gravity potential, through the first-order mappings based on the
+Brouwer and Lyddane theory provided in Appendix F of [ 27]. These mean elements
+are then used to compute mean relative orbital elements. Their use in the closed-form
+maneuvers, designed under the assumption of unperturbed propagation, is known to
+generate negligible errors when considering the J2term [28].
+• As discussed in Section 4.2, the FSM guidance uses an estimate of the rate of change
+δ˙ato take decisions when switching to the WSE state. To dynamically estimate its
+value during the approach, the procedure described in [ 29] is adopted. The main
+idea is to hold the position of the relative orbit while a navigation function stores the
+values of the estimated ROEs. In the simulation setup, in order to emulate the result of
+such a navigation function, a simple linear regression is used to compute the desired
+time derivative over the acquisition interval. When the estimation of δ˙aneeds to be
+updated, the guidance function can either use one of the predefined FSM waypoints
+(see Figure 3) as a hold position or generate a “virtual” waypoint at the start of the
+simulation when no prior estimation is available.
+• Apart from the estimation of the time derivatives, no navigation errors are considered
+on the relative and absolute states of the chaser, which are assumed to be known
+exactly by the guidance.
+• A further significant difference from linear validation tests is that orbital maneuvers
+are now delivered through simulated monopropellant chemical thrusters, using a
+mathematical model that emulates non-ideal thrust shaping through the definition
+of rise/fall time constants. For the presented tests, a general firing takes up to ten
+seconds, which still allows us to model the maneuvers as impulsive [23].
+5.2.1. General Simulation Setup
+Table 9 reports common simulation data used in both rendezvous scenarios. The
+chaser spacecraft is a satellite with a characteristic size of ≈1 m which maintains attitude
+while pointing in the direction of the target.
+To deliver the required ∆vcommands, six ON/OFF thrusters are mounted within
+its frame and Pulse-Width Modulation (PWM) logic is used for precise firings. Table 9
+also defines a validity period (which corresponds to approximately two days for the first
+scenario, and five days for the second) for the estimation of the change rate δ˙a, after which
+the guidance software needs to raise a request to create a new dataset. For comparability
+between the two scenarios, the initial relative conditions of the chaser are defined in
+both cases as C0= [5, 0, 1000, −20,100, 350, −880] m, which represents a case in which
+the generalized relative eccentricity and inclination vectors are not collinear within the
+threshold specified in Table 9.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 27 ---
+Aerospace 2026 ,13, 230 27 of 35
+Table 9. Common simulation data.
+Parameter Symbol Value Unit
+Chaser mass mc 400 kg
+Thrusters force Fc 20 N
+Minimum ∆vdeliverable ∆vmin 0.2 mm/s
+# of orbits for drag effects estimation Nest
+orb3 orbits
+Validity of drag effects estimation Nval
+orb30 orbits
+FSM relative E/I separation phase threshold EIthr 5 deg
+FSM SSE relative drift threshold aδathr 1 m
+FSM WSE maximum relative drift aδamax 100 m
+FSM WSE minimum relative drift aδamin 3 m
+FSM WSE nominal drift period between waypoints Tdri f t 5 orbits
+KOZ dimension along yTAN KOZ Y 200 m
+KOZ dimension along zTAN KOZ Z 200 m
+5.2.2. First Scenario: Inspection of Rocket Body in SSO
+The first test scenario is based on Phase I of the Commercial Removal of Debris Demon-
+stration (CRD2) project, within which the satellite ADRAS-J, developed by Astroscale Japan,
+performed rendezvous and inspection of a non-cooperative object in a Sun-Synchronous
+Orbit (SSO) [ 30]. The designated target was the H-IIA upper stage, used in 2009 to launch
+the Greenhouse Gases Observing Satellite (GOSAT). Based on the rocket body NORAD ID
+(33500), its Keplerian elements have been retrieved from [31] and are reported in Table 10.
+Table 10. Keplerian elements and assumed characteristics of the H-IIA upper stage.
+a [km] e [-] i [deg] Ω[deg] ω[deg] mT[kg] Characteristic Size [m]
+7167.5 0.0036 98.25 211.94 139.43 2000 ≈7×3.5 m
+The FSM guidance is constrained by the waypoints definition and their related hold
+times, as provided in Table 11.
+Table 11. FSM input data.
+Along-Track Positions [km] Hold Durations [orbits] Margins from KOZ [m]
+[−15,−3,−1,−0.3] [ 2, 3, 2, 2 ]
+Mz
+My
+=
+450 250 150 100
+450 250 150 100
+Figure 16 reports the resulting relative trajectory in the TAN frame of the target. For
+the circular rendezvous case, one can clearly distinguish the phases where the orbit is in a
+“walking” state and where the chaser station keeps and shrinks the IP/OOP sizes. In that
+sense, the behavior of the servicer is deterministic and well readable. The cross-track plane
+projection of the trajectory (shown in the bottom-right of Figure 16) demonstrates how the
+entire approach happens not only without crossing the KOZ around the target, but also by
+maintaining the minimum size margins set in Table 11. In this regard, a more quantitative
+assessment is also presented in Figure A1 of Appendix C, where the relative distance of the
+chaser on the cross-track plane is plotted against the simulation time.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 28 ---
+Aerospace 2026 ,13, 230 28 of 35
+(a)
+ (b)
+(c)
+ (d)
+Figure 16. Relative trajectory of Scenario 1 in the TAN frame: ( a) Full rendezvous trajectory.
+(b) Zoom-in on last three waypoints. ( c) In-plane projection of trajectory. ( d) Trajectory on cross-track
+plane.
+Figure 17 showcases more simulation results which allow for making further observa-
+tions:
+(a)
+ (b)
+Figure 17. Cont.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 29 ---
+Aerospace 2026 ,13, 230 29 of 35
+(c)
+ (d)
+Figure 17. Simulation results for Scenario 1: ( a)∆vcommands requested by the FSM guidance.
+(b–d) History of quasi-nonsingular ROEs over time.
+• As seen from the ∆vcommands timeline, an initial large reconfiguration maneuver is
+needed to re-phase and re-size the relative orbit, and is obtained through concurrent
+in-plane (through the 3 pt tangential scheme) and out-of-plane control. Because the lat-
+ter direction typically requires higher amounts of fuel, the guidance software has been
+programmed to distribute the maneuver over the two OOP firing opportunities avail-
+able in each orbit (see Section 3.1.1), while preserving the commanded direction in the
+(δix,δiy) plane at each firing. At every opportunity, the guidance thus saturates the de-
+livered impulse to a maximum allowed ∆v(here set to 0.05 m/s), repeating the process
+until the cumulative OOP correction matches the original single-firing command.
+• Because no prior estimation of the differential drag effects was given, an initial “virtual”
+SSE is first reached (at the orbital period torb≈4.5) to create the database needed for
+the estimation of δ˙a. Moreover, because of its validity period Nval
+orbspecified in Table 9,
+the third SSE (reached at torb≈40) is also used to update the estimation through an
+acquisition period with no maneuvers.
+• To preserve the safety of the approach and stay within the prescribed limits for maxi-
+mum relative drift (see Table 9), the guidance can re-compute longer (or potentially
+shorter) drifting periods between the given waypoints. This is best observed between
+the first and second, where the drifting phase starts at torb≈18and ends at torb≈30,
+increasing the nominal value specified in Table 9, according to the formulation de-
+scribed in Section 4.2.
+5.2.3. Second Scenario: Rendezvous with HEO Satellite
+The second scenario is defined to prove the safe rendezvous capability for a Highly-
+Eccentric Orbit spacecraft. The target specifications are reported in Table 12.
+Table 12. Keplerian elements and assumed inertia of the HEO target.
+a [km] e [-] i [o]Ω[o] ω[o] mT[kg] Characteristic Size [m]
+14,156 0.5 59 84 188 400 ≈1 m
+To demonstrate the re-usability of the proposed architecture, the same input data for
+the FSM as the previous scenario is considered (see Table 11).
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 30 ---
+Aerospace 2026 ,13, 230 30 of 35
+Figure 18 reports the resulting relative trajectory in the TAN frame of the target
+spacecraft. With respect to the previous scenario, more complex relative orbital dynamics
+greatly deform the shape of the orbit in the three-dimensional space. However, after the
+initial large reconfiguration from the initial conditions, which are not characterized by
+relative E/I separation, the chaser follows a trajectory in which the two defined WSE/SSE
+states can still be distinguished. Once again, the cross-track plane view shows a followed
+path which maintains the minimum size margins from the KOZ, as specified in Table 11.
+This can also be further verified using the plots of the cross-track distance reported in
+Figure A1.
+(a)
+ (b)
+(c)
+ (d)
+Figure 18. Relative trajectory of Scenario 2 in TAN frame: ( a) Full rendezvous trajectory. ( b) Zoom-in
+on last three waypoints. ( c) In-plane projection of trajectory. ( d) Trajectory on cross-track plane.
+Lastly, Figure 19 reports the related simulation results in terms of ∆vand time evolu-
+tion of the quasi-nonsingular ROEs. When compared to Figure 17, it is possible to appreciate
+that the two scenarios are characterized by similar results both in terms of fuel used as well
+as in terms of overall time needed (in orbit periods). A major difference is given by the
+stronger impact of orbit perturbations, which calls for periodic yet small shape-correction
+maneuvers in the radial and out-of-plane directions while the WSE is drifting between
+waypoints. The reader is also invited to observe specifically how δ˙atakes on a much larger
+value than the previous scenario, but this is not reflected in more frequent corrections along
+the tangential direction, thanks to the very definition of the guidance layer.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 31 ---
+Aerospace 2026 ,13, 230 31 of 35
+(a)
+ (b)
+(c)
+ (d)
+Figure 19. Simulation results for Scenario 2: ( a)∆vcommands requested by the FSM guidance.
+(b–d) History of quasi-nonsingular ROEs over time.
+6. Conclusions
+This paper has presented the development and validation of autonomous guidance
+software for spacecraft rendezvous to arbitrarily elliptic targets. To achieve this, the pro-
+posed architecture was structured in two distinct layers: First, the control layer, which
+represents a library of closed-form, impulsive maneuvers, was devised to give the maneu-
+vering satellite the capability to modify its own relative state through onboard-computed
+changes in orbital velocity. A high-level guidance layer was then designed to autonomously
+execute a rendezvous mission, characterized by standard operational constraints which
+include the definition of a Keep-Out Zone around the target spacecraft as well as specified
+hold positions and periods where no maneuvers may occur. The design choices taken in
+both of these two steps led to the definition of a software which can feasibly be adopted
+across different reference target orbits.
+It is noted once again that the validation performed focused solely on the guidance
+function, assuming perfect knowledge of the relative state; no navigation errors or sensor
+noise were included. Although the design philosophy partially accounted for uncertainty
+through the diffused definition of margins, a full end-to-end validation of the complete
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 32 ---
+Aerospace 2026 ,13, 230 32 of 35
+GNC system should therefore build upon the present work by incorporating realistic
+navigation uncertainties and, where appropriate, by coupling the guidance module with a
+dedicated navigation function.
+As for the control layer, the closed-form maneuvers have been derived by making
+no assumptions on the target eccentricity and by using a velocity-aligned reference frame.
+One of the main related advantages is the possibility to define control schemes for relative
+orbit in-plane reconfigurations which do not affect the relative drift between the spacecraft.
+Novel formulations which generalize already existing ROE-based maneuvering schemes to
+work with arbitrarily eccentric references have been provided; notably, maneuvers based
+on three tangential firings and two radial firings are discussed and validated numerically.
+Given their simplicity, these formulations typically require low processing power and can
+be efficiently deployed on space-graded processors.
+A novel finite state machine architecture has been defined to command the high-
+level decisions of the chaser spacecraft. The adoption of the C-elements as relative state
+parametrization enabled the definition of a common approach strategy in which the relative
+trajectory maintains minimum separation from the target on the plane orthogonal to the
+velocity, exploiting the concept of generalized relative eccentricity/inclination separation.
+As demonstrated by numerical simulations, the integrated software is able to autonomously
+complete the rendezvous mission timelines within the given constraints while still taking
+decisions which are deterministic and readable, characteristics which are favorable for
+ground support operations. A further advantage of the state machine formulation is its
+modularity, which allows the user to make quick changes to the architecture to more finely
+tune its behavior or choose a different set of maneuvers. Notably, future implementations
+could work on specializing the state machine to tailor it to a specific application; a spacecraft
+which relies on visual-based navigation could, for example, benefit from a guidance module
+which phases the relative eccentricity and inclination vectors in such a way as to enhance
+the visibility of the target. In this scenario, the navigation and actuation errors could
+be accounted for by a proper definition of the geometric margins to maintain from the
+Keep-Out Zone.
+Many On-Orbit Servicing mission concepts are currently being studied in order to face
+the ever-growing problem of space debris in the orbital regions around the Earth. Within
+this context, the proposed framework can be used as a flexible and general baseline to
+safely and autonomously approach a non-cooperative target spacecraft to begin proximity
+operations.
+Author Contributions: Conceptualization, D.B., S.T., and T.V .P .; methodology, D.B., G.G., S.T., T.V .P .,
+and P .R.; software, D.B.; validation, D.B., S.T. and T.V .P .; investigation, D.B., G.G., and T.V .P .; writing—
+original draft preparation, D.B.; writing—review and editing, D.B., G.G., S.T., T.V .P . and P .R. All
+authors have read and agreed to the published version of the manuscript.
+Funding: This research was partially funded by OHB System AG.
+Data Availability Statement: The original contributions presented in the study are included in the
+article, and further inquiries can be directed to the corresponding author.
+Conflicts of Interest: Authors Diego Buratti, Stefano Torresan, Thomas V . Peters were employed by
+the company OHB System AG. The remaining authors declare that the research was conducted in the
+absence of any commercial or financial relationships that could be construed as potential conflicts
+of interest.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 33 ---
+Aerospace 2026 ,13, 230 33 of 35
+Abbreviations
+The following abbreviations are used in this manuscript:
+PAS Passive-Abort Safety
+KOZ Keep-Out Zone
+FSM Finite State Machine
+ROEs Relative Orbital Elements
+GVE Gauss Variational Equations
+OOP Out-Of-Plane
+IP In-Plane
+SSE Stationary Safe Ellipse
+WSE Walking Safe Ellipse
+STM State Transition Matrix
+LVLH Local-Vertical Local-Horizontal
+TAN Tangential
+GNC Guidance, Navigation and Control
+Appendix A. Linear Conversion Matrices
+The following matrix of partial derivatives provides a linear map which converts
+a relative state expressed in the quasi-non-singular ROE set δα(see Equation (2)) to the
+relative orbit C-elements C(see Equation (4)), based on [16]:
+∂C
+∂δα=p·
+1 0 −2η−2ecosω −2η−2esinω 0 0
+e 0−η−2(1+e2)cosω−η−2(1+e2)sinω 0 0
+0 0 sin ω −cosω 0 −ecoti
+0η−3 sinω
+η3q
+1−η
+1+η−cosω
+η3q
+1−η
+1+η0 cot iη−2(1−1/η)
+0 0 0 0 −cosω −sinω
+0 0 0 0 sin ω −cosω
+(A1)
+The newly derived inverse transformation is also provided:
+∂δα
+∂C=1
+p·
+−e2+1
+(e2−1)2e
+(e2−1)0 0 0 0
+0 0 −K1η3sinω·K2 cosω·K2
+eη2cosω
+(−e2+1)−η2cosω
+(−e2+1)sinω 0−ecotisin2ω−ecoticosωsinω
+eη2sinω
+(−e2+1)−η2sinω
+(−e2+1)−cosω 0ecoticosωsinω ecoticos2ω
+0 0 0 0 −cosω sinω
+0 0 0 0 −sinω −cosω
+(A2)
+K1=q
+−(η−1)/(η+1), K2=coti(η−1+e·K1)
+Appendix B. Non-Drifting Transfer Coefficients
+K1=∆δexKex1+∆δeyKey1+∆δλKλ1
+K2=∆δexKex2+∆δeyKey2+∆δλKλ2
+K3=−(∆δexKex0+∆δeyKey0+∆δλKλ0)(A3)
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 34 ---
+Aerospace 2026 ,13, 230 34 of 35
+Kex0=2ecosωδλ∆v1−2δey,∆v1, Kex2=−η2δλ∆v1sinω
+Kex1=η2δλ∆v1cosω+2e2cosωδλ∆v1−2eδey,∆v1+δey,∆v1Ξ
+Key0=2esinωδλ∆v1+2δex,∆v1, Key2=η2δλ∆v1cosω
+Key1=η2δλ∆v1sinω+2e2sinωδλ∆v1+2eδex,∆v1−δex,∆v1Ξ
+Kλ0=−2ecosωδex,∆v1−2esinωδey,∆v1, Kλ2=η2(δex,∆v1sinω−δey,∆1cosω)
+Kλ1=−η2δex,∆v1cosω−2e2cosωδex,∆v1−2e2sinωδey,∆v1−δey,∆v1η2sinω(A4)
+where Ξ=η2q
+1−η
+1+η
+Appendix C. Additional Results for Rendezvous Scenarios
+(a)
+ (b)
+Figure A1. Relative distances δof chaser spacecraft on the cross-track plane yTAN/zTAN: (a) First
+Scenario—rendezvous in near-circular orbit. ( b) Second Scenario—rendezvous in highly elliptical
+orbit.
+References
+1. D’Amico, S.; Montenbruck, O. Proximity operations of formation-flying spacecraft using an eccentricity/inclination vector
+separation. J. Guid. Control. Dyn. 2006 ,29, 554–563.
+2. D’Amico, S.; Ardaens, J.S.; Larsson, R. Spaceborne autonomous formation-flying experiment on the PRISMA mission. J. Guid.
+Control. Dyn. 2012 ,35, 834–850.
+3. Gaias, G.; Ardaens, J.S. Design challenges and safety concept for the AVANTI experiment. Acta Astronaut. 2016 ,123, 409–419.
+4. D’Amico, S. Autonomous Formation Flying in Low Earth Orbit. Ph.D. Thesis, TU Delft, Delft, The Netherlands, 2010.
+5. Gaias, G.; D’Amico, S. Impulsive maneuvers for formation reconfiguration using relative orbital elements. J. Guid. Control Dyn.
+2015 ,38, 1036–1049.
+6. Riggi, L.; D’Amico, S. Optimal impulsive closed-form control for spacecraft formation flying and rendezvous. In Proceedings of
+the 2016 American Control Conference (ACC), Boston, MA, USA, 6–8 July 2016; IEEE: Piscataway, NJ, USA, 2016; pp. 5854–5861.
+7. Chernick, M.; D’Amico, S. New closed-form solutions for optimal impulsive control of spacecraft relative motion. J. Guid. Control
+Dyn. 2018 ,41, 301–319.
+8. Lim, Y.; Mok, S.H. In-plane formation reconfiguration with radial maneuvers. J. Guid. Control Dyn. 2020 ,43, 1881–1892.
+9. Peters, T.V .; Noomen, R.; Colmenarejo, P . Analytical Solutions to Two-Impulse Nondrifting Transfer Problems for Rendezvous in
+Elliptical Orbits. J. Guid. Control Dyn. 2014 ,37, 775–788.
+10. European Space Agency (ESA). Guidelines on Safe Close Proximity Operations ; ESA Technical Note ESA-TECSYE-TN-022522;
+European Space Agency (ESA): Noordwijk, The Netherlands, 2024.
+https://doi.org/10.3390/aerospace13030230
+
+--- Page 35 ---
+Aerospace 2026 ,13, 230 35 of 35
+11. International Rendezvous System Interoperability Standards (IRSIS) Baseline. 2019. Available online: https:
+//internationaldeepspacestandards.com/wp-content/uploads/2024/02/rendezvous_baseline_final_3-2019.pdf (accessed on 28
+October 2025).
+12. Vasconcelos, J.; Gaggi, S.; Amaral, T.; Bakouche, C.; Cotuna, A.; Friaças, A. Close-Proximity Operations Design, Analysis, and
+Validation for Non-Cooperative Targets with an Application to the ClearSpace-1 Mission. Aerospace 2025 ,12, 67.
+13. Schaub, H. Relative orbit geometry through classical orbit element differences. J. Guid. Control Dyn. 2004 ,27, 839–848.
+14. Schaub, H.; Alfriend, K.T. J2 invariant relative orbits for spacecraft formations. Celest. Mech. Dyn. Astron. 2001 ,79, 77–95.
+15. Gim, D.W.; Alfriend, K.T. State transition matrix of relative motion for the perturbed noncircular reference orbit. J. Guid. Control
+Dyn. 2003 ,26, 956–971.
+16. Peters, T.V .; Noomen, R. Linear cotangential transfers and safe orbits for elliptic orbit rendezvous. J. Guid. Control Dyn. 2020 ,
+44, 732–748.
+17. Harris, A.; Teil, T.; Schaub, H. Spacecraft decision-making autonomy using deep reinforcement learning. In Proceedings of the
+29th AAS/AIAA Space Flight Mechanics Meeting, Ka’anapali, Maui, HI, USA, 13–17 January 2019; American Astronautical
+Society: San Diego, CA, USA, 2019; pp. 1–19.
+18. Vela, C.; Opromolla, R.; Fasano, G. A low-thrust finite state machine based controller for N-satellites formations in distributed
+synthetic aperture radar applications. Acta Astronaut. 2023 ,202, 686–704.
+19. Peters, T.V .; Strippoli, L. Guidance for elliptic orbit rendezvous. In Proceedings of the AAS/AIAA Space Flight Mechanics Meeting,
+San Diego, CA, USA, 14–18 February 2010; American Astronautical Society: San Diego, CA, USA, 2010; Paper No. 2010-175.
+20. Yamanaka, K.; Ankersen, F. New state transition matrix for relative motion on an arbitrary elliptical orbit. J. Guid. Control Dyn.
+2002 ,25, 60–66.
+21. D’Amico, S. Relative Orbital Elements as Integration Constants of Hill’s Equations ; DLR, TN: Cologne, Germany, 2005; pp. 5–8.
+22. Battin, R.H. An Introduction to the Mathematics and Methods of Astrodynamics ; AIAA: Reston, VA, USA, 1999.
+23. Scalvini, A.; Borelli, G.; Gaias, G.; et al. Towards Robust Angles-Only Relative Orbit Navigation: Assessing Key Modelling
+Factors Using Batch Least Squares Filtering. In Proceedings of the 11th European Conference for AeroSpace Sciences (EUCASS
+2025), Rome, Italy, 30 June–4 July 2025; EUCASS Association: Rome, Italy, 2025; pp. 1–15.
+24. Calter, P .A.; Calter, M.A. Technical Mathematics ; John Wiley & Sons: Hoboken, NJ, USA, 2011.
+25. Gaias, G.; D’Amico, S.; Ardaens, J.S. Generalised multi-impulsive manoeuvres for optimum spacecraft rendezvous in near-circular
+orbit. Int. J. Space Sci. Eng. 2015 ,3, 68–88.
+26. Fehse, W. Automated Rendezvous and Docking of Spacecraft ; Cambridge University Press: Cambridge, UK, 2003; Volume 16.
+27. Schaub, H.; Junkins, J.L. Analytical Mechanics of Space Systems ; AIAA: Reston, VA, USA, 2003.
+28. Schaub, H.; Alfriend, K.T. Impulsive feedback control to establish specific mean orbit elements of spacecraft formations. J. Guid.
+Control Dyn. 2001 ,24, 739–745.
+29. Koenig, A.W.; Guffanti, T.; D’Amico, S. New state transition matrices for spacecraft relative motion in perturbed orbits. J. Guid.
+Control Dyn. 2017 ,40, 1749–1768.
+30. Yamamoto, T.; Matsumoto, J.; Okamoto, H.; Yoshida, R.; Hoshino, C.; Yamanaka, K. Pave the way for active debris removal
+realization: Jaxa commercial removal of debris demonstration (crd2). In Proceedings of the 8th European Conference on Space
+Debris, Darmstadt, Germany, 20–23 April 2021; European Space Agency: Paris, France, 2021; p. 200.
+31. Space-Track. Space-Track Satellite Catalog. Available online: https://www.space-track.org/ (accessed on 6 July 2025).
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/aerospace13030230

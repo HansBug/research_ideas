@@ -1,0 +1,1263 @@
+--- Page 1 ---
+arXiv:2207.07479v1  [cs.LO]  15 Jul 2022Zone-based veriﬁcation of timed automata:
+extrapolations, simulations and what next?⋆
+Patricia Bouyer1, Paul Gastin1,5, Frédéric Herbreteau2,
+Ocan Sankur3, and B. Srivathsan4,5
+1Université Paris-Saclay, CNRS, ENS Paris-Saclay, Laborat oire Méthodes Formelles,
+Gif-sur-Yvette, 91190, France
+2Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR5800, Talenc e, 33400, France
+3Univ Rennes, Inria, CNRS, Irisa, France
+4Chennai Mathematical Institute, India
+5CNRS IRL 2000, ReLaX, Chennai, India
+Abstract. Timed automata have been introduced by Rajeev Alur and
+David Dill in the early 90’s. In the last decades, timed autom ata have
+become the de facto model for the veriﬁcation of real-time systems. Algo-
+rithms for timed automata are based on the traversal of their state-space
+using zones as a symbolic representation. Since the state-s pace is inﬁnite,
+termination relies on ﬁnite abstractions that yield a ﬁnite representation
+of the reachable states.
+The ﬁrst solution to get ﬁnite abstractions was based on extr apolations of
+zones, and has been implemented in the industry-strength to olUppaal .
+A diﬀerent approach based on simulations between zones has e merged
+in the last ten years, and has been implemented in the fully op en source
+toolTChecker . The simulation-based approach has led to new eﬃcient
+algorithms for reachability and liveness in timed automata , and has also
+been extended to richer models like weighted timed automata , and timed
+automata with diagonal constraints and updates.
+In this article, we survey the extrapolation and simulation techniques,
+and discuss some open challenges for the future.
+Keywords: Timed automata · Veriﬁcation algorithms · Zones · Finite
+abstractions.
+1 Introduction
+Timed automata have been deﬁned in the early 1990’s [4,5] as a formal model
+for representing systems in which timing constraints play a n important role. A
+timed automaton is a ﬁnite automaton that can manipulate var iables. These
+variables have very speciﬁc behaviours: they increase sync hronously with time,
+they can be constrained (for instance, compared to a constan t), and they can
+be updated (most often, reset to 0). The number of states of a timed automa-
+ton is inﬁnite, and hence no properties of standard ﬁnite aut omata can trivially
+⋆This work was partially funded by ANR project Ticktac (ANR-1 8-CE40-0015).
+
+--- Page 2 ---
+2 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivaths an
+be transferred to timed automata. However, a ﬁnite-state ab straction, called
+theregion automaton , can be constructed that allows us to check for reachabil-
+ity properties, ω-regular properties, some branching-time timed temporal l ogics,
+etc. An extensive literature has been written on this model sinc e the original
+paper [4]. Research on timed automata since then has resulte d in a rich theory,
+and in more practice-guided developments. In this paper we f ocus on the latter,
+and present algorithmic issues, which we believe are the imp ortant ones.
+There are two main families of symbolic approaches to analyz e reachability
+properties: the backward and the forward analysis. Backwar d analysis consists in
+computing iteratively (symbolic) predecessors of the targ et state, until hitting
+the initial conﬁguration or until no new symbolic state can b e computed. By
+chance, such a symbolic computation, when applied to timed a utomata, always
+terminates and therefore provides a symbolic algorithm for the veriﬁcation of
+reachability properties. Unfortunately it is not really ad equate to analyse mod-
+els with discrete structures (like discrete variables) and does not extend very
+well to other properties. On the other hand, forward analysi s consists in com-
+puting iteratively (symbolic) successors of the initial co nﬁguration, until hitting
+the target or until some stopping criterion. The exact forwa rd computation does
+not terminate in general, and so there is a need for some theor etical develop-
+ments to ensure termination of the computation and prove the correctness of
+the approach. We focus on the forward analysis algorithm her e, and primarily
+restrict to reachability properties.
+The key advantage in timed automata veriﬁcation is the fact t hat the reach-
+able symbolic states can be represented using simple constr aints over the vari-
+ables, called zones. Zones can be eﬃciently manipulated, an d therefore the com-
+putation of successors is quick. The main challenge is to get a stopping criterion
+for the forward analysis that can ensure, as soon as possible , that all reachable
+states have been visited. The ﬁrst approach to stop the forwa rd analysis makes
+use of an extrapolation operation on zones. Extrapolation o f a zone gives a big-
+ger zone picked from a ﬁnite range, thereby automatically en suring termination.
+Starting from the late 90’s, extrapolations have been studi ed in depth, leading to
+the development of eﬃcient tools [15,36] and several fundam ental observations
+about what extrapolations can do and cannot do [23,24,11,12 ]. With the aim
+of circumventing the limitations of the extrapolation-bas ed approach, an alter-
+native solution has been pioneered in [63,65]. This approac h keeps the zones as
+they are, and makes use of simulations between them to stop th e computation. In
+addition to overcoming the limitations of the extrapolatio n-based approach, the
+simulation-based approach has paved the way for several rem arkable advances
+in timed automata veriﬁcation, in particular: dynamic abst ractions for reacha-
+bility checking [64,85], reﬁnement-based veriﬁcation of l iveness properties [65],
+simulation-based ﬁnite abstractions for weighted timed au tomata [27], for au-
+tomata with diagonal constraints and more general updates t han plain resets
+[50,51,53], for pushdown timed automata [2] and for event-c lock automata [1].
+Some of these techniques have been implemented in the tool TChecker [60], and
+experiments have shown signiﬁcant gains with respect to pre vious approaches.
+
+--- Page 3 ---
+Zone-based veriﬁcation of timed automata 3
+The goal of this survey is to present the extrapolation-base d and the simulation-
+based approaches, which have been instrumental in the succe ss of timed au-
+tomata veriﬁcation. We also include a discussion on “what ne xt?”, where we
+throw light on some of the current challenges in timed automa ta veriﬁcation
+that cannot be tackled just by using extrapolations or simul ations. The plan
+of the paper is the following. In Section 2, we brieﬂy recall t he model of timed
+automata and its semantics. In Section 3, we explain the symb olic approach
+to the forward analysis of timed automata, by presenting zon es, generic for-
+ward schemes to enforce termination of the forward computat ion while preserv-
+ing completeness and soundness, and ﬁnally DBMs as a useful r epresentation
+of zones. In Section 4, we present the extrapolation-based a pproach. In Sec-
+tion 5, we present the simulation-based approach. In Sectio n 6, we discuss two
+extensions, one concerning the model, and one concerning th e properties to be
+checked. There have been multiple tools which have been deve loped to verify
+timed automata; in Section 7 we present Uppaal , the most successful model-
+checker, whose development started in 1995 [19] and is based algorithmically
+on the extrapolation approach, and TChecker , an open-source model-checker
+under development [60], which implements the most recent al gorithms based on
+simulation. In Section 8 we discuss the next challenges whic h occur as a natural
+follow-up to the theory and practice that has been built so fa r.
+2 Birth of timed automata for veriﬁcation: the early 90’s
+2.1 Preliminaries
+We consider a ﬁnite set Xof variables, called clocks. A(clock) valuation overX
+is a mapping v:X→R+which assigns to each clock a non-negative real, which
+denotes a time value. The set of all clock valuations over Xis denoted RX
++, and
+0denotes the valuation assigning 0to every clock x∈X. Letv∈RX
++be a
+valuation and δ∈R+, the valuation v+δis deﬁned by (v+δ)(x) =v(x)+δfor
+everyx∈X. ForY⊆X, we denote by [Y]vthe valuation such that for every
+x∈Y,([Y]v)(x) = 0 and for every x∈X\Y,([Y]v)(x) =v(x).
+Given a ﬁnite set of clocks X, we introduce two sets of clock constraints over
+X. The most general one, denoted C(X), is deﬁned by the grammar:
+g::=x ⊲⊳ c|x−y ⊲⊳ c|g∧g|true
+wherex,y∈X, c∈Zand⊲⊳∈ {<,≤,=,≥,>}.
+A clock constraint of the form x−y ⊲⊳ c is said to be a diagonal constraint. Next
+we also use the proper subset of diagonal-free clock constraints where diagonal
+constraints are not allowed. This set is denoted Cdf(X).
+Ifv∈RX
++is a clock valuation, we write v|=gwhenvsatisﬁes the clock
+constraint g, and we say that vsatisﬁes x ⊲⊳ c (resp.x−y ⊲⊳ c ) whenever
+v(x)⊲⊳ c(resp.v(x)−v(y)⊲⊳ c). Ifgis a clock constraint, we write /llbracketg/rrbracketfor the
+set of clock valuations {v∈RX
++|v|=g}.
+
+--- Page 4 ---
+4 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivaths an
+2.2 The timed automaton model [4,5]
+Atimed automaton is a tuple A= (Q,X,q 0,T,F)whereQis a ﬁnite set of states,
+Xis a ﬁnite set of clocks, q0∈Qis the initial state, T⊆Q×C(X)×2X×Qis
+a ﬁnite set of transitions, and F⊆Qis a set of ﬁnal states. A timed automaton
+is said to be diagonal free if C(X)is replaced by Cdf(X)in the deﬁnition of the
+transition relation.
+Aconﬁguration of a timed automaton Ais a pair(q,v)whereq∈Qis a state
+of the automaton and v∈RX
++is a valuation. The semantics of Ais given as a
+transition system over its conﬁgurations. The initial node is(q0,0)consisting of
+the initial state q0and the initial valuation 0. There are two kinds of transitions:
+time elapse (q,v)δ− →(q,v+δ)for every δ∈R+,
+discrete transition (q,v)t− →(q1,v1)if there exists a transition t= (q,g,R,q 1)∈
+Tsuch that v|=gandv1= [R]v.
+A run of Ais a (ﬁnite or inﬁnite) alternating sequence of time elapses and
+discrete transitions starting from the initial conﬁgurati on:(q0,0)δ1− →(q0,0+
+δ1)t1− →(q1,v1)δ2− →(q1,v1+δ2)t2− →....
+In the following we will be interested in the veriﬁcation of r eachability prop-
+erties: given a timed automaton Aand a control state q, does there exist a
+(ﬁnite) run that leads to a conﬁguration of the form (q,v)? This problem was
+shown to be PSPACE-complete in the paper introducing timed a utomata [4].
+The ﬁrst algorithm for reachability made use of a ﬁnite parti tion of the set of
+valuations into regions , and then using it to construct a region automaton. There
+are exponentially many regions and hence this solution is no t useful in practice.
+3 A symbolic approach to the veriﬁcation of timed
+automata
+The original decidability result which uses regions is not s uited for implemen-
+tation, and symbolic approaches exploring the set of reacha ble states (forward
+or backward), and based on so-called zones [3,59] are preferred. In this survey
+we focus on forward computations, which compute iterativel y successors of the
+initial conﬁguration, until hitting the target set (a conﬁg uration whose state is
+inF), or (hopefully) until getting a certiﬁcate (e.g., an invar iant) showing that
+it cannot be hit.
+We ﬁx for this section a timed automaton A= (Q,X,q 0,T,F).
+3.1 Zones and symbolic forward computation
+AzoneoverXis a set of clock valuations deﬁned by a general clock constra int
+ofC(X). Figure 1(a) gives an example of a zone ZoverX={x1,x2}.
+Given a set of valuations W(overX), we deﬁne the following operations:
+–Intersection of WandW′:W∩W′={v∈RX
++|v∈Wandv∈W′};
+
+--- Page 5 ---
+Zone-based veriﬁcation of timed automata 5
+x1−x2=4
+123456789x112345x2
+0
+(a) Zone Zx0x1x2
+x0
+x1
+x2Ñ∞ −3∞
+∞ ∞4
+5∞ ∞é
+(b) DBM M,/llbracketM/rrbracket=Zx0x1x2
+x0
+x1
+x2Ñ0−3 0
+9 0 4
+5 2 0é
+(c) Normal form φ(M)
+Fig.1. Representations of zone Zdeﬁned by ((x1≥3)∧(x2≤5)∧(x1−x2≤4)).
+–Reset to zero of Ww.r.t.Y⊆X:[Y]W={[Y]v∈RX
++|v∈W};
+–Future of W:− →W={v+δ∈RX
++|v∈Wandδ∈R+}.
+One can see that those operations transform a zone into anoth er zone. Further-
+more, ift= (q,g,Y,q′)∈Tis a transition of A, then the operator Posttdeﬁned
+byPostt(W) :={v′∈RX
++| ∃v∈W,∃δ∈R+s.t.v|=gandv′= [Y]v+δ}can
+be computed symbolically as Postt(W) =− −−−−−−−− →[Y](W∩/llbracketg/rrbracket). In particular, if Zis a
+zone, then so is Postt(Z).
+Asymbolic state is a pair (q,Z)whereq∈Qis a state and Zis a nonempty
+zone. The initial symbolic state is s0= (q0,Z0)whereZ0=− −− →{0X}. The set Sof
+reachable symbolic states of Ais the least ﬁxed point of the following rules:
+Inits0∈ S
+(q,Z)∈ S t= (q,g,Y,q′)∈T Z′=Postt(Z)/\e}atio\slash=∅
+Trans(q′,Z′)∈ S
+What is called the forward analysis is a saturation computation of the set of
+reachable states using the above deduction rules. For the an alysis of this basic
+forward analysis, details of the implementation are not ver y important, but they
+might be crucial in practice (see for instance [17]). Note th at we assume future-
+closed zones, since it allows to prove optimality of some of t he abstractions,
+see [87, App. A]. First, this symbolic forward analysis is so und and complete for
+control-state reachability:
+Soundness If(q,Z)∈ S, then there exists v∈Zs.t.(q,v)is reachable in A,
+i.e., there is a run of Afrom its initial conﬁguration (q0,0)to(q,v).
+Completeness If a conﬁguration (q,v)is reachable in Athen there is some
+(q,Z)∈ Swithv∈Z.
+The problem with this approach is that the set Smay be inﬁnite, in which case
+any implementation of this forward analysis will not termin ate on some instances.
+There are two main approaches to overcome this problem: extrapolation and
+simulation .
+
+--- Page 6 ---
+6 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivaths an
+Extrapolation. The extrapolation approach deﬁnes an idempotent operator extra
+on symbolic states: if (q,Z)is a symbolic state then extra/parenleftbig(q,Z)/parenrightbigis a symbolic
+state(q,Z′)withZ⊆Z′. This approach changes the Trans rule as follows:
+(q,Z)∈ Sextra t= (q,g,Y,q′)∈T(q′,Z′) =extra((q′,Postt(Z)))/\e}atio\slash=∅
+and there are no (q′,Z′′)∈ SextrawithZ′⊆Z′′
+extra-Transadd(q′,Z′)toSextra
+We say that an operator extra is ﬁnite if for every q∈Q, for all inﬁ-
+nite sequences Z1,Z2,...of zones, we ﬁnd 1≤i < j withextra/parenleftbig
+(q,Zj)/parenrightbig
+⊆
+extra/parenleftbig(q,Zi)/parenrightbig. An easy way to ensure ﬁniteness of operator extra is to ensure
+that its range is ﬁnite. If extrais ﬁnite then any forward analysis induced by the
+ruleextra-Trans always terminates. Note that the set Sextrawhich is computed
+may depend on the order in which the extra-Trans rule is applied. Optimized
+search strategies can be used to eﬃciently compute Sextra[66]. Since Posttis
+monotone, it is easy to see that for all (q,Z)∈ S, there is some (q,Z′)∈ Sextra
+withZ⊆Z′. We deduce that completeness is preserved by extrapolation . We
+discuss in Section 4 extrapolation operators which are ﬁnit e and also preserve
+soundness. The corresponding forward analysis will theref ore be an algorithm
+for control-state reachability.
+Simulation. The simulation approach considers a preorder relation /precedesequalbetween
+symbolic states of Aand restricts the application of the Trans rule as follows:
+(q,Z)∈ S/precedesequalt= (q,g,Y,q′)∈T Z′=Postt(Z)/\e}atio\slash=∅
+and there are no (q′,Z′′)∈ S/precedesequalwith(q′,Z′)/precedesequal(q′,Z′′)
+/precedesequal-Transadd(q′,Z′)toS/precedesequal
+whereS/precedesequalis the new set of symbolic states.
+We say that /precedesequalisﬁnite if for all inﬁnite sequences (q,Z1),(q,Z2),...of sym-
+bolic states of A, we ﬁnd 1≤i < j with(q,Zj)/precedesequal(q,Zi). If/precedesequalis ﬁnite then
+the induced forward analysis always terminates. Note that t he setS/precedesequalwhich is
+computed may depend on the order in which we apply the /precedesequal-Trans rule (the op-
+timized search strategy in [66] can also be applied in this se ttings). In all cases,
+we have S/precedesequal⊆ S, so soundness is preserved. Now, if /precedesequalis asimulation (deﬁned
+in Section 5) then completeness is also preserved and the cor responding forward
+analysis will therefore be an algorithm for control-state r eachability.
+Remark 1. A stronger version of the soundness property is satisﬁed by t he exact
+forward computation based on the Trans rule: if(q,Z)∈ S, then for allv∈Z,
+the conﬁguration (q,v)is reachable in A. This also holds for the variant based
+on simulation ( /precedesequal-Trans rule), but not for the variant based on extrapolation
+(extra-Trans rule).
+The eﬃciency of the forward analysis crucially depends on th e complexity of
+applying the Trans rule. We will see below how this is implemented in practice.
+
+--- Page 7 ---
+Zone-based veriﬁcation of timed automata 7
+3.2 Diﬀerence bounded matrices (DBMs)
+The most common data structure for representing zones is the so-called DBM
+data structure. This data structure has been ﬁrst introduce d in [21] and then set
+in the framework of timed automata in [47]. Several presenta tions of this data
+structure can be found in the literature, for example in [42, 20,24].
+Adiﬀerence bounded matrix (DBM in short) for a set X={x1,...,x n}ofn
+clocks is an (n+1)-square matrix of pairs
+(⊳,m)∈V:= ({<,≤}×Z)∪{(<,∞)}.
+A DBM M=/parenleftbig(⊳i,j,mi,j)/parenrightbig
+0≤i,j≤ndeﬁnes the zone:
+/llbracketM/rrbracket:={v:X→R+| ∀0≤i,j≤n,v(xi)−v(xj)⊳i,jmi,j}
+wherev∈R{x0}∪X
++ is such that v|X=vandv(x0) = 0 , and where γ <∞
+simply means that γ∈R+. To simplify the notations, we assume from now on
+that all constraints are non-strict (except (<,∞)), so that coeﬃcients of DBMs
+can simply be seen as elements of Z∪{∞} . With this convention, the zone Zof
+Figure 1(a) can be represented by the DBM of Figure 1(b).
+A zone can have several representations using DBMs. For exam ple, the pre-
+vious zone can equivalently be represented by the DBM given i n Figure 1(c).
+This DBM contains constraints that were implicit in the form er representation:
+for instance, the constraint x1−x0≤9encoded in the DBM is implied by
+x1−x2≤4andx2−x0≤5.
+With every DBM Mwe associate its adjacency graph GM, and when there is
+no negative cycle in GM, we letφ(M)be the DBM obtained by computing the
+shortest paths in GM(for instance using the Floyd-Warshall algorithm). Then
+φ(M)is the smallest6DBM representing the same zone as M. It is called the
+normal form ofMand the computation of φ(M)fromMis called normalization .
+We can then notice the following:
+–/llbracketM/rrbracket⊆/llbracketM′/rrbracketiﬀφ(M)≤M′iﬀφ(M)≤φ(M′);
+–/llbracketM/rrbracket=∅iﬀ there is a negative cycle in GM.
+The ﬁrst point says that inclusion of zones can be checked eﬃc iently, i.e., in time
+O(|X|2), on normal forms of DBMs. The second point says that emptines s can
+be checked in time O(|X|3); this check will never be used as is, and emptiness
+is detected while computing the various operations (keepin g DBMs in normal
+form).
+Finally, the various operations on zones that we need for for ward analysis
+can be done eﬃciently on DBMs:
+–Intersection of MandM′:min(M,M′). The complexity is O(|X|2). But
+notice that, even if we start with DBMs M,M′in normal form, the resulting
+DBMmin(M,M′)is not necessarily in normal form. To get the result in
+normal form, we need normalization which takes time O(|X|3).
+6For the partial order ≤deﬁned pointwise.
+
+--- Page 8 ---
+8 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivaths an
+–Intersection of Mwith an atomic constraint gof the form xi−xj≤c:
+assuming M=φ(M)is in normal form, the normal form M′ofM∩gis
+deﬁned by m′
+k,ℓ= min(mk,ℓ,mk,i+c+mj,ℓ)and can be computed in time
+O(|X|2). Whengis an arbitrary constraint, we repeat the above operation
+with every atomic constraints in g. The complexity is O(|X|2·|g|).
+–Resetxito zero in M:asxi=x0after the reset, this is achieved on φ(M)as
+follows: for all j, setmi,jtom0,j, and set mj,itomj,0. The resulting DBM
+is still in normal form. The complexity is O(|X|).
+Resetting a set Yof clocks in Mamounts to repeat the above operation for
+allxi∈Y. The complexity is O(|X|·|Y|).
+–Future of M:onφ(M), relax (i.e., set to ∞) all upper-bound constraints
+xi−x0withi/\e}atio\slash= 0(that is, all coeﬃcients on column x0except the ﬁrst one).
+The resulting DBM is still in normal form. The complexity is O(|X|).
+3.3 Eﬃciency of the forward analysis
+Let us discuss the complexity of applying the Trans rule. First, given a transition
+t= (q,g,Y,q′)and a zone Zrepresented by a DBM Min normal form, we
+compute a DBM M′in normal form for the zone Postt(Z). To do so, we intersect
+Mwithg, then we reset clocks in Yand ﬁnally we let time elapse (future). As
+explained above, this is computed in time O(|X|2·|t|).
+We will deﬁne in Section 4 extrapolation operators extra(q,Z) = (q,Z′)which
+are ﬁnite and sound for diagonal-free timed automata. When Zis represented by
+a DBMMin normal form, we compute a DBM M′forZ′in timeO(|X|2). But
+M′is not in normal form, so we need normalization, which takes t imeO(|X|3).
+We saw above that the inclusion test Z′⊆Z′′required by the extra-Trans rule
+can be performed in time O(|X|2)when the DBM for Z′is in normal form.
+Hence, we may also apply the extra-Trans rule eﬃciently.
+In Section 5, we will deﬁne a preorder /precedesequalwhich is a ﬁnite simulation relation,
+for all timed automata, even those using diagonal constrain ts. Moreover, the
+test(q,Z)/precedesequal(q,Z′)can be checked in time O(|X|2)when the timed automaton
+is diagonal-free. Hence, we may apply the /precedesequal-Trans rule of the forward analysis
+eﬃciently. If diagonal constraints are allowed, checking t he simulation (q,Z)/precedesequal
+(q,Z′)is an NP-complete problem.
+Notice that, when applying the extra-Trans rule (resp. the /precedesequal-Trans rule), we
+need to check inclusion Z′⊆Z′′(resp. simulation (q′,Z′)/precedesequal(q′,Z′′)) against
+all already computed zones Z′′with the same state. Hence, checking simulation
+(resp. inclusion) is the dominant operation when applying t heTrans rule.
+4 Extrapolation: a ﬁrst solution
+4.1 The ﬁrst extrapolation operator
+We discuss here the ﬁrst extrapolation operator which has be en deﬁned [46] to
+ensure good properties of the forward analysis, and which ha s been prevalent in
+the timed systems veriﬁcation community until the early 201 0’s.
+
+--- Page 9 ---
+Zone-based veriﬁcation of timed automata 9
+x0x1x2
+x0
+x1
+x2Ñ0−2 0
++∞0 +∞
++∞2 0é
+(a) DBM extra2(M)123456789x112345x2
+0Z
+extra2(Z)
+(b) Zone extra2(Z)
+Fig.2. Illustration of the extrapolation operator
+LetK∈NXbe a tuple of integers. A K-bounded clock constraint is a clock
+constraint where clock xis only compared to constants between −Kxand+Kx,
+and the diﬀerence x−yis compared to constants between −Kyand+Kx. By
+extension, a K-bounded zone is a zone which can be deﬁned by a K-bounded
+clock constraint. If (q,Z)is a symbolic state, the K-extrapolation extraK/parenleftbig(q,Z)/parenrightbig
+of(q,Z)is the pair (q,Z′)such that Z′is the smallest K-bounded zone which
+contains Z. Intuitively, this operator relaxes constraints bounding clockxwhere
+constants are larger than K.
+This operation is well-deﬁned on DBMs: if Mis a DBM in normal form rep-
+resenting Z, a DBM representing the zone Z′such that (q,Z′) =extraK/parenleftbig(q,Z)/parenrightbig
+isM′(denoted extraK(M)) such that:
+(⊳′
+i,j;m′
+i,j) :=
+
+(<;∞)ifmi,j> Kxi
+(<;−Kxj)ifmi,j<−Kxj
+(⊳i,j,,mi,j)otherwise
+Considering the zone given in Figure 1, its extrapolation w. r.t.extra2(where
+2denotes the tuples associating 2to every clock) is the DBM of Figure 2(a)
+(which is not in normal form) and is depicted in Figure 2(b).
+Obviously, extraKis ﬁnite (since its range is ﬁnite), hence any forward anal-
+ysis using the K-extrapolation will terminate. Thus only soundness requir es
+some careful proof, and will actually not hold in general. Th e ﬁrst complete
+proof of soundness was given in [23,24], and was done in the mo re general con-
+text of updatable timed automata. It requires to show that th e extrapolation is
+asimulation-based abstraction , that is, there is some simulation relation (in a
+sense that we will make clear in the next section) such that an y conﬁguration
+which is computed in Sextracan be simulated by some conﬁguration in S.
+Theorem 1. LetK∈NXbe a tuple of integers and let Abe aK-bounded7
+and diagonal-free timed automaton. Then, the forward analys is which computes
+SextraKterminates, and is sound and complete.
+7for every x∈X, for every constraint x ⊲⊳ c appearing in A,Kx≥c.
+
+--- Page 10 ---
+10 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+4.2 Two reﬁnements of this approach
+State-dependent constants. The extrapolation operator is parametrized us-
+ing a tuple K∈NX. This can actually be reﬁned and made state-dependent, by
+considering one constant per state and per clock (i.e., a tup leK∈NX×Q
+∞, with
+N∞=N∪{+∞}), taking only into account constraints which have an impact
+on the current state: for instance, if xis compared to constant cand then reset
+before reaching state q, then constant cis not taken into account (this limited
+propagation idea will be presented in the context of G-simulation in Section 5).
+This reﬁned extrapolation was proven sound for forward anal ysis in [10].
+Note that the notion of active and inactive clocks of [46] can be recovered
+from this reﬁned extrapolation: a clock xis inactive at state qwhenever the
+constant Kx,qis+∞, in which case it can be ignored at state q.
+Distinguishing lower and upper bounds. Another reﬁnement, developed
+in [11], consists in distinguishing lower-bounding and upp er-bounding constraints
+of clocks: instead of having one constant per clock, we consi der two constants
+L,U∈NX
+∞. AnLU-bounded zone is one where xis compared to constants
+between −Uxand+Lx, and the diﬀerence x−yis compared to constants between
+−Uyand+Lx. Then the LU-extrapolation extraLU/parenleftbig(q,Z)/parenrightbigof(q,Z)is the pair
+(q,Z′)such that Z′is the smallest LU-bounded zone that contains Z.
+This operation can be better understood on DBMs: if Mis a DBM in nor-
+mal form representing Z, a DBM representing the zone Z′such that (q,Z′) =
+extraLU/parenleftbig
+(q,Z)/parenrightbig
+isM′(denoted extraLU(M)) such that:
+(⊳′
+i,j;m′
+i,j) :=
+
+(<;∞)ifmi,j> Lxi
+(<;−Uxj)ifmi,j<−Uxj
+(⊳i,j,,mi,j)otherwise
+Obviously, extraLUis ﬁnite (since its range is ﬁnite), hence any forward analys is
+using the LU-extrapolation will terminate. Only soundness requires so me careful
+proof, see [11]. It uses a LU-simulation, which is a technical notion that we do
+not discuss here, since a reﬁnement will be discussed in Sect ion 5.
+Theorem 2. LetL,U∈NXbe tuples of integers and let Abe a diagonal-free
+andLU-bounded8timed automaton. Then the forward analysis which computes
+SextraLUterminates, and is sound and complete.
+Further reﬁnements can be made, see [11], but will not be disc ussed here.
+4.3 Problems with diagonal clock constraints
+Surprisingly, the approach using extrapolation is not appr opriate to analyze
+general timed automata, which may use diagonal clock constr aints, and until
+8for every x∈X, for every constraint x < c orx≤c(resp.x > d orx≥d) appearing
+inA,Ux≥c(resp.Lx≥d).
+
+--- Page 11 ---
+Zone-based veriﬁcation of timed automata 11
+q0 q1 q2 q3
+q4 q5 q6 q7
+Errorx3≤3
+x1,x3:=0x2=3
+x2:=0x1=2,x1:=0
+x2=2,x2:=0
+x1=2
+x1:=0
+x2=2
+x2:=0x1=3
+x1:=0x2>x1+2
+x4<x3+2The loop
+Fig.3. Automaton Abug, with diagonal constraints, which cannot be analyzed by any
+algorithm using a zone extrapolation
+recent advances presented in Section 5, there was no really s atisfactory solution
+for analyzing general timed automata, see [32].
+Indeed, consider the timed automaton Abugdepicted on Figure 3. Then it is
+proven in [24] that it cannot be analyzed using a forward anal ysis computation
+using any ﬁnite-ranged extrapolation (like those we have de scribed before).
+Proposition 1. There is no extrapolation operator extrawith ﬁnite range, for
+which the forward analysis which computes Sextrais sound on Abug. This obvi-
+ously applies to operators extraKandextraLUthat we have discussed before.
+Let us explain what happens in this timed automaton. If the lo op is taken α
+times, the zone which is reachable at q6isZα, deﬁned by the constraint
+(1≤x2−x1≤3)∧(1≤x4−x3≤3)∧(x4−x2=x3−x1= 2α+5).
+If we apply an extrapolation operator, extraKorextraLU, to this zone when α
+is large, we will lose the property that x2−x1=x4−x3inZα(this implicit
+constraint prevents the transition q6→q7to be taken). The saturation algorithm
+which computes Sextrawill then add some symbolic state of the form (q7,Z)to
+Sextra, even though control-state q7is not reachable!
+5 Simulation: an alternative solution
+The extrapolation approach is lucrative as it allows to work with zones and ef-
+ﬁcient operations over them. There are two main shortcoming s: the approach
+does not work when diagonal constraints are present, and sec ondly even for
+diagonal-free automata, it does not use the coarsest known a bstraction of zones,
+which was proposed in [11]. An LU-simulation relation v/precedesorcurlyLUv′between val-
+uations was deﬁned in [11]. In principle, one could consider an extrapolation
+extra(Z) ={v∈RX
++| ∃v′∈Zwithv/precedesorcurlyLUv′}, which is simply the downward
+closure of Zwith respect to the LU-simulation. However, there are zones for
+which this downward closure is not even convex. Hence the LU-simulation can-
+not be used with the extrapolation approach. The coarser the abstraction, the
+
+--- Page 12 ---
+12 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+smaller is the number of zones enumerated and therefore it is motivating to look
+for ways to use coarser abstractions. These two questions ha ve been the driving
+force of research in this area over the last decade.
+The central idea is to use simulations between zones, instea d of extrapo-
+lating them. Extrapolations need to store abstracted zones explicitly. This is a
+bottleneck for the usage of non-convex abstractions. The si mulation approach,
+in principle, eliminates this problem. The missing piece is an eﬃcient simulation
+test between zones. This was settled in [63] for diagonal-fr ee automata where it
+was shown that Z/precedesorcurlyLUZ′(the inclusion up to LU-simulation, more precisely
+∀v∈Z,∃v′∈Z′s.t.v/precedesorcurlyLUv′) can be done in time quadratic in the number of
+clocks, as eﬃcient as a plain inclusion Z⊆Z′. Later, a new simulation, known
+as theG-simulation, was developed for automata with diagonal cons traints [51].
+It is based on a map Gassociating sets of constraints to states of the timed
+automaton. It was not as pretty a picture as in the diagonal-f ree case since the
+corresponding simulation test was shown to be NP-complete ( [52] and [79, Sec-
+tion 4.4]). In spite of this, the G-simulation approach is promising: (1) when
+restricted to diagonal-free automata, the G-simulation is coarser than the LU-
+simulation and the simulation test remains quadratic [52] ( see [79, Section 4.2] for
+a more elaborate exposition), (2) in the general case when di agonals are present,
+heuristics have been proposed to get a fast test in practice a nd have been shown
+to work well in experiments and (3) the approach can be extend ed seamlessly for
+automata with updates. Previous approaches for dealing wit h diagonals had to
+eliminate the diagonal constraints explicitly and therefo re resulted in a blow-up
+in space. Here the diﬃculty gets absorbed into the time to do t he simulation test.
+For automata with updates, no zone based solution was availa ble previously.
+In this section, we present the G-simulation framework. Recall from Section 3
+that the simulation approach makes use of a preorder /precedesequalto prune the saturation
+computation of the symbolic states. More speciﬁcally, the /precedesequal-Trans rule adds a
+new symbolic state (q′,Z′)if there are no existing symbolic states (q′,Z′′)with
+(q′,Z′)/precedesequal(q′,Z′′). The idea is that if (q′,Z′)/precedesequal(q′,Z′′)then every control
+state reachable from (q′,Z′)should be reachable from (q′,Z′′)and therefore it
+is not necessary to explore further from (q′,Z′). This idea is neatly captured by
+simulation relations.
+For the rest of this section, we ﬁx a timed automaton A.
+Deﬁnition 1 (Simulation). A preorder relation /precedesequalbetween conﬁgurations of A
+having the same control state is said to be a simulation if for every(q,v)/precedesequal(q,v′),
+two properties are satisﬁed:
+(1) (time elapse): for every δ∈R+, we have (q,v+δ)/precedesequal(q,v′+δ), and
+(2) (discrete transition): for every (q,v)t− →(q1,v1)withta transition of A, there
+exists(q,v′)t− →(q1,v′
+1)with(q1,v1)/precedesequal(q1,v′
+1).
+We extend /precedesequalto zones by deﬁning (q,Z)/precedesequal(q,Z′)if for every v∈Zthere exists
+v′∈Z′such that (q,v)/precedesequal(q,v′).
+
+--- Page 13 ---
+Zone-based veriﬁcation of timed automata 13
+Notice that if (q,v)/precedesequal(q,v′)and there is a run from (q,v)to(q1,v1)alter-
+nating time elapses and discrete transitions, then there is a run from (q,v′)to
+some(q1,v′
+1)using the same sequence of time elapses and discrete transit ions.
+The relation as deﬁned above is known as a strong-timed simul ation in lit-
+erature [90] since we require the same δfrom(q,v′)in condition (1). When we
+relax (1) to say that we have (q,v+δ)/precedesequal(q,v′+δ′)for some δ′∈R+, the re-
+lation is called a time-abstract simulation. The concrete r elations that we know
+so far turn out to be strong-timed simulations and so we restr ict to the above
+deﬁnition. Our goal is to now ﬁnd a concrete simulation relat ion.
+From condition (2) of Deﬁnition 1, it is clear that the guards of the automaton
+play a crucial role in coming up with a simulation relation. S o, as a ﬁrst step, we
+collect a set of relevant constraints at each state of the automaton. Clearly, the
+guards from the outgoing transitions of a state qare relevant at q. Now, consider
+a transition qt− →q1of the automaton. A constraint that is relevant at q1needs to
+be propagated in some form to qdepending on the resets at t. Otherwise, there
+is no means to achieve the forward propagation of the simulat ion (condition (2)).
+The next deﬁnition formalizes this idea through a ﬁxpoint ch aracterization.
+Deﬁnition 2 (Constraint map, [51,79]). The constraint map GofAasso-
+ciates a set G(q)of constraints to every state q∈Q. It is obtained as the least
+ﬁxpoint of the following system of equations:
+G(q) =/uniondisplay
+(q,g,Y,q′)∈TÑ
+{atomic constraints of g} ∪/uniondisplay
+ϕ∈G(q′)pre(ϕ,Y)é
+wherepre(x ⊲⊳ c,Y)is{x ⊲⊳ c}ifx /∈Yand is the empty set when x∈Y, and
+pre(x−y ⊲⊳ c)is{x ⊲⊳ c}ifx /∈Y,y∈Y; is{−y ⊲⊳ c}ifx∈Y,y /∈Y; is
+{x−y ⊲⊳ c}whenx,y /∈Y, and is the empty set when both x,y∈Y.
+For the automaton Abugin Figure 3, we have G(q6) ={x2−x1>2,x4−x3<
+2},G(q2) ={x1= 2,x2= 2,x4−x3<2}andG(q0) ={x3≤3,x2= 3,x4<2}.
+To see why G(q0)is this set of constraints, notice that x3≤3appears in the
+guard out of q0. Sincex1andx3are reset in q0− →q1, constraints on these clocks
+which appear later are not relevant at q0(and will be made empty set by the pre
+operator). Since x2is reset in q1− →q2, only the x2= 3propagates to q0. Finally,
+the constraint x4−x3<2inq6− →q7propagates all the way back to q1as it is,
+and due to the reset of x3inq0− →q1, we getpre(x4−x3<2,{x1,x3}) ={x4<2}
+and hence we have x4<2inG(q0).
+The computation of the constraint map of a timed automaton is in the same
+spirit as the local computation of constants proposed for th e extrapolation op-
+erator in [10] (mentioned in Section 4.2), although now we de al with constraint
+sets instead of constants. We now have the parameters for the simulation ready.
+Our next deﬁnition gives a relation between conﬁgurations t hat is based on these
+computed constraints.
+
+--- Page 14 ---
+14 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+Deﬁnition 3 ( G-preorder, [51,79]). LetGbe the associated constraint map
+toA. We deﬁne (q,v)/precedesequalG(q,v′)if for all δ∈R+and allϕ∈ G(q),v+δ|=ϕ
+impliesv′+δ|=ϕ.
+Thanks to its deﬁnition, it is not diﬃcult to show that the G-preorder /precedesequalGis
+a simulation relation. Showing ﬁniteness is more involved. LetZbe a zone and
+qbe a state of A. We write ↓q,GZ={v∈RX
++| ∃v′∈Zs.t.(q,v)/precedesequalG(q,v′)}.
+LetMbe the maximum constant appearing in G(q). FromM, one can construct
+a ﬁnite partition of the space of valuations and show that ↓q,Gis a union of its
+classes. Therefore, the set {↓q,GZ|Zis a zone }is ﬁnite, which implies that the
+simulation /precedesequalGis ﬁnite [52], [79, Section 4.1].
+Theorem 3 ([52,79]). LetAbe a timed automaton possibly with diagonal con-
+straints. The relation /precedesequalGis a ﬁnite simulation relation. Moreover the forward
+analysis which computes S/precedesequalGterminates, and is sound and complete.
+Coming back to the example Abug, let us see how the simulation approach
+works here. Since no new valuations are added (in contrast to the extrapolation
+approach), soundness is always guaranteed and q7would be unreachable. The
+question is about termination. Due to the loop, there are pot entially inﬁnitely
+many zones appearing at state q6. As seen in Section 4.3, the zone Zαreached
+atq6afterαiterations of the loop satisﬁes x4−x2=x3−x1= 2α+ 5and
+1≤x4−x3=x2−x1≤3. We claim that (q6,Zα)/precedesequalG(q6,Zβ)for allα,β≥0.
+Indeed, from v∈Zαwe deﬁne v′byv′(x1) =v(x1),v′(x2) =v(x2),v′(x3) =
+v(x3)+2(β−α)andv′(x4) =v(x4)+2(β−α). Intuitively, v′is obtained by taking
+the loop βtimes instead of αtimes and keeping the other delays unchanged.
+We can check that v′∈Zβ. Moreover, v′(x2)−v′(x1) =v(x2)−v(x1)and
+v′(x4)−v′(x3) =v(x4)−v(x3). As we have seen above, G(q6) ={x2−x1>
+2,x4−x3<2}. We deduce that (q6,v)/precedesequal(q6,v′). Hence the zone enumeration
+will stop at the second zone appearing at q6, due to the simulation. An analogous
+situation happens at other states q2,q3,q4andq5.
+WhenG(q)contains no diagonal constraints, the test (q,Z)/precedesequalG(q,Z′)can
+be done in time quadratic in the number of clocks [52], [79, Se c. 4.2]. The main
+idea is that this test can be broken into tests of the form Z/precedesequal{x⊳c,y⊲d}Z′where
+x⊳cwith⊳∈ {<,≤}is an upper bound constraint and y⊲dwith⊲∈ {>,≥}is
+a lower bound constraint in G(q). WhenG(q)contains diagonal constraints, the
+test is NP-complete [52],[79, Section 4.4]. More precisely , the test is exponential
+in the number of diagonals present in the set G(q). An algorithm to compute
+this test in the general case appears in [51]. The algorithm e ssentially reduces
+(q,Z)/precedesequalG(q,Z′)to several (exponentially many in the worst case) simulatio n
+checks over non-diagonal constraints. It employs heuristi cs which can reduce this
+number in practice.
+Dealing with updates. The reset operation can be extended with updates to
+clocks. An update upto the set of clocks Xis a function which maps each clock
+xto an expression x:=corx:=y+dwherec∈N,y∈X(which could as well
+
+--- Page 15 ---
+Zone-based veriﬁcation of timed automata 15
+bex) andd∈Z. Automata with such update functions are known as updatable
+timed automata [28]. Due to the presence of updates x:=x+1andx:=x−1,
+reachability becomes undecidable, even with 0time elapse. Several decidable
+subclasses have been studied by constructing a ﬁnite region equivalence.
+The zone based simulation method can be extended to updatabl e timed au-
+tomata [51], just by changing one deﬁnition: in Deﬁnition 2, replace transition
+(q,g,R,q′)with(q,g,up,q′)and the the operator pre(ϕ,R)with an operation
+pre(ϕ,up)that is deﬁned as follows. Deﬁne upxto bec(resp.y+d) ifupmaps
+xtox:=c(resp.x:=y+d). The constraint pre(ϕ,up)is obtained by replac-
+ing occurrence of xinϕwithupx. For example pre(x−y≤5,x:=z−2)is
+{z−y≤7}. The least ﬁxpoint of the equations in Deﬁnition 2 may not be ﬁ nite.
+When it is ﬁnite, the constraint map Gand theG-preorder can be used to get
+a ﬁnite simulation as before. An algorithm to detect termina tion of the ﬁxpoint
+computation is provided. For all decidable subclasses tabu lated in [28], the con-
+straint map Gis ﬁnite. A reﬁned version of the constraint map computation that
+uses an operator pre(ϕ,g,up)taking the guard ginto consideration gives ﬁnite
+constraint maps for a larger class of automata, including ti med automata with
+bounded subtraction that has been used to model preemptive s cheduling [49].
+6 Beyond reachability
+6.1 Weighted timed automata
+Timed automata do not oﬀer the possibility to model other qua ntities than
+time (or durations). It may however be useful to also model ot her quantities.
+The more general model of hybrid automata is unfortunately n ot adequate for
+automatic veriﬁcation, since it is undecidable in general [ 58]. In 2001, the model
+of weighted timed automata (also called priced timed automa ta at that time)
+has been proposed [7,16]: on top of a standard timed automato n, a weight is
+associated with every state (where it is a rate) and with ever y transition (where
+it is a discrete change). Let wgt:Q∪T→Zbe such a weight function. It
+allows to give a costvalue to time elapse (q,v)δ− →(q,v+δ)(withδ∈R+) as
+δ·wgt(q), and to discrete transition (q,v)t− →(q1,v1)aswgt(t). The cost is then
+deﬁned on a ﬁnite run by summing up the costs of all single step s (time elapses
+or discrete transitions) along it. This cost function, deﬁn ed on every ﬁnite run,
+represents the evolution of an observer variable which is pi ecewise-linear w.r.t.
+time elapsing, and it can be used for various purposes: ensur e that it remains
+within given bounds [31,29,33]; or optimize its value while ensuring to reach
+some state [7,16,25]. The model is discussed in the survey [3 0]. Here, we focus
+on this last problem, assuming that the weight function is no nnegative.
+Decidability and complexity for this model were proven in th e early pa-
+pers [7,16,25], making use of a reﬁnement of the region const ruction (called
+corner-point abstraction later in [26]). Already in [71], a symbolic solution built
+on zones has been proposed, based on so-called priced zones . The idea is to store
+information on the cost function on top of a zone as a pair (Z,ζ), whereζis
+
+--- Page 16 ---
+16 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+ζ= 2−x1+2x2
+123456789x11234567x2
+0oﬀsetZ
+Fig.4. A priced zone (Z,ζ). It is represented as a standard DBM for Z, plus the oﬀset
+cost+4(i.e. cost at the lowest point of the zone, here point (2,2)), plus the rate ( −1)
+forxand the rate for y(+2).
+an aﬃne function of the clocks, the meaning being that valuat ionv∈Zcan
+be reached from the initial conﬁguration, and the minimal co st to do that is
+given by ζ(v). Similar to zones, priced zones can be eﬃciently represente d by
+a DBM, an oﬀset cost and an aﬃne coeﬃcient for each clock, see F igure 4. All
+operations needed for a forward exploration can be done usin g this data struc-
+ture. Only termination of the computation has remained open until [27]. Indeed,
+there is a priori no possible sound extrapolation in this context, but the dev elop-
+ment of the simulation approach (as presented in Section 5) f or timed automata
+proved extremely useful and could be extended in some sense t o weighted timed
+automata as well [27].
+6.2 Liveness properties
+Liveness properties amount to checking whether some good ev ent may happen
+inﬁnitely often, and are captured using Büchi conditions: g iven a timed automa-
+tonAand a state q, does there exist an inﬁnite run of Athat visits qinﬁnitely
+often? To solve this problem using zones, one crucial modiﬁc ation needs to be
+done in both the extrapolation and the simulation approache s. In the extra-Trans
+rule, the inclusion Z′⊆Z′′is replaced with Z′=Z′′[70,75]. In the /precedesequal-Trans rule,
+in addition to (q′,Z′)/precedesequal(q′,Z′′), we add (q′,Z′′)/precedesequal(q′,Z′)which is a simulation
+in the other direction as well [61,62] (simulation is replac ed with a bisimulation).
+This seemingly simple change results in a huge diﬀerence in p erformance.
+It has been noticed in experiments that the number of zones en umerated for
+liveness properties is substantially higher than for reach ability properties. This
+has led to a close study of the role of inclusion/simulation ( collectively called
+subsumptions), as opposed to equality/bisimulation, in pr uning zones. Suppose
+we call the transition system over symbolic states computed using subsumptions
+as a subsumption graph. Reachability problems can be solved in polynomial
+time if the subsumption graph is given as input. However, it h as been shown
+that deciding liveness is PSPACE-complete even if both the a utomaton and
+
+--- Page 17 ---
+Zone-based veriﬁcation of timed automata 17
+a subsumption graph are given as input [62]. This is evidence to the power
+of subsumptions in reducing the number of symbolic states. U nfortunately, we
+cannot use the full power of subsumptions for liveness.
+It is however possible to restrict subsumption in such a way t hat no spuri-
+ous Büchi run is created. Algorithms that can use restricted subsumption for
+the liveness problem have been studied [70,61,62], with goo d performances in
+practice.
+7 Tools
+Since the nineties, several tools have implemented eﬃcient algorithms for the
+veriﬁcation of timed automata, in particular: Kronos [36],Uppaal [15] and
+Red[92] to cite a few. In the last years we have started the develo pment of a new
+open-source tool TChecker [60]. In this section, we shortly present the tools
+Uppaal andTChecker which are both based on the zone approach presented
+in the paper.
+7.1 A tool for verifying timed automata: Uppaal
+Uppaal is the state-of-the-art tool for timed automata veriﬁcatio n. Models con-
+sist of a network of timed automata that communicate through handshaking and
+shared variables. Speciﬁcations are expressed in a subset o f the TCTL logic that
+allows to express reachability properties as well as a restr icted subset of liveness
+properties. Adding extra processes to the system allows to c heck richer speciﬁ-
+cations. The tool Uppaal implements model-checking algorithms. Extensions of
+the tool have been proposed for statistical model-checking [38] and two player
+concurrent safety and reachability games [13].
+Uppaal has played a tremendous role in the adoption of the timed auto mata
+formalism in the industry. Numerous case studies have been s uccessfully achieved
+usingUppaal : Philips Audio Protocol [74], Bang&Olufsen Audio/Video Pr oto-
+col [57], Commercial Fieldbus Protocol [45], Schedulabili ty analysis [78], Web
+Services Business Activity [84], and SCADA Attacks Detecti on [77] to cite a
+few. Several of these case studies have allowed to detect ﬂaw s in the systems
+under study, leading to safer real-time systems.
+Both the DBM library and the parser of Uppaal are open-source. However,
+the remaining parts of its source code are not publicly avail able.
+7.2 The tool TChecker
+In the last years we have started the development of a fully op en-source veriﬁca-
+tion tool for timed automata. TChecker [60] consists of a set of libraries and
+tools. It can be used both as a model-checker, and as a framewo rk to develop
+new veriﬁcation algorithms.
+TChecker models consist in networks of timed automata that communi-
+cate through multiprocess synchronisations and shared var iables. Its companion
+
+--- Page 18 ---
+18 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+toolUppaal-to-TChecker [83] can be used to automatically translate a sub-
+set ofUppaal input language into TChecker models. Properties are encoded
+by adding observers to the model. Reachability and liveness algorithms can be
+applied to detect if speciﬁc states of the observers can be re ached (repeatedly).
+TheTChecker library is implemented in C++and provides various classes
+that allow to manipulate models, to represent and manipulat e zones using DBMs,
+to compute zone graphs using various semantics and extrapol ations, and to rep-
+resent and compute the state-space of a model using veriﬁcat ion algorithms. The
+TChecker library and input language can easily be extended to support new
+data structures and veriﬁcation algorithms, as well as exte nsions of timed au-
+tomata such as weighted timed automata or timed games. A tuto rial on how to
+implement veriﬁcation algorithms using TChecker libraries is available from
+the website [60].
+TChecker also comes with a set of tools to perform syntactic veriﬁcati on
+of models ( tck-syntax ), simulation ( tck-simulate ), reachability veriﬁcation
+(tck-reach ) and liveness veriﬁcation ( tck-liveness ). These tools can be used
+online on TChecker demonstration webpage [82]. The TChecker libraries
+and tools implement most of the approaches described in this paper, although
+some of them are not implemented yet and will be available in f uture releases
+ofTChecker . Several research teams are currently using TChecker to im-
+plement and test their veriﬁcation algorithms: Irisa (Renn es, France), LaBRI
+(Bordeaux, France), LIF (Marseille, France) and CMI (Chenn ai, India).
+8 What next?
+Over the years, timed automata veriﬁcation has been success fully used in many
+case studies, e.g. [73,57,45,77]. In several instances com plex bugs have been dis-
+covered and ﬁxed, leading to safer real-time systems. Eﬃcie nt veriﬁcation al-
+gorithms and tools are crucial for practical applications. Timed automata ver-
+iﬁcation algorithms heavily rely on ﬁnite abstractions for termination. As we
+have discussed in this article, this has been achieved by mea ns of extrapolations
+or simulations. Both extrapolations and simulations serve to keep the number
+of zones Zper control state qﬁrstly ﬁnite, and secondly as small as possible.
+This is the motivation behind ﬁnding coarser extrapolation s/simulations, and
+this endeavour has been largely successful. Based on our exp erience with exper-
+iments, we ﬁnd that by applying extrapolation/simulation t he number of zones
+per control state is usually small. The major bottleneck is t he large number
+of control states qappearing in the forward computation. In untimed systems,
+this explosion is handled using SAT-based methods or partia l-order reduction.
+Lifting these techniques to the timed setting has not been st raightforward. We
+conclude this article by ﬁrst discussing some attempts in th is direction and then
+ﬁnish with some other open challenges.
+
+--- Page 19 ---
+Zone-based veriﬁcation of timed automata 19
+8.1 BDD and SAT based methods
+In [85], abstract reachability algorithms were given where zones were overapprox-
+imated by a set of clock constraint predicates. This general izes the zone-based
+exploration algorithm but requires a counter-example guid ed reﬁnement loop to
+ensure soundness and completeness. A similar idea was consi dered in [89], which
+is based on using lazy abstractions when exploring the zones , and reﬁning them
+using interpolants to ensure that the exploration is sound a nd complete.
+[85] also gives a variant of the algorithm based on binary dec ision diagrams
+(BDDs), where the abstract zone-based semantics was encode d using Boolean
+functions. A similar but more eﬃcient way of using predicate abstractions for
+analyzing timed automata was given in [40] based on the use of the IC3 al-
+gorithm [37] combined with implicit abstractions [41]. Tha nks to the implicit
+abstraction method, one does not need to build the abstract t ransition relation,
+but rather guesses, at each step, an abstract transition and its corresponding
+witness concrete transition. This enables the use of SAT-ba sed algorithms, in-
+cluding IC3. The nuXmv model checker was extended with a synt ax to describe
+timed automata, and provides a powerful alternative to zone -based algorithms
+for timed automata models with large discrete state spaces.
+There have been previous propositions for applying IC3 to ti med automata
+without abstractions, such as [68] where zones were used to b ackpropagate coun-
+terexamples to inductions.
+There have been other attempts at combining timed automata s emantics
+with symbolic approaches for handling large discrete state spaces. An algorithm
+encoding the region automaton using BDDs was given in [67] al ong with an ex-
+tension of the SMV language for specifying timed automata. I n the past, several
+works attempted at extending binary decision diagrams to re present informa-
+tion on the clocks such as [91,22,48], while some of these onl y consider discrete
+time [80,88]. In [43], an extension of the and-inverter graph data structure with
+predicates was considered in order to represent the state sp ace of linear hy-
+brid automata. These can represent possible non-convex pol yhedra extended by
+Boolean variables.
+Bounded model checking was applied to timed automata in [86, 9] and [67];
+see also [76] speciﬁcally for the partial-order semantics.
+The above works conclude on the complementarity of the zone- based enumer-
+ative algorithms and various symbolic approaches either ba sed on (variants of)
+BDDs or SAT/SMT solvers. This is, in fact, also observed for ﬁ nite-state models
+where enumerative and symbolic model checkers are both usef ul in diﬀerent con-
+texts. We thus believe that it is important that both zone-ba sed model checkers
+such as Uppaal andTChecker , and SAT-based ones such as nuXmv are avail-
+able. A practical veriﬁcation tool box should in fact contai n various algorithms
+since a single algorithm may not succeed in verifying all typ es of models.
+8.2 The local-time semantics and partial-order reduction
+Veriﬁcation of very large networks with multiple timed proc esses is currently
+out of reach of the existing methods. Enumerative model-che ckers for untimed
+
+--- Page 20 ---
+20 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+systems have immensely beneﬁtted from partial-order reduc tion methods that
+exploit the concurrency in the network representation of th e model. Roughly,
+two actions aandbare independent if there is no component of the network
+containing both these actions. For such actions, doing aborbafrom a global state
+leads to the same global state (popularly known as the diamon d property). This
+property allows to pick one of either aborbafor further exploration. In general,
+given a set of independent actions, partial-order methods a im to pick one path
+out of the several possible interleavings of the independen t actions. This leads
+to exponential reduction in the number of states enumerated . Unfortunately,
+for (networks of) timed automata, partial-order reduction is not straightforward
+due to the lack of a diamond property: for instance, suppose t hatxis reset at
+aandyis reset at b, thenabandbalead to diﬀerent zones keeping track of the
+diﬀerent order of resets. There is an implicit synchronizat ion due to the global
+nature of time.
+In the last few years, there has been some work in making use of a local-time
+semantics for networks of timed automata [18] to obtain a sym bolic computa-
+tion that contains diamonds. The nice aspect of the local-ti me semantics is the
+presence of diamonds, but unfortunately, getting ﬁnite abs tractions is not im-
+mediate. A ﬁrst solution has been proposed in [54], but it is n ot compatible with
+partial-order reduction. It has later been shown that there is no ﬁnite abstraction
+for the local-time semantics [55] that is compatible with pa rtial-order reduction,
+although some subclasses of timed automata admit such a ﬁnit e abstraction. The
+next challenge is to deﬁne a partial-order reduction techni que which works well
+in the timed setting, as well as to detect subclasses of timed automata for which
+partial-order reduction and ﬁnite abstractions can be comb ined. Other works on
+partial-order reduction which do not go via the local-time s emantics also work
+on restricted settings: applying the reduction only to part s of the network where
+independent actions occur in zero time, [72], or discoverin g independent actions
+in the standard global-time semantics, either statically [ 44] or dynamically [56].
+8.3 Domain-speciﬁc algorithms
+For some applications that can be modelled as timed automata , standard al-
+gorithms for generic timed automata might be quite slow. We t herefore believe
+that it would be beneﬁcial to develop domain-speciﬁc veriﬁc ation algorithms.
+As an example, the model of funnel automata has been develope d to model
+some robotics systems [34,35]: funnel automata are timed au tomata with few
+clocks (three clocks) but a large discrete state-space. Whi le small instances could
+be veriﬁed using tool TiAMo [27] (a precursor of TChecker implemented in
+OCaml), larger instances could not be veriﬁed due to the stat e-explosion prob-
+lem. Techniques mixing BDDs and zones could possibly be deve loped for this
+speciﬁc application.
+
+--- Page 21 ---
+Zone-based veriﬁcation of timed automata 21
+8.4 Richer models
+Another interesting direction is to investigate the extent to which the advances
+in timed automata can help in the algorithmics for richer mod els. There has been
+some progress already in this direction. Apart from updatab le timed automata
+and weighted timed automata, the simulation approach has be en extended to
+pushdown timed automata [2] and event-clock automata [1]. I t remains to be
+seen whether this approach can be lifted to the context of par ametric timed
+automata [6,8], probabilistic timed automata [81,69] and c ontroller synthesis for
+timed games [39,14].
+References
+1. Akshay, S., Gastin, P., Govind, R., Srivathsan, B.: Simul ations for event-clock
+automata. In: Proc. 33th International Conference on Concu rrency Theory (CON-
+CUR’22). Lecture Notes in Computer Science, Springer (2022 ), to appear
+2. Akshay, S., Gastin, P., Prakash, K.R.: Fast zone-based al gorithms for reachability
+in pushdown timed automata. In: Proc. 33rd International Co nference on Com-
+puter Aided Veriﬁcation (CAV’21) – Part I. Lecture Notes in C omputer Science,
+vol. 12759, pp. 619–642. Springer (2021)
+3. Alur, R., Courcoubetis, C., Dill, D.L., Halbwachs, N., Wo ng-Toi, H.: An implemen-
+tation of three algorithms for timing veriﬁcation based on a utomata emptiness. In:
+Proc. 13th IEEE Real-Time Systems Symposium (RTSS’92). pp. 157–166. IEEE
+Computer Society Press (1992)
+4. Alur, R., Dill, D.L.: Automata for modeling real-time sys tems. In: Proc. 17th
+International Colloquium on Automata, Languages and Progr amming (ICALP’90).
+Lecture Notes in Computer Science, vol. 443, pp. 322–335. Sp ringer (1990)
+5. Alur, R., Dill, D.L.: A theory of timed automata. Theoreti cal Computer Science
+126(2), 183–235 (1994)
+6. Alur, R., Henzinger, T.A., Vardi, M.Y.: Parametric real- time reasoning. In: Proc.
+25th Annual ACM Symposium on the Theory of Computing (STOC’9 3). pp. 592–
+601. ACM (1993)
+7. Alur, R., La Torre, S., Pappas, G.J.: Optimal paths in weig hted timed automata. In:
+Proc. 4th International Workshop on Hybrid Systems: Comput ation and Control
+(HSCC’01). Lecture Notes in Computer Science, vol. 2034, pp . 49–62. Springer
+(2001)
+8. André, É.: IMITATOR 3: Synthesis of timing parameters bey ond decidability. In:
+Proc. 33rd International Conference on Computer Aided Veri ﬁcation (CAV’21) –
+Part I. Lecture Notes in Computer Science, vol. 12759, pp. 55 2–565. Springer (2021)
+9. Audemard, G., Cimatti, A., Kornilowicz, A., Sebastiani, R.: Bounded model check-
+ing for timed systems. In: Proc. 22nd International Confere nce on Formal Tech-
+niques for Networked and Distributed Systems (FORTE’02). L ecture Notes in
+Computer Science, vol. 2529, pp. 243–259. Springer (2002)
+10. Behrmann, G., Bouyer, P., Fleury, E., Larsen, K.G.: Stat ic guard analysis in timed
+automata veriﬁcation. In: Proc. 9th International Confere nce on Tools and Algo-
+rithms for the Construction and Analysis of Systems (TACAS’ 03). Lecture Notes
+in Computer Science, vol. 2619, pp. 254–277. Springer (2003 )
+
+--- Page 22 ---
+22 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+11. Behrmann, G., Bouyer, P., Larsen, K.G., Pelánek, R.: Low er and upper bounds
+in zone based abstractions of timed automata. In: Proc. 10th International Con-
+ference on Tools and Algorithms for the Construction and Ana lysis of Systems
+(TACAS’04). Lecture Notes in Computer Science, vol. 2988, p p. 312–326. Springer
+(2004)
+12. Behrmann, G., Bouyer, P., Larsen, K.G., Pelànek, R.: Zon e based abstractions
+for timed automata exploiting lower and upper bounds. Inter national Journal on
+Software Tools for Technology Transfer 8(3), 204–215 (2005)
+13. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larse n, K.G., Lime, D.:
+UPPAAL-Tiga: Time for playing games! In: Proc. 19th Interna tional Conference
+on Computer Aided Veriﬁcation (CAV’07). Lecture Notes in Co mputer Science,
+vol. 4590, pp. 121–125. Springer (2007)
+14. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larse n, K.G., Lime, D.:
+UPPAAL-Tiga: Time for playing games! In: Proc. 19th Interna tional Conference
+on Computer Aided Veriﬁcation (CAV’07). Lecture Notes in Co mputer Science,
+vol. 4590, pp. 121–125. Springer (2007)
+15. Behrmann, G., David, A., Larsen, K.G., Håkansson, J., Pe ttersson, P., Yi, W.,
+Hendriks, M.: Uppaal 4.0. In: Proc. 3rd International Confe rence on Quantitative
+Evaluation of Systems (QEST’06). pp. 125–126. IEEE Compute r Society Press
+(2006)
+16. Behrmann, G., Fehnker, A., Hune, Th., Larsen, K.G., Pett ersson, P., Romijn,
+J., Vaandrager, F.: Minimum-cost reachability for priced t imed automata. In:
+Proc. 4th International Workshop on Hybrid Systems: Comput ation and Control
+(HSCC’01). Lecture Notes in Computer Science, vol. 2034, pp . 147–161. Springer
+(2001)
+17. Behrmann, G., Hune, T., Vaandrager, F.: Distributing ti med model checking – how
+the search order matters. In: Proc. 12th International Conf erence on Computer
+Aided Veriﬁcation (CAV’00). Lecture Notes in Computer Scie nce, vol. 1855, pp.
+216–231. Springer (2000)
+18. Bengtsson, J., Jonsson, B., Lilius, J., Yi, W.: Partial o rder reductions for timed
+systems. In: Proc. 9th International Conference on Concurr ency Theory (CON-
+CUR’98). Lecture Notes in Computer Science, vol. 1466, pp. 4 85–500. Springer
+(1998)
+19. Bengtsson, J., Larsen, K.G., Larsson, F., Pettersson, P ., Yi, W.: Uppaal – a tool
+suite for automatic veriﬁcation of real-time systems. In: P roc. Hybrid Systems III:
+Veriﬁcation and Control (1995). Lecture Notes in Computer S cience, vol. 1066, pp.
+232–243 (1996)
+20. Bengtsson, J., Yi, W.: Timed automata: Semantics, algor ithms and tools. In: Proc.
+4th Advanced Course on Petri Nets (ACPN’03). Lecture Notes i n Computer Sci-
+ence, vol. 3098, pp. 87–124. Springer (2004)
+21. Berthomieu, B., Menasche, M.: An enumerative approach f or analyzing time Petri
+nets. In: Proc. IFIP 9th World Computer Congress. Informati on Processing, vol. 83,
+pp. 41–46. North-Holland/ IFIP (1983)
+22. Beyer, D., Lewerentz, C., Noack, A.: Rabbit: A tool for BD D-based veriﬁcation
+of real-time systems. In: Proc. 15th International Confere nce on Computer Aided
+Veriﬁcation (CAV’03). Lecture Notes in Computer Science, v ol. 2725, pp. 122–125.
+Springer (2003)
+23. Bouyer, P.: Untameable timed automata! In: Proc. 20th An nual Symposium on
+Theoretical Aspects of Computer Science (STACS’03). Lectu re Notes in Computer
+Science, vol. 2607, pp. 620–631. Springer (2003)
+
+--- Page 23 ---
+Zone-based veriﬁcation of timed automata 23
+24. Bouyer, P.: Forward analysis of updatable timed automat a. Formal Methods in
+System Design 24(3), 281–320 (2004)
+25. Bouyer, P., Brihaye, Th., Bruyère, V., Raskin, J.F.: On t he optimal reachability
+problem. Formal Methods in System Design 31(2), 135–175 (2007)
+26. Bouyer, P., Brinksma, E., Larsen, K.G.: Optimal inﬁnite scheduling for multi-
+priced timed automata. Formal Methods in System Design 32(1), 2–23 (2008)
+27. Bouyer, P., Colange, M., Markey, N.: Symbolic optimal re achability in weighted
+timed automata. In: Proc. 28th International Conference on Computer Aided Ver-
+iﬁcation (CAV’16) – Part I. Lecture Notes in Computer Scienc e, Springer (2016),
+to appear
+28. Bouyer, P., Dufourd, C., Fleury, E., Petit, A.: Updatabl e timed automata. Theo-
+retical Computer Science 321(2–3), 291–345 (2004)
+29. Bouyer, P., Fahrenberg, U., Larsen, K.G., Markey, N.: Ti med automata with ob-
+servers under energy constraints. In: Proc. 13th Internati onal Conference on Hybrid
+Systems: Computation and Control (HSCC’10). pp. 61–70. ACM Press (2010)
+30. Bouyer, P., Fahrenberg, U., Larsen, K.G., Markey, N.: Qu antitative analysis of
+real-time systems using priced timed automata. Communicat ion of the ACM 54(9),
+78–87 (2011)
+31. Bouyer, P., Fahrenberg, U., Larsen, K.G., Markey, N., Sr ba, J.: Inﬁnite runs in
+weighted timed automata with energy constraints. In: Proc. 6th International Con-
+ference on Formal Modeling and Analysis of Timed Systems (FO RMATS’08). pp.
+33–47. Lecture Notes in Computer Science, Springer (2008)
+32. Bouyer, P., Laroussinie, F., Reynier, P.A.: Diagonal co nstraints in timed automata:
+Forward analysis of timed systems. In: Proc. 3rd Internatio nal Conference on For-
+mal Modeling and Analysis of Timed Systems (FORMATS’05). Le cture Notes in
+Computer Science, vol. 3829, pp. 112–126. Springer (2005)
+33. Bouyer, P., Larsen, K.G., Markey, N.: Lower-bound const rained runs in weighted
+timed automata. In: Proc. 9th International Conference on Q uantitative Evaluation
+of Systems (QEST’12). pp. 128–137. IEEE Computer Society Pr ess (2012)
+34. Bouyer, P., Markey, N., Perrin, N., Schlehuber, P.: Time d automata abstraction
+of switched dynamical systems using control funnels. In: Pr oc. 13th International
+Conference on Formal Modeling and Analysis of Timed Systems (FORMATS’15).
+Lecture Notes in Computer Science, vol. 9268, pp. 60–75. Spr inger (2015)
+35. Bouyer, P., Markey, N., Perrin, N., Schlehuber-Caissie r, P.: Timed-automata ab-
+straction of switched dynamical systems using control inva riants. Real-Time Sys-
+tems53(3), 327–353 (2017)
+36. Bozga, M., Daws, C., Maler, O., Olivero, A., Tripakis, S. , Yovine, S.: Kronos: a
+model-checking tool for real-time systems. In: Proc. 10th I nternational Conference
+on Computer Aided Veriﬁcation (CAV’98). Lecture Notes in Co mputer Science,
+vol. 1427, pp. 546–550. Springer (1998)
+37. Bradley, A.R.: SAT-based model checking without unroll ing. In: Proc. 12th
+Internationsl Conference on Veriﬁcation, Model-Checking and Abstract In-
+terpretation (VMCAI’11). Lecture Notes in Computer Scienc e, vol. 6538,
+pp. 70–87. Springer (2011). https://doi.org/10.1007/978-3-642-18275-4_7 ,
+https://doi.org/10.1007/978-3-642-18275-4_7
+38. Bulychev, P.E., David, A., Larsen, K.G., Mikucionis, M. , Poulsen, D.B.,
+Legay, A., Wang, Z.: UPPAAL-SMC: statistical model checkin g for priced
+timed automata. In: Proc. 10th Workshop on Quantitative Asp ects of Pro-
+gramming Languages (QAPL’12). Electronic Proceedings in T heoretical Com-
+puter Science, vol. 85, pp. 1–16 (2012). https://doi.org/10.4204/EPTCS.85.1 ,
+https://doi.org/10.4204/EPTCS.85.1
+
+--- Page 24 ---
+24 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+39. Cassez, F., David, A., Fleury, E., Larsen, K.G., Lime, D. : Eﬃcient on-the-ﬂy al-
+gorithms for the analysis of timed games. In: Proc. 16th Inte rnational Confer-
+ence on Concurrency Theory (CONCUR’05). Lecture Notes in Co mputer Science,
+vol. 3653, pp. 66–80. Springer (2005)
+40. Cimatti, A., Griggio, A., Magnago, E., Roveri, M., Tonet ta, S.: Extending nuXmv
+with timed transition systems and timed temporal propertie s. In: Proc. 31st Inter-
+national Conference on Computer Aided Veriﬁcation (CAV’19 ) – Part I. Lecture
+Notes in Computer Science, vol. 11561, pp. 376–386. Springe r (2019)
+41. Cimatti, A., Griggio, A., Mover, S., Tonetta, S.: IC3 mod ulo theories via implicit
+predicate abstraction. In: Proc. 20th International Confe rence on Tools and Algo-
+rithms for the Construction and Analysis of Systems (TACAS’ 14). Lecture Notes
+in Computer Science, vol. 8413, pp. 46–61 (2014)
+42. Clarke, E., Grumberg, O., Peled, D.: Model-Checking. MI T Press (1999)
+43. Damm, W., Dierks, H., Disch, S., Hagemann, W., Pigorsch, F.,
+Scholl, C., Waldmann, U., Wirtz, B.: Exact and fully symboli c
+veriﬁcation of linear hybrid automata with large discrete s tate
+spaces. Science of Computer Programming 77(10), 1122–1150 (2012).
+https://doi.org/https://doi.org/10.1016/j.scico.201 1.07.006 ,
+https://www.sciencedirect.com/science/article/pii/S 0167642311001523
+44. Dams, D., Gerth, R., Knaack, B., Kuiper, R.: Partial-ord er reduction
+techniques for real-time model checking. Formal Aspects of Comput-
+ing10(5-6), 469–482 (1998). https://doi.org/10.1007/s001650050028 ,
+https://doi.org/10.1007/s001650050028
+45. David, A., Yi, W.: Modelling and analysis of a commercial ﬁeld
+bus protocol. In: Proc. 12th Euromicro Conference on Real-
+Time Systems (ECRTS’00). pp. 165–172. IEEE Computer Soci-
+ety Press (2000). https://doi.org/10.1109/EMRTS.2000.854004 ,
+https://doi.org/10.1109/EMRTS.2000.854004
+46. Daws, C., Tripakis, S.: Model-checking of real-time rea chability properties using
+abstractions. In: Proc. 4th International Conference on To ols and Algorithms for
+the Construction and Analysis of Systems (TACAS’98). Lectu re Notes in Computer
+Science, vol. 1384, pp. 313–329. Springer (1998)
+47. Dill, D.L.: Timing assumptions and veriﬁcation of ﬁnite -state concurrent systems.
+In: Proc. of the Workshop on Automatic Veriﬁcation Methods f or Finite State
+Systems. Lecture Notes in Computer Science, vol. 407, pp. 19 7–212. Springer (1989)
+48. Ehlers, R., Fass, D., Gerke, M., Peter, H.J.: Fully symbo lic timed model check-
+ing using constraint matrix diagrams. In: Proc. 31th IEEE Re al-Time Sys-
+tems Symposium (RTSS’10). pp. 360–371. IEEE Computer Socie ty Press (2010).
+https://doi.org/10.1109/RTSS.2010.36
+49. Fersman, E., Krcal, P., Pettersson, P., Yi, W.: Task auto mata: Schedulability,
+decidability and undecidability. Information and Computa tion205(8), 1149–1172
+(2007)
+50. Gastin, P., Mukherjee, S., Srivathsan, B.: Reachabilit y in timed automata with di-
+agonal constraints. In: Proc. 29th International Conferen ce on Concurrency Theory
+(CONCUR’18). LIPIcs, vol. 118, pp. 28:1–28:17. Leibniz-Ze ntrum für Informatik
+(2018)
+51. Gastin, P., Mukherjee, S., Srivathsan, B.: Fast algorit hms for handling diagonal
+constraints in timed automata. In: Proc. 31st Internationa l Conference on Com-
+puter Aided Veriﬁcation (CAV’19) – Part I. Lecture Notes in C omputer Science,
+vol. 11561, pp. 41–59. Springer (2019)
+
+--- Page 25 ---
+Zone-based veriﬁcation of timed automata 25
+52. Gastin, P., Mukherjee, S., Srivathsan, B.: Fast algorit hms for handling
+diagonal constraints in timed automata. CoRR abs/1904.08590 (2019),
+http://arxiv.org/abs/1904.08590
+53. Gastin, P., Mukherjee, S., Srivathsan, B.: Reachabilit y for updatable timed au-
+tomata made faster and more eﬀective. In: Proc. 40th IARCS An nual Confer-
+ence on Foundations of Software Technology and Theoretical Computer Science
+(FSTTCS’20). LIPIcs, vol. 118, pp. 47:1–47:17. Leibniz-Ze ntrum für Informatik
+(2020)
+54. Govind, R., Herbreteau, F., Srivathsan, B., Walukiewic z, I.: Revisiting local time
+semantics for networks of timed automata. In: Proc. 30th Int ernational Conference
+on Concurrency Theory (CONCUR’19). LIPIcs, vol. 140, pp. 16 :1–16:15. Leibniz-
+Zentrum für Informatik (2019)
+55. Govind, R., Herbreteau, F., Srivathsan, B., Walukiewic z, I.: Abstrations for the
+local-time semantics of timed automata: A foundation for pa rtial-order methods.
+Accepted at LICS (2022)
+56. Hansen, H., Lin, S., Liu, Y., Nguyen, T.K., Sun, J.: Diamo nds are a
+girl’s best friend: Partial order reduction for timed autom ata with abstrac-
+tions. In: Proc. 26th International Conference on Computer Aided Ver-
+iﬁcation (CAV’14). Lecture Notes in Computer Science, vol. 8559, pp.
+391–406. Springer (2014). https://doi.org/10.1007/978-3-319-08867-9_26 ,
+https://doi.org/10.1007/978-3-319-08867-9_26
+57. Havelund, K., Skou, A., Larsen, K.G., Lund, K.: Formal mo deling and analysis
+of an audio/video protocol: An industrial case study using U ppaal. In: Proc. 18th
+IEEE Real-Time Systems Symposium (RTSS’97). pp. 2–13. IEEE Computer Soci-
+ety Press (1997)
+58. Henzinger, Th.A., Kopke, P.W., Puri, A., Varaiya, P.: Wh at’s decidable about
+hybrid automata? In: Proc. 27th Annual ACM Symposium on the T heory of Com-
+puting (STOC’95). pp. 373–382. ACM (1995)
+59. Henzinger, Th.A., Nicollin, X., Sifakis, J., Yovine, S. : Symbolic model-checking for
+real-time systems. Information and Computation 111(2), 193–244 (1994)
+60. Herbreteau, F., Point, G.: The TChecker tool and librairies.
+https://github.com/ticktac-project/tchecker
+61. Herbreteau, F., Srivathsan, B., Tran, T.T., Walukiewic z, I.: Why liveness for timed
+automata is hard, and what we can do about it. In: Proc. 36th IA RCS Annual
+Conference on Foundations of Software Technology and Theor etical Computer Sci-
+ence (FSTTCS’16). LIPIcs, vol. 65, pp. 48:1–48:14. Leibniz -Zentrum für Informatik
+(2016)
+62. Herbreteau, F., Srivathsan, B., Tran, T.T., Walukiewic z, I.: Why liveness for timed
+automata is hard, and what we can do about it. ACM Transaction s on Computa-
+tional Logic 21(3), 17:1–17:28 (2020)
+63. Herbreteau, F., Srivathsan, B., Walukiewicz, I.: Bette r abstractions for timed
+automata. In: Proc. 27th Annual Symposium on Logic in Comput er Science
+(LICS’12). pp. 375–384. IEEE Computer Society Press (2012)
+64. Herbreteau, F., Srivathsan, B., Walukiewicz, I.: Lazy a bstractions for timed au-
+tomata. In: Proc. 25th International Conference on Compute r Aided Veriﬁcation
+(CAV’13). Lecture Notes in Computer Science, vol. 8044, pp. 990–1005. Springer
+(2013)
+65. Herbreteau, F., Srivathsan, B., Walukiewicz, I.: Bette r abstractions for timed au-
+tomata. Information and Computation 251, 67–90 (2016)
+
+--- Page 26 ---
+26 P. Bouyer, P. Gastin, F. Herbreteau, O. Sankur, B. Srivath san
+66. Herbreteau, F., Tran, T.: Improving search order for rea chability testing in timed
+automata. In: Proc. 13th International Conference on Forma l Modeling and Anal-
+ysis of Timed Systems (FORMATS’15). pp. 124–139. Springer ( 2015)
+67. Kindermann, R., Junttila, T., Niemela, I.: Modeling for symbolic analysis of safety
+instrumented systems with clocks. In: Proc. 11th Internati onal Conference on Ap-
+plication of Concurrency to System Design (ACSD’11). pp. 18 5–194. IEEE Com-
+puter Society Press (2011). https://doi.org/10.1109/ACSD.2011.29
+68. Kindermann, R., Junttila, T., Niemelä, I.: SMT-based in duction methods for timed
+systems. In: Proc. 10th International Conference on Formal Modeling and Analysis
+of Timed Systems (FORMATS’12). Lecture Notes in Computer Sc ience, vol. 7595,
+pp. 171–187. Springer (2012)
+69. Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: Veri ﬁcation of probabilistic
+real-time systems. In: Proc. 23rd International Conferenc e on Computer Aided
+Veriﬁcation (CAV’11). Lecture Notes in Computer Science, v ol. 6806, pp. 585–591.
+Springer (2011)
+70. Laarman, A., Olesen, M.C., Dalsgaard, A.E., Larsen, K.G ., van de Pol, J.: Multi-
+core emptiness checking of timed büchi automata using inclu sion abstraction. In:
+Proc. 25th International Conference on Computer Aided Veri ﬁcation (CAV’13).
+Lecture Notes in Computer Science, vol. 8044, pp. 968–983. S pringer (2013)
+71. Larsen, K.G., Behrmann, G., Brinksma, E., Fehnker, A., H une, Th., Pettersson, P.,
+Romijn, J.: As cheap as possible: Eﬃcient cost-optimal reac hability for priced timed
+automata. In: Proc. 13th International Conference on Compu ter Aided Veriﬁcation
+(CAV’01). Lecture Notes in Computer Science, vol. 2102, pp. 493–505. Springer
+(2001)
+72. Larsen, K.G., Mikucionis, M., Muñiz, M., Srba, J.: Urgen t partial or-
+der reduction for extended timed automata. In: Proc. 18th In terna-
+tional Symposium on Automated Technology for Veriﬁcation a nd Anal-
+ysis (ATVA’20). Lecture Notes in Computer Science, vol. 123 02, pp.
+179–195. Springer (2020). https://doi.org/10.1007/978-3-030-59152-6_10 ,
+https://doi.org/10.1007/978-3-030-59152-6_10
+73. Larsen, K.G., Pettersson, P., Yi, W.: Compositional and symbolic model-checking
+of real-time systems. In: Proc. 16th IEEE Real-Time Systems Symposium
+(RTSS’95). pp. 76–89. IEEE Computer Society Press (1995)
+74. Larsen, K.G., Pettersson, P., Yi, W.: Diagnostic model- checking for real-
+time systems. In: Proc. Hybrid Systems III: Veriﬁcation and Control
+(1995). Lecture Notes in Computer Science, vol. 1066, pp. 57 5–586 (1996).
+https://doi.org/10.1007/BFb0020977 ,https://doi.org/10.1007/BFb0020977
+75. Li, G.: Checking timed Büchi automata emptiness using LU -abstractions. In: Proc.
+7th International Conference on Formal Modeling and Analys is of Timed Sys-
+tems (FORMATS’09). Lecture Notes in Computer Science, vol. 5813, pp. 228–242.
+Springer (2009)
+76. Malinowski, J., Niebert, P.: SAT based bounded model che cking with partial order
+semantics for timed automata. In: Proc. 16th International Conference on Tools
+and Algorithms for the Construction and Analysis of Systems (TACAS’10). Lecture
+Notes in Computer Science, vol. 6015, pp. 405–419. Springer (2010)
+77. Mercaldo, F., Martinelli, F., Santone, A.: Real-time SC ADA attack
+detection by means of formal methods. In: Proc. 28th IEEE Int er-
+national Conference on Enabling Technologies: Infrastruc ture for Col-
+laborative Enterprises (WETICE’19). pp. 231–236. IEEE Com puter
+Society Press (2019). https://doi.org/10.1109/WETICE.2019.00057 ,
+https://doi.org/10.1109/WETICE.2019.00057
+
+--- Page 27 ---
+Zone-based veriﬁcation of timed automata 27
+78. Mikucionis, M., Larsen, K.G., Rasmussen, J.I., Nielsen , B., Skou,
+A., Palm, S.U., Pedersen, J.S., Hougaard, P.: Schedulabili ty analy-
+sis using Uppaal: Herschel-Planck case study. In: Proc. 4th Inter-
+national Symposium on Leveraging Applications of Formal Me thods
+(ISoLA’10). Lecture Notes in Computer Science, vol. 6416, p p. 175–
+190. Springer (2010). https://doi.org/10.1007/978-3-642-16561-0_21 ,
+https://doi.org/10.1007/978-3-642-16561-0_21
+79. Mukherjee, S.: Reachability in timed automata with diag onal constraints and up-
+dates. Ph.D. thesis, Chennai Mathematical Institute, Indi a (2022)
+80. Nguyen, T.K., Sun, J., Liu, Y., Dong, J.S., Liu, Y.: Impro ved BDD-based dis-
+crete analysis of timed systems. In: Proc. 20th Internation al Symposium on Formal
+Methods (FM’12). vol. 7436, pp. 326–340. Springer (2012)
+81. Norman, G., Parker, D., Sproston, J.: Model checking for probabilistic timed au-
+tomata. Formal Methods in System Design 43(2), 164–190 (2013)
+82. Point, G.: TChecker online demonstration. https://tchecker.labri.fr/
+83. Point, G.: Uppaal-to-TChecker : a tool to trans-
+late Uppaal models into TChecker models.
+https://github.com/ticktac-project/uppaal-to-tcheck er
+84. Ravn, A.P., Srba, J., Vighio, M.S.: Modelling and veriﬁc ation of web
+services business activity protocol. In: Proc. 17th Intern ational Confer-
+ence on Tools and Algorithms for the Construction and Analys is of Sys-
+tems (TACAS’11). Lecture Notes in Computer Science, vol. 66 05, pp.
+357–371. Springer (2011). https://doi.org/10.1007/978-3-642-19835-9_32 ,
+https://doi.org/10.1007/978-3-642-19835-9_32
+85. Roussanaly, V., Sankur, O., Markey, N.: Abstraction reﬁ nement algorithms for
+timed automata. In: Proc. 31st International Conference on Computer Aided Ver-
+iﬁcation (CAV’19) – Part I. Lecture Notes in Computer Scienc e, vol. 11561, pp.
+22–40. Springer (2019)
+86. Sorea, M.: Bounded model checking for timed automata. El ectronic Notes in The-
+oretical Computer Science 68(5), 116–134 (2003)
+87. Srivathsan, B.: Abstractions for timed automata. Ph.D. thesis, University of Bor-
+deaux (2012)
+88. Thierry-Mieg, Y.: Symbolic model-checking using ITS-t ools. In: Proc. 21st Inter-
+national Conference on Tools and Algorithms for the Constru ction and Analysis
+of Systems (TACAS’15). pp. 231–237. Springer (2015)
+89. Tóth, T., Majzik, I.: Lazy reachability checking for tim ed automata using inter-
+polants. In: Proc. 15th International Conference on Formal Modeling and Analysis
+of Timed Systems (FORMATS’17). Lecture Notes in Computer Sc ience, vol. 10419,
+pp. 264–280. Springer (2017)
+90. Tripakis, S., Yovine, S.: Analysis of timed systems usin g time-abstracting bisimu-
+lations. Formal Methods in System Design 18(1), 25–68 (2001)
+91. Wang, F.: Symbolic veriﬁcation of complex real-time sys tems with clock-restriction
+diagram. In: Proc. 21st International Conference on Formal Techniques for Net-
+worked and Distributed Systems (FORTE’01). IFIP Conferenc e Proceedings,
+vol. 197, pp. 235–250. Kluwer (2001)
+92. Wang, F.: REDLIB for the formal veriﬁcation of embedded s ystems. In: Proc.
+2nd International Symposium on Leveraging Applications of Formal Methods
+(ISoLA’06). pp. 341–346. IEEE Computer Society Press (2006 )

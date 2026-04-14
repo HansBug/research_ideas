@@ -1,0 +1,835 @@
+--- Page 1 ---
+Preliminary Design of Robotic Control Software for Mars
+Sample Return - Capture, Containment, and Return System
+Jacob T. Cassady∗
+NASA Langley Research Center, Hampton, Virginia, 23666
+Ashok K. Prajapati†, Elizabeth J. Geist‡
+NASA Goddard Space Flight Center, Greenbelt, Maryland, 20771
+Bradley C. Tse§, Benjamin L. Osborne¶
+Microtel LLC., Greenbelt, Maryland, 20771
+Jeffrey A. Angielski‖
+HII Mission Technology Corporation, Newport News, Virginia, 23607
+Joseph B. Lattisaw∗∗, Francis B. Hallahan††
+Embedded Flight Systems Inc., Laurel, Maryland, 10193
+The Mars Sample Return (MSR) campaign aims to acquire and return to Earth a set of
+Mars samples for investigation in terrestrial laboratories. Mars 2020 has collected an adequate
+numberofsamplesanddepositedtheminsealedsampletubesatadesignatedMartiandepot.
+Sample tubes will be placed in cylindrical containers called Orbiting Samples (OS) by the
+Perseverance Rover, and later brought to Earth by the Earth Return Orbiter (ERO) and
+the MSR - Capture, Containment, and Return System (CCRS). Robot Software (RSW) is a
+set of software processes for commanding and monitoring the avionics that controls robotic
+mechanismsdesignedtosterilizeandinstallOSintoEarthEntrySystem(EES)forreturnto
+Earth. ThispaperdescribesapreliminarydesignofRSWincludingmotionmodes,architecture,
+and finite state machine. Additionally, software engineering procedures and testing of RSW
+is provided. A preliminary performance analysis is presented and the paper concludes with
+future work and a discussion of design decisions.
+∗Flight Software Engineer, Flight Software Systems Branch, Mail Stop 064, AIAA Member.
+†Flight Software Engineer, Flight Software Systems Branch, Mail Stop 148.
+‡Technical Management, Flight Software Systems Branch, Mail Stop 148.
+§Flight Software Engineer, Flight Software Systems Branch, Mail Stop 148.
+¶Flight Software Engineer, Flight Software Systems Branch, Mail Stop 148.
+‖Flight Software Engineer, NASA’s Exploration & In-space Services (NExIS), Mail Stop 480.
+∗∗Flight Software Engineer, Flight Software Systems Branch, Mail Stop 148.
+††Flight Software Test Engineer, Flight Software Systems Branch, Mail Stop 148.
+
+--- Page 2 ---
+I. Introduction
+TheMarsSampleReturn(MSR)campaignisbeingcarriedoutinpartnershipbyNationalAeronauticsandSpace
+Administration (NASA) and European Space Agency (ESA). At the time of this publication, the MSR campaign
+architecture is undergoing further study. The MSR campaign architecture described here follows Mars Sample Return
+Mission Concept Status described in 2020 by Muirhead et al. of Jet Propulsion Laboratory (JPL) [ 1]. Figure 1 shows a
+proposed MSR Mission Timeline.
+Fig. 1 MSR Mission Timeline
+The first mission to launch in the MSR campaign was Mars 2020 Mission, led by JPL [ 2]. The goal of Mars 2020
+was to land the Perseverance rover to acquire samples and cache them at drop-off locations. Mars 2020 has collected an
+adequate number of samples and deposited them in sealed sample tubes at a designated Martian depot.
+The second and third missions of the MSR campaign are planned to happen in parallel. The Sample Retrieval
+Lander (SRL) Mission is led by JPL with support from ESA and NASA Marshall Space Flight Center (MSFC) [ 3]. The
+goal of SRL isto land on Mars, retrieve Mars samplesfrom drop-off locations, and place the Mars samples intothe
+Mars Ascent Vehicle (MAV) for rendezvous with the Earth Return Orbiter (ERO).
+ERO is led by ESA with support from NASA Goddard Space Flight Center (GSFC) and JPL for design of Capture,
+Containment, andReturn System(CCRS) payload [ 4]. EROis designedto orbit Marsand providesupport for sample
+retrieval activities including returning the samples inside Earth Entry System (EES). During rendezvous, CCRS is
+designed to capture, contain, and load the Mars Orbiting Samples (OS) into EES.
+The final mission planned for the MSR campaign is the terrestrial Sample Receiving Project (SRP) Mission. SRP is
+being led by NASA and ESA. The goal is to recover the OS from the EES, and curate Martian samples at the Mars
+2
+
+--- Page 3 ---
+Returned Sample Handling (MRSH) facility.
+This paper presents a preliminary design of Robot Software (RSW): a component of the CCRS Flight Software
+(FSW) designed to command and control the avionics for a two degrees of freedom (DOF) robotic mechanism and
+End-Effector (EE) onboard the CCRS. In section II, an overview of the Concept of Operations (ConOps) and associated
+hardwareispresented. SectionIIIintroducestheCCRSFSWarchitecture. SectionIVdescribestheRSWdesignand
+implementation. SectionVhighlightsNASAProceduralRequirements(NPRs)relatedtosoftwareengineering,and
+the RSW development team’s implementation of processes to meet procedural and operational requirements. This
+paper ends with a preliminary analysis of performance in section VI and discussions on design choices and the current
+development state of RSW in section VII.
+II. Concept of Operations
+TheConOpsdescribedinthissectionisnarrowlyfocusedoninformationrelevanttoRSWoperationanddesign
+decisions. Section II.A gives an overview of the Robotic Transfer Assembly System (RTAS) mechanisms and avionics.
+Section II.B describes the RTAS actions, called motion primitives , supported by RSW. Section II.C lists configurations
+of motion primitives, called behaviors , supported by RSW. The timeline of RTAS operations and the behaviors used to
+accomplish each operation are described in section II.D.
+A. Robotic Transfer Assembly System
+RTASisasetofmechanismsandtheassociatedavionicsandsoftwareusedtoperformpick-and-placeoperations
+withintheCCRSAssemblyEnclosure(AE).ThissectionintroducesselectcomponentsofRTAS,showninFigure2,
+relatedtoRSW.SectionII.A.1detailsRTASmechanisms. SectionII.A.2presentsinformationonavionicsdesigned
+to control RTAS mechanisms. The hardware and avionics overview ends in section II.A.3 with a description of the
+processor board selected to run CCRS FSW.
+Fig. 2 RTAS Components
+3
+
+--- Page 4 ---
+1. Robotic Transfer Assembly
+The Robotic TransferAssembly (RTA)is the setof mechanismswithin RTAS includingthe Robotic Assembly (RA)
+and the EE. RA is a two DOF robotic mechanism allowing rotational and linear motion to position EE. RA enables
+linear translation using the Feed Stage, also known as the Gantry. Rotational translations of the RTA are achieved using
+theRotaryStage. TheEEismountedtotheendoftheRAFeedStage,andisdesignedtogripOSusingtheGripper
+mechanismandprovideaxialtorqueduringassemblyoperationsusingtheTorquermechanism. Figure3displaysthe
+RTA mechanisms.
+Fig. 3 RTA Mechanisms [Picture Credit: NASA/JPL]
+2. Robot Servo Control Electronics
+The Robot Servo Control Electronics (RSCE) is a redundant set of avionics configured to control the RTA
+mechanisms. RSCEincludesredundantSensorElectronics(SE),redundantActuatorServoControlElectronics(ASCE),
+andaswitchcardasshowninFigure2. SEisresponsibleforreadingRTASsensorsandcommunicatingwithASCE
+and RSW. The ASCE is a closed-loop actuator controller with heritage from the Mars Science Laboratory, the Robotic
+Fueling Mission, and the On-orbit Servicing, Assembly, and Manufacturing 1 (OSAM-1) missions.
+3. Modular Unified Space Technology Avionics for Next Generation Processor Board
+The FSW for MSR CCRS is designed to run on a Modular Unified Space Technology Avionics for Next Generation
+(MUSTANG) Processor Board [ 5]. MUSTANG was developed by GSFC. MUSTANG has a pedigree of successful
+space flight missions including the Magnetospheric Multiscale Mission and the Global Precipitation Measurement
+Mission.
+MUSTANG is designed as a set of configurable cards. MUSTANG Processor Card includes a Frontgrade
+4
+
+--- Page 5 ---
+Gaisler GR712RC Dual Core LEON3FT SPARC V8 Processor chip capable of 200 million instructions per second.
+Additionally, the MUSTANG Processor Card features a Microchip RTG4 Field Programmable Gate Array (FPGA)
+capableofproducinghardwareinterruptsignalsaswellassupportingSpaceWire(SpW)[ 6]andUniversalAsyncronous
+Receiver-Transmitter (UART) interfaces.
+B. Motion Primitives
+Motion primitives represent atomic RTAS motion actions. Motion primitives have configurable operational
+arguments and non-volatile parameters . Motion primitive arguments are configured using ground systems or in-flight
+scripting while parameters are stored in non-volatile memory.
+RTASsupportsfourmotionprimitivesincluding: PositionServo,Open-LoopActuator,ActiveLimp,andActive
+HolddescribedinsectionsII.B.1,II.B.2,II.B.3,andII.B.4respectively. ThePositionServoandOpen-LoopActuator
+motionprimitivesareusedinhigher-levelbehaviorsdescribedinsectionII.C.TheActiveLimpandActiveHoldmotion
+primitives can be used in off-nominal situations where ground operator intervention is required.
+1. Position Servo
+The Position Servo Motion Primitive performs closed-loop position control of RTA mechanisms based on hall
+effect sensor data. The Position Servo Motion Primitive is used for single actuator control of RA Feed Stage and
+EEmechanisms. ArgumentsforPositionServoMotionPrimitiveincludethetargetactuator,goalposition,goaltype
+(absolute or relative), speed, and functional motion type. Parameters include current limits, position ranges, maximum
+thresholds, and dead band configuration.
+2. Open-Loop Actuator
+TheOpen-LoopActuatorMotionPrimitiveisacriticalredundancyiftherewereissueswithclosed-loopposition
+control. The Open-Loop Actuator Motion Primitive is used to commutate an RTA actuator for a duration. Arguments
+for Open-Loop Actuator Motion Primitive include the target actuator, direction, speed, duration, and a flag denoting if a
+stall was required. Parameters include expected stall positions and tolerances, persistence for stall declaration, and max
+allowed duration.
+3. Active Limp
+TheActiveLimpMotionPrimitiveallowsforbackdrivingofRTAmechanisms. TheActiveLimpMotionPrimitive
+is used to open the brakes of an actuator for a configurable duration. Arguments for Active Limp Motion Primitive
+include the target actuator, maximum allowed motion distance, and the duration. Parameters include max duration and
+max back-driving speed.
+5
+
+--- Page 6 ---
+4. Active Hold
+The Active Hold Motion Primitive performs closed-loop position control of RTA mechanisms to hold a position for
+aprescribedpositionusinghallsensorsforfeedback. ArgumentsforActiveHoldMotionPrimitiveincludethetarget
+actuator and duration. Parameters include the max duration, max back-driving duration active hold, max back-driving
+speed, and current limits.
+C. Behaviors
+RTAS behaviors are created from configurations of motion primitives with additional logic for fault protection
+or autonomy. Similarly to motion primitives, Behaviors have configurable operational arguments and non-volatile
+parameters. Behavior arguments are configured using ground systems or in-flight scripting while parameters are
+stored in non-volatile memory. RTAS supports three behaviors including: Iterative Position Servo with Output Sensor
+Feedback, Servo-to-Load, andOpen-LoopActuatorwithContactSwitchPost-MotionConfirmationasdescribed in
+sections II.C.1, II.C.2, and II.C.3 respectively.
+1. Iterative Position Servo with Output Sensor Feedback
+The Iterative Position Servo with Output Sensor Feedback Behavior enables control of the position of a mechanism
+using sensorfeedback. Control ofthe target mechanism with sensorfeedbackis achievedby leveraging the measured
+differencebetweenacurrentsensorreadingandtargetsensorreadingwiththePositionServoMotionPrimitive. The
+Iterative Position Servo with Output Sensor Feedback Behavior is used to position the RA rotary stage. Arguments
+include the goal position, max iterations, and speed. Parameters include limits and sensor signal period.
+2. Servo-to-Load
+The Servo-to-Load Behavior enables closed-loop position control of mechanisms that terminates when a Load
+Cell axial force reading exceeds a configurable threshold. The Servo-to-Load Behavior is performed by wrapping
+thePositionServoMotionPrimitiveandisusedtomovetheRAFeedStageuntilanaxialforcethresholdisreached.
+Arguments include goal position, speed, success threshold, overshoot allowed, and a Boolean representing post-motion
+contact switch check. Parameters include limits and expected contact switch states after motion completes.
+3. Open-Loop Actuator with Contact Switch Post-Motion Confirmation
+The Open-Loop Actuator with Contact Switch Post-Motion Confirmation Behavior open-loop commutates a
+mechanismfor adesireddurationin aspecifiedduration. TheOpen-LoopActuatorwith ContactSwitchPost-Motion
+ConfirmationBehaviorisperformedbyleveragingcontactswitchstatechecksandtheOpen-LoopActuatorMotion
+Primitve. The Open-Loop Actuator with Contact Switch Post-Motion Confirmation Behavior is used in a failure mode
+when an actuator’s hall sensor fails or there are other issues with closed-loop position control. Arguments include target
+6
+
+--- Page 7 ---
+actuator, direction, duration, and a Boolean denoting if a stall is required. Parameters are the same as Open-Loop
+Actuator Motion Primitive with additional parameters for contact switches.
+D. Operation Phases
+RTASoperatessoonafterflightandagainduringLowMarsOrbit. Thissectiondetailsthetimelineofoperations,
+shown inFigure 4, includingthe sequenceof behaviors usedto accomplisheach operation. During nominal operation
+phases, a Position Servo Motion Primitive is used to actuate RA Feed Stage, EE Gripper, and EE Torquer actuators.
+TheIterativePositionServowithOutputSensorFeedbackBehaviorisusedtorotateRARotaryStage. SectionII.D.1
+describes commissioningof CCRSand RTASduring ERO’stravel fromEarth to Mars. Section II.D.2details picking
+uptheIntegratedLidAssembly(ILA).AfterOSiscaptured,RTASplacesILAonOSandusesittopickupLid+OS
+(LOS) as described in section II.D.3. Section II.D.4 describes behaviors of RTAS during Ultraviolet (UV) Illumination.
+The final phase, LOS Install, is described in section II.D.5 and ends with RTAS retracted and stowed.
+Fig. 4 RTAS Operation Timeline [Picture Credit: NASA/JPL]
+1. Commissioning
+Before launch, functional tests of RTAS and CCRS will occur on the launch pad. Commissioning of CCRS is
+expected to occur within the first 30 days after launch to ensure faster communications. During commissioning, CCRS
+ispoweredon. Afterfunctionalcheckouts,RSCEispoweredonandRTASisinitialized. LaunchlocksonRTASare
+released and a checkout is performed of mechanisms and actuator range of motions. To end commissioning, RSCE and
+CCRS are powered off.
+2. Lid Pickup
+PriortoOScapture,RTASisusedtopickupILA.LidPickupPhasebeginsbyinitializingRTASandheatingEE
+forsterilization. RAthenrotatestoalignEEwithlidpickuplocationshowninFigure5. Afterrotating,RAlinearly
+approachesILAuntilmakingcontact. Oncenominalcompressionofcontactswitchesisconfirmed,theLidRelease
+Mechanism(LRM)isreleased. Next,RAfullygraspsILAandretractslinearlytoclearthepose. RAthenrotatesto
+7
+
+--- Page 8 ---
+align with EES. After rotation, RA linearly approaches EES. To end Lid Pickup Phase, RTAS is shutdown.
+Fig. 5 AE [Picture Credit: NASA/JPL]
+3. OS Pickup
+DuringOS Pickup Phase,EE latchesILA ontoOS. OSPickup Phasebegins byinitializing RTASand heating EE.
+Once initialized, RA retracts from EES androtates to align ILA with OS assembly. RAthen linearly approaches the OS.
+After RA approach, EE is relaxed to latch onto OS with ILA. After latching, RA is retracted to standoff and EE is used
+to fully grasp LOS. To end OS Pickup Phase, EE is shutdown.
+4. Ultraviolet Illumination
+UV Illumination is used to sterilize OS. UV Illumination Phase includes iterative partial retraction of RA, shutdown
+of RSCE, and then running the UV system for several hours, giving ground operations time to review related telemetry.
+UV Illumination Phase ends with complete retraction of RA and heating of EE for use in LOS Phase.
+5. LOS Install
+During LOS Install Phase, LOS is installed in EES. LOS Install Phase begins with rotating RA to align LOS with
+EES.RAthenperformsalinearapproachtoEES.ToangularlyalignLOStoEES,EErelaxesgrasponLOS.Innominal
+operations, relaxing EE causes compression of EE contact switches.
+Afteralignment,RTASmustsecureLOStoEES.EEfirstopensGripperfully. EEthenengagesTorquertorotate
+LOS until Torquer stalls.
+LOSInstallPhaseendswithretractingandstowingRTAS.EEfirstunwindsTorquerforfullclearance. RAthen
+retracts linearly to free space. EE returns Torquer to starting orientation. RA retracts fully to stow position. Finally RA
+rotates rotary stage to stow position before shutting down RTAS.
+8
+
+--- Page 9 ---
+III. CCRS FSW Overview
+FSW for MSR CCRS, including RSW, is built upon the open-source core Flight System (cFS) framework developed
+by GSFC [ 7] using C programming language. MSR CCRS FSW can be compiled for a Linux operating system for
+testing, and it can also be compiled for a VxWorks 7 [8] real-time operating system (RTOS).
+core Flight Executive (cFE), a component of cFS, is a collection of services and associated framework for FSW
+developmentwithextensiveflightheritageandflightcertificationbeginningin2009[ 9]. cFEhasfivecoreservices:
+Executive Service (ES), Software Bus Service (SB), Event Service (EVS), Table Service (TBL), and Time Service
+(TIME) [ 10]. cFS applications leverage these services for communication, scheduling, logging, and more. cFS
+Applicationsaresetsoffunctionsanddatastructuresrecognizedasasingle-entitybythecFE[ 11]. cFSApplications
+communicate with each other using SB and a publish-subscribe messaging model.
+CCRS FSW utilizes open-source cFS Applications developed by GSFC including Limit Checker (LC) Application,
+Stored Commands (SC) Application, Scheduler (SCH) Application, Housekeeping (HK) Application, Health and
+Safety (HS) and more. LC monitors telemetry and produces event messages when telemetry is found outside of
+pre-definedthresholds[ 12]. SCusesatimetabletoproducesequencesofstoredcommands[ 13]. SCHgeneratesSB
+messagesatpre-determinedtimingintervals[ 14]. HKbuildsandsendscombinedtelemetrymessagesfrommultiple
+cFE Applications in order to minimize downlink telemetry bandwidth [ 15]. Lastly, HS is used to monitor applications
+and events [16].
+New cFS Applications were developed forCCRS FSW including RSW, Thermal Control (TC), SpaceWire Router
+(SPWR),andSpaceWireNode(SPWN).TCisresponsibleforcommandingheatersaboardCCRS.SPWRfacilitates
+packet routing from SpW hardware to various cFS Applications. SPWN implements a SpW hardware node connection
+to a SpW endpoint.
+CCRSFSWalsoleveragesheritagecFSApplicationsfromGSFCmissionsincludingtheFlightSystemTestand
+Operations Language (FSTOL) Application. FSTOL enables execution of Systems Test and Operations Language
+(STOL) scripts during flight to execute logic. An exhaustive list of cFS Applications utilized or developed is shown in
+Appendix Table 5. Figure 6 provides a display of the interfaces of each cFS Application within CCRS FSW.
+9
+
+--- Page 10 ---
+Fig. 6 CCRS FSW cFS Context
+IV. RSW Preliminary Design
+RSW is designedto facilitate RTASmotion primitives. The role ofRSWin each motionprimitiveis tovalidate
+arguments, configure RSCE before motion, initiate motion, monitor motion and forward telemetry, and perform
+post-motionanalysis. SectionIV.AdescribestheexternalinterfacesRSWhaswithFSWandavionicselements. Section
+IV.B introduces command types supported by RSW. Section IV.C overviews telemetry produced by RSW. Section IV.D
+details the implementation of RSW with a focus on the logic of tasks and Finite State Machine (FSM) design.
+A. External Interfaces
+RSW has external interfaces with SB and SE. Figure 7 depicts end-to-end interactions with RSW and avionics
+components. RSW is able to send commands to and receive telemetry from SE through the MUSTANG FPGA RS422
+UART interface using the Consultative Committee for Space Data Systems (CCSDS) packet protocol. Command and
+Telemetry(C&T)betweenRSWandrobotoperatorsarecommunicatedthroughEROviaSpW.EROcommunicates
+with Ground Support Equipment (GSE) through windows of the Deep Space Network [17] .
+10
+
+--- Page 11 ---
+Fig. 7 RSW C&T Flow
+RSWinteractswithothercFSApplicationsasshowninFigure8. FSTOLisusedtoimplementRTASbehaviors
+throughscriptingofMotionPrimitiveCommandswithadditionallogic. HKrequeststoRSWareproducedbySCHata
+frequency of 1 Hz. LC subscribes to RSW telemetry to monitor RSW faults at runtime.
+Fig. 8 RSW FSW Context
+11
+
+--- Page 12 ---
+B. Commands
+RSW supports four command types: High-Priority Commands, RSW Commands, RSCE Commands, and HK
+Requests. Commands are formatted following CCSDS packet protocol and are sent from ground systems or other cFE
+applicationsatruntime. High-PriorityCommandsincludecategoriesofstopcommandsaswellasaclearfaultstate
+command. A list of High-Priority Commands can be found in Appendix Table 6.
+RSW Commands are used to read and modify the state of RSW. RSW Commands include motion primitives,
+information requests, and a stop motion command. Motion primitive commands are sent by ground systems or in-flight
+FSTOL scripting of behaviors and include motion primitive arguments. Motion primitive parameters are sourced from
+on-board cFE tables. A list of RSW Commands can be found in Appendix Table 7.
+RSCE Commands are meant to be passed directly to SE without advancing RSW FSM. RSCE Commands are first
+verified by RSW, and if and safe to perform, sent to SE. A list of RSCE Commands can be found across Appendix
+Tables 8 and 9.
+C. Telemetry
+RSWproducestelemetrypacketsfollowingCCSDSpacketprotocolandplacesthemonSBtobetelemeteredto
+ground through SPWR. RSW produces two types of telemetry: telemetry forwarded from SE and telemetry designed to
+reportstatus. TelemetryfromRSWisproducedeachcyclewithamaximumnumberofpacketseachcycleof4: oneHK
+request, three RSCE packets, and one FSM status packet.
+Telemetry forwarded from SE include scheduled 10 Hz telemetry and command responses. Scheduled 10 Hz
+telemetryproducedbySEincludethreedatafields: asetoffaultstatusbits,asetof10packetscontainingdatafrom
+ASCE collected by SE at 100 Hz, and a set of recent motor speed, goal, and position data. Each of the 10, 100 hz
+packets,includepotentiometerreadings,motorcurrents,contactswitchstates,loadcellreadings,andhardwarestate
+information. CommandresponsesfromSEhavetwotypes: longcommandresponsesandshortcommandresponses.
+Longcommandresponsesincludealargerallocationofbytesfordatastoragethanshortcommandresponses. Bothlong
+command responses and short command responses include identification of the initial command related to the response.
+Including the command identification allows RSW to verify when confirming an acknowledgement.
+Telemetry used to report status include HK telemetry and FSM information. HK telemetry is produced at a rate of 1
+Hz. HKtelemetryincludescommandvalidationsuccess,failure,andexecutioncountsthatareincrementedwitheach
+command. FSM information is telemetered once each cycle and includes current state and sequence count attributes.
+D. Implementation
+RSWisimplementedwithtwocFEtasks,asshowninFigure9. RSWhasinternalinterfacesforcommunicating
+between tasks and accessing stored configuration tables. RSW FSM is described in section IV.D.1. Section IV.D.2
+12
+
+--- Page 13 ---
+detailsMainTaskcontainingcorelogicandFSM.DesignofWorkerTask,usedforoffloadingcomputationallyexpensive
+operations, is presented in section IV.D.3.
+Fig. 9 RSW Application Design
+1. Finite State Machine Design
+TheMainTaskisimplementedwithaFSMwithfourattributes: currentstate,requestedstate,currentstateruncount,
+andcurrentstatesequencenumber. Sequencenumberisusedtofacilitatebehaviorchangeswithinastate. RSWFSM
+has six methods: Initialize,StateExit,StateEntry ,StateRun,Step, andRequestStateTransition . Valid state transitions are
+shown in Figure 10. Table 1 includes a list of FSM states and associated descriptions.
+Fig. 10 RSW FSM
+13
+
+--- Page 14 ---
+State Description
+UNKNOWN Initial state on startup.
+INITIALIZED After start up procedures and before valid telemetry from RSCE.
+RSCE_ON Initial configuration of RSCE.
+READY_ON Systems are initially configured. Ready to receive motion primitive commands.
+CONFIGURE Configure RSCE for motion primitive.
+PRE_MOTION_CHECK Perform pre-motion check using Worker Task for motion primitive.
+IN_MOTION Execute motion. Monitor telemetry.
+POST_MOTION_CHECK Perform post motion anomaly checks.
+FAULT A fault has occurred. Pending external intervention.
+Table 1 RSW FSM States
+Upon startup, RSW begins by initializing current state to UNKNOWN and requested state to INITIALIZED. State
+runcountsandsequencenumberaresettozero. Everycycle,MainTaskcalls StepmethodshowninFigure11. Step
+begins by checking if current state and requested state are the same. If current state and requested state are not the
+same, RSW calls StateExit and thenStateEntry .StateExit andStateEntry methods are used to cleanup attributes from
+a previous state and prepare for the next state. After StateExit andStateEntry methods, current state is then set to
+requestedstate. Oncecurrentstateisset,orifcurrentstateandrequestedstatewerethesametobeginwith, Stepmethod
+ends by calling StateRun.
+Fig. 11 FSM Step Design
+StateRun switches behavior depending on current state and the active motion primitive. At the end of StateRun,
+currentstateruncountattributeincrements. StateRun alsoswitchesproceduresonsequencecountforstatessuchas
+CONFIGURATION which include processes carried out over multiple cycles.
+State transitions are validated before being set. Invalid state requests are rejected and produce event messages.
+InvalidstaterequestsdonotcauseRSWtoenterFAULT.Staterequestsareallowedduringcommandprocessing,by
+FSMitselfwhenperformingmotionprimitiveprocedures,oranytimethereisafaultcondition. TransitioningtoFAULT
+is valid for all states.
+OnceRSWisinINTIALIZED,RSWwaitsfortelemetryfromSEbeforeenteringRSCE_ON.Afterperforming
+14
+
+--- Page 15 ---
+initialconfigurationofRSCE,RSWentersREADY_ON.WhenRSWisinREADY_ON,RSWisreadytoacceptmotion
+primitive commands.
+WhenamotionprimitivecommandisreceivedwhileRSWisinaREADY_ON,RSWentersCONFIGURE.During
+CONFIGURE, RSW sends a series of register write commands to SE to prepare for motion primitive execution. Once
+RSCE is configured, RSW enters PREMOTION_CHECK. During PREMOTION_CHECK, RSW sends a work request
+to Worker Task. If a nominal work result is received from Worker Task, RSW enters IN_MOTION. IN_MOTION
+beginsbysendingastartcommandtoSEandendswhenmotionprimitivestopconditionsaremet. Whenmotionis
+complete,RSWperformsapost-motioncheckforanomaliesbeforere-enteringREADY_ON.IfRSWreceivesastop
+command during CONFIGURE, PRE_MOTION, IN_MOTION, and POST_MOTION_CHECK, RSW transitions
+directly back to READY_ON.
+2. Main Task Design
+The Main Task contains core logic for RSW including FSM. Main Task is woken up by a FPGA hardware timer at a
+rate of 10 Hz. Main Task interfaces with SB, SE, and Worker Task using SB pipes as message queues. Main Task also
+uses internal SB pipes as queues for triaging commands and splitting up processing over multiple cycles. Control flow
+for Main Task is shown in Figure 12.
+Once RSW receives a wakeup signal from FPGA hardware timer, Main Task cycle begins by removing all CCSDS
+Commands from SB and categorizing commands in queues following command type, described in section IV.B. RSW
+iterates over command queues and interfaces starting with high priority command queue. If a high priority command is
+found, RSW immediately processes and forwards to SE.
+After checking for high priority commands, Main Task checks for incoming packets from SE on RS422 interface. If
+SEtelemetrypacketsarefound,RSWparsestheSEtelemetry. IfSEtelemetryisdeterminedtobe10HzTelemetry,the
+telemetry is processed to update FSM and data stores. If SE telemetry is determined to be an RSCE command response
+fromapreviouscommandtoRSCE,RSWclearstheRSCEcommandacknowledgementflag. AfterSEtelemetryis
+parsed and processed, SE telemetry is forwarded to SB to be telemetered to ground through SPWR. In one cycle, RSW
+can process a maximum of 3 packets from RS422 interface. Setting a maximum number of packets restricts Main Task
+to constant runtime complexity. The maximum number of packets to process is determined by the maximum number of
+packets RSW could receive from each source in a nominal cycle.
+Once all, or the maximum number of 3, RS422 packets are processed, Main Task checks for results from previous
+requests to Worker Task. An incoming worker resultis onlyexpected when FSMis in PRE_MOTION. Unexpected
+workerresultscauseFSMtoenterFAULT.AftercheckingforaresponsefromWorkerTask,MainTaskprocessesa
+maximumof3RSW Commands. ThemaximumofRSW CommandsperMainTask cycledrivenbythetwosystems
+that produce RSW Commands, FSTOL and Ground Operations, which each have a maximum transmission rate of 1 Hz.
+15
+
+--- Page 16 ---
+Fig. 12 RSW Main Task Design
+Next, RSW checks for RSCE Commands. If a previous RSCE command acknowledgement is pending, Main Task
+waits until next cycle to send the RSCE command. If Main Task completes two cycles without receiving an RSCE
+commandacknowledgement,FSM entersFAULT. Lastly, MainTaskcallsFSM Stepandadds telemetryto SB.When
+finished, Main Task performs a non-blocking sleep until Main Task is woken up again by the hardware timer signal.
+3. Worker Task Design
+The Worker Task performs collision detection during PRE_MOTION. The collision detection operation evaluates a
+pending motion for off-nominal hardware collisions. Collision detection is off-loaded to a separate task due to possible
+large processing cost of performing the collision detection operation. Appendix Figure 13 displays the control flow for
+Worker Task. Worker Task waits on a work request from a SB pipe. After collision detection is completed, the result is
+sent back to Main Task through a different SB pipe.
+16
+
+--- Page 17 ---
+Fig. 13 RSW Worker Task Design
+V. Software Engineering and Testing
+SoftwaredevelopedbyNASAmustfollowNASAProceduralRequirements(NPR)7150.2Dwhichprovideschapters
+of software engineering requirements [ 18]. Requirements in NPR 7150.2D are applicable based on the determined
+NASA software classification. RSW is classified as Class B, Non-Safety Critical. Class B software is described by
+7150.2D as “non-human space-rated software systems or large-scale aeronautics vehicles.” Select software engineering
+procedural requirements (SWE) from NPR 7150.2D are described in the following sections as well as processes to meet
+thoseNPRs. SectionV.ArelatestoSWE-187andGitversioncontrol. SectionV.BrelatestoSWE-135andusageof
+staticanalysistools. SectionV.CrelatestoSWE-062andunittests. SectionV.DrelatestoSWE-066andfunctional
+testing against operational requirements.
+A. Configuration Management
+SWE-187 states software shall be placed under configuration management before testing. Git [ 19] and GitLab [ 20]
+wereutilizedforconfigurationmanagement. RSWsourcecodeexistsasasubmodulerepositoryofalargercFSFSW
+repositorywhich includesallCCRS cFSApplications. Pre-commit githooksare usedtoautomate theusageof Clang
+Format [21] to format source code. GitLab workflows are used to automate build testing and unit testing.
+B. Static Analysis
+SWE-135 asserts development teams shall use static analysis tools. CodeSonar[ 22] was used for static analysis.
+Legacy configuration of CodeSonar was leveraged from GSFC Flight Software Systems Branch following coding
+17
+
+--- Page 18 ---
+standards such as MISRA as well as JPL specific standards. Static analysis using CodeSonar is performed periodically
+throughout development lifecycle and all errors and warnings are addressed.
+C. Unit Testing
+SWE-062assertssoftwareshallbeunittested. Additionally,SWE-135statescodecoveragemetricsshallbegathered.
+CCRS FSW leveraged UtAssert [ 23] unit test framework developed at GSFC. Unit tests are automated using workflows
+inside GitLab and run with each FSW repository push. All unit tests must pass with 100% coverage of functions,
+branches, and lines before a pull request is ready for review.
+D. Functional Testing
+SWE-066 asserts software shall be tested against operational requirements. RSW has operational subsystem
+requirements developed to meet the needs of higher-level system requirements. Section V.D.1 describes a ground
+data system developed by GSFC to test operational subsystem requirements. Section V.D.2 provides an overview of a
+simulator to test RSW interactions with SE interface. Section V.D.3 gives insight into software used to monitor runtime
+performance.
+1. Integrated Test and Operations System
+TheIntegratedTestandOperationsSystem(ITOS)isusedasagrounddatasystemtotestoperationalsubsystem
+requirements. ITOS was developed by GSFC with mission heritage beginning in 1990 with the Small Explorers project
+[24]. ITOS isa comprehensive C&Tsolution that supports flightoperations, integration and testing, anddevelopment.
+ITOSprovidesanapplicationprogramminginterface(API)fordefiningC&TstructuresaswellasanAPItodevelop
+mission specific graphical user interfaces for sending commands and viewing telemetry. RSW C&T is integrated into
+ITOS. ITOS display pages were created for viewing telemetry and plots were developed for monitoring FSM transitions.
+ITOSalsosupportsscriptingcommandsusingtheSystemsTestandOperationLanguage(STOL).FSTOLscripts
+couldbetestedinITOSasSTOLscriptsfirst. STOLandFSTOLscriptsareusedtorunhigherlevelbehaviorsusing
+motion primitive commands. Integration tests are scripted using STOL and run with each pull request to ensure system
+integrity.
+2. Sensor Electronics Interface Simulator
+The Sensor Electronics Interface Simulator (SEIS) is a lightweight simulation meant to interact with RSW as a
+substituteforRSCEusedin-flight. SEISiswrittenintheC++programminglanguagefollowingtheinterfacecontrol
+documentgoverningthecommunicationbetweenRSWandRSCE.CommunicationbetweenRSWandSEISisdone
+using User Datagram Protocol (UDP) [ 25] instead of RS422. SEIS includes an internal state machine matching the
+modes ofRSCE. SEIS sendsmotion telemetry packetsat 10Hz containing fault status, 10 samplesof 100Hz high-rate
+18
+
+--- Page 19 ---
+data, and 1 sample of low-rate 10Hz data. Additionally, SEIS is designed to ingest commands from RSW and produce
+command responses back. Figure 14 shows the interfaces of RSW when running with on desktop Linux with the SEIS.
+Fig. 14 RSW Linux Configuration
+SEISisintegratedintoITOS.SEISislaunchedwhenITOSisruninadesktopconfigurationtoenablecomprehensive
+testing of RSW. Part of ITOS integration included adding support to SEIS for receiving commands directly from ITOS.
+ITOS commands supported by SEIS include Start, Stop, and No-Operation. A set of verbose modes were implemented
+into SEIS to allow for different levels of logging during debugging.
+3. Performance Monitoring
+Performance monitoring of RSW is accomplished with cFE’s performance collection API which provides precise
+timinginformation. ModificationstocFEperformancemonitorAPIweremadetointerfacewithaSaleaelogicanalyzer
+andSaleaeLogic2software[ 26]whenCCRSFSWiscompiledforVxWorks. CollectionswereanalyzedusingSoftware
+Timing Analyzer (STA) software provided with the open-source distribution of cFE [ 27]. Performance collections were
+made periodically throughout development to maintain benchmarks.
+STAcanproducetablesoftimeand“%CPUUtil”toprovideinsightintohardwaretimingresultsbyconsidering
+any active signal to represent ongoing computation. “% CPU Util” can be misleading if there is system processing that
+is not coordinated perfectly with hardware timing signals. Instead, this paper will define a more precise definition of “%
+CPU Util” as 𝑆𝑌𝑆𝑇𝐸𝑀 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙, shown in Equation 1, where 𝑆𝑖[𝑡𝑘]is a hardware timing signal for cFS Application
+𝑖at time𝑡𝑘.𝑘is used to index time samples. In STA, Δ𝑡is set to a default of 500𝑚𝑠.
+𝑆𝑌𝑆𝑇𝐸𝑀 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙=100
+𝑁𝑁∑︁
+𝑘=1𝑛∑︁
+𝑖=1𝑆𝑖[𝑡𝑘] (1)
+STA also produces metrics for each signal including minimum, maximum, and average width of each signal. Width
+is intended to capture runtime of each process. Additionally, STA provides minimum, maximum, and average period of
+each signal. Period is intended to represent time between the start of each process.
+19
+
+--- Page 20 ---
+VI. Analysis
+AnalysisofimagesizeandperformanceofRSW’spreliminarydesignwereperformedtoverifycompliancewith
+operational requirements. For analysis presented here, CCRS FSW was compiled and run on a, commercial off the
+shelf(COTS),GaislerGR712DevelopmentBoard[ 28]whichhasthesameprocessorchipasMUSTANGProcessor
+Card selected for flight. Section VI.A presents image size analysis of RSW with comparisons to other cFS applications.
+Section VI.B analyzes process runtime of RSW when at idle and when executing a motion primitive.
+A. Image Size Analysis
+Given memory limitations of MUSTANG and GR712, image size of RSW was required to be less than 1 MB.
+AppendixTable10includesallcFSApplicationsinCCRSFSWandtheirrespectiveimagesizeswhencompiledfor
+GR712. Image size of RSW compiled for GR712 is 95.176 KB.
+RSWisthesecondlargestcFSApplicationinCCRSFSW.WhencompiledforGR712,RSWismorethanthree
+times the size of other mission apps developed specifically for CCRS: SPWR, SPWN, and TC. When compared to the
+average image size of open-source cFS Applications included in CCRS FSW, 38.685 KB, RSW is 2.46 times larger.
+RSW is 9.37 times smaller than the largest cFS Application in CCRS FSW, FSTOL.
+WhencompiledforVxWorks,theimageofRSWisasingleobjectfile. CompilingRSWforLinuxgivesinsightinto
+whichsource filesarethelargestasobjectfiles arecreatedfor everysourcefile. The RSWimagesize whencompiled
+forLinuxis125.3KB.Outofthe125.3KBtotal,definitionsandprocessingfunctionsforRSCECommandsoccupy
+52.4 KBor 41.82%of the image. Objectfiles for MainTaskand FSM implementationsoccupied 28.5 KBor 22.74%of
+the image.
+B. Performance Analysis
+TotestthepreliminarydesignofRSW,threetestswereconductedtogaininsightintothebehaviorofRSWwhen
+executingamotionprimitivecommand. Foreverytest,CCRSFSWwasrunningontheCOTSboardandanSEemulator
+wasconnectedtoRSWusinganRS422UARTinterface. TheSEemulatorproducedCCSDSTelemetrypackets,was
+receptivetoCCSDSCommands,andwasconnectedtoamotorforhardware-in-the-looptesting. cFEperformanceentry
+andexitlogsweremadetotracktheruntimeandintervalofMainTask. WorkerTaskwasimplementedwithbaseline
+functionality to test communication between cFE Tasks. Table 2 includes brief descriptions of each test.
+In Test A, RSW was left to idle with no commands injected for 60 seconds. Test B was focused on the behavior of
+RSWwhenperforminganOpenLoopActuatorMotionPrimitiveCommandwithadurationargumentof30seconds.
+Test C captured 20 seconds at 20 idle before sending RSW an Open Loop Actuator Motion Primitive Command
+with a duration argument of 40 seconds followed by 20 seconds of idle. STA was used to extract tables of time and
+𝑆𝑌𝑆𝑇𝐸𝑀 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙from Saelae Logic 2 data. Figure 15 include plots of 𝑆𝑌𝑆𝑇𝐸𝑀 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙for each test.
+20
+
+--- Page 21 ---
+TestDescription
+A1 minute of idle
+B30 seconds of motion
+C20 seconds of idle followed by 40 seconds of motion followed by 20 seconds of idle
+Table 2 RSW Test Descriptions
+(a)
+(b)
+(c)
+Fig. 15𝑆𝑌𝑆𝑇𝐸𝑀 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙for Test A (a), Test B (b), and Test C (c)
+STA was also used to analyze Main Task runtime, denoted by 𝜏RSW, and period, denoted by 𝑇RSW. Equation 2 was
+developed to approximate the average runtime of Main Task, denoted by RSWapprox-util, avg . Additionally, equation 3
+was created to approximate the worst-case performance of Main Task, denoted by 𝑅𝑆𝑊approx-util, max . Table 3 shows
+RSWapprox-util, avg and𝑅𝑆𝑊approx-util, max calculated for Tests A, B, and C.
+RSWapprox-util, avg=𝜏RSW, avg
+𝑇RSW, avg×100% (2)
+RSWapprox-util, max=𝜏RSW, max
+𝑇RSW, min×100% (3)
+21
+
+--- Page 22 ---
+TestRSWapprox-util, avg RSWapprox-util, max
+A 3.309% 6.98%
+B 3.749% 9.92%
+C 3.378% 23.452%
+Table 3𝑅𝑆𝑊 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙%Average and Worst Cases
+VII. Discussion
+The preliminary design of RSW—RTAS command and control software—was presented. Section VII.A discusses
+RSW analysis results. Section VII.B describes a reimplementation of RSW from C++ to C and a supporting trade study.
+This paper ends with section VII.C introducing work left to improve design and analysis of RSW.
+A. Analysis Results
+AlthoughRSWimagesizeisrelativelylargewhencomparedtotheaveragecFSapplication,RSWimagesizeis
+withinrequirementsbyafactorofmorethan10. TherelativelylargesizeofRSWcanbeexplainedbytheamountof
+RSCE Commands and the required data structures and associated processing functions needed. RSCE Commands,
+which provide a pass through to SE, are critical components of redundancy.
+Performance analysis of RSW shows RSWapprox-util, avg is less than 4%in all recorded tests. RSW shows significant
+differences between RSWapprox-util, max andRSWapprox-util, avg , especially in Test C. Visual inspection of Figure 15 shows
+steadysystemperformanceacrosscycles;although,thereisanincreasein 𝑆𝑌𝑆𝑇𝐸𝑀 𝑎𝑝𝑝𝑟𝑜𝑥−𝑢𝑡𝑖𝑙whenamotionprimitive
+command is received by CCRS FSW secondary to increased RSW uptime.
+B. Redesign from C++
+Initially, RSW’s implementation leveraged a heritage C++ code base from OSAM-1. The C++ implementation
+of RSW had a 1.314 MB image size after optimizations. Further analysis of compiled images showed 214.81 KB
+couldbesaved bynotincludingC++standard library. Givensizerequirementsof1 MBandneedforadditional space
+for new features, a trade study, shown in Table 4, was performed to evaluate the development cost of pivoting to an
+implementation in the C programming language or modifying the existing C++ implementation.
+Chosen metrics for the C vs. C++ trade study were: complexity, development effort, flight heritage, language
+knowledge, memory usage, performance, safety, and tooling. Weights for each metric were chosen subjectively by the
+team on a scale of 1 to 10. After team discussion, values were assigned for each metric-language pairing with 10 being
+the best score.
+22
+
+--- Page 23 ---
+Metric Weight C C++
+Complexity 4 9 7
+Development Effort 8 2 8
+Flight Heritage 8 10 6
+Language Knowledge 4 8 8
+Memory Usage 9 10 3
+Performance 10 9 10
+Safety 10 8 10
+Tooling 8 10 10
+Total 610 504 479
+Percentage 82.62% 78.52%
+Table 4 C vs. C++ Trade Study
+Complexity relates to the inherent complexity of a programming language and consequent complexity of programs
+writteninit. Alanguagewithsimplersyntaxandfewerfeaturesmightbeeasiertounderstandanddebugbutalsorequire
+more code for complex tasks. Complexity also affects the maintainability of the code. C programming language’s
+simplicitymakesitmorepredictableandeasiertoreasonabout. Ontheotherhand,C++isinherentlymorecomplex
+due to the extensive feature set.
+Development Effort relates to the amount of time and resources needed to develop or modify RSW. A higher
+development effort score means less development effort. C received a low score because it meant starting from nothing.
+C++receivedahigherscorebecausewehadanexistingC++implementationofRSW.Developmenteffortwasweighted
+high due to limited resources.
+FlightHeritagemeasurestheprogramminglanguage’strackrecordinspaceflightapplications. Languagesthathave
+beensuccessfullyusedinspaceflightapplicationsarepreferred. CreceivedahigherscorebecausecFSApplications
+have traditionally been written in C. C++ also received a high score because RSW was leveraging an existing OSAM-1
+code base.
+Language Knowledge was used to evaluate the development team’s knowledge of each language. Since the
+development team was equally knowledgeable on C and C++, both languages received the same rating.
+Memory Usage relates to the size of RSW when compiled on target hardware. Smaller executables can also runner
+faster due to better cache utilization, and they consume less storage space, which is a crucial factor in space-constrained
+23
+
+--- Page 24 ---
+environments. CreceivedahighscorebecauseothercFSapplicationswritteninCdonothavethesameimagesize
+problems. C++receivedalowscorebecauseevenwithoutusingthestandardlibrary,theRSWimagesizeexceeded
+requirements and there were remaining features to be implemented.
+PerformancerelatestoCPUusages. Performanceisoftenevaluatedusingbenchmarksthatmeasurethetimerequired
+to execute standard tasks. Both C and C++ were given high scores; although, C++ was given a higher score due to
+optimizations of C++ libraries over C.
+Safetyrelatestotheabilityofaprogramminglanguagetoprevent,detect,andhandleerrors. Creceivedan8because
+it isweakly typed. C++has stronger typechecking andfeatures like ResourceAcquisition IsInitialization (RAII) that
+can prevent common bugs that might be harder to catch in C.
+Toolingcomparestoolsavailablefortheprogramminglanguagessuchasstaticcodeanalyzersandtestingframeworks.
+Both C and C++ received perfect scores in the trade study because both C and C++ have static analysis tools that meet
+NPR 7150.2D standards. Also, C and C++ can both be integrated into the UtAssert unit test framework.
+The trade study resulted in a reimplementation of RSW from C++ to C being advantageous.
+C. Future Work
+Following a September 2023 report by an Independent Review Board [ 29], NASA Office of Inspector General
+released an audit of the Mars Sample Return Program which concluded “before the MSR Program is approved to
+proceed from formulation into development, viable alterantives to the Program’s mission architecture considered –
+including mission launch and sample return alternatives” [ 30]. As a consequence, development on CCRS has been
+stopped. ThedesigndescribedherewasthecurrentstateofRSWwhenworkstopped. Thissectionprovidesinsightinto
+work to go to transition RSW from a preliminary design to a critical design.
+Firstoff,performancemonitoringofRSWcurrentlyonlyincludesmonitoringtheruntimeofMainTask. Adding
+performancemonitoringatalowerlevel,suchasineachfunction,wouldprovidemoreinsightintoproblemareasof
+RSW. Analysis shows RSW has increased runtime when facilitating a Motion Primitive Command. One likely cause is
+sending and/or receiving packets on the UART interface; still, it is unclear without lower level performance monitoring
+what part of Motion Primitive Command execution is causing the most processing load.
+RSW is designed to support Motion Primitive Commands and uses FSTOL to support RTAS behaviors. Given
+large margins of image space remaining for RSW and benefits to the high frequency of RSW at 10 Hz compared to
+FSTOL at 1 Hz, modifications to RSW were being traded to incorporate a FSM to facilitate RSW Behavior Commands
+without FSTOL. One implementation possibility to achieve RSW Behavior Command support is modifying FSM to be
+hierarchical.
+Lastly,thereareopenquestionsontheefficacyofhavingWorkerTask. Atthetimeofworkstoppagethecollision
+detection algorithm was under trade, but consensus was leaning towards a static mapping of collision zones in the form
+24
+
+--- Page 25 ---
+of a lookup table. If collisions were predicted using a static data structure, there is no need to offload the processing to
+a separate Worker Task. There may be benefits though to utilizing Worker Task to offload communication with SE
+to a separate task. Additional performance monitoring needs to be implemented first to inform Worker Task design
+decisions.
+25
+
+--- Page 26 ---
+Appendix
+Application Acronym Description
+Limit Checker LCMonitors telemetry and produces event messages when telemetry is
+found outside of pre-defined thresholds [12]
+Stored Commands SCProduces sequences of stored commands using a time table [13]
+Scheduler SCH Generates SB messages at pre-determined timing intervals [14]
+Housekeeping HK BuildsandsendscombinedtelemetrymessagesfromcFEApplica-
+tions in order to minimize downlink telemetry bandwidth [15]
+Heath and Safety HSApplicationmonitoring,eventmonitoring,andhardwarewatchdog
+services [16]
+CFDP CFCCSDSFileDeliveryProtocol(CFDP)CCSDS727.0-B-5compliant
+services. [31]
+Checksum CSEnsures integrity of onboard memory using Cyclic Redundancy
+Checks [32]
+File Manager FM Onboard file system management services [33]
+Memory Manager MM Used for loading and dumping system memory [34]
+Memory Dwell MD monitors memory addresses accessed by the CPU [35]
+Flight-STOL FSTOL Runs STOL scripts onboard to execute logic and make decisions
+Processor Card Housekeeping PCHK Providesread,writeandread-mod-writeaccesstoFPGAandDLEON
+memory spaces
+Telemetry Output TO Provides telemetry filtering capabilities for SPWR
+Robot Software RSW Controls and monitors RTAS
+SpaceWire Router SPWR Packet routing from SpW hardware to SB
+SpaceWire Node SPWN Provides SpW hardware node connections to SpW endpoints
+Thermal Controller TCResponsible for commanding all operational heaters aboard CCRS
+Table 5 CCRS FSW cFS Applications
+26
+
+--- Page 27 ---
+Command Description
+Category 0 Stop Uncontrolled stop with immediate power removal. Puts RSW in fault state.
+Category 1 Stop Controlled stop. Puts RSW in fault state.
+Clear Fault State Clears RSW’s fault state.
+Table 6 High-Priority Commands
+Command Description
+NOOP No-Operation Command
+Stop SendastopcommandtoRSCEifinmotion. TransitionRSWtoReady-On
+state if possible
+Reset Counter Reset counters within RSW HK Telemetry
+Verify Docking Post Compression Verifies the docking posts were compressed.
+Verify EE Docked Verify the end effectors were docked.
+Position Servo Position Servo Motion Primitive Command
+Open-Loop Actuator Open-Loop Actuator Motion Primitive Command
+Active Limp Active Limp Motion Primitive Command
+Active Hold Active Hold Motion Primitive Command
+Table 7 RSW Commands
+27
+
+--- Page 28 ---
+Command Description
+Noop Maintains communication with RSCE but does not require a response.
+Stop Disables power to the motor phases and the friction brake.
+Select Actuator Select Active Actuator.
+Select ASCE Select ASCE to Operate.
+Configure PIDs Set controller Gains
+Configure Controller Setcurrentscheduling,stalldetection, andotherlow-levelcontrollerparame-
+ters
+Configure Actuator Set constants for a given actuator.
+Configure Motion Parameters Set speed, tolerance, motion type, and target position.
+Configure Goal Parameters Set parameters used to signify completion of motion.
+Configure Position Hold Set parameters such as feedforward torque.
+Configure Fault Management Set limits for fault management.
+Clear Stop After a stop command, a clear stop command was needed to clear the ASCE
+registers necessary for motion to be restarted.
+Configure Load Sensor Set load sensor calibration tables.
+Configure Resolver Set resolver calibration parameters needed by RSCE.
+Configure Feed Stage Halls Sensor Set halls position sensor parameters.
+Table 8 RSCE Commands (Part 1 of 2)
+28
+
+--- Page 29 ---
+Command Description
+Configure Thermal Model Set thermal model.
+Configure Potentiometers Set potentiometer calibration parameters.
+Load Sensor Tare Define tare values per channel.
+Load Channel Sensor Mask Define load channels to use or ignore.
+Potentiometer Mask Define potentiometer to use or ignore.
+Feed Stage Halls Sensor Mask Define halls positions sensors to use or ignore.
+Contact Switch Mask Define torque mechanism or gripper limit switches to use or ignore.
+Sensor Enable Turn excitation to a sensor or sensor channel on.
+Sensor Disable Turn excitation to a sensor or sensor channel off.
+Execute Joint Motion Execute joint motion.
+Active Limp Open break and allow back driving.
+Active Limp Open break and hold position actively.
+Peek Read a register.
+Poke Write to a register.
+Register Dump Return RSCE register content from a specified range of addresses.
+Table 9 RSCE Commands (Part 2 of 2)
+29
+
+--- Page 30 ---
+Application COTS Image Size
+LC 34.508
+SC 40.532
+SCH 20.280
+HK 12.720
+HS 34.460
+CF 81.816
+CS 63.476
+FM 41.396
+MM 32.148
+MD 25.512
+FSTOL 892.160
+PCHK 13.260
+TO 16.232
+RSW 95.176
+SPWR 31.896
+SPWN 29.844
+TC 5.192
+Table 10 COTS cFS Image Sizes in kilobytes
+TestMinimum Maximum Average Standard Deviation
+A2.120 6.850 3.309 1.065
+B2.190 9.498 3.749 1.213
+C2.125 22.495 3.378 1.347
+Table 11 RSW Width Times in milliseconds
+30
+
+--- Page 31 ---
+TestMinimum Maximum Average Standard Deviation
+A98.084 101.714 99.999 0.445
+B95.752 103.602 100.001 0.835
+C95.918 104.034 100.000 0.726
+Table 12 RSW Interval Times in milliseconds
+Acknowledgments
+The development of MSR CCRS was funded by Mars Sample Return Program. The authors would like to thank the
+multi-centerandmulti-disciplinaryMSRCCRSteammemberswhocontributedtothedevelopmentofRSW.Daniel
+Chavez-Clemente, Paulo J. Younse, and Tom Green from JPL supported RSW algorithm development and integration
+withRTAS.PathwaysInternJohnathanMiddletoncontributedtocommandandtelemetrydefinitionsinRSWground
+and flight software. Pietro Sparacino, Josh Nichols, and Thomas Schluszas helped develop and integrate RSW’s
+interface with RSCE. William Posey led the CCRS FSW Test Team responsible for Software Assurance.
+RSW development team received tremendous support from MSR CCRS Payload Software team, led by Keegan
+Moore, responsible for implementation and integration of all other MSR CCRS FSW cFS apps. Rich Landau integrated
+FSTOL and helped with RSW testing using FSTOL. Jaiden Ferraccioli modified cFE performance monitor to interface
+with a Saleae logic analyzer. Sarah Garcia-Beech gave valuable insights on UtAssert and architecture decisions. Alan
+Cudmore supported VxWorks integration and C++ vs. C trade study. Additional valuable contributions to RSW
+development were made by Sean Malone and Isabel Dailey.
+References
+[1]Muirhead, B. K., Nicholas, A., and Umland, J., “Mars Sample Return Mission Concept Status,” 2020 IEEE Aerospace
+Conference , 2020, pp. 1–8. https://doi.org/10.1109/AERO47225.2020.9172609.
+[2]Farley, K. A., Williford, K. H., Stack, K. M., Bhartia, R., Chen, A., de la Torre, M., Hand, K., Goreva, Y., Herd, C. D., Hueso,
+R., et al., “Mars 2020 mission overview,” Space Science Reviews , Vol. 216, 2020, pp. 1–41.
+[3]Muirhead, B. K., and Karp, A., “Mars sample return lander mission concepts,” 2019 IEEE Aerospace Conference , IEEE, 2019,
+pp. 1–9.
+[4]Sarli, B., Gough, K., Hagedorn, A., Bowman, E., Rondey, J., Yew, C., Neuman, M., Green, T., Lin, J., Cataldo, G., et al.,
+“NASA Capture, Containment, and Return System: Bringing Mars Samples to Earth,” 34th International Symposium on Space
+Technology and Science , 2023.
+31
+
+--- Page 32 ---
+[5]Green, C., Haghani, N., Hernandez-Pellerano, A., Gheen, B., Lanham, A., and Fraction, J., “MUSTANG: A workhorse for
+NASAspaceflightavionics,” 2023IEEE9thInternationalConferenceonSpaceMissionChallengesforInformationTechnology
+(SMC-IT) , IEEE, 2023, pp. 94–103.
+[6]Parkes, S., and Armbruster, P., “SpaceWire: Aspacecraft onboardnetworkforreal-timecommunications,” 2005, pp.6–10.
+https://doi.org/10.1109/RTC.2005.1547397.
+[7]Wilmot, J., “A core flight software system,” Proceedings of the 3rd IEEE/ACM/IFIP International Conference on Hard-
+ware/Software Codesign and System Synthesis , Association for Computing Machinery, New York, NY, USA, 2005, pp. 13–14.
+https://doi.org/10.1145/1084834.1084842.
+[8] Wind River Systems, “VxWorks,” , 2024. URL https://www.windriver.com/products/vxworks, version 7.
+[9] Goddard Space Flight Center, “core Flight System,” , 2024. URL https://cfs.gsfc.nasa.gov.
+[10]Wilmot,J.,“Acoreplugandplayarchitectureforreusableflightsoftwaresystems,” 2ndIEEEInternationalConferenceonSpace
+Mission Challenges for Information Technology (SMC-IT’06) , 2006, pp. 5 pp.–447. https://doi.org/10.1109/SMC-IT.2006.7.
+[11]NASA, “cFE Application Developers Guide,” , 2024. URL https://github.com/nasa/cFE/blob/main/docs/cFE%20Application%
+20Developers%20Guide.md.
+[12] NASA, “Limit Checker Application,” , 2024. URL https://github.com/nasa/LC/.
+[13] NASA, “Stored Commands Application,” , 2024. URL https://github.com/nasa/SC/.
+[14] NASA, “Scheduler Application,” , 2024. URL https://github.com/nasa/SCH/.
+[15] NASA, “Housekeeping Application,” , 2024. URL https://github.com/nasa/HK/.
+[16] NASA, “Health and Safety Application,” , 2024. URL https://github.com/nasa/HS/.
+[17]Mudgway, D. J., Uplink-downlink: a history of the nasa deep space network, 1957-1997 , Vol. 4227, National Aeronautics and
+Space Administration, 2001.
+[18]NASA Software Engineering Requirements NPR 7150.2D , National Aeronautics and Space Administration, 2022. URL
+https://nodis3.gsfc.nasa.gov/displayDir.cfm?t=NPR&c=7150&s=2D, accessed: 2024-02-15.
+[19] Software Freedom Conservancy, “Git,” , 2024. URL https://git-scm.com/, version 2.43.2.
+[20] GitLab Inc., “GitLab,” , 2024. URL https://about.gitlab.com/.
+[21] LLVM Project, “ClangFormat,” , 2024. URL https://clang.llvm.org/docs/ClangFormat.html.
+[22] CodeSecure, “CodeSonar,” , 2024. URL https://codesecure.com/our-products/codesonar/.
+[23] Goddard Space Flight Center, “UtAssert,” , 2024. URL https://opensource.gsfc.nasa.gov/projects/ut-assert/index.php.
+32
+
+--- Page 33 ---
+[24] Goddard Space Flight Center, “Integrated Test and Operations System,” , 2024. URL https://itos.gsfc.nasa.gov.
+[25]Postel, J., “User Datagram Protocol,” Tech. Rep. RFC 768, Internet Engineering Task Force, Aug. 1980. URL https://www.rfc-
+editor.org/rfc/rfc768.txt.
+[26] Saleae, Inc., “Logic 2,” , 2024. URL https://www.saleae.com/.
+[27]GoddardSpaceFlightCenter,“coreFlightExecutiveOpenSourceProject,”,2024. URLhttps://opensource.gsfc.nasa.gov/
+projects/cfe/index.php.
+[28] Gaisler, “GR712 Development Board,” , 2024. URL https://www.gaisler.com/index.php/products/boards/gr712rc-board.
+[29]NASA, “MSR Independent Review Board - 2 Final Report,” , 2023. URL https://www.nasa.gov/wp-content/uploads/2023/09/
+mars-sample-return-independent-review-board-report.pdf.
+[30]NASA,“AuditoftheMarsSampleReturnProgram,”,2024. URLhttps://oig.nasa.gov/wp-content/uploads/2024/03/ig-24-
+008.pdf.
+[31] NASA, “CFDP Application,” , 2024. URL https://github.com/nasa/CF/.
+[32] NASA, “Checksum Application,” , 2024. URL https://github.com/nasa/CS/.
+[33] NASA, “File Manager Application,” , 2024. URL https://github.com/nasa/FM/.
+[34] NASA, “Memory Manager Application,” , 2024. URL https://github.com/nasa/MM/.
+[35] NASA, “Memory Dwell Application,” , 2024. URL https://github.com/nasa/MD/.
+33

@@ -1,0 +1,714 @@
+--- Page 1 ---
+HIROSCO - A High-Level Robotic Spacecraft Controller
+Martin Stelzer, Bernhard Brunner, Klaus Landzettel, Bernhard-Michael Steinmetz,
+Jörg V ogel, Gerd Hirzinger *
+* DLR German Aerospace Center, Institute of Robotics and Mechatronics, Germany
+e-mail: martin.stelzer@dlr.de
+Abstract
+This paper presents a high-level control architecture
+for robotic spacecrafts. The design of this architecture fo-
+cuses on future On-Orbit Servicing missions. Part of it is
+a component framework that improves software reuse in
+space applications and enables real-time communication
+between different components of a satellite which is es-
+sential for on-orbit servicing. Further, this architecture
+supports online reconﬁguration of the components, re-
+source management and a distribution of the components
+across a network. A supervisor monitors and coordinates
+all attached components. A prototype was successfully
+tested with a two axis robot and a force-reﬂecting joystick
+in a telepresence scenario.
+1 Introduction
+Nowadays people are used to services such as GPS
+and live TV coverage and rely on their availability. These
+services depend on a satellite infrastructure in earth or-
+bit. But vital components of a satellite may fail like every
+other technical system. Usually, this satellite is lost and
+has to be shut down, even if most of its components are
+still operational, because it cannot be reached by humans
+for repair. The service itself must be moved to another part
+of the infrastructure or becomes unavailable. The satellite
+remains as space debris and endangers neighbor satellites,
+if it cannot hold the pose anymore. The increasing amount
+of space debris may ultimately lead to collisional cascad-
+ing [7] that renders the use of satellites in certain orbits
+impossible for generations [8].
+The emerging ﬁeld of On-Orbit Servicing (OOS) is
+able to solve the problems stated above. An OOS satel-
+lite, called servicer, has a manipulator as payload that can
+grasp, repair or dispose of a defect satellite, called target.
+An example of a servicer is depicted in ﬁgure 1. Using
+modern teleoperation and telepresence techniques an op-
+erator on ground is able to remotely control the manipula-
+tor [13].
+This is challenging because for the ﬁrst time the
+movement of a satellite payload has a serious impact on
+the overall satellite pose [9]. Basically, there are two ap-
+proaches to compensate this impact in order to success-
+fully grasp the target. In the ﬁrst approach the Attitude
+& Orbit Control System (AOCS) tries to hold the pose of
+the satellite using thrusters or reaction wheels while the
+Figure 1: Example of a servicer
+manipulator is moving towards the target. Two problems
+arise here. First, the dimensions of the reaction wheels
+would need to be huge in order to compensate the dy-
+namic movement of the manipulator, which is not feasi-
+ble. Second, thrusters are not accurate enough to position
+the end effector of the manipulator at the right place, be-
+cause the lever arm is several meters long. The second,
+more promising approach is to completely switch off the
+active parts of the AOCS and let the manipulator control
+system (MCS) take over the attitude control by adjusting
+the movements of the manipulator. Therefore, the MCS
+must compute the dynamic model of the overall satellite
+system. This model needs sensor information about the
+pose of the satellite from the AOCS in real-time. In or-
+der to realize this approach, a real-time link between the
+AOCS and MCS is mandatory. Further real-time links to
+the MCS, e.g. from a communication control system for
+telepresence control or from a camera control system for
+visual servoing, are supposable.
+However, to the knowledge of the authors there is no
+satellite control architecture available that is able to sup-
+port real-time links in a generic way. Furthermore, com-
+mon satellite controllers follow a monolithic architecture
+so the code must be adapted to every new mission and
+code reuse is hindered.
+This paper presents the current stage of HIROSCO, a
+High-Level Robotic Spacecraft Controller, developed by
+the DLR Center of Robotics and Mechatronics. This pa-
+per is organized as follows: Section 2 summarizes differ-
+ent concepts that are related to this work. The design of
+HIROSCO is explained in section 3 and its architecture
+is described in section 4. Thereupon, section 5 presents
+details about the demonstrator. The paper concludes with
+section 6 and future work is outlined in section 7.
+
+--- Page 2 ---
+2 Related work
+Within the last decade there has been much effort in
+the ﬁeld of software frameworks for robotic applications,
+so-called robot frameworks. Their common goal is to
+ease the development of complex robotic applications by
+segmenting the application into smaller parts or layers to
+break down the complexity.
+The Open Robot Control Software (OROCOS) [4] is
+a general purpose and open source framework to con-
+trol distributed robotic systems. It uses many aspects
+of component-based software engineering (CBSE). CBSE
+basically proposes a segmentation of an application into
+reusable components. For details about CBSE and its
+beneﬁts for (robotic) applications see [3] and [14]. Fur-
+thermore, OROCOS offers an existing set of components
+such as a real-time toolkit and a kinematics and dynam-
+ics library that can be used to develop a robotic applica-
+tion. These components can be dynamically added to or
+removed from an application. A component can be ex-
+tended or created from scratch by a developer to enhance
+functionality provided by existing components. In 2004,
+the ORCA [2] project emerged from OROCOS. The goals
+are similar, but they explicitly focus on CBSE and use a
+different middleware solution. Beyond the segmentation
+into components, OROCOS and ORCA propose no fur-
+ther architectural constrains. A design choice of ORCA is
+not to support real-time links between its components.
+Player [5] is an object-oriented approach and the de
+facto standard in the domain of robot frameworks. The
+Player architecture decomposes an application into clients
+and servers. The difference between them is that a client
+only consumes services while a server additionally pro-
+vides them. A service in the Player context provides ac-
+cess to any kind of hardware device of a robot or to any
+kind of high-level algorithm such as image processing.
+These services can be distributed across a network. There
+is an existing set of services provided by Player and the
+developer can create custom services. Player provides
+a TCP implementation for the communication between
+clients and servers. This implementation can be extended
+by the application developer to use other protocols or a
+middleware solution. However, Player does not support
+real-time links, either.
+The three tier architecture (3T) [1] helps to deal with
+dynamic environments by segmenting an application into
+three hierarchical tiers: A deliberation tier for high-level
+planning to create a set of tasks to reach a goal, a sequenc-
+ing tier that decomposes this tasks into different skills that
+must be performed to fulﬁl the task and a reactive tier that
+ﬁnally executes a skill in real-time. The Coupled Layer
+Architecture for Robotic Autonomy (CLARAty) [12] uses
+a similar segmentation approach to increase the autonomy
+of robotic systems. Based on the ideas of 3T, it couples
+the deliberation and the sequencing tier within a decision
+layer. This layer has access to a functional layer, which
+represents the services a robot can provide. The deﬁnition
+of a service corresponds to that one used in the player con-text. Method calls on abstract interfaces are used for the
+interaction between most of these services. Changing a
+method in such an abstract interface triggers a recompila-
+tion of all services that use this interface, whether they ex-
+plicitly use the altered method or not. Furthermore, most
+of these services share the same memory region which
+breaks their encapsulation.
+3 Description of the design
+The design of HIROSCO follows explicitly the re-
+quirements of a control architecture for robotic space-
+crafts with a focus on OOS. Nevertheless, the design is ap-
+plicable to non-OOS spacecrafts or even to non real-time
+applications that simply need coordination and communi-
+cation across actually distinctive components. A detailed
+description of the design goals is given in this section.
+All satellites are assembled of a satellite platform,
+standard components (e.g. AOCS, Thermal Control Sys-
+tem or Power Control and Distribution Unit) and mis-
+sion speciﬁc payload components (e.g. a manipulator and
+stereo cameras for OOS). The design of HIROSCO adopts
+this layout so that a satellite application can be assembled
+of reusable software components, called subsystems, us-
+ing a component framework to interact with each other.
+Such a subsystem consists of an executable ﬁle that imple-
+ments the subsystem’s features, documentation about how
+to use them and an interface description to formalize them
+independently from a programming language. Thus, the
+interface description contains vital information about the
+underlying hardware, available conﬁgurations and param-
+eters and offered services. It encapsulates the subsystem
+because using those services is the only way of interacting
+with a subsystem. To be able to support the hardware con-
+ﬁguration of many satellites, the design should contain an
+abstraction layer so that subsystems can be implemented
+independently from the target platform. So far, this layout
+is quite similar to the OROCOS/ORCA architecture.
+However, during its lifetime a satellite runs in various
+modes, e.g. telepresence or autonomous mode. Each of
+these modes requires a different set of subsystems to be
+operational. Some of these subsystems need to be con-
+nected to each other by real-time links. Therefore, the de-
+sign should support the dynamic conﬁguration and inter-
+connection of subsystems. Particularly the autonomous
+mode requires a supervisor that is amongst others respon-
+sible for logging telecommands and telemetry data, mon-
+itoring all existing subsystems, global error handling and
+managing inter-subsystem communication. Likewise, the
+telepresence mode requires such an entity, for example in
+case of a ground link failure while the operator grasps the
+target. Whether the supervisor should be part of a three
+tier, a coupled layer or a different approach is yet to be
+determined.
+To simplify the commissioning of subsystems for the
+different modes of a satellite and their coordination, a ﬁ-
+nite state machine is mandatory for all subsystems.
+
+--- Page 3 ---
+Unfortunately, space qualiﬁed processors suffer from
+low performance. In order to run sophisticated algorithms
+on board, several processors are recommendable. Hence,
+the design should be able to support subsystems that are
+distributed across a network. Of course, the performance
+and quality of the real-time links depend on the character-
+istics of the underlying network.
+4 Description of the architecture
+The three basic elements of the architecture are de-
+picted in ﬁgure 2 using a UML component diagram. A
+subsystem usually represent a set of hardware devices, the
+corresponding algorithms and data structures. Each sub-
+system is connected to a supervisor that monitors, con-
+trols and coordinates the application. For that reason it
+exchanges telemetry and telecommand data with the sub-
+systems. Furthermore, subsystems can be connected to
+each other to transfer real-time data. All connections are
+established by a component framework using well-deﬁned
+interface descriptions. At the moment C/C++ is the only
+supported programming language. The following subsec-
+tions will describe those elements in detail.
+Figure 2: Overview of the architecture
+4.1 Component framework
+The purpose of the component framework is to pro-
+vide services most subsystems will require. These ser-
+vices are partitioned into eight libraries.
+Every computer can offer a certain amount of re-
+sources. But space qualiﬁed hardware is expensive so
+that those resources are very limited on a spacecraft. Ex-
+ceeding these limits will result in undesirable behavior of
+the system. Therefore, each subsystem must acquire its
+resources via the resource management library . At the
+present stage, this library only manages memory. The
+management of further resources such as ﬁle descriptors
+is subject to future work. To avoid external memory frag-
+mentation on real-time operating systems, this library pre-
+allocates large chunks of memory at startup. They are
+segmented into pools of blocks of different sizes and ﬁ-
+nally made available to the subsystem. It is not allowed
+to increase the amount of available memory at runtime. A
+warning could be generated if a considerable amount ofmemory (e.g. 75%) is in use. A reference counting smart
+pointer is in charge of garbage collection. The interface
+of the resource management is compatible to the allocator
+interface of the C++ standard library.
+The utilities library contains an abstraction layer
+for platform dependent services such as threads and
+semaphores. Hence, subsystems can be implemented in-
+dependently from the target operating system. Further
+general purpose classes, e.g. custom exceptions, are lo-
+cated in this library.
+The component framework offers services and cor-
+responding protocols speciﬁed by the Telemetry and
+Telecommand Packet Utilization Standard (PUS) [6]. The
+interaction of subsystems is based on these services. By
+now, there is no full compatibility to the standard, but the
+aim is to provide a generic and compatible implemen-
+tation of all relevant PUS services. A service is called
+generic in this case if different subsystems can use it with-
+out the need of modiﬁcation. Currently, services for func-
+tion call management, event reporting, subsystem testing
+and housekeeping data reporting are available. Each sub-
+system may create up to one instance of each service. The
+conﬁguration of any service a subsystem provides is an es-
+sential part of its interface description. Furthermore, real-
+time links are implemented as custom PUS service. The
+respective instances of this service perform a handshake
+to establish a link between two subsystems. During this
+handshake the protocol layout of the real-time data, byte
+ordering, sampling time and transfer method (e.g. shared
+memory or ethernet) are negotiated. Subsystem develop-
+ers are also able to create their own custom service using
+thisPUS library .
+In order to be useful for a subsystem a generic service
+will often require access to the subsystem’s data struc-
+tures and their layout. Such a data structure, that is shared
+between a subsystem and the component framework, is
+called parameter. The layout of a parameter, its name and
+id are part of the interface description. Using the name, a
+deﬁned parameter can be referenced within the interface
+description. The combination of layout and id is called
+parameter id. It is used to reference a parameter within
+commands of an operator and within interface descrip-
+tions of other subsystems. Therefore, both parameter id
+and name must be unique across an interface description.
+A subsystem must publish all the parameters it wants to
+share with the framework and the services must be able
+to utilize them. For this purpose the parameter library
+provides the required functionality. All available param-
+eters are published in a so-called dictionary that can be
+accessed by all services and the subsystem. To avoid data
+corruption, the dictionary provides a locking mechanism
+if the subsystem or a service needs to access a parameter.
+Each subsystem can transmit and receive data to and
+from a hardware device, using an abstract data ﬂow pro-
+vided by the data transfer library . A data ﬂow repre-
+sents any means of communication and is conﬁgured by
+an endnode descriptor. This descriptor contains informa-
+tion about the address and the transfer type to be selected
+
+--- Page 4 ---
+Figure 3: Layout of the subsystem descriptor
+for the transfer (e.g shared memory, message queue, IO
+device, etc.) and is also part of the interface description.
+Therefore, a change of the location of a hardware device
+does not require recompilation of a subsystem. Further-
+more, issues like de-/serialization and endianess conver-
+sions of packets are handled by each data ﬂow and, thus,
+not relevant to a subsystem. For the communication be-
+tween all components the transparent inter-process com-
+munication (TIPC) [11] is used. Due to this middleware
+solution, distributed services can be accessed regardless
+of their physical location within a network.
+To read the content of XML ﬁles a lightweight XML
+parser is available. This sequential parser ensures that the
+syntax of a ﬁle is written well-formed. However, the se-
+mantic is not validated by the parser.
+Mandatory to all subsystems is an interface descrip-
+tion, called subsystem descriptor, that is written in XML.
+Its layout (ref. ﬁgure 3) is based on the layout of the USB
+descriptor. The descriptor library implements the subsys-
+tem descriptor and uses the XML parser to generate an
+in memory representation of the XML ﬁle. This descrip-
+tor contains the name and the id of a subsystem that are
+unique across all subsystems. They are used later on by
+the supervisor and ground station to identify each subsys-
+tem. The deﬁnition and initialization of available param-
+eters is also provided by the subsystem descriptor. For
+example, listing 1 deﬁnes four different parameters, while
+two of them are part of a structured parameter.
+Listing 1: Example of parameter deﬁnitions
+< S t r u c t R e f name="CUR_VALUES" i d =" 0 " t y p e ="STRUCT">
+<ParamRef name="STATE" i d =" 0 " t y p e =" INT32 " / >
+<ParamRef name="POSITION" i d =" 0 " t y p e ="DOUBLE" / >
+< / S t r u c t R e f >
+<ParamRef name="DES_POSITION" i d =" 1 " t y p e ="DOUBLE" / >
+Furthermore, the subsystem descriptor contains a list of
+conﬁgurations that can be applied to the subsystem. Sub-
+ject of these conﬁgurations are priority and sampling time
+of the subsystem and the conﬁguration of the available
+PUS services. Listing 2 gives an example of a PUS service
+conﬁguration for the housekeeping data reporting service.It uses the parameters deﬁned in listing 1. This service
+conﬁguration causes the corresponding service to gener-
+ate a telemetry packet each 500 cycles and to tag this
+packet with the id 4711. The content of the packet will
+be a structured parameter that has been sampled once and
+a single parameter that has been sampled ﬁve times within
+the given interval.
+Listing 2: Example of a PUS service conﬁguration
+<HKService i d =" 4711 " i n t e r v a l =" 500 ">
+<SampledOnce>
+<ParamRef name="CUR_VALUES" / >
+< / SampledOnce>
+<SampledNREPTimes nr e p =" 5 ">
+<ParamRef name="DES_POSITION" / >
+< / SampledNREPTimes>
+< / HKService>
+Moreover, each conﬁguration contains descriptions of
+available hardware devices. These descriptions include
+the device settings for this conﬁguration and a list of
+endnode descriptors that are required by data ﬂows to con-
+nect to a speciﬁc device. To a certain degree the subsystem
+descriptor can be changed online and without the need of
+recompilation of a subsystem because it is initially evalu-
+ated while initializing the subsystem at runtime.
+Thegeneric subsystem represents the active part of
+the component framework and, thus, distinguishes the
+framework from a collection of libraries. It simpliﬁes
+the development of an application speciﬁc subsystem be-
+cause it implements standard behaviors such as state tran-
+sitions that are equal across subsystems and maintains a
+list of services that have been started by the generic or
+the speciﬁc subsystem. Furthermore, the generic subsys-
+tem implements the main loop of the subsystem. At the
+beginning of this loop the function management service
+is started so that commands can be received. Addition-
+ally, connections to the services offered by the supervisor
+are established. After that, the cyclic code is started which
+processes the current state machine node. Furthermore, all
+services contained in the list are executed. The sampling
+time and priority of this loop is adjusted during the com-
+missioning of the subsystem according to the requested
+conﬁguration. A supposable extension is to move services
+into their own loop so that different sampling times and
+priorities can be applied to them.
+4.2 Subsystem
+Subsystems are the basic components of which an ap-
+plication is assembled. They are connected to their en-
+vironment via the component framework and can interact
+with each other using (custom) PUS services. More pre-
+cisely, these services are the only means of interaction.
+Therefore, they exactly deﬁne the interface of a subsys-
+tem.
+All a subsystem developer must do in order to create a
+speciﬁc subsystem is to inherit the generic subsystem and
+implement the ﬁnite state machine as depicted in ﬁgure 4.
+This state machine consists of ten separate states. They
+were designed to ease the commissioning and coordina-
+tion of subsystems.
+
+--- Page 5 ---
+Figure 4: Finite state machine for subsystems
+Each subsystem starts or stops in the state "Of-
+ﬂine". All services provided by the speciﬁc subsystem are
+started at this time and added to the list maintained by the
+generic subsystem. Furthermore, the subsystem descrip-
+tor is loaded into memory. Apart from those, no further
+resources are claimed by the subsystem and all hardware
+devices are switched off. If a subsystem is not required
+to be active for a longer period of time or if resources are
+required somewhere else, this state should be selected.
+During the subsequent state "Software-Init", all data
+structures that should be used by services of the compo-
+nent framework must be published as parameters in the
+dictionary. After this procedure is completed, the generic
+subsystem will initialize those parameters according to the
+subsystem descriptor. The next step to commission a sub-
+system is the "Hardware-Init" state. All hardware devices
+that belong to this subsystem are activated and initialized
+in this state.
+The conﬁguration of the subsystem takes place in the
+"Pre-Operational" state. For that purpose, the operator
+must select a conﬁguration listed in the subsystem de-
+scriptor that should be applied. The generic subsystem
+conﬁgures all services that have been added to the service
+list. The speciﬁc subsystem is responsible to establish a
+connection to its hardware devices and to conﬁgure them.
+Parameters can also be (re-)initialized depending on the
+selected conﬁguration. This is helpful if controller param-
+eters need to be changed for each conﬁguration. Real-
+time links are established by the component framework
+on command of the operator during this state. They will
+start their operation right after establishing them. House-
+keeping data is transmitted to the ground station from now
+on, too.
+After the conﬁguration is completed, the state of a
+subsystem can be changed to the "Safe-Operational" state.
+In this state all control algorithms implemented by the
+subsystem developer are active, but the actuators of the
+hardware are still disabled. This state can be used to ver-
+ify the proper function of a subsystem. After the veriﬁ-
+cation is completed, the state machine can switch to the
+"Operational" state. The actuators are active and the sub-
+system can now be controlled completely. The "Error-
+Operational" state secures that the hardware devices can
+reach a deﬁned state after a severe error has occurred ei-
+ther in the subsystem itself or in a different one. The de-
+tection of errors in the sphere of a subsystem is primary
+the task of the subsystem itself. For example, if the tem-
+perature of a hardware device reaches a critical limit the
+subsystem has to notify the supervisor so it can propagate
+this error and take further actions. This notiﬁcation couldbe executed by a corresponding service, too.
+There are two de-initializing states and a "Post-
+Operational" state which revoke all actions of the corre-
+sponding initializing and "Pre-Operational" states. A tem-
+plate of this state machine is available to subsystems de-
+velopers and can be used as a guideline to implement the
+state machine of a subsystem. Each state can be subdi-
+vided into different phases if required.
+By now, the composition of control algorithms and
+their execution during the operational states is beyond the
+scope of HIROSCO. But there are already approaches that
+deal with this topic [10] and which could be integrated
+into the component framework in future.
+Each subsystem runs as a separate process for the rea-
+son of encapsulation. Thus, a subsystem cannot inﬂuence
+the data of others by accident.
+4.3 Supervisor
+Basically the supervisor is a standard subsystem that
+acts as a superior entity at a higher hierarchical level than
+the other subsystems. It is subdivided into a platform ab-
+straction package and a supervision package (ref. ﬁgure
+5).
+Figure 5: Packages of the supervisor
+The platform abstraction package was introduced to
+encapsulate dependencies that might vary between differ-
+ent missions or satellite platforms. An example for such
+a dependency is the database. One mission might choose
+to log all packets to an ASCII ﬁle and another one might
+choose to run a relational database management system.
+Therefore, the "Database Interface" contains strategies to
+access different types of databases. The strategy, and thus
+the database that is currently used, can be changed during
+runtime. The "Communication Interface" carries out the
+transfer of packets to and from other subsystems.
+The supervision package contains all modules that
+represent the actual tasks of the supervisor. As the su-
+pervisor will receive all telecommands and telemetry data
+during the lifetime of a satellite, it is in charge of coor-
+dinating all other subsystems. The "Real-time Link Han-
+dling" ensures that subsystems are not allowed to switch
+from "Pre-Operational" to "Safe-Operational" as long as
+a required real-time link is not present. Furthermore, it
+maintains a graph of all real-time links so it is aware of
+all existing real-time networks at any time. A real-time
+
+--- Page 6 ---
+network is a net of subsystems that are (transitively) con-
+nected to each other. Thus, in case of a failure of a sub-
+system the supervisor is able to notify all members of a
+real-time network if necessary.
+However, the supervisor provides a slightly different
+set of services than standard subsystems do. Among these,
+the routing service and the event reporting service are the
+most important ones at the moment. The routing service
+is part of the "Data Handling" and is required because by
+deﬁnition subsystems are not able to exchange non real-
+time data directly. This is due to the fact that the super-
+visor must give permission for each telecommand to be
+executed. This decision is based on the current state and
+mode of the satellite. Furthermore, each telecommand
+and telemetry data packet must be logged by the super-
+visor. But not only telecommands must be routed to other
+subsystems. Also telemetry data must be forwarded to
+the ground station and, therefore, routed to a communi-
+cation subystem. The event reporting service deals with
+asynchronous progress and error notiﬁcations. The "Event
+Handling" may react to an error with predeﬁned recovery
+plans based on severity and reason of the error. PUS de-
+ﬁnes three severity levels for error reporting: low, medium
+and high. For example, if the manipulator failed during a
+grasp action and had to be shut down to avoid further dam-
+age, the MCS would signal an error of high severity. The
+"Event Handling" must then shut down the real-time net-
+work that includes the MCS and hand over the control of
+the station keeping to the AOCS autonomously. A deci-
+sional layer on top of the supervisor could ﬁnd a recovery
+plan that suits better than a predeﬁned one or could create
+a plan which avoids speciﬁc errors. However, it does not
+exists in HIRSOCO by now, but is an aim of future work.
+As mentioned before, the resources of a computer
+system in space are quite limited. Because subsystems
+run in separate processes with deﬁned memory bound-
+aries, each subsystem can manage this resource locally
+using the resource management library. The supervisor
+only has to keep track of how many processes have been
+started and how much memory they are allowed to use at
+a maximum. But there are resources that are not local to
+subsystem scope, e.g. shared memories, ports, ﬁles and
+electrical power. This global "Resource Management" is
+the task of the supervisor. For example, it must refuse the
+use of a manipulator if the solar panels do not produce
+enough power at that time. However, the implementation
+of this feature is subject to future work.
+All subsystems are started by the "Subsystem Han-
+dling". Therefore, it can be conﬁgured with a list of exe-
+cutable ﬁles to load at startup. If a command signals the
+supervisor to shut down, it will broadcast this signal to all
+subsystems. They will change back to their "Ofﬂine" state
+before they stop.
+5 Practical tests
+In order to test, verify and demonstrate the prototype
+of HIROSCO, a telepresence scenario was chosen. TheROKVISS [13] experimental model serves as manipula-
+tor (ref. ﬁgure 6(a)). ROKVISS is DLR’s most recent
+space robotics experiment. The ﬂight model of ROKVISS
+is mounted to the outer surface of the ISS. It has two joints
+and can be moved along a contour or in free space. Addi-
+tionally, it can pull a vertically and a horizontally mounted
+spring. During the practical tests the experimental model
+can be moved by commands of the operator or by using
+the DLR force-reﬂecting joystick (see ﬁgure 6(b)). This
+joystick has two degrees of freedom as well. Both de-
+vices are connected to the same real-time computer with a
+Celeron 2 GHz processor running VxWorks.
+(a) ROKVISS experimental
+model
+(b) DLR force-feedback joystick
+Figure 6: Hardware of the demonstrator
+Figure 7 shows the subsystems participating in this
+scenario. They run at a sampling rate of 2 kHz on the
+real-time computer. The manipulator subsystem and the
+joystick subsystem implement an interface to their corre-
+sponding hardware using a device driver and algorithms
+to control the device. Both subsystems can be driven in a
+stand alone conﬁguration or in a conﬁguration coupled to
+each other. For the ﬁrst, a command of the operator trig-
+gers the robot to move to a desired position or the joystick
+to display a desired force. For the latter, the manipulator
+subsystem provides the current position and the measured
+force of each joint and requires the desired position for
+each joint as real-time data. The joystick subsystem of-
+fers its current position and requires the current position
+and measured force from the robot subsystem in real-time.
+By commands of the operator and after the veriﬁcation
+of the supervisor, the two subsystems, or, more precisely,
+their control algorithms, are connected to each other by
+Figure 7: Architecture of the demonstrator
+
+--- Page 7 ---
+two real-time links, one for each direction, and brought
+into the "Operational" state. The manipulator subsystem
+then moves the robot according to the current position of
+the joystick. On the other hand, the joystick displays the
+forces encountered by each joint of the manipulator.
+The communication subsystem maintains a TCP con-
+nection to a simple ground station written in Java that is
+able to display the housekeeping data of the subsystems
+and to generate all required telecommands. The position
+of the robot is displayed using a 3D viewer.
+The strategy for error handling implemented in the su-
+pervisor is to shut down all subsystems participating in the
+real-time network in case of errors of high severity. This
+was tested by unplugging the joystick or the robot from
+the real-time computer. This results in an immediate shut
+down of joystick and manipulator subsystem. Errors of
+medium severity cause the supervisor to change the state
+of a subsystem to safe-operational. For example, to ex-
+ceed the torque limit of a joint would cause such an error.
+Errors of low severity and progress information are sim-
+ply logged to the console without further reaction.
+6 Conclusions
+A High-Level Robotic Spacecraft Controller was pre-
+sented in this paper. It was designed to control satellites
+for future OOS missions, but is not limited to this domain.
+Its component framework serves as a platform to inter-
+connect distinctive software components and provides a
+set of generic services to ease the development of reusable
+subsystems. The supervisor acts as a superior instance to
+control and monitor all present subsystems and their real-
+time links. Despite the fact that the development is still
+at an early stage, the demonstrator shows that the current
+prototype of HIROSCO is already able to provide a sufﬁ-
+cient amount of the designed features to run a fairly com-
+plex telepresence scenario. However, there are still some
+challenges to master until HIROSCO can be used for con-
+trolling a servicer.
+7 Future work
+Future work will focus more on the supervisor since
+key abilities such as global resource management and
+command scheduling are essential for a space mission, but
+not yet available. Furthermore, some sort of decisional in-
+stance is required to handle the largely unknown environ-
+ment and unforseen circumstances during an OOS mis-
+sion. Whether to place this instance on top of the supervi-
+sor (three-tier approach), within the supervisor (coupled-
+layer approach) or into a subsystem is yet unclear and
+needs to be deﬁned and implemented.
+However, the component framework is not ﬁnished,
+either. For example, missing PUS services need to be im-
+plemented and the existing ones need to be made fully
+compliant to the standard. Despite the platform indepen-
+dent design, the component framework only supports thereal-time operating system VxWorks. In future, Linux and
+QNX shall be supported, too. To achieve this, different
+middleware solutions than TIPC might be considered.
+Another aim for future work is to create a repository
+of subsystems that can be used to assemble new appli-
+cations in a short time. Future integrations in different
+robotic applications will create the basis for such a repos-
+itory.
+References
+[1] R. Bonasso, R. Firby, E. Gat, D. Kortenkamp,
+D. Miller, and M. Slack, “Experiences with an ar-
+chitecture for intelligent, reactive agents”, Journal of
+Experimental & Theoretical Artiﬁcial Intelligence,
+9(2), (1997), pp. 237–256.
+[2] A. Brooks, T. Kaupp, A. Makarenko, S. Williams,
+and A. Orebäck, “Orca: A component model and
+repository”, Software engineering for experimental
+robotics, , pp. 231–251.
+[3] A. Brooks, T. Kaupp, A. Makarenko, S. Williams,
+and A. Orebäck, “Towards component-based
+robotics”, in 2005 IEEE/RSJ International Confer-
+ence on Intelligent Robots and Systems, 2005.(IROS
+2005), 2005, pp. 163–168.
+[4] H. Bruyninckx, “Open robot control software: the
+OROCOS project”, in IEEE International Confer-
+ence on Robotics and Automation, 2001. Proceed-
+ings 2001 ICRA, volume 3, 2001.
+[5] T. Collett, B. MacDonald, and B. Gerkey, “Player
+2.0: Toward a practical robot programming frame-
+work”, in Proceedings of the Australasian Confer-
+ence on Robotics and Automation (ACRA 2005),
+Citeseer, 2005.
+[6] European Cooperation for Space Standardization
+Secretariat, “Ground Systems and Operations -
+Telemetry and Telecommand Packet Utilization
+(Packet Utilization Standard)”, ECSS-E-70-41A.
+[7] D. Kessler, “Collisional cascading: The limits of
+population growth in low earth orbit”, Advances in
+Space Research, 11(12), (1991), pp. 63–66.
+[8] D. Kessler, “Critical Density of Spacecraft in Low
+Earth Orbit: Using Fragmentation Data to Evaluate
+the Stability of the Orbital Debris Environment”, in
+Proc. 3 rd European Conference on Space Debris,
+H. Sawaya-Lacoste (ed.), European Space Agency,
+Noordwijk, 2001.
+[9] K. Landzettel, G. Schreiber, B. Brunner, B. Stein-
+metz, K. Deutrich, and G. Hirzinger, “DLR/
+NASDA’s Joint Robotics Experiments on ETS VII”,
+in J. NASDA (Editor), ETS VII Symposium, Tokyo,
+Japan, 14.03.2000, 2000, pp. 136–145.
+[10] A. Mallet, S. Fleury, and H. Bruyninckx, “A speciﬁ-
+cation of generic robotics software components: fu-
+ture evolutions of genom in the orocos context”, in
+International Conference on Intelligent Robotics and
+Systems, 2002.
+[11] J. Maloy, “TIPC: providing communication for
+
+--- Page 8 ---
+Linux clusters”, in Linux Symposium, volume 2,
+2004, pp. 347–356.
+[12] I. Nesnas, R. Simmons, D. Gaines, C. Kunz,
+A. Diaz-Calderon, T. Estlin, R. Madison, J. Guineau,
+M. McHenry, I. Shu et al., “CLARAty: Challenges
+and steps toward reusable robotic software”, Interna-
+tional Journal of Advanced Robotic Systems, 3(1),
+(2006), pp. 023–030.
+[13] D. Reintsema, K. Landzettel, and G. Hirzinger,
+DLR’s Advanced Telerobotic Concepts and Ex-
+periments for On-Orbit Servicing, volume V olume
+31/2007 of Tracts in Advanced Robotics , STAR -
+Springer, 2007, URL http://elib.dlr.de/52944/.
+[14] C. Szyperski, Component software: beyond object-
+oriented programming, Addison-Wesley / ACM
+Press.

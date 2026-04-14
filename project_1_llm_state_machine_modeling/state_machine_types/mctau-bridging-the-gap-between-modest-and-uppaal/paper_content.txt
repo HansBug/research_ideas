@@ -1,0 +1,379 @@
+--- Page 1 ---
+mctau: Bridging the Gap
+between Modest and UPPAAL
+⋆
+Jonathan Bogdoll
+2
+, Alexandre David
+1
+,
+Arnd Hartmanns
+2
+, and Holger Hermanns
+2
+1
+Aalborg University, Department of Computer Science, Aalborg, Denmark
+2
+Saarland University – Computer Science, Saarbrücken, Germany
+Abstract. Modest isahigh-levelcompositionalmodellinglanguagefor
+stochastic timed systems with a formal semantics in terms of stochastic
+timed automata, an overarching formalism of which several well-studied
+models are special cases. The emphasis of Modest is to make use of
+existing analysis techniques and tools in a single-formalism, multiple-
+solutionapproach.Inthispaper,wefocusonnetworksoftimedautomata
+as supported by Uppaal. We report on extensions made to Modest and
+Uppaal thatallowthetransformationofarichsubsetof Modest models
+toUppaal timed automata and enable connections to further tools and
+formalisms. We present our Modest -to-Uppaal tool chain mctau, which
+allows both a fully automated analysis as well as model transformation,
+and we compare its performance with the existing mcptatool.
+1 Introduction
+Modest , the “modelling and description language for stochastic timed sys-
+tems” [6], is a compositional modelling language that combines expressive and
+powerful syntax-level features—such as recursive process definitions, loops, ar-
+rays, exception handling and user-defined data structures—with a formal seman-
+ticsintermsofstochastictimedautomata(STA).STAspanaveryrichspectrum
+of semantic models, supporting continuous and discrete probability distributions
+as well as nondeterminism. Well-known and extensively studied submodels of
+STA are probabilistic timed automata (PTA) [15], timed automata (TA) [1],
+and generalised semi-Markov processes (GSMP) [11]. Most of the submodels are
+easily identifiable on the syntactic level.
+Modest has been used in a wide variety of application studies, ranging from
+wirelesssensornetworks[2,18]andcommunicationprotocols[13]toarchitectural
+dependabilitymodels[5],industrialproductionscheduling[16]andelectricpower
+grid management [4]. The principle idea behind the formalism and its supporting
+tools is to provide a single-formalism, multiple-solution approach to modelling
+and analysis, using existing analysis engines and algorithms where available to
+avoid unnecessary reimplementations.
+⋆
+ThisworkhasbeensupportedbytheEuropeanUnionFP7-ICTprojectsQuasimodo,
+contract no. 214755, and MEALS, contract no. 295261, by the DFG as part of
+SFB/TR 14 AVACS, and by the DFG/NWO Bilateral Research Program ROCKS.
+
+--- Page 2 ---
+Modest
+mime
+graphical
+interface
+6
+-
+
+
+STA
+
+
+
+PTA
+
+
+
+TA
+-
+-
+-
+modes
+mcpta
+mctau
+-
+-
+PRISM
+Uppaalsimulation
+model checking
+model checking, visualisation
+Fig.1.How the new mctautool fits in the Modest Toolset
+Started in 2008, the Modest Toolset constitutes the second generation [7]
+of tools with this philosophy, currently including (i) mcpta[12,13], which en-
+ables model checking of networks of PTA using the Prism[14] probabilistic
+model checker in the background, (ii) modes[5,12], a discrete-event simulator
+that primarily targets GSMP models but in fact is enhanced to handle certain
+nondeterministic models in a sound way, and (iii) mimeas a graphical user in-
+terface that seamlessly integrates the analysis tools into a Modest source code
+editor with syntax and error highlighting. The tools are usable and robust.
+In this paper, we present a new member of the Modest Toolset family:
+mctau, providing visualisation and analysis of networks of timed automata. It
+does so by connecting to the real-time model checker Uppaal [3]. Although
+mcptaalready includes support for TA as a special case of PTA, we will see that
+mctauallows a more efficient analysis; in addition to this, the way we bridge
+several semantic gaps between Modest andUppaal will be of practical use
+beyond just the mctautool. Figure 1 provides a toolset overview.
+2 Bridging the Gap
+Aconnectionbetween Modest andUppaal hadbeenplannedforalongtime[7],
+but several fundamental differences between the two modelling languages have
+prevented this up to now:
+Time constraints. Constraints on the flow of time are specified as location
+invariants inUppaal,whileModest usesdeadlines (orurgency constraints [8]).
+As an example, if location lhas invariant c≤3(where cis a clock variable),
+time can pass while in las long as c≤3holds. Deadlines, on the other hand,
+are associated to edges in an automaton, and specify that someedge must be
+taken out of a location once the deadline of oneoutgoing edge becomes satisfied.
+Invariant c≤3can thus be expressed as deadline c≥3on some edge leaving l.
+Deadlinesaremoreflexibleinparallelcompositionandsynchronisation,easily
+allowing, for example, a synchronising edge to be taken as soon as possible in all
+components. While there are deadlines that cannot be transformed into a single
+invariant (mainly equality comparison deadlines like c= 3and equivalents) and
+vice-versa, we have recently shown how to transform all practically relevant
+deadlines into invariants [12], and this transformation is implemented in mctau.
+Assignments. Theassignmentsassociatedtoanedgein Uppaal areperformed
+sequentially: x:=y, y:=xwill result in xandyboth having the same value.
+
+--- Page 3 ---
+InModest , variables are assigned new values in function of their previous ones
+atomically. x:=y, y:=xwill thus result in swapping xandy.Uppaal 4.1.5
+now implements this semantics as an option ( -Mat the command line and the
+Modestcheckbox in the option menu of the graphical interface).
+Synchronisation. BothUppaal andModest support the notion of parallel
+composition , where a number of independent processes run in parallel. How-
+ever, the synchronisation mechanisms differ fundamentally: Modest supports
+a CSP/LOTOS-style multi-way synchronisation where processes synchronise on
+edges with the same action label that is part of the intersection of the action
+alphabets αof the processes. For example, if α(P
+1
+) ={a, b}andα(P
+2
+) ={b, c}
+thenP
+1
+(P
+2
+) is free to take action a(c), but P
+1
+andP
+2
+must synchronise to take
+action b.Uppaal, on the other hand, provides CCS-style binarysynchronisa-
+tion where exactly two processes synchronise on a matching pair of actions (e.g.
+a!anda?) and I/O-automata inspired broadcast synchronisation where all pro-
+cesses able to perform an a?action synchronise with one sender performing a!.
+Although it is possible, with some effort, to encode binary using only multi-
+way synchronisation [17], we are not aware of any way to do the opposite in a
+semantically sound way and without introducing additional intermediate states
+in ways that would make the state-space explosion problem significantly worse.
+We thus resolved this discrepancy in a practical manner by adding multi-way
+synchronisation to Uppaal 4.1.5 and extending Modest with broadcast and
+binary synchronisation. These extensions also open Uppaal andModest for a
+large number of further tool connections that were previously infeasible such as
+connecting Uppaal with CSP-style tools, notably CADP [10] or PRISM.
+3 The mctau Tool
+mctauis our new addition to the Modest Toolset that, at its core, performs
+thetranslationof Modest modelstotheXML-basedinputlanguageof Uppaal,
+including advanced features of Modest such as user-defined functions and data
+types. It supports all types of properties that are already supported by Uppaal.
+mctauisavailableasacommand-lineexecutableandasafully-integratedanalysis
+engine inside mime. It has two modes of operation:
+Export mode: A.modest input file is transformed into a .xmlfile with the au-
+tomata and a .qfile with the properties to be analysed. These can be opened
+in theUppaal graphical interface for analysis or further modification.
+Analysis mode: Uppaal is completely hidden from the user: The model trans-
+formationaswellastheanalysisoftheproperties,using Uppaal’scommand-
+lineverifyta executable, is performed by mctauin a fully automated way.
+This is also the way that mctauis used from within mime.
+SinceModest is a text-based formalism while Uppaal is based on a graphical
+automatanotation, mctauincorporatesasetofgraphlayoutalgorithms,basedon
+
+--- Page 4 ---
+actionput, get;
+process Channel() {
+clockc;
+put {= c = 0 =};
+invariant (c <= TD) alt{
+:: get
+::tau
+}; Channel() }
+⇒
+Fig.2.AModest process and its Uppaal automaton
+the Graph# library
+3
+and adapted for timed automata with all their location and
+edge labels, to generate easily useable Uppaal models. Figure 2 shows a simple
+communication channel in Modest and theUppaal automaton generated by
+mctaubased on the LinLoglayout algorithm.
+Aside from TA, mctaucan also cope with networks of PTA: When given a
+model with probabilistic branching, mctaugenerates (and analyses) an overap-
+proximation that is obtained by replacing all probabilistic with nondeterministic
+branching (making sure to discard branches with probability zero). This neither
+adds nor removes paths through the model, but all probabilities are lost. Still,
+it is useful for a fast qualitative analysis. mctauthen also replaces probabilistic
+properties by a set of purely timed ones to determine whether the probability
+is exactly zero or one. For example, property P
+max
+(♦e)to determine the max-
+imum probability (over all schedulers) of eventually reaching a state satisfying
+expression eis replaced by∀/square¬eand∀♦e: If the first property is satisfied, the
+original probability must be zero; if the second property is satisfied, it must be
+one; otherwise, it may be any number in the closedinterval [0,1].
+This handling of PTA models greatly improves the usability and applicability
+ofmctausince it allows the user to write a single model to subsequently use
+threedifferenttools— mctau,mcptaandmodes—withvastlydifferentbackground
+technologies, all of that optionally within the graphical interface of mime.
+Tool availability. TheModest Toolset , which includes mctau, andUppaal
+are both freely available for academic users at www.modestchecker.net and
+www.uppaal.org , respectively.
+4 Evaluation
+mctauis able to analyse (the nondeterministic overapproximations of) the three
+originalmcptaPTA case studies [13], without requiring any changes to the mod-
+els. In all cases where mctaureports probability 0or1,mcptadoes so as well.
+For the BRP model in particular, we see that whenever mctaureports [0,1], the
+actual probability as reported by mcptais in]0,1[, as shown in Table 1 (model
+parameters (N,MAX ,TD)and property names are as in [13]). This shows how
+mctaucan be of great help in model debugging and for sanity checking of prob-
+abilistic models.
+3
+http://graphsharp.codeplex.com/
+
+--- Page 5 ---
+Table 1. Results of mctauandmcptafor the probabilistic BRP model (16,2,1)
+property
+T
+A1
+T
+A2
+P
+A
+P
+B
+P
+1
+P
+2
+D
+max
+mctau
+true true 0 0 [0,1] [0 ,1] [0 ,1]
+mcpta
+true true 0 0 4.233∙10
+−4
+2.645∙10
+−5
+9.996∙10
+−1
+Table 2. Performance of mctauandmcptaon the nonprobabilistic BRP model
+standard properties
+time-bounded properties
+tool model
+states time memory
+states time memory
+mctau
+(usingUppaal)
+(16,2,1)
+880 1
+s
+27
+MB
+831 1
+s
+19
+MB
+(64,5,4)
+8317 2
+s
+30
+MB
+8091 1
+s
+21
+MB
+mcpta
+(using PRISM)
+(16,2,1)
+3972 2
+s
+167
+MB
+170371 20
+s
+253
+MB
+(64,5,4)
+304785 13
+s
+187
+MB
+4914666 284
+s
+686
+MB
+The BRP model has also been studied as a pure TA model before [9] with
+some properties that had not been transferred to the PTA model. We were able
+to reconstruct that TA model in Modest and check all properties with mctau.
+The corresponding model file is included in the Modest Toolset download.
+We also compared the performance of mctauandmcpta(using the digital clocks
+engine
+4
+)onanonprobabilisticversionoftheoriginal Modest BRPmodel.Table
+2 summarises the results
+5
+; as expected (since mcpta/PRISM are not designed for
+nonprobabilistic models), the more specialised tool shows significantly improved
+performance.
+5 Conclusion
+We have presented mctau, a tool providing a link between the Modest andUp-
+paalmodelling formalisms. The newly established connection opens the door
+to a powerful tool chain that gives Modest modellers access to the editor and
+simulator of Uppaal and reinforces the single-formalism, multiple-solution ap-
+proach of Modest . This approach might one day provide a possible solution to
+one of the obstacles that, in our experience, new users seeking to apply model-
+checking in their subject area face: the daunting number of different modelling
+languages which makes for low flexibility and a steep learning curve.
+mctauwas only possible because of recent results and implementation ef-
+forts that allowed the semantic gap between the two formalisms to be overcome.
+The implemented bridge spans a practically disturbing gap between CCS and
+I/O automata on the one side and CSP and LOTOS on the other. The inclu-
+sion of multi-way synchronisation in Uppaal 4.1.5 is a key enabler for further
+connections with prominent verification tools such as PrismorCadp.
+4
+UseofPRISM’sgame-basedenginewasnotpossibleduetoitsrestrictionsconcerning
+the use of global variables and the access to other modules’ local variables.
+5
+Linux VM on Intel Core i5, /usr/bin/time -v for time and memory measurement;
+“states” is the number of zones explored by Uppaal formctauand the number of
+reachable discrete states (including discretised clock valuations) for mcpta.
+
+--- Page 6 ---
+Uppaal nowadays also contains an efficient statistical model checking en-
+gine, which we currently do not make use of since it relies on an entirely new
+and different semantics for timed automata. An investigation of the relationship
+between this “stochastic” semantics and Modest is planned as future work.
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. TCS 126(2), 183–235 (1994)
+2. Baró Graf, H., Hermanns, H., Kulshrestha, J., Peter, J., Vahldiek, A., Vasudevan,
+A.: A verified wireless safety critical hard real-time design. In: WoWMoM. IEEE
+(2011)
+3. Behrmann,G.,David,A.,Larsen,K.G.:Atutorialon uppaal.In:SFM-RT.LNCS,
+vol. 3185, pp. 200–236. Springer (2004)
+4. Berrang, P., Bogdoll, J., Hahn, E.M., Hartmanns, A., Hermanns, H.: Dependabil-
+ity results for power grids with decentralized stabilization strategies. Reports of
+SFB/TR 14 AVACS 83 (2012), iSSN: 1860-9821, www.avacs.org
+5. Bogdoll,J.,FerrerFioriti,L.M.,Hartmanns,A.,Hermanns,H.:Partialordermeth-
+ods for statistical model checking and simulation. In: FMOODS/FORTE. LNCS,
+vol. 6722, pp. 59–74. Springer (2011)
+6. Bohnenkamp, H.C., D’Argenio, P.R., Hermanns, H., Katoen, J.P.: MoDeST: A
+compositional modeling formalism for hard and softly timed systems. IEEE Trans-
+actions on Software Engineering 32(10), 812–830 (2006)
+7. Bohnenkamp, H.C., Hermanns, H., Katoen, J.P.: MoTor: The Modest tool envi-
+ronment. In: TACAS. LNCS, vol. 4424, pp. 500–504. Springer (2007)
+8. Bornot, S., Sifakis, J.: An algebraic framework for urgency. Inf. Comput. 163(1),
+172–202 (2000)
+9. D’Argenio, P.R., Katoen, J.P., Ruys, T.C., Tretmans, J.: The bounded retransmis-
+sion protocol must be on time! In: TACAS. LNCS, vol. 1217. Springer (1997)
+10. Garavel, H., Lang, F., Mateescu, R., Serwe, W.: CADP 2010: A toolbox for the
+construction and analysis of distributed processes. In: TACAS. LNCS, vol. 6605,
+pp. 372–387. Springer (2011)
+11. Haas, P.J., Shedler, G.S.: Regenerative generalized semi-Markov processes. Com-
+munications in Statistics. Stochastic Models 3(3), 409–438 (1987)
+12. Hartmanns, A.: Model-checking and simulation for stochastic timed systems. In:
+FMCO. LNCS, vol. 6957, pp. 372–391. Springer (2010)
+13. Hartmanns, A., Hermanns, H.: A Modest approach to checking probabilistic timed
+automata. In: QEST. pp. 187–196. IEEE Computer Society (2009)
+14. Kwiatkowska, M.Z., Norman, G., Parker, D.: PRISM 4.0: Verification of proba-
+bilistic real-time systems. In: CAV. LNCS, vol. 6806, pp. 585–591. Springer (2011)
+15. Kwiatkowska, M.Z., Norman, G., Segala, R., Sproston, J.: Automatic verification
+of real-time systems with discrete probability distributions. TCS 282(1), 101–150
+(2002)
+16. Mader, A., Bohnenkamp, H.C., Usenko, Y.S., Jansen, D.N., Hurink, J., Hermanns,
+H.: Synthesis and stochastic assessment of cost-optimal schedules. STTT 12(5),
+305–318 (2010)
+17. Norman, G., Palamidessi, C., Parker, D., Wu, P.: Model checking the probabilistic
+pi-calculus. In: QEST. pp. 169–178. IEEE Computer Society (2007)
+18. Yue, H., Bohnenkamp, H.C., Kampschulte, M., Katoen, J.P.: Analysing and im-
+proving energy efficiency of distributed slotted Aloha. In: NEW2AN. LNCS, vol.
+6869, pp. 197–208. Springer (2011)

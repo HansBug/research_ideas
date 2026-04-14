@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：Resource-flow（资源流/并发网模型）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：资源互斥
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
-- 简要判断：论文直接给出了法国铁路联锁中的信号进路安全条件、进路建立检查链路以及 TP/DA/MO 等运行模式约束，适合整理为控制系统状态机描述。
+- 简要判断：论文直接给出了法国铁路联锁中的信号进路安全条件、进路建立检查链路以及 TP/DA/MO 等运行模式约束，已可形成 `🪫 + 💎` 混合文件。
 
 ## 条目 1: Route establishment in French railway interlocking
 - 控制对象：法国铁路联锁系统中的进路建立控制逻辑
+- 状态机类型：Resource-flow（资源流/并发网模型）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：资源互斥
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：🪫 降采样保留
+- 趋同标签：🔁 强趋同（G1 铁路联锁进路生命周期）
 
 ### 0. 条目识别与判定
 
@@ -89,17 +100,26 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-In the French railway interlocking system, each train is allowed to run only on its own signal route, and a route can be established only when all points are correctly set and locked, conflicting routes are locked, and the track is clear. When a route request is received, the controller first checks whether the route is forbidden and whether it is compatible with existing routes, then it switches and positions the required turnouts, and finally forms the command for the route.
+In the French railway interlocking system, each train is allowed to run only on its own signal route, and a route can be established only when all points are correctly set and locked, conflicting routes are locked, and the track is clear. When a route request is received, the controller first checks whether the route is forbidden and whether it is compatible with existing routes. If the route is feasible, it switches and positions the required turnouts, verifies that the turnouts are free and in the right positions, and finally forms the route command according to the stored formation information.
 
 ### 3. 逐句溯源
 
 1. 句子 1：In the French railway interlocking system, each train is allowed to run only on its own signal route, and a route can be established only when all points are correctly set and locked, conflicting routes are locked, and the track is clear.
    对应摘录：A
-2. 句子 2：When a route request is received, the controller first checks whether the route is forbidden and whether it is compatible with existing routes, then it switches and positions the required turnouts, and finally forms the command for the route.
+2. 句子 2：When a route request is received, the controller first checks whether the route is forbidden and whether it is compatible with existing routes.
+   对应摘录：B
+3. 句子 3：If the route is feasible, it switches and positions the required turnouts, verifies that the turnouts are free and in the right positions, and finally forms the route command according to the stored formation information.
    对应摘录：B
 
 ## 条目 2: Movement mode gating in interlocking control
 - 控制对象：法国铁路联锁系统中的运行模式选择与模式约束逻辑
+- 状态机类型：Resource-flow（资源流/并发网模型）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：资源互斥
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -136,13 +156,15 @@ In the French railway interlocking system, each train is allowed to run only on 
 
 ### 2. 基于原文整理后的自然语言描述
 
-The signal-control part of the interlocking system combines automatic control with manual control. Computer procedures handle device-oriented operations such as route establishment and route auto-destruction, while dispatchers handle route selection, mode selection, manual destruction, and other non-regular operations. The modeled system distinguishes three movement modes, TP, DA, and MO, and any route command issued in TP mode must be checked before the route formation process starts because TP is allowed only on certain routes.
+The signal-control part of the interlocking system combines automatic control with manual control, so computer procedures handle device-oriented operations such as route establishment and route auto-destruction, while dispatchers remain responsible for route selection, mode selection, manual destruction, and other non-regular operations. At the top level, trains interact with the signal-control layer and the geographical-route layer, and the signal-control layer directly controls turnouts and signal lights according to its operating principles. The modeled system distinguishes three movement modes, TP, DA, and MO. Because TP is available only on certain routes, every route command issued in TP mode must be checked before it can enter the route formation process.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The signal-control part of the interlocking system combines automatic control with manual control.
+1. 句子 1：The signal-control part of the interlocking system combines automatic control with manual control, so computer procedures handle device-oriented operations such as route establishment and route auto-destruction, while dispatchers remain responsible for route selection, mode selection, manual destruction, and other non-regular operations.
    对应摘录：A
-2. 句子 2：Computer procedures handle device-oriented operations such as route establishment and route auto-destruction, while dispatchers handle route selection, mode selection, manual destruction, and other non-regular operations.
+2. 句子 2：At the top level, trains interact with the signal-control layer and the geographical-route layer, and the signal-control layer directly controls turnouts and signal lights according to its operating principles.
    对应摘录：A
-3. 句子 3：The modeled system distinguishes three movement modes, TP, DA, and MO, and any route command issued in TP mode must be checked before the route formation process starts because TP is allowed only on certain routes.
+3. 句子 3：The modeled system distinguishes three movement modes, TP, DA, and MO.
+   对应摘录：B
+4. 句子 4：Because TP is available only on certain routes, every route command issued in TP mode must be checked before it can enter the route formation process.
    对应摘录：B

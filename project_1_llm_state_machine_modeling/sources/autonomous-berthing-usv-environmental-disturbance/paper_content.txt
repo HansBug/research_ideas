@@ -1,0 +1,697 @@
+--- Page 1 ---
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046Citation: Baek, S.; Woo, J.
+Model Reference Adaptive
+Control-Based Autonomous Berthing
+of an Unmanned Surface Vehicle
+under Environmental Disturbance.
+Machines 2022 ,10, 244. https://
+doi.org/10.3390/machines10040244
+Academic Editor: Antonios
+Gasteratos
+Received: 9 February 2022
+Accepted: 27 March 2022
+Published: 30 March 2022
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+machines
+Article
+Model Reference Adaptive Control-Based Autonomous
+Berthing of an Unmanned Surface Vehicle under
+Environmental Disturbance
+Seungdae Baek
+ and Joohyun Woo
+Department of Naval Architecture and Ocean Systems Engineering, Korea Maritime and Ocean University, 727,
+Taejong-ro, Yeongdo-gu, Busan 49112, Korea; sdbaek@g.kmou.ac.kr
+*Correspondence: jhwoo@kmou.ac.kr
+Abstract: Surface-vehicle berthing is a complex and challenging task. It involves complicated ship
+dynamics owing to a large drift angle and the time-varying environmental disturbances induced by
+wind, wave, and current. Therefore, berthing requires state processing at each step and a controller
+that can respond to the non-linear behavior of the unmanned surface vehicle (USV). Herein, a
+systematic approach for the autonomous berthing of a USV is proposed. A state-machine approach
+is proposed to solve state transitions in the berthing step. A model reference adaptive controller
+was adopted to cope with the uncertainty of USV dynamics during berthing. Herein, the theoretical
+background and design of the adaptive controller are described. Simulation for the validation of
+the proposed method was conducted using the robot operating system Gazebo-based simulator.
+Finally, the respective performances of the proposed method and conventional controller were
+compared. Using the proposed berthing approach, an accurate and stable docking of small USVs
+became achievable.
+Keywords: model reference adaptive control; automatic berthing; underactuated; small boat; unn-
+manned surface vehicle; robot operating system
+1. Introduction
+Small boats have been receiving considerable attention worldwide for various activ-
+ities, such as leisure and travel. According to Global Market Insights, a market-research
+company, the estimated size of the small-boat market was approximately 35 billion US
+dollars in 2020, an increase of approximately 10 billion US dollars over the approximate
+market size of 24 billion US dollars in 2017. By 2027, the market size is predicted to be
+60 billion US dollars, which is double the current market size.
+When operating a ship, along with general navigation, an important process is un-
+berthing/berthing. Berthing is the operation that allows the ship to be anchored close
+to the quay wall. However, the sea environment may cause the ship to slip. Therefore,
+predicting the behavior of the ship is difﬁcult, and the ship may collide with the quay
+wall. In addition, because the ship operates at a low speed during berthing, its steering
+performance may deteriorate. Moreover, environmental disturbances, such as currents,
+winds, and waves, signiﬁcantly affect operation. Therefore, an accurate control of the ship
+is required more during berthing than during navigation.
+The case of an accident in which a collision occurs between a ship and quay wall is
+depicted in Figure 1. Using merely a linear PID controller in such an environment, a robust
+control of the ship is difﬁcult. Research on the automatic berthing of ships is actively
+being conducted.
+The study by [ 1] marked the beginning of research on automatic berthing. As described
+above, the low speed of the ship reduces the control force, which easily affects the behavior
+of the ship during environmental disturbances. Owing to the non-linear behavior of those
+Machines 2022 ,10, 244. https://doi.org/10.3390/machines10040244 https://www.mdpi.com/journal/machines
+
+--- Page 2 ---
+Machines 2022 ,10, 244 2 of 19
+ships, ref. [ 1] attempted to establish a berthing method that was not standardized as an
+expert system. Although the standardization of the berthing method was suggested using
+the expert system, the method was relatively simple. The target vessel was selected for
+its holonomic behavior in the ﬁnal berthing stage. Therefore, the applicable vessels were
+limited. The authors in [ 2] studied and proposed a similar berthing method using a neural
+network that does not require ship dynamics. This was also due to the non-linear behavior
+of the vessel when berthing. However, because the method considered only the relatively
+simple berthing process of a large ship, performing all precise berthing processes was
+insufﬁcient. In the study by [ 3], a learning method was adopted using a head-up coordinate
+system to overcome the limitations of the Artiﬁcial Neural Network (ANN) berthing
+method applicable only at learned ports. Authors in [ 4] also attempted to overcome the
+limitations of the ANN berthing method by learning using a distance-measurement system.
+Although the above three studies proposed berthing methods using ANN, they omitted
+the ﬁnal berthing step and were limited to navigating the vessel near the port.
+Furthermore, the authors in [ 5] suggested a method for efﬁcient path planning for
+ships. Research [ 6] proposed a method that considers ocean current in the existing path-
+planning method. Both studies focused on path planning instead of a comprehensive
+berthing process. In the studies by [ 7–9], ships equipped with bow thrusters and capable
+of pure sway motion were considered. In addition to the previous studies, research
+has been conducted considering the entire berthing process, including the ﬁnal berthing
+process, which is difﬁcult to control. However, the methods proposed in these studies
+have limitations, because they can only be applied to ships capable of pure sway motion.
+To summarize, most studies on large ships and ships with underactuated propulsion
+systems in the ﬁnal stage of berthing are insufﬁcient.
+Figure 1. Case in which a small boat crashed during the berthing process.
+Now, The study of berthing for a small boat is as follows. In [ 10], the authors used
+ANN and validated the proposed method using the Monte Carlo simulation. However,
+the study was conducted considering that the boat was approaching the port after a straight
+voyage, and only the starting point varied. Authors in [ 11] proposed a method of changing
+the state of the berthing method. It was based on the distance of the boat from the berthing
+point and a method of navigating the vessel near a port. In [ 12], the authors attempted to
+increase the accuracy of berthing from near the port to the ﬁnal berthing point by using
+internal model control (IMC). However, the study had a limitation in that it considered only
+the ships capable of pure sway motion. In the study of [ 13], a similar berthing method was
+presented using IMC. Unlike [ 12], the berthing method was presented from the approach
+state. However, similar to the above method, this method can also be applied only to
+the ships capable of pure sway motion. As such, studies on the automatic berthing of
+small boats are rare, and most of the studies are aimed at ships capable of pure sway
+motion. However, in the case of small boats manufactured for leisure or research purposes,
+such studies are difﬁcult to implement, because most of the ships are not equipped with
+bow thrusters.
+
+--- Page 3 ---
+Machines 2022 ,10, 244 3 of 19
+In this study, an automatic berthing method for a small underactuated ship in an
+environment with disturbances is proposed. In the proposed method, a state machine was
+used to establish the berthing of the vessel in a step-by-step manner, so that it responded to
+failure conditions. A model reference adaptive control strategy was used to normalize the
+operation of the ship by applying the appropriate control in response to the unpredictable
+and uncertain ship behavior. In addition, veriﬁcation through simulation was performed
+in the Gazebo environment of the robot operating system (ROS), which implements an
+environment similar to the actual sea environment.
+The contribution of this study can be roughly divided into two categories. First,
+adaptive control, which has been applied to various problems, was applied to the automatic
+berthing problem of small boats. As mentioned above, unlike large vessels, few studies
+have been reported on the automatic berthing of small boats. Studies on techniques
+for sophisticated control are also scarce. Therefore, in this study, an automatic berthing
+formulation of a small boat is proposed. The formulation deﬁnes the scenario of the most
+representative problem situation and provides the relevant results. Based on those data,
+the method is expected to serve as a reference for similar studies in the future. Second,
+the automatic berthing method proposed in this study was simulated in the environment of
+ROS Gazebo, which has the advantage of reﬂecting precise models for environmental loads.
+Moreover, in this operating system, various sensors can be modeled, and it is possible to
+consider the collision between objects to be reﬂected in the berthing problem. Therefore,
+ROS Gazebo enables integrated control simulation and is currently widely used in the
+robotics ﬁeld. In the present study, for the ﬁrst time, Gazebo was applied to the berthing
+problem of unmanned surface vehicles (USVs).
+This paper is organized as follows. Section 2 establishes the berthing path planning
+suitable for the berthing location, based on the state machine, and presents the proposed
+berthing method. Section 3 describes the vector-ﬁeld guidance law to follow the planned
+path and the design of the MRAC controller used in this study. Section 4 presents the
+simulation and theoretical veriﬁcation in the ROS Gazebo environment. Finally, Section 5
+presents the conclusions and considerations of this study.
+2. Berthing Path Planning
+The target vessel in this study was a small boat, such as a USV . Small boats often ﬁnd
+themselves in environments such as a marina. A general marina can be divided into two
+docking types. In the ﬁrst type, a USV enters the docking position in the direction of the
+USV bow. Therefore, when it is adjacent to the docking position, as shown in Figure 2
+(left), it moves to the target docking point following a curve. In this paper, this docking
+type is deﬁned as the parallel type. In some cases, it is impossible to dock forward owing
+to the marina environments and facilities. In such a case, as shown in Figure 2 (right),
+a USV moves close to the docking position, follows a curve, and gradually moves away
+from the docking position—thereby making the angle at which the USV can be docked
+backward. Finally, the USV slowly retreats and docks at the docking position. This docking
+type is deﬁned as the ﬁnger type. In both types, berthing is performed on the basis of the
+state machine.
+Figure 3 shows the state machines of the parallel and ﬁnger types, where dAis the
+distance between the USV and the path tracking starting point, dFis the distance between
+the USV and the starting point, dCis the distance between the USV and the destination,
+d0is the distance between the USV and the docking station, and tis time to arrive at the
+destination. The parallel-type docking starts from the approach state. The approach state
+is the same state as Àin Figure 2 (left). In this state, the USV approaches the point where
+it has to start turning for berthing. In this state, if the distance between the USV and
+the destination is smaller than the length of the USV , it proceeds to the next state—the
+alignment tracking state. It is the same as Áin Figure 2 (left). In this state, the USV turns to
+the docking target point and tracks the curve. Similarly, to move from the current state to
+the next, if the distance to the docking target point is smaller than the length of the USV ,
+
+--- Page 4 ---
+Machines 2022 ,10, 244 4 of 19
+the docking process proceeds to the next state, i.e., the docking state. The docking state
+corresponds to Âin Figure 2 (left). In this state, the turning speed of the USV is reduced,
+so that it can be ﬁnally docked. When transitioning from the previous state, the docking
+process reverses the current direction to reduce the USV’s speed and provides the Rudder
+command to approach the rock wall at a low speed. If the distance error from the berthing
+arrival point does not exceed 10% of the USV’s length and lasts for more than 3 s, docking
+is judged to be completed.
+Figure 2. Deﬁnition of the parallel/ﬁnger-type path-planning method and the schematic of the
+berthing process.
+Figure 3. State machine that expresses the parallel/ﬁnger-type berthing process as a state transition.
+The ﬁnger-type approach is also the same state as Àin Figure 2 (right). In this state,
+the USV approaches the berthing point by tracking a straight line to the turning point
+for berthing. Similarly, if the distance from the turning point to the USV is smaller than
+the USV length, the docking process transitions to the next state. The forward-alignment
+tracking state is the same state as Áin Figure 2 (right). In this state, the USV turns to form
+
+--- Page 5 ---
+Machines 2022 ,10, 244 5 of 19
+a heading angle to approach the docking target point backward. The curve approaches the
+target point by path tracking. When the distance from the target point to the USV becomes
+smaller than the length of the USV , the docking process transitions to the next state. That is
+the back-alignment tracking state, which is the same as Âin Figure 2 (right). Based on the
+heading angle set in the previous forward-alignment tracking state, straight-path tracking is
+performed backward to the ﬁnal berthing target point. If the distance from the target point
+to the USV becomes smaller than the length of the USV , the docking process transitions
+to the next state, i.e., the docking state. This state corresponds to Ãin Figure 2 (right).
+When crossing over from the previous state, the direction of travel of the USV is reversed
+to reduce its speed. This state provides the Rudder command value, so that the USV can
+approach the docking target point at a slow speed. When the distance error from the ﬁnal
+destination to the USV does not exceed 10% of the USV’s length for more than 3 s, berthing
+is judged to be completed.
+3. Control System
+For a USV to accurately berth, it is necessary to accurately follow the planned path.
+Therefore, in this study, path tracking was performed using vector-ﬁeld path following—
+proposed by [ 14]. Figure 4 illustrates this the vector ﬁeld. In linear path tracking, the vector
+ﬁeld corresponds to the angle from Waypoint1 to Waypoint2, waypoint 1= [w1x,w1y]and
+waypoint 2= [w2x,w2y],cfcan be expressed as
+cf=atan 2(w2yw1y,w2xw1x). (1)
+Figure 4. Geometry representing vector ﬁeld concepts for linear and circular paths.
+cais the entry heading angle, as shown in Figure 5. eis the cross-track error, the vertical
+distance between the path and the USV . trepresents the boundary distance to the transition
+region, which can be conﬁrmed in Figure 5. The USV approaches the path at an angle of
+ca, irrespective of its location. If the cross-track error is less than t, it follows the target
+angle with a value different than the calculated value. Therefore, linear path tracking of the
+vector ﬁeld can be explained by the following Equation (2):
+cd=cf(ca)(e
+t)k(2)
+At this time, kis the transition gain and it is greater than 1.
+
+--- Page 6 ---
+Machines 2022 ,10, 244 6 of 19
+Figure 5. Schematic of the vector ﬁeld concept for a linear path.
+The following describes the path tracking of the USV for the circular path. In the case
+of linear path, the target heading angle is changed based on the value of t; it plays this role
+in the circular path. The target heading angle is changed based on the value of 2Rin the
+circular path. Here, 2Rdenotes the radius of the circle to be tracked. bis the angle from the
+center of the circle to the USV , as shown in Figure 6. dis the straight-line distance from the
+center of the circle to the USV . Therefore, the desired heading angle in the circular path is
+expressed in Equations (3) and (4) as follows (when clockwise):
+i f d >2R
+cd=b+5p
+6(3)
+else
+cd=b+p
+2+ (p
+3)(dR
+R)k(4)
+In the cases of straight and curved path tracking in this study, the vector-ﬁeld path following
+was used.
+The heading angle of the USV was controlled through a PID controller, which is the
+most used controller for path tracking during berthing. In this study, the adaptive gain was
+tuned through adaptive control—considering wind disturbance in the environment of the
+USV . An adaptive control system adjusts the control over time, according to the changing
+conditions and the knowledge it acquires. In particular, adaptive control improves the
+controller by actively responding to the changes in the system instead of remaining static or
+ignoring the minor deviations. This method is necessary for dynamic systems in unstable
+environments—such as aircraft and medical robots. However, when a USV is berthing,
+the wind makes its operation unstable. Therefore, in this study, the design proposal applied
+adaptive control to USV berthing.
+
+--- Page 7 ---
+Machines 2022 ,10, 244 7 of 19
+Figure 6. Schematic of the vector ﬁeld concept for a circular path.
+In this study, among the adaptive control schemes, the model reference adaptive
+control (MRAC) scheme was used. In MRAC, the required system performance is deﬁned
+via a reference model. It has the desired response to a command value and the control
+system follows the behavior of this reference model.
+In this study, before designing the controller, the USV’s system identiﬁcation process
+for wind environments was performed from various angles. The system identiﬁcation
+was conducted in the Gazebo environment of ROS. The detailed description of Gazebo is
+presented in Section 4. During system identiﬁcation, the transfer-function model of the
+USV system was derived by analyzing the USV’s response to the direction in which it faced
+the wind. The wind was set to be ﬂowing at Beaufort 6. The angle between the USV and the
+wind is deﬁned as the encounter angle. The encounter-angle range of 0 °–360 °was divided
+into 12 sections at 30 °intervals. The reference model was derived from the MRAC through
+the following system identiﬁcation task.
+When designing a controller, the typical adaptation mechanisms of MRAC are the MIT
+Rule based on gradient method, and the Lyapunov Rule based on the Lyapunov Stability
+Theory. In this study, the MIT Rule was employed as the adaptation mechanism [ 15].
+The rule is an early approach to MRAC, developed by the Draper Laboratory of the
+Massachusetts Institute of Technology (MIT) in the United States. Assuming that the
+controller is in a closed-loop system and has adaptive parameters, its response can be
+expressed as Equation (5); and its reference response can be expressed as Equation (6)
+y=GL(s)umc(5)
+ym=Gm(s)umc, (6)
+where GL(s)is the transfer function of the system to be controlled, Gm(s)is the transfer
+function of the desired system, and umcis the control input. The difference between the
+responses of the actual closed-loop system and the reference closed-loop system is called
+as the adaptation error, expressed as e=ymy. In this study, the loss function Jwas
+minimized by adjusting the adaptive parameter q, expressed in Equation (7) as follows:
+J=1
+2e2(7)
+To minimize the loss function J, it is reasonable to adjust the adaptive parameter so that the
+slope of the former ¶J/¶qwith respect to the latter qis negative. This can be expressed as:
+
+--- Page 8 ---
+Machines 2022 ,10, 244 8 of 19
+¶q
+dt=g¶J
+¶q=ge¶e
+¶q, (8)
+where gis the adaptive gain. Equation (8) can be re-expressed as Equation (9).
+¶q
+dt=g¶e
+¶qe=1
+2g¶[Gm(s)GL(s)]2
+¶q(umc)2(9)
+It can be observed in Equation (9) that the rate of change of the adaptive parameter is
+proportional to the square of the control input umc—therefore, the adaptive parameter
+is considerably sensitive to the control input. Since the rate of change in MIT Rule is
+proportional to the square of the control input, it is necessary to normalize the adaptation
+law—expressed in Equation (10).
+¶q
+dt=gj
+m+jTje (10)
+j=¶e/¶qis called as the sensitivity derivative. It is the parameter that prevents the
+division of m>0by zero. The structure of the MRAC controller used in this study is
+shown in Figure 7. In Equation (5), the control input is the target heading angle and the
+output is the yaw rate of the USV . In Equation (6), the control input is the target heading
+angle and the output is the yaw rate of the reference model. According to the study of [ 16],
+the reference model can be expressed by Equation (11); the input of the system can be
+expressed by Equation (12).
+dym
+dt=amym+bmumc(11)
+u(t) =q1(t)umc(t)q2(t)y(t) (12)
+Here, ymand umcare the output and input values of the reference model, respectively,
+andamandbmare the parameter values of the reference model. q1andq2are the adaptive
+parameters. Equation (8) can be expressed in terms of q1andq2as Equation (13) as follows:
+¶q1
+dt=a¶J
+¶q1=ae¶e
+¶q1
+¶q2
+dt=a¶J
+¶q2=ae¶e
+¶q2(13)
+According to the study of [16], q1andq2are updated based on Equation (14).
+¨q1+am˙q1=gamumcy+gamymumc
+¨q2+am˙q2=gamy2gamymy
+˙y=ay+bq1umcbq2y (14)
+Therefore, if the adaptive controller is designed using the above equation, the system
+response varies based on the adaptive gain g.
+Figure 8 shows the system response according to the input value of each system
+according to gthrough a 3-2-1-1 test. rdrepresents the desired yaw rate and is the standard
+value of the 3-2-1-1 test with the size of 70% of the maximum yaw rate. rg0.5,rg2,rg3.5
+corresponds to the yaw rate when gvalues are 0.5, 2, and 3.5, respectively. If gis small,
+the system converges with a relatively low overshoot, but the adaptation is slow. If gis
+large, there is a large overshoot in the state, but the adaptation is considerably fast. The
+proof of the stability of the MRAC based on the MIT Rule can be found in [17].
+
+--- Page 9 ---
+Machines 2022 ,10, 244 9 of 19
+Figure 7. Block diagram of the model reference adaptive control (MRAC) system used in this study.
+Figure 8. Comparison of yaw rate tracking according to the value of adaptive gain g.
+4. Simulation
+4.1. Assumption
+The problem was simpliﬁed to achieve the purpose of the study. In this study, only
+the horizontal plane motion of the USV is described because the USV’s yaw-rate tracking
+control is performed. The motion variables of the USV based on the body-ﬁxed coordinate
+system are shown in Figure 9. The simpliﬁcation of the USV applied to the simulation is as
+follows: First, the USV’s motion neglects roll, pitch, and heave directions. Second, the USV
+has neutral buoyancy, and the origin of the body-ﬁxed coordinate system is its center of
+mass. Third, the USV has three planes of symmetry. The above assumptions, suitable for
+the simulation of the USV in this study, are based on [18].
+
+--- Page 10 ---
+Machines 2022 ,10, 244 10 of 19
+Figure 9. Schematic of the differential thrust of the unmanned surface vehicle (USV) and the deﬁnition
+of the motion variable.
+4.2. Simulation Environment
+Robot simulation is an essential tool for robotics engineers. Gazebo enables robot
+simulation in the ROS environment. RoboNation and the U.S. Ofﬁce of Naval Research
+(ONR) are collaborating with the U.S. Naval Postgraduate School (NPS) and Open Robotics
+(OR) to provide Virtual RoboX (VRX). It can simulate USVs in the Gazebo environment.
+VRX is an open-source simulation environment designed to help students test solutions
+for autonomous USVs for free. Similarly, NPS and Robonation are developing the Virtual
+Ocean Robotics Challenge (VORC). It is based on VRX and simulates the Ocean Robotics
+Challenge as a virtual environment. In this study, the simulation was performed in VORC,
+and the environment model of VRX, on which VORC is dependent, was used as the
+modeling environment. The target USV of the present study is the virtual USV ‘Cora’ on
+VORC. The simulation environment is shown in Table 1. The structure of the thruster
+described in Table 1 is shown in Figure 9.
+Table 1. Main speciﬁcations of the USV simulation environment.
+Parameter Information
+Length [m] 12.2
+USV Spec Breadth [m] 3.3
+Hullradius [m] 2.2
+Thruster Type Azimuth type (2ea)
+Max Angle [degree] 35
+Hull Type - Mono Hull
+Velocity [knot] - 4 5
+Mean Vel [m/s] 10
+Wind Var Gain 2
+Var time [s] 1
+MRB˙n+CPRB(n)n+MA˙nr+CA(nr)nr+D(nr)nr+g(h) =tpropulsion +twind+twave(15)
+
+--- Page 11 ---
+Machines 2022 ,10, 244 11 of 19
+where
+h=[x,y,z,p,q,y]T
+n=[u,v,w,p,q,r]T(16)
+The USV’s maneuvering model is expressed by Equation (15). For the USV dynamics
+model, the reader is advised to refer to [ 19]. Here, MRBis the added mass coefﬁcient of the
+acceleration term of the rigid body and CRBis the damping coefﬁcient of the velocity term
+of the rigid body. MAis the added mass coefﬁcient of the acceleration term due to the ﬂuid
+force. The simpliﬁed added mass matrix is:
+MA=2
+6666664X˙u0 0 0 0 0
+0Y˙v0 0 0 Y˙r
+0 0 0 0 0 0
+0 0 0 0 0 0
+0 0 0 0 0 0
+0N˙v0 0 0 N˙r3
+7777775(17)
+CAis the damping coefﬁcient of the velocity term due to the ﬂuid force.
+CA(nr) =2
+66666640 0 0 0 0 Y˙vvr+Y˙rr
+0 0 0 0 0 X˙uur
+0 0 0 0 0 0
+0 0 0 0 0 0
+0 0 0 0 0 0
+0 0 0Y˙vvrY˙rr X ˙uur 03
+7777775(18)
+D(nr)is the hydrodynamic damping coefﬁcient, including forces due to radiation-induced
+potential damping, skin friction, wave drift damping, vortex shedding, and lifting forces.
+Therefore, the hydrodynamic damping matrix can be expressed as:
+D(nr) =Dl+Dl(nr) (19)
+Dl=2
+6666664Xu0 0 0 0 0
+0Yv 0 0 0 Yr
+0 0 Zw 0 0 0
+0 0 0 Kp 0 0
+0 0 0 0 Mq0
+0Nv0 0 0 Nr3
+7777775(20)
+Dl(nr) =2
+66666664Xujujjurj 0 0 0 0 0
+0 Yvjvjjvrj+Yjrjvjrj0 0 0 Yjvjrjvrj+Yjrjrjrj
+0 0 0 0 0 0
+0 0 0 0 0 0
+0 0 0 0 0 0
+0 Njvjvjvrj+Njrjvjrj0 0 0 Njvjrjjvrj+Nrjrjjrj3
+77777775(21)
+tpropulsion is the external force caused by the propulsion system, which was not addressed
+in detail in this study. The wind and wave models that affect the USV of VRX were
+implemented as independent model plug-ins of Gazebo. twindrepresents the external force
+applied to the USV by the wind. twaverepresents the external force applied to the USV
+by the waves. ncrepresents the non-rotating current, and nrrepresents the velocity vector
+
+--- Page 12 ---
+Machines 2022 ,10, 244 12 of 19
+relative to nc. Therefore, n=nr+nc. Wave model on VRX Gazebo [20,21] was formulated
+using Gerstner wave model as:
+Xw=X0N
+å
+i=1qiAisin(kiX0wit+fi) (22)
+z=X0N
+å
+i=1iAicos(kiX0wit+fi) (23)
+The wave height zis generated at the initial position X0=x0,y0and Xw=x,y. Further,
+qirepresents steepness and Airepresents amplitude. kidenotes wave vector, widenotes
+angular frequency, and fidenotes phase. Wave vector is horizontal to the propagation
+direction of the wave, and the scale is the same as wave number k=2p/L; where Lis the
+length of the wave. The wave number and angular frequency are related to deep-water
+dispersion by Equation (24). The wave height zof the transient state occurring at the
+beginning of the simulation is expressed as Equation (25).
+w2=gk (24)
+z= (1et/t)N
+å
+i=1Aicos(kiX0wit+fi) (25)
+The Waveﬁeld model uses two of the Pierson–Moskowitz wave spectra and the constant
+wavelength-to-amplitude ratio. Wind force (x and y) and moment (yaw) of the model
+plugin are based on the model proposed by Fossen [ 22]. Let the velocity vector of the wind
+beVR. The three-degree-of-freedom force and moment of motion in the horizontal plane
+can be expressed by Equations (26)–(28).
+Xwind= (CX)VRxjVRxj (26)
+Ywind= (CY)VRyjVRyj (27)
+Nwind=2.0(CN)VRxVRy (28)
+In these equations, CX,CY, and CN, representing the coefﬁcients of wind in each direction,
+are calculated by the formula proposed by Sarda [ 23]. The modeling of wind irregularities
+was performed on the basis of the study of VRX Gazebo [ 19]. If the constant average wind
+speed is ¯v, and the temporarily variable wind speed is vg(t), the total wind speed Vw(t)
+can be expressed by Equation (29).
+Vw(t) = ¯v+vg(t) (29)
+The wind speed can be speciﬁed by various user-speciﬁed variables, such as constant
+wind direction bw, constant wind speed ¯v, standard deviation sg, and time constant tg.
+The variable component of wind speed is modeled as a ﬁrst-order linear approximation of
+the Harris spectrum [ 24] with a time constant tg. The spectrum is expressed as a transfer
+function of the Equation (30), where Kwis the amplitude of the response. The variable wind
+speed at discrete time K+1 is expressed by Equation (31).
+h(s) =Kw
+1+tgs(30)
+vg[k+1] =vg[k] + ( 1/tg)(vg[k] +Kwn[k])dt (31)
+
+--- Page 13 ---
+Machines 2022 ,10, 244 13 of 19
+n[k]is a Gaussian distribution, a pseudorandom number generated with zero mean and
+unit variance. dtis the simulation time step. The spectrum of the variable wind speed
+produced by Equation (31) is expressed as Equation (32).
+sg(w) =8
+<
+:K2w
+1+(wtg)2jwj<ws/2
+0jwjws/2(32)
+where wsis the sampling frequency and ws=2p/dt. Assuming that ws2p/Tare the
+standard deviation and time constant speciﬁed by the user, respectively, the parameter Kw
+required to generate the variable-wind component can be expressed as Equation (33).
+Kw=sgr
+2tg
+dt(33)
+The user can change the wind direction, average speed, magnitude of deviation,
+and change time by setting the simulation environment. The values can be respectively
+applied to the wind model. In the present study, the wind direction in the simulation
+is as shown in Figure 10. The average speed is 10 m/s. The magnitude of deviation is
+doubled and the change time is 1 s. Figure 10 shows the initial and ﬁnal docking positions
+of the USV .
+Figure 10. Simulation site, wind direction, and initial/docking position of the USV .
+4.3. Berthing Simulation
+The simulation results represent a case study conducted in a parallel-type simulation
+environment. The most representative and basic control method, the PID controller, was
+selected for comparison. To accurately compare the performances of MRAC and PID,
+the gains of the PID controller had to be properly tuned. After gain tuning, the PID
+controller yielded a response similar to that of the MRAC in the absence of disturbance.
+The absolute wind direction was set to Beaufort 6 in one direction on Gazebo, and the
+time-series data of wind speed are shown in Figure 11. Figure 12 shows the course error
+and the position error of X and Y when using only the PID controller and when the MRAC
+controller is applied. Figures 12 and 13 depict the state machine described in Section 2 and
+display the state in each graph. In Figure 12, cerepresents the error between the desired
+yaw angle in each state and the course of angle of the USV when only the PID controller
+is used and the MRAC controller is applied. Peis the position error. Pexrepresents the
+X-coordinate error between the target point and the USV in each state. Peyrepresents the
+
+--- Page 14 ---
+Machines 2022 ,10, 244 14 of 19
+Y-coordinate error between the target point and the USV in each state. The contents of Pex
+andPeyare the same as in Equation (34).
+Pe=PUSVPDestination (34)
+Figure 12 shows the command value of the thruster in each state. It can be observed that
+the speed and angle commands of the thruster change according to the state.
+The operation is divided into different states and analyzed. The approach state
+operates from 0 s to approximately 38 s. The linear path tracking described in Section 2 is
+performed. The desired heading angle is determined based on Equation (2) of Section 2.
+Thus, the USV follows the linear path according to the desired heading angle. The course
+and position errors in the windy environment are smaller in the state using the MRAC
+than in the state using the PID controller. The speed of convergence of state to 0 is fast.
+Thus, the USV to which the MRAC is applied demonstrates better path-tracking accuracy,
+compared to that which the PID control is applied.
+Figure 11. Changes in wind speed with time during the simulation.
+The alignment tracking state operates approximately from 38 to 59 s. In this state,
+the circular-type path tracking is performed, as presented in Section 2. The desired heading
+angle is determined based on Equations (3) and (4). The USV using only the PID controller
+with the desired heading angle follows based on the general PID control command, and the
+USV applying the MRAC controller follows the adaptive control command considering the
+environment. When the MRAC controller is applied, the error value decreases faster even
+in the curve case and converges to 0. Therefore, even on a circular path, a USV to which the
+MRAC controller is applied shows a high path-tracking accuracy.
+As shown in Figure 13 in the ﬁnal-docking state, the forward speed is reduced through
+reverse propulsion for berthing of the USV . The thruster angle is controlled to be in the
+direction opposite to the rock wall to get close to it. In Figure 12, it can be observed that the
+position error gradually decreases and converges to 0. Therefore, the USV slows down near
+the berthing arrival point. When the forward speed becomes approximately 0, the USV
+gradually approaches the rock wall.
+
+--- Page 15 ---
+Machines 2022 ,10, 244 15 of 19
+Figure 12. Comparison of errors between the case of using only the PID controller and the case of
+using MRAC in each state during simulation.
+Figure 13. Thruster command in parallel-type berthing simulation using the MRAC controller
+expressed by state transition.
+
+--- Page 16 ---
+Machines 2022 ,10, 244 16 of 19
+Figure 14 shows the boxplot comparing the responses from using MRAC, and from
+using only the PID controller. As shown in the ﬁgure, the range of the maximum and
+minimum error values was reduced from approximately 1713 to approximately
+129. Moreover, a change in Interquartile Range (IQR) can be observed. It is deﬁned as
+the value that falls within the range of the ﬁrst and third quartiles. It can be seen that the
+range of IQR decreases from approximately 62 to41 when the MRAC controller is
+applied. The trajectory when the MRAC controller is applied in the Gazebo environment is
+shown in Figure 15. Based on the results shown in Figures 12–15, the PID controller does not
+consider the windy environment and simply outputs a general command value. Therefore,
+it cannot make the USV follow the path quickly. Moreover, the PID controller may give an
+excessive input. Owing to these shortcomings, the PID controller can lead to inaccurate
+path tracking. However, when the MRAC controller is applied, the control is based on
+the transfer function derived from the encounter angle between the USV and the wind.
+Therefore, the MRAC outputs the command value considering the wind environment,
+showing higher accuracy in path tracking than PID control. Similarly, when the MRAC
+controller is applied, rdis the desired yaw rate created as a reference model. ris the yaw
+rate of the USV . At this time, rdwas determined by the vector-ﬁeld guidance law of the
+control system section. It can be seen in Figure 16 that rfollows rd, indicating that adaptive
+control was applied.
+Figure 14. Boxplot showing the total course error when using only the PID controller and when using
+the MRAC.
+
+--- Page 17 ---
+Machines 2022 ,10, 244 17 of 19
+Figure 15. Trajectory of the USV when parallel-type berthing was performed using MRAC.
+Figure 16. Yaw-rate tracking of the USV when MRAC was used in the parallel-type berthing process.
+Furthermore, various scenarios were demonstrated for reliable results. The results
+presented in Figure 17 were simulated in an environment set with different initial positions
+and wind directions. In Figure 17, the trajectory for each scenario is expressed and a boxplot
+of the course error is presented. As can be seen in the ﬁgure, the range of IQR is reduced
+when the MRAC controller is used in all the three scenarios. In other words, the range of
+error is reduced. At this time, for the ﬁrst and second scenarios from the left of Figure 17, it
+progressed within a wind disturbance of Beaufort 6 level. The berthing was carried out
+with an average velocity 4.45 knots and standard deviation 1.2 knot in the ﬁrst scenario;
+and an average velocity 4.37 knots and standard deviation 1.32 knot in the second scenario.
+In the third scenario, the wind disturbance was also at Beaufort 6 level, but the range of
+the circular path to be followed was wide and the drift of the USV became severe. So, it
+berthed at an average velocity 3.7 knots and standard deviation 1.1 knot. The velocity
+of the USV is crucial during the berthing process and is required to be studied in depth.
+However, in this study, the accuracy of path tracking was evaluated assuming only the
+typical berthing velocity of USVs.
+
+--- Page 18 ---
+Machines 2022 ,10, 244 18 of 19
+Figure 17. Trajectory and course error boxplot of parallel-type berthing simulation with different
+initial positions and wind directions.
+5. Conclusions
+The automatic berthing of ships is a difﬁcult problem in the development of au-
+tonomous ships. Most existing studies focus on limited situations, such as targeting large
+ships or ships capable of pure sway motion. Therefore, their ﬁndings are not applicable to
+a small boat developed for general leisure or a USV developed for research purposes.
+Therefore, in this study, the berthing process of a small boat in the presence of envi-
+ronmental disturbance was deﬁned through a state machine. The berthing accuracy was
+improved using the MRAC method. The complex berthing process was systematically
+accumulated by expressing it as a state transition using the state machine in the berthing
+environment of a small boat. The MRAC controller was designed via system identiﬁcation
+and adaptive parameter tuning. Consequently, as mentioned in the simulation section,
+the berthing process was a systematic state transition. Moreover, when the MRAC method
+was applied, the range of error decreased by more than 20% on average, for various initial
+positions and wind direction cases.
+In this study, ROS Gazebo simulation was conducted, where in dynamics and external
+environmental forces were precisely modeled. Although the factors necessary for the
+berthing study are well reﬂected in the simulation, they are different from the actual
+experimental results; this is because environmental disturbances in real seas are difﬁcult
+to predict/simulate, and sensor-measurement errors may occur in real environments.
+Therefore, generating actual experimental results will be helpful in validating the proposed
+method. In the future, there is a plan to verify the validity of this study through experiments
+in more diverse environments and various types of docks using the USV at sea.
+Author Contributions: Data curation, J.W.; Funding acquisition, J.W.; Methodology, S.B. and J.W.;
+Project administration, S.B.; Supervision, J.W.; Validation, S.B. and J.W.; Writing—original draft, S.B.;
+Writing—review & editing, S.B. and J.W. All authors have read and agreed to the published version
+of the manuscript.
+Funding: This research was supported by Agency for Defense Development (UD210001DD) funded
+by the Defense Acquisition Program Administration (DAPA), Republic of Korea.
+
+--- Page 19 ---
+Machines 2022 ,10, 244 19 of 19
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: The data that support the ﬁndings of this study are available from the
+corresponding author upon reasonable request.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. Yamato, H.; Koyama, T.; Nakagawa, T. Automatic berthing using the expert system. IFAC Proc. Vol. 1992 ,25, 173–184. [CrossRef]
+2. Zhang, Y.; Hearn, G.E.; Sen, P . A multivariable neural controller for automatic ship berthing. IEEE Control Syst. Mag. 1997 ,
+17, 31–45. [CrossRef]
+3. Im, N.K.; Nguyen, V .S. Artiﬁcial neural network controller for automatic ship berthing using head-up coordinate system. Int. J.
+Nav. Archit. Ocean Eng. 2018 ,10, 235–249. [CrossRef]
+4. Nguyen, V .S.; Do, V .C.; Im, N.K. Development of automatic ship berthing system using artiﬁcial neural network and distance
+measurement system. Int. J. Fuzzy Log. Intell. Syst. 2018 ,18, 41–49. [CrossRef]
+5. Djouani, K.; Hamam, Y. Minimum time-energy trajectory planning for automatic ship berthing. IEEE J. Ocean. Eng. 1995 ,20, 4–12.
+[CrossRef]
+6. Liu, C.; Mao, Q.; Chu, X.; Xie, S. An improved A-star algorithm considering water current, trafﬁc separation and berthing for
+vessel path planning. Appl. Sci. 2019 ,9, 1057. [CrossRef]
+7. Park, J.Y.; Kim, N. Modeling and controller design of crabbing motion for auto-berthing. J. Ocean Eng. Technol. 2013 ,27, 56–64.
+[CrossRef]
+8. Park, J.Y.; Kim, N. Design of an adaptive backstepping controller for auto-berthing a cruise ship under wind loads. Int. J. Nav.
+Archit. Ocean Eng. 2014 ,6, 347–360. [CrossRef]
+9. Lee, S.; Hwang, Y.; Kim, Y. Crabbing simulation of ship with twin rudder and twin skeg. In Proceedings of the Annual Spring
+Meeting ; Society of Naval Architects of Korea: Daejeon, Korea, 2000; pp. 144–147.
+10. Ahmed, Y.A.; Hasegawa, K. Automatic ship berthing using artiﬁcial neural network based on virtual window concept in wind
+condition. IFAC Proc. Vol. 2012 ,45, 286–291. [CrossRef]
+11. Xiong, Y.; Yu, J.; Tu, Y.; Pan, L.; Zhu, Q.; Mou, J. Research on data driven adaptive berthing method and technology. Ocean Eng.
+2021 ,222, 108620. [CrossRef]
+12. Tzeng, C.; Lee, S.; Ho, Y.; Lin, W. Autopilot design for track-keeping and berthing of a small boat. In Proceedings of the 2006
+IEEE International Conference on Systems, Man and Cybernetics, Taipei, Taiwan, 8–11 October 2006; Volume 1, pp. 669–674.
+13. Lee, S.D.; Tzeng, C.Y.; Shu, K.Y. Design and experiment of a small boat auto-berthing control system. In Proceedings of the 2012
+12th International Conference on ITS Telecommunications, Taipei, Taiwan, 5–8 November 2012; pp. 397–401.
+14. Nelson, D.R.; Barber, D.B.; McLain, T.W.; Beard, R.W. Vector ﬁeld path following for miniature air vehicles. IEEE Trans. Robot.
+2007 ,23, 519–529. [CrossRef]
+15. Mareels, I.M.; Anderson, B.D.; Bitmead, R.R.; Bodson, M.; Sastry, S.S. Revisiting the MIT rule for adaptive control. In Adaptive
+Systems in Control and Signal Processing 1986 ; Elsevier: Amsterdam, The Netherlands, 1987; pp. 161–166.
+16. Åström, K.J.; Wittenmark, B. Adaptive Control ; Courier Corporation: North Chelmsford, MA, USA, 2013.
+17. Mareels, I.; Ydstie, B. Global stability for an MIT rule based adaptive control. In Proceedings of the 28th IEEE Conference on
+Decision and Control, Tampa, FL, USA, 13–15 December 1989; pp. 1585–1590.
+18. Vu, M.T.; Van, M.; Bui, D.H.P .; Do, Q.T.; Huynh, T.-T.; Lee, S.-D.; Choi, H.-S. Study on dynamic behavior of unmanned surface
+vehicle-linked unmanned underwater vehicle system for underwater exploration. Sensors 2020 ,20, 1329. [CrossRef] [PubMed]
+19. Bingham, B.; Agüero, C.; McCarrin, M.; Klamo, J.; Malia, J.; Allen, K.; Lum, T.; Rawson, M.; Waqar, R. Toward maritime robotic
+simulation in gazebo. In Proceedings of the OCEANS 2019 MTS/IEEE SEATTLE, Seattle, WA, USA, 27–31 October 2019; pp. 1–10.
+[CrossRef]
+20. Tessendorf, J. Simulating ocean water. In Simulating Nature: Realistic and Interactive Techniques ; SIGGRAPH: New York, NY, USA,
+2001; Volume 1, p. 5.
+21. Fréchot, J. Realistic simulation of ocean surface using wave spectra. In Proceedings of the First International Conference on
+Computer Graphics Theory and Applications (GRAPP 2006), Setúbal, Portugal, 25–28 February 2006; pp. 76–83.
+22. Fossen, T.I. Handbook of Marine Craft Hydrodynamics and Motion Control ; John Wiley & Sons: Hoboken, NJ, USA, 2011.
+23. Sarda, E.I.; Qu, H.; Bertaska, I.R.; von Ellenrieder, K.D. Station-keeping control of an unmanned surface vehicle exposed to
+current and wind disturbances. Ocean Eng. 2016 ,127, 305–324. [CrossRef]
+24. Taylor, A.; Anthony, K.; Harris, R.I.; Berrman, P .W.; Wootton, L.; Scruton, C.; Wyatt, T.; Shears, M. The Modern Design of
+Wind-Sensitive Structures ; Construction Industry Research and Information Association: London, UK, 1971.

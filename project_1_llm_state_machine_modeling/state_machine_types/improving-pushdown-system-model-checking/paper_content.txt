@@ -1,0 +1,725 @@
+--- Page 1 ---
+ImprovingPushdown SystemModel Checking⋆
+AkashLal1andThomasReps1,2
+1Universityof Wisconsin.
+2GrammaTech, Inc.
+{akash, reps }@cs.wisc.edu
+Abstract. In this paper, we reduce pushdown system (PDS) model checkin g to a graph-
+theoretic problem, and apply a fast graph algorithm to impro ve the running time for model
+checking.SeveralotherPDSquestions andtechniquescanbe carriedoutinthenewsetting,
+including witness tracing and incremental analysis, each o f which beneﬁts from the fast
+graph-based algorithm.
+1 Introduction
+Pushdownsystems(PDSs)haveservedasanimportantformali smforprogramanalysis
+andveriﬁcationbecauseoftheirabilitytoconciselycaptu reinterproceduralcontrolﬂow
+inaprogram.Varioustools[6,18,12,10,4]usepushdownsys temsasanabstractmodel
+ofaprogramandusereachabilityanalysisonthesemodelsto verifyprogramproperties.
+Using PDSs provides an inﬁnite-state abstraction for the co ntrol state of the program.
+Some of these tools [6,18,4], however, can only verify prope rties that have a ﬁnite-
+state data abstraction.Other tools[10,12]are basedon the moregeneralizedsetting of
+weighted pushdown systems (WPDSs) [16] and are capable of ve rifying inﬁnite-state
+dataabstractionsaswell.
+At the heart of all these tools is a PDS reachability-analysi s algorithm that uses a
+chaotic-iteration strategy to explore all reachable state s [2,7,17]. Even though there
+has been work to address the worst-case running time of this a lgorithm [5], to our
+knowledge, no one has addressed the issue of giving directio n to the chaotic-iteration
+schemetoimprovetherunningtimeofthealgorithminpracti ce.Inthispaper,wetryto
+improvethe worst-case runningtime, as well as the running- timeobservedin practice.
+To providea common setting to discuss most PDS model checker s, we use WPDSs to
+describeourimprovementsto PDS reachability.
+Aninterproceduralcontrolﬂowgraph(ICFG)isasetofgraph s,oneperprocedure,
+connected via special call and return edges [14]. A WPDS with a given initial query
+can also be decomposedinto a set of graphs whose structure is similar. (When the un-
+derlying PDS is obtained by the standard encoding of an ICFG a s a PDS for use in
+programanalysis,thesedecompositionscoincide.)Next,w euseafastgraphalgorithm,
+namely the Tarjan path-expressionalgorithm [19] to repres ent each graph as a regular
+expression. WPDS reachability can then be reduced to solvin g a set of regular equa-
+tions. When the underlyingPDS is obtained from a structured (reducible)controlﬂow
+graph,the regularexpressionscan be foundandsolved verye fﬁciently.Evenwhenthe
+control ﬂow is not structured, the regular expressions prov ide a fast iteration strategy
+thatimprovesoverthe standardchaotic-iterationstrateg y.
+Our work is inspired by previous work on dataﬂow analysis of s ingle-procedure
+programs [20]. There it was shown that a certain class of data ﬂow analysis problems
+⋆Supported by ONR (N00014-01-1- {0708,0796 }) and NSF (CCR-9986308 and CCF-
+0524051).
+
+--- Page 2 ---
+cantakeadvantageofthefactthata(single-procedure)CFG canberepresentedusinga
+regular expression. We generalize this observation to mult iple-procedureprograms, as
+well astoWPDSs. Thecontributionsofthispapercanbesumma rizedasfollows:
+–We present a new reachability algorithm for WPDSs that impro ves on previously
+known algorithms for PDS reachability. The algorithm is asy mptotically faster
+when the PDS is regular(decomposes into a single graph), and offers substantial
+improvementin thegeneralcaseaswell.
+–The algorithm is completely demand-driven, and computes on ly that information
+neededforansweringa particularuserquery.It hasan impli citslicing stage where
+it disregardspartsofthe programnotneededforansweringt heuserquery.
+–We show that several other PDS analysis questions and techni ques, including wit-
+nesstracingandincrementalanalysis,carryovertothenew approach.
+Therest ofthepaperis organizedasfollows: §2providesbackgroundonPDSsand
+WPDSs. §3presentsthepreviouslyknownalgorithmandournewalgori thmforsolving
+reachability queries on WPDSs. In §4, we describe algorithms for witness tracing and
+incrementalanalysis. §5presentsexperimentalresults. §6describesrelatedwork.
+2 PDS Model Checking
+Deﬁnition1. Apushdown system is a triple P= (P, Γ, ∆ )where Pis the set of
+states or control locations, Γis the set of stack symbols, and ∆⊆P×Γ×P×Γ∗
+is the set of pushdown rules. A conﬁguration ofPis a pair /an}bracketle{tp, u/an}bracketri}htwhere p∈Pand
+u∈Γ∗. A rule r∈∆is written as /an}bracketle{tp, γ/an}bracketri}ht֒/→ an}bracketle{tp′, u/an}bracketri}htwhere p, p′∈P,γ∈Γand
+u∈Γ∗.Theserulesdeﬁneatransitionrelation ⇒onconﬁgurationsof Pasfollows:If
+r=/an}bracketle{tp, γ/an}bracketri}ht֒/→ an}bracketle{tp′, u/an}bracketri}htthen/an}bracketle{tp, γu′/an}bracketri}ht ⇒ /an}bracketle{tp′, uu′/an}bracketri}htforall u′∈Γ∗. The reﬂexive transitive
+closureof ⇒isdenotedby ⇒∗.
+Withoutlossofgenerality,we restrictPDS rulesto haveat m osttwo stacksymbols
+on the right-handside. The standardapproachfor modelingp rogramcontrolﬂow is as
+follows:Let (N,E)beanICFGwhereeach callnodeissplitintotwonodes:onehasan
+interproceduraledge goingto the entry node of the procedur ebeing called; the second
+hasanincomingedgefromtheexitnodeoftheprocedure. Nistheset ofnodesinthis
+graph and Eis the set of control-ﬂow edges. Fig. 1(a) shows an example of an ICFG,
+Fig. 1(b)showsthe pushdownsystem that modelsit. The PDS ha sa single state p, one
+stack symbol for each node in N, and one rule for each edge in E. We use rules with
+onestacksymbolontheright-handsidetomodelintraproced uraledges,ruleswithtwo
+stacksymbolsontheright-handside( pushrules)for calledges,andruleswithnostack
+symbolsontheright-handside( poprules)for returnedges.Itiseasytoseethatavalid
+path in the programcorrespondsto a path in the pushdownsyst em’s transition system,
+and vice versa. Thus, PDSs can encode ordinary control ﬂow gr aphs, but they also
+provide a convenient mechanism for modeling certain kinds o f non-local control ﬂow,
+such as setjmp/longjmp in C. At a setjmp, we push a special sym bol on the stack, and
+atalongjmpwiththesameenvironmentvariable(identiﬁedu singsomepreprocessing)
+we pop the stack until that symbol is reached. The longjmp val ue can be passed using
+thestate ofthePDS.
+Because the number of conﬁgurations of a pushdown system is u nbounded, it is
+usefultouseﬁnite automatatodescribecertaininﬁniteset s ofconﬁgurations.
+2
+
+--- Page 3 ---
+emain 
+p = NULL 
+loc 1= false 
+flag = false 
+call foo 
+ret. foo 
+exitmain n1
+n2
+n3
+n4
+n5efoo 
+i = 100 
+loc 2= true 
+if(!flag) 
+if(i > 0) 
+i = i –1
+*p= i
+loc 2= false 
+exitfoo t f
+tfn6
+n7
+n8
+n9
+n10 
+n11 
+n12 (1) /an}bracketle{tp, n1/an}bracketri}ht֒/→ an}bracketle{tp, n2/an}bracketri}ht
+(2) /an}bracketle{tp, n2/an}bracketri}ht֒/→ an}bracketle{tp, n3/an}bracketri}ht
+(3) /an}bracketle{tp, n3/an}bracketri}ht֒/→ an}bracketle{tp, n6n4/an}bracketri}ht
+(4) /an}bracketle{tp, n4/an}bracketri}ht֒/→ an}bracketle{tp, n5/an}bracketri}ht
+(5) /an}bracketle{tp, n5/an}bracketri}ht֒/→ an}bracketle{tp, ε/an}bracketri}ht
+(6) /an}bracketle{tp, n6/an}bracketri}ht֒/→ an}bracketle{tp, n7/an}bracketri}ht
+(7) /an}bracketle{tp, n7/an}bracketri}ht֒/→ an}bracketle{tp, n8/an}bracketri}ht
+(8) /an}bracketle{tp, n8/an}bracketri}ht֒/→ an}bracketle{tp, n9/an}bracketri}ht
+(9) /an}bracketle{tp, n8/an}bracketri}ht֒/→ an}bracketle{tp, n12/an}bracketri}ht
+(10) /an}bracketle{tp, n9/an}bracketri}ht֒/→ an}bracketle{tp, n10/an}bracketri}ht
+(11) /an}bracketle{tp, n9/an}bracketri}ht֒/→ an}bracketle{tp, n11/an}bracketri}ht
+(12) /an}bracketle{tp, n10/an}bracketri}ht֒/→ an}bracketle{tp, n9/an}bracketri}ht
+(13) /an}bracketle{tp, n11/an}bracketri}ht֒/→ an}bracketle{tp, n12/an}bracketri}ht
+(14) /an}bracketle{tp, n12/an}bracketri}ht֒/→ an}bracketle{tp, ε/an}bracketri}ht
+(a) (b)
+Fig.1.(a) An ICFG. The eandexitnodes represent entry and exit points of proce-
+dures, respectively. flagis a global variable, loc1andloc2are local variables of
+mainandfoo, respectively. Dashed edges represent interproceduralco ntrol ﬂow. (b)
+A pushdownsystemthatmodelsthecontrolﬂowofthe graphsho wnin(a).
+Deﬁnition2. IfP= (P, Γ, ∆ )is a pushdown system, then a P-automaton is a ﬁnite
+automaton (Q, Γ,→, P, F)where Q⊇Pis a ﬁnite set of states, →⊆Q×Γ×Qis
+the transition relation, Pis the set of initial states, and Fis the set of ﬁnal states of
+the automaton.We say that a conﬁguration /an}bracketle{tp, u/an}bracketri}htis accepted by a P-automatonif the
+automaton can accept uwhen it is started in the state p(written as pu− →∗q, where
+q∈F).Aset ofconﬁgurationsiscalled regularifsome P-automatonacceptsit.
+A weighted pushdown system is obtained by supplementing a pu shdown system
+with a weight domain that is a bounded idempotent semiring [1 6,3]. Such semirings
+are powerful enough to encode ﬁnite-state data abstraction s such as the one required
+for Boolean program veriﬁcation, as well as inﬁnite-state d ata abstractions, such as
+copy-constantpropagationandafﬁne-relationanalysis[1 2].
+Deﬁnition3. Abounded idempotent semiring is a quintuple (D,⊕,⊗,0,1), where
+Dis a set whose elements are called weights,0and1are elements of D, and⊕(the
+combineoperation)and ⊗(theextendoperation)are binaryoperatorson Dsuchthat
+1.(D,⊕)is a commutative monoid with 0as its neutral element, and where ⊕is
+idempotent. (D,⊗)is amonoidwiththe neutralelement 1.
+2.⊗distributesover ⊕,i.e.,forall a, b, c ∈Dwe have
+a⊗(b⊕c) = (a⊗b)⊕(a⊗c)and(a⊕b)⊗c= (a⊗c)⊕(b⊗c).
+3.0is anannihilatorwith respectto ⊗,i.e.,forall a∈D,a⊗0 =0 =0⊗a.
+4. In the partial order ⊑deﬁned by ∀a, b∈D, a ⊑biffa⊕b=a, there are no
+inﬁnitedescendingchains.
+Deﬁnition4. Aweighted pushdown system is a triple W= (P,S, f)where P=
+(P, Γ, ∆ )isapushdownsystem, S= (D,⊕,⊗,0,1)isaboundedidempotentsemiring
+andf:∆→Disa mapthatassignsaweighttoeachpushdownrule.
+Letσ∈∆∗be a sequence of rules. Using f, we can associate a value to σ, i.e., if
+σ= [r1, . . . , r k], then we deﬁne v(σ)def=f(r1)⊗. . .⊗f(rk). Moreover,for any two
+3
+
+--- Page 4 ---
+conﬁgurations candc′ofP, we use path(c, c′)to denote the set of all rule sequences
+[r1, . . ., r k]that transform cintoc′. Reachability problems on pushdown systems are
+generalizedto weightedpushdownsystemsasfollows.
+Deﬁnition5. LetW= (P,S, f)beaweightedpushdownsystem,where P= (P, Γ, ∆ ),
+and let C⊆P×Γ∗be a regular set of conﬁgurations. The generalized pushdown
+predecessor( GPP) problem istoﬁndforeach c∈P×Γ∗:
+δ(c)def=/circleplustext{v(σ)|σ∈path(c, c′), c′∈C}
+Thegeneralizedpushdownsuccessor( GPS)problem istoﬁndforeach c∈P×Γ∗:
+δ(c)def=/circleplustext{v(σ)|σ∈path(c′, c), c′∈C}
+Toillustratetheabovedeﬁnitions,letusencodeBooleanpr ogramsasaWPDS.Con-
+sidertheprogramshowninFig.1.Ithasoneglobalvariable flag.Weignorelocalvari-
+ables for now, and details regardingtheir treatment can be f ound in [11]. Let Gbe the
+set of all valuationsof global variables. In our case, G={0,1}because we only have
+one global variable. Each ICFG edge can be associated with a t ransformer, which is a
+binaryrelationon G, anddescribestheeffectofexecutingthatedgeonthegloba lvari-
+ables,e.g.,theedge (n2, n3)willbeassociatedwiththerelation {(0,0),(1,0)}because
+flagisset to 0(orfalse).Therefore,weusetheweightdomain (2G×G,∪,◦,∅, id),
+and for a PDS rule, we associate it with the transformer of the corresponding ICFG
+edge.Assertioncheckinginthe programcan beperformedbys eeingif a conﬁguration
+c(ora set ofconﬁgurations)canbereachedwith non-zeroweig ht,i.e, δ(c)/ne}ationslash=0.
+BooleanprogramscanalsobeencodedusingPDSsbyusingthes tatesofthePDSto
+encode valuations of global variables. However, WPDSs prov ide a more efﬁcient rep-
+resentation of Boolean programs because the weights can sym bolically encode trans-
+formers,forexample,byusingBDDs[17].Moreover,WPDSsar estrictlymorepower-
+fulthanPDSsbecausetheycanbeusedwith inﬁnite-width abstractdomainstoperform
+copy-constantpropagationandafﬁnerelationanalysis[12 ].Moredetailsontheusesof
+PDSsformodelchecking,andtheirencodingasWPDSs canbefo undin [11].
+3 Solving Reachability Problems
+In this section, we review the existing algorithm for solvin g generalized reachability
+problems on WPDSs [16], which is based on chaotic iteration, and present our new
+algorithm,whichusesTarjan’spath-expressionalgorithm [19].We limitourdiscussion
+toGPP; GPS is similarbutslightlymorecomplicated.
+3.1 SolvingGPPusing ChaoticIteration
+LetW= (P,S, f)be a WPDS where P= (P, Γ, ∆ )is a pushdown system and
+S= (D,⊕,⊗,0,1)is the weightdomain.Let Cbe a regularset of conﬁgurationsthat
+is recognizedby P-automaton A= (Q, Γ,→0, P, F). GPP issolvedbysaturatingthis
+automaton with new weighted transitions (each transition thas a weight label l(t)), to
+createautomaton Apre∗,suchthat δ(c)canberead-offefﬁcientlyfrom Apre∗:δ(/an}bracketle{tp, u/an}bracketri}ht)
+isthecombineofweightsofallacceptingpathsfor ustartingfrom p,wheretheweight
+of a path is the extend of the weight-labels of the transition s in the path in order. We
+presentthealgorithmforbuilding Apre∗basedonitsabstractgrammarproblem.
+Deﬁnition6. [16]Let (S,⊓)beameetsemilattice.An abstractgrammar over(S,⊓)
+is a collection of context-free grammar productions, where each production θhas the
+4
+
+--- Page 5 ---
+formX0→gθ(X1, . . . , X k). Parentheses, commas, and gθ(where θis a production)
+are terminal symbols. Every production θis associated with a function gθ:Sk→S.
+Thus, every string αof terminal symbols derived in this grammar denotes a compos i-
+tion of functions, and corresponds to a unique value in S, which we call valG(α). Let
+LG(X)denote the strings of terminals derivable from a nontermina lX. Theabstract
+grammar problem is to compute, for each nonterminal X, the value MOD G(X) =
+α∈LG(X)valG(α). Thisvalueiscalledthe meet-over-all-derivations valuefor X.
+We deﬁne abstract grammars over the meet semilattice (D,⊕), where Dis the set
+of weights as given above. An example is shown in Fig. 2. The no n-terminal t3can
+derivethestring α=g4(g3(g1))andval(α) =w4⊗w3⊗w1.
+(1)t1→g1(ǫ) g1=w1
+(2)t1→g2(t2) g2=λx.w 2⊗x(3)t2→g3(t1) g3=λx.w 3⊗x
+(4)t3→g4(t2) g4=λx.w 4⊗x
+Fig.2.Asimpleabstractgrammarwithfourproductions.
+Production foreach
+(1)PopSeq(q,γ,q′)→g1(ǫ) ( q, γ, q′)∈ →0
+g1=1
+(2)PopSeq(p,γ,p′)→g2(ǫ) r=/an}bracketle{tp, γ/an}bracketri}ht֒/→ an}bracketle{tp′, ε/an}bracketri}ht ∈∆
+g2=f(r)
+(3)PopSeq(p,γ,q)→g3(PopSeq(p′,γ′,q))r=/an}bracketle{tp, γ/an}bracketri}ht֒/→ an}bracketle{tp′, γ′/an}bracketri}ht ∈∆, q∈Q
+g3=λx.f(r)⊗x
+(4)PopSeq(p,γ,q)→g4(PopSeq(p′,γ′,q′),PopSeq(q′,γ′′,q))
+g4=λx.λy.f (r)⊗x⊗y r =/an}bracketle{tp, γ/an}bracketri}ht֒/→ an}bracketle{tp′, γ′γ′′/an}bracketri}ht ∈∆, q, q′∈Q
+Fig.3.AnabstractgrammarproblemforsolvingGPP.
+The abstract grammar for solving GPP is shown in Fig. 3. The gr ammar has one
+non-terminal PopSeqtfor each possible transition t∈Q×Γ×QofApre∗. The pro-
+ductions describe how the weights on those transitions are c omputed. Let l(t)be the
+weight label on transition t. Then we want l(t) =MOD(PopSeqt). The meet-over-
+all-derivation value is obtained as follows [16]: Initiali zel(t) =0for all transitions
+t. IfPopSeqt→g(PopSeqt1,PopSeqt2)is a production of the grammar (with possi-
+bly fewer non-terminals on the right-hand side) then update the weight label on tto
+l(t)⊕g(l(t1), l(t2)). The existing algorithmfor solvingGPP is a worklist-based algo-
+rithm that uses chaotic iteration to choose (i)a transition in the worklist and (ii)all
+productions that have this transition on the right side, and updates the weight on the
+transitionsontheleft-handsideoftheproductionsasdesc ribedearlier.Iftheweighton
+atransitionchangesthenitisaddedtotheworklist.Defn.3 (4)guaranteesconvergence.
+Suchachaotic-iterationschemeisnotveryefﬁcient.Consi dertheabstractgrammar
+in Fig. 2. The most efﬁcient way of saturating weights on tran sitions would be to start
+with the ﬁrst production and then keep alternating between t he next two productions
+untill(t1)andl(t2)converge before choosing the last production. Any other str ategy
+wouldhavetochoosethelastproductionmultipletimes.Thu s,itisimportanttoidentify
+such“loops”betweentransitionsandtostay withina loopbe foreexitingit.
+3.2 SolvingGPPusing PathExpressions
+Toﬁnda betteriterationschemeforGPP, we convertGPP intoa hypergraphproblem.
+5
+
+--- Page 6 ---
+Deﬁnition7. A (directed) hypergraph isageneralizationofadirectedgraphinwhich
+generalized edges, called hyperedges , can have multiple sources, i.e., the source of
+an edge is an ordered set of vertices. A transition dependence graph (TDG) for a
+grammar Gis a hypergraph whose vertices are the non-terminals of G. There is a
+hyperedgefrom (t1,· · ·, tn)totifGhasa productionwith tonthe left-handside and
+t1· · ·tnarethenon-terminalsthatappear(inorder)onthe right-ha ndside.
+(p, n 1, p) 
+(p, n 2, p) 
+(p, n 3, p) 
+(p, n 4, p) 
+(p, n 5, p) (p, n 6, p) 
+(p, n 7, p) 
+(p, n 8, p) 
+(p, n 9, p) 
+(p, n 10 , p) 
+(p, n 11 , p) 
+(p, n 12 , p) ts1 
+ts2 w1
+w2
+w4
+w5w6
+w7
+w8
+w10 w12 
+w13 
+w14 w11 w9
+w3⊗t6
+Fig.4.TDG for the PDS shown in
+Fig. 1. A WPDS is obtained from the
+PDS by supplementing rule number i
+with weight wi. Lettjstand for the
+node(p, nj, p). The thick bold arrows
+form a hyperedge. Nodes ts1andts2
+aresourcenodes,andthedashedarrow
+is a summary edge. These, along with
+edgelabels,areexplainedlaterin §3.2.If we construct the TDG of the grammar
+shown in Fig. 3 when the underlying PDS is ob-
+tained from an ICFG, and the initial set of con-
+ﬁgurations is {/an}bracketle{tp, ε/an}bracketri}ht |p∈P}(or→0=∅), then
+the TDG is identical to the ICFG (with edges re-
+versed).Fig.4showsanexample.Thiscanbeob-
+servedfromthefactthatexceptforthePDSstates
+in Fig. 3, the transition dependences are almost
+identicaltothedependencesencodedinthepush-
+downrules,whichinturncomefromICFGedges;
+e.g., the ICFG edge (n1, n2)corresponds to the
+transition dependence ((t2), t1)in Fig. 4, and the
+call-returnpair (n3, n6)and(n12, n4)intheICFG
+correspondstothe hyperedge ((t4, t6), t3).
+For such pushdown systems, constructing
+TDGs might seem unnecessary but it allows us
+to choose an initial set of conﬁgurations, which
+deﬁnesa regionof interest in the program.More-
+over, PDSs can encode much stronger properties
+than an ICFG, such as setjmp/longjmp in C pro-
+grams.However,itisstill convenienttothinkofa
+TDG as an ICFG. In the rest of this paper, we il-
+lustrate the issues using the TDG of the grammar
+in Fig. 3. We reduce the meet-over-all-derivation
+problemonthegrammartoa meet-over-all-pathsproblemoni tsTDG.
+Intraprocedural Iteration. We ﬁrst consider TDGs of a special form: consider the
+intraproceduralcase, i.e., therearenohyperedgesin the T DG(andcorrespondinglyno
+pushrulesinthePDS).Asanexample,assumethattheTDGinFi g.4hasonlythepart
+correspondingtoprocedure foo()withoutanyhyperedges.InsuchaTDG,ifanedge
+((t1), t)was inserted becauseof the production t→g(t1)forg=λx.x⊗wfor some
+weight w, then label this edge with w. Next, insert a special node tsinto the TDG and
+foreachproductionoftheform t→g(ǫ)withg=w,inserttheedge ((ts), t)andlabel
+itwithweight w.tsiscalledasourcenode.Thisgivesusagraphwithweightsone ach
+edge. Deﬁne the weight of a path in this graph in the standard ( but reversed) way: the
+weight of a path is the extend of weights on its constituent ed ges in the reverse order.
+It is easy to see that MOD (t) =/circleplustext{v(η)|η∈path(ts, t)}, where path(ts, t)is the
+set of all paths from tstotin the TDG and v(η)is the weight of the path η. To solve
+for MOD, wecouldstill use chaoticiteration,but insteadwe will makeuseof Tarjan’s
+path-expressionalgorithm[19].
+6
+
+--- Page 7 ---
+Problem1. Given a directed graph Gand a ﬁxed vertex s, thesingle-source path ex-
+pression (SSPE)problemistocomputearegularexpressionthatrepre sentspath(s, v)
+forallvertices vin thegraph.Thesyntaxofregularexpressionsis asfollows :r::=∅ |
+ε|e|r1∪r2|r1.r2|r∗, where estandsforanedgein G.
+We can use the SSPE algorithm to compute regular expressions forpath(ts, t),
+which gives us a compact description of the set of paths we nee d to consider. Also,
+the Kleene-star operator identiﬁes loops in the TDG. Let ⊗cbe the reverse of ⊗,
+i.e.,w1⊗cw2=w2⊗w1. To compute MOD (t), we take the regular expression for
+path(ts, t)andreplaceeachedge ewithitsweight, ∅with0,εwith1,∪with⊕,.with
+⊗c,andsolvetheexpression.Theweight w∗iscomputedas 1⊕w⊕(w⊗w)⊕· · ·;be-
+causeofthebounded-heightpropertyofthesemiring,thisi terationconverges.Thetwo
+mainadvantagesofusingregularexpressionstocompute MOD (t)are:First, loopsare
+identiﬁed in the expression, and the evaluation strategy sa turates a loop before exiting
+it.Second,wecancompute w∗fasterthannormaliterationcould.Forthis,observethat
+(1⊕w)n=1⊕w⊕w2⊕ · · · ⊕ wn
+where exponentiationis deﬁnedusing ⊗, i.e.,w0=1andwi=w⊗w(i−1). Then w∗
+can be computed by repeatedly squaring (1⊕w)until it converges.If w∗=1⊕w⊕
+· · · ⊕wnthen it can be computed in O(logn)operations. A chaotic-iteration strategy
+would take O(n)steps to compute the same value. In other words, having a clos ed
+representationofloopsprovidesanexponentialspeedup.3
+Tarjan’s algorithm uses dominators to construct the regular expressions for SSPE.
+Thishastheeffectofcomputingtheweightonthedominators ofanodebeforecomput-
+ingtheweightonthenodeitself.Thisavoidsunnecessarypr opagationofpartialweights
+to the node (which is the case when you exit a loop too early). G iven a graph with m
+edges(or mgrammarproductionsin our case) and nnodes(or non-terminals),regular
+expressionsfor path(ts, t)canbecomputedforallnodes tintime O(mlogn)whenthe
+graphisreducible .Evaluatingtheseexpressionswilltakeanadditional O(mlognlogh)
+semiring operations, where his the height of the semiring.4Because most high-level
+languagesarewell-structured,theirICFGsaremostlyredu cible.Whenthegraphisnot
+reducible, the running time degrades to O((mlogn+k)logh)semiring operations,
+where kis the sum of the cubes of the sizes of dominator-strong components of the
+graph. In the worst case, kcan be O(n3). In our experiments, we seldom found irre-
+ducibility to be a problem: k/nwas a small constant. A pure chaotic-iterationstrategy
+would take O(m h)semiring operationsin the worst case. Comparing these comp lex-
+ities, we can expect the algorithm that uses path expression s to be much faster than
+chaoticiteration,andthe beneﬁtwill begreaterastheheig htofthesemiringincreases.
+Interprocedural Iteration. We now generalize our algorithm to any TDG. For each
+hyperedge ((t1, t2), t), delete it from the graph and replace it with the edge ((t1), t).
+3Thisassumesthateachsemiringoperationtakesthesameamo untoftime.Intheabsenceofany
+assumptiononthesemiringbeingused,weaimtodecreasethe numberofsemiringoperations.
+Insomecases,e.g.,BDD-basedweightdomains,repeatedsqu aringmaynotreducetheoverall
+running time. However, the user can supply a procedure for co mputing w∗whenever there is
+a more efﬁcient wayof computing it thanbyusing simple itera tion[13].
+4The combined sizes of the regular expressions are bounded by the running time of the SSPE
+algorithm.
+7
+
+--- Page 8 ---
+Thisnewedgeiscalleda summaryedge ,andnode t2iscalledan out-node.Forexample,
+inFig.4we woulddeletethehyperedge ((t4, t6), t3)andreplaceit with ((t4), t3). The
+new edge is called a summary edge because it crosses a call-si te (from a return node
+to a call node) and will be used to summarize the effect of a pro cedure call. Node t6
+is an out-nodeand will supply the proceduresummary weight. The resultant TDG is a
+collectionof connectedgraphs,with eachgraphroughlycor respondingtoa procedure.
+In Fig. 4, the transitions that correspond to procedures mainandfooget split. Each
+connected graph is called an intragraph . For each intragraph, we introduce a source
+nodeasbeforeandaddedgesfromthesourcenodetoallnodest hathave ǫ-productions.
+Theweightlabelsarealsoaddedasbefore.Forasummaryedge ((t1), t)obtainedfrom
+a hyperedge ((t1, t2), t)with associated production function g=λx.λy.w ⊗x⊗y,
+labelit with w⊗t2,ort2⊗cw.
+This gives us a collection of intragraphs with edges labeled with either a weight
+or a simple expression with an out-node.To solve for the MOD v alue, we construct a
+set ofregularequations ,which we call as out-nodeequations.For an intragraph G, let
+tGbe its unique source node. Then, for each out-node toinG, construct the regular
+expression for all paths in GfromtGtoto, i.e., for path(tG, to). In this expression,
+replace each edge with its corresponding label. If the resul ting expression is rand it
+contains out-nodes t1totn, add the equation to=r(t1,· · ·, tn)to the set of out-
+nodeequations.Repeat thisfor all intragraphs.The result ing set of out-nodeequations
+describe all hyperpaths in the TDG to an out-node from the col lection of all source
+nodes. The MOD value of the out-nodes is the greatest ﬁx-poin t of these equations
+(withrespectto ⊑ofDefn.3(4)).Forexample,fortheTDGshowninFig.4,assum ing
+thatt1isalso anout-node,wewouldobtainthefollowingout-nodee quations.5
+t6=w14.(w9⊕w13.w11.(w12.w10)∗.w8).w7.w6
+t1=w5.w4.(t6.w3).w2.w1
+Here we have used .as a shorthand for ⊗c. One way to solve these equations is by
+using chaotic iteration: start by initializing each out-no de with 0(the greatest element
+inthesemiring)andupdatethevaluesofout-nodesbyrepeat edlysolvingtheequations
+untiltheyconverge.Wecangivedirectiontothisiteration byconstructingadependence
+graphoftheseequation,whereanequation to=r(t1,· · ·, tn)givesrisetodependences
+ti→to,1≤i≤n. We take a strongly connectedcomponent (SCC) decompositionof
+thisgraphandsolveallequationsinonecomponentbeforemo vingtoequationsinnext
+component(in a topologicalorder).We couldalso use regula rexpressionsto deﬁne an
+evaluation order on these equations (details are given in [1 1]), but we chose a simpler
+implementationbecauseSCCsinthisdependencegraph,whic hcorrespondtomutually
+recursiveprocedures,tendto bequitesmall inpractice.
+Each regular expression in the out-node equations summariz es all paths in an in-
+tragraph and can be quite large. Therefore, we want to avoid e valuating them repeat-
+edly while solving the equations. To this end, we incrementa lly evaluate the regular
+expressions: only that part of an expression is reevaluated that contains a modiﬁed
+out-node. (In the algorithm given in Fig. 5, the entire expre ssion may be traversed,
+but reevaluations are performed selectively.) A regular ex pression is represented us-
+5TheequationsmightbedifferentdependingonhowtheSSPEal gorithmwasimplemented,but
+allsuch equations would have the same solution.
+8
+
+--- Page 9 ---
+ing its abstract-syntax tree, where leaves are weights or ou t-nodes, and internal nodes
+correspondto ⊕,⊗, or∗. As a furtheroptimization,all regularexpressionsshare c om-
+monsubtrees,andarerepresentedasDAGsinsteadoftrees.T heincrementalalgorithm
+we use takes care of this sharing and also identiﬁes modiﬁed o ut-nodes in an expres-
+sion automatically. At each DAG node we maintain two integer s,lastchange and
+lastseen, as well as the weight weight of the subdag rooted at the node. We as-
+sumethatallregularexpressionssharethesameleavesforo ut-nodes.We keepaglobal
+counter update countthat is incremented each time the weight of some out-node
+is updated. For a node, the counter lastchange records the last update count at
+which the weight of its subdag changed, and the counter lastseenrecords the up-
+date count at which the subdag was reevaluated. The evaluati on algorithm is shown in
+Fig. 5. When the weight of an out-node is changed, its corresp ondingleaf node is up-
+dated with that weight, update countis incremented, and the out-node’s counters
+areset to update count.
+1procedure evaluate(r)
+2begin
+3ifr.last seen == update countthenreturn
+4caser =w, r = toreturn
+5caser = op (r1,r2)
+6 evaluate( r1),evaluate( r2)
+7 m = max {r1.last change, r 2.last change }
+8ifm>r.last seenthen
+9 w = op(r 1.weight, r 2.weight)
+10 ifr.weight /ne}ationslash=wthen
+11 r.last change = m
+12 r.weight = w
+13 r.last seen = update count
+14end
+Fig.5.Incremental evaluation algorithm for regular expressions . Hereopisthe preﬁxversion of
+⊗,⊕,or∗.When opis∗,r2canbe ignored.
+Once we solve for the values of the out-nodes, we can change th e out-node labels
+onsummaryedgesintheintragraphsandreplacethemwiththe ircorrespondingweight.
+Thenthe MOD valuesforothernodesintheTDGcanbeobtaineda sintheintraproce-
+duralversionbyconsideringeachintragraphinisolation.
+The time required for solving this system of equations depen ds on reducibility of
+theintragraphs.Let SGbethetimerequiredtosolveSSPEonintragraph G, i.e.,SG=
+O(mlogn+k)where kisO(n3)in the worst-case, but is ignorablein practice.If the
+equations do not have any mutual dependences (correspondin g to no recursion) then
+the running time is/summationtext
+GSGlogh, where the sum ranges over all intragraphs, because
+each equation has to be solved exactly once. In the presence o f recursion, we use the
+observationthattheweightofeachsubdaginaregularexpre ssioncanchangeatmost h
+timeswhiletheequationsarebeingsolvedbecauseitcanonl ydecreasemonotonically.
+Because the size of a regular expression obtained from an int ragraph Gis bounded
+bySG, the worst-case time for solving the equations is/summationtext
+GSGh. This bound is very
+pessimistic and is actually worse than that of chaotic itera tion. Here we did not make
+use of the fact that incrementally computing regular expres sions is much faster than
+reevaluatingthem. For a regular expressionwith one modiﬁe d out-node,we only need
+9
+
+--- Page 10 ---
+to perform semiring operationsfor each node from the out-no deleaf to the root of the
+expression. For a nearly balanced regular expression tree, this path to the root can be
+assmallas logSG.Empirically,wefoundthatincrementallycomputingtheex pression
+requiredmanyfeweroperationsthanrecomputingtheexpres sion.
+Unlike the chaotic-iterationscheme, where the weights of a ll TDG nodesare com-
+puted, we only need to compute the weights on out-nodes. The w eights for the rest of
+the nodescan be computedlazily byevaluatingtheir corresp ondingregularexpression
+only when needed. For applications that just require the wei ght for a few TDG nodes,
+thisgivesusadditionalsavings.We also limit the computat ionof weightsofout-nodes
+to only those intragraphsthat contain a TDG node whose weigh t is required.This cor-
+responds to slicing the out-node equations with respect to t he user query, which rules
+outcomputationinproceduresthatareirrelevantto theque ry.
+Handling Local Variables. WPDSs were recently extended to Extended-WPDSs to
+provide a more convenient mechanism for handling local vari ables [12]. Reachability
+problems in EWPDS are also based on abstract grammars simila r to the ones for a
+WPDS. Thus,we can easily adaptouralgorithmto EWPDSs aswel l. Detailsare given
+in[11].We useEWPDSsin ourexperiments.
+4 Solving other PDSProblems
+In this section, we give algorithms for some important PDS pr oblems: witness tracing
+andincrementalanalysis.Ourtechnicalreport[11]alsogi vesanalgorithmfordifferen-
+tialweightpropagation.Ofthesethree,onlywitnesstraci nganddifferentialpropagation
+havebeendiscussedbeforeforWPDSs [16].
+4.1 WitnessTracing
+For program-analysistools, if a program does not satisfy a p roperty, it is often useful
+to provide a justiﬁcation of why the property was not satisﬁe d. In terms of WPDSs, it
+amountsto reportingaset ofpaths,orrulesequences,thatt ogetherjustifythereported
+weight for a conﬁguration.Formally,using the notationof D efn. 5, the witness tracing
+problem for GPP is to ﬁnd, for each conﬁguration c, a set ω(c)⊆/uniontext
+c′∈Cpath(c, c′)
+such that/circleplustext
+σ∈ω(c)v(σ) =δ(c). This deﬁnition of witness tracing does not impose any
+restrictions on the size of the reported witness set because any compact representation
+of the set sufﬁces for most applications. The algorithm for w itness tracing for GPP
+[16]requires O(|Q|2|Γ|h)memory.Ouralgorithmonlyrequires O(|ON|h)memory,
+where |ON|isthenumberofout-nodes,whichisexpectedtobemuchsmall erthan |Γ|.
+In our new GPP algorithm, we already have a head start because we have regular
+expressions that describe all paths in an intragraph. In the intragraphs, we label each
+edge with not just a weight, but also the rule that justiﬁes th e edge. Push rules will be
+associated with summary edges and pop rules with edges that o riginate from a source
+node.Edgesfromthesourcenodethatwereinsertedbecauseo fproduction (1)inFig.3
+are not associated with any rule (or with an empty rule sequen ce). After solving SSPE
+on the intragraphs, we can replace each edge with the corresp onding rule label. This
+gives us, for each out-node, a regular expression in terms of other out-nodes that cap-
+tures the set of all rule sequences that can reach that out-no de.Next, while solving the
+regular equations, we record the weights on out-nodes; i.e. , when we solve the equa-
+10
+
+--- Page 11 ---
+tionto=r(t1,· · ·, tn), we record the weights on t1,· · ·, tn— say w1,· · ·, wn—
+whenevertheweighton tochangesto,say, wo.Thentheset ofrulesequencestocreate
+transition towithweight woisgivenbytheexpression r(wherewereplaceTDGedges
+with their rule labels) by replacing each out-node tiwith the regular expressionfor all
+rulesequencesusedtocreate tiwithweight wi(obtainedrecursively).Thisgivesareg-
+ular expression for the witness set of each out-node. Witnes s sets for other transitions
+can be obtained by solving SSPE on the intragraphsby replaci ngout-node labels with
+theirwitness-set expression.
+Here we only require O(|ON|h)space for recording witnesses because we just
+havetorememberthehistoryofweightsonout-nodes.ForPDS sobtainedfromICFGs
+and empty initial automaton, |ON|is the number of proceduresin the ICFG, which is
+verysmall comparedto |Γ|.
+4.2 IncrementalAnalysis
+Theﬁrstincrementalalgorithmforverifyingﬁnite-statep ropertiesonICFGswasgiven
+byConwayetal.[4].Wecanusethemethodspresentedinthisp apertogeneralizetheir
+algorithmtoWPDSs.Anincrementalapproachtomodelchecki nghastheadvantageof
+amortizingtheveriﬁcationtime acrossprogramdevelopmen tordebuggingtime.
+We considertwo cases: additionofnewrulesanddeletionofe xistingones.Ineach
+case we workat the granularityofintragraphs.Whena newrul e is added,the ﬁx-point
+solutionoftheout-nodeequationsmonotonicallydecrease sandwecanreuseall ofthe
+existing computation.We ﬁrst identifythe intragraphstha t changed(have moreedges)
+because of the new rule. Next, we recompute the regular expre ssions for out-nodes in
+those intragraphs and add them to the set of out-node equatio ns.6Then we solve the
+equationsasbefore,butsettheinitialweightsofout-node stobetheirexistingvalue.If
+newout-nodeswereadded,thenset theirinitialvalueto 0.
+Deletion of a rule requires more work. Again, we identify the changedintragraphs
+andrecomputetheout-nodeequationsforthem.We call out-n odesintheseintragraphs
+asmodiﬁedout-nodes.Next,welookatthedependencegraphoftheout-n odeequations
+as constructed in §3.2. We perform an SCC decompositionof this graph and topolo gi-
+callysorttheSCCs. Thentheweightsforallout-nodesthata ppearbeforetheﬁrstSCC
+thathasamodiﬁedout-nodeneednotbechanged.We recompute thesolutionforother
+out-nodes in topological order, and stop as soon as the new va lues agree with previ-
+ous values. We start with out-nodes in the ﬁrst SCC that has a m odiﬁed out-node and
+solvefortheirweights.Ifthenewweightofanout-nodeisdi fferentfromitspreviously
+computed weight, all out-nodes in later SCCs that are depend ent on it are marked as
+modiﬁed.We repeatthisprocedureuntiltherearenomoremod iﬁedout-nodes.
+The advantage of doing incremental analysis in our framewor k is that very little
+information has to be stored between analysis runs: We only n eed to store weights on
+out-nodes.
+5 Experiments
+WeareawareoftwoimplementationsofWPDSs:WPDS++[8]ando neusedbynMoped
+[9].WecalltheimplementationofouralgorithmasFWPDS(Fs tandsfor“fast”).Itcan
+6ThereareincrementalalgorithmsforSSPEaswell,butwehav enotusedthembecausesolving
+SSPEfor a single intragraph isusually veryfast.
+11
+
+--- Page 12 ---
+beplugged-inasaback-endforeachoftheWPDSlibraries.WP DS++alsosupportsan
+optimizediterationstrategywheretheusercansupplyapri ority-orderingonstacksym-
+bols, whichis usedby chaotic iterationto choose the transi tionwith least priorityﬁrst.
+We refer to this version as BFS-WPDS++ and supply it with a bre adth-ﬁrst ordering
+onthe ICFG obtainedbytreatingit asa graph.BFS-WPDS++ alm ostalwaysperforms
+betterthanWPDS++.
+To measure end-to-endperformance,FWPDS only computesthe weight on transi-
+tions requiredby the application. We also report the time ta ken to compute the weight
+onalltransitionsandrefertothisasFWPDS-Full.Acompari sonwithFWPDS-Fullwill
+giveanindicationof“application-independent”improvem entprovidedbyourapproach
+becauseitcomputesthesameamountofinformationasthepre viousWPDSalgorithms.
+However, we measure speedups using FWPDS running times to sh ow the potential of
+usinglazy-evaluationinrealsettings.FWPDS-Fullusesal eft-associativeevaluationor-
+der for computingweights of regular expressions. It is also worth noting that repeated
+squaring for computing w∗did not cause any appreciable difference compared with
+usingasimpleiterativemethod.
+WetestedFWPDSonthreeapplicationsthatuseWPDSs.Ineach ,weperformGPS
+on the WPDS with the entry point of the programas the initial c onﬁguration.The ﬁrst
+applicationperformsafﬁne-relationanalysis(ARA)onx86 programs[12].Anx86pro-
+gram is translated into a WPDS to ﬁnd afﬁne relationshipsbet ween machine registers.
+The application only requires afﬁne relationships at certa in branch points [1]. Some
+of the results are shown in Table 1. Over all the experiments w e performed, FWPDS
+provided an average speedup of 1.6times (i.e., reduced running time by 38%) over
+BFS-WPDS++.
+Time(s) Speedup
+Prog InstsProcsWPDS++ BFS-WPDS++ FWPDS-Full FWPDS
+print 75539697 1.23 1.02 0.770.412.48
+ﬁnger 9612389311.14 7.94 7.134.441.79
+winhlp32 1576346491 25.51 19.61 17.3211.00 1.78
+regsvr32 2258579625 58.70 38.83 37.1524.65 1.57
+cmd 2304812317 69.19 46.33 52.3834.87 1.33
+notepad 2394082911 54.08 40.8 41.8526.50 1.54
+Table 1.Comparisonof ARA results. The last column show the speedup( ratio of run-
+ning times) of FWPDS versus BFS-WPDS++. The programs are com mon Windows
+executables,andtheexperimentswererunon 3.2GhzP4machinewith 4GBRAM.
+Thesecondapplication,BT RACE,isfordebugging[10].Itperformspathoptimiza-
+tion on C programs: given a set of ICFG nodes, called critical nodes, it tries to ﬁnd a
+shortestICFGpaththattouchesthemaximumnumberofthesen odes.Thepathstartsat
+theentrypointoftheprogramandstopsatagivenfailurepoi ntintheprogram.FWPDS
+only computes the weight at the failure point. As shown in Tab le 2, FWPDS performs
+much better than BFS-WPDS++ for this application, and the ov erall speedup was 4.3
+times. Some experimental results on incremental analysis f or BTRACEare presented
+in [11]: We observed a roughly 10-fold improvement by incrementally computing the
+solutionaftera deletedprocedurewasreinsertedin thepro gram.
+The third application is nMoped [9], which is a model checker for Boolean pro-
+grams. It uses a WPDS library for performingreachability qu eries.Weights are binary
+12
+
+--- Page 13 ---
+Time(s) Speedup
+ProgICFG nodes ProcsBFS-WPDS++ FWPDS-Full FWPDS
+make 40667204 15.1 7.75.82.58
+indent 28155104 19.6 28.215.91.24
+less 33006359 22.4 8.65.34.19
+patch 27389133 70.2 23.217.14.09
+gawk 86617401 72.7 64.545.11.61
+wget 44575399 318.4 58.927.011.77
+Table 2.Comparison of BT RACEresults. The last column shows speedup of FWPDS
+over BFS-WPDS++. The critical nodes were chosen at random fr om ICFG nodes and
+thefailuresitewassetastheexitpointoftheprogram.Thep rogramsarecommonUnix
+utilities, andthe experimentswererunon 2.4GHzP4 machinewith 4GBRAM.
+relationsonvaluationsofBooleanvariables,andarerepre sentedusingBDDs.Wemea-
+sure the performance of FWPDS against this library using a se t of programs (and an
+error conﬁgurationfor each program)supplied by S. Schwoon . We compute the set of
+all variable valuations that can hold at the error conﬁgurat ion by computing its meet-
+over-all-pathsweight.AsshowninTable3,FWPDSis 2to5timesfasterthannMoped.
+Our technical report [11] gives some other set of experiment s, but they were on much
+smallerprogramsandledto inconclusiveresults.
+nMopedcanalsobeaskedtostopassoonasitﬁndsoutthatthee rrorconﬁguration
+is reachable (instead of exploring all paths leading to the e rror conﬁguration). In that
+case,whentheerrorconﬁgurationwasreachable,nMopedper formedmuchbetterthan
+FWPDS, often completing in less than a second. This is expect ed because the evalua-
+tion strategy used by FWPDS is oriented towards ﬁnding the co mplete weight (MOD
+value) on a transition. For example, it might be better to avo id saturating a loop com-
+pletelyandpropagatepartiallycomputedweightsinthe hop eof ﬁndingoutif the error
+conﬁguration is reachable. However, when the error conﬁgur ation is unreachable, or
+when the abstraction-reﬁnementmode in nMoped is turned on, it explores all paths in
+the programand computesthe MOD value of all transitions. In such situations, it may
+bebettertouse FWPDS.
+Prog nMopedFWPDS-Full FWPDSSpeedup
+bugs5 13.11 13.03 7.251.81
+slam-ﬁxed 32.67 19.23 13.32.46
+slam 6.32 5.213.271.93
+uniﬁed-serial 37.10 19.6512.46 2.98
+iscsi1 29.15 27.1214.08 2.07
+iscsi10 178.22 59.6331.29 5.70
+Table 3. nMoped results. The last column shows speedup of FWPDS over n Moped.
+TheprogramswereprovidedbyS.Schwoon,andarenotyetpubl icallyavailable.
+6 Related Work
+Thebasicstrategyofusingaregularexpressiontodescribe asetofpathshasbeenused
+previouslyfordataﬂowanalysis[20]ofsingle-procedurep rograms.Theonlyworkthat
+we are aware of that uses this technique for multi-procedure programs is by Rama-
+lingam [15]. However, he used regular expressions for a part icular analysis (execution
+13
+
+--- Page 14 ---
+frequencyanalysis)andthetechniquewasmotivatedbythes pecialrequirementsofex-
+ecution frequencyanalysis when creating proceduresummar ies, rather than efﬁciency.
+We havegeneralizedthe approachto applyto a muchbroaderse t of problems,namely
+anythingthat can be encoded as a WPDS, and showed how various enhancements(in-
+cremental recomputation of regular expressions, computin g lazily, etc.) contribute to
+creatinga fasteranalysis.
+Therehasbeena host ofpreviousworkonincrementalprogram analysisaswell as
+on interprocedural automaton-based analysis [4]. The incr emental algorithm we have
+presented is similar to the algorithm in [4], but generalize s it to WPDSs and is thus
+applicableindomainsotherthanﬁnite-statepropertyveri ﬁcation.Akeydifferencewith
+theiralgorithmisthattheyexplorethepropertyautomaton on-the-ﬂyasthe programis
+explored.OurencodingintoaWPDSrequiresthewholeautoma tonbeforetheprogram
+is explored. This difference can be signiﬁcant when the auto maton is large but only a
+small partofthe automatonneedstobegenerated.
+References
+1. G.BalakrishnanandT.Reps. Analyzingmemoryaccesses in x86executables. In CC,2004.
+2. A.Bouajjani,J.Esparza,andO.Maler. Reachabilityanal ysisofpushdown automata:Appli-
+cationtomodel checking. In Concurrency Theory (CONCUR) ,pages 135–150, 1997.
+3. A.Bouajjani,J.Esparza,andT.Touili.Agenericapproac htothestaticanalysisofconcurrent
+programs withprocedures. In POPL,pages 62–73, 2003.
+4. C. L. Conway, K. S. Namjoshi, D. Dams, and S. A. Edwards. Inc remental algorithms for
+inter-procedural analysis of safetyproperties. In CAV,pages 449–461, 2005.
+5. J.Esparza,D.Hansel,P.Rossmanith,andS.Schwoon. Efﬁc ientalgorithmsformodelcheck-
+ingpushdown systems. In CAV,pages 232–247, 2000.
+6. J. Esparza and S. Schwoon. A BDD-based model checker for re cursive programs. In CAV,
+pages 324–336, 2001.
+7. A. Finkel, B. Willems, and P. Wolper. A direct symbolic app roach tomodel checking push-
+down systems. Electronic NotesinTheoretical Computer Science , 9, 1997.
+8. N. Kidd, T. Reps, D. Melski, and A. Lal. WPDS++: A C++ librar y for weighted pushdown
+systems, 2005. http://www.cs.wisc.edu/wpis/wpds++.
+9. S. Kiefer, S. Schwoon, and D. Suwimonteerabuth. nMoped, 2 005.
+http://www.informatik.uni-stuttgart.de/fmi/szs/tool s/moped/nmoped/.
+10. A. Lal,J. Lim, M. Polishchuk, and B. Liblit. Pathoptimiz ation in programs and its applica-
+tiontodebugging. In European Symposium OnProgramming , pages 246–263, 2006.
+11. A. Lal and T. Reps. Improving pushdown system model check ing. Technical Report 1552,
+Universityof Wisconsin-Madison, Jan. 2006.
+12. A.Lal,T.Reps,andG.Balakrishnan. Extendedweightedp ushdown systems. In CAV,pages
+434–448, 2005.
+13. Y. Matsunaga, P. C. McGeer, and R. K. Brayton. On computin g the transitive closure of a
+state transitionrelation. In Design AutomationConference (DAC) ,pages 260–265, 1993.
+14. E.W.Myers. Apreciseinterproceduraldataﬂowalgorith m. InPOPL,pages219–230,1981.
+15. G.Ramalingam. Data ﬂow frequency analysis. In PLDI,pages 267–277, 1996.
+16. T.Reps, S.Schwoon, S.Jha,and D.Melski. Weightedpushd own systems and theirapplica-
+tiontointerprocedural dataﬂow analysis. Science of Computer Programming , 2005.
+17. S. Schwoon. Model-Checking Pushdown Systems . PhD thesis, Technical Univ. of Munich,
+Munich, Germany, July2002.
+18. S.Schwoon. Moped, 2002. http://www.fmi.uni-stuttgar t.de/szs/tools/moped/.
+19. R.E.Tarjan. Fastalgorithms for solving pathproblems. J.ACM,28(3):594–614, 1981.
+20. R.E.Tarjan. Auniﬁed approach topathproblems. J. ACM,28(3):577–593, 1981.
+14

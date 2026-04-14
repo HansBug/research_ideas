@@ -1,0 +1,2550 @@
+--- Page 1 ---
+PerformanceAnalysisofProbabilisticTimedAutomatausing
+Digital Clocks∗
+Marta Kwiatkowska, Gethin Norman and David Parker
+School of Computer Science, University of Birmingham, Edgbaston, Birmingham B15 2TT,
+United Kingdom ( {mzk,gxn,dxp }@cs.bham.ac.uk )
+Jeremy Sproston
+Dipartimento di Informatica, Universit `a di Torino, 10149 Torino, Italy
+(sproston@di.unito.it )
+Abstract. Probabilistic timed automata, a variant of timed automata extended with dis-
+crete probability distributions, is a modelling formalism suitable for describing formally both
+nondeterministic and probabilistic aspects of real-time systems, and is amenable to model
+checkingagainstprobabilistictimedtemporallogicproperties.However,thepreviouslydevel-
+opedveriﬁcationalgorithmseithersufferfromhighcomplexity,giveonlyapproximateresults,
+or are restricted to a limited class of properties. In the case of classical (non-probabilistic)
+timed automata it has been shown that for a large class of real-time veriﬁcation problems
+correctnesscanbeestablishedusinganintegralmodeloftime(digitalclocks)asopposedtoa
+densemodeloftime.Basedontheseresultsweaddressthequestionofunderwhatconditions
+digital clocks are sufﬁcient for the performance analysis of probabilistic timed automata and
+show that this reduction is possible for an important class of systems and properties includ-
+ing probabilistic reachability and expected reachability. We demonstrate the utility of this
+approach by applying the method to the performance analysis of three probabilistic real-time
+protocols: the dynamic conﬁguration protocol for IPv4 link-local addresses, the IEEE 802.11
+wireless local area network protocol and the IEEE 1394 FireWire root contention protocol.
+Keywords: Probabilistic model checking, timed automata, digital clocks
+1. Introduction
+Network protocols increasingly rely on the use of randomness and timing
+delays, for example the exponential back-off in Ethernet and IEEE 802.11.
+Since these protocols execute in a distributed environment, it is important
+to also consider nondeterminism when modelling their behaviour. A natural
+model for systems that exhibit nondeterminism, probability and real time,
+calledprobabilistic timed automata – a probabilistic extension of timed au-
+tomata [2] – has been proposed in [38]. In probabilistic timed automata,
+real-valued clocks measure the passage of time, and transitions can be prob-
+abilistic, that is, be expressed as a discrete probability distribution on the set
+of target states. In [38] model-checking algorithms for verifying the likeli-
+hood of certain temporal properties being satisﬁed by such system models
+∗Supported in part by the EPSRC grants GR/N22960, GR/S11107 and GR/S46727,
+FORWARD and MIUR-FIRB Perf.
+c/circlecopyrt2006Kluwer Academic Publishers. Printed in the Netherlands.
+digital.tex; 30/03/2006; 10:07; p.1
+
+--- Page 2 ---
+2 Kwiatkowska, Norman, Parker and Sproston
+are introduced. These model checking algorithms are either based on re-
+gion equivalence [2], which results in prohibitively large state spaces for
+realistic systems, or on forwards reachability , which leads to approximate
+results [38, 20]. An alternative approach, based on backwards reachability ,
+is given in [39, 42]; while this can be more efﬁcient than the region equiv-
+alence approach and leads to exact results, the approach has been applied
+onlytoprobabilistictemporallogics,andnottootherclassesofperformance
+properties such as expected-time or expected-cost.
+Whenmodellingreal-timesystemsthereisatradeoffbetweenexpressive-
+ness and complexity. For example, a densetime model is more expressive
+thananintegraltimemodel.However,itisgenerallythecasethatanintegral
+timemodeliseasiertoverify,sinceitleadstoaﬁnite-statesystemandallows
+one to apply the efﬁcient symbolic methods developed for untimed systems.
+Henzinger et al. [30] study the question of when real-time properties can be
+veriﬁed using only integral durations (digital clocks), and show that such a
+reductionispossibleforalargeclassofsystemsandproperties,suchastime-
+bounded invariance and response. Other related work includes [7], where it
+wasobservedthattoperformreachabilityanalysisofcertainclassesoftimed
+automata one need only consider integer clock values, and [13, 14] which
+show that using BDDs and integral durations can lead to efﬁcient methods
+forperformingreachabilityanalysisoftimedautomata.Wealsomention[25]
+and [45] which investigate the power of digital clocks.
+The main contribution of this paper is to extend this direction of research
+to the domain of probabilistic timed automata by showing that digital clocks
+aresufﬁcientforanalysingalargeclassofprobabilisticreal-timesystemsand
+performance measures. The models that can be considered are those which
+can be represented by closed,diagonal-free probabilistic timed automata,
+intuitively automata whose clock constraints do not compare the values of
+clocks with one another or contain strict comparisons with constants. The
+performance measures include probabilistic reachability properties, which
+for example allow us to check the correctness of the following statements:
+‘with probability 0.05 or less, the system aborts’ and ‘with probability 0.99
+or greater, a data packet will be delivered within 5 time units’. Additionally,
+expected reachability properties can be veriﬁed using digital clocks, which
+enableustovalidatestatementssuchas:‘theexpectedtimeuntiladatapacket
+is delivered is at most 20ms’, ‘the expected number of packets sent before
+failure is at least 100’ and ‘the expected number of retransmissions before a
+packet is sent is at most 5’.
+Wethendemonstratetheapplicabilityofthisapproachonthreecasestud-
+ies using the probabilistic symbolic model checker PRISM [35, 47] to per-
+form the analysis. In each case study the interplay between real-time, non-
+determinismandprobabilisticbehaviouriscriticalandeachcanbemodelled
+naturallyasa(closed,diagonal-free)probabilistictimedautomaton.Theﬁrst
+digital.tex; 30/03/2006; 10:07; p.2
+
+--- Page 3 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 3
+concerns the ZeroConf dynamic conﬁguration protocol for IPv4 link-local
+addresses[18](preliminaryresultsconcerningthiscasestudycanbefoundin
+[37]).Thesecondextendstheresultsof[40],andinvestigatestheperformance
+of the contention resolution protocol of the IEEE 802.11 wireless local area
+networkstandard[33].Inthethirdcasestudyweconsidertherootcontention
+protocol of the IEEE 1394 FireWire standard [32], previously studied using
+probabilistic timed automata in [41, 20]. In the latter two publications, the
+analysis was with respect to probabilistic reachability properties, whereas in
+this paper we study expected reachability properties.
+Outline. The next section introduces preliminary concepts that we will use
+in the remainder of the paper. In Section 3 we introduce probabilistic timed
+automata,theirsemanticsforboththedenseandintegralmodelsoftime,two
+corresponding performance measures (probabilistic and expected reachabil-
+ity) and model checking techniques to compute these measures. Section 4
+shows that, for closed diagonal-free probabilistic timed automata, computa-
+tionofthesemeasurescanbeperformedusingdigitalclocks(integralseman-
+tics). In Section 5 we address the limitations of digital clocks for analysing
+probabilistic timed automata; that is, we identify a class of properties which
+cannot be veriﬁed with digital clocks. In Section 6 we present three prob-
+abilistic timed automata case studies and give some experimental results to
+comparetheperformanceofthetechniquesdescribedinthispaperwithalter-
+native approaches from the literature. Finally, in Section 7, we conclude the
+paper.
+2. Preliminaries
+2.1. PROBABILITY AND MEASURETHEORY
+We assume some familiarity with probability and measure theory, see e.g.
+[26].Consideraset Ω.Aσ-ﬁeldonΩ,denoted F,isafamilyofsubsetsof Ω
+that contains Ω, and is closed under complementation and countable union.
+The elements of a σ-ﬁeld are called measurable sets , and (Ω,F)is called a
+measurable space .
+Deﬁnition 1. Let(Ω,F)be a measurable space. A function P:F → [0,1]
+is aprobability measure on(Ω,F), and (Ω,F, P)is aprobability space , if
+Psatisﬁes the following properties:
+1.P(Ω) = 1;
+2. ifA1, A2, . . .is a disjoint sequence of elements of F, then P(∪iAi) =/summationtext
+iP(Ai).
+digital.tex; 30/03/2006; 10:07; p.3
+
+--- Page 4 ---
+4 Kwiatkowska, Norman, Parker and Sproston
+The measure Pis also referred to as a probability distribution . The set Ω
+is called the sample space, and the elements of Fare called events.
+Deﬁnition 2. Let(Ω,F)and(Ω/prime,F/prime)be two measurable spaces. A function
+f: Ω→Ω/primeis said to be a measurable function from (Ω,F)to(Ω/prime,F/prime)if
+f−1(A/prime)∈ Ffor all A/prime∈ F/prime.
+Theorem 3 ([16]). Let(Ω,F)and(Ω/prime,F/prime)be measurable spaces, and sup-
+pose that Pis a measure on (Ω,F)and the function T: Ω→Ω/primeis measur-
+able. If fis a real non-negative measurable function on (Ω/prime,F/prime), then:
+/integraldisplay
+ω∈Ωf(Tω) dP=/integraldisplay
+ω/prime∈Ω/primef(ω/prime) dPT−1.
+A discrete probability distribution over a countable set Qis a function
+µ:Q→[0,1]such that/summationtext
+q∈Qµ(q) = 1. For a possibly uncountable set
+Q/prime, letDist(Q/prime)be the set of distributions over countable subsets of Q/prime. For
+q∈Q, letµqbe thepoint distribution atqwhich assigns probability 1 to q.
+2.2. DISCRETE-TIMEMARKOV CHAINS
+We now introduce discrete-time Markov chains (DTMCs), a widely-studied
+stochastic process.
+Deﬁnition 4. ADTMCis a tuple D= (S,s,P)where:
+−Sis a set of states, including the initial state s;
+−P:S×S→[0,1]is atransition probability matrix , such that for any
+s∈S:/summationtext
+s/prime∈SP(s, s/prime) = 1.
+Eachelement P(s, s/prime)ofthetransitionprobabilitymatrixgivestheproba-
+bilityofmakingatransitionfromstate stostate s/prime.Anexecutionofasystem
+which is being modelled by a DTMC is represented by a path. Formally,
+a path ωis a non-empty ﬁnite or inﬁnite sequence of states. In the case of a
+ﬁnitepath s0s1· · ·sn,werequire P(si, si+1)>0forall 0/lessorequalslanti < n,whereas,
+for an inﬁnite path s0s1s2· · ·, we require P(si, si+1)>0for all i/greaterorequalslant0. We
+denote by ω(i)the(i+1)th state of a path ω,|ω|the length of ω(number of
+transitions), and for a ﬁnite path ω, the last state by last(ω). Observe that a
+path can comprise a single state, in which case its number of transitions is
+zero.Wesaythataﬁnitepath ωoflength nisapreﬁxoftheinﬁnitepath ω/primeif
+ω(i) =ω/prime(i)for0/lessorequalslanti/lessorequalslantn. Also, we use ω(k)to denote the preﬁx of length
+kofω. The sets of all ﬁnite and inﬁnite paths starting in state sare denoted
+Path ﬁn(s)andPath ful(s), respectively.
+InordertoreasonabouttheprobabilisticbehaviouroftheDTMC,weneed
+to be able to determine the probability that certain paths are taken. This is
+achieved by deﬁning, for each state s∈S, a probability measure Prob sover
+Path ful(s).Below,wegiveanoutlineofthisconstruction.Forfurtherdetails,
+digital.tex; 30/03/2006; 10:07; p.4
+
+--- Page 5 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 5
+see [34]. The probability measure is induced by the transition probability
+matrix Pasfollows.First,foranyﬁnitepath ω∈Path ﬁn(s)oflength n,we
+deﬁne the probability Ps(ω):
+Ps(ω)def=/braceleftbigg1 ifn= 0
+P(ω(0), ω(1))· · ·P(ω(n−1), ω(n))otherwise .
+Next, we deﬁne the cylinder set cyl(ω)as:
+cyl(ω)def={ω/prime∈Path ful(s)|ωis a preﬁx of ω/prime},
+thatis,thecylinderset cyl(ω)isthesetofallinﬁnitepathswithpreﬁx ω.Then
+letΣsbe the smallest σ-algebra on Path ful(s)which contains all the sets
+cyl(ω), where ωranges over paths in Path ﬁn(s). We deﬁne the probability
+measure Prob sonΣsas the unique measure such that: Prob s(cyl(ω)) =
+Ps(ω)for all ω∈Path ﬁn(s).
+2.3. TIMED PROBABILISTIC SYSTEMS
+We now introduce timed probabilistic systems which extend DTMCs by al-
+lowingbothnon-deterministicandprobabilisticbehaviourandinwhichtran-
+sitions are labelled with either a duration taken from a time domain or an
+action.TimedprobabilisticsystemsareanextensionofMarkovdecisionpro-
+cesses [24] and a variant of Segala’s probabilistic timed automata [50].
+Deﬁnition5. Atimedprobabilisticsystem isatuple TPS = (S,¯s,Act,T,Steps )
+where:
+−Sis a set of states, including an initial state ¯s∈S;
+− A ctis a ﬁnite set of actionssuch that Act∩R=∅;
+−T⊆Ris a set of durations, taken from the set of non-negative reals;
+−Steps ⊆S×(Act∪T)×Dist(S)is aprobabilistic transition relation ,
+such that, if (s, a, µ )∈Stepsanda∈T, then µis a point distribution.
+Aprobabilistic transition sa,µ− − → s/primeis made from a state s∈Sby ﬁrst
+nondeterministically selecting an action-distribution or duration-distribution
+pair(a, µ)such that (s, a, µ )∈Steps, and second by making a probabilistic
+choiceoftargetstate s/primeaccordingtothedistribution µ,suchthat µ(s/prime)>0.We
+require that only action-distributions can be probabilistic, that is, duration-
+distribution pairs always comprise a point distribution.
+We consider two ways in which a timed probabilistic system’s compu-
+tation may be represented: using paths and adversaries. A pathrepresents
+a particular resolution of both nondeterminism andprobability. Formally, a
+pathofatimedprobabilisticsystemisanon-emptyﬁniteorinﬁnitesequence
+of probabilistic transitions
+ω=s0a0,µ0− − − → s1a1,µ1− − − → s2a2,µ2− − − → · · · .
+digital.tex; 30/03/2006; 10:07; p.5
+
+--- Page 6 ---
+6 Kwiatkowska, Norman, Parker and Sproston
+We denote by ω(i)the(i+1)th state of ω,last(ω)the last state of ωifω
+is ﬁnite and step(ω, i)the action or duration associated with the (i+1)-th
+transition(thatis, step(ω, i) =ai).Byabuseofnotation,wesaythatasingle
+state sis a path of length 0. The set of ﬁnite and inﬁnite paths starting in
+the state sis denoted by Path ﬁn(s)andPath ful(s), respectively. For any
+inﬁnite path ω=s0a0,µ0− − − → s1a1,µ1− − − → · · · , the accumulated duration up to the
+(n+1)-th state of ωis deﬁned by:
+dur(ω, n+1)def=/summationtext{ |ai|0/lessorequalslanti/lessorequalslantn∧ai∈T| }.
+In contrast to a path, an adversary (or scheduler) represents a particular res-
+olution of nondeterminism only. More precisely, an adversary is a function
+which chooses an outgoing distribution in the last state of a path. Formally,
+we have the following deﬁnition.
+Deﬁnition 6. LetTPS = (S,¯s,Act,T,Steps )be a timed probabilistic sys-
+tem.Anadversary AofTPSisafunctionmappingeveryﬁnitepath ωofTPS
+toapair (a, µ)suchthat (last(ω), a, µ )isanelementof Steps.Foranystate
+s∈S, letPathA
+ﬁn(s)andPathA
+ful(s)denote the subsets of Path ﬁn(s)and
+Path ful(s)which correspond to A.
+Thebehaviourofatimedprobabilisticsystem TPS = (S,¯s,Act,T,Steps )
+under a given adversary Ais purely probabilistic. More precisely, for a state
+s∈S,thebehaviourfromstate scanbedescribedbytheinﬁnite-stateDTMC
+DA
+s= (SA
+s, s,PA
+s), where:
+−SA
+s=PathA
+ﬁn(s);
+−for any two ﬁnite paths ω, ω/prime∈SA
+s:
+PA
+s(ω, ω/prime) =/braceleftBigg
+µ(s/prime)ifω/primeis of the form ωa,µ− − →s/primeandA(ω) = (a, µ)
+0otherwise.
+Thereisaone-to-onecorrespondencebetweenthepathsof DAandthesetof
+paths PathA
+ful(s)in the timed probabilistic system. Hence, using the proba-
+bility measure over DTMCs given in Section 2.2 we can deﬁne a probability
+measure ProbA
+sover the set of paths PathA
+ful(s).
+Tosimplifyproofs,wealsouse randomizedadversaries ,wherearandom-
+izedadversary Bisafunction Bmappingeveryﬁnitepath ωtoadistribution
+over{(a, µ)|(last(π), a, µ )∈Steps }. Similarly to the above, we can asso-
+ciate with any randomized adversary a probability measure over the set of
+paths of the adversary (see, for example, [22, 50]).
+Werestrict ourattentionto time-divergentadversaries ,a commonrestric-
+tion imposed in real-time systems so that unrealisable behaviour (i.e. corre-
+sponding to time not advancing beyond a time bound) is disregarded during
+analysis. We say that an inﬁnite path ωisdivergent if for any t∈R, there
+digital.tex; 30/03/2006; 10:07; p.6
+
+--- Page 7 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 7
+exists j∈Nsuchthat dur(ω, j)>t.Thefollowinglemmashowsthatforany
+adversary Aand state sof a timed probabilistic system the set of divergent
+paths with initial state sis measurable under any adversary identiﬁed in the
+previous paragraph.
+Lemma7. LetTPS = (S,¯s,Act,T,Steps )beatimedprobabilisticsystem.
+For any adversary AofTPSands∈Sthe set of divergent paths of Ais
+measurable.
+Proof.For any n, m∈N, letCm
+n={ω∈PathA
+ful(s)|dur(ω, m )>n}, then
+{ω∈PathA
+ful(s)|ωis divergent }=/intersectiondisplay
+n∈N
+/uniondisplay
+m∈NCm
+n
+
+and hence measurable. /intersectionsq /unionsq
+Deﬁnition 8. An adversary Afor a timed probabilistic system TPSisdiver-
+gentifandonlyif,foreachstate sofTPS,theprobability ProbA
+sassignedto
+the divergent paths of PathA
+ful(s)is1. Furthermore, let AdvTPSbe the set of
+divergent adversaries of TPS.
+For motivation on why we consider such probabilistic divergent adver-
+saries, as opposed to a stronger notion in which an adversary is divergent if
+and only if all its paths are divergent, see [38].
+3. Probabilistic Timed Automata
+In this section we review the deﬁnition of probabilistic timed automata [38],
+amodellingframeworkfortimedprobabilisticsystems.Theformalismisde-
+rived from classical timed automata [1, 2] extended with discrete probability
+distributions over edges.
+3.1. TIME,CLOCKS AND CLOCK CONSTRAINTS
+LetT∈ {R,N}be thetime domain of either the non-negative reals or nat-
+urals. Let Xbe a ﬁnite set of variables called clockswhich take values from
+thetimedomain T.Afunction v∈TXisreferredtoasa clockvaluation .Let
+0∈TXbe the clock valuation which assigns 0 to all clocks in X. For any
+v∈TXandt∈T,theclockvaluation v⊕tdenotesthe timeincrement forv
+witht(we present two alternatives for ⊕in Section 3.3; for the time domain
+Rit is standard addition +). We use v[X:=0]to denote the clock valuation
+obtainedfrom vbyresettingalloftheclocksin X⊆ Xto0,andleavingthe
+values of all other clocks unchanged.
+digital.tex; 30/03/2006; 10:07; p.7
+
+--- Page 8 ---
+8 Kwiatkowska, Norman, Parker and Sproston
+LetCC(X)bethesetof clockconstraints overX,whichareconjunctions
+of atomic constraints of the form x∼cforx∈ X,∼ ∈ {/lessorequalslant,=,/greaterorequalslant}, and
+c∈N. The clock valuation vsatisﬁesthe zone ζ, written v /triangleleft ζ, if and only
+ifζresolves to true after substituting each clock x∈ Xwith the correspond-
+ing clock value from v. Readers familiar with timed automata will note that
+we consider the syntax of closed, diagonal-free zones , whichdo notfeature
+atomicconstraintsoftheform x > corx < c(closed)or x−y∼c(diagonal
+free).
+3.2. SYNTAX OF PROBABILISTIC TIMED AUTOMATA
+We now introduce formally probabilistic timed automata. Observe that we
+extend the original deﬁnition of [38] with urgent events, a well-established
+concept for classical timed automata [29, 21].
+Deﬁnition 9. Aprobabilistic timed automaton PTAis a tuple of the form
+(L,¯l,X,Σ,inv,prob )where:
+−Lis a ﬁnite set of locations:
+−¯l∈Lis theinitial location ;
+− Xis a ﬁnite set of clocks;
+−Σisaﬁnitesetof events,ofwhich Σu⊆Σaredeclaredasbeing urgent;
+−the function inv:L→CC(X)is theinvariant condition ;
+−theﬁniteset prob⊆L×CC(X)×Σ×Dist(2X×L)istheprobabilistic
+edge relation .
+Notethatweoftenrefertothemodelpresentedaboveas closed,diagonal-
+freeprobabilistictimedautomata ,inordertodistinguishtheclockconstraints
+used with those in previous work [38].
+Astateofaprobabilistictimedautomatonisapair (l, v)where l∈Land
+v∈TXare such that v /triangleleftinv(l). Informally, the behaviour of a probabilistic
+timedautomatoncanbeunderstoodasfollows.Themodelstartsintheinitial
+location ¯lwith all clocks set to 0, that is, in the state (¯l,0). In this, and any
+other state (l, v), there is a nondeterministic choice of either (1) making a
+discretetransition or(2)letting timepass.Incase(1),adiscretetransitioncan
+be made according to any probabilistic edge (l, g, σ, p )∈probwith source
+location lwhichisenabled;thatis,thezone gissatisﬁedbythecurrentclock
+valuation v.Thentheprobabilityofmovingtothelocation l/primeandresettingall
+of the clocks in Xto 0 is given by p(X, l/prime). In case (2), the option of letting
+time pass is available only if the invariant condition inv(l)is satisﬁed while
+time elapses and there does not exist an enabled probabilistic edge with an
+urgent event.
+Note that a timed automaton [2] is a probabilistic timed automaton for
+which every probabilistic edge (l, g, σ, p )is such that p=µ(X,l/prime)(the point
+distribution assigning probability 1 to (X, l/prime)) for some (X, l/prime)∈2X×L.
+digital.tex; 30/03/2006; 10:07; p.8
+
+--- Page 9 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 9
+done
+truewait
+x/lessorequalslant8
+init
+x/lessorequalslant20.01
+0.99x=2, x:=0x:=0,4/lessorequalslantx/lessorequalslant8
+send
+x/lessorequalslant0 recretry
+true
+send
+Figure 1. A probabilistic timed automaton modelling a simple communication protocol.
+Example10. Considertheprobabilistictimedautomatonmodellingasimple
+probabilisticcommunicationprotocolgiveninFigure1.Theprotocolstartsin
+location init(thedoubleborderindicates initistheinitiallocation).Afterex-
+actly2timeunits,theprocessreceivesdatatosendandmovestothelocation
+send.Beforeanytimeelapsestheprocessattemptstosendthedataand,with
+probability 0.99, the data is sent correctly (location doneis reached) while,
+withprobability0.01,thedataissentincorrectly(location waitisreached).In
+thelattercase,theprocesswaitsbetween4and8timeunitsbeforeattempting
+to resend the data (returns to location send).
+In Figure 2 we present an example of the behaviour for the timed proba-
+bilistic system which underlies the probabilistic timed automata of Figure 1.
+Higher-level modelling. To aid higher-level modelling, it is often useful to
+deﬁne complex systems as the parallel composition of a number of inter-
+acting sub-components. The deﬁnition of the parallel composition operator
+/bardblof probabilistic timed automata uses ideas from the theory of (untimed)
+probabilistic systems [51] and classical timed automata [2]. Let PTA i=
+(Li,¯li,Xi,Σi,invi,probi)fori∈ {1,2}and assume that X1∩ X 2=∅.
+Deﬁnition11. Theparallelcomposition oftwoprobabilistictimedautomata
+PTA 1andPTA 2is the probabilistic timed automaton
+PTA 1/bardblPTA 2= (L1×L2,(¯l1,¯l2),X1∪ X 2,Σ1∪Σ2,inv,prob )
+such that
+−σ∈Σ1∪Σ2is declared as urgent if and only if it is declared urgent in
+at least one of PTA 1andPTA 2;
+−inv(l, l/prime) =inv1(l)∧inv2(l/prime)for all (l, l/prime)∈L1×L2;
+−((l1, l2), g, σ, p )∈probif and only if one of the following conditions
+holds:
+1.σ∈Σ1\Σ2and there exists (l1, g, σ, p 1)∈prob1such that p=
+p1⊗µ(∅,l2);
+digital.tex; 30/03/2006; 10:07; p.9
+
+--- Page 10 ---
+10 Kwiatkowska, Norman, Parker and Sproston
+/angbracketleftinit,0/angbracketright
+/angbracketleftinit,2/angbracketright
+rec
+/angbracketleftsend,0/angbracketright
+send0.01 0 .99
+/angbracketleftwait,0/angbracketright
+retry/angbracketleftwait,7.001/angbracketright
+.../angbracketleftsend,0/angbracketright
+send0.01 0 .99
+/angbracketleftwait,0/angbracketright
+/angbracketleftwait,4.72/angbracketright
+retry/angbracketleftdone,0/angbracketright
+/angbracketleftdone,0/angbracketright
+7.0014.722
+Figure2. AnexampleofbehaviourforthesimplecommunicationprotocolgiveninFigure1.
+2.σ∈Σ2\Σ1and there exists (l2, g, σ, p 2)∈prob2such that p=
+µ(∅,l1)⊗p2;
+3.σ∈Σ1∩Σ2andthereexists (li, gi, σ, p i)∈probifori= 1,2such
+thatg=g1∧g2andp=p1⊗p2
+where for any l1∈L1,l2∈L2,X1⊆ X 1andX2⊆ X 2:
+p1⊗p2(X1∪X2,(l1, l2)) =p1(X1, l1)·p2(X2, l2).
+Inadditiontoparallelcomposition,featureswhicharepresentintheU PPAAL
+inputsyntax[48,44],suchasurgentlocations,committedlocationsandinte-
+ger variables can be added to the probabilistic timed automaton framework.
+digital.tex; 30/03/2006; 10:07; p.10
+
+--- Page 11 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 11
+3.3. SEMANTICS OF PROBABILISTIC TIMED AUTOMATA
+We now give the semantics of probabilistic timed automata deﬁned in terms
+of timed probabilistic systems. Observe that the deﬁnition is parameterized
+by both the time domain Tand the time increment operator ⊕. The time
+incrementoperatorisabinaryoperatorwhichtakesaclockvaluation v∈TX
+and a time duration t∈T, and returns a clock valuation v⊕t∈TXwhich
+represents, intuitively, the clock valuation obtained from vafter ttime units
+have elapsed.
+Deﬁnition 12. LetPTA = (L,¯l,X,Σ,inv,prob )be a probabilistic timed
+automaton.The semanticsof PTAwithrespecttothetimedomain Tandtime
+increment ⊕is the timed probabilistic system [ [PTA ] ]⊕
+T= (S,¯s,Σ,T,Steps )
+such that:
+−S⊆L×TXwhere (l, v)∈Sif and only if v /triangleleftinv(l);
+−¯s= (¯l,0);
+−((l, v), a, µ )∈Stepsifandonlyifoneofthefollowingconditionsholds:
+Time transitions. a=t∈Tandµ=µ(l,v⊕t)such that:
+1.v⊕t/prime/triangleleftinv(l)for all 0/lessorequalslantt/prime/lessorequalslantt;
+2. for all probabilistic edges of the form (l, g, σ, −)∈prob, if
+v⊕t/prime/triangleleft gfor some 0/lessorequalslantt/prime/lessorequalslantt, then σ/negationslash∈Σu(no urgent
+transitions are enabled);
+Discrete transitions. a=σ∈Σand there exists (l, g, σ, p )∈prob
+such that v /triangleleft gand for any (l/prime, v/prime)∈S:
+µ(l/prime, v/prime) =/summationdisplay
+X⊆X&
+v/prime=v[X:=0]p(X, l/prime).
+The summation in the deﬁnition of discrete transitions is required for the
+cases in which multiple clock resets result in the same target state.
+In our setting, the semantics falls into two classes, depending on whether
+the underlying model of time is the positive reals or the naturals. If T=
+Rwe let ⊕equal +(standard addition) and refer to [ [PTA ] ]+
+Ras thedense-
+timesemantics oftheprobabilistictimedautomaton PTA.Incontrast,if T=
+N, we let ⊕equal ⊕Nwhich is deﬁned below, and refer to [ [PTA ] ]⊕N
+Nas the
+integral semantics ofPTA. To deﬁne ⊕N, ﬁrst, for any x∈ X, letkxdenote
+thegreatestconstantthattheclock xiscomparedtointheclockconstraintsof
+PTA.Ifthevalueoftheclock xexceeds kx,thenitsexactvalueisnotrelevant
+whendecidingwhichprobabilisticedgesareenabled.Thismeansthat kx+ 1
+isthemaximumvalueofclock xthatneedstoberepresented,becausewecan
+interpret this value as corresponding to all clock values greater than kx, and
+digital.tex; 30/03/2006; 10:07; p.11
+
+--- Page 12 ---
+12 Kwiatkowska, Norman, Parker and Sproston
+leads us to the following deﬁnition of ⊕N. For any clock valuation v∈NX
+and time duration t∈N, letv⊕Ntbe the clock valuation of Xwhich assigns
+the value min{v(x) +t,kx+ 1}to all clocks x∈ X(although the operator
+⊕Nis dependent on PTA, we elide a sub- or superscript indicating this for
+clarity).
+Note that the deﬁnition of integral semantics for probabilistic timed au-
+tomata is a generalization of the analogous deﬁnition for the classical model
+in [13]. As we always use the same type of time increment for a particular
+choice of time domain, we henceforth omit the +and⊕Nsuperscripts from
+the notation, and write [ [PTA ] ]Rand[ [PTA ] ]N, respectively. The fact that the
+integralsemanticsofaprobabilistictimedautomatonisﬁnite,andthedense-
+time semantics of probabilistic timed automaton is generally uncountable,
+can be derived from the deﬁnitions.
+Itisnotdifﬁculttocheckthatthesemanticsoftheparallelcompositionof
+twoprobabilistictimedautomatacorrespondstothesemanticsoftheparallel
+composition of their individual semantic timed probabilistic systems. For-
+mally,weoverloadtheparallelcompositionoperator /bardblsuchthat TPS 1/bardblTPS 2
+denotesthetimedprobabilisticsystemobtainedfromtheparallelcomposition
+of the timed probabilistic systems TPS 1andTPS 2in the standard manner
+[51] and deﬁned below.
+Deﬁnition 13. Theparallel composition of two timed probabilistic systems
+TPS 1andTPS 2with the same domain Tis the timed probabilistic system
+TPS 1/bardblTPS 2= (S1×S2,(¯s1,¯s2),Act1∪ Act2,T,Steps )
+suchthat ((s1, s2), a, µ )∈Stepsifandonlyifoneofthefollowingconditions
+holds:
+1.a∈ Act1\ Act2and there exists (s1, a, µ 1)∈Steps1such that µ=
+µ1⊗µs2;
+2.a∈ Act2\ Act1and there exists (s2, a, µ 2)∈Steps2such that µ=
+µs1⊗µ2;
+3.a∈ Act1∩ Act2and there exists (si, a, µ i)∈Stepsifori= 1,2such
+thatµ=µ1⊗µ2;
+4.a∈Tand there exists (si, a, µ i)∈Stepsifori= 1,2such that µ=
+µ1⊗µ2;
+Twotimedprobabilisticsystems TPS 1= (S1,¯s1,Act,T,Steps1)andTPS 2=
+(S2,¯s2,Act,T,Steps2)areisomorphic if there exists a bijection f:S1→
+S2such that (s1, a, µ )∈Steps1if and only if (f(s1), a, f (µ))∈Steps2,
+where f(µ)∈Dist(S2)isthedistributiondeﬁnedby f(µ)(s2) =µ(f−1(s2))
+for each s2∈S2. For the probabilistic timed automata PTA 1andPTA 2with
+digital.tex; 30/03/2006; 10:07; p.12
+
+--- Page 13 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 13
+disjoint clock sets, [ [PTA 1/bardblPTA 2] ]Tand[ [PTA 1] ]T/bardbl[ [PTA 2] ]Tare isomorphic,
+both for the integral and dense-time semantics.
+3.4. PROBABILISTIC AND EXPECTED REACHABILITY
+Inthissection,weconsidertwoperformancemeasuresforprobabilistictimed
+automata.Infactthesemeasuresaredeﬁnedattheleveloftimedprobabilistic
+systems, in terms of which the semantics of probabilistic timed automata are
+deﬁned. The ﬁrst measure is probabilistic reachability , namely the maximal
+and minimal probability of reaching, from the initial state, a certain set of
+target states. For a timed probabilistic system TPS = (S,¯s,Act,T,Steps ),
+setF⊆Sof target states, and adversary A∈AdvTPS, let:
+pA
+¯s(F)def=ProbA
+¯s{ω∈PathA
+ful(¯s)| ∃i∈N. ω(i)∈F}.
+Deﬁnition14. Themaximalandminimalreachabilityprobabilities ofreach-
+ing the set of states Fof the timed probabilistic system TPSare deﬁned as
+follows:
+pmax
+TPS(F) = sup
+A∈AdvTPSpA
+¯s(F)and pmin
+TPS(F) = inf
+A∈AdvTPSpA
+¯s(F).
+The second measure we consider is expected reachability , which allows
+us to compute the expected cost (or reward) accumulated before reaching a
+certain set of states. Expected reachability is deﬁned with respect to a set
+F⊆Sof target states and a cost function mapping state-action and state-
+duration pairs to real values (the cost of performing an action or letting a
+certain amount of time pass in the corresponding state, respectively). This
+measure corresponds to the expected cost (with respect to the given cost
+function) of reaching a state in F. More formally, for a timed probabilistic
+system TPS = (S,¯s,Act,T,Steps ), cost function C:S×(Act∪T)→R
+(recall, Rdenotes the non-negative reals), set F⊆Sof target states, and
+adversary A∈AdvTPS, leteA
+¯s(cost(C, F))denote the usual expectation
+of the function cost(C, F)(which returns, for a given path ω, the total cost
+accumulateduntilastatein Fisreachedalong ω)withrespecttothemeasure
+ProbA
+¯sover PathA
+ful(¯s). That is:
+eA
+¯s(cost(C, F)) =/integraldisplay
+ω∈PathA
+ful(¯s)cost(C, F)(ω)dProbA
+¯s
+where for any ω∈PathA
+ful(¯s):
+cost(C, F)(ω)def=min{j|ω(j)∈F}/summationdisplay
+i=1C(ω(i−1),step(ω, i−1))
+digital.tex; 30/03/2006; 10:07; p.13
+
+--- Page 14 ---
+14 Kwiatkowska, Norman, Parker and Sproston
+ifthereexists j∈Nsuchthat ω(j)∈F,and cost(C, F)(ω)def=∞otherwise.
+Notethat,forsimplicity,wedeﬁnethecostofapathwhichdoesnotreach
+Fto be∞, even though the total cost of the path may not be inﬁnite. Hence,
+the expected cost of reaching Ffrom sis ﬁnite if and only if a state in Fis
+reached from swith probability 1. Expected time reachability (the expected
+time with which a given set of states can be reached) is a special case of
+expected reachability, corresponding to the case when C(s, a) = 0for all
+s∈Sanda∈ ActandC(s, t) =tfor all s∈Sandt∈T.
+Deﬁnition15. Themaximalandminimalexpectedcosts ofreachingasetof
+states Funder the cost function Cin the timed probabilistic system TPSare
+deﬁned as follows:
+emax
+TPS(C, F) = sup
+A∈AdvTPSeA
+¯s(cost(C, F))
+emin
+TPS(C, F) = inf
+A∈AdvTPSeA
+¯s(cost(C, F)).
+Wenotethatcalculatingexpectedreachabilityisequivalenttothe stochas-
+tic shortest path problem for Markov decision processes; see for example
+[12, 23].
+In practice, cost functions are deﬁned not at the level of timed probabilis-
+tic systems, but in terms of probabilistic timed automata. At this level cost
+functions are often deﬁned using a pair (cΣ,r), where cΣ:L×Σ→R
+is a function assigning the cost, in each location, of executing each event in
+Σ, andr∈Rgives the rate at which cost is accumulated as time passes
+(independent of the current location). The associated cost function CcΣ,ris
+deﬁned as follows, for each (l, v)∈L×RXanda∈Σ∪T:
+CcΣ,r((l, v), a)def=/braceleftbiggcΣ(l, a)ifa∈Σ
+a·rotherwise .
+Aprobabilistictimedautomatonequippedwithapair (cΣ,r)isaprobabilistic
+generalisation of uniformly priced timed automata [9]. In Section 4.3 we
+will restrict attention to such cost functions, while in Section 4.4 we will
+considermoregeneralcostfunctionswherethecostperunitoftimecanvary
+dependingonthecurrentlocation,whichcanbeconsideredasaprobabilistic
+extension of linearly priced timed automata [10]. More precisely, cost func-
+tions of the form CcΣ,rwhere r:L→Ris a function assigning to each
+locationtherateatwhichcostsareaccumulatedastimepassesinthatlocation
+and for any (l, v)∈L×RXanda∈Σ∪R:
+CcΣ,r((l, v), a)def=/braceleftbiggcΣ(l, a)ifa∈Σ
+a·r(l)otherwise .
+Note that we only consider non-negative cost functions ( Ris the set of
+non-negative reals). However, all the results presented also hold for the cor-
+responding non-positive cost functions.
+digital.tex; 30/03/2006; 10:07; p.14
+
+--- Page 15 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 15
+Forbothprobabilisticandexpectedreachability,wecanconsiderreaching
+a state satisfying a formula φwhich is a conjunction of propositions identi-
+fying locations and clock constraints (that is, constraints of the form x∼c
+forx∈ X,∼∈ {/lessorequalslant,=,/greaterorequalslant}andc∈N). Instead of considering these cases
+separately, we just note that such reachability problems can be reduced to
+those referring to locations only by modifying syntactically the probabilistic
+timed automaton of interest (see [38]). Note that, if all the clock constraints
+appearing in the PTAand present in the formula φare closed and diagonal-
+free, then all the clock constraints appearing in the modiﬁed PTAare also
+closed and diagonal-free.
+In the case of probabilistic reachability the types of properties which can
+be expressed can be classiﬁed as follows:
+Probabilistic reachability: The system reaches a certain set of states with a
+givenmaximalorminimalprobability.Forexample,‘withprobabilityat
+least 0.999, a data packet is correctly delivered’.
+Probabilistic time-bounded reachability: The system reaches a certain set
+of states within a certain time deadline and probability threshold. For
+example, ‘with probability 0.01 or less, a data packet is lost within 5
+time units’.
+Probabilistic cost-bounded reachability: The system reaches a certain set
+ofstateswithinacertaincostandprobabilitybound.Forexample,‘with
+probability 0.75 or greater, a data packet is correctly delivered with at
+most 4 retransmissions’.
+Invariance: The system does not leave a certain set of states with a given
+probability. For example, ‘with probability 0.875 or greater, the system
+never aborts’.
+Bounded response: Thesysteminevitablyreachesacertainsetofstateswithin
+a certain time deadline with a given probability. For example, ‘with
+probability0.99orgreater,adatapacketwillalwaysbedeliveredwithin
+5 time units’.
+On the other hand, expected time reachability allows us to express, for ex-
+ample, ‘the (maximum) expected time until a data packet is delivered is at
+most20ms’and‘the(minimum)expectedtimeuntilapacketcollisionoccurs
+is at least 100 seconds’. In general, expected reachability allows us to vali-
+datepropertiesincluding:‘theexpectednumberofretransmissionsbeforethe
+messageiscorrectlydeliveredislessthan3’,‘theexpectednumberofpackets
+sentbeforefailureisatleast300’and‘theexpectednumberoflostmessages
+within the ﬁrst 200 seconds is at most 10’.
+Weillustratetheexpectedreachabilityapproachusingtheﬁnalpropertyas
+anexample.Wewouldﬁrstneedtomodifytheprobabilistictimedautomaton
+under study by adding a distinct clock (to represent the elapsed time) and
+digital.tex; 30/03/2006; 10:07; p.15
+
+--- Page 16 ---
+16 Kwiatkowska, Norman, Parker and Sproston
+locationsuchthat,fromalllocations,oncethisclockhasreached200seconds
+the only transition is to this new location. The set of target states would then
+be the set containing only the new location. The cost function would equal
+0 on all time transitions and events except the event(s) corresponding to a
+message being lost, whose cost would be set to 1.
+Finally, using the more general cost functions CcΣ,r, we can consider per-
+formance measures such as:
+−the expected time the channel is free before Nmessages are sent (by
+setting r(l)to be 1 if location lcorresponds to a state in which the
+channel is free, and 0 otherwise);
+−the expected time a sender spends waiting for an acknowledgement (by
+setting r(l)tobe1iflocation lcorrespondstoastateinwhichthesender
+is waiting for an acknowledgement, and 0 otherwise);
+−the expected energy consumption within the ﬁrst T(∈N)seconds (by
+setting r(l)tothepowerusage(Watts)ofthelocation l∈LandcΣ(l, σ)
+to be the energy consumption associated with performing the event σin
+location l).
+3.5. M ODELCHECKING
+To apply model checking methods we must ﬁrst ensure that the system we
+consider has only ﬁnitely many states and is ﬁnitely branching. From the
+construction, the integral semantics has only ﬁnitely many states. However,
+toensureﬁnitebranching,wemustrestrictthedelaysintheintegralsemantic
+models from Nto some ﬁnite set. For example, since we have not permitted
+probabilistic choices over delays, we can restrict delays to have duration 1
+only and, since any time transition of duration in Ncan be modelled by a se-
+quence of time transitions of duration 1 and we restrict attention to divergent
+adversaries,nothingislostbyomittingdelaysofdurationgreaterthan1orof
+duration 0.
+Themodelcheckingalgorithmsforbothprobabilisticandexpectedreach-
+abilityareavailableintheliterature;forprobabilisticreachabilitysee[15,8],
+and for expected reachability see [22, 23]. In both cases veriﬁcation reduces
+to solving a linear optimization problem for which one can apply iterative
+methods. We also note that, in [22], algorithms for checking for the presence
+of divergent adversaries are given.
+The integral semantic model can suffer from the state space explosion
+problem; in particular, the size of the models is exponential in the number of
+clocksandthelargestconstantthattheclocksarecomparedto.Anabstraction
+technique which can be used to reduce the size of the model under study is
+thatofchangingthe timescale ,sincethiscanreducetheconstantsthatclocks
+arecomparedto.Moreformally,onecanincreasethetimeunitandthenround
+digital.tex; 30/03/2006; 10:07; p.16
+
+--- Page 17 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 17
+upper bounds on the values of the constraints up, lower bounds down. For
+(non-probabilistic)timedautomata,itisestablishedin[4]thatthetracesetof
+the timed automaton after such a transformation includes that of the original
+model. It follows that, in the probabilistic setting, carrying out our model-
+checking on the transformed automaton gives bounds on the performance
+indices of the original automaton. More precisely, the computed maximum
+probabilistic and expected reachability measures on the transformed model
+areupperbounds and the minimum probabilistic and expected reachability
+measures are lower bounds on those that would be obtained for the original
+automaton.
+3.5.1.The probabilistic model checker PRISM
+PRISM [35, 47] is a probabilistic model checker developed at the University
+of Birmingham. The current implementation of PRISM supports the analy-
+sis ofﬁnite-state probabilistic models of the following three types: discrete-
+timeMarkovchains,Markovdecisionprocessesandcontinuous-timeMarkov
+chains.Discrete-timeMarkovchainsaredeﬁnedinSection2.2,whileMarkov
+decisionprocessesextendDTMCsbyallowingbothprobabilisticandnonde-
+terministic behaviour. Continuous-time Markov chains allow transitions to
+occur in real-time as opposed to discrete steps, but differ from probabilistic
+timed automata in that delays are represented by exponential distributions.
+Furthermore, there is no nondeterminism in continuous-time Markov chains.
+Models in PRISM are described in a high-level language, a variant of
+reactive modules [3] based on guarded commands. The basic components of
+thelanguageare modulesandvariables.Asystemisconstructedasanumber
+of modules which can interact with each other. A module contains a number
+of variables which express the state of the module, and its behaviour is given
+by a set of guarded commands of the form:
+[<action>] <guard> →<updates>;
+The guard is a predicate over the variables of the system and the updates
+describe transitions which the module can make if the guard is true (using
+primedvariablestodenotethenextvaluesofvariables).Updatesarespeciﬁed
+as follows:
+<prob> : <atomic update> + · · ·+ <prob> : <atomic update>
+PRISM accepts speciﬁcations in probabilistic temporal logics. This allows
+us to express various probabilistic properties such as ‘event Ehappens with
+probability 1’, and ‘the probability of cost exceeding Cis 95%’. The model
+checker then analyses the model and checks if the property holds in each
+state. In the case of Markov decision processes, speciﬁcations are written
+in the logic PCTL, and for the analysis PRISM implements the algorithms
+digital.tex; 30/03/2006; 10:07; p.17
+
+--- Page 18 ---
+18 Kwiatkowska, Norman, Parker and Sproston
+of [27, 15, 8]. The tool also supports veriﬁcation of expected reachability
+properties using the algorithms of [22, 23].
+TheunderlyingdatastructuresusedinPRISMareBDDs(binarydecision
+diagrams) and MTBDDs (multi-terminal BDDs) [19]. Model construction is
+always performed using MTBDDs and BDDs. For numerical computation,
+PRISM includes three separate engines. The ﬁrst uses MTBDDs to store the
+model and iteration vector, while the second uses conventional data struc-
+tures for numerical analysis: sparse matrices and arrays. The latter nearly
+always provides faster numerical computation than its MTBDD counterpart,
+but sacriﬁces the ability to conserve memory by exploiting structure. The
+third,hybrid, engine provides a compromise by storing the models in an
+MTBDD-like structure, which is adapted so that numerical computation can
+be carried out in combination with array-based storage for iteration vectors.
+ThishybridapproachisgenerallyfasterthanMTBDDs,whilehandlinglarger
+systems than sparse matrices. For further details and comparisons between
+the engines see [36, 46].
+We note that, by using integral semantics and PRISM, and hence MTB-
+DDs, we see similar advantages to those reported in [13, 14] for modelling
+and verifying classical timed automata using integral semantics and BDDs.
+In particular, by using only MTBDDs we are able to model and verify large
+and complex probabilistic real-time systems.
+3.5.2.Modelling probabilistic timed automata in PRISM
+We now explain the techniques used for modelling (the integral semantic
+models of) probabilistic timed automata as Markov decision processes in
+PRISM. First, due to the compositionality of the integral semantic model,
+if the system under study is a parallel composition of a number of proba-
+bilistictimedautomata,thentheintegralsemanticsofeachautomatoncanbe
+modelled by a PRISM module and the system can be deﬁned as the parallel
+compositionofthemodules.Theonlycomplicationinthisapproachisrepre-
+senting passage of time; this is accomplished by including a distinct action,
+time, and then labelling the transitions of each module which correspond
+to time passing with this action. Hence, when a time action is executed, all
+modules must synchronize on this action.
+Since, in the integral semantic model, the possible values of any clock
+xare in the range {0,1,2, . . . ,kx,kx+ 1}, we can model each clock as a
+bounded integer-valued variable. Furthermore, we can use bounded integer-
+valuedvariablestomodelthelocationsofanautomaton.Thepossibletransi-
+tions of an automaton are then deﬁned by a guarded command expressed in
+termsofthesevariables.Inthecaseoftimetransitions,supposinginlocation
+lthe invariant is (y/lessorequalslant4)and the automaton has two clocks xandy, then the
+time passage transitions (of duration 1) in location lcan be modelled by the
+digital.tex; 30/03/2006; 10:07; p.18
+
+--- Page 19 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 19
+guarded command:
+[time] l=1&y<4 →(x’=min(x+1,kx+1))&(y’=min(y+1,ky+1)) ;
+Note that the non-strict upper bound in the invariant condition is made strict,
+because,iftheclock xequals4,nomoretimecanpass(ifonemoretimeunit
+could elapse, then the value of ywould become 5 and the invariant would be
+false).
+In the case of discrete transitions, if in location lthere is a discrete tran-
+sition which has the enabling condition 4/lessorequalslantx/lessorequalslant6, performs the event a, and
+moves to location 2 with probability 0.25, and to location 3 while resetting
+theclocks xandywithprobability0.75,thenthistransitioncanbemodelled
+by the following guarded command:
+[a] l=1&x>=4&x<=6 →0.25:(l’=2) + 0.75:(l’=3)&(x’=0)&(y’=0) ;
+4. Correctness of the Integral Semantics
+In this section we show, under the restriction that the probabilistic timed
+automaton under study is closed and diagonal-free, that probabilistic and
+expected reachability values are the same in the integral and dense-time se-
+mantics. Therefore, for this class of probabilistic timed automata, it sufﬁces
+to study the integral semantic model.
+LetPTA = (L,¯l,X,Σ,inv,prob )beaprobabilistictimedautomaton.For
+any set of locations F⊆L, we denote by FTthe set of all states of [ [PTA ] ]⊕
+T
+which correspond to these locations; that is
+FT={(l, v)|l∈F, v∈TXandv /triangleleftinv(l)}.
+4.1. ε-DIGITIZATION
+In this section we extend the techniques developed in the classical timed
+automata case. We begin with the following deﬁnition and lemma which are
+taken from [28, 30].
+Deﬁnition 16. For any t∈Randε∈[0,1]let:
+[t]ε=/braceleftbigg⌊t⌋ift/lessorequalslant⌊t⌋+ε
+⌈t⌉otherwise .
+Note that, from Deﬁnition 16, it trivially follows that:
+[t]1/lessorequalslantt/lessorequalslant[t]0for all t∈R. (1)
+digital.tex; 30/03/2006; 10:07; p.19
+
+--- Page 20 ---
+20 Kwiatkowska, Norman, Parker and Sproston
+Lemma 17. For any t, t/prime∈R,c∈Nand∼∈ {/lessorequalslant,=,/greaterorequalslant}, ift−t/prime∼cthen
+[t]ε−[t/prime]ε∼cfor all ε∈[0,1].
+Next, we introduce the following property on paths of probabilistic timed
+automata.
+Lemma 18. For any path ω= (l0, v0)a0,µ0− − − → (l1, v1)a1,µ1− − − → · · · ,x∈ Xand
+i∈N, there exists j/lessorequalslantisuch that vi(x) =dur(ω, i)−dur(ω, j).
+Proof.The proof follows from choosing j/lessorequalslantisuch that (lj, vj)is the most
+recent state where the clock xwas reset. /intersectionsq /unionsq
+Using the above, we now deﬁne the ε-digitization of a path [30, 28].
+Deﬁnition 19 ( ε-digitization). For any path:
+ω= (¯l,0)a0,µ0− − − → (l1, v1)a1,µ1− − − → · · ·
+of[ [PTA ] ]R, itsε-digitization is the path
+[ω]ε= (¯l,0)a/prime
+0,µ/prime
+0− − − → (l1,[v1]ε)a/prime
+1,µ/prime
+1− − − → · · ·
+of[ [PTA ] ]Nwhere for any i∈Nandx∈ X:
+−[vi]ε(x) = min([ dur(ω, i)]ε−[dur(ω, j)]ε,kx+ 1)andj/lessorequalslantisuchthat
+vi(x) =dur(ω, i)−dur(ω, j)which exists by Lemma 18;
+−ifai∈Σandµiis constructed from a probabilistic edge of PTAwhich
+isoftheform (−,−, ai, pi),then a/prime
+i=aiandforany (l/prime, v/prime)∈L×NX:
+µ/prime
+i(l/prime, v/prime) =/summationdisplay
+X⊆X&
+v/prime=[vi]ε[X:=0]pi(X, l/prime) ;
+−ifai∈R,then a/prime
+i= [dur(ω, i+1)] ε−[dur(ω, i)]εandµ/prime
+i=µ(li,[vi]ε⊕a/prime
+i).
+The well-deﬁnedness of this construction – that is, the fact that [ω]εis
+a path of [ [PTA ] ]N– follows from Lemma 17, Lemma 18, and the fact that
+the clock constraints appearing in PTAare closed and diagonal-free. For
+example, for any x∈ Xandi/greaterorequalslant0such that ai∈R, by Deﬁnition 19
+there exists j/lessorequalslantisuch that:
+min([ vi]ε(x)+a/prime
+i,kx+1) = min([ dur(ω, i)]ε−[dur(ω, j)]ε+a/prime
+i,kx+1)
+= min([ dur(ω, i)]ε−[dur(ω, j)]ε+[dur(ω, i+1)] ε−[dur(ω, i)]ε,kx+1)
+by construction
+= min([ dur(ω, i+1)] ε−[dur(ω, j)]ε,kx+1) rearranging
+= [vi+1]ε(x) by Deﬁnition 19.
+We now introduce the following lemmas which relate the time and cost of a
+path with those of its digitization.
+digital.tex; 30/03/2006; 10:07; p.20
+
+--- Page 21 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 21
+Lemma 20. For any path ω∈Path ful(¯s),ε∈[0,1]andi∈N:
+dur([ω]ε, i) = [ dur(ω, i)]ε.
+Proof.Consider any path ω= (¯l,0)a0,µ0− − − → (l1, v1)a1,µ1− − − → · · · ∈ Path ful(¯s).
+We prove the lemma by induction on i∈N. Ifi= 0, then by deﬁnition
+dur([ω]ε, i) = [ dur(ω, i)]ε= 0as required.
+Now suppose that the lemma holds for some i∈N. We have two cases to
+consider.
+−Ifai∈Σ, then [dur(ω, i+1)] ε= [dur(ω, i)]εand from Deﬁnition 19
+we have dur([ω]ε, i+1) = dur([ω]ε, i), and hence the lemma holds by
+induction.
+−Ifai∈R, then by Deﬁnition 19 we have
+dur([ω]ε, i+1) = dur([ω]ε, i) + ([ dur(ω, i+1)] ε−[dur(ω, i)]ε)
+= [dur(ω, i)]ε+ ([dur(ω, i+1)] ε−[dur(ω, i)]ε)by induction
+= [dur(ω, i+1)] ε as required .
+Since these are the only cases to consider, the lemma holds by induction on
+i∈N. /intersectionsq /unionsq
+Lemma 21. For any path ω∈Path ful(¯s), set of locations F⊆Land cost
+function CcΣ,rwe have:
+cost(CcΣ,r, FN)([ω]1)/lessorequalslantcost(CcΣ,r, FR)(ω)/lessorequalslantcost(CcΣ,r, FN)([ω]0).
+Proof.Consider any path ω∈Path ful(¯s), set of locations F⊆Land cost
+function CcΣ,r.
+−Iftheredoesnotexist i∈Nsuchthat ω(i)∈FR,then,forany ε∈[0,1],
+from Deﬁnition 19, there does not exist i∈Nsuch that [ω(i)]ε∈FN.
+Therefore, by deﬁnition of cost(CcΣ,r, FT), we have:
+cost(CcΣ,r, FN)([ω]ε) =cost(CcΣ,r, FR)(ω) =∞
+for all ε∈[0,1], and hence the lemma holds in this case.
+−Ifthereexists i∈Nsuchthat ω(i)∈FR,then,bydeﬁnitionof dur(ω,·)
+andcost(CcΣ,r, FR), it follows that:
+cost(CcΣ,r, FR)(ω) =cost(CcΣ,0, FR)(ω) +r·dur(ω, iF).(2.1)
+where iF= min {j|ω(j)∈FR}.Next,fromDeﬁnition19wehave,for
+anyε∈[0,1],i∈Nandσ∈Σ:
+•ω(i)∈FRif and only if [ω]ε(i)∈FN;
+digital.tex; 30/03/2006; 10:07; p.21
+
+--- Page 22 ---
+22 Kwiatkowska, Norman, Parker and Sproston
+•step(ω, i) =σif and only if step([ω]ε, i) =σ.
+It then follows that:
+cost(CcΣ,0, FN)([ω]ε) =cost(CcΣ,0, FR)(ω)for all ε∈[0,1]. (2.2)
+Furthermore, using Lemma 20 and (1) (see page 19) we have:
+dur([ω]1, iF)/lessorequalslantdur(ω, iF)/lessorequalslantdur([ω]0, iF).(2.3)
+Finally, combining (2.1)-(2.3) and using the fact that r/greaterorequalslant0we have
+cost(CcΣ,r, FN)([ω]1)/lessorequalslantcost(CcΣ,r, FR)(ω)/lessorequalslantcost(CcΣ,r, FN)([ω]0)
+as required.
+Since these are the only cases to consider the lemma holds. /intersectionsq /unionsq
+We now extend the notion of digitization from paths to adversaries. Note
+that we extend the digitization notation [·]εtosetsof paths: for a set Ωof
+inﬁnite paths, let [Ω]ε={[ω]ε|ω∈Ω}. To simplify the presentation, when
+consideringaﬁxedadversary A∈Adv [ [PTA] ]R,wesupposethatthedomainof
+the mapping [·]εisrestricted to the sets of paths PathA
+ﬁn(¯s)andPathA
+ful(¯s).
+More precisely, for any path πof[ [PTA ] ]N:
+[π]−1
+ε=/braceleftBigg
+{ω∈PathA
+ﬁn(¯s)|[ω]ε=π}ifπis ﬁnite
+{ω∈PathA
+ful(¯s)|[ω]ε=π}otherwise(3)
+Using this interpretation we have the following result.
+Lemma 22. For any adversary A∈Adv [ [PTA] ]R, path πof[ [PTA ] ]Nandε∈
+[0,1], the set of paths [π]−1
+ε⊆PathA
+ﬁn(¯s)is ﬁnite.
+Proof.Consider any adversary A∈Adv [ [PTA] ]R, path πof[ [PTA ] ]Nandε∈
+[0,1], then the result is a direct consequence of the following two facts:
+−for any n∈Nthe set of paths {ω∈PathA
+ﬁn(¯s)| |ω|=n}is ﬁnite;
+− |ω|=|[ω]ε|for all ω∈PathA
+ﬁn(¯s). /intersectionsq /unionsq
+Wenowextendthenotionofdigitizationtoadversariesthroughthefollowing
+proposition in which we use FPathA
+ful(¯s)to denote the σ-algebra generated by
+the adversary Aover the set of inﬁnite paths PathA
+ful(¯s).
+Proposition 23. For any adversary A∈Adv [ [PTA] ]Randε∈[0,1], there
+exists a (randomized) adversary Bε∈Adv [ [PTA] ]Nsuch that: ProbBε
+¯s(Π) =
+ProbA
+¯s([Π]−1
+ε)for all Π∈ FPathBε
+ful(¯s).
+digital.tex; 30/03/2006; 10:07; p.22
+
+--- Page 23 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 23
+Proof.Consider any adversary Aof[ [PTA ] ]R. First, to ease notation, for any
+set of ﬁnite paths Ω⊆PathA
+ﬁn(¯s)let:
+ProbA
+¯s(Ω) = ProbA
+¯s{ω/prime∈PathA
+ful(¯s)|ω/lessorequalslantω/primefor some ω∈Ω}
+and for any ﬁnite path π∈PathA
+ﬁn(¯s)and(a, µ)∈Steps (last(π))let:
+(πa,µ− − →)def={π/prime∈PathA
+ﬁn(¯s)| ∃s∈S. π/prime=πa,µ− − →s}.
+We deﬁne the adversary Bεas follows. The set of paths of Bεis given
+by{[ω]ε|ω∈PathA
+ful(¯s)}, and, as usual, let PathBε
+ﬁn(¯s)be the set of ﬁ-
+nite preﬁxes of these paths. For any path π∈PathBε
+ﬁn(¯s)and (a, µ)∈
+Steps (last(π)), the probability of Bεchoosing (a, µ)after πhas been per-
+formed is given by:
+Bε(π)(a, µ)def=ProbA
+¯s([πa,µ− − → ]−1
+ε)
+ProbA
+¯s([π]−1
+ε).
+Note that the above probabilities are well deﬁned since, from (3), the sets of
+paths [πa,µ− − → ]−1
+εand[π]−1
+εare both ﬁnite. We are now in a position, using
+the cylinder construction (see Section 2.2), to deﬁne the probability measure
+ProbBε
+¯sover PathBε
+ful(¯s).
+Tocompletetheproofitremainstoshowthat ProbBε
+¯s(Π) = ProbA
+¯s([Π]−1
+ε)
+forall Π∈ FPathBε
+ful(¯s).Now,fromthecylinderconstruction(seeSection2.2),
+it follows that it is sufﬁcient to show that:
+ProbBε
+¯s(π) =ProbA
+¯s([π]−1
+ε)for all π∈PathBε
+ﬁn(¯s) (4)
+which we now prove by induction on the length of π. Note that, again, it
+follows from (3) that the set of paths [π]−1
+εis ﬁnite.
+Therefore,consideranypath π∈PathBε
+ﬁn(¯s).If|π|= 0then ProbBε
+¯s(π) =
+1 =ProbA
+¯s([π]−1
+ε)as required.
+Next, suppose by induction the lemma holds for all paths of length nand
+πis of length n+ 1. Now, πis of the form π/primea,µ− − → s/primefor some path π/primeof
+length nsuch that (a, µ)∈Steps (last(π/prime))ands/prime∈S, and therefore:
+ProbBε
+¯s(π) =ProbBε
+¯s(π/prime)·Bε(π/prime)(a, µ)·µ(s/prime)
+=ProbA
+¯s([π/prime]−1
+ε)·Bε(π/prime)(a, µ)·µ(s/prime) by induction
+=ProbA
+¯s([π/prime]−1
+ε)·ProbA
+¯s([π/primea,µ− − → ]−1
+ε)
+ProbA
+¯s([π/prime]−1
+ε)·µ(s/prime)by deﬁnition of Bε
+=ProbA
+¯s([π/primea,µ− − → ]−1
+ε)·µ(s/prime) rearranging
+=ProbA
+¯s{ω∈PathA
+ﬁn(¯s)|[ω]ε=π/primea,µ− − →s/prime}by deﬁnition of ProbA
+¯s
+=ProbA
+¯s([π]−1
+ε) by construction of π
+digital.tex; 30/03/2006; 10:07; p.23
+
+--- Page 24 ---
+24 Kwiatkowska, Norman, Parker and Sproston
+and hence (4) holds by induction.
+Finally,toshowthat Bε∈Adv [ [PTA] ]N,wemustshowthat Bεisdivergent.
+This result follows from (4), the fact that Ais divergent, and since from
+Lemma 20 any (inﬁnite) path is divergent if and only if its ε-digitization is
+divergent. /intersectionsq /unionsq
+4.2. PROBABILISTIC REACHABILITY
+In this section we show that it is sufﬁcient to consider the integral semantics
+whencomputingprobabilisticreachabilityproperties.Notethatanalternative
+proof of Theorem 24 appears in [41].
+Theorem 24. For any (closed, diagonal-free) probabilistic timed automaton
+PTAand set of locations F⊆L:
+pmax
+[ [PTA] ]R(FR) = pmax
+[ [PTA] ]N(FN)
+pmin
+[ [PTA] ]R(FR) = pmin
+[ [PTA] ]N(FN).
+Proof.First, from Deﬁnition 19, we have that ω(i)∈FRif and only if
+[ω]ε(i)∈FNfor any path ωof[ [PTA ] ]R. We have seen in Proposition 23
+that for any adversary A∈Adv [ [PTA] ]Randε∈[0,1], we can deﬁne an
+adversary Bε∈Adv [ [PTA] ]Nsuch that: ProbBε
+¯s(Π) = ProbA
+¯s([Π]−1
+ε)for
+allΠ∈ FPathBε
+ful(¯s). Combining these results it follows that, for any adver-
+saryA∈Adv [ [PTA] ]Randε∈[0,1], we can construct an adversary Bε∈
+Adv [ [PTA] ]Nsuch that:
+pA
+¯s(FR) =pBε
+¯s(FN),
+and hence:
+inf
+A∈Adv [ [PTA] ]RpA
+¯s(FR)/greaterorequalslant inf
+B∈Adv [ [PTA] ]NpB
+¯s(FN)
+and
+sup
+A∈Adv [ [PTA] ]RpA
+¯s(FR)/lessorequalslant sup
+B∈Adv [ [PTA] ]NpB
+¯s(FN).
+Ontheotherhand,bydeﬁnitionoftheintegralanddense-timesemantics,for
+any adversary B∈Adv [ [PTA] ]N, there exists an adversary A∈Adv [ [PTA] ]R
+such that pA
+¯s(FR) =pB
+¯s(FN).Intuitively, the adversary Abehaves like the
+integralsemanticadversary B;thatis,itchoosestomaketimedtransitionsof
+only integral duration. The result of Theorem 24 then follows. /intersectionsq /unionsq
+digital.tex; 30/03/2006; 10:07; p.24
+
+--- Page 25 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 25
+4.3. EXPECTED REACHABILITY AND UNIFORMCOSTFUNCTIONS
+Inthissectionweconsiderexpectedreachabilitywhilerestrictingattentionto
+cost functions deﬁned by pairs (cΣ,r), where cΣ:L×Σ→Randr∈R.
+Note that an alternative characterization of the cost functions we consider is
+those that satisfy the following property:
+− C (s, t) =C(s/prime, t)for all s, s/prime∈Sandt∈R;
+− C (s, t+t/prime) =C(s, t) +C(s, t/prime)for all s∈Sandt, t/prime∈R.
+Before we give the proof of correctness under these assumptions, we require
+the following lemma and proposition. Recall the deﬁnition of a measurable
+function (Deﬁnition 2).
+Lemma 25. For any adversary A∈Adv [ [PTA] ]R, the mapping [·]εis a mea-
+surable function from (PathA
+ful(¯s),FPathA
+ful(¯s))to the measurable space in-
+duced from the set of paths {[ω]ε|ω∈PathA
+ful(¯s)}.
+Proof.Recall, from Section 2.2, that for any ﬁnite path ω, the cylinder set of
+ωis given by cyl(ω). The proof follows from the fact that for any ﬁnite path
+π∈ {[ω]ε|ω∈PathA
+ﬁn(¯s)}:
+[cyl(π)]−1
+ε=/uniondisplay
+{cyl(ω)|ω∈PathA
+ﬁn(¯s)∧[ω]ε=π},
+and the set of paths {ω∈PathA
+ﬁn(¯s)|[ω]ε=π}is ﬁnite. That is, the set
+[cyl(π)]−1
+εis the ﬁnite union of measurable sets of PathA
+ful(¯s), and hence a
+measurable set. /intersectionsq /unionsq
+Proposition 26. For any set of locations F⊆L, adversary A∈Adv [ [PTA] ]R
+and cost function CcΣ,r, if the adversaries B0, B1∈Adv [ [PTA] ]Nare con-
+structed following Proposition 23, then:
+eB1
+¯s(cost(CcΣ,r, FN))/lessorequalslanteA
+s(cost(CcΣ,r, FR))/lessorequalslanteB0
+¯s(cost(CcΣ,r, FN))
+Proof.Consider any adversary A∈Adv [ [PTA] ]Rand cost function CcΣ,r.
+First, for any ε∈[0,1], since CcΣ,ris non-negative, cost(CcΣ,r, FN)is a real
+non-negativefunctionon (PathBε
+ful(¯s),FPathBε
+ful(¯s)),andhenceusingProposi-
+tion 23 and Lemma 25 we can apply Theorem 3 which gives:
+/integraldisplay
+ω∈PathA
+ful(¯s)cost(CcΣ,r, FN)([ω]ε) dProbA
+¯s
+=/integraldisplay
+π∈PathBε
+ful(¯s)cost(CcΣ,r, FN)(π) dProbBε
+¯s. (5)
+digital.tex; 30/03/2006; 10:07; p.25
+
+--- Page 26 ---
+26 Kwiatkowska, Norman, Parker and Sproston
+Now by deﬁnition of eA
+¯s:
+eA
+¯s(cost(CcΣ,r, FR)) =/integraldisplay
+ω∈PathA
+ful(¯s)cost(CcΣ,r, FR)(ω) dProbA
+¯s
+/lessorequalslant/integraldisplay
+ω∈PathA
+ful(¯s)cost(CcΣ,r, FN)([ω]0) dProbA
+¯sby Lemma 21
+=/integraldisplay
+π∈PathB0
+ful(¯s)cost(CcΣ,r, FN)(π) dProbB0
+¯s by (5)
+=eB0
+¯s(cost(CcΣ,r, FN)) by deﬁnition .
+Similarly, we can show eB1
+s(cost(CcΣ,r, FN))/lessorequalslanteA
+s(cost(CcΣ,r, FR)). /intersectionsq /unionsq
+Theorem 27. For any (closed, diagonal-free) probabilistic timed automaton
+PTA, set of locations F⊆Land cost function CcΣ,r:
+emax
+[ [PTA] ]R(CcΣ,r, FR) = emax
+[ [PTA] ]N(CcΣ,r, FN)
+emin
+[ [PTA] ]R(CcΣ,r, FR) = emin
+[ [PTA] ]N(CcΣ,r, FN).
+Proof.Consider any set of locations F⊆Land cost function CcΣ,r. We
+have seen in Proposition 23 and Proposition 26 that for any adversary A∈
+Adv [ [PTA] ]Rwe can construct adversaries B0, B1∈Adv [ [PTA] ]Nsuch that:
+eB1
+¯s(cost(CcΣ,r, FN))/lessorequalslanteA
+s(cost(CcΣ,r, FR))/lessorequalslanteB0
+¯s(cost(CcΣ,r, FN)),
+and hence it follows that:
+inf
+A∈Adv [ [PTA] ]ReA
+¯s(cost(CcΣ,r, FR))/greaterorequalslant inf
+B∈Adv [ [PTA] ]NeB
+¯s(cost(CcΣ,r, FN))
+and
+sup
+A∈Adv [ [PTA] ]ReA
+¯s(cost(CcΣ,r, FR))/lessorequalslant sup
+B∈Adv [ [PTA] ]NeB
+¯s(cost(CcΣ,r, FN)).
+On the other hand, as in the proof of Theorem 24, for any adversary B∈
+Adv [ [PTA] ]N, there exists an adversary A∈Adv [ [PTA] ]Rsuch that:
+eA
+¯s(cost(CcΣ,r, FR)) =eB
+¯s(cost(CcΣ,r, FN))./intersectionsq /unionsq
+4.4. EXPECTED REACHABILITY AND VARIABLE COSTFUNCTIONS
+In this section we extend our results on expected reachability to the case
+when, as in (non-probabilistic) linearly priced timed automata [10], the costs
+associated with the time spent in locations can vary between locations. More
+precisely, we consider cost functions of the form CcΣ,rwhere:
+digital.tex; 30/03/2006; 10:07; p.26
+
+--- Page 27 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 27
+−cΣ:L×Σ→Ris a function assigning the cost of executing events;
+−r:L→Ris a function assigning to each location the rate at which
+costs are accumulated as time passes in that location;
+−for any (l, v)∈L×RXanda∈Σ∪R:
+CcΣ,r((l, v), a)def=/braceleftbiggcΣ(l, a)ifa∈Σ
+a·r(l)otherwise .
+Notethat,analternativecharacterizationofsuchcostfunctionsarethosethat
+satisfy:
+C(s, t+t/prime) =C(s, t) +C(s, t/prime)for all s∈Sandt, t/prime∈R.
+Asintheprevioussection,theproofdemonstratingthatdigitalclocksaresuf-
+ﬁcientforcalculatingexpectedreachabilitypropertiesforsuchcostfunctions
+relies on showing that, for any ﬁxed (dense-time semantic) adversary, there
+exist integral-time semantic adversaries whose expected costs of reaching a
+set of target states within ntransitions bound that of A. First, we require the
+following results from linear programming.
+Deﬁnition28. Amatrix Aistotallyunimodular ifeachsubdeterminantof A
+is0,+1or−1.
+Theorem29([49]Theorem19.3). LetAbeamatrixwithentries 0,+1and
+−1. Then the following are equivalent:
+1.Ais totally unimodular;
+2. each collection of columns of Acan be split into two parts so that the
+sumofthecolumnsinonepartminusthesumofthecolumnsintheother
+part is a vector with entries only 0,+1and−1.
+Theorem 30 ([49] Corollary 19.1.a). LetAbe a totally unimodular ma-
+trix, and let bandcbe integral vectors. Then both problems in the linear
+programming duality equation
+max{cx|x/greaterorequalslant0∧Ax/lessorequalslantb}= min {yb|y/greaterorequalslant0∧yA/greaterorequalslantc}
+have integral optimum solutions.
+Wenextdeﬁne,foranyadversary A,asequenceoffunctions (eA
+n)n∈N,where,
+foranystate s,costfunction CcΣ,randsetoftargetlocations F,eA
+n(CcΣ,r, FT, s)
+equalstheexpectedcost,undertheadversary A,ofreaching Ffrom swithin
+ntransitions. Since adversaries can choose on the basis of history, we ﬁrst
+deﬁne eA
+nover paths, then restrict to the case of the initial state (paths of
+length 0).
+digital.tex; 30/03/2006; 10:07; p.27
+
+--- Page 28 ---
+28 Kwiatkowska, Norman, Parker and Sproston
+Deﬁnition 31. LetPTA = (L,¯l,X,Σ,inv,prob )be a probabilistic timed
+automaton and TPS = (S,¯s,Act,T,Steps )be its semantics for the time
+domain T. For any subset of target locations F⊆L, cost function CcΣ,r,
+adversary A∈AdvTPSandω∈PathA
+ﬁn, iflast(ω) = ( l, v)andA(ω) =
+(a, µ), leteA
+0(CcΣ,r, FT, ω) = 0and for any n/greaterorequalslant0 :
+eA
+n+1(CcΣ,r, FT, ω)
+=
+
+0 if(l, v)∈FT
+CcΣ,r(l, a) +/summationtext
+s/prime∈Sµ(s/prime)·eA
+n(CcΣ,r, FT, ωa,µ− − →s/prime)otherwise.
+Lemma 32. LetPTA = (L,¯l,X,Σ,inv,prob )be a probabilistic timed au-
+tomaton and TPS = (S,¯s,Act,T,Steps )be its semantics for the time do-
+mainT. For any subset of target locations F, cost function CcΣ,rand ad-
+versary A∈AdvTPS,/angbracketlefteA
+n(CcΣ,r, FT,¯s)/angbracketrightn∈Nis a non-decreasing sequence
+converging to eA
+¯s(cost(CcΣ,r, FT)).
+Lemma 33. LetPTA = (L,¯l,X,Σ,inv,prob )be a probabilistic timed au-
+tomaton and CcΣ,ra (non-negative) cost function with rational coefﬁcients.
+For any adversary A∈Adv [ [PTA] ]R, set of target locations Fandn∈N,
+there exist adversaries B, C ∈Adv [ [PTA] ]Nsuch that:
+eB
+n(CcΣ,r, FN,¯s)/lessorequalslanteA
+n(CcΣ,r, FR,¯s)/lessorequalslanteC
+n(CcΣ,r, FN,¯s).
+Proof.The ﬁrst step in the proof involves constructing a set of constraints
+on the time steps of the adversaries which follow the same choices as A
+(except in the actual duration of time transitions) up until the nth discrete
+transition. Using these constraints we then formulate a linear programming
+problem,whoseobjectiveiseithertomaximizeorminimizetheexpectedcost
+of reaching a set of target states within ntransitions. The result then follows
+from showing that there exist integer solutions which achieve the maximum
+and minimum. Below, we consider only the construction of the adversary C
+(the construction of Bfollows similarly).
+We therefore begin by constructing a set of linear constraints from which
+we can derive a set of adversaries that behave ‘almost’ the same as A. More
+precisely, we consider any sequence of real values t=/angbracketlefttω/angbracketrightω∈PathA
+ﬁnwhich
+satisfy, for any ω∈PathA
+ﬁn, the following constraints:
+−if|ω|= 0, then
+tω/greaterorequalslant0 (6.1)
+−tω/greaterorequalslant0 (6.2)
+−if|ω|>0, then
+tω−tω(k)/greaterorequalslant⌊dur(ω,|ω|)−dur(ω, k)⌋for all k <|ω|(6.3)
+−tω+tω(k)/greaterorequalslant−⌈dur(ω,|ω|) +dur(ω, k)⌉for all k <|ω|.(6.4)
+digital.tex; 30/03/2006; 10:07; p.28
+
+--- Page 29 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 29
+Note that there exists a sequence of values twhich satisfy these constraints;
+for example, letting tωequal dur(ω,|ω|)or[dur(ω,|ω|)]εfor any ε∈[0,1]
+gives one possible solution.
+Now suppose that we ﬁx a sequence of real values twhich satisfy the
+aboveconstraints.Fromthesevalueswecanconstructanadversary Ctwhich
+‘almost’matchesthebehaviourof A.Thesetofﬁnitepathsof Ctisgivenby
+{[ω]t|ω∈PathA
+ﬁn}, which we deﬁne inductively as follows: if ω= (¯l,0),
+then [ω]tdef=ω, and if ωis of the form ω/primea,µ− − → (l, v), then:
+[ω]tdef= [ω/prime]ta/prime,µ/prime
+− − − → (l, v/prime)
+where
+−v/prime(x) =tω−tω(j)andj/lessorequalslant|ω|suchthat v(x) =dur(ω,|ω|)−dur(ω, j),
+which exists by Lemma 18;
+−ifa∈Σ,last([ω/prime]t) = ( ˜l,˜v)andµ/primeis constructed from a probabilistic
+edge of PTAwhich is of the form (·,·, a, p ), then a/prime=aand for any
+(l/prime/prime, v/prime/prime)∈L×NX:
+µ/prime(l/prime/prime, v/prime/prime) =/summationdisplay
+X⊆X&
+˜v[X:=0]= v/prime/primep(X, l/prime/prime) ;
+−ifa∈R, then a/prime=tω−tω/primeandµ/prime=µ(l,v/prime).
+Following the approach used in Proposition 23, we can then use these paths
+to construct an adversary Ct. The fact that Ctis an adversary of [ [PTA ] ]N
+followsfromLemma18,equations(6.1)–(6.4)andsincewerestrictattention
+toclosed,diagonal-freeprobabilistictimedautomata.Foranystate (l, v)∈S,
+letr(l, v) = r(l). Now, from the construction of Ctand Deﬁnition 31, it
+follows that eCt
+n(CcΣ,r, FR,¯s)equals:
+/summationdisplay
+ω∈PathA
+ﬁn∧|ω|/lessorequalslantn
+∧∀i/lessorequalslant|ω|. ω(i)/negationslash∈FRProbCt(ω)·(tω−tω|ω|−1)·r(last(ω)) +eCt
+n(CcΣ,0, FR,¯s)
+=/summationdisplay
+ω∈PathA
+ﬁn∧|ω|/lessorequalslantn
+∧∀i/lessorequalslant|ω|. ω(i)/negationslash∈FRProbA(ω)·(tω−tω|ω|−1)·r(last(ω)) +eA
+n(CcΣ,0, FR,¯s)(7)
+since AandCtmake the same discrete choices.
+Now, suppose we ﬁx some n∈Nand consider the following linear
+programming problem over the variables /angbracketlefttω/angbracketrightω∈PathA
+n(¯s), where PathA
+n(¯s)
+is the set of paths of PathA
+ﬁn(¯s)with length at most n: maximize (7) such
+that the constraints given by (6.1)-(6.4) are satisﬁed. First note that, under
+digital.tex; 30/03/2006; 10:07; p.29
+
+--- Page 30 ---
+30 Kwiatkowska, Norman, Parker and Sproston
+the assumption that all costs and probabilities are rational, we can scale the
+objective function such that it contains only integer values. Furthermore,
+from the construction of the constraints it follows that the corresponding
+matrix is totally unimodular (using Theorem 29 and the fact that, for any
+collection of columns of the constraint matrix, the sum of the columns is
+a vector with entries only 0,+1and−1). Therefore, using Theorem 30, it
+followsthatthemaximumsolutionisachievedbyanintegervector.Morepre-
+cisely,thereexistsanadversary C∈Adv [ [PTA] ]Nsuchthat eA
+n(CcΣ,r, FR,¯s)/lessorequalslant
+eC
+n(CcΣ,r, FN,¯s)as required. /intersectionsq /unionsq
+Theorem 34. For any (closed, diagonal-free) probabilistic timed automaton
+PTA(where all probability values are rational), set of locations F⊆Land
+(non-negative) cost function CcΣ,rwith rational coefﬁcients, we have:
+emax
+[ [PTA] ]R(CcΣ,r, FR) = emax
+[ [PTA] ]N(CcΣ,r, FN)
+emin
+[ [PTA] ]R(CcΣ,r, FR) = emin
+[ [PTA] ]N(CcΣ,r, FN).
+Proof.From Lemma 33 it follows that for any n∈Nand adversary A∈
+Adv [ [PTA] ]R:
+inf
+B∈Adv [ [PTA] ]NeB
+n(CcΣ,r, FN,¯s)/lessorequalslanteA
+n(CcΣ,r, FR,¯s)/lessorequalslant sup
+C∈Adv [ [PTA] ]NeC
+n(CcΣ,r, FN,¯s),
+and hence, taking limits as ntends to inﬁnity together with Lemma 32, we
+have:
+limn→∞inf
+B∈Adv [ [PTA] ]NeB
+n(CcΣ,r, FN,¯s)/lessorequalslanteA
+¯s(CcΣ,r, FR)
+/lessorequalslantlimn→∞sup
+C∈Adv [ [PTA] ]NeC
+n(CcΣ,r, FN,¯s).
+Now,from[22,23],weneedonlyconsiderthe(ﬁnite)subsetofsimpleadver-
+saries1when verifying expected reachability properties for [ [PTA ] ]N. It then
+follows, again using Lemma 32, that:
+inf
+B∈Adv [ [PTA] ]NeB
+¯s(CcΣ,r, FN)/lessorequalslanteA
+¯s(CcΣ,r, FR)/lessorequalslant sup
+C∈Adv [ [PTA] ]NeC
+¯s(CcΣ,r, FN).
+The proof then concludes similarly to that of Theorem 27. /intersectionsq /unionsq
+1An adversary Bis simple, if for any ﬁnite paths π, π/primesuch that last(π) = last(π/prime)we
+haveB(π) =B(π/prime).
+digital.tex; 30/03/2006; 10:07; p.30
+
+--- Page 31 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 31
+0/lessorequalslantx/lessorequalslant1¯l
+y:=0x=1x=1
+y=1
+l2l1 l4
+l30/lessorequalslantx/lessorequalslant1
+0/lessorequalslantx/lessorequalslant1true
+0/lessorequalslanty/lessorequalslant1x/lessorequalslant1λ
+1−λ
+Figure 3. Example demonstrating that probabilistic stopwatch-bounded reachability proper-
+ties are not preserved.
+5. Limitations of Digital Clocks
+Inthissectionweinvestigatethelimitationsofdigitalclockswhenanalysing
+probabilistic timed automata. In particular, in Section 5.1 we show that the
+integral-time semantics does not preserve probabilistic stopwatch-bounded
+reachabilityproperties,whileinSection5.2weshowthattheintegral-timese-
+manticsdoesnotpreservethesatisfactionoftheprobabilistictimedtemporal
+logic PTCTL [38].
+5.1. PROBABILISTIC STOPWATCH -BOUNDED REACHABILITY
+We now show, by means of a counter-example, that the integral-time seman-
+tics does not preserve probabilistic stopwatch-bounded reachability proper-
+ties; that is, properties concerned with the probability of reaching a certain
+set of states before the time spent in a certain set of locations reaches a
+bound. This means that properties such as ‘the probability that a message
+is correctly delivered while spending at most Ttime units waiting for an
+acknowledgementisgreaterthan0.9’cannot,ingeneral,beveriﬁedcorrectly
+using the integral-time semantics.
+Consider the probabilistic timed automaton of Figure 3, and suppose that
+we associate a stopwatch with this automaton which increases at the same
+rate as real-time (‘running’) in the locations l1andl3, and remains constant
+(‘stopped’) in all other locations. The property we consider is the minimum
+probability of reaching the location l4while the stopwatch (i.e. time spent in
+l1andl3) remains (less than or) equal to zero. First, under the integral-time
+semantic model, the transition from ¯lcan be taken either when the clock x
+equals 0 or 1.
+−Ifxequals 0 when the transition from ¯lis taken, then, on the upper
+branch,1timeunitisspentinlocation l1beforethelocation l4isreached,
+while, on the lower branch, 0 time units are spent in location l3before
+the location l4is reached.
+−Ifxequals 1 when the transition from ¯lis taken, then, on the upper
+branch, 0 time units are spent in location l1before the location l4is
+digital.tex; 30/03/2006; 10:07; p.31
+
+--- Page 32 ---
+32 Kwiatkowska, Norman, Parker and Sproston
+reached, while, on the lower branch, 1 time unit is spent in location l3
+before the location l4is reached.
+It then follows that, under the integral-time semantic model, the minimum
+probabilityofreaching l4whilethestopwatchremainsequaltozerois min(λ,1−
+λ).
+On the other hand, for the dense-time semantic model, suppose that the
+transition from ¯lis taken when x=δ∈(0,1). Then, on the upper branch,
+1−δ(>0)timeunitsarespentinlocation l1beforethelocation l4isreached,
+while,onthelowerbranch, δ(>0)timeunitsarespentinlocation l3beforethe
+location l4isreached.Therefore,forthedense-timesemanticmodel,themin-
+imum probability of reaching location l4while the stopwatch remains equal
+to zero is 0 (consider any adversary which lets some δ∈(0,1)time units
+pass before taking the discrete transition from ¯l), and hence the minimum
+probabilities in the integral and dense-time semantic models disagree.
+Notethat,forthecorrespondingminimumandmaximumexpectedreach-
+ability properties, i.e. the expected time spent in the locations l1andl3until
+the location l4is reached, the integral and dense-time models agree. More
+precisely, for the cost function CcΣ,rsuch that cΣ(l, a) = 0for all l∈L
+anda∈Σandr(l) = 1ifl∈ {l1, l3}and 0 otherwise, then, for both the
+integralanddense-timesemantics,theminimumandmaximumexpectedcost
+of reaching location l4equal min(λ,1−λ)andmax( λ,1−λ)respectively.
+5.2. THE LOGIC PTCTL
+PTCTL is a combination of two extensions of the branching temporal logic
+CTL, the real-time temporal logic TCTL [31] and the probabilistic tempo-
+ral logic PCTL [27, 15]. The logic TCTL can express timing constraints
+referring to the clocks of the probabilistic timed automaton and a new set
+offormula clocks , and includes the reset quantiﬁer z.φ, used to reset the
+formula clock zso that φis evaluated from a state at which z= 0. PTCTL
+is obtained by enhancing TCTL with the probabilistic operator P∼λ[·]from
+PCTL. In the derived logic we can express properties such as ‘with prob-
+ability 0.95 or greater, the value of the system clock xdoes not exceed 3
+before8timeunitshaveelapsed’,whichisrepresentedasthePTCTLformula
+z.P/greaterorequalslant0.95[(x/lessorequalslant3)U(z=8)]. For details on the formal syntax and semantics of
+PTCTL see, for example, [38].
+Note that, if we restrict attention to formulae which do not contain nested
+P∼λ[·]operators, it is straightforward to extend our results to show that the
+satisfaction, in the initial state, of such formulae is preserved by the integral
+semantics (under the restriction that all clock constraints appearing in the
+formula are closed and diagonal-free). This result follows from the fact that
+the satisfaction of such a formula reduces to computing either the maximum
+or minimum reachability probability on a closed diagonal-free probabilistic
+digital.tex; 30/03/2006; 10:07; p.32
+
+--- Page 33 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 33
+¯l
+0/lessorequalslantx/lessorequalslant3l1
+truex/greaterorequalslant3
+x/lessorequalslant1
+Figure 4. Example demonstrating that the satisfaction of PTCTL formulae is not preserved.
+timed automaton. However, as the following example demonstrates, digi-
+tal clocks do not sufﬁce for the veriﬁcation of PTCTL formulae containing
+nested P∼λ[·]operators.
+Consider the (probabilistic) timed automaton given in Figure 4. In the
+integral-time semantic model, no state of the corresponding timed proba-
+bilistic system satisﬁes the formula φ=z.P<1[true U(locl1∧z/lessorequalslant1)](for
+all adversaries the probability of reaching the location l1within 1 time unit
+is less than 1). More precisely, if the automaton is in location ¯land the
+clock xhas an integer value, then there exists an adversary such that (with
+probability 1) location l1is reached within 1 time unit. Therefore, since no
+state of the integral-time semantic model can reach a state satisfying φ, the
+formula P<1[true Uφ](foralladversariestheprobabilityofreachingastate
+satisfyingtheformula φislessthan1)istriviallytrueintheinitialstate (¯l,0).
+Ontheotherhand,forthedense-timesemantics,whentheautomatonisin
+location ¯land the clock xis in the interval (1,2), then l1cannot be reached
+without letting more than 1 time unit elapse. Hence, starting from the initial
+state (¯l,0)and letting time pass until x∈(1,2)the formula φbecomes true,
+and thus P<1[true Uφ]is not satisﬁed in the initial state.
+6. Case Studies
+Inthissection,weillustratetheutilityoftheintegral-timesemanticsofprob-
+abilistic timed automata by considering three case studies, where all experi-
+mentswereperformedusingtheprobabilisticsymbolicmodelcheckerPRISM.
+Further details on the case studies, including the model checking statistics,
+canbefoundonthePRISMwebpage[47].Thissectionalsoincludesexperi-
+mentalresultstocomparetheperformanceofthetechniquesdescribedinthis
+paper with alternative approaches from the literature.
+6.1. ZEROCONFDYNAMIC CONFIGURATION PROTOCOL FOR IPV4
+LINK-LOCAL ADDRESSES
+The ﬁrst case study concerns the ZeroConf dynamic conﬁguration protocol
+for IPv4 link-local addresses [18], which offers a distributed ‘plug-and-play’
+digital.tex; 30/03/2006; 10:07; p.33
+
+--- Page 34 ---
+34 Kwiatkowska, Norman, Parker and Sproston
+solution in which IP address conﬁguration is managed by individual devices
+connectedtoalocalnetwork.Thisworkextendstheresultspresentedin[37].
+The protocol has also been studied in [17, 54, 6].
+The aim of the protocol is to conﬁgure an IP address for a device which
+newly joins the local network. The IP address is then used to facilitate local
+communication between the devices of the network. Henceforth, we refer
+to devices which partake of the protocol as hosts. When a host connects to
+the network, it ﬁrst randomly selects an IP address from a pool of 65024
+available addresses (the Internet Assigned Number Authority has allocated
+the addresses from 169.254.1.0 to 169.254.254.255 for the purpose of such
+link-local networks). The host waits a random time of between 0 and 2 sec-
+ondsbeforestartingtosendfour AddressResolutionProtocol (ARP)packets,
+calledprobes, to all of the other hosts of the network. Probes contain the IP
+address selected by the host, operate as requests to use the address, and are
+sent at 2 second intervals. A host which is already using the address will
+respond with an ARP reply packet, asserting its claim to the address, and the
+originalhostwillrestarttheprotocolbyreconﬁguring,wherereconﬁguration
+involves randomly choosing a new address and sending new probes. Each
+timeahostwitnessesanARPpacketwithanaddresswhichconﬂictswiththe
+addressthatithaschosen,acounterisincremented.Ifthecounterreachesthe
+value 10, then the host ‘backs off’ and remains idle for at least one minute.
+If the host sends four probes without receiving an ARP reply packet, then it
+commencestousethechosenIPaddress.Thehostalsosendsconﬁrmationof
+this fact to the other hosts of the network by means of two further messages,
+calledgratuitous ARPs, which are also sent at 2 second intervals. The pro-
+tocol has an inherent degree of redundancy, for example with regard to the
+number of repeated ARP packets sent, in order to cope with message loss.
+Indeed, message loss makes possible the undesirable situation in which two
+or more hosts use the same IP address simultaneously.
+A host which has commenced using an IP address must reply to ARP
+packets containing the same IP addresses that it receives from other hosts.
+It continues using the address unless it receives any ARP packet other than
+a probe (for example, a gratuitous ARP) containing the IP address that it is
+using currently. In such a case, the host can either defendits IP address, or
+deferto the host which sent the conﬂicting ARP packet. The host may only
+defend its address if it has not received a previous conﬂicting ARP packet
+within the previous ten seconds; otherwise it is forced to defer. A defending
+hostrepliesbysendinganARPpacket,therebyindicatingthatitisusing,and
+will continue to use, the IP address. A deferring host does not send a reply;
+instead, it ceases using its current IP address, and reconﬁgures its IP address
+by restarting the protocol.
+Asin[54],weassumeabroadcast-basedcommunicationmediumwithno
+routers (for example, a single wire), in which messages arrive in the order
+digital.tex; 30/03/2006; 10:07; p.34
+
+--- Page 35 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 35
+in which they are sent. In contrast to the analytic analysis of the protocol
+by Bohnenkamp et al. [17], we model the possibility that a device could
+surrender an IP address that it is using to another host; and in contrast to
+the timed-automata-based analysis of Zhang and Vaandrager [54], we model
+someimportantprobabilisticcharacteristicsoftheprotocol,andconsiderpa-
+rametersmorefaithfultothestandard(suchasthemaximumnumberoftimes
+adevicecanwitnessanARPpacketwiththesameIPaddressasthatwhichit
+wishestousebefore‘backingoff’andremainingidleforatleastoneminute).
+In the standard [18], there is no mention of what a host should do with
+messages corresponding to its current IP address (i.e. the probes and gratu-
+itous ARP packets speciﬁed in the standard) which are in its output buffer
+(i.e. those that have yet to be sent), when it reconﬁgures (chooses a new IP
+address). However, when the host does reconﬁgure, unless it picks the same
+IP address, which happens with a very small probability ( 1/65024), these
+messagesarenotrelevant.Infact,suchmessageswillslowdownthenetwork
+andmayevenmakehostsreconﬁgurewhentheydonotneedto.Wetherefore
+considered two different versions of the protocol: one where the host leaves
+the messages within its output buffer ( NoReset) and another where the host
+clears its buffer when it is about to choose a new IP address ( Reset).
+6.1.1.Modelling the dynamic conﬁguration protocol
+We consider in detail one concrete host , which is attempting to conﬁgure an
+IP address for a network in which there are Nabstract hosts which have al-
+readyconﬁguredIPaddresses.Thesehostsarecalledabstractbecausewedo
+not study their behaviour in depth. When the concrete host picks an address,
+the probability of this address being fresh(not in use by an abstract host) is
+(65024 −N)/65024. We also assume that the concrete host never picks the
+same IP address twice, as this happens with a very small probability. Also,
+the (continuous) uniform choice over [0,2], made by the concrete host to
+determine the delay before it sends its ﬁrst probe, is abstracted to a discrete
+uniform choice over {0,1,2}.
+Toenabletheanalysisoftheprotocolundervariousnetworkscenarioswe
+considertwodifferentvaluesof Ncorrespondingtonetworkswithadifferent
+numbers of hosts. More precisely, we consider the cases when N=1000(the
+value taken in [17]) and N=20.
+Following the above assumptions, we require only three abstractIP ad-
+dresses:
+0 -anaddressofanabstracthostwhichtheconcretehostpreviouslychose;
+1 -anaddressofanabstracthostwhichistheconcretehost’scurrentchoice;
+2 - a fresh address which is the concrete host’s current choice.
+digital.tex; 30/03/2006; 10:07; p.35
+
+--- Page 36 ---
+36 Kwiatkowska, Norman, Parker and Sproston
+Table 1. Integer variables used in the probabilistic timed automata
+variable description range
+coll the number of collisions detected by the concrete host 0. . .10
+iph the current address of the concrete host 1. . .2
+defend equals 1 when the host is defending its address 0. . .1
+probes the number of probes/ARPs sent by the concrete host 0. . . K
+ip the address of the ARP packet currently being sent 0. . .2
+n the number of packets in the concrete host’s output buffer 0. . .8
+b[i] the address of packet iin the concrete host’s output buffer 0. . .2
+m0 the number of packets containing an IP address 0. . .20
+of type 0 in the buffers of the abstract hosts
+m1 the number of packets containing an IP address 0. . .8
+of type 1 in the buffers of the abstract hosts
+As in the standard [18], we suppose that it takes between 0 and 1 seconds
+to send a packet between hosts (where the choice of the exact time delay is
+nondeterministic).
+Since we suppose that the abstract hosts always defend their addresses
+andhavealreadypickedtheirIPaddress,theconcretehostwillneverreceive
+probes. Therefore, we do not need to record the type of message being sent,
+butinsteadonlytheIPaddressinthemessage,andwhetheritissentfromthe
+concrete host to the abstract hosts or vice versa.
+Asin[54],weconsiderthecaseinwhichhostsuseoutputbufferstostore
+the packets they want to send. We have chosen the size of the buffers such
+thattheprobabilityofanybufferbecomingfullisnegligible.Wesupposethat
+the concrete host can send a packet to all the abstract hosts at the same time,
+and only one of the abstract hosts can send a packet to the concrete host at a
+time.
+Variables. Thesetofvariablesofourprobabilistictimedautomataincludes
+bothclocks( x,yandz)andintegervariables whicharedescribedinTable1.
+Note that the range of the integer variable probesis changed for different
+veriﬁcation instances, and since the abstract IP address 2 corresponds to a
+fresh address chosen by the concrete host we need only two buffers for the
+abstract hosts (corresponding to addresses of type 0 and 1).
+Events. Wemodeltheprotocolusingtwoprobabilistictimedautomata,one
+for the concrete host and one for the environment (which comprises both
+abstract hosts and the output buffer of the concrete host); these models com-
+municatethroughthethreeevents rec,sendand resetasdescribedinTable2.
+digital.tex; 30/03/2006; 10:07; p.36
+
+--- Page 37 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 37
+Table 2. Events used in the probabilistic timed automata
+event description
+rec concrete host receives an ARP packet from the environment
+send concrete host sends an ARP packet to the environment
+reset concrete host (re)conﬁgures a new IP address
+urgent the environment starts sending a packet
+In Table 2 we have also included the event urgent, which, although it is not
+a communicating event, is urgent (no time can pass if it is enabled), since
+a packet should be sent as soon as it is possible. Note that, in the model
+Reset,weusetheevent resettomodeltheenvironmentresettingthepackets
+in the buffers of both the concrete and abstract hosts when the concrete host
+reconﬁgures.
+6.1.2.Probabilistic timed automata for the protocol
+In the following, we describe the modelling of the Resetversion of the pro-
+tocolonly.Recallthatweusetwoprobabilistictimedautomata,onetomodel
+the concrete host and one to model the environment (which contains the ab-
+stract hosts and the output buffers of allhosts). Note that, in the description
+below, we have omitted the labelling of the non-urgent events on which the
+twoautomatadonotsynchronize,thatis,thenon-urgenteventswhichdonot
+appear in the set of events of both automata.
+The concrete host. The model for the concrete host is shown in Figure 5.
+The host commences in the location RECONF (the double border indicates
+the initial location). The location RECONF is a committed location, and
+therefore must be left immediately. In RECONF , the host chooses a new IP
+address by moving to the location CHOOSE if it has experienced less than
+ten address collisions, and to CHOOSEWAIT otherwise. These transitions
+are labelled with the event resetto inform the environment that the host’s
+buffer is to be reset (all messages in its buffer are to be removed).
+In both CHOOSE andCHOOSEWAIT , the address selection is repre-
+sented by the assignment iph:=RAND (1,2), which corresponds to the
+host randomly selecting an IP address. That is, with probability N/65024
+the host sets iphequal to 1 (selects an IP address already in use) and, with
+probability (65024 −N)/65024, sets iphequal to 2 (selects a fresh IP ad-
+dress). Note that, in CHOOSEWAIT , since the host has already experienced
+at least ten address collisions, it waits 60 seconds before choosing a new
+address.Theassignmenttotheclock x(auniformchoicebetween {0,1,2}),
+whichlabelsthetransitionsfrom CHOOSE andCHOOSEWAIT toWAITSP,
+digital.tex; 30/03/2006; 10:07; p.37
+
+--- Page 38 ---
+38 Kwiatkowska, Norman, Parker and Sproston
+RECONF
+committed
+WAITSP
+x/lessorequalslant2x/lessorequalslant60CHOOSEWAIT CHOOSE
+urgent
+WAITSG
+x/lessorequalslant2
+RESPOND
+urgentUSEx=2∧probes <K
+send
+probes :=probes +1
+x:=0recrec
+coll:= min( coll+1,10)recrecresetcoll<10coll=10
+reset
+probes :=0x=60
+probes :=0x:=0
+coll:=0,probes :=0x=2∧probes =K
+rec
+rec send
+send
+defend :=1, y:=0defend :=0defend =0∨y/greaterorequalslant10x=2∧probes =1x:=RAND (0,1,2)iph:=RAND (1,2)iph:=RAND (1,2)
+x:=RAND (0,1,2)
+y:=0ip/negationslash=iph
+ip/negationslash=iphip=iph
+ip=iphx=2∧probes <1
+x:=0probes :=probes +1send
+Figure 5. Probabilistic timed automaton for the concrete host (model Reset)
+approximates the random delay of between 0 and 2 made by the host before
+sending the ﬁrst probe.
+In the location WAITSP, the host sends Kprobes at 2 second intervals
+(denoted by the self-loop labelled with send). The host may also receive
+packets by means of the event rec. If it receives a packet which has a dif-
+ferentIPaddress (ip/negationslash=iph),thenthehostignoresthepacket(andremainsin
+WAITSP);however,ifthepackethasthesameaddress,thehostimmediately
+reconﬁgures (moves to RECONF ).
+After sending the Kth probe, the host remains in location WAITSP for 2
+secondsbeforemovingto WAITSG.ThehostthensendstwoARPsseparated
+by a delay of 2 seconds. Note that the variable probesis used to count these
+ARPs. After these ARPs have been sent, the host moves to USE. However,
+if while in WAITSG the host receives a packet with the same IP address,
+it moves to RESPOND . In this location, the host can decide to reconﬁgure
+(return to RECONF ), or defend its IP address (by sending an ARP packet) if
+it has either not yet defended the address ( defend = 0) or 10 seconds have
+passed since it previously defended the address ( y/greaterorequalslant10). This defence takes
+theformofthesendingofadefendingpacket,asdenotedbythe sendlabelled
+digital.tex; 30/03/2006; 10:07; p.38
+
+--- Page 39 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 39
+ENVSEND
+z/lessorequalslant1
+sendn<8
+n:=n+1b[n]:=iphIDLEz/lessorequalslant1CONC SENDurgent∀i/lessorequalslant7.b[i−1]:=b[i]n:=n−1, ip:=b[0]
+∀i/lessorequalslant7.b[i−1]:=b[i]
+n>0
+m0:=m0−1m0>0
+urgenturgent
+m1>0m1:=m1−1
+ip:=0
+m0:=m0−1
+z:=0ip:=1m1:=m1−1z:=0
+rec ip=2
+ip=0
+m0:= min( m0+1,20)ip=1
+n=8
+sendz:=0n:=n−1
+m1:= min( m1+1,8)
+reset
+n:=0
+ip:=0
+m1:=0
+m0:= min( m0+m1,20)
+Figure 6. Probabilistic timed automaton for the environment (model Reset)
+transitionfrom RESPOND toWAITSG.Notethattheclock ycannotactually
+reach 10inthelocation WAITSG,andthereforethistransitionisonlyenabled
+if the address has not been defended, although to be faithful to the standard
+we have not removed this condition.
+Theenvironment. ThemodelfortheenvironmentisshowninFigure6.The
+probabilistic transitions are indicated by thicker grey arrows. The dotted box
+labelled with three transitions which surrounds the model denotes that these
+transitions are available in allof the locations of the model. More precisely,
+in all locations, the environment may receive a sendevent from the concrete
+host and, if the host’s buffer is not full ( n<8), add the corresponding packet
+tothebuffer(otherwiseitislost).Also,inalllocations,theenvironmentmay
+receive a resetevent and clear the buffer of the concrete host ( n:= 0) and,
+sinceweassumethattheconcretehostwillneverchoosethesameIPaddress
+twice, set the IP address in any packet being sent or to be sent to type 0 (i.e.
+ip:= 0,m1:= 0andm0:= min( m0+m1,20)).
+The behaviour of the environment commences in the location IDLE. The
+transitionwhichprobabilisticallymovestoeither IDLEorCONC SENDcor-
+respondstothesendingofapacketfromtheconcretehost’sbuffer.The urgent
+labelling denotes that the transition should be taken as soon as it is enabled,
+i.e.itshouldbetakenassoonasthereisapackettosend.Similarly,thetransi-
+tionswhichmoveprobabilisticallytoeither IDLEorENV SENDcorrespond
+toanabstracthostsendingapacket,andareagainurgent.Therearetwosuch
+transitions, since the address in the packet can either be of type 0 ( m0>0)
+or 1 ( m1>0). For each of these transitions, the loop (remaining in IDLE)
+corresponds to the packet being lost by the medium, while the other edge
+corresponds to the packet being sent correctly (therefore the required buffers
+are updated when one of these transitions is taken). Note that, since each of
+digital.tex; 30/03/2006; 10:07; p.39
+
+--- Page 40 ---
+40 Kwiatkowska, Norman, Parker and Sproston
+Table 3. Minimum probabilistic reachability results
+number of abstract hosts equals 1000
+no. of probes message loss rate 0.1 message loss rate 0.001 message loss rate 0
+sent (K) NoReset Reset NoReset Reset NoReset Reset
+1 5.6e-4 5.6e-4 6.2e-8 6.2e-8 0 0
+2 1.1e-4 1.1e-4 1.2e-10 1.2e-10 0 0
+3 2.0e-5 2.0e-5 2.5e-13 2.5e-13 0 0
+4 3.9e-6 3.9e-6 5.0e-16 5.0e-16 0 0
+5 7.3e-7 7.3e-7 <1.0e-16 <1.0e-16 0 0
+6 1.4e-7 1.4e-7 <1.0e-16 <1.0e-16 0 0
+number of abstract hosts equals 20
+no. of probes message loss rate 0.1 message loss rate 0.001 message loss rate 0
+sent (K) NoReset Reset NoReset Reset NoReset Reset
+1 1.1e-5 1.1e-5 1.2e-9 1.2e-9 0 0
+2 2.1e-6 2.1e-6 2.4e-12 2.4e-12 0 0
+3 4.0e-7 4.0e-7 4.9e-15 4.9e-15 0 0
+4 7.6e-8 7.6e-8 <1.0e-16 <1.0e-16 0 0
+5 1.4e-8 1.4e-8 <1.0e-16 <1.0e-16 0 0
+6 2.8e-9 2.8e-9 <1.0e-16 <1.0e-16 0 0
+these transitions corresponds to a message from a different host, when more
+than one of these transitions is enabled, there is a nondeterministic choice as
+to which one is taken. We vary the probability of message loss depending on
+theveriﬁcationinstance.Onceineither CONC SENDorENV SEND,aftera
+delayofbetween0and1seconds,themodelreturnsto IDLE;thiscorresponds
+to the message taking between 0 and 1 seconds to send.
+6.1.3.Performance Analysis
+In this section, we outline our results of using PRISM to verify the integral-
+timemodelsoftheprobabilistictimedautomataofthedynamicconﬁguration
+protocol given in Section 6.1.2. In the experiments, as explained above we
+consider the cases when the number of hosts ( N) equals 1000 and 20, and
+vary both the number of probes a host sends ( K) and the probability of
+message loss.
+Note that, because we have abstracted certain aspects of the network (for
+example, the time taken to send a message), the presented results will give
+upper and lower bounds on the performance of the protocol, for example the
+actual reachability probability will lie between the minimum and maximum
+reachability probabilities computed for the model under study.
+digital.tex; 30/03/2006; 10:07; p.40
+
+--- Page 41 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 41
+Table 4. Maximum probabilistic reachability results
+number of abstract hosts equals 1000
+no. of probes message loss rate 0.1 message loss rate 0.001 message loss rate 0
+sent (K) NoReset Reset NoReset Reset NoReset Reset
+1 0.01538 0.0154 0.0154 0.0154 0.0154 0.0154
+2 0.00304 0.00296 1.9e-4 3.1e-5 1.6e-4 0
+3 6.1e-4 5.6e-4 8.0e-5 6.2e-8 8.0e-5 0
+4 1.1e-4 1.1e-4 1.2e-6 1.2e-10 1.2e-6 0
+5 2.0e-5 2.0e-5 4.1e-7 2.5e-13 4.2e-7 0
+6 3.9e-6 3.9e-6 8.4e-9 5.0e-16 8.5e-9 0
+number of abstract hosts equals 20
+no. of probes message loss rate 0.1 message loss rate 0.001 message loss rate 0
+sent (K) NoReset Reset NoReset Reset NoReset Reset
+1 3.1e-4 3.1e-4 3.1e-4 3.1e-4 3.1e-4 3.1e-4
+2 5.8e-5 5.8e-5 6.8e-7 6.2e-7 6.3e-8 0
+3 1.1e-5 1.1e-5 3.3e-8 1.2e-9 3.2e-8 0
+4 2.1e-6 2.1e-6 1.2e-11 2.5e-12 9.7e-12 0
+5 4.0e-7 4.0e-7 3.2e-12 4.9e-15 3.2e-12 0
+6 7.6e-8 7.6e-8 1.3e-15 <1.0e-16 1.3e-15 0
+Probabilistic reachability. The probabilistic reachability property we con-
+sider is the (minimum and maximum) probability of the host using an IP
+addresswhichisalreadyinusebyanotherhost.InTables3and4wepresent
+the minimum and maximum probabilistic reachability results obtained in the
+cases when the number of abstract hosts ( N) is ﬁxed at 1000 and 20.
+For both models the results demonstrate that the probabilities decrease as
+the number of probes increases, which is to be expected: if more probes are
+sent then there is a greater chance of receiving a reply to a probe when an IP
+address already in use is chosen (i.e. the chance that not all the probes and
+responses get lost). Furthermore, the probabilities in the case when N= 20
+aresmaller thanwhen N= 1000;again thisis tobe expected,because when
+Nis smaller there are fewer abstract hosts, hence fewer IP addresses in use,
+and therefore there is a smaller chance of the host choosing an IP address
+which is already in use.
+When the probability of message loss is 0, Table 4 shows that the maxi-
+mumprobabilityis0forthemodel Reset(themodelwherethehostclearsits
+buffer) provided the host sends more than one probe. On the other hand, for
+the model NoReset (when the host does not clear its buffer), even if the host
+sends more than one probe, this maximum reachability probability is greater
+than0.Tounderstandthisresult,considerthefactthat,ifahostdoesnotclear
+digital.tex; 30/03/2006; 10:07; p.41
+
+--- Page 42 ---
+42 Kwiatkowska, Norman, Parker and Sproston
+0 10 20 30 40 5010−810−610−410−2100
+time bound T1 − (prob. of using fresh IP addr. by T)K=2
+K=4
+K=6
+K=8
+0 10 20 30 40 5010−1010−5100
+time bound T1 − (prob. of using fresh IP addr. by T)K=2
+K=4
+K=6
+K=8
+0 10 20 30 40 5010−1010−5100
+time bound T1 − (prob. of using fresh IP addr. by T)K=2
+K=4
+K=6
+K=8
+(a) message loss rate 0.1 (b) message loss rate 0.01 (c) message loss rate 0.001
+Figure 7. Minimum probabilistic time-bounded reachability results ( N=1000)
+0 10 20 30 40 5010−1010−5100
+time bound T1 − (prob. of using fresh IP addr. by T)K=2
+K=4
+K=6
+K=8
+0 10 20 30 40 5010−2010−1510−1010−5100
+time bound T1 − (prob. of using fresh IP addr. by T)K=2
+K=4
+K=6
+K=8
+0 10 20 30 40 5010−2010−1510−1010−5100
+time bound T1 − (prob. of using fresh IP addr. by T)K=2
+K=4
+K=6
+K=8
+(a) message loss rate 0.1 (b) message loss rate 0.01 (c) message loss rate 0.001
+Figure 8. Maximum probabilistic time-bounded reachability results ( N=1000)
+its buffer, then there is a chance that the probes corresponding to its new IP
+address will get delayed, and hence the host will not receive a reply to these
+probes until after it starts using the address (since the probability of message
+loss is 0, the host will eventually get a reply).
+Inthecaseswherethemessagelossprobabilityisgreaterthan0,theresults
+presentedinTables3and4demonstratethat,byallowingthehosttoclearits
+buffer,theperformanceoftheprotocolimproves;thatis,themaximumreach-
+ability probabilities decrease while the minimum reachability probabilities
+remain the same.
+Time-boundedprobabilisticreachability. Thetime-boundedpropertywecon-
+sideristhe(minimumandmaximum)probabilityofthehostusingafreshIP
+address within time T. For the model Resetwhen N=1000, the minimum
+and maximum time-bounded reachability results are presented in Figure 7
+and Figure 8, respectively. Note that the graphs use a log scale and plot 1
+minus the actual probabilities under study. The time-bounded reachability
+results when N=20are similar except that the probabilities are higher and
+the explanation for this is the same as for the probabilistic reachability case;
+namely,when N=20thereisagreaterchancethatthehostwillchooseafresh
+IP address.
+The results demonstrate that, for small time bounds, the probability of
+thepropertyishigherwhen Kissmaller.Thisistobeexpectedsincesending
+moreprobestakesmoretime.However,forlargertimeboundstheprobability
+digital.tex; 30/03/2006; 10:07; p.42
+
+--- Page 43 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 43
+2 4 6 8 10 12 14 161021041061061081010
+number of probes sent (K)expected costN=1000 & E=1012
+N=20 & E=1012
+N=1000 & E=106
+N=20 & E=106
+2 4 6 8 10 12 14 161021041061081010
+number of probes sent (K)expected costN=1000 & E=1012
+N=20 & E=1012
+N=1000 & E=106
+N=20 & E=106
+2 4 6 8 10 12 14 161021041061081010
+number of probes sent (K)expected costN=1000 & E=1012
+N=20 & E=1012
+N=1000 & E=106
+N=20 & E=106
+(a) message loss rate 0.1 (b) message loss rate 0.01 (c) message loss rate 0.001
+Figure 9. Maximum (dotted) and Minimum (solid) expected cost results
+is larger when more probes are sent. This is due to the fact that, when more
+probesaresent,thereislesschanceofusinganIPaddressalreadyinuse,and
+hence not reaching a state where the host uses a fresh IP address.
+The results for the model NoReset are similar to those presented for the
+Reset, although, as for the maximum probabilistic reachability results, the
+probabilities are larger for the model NoReset.
+Expectedreachability. Weconsidertheexpectedcostofahostchoosingan
+IP address and using it. As in [17], the cost is deﬁned as the time to start
+usinganIPaddressplusanadditionalcost( E)associatedwiththehostusing
+an address which is already in use. We consider two different values for E,
+namely 106and1012.Notethatthechoiceofthevalueofthisadditionalcost
+will depend on how damaging it is for two hosts to use the same IP address,
+which in turn depends on the network and the nature of its devices.
+The results for the model Resetare presented in Figure 9. In each graph
+a log scale has been used to improve readability. The results for the model
+NoReset are similar, although both the minimum and maximum costs are
+larger for the model NoReset (see [47] for further details). This agrees with
+our intuition, since, as the results for probabilistic reachability demonstrate,
+when the host does not clear its buffer, there is a greater chance of using an
+IP address which is already in use, and hence of incurring a greater cost.
+These results are similar to those of [17]: as the message loss probability
+increases,onemustincreasethenumberofprobessentinordertoreducethe
+expected cost; however, if too many probes are sent, the expected cost may
+starttoincrease.Therationaleforthisisthat,althoughincreasingthenumber
+ofprobessentdecreasestheprobabilityofthehostusinganIPaddresswhich
+is already in use (that is, decreases the chance of incurring the additional
+cost),itincreasestheexpectedtimetochooseanIPaddress(becausesending
+more probes takes more time).
+Figure 9 also shows that, as the probability of message loss increases, to
+minimize the expected costs one must send more probes (increase the value
+ofK). Similarly, the results presented demonstrate the fact that, when the
+digital.tex; 30/03/2006; 10:07; p.43
+
+--- Page 44 ---
+44 Kwiatkowska, Norman, Parker and Sproston
+cost of using an IP addresswhich is already inuse by another hostincreases,
+one must send more probes to minimize the expected cost.
+6.2. IEEE 802.11 W IRELESS LAN
+This case study concerns the IEEE 802.11 wireless local area network pro-
+tocol [33] and focuses on the contention resolution protocol for ‘ad hoc net-
+works’. Such networks comprise a number of stations communicating over a
+shared channel, in a peer-to-peer manner and without a centralized medium
+access control protocol to arbitrate requests to transmit on the channel. The
+protocolincludesarandomized,slottedexponentialbackoffprocedure,which
+is designed to break the symmetry between stations that are repeating previ-
+ously failed transmissions, i.e. those which collided.
+We assume a ﬁxed network topology, consisting of two sending stations
+andtwodestinationstations,andconsiderthescenarioinwhichbothsenders
+areattemptingtosendapackettotheirdestinations.Fordetailedinformation
+ontheprobabilistictimedautomatonmodel,see[40,47].Preliminaryresults
+concerningtime-boundedprobabilisticreachabilitycanalsobefoundin[40].
+In our experiments, we investigate both the effect of changing the maximum
+timeittakesforastationtosendapacket( TTmax),whichisspeciﬁedinthe
+standard as 15,800 µsec, and the maximum value which a station’s backoff
+counter can take ( bcmax), which the standard speciﬁes to be 6. Note that a
+station increases its backoff counter (up to the value of bcmax) each time a
+collisionoccursandthatthevalueofthebackoffcounterinﬂuencestherange
+over which its next backoff is chosen. More precisely, a station chooses its
+next backoff value uniformly from the range {0,1, . . . , 2k+4−1}when its
+backoff counter equals k.
+Probabilisticreachability. Firstwecalculatetheminimalprobabilityofboth
+stations eventually sending their packet. As expected, this has probability
+1, regardless of the values of TTmaxandbcmax. The second probabilistic
+reachability property we consider is the maximum probability of the stations
+colliding at least ktimes.
+Theresultsobtainedasthevalueof bcmaxvariesarepresentedinTable5
+(changing the value of TTmaxdoes not inﬂuence the results). Observe that
+the greater the value of the backoff counters, the greater the number of col-
+lisions, and hence the longer it takes for a data packet to be sent correctly.
+We observe that the probability falls rapidly as kincreases. This result is
+to be expected since after each collision (up to the bcmaxth collision), the
+rangeoverwhicheachstationchoosesitsbackoffgrowsexponentially.Since
+astation’sbackoffcounterisonlyincrementedafteracollisionitfollowsthat,
+ifthestationscollideforthe ithtime,where i/greaterorequalslant2,theirbackoffcountersequal
+digital.tex; 30/03/2006; 10:07; p.44
+
+--- Page 45 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 45
+Table 5. Performance results relating to the number of of collisions.
+value of Maximum probability of at least kcollisions max expected
+bcmax k=2 k=4 k=6 k=7 k=8 no. of collisions
+0 0.183594 0.006188 0.000209 0.000038 7.03e-6 1.224872
+1 0.183594 0.001580 0.000014 1.26e-6 1.17e-7 1.202366
+2 0.183594 0.000794 1.73e-6 8.05e-8 3.75e-9 1.201459
+3 0.183594 0.000794 4.34e-7 1.01e-8 2.37e-10 1.201440
+4 0.183594 0.000794 2.17e-7 2.54e-9 2.98e-11 1.201439
+5 0.183594 0.000794 2.17e-7 1.27e-9 7.45e-12 1.201439
+6 0.183594 0.000794 2.17e-7 1.27e-9 3.72e-12 1.201439
+2000 3000 4000 5000 600000.20.40.60.81
+deadline (T m sec)probability
+ P1
+ P2
+ P3
+4000 5000 6000 7000 8000 900000.20.40.60.81
+deadline (T m sec)probability
+ P1
+ P2
+ P3
+6000 8000 10000  12000 1400000.20.40.60.81
+deadline (T m sec)probability
+ P1
+ P2
+ P3
+(a)TTmax = 500 (b)TTmax = 1,250 (c)TTmax = 2,500
+Figure 10. Model checking results for the time-bounded reachability properties
+min(i−2,bcmax )at this point, and hence for any kthe results agree for all
+bcmaxsuch that bcmax /greaterorequalslantk−2.
+Time-bounded probabilistic reachability. The time bounded probabilistic
+reachability properties we consider concern reaching states in which pack-
+ets have been successfully delivered. More formally, we verify the following
+properties:theminimumprobabilityofbothstationscorrectlydeliveringtheir
+packets within time T(P1); the minimum probability of either station cor-
+rectly delivering its packet within time T(P2); and the minimum probability
+of station 1 correctly delivering its packet within time T(P3).
+In Figure 10 we have plotted the results for P1–P3when using the max-
+imum backoff value taken from the standard ( bcmax =6) in the cases when
+TTmaxequals 500,1,250and2,500. Note that, since stations initially col-
+lide with probability 1, the probability will be zero for any deadline which
+doesnotallowthestationstocollide,enterthebackoffprocedure,andthenre-
+sendtheirdatapackets.InFigure10thedottedlineinthegraphscorresponds
+to the minimum probability of a station sending a packet correctly while not
+entering backoff more than once; the results below this line correspond to
+deadlines where only the ﬁrst backoff procedure can inﬂuence the outcome
+(that is, for these deadlines there is insufﬁcient time for a station to enter the
+digital.tex; 30/03/2006; 10:07; p.45
+
+--- Page 46 ---
+46 Kwiatkowska, Norman, Parker and Sproston
+Table 6. Model checking results for the maximum expected time properties
+TTmax E1(Maximum expected time ( µsec) until both stations correctly deliver packets)
+(µs) bcmax =0 bcmax =1 bcmax =2 bcmax =3 bcmax =4 bcmax =6
+500 3,792 3,865 3,882 3,883 3,883 3,883
+10,000 34,401 34,265 34,274 34,275 34,275 34,275
+15,800 52,944 52,677 52,680 52,682 52,682 52,682
+TTmax E2(Maximum expected time ( µsec) until a station correctly delivers a packet)
+(µs) bcmax =0 bcmax =1 bcmax =2 bcmax =3 bcmax =4 bcmax =6
+500 2,525 2,551 2,558 2,559 2,559 2,559
+10,000 23,636 23,451 23,450 23,451 23,451 23,451
+15,800 36,429 36,113 36,107 36,108 36,108 36,108
+TTmax E3(Maximum expected time ( µsec) until station 1 correctly delivers a packet)
+(µs) bcmax =0 bcmax =1 bcmax =2 bcmax =3 bcmax =4 bcmax =6
+500 3,322 3,352 3,359 3,360 3,360 3,360
+10,000 31,899 31,685 31,679 31,680 31,680 31,680
+15,800 49,200 48,839 48,826 48,826 48,826 48,826
+backoff procedure more than once and send its data correctly). Furthermore,
+the portions of the graph where the probability does not increase correspond
+to deadlines which are not large enough for a station to enter backoff more
+thanonceandsuccessfullysenditsdatapacket,butaresufﬁcientforallcases
+when backoff is entered at most once.
+Expectedreachability. Theﬁrstexpectedreachabilitypropertyconcernsthe
+maximum expected number of collisions before both stations correctly send
+their packets. Similarly to the corresponding probabilistic reachability prop-
+erty (maximum probability of the stations colliding at least ktimes), the
+expected number of collisions decreases as the value of bcmaxincreases.
+Theremainingexpectedreachabilitypropertiesweconsiderarethemaxi-
+mumexpectedtimeuntilbothstationscorrectlydelivertheirpackets( E1);the
+maximumexpectedtimeuntileitherstationcorrectlydeliversitspacket( E2);
+and the maximum expected time until station 1 correctly delivers its packet
+(E3).InTable6wepresenttheresultsfor E1–E3asbcmaxvariesusingboth
+the maximum transmission delay length from the standard ( 15,800) and two
+othersmallerdelays.Foreachof E1-E3,asthemaximumvalueofthebackoff
+counter increases, the expected time initially decreases and then increases
+slightly. The initial decrease is due to the fact that, as the backoff counter
+increases, there is less chance of the stations colliding when they attempt to
+retransmit, and hence the packets are sent sooner. The subsequent increase
+arises from the fact that for larger values of bcmaxthe time that stations
+digital.tex; 30/03/2006; 10:07; p.46
+
+--- Page 47 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 47
+0 0.2 0.4 0.6 0.8 10246810x 104
+probability of choosing fastmaximum expected time (ns)long wire
+short wire
+0.45 0.5 0.55 0.6 0.65 0.73031
+probability of choosing fastmaximum expected time (100 ns)
+0.42 0.46 0.5 0.54 0.58 0.62 0.66 0.736373839
+probability of choosing fastmaximum expected time (100 ns)
+(a) both wire lengths (b) short wire (c) long wire
+Figure 11. Maximum expected time to elect a leader
+spend in backoff dominates the time that it takes for the stations to collide
+and retransmit their packets correctly. More precisely, as the backoff counter
+increases,thedecreaseincollisionsisout-weighedbytheincreaseinthetime
+thateachstationspendsinbackoff.Theresultsfortheothervaluesof TTmax
+demonstrate the same pattern and, because for smaller values of TTmaxthe
+timetosendapacketdecreases,thevalueofthemaximumbackoffforwhich
+the time spent in backoff out-weighs the time needed to retransmit packets
+becomes smaller.
+6.3. IEEE 1394 F IREWIREROOTCONTENTION PROTOCOL
+The third case study we consider is the IEEE FireWire root contention pro-
+tocol [32]. In this protocol, in order to elect a leader (the root), nodes ex-
+change “be my parent” requests with their neighbours. However, contention
+may arise when two nodes simultaneously send “be my parent” requests to
+each other. The solution adopted by the standard to overcome this conﬂict
+is both probabilistic and timed: each node will ﬂip a coin in order to decide
+whether to wait for a short or for a long time for a request. For details on the
+probabilistic timed automaton used in this case study see [41, 47].
+Inouranalysis,wewillconsidertwocasesforthemaximumtransmission
+delay: 360 nanoseconds (ns) and 30ns. This models the distance between the
+two nodes, i.e. the length of the connecting wires. A delay of 360ns repre-
+sents the assumption that the nodes are separated by a distance close to the
+maximum required for the correctness of the protocol (from the analysis of
+[52]). A delay of 30ns corresponds more closely to the maximum separation
+speciﬁed in the IEEE standard. In the following paragraphs, we will refer to
+the two cases as ‘long wire’ and ‘short wire’, respectively.
+Analysiswithrespecttoprobabilisticreachabilityandtime-boundedprob-
+abilistic reachability can be found in [41, 20]. We concentrate instead on the
+effectofusingabiasedcoinwithrespecttoexpectedreachabilityintermsof
+the time to elect a leader, the power consumption before a leader is elected
+andthenumberofroundsbeforealeaderiselected.Notethatwesupposethe
+nodes in root contention use coins of the same bias. Although it is possible
+digital.tex; 30/03/2006; 10:07; p.47
+
+--- Page 48 ---
+48 Kwiatkowska, Norman, Parker and Sproston
+0.3 0.4 0.5 0.6 0.777.588.59x 10−6
+probability of choosing fastmaximum expected power consumption
+0.3 0.4 0.5 0.6 0.78.599.51010.5x 10−5
+probability of choosing fastmaximum expected power consumption
+0.3 0.4 0.5 0.6 0.722.12.22.32.4
+probability of choosing fastmaximum expected number of rounds
+(a) short wire (b) long wire (c) both wire lengths
+Figure 12. Maximum expected costs before a leader is elected
+to improve the performance of the protocol by supposing that the nodes’
+coins have different biases, this is not feasible in practice since each node
+follows the same procedure and it is not known in advance which nodes of
+the network will take part in the root contention protocol.
+In Figures 11 and 12 we have plotted the effect of using a biased coin
+on the maximum expected time until a leader is elected, and the maximum
+expected number of rounds and expected power consumption (assuming that
+the power usage when sending messages along the wires is 30W and all re-
+maining power consumption is negligible). To consider the expected power
+consumptionweuseacostfunctionwhichisoftheformgiveninSection4.4;
+more precisely, we set the cost (per second) to be 60in locations where both
+processes are sending messages, 30 in the locations where only one process
+is sending a message and 0 otherwise.
+The results for expected time reachability demonstrate that the (timing)
+performance of the root contention protocol can be improved using a biased
+coinwhichhasahigherprobabilityofﬂipping‘fast’.Theintuitionbehindthis
+result is that, although the use of such a biased coin decreases the likelihood
+of the nodes ﬂipping different values, when nodes ﬂip the same values there
+isagreaterchancethatlesstimepassesbeforetheyﬂipagain(i.e.whenboth
+ﬂip ‘fast’) [53]. There is a compromise here, because as the coin becomes
+more biased towards ‘fast’, the probability of the nodes actually ﬂipping
+different values (which is required for a leader to be elected) decreases even
+thoughthedelaybetweencoinﬂipswillonaveragedecrease.Thisdecreasein
+probabilityisdemonstratedinFigure12sincetheexpectednumberofrounds
+increases as the bias of the coin increases. The results in Figure 11 further
+demonstrate that, for a shorter wire length, there is a greater advantage when
+using a biased coin. The reasoning behind this result is that for the short
+wire length there is a greater saving in time when both nodes ﬂip fast than
+for a longer wire length, since the time required when both nodes ﬂip fast is
+dependentonaconstantdelaygivenbytheprotocolspeciﬁcationplusadelay
+dependent on the wire length.
+digital.tex; 30/03/2006; 10:07; p.48
+
+--- Page 49 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 49
+Ontheotherhand,theexpectedpowerconsumptionandexpectednumber
+of rounds obtain their minimum for a fair coin. This is unsurprising since, if
+the nodes used a biased coin, the probability of them ﬂipping the same value
+would increase, and hence the expected number of rounds would also in-
+crease.Similarly,thenumberofmessageswillincreaseifthecoinsarebiased
+leading to a higher power consumption. Furthermore, because increasing the
+wire length leads to an increase in the time to send a message, and hence the
+power consumed when sending a message, the expected power consumption
+is greater for the longer wire length.
+6.4. COMPARISON WITH ALTERNATIVE APPROACHES
+In this section we compare the digital clocks approach for verifying prob-
+abilistic timed automata with techniques already present in the literature2,
+namely those based on forwards reachability [38, 20] and backwards reach-
+ability[39, 42]. The following summarises the different approaches:
+−the forwards reachability approach is applicable to general probabilistic
+timed automata, but is restricted to computing upper bounds on maxi-
+mum reachability probabilities;
+−thebackwardsreachabilityapproachisapplicabletogeneralprobabilis-
+tic timed automata and full PTCTL, but, at the time of writing, there
+do not exist backwards reachability methods for the computation of
+expected reachability values;
+−asshowninthispaper,thedigitalclocksapproachisapplicabletoclosed
+and diagonal free probabilistic timed automata; it can be used to com-
+pute probabilistic and expected reachability measures, but cannot be
+used to verify general PTCTL formulae.
+Thereareclearadvantagesinusingthebackwardsanddigitalclocksmethods
+if one requires a comprehensive analysis of the automaton under study. On
+the other hand, as one would expect, the applicability of these approaches is
+restrictedbybothtimeandspacerequirements.Itisdifﬁculttoprovideafair
+comparison between these methods especially as one can use the “mature”
+model checker PRISM for the digital clocks approach, while the other ap-
+proaches have only prototype implementations. In particular, we could not
+provide direct comparison for all the examples presented in the previous
+sections as these models require complex interaction between sub-automata
+whichisnotyetavailableintheprototypeimplementations.Belowwetryand
+givesomeindicationastothedifferenceinthetimeandspace-complexityof
+2Note that we do not include results for the region equivalence based approach given in
+[38], as this leads to prohibitively large state spaces even for relatively simple automata.
+digital.tex; 30/03/2006; 10:07; p.49
+
+--- Page 50 ---
+50 Kwiatkowska, Norman, Parker and Sproston
+Table 7. State spaces and MTBDD sizes (KB) when verifying maximal time-bounded
+reachability probabilities for the FireWire case study
+Time bound backwards [42] forwards [20] digital clocks
+(103ns) states size (KB) states size (KB) states size (KB)
+2 1,219 7.24 825 18.9 80,980 554
+4 4,844 30.6 2,329 35.2 434,364 730
+6 10,981 55.0 3,833 51.9 1,093,658 860
+8 - - 6,841 74.1 1,915,291 875
+10 - - 9,661 90.1 2,746,691 875
+20 - - 35,041 204 6,903,691 890
+the approaches. Note that both the forwards and backwards approaches re-
+quireazone-basedreachabilityanalysistoconstructaﬁnitestateprobabilistic
+system followed by the model checking of this system.
+In situations where each approach can be applied, the digital clocks ap-
+proach leads to the largest state space while the forwards and backwards
+approaches lead to similar model sizes (sometimes the forwards approach
+leads to a smaller state space, while at other times a smaller state space is
+generated by the backwards approach). Note that the digital clocks approach
+is the only one where the size of the model is highly dependent on the con-
+stants appearing in the automaton under study; however, the impact of the
+dependence of the state space size on veriﬁcation experiments is overcome
+partiallybyusingthe“symbolic”techniquesavailableinPRISM,whichtake
+advantage of any regularity of the automaton under study. Note that, because
+suchregularityistosomedegreelostintheforwardsandbackwardsapproach
+because only a subset of the state space is constructed, symbolic techniques
+arenotasapplicabletotheseapproaches.Toillustratethisfact,inTable7we
+present the results for the FireWire case study (see Section 6.3) when com-
+putingmaximumreachabilityprobabilities.Notethattheresultspresentedin
+Table 7 do not take into account the space required by both the forwards and
+backwards approaches when performing the initial zone-based reachability
+analysis.
+With regard to the time for model construction, the backwards reacha-
+bility approach requires complex operations on zones which means that this
+approach is, in general, the most time intensive. The forwards approach also
+involves operations on zones but these operations are much simpler; the fact
+that the forwards approach has been implemented using an adaptation of
+the established tool K RONOS, whereas the implementation of the backward
+approach is an early prototype, is another reason why model construction
+is much faster for the forwards approach. The model construction with the
+digital clocks approach is more straightforward than the other approaches,
+digital.tex; 30/03/2006; 10:07; p.50
+
+--- Page 51 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 51
+Table8. Constructionandmodelchecking(m/c)timeswhenverifyingmaximaltime-bounded
+reachability probabilities for the FireWire case study
+Time bound backwards [42] forwards [20] digital clocks
+(103ns) construction m/c construction m/c construction m/c
+2 544+33.0 0.106 0.42+ 0.69 0.383 10.2 7.87
+4 26,992+753 0.345 0.94+ 2.08 0.802 38.3 43.9
+6 618,493+4,388 1.31 1.64+ 3.76 1.40 85.8 145
+8 - - 2.93+ 10.3 1.60 145 228
+10 - - 4.27+ 20.3 2.54 205 335
+20 - - 18.7+ 226 5.11 549 469
+againforthereasonthatthesymbolictechniquesofPRISMexploittheregu-
+larity which is present in the system. However, due to the larger state space,
+the construction in the digital clocks case usually takes longer than that of
+the forwards reachability approach (but less than that of the backwards ap-
+proach). In terms of model checking times there is no signiﬁcant difference
+betweenthethreeapproaches.Notethat,althoughthedigitalclocksapproach
+generates much larger state spaces, this does not have a drastic effect on
+the model checking times because of the regularity in the model and the
+symbolic approach employed by PRISM. To illustrate these observations, in
+Table 8 we have presented the model construction and model checking times
+for the FireWire case study. The model construction times for the forwards
+and backwards approaches have been separated into the time required by the
+zone-based reachability computation and the time of the model construction
+in PRISM.
+7. Conclusions
+In this paper, we have presented results demonstrating that digital clocks
+are sufﬁcient for analysing a large class of probabilistic timed automata and
+performanceproperties.Sincemanyoftoday’sprotocolsincludebothtiming
+andprobabilisticbehaviour,thisapproachisapplicabletoawidearea,which
+wedemonstratedbyanalysingtheperformanceofthreereal-worldprotocols.
+Inparticular,wehavedemonstratedthatdigitalclocksaresufﬁcientforthe
+analysis of probabilistic (timed-bounded) reachability and expected reacha-
+bility against closed, diagonal-free probabilistic timed automata. In the case
+ofexpectedreachability,theseresultsextendtothecaseswhentherateofcost
+accumulationvariesindifferentlocations,asinpricedorweightedtimedau-
+tomata[10,5].Furthermore,wehaveshownthelimitationsofthisapproach:
+digital.tex; 30/03/2006; 10:07; p.51
+
+--- Page 52 ---
+52 Kwiatkowska, Norman, Parker and Sproston
+digital clocks are not sufﬁcient for checking stopwatch properties or general
+PTCTL speciﬁcations.
+One possible area of future work is to apply the results presented in [13,
+14], concerning the veriﬁcation of classical timed automata using integral
+semantics and BDDs, to this setting (verifying probabilistic timed automata
+using integral semantics and MTBDDs) in an attempt to improve efﬁciency.
+There are still limitations in the size of the models that can be considered
+using digital clocks. In the case of probabilistic reachability a more efﬁcient
+approach is to consider the symbolic model checking technique for prob-
+abilistic timed automata against PTCTL introduced in [42, 39]. However, in
+thecaseofexpectedreachability,andinparticularexpectedtimereachability,
+it is not clear if there is an alternative, since by using zones the exact timing
+information may be lost, and hence the best one could hope for would be
+approximate results. The application of zones to the veriﬁcation of priced
+timed automata [43] may be instructive to this line of research.
+References
+1. R. Alur, C. Courcoubetis, and D. Dill. Model-checking in dense real-time. Information
+and Computation , 104(1):2–34, 1993.
+2. R. Alur and D. Dill. A theory of timed automata. Theoretical Computer Science ,
+126:183–235, 1994.
+3. R. Alur and T. Henzinger. Reactive modules. Formal Methods in System Design ,
+15(1):7–48, 1999.
+4. R. Alur, A. Itai, R. Kurshan, and M. Yannakakis. Timing veriﬁcation by successive
+approximation. Information and Computation , 18(1):142–157, 1995.
+5. R. Alur, S. La Torre, and G. Pappas. Optimal paths in weighted timed automata. In
+Benedetto and Sangiovanni-Vincentelli [11], pages 49–62.
+6. S. Andova, H. Hermanns, and J.-P. Katoen. Discrete-time rewards model-checked. In
+K.LarsenandP.Niebert,editors, Proc.FormalModelingandAnalysisofTimedSystems
+(FORMATS’03) , volume 2791 of LNCS, pages 88–104. Springer-Verlag, 2003.
+7. E. Asarin, O. Maler, and A. Pnueli. On discretization of delays in timed automata and
+digital circuits. In R. de Simone and D. Sangiorgi, editors, Proc. 9th Int. Conf. Con-
+currency Theory (CONCUR’98) , volume 1466 of Lecture Notes in Computer Science ,
+pages 470–484. Springer-Verlag, 1998.
+8. C.BaierandM.Kwiatkowska. Modelcheckingforaprobabilisticbranchingtimelogic
+with fairness. Distributed Computing , 11:125–155, 1998.
+9. G. Behrmann, A. Fehnker, T. Hune, K. Larsen, P. Pettersson, and J. Romijn. Efﬁ-
+cient guiding towards cost-optimality in UPPAAL. In T. Margaria and W. Yi, editors,
+Proc. 7th Int. Conf. Tools and Algorithms for the Construction and Analysis of Sys-
+tems (TACAS’01) , volume 2031 of Lecture Notes in Computer Science , pages 174–188.
+Springer-Verlag, 2001.
+10. G. Behrmann, A. Fehnker, T. Hune, K. Larsen, P. Pettersson, J. Romijn, and F. Vaan-
+drager. Minimum-costreachabilityforlinearlypricedtimedautomata. InBenedettoand
+Sangiovanni-Vincentelli [11], pages 147–162.
+digital.tex; 30/03/2006; 10:07; p.52
+
+--- Page 53 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 53
+11. M. D. Benedetto and A. Sangiovanni-Vincentelli, editors. Proc. 4th Int. Workshop on
+Hybrid Systems: Computation and Control (HSCC’01) , volume 2034 of Lecture Notes
+in Computer Science . Springer-Verlag, 2001.
+12. D. Bertsekas and J. Tsitsiklis. An analysis of stochastic shortest path problems.
+Mathematics of Operations Research , 16(3):580–595, 1991.
+13. D. Beyer. Improvements in BDD-based reachability analysis of timed automata. In
+J.OliveiraandP.Zave,editors, Proc.Symp.FormalMethodsEurope(FME’01) ,volume
+2021 ofLecture Notes in Computer Science , pages 318–343. Springer-Verlag, 2001.
+14. D. Beyer and A. Noack. Efﬁcient veriﬁcation of timed automata using BDDs. In
+S. Gnesi and U. Ultes-Nitsche, editors, Proc. Formal Methods for Industrial Critical
+Systems (FMICS’01) , pages 95–113, 2001.
+15. A. Bianco and L. de Alfaro. Model checking of probabilistic and nondeterministic
+systems. In P. Thiagarajan, editor, Proc. Foundations of Software Technology and The-
+oretical Computer Science , volume 1026 of Lecture Notes in Computer Science , pages
+499–513. Springer-Verlag, 1995.
+16. P. Billingsley. Probability and Measure . John Wiley and Sons: New York, 1979.
+17. H. Bohnenkamp, P. v. d. Stok, H. Hermanns, and F. Vaandrager. Cost-optimisation of
+the IPv4 zeroconf protocol. In Proc. Int. Performance and Dependability Symposium
+(IPDS’03) , pages 531–540. IEEE Computer Society Press, 2003.
+18. S. Cheshire, B. Adoba, and E. Guttman. Dynamic conﬁguration of IPv4 link-local
+addresses (draft August 2002). Zeroconf Working Group of the Internet Engineering
+Task Force ( www.zeroconf .org).
+19. E. Clarke, M. Fujita, P. McGeer, K. McMillan, J. Yang, and X. Zhao. Multi-terminal
+binary decision diagrams: An efﬁcient data structure for matrix representation. In Proc.
+Int.WorkshoponLogicSynthesis(IWLS’93) ,pages1–15,1993.Alsoavailablein Formal
+Methods in System Design , 10(2/3):149–169, 1997.
+20. C. Daws, M. Kwiatkowska, and G. Norman. Automatic veriﬁcation of the IEEE 1394
+rootcontentionprotocolwithKRONOSandPRISM. InternationalJournalonSoftware
+Tools for Technology Transfer (STTT) , 5(2–3):221–236, 2004.
+21. C. Daws and S. Yovine. Two examples of veriﬁcation of multirate timed automata with
+KRONOS. In Proc.IEEEReal-TimeSystemsSymposium(RTSS’95) ,pages66–75.IEEE
+Computer Society Press, 1995.
+22. L. de Alfaro. Formal Veriﬁcation of Probabilistic Systems . PhD thesis, Stanford
+University, 1997.
+23. L. de Alfaro. Computing minimum and maximum reachability times in probabilistic
+systems. In J. Baeten and S. Mauw, editors, Proc. 10th Int. Conf. Concurrency The-
+ory (CONCUR’99) , volume 1664 of Lecture Notes in Computer Science , pages 66–81.
+Springer-Verlag, 1999.
+24. C. Derman. Finite-State Markovian Decision Processes . Academic Press: New York,
+1970.
+25. A.G ¨oll¨u,A.Puri,andP.Varaiya. Discretizationoftimedautomata. In Proc.33rdIEEE
+Conf. Decision and Control , pages 957–958. IEEE Computer Society Press, 1994.
+26. P. Halmos. Measure Theory . Springer-Verlag: New York, 1950.
+27. H. Hansson and B. Jonsson. A logic for reasoning about time and reliability. Formal
+Aspects of Computing , 6(4):512–535, 1994.
+28. T. Henzinger. The Temporal Speciﬁcation and Veriﬁcation of Real-time Systems . PhD
+thesis, Stanford University, 1991.
+29. T. Henzinger, P.-H. Ho, and H. Wong-Toi. A user guide to HYTECH. In E. Brinksma,
+R. Cleaveland, and K. Larsen, editors, Proc. 1st Int. Conf. Tools and Algorithms for
+Construction and Analysis of Systems (TACAS’95) , volume 1019 of Lecture Notes in
+Computer Science , pages 41–71. Springer-Verlag, 1995.
+digital.tex; 30/03/2006; 10:07; p.53
+
+--- Page 54 ---
+54 Kwiatkowska, Norman, Parker and Sproston
+30. T.Henzinger,Z.Manna,andA.Pnueli. Whatgoodaredigitalclocks? InW.Kuich,edi-
+tor,Proc.19thInt.ColloquiumonAutomata,LanguagesandProgramming(ICALP’92) ,
+volume 623 of Lecture Notes in Computer Science , pages 545–558. Springer-Verlag,
+1992.
+31. T. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine. Symbolic model checking for real-
+time systems. Information and Computation , 111(2):193–244, 1994.
+32. IEEE 1394-1995. High Performance Serial Bus Standard. 1995.
+33. IEEE802.11. WirelessLANMediumAccessControl(MAC)andPhysicalLayer(PHY)
+Speciﬁcations Standard. 1997.
+34. J.Kemeny,J.Snell,andA.Knapp. DenumerableMarkovChains . Springer-Verlag:New
+York, 2nd edition, 1976.
+35. M.Kwiatkowska,G.Norman,andD.Parker. PRISM2.0:Atoolforprobabilisticmodel
+checking. In Proc. 1st International Conference on Quantitative Evaluation of Systems
+(QEST’04) , pages 322–323. IEEE Computer Society Press, 2004.
+36. M. Kwiatkowska, G. Norman, and D. Parker. Probabilistic symbolic model check-
+ing with PRISM: A hybrid approach. International Journal on Software Tools for
+Technology Transfer (STTT) , 6(2):128–142, 2004.
+37. M. Kwiatkowska, G. Norman, D. Parker, and J. Sproston. Performance analysis of
+probabilistic timed automata using digital clocks. In K. Larsen and P. Niebert, editors,
+Proc.FormalModelingandAnalysisofTimedSystems(FORMATS’03) ,volume2791of
+Lecture Notes in Computer Science , pages 105–120. Springer-Verlag, 2003.
+38. M. Kwiatkowska, G. Norman, R. Segala, and J. Sproston. Automatic veriﬁcation of
+real-timesystemswithdiscreteprobabilitydistributions. TheoreticalComputerScience ,
+282:101–150, 2002.
+39. M. Kwiatkowska, G. Norman, and J. Sproston. Symbolic computation of maxi-
+mal probabilistic reachability. In K. Larsen and M. Nielsen, editors, Proc. 13th Int.
+Conf. Concurrency Theory (CONCUR’01) , volume 2154 of Lecture Notes in Computer
+Science, pages 169–183. Springer-Verlag, 2001.
+40. M.Kwiatkowska,G.Norman,andJ.Sproston. ProbabilisticmodelcheckingoftheIEEE
+802.11 wireless local area network protocol. In H. Hermanns and R. Segala, editors,
+Proc.2ndJointInt.WorkshopProcessAlgebraandProbabilisticMethods,Performance
+Modeling and Veriﬁcation (PAPM/PROBMIV’02) , volume 2399 of Lecture Notes in
+Computer Science , pages 169–187. Springer-Verlag, 2002.
+41. M. Kwiatkowska, G. Norman, and J. Sproston. Probabilistic model checking of dead-
+line properties in the IEEE 1394 FireWire root contention protocol. Formal Aspects of
+Computing , 14:295–318, 2003.
+42. M. Kwiatkowska, G. Norman, J. Sproston, and F. Wang. Symbolic model checking for
+probabilistictimedautomata.InY.LakhnechandS.Yovine,editors, JointConferenceon
+Formal Modelling and Analysis of Timed Systems (FORMATS) and Formal Techniques
+inReal-TimeandFaultTolerantSystems(FTRTFT) ,volume3253of LNCS,pages293–
+308. Springer, 2004.
+43. K.Larsen,G.Behrmann,E.Brinksma,A.Fehnker,T.Hune,P.Pettersson,andJ.Romijn.
+As cheap as possible: Efﬁcient cost-optimal reachability for priced timed automata. In
+G. Berry, H. Comon, and A. Finkel, editors, Proc. 13th Int. Conf. Computer Aided Veri-
+ﬁcation (CAV’01) , volume 2102 of Lecture Notes in Computer Science , pages 493–505.
+Springer-Verlag, 2001.
+44. K. Larsen, P. Pettersson, and W. Yi. UPPAAL in a nutshell. Software Tools for
+Technology Transfer , 1(1-2):134–152, 1997.
+45. J. Ouaknine. Digitisation and full abstraction for dense-time model checking. In J.-
+P. Katoen and P. Stevens, editors, Proc. 8th Int. Conf. Tools and Algorithms for the
+digital.tex; 30/03/2006; 10:07; p.54
+
+--- Page 55 ---
+Performance Analysis of Probabilistic Timed Automata using Digital Clocks 55
+Construction and Analysis of Systems (TACAS’02) , volume 2280 of Lecture Notes in
+Computer Science , pages 37–51. Springer-Verlag, 2002.
+46. D. Parker. Implementation of Symbolic Model Checking for Probabilistic Systems . PhD
+thesis, University of Birmingham, 2002.
+47. PRISM web page. www.cs.bham .ac.uk/˜dxp/prism.
+48. U PPAALweb page. www.uppaal .com.
+49. A.Schrijver. TheoryofLinearandIntegerProgramming . J.WileyandSons:NewYork,
+1986.
+50. R. Segala. Modelling and Veriﬁcation of Randomized Distributed Real Time Systems .
+PhD thesis, Massachusetts Institute of Technology, 1995.
+51. R.SegalaandN.A.Lynch. Probabilisticsimulationsforprobabilisticprocesses. Nordic
+Journal of Computing , 2(2):250–273, 1995.
+52. D. Simons and M. I. A. Stoelinga. Mechanical veriﬁcation of the IEEE 1394a
+root contention protocol using UPPAAL2k. Software Tools for Technology Transfer ,
+3(4):469–485, 2001.
+53. M. Stoelinga. Alea jacta est: veriﬁcation of probabilistic, real-time and parametric
+systems. PhD thesis, University of Nijmegen, the Netherlands, 2002.
+54. M. Zhang and F. Vaandrager. Analysis of a protocol for dynamic conﬁguration of
+IPv4 link local addresses using UPPAAL. Technical Report, NIII-R04XX, University
+of Nijmegen, 2004.
+digital.tex; 30/03/2006; 10:07; p.55

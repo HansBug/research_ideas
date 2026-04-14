@@ -1,0 +1,2517 @@
+--- Page 1 ---
+Software and Systems Modeling (2020) 19:1483–1517
+https://doi.org/10.1007/s10270-020-00806-5
+THEME SECTION PAPER
+Mixed-semantics composition of statecharts for the component-based
+design of reactive systems
+Bence Graics1,2·Vince Molnár1,2·András Vörös1,2·István Majzik1·Dániel Varró1,2,3
+Received: 16 June 2019 / Revised: 5 May 2020 / Accepted: 7 May 2020 / Published online: 1 July 2020
+© The Author(s) 2020
+Abstract
+The increasing complexity of reactive systems can be mitigated with the use of components and composition languages in
+model-driven engineering. Designing composition languages is a challenge itself as both practical applicability (support for
+different composition approaches in various application domains), and precise formal semantics (support for veriﬁcationand code generation) have to be taken into account. In our Gamma Statechart Composition Framework, we designed and
+implemented a composition language for the synchronous, cascade synchronous and asynchronous composition of statechart-
+based reactive components. We formalized the semantics of this composition language that provides the basis for generatingcomposition-related Java source code as well as mapping the composite system to a back-end model checker for formal
+veriﬁcation and model-based test case generation. In this paper, we present the composition language with its formal semantics,
+putting special emphasis on design decisions related to the language and their effects on veriﬁability and applicability.Furthermore, we demonstrate the design and veriﬁcation functionality of the composition framework by presenting casestudies from the cyber-physical system domain.
+Keywords Component-based design ·Statecharts ·Composition language ·Formal semantics ·Formal veriﬁcation
+Communicated by Federico Ciccozzi, Antonio Cicchetti and Andreas
+Wortmann.
+BBence Graicsgraics@mit.bme.hu
+Vince Molnár
+molnarv@mit.bme.hu
+András V örös
+vori@mit.bme.hu
+István Majzik
+majzik@mit.bme.hu
+Dániel Varró
+varro@mit.bme.hu
+1Deptartment of Measurement and Information Systems,Budapest University of Technology and Economics,Budapest, Hungary
+2MTA-BME Lendület Cyber-physical Systems Research
+Group, Budapest, Hungary
+3Department of Electrical and Computer Engineering, McGill
+University, Montreal, CanadaList of symbols
+Tuples, sets and sequences
+(...) Tuple
+{...} Set
+|...| Size of set
+/angbracketleft.../angbracketright Sequence
+A∗The set of ﬁnite (possible repeating) sequences ofthe elements of the set A
+ε The empty sequence
+|s| The length of sequence s
+s[i] The ith element of sequence s
+σ(a) A permutation of set a
+S
+σ(a) All permutations of set a
+Indices and sizes
+i A generic index variable
+j A secondary generic index variable
+a/primeAnother value for variable a
+n A generic size variable
+k An index used for components
+K The number of components
+123
+
+--- Page 2 ---
+1484 B. Graics et al.
+Temporal valuations
+a/primeNext value of a
+a(i)The value of variable ain the ith step
+Component types
+−/circlecopyrt Deﬁnition of synchronous components (“single-
+threaded”)
+−/circlecopyrtk The kth synchronous component
+s/circlecopyrt Deﬁnition of synchronous composites
+c/circlecopyrt Deﬁnition of cascade composites
+?/circlecopyrt/angbracketright−/circlecopyrt Deﬁnition of composite ?/circlecopyrtas a synchronous com-
+ponent
+=/circlecopyrt Deﬁnition of asynchronous components (“multi-
+threaded”)
+=/circlecopyrtk The kth asynchronous component
+⊏−/circlecopyrt Deﬁnition of the asynchronous wrapper compo-
+nent
+a/circlecopyrt Deﬁnition of asynchronous composites
+?/circlecopyrt/angbracketright =/circlecopyrt Deﬁnition of ?/circlecopyrtas an asynchronous component
+ak Part aof the kth component (e.g., Skof−/circlecopyrtk)
+Events
+e An event
+E The set of events
+I The set of input events
+O The set of output events
+D The domain function
+D(e) The domain of event e
+d An element of a domain
+di The ith element of a domain
+p A parameter (of an event)
+⊥ The empty parameter denoting that an event is
+missing
+inst(e) The instances of event e
+inst⊥(e)The instances of event eincluding the “null”
+instance (e,⊥)
+ˆI All input events of constituent components
+ˆO All output events of constituent components
+ˆD All domains of events in constituent components
+Event vectors
+vE An event vector for events in E
+VE All possible event vectors for events in E
+vI An input vector
+vO An output vector
+VI All possible input vectors
+VO All possible output vectors
+vˆOThe last output of constituent components
+VˆOAll possible last outputs of constituent compo-
+nents
+⊥ˆOEmpty output vector for all constituent compo-
+nents⊥I Empty input vector
+Event sequences
+q A queue (a sequence of event instances)
+ω An output sequence of event instances
+Ω The set of possible output sequences of event
+instances
+Component parts
+S The set of states
+s A state
+s0The initial state
+T A state-transition function
+t A single state-transition
+Composite parts
+C Constituent components of a composite
+/harpoonleftright Channels in a composite
+/harpoonleftright(e) The events linked to event edetermined by the
+channels
+X The order of execution of components of cascade
+composites
+Asynchronous adapter
+ec The control event
+C The set of clocks in an adapter
+cti
+iA clock producing ecperiodically after every t1
+trig The trigger predicate
+as Part aof the wrapped synchronous component
+(e.g., Ssof−/circlecopyrts)
+Messages
+m A message
+eO The source event of a message
+Eext
+OThe output event set of the environment
+eI A single target event of a message
+EI Target events of a message
+Eext
+IThe input event set of the environment
+src(m) The source (sending) component of m
+e/circlecopyrt The environment
+Occurrences
+send(m)The occurrence of sending message m
+recv(m,eI)The occurrence of receiving message mon target
+event eI
+[t] An occurrence of transition t
+mI A message triggering the occurrence of a transi-
+tion
+mO A message generated by an occurrence of a tran-sition
+123
+
+--- Page 3 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1485
+MO The messages generated by an occurrence of a
+transition
+#occ The position of occurrence occin a total ordering
+of occurrences
+τ(occ) The timestamp of occurrence occaccording to a
+global clock
+1 Introduction
+Reactive systems process events coming from the environ-ment and react to them in accordance with their internalstates. In the case of complex reactive systems, platform-
+or component-based design techniques [ 1] can be used that
+integrate reactive components, possibly in a hierarchical way.The implementation and veriﬁcation of the composite sys-tem necessitate precise design languages both at component
+level and integration level.
+To model the dynamic behavior of reactive components,
+statecharts [ 2] is an expressive language offering powerful
+constructs, such as composite states for hierarchical state
+reﬁnement, parallel regions for describing parallel behav-ior, history states and variables for expressing memory, and
+choices, fork and join transitions to model complex transi-
+tions and actions. Modeling standards like UML and SysMLhave adopted the statechart formalism, but they intentionallyleft parts of its dynamic semantics formally un- or under-
+speciﬁed [ 3,4], even in the recently published speciﬁcations
+(fUML [ 5], PSSM [ 6] and PSCS [ 7]). These speciﬁcations
+provide execution semantics, but several aspects are not ﬁxed
+(e.g., there are no assumptions about global synchronization).
+As a result, design tools, such as Rhapsody,
+1BridgePoint,2
+MagicDraw,3and Yakindu Statechart Tools4support slightly
+different semantic variants of the formalism [ 8,9].
+At the integration level, existing modeling standards sup-
+port the (de)composition of components on a rather syntacticlevel. The Component Diagram and the Composite Structure
+Diagram of UML, and the Internal Block Diagram of SysML
+provide support to capture what type of interaction (data orcontrol) is intended between the components, but they do not
+provide precise behavioral semantics to allow direct imple-
+mentation and formal veriﬁcation of the composite system(i.e., the exact behavior resulting from component interac-
+tions, particularly related to the scheduling of components).
+Thus, the composition of individual components in a well-founded way is a signiﬁcant challenge for system integrators,who may even have to cope with the problem that components
+provided by vendors may originate from different modeling
+1https://www.ibm.com/us-en/marketplace/rational-rhapsody/ .
+2https://xtuml.org/ .
+3https://www.nomagic.com/products/magicdraw/ .
+4https://www.itemis.com/en/yakindu/state-machine/ .tools with slightly different concrete syntax and semantic
+variants.
+Our Gamma Statechart Composition Framework [ 10]i s
+an integrated modeling tool that aims to support the semanti-
+cally well-founded composition of heterogeneous statechartcomponents where individual components may use differentstatechart semantics. The Gamma framework intentionally
+reuses statechart models of existing tools and their respective
+code generators for individual components. At its core, it pro-vides the Gamma Composition Language that supports the
+interconnection of components in a hierarchical way on the
+basis of precise semantics, including scheduling strategies
+and constraints . Additionally, Gamma provides automated
+code generators for composite models and test case gen-
+erators for the interaction between components. Gammaalso supports system-level formal veriﬁcation and validation(V&V) by mapping statechart and composition models into
+formal models of the UPPAAL
+5[11] model checker.6
+In this paper, we focus on the Gamma Composition Lan-
+guage and present its elements with their formal syntax
+and design examples. We also present the formal seman-
+tics of the language, discussing the related design decisionsthat coped with practical applicability and veriﬁability of
+the composed system and allowed the implementation of
+the above-mentioned code generation, formal veriﬁcation,and test case generation functionalities. The main noveltyof our language is that it (1) expects a very simple reactive
+behavior and interfaces from the system components facili-
+tating component heterogeneity, (2) supports three variantsof composition semantics, namely asynchronous-reactive,
+synchronous-reactive, and cascade, covering a notable por-
+tion of execution modes used in reactive systems, and (3)allows the mixing of these composition semantics in a hier-
+archical way. To demonstrate the use of the composition
+language and the related veriﬁcation functionality, we presentcase studies from the critical cyber-physical system domain.
+The paper is structured as follows. Section 2presents the
+motivations and the basic concepts related to the Gamma
+framework. The main contribution of the current work, thatis, the Gamma Composition Language (and its related lan-
+guages for interfaces, expressions and test cases) is presented
+in Sect. 3, whereas the formal semantics of the composi-
+tion language is introduced in Sect. 4. Section 5summarizes
+how this semantics supported the functionalities of the
+framework. The applicability of the Gamma framework isdemonstrated through three case studies. Section 6demon-
+strates the applicability of the languages of Gamma for the
+description of SysML behavioral models. Section 7demon-
+strates the usability of Gamma in the formal analysis of acommunication protocol considering physical phenomena
+5http://www.uppaal.org/ .
+6The tool can be extended to map to other formalisms.
+123
+
+--- Page 4 ---
+1486 B. Graics et al.
+and failure modes in the communication between protocol
+participants. Section 8presents an abstraction-based veriﬁca-
+tion approach in Gamma in the context of a railway-themed
+case study. The case studies are followed by the presenta-
+tion of related modeling languages, tools and frameworks inSect. 9. Finally, Sect. 10provides concluding remarks and
+plans for future work.
+2 Preliminaries
+This section starts with a motivating example (Sect. 2.1),
+which is used throughout the paper for presenting variouslanguage constructs. Next, the composite reactive modelingsemantics supported by our composition language are intro-
+duced (Sect. 2.2). The section ends with an overview on the
+functionalities of the Gamma framework (Sect. 2.3).
+2.1 Running example
+We demonstrate the development of component-based reac-
+tive systems in the Gamma framework in the context of theMoDeS
+3(Model-based Demonstrator for Smart and Safe
+Systems) [ 12] project.7The project incorporates a model
+railway consisting of track elements, such as sections and
+turnouts , and several trains moving on the track. The states
+of the turnouts (straight or divergent) and the motion of the
+trains (forward/backward and speed) are controlled exter-nally by users. A major challenge of the project was to design
+a distributed controller that implements a safety logic to pre-
+vent the collision of trains by ensuring that there is at mostone train on every section at any moment.
+The distributed controller was designed as the composi-
+tion of components belonging to the sections and turnouts.
+Each component receives signals from the environmentrelated to the corresponding track element (e.g., about the
+presence and absence of trains), communicates with neigh-
+boring track elements to implement the safety logic and sendssignals to the trains to proceed or stop. The components were
+designed using statecharts in a third party tool, Yakindu, and
+the whole system was integrated in the Gamma CompositionLanguage, using different semantics at the different levelsin the component hierarchy. At the lower level, components
+executed on the same physical controller were composed syn-
+chronously as a single piece of software. At the higher level,these composite components (that now supervise a collection
+of track elements) were composed in an asynchronous way
+to conform to the network-based communication betweenthe physical controllers. There is a fundamental difference
+between these compositions, as component of a single soft-
+7Project repository with link to webpage: https://github.com/FTSRG/
+BME-MODES3/ .
+Fig. 1 The layout of the MoDeS3track. Note that segments are com-
+posed into zones, each supervised by a single embedded computer,which communicate through LAN
+ware, or even components running on the same hardware
+have much higher guarantees than components relying on
+remote calls or messages over some network. This distinc-tion will be handled by the different composition semantics
+introduced in the paper.
+Figure 1depicts the MoDeS
+3track, which consists of
+6 turnouts and 25 sections. The distributed controller is
+deployed on 6 microcontrollers, each responsible for a single
+turnout and multiple section components. The turnout and theset of sections supervised by a particular microcontroller iscalled a zone.
+2.2 Composite reactive modeling
+The component-based logical design of reactive systems
+needs precise composition semantics that can be deﬁned
+by means of a model of computation . We introduce the
+asynchronous-reactive model of computation for asynchronous
+systems (Sect. 2.2.1 )a sw e l la st h e synchronous-reactive
+and cascade models of computation for synchronous sys-
+tems (Sect. 2.2.2 ) supported by our Gamma framework.
+2.2.1 Asynchronous systems
+In asynchronous systems [ 13], components represent con-
+current entities that communicate with each other using
+message queues. Writing to a message queue succeeds
+instantly, whereas reading from an empty queue blocks thereader (nonblocking-write, blocking-read approach). Mes-
+sage delivery is assumed to be reliable; therefore, the sender
+does not receive nor expect any conﬁrmation (send and for-get approach). Messages arrive in the target message queue
+123
+
+--- Page 5 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1487
+in the same order they were sent.8A read operation always
+retrieves a single message from the queue. As extension, pri-oritized queues can be introduced to reorder the incoming
+messages and prefer the urgent ones in the read operation.
+Asynchronous-reactive The asynchronous-reactive model
+describes concurrent components that are running continu-ously and react to events independently (therefore, execution
+frequency of system components is nondeterministic, but
+may be restricted with timing constraints). In the example,distributed controllers are most naturally modeled with this
+semantics, as different hardware and network topologies will
+most probably cause a different execution/delivery time inevery case. In this context, synchronization of the compo-
+nents has to be ensured by communication protocols.
+2.2.2 Synchronous systems
+The synchronous domain has a notion of logical time and fol-
+lows the semantics of synchronous programming languages
+[14–16]. In such systems, components communicate with
+each other using signals, which are transmitted and received
+through ports. The execution of components is driven by a
+clock that emits ticks. System components are executed in
+response to these ticks, and the execution of all componentsin a system is called a cycle . When a component is executed, it
+samples the signals from its incoming ports and transmits sig-
+nals through its outgoing ports. Generally, components canbe considered as functions mapping values from their incom-
+ing ports to their outgoing ports depending on their current
+state. The output signals of components are sustained untilthe next tick. As the input signals are sampled only at the
+beginning of execution, changes of signals during the execu-
+tions are ignored. Contrary to the asynchronous domain, thecomponents are also able to react to the absence of signals
+and even to a combination of signals.
+Synchronous-reactive The synchronous-reactive model
+describes components that are executed in a lock step fashionupon every tick, that is, they all sample their input signals at
+the beginning of the cycle and process them concurrently.
+Thus, communication between components during a cycleis not possible, receiver components can process transmitted
+signals only in the next cycle (initiated by the subsequent
+tick). In the example, logical controllers of track segmentsmay communicate like this, as the program running themhas sufﬁcient control to implement an explicit scheduling.
+Other cases, such as implementations in hardware or as PLC
+programs also call for this variant.
+8These guarantees shall be achieved by proper control over the network
+and the appropriate protocols, which are considered as middleware thatis not taken into account in the semantics. If this is not the case, other(unreliable) channel models can be considered by explicitly modelingthe channel as a component for veriﬁcation purposes.Fig. 2 The model transformation chains and languages of the Gamma
+framework. Rectangles represent models: solid border represents anatomic model, whereas dashed border represents a composite model.Dotted rectangles represent a set of models belonging together for ful-
+ﬁlling a more general purpose. Rectangles with moderately rounded
+corners represent languages. Rectangles with extensively roundedcorners represent functionalities closely related to the usability ofthe language. Solid lines without a base symbol represent modeltransformations. Solid lines with a diamond symbol represent modelcomposition. Dashed lines represent the ability of execution: the sourcemodel is capable of executing the target model
+Cascade The cascade model supports the execution of com-
+ponents in a linear way (one after another in a speciﬁc order
+during a cycle) opposed to the concurrent, lock step executionof components of synchronous-reactive models. The execu-tion of a cycle is also initiated by a tick; however, components
+sample their input signals right before they are executed and
+not at the beginning of the cycle. This enables communica-tion between components during a cycle in a feed-forward
+way. Also, repeated execution of components during a single
+cycle is supported. In the example, a single logical controllermay implement ﬁlters on its inputs and outputs, which does
+induce an execution order. Pipeline-like software or hardware
+implementations are best modeled with this variant.
+2.3 The Gamma framework
+The Gamma Statechart Composition Framework is an inte-grated toolset that supports model-driven design, validation,veriﬁcation and code generation for component-based reac-
+tive systems. Figure 2depicts the model transformation
+chains of the Gamma framework, the input and output mod-els of these model transformations as well as the languages
+in which they can be deﬁned, and the relations between these
+models.
+There are two types of components in Gamma, atomic and
+composite components. The Gamma Statechart Language
+(GSL) supports the deﬁnition of atomic components in theform of statecharts. Also, this language enables the integra-
+123
+
+--- Page 6 ---
+1488 B. Graics et al.
+Table 1 Component types
+supported by the Gamma
+Composition LanguageAtomic Composite
+Synchronous Statechart Synchronous composite component, cascade composite component
+Asynchronous Asynchronous adapter Asynchronous composite component
+Fig. 3 Dependencies between the modeling languages of the Gamma
+framework
+tion of component models (so-called engineering models)
+from off-the-shelf modeling tools, e.g., Yakindu or Magic-
+Draw, as it is an intermediate formalism to which externalmodels can be transformed. Composite components can
+be created by composing atomic components and other
+composite components based on well-deﬁned interfacesusing the Gamma Composition Language (GCL). Table 1
+describes the component types supported by the GCL in
+terms of synchronousness and compositeness . The Gamma
+Test Language (GTL) supports the description of test casesas expected behaviors of Gamma components in response
+to input events, together with assertions regarding the state
+of the component. Expressions in these languages use theGamma Expression Language (GEL). Figure 3depicts the
+dependencies of these languages: GCL depends on GEL, and
+GTL and GSL depend on GCL.
+To put these languages in context (and highlight the moti-
+vations for their design and formal semantics), below we
+summarize the automated functionalities provided by the
+Gamma framework.
+Validation of models takes place at the level of atomic
+components as well as at system level by evaluating well-
+formedness constraints.
+Once the entire system is modeled as a composition
+of statechart-based components, Gamma can generate the
+implementation of the composition code that wraps the exist-
+ing (autogenerated) source code of atomic components.Accordingly, external code generators for statechart com-
+ponents can be integrated by implementing a plugin for
+the composition code generator that wraps the externalcode behind the interfaces generated by Gamma. Currently,
+Gamma supports the generation of Java code.
+Formal veriﬁcation of system models is provided by model
+checking [ 17], a technique that explores the behavior of
+the given model exhaustively against properties speciﬁed in
+mathematical logic (e.g., to check that unsafe states are notreachable). To assist software engineers, Gamma hides theinherent complexity of formal veriﬁcation by (1) offering
+a pattern-based approach to specify the required properties
+[18], (2) using automated model transformations to the anal-
+ysis models and queries of veriﬁcation back-end tools likeUPPAAL, and (3) back-annotating [ 19] the execution traces
+retrieved by the model checker (i.e., witnesses or counterex-
+amples for the checked properties) to the system model in
+the form of abstract test cases. Gamma is also capable ofgenerating a JUnit test case that replays the execution trace
+on the implementation.
+We use the concepts of model-based testing [20] and apply
+the model checker to generate execution traces to achieve a
+designated test coverage based on automatically generated
+queries, namely that (1) each state of every statechart com-ponent is reached, or (2) each transition of every statechartis executed. These traces can be represented as abstract test
+cases in the GTL and also as concrete JUnit tests. With this
+test suite, designers can gain a certain level of conﬁdence inthe correctness of the Gamma toolchain (this way also vali-
+dating the code generators) before deploying it into a critical
+environment.
+3 Composition in the Gamma framework
+This section introduces the composition structures in the
+Gamma framework. The design and formalization of the
+composition language can be considered as the most impor-tant conceptual result of this work, and thus, the most
+important novelty of Gamma 2.0 compared to the version
+introduced in [ 10]. After a brief introduction to the common
+structure of Gamma ﬁles, the following sections present the
+Gamma Composition Language (GCL) through the MoDeS
+3
+running example introduced in Sect. 2.1.
+The compositional root elements of Gamma ﬁles are pack-
+ages. A Gamma model may contain one or more packages.
+They can contain constant declarations, interface deﬁnitions
+(Sect. 3.1) and Gamma components (Sects. 3.2–3.5). Ele-
+ments declared in a package can be reused in other packages
+by importing the containing package, using relative or abso-
+lute paths to the other ﬁle (with or without ﬁle extension).
+An example package can be seen below, which imports
+another package to reuse the component Z1in the declara-
+tion of an asynchronous adapter component Z1Adapter (see
+Sect. 3.5) and deﬁnes a constant integer.
+123
+
+--- Page 7 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1489
+ 
+package z1_adapter
+// Importing other packages
+import " model / Components /Z1"
+// Constants can be used in the definitions
+const QUEUE_CAPACITY : integer := 16
+/ / Component d e f i n i t i o n
+async Z1Adapter of component z1 : Z1 [
+...
+] {...} 
+Well-formedness constraint there must not be any circular
+dependencies between the packages.
+3.1 Interfaces and ports
+Event Events represent discrete occurrences of some impor-
+tance with optional parameters (the “payload”). Every event
+has a source and may trigger some behavior. In the frame-
+work, events may describe the sending/receiving of signals
+in the case of synchronous components or messages in the
+case of asynchronous components.
+Interface The GCL supports the deﬁnition of interfaces,
+which serve as contracts between interacting components
+of Gamma models describing the types of events a com-
+ponent can dispatch (outorinout events) or receive (in
+orinout events). Furthermore, an interface may inherit
+all declared events from zero or more other interfaces to
+enable polymorphism (denoted by A≺BifB=Aor
+ifBextends Aor if Bextends an interface Csuch that
+A≺C). The fragment of the GCL metamodel describing
+interfaces and events is depicted in Fig. 4a. An example
+for inheritance can be seen below, where Derived con-
+tains two events: foo (which has an integer parameter)
+andbar. 
+interface Base {
+in event foo (param : integer )
+}
+interface Derived extends Base {
+inout event bar
+} 
+The interfaces used in the safety logic model of MoDeS3
+are depicted in Fig. 5a. Interface Protocol contains events
+used for the communication between track elements (sec-
+tions and turnouts) to implement the safety logic protocol.
+SectionControl contains events controlling trafﬁc on a cer-
+tain section ( enabled ordisabled ), while TurnoutControl can
+be used by the environment to change the state of a certain
+turnout. The events of Train denote the arrival end departure
+of a train on a certain section. Finally, TrainControl events
+are also used by the environment to move the train forward
+or backward (the absence of these events mean the train has
+to be idle).Port Ports serve as communication endpoints of component
+instances. Each event is dispatched or received through a port.Each port realizes a single
+9interface by deﬁning an interface
+realization. Components do not realize interfaces directly.
+Interface realization Interfaces can be realized in either pro-
+vided orrequired mode. The difference is explained using
+the interface deﬁnition Derived from before.
+–Provided mode ports dispatch and receive events accord-
+ing to the direction they have been declared. For example,the component owning the port will be able to dispatch
+bar(outorinout events) and receive fooand bar(inor
+inout events) through this port. Such a port would be
+deﬁned as:
+
+port ProviderPort : provides Derived 
+–Required mode interfaces are conjugated,10i.e.,inevents
+will be dispatched (because the receiver provides an in
+event), and outevents will be received (the dispatcher
+provides an outevent). A component owning the example
+port will be able to dispatch events fooandbar(declared
+inorinout events in the interface) and receive event bar
+(declared outorinout events) through this port:
+ 
+port RequirerPort : requires Derived 
+If two ports realize interfaces Ain required mode and
+Bin provided mode such that A≺B, the two ports are
+compatible (i.e., they can be connected) since every event
+that Arequires is present on Bin the opposite direction. This
+is the semantic difference between required and providedrealizations—events on a required interface must be present
+on the other side of the connection, while provided interfaces
+may have unconnected events.
+We say that a port is a broadcast port if (1) the interface
+realization mode is ‘provided’ and (2) the realized interface
+contains only outevents OR(1) the interface realization mode
+is ‘required’ and (2) the realized interface contains only in
+events. Unlike other ports, a broadcast port can be connected
+to multiple ports without the need to handle multiple occur-rences of the same event, because every inevent has a single
+source only (see the semantics and well-formedness con-
+straints of channels in Sect. 3.3).
+Even though Gamma interfaces may contain both inand
+outevents, the reason we use only outevents in the MoDeS
+3
+safety logic is to have broadcast ports. The directed events,
+provided-required modes and broadcast ports, offer a ﬂexi-ble way to model communication interfaces. Our goal with
+this design is to explore the possibilities of interface-based
+communication in reactive systems while giving freedom to
+9The single interface may inherit from many others, so this is not a
+limitation in practice.
+10This is equivalent to interface conjugation in SysML.
+123
+
+--- Page 8 ---
+1490 B. Graics et al.
+users to employ their own convention (such as input/output
+interfaces).
+3.2 Components
+Components serve as types of component instances. They
+can have parameters that can be used in their bodies just
+like constant declarations. Components may be atomic or
+composite and synchronous or asynchronous (see Sects. 3.4–
+3.5). A component can have zero or more ports. In Gamma,
+any interaction of a component, whether originating from an
+internal subcomponent or the implementation of an atomiccomponent, must occur through a port.
+11This ensures that
+external dependencies and interactions are explicitly mod-
+eled, leading to fully encapsulated units of behavior thatcan be logically analyzed in and of itself,
+12facilitating
+contract-based and compositional analysis and monitoring.
+The fragment of the GCL metamodel describing component
+types is depicted in Fig. 4c.
+Atomic Component An atomic Gamma component is an
+abstract element with the following properties:
+– a set of states with a well-deﬁned initial state,
+– a set of input and output events collected from ports of
+the component,
+– a deterministic13transition function describing the behav-
+ior of the component, i.e., the new state and raised output
+events in response to input events.
+The built-in Gamma Statechart Language (GSL) sup-
+ports the deﬁnition of atomic components with statecharts.
+It offers elements similar to that of UML and SysML, suchas composite states and orthogonal regions for describing
+concurrent execution, history and variables for expressing
+memory, timeouts for modeling timed behavior, and choicesfor complex transitions. Some elements that are not sup-ported include completion-related constructs and internal
+11Note that this is only a syntactical requirement, as direct interaction
+between subcomponents can always be transformed to strict hierarchicalcommunication by adding extra ports and routing events up and downin the hierarchy. A component with no ports cannot interact with itsenvironment, but may have internal (e.g., timed) behavior that can beanalyzed.
+12Like most similar formalisms, Gamma does not consider the oper-
+ational environment or the executing (virtual) machine directly. Inter-actions resulting from such unconsidered circumstances can very wellinﬂuence the behavior of a component in many speciﬁc ways. Whilewe do not consider these directly, the effect of the environment anddifferent fault and interaction models can be captured by adding addi-tional ports to the components and substituting simple communicationchannels with one or more components representing the communicationplatform.
+13This deﬁnition is extensible to nondeterministic components, but this
+would be relevant only in the case of environmental models, which isnot in the primary scope of the current work.transitions (the latter can be mapped to subregions though).
+Additional constructs not present in UML/SysML statechartsare complex triggers (reacting to a combination of events) and
+metadata annotations that can reﬁne the execution semantics
+(e.g., deﬁning the means of conﬂict resolution when multi-ple transitions are enabled). Most of the differences originatefrom the fact that UML/SysML statecharts have an essen-
+tially asynchronous semantics, while the GSL was designed
+to support synchronous-reactive statecharts (see Sect. 4for a
+formal discussion of semantics).
+In the current implementation, the GSL provides a com-
+mon basis for all functionalities of the Gamma framework.However, the deﬁnition of atomic Gamma components is not
+restricted to the GSL, the framework can be extended with
+other languages as long as it deﬁnes the behavior in terms ofthe properties above.Component instance Component instances are individual
+reactive elements with their own internal state and a (con-
+stant) value assigned to each of their parameters. Eachinstance has a type (a component deﬁnition) that determines
+the ports on which the component instance can communicate
+as well as the internal states it can assume and the transitionsit can ﬁre. Code generation and analysis always happen on
+an instance with all parameters bound to a constant value.
+An example component instance
+S12 can be seen below.
+Note that whether the component instance is synchronousor asynchronous is deﬁned by its type (see Sects. 3.4,3.5).
+
+component S12 : Section 
+Well-formedness constraint each parameter of a compo-
+nent type must be bound to a value with an appropriate typein every instance of the component.Composite component Composite components are deﬁned in
+terms of one or more component instances (either atomic or
+composite, therefore supporting hierarchical composition).The behavior of the composite component is deﬁned by the
+interaction of its constituent components . Sects. 3.4and3.5
+present the supported composite component types in detail,after Sect. 3.3introduced common communication elements
+(supported in each composite component type) required to
+deﬁne interactions between constituent components.
+3.3 Communication elements
+The fragment of the GCL metamodel describing communi-
+cation elements is depicted in Fig. 4b.
+Instance port reference The instance port reference element
+is the qualiﬁed name of a port of a component instance; thus,
+it refers to a single port and a single component instance.
+An example instance port reference can be seen below. 
+S12 . ProtocolOutCCW 
+123
+
+--- Page 9 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1491
+Fig. 4 Fragments of the GCL metamodel related to composite components
+Well-formedness constraint the port must be deﬁned on
+the type of the component instance.Port binding The port binding element is responsible for map-
+ping the ports of a composite component (“system ports”),
+to the ports of constituent component instances.
+14There-
+fore, it refers to a single system port and a single instance
+port reference. All events received on the particular sys-
+tem port will be transmitted to the port of the associatedcomponent instance, and all the events dispatched throughthe particular instance port will be transmitted to the sys-
+tem port. An example port binding can be seen below.
+
+bind S12ProtocolOutCCW −> S12 . ProtocolOutCCW 
+Well-formedness constraints (1) in the case of syn-
+chronous and cascade composite components (see Sect. 3.4),
+a non-broadcast system port must be mapped to a single
+port of a constituent component instance; (2) in the case
+of synchronous and cascade composite components, a non-broadcast port of a constituent component instance can be
+connected to at most one system port; (3) both ports must
+realize their interface in the same mode; (4) given that the
+14The approach is again similar to using proxy ports and binding con-
+nectors in SysML.system port realizes interface Sand the port of the compo-
+nent instance realizes interface C, if the realization mode is
+required then C≺S(Sextends C) and if it is provided then
+S≺C.
+Channel Channels are responsible for the connection of com-
+ponent instance ports. Technically, they use instance port
+references to refer to the endpoints. There are two types of
+channels: simple channels and broadcast channels.
+–Simple channels support the connection of two ports. An
+example of a simple channel can be seen below (connect-ing provided port
+ProtocolOutCW ofSection instance
+S12 and required port ProtocolInStraight ofTurnout
+instance T1in composite component Z1as deﬁned in
+Fig.5b). 
+channel [ S12 . ProtocolOutCW ] −o)−
+[T1. ProtocolInStraight ] 
+Well-formedness constraints (1) the connected ports must
+becompatible (as deﬁned in Sect. 3.1); (2) in the case
+of synchronous and cascade composite components (see
+Sect. 3.4) a non-broadcast port must not be referred to
+in more than one channel or port binding (to avoid raceconditions, since synchronous components cannot han-
+123
+
+--- Page 10 ---
+1492 B. Graics et al.
+(a)(c)
+(d)
+(b) (e)
+Fig. 5 Model snippets related to the MoDeS3safety logic
+123
+
+--- Page 11 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1493
+dle multiple occurrences of the same event at the same
+time).
+–Broadcast channels support sending events to multiple
+target ports. Such channels refer to (1) a single broad-
+cast port and (2) one or more other ports. In this case,the direction of event transmission is determined: thebroadcast port dispatches events and all the other ports
+connected to it receive them. A broadcast channel exam-
+ple can be seen below (connecting broadcast port
+Train
+of component instance train to the required ports Train
+of component instances lowerLevelModel andhigher-
+LevelModel ). 
+channel [t r a i n.T r a i n] −o)−
+[ lowerLevelModel . Train , higherLevelModel . Train ] 
+Well-formedness constraints (1) the connected ports must
+becompatible ; (2) non-broadcast ports must not be
+referred to in more than one channel or port binding in the
+case of synchronous and cascade composite components
+(but broadcast ports may).
+3.4 Synchronous components
+This section introduces the synchronous components of the
+GCL, including their informal behavioral semantics. Syn-
+chronous components can be either atomic components (e.g.,statechart deﬁnitions , introduced in Sect. 3.2) or composite
+components ( synchronous andcascade ). See the left side of
+Fig.4c for the relevant part of the metamodel.
+Synchronous components represent systems that com-
+municate in a synchronous manner using signals . Their
+execution is scheduled by a scheduler, which can be an asyn-chronous adapter component (see Sect. 3.5)o rac u s t o m
+scheduler implementation invoking a component from time
+to time. The execution of a synchronous component con-
+forms to a turn-based semantics. A turn is called a cycle .I n
+a cycle, synchronous components process incoming signals
+and produce output signals in accordance with their inter-
+nal states. Output signals are present for a single executioncycle only, i.e., the signal disappears after one cycle (but
+another output signal may be produced then). The seman-
+tics of synchronous components was designed in accordancewith the synchronous-reactive and cascade models of com-putation presented in Sect. 2.2.2 .
+Synchronous composite component The execution of a syn-
+chronous composite component is based on the execution ofits contained component instances. When a single compo-
+nent instance is executed, it (1) processes signals received in
+the last execution cycle, (2) assumes a new state accordingto the processed signals and (3) produces signals that can be
+received in the next cycle by others or itself.
+In each cycle, all component instances of the particular
+composite component are executed. As contained compo-nents cannot affect each other during a single execution cycle,
+the execution order of contained components does not matter.The results of an execution cycle are the same regardless of
+the execution order of the components, which is a key feature
+of synchronous composite components.
+In Fig. 5b, synchronous composite component
+Z1is
+depicted. Note how the previously introduced endpoint and
+communication elements can be used to establish a strongly
+coupled composite component.Cascade composite component Cascade composite com-
+ponents are structurally similar to synchronous composite
+components, but their execution semantics differ. The exe-cution of a cascade composite component also consists of
+cycles. In a single cycle, all constituent components are exe-
+cuted in a speciﬁc order, which can be based on either anexecution list deﬁning the order of the execution of compo-
+nents (has to be deﬁned explicitly), or the declaration order
+of the component instances (default). The execution list can
+contain a particular component instance one or more times,i.e., a component instance can be executed multiple times in
+a single cycle. If no execution list is deﬁned, each component
+instance is executed exactly once in the order of declaration.
+When a component is executed, it (1) processes all
+incoming signals, (2) assumes a new state according to the
+processed signals and (3) produces output signals. However,the effect of a signal is observable immediately in the same
+execution cycle to other component instances executed later
+(feed-forward connections), and not only in the next one as
+in synchronous composite components. Accordingly, signalssent through feedback connections, i.e., when a component
+instance sends a signal to another one that comes earlier in the
+execution order, are observable in the next execution cycle.
+Note that cascade and synchronous composite components
+are semantically incompatible, that is, there are models in
+both variants that cannot be simulated by a model in the otherdue to the differences in the signal transfer (with respect totrace equivalence).
+Well-formedness constraints if an execution list is deﬁned,
+it must contain each deﬁned component instance at least once.
+Figure 5c depicts a variant of synchronous composite
+component
+Z1by deﬁning an execution list. Note that the def-
+inition of cascade and synchronous composite componentsdiffer in the cascade keyword at the beginning of the com-
+ponent deﬁnition and the optional deﬁnition of an execution
+list.
+3.5 Asynchronous components
+This section introduces the asynchronous components of the
+GCL. Asynchronous components can be either atomic com-
+ponents ( asynchronous adapter ) or composite components
+(asynchronous composite component ).
+123
+
+--- Page 12 ---
+1494 B. Graics et al.
+Asynchronous components represent independently run-
+ning component instances. There is no guarantee on the exactrunning time or the running frequency of such components,
+so different interleavings of component executions can occur
+nondeterministically. Therefore, asynchronous componentsmay receive multiple messages between two executions,which requires communication with buffered messages .T h e
+semantics of asynchronous components was designed in
+accordance with the asynchronous-reactive model of com-putation presented in Sect. 2.2.1 .
+Asynchronous adapter An asynchronous adapter wraps a
+single synchronous component instance, turning it into anasynchronous component. The adapter can be regarded as a
+composite component with a single synchronous instance,
+such that adapters implicitly have all ports of the wrappedsynchronous component—and optionally some additionalones for the reception of control messages (see below).
+Furthermore, an asynchronous adapter has one or more
+message queues , which store the incoming messages of the
+component and have multiple attributes:
+–Capacity speciﬁes the maximum number of messages
+that can be stored in the particular queue. If a queue is
+full and an additional message is received, the message is
+discarded. Note that the absence of this attribute impliesa queue with an unlimited size, which may lead to an
+inﬁnite state space. Therefore, the capacity attribute has
+a great impact on veriﬁcation and may also be necessaryfor code generation.
+–Priority of a queue speciﬁes the order in which the
+contents of message queues are retrieved during the exe-
+cution of the asynchronous component. A message isalways retrieved from a non-empty queue with the high-
+est priority. Priority values can be non-negative integers,
+where higher values represent higher priorities.
+–Event references specify the types of messages that can be
+stored in the particular message queue (demultiplexing
+incoming messages into message queues). The languageallows referring to a single event of a single port, allevents of a port, or all events of the component. If a
+particular message could be stored in multiple message
+queues, the one declared ﬁrst will be used, supportinghierarchical ﬁlters.
+During execution, messages are retrieved from messages
+queues one by one . A message is always taken from the
+highest priority non-empty queue. If the particular message
+was received on a port that is implicitly derived from thewrapped component, the message is converted to a signal
+(as synchronous components communicate with signals) and
+transmitted to the wrapped synchronous component (poten-tially overwriting previously sent signals). If it was receivedon a port explicitly deﬁned on the adapter component, the
+message is not transmitted.
+An asynchronous adapter also has one or more control
+speciﬁcations , which specify the messages that are able to
+trigger the execution of the wrapped component. If a spec-iﬁed message arrives, the wrapped component is executed.Note that signals derived from messages are transmitted to the
+wrapped component before execution, so a triggered execu-
+tion will process the signal even if the control speciﬁcationsis speciﬁed for the corresponding message.
+Finally, asynchronous adapters can contain zero or more
+clocks , which emit tick events at deﬁned timed intervals.
+Such time intervals can be deﬁned with the rate attribute.
+Currently, seconds and milliseconds are supported as units
+of time. Tick events also have to be assigned to a queue andcan be handled in control speciﬁcations similarly to regularevents received from ports.
+To demonstrate the ﬂexibility of this control speciﬁcation-
+based approach, we present two different execution seman-tics, reusing the
+Z1synchronous composite component
+model.
+–I n F i g . 5d, a single control speciﬁcation is deﬁned that
+triggers on the “ anyevent.” In this case, every time an
+event is retrieved from a message queue, the wrappedcomponent gets executed. This behavior is similar to thesemantics of UML statecharts [ 21].
+–I n F i g . 5e, a single control speciﬁcation is deﬁned that
+triggers on the ticks of a clock . In this case, the wrapped
+component gets executed in deﬁned periods of time and
+processes the events that arrive between the ticks.
+Well-formedness constraints (1) the rate attribute of clocks
+and the priority and capacity attributes of message queues
+must have non-negative integer values; (2) events speciﬁedin control speciﬁcations must be input events; (3) event refer-ences in message queues must refer to input events; (4) each
+input event of the asynchronous adapter must be referred in
+a single message queue.Asynchronous composite component Asynchronous com-
+posite components support the hierarchical deﬁnition of
+asynchronous components. Similarly to synchronous com-posite components, an asynchronous composite component
+consists of port bindings and channels in addition to asyn-
+chronous component instances. Synchronous components
+must be wrapped in an asynchronous adapter to include themin asynchronous composite components.
+In Fig. 6, the entire MoDeS
+3safety logic is deﬁned as
+an asynchronous composite component, which contains thewrapped synchronous zone models.
+123
+
+--- Page 13 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1495
+Fig. 6 The high-level MoDeS3safety logic model
+4 Formal semantics of the Gamma
+Composition Language
+This section presents the formal structures and semantics
+of the GCL, which distinguishes it from other informal and
+semi-formal modeling languages. Subsections include short
+discussions about additional practical and theoretical aspects,design decisions and consequences on veriﬁcation and code
+generation.
+The section starts with the deﬁnition of events and related
+structures (Sect. 4.1), and then event vectors related to signals
+(Sect. 4.2) and the syntactic deﬁnition of a synchronous com-
+ponent (Sect. 4.3) are introduced. Next, synchronous com-
+posite components and cascade composite components areformalized both syntactically and semantically (Sects. 4.4,
+4.5). After deﬁning event sequences (Sect. 4.6) and asyn-
+chronous components (Sect. 4.7), asynchronous adapters
+and their semantics are presented (Sect. 4.8). The section
+concludes with the deﬁnition of asynchronous compositecomponents (Sect. 4.9) and their semantics in terms of their
+environment (Sect. 4.10) as well as messages, occurrences
+and execution traces (Sect. 4.11). To help the reader ﬁnd their
+way through the following pages, Appendix lists the symbolsused in the deﬁnitions along with a short description.
+4.1 Events
+Deﬁnitions of Sect. 4consider individual events only, since
+ports and interfaces are syntactic sugar that facilitate thestructuring of syntactic contracts. The event deﬁnition belowmodels a speciﬁc event of a speciﬁc port on a speciﬁc com-
+ponent instance.
+Deﬁnition 1 Anevent is an observable phenomenon that can
+occur, such as the reception of a message or the change ofsituation (state). Given a set of events E, the ﬁnite domains
+of event parameters are deﬁned by the domain function D:
+E→2
+{d1,...,dn}. The domain of an event e∈EisD(e),a
+set of possible parameter values for event e. We say that an
+event e∈Eisparameterized if|D(e)|>1. An instance
+of an event is (e,p), i.e., the event with a speciﬁc parameter
+value p∈D(e). The set of all event instances for a given
+event eis denoted by inst(e)={(e,p)|p∈D(e)}. In case
+the absence of an event is of interest, inst⊥(e)is deﬁned as
+inst(e)∪{(e,⊥)}, where (e,⊥)is the “null” instance that
+denotes the absence of the event. Finally, the set of eventinstances for events in a set Eisinst(E)=/uniontext
+e∈Einst(e)
+(and inst⊥(E)similarly).
+Discussion An event represents a declaration only. Further-
+more, an event instance is not an event occurrence, as theremay be many occurrences of a single event instance.
+4.2 Event vectors
+In the synchronous domain, components communicate via
+signals. The formal structure describing signals is the event
+vector. An event vector can be regarded as a set of cells thatcan be ﬁlled with event instances, at most one instance in
+every cell. Event vectors are the inputs and outputs of syn-
+chronous components.
+Deﬁnition 2 Given a set of events E,a n event vector v
+Eis
+a function that assigns a (possibly “null”) event instance toevery event e∈Esuch that v
+E(e)∈inst⊥(e).T h es e to fa l l
+possible event vectors is denoted by VE.
+Discussion Event vectors do need memory to represent them
+at runtime. Event vectors can be regarded as “nullable” vari-ables dedicated to each event holding the occurrence and
+123
+
+--- Page 14 ---
+1496 B. Graics et al.
+the parameters of that particular event (if any). The number
+of events and the size of their parameter domains thereforedirectly affect the size of the state vector in formal veriﬁca-
+tion or the memory requirements of an implementation.
+4.3 Synchronous component
+The following deﬁnition speciﬁes the formal syntactic con-
+tract of synchronous components. A synchronous component
+should have a set of states, a well-deﬁned initial state, a set of
+input and output events (collected from ports of the compo-nent) along with their parameter domains (i.e., data type), anda deterministic transition function that describes the behavior
+of the component, which can be speciﬁed arbitrarily.
+Deﬁnition 3 A synchronous component is a tuple
+−/circlecopyrt=
+(S,s0,I,O,D,T):
+–Sis the set of potential states, with s0∈Sbeing the
+initial state.
+–Iis the set of input events and Ois the set of output events
+such that I∩O=∅. The set of all events is denoted by
+E=I∪O.
+–D:E→{ d1,..., dn}is the domain function of the
+events.
+–T:S×VI→S×VOis the transition function, which
+determines the next state and the output event vector ofthe component when executing it in a given state with agiven input event vector. Note that this deﬁnition requires
+the component to have a deterministic behavior.
+15
+If−/circlecopyrtis a timed component, we allow Sto track the values
+ofclock variables [22], assuming that whenever a clock vari-
+able in any component of the whole system is increased by
+(a positive) Δt,all other clock variables inany component
+of the whole system are also increased by the same Δt.A l s o ,
+elapsing time may not trigger an internal execution of the
+component, i.e., the state of the component apart from the
+values of the clock variables may only change in accordance
+with T. Finally, we require the execution of transitions to be
+atomic and instantaneous, i.e., time may not elapse during
+the execution of a single transition (regardless of whether
+the component is atomic or composite).Discussion Synchronous components take an event vector
+as an input and generate an event vector as an output. Con-
+sidering that the synchronous component is a statechart, the
+deﬁnition is closest to the virtual ﬁnite state machine formal-ism introduced in [ 23]. We chose this formalism because it
+harmonizes with the synchronous-reactive domain—as com-
+ponents are executed in a lock-step fashion, there may be aneed to react to multiple events or a combination of events
+15Again, the deﬁnitions could be extended to nondeterministic models.at the same time, which can be handled by complex triggers(included in the GSL). Furthermore, as events can occur at
+the same time , we do not have to analyze unnecessary inter-
+leavings introduced by the often arbitrary order of sequential
+message passing. Nevertheless, the more widespread event-driven ﬁnite state machine, which is the basis of mostcommonly used statechart formalisms, is also suitable to
+describe a component. However, those components may be
+triggered by event vectors with a single “non-null” eventinstance only, and we must ensure that they are executed
+every time a signal arrives (see the asynchronous adapter in
+Sect. 4.8).
+Note that this deﬁnition describes an abstract behavioral
+contract that can be implemented by multiple formalisms.
+This is the way the framework supports the integration ofexternal tools and formalisms. The rest of the section is aboutthe semantics of scheduling components, which is the main
+focus of our work.
+4.4 Synchronous composite component
+Recall that a synchronous composite component is deﬁnedby instantiating a set of constituent components, exporting
+input and output ports (events in the formal case) by portbindings and deﬁning channels (connecting events insteadof ports in the formal case).
+Deﬁnition 4 A synchronous composite component is a tuple
+s/circlecopyrt=(C,I,O,/harpoonleftright):
+–C={ −/circlecopyrt1,..., −/circlecopyrtK}is the set of synchronous com-
+ponents constituting the composite component, each
+component being −/circlecopyrtk=(Sk,s0
+k,Ik,Ok,Dk,Tk).
+–I⊆ˆIis the set of exported input events, where ˆI=/uniontextK
+k=1Ik.
+–O⊆ˆOis the set of exported output events, where ˆO=/uniontextK
+k=1Ok.
+–/harpoonleftright:ˆI\I→ˆOis the channel function that assigns
+an output as the source of events to every input, with
+the restriction that it must not be deﬁned for elementsofI, that is, an input is either linked to an output or is
+an exported input. We demand that for each e∈ˆI\I,
+D(e)=D(/harpoonleftright(e)).
+Discussion Note that port binding elements are not present
+in the deﬁnition, instead exported events are deﬁned. This
+implies that events bound together in a composite model are
+handled as if they were the same, they are not differentiated
+in any way, as they represent the same occurrence.Semantics To understand the semantics of synchronous
+composite components, i.e., its behavior as a synchronous
+component, recall that output signals produced by a compo-nent are sampled by other components in the next execution
+123
+
+--- Page 15 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1497
+cycle only. To describe this behavior, we extend the com-
+bined state space of the constituent components with the lastoutput event vector of all constituent components . An execu-
+tion cycle is described by the emergent transition relation of
+the composite component.
+Deﬁnition 5 A synchronous composite component
+s/circlecopyrtis
+itself a synchronous component s/circlecopyrt/angbracketright−/circlecopyrt=(S,s0,I,O,D,T):
+–S=S1×...×SK×VˆOis the set of potential states,
+derived as all possible combinations of the potential states
+of the constituent components and the last output eventvector of every component.
+–s
+0=(s0
+1,..., s0
+K,⊥ˆO)is the initial state, where every
+constituent component is in its initial state and the lastoutput event vector ⊥
+ˆO∈VˆOassigns ⊥to every output
+event ( ∀e∈ˆO:⊥ˆO(e)=⊥).
+–Iis the set of exported input events and Ois the set of
+exported output events as deﬁned in Deﬁnition 4(remem-
+ber that we denote I∪ObyE).
+–Dis implicitly deﬁned by Dk,a sˆD=/uniontextK
+k=1Dkand
+D(e)=ˆD(e)for all e∈E.
+– The transition function is deﬁned as T/parenleftbig
+(s1,..., sK,vˆO),
+vI/parenrightbig
+=/parenleftbig
+(s/prime
+1,..., s/prime
+K,v/prime
+ˆO),v O/parenrightbig
+, where:
+– For each input event e∈ˆIof any constituent compo-
+nent, let vˆI(e)=vI(e)ife∈IorvˆI(e)=vˆO(/harpoonleftright(e))
+otherwise. Note that vˆIimplicitly deﬁnes every vIk
+as well, because vˆI=/uniontextK
+k=1vIk.
+– The next state s/prime
+kof every component corresponds
+to the transition function Tksuch that Tk(sk,vIk)=
+(s/prime
+k,v/prime
+Ok).
+–v/prime
+ˆO=/uniontextK
+k=1v/prime
+Okis the new vector of last output
+events.
+– The output of the composite component for each
+exported output e∈Ois deﬁned by the output of
+the constituent components: vO(e)=v/prime
+ˆO(e).
+Discussion When executing a synchronous composite com-
+ponent, its constituent components either react to an externalinput (in the case of exported inputs) or to the output of aconstituent component (including themselves) from the pre-
+vious execution cycle. This prevents any interaction between
+the components during a single execution cycle, allowingto execute the components in an arbitrary order , essentially
+performing partial order reduction statically. This key fea-
+ture greatly reduces the size of the state space, making thesynchronous-reactive domain suitable for formal veriﬁca-
+tion. Additionally, the deﬁnition enables to connect a single
+output to multiple inputs of components; however, an inputcan be connected only to a single output.4.5 Cascade composite component
+The syntactic deﬁnition of cascade composite components
+is the same as that of synchronous composite components,
+apart from the additional deﬁnition of the execution order ofconstituent components.
+Deﬁnition 6 A cascade composite component is a tuple
+c/circlecopyrt=
+(C,X,I,O,/harpoonleftright):
+–C={ −/circlecopyrt1,..., −/circlecopyrtK}is the set of synchronous com-
+ponents constituting the composite component, eachcomponent being
+−/circlecopyrtk=(Sk,s0
+k,Ik,Ok,Dk,Tk).
+–X∈C∗is a ﬁnite ordered sequence (with potential repe-
+titions) of synchronous components called the execution
+sequence specifying the components to be executed in an
+execution cycle.
+–I⊆ˆIis the set of exported input events, where ˆI=/uniontextK
+k=1Ik.
+–O⊆ˆOis the set of exported output events, where ˆO=/uniontextK
+k=1Ok.
+–/harpoonleftright:ˆI\I→ˆOis the channel function that assigns
+an output as the source of events to every input, with
+the restriction that it must not be deﬁned for elements
+ofI, that is, an input is either linked to an output or is
+an exported input. We demand that for each e∈ˆI\I,
+D(e)=D(/harpoonleftright(e)).
+Semantics Cascade composite components do not delay the
+internal signals between constituent components executed
+after each other (feed-forward signals); therefore, the effectof an event is computed in a single run. Signals sent to compo-
+nents that are not executed anymore in the current execution
+cycle (feedback signals) are saved for the next cycle, just likein synchronous composite components.
+Deﬁnition 7 A cascade composite component
+c/circlecopyrtis itself a
+synchronous component c/circlecopyrt/angbracketright−/circlecopyrt=(S,s0,I,O,D,T):
+–S=S1×...×SK×VˆOis the set of potential states,
+derived as all possible combinations of the potential statesof the constituent components and the last output event
+vector of every component.
+–s
+0=(s0
+1,..., s0
+K,⊥ˆO)is the initial state, where every
+constituent component is in its initial state and the last
+output event vector ⊥ˆO∈VˆOassigns ⊥to every output
+event ( ∀e∈ˆO:⊥ˆO(e)=⊥).
+–Iis the set of exported input events and Ois the set of
+exported output events as deﬁned in Deﬁnition 6(recall
+that I∪Ois denoted by E).
+–Dis implicitly deﬁned by Dk,a sˆD=/uniontextK
+k=1Dkand
+D(e)=ˆD(e)for all e∈E.
+123
+
+--- Page 16 ---
+1498 B. Graics et al.
+– The transition function is T/parenleftbig
+(s1,..., sK,vˆO),v I/parenrightbig
+=/parenleftbig
+(s/prime
+1,..., s/prime
+K,v/prime
+ˆO),v O/parenrightbig
+, computed iteratively for every
+X[i](1≤i≤n,n=|X|):
+–L e t (s(0)
+1,..., s(0)
+K,v(0)
+ˆO)=(s1,..., sK,vˆO)(the
+source state).
+– Assume that X[i]= −/circlecopyrtk. To obtain (s(i)
+1,..., s(i)
+K,v(i)
+ˆO),
+we apply Tk(s(i−1)
+k,vIk)=(s(i)
+k,vOk)to compute s(i)
+k
+andvOk, where for all e∈Ik,
+vIk(e)=⎧
+⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎩v
+I(e) ife∈Iand this is
+the ﬁrst execution of −/circlecopyrtk,
+⊥ ife∈Iand it is not
+the ﬁrst execution, and
+v(i−1)
+ˆO(/harpoonleftright(e))ife/∈I.
+The state of other components −/circlecopyrtj∈C(j/negationslash=k)
+remains the same ( s(i)
+j=s(i−1)
+j). The last output
+event vector is updated with vOk: for all e∈ˆO,
+v(i)
+ˆO(e)=vOi(e)ife∈Ok, andv(i)
+ˆO(e)=v(i−1)
+ˆO(e)
+otherwise.
+– Finally, s/prime
+k=s(n)
+kfor every −/circlecopyrtk∈CandvO(e)=
+v(n)
+ˆO(e)for every e∈O.
+Discussion The raison d’etre of the cascade composite
+semantic variant is twofold. First, even though it requiresthe same amount of memory to represent as synchronous
+composite components (see the deﬁnition of S), the effect
+of an input event on output events is computed in a singlestep, further compressing the state space (assuming that acomposite component is stimulated in hopes of observing
+an output). Second, it is sometimes desired to “decorate” a
+component with auxiliary components such as adapters ormonitors (like in the veriﬁcation models of the MoDeS
+3case
+study in Sect. 8) without introducing a delay in the observ-
+able effect of an event. Furthermore, it is convenient to thinkin terms of pipelines, which is best expressed with cascade
+composite components.
+One drawback of using cascade composite components
+is that the outputs of constituent components may overwriteeach other if a particular component is run multiple times (but
+this is still deterministic), and all outputs of all components
+are emitted in a single event vector. If the temporal unfoldingof the different reactions is relevant, it may be more beneﬁcial
+to use a synchronous composite component. Note that this
+difference is enhanced in timed systems, as the atomic andinstantaneous execution of a cycle implies that feed-forward
+signals are sent and received at the same instance of time ,
+while feedback signals may be delayed in a timed sense aswell.4.6 Event sequences
+In the asynchronous-reactive domain, event vectors are sub-
+stituted by event sequences.
+Deﬁnition 8 Anevent sequence q =/angbracketleft(e1,p1),...,( en,pn)/angbracketright
+is a ﬁnite, possibly empty (denoted by ε) sequence of event
+instances. The set of all possible event sequences for a set of
+events Eis denoted by inst(E)∗, while |q|denotes the length
+of the sequence. The ith event instance in the sequence is
+denoted by q[i]=(ei,pi). Finally, a permutation of a set
+of event instances Ais a sequence denoted by σ(A)and all
+possible permutations of Ais denoted by Sσ(A).
+4.7 Asynchronous component
+Asynchronous components are syntactically very similar to
+synchronous components. The only difference is the deﬁ-
+nition of transitions: it is now not a function but a relation,and instead of taking and producing an event vector, it takes asingle event instance and produces an event sequence chosen
+from the potential output sequences nondeterministically.
+Deﬁnition 9 An asynchronous component is a tuple
+=/circlecopyrt=
+(S,s0,I,O,D,T):
+–Sis the set of potential states, with s0∈Sbeing the
+initial state.
+–Iis the set of input events and Ois the set of output events
+such that I∩O=∅. The set of all events is denoted by
+E=I∪O.
+–D:E→{ d1,..., dn}is the domain of the events.
+–T⊆S×inst(I)×S×inst(O)∗is the transition relation,
+which determines the possible next states and the possiblesequences of output events of the component ( inst(O)
+∗)
+when executing it in a given state with a given input event.
+Note that this deﬁnition does not require deterministic
+behavior.
+Discussion Contrary to synchronous components, the deﬁni-
+tion of asynchronous components is closest to event-driven
+ﬁnite state machines or the variant of statecharts deﬁned
+in UML. Although currently not supported by the GammaStatechart Language, asynchronous components could beimplemented directly by statecharts. In Gamma, the current
+means of deﬁning an asynchronous statechart component are
+to deﬁne a synchronous component containing a statechartand wrap it in an asynchronous adapter.
+Note that allowing a nondeterministic transition relation
+is necessary because the order of output events may notalways be speciﬁed, e.g., in the case of orthogonal regions.
+In the case of synchronous components, the order of events
+does not matter as they are collected in an event vector.The event sequence, however, will be different depending
+123
+
+--- Page 17 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1499
+on the internal order of raising events. This phenomenon
+poses challenges to both veriﬁcation and code generationand hinders the reproducibility of test cases and counterex-
+amples. Nondeterministic behavior, however, is inherent in
+the asynchronous-reactive domain anyway.
+4.8 Asynchronous adapter
+Recall that an asynchronous adapter wraps a single syn-chronous component and converts it into the asynchronousdomain. To do this, the trigger predicate with a set of trigger
+speciﬁcations have to be deﬁned (see control speciﬁcations
+in Sect. 3.5). Additional ports may also be deﬁned. Formally,
+the opportunity to deﬁne multiple additional ports and eventson them is only a syntactic sugar, as all of them are mapped
+to the control event introduced in the deﬁnition below.
+Deﬁnition 10 An asynchronous adapter for a synchronous
+component is deﬁned as a tuple
+⊏−/circlecopyrt=(−/circlecopyrt,ec,trig):
+–−/circlecopyrt= (Ss,s0
+s,Is,Os,Ds,Ts)is the wrapped syn-
+chronous component.
+–ecis the control event .
+–C={ct1
+1,..., ctnn}is the set of clocks, where cti
+iproduces
+ecperiodically after every ti.
+–trig:Is∪{ec}→{ /latticetop ,⊥}is the trigger predicate that
+given an input event, returns whether the wrapped syn-
+chronous component must be executed or not.
+Semantics The semantics of asynchronous adapters is deﬁned
+in terms of an asynchronous component. Observed from theenvironment of the component, an adapter processes input
+events one-by-one (just like asynchronous components in
+general), but may not always produce an output. The roleof the adapter is to “collect” messages for the wrapped
+synchronous component, and when a message triggers exe-
+cution, that is, trig(e)is/latticetop, feed the collected messages and
+emit messages created from the resulting output event vector.
+Deﬁnition 11 An asynchronous adapter
+⊏−/circlecopyrtfor a synchronous
+component is itself an asynchronous component ⊏−/circlecopyrt/angbracketright =/circlecopyrt=
+(S,s0,I,O,D,T):
+–S=Ss×vIis the set of potential states, each state con-
+sisting of a state of the wrapped synchronous componentand a buffer input event vector collecting the incoming
+event instances.
+–s
+0=(s0
+s,⊥I), where ⊥Iis the empty input vector.
+–I=Is∪{ec}is the set of input events including the input
+events of the wrapped synchronous component and the
+control event. From an input vector vI, we can derive vIs
+asvIs(e)=vI(e)for every e∈Is.–O=Osis the set of output events deﬁned in the wrapped
+synchronous component.
+–D=Ds∪(ec→{ /latticetop } )is the domain function of the
+wrapped synchronous component extended with a map-
+ping that assigns a singleton set to the control event,indicating that it is not parameterized.
+– The transition relation is deﬁned as a (nondeterministic)
+transition function T/parenleftbig
+(s
+s,vI),(e,p)/parenrightbig
+={(s/prime
+s,v/prime
+I)}×Ω,
+such that:
+–I f trig(e)=⊥ , then the buffer input event vector is
+updated such that v/prime
+I(e)=(e,p)andv/prime
+I(e/prime)=vI(e/prime)
+for every other e/prime∈I(e/negationslash=e/prime), and s/prime
+s=ss, while
+Ω={ε}(as the set of possible output sequences) is
+the empty sequence in this case.
+–I f trig(e)=/latticetop , then the buffer input event vector
+is updated such that v/prime/prime
+I(e)=(e,p)andv/prime/prime
+I(e/prime)=
+vI(e/prime)for every e/prime∈I(e/negationslash=e/prime), and s/prime
+sshould
+be such that Ts(ss,v/prime/prime
+I)=(s/prime
+s,vO), andv/prime
+I=⊥ I.
+Ω=Sσ({(e,p)|vO(e)=p,p/negationslash=⊥ })(as the set of
+possible output sequences) is every possible permu-
+tation of the “non-null” elements of the output vector.
+Discussion The order of messages between two execution-
+triggering messages is not relevant as long as they do not
+overwrite each other, so the adapter may store an event vec-tor as a buffer instead of a message queue. In practice, the
+memory allocated for the input vector of the wrapped com-
+ponent can be reused.
+The deﬁnition of asynchronous adapters is very ﬂexible.
+Components like an event-driven ﬁnite state machine may
+be implemented by a synchronous component by declaringno additional control events, but returning /latticetopfrom the trigger
+predicate for any event (as seen in Sect. 3.5). With the help
+of the control event, however, it is also possible to promote
+the “ticks” of the wrapped synchronous component to itssyntactic contract, allowing the environment to execute the
+component, which is the preferred way of handling even a
+single synchronous system in Gamma. The deﬁnition alsoallows mixed solutions, e.g., a component may be triggered
+by any external control event or by any event on one of its
+ports.
+Note that according to the deﬁnition, the sequence of out-
+put events may be any permutation of the “non-null” events in
+the output vector of the wrapped component. Although con-
+sistent with the deﬁnition of asynchronous components, thisis rather an underspeciﬁcation than real nondeterminism—
+most implementations would raise output events in a ﬁxed
+order, e.g., when wrapping a cascade composite component.
+Finally, note that clocks are not directly handled in the
+semantics, as the synchronous layer has a notion of logical
+time only. Nevertheless, clocks are considered as a specialsource of events occurring spontaneously after every t
+i, send-
+123
+
+--- Page 18 ---
+1500 B. Graics et al.
+ing a tick message to the containing component received
+through the control event ec(see Sect. 4.11).
+4.9 Asynchronous composite component
+The syntactic deﬁnition of an asynchronous composite com-
+ponent differs from synchronous composite components onlyin the deﬁnition of channels. Since asynchronous compo-
+nents operate with event sequences, it is not a problem
+anymore if an input event has multiple sources, so there is norestriction on channels other than parameter compatibility.
+Deﬁnition 12 An asynchronous composite component is a
+tuple
+a/circlecopyrt=(C,I,O,/harpoonleftright):
+–C={ =/circlecopyrt1,..., =/circlecopyrtK}is the set of asynchronous com-
+ponents constituting the composite component, eachcomponent being
+=/circlecopyrtk=(Sk,s0
+k,Ik,Ok,Dk,Tk).
+–I⊆ˆIis the set of exported input events, where ˆI=/uniontextK
+k=1Ik.
+–O⊆ˆOis the set of exported output events, where ˆO=/uniontextK
+k=1Ok.
+–/harpoonleftright⊆ˆO×ˆIis the set of channels that connects inputs
+and outputs with no restriction apart from parameter com-patibility. The set of inputs connected to an output eis
+denoted by /harpoonleftright(e)={e
+/prime|(e,e/prime)∈/harpoonleftright}. We demand that
+for each e∈ˆIande/prime∈/harpoonleftright(e),D(e)=D(e/prime). Note that
+/harpoonleftright(e)used as a function maps from outputs to inputs,
+contrary to the notation used in synchronous components,
+where it mapped from inputs to outputs.
+Discussion In asynchronous composite components, events
+are transferred in messages and processed one-by-one. We
+assume that components have a message queue where sent
+but unprocessed messages are stored.
+4.10 Environment of the component
+The environment of an asynchronous composite componentis modeled as follows.
+Deﬁnition 13 Given an asynchronous composite compo-
+nent
+a/circlecopyrt= (C,I,O,/harpoonleftright), its environment is a tuple e/circlecopyrt=
+(Eext
+I,Eext
+O):
+–Eext
+I=Ois the input events of the environment that
+consume the output events of the asynchronous compos-ite component.
+–E
+ext
+O=Iis the output events of the environment that
+serve as the input events of the asynchronous compositecomponent.Discussion The behavior of the environment is considered
+nondeterministic. In future work, we plan to restrict its behav-ior with scenario-based contracts.
+4.11 Messages and execution traces
+The semantics of asynchronous composition can be deﬁnedin terms of messages and occurrences. A message is deﬁnedin terms of its source and target events and its parameter.
+Deﬁnition 14 Given an asynchronous composite component
+a/circlecopyrtwith its environment e/circlecopyrt, an asynchronous message is a
+tuple m=(eO,p,EI):
+–eO∈ˆO∪Eext
+O∪Cis the source output event of the mes-
+sage, possibly coming from the environment or a clock
+of an asynchronous adapter in the system.
+–p∈D(eO)is the content of the message.
+–EI⊆ˆI∪Eext
+Iis the set of target input events of the
+message, possibly targeting the environment.
+–I f eO∈Eext
+O, then EI⊆Iand if EI⊆Eext
+I, then
+eO∈O, i.e., external messages may arrive through
+exported input events, while external targets may be mes-
+saged from exported output events. If eO∈Cfor some
+asynchronous adapter ⊏−/circlecopyrt, then EI={ec}, where ecis
+the control event of ⊏−/circlecopyrt. Otherwise, /harpoonleftright(eO)=EI, that is,
+if the message is sent to another component in the sameasynchronous composite component, the corresponding
+inputs and outputs are connected with a channel.
+Deﬁnition 15 Given a message m=(e
+O,p,EI),l e t
+send(m)denote the occurrence of creating the message in
+response to its source output event and recv(m,eI,) the occur-
+rence of consuming the message on input event eI∈EI,
+thus, raising event eI. The source component of a mes-
+sage is denoted by src(m)= =/circlecopyrtk∈Cwhen eO∈Okor
+src(m)= e/circlecopyrtifeO∈Eext
+O.
+Furthermore, let t=(s,eI,s/prime,ω)∈Tkbe a transition of
+a constituent component =/circlecopyrtk. An occurrence of transition t
+is a tuple [t]=(mI,t,MO), where:
+–mI=(eO,p,EI)is the message triggering the transi-
+tion, where eI∈EI.
+–tis the triggered transition.
+–MOis the sequence of raised messages such that |MO|=
+|ω|and for every 1 ≤i≤|MO|,MO[i]=(e/prime
+O,p/prime,E/prime
+I)
+such that ω[i]=(e/prime
+O,p/prime)and E/prime
+Iobeys Deﬁnition 14.
+Discussion A message is a runtime object, i.e., it has “object
+identity.” For example, in the ModesTrack model (presented
+in Sect. 3.5in Fig. 6) event “ Z1.T1ProtocolOutDivergent.go ”
+creates a message mwith itself as the source and
+123
+
+--- Page 19 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1501
+“Z5.S11ProtocolInCW.go ” as the target, with no parame-
+ter (the domain is a singleton set). Raising it again createsanother different message m
+/primebut with the same content.
+Occurrences, such as message sending, receiving and ﬁring
+transitions, constitute the observable behavior of an asyn-chronous system, e.g., sending message mis an observable
+happening at a speciﬁc point in time. Occurrences enable
+us to deﬁne an execution trace, describing the behavior of
+asynchronous systems.
+Deﬁnition 16 Given a totally ordered sequence of transition
+occurrences and message sending and receiving (that is, an
+execution trace ), let # [t],#send(m)and # recv(m,e
+I)denote
+the position of the corresponding occurrence in the ordering.
+The execution trace of an asynchronous composite compo-
+nent must obey the following rules (deﬁning a partial order):
+1.(causality) #send(m)<#recv(m,eI)for every message
+m=(eO,p,EI)appearing in the execution trace and
+for every eI∈EI.
+2.(causality) #recv(mI,eI)<#send(mO)for every transi-
+tion occurrence [t]=(mI,t,MO)appearing in the trace
+where mO∈MO.
+3.(message order) If #send(m)< #send(m/prime)such that
+src(m)=src(m/prime), then recv(m,eI)<#recv(m/prime,e/prime
+I)for
+every eIand e/prime
+Ibelonging to the same component =/circlecopyrtk
+(eI∈Ikand e/prime
+I∈Ik) and assigned to message queues
+with the same priority.
+4.(message order) For every transition occurrence [t]=
+(mI,t,MO)and for each 1 ≤i,j≤|MO|ifi<j, then
+#send(MO[i])<#send(MO[j]).
+Furthermore, let τ([t]),τ(send(m))andτ(recv(m,eI))
+denote the timestamp of the corresponding occurrence
+according to a common global clock. We require that:
+5.(direction of time) If #occ i<#occ j, then τ(occ i)≤
+τ(occ j)and if τ(occ i)<τ( occ j), then # occ i<#occ j.
+6.(periodic ticks) For each clock cti
+i, there is an inﬁ-
+nite number of messages m=(cti
+i,⊥,{ec})such that
+τ(send(m))=n·tifor all n>0.
+Discussion The ﬁrst two rules enforce causality: an occur-
+rence cannot happen before another occurrence that caused it
+to happen. The third rule is a constraint on the implementation
+of asynchronous systems of the GCL: the communication isdemanded to be reliable not only in terms of losing messages
+(implicitly forbidden by Rule 1), but also in terms of the order
+of messages. The fourth rule, on the other hand, describesthe natural mapping between output event sequences and
+the generated message sequences. These rules are satisﬁed
+when assuming reliable and order preserving message pass-ing in the modeled communication; nevertheless, unreliablecommunication can be explicitly modeled using additional
+components (unreliable channel) or as part of the behaviorof the communication-related components.
+Regarding time, the ﬁfth rule speciﬁes that timestamps
+are assigned in a monotonic way (but not strictly, i.e., we canforce an order on two occurrences with the same timestamp).Finally, the sixth rule deﬁnes that clocks emit ticks every t
+i
+time units starting from a designated 0 point of time. Note
+that (1) whenever the timestamp of a transition occurrence[t
+i]differs from the previous transition occurrence [tj]of the
+same component, any internal clock variables are assumed
+to be increased with the same Δt=τ([ti])−τ([tj])as
+described in Sect. 4.3and (2) tick emit messages in a ﬁxed
+time, but consuming the message can occur anytime later in
+accordance with the lack of guarantees for execution timeand frequency of asynchronous components.
+5 Functionalities of the Gamma framework
+This section summarizes how the various features and func-tionalities of the Gamma framework were implementedbased on the languages, especially the Gamma CompositionLanguage and its semantics.
+5.1 Integrating component models
+The integration of external component models (i.e., statechartmodels from external modeling tools) is realized by mappingthese models to GSL models. A separate mapping needs to
+be deﬁned for each supported statechart variant, taking into
+account the peculiarities of their syntax and semantics (e.g.,the rules for mapping Yakindu statecharts can be found in[24]). Note that the GSL is prepared for supporting differ-
+ent statechart semantics by offering annotations. GSL, as
+a common representation of component statecharts, allowsthe use of the functionalities of the Gamma framework by
+integrating components designed in various external tools
+(currently, Yakindu and MagicDraw are supported, integrat-ing other UML/SysML tools would be only a technological
+challenge).
+While the GSL would be suitable for most statechart-like
+formalisms, it has certain limitations as well. For example,internal signals commonly used in UML/SysML models are
+not supported, i.e., there is no direct way to synchronize par-
+allel regions of a composite state apart from jointransitions.
+Also, the support for timed behavior is limited to determinis-
+tic timeouts that are not sufﬁcient to model nondeterministic
+completion times for example. Some of these limitations arehighlighted in the experimental case study in Sect. 6.
+Nevertheless, the tool architecture allows the extension
+of the framework with arbitrary new formalisms exposingthe behavior described in Sect. 4.3. We are also constantly
+123
+
+--- Page 20 ---
+1502 B. Graics et al.
+working on extending the GSL (e.g., with a richer action lan-
+guage), but the details of atomic component implementationsare out of the scope of this paper.
+5.2 Model validation
+Validation takes place at the level of atomic component mod-
+els and during the composition of components. It is realized
+by specifying ill-formedness constraints in the form of modelpatterns that are evaluated at design time. Validation regard-
+ing composition realizes the constraints presented in Sect. 3,
+that is, the checking of model imports, port bindings, valuesbound to parameters of components, channel constructions,execution of components in cascade models, and attribute
+values as well as event references in control speciﬁcations
+and message queues in asynchronous adapter models.
+5.3 Code generation
+The Gamma framework supports automatic source code
+generation from Gamma models. Currently, Java code is gen-
+erated.
+In the case of atomic components, Gamma reuses the
+code generators provided by the integrated external modeling
+tools, e.g., Yakindu.
+Interface deﬁnitions are generated from Gamma interfaces
+and are realized by the corresponding port objects of the
+component implementations. As a result, users can interact
+with the component objects through the well-deﬁned, famil-iar interfaces.
+Composite component implementations are generated
+from Gamma composite components deﬁned in GCL. Theywrap the atomic component implementations and subordi-nated composite components and construct the required con-
+nections (channels) between them. Thus, wrapped compo-
+nents are able to communicate with each other by dispatchingand receiving event objects. Note that the generated com-
+posite component implementations are independent from the
+atomic component implementations and communicate withthem only via a well-deﬁned interface. Thus, atomic com-
+ponent implementation other than the currently supported
+Yakindu can be included without the rework of the Gammacode generator, and even different component implementa-tions can be executed side by side in the same composite
+system.
+It is essential that the behaviors of composite components
+conform to the rigorous semantics of the GCL introduced in
+Sect. 4. This is realized using different programming con-
+structs in each component type. Synchronous composite andcascade components wrap atomic components and an exter-
+nal tick (an explicit method call) is implemented to trigger
+their execution, which is also transferred to their containedcomponents, eventually reaching the atomic components.Asynchronous adapters, however, rely on concurrent com-
+ponents that run continuously without external ticks. Thisway, asynchronous adapters provide the ticks necessary for
+the execution of their wrapped synchronous components.
+Asynchronous composite systems have two different imple-mentations. One of them uses threads hosted in a singleprocess to implement the composed asynchronous adapters
+(each running in its own thread). The other one is based
+on inter-process communication. Communication betweenasynchronous Gamma processes to be deployed to separate
+nodes in a local network is realized using the DDS standard.
+16
+5.4 Formal verification
+Formal veriﬁcation in the Gamma framework is performed by
+the external model checker UPPAAL (also, the architecture
+supports the integration of additional model checkers). The
+integration is achieved by automatically mapping the Gammacomposite system model to a network of timed automata,
+the input formalism of UPPAAL. The queries representing
+the properties to be checked on the model are either givendirectly as UPPAAL temporal logic formula or constructedusing ﬁllable patterns (for the most frequent safety and live-
+ness properties).
+For each atomic statechart component, a set of automa-
+ton templates is generated (one template for each region)
+that synchronize with each other using channels [ 24]. These
+templates are instantiated in accordance with the componentinstance deﬁnitions. Similarly to source code generation, it is
+important to ensure that the generated formal model behaves
+according to the semantics of the composite system. Thisis supported by creating auxiliary model elements responsi-ble for conducting interactions among these independently
+transformed atomic components, as follows.
+For each synchronous composite and cascade component,
+a scheduler automaton is generated that controls the execu-
+tion of instantiated atomic components. Each input event of a
+synchronous composite component is handled through a vec-tor consisting of two boolean variables, toRaise andisRaised .
+An input event can be raised by setting the
+toRaise variable to
+true (by the environment automaton modeling external eventsor by other component automata). At the start of each cycle,its value is copied into the isRaised variable, which is read
+by the automaton during execution. Contrarily, each input
+event of a cascade component is modeled as a single vari-able that can be written and read arbitrarily, making in-cycle
+communication possible.
+For each asynchronous adapter, an executor automaton
+together with message and message queue data structures
+16The DDS-based asynchronous Gamma code generator was realized
+by freshman university students, which demonstrates the easy extensi-bility of Gamma code generators.
+123
+
+--- Page 21 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1503
+is generated. Message insertion/removal to/from queues are
+implemented by functions, which are called by the execu-tor automaton. The removed messages are transferred to the
+wrapped synchronous component. Also, if a message trig-
+gers the execution of the wrapped component, its schedulerautomaton is initiated. To model clocks, an automaton is cre-ated that generates clock messages in deﬁned intervals.
+In the case of asynchronous composite components, an
+asynchronous scheduler automaton is introduced that initi-ates the execution of the executor automata of the composed
+adapter components.
+5.5 Test case generation
+Gamma supports model-based testing by using the integrated
+model checker to generate tests. The idea is to construct
+queries for the model checker and interpret the resulting
+traces (witnesses or counterexamples generated by the modelchecker on the basis of the queries) as test cases [ 25,26]. If
+the queries are constructed to check the reachability of states
+(ﬁreability of transitions), then the resulting test suite is able
+to provide state coverage (transition coverage, respectively).The resulting traces are mapped to the GTL, and test cases
+(currently JUnit) are generated.
+Note that the execution of the generated JUnit test cases
+on the (generated) code of a composite system validates
+the following functionalities of the Gamma framework: (1)
+mapping component models from external tools to Gamma,(2) transformation of Gamma models to a back-end modelchecker, (3) code generation from composite components,
+(4) implementations of integrated atomic components, (5)
+construction of executable test cases. This kind of validationof the Gamma workﬂow is essential, as the framework builds
+on model transformations that are hard to verify. Neverthe-
+less, each witness or counterexample generated by formalveriﬁcation can be validated, demonstrating that the frame-
+work is well-functioning or a real fault is detected. Note that
+if certain behavior is absent, e.g., a state is not reachable, thistechnique cannot be utilized.
+6 Case study—Simple Space Mission
+This section introduces an example model from the aerospacedomain which we use as a case study to demonstrate the appli-cability of Gamma to describe SysML behavioral models.
+The example model was proposed by NASA in the context
+of the OpenMBEE
+17framework. The goal of OpenMBEE is
+to create a common model repository to facilitate tool inte-gration, so the ability to handle models in the scope of this
+project can raise the relevance of any model analysis tool.
+17https://www.openmbee.org/ .
+Fig. 7 The statechart model describing the behavior of the ground sta-
+tion component
+In the case study, we investigate how SysML models with
+composite structure state machines and activity diagramscan be mapped to the composition language of the Gammaframework. We use the languages presented in this paper to
+manually model a simple space mission that describes com-
+munication between a satellite and a ground station.
+18
+6.1 Modeling of the system
+The SysML model describes how a satellite communicateswith a ground station as well as the state of the battery of
+the satellite. The state-based behavior of the system can be
+seen in Figs. 7and8, while the more complex activities are
+depicted in Figs. 9and10. The equivalent, purely state-based
+Gamma models
+19that we created manually based on the
+aforementioned models are visualized in Figs. 11and12.20
+The main challenge of mapping this model came from the
+mixing of state and activity-based behavior. We found that
+actions with time constraints can be modeled as states withtimeouts (although GSL currently does not support nondeter-ministic timeouts, so we chose a ﬁxed value), so each thread
+in the activities could be modeled with orthogonal regions.
+The processed model already followed the convention ofhandling external signals at the state-based level while paral-
+lelly executed activities communicate with internal signals.
+This internal communication could be mapped to guardedtransitions affecting the parent state of the communicating
+orthogonal regions. Observe the handling of low battery in
+Figs. 9and10with internal signal
+Battery Low in Fig. 11.
+Since the original model was simulated with Cameo Sim-
+ulation Toolkit21with discrete time steps, we modeled the
+composition with a synchronous semantics. The model of
+the composite component can be seen in Fig. 13.
+18The initial SysML models can be found at: https://github.com/Open-
+MBEE/OMGSpeciﬁcations .
+19The Gamma models can be found at: https://github.com/FTSRG/
+gamma/tree/master/examples/hu.bme.mit.jpl.spacemission.casestudy .
+20The visualization of the Gamma models was generated using Plant-
+UML.
+21https://www.nomagic.com/product-addons/magicdraw-addons/
+cameo-simulation-toolkit .
+123
+
+--- Page 22 ---
+1504 B. Graics et al.
+Fig. 8 The statechart model describing the behavior of the spacecraft
+component
+Fig. 9 The activity diagram describing the data transmission process
+of the spacecraft component
+Fig. 10 The activity diagram describing the battery recharge process
+of the spacecraft component6.2 Results and conclusion
+To check the conformance of the Gamma model with the
+original SysML model, we have generated a set of state-
+covering tests using the test generation capabilities of theframework based on the integrated UPPAAL model checker.All the traces were consistent with the behavior described by
+the SysML model.
+This case study showed that SysML models built with cer-
+tain conventions can be mapped to Gamma models, where
+they can beneﬁt from the precise composition semantics as
+well as the code/test generation and veriﬁcation capabili-ties. Our approach was manual, because the mapping is not
+trivial, and some constructs do not ﬁt with our semantics.
+A notable example is using actions with time constraints orevent receptions in activities describing effects of transitionsor entry/exit actions: our semantics explicitly forbids waiting
+during the execution of transitions. We believe this modeling
+practice should be followed in other tools as well, but thedeﬁnition of the corresponding conventions is out of scope
+of this paper.
+Nevertheless, this case study provided valuable insights
+into the mapping of SysML models to Gamma, which was
+automated for a subset of modeling elements and successfully
+used in the case study described in the next section.
+7 Case study—Orion
+This section demonstrates a formal analysis approach forcommunication protocols using the Gamma frameworkbased on our previous work [ 27]. This approach supports
+(1) the construction of protocol participant models as well
+as channel models with different failure modes, (2) the com-position of protocol participant and channel models to formcomposite system models and (3) model checking on the sys-
+tem models with automatic back-annotation of the results.
+The process is presented in the context of Orion, a master–slave communication protocol under design targeted to be
+used in the railway industry.
+22
+In this case study, we demonstrate the practical usabil-
+ity of the Gamma framework in the context of an industrial
+problem. The case study highlights the differences between
+composition modes to support different potential executionplatforms and provides measurement results regarding theveriﬁcation of the robustness properties of the modeled pro-
+tocol.
+22All Gamma models presented in this case study can be found under
+the following link: https://github.com/FTSRG/gamma/tree/master/
+examples/hu.bme.mit.gamma.industrial.protocol.casestudy .
+123
+
+--- Page 23 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1505
+Fig. 11 The constructed Gamma statechart model with inlined activity diagrams describing the behavior of the spacecraft component
+Fig. 12 The constructed Gamma statechart model with inlined activity
+diagrams describing the behavior of the ground station component
+7.1 Modeling of the communication protocol
+This section introduces the modeling process of the proposed
+analysis approach in the context of Orion.Fig. 13 The GCL model describing the mission with a ground station
+and a satellite
+7.1.1 Protocol participants
+Orion is a master–slave communication protocol where the
+establishment of a connection between two participants is
+always initiated by a master and the connection request iseither accepted or rejected by a slave. Both the master and theslave participants were designed on the basis of statecharts
+in MagicDraw and have the same events (commands and
+messages).
+The initial state of the master statechart (depicted in
+Fig. 14)i s
+Closed . When initiating a connection with the
+slave, it goes to state Connecting and waits for a response.
+Upon a positive response, it goes to state Connected whereas
+upon a negative one or after a certain timeout ( TConn sec), it
+goes to state Closed . Communication can take place in state
+Connected .
+123
+
+--- Page 24 ---
+1506 B. Graics et al.
+Fig. 14 The statechart model describing the behavior of the master
+component
+Fig. 15 The statechart model describing the behavior of the slave com-
+ponent
+The slave statechart (depicted in Fig. 15) is similar to the
+master.
+The models can be automatically transformed to the GSL
+using the model transformers of Gamma, in which they can be
+validated based on statechart-related well-formedness rules[24]. According to the validators of Gamma, the presented
+statechart models are well-formed.
+7.1.2 Channel models
+During the modeling of communication between protocol
+participants, several failure modes of event transmission canbe considered [ 28]. In this case study, we deﬁned ﬁve chan-
+nel models in Yakindu: one ideal channel , three models
+describing loss of events failure modes ( bursty message los-
+ing channel ,arbitrary message losing channel and timed
+message losing channel ) and one model related to delay of
+events failure mode ( delay channel ). They are introduced in
+[27] in detail, here we present only the simpliﬁed version of
+thebursty message losing channel model.
+Figure 16depicts the bursty message losing channel
+model, which models a channel that can lose a given amount(
+LOST_MESSAGE_MAX ) of subsequent incoming events.
+It has two states, Operating (initial state) and MessageLos-
+ing. If the model receives a certain event in state Operating ,i t
+either forwards the event to its output, or (if there has been no
+failure before) goes to state MessageLosing without forward-
+ing the event. In state MessageLosing , the speciﬁed amount
+of events are absorbed before going back to state Operating .
+Fig. 16 Excerpt from the statechart model of the bursty message losing
+channel
+Fig. 17 The GCL model of protocol participants and channel models
+Note the nondeterministic nature of this model: the loss of
+subsequent events can start on any incoming event. Also, thismodel includes behavior only for a single event (
+OrionCon-
+nReq ), nevertheless, additional events in the complete model
+are handled analogously.
+7.1.3 System models
+We analyzed the behavior of the Orion protocol consider-
+ing different channel failure modes and different execution
+modes of the participants. Therefore, for each channel modelwe deﬁned synchronous ,cascade and asynchronous com-
+posite Gamma models, which differ only in the execution
+mode, the components and their connections are the same.We focused on the time-driven behavior and the events of theOrion protocol in the master and slave components.
+Figure 17describes the GCL model the variations of
+which were used with different channel models and executionmodes. It consists of a master component, a slave compo-
+nent, and two channel components that connect the output
+and input ports of the protocol participants. The concretemodels differ only in the ﬁrst keyword of the model that can
+be either sync,cascade orasync . All in all, ﬁfteen composite
+models were deﬁned, ﬁve (as there are ﬁve channel models)for each composition mode. In the asynchronous compositemodels, message queues with capacity 2 were used.
+7.2 Analysis of the communication protocol
+We analyzed liveness properties of the system models intro-duced in Sect. 7.1.3 , that is, the reachability of system states
+with different channel models using the integrated UPPAAL
+model checker. The analyzed properties (formalized in CTL[29]) are the following.
+123
+
+--- Page 25 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1507
+Table 2 Average time of
+verifying P 2in different system
+modelsSynchronous (s) Cascade (s) Asynchronous (s)
+Ideal channel 0.01 0.01 0.4
+Bursty message losing channel 0.4 0.3 1.0Arbitrary message losing channel 2.0 1.7 140.4Timed message losing channel 0.02 0.02 0.1Delay channel 4.3 4.1 7.3
+Table 3 Average
+resident/virtual memory peaksduring the veriﬁcation of P
+2in
+different system modelsSynchronous (Mb) Cascade (Mb) Asynchronous (Mb)
+Ideal channel 10/48 9/47 12/53
+Bursty message losing channel 13/55 12/53 23/72Arbitrary message losing channel 16/60 14/56 143/314Timed message losing channel 11/50 11/50 12/53Delay channel 76/172 61/143 100/220
+P1The system can reach a state in which both the mas-
+ter and the slave are in state Connected :EF master.
+Connected && slave.Connected .
+P2The system must eventually reach a state in which both
+the master and the slave are in state Connected :AF
+master.Connected && slave.Connected .
+P1describes the reachability of the desired operational
+state from the initial state in the system and means that the
+master and slave models do not contain fundamental design
+faults that hinder the correct operation of the protocol. P 2,
+as a strong robustness property means that the protocol is
+always able to recover despite the speciﬁed failure mode of
+the channel.
+According to the veriﬁcation executed in Gamma, P 1holds
+in the case of every system model introduced in Sect. 7.1.3 .
+However, the analysis results regarding P 2revealed impor-
+tant constraints on the execution frequency of components ineach composition mode: since the protocols have (real-time)
+timeouts, the fulﬁllment of the property depends on the exe-
+cution frequency of the system components in the case ofeach channel model and each composition mode. Using the
+model checking and automatic back-annotation functionali-
+ties of the framework, we analyzed the necessary schedulingorder and frequency of components with several parametersof the channel models. The property was fulﬁllable in every
+system model with adequate execution characteristics. The
+detailed constraints on the execution characteristics to fulﬁllthe property can be found in [ 27].
+To extend [ 27] and provide additional insight into the ver-
+iﬁcation capability of Gamma, we measured the time (seeTable 2) and the memory consumption (see Table 3)o fv e r -
+ifying P
+2with respect to the deﬁned system models. In the
+cases of the bursty and arbitrary message losing channel
+models the value of the LOST_MESSAGE_MAX parame-ter was 5. In the case of the timed message losing channel ,
+the values of the SandEparameters were 4 and 9, and for
+delay channel the value of the Tparameter was 1. The execu-
+tion frequencies were set in accordance with the constraints
+mentioned above. We ran and averaged 10 measurements for
+each system model.
+7.3 Results
+The measurement results show that both veriﬁcation timeand memory consumption in the case of cascade models isslightly less than in the case of synchronous models. This
+is the result of the model transformation implementation as
+in synchronous models each event is mapped to two vari-ables, whereas in cascade models a single variable is deﬁned.
+Also, in the case of synchronous models event transmission
+between the master and slave components requires multiplecycles contrary to cascade components, which can also result
+in higher memory consumption and veriﬁcation time.
+As expected, asynchronous models are signiﬁcantly harder
+to verify than synchronous and cascade models due to theadditional message queue structures and scheduler compo-
+nents. The difference is markable in the case of the arbitrary
+message losing channel where there is a 70-fold difference
+in veriﬁcation time compared to the synchronous model.
+7.4 Conclusion
+This case study demonstrated that the composition seman-
+tics proposed by Gamma can indeed be used in practice: even
+though the semantics introduced in Sect. 4assumes instan-
+taneous, reliable and order-preserving message passing, the
+language is applicable to practical problems by introducing
+(fault) models describing physical phenomena, e.g., loss ordelay of events.
+123
+
+--- Page 26 ---
+1508 B. Graics et al.
+The three composition semantics cover diverse execution
+and communication modes of the composed components,which could be used to model different execution platforms
+in the case study. As Gamma supports the automatic import of
+models deﬁned in integrated modeling front-ends, we did nothave to manually transform the already existing componentmodels, which greatly reduced the effort required for the
+approach. Also, the measurement results show that the formal
+veriﬁcation capabilities of the framework are applicable inpractice.
+Furthermore, the case study revealed the need for potential
+platform models in the case of timed component mod-
+els where the execution frequencies of the component(s)
+under veriﬁcation can be speciﬁed. Consequently, we have
+extended the veriﬁcation capability of the framework withthis feature.
+8 Case study—MoDeS3
+This section presents a case study in the context of theMoDeS
+3project (introduced in Sects. 2.1,3), where we used
+the Gamma framework in the full design and veriﬁcation pro-
+cess of the safety logic preventing collisions on the tracks.
+We relied on the ﬂexible languages of the framework in boththe design and veriﬁcation tasks.
+Here, we present the models and (manual) methods we
+used to incrementally transform a high-level speciﬁcationinto the ﬁnal implementation of the safety logic controllingtrain movement on sections (turnouts have been added in
+a later phase which we do not discuss here). The primary
+requirement of this logic is the following: “Two trains must
+not be positioned on the same section at the same time.”
+This demonstration focuses on how composition supported
+by Gamma can help in the transformation of an initial speciﬁ-cation, the execution of veriﬁcation tasks, as well as the effect
+of different interaction semantics that could not be modeled
+directly in SysML-based tools alone.
+23
+8.1 Designing the controller with a simplified
+MoDeS3track setup
+The core functionality of the safety logic is to prevent that a
+train approaches another train in such a way that both of
+them occupy the same section. To design and check thisfunctionality, we used a circular track setup with 8 sections
+(altogether
+S01toS08). Also, we divided the track into two
+zones (supervised by two different physical controllers), eachzone consisting of 4 sections. We used two trains that are ini-
+23All models presented here can be found at: https://github.com/
+FTSRG/gamma/tree/master/examples/hu.bme.mit.gamma.modes3.casestudy .tially situated on opposite sections of the circular track ( S01
+andS05). This arrangement covers all the interesting scenar-
+ios regarding train movement and communication between
+the zone controllers.
+The safety logic implements the following safety concept:
+sections before and after an occupied section are consideredas an “aura” of the train; when collision of auras is detected
+then the related section has to be disabled (stopping the train
+on that section). We modeled and analyzed two operationmodes differing in the way of communication between the
+track and the train.
+–Restrictive operation mode : initially, all sections are
+dis-
+abled ;at r a i ni s notallowed to move on a particular
+section until the section gets enabled and the controller
+sends an enable event to the train. This is analogous to
+supplying power to the tracks in a section on demand.
+–Permissive operation mode : initially, all sections are
+enabled ; a train is allowed to move on a section until
+the section gets disabled and the controller sends a dis-
+able event to the train. This is analogous to cutting the
+power supply in case of danger.
+The restrictive operation mode can be adequately modeled
+with synchronous composition (discussed in Sects. 8.2–8.4)
+using the features of synchronous communication: in such
+a model, the controller can always observe the location of
+the trains before their movement and enable the connectingsections if it is safe to do so. Synchronous composition is
+convenient to ensure a lock-step execution of the controller
+and the trains, which is necessary for this strategy. An incon-venient scenario for this mode is the unnecessary waiting oftrains if the controller is too slow.
+We chose to model the permissive operation mode with
+asynchronous composition (see Sect. 8.5) to demonstrate
+the different characteristics of asynchronous communication
+compared to synchronous communication. Without further
+restrictions, this composition mode will let components runindependently with any frequency. Even though this strat-
+egy will not stop trains unnecessarily, a slow controller may
+fail to react in time when there is a danger of collision. Thiswill be revealed by veriﬁcation, too, showing again that inthe case of asynchronous systems, practical problems will
+require further constraints on timing.
+All safety logic components, both for restrictive and per-
+missive operation modes, have the same number and type of
+ports (i.e., the same interface from the point of view of the
+environment):
+Train ports, on which the occupy andunoc-
+cupy events for particular sections are received (modeling
+sensors), and SectionControl ports, on which enable anddis-
+ableevents are transmitted (modeling e.g., power to the train).
+Recall that these interfaces are presented in Fig. 5a.
+123
+
+--- Page 27 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1509
+To design the controller for this layout, we start from a
+high-level speciﬁcation describing the overall behavior ofthe safety logic (Sect. 8.2). In this model, all information is
+assumed to be available locally and we can focus on the main
+logic. Accordingly, we verify that the concept of “auras” issufﬁcient to prevent collisions at this level. As we intend touse two physical controllers, we split the model into zones
+and introduce a communication protocol to obtain non-local
+information about the track (Sect. 8.3). The correctness of the
+protocol is veriﬁed by proving the conformance of the inputs
+and outputs with the original speciﬁcation by checking trace
+equivalence , which is achieved by modeling a special com-
+posite component only for veriﬁcation purposes. Finally, we
+split zones into components responsible for a single section
+to facilitate the component-based modeling of any kind ofzones (Sect. 8.4). The correctness of this step is veriﬁed as
+the previous one, and the two results together yield a proof
+that the model hierarchically assembled from section con-
+troller components into zones and then the whole logic alsoprevents collisions, as proven on the high-level speciﬁcation
+model.
+8.2 High-level safety logic specification
+The high-level safety logic speciﬁcation is modeled as a sin-
+gle atomic synchronous component, just like another modelsimulating two trains. The
+high-level system model com-
+poses these components into a cascade composite component
+for veriﬁcation purposes. As the train model receives com-mands from the environment about how to simulate trains
+(move them forward or backward), then notiﬁes the safety
+logic model about the occupation and unoccupation of sec-tions, it is reasonable to execute the train model and the safetylogic model in this order (described by the execution list of
+the enclosing cascade composite component). Replies of the
+safety logic are processed in the next cycle, which is againreasonable to assume, as the response might take time to
+compute.
+The high-level speciﬁcation is deﬁned in terms of a single
+state and two boolean variables for each section, one of which
+denotes whether a particular section is
+occupied by a train
+(sensors), whereas the other one denotes whether it is enabled
+(actuation). The transitions describe what action should betaken when trains move around the track, i.e., what signals
+shall be sent to actuators in response to sensor input.
+The train model simulates two trains on the track repre-
+senting their motion on the subsequent sections. This model
+is symmetrical in many ways, as the two trains behave the
+same way, and a train behaves analogously on the ﬁrst, sec-ond, etc., sections when moving forward or backward.
+Each train has a
+TrainControl port as well as (according to
+the restrictive operation mode of the safety logic) an enabled
+variable that keeps track of whether the train is allowed tomove or not. We assume that trains have nonzero length, but
+are shorter than sections, so they move onto the next sectiongradually, thus, in an intermediate step it is situated on both
+sections (but never more than two). The position of each train
+is encoded in the following way: if variable
+position is set to
+a number with a single digit, it means the train is situated ona single section. If the position is set to a number with two
+digits, e.g., 12, it means the trains is situated on two sections,
+S01andS02, at the same time.
+Veriﬁcation The high-level system model is mapped to
+UPPAAL, and a formal query representing the safety require-
+ment is veriﬁed. In the case of this model, there is no singleerroneous state to avoid. Instead, the following statement is
+formalized: “It is impossible to reach a state in which more
+than one train occupy the same section.” In the subset of
+CTL [ 29] supported by UPPAAL:
+A[]!(( position1Oftrain = = 81 || position1Oftrain = = 1
+|| position1Oftrain = = 12) & & ( position2Oftrain
+= = 81 || position2Oftrain = = 1 ||
+p o s i t i o n 2 O f t r a i n = = 1 2 ) & & ...)
+Recall the encoding of the states of the trains in the train
+model (Sect. 8.2) and note that each section is checked one
+by one for both trains. This safety property holds on the high-
+level system model , that is, two trains can never occupy the
+same section.
+8.3 Medium-level safety logic model
+The high-level safety logic model cannot be deployed
+directly to the simpliﬁed MoDeS3system as it consists of
+communicating microcontrollers (one for each zone). There-
+fore, we split the model into two medium-level zone models
+composing the medium-level safety logic model as a syn-
+chronous composite component . At this level, synchronous
+composition is a suitable choice as there should be no
+ordering between the zones, and more importantly, signalsbetween the zones may be delayed (logically, we do not use
+timing in these models).
+The
+medium-level zone model is a Gamma statechart sim-
+ilar to the high-level speciﬁcation, but modeling only four
+sections and introducing two Protocol ports to support com-
+munication on both ends of the zone (CCW and CW, whichstand for clockwise and counter-clockwise, respectively).Contrary to the
+high-level safety logic model , communica-
+tion is necessary in this model to learn whether neighboring
+sections on the edges of zones are occupied.Veriﬁcation At this level, the veriﬁcation task is to prove
+conformance between the high-level and the medium-level
+safety logic models by checking trace equivalence. To thisend, we design a new
+oracle component responsible for com-
+paring the outputs ( enable ordisable ) of the two variants and
+moving to an Error state if inputs differ. Therefore, the goal
+is to prove that this state is unreachable.
+123
+
+--- Page 28 ---
+1510 B. Graics et al.
+Fig. 18 A schematic ﬁgure about the system model to check the confor-
+mance of the inputs and outputs of components. Rectangles represent
+component instances, squares represent ports of components, whichrealize interfaces either in provided mode (lollipop) or required mode(socket). Channels are represented as the connection between these.Note that ports realizing the
+Train andSectionControl interfaces are
+depicted jointly
+To check conformance, we deﬁne a cascade composite
+model that composes the train model ,t h ehigh- andmedium-
+level safety logic models (as reference and implementation,
+respectively) and the oracle model into a single system
+(depicted schematically in Fig. 18). Signals from the train
+model are sent to both variants of the safety logic model,
+while their outputs are replicated to pass to the oracle inaddition to the train. Note that cascade composition is again
+a natural choice here, as there is a clear pipeline-like order-
+ing between the components, and the oracle should processoutputs in the same turn.
+Once we have the full
+system model , it is transformed to
+UPPAAL, and the following query is veriﬁed:
+A[]!( P_mainRegionOfStatechartOfOracle . Error )
+The query is the formalization of the following statement:
+“State Error of component oracle is never assumed.” The
+query holds, this way it is impossible for the two safety logic
+models in the system model to produce inconsistent section
+control events: the reﬁnement is correct.
+8.4 Low-level zone model
+The previous models are useful for the high-level descrip-tion and veriﬁcation of the safety logic for the speciﬁed
+track setup. However, to support arbitrary zone setups, it is
+worth deﬁning a section model that controls a single section
+and compose its instances using synchronous composition to
+deﬁne controllers of the zones.
+Accordingly, the
+medium-level zone model (Sect. 8.3)i s
+extended by instantiating the particular section model four
+times and composing its instances in a synchronous com-
+posite component, the low-level zone model . Note that the
+cascade composition would not be favorable here as it is notpossible to deﬁne a justiﬁed execution order of the compo-
+nents, and they communicate with signals that should notbe prioritized. The protocol for communication between the
+section models is similar to communications between zones.
+Veriﬁcation Similarly to the method used in Sect. 8.3, the con-
+formance between the
+medium- andlow-level zone model
+can be veriﬁed by constructing a system model with an ora-
+cle model and performing model checking on that. As before,
+the two models turned out to be conformant.
+Figure 19depicts the analyzed conformance conditions
+between the high- andmedium-level safety logic model as
+well as between the medium- andlow-level zone models .
+Note that existence of the conformance relations between
+these models also implies that conformance holds between
+themedium- and the low-level safety logic model composing
+twolow-level zone components synchronously. Considering
+these results, in addition to the results presented in Sects. 8.2
+and8.3, the design process for the restrictive operation mode
+of the safety controller with respect to the safety requirementwas proved to be correct.
+8.5 Asynchronous medium-level safety logic model
+In this section, we investigate the effect of using the per-
+missive operation mode of the safety controller. We use
+themedium-level zone model wrapped in an asynchronous
+adapter and instantiated two times for the two zones in the
+asynchronous composite asynchronous medium-level safety
+logic model . A variant of the train model is also deﬁned to
+support asynchronous operation (with an adapter), and the
+two asynchronous components compose the asynchronous
+system model on which formal veriﬁcation is carried out with
+respect to the safety requirement. The train model varianthere is different from the one used in the restrictive opera-
+tion mode in that it does not expect an explicit enabling signal
+from the safety logic to move, but an explicit disable signalcan stop it.
+Veriﬁcation After transforming the resulting model to UPPAAL
+and evaluating the query presented in Sect. 8.2, we receive
+a counterexample, in which the model checker gives an exe-
+cution trace leading to a state where two trains occupy the
+same section (that is, there is a collision). The problem isthe following: the
+asynchronous train model is scheduled
+multiple times and moves the simulated trains toward each
+other, whereas the safety logic is not scheduled at all. This
+is a valid trace that conforms to the asynchronous semanticsof Gamma, according to which there is no guarantee on the
+execution frequency of asynchronous components. As for
+real life, situations where the safety logic controllers are notexecuted fast enough compared to the moving of the trains,
+although unlikely, can indeed happen. The problem could be
+mitigated by deﬁning constraints on the execution frequencyof the components.
+123
+
+--- Page 29 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1511
+Fig. 19 A schematic ﬁgure about the results of the veriﬁcation of trace equivalence conditions
+8.6 Conclusion
+This case study demonstrated how the capabilities of the
+framework could be used to support the incremental design
+and veriﬁcation of a distributed safety logic. Our approachwas manual and based on proving conformance between
+system models with trace equivalence. The process was facil-
+itated by several features of GCL.
+– In GCL, two system models are interchangeable if their
+“interfaces” match (same number and type of ports); theirinternal deﬁnitions from a composition point of view areirrelevant.
+– GCL supports hierarchical composition: the derivation
+of new system models by introducing additional (com-posite) components inside the model is a fundamental
+feature.
+As GCL supports both synchronous and asynchronous
+composition semantics, the analysis of different system
+operation modes (execution and interaction modes of thecontained components) was feasible. The need for specifyingexecution frequencies regarding components during veriﬁca-
+tion also emerged in this case study (see Sect. 7and [ 27,30]
+for additional examples for the necessity of specifying con-straints on execution frequency).
+The case study showed that formal veriﬁcation is appli-
+cable even in the case of larger, non-trivial systems if wecan apply convenient abstraction and conformance-proving
+techniques. However, as this case study demonstrated, the
+manual execution of such a process can be cumbersome. Con-sequently, we aim to introduce support for such automatedtechniques in the Gamma framework.9 Related work
+As related work, we cover in detail languages and tools that
+provide (1) a composition language for component-based
+design with (2) precise formal semantics and (3) formal ver-iﬁcation support for behavioral properties. There are similar
+approaches to ours, such as [ 31,32], where a general CPS
+modeling language was developed to semantically integratethe models coming from various CPS design tools. The intro-
+duced modeling language was formalized; however, the tool
+lacks formal veriﬁcation support. The RoboChart modelingtool is introduced in [ 33] that uses statechart models tai-
+lored to the robotic application domain. In RoboChart, a
+formal semantics helps engineers verify the designed sys-
+tems. RoboChart was omitted from the comparison as itprimarily targets a special domain. Stateﬂow is a commer-
+cial state-based modeling tool: authors in [ 34] developed a
+tool based on UPPAAL to formally verify behavioral mod-els. The commercially available Simulink tool can generate
+source code from the veriﬁed Stateﬂow models. We omit-
+ted this solution from the comparison due to the fact that themodeling tool is commercial. Nevertheless, Stateﬂow modelscould also be represented in the Gamma Statechart Language.
+Clafer [ 35] is a tool for modeling structure, behavior and
+variability of systems. Clafer has a formal core modelinglanguage to represent the system design and speciﬁcation
+patterns. However, it does not provide formal veriﬁcation
+support. Another approach [ 36,37] uses SysML to model the
+security aspects of systems and ProVerif is used to verify
+security properties: this approach is omitted from the com-
+parison due to the lack of generality.
+Other languages and approaches, such as [ 38–42] capture
+the architecture, mainly focusing on the interfaces, connec-
+tors and their relations in systems without deﬁning the behav-
+ior of the components. In [ 43], model-driven techniques and
+tools are integrated successfully with standard-based, QoS-
+enabled component middleware to support the development
+123
+
+--- Page 30 ---
+1512 B. Graics et al.
+of safety-critical distributed systems. However, the approach
+lacks formal semantics.
+The feature comparison of Gamma and the following tools
+can be found in Table 4: a SystemC modeling environment
+(SystemC ME) connected to the STATE tool, Æmilia ADL/T-woTowers, CHESS, Ptolemy II, BIP, UML-RT, AutoFOCUS3, xtUML, COMDES-II and ProCom.
+SystemC ME In [44], a modeling environment is introduced
+that supports the graphical deﬁnition of SystemC [ 45] mod-
+els. SystemC is a C++ library offering classes and macros,
+which provide an event-driven simulation interface suitable
+for simulating concurrent processes. The basic building blockof a SystemC model is the module, which represents com-
+putational parts of the design. Modules are composed of
+processes, ports, events, channels and variables. Processes,whose behavior can be deﬁned using a state machine formal-ism, are the main computation elements of the module; they
+are concurrent and are used to describe functionality. Ports
+allow communication from the inside of a module to the out-side on the basis of events declared by interfaces. Ports can be
+connected by channels. The environment supports the auto-
+matic SystemC code generation from the created models. Thesupported part of the SystemC language is given a formal
+semantics by connecting the modeling environment to the
+STATE tool [ 46]. STATE maps the informal SystemC code
+to a formal timed automaton formalism, UPPPAL, thus pro-vides formal veriﬁcation capabilities. Contrary to Gamma,
+this modeling environment currently does not support the
+hierarchical and mix-and-match composition of modules.Æmilia ADL/TwoTowers Æmilia [ 47] is an architecture
+description language (ADL) based on EMPA
+grprocess alge-
+bra, a compositional speciﬁcation language of algebraicnature integrating process algebra theory and stochastic pro-
+cesses. This language supports the modeling of component-
+based software systems at the software architecture level.Designers have to start the modeling process by deﬁning thebehavior of the component types in the system and their inter-
+actions with the other components. Stochastic aspects, e.g.,
+component interaction time, of the software architecture tar-geted for functional or extra-functional analysis (security and
+performance) have to be deﬁned at this level. Next, instances
+of component types have to be deﬁned along with their inter-actions in order to enable their communication. Based on the
+received composite models, integrated, functional and per-
+formance semantic models can be generated automatically,which can undergo formal analysis executed by the TwoTow-ers tool. The main difference between the Æmilia ADL and
+the languages of Gamma is that Gamma puts the focus on
+discrete state-based composition instead of stochastic pro-cess algebra and currently does not support the deﬁnition of
+Table 4 Features of Gamma and its competitors
+Native statecharts Mix-and-match
+compositionFormal semantics Synchronization-
+basedEvent-based Stochastic proc.
+alg.-basedFormal veriﬁca-
+tionModel-based test
+generationCode generation Simulation
+Gamma /check/check/check /check /check/check/check
+SystemC ME /check/check /check/check /check
+Æmilia /check/check /check /check
+CHESS /check/check/check /check/check
+Ptolemy II /check/check/check/check /check
+– /check– /check
+BIP /check/check /check /check/check
+UML-RT /check/check
+– /check /check /check/check/check/check
+AutoFOCUS 3 /check/check
+– /check /check /check/check/check/check
+xtUML /check/check /check /check
+COMDES-II /check/check/check /check/check
+ProCom /check/check/check /check/check
+/check= full support; /check–= experimental
+123
+
+--- Page 31 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1513
+stochastic behavior.24Therefore, if stochastic processes are
+necessary to model the system, Æmilia has a clear advan-tage over Gamma. However, while process algebras generally
+focus on behavioral compositionality, Gamma prefers struc-
+tural composition, which can be convenient and expressive,especially if the development process requires discrete states,mix-and-match composition and related code generation.
+CHESS CHESS [ 48] is an open source methodology and
+toolset that aims to address safety, reliability, performanceand other non-functional properties, while guaranteeing cor-
+rectness of component development and composition. The
+CHESS methodology relies on the CHESS ComponentModel, which is built around the concept of components,
+containers and connectors. A component represents a purely
+functional unit, whereas the non-functional aspects are incharge of the infrastructure of the component and delegatedto the container and connectors. The container is a wrap-
+per that envelopes the component and is responsible for
+the realization of the non-functional properties. The connec-tor is responsible for the interaction between components.
+Non-functional attributes are speciﬁed by annotating the
+interfaces of the component with non-functional proper-ties, e.g., regarding real-time concerns, the activation pattern
+(such as sporadic or cyclic) can be speciﬁed for each pro-
+vided operation of the component. CHESS models can bedeﬁned in the CHESS Modeling Language, which serves asan extension of the UML, SysML and MARTE modeling
+languages. Contrary to Gamma, CHESS does not focus on
+the mix-and-match composition of components.BIPBIP [ 49] (Behavior, Interaction, Priority) is a modeling
+framework supporting the formal deﬁnition of heterogeneous
+systems. The BIP language supports the layered deﬁnition ofhierarchical composite systems, deﬁning three layers. The
+lowest layer speciﬁes the behavior of system components,
+atomic or compound, using a variant of the Petri net formal-ism. The intermediate layer consists of a set of connectorslinking ports together, thus deﬁning the interactions between
+transitions of components. Contrary to Gamma, these inter-
+actions are based on synchronization. The top layer includes aset of dynamic priority rules between interactions and can be
+used for the speciﬁcation of scheduling policies. BIP deﬁnes
+a clear operational semantics, which describes the behaviorof both atomic and compound components. The behavior of
+atomic components is based on a rigorous transition system
+model; thus, formal veriﬁcation of invariant properties anddeadlock-freedom is also supported.Ptolemy II Ptolemy II [ 50] is a modeling framework sup-
+porting the deﬁnition of hierarchical composite systems with
+diverse component types and interaction semantics. Model-ing components, called actors in Ptolemy II, can be regarded
+24However, an extension to Gamma introducing stochastic behavior is
+realizable and in fact under development.as independent software modules. They are able to interact
+with each other by sending messages through interconnectedports. Models are created by composing actors, which is sup-
+ported at multiple hierarchy levels. The interactions of actors
+can be executed with different semantic variations, deﬁned bymodels of computation (MoC). Ptolemy II offers numerousMoCs that rigorously deﬁne the interaction between actors,
+e.g., process network, synchronous reactive and synchronous
+dataﬂow. The implementation of a MoC is called director.Each level of hierarchy in a model must have a single direc-
+tor that speciﬁes the MoC. Directors of various hierarchy
+levels may have different types. Still, the composition of suchheterogeneous components adheres to a rigorous semantics,
+which is a very powerful facility of Ptolemy II. Neverthe-
+less, Ptolemy II offers only experimental formal veriﬁcationcapabilities [ 51].
+UML-RT UML-RT [ 52] is a UML proﬁle (evolved from
+the ROOM language [ 53]) used by IBM Rational Software
+Architect RealTime Edition (RSA RTE) and alternatively byPapyrus RT [ 54]. It facilitates the modular development of
+software systems. The language supports synchronous and
+asynchronous communication, hierarchy and also providesvarious action languages, such as Java or C++. The basic
+building block of a UML-RT model is a capsule, whose
+behavior can be deﬁned using statecharts. Additionally,UML-RT models describe connections to other capsules withthe help of structure diagrams. A capsule can contain parts,
+which are instances of other capsules, thus, hierarchical mod-
+eling is supported. Capsules and parts communicate throughports. Source code generation from UML-RT models is also
+supported [ 54]. UML-RT models can be transformed to a
+rigorous state machine formalism, called CFFSM [ 55,56],
+which can be formally analyzed by their model checker
+based on CTL expressions. Nevertheless, this tool does not
+fully support mix-and-match composition of components.Test generation is also supported in [ 57]. UML-RT models
+could be integrated with other models in the Gamma frame-
+work as UML-RT components and their composition can be
+expressed using the statechart language of Gamma.AutoFOCUS 3 In [58], a model-based tool and research
+platform for safety-critical embedded systems is introduced.
+AutoFOCUS 3 supports the design, development and vali-dation of safety-critical embedded systems in many devel-
+opment phases, including architecture design, implementa-
+tion, hardware/software integration and safety argumentationbased on formal models. The formal semantics of theapproach is based on the FOCUS method deﬁned in [ 59].
+AutoFOCUS 3 (similarly to Gamma) employs a multi-
+level transformation chain to produce formal models fromhigh level design models. Furthermore, it has a modeling
+language based on the statechart formalism and the tool pro-
+vides editor support too. As opposed to AutoFOCUS 3, ourGamma-based approach promotes to use a common formal
+123
+
+--- Page 32 ---
+1514 B. Graics et al.
+representation (GSL) and integrate the models of the differ-
+ent design tools: models developed in the AutoFOCUS 3 toolcould also serve as input for Gamma. Consequently, Gamma
+could serve as an integration tool for AutoFOCUS models.
+AutoFOCUS 3 provides formal veriﬁcation mainly for syn-chronously (according to weak or strong causality) composedsoftware models [ 60] as it is integrated with well-known
+symbolic model checkers, such as NuSMV/nuXmv, which
+provide efﬁcient veriﬁcation capabilities for synchronoussystems. On the contrary, Gamma uses UPPAAL for model
+checking, which is specialized to verify timed and distributed
+systems.xtUML xtUML (eXecutable and Translatable UML) [ 61]
+is a UML-based modeling language with a special focus
+on executable semantics. State machines with an expressiveaction language are used to deﬁne the behavior of the com-ponents. BridgePoint xtUML is an xtUML design tool that
+supports code generation through model compilers and also
+provides simulation capabilities. xtUML is widely used inthe industry; however, there is no formal veriﬁcation support
+for xtUML models as far as we know.
+COMDES-II COMDES-II (COMponent-based design of
+software for Distributed Embedded Systems - version II) [ 62]
+is a design tool for layered component models where syn-
+chronous and asynchronous behavior are explicitly separatedinto different layers. State machines and function block mod-els (FBD) are used to deﬁne behavior while an actor-based
+architecture modeling language is used to represent the static
+aspects. The COMDES-II approach facilitates the develop-ment of real-time embedded systems by providing rigorous
+design and analysis methods. Veriﬁcation of COMDES-II
+models [ 63] is based on the UPPAAL model checker.
+ProCom ProCom [ 64] is a component model for real-time and
+embedded systems. ProCom employs a layered component
+model as it consists of two distinct, but related layers. At theupper layer (called ProSys), the system is modeled as a num-ber of active and concurrent subsystems, which communicate
+by message passing. The lower layer (ProSave) addresses the
+internal design of a subsystem that can be implemented bycode. ProCom has a formal semantics [ 65,66] that focuses
+on the reactive and real-time aspects of the systems and sup-
+ports the co-existence of black-box and fully implementedcomponents.
+10 Conclusion
+The Gamma framework is a modeling tool supporting thehierarchical design, implementation and veriﬁcation of state-based reactive systems. Gamma has an extensive language
+family, integrates statechart components from the Yakindu
+Statechart Tools and MagicDraw, provides a Java code gen-erator for implementation of composition-related code andapplies the UPPAAL model checker for formal veriﬁcation
+and test generation. The extensible architecture of the frame-work allows additional tools and features to be plugged in.
+The main contribution of this work is the design and for-
+malization of the Gamma Composition Language that sup-ports the deﬁnition of interfaces, ports and bindings, enablingindividual components to serve as endpoints. Communi-
+cation is provided by channels connecting port instances.
+Relying on these elements, we have deﬁned various kinds ofcomposition modes for hierarchical composite model build-
+ing. The three distinguished composition modes are the
+asynchronous-reactive, the synchronous-reactive and cas-cade.
+Asynchronous components represent independently run-
+ning components communicating with immutable messagesstored in message queues. This semantics is suitable fordesigning separate units executed in their own processes.
+Synchronous-reactive components are useful for providing
+a single executing unit consisting of multiple, functionallyindependent components. This composition mode is beneﬁ-
+cial for the design of low-level, tightly-coupled controllers.
+Cascade composition is practical for designing units with apipeline-like behavior: the input given into the model is pro-
+cessed by multiple consecutive ﬁlters, where a single ﬁlter
+can be executed one or multiple times. We believe that thesecomposition methods cover a large portion of the problemsemerging in the design of reactive systems.
+The precise semantics of the aforementioned composi-
+tion modes allowed us to implement the code generationand veriﬁcation functionalities of the Gamma framework.
+All elements of the GCL are supported during code genera-
+tion and most during veriﬁcation. Regarding test generation,test suites for state coverage and transition coverage can be
+generated.
+As for future work, we plan to integrate ongoing side-
+projects to extend the Gamma framework with additionalfunctionalities, e.g., the simulation of composite compo-
+nents. Also, we would like to introduce source code gen-
+eration directly from Gamma statecharts as well as includeadditional programming languages, such as C/C++. More-
+over, we are working on extending the framework with
+additional model checkers, such as Theta [ 67]. Regarding
+lessons learned in the case studies, we intend to provide
+support for handling symmetry in models (e.g., new ele-
+ment types, such as array and structure elements), complexports that simplify the connection of components with manymatching ports, as well as larger control over timing in the
+asynchronous composition semantics (similarly to [ 30]). Fur-
+thermore, in the next version of the framework we plan todevelop methods for the veriﬁcation of dynamic architec-
+tures, e.g., cyber-physical systems, by supporting dynamic,
+contract-based deﬁnition of components and connections.
+123
+
+--- Page 33 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1515
+The veriﬁcation of such models could be based on both
+development-time and runtime veriﬁcation methods.
+By offering multiple modeling aspects, composition seman-
+tics, code generation and veriﬁcation features in a single,
+extensible framework, we hope that Gamma can assist sys-tem and software engineers in leveraging the potential ofmodel-driven development. As Gamma is now open-source,
+we also hope that the results of our research inﬂuence and aid
+fellow researchers and developers in developing their mod-eling tools.
+Acknowledgements Open access funding provided by Budapest Uni-
+versity of Technology and Economics (BME). This work was partiallysupported by Új Nemzeti Kiválóság Program 2017-2018, NemzetiTehetség Program, Nemzet Fiatal Tehetségeiért Ösztöndíj 2018 (NTP-NFTÖ-18) and by the ÚNKP-19-3 New National Excellence Programof the Ministry for Innovation and Technology.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+1. Nuzzo, P., Sangiovanni-Vincentelli, A.L., Bresolin, D., Geretti, L.,
+Villa, T.: A platform-based design methodology with contracts andrelated tools for the design of cyber-physical systems. Proc. IEEE103(11), 2104–2132 (2015)
+2. Harel, D.: Statecharts: a visual formalism for complex systems.
+Sci. Comput. Program. 8, 231–274 (1987)
+3. Latella, D., Majzik, I., Massink, M.: Towards a formal operational
+semantics of UML statechart diagrams. In: Formal Methods forOpen Object-Based Distributed Systems, Springer, pp. 331–347(1999)
+4. Crane, M. L., Dingel, J.: On the semantics of UML state machines:
+categorization and comparision. In: In Technical Report 2005-501,
+School of Computing, Queen’s (2005)
+5. Group, O. M.: Semantics of a foundational subset for executable
+UML models. Technical Report formal/2018-12-01, Object Man-agement Group (2018)
+6. Group, O. M.: Precise semantics of UML state machines (PSSM).
+Technical Report formal/2019-05-01, Object Management Group(2019)
+7. Group, O. M.: Precise semantics of UML composite structures
+(PSCS). Technical Report formal/2019-02-01, Object ManagementGroup (2019)
+8. Crane, M. L., Dingel, J.: UML versus classical versus Rhap-
+sody statecharts: not all models are created equal. In: Briand, L.,Williams, C. (eds.), Model Driven Engineering Languages and Sys-tems, Springer, Heidelberg, pp. 97–112 (2005)
+9. Eshuis, R.: Reconciling statechart semantics. Sci. Comput Pro-
+gram. 74(3), 65–99 (2009)10. Molnár, V ., Graics, B., Vörös, A., Majzik, I., Varró, D.: The Gamma
+Statechart Composition Framework. In: 40th International Confer-ence on Software Engineering (ICSE 2018), ACM, Gothenburg,Sweden (2018)
+11. Behrmann, G., David, A., Larsen, K. G., Håkansson, J., Pettersson,
+P., Yi, W., Hendriks, M.: Uppaal 4.0 (2006)
+12. Vörös, A., Búr, M., Ráth, I., Horváth, Á., Micskei, Z., Balogh, L.,
+Hegyi, B., Horváth, B., Mázló, Z., Varró, D.: MoDeS3: model-based demonstrator for smart and safe cyber-physical systems. In:Dutle, A., Muñoz, C., Narkawicz, A. (eds.), NASA Formal Meth-ods, Springer, Cham, pp. 460–467 (2018)
+13. Lee, E.A., Parks, T.M.: Dataﬂow process networks. Proc. IEEE 83,
+773–801 (1995)
+14. Benveniste, A., Berry, G.: The synchronous approach to reactive
+and real-time systems. Proc. IEEE 79(9), 1270–1282 (1991)
+15. Halbwachs, N., Caspi, P., Raymond, P., Pilaud, D.: The syn-
+chronous data ﬂow programming language LUSTRE. Proc. IEEE79(9), 1305–1320 (1991)
+16. Edwards, S.A., Lee, E.A.: The semantics and execution of a syn-
+chronous block-diagram language. Sci. Comput. Program. 48(1),
+21–42 (2003)
+17. Clarke Jr., E.M., Grumberg, O., Kroening, D., Peled, D., Veith, H.:
+Model Checking. MIT press, Cambridge (2018)
+18. Dwyer, M. B., Avrunin, G. S., Corbett, J. C.: Patterns in prop-
+erty speciﬁcations for ﬁnite-state veriﬁcation. In: Proceedings ofthe 1999 International Conference on Software Engineering (IEEECat. No.99CB37002), pp. 411–420 (1999)
+19. Hegedüs, Á., Bergmann, G., Ráth, I., Varró, D.: Back-annotation of
+simulation traces with change-driven model transformations. Proc.Softw. Eng. Formal Methods (SEFM) 2010 , 145–155 (2010)
+20. Utting, M., Pretschner, A., Legeard, B.: A taxonomy of model-
+based testing approaches. Softw. Test. Verif. Reliab. 22, 297–312
+(2012)
+21. Liu, S., Liu, Y ., André, É., Choppy, C., Sun, J., Wadhwa, B., Dong,
+J. S.: A formal semantics for complete UML state machines withcommunications. In: Johnsen, E.B., Petre, L. (eds.), Integrated For-mal Methods, Springer, Berlin, pp. 331–346 (2013)
+22. Bengtsson, J., Yi, W.: Timed Automata: Semantics, Algorithms and
+Tools, pp. 87–124. Springer, Berlin (2004)
+23. Wagner, F.: VFSM executable speciﬁcation. In: CompEuro
+1992 Proceedings Computer Systems and Software Engineering,pp. 226–231 (1992)
+24. Graics, B., Molnár, V .: Documentation of the Gamma State-
+chart Composition Framework v0.9. Technical Report, BudapestUniversity of Technology and Economics, Department of Measure-ment and Information Systems. https://inf.mit.bme.hu/en/gamma/
+(2016)
+25. Fraser, G., Wotawa, F., Ammann, P.E.: Testing with model check-
+ers: a survey. Softw. Test. Verif. Reliab. 19(3), 215–261 (2007)
+26. Callahan, J., Schneider, F., Easterbrook, S.: Automated software
+testing using model-checking (2000)
+27. Graics, B., Majzik, I.: Modeling and analysis of an industrial
+communication protocol in the Gamma framework. In: 27thMinisymposium, Department of Measurement and InformationSystems, Budapest, Hungary (2020)
+28. Procter, S., Feiler, P.: The AADL error library: an operationalized
+taxonomy of system errors. Ada Lett. 39, 63–70 (2020)
+29. Clarke, E. M., Emerson, E. A.: Design and synthesis of syn-
+chronization skeletons using branching time temporal logic. In:Workshop on Logic of Programs, Springer, pp. 52–71 (1981)
+30. Lohstroh, M., Schoeberl, M., Jan, M., Wang, E., Lee, E. A.:
+Programs with ironclad timing guarantees: work-in-progress. In:Proceedings of the International Conference on Embedded Soft-ware Companion, ACM, New York, NY , USA, October 13–18,2019, p. 1 (2019)
+123
+
+--- Page 34 ---
+1516 B. Graics et al.
+31. Sztipanovits, J., Bapty, T., Neema, S., Howard, L., Jackson, E.:
+OpenMETA: A Model- and Component-Based Design Tool Chainfor Cyber-Physical Systems, Springer, Berlin, pp. 235–248 (2014)
+32. Simko, G., Lindecker, D., Levendovszky, T., Neema, S., Szti-
+panovits, J.: Speciﬁcation of cyber-physical components withformal semantics—integration and composition. In: Moreira, A.,Schätz, B., Gray, J., Vallecillo, A., Clarke, P. (eds.), Model-DrivenEngineering Languages and Systems, Springer, Berlin, pp. 471–487 (2013)
+33. Miyazawa, A., Ribeiro, P., Li, W., Cavalcanti, A., Timmis, J.,
+Woodcock, J.: Robochart: modelling and veriﬁcation of the func-tional behaviour of robotic applications. Softw. Syst. Model. 18(5),
+3097–3149 (2019)
+34. Jiang, Y ., Song, H., Yang, Y ., Liu, H., Gu, M., Guan, Y ., Sun, J., Sha,
+L.: Dependable model-driven development of CPS: from stateﬂowsimulation to veriﬁed implementation. ACM Trans. Cyber. Phys.Syst. 3, 12:1–12:31 (2018)
+35. Juodisius, P., Sarkar, A., Mukkamala, R.R., Antkiewicz, M., Czar-
+necki, K., Wasowski, A.: Clafer: lightweight modeling of structure,behaviour, and variability. Art Sci. Eng. Program. 3(1), 1–2 (2018)
+36. Lugou, F., Li, L. W., Apvrille, L., Ameur-Boulifa, R.: SysML
+models and model transformation for security. In: Conference on
+Model-Driven Engineering and Software Development (Model-
+sward’2016), Rome, Italy (2016)
+37. Apvrille, L., Roudier, Y .: Model-Driven Engineering and Soft-
+ware Development, ch. Designing Safe and Secure Embedded andCyber-Physical Systems with SysML-Sec, Springer InternationalPublishing, Dordrecht, pp. 293–308 (2016)
+38. Haber, A., Ringert, J. O., Rumpe, B.: Montiarc architectural
+modeling of interactive distributed and cyber-physical systems.arXiv:1409.6578 (2014)
+39. Childs, A., Greenwald, J., Jung, G., Hoosier, M., Hatcliff, J.:
+Calm and Cadena: metamodeling for component-based product-line development. Computer 39(2), 42–50 (2006)
+40. Feiler, P. H., Gluch, D. P., Hudak, J. J.: The Architecture Analysis
+and Design Language (AADL): an introduction. Technical Report,Carnegie-Mellon Univ Pittsburgh PA Software Engineering Inst(2006)
+41. Reisig, W.: Associative composition of reactive systems. Techni-
+cal Report, Humboldt-Universität zu Berlin, Institut für Informatik(2017)
+42. Broy, M.: Compositional reﬁnement of interactive systems. J. ACM
+44, 850–891 (1997)
+43. Gerard, S., Babau, J.-P., Champeau, J.: Model Driven Engineering
+for Distributed Real-Time Embedded Systems. Wiley-IEEE Press,New York (2010)
+44. Chhokra, A., Abdelwahed, S., Dubey, A., Neema, S., Karsai, G.:
+From system modeling to formal veriﬁcation. In: The 2015 Elec-
+tronic System Level Synthesis Conference (2015)
+45. Panda, P. R.: SystemC: a modeling platform supporting multiple
+design abstractions. In: Proceedings of the 14th International Sym-posium on Systems Synthesis, ACM, pp. 75–80 (2001)
+46. Herber, P.: A Framework for Automated HW/SW Co-Veriﬁcation
+of SystemC Designs using Timed Automata, GmbH, Berlin (2010)
+47. Bernardo, M., Donatiello, L., Ciancarini, P.: Stochastic process
+algebra: from an algebraic formalism to an architectural descrip-tion language. In: IFIP International Symposium on ComputerPerformance Modeling, Measurement and Evaluation, Springer,pp. 236–260 (2002)
+48. Mazzini, S., Favaro, J. M., Puri, S., Baracchi, L.: Chess: an open
+source methodology and toolset for the development of criticalsystems. In: EduSymp/OSS4MDE@MoDELS (2016)
+49. Basu, A., Bozga, M., Sifakis, J.: Modeling heterogeneous real-time
+components in BIP. In: Fourth IEEE International Conference onSoftware Engineering and Formal Methods (SEFM) 2006, IEEE,pp. 3–12 (2006)50. Eker, J., Janneck, J.W., Lee, E.A., Liu, J., Liu, X., Ludvig, J., Sachs,
+S., Xiong, Y ., Neuendorffer, S.: Taming heterogeneity: the Ptolemyapproach. Proc. IEEE 91(1), 127–144 (2003)
+51. Bae, K., lveczky, P.C., Feng, T.H., Lee, E.A., Tripakis, S.: Verify-
+ing hierarchical Ptolemy II discrete-event models using real-timemaude. Sci. Comput. Program. 77(12), 1235–1271 (2012)
+52. Selic, B.: Using UML for modeling complex real-time systems. In:
+Mueller, F., Bestavros, A. (eds.), Languages, Compilers, and Toolsfor Embedded Systems, Springer, Berlin, pp. 250–260 (1998)
+53. Selic, B., Gullekson, G., Ward, P.T.: Real-Time Object-Oriented
+Modeling. Wiley, New York (1994)
+54. Hili, N., Dingel, J., Beaulieu, A.: Modelling and code generation
+for real-time embedded systems with UML-RT and Papyrus-RT.In: 2017 IEEE/ACM 39th International Conference on SoftwareEngineering Companion (ICSE-C), pp. 509–510 (2017)
+55. Zurowska, K.: Language speciﬁc analysis of state machine mod-
+els of reactive systems. Ph. D. Thesis, Queen’s Univerity, Canada(2014)
+56. Zurowska, K., Dingel, J.: Language-speciﬁc model checking of
+UML-RT models. Softw. Syst. Model. 16(2), 393–415 (2017)
+57. Rapos, E. J., Dingel, J.: Incremental test case generation for
+UML-RT models using symbolic execution. In: 2012 IEEE Fifth
+International Conference on Software Testing, Veriﬁcation and Val-
+idation, pp. 962–963 (2012)
+58. Aravantinos, V ., V oss, S., Teuﬂ, S., Hölzl, F., Schätz, B.: AutoFO-
+CUS 3: tooling concepts for seamless, model-based developmentof embedded systems. In: ACES-MB and WUCOR@ MoDELS,vol. 1508, pp. 19–26 (2015)
+59. Broy, M., Stølen, K.: Speciﬁcation and Development of Interactive
+Systems: Focus on Streams, Interfaces, and Reﬁnement. Springer,Berlin (2012)
+60. Kanav, S., Aravantinos, V .: Modular transformation from AF3 to
+nuXmv. In: MODELS (Satellite Events), pp. 300–306 (2017)
+61. Shlaer, S., Mellor, S.J.: Object-Oriented Systems Analysis: Mod-
+eling the World in Data. Yourdon Press, New York (1988)
+62. Ke, X., Sierszecki, K., Angelov, C.: COMDES-II: a component-
+based framework for generative development of distributed real-time control systems. In: 13th IEEE International Conference onEmbedded and Real-Time Computing Systems and Applications(RTCSA 2007), pp. 199–208 (2007)
+63. Ke, X., Pettersson, P., Sierszecki, K., Angelov, C.: Veriﬁcation
+of COMDES-II systems using UPPAAL with model transforma-tion. In: 2008 14th IEEE International Conference on Embeddedand Real-Time Computing Systems and Applications, pp. 153–160(2008)
+64. Bureš, T., Carlson, J., Crnkovic, I., Sentilles, S., Vulgarakis,
+A.: ProCom: the progress component model reference manual.
+Mälardalen University, Västerås, Sweden (2008)
+65. Vulgarakis, A., Suryadevara, J., Carlson, J., Seceleanu, C., Pet-
+tersson, P.: Formal semantics of the ProCom real-time componentmodel. In: 2009 35th Euromicro Conference on Software Engi-neering and Advanced Applications, IEEE, pp. 478–485 (2009)
+66. Borde, E., Carlson, J.: Towards veriﬁed synthesis of ProCom, a
+component model for real-time embedded systems. In: Proceedingsof the 14th International ACM Sigsoft Symposium on ComponentBased Software Engineering, pp. 129–138 (2011)
+67. Tóth, T., Hajdu, A., Vörös, A., Micskei, Z., Majzik, I.: Theta: a
+framework for abstraction reﬁnement-based model checking. In:Stewart, D., Weissenbacher, G. (eds.), Proceedings of the 17th Con-ference on Formal Methods in Computer-Aided Design
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123
+
+--- Page 35 ---
+Mixed-semantics composition of statecharts for the component-based design of reactive systems 1517
+Bence Graics is a Ph.D. student at
+the Budapest University of Tech-nology and Economics under thesupervision of Dr. István Majzikand researcher at the MTA-BMELendület Cyber-Physical SystemsResearch Group. He joined theFault Tolerant Systems Research
+Group (ftsrg) during his under-
+graduate studies at BME and hasbeen the main developer of theGamma Statechart CompositionFramework since the start of theproject in 2016. His main researchinterest lies in the model-driven
+design and analysis of reactive systems using formal methods.
+Vince Molnár is assistant profes-
+sor at the Budapest University ofTechnology and Economics andresearcher at the MTA-BMELendület Cyber-Physical SystemsResearch Group. His mainresearch ﬁeld is model-baseddevelopment and formal methods,with the primary focus on concur-rent, distributed and safety-criticalsystems. He is the leader of thedevelopment of the Gamma Stat-echart Composition Frameworkand contributed to the develop-ment of PetriDotNet as well.
+András Vörös is an assistant
+professor at the Budapest Uni-versity of Technology and Eco-nomics and researcher at the MTA-BME Lendület Cyber-PhysicalSystems Research Group. Hismain research ﬁeld is model-baseddevelopment and veriﬁcation ofcyber-physical system. He has beeninvolved in various projects, suchas the PetriDotNet modelling andveriﬁcation framework, the GammaStatechart Composition Frameworkand the Theta conﬁgurable veriﬁ-cation framework.
+István Majzik is associate profes-
+sor at the Budapest University ofTechnology and Economics. Hisﬁelds of research and educationinclude construction, evaluationand veriﬁcation of dependable andsafety-critical computer systems,and he is a co-author of more than90 scientiﬁc papers. He is reg-ular program committee memberof international conferences in theﬁeld, among others he was gen-eral co-chair of the 35th IEEESymposium on ReliableDistributed Systems (SRDS). He
+participated in several European research projects in the area ofdependable embedded systems, model-based testing and formal ver-iﬁcation.
+Dániel Varró is a full professor
+of software engineering at McGillUniversity and at Budapest Uni-versity of Technology and Eco-nomics. He is also a research chairof the MTA Lendület Cyber-Physical Systems Research Group.He is a co-author of more than150 scientiﬁc papers with sevenDistinguished Paper Awards, andtwo Most Inﬂuential Paper Award.He regularly serves on the pro-gram committee of various inter-national conferences in the ﬁeldand serves on the editorial board
+of the Software and Systems Modeling journal (Springer) and Journalof Object Technology. He served as a program committee co-chair ofFASE 2013, ICMT 2014, SLE 2016 and MODELS 2021 conferences.He delivered a keynote talk at the IEEE CSMR 2012 and the SOF-SEM 2016 conferences and at various international workshops and atthe DSM-TP international summer school. He is a co-founder of theVIATRA model query and transformation framework, and IncQueryLabs Ltd., a technology-intensive Hungarian company.
+123

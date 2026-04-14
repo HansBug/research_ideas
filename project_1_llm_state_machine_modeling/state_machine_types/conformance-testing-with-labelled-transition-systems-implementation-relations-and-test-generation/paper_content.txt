@@ -1,0 +1,1275 @@
+--- Page 1 ---
+and 
+ISDN SYSTEMS 
+ELSEVIER Computer Networks and ISDN Systems 29 (1996) 49-79 
+Conformance testing with labelled transition systems: 
+Implementation relations and test generation 
+Jan Tretmans ’ 
+Tele-lnformatics and Open Systems Group, Department of Computer Science, 
+University of Twente, PO. Box 217. 7500 AE Enschede, The Netherlands 
+Abstract 
+This paper studies testing based on iabelled transition systems, presenting two test generation algorithms with their corre- 
+sponding implementation relations. The first algorithm assumes that implementations communicate with their environment 
+via symmetric, synchronous interactions. It is based on the theory of testing equivalence and preorder, as is most of the 
+testing theory for labelled transition systems, and it is found in the literature in some slightly different variations. The second 
+algorithm is based on the assumption that implementations communicate with their environment via inputs and outputs. 
+Such implementations are formalized by restricting the class of labelled transition systems to those systems that can always 
+accept input actions. For these implementations a testing theory is developed, analogous to the theory of testing equivalence 
+and preorder. It consists of implementation relations formalizing the notion of conformance of these implementations with 
+respect to labelled transition system specifications, test cases and test suites, test execution, the notion of passing a test suite, 
+and the test generation algorithm, which is proved to produce sound test suites for one of the implementation relations. 
+Keywords: Communication protocols; Formal description techniques; Transition systems; Conformance; Conformance testing; Test case 
+generation 
+1. Introduction 
+Protocol conformance testing involves testing of a protocol implementation with respect to its specification. 
+The aim is to increase the level of confidence in the correct functioning of the implementation as prescribed by 
+the specification, and to contribute in this way to successful communication between computer systems. 
+With the increasing use of formal methods for specifying the required behaviour it is necessary to consider 
+conformance testing of protocol implementations with respect to such specifications. Apart from this necessity, 
+the use of formal methods in conformance testing has its advantages, such as the precise, formal definition of 
+conformance and conformance testing concepts, the algorithmic, tool supported generation of test suites from 
+formal specifications, and the possibility of formally verifying the correctness of a test case with respect to a 
+specification. These possible advantages have led to a lot of research in the area of formal conformance testing, 
+leading to several methods for the algorithmic generation of tests for different specification formalisms. To put 
+’ Email: tretmans@cs.utwente.nl. 
+0169-7552/96/$1X00 Copyright @ 1996 Elsevier Science B.V. All rights reserved. 
+PIISO169-7552(96)00017-7 
+
+--- Page 2 ---
+50 J. TretmansIComputer Networks and ISDN Systems 29 (1996) 49-79 
+these different methods in a general context, and to define the basic concepts of conformance testing in an 
+abstract way, also frameworks have been studied, among others within the standardization community in the 
+project “Formal Methods in Conformance Testing” (ISO/IEC JTC l/SC 21 Project 54, ITU T Q.g/lO). The 
+scope of this standardization activity is to define a general methodology on how to perform conformance testing 
+of a protocol implementation given a formal specification of a protocol standard [ 3 11. 
+One of the specification formalisms studied in the realm of formal conformance testing is that of labelled 
+transition systems. A labelled transition system is a structure consisting of states with transitions, labelled 
+with actions, between them. The formalism of labelled transition systems can be used for modelling the 
+behaviour of processes, and it serves as a semantic model for various formal specification languages, e.g., CCS 
+[ 38,391, CSP [ 271, ACP [9], and LOTOS [6,30]. Also a large part of the semantics of languages like Estelle 
+[29] and SDL [ 171 can be expressed in labelled transition systems. Testing theory and algorithms for the 
+generation of tests from labelled transition system specifications have been developed during the last decade, 
+e.g., [ 1,l 1,13,19,21,20,24,25,33,45,42,47,54,49] . All these methods, as most of the theory on labelled transition 
+systems, are based on synchronous, symmetric communication between different processes: communication 
+between two processes occurs if both processes offer to interact on a particular action, and if the interaction 
+takes place it occurs synchronously in both participating processes, without a notion of distinction between input 
+and output actions. For testing theories a particular case where such communication occurs, is the modelling of 
+the interaction between a tester and an implementation under test during test execution. We will refer to above 
+theories as testing with symmetric interactions. 
+This paper will present two algorithms for the generation of tests from a labelled transition system spec- 
+ification. The presentations will be in the vein of the framework in [ 311: they involve the definition of a 
+model to describe implementations, the definition of an implementation relation that formalizes the notion of 
+conformance of an implementation with respect to a specification, the description of test cases, test suites, and 
+how to pass a test suite, and finally the development of the test generation algorithm that produces provably 
+correct test cases. 
+The first algorithm is based on symmetric interactions as explained above, and it can be found in the literature 
+in some slightly different variations [ 10,l 1,19,42,54,49]. 
+The second algorithm approaches communication in a different manner by distinguishing explicitly between 
+the inputs and the outputs of a system. Outputs are actions that are initiated by, and under control of the 
+system, while input actions are initiated by, and under control of the system’s environment; a system can never 
+refuse to perform its input actions. Communication takes place between inputs of the system and outputs of the 
+environment, or the other way around. This implies that an interaction is not symmetric anymore with respect 
+to the communicating processes. Many real-life implementations allow such a classification of their actions, 
+communicating with their environment via inputs and outputs. 
+The next section introduces labelled transition systems as the formalism of our discourse. Section 3 gives 
+some basic testing concepts for labelled transition systems, such as a test case, a test suite, a test run, and passing 
+a test suite. The existing approaches to labelled transition system testing are presented in Section 4. A few 
+implementation relations and a test generation algorithm are given, all based on symmetric interactions. Section 5 
+introduces input-output transition systems to model implementations that communicate via inputs and outputs. 
+An input-output transition system is a special kind of labelled transition system with the restriction that inputs are 
+always enabled. Implementation relations for input-output transition systems are studied in Section 6. Finally, 
+a test generation algorithm that produces provably correct test cases to test input-output transition systems 
+with respect to labelled transition system specifications for one of the implementation relations of Section 6 
+is developed in Section 7. In Section 8 some concluding remarks are given, among which a comparison of 
+symmetric and input-output testing, and a brief comparison with other transition-system based models that 
+distinguish between inputs and outputs, like input-output state machines [43], input/output automata [37], 
+and queue contexts [ 5 11. Complete proofs for some of the theorems are found in Appendix A. 
+
+--- Page 3 ---
+J. Tretmans/Camputer Networks and ISDN Systems 29 (1996) 49-79 51 
+2. Labelled transition systems 
+The formalism of labelled transition systems is used as the basis for describing the behaviour of processes, 
+such as specifications, implementations, and tests. 
+Definition 2.1. A labelled transition system is a 4-tuple (S, L, T, SO) where 
+l S is a countable, non-empty set of states; 
+l L is a countable set of labels; 
+l T C S x ( L U {T}) x S is the transition relation; 
+l SO E S is the initial state. 
+The labels in L represent the observable interactions of a system; the special label r $! L represents an 
+unobservable, internal action. We denote the class of all labelled transition systems over L by fYs( L). For 
+technical reasons we restrict fXS( L) to labelled transition systems that are strongly converging, i.e., ones that 
+do not have infinite compositions of transitions with internal actions. 
+A trace is a finite sequence of observable actions. The set of all traces over L is denoted by L*, with E 
+denoting the empty sequence. If CTI ,u2 f L”, then CTI aa2 is the concatenation of CTI and ~2. With f CT j the 
+length of trace v is denoted, i.e., the (finite) number of occurrences of actions in g. Some additional notations 
+and properties are introduced in Definitions 2.2 and 2.3. 
+Definition 2.2. Let p = (S, L,T, se) be a labelled transition system with s, s’ E S, and let ,u(~, E L u {r}, 
+a(i) E L, and ~7 E L*. 
+=def (s, Pu, s’> E T 
+=&f 3SO,...,S,: S=SO&S, 3 
+=d~f &’ : s P1’.-‘h ,s’ 
+=def not &’ : s PI’...‘P>l ,s’ 
+=def s=s’ or sxs’ 
+=def 3s,,s2 : s&-s, -k&s 
+=d<f :So...S,: S=S,-&‘S,%- 
+=d<f 3s’ : s&s’ 
+=def not 3s’ : S % S’ . * &+ s, = s’ 
+a- S,$ = s’ 
+We will not always distinguish between a labelled transition system and its initial state: if p = (S, L, T, so), 
+then we will identify the process p with its initial state SO, and we write, for example, p =% instead of SO g . 
+Definition 2.3,. 
+( 1) traces(p) =dtf {-L*I& } 
+(2) inW) =dcf { a E L I PG } 
+(3) p aftercr =def h”bh+} 
+(4) der(p) =def { p’ 1 %E L* : p&p’ } 
+(5) p has jinite behaviour if there is an n E N, such that Vu E truces(p) : 1 u ) < n. 
+(6) p is jinite-state if der(p) is finite. 
+(7) p is deterministic if for all u E L*, p after u has at most one element. If (+ E traces(p), then we 
+overload p after CT to denote this element. 
+
+--- Page 4 ---
+52 J. Tretnms/Computer Networks and ISDN Systems 29 (1996) 49-79 
+Ai? sfi 14pF !;- jIc choc 
+Pl PZ P3 ,;I’ P4 P5 
+Fig. 1. Labelled transition systems. 
+We represent a labelled transition system by a tree or a graph, where nodes represent states and edges 
+represent transitions, or in a process-algebraic manner by a behaviour expression (cf. LOTOS [ 6,301) . 
+Definition 2.4. A behaviour expression B is an expression with the following syntax: 
+B =dqf stop(a;B(i;BIB Cl BIBJIB(8B 
+where a E L, and B is a countable set of behaviour expressions. 
+The operational semantics are given by the following axioms and inference rules, which define for each 
+behaviour expression all its possible transitions (stop has no transitions): 
+Example 2.5. To illustrate the concepts of labelled transition systems we use very simple and intuitive candy 
+machines. More complicate systems, e.g., communication protocols, can also be modelled as labelled transition 
+systems, however, for the moment the complexity of such systems would divert the attention, while not being 
+necessary to illustrate the main concepts of this paper. 
+Fig. 1 gives examples of candy machines over the labelset L = {shil, liq, choc}. The candy machines interact 
+with their environment by insertions of shillings, and by supplying liquorice and chocolate. System p3 models 
+a machine that accepts a shilling, and then either it supplies liquorice, or it makes an internal transition to a 
+state where it cannot supply liquorice anymore, but where it offers chocolate. A behaviour expression for p3 
+is shil; (liq; stop q i; choc; stop). For p3 we have, for example, 
+shil liq 
+P3 ===+ P5/’ and p[’ + . 
+3. Conformance testing for labelled transition systems 
+Starting point for conformance testing is a specification in some (formal) notation, and an implementation, 
+that is, a device or program interacting with its environment, which is considered as a black box. Test cases are 
+
+--- Page 5 ---
+J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 53 
+derived from the specification, and applied to the implementation, such that from the results of applying them 
+it can be concluded whether the implementation conforms to the specification. 
+In this paper labelled transition systems, or any formal language with underlying semantics in terms of labelled 
+transition systems, are considered as the formal notation for specifications. Implementations, being physical, real 
+objects, are, in principle, not amenable to formal reasoning. We can only deal with implementations in a formal 
+way, if we make the assumption that any real implementation has a formal model, with which we could reason 
+formally. This formal model is only assumed to exist, but it is not known a priori. This assumption is referred to 
+as the test hypothesis [ 8,31,50]. In Section 4 we will consider as the test hypothesis that also implementations 
+could be described as labelled transition systems. In Sections 5, 6 and 7 a stronger test hypothesis will be put 
+forward by assuming that implementations can be modelled by a subclass of labelled transition systems: the 
+input-output transition systems. Thus the test hypothesis allows us to reason about implementations as if they 
+were labelled transition systems, or input-output transition systems, respectively. 
+Having specifications and implementations the next important thing is to define what it means for an 
+implementation to conform to a specification, otherwise no useful test can ever be generated. Conformance is 
+defined by means of an implementation relation between the models of implementations and the specifications 
+[ 5,31,50], in our case a relation imp C L7S( L) x L7S( L): an implementation i E CIS( L) conforms to 
+specification s E LIS(L) if and only if i imp S. 
+The next step is to consider test cases and test suites. A test case is a specification of the behaviour of a tester 
+in an experiment to be carried out with an implementation under test. Such behaviour, like other behaviours, 
+can be specified by a labelled transition system. An experiment should last for a finite time, so a test case 
+should have finite behaviour. Moreover, a tester executing a test case would like to have as much control as 
+possible over the testing process, so nondeterminism in a test case is undesirable. To be able to decide about 
+the success of a test a verdict (pass or fail) is attached to each state of the test case. 
+Definition 3.1,. 
+( 1) A zest case t is a 5tuple (S, L, T, V, so), such that (S, L, T, sc) is a deterministic labelled transition system 
+with finite behaviour, and v : S + {fail,pass} is a verdict function. 
+The class of test cases over actions in L is denoted by LIS,( L). Definitions applicable to L’7S( L) 
+are extended to C7S, (L) by defining them over the underlying labelled transition system. 
+(2) A test suite T is a set of test cases: T E P( CIS, (L) ), where P( CIS,( L) ) is the powerset of 
+137S, (L) , i.e., the set of all possible subsets of L7S, (L) . 
+Running a test case is modelled by the synchronous parallel execution of the test case with the implementation 
+under test, which continues until no more interactions are possible, i.e., until a deadlock occurs. This deadlock 
+may occur when the (finite) test case reaches a final state, or when the combination reaches a state where 
+the actions proposed by the test case cannot be accepted by the implementation. An implementation passes a 
+test run if and only if the verdict of the test case in the state where the deadlock is reached is pass. Since 
+an implementation can behave nondeterministically different test runs of the same test case with the same 
+implementation may lead to different final states, and hence to different verdicts. An implementation passes a 
+test case if and only if all possible test runs lead to the verdict pass. This means that each test case must be 
+executed several times in order to give a final verdict, theoretically even infinitely many times. 
+Definition 3.2. 
+( 1) A deadlock of process p E CIS( L) is a trace u E L*, after which no more observable actions are 
+possible: 
+p after u deadlocks =&f 3p’ : p & p’ and init = 0 
+(2) A test ,~ult of a test case t E CIS,( L) with an implementation i E L7S( L) is a trace of the synchronous 
+
+--- Page 6 ---
+54 J. Tretmans/Compurer Nerworkr and ISDN Systems 29 (1996) 49-79 
+t1 t3 t4 
+Fig. 2. Test cases. 
+parallel composition of t and i leading to deadlock: 
+u is a test run of t and i =&f (t /I i) after u deadlocks 
+(3) An implementation i passes a test case t, if all the test runs of t and i lead to a pass-state of t: 
+i passes t =&f Vu E L* : t )I i after u deadlocks implies v( t after (T ) = pass 
+(4) An implementation i passes a test suite T, if it passes all test cases in T: 
+i passes T =&f Vt E T : i passes t 
+If an implementation does not pass a test suite, it fails: i fails T =def It E T : i pasjes t. 
+Example 3.3. Fig. 2 gives some test cases, The only test run of tl with p1 is shil+liq: 
+t1 II PI shil&q ,, 
+>t, Ijpy and Vu EL: t~IIp~‘& 
+Since Y( ti’) = pass, we have that p1 passes tl. 
+The test runs of tl with p3 are {shil+liq,shiZ} : 
+t1 II P3 shikliq 
+>tyIIpf and VaEL: ty/Ip;‘G 
+tl I/p3 a t’l I)pjll and VaEL: tiIIp:“& 
+Since v( ty) = pass and v( t; ) = fail, we have that p3 fails tl. 
+To obtain test suites test generation algorithms have to be developed, which, given a specification, generate 
+a test suite. Formally, a test generation algorithm can be expressed as a function 
+@nimp : LcIS(L) - P(Lirs,(L)) (3.1) 
+A generated test suite gen;,,( ) s must test implementations for conformance with respect to s and imp. Ideally, 
+an implementation should pass the test suite if and only if it is conforming. In this case the test suite is called 
+complete [ 3 11. Unfortunately, in almost all practical cases such a test suite would be infinitely large, hence 
+for practical testing we have to restrict to test suites that can only detect non-conformance, but that cannot 
+assure conformance. Such test suites are called sound. Test suites that can only assure conformance, but not 
+non-conformance are called exhaustive. 
+
+--- Page 7 ---
+.I. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 55 
+Definition 3.4. Let s be a specification, imp an implementation relation, and T a test suite, then 
+T is complete =def vi : i imp S iff i passes T 
+T is sound =&f ‘di : i imp s implies i passes T 
+T is exhaustive =&f vi : i imp s if i passes T 
+4. Conformance testing based on symmetric interactions 
+This section presents some implementation relations for labelled transition systems, which can be found in 
+the literature, together with a sound test generation method for one of these relations: the relation conf. These 
+relations and the corresponding testing method use the test hypothesis that implementations can be modelled 
+as labelled transition systems. Communication between a labelled transition system and its environment is 
+modelled by the synchronized parallel composition 11 (Definition 2.4), where the communication is symmetric: 
+if a system wi,shes to communicate with its environment it proposes some actions on which it is prepared to 
+interact. The environment also proposes some actions, and then they interact on one of the actions that they 
+both propose. ‘The role of both communicating processes is the same and symmetric, and all actions (except 
+for the internal action r) are treated in the same way. 
+Implementatiori relations 
+Many different possibilities for implementation relations on fX?S(L) have been studied, e.g., observation 
+equivalence [ 381, strong bisimulation equivalence and weak bisimulation equivalence [ 41,391, failure equiva- 
+lence and prea~rder [ 271, testing equivalence and preorder [ 211, failure trace equivalence and preorder [ 161, 
+generalized failure equivalence and preorder [ 321, and many others [ 25,261. A straightforward example, based 
+on the definitions of Section 2, is trace preorder Ifr, which requires inclusion of trace sets. The intuition behind 
+this relation is that an implementation i E CIS( 15) may show only behaviour, in terms of traces of observable 
+actions, which is specified in the specification s E ,US( L). 
+Definition 4.1. Let i, s E LTs(L), then i I,,. s =&f traces(i) 2 traces(s) 
+Example 4.2. Consider Fig. 1: pr <,, p2 and p2 & ~1, since traces(pl ) = traces(pz) = {E, shil, shil.liq, shil. 
+choc}. AlsO P4 Ltr PI, but PI $tr ~‘4. 
+Considering Example 4.2 we have, for example, p2 Irr pl, which is interpreted as ‘implementation p2 
+correctly implements specification PI with respect to trace preorder’. However, pi specifies that after inserting 
+a shilling the user has a choice between liquorice and chocolate, while p2 may refuse to supply one of these 
+sweets: after inserting a shilling the machine makes the nondeterministic choice between offering liquorice or 
+chocolate. Suppose the machine chooses to offer liquorice, and the user makes a choice for chocolate, then a 
+deadlock occurs: no further interaction is possible between the machine offering the interaction liquorice and 
+the user willing to interact on chocolate. A user faced with p2 as an implementation of p1 will certainly be 
+disappointed. 
+The reason for the disappointment is that trace preorder str only considers sequences of observable ac- 
+tions; it does not care about who is going to resolve choices in the behaviour: the machine internally or 
+the external environment. A more sophisticated, and stronger implementation relation is testing preorder 
+[ 201. In addhion to requiring that the traces observed with the implementation are contained in those ob- 
+served with the specification, testing preorder requires that any possible user encountering a deadlock with 
+the implememation will experience the same deadlock when interacting with the specification. This idea 
+for an implementation relation is formalized by modelling the observing users themselves as labelled tran- 
+sition systems, and by modelling the observation of deadlock as a trace leading to a combined state of 
+
+--- Page 8 ---
+56 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+the machine and the user from which no further interactions are possible (see Definition 3.2). One could 
+say that testing preorder is the relation on labelled transition systems, where any discrepancy of the im- 
+plementation from the specification can exactly be observed by another labelled transition system. As such, 
+testing preorder is an important implementation relation in this paper from which other relations will be 
+derived. 
+Definition 4.3. 
+( 1) The sets of observutions, obs and ohs’ respectively, that an observer u E CIS( L) can make of 
+process p E L7S(L) are given by the deadlocks, respectively the traces of the synchronized parallel 
+communication of u and p: 
+obs(u,p) =def { CT E L* 1 (U 11 p) after u deadlocks } 
+obs’twp) =def { flEL* I ullp+ 
+(2) Implementation i E ,CcIS( L) is in testing preorder with specification s E C7S( L), if for all possible 
+observers the observations made with i are included in those of s: 
+i II, s =dcf Vu E C7S(L) : obs(u,i) & obs(u,s) and obs’(u,i) C obs’(u,s) 
+The definition of It, in Definition 4.3 is extensional, i.e., in terms of how the environment (i.c. the observer 
+u) perceives a system. This definition can be rewritten into an intensional characterization, i.e., a characterization 
+in terms of properties of the labelled transition systems themselves. This characterization, given in terms of 
+failure pairs (Proposition 4.5) coincides with failure preorder on our class of strongly-converging transition 
+systems (for a proof see, for example, [20,49]). 
+Definition 4.4. Let p E L7S( L), (T E L*, and A 2 L, then 
+p after CT refuses A =&f 3~‘: p&p’ and VCZEA: p’& 
+Proposition 4.5. i ste s iff ( Vu E L’, VA C L : i after (+ refuses A implies s after u refuses A ) 
+Example 4.6. Consider again Fig. 1. We have p1 It, ~2: there is no u, A, such that p1 after u refuses A 
+and not ( p2 after u refuses A ). 
+But p2 & ~1, since p2 after shil refuses {liq} and not ( pl after shil refuses {liq} ). Also p4 fte p3, 
+because p4 after shil refuses (choc} , which does not hold for ~3, but ps I,, p3, and also p1 I,, p3, 
+The relation sre does not allow extra traces in the implementation: 
+PI fte p4, since pl after shil.choc refuses 8 , and not ( p4 after shil.choc refuses 0 ). 
+An implementation relation that is strongly related to I,, is the relation conf [ 13,111. It is a modification of 
+jle by restricting all observations to only those traces that are contained in the specification s. This restriction 
+makes testing a lot easier: only traces of the specification have to be considered, not the huge complement of 
+this set, i.e., the traces not explicitly specified. Saying it in other words, conf requires that an implementation 
+does what it should do, not that it does not do what it is not allowed to do. 
+Definition 4.7. i conf s =def Vu E fZ7S( L) : ( obs(u, i) CT truces(s) ) & obs(u, s) 
+and ( obs’(u, i) fl traces(s) ) G obs’( u, s) 
+Proposition 4.8. 
+i conf s iff ( Vu E traces(s) , VA C L : i after u refuses A implies s after u refuses A ) 
+
+--- Page 9 ---
+.J. TreTmans/Computer Networks und ISDN System 29 (1996) 49-79 
+We conclude this part with relating the different implementation relations. 
+Proposition 4.9. 
+(1) srr and ste are preorder-s; conf is rejkxive, but not transitive. 
+(2) sir = sir n conf 
+Example 4.10. Consider again Fig. 1. From Proposition 4.9( 2) follows that i ste s implies i conf s, hence all 
+systems that are related by ste (see Example 4.6) are also related by conf. 
+Consider the ones not related by It, in Example 4.6: p2 co$f ~1, since p2 after shil refuses {liq} , 
+not ( p1 after shil refuses {Eiq} ) and shil E traces( pI ) . Analogously p4 co@ p3. 
+But the relation conf does allow extra traces in the implementation: p1 conf ~4, although p1 after shil. 
+choc refuses 0 and not ( p4 after shiZ.choc refuses 0 ), but shilschoc $I! traces(p4). 
+Test generation 
+Now that we have defined some implementation relations the next step is to develop test generation al- 
+gorithms. We will give here an algorithm for the derivation of sound test cases for conf (Definition 4.7) 
+[ 48,491. Test derivation for the relation conf has been studied a lot, especially in the context of protocol testing 
+[4,1(&l 1,13,19,23,33,42,54]. Testing scenarios for other relations can, for example, be found in [ 1 ] (bisimu- 
+lation equivalence), [ 18,35 ] (probabilistic testing), [ 201 (testing equivalence), [ 241 (testing preorder), [ 471 
+(trace and failure equivalence using techniques from Finite State Machine testing [ 15]>, [ 25,261 (comparison 
+of several testing scenarios), [ 321 (failure trace preorder), [45] (refusal testing), and [ 531 (queue preorder). 
+A sound test generation algorithm for conf is an algorithm that takes a specification s E Lcirs( L), and 
+returns a test suite gen,,r(s) C Ll&(L), such that (Definitions 3.2 and 3.4) : 
+i conf s implies Vt E gen&s) , Va E L* : 
+t I/ i after D deadlocks implies Y( t after (+ ) = pass (4.1) 
+The following nondeterministic, recursive algorithm from [49] satisfies (4.1). The nondeterminism in the 
+algorithm is a result of the freedom to choose any set of actions, A C init( s) in Algorithm 1, having the given 
+properties. Each possible choice for this set will result in another test case, but all test cases generated in this 
+way are guaran!ieed to be sound (Theorem 4.11). Moreover, the test suite that consists of all test cases that 
+can be generated in this way, is exhaustive, and thus complete, although not very efficient. For complete proofs 
+and optimizaticms with respect to efficiency we refer to [49]. Analogous algorithms, following more or less 
+the same ideas, can be found in [ IO,1 1,19,54]. 
+Algorithm 1. Let s E LcIS(L), then a test case t for s is 
+t := T. { LZ ; t, j a E A ) 
+where, with C,Y := {init j s=% s’), the set A C in&(s) and the verdict v(t) shall satisfy 
+VC E C, : A flC # 0 and v(t) =fail 
+or 0 EC, and A=init(s) and v(t) =pass 
+or A =0 and v(t) =pass 
+and t, is a tesi case for C { i ; s’ ( s & s’ }, which is obtained by recursively applying the algorithm. 
+Theorem 4.11. Any test case obtainedfrom a spec#ication s with Algorithm 1 is sound with respect to conf, 
+and the set of al! possible test cases which can be obtained using Algorithm I, is exhaustive (and thus complete). 
+
+--- Page 10 ---
+58 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+Proof (Sketch). From the contraposition of the property in Proposition 4.8 it follows that i must be tested for 
+all combinations of u and A such that not ( s after u refuses A ), i.e., s after u can always continue with at 
+least one action of A. These are exactly the sets A in Algorithm 1 satisfying VC E C, : A f? C # 0. To test 
+such sets for all (T E truces(s) the algorithm does it for the trace E, and then repeats it recursively for all traces 
+a E init( s). 
+Example 4.12. We will derive some test cases from p3 in Fig. 1. In the first step determine C,, := (init(p3)) = 
+{ {shil}}, so we can choose A := 0 and v(t) = pass, or A := {shil} and v(t) = fail. Since the first choice does not 
+lead to a very useful test case, we continue with the latter: we get the test case X{a; t, 1 a E {shil}} = shil; tshi/. 
+To obtain tshil repeat the algorithm for & := i; (liq; stop Cl i; choc; stop) 0 i; choc; stop. This gives 
+CPS := {init ) p; & p’} = { {Ziq, choc}, {choc}}, so possibilities for A are A = {choc}, A = {liq, choc} 
+both with v( tshil) = fail, or A = 8 with V( tshil) = pass. 
+With A = {choc} we have to repeat the algorithm for ~30” := i;stop. This gives A := 8 and v(t) = pass. 
+Combining all steps we obtain test case t2 of Fig. 2. With A = {liq, choc} test case t3 is obtained, and with 
+A = 0 we get t4. 
+Algorithm 1 allows to construct arbitrarily long, but finite test cases: the nondeterminism in choosing any set 
+A c init( s) satisfying one of the three constraints in the disjunction, makes that at any depth of the recursion 
+in the algorithm the test case can be made longer by choosing the first or the second alternative, or the test case 
+can be terminated by having the third alternative (A = 0 implies that t := X{a; tn ] a E A} = X0 = stop). To 
+avoid infinite recursion the third alternative must be chosen some time, This means that the algorithm generates 
+only finite test cases, thus complying with Definition 3.1. However, the algorithm may generate infinitely many 
+test cases, e.g., in the case of a specification with infinite behaviour. Consider, for example, the specification 
+s := a; s, then the test suite of all possible test cases (without their verdicts) generated by Algorithm 1 is 
+{stop, a; stop, a; a; stop, a; a; a; stop, a; a; a; a; stop, . . .}, i.e., a test suite with infinitely many test cases, but 
+each of them with finite (but arbitrarily long) behaviour. The principle to describe, or test, a system with 
+infinite behaviour as a (possibly infinite) set of finite approximations is referred to as the approximation 
+induction principle [ 161. 
+For a practical test campaign a selection from the complete, infinite test suite should be made. This is referred 
+to as test selection or test-suite size reduction [ 3 11. It is easy to see that any such a selection will always 
+result in a sound test suite (Definition 3.4), i.e., a test suite that only detects errors (according to conf), but 
+not necessarily all errors. The importance of the second part of Theorem 4.11 is in the fact that for all possible 
+errors there is a possible test case, i.e., there are no errors that are principally undetectable with test suites 
+generated with Algorithm 1. 
+5. Input-output transition systems 
+The implementation relations Lte and conf are defined (Definitions 4.3 and 4.7) based on symmetric 
+interaction between an implementation and its environment: all actions are treated the same way, and the 
+synchronous communication operator I( is commutative and fully symmetric in its operands. An interaction can 
+occur if both the implementation and its environment are able to perform that interaction. If they both offer 
+more than one interaction then it is assumed that by some mysterious negotiation mechanism they will agree 
+on a common interaction. There is no notion of input or output, nor of initiative or direction. All actions are 
+treated in the same way for all communicating systems. 
+Many real implementations, however, communicate in a different manner. They do make a distinction between 
+inputs and outputs, and one can clearly distinguish whether the initiative for a particular interaction is with 
+the implementation or with its environment. There is a direction in the flow of information from the initiating 
+
+--- Page 11 ---
+.I. Tretmans/Computer Nehvorks and ISDN System 29 (1996) 49-79 59 
+butin 
+bUti” 
+5 k”, 
+bUti, 
+Fig. 3. Input-output transition systems, 
+communicating process to the other. The initiating process determines which interaction will take place, and the 
+other one can just take it or leave it. Even if the other one decides not to accept the interaction, this is usually 
+implemented by first accepting it, and then initiating a new interaction in the opposite direction explicitly 
+signaling the non-acceptance. One could say that the mysterious negotiation mechanism is made explicit by 
+exchanging tw,o messages: one to propose an interaction and a next one to inform the initiating process about 
+the (non-) acceptance of the proposed interaction. 
+We will now consider a class of (models of) implementations for which the set of actions can be partitioned 
+into output actions, for which the initiative to perform them is with the implementation, and input actions, for 
+which the initiative is with the environment. If an input action is initiated by the environment, the implementation 
+is always prepared to participate in such an interaction: all inputs of an implementation are always enabled; they 
+can never be refused. Naturally an input action of the implementation can only interact with an output of the 
+environment, and vice versa. Although the initiative for any interaction is in exactly one of the communicating 
+processes, the communication is still synchronous: if an interaction occurs it occurs at exactly the same time 
+in both processes. The communication, however, is not symmetric: the communicating processes have different 
+roles in an interaction. 
+Definition 5.1. An input-output transifion system p is a labelled transition system in which the set of actions 
+L is partitioned into input actions Lt and output actions Lu (Lf U Lu = L, LI fl LU = Q)), and for which all 
+input actions are always enabled in any state: 
+\Jp’ E der( p) , Vu E LI : p’ & 
+The class of input-output transition systems with input actions in L, and output actions in LU is denoted by 
+ZCTS(L,, L,) c C7S(L, u LrJ). 
+Example 5.2. Fig. 3 gives some input-output transition systems with L, = {butin} and L” = {ZiqO,,, choc,,,}. 
+In q1 we can push the button, which is an input for the candy machine, and then the machine outputs liquor&. 
+After the button has been pushed once, and also after having obtained liquorice, any more pushing of the button 
+does not make anything happen: the machine makes a self-loop. In the sequel we use the convention that a 
+self-loop of a state that is not explicitly labelled, is labelled with all inputs that cannot occur in that state (and 
+also not via T-transitions, cf. Definition 5.1). 
+Machine q2 d’zscribes a candy machine that will output either liquorice or chocolate after the button has been 
+pushed. 
+When studying input-output transition systems the notational convention will be that a, 6, c . , . denote input 
+actions, and z,y,x,. . . denote output actions. Since input-output transition systems are labelled transition sys- 
+tems all definitions for labelled transition systems apply. In particular, the synchronous parallel communication 
+
+--- Page 12 ---
+60 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+can be expressed by 11 (Definition 2.4)) but now care should be taken that the outputs of one process interact 
+with the inputs of the other. 
+6. Implementation relations for input-output transition systems 
+When we assume that implementations can be modelled by input-output transition systems in 
+zo7S( L,, Lu), then the next step for a testing theory is the study of implementation relations for such 
+systems. Since specifications are not necessarily written in a style having the property that input actions cannot 
+be refused, we still allow specifications to be labelled transition systems: we consider implementation relations 
+imp C ZOIS( L,, Lu) x CIS( LI U Lu). 
+The implementation relations 5 fe and conf were defined by relating the observations, made of the imple- 
+mentation by a symmetrically interacting observer u E C’TS( L) , to the observations made of the specification 
+(Definitions 4.3 and 4.7). Now that we consider implementations that communicate via inputs and outputs, it 
+seems natural to restrict their observing environments in the same, complementary way: u E ZO7S( L”, L,). 
+In a real observer inputs and outputs can be distinguished, of which input actions can never be refused, and 
+communication takes place along the lines explained in Section 5: the input actions of the observer synchronize 
+with the output actions of the implementation, and vice versa. 
+Analogous to the definition of testing preorder ste on L7S(L) the input-output testing relation liot is 
+defined between an implementation i E ZOlS( LI, Lu) and a specification s E 137S( L, U L”) by requiring 
+that any possible observation made of i by any “output-input” transition system is a possible observation of s 
+by the same observer (cf. Definition 4.3). 
+Note that s can be any transition system, not necessarily an input-output transition system. This transition 
+system is best interpreted as a not-completely specified input-output transition system, i.e., a transition system 
+where a distinction is made between inputs and outputs, but where some inputs are not specified in some 
+states. Since, technically speaking, the only distinction between inputs and outputs occurs in the transition 
+systems themselves, and not in their communication or observations (The definitions of obs, obs’, 11, and 
+. after . deadlocks are exactly the same as for the symmetric case), there is no problem in using an “output- 
+input” observer u to observe such a not-completely specified input-output transition system. Below we will 
+elaborate on this possibility to have s E CIS. 
+Definition 6.1. Let L be partitioned into LI and Lu, and let i E ZOIS( L,, L”), s E ,!ZcirS( L, U Lu), then 
+i Sot S =def Vu E ZUTS( Lu, L,) : obs( u, i) C obs( u, s) and obs’( u, i) C obs’( u, s) 
+The restriction to systems in which inputs and outputs can be distinguished, and in which inputs can never be 
+refused, appears to simplify the corresponding intensional characterization of <iot (cf. Proposition 4.5) : instead 
+of sets of pairs consisting of a trace and a set of actions (failure pairs), it suffices to look at two sets of traces: 
+the normal traces traces(p) (Definition 2.3), and the output-suspension traces &traces(p). 
+Proposition 6.2. Let &traces(p) =def {a E L’ 1 p after CT refuses L” } be the set of output-suspension 
+traces of p, then 
+i &t s iff traces(i) G traces(s) and &truces(i) 2 &truces(s) 
+The notion of output suspension is analogous to the null-output that is sometimes used in Finite State 
+Machine-based testing [ 151 to model the situation where an input does not produce any output. The null-output 
+is then considered as a valid output, and it is an element of the output actions. In our approach the set Lu does 
+not contain such a null-output; it only contains explicitly observable actions, and the absence of any outputs 
+
+--- Page 13 ---
+J. Tretmans/Computer Nehvorks and ISDN Systems 29 (1996) 49-79 61 
+after a certain trace is indicated by an output suspension trace. Below we will consider how output suspension 
+can be considered as a special output action in our model. 
+The charackrization of the input-output testing relation in Proposition 6.2 suggests to transform a labelled 
+transition system into another one representing exactly these two sets of traces, so that the relation can be 
+characterized by trace preorder srr (Definition 4.1) on the results of this transformation. Such a transformation 
+on a labelled transition system p can be defined, and the result is called the &truce automato~z AP. To obtain AP 
+a special transition is attached to each state where output suspension is possible. Then the resulting transition 
+system is determinized (cf. the determinization of automata [ 281). The special transition indicating output 
+suspension has label 6, and goes to a state stop, from where no other transitions can be made. The label 6 
+indicates the absence of output actions in a state, i.e., it makes the absence of output actions to an explicit 
+observable action. It follows that, if p E CIS( L), then A,, E 137S(L U {S}), 
+Definition 6.3. Let L be partitioned into LI and L U, and let p = (S, LI U LLI, T, SO) E L’TS( L, U Lu) be a 
+labelled transitl:on system, then the &truce automaton of p, A,,, is the labelled transition system (36, La, T,, qO) E 
+LTS( L/ U LU U {a}), where 
+’ ss =def P(S) U {stop}9 with stop a distinguished state not occurring in S or P(S) ; 
+’ Ls =d<f b u Lu u {a}, with S a distinguished label not occurring in L, U Lu; 
+l Ts =&f { q A q’ / a E L, u LU, q, q’ E &5, q’ = {S’ E s ( 3s E q : S &’ 3’) # 8 } 
+u{qhtop /3sEq,VxELv: s&} 
+Example 6.4. Fig. 4 gives the a-trace automata for 41, q2, and q3 of Fig. 3. For A4? the states, consisting of 
+sets of states of q3, have been added. Note that the nondeterminism of q3 has been removed, and that state 
+(~1, ~2) has a &transition, since there is a state in (~1, sz}, i.c. ~2, that can refuse all outputs. 
+From the &trace automaton of p the traces and the output-suspension traces of p are easily obtained, as is 
+stated in Propo.sitions 6.5( 1) and 6.5(2): the traces of A,, that contain no 6 are exactly the traces of p, and 
+the traces of A,, that terminate with a &action point to an output-suspension trace. Moreover, A,, has the nice 
+property that it is always deterministic (Definition 2.3), so that the transition relations 4 and & coincide, 
+and each trace ~7 always goes to a unique state, denoted by AP aftercr. A state A,, after (+ can always perform 
+either an output transition with n E Lu, or it can perform a a-transition. Considering the special action 8 as an 
+output action of the S-trace automaton, i.e., making the absence of any output action into a special, observable 
+output action of’ the S-trace automaton (cf. the null-output of an FSM, see above), we can say that any state 
+of a S-trace automaton (except stop) can always do at least one output transition (Proposition 6.5(4) ) . 
+
+--- Page 14 ---
+62 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+Fig. 5. Two specifications and their S-trace automata. 
+Proposition 6.5. 
+(1) truces(p) = traces(A,) tl L* 
+(2) S-truces(p) = { ~7 E L* 1 u.6 E truces(A,>) } 
+(3) A,, is deterministic. 
+(4) Qa E truces(A,) n L*, 3x E LU U (6) : ( Ap aftera) 5 
+An immediate corollary of Propositions 6.2 and 6.5 is that the input-output testing relation is completely 
+characterized by trace preorder In on the corresponding S-trace automata. The S-trace automaton of a speci- 
+fication is sufficient and necessary to define the class of &-conforming implementations. For our discussion 
+concerning the implementation relation <ior we can now restrict to studying Str on S-trace automata. 
+Theorem 6.6. Let i E ZOlS( L,, Lu), s E CIS( L, U Lu), then 
+Example 6.7. From A,,, Ay2, and A,, (Figs. 3 and 4), using Theorem 6.6, it follows that 41 <iot q2: an 
+implementation capable of only producing liquorice conforms to a specification that prescribes to produce 
+either liquorice or chocolate. Although q2 looks deterministic, it in fact specifies that after burron there is a 
+nondeterministic choice between supplying liquorice or chocolate. It also implies that for this kind of testing q2 
+is equivalent to buti,,; Ziq,,,,; stop 0 butin; chocout; stop (plus the input self-loops), an equivalence which does not 
+hold for the symmetric case. If we want to specify a machine that produces both liquorice and chocolate, then 
+two buttons are needed to select for the respective candies: liq-button; liq,,,; stop 0 choc-button; c~oc,,~; stop. 
+On the other hand, q2 &of 41, q3: if the specification prescribes to produce only liquorice, then an implemen- 
+tation should not have the possibility to produce chocolate: bu&, .choc OUt E truces(A.,,), while buti, .chocOUt $ 
+truces(A,,), truces(Ayl). 
+We have q1 <i,>t q3, but q3 fiat 41, q2, since q3 may refuse to produce anything after the button has been 
+pushed once, while both q1 and q2 will always output something. Formally: buh, . 8 E truces( A,,), while 
+buti,,. $ truces(A,,),truces(A,,). 
+Fig. 5 presents two non-input-output transition system specifications with their S-trace automata, but none of 
+91, q2, q3 correctly implements st or s2 with respect to &; the problem occurs with non-specified input traces of 
+the specification: buh,+bu&, E truces( A4, ), truces(A,,) , truces( Aqj), while bur&u&, $ traces( A,y, ) , traces( A,v,). 
+For the input-output testing relation it is allowed that the specification is not an input-output transition 
+system. A specification may have states that can refuse input actions. The intention of such specifications often 
+is that the specifyer does not care about the responses of an implementation on such non-specified inputs. If 
+a candy machine is specified to deliver liquorice or chocolate after pushing a button (~2 in Fig. 5), then it is 
+left open what an implementation may do after pushing the button twice: perhaps ignoring it, supplying one of 
+
+--- Page 15 ---
+J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 63 
+the candies, or responding with an error message. Many labelled transition system specifications contain such 
+intended implementation freedom. 
+Looking at Theorem 6.6 and Fig. 5 in Example 6.7, however, we see that such implementation freedom 
+cannot be expressed by the relation <ior. Trace inclusion implies that for any state of the implementation all 
+enabled actions, in particular all input actions, are also enabled in the corresponding state of the specification. 
+Consequently.. all input actions must always be enabled in any state of the specification, so the specification 
+must be an input-output transition system, too, otherwise no implementation can exist. Labelled transition 
+system specifications that are not input-output transition systems are not implementable with respect to <it,,. 
+To allow for non-input-output transition system specifications to express implementation freedom for non- 
+enabled inputs, we introduce a weaker implementation relation. To define this relation, i/o-conformance ioconf, 
+we first give an alternative characterization of <iot (Proposition 6.9) to see where the problem occurs, and 
+how it might be solved. For this characterization the output actions out(A) of a S-trace automaton are defined, 
+where S occurs as a special output action as explained above. 
+Definition 6.8:. Let A be a &trace automaton, then out(A) =,+f init n ( LU U (8)) 
+The set out(A) will be used in particular in expressions of the form out( Aaftera > to denote the set of outputs 
+(possibly including S) of the state reached after g. If u $! truces(A), then we define out( A after CT ) =dCf 8. 
+Proposition 6.9. Ai <,? As iff Va E L* : out( Ai after (T) C out( A, aftero) 
+In Proposition 6.9 we see that <ior requires that the outputs of the implementation are included in the outputs 
+of the specification after any trace: traces of the specification, and traces that are not in the specification. A 
+weaker implementation relation is obtained if this requirement is relaxed to inclusion for those traces that are 
+explicitly specified in the specification (cf. the relation between 5 fe and conf, Definitions 4.3 and 4.7, and 
+Propositions 4.5 and 4.8). 
+Definition 6.10. Let i E Z07S( L,, LU) , s E ,US( L, u &,I ), then 
+i ioconf s =def tla E truces(A,) n L* : out( Ai after CT ) & out( A, after (T ) 
+Example 6.11. Consider again Figs. 3, 4, and 5. For 41, q2, q3 we still only have q1 ioconf 42 and q1 ioconf q3 
+(cf. Proposition 6.12). 
+But our goal of defining ioconf is to allow for implementation freedom for unspecified behaviour as in sI 
+and ~2. And indeed, we have q1 ioconf st: following ioconf, st specifies only that after one button liquorice 
+must be produced; with ioconf st does not care what happens if the button is pushed twice, as was the case 
+with <ior. 
+On the other hand, qz ioqhf s 1, since q2 can produce more than just liquorice after the button has been 
+pushed once: out( Aq2 after buti, ) = {liq, C~OC} g {Ziq} = out( As, after buti, ). 
+Moreover, 41 , q2 ioconf ~2, but q3 ioqhf $1, ~2, since S E out( A’43 after buti, ), 
+while S $ out( A,, after buti, ) , out( AS2 after buti” ). 
+The implementation relation ioconf will be the basis for the discussion of test generation in Section 7. We 
+conclude this slsction with a brief comparison of the different implementation relations. 
+Relating implementation relations 
+The relation between the implementation relations for the symmetric case , -fr, Itr, and conf (Section 4) < 
+is expressed in Proposition 4.9(2). To relate the implementation relations for input-output transition systems, 
+first a generalization of ioconf is introduced. Let F C L* be any set of traces, then 
+
+--- Page 16 ---
+64 .I. TretmansIComputer Networks and ISDN Systems 29 (1996) 49-79 
+i ioconfF s =&f vcr E F : out( Ai after (T ) c out( As after (T ) (6.1) 
+The relations <iot and ioconf are special cases of iocoufF, and different relations ioconfF, and ioconfF* al-e 
+easily related if the sets Ft and F2 can be related: if .Ft G 32 then ioco&, > ioconfF*. 
+One might suspect that putting the relation conf (Definition 4.7) in an input-output context would result in 
+ioconf i.e., that confi, defined by 
+i COnfi, S =def VuEZO7S(Lu,Lr) : ( obs(u,i) n truces(s) ) 5 obs(u,s) (6.2) 
+and ( obs’(u, i) n truces(s) ) 2 obs’(u, s) 
+would be equal to ioconf. This is not the case. The implication holds in only one direction: 
+ioconf C COllfio (6.3) 
+A counter-example for the other direction is i = x; stop and s = stop, with L, = 8 and LU = {x}. One can even 
+show that co& cannot be expressed in the form of (6.1) ; there is no F (depending only on s) such that 
+COtlfi" = ioconfF. 
+We conclude this section with observing that on ZOIS( L,, Lu), i.e., the specification is an input-output 
+transition system, too, the two relations &, and ioconf coincide. 
+Proposition 6.12. On Zc??-S( L,, L”): <ior = ioconf 
+7. Testing input-output transition systems 
+The next point of discussion is the generation of sound test suites from labelled transition system specifications 
+in order to test input-output transition system implementations with respect to the implementation relation ioconf 
+(Section 6, Definition 6.10). This implies that, given a specification s, a test suite gentoeonr( s) z Cl& must 
+be generated, such that for any input-output transition system i: 
+i ioconf s implies i passes gUZiOCOnf( s) 
+or, using Definitions 3.2 and 3.4: (7.1) 
+i ioconf S implies Vt E gentoeonr( S) , V(T E L* : 
+( t 11 i) after u deadlocks implies v ( t after (T ) = pass (7.2) 
+But before we can develop such a test generation algorithm, a brief discussion on the nature of test cases is 
+necessary. In Sections 5 and 6 it was stated that input-output transition systems are observed by “output-input” 
+transition systems, while in Definition 3.1 test cases where defined as finite, deterministic labelled transition 
+systems. The intersection of both is empty: an “output-input” transition system can never have finite behaviour 
+(if L” # 0). 
+Since, as explained in Section 3, maximum control of the testing process by the tester is desirable, we will 
+not allow test cases with a choice between an input action and an output action (input and output with respect 
+to the implementation), nor a choice between multiple input actions. Both introduce nondeterminism in the test 
+run: if a test case offers multiple input actions, or a choice between input and output, then the continuation 
+of the test run is unnecessarily nondeterministic, since an implementation can always accept any input. This 
+implies that in any state of a test case either one particular input is offered to the implementation, or all possible 
+outputs are accepted. So such a test case is not an “output-input” transition system. Moreover, we still want 
+test runs to be finite. This implies that at some instant the test case will stop: no actions are offered at all 
+anymore. Combining these requirements we have the following definition of a test case for testing input-output 
+transition systems. 
+
+--- Page 17 ---
+J. Tretmnns/Computer Nehvorks and ISDN Systems 29 (1996) 49-79 65 
+fail fail 
+Fig. 6. An input-output test case. 
+Definition 7.1. An input-output test case t is a test case (Definition 3.1), which distinguishes between 
+implementation inputs in L, and implementation outputs in Lu, such that for any state t’ of the test case, either 
+init( t’) = {a} for some a E L,, or init( f’) = Lu, or init( t’) = 0. 
+The class of input-output test cases over L, and Lv is denoted as ZO’TS,( Lu, L,). 
+Example 7.2. For q2 (Fig. 3) there are two test runs with t in Fig. 6: 
+where qk and qz are the final states of q2 after the liq,,,,- and chocout -actions, respectively. Although Y ( t2) = pass, 
+we have that ((2 fails t, since v( t3) = fail. 
+Similarly, q1 passes t and q3 fails t. 
+For the development of a test generation algorithm consider again the definition of ioconf (Definition 6.10): 
+i ioconf 5 =&f VCT E truces(A,) f-l L* : out( A; after (+ ) C out( A,Y after CT ) (7.3) 
+In (7.3) we see that to test for ioconf we have to check for each (7 E truces(A,) (l L* whether out( Aiaftercr ) 2 
+out( As after u ). Basically, this can be done by having a test case t that executes (+: 
+t 11 ia t’ Ii’ 
+and then checks out( Ai after a) by having transitions to pass-states for all allowed outputs (those in 
+out( A,Y after CT )), and transitions to fail-states for all erroneous outputs (those not in out( A, after IT )). 
+Special care should be taken for the special output 8: 6 actually models the absence of any output, so no 
+transition will be made at all if i “outputs” 6; the test run will deadlock in t’ II i’. This can be checked by having 
+the verdict pass in the state t’ if 6 is allowed (8 E out( As after c )), and by having the verdict fail in t’, if 
+the specification does not allow to have an output suspension at that point. All this is reflected in the following 
+algorithm, which is proved to generate sound test cases with respect to ioconf (Theorem 7.3 ( I) ), and which 
+has the ability to detect all possible non-conforming implementations (Theorem 7.3( 2) ) . 
+Algorithm 2. Let A be the S-trace automaton of a specification, then a test case t E ZCVS,( Lv, LI ) is 
+obtained by a finite number of recursive applications of one of the following three nondeterministic choices: 
+1. (* terminate the test case *) 
+t := stop ; 
+v(t) := pass ; 
+
+--- Page 18 ---
+66 J. Trefmans/Cnmputer Networks and ISDN Systems 29 (1996) 49-79 
+2. (* give a next input to the implementation *) 
+t := a ; t’ ; 
+v(t) := pass ; 
+where a E init( A) fl L,, and t’ is obtained by recursively applying the algorithm for A’, with A a A’. 
+3. (* check the next output of the implementation *) 
+t :=C{x; stop 1 x E Lu, x $ out(A) } 0 Z { x ; tn 1 x E L”, x E out(A) } ; 
+v(t) := if S E out(A) then pass else fail ; 
+where v(stop) := fail for all x in the first operand, and t, is obtained by recursively applying the 
+algorithm for A’, with A -5 A’. 
+Theorem 7.3. 
+( 1) A test case obtained from A,y with Algorithm 2 is sound for s with respect to ioconf. 
+(2) The set containing all possible test cases that can be obtained with Algorithm 2 is exhaustive. 
+Proof (Sketch). (For a complete proof see Appendix A.2.) 
+( I ) The proof of soundness is based on defining a sufficient condition for soundness, and then using 
+induction on the structure of t: 
+(a) Any test case generated according to the first choice of Algorithm 2 is always sound. 
+(b) Any test case generated according to the second choice is sound, if t’ is sound for A’. 
+(c) In the third choice a test case with init( t) = Lu is generated: 
+l If the implementation gives an output x $ out(A,), then the test case stops, and the verdict fail is 
+assigned, which is sound. 
+l If the implementation gives an output x E out(A,), then soundness follows by induction from 
+soundness of t, for A’. 
+l If the implementation does not produce any output, i.e., 8 E Out( Ai), then the test run stops, and 
+the verdict pass is assigned iff 6 E out(A,), which is sound. 
+(2) For proving exhaustiveness one defines a special test case t[ A,,Uj that tests whether out( Ai after a ) C 
+out( As after (T). It is shown that for each (T f traces(A,y) n L* such a test case can be generated with 
+the algorithm. Such a test case consists of the trace D with transitions added at the end for each x E Lu 
+exactly like in the third choice of the algorithm, and with a minimal number of transitions added in the 
+other states of the test case to comply with Definition 7.1. 
+Example 7.4. We generate a test case for SI from A,, (Fig. 5). 
+We start with giving an input: buti,, E init(A,y,) n Ll, so t := butin; t’ and v(t) = pass. 
+In the next step we generate the test case t’ from A’ = liq,,,,; S; stop, where we check the outputs: 
+t’ := C {x; stop 1 x E Lu, x $! {liqO,,}} 0 X(x; t, 1 x E Lu, x E { ZiqO,,}} = choc,,t; Stop Cl liq,,& tiiqou,. 
+Since 6 $ out( A’), we have v( t’) = fail. Moreover, v( stop) = fail. 
+Now generating tliy,, from A” = 8; stop we again check the outputs: 
+%,, := Z{x; stop 1 x E Lu, x $! (6)) Cl X(x; IX ( x E Lu, n f (6)) = chocOUt; stop Cl Ziq,& stop, 
+with for both v (stop) = fail, and Y ( tliqout ) = pass. 
+Combining tliq,,, and t’ into t we get the test case t of Fig. 6 as a sound test case for sl, which is consistent 
+with the results that we found in Examples 6.11 and 7.2: q1 ioconf sl, q2 iocdnf SI, and q3 iocg(nf SI, and 
+indeed q1 passes t, q2 fails t, and q3 fails t. 
+
+--- Page 19 ---
+J. Trermans/Compurer Networks and ISDN Systems 29 (1996) 49-79 61 
+8. Concluding remarks 
+Two algorithms for test case generation from labelled transition system specifications have been presented, 
+together with the implementation relations for which they test. The first relation, conf, and the corresponding 
+algorithm have been published several times in literature in slightly different variations. The method is based 
+on the assumptions that an implementation can be modelled as a iabeIIed transition system, and that the 
+interactions between an implementation and its environment are symmetric. An interaction can occur if both 
+the implementation and the environment propose that interaction, which also means that they can both prevent 
+an action from occurring. 
+The second implementation relation, ioconf, together with its test generation algorithm, is new. This method 
+is based on the assumption that implementations communicate asymmetrically via inputs and outputs, where 
+the outputs are under complete control of the implementation, whereas the implementation does not have any 
+control over the inputs. Inputs are autonomously initiated by the environment, and the implementation can never 
+refuse them. !3uch implementations were modelled by input-output transition systems, a subclass of labelled 
+transition systems. 
+The theory of testing input-output transition systems can be applied to those domains where the impiemen- 
+tations under ‘test can be assumed to have the required property, which is the case for many realistic systems, 
+and where the specification is expressed in a language for which the semantics can be expressed in labelled 
+transition systems, which also holds for many formalisms. A special application area is the standardized formal 
+description techniques Estelle [ 291 and SDL [ 171. Estelle and SDL systems communicate with their environ- 
+ment via unbounded queues, which can never refuse their inputs, so any Estelle or SDL system can be modellcd 
+as an input-output transition system. 
+Symmetric testing versus testing with inputs and outputs 
+When comparing the testing theory for conf with that for ioconf, it can be noted that the additional 
+assumption of always enabled input actions renders a testing theory which is simpler in some aspects. Whereas 
+implementation relations based on symmetric interactions are characterized by a set of sets of actions for each 
+trace (Proposi,tions 4.5 and 4.8), the corresponding relations using inputs and outputs are characterized by just 
+a set of actions for each trace (Proposition 6.9 and Definition 6.10). Moreover, using inputs and outputs each 
+system is easily fully represented by a deterministic transition system: the &trace automaton (Definition 6.3 
+and Theorem 6.6). 
+The difference in simplicity between the respective test generation algorithms is also evident. For the sym- 
+metric case (Algorithm 1) the number of different possible sets A 5 init( s) that have to be considered, 
+is exponential in / init(s> 1, whereas for the input-output case (Algorithm 2) the number of possibilities is 
+restricted by 1 (init(s> n LI) 1. 
+Comparison writh other models 
+Input-output state machines. The model of input-output transition systems is very much related to the model 
+of input-output state machines (IOSM) [43 ] . The idea for the S-trace automaton is inspired by the way output 
+suspension is treated in [43] : a trace machine is made where a a-transition is added to all states where no 
+outputs are possible. However, the S-transitions of an IOSM do not go a special state stop, but make a self-loop 
+to the same state. This implies that the implementation relations of [43] (RI,. . . , Rs), which are defined by 
+trace inclusion on the resulting transformed machines, are different from ours: S-actions can occur everywhere 
+in a trace, not just at the end (cf. Proposition 6.5). The precise relation between these implementation relations 
+and ours is a topic for further study. In particular, it would be interesting to relate them to implementation 
+relations on ,!YS by means of a testing scenario, in the same way as Ite and <io, are related. 
+Two additional minor differences between ZOlS and IOSM can be noted. First, the sets of states and labels 
+
+--- Page 20 ---
+68 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+may be countably infinite in Zc31S, where finiteness is required for IOSM. Secondly, ZDTS, by defining 
+them as a restriction on labelled transition systems, allows for a more easy embedding in, and relating to the 
+more general theory of labelled transition systems, whereas [43] uses two rather complex mappings to map 
+IOSM to C’TS and vice versa. 
+Input/output automata. Another model that is closely related to both IOSM and Zc31S, is that of Input/Output 
+Automata (IOA) [ 371. An IOA is a transition system with the requirement that all inputs are directly enabled 
+in all states, i.e., for all states s, for all a E LI: s A. This stricter requirement on input enabling implies that 
+some systems are more difficult to describe as IOA than as Zc?‘TS. For example, a system consisting of an 
+input/output automaton together with a bounded buffer with which it communicates with the environment, is 
+not IOA, when the communication between the actual system and the buffer is hidden: if the buffer is full, no 
+input actions are possible anymore without first performing an internal event. Such a system is ZOIS. 
+The implementation relation that is usually used for IOA is fair trace preorder [ 361. This relation on IOA 
+requires inclusion of so-called fair traces, which can be finite and infinite. An approximation using only finite 
+traces is the quiescent trace preorder introduced in [ 521 and elaborated in [ 461. This relation is characterized 
+by inclusion of traces and quiescent traces, a quiescent trace being almost equal to an output-suspension trace: 
+it is a trace to a state where only inputs are possible, i.e., no outputs and no internal transitions. Hence 
+quiescent trace preorder is almost equal to <ior (Proposition 6.2). Our conjecture is that it is equal for strongly- 
+converging processes, but for diverging processes quiescent trace preorder has some counter-intuitive properties. 
+For example, let d be a divergent loop, d := r; d, then i := a; d is in quiescent trace preorder with s := a; x; stop 
+[ 461, This looks counter-intuitive, and it does not hold for <iot if we apply Proposition 6.2 to diverging systems. 
+An effect analogous to that of ioconf, i.e., leaving implementation freedom for non-specified inputs, is 
+obtained for IOA by having a so-called demonic semantics for process expressions. In this semantics a transition 
+to a demonic process n is added for each non-specified input in the specification. From fi any behaviour is 
+possible. Thus, after such an input also any behaviour is allowed in the implementation [ 221. 
+Queue contexts. A special case of input-output transition systems are the queue systems of [ 5 1,531. These 
+queue systems are labelled transition systems in a queue context, i.e., to which two unbounded queues are 
+attached to model asynchronous communication, one queue for input actions, and one for output actions. 
+Communication between two processes is modelled by putting actions in the respective queues. An unbounded 
+queue clearly has the property that input can never be refused, while the output queue makes that from the 
+system’s point of view output actions can never be refused by the environment. 
+Some of the results obtained for queue systems are indeed special cases of the results obtained in this paper, 
+implying that only the distinction between inputs and outputs, and the permanent enabling of input actions are 
+important, not the explicit form of communication by means of queues. In this way, the queue implementation 
+relations of [ 51,531 are special cases of the relations <jot and ioconf3, which is seen by noting that the 
+observations 0,( cr) of a queue system are equal to our Out-set (where Qs is the queue context containing s) : 
+O,v(v) =Jef {x E L” j QS & } U (6 / QS after u refuses Lu } = aut( AQ, after CT) 
+It follows that queue preorder 50 is exactly the same as 5, ,01 applied to queue systems, and that <,tis), asco, 
+and aconf are instantiations of ioconf3 (Eq. (6.1) ) with appropriate trace sets FT. Moreover, Proposition 6.12 
+corresponds to the equality of 50 and &.(Qs), which was derived for queue systems in [ 511. 
+Open problems 
+Apart from establishing the precise relation with the other above mentioned theories based on inputs and 
+outputs, some other open issues remain. First of all, there is the relation with the well-known Finite State 
+Machine-based testing theories [ 151, which originate from hardware testing. These theories also distinguish 
+
+--- Page 21 ---
+J. Tretmans/Computer Networks and lSDN Systems 29 (1996) 49-79 69 
+between inputs and outputs, however, each transition is labelled with a pair of input and output, not with an 
+input or an output. This implies that the notion of atomicity of actions differs, which makes comparison more 
+difficult. 
+The problem of atomicity of actions also occurs when symmetric testing is considered as an abstraction of 
+input-output tIesting. For example, the action choc of pr in Fig. 1 can be seen as an abstraction of first pushing 
+a chocolate button and then obtaining chocolate. In this action refinement [2] the button-part can be seen as 
+input to the candy machine, and obtaining chocolate as the output. Now test generation can be accomplished 
+by first deriving a test from the abstract, symmetric specification in terms of the choc action, and then refining 
+this test case into inputs and outputs, or the specification can be first refined after which an input-output based 
+test generation algorithm can be used. The precise relation between testing, inputs and outputs, and action 
+refinement needs further investigation. 
+A third open problem is the well-known test selection problem (test-suite size reduction [ 3 1 ] ) . Algorithms 1 
+and 2 can generate infinitely many sound test cases, but which ones shall be really executed? Solutions can be 
+sought by defining coverage measures, fault models, test hypotheses, etc. [ 3,7,14,44]. 
+Another aspect is the incorporation of data in the test generation procedure. The state explosion caused by 
+the data in specifications needs to be handled in a symbolic way, otherwise automation of the test generation 
+algorithm will probably not be feasible. 
+A more practical problem is the implementation of the observation of an output suspension. In practical 
+testers timers will have to be used for this purpose, for which the time-out values need to be chosen carefully, 
+in order not to observe a suspension where there is none. 
+A final rem,uk concerns divergence. Divergence causes a lot of trouble and need for extra attention in the 
+study of testing theories for labelled transition systems. That is why in this paper “for technical reasons” we 
+assumed to deal with strongly converging systems (Section 2). However, divergence is not a problem that 
+can always be neglected. As pointed out above, our conjecture is that also the relation between the IOA and 
+Zc?‘TS preord’ers depends on divergence. The main question about divergence is whether fairness is assumed: 
+if a system calz perform infinitely many r-transitions, while some observable action is constantly enabled, can 
+we assume that this observable action will be finally executed? Different approaches to deal with divergence 
+can be found in literature [ 20,34,40,12]. For the moment we leave the topic of divergence in the context of 
+conformance testing for further study. 
+Acknowledgements 
+Stimulating discussions with and comments from Lex Heerink, Pedro D’Argenio, Jacob de Vries, Marc 
+Phalippou (France Telecom CNET), Henk Schepers (Philips Research), and the anonymous referees helped 
+me in writing this paper. The research for this paper was partly carried out while being an ERCIM Fellow 
+(European Research Consortium for Informatics and Mathematics), supported by the Commission of the 
+European Union. 
+Appendix A. l?roofs 
+A.I. Proofs of Section 6 (Implementation relations for input-output transition systems) 
+Proposition 6.2. Let &traces(p) =dCf {g E L* 1 p after (+ refuses LU } be the set of output-suspension 
+traces of p, then 
+i <ior s if.f traces(i) C traces(s) and &traces(i) 5 S-traces(s) 
+
+--- Page 22 ---
+70 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+Proof of Proposition 6.2. (only if) Let CT E traces(i), and define ufl E ZO’TS( LU, L,), such that 3u’ 
+u, % u’, then 
+i& and u,%u’ 
+implies u, [I i 4 
+implies (T E obs’( unr i) 
+implies (* premiss, Definition 6.1 *) 
+u E obs’( uv, s) 
+implies u, 11 s A 
+implies s& 
+implies (T f truces{ s) 
+Let u E S-traces(i), and define u, as above, with additionally init( u’) = Lu, then 
+i after (T refuses La and 3u’ : u, % u’ and init( u’) = Lu 
+implies (Zli’:i&i’andVxEL~:i’&) and( 3’: u,&u’and’v’uE L,:u’&) 
+implies 3i’, u’ : u,)/i%u’j/i’ and ‘V’UE L: u’/)i’=& 
+implies u,, 11 i after CT deadlocks 
+implies CT E obs( uU, i) 
+implies (* premiss, Definition 6.1 *) 
+u E obs(u,, s) 
+implies u,, I[ s after u deadlocks 
+implies 3u’,s’: u,,~~s~u’Ijs and VCZE L: u’ils’& 
+implies (* u E ZOIS(LU, L,), so u’& for all x E LU *> 
+3s’:s=%s’andVxEL”:s’g 
+implies s after (T refuses Lu 
+implies u E &traces (8) 
+(ifi Let u EZO’TS(LV,L,), UE obs(u,i), then 
+implies 
+implies 
+implies 
+implies 
+implies 
+implies 
+implies 
+implies 
+implies 
+implies u 11 i after u deadlocks 
+3u’, i’ : uIIi&u’/i’andVuE L: u’)Ii’& 
+(* u’ cannot refuse outputs; i’ cannot refuse inputs *) 
+3u’,i’ : u & u’ and i % i’ and init( u’) = Lu and init( i’) = L, 
+3u’ : u & u’ and init( u’) = LIJ and i after u refuses Lu 
+3u’ : u & u’ and init( u’) = L” and u E 6-truces(i) 
+(* premiss *) 
+3u’ : u & u’ and init( u’) = Lu and u E S-truces(s) 
+3u’ : u &. u’ and init( u’) = LU and s after u refuses LU 
+3u’:u~u’andinit(u’)=L~and3s’:s~s’andVxEL~:s’~ 
+3u’, s’ : u)Is&~‘((s’andVu~ L: u’lls’& 
+u II s after u deadlocks 
+u E obs(u, s) 
+Let u E ZU’TS(LU, L,), u E obs’(u,i), then 
+
+--- Page 23 ---
+J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 71 
+implies u & and i& 
+implies u& and CT E truces(i) 
+implies (* premiss *) 
+u & and cr E traces(s) 
+implies u 5 and s& 
+implies 11 \j s 4 
+implies 0. E obs’(u, s) El 
+Proposition 6.5. 
+(1) truces(p) = traces(A,) r-7 L* 
+(2) S-trucc~s(p) = { u E L* 1 u.6 E truces(A,,) } 
+(3) A, is deterministic. 
+(4) ‘~“a E truces(A,) II L*, 3x E &,t U (8) : ( Ap after a) 5 
+Proof of Proposition 6.5. 
+( 1) Without the additional &transitions (the second term of Ts in Definition 6.3), p and the trace automaton 
+of p accept the same language, i.e., have the same traces in L*. This is easily proved by induction on 
+the length of the traces 1281. 
+(2) By adding the transitions q -% stop the set of traces of Ap is extended with exactly the traces a.S, such 
+that A, 5 q, where there is s E q, such that tlx E L~J : s 4, which corresponds to SO & s & , so CT 
+is an output-suspension trace. 
+(3) Without the additional &transitions, the trace automaton of p is deterministic [ 281. The addition of the 
+S-transitions cannot violate determinism, since S # L, U Lu, and from any state of A,, there is at most 
+one S-transition. 
+(4) By construction of A, (Definition 6.3) : either 3x E L” : ( A,, aftercr ) -5, or a transition ( A, aftera ) 
+&stop is added. ! 
+Theorem 6.6. Let i E ZOIS(LI, L,), s E C’TS(Lj U Lu), then i <i”, s iff Ai sl, A,. 
+Proof of Theorem 6.6. Directly from Propositions 6.2, 6.5( I), and 6.5( 2). 0 
+Proposition 6,9. A; Fir As iff V’a E L* : out( A; after cr > 2 out( A, after u) 
+Proof of Proposition 6.9. (only if, Let CJ E L*, x E out( Ai after CT ) 5 Lu U {a}, then 
+AiA(Aiaftera)A 
+implies CT.X E traces(Ai) 
+implies (:k premiss * ) 
+u.x E truces( As) 
+implies x E out( As after pi ) 
+(if) Let CT E: truces(Ai), and distinguish between (T E L* and CT = a’.6 with (T’ E L*, then 
+UE L’: 
+
+--- Page 24 ---
+72 J. Tretmans/Computer Networkr and ISDN Sysiems 29 (1996) 49-79 
+implies (* Proposition 6.5(4) and Definition 6.8 *) 
+out( Ai after u ) # 8 
+implies (* premiss *) 
+out( A$ after u ) f 8 
+implies 3x E Lu U {S} : A,Y * ( As after u ) -5 
+implies (T E truces( A,) 
+I Ai ti 
+implies 6 E out( Ai after u’ ) 
+implies (* premiss *) 
+S E out( As after u’ > 
+implies A, 0) ( As after u’ > 3 
+implies a’.6 E traces(A,) Cl 
+Proposition 6.12. On ZUTS( Lr, Lu): <iot = ioconf 
+Proof of Proposition 6.12. Using Theorem 6.6, Proposition 6.9, and Definition 6.10, the C-part is trivial. For 
+the >-part, let (T E L* and x E out( Ai after (T ). If (7 E truces(A,) n L* also this part is trivial, so consider 
+cr E L*\truces(A,) and prove by contradiction, i.e., prove: 
+30- E L*\traces(A,) : out( Ai after u ) g out( As after u ) 
+implies 3u E truces(A,) n L* : out( Ai after u ) g out( As after u ) 
+This is done as follows: 
+3u E L*, u $! traces(A,), 3x E out( Aiafteru) : x 6 out( A,afteru) 
+implies (* u # truces(A,), so there is a longest prefix u] of u which is in truces(A,); 
+y E Lu, since s c Z07S( L,, Lu), so input actions are always possible *) 
+3~1, u2 E L”, y E LU : u = ui +y.uz and (~1 E traces(A,) and 
+u1.y $! truce.s(A,) and ut*y E traces(Ai) 
+implies 3ut E truces(A,) fl L*, y E Lu : y $! out( As after u, ) and y E aut( Ai after al ) 0 
+A.2. Proofs of Section 7 (Testing input-output transition systems) 
+Algorithm 2 and Theorem 7.3 of Section 7 are generalized for the implementation relation ioconfF (Eq. (6.1) 
+in Section 6): 
+i ioconf3 s =&f VU E F : out( Ai after u ) c out( A, after u ) 
+so that the algorithm can also be used for other implementation relations that can be expressed as ioconf3 for 
+some F, such as &, asco, aconf, . . . . Taking 3 = traces(s) Theorem 7.3 follows directly from Corollaries A.4 
+and A.7. 
+Definition A.l. Let F C L* and a E L, then F after a =&f {u E L* 1 a.u E F}. 
+Algorithm 3. Let A be the S-trace automaton of a specification, and let 3 C L”, then a test case t E 
+ZOIS,( Lu, L, ) is obtained by a finite number of recursive applications of one of the following three nonde- 
+terministic choices: 
+
+--- Page 25 ---
+J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 13 
+1. (* termmate the test case *) 
+t := stop ; 
+v(t) := pass ; 
+2. (* give a next input to the implementation *) 
+t := a . t t’ ; 
+v(t) := pass ; 
+where a E LI, such that F after a # 0, and t’ is obtained by recursively applying the algorithm for 
+F after .a and h’, with ~5 -% A’. 
+3. (* check the next output of the implementation *) 
+t :=X(x; stop 1 n E Lu, x $ out(A) } q I: { x ; t, 1 x E Lu, x E out(A) } ; 
+v(t) := if (S E out(A) or E $ 3) then pass else fail ; 
+where v(stop) := if E E 7 then fail else pass for all x in the first operand, and t, is obtained by 
+recursively applying the algorithm for F after x and A’, with A -5 A’. 
+Lemma A.2. Test suite T C ZOIS,( L”, L,) is sound for s E f?TS( L, U Lu) with respect to ioconf7, if 
+‘dt E T, ‘d’a E traces(t) : v ( t after u ) = fail implies 
+t ( 3~’ E 3, 3x E L” : IJ = v’.x atzd 
+x 6 out( As after CT’ ) ) 
+or ( CT E 3 and 
+S $c! out( A,v after a) and 
+out( As after (T ) C init( t after u ) ) 1 
+Proof of Lemma A.2. By contraposition: 
+T is not sound for s with respect to ioconfF 
+implies (* Definition 3.4 *) 
+3i E ZO’TS( L,, Lu) : i ioconfF s and i fails T 
+implies (c Definition 3.2 *) 
+3i E ZO’TS( L,, L”) : i ioconf3 s and 
+3t E T, 3~ E L* : t 11 i after CT deadlocks and v ( t after CT ) = fail 
+implies ( c Definition 4.4 *) 
+3i E ZOlS( LI, Lu) : i ioconf3 s and 
+3t E T,3cr E L*,X,i’: tI/i&t’IIi’and ‘daE L: t’I/i’& and 
+v( taftera) =fail 
+implies (:c II in Definition 2.4, Definitions 5.1 and 7.1 *) 
+3 E 207S( LI , LU ) : i ioconf3 s and 
+3 E r 3u E L*, 3t’, i’ : t&-t’ and i&i’ and 
+( init( t’) = 8 or ( init( t’) = Lu and init = LI ) ) and 
+v ( t after (+ ) = fail 
+implies ( :I: rewrite and reorder *) 
+31’ E Zc37S( LI, L”) : i ioconf3 s and 
+3 E T 3ff E truces(t) : Y( t after (+ ) = fail and 
+( ( 3’ : iai’ and init( tafterr) =8) or ( 3i’:isi’ and init =L, ) ) anrj 
+(Vu’E3,VxELu: u=u’.x implies i% ) 
+
+--- Page 26 ---
+14 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+implies (* definition iocone (6.1), Propositions 6.5( 1), 6.5( 2), and 6.5(4) *) 
+ZliEZCUS(LI,Lv): Vu~F:oout(A~afteru) cout(A,vafteru) and 
+3 E T, 3a E traces(t) : v ( t after u ) = fail and 
+( ( out( hi after a) f 0 and init( t after a) = 0 ) or 6 E out( Ai after a) ) and 
+( Vu’ E 3,Vx E Lu : (T = u’.x implies x E out( hi after u’ ) ) 
+implies ( * rewrite using the first line *) 
+3 E T, 3u E traces(t) : v ( t after u ) = fail and 
+( u E F implies 
+( ( out( AS after u ) # 0 and init( t after a) = 8 ) or 6 E out( A, after u ) ) ) and 
+( Vu’ E F,V’x E LU : u.=u’.x implies x E out( A,afteru’) ) 
+implies (* reorder *> 
+3t E T, 3u E traces(t) : v( t after u ) = fail and 
+( ( Vu’EF, VxE L”: u=u’.x implies 
+x E out( AS after u’ > ) 
+and (u $8 F or 
+6 E out( AS after u) or 
+out( A, after u ) e init( r after u ) ) ) 0 
+Lemma A.3. Let A be a &race automaton, F C L’, and let t be a test case generated with Algorithm 3, 
+then 
+Vu E traces(t) : v( t after u > = fail implies 
+( (3u’~.F, 3x~L”: u=u’,xand 
+x 4 or&( A after u’ ) ) 
+or ( u E .F and 
+6 $ out( A after a) and 
+ouT( A after u ) c init( t after u ) ) 1 
+Proof of Lemma A.3. By induction on the structure of t: 
+l Let t = stop and y(t) = pass, then the lemma is trivially fulfilled. 
+l Let t = a; t’ and v(t) = pass, with a E L,, and t’ generated from F after a and A’, A % A’, and let 
+u E truce,s ( r) and v ( t after u ) = fail, then it follows that u = a. u’ (u’ E L*) , u’ E traces ( t’) , and 
+I/ ( t’ after u’ ) = fail. 
+According to the induction hypothesis the lemma can be assumed to hold for A’, Faftera , and t’, hence 
+( ~U”E 3aftera, 3x~L~~:u’=u”.x and x$kout(A’afteru”) ) 
+or ( u’ E Fafter a and 6 $! out( A’ after u’ ) and out( A’ after u’ ) & init( t’ after u’ ) ) 
+If the first operand of the disjunction holds, then it follows directly from Definition A.1 that a.u” E F 
+and u = a.u’ = a.8.x and x fj! oul( A after a.&’ ). 
+If the second operand of the disjunction holds, then it follows directly from Definition A.1 that a.u’ E F 
+and S +! out( A after a-u’ ), and moreover: 
+out( A after a.(~’ ) = out( A’ after u’ ) C_ init( t’ after u’ ) = init( t after a.u’ ). 
+l Lett=Z{x ; stop ) x f L”, x +! out(A) } Cl Z { x ; tx ( x E Lu, x E out(A) ) with v(t) = if 
+(F E out(A) or E $! .F) then pass else fail, v(stop) = if E E F then fail else pass for all x in the first 
+operand, and tx is generated from .F after x and A’, with A -fi A’. 
+Let u E traces(t) and v( t after u ) = fail, then u = E or u = y .u’ (u’ E L*, y E Lu). Distinguish for 
+the latter between y E out(A) and y $! out(A): 
+u=~:Fromv(tafteru)=v(t)=failwehave6$out(A) andEEF,andsinceinit(t)=Luwehave 
+out( A after u ) = out(A) C init( t) = init( I after u ). 
+
+--- Page 27 ---
+J, Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 75 
+(T = y.u’, y E out(A): According to the induction hypothesis the lemma can be assumed to hold for A’, 
+3 after y , and t,, and moreover u’ E traces( t?) and v( tY after u’ ) = fail, hence 
+( 3~” E Faftery , 3x E Lu : (+I = #.x and x 4 out( A’afterv”)) 
+or ( CT’ E F after y and 8 $ out( A’ after CT’ ) and out( A’ after (T’ ) C init( t, after v’ ) ) 
+If the first operand of the disjunction holds, then it follows directly from Definition A.1 that y. U” E 
+Fandor=y.a’=y.a”.x andx$out(Aaftery.a”). 
+If the second operand of the disjunction holds, then it follows directly from Definition A.1 that y.c+’ E .F 
+and 6 $2 out( A after y.a’ ), and moreover: 
+out( A after y-a’ ) = out( A’ after u’ ) C in&( t, after CT’ ) = init( t after y.g’ ). 
+(7 = YYY’, y $ out(A): It follows that t -S stop and (+I = E, and hence from v( t, after u’ ) = v( rY) = fail 
+that&E~,s~~=y.(+‘=y=&.y,andy~out(A)=out(Aafter(T’). 0 
+Corollary A.4. A test case obtainedfrom A, and 3 with Algorithm 3 is soundfor s with respect to ioconfF. 
+Proof of Corollary A.4. Directly from Lemmas A.2 and A.3. 0 
+Definition A.!;. Let A be a S-trace automaton, and (+ E L*, then the test case t[A,rr] E ZOIS,( Lu, L,) is 
+defined by 
+tlA,El =dej z { x ; stop 1 x E Lu } 
+where V( tlA,E]) := if 8 E out(A) then pass else fail 
+and for each branch x; stop : 
+v(stop) := if x E out(A) then pass else fail 
+t[A.,.,l (a E LI) =dej a ; t[ A aftera ,d 
+where V( t,a,,.,] ) := pass 
+t[A,yrrj (y E ‘%I) =d<f c { x ; stop 1 x E LU, x + Y } 0 Y ; tl A aftery,o] 
+where v( t[A,p,q] ) := pass 
+and for each branch x; stop : v( stop) := pass 
+Lemma A.6 
+( 1 ) t[A,v] -% t[ A aftercr .c]. 
+(2) h?t 3 := {a}, then t[ A,V] can be obtained with Algorithm 3. 
+(3) The test case ~FA,,~~ is exhaustive for s with respect to ioconf{,,). 
+(4) The test suite { t[A,y,gl 1 CT E 3 } is exhaustive for s with respect to ioconf3. 
+Proof of Lemma A.6. 
+(1) By induction on the length of (T: 
+g = E: Trivial. 
+u = u’d,a E LI: tl&&] = u ; t[ Aafteru,o’] A 
+t[ Aanera,C’] d (* induction *) 
+t[(Aaftero)afterd,el =t[Aafkerrr.~] 
+(+ = yd, y E L”: t[A,y.,J] = I; { x ; Stop 1 x E LUvX f Y } q Y i f[Aaftery,d] L 
+t( A afterY ,+] -6 (* induction *> 
+f[(Aafterg)after~‘,~] =t[Aaftercr,~] 
+
+--- Page 28 ---
+76 J. Tretmans/Cnmputer Networks and ISDN Systems 29 (1996) 49-79 
+(2) By induction on the structure of t[ ~,a] : 
+t[&]: Apply the third choice of Algorithm 3, and apply for each t, the first choice. 
+t[ A&.a] : Apply the second choice of Algorithm 3, and repeat the algorithm for t[ A anera ,@, . 
+t[A,#,] : Apply the third choice of Algorithm 3, apply for each fX with x # y the first choice, and repeat 
+the algorithm for t[ A after y ,uj. 
+(3) To be proved (Definitions 3.4, 3.2, and (6.1)): i passes t[~,,~] implies i ioconf{,) S, i.e., 
+vlp E L* : (t[A,& 11 i) after p deadlocks implies v( t[A& after p > = pass 
+implies out( Ai after g > C out( AS after B ) 
+Let x E out( Ai after CT ), and distinguish between x E LIJ and x = 8, then 
+x E Lu: 
+cr.* Ai- 
+implies ( * Proposition 6.5 ( I ) *) 
+3i’, i” : i ~ i’ ; i” 
+implies ( * Lemma A.6( 1) *) 
+t[A,,cr] IIi~t[Asafteru,&] IIi’ASfoPiii” 
+implies (* Definition 4.4 *) 
+(t[A& 11 i) after (+ . x deadlocks 
+implies (* premiss *) 
+v( t[As,c] after (T’x ) = pass 
+implies ( * t[ A,,C] after (T’x = t[ A, &ru,E] after x = stop, 
+verdict assignment for stop in Definition A.5 *> 
+x E out( As after a) 
+implies (* Proposition 6.5( 2) *) 
+32 : i&i’ and V.xEL”:i’$ 
+implies (* Lemma A.6( 1) and init(t[ 8, aftercr,Ej) = Lu *) a 
+3i’ : t[Ld 11 ia t[ A., afteru.4 iI i’ ad vu E L : t[ A. ara ,&I II i’+ 
+implies (* Definition 4.4 *) 
+( t[A,,o] 11 i) after (T deadlocks 
+implies (* premiss *> 
+v( qA,,,] afteru) = pass 
+implies (* verdict assignment for ( tlAs,nj after u) = t[ Aafterm,E] *) 
+S E out( A, after c> 
+(4) Immediately from Lemma A.6( 3). 0 
+Corollary A.7. The set containing all possible test cases that can be obtained with Algorithm 3 is exhaustive 
+for s with respect to ioconfF. 
+Proof of Corollary A.7. Immediately from Lemma A.6(4), together with Lemma A.6( 2)) and the fact that 
+for two test suites Tl and T2, if T, G T2 and Tj is exhaustive, then T2 is exhaustive, which follows directly from 
+Definitions 3.4 and 3.2. [I3 
+
+--- Page 29 ---
+[ 201 R. De Nicola, Extensional equivalences for transition systems, Acta Inform. 24 ( 1987) 2 I l-237. 
+[ 211 R. De Nicola and M. Hennessy, Testing equivalences for processes, Theoret. Comput. Sci. 34 ( 1984) 83- 133. 
+[22] R. De Nicola and R. Segala, A process algebraic view of input/output automata, Theoret. Comput. Sci. 138 ( 1995) 391-423. 
+123 ] H. Eertink, The implementation of a test derivation algorithm, Memorandum INF-87-36, University of Twente, The Netherlands, 
+1987. 
+r24 .J S. Fujiwara and G. von Bochmann, Testing non-deterministic finite state machines, in: J. Kroon, R. J. Heijink and E. Brinksma. cds., 
+Proc. 4th Internut. Workshop on Protocol Test Systems, IFIP Tmnsactions C-3 (North-Holland, Amsterdam, 1992); extended abstract 
+of Tech. Rept. 758, Universite de Montreal, Canada, 1991. 
+[25 ] R.J. van Glabbeek, The linear time - Branching time spectrum, in: J.C.M. Baeten and J.W. Klop, eds., Proc. CONCUR’90 Lecture 
+Notes in Computer Science 458 (Springer, Berlin, 1990) 278-297. 
+[ 261 R.J. van Glabbeek, The linear time - Branching time spectrum II (The semantics of sequential systems with silent moves), in: E. 
+Best and U. Goltz, eds., proc. CONCLIR’93, Lecture Notes in Computer Science (Springer, Berlin, 1993). 
+1271 C.A.R. Hoare, Communicating Sequenfial Processes (Prentice-Hall, Englewood Cliffs, NJ, 1985). 
+[28] J.E. Hopcrofl: and J.D. Ullman, Introduction ,to Automata Theory Languages and Computation (Addison-Wesley, Reading, MA, 
+1979). J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 77 
+References 
+[ I ] S. Abramsky, Observational equivalence as a testing equivalence, Theoret. Comput. Sci. 53 (3) ( 1987) 225-241. 
+[ 21 L. Aceto, Action Refinement in Process Algebras (Cambridge University Press, Cambridge, MA, 1992). 
+131 J. Alilovic-Curgus and ST. Vuong, A metric based theory of test selection and coverage, in: A. Danthine, G. Leduc and P. Wolper, 
+eds., Protocol Specijication. Testing and Ver@cation XIII (North-Holland, Amsterdam, 1993). 
+[4] R. Alderden, COOPER, the compositional construction of a canonical tester, in: S.T. Vuong, ed., FORTE’89 (North-Holland, 
+Amsterdam 1990) 13- 17. 
+151 E. Brinksma, R. Alderden, R. Lange&, J. van de Lagemaat and J. Tretmans, A formal approach to conformance testing, in: J. 
+de Meer, L. Mackett and W. Effelsberg, eds., Proc. 2nd Internat. Workshop on Protocol Test Systems (North-Holland, Amsterdam, 
+1990) 349-363; also: Memorandum INF-89-45, University of Twente, The Netherlands. 
+[ 61 T. Bolognesi and E. Brinksma, Introduction to the IS0 specification language LOTOS, Conzput. Networks ISDN Sy.stem.s 14 ( 1987) 
+25-59. 
+[7] G. von Bochmann, A. Das, R. Dssouli, M. Dubuc, A. Ghedamsi and G. Luo, Fault models in testing, in: J. Kroon, R. J. Heijink 
+and E. Brinksma, eds., Proc. 4th Internat. Workshop on Protocol Test Systems, IFIP Transactions C-3 (North-Holland, Amsterdam, 
+1992) 17-30. 
+[ 81 G. Bemot, Testing against formal specifications: A theoretical view, in: S. Abramsky and T.S.E. Maibaum, eds., TAPSOFT’91. KII. 
+2, Lecture Notes in Computer Science 494 (Springer, Berlin, 1991) 99-119. 
+] 9 ] J.A. Berg&a and J.W. Klop, Algebra of communicating processes with abstraction, Theoret. Comput. Sci. 37 (I ) ( 1985) 77-121. 
+1 IO] E. Brinksma., On the existence of canonical testers, Memorandum INF-87-5, University of Twente, Enschede, The Netherlands, 1987. 
+[ I I ] E. Brinksma, A theory for the derivation of tests, in: S. Aggarwal and K. Sabnani, eds., Protocol Specification, Testing and Verifzcation 
+VIII (North..Holland, Amsterdam, 1988) 63-74; also: Memorandum INF-88-19, University of Twente, The Netherlands. 
+[ 121 E. Brinksma, A. Rensink and W. Vogler, Fair testing, in: proc. CONCUR’95, Lecture Notes in Computer Science (Springer, Berlin, 
+1995). 
+[ I3 J E. Brinksma., Cl. Scollo and C. Steenbergen, LOTOS specifications, their implementations and their tests, in: G. van Bochmann and 
+B. Sarikaya, eds., Protocol SpectJication, Testing and Ver@xtion VI (North-Holland, Amsterdam, 1987) 349-360. 
+[ 141 E. Brinksma, J. Tretmans and L. Verhaard, A framework for test selection, in: B. Jonsson, J. Parrow and B. Pehrson, eds.. Protocol 
+Specihcation, Testing and Verification XI (North-Holland, Amsterdam, 199 I ) 233-248; also: Memorandum INF-9 l-54, University of 
+Twente, The Netherlands. 
+[ I5 ] B.S. Bosik and M.U. Uyar, Finite state machine based formal methods in protocol conformance testing: From theory to implementation, 
+Comput. Networks ISDN Systems 22 (I) (1991) 7-33. 
+[ 16) J.C.M. Baeten and W.P. Weijland, Process Algebra, Cambridge Tracts in Theoretical Computer Science I8 (Cambridge University 
+Press. Cambridge, MA, 1990). 
+] 17 ] CCITT, Specijication and Description Language (SDL), Recommendation Z. 100. ITU-T General Secretariat, Geneve, Switzerland, 
+1992. 
+[ 181 I. Christoff, Testing equivalences and fully abstract models for probabilistic processes, in: J.C.M. Baeten and J.W. Klop, eds.. Proc. 
+CONCfJR’911, Lecture Notes in Computer Science 458 (Springer, Berlin, 1990) l26- 140. 
+[ 191 K. Drira, P. Azema and E Vemadat, Refusal graphs for conformance tester generation and simplification: A computational framework, 
+in: A. Danthine, G. Leduc and I? Wolper, eds., Protocol Specification, Testing and Verification XIII, IFIP Transactions C- 16 (North- 
+Holland, Amsterdam, 1993). 
+[ 291 ISO, Information Processing Systems. Open Systems Interconnection, Estelle - A Formal Description Technique Based on an Extended 
+State Transition Model, International Standard 18-9074. ISO, 1989. 
+
+--- Page 30 ---
+78 J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 
+[ 301 ISO, Information Processing Systems, Open Systems Interconnection, LOTOS - A Formal Description Technique Based on the Temporal 
+Ordering of Observational Behaviour, International Standard 18-8807, ISO, 1989. 
+[31] ISO/IEC JTCIlSC21 WG7, ITU-T SG lO/Q.8, Information Retrieval, Transfer and Management for OSI; Framework: Formal 
+Methods in Conformance Testing, Committee Draft CD 13245-1, ITU-T proposed recommendation 2.500, ISO-ITU-T, Geneva, 1996. 
+[ 321 R. Langerak, A testing theory for LOTOS using deadlock detection, in: E. Brinksma, G. Scollo and CA. Vissers, eds., Protocol 
+Specijcation, Testing and Verification IX (North-Holland, Amsterdam, 1990) 87-98. 
+[33] G. Leduc, A framework based on implementation relations for implementing LOTOS specifications, Comput. Networks ISDN Systems 
+25 (1) (1992) 23-41. 
+1341 G. Leduc, Failure-based congruences, unfair divergences and new testing theory, in: S.T. Vuong and ST. Chanson, eds., Protocol 
+Specification, Testing and VeriJcation XIV (Chapman and Hall, London, 1995) 252-267. 
+] 351 K.G. Larsen and A. Skou, Bisimulation through probabilistic testing, in: Proc. of Principles of Programming Languages 16 (ACM, 
+New York, 1989). 
+1361 N. Lynch and M. Tuttle, Hierarchical correctness proofs for distributed algorithms, in: Proc. 6th Ann. ACM Symp. on Principles of 
+Distributed Computing ( 1987) 137-15 1; also: Tech. Rept. MIT/LCS/TM-387, Massachusetts Institute of Technology, Cambridge. 
+MA, 1987. 
+[37] N.A. Lynch and M.R. Tuttle, An introduction to input/output automata, CWI Quarterly 2 (3) (1989); also: Tech. Rept. 
+MITILCSITM-373 (TM-351 revised), Massachusetts Institute of Technology, Cambridge, MA, 1988. 
+[ 381 R. Milner, A Catcutus of Communicating Systems, Lecture Notes in Computer Science 92 (Springer, Berlin, 1980). 
+[39] R. Milner, Communication and Concurrency (Prentice-Hall, Englewood Cliffs, NJ, 1989). 
+[ 401 V. Natarajan and R. Cleaveland, Divergence and fair testing, in: Proc. 22th Internat. Coil. on Automata, Languages and Programming 
+(ICALP’95), Lecture Notes in Computer Science (Springer, Berlin, 1995). 
+[41] D. Park, Concurrency and automata on infinite sequences, in: P Deussen, ed., Proc. 5th GI Con& , Lecture Notes in Computer 
+Science 104 (Springer, Berlin, 1981) 167-183. 
+[42] D.H. Pitt and D. Freestone, The derivation of conformance tests from LOTOS specifications, IEEE Trans. Software Engineering 16 
+(12) (1990) 1337-1343. 
+(431 M. Phalippou, Relations d’lmplantation et Hypotheses de Test sur des Automates a Entrees et Sorties, Ph.D. Thesis, L’Universite de 
+Bordeaux I, France, 1994. 
+[44] M. Phalippou, Abstract testing and concrete testers, in: S.T. Vuong and S.T. Chanson, eds., Protocol Spec$cation, Testing and 
+Ver@ation XIV, 1FIP (Chapman and Hall, London, 1995) 221-236. 
+[45] 1. Phillips, Refusal testing, Theoret. Comput. Sci. 50 (2) (1987) 241-284. 
+[46] R. Segala, Quiescence, fairness, testing and the notion of implementation (extended abstract), in: E. Best, ed., Proc. CONCVR’93, 
+Lecture Notes in Computer Science 7 15 (Springer, Berlin, 1993) 324-338. 
+[47] Q.M. Tan, A. Petrenko and G. von Bochmann, Modeling Basic LOTOS by FSMs for conformance testing, in: P Dembiliski and M. 
+Sredniawa, eds., Protocol Specification, Testing and Verification XV (Chapman & Hall, London, 1996) 137-152. 
+[48] J. Tretmans, Test case derivation from LOTOS specifications, in: S.T. Vuong, ed., Proc. FORTE’89 (North-Holland, Amsterdam, 
+1990) 345-359; also: Memorandum INF-90-21, University of Twente, The Netherlands. 
+1491 J. Tretmans, A formal approach to conformance testing, Ph.D. Thesis, University of Twente, The Netherlands, 1992. 
+[SO] J. Tretmans, A formal approach to conformance testing, in: 0. Rafiq, ed., Proc. 6th Internat. Workshop on Protocol Test Systems, 
+IFIP Transactions C-19 (North-Holland, Amsterdam, 1994) 257-276. 
+[51] J. Tretmans and L. Verhaard, A queue mode1 relating synchronous and asynchronous communication, in: R.J. Linn and M.U. 
+Uyar. eds., Protocol Specification, Testing and Verijcation XII, IFIP Transactions C-8 (North-Holland, Amsterdam, 1992) 131-145; 
+Extended abstract of Memorandum INF-92-04, University of ‘Bvente, Enschede, The Netherlands, 1992 and Internal Rept., TFL RR 
+1992-1, TFL, Hersholm, Denmark. 
+]52] F. Vaandrager, On the relationship between process algebra and input/output automata, in: Proc. 6th Ann. IEEE Symp. on Logic in 
+Computer Science (IEEE Computer Society Press, New York, 1991) 387-398. 
+1531 L. Verhaard, J. Tretmans, P. Kars and E. Brinksma, On asynchronous testing, in: G. von Bochmann, R. Dssouli and A. Das, eds., 
+Proc. 5th Internat. Workshop on Protocol Test Systems, IFIP Transactions (North-Holland, Amsterdam, 1993); also: Memorandum 
+INF-93-03, University of Twente, The Netherlands. 
+[54] C.D. Wezeman, The CO-OP method for compositional derivation of conformance testers, in: E. Brinksma, G. Scollo and C. A. 
+Vissers, eds., Protocol Specification, Testing and Verification IX (North-Holland, Amsterdam, 1990) 14% 158. 
+
+--- Page 31 ---
+J. Tretmans/Computer Networks and ISDN Systems 29 (1996) 49-79 79 
+Jan ‘INmans studied electrical engineering at the University of Twente, the Netherlands, where he graduated 
+in 1986. He was a research assistant at that same university from 1986 till 1992, and he received his Ph.D. 
+in computer science in 1992 with a dissertation on “A Formal Approach to Conformance Testing”. During 
+1993 and 1994 he was an ERCIM fellow, visiting different ERCIM research laboratories (European Research 
+Consortium for Informatics and Mathematics). In 1995 he returned to the University of Twente as a research 
+associate. He participated in different European ESPRIT and RACE projects. He worked on tools for the formal 
+description technique LOTOS, he contributed to the IS0 standardization group on LOTOS, and he contributed 
+to the ISO/ITU-T standardization group on “Formal Methods in Conformance Testing”. His research interests 
+include formal description techniques, verification, and conformance testing based on formal methods. 
+

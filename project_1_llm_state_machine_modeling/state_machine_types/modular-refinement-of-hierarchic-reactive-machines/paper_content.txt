@@ -1,0 +1,687 @@
+--- Page 1 ---
+Mo dular Re/nemen t of Hierarc hic Reactiv e Mac hinesRa jeev Alur Radu GrosuDepartmen t of Computer and Information ScienceUniv ersit y of P ennsylv aniaemail/: alur/,grosu/@cis/.upenn/.ed uURL/: www/.cis/.upenn/.edu///~alur /,gro suAbstractScalable formal analysis of reactiv e programs demands in te/-gration of mo dular reasoning tec hniques with existing anal/-ysis to ols/. Principles suc h as abstraction/, comp ositional re/-/nemen t/, and assume/-guaran tee reasoning are w ell under/-sto o d for arc hitectural hierarc h y that describ es the comm u/-nication structure b et w een comp onen t pro cesses/, and ha v eb een sho wn to b e useful/. In this pap er/, w e dev elop thetheory of mo dular reasoning for b ehavior hier ar chy that de/-scrib es con trol structure using hierarc hic mo des/. F rom St a t/-echar ts to UML /, b eha vior hierarc h y has b een an in tegralcomp onen t of man y soft w are design languages/, but only syn/-tactically /. W e presen t the hier ar chic r e active mo dules lan/-guage that retains p o w erful features suc h as nested mo des/,mo de reuse/, exceptions/, group transitions/, history /, and con/-junctiv e mo des/, and y et has a semantic notion of mo de hi/-erarc h y /. W e presen t an observ ational trace seman tics formo des that pro vides the basis for mo de re/nemen t/. W esho w the re/nemen t to b e comp ositional with resp ect to themo de constructors/, and dev elop an assume/-guaran tee rea/-soning principle/./1 In tro ductionThe complexit y and subtlet y of programming reactiv e sys/-tems/, suc h as telecomm unications and a vionics soft w are/, de/-mands increased design automation and e/ectiv e debuggingto ols/. Recen t adv ances in formal v eri/cation ha v e led top o w erful design to ols for hardw are /(see /[CK/9/6 /] for a sur/-v ey/)/, and subsequen tly /, ha v e brough t a lot of hop e of theirapplication to reactiv e programming/. The most successfulv eri/cation tec hnique has b een mo del che cking /[CE/8/1 /]/. Inmo del c hec king/, the system is describ ed b y a state/-mac hinemo del/, and is analyzed b y an algorithm that explores thereac hable state/-space of the mo del/. The state/-of/-the/-artmo del c hec k ers /(e/.g/. Spin /[Hol/9/7 /] and Smv /[McM/9/3 /]/) em/-plo y a v ariet y of heuristics for e/cien t searc h/, but are t yp/-ically unable to analyze mo dels with more than h undredstate v ariables/. Consequen tly /, application of formal v eri/-/cation requires augmen ting mo del c hec king with mo dular
+r e asoning that allo ws decomp osition of the analysis problemin to smaller subproblems/, or abstracting a comp onen t in toa simpler one/. T ypically /, suc h simpli/cation is done man/-ually /, and requires considerable exp ertise/. Muc h of to da y/'sresearc h in formal v eri/cation aims to dev elop tec hniques toautomate suc h mo dular reasoning/.T o b e able to exploit the design structure e/ectiv ely formo dular reasoning/, the mo deling language m ust supp ortsyn tactically as w ell as seman tically mo dular constructs/.While mo dern programming languages o/er a ric h set ofmo dular constructs /(e/.g/. pro cedures/, ob jects/)/, the standardmo del c hec k ers assume the mo del to b e a state/-transitiongraph /(or a Kripk e structure/) with no structure/. Our /rstattempt to enric h the mo deling language resulted in thede/nition of r e active mo dules /[AH/9/9 /]/. In this language/,an atomic mo dule is a state/-mac hine whose v ariables areexplicitly partitioned in to input/, output/, and priv ate v ari/-ables/. The op erations of parallel comp osition/, instan tiation/,and v ariable hiding allo w building complex mo dules fromatomic ones/. The denotational seman tics of eac h mo duleconsists of its input and output v ariables/, together with theset of its traces/, whic h captures the observ able in teractionof a mo dule with its en vironmen t/. The notion of r e/ne/-ment b et w een t w o mo dules is based on inclusion of traces/,and pro vides the basis for abstraction/. The re/nemen t rela/-tion is comp ositional with resp ect to the mo dule op erations/.Th us/, to sho w that the comp osite mo dule P/1
+k P/2
+re/nes themo dule Q/1
+k Q/2
+/, it su/ces to establish that P/1
+re/nes Q/1and P/2
+re/nes Q/2
+/. While the comp ositional pro of rule de/-comp oses the v eri/cation task of pro ving implemen tationb et w een comp ound mo dules in to subtasks/, it ma y not al/-w a ys b e applicable/. In particular/, P/1
+ma y not implemen tQ/1
+for all en vironmen ts/, but only if the en vironmen t b e/-ha v es lik e P/2
+/, and vice v ersa/. F or suc h cases/, w e m ust em/-plo y the assume/-guar ante e pr o of rule whic h asserts that inorder to pro v e that P/1
+k P/2
+implemen ts Q/1
+k Q/2
+/, it su/cesto pro v e /(/1/) P/1
+k Q/2
+implemen ts Q/1
+/, and /(/2/) Q/1
+k P/2
+imple/-men ts Q/2
+/. The language of reactiv e mo dules/, along withthe assume/-guaran tee re/nemen t c hec k er/, is supp orted b ythe mo del c hec k er Mocha /[AHM
+/+/9/8 /]/, and the utilit y ofthe assume/-guaran tee reasoning has b een demonstrated inanalysis of a video/-graphics image pro cessor /[HQR/9/8/]/. Thenotion of comp ositional re/nemen t based on observ able b e/-ha viors is cen tral to man y concurrency formalisms suc h asCCS /[Mil/8/0 /]/, I//O automata /[L T/8/7 /]/, TLA /[Lam/9/1/]/, but thecircular assume/-guaran tee reasoning /[Sta/8/5 /, GL/9/4 /, AL/9/5/,AH/9/9/, McM/9/7 /] is v alid only when the in teraction of a mo d/-ule with its en vironmen t is non/-blo c king/.While the reactiv e mo dules language supp orts ar chite c/-
+
+--- Page 2 ---
+tur al hier ar chy /, it o/ers little structure to express the b e/-ha vior of individual mo dules/. In this pap er/, w e presen t thelanguage of hier ar chic r e active mo dules that supp orts b othar chite ctur al and b ehavior al hier ar chy /, along with its com/-p ositional seman tics and assume/-guaran tee pro of calculus/.The notion of b eha vior hierarc h y w as p opularized b y the in/-tro duction of St a techar ts /[Har/8/7 /]/, and exists in man y re/-lated mo deling formalisms suc h as Modechar ts /[JM/8/7 /] andRsml /[LHHR/9/4 /]/. It is a cen tral comp onen t of v arious ob ject/-orien ted soft w are dev elopmen t metho dologies dev elop ed inrecen t y ears/, suc h as R oom /[SGW/9/4 /]/, and the Uni/ed Mo d/-eling Language /( Uml /[BJR/9/7 /]/)/. Suc h hierarc hic sp eci/ca/-tions ha v e man y p o w erful primitiv es suc h as exceptions/,group transitions/, and history /, whic h lead to complex seman/-tics /[HPSS/8/7/, PS/9/1 /, HN/9/6/, GSB/9/8 /]/. There ha v e b een sev/-eral attempts to de/ne a rigorous seman tics of St a techar tsalone/. T ypically the seman tics is de/ned op erationally b yconsidering the global state of the system/. In fact/, m ulti/-ple pap ers o/er a c omp ositional seman tics that is congruen twith the language constructs /[US/9/4 /]/. Ho w ev er/, the notionof semantic e quivalenc e used in all these pap ers is structuralisomorphism of underlying state/-transition graphs /(or bisim/-ilarit y but with most of the structure visible/)/, rather thancon v en tional observ ational equiv alences/. Also there ha v eb een attempts to exploit the hierarc hic states for e/cien treac habilit y analysis /[CAB
+/+/9/8 /, A Y/9/8/, BLA
+/+/9/9 /]/. Ho w ev er/,there is no observational seman tics that allo ws de/ning are/nemen t preorder on hierarc hic states/. Th us/, w e b eliev ethat the notion of hier ar chy in b eha vior descriptions hasb een only syn tactic so far/, and our main con tribution is tomak e it semantic with a supp orting r e/nement c alculus /.The cen tral comp onen t of the b eha vioral description inour language is a mo de /. A mo de consists of global v ariablesused to share data with its en vironmen t/, lo cal v ariables/,w ell/-de/ned en try and exit p oin ts/, and submo des that areconnected with eac h other b y transitions/. The transitionsare lab eled with guarded commands that access the v ari/-ables according to the the natural scoping rules/. Note thatthe transitions can connect to a mo de only at its en try//exitp oin ts/, as in R oom /, but unlik e St a techar ts /. This c hoice isimp ortan t in viewing the mo de as a blac k b o x whose in ternalstructure is not visible from outside/. The mo de has a defaultexit p oin t/, and transitions lea ving the default exit are appli/-cable at all con trol p oin ts within the mo de and its submo des/.The default exit retains the history /, and the state up on exitis automatically restored b y transitions en tering the defaulten try p oin t/. Th us/, a transition from default exit to en trymo dels a group transition applicable to all con trol p oin tsinside/. While de/ning the op erational seman tics of mo des/,w e follo w the standard paradigm in whic h transitions areexecuted rep eatedly un til there are no more enabled transi/-tions/. Since the con trol can b e sim ultaneously in m ultiplenested mo des/, the order in whic h the transitions are triedfor execution is imp ortan t/. Unlik e St a techar ts /, but as inR oom /, the op erational seman tics tries the transitions insideout/, that is/, w e giv e priorit y to the in ternal transitions o v erthe group transitions of the enclosing mo de/. This c hoice isalso crucial for the clean denotational seman tics/. Our lan/-guage allo ws mo de instan tiation and th us/, reuse/.Our denotational seman tics of a mo de consists of itsglobal v ariables/, en try//exit p oin ts/, and traces o v er globalv ariables that capture a mo de/'s b eha vior/. The k ey stepleading to suc h seman tics in v olv es a closur e constructionthat adds transitions connecting the default p oin ts/. Thisconstruction mak es the transfer of con trol b et w een a mo deand its en vironmen t explicit/. Consequen tly /, the b eha vior of
+a mo de can b e view ed as a game in whic h the en vironmen ttransfers con trol to the mo de at one of its en try p oin ts/, andthe mo de transfers the con trol bac k to the en vironmen t atone of its exit p oin ts/. The macr o/-tr ansition from an en tryp oin t to an exit p oin t/, th us/, consists of m ultiple transitions/,and can b e constructed from the macro/-transitions of thesubmo des together with the transition relation of the mo de/.The macro/-transitions are then used to asso ciate a set ofexecutions and a corresp onding set of traces with a mo de/.W e sho w that the traces of a mo de can b e constructed fromthe traces of its submo des/.The denotational trace seman tics naturally leads to a no/-tion of re/nemen t among mo des based on inclusion of traces/,and pro vides the basis for mo de abstraction and substitu/-tion/. W e sho w that the constructors are comp ositional withresp ect to this re/nemen t relation/, and this leads to comp o/-sitional pro of rules for re/nemen t/. In particular/, to establishthat a mo de M with a submo de N re/nes a mo de M
+/0withsubmo de N
+/0/, it su/ces to pro v e that /(/1/) mo de N re/nesN
+/0/, and /(/2/) mo de M with N substituted b y a /\free/" mo dethat allo ws most general up date/, re/nes mo de M
+/0with N
+/0made free/. Th us/, comp ositional rule allo ws us to decouplethe reasoning ab out a submo de from the reasoning ab out itscon text/. W e also presen t a circular assume/-guaran tee pro ofrule in whic h the sp eci/cation con text M
+/0can b e assumedwhile establishing the /rst sub/-goal/, and the sp eci/cationsubmo de N
+/0can b e used while establishing the second sub/-goal/. F or the v alidit y of the rule/, the re/nemen t relationneeds to b e strengthened to mak e the p oin ts of transfer ofcon trol b et w een a mo de and the relev an t submo de visible/.Hierarc hic languages suc h as St a techar ts allo w the no/-tion of c onjunctive /(p ar al lel/) states /. W e argue that conjunc/-tion can b e de/ned cleanly as a constructor o v er submo dessuc h that a step of the constructed mo de consists of a se/-quence of micro steps/, one micro step for eac h submo de/.W e establish that suc h a conjunctiv e constructor is comp o/-sitional with resp ect to re/nemen t and that its trace seman/-tics is essen tially the same as the trace seman tics of the par/-allel comp osition constructor o v er mo dules/. This suggestsa sc hme for mixing mo des and mo dules in terc hangeably insystem descriptions/.The rest of the pap er is organized as follo ws/. In Section/2 w e review reactiv e mo dules/: their syn tax/, seman tics andre/nemen t rules/. In Section /3 w e follo w a similar pattern formo des/. W e /rst in tro duce their syn tax and then w e de/netheir seman tics and re/nemen t rules/. Section /4 is dev otedto conjunctiv e mo des/. First w e de/ne conjunction as a par/-ticular mo de constructor/. Then w e sho w that conjunctionis comp ositional with resp ect to re/nemen t and relate it tomo dule comp osition/. Finally in Section /5 w e dra w some con/-clusions/. During the en tire pap er/, w e use the sp eci/cation ofa small village telephone system/, inspired from /[BGG
+/+/9/8 /]/,as a w orking example to illustrate de/nitions/.Notation/. Giv en a set V of t yp ed v ariables/, a state o v erV is a function mapping v ariables to their v alues/. The set ofstates o v er V is denoted QV
+/. Giv en a state s o v er V and asubset W of V /, s /[ W /] denotes the state o v er W obtained b yrestricting s to the v ariables in W /. The pro jection op eratorextends to sequences of states also/. Giv en t w o sets V andW of v ariables/, an action from V to W is a binary relationb et w een the states o v er V and the states o v er W /. An action/ from V to W is said to b e enable d at a state s o v er Vif /( s/; t /) /2 / for some state t /. An action / from V to W issaid to b e non/-blo cking if it is enabled at ev ery state o v erV /. The domain and range of an action can b e expanded
+
+--- Page 3 ---
+c4h4...UserSpec
+SystemSpech1SelPartn
+c1.....
+Conn4 Conn1..h4h1
+.. ..
+....
+....
+..c1 c4
+..
+SystemSpecpFigure /1/: Arc hitecture diagrams for the VTSimplicitly in a natural w a y/: if / is an action from V to W /,s is a state o v er V
+/0/ V and t is a state o v er W
+/0/ W /,then de/ne /( s/; t /) /2 / if /( s /[ V /] /; t /[ W /]/) /2 / and t /[ v /] /= s /[ v /] forv /2 /( V
+/0/\ W
+/0/) n W /. This implicit co ercion is quite commonand allo ws one to assume that the v ariables not explicitlyo ccuring in a transition remain unc hanged/./2 Mo dulesA mo dule is de/ned b y the set of its v ariables/, rules for ini/-tializing the v ariables/, and rules for up dating the v ariables/.V ariables/. The v ariables of a mo dule P are partitionedin to three classes/: private v ariables that cannot b e read orwritten b y other mo dules/, interfac e v ariables that are writ/-ten only b y P /, but can b e read b y other mo dules/, and ex/-ternal v ariables that can only b e read b y P /, and are writtenb y other mo dules/. Th us/, in terface and external v ariablesare used for comm unication/, and are called observable v ari/-ables/. The priv ate and in terface v ariables are written b y themo dule/, and are called c ontr ol le d v ariables/.Initialization and up date/. The initialization sp eci/esinitial con trolled states/. The transition relation sp eci/esho w to c hange the con trolled state as a function of the cur/-ren t state/.De/nition /1 /(Mo dules/) A mo dule P c onsists ofV ariables/. A /nite set V of typ e d variables that is p arti/-tione d into priv ate v ariables Vp
+/, in terface v ariables Viand external v ariables Ve
+/. The variables in Vc
+/= Vp
+/[ Viar e c al le d con trolled v ariables /, and the variables inVo
+/= Vi
+/[ Ve
+ar e c al le d observ able v ariables /.Initial states/. A non/-empty subset I of states over Vc
+/.Up date relation/. A non/-blo cking action U fr om V to Vc
+/./2Example /1 /(Village telephone system/) Consider a sim/-ple vil lage telephone system that is able to establish a p oint/-to/-p oint c onne ction b etwe en any two telephone lines that ar edisc onne cte d and o/ ho ok/. F or simplicity/, assume that thesystem has only four lines/. The blo ck /(ar chite ctur e/) diagr amfor the system and and the users is shown in Figur e /1/, left/.T o de/ne and analyze the b ehavior of the vil lage tele/-phone system/, we asso ciate e ach blo ck in the diagr am to ar e active mo dule with the interfac e shown in the diagr am/. Ahigh level de/nition of the envir onment is the UserSpec mo d/-ule given b elow/.
+type hookType is f on/, off glazy module UserSpec isinterface h/1/, h/2/, h/3/, h/4 /: hookType/;init/[/] true /-/> h/1 /:/= on/; h/2 /:/= on/;h/3 /:/= on/; h/4 /:/= on/;update/[/] h/1 /= on /-/> h/1 /:/= off/;/[/] h/1 /= off /-/> h/1 /:/= on/;/[/] h/2 /= on /-/> h/2 /:/= off/;/[/] h/2 /= off /-/> h/2 /:/= on/;/[/] h/3 /= on /-/> h/3 /:/= off/;/[/] h/3 /= off /-/> h/3 /:/= on/;/[/] h/4 /= on /-/> h/4 /:/= off/;/[/] h/4 /= off /-/> h/4 /:/= on/;In e ach up date r ound it may to ggle one of the four linesb etwe en on and off /. The choic e is nondeterministic/. Bymaking the mo dule lazy it is also al lowe d to id le in a r ound/,i/.e/./, to arbitr arily delay to ggling/. /2Seman tics/. F or a mo dule P /, w e use the notation P /:Vpto refer to the priv ate v ariables of P /, P /:U to refer to thetransitions of P /, etc/. The seman tics of a mo dule is capturedb y de/ning its executions and traces/:De/nition /2 /(T races/) A n execution of a mo dule P is a se/-quenc e s/0
+s/1
+/ / / sn
+of states over P /:V such that s/0
+/[ P /:Vc
+/] /2 P /:Iand /( si
+/; si /+/1
+/[ P /:Vc
+/]/) /2 P /:U for /0 / i /< n /. If / is an exe cu/-tion of P /, then the c orr esp onding se quenc e / /[ Vo
+/] of observ/-able states is c al le d a trace of P /. The set of al l tr ac es of Pis c al le d the trace/-language of P /, and is denote d LP
+/. /2The denotational semantics of the mo dule P is capturedb y its in terface v ariables/, external v ariables/, and trace lan/-guage/. The requiremen t that I is non/-empt y and U is non/-blo c king ensures that the mo dule can alw a ys tak e a step/,and the trace/-set LP
+is in/nite/.Remark /1 /(Aw aits dep endencies and sub/-rounds/) Inour de/nition/, the initial values of the c ontr ol le d variablesc annot dep end on e ach other and in e ach up date step/, thenew values of the c ontr ol le d variables c annot dep end on thenew values of the external and c ontr ol le d variables/. Thus/,mo dules ar e like Mo or e machines/. The de/nition of r e ac/-tive mo dules /[AH/9/9/] al lows sp e ci/c ation of a p artial or der/| c al le d a w aits dep endencies /, over variables such that if avariable x is gr e ater than a variable y in this or dering/, thenthe initial value of x c an r efer to the initial value of y and theup date rule for x c an r efer to the up date d value of y /. Thisal lows mor e c omplex forms of inter action b etwe en a mo duleand its envir onment by splitting e ach up date r ound into a
+
+--- Page 4 ---
+/xe d numb er of sub/-r ounds/. In this p ap er/, we have chosena simpler mo del with no awaits dep endencies for the sake ofclarity of pr esentation/. /2Hierarc h y /. Op erators on mo dules include instan tiation/,hiding of in terface v ariables/, and parallel comp osition/. Here/,w e discuss the parallel comp osition op erator that allo ws tocom bine t w o mo dules in to a single one/.De/nition /3 /(P arallel Comp osition/) The mo dules P andQ ar e comp osable if P /:Vc
+/\ Q/:Vc
+is empty/. The comp ositionR of c omp osable mo dules P and Q /, denote d P k Q /, is themo dule with/:V ariables/. The setsR /:Vi
+/= P /:Vi
+/[ Q/:ViR /:Ve
+/= /( P /:Ve
+/[ Q/:Ve
+/) n R /:ViR /:Vp
+/= P /:Vp
+/[ Q/:Vpof interfac e/, external and private variables/.Initial states/. The set R /:I /= P /:I / Q/:I /.Up date relation/. The r elation R /:U such that/:/( s/; t /) /2 R /:U i/
+/( s /[ P /:V /] /; t /[ P /:Vc
+/]/) /2 P /:U /^/( s /[ Q/:V /] /; t /[ Q/:Vc
+/]/) /2 Q/:U/2Note that the denotational seman tics of P k Q can b e com/-pletely constructed from the denotational seman tics of Pand Q /. This is b ecause a sequence / b elongs to the tracelanguage LP k Q
+i/ its corresp onding pro jections b elong tothe trace languages LP
+and LQ
+/.Example /2 /(Village telephone system/) A p ossible hier/-ar chic de c omp osition of the mo dule SystemSpec is obtaine dby intr o ducing for e ach telephone line i a c onne ction mo d/-ule Conn i /. A n additional mo dule SelPartn is use d to guidethe sele ction of the c ommunic ation p artner/. This de/nes thear chite ctur e shown by the blo ck diagr am in Figur e /1/, right/.The blo cks marke d with a thick arr ow r epr esent r e gisters/.They sep ar ate the curr ent state fr om the next state/. Thesp e ci/c ation of the mo dule SelPartn is trivial/. It nondeter/-ministic al ly cho oses one of the sele ction mo des/.type matchingType isf /"/1/-/2///3/-/4/"/,/"/1/-/3///2/-/4/"/,/"/1/-/4///2/-/3 /" gmodule SelPartn isinterface p /: matchingType/;init updatetrue /-/> p /:/= nondet/;The sp e ci/c ation of the c onne ction mo dule Conn /1 is as fol/-lows/. If the mo dule is disc onne cte d and its line is o/ ho ok/,then it cho oses a p artner c onne ction mo dule as sp e ci/e d bythe value of p /, pr ovide d this p artner mo dule is also disc on/-ne cte d and its line is o/ ho ok/. In this c ase it b e c omes c on/-ne cte d/. If the curr ent c ommunic ation p artner go es on ho okthen the mo dule go es in the dr o oping state/. Final ly/, if itsown line go es on ho ok/, then it b e c omes disc onne cte d/.type connectionType isf disconnected/, /1/, /2/, /3/, /4/, drooping gmodule Conn/1 isinterface c/1 /: connType/;
+external c/2/,c/3/,c/4 /: connType/;external h/1/,h/2/,h/3/,h/4 /: hookType/;external p /: matchingType/;init/[/] true /-/> c/1 /:/= disconnected/;update/[/] h/1 /= on /-/> c/1 /:/= disconnected/;/[/] c/1 /= /2 /& h/2 /= on /-/> c/1 /:/= drooping/;/[/] c/1 /= /3 /& h/3 /= on /-/> c/1 /:/= drooping/;/[/] c/1 /= /4 /& h/4 /= on /-/> c/1 /:/= drooping/;/[/] c/1 /= disconnected /& h/1 /= off /&c/2 /= disconnected /& h/2 /= off /&p /= /"/1/-/2///3/-/4/" /-/> c/1 /:/= /2/;/[/] c/1 /= disconnected /& h/1 /= off /&c/3 /= disconnected /& h/3 /= off /&p /= /"/1/-/3///2/-/4/" /-/> c/1 /:/= /3/;/[/] c/1 /= disconnected /& h/1 /= off /&c/4 /= disconnected /& h/4 /= off /&p /= /"/1/-/4///2/-/3/" /-/> c/1 /:/= /4/;The other c onne ction mo dules ar e sp e ci/e d in a similar way/.Comp osing the ab ove mo dules gives the sp e ci/c ation of theentir e system/, as shown b elow/.module SystemSpec ishide p in /( Conn /1 k /./. k Conn /4 k SelPartn /)module Spec is UserSpec k SystemSpec/2Re/nemen t/. The notion of re/nemen t b et w een successiv elev els of abstraction is formalized b y the de/nition of theimplemen tation preorder/:De/nition /4 /(Implemen tation/) The mo dule P implemen tsthe mo dule Q /, written P / Q /, if P and Q have identic al in/-terfac e variables/, identic al external variables/, and LP
+/ LQ
+/./2The ab o v e notion of implemen tation can b e generalized ina straigh tforw ard w a y to allo w the implemen tation to ha v emore in terface v ariables than the sp eci/cation/.A k ey prop ert y of the implemen tation relation is c om/-p ositionality whic h ensures that the re/nemen t preorder iscongruen t with resp ect to the mo dule op erations/.Prop osition /1 /(Comp ositionalit y/) If P / Q then P k R /Q k R /.By applying the comp ositionalit y rule t wice and using thetransitivit y of re/nemen t it follo ws that/, in order to pro v ethat a complex comp ound mo dule P/1
+k P/2
+/(with a large statespace/) implemen ts a simpler comp ound mo dule Q/1
+k Q/2
+/(witha small state space/)/, it su/ces to pro v e /(/1/) P/1
+implemen ts Q/1and /(/2/) P/2
+implemen ts Q/2
+/. W e call this the c omp ositionalpr o of rule for reactiv e mo dules/. It is v alid/, b ecause par/-allel comp osition and implemen tation b eha v e lik e languagein tersection and language con tainmen t/, resp ectiv ely /.While the comp ositional pro of rule decomp oses the v eri/-/cation task of pro ving implemen tation b et w een comp oundmo dules in to subtasks/, it ma y not alw a ys b e applicable/. Inparticular/, P/1
+ma y not implemen t Q/1
+for all en vironmen ts/,but only if the en vironmen t b eha v es lik e P/2
+/, and vice v ersa/.F or suc h cases/, an assume/-guaran tee pro of rule is needed/[Sta/8/5 /, GL/9/4 /, AL/9/5 /, AH/9/9/]/. The assume/-guar ante e pr o ofrule for reactiv e mo dules asserts that in order to pro v e that
+
+--- Page 5 ---
+M N
+r
+eaqcc
+jkread x, write y, local z
+i hd
+pf
+gdx
+dee
+d fe1e2
+x1 x2e2
+e1e3
+e1
+a
+b
+x3 x2 x1m : N n : Nread-write z, local u
+b
+dedxFigure /2/: Scoping rules and transition t yp esP/1
+k P/2
+implemen ts Q/1
+k Q/2
+/, it su/ces to pro v e /(/1/) P/1
+k Q/2implemen ts Q/1
+/, and /(/2/) Q/1
+k P/2
+implemen ts Q/2
+/. Both pro ofobligations /(/1/) and /(/2/) t ypically in v olv e smaller state spacesthan the original pro of obligation/, b ecause the complex com/-p ound mo dule P/1
+k P/2
+usually has the largest state space in/-v olv ed/. The assume/-guaran tee pro of rule is circular/; unlik ethe comp ositional pro of rule/, it do es not simply follo w fromthe fact that parallel comp osition and implemen tation b e/-ha v e lik e language in tersection and language con tainmen t/.Rather the pro of of the v alidit y of the assume/-guaran teepro of rule pro ceeds b y induction on the length of traces/.F or this/, it is crucial that ev ery trace of a mo dule can b eextended/.Prop osition /2 /(Assume/-Guaran tee/) If P/1
+k Q/2
+/ Q/1
+andQ/1
+k P/2
+/ Q/2
+/, then P/1
+k P/2
+/ Q/1
+k Q/2
+/.The righ t hand sides of the re/nemen t relation in the ab o v eassume guaran tee rule ma y b e strengthen b y using a smallv ariation of the rule/: if P/1
+k Q/2
+/ Q/1
+k Q/2
+and Q/1
+k P/2
+/Q/1
+k Q/2
+/, then P/1
+k P/2
+/ Q/1
+k Q/2
+/./3 Mo des/3/./1 Syn taxHierarc h y /. A mo de has a re/ned con trol structure giv enb y a hierarc hical state mac hine/. It basically consists of a setof submo de instanc es connected b y tr ansitions suc h that ateac h momen t of time only one of the submo de instances isactive /. A submo de instance has an asso ciated mo de and w erequire that the mo des form an acyclic graph with resp ectto this asso ciation/. F or example/, the mo de M in Figure /2con tains t w o submo de instances/, m and n p oin ting to themo de N /.By distinguishing b et w een mo des and instances w e ma ycon trol the degree of sharing of submo des/. Sharing is highlydesirable b ecause submo de instances /(on the same hierarc h ylev el/) are nev er sim ultaneously activ e in a mo de/. F or exam/-ple/, the submo de instances m and n in Figure /2 share thesame mo de N /. Note that a mo de resem bles an or state inSt a techar ts but it has more p o w erful structuring mec ha/-nisms/.V ariables/. A mo de ma y ha v e glob al as w ell as lo c al vari/-ables /. The set of global v ariables Vg
+is used to share datawith the mo de/'s en vironmen t/. The v ariables in Vg
+are clas/-si/ed in to a set Vr
+of r e ad variables and a set Vw
+of writevariables /. Hence/, Vg
+/= Vr
+/[ Vw
+/. The set of lo c al variables Vlof a mo de is accessible only b y its transitions and submo des/.Th us/, the scoping rules for v ariables are as in standardstructured programming languages/. F or example/, the mo deM in Figure /2 has the global read v ariable x /, the global writev ariable y and the lo cal read/-write v ariable z /. Similarly /, the
+mo de N has the global read/-write v ariable z and the lo calread/-write v ariable u /.The transitions of a mo de ma y refer only to the declaredglobal and lo cal v ariables of that mo de and only accordingto the declared read//write p ermission/. F or example/, thetransitions a/,b/,c/,d/,e/,f/,g/,h/,i/,j and k of the mo de M ma yrefer only to the v ariables x/, y and z /. Moreo v er/, they ma yread only x and z and write y and z /.The global and lo cal v ariables of a mo de ma y b e sharedb et w een submo de instances if the asso ciated submo des de/-clare them as global /(the set of global v ariables of a submo dehas to b e included in the set of global and lo cal v ariables ofits paren t mo de/)/. F or example/, the v alue of the v ariable zin Figure /2 is shared b et w een the submo de instances m andn /. Ho w ev er/, the v alue of the lo cal v ariable u is not sharedb et w een m and n /.En try//exit p oin ts/. T o obtain a mo dular language/, w erequire the mo des to ha v e w ell de/ned c ontr ol p oints clas/-si/ed in to en try p oin ts /(mark ed as white bullets/) and exitp oin ts /(mark ed as blac k bullets/)/. F or example/, the mo deM in Figure /2 has the en try p oin ts e/1/,e/2/, e/3 and the exitp oin ts x/1/,x/2/,x/3 /. Similarly /, the mo de N has the en try p oin tse/1/,e/2 and the exit p oin ts x/1/,x/2 /.The transitions connect the con trol p oin ts of a mo de andof its submo de instances to eac h other/. F or example/, inFigure /2 the transition a connects the en try p oin t e/2 of themo de M with the en try p oin t e/1 of the submo de instancem /. The en try and exit p oin ts of a transition are attributesthat a dra wing to ol ma y optionally sho w or hide to a v oidcluttering/. F or example/, the endp oin ts of the transition care not sho wn explicitly in Figure /2/.According to the p oin ts they connect/, the transitions ofa mo de ma y b e classi/ed in to entry/, internal and exit tran/-sitions/. F or example/, in Figure /2/, a/,d are entry transitions/,h/,i/,k are exit transitions/, b is an entry//exit transition andc/,e/,f/,g/,j are internal transitions/. Bet w een these transi/-tions there is a subtle di/erence/. En try transitions initializethe lo cal v ariables b y reading only the global v ariables/. Exittransitions forget the v alues of the lo cal v ariables and writeonly the global v ariables/. The in ternal transitions only ma yb oth read and write the lo cal v ariables/.Preemption/. T o mo del preemption eac h mo de /(instance/)has a sp ecial/, default exit p oin t dx /. A transition starting atdx is called a pr e empting or gr oup tr ansition of the corre/-sp onding mo de/. It ma y b e tak en whenev er the con trol isinside the mo de and no in ternal transition is enabled/. F orexample/, in Figure /2/, the transition f is a group transitionfor the submo de n /.T o ac hiev e the preempting b eha vior w e add for eac h in/-ternal exit p oin t a default exit transition /(from this p oin tto dx /) that is enabled when all other transitions starting in
+
+--- Page 6 ---
+droopingread-write c1
+read c2, c3, c4
+read h1, h2, h3, h4
+read p
+connectedread h1, h2, h3, h4read c2, c3, c4
+read pread-write c1
+Conn1disconnected off3
+off4connectedon
+off2ini
+ron3ron2
+ron4off2 2
+3 off3
+4 off4dxFigure /3/: The mo de Conn/1this p oin t are disabled/. These transitions are not explicitlydra wn/. They are implicit in the seman tics of a mo de/.F or example/, if the curren t con trol p oin t is q inside thesubmo de instance n and neither the transition b nor thetransition f is enabled/, then the con trol is transferred to thedefault exit p oin t dx /. If one of e or f is enabled and tak enthen it acts as a preemption for n /.Hence/, inner transitions ha v e a higher priorit y than thegroup transitions/, i/.e/./, w e use we ak pr e emption /(lik e the w eakkill in Unix/, v ersus the strong kill /-/9 /)/. This priorit ysc heme facilitates a mo dular seman tics/.History /. T o allo w history reten tion/, w e use a sp ecial de/-fault en try p oin t de /. A transition en tering the default en tryp oin t of a mo de restores the v alues of all lo cal v ariables alongwith the p osition of the con trol /(a transition ma y en ter a de/-fault en try of a mo de only if the mo de w as most recen tly leftalong its default exit/)/.F or example/, b oth transitions e and g in Figure /2/, en terthe default en try p oin t de of n /. The transition e is calleda self group transition/. A self group transition lik e e ormore generally a self lo op lik e f/,p/,g ma y b e understo o d asan in terrupt handling routine/. While a self lo op ma y b earbitrarily complex/, a self transition ma y do simple thingslik e coun ting the n um b er of o ccurrences of an ev en t /(e/.g/./,clo c k ev en ts/)/.Similarly to preemption/, to ac hiev e the ab o v e b eha viorw e seman tically add default entry transitions from the de/-fault en try p oin t de of a mo de m to its in ternal p oin ts/. Thedefault exit transitions sa v e the curren t p oin t in a lo cal/, his/-tory v ariable m/:h and the default en try transitions restorethe curren t con trol p oin t from this v ariable/. A mo de en/-ric hed with default en try and exit transitions is said to b eclose d /.Remark /2 /(Mo de instan tiation/) A mo de c an b e viewe das an encapsulation op er ator over its submo des/, and thus/,mo des ar e c onstructe d fr om le af/-mo des using enc apsulationr ep e ate d ly in a non/-r e cursive manner/. Mo de instantiational lows r euse and sharing by p ermitting b oth to r efer to thesame mo de and to r ename a /(subset of /) entry p oints/, exitp oints/, r e ad variables/, and write variables/. With mo de in/-stantiation/, the mo de structur e is a dir e cte d acyclic gr aphand it c an b e exploite d in an e/cient way for mo del che cking/[A Y/9/8/]/. T o simplify the formal de/nitions in the fol lowingwe assume a tr e e like structur e obtaine d by r eplacing e achinstanc e by its c orr esp onding mo de/. Mor e over/, we assumethat ther e ar e no name c on/icts r e gar ding lo c al variables andentry//exit p oints acr oss mo des/. /2No w w e are ready to presen t a formal de/nition of mo des/.De/nition /5 /(Mo de/) A mo de c onsists of
+Con trol p oin ts/. A /nite set E of entry p oints/, and a/nite set X of exit p oints/. We also assume an addi/-tional default entry p oint de /, and a default exit p ointdx /, and de/ne dE /= E /[ f de g /, and dX /= X /[ f dx g /.V ariables/. A /nite set Vr
+of read variables/, a /nite setVw
+of write variables/, and a /nite set Vl
+of lo c al vari/-ables/. The variables Vg
+/= Vr
+/[ Vw
+ar e c al le d glob alvariables/. We assume that the sets Vg
+and Vl
+ar e dis/-joint /(but the sets Vr
+and Vw
+ne e d not b e/)/.Submo des/. A /nite set S M of submo des /. If N is asubmo de in S M /, then it is r e quir e d that N /:Vr
+/ Vr
+/[ Vland N /:Vw
+/ Vw
+/[ Vl
+/.T ransitions/. A /nite set T of tr ansitions of the form/( e/; //; x /) /, wher e e is in E /[ S M /:X /, x is in X /[ S M /:E /,and / is an action fr om Vr
+to Vr
+/[ Vl
+if e /2 E andfr om Vr
+/[ Vl
+to Vw
+/[ Vl
+otherwise/. We r e quir e that fore ach e /2 E /, the union /[ / such that /( e/; //; x /) /2 T forsome x /, is non/-blo cking/./2A le af mo de is a mo de with no submo des and no lo cal v ari/-ables/.Example /3 /(Village telephone system/) By using mo des/,the sp e ci/c ation of the mo dule UserSpec may b e given asshown in Figur e /4/. The mo des toggle/1/, /: /: /: /,toggle/4 ar e
+UserSpec...
+toggle4de dxiniread-write h1,...,h4
+toggle1allOn
+toggleread-write h
+dx deon2off
+off2onFigure /4/: UserSp ec for VTSobtaine d fr om the mo de toggle by r enaming the variable hwith h/1/, /: /: /: /,h/4 r esp e ctively/. The unmarke d tr ansition c on/-ne cting de to dx is the identity tr ansition expr essing id ling/.The other tr ansitions ar e de/ne d as fol lows/.on/2off
+def/= h /= on /-/> h /:/= offoff/2on
+def/= h /= off /-/> h /:/= onallOn
+def/= h/1 /:/= on/; h/2 /:/= on/; h/3 /:/= on/; h/4 /:/= on
+
+--- Page 7 ---
+The c onne ction mo dule Conn/1 may b e r estate d as a hier ar/-chic mo de as shown in Figur e /3/. Note that the default exitp oint dx of the mo de connected is the sour c e p oint of thetr ansition on /. The tr ansitions ar e de/ne d as fol lows/.on
+def/= h/1 /= on /-/> c/1 /:/= disconnectedoff/2
+def/= h/1 /= off /&h/2 /= off /& c/2 /= disconnected /&p /= /"/1/-/2///3/-/4/" /-/> c/1 /:/= /2off/3
+def/= h/1 /= off /&h/3 /= off /& c/3 /= disconnected /&p /= /"/1/-/3///2/-/4/" /-/> c/1 /:/= /3off/4
+def/= h/1 /= off /&h/4 /= off /& c/4 /= disconnected /&p /= /"/1/-/4///2/-/3/" /-/> c/1 /:/= /4ron/2
+def/= h/2 /= on /-/> c/1 /:/= droopingron/3
+def/= h/3 /= on /-/> c/1 /:/= droopingron/4
+def/= h/4 /= on /-/> c/1 /:/= drooping/2Note that b y distinguishing b et w een con trol and data/, mo dediagrams are often more comprehensible than mo dule sp eci/-/cations/. This ma y ha v e an imp ortan t impact if the con trolstructure is quite in v olv ed and this is the reason wh y hier/-arc hic state transition diagrams are so p opular in soft w areengineering metho ds/.W e use C to denote the set dE /[ dX /[ S M /:dE /[ S M /:dXof all con trol p oin ts/. P airs of the form /( c/; s /)/, where c is acon trol p oin t and s is a state are called c on/gur ations /. F ornotational con v enience/, w e view the set T of transitions alsoas a binary relation o v er con/gurations/: if /( e/; //; x /) /2 T and/( s/; t /) /2 / /, w e write /(/( e/; s /) /; /( x/; t /)/) /2 T /./3/./2 Op erational Seman ticsThe priorit y among transitions/. In Figure /5/, the exe/-cution of a mo de/, sa y n /, starts when the en vironmen t trans/-fers the con trol to one of its en try p oin ts e/1 or e/2 /. Theexecution of n terminates either b y transferring the con trolbac k to the en vironmen t along the exit p oin ts x/1 or x/2 orb y /\getting stuc k/" in q or r as all transitions starting fromthese leaf mo des are disabled/.In this case the con trol is implicitly transferred to M alongthe default exit p oin t n/.dx /. Then/, if the transitions e and fare enabled/, one of them is nondeterministically c hosen andthe execution con tin ues with n and resp ectiv ely with p /. Ifb oth transitions are disabled the execution of M terminatesb y passing the con trol implicitly to its en vironmen t at thedefault exit M/.dx /. Th us/, the transitions within a mo de ha v ea higher priorit y compared to the group transitions of theenclosing mo des/.Default exit transitions/. In an y mo de/, some transitionlea ving an en try p oin t is guaran teed to b e enabled/, so ex/-ecution can get stuc k only at an exit p oin t of a submo de/.In Figure /5 these p oin ts are explicitly dra wn as blac k bul/-lets/. T o mak e the transfer of con trol explicit/, w e add defaultexit tr ansitions as follo ws/. F rom an exit p oin t x of a sub/-mo de of M /, w e add a transition to the default exit p oin tdx that is enabled if and only if/, all the explicit outgoingtransitions from x are disabled/. If the actions are giv en b yguarded commands/, and if g/1
+/; /: /: /: /; gn
+are the guards of the
+explicit transitions/, the guard of the default transition is/: /( g/1
+/_ /: /: /: /_ gn
+/)/. F or example/, in Figure /5/, the default exittransitions starting in q and r ha v e the guards /: /( gb
+/_ gf
+/) and/: /( ge
+/_ gd
+/) resp ectiv ely /, where gb
+/; gd
+/; ge
+/; gf
+are the guards ofthe transitions b/,d/,e/,f /, resp ectiv ely /. Similarly /, the defaultexit transition starting in n/.dx has the guard /: /( ge
+/_ gf
+/) andthe default exit transition starting in p has the guard /: gg
+/.The other default exit transitions are not dra wn to a v oidcluttering/. Eac h default exit transition sa v es the lo cal statewhic h is restored up on the subsequen t en try to the defaulten try p oin t/. T o remem b er the lo cation of con trol/, w e adda new lo cal v ariable h to a mo de M and an action b o dy toeac h default exit transition /(from an exit p oin t x to dx /) thatsaves x in this history v ariable h /.Default en try transitions/. The transitions en tering thedefault en try p oin t of a mo de M restore the lo cal state/.Again/, w e in tro duce explicit default en try transitions to re/-store the lo cation of con trol/. F or eac h default exit transitionfrom an exit x of a submo de of M /, there is a default entrytr ansition from de to x that is tak en when the v alue of thelo cal history v ariable h coincides with x /. If x w as a defaultexit p oin t n/:dx of a submo de n then/, as sho wn in Figure /5/,the default en try transition is directed to n/:de /. The reasonis that in this case/, the con trol w as blo c k ed somewhere in/-side of n and default en try transitions originating in n/:dewill restore this con trol/.P art of the closure of the mo de M of Figure /2 is sho wnin Figure /5/. The closure construction is de/ned formallyb elo w/.De/nition /6 /(Closure/) L et M /= /( E /; X /; Vr
+/; Vw
+/; Vl
+/; S M /; T /)b e a mo de/. The closure c /( M /) of M is de/ne d to b e M if S Mis empty/, and is de/ne d to b e the mo de /( E /; X /; Vr
+/; Vw
+/; Vl
+/[f h g /; c /( S M /) /; dT /) c ontaining a set of close d submo des c /( S M /) /=f c /( m /) j m /2 S M g and a close d set dT of tr ansitions ob/-taine d by adding/, for e ach exit x /2 S M /:dX /, the tr ansitions/( x/; /x
+/; dx /) and /( de/; /x
+/; /~ x /) /, wher e/ for x /2 S M /:X /, /~ x /= x /, and for x /= N /:dx /, /~ x /= N /:de /,/ for states s and t /, /( s/; t /) /2 /x
+i/ t /[ h /] /= x /, t /[ y /] /= s /[ y /]for y /6/= h /, and for every tr ansition /( x/; //; x
+/0/) in T /, / isdisable d at s /,/ for states s /, /( s/; s /) /2 /x
+i/ s /[ h /] /= x /./2No w w e pro ceed to de/ne the op erational seman tics/. In tu/-itiv ely /, a round of the mac hine asso ciated to a mo de startswhen the en vironmen t passes the up dated state along amo de/'s en try p oin t and ends when the state is passed tothe en vironmen t along a mo de/'s exit p oin t/. All the in ternalsteps /(the micr o steps /) are hidden/. W e call a round also amacr o step /. Note that the macro step of a mo de is obtainedb y alternating its closed transitions and the macro steps ofthe submo des/.De/nition /7 /(Op erational seman tics/) F or a mo de M /=/( E /; X /; Vr
+/; Vw
+/; Vl
+/; S M /; T /) /, the set Vp
+of private variables isde/ne d to b e the set Vl
+/[ S M /:Vp
+/.The set mT of macr o/-tr ansitions c onsists of tr ansitionsof the form /( e/; //; x /) with e /2 dE /, x /2 dX /, and / is theaction fr om Vr
+to Vw
+/[ Vp
+if e /2 E and fr om Vr
+/[ Vp
+toVw
+/[ Vp
+otherwise/, de/ne d as fol lows/.Given the macr o/-tr ansitions of the submo des of M /, amicro/-execution of M is a se quenc e of the form/( e/0
+/; s/0
+/) /! /( e/1
+/; s/1
+/) /! / / / /! /( en
+/; sn
+/)of c ontr ol p oints ei
+/2 C and states si
+over Vg
+/[ Vp
+such that
+
+--- Page 8 ---
+N M
+r
+eaqc
+ji hd
+pe
+de1e2
+e1e3
+e1
+a
+bm : N n : N b e2c
+fdx
+dedx
+x1 x2 x3 de x1de
+dx x2gf dx
+kdeFigure /5/: Closed b eha vior diagrams/ for even i /, the tr ansition /(/( ei
+/; si
+/) /; /( ei /+/1
+/; si /+/1
+/)/) is in dT /,and/ for o dd i /, the tr ansition /(/( ei
+/; si
+/) /; /( ei /+/1
+/; si /+/1
+/)/) is inS M /:mT /.Given such an exe cution for an entry p oint e/0
+and an exitp oint en
+of M /, the macr o/-tr ansition r elation mT c ontains/(/( e/0
+/; s/0
+/) /; /( en
+/; sn
+/)/) /. /2In the ab o v e de/nition of micro/-executions of a mo de/, thestates si
+are v aluations to the v ariables Vg
+/[ Vp
+/, but only asubset of these in/uence eac h step/.The op er ational semantics of a mo de M consists of isits con trol p oin ts/, global v ariables/, priv ate v ariables/, and itsmacro/-transitions/.Remark /3 /(Consistency of mo des/) Ther e ar e two wel l/-forme dness r e quir ements to ensur e c onsistency/. First/, thec ontr ol should r e ach the default entry p oint of a submo de onlywhen the submo de was pr eviously visite d and exite d alongits default exit p oint/. Se c ond/, the numb er of micr o/-stepsc onstituting a macr o/-step should b e b ounde d/. The se c ondassumption is ne e de d to ensur e that ther e ar e no in/nitelo ops within a mo de/, so the c ontr ol always is p asse d b ackto the envir onment/. These r e quir ements c an b e enfor c e d bysyntactic r estrictions that c an b e che cke d by static analysis/./2A top/-level mo de is a mo de M with a single en try p oin t eand no exit p oin ts/. Suc h a mo de can b e view ed as a mo dulewith priv ate v ariables Vp
+/, in terface v ariables Vw
+/, externalv ariables Vr
+n Vw
+/, initialization sp eci/ed b y macro/-transitionsfrom e to dx /, and up date sp eci/ed b y macro/-transitions fromde to dx /. F or example/, the mo de Conn/1 is a top/-lev el mo de/./3/./3 T race Seman ticsThe execution of a mo de ma y b e b est understo o d as a game/,i/.e/./, as an alternation of mo v es/, b et w een the mo de and itsen vironmen t/. In a mo de move /, the mo de gets the state fromthe en vironmen t along its en try p oin ts/. It then k eeps exe/-cuting un til it giv es the state bac k to the en vironmen t alongone of its exit p oin ts/. In an envir onment move /, the en vi/-ronmen t gets the state along one of the mo de/'s exit p oin ts/.Then it ma y up date an y v ariable except the mo de/'s priv ateones/. Finally /, it giv es the state bac k to the mo de along oneof its en try p oin ts/.De/nition /8 /(Denotational seman tics/) A n execution ofa mo de M is a se quenc e/( e/0
+/; s/0
+/) /! /( x/0
+/; t/0
+/) /! /( e/1
+/; s/1
+/) /! /( x/1
+/; t/1
+/) /! / / / /! /( xn
+/; tn
+/)of c ontr ol p oints ei
+/2 dE /, xi
+/2 dX with e/0
+in E and statessi
+and ti
+over Vg
+/[ Vp
+such that for al l i /, /(/( ei
+/; si
+/) /; /( xi
+/; ti
+/)/) /2mT and si /+/1
+/[ Vp
+/] /= ti
+/[ Vp
+/] /. Given such an exe cution/, the
+c orr esp onding trace of M is obtaine d by pr oje cting e ach stateto the set Vg
+of glob al variables/. The set of traces of Mis denote d LM
+/. The denotational seman tics of a mo de Mc onsists of its c ontr ol p oints/, glob al variables/, and the setLM
+of tr ac es/. /2Note that/, for a top lev el mo de/, the en vironmen t is anotherreactiv e mo dule/. F or a lo w er lev el mo de/, the en vironmen tma y b e a regular or a group transition/.In order to sho w that our trace seman tics is comp osi/-tional/, w e need to b e able to de/ne the seman tics of a mo deonly in terms of the trace seman tics of its submo des/. Re/-call that an execution of a mo de is obtained b y alternatingb et w een its macro/-transitions and en vironmen t transitions/.A macro/-transition of a mo de is obtained b y compressing amicro/-execution whic h in turn is obtained b y alternating thetransitions of M with the macro/-transitions of its submo des/(see Figure /6/)/.De/nition /9 /(T race extraction/) Given a se quenc e / /=/( e/0
+/; s/0
+/)/( e/1
+/; s/1
+/) /: /: /: /( en
+/; sn
+/) of c ontr ol p oints and states/, anda mo de N /, the r estriction / /* N is the se quenc e obtaine dfr om / r eplacing e ach si
+by si
+/[ N /:Vg
+/] /, and by deleting p airs/( ei
+/; si
+/) if ei
+/6/2 N /:dE /[ N /:dX /. /2Lemma /1 /(T race construction/) F or a mo de M /, a se/-quenc e/( e/0
+/; s/0
+/) /! /( x/0
+/; t/0
+/) /! /( e/1
+/; s/1
+/) /! /( x/1
+/; t/1
+/) /! / / / /! /( xn
+/; tn
+/)of c ontr ol p oints ei
+/2 dE /, xi
+/2 dX with e/0
+in E and states siand ti
+over Vg
+/, is a tr ac e i/ for al l i /, ther e exits a se quenc e/( ei/; /0
+/; si/; /0
+/)/( ei/; /1
+/; si/; /1
+/) /; /: /: /: /( ei/;ni
+/; si/;ni
+/) of states si/;j
+over Vg
+/[ Vpand c ontr ol p oints ei/;j
+in C such that/1/. ei/; /0
+/= ei
+/, si/; /0
+/[ Vg
+/] /= si
+/,/2/. ei/;ni
+/= xi
+/, si/;ni
+/[ Vg
+/] /= ti
+/,/3/. si /+/1 /; /0
+/[ Vp
+/] /= si/;ni
+/[ Vp
+/] /,/4/. for al l j /, /(/( ei/; /2 j
+/; si/; /2 j
+/) /; /( ei/; /2 j /+/1
+/; si/; /2 j /+/1
+/)/) /2 dT /, and/5/. for al l submo des N /, the r estriction of the c onc atenate dse quenc e/( e/0 /; /0
+/; s/0 /; /0
+/)/( e/0 /; /1
+/; s/0 /; /1
+/) /: /: /: /( e/0 /;n/0
+/; s/0 /;n/0
+/)/( e/1 /; /0
+/; s/1 /; /0
+/)/( e/1 /; /1
+/; s/1 /; /1
+/) /: /: /: /( e/1 /;n/1
+/; s/1 /;n/1
+/)/ / /to N is a tr ac e of N /.The ab o v e lemma is used to pro v e the follo wing theorem/:Theorem /1 The set of tr ac es of a mo de M c an b e c ompute dfr om the set of tr ac es of its submo des and its close d tr ansitionr elation dT /.
+
+--- Page 9 ---
+env env
+mTk mTl mTj ......mT
+...mT
+dT dTmT
+...dT dT dT dT dT dT dT dT SMSM.X SM.EdE
+dXSM.XSM.EmTFigure /6/: The traces of M/3/./4 Re/nemen tThe trace seman tics leads to a natural notion of re/nemen tb et w een mo des/: a mo de M re/nes N if it has the sameglobal v ariables and con trol p oin ts/, and ev ery trace of M isa p ossible trace of N /.De/nition /1/0 /(Re/nemen t/) A mo de M and a mo de Nar e said to b e compatible if M /:Vr
+/= N /:Vr
+/, M /:Vw
+/= N /:Vw
+/,M /:E /= N /:E and M /:X /= N /:X /. Given two c omp atible mo desM and N /, M r e/nes N /, denote d M / N /, if LM
+/ LN
+/. /2F or a /nite index set I /, w e write f Mi
+j i /2 I g / f Ni
+j i /2 I gif Mi
+/ Ni
+for eac h i /2 I /. The re/nemen t op erator iscomp ositional with resp ect to the encapsulation/:Theorem /2 /(Submo de Comp ositionalit y/) Given a mo deM /= /( E /; X /; Vr
+/; Vw
+/; Vl
+/; S M /; T /) and supp ose S M / S N /. Thenfor N /= /( E /; X /; Vr
+/; Vw
+/; Vl
+/; S N /; T /) /, M / N /.The re/nemen t rule is sho wn in a visual w a y in Figure /7/,left/.Example /4 /(Village telephone system/) A r e/nementof the mo de toggle is the mo de ctoggle shown in Figur e /8/,left/. While in toggle /, the switch to on is enable d wheneverh is off /, in ctoggle the switch to on is enable d wheneverc is disconnected /. The tr ansitions of ctoggle ar e given
+read-write h
+read c
+dx deon2off
+coff2on...
+deiniallOnread c1,...,c4read-write h1,...,h4
+ctoggleUserImpctoggle1
+ctoggle4dxFigure /8/: An implemen tation of UserSpecb elow/.on/2off
+def/= h /= on /-/> h /:/= offcoff/2on
+def/= c /!/= disconnected /-/> h /:/= onT o pr ove r e/nement/, the additional r e ad variable c may b eadde d to the mo de toggle without any harm b e c ause it is notr e ad by this mo de/. In a mor e gener al setting/, the r e/nementrules would take additional variables into ac c ount/.Sinc e ctoggle / toggle we obtain by c omp ositionalityand the fact that r enaming do es not change r e/nement thatUserImp / UserSpec /. /2If w e consider a submo de N within a mo de M /, the remainingsubmo des of M and the transitions of M can b e view ed as
+an en vironmen t for N /. If w e replace N b y another submo deN
+/0/, let the resulting mo de b e denoted M /[ N
+/0/]/. T o sho wthat M /[ N
+/0/] re/nes M /[ N /]/, b y the ab o v e theorem/, it su/cesto establish that N
+/0re/nes N /. A dual question concernsreplacing the con text M of N b y some other con text M
+/0with p ossibly di/eren t transitions and//or other submo des/.T o establish that M
+/0/[ N /] re/nes M /[ N /]/, w e can replace N b yan y submo de that it re/nes/,Theorem /3 /(Con text Comp ositionalit y/) L et M and M
+/0b e c omp atible mo des with a c ommon submo de N /. If M /[ N /] /M
+/0/[ N /] and N
+/0/ N /, then M /[ N
+/0/] / M
+/0/[ N
+/0/] /.This suggests the follo wing comp ositional pro of metho d/. T oestablish that M /[ N /] re/nes M
+/0/[ N
+/0/]/, w e /rst sho w that Nre/nes N
+/0/. Then/, w e can c ho ose the most general mo de withthe in terface of N /, namely /, the one that puts no constrain tson the up date of write/-v ariables/.De/nition /1/1 /(Most General Submo des/) Given the glo/-b al variables Vg
+/= /( Vr
+/; Vw
+/) /, entry p oints E /, and exit p ointsX /, the mo de G /( Vr
+/; Vw
+/; E /; X /) is de/ne d to b e the mo de withno private variables/, and whose tr ansitions c ontain al l p airsof the form /(/( e/; s /) /; /( x/; t /)/) for e /2 dE /, x /2 dX /, s is any stateover Vr
+and t is any state over Vw
+/. /2Note that the mo de G /( Vr
+/; Vw
+/; E /; X /) is the most generalmo de with the giv en data and con trol/: v erify that ev erymo de mo de M re/nes G /( M /:Vr
+/; M /:Vw
+/; M /:E /; M /:X /)/. Th us/, ifM /[ G /] re/nes M
+/0/[ G /]/, for G /= G /( N /:Vr
+/; N /:Vw
+/; N /:E /; N /:X /)/, w ecan conclude that M /[ N /] re/nes M
+/0/[ N /]/. A visual represen/-tation of this rule is sho wn in Figure /7/, middle/.The comp ositionalit y rules allo w us to decomp ose thepro of obligation in to re/nemen t of submo des in the mostgeneral con text/, and re/nemen t of con text under the mostgeneral submo des/. Can w e allo w circular assume/-guaran teereasoning in the st yle of Prop osition /2/. Unfortunately /, ifM /[ N
+/0/] / M
+/0/[ N
+/0/] and M
+/0/[ N /] / M
+/0/[ N
+/0/]/, w e cannot concludethat M /[ N /] / M
+/0/[ N
+/0/]/. This is b ecause in the trace/-seman ticsof the mo de M /[ N /]/, the in teraction b et w een the con text Mand submo de N is not observ able/. A mo di/ed de/nition ofre/nemen t preserv es in teractions with a sp eci/ed submo de/.De/nition /1/2 /(Submo de sensitiv e re/nemen t/) L et Mb e a mo de with a submo de N /. The tr ac e/-language L
+NM
+isde/ne d so that for every tr ac e/( e/0
+/; s/0
+/)/( x/0
+/; t/0
+/)/( e/1
+/; s/1
+/)/( x/1
+/; t/1
+/) /: /: /: /( xn
+/; tn
+/)of M /, and for al l micr o/-exe cutions /i
+of M fr om /( ei
+/; si
+/) to/( xi
+/; ti
+/) /, the se quenc e/( e/0
+/; s/0
+/)/( //0
+/* N /)/( x/0
+/; t/0
+/)/( e/1
+/; s/1
+/)/( //1
+/* N /)/( x/1
+/; t/1
+/) /: /: /: /( xn
+/; tn
+/)is in L
+NM
+/. L et M and M
+/0b e c omp atible mo des/, and let Nand N
+/0b e submo des of M and M
+/0/, r esp e ctively/, c omp atiblewith e ach other/. Then/, M /
+NM
+/0i/ L
+NM
+/ L
+N
+/0M
+/0
+/. /2
+
+--- Page 10 ---
+N' NN'N<
+M M<N' N'<N' N<N'N'
+N N'<N'
+M M'M M' M' M'
+N N
+M M'<M M'<G GFigure /7/: Comp ositional and assume//guaran tee rulesObserv e that if M /
+NM
+/0/, then M / M
+/0/. This strongerre/nemen t preorder supp orts circular assume/-guaran tee rea/-soning/:Theorem /4 /(Assume Guaran tee/) L et M and M
+/0b e c om/-p atible mo des/, and let N and N
+/0b e submo des of M and M
+/0/,r esp e ctively/, c omp atible with e ach other/. Then/, if M /[ N
+/0/] /
+N
+/0M
+/0/[ N
+/0/] and M
+/0/[ N /] /
+N
+/0M
+/0/[ N
+/0/] /, then M /[ N /] /
+N
+/0M
+/0/[ N
+/0/] /.A visual represen tation of this rule is sho wn in Figure /7/,righ t/./4 Conjunctiv e Mo desThe closure seman tics of mo des presen ted in the previoussections is a v ery expressiv e setting in whic h w e can de/-/ne all the in teresting parallel comp osition op erators foundin the literature/. Moreo v er/, the user ma y de/ne himself thedesired comp osition and can ev en mix di/eren t w a ys of com/-p ositions in the same setting/. The main c haracteristics ofthe seman tics that allo w us to do this are hierarc h y /, con trolin terfaces and the fact that closed mo des nev er get /\stuc k/"and tak e /\no time/" to execute/. In this setting/, a mo dule isa top/-lik e mo de /(with ini as the only regular con trol p oin t/)that comm unicates with its en vironmen t via shared v ari/-ables/. In the follo wing subsection w e discuss the lo c k/-stepparallel comp osition/.Lo c k/-step parallel comp osition/. In the lo c k/-step com/-p osition/, a round /(macro step/) of a comp osed mo de consistsof a sequence of rounds of the submo des/, one round for eac hsubmo de/. The order of execution of the submo des is arbi/-trary and has no consequence on the trace seman tics of thecomp osed mo de/. As a consequence/, eac h linearization of thesubmo des is a v alid translation of the corresp onding com/-p osed mo dule/. A linearization that giv es priorit y to the leftmo de is sho wn in Figure /9/, righ t/. The asso ciated mo dulediagram is giv en in Figure /9/, left/. Note that the mo dulediagram explicitly sho ws the comm unication v ariables/. T o
+M N M' N'
+uRread i1, i2
+local o1',o2'write f1, f2write o1, o2
+local f1',f2', iiSf1
+f2uS
+iTini de
+dxo1i1 i2
+o2f1f2
+uTFigure /9/: lo c k/-step parallel comp ositionmak e sure that eac h mo de in the sequence accesses the samev alues of the v ariables/, namely the v alues at the b eginningof the round/, w e ha v e to latc h the write v ariables/. This iseasily accomplished as follo ws/.
+First/, w e add for eac h write v ariable of a submo de a lo calprimed v ariable to the comp osed mo de/. The primed v ariableis used to k eep the curren t v alue/, i/.e/./, the v alue computed b ythe submo de in the curren t round/. The en try transition uSof the comp osed mo de initializes the primed v ariables withthe v alue of the corresp onding unprimed v ariables/. The exittransition uR assigns the v alue of the primed v ariable bac kto the unprimed one/.Second/, since the submo des w ere de/ned in terms of un/-primed v ariables/, they ha v e to b e renamed suc h that eac ho ccurrence of an unprimed write v ariable /(ev en in read dec/-larations/) is replaced b y a primed v ariable/. Note that onlyone submo de is renamed with resp ect to a write v ariableb ecause comp osabilit y assures that the t w o submo des writeto disjoin t sets of v ariables/. In Figure /9 the renamed mo desare mark ed as primed/.T o b e able to distinguish b et w een the initialization andup date rounds w e also add a lo cal v ariable i that is truein the initialization rounds and false otherwise/. This isac hiev ed b y setting i to true and false in iS and uS resp ec/-tiv ely and b y guarding iT and uT b y this v alue/. F ormally /,this is de/ned as follo ws/.De/nition /1/3 /(Lo c k/-step comp osition/) Given two top/-level mo des M and N such that M /:Vw
+/\ N /:Vw
+/= /; /. The lo ck/-step c omp osition M k N of the mo des M and N is de/ne d asfol lows/.Con trol p oin ts/. The sets of entry and exit p oints dE /=f ini/; de g and dX /= f dx g /.V ariables/. The sets of Vw
+/, Vr
+and Vl
+of write/, r e ad andlo c al variables de/ne d as b elow/.Vw
+/= M /:Vw
+/[ N /:Vw
+/;Vr
+/= /( M /:Vr
+/[ N /:Vr
+/) n Vw
+/;Vl
+/= M /:V
+/0w
+/[ N /:V
+/0w
+/[ f i gSubmo des/. The set f M
+/0/; N
+/0g wher e/:M
+/0/= M /[ M /:V
+/0w
+/= M /:Vw
+/]N
+/0/= N /[ N /:V
+/0w
+/= N /:Vw
+/]That is/, M
+/0is obtaine d fr om M by r eplacing/, for e achvariable x in M /:Vw
+/, every r efer enc e to x in M by x
+/0/.T ransitions/. The set T of entry/, internal and exit tr an/-sitions/:T /= f /( ini/; iS/; M
+/0/:ini /) /; /( de/; uS/; M
+/0/:de /) g /[f /( M
+/0/:dx/; iT /; N
+/0/:ini /) /; /( M
+/0/:dx/; uT /; N
+/0/:de /) g /[f /( N
+/0/:dx/; uR /; dx /) gwher e iS/; uS/; iT /; uT and uR ar e de/ne d as fol lows/.
+
+--- Page 11 ---
+..
+dxdedx
+iniSystemSpec
+dxSystemSpecUserSpec
+....SelPartn
+....
+Conn1 SelPartn Conn4..ini de
+dxuS
+uRiT
+uTiT
+uT uTiTiSiS uS
+iT uT
+uR..
+Conn4 Conn1..h4h1
+.. ..
+....
+....c1 c4
+..ini de
+pUserSpecini de
+h4 h1..
+c1 c4Figure /1/0/: Recursiv e translation of mo dules to mo desiT
+def/= i /= true /-/> skipuT
+def/= i /= false /-/> skipiS
+def/= true /-/> i /:/= trueuS
+def/= true /-/> i /:/= false/; x
+/;/1
+/:/= x/1
+/;/././; x
+/;n
+/:/= xnuR
+def/= true /-/> i /:/= false/; x/1
+/:/= x
+/;/1
+/;/././; xn
+/:/= x
+/;nwher e x/1
+/./.xn
+ar e the variables in Vw
+/./2F rom the ab o v e de/nition it follo ws easily that M / M k Nand that parallel comp osition is comp ositional with resp ectto re/nemen t/.Theorem /5 If M/1
+/ N/1
+and M/2
+/ N/2
+ar e top/-like mo des/,then M/1
+k M/2
+/ N/1
+k N/2
+/.Remark /4 /(Aw ait dep endencies/) In the ab ove the or emwe c onsider e d only Mo or e/-like mo dules and their tr anslationto Mo or e/-like mo des/. In gener al/, r e active mo dules in Mochaal low to de/ne a p artial or der /(await dep endencies/) b etwe enatomic mo dules c al le d atoms such that the values c ompute dby an atom in a r ound may in/uenc e the values c ompute dby any atom gr e ater in the p artial or der in the same r ound/.We c an e asily hand le this in our setting by c onsidering thate ach submo de in the c omp osition has b oth an unprime d and aprime d c opy of e ach variable/. Similarly to the tr ansitions ofa p ar al lel mo de/, the submo des may then use b oth prime d andunprime d variables in their tr ansitions/. The p artial or der/,is nothing but a c onstr aint that has to b e satis/e d by theline arization of mo des/. Note that in this setting/, one mayde/ne events analo gously to r e active mo dules/. F or example/,testing for the o c curr enc e of an event e /? is tr anslate d to e
+/0/6/=e /. Similarly/, issuing an event e /! is tr anslate d to e
+/0/:/= /: e /. /2The lo c k/-step comp osition of t w o top/-lev el mo des is essen/-tial ly the same as the parallel comp osition of the mo dules de/-/ned b y these mo des/. The only di/erence is of tec hnical na/-ture/: the mo dules assume that the en vironmen t is not writ/-ing on their in terface v ariables while the mo des do not mak ethis assumption for their write v ariables/. This mismatc h canb e easily handled b y de/ning t w o op erators/: mode /2 modul e
+and modul e /2 mode that con v ert top/-lev el mo des to mo dulesand recipro cally mo dules to mo des/.The mode /2 modul e op eration only adds the en vironmen tassumption/. The modul e /2 mode op eration w orks recursiv ely /.First it replaces eac h submo dule b y a submo de that do es notimp ose the en vironmen t assumption/. Then it replaces theparallel comp osition of mo dules b y the lo c k/-step comp osi/-tion of mo des/. Since an y atom in reactiv e mo dules is alsoa mo de/, this giv es an algorithm to completely con v ert an ymo dule to a mo de/.Example /5 /(Village telephone system/) The r e cursivec onversion of the vil lage telephone system mo dule /(ar chite c/-tur e diagr am/) to a mo de is shown in Figur e /1/0/. /2Hence/, a mo dule diagram ma y b e regarded as a con v enien tshorthand for a particular mo de diagram/. Ho w ev er/, sincea mo dule diagram sho ws the observ able v ariables and theirsharing among mo des/, a mo dule diagram is more con v enien tfor the represen tation of parallel mo des/. The fact that amo dule diagram represen ts a mo de allo ws us to in tegratemo dule diagrams inside of mo de diagrams and the otherw a y around/. As a consequence/, w e can construct arbitraryand//or hierarc hies of mixed sync hronous or async hronouscomp onen ts/.The construction of suc h hierarc hies is an imp ortan t stepto w ards mo deling mo dern concepts lik e dynamical net w orkrecon/guration or mobilit y /. F or example/, creating a newpro cess can b e easily accomplished b y a transition that tak esa mo dule diagram in to another mo dule diagram that has anadditional mo dule/. T o mo del mobilit y w e also need to dis/-tinguish b et w een lo cation of computation mo dules and soft/-w are mo dules/. It is imp ortan t to note that this expressiv ep o w er comes together with a clean seman tics that can b eused successfully in analysis/.Example /6 /(Hot/-lines/) A p ossible implementation of themo dule SystemSpec is by hot lines/, as shown in Figur e /1/1/,right/. The mo de de/nition of the mo dule Line/1 is shown inFigur e /1/1/, left/. The asso ciate d tr ansitions ar e given b elow/.The de/nition of the mo dule Line/2 is similar/.all/0
+def/= true /-/>c/1 /:/= disconnected/; c/2 /:/= disconnected/;
+
+--- Page 12 ---
+c3 c4 h3 h4h1 h2 c1 c2
+Line1
+Line2
+SystemImp0
+Line136
+4
+h1off?de
+h2off? dx
+h2on?inih1on?
+diDr2
+5
+721
+c1discc2disc
+all0h1on?
+conn1c2disc
+c1disch1off?
+h2off?h2on?conn2diDr1Figure /1/1/: Hot lines implemen tationh/1off/?
+def/= h/1 /= off /-/> skip/;h/2off/?
+def/= h/2 /= off /-/> skip/;h/1on/?
+def/= h/1 /= on /-/> skip/;h/2on/?
+def/= h/2 /= on /-/> skip/;conn/2
+def/= h/2 /= off /-/> c/1 /:/= /2/; c/2 /:/= /1/;conn/1
+def/= h/1 /= off /-/> c/1 /:/= /2/; c/2 /:/= /1/;diDr/1
+def/= h/1 /= on /-/>c/1 /:/= disconnected/; c/2 /:/= drooping/;diDr/2
+def/= h/2 /= on /-/>c/2 /:/= disconnected/; c/1 /:/= drooping/;c/2disc
+def/= h/2 /= on /-/> c/2 /:/= disconnected/;c/1disc
+def/= h/1 /= on /-/> c/1 /:/= disconnected/;We would like now to pr ove by assume//guar ante e r e ason/-ing that UserImp k SystemImp / UserSpec k SystemSpec /.This c an b e done in a mixe d mo dule//mo des setting or solelyin a mo des setting by c onverting the ab ove mo dules to mo des/.In this c ase/, we c an use the assume//guar ante e rule for mo des/.L et SystemImpPar b e the top level mo de for the p ar al/-lel c omp osition to gether with the mo de for SystemImp andSystemSpecPar b e the top level mo de for the p ar al lel c om/-p osition to gether with the mo de for SystemSpec/. Then wehave to pr ove thatSystemImpPar /[ UserSpec /] / SystemSpecPar /[ UserSpec /]SystemSpecPar /[ UserImp /] / SystemSpecPar /[ UserSpec /]It is e asy to se e that in this c ase the assume//guar ante e rulefor mo des is the same as the one for mo dules/. /2/5 ConclusionsThe notion of hierarc h y is useful for structuring arc hitectureof comp onen t connections as w ell as for describing b eha viorof individual comp onen ts/. While arc hitectural hierarc h y hasb een w ell understo o d in con text of mo dular reasoning/, therehas b een no basis for mo dular reasoning ab out b eha vior hier/-arc h y /. Existing languages for hierarc hic state/-mac hines ha v ecomplex op erational seman tics and no notion of observ a/-tional re/nemen t/. W e sho w that hierarc h y can b e preserv edin observ ational trace seman tics ev en in presence of p o w erfulfeatures suc h as mo de hierarc h y /, exceptions/, history reten/-tion/, conjunctiv e mo des/, and mo de reuse/. Our language has
+p o w erful rules for re/nemen t of mo des/, and should pro videa basis for systematic dev elopmen t and formal analysis ofhierarc hic descriptions/.The curren t prop osal builds on our previous w ork on thelanguage of reactiv e mo dules and the to olkit Mocha thatsupp orts assume/-guaran tee re/nemen t c hec ks/. The op era/-tions of building a mo de b y connecting submo des/, scoping oflo cal v ariables/, and mo de instan tiation/, are direct analogs ofparallel comp osition of mo dules/, v ariable hiding/, and mo d/-ule instan tiation/, resp ectiv ely /. Indeed/, the same graphical/-user/-in terface can b e used for b oth the mo dule diagrams andmo de diagrams/. W e ha v e already started w ork on buildingthe GUI and a mo del c hec k er for the hierarc hic mo dules/.In the reactiv e mo dules language b eha vior is describ edusing the so/-called atoms whic h roughly corresp ond to logic/-gates/, and is already quite satisfactory for hardw are appli/-cations/. The hierarc hic reactiv e mo dules extensions mak esit w ell suited for soft w are applications as w ell/. In fact/, ourframew ork pro vides a coheren t in tegration of the t w o t yp esof sp eci/cations/, making it suitable for hardw are//soft w areco design/.Ac kno wledgmen tsW e thank Manfred Bro y /, Carl Gun ter/, T om Henzinger/, Mi/-c hael McDougall/, Amir Pn ueli/, Bran Selic/, Gheorghe Ste/-fanescu and Mihalis Y annak akis for fruitful discussions andsuggestions/. Ra jeev Alur is supp orted b y D ARP A//NASAgran t NA G/2/-/1/2/1/4/, NSF CARRER a w ard CCR/-/9/7/3/4/1/1/5/, SR Ca w ard /9/9/-/6/8/8/, Sloan F acult y F ello wship/, and Bell Lab orato/-ries/. Radu Grosu is supp orted b y D ARP A//NASA gran tNA G/2/-/1/2/1/4/.References/[AH/9/9/] R/. Alur and T/.A/. Henzinger/. Reactiv e mo dules/. F ormalMetho ds in System Design /, /1/5/(/1/)/:/7/{/4/8/, /1/9/9/9/. In vitedsubmission to FLoC/'/9/6 sp ecial isuue/. A preliminary v er/-sion app ears in Pr o c/. /1/1th LICS/, /1/9/9/6 /./[AHM
+/+/9/8/] R/. Alur/, T/. Henzinger/, F/. Mang/, S/. Qadeer/, S/. Ra ja/-mani/, and S/. T asiran/. MOCHA/: Mo dularit y in mo delc hec king/. In Pr o c e e dings of the /1/0th International Con/-fer enc e on Computer A ide d V eri/c ation /, LNCS /1/4/2/7/,pages /5/1/6/{/5/2/0/. Springer/-Verlag/, /1/9/9/8/./[AL/9/5/] M/. Abadi and L/. Lamp ort/. Conjoining sp eci/cations/.A CM TOPLAS /, /1/7/:/5/0/7/{/5/3/4/, /1/9/9/5/./[A Y/9/8/] R/. Alur and M/. Y annak akis/. Mo del c hec king of hierar/-c hical state mac hines/. In Pr o c e e dings of the Sixth A CM
+
+--- Page 13 ---
+Symp osium on F oundations of Softwar e Engine ering /,pages /1/7/5/{/1/8/8/. /1/9/9/8/./[BGG
+/+/9/8/] K/. Bharga v an/, C/.A/. Gun ter/, E/.L/. Gun ter/, M/. Jac kson/,D/. Obrado vic/, and P amela Za v e/. The village telephonesystem/: A case study in formal soft w are engineering/. InPr o c e e dings of /1/1th International Confer enc e on The o/-r em Pr oving in Higher/-Or der L o gics TPHOLs/9/8 /, /1/9/9/8/./[BJR/9/7/] G/. Bo o c h/, I/. Jacobson/, and J/. Rum baugh/. Uni/e d Mo d/-eling L anguage User Guide /. Addison W esley /, /1/9/9/7/./[BLA
+/+/9/9/] G/. Behrmann/, K/. Larsen/, H/. Andersen/, H/. Hul/-gaard/, and J/. Lind/-Nielsen/. V eri/cation of hierarc hi/-cal state//ev en t systems using reusabilit y and comp osi/-tionalit y /. In T A CAS /'/9/9/: Fifth International Confer/-enc e on T o ols and A lgorithms for the Construction andA nalysis of Softwar e /, /1/9/9/9/./[CAB
+/+/9/8/] W/. Chan/, R/. Anderson/, P /. Beame/, S/. Burns/, F/. Mo d/-ugno/, D/. Notkin/, and J/. Reese/. Mo del c hec king largesoft w are sp eci/cations/. IEEE T r ansactions on Softwar eEngine ering /, /2/4/(/7/)/:/4/9/8/{/5/1/9/, /1/9/9/8/./[CE/8/1/] E/.M/. Clark e and E/.A/. Emerson/. Design and syn thesisof sync hronization sk eletons using branc hing time tem/-p oral logic/. In Pr o c/. Workshop on L o gic of Pr o gr ams /,LNCS /1/3/1/, pages /5/2/{/7/1/. Springer/-V erlag/, /1/9/8/1/./[CK/9/6/] E/.M/. Clark e and R/.P /. Kurshan/. Computer/-aided v eri/-/cation/. IEEE Sp e ctrum /, /3/3/(/6/)/:/6/1/{/6/7/, /1/9/9/6/./[GL/9/4/] O/. Gr / um b erg and D/.E/. Long/. Mo del c hec king and mo d/-ular v eri/cation/. A CM T r ansactions on Pr o gr ammingL anguages and Systems /, /1/6/(/3/)/:/8/4/3/{/8/7/1/, /1/9/9/4/./[GSB/9/8/] R/. Grosu/, T/. Stauner/, and M/. Bro y /. A mo dular visualmo del for h ybrid systems/. In F ormal T e chniques inR e al Time and F ault T oler ant Systems /(FTR TFT/'/9/8/) /,LNCS /1/4/8/6/. Springer/-V erlag/, /1/9/9/8/./[Har/8/7/] D/. Harel/. Statec harts/: A visual formalism for complexsystems/. Scienc e of Computer Pr o gr amming /, /8/:/2/3/1/{/2/7/4/, /1/9/8/7/./[HN/9/6/] D/. Harel and A/. Naamad/. The st a tema te seman ticsof statec harts/. A CM T r ans/. Softwar e Engin/. Metho ds /,/5/(/4/)/:/2/9/3/{/3/3/3/, /1/9/9/6/./[Hol/9/7/] G/.J/. Holzmann/. The mo del c hec k er SPIN/. IEEE T r ans/.on Softwar e Engine ering /, /2/3/(/5/)/:/2/7/9/{/2/9/5/, /1/9/9/7/./[HPSS/8/7/] D/. Harel/, A/. Pn ueli/, J/. Sc hmidt/, and R/. Sherman/. Onthe formal seman tics of statec harts/. In Pr o c/. /2nd IEEESymp osium on L o gic in Computer Scienc e /, pages /5/4/{/6/4/, /1/9/8/7/./[HQR/9/8/] T/.A/. Henzinger/, S/. Qadeer/, and S/. Ra jamani/. Y ou as/-sume/, w e guaran tee/: Metho dology and case studies/.In CA V /9/8/: Computer/-aide d V eri/c ation /, LNCS /1/4/2/7/,pages /5/2/1/{/5/2/5/, /1/9/9/8/./[JM/8/7/] F/. Jahanian and A/.K/. Mok/. A graph/-theoretic approac hfor timing analysis and its implemen tation/. IEEET r ansactions on Computers /, C/-/3/6/(/8/)/:/9/6/1/{/9/7/5/, /1/9/8/7/./[Lam/9/1/] L/. Lamp ort/. The temp oral logic of actions/. T ec hni/-cal rep ort/, DEC Systems Researc h Cen ter/, P alo Alto/,California/, /1/9/9/1/./[LHHR/9/4/] N/.G/. Lev eson/, M/. Heimdahl/, H/. Hildreth/, and J/.D/.Reese/. Requiremen ts sp eci/cation for pro cess con trolsystems/. IEEE T r ansactions on Softwar e Engine erings /,/2/0/(/9/)/, /1/9/9/4/./[L T/8/7/] N/.A/. Lync h and M/. T uttle/. Hierarc hical correctnesspro ofs for distributed algorithms/. In Pr o c e e dings of theSeventh A CM Symp osium on Principles of Distribute dComputing /, pages /1/3/7/{/1/5/1/, /1/9/8/7/./[McM/9/3/] K/. McMillan/. Symb olic mo del che cking/: an appr o achto the state explosion pr oblem /. Klu w er Academic Pub/-lishers/, /1/9/9/3/.
+/[McM/9/7/] K/.L/. McMillan/. A comp ositional rule for hardw aredesign re/nemen t/. In Computer/-A ide d V eri/c ationCA V/'/9/7 /, pages /2/4/{/3/5/, /1/9/9/7/./[Mil/8/0/] R/. Milner/. A Calculus of Communic ating Systems /.LNCS /9/2/. Springer/-V erlag/, /1/9/8/0/./[PS/9/1/] A/. Pn ueli and M/. Shalev/. What is in a step/: On theseman tics of statec harts/. In Pr o c/. Symp osium on The o/-r etic al Asp e cts of Computer Softwar e /, LNCS /5/2/6/, pages/2/4/4/{/2/6/4/, /1/9/9/1/./[SGW/9/4/] B/. Selic/, G/. Gullekson/, and P /.T/. W ard/. R e al/-time obje ctoriente d mo deling and design /. J/. Wiley /, /1/9/9/4/./[Sta/8/5/] E/.W/. Stark/. A pro of tec hnique for rely/-guaran tee prop/-erties/. In FST /& TCS /8/5/: F oundations of Softwar eT e chnolo gy and The or etic al Computer Scienc e /, LNCS/2/0/6/, pages /3/6/9/{/3/9/1/, /1/9/8/5/./[US/9/4/] A/. Uselton and S/. Smolk a/. A comp ositional seman ticsfor statec harts using lab eled transition systems/. pages/2/{/1/7/, /1/9/9/4/.

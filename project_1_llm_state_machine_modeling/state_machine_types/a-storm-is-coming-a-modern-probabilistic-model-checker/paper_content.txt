@@ -1,0 +1,543 @@
+--- Page 1 ---
+arXiv:1702.04311v1  [cs.SE]  14 Feb 2017AStorm is Coming:
+A Modern Probabilistic Model Checker
+Christian Dehnert, Sebastian Junges, Joost-Pieter Katoen , and Matthias Volk
+RWTH Aachen University, Aachen, Germany
+Abstract. We launch the new probabilistic model checker Storm . It
+features the analysis of discrete- and continuous-time var iants of both
+Markov chains and MDPs. It supports the Prism and JANI modeling
+languages, probabilistic programs, dynamic fault trees an d generalized
+stochastic Petri nets. It has a modular set-up in which solve rs and sym-
+bolic engines can easily be exchanged. It oﬀers a Python API f or rapid
+prototyping by encapsulating Storm ’s fast and scalable algorithms. Ex-
+periments on a variety of benchmarks show its competitive pe rformance.
+1 Introduction
+In the last ﬁve years, we have developed our in-house probabi listic model checker
+with the aim to have an easy-to-use platform for experimenti ng with new veriﬁca-
+tion algorithms, richer probabilistic models, algorithmi c improvements, diﬀerent
+modeling formalism, various new features, and so forth. Alt hough open-source
+probabilistic model checkers do exist, most are not ﬂexible and modular enough
+to easily support this. Our eﬀorts have led to a toolkit with m ature building
+bricks with simple interfaces for possible extensions, and a modular set-up. It
+comprises about 100,000 lines of C++code. The time has come to make this
+toolkit available to a wider audience: this paper presents Storm .
+Like its main competitors Prism [1],MRMC [2], and iscasMC [3],Storm
+relies on numerical and symbolic computations. It does not s upport discrete-
+event simulation, known as statistical model checking [4]. The main characteristic
+features of Storm are:
+–it supports various native input formats : thePrism input format, general-
+ized stochastic Petri nets, dynamic fault trees, and condit ioned probabilistic
+programs. This is not just providing another parser; state- space reduction
+and generation techniques as well as analysis algorithms ar e partly tailored
+to these modeling formalisms;
+–in addition to Markov chains and MDPs, it supports Markov automata [5,6],
+a model containing probabilistic branching, non-determin ism, and exponen-
+tially distributed delays;
+–it can do explicit state andfully symbolic (BDD-based) model checking as
+well as a mixture of these modes;
+–it has a modular set-up, enabling the easy exchange of diﬀerent solvers and
+distinct decision diagram packages; its current release su pports about 15
+solvers, and the BDD packages CUDD[7] and multi-threaded Sylvan [8];
+
+--- Page 2 ---
+2 C. Dehnert et al.
+–it provides a Python API facilitating easy and rapid prototyping of other
+tools using the engines and algorithms in Storm ;
+–it provides the following functionalities under one roof: t he synthesis of coun-
+terexamples and permissive schedulers (both MILP- and SMT- based), game-
+based abstraction of inﬁnite-state MDPs, eﬃcient algorith ms for conditional
+probabilities and rewards [9], and long-run averages on MDP s [10];
+–its performance in terms of veriﬁcation speed and memory foo tprint on the
+Prism benchmark suite is mostly better compared to Prism .
+Although many functionalities of Prism are covered by Storm , there are signif-
+icant diﬀerences. Storm does not support LTL model checking (as in iscasMC
+andPrism ) and does not support the Prism features: probabilistic timed au-
+tomata, multi-objective model checking, and an equivalent ofPrism ’s “hybrid”
+engine (a crossover between full MTBDD and Storm ’s “hybrid” engine), a fully
+symbolic engine for continuous-time models, statistical m odel checking, and the
+analysis of stochastic games as in Prism -GAMES [11].
+2 Features
+Model types. Storm supports Markov chains and Markov decision processes
+(MDPs), both in two forms: discrete time and continuous time . This yields four
+diﬀerent models: classical discrete-time (DTMCs) and cont inuous-time Markov
+chains (CTMCs), as well as MDPs and Markov automata (MA) [5,6 ], a com-
+positional variant of continuous-time MDPs. The MA is the ri chest model.
+CTMCs are MAs without non-determinism, while MDPs are MAs wi thout de-
+lays; DTMCs are CTMCs without delays, cf. [12]. All these mod els are extensible
+with rewards (or dually: costs) to states, and – for non-dete rministic models – to
+actions. Most probabilistic model checkers support Markov chains and/or MDPs;
+MAs so far have only been supported by few tools [13,14].
+Modeling languages. Storm supports various symbolic and an explicit input for-
+mat to specify the aforementioned model types: (i) Most prom inently, the Prism
+input language [15]; (ii) the recently deﬁned JANI format [1 6], a universal prob-
+abilistic modeling language; (iii) as the ﬁrst tool every1generalized stochastic
+Petri net (GSPN) [19] via both a dedicated model builder as we ll as an encoding
+in JANI; (iv) dynamic fault trees (DFTs) [20,21] – due to dedi cated state-space
+generation and reduction techniques for DFTs, Storm signiﬁcantly outperforms
+competing tools in this domain [22]; (v) pGCL probabilistic programs [23] ex-
+tended with observe-statements [24], an essential feature to describe and analyze
+e.g., Bayesian networks; (vi) in the spirit of MRMC [2], mode ls can be provided
+in a format that explicitly enumerates transitions.
+Properties. Storm focusses on probabilistic branching-time logics, i.e. PCT L
+[25] and CSL [26,27] for discrete-time and continuous-time models, respectively.
+1Existing CSL model checkers for GSPNs such as GreatSPN [17] a nd MARCIE [18]
+are restricted to confusion-free Petri nets; Storm does not have this restriction as
+it supports MA.
+
+--- Page 3 ---
+AStorm is Coming: A Modern Probabilistic Model Checker 3
+To enable the treatment of reward objectives such as expecte d and long-run
+rewards, Storm supports reward extensions of these logics in a similar way a s
+Prism . In addition, Storm supports conditional probabilities and conditional
+rewards [9]; these are, e.g., important for the analysis of c pGCL programs.
+Engines. Storm features two distinct in-memory representations of probab ilistic
+models: sparse matrices allow for fast operations on small and moderately sized
+models, multi-terminal binary decision diagrams (MTBDDs) are able to repre-
+sent gigantic models, however with slightly more expensive operations. A variety
+of engines built around the in-memory representations is av ailable, which allows
+for the more eﬃcient treatment of input models. Both Storm ’ssparse and the
+exploration engine purely use a sparse matrix-based representation. Wh ile the
+former amounts to an eﬃcient implementation of the standard approaches, the
+latter one implements the ideas of [28] which scrutinizes th e state space with
+machine learning methods. Three other engines, dd,hybrid andabstraction-
+reﬁnement , use MTBDDs as their primary representation. While ddexclusively
+uses decision diagrams, hybrid also uses sparse matrices for operations deemed
+more suitable on this format. The abstraction-reﬁnement engine abstracts (pos-
+sibly inﬁnite) discrete-time Markov models to (ﬁnite) stoc hastic games and au-
+tomatically reﬁnes the abstraction as necessary.
+Parametric models. Storm was used as backend in [29,30]. By using the dedi-
+cated library CArL [31] for the representation of rational functions and apply -
+ing novel algorithms for the analysis of parametric discret e-time models, it has
+proven to signiﬁcantly outperform other tools such as the pa rametric algorithms
+inPrism and the dedicated tool PARAM [32].
+Exact arithmetic. Several works [33,34] observed that the numerical methods
+applied by probabilistic model checkers are prone to numeri cal problems. Storm
+therefore supports enabling exact arithmetic to obtain precise results .
+Counterexample generation. For probabilistic models, several counterexample
+representations have been proposed [35,36]. Storm implements the MILP-based
+counterexample technique [37], as well as the MaxSat -based generation of high-
+level counterexamples on Prism models [38]. These algorithms go beyond the
+capabilities of dedicated, stand-alone counterexample ge neration tools such as
+DiPro [39] and COMICS [40]. In particular, the synthesis of h igh-level coun-
+terexamples facilitates to obtain counterexamples as Prism code, starting from
+aPrism model and a refuted property.
+APIs.Storm can be used via threeinterfaces: a command-line interface, a C++
+API, and a Python API. The command-line interface consists o f several binaries
+that provide end-users access to the available settings for diﬀerent tasks. Ad-
+vanced users can utilize the many settings to tune the perfor mance. Developers
+may either use the C++ API that oﬀers ﬁne-grained and perform ance-oriented
+access to Storm ’s functionality, or the Python API which allows rapid proto -
+typing and encapsulates the high-performance implementat ions within Storm .
+
+--- Page 4 ---
+4 C. Dehnert et al.
+cpGCL
+DFT
+GSPN
+PRISM
+JANImodel
+builder
+counterex.
+sparsepermissive
+schedulers
+hybrid
+dd
+exploration
+abstr.-ref.SMT
+(MI)LP
+linear
+Bellman
+gamessolver
+Fig.1. Storm ’s architecture.
+3 Architecture
+Fig. 1 depicts the architecture of Storm . Solid arrows indicate the ﬂow of con-
+trol and data, dashed lines represent a “uses” relationship . After the initial pars-
+ing step, it depends on the selected engine whether a model bu ilding step is
+performed: for all but the exploration andabstraction-reﬁnement engines, it is
+necessary to build a full in-memory representation of the mo del upfront. Note
+that the available engines depend on the input format and tha t both PRISM
+and GSPN input can be either treated natively or transformed to JANI.
+Solvers. Storm ’s infrastructure is built around the notion of a solver . For in-
+stance, solvers are available for sets of linear or Bellman e quations (both us-
+ing sparse matrices as well as MTBDDs), (mixed-integer) lin ear programming
+(MILP) and satisﬁability modulo theories (SMT). Note that Storm does not
+support stochastic games as input models, yet, but solvers f or them are available
+because they are used in the abstraction-reﬁnement engine. Oﬀering these inter-
+faces has several key advantages. First, it provides easy an d coherent access to
+the tasks commonly involved in probabilistic model checkin g. Secondly, it enables
+the use of dedicated state-of-the-art high-performance li braries for the task at
+hand. More speciﬁcally, as the performance characteristic s of diﬀerent backend
+solvers can vary drastically for the same input, this permit s choosing the best
+solver for a given task. Licensing problems are avoided, bec ause implementations
+can be easily enabled and disabled, depending on whether or n ot the particular
+license ﬁts the requirements. Finally, implementing new so lver functionality is
+easy and can be done without knowledge about the global code b ase. It allows
+to embed new state-of-the-art solvers in the future. For eac h of those interfaces,
+several actual implementations exist. Table 1 gives an over view over the cur-
+rently available implementations. Almost all engines and a ll other key modules
+make use of solvers . The most prominent example is the use of the equation
+solvers for answering standard veriﬁcation queries. Howev er, other modules use
+them too, e.g. model building (SMT), counterexample genera tion [37,38] (SMT,
+MILP) and permissive scheduler generation [49,50] (SMT, MI LP).
+
+--- Page 5 ---
+AStorm is Coming: A Modern Probabilistic Model Checker 5
+Table 1. Solvers oﬀered by Storm .
+solver type available solvers
+linear equations (sparse) Eigen [41], gmm++ [42], elim. [43 ], built-in
+linear equations (MTBDD) CUDD [7], Sylvan [8]
+Bellman equations (sparse) Eigen, gmm++, built-in
+Bellman equations (MTBDD) CUDD, Sylvan
+stochastic games (sparse) built-in
+stochastic games (MTBDD) CUDD, Sylvan
+(MI)LP Gurobi [44], glpk [45]
+SMT Z3 [46], MathSAT [47], SMTLIB [48]
+4 Evaluation
+Set-up. For the performance evaluation, we conducted experiments o n a HP
+BL685C G7. Up to eight cores with 2.0GHz and 8GB of memory were available
+to the tools, but only Prism ’s garbage collection used more than one core at a
+time. We set a time-out of 1800 seconds.
+Comparison with Prism .To assess Storm ’s performance on standard model-
+checking queries, we compare it with Prism on the Prism benchmark suite [51].
+More speciﬁcally, we consider all DTMCs, CTMCs and MDPs (24 i n total, and
+several instances per model) and all corresponding propert ies (82 in total). Note
+that we do not compare Storm withiscasMC as the latter one has a strong
+focus on more complex LTL properties.2
+Methodology. As both Prism andStorm oﬀer several engines with diﬀerent
+strengths and weaknesses, we choose the following comparis on methodology. We
+compare engines that “match” in terms of the general approac h. For example,
+Prism ’sexplicit engine ﬁrst builds the model in terms of a sparse matrix direc tly
+and then performs the model checking on this representation , which matches the
+approach of Storm ’ssparse engine. In the same manner, Prism ’ssparse engine
+is comparable to Storm ’shybrid one and Prism ’smtbdd engine corresponds to
+Storm ’sddengine. Finally, we compare the run-times of Prism andStorm
+when selecting the best engine for each individual benchmar k instance.
+Results. Fig. 2 (top-row) summarizes the results of the experiments2in
+log-log scale. We plot the total time taken by the Storm engines versus the
+“matching” Prism engines. Data points above the main diagonal indicate that
+Storm solved the task faster. The two dashed lines indicate a speed -up of 10
+and 100, respectively; “OoR” denotes memory- or time-outs, “Err” denotes that
+a tool was not able to complete the task for any other reason an d “NR” stands
+for “no result”.2
+2More details and experiments can be found in Appendix A.
+
+--- Page 6 ---
+6 C. Dehnert et al.
+1 6060018001606001800
+OoRErrOoRErr
+Storm (sparse)Prism (explicit)
+1 6060018001606001800
+OoRErrOoRErr
+Storm (hybrid)Prism (sparse)
+1 6060018001606001800
+OoRErrOoRErr
+Storm (dd)Prism (mtbdd)
+1 6060018001606001800
+NRNR
+Storm (best)Prism (best)
+1 6060018001606001800
+OoRErrOoRErr
+Storm (exact)Prism (exact)
+1 6060018001606001800
+OoRErrOoRErr
+Storm (sparse)IMCA
+DTMC MDP CTMC MA
+Fig.2. Run-time comparison (seconds) of diﬀerent engines/featur es.
+Discussion. We observe that Storm is competitive on all compared engines.
+Even though the MTBDD-based engines are very similar and eve n use the same
+MTBDD library ( CUDD ), most of the time Storm is able to outperform Prism .
+Note that Storm currently does not support CTMCs in this engine. We observe
+a slightly clearer advantage of Storm ’ hybrid engine in comparison to Prism ’s
+sparse engine. Here, model building times tend to be similar , but most often
+the numerical solution is done more eﬃciently by Storm . However, for large
+CTMC benchmarks, Prism tends to be faster than Storm .Storm ’ssparse
+engine consistently outperforms Prism due to both the time needed for model
+construction as well as solving times. For the overwhelming majority of veriﬁ-
+cation tasks, Storm ’s best engine is faster than Prism ’s best engine. Storm
+solves 361 (out of 380) tasks, compared to 346 tasks Prism solves.
+Exact arithmetic. Fig. 2(bottom center) compares the exact modes of both
+tools.Storm outperforms Prism by up to three orders of magnitude.
+Markov Automata. AsPrism does not support the veriﬁcation of MAs, we
+compare Storm with the only other tool capable of verifying MAs: IMCA [13].
+We used the models provided by IMCA , results are depicted in Fig. 2(bottom
+right). For most instances, Storm is signiﬁcantly faster.
+Acknowledgments. The authors would like to thank people that support(ed) the
+development of Storm over the years (in alphabetical order): Philipp Berger, Har old
+Bruintjes, Gereon Kremer, David Korzeniewski, and Tim Quat mann.
+
+--- Page 7 ---
+AStorm is Coming: A Modern Probabilistic Model Checker 7
+References
+1. Kwiatkowska, M., Norman, G., Parker, D.: Prism 4.0: Veriﬁcation of probabilistic
+real-time systems. Proc. of CAV. Vol. 6806 of LNCS, Springer (2011) 585–591
+2. Katoen, J.P., Zapreev, I.S., Hahn, E.M., Hermanns, H., Ja nsen, D.N.: The ins
+and outs of the probabilistic model checker MRMC. Perf. Eval uation 68(2) (2011)
+90–104
+3. Hahn, E.M., Li, Y., Schewe, S., Turrini, A., Zhang, L.: isc asMc: A web-based
+probabilistic model checker. Proc. of FM. Vol. 8442 of LNCS, Springer (2014)
+312–317
+4. Larsen, K.G., Legay, A.: Statistical model checking: Pas t, present, and future.
+ISoLA (1). Vol. 9952 of LNCS (2016) 3–15
+5. Eisentraut, C., Hermanns, H., Zhang, L.: On probabilisti c automata in continuous
+time. LICS, IEEE CS (2010) 342–351
+6. Deng, Y., Hennessy, M.: On the semantics of Markov automat a. Inf. Comput. 222
+(2013) 139–168
+7. (CUDD Website) http://vlsi.colorado.edu/~fabio/CUDD/html/index.htm l.
+8. van Dijk, T., van de Pol, J.: Sylvan: Multi-core decision d iagrams. Proc. of TACAS.
+Vol. 9035 of LNCS, Springer (2015) 677–691
+9. Baier, C., Klein, J., Klüppelholz, S., Märcker, S.: Compu ting conditional prob-
+abilities in Markovian models eﬃciently. Proc. of TACAS. Vo l. 8413 of LNCS,
+Springer (2014) 515–530
+10. de Alfaro, L.: How to specify and verify the long-run aver age behavior of proba-
+bilistic systems. Proc. of LICS, IEEE CS (1998) 454–465
+11. Chen, T., Forejt, V., Kwiatkowska, M., Parker, D., Simai tis, A.: Prism-games: A
+model checker for stochastic multi-player games. Proc. of T ACAS. Vol. 7795 of
+LNCS, Springer (2013) 185–191
+12. Katoen, J.P.: The probabilistic model checking landsca pe. Proc. of LICS, ACM
+(2016) 31–46
+13. Guck, D., Timmer, M., Hateﬁ, H., Ruijters, E., Stoelinga , M.: Modelling and
+analysis of Markov reward automata. Proc. of ATVA. Vol. 8837 of LNCS, Springer
+(2014) 168–184
+14. Guck, D., Hateﬁ, H., Hermanns, H., Katoen, J., Timmer, M. : Analysis of timed
+and long-run objectives for Markov automata. LMCS 10(3) (2014)
+15.PRISM Website: (2015) http://prismmodelchecker.org .
+16. Budde, C.E., Dehnert, C., Hahn, E.M., Hartmanns, A., Jun ges, S., Turrini, A.:
+Jani: Quantitative model and tool interaction. Proc. of TAC AS. LNCS, Springer
+(2017) (to appear).
+17. Amparore, E.G., Beccuti, M., Donatelli, S.: (Stochasti c) model checking in Great-
+SPN. Proc. of Petri Nets. Vol. 8489 of LNCS, Springer (2014) 3 54–363
+18. Schwarick, M., Heiner, M., Rohr, C.: MARCIE - model check ing and reachability
+analysis done eﬃciently. Proc. of QEST, IEEE CS (2011) 91–10 0
+19. Eisentraut, C., Hermanns, H., Katoen, J.P., Zhang, L.: A semantics for every
+GSPN. Proc. of Petri Nets. Vol. 7927 of LNCS, Springer (2013) 90–109
+20. Dugan, J.B., Bavuso, S.J., Boyd, M.A.: Dynamic fault-tr ee models for fault-
+tolerant computer systems. IEEE Trans. on Reliability 41(3) (1992) 363–377
+21. Boudali, H., Crouzen, P., Stoelinga, M.I.A.: A rigorous , compositional, and exten-
+sible framework for dynamic fault tree analysis. IEEE Trans . on Secure and Distr.
+Computing 7(2) (2010) 128–143
+
+--- Page 8 ---
+8 C. Dehnert et al.
+22. Volk, M., Junges, S., Katoen, J.P.: Advancing dynamic fa ult tree analysis - get
+succinct state spaces fast and synthesise failure rates. Pr oc. of SAFECOMP. Vol.
+9922 of LNCS, Springer (2016) 253–265
+23. McIver, A., Morgan, C.: Abstraction, Reﬁnement and Proo f for Probabilistic Sys-
+tems. Monographs in Computer Science. Springer (2005)
+24. Gordon, A.D., Henzinger, T.A., Nori, A.V., Rajamani, S. K.: Probabilistic pro-
+gramming. FOSE, ACM (2014) 167–181
+25. Hansson, H., Jonsson, B.: A logic for reasoning about tim e and reliability. Formal
+Aspects of Computing 6(5) (1994) 512–535
+26. Aziz, A., Sanwal, K., Singhal, V., Brayton, R.K.: Verify ing continuous time Markov
+chains. Proc. of CAV. Vol. 1102 of LNCS, Springer (1996) 269– 276
+27. Baier, C., Haverkort, B.R., Hermanns, H., Katoen, J.P.: Model-checking algorithms
+for continuous-time Markov chains. IEEE Trans. Softw. Eng. 29(6) (2003) 524–541
+28. Brázdil, T., Chatterjee, K., Chmelik, M., Forejt, V., Kr etínský, J., Kwiatkowska,
+M., Parker, D., Ujma, M.: Veriﬁcation of Markov decision pro cesses using learning
+algorithms. Proc. of ATVA. Vol. 8837 of LNCS, Springer (2014 ) 98–114
+29. Dehnert, C., Junges, S., Jansen, N., Corzilius, F., Volk , M., Bruintjes, H., Katoen,
+J.P., Ábrahám, E.: Prophesy: A probabilistic parameter syn thesis tool. Proc. of
+CAV. Vol. 9206 of LNCS, Springer (2015) 214–231
+30. Quatmann, T., Dehnert, C., Jansen, N., Junges, S., Katoe n, J.P.: Parameter syn-
+thesis for Markov models: Faster than ever. Proc. of ATVA. Vo l. 9938 of LNCS
+(2016) 50–67
+31.CArL Website: (2015) http://goo.gl/8QsVxv .
+32. Hahn, E.M., Hermanns, H., Zhang, L.: Probabilistic reac hability for parametric
+Markov models. STTT 13(1) (2010) 3–19
+33. Haddad, S., Monmege, B.: Reachability in MDPs: Reﬁning c onvergence of value
+iteration. RP. Vol. 8762 of LNCS, Springer (2014) 125–137
+34. Wimmer, R., Becker, B.: Correctness issues of symbolic b isimulation computation
+for markov chains. MMB/DFT. Vol. 5987 of LNCS, Springer (201 0) 287–301
+35. Ábrahám, E., Becker, B., Dehnert, C., Jansen, N., Katoen , J.P., Wimmer, R.:
+Counterexample generation for discrete-time Markov model s: An introductory sur-
+vey. SFM. Vol. 8483 of LNCS, Springer (2014) 65–121
+36. Brázdil, T., Chatterjee, K., Chmelik, M., Fellner, A., K retínský, J.: Counterexam-
+ple explanation by learning small strategies in Markov deci sion processes. CAV
+(1). Vol. 9206 of LNCS, Springer (2015) 158–177
+37. Wimmer, R., Jansen, N., Vorpahl, A., Ábrahám, E., Katoen , J.P., Becker, B.:
+High-level counterexamples for probabilistic automata. L MCS11(1) (2015)
+38. Dehnert, C., Jansen, N., Wimmer, R., Ábrahám, E., Katoen , J.P.: Fast debugging
+of PRISM models. Proc. of ATVA. Vol. 8837 of LNCS, Springer (2 014) 146–162
+39. Aljazzar, H., Leitner-Fischer, F., Leue, S., Simeonov, D.: DiPro – A tool for prob-
+abilistic counterexample generation. Proc. of SPIN. Vol. 6 823 of LNCS, Springer
+(2011) 183–187
+40. Jansen, N., Ábrahám, E., Volk, M., Wimmer, R., Katoen, J. P., Becker, B.: The
+COMICS tool – Computing minimal counterexamples for DTMCs. Proc. of ATVA.
+Vol. 7561 of LNCS, Springer (2012) 349–353
+41. Guennebaud, G., Jacob, B., et al.: Eigen v3. (http://eig en.tuxfamily.org)
+42. (gmm++ Website) http://download.gna.org/getfem/html/homepage/gmm/in dex.html .
+43. Daws, C.: Symbolic and parametric model checking of disc rete-time Markov chains.
+Proc. of ICTAC. Vol. 3407 of LNCS, Springer (2004) 280–294
+44. Gurobi Optimization, Inc.: Gurobi optimizer reference manual.
+http://www.gurobi.com (2015)
+
+--- Page 9 ---
+AStorm is Coming: A Modern Probabilistic Model Checker 9
+45. GNU project: Linear programming kit, version 4.6.
+http://www.gnu.org/software/glpk/glpk.html (2016)
+46. de Moura, L.M., Bjørner, N.: Z3: An eﬃcient SMT solver. Pr oc. of TACAS. Vol.
+4963 of LNCS, Springer (2008) 337–340
+47. Cimatti, A., Griggio, A., Schaafsma, B.J., Sebastiani, R.: The mathsat5 SMT
+solver. Proc. of TACAS. Vol. 7795 of LNCS, Springer (2013) 93 –107
+48. Barrett, C., Stump, A., Tinelli, C., Boehme, S., Cok, D., Deharbe, D., Dutertre,
+B., Fontaine, P., Ganesh, V., Griggio, A., Grundy, J., Jacks on, P., Oliveras, A.,
+Krstic, S., Moskal, M., Moura, L.D., Sebastiani, R., Cok, T. D., Hoenicke, J.: C.:
+The SMT-LIB standard: Version 2.0. Technical report (2010)
+49. Dräger, K., Forejt, V., Kwiatkowska, M., Parker, D., Ujm a, M.: Permissive con-
+troller synthesis for probabilistic systems. LMCS 11(2) (2015)
+50. Junges, S., Jansen, N., Dehnert, C., Topcu, U., Katoen, J .P.: Safety-constrained
+reinforcement learning for mdps. Proc. of TACAS. Vol. 9636 o f LNCS, Springer
+(2016) 130–146
+51. Kwiatkowska, M., Norman, G., Parker, D.: The PRISM bench mark suite. Proc.
+of QEST, IEEE CS (2012) 203–204
+
+--- Page 10 ---
+10 C. Dehnert et al.
+A Appendix
+A.1 Remarks
+More details on experiments. Before we go into more detail and show experiments that
+were not included in the main paper, we want to point out that e ven more details on
+the conducted experiments can be found at
+https://moves-rwth.github.io/storm/benchmarks.html
+Errors and unsupported tasks. We decided to treat errors and unsupported tasks in
+the same way (by marking them as “Err”). The reason for this is that we do not see a
+fundamental diﬀerence between the two outcomes. Every tool could in principle catch
+errors and report that the task is not supported. Similarly, unsupported tasks could
+potentially lead to other errors if inputs are not suﬃcientl y checked. Finally, from a
+user perspective, both outcomes mean that no answer is avail able.
+In the plots that compare the best run-times for each individ ual experiment, it is
+unclear how to label an instance if no engine could solve the t ask, as there is no natural
+ordering on error (“Err”) and time- or memory-outs (“OoR”). We therefore resort to
+label these points with no result (“NR”).
+Memory consumption. In our experiments, we only compared the run-times of the too ls
+on the benchmark instances. Obviously, this is not the only i nteresting metric as (prob-
+abilistic) model checking is a memory-intensive task. Veri ﬁcation might fail because of
+insuﬃcient memory and the memory footprints of the tools may govern whether a
+model can be treated or not. However, in this particular comp arison, this raises several
+issues. First, comparing memory consumption of Java and C++programs is hard as the
+Java VM (unlike C++applications) only releases memory when it needs to and ther efore
+will approach the given memory limit (for larger benchmarks ). Nevertheless, this does
+not imply that this memory was necessary as earlier garbage c ollection might have
+released enough memory to stay below some bound. Second, mea suring the actual size
+in memory is a notoriously hard problem and virtual memory co nsumption might not
+properly reﬂect the actual memory consumption.
+A.2iscasMC vs.Storm
+We did not include the comparison with iscasMC in the main paper as the two tools
+clearly have diﬀerent objectives: iscasMC focusses on complex linear time properties
+whereas Storm focuses on branching time logics. However, thanks to the aut hors
+ofiscasMC , we were able to obtain a snapshot of Epmc , the upcoming successor of
+iscasMC .Epmc has not been developed from scratch, but rather builds on the basis of
+iscasMC . According to the authors, major refactorings were conduct ed. We compare
+the tools’ performances on the Prism benchmark suite. Again, we compare “matching”
+engines: Storm ’ssparse engine against Epmc ’ssparse andStorm ’sddengine versus
+Epmc ’sddengine. As it is currently not clear to us, whether Epmc ’sddengine is fully
+symbolic as Storm ’sddengine or rather follows a hybrid approach, we also include
+the comparison of this engine with storm’s hybrid engine. Figure 3 shows the plots
+obtained from the experiments. Note that Epmc does not yet support expected reward
+objectives and steady-state objectives, which explains (m ost of) the data points labeled
+with “Err”.
+
+--- Page 11 ---
+AStorm is Coming: A Modern Probabilistic Model Checker 11
+1 60 60018001606001800
+OoRErrOoRErr
+Storm (hybrid)Epmc (dd)
+DTMC
+MDP
+CTMC
+1 60 60018001606001800
+OoRErrOoRErr
+Storm (dd)Epmc (dd)
+DTMC
+MDP
+CTMC
+1 60 60018001606001800
+OoRErrOoRErr
+Storm (sparse)Epmc (sparse)
+DTMC
+MDP
+CTMC
+1 60 60018001606001800
+NRNR
+Storm (best)Epmc (best)
+DTMC
+MDP
+CTMC
+Fig.3. A comparison of Epmc andStorm .
+A.3 Accumulated time plots ( Prism vs.Storm vs.Epmc )
+Figure 2 (bottom left) in the paper shows a plot of Storm ’s andPrism ’s running times
+where for each individual instance we picked the running tim e of the fastest engine (for
+that particular instance). Figure 4 shows the same data, but in a diﬀerent format.
+In the spirit of the “score-based quantile plots” used by the well-known competition
+on software veriﬁcation (SVCOMP), we give the accumulated t ime (again taking the
+fastest engine for each particular instance) over the numbe r of instances solved. That
+is, a point at (x,y)represents that the fastest xinstances were solved in accumulated
+timey.
+
+--- Page 12 ---
+12 C. Dehnert et al.
+0 100 200 300100101102103104
+No. benchmarkTime (in seconds)Storm
+Prism
+Epmc
+Fig.4. Prism vs.Epmc vs.Storm (best engine for each instance)
+A.4Prism ’s “hybrid” engine
+Storm does currently not feature an engine that is comparable to Prism ’s “hybrid”
+engine. The latter is a sophisticated cross-over between it ssparse andmtbdd engines.
+While this engine is optimized towards a good space-time tra de-oﬀ, our main objective
+is performance in terms of time. To illustrate that Prism ’shybrid engine is dominated
+(in terms of run-time) by Prism ’s own sparse engine, consider Figure 5. Therefore, if
+running-times are the only objective, there is little motiv ation to also include an engine
+similar to Prism ’shybrid engine. Also, it justiﬁes that we did not include Prism ’s
+hybrid engine in the comparisons in the main paper.
+A.5 MTBDD-based CTMC model checking
+Storm does currently not feature fully symbolic (MTBDD-based) CT MC model check-
+ing. To justify this, consider the plot in Figure 6. It compar es the performance of two
+ofPrism ’s engines, namely the fully symbolic one ( mtbdd ) and sparse on the Prism
+benchmark suite. It can be easily observed that for CTMCs, th esparse engine typi-
+cally beats the MTBDD-based model checking in terms of time. We are, however, well
+aware that for example memory consumption is potentially lo wer in the mtbdd engine.
+As argued above (cf. remarks in Appendix A.1), we consider ru n-times only.
+A.6Storm vs.Storm
+Finally, we want to illustrate that within Storm , no engine clearly beats the others. To
+this end, we also compare every of Storm ’s engines with every other. Figure 7 shows
+the results. While the hybrid engine tends to dominate the ddengine, there are several
+large examples that the latter can handle on which the former runs out of resources.
+
+--- Page 13 ---
+AStorm is Coming: A Modern Probabilistic Model Checker 13
+1 60 60018001606001800
+OoRErrOoRErr
+Prism (hybrid)Prism (sparse)
+DTMC
+MDP
+CTMC
+Fig.5. A comparison of Prism ’smtbdd andsparse engines.
+1 60 60018001606001800
+OoRErrOoRErr
+Prism (sparse)Prism (dd)
+DTMC
+MDP
+CTMC
+Fig.6. A comparison of Prism ’smtbdd andsparse engines.
+
+--- Page 14 ---
+14 C. Dehnert et al.
+1 60 60018001606001800
+OoRErrOoRErr
+Storm (sparse)Storm (dd)
+DTMC
+MDP
+CTMC
+1 60 60018001606001800
+OoRErrOoRErr
+Storm (sparse)Storm (hybrid)
+DTMC
+MDP
+CTMC
+1 60 60018001606001800
+OoRErrOoRErr
+Storm (dd)Storm (hybrid)
+DTMC
+MDP
+CTMC
+Fig.7. A comparison of Storm ’smtbdd andsparse engines.

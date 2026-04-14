@@ -1,0 +1,648 @@
+--- Page 1 ---
+F ormal Design and Analysis of a Gear Con troller/:an Industrial Case Study using U PP AAL
+/?Magn us Lindahl
+/1P aul P ettersson
+/2W ang Yi
+/2/1Mecel AB/, G/ oteb org/, Sw eden/. E/-mail/: magnus/.lindahl/@mecel/.se/2Departmen t of Computer Systems/, Uppsala Univ ersit y /, Sw eden/.E/-mail/: f paupet/,yi g /@docs/.uu/.seAbstract/. In this pap er/, w e rep ort on an application of the v alidation and v eri/cation to olkit Upp aal in the design and analysis of a protot yp e gear con troller/, carried out in a join tpro ject b et w een industry and academia/. The gear con troller is a comp onen t in the con trol systemop erating in a mo dern v ehicle/, implemen ting the gear c hange algorithm/. W e giv e a detaileddescription of the formal mo del of the gear con troller and its surrounding en vironmen t/, and itscorrectness formalized in /4/6 logical form ulas according to the informal requiremen ts deliv ered b your industrial partner of the pro ject/. The second con tribution of this pap er is a solution to theproblem w e met in this case study /, namely ho w to use a to ol lik e Upp aal /, whic h only pro videsreac habilit y analysis to v erify b ounded resp onse time prop erties e/.g/. if f/1
+/(a request/) b ecomestrue at a certain time p oin t/, then f/2
+/(a resp onse/) m ust b e guaran teed to hold within a giv entime b ound /. W e presen t a logic and a metho d to c haracterize and mo del/{c hec k suc h prop ertiesfor net w orks of timed automata b y syn tactical transformation and reac habilit y analysis/. Theadv an tage of this approac h is that w e need no additional implemen tation w ork to extend theexisting mo del/{c hec k er/, but simple man ual syn tactical manipulation on the system description/.The metho d has b een demonstrated in v erifying the correctness of the gear con troller design/. Ittak es /2/./9/9 seconds to c hec k the /4/6 logical form ulas b y Upp aal installed on a P en tium /7/5MHzPC equipp ed with /2/4 MB of primary memory /./1 In tro ductionOv er the past few y ears/, a n um b er of mo deling and v eri/cation to ols for real/-time systems /[HHWT/9/5/,DOTY/9/5 /, BLL
+/+/9/6 /] ha v e b een dev elop ed based on the theory of timed automata /[AD/9/4/]/. They ha v eb een successfully applied in v arious case/-studies /[BGK
+/+/9/6 /, JLS/9/6 /, SMF/9/7 /]/. Ho w ev er/, the to ols ha v eb een mainly used in the academic comm unit y /, namely b y the to ol dev elop ers/. It has b een a c hallengeto apply these to ols to real/-sized industrial case/-studies/. In this pap er w e rep ort on an application ofthe v eri/cation to ol/-kit Upp aal to a protot yp e gear con troller dev elop ed in a join t pro ject b et w eenindustry and academia/. The pro ject has b een carried out in collab oration b et w een Mecel AB andUppsala Univ ersit y /.The gear con troller is a comp onen t in the real/-time em b edded system that op erates in a mo dernv ehicle/. The gear/-requests from the driv er are deliv ered o v er a comm unication net w ork to the gearcon troller/. The con troller implemen ts the actual gear c hange b y actuating the lo w er lev el comp onen tsof the system/, suc h as the clutc h/, the engine and the gear/-b o x/. Ob viously /, the b eha vior of the gearcon troller is critical to the safet y of the v ehicle/. Sim ulation and testing ha v e b een the traditional w a ys toensure that the b eha vior of the con troller satis/es certain safet y requiremen ts/. Ho w ev er these metho dsare b y no means complete in /nding errors though they are useful and practical/. As a complemen t/,formal tec hniques ha v e b een a promising approac h to ensuring the correctness of em b edded systems/.The pro ject is to use formal mo deling tec hniques in the early design stages to describ e design sk etc hes/,and to use sym b olic sim ulators and mo del c hec k ers as debugging and v eri/cation to ols to ensure thatthe predicted b eha vior of the designed con troller at eac h design phase/, satis/es certain requiremen ts/?This w ork has b een supp orted b y ASTEC /(Adv anced Soft w are TEChnology/)/, NUTEK /(Sw edish Board forT ec hnical Dev elopmen t/) and TFR /(Sw edish T ec hnical Researc h Council/)/.
+
+--- Page 2 ---
+under giv en assumptions on the en vironmen t where the gear con troller is supp osed to op erate/. Therequiremen ts on the con troller and assumptions on the en vironmen t ha v e b een describ ed b y Mecel ABin an informal do cumen t/, and then formalized in the Upp aal mo del and a simple linear/{time logicbased on the Upp aal logic to deduce the design of the gear con troller/.W e shall giv e a detailed description of the formal mo del of the gear con troller and its surroundingen vironmen t/, and its correctness according to the informal requiremen ts deliv ered b y Mecel AB/. An/-other con tribution of this pap er is a lesson w e learn t in this case study /, namely ho w to use a to ol lik eUpp aal /, whic h only pro vides reac habilit y analysis to v erify b ounded resp onse time prop erties e/.g/. if f/1/(a request/) b ecomes true at a certain time p oin t/, f/2
+/(a resp onse/) m ust b e guaran teed to b e true withina time b ound /. W e presen t a logic and a metho d to c haracterize and mo del/{c hec k resp onse time prop/-erties/. The adv an tage of this approac h is that w e need no additional implemen tation w ork to extendthe existing mo del/{c hec k er/, but simple man ual syn tactical manipulation on the system description/.Upp aal
+/3is a to ol suite for v alidation and sym b olic mo del/-c hec king of real/-time systems/. It consistsof a n um b er of to ols including a graphical editor for system descriptions /(based on Autograph/)/, agraphical sim ulator/, and a sym b olic mo del/{c hec k er/. In the design phase the sym b olic sim ulator ofUpp aal is applied in tensiv ely to v alidate the dynamic b eha vior of eac h design sk etc h/, in particularfor fault detection/, deriv ation of time constrain ts /(e/.g/. the time b ounds for whic h a gear c hange isguaran teed/) and later also for debugging using diagnostic traces /(i/.e/. coun ter examples/) generated b ythe mo del/{c hec k er/. The correctness of the gear con troller design has b een established b y automaticpro ofs of /4/6 logical form ulas deriv ed from the informal requiremen ts sp eci/ed b y Mecel AB/. Thev eri/cation w as p erformed in a few seconds on a P en tium PC
+/4running Upp aal v ersion /2/./1/2/./2/.The pap er is organised as follo ws/: Next section is a brief summary of v arious de/nitions for theseman tics and mo dels of real/{time systems/. In section /3/, w e presen t a simple logic to c haracterizesafet y and resp onse time prop erties and a metho d to mo del/{c hec k suc h prop erties/. In Section /4 and /5the gear con troller system and its requiremen ts are informally and formally describ ed/. In Section /6 theformal description of the system and its requiremen ts are transformed using the tec hnique dev elop edin section /3 for v eri/cation b y reac habilit y analysis/. Section /7 concludes the pap er/. Finally /, w e enclosethe formal description of the surrounding en vironmen t of the gear con troller in the app endix/./2 PreliminariesIn this section/, w e brie/y in tro duce all the necessary de/nitions for the basis of the Upp aal mo dellinglanguage/. F or details/, w e refer to /[YPD/9/4 /, LPY/9/7 /]/./2/./1 Timed T ransition Systems and Timed T racesA timed transition system is a lab eled transition system with t w o t yp es of lab els/: atomic actions anddela y actions /(i/.e/. p ositiv e reals/)/, represen ting discrete and con tin uous c hanges of real/-time systems/.Let Act b e a /nite set of actions and P b e a set of atomic prop ositions/. W e use R to stand for theset of non/-negativ e real n um b ers/, D for the set of dela y actions f / /( d /) j d /2 R g /, and / for the unionAct /[ D ranged o v er b y //; //1
+/; //2
+etc/.De/nition /1/. A timed transition system o v er Act and P is a tuple S /= h S/; s/0
+/; /BnZr /! /; V i /, where S isa set of states/, s/0
+is the initial state/, /BnZr /!/ S / / / S is a transition relation/, and V /: S /! /2
+Pis aprop osition assignmen t function/. u tA trace / of a timed transition system is an in/nite sequence of transitions in the form/:/ /= s/0
+//0/BnZr /! s/1
+//1/BnZr /! s/2
+//2/BnZr /! /: /: /: sn
+/n/BnZr /! sn /+/1
+/: /: /:/3Installation and do cumen tation is a v ailable at the Upp aal home pageh ttp/:////www/.do cs/.uu/.se//do cs//rtm v//uppaal///./4/2/./9/9 seconds on a P en tium /7/5MHz equipp ed with /2/4 MB of primary memory /./2
+
+--- Page 3 ---
+where /i
+/2 / /.A p osition i of / is a natural n um b er/. W e use / /[ i /] to stand for the i th state of / /, and / /( i /) for thei th transition of / /, i/.e/. / /[ i /] /= si
+and / /( i /) /= si
+/i/BnZr /! si /+/1
+/.W e use / /( s
+//BnZr /! s
+/0/) to denote the duration of the transition/, de/ned b y / /( s
+//BnZr /! s
+/0/) /= /0 if / /2 Act ord if / /= / /( d /)/. Giv en p ositions i/; k with i / k /, w e use / /( / /; i/; k /) to stand for the accum ulated dela y of/ b et w een the p ositions i/; k /, de/ned b y / /( / /; i/; k /) /=
+Pi / j /<k
+/ /( / /( j /)/)/. W e shall only consider non/{zenotraces/.De/nition /2/. A trace / is non/{zeno if for all natural n um b er T there exists a p osition k suc h thatD /( / /; /0 /; k /) /> T /. F or a timed transition system S /, w e denote b y T r /( S /) all non/{zeno traces of S startingfrom the initial state s/0
+of S /. u t/2/./2 Timed Automata with Data V ariablesW e study the class of timed transition systems that can b e syn tactically describ ed b y timed automataextended with data v ariables ranging o v er /nite data domains/.Assume a /nite set of clo c k v ariables C ranged o v er b y x etc and a /nite set of data v ariables Dranged o v er b y i etc/. W e use V to denote the union of C and D /, ranged o v er b y v /. W e use G /( V /) tostand for the set of form ulas ranged o v er b y g /, generated b y the follo wing syn tax/: g /:/:/= c j g /^ g wherec is a constrain t of the form/: x / n or i / n for x /2 C /, i /2 D /, //2 f/ /; / /; /= g and n b eing a naturaln um b er/. W e shall call elemen ts of G /( V /) guards /.T o manipulate clo c k and data v ariables/, w e use reset/{op erations of the form/: v /:/= exp where v is aclo c k or data v ariable and exp is an expression/. A reset/-op eration on a clo c k v ariable should b e in theform x /:/= /0/; A reset/-op eration on an in teger v ariable should b e in the form/: i /:/= k / i /+ k
+/0where k /; k
+/0are in teger constan ts/. W e call a set of suc h reset/{op erations a reset/-set /. A reset/{set is prop er whenthe v ariables are assinged a v alue at most once/. W e use R to denote the set of all prop er reset/-sets/,ranged o v er b y r /; r
+/0etc/.De/nition /3/. A timed automaton A o v er actions Act /, atomic prop ositions P /, and V /, is a tupleh L/; l/0
+/; E /; I /; V i /, where L is a /nite set of no des /(or lo cations/)/, l/0
+is the initial no de/, and E / L / G /( V /) /Act / R / L corresp onds to the set of edges/. In the case/, h l /; g /; a/; r /; l
+/0i /2 E w e shall write/, l
+g /;a/;r/BnZr /! l
+/0/.I /: L /! G /( V /) is a function whic h for eac h no de assigns an in v arian t condition/, and V /: L /! /2
+Pis aprop osition assignmen t function whic h for eac h no de giv es a subset of atomic prop ositions true in theno de/. W e shall use P /( A /) to stand for the union of the subsets of prop ositions true in all the no des Lof A /, i/.e/. P /( A /) /=
+Sl /2 L
+V /( l /) /. u tInformally /, a pro cess mo delled b y an automaton starts at its initial lo cation l/0
+with all its v ariablesinitialized to /0/. The v alues of the clo c ks increase sync hronously with time at lo cation l /. A t an y time/,the pro cess can c hange lo cation b y follo wing an edge l
+g /;a/;r/BnZr /! l
+/0pro vided the curren t v alues of thev ariables satisfy the enabling condition g /. With this transition/, the v ariables are up dated b y r /.A v ariable assignmen t is a mapping whic h maps clo c k v ariables C to the non/-negativ e reals anddata v ariables D to in tegers/. F or a v ariable assignmen t u and a dela y d /, v / d denotes the v ariableassignmen t suc h that /( v / d /)/( x /) /= v /( x /) /+ d for an y clo c k v ariable x and /( v / d /)/( i /) /= v /( i /) for an y in tegerv ariable i /. This de/nition of / re/ects that all clo c ks op erate with the same sp eed and that datav ariables are time/-insensitiv e/. F or a reset/-op eration r /(a set of assignmen t/-op erations/) w e use r /( u /) todenote the v ariable assignmen t u
+/0with u
+/0/( v /) /= V /(exp /; u /) whenev er v /:/= exp /2 r and u
+/0/( v
+/0/) /= u /( v
+/0/)otherwise/, where V /(exp /; u /) denotes the v alue of exp in u /. Giv en a guard g /2 G /( V /) and a v ariableassignmen t u /, g /( u /) is a b o olean v alue describing whether g is satis/ed b y u or not/./2/./3 Net w orks of AutomataT o mo del concurrency and sync hronization/, w e in tro duce a CCS/-lik e parallel comp osition op erator forautomata/. Assume automata A/1
+/:/:/:An
+/. W e use A to denote their parallel comp osition A/1
+jj /: /: /: jj An
+/. The/3
+
+--- Page 4 ---
+in tuitiv e meaning of A is similar to the CCS parallel comp osition of A/1
+/:/:/:An
+with all actions b eingrestricted/, that is/, /( A/1
+j /:/:/: j An
+/) n Act /. Th us only in ternal sync hronization b et w een the comp onen ts Ai
+isp ossible/. W e shall call A a net w ork of automata
+/5/. W e simply view A as a v ector and use Ai
+to denoteits i th comp onen t/.A con trol v ector l of a net w ork A is a v ector of lo cations where li
+is a lo cation of Ai
+/. W e shall writel /[ l
+/0i
+/=li
+/] to denote the v ector where the i th elemen t li
+of l is replaced b y l
+/0i
+/.A state of a net w ork A is a con/guration h l /; u i where l is a con trol v ector of A and u is a v ariableassignmen t/. The initial state of A is h l/0
+/; u/0
+i where l/0
+is the initial con trol v ector whose elemen ts arethe initial lo cations of Ai
+/'s and u/0
+is the initial v ariable assignmen t that maps all v ariables to /0/.The seman tics of a net w ork of automata A is de/ned in terms of a timed transition system S /=h S/; s/0
+/; /BnZr /! /; V i with the set S of states b eing the set of con/gurations/, s/0
+b eing the initial state i/.e/.h l/0
+/; u/0
+i /, the prop osition assignmen t function V is de/ned b y V /( h l /; u i /) /=
+Sli
+/2 l
+Vi
+/( li
+/)/, and the transitionrelation de/ned as follo ws/:/{ h l /; u i
+//BnZr /!h l /[ l
+/0i
+/=li
+/] /; ri
+/( u /) i if there exist li
+/2 l /; gi
+/; ri
+suc h that li
+gi
+/;/ /;ri/BnZr /! l
+/0i
+and gi
+/( u /)/{ h l /; u i
+//BnZr /!h l /[ l
+/0i
+/=li
+/; l
+/0j
+/=lj
+/] /; /( ri
+/[ rj
+/)/( u /) i if there exist li
+/; lj
+/2 l /; gi
+/; gj
+/; //; ri
+and rjsuc h that i /6/= j/; li
+gi
+/;/ /! /;ri/BnZr /! l
+/0i
+/, lj
+gj
+/;/ /? /;rj/BnZr /! l
+/0j
+/, gi
+/( u /)/, gj
+/( u /)/, and ri
+/[ rj
+/2 R/{ h l /; u i
+/ /( d /)/BnZr /!h l /; u / d i if I /( li
+/)/( u /+ d /) for all li
+/2 l /.Note that the timed transition system de/ned ab o v e can also b e represen ted /nitely as a timedautomaton/. In fact/, one ma y e/ectiv ely construct the pro duct automaton of A/1
+/: /: /: An
+suc h that itstimed transition system is bisimilar to S /. The no des of the pro duct automaton is simply the pro ductof Ai
+/'s no des/, the in v arian t conditions on the pro duct no des are the conjunctions of the conditionson all Ai
+/'s no des/, the set of clo c ks is the /(disjoin t/) union of Ai
+/'s clo c ks/, and the edges are based onsync hronizable Ai
+/'s edges with enabling conditions conjuncted and reset/-sets unioned/.Th us theoretically /, there is no di/erence b et w een the notions of a timed automaton and a net w ork ofsuc h/. Ho w ev er/, for e/cien t v eri/cation/, it is often not necessary to construct the pro duct automaton/.W e shall distinguish them only in discussing v eri/cation metho ds/, not when seman tics asp ects areconcerned/.Finally /, w e denote b y T r /( A /) all non/{zeno traces of the timed transition system S i/.e/. T r /( A /) /=T r /( S /)/./3 A Logic for Safet y and Bounded Resp onse Time Prop ertiesA t the start of the pro ject/, w e found that it w as not so ob vious ho w to formalize /(in the Upp aallogic/) the pages of informal requiremen ts deliv ered b y the design engineers/. One of the reasons w asthat our logic is to o simple/, whic h can express essen tially only in v arian t prop erties/. After a while/, itb ecame ob vious that these requiremen ts could b e describ ed in a simple logic/, whic h can b e mo del/{c hec k ed b y reac habilit y analysis in com bination with a certain syn tactical manipulation on the mo delof the system to b e v eri/ed/. W e also noticed that though the logic is so simple/, it c haracterizesthe class of logical prop erties v eri/ed in all previous case studies where Upp aal is applied /(see e/.g/./[BGK
+/+/9/6 /, JLS/9/6 /, SMF/9/7 /]/)/./3/./1 Syn tax and Seman ticsThe logic ma y b e seen as a timed v arian t of a fragemen t of the linear temp oral logic L TL/, whic h do esnot allo w nested applications of mo dal op erators/. It is to express in v arian t and b ounded resp onse timeprop erties/./5W e shall require that P /( Ai
+/) /\ P /( Aj
+/) /= /; for all i /6/= j /, that is/, no atomic prop osition can b e true in morethan one comp onen ts automata/./4
+
+--- Page 5 ---
+/( l /; u /) j /= g i/ g /( u /)/( l /; u /) j /= p i/ p /2 V /( l /)/( l /; u /) j /= /: f i/ /( l /; u /) /6j /= f/( l /; u /) j /= f/1
+/^ f/2
+i/ /( l /; u /) j /= f/1
+and /( l /; u /) j /= f/2/ j /= I nv /( f /) i/ /8 i /: / /[ i /] j /= f/ j /= f/1
+/;/ T
+f/2
+i/ /8 i /: /( / /[ i /] j /= f/1
+/) /9 k / i /: /( / /[ k /] j /= f/2
+and D /( / /; i/; k /) / T /)/)T able /1/. De/nition of satis/abilit y /.De/nition /4/. Assume that P is a /nite set of prop ositions ranged o v er b y p/; q etc/. Let Fs
+denote theset of b o olean expressions o v er G V /[ P ranged o v er b y f /; f/1
+/; f/2
+etc/, de/ned as follo ws/:f /:/:/= g j p j /: f j f/1
+/^ f/2where g /2 G V is a constrain t/. and p /2 P is an atomic prop osition/. W e call Fs
+state/{form ulas/, meaningthat they will b e true of states/. u tAs usual/, w e use f/1
+/_ f/2
+to stand for /: /( /: f/1
+/^ /: f/2
+/)/, and tt and / for /: f /_ f and /: f /^ f resp ectiv ely /.F urther/, w e use f/1
+/) f/2
+to denote /: f/1
+/_ f/2
+/.De/nition /5/. The set Ft
+ranged o v er b y f /; f/1
+/; f/2
+of trace/{form ulas o v er Fs
+is de/ned as follo ws/:/' /:/:/= I nv /( f /) j f/1
+/;/ T
+f/2where T is a natural n um b er/.If f/1
+and f/2
+are b o olean com binations of atomic prop ositions/, w e call f/1
+/;/ T
+f/2
+a b ounded resp onsetime form ula/. u tI nv /( f /) states that f is an in v arian t prop ert y/; a system satis/es I nv /( f /) if all its reac hable states satisfyf /. It is useful to express safet y prop erties/, that is/, bad things /(e/.g/. deadlo c ks/) should nev er happ en/, inother w ords/, the system should alw a ys b eha v e safely /. f/1
+/;/ T
+f/2
+is similar to the strong Un til/-op eratorin L TL/, but with an explict time b ound/. In addition to the time b ound/, it is also an in v arian t form ula/.It means that as so on as f/1
+is true of a state/, f/2
+m ust b e true within T time units/. Ho w ev er it isnot necessary that f/1
+m ust b e true con tinously b efore f/2
+b ecomes true as required b y the traditionalUn til/-op erator/.W e shall call form ulas of the form f/1
+/;/ T
+f/2
+a b ounded resp onse time form ula /. In tuitiv ely /, f/1
+ma yb e considered as a request and f/2
+as a resp onse /; th us f/1
+/;/ T
+f/2
+sp eci/es the b ound for the resp onsetime to b e T /.W e in terpret Fs
+and Ft
+in terms of states and /(in/nite and non/{zeno/) traces of timed automata/.W e write /( l /; u /) j /= f to denote that the state /( l /; u /) satis/es the state/{form ula f and / j /= /' to denotethat the trace / satis/es the trace/{form ula /' /. The in terpretation is de/ned on the structure of f and/' /, giv en in T able /1/. Naturally /, if all the traces of a timed automaton satisfy a trace/{form ula/, w e sa ythat the automaton satis/es the form ula/.De/nition /6/. Assume a net w ork of automata A and a trace/{form ula /' /. W e write A j /= /' if and onlyif / j /= /' for all / /2 T r /( A /) /. u t/3/./2 V erifying Bounded Resp onse Time Prop erties b y Reac habilit y AnalysisThe curren t v ersion of Upp aal can only mo del/{c hec k in v arian t prop erties b y reac habilit y analysis/.The question is ho w to use a to ol lik e Upp aal to c hec k for b ounded resp onse time prop erties i/.e/. ho wto transform the mo del/{c hec king problem A j /= f/1
+/;/ T
+f/2
+to a reac habilit y problem/. The traditional/5
+
+--- Page 6 ---
+/////// /
+/// //
+/
+/
+/
+/
+/
+////////
+/,/,/,/,/,/,/,/,/,/././.
+p/1
+/; p/2/: /: /:q/1
+/; q/2/: /: /:
+ll/1l/2r
+/0/0a
+/0/0g
+/0/0
+g
+/0a
+/0r
+/0
+a
+grFig/. /1/. Illustration of a timed automaton A /.solution is to translate the form ula to a testing automaton t /(see e/.g/. /[JLS/9/6 /]/) and then c hec k whetherthe parallel system A jj t can reac h a designated state of t /.W e tak e a di/eren t approac h/. W e mo dify /(or rather decorate/) the automaton A according to thestate/-form ulas f/1
+and f/2
+/, and the time b ound T and then construct a state/{form ula f suc h thatM /( A /) j /= I nv /( f /) i/ A j /= f/1
+/;/ T
+f/2where M /( A /) is the mo di/ed v ersion of A /.W e study an example/. First assume that eac h no de of an automaton is assigned implicitly a prop o/-sition at /( l /) meaning that the curren t con trol no de is l /. Consider an automaton A illustrated in Figure/1 and a form ula at /( l/1
+/) /;/ /3
+at /( l/2
+/) /(i/.e/. it should alw a ys reac h l/2
+from l/1
+within /3 time units/)/. T o c hec kwhether A satis/es the form ula/, w e in tro duce an extra clo c k c /2 C and a b o olean v ariable
+/6v/1
+in tothe automaton A /, that should b e initiated with / /. Assume that the no de l/1
+has no lo cal lo ops/, i/.e/.con taining no edges lea ving and en tering l/1
+/. W e mo dify the automaton A as follo ws/:/1/. Duplicate all edges en tering no de l/1
+/./2/. Add /: v/1
+as a guard to the original edges en tering l/1
+/./3/. Add v/1
+/:/= tt and c /:/= /0 as reset/{op erations to the original edges en tering l/1
+/./4/. Add v/1
+as a guard to the auxiliary copies of the edges en tering l/1
+/./5/. Add v/1
+/:/= / as a reset/{op eration to all the edges en tering l/2
+/.The mo di/ed /(decorated/) automaton M /( A /) is illustrated in Figure /2/. No w w e claim thatM /( A /) j /= I nv /( v/1
+/) c / /3/) i/ A j /= at /( l/1
+/) /;/ /3
+at /( l/2
+/)/6Note that a b o olean v ariable ma y b e represen ted b y an in teger v ariable in Upp aal /./6
+
+--- Page 7 ---
+/////// /
+/////
+/
+/
+/
+/
+/
+////////
+/,/,/,/,/,/,/,/,/,/././.
+p/1
+/; p/2/: /: /:q/1
+/; q/2/: /: /:
+ll/2
+l/1
+a
+g /^ /: v/1g /^ v/1ara
+/0/0g
+/0/0
+a
+/0r
+/0
+g
+/0r
+/0/0/[ f v/1
+/:/= / g
+r /[ f c /:/= /0 /; v/1
+/:/= tt gFig/. /2/. Illustration of a mo di/ed timed automaton M /( A /) of A /.The in v arian t prop ert y v/1
+/) c / /3 states that either /: v/1
+or if v/1
+then c / /3/. There is only one situationthat violates the in v arian t/: v/1
+and c /> /3/. Due to the progress prop ert y of time /(or non/{zenoness/)/, thev alue of c should alw a ys increase/. It will so oner or later pass /3/. But if l/2
+is reac hed b efore c reac hes/3/, v/1
+will b ecome / /. Therefore/, the only w a y to k eep the in v arian t prop ert y true is that l/2
+is reac hedwithin /3 time units whenev er l/1
+is reac hed/.The ab o v e metho d ma y b e generalized to e/cien tly mo del/{c hec k resp onse time form ulas for net/-w orks of automata/. Let A /( f /) denote the set of atomic prop ositions o ccuring in a state/{form ula f /.Assume a net w ork A and a resp onse time form ula f/1
+/;/ T
+f/2
+F or simplicit y /, w e consider the case whenonly atomic prop ositions o ccur in f/1
+and f/2
+/. Note that this is not a restriction/, the result can b e easilyextended to the generl case/. W e in tro duce to A /:/1/. an auxiliary clo c k c /2 C and an b o olean v ariable v/1
+/(to denote the truth v alue of f/1
+/) and/2/. an auxiliary b o olean v ariable vp
+for all p /2 A /( f/1
+/) /[ A /( f/2
+/)/.Assume that all the b o oleans of A /( f/1
+/) /; A /( f/2
+/) and v/1
+are initiated to / /.Let E /( f /) denote the b o olean expression b y replacing all p /2 A /( f /) with their corresp onding b o oleanv ariable vp
+/. As usual/, E /( f /)/[ tt /= vp
+/] denotes a substitution that replaces vp
+with tt in E /( f /)/. This can b eextended in the usual w a y to set of substitutions/. F or instance/, the truth v alue of f at a giv en state sma y b e calculated b y E /( f /)/[ tt /= vp
+j p /2 V /( s /)/]/[ / /= vp
+j p /6/2 V /( s /)/]/.No w w e are ready to construct a decorated v ersion M /( A /) for the net w ork A /. W e mo dify all thecomp onen ts Ai
+of A as follo ws/:/1/. F or all edges of Ai
+/, en tering a no de l/1
+suc h that V /( l/1
+/) /\ A /( f/1
+/) /6/= /; /:/{ Mak e t w o copies of eac h suc h edge/./{ T o the original edge/, add v/1
+as a guard/./7
+
+--- Page 8 ---
+////////
+/////
+/
+/
+/
+/
+/
+////////
+/,/,/,/,/,/,/,/,/,/././.
+p/1
+/; p/2/: /: /:q/1
+/; q/2/: /: /:
+ll/2
+l/1
+arr /[ f vp
+/:/= tt j p /2 V /( m /) g
+g /^ /: v/1
+/^ /:E /( f/1
+/)/[ tt /= vp
+j p /2 V /( m /)/]g /^ /: v/1
+/^ E /( f/1
+/)/[ tt /= vp
+j p /2 V /( m /)/]ag /^ v/1a
+/0
+g
+/0
+aa
+r
+/0/0/[ f v/1
+/:/= / g
+r
+/0/[ f vp
+/:/= / j p /2 V /( m /) g
+f vp
+/:/= tt j p /2 V /( m /) g
+r /[ f c /:/= /0 g/[g
+/0/0/^ /:E /( f/2
+/) /^ E /( f/2
+/)/[ tt /= vq
+j q /2 V /( n /)/]Fig/. /3/. Illustration of the decorated v ersion M /( Ai
+/) of Ai
+/./{ T o the /rst cop y /, add /:E /( f/1
+/) /^ E /( f/1
+/)/[ tt /= vp
+j p /2 V /( l/1
+/)/] as a guard and c /:/= /0 /; v/1
+/:/= tt and vp
+/:/= ttfor all p /2 V /( l/1
+/) as reset/{op erations/./{ T o the second cop y /, add /: v/1
+/^ /:E /( f/1
+/)/[ tt /= vp
+j p /2 V /( l/1
+/)/] as a guard and vp
+/:/= tt for all p /2 V /( l/1
+/)as reset/{op erations/./2/. F or all edges of Ai
+lea ving a no de l/1
+suc h that V /( l/1
+/) /\ A /( f/1
+/) /6/= /; /: add vp
+/:/= / for all p /2 V /( l/1
+/) asreset/{op erations/./3/. F or all edges of Ai
+en tering a no de l/2
+suc h that V /( l/2
+/) /\ A /( f/2
+/) /6/= /; /: add /:E /( f/2
+/) /^ E /( f/2
+/)/[ tt /= vq
+j q /2 V /( l/2
+/)/]as a guard and v/1
+/:/= / as a reset/{op eration/./4/. Finally /, remo v e vp
+/:/= tt and vp
+/:/= / whenev er they o ccur at the same edge
+/7/.Th us/, w e ha v e a decorated v ersion M /( Ai
+/) for eac h Ai
+of A /. Assume that a comp onen t automatonAi
+is as illustrated in Figure /1/; w e sho w its decorated v ersion M /( Ai
+/) in Figure /3/. W e shall tak eM /( A/1
+/) jj /: /: /: jjM /( An
+/) to b e the decorated v ersion of A /, i/.e/. M /( A /) / M /( A/1
+/) jj /: /: /: jjM /( An
+/)/.Note that w e could ha v e constructed the pro duct automaton of A /rst/. Then the constructionof M /( A /) from the pro duct automaton w ould b e m uc h simpler/. But the size of M /( A /) will b e m uc hlarger/; it will b e exp onen tial in the size of the comp onen t automata/. Our construction here is purelysyn tactical based on the syn tactical structure of eac h comp onen t automaton/. The size of M /( A /) is infact linear in the size of the comp onen t automata/. It is particularly appropriate for a to ol lik e Upp aal /,that is based on on/-the/-/y generation of the state/{space of a net w ork/. F or eac h comp onen t automatonA /, the size of M /( A /) can b e calculated precisely as follo ws/: In addition to one auxiliary clo c k c and/7This means that a prop osition p is assigned to b oth the source and the target no des of the eadge/; vp
+m ustha v e b een assigned tt on all the edges en tering the source no de/./8
+
+--- Page 9 ---
+j P /( f/1
+/) /[ P /( f/2
+/) j b o olean v ariables in M /( A /)/, the n um b er of edges of M /( A /) is /3 / j EA
+j where j EA
+j is then um b er of edges of A /(note that no extra no des in tro duced in M /( A /)/)/.Note also that in the ab o v e construction/, w e ha v e the restriction that f/1
+and f/2
+con tain no con/-strain ts/, but only atomic prop ositions/. The construction can b e easily generalized to allo w constrain tsb y considering eac h constrain t as a prop osition and decorating eac h lo cation /(that is/, the incommingedges/) where the constrain t could b ecome true when the lo cation is reac hed/. In fact/, this is whatw e did ab o v e on the b o olean expressions /(constrain ts/) E /( f/1
+/) and E /( f/2
+/)/. Finally /, w e ha v e the maintheoretical result of this pap er/.Theorem /7/. M /( A /) j /= I nv /( v/1
+/) c / T /) i/ A j /= f/1
+/;/ T
+f/2
+for a net w ork of timed automata A anda b ounded resp onse time form ula f/1
+/;/ T
+f/2
+/. u t/4 The Gear Con trollerIn this section w e informally describ e the functionalit y and the requiremen ts of the gear con trollerprop osed b y Mecel AB/, as w ell as the abstract b eha vior of the en vironmen t where the con troller issupp osed to op erate/./4/./1 F unctionalit yThe gear con troller c hanges gears b y requesting services pro vided b y the comp onen ts in its en viron/-men t/: the gear/-b o x/, the clutc h/, and the engine/. The in teraction with these comp onen ts is o v er thev ehicles comm unication net w ork/. Similarly /, the gear con troller pro vides services to its users throughits in terface/. A description of the gear con troller and its in terface is as follo ws/.In terface/: The in terface receiv es service requests and k eeps information ab out the curren t status ofthe gear con troller/, whic h is either c hanging gear or idling/. The user of this service is either thedriv er using the gear stic k or a dedicated comp onen t implemen ting a gear c hange algorithm/. Thein terface is assumed to resp ond when the service is completed/.Gear Con troller/: The only user of the gear con troller is its in terface/. The con troller p erforms a gearc hange in /v e steps b eginning when a gear c hange request is receiv ed from the in terface/. The/rst step is to accomplish a zero torque transmission/, making it p ossible to release the curren tlyset gear/. Secondly the gear is released/. The con troller then ac hiev es sync hronous sp eed o v er thetransmission and sets the new gear/. Once the gear is set the engine torque is increased so that thesame wheel torque lev el as b efore the gear c hange is ac hiev ed/.Under di/cult driving conditions the engine ma y not b e able to accomplish zero torque or syn/-c hronous sp eed o v er the transmission/. It is then p ossible to c hange gear using the clutc h/. Byop ening the clutc h/, and consequen tly the transmission/, the connection b et w een the engine andthe wheels is brok en/. The gear/-b o x is at this state able to release and set the new gear/, as zerotorque and sync hronous sp eed is no longer required/. When the clutc h closes it safely bridges thesp eed and torque di/erences b et w een the engine and the wheels/. W e refer to these exceptionalcases as reco v erable errors /./4/./2 En vironmen tThe en vironmen t of the gear con troller consists of the follo wing three comp onen ts/:Gear/-Bo x/: It is an electrically con trolled gear/-b o x with con trol electronics/. It pro vides services to seta gear in /1/0/0 to /3/0/0 ms and to release a gear in /1/0/0 to /2/0/0 ms/. If a setting or releasing/-op erationof a gear tak es more than /3/0/0 ms or /2/0/0 ms resp ectiv ely /, the gear/-b o x will indicate this and stopin a sp eci/c error state/./9
+
+--- Page 10 ---
+Clutc h/: It is an electrically con trolled clutc h that has the same sort of basic services as the gear/-b o x/.The clutc h can op en or close within /1/0/0 to /1/5/0 ms/. If a op ening or closing is not accomplish withinthe time b ounds/, the clutc h will indicate this and reac h a sp eci/c error state/.Engine/: It o/ers three mo des of con trol/: normal torque/, zero torque/, and sync hronous sp eed/. Thenormal mo de of op eration is normal torque mo de where the engine giv es the requested enginetorque/. In zero torque mo de the engine will try to /nd a zero torque di/erence o v er the transmis/-sion/. Similarly /, in sync hronous sp eed mo de the engine searc hes zero sp eed di/erence b et w een theengine and the wheels
+/8/.The engine ha v e an angular acceleration without load that can reac h /1/0/0/0/0 rpm//s and is con trolledt wice p er lap though it is a four cylinder engine/. The decrease of the angular v elo cit y is ac hiev edb y remo ving the fuel/, ignition and air/. As a result/, the engine retards through its friction/. Thedecrease of the angular v elo cit y is generally /4 to /5 times less than the angular acceleration andhas a linear dep endabilit y on the friction/. This asymmetric di/erence b et w een acceleration andretardation of the angular v elo cit y is di/cult to con trol esp ecially when the engine is runningwithout load/, b ecause the di/erence then is maximal/. Due to these circumstances the maxim umtime b ound searc hing for zero torque is limited to /4/0/0 ms within whic h a safe state is en tered/.F urthermore/, the maxim um time b ound for sync hronous sp eed con trol is limited to /5/0/0 ms/. If /5/0/0ms elapse the engine en ters an error state/.W e will refer the error states in the gear/-b o x/, the clutc h and the engine as unreco v erable errors sinceit is imp ossible for the gear con troller alone to reco v er from these errors/./4/./3 Requiremen tsIn this section w e list the informal requiremen ts and desired functionalit y on the gear con troller/,pro vided b y Mecel AB/. The requiremen ts are to ensure the correctness of the gear con troller/. A fewop erations/, suc h as gear shifts and error detections/, are crucial to the correctness/. They m ust b eguaran teed within certain time b ounds/. In addition/, there are also requiremen ts on the con troller toensure desired qualities of the v ehicle/, suc h as/: go o d comfort/, lo w fuel consumption/, and lo w emission/./1/. P erformance/. These requiremen ts limit the maxim um time to p erform a gear shift when nounreco v erable errors o ccur/./(a/) A gear shift should b e completed within /1/./5 seconds/./(b/) A gear shift/, under normal op eration conditions/, should b e p erformed within /1 second/./2/. Predictabilit y /. The predictabilit y requiremen ts are to ensure strict sync hronization and con trolb et w een comp onen ts/./(a/) There should not b e dead/-lo c ks or liv e/-lo c ks in the system/./(b/) When the engine is regulating torque/, the clutc h should b e closed/./(c/) The gear has to b e set in the gear/-b o x when the engine is regulating torque/./3/. F unctionalit y /. The follo wing requiremen ts are to ensure the desired functionalit y of the gearcon troller/./(a/) It has one rev erse gear/, /v e forw ard gears and one neutral gear/./(b/) It is able to use all gears/./(c/) It uses the engine to enhance zero torque and sync hronous sp eed o v er the transmission/./(d/) It uses the gear/-b o x to set and release gears/./(e/) It is allo w ed to use the clutc h in di/cult conditions/./(f /) It do es not request zero torque when shifting from neutral gear/./(g/) The gear con troller do es not request sync hronous sp eed when shifting to neutral gear/./4/. Error Detection/. The gear con troller detects and indicates error only when/:/(a/) the clutc h is not op ened in time/,/(b/) the clutc h is not closed in time/,/8Sync hronous sp eed mo de is used only when the clutc h is op en or no gear is set/./1/0
+
+--- Page 11 ---
+GearSetGearneu
+ReqSetReqNeu CloseClutch
+OpenClutchClutchIsClosedClutchIsOpen TorqueZeroSpeedSet
+/( ToGear /)
+/( FromGear /)/( ToGear /)ReqZeroTorque
+ReqSpeedReqTorque
+NewGearGBTimer
+GCTimerETimer/( ErrStat /)
+CTimer
+Gea rBo x Clutch
+Gea rControl
+InterfaceEngine
+ReqNewGear/( UseCase /) /( ErrStat /)Fig/. /4/. A Flo w/-Graph of the Gear/-Bo x System/./(c/) the gear/-b o x is not able to set a gear in time/,/(d/) the gear/-b o x is not able to release a gear in time/./5 F ormal Description of the SystemT o design and analyze the gear con troller w e mo del the con troller and its en vironmen t in the Upp aalmo del/. The mo deling phase has b een separated in t w o steps/. First a mo del of the en vironmen t iscreated/, as its b eha vior is sp eci/ed in adv ance as assumptions /(see Section /4/./2/)/. Secondly /, the con trolleritself and its in terface are designed to b e functionally correct in the giv en en vironmen t/. Figure /4 sho ws a/o w/-graph of the resulting mo del where no des represen t automata and edges represen t sync hronizationc hannels or shared v ariables /(enclosed within paren thesis/)/. The gear con troller and its in terface aremo deled b y the automata Gea rControl /( GC /) and Interface /( I /)/. The en vironmen t is mo deled b y the threeautomata/: Clutch /( C /)/, Engine /( E /)/, and Gea rBo x /( GB /)/.The system uses six v ariables/. F our are timers /(i/.e/. real/-v alued clo c ks/) that measure /1 /= /1/0/0/0 ofseconds /(ms/)/: GCTimer /, GBTimer /, CTimer and ETimer /. The t w o other v ariables/, named FromGear andToGear /, are used at gear c hange requests
+/9/. In the follo wing w e describ e the /v e automata of thesystem/./5/./1 En vironmen tThe three automata of the en vironmen t mo del the basic functionalit y and time b eha vior of the com/-p onen ts in the en vironmen t/. The comp onen ts ha v e t w o c hannels asso ciated with eac h service/: one forrequests and one to resp ond when service ha v e b een p erformed/.Gear/-Bo x/: In automaton Gea rBo x /, sho wn in Figure /6/, inputs on c hannel ReqSet request a gear setand the corresp onding resp onse on GearSet is output if the gear is successfully set/. Similarly /,the c hannel ReqNeu requests the neutral gear and the resp onse GearNeu signals if the gear issuccessfully released/. If the gear/-b o x fails to set or release a gear the lo cations named Erro rSet andErro rNeu are en tered resp ectiv ely /.Clutc h/: The automaton Clutch is sho wn in Figure /7/. Inputs on c hannels OpenClutch and CloseClutchinstruct the clutc h to op en and close resp ectiv ely /. The corresp onding resp onse c hannels areClutchIsOpen and ClutchIsClosed /. If the clutc h fails to op en or close it en ters the lo cationnamed Erro rOp en and Erro rClose resp ectiv ely /.
+/9The domains of FromGear and ToGear are b ounded to f /0 /; /:/:/:/; /6 g /, where /1 to /5 represen t gear /1 to gear /5/, /0represen ts gear N/, and /6 is the rev erse gear/./1/1
+
+--- Page 12 ---
+Engine/: The automaton Engine /, sho wn in Figure /8 accepts incoming requests for sync hronous sp eed/,a sp eci/ed torque lev el or zero torque on the c hannels ReqSpeed /, ReqTorque and ReqZeroTorqueresp ectiv ely /. The actual torque lev el or sp eed b eing requested is not mo deled since it do es nota/ect the design of the gear con troller
+/1/0/. The engine resp onds to the requests on the c hannelsTorqueZero and SpeedSet when the services ha v e b een completed/. Requests for sp eci/c torquelev els /(i/.e/. signal ReqTorque /) are not answ ered/, instead torque is assumed to increase immediatelyafter the request/.The engine ma y fail to deliv er zero torque or sync hronous sp eed in time as describ ed in Section /4/./2/.It will then en ter a lo cation named CluthOp en without resp onding to the request/. A more dangerousscenario will o ccur if the engine regulates on sync hronous sp eed in to o long time/. T o a v oid damagea timeout in terrupts the engine after /5/0/0 ms of regulation and a lo cation named Erro rSp eed isen tered/./5/./2 F unctionalit yIn this section w e describ e the mo del of the designed gear con troller and its in terface/. Giv en theformal mo del of the en vironmen t/, the gear con troller ha v e b een designed b oth to satisfy the correctnessrequiremen ts giv en in Section /4/./3/, and the functionalit y requiremen ts in Section /4/./1/.Gear Con troller/: The Gea rControl automaton is sho wn in Figure /5/. Eac h main lo op implemen ts agear c hange b y in teracting with the comp onen ts of the en vironmen t/.The designed con troller measures resp onse times /(using the timer GCTimer /) from the comp onen tsto detect errors /(as failures are not signaled/)/. The reaction of the con troller dep ends on ho wserious the o ccurred error is/. It either reco v ers the system from the error/, or terminates in a pre/-sp eci/ed lo cation that p oin ts out the /(unreco v erable/) error/: COp enErro r /, CCloseErro r /, GNeuErro ror GSetErro r /. Reco v erable errors are detected in the lo cations CheckT o rque and CheckSyncSp eed /.In terface/: The automaton Interface /, sho wn in Figure /9/, requests gears R/, N/, /1/, /./././, /5 from the gearcon troller/. Requests and resp onses are sen t through c hannel ReqNewGear and c hannel NewGearresp ectiv ely /. When a request is sen t/, the shared v ariables FromGear and ToGear are assignedv alues corresp onding to the curren t and the requested new gear resp ectiv ely /./6 F ormal V alidation and V eri/cationIn this section w e formalize the informal requiremen ts giv en in Section /4/./3 and pro v e their correctnessusing the sym b olic mo del/-c hec k er of Upp aal /./6/./1 System DecorationT o enable formalization /(and v eri/cation/) of requiremen ts/, w e decorate the system description witht w o in teger v ariables/, ErrStat and UseCase /. The v ariable ErrStat is assigned v alues at unreco v erableerrors/: /1 if Clutch fails to close/, /2 if Clutch fails to op en/, /3 if Gea rBo x fails to set a gear/, and /4 if Gea rBo xfails to release a gear/. The v ariable UseCase is assigned v alues whenev er a reco v erable error o ccurs inEngine /: /1 if it fail to deliv er zero torque/, and /2 if it is not able to /nd sync hronous sp eed/. The systemmo del is also decorated to enable v eri/cation of b ounded resp onse time prop erties/, as describ ed inSection /3/./2/./1/0Hence/, the time b ound for /nding zero torque /(i/.e/. /4/0/0 ms/) should hold when decreasing from an arbitrarytorque lev el/./1/2
+
+--- Page 13 ---
+GearControlGearControlGearControlGearControlGearControl GearControl GearControl GearControl GearControlGearControlGearControlGearControlGearControl GearControl GearControl GearControlGearControl
+GNeuErrorGNeuErrorGNeuErrorGNeuErrorGNeuError GNeuError GNeuError GNeuError GNeuErrorGNeuErrorGNeuErrorGNeuErrorGNeuError GNeuError GNeuError GNeuErrorGNeuError
+GSetErrorGSetErrorGSetErrorGSetErrorGSetError GSetError GSetError GSetError GSetErrorGSetErrorGSetErrorGSetErrorGSetError GSetError GSetError GSetErrorGSetErrorCOpenErrorCOpenErrorCOpenErrorCOpenErrorCOpenError COpenError COpenError COpenError COpenErrorCOpenErrorCOpenErrorCOpenErrorCOpenError COpenError COpenError COpenErrorCOpenError
+CCloseErrorCCloseErrorCCloseErrorCCloseErrorCCloseError CCloseError CCloseError CCloseError CCloseErrorCCloseErrorCCloseErrorCCloseErrorCCloseError CCloseError CCloseError CCloseErrorCCloseError
+CheckClutchClosed2CheckClutchClosed2CheckClutchClosed2CheckClutchClosed2CheckClutchClosed2 CheckClutchClosed2 CheckClutchClosed2 CheckClutchClosed2 CheckClutchClosed2CheckClutchClosed2CheckClutchClosed2CheckClutchClosed2CheckClutchClosed2 CheckClutchClosed2 CheckClutchClosed2 CheckClutchClosed2CheckClutchClosed2
+( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )c:ClutchClosec:ClutchClosec:ClutchClosec:ClutchClosec:ClutchClose c:ClutchClose c:ClutchClose c:ClutchClose c:ClutchClosec:ClutchClosec:ClutchClosec:ClutchClosec:ClutchClose c:ClutchClose c:ClutchClose c:ClutchClosec:ClutchClosec:ReqSetGearc:ReqSetGearc:ReqSetGearc:ReqSetGearc:ReqSetGear c:ReqSetGear c:ReqSetGear c:ReqSetGear c:ReqSetGearc:ReqSetGearc:ReqSetGearc:ReqSetGearc:ReqSetGear c:ReqSetGear c:ReqSetGear c:ReqSetGearc:ReqSetGearc:Initiatec:Initiatec:Initiatec:Initiatec:Initiate c:Initiate c:Initiate c:Initiate c:Initiatec:Initiatec:Initiatec:Initiatec:Initiate c:Initiate c:Initiate c:Initiatec:Initiate
+CheckClutch2CheckClutch2CheckClutch2CheckClutch2CheckClutch2 CheckClutch2 CheckClutch2 CheckClutch2 CheckClutch2CheckClutch2CheckClutch2CheckClutch2CheckClutch2 CheckClutch2 CheckClutch2 CheckClutch2CheckClutch2
+( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )
+CheckGearNeuCheckGearNeuCheckGearNeuCheckGearNeuCheckGearNeu CheckGearNeu CheckGearNeu CheckGearNeu CheckGearNeuCheckGearNeuCheckGearNeuCheckGearNeuCheckGearNeu CheckGearNeu CheckGearNeu CheckGearNeuCheckGearNeu
+( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 )( GCTimer<=250 )c:ReqNeuGearc:ReqNeuGearc:ReqNeuGearc:ReqNeuGearc:ReqNeuGear c:ReqNeuGear c:ReqNeuGear c:ReqNeuGear c:ReqNeuGearc:ReqNeuGearc:ReqNeuGearc:ReqNeuGearc:ReqNeuGear c:ReqNeuGear c:ReqNeuGear c:ReqNeuGearc:ReqNeuGearCheckTorqueCheckTorqueCheckTorqueCheckTorqueCheckTorque CheckTorque CheckTorque CheckTorque CheckTorqueCheckTorqueCheckTorqueCheckTorqueCheckTorque CheckTorque CheckTorque CheckTorqueCheckTorque
+( GCTimer<=255 )( GCTimer<=255 )( GCTimer<=255 )( GCTimer<=255 )( GCTimer<=255 ) ( GCTimer<=255 ) ( GCTimer<=255 ) ( GCTimer<=255 ) ( GCTimer<=255 )( GCTimer<=255 )( GCTimer<=255 )( GCTimer<=255 )( GCTimer<=255 ) ( GCTimer<=255 ) ( GCTimer<=255 ) ( GCTimer<=255 )( GCTimer<=255 )
+CheckClutchClosedCheckClutchClosedCheckClutchClosedCheckClutchClosedCheckClutchClosed CheckClutchClosed CheckClutchClosed CheckClutchClosed CheckClutchClosedCheckClutchClosedCheckClutchClosedCheckClutchClosedCheckClutchClosed CheckClutchClosed CheckClutchClosed CheckClutchClosedCheckClutchClosed
+( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )
+c:GearChangedc:GearChangedc:GearChangedc:GearChangedc:GearChanged c:GearChanged c:GearChanged c:GearChanged c:GearChangedc:GearChangedc:GearChangedc:GearChangedc:GearChanged c:GearChanged c:GearChanged c:GearChangedc:GearChangedc:ReqTorqueCc:ReqTorqueCc:ReqTorqueCc:ReqTorqueCc:ReqTorqueC c:ReqTorqueC c:ReqTorqueC c:ReqTorqueC c:ReqTorqueCc:ReqTorqueCc:ReqTorqueCc:ReqTorqueCc:ReqTorqueC c:ReqTorqueC c:ReqTorqueC c:ReqTorqueCc:ReqTorqueCCheckGearSet1CheckGearSet1CheckGearSet1CheckGearSet1CheckGearSet1 CheckGearSet1 CheckGearSet1 CheckGearSet1 CheckGearSet1CheckGearSet1CheckGearSet1CheckGearSet1CheckGearSet1 CheckGearSet1 CheckGearSet1 CheckGearSet1CheckGearSet1
+( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 )( GCTimer<=350 )c:ReqSyncSpeedc:ReqSyncSpeedc:ReqSyncSpeedc:ReqSyncSpeedc:ReqSyncSpeed c:ReqSyncSpeed c:ReqSyncSpeed c:ReqSyncSpeed c:ReqSyncSpeedc:ReqSyncSpeedc:ReqSyncSpeedc:ReqSyncSpeedc:ReqSyncSpeed c:ReqSyncSpeed c:ReqSyncSpeed c:ReqSyncSpeedc:ReqSyncSpeedGearGearGearGearGear Gear Gear Gear GearGearGearGearGear Gear Gear GearGear
+CheckGearSet2CheckGearSet2CheckGearSet2CheckGearSet2CheckGearSet2 CheckGearSet2 CheckGearSet2 CheckGearSet2 CheckGearSet2CheckGearSet2CheckGearSet2CheckGearSet2CheckGearSet2 CheckGearSet2 CheckGearSet2 CheckGearSet2CheckGearSet2
+( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 )( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 ) ( GCTimer<=350 )( GCTimer<=350 )c:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpen c:ClutchOpen c:ClutchOpen c:ClutchOpen c:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpen c:ClutchOpen c:ClutchOpen c:ClutchOpenc:ClutchOpenCheckClutchCheckClutchCheckClutchCheckClutchCheckClutch CheckClutch CheckClutch CheckClutch CheckClutchCheckClutchCheckClutchCheckClutchCheckClutch CheckClutch CheckClutch CheckClutchCheckClutch
+( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 )( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 ) ( GCTimer<=200 )( GCTimer<=200 )CheckSyncSpeedCheckSyncSpeedCheckSyncSpeedCheckSyncSpeedCheckSyncSpeed CheckSyncSpeed CheckSyncSpeed CheckSyncSpeed CheckSyncSpeedCheckSyncSpeedCheckSyncSpeedCheckSyncSpeedCheckSyncSpeed CheckSyncSpeed CheckSyncSpeed CheckSyncSpeedCheckSyncSpeed
+( GCTimer<=155 )( GCTimer<=155 )( GCTimer<=155 )( GCTimer<=155 )( GCTimer<=155 ) ( GCTimer<=155 ) ( GCTimer<=155 ) ( GCTimer<=155 ) ( GCTimer<=155 )( GCTimer<=155 )( GCTimer<=155 )( GCTimer<=155 )( GCTimer<=155 ) ( GCTimer<=155 ) ( GCTimer<=155 ) ( GCTimer<=155 )( GCTimer<=155 )CheckGearNeu2CheckGearNeu2CheckGearNeu2CheckGearNeu2CheckGearNeu2 CheckGearNeu2 CheckGearNeu2 CheckGearNeu2 CheckGearNeu2CheckGearNeu2CheckGearNeu2CheckGearNeu2CheckGearNeu2 CheckGearNeu2 CheckGearNeu2 CheckGearNeu2CheckGearNeu2
+( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 )( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 ) ( GCTimer<=250 )( GCTimer<=250 )
+c:ReqSetGear2c:ReqSetGear2c:ReqSetGear2c:ReqSetGear2c:ReqSetGear2 c:ReqSetGear2 c:ReqSetGear2 c:ReqSetGear2 c:ReqSetGear2c:ReqSetGear2c:ReqSetGear2c:ReqSetGear2c:ReqSetGear2 c:ReqSetGear2 c:ReqSetGear2 c:ReqSetGear2c:ReqSetGear2c:ClutchOpen2c:ClutchOpen2c:ClutchOpen2c:ClutchOpen2c:ClutchOpen2 c:ClutchOpen2 c:ClutchOpen2 c:ClutchOpen2 c:ClutchOpen2c:ClutchOpen2c:ClutchOpen2c:ClutchOpen2c:ClutchOpen2 c:ClutchOpen2 c:ClutchOpen2 c:ClutchOpen2c:ClutchOpen2
+ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed? ClutchIsClosed? ClutchIsClosed? ClutchIsClosed? ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed? ClutchIsClosed? ClutchIsClosed? ClutchIsClosed?ClutchIsClosed?GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150
+GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200CloseClutch!CloseClutch!CloseClutch!CloseClutch!CloseClutch! CloseClutch! CloseClutch! CloseClutch! CloseClutch!CloseClutch!CloseClutch!CloseClutch!CloseClutch! CloseClutch! CloseClutch! CloseClutch!CloseClutch!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0ReqSet!ReqSet!ReqSet!ReqSet!ReqSet! ReqSet! ReqSet! ReqSet! ReqSet!ReqSet!ReqSet!ReqSet!ReqSet! ReqSet! ReqSet! ReqSet!ReqSet!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0ReqZeroTorque!ReqZeroTorque!ReqZeroTorque!ReqZeroTorque!ReqZeroTorque! ReqZeroTorque! ReqZeroTorque! ReqZeroTorque! ReqZeroTorque!ReqZeroTorque!ReqZeroTorque!ReqZeroTorque!ReqZeroTorque! ReqZeroTorque! ReqZeroTorque! ReqZeroTorque!ReqZeroTorque!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0
+FromGear>0FromGear>0FromGear>0FromGear>0FromGear>0 FromGear>0 FromGear>0 FromGear>0 FromGear>0FromGear>0FromGear>0FromGear>0FromGear>0 FromGear>0 FromGear>0 FromGear>0FromGear>0FromGear<=0FromGear<=0FromGear<=0FromGear<=0FromGear<=0 FromGear<=0 FromGear<=0 FromGear<=0 FromGear<=0FromGear<=0FromGear<=0FromGear<=0FromGear<=0 FromGear<=0 FromGear<=0 FromGear<=0FromGear<=0
+ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen? ClutchIsOpen? ClutchIsOpen? ClutchIsOpen? ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen? ClutchIsOpen? ClutchIsOpen? ClutchIsOpen?ClutchIsOpen?
+GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150
+GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200
+GearNeu?GearNeu?GearNeu?GearNeu?GearNeu? GearNeu? GearNeu? GearNeu? GearNeu?GearNeu?GearNeu?GearNeu?GearNeu? GearNeu? GearNeu? GearNeu?GearNeu?GCTimer>200GCTimer>200GCTimer>200GCTimer>200GCTimer>200 GCTimer>200 GCTimer>200 GCTimer>200 GCTimer>200GCTimer>200GCTimer>200GCTimer>200GCTimer>200 GCTimer>200 GCTimer>200 GCTimer>200GCTimer>200
+GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250 GCTimer<=250 GCTimer<=250 GCTimer<=250 GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250 GCTimer<=250 GCTimer<=250 GCTimer<=250GCTimer<=250ReqNeu!ReqNeu!ReqNeu!ReqNeu!ReqNeu! ReqNeu! ReqNeu! ReqNeu! ReqNeu!ReqNeu!ReqNeu!ReqNeu!ReqNeu! ReqNeu! ReqNeu! ReqNeu!ReqNeu!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0TorqueZero?TorqueZero?TorqueZero?TorqueZero?TorqueZero? TorqueZero? TorqueZero? TorqueZero? TorqueZero?TorqueZero?TorqueZero?TorqueZero?TorqueZero? TorqueZero? TorqueZero? TorqueZero?TorqueZero?
+GCTimer<250GCTimer<250GCTimer<250GCTimer<250GCTimer<250 GCTimer<250 GCTimer<250 GCTimer<250 GCTimer<250GCTimer<250GCTimer<250GCTimer<250GCTimer<250 GCTimer<250 GCTimer<250 GCTimer<250GCTimer<250OpenClutch!OpenClutch!OpenClutch!OpenClutch!OpenClutch! OpenClutch! OpenClutch! OpenClutch! OpenClutch!OpenClutch!OpenClutch!OpenClutch!OpenClutch! OpenClutch! OpenClutch! OpenClutch!OpenClutch!
+GCTimer>=250GCTimer>=250GCTimer>=250GCTimer>=250GCTimer>=250 GCTimer>=250 GCTimer>=250 GCTimer>=250 GCTimer>=250GCTimer>=250GCTimer>=250GCTimer>=250GCTimer>=250 GCTimer>=250 GCTimer>=250 GCTimer>=250GCTimer>=250
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0
+ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed? ClutchIsClosed? ClutchIsClosed? ClutchIsClosed? ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed?ClutchIsClosed? ClutchIsClosed? ClutchIsClosed? ClutchIsClosed?ClutchIsClosed?
+GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150
+GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200NewGear!NewGear!NewGear!NewGear!NewGear! NewGear! NewGear! NewGear! NewGear!NewGear!NewGear!NewGear!NewGear! NewGear! NewGear! NewGear!NewGear!
+ReqTorque!ReqTorque!ReqTorque!ReqTorque!ReqTorque! ReqTorque! ReqTorque! ReqTorque! ReqTorque!ReqTorque!ReqTorque!ReqTorque!ReqTorque! ReqTorque! ReqTorque! ReqTorque!ReqTorque!GearSet?GearSet?GearSet?GearSet?GearSet? GearSet? GearSet? GearSet? GearSet?GearSet?GearSet?GearSet?GearSet? GearSet? GearSet? GearSet?GearSet?GCTimer>300GCTimer>300GCTimer>300GCTimer>300GCTimer>300 GCTimer>300 GCTimer>300 GCTimer>300 GCTimer>300GCTimer>300GCTimer>300GCTimer>300GCTimer>300 GCTimer>300 GCTimer>300 GCTimer>300GCTimer>300
+GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350 GCTimer<=350 GCTimer<=350 GCTimer<=350 GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350 GCTimer<=350 GCTimer<=350 GCTimer<=350GCTimer<=350ReqSpeed!ReqSpeed!ReqSpeed!ReqSpeed!ReqSpeed! ReqSpeed! ReqSpeed! ReqSpeed! ReqSpeed!ReqSpeed!ReqSpeed!ReqSpeed!ReqSpeed! ReqSpeed! ReqSpeed! ReqSpeed!ReqSpeed!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0
+ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0ToGear<=0ToGear<=0ToGear<=0ToGear<=0ToGear<=0 ToGear<=0 ToGear<=0 ToGear<=0 ToGear<=0ToGear<=0ToGear<=0ToGear<=0ToGear<=0 ToGear<=0 ToGear<=0 ToGear<=0ToGear<=0ReqNewGear?ReqNewGear?ReqNewGear?ReqNewGear?ReqNewGear? ReqNewGear? ReqNewGear? ReqNewGear? ReqNewGear?ReqNewGear?ReqNewGear?ReqNewGear?ReqNewGear? ReqNewGear? ReqNewGear? ReqNewGear?ReqNewGear?
+SysTimer:=0SysTimer:=0SysTimer:=0SysTimer:=0SysTimer:=0 SysTimer:=0 SysTimer:=0 SysTimer:=0 SysTimer:=0SysTimer:=0SysTimer:=0SysTimer:=0SysTimer:=0 SysTimer:=0 SysTimer:=0 SysTimer:=0SysTimer:=0
+GearSet?GearSet?GearSet?GearSet?GearSet? GearSet? GearSet? GearSet? GearSet?GearSet?GearSet?GearSet?GearSet? GearSet? GearSet? GearSet?GearSet?GCTimer>300GCTimer>300GCTimer>300GCTimer>300GCTimer>300 GCTimer>300 GCTimer>300 GCTimer>300 GCTimer>300GCTimer>300GCTimer>300GCTimer>300GCTimer>300 GCTimer>300 GCTimer>300 GCTimer>300GCTimer>300
+GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350 GCTimer<=350 GCTimer<=350 GCTimer<=350 GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350GCTimer<=350 GCTimer<=350 GCTimer<=350 GCTimer<=350GCTimer<=350ReqSet!ReqSet!ReqSet!ReqSet!ReqSet! ReqSet! ReqSet! ReqSet! ReqSet!ReqSet!ReqSet!ReqSet!ReqSet! ReqSet! ReqSet! ReqSet!ReqSet!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen? ClutchIsOpen? ClutchIsOpen? ClutchIsOpen? ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen?ClutchIsOpen? ClutchIsOpen? ClutchIsOpen? ClutchIsOpen?ClutchIsOpen?GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150GCTimer>150GCTimer>150GCTimer>150 GCTimer>150 GCTimer>150 GCTimer>150GCTimer>150
+GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200GCTimer<=200 GCTimer<=200 GCTimer<=200 GCTimer<=200GCTimer<=200
+OpenClutch!OpenClutch!OpenClutch!OpenClutch!OpenClutch! OpenClutch! OpenClutch! OpenClutch! OpenClutch!OpenClutch!OpenClutch!OpenClutch!OpenClutch! OpenClutch! OpenClutch! OpenClutch!OpenClutch!
+GCTimer>=150GCTimer>=150GCTimer>=150GCTimer>=150GCTimer>=150 GCTimer>=150 GCTimer>=150 GCTimer>=150 GCTimer>=150GCTimer>=150GCTimer>=150GCTimer>=150GCTimer>=150 GCTimer>=150 GCTimer>=150 GCTimer>=150GCTimer>=150
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0
+GCTimer<150GCTimer<150GCTimer<150GCTimer<150GCTimer<150 GCTimer<150 GCTimer<150 GCTimer<150 GCTimer<150GCTimer<150GCTimer<150GCTimer<150GCTimer<150 GCTimer<150 GCTimer<150 GCTimer<150GCTimer<150
+SpeedSet?SpeedSet?SpeedSet?SpeedSet?SpeedSet? SpeedSet? SpeedSet? SpeedSet? SpeedSet?SpeedSet?SpeedSet?SpeedSet?SpeedSet? SpeedSet? SpeedSet? SpeedSet?SpeedSet?GearNeu?GearNeu?GearNeu?GearNeu?GearNeu? GearNeu? GearNeu? GearNeu? GearNeu?GearNeu?GearNeu?GearNeu?GearNeu? GearNeu? GearNeu? GearNeu?GearNeu?GCTimer>200GCTimer>200GCTimer>200GCTimer>200GCTimer>200 GCTimer>200 GCTimer>200 GCTimer>200 GCTimer>200GCTimer>200GCTimer>200GCTimer>200GCTimer>200 GCTimer>200 GCTimer>200 GCTimer>200GCTimer>200
+GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250 GCTimer<=250 GCTimer<=250 GCTimer<=250 GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250GCTimer<=250 GCTimer<=250 GCTimer<=250 GCTimer<=250GCTimer<=250
+ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0
+ReqSet!ReqSet!ReqSet!ReqSet!ReqSet! ReqSet! ReqSet! ReqSet! ReqSet!ReqSet!ReqSet!ReqSet!ReqSet! ReqSet! ReqSet! ReqSet!ReqSet!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0
+ToGear==0ToGear==0ToGear==0ToGear==0ToGear==0 ToGear==0 ToGear==0 ToGear==0 ToGear==0ToGear==0ToGear==0ToGear==0ToGear==0 ToGear==0 ToGear==0 ToGear==0ToGear==0
+CloseClutch!CloseClutch!CloseClutch!CloseClutch!CloseClutch! CloseClutch! CloseClutch! CloseClutch! CloseClutch!CloseClutch!CloseClutch!CloseClutch!CloseClutch! CloseClutch! CloseClutch! CloseClutch!CloseClutch!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0ReqNeu!ReqNeu!ReqNeu!ReqNeu!ReqNeu! ReqNeu! ReqNeu! ReqNeu! ReqNeu!ReqNeu!ReqNeu!ReqNeu!ReqNeu! ReqNeu! ReqNeu! ReqNeu!ReqNeu!
+GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0GCTimer:=0 GCTimer:=0 GCTimer:=0 GCTimer:=0GCTimer:=0Fig/. /5/. The Gear Bo x Con troller Automaton/./6/./2 Requiremen t Sp eci/cationBefore formalizing the requiremen t sp eci/cation of the gear con troller w e de/ne negation and con/-junction for the b ounded resp onse time op erator and the in v arian t op erator de/ned in Section /3/./2/,A j /= /'/1
+/^ /'/2
+i/ A j /= /'/1
+and A j /= /'/2A j /= /: /' i/ A /6j /= /'/1/3
+
+--- Page 14 ---
+Gea rControl /@ Initiate /;/ /1/5/0/0
+/( /( ErrStat /= /0 /) /) Gea rControl /@ Gea rChanged /) /(/1/)Gea rControl /@ Initiate /;/ /1/0/0/0/( /( ErrStat /= /0 /^ UseCase /= /0 /) /) Gea rControl /@ Gea rChanged /) /(/2/)Clutch /@ Erro rClose /;/ /2/0/0
+Gea rControl /@ CCloseErro r /(/3/)Clutch /@ Erro rOp en /;/ /2/0/0
+Gea rControl /@ COp enErro r /(/4/)Gea rBo x /@ Erro rIdle /;/ /3/5/0
+Gea rControl /@ GSetErro r /(/5/)Gea rBo x /@ Erro rNeu /;/ /2/0/0
+Gea rControl /@ GNeuErro r /(/6/)I nv /( Gea rControl /@ CCloseErro r /) Clutch /@ Erro rClose /) /(/7/)I nv /( Gea rControl /@ COp enErro r /) Clutch /@ Erro rOp en /) /(/8/)I nv /( Gea rControl /@ GSetErro r /) Gea rBo x /@ Erro rIdle /) /(/9/)I nv /( Gea rControl /@ GNeuErro r /) Gea rBo x /@ Erro rNeu /) /(/1/0/)I nv /( Engine /@ Erro rSp eed /) ErrStat /6/= /0 /) /(/1/1/)I nv /( Engine /@ T o rque /) Clutch /@ Closed /) /(/1/2/)/^i /2f R/;N /; /1 /;/:/:/: /; /5 g
+P oss /( Gea r /@ Gea ri
+/) /(/1/3/)/^i /2f R/; /1 /;/:/:/:/; /5 g
+I nv /( /( Gea rControl /@ Gea r /^ Gea r /@ Gea ri
+/) /) Engine /@ T o rque /) /(/1/4/)T able /2/. Requiremen t Sp eci/cationW e also extend the /(implicit/) prop osition at /( l /) to at /( A/; l /)/, meaning that the con trol lo cation of au/-tomaton A is curren tly l /. Finally /, w e in tro duce P oss /( f /) to denote /: I nv /( /: f /)/, f/1
+/6/;/ T
+f/2
+to denote/: /( f/1
+/;/ T
+f/2
+/)/, and A /@ l to denote at /( A/; l /)/. W e are no w ready to formalize the requiremen ts/.The /rst p erformance requiremen t /1a/, i/.e/. that a gear c hange m ust b e completed within /1/./5 secondsgiv en that no unreco v erable errors o ccur/, is sp eci/ed in prop ert y /1/. It requires the lo cation Gea rChangedin automaton Gea rControl to b e reac hed within /1/./5 seconds after lo cation Initiate has b een en tered/.Only scenarios without unreco v erable errors are considered as the v alue of the v ariable ErrStat issp eci/ed to b e zero
+/1/1/. T o consider scenarios with normal op eration w e restrict also the v alue of v ariableUseCase to zero /(i/.e/. no reco v erable errors o ccurs/)/. Prop ert y /2 requires gear c hanges to b e completedwithin one second giv en that the system is op erating normally /.The prop erties /3 to /6 require the system to terminate in kno wn error/-lo cations that p oin t outthe sp eci/c error when errors o ccur in the clutc h or the gear /(requiremen ts /4a to /4d/)/. Up to /3/5/0ms is allo w ed to elapse b et w een the o ccurrence of an error and that the error is indicated in thegear con troller/. The prop erties /7 to /1/0 restrict the con troller design to indicate an error only whenthe corresp onding error has arised in the comp onen ts/. Observ e that no sp eci/c lo cation in the gearcon troller is dedicated to indicate the unreco v erable error that ma y o ccur when the engines sp eed/-regulation is in terrupted /(i/.e/. when lo cation Engine /@ Erro rSp eed is reac hed/)/. Prop ert y /1/1 requires thatno suc h lo cation is needed since this error is alw a ys a consequence of a preceding unreco v erable errorin the clutc h or in the gear/.Prop ert y /1/3 holds if the system is able to use all gears /(requiremen t /3a/)/. F urthermore/, for fullfunctionalit y and predictabilit y /, the system is required to b e dead/-lo c k and liv e/-lo c k free /(requiremen t/2a/)/. In this rep ort/, dead/-lo c k and liv e/-lo c k prop erties are not sp eci/ed due to lac k of space/. Ho w ev er/,prop ert y /1 /(and /2/) guaran tee progress within b ounded time if no unreco v erable error causes the system/1/1Recall that the v ariable ErrStat is assigned a p ositiv e v alue /(i/.e/. greater than zero/) whenev er an unreco v/-erable error o ccurs/./1/4
+
+--- Page 15 ---
+Gea rControl /@ Initiate /;/< /9/0/0/( /( ErrStat /= /0 /^ UseCase /= /0 /) /) Gea rControl /@ Gea rChanged /) /(/1/5/)Gea rControl /@ Initiate /6/;/ /8/9/9/( /( ErrStat /= /0 /^ UseCase /= /0 /) /) Gea rControl /@ Gea rChanged /) /(/1/6/)T able /3/. Time Boundsto terminate/. The prop erties /1/2 and /1/4 sp eci/es the informal predictabilit y requiremen ts /2b and /2c/.A n um b er of functionalit y requiremen ts sp ecify ho w the gear con troller should in teract with theen vironmen t /(e/.g/. /3a and /3c to /3g/)/. These requiremen ts ha v e b een used to giv e the gear con trollerthe desired design/. They ha v e later b een v alidated using the sim ulator in Upp aal and ha v e not b eenformally sp eci/ed and v eri/ed/./6/./3 Time Bound Deriv ationProp ert y /1 requires that a gear c hange should b e p erformed within one second/. Ev en though thisis an in teresting prop ert y in itself one ma y ask for the lo w est time b ound for whic h a gear c hangeis guaran teed /. W e sho w that this time b ound is /9/0/0 ms for error/-free scenarios b y pro ving that thec hange is guaran teed at /9/0/0 ms /(prop ert y /1/5/)/, and that the c hange is p ossibly not completed at /8/9/9ms /(prop ert y /1/6/)/. Similarly /, for scenarios when the engine fails to deliv er zero torque w e deriv e theb ound /1/0/5/5 ms/, and if sync hronous sp eed is not deliv ered in the engine the time b ound is /1/2/0/5 ms/.W e ha v e sho wn the shortest time for whic h a gear c hange is p ossible in the three scenarios to b e/:/1/5/0 ms/, /5/5/0 ms/, and /4/5/0 ms/. Ho w ev er/, gear c hanges in v olving neutral gear ma y b e faster as the geardo es not ha v e to b e released /(when c hanging from gear neutral/) or set /(when c hanging to gear neutral/)/.Finally w e consider the same three scenarios but without in v olving neutral gear b y constraining thev alues of the v ariables FromGear and ToGear /. The deriv ed time b ounds are/: /4/0/0 ms/, /7/0/0 ms and /7/5/0/./6/./4 V eri/cation ResultsW e ha v e v eri/ed totally /4/6 prop erties of the system
+/1/2using Upp aal installed on a /7/5 MHz P en tiumPC equipp ed with /2/4 MB of primary memory /. The v eri/cation of all the prop erties consumed /2/./9/9second/./7 ConclusionIn this pap er/, w e ha v e rep orted an industrial case study in applying formal tec hniques for the designand analysis of con trol systems for v ehicles/. The main output of the case/-study is a formally describ edgear con troller and a set of formal requiremen ts/. The designed con troller has b een v alidated and v eri/edusing the to ol Upp aal to satisfy the safet y and functionalit y requiremen ts on the con troller/, pro videdb y Mecel AB/. It ma y b e considered as one piece of evidence that the v alidation and v eri/cation to olsof to da y are mature enough to b e applied in industrial pro jects/.W e ha v e giv en a detailed description of the formal mo del of the gear con troller and its surroundingen vironmen t/, and its correctness formalized in /4/6 logical form ulas according to the informal require/-men ts deliv ered b y industry /. The v eri/cation w as p erformed in a few seconds on a P en tium PC
+/1/3running Upp aal v ersion /2/./1/2/./2/. Another con tribution of this pap er is a solution to a problem w e got/1/2A complete list of the v eri/ed prop erties can b e found in the full v ersion of this pap er/./1/3/2/./9/9 seconds on a P en tium /7/5MHz equipp ed with /2/4 MB of primary memory /./1/5
+
+--- Page 16 ---
+in this case study /, namely ho w to use a to ol lik e Upp aal /, whic h only pro vides reac habilit y analysisto v erify b ounded resp onse time prop erties/. W e ha v e presen ted a logic and a metho d to c haracter/-ize and mo del/{c hec k suc h prop erties b y reac habilit y analysis in com bination with simple syn tacticalmanipulation on the system description/.This w ork concerns only one comp onen t/, namely gear con troller of a con trol system for v ehicles/.F uture w ork/, naturally include mo delling and v eri/cation of the whole con trol system/. The pro ject isstill in progress/. W e hop e to rep ort more in the near future on the pro ject/.References/[AD/9/4/] R/. Alur and D/. Dill/. Automata for Mo delling Real/-Time Systems/. Theoretical Computer Science /,/1/2/6/(/2/)/:/1/8/3/{/2/3/6/, April /1/9/9/4/./[BGK
+/+/9/6/] Johan Bengtsson/, Da vid Gri/o en/, K / are Kristo/ersen/, Kim G/. Larsen/, F redrik Larsson/, P aul P et/-tersson/, and W ang Yi/. V eri/cation of an Audio Proto col with Bus Collision Using Upp aal /. InRa jeev Alur and Thomas A/. Henzinger/, editors/, Pro c/. of /8th In t/. Conf/. on Computer Aided V eri//-cation /, n um b er /1/1/0/2 in Lecture Notes in Computer Science/, pages /2/4/4/{/2/5/6/. Springer/{V erlag/, July/1/9/9/6/./[BLL
+/+/9/6/] Johan Bengtsson/, Kim G/. Larsen/, F redrik Larsson/, P aul P ettersson/, and W ang Yi/. Upp aal in/1/9/9/5/. In Pro c/. of the /2nd W orkshop on T o ols and Algorithms for the Construction and Analysisof Systems /, n um b er /1/0/5/5 in Lecture Notes in Computer Science/, pages /4/3/1/{/4/3/4/. Springer/{V erlag/,Mars /1/9/9/6/./[DOTY/9/5/] C/. Da ws/, A/. Oliv ero/, S/. T ripakis/, and S/. Y o vine/. The to ol kr onos /. In Ra jeev Alur/, Thomas A/.Henzinger/, and Eduardo D/. Son tag/, editors/, Pro c/. of W orkshop on V eri/cation and Con trol ofHybrid Systems I I I /, Lecture Notes in Computer Science/, pages /2/0/8/{/2/1/9/. Springer/{V erlag/, Octob er/1/9/9/5/./[HHWT/9/5/] Thomas A/. Henzinger/, P ei/-Hsin Ho/, and Ho w ard W ong/-T oi/. HyTech /: The Next Generation/. InPro c/. of the /1/6th IEEE Real/-Time Systems Symp osium /, pages /5/6/{/6/5/, Decem b er /1/9/9/5/./[JLS/9/6/] H/.E/. Jensen/, K/.G/. Larsen/, and A/. Sk ou/. Mo delling and Analysis of a Collision Av oidance Proto colUsing SPIN and Upp aal /. In Pro c/. of /2nd In ternational W orkshop on the SPIN V eri/cation System /,pages /1/{/2/0/, August /1/9/9/6/./[LPY/9/7/] Kim G/. Larsen/, P aul P ettersson/, and W ang Yi/. Upp aal in a Nutshell/. T o app ear in In ternationalJournal on Soft w are T o ols for T ec hnology T ransfer /, /1/9/9/7/./[SMF/9/7/] Thomas Stauner/, Olaf M / uller/, and Max F uc hs/. Using h ytec h to v erify an automotiv e con trolsystem/. In Pro c/. Hybrid and Real/-Time Systems/, Grenoble/, Marc h /2/6/-/2/8/, /1/9/9/7 /. T ec hnisc he Uni/-v ersit/ at M / unc hen/, Lecture Notes in Computer Science/, Springer/, /1/9/9/7/./[YPD/9/4/] W ang Yi/, P aul P ettersson/, and Mats Daniels/. Automatic V eri/cation of Real/-Time Comm unicatingSystems By Constrain t/-Solving/. In Pro c/. of the /7th In ternational Conference on F ormal DescriptionT ec hniques /, /1/9/9/4/./1/6
+
+--- Page 17 ---
+App endix/: The System Description
+GearBoxGearBoxGearBoxGearBoxGearBox GearBox GearBox GearBox GearBoxGearBoxGearBoxGearBoxGearBox GearBox GearBox GearBoxGearBox
+ErrorIdleErrorIdleErrorIdleErrorIdleErrorIdle ErrorIdle ErrorIdle ErrorIdle ErrorIdleErrorIdleErrorIdleErrorIdleErrorIdle ErrorIdle ErrorIdle ErrorIdleErrorIdle
+ErrorNeuErrorNeuErrorNeuErrorNeuErrorNeu ErrorNeu ErrorNeu ErrorNeu ErrorNeuErrorNeuErrorNeuErrorNeuErrorNeu ErrorNeu ErrorNeu ErrorNeuErrorNeu
+ClosingClosingClosingClosingClosing Closing Closing Closing ClosingClosingClosingClosingClosing Closing Closing ClosingClosing
+( GBTimer<=300 )( GBTimer<=300 )( GBTimer<=300 )( GBTimer<=300 )( GBTimer<=300 ) ( GBTimer<=300 ) ( GBTimer<=300 ) ( GBTimer<=300 ) ( GBTimer<=300 )( GBTimer<=300 )( GBTimer<=300 )( GBTimer<=300 )( GBTimer<=300 ) ( GBTimer<=300 ) ( GBTimer<=300 ) ( GBTimer<=300 )( GBTimer<=300 )OpeningOpeningOpeningOpeningOpening Opening Opening Opening OpeningOpeningOpeningOpeningOpening Opening Opening OpeningOpening
+( GBTimer<=200 )( GBTimer<=200 )( GBTimer<=200 )( GBTimer<=200 )( GBTimer<=200 ) ( GBTimer<=200 ) ( GBTimer<=200 ) ( GBTimer<=200 ) ( GBTimer<=200 )( GBTimer<=200 )( GBTimer<=200 )( GBTimer<=200 )( GBTimer<=200 ) ( GBTimer<=200 ) ( GBTimer<=200 ) ( GBTimer<=200 )( GBTimer<=200 )NeutralNeutralNeutralNeutralNeutral Neutral Neutral Neutral NeutralNeutralNeutralNeutralNeutral Neutral Neutral NeutralNeutral
+IdleIdleIdleIdleIdle Idle Idle Idle IdleIdleIdleIdleIdle Idle Idle IdleIdle
+GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100 GBTimer>=100 GBTimer>=100 GBTimer>=100 GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100 GBTimer>=100 GBTimer>=100 GBTimer>=100GBTimer>=100
+GearSet!GearSet!GearSet!GearSet!GearSet! GearSet! GearSet! GearSet! GearSet!GearSet!GearSet!GearSet!GearSet! GearSet! GearSet! GearSet!GearSet!GBTimer==300GBTimer==300GBTimer==300GBTimer==300GBTimer==300 GBTimer==300 GBTimer==300 GBTimer==300 GBTimer==300GBTimer==300GBTimer==300GBTimer==300GBTimer==300 GBTimer==300 GBTimer==300 GBTimer==300GBTimer==300
+ErrStat:=3ErrStat:=3ErrStat:=3ErrStat:=3ErrStat:=3 ErrStat:=3 ErrStat:=3 ErrStat:=3 ErrStat:=3ErrStat:=3ErrStat:=3ErrStat:=3ErrStat:=3 ErrStat:=3 ErrStat:=3 ErrStat:=3ErrStat:=3GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100 GBTimer>=100 GBTimer>=100 GBTimer>=100 GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100GBTimer>=100 GBTimer>=100 GBTimer>=100 GBTimer>=100GBTimer>=100
+GearNeu!GearNeu!GearNeu!GearNeu!GearNeu! GearNeu! GearNeu! GearNeu! GearNeu!GearNeu!GearNeu!GearNeu!GearNeu! GearNeu! GearNeu! GearNeu!GearNeu!
+GBTimer>200GBTimer>200GBTimer>200GBTimer>200GBTimer>200 GBTimer>200 GBTimer>200 GBTimer>200 GBTimer>200GBTimer>200GBTimer>200GBTimer>200GBTimer>200 GBTimer>200 GBTimer>200 GBTimer>200GBTimer>200
+ErrStat:=4ErrStat:=4ErrStat:=4ErrStat:=4ErrStat:=4 ErrStat:=4 ErrStat:=4 ErrStat:=4 ErrStat:=4ErrStat:=4ErrStat:=4ErrStat:=4ErrStat:=4 ErrStat:=4 ErrStat:=4 ErrStat:=4ErrStat:=4ReqSet?ReqSet?ReqSet?ReqSet?ReqSet? ReqSet? ReqSet? ReqSet? ReqSet?ReqSet?ReqSet?ReqSet?ReqSet? ReqSet? ReqSet? ReqSet?ReqSet?
+GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0 GBTimer:=0 GBTimer:=0 GBTimer:=0 GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0 GBTimer:=0 GBTimer:=0 GBTimer:=0GBTimer:=0ReqNeu?ReqNeu?ReqNeu?ReqNeu?ReqNeu? ReqNeu? ReqNeu? ReqNeu? ReqNeu?ReqNeu?ReqNeu?ReqNeu?ReqNeu? ReqNeu? ReqNeu? ReqNeu?ReqNeu?
+GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0 GBTimer:=0 GBTimer:=0 GBTimer:=0 GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0GBTimer:=0 GBTimer:=0 GBTimer:=0 GBTimer:=0GBTimer:=0Fig/. /6/. The Gear/-Bo x Automaton/.
+ClutchClutchClutchClutchClutch Clutch Clutch Clutch ClutchClutchClutchClutchClutch Clutch Clutch ClutchClutch
+ErrorOpenErrorOpenErrorOpenErrorOpenErrorOpen ErrorOpen ErrorOpen ErrorOpen ErrorOpenErrorOpenErrorOpenErrorOpenErrorOpen ErrorOpen ErrorOpen ErrorOpenErrorOpenErrorCloseErrorCloseErrorCloseErrorCloseErrorClose ErrorClose ErrorClose ErrorClose ErrorCloseErrorCloseErrorCloseErrorCloseErrorClose ErrorClose ErrorClose ErrorCloseErrorClose
+ClosingClosingClosingClosingClosing Closing Closing Closing ClosingClosingClosingClosingClosing Closing Closing ClosingClosing
+( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 )( CTimer<=150 )OpeningOpeningOpeningOpeningOpening Opening Opening Opening OpeningOpeningOpeningOpeningOpening Opening Opening OpeningOpening
+( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 )( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 ) ( CTimer<=150 )( CTimer<=150 )
+OpenOpenOpenOpenOpen Open Open Open OpenOpenOpenOpenOpen Open Open OpenOpen
+ClosedClosedClosedClosedClosed Closed Closed Closed ClosedClosedClosedClosedClosed Closed Closed ClosedClosed CTimer>=100CTimer>=100CTimer>=100CTimer>=100CTimer>=100 CTimer>=100 CTimer>=100 CTimer>=100 CTimer>=100CTimer>=100CTimer>=100CTimer>=100CTimer>=100 CTimer>=100 CTimer>=100 CTimer>=100CTimer>=100
+ClutchIsClosed!ClutchIsClosed!ClutchIsClosed!ClutchIsClosed!ClutchIsClosed! ClutchIsClosed! ClutchIsClosed! ClutchIsClosed! ClutchIsClosed!ClutchIsClosed!ClutchIsClosed!ClutchIsClosed!ClutchIsClosed! ClutchIsClosed! ClutchIsClosed! ClutchIsClosed!ClutchIsClosed!CTimer==150CTimer==150CTimer==150CTimer==150CTimer==150 CTimer==150 CTimer==150 CTimer==150 CTimer==150CTimer==150CTimer==150CTimer==150CTimer==150 CTimer==150 CTimer==150 CTimer==150CTimer==150
+ErrStat:=1ErrStat:=1ErrStat:=1ErrStat:=1ErrStat:=1 ErrStat:=1 ErrStat:=1 ErrStat:=1 ErrStat:=1ErrStat:=1ErrStat:=1ErrStat:=1ErrStat:=1 ErrStat:=1 ErrStat:=1 ErrStat:=1ErrStat:=1CTimer>=100CTimer>=100CTimer>=100CTimer>=100CTimer>=100 CTimer>=100 CTimer>=100 CTimer>=100 CTimer>=100CTimer>=100CTimer>=100CTimer>=100CTimer>=100 CTimer>=100 CTimer>=100 CTimer>=100CTimer>=100
+ClutchIsOpen!ClutchIsOpen!ClutchIsOpen!ClutchIsOpen!ClutchIsOpen! ClutchIsOpen! ClutchIsOpen! ClutchIsOpen! ClutchIsOpen!ClutchIsOpen!ClutchIsOpen!ClutchIsOpen!ClutchIsOpen! ClutchIsOpen! ClutchIsOpen! ClutchIsOpen!ClutchIsOpen!
+CTimer==150CTimer==150CTimer==150CTimer==150CTimer==150 CTimer==150 CTimer==150 CTimer==150 CTimer==150CTimer==150CTimer==150CTimer==150CTimer==150 CTimer==150 CTimer==150 CTimer==150CTimer==150
+ErrStat:=2ErrStat:=2ErrStat:=2ErrStat:=2ErrStat:=2 ErrStat:=2 ErrStat:=2 ErrStat:=2 ErrStat:=2ErrStat:=2ErrStat:=2ErrStat:=2ErrStat:=2 ErrStat:=2 ErrStat:=2 ErrStat:=2ErrStat:=2
+CloseClutch?CloseClutch?CloseClutch?CloseClutch?CloseClutch? CloseClutch? CloseClutch? CloseClutch? CloseClutch?CloseClutch?CloseClutch?CloseClutch?CloseClutch? CloseClutch? CloseClutch? CloseClutch?CloseClutch?
+CTimer:=0CTimer:=0CTimer:=0CTimer:=0CTimer:=0 CTimer:=0 CTimer:=0 CTimer:=0 CTimer:=0CTimer:=0CTimer:=0CTimer:=0CTimer:=0 CTimer:=0 CTimer:=0 CTimer:=0CTimer:=0OpenClutch?OpenClutch?OpenClutch?OpenClutch?OpenClutch? OpenClutch? OpenClutch? OpenClutch? OpenClutch?OpenClutch?OpenClutch?OpenClutch?OpenClutch? OpenClutch? OpenClutch? OpenClutch?OpenClutch?
+CTimer:=0CTimer:=0CTimer:=0CTimer:=0CTimer:=0 CTimer:=0 CTimer:=0 CTimer:=0 CTimer:=0CTimer:=0CTimer:=0CTimer:=0CTimer:=0 CTimer:=0 CTimer:=0 CTimer:=0CTimer:=0Fig/. /7/. The Clutc h Automaton/.This article w as pro cessed using the L
+ATE
+X macro pac k age with LLNCS st yle/1/7
+
+--- Page 18 ---
+EngineEngineEngineEngineEngine Engine Engine Engine EngineEngineEngineEngineEngine Engine Engine EngineEngine
+ClutchCloseClutchCloseClutchCloseClutchCloseClutchClose ClutchClose ClutchClose ClutchClose ClutchCloseClutchCloseClutchCloseClutchCloseClutchClose ClutchClose ClutchClose ClutchCloseClutchClose
+( ETimer<=900 )( ETimer<=900 )( ETimer<=900 )( ETimer<=900 )( ETimer<=900 ) ( ETimer<=900 ) ( ETimer<=900 ) ( ETimer<=900 ) ( ETimer<=900 )( ETimer<=900 )( ETimer<=900 )( ETimer<=900 )( ETimer<=900 ) ( ETimer<=900 ) ( ETimer<=900 ) ( ETimer<=900 )( ETimer<=900 ) c:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpen c:ClutchOpen c:ClutchOpen c:ClutchOpen c:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpenc:ClutchOpen c:ClutchOpen c:ClutchOpen c:ClutchOpenc:ClutchOpen
+FindSpeedFindSpeedFindSpeedFindSpeedFindSpeed FindSpeed FindSpeed FindSpeed FindSpeedFindSpeedFindSpeedFindSpeedFindSpeed FindSpeed FindSpeed FindSpeedFindSpeed
+( ETimer<=200 )( ETimer<=200 )( ETimer<=200 )( ETimer<=200 )( ETimer<=200 ) ( ETimer<=200 ) ( ETimer<=200 ) ( ETimer<=200 ) ( ETimer<=200 )( ETimer<=200 )( ETimer<=200 )( ETimer<=200 )( ETimer<=200 ) ( ETimer<=200 ) ( ETimer<=200 ) ( ETimer<=200 )( ETimer<=200 )
+ErrorSpeedErrorSpeedErrorSpeedErrorSpeedErrorSpeed ErrorSpeed ErrorSpeed ErrorSpeed ErrorSpeedErrorSpeedErrorSpeedErrorSpeedErrorSpeed ErrorSpeed ErrorSpeed ErrorSpeedErrorSpeedInitialInitialInitialInitialInitial Initial Initial Initial InitialInitialInitialInitialInitial Initial Initial InitialInitial
+SpeedSpeedSpeedSpeedSpeed Speed Speed Speed SpeedSpeedSpeedSpeedSpeed Speed Speed SpeedSpeed
+( ETimer<=500 )( ETimer<=500 )( ETimer<=500 )( ETimer<=500 )( ETimer<=500 ) ( ETimer<=500 ) ( ETimer<=500 ) ( ETimer<=500 ) ( ETimer<=500 )( ETimer<=500 )( ETimer<=500 )( ETimer<=500 )( ETimer<=500 ) ( ETimer<=500 ) ( ETimer<=500 ) ( ETimer<=500 )( ETimer<=500 )
+ZeroZeroZeroZeroZero Zero Zero Zero ZeroZeroZeroZeroZero Zero Zero ZeroZeroDecTorqueDecTorqueDecTorqueDecTorqueDecTorque DecTorque DecTorque DecTorque DecTorqueDecTorqueDecTorqueDecTorqueDecTorque DecTorque DecTorque DecTorqueDecTorque
+( ETimer<=400 )( ETimer<=400 )( ETimer<=400 )( ETimer<=400 )( ETimer<=400 ) ( ETimer<=400 ) ( ETimer<=400 ) ( ETimer<=400 ) ( ETimer<=400 )( ETimer<=400 )( ETimer<=400 )( ETimer<=400 )( ETimer<=400 ) ( ETimer<=400 ) ( ETimer<=400 ) ( ETimer<=400 )( ETimer<=400 )TorqueTorqueTorqueTorqueTorque Torque Torque Torque TorqueTorqueTorqueTorqueTorque Torque Torque TorqueTorque
+ETimer>=50ETimer>=50ETimer>=50ETimer>=50ETimer>=50 ETimer>=50 ETimer>=50 ETimer>=50 ETimer>=50ETimer>=50ETimer>=50ETimer>=50ETimer>=50 ETimer>=50 ETimer>=50 ETimer>=50ETimer>=50
+ReqTorque?ReqTorque?ReqTorque?ReqTorque?ReqTorque? ReqTorque? ReqTorque? ReqTorque? ReqTorque?ReqTorque?ReqTorque?ReqTorque?ReqTorque? ReqTorque? ReqTorque? ReqTorque?ReqTorque?
+ETimer==900ETimer==900ETimer==900ETimer==900ETimer==900 ETimer==900 ETimer==900 ETimer==900 ETimer==900ETimer==900ETimer==900ETimer==900ETimer==900 ETimer==900 ETimer==900 ETimer==900ETimer==900ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0
+ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0
+ToGear==0ToGear==0ToGear==0ToGear==0ToGear==0 ToGear==0 ToGear==0 ToGear==0 ToGear==0ToGear==0ToGear==0ToGear==0ToGear==0 ToGear==0 ToGear==0 ToGear==0ToGear==0
+ETimer==200ETimer==200ETimer==200ETimer==200ETimer==200 ETimer==200 ETimer==200 ETimer==200 ETimer==200ETimer==200ETimer==200ETimer==200ETimer==200 ETimer==200 ETimer==200 ETimer==200ETimer==200
+UseCase:=2UseCase:=2UseCase:=2UseCase:=2UseCase:=2 UseCase:=2 UseCase:=2 UseCase:=2 UseCase:=2UseCase:=2UseCase:=2UseCase:=2UseCase:=2 UseCase:=2 UseCase:=2 UseCase:=2UseCase:=2
+ETimer>=50ETimer>=50ETimer>=50ETimer>=50ETimer>=50 ETimer>=50 ETimer>=50 ETimer>=50 ETimer>=50ETimer>=50ETimer>=50ETimer>=50ETimer>=50 ETimer>=50 ETimer>=50 ETimer>=50ETimer>=50
+SpeedSet!SpeedSet!SpeedSet!SpeedSet!SpeedSet! SpeedSet! SpeedSet! SpeedSet! SpeedSet!SpeedSet!SpeedSet!SpeedSet!SpeedSet! SpeedSet! SpeedSet! SpeedSet!SpeedSet!
+ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed? ReqSpeed? ReqSpeed? ReqSpeed? ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed? ReqSpeed? ReqSpeed? ReqSpeed?ReqSpeed?
+ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0
+UseCase:=0UseCase:=0UseCase:=0UseCase:=0UseCase:=0 UseCase:=0 UseCase:=0 UseCase:=0 UseCase:=0UseCase:=0UseCase:=0UseCase:=0UseCase:=0 UseCase:=0 UseCase:=0 UseCase:=0UseCase:=0ReqTorque?ReqTorque?ReqTorque?ReqTorque?ReqTorque? ReqTorque? ReqTorque? ReqTorque? ReqTorque?ReqTorque?ReqTorque?ReqTorque?ReqTorque? ReqTorque? ReqTorque? ReqTorque?ReqTorque?
+ETimer<500ETimer<500ETimer<500ETimer<500ETimer<500 ETimer<500 ETimer<500 ETimer<500 ETimer<500ETimer<500ETimer<500ETimer<500ETimer<500 ETimer<500 ETimer<500 ETimer<500ETimer<500
+ETimer==500ETimer==500ETimer==500ETimer==500ETimer==500 ETimer==500 ETimer==500 ETimer==500 ETimer==500ETimer==500ETimer==500ETimer==500ETimer==500 ETimer==500 ETimer==500 ETimer==500ETimer==500ToGear==0ToGear==0ToGear==0ToGear==0ToGear==0 ToGear==0 ToGear==0 ToGear==0 ToGear==0ToGear==0ToGear==0ToGear==0ToGear==0 ToGear==0 ToGear==0 ToGear==0ToGear==0
+ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0ToGear>0ToGear>0ToGear>0 ToGear>0 ToGear>0 ToGear>0ToGear>0
+ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed? ReqSpeed? ReqSpeed? ReqSpeed? ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed?ReqSpeed? ReqSpeed? ReqSpeed? ReqSpeed?ReqSpeed?
+ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0TorqueZero!TorqueZero!TorqueZero!TorqueZero!TorqueZero! TorqueZero! TorqueZero! TorqueZero! TorqueZero!TorqueZero!TorqueZero!TorqueZero!TorqueZero! TorqueZero! TorqueZero! TorqueZero!TorqueZero!
+ETimer>=150ETimer>=150ETimer>=150ETimer>=150ETimer>=150 ETimer>=150 ETimer>=150 ETimer>=150 ETimer>=150ETimer>=150ETimer>=150ETimer>=150ETimer>=150 ETimer>=150 ETimer>=150 ETimer>=150ETimer>=150ETimer==400ETimer==400ETimer==400ETimer==400ETimer==400 ETimer==400 ETimer==400 ETimer==400 ETimer==400ETimer==400ETimer==400ETimer==400ETimer==400 ETimer==400 ETimer==400 ETimer==400ETimer==400
+UseCase:=1UseCase:=1UseCase:=1UseCase:=1UseCase:=1 UseCase:=1 UseCase:=1 UseCase:=1 UseCase:=1UseCase:=1UseCase:=1UseCase:=1UseCase:=1 UseCase:=1 UseCase:=1 UseCase:=1UseCase:=1ReqZeroTorque?ReqZeroTorque?ReqZeroTorque?ReqZeroTorque?ReqZeroTorque? ReqZeroTorque? ReqZeroTorque? ReqZeroTorque? ReqZeroTorque?ReqZeroTorque?ReqZeroTorque?ReqZeroTorque?ReqZeroTorque? ReqZeroTorque? ReqZeroTorque? ReqZeroTorque?ReqZeroTorque?
+ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0ETimer:=0ETimer:=0ETimer:=0 ETimer:=0 ETimer:=0 ETimer:=0ETimer:=0
+UseCase:=0UseCase:=0UseCase:=0UseCase:=0UseCase:=0 UseCase:=0 UseCase:=0 UseCase:=0 UseCase:=0UseCase:=0UseCase:=0UseCase:=0UseCase:=0 UseCase:=0 UseCase:=0 UseCase:=0UseCase:=0Fig/. /8/. The Engine Automaton/.
+InterfaceInterfaceInterfaceInterfaceInterface Interface Interface Interface InterfaceInterfaceInterfaceInterfaceInterface Interface Interface InterfaceInterface
+GearNGearNGearNGearNGearN GearN GearN GearN GearNGearNGearNGearNGearN GearN GearN GearNGearNGear1Gear1Gear1Gear1Gear1 Gear1 Gear1 Gear1 Gear1Gear1Gear1Gear1Gear1 Gear1 Gear1 Gear1Gear1
+GearRGearRGearRGearRGearR GearR GearR GearR GearRGearRGearRGearRGearR GearR GearR GearRGearRGear2Gear2Gear2Gear2Gear2 Gear2 Gear2 Gear2 Gear2Gear2Gear2Gear2Gear2 Gear2 Gear2 Gear2Gear2
+Gear3Gear3Gear3Gear3Gear3 Gear3 Gear3 Gear3 Gear3Gear3Gear3Gear3Gear3 Gear3 Gear3 Gear3Gear3
+Gear4Gear4Gear4Gear4Gear4 Gear4 Gear4 Gear4 Gear4Gear4Gear4Gear4Gear4 Gear4 Gear4 Gear4Gear4
+Gear5Gear5Gear5Gear5Gear5 Gear5 Gear5 Gear5 Gear5Gear5Gear5Gear5Gear5 Gear5 Gear5 Gear5Gear5chkGear12chkGear12chkGear12chkGear12chkGear12 chkGear12 chkGear12 chkGear12 chkGear12chkGear12chkGear12chkGear12chkGear12 chkGear12 chkGear12 chkGear12chkGear12
+chkGear23chkGear23chkGear23chkGear23chkGear23 chkGear23 chkGear23 chkGear23 chkGear23chkGear23chkGear23chkGear23chkGear23 chkGear23 chkGear23 chkGear23chkGear23
+chkGear34chkGear34chkGear34chkGear34chkGear34 chkGear34 chkGear34 chkGear34 chkGear34chkGear34chkGear34chkGear34chkGear34 chkGear34 chkGear34 chkGear34chkGear34
+chkGear45chkGear45chkGear45chkGear45chkGear45 chkGear45 chkGear45 chkGear45 chkGear45chkGear45chkGear45chkGear45chkGear45 chkGear45 chkGear45 chkGear45chkGear45chkGear54chkGear54chkGear54chkGear54chkGear54 chkGear54 chkGear54 chkGear54 chkGear54chkGear54chkGear54chkGear54chkGear54 chkGear54 chkGear54 chkGear54chkGear54chkGear43chkGear43chkGear43chkGear43chkGear43 chkGear43 chkGear43 chkGear43 chkGear43chkGear43chkGear43chkGear43chkGear43 chkGear43 chkGear43 chkGear43chkGear43chkGear32chkGear32chkGear32chkGear32chkGear32 chkGear32 chkGear32 chkGear32 chkGear32chkGear32chkGear32chkGear32chkGear32 chkGear32 chkGear32 chkGear32chkGear32chkGear21chkGear21chkGear21chkGear21chkGear21 chkGear21 chkGear21 chkGear21 chkGear21chkGear21chkGear21chkGear21chkGear21 chkGear21 chkGear21 chkGear21chkGear21chkGear1NchkGear1NchkGear1NchkGear1NchkGear1N chkGear1N chkGear1N chkGear1N chkGear1NchkGear1NchkGear1NchkGear1NchkGear1N chkGear1N chkGear1N chkGear1NchkGear1NchkGearN1chkGearN1chkGearN1chkGearN1chkGearN1 chkGearN1 chkGearN1 chkGearN1 chkGearN1chkGearN1chkGearN1chkGearN1chkGearN1 chkGearN1 chkGearN1 chkGearN1chkGearN1
+chkGearNRchkGearNRchkGearNRchkGearNRchkGearNR chkGearNR chkGearNR chkGearNR chkGearNRchkGearNRchkGearNRchkGearNRchkGearNR chkGearNR chkGearNR chkGearNRchkGearNRchkGearRNchkGearRNchkGearRNchkGearRNchkGearRN chkGearRN chkGearRN chkGearRN chkGearRNchkGearRNchkGearRNchkGearRNchkGearRN chkGearRN chkGearRN chkGearRNchkGearRNReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=0FromGear:=0FromGear:=0FromGear:=0FromGear:=0 FromGear:=0 FromGear:=0 FromGear:=0 FromGear:=0FromGear:=0FromGear:=0FromGear:=0FromGear:=0 FromGear:=0 FromGear:=0 FromGear:=0FromGear:=0
+ToGear:=6ToGear:=6ToGear:=6ToGear:=6ToGear:=6 ToGear:=6 ToGear:=6 ToGear:=6 ToGear:=6ToGear:=6ToGear:=6ToGear:=6ToGear:=6 ToGear:=6 ToGear:=6 ToGear:=6ToGear:=6ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=0FromGear:=0FromGear:=0FromGear:=0FromGear:=0 FromGear:=0 FromGear:=0 FromGear:=0 FromGear:=0FromGear:=0FromGear:=0FromGear:=0FromGear:=0 FromGear:=0 FromGear:=0 FromGear:=0FromGear:=0
+ToGear:=1ToGear:=1ToGear:=1ToGear:=1ToGear:=1 ToGear:=1 ToGear:=1 ToGear:=1 ToGear:=1ToGear:=1ToGear:=1ToGear:=1ToGear:=1 ToGear:=1 ToGear:=1 ToGear:=1ToGear:=1
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=1FromGear:=1FromGear:=1FromGear:=1FromGear:=1 FromGear:=1 FromGear:=1 FromGear:=1 FromGear:=1FromGear:=1FromGear:=1FromGear:=1FromGear:=1 FromGear:=1 FromGear:=1 FromGear:=1FromGear:=1
+ToGear:=0ToGear:=0ToGear:=0ToGear:=0ToGear:=0 ToGear:=0 ToGear:=0 ToGear:=0 ToGear:=0ToGear:=0ToGear:=0ToGear:=0ToGear:=0 ToGear:=0 ToGear:=0 ToGear:=0ToGear:=0ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=1FromGear:=1FromGear:=1FromGear:=1FromGear:=1 FromGear:=1 FromGear:=1 FromGear:=1 FromGear:=1FromGear:=1FromGear:=1FromGear:=1FromGear:=1 FromGear:=1 FromGear:=1 FromGear:=1FromGear:=1
+ToGear:=2ToGear:=2ToGear:=2ToGear:=2ToGear:=2 ToGear:=2 ToGear:=2 ToGear:=2 ToGear:=2ToGear:=2ToGear:=2ToGear:=2ToGear:=2 ToGear:=2 ToGear:=2 ToGear:=2ToGear:=2
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=6FromGear:=6FromGear:=6FromGear:=6FromGear:=6 FromGear:=6 FromGear:=6 FromGear:=6 FromGear:=6FromGear:=6FromGear:=6FromGear:=6FromGear:=6 FromGear:=6 FromGear:=6 FromGear:=6FromGear:=6
+ToGear:=0ToGear:=0ToGear:=0ToGear:=0ToGear:=0 ToGear:=0 ToGear:=0 ToGear:=0 ToGear:=0ToGear:=0ToGear:=0ToGear:=0ToGear:=0 ToGear:=0 ToGear:=0 ToGear:=0ToGear:=0ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=2FromGear:=2FromGear:=2FromGear:=2FromGear:=2 FromGear:=2 FromGear:=2 FromGear:=2 FromGear:=2FromGear:=2FromGear:=2FromGear:=2FromGear:=2 FromGear:=2 FromGear:=2 FromGear:=2FromGear:=2
+ToGear:=1ToGear:=1ToGear:=1ToGear:=1ToGear:=1 ToGear:=1 ToGear:=1 ToGear:=1 ToGear:=1ToGear:=1ToGear:=1ToGear:=1ToGear:=1 ToGear:=1 ToGear:=1 ToGear:=1ToGear:=1
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=2FromGear:=2FromGear:=2FromGear:=2FromGear:=2 FromGear:=2 FromGear:=2 FromGear:=2 FromGear:=2FromGear:=2FromGear:=2FromGear:=2FromGear:=2 FromGear:=2 FromGear:=2 FromGear:=2FromGear:=2
+ToGear:=3ToGear:=3ToGear:=3ToGear:=3ToGear:=3 ToGear:=3 ToGear:=3 ToGear:=3 ToGear:=3ToGear:=3ToGear:=3ToGear:=3ToGear:=3 ToGear:=3 ToGear:=3 ToGear:=3ToGear:=3
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=3FromGear:=3FromGear:=3FromGear:=3FromGear:=3 FromGear:=3 FromGear:=3 FromGear:=3 FromGear:=3FromGear:=3FromGear:=3FromGear:=3FromGear:=3 FromGear:=3 FromGear:=3 FromGear:=3FromGear:=3
+ToGear:=2ToGear:=2ToGear:=2ToGear:=2ToGear:=2 ToGear:=2 ToGear:=2 ToGear:=2 ToGear:=2ToGear:=2ToGear:=2ToGear:=2ToGear:=2 ToGear:=2 ToGear:=2 ToGear:=2ToGear:=2
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=3FromGear:=3FromGear:=3FromGear:=3FromGear:=3 FromGear:=3 FromGear:=3 FromGear:=3 FromGear:=3FromGear:=3FromGear:=3FromGear:=3FromGear:=3 FromGear:=3 FromGear:=3 FromGear:=3FromGear:=3
+ToGear:=4ToGear:=4ToGear:=4ToGear:=4ToGear:=4 ToGear:=4 ToGear:=4 ToGear:=4 ToGear:=4ToGear:=4ToGear:=4ToGear:=4ToGear:=4 ToGear:=4 ToGear:=4 ToGear:=4ToGear:=4
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=4FromGear:=4FromGear:=4FromGear:=4FromGear:=4 FromGear:=4 FromGear:=4 FromGear:=4 FromGear:=4FromGear:=4FromGear:=4FromGear:=4FromGear:=4 FromGear:=4 FromGear:=4 FromGear:=4FromGear:=4
+ToGear:=3ToGear:=3ToGear:=3ToGear:=3ToGear:=3 ToGear:=3 ToGear:=3 ToGear:=3 ToGear:=3ToGear:=3ToGear:=3ToGear:=3ToGear:=3 ToGear:=3 ToGear:=3 ToGear:=3ToGear:=3
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=4FromGear:=4FromGear:=4FromGear:=4FromGear:=4 FromGear:=4 FromGear:=4 FromGear:=4 FromGear:=4FromGear:=4FromGear:=4FromGear:=4FromGear:=4 FromGear:=4 FromGear:=4 FromGear:=4FromGear:=4
+ToGear:=5ToGear:=5ToGear:=5ToGear:=5ToGear:=5 ToGear:=5 ToGear:=5 ToGear:=5 ToGear:=5ToGear:=5ToGear:=5ToGear:=5ToGear:=5 ToGear:=5 ToGear:=5 ToGear:=5ToGear:=5
+ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear!ReqNewGear! ReqNewGear! ReqNewGear! ReqNewGear!ReqNewGear!
+FromGear:=5FromGear:=5FromGear:=5FromGear:=5FromGear:=5 FromGear:=5 FromGear:=5 FromGear:=5 FromGear:=5FromGear:=5FromGear:=5FromGear:=5FromGear:=5 FromGear:=5 FromGear:=5 FromGear:=5FromGear:=5
+ToGear:=4ToGear:=4ToGear:=4ToGear:=4ToGear:=4 ToGear:=4 ToGear:=4 ToGear:=4 ToGear:=4ToGear:=4ToGear:=4ToGear:=4ToGear:=4 ToGear:=4 ToGear:=4 ToGear:=4ToGear:=4NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?
+NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?
+NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?
+NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?
+NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear? NewGear?NewGear?NewGear?NewGear?NewGear? NewGear? NewGear? NewGear?NewGear?Fig/. /9/. The In terface Automaton/./1/8

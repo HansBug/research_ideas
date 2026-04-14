@@ -1,0 +1,1330 @@
+--- Page 1 ---
+Verification of Large State/Event Systems
+using
+
+Compositionality and Dependency Analysis *
+(Revised version of paper FORM599-98)
+
+Jgrn Lind-Nielsen
+
+Department of Information Technology, Technical University of Denmark
+
+Henrik Reif Andersen and Henrik Hulgaard
+The IT University of Copenhagen
+
+Gerd Behrmann, Kare Kristoffersen and Kim G. Larsen
+BRICS, Department of Computer Science, Aalborg Universityt
+
+Abstract. A state/event model is a concurrent version of Mealy machines used
+for describing embedded reactive systems. This paper introduces a technique that
+uses compositionality and dependency analysis to significantly improve the efficiency
+of symbolic model checking of state/event models. It makes possible automated
+verification of large industrial designs with the use of only modest resources (less
+than 5 minutes on a standard PC for a model with 1421 concurrent machines). The
+results of the paper are being implemented in the next version of the commercial
+tool visualSTATE™.
+
+Keywords: Formal verification, symbolic model checking, backwards reachability,
+embedded software.
+
+1. Introduction
+
+Symbolic model checking is a powerful technique for formal verification
+of finite-state concurrent systems. The technique has proven very effi-
+cient for verifying hardware systems: circuits with an extremely large
+number of reachable states have been verified. However, it is not clear
+whether model checking is effective for other kinds of concurrent sys-
+tems as, for example, software systems. One reason that symbolic model
+checking may not be as efficient is that software systems tend to be both
+larger and less regularly structured than hardware. For example, many
+of the results reported for verifying large hardware systems have been
+for linear structures like stacks or pipelines (see, e.g., [7]) for which
+it is known that the size of the transition relation (when represented
+as an ROBDD) grows linearly with the size of the system [22]. Only
+
+* Supported by CIT, The Danish National Center of IT Research.
++ BRICS (Basic Research in Computer Science) is a basic research center funded
+by the Danish government at Aarhus and Aalborg.
+
+DS  © 1999 Kluwer Academic Publishers. Printed in the Netherlands.
+
+main.tex; 14/10/1999; 16:29; p.1
+
+
+--- Page 2 ---
+2
+
+recently have the first experiments on larger realistic software systems
+been reported [3, 24].
+
+This paper presents a technique that significantly improves the per-
+formance of symbolic model checking of large embedded reactive sys-
+tems modeled using a state/event model. The model can be viewed as
+a simplified version of StateCharts [15] or RSML [18]. The state/event
+model is a concurrent version of Mealy machines. It consists of a fixed
+number of concurrent finite state machines that have pairs of input
+events and output actions associated with the transitions of the ma-
+chines. The model is synchronous: each input event is reacted upon
+by all machines in lock-step; the total output is the multi-set union
+of the output actions of the individual machines. Further synchroniza-
+tion between the machines is achieved by associating a guard with the
+transitions. Guards are Boolean combinations of conditions on the local
+states of the other machines. In this way, the firing of transitions in one
+machine can be made conditional on the local state of other machines.
+If a machine has no enabled transition for a particular input event, it
+simply does not perform any state change.
+
+The state/event model is capable of modeling both synchronous
+and asynchronous systems. If two guards in different machines share
+an input event, the transitions fire simultaneously, i.e., synchronously,
+on that event. If two enabled transitions in different machines have
+different input events, they can fire in either order, i.e., asynchronously.
+
+The state/event model is convenient for describing the control por-
+tion of embedded reactive systems, including smaller systems as cellular
+phones, hi-fi equipment, and cruise controls for cars, and large systems
+as train simulators, flight control systems, telephone and communica-
+tion protocols. The model is used in the commercial tool visualSTA-
+TE™ [21]. This tool assists in developing embedded reactive software
+by allowing the designer to construct and manipulate a state/event
+model. The tool is used to simulate the model, check the consistency
+of the model, and from the model automatically generate code for
+the hardware of an embedded system. The consistency checker is in
+fact a verification tool that checks for a range of properties that any
+state/event model should have. Some of the checks must be passed for
+the generated code to be correct, for instance, it is crucial that the
+model is deterministic. Other checks are issued as warnings that might
+be design errors such as transitions that can never fire.
+
+State/event models can be extremely large and, unlike in traditional
+model checking, the number of checks is at least linear in the size
+of the model. This paper reports results for models with up to 1421
+concurrent state machines (10*” states). For systems of this size, tra-
+ditional symbolic model checking techniques fail, even when using a
+
+main.tex; 14/10/1999; 16:29; p.2
+
+
+--- Page 3 ---
+3
+
+partitioned transition relation [8] and backwards iteration. We present
+a compositional technique that initially considers only a few machines
+in determining satisfaction of the verification task and, if necessary,
+gradually increases the number of considered machines. The machines
+considered are determined using a dependency analysis of the structure
+of the system.
+
+The results are encouraging. A number of large state/event models
+from industrial applications have been verified. Even the largest model
+with 1421 concurrent machines can be verified with modest resources
+(it takes less than 5 minutes on a standard PC). Compared with the
+current version of visualSTATE™, the results improve on the efficien-
+cy of checking smaller instances and dramatically increase the size of
+systems that can be verified.
+
+RELATED WORK
+
+The use of ROBDDs [6] in model checking was introduced by Burch et
+al. [9] and Coudert et al. [13]. Several improvements have been de-
+veloped since, such as using a partitioned transition relation [8, 14]
+and simplifying the ROBDD representation during the fixed-point it-
+eration [12]. Many of these improvements are implemented in the tool
+SMV [22]. Other techniques like abstraction [10] and compositional
+model checking [11] further reduce the complexity of the verification
+task, but require human insight and interaction.
+
+Our compositional technique is efficient because it only considers
+subsets of the model. Several other techniques attempt to improve the
+efficiency of the verification in this way. For example, [4] presents a
+conservative technique for showing emptiness of L-processes based on
+including only a subset of the processes. The technique is based on
+analyzing an error trace from the verifier, and use this trace to modify
+the considered subset of L-processes. Pardo and Hachtel [23] utilizes
+the structure of a given formula in the propositional p-calculus to
+find appropriate abstractions whereas our technique depends on the
+structure of the model.
+
+Another technique, based on ROBDDs, that also exploits the struc-
+ture of the system is presented in [17]. On the surface this technique is
+very close to the one presented here and thus we will discuss it in more
+detail. The technique in [17] uses a partitioned transition relation and
+a greedy heuristic is used to select subsets of the transition relation.
+For each chosen subset, a complete fixed-point iteration is performed.
+If the formula cannot be proven after this iteration, a larger subset
+is chosen. In case of an invalid formula the algorithm only terminates
+when the full transition relation has been constructed (or memory or
+
+main.tex; 14/10/1999; 16:29; p.3
+
+
+--- Page 4 ---
+4
+
+time has been exhausted). To compare this approach with the one
+presented here, we can consider a subset of the transition relation as
+being similar to a subset of the machines in the state/event model. The
+approach of [17] differs from ours in several central aspects:
+
+— In selecting a new machine to include in the transition relation,
+[17] uses a greedy strategy involving a fixed-point iteration for each
+of the remaining machines. (If the system only has a single initial
+state—as in state/event systems—the greedy strategy reduces to
+selecting an arbitrary machine.) We chose a new machine based
+on an initial dependency analysis and thus avoid any extraneous
+fixed-point iterations.
+
+— Due toa central monotonicity result (lemma 1), we can reuse the
+previously computed portion of the state space instead of having
+to start from scratch each time a new machine is added.
+
+— Incase the property to be verified is invalid, we only include those
+machines that are actually dependent on each other in the transi-
+tion relation. In these cases, [17] may have to include all machines
+to disprove the property.
+
+— Even when all machines are needed, experiments have shown that
+our technique of including machines one at a time (exploiting the
+monotonicity property) is faster than performing a traditional
+fixed-point iteration using a partitioned transition relation and
+early variable quantification. The technique of [17] does not have
+this property.
+
+The compositional technique presented here shares ideas with partial
+model checking [2, 1, 16], but explicitly analyzes the structure of the
+system. Finally, experiments by Anderson et al. [3] and Sreemani and
+Atlee [24] verified large software systems using SMV. The technique
+presented here significantly improves on the results we have obtained
+using SMV and makes it possible to verify larger systems.
+
+OUTLINE
+
+The state/event model is formally described in section 2. Section 3
+explains how the range of consistency checks performed by visual-
+STATE™ are reduced to two simple types of checks. Section 4 shows
+how state/event systems are encoded by ROBDDs. The compositional
+technique and the dependency analysis is introduced in section 5, and
+further developed in section 6. The technique is evaluated in section 7
+and section 8 draws some conclusions.
+
+main.tex; 14/10/1999; 16:29; p.4
+
+
+--- Page 5 ---
+2. State/Event Systems
+
+A state/event system consists of n machines M),..., Mp over an al-
+phabet of input events E and an output alphabet O. Each machine
+M,; is a triple (S;,8?,7;) of local states, an initial state, and a set of
+transitions. The set of transitions is a relation
+
+T, CS; x Ex Gx M(O) x Si,
+
+where M(O) is a multi-set of outputs, and G; is the set of guards not
+containing references to machine i. These guards are generated from
+the following simple grammar for Boolean expressions:
+
+g == lj=p|-g|gAg| tt.
+
+The atomic predicate 1; = p is read as “machine j is at local state p”
+and tt denotes a true guard. The global state set of the state/event
+system is the product of the local state sets: S = S$, x Sg x +++ x Sp.
+The guards are interpreted straightforwardly over S: for any s € S,
+s — 1; = p holds exactly when the j’th component of s is p, i-e.,
+8; =p. The notation g[s;/1;] denotes that s; is substituted for 1;, with
+occurrences of atomic propositions of the form s; = p replaced by tt or
+att depending on whether s; is identical to p.
+
+Considering a global state s, all guards in the transition relation can
+be evaluated. We define a version of the transition relation in which the
+guards have been evaluated. This relation is denoted s 9; si express-
+ing that machine i when receiving input event e makes a transition
+from s; to st and generates output o. Formally,
+
+ 
+
+s 4, si © Ag. (si,¢e,9,0, 81) €T; ands g.
+
+Two machines can be combined into one. More generally if M,
+and M, are compositions of two disjoint sets of machines J and J,
+I,J € {1,...,n}, we can combine them into one Myy = M; x Mj =
+(Sr, (s¢,), Tra) where $77 = S;x Sj and sty = (s,s). The transition
+relation T;7 is a subset of S77 x E x Gry x M(O) x S73, where Gy z
+are the guards in the composite machine. By construction of Ty,;, the
+guards G,; will not contain any references to machines in J U J. To
+define T;, we introduce the predicate idle:
+
+idle(Ty, 81, €) = 人[9 | Ao, 8. (s7,€, 9,9, 87) € Ti},
+
+which holds for states in which no transitions in M; are enabled at
+state sy when receiving the input event e. The transition relation T7 7 is
+
+main.tex; 14/10/1999; 16:29; p.5
+
+
+--- Page 6 ---
+ 
+
+ 
+
+ 
+
+ 
+
+Figure 1. Two state/event machines and the corresponding parallel combination.
+The guards, which formally should be of the form 1; = p, are simply written as the
+state p since the location 1; is derivable from the name of the state (the reference
+to r is a requirement to a state in a third machine not shown). The small arrows
+indicate the initial states.
+
+defined by the following inference rules (the symbol & denotes multi-set
+union):
+
+(87, €,91,01,8;) © Tr (84, €, 92,02, 87) € Ty     _
+
+(051, 8)5¢,9,01 B02, (57,8) Try 9 M1L8a/ta] A galss/tr]
+(87, €, 91,01, 87) eT,         _           .
+
+Ter 87), 0 8) Ty 9 ~ MU I/a] A idlelTs, ss, e)ls1/t
+
+(87, €; 92, 02; 87) € Ty
+
+= idle(T;     Tz] A   U7].
+(81; $3); €; 9, 2; (81, 87)) eT  9  4 e( 1 815 €)|[8u/ J]  92[sr/ 可
+
+The rules show the synchronous behavior of state/event systems. The
+first rule represents the case where there exists an enabled transition
+with input event e in both T; and Ty, and the resulting transition in
+Trjz represents the synchronization on e. The other two cases occur if
+no enabled transition exists in either T; or Ty. Figure 1 shows two
+machines and the parallel composition of them. Notice how the two
+machines synchronize on the common input event e.
+
+The full combination of all n machines, T = []}_, Tj, yields a Mealy
+machine. We extend the transition relation of T to a total relation
+s + s! as follows: 5 ©* s! if there exists a true guard g such that
+(s,e,g,0,8') € T. If no such guard exists, i.e., all machines idle on input
+
+event e, the relation contains an idling step, s 24 8.
+
+main.tex; 14/10/1999; 16:29; p.6
+
+
+--- Page 7 ---
+3. Consistency Checks
+
+The consistency checker in visualSTATE™ performs seven predefined
+types of checks, each of which can be reduced to verifying one of two
+types of properties. The first type is a reachability property. For in-
+stance, visualSTATE™ performs a check for “conflicting transitions”
+i.e., it checks whether two or more transitions can become enabled in
+the same local state, leading to non-determinism. This can be reduced
+to questions of reachability by considering all pairs of guards g and go
+of transitions with the same local state s; and input event e. A conflict
+can occur if a global state is reachable in which (1; = s;) A gi A go is
+satisfied.
+
+In total, five of the seven types of checks reduce to reachability
+checks. Four of these, such as check for transitions that are never en-
+abled and check for states that are never reached, generate a number of
+reachability checks which is linear in the number of transitions, t. In the
+worst-case the check for conflicting transitions gives rise to a number
+of reachability checks which is quadratic in the number of transitions.
+However, in practice very few transitions have the same starting local
+state and input event, thus in practice the number of checks generated
+is much smaller than t.
+
+The remaining two types of consistency checks reduce to a check for
+absence of local deadlocks. A local deadlock occurs if the system can
+reach a state in which one of the machines idles forever on all input
+events. This check is made for each of the n machines. In total at least
+t+ checks have to be performed making the verification of state/event
+systems quite different from traditional model checking where typically
+only a few key properties are verified.
+
+We attempt to reduce the number of reachability checks by per-
+forming an implicational analysis between the guards of the checks. Ifa
+guard g; implies another guard gz then clearly, if g; is reachable so is gz.
+To use this information we start by sorting all the guards in ascending
+order of the size of their satisfying state space. In this way the most
+specific guards are checked first and for each new guard to be checked
+we compare it to all the already checked (and reachable) guards. If the
+new guard includes one of them, then we know that it is satisfiable. In
+our experiments, between 40% and 94% of the reachability checks are
+eliminated in this manner.
+
+main.tex; 14/10/1999; 16:29; p.7
+
+
+--- Page 8 ---
+4. ROBDD Representation
+
+This section describes how Reduced Ordered Binary Decision Diagrams
+(ROBDDs) [6] are used to represent sets of states and the transition
+relation. We also show how to perform a traditional forward iteration
+to construct the set of reachable states from which it is straightforward
+to check each of the reachability checks.
+
+To construct the ROBDD T for the transition relation T, we first
+construct the local transition relations J; for each machine M;. The
+variables of the ROBDD represents an encoding of the input events,
+the current states, and the next-states. The variables are ordered as
+follows: The first ||| variables encodes the input events E (||X|| de-
+notes [log,|X|]) and are denoted Vy. Then follows 2||5;|| variables
+Vis Viree ++ Vagisil Visi encoding the current- (unprimed variables)
+and the next-states (primed variables) for machine 7. The machines are
+ordered in the same order in which they occur in the input, although
+other orders may exist which might improve performance.
+
+The transition relation T; for machine i is constructed as an ROBDD
+predicate over these variables. The ROBDD for a transition
+
+(si, €,9, o, sj) eT;
+
+is constructed as the conjunction of the ROBDD encodings of s;, e, g,
+and sj. (The outputs are not encoded as they have no influence on the
+reachable states of the system.) The encoding of s;, e, and s/ is straight-
+forward and the encoding of the guard g is done by converting all
+atomic predicates 1; = p to ROBDD predicates over the current-state
+variables for machine M; and then performing the Boolean operations
+in the guard. The encoding of all transitions of machine 7 is obtained
+from the disjunction of the encoding of the individual transitions:
+
+ti =        V       Sj AEN g 和 5 2
+(si,€,9,0,8;)€Ti
+
+where € is the ROBDD encoding of input event e and 3; and are the
+ROBDD encodings of the current-state s; and next-state s/, respective-
+ly.
+
+To properly encode the global transition relation T, we need to deal
+with situations where no transitions of J; are enabled. In those cases
+we want the machine i to stay in its current state. We construct an
+ROBDD neg; representing that no transition is enabled by negating all
+guards in machine i (including the input events):
+
+neg = [AB AGA).
+(51,€,9,0,5;) €Ti
+
+main.tex; 14/10/1999; 16:29; p.8
+
+
+--- Page 9 ---
+9
+
+The ROBDD equ; encodes that machine i does not change state by
+requiring that the next-state is identical to the current-state:
+
+118
+equ; = A Vig O Vij
+j=l
+
+The local transition relation for machine i is then:
+Ti =tV (negi A equi) .
+
+The ROBDD T for the full transition relation is the conjunction of the
+local transition relations:
+
+~  nee
+工= 人五.
+i=l
+
+One way to check whether a state s is reachable is to construct
+the reachable state space R. The construction of R can be done by a
+standard forward iteration of the transition relation, starting with the
+initial state s°:
+
+Ro = 3°               .
+Ry = Rea V (AV, Ve. T A Ry-1)[V/V"]
+
+where V is the set of current-state variables, V’ is the set of next-state
+variables, and (---)[V/V’] denotes the result of replacing all the primed
+variables in V’ by their unprimed versions.
+
+The construction of the full transition relation T can be avoided by
+using a partitioned transition relation [8] together with early variable
+quantification. This is done by identifying sets I; of transition relations
+that, when applied in the correct order, allows for early quantification
+of the state variables that no other transition relations depend on. If
+Vi, are these variables and we have m sets, then we get:
+
+Ry = 5°
+Ry = Rei V (aVn.AVy. \ TA. AAV A GA Be-1))IV/V')-
+teh            t€Im
+
+Both approaches have been implemented and tested on our examples
+as shown in section 7. Here we see that the calculation of the reachable
+state space using the full transition relation is both fast and efficient for
+the small examples. However, for models with more than approximately
+30 machines, both approaches fail to complete.
+
+main.tex; 14/10/1999; 16:29; p.9
+
+
+--- Page 10 ---
+10
+
+5. Compositional Backwards Reachability
+
+The problems of forwards iteration can typically be solved by using a
+backwards reachability analysis. The verification task is to determine
+whether a guard g can be satisfied. Instead of computing the reachable
+state space and check that g is valid somewhere in this set, we start
+with the set of states in which g is valid and compute in a backwards
+iteration, states that can reach a state in which g is satisfied. The goal
+is to determine whether the initial state is among these states. Our
+novel idea is to perform the backwards iteration in a compositional
+manner considering only a minimal number of machines. Initially, only
+machines mentioned in g will be taken into account. Later also machines
+on which these depend will be included.
+
+Notice that compared to the forwards iteration, this approach has
+an apparent drawback when performing a large number of reachability
+checks: instead of just one fixed-point iteration to construct the reach-
+able state space R (and then trivially verify each of the properties), a
+new fixed-point iteration is necessary for each property that is checked.
+However, our experiments clearly demonstrate that when using a com-
+positional backwards iteration, each of the fixed-point iterations can be
+completed even for very large models whereas the forwards iteration
+fails to complete the construction of R for even medium sized models.
+
+To formalize the backwards compositional technique, we need a
+semantic version of the concept of dependency. For a subset of the
+machines J C {1,... ,n}, two states s,s’ € § are I-equivalent, written
+s =, s', if for all i € I, s; = 8) (the primes are here used to denote
+another state and is not related to the next-states). For example, the
+equivalence (p1,492,171) =r (p1, 92,72) holds for I = {1,2} but not for
+I = {2,3}. Ifa subset P of the global states S only is constrained by
+components in some index set J we can think of P as having I as a
+sort. This leads to the following definition: a subset P of S is I-sorted
+if for all s,s’ € S,
+
+s€Pands=;s' > s'CP.
+
+As an example, consider a guard g which mentions only machines 1
+and 3. The set of states defined by g is I-sorted for any J containing
+1 and 3.! Another understanding of the definition is that if a set P is
+I-sorted, it only depends on machines in I.
+From an J-sorted set defined by g we perform a backwards reacha-
+bility computation by including states which, irrespective of the states
+' If the guard is self-contradictory (always false), it will be I-sorted for any I.
+
+This reflects the fact that the semantic sortedness is more precise than syntactic
+occurrence.
+
+main.tex; 14/10/1999; 16:29; p.10
+
+
+--- Page 11 ---
+11
+
+ 
+
+SI
+
+e, X 了
+|
+
+e3 AY
+
+Figure 2. An example showing the effect of Br(g). If X is the guard 1; = p and
+Y the guard J, = q with j,k ¢ I then the transitions from s; seem to depend on
+machines M; and M; outside J. However, the guards X, —X Y, and AY together
+span all possibilities and therefore, by selecting either e1, e2, or e3, the state s7 can
+reach g irrespective of the states of the machines Mj and M,.
+
+of the machines in J, can reach g. One backward step is given by the
+function B;(g) defined by:
+
+Big) = {s€S| Vs’ €S.s=,8' >            (1)
+He, o,s". s! <% s" and s" € g}.
+
+By definition B;(g) is I-sorted. The set B;(g) is the set of states which
+independently of machines in T, by some input event e, can reach a
+state in g. Observe that By(g) is monotonic in both g and J. Figure 2
+shows how a state s; of a machine is included in B;(g) although it
+syntactically seems to depend on machines outside J.
+
+By iterating the application of B;, we can compute the minimum set
+of states containing g and closed under application of By. This is the
+minimum fixed-point ».X.g U B;(X), which we refer to as B7(g). Note
+that Be (9) becomes the desired set of states which can reach g.
+
+A set of indices I is said to be dependency closed if none of the
+machines in J depend on machines outside J. Formally, I is dependency
+closed if for all i € I, states s’,s,s;, input events e, and outputs o,
+5 <%, s; and s’ =, s implies s’ ©%,; s;. We say that one machine
+M; is dependent on another M; if M; has a transition with a guard
+that refers to a state in machine M;. We use this syntactic notion
+of dependency to determine whether a set of indices J is dependency
+closed. For example, from the dependency graph in Figure 3 we observe
+that the set I = {1,2,3,6} is dependency closed.
+
+The basic properties of the sets B7(g) are captured by the following
+lemma:
+
+LEMMA 1. (Compositional Reachability Lemma). Assume g is an I-
+sorted subset of S. For all subsets of machines I, J with I C J the
+
+main.tex; 14/10/1999; 16:29; p.11
+
+
+--- Page 12 ---
+12
+
+ 
+
+Cw)
+COC)
+
+LO)
+EY)
+
+Figure 3. This figure illustrates the dependencies between 9 state machines taken
+from a real example (the example “HI-FI” of section 7). An arrow from one machine
+M;, to another M; indicates that M; depends on Mj, i.e., that M; has a transition
+with a guard that refers to a state in machine M;.
+
+following holds:
+(i). Br(g) S BT(9)
+
+(i). B5(g) = By(Bz(9))
+(iti). I dependency closed = By(g) = B7(9).
+
+Proof. We first observe directly from the definition that By(g) is
+monotonic in both J and g, ie., for any J with I C J and g/ with
+g Cg! we have:
+
+Br(g) © By(g)                                  (2)
+Brg) © Brg’).                                (3)
+
+The operation of taking minimum fixed points is also monotonic, there-
+fore for any I and J with I C J we have from (2):
+
+Br(g) = pX.gU By(X) C pX.g U By(X) = BY(g)
+
+c
+c
+
+proving that B7(g) is monotonic in the index set of machines J, which
+is (¢) of the lemma.
+
+To prove (%) of the lemma, first observe from the definition of BT (g)
+that g C B7(g), hence by monotonicity of B7(_) and B*(g) it follows
+that
+
+Bi(g) © By(By(g)) C By(B5(g)) = Bi(g) .
+
+The last equality follows from the fact that B%4(g) is a fixed-point. We
+have proved (ii) of the lemma.
+
+To prove (it) we first observe that the inclusion C holds by (7). We
+therefore concentrate on the other inclusion D. We employ the following
+fixed point induction principle (due to David Park):
+
+F(X) CX implies pY.F(Y) CX.
+
+main.tex; 14/10/1999; 16:29; p.12
+
+
+--- Page 13 ---
+13
+
+Recalling that a set X for which F(X) C X is called a pre-fixed point
+of X we can phrase this as: “uwY.F(Y) is the minimum pre-fized point
+of F, therefore if X is some other prefixed point of F’, then it must
+include the minimum one.” We must therefore just argue that
+
+gUB;(By(g)) © Br(g)
+
+in order to have proven (iii). A further simplification is obtained by
+observing that by definition g C By(g) and we therefore only need to
+prove that
+
+By(Br(g9)) \ 9 & Brg).
+
+(If the sets x and y are contained in a third set z then also their least
+upper bound z U 5 is contained within z.) Assume now that s is some
+state in B;(By(g)) \g. Then by definition of B;(_) the following holds:
+
+Vs' € S.s = s' > Fe,o,s". s' £45" and s" € Bi(g).      (4)
+
+To show that s is in BT(g) we need to prove that the following holds:
+
+Vs'€ S.s=,8' > Fe,o',s!". 3! £2, gM and sl! € Br(g).     (5)
+From (4), taking s’ = s, it follows that
+de,o,s". s 4 s" and s” € BF(Qg).                 (6)
+
+Consider a state s’ such that s =; s’. Let s” be the state reached by
+
+firing e from s, s —% s” and similarly, lets” be the state reached from
+
+€ od!                                 四        .
+s', s' ==» 5 (s" and s'" are well-defined since the transition relation
+
+is ‘total). Then from the definition of dependency closure of I, it follows
+that for all ¢ € J, s/ = si" and thus s” =; s’”. From (6), s” € Br(g
+and s" =; s", it follows that s’” € BY(g) since By(g) is I-sorted. We
+have proved (5) and thus also (ii) of the lemma.
+
+ 
+
+ 
+
+ 
+
+ 
+
+The results of the lemma are applied in the following manner. To
+check whether a guard g is reachable, we first consider the set of ma-
+chines J; syntactically mentioned in g. Clearly, g is [,;-sorted. We then
+compute By, (g) by a standard fixed- point iteration. If the initial state
+s° belongs to B; (g), then by (i) 50 E Bu    sou sy J g) and therefore g is
+reachable from s° and we are done. If not,  we extend J; to a larger set
+of machines I>. We then reuse By (g) to compute Bz (g) as Br (Bz (g))
+which is correct by (ii). We continue like this until s° has been found
+in one of the sets or an index set I, is dependency closed. In the latter
+
+main.tex; 14/10/1999; 16:29; p.13
+
+
+--- Page 14 ---
+14
+
+ 
+
+REACHABLE(WM Mo,... ,Mn,g) =
+I< {i:g contains an atomic predicate 1; = p }
+Reg
+repeat
+Roew < B7(R)
+
+/* Check for property (i): early positive termination */
+if s° € Ruew then return true
+
+/* Check for property (iii): early negative termination */
+if J is dependency closed then return false
+Extend J with at least one machine.
+
+/* Apply property (ii): reuse of previously computed states */
+R — Rrew
+forever
+
+ 
+
+ 
+
+Figure 4. Algorithm performing a compositional backwards analysis for determining
+whether a set of states given by the predicate g is reachable.
+
+case we have by (iii) By, (g) = Br ny) and g is unreachable unless
+
+50 E Bi, (g). The algorithm for performing a compositional backwards
+analysis is shown in Figure 4.
+
+We extend J by adding machines that are syntactically mentioned
+on guards in transitions of machines in J, i.e., machines are included
+in I by traversing the dependency graph in a breadth-first manner.
+As an example, assume that we want to determine whether the guard
+g = (4 = p A ls F 4g) is reachable in the example of Figure 3.
+The initial index set is J; = {1,3}. If this is not enough to show g
+reachable, the second index set Iz = {1,3,6,2} is used. Since this set is
+dependency closed, g is reachable if and only if the initial state belongs
+to Br, (Bi, (9))-
+
+The above construction is based on a backwards iteration. A dual
+version of B; for a forwards iteration could be defined. However, such
+a definition would not make use of the dependency information since
+s° is only I-sorted for I = {1,... ,n}. Therefore all machines would be
+considered in the first fixed-point iteration reducing it to the complete
+forwards iteration mentioned in the previous section.
+
+Seemingly, the definition of B;(g) requires knowledge of the global
+transition relation and therefore does not seem to yield any computa-
+tional advantage. However, as explained below, using ROBDDs this can
+be avoided leading to an efficient computation of By(g). The ROBDD
+By (g) representing one iteration backwards from the states represented
+by the ROBDD g can be constructed immediately from the definition
+
+main.tex; 14/10/1999; 16:29; p.14
+
+
+--- Page 15 ---
+15
+(1):
+BiG) = Wj. 3Ve,V'.T A glV'/V],         (7)
+
+where g[V'/V] is equal to g with all variables in V replaced by their
+primed versions. It is essential to avoid building the global transition
+relation T. This is done by writing 4V’ as 4V;.4V; and T = Ty AT;
+
+where Ty = 人ic
+
+of 用 to T; since g is I-sorted and thus independent of the variables
+
+五. This allows us to push the existential quantification
+
+in Vi. As WT; is a tautology (since the transition relation is total),
+equation (7) reduces to:
+
+BG) = Wj. AVe,Vi.-Tr A G[V'/V],
+
+which only uses the local transition relations for machines in J. Each
+T; refers only to primed variables in V;, allowing early variable quan-
+tification for each machine individually:
+
+By(G) = W7. Vie. 3Vj, Ti, N (BV j,-Tig Ao++ A (BV), Ty, AGV'/V)) +)
+
+for I = {t1,i2,... ,,}. This equation efficiently computes one step in
+the fixed-point iteration constructing Bt (9).
+
+Notice, that the existential quantifications can be performed in any
+order. We have chosen the order in which the machines occur in the
+input, but other orders may exist which might improve performance.
+
+6. Local Deadlock Detection
+
+In checking for local deadlocks we use a construction similar to back-
+wards reachability. To make the compositional backwards lemma ap-
+plicable we work with the notion of a machine being live which is the
+exact dual of having a local deadlock. In words, a machine is live if it
+always is the case that there exists a way to make the machine move to
+a new local state. Formally, a global state s is live for machine i if there
+exists a sequence of states s!,s?,...,s* with s = s! and si £% sit!
+(for some e and 0) such that s* # s!. Machine is live if all reachable
+states are live for machine i. A simple example of a state/event system
+with a machine that is not live, i-e., contains a local deadlock, is shown
+in Figure 5.
+
+The check is divided into two parts. First, the set of all live states L7
+for machine ¢ is computed. Second, we check that all reachable states are
+in Lj. A straightforward but inefficient approach would be to compute
+the two sets and check for inclusion. However, we will take advantage
+
+main.tex; 14/10/1999; 16:29; p.15
+
+
+--- Page 16 ---
+16
+
+ 
+
+|             el                            e2                                                      |          €3 Pi
+人                       人人                                                                人
+Pr                    (*)                  了3                               91                    (*)
+el 92                  e2                                                 €3
+
+ 
+
+Figure 5. A state/event system with a local deadlock. The global state s = (po, qi)
+is not live for the machine to the right since for all input events the guard p; remains
+
+false. The state s is reachable (e.g., by initially receiving e1) and thus the machine
+to the right has a local deadlock.
+
+of the compositional construction used in the backwards reachability
+in both parts of the check.
+
+Similar to the definition of By(g), we define L;;(X) to be the set
+of states that are immediately live for machine i € I (independently
+of the machines outside I) or which leads to states in X (i-e., states
+already assumed to be live for machine ¢):
+
+L14(X) ={s€S| Vs'.s = 8! >                             (8)
+de, o, s,s! <% 5" and (s; 4 si! or s" € X) }.
+
+Compared to definition (1) the only difference is the extra possibility
+that the state is immediately live, i.e., s; £ si’. The set of states that are
+live for machine ¢ independently of machines outside J is then the set
+L7,(0) where L; ;(Y) is the minimum fixed point defined by L7 ,(Y) =
+pX.Y U Ly i(X).
+
+The three properties of the lemma also holds for Li ,(Y) when Y
+is I-sorted. If I is dependency closed it follows from property (iii) of
+the lemma that L7 ;(0) equals Ly, sn} i) which is precisely the set
+of live states of machine ¢. This gives an efficient way to compute the
+sets Ly ,(0) for different choices of J. We start with l; equal to {i} and
+continue with larger I,’s exactly as for the backwards reachability. The
+only difference is the termination conditions. One possible termination
+case is if Lj, ;(0) becomes equal to S for some k. In that case it is
+trivial that the set of reachable states is contained in Li, ,(0). From
+the monotonicity property (i) of the lemma it follows that machine i is
+live and thus free of local deadlocks. The other termination case is when
+I, becomes dependency closed. Then we have to check whether there
+exists reachable states not in Li, (0). This is done by a compositional
+backwards reachability check with g = 3 \ Li, ;(0). The algorithm is
+shown in Figure 6.
+
+main.tex; 14/10/1999; 16:29; p.16
+
+
+--- Page 17 ---
+17
+
+ 
+
+LocALDEADLOCK(Mj, Mo,... , Mn,i) =
+
+I< {i}
+
+Leo
+
+repeat
+Tanew — Ly (ZL)
+if S = Inew then return false     /* No local deadlock */
+if I is dependency closed then
+
+return REACHABLE(M,, Mo,... ,Mn,S \ Lnew)
+
+Extend J with at least one machine.
+Le Lnew
+
+forever
+
+ 
+
+ 
+
+Figure 6. Algorithm determining whether machine ¢ has a local deadlock.
+
+7. Experimental Results
+
+The technique presented above has been applied to a range of real
+industrial state/event systems and a set of systems constructed by stu-
+dents in a course on embedded systems. The examples are all construct-
+ed using visualSTATE™ [21]. They cover a large range of different
+applications and are structurally highly irregular.
+
+The characteristics of the state/event systems are shown in Table I.
+The examples HI-FI, AVS, FLOW, MOTOR, INTERVM, DKVM, N8, TRAIN1
+and TRAIN2 are all industrial examples. HI-FI is the control part of an
+advanced compact hi-fi system, Avs is the control part of an audio-
+video system, FLOW is the control part of a flow meter, MOTOR is a
+motor control, INTERVM and DKVM are advanced vending machines,
+and TRAIN1 and TRAIN2 are both independent subsystems of a train
+simulator. The remaining examples are constructed by students. The
+VCR is a simulation of a video recorder, CYBER is an alarm clock, Jvc
+is the control of a compact hi-fi system, VIDEO is a video player, and
+VOLVO is a simulation of the functionality of the dashboard of a car.
+
+The experiments were carried out on a 350 MHz Pentium II PC with
+64 MB RAM running Linux. To implement the ROBDD operations,
+we use the BuDDy package [19]. In all experiments we limit the total
+number of ROBDD nodes to three millions corresponding to 60 MB of
+memory. We check for each transition whether the guard is reachable
+and whether it is conflicting with other transitions. Furthermore, we
+check for each machine whether it has a local deadlock. The total run-
+time for these checks, including loadtime and the time to construct the
+dependency graphs, are shown in Table II. The memory consumption
+is typically 3 MB and never more than 10 MB for the analyses that
+completes within the limits. The total number of checks is far from the
+
+main.tex; 14/10/1999; 16:29; p.17
+
+
+--- Page 18 ---
+18
+
+Table I. The state/event systems used in the experiments. The last two columns
+show the size of the declared and reachable state space. The size of the declared state
+space is the product of the number of local states of each machine. The reachable
+state space is only known for those systems where the forwards analysis completes.
+
+ 
+
+ 
+
+System             Machines         Local states Transitions         Declared         Reachable
+INTERVM                    6                    182                   745                10°              15144
+VCR                     7                 46                85            10°            1279
+CYBER                           8                          19                         98                  10°                     240
+Jvc                      8                 25               106            10*              352
+DKVM                   9                 55               215            10°          377568
+HI-FI                    9                 59               373            10°        1416384
+FLOW                    10                  232               1146              10°            17040
+MOTOR                12                 41               295            10°           34560
+AVS                       12                    66               1737              10°         1438416
+VIDEO                    13                   74                 268              10°         1219440
+VOLVO               20                84              196          10"        9.2- 10°
+N8                       111                  321               1419            1040                  一
+TRAIN1              373                931             2988          10136                一
+TRAIN2               1421                3204              11166           10476                  -
+
+quadratic worst-case, which supports the claim that in practice only
+very few checks are needed to check for conflicting rules (see section 3).
+
+As expected, the forwards iteration with a full transition relation is
+efficient for smaller systems. It is remarkable that the ROBDD tech-
+nique is superior to explicit state enumeration even for systems with a
+very small number of reachable states. Using the partitioned transition
+relation in the forwards iteration works poorly.
+
+For the largest system, only the compositional backwards technique
+succeeds. In fact, for the three largest systems it is the most efficient
+and for the small examples it has performance comparable to the full
+forward technique. This is despite the fact that the number of checks is
+high and the backward iterations must be repeated for each check. From
+the experiments it seems that the compositional backwards technique
+is better than full forwards from somewhere around 30 machines.
+
+In order to understand why the compositional backwards technique
+is successful we have analyzed the largest system TRAIN2 in more detail.
+The dependency graph is shown in Figure 7 to give an impression of
+the complexity and irregularity of the system. The largest dependency
+closed set contains 234 machines. For each guard we have computed
+the size of its smallest enclosing dependency closed set of machines, see
+
+main.tex; 14/10/1999; 16:29; p.18
+
+
+--- Page 19 ---
+19
+
+Table II. The runtime of the experiments in CPU seconds. The second column of the
+table shows the total number of guards that are checked for reachability after this
+number has been reduced by the implicational analysis. The forward columns show
+results using a forward iteration with a full and a partitioned transition relation.
+The backward columns show the results of a backwards iteration using the full
+transition relation, the full dependency closure and the compositional backwards
+reachability. The visualSTATE column shows the runtimes obtained using an explicit
+state enumeration as implemented in version 3.0 of visualSTATE™. A “—” denotes
+
+ 
+
+ 
+
+that we ran out of BDD nodes.
+Guards      Forward             Backward
+System     checked = Ful    Part.     Full     D.C. Comp.  visualSTATE
+INTERVM        185     0.4      2.7      6.0      5.3       4.3                4
+VCR              50     0.       0.2      0.4      0.3       0.2              <1
+CYBER           16     0.       0.1      0.1      0.1        0.1              <1
+Jvc               22     0.       0.1      0.1      0.1        0.1              <1
+DKVM            63     0.2      7.8      1.2      1.1        0.8               82
+HI-FI            120     0.4     10.2      2.6      21        1.3              240
+FLOW           230     0.4      2.3      2.4      1.7        1.6                5
+MOTOR          123     0.3      5.2      3.2      3.1        0.7                6
+AVS             173     2.4     77.8      4.1      2.9        2.0              679
+VIDEO           122     0.5     14.2      1.3      0.8       0.5                一
+VOLVO            83     1.4 718.7      1.9      0.6       0.6                一
+N8              710      一       一 673.5 207.1      37.8                一
+TRAIN1         1335      一       一 471.2     11.1       10.8                一
+TRAIN2        4708      一       一       一       一     273.0                一
+
+ 
+
+Figure 8. During the backwards iterations we have kept track of how
+many times the set of machines J (used in Bj (g)) needed to be enlarged
+and how many machines were contained in the set J when the iteration
+terminated. The dependency closed sets of cardinality 63, 66, 85, 86,
+125, 127 all contain at least one machine with a guard that is unreach-
+able. As is clearly seen from the figure, in these cases the iteration has
+to include the entire dependency closed set in order to prove that the
+initial state cannot reach the guard. But even then much is saved, as
+no more than 234 machines out of a possible 1421 are ever included. In
+fact, only in the case of unreachable guards are more than 32% of the
+machines in a dependency closed set ever needed (ignoring the small
+dependency closed sets with less than 12 machines). A reduction to 32%
+amounts to a potential reduction in runtime much larger than a third
+due to the potential exponential growth of the ROBDD representation
+in the number of transition relations T;.
+
+main.tex; 14/10/1999; 16:29; p.19
+
+
+--- Page 20 ---
+20
+
+ 
+
+ 
+
+ 
+
+ 
+
+Figure 7. The dependency graph for TRAIN2. Each vertex in the graph represents
+a state machine and an edge from vertex i to j indicates that machine M; depends
+on machine M;, ie., that M; has a transition with a guard that refers to a state in
+machine M;.
+
+%
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+100                               1               1               1
+80                                                                           |
+60                                                                           J
+40 1                                                              4
+20 b                   -                           |
+
+，           rl i ht   In, = 2]
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+0
+
+ 
+
+0                                      50                                   100                                  150                                  200                                  250
+
+Figure 8. The fraction of machines actually used in the compositional backwards
+reachability analysis of the guards of the largest system TRAIN2. For each size of
+dependency closed set, a line between is drawn between the minimum and maximum
+fraction of machines used in verifying guards with dependency closed sets of that
+size. For instance, for the guards with dependency closed sets with 234 machines
+(the right-most line) only between 1% and 32% of the machines are needed to prove
+that the guard is reachable.
+
+ 
+
+ 
+
+ 
+
+main.tex; 14/10/1999; 16:29; p.20
+
+
+--- Page 21 ---
+21
+
+Our experience with the compositional backward technique is en-
+couraging: It is generally efficient on industrial applications. It is im-
+plemented in the newer versions of visualSTATE™ and has drastically
+increased the size of models that the customers can verify.
+
+However, theory tells us to expect that there are examples where
+the execution time and memory requirement of any exhaustive verifi-
+cation algorithm will grow exponentially with the size of the design.
+Therefore, the quality of a verification technique must be judged on
+its ability to solve problems in real applications. As described above
+the compositional backwards technique has been very successful in this
+respect. However, we have encountered a problem with a state/event
+model of a compact zoom camera. Although it contains only 36 state
+machines, none of the techniques—including the use of dynamic vari-
+able ordering—are capable of fully verifying this application even using
+all the resources available to us. This points out that the exponentially
+growing examples can be encountered in practice and simply counting
+the number of machines is a bad measure of the complexity of the
+verification task. It is an active area of research to find better measures
+for predicting the difficulty of verifying a given design with a given
+technique.
+
+8. Conclusion
+
+We have presented a verification problem for state/event systems which
+is characterized by a large number of reachability checks. A composi-
+tional technique has been presented which significantly improves on
+the performance of symbolic model checking for large state/event sys-
+tems. This has been demonstrated on a number of industrial systems
+of which the largest could not be verified using traditional symbolic
+model checking.
+
+We have shown how the backward compositional technique is used
+to check for two types of properties, namely reachability and dead-
+locks. The check for local deadlock shows how some properties requiring
+nesting of fixed points can be checked efficiently with the compositional
+backwards analysis. Based on these ideas, we have recently shown how
+the compositional technique can be extended to handle full CTL [20].
+
+Other models of embedded control systems, such as StateCharts [15]
+and RSML [18], are often structured hierarchically, i.e., states may
+contain subcomponents. It is possible to extend the compositional back-
+wards technique to not only handle hierarchical models but also to take
+advantage of the hierarchy to improve the efficiency of the verifica-
+tion [5}.
+
+main.tex; 14/10/1999; 16:29; p.21
+
+
+--- Page 22 ---
+22
+
+In general, we believe that the compositional backwards technique
+works well when the model can be decomposed into independent com-
+ponents. On the other hand, if all components of the model are mutually
+dependent, the dependency closure will include all components and
+the compositional technique reduces to the standard model checking
+approaches. For example, in some models the components can commu-
+nicate by using signals (or internal events). The signals are placed in a
+queue and only when this queue becomes empty can the components
+react on external events. In such a model, all components become mu-
+tually dependent due to synchronization with the centralized queue,
+resulting in a severe degradation in performance. In current research,
+we attempt to avoid the queue by using a difference semantics which
+allows the signals to be statically eliminated by turning them into state
+synchronizations. The goal is to allow the use of signals in the model
+without degrading the efficientcy of the verification.
+
+References
+
+1. Andersen, H.: 1995, ‘Partial Model Checking (Extended Abstract)’. In: Pro-
+ceedings, Tenth Annual IEEE Symposium on Logic in Computer Science. La
+Jolla, San Diego, pp. 398-407.
+
+2. Andersen, H. R., J. Staunstrup, and N. Maretti: 1997, ‘Partial Model Checking
+with ROBDDs’. In: E. Brinksma (ed.): Proceedings of TACAS’97, Vol. 1217 of
+LNCS. pp. 35-49.
+
+3. Anderson, R., P. Beame, S. M. Burns, W. Chan, F. Modugno, D. Notkin, and
+J. Reese: 1996, ‘Model checking large software specifications’. In: D. Garlan
+(ed.): SIGSOFT ’96. Proceedings of the Fourth ACM SIGSOFT Symposium on
+the Foundations of Software Engineering. San Francisco, pp. 156-66.
+
+4. Balarin, F. and A. Sangiovanni-Vincentelli: 1993, ‘An Iterative Approach to
+
+Language Containment’. In: C. Courcoubetis (ed.): CAV’93. 5th International
+
+Conference on Computer Aided Verification, Vol. 697 of LNCS. Berlin, pp.
+
+29-40.
+
+5. Behrmann, G., K. G. Larsen, H. R. Andersen, H. Hulgaard, and J. Lind-
+
+Nielsen: 1999, ‘Verification of Hierarchical State/Event Systems using Reusabil-
+
+ity and Compositionality’. In: TACAS: Tools and Algorithms for the
+
+Construction and Analysis of Systems.
+
+6. Bryant, R.: 1986, ‘Graph-based algorithms for Boolean function manipulation’.
+
+IEEE Transactions on Computers 8(C-35), 677-691.
+
+7. Burch, J., E. Clarke, D. Long, K. McMillan, and D. Dill: 1994, ‘Symbolic model
+
+checking for sequential circuit verification’. IEEE Transactions on Computer-
+
+Aided Design of Integrated Circuits and Systems 13(4), 401-424.
+
+8. Burch, J. R., E. M. Clarke, and D. E. Long: 1991, ‘Symbolic Model Checking
+
+with Partitioned Transition Relations’. In: A. Halaas and P. B. Denyer (eds.):
+
+Proc. 1991 Int. Conf. on VLSI.
+
+9. Burch, J. R., E. M. Clarke, K. L. McMillan, D. L. Dill, and L. J. Hwang: 1990,
+‘Symbolic Model Checking: 107° States and Beyond’. In: Proceedings, Fifth
+Annual IEEE Symposium on Logic in Computer Science. pp. 428-439.
+
+ 
+
+main.tex; 14/10/1999; 16:29; p.22
+
+
+--- Page 23 ---
+ 
+
+20.
+
+21.
+
+22.
+
+23.
+
+24.
+
+23
+
+Clarke, E., O. Grumberg, and D. Long: 1994, ‘Model checking and abstraction’.
+ACM Transactions on Programming Languages and Systems.
+
+Clarke, E., D. Long, and K. McMillan: 1989, ‘Compositional Model Checking’.
+In: Proceedings, Fourth Annual Symposium on Logic in Computer Science.
+Asilomar Conference Center, Pacific Grove, California, pp. 353-362.
+
+Coudert, O., C. Berthet, and J. C. Madre: 1989, ‘Verification of Synchronous
+Sequential Machines Based on Symbolic Execution’. In: J. Sifakis (ed.): Auto-
+matic Verification Methods for Finite State Systems. Proceedings, Vol. 407 of
+LNCS. pp. 365-373.
+
+Coudert, O., J. C. Madre, and C. Berthet: 1990, ‘Verifying temporal properties
+of sequential machines without building their state diagrams’. In: E. Clarke
+and R. Kurshan (eds.): CAV’90. Workshop on Computer-Aided Verification.
+Rutgers, New Jersey, pp. 75-84.
+
+Geist, D. and I. Beer: 1994, ‘Efficient model checking by automated ordering
+of transition relation partitions’. In: D. Dill (ed.): CAV’94. 6th International
+Conference on Computer Aided Verification, Vol. 818 of LNCS. Stanford, pp.
+299-310.
+
+Harel, D.: 1987, ‘STATECHARTS: A visual formalism for complex systems’.
+Science of Computer Programming 8(3), 231-274.
+
+Kristoffersen, K. J., F. Laroussinie, K. G. Larsen, P. Patterson, and W. Yi:
+997, ‘A Compositional Proof of a Read-Time Mutual Exclusion Protocol’. In:
+M. Bidoit and M. Dauchet (eds.): Proceedings of TAPSOFT ’97: Theory and
+Practice of Software Development, Vol. 1214 of LNCS. pp. 565-579.
+
+Lee, W., A. Pardo, J.-Y. Jang, G. Hachtel, and F. Somenzi: 1996, ‘Tearing
+Based Automatic Abstraction for CTL Model Checking’. In: 1996 IEEE/ACM
+International Conference on Computer-Aided Design. San Jose, CA, pp. 76-81.
+Leveson, N. G., M. P. E. Heimdahl, H. Hildreth, and J. D. Reese: 1994, ‘Re-
+quirement Specification for Process-Control Systems’. IEEE Transactions on
+Software Engineering 20(9).
+
+Lind-Nielsen, J.: 1999, ‘BuDDy: Binary Decision Diagram package’. www.itu.-
+dk/research/buddy.
+
+Lind-Nielsen, J. and H. R. Andersen: 1999, ‘Stepwise CTL Model Check-
+ing of State/Event Systems’. In: CAV’99. 11th International Conference on
+Computer Aided Verification, Vol. 1633 of LNCS. pp. 316-327.
+
+Beologic® A/S: 1996, ‘visualSTATE™ 3.0 User’s Guide’.
+
+McMillan, K.: 1993, Symbolic Model Checking. Norwell Massachusetts: Kluwer
+Academic Publishers.
+
+Pardo, A. and G. D. Hachtel: 1997, ‘Automatic Abstraction Techniques for
+Propositional y-calculus Model Checking’. In: O. Grumberg (ed.): CAV’97.
+9th International Conference on Computer Aided Verification, Vol. 1254 of
+LNCS. pp. 12-23.
+
+Sreemani, T. and J. Atlee: 1996, ‘Feasibility of model checking software require-
+ments: a case study’. In: COMPASS ’96. Proceedings of the Eleventh Annual
+Conference on Computer Assurance. New York, USA, pp. 77-88.
+
+ 
+
+Contact Address: Henrik Hulgaard
+The IT University of Copenhagen
+Glentevej 67 Denmark
+
+DK-2400 Copenhagen NV, Denmark
+e-mail: henrik@itu. dk
+
+Fax: +45 38 16 88 99
+
+main.tex; 14/10/1999; 16:29; p.23
+
+
+--- Page 24 ---
+main.tex; 14/10/1999; 16:29; p.24
+

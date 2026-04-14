@@ -1,0 +1,1182 @@
+--- Page 1 ---
+Received July 2, 2021, accepted July 20, 2021, date of publication August 20, 2021, date of current version September 23, 2021.
+Digital Object Identifier 10.1 109/ACCESS.2021.3106455
+A Hierarchical State-Machine-Based Framework
+for Platoon Manoeuvre Descriptions
+JORDAN IVANCHEV
+1,2, (Member, IEEE), CORVIN DEBOESER1, THOMAS BRAUD1,
+ALOIS KNOLL
+1,2, DAVID ECKHOFF
+1,2, (Member, IEEE),
+AND ALBERTO SANGIOVANNI-VINCENTELLI
+3
+1TUMCREATE, Singapore 138602
+2Department of Informatics, Chair of Robotics, Technische Universität München, 80333 München, Germany
+3Electrical Engineering and Computer Science Department, University of California at Berkeley, Berkeley, CA 94720, USA
+Corresponding author: Jordan Ivanchev (jordan.ivanchev@tum-create.edu.sg)
+This work was supported by Singapore National Research Foundation through its Campus for Research Excellence And Technological
+Enterprise (CREATE) Programme.
+ABSTRACT This paper introduces the a framework that simplies the process of designing and describing
+autonomous vehicle platooning manoeuvres which implements four design principles: Standardisation,
+Encapsulation, Abstraction, and Decoupling (SEAD). Although a large body of research has been formu-
+lating platooning manoeuvres, it is still challenging to design, describe, read, and understand them. This
+difculty largely arises from missing formalisation. To ll this gap, we analysed existing ways of describing
+manoeuvres, derived the causes of difculty, and designed a framework that simplies the manoeuvre design
+process. Alongside, a Manoeuvre Design Language was developed to structurally describe manoeuvres in
+a machine-readable format. Unlike state-of-the-art manoeuvre descriptions that require one state machine
+for every participating vehicle, the SEAD framework allows describing any manoeuvre from the single
+perspective of the platoon leader. We hope that the SEAD framework will pave the way for further research
+in the area of new manoeuvre design and optimisation by largely simplifying and unifying platooning
+manoeuvre representation.
+INDEX TERMS Autonomous vehicles, platoon manoeuvres, AHS, mixed trafc simulation.
+I. INTRODUCTION
+Multiple challenges must be solved along the way to a glob-
+ally optimised and highly automated urban trafc system.
+While the past has seen a large body of research and tech-
+nological innovation on Autonomous Vehicles (A Vs), pla-
+tooning as a concept is still in its early stages. With the
+capabilities of vehicular awareness and communication in
+place, research can now start building elaborate platooning
+strategies to leverage on those technological advancements.
+A specialised body of research is concerned with formula-
+tion of collaborative driving manoeuvres whereas research is
+split into two major categories. The rst category optimises
+driving behaviour on the vehicle's dynamics level for smooth
+and energy-efcient driving. The second category, in contrast,
+centres around collaboration and communication strategies,
+for instance, how an additional vehicle joins an existing pla-
+toon. Within the second category, researchers have investi-
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Jesus Felez
+ .gated specic cases of collaborative driving in platoons. Most
+papers focus on the specic details of one manoeuvre and
+optimise it to a great extent in terms of stability (the trait of
+a manoeuvre not to lead to dangerous trafc situations) or
+execution time.
+Although most papers draw on the description of manoeu-
+vres through nite state machines, there is no consensus or
+convention among researchers how to represent manoeuvres.
+This heterogeneity aggravates the comparison of manoeu-
+vres and requires researches to constantly adapt to new con-
+ventions. Besides, the description of manoeuvres through
+mere state machines requires multiple synchronised yet inde-
+pendent state machines, one for each participating vehicle.
+Designing and reading these state machines can become chal-
+lenging even for simple manoeuvres. The objective of this
+work is to provide a framework that simplies and formalises
+this description.
+The proposed framework follows four principles: Stan-
+dardisation, Encapsulation, Abstraction, and Decoupling
+(SEAD). Standardisation ensures a common terminology
+VOLUME 9, 2021This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License.
+For more information, see https://creativecommons.org/licenses/by-nc-nd/4.0/ 128393
+
+--- Page 2 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+among all areas within the framework and all researchers
+applying it. To take advantage of the repetitive occurrence of
+action-sequences in various contexts, the Encapsulation prin-
+ciple allows grouping such repetitive patterns into re-usable
+modules. Since some patterns may contain sub-patterns,
+the Abstraction principle leads to recursive encapsulation
+which allows considering manoeuvres and their building
+blocks on different levels of detail. The Decoupling principle,
+nally, separates the control of the manoeuvre from its execu-
+tion. This allows describing manoeuvres exclusively from the
+control-perspective of the platoon leader while the framework
+ensures the correct execution behaviour. The SEAD frame-
+work may serve future research as a point of reference and
+tool to facilitate further manoeuvre investigations. Solutions
+that implement one of the four principles exist. For example,
+the openSCENARIO standard certainly offers a form of stan-
+dartisation, however, it does not provide the benets of the
+remaining three principles, namely encapsulation, abstrac-
+tion, and most critically decoupling.
+In summary, the contributions of this article areV
+We survey and structure the complex landscape of A V
+manoeuvre research, identify shortcomings, and derive
+requirements for a new framework.
+We present SEAD, a novel A V manoeuvre framework
+to signicantly simplify the process of manoeuvre mod-
+elling.
+We make a library of manoeuvres publicly available,
+in both human-readable and machine-readable formats.
+The remainder of this article is organised as follows: First
+we give an extensive summary of related work in the domain
+of A V manoeuvre modeling (Section II). From this we derive
+in Section IIIrequirements and principles that a common
+framework should fulll and follow. Section IV-E introduces
+our new SEAD framework. Finally, in Section Vwe discuss
+possible extensions and conclude the article.
+II. RELATED WORK
+The concept of an Autonomous Highway Systems (AHS) was
+rst introduced by Varaiya in 1993 under the name Intelligent
+Vehicle/Highway System (IVHS) [1], promising increases in
+safety and in highway capacity without the need of building
+new roads. These advantages emerge from two conceptual
+changes as compared to a conventional highway: 1) the appli-
+cation of vehicle platooning and 2) a global optimisation
+of trafc ow and travel times through a layered control
+structure.
+A platoon is composed of a leader and at least one follower
+whereas, in most publications, the leader is the rst vehicle in
+the upstream direction. The major impact of platooning for an
+increased highway capacity is the decreased inter-vehicle dis-
+tance within platoons (intra-platoon distance d) as compared
+to the inter-vehicle distance outside of platoons (inter-platoon
+distance D) [1]. As shown in [1], platooning may increase
+road capacity by up to a factor of three.
+FIGURE 1. Control hierarchies of the platooning control system
+(summarized from [1][3]).
+In the platooning logic, the leader sets the platoon
+speed and coordinates the manoeuvres performed by the
+platoon, for example splitting a platoon into two pla-
+toons (Split manoeuvre) or merging two platoons into one
+(Merge manoeuvre). The followers follow the preceding
+vehicle according to their Cooperative Adaptive Cruise Con-
+trol (CACC) system and react upon commands issued by their
+platoon leader.
+Although platooning itself increases road capacity and
+vehicle throughput, it may become more effective when
+applying additional higher-order strategies that leverage on
+the vehicle's communication capabilities. The interconnec-
+tion of vehicles and infrastructure allows to control optimal
+platoon forming, driving, and splitting strategies and to opti-
+mise trafc globally instead of locally. The combination of
+such systems yields an AHS. Due to its complexity, the struc-
+ture of the AHS is split into ve hierarchical layers [1],
+[2]. Each layer fullls a mutually exclusive task as shown
+in Figure 1.
+At the highest level of the hierarchy, the Network Layer
+is responsible for optimizing the overall travel time of all
+vehicles and the trafc ow in the entire network [2]. It is
+aware of all autonomous vehicles in the road network and the
+current and predictable trafc situation on every road [1], [2].
+To optimize travel time and trafc ow, it balances the trafc
+load on each road by determining the ideal path for each
+vehicle that travels from a dened origin to a dened destina-
+tion [1], [4]. For the case of IVHS, the network only consists
+of the highway. The Link Layer is more decentralized and
+implemented by a controller for each road segment [1]. The
+controller ensures a smooth trafc ow on its road segment
+by distributing the trafc vehicles among lanes [2]. Besides
+determining a dedicated lane for each vehicle or platoon,
+it also determines the target size and velocity for platoons
+on that section [3]. For an IVHS, the road segmentation
+is realized by dividing the highway into segments of equal
+length. These two layers are implemented in the infrastructure
+and part of the roadside system. The layers below belong to
+the vehicle system, meaning that every vehicle is equipped
+128394 VOLUME 9, 2021
+
+--- Page 3 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+FIGURE 2. Example description of the JoinTail protocol as communicating
+FSM (simplification of protocol from [3]). (a) behaviour of the joining
+vehicle, (b) behaviour of the platoon leader. Rectangles constitute the
+states and the arrows the transitions. States with double-stroke are Idle
+States (i.e. starting and ending states of a protocol) and the ones with a
+single stroke are action states (i.e. states where an action is performed).
+with modules to realize the tasks of the three layers described
+below.
+At the highest hierarchical level of the vehicle system
+is the Platoon Layer or Planning and Coordination-Layer.
+As a free vehicle, this layer determines actions to fulll the
+path and lane directives imposed by the layers above [3].
+Part of this task is to determine lane changes, if a vehicle
+should join or leave a platoon [2]. As a platoon leader, this
+layer coordinates the actions with vehicles that are associated
+with the platoon either as followers or potential joiners [1].
+As a platoon follower, the platoon layer collaboratively per-
+forms action protocols which are initiated by the platoon
+leader [1], [3].
+The Regulation Layer and the Physical Layer are respon-
+sible for realising the trajectories computed by the hier-
+archically higher layers. Control loops in the Regulation
+Layer compute actionable commands for the actuators and
+minimise the errors reported by the sensors in the Physical
+Layer [3].
+The Platooning Layer, which is the focus of this
+publication, contains collaborative driving logic: Platoon
+Manoeuvres are collaborative vehicle actions that deal with
+platoon formation, maintenance, and modication. Manoeu-
+vres encompass the driving and communication behaviour
+for all participating vehicles in the form of manoeuvre proto-
+cols. As shown in the subsequent sections, the description of
+manoeuvres is complex even for simple ones. Our work, thus,
+aims to increase the comprehensibility and facilitate the easy
+formulation of platoon manoeuvres. For readers which are
+more familiar with the PEGASUS 6-layer model, our work
+covers, partially, layer 4 of that model.
+A common way of describing these manoeuvre-protocols
+are communicating nite state machines e.g. [5][7]. In order
+to gain a better understanding of different manoeuvre descrip-
+tion approaches we present a simplied example of the JOIN
+TAIL-manoeuvre from [3] shown in Figure 2. The JOIN
+TAIL-protocol describes the process of a free vehicle joining
+an existing platoon at its tail through two CFSM.
+When a vehicle (Vehicle A) decides to join a platoon,
+it sends a join request to the leader (Vehicle B) of the platoon
+(Transition 1, T1). B either rejects (T2) or acknowledges (T3)
+FIGURE 3. Combined FSM that represents the JoinTail-protocol as shown
+in Figure 9. The dashed arrows establish the connection between the two
+state machines.
+the request. In the case of rejection, both vehicles return to
+idle and the protocol terminates. If the request is acknowl-
+edged, A will wait for B to join the platoon. A moves to the
+tail of the platoon. Once arrived at the tail, A attaches to the
+platoon, starts following the preceding vehicle (i.e. switch
+into CACC mode), sends a message to B that the join is com-
+pleted (T4), and transitions into the follower-Idle State. Upon
+receipt of the join-completion message, B updates the platoon
+information and returns to idle. The protocol execution is
+complete and terminates.
+This description shows that state machines synchronise
+through messages that are sent between the vehicles. Since
+both vehicles operate through the same set of protocols, they
+can expect the other vehicle to behave synchronously.
+The representation in Figure 2describes the behaviour as
+two separate FSM, each describing the protocol for one role
+within the manoeuvre. FSM (a) shows the transition of a vehi-
+cle from one Idle State into another. After extending the state
+machine by the transition from a free vehicle into a platoon
+leader through platoon formation, the entire behaviour could
+be explained in one role-agnostic FSM. This FSM operates
+on both vehicles independently and simultaneously. Both
+participating vehicles then operate following the same FSM
+schema, yet they are in different states during the manoeuvre
+and follow different paths through the FSM.
+This approach was shown by [5] and is illustrated in Fig-
+ure3as an extension to the example in Figure 2. The dashed
+arrows were added to combine the two FSM into one.
+In the same manner as in Figure 3, it is possible to describe
+the entire behaviour of vehicles in one role- and manoeuvre-
+agnostic FSM, meaning that one FSM would describe the
+entire platooning behaviour of a vehicle for all roles.
+Although FSM are the dominant way to describe manoeu-
+vres in the current state of literature, researchers also applied
+other ways of illustration. The authors of [3] describe
+a manoeuvre in a role-agnostic process ow-chart. From
+this chart, they deduct role-specic state machines that
+are ultimately formulated in the COSPAN (coordination-
+specication-analysis) system. COSPAN formalises CFSM
+to prove certain mathematical state machine properties such
+as completeness or reachability [8].
+In [9], the logical ow of manoeuvres is also described
+as a role-agnostic ow-chart. Focusing on V2V communica-
+tion, however, this paper also provides additional information
+VOLUME 9, 2021 128395
+
+--- Page 4 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+ow-charts to describe the communication between the par-
+ticipating vehicles. In addition to illustrations, the majority
+of papers describes the logical ow of events in manoeuvres
+through textual descriptions e.g. [3], [5], [7].
+As mentioned above, most publications describe manoeu-
+vres as FSM whereas only a minority applies other visual-
+ization and description principles. However, although most
+manoeuvre descriptions use the same methodologies, there is
+still a vast heterogeneity among all existing publications. Two
+dominant sources of this heterogeneity are: 1) different levels
+of detail, and 2) verbally differing descriptions to represent
+identical actions.
+A. DIFFERENT LEVELS OF DETAIL
+Some manoeuvre descriptions show a level of detail that
+reaches the regulation layer with states such as Accelerate
+to Merge [3] or Set Speed to 30 m/s [5]. Other descriptions,
+or sometimes even the same description, stay on a very high
+level within the platooning layer with states such as Car
+Splits [7] or Move To Position [10]. Due to these differences
+of abstraction level, FSM that potentially describe the same
+behaviour are, in fact, signicantly different.
+B. DIFFERING VERBAL DESCRIPTIONS
+Even if illustrations describe a manoeuvre on similar levels
+of detail, they may use different terminologies or different
+levels of verbal abstraction for the same action. For example,
+the Join Tail-protocol was described in [10] and in [3] in sim-
+ilar logical ways. In both descriptions for the joining vehicle,
+a dedicated state equalises the speed of the platoon and the
+joining vehicle by decelerating or accelerating. While [10]
+describes this as Set Speed to 30 m/s and Catch-up and merge
+the platoon from the back, [3] expresses the same process as
+Accelerate to Merge. This poses a challenge when formalis-
+ing and comparing manoeuvres across different publications.
+Besides these heterogeneities, we identied two additional
+factors that pose challenges when formulating manoeuvres.
+First, repetitiveness introduces pseudo-complexity, especially
+for those descriptions with high levels of conceptual detail.
+For instance, the process for a vehicle moving to a certain
+position requires both communication and physical action.
+The leader orders the joining vehicle to move to a dened
+position. When at that position, the joining vehicle informs
+the leader about the arrival. These action-communication-
+patterns may occur repetitively within a manoeuvre FSM.
+Second, since manoeuvres are mostly performed by two or
+more vehicles collaboratively, the behaviour for every partici-
+pant is described in dedicated, role-dependent FSM. Reading
+these coupled state machines requires a substantial effort as
+the reader must manually synchronize the state machines to
+understand the collaborative process.
+Another very important aspect of platooning is communi-
+cation. The Join Tail-protocol description in Figure 3shows
+the necessity for message transfers between participating
+vehicles. V2V standards, however, serve only collaborative
+awareness and are not sufcient for this case of collaborativedriving. Researchers have developed various ways of formal-
+ising this communication while complying with the exist-
+ing standards such as C-V2X, ITS G5, DSRC. The authors
+of [32] propose two protocols: A Minimal Protocol and a Full
+Platooning Protocol. While the Full Platooning Protocol is
+equipped for secured two-way communication, the Minimal
+Protocol is only suitable for one-way messages.
+The Minimal Protocol can be used for collaborative aware-
+ness as well as manual platooning, meaning that a driver must
+manually initiate the joining or leaving of a platoon. Within
+the platooning protocol, the authors differentiate among
+three types of messages: Service Announcements, Service
+Requests, and Control Data Messages. Service announce-
+ments are sent by platoon leaders to advertise services, for
+instance, the availability to add another vehicle to the platoon.
+Service requests are, for instance, sent by free vehicles to
+platoon leaders to express the willingness to join. Control
+Data Messages are sent periodically by platooning vehicles
+to maintain and update the integrity of the platoon.
+In [5], the WA VE Short Message Protocol (WSMP) [33]
+is applied to carry information on the control channel. The
+messages are of two types. The rst type are beacons. These
+beacons, like cooperative awareness messages, carry infor-
+mation about the vehicle state, e.g. the position, acceleration,
+and lane. Additionally, the beacon carries the platoon ID and
+the current vehicle position in the platoon if the vehicle is
+platooning. The position starts with 0 at the platoon leader
+and increments with each vehicle in the platoon counting
+upstream. The second type is micro-commands. These are
+used to initiate and control platoon manoeuvres. While bea-
+cons are usually broadcasted, most micro-command mes-
+sages are unicasted or, if the manoeuvre involves multiple
+vehicles, multicasted. The authors provide a set of seven-
+teen micro-commands to enable a multitude of manoeuvres.
+To give the reader a more complete overview Table 1summa-
+rizes the research efforts involving studying platoon manoeu-
+vres that were considered for this paper.
+III. REQUIREMENTS AND PRINCIPLES
+To relieve the shortcomings described in the previous section,
+namely the challenges with comprehensibility, compilation
+and comparison of manoeuvre-descriptions, we propose a
+framework for the universal description of manoeuvres that
+builds on the four principles of Standardisation, Encapsula-
+tion, Abstraction, and Decoupling (SEAD). This framework
+will enable researchers and engineers to easily dene new
+or alternative manoeuvres within the platooning layer shown
+in Figure 1. First, we will derive requirements for the frame-
+work design from the identied limitations, then we will
+dene goals that the framework should full, and postulate
+the overarching design principles to achieve the design goals.
+Figure 4provides an overview of the interrelations among
+decits, goals, and principles.
+The SEAD design framework aims to resolve the major
+shortcomings that state-of-the-art manoeuvre descriptions
+face. The subsequent list summarises the identied decits
+128396 VOLUME 9, 2021
+
+--- Page 5 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+TABLE 1. Research publications regarding platooning manoeuvres.
+FIGURE 4. Relations of key deficits, design principles, and design goals
+for creating the SEAD framework.
+and denes the scope of problems the proposed framework
+should solve.
+Varying conceptual depth: Varying levels of conceptual
+depth within and among manoeuvre descriptions require
+to re-frame the manoeuvres before comparison.
+Differing verbal descriptions: Differing verbal descrip-
+tions for equivalent conceptual components require the
+manual alignment of terms before comparison.
+Repetitive patterns: Repetitive action-communication-
+patterns within and among manoeuvres make manoeu-
+vres more complex to read and tedious to be described.
+Complex synchronisation: The complex synchronisa-
+tion between multiple role-specic FSM in one manoeu-vre is challenging. This makes it hard to understand the
+collaborative aspect of a manoeuvre. Besides, it poses
+the threat of unstable states due to unforeseen circum-
+stances.
+For the SEAD framework to achieve practicality while
+resolving these decits, we dened three design goals. The
+goals outline how we dene practicality for the framework
+and give guidance in making all design decisions. The three
+qualitative goals are Flexibility, Simplicity, and Stability.
+Flexibility: The framework must be capable of describ-
+ing all manoeuvres in the current state of literature. Any
+design decision, thus, must ensure that the exibility of
+describing manoeuvres is maintained and that restric-
+tions are minimised.
+Simplicity: The prime use case of the framework is
+reading and formulating new or alternative manoeuvres.
+Any design decision, thus, must promote the simplicity
+of reading and formulating manoeuvres.
+Stability: The stability of manoeuvre designs is crucial,
+meaning that the design shall not allow for manoeuvres
+that end in an undened state if unexpected driving
+situations occur. Any design decision, thus, must foster
+the stability of manoeuvres for any possible interruption
+or exception.
+VOLUME 9, 2021 128397
+
+--- Page 6 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+Given the postulated requirements, we derived four major
+design principles that help to resolve the current shortcomings
+and to full the design goals. These can be summarised under
+the four terms Standardisation, Encapsulation, Abstraction,
+and Decoupling. The subsequent sections explain these prin-
+ciples in greater detail and interrelate them with the estab-
+lished design goals and identied decits.
+A. STANDARDISATION
+As stated above, one prime issue in dening manoeuvres is
+the vastly varying terminology for equal conceptual compo-
+nents. These components can be states within an FSM, V2V
+platooning messages or inherent reasons for state transitions
+such as autonomous decisions. Our framework resolves the
+lack of standardisation by introducing a nite set of sym-
+bols for these conceptual components. More specically,
+the SEAD framework provides a syntax for describing vehicle
+actions, messages, and internal state transition triggers. The
+main requirement for this standardisation is the universal
+comprehensibility regardless of context or background.
+The principle of Standardisation will mainly be affected by
+the design goals Flexibility and Simplicity. Although Stan-
+dardisation will introduce syntactic rule sets, the standard-
+ised framework must be capable of expressing a sufcient
+conceptual depth not to obstruct the Flexibility goal. Besides,
+the Standardisation should also promote Simplicity, meaning
+that the standardised terms must be intuitively comprehensi-
+ble and easy to grasp without the need for extensive prepara-
+tion. The aim is that a person with no prior experience with the
+SEAD framework must be able to understand the manoeuvres
+formulated using it.
+B. ENCAPSULATION
+Throughout manoeuvre descriptions, we identied various
+repetitive patterns that include vehicle actions and inter-
+vehicle communication. The principle of Encapsulation will
+help pack these patterns into reusable blocks whereas one
+block may contain autonomous activities of one vehicle or
+synchronised actions of multiple vehicles. Moreover, these
+sub-manoeuvres will mainly comprise actions and states of
+equal conceptual depth. This helps in resolving the problems
+of varying conceptual depth, repetitive patterns, and complex
+synchronisation.
+The Encapsulation will be inuenced by all three
+design goals. Following the design goal of Flexibility,
+the Encapsulation of intertwined action-communication pat-
+terns must not impose manoeuvre-design restrictions. Thus,
+sub-manoeuvres on the lowest level must express the most
+fundamental patterns exhaustively. Thereby, Encapsulation
+will greatly promote Simplicity as it will allow reusing
+behavioural patterns without the need for redesigning them.
+This requires equipping sub-manoeuvres with a suitable inter-
+face that allows for integrating them into higher-order struc-
+tures. Lastly, to achieve Stability, the sub-manoeuvres must
+be designed to always lead to predictable outcomes that can
+be handled by any context.C. ABSTRACTION
+Extending Encapsulation, the principle of Abstraction will
+allow to reuse the encapsulated sub-manoeuvres within struc-
+tures of conceptually higher levels and to encapsulate these
+higher order structures into reusable blocks. This recursive
+re-usage allows for arbitrarily complex structures whereas
+every level of conceptual depth can be designed separately
+without the need to operate on different levels at once.
+Abstraction helps to resolve the decits of varying conceptual
+depth and handling repetitive patterns.
+As every system that re-frames complexity through hier-
+archical depth, our framework imposes certain restrictions.
+Nevertheless, it shall full the design goal of Flexibility,
+meaning that every abstraction will be carefully evaluated.
+On the other hand, the Abstraction principle fosters Simplic-
+ity as the major part of the manoeuvre design process takes
+place at the higher levels of abstraction. This allows building
+highly complex manoeuvres with relatively low effort.
+D. DECOUPLING
+Lastly, the Decoupling principle will allow describing com-
+plex manoeuvres entailing two or more vehicles from the
+perspective of the platoon leader. The SEAD framework,
+and specically the Encapsulation principle, ensures that this
+single-sided description sufces to describe the behaviour
+of all vehicles. More specically, the utilized primary-
+secondary structure leads to a general universal description of
+the reactive behaviour of the slave (platoon followers or free
+vehicles) while manoeuvres are only dened and steered by
+the master (platoon leader). This principle, in consequence,
+resolves the need for synchronising multiple manoeuvre
+descriptions.
+Decoupling will considerably facilitate the process of read-
+ing and describing manoeuvres as both actions must only be
+performed from the leader perspective. This greatly drives the
+goal of Simplicity. However, designing the reactive behaviour
+of the slave-vehicles must be very comprehensive and elabo-
+rate in order to full the design goal of Flexibility.
+IV. FRAMEWORK BUILDING BLOCKS
+In this section, we will give a detailed description of the build-
+ing blocks that make up the SEAD framework. We present
+the building blocks and concepts in a bottom-up fashion,
+starting with the lowest level: action primitives, followed by
+sub-manoeuvres, manoeuvres, and maneuver wrapping for
+simulataneous execution. After that, we cover the overarching
+concepts of states, the universal reactive state machine, and
+the proactive maneuvering engine. Before we present each
+building block, we will describe a few properties of the
+system to facilitate its overall comprehension:
+Scope: The described platooning framework does not
+include high level decision-making processes such as when
+to form a platoon or when to leave a platoon. This is the
+task of the Link Layer Interface (LLI) and could either
+be computed inside an autonomous vehicle or be given in
+128398 VOLUME 9, 2021
+
+--- Page 7 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+FIGURE 5. Overview of the hierarchical structure of the SEAD framework. The figure provides an example where
+two vehicles, a platoon leader (left) and a temporary leader (right), perform a collaborative manoeuvre.
+the form of commands issued by another controlling entity.
+The framework at hand will only cover the platooning layer
+itself.
+Stability: To ensure stability of the system, each platoon-
+ing manoeuvre has to end in a stable state for all involved
+vehicles, regardless of manoeuvre's success. We refer to these
+states as ``stable idle states'' in contrast to ``unstable idle
+states'' which are states during a manoeuvre when a vehicle
+is waiting for an action of another vehicle. These stable idle
+states can be Platoon Leader (PL), Platoon Follower (PF),
+or Free Vehicle (FV). When a vehicle is waiting for an
+instruction or action from another vehicle while performing a
+manoeuvre their respective unstable idle state would be WPL,
+WPF, and WFV. Additionally, we make use of the unsta-
+ble idle state Temporary Platoon Leader (TPL) to increase
+stability [10] when manoeuvres are aborted. Only when a
+vehicle is in a stable idle state (i.e., not currently performing
+a manoeuvre) is it available to receive commands from the
+LLI.Control: For every manoeuvre, we assume it to be carried
+out in a primary-secondary fashion, that is, one vehicle (natu-
+rally, the platoon leader) issues orders to the other vehicle(s).
+This does, however, not mean that manoeuvres can only be
+initiated by the platoon leader, it merely describes the control
+ow once the manoeuvre has started.
+Communication We assume the existence of an underly-
+ing communication system that provides message primitives
+such as described by [5]. These messages include Requests
+(REQ), orders (ORD), done-conrmation (DN), abort
+(ABT), and acceptance/rejection (ACK/NACK). We abstract
+away from modelling the physical transmission of mes-
+sages and assume perfect communication. To implement the
+concept of a Temporary Platoon Leader (TPL), an addi-
+tional specialised message type TMPL SPLIT forces the
+split of a TPL and aborts the manoeuvre that is currently
+being processed. REQ, ORD and DN messages can include
+additional information as required by the system, e.g., the size
+of the gap a vehicle is ordered to open. We further assume
+VOLUME 9, 2021 128399
+
+--- Page 8 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+that the underlying protocols can ensure that the successful
+transmission of messages. If this cannot be ensured, then
+the sub-manoeuvres can be extended by adding respective
+time-out and abort transitions.
+A. FRAMEWORK OVERVIEW
+Figure 5 provides an overview of the SEAD framework and
+illustrates its hierarchical structure according to the paradigm
+of hierarchical state machines. The entire framework could be
+expressed as one big state machine, however, the transitions
+and states are designed in a way to enable all four SEAD
+principles (Standardisation, Encapsulation, Abstraction, and
+Decoupling). The different layers can therefore be seen as
+different zoom levels or views of the platooning behaviour
+denition for autonomous vehicles. In the following sections,
+we will introduce and explain the framework in a bottom-up
+fashion.
+B. ACTION PRIMITIVES
+The lowest layer of the framework is composed of action
+primitives which are actions that directly affect the physi-
+cal or logical state of a vehicle. We differentiate between
+physical primitives, state primitives, and other primitives.
+The physical primitives are the direct interface to the reg-
+ulation layer and affect the physical state of a vehicle, i.e,
+the vehicle's position or speed. State primitives affect the
+role of the vehicle, i.e. whether it acts as a platoon leader
+or platoon follower. They are needed to transition a vehi-
+cle from and to different idle states (e.g., at the end of a
+manoeuvre or when the vehicle needs to wait for instructions
+from another vehicle). Lastly, other primitives are needed to
+either send messages, update platoon information, or wait for
+certain events. Primitives should be designed in an orthogonal
+fashion, meaning that one primitive cannot be expressed by
+a combination of any other primitives. Table 2provides an
+overview of action primitives that could be found in the state-
+of-the-art manoeuvre descriptions.
+As the SEAD framework describes all actions on the pla-
+tooning layer, the physical primitives provide directions to the
+low-level control of the vehicle instead of controlling the lon-
+gitudinal dynamics directly. For instance, instead of setting
+the desired speed or acceleration of the vehicle, the primitives
+set the desired location. The path-following logic on the Reg-
+ulation Layer will convert the target location into actionable
+commands (accelerate, decelerate, steer left / right) for the
+physical layer.
+C. FORMULATING SUB-MANOEUVRES
+With the list of idle states and action primitives, we can
+now create sub-manoeuvres. A sub-manoeuvre encapsulates
+reusable behavioural patterns that involve two or more vehi-
+cles and transitions at least one of the participating vehicles
+from one idle state into another. For each participating vehi-
+cle, the behaviour is described through a sequence of primi-
+tives which constitute a sub-state machine. Sub-manoeuvres
+must design action-communication patterns with the small-
+FIGURE 6. Sub-manoeuvre description and encapsulation for GAPCLOSE.
+est reasonable scope to promote re-usability and therefore
+achieve the goal of Flexibility.
+To implement the principle of Decoupling, each
+sub-manoeuvre is split into two or more sub-state machines,
+one for each vehicle participating. As SEAD follows the
+primary-secondary paradigm, one sub-state machine con-
+trols the sub-manoeuvre (executed by the platoon leader),
+the other sub-state machines purely react. The sub-state
+machines are connected and synchronised through V2V
+messages. This structure promotes the goal of Simplicity
+through the principles of Encapsulation and Abstraction: Any
+sub-manoeuvre can be reused without a thorough understand-
+ing of the inner workings once its behaviours and outcomes
+are dened. We will discuss this separation and decoupling
+extensively in the Reactive State Machine (RSM) and the
+Proactive Manoeuvring Engine (PME) sections. The control-
+ling sub-manoeuvre is denoted with PME while the reactive
+ones are marked with RSM (as in Figure 5).
+To full the goal of Stability, sub-manoeuvres must be
+designed such that any possible scenario (success or abort)
+leads to a dened outcome for every participating vehicle.
+Therefore, if one vehicle encounters a situation that will
+prevent the successful completion of the sub-manoeuvre and
+causes an abort-result, V2V communication (or time-outs)
+must cause all other sub-state machines to terminate at the
+same abort-result. Due to a shared understanding of the
+sub-manoeuvre among all vehicles, every vehicle is informed
+about the nal state of all participants.
+Figure 6illustrates an example sub-manoeuvre where a
+platoon leader orders another vehicle in the platoon to close
+the gap. For stability reasons, the vehicle that closes the gap is
+a temporary platoon leader, so that when the sub-manoeuvre
+fails, it will be the platoon leader of all other vehicles behind.
+The sub-manoeuvre includes two participants, the platoon
+leader (PL, vehicle A) and the temporary platoon leader
+(TPL, vehicle B). The sub-manoeuvre can conclude in either
+Success (RS) or Abort 1 (RA1).
+A initiates the sub-manoeuvre through commanding B to
+close the gap by sending an ORD GAPCLOSE message (A1)
+via V2V communication. After sending the message, A waits
+for the completion (A2). The message triggers B to execute
+128400 VOLUME 9, 2021
+
+--- Page 9 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+TABLE 2. List of action primitives derived and condensed from the state of the art.
+the GAPCLOSE sub-manoeuvre (B1). B sets its headway to
+the requested intra-platoon distance and the regulation layer
+starts to decrease the distance until it reaches the desired
+headway (B2).
+In the success scenario, the desired headway is reached,
+B signals the completion of closing the gap to the PL through
+sending a DN_GAPCLOSE (B3) and transitions into the sta-
+ble PF Idle State (B4). This concludes the sub-manoeuvre for
+B with a success-result RS (B5). A receives the message and
+concludes the sub-manoeuvre with a success-result RS (A3).
+In the abort scenario, if closing the gap is taking too long,
+a timeout in A aborts the sub-manoeuvre. The timeout causes
+A to send an ABT message to B (A4) and to update the
+platoon information (A5). Afterwards, the sub-manoeuvres
+concludes for A with an abort-result RA1 (A6). B receives
+the message and will initiate the sequence to split from the
+original platoon by transitioning into a PL (B6). Once B is a
+PL, the sub-manoeuvre also concludes for B with an abort-
+result A1 (B7).
+The upper part (the pro-active part) and the lower part (the
+reactive part) of the sub-manoeuvre is encapsulated into two
+reusable blocks (A7 and B8, respectively). These buildings
+blocks can then be used to build manoeuvres for the Proactive
+Manoeuvring Engine (PME) and the Reactive State Machine
+(RSM). Due to the structure of the sub-manoeuvres, the ini-
+tiation of a PME part will always leads to initiation of the
+RSM part as well. This principle allows dening manoeuvres
+from the perspective of the platoon leader without the need
+to describe the participant's behaviour. In the same fashion
+as in Figure 6, it is possible to dene a comprehensive set
+of sub-manoeuvres that allows assembling complex manoeu-
+vres with limited number of restrictions. We have created an
+online repository where we have made graphical depictions
+of manoeuvres and sub manoeuvres as well as their machine
+readable descriptions (see Section IV-I) publicly available.1
+D. FORMULATING MANOEUVRES
+To promote the design goal of Simplicity and due to the
+primary-secondary paradigm of SEAD, a manoeuvre only
+needs to be described from the perspective of the pla-
+1The library can be found at https://github.com/sead-
+framework/manoeuvre-catalogue
+FIGURE 7. Description of the JOIN TAIL manoeuvre according to the PME
+logic.
+toon leader. The behaviour of the other participants is
+dened in the sub-manoeuvres and the initiation of these
+sub-manoeuvres is done by the platoon leader via V2V
+messages. A sequential manoeuvre (see Section IV-E how
+to dene simultaneous manoeuvres) is a chain of sub-
+manoeuvres, where the transition to the next sub-manoeuvre
+depends on the result of the previous one. Figure 7shows
+the formulation of the JOIN TAIL manoeuvre as it was also
+described in Figure 2.
+In this illustration, the chain of sub-manoeuvres describes
+the entire manoeuvre. The blue lower part of the
+sub-manoeuvre boxes species the participating vehicles
+according to the notation in Table 2whereas vehicle A (V A)
+is not specied since it is always part of the manoeuvre as the
+PL, and vehicle B (VB) is the participating vehicle. The JOIN
+TAIL manoeuvre requires no additional actions in case of an
+abort and will conclude in a stable state achieved through the
+abort-architecture within the sub-manoeuvres. More elabo-
+rate manoeuvres such as the JOIN MIDDLE require more
+sophisticated abort structures (e.g., a GAP CLOSE for a
+platoon follower if the joining vehicle was unable to lane
+change into the platoon). This is necessary to ensure that no
+vehicle will be in an unstable idle state once the manoeuvre
+is nished.
+Dening manoeuvres in this fashion largely promotes Sim-
+plicity as a manoeuvre can be described from the leader's
+point of view while the reactive part of all sub manoeuvres
+(also referred to as the universal RSM) takes care of the
+participating vehicles' perspective.
+E. SIMULTANEOUS MANOEUVRES
+Manoeuvres with two or more participating vehicles can
+potentially benet from the parallel execution of sub-
+manoeuvres. To facilitate this, the SEAD framework
+introduces a wrapper for the simultaneous execution, referred
+VOLUME 9, 2021 128401
+
+--- Page 10 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+to as the SIM WRAPPER. This construct can involve an arbi-
+trary number of simultaneous sub-manoeuvres whereas every
+sub-manoeuvres' controlling part (the upper part in Figure 6)
+is executed by the same leader and the reactive portion (the
+lower part in the same gure) is executed by the participants.
+Two simultaneous sub-manoeuvres, however, cannot involve
+the same participating vehicle.
+To comply with the requirement that a state machine can
+only be in one state, the SIM WRAPPER can be understood
+as a product state machine of the controlling portions of all
+involved sub-manoeuvres. Since the reactive portion is exe-
+cuted in separate vehicles through the Decoupling principle,
+they occur in separated state machines in distinct systems.
+The execution result can be any element from the Cartesian
+product of all execution result sets from all sub-manoeuvres.
+F. IDLE STATES AND SUPER-STATES
+With the denition of idle states and sub-manoeuvres, it is
+possible to dene them together to derive a state-machine
+on an abstraction level that clearly shows how the vehicle
+can transition from one idle state to another via which sub-
+manoeuvre. We combine the idle state and its associated
+sub-manoeuvres (i.e., the sub-manoeuvres that a vehicle can
+execute if it is in the idle state upon reception of a V2V
+message) into an idle super-state. This concept is shown
+in Figure 8, where the idle state WFV (Waiting Free Vehicle)
+and three sub-manoeuvres LC_BPF (Lane Change & Become
+Platoon Follower), MOVETOPOS (Move to Position), and
+ATTACH are all combined into a superstate. This superstate
+can only be left through the successful or unsuccessful exe-
+cution of sub-manoeuvres or when a time-out occurs.
+Every stable Idle State (FV, PF, PL) has an idling super-
+state. Within this superstate, the idle state will be referred to as
+a LLI (Link Layer Interface) idle state, because in these states,
+the vehicle can make (or receive) high-level decisions to carry
+out collaborative actions, for instance, joining or leaving a
+platoon, the decisions for which are made in the Link Layer.
+When the vehicle is in an unstable idle state (i.e., WFV,
+WPF, WPL, TPL), thus in a manoeuvre, the LLI is inactive
+because manoeuvre initiation is only possible when the vehi-
+cle is not already performing a manoeuvre. Since this paper
+focuses on the Platoon Layer and the LLI models the Link
+Layer, the inner workings of the LLI will not be covered here.
+G. REACTIVE STATE MACHINE (RSM)
+The combination of all idle superstates into one big inter-
+connected state-machine yields the so-called Reactive State
+Machine (RSM), which can be seen as a complete behaviour
+denition for all platooning vehicles except the platoon
+leader. As the platoon leader coordinates and controls the
+manoeuvres, this state-machine is called reactive as it reacts
+to what the leader is doing. Figure 9shows the complete RSM
+for a platooning system which supports a number of basic sub
+manoeuvres. For better readability, we chose sub manoeuvres
+as the abstraction level in this illustration, however, each of
+FIGURE 8. Definition of the WFV idle superstate. It contains the WFV LLI
+Idle state as well as the sub-manoeuvres that can be performed by the
+WFV to transition into another idle state.
+the sub manoeuvre boxes could be replaced by the entire sub
+manoeuvre denition (e.g., Figure 6).
+The RSM describes the universal reactive behaviour of
+any vehicle for any manoeuvre that can be built using
+sub-manoeuvres as building blocks. However, the RSM
+describes only the decoupled reactive behaviour (as indi-
+cated by the RSM in any sub-manoeuvre box). It does not
+implement how the manoeuvre is logically performed, i.e.
+the sequence of sub-manoeuvres comprising a manoeuvre.
+This implements the rst half of the Decoupling principle.
+The second half of Decoupling, the formulation and control
+of manoeuvres, is implemented by a complementary structure
+that steers manoeuvres, namely the Proactive Manoeuvring
+Engine (PME).
+The introduction of the RSM strongly promotes the goal
+of Stability. As can be seen in Figure 9, the RSM denes
+the behaviour in case of an abort for every sub-manoeuvre.
+This structure, thus, always brings the vehicle to a dened
+state in whichever way a manoeuvre terminates. Accord-
+ing to the Abstraction principle, the RSM reuses sub-
+manoeuvres, which leads to all building blocks in the RSM
+being on an equivalent conceptual level. This directly miti-
+gates the two key shortcomings of varying conceptual depth
+and repetitive patterns. Since the structure and design of
+the sub-manoeuvres is aligned with the goal of Flexibility,
+the RSM introduces no further restrictions regarding this
+concern.
+H. PROACTIVE MANOEUVRING ENGINE (PME)
+While both proactive and reactive behaviour denitions can
+be combined into one state-machine, we separate them for the
+sake of Simplicity and Decoupling. To this end, the Proac-
+tive Manoeuvring Engine (PME) complements the reactive
+behaviour of the RSM (as can be seen in the left bottom of
+Figure 9they are indeed connected). The PME is therefore
+an extension to the PL's RSM behaviour and is responsible
+for the coordination of platooning manoeuvres.
+Figure 10shows the PL LLI with the connection to the
+RSM part (Figure 9) on the right side and the entire PME on
+the left side. The level of abstraction chosen in this gure is
+on the manoeuvre layer with the example at hand supporting
+128402 VOLUME 9, 2021
+
+--- Page 11 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+FIGURE 9. Reactive state machine (RSM). It describes the reactive behaviour by combining all sub-manoeuvres.
+the JOIN, LEA VE and SPLIT manoeuvres. These manoeuvre
+boxes could be extended to their respective contained sub-
+manoeuvres (or even further to include the entire control-
+ling part of each sub-manoeuvre), however, Abstraction and
+Decoupling allow us to illustrate the platooning system in a
+more comprehensible way. The PME combines the manoeu-
+vre schemes of all manoeuvres and steers the manoeuvres
+from the perspective of the PL. Manoeuvres are initiated
+through the LLI of the PL either directly (direct init. in Fig-
+ure 10) or through a request REQ that triggers a NEGOTIATE
+sub-manoeuvre. When adding a new manoeuvre, rules in
+the LLI must dene when it will be called (i.e. which REQ
+message evokes a NEGOTIATE or which conditions triggers
+a direct init.) as illustrated in Fgure 10.
+Only manoeuvres that concern exclusively platoon follow-
+ers can be instantiated directly by the PL. For instance, a PL
+cannot command an FV to join its platoon without a priorrequest of the FV to join. This idea imposes that joining is
+always initiated through an FV. However, by designing an
+additional sub-manoeuvre where the PL requests an FV to
+join, the SEAD framework can also adapt to this paradigm.
+I. MANOEUVRE DESIGN LANGUAGE
+Although the visual description of manoeuvres and
+sub-manoeuvres is easily comprehensible for humans,
+machines will not be able to process it. To allow exi-
+bly redesigning manoeuvres and sub-manoeuvres, we have
+developed a Manoeuvre Design Language (MDL) that
+directly translates from and into a graphical representa-
+tion. In the future, a graphical editor to create and export
+manoeuvres and sub-manoeuvres as JSON MDL les will
+help to easily design manoeuvres graphically and to directly
+feed them into simulation systems. The simulation system
+parses the MDL le and generates the code required for the
+VOLUME 9, 2021 128403
+
+--- Page 12 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+FIGURE 10. Proactive manoeuvring engine (PME). A manoeuvre can either be initiated through an acknowledged request
+through NEGOTIATE or directly through the LLI of the PL.
+execution of manoeuvres according to the SEAD framework.
+The MDL is based on JSON and was inspired by the syntax
+and structure of the Amazon States Language. One JSON
+MDL le has a unique ID (or action ID) and describes a
+(sub-)manoeuvre following a xed syntax. The syntax of the
+language is outside of the scope of this paper but can be
+accessed in [34].
+V. CONCLUSION AND FUTURE WORK
+This paper introduces the SEAD framework that simplies
+the formulation of manoeuvres for vehicle platooning. It is
+based on the four principles of Standardisation, Encapsu-
+lation, Abstraction and Decoupling (SEAD). As previous
+research has shown [1], vehicle platooning has the potential
+to substantially increase road capacity and trafc throughput,
+providing a potential solution for trafc systems to adapt
+to the ever-increasing trafc demand. Although vehicle pla-
+tooning is a promising concept, it remains challenging to
+dene and describe collaborative manoeuvres. This poses a
+bottleneck in the development pace of the platooning concept
+and hampers its applicability in real-world scenarios.
+The design of the SEAD framework was conceptualised to
+resolve four key shortcomings of the state-of-the-art descrip-
+tion of manoeuvres using coupled state machines: First, as a
+manoeuvre description consists of one state machine per
+participant, the reader must synchronise the state machines to
+understand the manoeuvre. Second, the investigated schemas
+reveal varying conceptual depth within and among manoeu-
+vre description as well as, third, differing verbal descrip-
+tions of equivalent components. This heterogeneity makes
+it difcult to understand and compare manoeuvres. Finally,
+various action-communication patterns surfaced in multiple
+manoeuvre descriptions, making them seem more complex
+than they are.
+The SEAD framework is a rst step to formalise the Pla-
+toon Layer of an Automated Highway System. It providesthe means to conduct further research on the performance
+of manoeuvre variations, alternatives and platoon forming
+strategies. There are two main future research elds involving
+the proposed framework.
+A. IMPROVING AND EXTENDING THE SEAD FRAMEWORK
+Once the required simulation tools for platooning in urban
+environments are in place, further building blocks may be
+designed extending the SEAD framework. The framework
+will allow formulating complex urban manoeuvres such as
+LEA VE MIDDLE AND TURN LEFT (or LMTL), yet the fur-
+ther development of primitives, sub-manoeuvres, and com-
+munication patterns will be required.
+To increase the adoptability and usability of the SEAD
+framework, future research could focus on developing a
+stand-alone application-agnostic tool that models the Pla-
+toon Layer according to the presented framework. However,
+since the Platoon Layer and the Regulation Layer are closely
+interconnected through the Action Primitives, an elaborate
+communication interface between these two layers needs to
+be developed to allow for modularisation.
+Furthermore, although the proposed framework allows
+dening elaborate abort structures for manoeuvres and sub-
+manoeuvres, it does not propose an abort-and-retry structure.
+Once elaborate models are in place to evaluate if a second
+attempt could be successful, higher-order manoeuvres and
+re-modularisation of certain sequential parts of a manoeuvre
+provide the opportunity to implement such abort-and-retry
+structures.
+B. EMPOWERING FURTHER STUDIES
+As mentioned before, the biggest advantage of the SEAD
+framework is its capability of designing manoeuvre variants
+and alternatives through re-arranging the sub-manoeuvres
+once all building blocks are implemented and the RSM
+128404 VOLUME 9, 2021
+
+--- Page 13 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+dened all required state transitions. This allows for various
+dynamic investigations.
+For instance, trafc simulators implementing the frame-
+work such as BEHA VE [35] could provide a means to identify
+the most efcient alternative of a manoeuvre through simulat-
+ing all possible alternatives and measuring the execution time,
+success rate, and trafc ow inuence of the alternatives.
+Using the same approach, different platoon formation strate-
+gies (Weakest-in-Front, Last-in-at-Tail, dynamic contextual
+strategies etc.) could be investigated regarding their inuence
+on the overall trafc ow. The SEAD architecture has already
+been implemented and is a critical part of the Autonomous
+Vehicle Driver Model architecture described in [36].
+The proposed framework utilises a timeout-strategy so that
+manoeuvres are not leading into a deadlock if, for instance,
+a human-driven vehicle is blocking the way to complete a
+manoeuvre. The timeout-strategy, however, is a mechanism to
+ensure deadlock-freeness. Research may investigate further
+models to identify blocking situations with a low likelihood
+of manoeuvre success to interrupt the manoeuvre using as a
+trigger an event rather than a time-out. Otherwise, simulations
+may allow to numerically optimise the time-out parameters
+with, for instance, the overall trafc ow as the objective
+variable to maximise.
+After all, platoon manoeuvring is a powerful yet complex
+technique to full the ever-increasing trafc demand with
+the given capacities we have. Further research will have
+to investigate many more gaps and nd the most effective
+strategies to maximise trafc throughput. To unlock the full
+potential of platooning, the SEAD framework aims to pave
+the way for this future research by providing a formalisation
+of the platooning logic and simplifying the way how new
+manoeuvres are created and existing ones are compared and
+optimised.
+REFERENCES
+[1] P. Varaiya, ``Smart cars on smart roads: Problems of control,'' IEEE Trans.
+Autom. Control, vol. 38, no. 2, pp. 195207, Feb. 1993.
+[2] D. N. Godbole, F. Eska, E. Singh, and P. Varaiya, ``Design of entry and
+exit maneuvers for IVHS,'' in Proc. Amer. Control Conf. (ACC), vol. 5,
+Jun. 1995, pp. 35763580.
+[3] A. Hsu, F. Eska, S. Sachs, and P. Varaiya, ``Protocol design for an
+automated highway system,'' Discrete Event Dyn. Syst., vol. 2, nos. 34,
+pp. 183206, Feb. 1993.
+[4] J. Ivanchev, D. Zehe, V. Viswanathan, S. Nair, and A. Knoll, ``Bisos:
+Backwards incremental system optimum search algorithm for fast socially
+optimal trafc assignment,'' in Proc. IEEE 19th Int. Conf. Intell. Transp.
+Syst. (ITSC), Nov. 2016, pp. 21372142.
+[5] M. Amoozadeh, H. Deng, C.-N. Chuah, H. M. Zhang, and D. Ghosal,
+``Platoon management with cooperative adaptive cruise control enabled by
+V ANET,'' Veh. Commun., vol. 2, no. 2, pp. 110123, 2015.
+[6] A. Hsu, S. Sachs, F. Eska, and P. Varaiya, ``The design of platoon maneu-
+vers for IVHS,'' in Proc. Amer. Control Conf., Jun. 1991, pp. 25452550.
+[7] R. Rajamani, H.-S. Tan, B. K. Law, and W.-B. Zhang, ``Demonstration of
+integrated longitudinal and lateral control for the operation of automated
+vehicles in platoons,'' IEEE Trans. Control Syst. Technol., vol. 8, no. 4,
+pp. 695708, Jul. 2000.
+[8] E. M. Clarke and R. P. Kurshan, ``Computer-aided verication,'' IEEE
+Spectr., vol. 33, no. 6, pp. 6167, Jun. 1996.
+[9] H. H. Bengtsson, L. Chen, A. Voronov, and C. Englund, ``Interaction
+protocol for highway platoon merge,'' in Proc. IEEE 18th Int. Conf. Intell.
+Transp. Syst., Sep. 2015, pp. 19711976.[10] M. Segata, B. Bloessl, S. Joerer, F. Dressler, and R. L. Cigno, ``Supporting
+platooning maneuvers through IVC: An initial protocol analysis for the
+JOIN maneuver,'' in Proc. 11th Annu. Conf. Wireless On-Demand Netw.
+Syst. Services (WONS), Apr. 2014, pp. 130137.
+[11] X.-Y. Lu and J. K. Hedrick, ``Longitudinal control algorithm for automated
+vehicle merging,'' Int. J. Control, vol. 76, no. 2, pp. 193202, 2003.
+[12] X.-Y. Lu, H.-S. Tan, S. E. Shladover, and J. K. Hedrick, ``Automated
+vehicle merging maneuver implementation for AHS,'' Vehicle Syst. Dyn,
+vol. 41, no. 2, pp. 85107, 2004.
+[13] C. Nowakowski, D. Thompson, S. E. Shladover, A. Kailas, and
+X.-Y. Lu, ``Operational concepts for truck maneuvers with cooperative
+adaptive cruise control,'' Transp. Res. Rec., vol. 2559, no. 1, pp. 5764,
+2016.
+[14] H.-H. Hsu and A. Liu, ``Platoon lane change maneuvers for automated
+highway systems,'' in Proc. IEEE Conf. Robot., Automat. Mechatronics,
+vol. 2, Dec. 2004, pp. 780785.
+[15] H. C.-H. Hsu and A. Liu, ``Kinematic design for platoon-lane-change
+maneuvers,'' IEEE Trans. Intell. Transp. Syst., vol. 9, no. 1, pp. 185190,
+Jan. 2008.
+[16] E. S. Kazerooni and J. Ploeg, ``Interaction protocols for cooperative merg-
+ing and lane reduction scenarios,'' in Proc. IEEE 18th Int. Conf. Intell.
+Transp. Syst., Sep. 2015, pp. 19641970.
+[17] M. C. Best, ``Optimisation of high-speed crash avoidance in autonomous
+vehicles,'' Int. J. Vehicle Auton. Syst., vol. 10, no. 4, pp. 337354, 2012.
+[18] W. Choi and D. Swaroop, ``Assessing the safety benets due to coordina-
+tion amongst vehicles during an emergency braking maneuver,'' in Proc.
+Amer. Control Conf., vol. 3, Jun. 2001, pp. 20992104.
+[19] J. Frankel, L. Alvarez, R. Horowitz, and P. Li, ``Safety oriented maneuvers
+for IVHS,'' Vehicle Syst. Dyn., vol. 26, no. 4, pp. 271299, 1996.
+[20] M. Goli and A. Eskandarian, ``Evaluation of lateral trajectories with dif-
+ferent controllers for multi-vehicle merging in platoon,'' in Proc. Int. Conf.
+Connected Vehicles Expo (ICCVE), Nov. 2014, pp. 673678.
+[21] A.-C. Huang and Y. J. Chen, ``Safe platoon control of automated highway
+systems,'' Proc. Inst. Mech. Eng., I, J. Syst. Control Eng., vol. 215, no. 5,
+pp. 531543, Aug. 2001.
+[22] S. Kato, S. Tsugawa, K. Tokuda, T. Matsui, and H. Fujii, ``Vehicle control
+algorithms for cooperative driving with automated vehicles and interve-
+hicle communications,'' IEEE Trans. Intell. Transp. Syst., vol. 3, no. 3,
+pp. 155161, Sep. 2002.
+[23] P. Li, L. Alvarez, and R. Horowitz, ``AHS safe control laws for platoon
+leaders,'' IEEE Trans. Control Syst. Technol., vol. 5, no. 6, pp. 614628,
+Nov. 1997.
+[24] D. K. Murthy and A. Masrur, ``Braking in close following platoons: The
+law of the weakest,'' in Proc. Euromicro Conf. Digit. Syst. Design (DSD),
+Aug. 2016, pp. 613620.
+[25] D. K. Murthy and A. Masrur, ``A subplatooning strategy for safe brak-
+ing maneuvers,'' in Proc. Euromicro Conf. Digit. Syst. Design (DSD),
+Aug. 2017, pp. 375382.
+[26] J. E. Naranjo, C. Gonzalez, R. Garcia, and T. D. Pedro, ``Lane-change
+fuzzy control in autonomous vehicles for the overtaking maneuver,'' IEEE
+Trans. Intell. Transp. Syst., vol. 9, no. 3, pp. 438450, Sep. 2008.
+[27] R. Rai, B. Sharma, and J. Vanualailai, ``Real and virtual leader-follower
+strategies in lane changing, merging and overtaking maneuvers,'' in
+Proc. 2nd AsiaPacic World Congr. Comput. Sci. Eng. (APWC CSE),
+Dec. 2015, pp. 112.
+[28] X. Sun, R. Horowitz, and C.-W. Tan, ``An efcient lane change maneuver
+for platoons of vehicles in an automated highway system,'' in Proc. ASME
+Int. Mech. Eng. Congr. Expo., Jan. 2003, pp. 355362.
+[29] D. Swaroop and S. M. Yoon, ``Integrated lateral and longitudinal vehicle
+control for an emergency lane change manoeuvre design,'' Int. J. Vehicle
+Des., vol. 21, nos. 23, pp. 161174, 1999.
+[30] G. Usman and F. Kunwar, ``Autonomous vehicle overtakingAn online
+solution,'' in Proc. IEEE Int. Conf. Automat. Logistics, Aug. 2009,
+pp. 596601.
+[31] Z. Wang, G. Wu, P. Hao, K. Boriboonsomsin, and M. Barth, ``Developing
+a platoon-wide eco-cooperative adaptive cruise control (CACC) system,''
+inProc. IEEE Intell. Vehicles Symp. (IV), Jun. 2017, pp. 12561261.
+[32] C. Bergenhem, ``Approaches for facilities layer protocols for platoon-
+ing,'' in Proc. IEEE 18th Int. Conf. Intell. Transp. Syst., Sep. 2015,
+pp. 19891994.
+[33] IEEE Guide for Wireless Access in Vehicular Environments (WAVE)
+Architecture, Standard 1609.0-2013, IEEE, 2014.
+VOLUME 9, 2021 128405
+
+--- Page 14 ---
+J. Ivanchev et al.: Hierarchical State-Machine-Based Framework for Platoon Manoeuvre Descriptions
+[34] C. DeBoeser, ``Towards a hierarchical state-machine-based framework for
+platoon manoeuvre descriptions,'' M.S. thesis, Dept. Inform., Technical
+Univ. Munich, Munich, Germany, 2019.
+[35] J. Ivanchev, T. Braud, D. Eckhoff, D. Zehe, A. Knoll, and
+A. Sangiovanni-Vincentelli, ``On the need for novel tools and models for
+mixed trafc analysis,'' in Proc. 26th Int. Transp. Syst. World Congr.,
+Singapore, 2019, pp. 18.
+[36] T. Braud, J. Ivanchev, C. Deboeser, A. Knoll, D. Eckhoff, and
+A. Sangiovanni-Vincentelli, ``A VDM: A hierarchical command- and-
+control system architecture for cooperative autonomous vehicles in high-
+ways scenario using microscopic simulations,'' Auto. Agents Multi-Agent
+Syst., vol. 35, no. 1, pp. 130, Apr. 2021.
+JORDAN IVANCHEV (Member, IEEE) received
+the Ph.D. degree in computer science from Tech-
+nische Universität München (TUM), in 2017.
+In June 2013, he joined TUMCREATE to work
+on trafc modeling and optimization, where he is
+currently a Senior Research Fellow. His research
+interests include mixed trafc modeling and sim-
+ulation, automated simulation calibration, optimal
+sensor placement problems, social optimal routing
+strategies, trafc modeling, and sensing and con-
+trol (jordan.ivanchev@tum-create.edu.sg).
+CORVIN DEBOESER received the M.Sc. degree
+in mechanical engineering from Technische Uni-
+versität München (TUM), Germany, in 2019,
+under the supervision of Dr. A. Knoll. His
+research interests include autonomous vehicle
+platooning and modeling of electric vehicles
+(deniscorvin.deboeser@bears-berkeley.sg).
+THOMAS BRAUD received the Ph.D. degree
+in computer science from Sorbonne University,
+in 2018. In 2018, he joined the Area-Interlinking
+Design Analysis Group, TUMCREATE, as a
+Research Fellow. Since 2018, he has been involved
+in a joint project between TUMCREATE and the
+University of California, Berkeley. His research
+interests include mixed trafc modeling and
+simulation, sensor fusion algorithms, and lastly,
+modeling autonomous vehicle driving behaviour
+(thomas.braud@tum-create.edu.sg).
+ALOIS KNOLL received the Ph.D. degree in
+computer science from the Technical University of
+Berlin. In 1993, he joined the Technical Faculty of
+the University of Bielefeld, where he was a Full
+Professor and the Director of the Technical Infor-
+matics Research Group, until 2001. Since Autumn
+2001, he has been a Professor of computer science
+with the Computer Science Department, Tech-
+nische Universität München. His research inter-
+ests include cognitive, medical and sensor-based
+robotics, multi-systems, data fusion, adaptive systems, and multimedia infor-
+mation retrieval (knoll@in.tum.de).
+DAVID ECKHOFF (Member, IEEE) received the
+Dr.-Ing. degree (Hons.) in engineering, in 2016.
+In October 2016, he joined TUMCREATE, Sin-
+gapore, a joint research institute by TU Munich
+and Nanyang Technical University, Singapore,
+where he is currently a Principal Investigator.
+His research interests include privacy protection,
+smart cities, vehicular networks, and intelligent
+transportation systems with a particular focus
+on modeling and simulation (david.eckhoff@
+tum-create.edu.sg).
+ALBERTO SANGIOVANNI-VINCENTELLI holds
+Buttner Chair at the Department of EECS, Uni-
+versity of California, Berkeley. He is an ACM
+Fellow and a member of the National Academy
+of Engineering. He was a recipient of Kaufman
+Award of the Electronic Design Automation Coun-
+cil for ``pioneering contributions to EDA'' and the
+IEEE/RSE Maxwell Medal ``for groundbreaking
+contributions that have had an exceptional impact
+on the development of electronics and electrical
+engineering or related elds'' (alberto@berkeley.edu).
+128406 VOLUME 9, 2021

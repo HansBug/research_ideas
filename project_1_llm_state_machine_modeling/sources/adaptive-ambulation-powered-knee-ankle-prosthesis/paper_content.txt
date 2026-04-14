@@ -1,0 +1,505 @@
+--- Page 1 ---
+Powered Knee and Ankle Prosthesis Control for Adaptive 
+Ambulation at Variable Speeds, Inclines, and Uneven Terrains
+Liam M. Sullivan ,
+Department of Mechanical Engineering and Robotics Center at the University of Utah.
+Suzi Creveling ,
+Department of Mechanical Engineering and Robotics Center at the University of Utah.
+Marissa Cowan ,
+Department of Mechanical Engineering and Robotics Center at the University of Utah.
+Lukas Gabert ,
+Department of Mechanical Engineering and Robotics Center at the University of Utah.
+Rocky Mountain Center for Occupational and Environmental Health.
+Tommaso Lenzi ,
+Department of Mechanical Engineering and Robotics Center at the University of Utah.
+Rocky Mountain Center for Occupational and Environmental Health.
+Department of Biomedical Engineering at the University of Utah
+Member, IEEE
+Department of Mechanical Engineering and Robotics Center at the University of Utah.
+Abstract
+Ambulation in everyday life requires walking at variable speeds, variable inclines, and variable 
+terrains. Powered prostheses aim to provide this adaptability through control of the actuated 
+joints. Some powered prosthesis controllers can adapt to discrete changes in speed and incline 
+but require manual tuning to determine the control parameters, leading to poor clinical viability. 
+Other data-driven controllers can continuously adapt to changes in speed and incline but do 
+so by imposing the same non-amputee gait patterns for all amputee subjects, which does not 
+consider subjective preferences and differing clinical needs of users. Here, we present a controller 
+for powered knee and ankle prostheses that can continuously adapt to different walking speeds, 
+inclines, and uneven terrains without enforcing a specific prosthesis position, impedance, or 
+torque. A virtual biarticular muscle connection determines the knee flexion torque, which changes 
+with both speed and slope. Adaptation to inclines and uneven terrains is based solely on the global 
+shank orientation. Continuously variable damping allows for speed adaptation. Minimum-jerk 
+programming defines the prosthesis swing trajectory at variable cadences. Experiments with one 
+individual with an above-knee amputation suggest that the proposed controller can effectively 
+adapt to different walking speeds, inclines, and rough terrains.
+Corresponding author: Liam M. Sullivan, 1.sullivan@utah.edu. 
+HHS Public Access
+Author manuscript
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Published in final edited form as:
+Rep U S . 2023 October ; 2023: 2128–2133. doi:10.1109/iros55552.2023.10342504.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 2 ---
+I. Introduction
+Ambulation with conventional passive prostheses is slow and inefficient, resulting in poor 
+mobility and quality of life for individuals with lower-limb amputations [ 1]. Powered 
+prostheses have the potential to address this problem by closely matching the torque, speed, 
+and power capabilities of biological legs [ 2]–[5]. However, the clinical viability of powered 
+prostheses is limited by the ability of available controllers to adapt to the variability of the 
+real world.
+Powered prosthesis controllers aim to imitate the biomechanical function of the human leg 
+during ambulation. To this end, most controllers assume that the ambulation task is periodic 
+and break down the gait cycle into a discrete number of phases [ 2], [6] or a continuous 
+phase evolution [ 7], [8], often using finite-state machines [ 9]. Based on the online estimate 
+of the discrete or continuous gait phase, the controller defines a desired torque [ 6], [10], 
+impedance [ 9], [11], or position [ 9], [11] of the powered prosthesis joint. The specific 
+values of the torque, impedance, and position for each gait phase can be manually tuned by 
+the experimenter [ 12] or automatically selected based on non-amputee datasets [ 10]. This 
+approach attempts to imitate the function of the intact human leg at different walking speeds, 
+cadences, and terrain inclines, which can be estimated online using the sensors embedded in 
+the prosthesis.
+Controllers that rely on manual tuning of the impedance settings during each discrete 
+gait phase adapt to changes in speed and incline by defining behavior between discrete 
+thresholds (e.g., −10°, 0°, 10° incline, slow, normal, fast speed) [ 13]. This approach works 
+well, but only close to the thresholds. Increasing the number of thresholds can improve 
+function but is not clinically viable due to the time needed to manually determine the control 
+parameters between each threshold and during each gait phase.
+Some prosthesis controllers can continuously adapt to changes in speed [ 10] or incline 
+[14], [15]. These controllers do not require manual tuning because they are based on data 
+recorded from non-amputee subjects ambulating at different speeds and inclines. Continuous 
+adaptation more accurately matches able-bodied kinematics and kinetics compared to 
+discrete adaptation and does not require subject-specific tuning [ 14]. However, purely 
+data-driven approaches require large datasets, including every possible combination of 
+speed, incline, terrain roughness, and compliance. Moreover, a purely data-driven approach 
+imposes the same gait pattern for all subjects. Therefore, it does not consider personal 
+preference or other important factors such as the length of the residual limb, strength of the 
+user, or sound-limb functionality.
+Control based on invariant behaviors in non-amputee biomechanics is an alternative 
+approach to achieving continuous adaptation without enforcing a specific gait pattern. For 
+example, minimum-jerk programming allows for continuous adaptation to speed, cadence, 
+and clearance in swing without imposing a predefined trajectory [ 11]. Similarly, using the 
+global orientation of the shank in impedance controllers allows for continuous adaptation to 
+different inclines, and even to rough terrains, in below-knee prostheses [ 15]. Invariant gait 
+behaviors could lead to speed and incline adaptive controllers for powered prostheses.Sullivan et al. Page 2
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 3 ---
+In this paper, we present a controller for powered knee and ankle prostheses that can 
+continuously adapt to different walking speeds, inclines, and uneven terrains. The proposed 
+controller is inspired by invariant non-amputee biomechanics and does not enforce a 
+specific prosthesis position, impedance, or torque. A virtual biarticular muscle connection 
+determines the knee flexion torque. Adaptation to inclines and uneven terrains is based 
+solely on the global shank orientation. Continuously variable damping allows for speed 
+adaptation. Minimum-jerk programming defines the prosthesis swing trajectory at variable 
+speeds without assuming that the movement is periodic. The goal of this paper is to validate 
+the proposed controller in one individual with an above-knee amputation walking at different 
+speeds, different inclines, and on rough terrain, using a powered knee and ankle prosthesis.
+II. Methods
+A. Controller
+The proposed controller uses dedicated control methods for the knee and ankle modules 
+during stance (foot on the ground) and swing (foot off the ground). A finite-state machine 
+switches from stance to swing when the vertical ground reaction force (GRF) measures 
+below 40 N (6% of user weight), and swing to stance when the GRF measures above 120 N 
+(18% of user weight) (Fig. 1).
+During stance, we determine the desired knee torque as the sum of two components: a 
+virtual damping torque and a virtual biarticular torque ( TBiart) as shown in (1).
+TKnee= −BKnee⋅θ˙Knee+TBiart
+(1)
+The virtual damping torque is proportional and opposite to the prosthesis knee velocity. 
+Different damping coefficient values are used for extension θ˙Knee< 0 and flexion θ˙Knee> 0, 
+as shown in (2).
+BKnee=BExtθKnee, ifθ˙Knee< 0
+BFlexθTℎigℎ, ifθ˙Knee> 0
+(2)
+The extension damping coefficient BExt changes with prosthesis knee position (Fig. 2(a)) 
+to slow the knee joint as it approaches full extension. BExt is zero when the knee position 
+is flexed more than 20°. As the knee extends from 20° to 10°, BExt increases linearly until 
+it reaches a maximum value of 0.1 Nm/kg. The flexion damping coefficient BFlex depends 
+on the global orientation of the residual thigh θTℎigℎ, which is negative when the thigh 
+is anterior and positive when posterior. BFlex is at its maximum value of 0.3 Nm/kg when 
+the prosthesis is in front of the user θTℎigℎ< 0, preventing the knee from collapsing in 
+early stance and mid-stance (Fig. 2(b)). Thigh angle increases as the residual thigh moves 
+posteriorly and BFlex decreases linearly to 0 between 5° and 10°. This allows the prosthetic 
+knee joint to flex and initiate swing in late stance. The second component of the desired Sullivan et al. Page 3
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 4 ---
+knee torque in stance is the virtual biarticular torque TBiart.TBiart provides knee flexion 
+torque that increases with ankle plantarflexion torque, as shown in (3). TBiart imitates the 
+function of the gastrocnemius muscle, which flexes the knee when the ankle plantarflexes.
+TBiart= −KBiartθKnee ⋅TAnkleFlex
+(3)
+The biarticular gain KBiart depends on the position of the knee ( θKnee) (Fig. 2(c)). KBiart is at 
+its maximum value of 0.5 when the knee is flexed less than 20°. KBiart decreases linearly to 0 
+from 20° to 30° of flexion. This position-dependent gain limits the biarticular flexion torque 
+in late stance, preventing excessive knee flexion.
+In stance, we define the desired ankle torque using an impedance-inspired controller as 
+shown in (4).
+TAnkle =TSℎank+TB
+(4)
+The first term in the ankle torque equation (4) is shank torque TSℎank. TSℎank defines a desired 
+ankle torque proportional to the (negated) global orientation of the shank θSℎank as shown in 
+(5). θSℎank is negative when anterior and positive when posterior.
+TSℎank=KSℎank⋅0 −θSℎank= −KSℎank⋅θSℎank
+(5)
+TSℎank is equivalent to creating a virtual ankle stiffness in which the deformation is equivalent 
+to the difference between the gravity vector (i.e., 0°), which works as an equilibrium angle, 
+and the θSℎank (Fig. 2(d)). Therefore, TSℎank pushes the shank back to a vertical position 
+regardless of the ankle position. This virtual stiffness increases with the absolute value of 
+θSℎank, replicating the trend of ankle stiffness observed in non-amputee individuals [ 16].
+The second term in the ankle torque equation (4) is a virtual damping torque (6–7) (Fig. 2 
+(e–f)).
+TB= −BAnkle ⋅θ˙Ankle
+(6)
+BAnkle =BDFvHip, ifθ˙Ankle < 0
+BPFvHip, ifθ˙Ankle > 0
+(7)
+Both dorsiflexion damping BDF and plantarflexion damping BPF depend on an online 
+estimate of the walking speed, vℎip (Fig. 3). As walking speed increases, we decrease the Sullivan et al. Page 4
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 5 ---
+magnitude of both BPF and BDF from maximum values of 1.3 and 1.2 Nm/kg, respectively, to 
+0. Decreased ankle damping results in less plantarflexion torque during dorsiflexion (early 
+and mid-stance) and more plantarflexion torque during plantarflexion (late stance). The net 
+result is more energy injected by the powered ankle during stance when walking speed 
+increases, similar to non-amputee subject behavior [ 17]. Notably, both the plantarflexion and 
+the dorsiflexion damping torques saturate at 0 N.
+We use the hip’s horizontal velocity vHip as an approximation of walking speed in stance. 
+vHip comes from a trigonometric equation based on the joint positions and velocities (Fig. 3) 
+as shown in (8).
+vHip=sinα+θFoot⋅lFoot⋅θ˙Foot+cosθSℎank⋅lSℎank⋅θ˙Sℎank+cosθTℎigℎ⋅lTℎigℎ⋅θ˙Tℎigℎ
+(8)
+During swing, we define the desired positions of the knee and ankle joints using a minimum-
+jerk optimizer [ 10]. The minimum-jerk optimizer creates an optimally smooth position 
+trajectory based on the position and velocity of the prosthetic joints at the transition between 
+stance and swing (Fig. 4), imitating able-bodied movements [ 18]. In the proposed controller, 
+the end knee position of a swing trajectory is always zero. However, the desired swing 
+duration is adapted online when the controller transitions from stance to swing based on 
+the position of the ankle at the transition (Fig. 4). This approach is inspired by human 
+biomechanics. As walking speed increases, cadence increases, reducing swing duration. 
+Also, as walking speed increases the ankle position at the transition between stance and 
+swing increases. The relationship between ankle joint position at the stance to swing 
+transition and the subsequent swing duration is represented in our controller with (9).
+Tswing =Kswing ⋅θAnkleTO
+(9)
+B. Hardware
+In this study, we used the Utah Bionic Leg, a self-contained, battery-operated, lightweight 
+robotic leg prosthesis [ 5]. The Utah Bionic Leg consists of independent knee and ankle/foot 
+modules capable of replicating the key biomechanical functions of the biological knee, 
+ankle, and toe during ambulation. The powered knee module uses a torque-sensitive actuator 
+[19]. The powered ankle/foot module has two articulated joints, an ankle and a toe, which 
+are powered by a single actuator using a compliant underactuated mechanism [ 20]. A 
+custom instrumented pyramid adapter is located at the top of the ankle module to estimate 
+the vertical ground reaction force (GRF) and torque in the sagittal plane [ 21]. The knee and 
+ankle/foot modules are mechanically connected with a standard prosthetic pylon, which is 
+cut to size for each user, as in commercially available prostheses. Combined, the powered 
+knee and ankle/foot modules weigh 3.2 kg including batteries and protective covers.Sullivan et al. Page 5
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 6 ---
+C. Experimental Protocol and Data Analysis
+For this study, we recruited one subject with an above-knee amputation (30 years old, 65 
+kg, 178 cm, 9 years post-amputation). The subject is a full community ambulator (K3 
+classification) and uses the Freedom Plie Knee with an AllPro foot. The subject had 
+prior experience with this powered prosthesis through participation in other studies. The 
+Institutional Review Board at the University of Utah approved the study protocol. The 
+subject provided informed consent to participate in the study and for the publication of 
+photos and videos from the experiment.
+A certified prosthetist fit and aligned the prosthesis prior to the experiment. After a short 
+period of unstructured familiarization time, the subject walked on a level treadmill at 0.72 
+m/s, 1 m/s, and 1.25 m/s for 60 seconds each after reaching steady state speed. Next, they 
+walked on a treadmill at 1 m/s on inclines of 0%, 5%, and 10% grade (0°, 2.86°, and 5.71°) 
+for 60 seconds each after reaching steady state speed at each incline. Finally, they performed 
+10 trials of walking on rough terrain, in which they stepped once on level ground and then 
+stepped twice with their prosthesis on a Sensa semi-rigid terrain patch Sensa (Ottobock, 
+Item #: 752T1). We chose these trial lengths to capture enough strides to account for normal 
+gait variability, while minimizing any concerns with the subject getting tired during the test. 
+As an extra safety precaution, we asked the subject to rest their hands on the handrails 
+whenever possible.
+Kinematics and GRF data were recorded at 500 Hz by sensors embedded in the prosthesis. 
+Data was processed offline in MATLAB. First, we segmented each stride from prosthesis 
+heel strike to prosthesis heel strike, using the GRF readings. Then we interpolated each 
+stride to 1,000 samples and computed average joint trajectories for each tested condition 
+separately. Power was calculated as joint velocity multiplied by torque supplied by the 
+motor. Energy injection per stride was calculated as the integral of the joint power over time 
+during stance. Stride, stance, and swing durations were calculated using GRF readings. We 
+analyzed the kinematic data to find the maximum and minimum knee and ankle joint angles, 
+as well as the position of the ankle joint when the shank reached vertical angle θSℎank= 0.
+III. Results
+A. Variable Speed
+The proposed controller automatically adapted the behavior of the powered prosthesis during 
+stance and swing when the subject walked at different speeds (Fig. 6). Stride duration 
+decreased with walking speed, averaging 1.74 ± 0.03 s, 1.47 ± 0.03 s, and 1.30 ± 0.02 s, for 
+0.72 m/s, 1.0 m/s, and 1.25 m/s, respectively. Moreover, as the walking speed increased, the 
+ankle position at toe off (colored dots, Fig. 6(a)) also increased, resulting in decreased swing 
+durations of 0.60 ± 0.02 s to 0.55 ± 0.03 s to 0.51 ± 0.01 s for 0.72 m/s, 1.0 m/s, and 1.25 
+m/s, respectively. Peak ankle angles increased at each speed, ranging from 5.7 ± 0.4° to 10.4 
+± 1.6° to 16.7 ± 0.5° in plantarflexion and −10.5 ± 0.2° to −11.9 ± 0.7° to −15.1 ± 0.4° in 
+dorsiflexion for 0.72 m/s, 1.0 m/s, and 1.25 m/s, respectively. These peaks were reached at 
+around the same point in stride regardless of speed, at an average of 64 ± 1% of stride for 
+plantarflexion and 45 ± 2% for dorsiflexion. Toe-off occurred at 63 ± 2% of stride across Sullivan et al. Page 6
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 7 ---
+speeds. Peak knee angles varied minimally across the three speeds, at 69 ± 2°, 69 ± 3°, and 
+71 ± 1°.
+Finally, energy injected increased with each walking speed, from 0.089 ± 0.005 J/kg to 0.14 
+± 0.03 J/kg to 0.16 ± 0.04 J/kg at 0.72 m/s, 1.0 m/s, and 1.25 m/s, respectively. The slope 
+of the line-of-best-fit for these values is 0.14, similar to an able-bodied reference data fit of 
+0.26 [ 17].
+B. Variable Incline
+The proposed controller automatically adapted to different treadmill inclines (Fig. 7). There 
+was little variation in the maximum ankle plantarflexion angle, which was 11.3 ± 0.7°, 
+12.1 ± 1.4°, and 11.3 ± 2.1°, for 0%, 5%, and 10% grade, respectively, occurring at 65.6 
+± 1.6% of stride across grades. In contrast, the peak ankle dorsiflexion angle changed 
+visibly, reaching −11.4 ± 0.3°, −15.7 ± 0.5°, and −18.6 ± 0.5°, for 0%, 5%, and 10% 
+grade, respectively, and occurring at 47 ± 2% of stride across grades. Knee position did 
+not vary substantially, with maximum positions of 66 ± 3°, 72 ± 2°, and 73 ± 2°, for 
+0%, 5%, and 10% grade, respectively, and occurring at 72 ± 1% of stride across grades. 
+Notably, there was no early stance knee flexion, a key characteristic of nonamputee gait. 
+This result is likely due to the user exaggerating hip extension after heel strike, which is 
+a common compensatory movement used by above-knee amputees to lock the prosthetic 
+knee in extension and avoid knee buckling when they walk with their prescribed passive 
+prostheses. Ankle energy increased visibly with the treadmill incline (Fig. 7 (b)). At 0%, 
+5%, and 10% grades, the ankle energy was 0.03 ± 0.05 J/kg, 0.09 ± 0.08 J/kg, and 0.14 ± 
+0.02 J/kg, respectively. The slope of the line-of-best-fit to these energies is 0.011, closely 
+matching the able-bodied reference trend of 0.013 [ 22]. When the shank was vertical with 
+respect to gravity θSℎank= 0, the angle of the ankle was 3.8 ± 0.3%, 8.7 ± 0.3%, and 14.1 
+± 0.5% at the 0%, 5%, and 10% grade, respectively. The slope of the line-of-best-fit for the 
+ankle angles at shank vertical is 1.03, showing the ability of the proposed controller to match 
+the treadmill incline.
+C. Rough Terrain
+The variability of the ankle joint trajectory was substantially higher when walking on rough 
+terrains than on flat ground (Fig. 8(a)). Specifically, during stance, the average of the 
+standard deviation of the ankle position across all strides on rough terrain was 7.3°, while 
+the knee and shank positions had an average standard deviation of 0.6° and 3.5°, respectively 
+(Fig. 8(d)).
+Comparatively, during stance in flat ground walking, the average standard deviations of 
+the ankle, knee, and shank position were 1.0°, 0.2°, and 2.2°, respectively. The difference 
+between flat ground and rough terrain average standard deviation of positions was 6.3° for 
+the ankle, 0.4° for the knee, and 1.3° for the shank.Sullivan et al. Page 7
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 8 ---
+IV. Discussion
+A. Significance
+Seamless adaptation to different walking speeds, cadences, ground inclinations and terrain 
+roughness is necessary for powered prostheses to work in the real world. In this paper, 
+we show a control approach that enables continuous and automatic adaptation to walking 
+speed, incline, and terrain without imposing a predefined trajectory. The proposed controller 
+is inspired by invariant characteristics of nonamputee gait, such as shank-based impedance, 
+biarticular muscle function, and minimum-jerk movements. The controller parameters were 
+initially set to match nonamputee biomechanics in simulation and later refined through 
+pilot experiments with amputee subjects. Our experimental data from one individual with 
+an above-knee amputation suggests that the proposed controller can effectively adapt to 
+different walking speeds, inclines, and rough terrains.
+Adaptation to different walking speeds requires modulating the energy injected by the 
+powered prosthesis into the gait cycle at the ankle joint. The proposed controller modulates 
+this ankle energy by varying the ankle damping based on an online estimate of walking 
+speed. The specific relationship between ankle damping and walking speed used in this 
+experiment was originally determined while non-amputee subjects walked on the prosthesis 
+using a bypass adapter and refined through experiments with amputee subjects. The ankle 
+energy for this amputee participant follows the trend measured in non-amputee subjects [ 17], 
+although the prosthetic ankle energy was slightly higher than the nonamputee reference to 
+better match subject preference (Fig. 6(b)).
+Adaptation to different walking speeds also requires changing the duration of swing. The 
+proposed controller changes the swing duration based on the ankle angle at toe off. The 
+greater the ankle angle at toe off, the faster the swing. This relationship provided similar 
+results to our previous work, in which we used stance time to modulate swing [ 10]. 
+However, this controller removes the assumption that the ambulation task is periodic, which 
+may lead to better behavior for non-steady-state gait including starting and stopping, turning, 
+and cutting.
+Walking at variable inclines and on rough terrains requires rapid adaptation of the foot 
+orientation to match the ground in mid-stance, when the shank is roughly vertical. The 
+proposed controller uses the global orientation of the shank to define the ankle torque 
+across inclines. A similar approach was previously used in a powered ankle prosthesis for a 
+below-knee amputee [ 15]. However, the previous study only used the shank angle to adapt 
+to the ground in mid-stance and not to modulate the ankle push off behavior. Our study 
+contributes to the field by showing that shank-based ankle impedance can provide both 
+ground adaptation and energy modulation. Our results show that shank-based impedance 
+control leads to biomimetic ankle energy increases with increasing ground inclinations. 
+Moreover, we show for the first time that this adaptation mechanism can be used in powered 
+knee and ankle prostheses for above-knee amputees.Sullivan et al. Page 8
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 9 ---
+B. Limitations
+This study has several limitations. The most significant is that we only recruited one 
+amputee subject. Therefore, we do not know if the controller can generalize to other 
+individuals. Additionally, we only tested three different speeds and three different treadmill 
+inclines. Although the behavior of the controller is continuous by design, we do not know 
+how the controller will behave when the speed and incline changes continuously. We also 
+do not know how the controller behaves at speeds and inclines that were not tested. Finally, 
+we did not test the ability of the controller to adapt to the needs and subjective preference of 
+the user. The behavior of the powered prosthesis is determined by a few key parameters. For 
+example, the adaptation to different inclines and rough terrains could be changed by altering 
+the stiffness of the shank impedance. Energy injected by the powered ankle at different 
+walking speeds may be changed by altering the ankle damping, and cadence could be 
+changed by altering the relationship between the ankle position and the swing duration. We 
+did not perform tests altering these components. Therefore, although the proposed controller 
+does not enforce non-amputee prosthesis trajectories, we do not know whether it can be 
+personalized to each subject.
+V. Conclusion
+This study presents a powered prosthesis controller that continuously and automatically 
+adapts to different walking speeds, inclines, and rough terrain without enforcing nonamputee 
+impedance or position trajectories. Future work should focus on testing with a broader 
+population, more speeds, and more inclines to assess the generalization and personalization 
+capabilities of the proposed controller.
+Acknowledgments
+Research supported by the National Institutes of Health under grant number R01 HD098154/HD/NICHD, the 
+National Institute for Occupational Safety and Health under Grant T42/CCT810426, and the US Department of 
+Defense under Grant W81XWH2110037.
+References
+[1]. Schmalz T, Blumentritt S, and Jarasch R, “Energy expenditure and biomechanical characteristics 
+of lower limb amputee gait: The influence of prosthetic alignment and different prosthetic 
+components.” [Online]. Available: www.elsevier.com/locate/gaitpost
+[2]. Lawson BE, Mitchell J, Truex D, Shultz A, Ledoux E, and Goldfarb M, “A Robotic Leg 
+Prosthesis: Design, Control, and Implementation,” IEEE Robot Autom Mag, vol. 21, no. 4, pp. 
+70–81.
+[3]. Azocar AF, Mooney LM, Duval J-F, Simon AM, Hargrove LJ, and Rouse EJ, “Design and clinical 
+implementation of an open-source bionic leg,” Nat Biomed Eng, vol. 4, no. 10, pp. 941–953, Oct. 
+2020. [PubMed: 33020601] 
+[4]. Elery T, Rezazadeh S, Nesler C, and Gregg RD, “Design and Validation of a Powered Knee–Ankle 
+Prosthesis With High-Torque, Low-Impedance Actuators,” IEEE Transactions on Robotics, vol. 
+36, no. 6, pp. 1649–1668, Dec. 2020 [PubMed: 33299386] 
+[5]. Tran M, Gabert L, Hood S, and Lenzi T, “A lightweight robotic leg prosthesis replicating the 
+biomechanics of the knee, ankle, and toe joint,” Sci Robot, vol. 7, no. 72, Nov. 2022.
+[6]. Tran M, Gabert L, Cempini M, and Lenzi T, “A Lightweight, Efficient Fully Powered Knee 
+Prosthesis with Actively Variable Transmission,” IEEE Robot Autom Lett, vol. 4, no. 2, pp. 
+1186–1193, Apr. 2019.Sullivan et al. Page 9
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 10 ---
+[7]. Gregg RD, Lenzi T, Hargrove LJ, and Sensinger JW, “Virtual Constraint Control of a 
+Powered Prosthetic Leg: From Simulation to Experiments With Transfemoral Amputees,” IEEE 
+Transactions on Robotics, vol. 30, no. 6, pp. 1455–1471.
+[8]. Quintero D, Villarreal DJ, Lambert DJ, Kapp S, and Gregg RD, “Continuous-Phase Control of 
+a Powered Knee–Ankle Prosthesis: Amputee Experiments Across Speeds and Inclines,” IEEE 
+Transactions on Robotics, vol. 34, no. 3, pp. 686–701, Jun. 2018. [PubMed: 30008623] 
+[9]. Rezazadeh S, Quintero D, Divekar N, Reznick E, Gray L, and Gregg RD, “A Phase Variable 
+Approach for Improved Rhythmic and Non-Rhythmic Control of a Powered Knee-Ankle 
+Prosthesis,” IEEE Access, vol. 7, pp. 109840–109855, 2019. [PubMed: 31656719] 
+[10]. Lenzi T, Hargrove L, and Sensinger J, “Speed-adaptation mechanism: Robotic prostheses can 
+actively regulate joint torque,” IEEE Robot Autom Mag, vol. 21, no. 4, pp. 94–107, Dec. 2014.
+[11]. Mendez J, Hood S, Gunnel A, and Lenzi T, “Powered knee and ankle prosthesis with indirect 
+volitional swing control enables level-ground walking and crossing over obstacles,” Sci Robot, 
+vol. 5, no. 44, Jul. 2020.
+[12]. Simon AM et al. , “Configuring a Powered Knee and Ankle Prosthesis for Transfemoral 
+Amputees within Five Specific Ambulation Modes,” PLoS One, vol. 9, no. 6, p. e99387, Jun. 
+2014. [PubMed: 24914674] 
+[13]. Sup F, Varol HA, and Goldfarb M, “Upslope Walking With a Powered Knee and Ankle 
+Prosthesis: Initial Results With an Amputee Subject,” IEEE Transactions on Neural Systems 
+and Rehabilitation Engineering, vol. 19, no. 1, pp. 71–78, Feb. 2011. [PubMed: 20952344] 
+[14]. Best TK, Welker CG, Rouse EJ, and Gregg RD, “Data-Driven Variable Impedance Control of a 
+Powered Knee–Ankle Prosthesis for Adaptive Speed and Incline Walking,” IEEE Transactions on 
+Robotics, pp. 1–19, 2023.
+[15]. Shultz AH, Lawson BE, and Goldfarb M, “Variable Cadence Walking and Ground 
+Adaptive Standing With a Powered Ankle Prosthesis,” IEEE Transactions on Neural Systems 
+and Rehabilitation Engineering, vol. 24, no. 4, pp. 495–505, Apr. 2016, doi: 10.1109/
+TNSRE.2015.2428196. [PubMed: 25955789] 
+[16]. Shamaei K, Sawicki GS, and Dollar AM, “Estimation of Quasi-Stiffness and Propulsive Work 
+of the Human Ankle in the Stance Phase of Walking,” PLoS One, vol. 8, no. 3, p. e59935, Mar. 
+2013. [PubMed: 23555839] 
+[17]. Palmer ML, “Sagittal plane characterization of normal human ankle function across a range of 
+walking gait speeds,” Massachusetts Institute of Technology, 2002.
+[18]. Pham Q-C, Hicheur H, Arechavaleta G, Laumond J-P, and Berthoz A, “The formation of 
+trajectories during goal-oriented locomotion in humans. II. A maximum smoothness model,” 
+European Journal of Neuroscience, vol. 26, no. 8, pp. 2391–2403, Oct. 2007. [PubMed: 
+17953626] 
+[19]. Tran M, Gabert L, and Lenzi T, “Analysis and Validation of Sensitivity in Torque-Sensitive 
+Actuators,” Actuators, vol. 12, no. 2, p. 80, Feb. 2023. [PubMed: 37008252] 
+[20]. Gabert L, Tran M, and Lenzi T, “Design of an Underactuated Powered Ankle and Toe 
+Prosthesis,” in 2021 43rd Annual International Conference of the IEEE Engineering in Medicine 
+& Biology Society (EMBC), IEEE, Nov. 2021, pp. 4920–4923.
+[21]. Gabert L and Lenzi T, “Instrumented Pyramid Adapter for Amputee Gait Analysis and Powered 
+Prosthesis Control,” IEEE Sens J, vol. 19, no. 18, pp. 8272–8282, Sep. 2019.
+[22]. Lay AN, Hass CJ, and Gregor RJ, “The effects of sloped surfaces on locomotion: A kinematic 
+and kinetic analysis,” J Biomech, vol. 39, no. 9, pp. 1621–1628, 2006. [PubMed: 15990102] Sullivan et al. Page 10
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 11 ---
+Fig. 1. 
+High level control algorithm for stance and swing controller selection based on ground 
+reaction force.Sullivan et al. Page 11
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 12 ---
+Fig. 2. 
+Stance knee and ankle control relationships. (a) Extension knee damping coefficient 
+relationship with knee angle. (b) Flexion knee damping coefficient relationship with thigh 
+angle. (c) Biarticular knee torque gain as a function of knee angle. (d) Ankle virtual 
+stiffness torque as a function of joint angle, equilibrium angle, and gain. (e) Ankle damping 
+relationship in dorsiflexion (DF) θ˙Ankle< 0 as a function of hip velocity. (f) Ankle damping 
+relationship in plantarflexion (PF) θ˙Ankle> 0 as a function of hip velocity.Sullivan et al. Page 12
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 13 ---
+Fig. 3. 
+Kinematic model of leg joint angles and segment lengths used to calculate horizontal hip 
+velocity.Sullivan et al. Page 13
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 14 ---
+Fig. 4. 
+Minimum jerk trajectory planning creates a smooth swing profile based on joint position 
+and velocity at the stance to swing transition (TO), ending at a set swing time calculated 
+by the ankle position at TO [ 10]. (a) Swing trajectories at positive, zero, and negative joint 
+velocities at the transition to swing phase. (b) Swing trajectories at equal joint velocities but 
+differing ankle toe-off angles at the transition to swing phase.Sullivan et al. Page 14
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 15 ---
+Fig. 5. 
+Side view of participant wearing the Utah Bionic Leg during the experiment.Sullivan et al. Page 15
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 16 ---
+Fig. 6. 
+Steady state walking on a flat treadmill at 0.72 m/s, 1.0 m/s and 1.25 m/s. Ankle (a) and 
+knee (c) angles from heel strike (HS) to HS, with a solid line representing average values 
+and shaded region representing one standard deviation above and below the average values. 
+Solid dots indicate stance to swing TO point. (b) Energy injected by the ankle during stance 
+phase, with solid dots representing average energy injection, error bars representing ± one 
+standard deviation, and the gray dashed line and shaded region representing able-bodied 
+energy values [ 17]. (d) Stance (solid) and swing (transparent) phase times of stride at each 
+speed, with error bars representing ± one standard deviation.Sullivan et al. Page 16
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 17 ---
+Fig. 7. 
+Steady-state walking at 1.0 m/s and inclines of 0%, 5%, and 10% grade. Ankle (a) and 
+knee (c) angles from heel strike (HS) to HS, with a solid line representing average values 
+and shaded region representing one standard deviation above and below the average values. 
+Solid dots indicate stance to swing TO point. (b) Energy injected by the ankle during stance 
+phase, with solid dots representing average energy injection, error bars representing ± one 
+standard deviation, and the gray dashed line and shaded region representing able-bodied 
+energy values [ 22]. (d) Angle of the ankle when the shank reaches vertical during midstance 
+phase of stride. Error bars indicating ± one standard deviation are hidden behind markers.Sullivan et al. Page 17
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 18 ---
+Fig. 8. 
+Rough and flat ground walking. Ankle (a), knee (b), and shank (c) angle from HS to HS, 
+with solid lines representing average values and shaded regions representing one standard 
+deviation above and below the average values. (d) The average standard deviation of angles 
+in stance, representing the average of the standard deviations in the plots above.Sullivan et al. Page 18
+Rep U S . Author manuscript; available in PMC 2024 March 22.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript

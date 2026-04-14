@@ -1,0 +1,1454 @@
+--- Page 1 ---
+Citation: Koumboulis, F.N.;
+Fragkoulis, D.G.; Panagiotakis, G.E.;
+Mavroeidis, E. Safe Performance of
+an Industrial Autonomous Ground
+Vehicle in the Supervisory Control
+Framework. Electronics 2023 ,12, 5035.
+https://doi.org/10.3390/
+electronics12245035
+Academic Editors: Andrea Bonci,
+Jianchao Luo and Jun Xu
+Received: 16 October 2023
+Revised: 13 December 2023
+Accepted: 14 December 2023
+Published: 17 December 2023
+Copyright: © 2023 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+electronics
+Article
+Safe Performance of an Industrial Autonomous Ground Vehicle
+in the Supervisory Control Framework
+Fotis N. Koumboulis1
+, Dimitrios G. Fragkoulis1,*
+, George E. Panagiotakis1,2and Efthimios Mavroeidis2
+1Robotics, Automatic Control and Cyber-Physical Systems Laboratory, Department of Digital
+Industry Technologies, School of Science, National and Kapodistrian University of Athens, Euripus Campus,
+34400 Euboea, Greece; fkoumboulis@dind.uoa.gr (F.N.K.)
+2Core Department, National and Kapodistrian University of Athens, Euripus Campus, 34400 Euboea, Greece
+*Correspondence: dfragkoulis@dind.uoa.gr
+Abstract: A Cyberphysical system, being an autonomous guided vehicle (AGV) and having diverse
+applications such as thematic parks and product transfer in manufacturing units, is modeled and
+controlled. The models of all subsystems of the AGV are provided in discrete event systems (DES)
+form following the Ramadge–Wonham (R–W) framework. The safe performance of the AGV , being
+the desired behavior of the system, is presented in the form of desired rules and translated into
+a set of regular languages. Then, the regular languages are realized as supervisory automata in
+the framework of Supervisory Control Theory (SCT). To ease implementation and coordination
+of the control architecture, the supervisors are designed to be in two-state automata forms. The
+controllability of the regular languages, regarding the AGV , will be proved, using the physical
+realizability (PR) of the synchronous product of the automata of the system and the supervisors. Also,
+the nonblocking property of all the controlled automata will be proven to be satisﬁed. Simulation of
+the controlled AGV will validate the proposed method.
+Keywords: AGV; discrete event systems; supervisory control theory
+1. Introduction
+Manufacturing Cyberphysical Systems (CPS), (also known as cybermanufacturing
+systems [ 1], are continuing to expand, following the directions of Industry 4.0 [ 2–5]. This
+way, all the parts of a manufacturing process are appropriately interconnected to share their
+information, e.g., through the Industrial Internet of Things (IIOT), and they are controlled
+or monitored by industrial computers [ 3]. Clearly, the control of the coordination of such a
+complex system is a key factor for successful integration [ 6,7]. Furthermore, the safety and
+security demands of manufacturing CPSs make even more difﬁcult their analysis, design,
+and modeling. Thus, the use of approaches based on formal methods becomes more and
+more a necessity [ 7,8]. Regular languages and linear temporal logic are two efﬁcient tools
+to describe, at a high level, the desired behavior of the manufacturing process [ 7], where
+the ﬁrst tool is inherently related to Supervisory Control Theory (SCT) [9,10].
+SCT is based on the modeling of CPSs as a ﬁnite symbolic system. SCT often uses
+abstractions of the real CPS. The ﬁrst aim of SCT is the synthesis of a supervisory control
+architecture conﬁguration, enforcing the desired behavior of the process while being as
+permissive as possible. The second aim is the easy and robust implementation of the
+designed scheme to the real CPS. The main issue in SCT design is the size and complexity
+of the total symbolic mathematical model, including all CPS’s devices and subsystems, as
+their size and complexity tend to grow exponentially with respect to the development of
+new technologies [ 11,12]. Another issue of SCT, which aims to provide formal and effective
+solutions, is cyberattacks at the level of the physical part of the CPS [13–15].
+The use of intelligent assistants in manufacturing CPS in various areas of applications
+is becoming a normal trend [ 16–18]. Automated Guided Vehicles (AGVs) are used for
+Electronics 2023 ,12, 5035. https://doi.org/10.3390/electronics12245035 https://www.mdpi.com/journal/electronics
+
+--- Page 2 ---
+Electronics 2023 ,12, 5035 2 of 20
+intelligent transfers, not only in manufacturing, product processing, and product storage,
+but also in the large infrastructures of the modern economy. In such systems, SCT is
+used for coordination control [ 6]. The use of specially designed AGVs that navigate and
+cooperate autonomously is met in a large class of manufacturing CPSs [6,19,20].
+In [21–23], an AGV product of the ETF Group [ 24], called multimover, has been in-
+troduced and described. Multimover is usually used as a ride system in theme parks and
+museums, as well as at special events. This AGV follows a ﬂoor-integrated electrical wire,
+producing a magnetic ﬁeld that is measured by the embedded track sensors of the AGV .
+Furthermore, appropriate codes are placed on the ﬂoor surface in certain positions near
+the wire and at points of particular interest, e.g., the starting point and any destination
+point. Multimover reads the ﬂoor codes using appropriate metal detectors. Using multi-
+mover, an industrial AGV has been proposed in a study [ 6] and is used as a forklift that
+transfers products between ﬁxed stations. The architecture of this AGV is identical to that
+of multimover, in the sense that they have the same devices and subsystems. The AGV ,
+proposed in [ 6], is equipped with a product lifting and carrying mechanism in forklift
+conﬁguration. It is important to mention that the operation of the lifting and carrying
+mechanism is treated independently from the operation of multimover. The model of this
+multimover-type industrial AGV has been developed in [ 6] and is proposed to be used in
+manufacturing systems. The model is based on state- and event-based abstractions of the
+actual devices of the systems and their respective low-level controllers. Thus, this model
+describes the real behavior of the low-level controlled devices of the AGV . Based on its
+characteristics and applications, multimover can be used as a general-purpose AGV .
+In [21,22], the mathematical description of this type of AGV is given using discrete
+event systems (DES). In [ 21], for brevity reasons, only some components are presented,
+while in [ 22], descriptions of the sensors and actuators of the vehicle are given. Furthermore,
+in [22], the supervisory control level is studied for the case where the desired requirements
+are realized using rules of logical expressions. In [ 21,22], as well as in [ 6], the controllability
+and nonblocking issues are not investigated.
+Here, the description of the AGV for manufacturing use, proposed in [ 6], is expressed
+using 6-tuple DES in the R-W framework [ 9,10]. The navigation motors and controllers,
+the proximity and bumper sensors, and the LEDs and buttons are modeled separately.
+The design requirements of the system are introduced in the form of rules. The rules are
+translated into regular languages. This is a contribution of the present work. Following
+the design approaches proposed in [25–28], a general two-state supervisor that covers the
+desired regular languages is introduced. The controllability of the desired languages is
+proven with regard to the total CPS. This property is proved via the physical realizability
+(PR) [ 29] of the supervisors in the synchronous product of the system’s automaton and
+the supervisors. The controllability property of the desired languages is a necessary and
+sufﬁcient condition for the proposed supervisors to be physically realizable, see [ 9,10,29].
+This is another contribution of the present work. An analytic proof of the nonblocking
+property of the controlled system is given. This is the third contribution of the paper. Finally,
+it is important to mention that the present control scheme is event-based, while in [ 6], the
+supervisors are state-dependent. Here, the proposed supervisory scheme responds to
+changes in the system through the appearance of the signal corresponding to the change.
+This way, a faster execution of control with respect to changes may be derived.
+The ﬁrst motivation of the paper is the huge number of applications of AGVs. So, the
+present work was directed at the analytic modeling, and supervisor design of AGVs that
+are clearly offered for the development of extended or new supervisor designs. The second
+motivation is the clear need to implement event-based and simple supervisors. The third
+motivation is the need to ensure satisfactory system performance by proving controllability
+through PR and the nonblocking characteristics of the inﬂuence of the supervisors.
+The material of the paper is grouped into six sections. In Section 2, the mathematical
+model of the AGV , in the form of 6-tuple DES models of its subsystems, will be presented.
+In Section 3, the desired behavior, in the form of rules and in the form of regular languages,
+
+--- Page 3 ---
+Electronics 2023 ,12, 5035 3 of 20
+will be proposed. In Section 4, a general two-state supervisor automaton will be proposed
+to cover all realizations of the desired regular languages. In Section 5, the implementation
+issues of the derived supervisors are discussed. In Section 6, indicative simulation results
+are presented.
+2. DES Model of the AGV
+2.1. A Brief Description of the AGV
+The class of AGVs studied in the present paper includes autonomous driving electric
+vehicles with embedded batteries, controlled via computers. This class of AGVs is produced
+by ETF Group in the Netherlands, and it is called multimover. In [ 21,22], an abstraction
+of the actual functionality of the vehicle that incorporates the low-level controllers of the
+AGV is presented in the form of DES models. In [ 6], multimover is used for industrial
+manufacturing. In Figure 1, an indicative form of industrial AGV is presented. AGVs can
+be used in various applications, as they can be found to be installed in manufacturing
+or logistic facilities [ 6] as well as in theme parks [ 21]. Each AGV of the present class is
+equipped with two different motors, one for driving and one for steering, a controller for
+the riding coordination, a battery level sensor, two proximity sensors, one bumper sensor,
+three LEDs indicating the forward and backward movement and the mode status, and
+three buttons for forward, backward, and reset selection. Each of the above devices is a
+separate subsystem of the AGV . Additionally, the operation modes of the vehicle constitute
+one more subsystem, being the central subsystem of the AGV .
+Electronics  2023, 12, 5035 3 of 22 
+ 
+ The material of the paper is grouped into six sections. In Section 2, the mathematical 
+model of the AGV, in the form of 6-tuple DES models of its subsystems, will be presented. 
+In Section 3, the desired behavior, in the form of rules and in the form of regular lan-
+guages, will be proposed. In Section 4, a general two-state supervisor automaton will be 
+proposed to cover all realizations of the desired regular languages. In Section 5, the im-
+plementation issues of the derived supervisors are discussed. In Section 6, indicative sim-
+ulation results are presented. 
+2. DES Model of the AGV 
+2.1. A Brief Description of the AGV 
+The class of AGVs studied in the present paper includes autonomous driving electric 
+vehicles with embedded ba Ĵeries, controlled via computers. This class of AGVs is pro-
+duced by ETF Group in the Netherlands, and it is called multimover. In [21,22], an ab-
+straction of the actual functionality of the vehicle that incorporates the low-level control-
+lers of the AGV is presented in the form of DES models. In [6], multimover is used for 
+industrial manufacturing. In Figure 1, an indicative form of industrial AGV is presented. 
+AGVs can be used in various applications, as they can be found to be installed in manu-
+facturing or logistic facilities [6] as well as in theme parks [21]. Each AGV of the present 
+class is equipped with two diﬀerent motors, one for driving and one for steering, a con-
+troller for the riding coordination, a ba Ĵery level sensor, two proximity sensors, one 
+bumper sensor, three LEDs indicating the forward and backward movement and the 
+mode status, and three bu Ĵons for forward, backward , and reset selection. Each of the 
+above devices is a separate subsystem of the AGV. Additionally, the operation modes of 
+the vehicle constitute one more subsystem, being the central subsystem of the AGV.  
+In the following subsections, the models of the subsystems will be presented in the 
+form of 6-tuple automata in the R-W framework. For 6-tuple forms of DES in the R-W 
+framework, see [25–28]. The DES models of the subsystems will be derived following the 
+respective directions in [6], where a hybrid model for the present class of AGVs has been 
+introduced. The overall model of the AGV will be derived from the synchronous product 
+of the models of its subsystems. Regarding the synchronous product, see [9,10]. 
+ 
+Figure 1. An indicative form of AGVs for product transfer. 
+Before presenting the models of all devices of the AGV, it is important to mention 
+that the following assumptions, introduced in [6,21,22], are also adopted here: 
+1. There is no fault in the resource control of the AGV. Hence, all the given commands 
+are executed correctly. This assumption is valid as the already embedded resource 
+controllers of the AGV have passed various quality and functionality tests.  
+Figure 1. An indicative form of AGVs for product transfer.
+In the following subsections, the models of the subsystems will be presented in the
+form of 6-tuple automata in the R-W framework. For 6-tuple forms of DES in the R-W
+framework, see [ 25–28]. The DES models of the subsystems will be derived following the
+respective directions in [ 6], where a hybrid model for the present class of AGVs has been
+introduced. The overall model of the AGV will be derived from the synchronous product
+of the models of its subsystems. Regarding the synchronous product, see [9,10].
+Before presenting the models of all devices of the AGV , it is important to mention that
+the following assumptions, introduced in [6,21,22], are also adopted here:
+1. There is no fault in the resource control of the AGV . Hence, all the given commands
+are executed correctly. This assumption is valid as the already embedded resource
+controllers of the AGV have passed various quality and functionality tests.
+2. The communication delay between the AGV and the supervisors is practically equal to
+zero. Thus, the synchronization of the supervisors and the events of the AGV is immediate.
+
+--- Page 4 ---
+Electronics 2023 ,12, 5035 4 of 20
+2.2. Operation Subsystem
+The DES model of the AGV operation modes is
+GMM = (QMM,EMM,fMM,HMM,xMM ,0,QMM ,m).
+The state set of GMMisQMM =fqMM ,1,qMM ,2,qMM ,3g. The AGV has three different
+operational modes: the emergency mode, the reset mode, and the active mode. The state
+qMM ,1represents the emergency mode. The state qMM ,2represents the reset mode. The state
+qMM ,3represents the active mode. The alphabet of GMMisEMM =feMM ,1,eMM ,2,eMM ,3g.
+The event eMM ,1is the command to switch to reset mode. The event eMM ,2is the command
+to switch to active mode. The event eMM ,3is the command to switch to emergency mode.
+xMM ,0=qMM ,1is the initial state and QMM ,m=fqMM ,1gis the marked state set. The active
+events sets of GDMare:
+HMM(qMM ,1) =feMM ,1g,HMM(qMM ,2) =feMM ,2,eMM ,3g,HMM(qMM ,3) =feMM ,1,eMM ,3g.
+The transitions of GMMare:
+fMM(qMM ,1,eMM ,1) =qMM ,2,fMM(qMM ,2,eMM ,2) =qMM ,3,fMM(qMM ,2,eMM ,3) =qMM ,1,
+fMM(qMM ,3,eMM ,1) =qMM ,2,fMM(qMM ,3,eMM ,3) =qMM ,2.
+The controllable event set is EMM ,c=feMM ,1,eMM ,2gand the uncontrollable event set
+isEMM ,uc=feMM ,3g. The marked behavior and the closed behavior of GMMare:
+Lm(GMM) =
+eMM ,1(eMM ,2eMM ,1)+ (eMM ,2eMM ,1)eMM ,2
+eDM,3,L(GMM) =L(GMM).
+Obviously, GMMis a nonblocking automaton [9,10]. In Figure 2, the state diagram of
+GMMis depicted.
+Electronics  2023, 12, 5035 4 of 22 
+ 
+ 2. The communication delay between the AGV and the supervisors is practically equal 
+to zero. Thus, the synchronization of the supervisors and the events of the AGV is 
+immediate. 
+2.2. Operation Subsystem 
+The DES model of the AGV operation modes is  
+,0 , ( , , , , , )MM MM MM MM MM MM MM m f x G    . 
+The state set of MMG is ,1 ,2 ,3{ , , }MM MM MM MMq q q . The AGV has three diﬀerent op-
+erational modes: the emergency mode, the reset mode, and the active mode. The state 
+,1MMq represents the emergency mode. The state ,2MMq represents the reset mode. The 
+state ,3MMq  represents the active mode. The alphabet of MMG  is 
+,1 ,2 ,3{ , , }MM MM MM MMe e e . The event ,1MMe is the command to switch to reset mode. The 
+event ,2MMe is the command to switch to active mode. The event ,3MMe is the command 
+to switch to emergency mode. ,0 ,1MM MMx q is the initial state and , ,1{ }MM m MMq  is the 
+marked state set. The active events sets of DMG are: 
+,1 ,1( ) { }MM MM MMq e  , ,2 ,2 ,3( ) { , }MM MM MM MMq e e  , ,3 ,1 ,3( ) { , }MM MM MM MMq e e  . 
+The transitions of MMG are:  
+,1 ,1 ,2( , )MM MM MM MMf q e q , ,2 ,2 ,3( , )MM MM MM MMf q e q , ,2 ,3 ,1( , )MM MM MM MMf q e q , 
+,3 ,1 ,2( , )MM MM MM MMf q e q , ,3 ,3 ,2( , )MM MM MM MMf q e q . 
+The controllable event set is , ,1 ,2{ , }MM c MM MMe e  and the uncontrollable event set is 
+, ,3{ }MM uc MMe . The marked behavior and the closed behavior of MMG are: 
+  ** *
+,1 ,2 ,1 ,2 ,1 ,2 ,3 ( ) ( ) ( )m MM MM MM MM MM MM MM DM e e e e e e e G , ( ) ( )MM MMG G  . 
+Obviously, MMG is a nonblocking automaton [9,10]. In Figure 2, the state diagram 
+of MMG is depicted. 
+eMM,1
+qMM,3 qMM,2 qMM,1eMM,2
+eMM,3
+eMM,3
+ 
+Figure 2. State diagram of MMG. 
+2.3. Drive Motor Subsystem 
+The DES model of the drive motor (DM) is: 
+,0 , ( , , , , , )DM DM DM DM DM DM DM m f x G     
+The state set of DMG is ,1 ,2 ,3{ , , }DM DM DM DMq q q . DM has three diﬀerent operations 
+(OFF operation, ON operation, and STOPPING operation). The state ,1DMq represents the 
+OFF mode, ,2DMqrepresents the ON mode, and ,3DMq represents the STOPPING mode. 
+The alphabet of DMG is ,1 ,2 ,3 ,4 ,5{ , , , , }DM DM DM DM DM DMe e e e e . The event ,1DMe is the com-
+mand to move forward. The event ,2DMe is the command to DM to move backward. The 
+Figure 2. State diagram of GMM.
+2.3. Drive Motor Subsystem
+The DES model of the drive motor (DM) is:
+GDM= (QDM,EDM,fDM,HDM,xDM,0,QDM,m)
+The state set of GDMisQDM=fqDM,1,qDM,2,qDM,3g. DM has three different opera-
+tions (OFF operation, ON operation, and STOPPING operation). The state qDM,1represents
+the OFF mode, qDM,2represents the ON mode, and qDM,3represents the STOPPING mode.
+The alphabet of GDMisEDM=feDM,1,eDM,2,eDM,3,eDM,4,eDM,5g. The event eDM,1is the
+command to move forward. The event eDM,2is the command to DM to move backward.
+The event eDM,3is the command to DM to stop moving. The event eDM,4is the command to
+DM to be deactivated. The event eDM,5denotes the indication of a DM fault. xDM,0=qDM,1
+is the initial state and QDM,m=fqDM,1gis the marked state set of GDM. The active event
+sets of GDMare:
+HDM(qDM,1) =feDM,1,eDM,2,eDM,3g,HDM(qDM,2) =feDM,3,eDM,5g,
+HDM(qDM,5) =feDM,1,eDM,2,eDM,4,eDM,5g
+
+--- Page 5 ---
+Electronics 2023 ,12, 5035 5 of 20
+The transitions of GDMare:
+fDM(qDM,1,eDM,1) =qDM,2,fDM(qDM,1,eDM,2) =qDM,2,fDM(qDM,1,eDM,3) =qDM,3,
+fDM(qDM,2,eDM,3) =qDM,3,fDM(qDM,2,eDM,5) =qDM,1,fDM(qDM,3,eDM,1) =qDM,2,
+fDM(qDM,3,eDM,2) =qDM,2,fDM(qDM,3,eDM,4) =qDM,1,fDM(qDM,3,eDM,5) =qDM,1
+The controllable event set is EDM,c=feDM,1,eDM,2,eDM,3,eDM,4gand the uncontrollable
+event set is EDM,uc=feDM,5g. The marked behavior and the closed behavior of GDMare:
+Lm(GDM) =(eDM,1+eDM,2)
+eDM,5+(eDM,3(eDM,1+eDM,2))(eDM,5+eDM,3(eDM,4+eDM,5))+
++
+eDM,3(eDM,4+eDM,5) +((eDM,1+eDM,2)eDM,3)((eDM,4+eDM,5) + ( eDM,1+eDM,2)eDM,5),
+L(GDM) =L(GDM).
+Obviously, GDMis a nonblocking automaton. In Figure 3, the state diagram of GDM
+is depicted.
+Electronics  2023, 12, 5035 5 of 22 
+ 
+ event ,3DMe is the command to DM to stop moving. The event ,4DMe is the command to 
+DM to be deactivated. The event ,5DMe denotes the indication of a DM fault. ,0 ,1DM DMx q 
+is the initial state and , ,1{ }DM m DMq  is the marked state set of DMG. The active event 
+sets of DMG are:  
+,1 ,1 ,2 ,3( ) { , , }DM DM DM DM DMq e e e  , ,2 ,3 ,5( ) { , }DM DM DM DMq e e  , 
+,5 ,1 ,2 ,4 ,5( ) { , , , }DM DM DM DM DM DMq e e e e   
+The transitions of DMG are: 
+,1 ,1 ,2( , )DM DM DM DMf q e q , ,1 ,2 ,2( , )DM DM DM DMf q e q , ,1 ,3 ,3( , )DM DM DM DMf q e q , 
+,2 ,3 ,3( , )DM DM DM DMf q e q , ,2 ,5 ,1( , )DM DM DM DMf q e q , ,3 ,1 ,2( , )DM DM DM DMf q e q ,
+,3 ,2 ,2( , )DM DM DM DMf q e q , ,3 ,4 ,1( , )DM DM DM DMf q e q , ,3 ,5 ,1( , )DM DM DM DMf q e q  
+The controllable event set is , ,1 ,2 ,3 ,4{ , , , }DM c DM DM DM DMe e e e  and the uncontrollable 
+event set is , ,5{ }DM uc DMe . The marked behavior and the closed behavior of DMG are:  
+       
+       *
+,1 ,2 ,5 ,3 ,1 ,2 ,5 ,3 ,4 ,5
+**
+,3 ,4 ,5 ,1 ,2 ,3 ,4 ,5 ,1 ,2 ,5( ) ( ) ( ) ( )
+( ) ( ) ( ) ( )m DM DM DM DM DM DM DM DM DM DM DM
+DM DM DM DM DM DM DM DM DM DM DMe e e e e e e e e e
+e e e e e e e e e e e      
+      G
+, 
+( ) ( )DM DMG G  . 
+Obviously, DMG is a nonblocking automaton. In Figure 3, the state diagram of DMG 
+is depicted. 
+qDM,1
+eDM,1,eDM,2
+qDM,3 qDM,2eDM,5eDM,3eDM,4,eDM,5
+eDM,1,eDM,2
+eDM,3
+ 
+Figure 3. State diagram of DMG. 
+2.4. Steer Motor Subsystem 
+The DES model of the steer motor (SM) is:  
+,0 , ( , , , , , )SM SM SM SM SM SM SM m f x G     
+The state set of SMG is ,1 ,2{ , }SM SM SMq q . SM has two diﬀerent operations (OFF 
+and ON). The state ,1SMq represents OFF. The state ,2SMq represents ON. The alphabet of 
+SMG is ,1 ,2 ,3{ , , }SM SM SM SMe e e . The event ,1SMe is the command for SM to be activated. 
+The event ,2SMe is the command for SM to be deactivated. The event ,3SMe denotes an 
+indication of an SM fault. ,0 ,1SM SMx q is the initial state and , ,1{ }SM m SMq is the marked 
+state set of SMG. The active event sets of SMG are:  
+,1 ,1 ,3( ) { , }SM SM SM SMq e e  , ,2 ,2 ,3( ) { , }SM SM SM SMq e e   
+Figure 3. State diagram of GDM.
+2.4. Steer Motor Subsystem
+The DES model of the steer motor (SM) is:
+GSM= (QSM,ESM,fSM,HSM,xSM,0,QSM,m)
+The state set of GSMisQSM=fqSM,1,qSM,2g. SM has two different operations (OFF
+and ON). The state qSM,1represents OFF. The state qSM,2represents ON. The alphabet of
+GSMisESM=feSM,1,eSM,2,eSM,3g. The event eSM,1is the command for SM to be activated.
+The event eSM,2is the command for SM to be deactivated. The event eSM,3denotes an
+indication of an SM fault. xSM,0=qSM,1is the initial state and QSM,m=fqSM,1gis the
+marked state set of GSM. The active event sets of GSMare:
+HSM(qSM,1) =feSM,1,eSM,3g,HSM(qSM,2) =feSM,2,eSM,3g
+The transitions of GSMare:
+fSM(qSM,1,eSM,1) =qSM,2,fSM(qSM,1,eSM,3) =qSM,1,fSM(qSM,2,eSM,2) =qSM,1,
+fSM(qSM,2,eSM,3) =qSM,1
+The controllable event set is ESM,c=feSM,1,eSM,2gand the uncontrollable event set is
+ESM,uc=feSM,3g. The marked behavior and the closed behavior of GSMare:
+Lm(GSM) =
+e
+SM,3eSM,1(eSM,2+eSM,3),L(GSM) =Lm(GSM)
+Obviously, GSMis a nonblocking automaton. In Figure 4, the state diagram of GSM
+is depicted.
+
+--- Page 6 ---
+Electronics 2023 ,12, 5035 6 of 20
+Electronics  2023, 12, 5035 6 of 22 
+ 
+ The transitions of SMG are:  
+,1 ,1 ,2( , )SM SM SM SMf q e q , ,1 ,3 ,1( , )SM SM SM SMf q e q , ,2 ,2 ,1( , )SM SM SM SMf q e q , 
+,2 ,3 ,1( , )SM SM SM SMf q e q  
+The controllable event set is , ,1 ,2{ , }SM c SM SMe e  and the uncontrollable event set is 
+, ,3{ }SM uc SMe . The marked behavior and the closed behavior of SMG are:  
+ **
+,3 ,1 ,2 ,3 ( ) ( )m SM SM SM SM SM e e e e G , ( ) ( )SM m SMG G   
+Obviously, SMG is a nonblocking automaton. In Figure 4, the state diagram of SMG 
+is depicted. 
+qSM,1 qSM,2
+eSM,1eSM,2,eSM,3eSM,3
+ 
+Figure 4. State diagram of SMG. 
+2.5. Ride Control Subsystem 
+The DES model of ride control (RC) is:  
+,0 , ( , , , , , )RC RC RC RC RC RC RC m f x G     
+The state set of RCG is ,1 ,2{ , }RC RC RCq q . RC has two diﬀerent operations (START 
+and STOP). The state ,1RCq represents START and ,2RCq represents STOP. The alphabet 
+of RCG is ,1 ,2{ , }RC RC RCe e . The event ,1RCe is the signal from RC, indicating that it has 
+been deactivated. The event ,2RCe is the signal of RC, indicating that it has been activated. 
+,0 ,1RC RCx q is the initial state, and , ,1{ }RC m RCq  is the marked state set of RCG. The ac-
+tive event set of RCG are:  
+,1 ,2( ) ( )RC RC RC RC RCq q      
+The transitions of RCG are:  
+,1 ,1 ,2( , )RC RC RC RCf q e q , ,1 ,2 ,1( , )RC RC RC RCf q e q , ,2 ,1 ,2( , )RC RC RC RCf q e q ,  
+,2 ,2 ,1( , )RC RC RC RCf q e q  
+The controllable event set is ,RC c   and the uncontrollable event set is 
+,RC uc RC  . The marked behavior and the closed behavior of RCG are:  
+* * *
+,2 ,1 ,1 ,2 ( ) ( )m RC RC RC RC RC e e e eG , ( ) ( )RC m RCG G  . 
+Obviously, RCG is a nonblocking automaton. In Figure 5, the state diagram of RCG 
+is depicted. 
+Figure 4. State diagram of GSM.
+2.5. Ride Control Subsystem
+The DES model of ride control (RC) is:
+GRC= (QRC,ERC,fRC,HRC,xRC,0,QRC,m)
+The state set of GRCisQRC=fqRC,1,qRC,2g. RC has two different operations (START
+and STOP). The state qRC,1represents START and qRC,2represents STOP . The alphabet of
+GRCisERC=feRC,1,eRC,2g. The event eRC,1is the signal from RC, indicating that it has
+been deactivated. The event eRC,2is the signal of RC, indicating that it has been activated.
+xRC,0=qRC,1is the initial state, and QRC,m=fqRC,1gis the marked state set of GRC. The
+active event set of GRCare:
+HRC(qRC,1) =HRC(qRC,2) =ERC
+The transitions of GRCare:
+fRC(qRC,1,eRC,1) =qRC,2,fRC(qRC,1,eRC,2) =qRC,1,fRC(qRC,2,eRC,1) =qRC,2,
+fRC(qRC,2,eRC,2) =qRC,1
+The controllable event set is ERC,c=?and the uncontrollable event set is ERC,uc=
+ERC. The marked behavior and the closed behavior of GRCare:
+Lm(GRC) = ( e
+RC,2eRC,1e
+RC,1eRC,2),L(GRC) =Lm(GRC).
+Obviously, GRCis a nonblocking automaton. In Figure 5, the state diagram of GRC
+is depicted.
+Electronics  2023, 12, 5035 7 of 22 
+ 
+ qRC,1 qRC,2eRC,2
+eRC,1eRC,1 eRC,2
+ 
+Figure 5. State diagram of RCG. 
+2.6. BaĴery Level Sensor Subsystem 
+The DES model of the baĴery level  (BL) sensor is:  
+,0 , ( , , , , , )BL BL BL BL BL BL BL m f x G     
+The state set of BLG is ,1 ,2 ,3{ , , }BL BL BL BLq q q . The baĴery level  sensor has three dif-
+ferent operations (INACTIVE, ACTIVE, and RELOAD). The state ,1BLq represents the IN-
+ACTIVE operation. The state ,2BLq  represents the ACTIVE operation. The state ,3BLq 
+represents the RELOAD operation. The alphabet of BLG  is ,1 ,2 ,3{ , , }BL BL BL BLe e e  . The 
+event ,1BLe is the signal from the baĴery level  sensor, indicating that the ba Ĵery is ex-
+hausted. The event ,2BLe is the signal from the baĴery level  sensor, indicating that the 
+baĴery is reloading. The event ,3BLe is the signal from the baĴery level  sensor, indicating 
+that the ba Ĵery is full. ,0 ,1BL BLx q  is the initial state and , ,1{ }BL m BLq   is the marked 
+state set of BLG. The active event sets of BLG are:  
+,1 ,1( ) { }BL BL BLq e  , ,2 ,2( ) { }BL BL BLq e  , ,3 ,3( ) { }BL BL BLq e  . 
+The transitions of BLG are:  
+,1 ,1 ,2( , )BL BL BL BLf q e q , ,2 ,2 ,3( , )BL BL BL BLf q e q , ,3 ,3 ,1( , )BL BL BL BLf q e q . 
+The controllable event set is ,BL c   and the uncontrollable event set is 
+,BL uc BL  . The marked behavior and the closed behavior of BLG are:  
+*
+,1 ,2 ,3 ( ) ( )m BL BL BL BL e e eG , ( ) ( )BL m BLG G  . 
+Obviously, BLG is a nonblocking automaton. In Figure 6, the state diagram of BLG 
+is depicted. 
+eΒL,3qΒL,2 qΒL,3eΒL,1 eΒL,2
+qΒL,1
+ 
+Figure 6. State diagram of BLG. 
+2.7. Proximity Sensor Subsystem 
+The DES model of the i-th Proximity sensor (PR), where {1,2}i, is:  
+, , , , , , ,0 , ,( , , , , , )PS i PS i PS i PS i PS i PS i PS i m f x G     
+Figure 5. State diagram of GRC.
+2.6. Battery Level Sensor Subsystem
+The DES model of the battery level (BL) sensor is:
+GBL= (QBL,EBL,fBL,HBL,xBL,0,QBL,m)
+The state set of GBLisQBL=fqBL,1,qBL,2,qBL,3g. The battery level sensor has three
+different operations (INACTIVE, ACTIVE, and RELOAD). The state qBL,1represents the
+INACTIVE operation. The state qBL,2represents the ACTIVE operation. The state qBL,3
+represents the RELOAD operation. The alphabet of GBLisEBL=feBL,1,eBL,2,eBL,3g. The
+event eBL,1is the signal from the battery level sensor, indicating that the battery is exhausted.
+The event eBL,2is the signal from the battery level sensor, indicating that the battery is
+
+--- Page 7 ---
+Electronics 2023 ,12, 5035 7 of 20
+reloading. The event eBL,3is the signal from the battery level sensor, indicating that the
+battery is full. xBL,0=qBL,1is the initial state and QBL,m=fqBL,1gis the marked state set
+ofGBL. The active event sets of GBLare:
+HBL(qBL,1) =feBL,1g,HBL(qBL,2) =feBL,2g,HBL(qBL,3) =feBL,3g.
+The transitions of GBLare:
+fBL(qBL,1,eBL,1) =qBL,2,fBL(qBL,2,eBL,2) =qBL,3,fBL(qBL,3,eBL,3) =qBL,1.
+The controllable event set is EBL,c=?and the uncontrollable event set is EBL,uc=EBL.
+The marked behavior and the closed behavior of GBLare:
+Lm(GBL) = ( eBL,1eBL,2eBL,3),L(GBL) =Lm(GBL).
+Obviously, GBLis a nonblocking automaton. In Figure 6, the state diagram of GBL
+is depicted.
+Electronics  2023, 12, 5035 7 of 22 
+ 
+ qRC,1 qRC,2eRC,2
+eRC,1eRC,1 eRC,2
+ 
+Figure 5. State diagram of RCG. 
+2.6. BaĴery Level Sensor Subsystem 
+The DES model of the baĴery level  (BL) sensor is:  
+,0 , ( , , , , , )BL BL BL BL BL BL BL m f x G     
+The state set of BLG is ,1 ,2 ,3{ , , }BL BL BL BLq q q . The baĴery level  sensor has three dif-
+ferent operations (INACTIVE, ACTIVE, and RELOAD). The state ,1BLq represents the IN-
+ACTIVE operation. The state ,2BLq  represents the ACTIVE operation. The state ,3BLq 
+represents the RELOAD operation. The alphabet of BLG  is ,1 ,2 ,3{ , , }BL BL BL BLe e e  . The 
+event ,1BLe is the signal from the baĴery level  sensor, indicating that the ba Ĵery is ex-
+hausted. The event ,2BLe is the signal from the baĴery level  sensor, indicating that the 
+baĴery is reloading. The event ,3BLe is the signal from the baĴery level  sensor, indicating 
+that the ba Ĵery is full. ,0 ,1BL BLx q  is the initial state and , ,1{ }BL m BLq   is the marked 
+state set of BLG. The active event sets of BLG are:  
+,1 ,1( ) { }BL BL BLq e  , ,2 ,2( ) { }BL BL BLq e  , ,3 ,3( ) { }BL BL BLq e  . 
+The transitions of BLG are:  
+,1 ,1 ,2( , )BL BL BL BLf q e q , ,2 ,2 ,3( , )BL BL BL BLf q e q , ,3 ,3 ,1( , )BL BL BL BLf q e q . 
+The controllable event set is ,BL c   and the uncontrollable event set is 
+,BL uc BL  . The marked behavior and the closed behavior of BLG are:  
+*
+,1 ,2 ,3 ( ) ( )m BL BL BL BL e e eG , ( ) ( )BL m BLG G  . 
+Obviously, BLG is a nonblocking automaton. In Figure 6, the state diagram of BLG 
+is depicted. 
+eΒL,3qΒL,2 qΒL,3eΒL,1 eΒL,2
+qΒL,1
+ 
+Figure 6. State diagram of BLG. 
+2.7. Proximity Sensor Subsystem 
+The DES model of the i-th Proximity sensor (PR), where {1,2}i, is:  
+, , , , , , ,0 , ,( , , , , , )PS i PS i PS i PS i PS i PS i PS i m f x G     
+Figure 6. State diagram of GBL.
+2.7. Proximity Sensor Subsystem
+The DES model of the i-th Proximity sensor (PR), where i2f1, 2g, is:
+GPS,i= (QPS,i,EPS,i,fPS,i,HPS,i,xPS,i,0,QPS,i,m)
+The state set of GPS,iisQPS,i=fqPS,i,1,qPS,i,2g. PS has two different operations
+(INACTIVE and ACTIVE). The state qPS,i,1represents the case where PR is INACTIVE,
+and qPS,i,2represents the case where PS is ACTIVE. The alphabet of GPS,iisEPS,i=
+fePS,i,1,ePS,i,2g. The event ePS,i,1is the signal from PS indicating that an object has been
+detected nearby. The event ePS,i,2is the signal from PS indicating that the detected object
+has stopped. xPS,i,0=qPS,i,1is the initial state and QPS,i,m=fqPS,i,1gis the marked state
+set of GPS,i. The active event set of GPS,iare:
+HPS,i(qPS,i,1) =fePS,i,1g,HPS,i(qPS,i,2) =fePS,i,2g.
+The transitions of GPS,iare:
+fPS,i(qPS,i,1,ePS,i,1) =qPS,i,2,fPS,i(qPS,i,2,ePS,i,2) =qPS,i,1
+The controllable event set is EPS,i,c=?and the uncontrollable event set is EPS,i,uc=
+EPS,i. The marked behavior and closed the behavior of GPS,iare:
+Lm(GPS,i) = ( ePS,i,1ePS,i,2),L(GPS,i) =Lm(GPS,i)
+Obviously, GPS,iis a nonblocking automaton. In Figure 7, the state diagram of GPS,i
+is depicted.
+
+--- Page 8 ---
+Electronics 2023 ,12, 5035 8 of 20
+Electronics  2023, 12, 5035 8 of 22 
+ 
+ The state set of ,PS iG is , , ,1 , ,2{ , }PS i PS i PS iq q . PS has two diﬀerent operations (INAC-
+TIVE and ACTIVE). The state , ,1PS iq  represents the case where PR is INACTIVE, and 
+, ,2PS iq  represents the case where PS is ACTIVE. The alphabet of ,PS iG  is 
+, , ,1 , ,2{ , }PS i PS i PS ie e . The event , ,1PS ie is the signal from PS indicating that an object has 
+been detected nearby. The event , ,2PS ie is the signal from PS indicating that the detected 
+object has stopped. , ,0 , ,1PS i PS ix q  is the initial state and , , , ,1{ }PS i m PS iq   is the marked 
+state set of ,PS iG. The active event set of ,PS iG are:  
+, , ,1 , ,1( ) { }PS i PS i PS iq e  , , , ,2 , ,2( ) { }PS i PS i PS iq e  .  
+The transitions of ,PS iG are:  
+, , ,1 , ,1 , ,2( , )PS i PS i PS i PS if q e q , , , ,2 , ,2 , ,1( , )PS i PS i PS i PS if q e q  
+The controllable event set is , ,PS i c   and the uncontrollable event set is 
+, , ,PS i uc PS i  . The marked behavior and closed the behavior of ,PS iG are:  
+*
+, , ,1 , ,2( ) ( )m PS i PS i PS i e eG , , ,( ) ( )PS i m PS iG G   
+Obviously, ,PS iG is a nonblocking automaton. In Figure 7, the state diagram of ,PS iG 
+is depicted. 
+qPS,i,1 qPS,i,2ePS,i,2
+ePS,i,1
+ 
+Figure 7. State diagram of ,PS iG. 
+2.8. Bumper Switch Subsystem 
+The DES model of the bumper switch (BS) is:  
+,0 , ( , , , , , )BS BS BS BS BS BS BS m f x G     
+The state set of BSG is ,1 ,2{ , }PS PS PSq q . BS has two diﬀerent operations (INAC-
+TIVE and ACTIVE) The state ,1BSq represents the case where BS is INACTIVE, and ,2BSq 
+represents the case where BS is ACTIVE. The alphabet of BSG is ,1 ,2{ , }BS BS BSe e . The 
+event ,1BSe is the signal indicating that BS has been activated. The event ,2BSe is the signal 
+indicating that BS has been deactivated. ,0 ,1BS BSx q is the initial state and , ,1{ }BS m BSq  
+the marked state set of BSG. The active event set of BSG are:  
+,1 ,1( ) { }BS BS BSq e  , ,2 ,2( ) { }BS BS BSq e   
+The transitions of BSG are:  
+,1 ,1 ,2( , )BS BS BS BSf q e q , ,2 ,2 ,1( , )BS BS BS BSf q e q  
+The controllable event set is ,BS c   and the uncontrollable event set is 
+,BS uc BS  . The marked behavior and the closed behavior of BSG are:  
+*
+,1 ,2 ( ) ( )m BS BS BS e eG , ( ) ( )BS m BSG G   
+Figure 7. State diagram of GPS,i.
+2.8. Bumper Switch Subsystem
+The DES model of the bumper switch (BS) is:
+GBS= (QBS,EBS,fBS,HBS,xBS,0,QBS,m)
+The state set of GBSisQPS=fqPS,1,qPS,2g. BS has two different operations (INAC-
+TIVE and ACTIVE) The state qBS,1represents the case where BS is INACTIVE, and qBS,2
+represents the case where BS is ACTIVE. The alphabet of GBSisEBS=feBS,1,eBS,2g. The
+event eBS,1is the signal indicating that BS has been activated. The event eBS,2is the signal in-
+dicating that BS has been deactivated. xBS,0=qBS,1is the initial state and QBS,m=fqBS,1g
+the marked state set of GBS. The active event set of GBSare:
+HBS(qBS,1) =feBS,1g,HBS(qBS,2) =feBS,2g
+The transitions of GBSare:
+fBS(qBS,1,eBS,1) =qBS,2,fBS(qBS,2,eBS,2) =qBS,1
+The controllable event set is EBS,c=?and the uncontrollable event set is EBS,uc=EBS.
+The marked behavior and the closed behavior of GBSare:
+Lm(GBS) = ( eBS,1eBS,2),L(GBS) =Lm(GBS)
+Obviously, GBSis a nonblocking automaton. In Figure 8, the state diagram of GBS
+is depicted.
+Electronics  2023, 12, 5035 9 of 22 
+ 
+ Obviously, BSG is a nonblocking automaton. In Figure 8, the state diagram of BSG 
+is depicted. 
+qBS,1 qBS,2eBS,2
+eBS,1
+ 
+Figure 8. State diagram of BSG. 
+2.9. LED Subsystem 
+The DES model of the LEDs in 6-tuple DES form is:  
+, , , , , , ,0 , ,( , , , , , ); {1,2,3}L j L j L j L j L j L j L j m f x j  G     
+The state set of ,L jG is , , ,1 , ,2{ , }L j L j L jq q . The LEDs has two diﬀerent modes (OFF 
+and ON). The state , ,1L jq represents the OFF mode, and the state , ,2L jq represents the ON 
+mode. The alphabet of ,L iG is , , ,1 , ,2{ , }L j L j L je e . The event , ,1L je is the command to ac-
+tivate the j-th LED. The event , ,2L je is the command to deactivate the j-th LED. Re-
+garding the initial state of ,L jG , if {1,2}j  then , ,0 , ,1L j L jx q , and if 3j  then 
+, ,0 , ,2L j L jx q. The marked state set of ,L jG is , , , ,1{ }L j m L jq . The active event set of ,L jG 
+are:  
+, , ,1 , ,1( ) { }L j L j L jq e  , , , ,2 , ,2( ) { }L j L j L jq e   
+The transitions of ,L jG are::  
+, , ,1 , ,1 , ,2( , )L j L j L j L jf q e q , , , ,2 , ,2 , ,1( , )L j L j L j L jf q e q  
+The controllable event set is , , ,L j c L j    and the uncontrollable event set is 
+, ,L j uc . The marked and the closed behavior of ,L jG is  
+*
+, ,1 , ,2
+, *
+, ,2 , ,1 , ,2( ) , if {1,2}( )( ) , if 3L j L j
+m L j
+L j L j L je e j
+e e e j   G ,  
+, ,( ) ( )L j m L jG G   
+Obviously, ,L jG is a nonblocking automaton. In Figure 9, the state diagram of ,L jG 
+is depicted. 
+qL,j,,1 qL,j ,2eL,j,2
+eL,j,1
+ qL,j,,1 qL,j,2eL,j,2
+eL,j,1
+ 
+(a) ( b) 
+Figure 9. State diagram of ,L jG (a) for {1,2}j and (b) for 3j. 
+Note that ,1LG describes the behavior of the LED, which is related to the forward 
+movement of the AGV. Also, note that ,2LG describes the behavior of the LED, which is 
+related to the backward movement of the AGV. Finally, note that ,3LG describes the be-
+havior of the LED, which is related to the case where the AGV is in reset mode. 
+Figure 8. State diagram of GBS.
+2.9. LED Subsystem
+The DES model of the LEDs in 6-tuple DES form is:
+GL,j= (QL,j,EL,j,fL,j,HL,j,xL,j,0,QL,j,m);j2f1, 2, 3g
+The state set of GL,jisQL,j=
+qL,j,1,qL,j,2	
+. The LEDs has two different modes (OFF
+and ON). The state qL,j,1represents the OFF mode, and the state qL,j,2represents the ON
+mode. The alphabet of GL,iisEL,j=
+eL,j,1,eL,j,2	
+. The event eL,j,1is the command to
+activate the j-th LED. The event eL,j,2is the command to deactivate the j-th LED. Regarding
+the initial state of GL,j, ifj2f1, 2gthen xL,j,0=qL,j,1, and if j=3then xL,j,0=qL,j,2. The
+marked state set of GL,jisQL,j,m=
+qL,j,1	
+. The active event set of GL,jare:
+HL,j(qL,j,1) =
+eL,j,1	
+,HL,j(qL,j,2) =
+eL,j,2	
+
+--- Page 9 ---
+Electronics 2023 ,12, 5035 9 of 20
+The transitions of GL,jare::
+fL,j(qL,j,1,eL,j,1) =qL,j,2,fL,j(qL,j,2,eL,j,2) =qL,j,1
+The controllable event set is EL,j,c=EL,jand the uncontrollable event set is EL,j,uc=?.
+The marked and the closed behavior of GL,jis
+Lm(GL,j) =(
+(eL,j,1eL,j,2), if j2f1, 2g
+eL,j,2(eL,j,1eL,j,2), if j=3,
+L(GL,j) =Lm(GL,j)
+Obviously, GL,jis a nonblocking automaton. In Figure 9, the state diagram of GL,j
+is depicted.
+Electronics  2023, 12, 5035 9 of 22 
+ 
+ Obviously, BSG is a nonblocking automaton. In Figure 8, the state diagram of BSG 
+is depicted. 
+qBS,1 qBS,2eBS,2
+eBS,1
+ 
+Figure 8. State diagram of BSG. 
+2.9. LED Subsystem 
+The DES model of the LEDs in 6-tuple DES form is:  
+, , , , , , ,0 , ,( , , , , , ); {1,2,3}L j L j L j L j L j L j L j m f x j  G     
+The state set of ,L jG is , , ,1 , ,2{ , }L j L j L jq q . The LEDs has two diﬀerent modes (OFF 
+and ON). The state , ,1L jq represents the OFF mode, and the state , ,2L jq represents the ON 
+mode. The alphabet of ,L iG is , , ,1 , ,2{ , }L j L j L je e . The event , ,1L je is the command to ac-
+tivate the j-th LED. The event , ,2L je is the command to deactivate the j-th LED. Re-
+garding the initial state of ,L jG , if {1,2}j  then , ,0 , ,1L j L jx q , and if 3j  then 
+, ,0 , ,2L j L jx q. The marked state set of ,L jG is , , , ,1{ }L j m L jq . The active event set of ,L jG 
+are:  
+, , ,1 , ,1( ) { }L j L j L jq e  , , , ,2 , ,2( ) { }L j L j L jq e   
+The transitions of ,L jG are::  
+, , ,1 , ,1 , ,2( , )L j L j L j L jf q e q , , , ,2 , ,2 , ,1( , )L j L j L j L jf q e q  
+The controllable event set is , , ,L j c L j    and the uncontrollable event set is 
+, ,L j uc . The marked and the closed behavior of ,L jG is  
+*
+, ,1 , ,2
+, *
+, ,2 , ,1 , ,2( ) , if {1,2}( )( ) , if 3L j L j
+m L j
+L j L j L je e j
+e e e j   G ,  
+, ,( ) ( )L j m L jG G   
+Obviously, ,L jG is a nonblocking automaton. In Figure 9, the state diagram of ,L jG 
+is depicted. 
+qL,j,,1 qL,j ,2eL,j,2
+eL,j,1
+ qL,j,,1 qL,j,2eL,j,2
+eL,j,1
+ 
+(a) ( b) 
+Figure 9. State diagram of ,L jG (a) for {1,2}j and (b) for 3j. 
+Note that ,1LG describes the behavior of the LED, which is related to the forward 
+movement of the AGV. Also, note that ,2LG describes the behavior of the LED, which is 
+related to the backward movement of the AGV. Finally, note that ,3LG describes the be-
+havior of the LED, which is related to the case where the AGV is in reset mode. 
+Figure 9. State diagram of GL,j(a) for j2f1, 2gand ( b) for j=3.
+Note that GL,1describes the behavior of the LED, which is related to the forward
+movement of the AGV . Also, note that GL,2describes the behavior of the LED, which
+is related to the backward movement of the AGV . Finally, note that GL,3describes the
+behavior of the LED, which is related to the case where the AGV is in reset mode.
+2.10. Buttons Subsystem
+The DES model of the buttons is:
+GB,k= (QB,k,EB,k,fB,k,HB,k,xB,k,0,QB,k,m);k2f1, 2, 3g
+The state set of GB,kisQB,k=
+qB,k,1,qB,k,2	
+. The buttons have two different modes.
+The ﬁrst is the RELEASED mode, and the second is the PRESSED mode. The state qB,k,1
+represents the RELEASED mode. The state qB,k,2represents the PRESSED mode. The
+alphabet of GB,kisEB,k=
+eB,k,1,eB,k,2	
+. The event eB,k,1is the signal indicating that the
+k-th button has been pressed. The event eB,k,2is the signal indicating that the k-th button
+has been released. xB,k,0=qB,k,1is the initial state and QB,k,m=
+qB,k,1	
+is the marked state
+set of GB,kis. The active event set of GB,kare:
+HB,k(qB,k,1) =
+eB,k,1	
+,HB,k(qB,k,2) =
+eB,k,2	
+The transitions of GB,kare:
+fB,k(qB,k,1,eB,k,1) =qB,k,2,fB,k(qB,k,2,eB,k,2) =qB,k,1
+The controllable event set is EB,k,c=?and the uncontrollable event set is EB,k,uc=
+EB,i. The marked behavior and the closed behavior of GB,kare:
+Lm(GB,k) = ( eB,k,1eB,k,2),L(GB,k) =Lm(GB,k)
+Obviously, GB,kis a nonblocking automaton. In Figure 10, the state diagram of GB,k
+is depicted.
+
+--- Page 10 ---
+Electronics 2023 ,12, 5035 10 of 20
+Electronics  2023, 12, 5035 10 of 22 
+ 
+ 2.10. BuĴons Subsystem 
+The DES model of the bu Ĵons is:  
+, , , , , , ,0 , ,( , , , , , ); {1,2,3}B k B k B k B k B k B k B k m f x k  G     
+The state set of ,B kG is , , ,1 , ,2{ , }B k B k B kq q . The buĴons have two diﬀerent modes. 
+The ﬁrst is the RELEASED mode, and the second is the PRESSED mode. The state ,1,B kq 
+represents the RELEASED mode. The state ,2,B kq represents the PRESSED mode. The al-
+phabet of ,B kG is , , , 1 ,2,{ , }B k B k B ke e . The event ,1,B ke is the signal indicating that the k
+-th buĴon has been pressed. The event ,2,B ke is the signal indicating that the k-th buĴon 
+has been released. , ,0 , ,1B k B kx q is the initial state and , , , ,1{ }B k m B kq  is the marked state 
+set of ,B kG is. The active event set of ,B kG are:  
+, , ,1 , ,1( ) { }B k B k B kq e  , , , ,2 , ,2( ) { }B k B k B kq e   
+The transitions of ,B kG are:  
+, , ,1 , ,1 , ,2( , )B k B k B k B kf q e q , , , ,2 , ,2 , ,1( , )B k B k B k B kf q e q  
+The controllable event set is , ,B k c   and the uncontrollable event set is 
+, , ,B k uc B i  . The marked behavior and the closed behavior of ,B kG are:  
+*
+, , ,1 , ,2( ) ( )m B k B k B k e eG , , ,( ) ( )B k m B kG G   
+Obviously, ,B kG  is a nonblocking automaton. In Figure 10, the state diagram of 
+,B kG is depicted. 
+qB,k,,1 qB,k,2eB,k,2
+eB,k,1
+ 
+Figure 10. State diagram of ,B kG. 
+Note that ,1BG describes the behavior of the bu Ĵon, which is related to the forward 
+movement of the AGV. Also, note that ,2BG describes the behavior of the bu Ĵon, which 
+is related to the backward movement of the AGV. Finally, note that ,3BG describes the 
+behavior of the r eset buĴon on the AGV. 
+3. Performance Requirements 
+In the present section, the desired languages for formulating the desired behavior of 
+the AGV will be presented. The languages are based on the performance rules proposed 
+in [6]. Following [6], the goal is to state the desired performance in the form of rules that 
+are as simple as possible. This characteristic will beneﬁt the synchronization of the super-
+visors in the controller implementation.  
+3.1. Requirements for Emergency Behavior 
+The transition of the AGV to the RESET and ACTIVE states is desired to be allowed 
+only if the ba Ĵery sensor and the bumper switch are inactive. The following two regular 
+languages formulate this speciﬁcation: 
+Figure 10. State diagram of GB,k.
+Note that GB,1describes the behavior of the button, which is related to the forward
+movement of the AGV . Also, note that GB,2describes the behavior of the button, which
+is related to the backward movement of the AGV . Finally, note that GB,3describes the
+behavior of the reset button on the AGV .
+3. Performance Requirements
+In the present section, the desired languages for formulating the desired behavior of
+the AGV will be presented. The languages are based on the performance rules proposed
+in [6]. Following [ 6], the goal is to state the desired performance in the form of rules that are
+as simple as possible. This characteristic will beneﬁt the synchronization of the supervisors
+in the controller implementation.
+3.1. Requirements for Emergency Behavior
+The transition of the AGV to the RESET and ACTIVE states is desired to be allowed
+only if the battery sensor and the bumper switch are inactive. The following two regular
+languages formulate this speciﬁcation:
+KD,1=(eMM ,1+eMM ,2+eBL,3)eBL,1(eBL,1)eBL,3,
+KD,2=(eMM ,1+eMM ,2+eBS,2)eBS,1(eBS,1)eBS,2
+3.2. Requirements for the Motors
+The steer motor is allowed to be disabled only if the AGV is in the RESET or EMER-
+GENCY state and the drive motor is in the OFF state. The following two regular languages
+formulate this speciﬁcation:
+KD,3=(eSM,2+eMM ,1+eMM ,3)eMM ,2(eMM ,1+eMM ,3),
+KD,4=(eSM,2+eDM,5)(eDM,1+eDM,2)(eDM,3+eDM,5)
+The steer motor is allowed to be disabled only if the AGV is in the ACTIVE state. The
+following regular language formulates this speciﬁcation:
+eKD,5=(eMM ,1+eMM ,3)eMM ,2(eSM,1)(eMM ,1+eMM ,3)
+The drive motor is allowed to be enabled, forward or backward, only if the AGV
+is in the ACTIVE state and the steer motor is ON. The following two regular languages
+formulate this speciﬁcation, where the ﬁrst language is a modiﬁcation of the previous one:
+KD,5=(eMM ,1+eMM ,3)eMM ,2(eSM,1+eDM,1+eDM,2)(eMM ,1+eMM ,3),
+KD,6=
+eSM,1(eDM,1+eDM,2)eSM,2
+The drive motor is allowed to stop driving, forward or backward, only if the ride
+control is in the STOP state or the respective range proximity sensor on the front or back side
+is in the ACTIVE state. The following two regular languages formulate this speciﬁcation:
+KD,7,i=(eRC,2+ePS,i,2)(eRC,1+ePS,i,1)(eRC,1+eDM,3+ePS,i,1)(eRC,2+ePS,i,2);i2f1, 2g
+
+--- Page 11 ---
+Electronics 2023 ,12, 5035 11 of 20
+3.3. Requirements for the Buttons
+The activation of the AGV is allowed only if either the forward button or the backward
+button is pressed, while the reset button is not pressed. The following two regular languages
+formulate this speciﬁcation:
+KD,8=(eB,1,2+eB,2,2)(eB,1,1+eB,2,1)(eB,1,1+eB,2,1+eMM ,2)(eB,1,2+eB,2,2),
+KD,9=(eB,3,2+eMM ,2)eB,3,1(eB,3,1)eB,3,2
+The reset of the AGV is allowed only if the reset button is pressed. The following
+regular language formulates this speciﬁcation:
+KD,10=(eB,3,2)eB,3,1(eB,3,1+eMM ,1)eB,3,2
+3.4. Requirements for the LEDs
+The reset mode LEDs are allowed to be switched off only if the AGV is in the ACTIVE
+or RESET state. The following regular language formulates this speciﬁcation:
+KD,11=(eMM ,3)(eMM ,1+eMM ,2)(eMM ,1+eMM ,2+eL,3,2)eMM ,3
+The reset mode LED is allowed to be turned on only if the AGV is in the EMERGENCY
+state. The following regular language formulates this speciﬁcation:
+KD,12=(eMM ,1+eMM ,2)eMM ,3(eL,3,1+eMM ,3)(eMM ,1+eMM ,2)
+The LED indicating the forward move and the LED indicating the backward move
+are allowed to be switched on only if the AGV is in its RESET state. The following regular
+language formulates this speciﬁcation:
+KD,13=(eMM ,1+eMM ,3)eMM ,2(eL,1,1+eL,2,1)(eMM ,1+eMM ,3)
+The LEDs indicating the forward and backward moves is allowed to be switched off
+only if the AGV is in the ACTIVE or EMERGENCY state. The following regular language
+formulates this speciﬁcation:
+KD,14=(eMM ,1+eMM ,3)(eL,1,2+eL,2,2+eMM ,1+eMM ,3)eMM ,2
+4. Supervisory Control Design
+4.1. The Supervisors Realizing the Desired Languages
+First, a general two-state supervisor automaton will be developed. This automaton
+will be used for the design of the supervisors realizing the desired languages, presented in
+the previous section. The general two-state supervisor automaton is determined to be of
+the following 6-tuple form:
+S= (QS,ES,fS,HS,xS,0,QS)
+where,
+QS=fqS,1,qS,2g,
+ES=ES,1[ES,2[ES,3[ES,4,
+xS,0=qS,1,fS(qS,1,e) =qS,1;e2ES,1,
+fS(qS,1,e) =qS,2;e2ES,2,
+fS(qS,2,e) =qS,2;e2ES,3,
+fS(qS,2,e) =qS,1;e2ES,4.
+
+--- Page 12 ---
+Electronics 2023 ,12, 5035 12 of 20
+The sets of active events are:
+HS(qS,1) =ES,1[ES,2,HS(qS,2) =ES,3[ES,4.
+The alphabets ES,1,ES,2,ES,3, andES,4, will be determined by the respective language
+realized by the supervisor. The state diagram of Sis presented in Figure 11.
+Electronics  2023, 12, 5035 13 of 22 
+ 
+ qS,1,1S
+qS,2
+,2S,4S,3S
+ 
+Figure 11. State diagram of S. 
+The complexity triad of the supervisor S is: 
+ 4
+,
+1| |,| |, | | 2,| |, | ( )|S S S qq
+
+          
+where  denotes the cardinality of the argument set. More about the complexity triad of 
+an automaton can be found in [25]. 
+The supervisor 1S, realizing the language ,1D, can be developed by the general 
+supervisor S through the following, 
+,1 ,2 ,1 ,3{ , , , }S MM MM BL BLe e e e , ,1 ,1 ,2 ,3{ , , }S MM MM BLe e e ,  
+,2 ,1{ }S BLe , ,3 ,2S S  , ,4 ,3{ }S BLe . 
+The complexity of 1S is 2,4,6. 
+The supervisor 2S, realizing the language ,2D, can be developed by the general 
+supervisor S through the following, 
+,1 ,2 ,1 ,2{ , , , }S MM MM BS BSe e e e , ,1 ,1 ,2 ,2{ , , }S MM MM BSe e e ,  
+,2 ,1{ }S BSe , ,3 ,2S S  , ,4 ,2{ }S BSe . 
+The complexity of 2S is 2,4,6. 
+The supervisor 3S, realizing the language ,3D, can be developed by the general 
+supervisor S through the following, 
+,2 ,1 ,2 ,3{ , , , }S SM MM MM MMe e e e , ,1 ,2 ,1 ,3{ , , }S SM MM MMe e e ,  
+,2 ,2{ }S MMe , ,3S, ,4 ,1 ,3{ , }S MM MMe e  
+The complexity of 3S is 2,4,6. 
+The supervisor 4S, realizing the language ,4D, can be developed by the general 
+supervisor S through the following, 
+,2 ,1 ,2 ,3 ,5{ , , , , }S SM DM DM DM DMe e e e e , ,1 ,2 ,5{ , }S SM DMe e ,  
+,2 ,1 ,2{ , }S DM DMe e , ,3S, ,4 ,3 ,5{ , }S DM DMe e  
+The complexity of 4S is 2,5,6. 
+The supervisor 5S, realizing the language ,5D, can be developed by the general 
+supervisor S through the following, 
+,1 ,2 ,1 ,1 ,2 ,3{ , , , , , }S DM DM SM MM MM MMe e e e e e , ,1 ,1 ,3{ , }S MM MMe e ,  
+,2 ,2{ }S MMe , ,3 ,1 ,2 ,1{ , , }S DM DM SMe e e ,,4 ,1 ,3{ , }S MM MMe e  
+The complexity of 5S is 2,6,8. 
+Figure 11. State diagram of S.
+The complexity triad of the supervisor Sis:
+
+jQj,jEj,åq2QjHj
+= 
+2,jESj,4
+å
+l=1jHS(qS,l)j!
+wherejjdenotes the cardinality of the argument set. More about the complexity triad of
+an automaton can be found in [25].
+The supervisor S1, realizing the language KD,1, can be developed by the general
+supervisor Sthrough the following,
+ES=feMM ,1,eMM ,2,eBL,1,eBL,3g,ES,1=feMM ,1,eMM ,2,eBL,3g,
+ES,2=feBL,1g,ES,3=ES,2,ES,4=feBL,3g.
+The complexity of S1is(2, 4, 6 ).
+The supervisor S2, realizing the language KD,2, can be developed by the general
+supervisor Sthrough the following,
+ES=feMM ,1,eMM ,2,eBS,1,eBS,2g,ES,1=feMM ,1,eMM ,2,eBS,2g,
+ES,2=feBS,1g,ES,3=ES,2,ES,4=feBS,2g.
+The complexity of S2is(2, 4, 6 ).
+The supervisor S3, realizing the language KD,3, can be developed by the general
+supervisor Sthrough the following,
+ES=feSM,2,eMM ,1,eMM ,2,eMM ,3g,ES,1=feSM,2,eMM ,1,eMM ,3g,
+ES,2=feMM ,2g,ES,3=?,ES,4=feMM ,1,eMM ,3g
+The complexity of S3is(2, 4, 6 ).
+The supervisor S4, realizing the language KD,4, can be developed by the general
+supervisor Sthrough the following,
+ES=feSM,2,eDM,1,eDM,2,eDM,3,eDM,5g,ES,1=feSM,2,eDM,5g,
+ES,2=feDM,1,eDM,2g,ES,3=?,ES,4=feDM,3,eDM,5g
+The complexity of S4is(2, 5, 6 ).
+The supervisor S5, realizing the language KD,5, can be developed by the general
+supervisor Sthrough the following,
+ES=feDM,1,eDM,2,eSM,1,eMM ,1,eMM ,2,eMM ,3g,ES,1=feMM ,1,eMM ,3g,
+ES,2=feMM ,2g,ES,3=feDM,1,eDM,2,eSM,1g,ES,4=feMM ,1,eMM ,3g
+
+--- Page 13 ---
+Electronics 2023 ,12, 5035 13 of 20
+The complexity of S5is(2, 6, 8 ).
+The supervisor S6, realizing the language KD,6, can be developed by the general
+supervisor Sthrough the following,
+ES=feDM,1,eDM,2,eSM,1g,ES,1=?,ES,2=feSM,1g,
+ES,3=feDM,1,eDM,2g,ES,4=feSM,2g
+The complexity of S6is(2, 3, 4 ).
+Fori2f1, 2g, the supervisor S7,i, realizing the language KD,7,i, can be developed by
+the general supervisor Sthrough the following,
+ES=feRC,1,eRC,2,ePS,i,1,ePS,i,2,eDM,3g,ES,1=feRC,2,ePS,i,2g,ES,2=feRC,1,ePS,i,1g,
+ES,3=feRC,1,ePS,i,1,eDM,3g,
+The complexity of S7,iis(2, 5, 9 ).
+The supervisor S8, realizing the language KD,8, can be developed by the general
+supervisor Sthrough the following,
+ES=feB,1,1,eB,1,2,eB,2,1,eB,2,2,eMM ,2g,ES,1=feB,1,2,eB,2,2g,
+ES,2=feB,1,1,eB,2,1g,ES,3=feB,1,1,eB,2,1,eMM ,2g,
+The complexity of S8is(2, 5, 9 ).
+The supervisor S9, realizing the language KD,9, can be developed by the general
+supervisor Sthrough the following,
+ES=feB,3,1,eB,3,2,eMM ,2g,ES,1=feB,3,2,eMM ,2g,ES,2=feB,3,1g,
+ES,3=ES,2,ES,4=feB,3,2g
+The complexity of S9is(2, 3, 5 ).
+The supervisor S10, realizing the language KD,10, can be developed by the general
+supervisor Sthrough the following,
+ES=feB,3,1,eB,3,2,eMM ,1g,ES,1=feB,3,2g,ES,2=feB,3,1g,
+ES,3=feB,3,1,eMM ,1g,
+The complexity of S10is(2, 3, 5 ).
+The supervisor S11, realizing the language KD,11, can be developed by the general
+supervisor Sthrough the following,
+ES=feMM ,1,eMM ,2,eMM ,3,eL,3,2g,ES,1=feMM ,3g,
+ES,2=feMM ,1,eMM ,2g,ES,3=ES,2[feL,3,2g,ES,4=ES,1
+The complexity of S11is(2, 4, 7 ).
+The supervisor S12, realizing the language KD,12, can be developed by the general
+supervisor Sthrough the following,
+ES=feMM ,1,eMM ,2,eMM ,3,eL,3,1g,ES,1=feMM ,1g,ES,2=feMM ,3g,
+ES,3=feL,3,1,eMM ,3g,ES,4=feMM ,1,eMM ,2g
+The complexity of S12is(2, 4, 6 ).
+The supervisor S13, realizing the language KD,13, can be developed by the general
+supervisor Sthrough the following,
+ES=feMM ,1,eMM ,2,eMM ,3,eL,1,1,eL,2,1g,ES,1=feMM ,1,eMM ,3g,
+ES,2=feMM ,2g,ES,3=feL,1,1,eL,2,1g,ES,4=feMM ,1,eMM ,3g
+The complexity of S13is(2, 5, 7 ).
+
+--- Page 14 ---
+Electronics 2023 ,12, 5035 14 of 20
+The supervisor S14, realizing the language KD,14, can be developed by the general
+supervisor Sthrough the following,
+ES=feMM ,1,eMM ,2,eMM ,3,eL,1,2,eL,2,2g,ES,1=?,
+ES,2=feMM ,1,eMM ,3g,ES,3=feL,1,2,eL,2,2,eMM ,1,eMM ,3g,ES,4=feMM ,2g.
+The complexity of S14is(2, 5, 7 ).
+4.2. Performance and Properties of the Controlled Automaton
+The total automaton of the AGV is the synchronous product of all the automata of the
+subsystems (devices of the multimover), i.e.,
+G=GMMjjGDMjjGSMjjGRCjjGBAjj(2
+jj
+i=1GPS,i)jjGBSjj(3
+jj
+j=1GL,j)jj(3
+jj
+k=1GB,k) (1)
+Regarding the synchronous product and its properties, see [ 9,10]. The marked behavior
+of the total automaton is:
+Lm(G) =P1
+MM(Lm(GMM))\P1
+DM(Lm(GDM))\P1
+SM(Lm(GSM))\P1
+RC(Lm(GRC))\P1
+BA(Lm(GBA))\
+P1
+BS(Lm(GBS))
+\2
+i=1
+P1
+PS,i(Lm(GPS,i))
+\3
+j=1
+P1
+L,j(Lm(GL,i))
+\3
+k=1
+P1
+B,i(Lm(GB,k))(2)
+where PMMis the projection of EtoE
+MM,PDMis the projection of EtoE
+DM,PSMis
+the projection of EtoE
+SM,PRCis the projection of EtoE
+RC,PBLis the projection of E
+toE
+BL,PBSis the projection of EtoE
+BS,PPS,iis the projection of EtoE
+PS,i,PL,jis the
+projection of EtoE
+L,j,PB,kis the projection of EtoE
+B,k, and where,
+E=EMM[EDM[ESM[ERC[EBL[EBS
+[2
+i=1EPS,i
+[3
+j=1EL,j
+[3
+k=1EB,k
+The controlled automaton, namely the automaton resulting after the application of all
+supervisors to the total automaton, is expressed as follows:
+Gc=Gjj(6
+jj
+l=1Sl)jj(14
+jj
+l=8Sl)jjS7,1jjS7,2 (3)
+The marked behavior of the controlled automaton is computed to be:
+Lm(Gc) =Lm(G)\
+\6
+l=1
+P1
+i(KD,l)
+\
+\14
+l=8
+P1
+i(KD,l)
+\P1
+7,1(KD,7,1)\P1
+7,2(KD,7,2) (4)
+where Piis the projection of EtoE
+iwith i2f1, . . . , 6g[f8, . . . , 14g,P7,1is the projection
+ofEtoE
+7,1, and P7,2is the projection of EtoE
+7,2. From (4), it is observed that the
+performance of the controlled automaton is the combined inﬂuence of all desired languages
+in the framework of the marked behavior of the AGV .
+To guarantee the realizability of all proposed supervisors, regarding the total automa-
+tonG, the results in [ 29] for the physical realizability will be used. Before presenting the
+respective, the set of all uncontrollable events is deﬁned to be:
+Euc=EMM ,uc[EDM,uc[ESM,uc[ERC,uc[EBL,uc[EBS,uc
+[2
+i=1EPS,i,uc
+[3
+j=1EL,j,uc
+[3
+k=1EB,k,uc
+Proposition 1. The supervisors S1toS14are physically realizable, regarding G, through (3).
+Proof of Proposition 1. The automata of the supervisors are designed to have all uncon-
+trollable events in the active event sets of all their states. Thus, it holds that HS(qS,1)\
+HS(qS,2)\ES,uc=ES,uc, where ES,uc=Euc\ES. Therefore, using Corollary 1 in [ 29], it is
+derived that all supervisors are PR, with respect to Gand through (3). 
+
+--- Page 15 ---
+Electronics 2023 ,12, 5035 15 of 20
+According to [ 9,10], an automaton is a nonblocking automaton if and only if the preﬁx
+closure of its marked behavior is equal to its closed behavior. In the following proposition,
+the nonblocking property of Gcwill be proved without analytic manipulations of the two
+behaviors. It will be proved by proving that the automata of all subsystems, under the
+inﬂuence of the supervisors, are always allowed to return to or stay in a marked state.
+Proposition 2. The automaton Gcis a nonblocking automaton.
+Proof of Proposition 2. The proof of nonblocking Gcwill be formed by proving that the
+controlled automaton of each subsystem preserves the nonblocking property. The proof of
+nonblocking of each subsystem under the inﬂuence of the associated supervisors, namely
+the supervisors having common events with the subsystem, will be presented.
+The supervisors, having common events with GMM, are S1,S2,S3,S5,S8,S9,S10,S11,
+S12,S13, and S14. InGMM, the transitions from the two non-marked states to the marked
+ones can take place through the event eMM ,3. The alphabets of the supervisors S1,S2,S8,
+S9, and S10do not include eMM ,3. The alphabets of the supervisors S3,S5,S11,S12,S13, and
+S14include eMM ,3and it holds that eMM ,32HS(q),(8q2QS). Thus, the return of GMM
+to its marked state is not restricted.
+The supervisors, having common events with GDM, are S4,S6, and S7,i. In GDM,
+the transitions from the two non-marked states to the marked can take place through
+the events eDM,4and eDM,5. The alphabets of the supervisors S6, and S7,ido not include
+eDM,4andeDM,5. Furthermore, the alphabet of S4does not include, eDM,4and it holds that
+eDM,52HS,4(q),(8q2QS,4). Thus, the return of GMMto its marked state is not restricted.
+The supervisors, having common events with GSM, are S3,S4,S5, and S6. InGSM, the
+transition from its non-marked state to the marked one can take place through the events
+eSM,2and eSM,3. The alphabets of the supervisors S3,S4,S5, and S6. do not include eSM,3.
+Thus, the transition of GSMto a marked state is not obstructed.
+The supervisor, having common events with GRC, isS7,i. InGRC, the transition from
+the non-marked state to the marked one can take place through the event eRC,2. For S7,iit
+holds that eRC,22HS,7,i(q),(8q2QS,7,i). Thus, the transition of GRCto a marked state is
+not obstructed.
+The supervisor, having common events with GBL, isS1. InGBA, the transition from its
+non-marked states to the marked one can take place through the event eBL,3. Furthermore,
+inGBA, the event eBL,2triggers the transition from one non-marked state to the other. For
+S1it holds that the event eBL,2is not in the alphabet of S1andeBL,32HS,1(q),(8q2QS,1).
+Thus, the transition of GRCto a marked state is not obstructed.
+The supervisor, having common events with GPS,i, isS7,i. InGPS,i, the transition from
+the non-marked state to the marked one can take place through the event ePS,i,2. For S7,iit
+holds that ePS,i,22HS,7,i(q),(8q2QS,7,i). Thus, the transition of GPS,ito a marked state is
+not obstructed.
+The supervisor, having common events with GBS, isS2. InGBS, the transition from
+the non-marked state to the marked one can take place through the event eBS,2. For S2it
+holds that eBS,22HS,2(q),(8q2QS,2). Thus, the transition of GBSto a marked state is
+not obstructed.
+The supervisors, having common events with GL,1and GL,2, are S13and S14. InGL,1
+and GL,2, the transition from the non-marked states to the marked ones can take place
+through the events eL,1,2andeL,2,2. The alphabet of S13does not include eL,1,2andeL,2,2. For
+S14it holds thatfeL,1,2,eL,2,2g/2HS,14(qS,14,1)andfeL,1,2,eL,2,2g2HS,14(qS,14,2). Thus, the
+transition from qS,14,1toqS,14,2is always feasible through the uncontrollable event eMM ,3.
+The supervisors, having common events with GL,3, are S11and S12. In GL,3, the
+transition from the non-marked state to the marked one can take place through the event
+eL,3,2. The alphabet of S12does not include eL,3,2. For S11it holds that eL,3,22HS,11(qS,11,1)
+and eL,3,2/2HS,11(qS,11,2). Thus, the transition from qS,12,2 toqS,12,1 is always feasible
+through the uncontrollable event eMM ,3.
+
+--- Page 16 ---
+Electronics 2023 ,12, 5035 16 of 20
+The supervisor, having common events with GB,1and GB,2, isS8. InGB,1and GB,2,
+the transition from the non-marked states to the marked ones can take place through the
+events eB,1,2and eB,2,2. For S8it holds thatfeB,1,2,eB,2,2g2HS,8(q),(8q2QS,8). Thus,
+the transition of GB,1to a marked state and the transition of GB,2to a marked state are
+not obstructed.
+The supervisors, having common events with GB,3, are S9and S10. In GB,3, the
+transition from the non-marked state to the marked one can take place through the event
+eB,3,2. For S9and S10it holds thatfeB,3,2,eB,3,2g2HS(q),(8q2QS). Thus, the transition
+ofGB,3to a marked state is not obstructed.
+Finally, it is important to mention that the alphabets of the subsystem are disjoint sets.
+So, the examination of the nonblocking for each individual subsystem is sufﬁcient to prove
+the nonblocking of the total controlled system. 
+Remark 1. Using the complexities of the supervisors, determined in Section 4.1, the complexity of
+the total supervisor control scheme is computed to be.
+0
+BBBB@14
+å
+l=1
+l6=7jQS,lj+2
+å
+l=1jQS,7,lj,14
+å
+l=1
+l6=7jES,lj+2
+å
+l=1jES,7,lj,14
+å
+l=1
+l6=7 
+2
+å
+m=1jHS,l(qS,l,m)j!
++2
+å
+l=1 
+2
+å
+m=1jHS,l(qS,7,l,m)j!1
+CCCCA= (30, 65, 100 )
+5. Implementation Issues of the Two-State Supervisor Automata
+As already mentioned, the main advantage of the proposed supervisor architecture is
+the simple two-state structure of all designed supervisors. Moreover, this simple structure
+of the supervisors facilitates the adaptation of programming methods, guaranteeing the
+secure functionality of the program. For instance, according to [ 30–32], the avalanche effect
+in PLC’s control program is the sequential state transition in the supervisor implementation
+program, triggered by a single event occurrence. The avalanche effect problem in PLC
+control programs, which can be faced with a simple inversion of the appearance of the
+states in the program, can easily be handled in the proposed scheme. Furthermore, the
+structure of the present supervisors can be easily implemented in various programming
+languages, such as Visual Basic, Ladder Diagrams, Structured Text etc., making them
+suitable for SCADA, PLC, and microcontroller environments ([33,34]).
+As already mentioned, the implementability of the proposed scheme is guaranteed by
+the controllability of the desired languages via the physical realizability of the synchronous
+product of the system’s automaton and the supervisors. All supervisors are implemented
+in the Control Unit of the system. The input signals of the Control Unit are the signals
+corresponding to the uncontrollable events and the signals (commands) corresponding
+to the controllable events. The signals outputted by the Control Unit are the controllable
+events. The controllable events, ending to multimover, are the commands of multimover.
+The signals corresponding to the uncontrollable events ending with multimover directly
+without passing through the Control Unit. In Figure 12, a block diagram of the controlled
+automaton is presented, where the controllable and uncontrollable events are connected to
+the system automaton and the control unit.
+
+--- Page 17 ---
+Electronics 2023 ,12, 5035 17 of 20
+Electronics  2023, 12, 5035 18 of 22 
+ 
+ in PLC control programs, which can be faced with a simple inversion of the appearance 
+of the states in the program, can easily be handled in the proposed scheme. Furthermore, 
+the structure of the present supervisors can be easily implemented in various program-
+ming languages, such as Visual Basic, Ladder Diagrams, Structured Text etc., making 
+them suitable for SCADA, PLC, and microcontroller environments ([33,34]).  
+As already mentioned, the implementability of the proposed scheme is guaranteed 
+by the controllability of the desired languages via the physical realizability of the synchro-
+nous product of the system’s automaton and the supervisors. All supervisors are imple-
+mented in the Control Unit of the system. The input signals of the Control Unit are the 
+signals corresponding to the uncontrollable events and the signals (commands) corre-
+sponding to the controllable events. The signals outpu Ĵed by the Control Unit are the 
+controllable events. The controllable events, ending to multimover, are the commands of 
+multimover. The signals corresponding to the uncontrollable events ending with multi-
+mover directly without passing through the Control Unit. In Figure 12, a block diagram 
+of the controlled automaton is presented, where the controllable and uncontrollable 
+events are connected to the system automaton and the control unit.  
+GControl 
+UnitUncontrollable events Controllable events 
+Controllable events 
+ 
+Figure 12. Block diagram of the controlled automaton.  
+6. Simulation 
+A simulation of the controlled automaton will be presented for the validation of the 
+proposed control scheme. Consider the following word: 
+,3,1 ,1 ,3,2 ,2 ,1,1 ,2 ,1 ,1 ,1 ,3 ,1 ,3B MM B MM B MM DM SM DM DM RC DMe e e e e e e e e e e e  
+It is clear that only events of the subsystems Bu Ĵon 1, Bu Ĵon 3, Operation, Drive 
+Motor, Steer Motor, and ride control take part in the word, thus only the behavior of the 
+six subsystems will be investigated. In Table 1, the transitions of the automata of the But-
+ton 1 subsystem, Bu Ĵon 3 subsystem, Operation subsystem, the Drive Motor subsystem, 
+the Steer Motor subsystem, and the ride control subsystem are presented. The three shad-
+owed lines represent the three lines where the transitions to the respective automata are 
+not triggered, as they are restricted by the supervisor scheme.  
+  
+Figure 12. Block diagram of the controlled automaton.
+6. Simulation
+A simulation of the controlled automaton will be presented for the validation of the
+proposed control scheme. Consider the following word:
+eB,3,1eMM ,1eB,3,2eMM ,2eB,1,1eMM ,2eDM,1eSM,1eDM,1eDM,3eRC,1eDM,3
+It is clear that only events of the subsystems Button 1, Button 3, Operation, Drive
+Motor, Steer Motor, and ride control take part in the word, thus only the behavior of the six
+subsystems will be investigated. In Table 1, the transitions of the automata of the Button
+1 subsystem, Button 3 subsystem, Operation subsystem, the Drive Motor subsystem, the
+Steer Motor subsystem, and the ride control subsystem are presented. The three shadowed
+lines represent the three lines where the transitions to the respective automata are not
+triggered, as they are restricted by the supervisor scheme.
+Table 1. Transitions of the Controlled Automaton.
+Events Button 1 Button 3 OperationDrive
+MotorSteer
+MotorRide
+Control
+ qB,3,1 qMM ,1 qDM,1 qSM,1 qRC,1
+eB,3,1 qB,1,1 qB,3,2 qMM ,1 qDM,1 qSM,1 qRC,1
+eMM ,1 qB,1,1 qB,3,2 qMM ,2 qDM,1 qSM,1 qRC,1
+eB,3,2 qB,1,1 qB,3,1 qMM ,2 qDM,1 qSM,1 qRC,1
+eMM ,2 qB,1,1 qB,3,1 qMM ,2 qDM,1 qSM,1 qRC,1
+eB,1,1 qB,1,2 qB,3,1 qMM ,2 qDM,1 qSM,1 qRC,1
+eMM ,2 qB,1,2 qB,3,1 qMM ,3 qDM,1 qSM,1 qRC,1
+eDM,1 qB,1,2 qB,3,1 qMM ,3 qDM,1 qSM,1 qRC,1
+eSM,1 qB,1,2 qB,3,1 qMM ,3 qDM,1 qSM,2 qRC,1
+eDM,1 qB,1,2 qB,3,1 qMM ,3 qDM,2 qSM,2 qRC,1
+eDM,3 qB,1,2 qB,3,1 qMM ,3 qDM,2 qSM,2 qRC,1
+eRC,1 qB,1,2 qB,3,1 qMM ,3 qDM,2 qSM,2 qRC,2
+eDM,3 qB,1,2 qB,3,1 qMM ,3 qDM,1 qSM,2 qRC,2
+Initially, the six automata are in states qB,1,1(Button 1), qB,3,1(Button 3), qMM ,1(Op-
+eration subsystem), qDM,1(Drive Motor), qSM,1(Steer Motor), and qRC,1(ride control).
+Furthermore, all supervisors are in their initial state. After the occurrence of the event eB,3,1
+the six automata are in states qB,1,1,qB,3,2,qMM ,1,qDM,1,qSM,1andqRC,1(Line 2 of Table 1).
+The supervisors having the event eB,3,1in their alphabets are S9and S10. The event is active
+
+--- Page 18 ---
+Electronics 2023 ,12, 5035 18 of 20
+to the current states of both supervisors. Hence, after the occurrence of eB,3,1, the new states
+of the two supervisors are qS,9,2andqS,10,2, respectively.
+After the occurrence of eMM ,1, the six automata are in states qB,1,1,qB,3,2,qMM ,2,qDM,1,
+qSM,1, and qRC,1(Line 3 of Table 1). The supervisors having eMM ,1in their alphabets
+areS1,S2,S3,S5,S10,S11,S12,S13, and S14. The event is active to the current states
+of all supervisors being qS,1,1,qS,2,1,qS,3,1,qS,5,1,qS,10,2,qS,11,1,qS,12,1,qS,13,1, and qS,14,1,
+respectively. Hence, after the occurrence of eMM ,1, the new states of the supervisors are
+qS,1,1,qS,2,1,qS,3,1,qS,5,1,qS,10,2,qS,11,2,qS,12,1,qS,13,1, and qS,14,2, respectively.
+After the occurrence of the event eB,3,2, the six automata are in states qB,1,1,qB,3,1,qMM ,2,
+qDM,1,qSM,1, and qRC,1(Line 4 of Table 1). The supervisors having eB,3,2in their alphabets
+areS9and S10. The event is active in the current states of both supervisors being qS,9,2and
+qS,10,2, respectively. Hence, after the occurrence of eB,3,2, the new states of the supervisors
+areqS,9,1andqS,10,1, respectively.
+After the occurrence of eMM ,2, the six automata remain in states qB,1,1,qB,3,1,qMM ,2,
+qDM,1,qSM,1, and qRC,1(Line 5 of Table 1). The supervisors having eMM ,2in their alphabets
+areS1,S2,S3,S5,S8,S9,S11,S12,S13, and S14. The event eMM ,2is not active in the current
+state of supervisor S8, i.e., eMM ,2/2H(qS,8,1). Hence, after the occurrence of eMM ,2, the
+supervisors remain in the states qS,1,1,qS,2,1,qS,3,1,qS,5,1,qS,8,1qS,11,1,qS,11,2,qS,12,1,qS,13,1,
+andqS,14,2, respectively.
+After the occurrence of eB,1,1, the six automata are in states qB,1,2,qB,3,1,qMM ,2,qDM,1,
+qSM,1, and qRC,1(Line 6 of Table 1). The supervisor having the event eB,1,1in its alphabet is
+S8. The event is active in the current state of the supervisor being qS,8,1. Hence, after the
+occurrence of eB,1,1, the new state of the supervisor is qS,8,2.
+After the occurrence of the event eMM ,2, the six automata are in states qB,1,2,qB,3,1,
+qMM ,3,qDM,1,qSM,1, and qRC,1(Line 7 of Table 1). The supervisors having eMM ,2in their
+alphabets are S1,S2,S3,S5,S8,S9,S11,S12,S13, and S14. The event is active in the current
+states of all supervisors being qS,1,1,qS,2,1,qS,3,1,qS,5,1,qS,8,2qS,11,1,qS,11,2,qS,12,1,qS,13,1, and
+qS,14,2. Hence, after the occurrence of eMM ,2, the new states of the supervisors are qS,2,1,
+qS,3,2,qS,5,2,qS,8,2qS,11,1,qS,11,2,qS,12,1,qS,13,1, and qS,14,2., respectively.
+After the occurrence of eDM,1, the six automata remain in states qB,1,2,qB,3,1,qMM ,3,
+qDM,1,qSM,1, and qRC,1(Line 8 of Table 1). The supervisors having eDM,1in their alphabets
+areS4,S5, and S6. The event eMM ,2is not active in the current state of supervisor S6, i.e.,
+eDM,1/2H(qS,6,1). Hence, after the occurrence of eDM,1, the supervisors remain in the states
+qS,4,1,qS,5,2, and qS,6,1, respectively.
+After the occurrence of eSM,1, the six automata are in states qB,1,2,qB,3,1,qMM ,3,qDM,1,
+qSM,2, and qRC,1(Line 9 of Table 1). The supervisors having event eSM,1in their alphabet
+areS5, and S6. The event is active the current states of both supervisors being qS,5,2and
+qS,6,1. Hence, after the occurrence of eSM,1, the new states of the supervisors are qS,5,2and
+qS,6,2, respectively.
+After the occurrence of eDM,1, the six automata are in states qB,1,2,qB,3,1,qMM ,3,qDM,2,
+qSM,2, and qRC,1(Line 9 of Table 1). The supervisors having event eDM,1in their alphabets
+areS4,S5, and S6. The event is active in the current states of all supervisors being qS,4,1,
+qS,5,2, and qS,6,2. Hence, after the occurrence of eDM,1, the new states of the supervisors are
+qS,4,2,qS,5,2, and qS,6,2, respectively.
+After the occurrence of eDM,3, the six automata remains in states qB,1,2,qB,3,1,qMM ,3,
+qDM,2,qSM,2, and qRC,1(Line 10 of Table 1). The supervisors having event eDM,3in their
+alphabet are S4and S7,i. The event eDM,3is not active in supervisors S7,i, i.e., eDM,3/2
+H(qS,7,i,1). Hence, after the occurrence of eDM,3, the supervisors remain in the states qS,4,2
+andqS,7,i,1, respectively.
+After the occurrence of eRC,1, the six automata are in states qB,1,2,qB,3,1,qMM ,3,qDM,2,
+qSM,2, and qRC,2(Line 11 of Table 1). The supervisor having the event eRC,1in its alphabet
+isS7,i. The event is active in the current state of the supervisor being qS,7,i,1. Hence, after
+the occurrence of eRC,1, the new state of the supervisor is qS,7,i,2.
+
+--- Page 19 ---
+Electronics 2023 ,12, 5035 19 of 20
+After the occurrence of eDM,3, the six automata are in states qB,1,2,qB,3,1,qMM ,3,qDM,1,
+qSM,2, and qRC,2(Line 12 of Table 1). The supervisors having event eDM,3in their alphabet
+areS4and S7,i. The event is active in the current states of both supervisors being qS,4,2and
+qS,7,i,2. Hence, after the occurrence of eDM,3, the new states of the supervisors are qS,4,1and
+qS,7,i,2, respectively.
+7. Conclusions
+A Cyberphysical system for several and diverse applications, including product trans-
+fer in manufacturing units, has been presented. The system is an industrial AGV . All
+subsystems of the AGV have been presented using discrete event systems. The desired
+behavior of the system has been expressed in the form of rules and consequently for-
+mulated in the form of regular languages. A set of supervisor automata, realizing the
+desired languages and being simple two-state automata, has been designed. This way,
+the implementation of the proposed supervisory architecture can be easily implemented
+in any language and computer system. The property of the controllability of the desired
+languages, via the physical realizability of the synchronous product of the total system’s
+automaton and the automata of the supervisors, is proven. The nonblocking property of all
+the total controlled system automaton is guaranteed. Finally, indicative simulation results
+of the controlled automaton are presented.
+The implementation of the proposed supervisory architecture in experimental envi-
+ronments is under investigation. The problem of collision avoidance of AGVs in industrial
+environments, which is of great importance, is in the future concerns of the authors.
+Author Contributions: Conceptualization, F.N.K. and D.G.F.; methodology, F.N.K. and D.G.F.; vali-
+dation, D.G.F., G.E.P . and E.M.; investigation, F.N.K. and D.G.F.; resources, G.E.P .; writing—original
+draft preparation, F.N.K., D.G.F. and G.E.P .; writing—review and editing, D.G.F., G.E.P . and E.M.;
+visualization, G.E.P . and E.M.; supervision, F.N.K. All authors have read and agreed to the published
+version of the manuscript.
+Funding: This research received no external funding.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: Data is contained within the article.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. National Science Foundation. Cybermanufacturing Systems. 15 November 2015. Available online: http://www.nsf.gov/pubs/
+2015/nsf15061/nsf15061.jsp (accessed on 31 May 2023).
+2. Pivoto, D.G.S.; de Almeida, L.F.F.; da Rosa Righi, R.; Rodrigues, J.J.P .C.; Baratella Lugli, A.; Alberti, A.M. Cyber-physical systems
+architectures for industrial internet of things applications in Industry 4.0: A literature review. J. Manuf. Syst. 2021 ,58, 176–192.
+[CrossRef]
+3. Xu, L.D.; Duan, L. Big data for cyber physical systems in industry 4.0: A survey. Enterp. Inf. Syst. 2019 ,13, 148–169. [CrossRef]
+4. Jeschke, S.; Brecher, C.; Meisen, T.; Özdemir, D.; Eschert, T. Industrial Internet of Things and Cyber Manufacturing Systems.
+InIndustrial Internet of Things ; Jeschke, S., Brecher, C., Song, H., Rawat, D., Eds.; Springer Series in Wireless Technology; Springer:
+Cham, Switzerland, 2017. [CrossRef]
+5. Ahmed, U.; Lin, J.C.-W.; Srivastava, G. Exploring the Potential of Cyber Manufacturing Systems in the Digital Age. ACM Trans.
+Internet Technol. 2023 ,4, 1–38. [CrossRef]
+6. Reniers, M.; van de Mortel-Fronczak, J.; Roelofs, K. Model-Based Engineering of Supervisory Controllers for Cyber-Physical
+Systems. In Industrial Internet Things ; Springer Series in Wireless Technology; Springer: Cham, Switzerland, 2017. [CrossRef]
+7. Yin, X.; Li, S. Recent advances on formal methods for safety and security of cyber-physical systems. Control Theory Technol. 2020 ,
+18, 459–461. [CrossRef]
+8. Ferrari, A.; Ter Beek, M.H. Formal Methods in Railways: A Systematic Mapping Study. ACM Comput. Surv. 2022 ,55, 37.
+[CrossRef]
+9. Wonham, W.M.; Kai, C. Supervisory Control of Discrete-Event Systems ; Springer: Cham, Switzerland, 2019. [CrossRef]
+10. Cassandras, C.G.; Lafortune, S. Introduction to Discrete Event Systems , 3rd ed.; Springer: Cham, Switzerland, 2021. [CrossRef]
+
+--- Page 20 ---
+Electronics 2023 ,12, 5035 20 of 20
+11. Komenda, J.; Masopust, T. Hierarchical Supervisory Control Under Partial Observation: Normality. IEEE Trans. Autom. Control
+2023 ,68, 7286–7298. [CrossRef]
+12. Komenda, J.; Masopust, T.; van Schuppen, J.H. Synthesis of controllable and normal sublanguages for discrete-even systems
+using a coordinator. Syst. Control Lett. 2011 ,60, 492–502. [CrossRef]
+13. Meira-G óes, R.; Kang, E.; Kwong, R.H.; Lafortune, S. Synthesis of sensor deception attacks at the supervisory layer of Cyber–
+Physical Systems. Automatica 2020 ,121, 109172. [CrossRef]
+14. Fritz, R.; Zhang, P . Detection and Localization of Stealthy Cyber Attacks in Cyber-Physical Discrete Event System. IEEE Trans.
+Autom. Control 2023 ,68, 7895–7902. [CrossRef]
+15. Yu, Z.; Duan, X.; Cong, X.; Li, X.; Zheng, L. Detection of Actuator Enablement Attacks by Petri Nets in Supervisory Control
+Systems. Mathematics 2023 ,11, 943. [CrossRef]
+16. Wang, Y.; Weyrich, M. Towards a novel learning assistant for networked automation systems. In Machine Learning for Cyber
+Physical Systems ; Niggemann, O., Beyerer, J., Eds.; Technologien für die Intelligente Automation; Springer: Berlin/Heidelberg,
+Germany, 2016. [CrossRef]
+17. Tran, N.-H.; Park, H.-S.; Nguyen, Q.-V .; Hoang, T.-D. Development of a Smart Cyber-Physical Manufacturing System in the
+Industry 4.0 Context. Appl. Sci. 2019 ,9, 3325. [CrossRef]
+18. Dafﬂon, B.; Moalla, N.; Ouzrout, Y. The challenges, approaches, and used techniques of CPS for manufacturing in Industry 4.0:
+A literature review. Int. J. Adv. Manuf. Technol. 2021 ,113, 2395–2412. [CrossRef]
+19. Maza, S. Hybrid supervisory-based architecture for robust control of Bi-directional AGVs. Comput. Ind. 2023 ,144, 103797.
+[CrossRef]
+20. Bolbhat, S.S.; Bhosale, A.S.; Sakthivel, G.; Saravanakumar, D.; Sivakumar, R.; Lakshmipathi, J. Intelligent Obstacle Avoiding AGV
+Using Vector Field Histogram and Supervisory Control. J. Phys. Conf. Ser. 2020 ,1716 , 012030. [CrossRef]
+21. Forschelen, S.T.; van de Mortel-Fronczak, J.M.; Su, R.; Rooda, J.E. Application of supervisory control theory to theme park
+vehicles. Discret. Event Dyn. Syst. 2012 ,22, 511–540. [CrossRef]
+22. Forschelen, S. Supervisory Control of Theme Park Vehicles. Master’s Thesis, Eindhoven University of Technology, Eindhoven,
+The Netherlands, 2010.
+23. Baeten, J.C.M.; van de Mortel-Fronczak, J.M.; Rooda, J.E. Integration of Supervisory Control Synthesis in Model-Based Systems
+Engineering. In Complex Systems ; Studies in Systems, Decision and Control; Springer: Cham, Switzerland, 2016; Volume 55.
+[CrossRef]
+24. ETF Group Ride-Systems. Available online: https://www.etf.nl (accessed on 13 December 2023).
+25. Kouvakas, N.D.; Koumboulis, F.N.; Fragkoulis, D.G.; Souliotis, A. Modular Supervisory Control for the Coordination of a
+Manufacturing Cell with Observable Faults. Sensors 2022 ,23, 163. [CrossRef]
+26. Koumboulis, F.N.; Fragkoulis, D.G.; Kalkanas, I.; Fragulis, G.F. Supervisor Design for a Pressurized Reactor Unit in the Presence
+of Sensor and Actuator Faults. Electronics 2022 ,11, 2534. [CrossRef]
+27. Koumboulis, F.N.; Fragkoulis, D.G.; Michos, A.A. Modular Supervisory Control for multi-ﬂoor manufacturing processes. Control
+Theory Technol. 2023 ,21, 148–160. [CrossRef]
+28. Koumboulis, F.N.; Fragkoulis, D.G.; Georgakopoulos, P . A Distributed Supervisor architecture for a General Wafer Production
+System. Sensors 2023 ,23, 4545. [CrossRef]
+29. Koumboulis, F.N.; Fragkoulis, D.G.; Arapakis, S. Supervisor design for an assembly line in the presence of faults. In Proceedings of
+the 27th IEEE International Conference on Emerging Technology and Factory Automation, Stuttgart, Germany , 6–9 September 2022.
+[CrossRef]
+30. Vieira, A.D.; Santos, E.A.P .; de Queiroz, M.H.; Leal, A.B.; de Paula Neto, A.D.; Cury, J.E.R. A Method for PLC Implementation of
+Supervisory Control of Discrete Event Systems. IEEE Trans. Control Syst. Technol. 2017 ,25, 175–191. [CrossRef]
+31. Prenzel, L.; Provost, J. PLC implementation of symbolic, modular supervisory controllers. IFAC-PapersOnLine 2018 ,51, 304–309.
+[CrossRef]
+32. James, L.D.; Teixeira, C.A.; Leal, A.B. Formal Design and Implementation of Supervisory Controller for a Didactic Manufacturing
+Cell. In Proceedings of the 2019 IEEE International Conference on Industrial Technology (ICIT)., Melbourne, VIC, Australia,
+13–15 February 2019. [CrossRef]
+33. Scotti WA, F.; Portilla, N.B.; de Queiroz, M.H.; Cury, J.E.R. Modular and systematic design of supervisory control system
+integrating PLC, SCADA and task routing for a modular production system. In Proceedings of the 2015 IEEE International
+Conference on Automation Science and Engineering (CASE), Gothenburg, Sweden, 24–28 August 2015. [CrossRef]
+34. Alves MV , S.; Carvalho, L.K.; Basilio, J.C. Supervisory Control of Networked Discrete Event Systems With Timing Structure. IEEE
+Trans. Autom. Control 2020 ,66, 2206–2218. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.

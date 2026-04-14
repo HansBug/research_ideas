@@ -1,0 +1,382 @@
+--- Page 1 ---
+A Sequence and Supervisory Control System for Onboard Mission
+Management of an Unmanned Helicopter
+Florian-M. Adolf∗
+German Aerospace Center (DLR), D-38108 Braunschweig, Germany
+OVERVIEW
+This paper presents a solution to the onboard mission man-
+agement problem for UA Vs. Inspired by successful ap-proaches from the mobile robotics domain, the proposedarchitecture achieves hybrid control by combining ideasfrom the behavior-based paradigm and a three-layeredhigh-level control architectures. Two main components, aSequence Control System and a Supervisory Control Sys-tem, form the Mission Management System and imple-ment the essential components of this architecture. It isopen with respect to its interfaces to other onboard com-ponents (e.g. the obstacle avoidance system). Events andcommands sent by a remote operator or an onboard com-ponent can be integrated into the system in a plug-and-ﬂyfashion. An operator can control the UA V at different lev-els of autonomy, ranging from common joystick control toexecution of prearranged missions. To assure the safe op-eration of the system, it is characterized by multiple tech-niques. First, the event-based decision logic is modeled asa State Chart model for each component. Second, a truthtable of valid external commands assures that only permit-ted commands are accepted by the event handling. Finally,a grammar-based plausibility check avoids illegal behaviorcommands within a mission plan. The system is imple-mented onboard the UA Vs of the ARTIS program. It is val-idated in unit tests, and tested in software-in-the-loop andhardware-in-the-loop simulations.
+1 INTRODUCTION
+The ARTIS[6] program at the DLR Institute of Flight Sys-tems is working on innovative mission management con-cepts for UA Vs. One research aspect involves the designand implementation of decision making components foronboard mission management. The ultimate goal is to em-ploy an onboard system that allows different levels of UA Vautonomy for the low-altitude domain (e.g. urban areas).
+This paper presents the Mission Management System that
+forms the executive part of an architecture which aims on
+combining the advantages of the behavior-based paradigmand a layered architecture. First, we develop a set of ele-mentary movements that allow the UA V to perform certainmovements like hovering to a location or turning arounda point. Second, a 3T architecture[3] deﬁnes the frame-
+∗PhD student, Institute of Flight Systems, Systems Automation De-
+partment, ﬂorian.adolf {at}dlr.de.work for the mission management in order to handle sys-
+tem complexity while being ﬂexible and fast enough for up-dates and extensions. The highest level of UA V autonomyis implemented by a deliberative layer that comprises of-ﬂine and online planning algorithms in order to solve highlevel tasks (e.g. a search mission). A skill layer stores theelementary behaviors that can be used by the deliberativelayer’s planning algorithms.
+These system features require a safe coordination between
+multiple events. Therefore, the Mission Management Sys-
+tem’s decision logic is modeled using UML State Chart di-agrams which can be veriﬁed using abstract tests (e.g. pathcoverage or event sequences).
+The safe and robust operation plays a major role for this
+onboard system. Consequently, certain safety precautions
+are built into the Mission Management System.
+The software, generated from the State Chart model, is val-
+idated against certain functional scenarios using Unit Testtechniques. Moreover, the implemented code is validated
+in both software-in-the-loop and hardware-in-the-loop sim-
+ulations.
+In the following chapters, the underlying problems of on-
+board mission management, embedded high level architec-tures and their implementation issues are discussed. Thenthe design of the ARTIS Mission Management System ispresented, followed by discussions on the implementedsystem and future work.
+2 PROBLEM DESCRIPTION
+For many UA Vs, remote joystick control and planning mis-sions is performed by an operator at a ground control sta-tion [10] [5]. The operator either directly commands the
+UA V to a location using a joystick (remote control) or a
+position command. With an onboard world model and pathplannning capabilities, more ”intelligence” is brought tothe onboard system such that an operator might issue com-plex commands directing the vehicle to ﬂy back to base or
+search for an object.
+This implies different abstraction levels within the onboard
+system such that levels of autonomy can be achieved. Thelevel of autonomy at which an operator commands the UA Vmight vary over time, depending on the situation and task.
+Moreover, the design and implementation of different lev-els of control necessitates provisions for operational safety
+3295
+
+--- Page 2 ---
+and certain user requirements. In particular, the system
+operator must remain ”in the loop” at all levels of auton-omy. Also, the operational environment is characterized byevents that can occur in an unknown order and at sporadictime instances. It must implement input checks for syntac-tical plausibilities and even semantic correctness, whereverpossible.
+There are several functional requirements with respect to
+predictability of decisions and traceability of internal statesat execution time. For example, the system has to react ap-
+propriately when the safety pilot switches between manual
+and computer-based ﬂight control. The system has to beextensible for new ﬂight maneuvers, planning algorithmsfor onboard mission planning, and interfaces for ”smart”system components like an obstacle avoidance system.
+In reference to the system’s autonomy level, it has higher
+authority over the ﬂight control system for which the es-tablished design process has to remain untouched. Theinterface for data exchange with the ﬂight control systemdemands real-time algorithms.
+Finally, testing the system is mission critical throughout
+its development stages and before its deployment. Highlevel control systems can embed several different kinds oftechniques, such as approximation algorithms or classical
+planning from the ﬁeld of artiﬁcial intelligence. Hence,the testing strategy has to cope with both user and safteyrequirements, as well as, characteristics of these different
+components.
+3 RELA TED WORK
+Onboard Mission Management has gained increased atten-
+tion in recent years [22] [8] [17] [21]. More self-relianceand decision making autonomy for UA Vs poses questionsregarding suitable decision making architectures, systemmodeling techniques, and system validation and veriﬁca-tion methods. Therefore, the ARTIS program considers an-
+swers to these questions to be major challenges in research
+for high level control of UA Vs.
+To solve the complex problems that arise, different high
+level control architectures have been proposed, and someof them have been deployed on UA V systems. Knowledge-
+based systems establishing the concept of a cognitive pro-
+cess as decision making entity were presented in the UA Vdomain[11] [19]. Some other concepts are based on thebehavior-based paradigm, [26] which means that a set ofelementary behaviors (so-called skills, such as movementprimitives) is combined in such a way that a new emer-gent behavior is created. Others prefer layered architec-
+tures [9] comprising distinct system modes, also knownas hybrid control [7]. At this point, for the ARTIS pro-
+gram, it remains uncertain which architectural concept tochoose. Since the control architecture is a mission crit-ical design decision, these architectural concepts will be
+discussed with respect to the UA V domain and the require-ments discussed in chapter 2.Using knowledge-based systems, classical AI spent over
+ﬁve decades trying to model human-like intelligence. In-spired by these systems, several research projects seek toproduce a human-like thinking process (also known as cog-nition) in order to achieve high level control in UA V deci-sion making systems[11] [19]. A commonly used cogni-tive architecture is implemented in SOAR[13]. Since real-time properties are one crucial design aspect for a UA Vdecision making system, a real-time derivate of SOAR,Hero-SOAR, would be a suitable implementation. How-ever, there are major implementation issues related to cog-nitive production systems[16]. First, ”chunking”, a patternmatching technique, might be hard to conﬁne with respectto execution time and memory usage. Second, real-time re-ﬂexive actions (a direct connection of a sensor to an actua-tor) invoke a high-variance of unpredictable AI techniques.Furthermore, problems were experienced when trying toeffectively coordinate and mediate reﬂexive behaviors withthe overall deliberative behavior of the system. If the re-ﬂexive actions can bypass the normal deliberation mecha-nisms, it may be difﬁcult or impossible for the deliberationprocessing to reason about and affect the real-time reaction.
+Hence, the architecture for any UA V decision making sys-
+tem should particularly focus on ”embedding real-time inAI” rather than ”embedding AI in Real-time”[16]. More-over, a principle shortcoming of the cognitive approach isthe emphasis on representation at a high, symbolic level.This yields to control strategies that may make conceptual
+sense to a human designer but the intelligence in such sys-
+tems belongs to the designer. Additionally, it is question-able whether humans deploy a complex thinking processfor every intended behavior rather than think in a more re-active way[2].
+These disadvantages were addressed by the behavior-based
+control with the Subsumption Architecture[24] [4], whichdid not necessarily seek to produce cognition. It rather usesa hierarchy of fast reactive loops where each loop is capableof executing a distinct behavior and higher reactive loopsmodify the behavior of lower ones. The concept of arbitra-tion allows to automatically select among behaviors, andthe so-called action-oriented perception frames the percep-tual input according to the task. Some approaches intercon-nect elementary behaviors and superposition them whichresults in a new, emergent system behavior. The ultimate
+goal in many behavior-based approaches is to enable robot
+learning techniques such that a system can ”learn” whichbehaviors must be compiled together in order to achieve agoal. Since the world is an implicit model, the behavior-based approach shows advantages with respect to designsimplicity, implementation elegance and inherently morerobustness against failures. Behaviors use little or even nointernal state variable to model the environment and thusare less computing-intensive than deliberate counterparts.Hence, a behavior-based system qualiﬁes for the high levelarchitecture as it enables ”AI in Real-time”[16]. Admit-tedly, one of the side effects in many approaches is thatthey produce black-box systems. When behaviors are in-
+terconnected it is almost impossible to explain the sys-
+3296
+
+--- Page 3 ---
+tem behavior. Moreover it is hard to achieve a notion of
+optimality[18]. In a practical sense, debugging a behavior-based system is known to be hard, since the overall behav-ior emerges from the interaction of many layers of asyn-chronous control.
+UA Vs are currently supposed to be semi-autonomous, re-
+motely guided, assistant systems rather than anthropoid,
+autonomous systems. One of the key requirements of hav-ing several levels of system autonomy cannot be achieved
+with solely deliberate nor reactive architectures. Deliberatearchitectures relate ”autonomy” to human-like intelligenceand rational acting, whereas reactive architectures considerit as a system’s ”ability to act independently in the real
+world environment” [14]. Thus, for UA Vs it is worthwhile
+to achieve a combination of the advantages of a knowledge-based and a behavior-based architecture. Current trends inthe robotic development created architectures that combineboth ideas into one system.
+The goal of the TCA[23] is to combine deliberation and re-
+activity in such a way that the system detects changes in itsenvironment and makes appropriate responses. For exam-ple, deliberative aspects of TCA can be used to plan movesbased on certain constraints, whereas the reactive compo-nents detect and handle deviations arising from sensor andactuator uncertainty. TCA provides designers with controlconstructs for developing behaviors and software utilitiesfor implementing the necessary control decisions. How-ever, this architecture does not itself provide behaviors fora particular task.
+Inspired by the Subsumption Architecture[24] [4] and em-
+pirical observations, the 3T architecture[3] separates intel-ligent control into three interacting layers (or tiers). Theﬁrst layer comprises a set of so-called reactive skills, thatare behaviors (control laws) tightly coupled with environ-ment through sensor readings and actuators. Skills make
+”simple-world” assumptions; such as, the sensor input is
+valid and desired goal can be achieved. In order to ac-complish speciﬁc task, the sequencer on the second layerassembles an appropriate task network of skills by activat-ing and deactivating respective skills. When more than oneskill is active, they form a so-called task network. The third
+layer is the deliberative layer, which comprises a planner
+that reasons about goals, resources and timing constraintswith well known AI techniques. The centralized sequencerof this architecture does not allow concurrency betweenall behaviors and modules in the system. Also, this archi-
+tecture does not differ between skills that perform control
+commands and abstract skills (e.g. a skill activating lowerskills).
+4 MISSION MANAGEMENT SYSTEM
+The advantages and the disadvantages of the architecturesdiscussed before, demand a thorough consolidation intoone embedded architecture for onboard mission manage-ment. The major requirements with respect to real-time ex-ecution, predictable system behavior and the need for dif-ferent levels of (operational) autonomy result in the follow-
+ing design decisions:
+•The embedded system architecture must be separated
+into interacting layers, to enable the implementation
+of deliberate and reactive approaches. This leavesroom for a behavior-based reactive layer and allowsseveral kinds of AI techniques in the deliberative
+layer(s).
+•The layered architecture chosen for this hybrid con-
+trol problem is the 3T architecture. Compared to the
+TCA, it offers a more ﬂexible way of modularization,
+centralizes the execution of actions and does not relyon interacting skills.
+•The behavior-based paradigm, as a bottom-up strat-
+egy for intelligent systems, is worth being consideredfor the reactive layer, since it enables real-time execu-tion and relatively simple behavior development. Thisparadigm allows a way to compile elementary prob-lem solutions (e.g. moving to a position) into a libraryof behaviors.
+•Known shortcomings of the behavior based approach
+with respect to online learning, behavior interactionand arbitration techniques, are eliminated intention-ally.
+•When behavior interaction and abstract behaviors are
+not available in the reactive layer, the discussed disad-vantages of the 3T approach can be neglected.
+As a result, the design concept for the ARTIS onboard mis-
+sion management system combines a 3T architecture withideas from the behavior-based paradigm. In the next sec-tions the ﬁrst component of this architecture, the SequenceControl System, is described. It implements the sequencinglayer’s executive component and a set of basic behaviors inthe reactive layer.
+The SMission Management System’s embedded system is
+described from three points of view. In order to highlighta system wide context, Figure 1 describes the componentorganization from an implementation point of view. Theillustrations in Figure 2 outline how 3T’s principle highlevel control decomposition boils down to the actual ap-plication for ARTIS. Finally, Figure 3 shows the decisionlogic which is implemented as an UML State Chart model.
+4.1 Embedded Architecture
+Two basic prerequisites of the proposed architecture in Fig-ure 2 are implemented in the Sequence Control System. Itcomprises a library of basic movement behaviors locatedat the reactive layer, followed by an executive componentof the sequencing layer. The Supervisory Control Systemimplements higher level behaviors and inﬂuences the Se-quence Control System’s mission execution when an oper-ator on ground issues a high level command or when thehuman control is not available. Figure 1 shows that the
+Sequence Control System forms the interface to the ﬂight
+3297
+
+--- Page 4 ---
+UAVMission Manager
+OperatorDigital World Model
+Flight ControllerSensor
+Status
++ Reactive 
+CommandsSensor
+Fusion
+Mission Planning
++ Execution Monitoring
+High Level
+Commands
+Task Planner
+Route Planner• Resources 
+ Cooperation
+ CommunicationModule ManagerSupervisory Control System
+Behavior Command Sequence
+Event HandlerSequence Control System
+Behavior Pool Direct Commands
+Remote Control
+Low Level
+CommandsUser generated
+Behavior Sequ.Behavior 
+Command 
+SequenceHealth
+Management
+FIG. 1: The ARTIS Mission Management System shown in the
+context of the overall high level system architecture.
+Sequencing Layer: Compile behaviors into plans
+Example:
+Mosaiking
+mission.Mission Time
+t0
+Take Off
+ Fly To
+t1 t2a
+Hover
+t3
+Hover To
+ Hover
+ Fly To
+t5 t6
+Hover
+t7
+LandPhoto
+t2bPhoto
+t4b t4a
+Flight Controller Configuration (Task IDs)Path-based
+Flight ControlVelocity/Position-based
+Flight Control …Hover Turn Take offReactive Layer: Movement capabilities (skills)
+Hover To Fly To Pirouette …Search SurveillanceDeliberate Layer: High-level Behaviors using Task-specific Planners
+Explore Fly Home…
+Land
+FIG. 2: ARTIS’ Sequence Control System implements the exec-
+utive component of the sequencing layer of this 3T architecture.The reactive layer contains basic movement behaviors that inter-face with the ﬂight control system. The Sequencing Layer showsa mosaicking mission compiled from the behavior set.
+control system. It is the unifying building block of the
+onboard Mission Manager and takes inputs from varioussources like the ground control station, vision computer orsupervision component.
+Furthermore, neither the deliberative layer nor the skills
+alone can handle all situations optimally. The SequenceControl System provides the necessary glue logic and isthe place to store procedural knowledge that neither ﬁts atthe deliberative layer nor at the skill layer. For ARTIS,this procedural knowledge comprises some of the safetyrequirements for ﬂight tests mentioned in chapter 2. Forexample, when the safety pilot switches between manualor computer aided control, the system must stop producingactuator commands and reset its onboard components intoa deﬁned stand-by state.
+Figure 2 demonstrates which behaviors are located at the
+skill layer. Depending on which ﬂight controller conﬁgu-
+ration is used, there are two basic behavior groups. Theﬁrst group outputs direct position and velocity commands
+to the ﬂight controller. The take-off and the landing behav-iors use this controller conﬁguration, where they commanda ﬁxed position for the horizontal layer (x and y axis) and
+a velocity command on the z axis. These behaviors con-tain only two state variables, namely the x and y positionControllerOn
+DefaultTransition
+MissionController O
+evControllerOn
+SlowDown
+evAutoPilotevManualPilot
+StandBy
+evManualPilot
+evStandStill evLanded
+MissionMode
+evManualPilot
+evMissionModeOnevMissionModeStop
+evDirectBehaviorCommandevMissionUpdate
+CommandMode
+evDirectCommandValidevDirectCommandValid
+evCommandStop
+evDirectCommandValidevManualPilot
+evMissionModeOn
+FIG. 3: The UML State Chart Model of the Sequence Control
+System comprises two composite states: State ”Mission Mode”for mission plan execution and ”Command Mode” for direct op-erator commands or commands from onboard components.
+they have to maintain. As such, these behaviors are ”reﬂex-
+ive” behaviors in the original sense of the behavior-based
+paradigm[24].
+The second group is the largest set of behaviors. These pro-
+duce trajectory-based control commands which comprise
+two tangential trajectory angles and the deviation from thistangent. At this time, the behavior library contains behav-iors to wait at a position (”Wait For”), turn on the spot(”Hover Turn”), to ﬂy along a linear trajectory toward alocation (”Hover To”), to ﬂy around a point along a hori-zontal circular trajectory (”Pirouette”), and to perform fastforward ﬂights along an arbitrary trajectory (”Fly To”).
+The deliberate layer shows examples of complex behav-
+iors. These will alter existing missions or even create newmissions. In this context, mission planning will output thelist of sequential behavior commands shown in Figure 2.However, the compilation does not necessarily take placeonboard. In fact, at present, missions are compiled by the
+ground control station software and sent to the SequenceControl System. However, there’s still a necessity for a Su-pervisory Control System when the ground operator issuesa complex behavior command, e.g. to let the UA V ﬂy to a(predeﬁned) home location.
+4.2 Event-based Model
+As discussed in Chapter 2, the Mission Management Sys-tem is exposed to a number of potentially concurrentevents. Hence, the speciﬁcation and implementation ofthe system is modeled as an event-based system. [15]The majority of event-based systems are modeled using anindustry-wide standard notation, UML
+1. It supports the ob-
+ject oriented design pattern and provides dynamic model-ing techniques such as state charts, sequence diagrams andactivity diagram. State charts have been extensively studiedsuch that abstract testing techniques allow to verify a model
+1V ersion 1.2, as deﬁned by OMG (http://www.uml.org/)
+3298
+
+--- Page 5 ---
+(semi-)automatically. Also, there exists good software tool
+support which eases the development process signiﬁcantly.Moreover, there are tools that provide code generators suchthat the implemented code is directly derived from the statechart-based speciﬁcation. Otherwise, it is likely that speci-ﬁcation and implementation begin to diverge over time.
+Thus, the Mission Management System is modeled as
+UML (currently v1.2) State Charts. Basically, State Chartdiagrams (also known as State Machines in UML 2) are ﬁ-nite automatons with a ﬁnite set of states where exactly one
+state is active at a time. They depict the dynamic behavior
+based on its response to events, showing how the model re-acts to various events depending on its current state. Eventscan trigger a transition into another state, where so-calledguards are the condition that must become true in order totraverse along the transition. The guards on similar transi-tions leaving a state must be consistent (deterministic) withone another.
+The UML model of the Mission Management System’s Se-
+quence Control System is shown in Figure 3. It has two hi-erarchical levels where the top level models the proceduralﬂow for a safe operation. The two composite states, ”Mis-sion Mode” and ”Command Mode”, model mission planprocessing and direct command execution respectively.
+Every state of the top level has a transition to the ”Mission
+Controller Off” to handle a manual control event, such thatthe Sequence Control System stands by in an idle state. Ifthe system is in computer-based ﬂight mode (auto mode),another idle state ”Stand By” lets the UA V hover at its cur-rent position when the state was entered; including a posi-tion on the ground. The state ”Slow Down” is necessaryto assure a smooth changeover into ”Stand By” regardless
+of the ﬂight maneuver currently being executed. In case
+the GCS operator commands the UA V to stop, a transitionfrom every auto mode state assures that the command isexecuted. Among events certain priorities exist. For exam-ple, an event switching to manual mode is more importantthan a stop command and requires processing. The order in
+which the event check is performed accounts for this obli-gation.
+The state mission mode contains the actual library of be-
+haviors. There are no transitions among behaviors whichassures that not more than one behavior can be active at
+a time. This is a major requirement in order to overcomeemergent behaviors caused by interactions. For each be-havior there exists a termination condition which transitsinto the command parser ”Parse Command”. Basically thisstate grabs behavior commands from an existing missionplan. It issues an event for traversing into the appropriate
+state. If the mission plan is processed, ”Mission Mode” isﬁnished.
+The ”Command Mode” can be entered from any auto
+mode state. It is relatively complex decision to determinewhether a direct command is permitted or not. First, com-
+pared to behaviors in ”Mission Mode”, every direct com-
+mand may not have a termination condition. For example,one instantaneous velocity command from the GCS cannot
+reach a target condition. For such cases, a quasi inﬁnitebehavior is bounded in execution time, such as the timepassed since a GCS velocity command was received.
+Second, it depends on which data is coming on what input
+channels. This speciﬁc problem is addressed with the statictruth table.This table deﬁnes the direct input data channelsfor the GCS, vision computer and FLARM
+2. The columns
+represent the data values, either boolean or numeric, forposition, joystick, pattern position, stereo camera-basedavoidance position, or a FLARM-based avoidance veloc-ities. It names all valid, conﬂict free combinations explic-itly. At runtime this table allows checks of every incomingcommand.
+Likewise the command checks for these low-level direct
+commands, missions deﬁned as sequence of behavior com-mands have to be understood as one single command. Al-though, for the system it is not possible to reason aboutthe sense of a mission plan, it is possible to implement aplausibility check. These checks are implemented usingthe EBNF grammar[12] which ignores malformed behav-ior sequences that cannot be matched against it. EBNFgrammars are formal grammars of logical production rulesthat comprise nonterminal symbols, similar to place hold-ers or variables, and terminal symbols, which are gener-ated by the grammar. Grammars are widely used to imple-ment compilers for programming languages, and, as such,a behavior sequence is a sequential program. The gram-mar implemented in this context deﬁnes production rulesfor each behavior command or task ﬂag, such as a ”hoverto” or ”tracker off”. Its root is deﬁned by ” <mission >”
+which basically enforces every mission to start with a take-off behavior and end with a land. It implements some ba-sic parameter checks, for instance for the ”hover and wait”command where the waiting time must not be a negativenumber. Furthermore, the grammar allows a check for anynecessary preconditions for speciﬁc behaviors. For exam-ple, the trajectory planner for the forward ﬂight needs atleast three of its behavior commands.
+4.3 System T esting
+The overall complexity of the Mission Management Sys-tem’s software implementation imposes a thorough teststrategy. The testing process has to account for user re-quirements (”scenarios”), as they were mentioned in Chap-ter 2, and must address theoretical issues that can occur inﬁnite state machine models and State Charts, respectively.Basically, there are four testing stages during the develop-ment of the onboard mission management system:
+1. Abstract tests assure that the model is free of principle
+errors.
+2. Unit Tests assess the functionality of individual soft-
+ware component or a composite component.
+2An integrated device for collision avoidance, http://www.ﬂarm.ch/
+3299
+
+--- Page 6 ---
+3. Simulation provides the infrastructure for operational
+tests that assess the overall system integration.
+4. Flight Tests provide a practical proof of concept for
+the real world application.
+In the modeling stage a set of errors can occur. Some re-
+late to potentially isolated or unreachable states, as well as,missing or erroneous triggers and guards. An even morefundamental problem is the theoretically inﬁnite set of se-quences that have to be tested in an abstract manner. Thatis, regardless of the meaning and function behind events,states and transitions, the tests must traverse through themodel even if a certain test would make no sense from apractical point of view.
+Abstract tests relate to Model-based testing[25]. In the
+case of the Mission Management System, the test modelcan be derived from the State Chart model. UML statecharts represent a constructive model[20], such that testscan make use of its internal structure (known as white-box testing). These abstract tests can be divided into threegroups, namely the path coverage, transition coverage andstate coverage tests. For each of these groups, a set of eventchains is generated and executed. Once a full coverageof all possible combinations is reached, the tests are com-pleted. However, there is no deﬁned ﬁnal state and statescan have loops, as such inﬁnitely long test chains for pathcoverage tests result. Therefore, a relaxation for the pathcoverage criteria is implemented such that loops must bepassed only once. This is a strong and feasible criteria[25].
+Inspired by some of the best practices in XP[27], the user
+requirements are translated into scenarios that are imple-mented as Unit Tests. The tests focus solely on the ob-served behavior (known as black-box testing). XP’s test-ﬁrst practice allows an ”inside-out” strategy where eachcomponent, for example a trajectory interface, is tested be-fore a higher component is tested that makes use of thisinterface. Technically, the tests implement certain heuris-
+tics. For example, if the GCS does not send new velocity
+commands, a time out must trigger an appropriate event.Besides these procedural checks, some behaviors can betested using Unit Tests, such as the landing behavior, whichmust stop descending when a certain level of lateral or lon-
+gitudinal velocity is exceeded. Other scenarios intention-
+ally produce illegal commands which the system must ig-nore. For instance, when the UA V stands on the groundany direct command must be ignored, except the take-offcommand. Furthermore, the system always has to checkagainst a shortfall of minimum ground distance, which can
+be tested easily using simulated data. Essentially, these unit
+tests also serve as so-called regression tests[1]. It is possi-ble to ﬁnd ”local” bugs, that is, test whether changes in-troduced new bugs. Then they can ”unmask” previouslyexisting bugs that were not detected before. Finally, theypotentially uncover unintended side effects with ”remote”
+tests, where the change of one part breaks another part ofthe software.Before every ﬂight test, the fully integrated Mission Man-
+agement System software is tested in simulation. For AR-TIS, SITL and HITL simulations are available.The SITLsimulation implements a number of simpliﬁcations for thesake of reducing the computational load on desktop PCs.Whereas the HITL simulation uses the original onboardcomputer hardware and realistic sensor models. Moreover,the SITL simulation runs in a Simulink model which doesnot enforce real-time code execution. Further, most statechart events are based on thresholds, time outs and distinctsensor values. With respect to the Sequence Control Sys-tem, the major difference between SITL and HITL simu-lations is, that sensor values, timing conditions and eventsequences differ. Logic tests in abstract and unit testingcannot check the correctness of the effective interface toreal valued state estimates and sensor data. These issuesare addressed during the operational tests in these simula-tions. Predeﬁned functional tests are executed manually,then missions that provide a full state coverage are exe-cuted.
+5 FUTURE WORK
+In theory many high level control problems of the UA Vdomain, like path planning or performing a single maneu-ver, are considered to be solved. However, integrated ar-chitectural concepts can rarely be observed in ﬂight tests.That is why the focus is on the difﬁculty of bridging theoryand practice, which was the goal in this paper and will bean important future research aspect within the ARTIS pro-gram. In order to achieve this goal, a number of researchdirections have been identiﬁed. In the short term, the on-board mission management concept will be extended withcomplex behavior modules enabling a signiﬁcantly higherlevel of abstraction for UA V control. Moreover, work is un-derway to explore alternative modeling techniques, such asPetri Nets. Additionally, behaviors for the deliberate layerare developed that allow an operator to perform tasks likeobject search and tracking, exploration or ﬂying back to abase.
+6 CONCLUSION
+This paper presents a solution to the onboard missionmanagement problem of UA Vs. It is implemented in theunmanned helicopters used by the ARTIS program andsuccessfully validated, veriﬁed and ﬂight tested. Thisbehavior-based Mission Management System, embeddedinto a 3T architecture is a feasible approach and has ad-vantages over the discussed approaches. The UA V is con-trolled by a robust, deterministic system that can han-dle various events and commands coming from multiplesources. These sources can either be system componentsor a remote operator. The presented (semi-)automatic testprocess makes testing manageable and allows test execu-tion in a repeatable way.
+Both, the Sequence Control System and the Supervisory
+Control System, execute the output of the 3T architec-
+3300
+
+--- Page 7 ---
+ture’s behaviors compositions which allows different lev-
+els of UA V autonomy. The behavior-based aspects of theproposed architecture enable real-time properties through adirect linkage between sensors and actuators, even for com-plex maneuvers. New behaviors can be added to the behav-ior library such that functional extensibility is facilitated(”plug-and-ﬂy”). Since some concepts of solely behavior-based approaches, like arbitration or robot learning, are noteligible for UA V control, they have not been implementedin the architecture. The State Chart model assures an event-based behavior with deterministic, predictable actions. Thedecision logic can be veriﬁed using abstract tests like statecoverage, path coverage and transition coverage tests. Thelevel of abstraction in the State Chart model allows a conve-nient way of mission execution and execution monitoring.The Mission Management System implements several op-erational safety features. First, an operator can overrule au-tonomous actions anytime. Second, the system provides astand by state which also serves as a fall-back state in caseof errors. Third, the user input is checked against plau-sibility rules using a truth table and an EBNF grammar.Regardless of which behavior is executed or what opera-
+tor command the system is executing, the system allows no
+shortfall of a minimum ground distance, thus avoiding acci-dental ground strikes. Furthermore, it rejects a malformedmission plan, that is a plan which could harm the helicopterduring mission execution. By design the Mission Manage-
+ment System keeps the operator in the loop. He has the pos-sibility to intercept any running behavior by different kindsof commands, ranging from direct velocity commands (e.g.for remote joystick control), direct position commands, asingle behavior (e.g. land) or a complex behavior com-mand sequence. Furthermore, at this time, high-level taskslike mission planning remain operator tasks. It is possibleto implement an ”onboard operator” in case an operator onground is not available.
+However, the control architecture may reach its limits when
+the centralized sequencer needs to implement concurrency(e.g. multiple deliberate behaviors need to be active).
+It does not allow concurrency between all behaviors andmodules in the system. Moreover, known shortcomings ofState Chart models are inherent to the current system. First,
+State Charts need constraints to restrict semantics on the in-put data since these cannot be modeled. Second, UML usecases are user examples and as such inherently incomplete.
+A formal speciﬁcation of the functional requirements is bedesirable. State Chart models provide only a limited sup-port for temporal design aspects.
+REFERENCES
+[1] Hiralal Agrawal, Joseph Robert Horgan, Edward W.
+Krauser, and Saul London. Incremental regressiontesting. In ICSM , pages 348–357, 1993.
+[2] Philip E. Agre and David Chapman. Pengi: an im-
+plementation of a theory of activity. In Computation
+& intelligence: collected readings , pages 635–644,Menlo Park, CA, USA, 1995. American Association
+for Artiﬁcial Intelligence.
+[3] R. Peter Bonasso, James Firby, Erann Gat, David Ko-
+rtenkamp, David P . Miller, and Marc G. Slack. Ex-periences with an architecture for intelligent, reactive
+agents. Journal of Experimental & Theoretical Artiﬁ-
+cial Intelligence , 9(2/3):237–256, April 1997.
+[4] R. S. Brooks. A robust layered control system for
+a mobile robot. pages 204–213, San Francisco, CA,USA, 1990. Morgan Kaufmann Publishers Inc.
+[5] Joerg S. Dittrich, Florian Adolf, Augusto Langer, and
+Frank Thielecke. Mission planning for small uav sys-tems in uncertain environments. In 2nd European Mi-
+cro Aerial V ehicle Conference , Braunschweig, Ger-
+many, July 2006.
+[6] Joerg S. Dittrich, Andreas Bernatz, and Frank Thi-
+elecke. Intelligent systems research using a smallautonomous rotorcraft testbed. In 2nd AIAA ”Un-
+manned Unlimited” , number AIAA-2003-6561, San
+Diego, CA, September 2003.
+[7] M. Egerstedt, X. Hu, and A. Stotsky. A hybrid control
+approach to action coordination for mobile robots. InProceedings of IF AC 99 14th World Congress , Bei-
+jing, China, Jul 1999.
+[8] Patrick Fabiani. The ressac autonomous air vehicle
+project: Challenges and demonstration platforms. In5th ONERA-DLR Aerospace Symposium , June 2003.
+[9] Michael Freed, Pete Bonasso, K. Michael Dalal, Will
+Fitzgerald, Chad Frost, and Robert Harris. An ar-
+chitecture for intelligent management of aerial obser-vation missions. In Infotech@Aerospace , Arlington,
+Virginia, 26-29 September 2005.
+[10] Lucas Heitzmann-Gabrielli. Mission planning and
+dynamic avoidance for groups of autonomous agents.Trabalho de Graduacao, Instituto Tecnologico de
+Aeronautica, Sao Jose dos Campos, Brasil, Nov 2005.
+[11] R. Hill, J. Chen, J. Gratch, P . Rosenbloom, and
+M. Tambe. Intelligent agents for the synthetic battle-ﬁeld: A company of rotary wing aircraft. In Innova-
+tive Applications of Artiﬁcial Intelligence (IAAI-97) ,
+1997.
+[12] ISO-14977. Information technology — syntactic met-
+alanguage — extended bnf. 2001. International Or-
+ganization for Standardization, ISO/IEC 14977.
+[13] John E. Laird, Allen Newell, and Paul S. Rosen-
+bloom. Soar: An architecture for general intelligence.Artif. Intell. , 33(1):1–64, 1987.
+[14] P . Makowski. Survey on architecures and frameworks
+for autonomous robots, November 2004.
+[15] Gero Muehl, Ludger Fiege, and Peter Pietzuch. Dis-
+tributed Event-Based Systems . Springer-V erlag New
+Y ork, Inc., Secaucus, NJ, USA, 2006.
+3301
+
+--- Page 8 ---
+[16] David John Musliner, James Hendler, Ashok K.
+Agrawala, Edmund H. Durfee, Jay K. Strosnider, andC. J. Paul. The challenges of real-time AI. TechnicalReport CS-TR-3290, 1994.
+[17] A. Piquereau, V . Fuertes, and P . Fabiani. Autonomous
+ﬂight and navigation of vtol uavs. In 5th ONERA-
+DLR Aerospace Symposium , June 2003.
+[18] P . Pirjanian. The notion of optimality in behavior-
+based robotics. In Journal of Robotics and Au-
+tonomous Systems , 1999.
+[19] H. Putzer and R. Onken. COSA – a generic cogni-
+tive system architecture based on a cognitive modelof human behavior. Cognition, Technology and Work ,
+5, 2003.
+[20] Bernhard Rumpe. Agile Modellierung mit
+UML : Codegenerierung, Testfaelle, Refactoring(Xpert.press) . Springer, November 2004.
+[21] Daniel P . Schrage and Eric N. Johnson. The georgia
+tech vtol uav testbed - the gtmax, as an open systemfor uav research and development. In 59th Annual
+F orum of the American Helicopter Society , Phoenix,
+AZ, May 2003.
+[22] David Hyunchul Shim. Hierarchical Control System
+Synthesis for Rotorcraft-based Unmanned Aerial V e-hicles’ . PhD thesis, University of California, Berke-
+ley, 2000.
+[23] Reid Simmons. Structured control for autonomous
+robots. IEEE Transactions on Robotics and Automa-
+tion, 10(1), February 1994.
+[24] D. Toal, C. Flanagan, C. Jones, and B. Strunz. Sub-
+sumption architecture for the control of robots. In
+IMC-13, Limerick , 1996.
+[25] Mark Utting and Bruno Legeard. Practical Model-
+Based Testing: A Tools Approach . Morgan Kaufmann
+Publishers Inc., San Francisco, CA, USA, 2006.
+[26] Lora G. Weiss. Intelligent collaborative control for
+uavs. In Infotech@Aerospace , Arlington, Virginia,
+26-29 September 2005.
+[27] Graham Wright. Achieving iso 9001 certiﬁcation for
+an xp company. In XP/Agile Universe , pages 43–50,
+2003.
+3302

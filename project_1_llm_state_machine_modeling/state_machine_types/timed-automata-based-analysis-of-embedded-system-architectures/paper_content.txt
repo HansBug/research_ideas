@@ -1,0 +1,162 @@
+--- Page 1 ---
+Timed Automata Based Analysis of 
+Embedded System Architectures 
+Martijn Hendriks & Marcel Verhoef 
+Radboud University Nijmegen (NL) 
+first .last @cs.ru.nl 
+
+
+--- Page 2 ---
+Agenda 
+• Background & rationale to the work • The in-car radio navigation case study • Constructing timed automata models • Comparison to other techniques • Conclusions 
+
+--- Page 3 ---
+Context 
+• Early design exploration, abstract models • UPPAAL model checker increasingly powerful • In-car Radio Navigation system case study • Predict best- and worst case execution times • Questions 
+– Can we model the case effectively? – Can we analyze the model efficiently? – How useful are the results? 
+
+--- Page 4 ---
+The In-Car Radio Navigation System 
+• Car radio with built-in navigation system • User interface needs to be responsive • Traffic messages must be processed in a timely way • Several applications may execute concurrently 
+
+
+--- Page 5 ---
+System Overview – Change Volume 
+Navigation Radio User Interface 
+Database 
+Communication 50 msec 200 msec 
+
+--- Page 6 ---
+Application  A: Change Audio Volume 
+Performance Requirements Input Data Rate Communication Resource Demand Computation Resource Demand 
+
+--- Page 7 ---
+System Overview – Handle TMC 
+Navigation Radio User Interface 
+Database 
+Communication 1000 msec 
+
+--- Page 8 ---
+Application C : Handle TMC 
+ReceiveTmc:pure periodic 0.333 Hz, jitter 0 TASKS (priority 1, #instructions) 
+HandleTmc, 4, 1E6 SearchTmc, 5, 5E6 UpdateTmc, 6, 5E5 MESSAGES (priority 1, #size) 
+DecodeTmc, 4, 64 bytes TmcResult, 5, 64 bytes REQUIREMENTS NVC – ReceiveTMC ≤ 1000 msec system boundary 
+
+--- Page 9 ---
+Proposed Architecture Alternatives 
+NAV RAD MMI 22 MIPS 
+11 MIPS 113 MIPS 
+NAV RAD MMI 22 MIPS 
+11 MIPS 113 MIPS 
+RAD 260 MIPS 
+NAV MMI 22 MIPS 
+RAD 130 MIPS 
+MMI NAV 113 MIPS 
+MMI 260 MIPS 
+RAD 
+NAV 72 kbps 72 kbps 57 kbps 72 kbps 
+72 kbps (A) 
+(E) (D) (C) (B) 
+• kbps = kilo bit per second 
+• mips = 10 6instructions per second 
+• assume no (protocol or scheduling) overhead (zero cost) • inter task communication on same resource is instantaneous (zero cost) 
+
+--- Page 10 ---
+Constructing Timed Automata 
+• Modeling computation resources • Modeling communication resources • Modeling the environment • Composing the model 
+
+--- Page 11 ---
+Modeling computation (1) 
+• TA per computation resource • Build list of all operations that the resource perform s 
+• TA is specific for a given deployment • Resource is either idle 
+or performing some operation 
+• Resource state is modeled as a location in the TA • Time spend in location is #instr / capacity • “greedy” automaton to ensure finite response times • Count number of outstanding requests per operation • Scheduling can be modeled (i.e. preemption) 
+
+--- Page 12 ---
+Modeling computation (2) 
+
+
+--- Page 13 ---
+Modeling communication 
+• TA per communication resources • Build list of all messages that might be transported • TA is specific for a given deployment • Resource is either idle 
+or transferring a message 
+• Resource state is modeled as a location in the TA • Time spend in location is #size / bandwidth • “greedy” automaton to ensure finite response times • Count number of transfer requests per message • Bus behavior can be modeled (e.g. priorities) 
+
+--- Page 14 ---
+Modeling the environment (1) 
+• Template TAs; supported event models: 
+– Periodic – Periodic with offset (phase shift) – Sporadic – Periodic with jitter (j < p) – Bursty (j >> p) with minimum inter arrival time 
+• Two flavors 
+– event generators – event generator with measuring capability 
+(assumption: order preserving - FIFO behavior) 
+
+--- Page 15 ---
+Modeling the environment (2) 
+
+
+--- Page 16 ---
+Modeling the system 
+• Simply compose the system model by 
+– TAs for all computation resources + – TAs for all communication resources + – Event generator TAs + – Measuring event generator TA + – “hurry” automaton 
+
+--- Page 17 ---
+Performing the analysis (1) 
+• AG (aut.seen aut.y < C) 
+• Perform binary search (manually) • Results typically found in a few seconds or • Use search strategy: find any bound • “property not satisfied”
+counter example 
+• Only [BW]CET analysis, no utilization 
+
+--- Page 18 ---
+Performing the analysis (2) 
+
+
+--- Page 19 ---
+Comparison: MPA (1) 
+• Modular Performance Analysis • Developed at ETH Zurich (Lothar Thiele et al) • Performance networks analysed with real-time calculus • Analytic method, deterministic queuing theory • Adaption of Network Calculus (Boudec, Thiran)• Describes event streams by interval bound functions • Information is lost: t 
+∆t
+• Evaluation is very fast (no simulation) • http://www.mpa.ethz.ch 
+
+--- Page 20 ---
+Comparison: MPA (2) 
+
+
+--- Page 21 ---
+Comparison: SymTA/S (1) 
+• Symbolic Timing Analysis for Systems • Developed at TU Braunschweich (Rolf Ernst et al) • Classical (formal) scheduling analysis techniques • Symbolic simulation • Calculate resource local optima • Optimize system level by iteration over local optima • Heterogeneous architectures • Complex task dependancies, context aware analysis • Rapid design space exploration by sensitivity analysis • http://www.symtavision.com 
+
+--- Page 22 ---
+Comparison: SymTA/S (2) 
+
+
+--- Page 23 ---
+Comparison with MPA and SymTA/S 
+• many thanks to Ernesto Wandeler (MPA) and Kai Richter ( SymTA/S) 
+
+--- Page 24 ---
+Conclusions (1) 
+• Found some useful modeling strategies • Model construction is currently manual process 
+laborious and error prone 
+• We believe that model construction can be automated • Analysis of this size of case study is possible: results are 
+found within seconds, minutes rather than hours 
+• Results found comparable (competitive) to other 
+techniques 
+
+--- Page 25 ---
+Conclusions (2) 
+• State space explosion is still likely, determined by 
+– size of the model – difference in clock periods of environment model – level of non-determinism in the model 
+• Can be (partly) circumvented by 
+– Smart modeling (expert use of UPPAAL) – Use UPPAAL for non-exhaustive search (using 
+search strategies); find any value (lower bound) 
+
+--- Page 26 ---
+Thank you for your attention! 
+• Some additional on-line resources 
+– UPPAAL model checker 
+http://www.uppaal.com 
+– The AMETIST project 
+http://ametist.cs.utwente.nl 
+– UPPAAL models of this case study 
+http://www.cs.ru.nl/~martijnh/
+– General case study description 
+http://www.tik.ee.ethz.ch/~leiden05 

@@ -1,0 +1,1159 @@
+--- Page 1 ---
+Institution-based Encoding and Veriﬁcation of
+Simple UML State Machines in CASL/SPASS
+Tobias Rosenberger1;2, Saddek Bensalem2,
+Alexander Knapp3, and Markus Roggenbach1
+1Swansea University, U.K.
+ft.rosenberger.971978 ;m.roggenbachg@swansea.ac.uk
+2Université Grenoble Alpes, France
+Saddek.Bensalem@imag.fr
+3Universität Augsburg, Germany
+knapp@informatik.uni-augsburg.de
+Abstract. We present a new approach on how to provide institution-based seman-
+tics for UML state machines. Rather than capturing UML state machines directly
+as an institution, we build up a new logical framework M#
+Dinto which UML
+state machinescanbe embedded.Atheoroidal comorphismmaps M#
+Dintothe
+C/a.sc/s.sc/l.scinstitution. This allows for symbolic reasoning on UML state machines. By
+utilising the heterogeneous toolset H/e.scTSthat supports C/a.sc/s.sc/l.sc, a broad range of
+veriﬁcation tools, including the automatic theorem prover S/p.sc/a.sc/s.sc/s.sc, can be combined
+in the analysis of a single state machine.
+1 Introduction
+Aspartofalongstandinglineofresearch[ 9,10,19,8],wesetoutonageneralprogramme
+tobringtogethermulti-viewsystemspeciﬁcationwithUMLdiagramsandheterogeneous
+speciﬁcation and veriﬁcation based on institution theory, giving the diﬀerent system
+views both a joint semantics and richer tool support.
+Institutions, a formal notion of a logic, are a principled way of creating such joint
+semantics. They make moderate assumptions about the data constituting a logic, give
+uniform notions of well-behaved translations between logics and, given a graph of such
+translations, automatically give rise to a joint institution.
+Inthispaper,wewillfocusonUMLstatemachines,whichareanobject-basedvariant
+of Harel statecharts. Within the UML, state machines are a central means to specify
+system behaviour. Here, we capture simple UML state machines in what we claim to be
+atrue semanticalsense.Focusof thispaper arestatemachines running inisolation —
+interacting state machines and with it the notion of the event pool are left to future work.
+Comparedtoourpreviousattemptstoinstitutionalisestatemachines[ 9,10,19,8],this
+paper takes a diﬀerent approach. Rather than capturing UML state machines directly as
+an institution, we build up a new logical framework M#
+Din which UML state machines
+canbeembedded.Coreofthisframeworkisanewhybridmodallogicwhichallowsusto
+logically encode the presence as well as the absenceof transitions in the state machines.
+Data types, guards, and eﬀects of events are speciﬁed in the algebraic speciﬁcation
+language C/a.sc/s.sc/l.sc. An algorithm translates UML state machines into M#
+D.
+
+--- Page 2 ---
+Atheoroidalcomorphismmapsourlogicalframework M#
+Dintothe C/a.sc/s.sc/l.scinstitution.
+Thisallowstoustoutilisetheheterogeneoustoolset H/e.scTS[15]anditsconnectedprovers
+for analysing UML state machines.In this paper we demonstrate how toanalyse a state
+machine with the automatic ﬁrst-order prover S/p.sc/a.sc/s.sc/s.sc[20], which is the default automated
+prover of H/e.scTS. Such symbolic reasoning can be of advantage as, in principle, it allows
+to verify properties of UML state machines with large or inﬁnite state spaces. Such
+machines appear routinely in system modelling: though state machines usually have only
+ﬁnitelymanycontrolstates,theyhavealargenumberofconﬁgurations,oreveninﬁnitely
+many, due to the data variables involved.
+ComparedtoothersymbolicapproachestodirectlyencodeUMLstatemachinesintoa
+speciﬁcinteractivetheoremprover[ 11,5,1],ourlogicalframework M#
+Dprovidesﬁrstan
+institutional semantics that is tool independent. Only in a second step, we translate M#
+D
+intoC/a.sc/s.sc/l.sc.ViaH/e.scTS,thisopensaccesstoabroadrangeofanalysistools,includingSAT
+solvers,automaticﬁrst-ordertheoremprovers,automatedandinteractivehigher-order
+theorem provers, which all can be combined in the analysis of state machines.
+This paper is organised as follows: First we provide some background on institutions,
+includingthe C/a.sc/s.sc/l.scinstitutioninSect.2.ThenwediscusssimpleUMLstatemachines,
+how to capture their events, attributes, and transitions, and what their models are.
+In Sect. 4 we deﬁne a new hybrid, modal logic for specifying UML state machine
+transitions. Section 5 provides the translation into the C/a.sc/s.sc/l.scinstitution. In Sect. 6, we
+ﬁnally demonstrate the symbolic analysis of a simple UML state machine as enabled by
+the previous constructions. We conclude in Sect. 7 with an outlook to future work. A
+version of this paper including full proofs has been published in [ ?].
+2 Background on Institutions
+We brieﬂy recall the basic deﬁnitions of institutions and theoroidal institution comor-
+phisms as well as the algebraic speciﬁcation language C/a.sc/s.sc/l.sc. Subsequently we will
+developaninstitutionalframeforcapturingsimpleUMLstatemachinesandpresenta
+theoroidal institution comorphism from this frame into C/a.sc/s.sc/l.sc.
+2.1 Institutions and Theoroidal Institution Comorphisms
+Institutions are an abstract formalisation of the notion of logical systems combining
+signatures, structures, sentences, and satisfaction under the slogan “truth is invariant
+under change of notation”. Institutions can be related in diﬀerent ways by institution
+(forward) (co-)morphisms, where a so-called theoroidal institution comorphism covers a
+particular case of encoding a “poorer” logic into a “richer” one.
+Formally [ 4], an institutionI= (SI;StrI;SenI;j=I)consists of (i) a category
+ofsignatures SI; (ii) a contravariant structures functor StrI: (SI)op!Cat, where
+Catis the category of (small) categories; (iii) a sentence functor SenI:SI!Set,
+where Setis the category of sets; and (iv) a family of satisfaction relations j=I
+
+jStrI()jSenI()indexed over 2jSIj, such that the following satisfaction
+condition holds for all :!0inSI,'2SenI(), andM02jStrI(0)j:
+StrI()(M0)j=I
+'()M0j=I
+0SenI()(').
+2
+
+--- Page 3 ---
+spec N/a.sc/t.sc=
+free type Nat::= 0jsuc(Nat)
+ops__+__:NatNat!Nat
+pred__<__:NatNat
+8n,m:Nat 0 +n=n suc(n)+m=suc(n+m)
+:n<0 0<suc(n) suc(m)<suc(n),m<n
+end
+Fig.1.AC/a.sc/s.sc/l.scspeciﬁcation of the natural numbers
+StrI()is called the reductfunctor, SenI()thetranslation function.
+Atheory presentation T= (;)in the institutionIconsists of a signature
+2jSIj, also denoted by Sig(T), and a set of sentences SenI(). Itsmodel
+class ModI(T)istheclassfM2StrI()jMj=I
+'f.a.'2gofthe-structures
+satisfying the sentences in . Atheory presentation morphism : (;)!(0;0)
+is given by a signature morphism :!0such thatM0j=I
+0SenI()(')for all
+'2andM02ModI(0;0).Theorypresentationsin Iandtheirmorphismsform
+the category PresI.
+Atheoroidal institution comorphism = (S;Mod;Sen):I!I0consists of a
+functorS:SI!PresI0inducingthefunctor Sig=S;Sig:SI!SI0onsignatures,
+a natural transformation Mod: (S)op; ModI0_!StrIon structures, and a natural
+transformation Sen: SenI_!Sig; SenI0on sentences, such that for all 2jSIj,
+M02jModI0(S())j, and'2SenI()the following satisfaction condition holds:
+Mod
+(M0)j=I
+'()M0j=I0
+Sig()Sen()(').
+2.2 C/a.sc/s.sc/l.scand the Institution CFOL=
+The algebraic speciﬁcation language C/a.sc/s.sc/l.sc[16] oﬀers several speciﬁcation levels: Basic
+speciﬁcations essentially list signature declarations and axioms, thus determining a
+category of ﬁrst-order structures. Structured speciﬁcations serve to combine such basic
+speciﬁcations into larger speciﬁcations in a hierarchical and modular fashion. Of the
+manylogicsavailablein C/a.sc/s.sc/l.sc,wewillworkwiththeinstitutionCFOL=,ofwhichwe
+brieﬂy recall the main notions; a detailed account can be found e.g. in [14].
+At thelevel of basicspeciﬁcations,cf. Fig. 1,one can declare sorts,operations, and
+predicates with given argument and result sorts. Formally, this deﬁnes a many-sorted
+signature= (S;F;P )withasetSofsorts,aSS-sortedfamily F= (Fw;s)ws2S+
+oftotal function symbols , and aS-sorted family P= (Pw)w2Sofpredicate symbols .
+Using these symbols, one may then write axioms in ﬁrst-order logic. Moreover, one
+can specify data types, given in terms of alternatives consisting of data constructors
+and, optionally, selectors, which may be declared to be generated orfree. Generatedness
+amounts to an implicit higher-order induction axiom and intuitively states that all
+elements of the data types are reachable by constructor terms (“no junk”); freeness
+additionally requires that all these constructor terms are distinct (“no confusion”). Basic
+C/a.sc/s.sc/l.scspeciﬁcations denote the class of all algebras which fulﬁl the declared axioms, i.e.,
+C/a.sc/s.sc/l.schas loose semantics. In structured C/a.sc/s.sc/l.scspeciﬁcations, a structured free construct
+3
+
+--- Page 4 ---
+s1 cnt= 0 s2inc(x)[cnt+x= 4]=
+cnt0= 4inc(x)[cnt+x4]=
+cnt0=cnt+x
+inc(x)[cnt+x >4]=cnt0=cnt
+reset=cnt0=cntreset=cnt0= 0inc(x)=cnt0=cnt
+Fig.2.Simple UML state machine Counter
+canbeusedtoensurefreeness(i.e.,initialsemantics)ofaspeciﬁcation.Forfunctions
+and predicates, the eﬀect of the structured free construct corresponds to the eﬀect of free
+types on sorts. A many-sorted -structureMconsists of a non-empty carrier set sMfor
+eachs2S,atotalfunction fM:Mw!Msforeachfunctionsymbol f2Fw;sanda
+predicatepMfor each predicate symbol p2Pw. Amany-sorted -sentence is a closed
+many-sorted ﬁrst-order formula over or a sort generation constraint.
+3 Simple UML State Machines
+UML state machines [ 17] provide means to specify the reactive behaviour of objects
+orcomponentinstances.Theseentitiesholdaninternaldatastate,typicallygivenbya
+set of attributes or properties, and shall react to event occurrences by ﬁring diﬀerent
+transitionsindiﬀerentcontrolstates.Suchtransitionsmayhaveaguarddependingon
+event arguments and the internal state and may change, as an eﬀect, the internal control
+and data state of the entity as well as raise events on their own.
+Figure 2 shows the example of a bounded, resettable counter working on an attribute
+cnt(assumedtotakevaluesinthenaturalnumbers)thatisinitialisedwith 0.Thecounter
+can be resetto0orincreased by a natural number x, subject to the current control state
+(s1ors2)andtheguards(showninsquarebrackets)andeﬀects(aftertheslash)ofthe
+outgoing transitions. An eﬀect describes how the data state before ﬁring a transition
+(referredtobyunprimedattributenames)relatestothedatastateafter(primednames)in
+asinglepredicate;thisgeneralisesthemoreusualsequencesofassignmentssuchthat
+cnt0=cnt+xcorresponds to cnt cnt+xand cnt0=cntto a skip. The machine
+isspeciﬁednon-deterministically:Ifevent inc(x)occursinstate s1suchthatthe guard
+cnt+x= 4holds, the machine can either stay in s1or it can proceed to s2. Seemingly,
+themachinedoesnotreactto resetins1andto incins2.However,UMLstatemachines
+are meant to be input-enabled such that all event occurrences to which the machine
+shows no explicit reacting transition are silently discarded, as indicated by the “grey”
+transitions. Overall, the machine Counter shall ensure that cntnever exceeds 4.
+It is for such simple UML state machines as the counter in Fig. 2 that we want
+to provide proof support in S/p.sc/a.sc/s.sc/s.scvia an institutional encoding in C/a.sc/s.sc/l.sc. The sub-
+language covers the following fundamental state machine features: data, states, and
+(non-deterministic) guarded transitions for reacting to events. However, for the time
+being,weleaveoutnotonlyalladvancedmodellingconstructs,likehierarchicalstates
+orcompoundtransitions,butalsodefer,mostimportantly,event-basedcommunication
+4
+
+--- Page 5 ---
+between state machines to future work. In the following we make ﬁrst precise the syntax
+of the machines by means of event/data signatures, data states and transitions, guards
+and eﬀects. Then we introduce semantic structures for the machines and deﬁne their
+model class. Syntax and semantics of simple UML state machines form the basis for
+their institutionalisation. We thus also introduce event/data signature morphisms and the
+correspondingformulætranslationandstructurereductsinordertobeabletochangethe
+interface of simple UML state machines.
+3.1 Event/Data Signatures, Data States and Transitions
+Wecapturetheeventsforamachineinan eventsignature Ethatconsistsofaﬁniteset
+ofeventsjEjandamap(E)assigningtoeach e2jEjaﬁnitesetofvariables,where
+wewritee(X)fore2jEjand(E)(e) =X,andalsoe(X)2Einthiscase.Forthe
+datastate,weusea datasignature Aconsistingofaﬁnitesetofattributes.An event/data
+signatureconsists of an event signature E()and a data signature A().
+Example 1. Theevent/datasignature ofthesimpleUMLstatemachineinFig.2isgiven
+bythesetofeventsjE()j=finc;resetgwithargumentvariables (E())(inc) =fxg
+and(E())(reset) =;such that inc(x)2E()and reset2E(); as well as the
+data signature A() =fcntg.
+For specifying transition guards and eﬀects, we exchange UML’s notorious and
+intricate expression and action languages both syntactically and semantically by a
+straightforward C/a.sc/s.sc/l.scfragmentrenderingguardsasdatastatepredicatesandeﬀectsas
+datatransitionpredicates:Weassumegivenaﬁxeduniverse Dofdatavalues anda C/a.sc/s.sc/l.sc
+speciﬁcation Dtwith a dedicated sort dtin its signature Sig(Dt)such that the universe
+dtMof every model M2ModC/a.sc/s.sc/l.sc(Dt)is isomorphic toD, i.e., there is a bijection
+M;dt:dtM=D. This puts at our disposal the open formulæ FC/a.sc/s.sc/l.sc
+Sig(Dt);Xover sorted
+variablesX= (Xs)s2Sand their satisfaction relation M;j=C/a.sc/s.sc/l.sc
+Sig(Dt);X'for models
+M2ModC/a.sc/s.sc/l.sc(Dt), variable valuations :X!M, and formulæ '2FC/a.sc/s.sc/l.sc
+Sig(Dt);X.
+Example 2. Considerthenaturalnumbers NasdatavaluesD.The C/a.sc/s.sc/l.scspeciﬁcationin
+Fig.1characterises Nuptoisomorphismasthecarriersetofthededicatedsort dt=Nat.
+It speciﬁes an abstract data type with sort Nat;operations +;0;suc;and a predicate <:
+The very simple choice of Dcapturing data with only a single sort can, in principal,
+be replaced by any institutional data modelling language that, for our purposes of a
+theoroidalinstitution comorphism (seeSect. 5),is faithfully representable in C/a.sc/s.sc/l.sc;one
+such possibility are UML class diagrams, see [7].
+Data states and guards. Adata state!for a data signature Ais given by a function
+!:A!D; in particular, 
+(A) =DAis the set of A-data states. The guards of a
+machineare statepredicates inFD
+A;X=FC/a.sc/s.sc/l.sc
+Sig(Dt);A[X,takingAaswellasanadditional
+setXas variables of sort dt. A state predicate 2FD
+A;Xis to be interpreted over an
+A-data state!and valuation :X!Dand we deﬁne the satisfaction relation j=Dby
+!;j=D
+A;X()M;1
+M;dt(![)j=C/a.sc/s.sc/l.sc
+Sig(Dt);A[X
+5
+
+--- Page 6 ---
+whereM2ModC/a.sc/s.sc/l.sc(Dt)andM;dt:M(dt)=D.Forastatepredicate '2FD
+A;;not
+involving any variables, we write !j=D
+A'for!j=D
+A;;'.
+Example 3. Theguard cnt+x4ofthemachineinFig.2featuresboththeattribute
+cntand the variable x. A data state fulﬁlling this state predicate for x= 0iscnt7!3.
+Data transitions and eﬀects. Adata transition (!;!0)for a data signature Ais a pair
+ofA-data states; in particular, 
+2(A) = (DA)2is the set ofA-data transitions. It holds
+that(DA)2=D2A, where 2A=A]Aand we assume that no attribute in Aends in a
+prime0andallattributesinthesecondsummandareadornedwithanadditionalprime.
+Theeﬀectsofamachineare transitionpredicates inF2D
+A;X=FD
+2A;X.Thesatisfaction
+relationj=2Dforatransitionpredicate  2F2D
+A;X,datatransition (!;!0)2
+2(A),and
+valuation:X!Dis deﬁned as
+(!;!0);j=2D
+A;X ()!+!0;j=D
+2A;X 
+where!+!02
+(2A)with(!+!0)(a) =!(a)and(!+!0)(a0) =!0(a).
+Example 4. The eﬀect cnt0=cnt+xof the machine in Fig. 2 describes the increment
+of the value of attribute cntby a variable amount x.
+3.2 Syntax of Simple UML State Machines
+A simple UML state machine Uuses an event/data signature (U)for its events and
+attributes and consists of a ﬁnite set of control states C(U), a ﬁnite set of transition
+speciﬁcations T(U)oftheform (c;;e (X); ;c0)withc;c02C(U),e(X)2E((U)),
+a state predicate 2FD
+A((U));X, a transition predicate  2F2D
+A((U));X, aninitial
+controlstate c0(U)2C(U),andaninitialstatepredicate '0(U)2FD
+A((U));;,such
+thatC(U)issyntactically reachable , i.e., for every c2C(U)nfc0(U)gthere are
+(c0(U);1;e1(X1); 1;c1);:::; (cn1;n;en(Xn); n;cn)2T(U)withn>0such
+thatcn=c.Syntacticreachabilityguaranteesinitiallyconnectedstatemachinegraphs.
+This simpliﬁes graph-based algorithms (see Alg. 1).
+Example 5. The machine in Fig. 2 has as its control states fs1;s2g, as its transition
+speciﬁcationsf(s1;cnt+x4;inc(x);cnt0=cnt+x;s1);(s1;cnt+x= 4;inc(x);
+cnt0= 4;s2);(s2;true;reset;cnt0= 0;s1)g, as initial control state s1, and as initial
+state predicate cnt= 0.
+3.3 Event/Data Structures and Models of Simple UML State Machines
+For capturing machines semantically, we use event/data structures that are given over
+anevent/data signature andconsist ofatransitionsystem ofconﬁgurationssuchthat
+all conﬁgurations are reachable from its initial conﬁgurations. Herein, conﬁgurations
+show a control state, corresponding to machine states, and a data name from which a
+proper data state over A()can be retrieved by a labelling function. Transitions connect
+conﬁgurations by events from E()with their arguments instantiated by data from D.
+6
+
+--- Page 7 ---
+Formally,a-event/datastructure M= (;R; 0;!)overanevent/datasignature 
+consistsofasetof conﬁgurations CDforsomesetsof controlstates Canddata
+namesD, a family of transition relations R= (Re())e(X)2E();:X!D,
+and a non-empty set of initial conﬁgurations 0=fc0gD0with a unique
+initial control state c02Csuch thatisreachable viaR, i.e., for all 2there
+are020,n0,e1(X1);:::;en(Xn)2E(),1:X1!D;:::;n:Xn!D,
+and(i;i+1)2Rei+1(i+1)for all 0i<nwithn=; and adata state labelling
+!:D!
+(A()). We writec(M)() =cand!(M)() =!(d)for= (c;d)2,
+(M)for,C(M)forfc(M)()j2(M)g,R(M)forR,0(M)for0,c0(M)
+forc0, and
+0(M)forf!(M)(0)j020g.
+The restriction to reachable transition systems is not strictly necessary and could be
+replaced by constraining all statements on event/data structures to take into account only
+their reachable part (see, e.g., Lem. 1).
+Example 6. For an event/data structure for the machine in Fig. 2 over its signature in
+Ex.1wemaychoosethecontrolstates Casfs1;s2g,andthedatanames Dastheset
+
+(A()) =Dfcntg. In particular, the data state labelling !is just the identity. The only
+initialconﬁgurationis (s1;fcnt7!0g).Apossibletransitiongoesfromconﬁguration
+(s1;fcnt7!2g)to conﬁguration (s2;fcnt7!4g)with the instantiated event inc(2).
+A(U)-event/data structure Mis amodelof a simple UML state machine U
+ifC(U)C(M)up to a bijective renaming, c0(M) =c0(U),
+0(M)f!2
+j
+(A((U)))jj!j=D
+A((U))'0(U)g,andifthefollowingholdsforall (c;d)2(M):
+–for all (c;;e (X); ;c0)2T(U)and:X!Dwith!(M)(d);j=D
+A((U));X,
+thereisa ((c;d);(c0;d0))2R(M)e()with(!(M)(d);!(M)(d0));j=2D
+A((U));X ;
+–for all ((c;d);(c0;d0))2R(M)e()there is either some (c;;e (X); ;c0)2T(U)
+with!(M)(d);j=D
+A((U));Xand(!(M)(d);!(M)(d0));j=2D
+A((U));X , or
+!(M)(d);6j=D
+A((U));XW
+(c;;e(X); ;c0)2T(U),c=c0,and!(M)(d) =!(M)(d0).
+A model of Uthus on the one hand implements each transition prescribed by U,
+but on the other hand must not show transitions not covered by the speciﬁed transitions.
+Moreover,itis input-enabled ,i.e.,everyeventcanbeconsumedineverycontrolstate:
+If no precondition of an explicitly speciﬁed transition is satisﬁed, there is a self-loop
+which leaves the data state untouched. In fact, input-enabledness, as required by the
+UML speciﬁcation [ 17], can also be rendered as a syntactic transformation making a
+simple UML state machine Uinput-enabled by adding the following set of transition
+speciﬁcations for idling self-loops:
+f(c;:(W
+(c;;e(X); ;c0)2T(U));e(X);1A((U));c)jc2C; e(X)2E((U))g.
+Example 7. ForthesimpleUMLstatemachineinFig.2the“grey”transitionscorrespond
+to an input-enabledness completion w.r.t. the “black” transitions.
+TherequirementofsyntacticreachabilityforsimpleUMLstatemachinesiscorrelated
+with the requirement of (semantic) reachability of event/data structures, as a machine
+violating syntactic reachability cannot have a model. Equally, a machine with a non-
+satisﬁable initial state predicate fails to have a model.
+7
+
+--- Page 8 ---
+3.4 Event/Data Signature Morphisms, Reducts, and Translations
+The external interface of a simple UML state machine is given by events, its internal
+interface by attributes. Both interfaces, represented as an event/data signature, are
+susceptible to change in the system development process which is captured by signature
+morphisms.Suchchangeshavealsotobereﬂectedintheguardsandeﬀects,i.e.,data
+state and transition predicates, by syntactical translations as well as in the interpretation
+domains by semantical reducts.
+Adata signature morphism from a data signature Ato a data signature A0is a
+function:A!A0. The-reductof anA0-data state!0:A0!Dalong a data
+signature morphism :A!A0is given by the A-data state!0j:A!Dwith
+(!0j)(a) =!0((a))for everya2A; the-reductof anA0-data transition (!0;!00)
+by theA-data transition (!0;!00)j= (!0j;!00j). Thestate predicate translation
+FD
+;X:FD
+A;X!FD
+A0;Xalong a data signature morphism :A!A0is given by the
+C/a.sc/s.sc/l.sc-formulatranslation FC/a.sc/s.sc/l.sc
+Sig(Dt);[1Xalongthesubstitution [1X;thetransition
+predicate translation F2D
+;XbyFD
+2;Xwith 2: 2A!2A0deﬁned by 2(a) =(a)
+and2(a0) =(a)0. For each of these two reduct-translation-pairs the satisfaction
+condition holds due to the general substitution lemma for C/a.sc/s.sc/l.sc:
+!0j;j=D
+A;X()!0;j=D
+A0;XFD
+;X()
+(!0;!00)j;j=2D
+A;X () (!0;!00);j=2D
+A0;XF2D
+;X( )
+Anevent signature morphism :E!E0is a function :jEj!jE0jsuch that
+(E)(e) =(E0)((e))foralle2jEj.Anevent/datasignaturemorphism :!0
+consists of an event signature morphism E():E()!E(0)and a data signature
+morphismA():A()!A(0). The-reductof a0-event/data structure M0along
+is the-event/data structure M0jsuch that
+–(M0j)(M0)as well asR(M0j) = (R(M0j)e())e(X)2E();:X!Dare
+inductively deﬁned by (M0j)0(M0)and, for all0;002(M0),e(X)2
+E(), and:X!D, if02(M0j)and(0;00)2R(M0)E()(e)(), then
+002(M0j)and(0;00)2R(M0j)e();
+–0(M0j) =0(M0); and
+–!(M0j)(0) = (!(M0)(0))jfor all02(M0j).
+Building a reduct of an event/data-structure does not aﬀect the single conﬁgurations,
+butpotentiallyreducesthesetofconﬁgurationsbyrestrictingtheavailableevents,and
+thedatastateobservablefromthedatanameofaconﬁguration.Wedenoteby F(M;)
+andF(M),respectively,thesetofconﬁgurationsofa -event/datastructure Mthat
+areF-reachable from a conﬁguration 2(M)and from an initial conﬁguration
+020(M), respectively, with a set of events FE()where an2(M)is
+F-reachable in Mfroma12(M)if there aren1,e2(X2);:::;en(Xn)2F,
+2:X2!D;:::;n:Xn!D, and (i;i+1)2R(M)ei+1(i+1)for all 1i<n.
+Although it is straightforward to deﬁne a translation of simple UML state machines
+along an event/data signature morphism, the rather restrictive notion of their models
+preventsthesatisfactionconditiontohold.Infact,thisisalreadytrueforourprevious
+endeavourstoinstitutionaliseUMLstatemachines[ 10,8].Theremachinesthemselves
+8
+
+--- Page 9 ---
+were taken to be sentences over signatures comprising both events and states, and
+the satisfaction relation also required that a model shows exactly the transitions of
+such a machine sentence. For signature morphisms that are not surjective on states,
+buildingthereductcouldresultinlessstatesandtransitions,whichleadstothefollowing
+counterexample to the satisfaction condition [19]:
+s
+s1 s2e={
+j= s1 s2e=7!j7!
+u
+wwwwv(s1) (s2)
+s0e=
+e=}
+~6j=(s1) (s2)e=
+Wethereforeproposetomakeadetourthroughamoregeneralhybridmodallogic.
+This logic is directly based on event/data structures and thus close to the domain of state
+machines. For forming an institution, its hybrid features allow to avoid control states as
+part of the signature and its event-based modalities allow to specify both mandatory and
+forbidden behaviour in a more ﬁne-grained manner. Still, the logic is expressive enough
+to characterise the model class of a simple UML state machine syntactically.
+4 A Hybrid Modal Logic for Event/Data Systems
+The logicM#
+Dis a hybrid modal logic for specifying event/data-based reactive systems
+andreasoningaboutthem.The M#
+D-signaturesaretheevent/datasignatures,the M#
+D-
+structurestheevent/datastructures.Themodalpartofthelogicallowstohandletransitions
+betweenconﬁgurationswherethemodalitiesdescribemovesbetweenconﬁgurationsthat
+adhere to a pre-condition or guard as a state predicate for an event with arguments and a
+transitionpredicateforthedatachangecorrespondingtoeﬀects.Thehybridpartofthe
+logicallowstobindcontrolstatesofsystemconﬁgurationsandtojumptoconﬁgurations
+withsuch controlstates explicitly,but leavesout nominalsas interfacingnames aswell
+as the possibility to quantify over control states. The logic builds on the hybrid dynamic
+logicD#forspecifyingreactivesystemswithoutdata[ 13]anditsextensionE#tohandle
+alsodata[ 6].Werestrictourselvestomodaloperatorsconsistingonlyofsingleinstead
+of compoundactions as done indynamic logic. However, westill retain a boxmodality
+for accessing all conﬁgurations that are reachable from a given conﬁguration. Moreover,
+we extendE#by adding parameters to events.
+The category ofM#
+D-signatures SM#
+Dconsists of the event/data signatures and
+signaturemorphisms.The -event/datastructuresformthediscretecategory StrM#
+D()
+ofM#
+D-structures over.Foreachsignaturemorphism :!0inSM#
+Dthe-reduct
+functor StrM#
+D():StrM#
+D(0)!StrM#
+D()is given by StrM#
+D()(M0) =M0j.
+As the next step we introduce the formulæ and sentences of M#
+Dtogether with their
+9
+
+--- Page 10 ---
+translation along SM#
+D-morphisms and their satisfaction over StrM#
+D. We then show
+that forM#
+Dthe satisfaction condition holds and thus obtain M#
+Das an institution.
+Subsequently,weshowthat M#
+Dissimultaneouslyexpressiveenoughtocharacterisethe
+model class of simple UML state machines.
+4.1 Formulæ and Sentences of M#
+D
+M#
+D-formulæ aim at expressing control and data state properties of conﬁgurations as
+wellasaccessibilitypropertiesofconﬁgurationsalongtransitionsforparticularevents.
+The pure data state part is captured by data state sentences over D. The control state
+partcanbeaccessedandmanipulatedbyhybridoperatorsforbindingthecontrolstate
+in a state variable, #s; checking for a particular control state, s; and accessing all
+conﬁgurations with a particular control state, @F, which, however, only pertains to
+reachableconﬁgurationsrelativetoaset Fofevents.Transitionsbetweenconﬁgurations
+arecovered bydiﬀerent modalities: abox modalityfor accessingall conﬁgurationsthat
+are reachable from a given conﬁguration, 2F, again relative to a set Fof events; a
+diamondmodalityforcheckingthataneventwithargumentsispossiblewithaparticular
+data state change,he(X)( i; and a modality for checking the reaction to an event with
+arguments according to a pre-condition and a transition predicate, hje(X) :( ji.
+Formally, the -event/data formulæ FM#
+D
+;Sover an event/data signature and a set
+ofstate variables Sare inductively deﬁned by
+–'— data state sentence '2FD
+A();;holds in the current conﬁguration;
+–s— the control state of the current conﬁguration is s2S;
+–#s:%— calling the current control state s, formula%2FM#
+D
+;S]fsgholds;
+–(@Fs)%—inallconﬁgurationswithcontrolstate s2Sthatarereachablewithevents
+fromFE()formula%2FM#
+D
+;Sholds;
+–2F%—inallconﬁgurationsthat arereachablefromthecurrentconﬁgurationwith
+events from FE()formula%2FM#
+D
+;Sholds;
+–he(X)( i%— in the current conﬁguration there is a valuation of Xand a transition
+for evente(X)2E()with these arguments that satisﬁes transition formula  2
+F2D
+A();Xand makes%2FM#
+D
+;Shold afterwards;
+–hje(X) :( ji%— in the current conﬁguration for all valuations of Xsatisfying
+state formula 2FD
+A();Xthere is a transition for event e(X)2E()with these
+arguments that satisﬁes transition formula  2F2D
+A();Xand makes%2FM#
+D
+;Shold
+afterwards;
+–:%— in the current conﬁguration %2FM#
+D
+;Sdoes not hold;
+–%1_%2— in the current conﬁguration %12FM#
+D
+;Sor%22FM#
+D
+;Shold.
+We write (@s)%for(@E()s)%,2%for2E()%,3F%for:2F:%,3%for3E()%,
+[e(X)( ]%for:he(X)( i:%, and truefor#s:s.
+10
+
+--- Page 11 ---
+Example 8. Anevent/dataformulacanmaketwokindsofrequirementsonanevent/data
+structure: On the one hand, it can require the presence of certain mandatory transitions,
+ontheotherhanditcanrequiretheabsenceofcertainprohibitedtransitions.Considering
+the simple UML state machine in Fig. 2, the formula
+(@s1)hjinc(x) :cnt+x= 4(cnt0= 4jis2
+requires for each valuation of :fxg!Nsuch that cnt+x= 4holds that there is a
+transitionfromcontrolstate s1tocontrolstate s2fortheinstantiatedevent inc()where
+cntis changed to 4. On the other hand, the formula
+(@s2)[reset(:(cnt0= 0)]false
+prohibitsanytransitionsoutof s2thatarelabelledwiththeevent resetbutdonotsatisfy
+cnt0= 0.
+InthecontextofFig.2,theseformulæonlyhavetheirexplainedintendedmeaning
+when s1ands2indeed refer to the eponymous states. However, M#
+Ddoes not show
+nominals for explicitly naming control states as part of the state machine’s interface
+and the reference to speciﬁc states always has to build these states’ context ﬁrst using
+the modalities and the bind operator. On the other hand, as indicated in Sect. 3.4, the
+inclusion of nominals may interfere disadvantageously with the reduct formation.
+Let:!0be an event/data signature morphism. The event/data formulæ
+translation FM#
+D
+;S:FM#
+D
+;S!FM#
+D
+0;Salongis recursively given by
+–FM#
+D
+;S(') =FD
+A();;(');
+–FM#
+D
+;S(s) =s;
+–FM#
+D
+;S(#s:%) =#s:FM#
+D
+;S]fsg(%);
+–FM#
+D
+;S((@Fs)%) = (@E()(F)s)FM#
+D
+;S(%);
+–FM#
+D
+;S(2F%) =2E()(F)FM#
+D
+;S(%);
+–FM#
+D
+;S(he(X)( i%) =hE()(e)(X)(F2D
+A();X( )iFM#
+D
+;S(%);
+–FM#
+D
+;S(hje(X) :( ji%) =hjE()(e)(X) :FD
+A();X()(F2D
+A();X( )jiFM#
+D
+;S(%);
+–FM#
+D
+;S(:%) =:FM#
+D
+;S(%);
+–FM#
+D
+;S(%1_%2) =FM#
+D
+;S(%1)_FM#
+D
+;S(%2).
+The set SenM#
+D()of-event/data sentences is given by FM#
+D
+;;, theevent/data
+sentence translation SenM#
+D(): SenM#
+D()!SenM#
+D(0)byFM#
+D
+;;.
+4.2 Satisfaction Relation for M#
+D
+TheM#
+D-satisfactionrelationconnects M#
+D-structuresandM#
+D-formulæ,expressing
+whether in some conﬁguration of the structure a particular formula holds with respect to
+11
+
+--- Page 12 ---
+anassignmentofcontrolstatestostatevariables.Let beanevent/datasignature, Ma-
+event/datastructure, Sasetofstatevariables, v:S!C(M)astatevariableassignment,
+and2(M). Thesatisfaction relation for event/data formulæ is inductively given by
+–M;v;j=M#
+D
+;S'iﬀ!(M)()j=D
+A()';
+–M;v;j=M#
+D
+;Ssiﬀv(s) =c(M)();
+–M;v;j=M#
+D
+;S#s:%iﬀM;vfs7!c(M)()g;j=M#
+D
+;S]fsg%;
+–M;v;j=M#
+D
+;S(@Fs)%iﬀM;v;0j=M#
+D
+;S%
+for all02F(M)withc(M)(0) =v(s);
+–M;v;j=M#
+D
+;S2F%iﬀM;v;0j=M#
+D
+;S%for all02F(M;);
+–M;v;j=M#
+D
+;She(X)( i%iﬀ there is a :X!Dand a02(M)such that
+(;0)2R(M)e(),(!(M)();!(M)(0));j=2D
+A();X , andM;v;0j=M#
+D
+;S%;
+–M;v;j=M#
+D
+;Shje(X) :( ji%iﬀ for all:X!Dwith!(M)();j=D
+A();X
+there is some 02(M)such that (;0)2R(M)e(),
+(!(M)();!(M)(0));j=2D
+A();X , andM;v;0j=M#
+D
+;S%;
+–M;v;j=M#
+D
+;S:%iﬀM;v;6j=M#
+D
+;S%;
+–M;v;j=M#
+D
+;S%1_%2iﬀM;v;j=M#
+D
+;S%1orM;v;j=M#
+D
+;S%2.
+Thissatisfactionrelationiswell-behavedwithrespecttoreductsof M#
+D-structures.
+Ontheonehand,thisisduetotheuseofabstractdatanamesratherthandatastatesin
+the structures, and on the other hand to the satisfaction condition of Dand2D.
+Lemma 1. Let:!0beaevent/datasignaturemorphismand M0a0-event/data
+structure.Forall %2FM#
+D
+;S,all02(M0j)(M0),andallv:S!C(M0j)
+C(M0)it holds that
+M0j;v;0j=M#
+D
+;S%()M0;v;0j=M#
+D
+0;SFM#
+D
+;S(%).
+For a2jSM#
+Dj, anM2jStrM#
+D()j, and a2SenM#
+D()thesatisfaction
+relationMj=M#
+D
+holds if, and only if, M;;;0j=M#
+D
+;;for all020(M).
+Theorem 1. (SM#
+D;StrM#
+D;SenM#
+D;j=M#
+D)is an institution.
+4.3 Representing Simple UML State Machines in M#
+D
+Thehybridmodallogic M#
+Disexpressiveenoughtocharacterisethemodelclassofa
+simpleUMLstatemachine Ubyasinglesentence %U,i.e.,anevent/datastructure M
+is a model of Uif, and only if, Mj=M#
+D
+(U)%U. Such a characterisation is achieved by
+12
+
+--- Page 13 ---
+Alg. 1Constructing anM#
+D-sentence from a set of transition speciﬁcations
+Require:Ta set of transition speciﬁcations
+ImT(c) =f(;e(X); ;c0)j(c;;e (X); ;c0)2Tg
+ImT(c;e(X)) =f(; ;c0)j(c;';e (X); ;c0)2Tg
+1function sen(c;I;V;B ).c: state,I: image to visit, V: states to visit, B: bound states
+2ifI6=;then
+3 (;e(X); ;c0) chooseI
+4 ifc02Bthen
+5 return (@c)hje(X) :( ji(c0^sen(c;Inf(;e(X); ;c0)g;V;B ))
+6 else
+7 return (@c)hje(X) :( ji(#c0:sen(c;Inf(;e(X); ;c0)g;V;B[fc0g))
+8V Vnfcg
+9ifV6=;then
+10c0 chooseB\V
+11 return sen(c0;ImT(c0);V;B )
+12return (V
+c2Bn(c))^V
+c12B;c22Bnfc1g:(@c1)c2
+13function n(c)
+14return (@c)V
+e(X)2E((U))V
+PImT(c;e(X))
+[e(X)(V
+(; ;c0)2P(^ )
+^
+:W
+(; ;c0)2ImT(c;e(X))nP(^ )
+]W
+(; ;c0)2Pc0
+meansofAlg.1thatisaslightvariationofthecharacterisationalgorithmforso-called
+operational speciﬁcations within E#[6] by including also events with data arguments.
+Thealgorithmconstructsasentenceexpressingthatsemantictransitionsaccordingto
+explicit syntactic transition speciﬁcations are indeed possible and that no other semantic
+transitionsnotadheringtoanyofthesyntactictransitionspeciﬁcationsexist.Foraset
+of transition speciﬁcations T, a call sen(c;I;V;B )performs a recursive breadth-ﬁrst
+traversalstartingfrom c,whereIholdstheunprocessedquadruples (;e(X); ;c0)of
+transitionsin Toutgoingfrom c,Vtheremainingstatestovisit,and Bthesetofalready
+bound states. The function ﬁrst requires the existence of each outgoing transition of Iin
+the resulting formula, binding any newly reached state. Having visited all states in V, it
+requiresthatnoothertransitionsfromthestatesin Bexistusingcallsto n,andadds
+the requirement that all states in Bare pairwise diﬀerent. Formula n(c)expresses that
+atc, for all events e(X)and for all subsets Pof the transitions in Toutgoing from c,
+wheneveran e(X)-transitioncanbedonewiththecombinedeﬀectof Pbutnotadhering
+toanyoftheeﬀectsofthecurrentlynotselectedtransitions,the e(X)-transitionmust
+have one of the states as its target that are target states of P.
+Example 9. Applying Alg. 1 to the set of explicitly mentioned, “black” transition
+speciﬁcations TofthesimpleUMLstatemachine Counter inFig.2,i.e.,calling sen(s1;
+ImT(s1);fs1;s2g;fs1g)yields%s1;s1with
+%s1;s1= (@ s1)hjinc(x) :cnt+x4(cnt0=cnt+xji(s1^%s1;s2)
+%s1;s2= (@ s1)hjinc(x) :cnt+x= 4(cnt0=cnt+xji#s2:(%s2;s1)
+%s2;s1= (@ s2)hjreset : true(cnt0= 0ji(s1^%n)
+13
+
+--- Page 14 ---
+%n=%n(s1)^%n(s2)^:(@s1)s2
+%n(s1)= (@ s1)
+[inc(x)(:((cnt+x4^cnt0=cnt+x)_
+(cnt+x= 4^cnt0= 4))]false^
+[inc(x)((cnt+x4^cnt0=cnt+x)^
+:(cnt+x= 4^cnt0= 4)] s1^
+[inc(x)((cnt+x= 4^cnt0= 4)^
+:(cnt+x4^cnt0=cnt+x)]s2^
+[inc(x)((cnt+x4^cnt0=cnt+x)^
+(cnt+x= 4^cnt0= 4)]( s1_s2)^
+[reset(true]false
+%n(s2)= (@ s2)
+[inc(x)(true]false^
+[reset(:(cnt0= 0)]false^
+[reset(cnt0= 0]s1
+In fact, there is no outgoing “black” transition for resetfrom s1, thusP=;is
+the only choice for this event in n(s1)and the clause [reset(true]false is included.
+For inc(x)there are two outgoing transitions resulting four diﬀerent clauses checking
+whether none, the one or the other, or both transitions are executable.
+In order to apply the algorithm to simple UML state machines, the idling self-
+loopsforachievinginput-enablednessﬁrsthavetobemadeexplicit.Forasyntactically
+input-enabled simple UML state machine Ua characterising sentence then reads
+%U=#c0:'0^sen(c0;ImT(U)(c0);C(U);fc0g),
+wherec0=c0(U)and'0='0(U).Duetosyntacticreachability,theboundstates Bof
+Alg. 1 become C(U)when senis called for B=fc0(U)gandVreaches;.
+5 A Theoroidal Comorphism from M#
+DtoC/a.sc/s.sc/l.sc
+Wedeﬁneatheoroidalcomorphismfrom M#
+DtoC/a.sc/s.sc/l.sc.Theconstructionmainlyfollows
+thestandardtranslationofmodallogicstoﬁrst-orderlogic[ 2]whichhasbeenconsidered
+for hybrid logics also on an institutional level [12,3].
+Thebasisisarepresentationof M#
+D-signaturesandtheframegivenby M#
+D-structures
+as aC/a.sc/s.sc/l.sc-speciﬁcation as shown in Fig. 3. The signature translation
+S:SM#
+D!PresC/a.sc/s.sc/l.sc
+maps aM#
+D-signatureto the C/a.sc/s.sc/l.sc-theory presentation given by T/r.sc/a.sc/n.sc/s.scand a
+M#
+D-signature morphism to the corresponding theory presentation morphism. T/r.sc/a.sc/n.sc/s.sc
+ﬁrstof all covers theevents andevent namesaccording to E()(types EvtandEvtNm
+with several alternatives separated by “ j”) and the conﬁgurations (type Confwith a
+single constructor “ conf”) with their control states (sort Ctrl) and data states given
+by assignments to the attributes from A()(separated by “;”). The remainder of
+T/r.sc/a.sc/n.sc/s.scsetstheframefordescribingreachabletransitionsystemswithasetofinitial
+14
+
+--- Page 15 ---
+fromBasic/StructuredDatatypes getS/e.sc/t.sc% import ﬁnite sets
+specT/r.sc/a.sc/n.sc/s.sc=Dt
+then free type Evt ::=e(E())
+%e(fe(X)g) =e(dtjXj),e(fe(X)g[E) =e(dtjXj)je(E)
+free type EvtNm ::= n(E())%n(fe(X)g) =e,n(fe(X)g[E) =ejn(E)
+opnm : Evt!EvtNm
+axiom8x1;:::;xn:dtnm(e(x1;:::;xn)) =e% for eache(x1;:::;xn)2E()
+then S/e.sc/t.sc[sortEvtNm]
+then sort Ctrl
+free type Conf ::= conf(c : Ctrl; a(A()))
+%a(fag) =a:dt,a(fag[A) =a:dt;a(A)
+preds init : Conf ;
+trans : ConfEvtConf
+9g: Conf init(g)% there is some initial conﬁguration
+8g;g0: Conf init(g)^init(g0))c(g) = c(g0)% single initial control state
+freefpred reachable : Set[EvtNm]ConfConf
+8g;g0;g00: Conf;E:Set[EvtNm];e: Evt
+reachable(E;g;g )
+reachable(E;g;g0)^nm(e)2E^trans(g0;e;g00))reachable(E;g;g00)g
+then preds reachable(E:Set[EvtName];g: Conf),
+9g0: Conf init(g0)^reachable(E;g 0;g);
+reachable(g: Conf),reachable(E();g)
+end
+Fig.3.Frame for translating M#
+DintoC/a.sc/s.sc/l.sc
+conﬁgurations (predicate init), a transition relation (predicate trans) and reachability
+predicates. The speciﬁcation of the predicate reachable usesC/a.sc/s.sc/l.sc’s “structured free”
+construct to ensure reachability to be inductively deﬁned. The model translation
+Mod
+: ModC/a.sc/s.sc/l.sc(S())!StrM#
+D()
+thencanrelyonthisencoding.Inparticular,foramodel M02ModC/a.sc/s.sc/l.sc(S()),thereare,
+usingthebijection M0;dt:dtM0=D,aninjectivemap M0;Conf: ConfM0CtrlM0
+
+(A())and a bijective map M0;Evt: EvtM0=fe()je(X)2E(); :X!Dg.
+TheM#
+D-structure resulting from a C/a.sc/s.sc/l.sc-model of T/r.sc/a.sc/n.sc/s.sccan thus be deﬁned by
+–(Mod
+(M0)) =1
+M0;Conf(fg02M0
+ConfjreachableM0(g0)g)
+–R(Mod
+(M0))e()=f(;0)2(Mod
+(M0))(Mod
+(M0))j
+transM0(M0;Conf();1
+M0;Evt(e());M0;Conf(0))g)
+–0(Mod
+(M0)) =f2(Mod
+(M0))jinitM0(M0;Conf())g)
+–!(Mod
+(M0)) =f(c;!)2(Mod
+(M0))7!!g
+ForM#
+D-sentences, we ﬁrst deﬁne a formula translation
+F
+;S;g :FM#
+D
+;S!FC/a.sc/s.sc/l.sc
+Sig();S[fgg
+15
+
+--- Page 16 ---
+which, mimicking the standard translation, takes a variable g: Confas a parameter
+that records the “current conﬁguration” and also uses a set Sof state names for the
+controlstates.Thetranslationembedsthedatastateand2-datastateformulæusingthe
+substitutionA()(g) =fa7!a(g)ja2A()gfor replacing the attributes a2A()
+by the accessors a(g). The translation of M#
+D-formulæ then reads
+–F
+;S;g (') =FC/a.sc/s.sc/l.sc
+Sig();A()(g)(')
+–F
+;S;g (s) = (s= c(g))
+–F
+;S;g (#s:%) =9s: Ctrl:s= c(g)^F
+;S]fsg;g(%)
+–F
+;S;g ((@Fs)%) =8g0: Conf:(c(g0) =s^reachable(F;g0)))F
+;S;g0(%)
+–F
+;S;g (2F%) =8g0: Conf:reachable(F;g;g0))F
+;S;g0(%)
+–F
+;S;g (he(X)( i%) =9X:dt:9g0: Conf:trans(g;e(X);g0)^
+FC/a.sc/s.sc/l.sc
+Sig();A()(g)[A()(g0)[1X( )^F
+;S;g0(%)
+–F
+;S;g (hje(X) :( ji%) =8X:dt:FC/a.sc/s.sc/l.sc
+Sig();A()(g)[1X())
+9g0: Conf:trans(g;e(X);g0)^
+FC/a.sc/s.sc/l.sc
+Sig();A()(g)[A()(g0)[1X( )^F
+;S;g0(%)
+–F
+;S;g (:%) =:F
+;S;g (%)
+–F
+;S;g (%1_%2) =F
+;S;g (%1)_F
+;S;g (%2)
+Example 10. Thetranslationof (@s1)hjinc(x) :cnt+x4(cnt0=cnt+xjis1over
+the state setfs1gand the conﬁguration variable gis
+F
+;fs1g;g((@s1)hjinc(x) :cnt+x4(cnt0=cnt+xjis1)
+=8g0: Conf:(c(g0) =s1^reachable(g0)))
+F
+;fs1g;g0(hjinc(x) :cnt+x4(cnt0=cnt+xjis1)
+=8g0: Conf:(c(g0) =s1^reachable(g0)))
+8x:dt:cnt(g0) +x4)
+9g00: Conf:trans(g0;inc(x);g00)^
+cnt(g00) = cnt(g0) +x^F
+;fs1g;g00(s1)
+=8g0: Conf:(c(g0) =s1^reachable(g0)))
+8x:dt:cnt(g0) +x4)
+9g00: Conf:trans(g0;inc(x);g00)^
+cnt(g00) = cnt(g0) +x^s1= c(g00)
+Building on the translation of formulæ, the sentence translation
+Sen
+: SenM#
+D()!SenC/a.sc/s.sc/l.sc(Sig())
+only has to require additionally that evaluation starts in an initial state:
+–Sen
+() =8g: Conf:init(g))F
+;;;g()
+The translationof C/a.sc/s.sc/l.sc-models of T/r.sc/a.sc/n.sc/s.scintoM#
+D-structures andthe translation
+ofM#
+D-formulæinto C/a.sc/s.sc/l.sc-formulæover T/r.sc/a.sc/n.sc/s.scfulﬁltherequirementsofthe“open”
+satisfaction condition of theoroidal comorphisms:
+16
+
+--- Page 17 ---
+logic UMLS/t.sc/a.sc/t.sc/e.sc
+spec Counter =
+var cnt;
+event inc(x);
+event reset ;
+states s1,s2;
+init s1:cnt= 0;
+trans s1-->s1:inc(x)[cnt+x<4] / { cnt:=cnt+x};
+trans s1-->s2:inc(x)[cnt+x= 4] / { cnt:=cnt+x};
+trans s2-->s1:reset [cnt= 4] / { cnt:=0};
+end
+Lst. 1.Representation of the simple UML state machine Counter inUMLS/t.sc/a.sc/t.sc/e.sc
+Lemma 2. For a%2FM#
+D
+;S, anM02ModC/a.sc/s.sc/l.sc(S()), av:S!C(Mod
+(M0)),
+anda2(Mod
+(M0))itholdswith 0
+M0;g(v;) =1
+M0;Ctrlv[fg7!M0;Conf()g
+that
+Mod
+(M0);v;j=M#
+D
+;S%()M0;0
+M0;g(v;)j=C/a.sc/s.sc/l.sc
+Sig();S[fggF
+;S;g (%).
+Theorem 2. (S;Mod;Sen)is a theoroidal comorphism from M#
+DtoC/a.sc/s.sc/l.sc.
+6 ProvingPropertiesofUMLStateMachineswith H/e.scTSandS/p.sc/a.sc/s.sc/s.sc
+We implemented the translation of simple UML state machines into C/a.sc/s.sc/l.scspeciﬁcations
+withintheheterogeneoustoolset H/e.scTS[15].Basedonthistranslationweexplainhow
+to prove properties symbolically in the automated theorem prover S/p.sc/a.sc/s.sc/s.sc[20] for our
+running example of a counter.
+6.1 Implementation in H/e.scTS
+Fora H/e.scTSchainfromsimpleUMLstatemachineto C/a.sc/s.sc/l.scandS/p.sc/a.sc/s.sc/s.sc,weﬁrstdeﬁned
+the input language UMLS/t.sc/a.sc/t.sc/e.sc and extended H/e.scTSwith a parser for this language.
+The syntax of UMLS/t.sc/a.sc/t.sc/e.sc closely follows the ideas of PlantUML [ 18], such that, in
+particular, its textual speciﬁcations can potentially be rendered graphically as UML
+state machines. Listing 1 gives a representation of our running example Counter, cf.
+Sect. 3, in UMLS/t.sc/a.sc/t.sc/e.sc . Note that UMLS/t.sc/a.sc/t.sc/e.sc uses more conventional UML syntax
+for eﬀects on transitions, e.g., “ cnt:=cnt+x”. Next, we extended H/e.scTSwith a
+syntax representation of our logic M#
+D, cf. Sect. 4, and implemented Alg. 1 in H/e.scTS
+toautomaticallytranslate UMLS/t.sc/a.sc/t.sc/e.sc speciﬁcationsinto M#
+Dspeciﬁcations,wherewe
+arrive atthe institutional level.In this step,eﬀects on transitionsare turnedinto logical
+formulæ,like“ cnt0=cnt+x”.Finally, weextended H/e.scTSwithanimplementation of
+the comorphism from M#
+DintoC/a.sc/s.sc/l.sc, cf. Sect. 5. The implementation has been bundled
+in a fork of H/e.scTS(https://github.com/spechub/hets ) and provides a translation
+chainfrom UMLS/t.sc/a.sc/t.sc/e.sc viaC/a.sc/s.sc/l.sctotheinputlanguagesofvariousprooftools,suchas
+the automated theorem prover S/p.sc/a.sc/s.sc/s.sc.
+17
+
+--- Page 18 ---
+spec C/o.sc/u.sc/n.sc/t.sc/e.sc/r.sc =T/r.sc/a.sc/n.sc/s.sc
+then pred invar(g:Conf),(c(g)=s1^cnt(g)4)_(c(g)=s2^cnt(g)4)
+%%induction scheme for “reachable” predicate ;instantiated for “invar”:
+((8g:Conf init(g))invar(g))
+^8g,g’:Conf;e:Evt
+(reachable (g))invar(g))^reachable (g)^trans(g,e,g’))invar(g’))
+)8g:Conf reachable (g))invar(g)
+then...machine axioms ...
+then %implies
+%%the safety assertion for our counter:
+8g:Conf reachable (g))cnt(g)4 %(Safe)%
+%%steering S/p.sc/a.sc/s.sc/s.scwith case distinction lemmas ;could be generated algorithmically:
+8g,g’:Conf;e:Evt;k:Nat
+init(g))invar(g) %(InvarInit) %
+(reachable (g))invar(g))^reachable (g)^trans(g,e,g’)^e=reset
+)invar(g’) %(InvarReset) %
+(reachable (g))invar(g))^reachable (g)^trans(g,e,g’)^e=inc(k)
+)invar(g’) %(InvarInc) %
+(reachable (g))invar(g))^reachable (g)^trans(g,e,g’)
+)invar(g’) %(InvarStep) %
+invar(g))cnt(g)4 %(InvarImpliesSafe) %
+Fig.4. C/a.sc/s.sc/l.scspeciﬁcation of our running example
+6.2 Proving in S/p.sc/a.sc/s.sc/s.sc
+Figure 4 shows the C/a.sc/s.sc/l.scspeciﬁcation representing the state machine from Fig. 2,
+extendedbyaproofobligation %(Safe)%andproofinfrastructureforit.Wewanttoprove
+the safety property that cntnever exceeds 4using the automated theorem prover S/p.sc/a.sc/s.sc/s.sc.
+TheC/a.sc/s.sc/l.scspeciﬁcation C/o.sc/u.sc/n.sc/t.sc/e.sc/r.sc importsaspeciﬁcation T/r.sc/a.sc/n.sc/s.scwhichinstantiates
+the generic frame translating M#
+DintoC/a.sc/s.sc/l.sc, cf. Fig. 3. However, the ﬁrst-order
+theorem prover S/p.sc/a.sc/s.sc/s.scdoes not support C/a.sc/s.sc/l.sc’s structured free that we use for expressing
+reachability. For invariance properties this deﬁciency can be circumvented by loosely
+specifying reachable (i.e., omitting the keyword free), introducing a predicate invar,
+and adding a ﬁrst-order induction axiom. This means that we have to establish the safety
+property for a larger model class than we would have with freeness. When carrying
+out symbolic reasoning for invariant referring to a single conﬁguration, the presented
+inductionaxiomsuﬃces.Otherpropertieswouldrequiremoreinvolvedinductionaxioms,
+e.g., referring to several conﬁgurations.
+Thenthespeciﬁcationprovidesthemachineaxiomsasstated(partially)inEx.9.The
+axiomsfollowingthe %implies directivearetreatedasproofobligations.Weﬁrststate
+the safety property that we wish to establish: in all reachable conﬁgurations, the counter
+value is less or equal 4–%(Safe)%. The remainder steers the proving process in S/p.sc/a.sc/s.sc/s.sc
+by providing suitable case distinctions. For invariants referring to a single conﬁguration,
+these could also be generated automatically based on the transition structure of the state
+machine.
+18
+
+--- Page 19 ---
+As proofof concept,we automaticallyveriﬁedthis safetyproperty in S/p.sc/a.sc/s.sc/s.sc. Inthis
+experiment,weperformedsomeoptimising,semantics-preservinglogicaltransformations
+on the result of applying the comorphism, to make the speciﬁcation more digestible
+tothetheoremprover.Thesetransformationsincludetheremovalofdoublenegations,
+splitting a conjunction into separate axioms, and turning existentially quantiﬁed control
+states into constants by Skolemisation.
+7 Conclusions and Future Work
+We have described a new, institution-based logical framework M#
+Dthat captures simple
+UML state machines. This is in contrast to previous approaches that modelled UML
+parts directly as an institution and ran into diﬃculties in establishing the satisfaction
+condition [ 19]. By (1) deﬁning an institution-based translation from M#
+Dinto the C/a.sc/s.sc/l.sc
+institution and (2) implementing and thus automatising our translation within H/e.scTS,
+we made it possible to analyse UML state machines with the broad range of provers
+accessible via H/e.scTS.
+The resulting tool chain allows us to apply an automatic prover (as demonstrated
+hereusingthetheoremprover S/p.sc/a.sc/s.sc/s.sc),orseveralautomaticprovers,wheretheyworkand
+switchtointeractivetoolslikeIsabellewherenecessary(notneededintheanalysisofour
+example Counter). Not only does this switch require no manual reformulation into the
+interactivetool’sinputlanguage,rather,itcanbedoneevenwithinonedevelopment:We
+couldpossiblyshowsomelemmasviaautomaticﬁrst-orderprovers,somelemmasvia
+domain-speciﬁc tools,then usethose to prove a diﬃcultlemma inan interactiveprover,
+then apply all those lemmas to automatically prove the ﬁnal theorem. H/e.scTSallows us to
+use the best language and the best tool for each job, and takes care of linking the results
+together under the hood.
+Itisfutureworktoextend M#
+DtocovermoreelementsofUMLstatemachines,such
+as hierarchical states and communication networks. The main challenge here will be to
+enrichM#
+Din such a way that it oﬀers suitable logical representations for the additional
+structuralelements(hierarchicalstatesorcommunicationnetworks)ratherthantoﬂatten
+these:WeanticipatesymbolicreasoningonUMLstatemachinestobe“easier”iftheir
+structural elements are still “visible” in their C/a.sc/s.sc/l.screpresentations.
+In the long term, we work towards heterogeneous veriﬁcation of diﬀerent UML dia-
+grams.Onepossiblesettingwouldbetoutiliseinteractionsasaspeciﬁcationmechanism,
+where communicating state machines model implementations.
+References
+1.Balser, M., Bäumler, S., Knapp, A., Reif, W., Thums, A.: Interactive Veriﬁcation of UML
+State Machines. In: Davies, J., Schulte, W., Barnett, M. (eds.) Proc. 6thIntl. Conf. Formal
+Engineering Methods (ICFEM 2004). Lect. Notes Comp. Sci., vol. 3308 (2004)
+2.Blackburn, P., de Rijke, M., Venema, Y.: Modal Logic, Cambridge Tracts in Theoretical
+Computer Science, vol. 53. Cambridge University Press (2001)
+3.Diaconescu, R., Madeira, A.: Encoding Hybridized Institutions into First-order Logic. Math.
+Struct. Comp. Sci. 26(5), 745–788 (2016)
+19
+
+--- Page 20 ---
+4.Goguen, J.A., Burstall, R.M.: Institutions: Abstract Model Theory for Speciﬁcation and
+Programming. J. ACM 39, 95–146 (1992)
+5.Grönniger, H.: Systemmodell-basierte Deﬁnition objektbasierter Modellierungssprachen mit
+semantischen Variationspunkten. Ph.D. thesis, RWTH Aachen (2010)
+6.Hennicker, R., Madeira, A., Knapp, A.: A Hybrid Dynamic Logic for Event/Data-Based
+Systems. In: Hähnle, R., van der Aalst, W.M.P. (eds.) Proc. 22ndIntl. Conf. Fundamental
+ApproachestoSoftwareEngineering.Lect.NotesComp.Sci.,vol.11424,pp.79–97.Springer
+(2019)
+7.James, P., Knapp, A., Mossakowski, T., Roggenbach, M.: Designing Domain Speciﬁc
+Languages — A Craftsman’s Approach for the Railway Domain Using Casl. In: Martí-
+Oliet, N., Palomino, M. (eds.) Rev. Sel. Papers 21stIntl. Ws. Recent Trends in Algebraic
+Development Techniques (WADT 2012). Lect. Notes Comp. Sci., vol. 7841, pp. 178–194.
+Springer (2012)
+8.Knapp, A., Mossakowski, T.: UML Interactions Meet State Machines — An Institutional
+Approach. In: Bonchi, F., König, B. (eds.) Proc. 7thIntl. Conf. Algebra and Coalgebra in
+Computer Science (CALCO 2017). LIPIcs, vol. 72, pp. 15:1–15:15 (2017)
+9.Knapp, A., Mossakowski, T., Roggenbach, M.: Towards an Institutional Framework for
+Heterogeneous Formal Development in UML — A Position Paper. In: De Nicola, R.,
+Hennicker, R. (eds.) Software, Services, and Systems — Essays Dedicated to Martin Wirsing
+ontheOccasionofHisRetirementfromtheChairofProgrammingandSoftwareEngineering,
+Lect. Notes Comp. Sci., vol. 8950, pp. 215–230. Springer (2015)
+10.Knapp,A.,Mossakowski,T.,Roggenbach,M.,Glauer,M.:AnInstitutionforSimpleUMLState
+Machines. In: Egyed, A., Schaefer, I. (eds.) Proc. 18thIntl. Conf. Fundamental Approaches to
+SoftwareEngineering(FASE2015).Lect.NotesComp.Sci.,vol.9033,pp.3–18.Springer
+(2015)
+11.Kyas, M., Fecher, H., de Boer, F.S., Jacob, J., Hooman, J., van der Zwaag, M., Arons, T.,
+Kugler, H.: Formalizing UML Models and OCL Constraintsin PVS. In: Lüttgen,G., Mendler,
+M. (eds.) Proc. Ws. Semantic Foundations of Engineering Design Languages (SFEDL 2004).
+Electr. Notes Theo. Comp. Sci., vol. 115 (2005)
+12.Madeira, A.: Foundations and Techniques for Software Reconﬁgurability. Ph.D. thesis,
+Universidade do Minho (2013)
+13.Madeira, A., Barbosa, L.S., Hennicker, R., Martins, M.A.: Dynamic Logic with Binders and
+Its Application to the Development of Reactive Systems. In: Proc. 13thIntl. Coll. Theoretical
+Aspects of Computing. Lect. Notes Comp. Sci., vol. 9965, pp. 422–440. Springer (2016)
+14.Mossakowski, T.: Relating CASL with Other Speciﬁcation Languages: The Institution Level.
+Theo. Comp. Sci. 286(2), 367–475 (2002)
+15.Mossakowski, T., Maeder, C., Lüttich, K.: The Heterogeneous Tool Set. In: Grumberg, O.,
+Huth, M. (eds.) Proc. 13thIntl. Conf. Tools and Algorithms for the Construction and Analysis
+of Systems (TACAS 2007). Lect. Notes Comp. Sci., vol. 4424, pp. 519–522. Springer (2007)
+16.Mosses, P.D.: CASL Reference Manual — The Complete Documentation of the Common
+Algebraic Speciﬁcation Language, Lect. Notes Comp. Sci., vol. 2960. Springer (2004)
+17.ObjectManagementGroup:UniﬁedModelingLanguage.Standardformal/17-12-05,OMG
+(2017), http://www.omg.org/spec/UML/2.5.1
+18. Roques, A.: PlantUML. https://plantuml.com/ (Accessed 2020-02-11)
+19.Rosenberger,T.:RelatingUMLStateMachinesandInteractionsinanInstitutionalFramework.
+Master’sthesis,EliteGraduateProgramSoftwareEngineering(UniversitätAugsburg,Ludwig-
+Maximilians-Universität München, Technische Universität München) (2017)
+20.Weidenbach, C., Dimova, D., Fietzke, A., Kumar, R., Suda, M., Wischnewski, P.: SPASS
+Version 3.5. In: Schmidt, R.A. (ed.) Proc. 22ndIntl. Conf. Automated Deduction. Lect. Notes
+Comp. Sci., vol. 5663, pp. 140–145. Springer (2009)
+20

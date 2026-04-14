@@ -1,0 +1,378 @@
+--- Page 1 ---
+Hugo A. Quintero
+Ryan J. Farris
+Michael Goldfarb
+Department of Mechanical Engineering,
+Vanderbilt University,
+Nashville, TN 37235A Method for the Autonomous
+Control of Lower Limb
+Exoskeletons for PersonsWith Paraplegia
+This paper describes a control method for a lower limb powered exoskeleton that enables
+a paraplegic user to perform sitting, standing, and walking movements. The different
+maneuvers are commanded by the user based on postural information measured by the
+device. The proposed user interface and control structure was implemented on a poweredlower limb orthosis, and the system was tested on a paraplegic subject with a T10 com-
+plete injury. Experimental data is presented that indicates the ability of the proposed con-
+trol architecture to provide appropriate user-initiated control of sitting, standing, and
+walking. The authors also provide a link to a video that qualitatively demonstrates the
+user’s ability to independently control basic movements via the proposed control method.[DOI: 10.1115/1.4007181]
+1 Introduction
+One of the most signiﬁcant impairments resulting from paraple-
+gia is the loss of mobility, particularly given the relatively young
+age at which such injuries occur [ 1–3]. In addition to diminished
+mobility, the inability to stand and walk entails signiﬁcant physio-logical impairments, including muscular atrophy, loss of bone
+mineral content, frequent skin breakdown problems, increased
+incidence of urinary tract infection, muscle spasticity, impairedlymphatic and vascular circulation, impaired digestive operation,
+and reduced respiratory and cardiovascular capacities [ 4].
+In an effort to facilitate legged locomotion in individuals with
+paraplegia, several computer-controlled lower limb orthosis sys-
+tems have been, and are being, developed and described in theresearch literature. Some of these include hybrid FES-systems,
+which combine a computer-controlled orthosis with computer-
+controlled functional electrical stimulation (FES) of leg muscles,
+such as the systems described by [ 5–9]. Recently, a number of
+powered lower limb orthoses, or exoskeletons, have also beendescribed for purposes of gait assistance for persons with paraple-
+gia, including those described by [ 10–16]. In addition to the sys-
+tems described in the literature, similar devices have started to
+emerge on the commercial market, including the ReWalk and
+Ekso exoskeleton systems by Argo Medical Technologies andEkso Bionics, respectively. Technical information regarding these
+two systems has not yet appeared in the engineering literature. In
+the aforementioned publications describing computer-controlledorthoses, the authors focus on the capacity of their respective sys-
+tems to provide legged mobility, but do not focus speciﬁcally on
+control methods that enable the user to autonomously command
+various movements. In order to demonstrate mobility, these
+approaches have either incorporated push-button controls on thestability aid, or have incorporated interfaces for an operator to
+control the system (e.g., from a host computer) on behalf of the
+paraplegic individual. No information has been published in the
+engineering literature regarding the control methods incorporated
+by the ReWalk or Ekso exoskeleton systems. Based on product in-formation available from the respective companies, the ReWalk
+exoskeleton utilizes a tilt-sensor on the torso to gate subsequent
+steps while walking, and utilizes a wrist-mounted keypad to selectbetween other types of movements. The Ekso can be controlled
+by a device operator (separate from the user), who pushes buttons
+on a hand-held controller, or can be controlled with instrumenta-
+tion on the forearm crutches to gate subsequent steps whilewalking.
+No publication in the engineering literature has described and
+demonstrated a method that enables a paraplegic user to intui-
+tively and autonomously control (i.e., without push-button con-
+trols or the assistance of a system operator) the basic movementsassociated with legged mobility (i.e., sitting, standing, and walk-
+ing). As such, this paper presents a control architecture for a pow-
+ered lower limb orthosis (or exoskeleton) designed to enable aparaplegic user to autonomously navigate through these move-
+ments, without the use of buttons or the aid of an external opera-
+tor. Speciﬁcally, the control architecture enables the user to
+switch between sitting, standing, and walking, based on the user’s
+upper body movement. The control architecture was implementedon a powered lower limb orthosis and evaluated on a paraplegic
+subject with a T10 motor and sensory complete injury (ASIA, A
+classiﬁcation). The ability of the user to autonomously control the
+system was assessed by having the paraplegic user repeatedly per-
+form a timed-up-and-go (TUG) test, which is a standard clinicalmeasure of legged mobility. The paper describes the control archi-
+tecture and its implementation, and presents experimental results
+of the TUG tests. The test results support the ability of the pro-
+posed control architecture to enable user-autonomous control of
+the basic movements associated with legged mobility.
+2 Powered Orthosis Prototype
+The proposed control architecture was implemented on the
+Vanderbilt powered lower limb orthosis shown in Fig. 1, although
+the proposed controller interface is generally applicable to a num-
+ber of computer-controlled lower limb orthoses. Speciﬁcally, the
+orthosis shown in Fig. 1incorporates four motors, which impose
+sagittal plane torques at each hip and knee joints. As seen in theﬁgure, the orthosis contains ﬁve segments, which are: two shank
+segments, two thigh segments, and one hip segment. Each thigh
+piece contains two brushless DC motors which are used to drive
+the hip and knee articulations through a speed-reduction transmis-
+sion. Each joint is capable of providing up to 20 N /C1m of continu-
+ous torque and 80 N /C1m for shorter (i.e., 2 s) durations. As a safety
+measure, both knee joints include normally locked brakes, in order Manuscript received August 16, 2011; ﬁnal manuscript received April 29, 2012;
+published online October 11, 2012. Assoc. Editor: Jahangir Rastegar.
+Journal of Medical Devices DECEMBER 2012, Vol. 6 / 041003-1 Copyright VC2012 by ASME
+
+--- Page 2 ---
+to preclude knee buckling in the event of a power failure. The sys-
+tem does not contain foot or ankle components, but is designed tobe used in conjunction with a standard ankle foot orthosis (AFO)
+to provide stability for the ankle, and to preclude foot drop during
+the swing phase of gait. Physical sensing in the orthosis consists
+of Hall-effect-based angle measurement in each hip and knee
+joint, and a 3-axis accelerometer and single-axis gyroscope ineach thigh segment. A pair of microcontrollers located in the thigh
+segments provides low-level control of the orthosis. For this par-
+ticular experimental set up, the microcontrollers communicate
+with a host computer via a data tether, which facilitates data ac-
+quisition. All power on the orthosis is provided by a lithium poly-mer battery located in the hip segment (see Fig. 1). A functional
+schematic of the embedded system on the orthosis is shown in
+Fig.2.
+3 Powered Orthosis Control Architecture
+3.1 Joint-Level Controllers. The control structure of the or-
+thosis consists of joint-level trajectory controllers, and a supervi-sory controller based on an event-driven ﬁnite-state machine. The
+joint-level controllers consist of variable-gain proportional-derivate
+(PD) feedback controllers around each (hip and knee) joint, whereat any given time, the control inputs into each controller consists of
+the joint angle reference; in addition to the proportional and deriva-
+tive gains of the feedback controller. Note that the latter are con-strained to positive values, in order to ensure stability of the
+feedback controllers. With this control structure, and considering
+the open-loop low output impedance of the orthosis joints (i.e., the
+joints are backdrivable), the joints can either be controlled in a tra-
+jectory tracking mode where the proportional and derivative gainsin the PD controller are set relatively high, or in an impedance con-
+trol mode, by emulating physical spring-damper couples at each
+joint. The former is used where it may be desirable to enforce a pre-
+determined trajectory (e.g., during the swing phase of gait), while
+the latter is used when it may be preferable not to enforce a prede-termined joint trajectory, but rather to provide assistive torques that
+facilitate movement toward a given joint equilibrium point (as in
+transitioning from sitting to standing), or to impose dissipative
+behavior at the joint (as in transitioning from standing to sitting).
+3.2 Finite-State Control Structure. The joint-level control-
+ler receives trajectory commands, as well as PD gains, from a su-pervisory ﬁnite-state machine (FSM), which (for sitting, standing,
+and walking) consists of 12 states, as shown in Fig. 3. The FSM
+consists of two types of states: static states and transition states.
+The static states consist of sitting (S1), standing (S2), right-leg-for-
+ward (RLF) double support (S3), and left-leg-forward (LLF) doublesupport (S4). The remaining 8 states, which transition between the
+four static states, include sit-to-stand (S5), stand-to-sit (S6), stand-
+to-walk with right half step (S7), stand-to-walk with left half step(S11), walk-to-stand with left half step (S10), walk-to-stand with
+right half step (S12), right step (S9), and left step (S8).
+Each state in the FSM is fully deﬁned by the combination of a
+set of trajectories, and a set of joint feedback gains. In general, the
+latter are either high or low. The set of trajectories utilized in six ofthe eight transition states to command the joint trajectories are
+shown in Fig. 4. For all the trajectories shown in Fig. 4, the joint
+feedback gains are set high. The ﬁnal angles of the trajectories
+shown in Fig. 4for the various joints deﬁne the constant joint
+angles that correspond to the static states of RLF double support(S3), LLF double support (S4), and standing (S2). Three states
+remain, which are the static state of sitting and the two transition
+states of sit-to-stand and stand-to-sit. The static state of sitting (S1)
+is deﬁned by zero gains, and therefore the joint angles are unimpor-
+tant. The transition from stand-to-sit (S6) consists of a zero pro-portional gain and a high derivate gain (i.e., damping without
+stiffness). Thus, the joint angles are also irrelevant for this state,
+assuming they are constant. Finally, the sit-to-stand (S5) state is
+deﬁned by standing (S2) joint angles, and utilizes a set of PD gains
+that ramp up from zero to a value that corresponds to a high gainstate. Table 1and Fig. 4summarize the trajectories and nature of
+the feedback gains that together deﬁne completely the behavior in
+all states of the FSM shown in Fig. 3.
+Fig. 1 Powered lower limb orthosis
+Fig. 2 Functional schematic of embedded system
+ Fig. 3 Finite state machine for sitting, standing, and walking
+041003-2 / Vol. 6, DECEMBER 2012 Transactions of the ASME
+
+--- Page 3 ---
+3.3 Switching Between States. The volitional command of
+the basic movements in the FSM is based on the location of the
+(estimated) center of pressure (CoP), deﬁned for the (assumed qua-sistatic user/orthosis) system as the center of mass projection onto
+the (assumed horizontal) ground plane. This notion is illustrated inFig.5, which indicates the approximate location of the CoP, rela-
+tive to the forward-most heel. It is assumed that, with the use of the
+stability aid, the user can affect the posture of his or her upper
+body, and thus can affect the location of the CoP. By utilizing theaccelerometers in the orthosis, which provide a measure of the
+thigh segment angle ( ain Fig. 5) relative to the inertial reference
+frame (i.e., relative to the gravity vector), in combination with the
+joint angle sensors (which provide a measure of the conﬁguration
+of the orthosis and user), the orthosis controller can estimate thelocation of the CoP (in the sagittal plane). More speciﬁcally, this
+estimation assumes; that the heels remain on the ground; that the
+head, arms, and trunk (HAT) can be represented as a single seg-
+ment with ﬁxed inertial properties; and that out-of-sagittal-plane
+motion is small. Given these assumptions, along with estimates ofthe length, mass and location of center of mass of each segment
+(right and left shank, right and left thigh, and HAT), the controller
+can estimate the projection of the CoP on the ground. Let the dis-
+tance from the forward-most heel to the CoP be X
+c, where a posi-
+tive value indicates that the CoP lies anterior to the heel, and anegative number indicates the CoP lies posterior to the heel (see
+Fig. 5). From a state of double support (S3 or S4), the user
+Fig. 4 Commanded trajectories corresponding to transition
+states ( a) S7 and S11, ( b) S8 and S9, and ( c) S10 and S12Table 1 Joint controller characteristics within each state
+Control characteristics in each state
+State Type Gains Control priority
+S1—sitting Static Low NA
+S2—standing Static High Position
+S3—right forward Static High Position
+S4—left forward Static High PositionS5—1 to 2 Transition NA GainS6—2 to 1 Transition NA Gain
+S7—2 to 3 Transition High Trajectory
+S8—3 to 4 Transition High TrajectoryS9—4 to 3 Transition High TrajectoryS10—3 to 2 Transition High Trajectory
+S11—2 to 4 Transition High Trajectory
+S12—4 to 2 Transition High Trajectory
+Fig. 5 Schematic indicating estimated stride length (X h) and
+center of pressure (X c), both estimated based on the conﬁgura-
+tion of the orthosis
+Journal of Medical Devices DECEMBER 2012, Vol. 6 / 041003-3
+
+--- Page 4 ---
+commands the next step by moving the CoP forward, until it meets
+a prescribed threshold, at which point the FSM will enter either the
+right step or left step states, depending on which foot started for-
+ward. From a standing position (S2), the user commands a step bysimilarly moving the CoP forward until it meets a prescribed
+threshold, but also leaning to one side in the frontal plane (as indi-
+cated by the 3-axis accelerometers in the thigh segments), which
+indicates that the orthosis should step with the leg opposite the
+direction of frontal plane lean (i.e., step forward with the presum-ably unweighted leg). That is, leaning to the right (and moving the
+CoP forward) will initiate a left step, while leaning to the left (and
+moving the CoP forward) will initiate a right step. In order to transi-
+tion from a standing state (S2) to a sitting state, the user shifts the
+CoP rearward, such that the CoP lies behind the user. Finally, totransition from a sitting to a standing state (S1 to S2), the user leans
+forward (as illustrated in Fig. 6(a)), which shifts the CoP forward to
+a predetermined threshold, which initiates the transition from sitting
+to standing. Note that the right portion of Fig. 6shows the case
+where the user’s CoP is not sufﬁciently forward to initiate a transi-tion from sitting to standing. Finally the transition from (either case
+of) double support to standing (i.e., from either S3 or S4, to S2) is
+based on the timing associated with crossing the CoP threshold.That is, if the CoP does not cross the CoP threshold within a given
+time following heel strike (i.e., if the controller remains in either
+state S3 or S4 for a given duration), subsequent crossing of the CoP
+threshold will transition to standing (S2) rather than to the corre-
+sponding double support conﬁguration. That is, a sufﬁcient pauseduring gait indicates to the system that the user wishes to stand,
+rather than continue walking forward. A summary of all switching
+conditions, governing the user interface with the FSM controller, is
+given in Table 2.
+The previous discussion indicates that the user-initiated right and
+left steps occur when the estimated location of the CoP (relative tothe forward heel) exceeds a given threshold. The authors have
+found that this approach provides enhanced robustness when this
+threshold is a function of the step length. That is, despite high-gain
+trajectory control in the joints of the orthosis during swing phase,scufﬁng of the foot on the ground, as occasionally occurs, in combi-
+nation with compliance in the orthosis structure, can alter the step
+length during walking. In the case of a small step length, the for-ward thigh is nearly vertical, and the user is more easily able to
+move the CoP forward of the forward heel. In the case of a large
+step length, the forward thigh is forms a larger angle with the verti-
+cal, and moving the CoP forward is more difﬁcult. As such, the
+CoP threshold during walking was constructed as a linear function,where the CoP threshold (i.e., the amount the CoP must lie ahead
+of the forward heel) decreases with increasing step size.
+4 Experimental Validation
+The control architecture was implemented on the previously
+described powered lower limb orthosis, and the ability of the
+system to enable a user to autonomously perform the basic move-
+ments associated with legged mobility (i.e., sitting, standing, and
+level walking) was assessed in experiments conducted with a
+Fig 6 Schematic indicating the use of center of pressure (X c)
+estimate for purposes of sit-to-stand and stand-to-sit transitionsTable 2 Finite state controller switching conditions
+State machine switching conditions
+Transition Condition
+S1 to S5 The user leans forward and pushes up
+S5 to S2 Hip and knee joints meet the standing (S2) conﬁguration
+S2 to S7 The user leans forward and left
+S7 to S3 Hip and knee joints meet the right forward (S3)
+conﬁguration
+S3 to S8 The user leans forward
+S8 to S4 Hip and knee joints meet the left forward (S4)
+conﬁguration
+S4 to S9 The user leans forwardS9 to S3 Hip and knee joints meet the right forward (S3)
+conﬁguration
+S3 to S10 The user pauses for a predetermined period prior to leaning
+forward
+S10 to S2 Hip and knee joints meet the standing (S2) conﬁguration
+S2 to S6 The user leans backward
+S6 to S1 A predetermined time has lapsedS2 to S11 The user leans forward and rightS11 to S4 Hip and knee joints meet the left forward (S4)
+conﬁguration.
+S4 to S12 The user pauses for a predetermined period prior to leaning
+forward
+S12 to S2 Hip and knee joints meet the standing (S2) conﬁguration
+Fig. 7 Photographic sequences showing standing, a left step, and a right step
+041003-4 / Vol. 6, DECEMBER 2012 Transactions of the ASME
+
+--- Page 5 ---
+paraplegic subject. The subject was a 35-year-old male (1.85 m,
+73 kg) with a T10 motor and sensory complete injury (i.e., ASIA A),
+nine years post injury. The evaluations were conducted at theShepherd Center (Atlanta, GA, USA), a rehabilitation hospital
+which specializes in spinal cord injury. The testing was approved
+by both the respective Vanderbilt University and Shepherd Center
+Institutional Review Boards. All data corresponds to walking con-
+ducted using a walker as a stability aid. The subject is shownwearing the orthosis and using the walker in Fig. 7.
+The ability of the powered orthosis and control architecture to
+provide autonomously commanded sitting, standing, and walking
+was assessed by having the subject autonomously perform a timed-
+up-and-go (TUG) test. The TUG test is a standard clinical measurefor assessing legged mobility [ 17]. In this test the subject starts
+seated in a chair, and given a start command, stands up, walks for-
+ward three meters, turns around in place, walks back to the starting
+point, and sits down in the chair. In order to assess the ability of the
+subject to autonomously control movements of the orthosis, thistest was repeated a number of times, until the subject was comforta-
+ble performing the test. Once comfortable with the task, the subject
+was asked to repeat the TUG test three times. The set of data thatcorresponds to the third of these three TUG tests is shown in Fig. 8.
+Speciﬁcally, the ﬁgure shows the right and left hip and knee joint
+angles corresponding to this TUG test, along with the correspond-
+ing states of the FSM. In the sequence, the user starts in the sitting
+Fig. 8 Joint angles and controller state during the third TUG test
+Fig. 9 Data excerpted from Fig. 8. Top row: ﬁnite state cor-
+responding to a sequence of steps. Middle row: center ofpressure estimate (X
+c, blue/bottom) and center of pressure
+threshold (X cˆ, red/top). Bottom row: step length estimate (X h).
+Fig. 10 Finite states corresponding to each of the three TUG
+tests
+Journal of Medical Devices DECEMBER 2012, Vol. 6 / 041003-5
+
+--- Page 6 ---
+state (S1), after which the system enters the sitting to standing
+mode (S5), in which both hips and both knees provide torques to
+facilitate joint extension. Following S5, the state history depicts aseries of consecutive steps, followed by a period of standing (S2),
+during which the subject turned in place, with the aid of the walker.
+The ﬁrst series of steps is then followed by a second series, during
+which the subject returned to the chair. Once at the chair, the sub-
+ject again entered standing mode (S2), allowing the subject to turnin place, prior to returning to a seated position in the chair. A video
+of actual TUG test corresponding to this data can be viewed at:
+http://youtube/gRAZ7ly2cnM
+Recall that the threshold for the CoP during walking is function
+of the step length. Figure 9shows the system state, the estimated
+CoP (X
+c), and the CoP switching threshold (X cˆ) for several steps
+(of slightly varying length). As seen in the ﬁgure, the CoP thresh-
+old (X cˆ) varies with step length (X h). In general, when the CoP
+(Xc) exceeds the threshold at the end of the swing phase trajec-
+tory, the controller will switch immediately to the contralateralswing phase (i.e., switching between S8 and S9). If the CoP does
+not cross the CoP threshold at the end of swing phase, the control-
+ler will remain in the respective double support phase (S3 or S4)until the user shifts the CoP to cross the CoP threshold.
+Figure 10presents the sequences of ﬁnite states corresponding
+to each of the three TUG tests. The subject completed the three
+tests in 103, 128, and 112 s, respectively. The average time to
+complete the sequence was 114 s, with a standard deviation of8.6 s (7.5%). The consistency between trials (i.e., standard devia-
+tion of 67.5%) indicates that the control approach appeared to
+provide a repeatable means for the subject to control the basic
+movements associated with legged mobility.
+5 Conclusion
+This paper presents a method for the control of a powered or-
+thosis that enables autonomous (user-controlled) basic legged mo-
+bility, including sitting, standing, and walking, for persons withparaplegia (i.e., enables the user to autonomously navigate
+through these movements, without the aid of push-buttons or an
+external operator). The architecture, summarized by Fig. 3and
+Tables 1and2, incorporates a ﬁnite state structure, in which the
+joints assume either high or low output impedance, depending onthe current ﬁnite state. Switching between ﬁnite states is largely
+dependent on an estimate of the location of the CoP relative to the
+forward heel. The approach was implemented on a powered lower
+limb orthosis and was assessed by having a subject with a T10
+complete injury autonomously perform a series of timed-up-and-go tests. The ability of the subject to perform these tests, and the
+consistency of the movement between tests, indicate that the con-
+trol methodology was effective in enabling the user to autono-mously perform the basic movements associated with legged
+mobility (i.e., sitting, standing, and walking). The authors believe
+that the proposed approach enables greater autonomy and is moreintuitive relative to a strategy that involves the use of a push-
+button interface.
+References
+[1] National Spinal Cord Injury Statistical Center, 2012, “Spinal Cord Injury
+Facts and Figures at a Glance,” https://www.nscisc.uab.edu/PublicDocuments/
+fact_ﬁgures_docs/Facts%202012%20Feb%20Final.pdf .
+[2] Brown-Triolo, D. L., Roach, M. J., Nelson, K., and Triolo, R. J., 2002, “Con-
+sumer Perspectives on Mobility: Implications for Neuroprosthesis Design,”J. Rehabil. Res. Dev., 39(6), pp. 659–669.
+[3] Hanson, R. W., and Franklin, M. R., 1976, “Sexual Loss in Relation to Other
+Functional Losses for Spinal Cord Injured Males,” Arch. Phys. Med. Rehabil.,57, pp. 291–293.
+[4] Phillips, L., Ozer, M., Axelson, P., and Fonseca, J., 1987, Spinal Cord Injury: A
+Guide for Patient and Family , Raven Press, New York.
+[5] Audu, M. L., To, C. S., Kobetic, R., and Triolo, R. J., 2010, “Gait Evaluation of
+a Novel Hip Constraint Orthosis With Implication for Walking in Paraplegia,”IEEE Trans. Neural Syst. Rehabil. Eng. ,18(6), pp. 610–618.
+[6] Kobetic, R., To, C. S., Schnellenberger, J. R., Audu, M. L., Bulea, T. C., Gau-
+dio, R., Pinault, G., Tashman, S., and Triolo, R. J., 2009, “Development of
+Hybrid Orthosis for Standing, Walking, and Stair Climbing After Spinal CordInjury,” J. Rehabil. Res. Dev. ,43(3), pp. 447-462.
+[7] To, C. S., Kobetic, R., Schnellenberger, J. R., Audu, M. L., and Triolo, R. J.,
+2008, “Design of a Variable Constraint Hip Mechanism for a Hybrid Neuro-prosthesis to Restore Gait After Spinal Cord Injury,” IEEE/ASME Trans.
+Mechatron. ,13(2), pp. 197–205.
+[8] Durfee, W. K., and Rivard, A., 2005, “Design and Simulation of a Pneumatic,
+Stored-Energy, Hybrid Orthosis for Gait Restoration,” J. Biomech. Eng. ,
+127(6), pp. 1014–1019.
+[9] Goldfarb, M., Korkowski, K., Harrold, B., and Durfee, W., 2003, “Preliminary
+Evaluation of a Controlled-Brake Orthosis for FES-Aided Gait,” IEEE Trans.
+Neural Syst. Rehabil. Eng. ,11(3), pp. 241–248.
+[10] Ohta, Y., Yano, H., Suzuki, R., Yoshida, M., Kawashima, N., and Nakazawa,
+K., 2007, “A Two-Degree-of-Freedom Motor-Powered Gait Orthosis for SpinalCord Injury Patients,” Proc. Inst. Mech. Eng., Part H: J. Eng. Med. ,221(6), pp.
+629–639.
+[11] Kwa, H. K., Noorden, J. H., Missel, M., Craig, T., Pratt, J. E., and Neuhaus,
+P. D., 2009, “Development of the IHMC Mobility Assist Exoskeleton,”
+Proceedings of the 2009 IEEE International Conference on Robotics and
+Automation, Kobe, Japan, May 12–17, IEEE Press, New York, pp. 1349–1355.
+[12] Neuhaus, P. D., Noorden, J. H., Craig, T. J., Torres, T., Kirschbaum, J.,
+and Pratt, J. E., 2011, “Design and Evaluation of Mina: A Robotic Ortho-sis for Paraplegics,” IEEE International Conference on Rehabilitation
+Robotics, Zurich, Switzerland, June 29–July 1, IEEE Press, New York, pp.870–877.
+[13] Tsukahara, A., Hasegawa, Y., and Sankai, Y., 2009, “Standing-up Motion Sup-
+port for Paraplegic Patient With Robot Suit HAL,” IEEE 11th International
+Conference on Rehabilitation Robotics, Kyoto, Japan, June 23–26, IEEE Press,New York, pp. 211–217.
+[14] Hasegawa, Y., Jang, J., and Sankai, Y., 2009, “Cooperative Walk Control of
+Paraplegia Patient and Assistive System,” IEEE /RSJ International Conference
+on Intelligent Robots and Systems, St. Louis, Mo, October 10–15, IEEE Press,New York, pp. 4481–4486.
+[15] Suzuki, K., Mito, G., Kawamoto, H., Hasegawa, Y., and Sankai, Y., 2007,
+“Intention-Based Walking Support for Paraplegia Patients With Robot SuitHAL,” Adv. Rob. ,21(12), pp. 1441–1469.
+[16] Tsukahara, A., Kawanishi, R., Hasegawa, Y., and Sankai, Y., 2010, “Sit-to-
+Stand and Stand-to-Sit Transfer Support for Complete Paraplegic Patients WithRobot Suit HAL,” Adv. Rob. ,24(11), pp. 1615–1638.
+[17] Podsiadlo, D., and Richardson, S., 1991 “The Timed Up & Go”: A Test of Ba-
+sic Functional Mobility for Frail Elderly Persons,” J. Am. Geriatr. Soc., 39(2),
+pp. 142–148.
+041003-6 / Vol. 6, DECEMBER 2012 Transactions of the ASME

@@ -1,0 +1,635 @@
+--- Page 1 ---
+On W eak Mo dal Compatibilit y , Renemen t,
+and the MIO W orkb enc h
+Sebastian S. Bauer, Philip Ma y er, Andreas Sc hro eder and Rolf Hennic k er
+Institut für Informatik, Ludwig-Maximilians-Univ ersität Münc hen, German y
+{bauerse,mayer,schroeda,hennicker}@pst.ifi.lmu.de
+Abstract. Building on the theory of mo dal I/O automata (MIOs) b y
+Larsen et al. w e in tro duce a new compatibilit y notion called w eak mo dal
+compatibilit y . As an imp ortan t prop ert y of b eha vioral in terface theories
+w e pro v e that w eak mo dal compatibilit y is preserv ed under w eak mo dal
+renemen t. F urthermore, w e organize and compare dieren t notions of
+renemen t and compatibilit y to giv e an easily-accessible o v erview. Fi-
+nally , w e describ e the MIO W orkb enc h, an Eclipse-based editor and v er-
+ication to ol for mo dal I/O automata, whic h implemen ts v arious rene-
+men t, compatibilit y and comp osition notions and is able to depict the
+results of v erication directly on the graphical represen tation of MIOs 
+relations or state pairs in the p ositiv e and erroneous paths in the negativ e
+case.
+1 In tro duction
+In terface design has b een a long-standing and imp ortan t issue in the design of
+soft w are systems. V arious metho ds of in terface sp ecications, b oth static and
+b eha vioral, ha v e b een suggested for soft w are comp onen ts [3,4]. W e b eliev e that
+b eha vioral sp ecications for comp onen ts are of particular imp ortance, and fo cus
+on suc h sp ecications in this pap er.
+Among the most widely accepted metho ds for sp ecifying b eha vioral prop er-
+ties of in terfaces are I/O automata [15,16], whic h ha v e b een in tro duced to sp ecify
+the temp oral ordering of ev en ts in v olving a comp onen t, explicitly taking comm u-
+nication asp ects suc h as sending or receiving messages in to consideration. Man y
+v ariations of these automata ha v e b een in tro duced o v er the y ears; for example
+in terface automata [5], timed in terface automata [6], or resource automata [2].
+A t the same time, another asp ect of in terface b eha vior has b een studied: Mo dal
+automata [13] explicitly address the dierence b et w een required and optional
+actions b y using m ust and ma y transitions, whic h allo w proto cols and imple-
+men tations to dier with regard to non-compulsory actions. Recen tly , b oth the
+input/output and the ma y/m ust asp ects of b eha vioral sp ecications ha v e b een
+in tegrated [11], giving rise to mo dal I/O automata (MIOs).
+Building on the basic formalisms for b eha vioral sp ecications suc h as MIOs,
+w e can use notions of in terface compatibilit y and correct in terface implemen ta-
+tion (renemen t) to v erify comp onen t b eha vior; for a surv ey on compatibilit y
+notions see [3]. In terface theories [4] are commonly used to precisely dene these
+
+--- Page 2 ---
+requiremen ts. In terface theories are tuples (A;;;
+) of a seman tic domain A ,
+a renemen t relation AA , a (symmetric) compatibilit y relation AA ,
+and a (p ossibly partial) comp osition function 
+:AA!A satisfying the fol-
+lo wing three prop erties: Let S;T;T0;T002A .
+(1) Preserv ation of compatibilit y: If ST andT0T thenST0.
+(2) Comp ositional renemen t: If T0T thenS
+T0S
+T .
+(3) T ransitivit y of renemen t: If T00T0andT0T thenT00T .
+These three prop erties imply indep endent implementability , whic h is the basis
+for top-do wn comp onen t-based design.
+Indep enden t implemen tabilit y states that in order to rene a giv en comp osed
+in terfaceS
+T to w ards an implemen tation, it suces to indep enden tly rene
+S andT , sa y , toS0andT0, resp ectiv ely; then the renemen ts S0andT0are
+compatible and their comp osition renes the in terface S
+T . More formally , let
+(A;;;
+) b e an in terface theory . Indep enden t implemen tabilit y means that if
+ST ,S0S andT0T hold, b othS0T0andS0
+T0S
+T follo w.
+In this pap er, w e elab orate on the c hallenges of comp onen t b eha vior sp eci-
+cation. W e in tro duce new in terface theories in the same line as in de Alfaro and
+Henzinger [4] for mo dal I/O automata with appropriate renemen t and com-
+patibilit y notions. W e in tro duce the notion of we ak mo dal c omp atibility whic h
+allo ws for lo ose coupling b et w een in terfaces and pro v e its preserv ation under
+w eak mo dal renemen t.
+Another result of this pap er is the organization and comparison of dieren t
+existing and new notions of renemen t and compatibilit y . W e giv e an easily-
+accessible o v erview of these notions and their relationships.
+Although I/O automata and mo dal automata ha v e a long history , there is
+little to ol supp ort. Therefore, another ma jor con tribution of this pap er is a
+v erication to ol and editor for MIOs  the MIO W orkb enc h  whic h includes
+implemen tations of v arious renemen t and compatibilit y notions, including but
+not limited to the ones whic h are part of our in terface theories. W e b eliev e that
+the abilit y to automatically v erify these prop erties is useful for b oth discussing
+the theory of MIOs as w ell as a foundation for practical applications.
+This pap er is structured as follo ws. W e discuss mo dal I/O transition systems
+in Sect. 2. In Sect. 3, w e in tro duce our notion of w eak mo dal compatibilit y ,
+follo w ed b y an o v erview of the dieren t notions of renemen t and compatibilit y
+in Sect. 4. T o ol supp ort for MIOs is discussed in Sect. 5. W e conclude in Sect. 6.
+2 Mo dal (I/O) T ransition Systems
+This rst section is dev oted to a short in tro duction to mo dal transition systems,
+and in particular mo dal input/output transition systems. A mo dal transition
+system is c haracterized b y the fact that it has two transition relations, indicat-
+ing allo w ed ( may ) and required ( must ) b eha vior. In this pap er, w e consider an
+extended v ersion of the original mo dal transition systems [13] b y including a
+signature whic h distinguishes b et w een internal and external actions.
+
+--- Page 3 ---
+Denition 1 (Mo dal T ransition System). A mo dal tr ansition system (MTS)
+S= (statesS;startS;(extS;intS);99KS;!S) c onsists of a set of states statesS ,
+an initial state startS2statesS , disjoint sets extS andintS of external and
+internal actions wher e actS=extS[intS denotes the set of (al l) actions, a
+may-tr ansition r elation 99KSstatesSactSstatesS , and a must-tr ansition
+r elation!SstatesSactSstatesS . The p air (extS;intS) is c al le d the
+signatur e of S .
+An MTSS is called syntactic al ly c onsistent if ev ery required transition is
+also allo w ed, i.e. it holds that !S99KS. F rom no w on w e only consider
+syn tactically consisten t MTSs. Moreo v er, w e call an MTS S an implementation
+if the t w o transition relations coincide, i.e. !S=99KS.
+Mo dal I/O transition systems [11] further dieren tiate b et w een t w o kinds of
+external actions, namely input and output actions.
+Denition 2 (Mo dal I/O T ransition System). A mo dal I/O tr ansition sys-
+tem (MIO) S is an MTS with the set of external actions extS p artitione d into
+two disjoint sets inS ,outS of input and output actions, r esp e ctively. The triple
+(inS;outS;intS) is c al le d the signatur e of S .
+The notions of syn tactic consistency and implemen tation also apply for MIOs.
+Example 1. Our running example in this pap er is the sp ecication (and imple-
+men tation) of a igh t b o oking service. In Fig. 1, the MIO T0 sp ecifying the
+service pro vider is depicted. F or impro ving readabilit y , output actions are suf-
+xed with an exclamation mark ( ! ) whereas input actions are suxed with a
+question mark ( ? ). In ternal actions do not ha v e an y sux.
+In the initial state (indicated b y a lled circle) the session is initiated b y
+receiving b o okTicket? , follo w ed b y the reception of the data of requested tic k ets
+in ticketData? . Then, a service implemen tation ma y ask the clien t for c ho osing
+a seat n um b er ( se at! ) whic h it m ust b e able to receiv e afterw ards ( se atNo? ).
+The reserv ation of the tic k ets ma y b e cancelled b y the service pro vider ( fail! ) if
+the requested igh t is fully b o ok ed, or the request is conrmed b y sending ok! ,
+whic h is follo w ed b y receiving the accoun t data ( ac c ountData? ) of the clien t.
+ok! accountData?fail!
+seatNo?seat!bookTicket? ticketData?
+Fig. 1. Sp ecication T0 of a igh t b o oking service.
+In the follo wing, w e recall the standard denition of renemen t for mo dal
+transition systems, cf. [13]. The notion of renemen t aims at capturing the rela-
+tion b et w een an abstract sp ecication of an in terface and a more detailed one,
+
+--- Page 4 ---
+p ossibly an implemen tation of that in terface. Th us, it allo ws for a step wise re-
+nemen t of an abstract sp ecication to w ards an implemen tation.
+The basic idea of mo dal renemen t is that an y required ( must ) transition
+in the abstract sp ecication m ust also o ccur in the concrete sp ecication. Con-
+v ersely , an y allo w ed ( may ) transition in the concrete sp ecication m ust b e al-
+lo w ed b y the abstract sp ecication. Moreo v er, in b oth cases the target states
+m ust conform to eac h other. Mo dal renemen t has the follo wing consequences:
+A concrete sp ecication ma y lea v e out allo w ed transitions, but is required to
+k eep all m ust transitions, and moreo v er, it is not allo w ed to p erform more tran-
+sitions than the abstract sp ecication admits. The follo wing denition of mo dal
+renemen t is called str ong since ev ery transition that is tak en in to accoun t m ust
+b e sim ulated immediately, i.e. without p erforming in ternal actions b efore.
+Denition 3 (Strong Mo dal Renemen t [13]). L etS andT b e MTSs
+(MIOs, r esp.) with the same signatur e. A r elation RstatesSstatesT is
+c al le d str ong mo dal r enement for S andT i for al l (s;t)2R and for al l
+a2actS it holds that
+1. ifta!Tt0then ther e exists s02statesS such thatsa!Ss0and (s0;t0)2R ,
+2. ifsa99KSs0then ther e exists t02statesT such thatta99KTt0and (s0;t0)2R .
+W e say that S str ongly mo dal ly r enes T , writtenSmT , i ther e exists a
+str ong mo dal r enement for S andT c ontaining (startS;startT) .
+If b othS andT are implemen tations, i.e. the m ust-transition relation coincides
+with the ma y-transition relation, then strong mo dal renemen t coincides with
+(strong) bisim ulation; if !T=; then it corresp onds to sim ulation [17].
+Example 2. In Fig. 2, a (p ossible) implemen tation T1 of the igh t b o oking service
+sp ecied b y the MIO T0 in Fig. 1 is sho wn. In this particular implemen tation
+of the sp ecication T0 , the optional output for asking the clien t for a particular
+seat n um b er is nev er tak en. Ho w ev er, all m ust-transitions of T0 are retained in
+the implemen tation T1 , hence w e ha v e T1mT0 . 
+ok! accountData?fail!bookTicket? ticketData?
+Fig. 2. Implemen tation T1 ofT0 .
+Next, w e in tro duce a binary (sync hronous) comp osition op erator on MIOs. When
+t w o proto cols (implemen tations), eac h one describing a particular comp onen t,
+can comm unicate b y sync hronous message passing, w e are in terested in comput-
+ing the resulting proto col (implemen tation) of the comp osed system. Although
+
+--- Page 5 ---
+comp osition can ob viously b e dened for MTSs, w e directly giv e a denition for
+MIOs as this is our main in terest.
+It is con v enien t to restrict the comp osition op erator to c omp osable MIOs b y
+requiring that o v erlapping of actions only happ ens on complemen tary t yp es.
+Denition 4 (Comp osabilit y [11]). Two MIOs S andT ar e c al le d c omp os-
+able if (inS[intS)\(inT[intT) =; and (outS[intS)\(outT[intT) =; .
+W e no w dene comp osition of MIOs in a straigh tforw ard w a y b y a binary
+partial function
+ sync hronizing on matc hing (shared) actions.
+Denition 5 (Comp osition [11]). Two c omp osable MIOs S1 andS2 c an b e
+c omp ose d to a MIO S1
+S2 dene d by statesS1
+S2=statesS1statesS2 , the
+initial state is given by startS1
+S2= (startS1;startS2) ,inS1
+S2= (inS1noutS2)[
+(inS2noutS1) ,outS1
+S2= (outS1ninS2)[(outS2ninS1) ,intS1
+S2=intS1[
+intS2[(inS1\outS2)[(inS2\outS1) . The tr ansition r elations 99KS1
+S2and
+!S1
+S2ar e given by, for e ach  2f99K;!g ,
+ for al li;j2f1;2g;i6=j , for al la2(actS1\actS2) , ifsia Sis0
+i andsja Sjs0
+j
+then (s1;s2)a S1
+S2(s0
+1;s0
+2) ,
+ for al la2actS1 , ifs1a S1s0
+1 anda =2actS2 then (s1;s2)a S1
+S2(s0
+1;s2) ,
+ for al la2actS2 , ifs2a S2s0
+2 anda =2actS1 then (s1;s2)a S1
+S2(s1;s0
+2) .
+Comp osition of MIOs only sync hronizes transitions with matc hing shared ac-
+tions and same t yp e of transition, i.e. a m ust-transition lab eled with a shared
+action only o ccurs in the comp osition if there exist corresp onding matc hing
+m ust-transitions in the original MIOs.
+A w ell-kno wn problem o ccurs when comp osing arbitrary MIOs S andT : If
+for a reac hable state (s;t) inS
+T ,S in states is able to send out a message a
+shared with T , andT in statet is not able to receiv e a then this is considered
+as a compatibilit y problem since S ma y get stuc k in this situation. W e w an t to
+rule out this erroneous b eha vior b y requiring that S andT m ust b e c omp atible .
+The follo wing denition of strong compatibilit y is strongly inuenced b y [5]
+and [11]. In tuitiv ely , t w o MIOs S andT are compatible if for ev ery reac hable
+state in the pro duct S
+T , ifS is able to pro vide an output whic h is shared
+withT , i.e. is in the input alphab et of T , thenT m ust immediately b e able to
+receiv e this message (and vice v ersa).
+Denition 6 (Strong Mo dal Compatibilit y). L etS andT b e c omp osable
+MIOs.S andT ar e c al le d str ongly mo dal ly c omp atible, denote d by SscT , i
+for al l r e achable states (s;t) inS
+T ,
+1. for al la2(outS\inT) , ifsa99KSs0then ther e exists t02statesT such that
+ta!Tt0,
+2. for al la2(outT\inS) , ifta99KTt0then ther e exists s02statesS such that
+sa!Ss0.
+
+--- Page 6 ---
+bookTicket! ticketData!
+seat?
+seatNo! ok?fail?
+accountData!Fig. 3. Proto colS .
+Example 3. In Fig. 3, a sp ecication S of a clien t of the igh t b o oking service is
+sho wn. It is easily pro v able that indeed S andT0 and alsoS andT1 are strongly
+mo dally compatible, i.e. SscT0 andSscT1 . 
+F or MIOs equipp ed with sc andm , w e obtain a v alid in terface theory .
+Theorem 1. L etS ,T ,T0,T00b e MIOs, and let S andT b e c omp osable.
+1. (Preserv ation) IfSscT andT0mT thenSscT0.
+2. (Comp ositionalit y) IfT0mT thenS
+T0mS
+T .
+3. (T ransitivit y) IfT00mT0andT0mT thenT00mT .
+The pro of of statemen t 1 is giv en in [1]; statemen t 2 is a consequence of a result
+in [13] (where it has b een pro v ed that ev ery static construct  for whic h 
+ is
+a sp ecial case  is comp ositional for m ) and statemen t 3 follo ws directly from
+the denition ofm .
+R emark 1. The compatibilit y notions used in this pap er follo w a p essimistic
+approac h: t w o MIOs S andT are only compatible if no comm unication error
+b et w eenS andT can o ccur in any en vironmen t of S
+T . A dieren t approac h
+to compatibilit y is the optimistic one, cf. [11,5]: t w o MIOs S andT are compat-
+ible if they are compatible for an y helpful en vironmen t in the sense that the
+en vironmen t nev er pro vides outputs that w ould cause the pro duct S
+T to run
+in a state (s;t) with incompatible states s andt .
+3 W eak Mo dal Compatibilit y
+The renemen t presen ted in the last section is strong in the sense that ev ery
+m ust-transition in the proto col m ust b e imme diately sim ulated in the imple-
+men tation and con v ersely , ev ery ma y-transition in the implemen tation m ust b e
+imme diately sim ulated in the proto col. This denition can b e w eak ened b y in-
+cluding the notion of we ak tr ansitions .
+F or denoting w eak transitions, giv en a MIO S and an action a2extS , w e
+writesa!
+Ss0i there exist states s1;s22statesS suc h that
+s(!S)s1a!Ss2(!S)s0
+wheret(!T)t0stands for nitely man y transitions with in ternal actions lead-
+ing fromt tot0; including no transition and in this case t=t0. The lab el alw a ys
+denotes an arbitrary in ternal action. Moreo v er, w e write
+s^a!
+Ss0i eithersa!
+Ss0anda2extS; ors(!S)s0anda =2extS:
+
+--- Page 7 ---
+Both notations are analogously used for ma y-transitions.
+Similar to the generalization of bisim ulation to w eak bisim ulation [17], one
+can in tro duce a notion of mo dal renemen t in a w eak form: Ev ery (non-w eak)
+m ust-transition in the proto col m ust b e sim ulated in the implemen tation b y a
+w eak m ust-transition, and con v ersely , ev ery (non-w eak) ma y-transition in the
+implemen tation m ust b e sim ulated b y a w eak ma y-transition in the proto col.
+This form of w eak mo dal renemen t w as originally in tro duced in [10].
+Denition 7 (W eak Mo dal Renemen t [10]). L etS andT b e MTSs (MIOs,
+r esp.) with the same signatur e.1A r elationRstatesSstatesT is c al le d a we ak
+mo dal r enement for S andT i for al l (s;t)2R , for al la2actS it holds that
+1. ifta!Tt0then ther e exists s02statesS such thats^a!
+Ss0and (s0;t0)2R ,
+2. ifsa99KSs0then ther e exists t02statesT such thatt^a99K
+Tt0and (s0;t0)2R .
+W e say that S we akly mo dal ly r enes T , denote d by S
+mT , i ther e exists a
+we ak mo dal r enement for S andT c ontaining (startS;startT) .
+Example 4. In Fig. 4, another implemen tation T2 ofT0 is presen ted whic h, af-
+ter receiving b o okTicket? , p erforms an in ternal action lo g with the meaning of
+executing an in ternal logging op eration. T0 do es not sp ecify an y in ternal ac-
+tions, so w e ha v e T26mT0 , but w eak mo dal renemen t allo ws to p ostp one the
+further execution of ticketData? (according to proto col T0 ) un til some in ternal
+(m ust)-transitions are passed through. It follo ws that T2
+mT0 .
+log
+bookTicket?
+fail!ticketData?
+ok! accountData?
+Fig. 4. Implemen tation T2 ofT0 .
+Let us recall our goal. W e w an t to nd appropriate notions of renemen t and
+compatibilit y for comp onen t b eha vior sp ecications. In order to obtain a v alid
+in terface theory in v olving w eak mo dal renemen t w e ha v e to mak e sure that,
+giv en a suitable compatibilit y notion, compatibilit y is preserv ed under rene-
+men t. The follo wing example sho ws that strong compatibilit y is not preserv ed
+b y w eak mo dal renemen t.
+Example 5. S andT0 are strongly compatible and T2
+mT0 . ButS andT2 are
+not strongly compatible, since S is able to send out the message ticketData to
+T2 , butT2 , b eing in the state b efore p erforming lo g , is not able to receiv e the
+message immediately . 
+1More generally , in the w eak case, one could also allo w that S andT ha v e arbitrary
+(non related) in ternal actions.
+
+--- Page 8 ---
+Ob viously , in ternal actions are not adequately considered in the denition
+of compatibilit y . Dealing with this problem requires a new denition of com-
+patibilit y , whic h w e call we ak mo dal c omp atibility . The in tuition b ehind w eak
+mo dal compatibilit y follo ws from the previous example: If a MIO may send out
+a certain message to its partner, w e consider this transaction as compatible if
+the other MIO must b e able to receiv e it, p ossibly p erforming some in ternal
+m ust steps in b et w een. Note that the must mo dalit y is essen tial here: If in ternal
+may transitions w ould b e allo w ed then this path could b e omitted in further re-
+nemen ts and therefore compatibilit y of implemen tations w ould not b e ensured
+an ymore.
+In the follo wing, giv en a MIO S and an action a2extS , w e writesa!/
+Ss0i
+there exists a state s002statesS suc h that
+s(!S)s00a!Ss0:
+Moreo v er,s^a!/
+Ss0denotessa!/
+Ss0ifa2extS , otherwise s(!S)s0. Both no-
+tations are analogously used for ma y-transitions.
+Denition 8 (W eak Mo dal Compatibilit y). L etS andT b e c omp osable
+MIOs.S andT ar e c al le d we akly mo dal ly c omp atible, denote d by SwcT , i
+for al l r e achable states (s;t) inS
+T ,
+1. for al la2(outS\inT) , ifsa99KSs0then ther e exists t02statesT such that
+ta!/
+Tt0,
+2. for al la2(outT\inS) , ifta99KTt0then ther e exists s02statesS such that
+sa!/
+Ss0.
+Ob viously , it holds that SscT impliesSwcT .
+Example 6. Lo oking bac k to our examples, it can b e easily v eried that S is
+w eakly mo dally compatible with b oth T0 andT2 since the reception of ticketData
+inT2 m ust tak e place after the in ternal m ust transition lab eled with lo g .
+Based on the MIO formalism, w eak mo dal compatibilit y wc and w eak mo dal
+renemen t
+m satisfy the desired prop erties of an in terface theory .
+Theorem 2. L etS ,T ,T0,T00b e MIOs, and let S andT b e c omp osable.
+1. (Preserv ation) IfSwcT andT0
+mT thenSwcT0.
+2. (Comp ositionalit y) IfT0
+mT thenS
+T0
+mS
+T .
+3. (T ransitivit y) IfT00
+mT0andT0
+mT thenT00
+mT .
+The pro of of statemen t 1 is giv en in [1]; statemen t 2 is a consequence of a result
+in [10] (where it has b een pro v ed that 
+ is a binary ,  -insensitiv e op erator on
+MTSs with input/output lab els and therefore 
+ is comp ositional for 
+m ) and
+statemen t 3 follo ws directly from the denition of 
+m .
+
+--- Page 9 ---
+4 Ov erview of Renemen t and Compatibilit y Notions
+In order to complete the picture of existing notions of mo dal renemen ts for
+mo dal transition systems and their relationships to the notions of compatibilit y
+dened here, w e also consider ma y-w eak mo dal renemen t, whic h has b een de-
+ned in [12] (and, under the name of observ ational mo dal renemen t, in [11])
+to generalize alternating sim ulation [5]. Ma y-w eak mo dal renemen t k eeps the
+strong requiremen t for required (m ust-)transitions (as in strong mo dal rene-
+men t, but restricted to external actions), but has a w eak condition for allo w ed
+(ma y-)transitions: ev ery allo w ed transition in the more concrete MTS m ust b e
+sim ulated b y an allo w ed transition in the abstract MTS, p ossibly preceded b y
+nitely man y in ternal transitions.
+Denition 9 (Ma y-W eak Mo dal Renemen t [12]). L etS andT b e MTSs
+(MIOs, r esp.) with the same signatur e. A r elation RstatesSstatesT is c al le d
+may-we ak mo dal r enement for S andT i for al l (s;t)2R it holds that
+1. for al la2extT , ifta!Tt0then ther e exists s02statesS such thatsa!Ss0
+and (s0;t0)2R ,
+2. for al la2actS , ifsa99KSs0then ther e exists t02statesT such thatt^a99K/
+Tt0
+and (s0;t0)2R .
+W e say that S may-we akly mo dal ly r enes T , denote d by S/
+mT , i ther e exists
+a may-we ak mo dal r enement for S andT c ontaining (startS;startT) .
+Giv en MIOs as the underlying formalism, ma y-w eak mo dal renemen t to-
+gether with strong mo dal compatibilit y forms a v alid in terface theory .
+Theorem 3. L etS ,T ,T0,T00b e MIOs, and let S andT b e c omp osable.
+1. (Preserv ation) IfSscT andT0/
+mT thenSscT0.
+2. (Comp ositionalit y) IfT0/
+mT thenS
+T0/
+mS
+T .
+3. (T ransitivit y) IfT00/
+mT0andT0/
+mT thenT00/
+mT .
+The pro of of Thm. 3 is giv en in [1].
+So far, w e ha v e considered three mo dal renemen t notions. Ob viously , for
+an y t w o mo dal transition systems (or MIOs) S andT w e ha v e
+F act 1. ifSmT thenS
+mT ;
+F act 2. ifSmT thenS/
+mT .
+The con v erses of the ab o v e implications do ob viously not hold; moreo v er, it is also
+ob vious that w eak mo dal renemen t do es not imply ma y-w eak mo dal renemen t.
+Ho w ev er, also ma y-w eak mo dal renemen t do es not imply w eak mo dal rene-
+men t since condition 1 in Def. 9 only considers external actions; for instance, for
+T andT0in Fig. 5,T0/
+mT butT06
+mT since the in ternal m ust transition of
+T is not resp ected b y T0whic h w ould b e required for w eak mo dal renemen t.
+
+--- Page 10 ---
+T able 1. Ov erview of preserv ation of compatibilit y under renemen t.
+Strong Compatibilit y sc W eak Compatibilit y wc
+Strong Renemen t m ! (Thm. 1) ! (F act 1 & Thm. 2)
+W eak Renemen t 
+m % (Ex. 5) ! (Thm. 2)
+Ma y-W eak Renemen t /
+m ! (Thm. 3) % (Ex. 7)
+W e ha v e sho wn that all mo dal renemen ts are comp ositional w.r.t. 
+ , but
+they substan tially dier when preserv ation of strong/w eak compatibilit y is con-
+sidered. T able 1 summarizes the relationships b et w een mo dal renemen t and
+compatibilit y notions; a c hec kmark indicates that compatibilit y is preserv ed un-
+der renemen t.
+Example 7. W eak compatibilit y is not preserv ed under ma y-w eak mo dal rene-
+men t, as sho wn in Fig. 5. 
+a!a! a?
+
+S6wcT0SwcT
+T0/
+mT
+Fig. 5. Coun terexample.
+5 The MIO W orkb enc h
+In the previous sections, w e ha v e illustrated the sometimes subtle distinctions
+b et w een dieren t denitions of renemen t and compatibilit y . During our w ork,
+w e ha v e come to appreciate the help of implemen tations of our formal notions,
+whic h w ere an uninc hing partner in nding inconsistencies and conrming coun-
+terexamples. T o aid ourselv es and others, w e ha v e implemen ted a complete set of
+v erication notions and surrounding functionalit y for w orking with mo dal I/O
+automata  the MIO W orkb enc h, an Eclipse-based editor and v erication to ol
+for mo dal I/O automata, whic h w e presen t here for the rst time.
+W orkb enc h F eatures The most direct and in tuitiv e w a y to w ork with MIOs
+is using a graphical editing facilit y based on a graph of no des (states) and edges
+(transitions) as w ell as accompan ying lab els. The rst feature pro vided b y the
+w orkb enc h is th us a
+(1) Gr aphic al Editor , allo wing to create new or c hange existing MIOs.
+
+--- Page 11 ---
+The implemen tation of the dieren t notions of renemen t and compatibilit y
+are the next features of the MIO W orkb enc h:
+(2) R enement V eric ation. These include strong, ma y-w eak, and w eak mo dal
+renemen t.
+(3) Comp atibility V eric ation . W e supp ort the notions of strong (with and with-
+out helpful en vironmen t, cf. [5]), and w eak mo dal compatibilit y .
+F urthermore, it is in teresting to see an actual comp osition of comp osable MIOs:
+(4) Comp osition Op er ation on MIOs.
+The output of a comp osition op eration is either the comp osed MIO or a list
+of problematic actions whic h caused the comp osition to fail.
+Considering renemen t and compatibilit y v erication, w e can get t w o v ery
+imp ortan t, but v ery dieren t results. First, if renemen t or compatibilit y is p os-
+sible, w e get renemen t relation(s) and matc hing states for compatibilit y , re-
+sp ectiv ely . Ho w ev er  and this is ev en more imp ortan t  if the v erication fails,
+w e get the error states and the error transitions in the t w o automata, i.e. the
+exact p osition(s) whic h led to the erroneous outcome.
+Visualizing these results in a graphical w a y is v ery imp ortan t. Therefore, the
+w orkb enc h also includes:
+(5) R enement r elation and state match view . If a renemen t or compatibilit y
+v erication w as successful, the w orkb enc h graphically displa ys the relation
+or the matc hing states side-b y-side b et w een the t w o input MIOs.
+(6) Pr oblem view including err or states and unmatche d actions . If a renemen t
+or compatibilit y v erication w as not successful, the w orkb enc h graphically
+displa ys, side-b y-side, the path whic h led to an erroneous state, and the
+transition p ossible in one automaton, but not in the other.
+On the tec hnical side, the MIO W orkb enc h is based on the Eclipse platform.
+W e use an Eclipse Mo deling F ramew ork (EMF)-based metamo del for MIOs,
+whic h enables p ersistence and simple access to concrete automata. The w ork-
+b enc h in tegrates in to Eclipse b y adding MIO-sp ecic le handling and the new
+MIO editor as w ell as the v erication view. The MIO W orkb enc h is extensible
+with regard to new notions of renemen t, compatibilit y , and comp osition, b y
+means of standard Eclipse extension p oin ts.
+User In terface Fig. 6 sho ws the MIO editor inside the Eclipse w orkb enc h. On
+the left-hand side, the pro ject explorer sho ws MIOs stored on the le system as
+.mio les; on the righ t-hand side, the editor for one of these MIOs is displa y ed.
+A MIO is displa y ed in the classical w a y b y using no des as states and edges as
+transitions. Eac h transition has a t yp e (m ust or ma y), whic h is indicated b y a
+square or diamond, resp ectiv ely . F urthermore, eac h transition also stands for an
+in ternal, input, or output action. An input action is colored green and is suxed
+with a question mark ( ? ). An output action is colored red and is suxed with
+
+--- Page 12 ---
+Fig. 6. MIO W orkb enc h editor.
+an exclamation mark ( ! ). Finally , an in ternal action is gra y and do es not ha v e a
+sux. The MIO editor oers all the usual op erations suc h as adding new no des,
+mo ving them around, c hanging lab els, t yp es, and re-la y outing.
+The v erication view of the MIO W orkb enc h is the cen tral access p oin t to
+the v erication functionalit y . It features a side-b y-side view of t w o mo dal I/O
+automata, whic h can then b e analyzed for renemen t or compatibilit y , or com-
+p osed.
+Fig. 7 sho ws v erication of the proto col T0 (left) and implemen tation T2
+(righ t) from Ex. 4 using w eak mo dal renemen t, suc h that T2
+mT0 , whic h is
+indicated b y the green top and the green arro ws b et w een related states.
+As said ab o v e, the most in teresting results are negativ e cases, i.e. if a re-
+nemen t do es not exist or compatibilit y do es not hold. In this case, the MIO
+W orkb enc h displa ys the p ossible error paths, eac h indicating a state pair in
+violation and the corresp onding erroneous action.
+Fig. 8 sho ws the visualization of Ex. 4 again, but this time using strong mo dal
+renemen t. Th us, w e can tak e the b o okTicket? action on b oth sides, mark ed in
+dark red, arriving at the state pair (1,5) . Here, the proto col T0 can tak e the
+ticketData? action, also mark ed in dark red, whic h the implemen tation T2 is
+unable to follo w. Since it is a must , there is no relation in this case, whic h is
+indicated b y the red top and the dark red actions.
+The MIO W orkb enc h con tains additional helpful features suc h as automat-
+ically la ying out MIOs, adjusting an alphab et of a MIO b y hiding non-shared
+lab els for a compatibilit y or renemen t c hec k, and more.
+
+--- Page 13 ---
+Fig. 7. MIO W orkb enc h renemen t view.
+Fig. 8. MIO W orkb enc h sho wing renemen t problem.
+
+--- Page 14 ---
+The W orkb enc h in Con text T o our kno wledge, the MIO W orkb enc h is the
+rst to ol for mo dal I/O automata whic h includes a full set of renemen t, com-
+patibilit y , and comp osition notions as w ell as a (graphical) MIO editor.
+P erhaps the closest related to ol is MTSA [7], whic h includes a (text-based)
+editor and implemen tations of renemen t as w ell as comp osition of mo dal au-
+tomata. As the MIO W orkb enc h is based on mo dal input/output automata as
+rst class citizens, it diers b y including compatibilit y v erication based on I/O
+information; furthermore, it includes a graphical editor and a side-b y-side graph-
+ical result view. There are also to ols for I/O automata (i.e. without mo dalit y), for
+example the command-line based IO A to olset [9] for plain I/O automata or the
+Eclipse-based T emp o T o olkit [14] whic h deals with timed I/O automata; ho w-
+ev er, none of those considers b oth mo dalit y and comm unication asp ects a v ailable
+in MIOs.
+6 Conclusion
+In this pap er, w e ha v e presen ted an o v erview of mo dal I/O automata and v arious
+notions of mo dal renemen t and compatibilit y . W e ha v e motiv ated the need for
+a new compatibilit y notion called we ak mo dal c omp atibility , whic h allo ws the
+passing of in ternal actions. W e ha v e sho wn this compatibilit y notion to hold
+under w eak mo dal renemen t, and w e ha v e giv en an o v erview of the relationships
+b et w een mo dal renemen ts and compatibilit y notions in tro duced in this pap er.
+On the practical side, w e ha v e presen ted a v erication to ol and graphical
+editor for mo dal I/O automata called the MIO W orkb enc h, whic h implemen ts
+v arious renemen t and compatibilit y notions based on MIOs. W e b eliev e that
+to ol supp ort is of great help for discussing mo dal I/O automata and ma y serv e
+in researc h, teac hing, and as a protot yp e for industrial applications. The MIO
+W orkb enc h can b e freely do wnloaded from www.mio wb.net.
+As future w ork, w e plan to extend our notions of compatibilit y to new use
+cases iden tied from practical service sp ecications and from distributed sys-
+tems with async hronous comm unication. It also lo oks in teresting to in v estigate
+compatibilit y in the con text of a new seman tics for MTSs in tro duced recen tly in
+[8].
+A c kno wledgemen ts. W e w ould lik e to thank Alexander Knapp who has p oin ted
+out the need for a more exible compatibilit y relation b et w een in terface sp ec-
+ications. This researc h has b een partially supp orted b y the GLO W A-Dan ub e
+pro ject 01L W0602A2 sp onsored b y the German F ederal Ministry of Education
+and Researc h, the EC pro ject Sensoria , IST-2005-016004, and the EC pro ject
+REFLECT, IST-2007-215893.
+References
+1. Sebastian S. Bauer, Philip Ma y er, Andreas Sc hro eder, and Rolf Hennic k er. On
+w eak mo dal compatibilit y , renemen t, and the MIO W orkb enc h. T ec hnical Rep ort
+
+--- Page 15 ---
+1001, Institut für Informatik, Ludwig-Maximilians-Univ ersität Münc hen, Jan uary
+2010.
+2. Arindam Chakrabarti, Luca de Alfaro, Thomas A. Henzinger, and Mariëlle
+Sto elinga. Resource in terfaces. In Ra jeev Alur and Insup Lee, editors, EMSOFT ,
+v olume 2855 of LNCS , pages 117133. Springer, 2003.
+3. Edm und M. Clark e, Natasha Sharygina, and Nishan t Sinha. Program compati-
+bilit y approac hes. In F rank S. de Bo er, Marcello M. Bonsangue, Susanne Graf,
+and Willem P . de Ro ev er, editors, FMCO , v olume 4111 of LNCS , pages 243258.
+Springer, 2005.
+4. Luca de Alfaro and Thomas A. Henzinger. In terface theories for comp onen t-based
+design. In Thomas A. Henzinger and Christoph M. Kirsc h, editors, EMSOFT ,
+v olume 2211 of LNCS , pages 148165. Springer, 2001.
+5. Luca de Alfaro and Thomas A. Henzinger. In terface-based Design. In Manfred
+Bro y , Johannes Grün bauer, Da vid Harel, and C. A. R. Hoare, editors, Engine er-
+ing The ories of Softwar e-intensive Systems , v olume 195 of NA TO Scienc e Series:
+Mathematics, Physics, and Chemistry , pages 83104. Springer, 2005.
+6. Luca de Alfaro, Thomas A. Henzinger, and Mariëlle Sto elinga. Timed in terfaces. In
+Alb erto L. Sangio v anni-Vincen telli and Joseph Sifakis, editors, EMSOFT , v olume
+2491 of LNCS , pages 108122. Springer, 2002.
+7. Nicolás D'Ipp olito, Dario Fisc h b ein, Ho w ard F oster, and Sebastián Uc hitel. MTSA:
+Eclipse supp ort for mo dal transition systems construction, analysis and elab ora-
+tion. In Li-T e Cheng, Alessandro Orso, and Martin P . Robillard, editors, ETX ,
+pages 610. A CM, 2007.
+8. Dario Fisc h b ein, Víctor A. Brab erman, and Sebastián Uc hitel. A sound obser-
+v ational seman tics for mo dal transition systems. In Martin Leuc k er and Carroll
+Morgan, editors, ICT A C , v olume 5684 of LNCS , pages 215230. Springer, 2009.
+9. Stephen J. Garland and Nancy Lync h. Using I/O automata for dev eloping dis-
+tributed systems. In Gary T. L e avens and Mur ali Sitar aman, e ditors, F oundations
+of Comp onent-Base d Systems , pages 285312. Cam bridge Univ ersit y Press, 2000.
+10. Hans Hüttel and Kim Guldstrand Larsen. The use of static constructs in a mo dal
+pro cess logic. In Alb ert R. Mey er and Mic hael A. T aitslin, editors, L o gic at Botik ,
+v olume 363 of LNCS , pages 163180. Springer, 1989.
+11. Kim Guldstrand Larsen, Ulrik Nyman, and Andrzej W aso wski. Mo dal I/O au-
+tomata for in terface and pro duct line theories. In Ro cco De Nicola, editor, ESOP ,
+v olume 4421 of LNCS , pages 6479. Springer, 2007.
+12. Kim Guldstrand Larsen, Ulrik Nyman, and Andrzej W aso wski. On mo dal rene-
+men t and consistency . In Luís Caires and V asco Th udic h um V asconcelos, editors,
+CONCUR , v olume 4703 of LNCS , pages 105119. Springer, 2007.
+13. Kim Guldstrand Larsen and Ben t Thomsen. A mo dal pro cess logic. In LICS , pages
+203210. IEEE Computer So ciet y , 1988.
+14. Nancy Lync h, Lauren t Mic hel, and Alexander Sh v artsman. T emp o: A to olkit for
+the timed input/output automata formalism. In SIMUT o ols , 2008. Industrial
+T rac k: Sim ulation W orks. Conference Pro c. CD, pap er 3105, 8 pages, Marseille,
+F rance.
+15. Nancy A. Lync h and Mark R. T uttle. Hierarc hical correctness pro ofs for distributed
+algorithms. In PODC , pages 137151, 1987.
+16. Nancy A. Lync h and Mark R. T uttle. An in tro duction to input/output automata.
+CWI Quarterly , 2:219246, 1989.
+17. Robin Milner. Communic ation and Concurr ency . Pren tice Hall (In ternational
+Series in Computer Science), 1989.

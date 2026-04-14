@@ -1,0 +1,811 @@
+--- Page 1 ---
+Chapter1
+Timed ControllerSynthesis:
+AnIndustrialCaseStudy
+Franck Cassez, Kim Larsen, Jean-Franc ¸oisRaskin, and Pier re-AlainReynier
+1.1 Introduction
+Thedesignofcontrollersforembeddedsystemsisadifﬁcult engineeringtask.Con-
+trollershavetoenforcepropertieslikesafetyproperties (e.g.“nothingbadwillhap-
+pen”), or reachability properties (e.g. “something good wi ll happen”), and ideally
+they should do that in an efﬁcient way, e.g. consume the least possible amount of
+energy. The foundations of automatic synthesis of discrete and timed controllers
+have been presented in the preceding chapter 1. In this chapt er, we illustrate the
+application of these approaches with an industrial case stu dy provided by the H Y-
+DACELECTRONIC GMBH companyinthecontextoftheEuropeanresearchproject
+Quasimodo [7]. We present in the sequel how to use (in a system atic way) the tool
+UPPAAL-TIGA [1] (see chapter 1 for an introduction to the tool) for the s ynthesis,
+together with tools for the veriﬁcation and the simulation o f a provable correct and
+near optimal controller forreal industrial applications.
+Pum p
+ReservoirAccu mulator
+Mac hine /ConsumerVma x
+Vmin+2.2 litres/second
+Fig.1.1Overview of thesystem.
+The system tobe controlled isdepicted inFig. 1.1 and iscomp osed of:
+1
+
+--- Page 2 ---
+2 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre-A lainReynier
+1. amachine which consumes oil,
+2. areservoir containing oil,
+3. an accumulator containing oil and a ﬁxed amount of gas in or der to put the oil
+under pressure, and
+4. apump.
+When the system is operating, the machine consumes oil under p ressure out of the
+accumulator. The level of the oil, and so the pressure within the accumulator (the
+amount of gas being constant), can be controlled using the pu mp to introduce addi-
+tional oil in the accumulator (increasing the gas pressure) . The control objective is
+twofold: ﬁrst the level of oil into the accumulator (and so th e gas pressure) which
+is controlled using the pump must be maintained within a safe interval; second the
+controller should try to minimize the level of oil such that t he accumulated energy
+in the system is kept minimal (a lower level of oil, and thus a l ower gas pressure,
+reduces the wear on the pump and minimizes energy consumptio n). The maximum
+output rate of the pump is 2.2litre/sec, whereas the maximum rate of the consumer
+is 2.5litre/sec: proper operation of the pump should thus an ticipate the maximum
+rateofthemachineandpumpoilininadvancetoensurethatth epressurestayswith
+thegiven bounds.
+To solve the H YDACELECTRONIC GMBH control problem, we use three com-
+plementarytoolsforthreedifferentpurposes:U PPAAL-TIGAforsynthesis,thetool
+PHAVER[5, 4] for veriﬁcation, and S IMULINK [8] for simulation. In this chapter,
+we are mainly interested in the synthesis step. For this phas e, we show how to con-
+structa(game) model ofthis case studywhich has the followi ng properties:
+•itissimpleenoughtobesolvedautomaticallyusingalgorit hmicmethodsimple-
+mented into U PPAAL-TIGA;
+•it ensures that the synthesized controllers can be easily im plemented, because it
+isrobust.
+Tomeetthosetworequirements,weconsideranidealizedver sionoftheenviron-
+mentinwhichthecontrollerisembedded,butweputaddition alconstraintsintothe
+winning objective of the controller that ensure the robustn ess of winning strategies.
+As the winning strategies are computed on a simpliﬁed model o f the system, we
+show how to embed automatically the synthesized strategies into a more detailed
+model of the environment, and how to automatically prove the ir correctness using
+thetool PHAV ER[5,4]foranalyzinghybridsystems.Whiletheveriﬁcationmo del
+allows us to establish correctness of the controller that is obtained automatically
+using U PPAAL-TIGA, it does not allow us to learn its expected performance in a n
+environment where noise is not completely antagonist but fo llows some probabilis-
+ticrules.Forthiskindofanalysis,weconsiderathirdmode loftheenvironmentand
+weanalyze theperformance of our synthesized controller us ing SIMULINK .
+To show the advantages of our approach, we compare the perfor mances of the
+controller we have automatically synthesized with two othe r control strategies. The
+ﬁrstcontrolstrategyisasimpletwo-pointcontrolstrateg ywherethepumpisturned
+on when the volume of oil reaches a ﬂoor value and turned off wh en the volume of
+
+--- Page 3 ---
+1TimedController Synthesis: An Industrial Case Study 3
+oilreachesaceilingvalue.Thesecondcontrolstrategyisa strategydesignedbythe
+engineers at H YDACELECTRONIC GMBH withthe help of S IMULINK .
+Structureof thechapter
+Insection1.2,wepresentinmoredetailsthe H YDACELECTRONIC GMBH control
+problem. In section 1.3, we present our construction of a sui table abstract model
+of the system, and the strategy we have obtained using the syn thesis algorithm of
+UPPAAL-TIGA. In section 1.4, we embed the controllers into a continuou s hybrid
+model of the environment and use the tool PHAV ERto verify their correctness
+and robustness: we prove that strategies obtained using U PPAAL-TIGA are indeed
+correctandrobust.Insection1.5,weanalyzeandcompareth eperformancesinterm
+of mean volume ofthe threecontrollers using S IMULINK .
+1.2 TheOil PumpControlProblem
+In this section, we describe the components of the H YDACELECTRONIC GMBH
+case study and describe the different constraints they must satisfy. In addition, we
+provideaﬁrstmodelofthesecomponents,usinghybridautom atanotations.Though
+wewillnotusethesemodelsinthesequeltosynthesizecontr ollers(synthesisonreal
+hybrid systems is very costly and beyond the scope of any tool ), they offer a very
+precise speciﬁcation of the system. Then we explain the cont rol objectives for the
+system todesign.
+1.2.1 TheMachine
+Theoilconsumptionofthemachineiscyclic.Onecycleofcon sumption,asgivenby
+HYDACELECTRONIC GMBH, is depicted in Fig. 1.5. Each period of consumption
+is characterized by a rate of consumption mr(expressed as a number of litres per
+second), a time of beginning, and a duration. We assume that t he cycle is known
+a priori: we do not consider the problem of identifying the cycle (whi ch can be
+performed as a pre-processing step). At time 2, the rate of th e machine goes to
+1.2l/sfor two seconds. From 8 to 10 it is 1 .2 again and from 10 to 12 it goes up to
+2.5(whichismorethanthemaximaloutputofthepump).From14t o16itis1 .7and
+from16to18itis0 .5.Eveniftheconsumptioniscyclicandknowninadvance,the
+rateissubjectto noise:ifthemeanconsumptionforaperiodis cl/s(withc>0),in
+reality it always lies within that period in the interval [c−ε,c+ε],whereεis ﬁxed
+to0.1l/s. This property isnoted F.
+
+--- Page 4 ---
+4 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre-A lainReynier
+Fig.1.2The Machine Fig.1.3The Accumulator
+Fig.1.4Model of thepump Fig.1.5Model of thescheduler
+To model the machine, we use a timed automaton with 2 variable s. The discrete
+variablemrmodels the consumption rate of the machine, and the clock var iablet
+is used to measure time within a cycle. The variable mris shared with the model
+of the accumulator. The timed automaton is given in Fig. 1.2. The noise on the rate
+of consumption is modeled in the model for the accumulator (s ee Fig. 1.3). We
+indicate for each location of the timed automaton its invari ant in square brackets.
+For instance, one can stay in location i1as long as the value of the clock tis less
+than or equal to2.
+1.2.2 ThePump
+The pump is either OnorOff, and we assume it is initially Off. The operation of
+the pump must respect the following latencyconstraint: there must always be two
+secondsbetweenanychangeofstateofthepump,i.e.ifitist urnedOn(respectively
+Off) at timet, it must stay On(respectively Off) at least until time t+2: we note P1
+thisproperty.Whenitis On,itsoutputisequalto2 .2l/s.Wemodelthepumpwitha
+two-statetimedautomatongiveninFig.1.4withtwovariabl es.Thediscretevariable
+prmodels the pumping rate of oil of the pump, and is shared with t he accumulator.
+The clock zensures that 2t.u. have elapsed between twoswitches.
+
+--- Page 5 ---
+1TimedController Synthesis: An Industrial Case Study 5
+1.2.3 TheAccumulator.
+To model the behavior of the accumulator, we use a one-state h ybrid automaton
+given in Fig. 1.3 that uses four variables. The variable vmodels the volume of oil
+within the accumulator, its evolution depends on the value o f the variables mr(the
+rateofconsumptiondependingofthemachine)and pr(therateofincomingoilfrom
+thepump).Tomodeltheimprecisionontherateoftheconsump tionofthemachine,
+the dynamics of the volume also depends on the parameter εand is naturally given
+bythedifferentialinclusion dv/dt∈[pr−m−
+r(ε),pr−m+
+r(ε)]withm⊲⊳
+r(x)=mr⊲⊳x
+ifmr>0andmrotherwise.Thevariable Vaccmodelstheaccumulatedvolumeofoil
+along time in the accumulator. It is initially equal to 0 and i ts dynamic is naturally
+deﬁned by the equation dVacc/dt=v.
+1.2.4 TheControlProblem
+The controller must operate the pump (switch it onandoff, respecting the latency
+constraint) toensure thetwomain requirements:
+•(R1):thelevelofoil v(t)attimet(measuredinlitres)intotheaccumulatormust
+always stay within two safetybounds[Vmin;Vmax], in the sequel Vmin=4.9land
+Vmax=25.1l;
+•(R2):alargeamountofoilintheaccumulatorimpliesahighpress ureofgasinthe
+accumulator.Thisrequiresmoreenergyfromthepumptoﬁlli ntheaccumulator
+and also speeds up the wear of the machine. This is why the leve l of oil should
+be kept minimal during operation, in the sense that/integraltextt=T
+t=0v(t)dt, that isVacc(T),
+isminimal foragiven operation period T.
+While(R1)is asafety requirement and so must never be violated by any controller,
+(R2)isanoptimality requirement and willbe used tocompare different controlle rs.
+Note that as the power of the pump is not always larger than the demand of
+the machine during one period of consumption (see Fig. 1.5 be tween 10 and 12),
+some extra amount of oil must be present in the accumulator be fore that period of
+consumption to ensure that the amount of oil stays above Vmin(requirement R1) is
+not violated1.
+1.2.5 Additional Requirements onthe Controller
+When designing a controller, we must decide what are the possi ble actions that the
+controller can take. Here are someconsiderations about tha t. First,as theconsump-
+tionsofthemachinemaydeviateslightlyfromtheidealvalu es(thisiscalled noise),
+1It might be too late to switch the pump on when the volume reaches Vminand so the controller
+mayhave toanticipate.
+
+--- Page 6 ---
+6 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre-A lainReynier
+it is necessary to allow the controller to check periodicall y the level of oil in the
+accumulator (as it is not predictable in the long run). Secon d, as the consumption
+of the machine has a cyclic behavior, the controller should u se this information to
+optimize the level of oil. So, it is natural to allow the contr oller to take control de-
+cisions at predeﬁned instants during the cycle. Finally, we want a robust solution in
+thesensethatifthecontrollerhastoturnthepump on(oroff)attimet,itcandoita
+littlebeforeorafter,thatisattime t±Δforasmall Δwithoutimpairingsafety.This
+robustness requirement will be taken into account in the syn thesis and veriﬁcation
+phases described later.
+1.2.6 Twoexistingsolutions
+In the next sections, we will show how to use synthesis algori thms implemented
+in UPPAAL-TIGA to obtain a simple but still efﬁcient controller for the oi l pump.
+This controller will be compared to two other solutions that have been previously
+considered by the H YDACELECTRONIC GMBH company.
+Theﬁrstoneiscalledthe Bang-Bangcontroller .Usingthesensorforoilvolume
+in the accumulator, the Bang-Bang controller turns onthe pump when a ﬂoorvol-
+ume value V1is reached and turns offthe pump when a ceilingvolume value V2is
+reached.TheBang-Bangcontrolleristhusasimpletwo-poin tcontroller,butitdoes
+not exploit thetiminginformation about the consumption pe riods withinacycle.
+To obtain better performances in term of energy consumption , engineers at H Y-
+DACELECTRONIC GMBH have designed a controller that exploit this timing. This
+second controller is called the Smart controller and works as follows [6]: in the
+ﬁrst cycle the Bang-Bang controller is used and the pressure p(t)is measured, the
+correspondingvolume v(t)iscomputedandrecordedevery10ms.Accordingtothe
+sampled values v(t)computed in the initial cycle, an optimization procedure co m-
+putes the points at which to start/stop the pump on the next cy cle (this optimization
+procedure was given to us in the form of a C code executable int o SIMULINK ; un-
+fortunately we do not have a mathematical speciﬁcation of it ). On this next cycle
+the values p(t)are again recorded every 10ms which is the basis for the compu ta-
+tionofthestart/stopcommandsforthenextcycleandsoon.I fthepressureleavesa
+predeﬁnedsafetyinterval,theBang-Bangcontrollerislau nchedagain.Thoughsim-
+ulations of S IMULINK models developed by H YDACELECTRONIC GMBH reveal
+no unsafe behaviour, the engineers have not been able to veri fy neither its correct-
+ness nor its robustness. As we will see later, this strategy ( we use the switching
+points in time obtained with S IMULINK when the C code is run) is not safe in the
+long runinpresence of noise.
+
+--- Page 7 ---
+1TimedController Synthesis: An Industrial Case Study 7
+1.3 The U PPAAL-TIGA Modelfor Controller Synthesis
+The hybrid automaton model presented in the previous sectio n can be interpreted
+as a game in which the controller only supervises the pump. In this section, we
+show how to automatically synthesize, from a game model of th e system and using
+UPPAAL-TIGA, an efﬁcient controller for the Hydac case study. U PPAAL-TIGA
+is a recent extension of the tool U PPAALwhich is able to solve timed games (see
+chapter 1 forapresentation of thetool).
+1.3.1 Game Models ofControl Problems
+While modeling control problems with games is very naturalandappealing , we
+must keep in mind several important aspects. First, solving timed games is com-
+putationally hard, so we should aim at game models that are su fﬁciently abstract.
+Second,whenmodelingasystemwithagamemodel,wemustalso becarefulabout
+the information that is available to each player in the model . The current version
+of UPPAAL-TIGA offers games of perfect information (see [3] for steps towards
+games for imperfect information into U PPAAL-TIGA.) In games of perfect infor-
+mation,thetwoplayershaveaccesstothefulldescriptiono fthestateofthesystem.
+For simple objectives like safety or reachability, the stra tegies of the players are
+functions from states to actions. To follow such strategies , the implementation of
+the controller must have access to the information containe d in the states of the
+model. Inpractice, this informationis acquired usingsens ors,timers,etc.
+1.3.2 The UPPAAL-TIGAModel
+We describe in the next paragraphs how we have obtained our ga me model for the
+hybrid automaton of the H YDACELECTRONIC GMBH case study. First, to keep
+the game model simple enough and to remain in a decidable fram ework2, we have
+designed a model which: (a) considers one cycle of consumpti on; (b) uses an ab-
+stract model of the ﬂuctuations of the rate; (c) uses a discre tization of the dynamics
+withinthesystem.Notethatsincethediscretizationimpac tsboththecontrollerand
+the environment, it is neither an over- nor an under-approxi mation of the hybrid
+game model and thus we can not deduce directly the correctnes s of our controllers.
+However, our methodology includes a veriﬁcation step based on PHAV ERwhich
+allowsustoprovethiscorrectness.Second,tomakesuretha tthewinningstrategies
+thatwillbecomputedbyU PPAAL-TIGAareimplementable,thestatesofourgame
+2The existence of winning strategies for enriched timed games wit h extra cost variables in unde-
+cidable,see[2].
+
+--- Page 8 ---
+8 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre-A lainReynier
+done=truey==2*D y==4*D
+V_rate−=17 V_rate+=5 V_rate+=12V_rate+=25
+y==18*D y==16*D y==20*Dy==8*D y==10*D
+y==14*Dy==12*Dy<2*D
+V_rate−=13 V_rate+=12 V_rate−=12 V_rate−=12
+y<=8*D y<=10*D y<=12*D
+y==20*D && final_Noise()y<=4*D y<=2*D
+Noise(6*D)
+DONEy<=20*Dbad
+y<=14*D y<=16*D y<=20*D y<=18*Dy<4*D
+y<20*D y <18*DNoise(time−2*D) Noise(time−D*6) Noise(time−D*6)y<10*D y<8*D
+y<16*Dy<12*D
+y<14*DNoise(2*D)
+Noise(time−D*8) Noise(time−D*8) Noise(10*D)
+Fig.1.6Model of thecyclicconsumption of themachine
+OFF ONz<2*D || i>=N
+update_pump?z<2*D || i>=N
+update_pump?
+z>=2*Dupdate_pump?
+V_rate-=pump_rate,z=0,
+stop[i]=time,i++z>=2*D && i<N
+update_pump?V_rate+=pump_rate,z=0,
+start[i]=time update_val()
+update_pump!V=D*V0
+t=0t==1
+update_cy!
+t<=0t<=1END
+INITt==1 && not done
+t==1t<=1
+t==0t==0 
+&& done
+t<=1
+Fig.1.7Model of thepump Fig.1.8Model of thescheduler
+model only contain the following information, which can be m ade available to an
+implementation:
+•thevolumeofoilatthebeginningofthecycle;wethusonlyme asuretheoilonce
+per cycle, leading tomoresimplecontrollers.
+•the ideal volume as predicted by theconsumption period inth ecycle;
+•the current timewithinthe cycle;
+•the stateof the pump ( onoroff).
+Third, to ensure robustness of our strategies, i.e.that their implementations are cor-
+rect under imprecision on measures of volume or time, we cons ider some margin
+parameter mwhich roughly represents how much the volume can deviate bec ause
+of these imprecision in the measure. We will consider values in range[0.1;0.4]litre
+formeasurement imprecision.
+
+--- Page 9 ---
+1TimedController Synthesis: An Industrial Case Study 9
+Global Variables
+First, we discretize the time w.r.t. ratio stored in variabl eD, such that Dtime units
+representonesecond.Second,werepresentthecurrentvolu meofoilbythevariable
+V. We consider a precision of 0 .1land thus multiply the value of the volume by 10
+to use integers. This volume evolves according to a rate stor ed in variable Vrate
+and the accumulated volume is stored in the variable Vacc3. Finally, we also use
+an integer variable timewhich measures the global time since the beginning of the
+cycle.
+The Model of theMachine
+ThemodelforthebehaviourofthemachineisrepresentedonF ig.1.6.Notethatall
+the transitions are uncontrollable (represented by dashed arrows). The construction
+of the nodes (except the middle one labelled bad) follows easily from the cyclic
+deﬁnitionoftheconsumptionofthemachine.Whenatimeatwhi chtherateofcon-
+sumption changes is reached, we simply update the value of th e variable Vrate.
+Theadditionalcentralnodecalled badisusedtomodeltheuncertaintyonthevalue
+ofVdue to the ﬂuctuations of the consumption of the machine. Thi s noise is not
+related with the parameter mintroduced previously as it concerns some possible
+ﬂuctuations in the consumption rate of the machine around it s nominal rate. The
+functionNoise(Fig. 1.9) checks whether the value of V, if modiﬁed by these ﬂuc-
+tuations in the consumption rate of the machine, may be outsi de the safe interval
+[Vmin+0.1,Vmax−0.1]4. The function ﬁnalNoise(Fig. 1.9) checks the same but
+for the volume obtained at the end of cycle and against the int erval represented by
+V1FandV2F. Note that this modelling allows in some sense to perform par tial
+observation using a tool for games of perfect information. I ndeed, the natural mod-
+ellingwouldmodifyateachsteptheactualvalueofthevaria bleVandthestrategies
+would then be aware of the amount of ﬂuctuations. In our model the ideal value of
+Vis predictable because it directly depends on the current ti me and from the point
+of view ofthe controller it does not give any information abo ut the ﬂuctuation.
+The Model of thePump
+The model for the pump is represented on Fig. 1.7 and is very si milar to the timed
+automaton given on Fig. 1.4. Note that the transitions are al l controllable (plain
+arrows) and that we impose a bit more than P1as we require that 2 seconds have
+elapsed at the beginning of the cycle before switching on the pump. Moreover, an
+additional integer variable iis used to count how many times the pump has been
+started on. We use parameter Nto bound this number of activations, which is set to
+3Toavoid integersdivisions, wemultiplyallthese values by D.
+4For robustness, werestrainsafetyconstraintsto m=0.1l.
+
+--- Page 10 ---
+10 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre- AlainReynier
+2 in the following. Note also that the time points of activati on/deactivation of the
+pump are storedintwovectors startandstop.
+bool Noise(int s){
+// s is the number of t.u. of consumption
+return (V-s<(Vmin+1) *D|V+s>(Vmax-1) *D);}
+bool final_Noise(){
+// 20 *D t.u. of consumption in 1 cycle
+return (V-20 *D<V1F *D|V+20 *D>V2F *D);}
+void update_val(){
+int V_pred = V;
+time++;
+V+=V_rate;
+V_acc+=V+V_pred;
+}
+Fig.1.9Functions embedded inUppAal Tigamodels
+The Model of theScheduler
+We use a third automaton represented on Fig. 1.8 to schedule t he composition. Ini-
+tially it sets the value of the volume to V0and then it repeats the following ac-
+tions: it ﬁrst updates the global variables V,Vaccandtimethrough function up-
+dateval. Then the scheduling is performed using the two channels updatecy5
+andupdatepump.Whentheendofthecycleofthemachineisreached,thecorre-
+spondingautomatonsetstheBooleanvariable donetotrue,whichforcesthesched-
+uler togo tolocation END.
+Composition
+We denote by Athe automaton obtained by the composition of the three autom ata
+described above. We consider as parameters the initial valu e of the volume, say V0,
+and the target interval I2, corresponding to V1FandV2F, and write A(V0,I2)the
+composed system.
+1.3.3 Global Approach for Synthesis
+Evenifthegamemodelthatweconsiderisabstractandrestri ctedtoonecycle,note
+that our modelling enforces the constraints expressed in se ction 1.2. Indeed, R1is
+5We didnot represent thissynchronization on Fig. 1.6 to easethe reading.
+
+--- Page 11 ---
+1TimedController Synthesis: An Industrial Case Study 11
+enforcedthroughfunction Noise,Fishandledthroughthetwofunctions Noiseand
+ﬁnalNoise,andP1isexpressedexplicitlyinthemodelofthepump.Toextendou r
+analysis from one cycle to any number of cycles, and to optimi ze objective R2, we
+formulatethe following control objective (forsome ﬁxed ma rginm∈Q>0) :
+Property(∗):Find some interval I1=[V1,V2]⊆[4.9;25.1]such that
+(i)I1ism-stable: from all initial volume V0∈I1, there exists a strategy for the
+controller to ensure that, whatever the ﬂuctuations on the c onsumption, the
+value of the volume is always between 5 land 25land the volume at the end
+of thecycle iswithininterval I2=[V1+m,V2−m],
+(ii)I1isoptimalamongm-stable intervals: the supremum, over V0∈I1and over
+the strategies satisfying (i),ofthe accumulated volume is minimal.
+The strategies that fulﬁll that control objective have a nic einductive property : as
+the value of the volume of oil at the end of the cycle is ensured to be within I2,
+andI2⊂I1ifm>0, the strategies computed on our one cycle model can be safel y
+repeated as many times as desired. Moreover, the choice of th e margin parameter
+mwill be done so as to ensure robustness. We will verify in PHAV ERthat even in
+presence of imprecision, the ﬁnal volume, if it does not belo ng toI2, belongs to I1:
+this is the reason why we ﬁx a strict-subinterval of I1as a target in the synthesis
+phase.
+We now describe a procedure to compute an interval verifying Property(∗), and
+theassociated strategies.We proceed as follows6:
+1. Foreach V0∈[4.9;25.1],andtargetﬁnalinterval J⊆[4.9;25.1],compute(bya
+binarysearch)theminimalaccumulatedvolume Score(V0,J)thatcanbeguar-
+anteed. This value Score(V0,J)is
+min{K∈N|A(V0,J)|=control: A<> Sched.END and V acc<=K}
+2. Compute aninterval I1⊆[4.9;25.1]such that, for I2=[V1+m,V2−m]:
+a.∀V0∈I1,A(V0,I2)|=control: A<> Sched.END
+b. thevalue Score(I1)=max{Score(V0,I2)|V0∈I1}isminimal.
+3. For each V0∈I1, compute a control strategy S(V0)for the control objective
+A<> Sched.END and V acc<=K withKset toScore(V0,I2). This strat-
+egy is deﬁned by four dates of start/stop of the pump7and, by deﬁnition of
+Score(V0,I2),minimizes theaccumulated volume.
+Itisworthnoticingthatthevalue Scoreiscomputedusingthevariable Vaccwhich
+isdeducedfromintermediaryvaluesofvariable V.SinceVcorrespondstothevalue
+of the volume with no noise, Vaccrepresents the mean value of the accumulated
+volume for agiven execution.
+6Control objectives are formulated as “ control: P ” following U PPAAL-TIGA syntax, where Pis
+a TCTLformula specifying eitherasafetyproperty A[]φor alivenessproperty A<>φ.
+7It iseasy toobtainthese timesusing thevectors startandstopof thepump.
+
+--- Page 12 ---
+12 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre- AlainReynier
+Fig. 1.10 For a margin pa-
+rameterm=0.4land a gran-
+ularity of 1 ( D=1in the
+UPPAAL-TIGA model), we
+obtain as optimal stable inter-
+val the interval I1=[5.1,10].
+The corresponding optimal
+strategies are represented
+opposite.5
+0
+time(s)initial volume (l)
+5 10 15678910
+Results.
+For a margin m=0.4land a granularity of 1 ( D=1in the U PPAAL-TIGA model),
+we obtain as optimal stable interval the interval I1= [5.1,10]. The corresponding
+optimal strategies are represented on Fig. 1.10. For each va lue of the initial volume
+intheinterval I1,thecorrespondingperiodofactivationofthepumpisrepre sented.
+We have represented volumes which share the same strategy in the same color. For
+the 50 initial possible values of volume, we obtain 10 differ ent strategies (ﬁrst row
+ofTable1.1).Theoverallstrategywesynthesizethusmeasu resthevolumejustonce
+atthebeginningofeachcycleandplaysthecorresponding“l ocalstrategy”untilthe
+beginning of next cycle.
+Gran.Margin Stableinterval Nb of strategies Mean volume
+14 [5.1,10] 10 8.45
+13[5.1,9.8] 10 8.35
+12[5.1,9.6] 9 8.25
+11[5.1,9.4] 9 8.2
+24[5.1,8.9] 14 8.05
+23[5.1,8.7] 14 7.95
+22[5.1,8.5] 11 7.95
+21[5.1,8.3] 11 7.95
+Table1.1 Maincharacteristicsof thestrategiessynthesized with U PPAAL-TIGA.
+Table1.1representstheresultsobtainedfordifferentgra nularitiesandmargins.It
+givestheoptimalstableinterval Ithatiscomputed,(notethatitissmallerifweallow
+asmallermarginoraﬁnergranularity),thenumberofdiffer entlocalstrategies,and
+the value of worst case mean volume which is obtained as Score(I)/20. These
+strategies areevaluated insections 1.4and 1.5.
+
+--- Page 13 ---
+1TimedController Synthesis: An Industrial Case Study 13
+1.4 CheckingCorrectnessand Robustnessof Controllers
+In this section, we address the veriﬁcation of the correctne ss and robustness of the
+three solutions mentioned in the previous sections. To anal yze the correctness and
+therobustnessofthethreecontrollers,weusethetool PHAV ER[4,5]foranalysing
+hybrid systems. Robustness is checked according to the type of controller we use:
+for the Bang-Bang controller, it amounts to saying that the v olume cannot be mea-
+suredaccuratelyandalsothattherateﬂuctuates( ±0.1l/s);fortheSmartcontroller,
+robustnessagainstrateﬂuctuationcannotbecheckedbecau sewedonothaveapre-
+cise mathematical model of the algorithm designed by the H YDACELECTRONIC
+GMBH engineers; foroursynthesizedcontroller,wetakeintoac count therateﬂuc-
+tuation, the imprecision on the measure of the volume and the imprecision on the
+measure of time.
+PHAVERallowsustoconsiderarichcontinuoustimemodelofthesyst emwhere
+we can take into account the ﬂuctuations of consumption of th e machine as well as
+adequatemodelsofimprecisioninherenttoanyrealimpleme ntation.The PHAV ER
+modelsofthecontrollersaregivenbelowandtheothermodel softhecycleandma-
+chine are the timed automata of Fig. 1.7 and Fig. 1.6. Our mode ls take into account
+the ﬂuctuations in the consumption rate of the machine as wel l the imprecision on
+themeasure of the volume. Wenow review the resultsfor theth ree controllers.
+1.4.1 TheBang-Bangcontroller
+The PHAV ERcodeoftheBang-BangcontrollerisgiveninFig.1.11.Thisa utoma-
+ton turns onthe pump when a ﬂoor volume value is reached and turns offthe pump
+when aceiling value isreached.
+Toensurerobustness(andimplementability)ofthiscontro lstrategy,weintroduce
+imprecisioninthemeasureoftheoilvolume:whenthevolume isreaditmaydiffer
+by at most ε=0.06lfrom the actual value (precision of the sensor). Tuning this
+controller amounts to choosing the tightest values for the ﬂ oor and ceiling values
+at which the controller switches the pump (from ontooffor the other way). In our
+experiment we found that 5 .76 and 25 .04 are thebest margins we can expect.
+With this PHAV ERmodel and the previous margins8, we are able to show that:
+(1) this control strategy enforces the safety requirement R1, i.e. the volume of oil
+stays within the bounds [4.9;25.1]; (2) the set of reachable states for initial volume
+equal to 10 lcan be computed and it is depicted in Fig. 1.12; this means tha t this
+controlledsystemis“cyclic”fromtheendoftheﬁrstcycleo n,andthesameinterval
+[10.16;14](forthevolume)repeatseveryothercycle.Itisthuspossib letocompute
+(withPHAV ER)theintervaloftheaccumulatedvolumeoverthetwocycles: forthis
+controller, theupper bound is307 and the mean volume is307 /20=15.35.
+8And another suitablepiece of PHAV ERprogram to perform theneeded computations.
+
+--- Page 14 ---
+14 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre- AlainReynier
+1:// ——————————————————–
+// bang bang Controller automaton
+3:// this controller starts in on oroff and then
+// switch on oroff when abound isreached
+5:// ——————————————————–
+7:eps1:=0.06; //imprecision on the volume measure
+margin_min:=0.86; // best wecan do
+9:margin_max:=0.06; // best wecan do
+11:automaton controller
+input_var: v; // v isgiven by the cycle+tank automaton
+13:
+synclabs : switch_on , switch_off ; // synchronized with the cycle+tank
+15:
+locon:while v <= VMAX - margin_max + eps1 wait{true}
+17:when v>=VMAX-margin_max-eps1 sync switch_off do{true} gotooff;
+19:locoff:while v>=VMIN+margin_min - eps1 wait{true}
+when v<=VMIN+margin_min+eps1 sync switch_on do{true} gotoon;
+21:
+initially : off & true ; //values for nonoise
+23:end
+Fig.1.11 Bang-Bang controller in PHAV ER
+0 5 10 15 20510152025
+Time  (secon d)Volume (litre)
+Fig.1.12 CyclicBehavior of theBang-Bang controllerwith Noise
+1.4.2 TheSmartController
+The Smart Controller designed by H YDACELECTRONIC GMBH is speciﬁed by
+a 400 line C program and computes the start/stop timestamps f or the next cycle
+according to what was observed in the previous cycle (see end of section 1.2). This
+controllerrequirestosampletheplantevery10msinordert ocomputethestrategyto
+applyinthenextcycle:althoughitistheoreticallypossib letospecifythiscontroller
+in PHAV ER, this would require at least 100 ×20 discrete locations to store the
+sampled data in the previous cycle. It is thus not realistic t o do this as PHAV ER
+would not be able to complete an analysis of this model in a rea sonable amount of
+time.
+
+--- Page 15 ---
+1TimedController Synthesis: An Industrial Case Study 15
+1:// ——————————————————–
+// HYDAC smart controller automaton
+3:// this controller starts in off and then
+// switch on oroff at given time points
+5:// ——————————————————–
+7:// time between switch is atleast 2
+9:automaton controller
+11:contr_var: t; // this is the time reference ofthe controller
+synclabs : switch_on , switch_off, tau1 ; //synchronized withthe cycle+tank
+13:
+locoff1:while t<=2.16 wait{t'==1}
+15:when t==2.16 sync switch_on do{t'==t} gotoon1;
+17:locon1:while t<=4.16 wait{t'==1}
+when t==4.16 sync switch_off do{t'==t} gotooff2;
+19:
+locoff2:while t<=9.05 wait{t'==1}
+21:when t==9.05 sync switch_on do{t'==t} gotoon2;
+23:locon2:while t<=11.42 wait{t'==1}
+when t==11.42 sync switch_off do{t'==t} gotooff3;
+25:
+locoff3:while t<=13.96 wait{t'==1}
+27:when t==13.96 sync switch_on do{t'==t} gotoon3;
+29:locon3:while t<=16.04 wait{t'==1}
+when t==16.04 sync switch_off do{t'==t} gotolast;
+31:
+loclast:while t<=20wait{t'==1}
+33:when t==20 sync tau1 do{t'==0} gotooff1;
+35:initially : off1 & t==0 ;
+37:end
+Fig.1.13 HYDACELECTRONIC GMBH Smart Controllerin PHAV ER
+Instead we have built the PHAV ERcontroller (given in Fig. 1.13) that corre-
+spondstothebehaviourofthesmartcontrollerinastationa ryregime,andintheab-
+senceofnoise.Itturns onandoffsothatthepumpisactiveexactlyduringthethree
+intervals[2.16;4.16],[9.05;11.42]and[13.96;16.04]during each cycle. Indeed us-
+ing simulation, the engineers of H YDACELECTRONIC GMBH had discovered that
+the behavior of their controllers in the absence of noise was cyclic (stable on sev-
+eral cycles) if they started with an amount of oil equal to 10 .3l. This is conﬁrmed
+by the simulations we report on at the end in Fig. 1.19 and by Fi g. 1.14, obtained
+with PHAV ERshowing that the smart controller stabilizes with no ﬂuctua tions in
+therate.
+However,oursimpliﬁedversionoftheSmartcontrollergive ninFig.1.13(with-
+out imprecision on the timestamps of start and stop of the pum p), is not robust
+against the ﬂuctuations of the rate: the behavior of the syst em in the presence of
+noise is depicted in Fig. 1.15 and it can be shown with our PHAV ERmodels that
+after four cycles, the safety requirement R1can be violated. Unfortunately, there
+is no way of proving the correctness of the fullSmart controller with PHAV ER,
+
+--- Page 16 ---
+16 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre- AlainReynier
+0 5 10 15 2010.010.511.011.512.012.5Volume (litre)
+Time (second)0 5 10 15 209.09.510.010.511.011.512.012.5Volume  (litre)
+Time (se cond)
+Fig.1.14 Smart Controller /no ﬂuctuations Fig.1.15 Smart Controller/ ﬂuctuations
+and SIMULINK only gives an average case. In this sense we cannot trust the S mart
+controller for ensuring thesafetyproperty.
+The ideal Smart Controller (no noise on the rate) produces an average accumu-
+latedvolume of around 221 per cycle i.e.an average volume of 11.05.
+1.4.3 Controller Computed with UPPAAL-TIGA
+We now study the correctness and robustness of the controlle r synthesized with
+UPPAAL-TIGA. This veriﬁcation phase is necessary because during the s ynthesis
+phase we have used a very abstract model of the system and also discrete time.
+To force robustness and correctness, we have imposed additi onal requirements on
+the winning strategies (our inductive property together wi th the margin). Instead
+of proving by hand that the model and the objective yield to a c orrect and robust
+controllerweperformaformalpost-checkofthecontroller inthepresenceofnoise
+and imprecision. We summarize here the results of this veriﬁ cation phase. In the
+sequel we use the controller for granularity 2 and margin 4: t his controller can be
+seen as 14 different local controllers, each one managing on e of the 14 intervals in
+which the initial volume can be at the beginning of a cycle. We will focus on those
+strategies here but we have automated the process and the oth ers may be treated
+along the samelines.
+To make sure that our strategies are implementable, we have v eriﬁed them in
+presence of ﬂuctuations of the rate consumption and two type s of imprecision: on
+the time-stamp of start/stop of the pump (we use Δ=0.01 second), and on the
+measureoftheinitialvolume,theimprecisionbeing0 .06l.Fig.1.16showshowthe
+volume is controlled over 3 cycles: after the ﬁrst one at t=20, we measure the real
+volumewithuncertainty(0 .06l)andusethecorrespondingcontrollerfrom20to40
+and for40 we again switchtoanother one.
+We have designed a generic PHAV ERmodel for controllers with 2 starts and 2
+stopsduring one cycle which isgiven inFig. 1.17.
+For example, the controller for initial volume within [5.7;6.3]is obtained by
+setting starti andstopi with the correct values for this initial volume. In this
+
+--- Page 17 ---
+1TimedController Synthesis: An Industrial Case Study 17
+Volume/Time
+0 10 20 30 40 50 6056789101112
+Elapsed time (t)Volume (v)
+Fig.1.16 The Pump Controlledover 3 Cycles
+1:// ——————————————————–
+// TIGAcontroller automaton
+3:// this controller starts in off and then
+// switch on oroff at time points deﬁned inanother ﬁle
+5:// ——————————————————–
+7:// time between switch is atleast 2
+delta:=0.01; // this deﬁnes the maximum error on
+9: // the date atwhich start/stop are performed
+11:automaton controller
+13:contr_var: t; // this is the time reference ofthe controller
+synclabs : switch_on , switch_off ; // synchronized with the cycle+tank
+15:
+locoff1:while t<=start1+delta wait{t'==1}
+17:when t>=start1-delta sync switch_on do{t'==t} gotoon1;
+19:locon1:while t<=stop1+delta wait{t'==1}
+when t>=stop1-delta sync switch_off do{t'==t} gotooff2;
+21:
+locoff2:while t<=start2+delta wait{t'==1}
+23:when t>=start2-delta sync switch_on do{t'==t} gotoon2;
+25:locon2:while t<=stop2+delta wait{t'==1}
+when t>=stop2-delta sync switch_off do{t'==t} gotolast;
+27:
+loclast:while truewait{true} ;
+29:
+initially : off1 & t==0 ;
+31:
+end
+Fig.1.17 Generic PHAV ERControllerwithtwoStart/Stop(s).
+automaton, there is a variable δ(delta) which models the interval in which we
+issue the start/stop commands: we cannot measure time with i nﬁnite accurracy and
+thus we will only be able to issue the start/stop actions in an interval around the
+precisetimepointsgivenbythecontroller:iftheidealsyn thesizedcontrollerhasto
+issueswitch onat2.5,theimplementationofthecontrollercanonlyensureitwi ll
+beissuedin [2.5−δ;2.5+δ].Weusethemodelforthecycleandpumpautomaton
+given Fig. 1.4 and 1.5. The values v1andv2are set according to the controller we
+
+--- Page 18 ---
+18 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre- AlainReynier
+t− scale0.5
+pump activationStrategy
+Timepump on/off Strategy functionMATLAB
+FunctionScope
+round 10
+Cycle timertimeConsumerFlow
+Flow + noise
+AccumulatorConsumer
+Pump on/offVolume
+Energy
+Fig.1.18 The overall S IMULINK model.
+want to check (e.g. v1=5.7 andv2=6.3 for the controller which has to be used
+for the volume within [5.7;6.3]). As our controllers should handle all the possible
+values of the volume at the beginning of a cycle, as well as to b e robust w.r.t. errors
+in the volume measurement, we add a variable ( ε)epswhich models this error:
+it means we use the controller for [5.7;6.3]on a larger interval which is given by
+[5.7−ε;6.3+ε]. Still our controller should ensure that the ﬁnal volume is w ithin
+[5.1;8.9]. To ensure overlapping and full coverage of the initial volu me range, we
+need to set εlarger than 0 .05: we choose 0 .06 for the following experiments9. To
+validate the controller synthesized with U PPAAL-TIGA wecheck thefollowing:
+1. weset δ=0.01second, ε=0.06,andthemaximumrateﬂuctuationis f=0.1;
+2. we check that the set of reachable states of each of the 14 co ntrollers is within
+[Vmin;Vmax]which isthe safetyrequirement of the accumulator;
+3. we check that, starting from Iε= [5.1−ε;8.9+ε]the ﬁnal values of the vol-
+ume are within the interval [5.1;8.9]. Thus we have an inductive proof that our
+controller issafeand robust w.r.t.triple (δ,ε,f).
+1.5 Simulation andPerformancesof the Controllers
+Inthissection,wereportonresultsobtainedbysimulating thethreecontrollertypes
+in SIMULINK , with the purpose of evaluating their performance in terms o f the
+accumulated volume ofoil.
+SIMULINK modelsofthe Bang-Bang controlleraswellasofthe Smartcontroller
+of HYDACELECTRONIC GMBH have been generously provided by the company.
+As for the eight controllers – differing in granularity and m argin – synthesized by
+UPPAAL-TIGA, we have made a R UBYscript which takes U PPAAL-TIGA strate-
+gies as input and transforms them into S IMULINK ’sm-format.
+Fig. 1.18 shows the S IMULINK block diagram for simulation of the strategies
+synthesized by U PPAAL-TIGA. The diagram consist of built-in functions and four
+9Iftherealvolumeis5 .65,wemayobtainameasureof5 .7or5.6:whatwecheckisthatboththe
+controllersfor 5 .7and 5.6 willensure theﬁnal volume istheinterval [5.1;8.9].
+
+--- Page 19 ---
+1TimedController Synthesis: An Industrial Case Study 19
+0 20 40 60 80 100 120 140 160 180 2000510152025
+Time [s]Volume [l], pump [on/off]2−point controller
+  
+Volume
+Pump on/off
+(a) Bang-Bang controller0 20 40 60 80 100 120 140 160 180 2000510152025
+Time [s]Volume [l], pump [on/off]Hydac controller
+  
+Volume
+Pump on/off
+(b) Smart Controller0 20 40 60 80 100 120 140 160 180 2000510152025
+Time [s]Volume [l], pump [on/off]m4g1
+  
+Volume
+Pump on/off
+(c) Synthesized Controller
+Fig.1.19 The three controllertypes with S IMULINK
+subsystems: Consumer ,Accumulator ,CycleandPump(we omit the details of
+the subsystems). The Consumer subsystem deﬁnes the ﬂow rates used by the ma-
+chine with the addition of noise: here the choice of a uniform distribution on the
+interval[−ε,+ε]withε=0.1l/shasbeenmade.The Accumulator subsystemim-
+plementsthecontinuousdynamicsoftheaccumulatorwithas peciﬁedinitialvolume
+(8.3lfor the simulations). In order to use the synthesized strate gies the volume is
+scaled by a factor 10, then rounded and fed into a zero-order h old function with a
+sample time of 20s. This ensures that the volume is kept const ant during each cy-
+cle, which is feed into the strategy function. The Pumpactivation subsystem takes
+as input the on/off timestamps from the strategy (for the giv en input volume of the
+current cycle) and a Cycletimer,that holds thecurrent timeforeach cycle.
+Now, the plots in Fig. 1.19 are the result of S IMULINK simulations of the con-
+trollers, illustrating the volume of the accumulator as wel l as the state of the pump
+(on or off) for a duration of 200 s, i.e. 10 cycles. Though the s imulations do not
+reveal the known violation of the safety requirement R1in the H YDACSmart con-
+trollercase,thesimulationsyieldusefulinformationcon cerningtheperformanceof
+the controllers. In particular, the simulations indicate t hat the accumulated oil vol-
+umeforallcontrollersgrowlinearlywithtime.Also,there isclearevidencethatthe
+strategies synthesized by U PPAAL-TIGA outperform the Smart controller of H Y-
+DAC–whichisnotrobust–andalsotheBang-Bangcontroller–whi chisrobustbut
+farfrom optimal.
+ThisishighlightedinTable1.2,giving–foreachofthetens trategies–thesimu-
+lationresultsfortheaccumulatedvolumeofoil,thecorres pondingmeanvolumeas
+wellastheworstcasemeanvolumeaccordingtosynthesisof U PPAAL-TIGA.The
+table shows – as could be expected – that U PPAAL-TIGA’s worst case mean vol-
+umes consistently are slightly more pessimistic than their simulation counter-parts.
+More interestingly, the simulation reveals that the perfor mances of the synthesized
+controllers(e.g.G2M1)provideavastimprovementbothoft heSmartControllerof
+HYDACELECTRONIC GMBH (33%) and of theBang-Bang Controller (45%).
+
+--- Page 20 ---
+20 Franck Cassez,KimLarsen, Jean-Franc ¸oisRaskin,and Pierre- AlainReynier
+Controller Acc. volume Meanvolume Mean volume (T IGA)
+Bang-Bang 2689 13.45 -
+HYDAC 2232 11.16 -
+G1M4 1511 7.56 8.45
+G1M3 1511 7.56 8.35
+G1M2 1518 7.59 8.25
+G1M1 1518 7.59 8,2
+G2M4 1527 7.64 8.05
+G2M3 1513 7.57 7.95
+G2M2 1500 7.5 7.95
+G2M1 1489 7.44 7.95
+Table1.2 Performance characteristicsbased on S IMULINK simulations.
+1.6 Conclusion
+In this paper we have presented a model-based methodology fo r the systematic de-
+velopmentofrobustandnear-optimalcontrollers.Themeth odologyappliesachain
+oftoolsforautomaticsynthesis(U PPAAL-TIGA),veriﬁcation(PHAV ER)andsim-
+ulation(S IMULINK ).Initially,sufﬁcientlysimpleandabstractgamemodelsa reused
+for synthesis. The correctness and robustness of the strate gies are then veriﬁed us-
+ing continuous hybrid models and – ﬁnally – the performance o f the strategies are
+evaluated using simulationmodels.
+Applied to the industrial case study provided by H YDACELECTRONIC GMBH,
+our method provides control strategies which outperforms t heSmartcontroller as
+well as the simple Bang-Bang controller considered by the company. More impor-
+tant – whereas correctness and robustness of the Smart contr oller is unsettled – the
+strategies synthesized by our method are provably correct a nd robust. We believe
+that thecase study demonstrates thematurityand industria lrelevance of our tools.
+Directions for furtherwork include:
+•Improve the performance of our controller further by optimi zing over several
+cycles, and/or
+•Improve the performance of our controller further by adding some predeﬁned
+points when wecan measure thevolume (even withimprecision ).
+•Consideration of other imprecision, e.g. with respect to th e timing of consumer
+demands.
+•Consideration of other optimization criteria. An interest ing feature of the Smart
+controller of H YDACELECTRONIC GMBH seems to be that the oil volume is
+kept in a rather narrow interval, a feature which could possi bly be beneﬁcial for
+increasing the life-timeof the Accumulator .
+•Use the emerging version of U PPAAL-TIGA supporting synthesis under partial
+observability inorder toallow moreaccurate initial game m odels.
+
+--- Page 21 ---
+1TimedController Synthesis: An Industrial Case Study 21
+References
+1. G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G. Larsen, a nd D. Lime. Uppaal-tiga:
+Time for playing games! In 19th Int. Conf. CAV 2007 , volume 4590 of LNCS, pages 121–125.
+Springer, 2007.
+2. Th. Brihaye, V. Bruy `ere, and J.-F. Raskin. On optimal timed strategies. In 3rd Int. Conf.
+FORMATS’05 , volume 3829 of LNCS,pages49–64. Springer, 2005.
+3. F. Cassez, A. David, K. G. Larsen, D. Lime, and J.-F. Raskin. Timed c ontrol with observation
+based and stuttering invariant strategies. In 5th Int. Symp. ATVA 2007 , volume 4762 of LNCS,
+pages 192–206. Springer, 2007.
+4. G. Frehse. Phaver: Algorithmic veriﬁcation of hybrid systems p ast hytech. Int. Journal on
+SoftwareToolsforTechnologyTransfer(STTT) ,1(1–2),December1997. ExtendedandRevised
+version of [5].
+5. G. Frehse. Phaver: Algorithmic veriﬁcation of hybrid systems p ast hytech. In 8th Int. Work.
+HSCC 2005 , volume 3414 of LNCS,pages 258–273. Springer, 2005.
+6. Holger Hermanns, Kai Sven Mitterm ¨uller, Teun van Kuppeveld, Jan Storbank Pedersen, and
+Poul Hougaard. Preliminary descriptions of case studies. Quasimod o Deliverable D5.2, v1.0,
+July 2008. Conﬁdential Document.
+7. QUASIMODO. http://www.quasimodo.aau.dk/ .
+8. Simulink, 2008. http://www.mathworks.com/products/simulink/ .

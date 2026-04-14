@@ -1,0 +1,1681 @@
+--- Page 1 ---
+Received December 14, 2020, accepted January 7, 2021, date of publication January 20, 2021, date of current version January 28, 2021.
+Digital Object Identifier 10.1 109/ACCESS.2021.3052967
+Autonomous Firefighting Inside Buildings by an
+Unmanned Aerial Vehicle
+VOJTECH SPURNY
+ , VACLAV PRITZL, VIKTOR WALTER
+ , MATEJ PETRLIK,
+TOMAS BACA
+ , (Graduate Student Member, IEEE), PETR STEPAN,
+DAVID ZAITLIK
+ , AND MARTIN SASKA, (Member, IEEE)
+Department of Cybernetics, Faculty of Electrical Engineering, Czech Technical University in Prague, 160 00 Prague, Czech Republic
+Corresponding author: Vojtech Spurny (vojtech.spurny@fel.cvut.cz)
+This work was supported in part by the Czech Science Foundation (GAR) under Project 20-29531S, in part by the Research Center for
+Informatics Project under Grant CZ.02.1.01/0.0/0.0/16_019/0000765, in part by CTU under Grant SGS20/174/OHK3/3T/13, in part by the
+EU H2020 Project AERIAL CORE under Grant 871479, and in part by the Khalifa University via sponsorship in support of 15 selected
+teams for the MBZIRC 2020 competition.
+ABSTRACT This paper presents a novel approach to autonomous extinguishing of indoor res inside
+a building by a Micro-scale Unmanned Aerial Vehicle (MA V). In particular, controlling and estimating
+the MA V state, detection of a building entrance, multi-modal MA V localization during the outdoor-
+indoor transition, interior motion planning and exploration, re detection and position estimation, and re
+extinguishing are discussed. The performance of these elements, as well as of the entire integrated system, are
+evaluated in simulations and eld tests in various demanding real-world conditions. The system presented
+here is part of a complex multi-MA V solution that won the Mohamed Bin Zayed International Robotics
+Challenge 2020 (MBZIRC 2020) competition, and is being used as the core of a re-ghting Unmanned
+Aerial System (UAS) industrial platform under development. A video attachment to this paper is available
+at the website http://mrs.felk.cvut.cz/2020rechallenge-insideres.
+INDEX TERMS Unmanned aerial vehicle, autonomous systems, reghting, mobile robots, rescue robots.
+I. INTRODUCTION
+Micro-scale Unmanned Aerial Vehicles (MA Vs) are nowa-
+days used in numerous applications due to their potential
+for rapid deployment and their ability to reach locations
+that are difcult or dangerous for humans to access [1].
+Despite advances in the autonomy and the reliability of
+MA Vs, they are most often still teleoperated by a pilot while
+helping on site after natural disasters. Teleoperated MA Vs are
+used for various situations, e.g. for providing assistance for
+cities hit by an earthquake [2], [3], nding victims in urban
+areas [4], localizing ooded areas [5], nding survivors dur-
+ing oods [6], and quickly localizing forest res [7]. Further
+examples of robots assisting in search and rescue missions are
+presented in [8].
+The MA Vs deployed in the applications mentioned above
+operate at high altitudes, where no obstacles can be encoun-
+tered and Global Navigation Satellite System (GNSS) local-
+ization is reliable. However, to fully exploit the potential of
+MA Vs assisting in disaster response tasks, it is necessary to
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Juan Liu
+ .
+FIGURE 1. The proposed system uses processed data from the onboard
+sensors of the MAV towards the goal to extinguish fire inside the building.
+move from teleoperated robots to autonomous robots that
+perceive their environment, can reliably localize and navigate
+in it, and furthermore, can inuence their state by interacting
+with objects of interest. Autonomous MA Vs have already
+been tested for use in locations where teleoperated MA Vs
+cannot operate, e.g. coal mine tunnels [9], which can be dan-
+gerous to access after natural disasters such as earthquakes or
+15872This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/licenses/by/4.0/VOLUME 9, 2021
+
+--- Page 2 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+gas res. A multi-modal mapping unit [10] can be attached to
+an MA V to provide autonomous exploration of GNSS-denied
+dark environments. A small agile MA V can be deployed as a
+rst responder [11] of a rescue team to assess the situation in
+mines, to evaluate the risk of human rescuer injury and, most
+importantly, to nd visual cues about the location of possible
+survivors in order to direct further rescue operations. During
+search and rescue operations, human rescuers underground
+often risk exposure to noxious gases. To reduce such hazards,
+a system described by [12] deploys an MA V with sensors
+capable of detection and measurement of the concentration of
+such gases. Multiple gas detecting MA Vs deployed in parallel
+can be used for precise localization of the gas source [13].
+Operations in places that are in the proximity of a source of
+radiation, such as the interior of a nuclear power plant, have
+to be planned with limited exposure time of human workers.
+The assistance of autonomous MA Vs is therefore valuable
+in localizing the source of radiation [14], or in nding sur-
+vivors [15], without risking prolonged exposure of human
+rescuers.
+The approaches mentioned above were designed only for
+indoor environments or only for outdoor environments. How-
+ever, the challenge and the novelty of the approach presented
+here is in the required transition from the open space around
+the building into the conned space of the rooms. These envi-
+ronments require different localization and state estimation
+techniques.
+A cooperative reghting mission called the Fire Chal-
+lenge was the most complex task at MBZIRC 2020.1This
+challenge was motivated by the use of robots for urban
+reghting, and it required a team of robots to collaborate
+on a series of urban reghting-related tasks in outdoor
+and indoor environments. In this challenge, three MA Vs and
+one Unmanned Ground Vehicle (UGV) had to collaborate to
+autonomously extinguish a series of res (real and simulated)
+in an urban building. The res were placed at various random
+locations at ground level in the arena (indoor and outdoor),
+and at different heights of the building. The challenge can
+be divided into four separate sub-tasks: extinguishing interior
+res by a UGV, extinguishing res on the facade of the
+building by MA Vs, extinguishing ground res by MA Vs, and
+extinguishing res inside the building by MA Vs. These tasks
+were meant to be solved in their full scope, including search-
+ing for res with unknown positions, re extinguishing, and
+cooperation among multiple MA Vs and a UGV working
+in the same environment. The deployment of such a team,
+as opposed to a single unit, was motivated by the requirement
+for minimal total mission time, as time is a critical factor
+for eliminating re spreading and for saving people in real
+scenarios. Team deployment also enabled the use of a range
+of reghting techniques (a re-extinguishing agent or a re
+blanket) and various platforms (MA V and UGV).
+This paper addresses what we consider to be the most
+challenging task of the third challenge of the MBZIRC 2020
+1http://www.mbzirc.com/competition  re extinguishing inside a building (see
+Fig. 1). The work presented here contributed not only to the
+MBZIRC 2020 challenge and to the reghting mission but
+it also benets other MA V applications. Research on indoor-
+outdoor transition through the narrow space of small windows
+and precise multi-sensor based servoing is important for a
+wide range of MA V challenges that are being tackled nowa-
+days.
+A. PROBLEM DEFINITION AND REQUIREMENTS ON THE
+PLATFORM
+To solve the task of re extinguishing inside a building,
+we assume that the size of the MA V platform, including the
+propellers, is limited by the width of the windows through
+which the platform has to y. Of course, this width will
+be unknown during the deployment of the system in a
+real reghting scenario. However, the organizers of the
+MBZIRC 2020 competition specied the window size to
+dimension of 2 m. Choosing the right platform size is crucial
+to task performance, as a smaller platform allows for a larger
+margin of error of the localization and control systems. On the
+other hand, a smaller MA V can carry less re-extinguishing
+agent, and cooperation among multiple agents may be needed
+to extinguish a single re.
+We expect that the MA V will be equipped with a ight
+controller that commands the Electronic Speed Controllers
+(ESCs) to drive the brushless motors propelling the MA V,
+based on angular rate commands from an onboard computer.
+Furthermore, this ight controller should contain a set of
+sensors, such as accelerometers, gyroscopes, barometers, and
+magnetometers, and should provide them to the onboard
+computer for MA V state estimation. This onboard computer
+should provide sufcient computational power to solve all the
+required onboard processing tasks, in addition to besides gen-
+eral MA V control, state estimation, and collision-free motion
+planning.
+For outdoor ying capability, the MA V has to be equipped
+with a GNSS receiver. However, the precision of the posi-
+tion data derived from satellite-based positioning systems
+can drift in the proximity of tall structures such as build-
+ings, and this may block the visibility of some of the satel-
+lites, or may reect the signal. The most tting sensors
+that can be deployed to avoid a possible collision with the
+building are 3D LIDARs, thanks to their high information
+density and precise measurements of the obstacle distance.
+However, these devices are still relatively expensive and
+heavy. The proposed system therefore requires the MA V to
+be equipped with two complementary sensors  2D LIDAR
+and a stereo camera. These sensors were selected because the
+data they provide can also be used for MA V control, for state
+estimation, and for collision-avoidance inside the building.
+Furthermore, this data is useful for correct detection of the
+window, for planning a collision-free trajectory through it,
+and also for estimating the position of detected res.
+The proposed system requires a thermal camera, or rather,
+a compound sensor consisting of multiple thermal cameras
+VOLUME 9, 2021 15873
+
+--- Page 3 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+for detecting res. These cameras need to be arranged in
+such a way that the MA V ying at a safe distance from the
+wall will cover the whole wall, from the oor to the ceiling,
+with their Field Of Views (FOVs) to minimize the chance of
+missing a re source. The MA V should be further equipped
+with two laser rangenders. One faces downwards to measure
+the distance to the ground, and the second faces upwards to
+measure the distance to the ceiling when the MA V is inside
+the building. Data from these sensors is used for MA V altitude
+estimation and to help ensure safe ight. To extinguish the
+res, the MA V has to be equipped with a water bag and with
+a pump that can force water through a nozzle mounted on
+the front of the MA V. To reduce the weight, the nozzle can
+be rigidly attached to the MA V, since it does not have to be
+actively stabilized.
+We assume that the GNSS signal is available only outside
+the building, and not inside. The building interior contains
+unknown obstacles (e.g. a bed, a TV with a table, or a dining
+table), so that the system for re extinguishing inside the
+building meets realistic assumptions. Lastly, we considered
+that a direct line of sight to the MA V would not be main-
+tained during the whole mission, especially after entering
+the building, and that teleoperation through the base station
+would not be possible. Therefore, the task has to be solved
+completely autonomously, using only the onboard equipment
+of the MA V.
+B. RELATED WORK AND CONTRIBUTION
+Employing MA Vs in reghting has already been explored
+in several works. An obvious example of a situation where
+MA Vs can prove benecial is outdoor re detection and
+monitoring. As reported in [16], a system of multiple MA Vs
+can be used for automatic forest re monitoring using visual
+and infrared cameras. Real experiments with forest re mon-
+itoring in a national park have already been conducted by
+the Hungarian re department [17]. The authors of [18]
+describe a task allocation strategy for distributed cooperation
+of ground and aerial robot teams in re detection and extin-
+guishing. In [19], an MA V system is designed to extinguish a
+re by dropping a re-extinguishing capsule on it.
+MA Vs ghting res have also already been a topic for
+robotic competitions. [20] describes the design and imple-
+mentation of a reghting MA V for outdoor applications
+designed specically for the IMA V 2015 competition. The
+employment of MA Vs could also prove to be benecial
+and life-saving in urban environments. Studies have already
+been done on re detection in urban areas using a ther-
+mal camera carried by an MA V [21]. MA Vs capable of
+entering buildings through doors and windows will be espe-
+cially helpful, because of their ability to reach the target
+location much earlier than human reghters. [22] contains
+the design of a semi-autonomous indoor reghting MA V.
+The authors designed a reproof, thermoelectrically-cooled
+MA V equipped with visual and thermal cameras, a collision
+avoidance module, and a rst-person view system. However,
+to fully exploit the potential of MA Vs in reghting and toachieve reliable operation, the MA Vs themselves need to be
+autonomous.
+MA Vs autonomously entering a building through a window
+has already been partially explored in the literature, using
+various approaches with varying levels of experimental veri-
+cation. In [23], the authors used RGB camera images and 2D
+LIDAR data for window detection and tracking, visual servo-
+ing while approaching the window, and potential eld-based
+planning for the y-through itself. However, their approach
+for window detection requires an operator to manually select
+a point of interest in the RGB image, and was veried only by
+simulations. This approach was further extended and veried
+in real-world experiments with ight through a wooden frame
+in [24]. However, the experimental verication only con-
+sisted of manually guiding the MA V in front of the window,
+autonomous ight through the window, and immediate man-
+ual landing. [25] utilizes stereo image pairs for detecting and
+estimating a window that can potentially be used by an MA V
+for entering a building. However, the proposed algorithm was
+veried only on data captured using a hand-held stereo rig.
+[26] deals with window detection from an RGB-D camera
+along with the generation of an optimal trajectory to a point
+in front of the window, but the approach was only veried
+in simulations. [27] focuses on cooperative control of an
+ornithopter MA V using visual servoing for narrow passage
+traversal. They demonstrated their approach in a real exper-
+iment with a small MA V ying through a narrow wooden
+frame. This approach requires a ground station continuously
+observing the scene throughout the ight. [28] deals with
+state estimation, control, and planning for an aggressive ight
+by an MA V through a narrow window tilted at various angles.
+State estimation is done based on visual camera images and
+an Inertial Measurement Unit (IMU). However, the position
+of the window needs to be known beforehand. Similarly, [29]
+focuses on an aggressive ight of an MA V through narrow
+gaps tilted at various angles employing a forward-facing sh-
+eye camera for gap detection. A black-and-white rectangular
+pattern was used to simplify the detection of the gap. The
+approach for window detection and autonomous entering of
+buildings proposed in this paper was designed specically
+for reliable performance under real-world conditions, and to
+function as a part of a complex autonomous system without
+input from a human operator. As such, the proposed approach
+was extensively veried in complex real-world experiments
+and therefore surpasses previous approaches both in the
+degree of autonomy under real-world conditions and in the
+complexity of its experimental verication.
+Transition between an indoor environment and an outdoor
+environment creates the necessity to combine different local-
+ization methods in a single ight. [30] describes a system
+combining visual and laser odometry with IMU, using an
+Extended Kalman Filter (EKF) for ight in both indoor and
+outdoor environments. The authors use one common lter
+for fusing measurements from laser scan matching and from
+correlation-based visual odometry. The data source that is
+currently fused is determined by its variance. Fusion in one
+15874 VOLUME 9, 2021
+
+--- Page 4 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 2. A diagram of the control system architecture. Mission & navigation software supplies a position and heading reference (rd,d) to the
+reference tracker. The Reference tracker creates a smooth and feasible reference dfor the reference feedback controller. The feedback Reference
+controller produces the desired thrust and angular velocities (Td,!d) for the embedded Attitude rate controller. The State estimator fuses control input
+adwith data from the onboard sensors to create an estimate of the MAV translation and rotation (x, R,!). For a more detailed description of the whole
+control pipeline, see [32].
+common lter is problematic when the reference frames
+of the two odometry sources are not coincident, e.g.due
+to imprecise extrinsic calibration. Moreover, in the case of
+GNSS and LIDAR odometry, the frames of reference are
+inherently different. We propose fusing each type of measure-
+ment in its own separate lter and then choosing the better
+output to close the control feedback loop. [31] describes an
+approach that uses depth image processing for visual odom-
+etry capable of navigating MA Vs during indoor and outdoor
+ight, and during transfers between these two types of ight.
+The solution relies on stereo camera depth estimation, which
+is much less precise than direct distance measurements using
+a laser sensor. Our solution offers a higher level of autonomy,
+as the whole mission is governed by a mission control state
+machine while in [31] the MA V is controlled by waypoints
+manually entered by an operator.
+To sum up, the contributions of this paper are in the
+complexity and the reliability of the proposed system, which
+includes indoor outdoor transition, interaction with the envi-
+ronment based on vision from thermal cameras, precise MA V
+stabilization and control for safe ight through window,
+and for reghting. Furthermore, the paper proposes a new
+approach for handling data from multiple sensors to robustly
+obtain a single state estimate  MA V pose estimation, height
+estimation, relative window pose estimation, and relative
+pose of the re target estimation. All of these estimates are
+crucial for safe autonomous ight in complex MA V mis-
+sions, and the proposed redundancy by using various sensors
+is necessary for achieving reliability required for industrial
+applications.
+II. AUTONOMOUS SYSTEM DESIGN
+The proposed system components are described in this
+section. Note that the entire system is run on the onboard
+PC only, allowing for full autonomy without any control
+station or teleoperation needed.
+A. CONTROL AND ESTIMATION OF THE MAV STATE IN
+OUTDOOR AND INDOOR ENVIRONMENTS
+One of the main contributions of this paper is a system that
+allows precise control for ying through relatively smallwindows and for inserting water into a small opening of
+a measurement device using multi-sensor control feedback.
+Additionally, in a real scenario, precise placement of the
+re re-extinguishing agent is crucial for mission success.
+Another important aspect of the system is the MA V state
+estimation approach, which allows precise localization and
+stabilization in the open space around the building, inside
+rooms with obstacles, and a smooth transition between these
+work-spaces.
+The MA V is controlled by the novel multi-layer control
+pipeline, depicted in Figure 2, which was suited for the pro-
+posed system using the general control framework presented
+in [32]. The desired trajectory reference is supplied by higher-
+level motion planning modules that are specialized for each
+mission phase, as described in II-F. The reference is rst
+processed by the Reference tracker [33], based on model pre-
+dictive control to obtain a smooth and feasible reference for
+theReference controller. The tracker also imposes constraints
+on the MA V states to prevent fast and aggressive motions,
+which are undesirable when navigating constrained indoor
+environments. The Reference controller uses the processed
+reference to provide SE(3) geometric state feedback control
+[34] of the translational dynamics and the orientation of the
+MA V. This type of controller achieves minimal control errors,
+which allows precise window ythrough. The attitude rate
+and thrust commands generated by the Reference controller
+are sent to the embedded Attitude rate controller in the ight
+control unit of the MA V, which controls the speed of each
+motor, using ESCs. The feedback loop of the Reference con-
+troller is closed by the State estimator, which fuses data from
+onboard sensors with the MA V altitude to obtain a precise
+and reliable state estimate for both the indoor and the outdoor
+phase.
+The state estimation process uses Kalman ltering to esti-
+mate the 3D position of the MA V and its heading angle, along
+with their respective rst and second derivatives. The MA V
+state is divided into lateral, altitude, and heading parts. Such
+decoupling facilitates tuning of the lters. Smaller system
+matrices save computation resources, allowing for running
+multiple lters in parallel. All active lters are grouped in a
+lter bank, visualized in Figure 3, from which the best lter
+VOLUME 9, 2021 15875
+
+--- Page 5 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 3. The bank of filters KDfK1,. . . ,K ng. The prediction step is
+driven by the desired acceleration ad. The correction step is triggered
+asynchronously as sensor measurements zi, where iDf1;:::; ng, arrives.
+The output hypothesis xis chosen by the arbiter.
+for the current situation is used to close the feedback loop of
+Reference controller.
+Since the re-extinguishing mission consists of two phases
+(outdoor and indoor), the bank of lters for the lateral axes
+contains one for each phase. Both lters have the same three-
+state model with the desired acceleration from Reference
+controller on the input. The difference between the lters
+is in the sensor measurement used to correct the state in
+the update step of the Kalman lter iteration. The outdoor
+lter uses position corrections from GNSS and heading cor-
+rections from magnetometers. Inside the building, GNSS
+cannot be used. Both position corrections and heading cor-
+rections are therefore provided by the Hector SLAM [35]
+algorithm, using 2D LIDAR. In general, the bank of lters
+may fuse multiple sensors and localization techniques for
+state estimation (e.g. 3D LIDAR, VIO, Optic Flow). One of
+the simultaneously running lters is always selected as the
+main estimator, depending on the reliability of the lter state
+estimation (estimation covariance) and based on considera-
+tion of the current environment. For the task solved in this
+paper, the high-level planner changes the main lateral esti-
+mator during transitions between indoor and outdoor phases,
+just before ying through a window. This approach prevents
+measurements from the sensor that are inappropriate for the
+current surroundings to corrupt the state estimate used for
+feedback control. Greater reliability is thus ensured during
+the window ythrough, thanks to lower position drift. The
+estimation framework is also responsible for synchronously
+broadcasting the change of main estimator, so that the tracker
+and the controller can react by updating their internal state
+accordingly. The switch of the main estimator is smooth
+and seamless without producing any spikes in the controller
+output, which makes it virtually unnoticeable.
+The altitude estimation fuses data from a barometer with
+measurements from a laser rangender. The rangender mea-
+sures the height above the terrain, which can result in sharp
+changes in height when ying above objects protruding from
+the ground plane. Measurements of this type are declined
+by a median lter when the tall object is visible for less
+than 1 s and, in combination with the barometer data fusion,
+FIGURE 4. Example of window detection using the stereo camera and 2D
+LIDAR. The red squares in the visualization represent the LIDAR data,
+the blue rectangle represents the depth detection, and the yellow
+rectangle represents the filtered estimate.
+a smooth altitude estimate suitable for control is obtained.
+In the case of a height measurement jump lasting for more
+than 1 second, the measurement is offset by the difference
+from the original height. Up until this time, the median lter
+suppresses reaction to the measurement change.
+B. WINDOW DETECTION AND ESTIMATION
+In order to enter the target building, a suitable entrance needs
+to be detected and its position needs to be continuously
+estimated during the entire ythrough. For this purpose, depth
+data from the stereo camera and 2D LIDAR data are utilized.
+The depth data can provide complete information about the
+3D position, the orientation, and the size of the window.
+However, these detections contain signicant noise and the
+FOV of the stereo camera is limited. On the other hand,
+the 2D LIDAR data is very precise and 2D LIDAR is capable
+of seeing the window during the whole ythrough maneu-
+ver, regardless of the MA V orientation. The main drawback
+of 2D LIDAR is that it only provides information about the
+window in the 2D horizontal plane. The proposed approach
+offers multiple modes of estimation. In depthClidar mode,
+the depth data is fused with the 2D LIDAR data with no
+apriori-known information required. In lidarCapriori mode,
+only 2D LIDAR detections and apriori-known information
+about window size and altitude are used for window detec-
+tion. This mode was used to simplify window detection for
+the competition, in which information about window size and
+altitude was made available beforehand. Both modes work
+only in the case that the window is not obstructed.
+Window detection from the depth data is described in
+Algorithm 1. The algorithm takes the 1280 720 depth
+image published by the stereo camera and downsamples it
+by a factor of 8 to reduce the computational demands on the
+CPU. The algorithm then searches for contours in the image
+and tries to t quadrilateral shapes with certain parameters
+to the data. After identifying such quadrilaterals, a check is
+performed to ensure that the detected shape is an opening and
+not a protrusion. The algorithm starts from the center of the
+quadrilateral, where it generates a Region of Interest (ROI)
+such that its aspect ratio is the same as the initial quadrilateral
+and the shorter size is two pixels. It then checks if the depth
+of all the pixels within this ROI is greater than the plane
+of the initial quadrilateral. Then it iteratively expands this
+ROI and repeats the check until the check fails. Afterwards,
+the corners of the last ROI are projected to the plane of
+15876 VOLUME 9, 2021
+
+--- Page 6 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+Algorithm 1 Detection of Window From Depth Data
+Input: Raw depth image Iraw
+Output: ListDdepthof detected windows
+1:function Detect_windows_depth(I raw)
+2:Idown Downsample(I raw)
+3:C Find_contours(I down)
+4: forc2Cdo
+5: q Fit_quadrilateral(c)
+6: ifq6D?and Is_hole(q) then
+7: Add qtoDdepth
+8: return DdepthFDetections are passed to the LKF
+the initial quadrilateral. Then the size of the quadrilateral
+formed by the projected points is compared with the size of
+the initial quadrilateral. If it is above a certain ratio, the new
+quadrilateral is accepted as a traversable window. Otherwise,
+the detection is discarded.
+Window detection from 2D LIDAR data is described in
+Algorithm 2. Firstly, a combination of line extraction algo-
+rithms is utilized to identify possible window edges. The
+Successive Edge Following algorithm [36] is used for detect-
+ing window edge candidates E1based on sudden changes
+in 2D LIDAR measurements. The algorithm parses the orig-
+inal scan into a set of segments S1by splitting the scan in
+places where the difference between two consecutive mea-
+surements exceeds a predened threshold. The endpoints of
+the segments S1are used as window edge candidates E1.
+The set of segments S1is then passed to the Iterative End-
+Point Fit algorithm [36]. The algorithm ts a line through
+the endpoints of each segment and splits the segment into
+two sub-segments at the point most distant from the line,
+if the distance exceeds a predened threshold. This process
+enables us to detect the window edges in the form of a
+corner protruding towards the MA V, which occurs when a
+wall or an obstacle is located right next to the window inside
+the building. Depending on the mode of estimation, the nal
+detections are then produced either by linking the window
+edge candidates Eto existing window estimates Winitialized
+based on depth detections, or by standalone detection based
+on apriori-known information Adescribing window size and
+altitude.
+The Linear Kalman Filter [37] is used for fusion of the
+individual detections and for ltering out measurement noise.
+The state xof the Kalman lter describing a single window
+is dened as
+xDcx;cy;cz;;w;hT; (1)
+where cx;cy;czare Cartesian coordinates of the window
+center,2[ ; ]is the angle between the projection of
+the normal vector of the window to the xy-plane and the x-
+axis (i.e., rotation around the z-axis), wis the width, and h
+is the height of the window. It is assumed that the window
+is not tilted and is perpendicular to the ground plane. The
+position and the orientation of the window are specied inAlgorithm 2 Detection of Window From 2D LIDAR
+Input: ListPDhp1;::: pni, where piare points obtained
+from a single laser scan; mode2fdepthClidar;lidarC
+apriorig - selected mode of estimation; (optional) list W
+of existing window estimates; (optional) list Aof apriori
+information
+Output: ListDlidarof window edge pairs
+1:function Detect_windows(P )
+2:E1;S1 SEF(P )FSuccessive Edge Following
+3:E2;S2 IEPF(S 1;P)FIterative End-Point Fit
+4:E E1;E2
+5: ifmodeDdepthClidar then
+6: Dlidar Link_edges_to_estimates(E ;W)
+7: else if modeDlidarCapriori then
+8: Dlidar Standalone_detection(E ;A)
+9: return DlidarFDetections are passed to the LKF
+a global coordinate frame and therefore all the state vector
+elements are modeled as static. Figure 4 shows an example of
+window detection for a mock-up building constructed at the
+Czech Technical University in Prague. The gure contains an
+external view of the MA V hovering in front of the window,
+a depth image from the onboard camera, and a visualization
+of the data.
+C. INDOOR MOTION PLANNING AND EXPLORATION
+The position of the re is unknown (in the competition and
+usually also in a real application) before the mission and
+therefore the interior must be explored to nd its location.
+Obstacles can be detected using data from the stereo camera
+and from 2D LIDAR. We store the information about the
+environment around the MA V in an occupancy grid within
+a three-dimensional buffer that slides along with the MA V.
+Our buffer is a modication of the implementation of a buffer
+that has been developed as a part of the Ewok system [38].
+Originally, the buffer was in the shape of a cube, with the
+same number of blocks in all axes. However, the height of a
+room is usually much smaller than its horizontal dimensions.
+Therefore, we modied the buffer to be able to specify its
+z-axis dimension separately. For the experiments, the buffer
+size was set to 128 12832 voxels with resolution of
+0:1 m. This improves the times for inserting the data from
+the sensors and for recomputing the buffer in the case of
+MA V movement. See an example of a visualization of the
+occupancy grid in Figure 5(a).
+The trajectory planning in our case is done using an A*
+planner that nds a local plan in a three-dimensional grid with
+a predened minimal allowed distance from the obstacles (the
+grid has the same resolution as the occupancy grid). This plan
+is further processed by removing redundant points, in order to
+smooth out the overall path. The points that can be removed
+are those where the path between the previous point and the
+next point in the plan is still safe. This is done iteratively
+until no points can be removed from the plan. Because the
+VOLUME 9, 2021 15877
+
+--- Page 7 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 5. Examples of occupancy grids around the MAV used for motion
+planning and exploration inside the building. The red elements denote
+obstacles, the green elements show the already scanned space, and the
+yellow elements denote frontiers for exploration.
+stereo camera at the front has a limited FOV, movement in
+any direction is allowed only when the MA V is facing in
+that direction. The plan is then sampled according to the
+permissible dynamics of the MA V for planning procedure and
+send to the reference tracker. The dynamic of the MA V for the
+planner was set for all deployments presented in Section III
+to a speed of 0:3 m s 1and a heading rate of 0:3 rad s 1.
+This is within the capabilities of the MA V platform that had
+ying dynamic constraints set to a speed of 2 m s 1and
+a acceleration of 10 m s 2. This ensures that the processed
+trajectory produced by the reference tracker will not differ
+from the plan by an unsafe amount.
+One of the primary goals for successfully completing the
+mission is to nd the res. Using the planning presented here,
+we can y without collision inside the building. However,
+it is necessary to specify the position that we want to reach.
+To ensure that each room is completely scanned for re
+sources, a novel exploration algorithm had to be designed.
+The whole exploration process is described in Algorithm 3.
+The proposed approach differs from state-of-the-art explo-
+ration methods, which are designed to build a map in which
+the robot is localized. In our case, one set of sensors is
+applied for simultaneous localization and mapping, and a
+different set is applied for re source localization. Moreover,
+the FOV of the two sensory sets differs signicantly, requir-
+ing different exploration strategies. The exploration strategy
+relies on information about which parts of the interior have
+already been seen by the thermal cameras. The part that has
+already been visited (i.e. visually scanned) is the space that
+was within the FOV of the thermal cameras and is closer
+than the maximum detection distance. We assume that the
+height of the room is completely covered by the vertical FOV
+of the thermal cameras. The exploration can therefore be
+simplied and solved as a two-dimensional problem, where
+thez-coordinate of the goal position is set to a constant
+ying height (the z-coordinate of the center of the opened
+window). For this purpose, a two-dimensional occupancy grid
+is built from the incoming sensor data. The horizontal FOV
+of the thermal cameras is projected to this grid, where all
+elements of the grid located within this eld and unobscured
+by obstacles are updated. When an element has been updated
+thirty times (the replanning was set to 10 Hz, meaning that
+FIGURE 6. Thermal vision outputs. From left to right: Thermal camera
+view scaled from 0 to 120C, differential image produced with the
+Laplacian operator (scaled between the two extreme values of the
+image), and thresholded detection with the rounded centroid in red.
+the block has been observed for 3 s), the block is marked
+as scanned. Frontiers - elements that are marked as scanned
+and that have at least one neighboring unscanned element -
+are then candidates for goal positions for the planning. From
+these frontier elements, we select the element that can be
+scanned the earliest and which has at least twenty unscanned
+elements in its proximity. If the selected goal position can
+be seen from the current position of the MA V merely by
+changing the MA V heading towards it, that plan is then used.
+Otherwise, a plan found by the trajectory planning is selected.
+An example of a visualization of a two-dimensional grid with
+information about the already scanned space and its frontiers
+is shown in Figure 5(b).
+D. DETECTION AND ESTIMATION OF THE POSITION OF
+FIRES
+It would be too complicated to safely create real res inside
+a building. Therefore, the organizers of the competition
+decided to use articial res, hereafter referred to as re
+analogues. These re analogues are distinguishable both ther-
+mally and visually. The main body is made from plexiglass
+and is divided into two separate parts. The rst part contains
+an anodized aluminium heating element with dimensions of
+60 mm35 mm heated to 120C. This part is accessible
+through a 150 mm wide circular opening, and the task of
+the MA V is to spray water through this opening. The second
+part contains a silk ame that visually emulates ames and
+allows spectators of the competition to see which of the re
+analogues was active. The second part is placed behind the
+rst on the side opposite to the opening. Examples of what the
+re analogues looked like during the competition are shown
+in Figure 11.
+For effective extinguishing, it is necessary not only to
+detect the heating element in a thermal image, but also to
+detect its relative position w.r.t. the MA V in 3D. It is also
+necessary to obtain an estimate of the normal vector of the
+front plate of the re analogue object in order to select the
+optimal extinguishing position for the MA V.
+The heating elements are heated to 120C, but our ther-
+mal cameras2report them as being at a temperature of only
+approximately 70C. This is due to the material having
+an emissivity value of 0.55 [39], as opposed to the value
+2https://terabee.b-cdn.net/wp-content/uploads/2020/05/evo-
+thermal_specsheet.pdf
+15878 VOLUME 9, 2021
+
+--- Page 8 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+Algorithm 3 Indoor Exploration
+Input: horizontal FOV of the thermal camera 
+1:function Explore_interior( )
+2:Bplan [ ] Finitialize 3D grid for planning
+3:Bexpl [ ] Finitialize 2D grid for exploration
+4: while not Fire_detected() do
+5: R Get_current_state_of_MA V() FRD(x;R)
+6: ifReceived_new_data_from_sensors() then FFrom the stereo camera or 2D LIDAR
+7: dnew Get_new_data()
+8: Bplan Update_planning_buffer(B plan;dnew;R)
+9: Bexpl Update_exploration_buffer(B expl;dnew;R;)
+10: ifIs_time_to_replan() then
+11: f Get_nearest_frontier(B expl;R)
+12: ifIs_empty(f )then
+13: return False FSpace has been explored without detection
+14: Plan Plan_trajectory(B plan;R;f;) FPlanD[r1;1;:::; rn;n]
+15: Fly_trajectory(Plan)
+16: Hover() FStop following the previous trajectory
+17: return True FFire detected
+of 0.95 that our cameras internally use in calculating all
+surface temperatures. This means that the contrast between
+the heating elements and their surroundings in the thermal
+image is less than would be expected based on the tem-
+peratures alone (see Figure 6 on the left). This, however,
+was not a signicant issue indoors, where the environment
+does not contain objects of such a temperature, and the
+viewing distances are short due to the limited size of the
+interior.
+We could therefore merely detect the re sources in the
+thermal image by binarizing the image with a xed threshold
+lower than the typically measured temperature of the heat-
+ing elements (Figure 6, right). In order to avoid detecting
+a uniformly heated background, such as a sun-heated wall,
+we additionally validated the detections using a differential
+image produced by the Laplacian image operator to check if
+the detected object is signicantly hotter than its surround-
+ings (Figure 6, center). It should be noted that the plexi-
+glass casing of the re analogues is not transparent to the
+infrared radiation used by our thermal cameras. This means
+that the observation angles, w.r.t. the front wall from which
+they can be seen, are limited. The observation has to be
+made and the extinguishing has to be done from a position
+as close to perpendicular with the wall. Since the radius of
+the circular front opening in the plexiglass casing is 7:5 cm
+and the heating element is positioned approx. 6 cm inwards
+from the front plate, the heating element can be seen from at
+most 57from the perpendicular position. However, this is
+an extreme where we would only have a line of sight to the
+very edge of the heating element, which may not even appear
+on the camera. It is still desirable to maintain perpendicular
+alignment for extinguishing, since this maximizes the image
+area of the heating element, minimizes the inuence of the
+parallax between the heating element and the front plate towhich we measure the distance, and additionally maximizes
+the robustness of the correct aiming w.r.t. drifting in an arbi-
+trary direction.
+We assume that the thermal cameras have the properties
+of pinhole cameras and derive their focal distance from the
+pixel resolution wper side and their FOV per side. This
+assumption is based on the minuscule size of the cameras,
+the small FOV, the relative rarity, and the high cost of
+infrared compatible lenses. More precise calibration than
+this is impractically complicated to achieve, due to the low
+resolution of the cameras.
+When a contour of compliant pixels is detected in the ther-
+mal image, we calculate the average x-yimage coordinates
+of these pixels. These coordinates are converted to direction
+vectors using the assumed camera model:
+vtD2
+4vtx
+vty
+vtz3
+5D2
+41=f 0 ((w 1)=2)=f
+0 1=f ((w 1)=2)=f
+0 0 13
+52
+4x
+y
+13
+5;(2)
+where
+fD(w=2)
+tan(=2): (3)
+For convenience in subsequent operations, vector vtis nor-
+malized and is transformed into a coordinate frame centered
+in the optical center of the camera, with the x-axis pointing
+forwards, the y-axis to the left, and the z-axis upwards. This
+coordinate frame is called the thermal base frame. The trans-
+formed vector is denoted as Ovf.
+For extinguishing action carried out by MA Vs, we also
+need a distance estimate. This is achieved by combining the
+direction vectors with a surface shape measurement source.
+We use the 2D LIDAR sensor to estimate the outline of the
+re analogues in front of the camera in the form of a set of
+VOLUME 9, 2021 15879
+
+--- Page 9 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 7. Illustration of how the fire is localized.
+coplanar 3D points Plidarordered by their angle from the
+sensors (blue and green points in Figure 7). This works by
+presuming that the entire scene is a vertical extrusion object
+with equal cross-sections at all heights. We can then represent
+the scene as a set of vertical planes passing through pairs
+of 3D points adjacent in the sense of angle (white and green
+vertical planes in Figure 7). We select a pair of points piand
+piC1fromPlidar, s.t.
+atan2(p iy;pix)>atan2(v fy;vfx); (4)
+atan2(p iC1 y;piC1 x)<atan2(v fy;vfx): (5)
+The 3D position of the estimated target is then obtained
+by calculating the intersection of the optical line (the orange
+line in Figure 7) with the vertical plane V(the green plane
+in Figure 7) passing through the selected pair of points. Plane
+Vis dened by point piand normal nv:
+nvD2
+4 (p iC1 y piy)
+piC1 x pix
+03
+5: (6)
+The intersection point qis then calculated as:
+qDOvft; (7)
+where tis obtained using the normalized vector of the surface
+normalOnvas:
+tDOnvpi
+OnvOvf: (8)
+The estimate of the surface normal Onvand the intersection
+point qare used to steer the MA V into perpendicular position
+for extinguishing s, dened as
+sDqCrdOnv; (9)
+where rdis the desired extinguishing distance of 1:5 m.
+We did not consider a single estimate of the 3D position
+of the heat source to be sufcient. Instead, we implemented a
+Kalman lter that stores multiple measurements as an array
+of states and renes each state using new measurements. The
+state vector of the Kalman lter used here is
+xiDcix;ciy;ciz; iT; (10)
+FIGURE 8. An example of the view of a real fire with the thermal camera
+used in the competition at two different thermal ranges. Note the high
+contrast of the fire compared to the background, in addition to the large
+size of the fires in the image. In the range of temperatures used in the
+competition, the fire itself is completely saturated in the image. Detecting
+and targeting such objects is significantly easier to achieve than when fire
+analogues are used.
+where cix,ciy, and cizare the coordinates of the re in the
+world coordinate frame. The  irepresents the azimuth of
+the surface normal for that re. The ltering mechanism
+stores multiple such state vectors, corresponding to multiple
+different detected res. We update a specic state vector xi
+using a new estimate of the re position qand normal nv, ifq
+is closer in the world frame than 1 m tocix;ciy;cizTand at
+the same time the horizontal component of nvis closer than
+90to i. If no such state is found, a new state is initialized
+based on the current estimate. As is typical of the Kalman
+lter, the state covariances grow in time to reect loss of
+knowledge without observation and, in our case, additionally
+discard any measurements or even states that exhibit erro-
+neous properties or states that have not been updated with a
+measurement for the past 10 s. To account for random errors,
+a state xiis only used in re extinguishing if it has been
+associated with at least 10 measurements.
+It should be noted that the method for thermal detection
+and localization of re analogues used here is signicantly
+more complicated than would be realistically required in
+extinguishing real-world res. This is because res that pose
+a real danger are signicantly hotter than the heating elements
+of the re analogues used in the competition, and dangerous
+res do not appear colder than they actually are in thermal
+cameras (see Figure 8for an example). Additionally, these
+res are signicantly larger objects, and extinguishing them
+would not require just spraying into a very narrow opening. In
+real re extinguishing, it is desirable to aim at the hottest areas
+detected in the re. A more dispersed water stream would
+also be advantageous, as it would be more likely to hit the
+re, even with less precise target localization, and it would
+extinguish the re more effectively.
+E. FIRE EXTINGUISHING
+Upon obtaining the rst validated re detection state in the
+Kalman lter array, the MA V is sent to a position s1:5 m
+in front of the given target qalong the estimated normal nv.
+As the MA V ies there, its estimate of the target position
+and the surface normal improves as it obtains new detections
+from better viewpoints. When it reaches the position, control
+is handed over to the re-extinguishing subsystem (the state
+labeled Extinguish re in Figure 10(d)).
+15880 VOLUME 9, 2021
+
+--- Page 10 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 9. Steering hysteresis for fire extinguishing, viewed from above.
+In this state, the MA V is steered towards position s. How-
+ever, continuous positional stabilization of the MA V towards
+this exact position may lead to rapid tilting, due to movement
+oscillations during attempts to correct the current position,
+especially in face of potential re estimation errors and
+disturbances such as air currents. This causes the direction
+of the water stream to be signicantly unstable, since the
+water nozzle does not have active stabilization due to weight
+restrictions.
+To mitigate this effect, we have included a hysteresis to
+horizontal steering through two ranges of angle and distance
+offsets (see Figure 9). The angle ranges were dened as limits
+to the angles formed by the surface normal nvand the line
+connecting the center of the re analogue with the MA V -
+the inner range iwas set to5, and the outer range o
+was set to10. The distance ranges are offsets from the
+desired extinguishing distance of 1:5 m. These were set to
+0:075 m for the inner range ri, and to0:15 m for the outer
+range ro. Once the MA V has reached the inner ranges (the
+red zone in Figure 9), the xy-coordinates are not corrected,
+irrespective of disturbances. The system can only correct its
+altitude and its heading as changing these does not generate
+tilt of the MA V. The MA V thus tends to drift or "oat". It is
+necessary to correct the heading continuously, otherwise the
+drifting would affect the aim of the MA V. Water spraying is
+only activated when the MA V is in this drifting state. The z-
+coordinate and the heading are controlled either to spray at the
+directly observed heating element of the re analogue, or - if
+it is not visible e.g.due to being cooled down by the water
+- to spray at its estimated position from the Kalman lter. If
+the target is directly observed, the aiming is more responsive
+to disturbances. However, if the aiming relies on the lter,
+the precision is lowered. The MA V is only allowed to correct
+itsxy-coordinates again when it has been moved outside the
+outer ranges (the green zone in Figure 9), at which point water
+spraying is disabled.
+F. HIGH-LEVEL BEHAVIOR CONTROL
+The complete behavior structure of the proposed system is
+constructed as a hierarchical state machine, which is used
+for interconnecting all the subsystems. The state machine
+was designed for robustness of the entire code structure byresolving the remaining few subsystem failure cases due to
+wrong sequential and concurrent operations. The hierarchical
+state machine is implemented using the Flexbe library [40],
+and it is fully integrated into the designed ROS framework.
+In Figure 10, the internal states of the state machines
+are visualized as single-outline rectangles, and the nested
+lower-level state machines are visualized as double-outline
+rectangles. Transitions between two states and from one state
+machine to a lower-level state machine are marked by arrows
+with labels of outcomes describing the given transition. Dot-
+ted terminal states represent the transition that is called after
+returning to a higher level state machine. A landing event is
+called whenever any state produces an outcome that means
+that the MA V cannot continue its mission. Unfortunately,
+there is no information available for the MA V to recognize
+whether the amount of the sprayed liquid was sufcient to
+extinguish the re. Therefore, whenever the MA V lands,
+the operators can see whether or not the mission was success-
+ful by the state of the water bag.
+The diagram of the main state machine is visualized in Fig-
+ure10(a). In the rst step, the correct performance of all key
+parts of the system is checked. When every component is
+veried to be operational, an automatic takeoff is called. Once
+the MA V is in the air, the mission commences. The mission
+is divided into two parts: the outdoor phase and the indoor
+phase. The outdoor phase is the part of the mission where
+the MA V is outside the building. The indoor phase is when
+the MA V is inside the building. At the end of the mission
+(a window or a re has not been found, or a re has been
+successfully extinguished), the MA V ies back to the home
+position and lands.
+The outdoor phase (Figure 10(c)) starts by ying to the
+known GNSS position of the building. This position must be
+a position from which the MA V is capable of detecting the
+building. A common problem with navigation using standard
+GNSS is its precision, which depends on the quality of the
+satellite signal. GNSS satellites broadcast their signals in
+space, but what we receive depends on additional factors,
+such as signal blockage and atmospheric conditions. There-
+fore, a safe position in front of the building may drift into the
+building. For this reason, the MA V uses scans provided by 2D
+LIDAR during the ight to facilitate navigation around the
+building where the GNSS quality is degraded by the building
+blocking the direct line of sight of some satellites. These scans
+provide planar information in 360around the MA V and are
+used in a virtual bumper. The virtual bumper is a system that
+prevents the MA V from following a plan that would lead it to
+go closer than the predened safe distance from the building.
+If the target position is inside the building, the MA V will stop
+at a position within a safe distance from the building and
+closest to the target position.
+After it reaches a safe position near the building, the MA V
+starts ying alongside the building at a predened distance
+with a heading towards the building, and begins the win-
+dow detection mechanism. Whenever a window is located,
+the MA V stops ying alongside the building and ies in front
+VOLUME 9, 2021 15881
+
+--- Page 11 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 10. Diagrams of the main parts of the proposed system.
+of the window to distance of 2 m from its center. Once this
+position is reached, the localization of the MA V is switched
+to indoor ying mode (LIDAR-based odometry is used in the
+controller feedback), and an attempt is made to y through
+the window. If the attempt is successful, the MA V is inside
+the building and the outdoor phase is considered successfully
+nished. In the case of the opposite result, the MA V restarts
+the search for an open window. After circumnavigating the
+building without detecting a window, the outdoor phase ends,
+and the result is registered as ``window not found''. The
+MA V is allowed to detect the same window again and to
+attempt to y through it. This strategy is motivated by the
+knowledge that only a single window was to be opened oneach oor during the competition trial. The attempts can be
+repeated until the maximum allowed ight time is reached.
+After reaching this time, the MA V automatically lands.
+The steps for ying through the selected window are shown
+in Figure 10(b). The procedure utilizes window estimates pro-
+duced by algorithms described in section II-B. First, the MA V
+ies to a position in front of the window while continuously
+facing the center of the window. The MA V then hovers in
+front of the center of the window to stabilize itself before the
+actual ythrough. The ythrough maneuver is then initialized
+and the state machine waits for an up-to-date window esti-
+mate corrected by new detections. After the window estimate
+has been updated, the MA V ies through the center of the
+15882 VOLUME 9, 2021
+
+--- Page 12 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 11. Photos of the MBZIRC 2020 Fire Challenge area. The photo on
+the left shows the tall structure simulating a building, the photo in the
+middle shows front view of the fire analogues (this unit was turned on)
+and the photo on the right shows side view of the fire analogues (this
+unit was turned off).
+window to a goal position at a predened distance behind the
+window while maintaining a constant altitude. If the window
+estimate is lost while the ythrough is in progress and the
+MA V is still outside the building, the state machine switches
+to the Escaping state and the MA V returns to its original
+hovering position in front of the window.
+The indoor phase (Figure 10(d)) contains the nal parts
+ localization and extinguishing of the re. Localization is
+done by using the exploration method, which is described in
+section II-C, and the detection system, which is described in
+section II-D. Once the re is detected, the MA V ies in front
+of it and begins extinguishing (section II-E). If the re target
+is not lost, the MA V depletes all the water that it is carrying
+during the extinguishing maneuver. There is no feedback
+that provides information as to whether the extinguishing
+has been completed. The extinguishing is therefore declared
+completed once all the water is depleted. In the case that the
+re is lost, the MA V starts exploring again. After depleting
+the extinguishing agent, the MA V ies back in front of the
+window that it entered through and tries to y back outside
+the building. An attempt to leave the building using the same
+window is also performed if the exploration nishes without
+successful localization of the re. When the MA V is outside,
+the localization of the MA V is switched to outdoor ying
+again and MA V ies back to land on the starting position.
+In the case of a real reghting scenario inside a building,
+the proposed system can be used in almost the same structure
+as presented here. The only modication is that the process of
+searching for an open window can be accelerated by directly
+specifying the approximate GNSS position of the window.
+III. EXPERIMENTAL RESULTS
+A. SIMULATIONS
+To be able to experimentally verify the entire reghting mis-
+sion, we modeled the MBZIRC 2020 scenario in the Gazebo
+robotic simulator. The interior of the building was updated
+during the competition to correspond with the interior of the
+real building, as observed during the rehearsals (see photos
+from the competition in Figure 11). The Fire Challenge arena
+is approximately 50 m 60 m in dimensions and contains a
+tall structure (18 m in height) simulating a building. The inte-
+rior of each oor of the building contains two re analogues
+and only one per oor is activated during the trial. Each oor
+of the building contains eight 2 m 2 m windows. Only one
+of them is open and can be used as an access point to enter
+FIGURE 12. Snapshots from the simulation developed for the Fire
+Challenge of the MBZIRC 2020 competition.
+the oor. Snapshots from the simulated scenario are shown
+in Figure 12.
+The behavior of the proposed system can be simulated
+completely, including the outdoor and indoor ying, win-
+dow detection, re detection and also re extinguishing (see
+the right image in Figure 12). Numerous simulations were
+conducted with different settings of the system parameters
+during the preparations for the competition. The results of the
+system in the nal form after the competition obtained for the
+evaluation of the system for this paper are shown in Table 1.
+The goal of each run of the simulation was to extinguish an
+articial re on the rst oor of the building. For testing
+purposes and according to the rules, one of the re ana-
+logues (windows) was randomly selected and was turned on
+(opened). The position where the MA V started was the same
+each time for each run of the simulation. Three performance
+criteria may be considered for an evaluation of the task under
+discussion in this paper: reliability, total mission time, and
+minimal distance from the obstacles. The results show that
+the mission can be completed within 7 min. However, the re
+analogue was detected and extinguished only in 80 % of the
+cases, due to problematic properties of the re analogues. The
+re analogues are visible in the thermal images only under a
+viewing angle of at most 57from the position perpendicular
+to the re analogue. The proposed exploration method does
+not consider the angle under which the particular surface
+in the scene is observed. Therefore with the re analogues,
+the system can consider the surface as already scanned even
+though the re analogue was not detected, because the surface
+was scanned under an angle from which the heated element
+could not be detected. This is a specic property of the re
+analogues used in the competition, and it will not prevent
+successful detection of real res. During these simulations,
+it was successfully veried that the MA V did not come closer
+to the obstacles than 0:7 m, which was the minimum obstacle
+distance set for the indoor motion planning algorithm.
+B. REAL-WORLD VERIFICATION
+1) PLATFORM DESCRIPTION
+Our team participated in all challenges of the MBZIRC 2020
+competition. To allow reusability of the system and the spare
+parts, we decided to select a base MA V platform that can be
+used in all challenges, with possible modications to the sen-
+sors and actuators. The proposed reghting MA V platform
+with the complete sensory equipment is shown in Figure 13.
+The selected base platform is created mostly from com-
+mercially available off-the-shelf components and 3D printed
+VOLUME 9, 2021 15883
+
+--- Page 13 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+TABLE 1. Table with results from 10 runs of the simulated MBZIRC 2020 competition scenario. The MAV returned back to the starting position each time.
+However, the fire analogue was detected and was extinguished only in 8 of the cases, due to problematic properties of the fire analogues.
+FIGURE 13. Description of the components of the deployed MAV platform
+for indoor fire extinguishing.
+parts. The platform is built from the Tarot T650 quadrotor
+frame, the PixHawk 4 ight controller,3and an Intel NUC
+onboard computer. This frame satises the size limitations
+set for the competition and also for the real applications
+(the diagonal dimension without propellers is 650 mm), and
+provides the payload capacity that is necessary for carry-
+ing additional sensors and re-extinguishing equipment. The
+onboard computer is Intel NUC8i7BEH,4which contains
+Intel i7-8559U CPU and 8 GB of RAM, and runs the Ubuntu
+18.04 LTS operating system and Robot Operating System
+(ROS) [41] Melodic middleware. In addition, the MA V is
+equipped with RPLIDAR A3,5which is a 3602D laser
+range scanner that can be used for both indoor and outdoor
+applications. This sensor provides 16000 samples per second
+and can detect obstacles within a 25 m radius, depending on
+the setting of the sensor. For the stereo camera, we use the
+Realsense D435 camera,6which has FOV (H VD)
+873581953and a range of up to 10 m. Fire
+detection is done using a set of three TeraRanger Evo Thermal
+337thermal cameras. This thermal camera is cheap, small,
+and compact (only 12 g), which is very important in this case
+of a limited payload. However, the camera has small resolu-
+3https://github.com/PX4/px4_user_guide/raw/master/assets/ight_
+controller/pixhawk4/pixhawk4_technical_data_sheet.pdf
+4https://www.intel.com/content/dam/support/us/en/documents/mini-
+pcs/NUC8i3BE_NUC8i5BE_NUC8i7BE_TechProdSpec.pdf
+5https://www.generationrobots.com/media/LD310_SLAMTEC_rplidar_
+datasheet_A3M1_v1.0_en.pdf
+6https://www.intelrealsense.com/wp-content/uploads/2020/06/Intel-
+RealSense-D400-Series-Datasheet-June-2020.pdf
+7https://terabee.b-cdn.net/wp-content/uploads/2020/05/evo-
+thermal_specsheet.pdftion of 3232 pixels and FOV of 33in both dimensions,
+and requires a set of three of these sensors onboard the MA V
+to cover the vertical space in front of the MA V sufciently for
+this application. The cameras are arranged vertically, with s.t.
+one pointing forward and the two others above and below it,
+oriented 30upwards and downwards from the rst camera
+(see Figure 13). The MA V is further equipped with two
+Garmin LIDAR-Lite v38laser rangenders.
+To extinguish res, the MA V is equipped with a water bag
+and a pump.9The capacity of the bag was limited to 1 L of
+the re-extinguishing agent (water in the case of the com-
+petition) to maintain higher maneuverability of the system.
+This maneuverability is vital for ight in an environment,
+such as the inside of a building, where strong air currents
+and various obstacles can be encountered. The pump drives
+the water through a nozzle with a diameter of 4 mm and
+can fully deplete the bag within 25 s. The nozzle is rigidly
+attached to the MA V frame, and is oriented to the front with
+the spraying tip located 2 cm below and 2 cm in front of it. As
+has already been mentioned, this nozzle is not actuated, since
+a servomechanism of this type would signicantly increase
+the weight of the MA V.
+2) EXPERIMENTS
+The key parts of the proposed system were thoroughly tested
+in demanding outdoor conditions in the desert near Abu
+Dhabi in the United Arab Emirates. This environment was
+selected to emulate the conditions around buildings and other
+conditions set for the competition itself (mainly sudden wind
+gusts, strong sunlight and dust), while providing a safe eld
+for system tuning and experimental verication. Repeated
+experimental verication of the key parts of the proposed
+system was necessary in order to prepare for phenomena that
+are difcult to simulate, and also to discover issues related to
+the hardware that was deployed. One issue that emerged was
+the inuence of sensors connected using USB 3.x., such as
+Realsense D435, on the precision of GNSS. The precision of
+GNSS localization can be severely decreased by the inuence
+of components transmitting via cable at frequencies close to
+those used by GNSS. See sheet10for a detailed description
+of USB 3 frequency interference. It was therefore necessary
+8http://static.garmin.com/pumac/LIDAR_Lite_v3_Operation_Manual_
+and_Technical_Specications.pdf
+9https://www.comet-pumpen.de/leadmin/pdf/pumpen_datenblaetter/
+24v/Datenblatt_VIP-PLUS_24V_1435.88.00.pdf
+10https://www.intel.com/content/www/us/en/products/docs/io/universal-
+serial-bus/usb3-frequency-interference-paper.html
+15884 VOLUME 9, 2021
+
+--- Page 14 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 14. Experimental verification of fire extinguishing in the desert
+near Abu Dhabi, United Arab Emirates. The image on the left shows a
+photo from this experiment. The image on the right displays the plot of
+the changing offsets of the nozzle direction from the estimated fire
+analogue direction during the extinguishing procedure. Angles and 
+denote vertical (pitch) and horizontal (yaw) angular offsets. The blue line
+denotes when the water pump was activated. The black circle denotes the
+range of offsets corresponding to the area of the opening in the
+plexiglass viewed from the desired extinguishing distance of 1.5 m. Note
+that most of the time, the water only sprinkled when the nozzle was
+aiming into the opening. However, the real world dynamics of the water
+stream caused more spillage than the aim itself implies. A video of this
+experiment is on YouTube11.
+FIGURE 15. Plot of the MAV trajectory during the extinguishing
+experiment displayed in Figure 14. The red line denotes the trajectory
+itself relative to the fire analogue. The green points are specific positions
+from which the MAV activated its water pump. Spraying lines parallel to
+the direction of the water nozzle in the spraying positions are projected
+in blue. Note that 93% of these spraying lines pass through the black
+circle denoting the opening in the plexiglass of the fire analogue. The
+trajectory is projected to the xy-plane as a shadow, for better clarity. Also
+shown in the xy-plane are the hysteresis ranges described in Figure 9.
+to shield the receiver of the GNSS signal. Another issue
+that we discovered was the necessity to calibrate the re-
+extinguishing device to hit the re detected by the thermal
+cameras precisely for each MA V. Otherwise, the ejected
+water would not precisely hit the opening in the re ana-
+logues. In fact, the direction of the water stream was diverted
+downwards by the pressure generated by the active propellers.
+Although precise placement of the re-extinguishing agent
+is also important consideration in real reghting, the small
+size of the opening in the MBZIRC 2020 re analogues
+presented a much more difcult challenge than a reghting
+MA V would face in a real re.
+FIRE DETECTION AND EXTINGUISHING
+The rst experiment presented here was focused on re
+detection in conjunction with autonomous re extinguishing(discussed in section II-Dand section II-E). The initial goal
+of this experiment was to detect the re analogues. After
+successful detection, the MA V moves in front of the re
+at a distance of 1:5 m while heading towards the opening
+in the center of the re analogue, and then it initiates the
+autonomous re extinguishing. Whenever the MA V points
+the nozzle towards the opening at the correct relative distance,
+the water pump is activated (see Figure 14and Figure 15).
+The experiment shown in Figure 14and15was carried out
+in the latest stage of system development prior to the com-
+petition, representing the nal state of the re-extinguishing
+subsystem. A video showing this experiment is available on
+YouTube.11As the data shows, at least in terms of position
+and heading, the MA V approached the desired extinguishing
+position w.r.t. the re analogue and deployed water into the
+small opening. In this experiment, for 93 % of the time when
+the water pump was activated, the water nozzle was aiming
+correctly at the opening. The remaining 7 % was affected by
+the delay until the pump turned off successfully. This shows
+the accuracy of the re detection and localization system. It
+should be noted that some of the deployed water was lost
+due to various effects such as dispersion, the momentum of
+the liquid in the spraying system, surface tension within the
+water stream, bouncing off from the back plate of the re
+analogue, stronger ballistic curvature when the pump is being
+activated or deactivated, and evaporation from the heating
+element. Note also that there were numerous interruptions
+in the correctly-aimed water spraying. These interruptions
+were caused by loss of the target by the thermal cameras
+due to the heating element being temporarily cooled down
+by the deployed water (this was a special property of the
+MBZIRC 2020 re analogue, not of a real re). For this
+implementation, we decided that it was a better strategy to let
+the target heat up again and to invest additional time instead
+of continuously spraying merely based on the "remembered"
+position of the target. Such estimation without new measure-
+ments drifts from the real position, and the limited carrying
+capacity of an MA V makes it a priority to be economical
+with the extinguishing agent. With real hazardous res, such
+losses of vision will only occur after the extinguishing has
+been successful, so it would not be necessary to interrupt the
+water stream.
+INDOOR MOTION PLANNING AND EXPLORATION
+Another experimentally veried subsystem was indoor
+motion planning and exploration (discussed in section II-
+C). The goal of the experiment was to completely explore
+the space inside a room with obstacles consisting of poles
+holding the structure and wooden articial obstacles. An
+example layout of the obstacles inside the room is shown
+in Figure 16(a). A visualization of data from the experiment
+in this setup is shown in Figure 16(b). Figure 17 shows a
+visualization of the MA V trajectory and minimal obstacle dis-
+tance progression from one of the performed ights. During
+11https://youtu.be/9bkv5uHK4
+VOLUME 9, 2021 15885
+
+--- Page 15 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 16. Experimental verification of the indoor motion planning and
+exploration techniques in the desert near Abu Dhabi, United Arab
+Emirates before MBZIRC 2020. In the image on the right, the red blocks
+denote obstacles, the green blocks show the already scanned space, and
+the yellow blocks denote frontiers for exploration. A video from this
+experiment is on YouTube12.
+FIGURE 17. Data from one of the flights from the indoor motion planning
+and exploration experiment displayed in Figure 16.
+the ights, the MA V had not come closer than the specied
+minimal distance of 0:9 m to the observed obstacles, and had
+successfully explored the space inside the room. A video
+showing one of these experiments is available on YouTube.12
+WINDOW DETECTION AND THE OUTDOOR-INDOOR
+TRANSITION
+Another experiment in the desert was aimed at verifying
+the correct performance of outdoor wall following, window
+detection, ight through the detected window, and switching
+between indoor and outdoor modes of localization. For this
+purpose, a wooden room was constructed next to a long wall.
+The room was approximately 2:5 m 3 m2 m in size
+and contained an entrance 2 m 2 m in size. The size of
+the room did not match the MBZIRC 2020 specication but
+it was suitable for testing these particular parts of the sys-
+12https://youtu.be/9LTf6PG4ijc
+FIGURE 18. Images from experimental verification of the correct
+performance of outdoor wall-following, window detection, flight through
+the detected window, and switching between indoor and outdoor modes
+of localization. 18(a) shows the MAV before entering a mock-up building
+in the desert and 18(b) displays a particular visualization of the onboard
+sensor data. The visualization includes the MAV position, LIDAR data
+shown as red squares, the detected window as a yellow rectangle, and a
+map produced by the Hector SLAM algorithm. A video from this
+experiment is on YouTube13.
+tem. Figure 19(a) displays the trajectory of the MA V during
+the experiment. The MA V started 2:5 m from the wall and
+autonomously detected the wall as the closest object seen
+by the 2D LIDAR, then followed the wall at a distance of
+2 m while simultaneously searching for a window. During
+the outdoor ight, the MA V was localized using GNSS. The
+window was detected using a combination of 2D LIDAR data
+and a priori information about its size and altitude. When
+the window was detected, the MA V approached the window,
+after which the localization switched to indoor mode (using
+2D LIDAR-based Hector SLAM), and the MA V ew inside.
+The MA V then turned around inside the building, ew back
+outside, and the localization mode switched back to GNSS.
+Finally, the MA V returned back to its starting position and
+landed. The whole experiment, along with a visualization
+of the sensor data, can be seen in a video on YouTube.13
+Figure 18 shows the MA V in front of the building along with
+a visualization of the sensor data and the detected window.
+Figure 19(b) contains a plot of the total control error (dened
+as the 3D Euclidean distance between the current reference
+and the MA V position) from the entire ight. This graph
+shows that the switch between the two different localization
+systems was smooth and did not impact the control of the
+MA V. The average control error during the ight was 0:14 m.
+COMPLETE SYSTEM VERIFICATION
+The complete system was tested in a mock-up of the com-
+petition building set up in the Czech Republic. The mock-
+up is 5 m5 m, with 2 oors totaling 5 m in height, with
+windows 1:85 m1 m in dimensions (see Figure 20). The
+size of the windows matches the rst specication for the
+MBZIRC 2020 competition. This specication was changed
+later, and the windows are smaller than in the competition.
+This made the ight through the window more challenging
+than was necessary for the competition, but it veried the
+performance and the robustness of the system for real-world
+deployment. In the experiment presented here, the MA V
+began next to the mock-up, autonomously detected the wall
+as the closest object seen by 2D LIDAR, and then followed
+13https://youtu.be/aCKUjbJ2Mxs
+15886 VOLUME 9, 2021
+
+--- Page 16 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 19. Data from the outdoor-indoor transition experiment
+displayed in Figure 18.
+FIGURE 20. Experimental verification of the proposed system on a
+mock-up of the building set up in the Czech Republic. The image on the
+left shows the MAV outside the mock-up during its search for an open
+window. The image on the right displays the MAV while the water is being
+sprayed on the fire analogue inside the mock-up. A video of this
+experiment is on YouTube14.
+the wall at a distance of 1:5 m while simultaneously searching
+for a window. The window was detected using a combination
+of data from 2D LIDAR and from the stereo camera. After
+successful detection, the MA V approached the window and
+ew inside. Then, the MA V started to explore the interior of
+the building with the goal to nd the re analogue and then to
+extinguish the re. The re analogue was later detected and
+all the water was depleted on it. Finally, the MA V ew out
+of the building, using the same window through which had
+own in, and then ew back to the starting position of the
+mission, where it landed. The complete trajectory traveled by
+the MA V during this experiment is shown in Figure 21(a).
+Figure 21(b) shows the distance from the closest obstacles
+measured by 2D LIDAR during the ight. The shortest obsta-
+cle distance of the whole ight was 0:74 m, when the MA V
+was ying through the window. It can be seen that the MA V
+motion was successfully planned with an adequate safety
+margin throughout the ight. The whole experiment, along
+FIGURE 21. Data from the complete system verification experiment
+presented in Figure 20.
+with a visualization of the sensor data, can be seen in a video
+on YouTube.14
+IV. GOING BEYOND THE MBZIRC COMPETITION
+An MA V can carry a water bag lled only with a very
+limited amount of water, due its limited payload capacity.
+Even after this entire amount has been discharged perfectly
+into a real re, the re will very likely not be extinguished. To
+increase the payload capability of the MA V, its size has to be
+changed. However, greater dimensions of the MA V will make
+ying through windows and inside buildings very difcult to
+achieve, if not even impossible. Therefore, in the most cases
+the re-extinguishing approach, with the water spray, is not
+the optimal solution.
+Based on our results in the competition, the proposed
+autonomous system was selected to be the core of an indus-
+trial reghting MA V system using re-extinguishing cap-
+sules.15This system makes it necessary to hit the re directly,
+meaning that it requires reliable techniques for locating,
+approaching, and aiming precisely at res. These techniques
+are being adapted from the work presented here, combined
+with a throwing mechanism able to place the active re-
+ghting capsules quickly and precisely.16A prototype of a
+complex industrial platform is shown in Figure 22.
+14https://youtu.be/a-VsVQcMLuQ
+15http://www.re-defender.com/en/bonpet-3/1465-2
+16http://mrs.felk.cvut.cz/projects/dofec
+VOLUME 9, 2021 15887
+
+--- Page 17 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+FIGURE 22. A new platform under development that uses
+fire-extinguishing capsules as projectiles. The first two photos on the
+right show 3D render of the platform and launcher design, photo on the
+left shows constructed platform.
+V. CONCLUSION
+In this work, we have presented a complex system developed
+for fully autonomous extinguishing of res inside a building
+using an MA V system. The challenges include control and
+estimation of the MA V state, interior motion planning and
+exploration, window and re detection and position estima-
+tion, and re extinguishing. One of the main contributions
+of the system lies in precise control for ying through rel-
+atively small windows, and also for precise spraying of re-
+extinguishing agent into a small opening representing the re,
+using multiple sensory data to increase reliability. For this,
+we have presented a novel multi-layer control pipeline that
+further enables precise localization and stabilization in an
+open space around a building, inside rooms with obstacles,
+and also with a smooth transition between these two environ-
+ments (with GNSS and GNSS-denied). This smooth transi-
+tion is another contribution that motivated the MBZIRC 2020
+committee to design this demanding challenge. The paper
+contains the system performance presented in simulations
+and eld tests in various demanding real-world conditions.
+The system was developed as part of a solution for the
+reghting mission in the MBZIRC 2020 competition, and
+it helped our team to achieve rst place in the Grand Chal-
+lenge of this competition among the best universities in aerial
+robotics worldwide.17Although the system was developed
+specically for this competition, the solution presented here
+has led to an industrial solution that is now under develop-
+ment. This solution will be focused on real-world reghting,
+in which autonomous drones will deploy re-extinguishing
+capsules.
+REFERENCES
+[1] H. Shakhatreh, A. H. Sawalmeh, A. Al-Fuqaha, Z. Dou, E. Almaita,
+I. Khalil, N. S. Othman, A. Khreishah, and M. Guizani, ``Unmanned
+aerial vehicles (UA Vs): A survey on civil applications and key research
+challenges,'' IEEE Access, vol. 7, pp. 4857248634, 2019.
+[2] S. Verykokou, C. Ioannidis, G. Athanasiou, N. Doulamis, and A. Amditis,
+``3D reconstruction of disaster scenes for urban search and rescue,'' Mul-
+timedia Tools Appl., vol. 77, no. 8, pp. 96919717, Apr. 2018.
+[3] D. Duarte, F. Nex, N. Kerle, and G. Vosselman, ``Towards a more ef-
+cient detection of earthquake induced facade damages using oblique uav
+imagery,'' in Proc. IEEE ICUAVG, Aug. 2017, pp. 93100.
+[4] Y. Yamazaki, M. Tamaki, C. Premachandra, C. J. Perera, S. Sumathipala,
+and B. H. Sudantha, ``Victim detection using UA V with on-board voice
+recognition system,'' in Proc. 3rd IEEE Int. Conf. Robotic Comput. (IRC),
+Feb. 2019, pp. 555559.
+[5] M. Rahnemoonfar, R. Murphy, M. V. Miquel, D. Dobbs, and A. Adams,
+``Flooded area detection from UA V images based on densely connected
+17https://www.mbzirc.com/winning-teams/2020recurrent neural networks,'' in Proc. IEEE Int. Geosci. Remote Sens. Symp.
+(IGARSS), Jul. 2018, pp. 17881791.
+[6] R. Ravichandran, D. Ghose, and K. Das, ``UA V based survivor search dur-
+ing oods,'' in Proc. Int. Conf. Unmanned Aircr. Syst. (ICUAS), Jun. 2019,
+pp. 14071415.
+[7] C. Yuan, Z. Liu, and Y. Zhang, ``UA V-based forest re detection and track-
+ing using image processing techniques,'' in Proc. Int. Conf. Unmanned
+Aircr. Syst. (ICUAS), Jun. 2015, pp. 639643.
+[8] J. Delmerico, S. Mintchev, A. Giusti, B. Gromov, K. Melo, T. Horvat,
+C. Cadena, M. Hutter, A. Ijspeert, D. Floreano, L. M. Gambardella,
+R. Siegwart, and D. Scaramuzza, ``The current state and future outlook of
+rescue robotics,'' J. Field Robot., vol. 36, pp. 121, Oct. 2019.
+[9] T. Rou£ek, M. Pecka, P. íºek, T. Pet°í£ek, J. Bayer, V. alanský, D. He°t,
+M. Petrlík, T. Bá£a, V. Spurný, F. Pomerleau, V. Kubelka, J. Faigl,
+K. Zimmermann, M. Saska, T. Svoboda, and T. Krajník, ``DARPA sub-
+terranean challenge: Multi-robotic exploration of underground environ-
+ments,'' in Proc. IEEE MESAS, Mar. 2020, pp. 274290. [Online]. Avail-
+able: https://link.springer.com/chapter/10.1007/978-3-030-43890-6_22
+[10] F. Mascarich, S. Khattak, C. Papachristos, and K. Alexis, ``A multi-modal
+mapping unit for autonomous exploration and mapping of underground
+tunnels,'' in Proc. IEEE Aerosp. Conf., Mar. 2018, pp. 17.
+[11] M. Petrlik, T. Baca, D. Hert, M. Vrba, T. Krajnik, and M. Saska, ``A robust
+UA V system for operations in a constrained environment,'' IEEE Robot.
+Autom. Lett., vol. 5, no. 2, pp. 21692176, Apr. 2020.
+[12] L. Shi, X. Wang, T. Zhang, C. Hu, K. Luo, and B. Bai, ``Hazardous gas
+detection four-rotor UA V system development,'' in Proc. IEEE Int. Conf.
+Mechatronics Autom., Aug. 2016, pp. 24612465.
+[13] Z. Fu, Y. Chen, Y. Ding, and D. He, ``Pollution source localization
+based on multi-UA V cooperative communication,'' IEEE Access, vol. 7,
+pp. 2930429312, 2019.
+[14] P. Stibinger, T. Baca, and M. Saska, ``Localization of ionizing radiation
+sources by cooperating micro aerial vehicles with pixel detectors in real-
+time,'' IEEE Robot. Autom. Lett., vol. 5, no. 2, pp. 36343641, Apr. 2020.
+[15] C. Corrado and K. Panetta, ``Data fusion and unmanned aerial vehicles
+(UA Vs) for rst responders,'' in Proc. IEEE Int. Symp. Technol. Homeland
+Secur. (HST), Apr. 2017, pp. 16.
+[16] L. Merino, F. Caballero, J. R. Martínez-de-Dios, I. Maza, and A. Ollero,
+``An unmanned aircraft system for automatic forest re monitoring and
+measurement,'' J. Intell. Robotic Syst., vol. 65, nos. 14, pp. 533548,
+Jan. 2012.
+[17] A. Restas, ``Forest re management supporting by UA V based air recon-
+naissance results of Szendro re department, Hungary,'' in Proc. 1st Int.
+Symp. Environ. Identities Medit. Area, Jul. 2006, pp. 7377.
+[18] A. Viguria, I. Maza, and A. Ollero, ``Distributed service-based cooperation
+in aerial/ground robot teams applied to re detection and extinguishing
+missions,'' Adv. Robot., vol. 24, nos. 12, pp. 123, Jan. 2010.
+[19] R. Chen, H. Cao, H. Cheng, and J. Xie, ``Study on urban emergency re-
+ghting ying robots based on UA V,'' in Proc. IEEE 4th Adv. Inf. Technol.,
+Electron. Autom. Control Conf. (IAEAC), Dec. 2019, pp. 18901893.
+[20] H. Qin, J. Q. Cui, J. Li, Y. Bi, M. Lan, M. Shan, W. Liu, K. Wang, F. Lin,
+Y. F. Zhang, and B. M. Chen, ``Design and implementation of an unmanned
+aerial vehicle for autonomous reghting missions,'' in Proc. 12th IEEE
+Int. Conf. Control Autom. (ICCA), Jun. 2016, pp. 6267.
+[21] P. Pecho, P. Magdolenová, and M. Bugaj, ``Unmanned aerial vehicle
+technology in the process of early re localization of buildings,'' Transp.
+Res. Procedia, vol. 40, pp. 461468, Jan. 2019.
+[22] A. Imdoukh, A. Shaker, A. Al-Toukhy, D. Kablaoui, and M. El-Abd,
+``Semi-autonomous indoor reghting UA V,'' in Proc. 18th Int. Conf. Adv.
+Robot. (ICAR), Jul. 2017, pp. 310315.
+[23] M. Popp, S. Prophet, G. Scholz, and G. F. Trommer, ``A novel guidance and
+navigation system for MA Vs capable of autonomous collision-free entering
+of buildings,'' Gyroscopy Navigat., vol. 6, no. 3, pp. 157165, Jul. 2015.
+[24] M. Popp, G. Scholz, S. Prophet, and G. F. Trommer, ``A laser and image
+based navigation and guidance system for autonomous outdoor-indoor
+transition ights of MA Vs,'' in Proc. DGON Inertial Sensors Syst. Symp.
+(ISS), Sep. 2015, pp. 118.
+[25] S. Zhou, G. Flores, E. Bazan, R. Lozano, and A. Rodriguez, ``Real-time
+object detection and pose estimation using stereo vision. An application
+for a quadrotor MA V,'' in Proc. Workshop Res., Edu. Develop. Unmanned
+Aerial Syst. (RED-UAS), Nov. 2015, pp. 7277.
+[26] G. Flores, S. Zhou, R. Lozano, and P. Castillo, ``A vision and GPS-
+based real-time trajectory planning for MA V in unknown urban environ-
+ments,'' in Proc. Int. Conf. Unmanned Aircr. Syst. (ICUAS), May 2013,
+pp. 11501155.
+15888 VOLUME 9, 2021
+
+--- Page 18 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+[27] R. C. Julian, C. J. Rose, H. Hu, and R. S. Fearing, ``Cooperative control
+and modeling for narrow passage traversal with an ornithopter MA V and
+lightweight ground station,'' in Proc. Citeseer AAMAS, 2013, pp. 103110.
+[28] G. Loianno, C. Brunner, G. McGrath, and V. Kumar, ``Estimation, control,
+and planning for aggressive ight with a small quadrotor with a single
+camera and IMU,'' IEEE Robot. Autom. Lett., vol. 2, no. 2, pp. 404411,
+Apr. 2017.
+[29] D. Falanga, E. Mueggler, M. Faessler, and D. Scaramuzza, ``Aggressive
+quadrotor ight through narrow gaps with onboard sensing and computing
+using active vision,'' in Proc. IEEE Int. Conf. Robot. Autom. (ICRA),
+May 2017, pp. 57745781.
+[30] T. Tomic, K. Schmid, P. Lutz, A. Domel, M. Kassecker, E. Mair, I. Grixa,
+F. Ruess, M. Suppa, and D. Burschka, ``Toward a fully autonomous UA V:
+Research platform for indoor and outdoor urban search and rescue,'' IEEE
+Robot. Autom. Mag., vol. 19, no. 3, pp. 4656, Sep. 2012.
+[31] K. Schmid, P. Lutz, T. Tomi¢, E. Mair, and H. Hirschmüller, ``Autonomous
+vision-based micro air vehicle for indoor and outdoor navigation,'' J. Field
+Robot., vol. 31, no. 4, pp. 537570, Jul. 2014.
+[32] T. Baca, M. Petrlik, M. Vrba, V. Spurny, R. Penicka, D. Hert, and
+M. Saska, ``The MRS UA V system: Pushing the frontiers of repro-
+ducible research, real-world deployment, and education with autonomous
+unmanned aerial vehicles,'' 2020, arXiv:2008.08050. [Online]. Available:
+http://arxiv.org/abs/2008.08050
+[33] T. Baca, D. Hert, G. Loianno, M. Saska, and V. Kumar, ``Model predictive
+trajectory tracking and collision avoidance for reliable outdoor deployment
+of unmanned aerial vehicles,'' in Proc. IEEE/RSJ Int. Conf. Intell. Robots
+Syst. (IROS), Oct. 2018, pp. 18.
+[34] T. Lee, M. Leok, and N. H. McClamroch, ``Geometric tracking control
+of a quadrotor UA V on SE(3),'' in Proc. 49th IEEE Conf. Decis. Control
+(CDC), Dec. 2010, pp. 54205425.
+[35] S. Kohlbrecher, O. von Stryk, J. Meyer, and U. Klingauf, ``A exible and
+scalable SLAM system with full 3D motion estimation,'' in Proc. IEEE Int.
+Symp. Saf., Secur., Rescue Robot., Nov. 2011, pp. 155160.
+[36] A. Siadat, A. Kaske, S. Klausmann, M. Dufaut, and R. Husson, ``An opti-
+mized segmentation method for a 2D laser-scanner applied to mobile robot
+navigation,'' IFAC Proc. Volumes, vol. 30, no. 7, pp. 149154, Jun. 1997.
+[37] G. Welch and G. Bishop, ``An introduction to the Kalman lter,'' in Proc.
+SIGGRAPH, 2006, p. 16.
+[38] V. Usenko, L. von Stumberg, A. Pangercic, and D. Cremers, ``Real-time
+trajectory replanning for MA Vs using uniform B-splines and a 3D circular
+buffer,'' in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS), Sep. 2017,
+pp. 215222.
+[39] W. Minkina and S. Dudzik, Infrared Thermography: Errors and Uncer-
+tainties. Hoboken, NJ, USA: Wiley, 2009.
+[40] P. Schillinger, S. Kohlbrecher, and O. von Stryk, ``Human-robot collabora-
+tive high-level control with application to rescue robotics,'' in Proc. IEEE
+Int. Conf. Robot. Autom. (ICRA), May 2016, pp. 27962802.
+[41] M. Quigley, K. Conley, B. Gerkey, J. Faust, T. Foote, J. Leibs, R. Wheeler,
+and A. Y. Ng, ``ROS: An open-source robot operating system,'' in Proc.
+Workshop Open Source Softw. (ICRA), vol. 3, 2009, p. 5.
+VOJTECH SPURNY received the M.Sc. degree
+from Czech Technical University in Prague, Czech
+Republic, where he is currently pursuing the Ph.D.
+degree in methods of planning and coordination
+for unmanned aerial vehicles. Since 2014, he has
+been a part of the Multi-Robot Systems Laboratory
+with CTU Prague. He was a Key Member of CTU-
+UPenn-UoL and CTU-UPENN-NYU teams in the
+MBZIRC 2017 and 2020 robotic competitions in
+Abu Dhabi, United Arab Emirates.
+VACLAV PRITZL received the M.Sc. degree from
+Czech Technical University in Prague, Czech
+Republic, where he is currently pursuing the Ph.D.
+degree focused on data fusion in aerial robotics. He
+focuses on methods enabling indoor exploration
+for unmanned aerial vehicles. Since 2017, he has
+been a part of the Multi-Robot Systems Laboratory
+with CTU Prague. He was a member of the CTU-
+UPENN-NYU team in the MBZIRC 2020 compe-
+tition.
+VIKTOR WALTER received the M.Sc. degree from
+the Brno University of Technology, Czech Repub-
+lic, where he is currently pursuing the Ph.D.
+degree in mutual relative localization of unmanned
+aerial vehicles. Since 2016, he has been a part of
+the Multi-Robot Systems Laboratory with CTU
+Prague. He is primarily focused on onboard com-
+puter vision for unmanned aerial vehicles and
+behaviors based on such inputs. He was also a
+member of the CTU-UPENN-NYU team in the
+MBZIRC 2020 competition.
+MATEJ PETRLIK received the M.Sc. degree from
+Czech Technical University in Prague, Czech
+Republic, where he is currently pursuing the
+Ph.D. in sensor fusion, cooperative mapping, and
+dynamic state estimation of unmanned aerial vehi-
+cles. He was also a member of CTU-UPenn-UoL
+and CTU-UPENN-NYU teams in the MBZIRC
+2017 and 2020, and the CTU-CRAS-NORLAB
+team in the DARPA SubT competition.
+TOMAS BACA (Graduate Student Member, IEEE)
+received the M.Sc. degree from Czech Technical
+University in Prague, Czech Republic, where he is
+currently pursuing the Ph.D. degree in distributed
+remote sensing. Since 2014, he has been a part
+of the Multi-Robot Systems Laboratory with CTU
+Prague. He focuses on distributed radiation sens-
+ing with unmanned aerial vehicles and planning
+and control for unmanned aerial vehicles. He was
+a Key Member of CTU-UPenn-UoL and CTU-
+UPENN-NYU teams in the MBZIRC 2017 and 2020 robotic competitions
+in Abu Dhabi.
+VOLUME 9, 2021 15889
+
+--- Page 19 ---
+V. Spurny et al.: Autonomous Firefighting Inside Buildings by an Unmanned Aerial Vehicle
+PETR STEPAN received the M.Sc. degree from
+Charles University, Czech Republic, in 1994, and
+the Ph.D. degree from Czech Technical Univer-
+sity in Prague, Czech Republic. Since 1996, he
+has been a Research Fellow with Czech Technical
+University in Prague. He focuses on sensor fusion,
+mapping, and localization tasks. He participates in
+six EU project about autonomous robot. He was
+also a member of CTU-UPenn-UoL and CTU-
+UPENN-NYU teams in the MBZIRC 2017 and
+2020.
+DAVID ZAITLIK received the M.Sc. degree from
+Czech Technical University in Prague, Czech
+Republic. He is currently a Research Fellow
+focused on embedded systems. Since 2019, he has
+been a part of the Multi-Robot Systems Laboratory
+with CTU Prague. He was a member of the CTU-
+UPENN-NYU team in the MBZIRC 2020 compe-
+tition.
+MARTIN SASKA (Member, IEEE) received the
+M.Sc. degree from Czech Technical University in
+Prague, in 2005, and the Ph.D. degree from the
+University of Wuerzburg, Germany. Since 2009,
+he has been a Research Fellow with Czech Tech-
+nical University in Prague, where he has founded
+and since leads the Multi-Robot Systems Lab-
+oratory and co-founded the Center for Robotics
+and Autonomous Systems. He was a Visiting
+Scholar with the University of Illinois at Urbana-
+Champaign, Champaign, IL, USA, in 2008, and the University of Pennsyl-
+vania, Philadelphia, PA, USA, in 2012, 2014, and 2016. He is the author or a
+coauthor of more than 70 publications in peer-reviewed conferences and
+more than 20 publications in impacted journals.
+15890 VOLUME 9, 2021

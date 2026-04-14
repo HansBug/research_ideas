@@ -1,0 +1,2510 @@
+--- Page 1 ---
+Citation: Kouvakas, N.D.;
+Koumboulis, F.N.; Fragkoulis, D.G.;
+Souliotis, A. Modular Supervisory
+Control for the Coordination of a
+Manufacturing Cell with Observable
+Faults. Sensors 2023 ,23, 163.
+https://doi.org/10.3390/s23010163
+Academic Editors: Francesc Pozo,
+Mohammad N Noori, Steven
+Chatterton and Jose Alfonso
+Antonino-Daviu
+Received: 22 November 2022
+Revised: 17 December 2022
+Accepted: 20 December 2022
+Published: 23 December 2022
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+sensors
+Article
+Modular Supervisory Control for the Coordination of
+a Manufacturing Cell with Observable Faults
+Nikolaos D. Kouvakas1
+, Fotis N. Koumboulis1
+, Dimitrios G. Fragkoulis2,*
+and Aristotelis Souliotis2
+1Department of Digital Industry Technologies, School of Science, National and Kapodistrian University of
+Athens, Euripus Campus, 34400 Evia, Greece
+2Core Department, National and Kapodistrian University of Athens, Euripus Campus, 34400 Evia, Greece
+*Correspondence: dfragkoulis@uoa.gr
+Abstract: In the present paper, a manufacturing cell in the presence of faults, coming from the devices
+of the process, is considered. The modular modeling of the subsystems of the cell is accomplished
+using of appropriate ﬁnite deterministic automata. The desired functionality of the cell as well as
+appropriate safety speciﬁcations are formulated as eleven desired languages. The desired languages
+are expressed as regular expressions in analytic forms. The languages are realized in the form of
+appropriate general type supervisor forms. Using these forms, a modular supervisory design scheme
+is accomplished providing satisfactory performance in the presence of faults as well guaranteeing the
+safety requirements. The aim of the present supervisor control scheme is to achieve tolerance of basic
+characteristics of the process coordination to upper-level faults, despite the presence of low-level
+faults in the devices of the process. The complexity of the supervisor scheme is computed.
+Keywords: industrial processes; discrete event systems; supervisory control; fault tolerant control
+1. Introduction
+In ﬂexible manufacturing systems (FMS), the infrastructure is composed of basic com-
+ponents (robots, computer numerical control (CNC), assembling machines, and storing
+systems) or islands of components, where each island of components is unreconﬁgurable.
+This consideration requires a two-layer control design. In the ﬁrst layer, the components
+and/or the islands of components are controlled using the respective local sensors and
+actuators. The control objective of this layer is to perform speciﬁc activities of the subsys-
+tem [ 1]. In the second layer, the control objective is the synchronization/coordination of
+the individual subsystems to satisfy safety and functionality speciﬁcations of the overall
+manufacturing process [ 1]. The ﬂexibility of the process results from modiﬁcation of the
+second layer controller. Advances in the controller hardware contribute toward this scheme
+see [ 2,3]. However, as the Programmable Logic Controllers (PLCs) is one of the main
+architectures of manufacturing system control the use of formal methods for controller
+synthesis and PLC program design (with standardized languages, e.g., International Elec-
+trotechnical Commission (IEC) 61131-3) is crucial, see [ 2–5]. Supervisory control theory
+(SCT) [ 6] is a formal method that tackles the above problems crossing the bridge between
+the event-based automation and the synchronous signal-based PLC world, see [ 1,7]. Most
+commonly, Ladder Diagrams (for PLCs) are used to implement monolithic or modular
+supervisors. For the deﬁnition of monolithic and modular supervisors, see [ 6,8]. Monolithic
+supervisors suffer from state explosion as the models grow. The implementation of a
+single supervisor with many states could make the control program unreliable and/or even
+unstable [ 1]. Modular supervisor design requires on-the-ﬂy synchronization of the plant
+and the controller [ 5]. However, it reduces computational complexity by reducing the total
+number of states [1].
+The supervisory control design in the presence of faults of the manufacturing process
+is of particular importance. Indicatively, see [ 9,10] and the references therein. In the present
+Sensors 2023 ,23, 163. https://doi.org/10.3390/s23010163 https://www.mdpi.com/journal/sensors
+
+--- Page 2 ---
+Sensors 2023 ,23, 163 2 of 24
+paper, it is considered that the sensors and the actuators can fail in any time, and once
+a sensor fault took place, the fault is permanent and requires repair, see also [ 10]. Here,
+a modular modelling and supervisor design method will be applied to a manufacturing
+cell presented in [ 1,3,11]. The method is in the Ramadge Wonham framework, see [ 6,8]
+and the references therein, being one of the milestones of SCT. The proposed supervisor
+design is based on the consideration of real time knowledge of the occurrence of faults,
+see [ 12], through appropriate sensors and/or diagnosers that accomplish the detection
+and/or isolation of faults. Regarding fault diagnosis, many methods has been developed.
+Indicatively, see [ 13] as well [ 14–16], where diagnosis methods using discrete event systems
+(DES) are presented.
+In the present paper, a fault driven supervisory control scheme will be designed
+considering that the faults are a priori deﬁned and are observable by appropriate monitoring
+systems. The presence of faults may cause discoordination of the process or even damage
+of devices. For instance, drilling tool wear or tool brake may damage the manufactured
+product. Also, a fault in the robotic manipulator may cause product overﬂow on the
+table. Furthermore, faults in the circular rotating table can cause a material overﬂow or
+a material underﬂow in the cell’s components. Such faults may cause serious damages
+in the manufacturing cell’s devices and/or the manufactured products. In general, the
+presence of faults in the devices of the manufacturing process may cause discoordination of
+the process, being an upper-level fault of composite type. The present supervisory control
+scheme aims towards achieving fault tolerance in basic characteristics of the coordination of
+the process, despite the presence of lower-level faults, namely technical faults in the devices
+of the process. Thus, the proposed supervisory control scheme guarantees the safety of the
+system despite the presence of lower-level faults. All unwanted series of actions, that may
+cause system discoordination, are avoided despite the presence of faults.
+According to [ 17], in modern automation systems, fault handling gains more and
+more attention. Clearly, an early fault detection and fault treatment may eliminate the
+undesired sequences caused by the fault. The main motivation of the present work is the
+avoidance of the malfunctions, usually met in manufacturing of the present type, by forcing
+the controlled system to stop its evolution before the execution of the undesired sequences,
+see also [ 17,18]. The design of a supervisory control scheme for a well-established and
+experimentally tested manufacturing cell, with many applications (indicatively see [ 1,3,11])
+is another motivation of the present research. Also, for the manufacturing cell at hand,
+several supervisors, have been implemented in PLC environment and tested, indicatively
+see [ 1,3,11]. The above characteristics contribute to the feasibility of the proposed safety
+oriented supervisory control scheme.
+The ﬁrst contribution of the paper is the modelling of the manufacturing cell in the
+presence of faults in every subsystem. The second is the presentation of the system’s
+speciﬁcations in the form of regular languages, in analytic forms, and the realization of the
+supervisors controlling the process. It is mentioned that most of the supervisors are realized
+through general prespeciﬁed supervisor forms that facilitate the proof of controllability and
+nonblocking, as well as PLC implementation. The third contribution of the present paper
+is the implementation of the proposed supervisor using Ladder Diagrams and function
+blocks. The ﬁnal contribution of the paper is the distributed analysis in both modeling and
+nonblocking supervisory design of the manufacturing cell, providing a clear and sufﬁcient
+method for future case studies of the present type.
+The proposed supervisors have been designed to be as possible maximally permissive,
+while they guarantee the PR property of the supervisors regarding the total automaton of
+the manufacturing cell. To accomplish this, all uncontrollable events of a supervisor are
+required to belong to the active event sets of all supervisor’s states. A useful direction is to
+use the active event set based criteria for PR of the supervisors to check the controllability
+property of the desired languages. Another useful direction is the use of the active event
+sets to facilitate the proof of the controllability and the nonblocking property. Regarding
+system modelling, the decomposition of the system to subsystems appears to facilitate
+
+--- Page 3 ---
+Sensors 2023 ,23, 163 3 of 24
+fault modeling. Regarding fault modeling, it is important to mention that is a more
+complete modeling of the system, even if the faults are not detectable. The above direction
+is becoming more and more necessary in industry 4.0 manufacturing systems, not only
+because faults affect the productivity and safety of the system but also due to the strong
+correlation and common control strategies required for fault detection, fault tolerance
+control, and handling of cyber-attacks, indicatively see [19,20].
+2. A DES Model of the Manufacturing Cell
+2.1. Description of the Manufacturing Cell
+The manufacturing cell studied here is the cell presented in [ 1,3,11]. The main com-
+ponents (see Figure 1), namely the subsystems, of the manufacturing cell, are a circular
+rotating table with four discrete positions, a classiﬁer and transportation device, a drilling
+machine, a testing device, a robotic manipulator, and a feeding device. The feeding device
+receives raw products and delivers them to the classiﬁer and transportation (C&T) device.
+There are three types of raw products, having variable dimensions, that can be transferred
+into the system. The C&T device classiﬁes the raw products and either transfers them to
+the table or rejects them. A product is rejected if its dimensions are out of range. The raw
+products are drilled by the drilling machine and tested by the testing device. The testing
+device has two different types of processing. Testing process Ais performed whenever
+a product has been successfully drilled. Testing process Bis performed when there is a
+fault in the drilling process, e.g., tool break down. The products are retrieved from the
+table by the robotic manipulator. The retrieved products are stored by the manipulator
+to an appropriate storing magazine. There are three storing magazines. The ﬁrst type of
+drilled products are stored to the ﬁrst magazine. The second type are stored to the second
+magazine. The rejected drilled products are stored to the third magazine.
+Sensors 2023, 23, x FOR PEER REVIEW  4 of 27 
+ 
+  
+Figure 1. The manufacturing cell . 
+In [1 ,3,11], the subsystems of the manufacturing cell are presented without consider-
+ing the presence of faults, except the drilling subsystem whe re the possibility of the pres-
+ence of fault has been considered. Here, the possibility of the presence of faults, in all 
+subsystems, is considered. Also here, each subsystem of the manufacturing cell with pos-
+sible faults will be modelled, in the form of di screte event systems (DES) in the class of 
+finite deterministic automata (see [ 21–23]), i.e., in six tuples of the form 
+0 ( , , , , , )m fx=G
+. 
+  denotes the set of the states of 
+G . 
+ denotes the event set 
+(alphabet) of 
+G . 
+  denotes the map from each state of 
+G  to the respective set of active 
+events. 
+f  denotes th e transition function of 
+G . 
+0x  denotes the initial state of 
+G . 
+m
+  
+denotes the set of the marked states of 
+G . The closed and the marked behavior of 
+G  
+(see [10]) are denoted by 
+()G
+  and 
+()mG
+ , respectively. For the two behaviors of 
+G , it 
+holds that 
+( ) ( )mGG
+ , where 
+
+  denotes the Kleene Star of 
+ , see [6 ,8]. The set 
+of the uncontrollable events of each subsystem is denoted in the form:  
+uc
+ . Accord-
+ing to [6 ,8], if 
+( ) ( )m=GG
+  then 
+G  is a nonblocking automaton, where 
+  denotes the 
+prefix closure of the argument language , see [6 ,8]. 
+2.2. The Model of the Circular Rotating Table with Faults  
+The model of the circular rotating table in the presence of faults is developed here to 
+be 
+,0 , ( , , , , , )T T T T T T T m fx=G
+ . The set of the states is 
+,1 ,2 ,3{ , , }T T T Tq q q=
+ . The initial 
+state is 
+,0 ,1TTxq= . The set of the marked states is 
+, ,1{}T m T q=
+ . The states of the c ircular 
+rotating table are presented in Table 1. The rotating table is in faulty mode when the rota-
+tion mechanism is out of order or malfunctions as well as when the rotation is obstructed 
+by obstacles in the workspace.  
+Table 1. States of the circular rotating table . 
+Symbol  State Description  
+,1Tq
+ The table is idle  
+,2Tq
+ The table is moving  
+,3Tq
+ The table is in faulty mode  
+Figure 1. The manufacturing cell.
+In [1,3,11], the subsystems of the manufacturing cell are presented without considering
+the presence of faults, except the drilling subsystem where the possibility of the presence of
+fault has been considered. Here, the possibility of the presence of faults, in all subsystems,
+is considered. Also here, each subsystem of the manufacturing cell with possible faults will
+be modelled, in the form of discrete event systems (DES) in the class of ﬁnite deterministic
+automata (see [ 21–23]), i.e., in six tuples of the form G= (Q,E,f,H,x0,Qm).Qdenotes
+the set of the states of G.Edenotes the event set (alphabet) of G.Hdenotes the map from
+each state of Gto the respective set of active events. fdenotes the transition function of G.
+
+--- Page 4 ---
+Sensors 2023 ,23, 163 4 of 24
+x0denotes the initial state of G.Qmdenotes the set of the marked states of G. The closed
+and the marked behavior of G(see [ 10]) are denoted by L(G)andLm(G), respectively. For
+the two behaviors of G, it holds that Lm(G)L(G)E, where Edenotes the Kleene
+Star of E, see [ 6,8]. The set of the uncontrollable events of each subsystem is denoted in the
+form: EucE. According to [ 6,8], ifLm(G) =L(G)then Gis a nonblocking automaton,
+wheredenotes the preﬁx closure of the argument language, see [6,8].
+2.2. The Model of the Circular Rotating Table with Faults
+The model of the circular rotating table in the presence of faults is developed here
+to be GT= (QT,ET,fT,HT,xT,0,QT,m). The set of the states is QT=fqT,1,qT,2,qT,3g. The
+initial state is xT,0=qT,1. The set of the marked states is QT,m=fqT,1g. The states of the
+circular rotating table are presented in Table 1. The rotating table is in faulty mode when
+the rotation mechanism is out of order or malfunctions as well as when the rotation is
+obstructed by obstacles in the workspace.
+Table 1. States of the circular rotating table.
+Symbol State Description
+qT,1 The table is idle
+qT,2 The table is moving
+qT,3 The table is in faulty mode
+The alphabet is ET=feT,1,eT,2,eT,3,eT,4g. In Table 2, the events of the circular rotating
+table, are presented.
+Table 2. Events of the circular rotating table.
+Symbol Event Description
+eT,1 The table starts rotating for 90o
+eT,2 The table stops rotating
+eT,3 A fault took place
+eT,4 The fault has been repaired
+The 1st event is a command signal. The 2nd event is a measurable signal. The 3rd
+event is observable, via an appropriate data acquisition and monitoring system, see [ 14–16].
+Clearly, the 1st and the 4th event (repair signal) being produced by the Supervisory Control
+and Data Acquisition (SCADA) or a button pushed on by the supervising/maintenance
+personnel, are observable. The set of the controllable events is ET,c=feT,1,eT,4gand
+the set of the uncontrollable events is ET,uc=feT,2,eT,3g. The sets of the active events
+areHT(qT,1) =feT,1g,HT(qT,2) =feT,2,eT,3gandHT(qT,3) =feT,4g. The values of the
+transition functions are fT(qT,1,eT,1) = qT,2,fT(qT,2,eT,2) = qT,1,fT(qT,2,eT,3) = qT,3and
+fT(qT,3,eT,4) =qT,1.
+GTis a nonblocking automaton, i.e., L(GT) = Lm(GT), where
+Lm(GT) = (eT,1(eT,2+eT,3eT,4)). In Figure 2, the state diagram of GTis presented. If the
+presence of faults is neglected, then the state diagram is reduced to that in, see [1,3,11].
+2.3. The Model of the Classiﬁer and Transportation Device with Faults
+The model of the C&T device, in the presence of faults, is developed here to be
+GC= (QC,EC,fC,HC,xC,0,QC,m). The set of the states is QC=fqC,1,qC,2,qC,3,qC,4,qC,5g.
+The initial state is xC,0=qC,1. The set of the marked states is QC,m=fqC,1g. In Table 3, the
+states of the C&T device are presented. According to [ 11] the C&T device consist of two
+linear actuators, a capacitive sensor, an optic sensor, an inductive sensor and an appropriate
+sensor for the height measurement of the pieces. Regarding the linear actuator, the C&T
+
+--- Page 5 ---
+Sensors 2023 ,23, 163 5 of 24
+device is in faulty mode due to an excess of wear, a cracking, a backlash, lubricant related
+faults, etc., see [ 24]. Regarding the sensors, the C&T device is in faulty mode due to an
+external interference to the measurements, very common short-circuit faults, and common
+sensor drift, see [25].
+Sensors 2023, 23, x FOR PEER REVIEW  5 of 27 
+ 
+ The alphabet is 
+,1 ,2 ,3 ,4{ , , , }T T T T Te e e e=
+ . In Table 2, the event s of the circular rotating 
+table, are presented.  
+Table 2. Events of the circular rotating table . 
+Symbol  Event Description  
+,1Te
+ The table starts rotating for 
+o90  
+,2Te
+ The table stops rotating  
+,3Te
+ A fault took place  
+,4Te
+ The fault has been repaired  
+The 1st event is a command signal. The 2nd event is a measurable signal. The 3rd 
+event is observable, via an appropriate data acquisition and monitoring system , see [14–
+16]. Clearly, the 1st and the 4th event (repair signal) being produced by the Supervisory 
+Control and Data Acquisi tion ( SCADA ) or a button pushed on by the supervising/mainte-
+nance personnel, are observable. The set of the controllable events is 
+, ,1 ,4{ , }T c T T ee=
+  and 
+the set of the uncontrollable events is 
+, ,2 ,3{,}T uc T T ee=
+ . The sets of the active eve nts are 
+,1 ,1( ) { }T T Tqe=
+, 
+,2 ,2 ,3( ) { , }T T T Tq e e=
+  and 
+,3 ,4( ) { }T T Tqe=
+ . The values of the transition 
+functions are  
+,1 ,1 ,2( , )T T T Tf q e q = , 
+,2 ,2 ,1( , )T T T Tf q e q = , 
+,2 ,3 ,3( , )T T T Tf q e q =  and 
+,3 ,4 ,1( , )T T T Tf q e q =
+. 
+TG
+ is a nonblocking automaton, i.e., 
+( ) ( )T m T=GG
+ , where 
+( )*
+,1 ,2 ,3 ,4 ( ) ( )m T T T T T e e e e=+G
+. In Figure 2, the state diagram of 
+TG  is presented. If the 
+presence of faults is ne glected, then the state diagram is reduced to that in , see[1,3,11].  
+eT,2
+eT,1qT,1
+qT,3eT,4eT,3qT,2
+ 
+Figure 2. The state diagram of 
+TG . 
+2.3. The Model of the Classifier and Transportation Device with Faults  
+The model of the C&T device, in the presence of faults, is developed here to be 
+,0 , ( , , , , , )C C C C C C C m fx=G
+. The set of the states is 
+,1 ,2 ,3 ,4 ,5{ , , , , }C C C C C Cq q q q q=
+ . The 
+initial state is 
+,0 ,1CCxq= . The set of the marked states is 
+, ,1{}C m C q=
+ . In Table 3, the states 
+of the C&T device are presented. According to [11] the C&T device consist of two linear 
+actuators, a capacitive sensor, an optic sensor, an inductive sensor and an appropriate 
+sensor for the height measurement of the pi eces. Regarding the linear actuator, the C&T 
+device is in faulty mode due to an excess of wear, a cracking, a backlash, lubricant related 
+faults, etc. , see [2 4]. Regarding the sensors, the C&T device is in faulty mode due to an 
+external interference to the  measurements, very common short -circuit faults, and common 
+sensor drift , see [2 5]. 
+Table 3. States of the classifier and transportation device . 
+Symbol  State Description  
+,1Cq
+ The device is idle  
+Figure 2. The state diagram of GT.
+Table 3. States of the classiﬁer and transportation device.
+Symbol State Description
+qC,1 The device is idle
+qC,2 The device is classifying
+qC,3 The device has been paused
+qC,4 The device is transporting
+qC,5 The device is in faulty mode
+The alphabet is EC=feC,1,eC,2,eC,3,eC,4,eC,5,eC,6,eC,7g. In Table 4, the events of the
+C&T device are presented.
+Table 4. Events of the classiﬁer and transportation device.
+Symbol Event Description
+eC,1 The device starts classifying
+eC,2 The product has been classiﬁed and accepted
+eC,3 The product has been classiﬁed and rejected
+eC,4 The device starts transporting.
+eC,5 The product has been transported.
+eC,6 A fault took place at the device
+eC,7 A fault has been repaired at the device
+The events eC,1and eC,4are command signals, and the events eC,2,eC,3, and eC,5are
+measurable signals. The event eC,6is observable through an appropriate monitoring system,
+see [ 14–16]. Clearly, the two command signals and the repair signal, being produced by the
+SCADA or a button pushed by the supervising/maintenance personnel, are observable.
+The controllable event set is EC,c=feC,1,eC,4,eC,7gand the uncontrollable event set is
+EC,uc=feC,2,eC,3,eC,5,eC,6g. The sets of the active events of GCare
+HC(qC,1) =feC,1g,HC(qC,2) =feC,2,eC,3,eC,6g,HC(qC,3) =feC,4,eC,6g,
+HC(qC,4) =feC,5,eC,6g,HC(qC,5) =feC,7g.
+The values of the transition function of GCare
+fC(qC,1,eC,1) =qC,2,fC(qC,2,eC,2) =qC,3,fC(qC,2,eC,6) =qC,5,fC(qC,2,eC,3) =qC,1,
+fC(qC,3,eC,4) =qC,4,fC(qC,3,eC,6) =qC,5,fC(qC,4,eC,5) =qC,1,fC(qC,4,eC,6) =qC,5,
+fC(qC,5,eC,7) =qC,1.
+
+--- Page 6 ---
+Sensors 2023 ,23, 163 6 of 24
+GCis a nonblocking automaton, i.e., Lm(GC) =L(GC), where
+Lm(GC) = (eC,1(eC,3+eC,6eC,7+eC,2(eC,6eC,7+eC,4(eC,5+eC,6eC,7)))).
+In Figure 3, the state diagram of GCis presented. In the nonfaulty case, the diagram is
+reduced to that in [1,3,11].
+Sensors 2023, 23, x FOR PEER REVIEW  6 of 27 
+ 
+ Symbol  State Description  
+,2Cq
+ The device is classifying  
+,3Cq
+ The device has been paused  
+,4Cq
+ The device is transporting  
+,5Cq
+ The device is in faulty mode  
+The alphabet is 
+,1 ,2 ,3 ,4 ,5 ,6 ,7{ , , , , , , }C C C C C C C Ce e e e e e e=
+ . In Table 4, the events of the C&T 
+device are presented.  
+Table 4. Events of the classifier and transportation device . 
+Symbol  Event Description  
+,1Ce
+ The device starts classifying  
+,2Ce
+ The product has been classified and accepted  
+,3Ce
+ The product has been classified and rejected  
+,4Ce
+ The device starts transporting.  
+,5Ce
+ The product has been transported.  
+,6Ce
+ A fault took place at the device  
+,7Ce
+ A fault has been repaired at the device  
+The events 
+,1Ce  and 
+,4Ce  are command signals, and the events 
+,2Ce , 
+,3Ce , and 
+,5Ce  
+are measurable signals. The event 
+,6Ce  is observable through an appropriate monitoring 
+system , see [14–16]. Clearly, the two command signals and the repair signal, being pro-
+duced by the SCADA or a button pushed by the supervising/maintenance personnel, are 
+observable. The controllable event set is 
+, ,1 ,4 ,7{ , , }C c C C C e e e=
+  and the uncontrollable 
+event set is 
+, ,2 ,3 ,5 ,6{ , , , }C uc C C C C e e e e=
+ . The sets of the active events of 
+CG  are  
+,1 ,1( ) { }C C Cqe=
+, 
+,2 ,2 ,3 ,6( ) { , , }C C C C Cq e e e=
+ , 
+,3 ,4 ,6( ) { , }C C C Cq e e=
+ , 
+,4 ,5 ,6( ) { , }C C C Cq e e=
+, 
+,5 ,7( ) { }C C Cqe=
+ . 
+The values of the transition function of 
+CG  are  
+,1 ,1 ,2( , )C C C Cf q e q =
+, 
+,2 ,2 ,3( , )C C C Cf q e q = ,
+,2 ,6 ,5( , )C C C Cf q e q = , 
+,2 ,3 ,1( , )C C C Cf q e q = , 
+,3 ,4 ,4( , )C C C Cf q e q =
+, 
+,3 ,6 ,5( , )C C C Cf q e q = , 
+,4 ,5 ,1( , )C C C Cf q e q = , 
+,4 ,6 ,5( , )C C C Cf q e q = , 
+,5 ,7 ,1( , )C C C Cf q e q =
+. 
+CG
+ is a nonblocking automaton, i.e.,
+( ) ( )m C C=GG
+ , where   
+( ) ( ) ( )*
+,1 ,3 ,6 ,7 ,2 ,6 ,7 ,4 ,5 ,6 ,7 ( ) ( ) .m C C C C C C C C C C C C e e e e e e e e e e e= + + + +G
+  
+In Figure 3, the state diagram of 
+CG  is presented. In the nonfaulty case, the diagram 
+is reduced to that in [1 ,3,11]. 
+qC,1
+qC,5eC,6
+eC,7eC,2eC,5
+qC,3 qC,4 qC,2
+eC,6eC,6eC,1
+eC,3eC,4
+ 
+Figure 3. State diagram of GC.
+2.4. The Model of the Drilling Machine with Faults
+The model of the drilling machine, in the presence of faults, is expressed as
+GD= (QD,ED,fD,HD,xD,0,QD,m). The set of the states is QD=fqD,1,qD,2,qD,3g. The
+initial state is xD,0=qD,1. The set of the marked states is QD,m=fqD,1g. In Table 5, the
+states of the drilling machine are presented. The drilling machine is in faulty mode in cases
+of tool wear (see [ 26] and the references therein) or if the drilling tool is broken or one of the
+three linear actuators of the drilling machine is in faulty mode (see [ 11]), as well as if the
+drilling motor malfunctions, indicatively see [ 27,28]. The signals indicating the presence of
+such faults are derived through appropriate soft sensors that use the outputs of electric,
+speed and/or torque sensors, indicatively, see [26–28].
+Table 5. States of the drilling machine.
+Symbol State Description
+qD,1 The drilling machine is idle
+qD,2 The drilling machine is working (drilling)
+qD,3 The drill is in faulty mode
+The alphabet is ED=feD,1,eD,2,eD,3,eD,4g. In Table 6, the events of the drilling
+machine are presented.
+Table 6. Events of the drilling machine.
+Symbol Event Description
+eD,1 The drilling machine starts drilling.
+eD,2 Drilling has been successfully completed
+eD,3 The machine is in faulty mode
+eD,4 The machine has been repaired.
+The 1st event is a command signal. The rest are appropriate observable signals.
+Thus, the set of the controllable events is ED,c=feD,1,eD,4gand the set of the un-
+controllable events is ED,uc=feD,2,eD,3g. The sets of the active events of GD, are
+HD(qD,1) =feD,1g,HD(qD,2) =feD,2,eD,3g,HD(qD,3) =feD,4g. The values of tran-
+sition function are fD(qD,1,eD,1) = qD,2,fD(qD,2,eD,2) = qD,1,fD(qD,2,eD,3) = qD,3,
+fD(qD,3,eD,4) =qD,1.
+Note that GDis nonblocking, i.e., Lm(GD) = L(GD), where
+Lm(GD) = (eD,1(eD,2+eD,3eD,4)).
+
+--- Page 7 ---
+Sensors 2023 ,23, 163 7 of 24
+In Figure 4, the state diagram of the automaton of the drilling machine is presented.
+This diagram has ﬁrst been presented in [1,3,11].
+Sensors 2023, 23, x FOR PEER REVIEW  7 of 27 
+ 
+ Figure 3. State diagram of 
+CG . 
+2.4. The Model of the Drilling  Machine with Faults  
+The model of the drilling machine, in the presence of faults, is expressed as 
+,0 , ( , , , , , )D D D D D D D m fx =G
+. The set of the states is 
+,1 ,2 ,3{ , , }D D D D q q q=
+ . The initial 
+state is 
+,0 ,1DDxq= . The set of the marked states is 
+, ,1{}D m D q=
+ . In Table 5, the states of the 
+drilling machine are presented. The drilling machine is in faulty mode in cases of tool 
+wear (see [ 26] and the references therein) or if the drilling tool is broken  or one of the three 
+linear actuators of the drilling machine is in faulty mode (see [11] ), as well as if the drilling 
+motor malfunctions , indicatively see [ 27,28]. The signals indicating the presence of such 
+faults are derived through appropriate soft sen sors that use the outputs of electric, speed 
+and/or torque sensors , indicatively, see [2 6–28]. 
+Table 5. States of the drilling machine . 
+Symbol  State Description  
+,1Dq
+ The drilling machine is idle  
+,2Dq
+ The drilling machine is working (drilling)  
+,3Dq
+ The drill is in faulty mode  
+The alphabet is 
+,1 ,2 ,3 ,4{ , , , }D D D D De e e e=
+ . In Table 6, the events of the drilling machine 
+are presented.   
+Table 6. Events of the drilling machine . 
+Symbol  Event Description  
+,1De
+ The drilling machine starts drilling.  
+,2De
+ Drilling has been successfully completed  
+,3De
+ The machine is in faulty mode  
+,4De
+ The machine has been repaired.  
+The 1st event is a command signal. The rest are appropriate observable signals. Thus, 
+the set of the controllable events is 
+, ,1 ,4{ , }D c D D ee=
+  and the set of the uncontrollable 
+events is 
+, ,2 ,3{ , }D uc D D ee=
+ . The sets of the active events of 
+DG , are 
+,1 ,1( ) { }D D Dqe=
+ , 
+,2 ,2 ,3( ) { , }D D D Dq e e=
+, 
+,3 ,4( ) { }D D Dqe=
+ . The values of transition function are  
+,1 ,1 ,2( , )D D D Df q e q =
+, 
+,2 ,2 ,1( , )D D D Df q e q = , 
+,2 ,3 ,3( , )D D D Df q e q = , 
+,3 ,4 ,1( , )D D D Df q e q = . 
+Note that 
+DG  is nonblocking, i.e., 
+( ) ( )m D D=GG
+ , where  
+( )*
+,1 ,2 ,3 ,4 ( ) ( )m D D D D D e e e e=+G
+.  
+In Figure 4, the state diagram of the automaton of the drilling machine is presented. 
+This diagram has first been presented in [1 ,3,11]. 
+eD,2
+eD,1qD,1
+qD,3eD,4eD,3qD,2
+ 
+Figure 4. State diagram of 
+DG . 
+Figure 4. State diagram of GD.
+2.5. The Model of the Testing Device with Faults
+The model of the testing device, in the presence of faults, is developed to be of the six
+tuple form GB= (QB,EB,fB,HB,xB,0,QB,m). The set of the states is QB=fqB,1,qB,2,qB,3g.
+The initial state is xB,0=qB,1. The set of the marked states is QB,m=fqB,1g. In Table 7, the
+states of the testing device are presented. According to [11], the testing device consist of a
+linear actuator and a vacuum generator, as well as appropriate sensors. The testing device
+is in faulty mode for the reasons analogous to those presented for the C&T device, see
+also [ 24,25]. The repair signal can be produced in the same way to the previous subsystems
+and so is observable.
+Table 7. States of the testing device.
+Symbol State Description
+qB,1 The testing device is idle
+qB,2 The testing device is working
+qB,3 The testing device is in faulty mode
+The alphabet is EB=feB,1,eB,2,eB,3,eB,4,eB,5g. In Table 8, the events of the testing
+device are presented.
+Table 8. Events of the testing device.
+Symbol State Description
+eB,1 The device begins the testing process A
+eB,2 The device begins the testing process B
+eB,3 The product is tested
+eB,4 A fault of the device took place
+eB,5 A fault of the device has been repaired
+The 1st and the 2nd event are command signals. The rest are observable signals. Thus,
+the set of the controllable events is EB,c=feB,1,eB,2,eB,5gand the set of the uncontrollable
+events is EB,uc=feB,3,eB,4g. The sets of the active events of GBare
+HB(qB,1) =feB,1,eB,2g,HB(qB,2) =feB,3,eB,4g,HB(qB,3) =feB,5g.
+The values of the transition function are
+fB(qB,1,eB,1) =qB,2,fB(qB,1,eB,2) =qB,2,fB(qB,2,eB,3) =qB,1,fB(qB,2,eB,4) =qB,3,
+fB(qB,3,eB,5) =qB,1
+The automaton GBis nonblocking, i.e., Lm(GB) =L(GB), where
+Lm(GB) = ((eB,1+eB,2)(eB,3+eB,4eB,5))
+
+--- Page 8 ---
+Sensors 2023 ,23, 163 8 of 24
+In Figure 5, the state diagram of the automaton of the testing device is presented. In
+the nonfaulty case, the diagram is reduced to that in, see [1,3,11].
+Sensors 2023, 23, x FOR PEER REVIEW  9 of 27 
+ 
+ Table 8. Events of the testing device . 
+Symbol  State Description  
+,1Be
+ The device begins the testing process A 
+,2Be
+ The device begins the testing process B 
+,3Be
+ The product is tested  
+,4Be
+ A fault of the device took place  
+,5Be
+ A fault of the device has been repaired  
+The 1st and the 2nd event are command signals. The rest are observable signals. Thus, 
+the set of the controllable events is 
+, ,1 ,2 ,5{ , , }B c B B B e e e=
+  and the set of the uncontrollable 
+events is 
+, ,3 ,4{ , }B uc B B ee=
+ . The sets of the active events of 
+BG  are  
+,1 ,1 ,2( ) { , }B B B Bq e e=
+, 
+,2 ,3 ,4( ) { , }B B B Bq e e=
+ , 
+,3 ,5( ) { }B B Bqe=
+ .   
+The values of the transition function are  
+,1 ,1 ,2( , )B B B Bf q e q =
+, 
+,1 ,2 ,2( , )B B B Bf q e q = , 
+,2 ,3 ,1( , )B B B Bf q e q = , 
+,2 ,4 ,3( , )B B B Bf q e q = , 
+,3 ,5 ,1( , )B B B Bf q e q =
+.  
+The automaton 
+BG  is nonblocking, i.e., 
+( ) ( )m B B=GG
+ , where  
+( )*
+,1 ,2 ,3 ,4 ,5 ( ) ( )( )m B B B B B B e e e e e= + +G
+.  
+In Figure 5, the state diagram of the automaton of the testing device is presented. In 
+the nonfaulty case, the diagram is reduced to that in , see  [1,3,11]. 
+eB,3
+eB,1,eB,2qB,1
+eB,5eB,4qB,2
+qB,3
+ 
+Figure 5. The state diagram of 
+BG . 
+2.6. The Model of the Robotic Manipulator with Faults  
+The model of the robotic manipulator, in the presence of faults, is developed to be 
+,0 , ( , , , , , )R R R R R R R m fx=G
+. The set of the states is 
+,1 ,2 ,3 ,4{ , , , }R R R R Rq q q q=
+ . The initial 
+state is 
+,0 ,1RRxq= . The set of the marked states is 
+, ,1{}R m R q=
+ . In Table 9, the states of the 
+robotic manipulator are presented. The robotic manipulator can be in faulty mode for var-
+ious reasons, indicatively see [29–31]. 
+Table 9. States of the robotic manipulator . 
+Symbol  State Description  
+,1Rq
+ The manipulator is idle  
+,2Rq
+ The manipulator is retrieving a product from the table  
+,3Rq
+ The manipulator is storing a product  
+,4Rq
+ The manipulator is in faulty mode  
+Figure 5. The state diagram of GB.
+2.6. The Model of the Robotic Manipulator with Faults
+The model of the robotic manipulator, in the presence of faults, is developed to be
+GR= (QR,ER,fR,HR,xR,0,QR,m). The set of the states is QR=fqR,1,qR,2,qR,3,qR,4g. The
+initial state is xR,0=qR,1. The set of the marked states is QR,m=fqR,1g. In Table 9, the
+states of the robotic manipulator are presented. The robotic manipulator can be in faulty
+mode for various reasons, indicatively see [29–31].
+Table 9. States of the robotic manipulator.
+Symbol State Description
+qR,1 The manipulator is idle
+qR,2 The manipulator is retrieving a product from the table
+qR,3 The manipulator is storing a product
+qR,4 The manipulator is in faulty mode
+The alphabet is ER=feR,1,eR,2,eR,3,eR,4,eR,5g. In Table 10, the events of the robotic
+manipulator are presented.
+Table 10. Events of the robotic manipulator.
+Symbol Event Description
+eR,1 The manipulator starts retrieving and storing a product.
+eR,2 The manipulator has retrieved a product from the table
+eR,3 The manipulator has stored a product
+eR,4 A fault of the manipulator took place
+eR,5 A fault of the manipulator has been repaired
+The 1st event is a command signal. The rest are observable signals. The controllable
+events set is ER,c=feR,1,eR,5gand the set of the uncontrollable events is
+ER,uc=feR,2,eR,3,eR,4g. The sets of the active events of GRare
+HR(qR,1) =feR,1g,HR(qR,2) =feR,2,eR,4g,HR(qR,3) =feR,3,eR,4g,
+HR(qR,4) =feR,5g
+The values of the transition function of GRare
+fR(qR,1,eR,1) =qR,2,fR(qR,2,eR,2) =qR,3,fR(qR,2,eR,4) =qR,4,fR(qR,3,eR,3) =qR,1,
+fR(qR,3,eR,4) =qR,4,fR(qR,4,eR,5) =qR,1
+GRis nonblocking automaton, i.e., Lm(GR) =L(GR), where
+Lm(GR) = (eR,1(eR,4eR,5+eR,2(eR,3+eR,4eR,5)))
+
+--- Page 9 ---
+Sensors 2023 ,23, 163 9 of 24
+In Figure 6, the state diagram of GRis presented. In the nonfaulty case, the diagram is
+reduced to that in [1,3,11].
+Sensors 2023, 23, x FOR PEER REVIEW  10 of 27 
+ 
+ The alphabet is 
+,1 ,2 ,3 ,4 ,5{ , , , , }R R R R R Re e e e e=
+ . In Table 10, the events of the robotic ma-
+nipulator are presented.  
+Table 10. Events of the robotic manipulator . 
+Symbol  Event Description  
+,1Re
+ The manipulator starts retrieving and storing a product.  
+,2Re
+ The manipulator has retrieved a product from the table  
+,3Re
+ The manipulator has stored a product  
+,4Re
+ A fault of the manipulator took place  
+,5Re
+ A fault of the manipulator has been repaired  
+The 1st event is a command signal. The rest are observable signals. The controllable 
+events set is 
+, ,1 ,5{ , }R c R R ee=
+  and the set of th e uncontrollable events is 
+, ,2 ,3 ,4{ , , }R uc R R R e e e=
+. The sets of the active events of 
+RG  are  
+,1 ,1( ) { }R R Rqe=
+, 
+,2 ,2 ,4( ) { , }R R R Rq e e=
+ , 
+,3 ,3 ,4( ) { , }R R R Rq e e=
+ , 
+,4 ,5( ) { }R R Rqe=
+.   
+The values of the transition function of 
+RG  are  
+,1 ,1 ,2( , )R R R Rf q e q =
+, 
+,2 ,2 ,3( , )R R R Rf q e q = , 
+,2 ,4 ,4( , )R R R Rf q e q = , 
+,3 ,3 ,1( , )R R R Rf q e q = , 
+,3 ,4 ,4( , )R R R Rf q e q =
+, 
+,4 ,5 ,1( , )R R R Rf q e q = .  
+RG
+ is nonblocking automaton, i.e.,
+( ) ( )m R R=GG
+ , where  
+( ) ( )*
+,1 ,4 ,5 ,2 ,3 ,4 ,5 ( ) ( )m R R R R R R R R e e e e e e e= + +G
+.  
+In Figure 6, the state diagram of 
+RG  is presented. In the nonfaulty case, the diagram 
+is reduced to that in [1 ,3,11]. 
+eR,1
+qR,1
+eR,4
+eR,5eR,4qR,2eR,2eR,3
+qR,3
+qR,4
+ 
+Figure 6. State diagram of 
+RG . 
+2.7. The Model of the Feeding Device with Faults  
+The model of the feeding device in the presence of faults is developed to be 
+,0 , ( , , , , , )F F F F F F F m fx =G
+. The set of the states is 
+,1 ,2 ,3 ,4{ , , , }F F F F Fq q q q=
+ . The initial 
+state is 
+,0 ,1FFxq= . The set of the marked states is 
+, ,1{}F m F q=
+ . In Table  11 the description 
+of the states of the feeding device are presented. According to [11] the feeding device con-
+sist of a linear actuator, a rotary actuator and appropriate sensors. The feeding device is 
+in faulty mode for the same reason s to those presented for the C&T device , see [2 4,25,32]. 
+The repair signal can be produced in the same way to the previous subsystems and so is 
+observable.  
+  
+Figure 6. State diagram of GR.
+2.7. The Model of the Feeding Device with Faults
+The model of the feeding device in the presence of faults is developed to be
+GF= (QF,EF,fF,HF,xF,0,QF,m). The set of the states is QF=fqF,1,qF,2,qF,3,qF,4g. The
+initial state is xF,0=qF,1. The set of the marked states is QF,m=fqF,1g. In Table 11
+the description of the states of the feeding device are presented. According to [ 11] the
+feeding device consist of a linear actuator, a rotary actuator and appropriate sensors. The
+feeding device is in faulty mode for the same reasons to those presented for the C&T
+device, see [ 24,25,32]. The repair signal can be produced in the same way to the previous
+subsystems and so is observable.
+Table 11. States of the feeding device.
+Symbol State Description
+qF,1 The device is idle
+qF,2 The device is working
+qF,3 The device is out of rough pieces
+qF,4 The device is in faulty mode
+The alphabet is EF=feF,1,eF,2,eF,3,eF,4,eF,5,eF,6g. In Table 12, the events of the
+feeding device are presented.
+Table 12. Events of the feeding device.
+Symbol Event Description
+eF,1 The device starts working
+eF,2 A product has been fed
+eF,3 The device is out of rough products
+eF,4 The device has been reﬁlled with rough products
+eF,5 A fault took place at the device.
+eF,6 A fault has been repaired at the device.
+The event eF,1is a command signal and the events eF,2,eF,3,eF,4,eF,5and eF,6are
+observable signals. Thus, the set of the controllable events is EF,c=feF,1,eF,6gand the set
+of the uncontrollable events is EF,uc=feF,2,eF,3,eF,4,eF,5g. The sets of the active events
+ofGFareHF(qF,1) =feF,1g,HF(qF,3) =feF,4,eF,5g,HF(qF,4) =feF,6g. The values of the
+transition function are
+fF(qF,1,eF,1) =qF,2,fF(qF,2,eF,2) =qF,1,fF(qF,2,eF,3) =qF,3,
+fF(qF,2,eF,5) =qF,4,fF(qF,3,eF,4) =qF,1,fF(qF,3,eF,5) =qF,4,
+fF(qF,4,eF,6) =qF,1
+
+--- Page 10 ---
+Sensors 2023 ,23, 163 10 of 24
+GFis a nonblocking automaton i.e., Lm(GF) =L(GF), where
+Lm(GF) = (eF,1(eF,2+eF,5eF,6+eF,3(eF,4+eF,5eF,6)))
+In Figure 7, the state diagram of GFis presented. In the nonfaulty case, the diagram is
+reduced to that in [1,3,11].
+Sensors 2023, 23, x FOR PEER REVIEW  11 of 27 
+ 
+ Table 11. States of the feeding devic e. 
+Symbol  State Description  
+,1Fq
+ The device is idle  
+,2Fq
+ The device is working  
+,3Fq
+ The device is out of rough pieces  
+,4Fq
+ The device is in faulty mode  
+The alphabet is 
+,1 ,2 ,3 ,4 ,5 ,6{ , , , , , }F F F F F F Fe e e e e e=
+ . In Table 12, the events of the feeding 
+device are presented.  
+Table 12. Events of the feeding device . 
+Symbol  Event Description  
+,1Fe
+ The device starts working  
+,2Fe
+ A product has been fed  
+,3Fe
+ The device is out of rough products  
+,4Fe
+ The device has been refilled with rough products  
+,5Fe
+ A fault took place at the device.  
+,6Fe
+ A fault has been repaired at the device.  
+The event 
+,1Fe  is a command signal and the events 
+,2Fe , 
+,3Fe , 
+,4Fe , 
+,5Fe  and 
+,6Fe  
+are observable signals. Thus, the set of the controllable events is 
+, ,1 ,6{ , }F c F F ee=
+  and the 
+set of the uncontrollable events is 
+, ,2 ,3 ,4 ,5{ , , , }F uc F F F F e e e e=
+ . The sets of the active events 
+of 
+FG  are 
+,1 ,1( ) { }F F Fqe=
+ , 
+,3 ,4 ,5( ) { , }F F F Fq e e=
+ , 
+,4 ,6( ) { }F F Fqe=
+ . The values of the 
+transition function are  
+,1 ,1 ,2( , )F F F Ff q e q =
+, 
+,2 ,2 ,1( , )F F F Ff q e q = , 
+,2 ,3 ,3( , )F F F Ff q e q = , 
+,2 ,5 ,4( , )F F F Ff q e q =
+, 
+,3 ,4 ,1( , )F F F Ff q e q = , 
+,3 ,5 ,4( , )F F F Ff q e q = , 
+,4 ,6 ,1( , )F F F Ff q e q =
+  
+FG
+ is a nonblocking automaton i.e., 
+( ) ( )m F F=GG
+ , where  
+( ) ( )*
+,1 ,2 ,5 ,6 ,3 ,4 ,5 ,6 ( ) ( )m F F F F F F F F F e e e e e e e e= + + +G
+  
+In Figure 7, the state diagram of 
+FG  is presented. In the nonfaulty case, the diagram 
+is reduced to that in [1 ,3,11]. 
+eF,1
+qF,1
+eF,5
+eF,6eF,5qF,2eF,3eF,4
+qF,3
+eF,2
+qF,4
+ 
+Figure 7. State diagram of 
+FG . 
+  
+Figure 7. State diagram of GF.
+2.8. The Cell Model as a Shufﬂe
+Since the event sets of the subsystems presented in Section 2 are disjoint sets, the model
+Gof the manufacturing cell can be expressed as the shufﬂe [ 6] of the of the subsystems
+and can be expressed in the synchronous product form G=GTjjGCjjGDjjGBjjGRjjGF.
+In [6,8], the deﬁnition and the properties of the synchronous product [ 6], or alternatively
+the parallel connection [ 8], are presented. The set of its states is Q=QTQCQD
+QBQRQFand the states are of the form q= (qT,qC,qD,qB,qR,qF). The alphabet of G
+isE=ET[EC[ED[EB[ER[EF. Clearly, all transitions of the subsystems are feasible.
+The active event sets of Gsatisfy the following property
+H((qT,qC,qD,qB,qR,qF))=HT(qT)[HC(qC)[HD(qD)[HB(qB)[HR(qR)[HF(qF)
+and the set of the marked states is Qm=f(qT,1,qC,1,qD,1,qB,1,qR,1,qF,1)g.
+3. Desired Languages
+In [11], a set of safety and functionality speciﬁcations has been presented. Here, the
+above speciﬁcations are enriched with requirements considering the possibility of the
+presence of the faults. Note that in the faulty case of the drilling machine the product is
+tested to be accepted or rejected. Here, except the drilling machine, after the detection of
+a fault to another subsystem and its repair, the process of the subsystem will reinitiate to
+complete the task with respect to the current product.
+In particular, the desired speciﬁcations, in the eventual presence of faults, are formu-
+lated, here, as follows:
+1. When a fault takes place in the table or in the robotic manipulator, then the commands
+to leave from the idle state of the rest of the cell’s systems are deactivated until the
+fault’s repair.
+2. The circular table is allowed to start rotating only if there is raw product in the
+appropriate position or a drilled piece in the drilling machine or a tested product in
+the testing device.
+3. T able’s rotation and raw product transportation to the cell do not take place simultaneously .
+4. Table’s rotation and drilling do not take place simultaneously.
+5. Table’s rotation and testing do not take place simultaneously.
+6. Table’s rotation and product retrieving, through the robotic manipulator, do not take
+place simultaneously.
+7. The C&T device is not allowed to have two or more raw products in its output and
+the drilling machine is not allowed to start working without a product.
+8. The drilling machine is not allowed to drill a product twice and the testing processes
+Aand Bof the testing device can begin only after the successful completion of the
+respective drilling process.
+
+--- Page 11 ---
+Sensors 2023 ,23, 163 11 of 24
+9. The robotic manipulator can retrieve a product only if there is a tested product in the
+respective position and the table’s rotation cannot initiate with a non-retrieved piece
+in the respective position.
+The goal of the above rules is to protect the system from undesirable and/or malicious
+situations such as the ones described in the Section 1. Some possible malfunctions that
+may take place, are prevented by the following measures, being imposed by the nine
+speciﬁcation rules,
+ Measure 1: Unnecessary rotations of the table are avoided, as rule 2 does not allow
+table rotation without a product in one of the predeﬁned positions of the table.
+ Measure 2: Undesirable cooperation between the table and a device is prevented from
+rules 3–6 allowing table rotation only when the respective device is in idle mode.
+ Measure 3: The case of overﬂow in the output of the C&T device and the case of drilling
+with no product in the respective position, are prevented from Rule 7.
+ Measure 4: Product loss, through second drilling and/or testing of an unﬁnished
+product, is prevented from rule 8.
+ Measure 5: Rule 9 prevents the loss of ﬁnished products.
+The 1st speciﬁcation can be decomposed to two preﬁxed closed regular languages.
+The ﬁrst regular language is for the table of the system, while the second regular language
+is for the robotic manipulator
+1K1= (eC,1+eD,1+eB,1+eR,1+eF,1+eT,4)eT,3(eT,3)eT,4,
+1K2= (eT,1+eC,1+eD,1+eB,1+eF,1+eR,5)eR,4(eR,4)eR,5
+The 2nd speciﬁcation is expressed by the following preﬁxed closed regular language:
+2K= (eC,5+eD,2+eD,3+eB,3)(eC,5+eD,2+eD,3+eB,3)eT,1
+The 3rd speciﬁcation is expressed by the following preﬁxed closed regular language:
+3K= (eT,2+eT,4+eC,5+eC,6)(eT,1+eC,4)(eT,2+eT,4+eC,5+eC,6).
+The 4th speciﬁcation is expressed by the following preﬁxed closed regular language:
+4K= (eT,2+eT,4+eD,2+eD,4)(eT,1+eD,1)(eT,2+eT,4+eD,2+eD,4).
+The 5th speciﬁcation is expressed by the following preﬁxed closed regular language:
+5K= (eT,2+eT,4+eB,3+eB,5)(eT,1+eB,1+eB,2)(eT,2+eT,4+eB,3+eB,5).
+The 6th speciﬁcation is expressed by the following preﬁxed closed regular language:
+6K= (eT,2+eT,4+eR,2+eR,5)(eT,1+eR,1)(eT,2+eT,4+eR,2+eR,5)
+The 7th speciﬁcation is expressed by the following preﬁxed closed regular language:
+7K=
+(eT,1+eC,4)eC,5(eC,5)eT,1(eC,5) 
+eC,4(eC,5)+#eD,1
+The 8th specification can be analyzed to the following two prefixed closed regular languages:
+8K1= (eD,1)eD,2(eD,2)eB,1,8K2= (eD,1)eD,3(eD,3)eB,2.
+The 9th speciﬁcation is expressed by the following preﬁxed closed regular language
+9K= (eT,1)eB,3(eB,3)eT,1(eB,3)eR,1
+
+--- Page 12 ---
+Sensors 2023 ,23, 163 12 of 24
+Using the same indices, the alphabets of the above preﬁxed closed regular lan-
+guages are
+1ES,1=feC,1,eD,1,eB,1,eR,1,eF,1,eT,3,eT,4g,1ES,2=feT,1,eC,1,eD,1,eB,1,eF,1,eR,4,eR,5g,
+2ES=feT,1,eC,5,eD,2,eD,3,eB,3g,3ES=feT,1,eT,2,eT,4,eC,4,eC,5,eC,6g,
+4ES=feT,1,eT,2,eT,4,eD,1,eD,2,eD,4g,5ES=feT,1,eT,2,eT,4,eB,1,eB,2,eB,3,eB,5g,
+6ES=feT,1,eT,2,eT,4,eR,1,eR,2,eR,5g,7ES=feT,1,eC,4,eC,5,eD,1g,
+8ES,1=feD,1,eD,2,eB,1g,8ES,2=feD,1,eD,3,eB,2g,9ES=feT,1,eB,3,eR,1g
+To satisfy the speciﬁcations 1–9, the automaton Gwill be controlled by appropriate
+supervisors. To this end, similarly to [ 18,33] and because the speciﬁcations are expressed
+by preﬁxed closed languages, the performance of the resulting controlled automaton is
+proposed to be described by the following 11 desired languages
+1KD,1=1P 1
+1
+1K1
+\Lm(G) =1P 1
+1
+1K1
+\Lm(G) (1)
+1KD,2=1P 1
+2
+1K2
+\Lm(G) =1P 1
+2
+1K2
+\Lm(G) (2)
+2KD=2P 1
+2K
+\Lm(G) =2P 1
+2K
+\Lm(G) (3)
+3KD=3P 1
+3K
+\Lm(G) =3P 1
+3K
+\Lm(G) (4)
+4KD=4P 1
+4K
+\Lm(G) =4P 1
+4K
+\Lm(G) (5)
+5KD=5P 1
+5K
+\Lm(G) =5P 1
+5K
+\Lm(G) (6)
+6KD=6P 1
+6K
+\Lm(G) =6P 1
+6K
+\Lm(G) (7)
+7KD=7P 1
+7K
+\Lm(G) =7P 1
+7K
+\Lm(G) (8)
+8KD,1=8P 1
+1
+8K1
+\Lm(G) =8P 1
+1
+8K1
+\Lm(G) (9)
+8KD,2=8P 1
+2
+8K2
+\Lm(G) =8P 1
+2
+8K2
+\Lm(G) (10)
+9KD=9P 1
+9K
+\Lm(G) =9P 1
+9K
+\Lm(G) (11)
+where1P1and1P2denote the projections of Eto1E
+S,1and1E
+S,2, respectively.8P1and
+8P2denote the projections of Eto8E
+S,1and8E
+S,2, respectively.2Ptill7Pdenote the
+projections of Eto2E
+Still7E
+S, respectively.9Pdenotes the projection of Eto9E
+S.
+4. Supervisors
+4.1. Notation and Properties of Supervisory Design
+In order to control an automaton, let G, a ﬁnite deterministic automaton, called
+supervisor and denoted by S= (QS,ES,fS,HS,xS,0,QS,m), will be used. The closed and
+the marked behavior of the controlled automaton by the aforementioned supervisor are
+equal to the closed and the marked behavior of the synchronous product [ 6] (or parallel
+composition [ 8]) of Sand G, denoted by SjjG. The complexity of S(indicatively see [ 13,34])
+is the triad including the number of the states, the number of the events and the number of
+the transitions of S.
+The control action of StoGis physical realizable (PR) (see [ 35]) if the transitions of
+Gdue to its uncontrollable events are not disactivated by SjjG. The performance of the
+controlled automaton is nonblocking if SjjGis a nonblocking automaton, see [ 6,8]. Here,
+the case of multiple supervisors in a modular scheme will be used. For more details about
+the modular supervisory design, see [6,8] and the extensions developed in [18–33].
+
+--- Page 13 ---
+Sensors 2023 ,23, 163 13 of 24
+4.2. A Two-State Supervisor form Realizing the First Six and The 8th Speciﬁcations
+The automaton S1= (QS,1,ES,1,fS,1,HS,1,xS,1,0,QS,1,m)denotes a class of supervisors.
+The cardinality of the set of the states of S1is equal to 2, i.e., QS,1=fqS,1,1,qS,1,2g. The
+class of supervisors depends upon four regular expressions, denoted by1c1,1c2,1c3and
+1c4. For the deﬁnition and properties of regular expressions, see [ 6,8]. Their alphabets are
+denoted by1Ec,1,1Ec,2,1Ec,3and1Ec,4, respectively. The alphabet of S1isES,1=1Ec,1[
+1Ec,2[1Ec,3[1Ec,4. The initial state of S1isxS,1,0=qS,1,1. It is considered that all states
+are marked, i.e., QS,1,m=QS,1. The active event sets of S1areHS,1(qS,1,1) =1Ec,1[1Ec,2
+andHS,1(qS,1,2) =1Ec,3[1Ec,4. The values of the transition function of S1are
+fS,1(qS,1,1,e) =qS,1,1,8e21Ec,1,fS,1(qS,1,1,e) =qS,1,2,8e21Ec,2,
+fS,1(qS,1,2,e) =qS,1,2,8e21Ec,3,fS,1(qS,1,2,e) =qS,1,1,8e21Ec,4
+The complexity triad of S1is(2,jES,1j,jES,1j), wherejjdenotes the cardinality of the
+argument set. The state diagram of S1is depicted in Figure 8.
+Sensors 2023, 23, x FOR PEER REVIEW  15 of 27 
+ 
+ 4.2. A Two-State Supervisor form Realizing the First Six and The 8th Specifications  
+The automaton 
+1 ,1 ,1 ,1 ,1 ,1,0 ,1,( , , , , , )S S S S S S m fx =S
+  denotes a class of supervisors. 
+The cardinality of the set of the states of 
+1S  is equal to 2, i.e., 
+,1 ,1,1 ,1,2{ , }S S S qq=
+ . The class  
+of supervisors depends upon four regular expressions, denoted by 
+1
+1c , 
+1
+2c , 
+1
+3c  and 
+1
+4c . 
+For the definition and properties of re gular expressions, see [6 ,8]. Their alphabets are de-
+noted by 
+1
+,1c
+ , 
+1
+,2c
+ , 
+1
+,3c
+  and 
+1
+,4c
+ , respectively. The alphabet of 
+1S  is 
+1 1 1 1
+,1 ,1 ,2 ,3 ,4S c c c c=   
+. The initial state of 
+1S  is 
+,1,0 ,1,1SSxq= . It is considered 
+that all states are marked, i.e., 
+,1, ,1S m S=
+ . The active event sets of 
+1S  are 
+11
+,1 ,1,1 ,1 ,2()S S c cq=
+ and 
+11
+,1 ,1,2 ,3 ,4()S S c cq=
+ . The values of the transition func-
+tion of 
+1S  are  
+1
+,1 ,1,1 ,1,1 ,1( , ) ,S S S cf q e q e =  
+, 
+1
+,1 ,1,1 ,1,2 ,2( , ) ,S S S cf q e q e =  
+ , 
+1
+,1 ,1,2 ,1,2 ,3( , ) ,S S S cf q e q e =  
+, 
+1
+,1 ,1,2 ,1,1 ,4( , ) ,S S S cf q e q e =  
+ .  
+The complexity triad of 
+1S  is 
+( ) ,1 ,1 2,| |,| |SS
+ , where 
+||•  denotes the cardinality 
+of the argument set. The state diagram of 
+1S  is depicted in Figure 8.  
+1
+,1c
+qS,1,1 qS,1,2
+1
+,3c
+1
+,2c
+1
+,4c
+ 
+Figure 8. State diagram of 
+1S . 
+1S
+ will be used for the realization of seven automata, where their  closed and the 
+marked behaviors will be equal to the prefixed closed regular languages 
+1
+1
+ , 
+1
+2
+ , 
+2
+ , 
+3
+, 
+4
+ ,
+5
+  and 
+6
+ , respectively. In Table 13, the supervisor’s symbol derived, using 
+1S
+, the respective languages and their complexity triad, are presented. According to Table 
+13, the alphabets of the regular expressions are uniquely determined. Indicatively, for 
+1
+1,1S  
+it holds that 
+1
+,1 ,1 ,1 ,1 ,1 ,1{ , , , , }c C D B R F e e e e e=
+ , 
+11
+,2 ,3 ,3 {}c c T e==
+  and 
+1
+,4 ,4{}cT e=
+ . 
+Table 13. Supervisors derived by 
+1S . 
+Supervisor  Behavior  Regular Expressions  Complexity  
+1
+1,1S
+ 
+1
+1
+  
+1
+1 ,1 ,1 ,1 ,1 ,1 ,4
+1 1 1
+2 3 ,3 4 ,4,
+,C D B R F T
+TTc e e e e e e
+c c e c e= + + + + +
+= = =  
+(2,7,9)  
+1
+1,2S
+ 
+1
+2
+  
+1
+1 ,1 ,1 ,1 ,1 ,1 ,5
+1 1 1
+2 3 ,4 4 ,5,
+,T C D B F R
+RRc e e e e e e
+c c e c e= + + + + +
+= = =  
+(2,7,9)  
+2
+1S
+ 
+2
+  
+1 1 1 1
+1 2 3 ,5 ,2 ,3 ,3 4 ,1 ,,C D D B T c c c e e e e c e= = = + + + =  
+(2,5,9)  
+3
+1S
+ 
+3
+  
+1
+1 ,2 ,4 ,5 ,6
+1 1 1 1
+2 ,1 ,4 3 4 1,
+,,T T C C
+TCc e e e e
+c e e c c c = + + +
+= + = =  
+(2,6,10)  
+4
+1S
+ 
+4
+  
+11
+1 ,2 ,4 ,2 ,4 2 ,1 ,1
+1 1 1
+3 4 1,,
+,.T T D D T D c e e e e c e e
+c c c= + + + = +
+==  
+(2,6,13)  
+Figure 8. State diagram of S1.
+S1will be used for the realization of seven automata, where their closed and the
+marked behaviors will be equal to the preﬁxed closed regular languages1K1,1K2,2K,
+3K,4K,5Kand6K, respectively. In Table 13, the supervisor’s symbol derived, using S1,
+the respective languages and their complexity triad, are presented. According to Table 13,
+the alphabets of the regular expressions are uniquely determined. Indicatively, for1S1,1it
+holds that1Ec,1=feC,1,eD,1,eB,1,eR,1,eF,1g,1Ec,2=1Ec,3=feT,3gand1Ec,4=feT,4g.
+4.3. A Three-State Supervisor Realizing the 9th Speciﬁcation
+The supervisor automaton, realizing9K, is of the form
+S2 = ( QS,2,ES,2,fS,2,HS,2,xS,2,0,QS,2,m). The set of the states of S2is
+QS,2=fqS,2,1,qS,2,2,qS,2,3gandjQS,2j=3. The alphabet of S2isES,2=9ES. Its initial
+state is denoted by xS,2,0=qS,2,1. All states of S2are marked, i.e., QS,2,m=QS,2. The sets
+of the active events, per state of S2, areHS,2(qS,2,1) =feT,1,eB,3g,HS,2(qS,2,2) =feT,1,eB,3g
+andHS,2(qS,2,3) =feB,3,eR,1g. The values of the transition function of S2are
+fS,2(qS,2,1,eT,1) =qS,2,1,fS,2(qS,2,1,eB,3) =qS,2,2,fS,2(qS,2,2,eB,3) =qS,2,2,
+fS,2(qS,2,2,eT,1) =qS,2,3,fS,2(qS,2,3,eB,3) =qS,2,3,fS,2(qS,2,3,eR,1) =qS,2,1
+The complexity triad of S2is(3, 3, 6 ). Its state diagram is presented in Figure 9.
+4.4. A Four-State Supervisor Realizing the 7th Speciﬁcation
+The supervisor automaton, realizing7K, is of the form
+S3 = ( QS,3,ES,3,fS,3,HS,3,xS,3,0,QS,3,m). The set of the states of S3is
+QS,3=fqS,3,1,qS,3,2,qS,3,3,qS,3,4gandjQS,3j=4. The alphabet of S3isES,3=7ES. Its
+initial state is denoted by xS,3,0=qS,3,1. All states of S3are marked, i.e., QS,3,m=QS,3. The
+sets of the active events, per state of S3, are
+HS,3(qS,3,1) =feT,1,eC,4,eC,5g,HS,3(qS,3,2) =feT,1,eC,5g,HS,3(qS,3,3) =feD,1,eC,4g
+andHS,3(qS,3,4) =feD,1,eC,5g
+
+--- Page 14 ---
+Sensors 2023 ,23, 163 14 of 24
+The values of the transition function of S3are
+fS,3(qS,3,1,eT,1) =qS,3,1,fS,3(qS,3,1,eC,4) =qS,3,1,fS,3(qS,3,1,eC,5) =qS,3,2,
+fS,3(qS,3,2,eC,5) =qS,3,2,fS,3(qS,3,2,eT,1) =qS,3,3,fS,3(qS,3,3,eC,5) =qS,3,3,
+fS,3(qS,3,3,eD,1) =qS,3,1,fS,3(qS,3,3,eC,4) =qS,3,4,fS,3(qS,3,4,eC,5) =qS,3,4,
+fS,3(qS,3,4,eD,1) =qS,3,1
+The complexity triad of S3is(4, 4, 10 ). Its state diagram is presented in Figure 10.
+Table 13. Supervisors derived by S1.
+Supervisor Behavior Regular Expressions Complexity
+1S1,11K11c1=eC,1+eD,1+eB,1+eR,1+eF,1+eT,4,
+1c2=1c3=eT,3,1c4=eT,4(2, 7, 9 )
+1S1,21K21c1=eT,1+eC,1+eD,1+eB,1+eF,1+eR,5,
+1c2=1c3=eR,4,1c4=eR,5(2, 7, 9 )
+2S12K1c1=#,1c2=1c3=eC,5+eD,2+eD,3+eB,3,1c4=eT,1 (2, 5, 9 )
+3S13K1c1=eT,2+eT,4+eC,5+eC,6,
+1c2=eT,1+eC,4,1c3=#,1c4=1c1(2, 6, 10 )
+4S14K1c1=eT,2+eT,4+eD,2+eD,4,1c2=eT,1+eD,1,
+1c3=#,1c4=1c1.(2, 6, 13 )
+5S15K1c1=eT,2+eT,4+eB,3+eB,5,1c2=eT,1+eB,1+eB,2,
+1c3=#,1c4=1c1(2, 7, 11 )
+6S16K1c1=eT,2+eT,4+eR,2+eR,5,1c2=eT,1+eR,1,
+1c3=#,1c4=1c1(2, 6, 12 )
+8S1,18K11c1=eD,1,1c2=1c3=eD,2,1c4=eB,1 (2, 3, 4 )
+8S1,28K21c1=eD,1,1c2=1c3=eD,3,1c4=eB,2 (2, 3, 4 )
+
+--- Page 15 ---
+Sensors 2023 ,23, 163 15 of 24
+Sensors 2023, 23, x FOR PEER REVIEW  16 of 27 
+ 
+ 
+5
+1S 
+5
+  
+11
+1 ,2 ,4 ,3 ,5 2 ,1 ,1 ,2
+1 1 1
+3 4 1,,
+,T T B B T B B c e e e e c e e e
+c c c= + + + = + +
+==  
+(2,7,11)  
+6
+1S
+ 
+6
+  
+11
+1 ,2 ,4 ,2 ,5 2 ,1 ,1
+1 1 1
+3 4 1,,
+,T T R R T R c e e e e c e e
+c c c= + + + = +
+==  
+(2,6,12)  
+8
+1,1S
+ 
+8
+1
+  
+1 1 1 1
+1 ,1 2 3 ,2 4 ,1 ,,D D B c e c c e c e= = = =  
+(2,3,4)  
+8
+1,2S
+ 
+8
+2
+  
+1 1 1 1
+1 ,1 2 3 ,3 4 ,2 ,,D D B c e c c e c e= = = =  
+(2,3,4)  
+4.3. A Three -State Supervisor Realizing the 9th Specification  
+The supervisor automaton, realizing 
+9
+ , is of the form
+2 ,2 ,2 ,2 ,2 ,2,0 ,2,( , , , , , )S S S S S S m fx =S
+. The set of the states of 
+2S  is 
+,2 ,2,1 ,2,2 ,2,3{ , , }S S S S q q q=
+ and 
+,2| | 3S=
+ . The alphabet of 
+2S  is 
+9
+,2SS=
+ . Its initial state 
+is denoted by 
+,2,0 ,2,1SSxq= . All states of 
+2S  are marked, i.e., 
+,2, ,2S m S=
+ . The sets of the 
+active  events, per state of 
+2S , are 
+,2 ,2,1 ,1 ,3( ) { , }S S T Bq e e=
+ , 
+,2 ,2,2 ,1 ,3( ) { , }S S T Bq e e=
+  and 
+,2 ,2,3 ,3 ,1( ) { , }S S B Rq e e=
+. The values of the transition function of 
+2S  are  
+,2 ,2,1 ,1 ,2,1( , )S S T Sf q e q =
+, 
+,2 ,2,1 ,3 ,2,2( , )S S B Sf q e q = , 
+,2 ,2,2 ,3 ,2,2( , )S S B Sf q e q = , 
+,2 ,2,2 ,1 ,2,3( , )S S T Sf q e q =
+, 
+,2 ,2,3 ,3 ,2,3( , )S S B Sf q e q = , 
+,2 ,2,3 ,1 ,2,1( , )S S R Sf q e q = .  
+The complexity triad of 
+2S  is 
+() 3,3,6 . Its state diagram is presented in  Figure 9.  
+qS,2,1 qS,2,2 qS,2,3eT,1
+eT,1 eB,3eB,3 eB,3
+eR,1
+ 
+Figure 9. State diagram of 
+2S . 
+4.4. A Four -State Supervisor Realizing the 7th Specification  
+The supervisor automaton, realizing 
+7
+ , is of the form
+3 ,3 ,3 ,3 ,3 ,3,0 ,3,( , , , , , )S S S S S S m fx =S
+. The set of the states of 
+3S  is 
+,3 ,3,1 ,3,2 ,3,3 ,3,4{ , , , }S S S S S q q q q=
+ and 
+,3| | 4S=
+ . The alphabet of 
+3S  is 
+7
+,3SS=
+ . Its initial 
+state is denoted by 
+,3,0 ,3,1SSxq= . All states of 
+3S  are marked, i.e., 
+,3, ,3S m S=
+ . The sets 
+of the active events, per state of 
+3S , are  
+,3 ,3,1 ,1 ,4 ,5( ) { , , }S S T C Cq e e e=
+, 
+,3 ,3,2 ,1 ,5( ) { , }S S T Cq e e=
+ , 
+,3 ,3,3 ,1 ,4( ) { , }S S D Cq e e=
+  
+and 
+,3 ,3,4 ,1 ,5( ) { , }S S D Cq e e=
+ .  
+The values of the transition function of 
+3S  are  
+,3 ,3,1 ,1 ,3,1( , )S S T Sf q e q =
+, 
+,3 ,3,1 ,4 ,3,1( , )S S C Sf q e q = , 
+,3 ,3,1 ,5 ,3,2( , )S S C Sf q e q = , 
+,3 ,3,2 ,5 ,3,2( , )S S C Sf q e q =
+, 
+,3 ,3,2 ,1 ,3,3( , )S S T Sf q e q = , 
+,3 ,3,3 ,5 ,3,3( , )S S C Sf q e q = ,
+,3 ,3,3 ,1 ,3,1( , )S S D Sf q e q =
+, 
+,3 ,3,3 ,4 ,3,4( , )S S C Sf q e q = , 
+,3 ,3,4 ,5 ,3,4( , )S S C Sf q e q = , 
+,3 ,3,4 ,1 ,3,1( , )S S D Sf q e q =
+.  
+The complexity triad of 
+3S  is 
+() 4,4,10 . Its state diagram is presented in Figure 10.  
+Figure 9. State diagram of S2.
+Sensors 2023, 23, x FOR PEER REVIEW  17 of 27 
+ 
+ 
+qS,3,1 qS,3,2 qS,3,3eT,1,eC,4
+eT,1 eC,5eC,5eC,5
+eD,1eC,5
+eD,1eC,4
+qS,3,4 
+Figure 10. State diagram of 
+3S  
+5. The Performance of the Controlled Automaton  
+The supervisors proposed in Section 4, are interconnected to the automaton 
+G  of 
+the manufacturing cell through the following multi argument synchronous product  
+1 1 2 3 4 5 6 8 8
+1,1 1,2 1 1 1 1 1 1,1 1,2 2 3|| || || || || || || || || || || .c=G S S S S S S S S S S S G
+ (12) 
+Automaton 
+cG  is the controlled automaton. In this section, the performance of the 
+controlled automaton 
+cG  will be investigated. It will be proven that 
+cG  satisfies the 
+desired specifications 1–9, presented in Section III. To this end and using the properties of 
+the multi argument synchronous product (see [9 ,10]) and the property that the closed and 
+the marked behaviors of the supervisors, are equal to  the prefixed closed regular lan-
+guages 
+1
+1
+ , 
+1
+2
+ , 
+2
+ , 
+3
+ , 
+4
+ , 
+5
+ , 
+6
+ , 
+7
+ , 
+8
+1
+ , 
+8
+2
+  and 
+9
+ , respectively, the 
+closed behavior and the marked behavior of 
+cG  will first be computed  
+()()
+()()()()71 1 1 1
+112
+1 1 1 8 1 8 8 1 8 9 1 9
+2 2 1 1 2 2( ) ( )c P P
+P P P P
+− −
+=
+− − − −=   
+   GG
+ (13) 
+()()
+()()()()7 1 1 1 1
+112
+1 1 1 8 1 8 8 1 8 9 1 9
+2 2 1 1 2 2
+7 1 2 8 8 9
+,1 ,1 ,1 ,22( ) ( )m c m
+D D D D D DP P
+P P P P
+
+
+=− −
+=
+− − − −
+=  
+    =
+ =     GG
+ (14) 
+From (1 4), it is observed that the performance of the controlled automaton 
+cG , re-
+garding its marked behavior, is satisfactory. Regarding the closed behavior of 
+cG , it is 
+mentioned that in order to be satisfactory it is necessary and sufficient that 
+cG  is 
+nonblocking, i.e., 
+( ) ( )m c c=GG
+ . This property will be proven in Proposition 2.  
+In Figure 1 1, the operational flow of the present modular supervisory scheme is pre-
+sented. The symbols 
+1S  to 
+11S  represent the eleven supervisors of the present control 
+scheme (see Section 4). All commands (controllable events) are generated by the Genera-
+tor/Scheduler and inputted to the eleven supervisors. All sensors’ signals (uncontrollable 
+events) are produced b y the sensors and inputted to the eleven supervisors. The indica-
+tions of faults (uncontrollable events) are produced by Fault Detectors. The outputs of all 
+supervisors are connected to an “AND” block. An event is outputted by this block only if 
+it is outpu tted by all eleven supervisors. The above algorithm is the main idea of modular 
+supervising control.  
+Figure 10. State diagram of S3.
+5. The Performance of the Controlled Automaton
+The supervisors proposed in Section 4, are interconnected to the automaton Gof the
+manufacturing cell through the following multi argument synchronous product
+Gc=1S1,11S1,22S13S14S15S16S18S1,18S1,2S2S3G. (12)
+Automaton Gcis the controlled automaton. In this section, the performance of the
+controlled automaton Gcwill be investigated. It will be proven that Gcsatisﬁes the desired
+speciﬁcations 1–9, presented in Section 3. To this end and using the properties of the multi
+argument synchronous product (see [ 9,10]) and the property that the closed and the marked
+behaviors of the supervisors, are equal to the preﬁxed closed regular languages1K1,1K2,
+2K,3K,4K,5K,6K,7K,8K1, and9K, respectively, the closed behavior and the marked
+behavior of Gcwill ﬁrst be computed
+L(Gc) =L(G)\h
+\7
+l=2lP 1
+lKi
+\1P 1
+1
+1K1
+\
+\1P 1
+2
+1K2
+\8P 1
+1
+8K1
+\8P 1
+2
+8K2
+\9P 1
+9K (13)
+Lm(Gc) =Lm(G)\\7
+l=2lP 1 lK\1P 1
+1 1K1\
+\1P 1
+2 1K2\8P 1
+1 8K1\8P 1
+2 8K2\9P 1 9K=
+=1KD,1\2KD,1\\7
+l=2lKD\8KD,1\8KD,2\9KD(14)
+From (14), it is observed that the performance of the controlled automaton Gc, regard-
+ing its marked behavior, is satisfactory. Regarding the closed behavior of Gc, it is mentioned
+that in order to be satisfactory it is necessary and sufﬁcient that Gcis nonblocking, i.e.,
+Lm(Gc) =L(Gc). This property will be proven in Proposition 2.
+In Figure 11, the operational ﬂow of the present modular supervisory scheme is pre-
+sented. The symbols S1toS11represent the eleven supervisors of the present control
+scheme (see Section 4). All commands (controllable events) are generated by the Genera-
+tor/Scheduler and inputted to the eleven supervisors. All sensors’ signals (uncontrollable
+events) are produced by the sensors and inputted to the eleven supervisors. The indica-
+tions of faults (uncontrollable events) are produced by Fault Detectors. The outputs of all
+supervisors are connected to an “AND” block. An event is outputted by this block only if it
+is outputted by all eleven supervisors. The above algorithm is the main idea of modular
+supervising control.
+
+--- Page 16 ---
+Sensors 2023 ,23, 163 16 of 24
+Sensors 2023, 23, x FOR PEER REVIEW  18 of 27 
+ 
+  
+Figure 1 1. Operational flow chart of the supervisory control scheme . 
+Before examining the closed behavior of the controlled automaton, it is necessary to  
+examine the physical realizability (PR) of the synchronous product in Relation  (12). The 
+physical realizability (see [3 5,36]) is translated into the condition that the transitions of 
+G
+, activated by uncontrollable events, must not obstructed by the twelve supervisors.  
+Proposition 1 : The synchronous product of the designed supervisor scheme is PR, with respect to 
+G
+, through (1 2).  
+Proof  of Proposition 1 : It holds that 
+1 1 1 1
+,1,1 ,1,1 ,1, ,1,()S S S uc S uc q=
+ , where 
+11
+,1, ,1S uc S uc=
+, and 
+1
+,1S
+ . Using Corollary 1 in [3 5], it is concluded that 
+1
+1,1S  is 
+PR with respect to 
+G , through 
+1
+1,1||SG . The alphabet and the set of the uncontrollable 
+events of 
+1
+1,1||SG  are equal to the respective sets of 
+G . Also, it holds that 
+1 1 1 1
+,2 ,1,2 ,2, ,2,()S S S uc S ucq=
+ and 
+1
+,2S
+ , where 
+11
+,2, ,2S uc S uc=
+ . Hence, using 
+Corollary 1 of [32], it is concluded that 
+1
+1,2S  is PR with respect to 
+1
+1,1||SG , through 
+11
+1,2 1,1|| ||S S G
+. It holds that 
+,1 ,1,1 , ,()i i i i
+S S S uc S ucq=
+ , where 
+,ii
+S uc S uc=
+  and 
+{2,...,6}i
+, as well as that 
+i
+S
+ . The alphabet and the set of the uncontrollable events 
+of 
+111
+1 1,2 1,1
+2|| || || ||i
+−
+=S S S G are equal to the respective sets of 
+G . Hence, using Corollary 
+1 of [32], it is concluded that 
+1iS  is PR, with respect to 
+111
+1 1,2 1,1
+2|| || || ||i
+−
+=S S S G , through 
+111
+1 1 1,2 1,1
+2|| || || || ||ii 
+−
+=S S S S G
+. The alphabet and the set of the uncontrollable events of 
+611
+1 1,2 1,1
+2|| || || ||
+=S S S G
+ are equal to the respective sets of 
+G . It holds that 
+8
+,1S
+ , 
+8 8 8 8
+,1,1 ,1,1 ,1, ,1,()S S S uc S uc q=
+, where 
+88
+,1, ,1S uc S uc=
+ . He nce, using Corollary 1 of 
+[32], it is concluded that 
+8
+1,1S  is PR, with respect to 
+611
+1 1,2 1,1
+2|| || || ||
+=S S S G , through 
+68 1 1
+1 1 1,2 1,1
+2|| || ( ) || || ||
+=S S S S G
+. The alphabet and the set of the uncontrollable events of  
+Command 
+Generator/
+Scheduler
+......S1 S11
+ANDControllable 
+Events
+Sensors  Uncontrollable Events 
+(not indicating faults)Fault 
+Detectors
+Events indicating 
+faults
+SensorsManufacturing 
+Cell
+The event is outputted from the 
+supervisor only if it belongs to the 
+active event set of the current state of 
+the supervisor or it does not belong to 
+the alphabet of the supervisor  The event is outputted 
+only if it is outputted 
+from all supervisors
+Figure 11. Operational ﬂow chart of the supervisory control scheme.
+Before examining the closed behavior of the controlled automaton, it is necessary to
+examine the physical realizability (PR) of the synchronous product in Relation (12). The
+physical realizability (see [ 35,36]) is translated into the condition that the transitions of G,
+activated by uncontrollable events, must not obstructed by the twelve supervisors.
+Proposition 1 :The synchronous product of the designed supervisor scheme is PR, with respect to
+G, through (12).
+Proof of Proposition 1 : It holds that1HS,1,1(1qS,1,1)\1ES,1,uc=1ES,1,uc, where
+1ES,1,uc=1ES,1\Euc, and1ES,1E. Using Corollary 1 in [ 35], it is concluded that
+1S1,1is PR with respect to G, through1S1,1jjG. The alphabet and the set of the un-
+controllable events of1S1,1jjGare equal to the respective sets of G. Also, it holds that
+1HS,2(1qS,1,2)\1ES,2,uc=1ES,2,ucand1ES,2E, where1ES,2,uc=1ES,2\Euc. Hence,
+using Corollary 1 of [ 32], it is concluded that1S1,2is PR with respect to1S1,1jjG, through
+1S1,2jj1S1,1jjG. It holds thatiHS,1(iqS,1,1)\iES,uc=iES,uc, whereiES,uc=iES\Eucand
+i2f2, . . . , 6g, as well as thatiESE. The alphabet and the set of the uncontrollable events
+of 
+i 1
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjGare equal to the respective sets of G. Hence, using Corollary
+1 of [ 32], it is concluded thatiS1is PR, with respect to 
+i 1
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG, through
+iS1jj 
+i 1
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG. The alphabet and the set of the uncontrollable events of
+ 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjGare equal to the respective sets of G. It holds that8ES,1E,
+8HS,1,1(8qS,1,1)\8ES,1,uc=8ES,1,uc, where8ES,1,uc=8ES,1\Euc. Hence, using Corollary 1
+of [32], it is concluded that8S1,1is PR, with respect to 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG, through
+8S1jj 
+6
+jj
+l=2 lS1!
+jj1S1,2jj1S1,1jjG. The alphabet and the set of the uncontrollable events of
+
+--- Page 17 ---
+Sensors 2023 ,23, 163 17 of 24
+8S1jj 
+6
+jj
+l=2 lS1!
+jj1S1,2jj1S1,1jjGare equal to the respective sets of G. Clearly, it holds that
+8ES,2 E,8HS,1,2(8qS,1,2)\8ES,2,uc =8ES,2,uc, where
+8ES,2,uc=8ES,2\Euc. Thus, using Corollary 1 of [ 35], it is concluded that8S1,2is PR, with
+respect to8S1jj 
+6
+jj
+l=2(lS1)!
+jj1S1,2jj1S1,1jjG, through8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG.
+The alphabet and the set of the uncontrollable events of8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG
+are equal to the respective sets of G. Also, it holds that ES,2E,HS,2(qS,2)\ES,2,uc=ES,2,uc,
+where ES,2,uc=ES,2\Euc. Thus, using Corollary 1 of [ 32], it is concluded that S2is PR with
+respect to
+8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG,
+through S2jj8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG. Finally, the alphabet and the set of
+the uncontrollable events of S2jj8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjGare equal to the
+respective sets of G. Also, it holds that ES,3E,HS,3(qS,3)\ES,3,uc=ES,3,uc, where
+ES,3,uc=ES,3\Euc. Hence, using Corollary 1 of [ 32], it is concluded that S3is PR, with
+respect to
+S2jj8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG,
+through S3jjS2jj8S1,2jj8S1,1jj 
+6
+jj
+l=2lS1!
+jj1S1,2jj1S1,1jjG.
+Proposition 2 :The controlled automaton Gcis a nonblocking automaton .
+Proof of Proposition 2 : Next, the six automata of the corresponding subsystems under the
+inﬂuence of the twelve supervisors will be examined regarding the nonblocking property.
+It is important to mention that all supervisors are physical realizable regarding G, i.e., all
+desired languages are controllable regarding G. In what follows, it will be investigated
+if there are direct (single step) or indirect (more than one steps) transitions from the non-
+marked states of Gcto marked states of Gc. Since all states of the supervisors are marked,
+all non-marked states of Gcinclude as a component at least one non-marked state of the
+subsystems of G. To this end, for all non-marked states of each subsystem of G, it will be
+investigated if there is a direct or indirect transition, not obstructed by the supervisor and
+the rest subsystems, that moves the subsystem to a marked state. Since Gis the shufﬂe of
+its subsystems, this transition will not be related to any transition of the rest subsystems of
+G. Thus, the aforementioned investigation will form a procedure, where upon checking
+one subsystem of G, after the appropriate transition, the number of the non-marked state
+components of a non-marked state of Gcwill be decreased by one. So, at the end of the
+procedure Gcwill arrive at a marked state and the proof will be completed.
+Starting the investigation with GT, it is observed that it has two non-marked states,
+namely , the states qT,2andqT,3. Regarding qT,2, it is recalled that HT(qT,2) =ET,uc=feT,2,eT,3g,
+fT(qT,2,eT,2) = qT,1. Since all supervisors are physical realizable, with respect to G, it
+is observed that they are also PR, with respect to GT. Using this observation and the
+property that Gis a shufﬂe, it is concluded that the transition from qT,2to the marked
+state qT,1, is always feasible using the uncontrollable event eT,2. Regarding qT,3, it holds
+thatHT(qT,3) =feT,4gand fT(qT,3,eT,4) = qT,1. It is observed that only the supervisors
+
+--- Page 18 ---
+Sensors 2023 ,23, 163 18 of 24
+1S1,1,3S1,4S1,5S1and6S1have the event eT,4in their alphabet and that the event eT,4is in
+the active event sets of all supervisors’ states. Hence, the transition from qT,3to the marked
+state qT,1, using eT,4is not obstructed by the afore mentioned supervisors as well as the rest
+supervisors as they do not include eT,4in their alphabets. Also, recall that this transition is
+not obstructed by the rest subsystems, i.e., GC,GD,GB,GRand GF, as their alphabets are
+disjoint sets with respect to ET. Hence, the transition from any state of Gc, including as a
+component a non-marked state of GT, to a state of Gc, where the non-marked state of GT
+has been substituted by a marked state of GT, is always feasible.
+The investigation will continue with GC. The automaton GChas four non-marked
+states, namely the states qC,2,qC,3,qC,4and qC,5. The repair event eC,7does not belong
+to any supervisor alphabet. Thus, the transition from the non-marked state qC,5to the
+marked state qC,1is always active, as fC(qC,5,eC,7) = qC,1. Regarding qC,2and qC,4, it
+holds that HC(qC,2) =feC,3g,fC(qC,2,eC,3) =qC,1,HC(qC,4) =feC,5g,fC(qC,4,eC,5) =qC,1;
+eC,3,eC,52EC,uc. Hence, taking into account the physical realizability of the proposed
+supervisory scheme regarding Gand the property that Gis a shufﬂe, the transition from
+qC,2and qC,4to the marked state qC,1is always feasible using uncontrollable events. Finally,
+regarding qC,3it holds that HC(qC,3) =feC,4,eC,6gand fC(qC,3,eC,4) =qC,4. It is observed
+that only the supervisors3S1and7S1have the event eC,4in their alphabet. Regarding
+3S1, it is observed that in the ﬁrst state the event eC,4is active. In the second state, the
+event eC,4is not active but there is always an active transition to the ﬁrst state using an
+uncontrollable event. Thus,3S1does not obstruct the transition from qC,3toqC,4. Regarding
+7S1, it is observed that in the ﬁrst and third state, the event eC,4is active. In the second
+and fourth state the event eC,4is not active but there is always an active transition to the
+third and ﬁrst state using uncontrollable events. Thus,7S1does not obstruct the transition
+from qC,3toqC,4. Also, the rest supervisors, namely all supervisors except3S1and7S1
+do not obstruct this transition, as they do not include eC,4in their alphabets. Regarding
+the automata GT,GD,GB,GRand GF, their alphabets are disjoint sets with respect to EC.
+Hence, the transition from any state of Gcincluding as a component a non-marked state of
+GC, to a state of Gcwhere the non-marked state of GChas been substituted by a marked
+state of GC, is always feasible.
+The automaton GDhas two non-marked states, namely the states qD,2and qD,3. Re-
+garding qD,2, it is recalled that HD(qD,2) =ED,uc,fD(qD,2,eD,2) = qD,1. Since all super-
+visors are physical realizable with respect to GD, the transition from qD,2to the marked
+state qD,1, using the uncontrollable event qD,2is always feasible. Finally, regarding, qD,3
+it holds that HD(qD,3) =feD,4gand fD(qD,3,eD,4) = qD,1. It is observed that only the
+supervisor4S1has the event eD,4in its alphabet. The event eD,4is active in all states of4S1.
+Hence, the transition from qD,3to the marked state qD,1, using eD,4, is not obstructed by
+4S1. Obviously, it is also not obstructed by the rest of the subsystems GT,GC,GB,GRand
+GF, as their alphabets are disjoint sets with respect to ED. Hence, the transition from any
+state of Gc, including as a component a non-marked state of GD, to a state of Gc, where the
+non-marked state of GDhas been substituted by a marked state of GD, is always feasible.
+The automaton GBhas also two non-marked states, namely the states qB,2and qB,3.
+Regarding qB,2, it is recalled that HB(qB,2) =EB,uc,fB(qB,2,eB,3) =qB,1. Since all supervi-
+sors are physical realizable, with respect to GB, the transition from qB,2to the marked state
+qB,1is always feasible using the uncontrollable event eB,3. Finally, regarding qB,3, it holds
+thatHB(qB,3) =feB,5gand fB(qB,3,eB,5) =qB,1. It is observed that only the supervisor5S1
+has the event eB,5in its alphabet. The event eB,5is active for all states of5S1. Hence, the
+transition from qB,3to the marked state qB,1, using eB,5, is not obstructed by5S1. Obviously,
+this transition is not obstructed by the rest of the subsystems GT,GC,GD,GRand GF, as
+their alphabets are disjoint sets with respect to EB. Hence, the transition from any state
+ofGc, including as a component a non-marked state of GB, to a state of Gc, where the
+non-marked state of GBhas been substituted by a marked state of GB, is always feasible.
+The automaton GRhas three non-marked states, namely the states qR,2,qR,3and
+qR,4. Regarding qR,2and qR,3, it holds that HR(qR,2) =feR,2,eR,4g,fR(qR,2,eR,2) = qR,3,
+
+--- Page 19 ---
+Sensors 2023 ,23, 163 19 of 24
+HR(qR,3) =feR,3,eR,4g,fR(qR,3,eR,3) = qR,1, where eR,2,eR,32ER,uc. Hence, taking into
+account the physical realizability of the proposed supervisory scheme, with respect to G,
+and the property that Gis a shufﬂe, it is observed that the transitions from qR,2and qR,3to
+the marked state qR,1are always feasible using uncontrollable events. Finally, regarding
+qR,4, it holds that HR(qR,4) =feR,5gand fR(qR,4,eR,5) =qR,1. It is observed that only the
+supervisors1S1,2and6S1have the event eR,5in their alphabet. The event eR,5belongs
+the active event sets of all states of these two supervisors. Hence, the transition from
+qR,4to the marked state qR,1, using eR,5, is not obstructed by1S1,2and6S1as well as the
+rest supervisors as they do not include eR,5in their alphabets. Also, this transition is not
+obstructed by the rest of the subsystems, namely GT,GC,GD,GBandGF, as their alphabets
+are disjoint sets with respect to ER. Hence, the transition from any state of Gc, including as
+a component a non-marked state of GR, to a state of Gc, where the non-marked state of GR
+has been substituted by a marked state of GR, is always feasible. Thus, the automaton GR,c
+is a nonblocking automaton. 
+Remark 1 :The nonblocking property of Gcis guaranteed regardless the consideration of faults in
+the subsystems, in the sense that the transitions from states of Gc, being non-faulty and non-marked,
+to marked states of Gcare feasible without necessarily passing through faulty states.
+Remark 2 :The complexity of the proposed modular supervisor scheme is (25, 57, 101 ).
+Remark 3 :The design of the ﬁrst six supervisors and the 8-th supervisor are realized by a common
+parametric function block. The above characteristic contributes to the controller implementation
+facilitating the respective programming.
+6. The Case without Faults
+In the case where there are no faults in the system, the models of the subsystems
+automata presented in Section 2, are reduced to appropriate sub-automata, denoted by~
+GT,
+~
+GC,~
+GD,~
+GB,~
+GRand~
+GF. The above automata are derived by removing the faulty states,
+the events of the faults and the fault repair events as well as any transition related to the
+above states and events of the respective automata presented in Section 2. Also, in the
+no faults case, the desired languages presented in Section 3, are reduced to a set of new
+languages, denoted by1eK1,1eK2,2eK,3eK,4eK,5eK,6eK,7eK,8eK1,8eK2and9eK. The above
+languages are derived by the respective languages of the faulty case, upon substituting the
+events of faults and the fault repair events with the empty word #. Finally, the supervisors
+realizing these new languages,1~
+S1,1,1~
+S1,2,2~
+S1,3~
+S1,4~
+S1,5~
+S1,6~
+S1,8~
+S1,1,8~
+S1,2,~
+S2and~
+S3.
+The above supervisors are derived by the respective supervisors of the faulty case, upon
+removing the events of the faults and the fault repair events as well as the transitions,
+related only to these events, and ﬁnally upon removing the non-accessible states. It is
+important to mention that the supervisors1~
+S1,1and1~
+S1,2, handle the faults of the table and
+the faults of the robotic manipulator, will now be single state automata with self-transitions
+triggered by all events in the alphabet of each supervisor. Hence, in the case without faults,
+the above two supervisors do not contribute to the performance of the control system and
+so they can be neglected.
+In concluding, in the case without faults, the proposed here supervisory scheme is
+still effective.
+7. Supervisor Implementation
+An interesting issue, on the implementation of a supervisor control scheme, is the
+transition from event-based supervisors, built in the form of automata models, to standard
+signal-based PLC’s operation, see [ 1,3,11]. To demonstrate the ease implementation of
+the proposed, here, supervisory control scheme, in real time industrial controllers such as
+
+--- Page 20 ---
+Sensors 2023 ,23, 163 20 of 24
+PLCs, PACs etc., the present supervisors are implemented in the international standard
+IEC 61131–3 (2013). Industry 4.0 trends for real time industrial controller implementation,
+can be found in [ 33] and the references therein. Also, details regarding programming for
+the implementation of supervisor automata can be found in [1,5] and the refences therein.
+In Figures 12–14, the supervisors realized in Section 4, are implemented using the IEC
+61131-3 (2013) Ladder Diagrams. The implementation, through Ladder Diagrams, has been
+preferred, as the Ladder Diagrams provide a good overview and are offered for engineer
+inspection. Figures 12–14, illustrate the ease implementability of the realized supervisors.
+As already mentioned in Section 4, the supervisors realized in the class of supervisors
+determined by S1, are also offered for implementation in the event-driven architecture of
+the IEC 61499 function blocks.
+Regarding communication protocols, it is important to mention that the modern
+communication standard OPC UA as well as the Modbus protocol, being the typical PLC
+communication protocol, can be used through simple parametrization of the declared
+variables and the parameters of the default timers and the alarms of the PLC, see also [ 37].
+Regarding further trends, imposed by Industry 4.0, see [ 33,37–39]. Finally, regarding the
+robotic manipulator, it is mentioned that the supervisor of the manipulator, implemented
+in PLC (see Figure 12), is interconnected to the robotic operations system (ROS2) following
+the directions presented in [40], providing an efﬁcient framework.
+Sensors 2023, 23, x FOR PEER REVIEW  22 of 27 
+ 
+ Also, in the no faults case, the desired languages presented in Section 3, are reduced to a 
+set of new languages, denoted by 
+1
+1
+ , 
+1
+2
+ , 
+2
+ , 
+3
+ , 
+4
+ , 
+5
+ , 
+6
+ , 
+7
+ , 
+8
+1
+ , 
+8
+2
+  
+and 
+9
+ . The above languages are  derived by the respective languages of the faulty case, 
+upon substituting the events of faults and the fault repair events with the empty word 
+
+. Finally, the supervisors realizing these new languages, 
+1
+1,1S
+ , 
+1
+1,2S
+ , 
+2
+1S
+ , 
+3
+1S
+ , 
+4
+1S
+ , 
+5
+1S
+ , 
+6
+1S
+, 
+8
+1,1S
+ , 
+8
+1,2S
+ , 
+2S
+  and 
+3S
+ . The above supervisors are derived by the respective super-
+visors of the faulty case, upon removing  the events of the faults and the fault repair events 
+as well as the transitions, related only to the se events, and finally upon removing the non -
+accessible states. It is important to mention that the supervisors 
+1
+1,1S
+  and 
+1
+1,2S
+ , handle 
+the faults of the table and the faults of the robotic manipulator, will now be single state 
+automata with self -transitions triggered by all events in the alphabet of each supervisor. 
+Hence, in the case without faults, the above two supervisors do not contribute to the per-
+formance of the control system and so they can be neglected.  
+In concluding, in the case without faults, the proposed here supervisory scheme is 
+still effective.  
+7. Supervisor Implementation  
+An interesting issue, on the implementat ion of a supervisor control scheme , is the 
+transition from event -based supervisors, built in the form of automata models, to standard 
+signal -based PLC’s operation , see [1,3,11]. To demonstrate the ease implementation of the 
+proposed, here, supervisory cont rol scheme, in real time industrial controllers such as 
+PLCs, PACs etc., the present supervisors are implemented in the international standard 
+IEC 6113 1–3 (2013). Industry 4.0 trends for real time industrial controller implementation, 
+can be found in [33] and the references therein. Also, details regarding programming for 
+the implementation of supervisor automata can be found in [1 ,5] and the refences therein.  
+In Figures 1 2–14, the supervisors realized in Section 4, are implemented using the 
+IEC 61131 -3 (2013) Ladder Diagrams. The implementation, through Ladder Diagrams, has 
+been preferred, as the Ladder Diagrams provide a good overview and are offered for en-
+gineer inspection. Figures 1 2–14, illustrate the ease implementability of the realized su-
+pervisors. As already mentioned in Section 4, the supervisors realized in the class of su-
+pervisors determined by  
+1S, are also offered for implementation in the event -driven ar-
+chitecture of the IEC 61499  function blocks.  
+Regarding communication protocols, it is important to mention that the modern com-
+munication standard OPC UA as well as the Modbus protocol, being the typical PLC com-
+munication protocol, can be used through simple parametrization of the declared varia-
+bles and the par ameters of the default timers and the alarms of the PLC, see  also [37]. 
+Regarding further trends, imposed by Industry 4.0, see [33 ,37–39]. Finally, regarding the 
+robotic manipulator, it is mentioned that the supervisor of the manipulator, implemented 
+in PL C (see Figure 1 2), is interconnected to the robotic operations system (ROS2) following 
+the directions presented in [40], providing an efficient framework.  
+ 
+P SqS,1,1 qS,1,2
+1
+P SqS,1,1RqS,1,1P SqS,1,2 qS,1,1
+2
+P SqS,1,2RqS,1,2
+1
+,1c
+1
+,2c
+1
+,4c
+1
+,3c
+ 
+Figure 1 2. State diagram of 
+1S . 
+Figure 12. State diagram of S1.
+Sensors 2023, 23, x FOR PEER REVIEW  23 of 27 
+ 
+ 
+P SqS,2,1 qS,2,2
+1
+P SqS,2,1RqS,2,1P SqS,2,3 qS,2,1
+3
+P SqS,2,3RqS,2,3
+P SqS,2,2 qS,2,3
+2
+P SqS,2,2RqS,2,2eT,1eB,3
+eT,1
+eB,3eB,3
+eR,1 
+Figure 1 3. State diagram of 
+2S . 
+P SqS,3,1 qS,3,2
+1
+P SqS,3,1RqS,3,1P SqS,3,3 qS,3,4
+3
+P SqS,3,3RqS,3,3
+P SqS,3,2 qS,3,3
+2
+P SqS,3,2RqS,3,2P SqS,3,4 qS,3,2
+4
+P SqS,3,4RqS,3,4P SqS,3,1
+RqS,3,4eC,5
+eT,1
+P SqS,3,1 eC,4
+eT,1
+eC,5eC,4
+eD,1
+eC,5
+eD,1
+eC,5
+ 
+Figure 1 4. State diagram of 
+3S . 
+8. Conclusions  
+In the present paper the model of manufacturing cell, in the presence of faults, has 
+been developed through appropriate models of its subsystems. The DES models of all the 
+system’s components have been presented considering possible actuator/sensor faults.  
+The total automaton of the manufacturing cell has also been presented. The desired be-
+havior of the manufacturing cell has firstly been presented analytically, in the form of nine 
+desired specifications. The desired specifications have been translated to a ppropriate 
+eleven prefixed closed regular languages. The desired languages have been determined 
+from the eleven regular languages in combination to the marked behavior of the total sys-
+tem. The regular languages have been realized by a set of eleven supervi sors. The super-
+visors have been developed upon realizing a two -state class of automata and two other 
+automata. The supervisors have been designed to be as possible maximally permissive 
+without losing necessary performance properties, while guaranteeing PR regarding the 
+total automaton of the manufacturing cell. The performance of the controlled automaton 
+has been proven to have satisfactory closed behavior and marked behavior. The control-
+lability of the eleven proposed languages and the nonblocking property  of the controlled 
+Figure 13. State diagram of S2.
+
+--- Page 21 ---
+Sensors 2023 ,23, 163 21 of 24
+Sensors 2023, 23, x FOR PEER REVIEW  23 of 27 
+ 
+ 
+P SqS,2,1 qS,2,2
+1
+P SqS,2,1RqS,2,1P SqS,2,3 qS,2,1
+3
+P SqS,2,3RqS,2,3
+P SqS,2,2 qS,2,3
+2
+P SqS,2,2RqS,2,2eT,1eB,3
+eT,1
+eB,3eB,3
+eR,1 
+Figure 1 3. State diagram of 
+2S . 
+P SqS,3,1 qS,3,2
+1
+P SqS,3,1RqS,3,1P SqS,3,3 qS,3,4
+3
+P SqS,3,3RqS,3,3
+P SqS,3,2 qS,3,3
+2
+P SqS,3,2RqS,3,2P SqS,3,4 qS,3,2
+4
+P SqS,3,4RqS,3,4P SqS,3,1
+RqS,3,4eC,5
+eT,1
+P SqS,3,1 eC,4
+eT,1
+eC,5eC,4
+eD,1
+eC,5
+eD,1
+eC,5
+ 
+Figure 1 4. State diagram of 
+3S . 
+8. Conclusions  
+In the present paper the model of manufacturing cell, in the presence of faults, has 
+been developed through appropriate models of its subsystems. The DES models of all the 
+system’s components have been presented considering possible actuator/sensor faults.  
+The total automaton of the manufacturing cell has also been presented. The desired be-
+havior of the manufacturing cell has firstly been presented analytically, in the form of nine 
+desired specifications. The desired specifications have been translated to a ppropriate 
+eleven prefixed closed regular languages. The desired languages have been determined 
+from the eleven regular languages in combination to the marked behavior of the total sys-
+tem. The regular languages have been realized by a set of eleven supervi sors. The super-
+visors have been developed upon realizing a two -state class of automata and two other 
+automata. The supervisors have been designed to be as possible maximally permissive 
+without losing necessary performance properties, while guaranteeing PR regarding the 
+total automaton of the manufacturing cell. The performance of the controlled automaton 
+has been proven to have satisfactory closed behavior and marked behavior. The control-
+lability of the eleven proposed languages and the nonblocking property  of the controlled 
+Figure 14. State diagram of S3.
+8. Conclusions
+In the present paper the model of manufacturing cell, in the presence of faults, has
+been developed through appropriate models of its subsystems. The DES models of all the
+system’s components have been presented considering possible actuator/sensor faults.
+The total automaton of the manufacturing cell has also been presented. The desired
+behavior of the manufacturing cell has ﬁrstly been presented analytically, in the form of
+nine desired speciﬁcations. The desired speciﬁcations have been translated to appropriate
+eleven preﬁxed closed regular languages. The desired languages have been determined
+from the eleven regular languages in combination to the marked behavior of the total system.
+The regular languages have been realized by a set of eleven supervisors. The supervisors
+have been developed upon realizing a two-state class of automata and two other automata.
+The supervisors have been designed to be as possible maximally permissive without losing
+necessary performance properties, while guaranteeing PR regarding the total automaton of
+the manufacturing cell. The performance of the controlled automaton has been proven to
+have satisfactory closed behavior and marked behavior. The controllability of the eleven
+proposed languages and the nonblocking property of the controlled automaton have been
+proven. The complexity of the proposed supervisory scheme has been computed. Finally,
+implementability issues to modern industrial control devices have been ﬁgured out and
+the ladder diagrams of the three automata classes have been developed.
+The feasibility of the results of the paper lies on two directions. The ﬁrst direction
+is that the present supervisory control design is developed for a well-established and
+fully experimentally tested manufacturing cell with several applications, indicatively
+see [ 1,3,11]. The second is the implementation of the proposed supervisor scheme using
+Ladder diagrams (see Section 7).
+The extension of the present supervisory control scheme, achieving tolerance to upper-
+level faults of a manufacturing process, to the case of partially observable lower-level faults
+in the devices of the process is currently under investigation.
+Author Contributions: Conceptualization, N.D.K., F.N.K. and D.G.F.; Methodology, F.N.K. and
+D.G.F.; Validation, N.D.K. and F.N.K.; Investigation, D.G.F. and A.S.; Resources, N.D.K. and D.G.F.;
+Data curation, D.G.F. and A.S.; Writing—original draft preparation, N.D.K., F.N.K. and D.G.F.;
+Writing—review and editing, D.G.F. and A.S.; Supervision, N.D.K. and F.N.K.; Project adminis-
+tration, N.D.K., F.N.K. and D.G.F. All authors have read and agreed to the published version of
+the manuscript.
+
+--- Page 22 ---
+Sensors 2023 ,23, 163 22 of 24
+Funding: This research received no external funding.
+Acknowledgments: The authors would like to thank the anonymous reviewers for their fruitful comments.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Abbreviations and Nomenclature
+The capital bold letter G, with appropriate indices, is used to denote manufacturing subsys-
+tems in DES form. The capital bold letter S, with appropriate indices, is used to denote supervisor
+automata in DES form. Finally, the capital letter K, with appropriate indices, is used to denote regular
+languages. In the following table, the acronyms used in the present paper are presented.
+Acronyms
+DES Discrete Event System
+SCT Supervisory Control Theory
+FMS Flexible Manufacturing System
+CNC Computer Numerical Control
+PLC Programmable Logic Controller
+IEC International Electrotechnical Commission
+C&T Classiﬁer and Transportation
+SCADA Supervisory Control and Data Acquisition
+PR Physical Realizability
+A list including the symbols, used in the paper, is presented in the following table.
+List of symbols.
+GfThe automaton of the subsystem indexed by f, where fis considered to be an appropriate capital letter
+representing the subsystem
+Qf,qf,j The set of states of Gf, the j-th state of Gf
+Ef,Ef,uc,ef,j The alphabet of Gf, the uncontrollable events set of Gf, the j-th event of Gf
+Hf(q),ff The active event set of the state qofGf, the transition function of Gf
+xf,0,Qf,m The initial state of Gf, the set of the marked states of Gf
+L(Gf),Lm(Gf) The closed and the marked behavior of Gf
+G,Gc The total automaton, the total controlled automaton
+nK,nKD The regular language of the n-th speciﬁcation and the respective desired language
+iKj,iKD,j The j-th regular language of the i-th speciﬁcation and the respective desired language
+iES,j,nES, The alphabet ofiKj, the alphabet ofnK
+iES,j,uc,nES,uc The uncontrollable event subsets ofiES,jandnES, respectively.
+iPj,nP The projections of EtoiE
+S,jandnE
+S, respectively.
+iS1,j,nS1The supervisor automaton of the j-th regular language of the ispeciﬁcation, the supervisor automaton of
+then-th speciﬁcation
+iQS,1,j,nQS,1 The set of states ofiS1,j, the set of states ofnS1
+iqS,1,j,k,nqS,1,k The k-th state ofiS1,j, the k-th state ofnS1
+iHS,1,j(q),nHS,1(q) The active event set of the state qofiS1,jandnS1, respectively
+ifS,1,j(q,e),nfS,1(q,e)The transition functions ofiS1,jandnS1, respectively
+ixS,1,j,0,nxS,1,0 The initial state ofiS1,jandnS1, respectively
+iQS,1,j,m,nQS,1,m The set of the marked states ofiS1,j, the set of the marked states ofnS1
+
+--- Page 23 ---
+Sensors 2023 ,23, 163 23 of 24
+Sl The supervisor automaton of9Kforl=2 and of7Kforl=3
+QS,l,qS,l,j The set of states of Sl, the j-th state of Sl
+HS,l(q),fS,l(q,e) The active event set of the state qofSl, the transition function of Sl
+xS,l,0,iQS,l,m The initial state of Sl, the set of the marked states of Sl
+References
+1. Vieira, A.D.; Santos, E.A.P .; de Queiroz, M.H.; Leal, A.B.; de Paula Neto, A.D.; Cury, J.E.R. A Method for PLC Implementation of
+Supervisory Control of Discrete Event Systems. IEEE Trans. Control Syst. Technol. 2017 ,25, 175–191. [CrossRef]
+2. Pichard, R.; Philippot, A.; Saddem, R.; Riera, B. Safety of Manufacturing Systems Controllers by Logical Constraints with Safety
+Filter. IEEE Trans. Control Syst. Technol. 2019 ,27, 1659–1667. [CrossRef]
+3. de Queiroz, M.H.; Cury, J.E.R. Synthesis and implementation of local modular supervisory control for a manufacturing cell. In
+Proceedings of the 6th International Workshop in Discrete Event System, Zaragoza, Spain, 4 October 2002; pp. 377–382. [CrossRef]
+4. Szpak, R.; de Queiroz, M.H.; Cury, J.E.R. Synthesis and implementation of supervisory control for manufacturing systems under
+processing uncertainties and time constraints. IFAC Pap. 2020 ,53, 229–234. [CrossRef]
+5. Prenzel, L.; Provost, J. PLC Implementation of Symbolic, Modular Supervisory Controllers. IFAC Pap. 2018 ,51, 304–309.
+[CrossRef]
+6. Wonham, W.M.; Kai, C. Supervisory Control of Discrete-Event Systems ; Springer: Cham, Switzerland, 2019. [CrossRef]
+7. Theis, J.; Mokhtarian, I.; Darabi, H. Process Mining of Programmable Logic Controllers: Input/Output Event Logs. In Proceedings
+of the 2019 IEEE 15th International Conference on Automation Science and Engineering (CASE), Vancouver, BC, Canada, 19
+September 2019; pp. 216–221. [CrossRef]
+8. Cassandras, C.G.; Lafortune, S. Introduction to Discrete Event Systems , 3rd ed.; Springer: Cham, Switzerland, 2021. [CrossRef]
+9. Alves, M.V .S.; da Cunha, A.E.C.; Kawakami Carvalho, L.; Moreira, M.V .; Basilio, J.C. Robust supervisory control of discrete event
+systems against intermittent loss of observations. Int. J. Control 2021 ,94, 1–13. [CrossRef]
+10. Blanke, M.; Kinnaert, M.; Lunze, J.; Staroswiecki, M.; Schroder, J. Diagnosis and Fault-Tolerant Control , 3rd ed.; Springer: Berlin,
+Germany, 2016. [CrossRef]
+11. Vieira, A.D.; Santos, E.A.P . Implementing PLC Supervisory Control of a Modular Production System with PLCs of Siemens and
+Rockwell Automation. Available online: http://www.biblioteca.pucpr.br/pergamum/biblioteca/img.php?arquivo=/000053/00
+0053b4.pdf (accessed on 22 December 2022).
+12. Lafortune, S.; Lin, F.; Hadjicostis, C.N. On the history of diagnosability and opacity in discrete event systems. Annu. Rev. Control
+2018 ,45, 257–266. [CrossRef]
+13. Zaytoon, J.; Lafortune, S. Overview of fault diagnosis methods for discrete event systems. Annu. Rev. Control 2013 ,37, 308–320.
+[CrossRef]
+14. Cabral, F.G.; Moreira, M.V . Synchronous Diagnosis of Discrete-Event Systems. IEEE Trans. Autom. Sci. Eng. 2020 ,17, 921–932.
+[CrossRef]
+15. Hu, Y.; Ma, Z.; Li, Z. Design of Supervisors for Active Diagnosis in Discrete Event Systems. IEEE Trans. Autom. Control 2020 ,65,
+5159–5172. [CrossRef]
+16. Wang, D.; Wang, X.; Li, Z. State-based fault diagnosis of discrete-event systems with partially observable outputs. Inf. Sci. 2020 ,
+529, 87–100. [CrossRef]
+17. Watanabe, A.T.Y.; Leal, A.B.; Cury, J.E.R.; de Queiroz, M.H. Combining Online Diagnosis and Prognosis for Safe Controllability.
+IEEE Trans. Autom. Control 2022 ,67, 5563–5569. [CrossRef]
+18. Watanabe, A.T.Y.; Sebem, R.; Leal, A.B.; Hounsell, M.d.S. Fault prognosis of discrete event systems: An overview. Annu. Rev.
+Control 2021 ,51, 100–110. [CrossRef]
+19. Yao, J.; Yin, X.; Li, S. On Attack Mitigation in Supervisory Control Systems: A Tolerant Control Approach. In Proceedings of the
+2020 59th IEEE Conference on Decision and Control (CDC), Jeju Island, Republic of Korea, 14–18 December 2020. [CrossRef]
+20. Cao, L.; Jiang, X.; Zhao, Y.; Wang, S.; You, D.; Xu, X. A Survey of Network Attacks on Cyber-Physical Systems. IEEE Access 2020 ,
+8, 44219–44227. [CrossRef]
+21. Koumboulis, F.N.; Fragkoulis, D.G.; Menexis, A.N. Supervisory Control for Flexibility of Production Manufacturing Processes.
+In Proceedings of the IEEE 21st International Conference on Intelligent Engineering Systems (INES), Larnaca, Cyprus, 20–23
+October 2017. [CrossRef]
+22. Koumboulis, F.N.; Fragkoulis, D.G.; Ioannou, K.A. Control of Router Nodes in Production Manufacturing Processes. In
+Proceedings of the 2018 7th International Conference on Systems and Control (ICSC), Valencia, Spain, 24–26 October 2018;
+pp. 372–377. [CrossRef]
+23. Koumboulis, F.N.; Fragkoulis, D.G.; Diveris, G.K. Function Supervisors for Storage Systems. In Proceedings of the International
+Conference on Modern Circuits and Systems Technologies (MOCAST), Thessaloniki, Greece, 7–9 May 2018. [CrossRef]
+24. Ruiz-Carcel, C.; Starr, A. Data-Based Detection and Diagnosis of Faults in Linear Actuators. IEEE Trans. Instrum. Meas. 2018 ,67,
+2035–2047. [CrossRef]
+
+--- Page 24 ---
+Sensors 2023 ,23, 163 24 of 24
+25. Li, D.; Wang, Y.; Wang, J.; Wang, C.; Duan, Y. Recent advances in sensor fault diagnosis: A review. Sens. Actuators A Phys. 2020 ,
+309, 111990. [CrossRef]
+26. Luo, B.; Wang, H.; Liu, H.; Li, B.; Peng, F. Early Fault Detection of Machine Tools Based on Deep Learning and Dynamic
+Identiﬁcation. IEEE Trans. Ind. Electron. 2019 ,66, 509–518. [CrossRef]
+27. Wang, H.; Lu, S.; Qian, G.; Ding, J.; Liu, Y.; Wang, Q. A Two-Step Strategy for Online Fault Detection of High-Resistance
+Connection in BLDC Motor. IEEE Trans. Power Electron. 2020 ,35, 3043–3053. [CrossRef]
+28. Najafabadi, T.A.; Salmasi, F.R.; Jabehdar-Maralani, P . Detection and Isolation of Speed-, DC-Link Voltage-, and Current-Sensor
+Faults Based on an Adaptive Observer in Induction-Motor Drives. IEEE Trans. Ind. Electron. 2011 ,58, 1662–1672. [CrossRef]
+29. Ben-Gharbia, K.M.; Maciejewski, A.A.; Roberts, R.G. A kinematic analysis and evaluation of planar robots designed from
+optimally fault-tolerant jacobians. IEEE Trans. Robot. 2014 ,30, 516–524. [CrossRef]
+30. Xiao, B.; Yin, S. An Intelligent Actuator Fault Reconstruction Scheme for Robotic Manipulators. IEEE Trans. Cybern. 2018 ,48,
+639–647. [CrossRef]
+31. Nguyen, V .C.; Le, P .N.; Kang, H.J. An Active Fault-Tolerant Control for Robotic Manipulators Using Adaptive Non-Singular Fast
+Terminal Sliding Mode Control and Disturbance Observer. Actuators 2021 ,10, 332. [CrossRef]
+32. Phan, V .D.; Vo, C.P .; Dao, H.V .; Ahn, K.K. Robust Fault-Tolerant Control of an Electro-Hydraulic Actuator with a Novel Nonlinear
+Unknown Input Observer. IEEE Access 2021 ,9, 30750–30760. [CrossRef]
+33. Zaytoon, J.; Riera, B. Synthesis and implementation of logic controllers—A review. Annu. Rev. Control 2017 ,43, 152–168.
+[CrossRef]
+34. Guo, L.; Vincentelli, A.S.; Pinto, A. A complexity metric for concurrent ﬁnite state machine based embedded software. In
+Proceedings of the 8th IEEE International Symposium on Industrial Embedded Systems (SIES), Porto, Portugal, 19–21 June 2013.
+[CrossRef]
+35. Koumboulis, F.N.; Fragkoulis, D.G.; Kalkanas, I.; Fragulis, G.F. Supervisor Design for a Pressurized Reactor Unit in the Presence
+of Sensor and Actuator Faults. Electronics 2022 ,11, 2534. [CrossRef]
+36. Koumboulis, F.N.; Fragkoulis, D.G.; Arapakis, S. Supervisor design for an assembly line in the presence of faults. In Proceedings of
+the 27th IEEE International Conference on Emerging Technology and Factory Automation, Stuttgart, Germany, 6–9 September 2022.
+[CrossRef]
+37. Kuˇ cera, E.; Haffner, O.; Drahoš, P .; Cig ánek, J. Educational Case Studies for Pilot Engineer 4.0 Programme: Monitoring and
+Control of Discrete-Event Systems Using OPC UA and Cloud Applications. Appl. Sci. 2022 ,12, 8802. [CrossRef]
+38. Ioana, A.; Korodi, A. DDS and OPC UA Protocol Coexistence Solution in Real-Time and Industry 4.0 Context Using Non-Ideal
+Infrastructure. Sensors 2021 ,21, 7760. [CrossRef]
+39. Leitão, H.A.S.; Rosso, R.S.U.; Leal, A.B.; Zoitl, A. Fault Handling in Discrete Event Systems Applied to IEC 61499. In Proceedings
+of the 2020 25th IEEE International Conference on Emerging Technologies and Factory Automation (ETFA), Vienna, Austria, 8–11
+September 2020. [CrossRef]
+40. Zhong, Z.; Zhang, J.; Qiu, C.; Huang, S. Design of a Framework for Implementation of Industrial Robot Manipulation Using PLC
+and ROS 2. In Proceedings of the 2022 2nd International Conference on Computer, Control and Robotics (ICCCR), Shanghai,
+China, 18–20 March 2022; pp. 41–45. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.

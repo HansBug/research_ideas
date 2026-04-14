@@ -1,0 +1,947 @@
+--- Page 1 ---
+applied  
+sciences 
+Article
+Robust Visual-Aided Autonomous Takeoff, Tracking,
+and Landing of a Small UA V on a Moving Landing
+Platform for Life-Long Operation
+Pablo R. Palafox1,*
+, Mario Garzón2
+, João Valente3
+and Juan Jesús Roldán4
+and Antonio Barrientos4
+1Computer Vision & Artiﬁcial Intelligence Group, Technical University Munich, Boltzmannstrasse 3,
+85748 Garching, Germany
+2Univ. Grenoble Alpes, INRIA, Grenoble INP , 38000 Grenoble, France
+3Information Technology Group, Wageningen University & Research, 6708 PB Wageningen, The Netherlands
+4Centro de Automática y Robótica (UPM-CSIC), Universidad Politécnica de Madrid, José Gutiérrez Abascal,
+2, 28006 Madrid, Spain
+*Correspondence: pablo.rodriguez-palafox@tum.de
+Received: 31 May 2019; Accepted: 25 June 2019; Published: 29 June 2019
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Featured Application: Autonomous takeoff, tracking, and landing maneuvers on a moving target
+with application to a ﬂeet of robots with aerial and ground vehicles that need to operate for
+extended periods of time, as in Search and Rescue tasks.
+Abstract: Robot cooperation is key in Search and Rescue (SaR) tasks. Frequently, these tasks take
+place in complex scenarios affected by different types of disasters, so an aerial viewpoint is useful for
+autonomous navigation or human tele-operation. In such cases, an Unmanned Aerial Vehicle (UAV)
+in cooperation with an Unmanned Ground Vehicle (UGV) can provide valuable insight into the
+area. To carry out its work successfully, such as multi-robot system requires the autonomous takeoff,
+tracking, and landing of the UAV on the moving UGV . Furthermore, it needs to be robust and capable
+of life-long operation. In this paper, we present an autonomous system that enables a UAV to take off
+autonomously from a moving landing platform, locate it using visual cues, follow it, and robustly land
+on it. The system relies on a ﬁnite state machine, which together with a novel re-localization module
+allows the system to operate robustly for extended periods of time and to recover from potential
+failed landing maneuvers. Two approaches for tracking and landing are developed, implemented,
+and tested. The ﬁrst variant is based on a novel height-adaptive PID controller that uses the current
+position of the landing platform as the target. The second one combines this height-adaptive PID
+controller with a Kalman ﬁlter in order to predict the future positions of the platform and provide
+them as input to the PID controller. This facilitates tracking and, mainly, landing. Both the system
+as a whole and the re-localization module in particular have been tested extensively in a simulated
+environment (Gazebo). We also present a qualitative evaluation of the system on the real robotic
+platforms, demonstrating that our system can also be deployed on real robotic platforms. For the
+beneﬁt of the community, we make our software open source.
+Keywords: robust autonomous landing; unmanned aerial vehicle; unmanned ground vehicle;
+multi-robot systems; Kalman ﬁlter; PID controller; re-localization module
+1. Introduction
+Robotics is increasingly taking on greater importance in our lives. One of the main areas where
+this can be perceived is Search and Rescue (SaR) tasks [ 1]. Robots designed for this kind of task,
+Appl. Sci. 2019 ,9, 2661; doi:10.3390/app9132661 www.mdpi.com/journal/applsci
+
+--- Page 2 ---
+Appl. Sci. 2019 ,9, 2661 2 of 21
+known as SaR robots, must operate on many occasions in unknown environments, move over unstable
+surfaces, and face multiple difﬁculties in order to carry out their mission, e.g., obtaining a map of the
+environment to facilitate the subsequent intervention of the rescue brigades [ 2]. Using a single robot
+under such conditions poses big difﬁculties: whether it moves on the surface or ﬂies nearby areas,
+there are intrinsic difﬁculties for each type of robot. Thus, by building heterogeneous teams of robotic
+platforms that can jointly operate in such scenarios, it is possible to bring about great beneﬁts, since
+the shortcomings of each robot can be compensated with the strengths of the other [3,4].
+Indeed, while aerial robots have the unique ability to obtain top views from the terrain and move
+without being hampered by the elements that may be found on the ground after a collapse, their
+reduced ﬂight autonomy limits their operating time to a few tens of minutes. Moreover, their load
+capacity is generally less than 1 kg, which limits the type of sensors or equipment that can be deployed.
+On the other hand, terrestrial robots are able to overcome, in general, the requirements of energy
+autonomy and payload. In addition, they can act as relays for communication systems, as well as
+provide high computing capabilities and data storage to the system. They have, however, limited
+mobility, especially in cluttered environments, such as narrow bridges or inclined planes. Additionally,
+their ability to obtain information about their environment may also be limited by their low height
+above the ground level and by the very elements of the scenario.
+The literature contains multiple examples of successful collaboration of ground and aerial robots to
+carry out different missions: exploration in wide areas with obstacles [ 3]; precision farming for ground
+moisture sampling [ 5]; surveillance in complex environments using route optimization strategies [ 6];
+and supporting aerial surveys in maritime environments [ 7], where the maritime robot acts as a mobile
+landing platform of the Unmanned Aerial Vehicle (UAV) when it has to perform an emergency landing,
+charge its batteries, or be picked up by an operator. All these examples prove the efﬁciency and beneﬁt
+of building mixed robotic systems comprised of a terrestrial and an aerial robot for many different and
+complex tasks.
+This work proposes a step towards obtaining such a joint team by developing a system that
+enables a UAV to: (1) take off autonomously from a landing platform attached to a Unmanned
+Ground Vehicle (UGV); (2) detect, localize, and follow the ground robot while in the air; and (3) land
+autonomously on the moving platform when required.
+The proposed system differs from previous works by presenting a novel height-adaptive controller
+for tracking and landing. In essence, the behavior of a Proportional-Integral-Derivative (PID) controller
+is modiﬁed according to the UAV’s distance to the landing platform along the vertical axis. By doing
+so, the performance and robustness of the system as a whole are largely increased.
+Two different approaches to track and land robustly the UAV on the moving landing platform are
+presented: in the ﬁrst variant, the aforementioned height-adaptive controller uses the current position
+of the landing platform as the target; the second approach extends the height-adaptive controller with
+a prediction algorithm (based on a Kalman ﬁlter) that predicts the future position of the platform and
+feeds it to the controller. This facilitates tracking and, more importantly, the autonomous landing of
+the aerial robot.
+Another key novelty introduced in this work is the addition of a recovery and re-localization
+module for both tracking and landing. This further helps to increase the robustness of the system,
+because the UAV can re-detect the landing platform autonomously in case the latter disappears from
+the ﬁeld of view of the UAV’s camera or if the relative error between the landing platform and the
+UAV in the immediate moments before landing is greater than a threshold.
+Furthermore, a novel ﬁnite state machine is presented in this work, which together with our
+re-localization module allows for life-long operation, as we will demonstrate in Section 4.
+The proposed system in its two versions has been extensively tested on a realistic
+three-Dimensional (3D) simulated environment (Gazebo [ 8]) and deployed for qualitative evaluation
+on real robotic platforms. Figure 1 shows the proposed aerial-ground robot ﬂeet. We employ Robotnik’s
+Summit XL as the UGV and the Parrot’s AR Drone 2.0 as the UAV . In the simulated environment, we
+
+--- Page 3 ---
+Appl. Sci. 2019 ,9, 2661 3 of 21
+use the corresponding Robot Operating System (ROS) [ 9] packages, namely the summit_xl_sim and
+tum_simulator packages.
+xzyxzy
+Figure 1. Cooperation between Unmanned Aerial Vehicles (UAVs) and Unmanned Ground Vehicles
+(UGVs) can greatly beneﬁt Search and Rescue (SaR) tasks where both long-term operation and a wide
+aerial view are required. The UAV can travel on top of the UGV (possibly recharging its battery) and,
+when needed, take off, inspect the area, and land again autonomously.
+This paper is organized as follows. Section 2 analyzes previous work. In Section 3, an overview
+of our system is presented, and the robotic frameworks and platforms used are described. Section 4
+presents an extensive evaluation of the system in the simulated environment and qualitative tests in
+the real robotic platforms. Section 5 concludes this work.
+2. Related Work
+The development of drone-related applications has exploded in recent years. In particular, there
+is enormous interest in using these robots for detecting and monitoring terrestrial mobile objects using
+their on-board cameras. However, as previously mentioned, their low autonomy renders them unable
+to perform tasks of long duration. That is why much of the research so far has focused on landing
+UAVs on mobile platforms, giving them greater versatility, since in many scenarios, it is impossible
+to ensure a stationary landing area. A good overview of the research done in the development of
+vision-based autonomous landing systems, as well as the challenges in this ﬁeld, can be found in [ 10].
+Ling et al. [ 11] tried to solve the problem that arises when taking pictures of icebergs using drones
+launched from a ship. Traditionally, the aerial vehicle had to be rescued semi-manually between two
+operators: one would pilot the drone until it was close enough to the boat for a second operator to
+manually recover it, with the danger that this action entailed. Ling proposed a precision landing
+algorithm to eliminate completely the human participation in this type of situation, which uses a
+downward-facing camera to track a target on the landing platform and generates high quality relative
+pose estimates.
+Lee et al. [ 12] focused on the use of vertical cameras and Image-Based Visual Servoing (IBVS)
+algorithms to track a platform in a two-dimensional space and perform a Vertical Take-Off and Landing
+(VTOL). They obtained the speed at which the platform moved, and then they used this information
+as a reference to perform an adaptive control of sliding movement. Compared to other vision-based
+control algorithms that reconstruct a complete 3D representation of the objective (which requires
+accurate depth estimates), the IBVS algorithms are computationally less expensive.
+
+--- Page 4 ---
+Appl. Sci. 2019 ,9, 2661 4 of 21
+Prior to these two works, Saripalli and Sukhatme [ 13] worked with vision algorithms for the
+autonomous landing of a helicopter on a mobile platform. They used Hu’s moments of inertia [ 14]
+for an accurate detection of the objective and a Kalman ﬁlter for tracking. Based on the output of
+the tracking algorithm, it was possible for them to implement a trajectory controller that ensured the
+landing on the mobile target.
+The literature also contains some proposals with Model Predictive Control (MPC). Maces et al. [15]
+considered a mission with three phases (target detection, target tracking, and autonomous landing)
+that were modeled in a state machine. During the last two phases, an MPC is used for position control,
+whereas a PID controller is employed for altitude control. The system we present extends the state
+machine proposed by Maces with a key additional phase, namely a recovery mode . This new state
+increases the system’s robustness by allowing the UAV to re-locate the landing platform autonomously
+in case the latter accidentally leaves the ﬁeld of view of the drone’s camera. Feng et al. [ 16] combined
+a vision-based target position measurement, a Kalman ﬁlter for target localization, an MPC for the
+guidance of the UAV , and an integral control for robustness. They tested their algorithms on a DJI
+M100 quadcopter and reached a maximum error of 37 cm with a platform moving at up to 12 m s1.
+However, there are works that considered other techniques. Almeshal et al. [ 17] proposed a neural
+network to estimate the target position, as well as a PID controller to track it and perform landing,
+and validated it with a Parrot AR.Drone quadcopter. Finally, Yang et al. [ 18] developed a complete
+UAV autonomous landing system using a hybrid camera array (ﬁsh-eye and stereo cameras) and a
+state estimation algorithm based on motion compensation and tested them with multiple platforms
+(Parrot Bebop and DJI M100).
+A common assumption in many of these systems is that the speed of the mobile target is
+low enough for the UAV to be able to land on it without compromising the integrity of both
+robotic platforms. However, experiments carried out by the German Aerospace Center (DLR) have
+demonstrated that it is possible to land a ﬁxed wing drone on a net attached to the top of a car moving
+at70 km h1[19]. Note, however, that in this experiment the ground vehicle followed a linear trajectory,
+which is not always possible in SaR missions, where the debris forces the UGV to make turns almost
+continuously.
+Indeed, there are substantial differences when trying to land a UAV on a terrestrial moving
+platform describing either a linear or a circular trajectory. Most of the research so far focused solely on
+the former, without thoroughly considering that the movement of the target can also be circular or
+even a mixture of both, thus producing random trajectories. This is, therefore, an interesting line of
+work, since in SaR tasks we want to provide the terrestrial robot with complete freedom of movement.
+In such a scenario, the UAV has to adapt to the trajectory described by the ground robot for a successful
+landing. The work presented in this paper takes a step forward in this direction by demonstrating
+a system capable of autonomously landing a UAV for both a linear and a circular trajectory of the
+moving landing platform.
+Finally, all of the works above described strategies towards precise landing in moving platforms,
+but none presented a full system capable of operating for extended periods of time. In our work, a
+robust state machine together with a recovery and re-localization module allows for life-long operation,
+as we show in Section 4.
+3. Proposed Approach
+This section describes the proposed approach: (1) a state machine to execute robustly the complete
+autonomous takeoff, tracking, and landing of a UAV on a moving landing platform (Section 3.1);
+(2) detection and localization of the mobile target using a downward-looking camera (Section 3.2); and
+(3) vision-based tracking of the mobile platform while in ﬂight (Section 3.3).
+
+--- Page 5 ---
+Appl. Sci. 2019 ,9, 2661 5 of 21
+3.1. State Machine
+The autonomous takeoff-tracking-landing system proposed in this paper builds upon a ﬁnite
+state machine (Figure 2) with ﬁve states: landed ,taking off ,tracking ,landing , and re-localizing .
+TAKINGOFFLANDINGLANDED
+TRACKINGtakeoff signal
+Target height reached?noyesLanded?yesno
+land signalRE-LOCLost platform?yesPlatform re-detected?yesnonono
+Figure 2. Finite state diagram that determines the behavior of the UAV .
+Landed is the default state when launching the system and corresponds to the UAV resting on
+top of the landing platform, awaiting for a takeoff signal. As soon as this takeoff order is received,
+the drone’s state changes to taking off , which represents the period during which the UAV is gaining
+altitude at a constant speed of 1 m s1along its z axis (please refer to Figure 1 for a view of the UAV’s
+axis). The detection-localization algorithm (Section 3.2) is also launched at this point, as well as
+the tracking module (Section 3.3), so that the drone can start following the landing platform while
+ascending.
+Once the nominal height has been reached (set to 4 min our experiments), the state automatically
+changes to tracking , and the drone stops ascending. It will now follow the landing platform, keeping
+a constant altitude. To do so, a PID controller computes the necessary speed signals (both in the x
+and y axes) required to reduce the drone’s distance to the landing platform’s centroid in the xy-plane,
+which is parallel to the ground.
+A land command (user-induced or automated) will trigger the start of the landing maneuver and
+shift the state to landing . The aerial robot will start its descent towards the moving landing platform at
+a constant downward speed of 0.3 m s1along its z axis, while the height-adaptive PID controller
+provides the necessary speed commands along the UAV’s x and y axis. Note that the PID gains are
+constantly being updated depending on the altitude (Section 3.3.1), thus height-adaptive.
+Recovery module. The system can enter into recovery mode for either of the following two reasons:
+(1) the tracking algorithm registers when the landing platform was detected for the last time, and if
+more than 0.5 s pass without getting a new position, the state changes to re-localizing ; (2) if the relative
+error between the landing platform’s centroid and the UAV’s body frame is bigger than a threshold
+(0.25 m in our experiments) at the ﬁnal landing stages—when the sonar indicates values smaller than
+0.7 m —the system will also enter recovery mode. In both cases, the drone will start gaining altitude at a
+speed of 1 m s1, and the height-adaptive PID controller will be turned off so that no speed commands
+are sent along the x or y directions. Note that the second condition is designed to work as a more strict
+and early detection of potential landing failures.
+
+--- Page 6 ---
+Appl. Sci. 2019 ,9, 2661 6 of 21
+The intuition behind ascending vertically is that the viewed area by the UAV’s downward-looking
+camera is gradually increased. When the landing platform is viewed again, the state is changed
+to tracking and maintained so until the nominal tracking altitude of 4 mis reached again. At that
+point, new incoming landing signals may be processed again. As we will show in a set of extensive
+experiments (Section 4.2.3 ), this re-localization strategy will prove to be key when the landing platform
+moves faster than the nominal velocity, keeping the system alive and preventing failed landings.
+3.2. Detection and Localization of the Mobile Platform
+In this section, we describe the proposed method to detect andlocalize the landing platform relative
+to the UAV’s coordinate frame. To this end, several standard computer vision techniques were used.
+It should be noted that this task is not the central topic of this work, but rather a required task to
+accomplish the rest of the steps that make up the autonomous landing of a UAV on a moving target.
+Thus, it was assumed that the landing platform had an easy to detect pattern (color-wise) or a marker
+on top of it. In either case, OpenCV [ 20] functions are readily available to accomplish shape- and
+color-based or more accurate marker-based detection.
+The detection algorithm is summarized in Algorithm 1. First, the input frame is converted to
+the Hue, Saturation, Value (HSV) color model; second, a color mask is applied, where we keep all
+pixels within a certain HSV range, in particular that which corresponds to the red color; third, a
+Gaussian ﬁlter is applied to blur the image; ﬁnally, the Canny edge detection and Hough line transform
+algorithms are employed, followed by polygon ﬁtting and computation of the centroid’s coordinates
+in the image plane. An example result of this approach using the downward-looking camera of a real
+aerial vehicle (AR Drone 2.0) is shown in Figure 3.
+Algorithm 1 Detection algorithm.
+Input: video _f eed
+Output: centroid
+1:while true do
+2: image getImage (video _f rame )
+3: image _hsv rgb2hsv(image )
+4: masked _image hsvMask (image _hsv)
+5: blured _image gaussianBlur (masked _image )
+6: edges cannyEdgeDetector (blured _image )
+7: lines houghLineTrans f orm (edges )
+8: polygon polygonFitting (lines )
+9: centroid computateFirstOrderMomentO f Area (polygon )
+10:return centroid
+(a) HSV img
+ (b) masked img
+ (c) blurred img
+ (d) centroid
+Figure 3. Detection of the landing platform and extraction of its centroid using the imagery from the
+downward-looking camera of an AR Drone 2.0.
+
+--- Page 7 ---
+Appl. Sci. 2019 ,9, 2661 7 of 21
+To convert the previously calculated coordinates of the centroid in the image plane Wto a
+three-space vector in the camera frame the inverse of the well-known pinhole camera model can be
+used. This process is depicted in Figure 4.
+p
+fCY
+Zf Y / ZyY
+xX
+x
+p
+image planecamera
+centreZ
+principal axisCX
+Figure 4. Pinhole camera geometry. Cis the camera center and pthe principal point [21].
+Assuming radial distortion has been removed in a pre-processing step, Equations (1)and (2),
+i.e., the pinhole camera model equations, can be used to deﬁne the projection of a three-space vector in
+the camera frame into the image plane:
+l0
+B@u0
+v0
+11
+CA=0
+B@f0cx
+0f c y
+0 0 11
+CA0
+B@X
+Y
+Z1
+CA, (1)
+u=u0/l
+v=v0/l(2)
+where (u,v)Tis the projection of the point on the image plane expressed in pixels; fis the focal length
+in pixels; (cx,cy)Tare the coordinates of the principle point of the camera; and (X, Y, Z )the three-space
+coordinates of the landing platform’s centroid in the UAV’s camera frame. Note that in the above
+equation we have assumed square and non-skewed pixels.
+To obtain our desired 3D coordinates in the camera space, we need to invert the pinhole model.
+Additionally, if we know Zbeforehand (in our case, Zcorresponds to the vertical distance from the
+center of the UAV’s camera frame to the center of the landing platform), we can easily compute X
+andY:
+ 
+X
+Y!
+=Z ucx
+fxvcy
+fy!
+(3)
+and thus obtain the 3D position of the landing platform’s centroid with respect to the UAV’s
+camera frame.
+We discard measurements taken when the Inertial Measurement Unit (IMU) indicates an
+inclination bigger than a threshold. Therefore, in theory, relative positions of the landing platform with
+respect to the UAV computed by the detection-localization algorithm are always obtained without a
+major tilt, thus producing reliable estimates to a certain degree. Nonetheless, a minor level of noise
+is always present in the output of this algorithm. Leveraging a Kalman ﬁlter, as we will explain in
+Section 3.3.2, will prove to be an effective way to deal with such measurement noise.
+3.3. Tracking the Mobile Platform
+Two variants for the tracking algorithm were explored. The ﬁrst one uses the currently estimated
+3D position of the landing platform’s centroid relative to the UAV’s body frame as the input cue for
+
+--- Page 8 ---
+Appl. Sci. 2019 ,9, 2661 8 of 21
+a height-adaptive PID controller. The required 3D position is computed by transforming the output
+of the detection-localization algorithm presented in Section 3.2 to the UAV’s body frame, as detailed
+in the following subsection. Note that by height-adaptive we refer to the fact that the PID gains are
+modiﬁed continuously depending on the UAV’s ﬂight altitude at every instant.
+The second variant extends this height-adaptive PID with a Kalman ﬁlter to predict the future
+position of the landing platform. This prediction is then used as the target position for the same
+height-adaptive PID controller. The implementation of the Kalman ﬁlter is based on a previous work
+by the authors [22] where the prediction was used for tracking pedestrians.
+Additionally, embedded in the tracking module, a height control system ensures that a proper
+descent speed is set in every instant depending on the current UAV’s ﬂight altitude. Furthermore, as
+mentioned above, this height-adaptive control system updates the PID gains depending on the current
+altitude: essentially, the goal is to have a faster response the closer the UAV is to the landing platform
+along the vertical axis (perpendicular to the ground).
+After having presented the general scheme of both algorithms, i.e., with (w/) and without (w/o)
+the prediction of the future position of the moving platform, each variant is explained with more detail
+in Sections 3.3.1 and 3.3.2, respectively.
+3.3.1. Height-Adaptive, Non-Predictive PID Controller
+A PID controller is a control loop feedback mechanism to compute the necessary control variable
+u(t)that makes the error e(t)between the desired process value or setpoint r(t)and the measured
+process value y(t)converge to zero as fast as possible. To do so, it uses three different actions, namely
+a proportional, an integral, and a derivative action, each contributing differently to the control action.
+The mathematical expression of a PID controller is given by:
+u(t) =Kpe(t) +KiZt
+0e(t0)dt0+Kdde(t)
+dt, (4)
+where e(t) =r(t)y(t). In our system, the desired process value, r(t), is the 2D zero vector, i.e., the
+origin of the UAV’s coordinate frame relative to the coordinate frame itself. The measured process
+value, y(t), is the two-vector containing the x and y coordinates from the 3D position of the landing
+platform’s centroid relative to the UAV’s body frame. Thus, e(t)in our system is the distance in the
+xy-plane (parallel to the ground) between the UAV’s frame and the centroid of the landing platform at
+time t.
+Recall now that in the localization stage we compute the three-space coordinates of the landing
+platform in the drone’s camera frame, which we denote by Pcam. If we are to use this position as a
+target value for the PID controller, the ﬁrst step is to transform its coordinates to the UAV’s body frame,
+Pbody, since what we want is for the center of the UAV—and not for the center of its downward-looking
+camera—to get closer to the centroid of the landing platform. The transformation Tbody _camthat maps
+a point from the camera frame to the body frame of the UAV is known from design and gives us:
+Pbody =Tbody _camPcam. (5)
+We can then compute the position error e(t)using the expression:
+e(t) =q
+(Pbody x)2+ (Pbody y)2 (6)
+and ﬁnally, calculate the control variable u(t).
+T uning. Finding the optimal PID gains (proportional gain Kp, integral gain Ki, and derivative gain Kd)
+was carried out through heuristic rules, i.e., looking ﬁrst for the Kpthat provided the desired response
+while keeping KiandKdat zero; then gradually increasing Kito cancel the position error (and slightly
+
+--- Page 9 ---
+Appl. Sci. 2019 ,9, 2661 9 of 21
+decreasing the Kpso that the system did not become unstable); and, ﬁnally, increasing Kdso that the
+response of the system was faster while ﬁxing the values of KpandKiobtained in the former steps. In
+practice, we found a PI controller, i.e., without the derivative action, to work better than a complete PID.
+Height-adaptive PI controller. We also found a height-adaptive PI controller to perform better than
+a ﬁxed-gain PI, since different responses are needed when the drone is hovering at 4 mabove the
+landing platform than moments before landing. In particular, the UAV needs to react faster the closer
+it is to the landing platform along the vertical axis.
+An initial tuning of the PI gains for an altitude of 4and 2 min the simulation is shown in Table 1.
+Note that no distinction has been made between the x and y axes of the UAV , since we can disregard
+the different dynamics of the UAV with respect to each of these axes.
+Table 1. Height-dependent PI gains.
+PID GainsAltitude Range
+4 m 2 m
+Kp 0.694 0.697
+Ki 0.198 0.199
+We noticed that an exponential function of the form:
+Kx=Q eT p z (7)
+could nicely ﬁt the values we had obtained manually, where Qand Tare the parameters of the
+function, pzthe drone’s altitude, and Kxthe height-dependent PID gain we want to model. After
+further ﬁne-tuning, the ﬁnal expressions for both the proportional and integral gains are the following:
+Kp=0.7e0.002 pz,
+Ki=0.2e0.002 pz.
+Landing. The descent speed during landing remains at a constant value of 0.3 m s1when ﬂying
+0.7 m above the landing platform, i.e., when the sonar indicates more than 0.7 m . Below 0.7 m , the
+UAV increases its downward speed notably to 2.0 m s1. The intuition behind this design choice
+is that, when too close to the landing platform, the latter is not viewed completely by the UAV’s
+downward-looking camera, and in turn the computed centroid might not represent the real center
+position of the platform. It is therefore a better option to rely on the correct measurements taken at
+altitudes higher than 0.7 m and then perform the ﬁnal approach stages faster.
+To determine whether the drone has successfully landed on the landing platform, we use the
+sonar measurements and the linear acceleration provided by the IMU. If there exists some linear
+acceleration, either in the x or y direction, that means the drone is moving. Moreover, if the sonar
+indicates a value smaller than a threshold for a certain period of time, the drone is assumed to have
+landed; this is not, however, a sufﬁcient condition, since it might as well have landed on the ground.
+Therefore, to be certain that the UAV has actually landed on the moving platform and not on the
+ground, both conditions must be met, namely (1) the sonar measurement must be smaller than a
+threshold persistently and (2) the IMU must indicate a non-zero linear acceleration. Note that these
+assumptions are valid because the landing platform is assumed to be moving constantly.
+In practice, the UAV mostly lands smoothly without major rebounds after the ﬁrst contact with
+the landing platform, as we could verify in a set of preliminary experiments. After all, given that the
+height-adaptive PID controller ensures that the landing platform’s centroid and the UAV’s body frame
+are aligned along the vertical axis at all times, landing mostly occurs very close to the center of the
+
+--- Page 10 ---
+Appl. Sci. 2019 ,9, 2661 10 of 21
+platform. Therefore, in all experiments (Section 4) we can safely use the initial touch point between the
+landing platform and the UAV as stop signal for data recording.
+3.3.2. Height-Adaptive, Predictive PID Controller
+In this section, we describe how we integrated the pedestrian trajectory prediction algorithm
+developed in a previous work by the authors [ 22] into the height-adaptive PID controller described in
+the previous section. The resulting pipeline looks as follows:
+1. The detection-localization algorithm (Section 3.2) outputs the centroid of the landing platform
+in the UAV’s camera frame. The prediction algorithm requires as input a 3D point relative to an
+inertial reference system. Therefore, we must transform the centroid of the landing platform from
+the drone’s camera frame into the the world’s frame:
+Pworld =Tworld _camPcam. (8)
+2. The new position is then sent to the prediction algorithm (Kalman ﬁlter), which returns a vector of
+future positions of the centroid of the landing platform relative to the world frame ˆPworld . The ﬁrst
+element in this vector (with index zero) corresponds to the current position of the landing platform.
+The next element (index one) corresponds to the next predicted position after a user-deﬁned time
+step. Correspondingly, the element with index two corresponds to a prediction carried out with
+twice the deﬁned time step. In general, the number of steps in this path of predicted positions is
+computed as the ratio between a user-provided path time and the time step .
+3. Subsequently, the predicted future position of the landing platform is transformed from the
+world’s frame into the UAV’s body frame:
+ˆPbody =Tbody _worldˆPworld . (9)
+4. Finally, the x and y coordinates of ˆPbodyare used to calculate the controller’s error, i.e., the distance
+in the xy-plane between the UAV and the predicted position of the landing platform. Using this
+error we can now calculate the speed commands in x and y, i.e., u(t)in(4), that make this error
+converge to zero.
+Conﬁguration of the Kalman ﬁlter. We use a value of 0.1 s as the time step for our predictions and a
+path time of 0.1 s, thus obtaining a vector of future predictions of size two, where the element with
+index one corresponds to the predicted position of the landing platform. (Recall that the element with
+index zero corresponds to the current position of the landing platform’s centroid.) We studied the
+effect of using different path times and then accessing different future positions within this vector
+of predictions depending on the altitude, but in a set of preliminary experiments, we found that the
+performance improvement of this design choice was minor or even negative.
+By using the time step and path time deﬁned above, if the landing platform were to move, for
+instance, linearly at a speed of 0.5 m s1, the prediction algorithm would estimate an increment of
+0.05 m along the current trajectory of the moving target. We found that such a minor prediction (in this
+example, the predicted position differs only in 5 cm from the current position) beneﬁts the landing
+accuracy notably, as presented in Section 4, when compared to the non-predictive system.
+For completeness, we detail the co-variance matrices of the process noise, Q, and the observation
+noise, R, both diagonal matrices of the form:
+Q=0
+BBB@2 0 0 0
+0 2 0 0
+0 0 2 0
+0 0 0 21
+CCCA, R= 
+2 0
+0 2!
+, (10)
+which were obtained empirically.
+
+--- Page 11 ---
+Appl. Sci. 2019 ,9, 2661 11 of 21
+As will become apparent in Section 4, employing a Kalman ﬁlter to predict the future positions of
+the landing platform not only provided the system with knowledge about the trajectory described by
+the UGV , but also helped further stabilize the measurements from the detection-localization algorithm
+(Section 3.2).
+In this section, we described a system for the autonomous takeoff, tracking, and landing of
+a small UAV on a moving landing platform. We presented two variants for the tracking module:
+a non-predictive height-adaptive PID controller and its predictive counterpart, which leverages a
+Kalman ﬁlter to predict the future position of the landing platform. By doing so, not only do we ﬁlter
+out noise in the measured relative 3D position of the landing platform with respect to the UAV , but also
+allow the UAV itself to stay slightly ahead of the UGV by directly feeding this virtual future position
+to the height-adaptive PID. This approach will prove to be crucial to accomplish successful landings,
+especially when the landing platform describes non-linear trajectories.
+4. Results
+In this section, we present the obtained results both in the simulated and real environments.
+In Section 4.1, some general design considerations are given. Section 4.2 details the results obtained
+for an extensive set of experiments in the simulated environment, which serve as a validation of the
+system performance both in nominal and more demanding conditions. Finally, in Section 4.3, we
+present some qualitative real-world experiments to demonstrate that our system can be deployed in
+real robotic platforms.
+4.1. Design of the Testing Environments
+As previously mentioned, the scope of this work is focused on the development of a robust control
+algorithm for the autonomous takeoff, tracking, and landing of a UAV on a moving landing platform
+for life-long operation. Therefore, the experiments were designed so as to facilitate the detection task.
+Nevertheless, it should be noted that the control algorithm can operate together with any kind of
+detection method.
+The initial approach was based on placing a visual marker on top of the landing platform, as
+shown in Figure 1. However, this approach was discarded after testing that from a height of 4 m
+the downward-looking camera of the real AR Drone 2.0 was unable to detect the marker robustly.
+Therefore, the visual marker was replaced by a red-colored, square-like landing platform like that
+shown in Figures 3 and 5 for the real and simulated environments, respectively. Such a landing
+platform can be easily detected by using standard computer vision techniques based on color and
+shape detection, as already described in Section 3.2. To further simplify this task, both simulated and
+real tests were performed on ﬂat and feature-less terrains.
+Close-upUAV’sCamera View
+Figure 5. Simulated environment and robotic platforms.
+
+--- Page 12 ---
+Appl. Sci. 2019 ,9, 2661 12 of 21
+4.2. Experiments in the Simulated Environment
+The simulation experiments were conducted in the Gazebo simulator [ 8]. We designed two sets of
+experiments: one evaluated the system under the same initial conditions; a second set of tests aimed at
+evaluating the robustness of the system as a whole and the utility of our novel re-localization module
+in particular.
+4.2.1. Experiments under the Same Initial Conditions
+In this set of experiments, the system was re-launched every time so as to have the same initial
+conditions for every try. Moreover, the landing platform followed two different trajectories, namely
+linear and circular. A total of 20 takeoff-tracking-landing maneuvers were executed, 10 for each
+trajectory type, always re-initiating the whole system for every new test. Within a trajectory type, we
+tested the two variants of our tracking algorithm, i.e., w/ and w/o prediction. In all experiments,
+we computed the Euclidean distance between the landing platform’s centroid and the UAV’s body
+frame with respect to the latter. In the following, we will denote this as the error . Note that this
+error only coincides with the error fed to our height-adaptive PID controller in the mode w/o
+prediction. The details of the two types of trajectories together with the results obtained in each case
+are described next.
+Linear trajectory. The UGV (and thus the landing platform) describes a linear trajectory at a speed
+of0.5 m s1along its x axis. Initially, both the UGV and the UAV are at rest, with the latter lying on
+the landing platform. After a takeoff signal, the aerial vehicle begins its ascent phase to a pre-deﬁned
+height of 4 m, and the UGV starts moving along a linear trajectory. Upon detection of the landing
+platform, the UAV automatically begins to follow the UGV by reducing its distance to the latter in
+the xy-plane, as explained in previous sections. After 30 sin tracking mode, a landing signal is sent
+automatically to the drone, which begins its descent towards the UGV .
+Figure 6 shows the trajectory described by the UAV and the UGV for a single experiment of
+the linear trajectory. Results for both the non-predictive and predictive modes of the controller are
+presented. At ﬁrst glance, no notable differences can be appreciated. The system w/ prediction is,
+however, more stable than its non-predictive counterpart as can be noted by visualizing the slightly
+more smooth curves in Figure 6b compared to those in Figure 6a. Importantly, note the scale of the y
+axis in Figure 6a,b and how the trajectory of the UAV is bounded within roughly 3 cm after the ﬁrst
+5 min both cases (w/ and w/o prediction), following almost perfectly the linear trajectory described
+by the landing platform.
+Figure 7 plots the error along both the x and y axis for a single experiment of the linear trajectory.
+As with the previous ﬁgures, results for both for the non-predictive and predictive variants are shown.
+Note that the error along the UAV’s y axis is close to zero for both modes (w/ and w/o prediction),
+as was expected in the case of a linear trajectory. As for the error along the x axis, the general trend
+is similar in both modes, though more bounded for the algorithm w/ prediction. The big initial
+peak in Figure 7a is due to the fact that the UGV starts moving at the same time that the UAV takes
+off, thus generating a relatively large initial error along the x axis that is corrected after the ﬁrst 10 s
+of simulation.
+
+--- Page 13 ---
+Appl. Sci. 2019 ,9, 2661 13 of 21
+0 5 10 15 20
+x (m)0.4
+0.2
+0.00.20.4y (m)UAV
+UGV
+(a) Top view w/o prediction
+0 5 10 15 20
+x (m)0.4
+0.2
+0.00.20.4y (m)UAV
+UGV (b) Top view w/ prediction
+x (m)0
+5
+10
+15
+20y (m)
+1.00
+0.75
+0.50
+0.25
+0.000.250.500.751.00z (m)
+0.00.51.01.52.02.53.03.54.0UAV
+UGV
+(c) 3D view w/o prediction
+x (m)05
+10
+15
+20y (m)
+1.00
+0.75
+0.50
+0.25
+0.000.250.500.751.00z (m)
+0.00.51.01.52.02.53.03.54.0UAV
+UGV (d) 3D view w/ prediction
+Figure 6. Views of the movements of the UGV and the UAV during a linear trajectory experiment.
+0 10 20 30 40
+time (s)1.00
+0.75
+0.50
+0.25
+0.000.250.500.751.00error in x (m)predictive
+non-predictive
+(a) Error along the x axis
+0 10 20 30 40
+time (s)0.4
+0.2
+0.00.20.4error in y (m)predictive
+non-predictive (b) Error along the y axis
+Figure 7. Errors for a linear trajectory sequence.
+
+--- Page 14 ---
+Appl. Sci. 2019 ,9, 2661 14 of 21
+Circular trajectory. In this experiment, the UGV describes circles with a forward speed along its x axis
+of0.5 m s1and an angular velocity along its z axis of 0.05 rad s1. In theory, this would result in a
+circular trajectory of radius 10 m . In practice, due to the friction coefﬁcient of the UGV’s wheels, it
+results in a circle of radius 12 m in this particular case. Note that the takeoff-tracking-landing procedure
+described for the linear trajectory is also followed here.
+Figure 8 shows the trajectory described by the UAV and the UGV for a single experiment of the
+circular trajectory. As with previous ﬁgures, results for both the non-predictive and predictive variants
+are presented for comparison. Note how the UAV’s trajectory resulting from the system w/ prediction
+matches that of the landing platform slightly better than in non-predictive mode, especially in the
+region between 6 and 8 m along the x axis.
+Similarly, Figure 9 plots the error along both the x and y axis for a single experiment of the circular
+trajectory. Once again, non-predictive and predictive approaches are compared. The reader will again
+note that the system leveraging a predictive action outperforms its non-predictive counterpart in terms
+of a smaller error overall, both along the x and the y axis.
+0 2 4 6 8 10 12
+x (m)02468101214y (m)UAV
+UGV
+(a) Top view w/o prediction
+0 2 4 6 8 10 12
+x (m)02468101214y (m)UAV
+UGV (b) Top view w/ prediction
+x (m)024681012y (m)
+0246810121416z (m)
+0.00.51.01.52.02.53.03.54.0UAV
+UGV
+(c) 3D view w/o prediction
+x (m)024681012y (m)
+02468101214z (m)
+0.00.51.01.52.02.53.03.54.0UAV
+UGV (d) 3D view w/ prediction
+Figure 8. Views of the movements of the UGV and the UAV during a circular trajectory experiment.
+
+--- Page 15 ---
+Appl. Sci. 2019 ,9, 2661 15 of 21
+0 10 20 30 40
+time (s)1.00
+0.75
+0.50
+0.25
+0.000.250.500.751.00error in x (m)predictive
+non-predictive
+(a) Error along the x axis
+0 10 20 30 40
+time (s)0.4
+0.2
+0.00.20.4error in y (m)predictive
+non-predictive (b) Error along the y axis
+Figure 9. Errors for a circular trajectory sequence.
+4.2.2. Overall Results in the Simulated Environment for a Linear and Circular Trajectory
+Figure 10 reports the errors in the x and y axis, respectively, for all 20 experiments. Each box
+within a boxplot represents ﬁve experiments, where for each experiment we computed the mean error
+value of the whole trajectory (from takeoff until landing).
+Note that the mean error in all cases was always lower than 0.12 m . Note as well how for both
+trajectory types (linear and circular) and for both the error in the x and y axes, the variant w/ prediction
+achieved lower error than its non-predictive counterpart.
+In particular, the error along the x axis (Figure 10a) for a linear trajectory was around 0.10 cm
+on average for the system w/o prediction and around 0.04 cm for the system w/ predictive action;
+for a circular trajectory, this error was smaller in general terms: around 0.04 cm for the system w/o
+prediction and close to zero when employing the predictive height-adaptive PI controller.
+With regards to the error along the y axis (Figure 10b), for a linear trajectory the mean error for
+all ten experiments (ﬁve for each mode, i.e., w/o and w/ prediction) was very small with almost
+no dispersion of the data at all. For the circular trajectory, the error produced by the non-predictive
+tracking algorithm was in the range of 0.06 cm , while the system leveraging the Kalman ﬁlter achieved
+lower errors in the range of 0.03 cm.
+linear circular
+trajectory0.000.020.040.060.080.10error in x axis (m)mode
+w/o pred
+w/ pred
+(a) Error along the x axis
+linear circular
+trajectory0.01
+0.000.010.020.030.040.050.06error in y axis (m)mode
+w/o pred
+w/ pred (b) Error along the y axis
+Figure 10. Comparison of the errors between linear and circular trajectories, both for the non-predictive
+(w/o pred) and predictive (w/ pred) variants.
+
+--- Page 16 ---
+Appl. Sci. 2019 ,9, 2661 16 of 21
+Overall, the system performed robustly in all tests, managing to land ﬂawlessly in all cases.
+We have therefore demonstrated how an approach based on a predictive height-adaptive PI controller
+outperforms its non-predictive counterpart, allowing the UAV to follow and land on the moving
+landing platform consistently, performing a more stable and accurate ﬂight.
+4.2.3. Experiments to Test the Life-Long Operation Capabilities of the System
+To further demonstrate the robustness of our algorithm and its life-long operation capability, we
+carried out the following experiment: we launched the system once and let the UAV perform up to a
+maximum of 50 takeoff-tracking-landing maneuvers continuously. For every iteration, 10 spass from
+the moment of takeoff before an automated landing signal is sent. Once the UAV lands, it rests for
+1 son top of the landing platform before taking off again to complete a new takeoff-tracking-landing
+maneuver.
+This test was carried out for a circular trajectory and for two different velocity conditions of
+the landing platform, resulting in a total of 100 attempted maneuvers: on the one hand, nominal
+conditions (vx=0.5 m s1,wz=0.05 rad s1); and, on the other hand, more demanding conditions
+(vx=0.7 m s1,wz=0.07 rad s1). Note that, in practice, the UGV model, i.e., the Summit XL, rarely
+reaches linear speeds higher than vx=0.7 m s1, commonly operating at a nominal speed of 0.5 m s1
+along its x axis. However, we wanted to evaluate our re-localization module thoroughly under more
+challenging conditions. We used our best-performing system, namely our system based on a predictive,
+height-adaptive PID controller. Figure 11visualizes the trajectories described by both the UAV and the
+UGV for the two speed conditions mentioned above.
+Note that, in practice, the trajectory followed by the UGV is never exactly a circle due to the
+wheels’ friction coefﬁcients. Moreover, the UGV also drifted in time, thus resulting in various circles
+centered in different locations, as can be seen in Figure 11.
+As gathered in Table 2, for a velocity of (vx=0.5 m s1,wz=0.05 rad s1)the system managed
+to land the aerial vehicle successfully in all 50 consecutive maneuvers with a Mean Absolute Error
+(MAE) along the UAV’s x axis of 0.127 m and0.245 m along its y axis. Moreover, the maximum absolute
+error along the x and y axes was 0.734 m and 0.653 m , respectively. When operating at a higher velocity
+(vx=0.7 m s1,wz=0.07 rad s1), the re-localization module had to be launched 16 times, leaving a
+total of 34 successful landings. In this case, the MAE along the UAV’s x axis was 0.245 m and 0.232 m
+along the y axis, and the maximum absolute errors were 1.526 m and 1.441 m for the x and y axes,
+respectively.
+20
+ 15
+ 10
+ 5
+ 0 5 10 15
+x (m)10
+0102030y (m)UAV
+UGV
+(a)vx=0.5 m s1,wz=0.05 rad s1
+x (m)20
+15
+10
+5
+051015y (m)
+10
+0102030z (m)
+0.00.51.01.52.02.53.03.54.0UAV
+UGV(b)vx=0.5 m s1,wz=0.05 rad s1
+Figure 11. Cont.
+
+--- Page 17 ---
+Appl. Sci. 2019 ,9, 2661 17 of 21
+15
+ 10
+ 5
+ 0 5 10 15
+x (m)051015202530y (m)UAV
+UGV
+(c)vx=0.7 m s1,wz=0.07 rad s1
+x (m)15
+10
+5
+051015y (m)
+051015202530z (m)
+0.00.51.01.52.02.53.03.54.0UAV
+UGV(d)vx=0.7 m s1,wz=0.07 rad s1
+Figure 11. Trajectories described by the UAV (red) and the UGV (green) when performing a total of
+50 consecutive takeoff-tracking-landing maneuvers continuously for two different linear and angular
+speeds of the UGV .
+Table 2. Statistics for the life-long capability experiments. Linear velocities ( vx) are given in m s1and
+angular velocities ( wz) in rad s1.
+Study Variables Landing Platform Velocities (vx,wz)
+(0.5, 0.05 ) ( 0.7, 0.07 )
+Total test time 1072.41 s 1249.09 s
+Successful landings (num) 50/50 34/50
+Successful landings (%) 100% 68%
+Re-localization maneuvers 0 16
+max (jerror _xj) 0.734 m 1.526 m
+MAE x 0.127 m 0.245 m
+max (jerror _yj) 0.653 m 1.441 m
+MAE y 0.103 m 0.232 m
+Note that all 16 recovery maneuvers under the more challenging conditions were triggered not
+because the UAV lost sight of the landing platform, but due to a too large error—greater than 0.25 m in
+our experiments—in the moments before landing. Such an early detection of potential failed landings
+allows the system to avoid accidents and ﬂawlessly continue functioning even under challenging
+velocity conditions of the landing platform. An example of a relocalization maneuver can be viewed
+in Figure 12. Moreover, Figure 13 shows the error along the UAV’s z axis during the ﬁrst 200 s of the
+experiment for both velocity conditions studied. Overall, the rate of successful landings was 100%
+for the nominal velocity of the UGV and 68% in the case of more challenging (and rather unusual)
+conditions.
+In this subsection, we demonstrated how our system performs ﬂawlessly at the nominal speed of
+the UGV . More importantly, we have shown that by leveraging our novel recovery module, potential
+failed landing maneuvers can be detected and avoided, thus demonstrating the great beneﬁts that
+such a system brings about, both in terms of robustness and reliability.
+
+--- Page 18 ---
+Appl. Sci. 2019 ,9, 2661 18 of 21
+re-localization maneuver
+successful landingstakeoff
+Figure 12. Detail of the 3D trajectory for a velocity of (vx=0.7 m s1,wz=0.07 rad s1)where a
+re-localization maneuver takes place. The run-time interval represented is [47.79 s, 99.84 s].
+0 25 50 75 100 125 150 175 200
+time (s)3.5
+3.0
+2.5
+2.0
+1.5
+1.0
+0.5
+0.0error in z (m)
+(a)vx=0.5 m s1,wz=0.05 rad s1
+re-localization maneuvers(b)vx=0.7 m s1,wz=0.07 rad s1
+Figure 13. Error along the z axis (relative UAV-UGV distance along the z axis) during the ﬁrst 200 s for
+both velocity conditions studied. ( b) shows three re-localization maneuvers.
+4.3. Experiments in the Real Environment
+On the real robotic platforms we only tested the height-adaptive PID w/o predictive action, since
+for the predictive system to have worked we would have needed an additional means to localize
+the landing platform’s position in global coordinates, as described in Section 3.3.2 . In the simulated
+environment, transforming positions to a ﬁxed global frame was straightforward. In the real world,
+however, this is more complex; implementing a Visual Inertial Odometry (VIO) or even a full visual
+Simultaneous Localization and Mapping (vSLAM) system would have been required in order to
+localize the drone in the scene with respect to a ﬁxed frame.
+What we did, however, was localize the landing platform relative to the UAV’s coordinate frame,
+which is the only input required by the non-predictive approach. Therefore, on the real robotic platforms
+we qualitatively tested the system that employs our novel height-adaptive PID w/o prediction.
+In particular, we performed ﬁve takeoff-tracking-landing sequences both for the linear and circular
+trajectory, following the same strategy as that described in Section 4.2.1. The UAV landed successfully
+in all ﬁve experiments for the linear trajectory and only failed once for the circular trajectory. The
+landing quality is visualized in Figure 14. We therefore demonstrate that the system presented in
+this work can be deployed on real robotic platforms. Figure 15visualizes one of the linear trajectory
+experiments, and Figure 16 shows a sequence of a recovery maneuver. The complete sequences can be
+found in the video provided as Supplementary Material, or at https://youtu.be/CCrPBw_we2E.
+
+--- Page 19 ---
+Appl. Sci. 2019 ,9, 2661 19 of 21
+Linear Circular
+trajectory type020406080100% successful landings
+height-adaptive non-predictive PID
+Figure 14. Percentage of successful landings in the real environment when using the height-adaptive,
+non-predictive PID controller for a linear and circular trajectory of the UGV . Note that these experiments
+were obtained by re-launching the system from scratch for every new test, as depicted in Section 4.2.1.
+(a) Real robots
+ (b) Landing sequence of the real UAV
+Figure 15. Real robotic platforms ( a) and landing sequence ( b).
+landing failsrecovery mode triggered
+Figure 16. Re-localization maneuver in the real environment.
+The reader must note that the real experiments were targeted as a qualitative demonstration
+of how our system can be integrated into real robotic platforms. We believe that the numerous
+quantitative experiments presented for the simulated environment (where we have used the same
+UAV model as in the real tests, as well as the same UGV) can serve to demonstrate the robustness and
+accuracy of the system, while the qualitative tests performed on the real robots can demonstrate that
+our system can be deployed on the real world.
+5. Conclusions
+In this work, we proposed a ROS-based system that enables a UAV to take off, track, and
+land autonomously on a moving landing platform. A novel height-adaptive PID controller sufﬁces
+to operate the UAV satisfactorily when the landing platform describes either a linear or a circular
+trajectory at a speed of 0.5 m s1along its x axis. Introducing a Kalman ﬁlter to predict the future
+
+--- Page 20 ---
+Appl. Sci. 2019 ,9, 2661 20 of 21
+position of the landing platform further improves the overall performance of the system, reducing the
+position error in comparison to the non-predictive approach.
+Furthermore, we proposed a ﬁnite state machine architecture to keep track of different stages
+robustly. Together with a novel recovery module, they enable our system to operate in a continuous
+manner, providing it with life-long operation capability.
+We extensively tested the system in the simulated environment (Gazebo), executing a total
+of 120 takeoff-tracking-landing sequences and reporting detailed results that validate the system’s
+performance. We also implemented our algorithms on real robotic platforms and carried out qualitative
+evaluations, thus demonstrating that our system can be deployed in the real world.
+Regarding future work, using a UAV with a better downward-looking camera would allow
+leveraging a marker detection system instead of the current color- and shape-based detection algorithm.
+By doing so, the whole system could be deployed in any kind of environment, regardless of the terrain’s
+texture. Furthermore, a module could be added to localize the UAV in global coordinates, e.g., VIO or
+visual SLAM. This would allow implementing the predictive variant of our system in real platforms,
+which has demonstrated to outperform its non-predictive counterpart in the simulated environment.
+Supplementary Materials: The software presented in this work is publicly available at https://github.com/pab
+lorpalafox/uav-autonomous-landing. A video demonstrating the system can be viewed at https://youtu.be/C
+CrPBw_we2E. Furthermore, we also provide as Supplementary Material all our log ﬁles as raw CSV ﬁles (plus
+several Python scripts) so that the results presented in this work can be reproduced.
+Author Contributions: Conceptualization, P .R.P . and M.G.; methodology, P .R.P ., M.G., and J.V .; software, P .R.P . and
+M.G.; validation, P .R.P . and M.G.; formal analysis, P .R.P ., J.V ., and J.J.R.; investigation, P .R.P .; resources, P .R.P . and
+A.B.; data curation, P .R.P .; writing, original draft preparation, P .R.P .; writing, review and editing, M.G., J.V ., and J.J.R.;
+visualization, P .R.P . and J.V ., ; supervision, M.G.; project administration, A.B.; funding acquisition, J.J.R. and A.B.
+Funding: The research leading to these results received funding from RoboCity2030-DIH-CM, Madrid Robotics
+Digital Innovation Hub, S2018/NMT-4331, funded by “Programas de Actividades I+Den la Comunidad de
+Madrid” and cofunded by Structural Funds of the EU, and from the project DPI2014-56985-R (Robotic protection
+of critical infrastructures), ﬁnanced by the Ministry of Economy and Competitiveness of the Government of Spain.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Abbreviations
+The following abbreviations are used in this manuscript:
+UAV Unmanned Aerial Vehicle
+UGV Unmanned Ground Vehicle
+PID Proportional-Integral-Derivative
+3D Three-Dimensional
+IBVS Image-Based Visual Servoing
+ROS Robot Operating System
+MPC Model Predictive Control
+VTOL Vertical Take-Off and Landing
+HSV Hue, Saturation, Value
+IMU Inertial Measurement Unit
+MAE Mean Absolute Error
+CSV Comma-Separated Values
+References
+1. Liu, Y.; Nejat, G. Robotic Urban Search and Rescue: A Survey from the Control Perspective. J. Intell.
+Robot. Syst. 2013 ,72, 147–165. [CrossRef]
+2. Cardona, G.A.; Calderon, J.M. Robot Swarm Navigation and Victim Detection Using Rendezvous Consensus
+in Search and Rescue Operations. Appl. Sci. 2019 ,9, 1702. [CrossRef]
+3. Garzón, M.; Valente, J.; Zapata, D.; Barrientos, A. An aerial-ground robotic system for navigation and
+obstacle mapping in large outdoor areas. Sensors 2013 ,13, 1247–1267. [CrossRef] [PubMed]
+
+--- Page 21 ---
+Appl. Sci. 2019 ,9, 2661 21 of 21
+4. Polvara, R.; Sharma, S.; Wan, J.; Manning, A.; Sutton, R. Vision-Based Autonomous Landing of a Quadrotor
+on the Perturbed Deck of an Unmanned Surface Vehicle. Drones 2018 ,2, 15. [CrossRef]
+5. Roldán, J.; Garcia-Aunon, P .; Garzón, M.; de León, J.; del Cerro, J.; Barrientos, A. Heterogeneous multi-robot
+system for mapping environmental variables of greenhouses. Sensors 2016 ,16, 1018. [CrossRef] [PubMed]
+6. Reardon, C.; Fink, J. Air-ground robot team surveillance of complex 3D environments. In Proceedings of the
+2016 IEEE International Symposium on Safety, Security, and Rescue Robotics (SSRR), Lausanne, Switzerland,
+23–27 October 2016; pp. 320–327.
+7. Borreguero, D.; Velasco, O.; Valente, J. Experimental Design of a Mobile Landing Platform to Assist Aerial
+Surveys in Fluvial Environments. Appl. Sci. 2018 ,9, 38. [CrossRef]
+8. Koenig, N.; Howard, A. Design and use paradigms for gazebo, an open-source multi-robot simulator.
+In Proceedings of the 2004 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)
+(IEEE Cat. No. 04CH37566), Sendai, Japan, 28 September–2 October 2004; Volume 3, pp. 2149–2154.
+9. Quigley, M.; Conley, K.; Gerkey, B.; Faust, J.; Foote, T.; Leibs, J.; Wheeler, R.; Ng, A.Y. ROS: An open-source
+Robot Operating System. In Proceedings of the ICRA Workshop on Open Source Software, Kobe, Japan,
+17 May 2009; Volume 3, p. 5.
+10. Kong, W.; Zhou, D.; Zhang, D.; Zhang, J. Vision-based autonomous landing system for unmanned
+aerial vehicle: A survey. In Proceedings of the 2014 International Conference on Multisensor Fusion
+and Information Integration For Intelligent Systems (MFI), Beijing, China, 28–29 September 2014; pp. 1–8.
+11. Ling, K. Precision Landing of a Quadrotor UAV on a Moving Target Using Low-Cost Sensors. Master’s Thesis,
+University of Waterloo, Waterloo, ON, Canada, 2014.
+12. Lee, D.; Ryan, T.; Kim, H.J. Autonomous landing of a VTOL UAV on a moving platform using image-based
+visual servoing. In Proceedings of the 2012 IEEE International Conference on Robotics and Automation,
+Saint Paul, MN, USA, 14–18 May 2012; pp. 971–976.
+13. Saripalli, S.; Sukhatme, G.S. Landing on a moving target using an autonomous helicopter. In Field and Service
+Robotics ; Springer: Mt Fuji, Japan, 2006; pp. 277–286.
+14. Hu, M.K. Visual pattern recognition by moment invariants. IRE Trans. Inf. Theory 1962 ,8, 179–187.
+15. Macés-Hernández, J.A.; Defaÿ, F.; Chauffaut, C. Autonomous landing of an UAV on a moving platform using
+Model Predictive Control. In Proceedings of the 2017 11th Asian Control Conference (ASCC), Gold Coast,
+QLD, Australia, 17–20 December 2017; pp. 2298–2303.
+16. Feng, Y.; Zhang, C.; Baek, S.; Rawashdeh, S.; Mohammadi, A. Autonomous Landing of a UAV on a Moving
+Platform Using Model Predictive Control. Drones 2018 ,2, 34. [CrossRef]
+17. Almeshal, A.; Alenezi, M. A Vision-Based Neural Network Controller for the Autonomous Landing of a
+Quadrotor on Moving Targets. Robotics 2018 ,7, 71. [CrossRef]
+18. Yang, T.; Ren, Q.; Zhang, F.; Xie, B.; Ren, H.; Li, J.; Zhang, Y. Hybrid Camera Array-Based UAV Auto-Landing
+on Moving UGV in GPS-Denied Environment. Remote Sens. 2018 ,10, 1829. [CrossRef]
+19. German Aerospace Center. Autonomous Landing at Full Speed. Available online: https://www.dlr.de/dlr
+/en/desktopdefault.aspx/tabid-10080/150_read-16413/#/gallery/21679 (accessed on 29 May 2019).
+20. Bradski, G. The OpenCV Library. 2000. Available online: http://www.drdobbs.com/open-source/the-op
+encv-library/184404319 (accessed on 29 May 2019).
+21. Hartley, R.; Zisserman, A. Multiple View Geometry in Computer Vision ; Cambridge University Press:
+Cambridge, UK, 2003.
+22. Garzón, M.; Garzón-Ramos, D.; Barrientos, A.; Cerro, J.D. Pedestrian Trajectory Prediction in Large
+Infrastructures. In Proceedings of the 13th International Conference on Informatics in Control, Automation
+and Robotics, Lisbon, Portugal, 29–31 July 2016; pp. 381–389.
+c2019 by the authors. Licensee MDPI, Basel, Switzerland. This article is an open access
+article distributed under the terms and conditions of the Creative Commons Attribution
+(CC BY) license (http://creativecommons.org/licenses/by/4.0/).

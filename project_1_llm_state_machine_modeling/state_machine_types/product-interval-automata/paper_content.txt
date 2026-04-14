@@ -1,0 +1,2256 @@
+--- Page 1 ---
+Product Interval Automata
+
+Deepak D’Souza and P. S. Thiagarajan
+Chennai Mathematical Institute,
+92 G. N. Chetty Road,
+Chennai 600 017, India.
+Email: {deepak,pst}@cmi.ac.in
+
+Abstract
+
+We identify a subclass of timed automata called product interval
+automata and develop its theory. These automata consist of a net-
+work of timed agents with the key restriction being that there is just
+one clock for each agent and the way the clocks are read and reset
+is determined by the distribution of shared actions across the agents.
+We show that the resulting automata admit a clean theory in both
+logical and language theoretic terms. We also show that product in-
+terval automata are expressive enough to model the timed behaviour
+of asynchronous digital circuits.
+
+1 Introduction
+
+Timed automata as formulated by Alur and Dill [AD94] have become a
+canonical model for describing timed behaviours. It is well known that these
+automata are very powerful in language-theoretic terms. Their languages
+are closed under union and intersection but not under complementation.
+Further, their language inclusion problem is undecidable and hence cannot
+be reduced to the emptiness problem which is decidable. Consequently,
+the verification problem which can be often phrased as whether L(Ap,) C
+L(Aspec) cannot be reduced to whether L(Ap,; M A-spec) = 0. Here Ap, is
+the timed automaton modelling a real time program Pr and Aspe, is the
+automaton capturing the specification so that A spec is the complement of
+Aspec- To get around this, one must use deterministic timed automata for
+specifications (since they can be easily complemented) or one must work
+with a restricted class of timed automata that possess the desired closure
+properties.
+
+Here we follow the second route and propose a subclass of timed au-
+tomata called product interval automata (PI automata). Such an automa-
+ton consists of a network of timed agents ||, A; where each A; will operate
+over an alphabet }; of events. Further, there is a single clock c; associated
+with each agent 1. The agents communicate by synchronising on the timed
+
+
+--- Page 2 ---
+executions of common events. Suppose a is an event in which the agents
+{1,3,4} participate. Then the timing constraint governing each a-execution
+will only involve the clocks {c;,c3,c4}. Moreover, the set of clocks that is
+reset at the end of each a-execution will be {c;,c3,c4}. Thus the distribution
+= {oie , of events over the agents will canonically determine the usage
+of clocks; so much so, we can avoid mentioning the clocks altogether once
+we fix ©.
+
+This method of structuring timed automata has a number of advantages.
+In particular, one can provide naturally decomposed and succinct presen-
+tations of timed automata with large (control) state spaces. The technique
+of presenting a global timed automaton as a product of component timed
+automata has been used by many authors starting from [AD94]. What is
+new here, as explained above, is that our decomposed presentation places a
+corresponding restriction on the manner in which clocks are read and reset.
+A related class of hybrid systems is mentioned in passing in [HK+95] the
+timed versions of which will boil down to PI automata in which there is
+no communication between the agents. Yet another piece of related work
+is by Yi and Jonsson [YJ94] in the framework of timed CSP. Their model
+can be easily represented as PI automata. Their main result, in our terms,
+is that language inclusion problem for PI automata is decidable. But in
+their setting timing constraints are stated in terms of a single integer value
+whereas we use, as is usual, intervals with rational bounds. We establish a
+variety of results concerning PI automata which subsume the decidability of
+the language inclusion problem.
+
+Structurally the underlying (symbolic) automata can of course be viewed
+as labelled Petri nets and hence a PI automaton can also be interpreted as
+a kind of timed Petri net. The classical timed Petri net model [MF76]
+however uses implicit clocks which record the time since a transition was
+enabled. For modelling PI automata, one needs to attach clocks to places
+or—due to the fact we are dealing with 1-safe Petri nets—attach clocks to
+the individual tokens. The semantics we attach to our automata is strictly
+along the lines of the literature on timed automata whereas the semantics
+one traditionally uses for timed Petri nets—with earliest and latest firing
+times for the transitions—is somewhat different.
+
+A final aspect of PI automata is that due to the disciplined use of clocks
+across components partial order reduction techniques that are under devel-
+opment [BJ+98, M99] can be readily applied to our automata. See [D00a]
+for further discussion on this.
+
+In pragmatic terms, PI automata—despite their severely restricted usage
+of clocks—still seem to have a good deal of modelling power. To bring this
+out, we consider the networks of timed automata that communicate through
+shared variables used by Maler and Pnueli to model and analyse the timed
+behaviour of asynchronous circuits [MP95]. We show here that PI automata
+suffice for implementing this very useful modelling technique. Consequently
+
+
+--- Page 3 ---
+the logical framework accompanying PI automata (detailed below) can be
+applied to the study of asynchronous circuits. We admit however that much
+more work needs to be done on the experimental front to test the practical
+applicability of the models and techniques presented here.
+
+From a theoretical standpoint, PI automata are strictly less expressive
+than event clock automata due to Alur, Fix, and Henzinger [AFH94] and
+their state-based version [R597] which in turn are strictly less powerful than
+general timed automata. As a result, the logics we develop here will also be
+strictly less expressive than the corresponding logics presented in [HRS98]
+for a generalisation of event clock automata called recursive event clock au-
+tomata. Nevertheless we feel that PI automata are of independent interest
+due to the reasons sketched earlier. They also admit a smoother logical
+characterisation. In particular, the monadic second order logic presented
+in [HRS98] permits only restricted (second-order) quantification. This is
+not the case for the logical characterisation we obtain. (For basic informa-
+tion about timed automata and their logics see [AH92, H98] and references
+therein.)
+
+In the next section we begin with some preliminary notions. In Section 3
+we examine interval automata, which are essentially the components of PI
+automata. The properties of these automata will play an important role
+in our study of PI automata in the subsequent section. In Section 5 we
+first show that a monadic second order logic denoted TMSO® captures the
+timed regular languages recognised by PI automata. We then formulate a
+linear time temporal logic denoted TLTL® and provide automata-theoretic
+solutions to the satisfiability and model checking problems for TLTL® in
+terms of PI automata. Section 8 contains a detailed description of how
+we can model asynchronous circuits using PI automata, as well as some
+properties that we can specify and verify in our logical framework.
+
+It turns out that all our ideas can be extended smoothly to a larger set-
+ting in which the underlying “symbolic” automata are asynchronous Bitchi
+automata [GP]. The resulting timed automata are called distributed inter-
+val automata. We also consider the natural timed extension of “cellular”
+asynchronous automata, called cellular interval automata. These automata
+can be studied with the help of powerful results available in the theory of
+Mazurkiewicz traces [DR95]. Due to space limitations we do not present
+these extensions here. Details can be found in [DT98, D00a].
+
+2 Preliminaries
+
+We begin with some useful notions about timed words and timed automata.
+
+As usual, for an alphabet A we will use A* and A“ to denote the set of
+finite and infinite words over A respectively. We will use A® to denote the
+set A*U AY.
+
+
+--- Page 4 ---
+It will be necessary for us to deal with both finite and infinite words, and
+in this regard it is convenient to use prefixes to play the role of positions in
+a word. For a word o in A®, prf(c) will be used to denote the set of finite
+prefixes of 0. The strict and non-strict prefix relations on finite words will
+be denoted by ~ and ~ respectively. We will use |c| to denote the length of
+a word o. The empty word will be denoted by e.
+
+It will be helpful to recall the definition of Biichi automata. The reader
+is referred to [Tho90] for a comprehensive treatment of this subject.
+
+Definition 2.1 Let A be a finite alphabet. A (mized) Biichi automaton over
+the alphabet A is a structure A = (Q,—, Qin, F,G) where
+
+e Q is a finite set of states,
+e —CQx Ax Q is the transition relation,
+© Qin C Q is a set of initial states, and
+
+e F,GCQ are, respectively, the finitary and infinitary acceptance state
+sets.
+
+Let o € A®. A run of A over o is a map p: prf (a) > Q which satisfies:
+@ ple) € Qin.
+
+© p(r) + p(ra) for every ra € prf(o). (q > is alternate notation
+for (q,a,q') €—).
+
+We say p is an accepting run on o iff either
+e o is finite and p(c) € F, or,
+e oc is infinite and p(r) € G for infinitely many 7 € prf(o).
+
+The set of words accepted by A, denoted (for reasons that will soon be
+clear) Lsym(A), is defined to be the set of words in A® on which A has an
+accepting run. Following established convention, we term a subset L of A®
+regular if L = Lsym(A) for some Biichi automaton A over A.
+
+The notion of a timed word is central to this paper. In what follows we
+will use R>° and R2° to denote the set of positive and non-negative reals
+respectively. The non-negative rationals will be denoted by Q2°.
+
+Definition 2.2 Let X be a finite alphabet of actions. A timed word over ©
+is a member o of (© xX R?°)® such that
+
+1. for all prefixes T(a,t)(b,t') of o we have t < t! (strict monotonicity).
+
+2. if o is infinite, then for each t € R*° there exists a prefix T(a,t!) of a
+such that t! > t (progressiveness).
+
+
+--- Page 5 ---
+We use 7T2” and 人22” to denote the set of finite and infinite timed words
+over 5, respectively, and set TH = TH*UT™Y.
+
+For a finite timed word 7 we will use time(7) to denote the time of
+occurrence of the last action in 7. Formally, time(e) = 0, and téme(r(a, t)) =
+t. Analogously, for a non-empty finite timed word 7 we will use action(r)
+to denote the last action in T.
+
+In what follows, we will use intervals with rational bounds to specify
+timing constraints (and use co as the upper bound to capture unbounded
+intervals). These intervals will be of the form (I,r), [l,r), (J,r], or [l,r],
+where l,r € Q2° U foo} with J <r. For an interval of the form (,r] or [I,r]
+we require r # oo. Further, to avoid empty intervals, unless an interval is
+of the form [l,r], we require 1 <r. An interval will denote a non-empty,
+convex subset of reals in the obvious way. For example the interval [1, 00)
+denotes the set {t € R | 1 < t}. The set of all intervals will be denoted by
+TR.
+
+Definition 2.3 A (mired) timed Biichi automaton, TBA for short, over
+an alphabet & is a structure A= (Q,—,C, Qin, F,G) where:
+
+e Q is a finite set of states,
+
+© Qin C Q is a set of initial states,
+
+e F,G CQ are sets of finitary and infinitary accepting states,
+e C is a finite set of clocks, and
+
+e —, the transitions of A, is a finite subset of Qxux2°xGoxQ where
+Go is the set of clock constraints (guards) which are conjunctions of
+atomic guards of the form (x € I), where x ranges over C and I ranges
+over TR.
+
+In what follows a transition (q,a,X,g,q') will be written as q “3 q.
+
+The manner in which the timed automaton accepts a timed word is defined
+
+in terms of clock valuations.
+
+A C-valuation is a map v : C — R2°. Where C is clear from the context
+we will say valuation instead of C-valuation. We let valc stand for the set of
+C-valuations. Let v be a valuation and t € R2°. Then v + is the valuation
+given by:
+
+(v +t)(x) = v(x) +t for every « € C.
+
+Suppose v is a valuation, t € R2° and X C C. Then the valuation v[t/X] is
+given by:
+
+证EX
+
+otherwise.
+
+oO一人
+
+or
+
+
+--- Page 6 ---
+Finally, 0 is the null-valuation given by:
+O(z) =0 for every x EC.
+
+Next, the notion of a valuation v satisfying a clock constraint g is denoted
+by v — g and is defined via:
+
+evEazél iffe(z) el
+
+
+
+
+
+eve eA” iffuE yanduE¢.
+Let 0 € TX*. Then a run of A over o is a pair of maps (p,v) where
+
+p:prf(c) > Qand v: prf(c) > valc are such that the following conditions
+are satisfied:
+
+e ple) € Qin and v(e) = 0
+a,
+e For every 7(a,t) € prf(c), there exists a transition p(T)  “4 p(r(a, t))
+such that v(r) +¢ & g and v(r(a,t)) = (V(r) + t)[0/X].
+The run (p,v) is an accepting run iff either
+1. o is finite and p(c) € F, or,
+2. o is infinite and p(r) € G for infinitely many prefixes 7 of o.
+
+L(A) C TX the language of timed words accepted by A is then given
+by:
+L(A) = {o | J an accepting run of A over co}.
+For a timed word o € TX™ let untime(c) be the word ¢ € 3™ obtained
+by projecting away the time-stamps from o. For a timed language L C
+TX, untime(L) C U% will denote the set {untime(c) | o € L}.
+Alur and Dill showed the following result:
+
+Theorem 2.4 ([AD94]) Given a timed automaton A over an alphabet U
+one can effectively construct a Biichi automaton A’ over X such that L(A’) =
+untime(L(A)).
+
+Using the above construction, we can check if the timed language ac-
+cepted by a TBA A is empty in time
+
+O(JQ| + [EI) 200) - [Olt T] (ee + 0),
+
+TEC
+
+where Q and EF are the state and edge sets of A respectively, C is the set of
+clocks used in A, and for each x € C, cz is the largest normalised interval
+bound appearing in A in a guard of the form (z € J).
+
+Using standard convention we let |.A| denote the size of the representation
+of A, using binary encoding for the numeric constants. Then the above
+
+expression can be seen to bounded by 2/41").
+
+
+--- Page 7 ---
+3 Interval Automata
+
+Product interval automata are essentially a network of very simple timed
+automata called interval automata. It will be convenient to first examine
+these automata and establish some results about them which will help us to
+study product interval automata.
+
+Interval automata are timed automata, with a single clock which must be
+reset along every transition. Effectively, these automata can only measure
+the time elapsed since the last action performed.
+
+The notion of an interval alphabet will be useful in representing these
+timed languages symbolically. Let © be a finite alphabet. Then an interval
+alphabet based on © is a finite subset of © x ZR.
+
+Given an interval alphabet T over © and a word G € T®™, G naturally
+induces a set of timed words over © which we will denote tw(G). It is defined
+as follows. Let o € TH™. Then o € tw(G) iff
+
+1. lol =|al.
+
+2. For each prefix 7(a,t) of o, and for each prefix 7(b,I) of @ such that
+|7| = [7], we have a = b and t — time(r) € I.
+
+For L C T® we set
+tw(L) = (J tw(@).
+GEL
+Definition 3.1 An interval automaton over © is simply a Biichi automaton
+over an interval alphabet based on &.
+
+Thus an interval automaton A over ¥ has edges of the form q (at) qd‘,
+where a is a /-action and I is an interval. Viewed as a Biichi automaton
+over an interval alphabet I’, A accepts the symbolic language Lsym(A) C T°.
+What is more interesting to us however, is the timed language accepted by
+A, denoted L(A), which we define as
+
+L(A) = tw(Lsym(A)).
+
+We will say a timed language L C TX is a regular interval language if
+L = L(A) for some interval automaton A over ©.
+
+Example 3.2 Figure 1 shows an interval automaton A over the alphabet
+x = {a,b}. Here we have A = ({qo,q1}, —, {a0}. {a1}, {a1 }). In the fig-
+ure we use the convention that the initial states are indicated with incoming
+double arrows, while final states are indicated by two concentric circles. The
+automaton accepts all timed words o € TH® which begin with a (possibly
+empty) sequence of a actions, unit times apart, followed by a b action at
+some time between | and 2 units from the last action, and finally a sequence
+of a’s again, without any time restrictions.
+
+
+
+
+
+
+
+
+
+
+--- Page 8 ---
+(a, [1, 1])                 (a, (0, 00))
+
+C)
+
+一Or    (6, [1, 2)     O,,
+
+Figure 1: An interval automaton over {a, b}.
+
+We can also define the notion of a run of an interval automaton directly
+over a timed word. Let A = (Q,—, Qin, F,G) be an interval automaton
+over ¥, and let 0 € TXN®. Then a run of A ona is map p: prf(c) > Q
+such that
+
+1. ple) E Qin
+
+2. For each r(a,t) € prf(c), there exists J, such that p(7) (ort) p(r(a, t))
+and (t — time(r)) € I.
+
+As usual, the run p will be termed accepting if either o is finite and
+p(o) € F, or, o is infinite and p(r) € G for infinitely many 7 € prf(o).
+
+It is not difficult to see that this is an equivalent way of defining the
+timed language of A—in the sense that o € tw(Lsym(A)) iff there exists an
+accepting run of A on a, in the sense defined above.
+
+We now show that the class of regular interval languages is closed under
+boolean operations. It is easy to see that this class is closed under union.
+For closure under complementation the notion of a proper interval set will
+prove useful. This notion will also play an important role in subsequent
+sections.
+
+We say a set of intervals J C ZR is proper if it forms a finite partition
+of R2°. Thus, if Z is a proper interval set, then for each t € R2° there
+exists an I € Z such that t € J, and for each J,I’ € ZT, IN I' # 0 implies
+I =TI'. An interval alphabet [ will be termed proper if for each a € ¥ the
+set [, = {I | (a, 1) € T} is a proper interval set. We say an interval set 工
+covers an interval set Z’ if every interval in Z’ is the union of some subset of
+intervals in Z. Finally, an interval alphabet I covers the interval alphabet
+I” if Tg covers I, for each a € D.
+
+Each interval alphabet T° induces, in a canonical way, a proper interval
+alphabet, denoted prop(I), with the property that it covers T. It is given
+by
+
+prop(l) = {(a,f) |a€&, I € prop(Pa)}
+
+where for each a, the set prop(['q) is obtained from I’, by the procedure
+outlined below.
+
+Let Z be a non-empty finite set of intervals (if it is empty, we simply set
+prop(Z) = {[0,00)}). Let V = {0,v1, v2,.-.,Un,co} where for 1 <i <n,
+
+
+--- Page 9 ---
+v; € V iff there exists J € Z with v; as the left or right end of J. Without
+loss of generality, we assume that n > 1 and 0 < v1 < vo+++ < Un F OW.
+Now define prop(Z) via:
+
+prop(Z) = {[vj,vj], (vj, vj41) |O<S 7 <n}
+
+where we set vp = 0 and vn41 = 00. It is easy to verify that prop(Z) is a
+proper interval set which covers T.
+The following is an important property of proper interval alphabets.
+
+Lemma 3.3 Let T be a proper interval alphabet based on %. Then for each
+oa € TX® there exists a unique word G €T™ such that o € tw(a).
+
+Proof Let o € TX®™. Since [ is proper we know that for each a € © and
+t € R°° there exists a unique J € Tg such that t € J. Consider the word
+o € T@ given by its set of prefixes which we define as follows. For each prefix
+7 of o we define a corresponding prefix 7 of G. The prefix corresponding to
+€ is € itself. The prefix corresponding to the non-empty prefix 7(a,t) of a is
+T(a,I) where I is the unique interval in T, such that (¢ — time(r)) € J. It
+is easy to verify that o € tw(G).
+
+For uniqueness of G suppose 0 € tw(d,) and o € tw(G2) for some
+61,02 € T°. If G; A G then there must exist prefixes T,(a,J) of G, and
+7(a, I’) of Go, such that |7\| = |7%| and I 4 I’. Let r(a,t) be a prefix of o
+such that |r| = |71|. Then we know (t — time(r)) belongs to both I and I’.
+Since [, is proper, this would mean I = IJ’ which contradicts our assump-
+tion. Thus we must have G| = Go.
+
+
+
+
+
+
+
+
+
+Using properties of proper alphabets we can now show closure under
+complementation. Let LZ be a regular interval language over /. It is not
+difficult to see that there exists a proper interval alphabet T based on ©
+and a regular subset L of '© such that L = tw(Z). We now claim that
+TX” —L = tw(T™ 一 L). We can prove this easily using Lemma 3.3.
+
+Since regular languages are closed under complement, we know that
+T@ — Lis regular, and hence TX® — LF is a regular interval language. We
+now have:
+
+Theorem 3.4 The class of regular interval languages over an alphabet X is
+closed under the boolean operations of union, intersection and complemen-
+tation.
+
+
+
+
+
+
+
+
+
+Next we introduce a monadic second order logic interpreted over timed
+words, which characterises the class of regular interval languages. This logic
+is called TMSO(Z) and is parameterised by the alphabet ©.
+
+
+--- Page 10 ---
+Here and in the logics to follow, we assume a supply of individual vari-
+ables x,y,..., and set-variables X,Y,..... These variables will range over
+prefixes (respectively sets of prefixes) of the timed word in question. We
+will make use of the predicates Q,(z) (one for each a € X) and A(z, J),
+where z is an individual variable and J is an element of ZR. The syntax of
+TMSO(2%) is given by:
+
+gus (© €X)| @<y) | Qalx) | A@,D) | 79 | (V9) | Sug | AX.
+
+A structure for a formula of the logic will be a pair (a, 1) where o € TH™
+and I is an interpretation which assigns to each individual variable a non-
+empty prefix of 0, and to each set variable a set of non-empty prefixes of o.
+We depart slightly from classical monadic logics by using prefixes instead
+of natural numbers to play the role of positions in a word. Once again,
+this is more convenient for us given that we are dealing with both finite
+and infinite words. Correspondingly, < will be interpreted as the the strict
+prefix relation < on finite words.
+
+The satisfaction relation o |; vy for atomic formulas ¢ is given as follows:
+
+Er(zeEX) iff I(r) €1(X)
+En (a <y) iff I(x) <I(y)
+Er Qa(z) iff action(I(x)) =a
+
+E; A(z,7) iff I(z) is of the form r(a,t) and (t — time(r)) € T.
+
+<
+
+
+
+aaaa
+
+
+
+The operators —, V, and the existential quantifiers dz and 4X are interpreted
+in the usual manner: Let I be an interpretation for variables with respect
+to o. Let 7 be a prefix of a. We will use the notation I[7/] to denote the
+interpretation which maps x to 7 and agrees with I on all other individual
+and set variables. Similarly, for a set of prefixes S of a, the notation I[S/X]
+will denote the interpretation which sends X to S, and agrees with I on all
+other variables.
+
+a FTP       if o Ary
+oF (yVy¢') iff o Fry oro Fry’
+oq Srp      iff there exists TX o such that o Fipr/a] Y
+
+o -, aXe     iff there exists S C prf(a) such that o Fyj9/x] 9.
+
+
+
+
+
+Given a sentence y in TMSO(®) we define L(y) = {o € TX™ | a — 9}.
+
+
+
+Example 3.5 Let ©} = {a,b}. Then the following TMSO(=)-sentence de-
+scribes the language accepted by the automaton A in Example 3.2.
+
+21 = sx(Qo(x) A A(a, [1,2]) A
+Vy((y <2) + (Qa(y) A Aly, [1, 1)))) A
+Vy((2 <y) + Qaly)))-
+
+
+
+
+
+
+
+
+
+10
+
+
+--- Page 11 ---
+Theorem 3.6 Let L C TH™. Then L is a regular interval language iff
+L= L(¢) for some sentence y in TMSO(Z).
+
+To prove this theorem, we will use Buchi’s monadic second order logic
+characterisation of regular languages. We recall that for an alphabet A, the
+syntax of Biichi’s monadic second order logic (denoted here by MSO(A)) is:
+
+pus (@ € X) | («@ <y) | Qalz) | -v | (PV Y) | Jey | AX y.
+
+A structure for this logic is a pair of the form (¢,1) where o € A®
+and I assigns to individual and set variables, non-empty prefixes and sets
+of non-empty prefixes of co respectively. The semantics of the logic is given
+in a similar manner to that of TMSO(). In particular, the atomic formula
+Qa(x)—here a is required to be in A—is interpreted as follows:
+
+
+
+o Fr Q,(2) iff I(x) = ra for some 7 xX o.
+
+As usual, for a sentence y in MSO(A) we set L(y) = {0 € AW lo &
+vy}. Buchi’s result states that a language L C A® is accepted by a Bichi
+automaton over the alphabet A iff L = L(y) for some sentence y in MSO(A)
+[B60, Tho90).
+
+Now, given a formula y € TMSO(2) we show how to translate it to a
+formula t-s(y) € MSO(L), for a suitably defined interval alphabet I. The
+translation will preserve—in a sense to be made precise—the timed models
+of y. (The name ¢-s is a mnemonic for “timed-to-symbolic”.) Let T be any
+proper interval alphabet over © such that for each a € ©, Tq covers
+
+voc(y) = {I | g has a subformula of the form A(z, I)}.
+
+Note that © x prop(voc(y)) is at least one such T. Then t-s(y) (w.r.t. T) is
+obtained from vy by replacing sub-formulas of the form Qq(x) by the formula
+
+Vo Qen(2).
+
+(b,D)Er, b=a
+
+and sub-formulas of the form A(x, I) by the formula
+
+Q(a,r) (x).
+
+(al’)er, CI
+
+Lemma 3.7 Let ¢ € TMSO(Z) and let T be a proper interval alphabet
+based on © with the property that for each a € X, Tq covers voc(y). Let
+a €T™ ando € TX™ be such that o € tw(G). Suppose further that I is
+an interpretation for variables with respect to o, and I is the corresponding
+
+interpretation for variables w.r.t. G, given by I(x) =7 where T X @ is such
+that |T| = |I(x)|, and 1(X) = {I(x) | « € X}. Then
+
+11
+
+
+--- Page 12 ---
+
+
+
+
+tL. o bry iff 6 Fz ts(y).
+2. If p is a sentence, then L(y) = tw(L(t-s(¢)).
+Proof
+
+1. We prove the statement by induction on the structure of y. The
+interesting cases are y = Q,(x) and y = A(z, I).
+Case p = Qa(x): We know o 1 Qa(z) iff action(I(x)) = a. But since
+o € tw(@), we know that this holds iff I(~) = T(a,I) for some 7 and I
+such that (a, I) €T. This in turn holds iff @ ; Vener, p=a Q(b,1) (2).
+Case y = A(z,I): Let o ; A(z, I). Then we know that I(x) = r(a, t)
+for some T, a, t such that (t — time(r)) € I. Further, since o € tw(@),
+we know that I(x) = T(a,I’) for some I’ such that (a, I’) € T, and
+(t — téme(r)) € I’. Using the fact that T is proper and covers voc(y),
+and (t — time(r)) € IN J', it must be the case that I’ C I. Hence
+
+
+
+
+
+aK;     V     Q(a,r) (x).
+
+(al’)er, CI
+
+Conversely, let
+
+
+
+Fe V Qary(2)-
+
+(a,'eL, CL
+
+a
+
+Then I(x) = 7(a, I’) for some (a, I’) € T with I’ C I. Since o € tw(G)
+it must be the case that I(x) = r(a,t) such that (t — time(r)) € I’.
+Thus (t — time(r)) € J, and it follows that o 7 A(a, I).
+
+
+
+2. This follows easily from (1) above.
+
+
+
+
+
+
+
+
+
+We now show how we can associate a formula s-t(¢) € TMSO(X) with
+a formula ¢ € MSO(L), such that the translated formula preserves timed
+models. The formula s-t(%) is obtained by replacing atomic sub-formulas in
+@ of the form Q(a,n(x) by the formula
+
+Qa(x) A A(x, I).
+
+Using arguments along the lines of the previous lemma, one can show
+that:
+
+Lemma 3.8 Let T be a proper interval alphabet based on © and let @ €
+MSO(T). Let ¢ €T™ ando € TE™ such that o € tw(G). Suppose further
+that I is an interpretation for variables w.r.t. G and let 1 be the corresponding
+interpretation w.r.t. 0. Then
+
+12
+
+
+--- Page 13 ---
+1. o kr s-t(G) iff 6 eG.
+
+2. If p is a sentence, then we have L(s-t(@)) = tw(L(@)).
+
+
+
+
+
+
+
+
+
+
+
+
+
+We can now prove Theorem 3.6. Let Z be a regular interval language over
+x. We observe again that there exists a proper inverva alphabet T based
+on © and a regular subset L of P® such that L = tw(L). Bitchi’s theorem
+tells us that there exists an MSO(T)-sentence @ such that L(¢) = L. Hence
+L = tw(L(@)). Thus, by Lemma 3.8, we have a TMSO()-sentence, namely
+gy = s-t($), such that L = L(y).
+
+Conversely, let y be a TMSO()-sentence. Then, using Lemma 3.7, we
+know that there exists a proper interval alphabet T and a formula @ = t-s(y)
+in MSO(L), such that L(y) = tw(L(@)). Using Biichi’s theorem once more,
+we are assured of an interval automaton A over I such that Lsym(A) = L(@).
+Thus A is such that
+
+L(A) = tw(Lsym(A)) = tw(L(@)) = L(y).
+
+
+
+
+
+
+
+
+
+4 Product interval automata
+
+Product interval automata are essentially a network of interval automata.
+We have an alphabet of actions which is distributed over locations. Each
+location runs an interval automaton over its local alphabet. Communication
+takes place between these automata by enforcing that locations synchronise
+on common. actions.
+
+We will need to set up some notation again. Let P = {1,2,...,k}
+be a finite set of agents, or locations. A P-distributed alphabet is a family
+S= {Xi }iep where each ¥; is a finite set of actions. We set © = U;-p 4; and
+call it the global alphabet induced by S. The set of agents that participate
+in each occurrence of the action a will be denoted by loc(a) and is given by:
+loc(a) = {i€ P| a€ Xj}.
+
+Through the rest of this section we fix such a set of agents P and a
+P-distributed alphabet ©.
+
+Since we will be considering timed languages in a distributed setting, the
+assumption that action occurrences in a timed word are separated by a non-
+zero amount of time is no longer valid. Towards this end we re-define the
+notion of a timed word over a distributed alphabet to allow the simultaneous
+occurrence of independent actions. As the reader may guess, actions a and
+b will be said to be independent if loc(a) N loc(b) = 0.
+
+Definition 4.1 A timed word o over is an element of (=x R>°)® such
+that:
+
+13
+
+
+--- Page 14 ---
+(i) if r(a,t)(b,t’) is a prefix of o then t < t' (non-decreasing).
+
+(ii) if r(a,t)7'(b,t!) ts @ prefix of o with t = t', then loc(a) N loc(b) = 0
+(simultaneous actions must be independent).
+
+(iti) if o is infinite, then for each t € R”° there exists a prefix T(a,t!) of o
+such that t < t' (progressiveness).
+
+We let TS* and TS” denote the set of finite and infinite timed words over
+s respectively, and set TE = TS*U TS’.
+
+Let o € TX™. Then a [2 is the i-projection of o. It is the timed word
+over 4; obtained by erasing from o all appearances of letters of the form
+(a,t) with a ¢ %j. It is easy to check that o [i does indeed belong to TX.
+
+For a finite timed word 7, we will use time;(T) to denote the time of
+occurrence of the last i-action in r. More formally:
+
+Definition 4.2 Let 7 € TS*. Then time;(r) is given inductively by:
+e time;(e) = 0.
+e time;(r(a,t)) =t ifa € Dj, and equals time;(r) otherwise.
+We are now ready to define product interval automata.
+
+Definition 4.3 A product interval automaton over © is a structure ({Ai}ier, Qin),
+where for each i, A; is a structure (Q;,—i, F;,Gi) where
+
+© Q; is a finite set of states
+e —>; is a finite subset of Q; x (D; x ZR) x Q;
+
+e F;,G; CQ: are, respectively, finitary and infinitary acceptance state
+sets.
+
+Qin CQ = Qi X--- X Qy is a set of global initial states.
+
+Let_A = ({Ai}iep, Qin) be a product interval automaton over ¥ and let
+o € TX™. Then a run of A over o is a map p: prf(o) > Q such that
+
+ple) © Qin
+
+2. for each prefix (a, t) of o we have
+
+(a) for each i € loc(a), ‘hee exists a transition p(r)[¢] (aly p(r(a, t)) [i]
+with (t — time;(r)) €
+(b) for each i ¢ loc(a) we have p(r)[i] = p(r(a, t)) [i].
+
+Arun p of A on a is accepting iff for each i € P either
+
+14
+
+
+--- Page 15 ---
+4
+O
+(人 (0, 00)) |
+O
+(oa (0, co)) |
+O
+(6, (0, 00)) |
+
+oO
+
+Figure 2: A product interval automaton over 5 = {{a, b}, {b}}.
+
+(i) o[é is finite and p(r)[t] € Fj for any prefix 7 of o such that 7 [i =o fi,
+or
+
+(ii) o fd is infinite and p(7)[i] € G; for infinitely many 7 € prf(c).
+
+We set L(A) to be the set of words in T=® accepted by A (i.e. those
+on which A has an accepting run).
+
+Notice that the components A; of A are interval automata over Dj, except
+that they have no start states. The global initial states determine which com-
+bination of states the component automata can start in. Thus, if A; are in-
+terval automata over bj respectively, with each A; = (Qi, —:, Qt; F;, Gi),
+and Qin C Qi x-+-X Qx, then we will often use ({A;}icep, Qin) to denote the
+product interval automaton ({B;}icp, Qin), where B; = (Qi, —:, Fi, Gi).
+
+Example 4.4 Figure 2 shows a product interval automaton over the dis-
+tributed alphabet © = ({a,b}, {b}). The language accepted by the automa-
+ton is:
+
+L(A) = {(6, t)(a, t')(b, t”) € TU | t” —t > 1}.
+
+It is not difficult to argue (see [D00a]) that LZ cannot be accepted by an
+interval automaton over the alphabet © = {a,b}.
+
+
+
+
+
+
+
+
+
+4.1 Checking emptiness
+
+We show how to simulate a product interval automaton using a timed Biichi
+automaton. This will then give us a way of checking emptiness for our
+automata, using the region construction of [AD94].
+
+
+--- Page 16 ---
+Let Lnq(A) denote the language of non-decreasing timed words accepted
+by a timed automaton A. The region construction can be modified easily
+to accept the untiming of Lyq(A).
+
+Now let A = ({Aj}iep, Qin) be a product interval automaton, with each
+Ai = (Qi, i, Fi, Gi). As a first step we define a TBA 6 with the property
+that Lna(B)A TS” = L(A). Without loss of generality, we assume that each
+local finitary final state is “terminal” in the sense that there are no outgoing
+edges from them. (This can be done by essentially making a “terminal”
+copy of each finitary final state.) Define B = (S, —, Sin, C, F,G) where:
+
+e The set of states is S = (ka Qi) x {0,...,k}.
+
+e The set of clocks is C = {x; | i € P}.
+
+Its transition relation is given as follows. We have (q,/) a (q',m)
+
+iff the following conditions hold:
+1. X = {x; | i € loc(a)},
+2. for each 7 € loc(a) there exists transitions q[#] (oh) q'[t] such that
+I= Nietoe(a) (a; € Ij).
+3. for each i ¢ loc(a), q{i] = [i].
+4. m = (1+ 1) mod (k+1) if q’[l] € F}UG;, or 1 = 0; otherwise m = 1.
+
+The initial states are given by Sin = Qin x {0}.
+e The finitary final states F are given by F = (Th, F;) x {0,..., k}.
+e The infinitary final states are given by G = {(q,!) € S| 1 =0}.
+
+It is not difficult to argue that Lnq(B)N TE” = L(A).     _
+
+Next we get rid of words in Lyq(B) which are not in TU™. To do this
+we intersect B with a TBA B’ which accepts precisely the language TES,
+B' will have a single clock, and its set of states will be {0,1}*. The clock
+is used to check whether an action is a zero-time one, while the bits in the
+state keep track of the components which have already taken part in the
+last stretch of zero-time actions.
+
+Let B” be the TBA obtained by intersecting B and B’. Then B" is the
+TBA promised above, with Lyq(B") = L(A).
+
+Using the check for emptiness of the language accepted by TBA’s out-
+lined in Section 2, we can check if L(A) is empty or not.
+
+We now analyse the time complexity of checking the emptiness of A via
+this route. The number of states and edges in B” are at most 2°() times
+the number of global states and edges of A. Thus the number of states in
+B" is at most
+
+201%) .19|
+
+16
+
+
+--- Page 17 ---
+and the number of edges is at most
+2°) . |B
+
+where |Q| = []_, |Qi| and |E| = []_, ||, with Qi, E; being the state and
+edge set of the i-th component of A. Further, the constants used in the
+clock constraints are the same as in A, and the number of clocks is k + 1.
+
+Thus, using the time bound obtained in Section 2, the emptiness check
+for A takes time
+
+k
+S| - O(1Q| + |B|) 20M eT] (a +1).
+
+i=l
+
+(The factor of || comes in as we need to examine the distribution of ¥
+while generating the global transition relation of A.) A loose upper bound
+for the above expression can be seen to be |Z] -20(/4!*),
+
+4.2 Product interval languages
+
+We now give a characterisation of languages accepted by product interval
+automata in terms of a timed version of the parallel composition operator
+®. For convenience, we will continue to use the same symbol ® to denote
+the timed version also. This characterisation will play an important role in
+the subsequent sections.
+
+Let L; C TX? for each i € P. Then the direct product of Ly,..., Lx,
+written @(Z1,...,L,), is defined as:
+
+@(L},..., Lx) ={o € TS™ | o fi € L; for each i € Ph.
+
+LC TE® isa regular direct product interval language over SifL =
+@(L1,..., LZ) for some regular interval languages L; over ;. Finally, we
+say LC TS® isa regular product interval language over ES if L is the finite
+union of regular direct product interval languages over 3.
+
+The main result of this section is:
+
+Theorem 4.5 Let LC TE. Then L isa regular product interval language
+over & iff L is accepted by a product interval automaton over d.
+
+We first prove a couple of intermediate results.
+
+Lemma 4.6 Let A= ({Ai}icp, Qin) be a product interval automaton over
+x. Let Qin = {G1,---,dm} for some m > 1. For j € {1,...,m} let A?
+denote the product interval automaton ({A;}iep, {qj}). Then
+
+A= (J LA’).
+
+jE{1,...5m}
+
+17
+
+
+--- Page 18 ---
+Proof Follows easily from the definition of the language accepted by a
+product interval automaton.
+
+
+
+
+
+
+
+
+
+Lemma 4.7 For each i € P let A; = (Qi, i, Qin, Fi, Gi) be an interval
+automaton over %;. Let A be the product interval automaton
+
+({Ai}ier, Qin X +> X Qf):
+
+Then
+L(A) = @(L(A1),...,£(Ax)):
+
+Proof We first show that L(A) C @(L(A1),...,L(Ag)). Let o € L(A).
+Then we know that there exists an accepting run p of A on a. We can use
+p to define, for each i € P, a run p; of the interval automaton A; on a [i.
+Further, each p; is an accepting run of A; on o Ji. This is again easy to
+verify given that p is accepting. Thus o |i € L(A;) for each i, and hence
+ao € @(L(A),..., L(Ag))-
+
+Conversely, suppose o € @(L(A;),...,L(A,)). So there exist accepting
+runs p; of A; on o [i for each i € P. Using these p;’s we can piece together
+a run p of A ono, given by: p(r)[t] = pi(7 fi). Again, it is routine to check
+that p is indeed a run of A on o, and is accepting.
+
+
+
+
+
+
+
+
+
+Returning to the proof of Theorem 4.5, suppose now that L is a regular
+product interval language over S. Then there exist Li C THe fori e P
+and j € {1,...,m} (m > 1) such that each Li is a regular interval language
+over 4; and                              |       |
+
+b= Je有)
+GE{1,...5m}
+
+Since each Li is a regular interval language over 4;, there exist interval
+automata Al over ¥; such that L(A? )= Li . Let each Al be of the form
+(@ 7, (Qin)!, F?,G!). Now let B; denote the disjoint union of the au-
+tomata A}, ..., Al” (viewed as labelled graphs). Let us use (B;, (Qin)!) to
+denote the interval automaton with the underlying structure of 6; and (Qin)
+as the set of initial states. Then it is easy to see that L(B;, (Qin)?) = L(A).
+Thus we have
+
+L=   Ujeri,...sm} a(t, ve Ti) ;                      ;
+=   Ujert,...m} @(L(Bi, (Qin)t), a »L(Bi, (Qin) i)
+=  Ujert,...m} L({Bi}ier, (Qin)} X +++ X (Qin)},) (using Lemma 4.7)
+= L{Bi}ier, Qin)
+
+where Qin = Ujeri..cmy (Qin) Kee x Qin).  This last step follows from
+Lemma 4.6. Thus L is accepted by a product interval automaton.
+
+18
+
+
+--- Page 19 ---
+
+
+
+
+
+
+The converse direction follows in a similar manner.
+
+
+
+The fact that regular product interval languages are closed under union
+follows directly from the definition of regular product interval languages.
+To show closure under intersection and complementation, it is sufficient to
+show that these operations on regular direct product interval languages do
+not take us out of the class of regular product interval languages.
+
+Let L = @(Ly,...,L,) and M = @(M,...,M,) with each L; and M;
+regular interval languages over b,, respectively. Then it is easy to verify
+that LAM = @((L1N M)),...,(L~M Mx)). This is once again a regular
+direct product interval language since regular interval languages are closed
+under intersection.
+
+To show that L = TE® —Lisa regular product interval language, note
+that we can write L as
+
+L=U eawj,.... WZ)
+
+jEP
+
+where for each i,7 € P,
+
+Wi=
+
+a
+
+TUS -L, ifi=Z
+Tux        otherwise.
+
+Since each w is a regular interval language, L is a regular product interval
+language.
+Thus, we have
+
+Theorem 4.8 The class of regular product interval languages over 3S is
+closed under the boolean operations of union, intersection, and complemen-
+tation.
+
+
+
+
+
+
+
+
+
+Our aim now is to formulate a theory of PI automata which mirrors the
+classical setting of LTL and LTL®. This will help in setting up a verification
+theory/methodology in our setting.
+
+5 A logical characterisation
+
+The logic TMSO®(3) captures the class of regular product interval lan-
+guages over b.
+
+The formulas in this logic will comprise boolean combinations of TMSO
+assertions (cf. Section 3) about individual components. They will be inter-
+preted over timed words over S. An assertion about the actions of compo-
+nent 7 will be interpreted as a TMSO(%,) sentence over the projection of
+the word to ¥j.
+
+19
+
+
+--- Page 20 ---
+The formulas of TMSOS (2) are given by the following syntax:
+
+p= (a)(t) | -¢9 | YVy) | (PAY)
+
+where for each formula (a)(i) we require a to be a sentence in TMSO(X;).
+The notation (a)(z) is meant to indicate that the sentence a comes from the
+logic TMSO(;). We introduce the operator A as a first class operator in
+the logic as a matter of convenience.
+
+We note that the formulas in this logic are all sentences—i.e. they have
+no free variables.
+
+A model for a TMSO®(S) sentence is a timed word in TE°°. For a word
+o € TS and a sentence y € TMSO®(S), the satisfaction relation o EK y
+is given inductively as follows.
+
+(a) (4)     iff oft Ea (as a TMSO(®;) formula)
+上 7a        iff ofa
+
+(yv¢') iff oF eporcky
+E(eA¢') iff c= panda yg!
+
+
+
+aqaaa
+
+For a sentence y € TMSO®(S) we set L(y) = {o € TE® |o Eg}.
+
+Theorem 5.1 Let LC TE. Then L isa regular product interval language
+iff L = L(y) for some sentence y € TMSO®(S).
+
+
+
+To prove this theorem we first observe a straightforward consequence of
+the semantics of TMSO®(%).
+
+Proposition 5.2 For each i in P, let y; be a sentence in TMSO(X;). Con-
+
+sider the TMSO®() formula ((1)(1) A--- A (@p)(k)). Then
+
+TCD A--- A (x) (k)) = @(L (1); +» L(¢x))-
+
+
+
+
+
+
+
+
+
+Now given a regular direct product interval language L = @(Ly,..., Lr
+we know from Theorem 3.6 that there exist sentences pi E TMSO(X;) such
+that L(y;) = L;. Using Proposition 5.2, we have L((y1)(1)A---A(ye)(k)) =
+L. Thus regular direct product interval languages can be captured in our
+logic. Regular product interval languages are finite unions of regular direct
+product interval languages, and hence can be captured using the V operator
+in our logic.
+
+Conversely, given a sentence y in TMSO®(5), we can write ¢ in disjunc-
+tive normal form by first driving in negation symbols (note that -((@)(i)) =
+(-a)(z)) and then distributing A over V:
+
+m   Lj    .
+v= VIA»).
+nt jet
+
+j=l t=
+
+20
+
+
+--- Page 21 ---
+Here each 说 is of the form (a)(p), with a € TMSO(X,) for some p € P.
+Further, for j = 1,...,m and p=1,...,k, let x} be the set of TMSO(=,)
+sentences a such that 说 = (a)(p) for some 7. Let BA be the conjunction of
+formulas in Xj, with the convention that A @ = T. It is easy to verify that
+
+>=
+
+2= VA )(P)).
+
+i<s
+
+1
+
+J  了
+
+From the semantics of V it follows that
+m      k     ;
+L(y) = VL(A (8) ))).
+j=l p=l
+
+Once again, using Proposition 5.2 we have:
+m          .            四
+Z(p) = 【JI@CG(06D) (20)).
+
+Since for each p € P, bh is a TMSO(%,) sentence, we know that L (3) is
+a regular interval language over Dp. Thus, it follows that L(y) is a regular
+product interval language.
+
+
+
+
+
+
+
+
+
+6 Timed product-LTL
+
+In this section we formulate a timed version of LTL called timed product-
+LTL and denoted TLTL®. An important motivation for studying this logic is
+that it is expressively complete (cf. section 7), being expressively equivalent
+to the first-order fragment of the logic TMSO®.
+
+TLTL® formulas will comprise boolean combinations of assertions over
+individual components in a timed logic called TLTL. It will be convenient
+to first study the satisfiability problem for this logic. We will make use of
+this later to solve the satisfiability and model checking problems for the logic
+TLTL®.
+
+6.1 TLTL over a single component
+
+Let © be an alphabet of actions. Then the formulas of TLTL(S) (parame-
+terised by the alphabet %) are given by:
+
+er=T |e levy) | (aly | Og | (yUe).
+
+Here we require a € } and J € ZR
+
+21
+
+
+--- Page 22 ---
+The formulas of TLTL(Z) are interpreted over timed words over ©. In
+what follows, o € TH™, and 7 € TD* with 7 € prf(o).
+
+Oo7TET
+0,T Ena    iff o,tr Fa
+o,TEFaVB iff o,t Faoro,TEB
+0,7 — (a,Dja iff At: 7(a,t) xo and t— time(r) € I, and o,7(a,t) Fa
+0,T FOa     iff dr(a,t) <x o with o,7(a,t) Ea
+o,T EF aUB iff 36 € prf(c) with 7 X 6, such that 0,6 — 6 and
+VWy:t x7 <6, oy Fa.
+
+
+
+
+
+
+
+
+
+
+
+We say o F ¢ iff o,e F y. Define L(y) = {o € TH™ | ao F po}.
+
+We mention here some of the standard abbreviations used in temporal
+logic. The formula a (read as “future a” or “eventually a”) is defined as
+Oa = TUa. Ua (“globally a”) is defined as Da = =O-a.
+
+In the next theorem we give a construction of an interval automaton
+which accepts the set of models of a given TLTL() formula. The theorem
+is phrased so as to facilitate its use in solving the satisfiability problem for
+TLTL®. The construction follows the classical construction of [VWS83].
+
+We note here that a simpler route to follow would be to translate a
+given formula of TLTL(~) into an equivalent formula which mentions only
+intervals taken from a proper interval set. We can then use the classical
+construction to associate an appropriate interval automaton with the given
+formula. However, this method could lead to an exponential blow-up in the
+size of the translated formula. This blow-up is avoided in the method we
+adopt below.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Theorem 6.1 Let X be a non-empty set of formulas of TLTL(S). Then
+we can construct a structure Ax = (Q,—>,F,G) (an interval automaton
+without start states) such that for each non-empty subset Y of X there exists
+(Qin)# C Q such that
+
+1. L(A\Y) = L(Ax, (Qin)) where by (Ax, (Qin)#) we mean the inter-
+val automaton (Q, —, (Qin)$,F,G). Thus, by suitably choosing start
+states for Ax we can accept exactly the models of the conjunction of
+a subset of formulas in X.
+
+2. The number of states in Ax is at most Q(X ex lel),
+
+8. The largest bound mentioned in Ax is at most the largest bound men-
+tioned in the formulas in X.
+
+Proof Let Z be the set of intervals mentioned in the formulas in X. Let
+
+T’ be a proper interval set covering Z. Using a method similar to the one
+outlined in Section 3 we can construct Z' such that the size of Z' is at most
+
+22
+
+
+--- Page 23 ---
+2-|Z|, and the largest integer constant mentioned in Z' is the largest integer
+constant mentioned in Z.
+For a TLTL formula , let sfc(y) denote the subformula closure of y.
+For a set of formulas X we write sfc(X) to denote the set cx sfe(a)-
+Define CL(X), the Fisher-Ladner closure of a set of formulas X, to be
+
+CL(X) = SU {ra | ae S$}
+
+where S = sfc(X) U{O(aUB) | aUB € sfe(X)}.
+
+It is easy to verify that |CL(X)| is linear in the size of > acx |al|.
+
+An atom of X isa maximal “propositionally” consistent subset of CL(X).
+Formally, a subset A of CL(X) is an atom of X iff
+
+1. If T € CL(X) then T € A.
+
+2. Va € CL(X), aa € A iff a ¢ A. (Here we identify 47a with a.)
+
+3. Via V B) € CL(X), (aV B) € A iffac Aor Be A.
+
+4. V(aUB) € CL(X), (AUB) € A iff 6 € A, or, both a, O(aUB) € A.
+
+We can now define the automaton Ax. Take the set of states Q to be
+the set of atoms of X. The transition relation —> is given by the following
+
+rule. We have A (at) B iff each of the following is satisfied:
+
+lretr
+2. if (b,I)a € A then
+(i) b=a
+(ii) INI’ AO
+(iii) w@ EB.
+3. if (a, D)a € CL(X) with INI' £0 and a € B, then (a, I)a € A.
+4. For all Oa € CL(X), Oa€ A iffae B.
+
+The set of finitary final states F consists of atoms which have no “next-
+state” formulas—i.e. formulas of the form (a, I)a or Oa.
+
+For the infinitary final states it is convenient to make use of a gen-
+eralized Biichi condition. A generalised Biichi condition is a family G =
+{Gi,...,G@m} of subsets of Q. A run p on a word o is accepting according
+to this condition iff for every i € {1,...,m}, there exist infinitely many pre-
+fixes 7 of o such that p(r) € G;. Such a condition can easily be converted
+to a Biichi condition by including a 0 to k& counter in the states.
+
+The generalized Biichi condition here is given by G = {Gi,...,Gm}
+where m > 0 is the number of until formulas in CL(X), and the G;’s are given
+
+23
+
+
+--- Page 24 ---
+as follows. Let {a;U1,...,mU Bm } be the set of until formulas in CL(X).
+Then for each i € {1,...,m} we define G; = {A | aU; ¢ A or f; € A}.
+
+Now let Y bea non-empty subset of X, p = AY, and (Qin)* ={A|Y C
+A}. We will show that L(y) = L((Ax, (Qin)*))-
+
+We first show that L(y) C L((Ax, (Qin)#)). Let o be a model for ¢.
+Let p: prf(c) > Q be given by p(r) = {a € CL(X) | 0,7 — a}. It is
+routine to verify that p is an accepting run of (Ax, (Qin)}) ono.
+
+Conversely, to argue that L((Ax, (Qin) )) C L(y), we use the following
+claim:
+
+Claim 6.2 Let o € TU” and let p be an accepting run of (Ax, (Qin)¥) on
+o. Leta € CL(X). Then for each tr € prf(o) we have o,7 F a@ iff a € p(r).
+
+This claim can be proved in the standard way by induction on the struc-
+ture of a.
+
+
+
+
+
+
+
+
+
+Now given a timed word o in L(Ax,(Qin)#), we know there is an ac-
+cepting run p of the automaton on o. By definition of the set of initial
+states, a € p(e) for each a € Y. By the above claim, we have that o,e Fa
+for each a € Y. Since y = AY, it follows that o,¢ — y and a € L(y).
+
+
+
+
+
+
+
+
+
+
+
+
+
+6.2. Product-TLTL
+We now give the syntax and semantics of TLTL®. Let 5 = {x;} be a
+
+distributed alphabet. The syntax of the logic TLTL®(%) is given by:
+
+gz=(y)) [mel (aAy') (eve)
+
+where, as in section 5, we require of (y)(z) that 7 € P and y € TLTL(%,).
+Thus (y)(7) is an arbitrary i-type formula y, tagged with the index i. Once
+again we introduce / as a first class operator in the logic for convenience in
+working out proofs. The expressiveness of the logic is unaffected even if we
+drop the A operator from the syntax.
+
+Models for TLTL®(X) formulas are timed words in TE®. Let y €
+TLTL®(S) and let ¢ € TE*. The satisfaction relation o — ¢ is defined
+inductively as follows:
+
+
+
+(y)(i) iff oft gy (asa TLTL(%;) formula).
+F 79       iff oy
+
+(pAg') iff ce yandok yg”.
+
+E(ypVyg') iff c-porcaky¢.
+
+
+
+aaaqaa
+il
+
+
+
+Once again, we let L(y) denote the set {o € TES | o & g}.
+
+
+
+24
+
+
+--- Page 25 ---
+Example 6.3 The following formula over the distributed alphabet 5 = ({a, b}, {b})
+describes the language L of Example 4.4.
+
+((b, (0, 00)){a, (0, 00)){b, (0, 00))T)(1)_ A ({B, (0, 00)){B, (1, 06))T) (2).
+
+From the semantics of TLTL®(5) the following is immediate:
+
+Proposition 6.4 Let y1,...,~% be formulas in TLTL(%1),..., TLTL(Z,)
+respectively. Then,
+
+L((g1)) A+++ A (gx) (k)) = @(L (G1); (Pb
+
+
+
+
+
+
+
+
+
+We now show how we can associate with a given TLTL®(S) formula
+a product interval automaton which recognises exactly the models of the
+formula. Let y € TLTL®(5). As done for TMSO®(3) in Theorem 5.1, we
+can write y as
+
+>
+
+(A ef).
+
+1
+
+<一:
+
+% 三
+
+&
+Il
+nn
+
+a
+
+with each a} being of the form (7)(p) for some p € P and 7 € TLTL(®,).
+Further, for 7 = 1,...,m and p = 1,...,k, let Xj be the set of p-type
+formulas y such that a} = (y)(p) for some i. Let 6% be the conjunction
+of formulas in X}, with the convention that A @ = T. Proceeding as in
+Theorem 5.1 and making use of Proposition 6.4, it follows that
+
+m
+L(g) = J(@(L(8}),- +, £(8))))-
+j=l
+Now using theorem 6.1 we can construct for each p = 1,...,k an interval
+automaton Ax, (where X» = Uj", Xp), such that for each j = 1,...,m
+
+Xp
+
+xD accepts L (3). Using Lemma 4.7 it
+卫
+
+the interval automaton (Ax,, (Qin)
+
+follows that
+
+L(y) =
+
+Ces
+
+L(({Ax, }par> (Qin) x3 % + * (Qin) 5)))-
+
+j=l
+Now note that the product interval automata
+({Axp Haas (Qin) x} x 0+ x (Qin)¥5)) for j= 1-24
+are the same except for the start states. It then follows easily that
+
+L(g) = L(Ag)
+
+
+--- Page 26 ---
+where
+m
+
+Ap = {Axe trai U (Qin dy X ++ x (Qin)y5))-
+j=l
+
+Thus the satisfiability problem for TLTL® can be solved as follows.
+Given a formula y € TLTL®(S) we can generate the product interval au-
+tomaton A, and then check the emptiness of A, as outlined in subsec-
+tion 4.1.
+
+To analyse the time complexity of checking satisfiability of y, note that
+each component Ax, of A, can be generated in time 90 Laexy lal)
+Theorem 6.1. Further, it is not difficult to see that TT, 2° exe lel) 一
+20(lel),  Using these values in the time bounds obtained in subsection 4.1 we
+see that the satisfiability of y can be decided in time
+
+using
+
+|S] - Q0(l¢l) . 20%) . KI,
+
+As regards the space complexity of satisfiability we have the following
+result:
+
+Theorem 6.5 Given © and a formula y € TLTL®(S), the problem of
+checking whether ~ is satisfiable is PSPACE-complete.
+
+Proof The satisfiability problem for LTL is known to be PSPACE-complete
+[SC85]. PSPACE-hardness for TLTL® follows easily by reducing the satis-
+fiability problem for LTL to the one-component case of TLTL®.
+
+To show that the satisfiability check can be done in PSPACE, we argue
+equivalently that it can be done non-deterministic PSPACE. Though the
+number of states in the region graph R(A,) is exponential in |y| and k, it
+is an implicitly defined graph whose adjacency relation can be checked in
+space polynomial in |y| + || (see [AD94]). Further, the emptiness check
+boils down to a reachability check on the region graph, which can be done
+non-deterministically in space polynomial in |y| and |X].
+
+
+
+
+
+
+
+
+
+Next suppose we consider a real-time program Pr modelled by a product
+interval automaton Ap,, and a formula y of TLTL®(5). Then Pr is said to
+meet the specification y iff L(Ap,) C L(y). The model checking problem
+
+for TLTL®(S) is to determine whether Pr meets the specification yp.
+
+Theorem 6.6 The model checking problem for TLTL®(=) is PSPACE-
+complete.
+
+Proof PSPACE-hardness follows from the fact that the satisfiability prob-
+lem for TLTL® can be reduced to the model checking problem. This is
+because the question of whether is satisfiable can be reduced to whether
+Auniv F 79, where Auniy is a product interval automaton which recognises
+the language TX.
+
+
+
+26
+
+
+--- Page 27 ---
+To see that the problem can be solved in PSPACE，we mnust check
+the emptiness of the intersection of Ap, and A-y, in space polynomial in
+|Ap,| + |y|. This is a similar argument to the one we have sketched for
+Theorem 6.5 above.
+
+
+
+
+
+
+
+
+
+7 Expressive completeness of TLTL®
+
+The aim of this section is to show that TLTL®(S) is expressively equivalent
+to the first-order fragment of TMSO®(S).  This is a standard way to measure
+the expressive power of a logic, and the result we obtain here is along the
+lines of classical results concerning LTL [K68, GP+80, HT97].
+
+Let TFO(A) denote the first-order fragment of the logic TMSO(A).
+TFO(A) is obtained from TMSO(A) by disallowing the use of quantifica-
+tion over set variables. The first-order fragment of TMSO®(5), denoted
+TFO®(5) is obtained by taking boolean combinations of the first-order frag-
+ment of TMSO(3,) for each i € P. Thus the syntax of TFO®(S) is given
+by
+
+
+
+p == (a(t) | 9 | Ve) I (eA%)
+where in each formula (q@)(i), a@ is a sentence in TFO(;).
+We will first establish the result that TLTL(X) corresponds to TFO(X).
+
+Theorem 7.1 For any alphabet =, TLTL(%) is expressively equivalent to
+TFO().
+
+The method of proof will be to translate TLTL formulas into classical
+LTL over an appropriate interval alphabet. The method is similar to the
+proof of Theorem 3.6 and we will also make use of the translation used there.
+
+It will be useful to first recall the result concerning the expressive com-
+pleteness of LTL. Let A be an alphabet of actions. Let FO(A) denote the
+first-order fragment of the logic MSO(A). As before, FO(A) is obtained
+from the logic MSO(A) defined in Section 3, by disallowing the use of set
+variables. Then a well known result due to the work of Kamp, and Gabbay
+et. al, is:
+
+Theorem 7.2 ([K68, GP+80]) LTL(A) és expressively equivalent to FO(A).
+
+Looking back at the syntax of TLTL(S) formulas, we see that they are
+simply LTL(T) formulas for some interval alphabet T based on ©. Of course,
+we must bear in mind that TLTL(X) formulas are interpreted over timed
+words over 4. Thus, a formula y € LTL(L) defines a language Lsym(y) C
+[© when interpreted as an LTL(T) formula, and it defines a timed language
+L(y) C TS™ when interpreted as an TLTL(S) formula.
+
+The following lemma describes the relationship between these two lan-
+guages:
+
+27
+
+
+--- Page 28 ---
+Lemma 7.3 Zel 了 be a proper interval alphabet based on %. Let p be a
+formula in LTL(L). Then L(y) = tw(Lsym(¢))-
+
+Proof The proof of this is very similar to our earlier arguments which make
+use of the properties of proper interval sets.
+
+
+
+
+
+
+
+
+
+Returning now to the proof of Theorem 7.1, let yo € TLTL(X). Then
+it is not difficult to see that we can construct a proper interval alphabet
+T based on © such that Tq covers voc(yo) for each a € ¥, and a formula
+gi € LTL(L) such that L(go) = L(y1). From Lemma 7.3, we know that
+L(p1) = tw(Lsym(¥1)). Now, by Theorem 7.2, we know that there exists
+a sentence Y2 in FO(I) such that L(y2) = Lsym(y1). Now consider the
+sentence y3 = s-t(y2) w.r.t. the proper interval alphabet T (cf. Section 3).
+The translations s-t and t-s are such that if the given formula is first-order,
+then so is the translated formula. Thus 3 is a TFO() sentence. Further,
+since [ is proper, by Lemma 3.8 we know that L(y3) = tw(Z(y2)). Thus
+pa3 is the required TFO(X) sentence with L(yo) = L(y3).
+
+Conversely, let yp be a sentence in TFO(X). Then, once again, there
+exists a proper interval alphabet [ based on © such that T', covers voc (Yo)
+for each a € U. Consider the MSO(T) sentence y; = t-s(yo) with respect to
+the interval alphabet T (cf. Section 3). By Lemma 3.7, L(yo) = tw(L(¢1))-
+Further, y is a sentence in FO(T). Now, again appealing to Theorem 7.2, we
+know that there exists an LTL(P) formula yo such that Lsym(y2) = L(¢1)-
+By Lemma 7.3, we know that L(y) = tw(Lsym(y2)). Thus ye is the re-
+quired formula in TLTL() such that L(y2) = L(y).
+
+
+
+
+
+
+
+
+
+Using Theorem 7.1 above, we can now prove:
+Theorem 7.4 TLTL®(S) is expressively equivalent to TFO®(S).
+
+Proof Let g € TLTL®(=). We define a sentence -m(y) in TMSO®(S)
+such that L(y) = L(l-m()). The sentence I-m(y) is obtained by replacing
+each subformula of the form (@)(i) in y by the sentence (a’)(i) where a’ is
+a sentence in TMSO(%;) which is equivalent to the TLTL(X,) formula a.
+Note that the existence of such an a’ is guaranteed by Theorem 7.1. The
+fact that L(y) = L(l-m()) now follows easily by inductive argument on the
+structure of ».
+
+The converse direction is proved in a very similar way.
+
+
+
+
+
+
+
+
+
+8 Modelling asynchronous circuits
+
+The aim of this section is to show that product interval automata are expres-
+sive enough to model an important class of timed behaviours, namely that of
+
+28
+
+
+--- Page 29 ---
+
+
+
+
+
+
+
+
+|
+
+万           fr           fa
+
+
+
+
+
+
+
+
+
+[hui]                [l2, wa]               [ls, us]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 3: A 3-wire circuit
+
+asynchronous digital circuits. In [MP95] Maler and Pnueli model the timing
+behaviour of circuits using a network of timed automata that communicate
+via shared variables. Their model is based on the non-deterministic inertial
+delay model for gates [BS94]. With this model as our starting point, we
+describe the behaviour of a circuit using timed words (in contrast to the sig-
+nals used in [MP95]). We then show that for a given circuit, we can define
+a product interval automaton which recognises the language of timed words
+generated by the circuit.
+
+8.1 The non-deterministic delay model
+
+A k-wire circuit (see Fig. 3) is modelled as a tuple
+X= (X, F, D, bo)
+
+where X = {21,...,2,} is a set of wires, F = {fi,..., fy} is a set of gates
+modelled as functions from {0,1}* to {0,1}, and D = {(l1,u1),..-, (Ig, uz) }
+is a set of pairs of positive integers (u; could be oo as a special case) with
+1; < u; for each i. The pair (l;,u;) is meant to model both the delay and
+the latency of the gate f;. The delay and the latency are often assumed to
+be modelled by the same pair of values, and we follow the same assumption
+here. Roughly speaking, a change in the input signal must hold for at least
+1; units of time for it to be reflected in the output signal of the gate, and
+if a change holds for u; units of time, it must be reflected in the output of
+the gate. This models the latency of the gate. Further, the amount of delay
+for the gate to switch must again lie in the interval [l;,u;]. These notions
+will be formalised below. The component bo is an element of {0, 1}, and
+represents the initial values on the wires of the circuit.
+
+Some simplifying assumptions have been made in this model. All gates
+are assumed to be of fan-in & and all wires are fed into a gate as input.
+Further, inputs to the circuit need to be modelled using the initial state bo
+of the circuit, or as NOT-gates within the circuit, with suitable delay values.
+
+In [MP95] Maler and Pnueli used infinite, {0,1}*-valued “signals” to
+describe the behaviour of a circuit. In our framework, we will use finite and
+
+29
+
+
+--- Page 30 ---
+infinite timed words over the alphabet © = {0,1}*. A signal with finitely
+many discontinuities can be represented as a finite timed word (these are
+the so called “stable” signals). A signal with infinitely many discontinuities
+can be represented as an infinite timed word.
+
+To begin with we will need the following notions:
+
+e Let 7 € TD*. We define action(r) (w.r-t. x) to be a ifr = 7'(a,t) for
+some 7’ and ¢, and we set action(e) = bo. This is the analogue of the
+time function used earlier in the paper.
+
+Let s € {0,1}*. The “hidden” value vector of s will be denoted by
+h(s) and is given by h(s)(2) = f;(s). For each i, h(s)(i) will represent
+the value computed by gate i, which may or may not be propagated
+to the output of the gate.
+
+Let s € {0,1}*. Then excited(s) is a subset of {1,...,k} given by
+i € excited(s) iff s(i) # h(s)(i). We will say that s is i-excited if
+i € eaxcited(s), and we will say that s is excited if excited(s) # 0,
+Finally, we will say 7 € T'D* is excited (t-excited) if action(T) is excited
+(i-excited).
+
+Let s,s’ € {0,1}*. Then we define
+
+switches(s,s') = {i € {1,...,k} | s'(4) # s(4)}.
+
+These are the gates which have switched in going from s to s’.
+
+e For s,s’ € {0,1}* we define qtoe(s,s’) C {1,...,k} given by i €
+qtoe(s, s‘) iff s' is i-excited and s is not i-excited. gtoe is a mnemonic
+for “quiescent to excited.”
+
+Similarly, i € etoq(s, s’) iff s is i-excited and s’ is not i-excited.
+e Let 7 € TX* and i be such that 7 is i-excited. Let 7’ be the smallest
+prefix of 7 such that
+1. 7’ is i-excited, and,
+2. For each 7” such that 7’ < +” < 7 we have that 7” is i-excited
+
+and further that action(r")(i) = action(r)(t).
+
+Then we define etime;(r) = time(r’). Thus etime;(r) is defined when
+gate-i is excited in 7, and it is the time at which gate-i last became
+excited, without having switched in between.
+
+We define when a finite timed word 7 € T* is valid (w.r.t. x), induc-
+tively on the length of r. The empty word « is valid. A word of the form
+T(a,t) is valid iff the following conditions hold. Let action(r) = b. Then
+
+30
+
+
+--- Page 31 ---
+1. 7 must be valid.
+
+2. For each i € {1,...,k}, if i © switches(b,a) then we must have i €
+excited(b). Thus, for a gate to switch, it must be in an excited state.
+
+3. For each i € switches (b,a) we must have (t — etime;(r)) € [li, ui.
+4. Suppose i € excited(b) and i ¢ switches(b,a). Then
+
+(a) if i ¢ excited(a) (i.e. gate i becomes quiescent) then we must
+have (t — etime;(T)) < uj.
+
+(b) if i € excited(a) (ie. gate i remains excited) then also we must
+have (t — etime;(T)) < uj.
+
+We say an infinite timed word in TX“ is valid iff every finite prefix of it
+is valid.
+
+We now define L(x), the behaviour of the circuit x. For a finite word 7
+in TX* we have rT € L(x) iff 7 is valid w.r.t. x and 7 is not excited. For an
+infinite word o € TX”, we have o € L(y) iff it is valid w.r.t. to y.
+
+8.2 Modelling a circuit as a PIA
+
+We now show how we can model the circuit x as a product interval automa-
+ton A, over the distributed alphabet 3! with D! C Ex DS. This automaton
+will have the property that L(A.) = L(x), modulo a (geometric) projection
+applied to the alphabet. Thus we will have L(y) = s(L(Ay)) where ¢ is a
+substitution which maps actions of the form (s, s’) to s’.
+
+We define our distributed alphabet ©’ as follows. The set of actions D’
+is the set of all (s, s’) € © x X which satisfy:
+
+1. switches(s,s') #0
+
+2. i € switches(s,s’) implies i € excited(s).
+
+We will have k+1 locations and the distribution of ©’ over the locations
+is given by:
+
+loc((s,s’)) = {k + 1} U switches(s, s’) U etog(s, 8’) U qtoe(s, 8’).
+
+(Note that we have no independent actions here as k + 1 € loc(a) for all
+a€D!. Hence TY!™ = TY'®.)
+
+The components A;, for i = 1,...,, will correspond to the ith gate.
+The (k + 1)-th component, 4,41, will be free of any timing constraints and
+will keep track of the current vector of output values of the circuit.
+
+We define Ay = ({A;}#4!, Qin) with each A; = (Qi, i, Fj, Gi) given
+as follows:
+
+e For i € {1,...,k} we have:
+
+31
+
+
+--- Page 32 ---
+— Qi = fea}
+— — + is given by:
+
+") [li ste        。     ，      .                ，       .
+e (0 De provided i € switches(s, s') andi € excited(s').
+
+*e (ss. ru) q provided i € switches(s, s’) andi ¢ excited(s’).
+
+* € ((s9).Q.a)) q provided i ¢ switches(s, s’) and i € etoq(s, s’).
+
+eq Ged
+- K={a}
+— Gi = {eq}
+e For Ayyi we have:
+
+— Qe = {0,1}*
+
+— — p41 is given by:
+
+e provided i € gtoe(s, s’).
+
+8 een s' iff s=t, s' =t, and I = (0,0).
+
+— Frai={s € Qe4i | excited(s) = 0}.
+— Ges 三 CR+1，
+
+Finally, the set of initial states Qj, will be a singleton {qin} with gin =
+{(di,...,dx,60)} where for each i € {1,...,k} d; =e, if bo is i-excited, and
+q otherwise.
+
+A couple of comments about the choice of components and their structure
+may be in order here. The reader may ask why the (k + 1)-th is required at
+all. The answer is that without this component, each of the gate components
+would have to have access to the states of the other components, and this
+would mean that they must take part in every action of the circuit. This
+would destroy the role played by the clocks since they would all be reset
+with every action. Once the (k + 1)-th component is there to take care of
+the valid consecution of actions in the circuit, the gate components need
+only synchronise with the actions in which they switch, or which affect their
+excited state. It is for this reason that we need the actions to be pairs which
+tell us the state from which, and to which, the circuit switches.
+
+Finally, one may wonder why the “excited” and “quiescent” states are
+needed for each gate component. This is so that we can use the finitary ac-
+cepting states F; to reject behaviours in which a gate is excited continuously
+without ever switching.
+
+It is not difficult to prove the correctness of the construction and the
+interested reader can find the details in [D00a].
+
+”
+
+32
+
+
+--- Page 33 ---
+8.3 ”Properties expressed in TLTL2
+
+We list below some properties of circuits that we can specify in our logic
+TLTL®(=’). Using the model-checking algorithm of Section 6, one can au-
+tomatically check whether a given circuit satisfies these properties.
+
+e The formula y below specifies that every possible behaviour of a circuit
+is eventually stable.
+
+g=( Ve (s,s), (0,00))T) (k +1).
+
+excited(s’)=0
+
+e We can specify that gate i always switches within d time units of
+becoming excited. This is specified by the formula
+
+(O(y1 => ¥2))(4)
+
+if i ¢ excited(bo), and by the formula
+
+(A(yi = ¥2))(t) A (ys) (4)
+
+if 1 € excited (bo), where
+
+Pl =   Viceecited(s’) ((s, s'), (0, 00))T
+92 =    Vaex (a, (0, 0) )(V ic switches (2,") ((t, t'), (0, d))T)  (i)
+93 =   Vicswitches(s,s") ((s, 8‘), (0, d))T.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+9 Conclusion
+
+We have studied product interval automata, a subclass of timed automata
+which admit a clean logical theory. Product interval automata are closed un-
+der boolean operations and admit a logical characterisation via the monadic
+second order logic TMSO®.
+
+We have also formulated a timed temporal logic called TLTL® to reason
+about timed behaviours captured by product interval automata. We have
+solved the satisfiability and model-checking problems by automata-theoretic
+means while establishing tight space complexity bounds for these problems.
+This temporal logic turns out to be a natural one in the sense that it is
+expressively complete; it has exactly the expressive power of the first order
+fragment of TMSO®. These results parallel the results in the classical setting
+and lay the basis for a similar verification methodology in a timed framework.
+
+We have shown that despite their simple structure, product interval au-
+tomata are expressive enough to model an important class of timed be-
+haviours, namely that of asynchronous circuits. Coupled with the fact
+that the simple distributed nature of product interval automata make them
+
+33
+
+
+--- Page 34 ---
+amenable to efficient application of partial order methods for timed sys-
+tems [M99], we expect that our methods will lead to efficient methods for
+analysing these circuits.
+
+The expressive power of product interval automata can be increased
+by considering a timed variant of asynchronous automata [GP], called dis-
+tributed interval automata. A interesting fact is that the natural timed
+extension of “cellular” asynchronous automata [Z87] (which in the untimed
+setting are equal in expressive power to asynchronous automata) are more
+powerful than distributed interval automata. In fact, cellular interval au-
+tomata are as expressive as the event recording automata of [AFH94]. These
+results are detailed in [DT98, D00a]. Finally, the techniques used here lead
+naturally to a unrestricted logical characterisation of event recording au-
+tomata [DOOb].
+
+References
+
+AD94]_ R. Alur, D. L. Dill: A theory of timed automata, Theoretical Com-
+puter Science 126: 183-235 (1994).
+
+AFH94] R. Alur, L. Fix, T. A. Henzinger: Event-clock automata: a de-
+terminizable class of timed automata, Proc. 6th Int. Conf. on
+Computer-aided Verification, LNCS 818, 1-13, Springer-Verlag
+(1994).
+
+AH92] R. Alur, T. A. Henzinger: Logics and Models of Real Time: A
+Survey, in Real-Time: Theory in Practice, J. W. de Bakker et al,
+(Eds.), LNCS 600, 74-106, (1992).
+
+B60]    J. R. Biichi: Weak second-order arithmetic and finite automata,
+Zeitschrift fiir Math. Logik und Grundlagen der Mathematik, 6,
+66-92 (1960).
+
+BJ+98] J. Bengtsson, B. Jonsson, J. Lilius, W Yi: Partial Order Reduc-
+tions for Timed Systems, Proc. CONCUR ’98, LNCS 1466 (1998).
+
+BS94] J. A. Brzozowski, C-J. H. Seger: Asynchronous Circuits, Springer-
+Verlag (1994).
+
+DR95]__‘V. Diekert, G. Rozenberg: The Book of Traces, World Scientific,
+Singapore (1995).
+
+
+
+DO00a]_ =D. D’Souza: A Logical Study of Distributed Timed Automata,
+PhD Thesis, Chennai Mathematical Institute (2000) (available at
+http://www.cmi.ac.in/~deepak).
+
+34
+
+
+--- Page 35 ---
+[Doob]
+
+[DT98]
+
+[DT99]
+
+MF76]
+
+GP]
+
+GP+80]
+
+HT97]
+
+H98]
+
+HK +95]
+
+HRS98]
+
+K68|
+
+M99|
+
+
+
+MP95]
+
+D. D’Souza: A Logical Characterisation of Event Recording Au-
+tomata, Proc. 6th Intl. Symp. on Formal Techniques in Real-Time
+and Fault Tolerant Systems (FTRTFT) LNCS Vol. 1926 (2000).
+
+D. D’Souza, P. S. Thiagarajan: Distributed Interval Automata, In-
+ternal Report TCS-98-3, Chennai Mathematical Institute (1998).
+
+D. D’Souza, P. S. Thiagarajan: Product Interval Automata: A
+Subclass of Timed Automata, Proc. 19th Foundations of Software
+Technology and Theoretical Computer Science (FSTTCS), LNCS
+1782 (1999).
+
+P. Merlin, D. J. Faber: Recoverability of communication protocols,
+IEEE Trans. Commun. Vol 24, No. 9, Sept. 1976
+
+P. Gastin, A. Petit: Asynchronous cellular automaton for infinite
+traces, Proceedings of ICALP ’92, LNCS 623, 583-594 (1992).
+
+D. Gabbay, A. Pnueli, S. Shelah, J. Stavi: The Temporal Analysis
+of Fairness, Seventh ACM Symposium on Principles of Program-
+ming Languages, 163-173, (1980).
+
+J. G. Henriksen, P. S. Thiagarajan: A Product Version of Dynamic
+Linear Time Temporal Logic, Proc. CONCUR ’97, LNCS 1243,
+45-58, (1997).
+
+T. A. Henzinger: It’s About Time: Real-Time Logics Reviewed,
+Proc. CONCUR 98, LNCS 1466, 366-372 (1998).
+
+askin
+
+T. A. Henzinger, P. W. Kopke, A. Puri, P. Varaiya: What’s de-
+cidable about hybrid automata?, Proc. 27th Annual Symposium
+on Theory of Computing, 373-382, ACM Press (1995).
+
+T. A. Henzinger, J.-F. Raskin, and P.-Y. Schobbens: The regu-
+lar real-time languages, Proc. 25th Int. Colloquium on Automata,
+Languages, and Programming 1998, LNCS 1443, 580-591 (1998).
+
+H. Kamp: Tense Logic and the Theory of Linear Order, PhD
+Thesis, University of California (1968).
+
+M. Minea: Partial Order Reduction for Model Checking of Timed
+Automata, in Proc. CONCUR ’99.
+
+O. Maler, A. Pnueli: Timing Analysis of Asynchronous Circuits
+using Timed Automata, in Proc. CHARME ’95, LNCS 987, 189-
+205 (1995).
+
+
+--- Page 36 ---
+
+
+P77
+
+RS97]
+
+SC85]
+
+Thi95]
+
+
+
+Tho90]
+
+A. Pnueli: The Temporal Logic of programs, Proc. 18th IEEE
+Symp. on Foundations of Computer Science, 46-57 (1977).
+
+J.-F. R, P. -Y. Schobbens: State-clock Logic: A Decidable Real-
+Time Logic, Proc. HART ’97: Hybrid and Real-Time Systems,
+LINCS 1201, 33-47 (1997).
+
+A. P. Sistla, E. M. Clarke: The complexity of propositional linear
+temporal logic, Journal of the ACM, 32: 733-749 (1985).
+
+P.S. Thiagarajan: A Trace Consistent Subset of PTL, Proc. CON-
+CUR ’95, LNCS 962, 438-452 (1995).
+
+W. Thomas: Automata on Infinite Objects, in J. V. Leeuwen
+(Ed.), Handbook of Theoretical Computer Science, Vol. B, 133-
+191, Elsevier, (1990).
+
+VWS83] M. Y. Vardi, P. Wolper, A. P. Sistla: Reasoning about infinite
+
+W094]
+
+YJ94]
+
+Z87]
+
+computation paths, Proc. 24th IEEE Symposium on Foundation
+of Computer Science, Tuscan, 1983, pages 185-194.
+
+Th. Wilke: Specifying Timed State Sequences in Powerful Decid-
+able Logics and Timed Automata, in Formal Techniques in Real-
+Time and Fault-Tolerant Systems, LNCS 863, 694-715 (1994).
+
+W. Yi, B. Jonsson: Decidability of Timed Language-Inclusion
+for Networks of Real-Time Communicating Sequential Processes,
+Proc. FST&TCS 94, LNCS 880 (1994).
+
+W. Zielonka:   Notes on finite asynchronous automata,
+R.A.ILR.O.—Inform. Theor. Appl., Vol 21, 99-135 (1987).
+
+36
+

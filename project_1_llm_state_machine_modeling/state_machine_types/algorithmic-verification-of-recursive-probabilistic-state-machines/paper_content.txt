@@ -1,0 +1,976 @@
+--- Page 1 ---
+Algorithmic Veriﬁcation of
+Recursive Probabilistic State Machines
+Kousha Etessami1and Mihalis Yannakakis2
+1School of Informatics, University of Edinburgh
+2Department of Computer Science, Columbia University
+Abstract. Recursive Markov Chains (RMCs) ([EY05]) are a natural
+abstract model of procedural probabilistic programs and related systems
+involving recursion and probability. They succinctly deﬁne a class of de-numerable Markov chains that generalize multi-type branching (stochas-
+tic) processes. In this paper, we study the problem of model checking
+an RMC against a given ω-regular speciﬁcation. Namely, given an RMC
+Aand a B¨ uchi automaton B, we wish to know the probability that an
+execution of Ais accepted by B. We establish a number of strong upper
+bounds, as well as lower bounds, both for qualitative problems (is the
+probability = 1, or = 0?), and for quantitative problems (is the probabil-
+ity≥p?, or, approximate the probability to within a desired precision).
+Among these, we show that qualitative model checking for general RMCs
+can be decided in PSPACE in |A|and EXPTIME in |B|,a n dw h e n Ais
+either a single-exit RMC or when the total number of entries and exits in
+Ais bounded, it can be decided in polynomial time in |A|. We then show
+that quantitative model checking can also be done in PSPACE in |A|,
+a n di nE X P S P A C Ei n |B|.W h e n Bis deterministic, all our complexities
+in|B|come down by one exponential.
+For lower bounds, we show that the qualitative model checking prob-
+lem, even for a ﬁxed RMC, is EXPTIME-complete. On the other hand,
+even for reachability analysis, we showed in [EY05] that our PSPACE
+upper bounds in Acan not be improved upon without a breakthrough on
+a well-known open problem in the complexity of numerical computation.
+1 Introduction
+Recursive Markov Chains (RMCs) are a natural abstract model of procedural
+probabilistic programs. They succinctly deﬁne a natural class of denumerableMarkov chains that generalize multi-type branching (stochastic) processes. In-
+formally, an RMC consists of a collection of ﬁnite state component Markov
+chains (MC) that can call each other in a potentially recursive manner. Eachcomponent MC has a set of nodes (ordinary states), a set of boxes (each mapped
+to a component MC), a well-deﬁned interface consisting of a set of entry and
+exitnodes (nodes where it may start and terminate), and a set of probabilistic
+transitions connecting the nodes and boxes. A transition to a box speciﬁes the
+entry node and models the invocation of the component MC associated with the
+N. Halbwachs and L. Zuck (Eds.): TACAS 2005, LNCS 3440, pp. 253–270, 2005.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2005
+
+--- Page 2 ---
+254 K. Etessami and M. Yannakakis
+box; when (and if) the component MC terminates at an exit, execution of the
+calling MC resumes from the corresponding exit of the box.
+RMCs are a probabilistic version of Recursive State Machines (RSMs). RSMs
+([AEY01, BGR01]) and closely related models like Pushdown Systems (PDSs)(see, e.g., [EHRS00, BR00]) have been studied extensively in recent research on
+model checking and program analysis, because of their applications to veriﬁca-tion of sequential programs with procedures. Recursive Markov Chains gener-
+alize other well-studied models involving probability and recursion: Stochastic
+Context-Free Grammars (SCFGs) have been extensively studied, mainly in nat-
+ural language processing (NLP) (see [MS99]). Multi-Type Branching Processes
+(MT-BPs), are an important family of stochastic processes with many applica-
+tions in a variety of areas (see, e.g., [Har63]). Both SCFG’s and MT-BP’s areessentially equivalent to single-exit RMC’s: the special case of RMC’s in which
+all components have one exit. Probabilistic models of programs and systems areof interest for several reasons. First, a program may use randomization, in which
+case the transition probabilities reﬂect the random choices of the algorithm. Sec-
+ond, we may want to model and analyse a program or system under statisticalconditions on its behaviour (e.g., based on proﬁling statistics or on statistical
+assumptions), and to determine the induced probability of properties of interest
+We introduced RMCs in [EY05] and developed some of their basic theory,
+focusing on algorithmic reachability analysis: what is the probability of reachinga given state starting from another? In this paper we study the more general
+problem of model checking an RMC against an ω-regular speciﬁcation: given an
+RMC Aand a B¨ uchi automaton B, what is the probability that an execution of
+Ais accepted by B? The techniques we develop in this paper for model checking
+go far beyond what was developed in [EY05] for reachability analysis.
+General RMCs are intimately related to probabilistic Pushdown Systems
+(pPDSs), and there are eﬃcient translations between RMCs and pPDSs. Therehas been some recent work on model checking of pPDSs ([EKM04, BKS05]). Aswe shall describe shortly, our results yield substantial improvements, when trans-
+lated to the setting of pPDSs, on the best algorithmic upper and lower bounds
+known for ω-regular model checking of pPDSs.
+We now outline the main results in this paper. We are given an RMC A
+and a property in the form of a (non-deterministic) B¨ uchi automaton (BA)
+B, whose alphabet corresponds to (labels on) the vertices of A.L e tP
+A(L(B))
+denote the probability that an execution of Ais accepted by B(i.e., satisﬁes the
+property). The qualitative model checking problems are: (1) determine whether
+almost all executions of Asatisfy the property B(i.e. is PA(L(B)) = 1?, this
+corresponds to Bbeing a desirable correctness property), and (2) whether almost
+no executions of Asatisfy B(i.e. is PA(L(B)) = 0?, corresponding to Bbeing an
+undesirable error property). In the quantitative model checking problems we wish
+to compare PA(L(B)) to a given rational threshold p, i.e., is PA(L(B))≥p?, or
+alternatively, we may wish to approximate PA(L(B)) to within a given number
+of bits of precision. Note that in general PA(L(B)) may be irrational or may not
+even be expressible by radicals [EY05]. Hence it cannot be computed exactly.
+
+--- Page 3 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 255
+Qualitative:reachability det. B¨ uchi nondet. B¨ uchi
+1-exit P P P in RMC, EXPTIME in B¨ uchi
+Bd P P P in RMC, EXPTIME in B¨ uchi
+general PSPACE PSPACE PSPACE in RMC, EXPTIME in B¨ uchi
+Quantitative:reachability det. B¨ uchi nondet. B¨ uchi
+1-exit PSPACE PSPACE PSPACE in RMC, EXPSPACE in B¨ uchi
+Bd P Pi nR M C Pi nR M C ,
+for ﬁxed B¨uchi for ﬁxed B¨uchi
+general PSPACE PSPACE PSPACE in RMC, EXPSPACE in B¨ uchi
+Fig. 1. Complexity of Qualitative and Quantitative problems
+We show that the qualitative model checking problems can be solved in
+PSPACE in |A|and EXPTIME in |B|. More speciﬁcally, in a ﬁrst phase the
+algorithm analyzes the RMC Aby itself (using PSPACE only in |A|). In a sec-
+ond phase, it further analyses Ain conjunction with B, using polynomial time
+inAand exponential time in B. If the automaton Bis deterministic then the
+time is polynomial in B. Furthermore, if Ais a single-exit RMC (which cor-
+responds to SCFG’s and MT-BP’s), then the ﬁrst phase, and hence the whole
+algorithm, can be done in polynomial time in A. Another such case, where we
+can model-check qualitatively in polynomial time in A, is when the total number
+of entries and exits in Ais bounded (we call them Bd-RMCs). In terms of proba-
+bilistic program abstractions, this class of RMC’s corresponds to programs witha bounded number of distinct procedures, each of which has a bounded number
+of input/output parameter values. The internals of the components of the RMCs
+(i.e., the procedures) can be arbitrarily large and complex.
+For quantitative model checking, we show that deciding whether P
+A(L(B))≥
+p, given a rational p∈[0,1], can be decided in PSPACE in |A|and EXPSPACE
+in|B|. When Bis deterministic, the space is polynomial in both AandB.
+Moreover, for Aa Bd-RMC, and when Bis ﬁxed, there is an algorithm that
+runs in P-time in |A|; however, in this case (unlike the others) the exponent of
+the polynomial depends on B. Table 1 summarizes our complexity upper bounds
+(the “reachability” columns are from [EY05]; all the other results are new).
+For lower bounds, we prove that the qualitative model checking problem,
+even for a ﬁxed, single entry/exit RMC, is already EXPTIME-complete. On
+the other hand, even for reachability analysis, we showed in [EY05] that our
+PSPACE upper bounds in A, even for the quantitative 1-exit problem, and the
+general qualitative problem, can not be improved without a breakthrough on
+the complexity of the square root sum problem, a well-known open problem in
+the complexity of exact numerical computation (see Section 2.2).
+Related Work. Model checking of ﬂat Markov chains has received extensive
+attention both in theory and practice (e.g. [CY95, Kwi03, PZ93, Var85]). It is
+known that model checking of a Markov chain Awith respect to a B¨ uchi au-
+tomaton Bis PSPACE-complete, and furthermore the probability PA(L(B)) can
+
+--- Page 4 ---
+256 K. Etessami and M. Yannakakis
+be computed exactly in time polynomial in Aand exponential in B. Recursive
+Markov chains were introduced recently in [EY05], where we developed some of
+their basic theory and investigated the termination and reachability problems;we summarize the main results in Section 2.2. Recursion introduces a number
+of new diﬃculties that are not present in the ﬂat case. For example, in the ﬂat
+case, the qualitative problems depend only on the structure of the Markov chain(which transitions are present) and not on the precise values of the transition
+probabilities; this is not any more the case for RMC’s and numerical issues have
+to be dealt with even in the qualitative problem. Furthermore, unlike the ﬂatcase, the desired probabilities cannot be computed exactly.
+The closely related model of probabilistic Pushdown Systems (pPDS) was in-
+troduced and studied recently in [EKM04, BKS05]. They largely focus on modelchecking against branching-time properties, but they also study deterministic
+([EKM04]) and non-deterministic ([BKS05]) B¨ uchi automaton speciﬁcations.
+There are eﬃcient (linear time) translations between RMCs and pPDSs, sim-ilar to translations between RSMs and PDSs (see [AEY01, BGR01]). Our upper
+bounds, translated to pPDSs, improve those obtained in [EKM04, BKS05] byan exponential factor in the general setting, and by more for speciﬁc classes
+like single-exit and Bd-RMCs. Speciﬁcally, [BKS05], by extending results in
+[EKM04], show that qualitative model checking for pPDSs can be done inPSPACE in the size of the pPDS and 2-EXPSPACE in the size of the B¨ uchi
+automaton, while quantitative model checking can be decided in EXPTIME inthe size of the pPDS and in 3-EXPTIME in the size of the B¨ uchi automaton.
+They do not obtain stronger complexity results for the class of pBPAs (equiva-
+lent to single-exit RMCs). Also, the class of Bd-RMCs has no direct analog in
+pPDSs, as the total number of entries and exits of an RMC gets lost in transla-tion to pPDSs. Reference [EE04] is a survey paper that predates this paper and
+summarizes only the results in prior papers [EKM04, EY05, BKS05].
+The paper is organized as follows. Section 2 gives necessary deﬁnitions and
+background on RMC’s from [EY05]. Section 3 shows how to construct froman RMC, A, a ﬂat Markov chain M
+/prime
+Awhich in some sense “summarizes” A;
+this chain plays a central role analogous to the ”summary graph” for RSMs[AEY01, BGR01]. Section 4 addresses the qualitative model checking problems,
+presenting both upper and lower bounds. Section 5 addresses the quantitativemodel checking problem; a fundamental “unique ﬁxed point theorem” is proved
+for RMC’s, and plays a crucial role in our quantitative algorithms.
+Due to space limitations, we have removed almost all proofs from this paper.
+2 Deﬁnitions and Background
+ARecursive Markov Chain (RMC) ,A, is a tuple A=(A1,...,A k), where each
+component chain Ai=(Ni,Bi,Yi,En i,Ex i,δi) consists of:
+–As e t Niofnodes
+–A subset of entry nodes Eni⊆Ni, and a subset of exitnodes Exi⊆Ni.
+–As e t Biofboxes.L e tB=∪k
+i=1Bibe the (disjoint) union of all boxes of A.
+
+--- Page 5 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 257
+–A mapping Yi:Bi/mapsto→{1,...,k }assigns a component to every box.
+LetY=∪k
+i=1YibeY:B/mapsto→{1,...,k }where Y|Bi=Yi,f o r1 ≤i≤k.
+–To each box b∈Bi, we associate a set of call ports ,Call b={(b,en)|en∈
+EnY(b)}, and a set of return ports ,Return b={(b,ex)|ex∈ExY(b)}.
+–A transition relation δi, where transitions are of the form ( u,pu,v,v) where:
+1. the source uis either a non-exit node u∈Ni\Exi, or a return port
+u=(b,ex)∈Return b, where b∈Bi.
+2. The destination vis either a non-entry node v∈Ni\Eni, or a call port
+v=(b,en)∈Call b, where b∈Bi.
+3.pu,v∈R>0is the probability of transition from utov. (We assume pu,v
+is rational.)
+4.Consistency of probabilities :f o re a c h u,/summationtext
+{v/prime|(u,pu,v/prime,v/prime)∈δi}pu,v/prime=1,
+unless uis a call port or exit node; neither have outgoing transitions, in
+which case/summationtext
+v/primepu,v/prime=0 .
+We will use the term vertex ofAito refer collectively to its set of nodes, call
+ports, and return ports, and we denote this set by Qi, and we let Q=/uniontextk
+i=1Qi
+be the set of all vertices of the RMC A. That is, the transition relation δiis a
+set of probability-weighted directed edges on the set Qiof vertices of Ai.L e t
+δ=∪iδibe the set of all transitions of A.
+An RMC Adeﬁnes a global denumerable Markov chain MA=(V,∆)a s
+follows. The global states V⊆B∗×Qare pairs of the form /angbracketleftβ,u/angbracketright, where β∈B∗
+is a (possibly empty) sequence of boxes and u∈Qis avertex ofA. More precisely,
+the states V⊆B∗×Qand transitions ∆are deﬁned inductively as follows:
+1./angbracketleft/epsilon1,u/angbracketright∈V,f o ru∈Q.(/epsilon1denotes the empty string.)
+2. if/angbracketleftβ,u/angbracketright∈Vand (u,pu,v,v)∈δ, then /angbracketleftβ,v/angbracketright∈Vand (/angbracketleftβ,u/angbracketright,pu,v,/angbracketleftβ,v/angbracketright)∈∆
+3. if/angbracketleftβ,(b,en)/angbracketright∈Vand (b,en)∈Call b, then
+/angbracketleftβb,en /angbracketright∈V,&(/angbracketleftβ,(b,en)/angbracketright,1,/angbracketleftβb,en /angbracketright)∈∆.
+4. if/angbracketleftβb,ex /angbracketright∈Vand (b,ex)∈Return b, then
+/angbracketleftβ,(b,ex)/angbracketright∈V&(/angbracketleftβb,ex /angbracketright,1,/angbracketleftβ,(b,ex)/angbracketright)∈∆.
+Item 1 corresponds to the possible initial states, 2 corresponds to a transition
+within a component, 3 is when a new component is entered via a box, 4 is when
+the process exits a component and control returns to the calling component.
+Some states of MAareterminating , i.e., have no outgoing transitions. Namely,
+states /angbracketleft/epsilon1,ex/angbracketright, where exis an exit. We want MAto be a proper Markov chain, so
+we consider terminating states as absorbing , with a self-loop of probability 1.
+Atrace (ortrajectory )t∈VωofMAis an inﬁnite sequence of states t=
+s0s1s2.... such that for all i≥0, there is a transition ( si,psi,si+1,si+1)∈∆,
+withpsi,si+1>0. Let Ω⊆Vωdenote the set of traces of MA. For a state
+s=/angbracketleftβ,v/angbracketright∈V,l e tQ(s)=vdenote the vertex at state s. Generalizing this
+to traces, for a trace t∈Ω,l e tQ(t)=Q(s0)Q(s1)Q(s2)...∈Qω. We will
+consider MAwithinitial states fromInit={/angbracketleft/epsilon1,v/angbracketright|v∈Q}. More generally
+we may have a probability distribution pinit:V/mapsto→[0,1] on initial states (we
+usually assume pinithas support only in Init, and we always assume it has ﬁnite
+support). This induces a probability distribution on traces generated by random
+walks on MA. Formally, we have a probability space ( Ω,F,PrΩ), parametrized
+
+--- Page 6 ---
+258 K. Etessami and M. Yannakakis
+bypinit, where F=σ(C)⊆2Ωis the σ-ﬁeld generated by the set of basic
+cylinder sets ,C={C(x)⊆Ω|x∈V∗}, where for x∈V∗the cylinder at xis
+C(x)={t∈Ω|t=xw, w ∈Vω}. The probability distribution PrΩ:F/mapsto→[0,1]
+is determined uniquely by the probabilities of cylinder sets, which are:
+PrΩ(C(s0s1...s n)) =pinit(s0)ps0,s1ps1,s2...p sn−1,sn
+See, e.g., [Bil95]. RMCs where every component has at most one exit are called
+1-exit RMCs. RMCs where the total number of entries and exits is bounded by
+a constant c, (i.e.,/summationtextk
+i=1|Eni|+|Exi|≤c) are called Bounded total entry-exit
+RMCs (Bd-RMCs, for short).
+2.1 The Central Questions for Model Checking of RMCs
+We ﬁrst deﬁne reachability probabilities that play an important role in our anal-
+ysis. Given a vertex u∈Qiand an exit ex∈Exi, both in the same com-
+ponent Ai,l e tq∗
+(u,ex)denote the probability of eventually reaching the state
+/angbracketleft/epsilon1,ex/angbracketright, starting at the state /angbracketleft/epsilon1,u/angbracketright. Formally, we have pinit(/angbracketleft/epsilon1,u/angbracketright) = 1, and
+q∗
+(u,ex).=PrΩ({t=s0s1...∈Ω|∃i,si=/angbracketleft/epsilon1,ex/angbracketright}). As we shall see, the
+probabilities q∗
+(u,ex)will play an important role in obtaining other probabilities.
+Recall that a B¨ uchi automaton B=(Σ,S,q 0,R,F), has an alphabet Σ,as e t
+of states S, an initial state q0∈S, a transition relation R⊆S×Σ×S, and a set of
+accepting states F⊆S.ArunofBis a sequence π=q0v0q1v1q2...of alternating
+states and letters such that for all i≥0(qi,vi,qi+1)∈R.T h e ω-word associated
+with run πiswπ=v0v1v2...∈Σω. The run πisaccepting if for inﬁnitely many
+i,qi∈F. Deﬁne the ω-language L(B)={wπ|πis an accepting run of B}. Note
+thatL(B)⊆Σω.L e tL:Q/mapsto→Σ, be a given Σ-labelling of the vertices vof RMC
+A.Lnaturally generalizes to L:Qω/mapsto→Σω:f o rw=v0v1v2...∈Qω,L(w)=
+L(v0)L(v1)L(v2).... Given RMC A, with initial state s0=/angbracketleft/epsilon1,u/angbracketright, and given a
+BABover the alphabet Σ,l e tPA(L(B)) denote the probability that a trace of
+MAis inL(B). More precisely: PA(L(B)).=PrΩ({t∈Ω|L(Q(t))∈L(B)}).
+One needs to show that the sets {t∈Ω|L(Q(t))∈L(B)}are measurable (in
+F). This is not diﬃcult (see similar proofs in [CY95, Var85]). The model checking
+problems for ω-regular properties of RMCs are:
+(1)Qualitative model checking problems: Is PA(L(B)) = 1? Is PA(L(B)) = 0?
+(2)Quantitative model checking problems: given p∈[0,1], is PA(L(B))≥p?
+Also, we may wish to approximate PA(L(B)) to within a given number of
+bits of precision.
+Note, with a routine for the problem PA(L(B))≥p?, we can approximate
+PA(L(B)) to within ibits using binary search with icalls to the routine. Thus,
+for quantitative model checking the ﬁrst problem entails the second. Note that
+probabilistic reachability is a special case of model checking: given vertex uof
+RMC Aand a subset of vertices F, the probability that the RMC starting at u
+visits some vertex in F(in some stack context) is equal to PA(L(B)), where we
+let the labelling Lmap vertices in Fto 1 and the other vertices to 0, and Bis
+
+--- Page 7 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 259
+the 2-state automaton that accepts strings that contain a 1. Similarly, for the
+repeated reachability problem, where we are interested whether a trajectory from
+uinﬁnitely often visits a vertex of F, we can let Bbe the (2-state deterministic)
+automaton that accepts strings with an inﬁnite number of 1’s.
+To simplify the descriptions of our results, we assume henceforth that Σ=Q,
+the vertices of A. This is w.l.o.g. since the problem can be reduced to this case
+by relabelling the RMC Aand modifying the automaton B(see, e.g., [CY95]),
+however care is needed when measuring complexity separately in RMC, A,a n d
+BA,B, since typically BandΣare small in relation to A. Our complexity results
+are all with respect to the standard sizes of AandB.
+2.2 Basic RMC Theory and Reachability Analysis (From [EY05])
+We recall some of the basic theory of RMCs developed in [EY05], where we
+studied reachability analysis. Considering the probabilities q∗
+(u,ex)as unknowns,
+we can set up a system of (non-linear) polynomial equations, such that theprobabilities q
+∗
+(u,ex)are the Least Fixed Point (LFP) solution of this system.
+Use a variable x(u,ex)for each unknown probability q∗
+(u,ex). We will often ﬁnd it
+convenient to index the variables x(u,ex)according to a ﬁxed order, so we can
+r e f e rt ot h e ma l s oa s x1,...,x n, with each x(u,ex)identiﬁed with xjfor some j.
+We thus have a vector of variables: x=(x1x2...x n)T.
+Deﬁnition 1. Given RMC A=(A1,...,A k), deﬁne the system of polynomial
+equations, SA, over the variables x(u,ex),w h e r e u∈Qiandex∈Exi,f o r
+1≤i≤k. The system contains one equation x(u,ex)=P(u,ex)(x),f o re a c h
+variable x(u,ex).P(u,ex)(x)denotes a multivariate polynomial with positive ratio-
+nal coeﬃcients. There are 3 cases, based on the “type” of vertex u:
+1. Type I: u=ex. In this case: x(ex,ex)=1.
+2. Type II: either u∈Ni\{ex}oru=(b,ex/prime)is a return port. In these cases:
+x(u,ex)=/summationtext
+{v|(u,p u,v,v)∈δ}pu,v·x(v,ex).
+3. Type III: u=(b,en)is a call port. In this case:
+x((b,en),ex)=/summationtext
+ex/prime∈Ex Y(b)x(en,ex/prime)·x((b,ex/prime),ex)
+In vector notation, we denote SA=(xj=Pj(x)|j=1,...,n )by: x=P(x).
+Given A, we can construct x=P(x) in P-time: P(x)h a ss i z e O(|A|θ2),
+where θdenotes the maximum number of exits of any component. For vectors
+x,y∈Rn, deﬁne x/precedesequalyto mean that xj≤yjfor every coordinate j.F o r
+D⊆Rn, call a mapping H:Rn/mapsto→Rnmonotone onD, if: for all x,y∈D,
+ifx/precedesequalythenH(x)/precedesequalH(y). Deﬁne P1(x)=P(x), and Pk(x)=P(Pk−1(x)),
+fork>1. Let q∗∈Rndenote the n-vector of probabilities q∗
+(u,ex), using the
+same indexing as used for x.L e t 0denote the all 0 n-vector. Deﬁne x0=0,a n d
+xk=P(xk−1)=Pk(0), for k≥1. The map P:Rn/mapsto→Rnis monotone on Rn
+≥0.
+Theorem 1. ([EY05], see also [EKM04]) q∗∈[0,1]nis the Least Fixed Point
+solution, LFP(P),o f x=P(x).T h u s , q∗=P(q∗)and q∗= lim k→∞xk,a n d
+for all k≥0,xk/precedesequalxk+1/precedesequalq∗,a n df o ra l l q/prime∈Rn
+≥0,i fq/prime=P(q/prime), then q∗/precedesequalq/prime.
+
+--- Page 8 ---
+260 K. Etessami and M. Yannakakis
+There are already 1-exit RMCs for which the probability q∗
+(en,ex)is irrational
+and not “solvable by radicals” ([EY05]). Thus, we can’t compute probabilities
+exactly. Given a system x=P(x), and a vector q∈[0,1]n, consider the following
+sentence in the Existential Theory of Reals (which we denote by ExTh (R)):
+ϕ≡∃x1,...,x mm/logicalanddisplay
+i=1Pi(x1,...,x m)=xi∧m/logicalanddisplay
+i=10≤xi∧m/logicalanddisplay
+i=1xi≤qi
+ϕis true precisely when there is some z∈Rm,0/precedesequalz/precedesequalq,a n d z=P(z). Thus,
+if we can decide the truth of this sentence, we could tell whether q∗
+(u,ex)≤p,f o r
+some rational p, by using the vector q=( 1,...,p , 1,...). We will rely on decision
+procedures for ExTh (R). It is known that ExTh (R) can be decided in PSPACE
+and in exponential time, where the time exponent depends (linearly) only on the
+number of variables; thus for a ﬁxed number of variables the algorithm runs inpolynomial time [Can88, Ren92, BPR96]. As a consequence:
+Theorem 2. ([EY05]) Given RMC Aand rational ρ, there is a PSPACE algo-
+rithm to decide whether q
+∗
+(u,ex)≤ρ, with running time O(|A|O(1)·2O(m))where
+mis the number of variables in the system x=P(x)forA. Moreover q∗
+(u,ex)can
+be approximated to within jbits of precision within PSPACE and with running
+time at most jtimes the above.
+For Bd-RMCs, as shown in [EY05] it is possible to construct eﬃciently a
+system of equations in a bounded number of variables, whose LFP yields the
+entry-exit probabilities q∗
+(en,ex). Since ExTh (R) is decidable in P-time when the
+number of variables is bounded, this yields:Theorem 3. ([EY05]) Given Bd-RMC, A
+&rational p∈[0,1], there is a P-
+time algorithm to decide whether, for a vertex u&exitex,q∗
+(u,ex)≥p(or<p).
+For 1-exit RMCs (SCFGs), the qualitative termination/reachability problem
+can be solved eﬃciently, via an eigenvalue characterization and other techniques.
+Theorem 4. ([EY05]) There is a P-time algorithm that for a 1-exit RMC,
+vertex uand exit ex, decides which of the following holds:(1) q∗
+(u,ex)=0,(2)
+q∗
+(u,ex)=1,or (3) 0<q∗
+(u,ex)<1.
+Hardness, such as NP-hardness, is not known for RMC reachability. How-
+ever, in [EY05] we gave strong evidence of “diﬃculty”: the square-root sum
+problem is P-time reducible to deciding whether q∗
+(u,ex)≥p, in a 1-exit RMC,
+and to deciding whether q∗
+(u,ex)= 1 for a 2-exit RMC. Square-root sum is the
+following decision problem: given ( d1,...,d n)∈Nnandk∈N, decide whether/summationtextn
+i=1√di≤k. It is solvable in PSPACE, but it has been a major open problem
+since the 1970’s (see, e.g., [GGJ76, Tiw92]) whether it is solvable even in NP.
+As a practical eﬃcient numerical algorithm for computing the probabilities
+q∗
+(u,ex), it was proved in [EY05] that a multi-dimensional Newton’s method con-
+verges monotonically to the LFP of x=P(x), and constitutes a rapid accelera-
+tion of iterating Pk(0),k→∞.
+
+--- Page 9 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 261
+3 The Conditioned Summary Chain M/prime
+A
+For an RMC A, suppose we somehow have the probabilities q∗
+(u,ex)“in hand”.
+Based on these, we construct a conditioned summary chain ,M/prime
+A, a ﬁnite Markov
+chain that will allow us to answer repeated reachability questions. Extensions
+ofM/prime
+Awill later be a key to model checking RMCs. Since probabilities q∗
+(u,ex)
+are potentially irrational, we can not compute M/prime
+Aexactly. However, M/prime
+Awill be
+important in our correctness arguments, and we will in fact be able to computethe “structure” of M
+/prime
+A, i.e., what transitions have non-zero probability. The
+structure of M/prime
+Awill be suﬃcient for answering various “qualitative” questions.
+We will assume, w.l.o.g., that each RMC has one initial state s0=/angbracketleft/epsilon1,eninit/angbracketright,
+witheninitthe only entry of a component that does not contain any exits. Any
+RMC can readily be converted to an “equivalent” one in this form.
+Before describing M/prime
+A, let us recall from [AEY01], the construction of a “sum-
+mary graph”, HA=(Q,E HA), which ignores probabilities and is based only on
+information about reachability in the underlying RSM of A.L e tRbe the binary
+relation between entries and exits of components such that ( en,ex )∈Rprecisely
+when there exists a path from /angbracketleft/epsilon1,en/angbracketrightto/angbracketleft/epsilon1,ex/angbracketright, in the underlying graph of MA.
+The edge set EHAis deﬁned as follows. For u,v∈Q,(u,v)∈EHAiﬀ one of the
+following holds:
+1.uis not a call port, and ( u,pu,v,v)∈δ,f o rpu,v>0.
+2.u=(b,en) is a call port, and ( en,ex )∈R,a n d v=(b,ex) is a return port.
+3.u=(b,en) is a call port, and v=enis the corresponding entry.
+For each vertex v∈Qi, let us deﬁne the probability of never exiting : ne(v)=
+1−/summationtext
+ex∈Ex iq∗
+(v,ex). Call a vertex vdeﬁcient if ne(v)>0, i.e. there is a nonzero
+probability that if the RMC starts at vit will never terminate (reach an exit of
+the component).
+We deﬁne M/prime
+A=(QM/prime
+A,δM/prime
+A) as follows. The set of states QM/prime
+AofM/prime
+Ais the
+set of deﬁcient vertices: QM/prime
+A={v∈Q|ne(v)>0}.F o ru,v∈QM/prime
+A, there is a
+transition ( u,p/prime
+u,v,v)i nδM/prime
+Aif and only if one of the following conditions holds:
+1.u,v∈Qiand (u,pu,v,v)∈δi,a n d p/primeu,v=pu,v·ne(v)
+ne(u).
+2.u=(b,en)∈Call b,v=(b,ex)∈Return b,q∗
+(en,ex)>0,&p/prime
+u,v=q∗
+(en,ex )ne(v)
+ne(u).
+3.u=(b,en)∈Call bandv=en,a n d p/primeu,v=ne(v)
+ne(u). We call these transitions,
+from a call port to corresponding entry, special redtransitions.
+Note that in all three cases, p/prime
+u,vis well-deﬁned (the denominator is nonzero)
+and it is positive. Recall that we assumed that the initial vertex eninitis the
+entry of a component A0,a n d A0has no exits. Thus for all v∈Q0, ne(u)=1 ,
+and thus Q0⊆QM/prime
+A, and if ( u,pu,v,v)∈δ0, then ( u,pu,v,v)∈δM/prime
+A.
+Proposition 1. Probabilities on transitions out of each state in QM/prime
+Asum to 1.
+M/prime
+Ais an ordinary (ﬂat) Markov chain. Let ( Ω/prime,F/prime,PrΩ’) denote the probability
+space on traces of M/prime
+A. We now deﬁne a mapping ρ:Ω/mapsto→Ω/prime∪{⋆}, that maps
+
+--- Page 10 ---
+262 K. Etessami and M. Yannakakis
+every trace tof the original (inﬁnite) Markov chain MA, either to a unique
+trajectory ρ(t)∈Ω/primeof the MC M/prime
+A, or to the special symbol ⋆. Trajectories
+mapped to ⋆will be precisely those that go through missing vertices u∈Q
+that are not in QM/prime
+A, i.e., with ne( u) = 0. We show the total probability of
+all these trajectories is 0, i.e., PrΩ(ρ−1(⋆)) = 0, and moreover, M/prime
+Apreserves
+the probability measure of MA: for all D∈F/prime,ρ−1(D)∈F,a n d PrΩ’(D)=
+PrΩ(ρ−1(D)). We deﬁne ρin two phases. We ﬁrst deﬁne a map ρH:Ω/mapsto→Qω,
+where every trajectory t∈Ωis mapped to an inﬁnite path ρH(t) in the summary
+graph HA. Thereafter, we let ρ(t)=ρH(t) if all vertices of ρH(t)a r ei n M/prime
+A,a n d
+letρ(t)=⋆otherwise. We deﬁne ρHfor a trace t=s0s1...s i..., sequentially
+based on preﬁxes of t, as follows. By assumption, s0=/angbracketleft/epsilon1,eninit/angbracketright.ρHmaps s0
+toeninit. Suppose si=/angbracketleftβ,u/angbracketright, and, inductively, suppose that ρHmaps s0...s i
+toeinit...u.F i r s t ,s u p p o s e uis not a call port, and that si+1=/angbracketleftβ,v/angbracketright, then
+s0...s isi+1maps to einit...uv. Next, suppose u=(b,en) is a call port and
+si+1=/angbracketleftβb,en /angbracketright. If the trace eventually returns from this call (i.e., there exists
+j>i + 1, such that sj=/angbracketleftβb,ex /angbracketrightandsj+1=/angbracketleftβ,(b,ex)/angbracketright, and such that each
+of the states si+1...s j,h a v e βbas a preﬁx of the call stack), then s0...s jis
+mapped by ρHtoeninit...u(b,ex). If the trace never returns from this call, then
+s0...s isi+1maps to eninit...ue n . This concludes the deﬁnition of ρH. We show
+that the mapping ρis measure preserving.
+Lemma 1. Pr Ω(ρ−1(⋆)) = 0 . Moreover, for all D∈F/prime,ρ−1(D)∈Fand
+PrΩ(ρ−1(D)) = PrΩ’(D).
+LetH/prime
+A=(QH/prime
+A,EH/prime
+A) be the underlying directed graph of M/prime
+A. In other words,
+QH/prime
+A=QM/prime
+A, and ( u,v)∈EH/prime
+Aiﬀ (u,p/prime
+u,v,u)∈δM/prime
+A. We show we can compute
+H/prime
+Ain P-time for 1-exit RMCs and Bd-RMCs, and in PSPACE for arbitrary
+RMCs. The basic observation is: the structure of M/prime
+Adepends only on qualitative
+facts about the probabilities q∗
+(en,ex)and ne( u), for u∈Q.
+Proposition 2. F o raR M C A(respectively, 1-exit or Bd-RMC), and u∈Q,
+we can decide whether ne(u)>0in PSPACE (respectively, P-time).
+Proof. Suppose uis in a component Aiwhere Exi={ex1,...,e x k}. Clearly,
+ne(u)>0i ﬀ/summationtextk
+j=1q∗
+(u,ex j)<1. Consider the following sentence, ϕ,i n ExTh (R).
+ϕ≡∃x1,...,x nn/logicalanddisplay
+i=1Pi(x1,...,x n)=xi∧n/logicalanddisplay
+i=10≤xi∧k/summationdisplay
+j=1x(u,ex j)<1
+Since q∗is the LFP solution of x=P(x),ϕis true in the reals if and only
+if/summationtextkj=1q∗
+(u,ex j)<1. This query can be answered in PSPACE. In the special
+case of a 1-exit RMC, we have Exi={ex1}, and ne( u)>0i ﬀq∗
+(u,ex 1)<1.
+As mentioned in section 2.2, this can be answered in P-time for 1-exit RMCs
+([EY05]). Similarly, for Bd-RMCs the question can be answered in P-time bythe techniques developed in [EY05]. /intersectionsq /unionsq
+
+--- Page 11 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 263
+Corollary 1. For a RMC A(respectively, 1-exit or Bd-RMC), we can compute
+H/prime
+Ain PSPACE (respectively, in polynomial time).
+Proof. Recall that u∈QH/prime
+Aprecisely when u∈Qand ne( u)>0. Thus we can
+determine the set of nodes with the said complexities, respectively. The tran-
+sitions of type 1 and 3 in the deﬁnition of M/prime
+Aare immediately determined.
+For the type 2 transitions, where u=(b,en)a n d v=(b,ex), in order to de-
+termine whether to include the corresponding summary edge ( u,v) we need to
+decide whether q∗
+(en,ex)>0. This can be done in polynomial time by invoking
+the reachability algorithm for RSM’s [AEY01, BGR01]. /intersectionsq /unionsq
+4 Qualitative Model Checking
+Upper Bounds. Given an RMC A=(A1,...,A k) and a (nondeterministic)
+B¨uchi automaton B=(Σ,S,q 0,R,F) whose alphabet Σis the vertex set of
+A, we wish to determine whether PA(L(B)) = 1, = 0, or is in-between. We
+will construct a ﬁnite Markov chain M/prime
+A,Bsuch that PA(L(B)) is equal to the
+probability that a trajectory of M/prime
+A,Bstarting from a given initial state reaches
+one of a designated set of “accepting” bottom SCCs.
+First, let B/prime=(Σ,2S,{q0},R/prime,F/prime) be the deterministic automaton obtained
+by the usual subset construction on B. In other words, states of B/primeare subsets
+T⊆S, and the transition function R/prime:( 2S×Σ)/mapsto→2Sis given by: R/prime(T1,v)=
+{q/prime∈S|∃q∈T1s.t.(q,v,q/prime)∈R}. (We make no claim that L(B)=L(B/prime).)
+Next we deﬁne the standard product RMC, A⊗B/prime, of the RMC A, and the
+deterministic B¨ uchi automaton B/prime.A⊗B/primehas the same number of components
+asA. Call these A/prime
+1,...,A/prime
+k. The vertices in component A/prime
+iare pairs ( u,T), where
+u∈QiandT∈2S, and ( u,T) is an entry (exit) iﬀ uis an entry (exit). The
+transitions of A/primeiare as follows: there is a transition (( u,T),pu,v,(v,R/prime(T,v))) in
+A/primeiiﬀ there is a transition ( u,pu,v,v)i nAi.
+Deﬁne M/prime
+A,BasM/prime
+A,B=M/prime
+A⊗B/prime.T h u s M/prime
+A,Bis the conditioned summary
+chain of RMC A⊗B/prime. For qualitative analysis on M/prime
+A,B, we need the underlying
+graph H/prime
+A,B. Importantly for the complexity of our algorithms, we do not have
+to explicitly construct A⊗B/primeto obtain H/prime
+A,B. Observe that states of M/prime
+A,B=
+(Q×2S,δM/prime
+A,B) are pairs ( v,T) where vis a state of M/prime
+A,a n d Ta state of B/prime.
+The initial state of M/prime
+A,Bis (v0,{q0}), where v0is the initial state of M/prime
+Aandq0
+ofB. The transitions of M/prime
+A,Bfrom a state ( v,T) are as follows:
+–Case 1: vis not a call port. Then for every transition ( v,p/prime
+v,v/prime,v/prime)∈δM/prime
+A,w e
+have a corresponding transition (( v,T),p/primev,v/prime,(v/prime,R/prime(T,v/prime)))∈δM/prime
+A,B.
+–Case 2: vis a call port, v=(b,en) where vis vertex in component Aiand box
+bis mapped to component Aj. If there is a redtransition ( v,pv,en,en)∈δM/prime
+Athen there is a redtransition (( v,T),pv,en,(en,R/prime(T,en))∈δM/prime
+A,Bwith the
+same probability.
+–Case 3: If vhas a summary transition ( v,pv,v/prime,v/prime)i nM/prime
+A, where v/prime=(b,ex),
+then we have summary transitions of the form (( v,T),p/prime/prime,(v/prime,T/prime)) inM/prime
+A,B
+
+--- Page 12 ---
+264 K. Etessami and M. Yannakakis
+to states of the form ( v/prime,T/prime) iﬀ there exists a path in MAfrom/angbracketleft/epsilon1,en/angbracketrightto
+/angbracketleft/epsilon1,ex/angbracketrightwhich, viewed as a string, drives B/primefromTtoT/prime; the probability p/prime/prime
+of the transition is p/prime/prime=p/prime·ne(v/prime)/ne(v) where p/primeis the probability of all
+suchv-v/primepaths that drive B/primefromTtoT/prime.
+M/prime
+A,Bis a well-deﬁned Markov chain, which is a reﬁnement of M/prime
+A.T h a ti s ,
+every trajectory of M/prime
+A,Bprojected on the ﬁrst component is a trajectory of M/prime
+A
+and the projection preserves probabilities. We can deﬁne a mapping σfrom the
+trajectories tof the original (inﬁnite) Markov chain MAto the trajectories of
+M/prime
+A,B, or the special symbol ⋆, in a similar manner as we deﬁned the mapping
+ρfrom trajectories of MtoM/prime
+A. For a trajectory tofMA,i ti se a s yt os e et h a t
+ifρ(t)/negationslash=⋆then also σ(t)/negationslash=⋆. Thus, with probability 1 a trajectory of MA
+is mapped to one of M/prime
+A,B. Furthermore, we can show along similar lines the
+analogue of Lemma 2, i.e. the mapping σpreserves probabilities.
+Consider a product graph (without probabilities) M/prime
+A⊗Bbetween the Markov
+chain M/prime
+Aand the given nondeterministic BA B(notB/prime) as follows: M/prime
+A⊗Bhas
+nodes ( v,q), for all vertices vofM/prime
+Aand states qofB, and an edge ( v,q)→(v/prime,q/prime)
+if either (i) v→v/primeis an ordinary edge or a red edge of M/prime
+Aandqhas a transition
+toq/primeon input v/prime, or (ii) v→v/primeis a summary edge and the RMC has a path from
+vtov/primethat corresponds to a run of Bfromqtoq/prime; if any such run goes through
+an accepting state then we mark the edge ( v,q)→(v/prime,q/prime)a sa n accepting edge.
+Also, call a node ( v,q)accepting ifq∈Fis an accepting state of B.
+With every transition (edge) of M/prime
+A,Ba n de v e r ye d g eo f M/prime
+A⊗Bwe associate
+a string γoverΣ(the vertex set of A) that caused the edge to be included; i.e.,
+if edge ( v,T)→(v/prime,T/prime)o fM/prime
+A,B(respectively, edge ( v,q)→(v/prime,q/prime)o fM/prime
+A⊗B)
+corresponds to an ordinary or red edge of M/prime
+Athenγ=v/prime. If it corresponds to a
+summary edge then we let γbe any string that corresponds to a v−v/primepath that
+drives B/primefromTtoT/prime(resp., for which Bhas a path from qtoq/prime; if the edge
+(v,q)→(v/prime,q/prime) is marked as accepting then we pick a path that goes through
+an accepting state of B). In the case of a summary edge, there may be many
+strings γas above; we just pick anyone of them.
+Lettbe any trajectory of MAstarting from /angbracketleft/epsilon1,v/angbracketright, for some vertex vofM/prime
+A
+and let rbe a corresponding run of Bstarting from a state q. With probability
+1,tmaps to a trajectory t/prime=ρ(t)o fM/prime
+A. The mapping ρcan be extended to
+pairs ( t,r), where ris a run of Bont, i.e., the pair ( t,r) is mapped to a run
+r/prime=ρ(t,r)o fM/prime
+A⊗B.I fris an accepting run of Bthenr/primegoes inﬁnitely often
+through an accepting node or an accepting edge. The converse does not hold
+necessarily: a non-accepting run rofBcorresponding to a trajectory tmay be
+mapped to a run r/primeofM/prime
+A⊗Bthat traverses inﬁnitely often an accepting edge.
+IfBis a deterministic BA, then M/prime
+A,BandM/prime
+A⊗Bare clearly the same
+(except that in M/prime
+A⊗Bwe did not include the probabilities of the edges). In
+this case, the analysis is simpler. Let us say that a bottom strongly connectedcomponent (SCC) of M
+/prime
+A,B(andM/prime
+A⊗B)i saccepting iﬀ it contains an accepting
+node or an accepting edge.
+
+--- Page 13 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 265
+Theorem 5. F o raR M C Aand a deterministic BA B, the probability PA(L(B))
+that a trajectory of Ais accepted by Bis equal to the probability that a trajectory
+ofM/prime
+A,Bstarting from the initial node (v0,q0)reaches an accepting bottom SCC.
+Suppose now that Bis nondeterministic. We will follow the approach of
+[CY95] for ﬂat Markov chains, except that here we have to deal with recursive
+calls and with the summary edges of the constructed Markov chain M/prime
+A,Bwhich
+correspond to sets of paths in the original chain MArather than single steps.
+This complicates things considerably.
+Letvbe a vertex of M/prime
+Aandq∈Fan accepting state of B.L e tD(v,q)b e
+the subgraph of M/prime
+A,Binduced by the node ( v,{q}) and all nodes reachable from
+it . We say that the pair ( v,q)i sspecial of type 1 if some bottom SCC Cof
+D(v,q) contains a state ( v,T) with q∈T. We associate with such a pair ( v,q)a
+string γ(v,q)∈Σ∗that is the concatenation of the strings associated with the
+edges of D(v,q) on a path from ( v,{q})t oan o d eo f C. (There may be many
+such paths; just pick anyone.) Let v=(b,en)b eav e r t e xo f M/prime
+Athat is a call
+port of a box bofAand let q/negationslash∈Fbe a non-accepting state of B. Deﬁne a graph
+D(v,q) as follows. The graph contains a root node vqand a subgraph of M/prime
+A,B
+consisting of the nodes reachable from vqafter we add the following edges. We
+a d da ne d g ef r o m vqto a node ( v/prime,{q/prime})o fM/prime
+A,B, where v/prime=(b,ex) is a return
+port of the same box basv, iﬀ there is a path γfrom/angbracketleft/epsilon1,en/angbracketrightto/angbracketleft/epsilon1,ex/angbracketrightsuch that
+Bhas a run from qtoq/primeonγthat goes through an accepting state; we label
+the edge vq→(v/prime,{q/prime}) with such a string γ. The graph D(v,q) consists of the
+rootvqand the subgraph of M/prime
+A,Binduced by all the nodes that are reachable
+fromvqafter adding the above edges. We call the pair ( v,q)special of type 2
+if some bottom SCC CofD(v,q) contains a state ( v,T) with q∈T.A si nt h e
+previous case, we associate with the pair ( v,q)as t r i n g γ(v,q)∈Σ∗that is the
+concatenation of the strings associated with the edges of D(v,q) on a path from
+vqto a node of C. Special pairs have the following important properties.
+Lemma 2. Suppose (v,q)is special and that RMC Astarts at /angbracketleft/epsilon1,v/angbracketrightand ﬁrst
+performs the transitions in γ(v,q). Then with probability 1 such a trajectory t
+of the RMC is accepted by Bwith initial state q. Speciﬁcally, there is a corre-
+sponding accepting run rofBsuch that ρ(t,r)is a run of M/prime
+A⊗Bstarting from
+(v,q)that inﬁnitely repeats node (v,q)if(v,q)is special of type 1, or repeats an
+accepting edge out of (v,q)if(v,q)is special of type 2.
+Lemma 3. Suppose there is non-zero probability that a trajectory of the RMC
+Astarting at any vertex u∈M/prime
+Ahas a corresponding run in M/prime
+A⊗Bstarting
+from any node (u,p)which repeats an accepting state (v,q)inﬁnitely often or
+repeats an accepting edge (v,q)→(v/prime,q/prime)inﬁnitely often. Then (v,q)is special.
+Proposition 3. PA(L(B))>0iﬀ from (v0,q0)inM/prime
+A⊗Bwe can reach a
+special (v,q).
+Call a bottom SCC of the ﬂat Markov chain M/prime
+A,Baccepting if it contains a state
+(v,T), with some q∈Tsuch that ( v,q) is special; otherwise call it rejecting .
+
+--- Page 14 ---
+266 K. Etessami and M. Yannakakis
+Theorem 6. PA(L(B))is equal to the probability that a trajectory of M/prime
+A,B
+starting from the initial state (v0,{q0})reaches an accepting bottom SCC.
+Thus, PA(L(B)) = 1 iﬀ all bottom SCCs of M/prime
+A,Breachable from ( v0,{q0})a r e
+accepting, and PA(L(B)) = 0 iﬀ no reachable bottom SCC is accepting (i.e., by
+Prop. 3, there is no path in M/prime
+A⊗Bfrom ( v0,{q0}) to a special node ( v,q)).
+As with M/prime
+AandH/prime
+A,l e tH/prime
+A,Bdenote the underlying directed graph of M/prime
+A,B.
+For the qualitative problem, we only need (1) to construct H/prime
+A,Band thus only
+need to know which nodes and edges are present, and (2) to determine which
+pairs ( v,q) are special, and hence which bottom SCCs are accepting. Thus we
+ﬁrst have to identify the vertices uof the RMC Afor which ne( u)>0, which
+can be done in PSPACE for general RMCs and P-time for 1-exit RMCs andfor Bd-RMCs. Then, the edges of H
+/prime
+A,Bcan be determined by the standard
+reachability algorithm for RSMs ([AEY01]). This works by ﬁrst constructing thegenuine product of the underlying RSM of A(ignoring probabilities on transi-
+tions) together with the B¨ uchi automaton B
+/prime. This deﬁnes a new RSM A⊗B/prime
+(no probabilities), whose size is polynomial in AandB/prime, and thus is exponen-
+tial in the original non-deterministic B¨ uchi automaton B. The time required
+for reachability analysis for RSMs is polynomial ([AEY01]). Thus, once we haveidentiﬁed the deﬁcient vertices of the RMC, the rest of the construction of H
+/prime
+A,B
+takes time polynomial in AandB/prime.
+To determine which pairs ( v,q) are special, we construct for each candidate
+(v,q) the graph D(v,q). For ( v,q) with q∈F, this is immediate from H/prime
+A,B.F o r
+(v,q) with q/∈Fandv=(b,en) a call port of a box b,w et e s tf o re a c hr e t u r n
+portv/prime=(b,ex) of the box and each state q/primeofBwhether there should be an
+edgevq→(v/prime,{q/prime}); this involves a call to the RSM algorithm of [AEY01] to
+determine whether there is a path in the RSM A⊗Bfrom ( en,q)t o( ex,q/prime)
+(with empty stack) that goes through a vertex whose second component is anaccepting state of B. Once we determine these edges, we can construct D(v,q).
+This takes time polynomial in AandB
+/prime. Then compute the SCCs of D(v,q),
+examine the bottom SCCs and check if one of them contains ( v,T) with q∈T.
+Finally, once we have identiﬁed the special pairs, we examine the reachable
+bottom SCCs of H/prime
+A,Band determine which ones are accepting and which are
+rejecting. The dependence of the time complexity on the size of the given RMC A
+is polynomial except for the identiﬁcation of the vertices ufor which ne( u)>0.
+The dependence on |B|is exponential because of the subset construction. If B
+is deterministic to begin with, we avoid the exponential blow-up and thus havepolynomial complexity in B.T h u sw eh a v e :
+Theorem 7. Given RMC A
+&B¨uchi automaton B, we can decide whether
+PA(L(B)) = 0,PA(L(B)) = 1,o r0<PA(L(B))<1in PSPACE in A,a n dE X -
+PTIME in B. For a 1-exit RMC or Bd-RMC, the time complexity is polynomial
+in|A|.A n d ,i f Bis deterministic, the time complexity in |B|is also polynomial.
+Lower Bounds. We show conversely that the exponential time complexity of
+qualitative model checking for a nondeterministic BA is in general unavoidable.
+
+--- Page 15 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 267
+Theorem 8. Deciding whether a given RMC Asatisﬁes a property speciﬁed
+by a B¨ uchi automaton Bwith probability =1, (i.e., whether PA(L(B)) = 1 ))
+is EXPTIME-complete. Furthermore, this holds even if the RMC is ﬁxed and
+each component has 1 entry and 1 exit. Moreover, the qualitative “emptiness”
+problem, namely deciding whether PA(L(B)) = 0 , is also EXPTIME-complete,
+again even when the RMC is ﬁxed and each component has 1 entry and 1 exit.
+5 Quantitative Model Checking
+As mentioned, the transition probabilities of the chain M/prime
+A,Bcannot be computed
+exactly, but instead have to be determined implicitly. To do quantitative model
+checking in PSPACE in |A|, it will be crucial to use ExTh (R) to uniquely identify
+LFP(P) for the systems x=P(x). The following key theorem enables this.
+Theorem 9. (Unique Fixed Point Theorem) The equations x=P(x)have a
+unique solution q∗that satisﬁes/summationtext
+exq∗
+(u,ex)<1for every deﬁcient vertex u,a n d/summationtext
+exq∗
+(u,ex)≤1for every other vertex u. (Of course, q∗=L F P ( P).)
+Theorem 10. Given RMC, A,a n dB A , B, and a rational value p∈[0,1],w e
+can decide whether PA(L(B))≥pin PSPACE in |A|and in EXPSPACE in B,
+speciﬁcally in space O(|A|c12c2|B|)for some constants c1,c2. Furthermore, if B
+is deterministic we can decide this in PSPACE in both AandB.
+Proof. We make crucial use of Theorem 9, and we combine this with use of
+the summary chain M/prime
+A,B, and queries to ExTh (R). Observe that by Theorem
+6, all we need to do is “compute” the probability that a trajectory of M/prime
+A,B,
+starting from the initial state ( v0,{q0}) reaches an accepting bottom SCC. We
+can not compute M/prime
+A,Bexactly, however, we will be able to identify the transition
+probabilities uniquely inside a ExTh (R) query, and will, inside the same query
+identify the probability of reaching an accepting bottom SCC.
+Letq∗=L F P ( P) be the solution vector of probabilities for the system x=
+P(x) associated with RMC A. Recall that by Proposition 2, we can compute in
+PSPACE in |A|the set Q/prime={u∈Q|ne(u)>0}of deﬁcient vertices. We do
+this as a ﬁrst step. Consider next the following quantiﬁer-free formula, wherec(u) is the index of the component of a vertex u:
+ϕ
+1(x)≡x=P(x)∧0/precedesequalx∧/logicalanddisplay
+u∈Q/prime/summationdisplay
+ex∈Ex c(u)x(u,ex)<1∧/logicalanddisplay
+u∈Q\Q/prime/summationdisplay
+ex∈Ex c(u)x(u,ex)=1
+By Theorem 9, the only vector xinRnfor which ϕ1(x) holds true is q∗. In other
+words, ϕ1uniquely identiﬁes LFP( P). Recall that ne( u)=1−/summationtext
+ex∈Ex c(u)q∗
+(u,ex).
+Now, let ybe a vector of variables indexed by vertices of A, and let ϕ2(x,y)≡/logicalandtext
+u∈Qyu=1−/summationtext
+ex∈Ex c(u)x(u,ex). The only vector of reals ( x,y) that satisﬁes
+ϕ1∧ϕ2is the one where x(u,ex)=q∗
+(u,ex)andyu= ne(u). Recall the construction
+ofM/prime
+A,B. The states of M/prime
+A,Bare pairs ( v,T), where v∈Q/prime,a n d T⊆Sis a set
+of states of B. The transitions of M/prime
+A,Bcome in three varieties.
+
+--- Page 16 ---
+268 K. Etessami and M. Yannakakis
+Case 1: vis not a call port, and ( v,p/prime
+v,v/prime,v/prime)∈δM/prime
+A. Then we have a corresponding
+transition (( v,T),p/primev,v/prime,(v/prime,R/prime(T,v/prime)))∈δM/prime
+A,B, where p/primev,v/prime=pv,v/primene(v/prime)/ne(v),
+and thus p/primev,v/primene(v)=pv,v/primene(v/prime). Associate a variable zv,v/primewith each such prob-
+ability p/primev,v/prime, and deﬁne the formula: ϕ3(y,z)≡/logicalandtext
+(v,v/prime)∈Case1zv,v/primeyv=pv,v/primeyv/prime.
+Case 2: vis a call port, v=(b,en) where vis vertex in component Aiand
+boxbis mapped to component Aj,a n d v/prime=en, and there is a redtransition
+(v,p/primev,v/prime,v/prime)∈δM/prime
+A. Then there is a redtransition (( v,T),p/primev,v/prime,(v/prime,R/prime(T,v/prime))∈
+δM/prime
+A,Bwith the same probability. Here p/primev,v/prime= ne(v/prime)/ne(v), and thus p/primev,v/primene(v)=
+ne(v/prime). Associate a variable zv,v/primewith each such probability p/primev,v/prime, and deﬁne:
+ϕ4(y,z)≡/logicalandtext
+(v,v/prime)∈Case2zv,v/primeyv=yv/prime.
+Case 3: vis a call port that has a summary transition ( v,p/primev,v/prime,v/prime)i nM/prime
+At oav e r -
+texv/prime=(b,ex), then we have summary transitions of the form (( v,T),p/prime/prime,(v/prime,T/prime))
+inM/prime
+A,Bto the following set of states of the form ( v/prime,T/prime): If there exists a
+path of MAthat starts at the entry enofAjand ends at the exit ex(with
+empty call stack) which, viewed as a string drives B/primefromTtoT/prime, then we
+include the edge (( v,T),p/prime
+(v,T),(v/prime,T/prime),(v/prime,T/prime)) in δM/prime
+A,B, where p/prime(v,T),(v/prime,T/prime)=
+q∗
+((en,T),(ex,T/prime))·ne(v/prime)/ne(v), and where q∗
+((en,T),(ex,T/prime))is the probability of
+reaching /angbracketleft/epsilon1,(ex,T/prime)/angbracketrightfrom/angbracketleft/epsilon1,(en,T)/angbracketrightin the product RMC A⊗B/prime. First, com-
+puteA⊗B/primeand its associated equations w=P⊗(w) explicitly. Note that
+|A⊗B/prime|=O(|A||B/prime|). Let Q⊗be the set of vertices of A⊗B/prime. We can compute
+the set Q/prime⊗of vertices vofA⊗B/prime, for which ne( v)>0 in PSPACE in |A⊗B/prime|.
+Consider now the quantiﬁer-free formula:
+ϕ5(w)≡w=P⊗(w)∧0/precedesequalw∧/logicalanddisplay
+u∈Q/prime⊗/summationdisplay
+ex∈Ex c(u)w(u,ex)<1∧/logicalanddisplay
+u∈Q⊗\Q/prime⊗/summationdisplay
+ex∈Ex c(u)w(u,ex)=1
+B yT h e o r e m9 ,L F P ( P⊗), is the only vector in Rnfor which ϕ5(w) holds
+true. In other words, ϕ5uniquely identiﬁes LFP( P⊗). Now, associate a variable
+z(v,T),(v/prime,T/prime)with each probability p/prime
+(v,T),(v/prime,T/prime), where v=(b,en)a n dv/prime=(b,ex),
+and deﬁne: ϕ6(y,w,z)≡/logicalandtext
+((v,T),(v/prime,T/prime))∈Case3z(v,T),(v/prime,T/prime)yv=w((en,T),(ex,T/prime))yv/prime.
+Observe,/logicalandtext6
+j=1ϕjhas a unique solution, and the values of variables zin this
+solution identify the probabilities p/primeon transitions of M/prime
+A,B. By the methods of
+section 4, we compute the underlying graph H/prime
+A,BofM/prime
+A,Band compute the
+SCCs of H/prime
+A,Bthat contain either an accepting node or an accepting edge. Let
+us deﬁne a revised ﬁnite Markov chain, M/prime/prime
+A,B, in which we remove all SCCs
+inM/prime
+A,Bthat contain an accepting node or edge, and replace them by a new
+absorbing node v∗, with a probability 1 transition to itself. Furthermore, in M/prime/prime
+A,B
+we also remove all nodes that can not reach v∗, and all transitions into those
+nodes. (Technically, some nodes of M/prime/prime
+A,Bmay no longer have full probability on
+the transitions leaving them, but that is ok for our purposes.)
+Now, recall from Markov chain theory (see, e.g., [Bil95]) that for such a
+ﬁnite (sub-)Markov chain M/prime/prime
+A,B, there is a linear system of equations t=F(t),
+over variables tu,v∗, where uis any node of M/prime/prime
+A,B, and where the coeﬃcients in
+
+--- Page 17 ---
+Algorithmic Veriﬁcation of Recursive Probabilistic State Machines 269
+the linear system F(t) are the probabilties p/primeon transitions of M/prime/prime
+A,Bsuch that
+the least ﬁxed point solution, LFP( F), of t=F(t) assigns to variable tu,v∗the
+probability that v∗is reachable from u. (In particular, one of the linear equations
+istv∗,v∗= 1.) Moreover, because we have eliminated from M/prime/prime
+A,Ball nodes that
+can not reach v∗,L F P ( F)i st h e unique solution to this system. Thus consider the
+formula: ϕ7(w,t)≡t=F(t). Thus the formula/logicalandtext7
+j=1ϕjhas a unique solution
+in the reals, and the values assigned to variables t(u,v∗)in this solution identify
+the probability of reaching an accepting SCC from node uinM/prime
+A,B.
+For initial node u∗=(v0,{q0})o fM/prime
+A,B,a n dp∈[0,1], the following sentence,
+ψ,i st r u ei n RiﬀPA(L(B))≥p:ψ≡∃x,y,z,w,t/logicalandtext7
+j=1ϕj∧tu∗,v∗≥p./intersectionsq /unionsq
+Theorem 11. For a ﬁxed BA, B, given a Bd-RMC, A, and a rational value
+p∈[0,1], we can decide whether PA(L(B))≥pin time polynomial in |A|.
+Proof. (idea) The proof is a modiﬁcation of Theorem 10. We extend a technique
+developed in [EY05]. We use variables only for entry-exit pairs of AandA⊗
+B/prime, express all other variables as rational functions of those, and transform the
+system to one of polynomial constraints in a bounded number of variables. /intersectionsq /unionsq
+References
+[AEY01] R. Alur, K. Etessami, and M. Yannakakis. Analysis of recursive state ma-
+chines. In Proc. of 13th Int. Conf. on Computer-Aided Veriﬁcation ,p a g e s
+304–313, 2001.
+[BGR01] M. Benedikt, P. Godefroid, and T. Reps. Model checking of unrestricted
+hierarchical state machines. In Proc. of ICALP’01 , volume 2076 of LNCS ,
+pages 652–666, 2001.
+[Bil95] P. Billingsley. Probability and Measure . J. Wiley and Sons, 3rd edition,
+1995.
+[BKS05] T. Br´ azdil, A. Kuˇ cera, and O. Straˇ zovsk´y. Decidability of temporal prop-
+erties of probabilistic pushdown automata. In Proc. of 22nd STACS’05 .
+Springer, 2005.
+[BPR96] S. Basu, R. Pollack, and M. F. Roy. On the combinatorial and algebraic
+complexity of quantiﬁer elimination. J. of the ACM , 43(6):1002–1045, 1996.
+[BR00] T. Ball and S. Rajamani. Bebop: A symbolic model checker for boolean
+programs. In SPIN’2000 , volume 1885 of LNCS , pages 113–130, 2000.
+[Can88] J. Canny. Some algebraic and geometric computations in PSPACE. In Prof.
+of 20th ACM STOC , pages 460–467, 1988.
+[CY95] C. Courcoubetis and M. Yannakakis. The complexity of probabilistic veri-
+ﬁcation. Journal of the ACM , 42(4):857–907, 1995.
+[EE04] J. Esparza and K. Etessami. Verifying probabilistic procedural programs.
+InProc. FSTTCS’04 , 2004. (Invited survey paper).
+[EHRS00] J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Eﬃcient algorithms
+for model checking pushdown systems. In 12th CAV , volume 1855, pages
+232–247. Springer, 2000.
+[EKM04] Javier Esparza, Anton´ ın Kuˇcera, and Richard Mayr. Model checking prob-
+abilistic pushdown automata. In Proc. of 19th IEEE LICS’04 , 2004.
+
+--- Page 18 ---
+270 K. Etessami and M. Yannakakis
+[EY05] K. Etessami and M. Yannakakis. Recursive markov chains, stochastic gram-
+mars, and monotone systems of non-linear equations. In Proc. of 22nd
+STACS’05 . Springer, 2005. (Tech. Report, U. Edinburgh, June 2004).
+[GGJ76] M. R. Garey, R. L. Graham, and D. S. Johnson. Some NP-complete geo-
+metric problems. In 8th ACM STOC , pages 10–22, 1976.
+[Har63] T. E. Harris. The Theory of Branching Processes . Springer-Verlag, 1963.
+[Kwi03] M. Kwiatkowska. Model checking for probability and time: from theory to
+practice. In Proc. 18th IEEE LICS , pages 351–360, 2003.
+[MS99] C. Manning and H. Sch¨ utze. Foundations of Statistical Natural Language
+Processing . MIT Press, 1999.
+[PZ93] A. Pnueli and L. D. Zuck. Probabilistic veriﬁcation. Inf. and Comp. ,
+103(1):1–29, 1993.
+[Ren92] J. Renegar. On the computational complexity and geometry of the ﬁrst-
+order theory of the reals. parts i,ii, iii. J. of Symbolic Computation ,p a g e s
+255–352, 1992.
+[Tiw92] P. Tiwari. A problem that is easier to solve on the unit-cost algebraic ram.
+Journal of Complexity , pages 393–397, 1992.
+[Var85] M. Vardi. Automatic veriﬁcation of probabilistic concurrent ﬁnite-state
+programs. In Proc. of 26th IEEE FOCS , pages 327–338, 1985.

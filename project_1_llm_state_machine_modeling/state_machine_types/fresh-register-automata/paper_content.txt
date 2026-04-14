@@ -1,0 +1,1565 @@
+--- Page 1 ---
+Fresh-Register Automata
+Nikos Tzevelekos
+OxfordUniversityComputing Laboratory
+nikt@comlab.ox.ac.uk
+Abstract
+What is a basic automata-theoretic model of computation wit h
+names and fresh-name generation? We introduce Fresh-Register
+Automata (FRA), a new class of automata which operate on an
+inﬁnite alphabet of names and use a ﬁnite number of registers to
+storefreshnames,andtocompareincomingnameswithprevio usly
+stored ones. These ﬁnite machines extend Kaminski and Franc ez’s
+Finite-MemoryAutomatabybeingabletorecogniseglobally fresh
+inputs, that is, names fresh in the whole current run. We exam -
+ine the expressivity of FRA’s both from the aspect of accepte d
+languages and of bisimulation equivalence. We establish pr imary
+properties and connections between automata of this kind, a nd an-
+swer key decidability questions. As a demonstrating exampl e, we
+express the theory of the pi-calculus in FRA’s and character ise
+bisimulation equivalence by an appropriate, and decidable in the
+ﬁnitarycase,notion inthese automata.
+Categories and Subject Descriptors F.1.1 [Computation by Ab-
+stract Devices ]: Models of Computation; D.3.1 [ Programming
+Languages ]: FormalDeﬁnitions and Theory—Semantics
+General Terms Theory, Languages, Veriﬁcation
+1. Introduction
+One of the most common and useful abstractions in programmin g
+is the assumption that entities of speciﬁc kinds can be creat ed at
+willand,moreover,insuchamannerthatnewlycreatedentit iesare
+alwaysfresh—distinct from any other such created thus far. This
+is, for example, the case with mutable reference cells, exce ptions
+user-declared datatypes, etc.in languages like Standard ML [15].
+Following a long tradition in computer science [20], we call these
+entitiesnamesand specifythem as follows.
+Names can be created fresh dynamically and locally, compare d
+for equalityand communicated between agents or subroutine s.
+Apart from the uses mentioned above, names form the basis of
+calculi of mobile processes (e.g. the π-calculus [14]); appear in
+network protocols and secure transactions; and are general ly es-
+sentialinprogrammingforidentifyingvariables,channel s,threads,
+objects, codes, and many other sorts of name in disguise. To o ur
+knowledge, therehasnotbeenintheliteratureaproposal of abasic
+automata-theoretic model of names, providing abstract mac hines
+underlyingalltheseparadigms.Weproposejustsuchamodel here.
+Revised version 18/11/2010 .Our model is based on the successful paradigm of Finite-
+Memory Automata (FMA) , introduced by Kaminski and Francez
+in the early 90’s [11]. Motivated by real-world problems (wh ere
+codes, addresses, identiﬁers, etc.may have unbounded domains),
+those automata address a demand for a “natural” ﬁnite-state ma-
+chine model over inﬁnite alphabets. An FMA Ais an automaton
+attachedwithaﬁnitenumberofname-storingregisters.Its structure
+looks identical to that of an ordinary ﬁnite-state automato n over a
+ﬁnitesetoflabelsgeneratedbyindicesintherange 1, . . . , n,where
+nis the number of registers. However, Atruly operates on the in-
+ﬁnite set of inputs A(the set of names), with indices ireferring to
+the names storedinthe i-thregisterofA.This simpleidea liftsthe
+automaton from ﬁnitetoinﬁnitealphabet.
+There are two ways in which an FMA can access its registers:
+eitherbycomparinganinputname toastoredone,orbystorin gan
+inputname inone of itsregistersbutonlyincase itis locallyfresh ,
+that is, it does not already appear in any of them. Thus, FMA’s are
+history-free: their computational steps rely solely on the ir current
+registers. Here we introduce Fresh-Register Automata (FRA) , a
+ﬁnite-register automaton model which extends FMA’s by global
+freshness recognition: an automaton can now accept (and store) an
+input name just in case it is fresh in the whole run. For exampl e, a
+transition
+qi⊛
+−→q′
+meansthatifAisatstate qandthesetofnamesthathaveappeared
+initsregisterssofaris H,thenAcanacceptanyname a /∈H,store
+itinits i-thregisterandproceedto q′.Thishistory-sensitivefeature
+precisely captures fresh-name creation.1Thus, e.g. the following
+language(notrecognisedbyFMA’s[11])isrecognisedbyasi ngle-
+stateFRAwithone register.
+L1={a1···ak∈A∗|∀i/\⌉}atio\slash=j. ai/\⌉}atio\slash=aj}
+An intuitive way to view L1is as the trace of a fresh-name gen-
+erator: one which returns reference cells in SML, objects in Java,
+memoryaddresses inC, etc.
+Research in FMA’s and their formal languages has been ex-
+tensive [2, 6, 11, 21, 25, 27]. It has been shown [11, 21] that
+FMA-recognisable languages are closed under union, inters ection,
+concatenation and Kleene star; they are not closed under com ple-
+ment; emptiness of FMA’s is decidable; and universality is u nde-
+cidable. Our ﬁrst contribution is to answer this series of qu estions
+for FRA’s. We show that for emptiness and universality the si tu-
+ation remains the same as in FMA’s. On the other hand, FRA-
+recognisable languages are still closed under union and int ersec-
+tion, but history-sensitiveness prohibits this for concat enation and
+Kleene star. Moreover, they are not closed under complement and,
+infact,thereisanFMA-recognisable language whose comple ment
+isnot recognised byFRA’s.
+1Note that, although history-sensitive, the automaton does not have full
+access to the history H. In automata-theoretic jargon, the situation can be
+described as consulting an oracle who can decide the freshne ss of names.
+1
+
+--- Page 2 ---
+Our main vehicle for studying equivalence between FRA’s is
+bisimulation equivalence (also called bisimilarity ). The notion is
+very relevant from the point of view of programming, and proc ess
+calculi in particular, and in the case of FRA’s it implies lan guage
+equivalence. More importantly, we show that by examining FR A’s
+at thesymbolic level , i.e. as ordinary ﬁnite-state automata on the
+set of index-generated labels, it is possible to capture bis imilar-
+ity by an appropriate symbolic notion; we thus prove that FRA -
+bisimilarity is decidable. A symbolic bisimulation relate s states of
+two automata in speciﬁc environments, the latter specifyin g how
+are the names which appear intheir registers related.
+As a demonstrating example, we express the π-calculus in the
+context of fresh-register automata. We introduce the xπ-calculus
+system: a presentation of the π-calculus with early transition se-
+mantics [14, 26], in which processes are states of an inﬁnite FRA.
+Transitions are given by FRA-transitions and the system is ﬁ nitely
+branching. More speciﬁcally, bound outputs are modelled by glob-
+ally fresh transitions, while each input is decomposed into ﬁnitely
+many cases: either the incoming name is locally fresh or it al ready
+appears in the registers. This clean treatment of fresh and b ound
+names is the main advantage of the xπ-calculus and allows for
+the ﬁnite representation, as ordinary FRA’s, of ﬁnitary pro cesses.2
+Moreover, we characterise strong bisimilarity by an approp riate
+symbolic notion in xπ. This gives an alternative proof of decid-
+abilityof bisimilarityfor ﬁnitaryprocesses.
+Motivation andrelated work
+Programming languages The idea of studying names in higher-
+orderlanguagesandinisolationofothereffectswasﬁrstpu rsuedby
+Pitts and Stark [24]. They introduced the ν-calculus, an extension
+of the simply-typed λ-calculus with references of unit type. Inves-
+tigations on the ν-calculus were meticulously carried on by Stark
+in his PhD thesis [28], which exposed a rather unexpected com -
+plexity hidden behind names. It became evident that better m odels
+forlanguages withnames wereneeded. Toaddress this,new di rec-
+tions indenotational [1, 12, 13, 18] and operational [3, 10] models
+were explored, signiﬁcantly advancing our understanding o f com-
+putation with names but, at the same time, leaving basic ques tions
+unanswered. In particular, those works examined computati on at
+the higher level, that of programs and program equivalence, leav-
+ingopen the question of a basic, lower-levelmodel.
+Interestingly,intheirinitialpaperonFMA’s[11],Kamins kiand
+Francez motivate their construction (also) by brieﬂy prese nting an
+idealised procedural language with names. There, names can not
+be freshly created, but they can be read from the environment
+as inputs and stored in a ﬁnite memory. Moreover, stored name s
+can ﬂow inside the memory from one register to another and can
+also be compared for equality and thus trigger goto’s. The authors
+explainthatFMA’soperatelikeacceptorsforthatsimpleim perative
+language withnames. Byanalogy, FRA’sdescribe the extensi on of
+the language withfresh-name generation.
+Process calculi For mobile systems like the π-calculus [14],
+where processes can create locally, receive or send names, t he
+use of ordinary labelled transition systems for its semanti cs is in
+many ways unsatisfactory: for example, inﬁnite branching a rises
+even in the case of very simple processes that receive a (loca lly
+fresh) name, or output a locally created (globally fresh) on e. Such
+shortcomings naturally led to solutions involving represe ntations
+of processes by formalisms which incorporate name-reasoni ng of
+some sort [4, 5, 16]. The most notable paradigm in this direct ion
+is that of History-Dependent Automata (HD-Automata) [16, 22],
+whicharestructuresdeﬁnedinauniverseof namedsets andnamed
+functions.HD-automata cansuccinctlyrepresentthe π-calculus,as
+2A process is ﬁnitaryif its itdoes notgrow unboundedly in parallelism.HD-transitions match ‘on-the-ﬂy’ names between the source , tar-
+get,andlabelof π-calculustransitions,allowingthus forthe useof
+representativesofprocessesandtransitions,ratherthan allpossible
+onesundere.g.permutationoffreshnames.Thestreamofres earch
+onHD-automata has focussed both onfoundational issues [17 , 22]
+and on pragmatic applications [7]. The work presented here s hares
+objectives with HD-automata, and to some extent can be viewe d
+as a complementary attempt to the same question, albeit base d on
+basic machines of “ﬁrstprinciples”.
+Outline
+InthenextsectionwegivethebasicdeﬁnitionsonFRA’s.Sec tion3
+provides some useful bisimilar constructions. In Section 4 we re-
+call FMA’s and establish their connection to FRA’s. We exami ne
+WFRA’s,a weaker notion of FRA’s focussing on global freshne ss,
+in Section 5. In Section 6 we prove some technical results reg ard-
+ing closure properties for FRA’s, and in Section 7 we show tha t
+emptiness and bisimilarity are decidable using symbolic me thods.
+Section8examines the π-calculus inthe settingof FRA’s.
+2. Deﬁnitions
+Wedistinguish between twosetsof input symbols:
+•aninﬁniteset of names,A, and
+•a ﬁniteset of constants ,C.
+Constants have anauxiliaryrole and are non-storable.3Welet a, b,
+etc.range over names. We write A∗for the set of ﬁnite strings
+of names, and A⊛for its restriction to those containing pairwise
+distinct names. Strings a1···anwill be typically represented by
+vectors /vector a,inwhichcase img(/vector a) ={a1, . . . , a n}.
+For each n∈ω,we write [n]for the set{1, . . . , n}, and let
+Ln=C∪{i, i•, i⊛|i∈[n]}.
+be the set of labels generated by [n]. Moreover, we deﬁne
+Regn={σ: [n]→A∪{♯}|∀i/\⌉}atio\slash=j. σ(i) =σ(j) =⇒σ(i) =♯}
+tobe thesetof registerassignments ofsize n.Wewrite img(σ)for
+the name-range of σ, i.e.img(σ) ={a∈A|∃i. σ(i) =a}, and
+letdom(σ) ={i∈[n]|σ(i)∈A}. Whenever a /∈img(σ),
+σ[i/mapsto→a] ={(i, a)}∪{(j, σ(j))|j∈[n]\{i}}
+isanupdateofσ,for any i∈[n].
+Deﬁnition 1. Afresh-register automaton (FRA) ofnregisters is
+a quintupleA=/a\}brack⌉tl⌉{tQ, q0, σ0, δ,F/a\}brack⌉tri}htwhere:
+•Qisa ﬁniteset of states,
+•q0isthe initial state,
+•σ0∈Regnis the initialregisterassignment,
+•δ⊆Q×Ln×Qisthe transitionrelation,
+•F⊆Qisthe set of ﬁnalstates.
+Ais called a register automaton (RA) if there are no q, q′, isuch
+that(q, i⊛, q′)∈δ.
+Transitions containing labels of the form iare called known
+transitions; those of the form i•arelocally fresh ones; and glob-
+ally fresh transitions involve i⊛. Thus, an RA is an FRA with no
+globallyfreshtransitions.4
+Here is an informal reading of δ. SupposeAis at state q1with
+current register assignment σ.Ifinput ℓ∈C∪Aarrives then:5
+3In other presentations [11, 21] there is no such distinction , but symbols
+that appear in the initial register assignment can play the r ole of constants.
+4This yields the samenotion of register automaton as that of [ 21].
+5Note that the samesymbol, ℓ,is later used to range over elements of Ln.
+2
+
+--- Page 3 ---
+•Ifℓ∈Cand(q1, ℓ, q2)∈δthenAaccepts ℓand moves to q2.
+•Ifℓ∈Aand(q1, i, q2)∈δandσ(i) =ℓthenAaccepts ℓand
+moves to q2.
+•Ifℓ∈Aand(q1, i•, q2)∈δandℓis not stored in σthenA
+accepts ℓ,itsets σ(i) =ℓand moves to q2.
+•Ifℓ∈Aand(q1, i⊛, q2)∈δandℓ /∈img(σ0)andℓhas not
+appeared in the current run then Aaccepts ℓ, it sets σ(i) =ℓ
+and moves to q2.
+The above is formally deﬁned by means of conﬁgurations repre -
+senting the intended current state of the automaton, which a part
+fromstatescontains informationonthecurrent registeras signment
+and the set of names having appeared thus far (the history). The
+lattercomponent isnecessary forglobally freshtransitio ns.
+Deﬁnition2. Aconﬁguration ofAisatriple (q, σ, H )∈ˆQ,with
+ˆQ=Q×Regn×Pfn(A)
+andPfn(A)being the set of ﬁnite subsets of A. From δdeﬁne a
+transitionrelationonconﬁgurations
+−→δ⊆ˆQ×(C∪A)×ˆQ
+as follows. Forall (q, σ, H )∈ˆQand(q, ℓ, q′)∈δ:
+•Ifℓ∈Cthen(q, σ, H )ℓ−→δ(q′, σ, H).
+•Ifℓ=iandσ(i) =athen(q, σ, H )a−→δ(q′, σ, H∪{a}).
+•Ifℓ=i•anda /∈img(σ)then(q, σ, H )a−→δ(q′, σ′, H′)
+withσ′=σ[i/mapsto→a]andH′=H∪{a}.
+•Ifℓ=i⊛anda /∈H∪img(σ0)then(q, σ, H )a−→δ(q′, σ′, H′)
+withσ′=σ[i/mapsto→a]andH′=H∪{a}.
+Wewrite−→−→δforthe reﬂexive transitive closure of −→δ.
+We say that conﬁguration ˆqisreachable if(q0, σ0,∅)/vectorℓ−→−→δˆq
+for some /vectorℓ∈(A∪C)∗. We callAaclosedFRA if, for all
+reachable conﬁgurations (q, σ, H )and all (q, i, q′)∈δ, we have
+thatσ(i)/\⌉}atio\slash=♯.Finally,the set of strings accepted byAis:
+L(A) ={/vectorℓ∈(A∪C)∗|(q0, σ0,∅)/vectorℓ−→−→δ(q, σ, H )∧q∈F}
+and is called the language recognised byA. Two automata are
+equivalent if theyrecognise the same language.
+Remark3. ThereisanequivalentdeﬁnitionofFRA’sinwhichhis-
+tories include img(σ0)by default, and in which reachable conﬁg-
+urations are theones reachedfrom (q0, σ0,img(σ0)).Here instead
+we have decided to separate the history of the run from its ini tial
+names, which appears to give a cleaner presentation but it is by no
+means a substantial point of difference. Note also that reac hable
+conﬁgurationscontainnamesthathaveappearedbeforeonew ayor
+another: if (q, σ, H )is reachable then img(σ)⊆img(σ0)∪H.
+Example4. Thereadercancheckthatthelanguage L1(=A⊛)of
+the Introduction is recognised bythe following FRA.
+A0=/a\}brack⌉tl⌉{t{q0}, q0,{(1, ♯)},{(q0,1⊛, q0)},{q0}/a\}brack⌉tri}ht
+Note that the FRA B=/a\}brack⌉tl⌉{t{q0}, q0,{(1, ♯)},{(q0,1•, q0)},{q0}/a\}brack⌉tri}ht
+recognises the language:
+L2={a1···ak∈A∗|k∈ω∧∀i. ai/\⌉}atio\slash=ai+1}
+and istherefore not equivalent to A.
+A more elaborate example is the following. Let Abe the FRA:
+q0 q1 q2 q31•1•1⊛1/1•
+1 1with initial assignment {(1, ♯)}. The automaton works as follows.
+It receives a name aand then keeps receiving auntil some b/\⌉}atio\slash=a
+arrives; then it keeps receiving buntil a globally fresh carrives; it
+thenrepeats from start.Thus, members of L(A)are of the form
+aj0
+0bk0
+0c0aj1
+1bk1
+1c1aj2
+2bk2
+2c2. . . ajn
+nbkn
+ncn
+where, for all i, we have ji, ki>0,ai/\⌉}atio\slash=biandcidiffers from all
+symbols preceding it.Formally,setting
+L′(H) ={an1bn2c|ni>0∧a/\⌉}atio\slash=b∧c /∈H∪{a, b}}
+we have thatL(A) =S
+i∈ωLi, where we setL0=L′(∅)and
+Li+1={/vector a/vectorb|/vector a∈L i∧/vectorb∈L′(img(/vector a))}.
+Somebasicresults ThelanguagesofFMA’s[11]areregularonce
+constrained toa ﬁnite number of symbols. Moreover, the lang uage
+accepted by an FMA is impervious to name-permutations that d o
+not affect its initial register. These properties carry ove r to FRA’s,
+andare proved as in[11].
+Proposition5. LetA=/a\}brack⌉tl⌉{tQ, q0, σ0, δ, F/a\}brack⌉tri}htbeanFRAof nregisters
+andS⊆Abe ﬁnite. Then,L(A)∩S∗isaregular language.
+Proposition 6. ForAas above, if /vector a∈L(A)andπ:A∼=→Ais
+suchthat π(a) =afor all a∈img(σ0)thenπ(/vector a)∈L(A).
+Bisimulation Bisimulation equivalence turns out to be a great
+toolforrelatingautomata,evenfromdifferentparadigms. Itimplies
+language equivalence and, in all our cases of interest, it is not too
+strictinthisaspect.Wechoose ithereasour mainvehicleof study.
+Deﬁnition 7. LetAi=/a\}brack⌉tl⌉{tQi, q0i, σ0i, δi, Fi/a\}brack⌉tri}htbe FRA’s with ni
+registers, for i= 1,2. A relation R⊆ˆQ1×ˆQ2is called a
+simulation onA1andA2if,for all (ˆq1,ˆq2)∈R,
+•ifπ1(ˆq1)∈F1thenπ1(ˆq2)∈F2,
+•ifˆq1ℓ−→δ1ˆq′
+1thenˆq2ℓ−→δ2ˆq′
+2forsome (ˆq′
+1,ˆq′
+2)∈R.
+Ris called a bisimulation if both RandR−1are simulations. We
+say thatA1andA2arebisimilar, writtenA1∼A2, if there is a
+bisimulation Rsuch that ((q01, σ01,∅),(q02, σ02,∅))∈R.
+Lemma8. IfA1∼A2thenL(A1) =L(A2).
+Theaboveisprovedusingstandardmethods.Bisimilarityis also
+calledbisimulationequivalence . Forinstance,theautomaton A0of
+example 4 isbisimilarto
+B=/a\}brack⌉tl⌉{t{q0, q1}, q0,{(1, ♯)},{(q0,1•, q1),(q1,1⊛, q1)},{q0, q1}/a\}brack⌉tri}ht,
+witha bisimulation witnessingthisbeing the following,
+{((q0, σ0,∅),(q0, σ0,∅))}∪{((q0, σ1, H1),(q1, σ2, H2))|H1=H2)}
+where σ0={(1, ♯)}.
+3. Bisimilar constructions
+Inthis section we demonstrate some bisimilar construction s which
+will be useful in the sequel. Starting from a fresh-register automa-
+tonA=/a\}brack⌉tl⌉{tQ, q0, σ0, δ, F/a\}brack⌉tri}htofnregisters, we effectively construct
+the followingbisimilar automata.
+•The closedFRAA,calledthe closureofA.
+•Forany /vector a∈A⊛withimg(σ0)∩img(/vector a) =∅, the FRAA⊎/vector a.
+Thisiscalledthe extension ofAby/vector a,anditsinitialassignment
+isσ0+/vector a=σ0∪{(i+n, ai)|1≤i≤|/vector a|}.
+Our presentation will focus on constructing the bisimilar a utomata
+and explaining the candidate bisimulation relation R, omitting the
+actualproofthat Risabisimulation,astheseproofsarenotdifﬁcult
+(buttedious) andfollow directlyfrom the constructions.
+3
+
+--- Page 4 ---
+Closures ForAasabove with nregisterswedeﬁneits closureto
+be the n-register FRAA=/a\}brack⌉tl⌉{tQ′, q′
+0, σ′
+0, δ′, F′/a\}brack⌉tri}htgiven as follows.
+We set Q′=Q×P([n]),q′
+0= (q0,dom(σ0)),σ′
+0=σ0and
+F′={(q, S)|q∈F}.Recallwewanttoconstructanautomaton
+which is closed, that is, whenever a conﬁguration with state qand
+assignment σisreachedand (q, i, q′)isatransition,then σ(i)∈A
+andtherefore thetransitionisallowed.The extracomponen t added
+inQmonitors the registers that have been assigned a name (note
+thatoncearegisterhasbeenassignedanameitcannot return tothe
+♯state).Consequently, δ′willbedesignedinsuchawaysothatthis
+monitoring carries through and, moreover, the known transi tions
+included in δ′are always allowed:
+δ′={((q, S), ℓ,(q′, S))|(q, ℓ,q′)∈δ∧ℓ∈C)}
+∪{((q, S), i,(q′, S))|(q, i, q′)∈δ∧i∈S)}
+∪{((q, S), i•/i⊛,(q′, S′))|(q, i•/i⊛, q′)∈δ∧S′=S∪{i}}
+Now, we cancheck that the followingrelationis abisimulati on
+R={((q, σ, H ),((q,S), σ, H))|dom(σ) =S}
+and therefore thatA∼A. Moreover, the reachable conﬁgurations
+ofAare of the form ((q, S), σ, H)withdom(σ) =S, and there-
+fore the automaton is closed.
+Remark 9. IfA=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}htis a closed FRA then each
+pathq0ℓ1−→q1ℓ2−→ ···ℓm−→qminA(where arrow notation
+represents δ)yields is a conﬁguration path
+(q0, σ0,∅)ℓ′
+1−→δ(q1, σ1, H1)ℓ′
+2−→δ···ℓ′
+m−→δ(qm, σm, Hm)
+according to the deﬁnition of −→δ. For example, if ℓj+1=ithen
+ℓ′
+j+1=σj(i),σj+1=σjandHj+1=Hj∪{σj(i)}.Inthiscase,
+closedness ofAguarantees that σj(i)/\⌉}atio\slash=♯.
+Name extension ForAas above with nregisters and /vector a∈A⊛a
+sequence of length msuch that img(σ0)∩img(/vector a) =∅, we deﬁne
+theextension A⊎/vector aastheFRAwith n+mregistersanddescription
+/a\}brack⌉tl⌉{tQ′, q′
+0, σ′
+0, δ′, F′/a\}brack⌉tri}htgivenas follows. Weset
+Q′=Q×([n]→[n+m])×P({n+ 1, . . . , n +m})
+andq′
+0= (q0, ι,{n+1, . . . , n +m}),withιtheinclusionfunction,
+F′={(q, f, S )∈Q′|q∈F}andσ′
+0=σ0+/vector a. Finally:
+δ′={((q,f, S ), f(ℓ),(q′, f, S))|ℓ∈C∧(q, ℓ, q′)∈δ}
+∪{((q, f, S ), j,(q′, f′, S′))|(q,i•, q′)∈δ∧j /∈img(f)}
+∪{((q, f, S ), j,(q′, f′, S′))|(q,i⊛, q′)∈δ∧j∈S}
+where f(i•) =f(i)•,f(i⊛) =f(i)⊛,f(ℓ) =ℓforℓ∈C,
+f′=f[i/mapsto→j]andS′=S\{j}.
+The transition relation in A⊎/vector aproceeds as inAwith the ex-
+ception oflocally/globally freshtransitions, where some extra care
+is needed. Since the registers of the new automaton contain m ore
+names than those of the initial one, fresh transitions in A⊎/vector acan
+now capture fewer names. For example, if ais one of the added
+namesthenan i•transitionfromtheinitialconﬁgurationcouldcap-
+ture it before, but this is no more the case as aappears in σ′
+0; in-
+stead,weneedanexplicit jtransitionforthispurpose.Thisiswhat
+the secondclause of thedeﬁnitionof δ′addresses. Forthistowork
+we need to introduce the component fto keep track of the corre-
+spondences betweenoldandnewregistersthatariseinthewa yjust
+described. For globally fresh transitions a similar situat ion arises,
+only that this time we need only remember which of the names in
+theinitial /vector ahavenotappearedinthehistorythusfar,whichiswhat
+the component Sachieves. Thus, the followingis a bisimulation
+R={((q, σ, H ),((q, f, S ), σ′, H))|σ=σ′◦f∧img(/vector a)⊆H⊎σ′(S)}
+and thereforeA∼A⊎ /vector a.4. Finite-memoryautomata
+We now present FMA’s and examine their properties in relatio n
+to FRA’s and RA’s. In fact, RA’s are equivalent to FMA’s and in
+the literature they have been used as synonyms (e.g. compare [11]
+with [21]). The precise correspondence is stated in proposi tion 11,
+whichis afolklore result.
+Let us recall the original deﬁnition from [11]. A ﬁnite-memory
+automaton(FMA) ofnregistersisasextuple A=/a\}brack⌉tl⌉{tQ,q0, σ0, ρ, δ,F/a\}brack⌉tri}ht
+where:
+•Qisa ﬁnite setof states, with q0∈Qinitial,and F⊆Qﬁnal.
+•σ0∈Regnis the initialregisterassignment.
+•ρ:Q ⇀[n]isthereassignment (partial)function.
+•δ⊆Q×[n]×Qis the transitionrelation.
+Theintuitivereadingof δisthe following.Suppose Aisatstate q1
+with register assignment σand let (q1, i, q2)∈δ. If input a∈A
+arrives then:
+•Ifσ(i) =athenAaccepts aandmoves tostate q2.
+•Ifa /∈img(σ)andρ(q1) =ithenAaccepts a,itsets σ(i) =a
+andmoves tostate q2.
+Formally,a conﬁguration is now a pair (q, σ)∈ˆQ,where
+ˆQ=Q×Regn,
+andthetransitionrelation −→δ⊆ˆQ×A×ˆQisdeﬁnedasfollows.
+Forall (q, σ)∈ˆQand(q, i, q′)∈δ:
+•Ifσ(i) =athen(q, σ)a−→δ(q′, σ).
+•Ifρ(q) =ithen,forall a /∈img(σ),(q, σ)a−→δ(q′, σ[i/mapsto→a]).
+The notions of reachable conﬁgurations and accepted string s and
+languages are deﬁned justas inthe case of FRA’s.
+Example 10. Recallthe language L2of example 4:
+L2={a1···ak∈A∗|∀i. ai/\⌉}atio\slash=ai+1}
+whichis RA-recognisable. L2is recognised by the FMA:
+B=/a\}brack⌉tl⌉{tQ,q0, σ0,{(q0,1),(q1,2)},{(q0,1, q1),(q1,2, q0)}, Q/a\}brack⌉tri}ht
+where Q={q0, q1}andσ0={(1, ♯),(2, ♯)}. Comparing this to
+Bofexample4,thereadercanobservehowthedifferencesbetw een
+RA’s and FMA’s in reassignment have been addressed here by us e
+of the extra register.
+The main properties of FMA’s and FMA-recognisable lan-
+guages have been established asfollows.
+(a). EmptinessisdecidableforFMA’s[11](i.e.is L(A) =∅?),and
+inparticular itisNP-complete [25].
+(b). The languages accepted by FMA’s are closed under union,
+intersection, concatenation and Kleene star;theyare not c losed
+under complement [11].
+(c). Universality is undecidable [21] (i.e. is L(A) =A∗?). Hence,
+the equivalence and containment problems are undecidable t oo
+(i.e.isL(A) =/⊆L(B)?).
+We shall see that the emptiness problem is also decidable for
+FRA’s(proposition 24). Clearly, FRA’sbeing extensions of FMA’s
+impliesthatuniversalityoftheformerisundecidable,and hencethe
+same holds for equivalence and containment. In section 6 we w ill
+examine closure properties of FRA’s and show that closure un der
+concatenation and Kleene star are lost, closure under compl ement
+stillfails,but closure under union andintersection preva il.
+We now relate FMA’s to the kind of automata we have intro-
+duced previously: in essence, FMA’s are the same as RA’s. The
+4
+
+--- Page 5 ---
+notions of simulation and bisimulation straightforwardly extend to
+FMA’s.Infact,deﬁnition7appliestoallmachinesoperatin gonthe
+inﬁnitealphabet C∪Awhichhaveconﬁgurationgraphscontaining
+initial and ﬁnal conﬁgurations. It therefore makes sense to extend
+these notions toRA-FMApairs (andFRA-WFRApairs later on).
+Proposition 11. For any FMAAofnregisters there is an effec-
+tively constructible RA Bofnregisters such thatA∼B.
+Conversely, for any RA Bofnregisters there is an effectively con-
+structible FMAAofn+ 1registers such thatA∼B.
+Proof.Going from FMA’s to FRA’sis simple: we use the same set
+of states; we match each transition (q1, i, q2)with(q1, i, q2); and,
+additionally, for each transition (q1, i, q2)where ρ(q1) =iwe add
+(q1, i•, q2). The other direction is more elaborate but apparently
+the construction is alreadyknown [21],sowe omit it.
+Corollary 12. The universality, equivalence and containment
+problems are undecidable for RA’sand FRA’s.
+5. Weakfresh-registerautomata
+In this section we examine a weaker version of FRA’s by concen -
+tratingontheaspectofglobalfreshnesswhilerelaxingtha toflocal
+freshness.Eventhoughthisrestrictionleadsustomachine s thatdo
+not extend FMA’s, we show that universality remains undecid able
+(proposition 17).
+Themachines we introduce operate onsets of labels
+Lw
+n=C∪{i, i?, i⊛|i∈[n]},
+where i?stands for “accept any name” transitions. Moreover, their
+registers are now taken from the sets Regw
+n= [n]→A∪{♯}.
+Deﬁnition 13. Aweak fresh-register automaton (WFRA) ofn
+registers isa quintuple A=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}htwhere:
+•Qis a ﬁniteset ofstates, with q0∈Qinitial,and F⊆Qﬁnal.
+•σ0∈Regw
+nis the initialregister assignment.
+•δ⊆Q×Lw
+n×Qisthe transitionrelation.
+The transition relation has the same intuitive meaning as in the
+case of FRA’s, with the exception that in transitions of the f orm
+(q1, i?, q2)∈δthe automaton accepts any name a, stores it at its
+i-th cell and moves to state q2. Formally, a conﬁguration is now
+given as atriple (q, σ, H )∈ˆQ,where
+ˆQ=Q×([n]→(A∪♯))×Pfn(A),
+andthe transitionrelation −→δ⊆ˆQ×(C∪A)×ˆQonconﬁgura-
+tionsisdeﬁnedasfollows.Forall (q, σ, H )∈ˆQand(q, ℓ, q′)∈δ:
+•ifℓ∈Cthen(q, σ, H )ℓ−→δ(q′, σ, H);
+•ifℓ=iandσ(i) =athen(q, σ, H )a−→δ(q′, σ, H′);
+•ifℓ=i?then(q, σ, H )a−→δ(q′, σ′, H′);
+•ifℓ=i⊛anda /∈H∪img(σ0)then(q, σ, H )a−→δ(q′, σ′, H′);
+withσ′=σ[i/mapsto→a]andH′=H∪{a}.Reachable conﬁgurations
+and accepted strings/languages are deﬁned exactlyas inFRA ’s.
+Example 14. Consider the following language,
+L3={a1···akb1···bl∈A∗|∀i/\⌉}atio\slash=j. ai/\⌉}atio\slash=aj∧bi/\⌉}atio\slash=bj}
+whichisinfacttheconcatenationof A⊛withitself,andtheWFRA:
+q0 q1 q2 q3
+q42? 2
+22?
+21? 1? 1?1?
+1?with2registers,bothoftheminitiallyempty.Calltheabov eA.We
+claimthatL(A) =A∗\L3,thatis, s∈L(A)⇐⇒s /∈L3forall
+s∈A∗. The forward implication is clear: if s∈L(A)then either
+the same name aappears three times in s(via the path q0q1q2q4),
+ornames a1anda2appeareachtwicein swithoutinterleaving(via
+the path q0q1q2q3q4).Inbothcases, s /∈L′.
+For the opposite direction, let s /∈ L3and feed it toA. Since
+s /∈A⊛, we can write s=s1a1s2a1s′withs1a1s2∈A⊛. InA,
+s1a1s2a1leadscontrolto q2.Now, s /∈L3impliesthat a1s′/∈A⊛
+sothereissome a2ina1s′suchthat a1s′=a1s′
+1a2s′′,a1s′
+1∈A⊛
+anda2appears in a1s′
+1. Ifa2=a1thens′
+1a2leadsAdirectly to
+q4.Otherwise,it leads to q4viaq3.
+Thereadermaywanttoverifythatchanging thelabelsofthel oops
+atq0andq1above to 1⊛, and the label from q0toq1to2⊛, leads
+toaWFRAA′that stillsatisﬁesL(A′) =A∗\L3.
+We show that any WFRA has a bisimilar FRA of the same
+number of registers.Theidea istosimulatethe non-linear m emory
+(i.e. a set of registers that may contain names in common) of t he
+WFRAby a linear memory plus a reordering function on the FRA
+part.For example, here is sucha simulation:
+{(1, a),(2, b),(3, b)} /mapsto−→(
+{(1, a),(2, b),(3, c)}
+plus(1/mapsto→1,2/mapsto→2,3/mapsto→2)
+The reordering functions will be attached to the states of th e FRA.
+Moreover, we shall simulate any-transitions (i.e. of the fo rmi?) of
+the WFRA by means of locally-fresh-transitions ( i•) and known-
+transitions ( j, for all j). In the end, deﬁning the new transition
+relation gets a bit involved as one has to bear reorderings in mind,
+which need to be accounted for before making a transition and
+updated afterwards.
+Lemma15. For any WFRAAofnregisters there isan effectively
+constructible FRABofnregisters suchthatA∼B.
+Proof.LetA=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}ht;constructB=/a\}brack⌉tl⌉{tQ′, q′
+0, σ′
+0, δ′, F′/a\}brack⌉tri}ht
+asfollows.Weset Q′=Q×([n]→[n])andwriteelementsof Q′
+as(q, f).Simulationofnon-linear memory σbylinearmemory σ′
+and reordering fis deﬁned in the obvious manner: σ=σ′◦f.
+Moreover, for each i∈[n], the multiplicity of σ(i), i.e. the num-
+ber of times it appears in σ, is given by the size of f−1(f(i)); we
+denote thisby µ(i).Welet (σ′
+0, f0)be asimulationof σ0suchthat
+σ′
+0contains no more names than σ0, and set q′
+0= (q0, f0)and
+F′={(q, f)|q∈F}. Wenow deﬁne δ′:
+δ′={((q,f), ℓ,(q′, f))|(q, ℓ, q′)∈δ∧ℓ∈C}
+∪{((q, f), f(i),(q′, f))|(q, i, q′)∈δ}
+∪{((q, f), f(i)⊛,(q′, f))|(q, i⊛, q′)∈δ∧µ(i) = 1}
+∪{((q, f), j⊛,(q′, f′))|(q, i⊛, q′)∈δ∧µ(i)>1∧j /∈img(f)}
+∪{((q, f), f(i)•,(q′, f))|(q, i?, q′)∈δ∧µ(i) = 1}
+∪{((q, f), j•,(q′, f′))|(q, i?, q′)∈δ∧µ(i)>1∧j /∈img(f)}
+∪{((q, f), j,(q′, f′))|(q, i?, q′)∈δ}
+where f′=f[i/mapsto→j]. The ﬁrst line is straightforward. The
+second line says that receiving the name of the i-th register inAis
+simulated by receiving the f(i)-th name inB. The same rationale
+isrepeatedinthethirdline,onlythatnow we havetodoamemo ry
+update and therefore we need to be careful with reorderings. In
+particular, storing the new name, say a, in the f(i)-th register
+shouldnot beallowedwhen µ(i)>1:ifthisisthecase andweset
+σ′(f(i)) =athenastill appears in σbut no longer appears in σ′,
+breaking thus the simulation. Nonetheless, if µ(i)>1then there
+must be some jwhich is free in σ′(i.e.j /∈img(f)) and we can
+safelystorethenewnameinthere,updatingthereorderingf unction
+5
+
+--- Page 6 ---
+accordingly. The last three lines of δ′implement the idea that
+receiving any name can be matched by receiving either a local ly
+freshname orone of the storedones. Thus,
+R={((q, σ, H ),((q,f), σ′, H))|σ=σ′◦f}
+is abisimulation andtherefore A∼B.
+We next show that the absence of locally fresh transitions in
+WFRA’srendersthemincapable ofrecognisingFMA-recognis able
+languages. Combining this with the previous result we obtai n that
+WFRA’sare indeed strictlyweaker thanFRA’s.
+Lemma 16. The languageL2={a1···ak|∀i. ai/\⌉}atio\slash=ai+1}of ex-
+amples 4and 10 isnot WFRA-recognisable.
+Proof.SupposeL2=L(A), for a WFRAAwithnregisters.
+Then, for any s∈A⊛of length m > 1, we have ss∈L(A).
+Letthe following be the transitionpathin Aaccepting it,
+q0...−→···...−→q′
+0α1−→q′
+1α2−→···αm−→q′
+m
+with the subpath from q′
+0toq′
+maccepting the second copy of s.
+Then, none of the α’s can be of the form i⊛as their names have
+appeared before. Moreover, if αi=j?thenαican also accept the
+preceding symbol, contradicting the fact that L(A) =L2. Hence,
+allα’sarein [n].Choosing m > nwearrivetoacontradiction.
+Emptinessisdecidable forWFRA’s,byinheritance.Moreint er-
+estingly, the universality problem remains undecidable, a nd hence
+the same happens for equivalence and containment.
+Proposition17. Universality is undecidable for WFRA’s.
+Proof.The proof is by reduction from the Post Correspondence
+Problem, and follows the track of the analogous proof in [21] . In
+particular, we show that the locally fresh transitions of th e RA’s
+constructed in that proof can be replaced by WFRA-transitio ns.
+Unlike [21],here it isnecessary touse the set C.
+6. Closureproperties
+Inordertoestablishclosure properties ofFRA’s,andfollo wingthe
+approach on FMA’s in [11], it is useful to introduce a version of
+FRA’s with multiple assignment , that is, automata that can store
+an input name at several of their registers atone step. In par ticular,
+assignmentswillnowbetakenfromthesets Regw
+n.Thesetoflabels
+we shall use isthe following.
+L′
+n=C∪(P([n])×P([n])×({⊥}∪P ([n])))
+Labels of the form (S, T,⊥)are written simply (S, T), and when
+we write (S, T, A )we assume A/\⌉}atio\slash=⊥. If we want to allow for ⊥,
+we write (S, T, A ⊥).
+Deﬁnition 18. AnMFRAofnregisters is a quintuple A=
+/a\}brack⌉tl⌉{tQ, q0, σ0, δ, F/a\}brack⌉tri}htwhere:
+•Qisaﬁnitesetof states, q0∈Qisinitialand F⊆Qareﬁnal.
+•σ0∈Regw
+nis the initialregister assignment.
+•δ⊆Q×L′
+n×Qisthe transitionrelation.
+The intuitive reading of δis the following. If Ais at state q1
+withregisterassignment σand input ℓ∈C∪Aarrives then:
+•ifℓ∈Cand(q1, ℓ, q2)∈δthenAaccepts ℓand moves to q2.
+•ifℓ∈Aand(q1,(S, T),q2)∈δand(σ[S/mapsto→ℓ])−1(ℓ) =T,
+i.e.ℓappears exactly in the registers in Tafter it is assigned
+to all registers in S, thenAaccepts ℓ, it sets σ(S) ={ℓ}and
+moves tostate q2.•ifℓ∈Aand(q1,(S, T, A ), q2)∈δ,(σ[S/mapsto→ℓ])−1(ℓ) =T
+andℓhasnotappearedinthehistorynordoesitappearin σ0(A)
+thenAaccepts ℓ,itsets σ(S) ={ℓ}andmoves tostate q2.
+Thus, labels of the form (S, T)work in the same way as in
+M-automata [11], and the main novelty here is the inclusion of
+(S, T, A ): in order for the transition to be allowed, the input name
+amust be fresh in the history and in the part of σ0speciﬁed by A.
+Thisadditionallowsustomodel globallyfreshtransitions andalso
+tocombine automata unifying their initialassignments.
+Formally, let ˆQ=Q×Regw
+n×Pfn(A)be the set of con-
+ﬁgurations and deﬁne −→δ⊆ˆQ×(C∪A)×ˆQas follows.
+Forall (q, σ, H )∈ˆQ:
+•If(q, ℓ, q′)∈δwithℓ∈Cthen(q, σ, H )ℓ−→δ(q′, σ, H).
+•If(q,(S, T),q′)∈δ,σ′=σ[S/mapsto→a]andσ′−1(a) =Tthen
+(q, σ, H )a−→δ(q′, σ′, H∪{a}).
+•If(q,(S, T, A ), q′)∈δ,σ′=σ[S/mapsto→a],σ′−1(a) =Tand
+a /∈H∪σ0(A)then(q, σ, H )a−→δ(q′, σ′, H∪{a}).
+Reachabilityandacceptancearedeﬁnedasbefore.Notethat plausi-
+bletransitionlabels (S, T, A ⊥)satisfy S⊆T.Moreover,if S/\⌉}atio\slash=T
+andA⊥/\⌉}atio\slash=⊥thenthe transitioncanonlybe instantiatedbyaname
+a∈σ0([n]\A)that has not yet appeared inthe history but is still
+insome register.
+Lemma 19. For any FRAAofnregisters there is an effectively
+constructible MFRA Bofn+ 1registers such thatA∼B
+The other direction is a bit more elaborate and we achieve it i n
+twosteps. Let us say that an MFRA Aispureif, for all transitions
+(q,(S, T, A ), q′)ofA,S=TandA= [n].
+Lemma20. For any MFRAAofnregisters there isan effectively
+constructible pure MFRA Bof2nregisters such thatA∼B.
+Lemma 21. For any pure MFRA Aofnregisters there is an
+effectivelyconstructible FRA Bofnregisters such thatA∼B.
+We can now establish the following closure properties. Clos ure
+under union and intersection is answered positively, while closure
+under concatenation, Kleene star or complement fails.
+Proposition22. ForFRA’sAandB,thelanguagesL(A)∪L(B)
+andL(A)∩L(B)are FRA-recognisable.
+Proof.Assume MFRA’sA′=/a\}brack⌉tl⌉{tQ1, q01, σ01, δ1, F1/a\}brack⌉tri}ht ∼ Aand
+B′=/a\}brack⌉tl⌉{tQ2, q02, σ02, δ2, F2/a\}brack⌉tri}ht∼Bofn, mregisters respectively.
+Fortheunion, construct anMFRA C=/a\}brack⌉tl⌉{tQ, q0, σ0, δ,F/a\}brack⌉tri}htofn+m
+registers,where
+Q={q0}⊎Q1⊎Q2, σ0=σ01+σ02, F=F1∪F2∪φ(F1∪F2)
+withφ:Q1⊎Q2→Qmapping q01andq02toq0, and being
+elsewhere the identity. Finally:
+δ={(q′′, ℓ, q′)|ℓ∈C∧(q, ℓ, q′)∈δ1∪δ2}
+∪{(q′′,(S∪[m]+n, T∪[m]+n, A⊥), q′)|(q,(S, T, A ⊥), q′)∈δ1}
+∪{(q′′,([n]∪S+n,[n]∪T+n, A+n
+⊥), q′)|(q,(S, T, A ⊥), q′)∈δ2}
+where q′′∈{q, φ(q)}andS+n={i+n|i∈S}, for each
+S⊆ω,and⊥+n=⊥.Itfollows thatL(C) =L(A)∪L(B).
+For the intersection, construct an MFRA C=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}ht
+ofn+mregisters where Q=Q1×Q2,q0= (q01, q02),
+σ0=σ01+σ02,F=F1×F2and, assuming⊥∪A⊥=A⊥:
+δ={(q, ℓ, q′)|ℓ∈C∧∀i∈[2].(πi(q), ℓ, π i(q′))∈δi}
+∪{(q,(S1∪S+n
+2, T1∪T+n
+2, A⊥1∪A+n
+⊥2), q′)|
+∀i∈[2].(πi(q),(Si, Ti, A⊥i), πi(q′))∈δi}
+6
+
+--- Page 7 ---
+Itfollows thatL(C) =L(A)∩L(B).
+Proposition23. There are FRA’sAandBsuchthat the language
+L(A)∗L(B)is not FRA-recognisable. Moreover, there is an FRA
+Asuchthat the language L(A)∗isnot FRA-recognisable. Finally,
+there is an RABsuch that the language A∗\L(B)is not FRA-
+recognisable.
+Proof.For the ﬁrst part we show that the language L′=L1∗L1
+is not FRA-recognisable, where L1=A⊛. SupposeL′were
+recognisedbyanFRA Cofnregisters,so ss∈L(C)withsbeinga
+stringof mdistinct names. Let the followingbe the transition path
+inCaccepting it,
+q0...−→···...−→q′
+0α1−→q′
+1α2−→···αm−→q′
+m
+with the subpath from q′
+0toq′
+m, call it p, accepting the second
+copy of s. As all the symbols of shave already appeared before,
+none of the α’s is of the form i⊛. Moreover, as all the symbols
+insare distinct, there cannot be i∈[n]andj < j′such that
+αj∈{i, i•}andαj′=i,asαj′wouldthenrepeat aname already
+present in the subpath p. Moreover, there cannot be i, i′∈[n]and
+j < j′< j′′such that αj∈{i, i•},αj′=i•andαj′′=i′•.
+For suppose this were the case, and suppose that all α’s between
+jandj′are not in{i, i•}, and that all α’s between j′andj′′are
+not in{i′•|i′∈[n]}. Then, s=s1a1s2a2s3a3s4witha1, a2, a3
+corresponding to αj, αj′, αj′′respectively. But i′•is also allowed
+toaccept a1,hencethereis s′
+4suchthat ss1a1s2a2s3a1s′
+4∈L(C),
+contradictingL(C) =L′. But now taking m > n + 1we obtain a
+contradiction.
+The second part is shown in a similar manner, taking as Athe
+automaton accepting the language
+L2,a0={a0a1. . . a k∈A∗|∀i/\⌉}atio\slash=j. ai/\⌉}atio\slash=aj}
+for some chosen a0. A similar argument to the above applies,
+that is, we assume L∗
+2,a0=L(C)for some FRACand select
+a0sa0s∈L∗
+2,a0of size bigenough toyield acontradiction.
+Finally,itsufﬁcestoshow L′=A∗\L(B)foranRAB. Byexample
+14 we have thatL′=A∗\L(A)for a WFRAAwith no fresh
+transitions. Fromthat, we obtain Bby applying lemma 15.
+7. Symbolicmethods
+The automata we have introduced can be viewed in two differen t
+manners: either as ordinary ﬁnite-state automata operatin g on con-
+stant symbols and the symbols 1,1•,1⊛, . . . , n⊛(for machines
+withnregisters), or as machines which recognise languages from
+an alphabet comprising a ﬁnite set of constants and an inﬁnit e set
+of names. We use the term semantic level for the latter interpre-
+tation, and symbolic level for the former one. The semantic is of
+course the intended interpretation but, on the other hand, v iewing
+our automata as operating on the ﬁnite alphabet Lnis much more
+convenient. Inthis sectionweexamine methods from the symb olic
+level which characterise semantic notions. More speciﬁcal ly, we
+start by giving a simple proof of decidability of FRA-emptin ess
+by reducing the problem to FSA-emptiness. We then proceed to
+our main point of focus, which is the deﬁnition of an appropri ate
+notion of symbolic bisimilarity that is equivalent to the no tion of
+bisimilarity we have been using thus far. As a corollary we pr ove
+that bisimilarityis decidable forFRA’s.
+Proposition24. Theemptiness problem is decidable for FRA’s.
+Proof.GivenanFRAAofnregisters,constructitsclosure A,and
+takeA′to be the ordinary FSA with the same set of states, initial
+state, transition relation and ﬁnal states as A, and operating on the
+set of labels Ln. We claim thatL(A) =∅ ⇐⇒ L (A′) =∅.Indeed, ifAaccepts a string s∈C∪A∗then, the accepting path
+inAyields a string s′∈L∗
+n, ands′∈L(A′). Conversely, ifA′
+accepts a string s′thenthe accepting path in A′isalsoa path inA
+endinginanacceptingstate.Fromremark9,wehavethatthel atter
+yields a string s∈L(A).
+In order to deﬁne a symbolic notion of bisimulation equiva-
+lence which captures its semantical analogue, we introduce aux-
+iliary structures which record the way in which two register as-
+signments are related. In particular, they record the domai ns of the
+assignments and those indices on which the twoassignments c oin-
+cide. A symbolic bisimulation between twoautomata relates states
+of the automata in speciﬁc record environments. At each bisi mula-
+tionsteptherecordsareupdatedaccordingtothespeciﬁcsy mbolic
+transitions taking place. This symbolic description is sho wn to ac-
+curatelycapture what happens at the semantical level.
+We adapt Stark’s notionof span[28].Wecall
+(S1, ρ, S2)∈P([n1])×P([n1]×[n2])×P([n2])
+atypedspan on(n1, n2)if:
+•(i, j),(i′, j′)∈ρimplies that i=i′⇐⇒j=j′,
+•img(ρ)⊆S2,where img(ρ) ={i∈[n]|∃j.(j, i)∈ρ},
+•dom(ρ)⊆S1,where dom(ρ) ={j∈[n]|∃i.(j, i)∈ρ}.
+We write [n1]⇋[n2]for the set of typed spans on (n1, n2). A
+perhaps more intuitive waytoview atyped span (S1, ρ, S2)isas a
+tripleof relations:
+S1֒→dom(ρ)≃−→img(ρ)←֓ S2
+By abuse of notation, we write ρfor the whole of (S1, ρ, S2), in
+which case we also use the notation S1(ρ) =S1andS2(ρ) =S2.
+Ifρ: [n1]⇋[n2]and(i, j)∈[n1]×[n2]thenρ[i↔j] : [n1]⇋
+[n2]is the typedspan:
+(S1(ρ)∪{i}, ρ\{(i′, j′)|i=i′∨j=j′}∪{(i, j)}, S2(ρ)∪{j})
+A typed span (S1, ρ, S2)relates register assignments σ1andσ2
+just in case ρis a bijection between the parts of [n1]and[n2]that
+havecommonimagesunder σ1andσ2,while Sikeepstrackof(the
+indices of) allnames in σi.Formally, ρ=σ1↔σ2if:
+dom(σ1) =S1(ρ)∧dom(σ2) =S2(ρ)∧ρ={(i, j)|σ1(i) =σ2(j)}
+In this case,/bar⌈blρ/bar⌈bl=|S1(ρ)|+|S2(ρ)|−|dom(ρ)|gives the total
+number of names in σ1andσ2.
+Suppose, for example, that we have related state q1of automa-
+tonA1to state q2ofA2with respect to ρ. If(q1, i, q′
+1)is a transi-
+tioninA1andi∈dom(ρ)thenthenameinregister iofA1(inthe
+semantical scenario captured by the symbolic description) resides
+inregister ρ(i)ofA2.Consequently,A2canonlysimulatethetran-
+sition by some (q2, ρ(i), q′
+2). On the other hand, if (q1, i•, q′
+1)is a
+transitioninA1then there areseveral factors toconsider:
+•Anyprivatenameof A2canbecapturedby i•.Hence,A2needs
+asimulatingtransition (q2, j, q′
+2)forevery j∈S2(ρ)\img(ρ).
+•Moreover,A2needs a transition for all names locally fresh
+to bothA1andA2. This can be some (q2, j•, q′
+2)but, under
+circumstances, it mayalsobe some (q2, j⊛, q′
+2).
+In order for (q2, j⊛, q′
+2)to capture all names locally fresh to A1
+andA2, it must be the case that all names in history are present
+in the registers ofA1andA2(so that global freshness coincide
+with mutual local freshness). If A1hasn1registers andA2has
+n2, and assuming that the initial register assignments for A1and
+A2containthe same names, the lattercanonly happen incase les s
+thann1+n2names appear inthe history.
+7
+
+--- Page 8 ---
+Wecan therefore resolve the lattercase by adding a componen t
+which counts the names in the history, up to n1+n2. In the
+followingwewrite nforn1+n2,andset h++=⌈h+1⌉n(=h+1
+ifh < n, andnotherwise).
+Deﬁnition 25. LetAi=/a\}brack⌉tl⌉{tQi, q0i, σ0i, δi, Fi/a\}brack⌉tri}htbe FRA’s of ni
+registers, for i= 1,2, such that img(ρ01) =img(ρ02) =H0.
+Asymbolic simulation onA1andA2is arelation
+R⊆Q1×([n]∪{0})×([n1]⇋[n2])×Q2
+such that, whenever (q1, h, ρ, q 2)∈R, ifq1∈F1thenq2∈F2
+and if(q1, ℓ, q′
+1)∈δ1then:
+1. Ifℓ∈Cthen(q2, ℓ, q′
+2)∈δ2forsome (q′
+1, h, ρ, q′
+2)∈R.
+2. Ifℓ=iandi∈dom(ρ)then(q2, ρ(i), q′
+2)∈δ2for some
+(q′
+1, h, ρ, q′
+2)∈R.
+3. Ifℓ=iandi∈S1(ρ)\dom(ρ)then(q2, j•, q′
+2)∈δ2for
+some(q′
+1, h, ρ[i↔j], q′
+2)∈R.
+4. Ifℓ=i•then, for any j∈S2(ρ)\img(ρ),(q2, j, q′
+2)∈δ2for
+some(q′
+1, h, ρ[i↔j], q′
+2)∈R.
+5. Ifℓ=i•andh=nor/bar⌈blρ/bar⌈bl< hthen(q2, j•, q′
+2)∈δ2for
+some(q′
+1, h, ρ[i↔j], q′
+2)∈R.
+6. Ifℓ∈{i•, i⊛}then(q2, j•, q′
+2)∈δ2, or(q2, j⊛, q′
+2)∈δ2, for
+some(q′
+1, h++, ρ[i↔j], q′
+2)∈R.
+Setting (S1, ρ, S2)−1= (S2, ρ−1, S1),the inverse of Ris:
+R−1={(q2, h, ρ,q 1)|(q1, h, ρ−1, q2)∈R}.
+We say that Ris asymbolic bisimulation if both RandR−1
+are symbolic simulations. We say that A1andA2aresymbolic
+bisimilar, writtenA1s∼A2, if there is a symbolic bisimulation R
+onA1andA2such that (q01, h0, ρ0, q02)∈Rwithh0=|H0|
+andρ0=σ01↔σ02.
+In the following propositions let us assume the hypotheses o f
+Deﬁnition25. Letusalsowrite ˆHforH∪H0,andnforn1+n2.
+Proposition26. IfRis asymbolic simulationon A1andA2then
+R′={((q1, σ1, H),(q2, σ2, H))|(q1, h, ρ,q 2)∈R
+∧ρ=σ1↔σ2∧h=⌈|ˆH|⌉n∧img(σi)⊆ˆH}
+is a simulation. Moreover, if Ris a symbolic bisimulation then R′
+is abisimulation.
+Proposition 27. IfA1andA2are closed FRA’s and Ris a
+simulationonA1andA2then
+R′={(q1, h, ρ, q 2)|((q1, σ1, H),(q2, σ2, H))∈R
+∧ρ=σ1↔σ2∧h=⌈|ˆH|⌉n∧(qi, σi, H)reachable}
+is a symbolic simulation. Moreover, if Ris a bisimulation then R′
+is asymbolic bisimulation.
+Corollary 28. Bisimilarityis decidable for FRA’s.
+Proof.LetAi=/a\}brack⌉tl⌉{tQi, q0i, σ0i, δi, Fi/a\}brack⌉tri}htbe FRA’sof niregisters,for
+i= 1,2. Choose /vector a1,/vector a2∈A⊛such that img(/vector ai) =img(σ0i)\
+img(σ0¯i), and formA′
+1=A1⊎/vector a2andA′
+2=A2⊎/vector a1. Now
+close these andobtain closedFRA’s A′
+i.WehaveAi∼A′
+i. More-
+over,bythepreviouspropositions, A′
+1∼A′
+2⇐⇒A′
+1s∼A′
+2,and
+henceA1∼ A 2⇐⇒A′
+1s∼A′
+2. As the symbolic bisimu-
+lations betweenA′
+1andA′
+2live in a space bounded relatively to
+|Q1|,|Q2|, n1, n2,wecansearchitexhaustivelyforsuchrelations.
+Hence, FRA-bisimilarityisdecidable.
+8. Automata forthe π-calculus
+We brieﬂyrecall the deﬁnition of the π-calculus withearlyseman-
+tics and strong bisimulation [14, 26]. We use the ﬁxed set Aofnames for channel names , and let prange over process constants .
+The set Πofπ-calculus processes isgiven as follows,
+P, Q::=0|¯ab.P|a(b).P|[a=b]P|νa.P|P+Q|P|Q|p(/vector a)
+where a, b∈Aand/vector a∈A∗. Name binding is deﬁned as usual
+(bis bound in a(b).Pandνb.P), and processes are equated up to
+α-equivalence. We write fn(P)forthe set of names appearing free
+inP.Processconstants are accompanied by deﬁnitions oftheform
+p(/vector a) =P, where /vector a∈A⊛andfn(P) =img(/vector a). Moreover, each
+occurrence of pmust beguarded, i.e. it must come in one of the
+forms ¯ab.p(/vector a)ora(b).p(/vector a).
+Thesemanticsofthecalculusis earlyandisgivenviaalabelled
+transitionrelationwithlabels:
+α::= ¯ab|¯a(b)|ab|τ
+Labels have free and bound occurrences of names, butthey are not
+equated upto α-equivalence.
+fn(¯ab) =fn(ab) ={a, b}fn(¯a(b)) ={a}fn(τ) =∅
+bn(¯ab) =bn(ab) =∅ bn(¯a(b)) ={b}bn(τ) =∅
+We write n(α)forfn(α)∪bn(α). The transition relation is given
+bythe following rules(plus symmetric counterparts).
+OUT
+¯ab.P¯ab−→PMATCHPα−→P′
+[a=a]Pα−→P′
+INP
+a(b).Pac−→P{c/b}RECP{/vector a//vectorb}α−→P′
+p(/vector a)α−→P′p(/vectorb)=P
+OPENP¯ab−→P′
+νb.P¯a(b)−→P′a/ne}ationslash=bRESPα−→P′
+νa.Pα−→νa.P′a/∈n(α)
+SUMPα−→P′
+P+Qα−→P′COMMP¯ab−→P′Qab−→Q′
+P|Qτ−→P′|Q′
+PARPα−→P′
+P|Qα−→P′|Qbn(α)∩fn(Q)=∅
+CLOSEP¯a(b)−→P′Qab−→Q′
+P|Qτ−→νb.(P′|Q′)b/∈fn(Q)
+Note how the side-conditions impose global freshness on nam es
+createdusing the νconstructor. Wesay thatprocess Qisadescen-
+dantofPifthere is a series oftransitions from PtoQ.
+Bisimulation is the standard notion of equivalence in the π-
+calculus; here we shall consider strong bisimulation. A rel ation
+R⊆Π×Πis called a simulation if, for all (P1, P2)∈Rand
+allαwithbn(α)∩fn(P1, P2) =∅, ifP1α−→P′
+1thenP2α−→P′
+2
+for some (P′
+1, P′
+2)∈R.Ris called a bisimulation if both Rand
+R−1aresimulations.Wesaythat PandQareπ-bisimilar ,written
+Pπ∼Q,ifthere is a bisimulation Rcontaining (P, Q).
+Wenowdeﬁneaversionofthe π-calculuswithextendedsyntax
+that is directlyrepresentable by FRA’s.Since transitions are multi-
+symbol, and our automata can recognise one symbol at a time,
+they will be decomposed to atomic ones. We add sets of inputand
+outputprocesses which cater for the intermediate stages in these
+decompositions. For example,
+¯ab.P¯ab−→Pdecomposes to ¯ab.Pa−→b.Pb−→P
+where b.Pis an output process. Output [resp. input] processes are
+inthe middle of sending [receiving] a name ona chosen channe l.
+Deﬁnition29. Thexπ-calculus syntaxisgivenbythesets Π,Πout
+andΠinp, withelements:
+P, Q::=0|¯ab.P|a(b).P|[a=b]P|νa.P|P+Q|P|Q|p(/vector a)
+Pout::=b.P|νa.P out|P|Pout|Pout|P
+Pinp::= (b).P|νa.P inp|P|Pinp|Pinp|P
+8
+
+--- Page 9 ---
+where a, b∈Aand/vector a∈A∗. We write ˆΠforΠ∪Πout∪Πinp,
+and let ˆP,ˆQ, . . .range over its elements, which we equate up to
+α-equivalence. Name binding is deﬁned as expected: bis bound in
+νb.ˆP, a(b).Pand(b).P.
+It is handy to introduce here some very basic notions from the
+theoryofnominal sets[8,23].Wecall nominalstructure anystruc-
+ture which may contain names (i.e. elements of A), and we de-
+noteby Perm(A)thesetofﬁnitepermutations on A(i.e.bijections
+π:A→Asuch that π(a)/\⌉}atio\slash=afor ﬁnitely many a∈A). For
+example, id={(a, a)|a∈A}∈Perm(A). We shall deﬁne for
+each set Xof nominal structures of interest afunction
+·:Perm(A)×X→X
+suchthat π·(π′·x) = (π◦π′)·xandid·x=x,forall x∈Xand
+π, π′∈Perm(A).Xwillbecalleda nominalset ifallitselements
+involve ﬁnitely many names, that is, for all x∈Xthere is a ﬁnite
+setS⊆Asuch that π·x=xwhenever∀a∈S.π(a) =a.
+For example, Ais a nominal set with action π·a=π(a), and
+so isPfn(A)with action π·S={π(a)|a∈S}. Also, any
+set of non-nominal structures is a nominal set with trivial a ction
+π·x=x. More interestingly, if Xis a nominal set then so is
+X∗with action π·x1. . . x n= (π·x1). . .(π·xn). Also, if X
+is a nominal set then so is the setS
+n∈ω([n]→X)with action
+π·f={(i, π·x)|(i, x)∈f}.
+Thus,Π,Πout,Πinp,ˆΠare all nominal sets. Forexample,
+π·a(b). b¯c.0=a′(b′). b′¯c′.0
+where a′=π(a), b′=π(b), c′=π(c)(notethatpermutationsequally
+affectboundandfreenameoccurrences).Similarlyto X∗,wehave
+thatX×Yis a nominal set whenever XandYare. Note that if
+Xis a nominal set and X′⊆Xis such that π·x∈X′, for all
+x∈X′andπ∈Perm(A), then X′is also a nominal set with the
+inheritedaction. Hence, the following set isa nominal set.
+ˆK={(σ,ˆP)|σ∈[
+n∈ωRegn∧ˆP∈ˆΠ∧fn(ˆP)⊆img(σ)}(1)
+Wewrite Kfortherestrictionof ˆKtoelements (σ,ˆP)withˆP∈Π.
+Finally,from a nominal set Xwe can derive itsset of orbits:
+O(X) ={O(x)|x∈X}where O(x) ={π·x|π∈Perm(A)}.
+Note that each O(x)isa nominal subset of X.
+The technology of the previous paragraph is used for deﬁning
+the transition system of the extended calculus. In contrast to the
+ordinary π-calculus, the transition relation we deﬁne is ﬁnitely
+branching,andthisisachievedbyconsideringprocesses-i n-context
+and specifying channels by their context indices instead of their
+names. More speciﬁcally, we let O(ˆK)be the set of processes-in-
+context. Eachsuch O(σ,ˆP)is written σ⊢ˆP.
+Since σ⊢ˆP=π·σ⊢π·ˆP, for any permutation π, what
+matters in σ⊢ˆPis not the speciﬁc names occurring in σorP,
+but onlytheir indexin σ.For example,
+{(1, a),(2, c)}⊢a(b). b¯c.0={(1, a′),(2, c′)}⊢a′(b). b¯c′.0
+andinessence bothofthesearespeciﬁedbyanexpressione.g .like
+({(1,◦),(2,◦)},1(b). b¯2.0). Borrowing notation from FRA’s, we
+build up on the indices idea and use transition labels of the f orm
+i•/i⊛for freshinputs/outputs.
+Deﬁnition 30. The semantics of the xπ-calculus is given via a
+labelledtransitionsystem withset of states O(ˆK)andlabels:
+α::=i|i•|i⊛|τ|¯ij|¯ij⊛|ij|ij•
+where i, j∈ω.Thetransitionrelationisgiven bythe rules inTable1.Note that σ⊢ˆPℓ−→σ′⊢ˆP′implies|σ|=|σ′|. Some further
+remarks on reduction:
+•Transitions restricted to Πuse only τand double labels, i.e.
+from{¯ij,¯ij⊛, ij, ij•|i, j∈ω}.
+•Inputs are decomposed as known inputs (I NP2A) and locally
+fresh ones (I NP2B), and are therefore ﬁnitely branching. The
+side-conditions impose that, whenever σ⊢Pinpi•
+−→σ′⊢P,
+thenσ′=σ[i/mapsto→a],a /∈img(σ)andiis the least index such
+thatσ(i)/∈fn(P).6Similar ﬁniteness and minimisation apply
+tobound outputs (O PEN).
+•Note that the C LOSErule involves bound outputs, hence glob-
+ally fresh transitions on the output side. On the input side, it
+is then necessary to have a matching locally fresh transitio n:
+global freshness implies local freshness.
+Example 31. Foreach a∈A,letσa={(1, a)}and
+Pa=νb.p(ab)withdeﬁnition p(ab) = ¯ab. νc. p (bc).
+In the π-calculus, Painduces an inﬁnitely-branching, inﬁnite-path
+transitiongraph:.........
+Pa¯a(b)/d47/d47¯a(b′)/d53/d53/d108/d108/d108/d108/d108/d108/d108/d108/d108/d108Pb¯b(c)/d47/d47¯b(c′)/d53/d53/d108/d108/d108/d108/d108/d108/d108/d108/d108/d108Pc¯c(d)/d47/d47¯c(d′)/d53/d53/d108/d108/d108/d108/d108/d108/d108/d108/d108/d108···
+Intheextendedcalculus, Painducesthefollowingtransitiongraph,
+σa⊢Pa1−→σa⊢νb. b. νc. p (bc)1⊛
+−→σb⊢Pb1−→···
+which is economic by branching once at each step. In fact, set ting
+Pout=νb.b. νc. p (bc), and since σa⊢Pa=σb⊢Pband
+σa⊢Pout=σb⊢Poutfor all a, b∈A, the graph above contains
+justtwonodes:
+σa⊢Pa1/d40/d40
+1⊛/d104/d104 σa⊢Pout
+andusing double labels we get simply σa⊢PaP 11⊛/d99/d99.
+Thewayinwhichthetwotransitionrelationsarerelatedisg iven
+bythe following lemma,which veriﬁesthe intuitions of Tabl e 1.
+Lemma 32. Letσ, σ′be registers, and α,ˆαbe labels of πandxπ
+respectively. For all P, P′∈Πwithfn(P)⊆img(σ):
+•ifσ⊢Pˆα−→σ′⊢P′thenPα−→P′,
+•ifPα−→P′thenσ⊢Pˆα−→σ′⊢P′;
+where either ˆα=α=τandσ=σ′; orˆα=¯ij/ij,α= ¯ab/ab,
+σ(i) =a,σ(j) =bandσ′=σ; orˆα=¯ij⊛/ij•,α= ¯a(b)/ab,
+σ(i) =a,σ′=σ[j/mapsto→b]andj= min{j|σ(j)/∈fn(P′)}.
+There is a straightforward passage from the xπ-calculus to
+FRA’s: states are taken from O(ˆK), states from O(K)are ﬁnal,
+andthetransitionrelationistheonegiveninTable1(omitt ingdou-
+ble transitions).7However, the usual (symbolic) notion of bisimu-
+lation between FRA’s is not appropriate because it is deﬁned for
+single-step transitions and, moreover, does not take into a ccount
+the distinctionbetweeninputs andoutputs. Wetherefore de ﬁne the
+followingnotion.
+Deﬁnition33. Ann-simulation isa relation
+R⊆O(K)×([n]⇋[n])×O(K)
+6Althoughnotessential,minimisationsavesusfromunneces sarybranching.
+7Note that this translation typically yields inﬁnite FRA’s— but we shall
+examineclasses ofprocesses wheretheresulting FRA’sareﬁ niteintheend
+of this section.
+9
+
+--- Page 10 ---
+INP1
+σ⊢a(b).Pi−→σ⊢(b).Pσ(i)=a MATCHσ⊢Pα−→σ⊢ˆP′
+σ⊢[a=a]Pα−→σ⊢ˆP′SUMσ⊢Pα−→σ⊢ˆP′
+σ⊢P+Qα−→σ⊢ˆP′
+INP2A
+σ⊢(b).Pi−→σ⊢P{a/b}σ(i)=a INP2B
+σ⊢(b).Pi•
+−→σ[i/mapsto→b]⊢Pi=min {i|σ(i)/∈fn(P)}
+OUT1
+σ⊢¯ab.Pi−→σ⊢b.Pσ(i)=a OUT2
+σ⊢b.Pi−→σ⊢Pσ(i)=bRECσ⊢P{/vector a//vectorb}α−→σ⊢ˆP′
+σ⊢p(/vector a)α−→σ⊢ˆP′p(/vectorb)=P
+RES(σ+a)⊢ˆPα−→(σ′+a)⊢ˆP′
+σ⊢νa.ˆPα−→σ′⊢νa.ˆP′α/ne}ationslash=(|σ|+1) OPENσ[i/mapsto→a]⊢Pouti−→σ[i/mapsto→a]⊢P
+σ⊢νa.P outi⊛
+−→σ[i/mapsto→a]⊢Pi=min {i|σ(i)/∈fn(P)}
+PAR1σ⊢ˆPα−→σ⊢ˆP′
+σ⊢ˆP|Qα−→σ⊢ˆP′|Qα=i/τ PAR2σ⊢ˆPi•/i⊛
+−→σ[i/mapsto→b]⊢P′
+σ⊢ˆP|Qj•/j⊛
+−→σ[j/mapsto→b]⊢P′|Qj=min {j|σ(j)/∈fn(P′,Q)}
+COMMσ⊢P¯ij−→σ⊢P′σ⊢Qij−→σ⊢Q′
+σ⊢P|Qτ−→σ⊢P′|Q′CLOSE(♯+σ)⊢P¯i1⊛
+−→(b+σ)⊢P′(♯+σ)⊢Qi1•
+−→(b+σ)⊢Q′
+σ⊢P|Qτ−→σ⊢νb.(P′|Q′)
+DBLOUTσ⊢Pi−→σ⊢Poutj/j⊛
+−→σ′⊢P′
+σ⊢P¯ij/¯ij⊛
+−−−−→ σ′⊢P′DBLINPσ⊢Pi−→σ⊢Pinpj/j•
+−→σ′⊢P′
+σ⊢Pij/ij•
+−−−−→ σ′⊢P′
+Table 1. The transitionrelationfor the xπ-calculus (symmetric counterparts of S UM, PAR, COMM, CLOSEomitted8).
+such that if (σ1⊢P1, ρ, σ2⊢P2)∈Rthenσ1, σ2∈Regnand
+σ1⊢P1α−→σ′
+1⊢P′
+1implies that σ2⊢P2α′
+−→σ′
+2⊢P′
+2for
+some(σ′
+1⊢P′
+1, ρ′, σ′
+2⊢P′
+2)∈Rsuchthatoneofthefollowingis
+the case, with i∈dom(ρ):
+•α=α′=τandρ′=ρ;
+•α=ij,j∈dom(ρ),α′=ρ(i)ρ(j)andρ′=ρ;
+•α=ij,j /∈dom(ρ),α′=ρ(i)k•andρ′=ρ[j↔k];
+•α=ij•,α′=ρ(i)k•,ρ′=ρ[j↔k]and,
+for all k′∈S2(ρ)\img(ρ),σ2⊢P2ρ(i)k′
+−→σ2⊢P′
+2for some
+(σ′
+1⊢P′
+1, ρ[j↔k′], σ2⊢P′
+2)∈R;
+•α=¯ij,j∈dom(ρ),α′=ρ(i)ρ(j)andρ′=ρ;
+•α=¯ij⊛,α′=ρ(i)k⊛andρ′=ρ[j↔k].
+Riscalledan n-bisimulation ifboth RandR−1aren-simulations.
+P1andP2aren-bisimilar , written P1n∼P2, if there is an n-
+bisimulation Rcontaining (σ01⊢P1, σ01↔σ02, σ02⊢P2),
+for some σ01, σ02withimg(σ01) =fn(P1),img(σ02) =fn(P2).
+We say that a process is n-contained if all its descendants have
+less than nfree names.
+Proposition34. For all n-contained P, Q,Pπ∼QiffPn∼Q.
+Proof.The proof proceeds by showing that if Risa simulationfor
+theπ-calculus then
+R′={(σ1⊢P1, ρ, σ2⊢P2)|(P1, P2)∈R∧ρ=σ1↔σ2}
+withP1, P2n-contained and σ1, σ2∈Regnis ann-simulation
+and, conversely, if Risann-simulationthen
+R′={(P1, P2)|∃σ1, σ2.(σ1⊢P1, σ1↔σ2, σ2⊢P2)∈R}
+withP1, P2n-contained isa simulation for π.
+8note:σ+v=σ∪{(|σ|+1, v)},v+σ={(1, v)}∪{(i+1, v′)|(i, v′)∈σ}.Thesetofreducts ofagivenprocess-in-context isingenera lin-
+ﬁnite, even if the process is n-contained. The following result pro-
+vides sufﬁcient conditions for excluding such inﬁnite beha viours.
+We say that a process has ﬁnite control if no parallel compositions
+appear in its recursive deﬁnitions. A process is ν-strictif all its
+subprocesses ofthe form νa.Psatisfy a∈fn(P).
+Proposition 35. IfP0∈Πhas ﬁnite control and all its descen-
+dants are ν-strict, then there are some M∈ω,σ0∈RegMand a
+ﬁniteS⊆O(K)suchthat P0isM-contained, (σ0⊢P0)∈Sand
+for all (σ⊢P)∈Sifσ⊢Pα−→σ′⊢P′then(σ′⊢P′)∈S.
+Proof.Suppose (WLOG)that P0invokes deﬁnitions pi(/vector ai) =Pi,
+i∈[N]for some N, and take M=|P0|×max{|Pi||i∈[N]}
+forthesizefunctionwhichcountsaprocess’occurrencesof 0’s,p’s
+andnames, freeor bound (butnotbinding): e.g. |¯ab.P|= 2 +|P|,
+|a(b).P|= 1 +|P|,|νa.P|=|P|,|p(/vector a)|= 1 +|/vector a|and|0|= 1.
+IfQis a descendant of Pthen|Q| ≤Mas a process may
+only increase its size by recursion and, as P0has ﬁnite control,
+recursions cannot obtain size greater than max{|Pi||i∈[N]}.
+But then, because all descendants of P0areν-strict, their number
+ofν-abstractions is bounded by M, and hence they all have length
+(number of symbols or constructors) bounded relatively to M.
+They are still unboundedly many, due to different choices of free
+variables.Butsinceeachdescendantcanbematchedwithaco ntext
+fromRegM, the number of the resulting processes-in-context is
+bounded relativelyto M.We collectall these in S.
+Corollary 36. Bisimilarity is decidable in Πwhen restricted to
+processes withﬁnite control.
+Proof.For any such processes P1, P2∈Π, bythe previous propo-
+sition and after equating processes up to non-strict ν-abstractions,
+we obtain M-transition graphs with sizes bounded relativelyto P1
+andP2. Clearly, P1M∼P2iff there is an M-bisimulation between
+10
+
+--- Page 11 ---
+those graphs. As those bisimulations live in a space bounded rela-
+tively to the sizes of P1andP2, we can search it exhaustively for
+such relations.
+Equatingprocesses upto structural congruence [14],the above
+results can be further strengthened to processes with ﬁnite degree
+of parallelism ,ina similarmanner to[4].
+9. Furtherdirections
+Wehaveintroducedanabstractcomputational paradigmande stab-
+lisheditskeyproperties,layingthegroundforfurtherres earch.The
+next logical step is to examine concrete applications of FRA ’s to
+the description of computation with names, either in the dir ection
+of mobile calculi or that of programming languages, relatin g this
+approach to existing higher-level approaches. A ﬁrst such a dvance
+has been recently accomplished in [19] by constructing a mod el
+of a low-order restriction of Reduced ML (a fragment of ML wit h
+ground-type integer references) representable ina varian tof FRA’s
+where labels contain store information. This was achieved b y rep-
+resenting the fullyabstract game semantics of the language [18].
+On the foundational side, the study of the π-calculus in FRA’s
+revealed that there is a notion of polarity inherent in compu tation
+with names. In particular, the examined FRA’s do not mix loca lly
+with globally fresh transitions, and this is clearly depict ed in the
+partition ˆΠ = Π inp⊎Πout⊎Π. A similar observation applies to
+FRA’s describing Reduced ML [19]. There, the states are part i-
+tionedinP-states(forProponent/Program)andO-states(f orOppo-
+nent/Environment); only P-states are allowed to perform gl obally
+fresh transitions, and only O-states can do locally fresh on es. In-
+tuitively, the only notion of freshness that can be observed on the
+program’s side is local freshness, whereas the environment should
+be assumed to have the memory needed in order to observe globa l
+freshness. These observations suggest that a notion of polarised
+FRA, where states are partitioned as above, is relevant and shou ld
+be further pursued. In the polarised setting, symbolic bisi mula-
+tions are simpliﬁed as there is no longer need for an hcomponent
+(cf.Deﬁnitions 25 and33).
+A potential criticism towards FRA’s concerns the fact that t hey
+failtosatisfyclosure under concatenation andKleene star (cf.Sec-
+tion6). We ﬁndthese non-closure results rather expected as FRA’s
+are history-sensitive machines. On the other hand, FRA’s se em to
+be closed under the nominal versions of concatenation and Kleene
+star, as recently introduced by Gabbay and Ciancia [9]. The p re-
+cise connections betweenFRA’sand regularlanguages withn ame-
+restriction[9]are the subject of ongoing research.
+Finally,some important questions have stillnot been answe red.
+For example, we have not considered deterministic versions of
+FRA’s,nor examined whether FRA’s can be determinised. Assu m-
+ing that in a deterministic FRA to each input string correspo nds a
+unique path, we cansee that e.g. the FRAaccepting the langua ge
+L={a1···aka|a∈{a1, . . . , a k}∧∀i/\⌉}atio\slash=j. ai/\⌉}atio\slash=aj}
+has no deterministic equivalent. Other directions for furt her re-
+search concern minimisation of FRA’s (recently examined fo r
+FMA’s [2]) and the evident connections to HD-automata. More -
+over, several possible extensions of FRA’sare of interest, e.g. vari-
+ants withlabels (data words), stores,or pushdown variants .
+10. Acknowledgements
+ThankstoAndrzejMurawski,SamsonAbramsky,VassilisKout avas
+and UlrichSch¨ opp for discussions and suggestions. Thanks alsoto
+the anonymous reviewers for theircomments. Section7inpar ticu-
+lar isnow muchsimpler due toa reviewer’s suggestion.A. Proofsfrom section6
+Proofof Lemma19. LetA=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}ht. The construction
+ofB=/a\}brack⌉tl⌉{tQ′, q′
+0, σ′
+0, δ′, F′/a\}brack⌉tri}htfollows closely [11]. In particular,
+each transition ofAinvolving a name induces an assignment of
+that name in the extra register of B. If the transition were a fresh
+assignment then this would result in the name occurring in Bjust
+onceafterassignment,otherwiseitwouldoccurtwice.Asth eactual
+extra register ofBchanges during this process we add an extra
+component instates toremember it.
+We set Q′=Q×([n+ 1]∼=− →[n+ 1])and write elements of
+Q′as(q, π). Moreover, q′
+0= (q0,id),σ′
+0=σ0[n+1/mapsto→♯]and
+F′={(q, π)|q∈F}.Finally:
+δ′={((q1, π), ℓ,(q2, π))|ℓ∈C∧(q1, ℓ,q2)∈δ}
+∪{(q′
+1,({π(n+1)},{π(i), π(n+1)}),(q2, π))|(q1, i, q2)∈δ}
+∪{(q′
+1,({π(n+1)},{π(n+1)}),(q2, π′))|(q1, i•, q2)∈δ}
+∪{(q′
+1,({π(n+1)},{π(n+1)},[n]),(q2, π′))|(q1, i⊛, q2)∈δ}
+where q′
+1= (q1, π)andπ′= (π(i)↔π(n+1))◦π(we write
+(k↔j)forthepermutationthatswaps kandj).Wecanshowthat
+the followingrelationis abisimulation andtherefore that A∼B.
+R={((q, σ, H ),((q,π), σ′, H))|∀i∈[n]. σ(i) =σ′(π(i))}
+Proofof Lemma20. LetA=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}htand constructB=
+/a\}brack⌉tl⌉{tQ′, q′
+0, σ′
+0, δ′, F′/a\}brack⌉tri}htas follows. The idea is to keep in the extra
+memory registers of Ba copy of the initialconﬁguration σ0which
+isnever touchedbyassignments.Thus,whenever Awantstomake
+a transition with label (S, T, A ),Bwill simulate it by a transition
+(S, S,[n])and transitions of the form (S, T∪Ta)where Ta⊆
+{n+1, ...,2n},a∈σ0([n]\A)andais not in the history. In
+order to accomplish this we need to enrich states with inform ation
+regarding whether the names in img(σ0)appear in the history.
+Therefore, we set Q′=Q×P(img(σ0)),q′
+0= (q0,∅),σ′
+0=
+σ0+σ0,F′={(q, I)|q∈F}and:
+δ′={((q,I), ℓ,(q′, I))|ℓ∈C∧(q, ℓ, q′)∈δ}
+∪{((q,I),(S, T),(q′, I))|(q,(S, T), q′)∈δ}
+∪{((q,I),(S, T∪Ta),(q′, I∪{a}))|(q,(S, T),q′)∈δ}
+∪{((q,I),(S, S,[n]),(q′, I))|(q,(S, S, A ),q′)∈δ}
+∪{((q,I),(S, T∪Ta′),(q′, I∪{a′}))|(q,(S, T, A ), q′)∈δ}
+where a∈img(σ0),Ta={(n+i)∈[2n]|σ0(i) =a},
+a′∈σ0([n]\A)\I,andTa′asTa.We cancheck that
+R={((q, σ, H ),((q, I),σ′, H))|I=H∩img(σ0)∧σ′=σ+σ0}
+isa bisimulation andtherefore that A∼B.
+Proofof Lemma21. LetA=/a\}brack⌉tl⌉{tQ,q0, σ0, δ, F/a\}brack⌉tri}htand constructB=
+/a\}brack⌉tl⌉{tQ′, q′
+0, σ′
+0, δ′, F′/a\}brack⌉tri}htbysetting Q′=Q×([n]→[n])andselecting
+f0, σ′
+0suchthat img(σ0) =img(σ′
+0)andσ0=σ′
+0◦f0.Moreover,
+setq′
+0= (q0, f0),F′={(q, f)|q∈F}and:
+δ′={((q,f), ℓ,(q′, f))|ℓ∈C∧(q, ℓ, q′)∈δ}
+∪{((q,f), i,(q′, f′))|f(T\S) ={i}∧(q,(S, T),q′)∈δ}
+∪{((q,f), i,(q′, f′))|f−1(i)⊆S∧(q,(S,S), q′)∈δ}
+∪{((q,f), i•,(q′, f′))|f−1(i)⊆S∧(q,(S,S), q′)∈δ}
+∪{((q,f), i⊛,(q′, f′))|f−1(i)⊆S∧(q,(S, S,[n]), q′)∈δ}
+withf′=f[S/mapsto→i]. Now, the followingis abisimulation
+R={((q,σ, H ),((q, f), σ′, H))|σ=σ′◦f}
+andhenceA∼B.
+11
+
+--- Page 12 ---
+B. Proofsfrom section7
+Proof ofProposition 26. It will sufﬁce to check only non-constant
+transitions. So let ((q1, σ1, H),(q2, σ2, H))∈R′due to some
+(q1, h, ρ, q 2)∈Randsupposethat (q1, σ1, H)a−→δ1(q′
+1, σ′
+1, H′)
+withH′=H∪{a}. Wedo case analysis on a.Below we write ρ′
+forρ[i↔j].
+•a∈img(σ1)∩img(σ2), saya=σ1(i) =σ2(j). Then, it is
+necessary that (q1, i, q′
+1)∈δ1andσ′
+1=σ1. Also, ρ=σ1↔σ2
+implies (i, j)∈ρ, so(q2, j, q′
+2)∈δ2for some (q′
+1, h, ρ, q′
+2)∈R.
+Thus,(q2, σ2, H)a−→δ2(q′
+2, σ2, H′)and, noting that ˆH′=ˆHso
+h=⌈|ˆH′|⌉n,we cansee that ((q′
+1, σ1, H′),(q′
+2, σ2, H′))∈R′.
+•a∈img(σ1)\img(σ2),saya=σ1(i).Then,again (q1, i, q′
+1)∈
+δ1andσ′
+1=σ1, buti∈S1(ρ)\dom(ρ). Thus, (q2, j•, q′
+2)∈δ2
+forsome (q′
+1, h, ρ′, q′
+2)∈R.Thus, (q2, σ2, H)a−→δ2(q′
+2, σ′
+2, H′),
+σ′
+2=σ2[j/mapsto→a].Notingthat ρ′=σ1↔σ′
+2andˆH′=ˆH,wehave
+that((q′
+1, σ1, H′),(q′
+2, σ′
+2, H′))∈R′.
+•a∈img(σ2)\img(σ1),saya=σ2(j).Since a∈ˆH\img(σ1),
+we have some (q1, i•, q′
+1)∈δ1, andσ′
+1=σ1[i/mapsto→a]. More-
+over,j∈S2(ρ)\img(ρ)and therefore (q2, j, q′
+2∈δ2for some
+(q′
+1, h, ρ′, q′
+2)∈R. Thus, (q2, σ2, H)a−→δ2(q′
+2, σ2, H′)and we
+cansee that ((q′
+1, σ′
+1, H′),(q′
+2, σ2, H′))∈R′.
+•a∈ˆH\(img(σ2)∪img(σ1)), so(q1, i•, q′
+1)∈δ1, andσ′
+1=
+σ1[i/mapsto→a].Ifh < nthen/bar⌈blρ/bar⌈bl=|img(σ1)∪img(σ2)|<|ˆH|=h.
+Thus, (q2, j•, q2)∈δ2for some (q′
+1, h, ρ′, q′
+2)∈R, and so
+(q2, σ2, H)a−→δ2(q′
+2, σ′
+2, H′),σ′
+2=σ2[j/mapsto→a]. We have ρ′=
+σ′
+1↔σ′
+2andh=⌈|ˆH′|⌉n,thus((q′
+1, σ′
+1, H′),(q′
+2, σ′
+2, H′))∈R′.
+•a /∈ˆHandsaytransitionisdue to (q1, i•/i⊛, q′
+1)∈δ1,soσ′
+1=
+σ1[i/mapsto→a].Then, (q2, j•/j⊛, q′
+2)∈δ2forsome (q′
+1, h++, ρ′, q′
+2)∈
+R, so(q2, σ2, H)a−→δ2(q′
+2, σ′
+2, H′),σ′
+2=σ2[j/mapsto→a]. We have
+thath++=⌈|ˆH′|⌉n,so((q′
+1, σ′
+1, H′),(q′
+2, σ′
+2, H′))∈R′.
+Thus, R′is a simulation. If Ris a symbolic bisimulation then,
+by symmetry, R′is a bisimulation. Finally, if (q01,|H0|, σ01↔
+σ02, q02)∈Rthen((q01, σ01,∅),(q02, σ02,∅))∈R′.
+Proof ofProposition 27. We check non-constant transitions. Let
+(q1, h, ρ, q 2)∈R′, due to some ((q1, σ1, H),(q2, σ2, H))∈R
+and suppose that (q1, ℓ, q′
+1)∈δ1. We docase analysis on ℓ.Below
+we write H′forH∪{a}, andρ′forρ[i↔j].
+•Ifℓ=ithen, by closure, (q1, σ1, H)a−→δ1(q′
+1, σ1, H′)with
+a=σ1(i), and hence (q2, σ2, H)a−→δ2(q′
+2, σ′
+2, H′)for some
+((q′
+1, σ1, H′),(q′
+2, σ′
+2, H′))∈R. Ifi∈dom(ρ), say(i, j)∈ρ,
+thena∈img(σ2)and it must be (q2, j, q′
+2)∈δ2,σ′
+2=σ2.
+We can see that (q′
+1, h, ρ, q′
+2)∈R′. Ifi∈S1(ρ)\dom(ρ)
+thena /∈img(σ2)and there is some (q2, j•, q′
+2)∈δ2, and
+σ′
+2=σ2[j/mapsto→a].We have that (q′
+1, h, ρ′, q′
+2)∈R′.
+•Ifℓ=i•then, for each a /∈img(σ1),(q1, σ1, H)a−→δ1
+(q′
+1, σ′
+1, H′),σ′
+1=σ1[i/mapsto→a], and therefore (q2, σ2, H)a−→δ2
+(q′
+2, σ′
+2, H′)for some ((q′
+1, σ′
+1, H′),(q′
+2, σ′
+2, H′))∈R.
+For any j∈S2(ρ)\img(ρ),σ2(j)/∈img(σ1), so we can take
+a=σ2(j). Then, we must have (q2, j, q′
+2)∈δ2,σ′
+2=σ2, and we
+cancheck that (q′
+1, h, ρ′, q′
+2)∈R′.
+Ifh=nor/bar⌈blρ/bar⌈bl< hthen we can choose a∈ˆH\(img(σ1)∪
+img(σ2)).Thus,wehavesome (q2, j•, q′
+2)∈δ2,σ′
+2=σ2[j/mapsto→a].
+Notingthat ˆH′=ˆHandρ′=σ′
+1↔σ′
+2,weget (q′
+1, h, ρ′, q′
+2)∈R′.
+Finally, if we choose a /∈ˆHthen there is some (q2, j•/j⊛, q′
+2)∈
+δ2, and σ′
+2=σ2[j/mapsto→a]. We have that ρ′=σ′
+1↔σ′
+2and
+ˆH′=ˆH⊎{a},thush++=⌈|ˆH′|⌉n.Hence, (q′
+1, h++, ρ′, q′
+2)∈R′.
+•Ifℓ=i⊛then we workas inthe lastcase above.
+Thus, R′is a symbolic simulation. If Ris a bisimulation then, by
+symmetry, R′is a symbolic bisimulation. Finally, if ((q01, σ01,∅),
+(q02, σ02,∅))∈Rthen(q01,|H0|, σ01↔σ02, q02)∈R′.References
+[1] S.Abramsky,D.R.Ghica,A.S.Murawski,C.-H.L.Ong,and I.D.B.
+Stark. Nominal games and full abstraction for the nu-calcul us. In
+Proc. ofLICS ’04 , pages 150–159. IEEEComp. Soc.Press, 2004.
+[2] M. Benedikt, C. Ley, and G. Puppis. Minimal memory automa ta.
+Alberto Mendelzon Workshop on Foundations ofDatabases , 2010.
+[3] N. Benton and V. Koutavas. A mechanized bisimulation for the nu-
+calculus. Tech. Rep. MSR-TR-2008-129, Microsoft Research , 2008.
+[4] R. Bruni, F. Honsell, M. Lenisa, and M. Miculan. Modeling fresh
+names in the pi-calculus using abstractions. In Proc. of CMCS ’04 ,
+volume 106, pages 25–41. Elsevier, 2004.
+[5] S. Delaune, S. Kremer, and M. Ryan. Symbolic bisimulatio n for the
+Applied Pi Calculus. In Proc. ofFSTTCS ’07 , volume 4855 of LNCS,
+pages 133–145, 2007.
+[6] S. Demri and R. Lazic. LTL with the freeze quantiﬁer and re gister
+automata. ACM Trans. Comput. Log. , 10(3), 2009.
+[7] G. L. Ferrari, U. Montanari, and E. Tuosto. Model checkin g for
+nominal calculi. In Proc. of FOSSACS ’05 , volume 3441 of LNCS,
+pages 1–24, 2005.
+[8] M. Gabbay and A. M. Pitts. A new approach to abstract synta x with
+variable binding. FormalAsp.Comput. , 13(3-5):341–363, 2002.
+[9] M. J. Gabbay and V. Ciancia. Freshness and name-restrict ion in sets
+of traces with names. Submitted for publication, 2010.
+[10] A. Jeffrey and J. Rathke. Towards a theory of bisimulati on for local
+names. In LICS,pages 56–66, 1999.
+[11] M. Kaminski and N. Francez. Finite-memory automata. Theor.
+Comput. Sci. , 134(2):329–363, 1994.
+[12] J. Laird. A game semantics of local names and good variab les. In
+Proc. ofFOSSACS ’04 ,volume 2987 of LNCS, pages 289–303, 2004.
+[13] J. Laird. A fully abstract trace semantics for general r eferences. In
+Proc. ofICALP’07 , volume4596 of LNCS, pages 667–679, 2007.
+[14] R. Milner, J. Parrow, and D. Walker. A calculus of mobile processes,
+I and II.Inf. Comput. , 100(1):1–77, 1992.
+[15] R. Milner, M. Tofte, and D. Macqueen. The Deﬁnition of Standard
+ML. MIT Press,1997.
+[16] U. Montanari and M. Pistore. An introduction to History Dependent
+Automata. Electr. Notes Theor. Comput. Sci. , 10, 1997.
+[17] U.Montanari andM.Pistore. Structured coalgebras and minimalHD-
+automata for the pi-calculus. Theor. Comput. Sci. , 340(3):539–576,
+2005.
+[18] A.S.Murawski andN.Tzevelekos. Fullabstraction for R educed ML.
+InProc. ofFOSSACS ’09 ,volume 5504 of LNCS, pages 32–47, 2009.
+[19] A. S. Murawski and N. Tzevelekos. Algorithmic nominal g ame se-
+mantics. Submitted for publication, 2010.
+[20] R.M.Needham. Names. InS.Mullender, editor, Distributed systems ,
+pages 315–327. ACM Press/Addison-Wesley, 1993. 2nd editio n.
+[21] F. Neven, T. Schwentick, and V. Vianu. Finite state mach ines for
+strings over inﬁnite alphabets. ACM Trans.Comput. Logic , 5(3):403–
+435, 2004.
+[22] M. Pistore. History Dependent Automata . PhD thesis, University of
+Pisa, 1999.
+[23] A. M. Pitts. Nominal logic, aﬁrst order theory of names a nd binding.
+Inf. Comput. , 186(2):165–193, 2003.
+[24] A. M. Pitts and I. Stark. Observable properties of highe r order func-
+tions thatdynamically create localnames,or:What’s new? InProc.of
+MFCS ’93 ,number 711 in LNCS,pages 122–141, 1993.
+[25] H. Sakamoto and D. Ikeda. Intractability of decision pr oblems for
+ﬁnite-memory automata. Theor. Comput. Sci. , 231(2):297–308, 2000.
+[26] D. Sangiorgi and D. Walker. The pi-calculus: A Theory of Mobile
+Processes . Cambridge University Press,2001.
+[27] L. Segouﬁn. Automata and logics for words and trees over an inﬁnite
+alphabet. In Proc.ofCSL’06 ,vol.4207of LNCS, pages 41–57,2006.
+[28] I. Stark. Names and Higher-Order Functions . PhD thesis, University
+of Cambridge, 1994.
+12

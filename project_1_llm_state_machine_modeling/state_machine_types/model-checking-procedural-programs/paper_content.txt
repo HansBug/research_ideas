@@ -1,0 +1,1394 @@
+--- Page 1 ---
+Model Checking Procedural Programs
+Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+Abstract We consider the model-checking problem for sequential programs with
+procedure calls. We ﬁrst present basic algorithms for solving the reachability prob-
+lem and the fair computation problem. The algorithms are based on two techniques:
+summarization , that computes reachability information by solving a set of ﬁxpoint
+equations, and saturation , that computes the set of all reachable program states
+(including call stacks) using automata. Then, we study formalisms to specify re-
+quirements of programs with procedure calls. We present an extension of the linear
+temporal logic allowing propagation of information across the hierarchical structure
+induced by procedure calls and matching returns. Finally, we show how model-
+checking can be extended to this class of programs and properties.
+1 Introduction
+We consider the model-checking problem for sequential programs consisting of pro-
+cedures that call one another, possibly in a recursive manner. We assume that all
+program variables have a ﬁnite range. These programs, called procedural programs
+or Boolean programs [9], are used as abstractions of C programs in highly inﬂuen-
+tial software veriﬁcation tools like SLAM [8]. The state of a procedural program has
+three parts: the current value of the program counter, the current values of the pro-
+Rajeev Alur
+University of Pennsylvania, 3330 Walnut Street, Philadelphia, PA 19104, USA.
+e-mail: alur@cis.upenn.edu
+Ahmed Bouajjani
+Universit ´e Paris Diderot (Paris 7) and Institut Universitaire de France,
+LIAFA, Case 7014, 75205 Paris cedex 13, France. e-mail: abou@liafa.univ-paris-diderot.fr
+Javier Esparza
+Institut f ¨ur Informatik, Technische Universit ¨at M ¨unchen, Boltzmannstr. 3, 85748 Garching bei
+M¨unchen, Germany. e-mail: esparza@in.tum.de
+1
+
+--- Page 2 ---
+2 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+gram variables, and the current stack of procedure calls whose execution has not yet
+ﬁnished. Since procedures may be recursive, and the recursion depth in not bounded
+a priori, the state space of a procedural program may be inﬁnite, and so procedural
+programs cannot be veriﬁed using standard ﬁnite-state model-checking algorithms.
+We model procedural programs as recursive state machines (RSM) [2]. Each
+procedure of the program is modeled by a different machine. A machine has a ﬁnite
+number of control states with some distinguished entry and exit points. Control
+states are connected by edges that correspond to either a local change in the control
+state, or to a full execution (from an entry to an exit point) of another state machine.
+The latter case models a procedure call. Recursion is allowed since the dependencies
+among state machines can be cyclic in general. RSMs with acyclic dependencies
+among state machines are called hierarchical state machines [7].
+The operational semantics of RSMs can be deﬁned in terms of pushdown systems
+(PDS), state machines whose transitions are labeled with stack operations [13, 30].
+Push and pop operations correspond to procedure calls and returns, respectively.
+The PDS corresponding to a given RSM can be easily computed and has roughly
+the same size as the RSM itself, and either representation can serve as an input to a
+veriﬁcation algorithm, depending on the computational task at hand.
+We present two basic techniques for the reachability analysis of RSMs and PDSs.
+The ﬁrst one, called summarization, computes reachability information by solving
+a set of ﬁxpoint equations, and is closely related to inter-procedural data-ﬂow anal-
+ysis [25, 49]. Roughly speaking, summarization computes the pairs of program
+counter and program variable values that can be reached from the initial state of
+the program, but not the stack contents with which they can be reached. For ex-
+ample, after applying summarization we may know that program location 13 can
+be reached with x=3 and y=5, but not that this can only happen when the cur-
+rent procedure is called from a procedure P. The complete set of reachable program
+states (i.e., the set of all reachable triples consisting of the current value of the pro-
+gram counter, the current values of the program variables, and the current stack of
+procedure calls) can be obtained by employing the second technique, called satura-
+tion. Saturation takes as input the PDS associated with the RSM, and computes its
+set of reachable conﬁgurations. Since this set may be inﬁnite, saturation does not
+enumerate its elements, but computes a ﬁnite symbolic representation in the shape
+of a ﬁnite-automaton (compare with the BDD-based techniques of Chap. 9 for com-
+pactly representing a large but ﬁnite set of states). Summarization and saturation can
+also be applied to the fair computation problem, a core computational problem un-
+derlying the analysis of inﬁnite program executions. They have been implemented
+and extensively applied in tools like Bebop (the model checker inside SLAM [9],
+MOPED and jMOPED [29, 47, 52], and WALi [38].
+In the second part of the chapter we discuss extensions of automata and log-
+ics suitable for specifying properties of procedural programs. We show that many
+natural speciﬁcations require relating the truth of propositions at a procedure call
+with the matching return position. A typical example is the property “if the sta-
+tus of a global variable xislocked when a procedure Pis called, then its status is
+guaranteed to be locked when the procedure Preturns”. Asserting such properties is
+
+--- Page 3 ---
+Model Checking Procedural Programs 3
+not possible using formalisms deﬁning regular languages of computations, such as
+ﬁnite-state automata and Linear Temporal Logic (see Chap. 2). Aimed at specifying
+such properties, the notion of nested words is introduced to represent behaviors of
+RSMs. They correspond to (ﬁnite/inﬁnite) words with additional hierarchical edges
+that expose the matching between call and return positions. We deﬁne automata
+and logics on nested words, and show that model-checking algorithms for RSMs
+naturally extend to these formalisms.
+In the last section of the paper, we survey some further existing results concerning
+RSMs/PDSs and their extensions that are relevant to the domain of veriﬁcation.
+2 Models of Procedural Programs
+While programs , consisting of assignment statements, if-then-else statements and
+while loops, can be modeled as extended state machines : state machines whose tran-
+sitions are guarded by and operate on variables. The states or nodes of an extended
+state machine correspond to the control points of the program. The transitions of the
+machine are labeled either with assignments, or with the Boolean conditions appear-
+ing in the conditional statements and the while loops. Figure 1 shows an example
+of a while program with two boolean variables x;y(top left), and its corresponding
+extended state machine (top right). The nodes l1andl5are called the entry andexit
+nodes, respectively.
+bool x;y
+l1:while xdo
+l2: ifythen
+l3: x:=false
+l4: elsey:=:x
+l5: end
+l1
+l4l5l2
+y:=1x
+l3x=1 x=0
+y=0 y=1x:=0
+(l1;1;0) (l2;1;0)(l1;0;0) (l5;0;0)
+(l1;0;1) (l5;0;1)(l4;1;0)
+(l1;1;1)
+(l2;1;1) ( l3;1;1)
+Fig. 1 A program, its extended state machine, and its state machine.
+
+--- Page 4 ---
+4 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+An extended state machine with a set Vof variables can be ﬂattened into a state
+machine . A node of the state machine is a pair h`;vi, where`is a node of the ex-
+tended state machine, and vis a valuation of the variables of V. Figure 1 shows at
+the bottom the state machine obtained by ﬂattening the extended state machine. For
+instance, the entry node l1is split into 4 entry nodes, one for each possible valuation
+of the variables xandy. Only the nodes of the state machine reachable from the
+entry nodes are shown.
+Procedural programs extend while programs with (possibly recursive) proce-
+dures. They can no longer be faithfully modeled by state machines. For this reason
+we introduce two abstract models of computation, recursive state machines , and
+pushdown systems , which play for procedural programs the same role that state ma-
+chines play for while programs.
+2.1 (Extended) Recursive State Machines
+Figure 2 shows a procedural program and its corresponding extended recursive state
+machine (ERSM). The program has two global Boolean variables xandy, and con-
+bool x;y
+proc P1
+l1:ifxthen
+l2: callP2do
+l3: x:=y
+l4:else
+l5: x:=y
+l6: callP2do
+l7:end
+proc P2
+m1:ifythen
+m2: y:=x
+m3: callP2do
+m4:return
+A1
+m4A2
+y:=xb1:A2l2 l3
+l5x:=y
+l6b2:A2x:=y x=1
+x=0l1 l7
+m1y=1
+y=0b3:A2m2 m3
+Fig. 2 A procedural program and its extended recursive state machine.
+sists of two procedures P1andP2. The ERSM reﬂects the structure of the program.
+It consists of two components A 1andA2, modeling the procedures P1andP2, re-
+spectively. The nodes of A1andA2correspond to the control points of P1andP2;
+assignments, conditionals, etc. are modeled as for while programs. Moreover, for
+
+--- Page 5 ---
+Model Checking Procedural Programs 5
+each call in procedure Pito the procedure Pj, the component Aicontains a boxla-
+beled by Aj. In our example, component A1contains two boxes, and component A2
+contains one box. Each box has an entry port and an exit port . Ports are pairs (n;b),
+where bis a box, nis an entry or exit node of AY(b), and Y(b)denotes the compo-
+nent called by the box b. A transition leads from the control point at which the call is
+made to the entry port, and a second transition leads from the exit port to the return
+address (the control point at which the computation of the caller continues after the
+execution of the callee returns).
+As in the case of extended state machines, ERSMs can be ﬂattened into recur-
+sive state machines . Flattening preserves the number of components and boxes, but
+multiplies the number of nodes and ports. As for state machines, a node or a port
+of a recursive state machine is a pair h`;vi, where`is a state of the extended ma-
+chine, and vis a valuation of the variables. Figure 3 shows the result of ﬂattening
+component A2of Fig. 2.
+(m1;0;0)
+(m1;0;1)
+(m1;1;0)
+(m1;1;1)A2
+(m1;1;1)b3:A2(m1;0;0)
+(m1;0;1)
+(m1;1;0)(m4;0;0)
+(m4;0;1)
+(m4;1;0)
+(m4;1;1)(m4;0;0)
+(m4;0;1)
+(m4;1;0)
+(m4;1;1)(m3;0;0)
+(m2;0;1)
+(m2;1;1)
+(m3;1;1)
+Fig. 3 Result of ﬂattening component A2of Fig. 2.
+Deﬁnition 1. Arecursive state machine (RSM) is a tuple M= (A1;:::; Ak)ofcom-
+ponents A i= (Ni;Bi;Yi;Eni;Exi;di), where:
+Niis a ﬁnite set of nodes , with two distinguished subsets EniandExiofentry
+andexitnodes.
+Biis a ﬁnite set of boxes . A box bis labeled with an integer Y(b)2f1;:::; kg, and
+has a call port (en;b)for each entry node enofAY(b), and a return port (ex;b)
+for each exit node exofAY(b).
+diis a set of transitions u !vwhere uis either a non-exit node or a return port,
+andvis either a non-entry node, or a call port.
+We denote by
+
+--- Page 6 ---
+6 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+En=k[
+i=1Eni Ex=k[
+i=1Eni N=k[
+i=1Ni B=k[
+i=1Bi
+the set of all entry nodes, exit nodes, nodes, and boxes of M, respectively. The set
+of all ports is P= (En[Ex)B.
+Observe that there are four kinds of transitions: n !m(node-to-node), n !(en;b)
+(node-to-call-port), (ex;b) !m(return-port-to-node), and (ex;b) !(en;b0)(return-
+port-to-call-port).
+In the component of Fig. 3, the entry and exit nodes are the triples with m1and
+m4as ﬁrst element, respectively. The only box is b3, and Y(b3) =2. The call ports
+are((m1;0;0);b3);:::;((m1;1;1);b3). In the ﬁgure the ports are labeled just by
+(m1;0;0);:::;(m1;1;1), and the return ports are ((m4;0;0);b3);:::;((m4;1;1);b3).
+2.2 Pushdown Systems
+Intuitively, an RSM can be executed using a stack that at every point in the compu-
+tation contains the sequence of boxes that have been entered but not yet exited. If a
+component enters a box b(which corresponds to calling the procedure modeled by
+the component AY(b)), then bis pushed into the stack; if the component exits the box
+b(which corresponds to a return from the called procedure), then bis popped. This
+suggests to give RSMs an operational semantics in terms of pushdown systems.
+Deﬁnition 2. Apushdown system (PDS) is a triple P= (P;G;D), where Pis a ﬁnite
+set of control states ,Gis a ﬁnite stack alphabet , andDis a ﬁnite set of rules of the
+form pX,!qawith p;q2P,X2G[feg, anda2G.
+Aconﬁguration of a PDS is a string of the form ps, where p2Pands2G.
+The transition system associated to a PDS is the graph having the conﬁgurations as
+vertices, and an edge c!c0between two conﬁgurations candc0if there is a rule
+pX,!qaand a word s2Gsuch that c=pXsandc0=qas. We then say that c
+is an immediate predecessor ofc0andc0animmediate successor ofc.
+Figure 4 shows a PDS and a fragment of its transition system. Notice that the
+transition system of a PDS may be inﬁnite, even if we only consider the conﬁgura-
+tions reachable from some initial conﬁguration.
+2.3 From RSMs to PDSs
+Loosely speaking, the PDS associated with an RSM is the pushdown machine that
+executes the RSM. In programming terms, an RSM is a formal model of a procedu-
+ral program, and its corresponding PDS is a formal model of the executable code of
+the program.
+
+--- Page 7 ---
+Model Checking Procedural Programs 7
+P=fp;qg
+G=fA;B;C;Dg
+D=fpA,!qB;
+pA,!pC;
+qB,!pD;
+pC,!pAD;
+pD,!pg
+...
+...
+......
+...
+...
+...p
+pD qB pA pDA
+pC pDC
+pDAD pAD qBD pDD
+pCD pDCD
+pDADD pADD qBDD pDDD
+Fig. 4 A PDS and its transition system.
+Formally, the PDS PM= (PM;GM;DM)corresponding to an RSM M= (A1;:::; Ak)
+is deﬁned as follows:
+PM=Nis the set of all nodes of M;
+GM=Bis the set of all boxes of M; and
+DMis the set containing
+– a rule n,!mfor each transition n !m;
+– a rule n,!enbfor every transition n !(en;b);
+– a rule exb,!mfor every transition (ex;b) !m; and
+– a rule exb,!enb0for every transition (ex;b) !(en;b0).
+Observe that the PDS has exactly one rule for each transition of the RSM.
+As an example, for the RSM obtained by ﬂattening the ERSM of Fig. 2, we get
+PM=fl1;:::; l7;m1;:::; m4gf 0;1gf 0;1gandGM=fb1;b2;b3g. Examples of
+rules of DMare
+(m1;0;0),!(m4;0;0) derived from (m1;0;0)!(m4;0;0)
+(m3;0;0),!(m1;0;0)b3derived from (m3;0;0)!((m1;0;0);b3))
+(m4;0;1)b3,!(m4;0;1) derived from ((m4;0;1);b3)!(m4;0;1)
+Observe that every rule pX,!qaof a PDS associated with an RSM satisﬁes
+jaj2.
+3 Basic Veriﬁcation Algorithms
+We proceed to deﬁne basic computational problems that are useful for checking
+safety and liveness properties of RSMs.
+
+--- Page 8 ---
+8 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+Deﬁnition 3. LetM= (A1;:::; Ak)be an RSM, where Ai= (Ni;Bi;Yi;Eni;Exi;di)
+for each i2f1;:::; kg. Let!be the reﬂexive-transitive closure of the relation  !
+between conﬁgurations, i.e.,!=S¥
+n=0(!)nand let+!=S¥
+n=1(!)n.
+Thestate reachability problem is to determine, given an entry node p2Enand
+a node q2PM, ifp!qsfor some s2G
+M.
+Theconﬁguration reachability problem is to determine, given two conﬁgurations
+psandp0s0, where p;p02PMands;s02G
+M, ifps!p0s0.
+Thefair computation problem is to determine, given an entry node p2Enand a
+ﬁnite set of repeat entry nodes FEn, whether phas an F-fair computation, i.e.,
+an inﬁnite sequence of conﬁgurations p0s0;p1s1;p2s2;such that (1) p0=pand
+s0=e, (2) pisi+!pi+1si+1for every i0, and (3) pj2Ffor inﬁnitely many
+j0.
+Consider the RSM of Fig. 3 on its own (not as part of the larger RSM obtained
+by ﬂattening the extended RSM of Fig. 2). Choose pas the entry node (m1;0;1),
+andqas the node (m4;1;0). The state reachability problem for this choice of pand
+qformalizes the question whether some computation of procedure P2of Fig. 2 with
+x=0 and y=1, can reach the point m4with x=1 and y=0. However, since the
+procedure P2is recursive, m4can be visited several times along a computation, and
+so the question is whether at one of these visits xandyare equal to 1 and 0, re-
+spectively, not whether these are the values after termination . To check this we can
+use the conﬁguration reachability problem: Procedure P2terminates with x=1 and
+y=0 if and only if the RSM can reach the conﬁguration with (m4;1;0)as con-
+trol state and empty stack. Notice that, in general, we cannot reduce termination (a
+liveness property) to reachability (a safety property), but inspection of this program
+shows that it terminates if and only if it reaches m4with no pending procedure calls.
+The problem of checking liveness properties can be easily reduced to the fair
+computation problem by means of the automata-theoretic techniques introduced in
+Chap. 7.
+3.1 The State Reachability Problem: Computing Summaries
+In this section we show how to solve the state reachability problem using the sum-
+marization technique . We present the technique for RSMs.
+LetM= (A1;:::; Ak)be an RSM, and let QM=N[Pbe the set containing
+all nodes and all ports in M. For every i2f1;:::; kg, consider the relation Ri
+QMQMgiven by
+(p;q)2Riiffp2Eni,qis a node or port of Ai, and p!q.
+Further, for every i;j2f1;:::; kgconsider the relation R(i;j)QMQMgiven by
+(p;q)2R(i;j)iffp2Eni,qis a node or port of Aj, and p!qsfor some s2G
+M.
+
+--- Page 9 ---
+Model Checking Procedural Programs 9
+We call these relations summaries , since they can be seen as the result of summa-
+rizing executions by their initial and ﬁnal states. Now, let R=Sk
+i;j=1R(i;j). Clearly,
+given p2Enandq2N, solving the state reachability problem consists of checking
+whether (p;q)2R.
+It is easy to see that for every i;j2f1;:::; kgthe relations RiandR(i;j)are the
+smallest relations satisfying the following conditions (where we write Ri(p;q)and
+R(i;j)(p;q)instead of (p;q)2Riand(p;q)2R(i;j)):
+S1:Ri(e;e)for every e2Eni.
+S2: IfRi(e;p)and(p;q)2di, where e2Eni,
+then Ri(e;q).
+S3: IfRi(e;(p;b))andR`(p;q),
+where e2Eni,Yi(b) =`,p2En`, and q2Ex`,
+then Ri(e;(q;b)).
+S4: IfRi(e;q)
+then R(i;i)(e;q).
+S5: IfRi(e;(p;b))andR(`;j)(p;q),
+where e2Eni,Yi(b) =`,p2En`, and q2Nj,
+then R(i;j)(e;q).
+The relations RiandR(i;j)can be simultaneously computed by, starting from the
+empty relations, iteratively applying the rules S1-S5until stabilization. Since the set
+QMis ﬁnite, the computation necessarily terminates. This yields a decision proce-
+dure for the state reachability problem of polynomial complexity. More precisely,
+as shown in [2], reachability can be solved in time O(jMjq2
+e)and space O(jMjqe),
+wherejMjis the total number of nodes and transitions in the RSM, and qeis the
+maximum number of entry nodes of a component, i.e., qe=maxk
+i=1jEnij.
+It is straightforward to deﬁne a dual algorithm that starts at the exit nodes and
+computes the summaries backwards . For instance, in the dual algorithm the rule S2
+is replaced by the dual rule
+D2: IfRi(p;x)and(q;p)2di, where x2Exi,
+then Ri(q;x).
+The dual algorithm runs in O(jMjq2
+x)time, where qxis the maximum number of
+exit nodes of a component, i.e., qx=maxk
+i=1jExij. The primal and dual rules can be
+combined component-wise: if the number of entry nodes of component Aiis smaller
+than its number of exit nodes, then we compute Rifrom the entry nodes using the pri-
+mal rules, otherwise from the exit nodes using the dual rules. The complexity of this
+algorithm is O(jMjq2), where q=maxk
+i=1min(jEnij;jExij). Since q2O(jMj), the
+combined algorithm has cubic complexity in jMj. For the class of RSMs in which q
+is bounded by a constant (which contains in particular procedural programs whose
+procedures can only return a ﬁxed number of values, say a Boolean), reachability
+can be decided in linear time.
+
+--- Page 10 ---
+10 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+As an example, we compute part of the relations for the RSMs obtained by ﬂat-
+tening the extended machines of Fig. 2. In particular, we show that
+R1((`1;1;0);(`7;0;0))
+holds, i.e., if we start at location `1with x=1 and y=0, we may reach location `7
+with x=0=y.
+We ﬁrst apply rule ( S1) twice and obtain
+R1((`1;1;0);(`1;1;0)) (1)
+R2((m1;1;0);(m1;1;0)) (2)
+Now we use rule ( S2) to establish relations corresponding to single edges in the
+graphs of the RSMs. From (1) and ((`2;1;0);((m1;1;0);b1))2d1, and from (2) and
+((m1;1;0);(m4;1;0))2d2, respectively, we obtain
+R1((`1;1;0);((m1;1;0);b1)) (3)
+R2((m1;1;0);(m4;1;0)) (4)
+Next we apply rule ( S3) to (3) and (4). Together with Y1(b1) =2 we get
+R1((`1;1;0);((m4;1;0);b1)) (5)
+Then we apply rule ( S2) to (5) using the transition (((m4;1;0);b1);(`3;1;0))2d1,
+to obtain
+R1((`1;1;0);(`3;1;0)) (6)
+Finally, applying rule ( S2) to (6) and ((`3;1;0);(`7;0;0))2d1yields
+R1((`1;1;0);(`7;0;0)) (7)
+and we are done.
+Let us now show
+R(1;2)((`1;0;1);(m3;1;1))
+Applying rule ( S1) and then ( S2) to the entry nodes (`1;0;1)and(m1;1;1)we obtain
+R1((`1;0;1);((m1;1;1);b2)) (8)
+R2((m1;1;1);(m3;1;1)) (9)
+Applying rule ( S4) to (9) yields
+R(2;2)((m1;1;1);(m3;1;1)) (10)
+Finally, applying rule ( S5) to (8) and (10) we get
+R(1;2)((`1;0;1);(m3;1;1)) (11)
+
+--- Page 11 ---
+Model Checking Procedural Programs 11
+Next we show that calls to A2starting from (m1;1;1)never return, i.e., that
+R2((m1;1;1);n)does not hold for any exit node nofA2. Since every path from the
+entry node (m1;1;1)leads to (m2;1;1)and(m3;1;1), rule ( S2) only allows to derive
+R2((m1;1;1);(m2;1;1))andR2((m1;1;1);((m1;1;1);b3)). Since no other rule can
+be applied, we are done.
+Finally, similar reasoning shows that no exit node of A1is reachable from
+(`1;0;1). Indeed, this follows easily from the fact that rule ( S3) cannot be applied
+to (8).
+3.2 The Fair Computation Problem
+It is shown in [13] that the fair computation problem can be reduced to the state
+reachability problem. The key observation, not difﬁcult to prove, is that, given p2
+EnandFEn, the node phas an F-fair computation if and only if there exists
+p02Fsuch that
+p!p0sfor some s2G
+Mand p0+!p0s0for some s02G
+M.
+This reduction allows us to solve the fair computation problem using summa-
+rization. We deﬁne a new reachability relation R0QMQM(in addition to the
+relation Rdeﬁned in Sect. 3.1) as follows:
+R0(p;q)holds if and only if p+!qsfor some s2G
+M.
+Then, by the observation above, phas a F-fair computation if and only if there exists
+p02Fsuch that R(p;p0)andR0(p0;p0).
+The relation R0can be computed similarly to the relation Rin Sect. 3.1. For every
+i2f1;:::; kg, deﬁne R0
+iQMQMby
+R0
+i(p;q)iffp2Eni,qis a node or port of Ai, and p+!q.
+Further, for every i;j2f1;:::; kg, deﬁne R0
+(i;j)QMQMby
+R0
+(i;j)(p;q)iffp2Eni,qis a node or port of Aj, and p+!qsfor some s2G
+M.
+We clearly have R0=Sk
+i;j=1R0
+(i;j).
+For all i;j2f1;:::; kg, the relations R0
+iandR0
+(i;j)are the smallest relations such
+that:
+
+--- Page 12 ---
+12 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+S2’: IfRi(e;p)orR0
+i(e;p), and (p;q)2di, where e2Eni,
+then R0
+i(e;q).
+S3’: IfR0
+i(e;(p;b))andR`(p;q),
+where e2Eni,Yj(b) =`,p2En`, and q2Ex`,
+then R0
+i(e;(q;b)).
+S4’: IfR0
+i(e;q), where e2Eni,
+then R0
+(i;i)(e;q).
+S5’: IfR0
+i(e;(p;b))andR(`;j)(p;q),
+where e2Eni,Yi(b) =`,p2En`, and q2Nj,
+then R0
+(i;j)(e;q).
+The relations can again be computed by applying the rules until stabilization.
+The time complexity is again cubic in jMj, and linear if each component has a small
+number of either enter or exit nodes [2].
+The model-checking problem for Linear Temporal Logic can be reduced to the
+fair computation problem using the automata-theoretic techniques of Chap. 7 and
+Sec. 4.
+3.3 The Conﬁguration Reachability Problem: Saturating Automata
+In this section we solve the conﬁguration reachability problem for RSMs and PDSs.
+We present two decision procedures for PDSs. The procedures for RSMs are ob-
+tained by applying the translation from RSMs to PDSs shown in Sect. 2.3.
+Given two conﬁgurations psandp0s0of a PDS, we can decide whether ps!p0s0
+holds by computing the set of all conﬁgurations reachable from psand checking
+whether p0s0belongs to it, or by computing all conﬁgurations from which p0s0can
+be reached and checking whether psbelongs to it. Since these sets may be inﬁnite,
+we have to explain the meaning of “compute”. A conﬁguration psof a PDS can be
+seen as a word over the union of the set of control states and stack symbols, and so
+a set of conﬁgurations is a language over the same alphabet. Recall that a language
+is regular if it is recognized by a ﬁnite automaton. It turns out that, given a regular
+setCof conﬁgurations, the set of conﬁgurations reachable from Cand the set of
+conﬁgurations from which Ccan be reached are again regular. This theorem, which
+can be traced back to B ¨uchi (see Chap. 5 of [16]), allows us to deﬁne “computing
+the set” as “computing a ﬁnite automaton recognizing the set”.
+We ﬁx a PDS P= (P;G;D)for the rest of the section, and let Cdenote the set
+of all conﬁgurations of P. The successor function post: 2C!2CofPis deﬁned
+as follows: cbelongs to post(C)if some immediate predecessor of cbelongs to C.
+The reﬂexive and transitive closure of post is denoted by postand so, given a set
+Cof conﬁgurations, post(C)denotes the set of conﬁgurations reachable from C.
+Similarly, we deﬁne pre(C)as the set of immediate predecessors of elements in C
+andpreas the reﬂexive and transitive closure of pre.
+
+--- Page 13 ---
+Model Checking Procedural Programs 13
+It is convenient to deﬁne a variant of ﬁnite automata tailored for the task of rep-
+resenting sets of conﬁgurations of P. AP-automaton is an automaton with Gas its
+alphabet, and Pas the set of initial states. Formally, a P-automaton is an automaton
+A= (G;Q;d;P;F)where Qis the ﬁnite set of states, dQGQis the set of
+transitions ,PQis the set of initial states andFQthe set of ﬁnal states .
+All the automata used in this section are P-automata, and so we drop the Pfrom
+now on. An automaton accepts orrecognizes a conﬁguration pwifps!qfor some
+q2F, where ps!qdenotes that there is a path from state pto state qlabeled by
+s. A set of conﬁgurations of Pisregular if it is recognized by some automaton.
+In the next sections we present algorithms that given an automaton recognizing
+a set Cof conﬁgurations compute automata recognizing post(C)andpre(C). We
+start with pre(C), since in this case the algorithm is a bit simpler.
+3.3.1 Computing pre(C)for a Regular Set Cby Saturation
+The input to our algorithm is an automaton Aaccepting C. Without loss of general-
+ity, we assume that Ahas no transitions leading to an initial state (by adding new ini-
+tial states if necessary, every automaton can be easily transformed into another one
+satisfying this condition and recognizing the same language). We compute pre(C)
+as the language accepted by an automaton Apreobtained from Aby means of a
+saturation procedure . The procedure adds new transitions to A, but no new states.
+New transitions are added according to the following saturation rule :
+Ifpg,!p0sandp0s!qin the current automaton,
+then add a transition (p;g;q).
+Notice that we can have s=e, in which case p0=q, and that all new transitions
+start at initial states.
+Before explaining the intuition for the rule, let us illustrate the procedure by
+means of an example. Let Pbe the pushdown shown at the top of Fig. 5, and let A
+be the automaton recognizing the singleton set C=fp0g0g0g, shown on the left. The
+automaton Apreis shown on the right. The saturation procedure adds ﬁve additional
+transitions. The table at the bottom of the ﬁgure gives for each new transition of
+the automaton the transition rule pg,!p0sof the PDS and the path p0s!qof
+the current automaton used to apply the saturation rule. The procedure eventually
+terminates because the number of possible new transitions is ﬁnite.
+The intuition for the saturation rule is as follows. Imagine that before adding the
+transition (p;g;q)as indicated in the rule, the automaton accepts a conﬁguration
+p0stby means of a run p0s!qt!q0leading to a ﬁnal state q0. This means that
+p0st2pre(C). Since pg,!p0s, we have pgt2pre(C), and so the automaton
+should also accept pgt. This is precisely what the saturation rule achieves: after
+adding the transition (p;g;q)the automaton has the run pg!qt!q0, and so it ac-
+cepts pgt.
+
+--- Page 14 ---
+14 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+p0
+p1
+p2s1 s20 0P=fp0;p1;p2g =fp00,!p110; p22,!p01;
+ =f0;1;2g p11,!p220; p01,!p0g
+p0
+p1
+p2s1 s20 010
+1 21
+pg,!p0s p0s!q New transition
+p0g1,!p0 p0e!p0 (p0;g1;p0)
+p2g2,!p0g1 p0g1!p0(p2;g2;p0)
+p1g1,!p2g2g0 p2g2g0! s1(p1;g1;s1)
+p0g0,!p1g1g0 p1g1g0! s2(p0;g0;s2)
+p1g1,!p2g2g0 p2g2g0! s2(p1;g1;s2)
+Fig. 5 The automata A(left) and Apre(right).
+This argument shows that pre(L(A))L(Apre)holds. Proving the other inclu-
+sion requires some more care, and it is outside the scope of this article. The proof
+can be found in [13]. This direction relies on the assumption that Ahas no transi-
+tions leading to an initial state. Notice that without this assumption the algorithm is
+incorrect.
+It is clear that the saturation procedure runs in polynomial time in the size of
+the PDS Pand the automaton A. An efﬁcient implementation and a more careful
+complexity analysis can be found in [26]:
+Theorem 1. [26] Given P= (P;G;D)andA= (G;Q;d;P;F), the automaton Apre
+can be computed in O (n2
+QnD)time and O (nQnD+nd)space, where n Q=jQj, nd=
+jdj, and n D=jDj.
+3.3.2 Computing post(C)for a Regular Set Cby Saturation
+We provide an algorithm for the case in which each transition rule pg,!p0sof
+Dsatisﬁesjsj2. This restriction is not essential, but leads to a simpler solution.
+Moreover, any PDS can be transformed into an equivalent one in this form, and the
+PDSs derived from RSMs directly satisfy this condition.
+
+--- Page 15 ---
+Model Checking Procedural Programs 15
+Our input is an automaton Aaccepting C. Again, we assume that Ahas no tran-
+sitions leading to an initial state. We compute post(C)as the language accepted by
+an automaton Apostwithe-moves. We denote the relation (e!)g!(e!)byg=).
+Apostis obtained from Ain two stages:
+Add to Aa new state rfor each transition rule r2Dof the form pg,!p0g0g00,
+and a transition (p0;g0;r).
+Add new transitions to Aaccording to the following saturation rules:
+Ifpg,!p0e2Dandpg=)qin the current automaton,
+then add a transition (p0;e;q).
+Ifpg,!p0g02Dandpg=)qin the current automaton,
+then add a transition (p0;g0;q).
+Ifr=pg,!p0g0g002Dandpg=)qin the current automaton,
+then add a transition (r;g00;q).
+Figure 6 shows again the PDS and the automaton from Fig. 5, and, on the right,
+the automaton Apostobtained by applying the algorithm. Since the PDS has two
+rules of the form pg,!p0g0g00, namely r1=p0g0,!p1g1g0, and r2=p1g1,!
+p2g2g0, the ﬁrst stage of the algorithm adds to Aposttwo new states r1;r2, and
+two new transitions (p1;g1;r1)and(p2;g2;r2). In the second stage the algorithm
+adds another ﬁve transitions. The table at the bottom of the ﬁgure gives for each
+new transition the transition rule pg,!p0wof the PDS, the path p0g=)qof the
+current automaton, and the saturation rule used to produce it. Again, an efﬁcient
+implementation and a more careful complexity analysis can be found in [26].
+Theorem 2. [26] Given P= (P;G;D)andA= (G;Q;d;P;F), the automaton Apost
+can be computed in O (nPnD(nQ+nD) +nPnd)time and space, where n P=jPj,
+nD=jDj, nQ=jQj, and n d=jdj.
+3.4 The Generalized Fair Computation Problem
+Section 3.2 presents a summarization algorithm for the fair computation problem:
+given a node pand a set FEnof repeat nodes, decide if phas an F-fair computa-
+tion. We now use saturation to solve a generalized version of the problem: compute
+the set of allconﬁgurations of Mhaving an F-fair computation, i.e., an inﬁnite
+computation that visits inﬁnitely often nodes in F.
+LetPM= (PM;GM;DM)be the PDS associated with M. It is easy to see that ps
+has an F-fair computation if and only if there exists p02Fsuch that ps!p0s0
+for some s02G
+Mandp0+!p0tfor some t2G
+M. We ﬁrst compute the set Rep
+of states q2Fsuch that q+!qsfor some s2G
+M. The set of conﬁgurations that
+
+--- Page 16 ---
+16 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+p0
+p1
+p2s1 s20 0P=fp0;p1;p2g =fp00,!p110; p22,!p01;
+ =f0;1;2g p11,!p220; p0;1,!p0g
+p0
+p1
+p2s1 s2
+r1
+r20 0
+10
+200
+;1
+pg,!p0s pg=)q Saturation rule New transition
+p2g2,!p0g1 p2g2=)r2 second (p0;g1;r2)
+p0g0,!p1g1g0 p0g0=)s1 third (r1;g0;s1)
+p0g1,!p0 p0g1=)r2 ﬁrst (p0;e;r2)
+p1g1,!p2g2g0 p0g0=)r1(p0e!r2g0!r1) third (r2;g0;r1)
+p0g0,!p1g1g0 p0g0=)r1 third (r1;g0;r1)
+Fig. 6 The automata A(left) and Apost(right).
+have an inﬁnite fair computation is then equal to pre(RepG
+M), which is regular and
+computable using the construction of Sect. 3.3.1.
+To compute Repwe observe that for every state qwe have q2Repif and only if
+q2pre+(qG
+M), where pre+(C) =pre(pre(C)). We construct a ﬁnite automaton
+Apre+recognizing pre+(qG
+M)from an automaton Arecognizing C. Since in Sect.
+3.3.1 we already constructed an automaton Aprerecognizing pre(C), it sufﬁces to
+provide another construction doing the same for pre(instead of pre). The construc-
+tion for pre+is the result of concatenating the two, i.e., of applying the construction
+forpreto the result of applying the construction for pre.
+The construction for preis, not surprisingly, simpler than the one for pre. It
+starts with some preprocessing. Given an input automaton A= (g;Q;d;P;F), the
+preprocessing adds to it a fresh set ˆP=fˆpjp2PMgof states, and changes the
+set of initial states to ˆP. Formally, the preprocessing returns the automaton ˆA=
+(g;Q[ˆP;d;ˆP;F). After preprocessing, the construction exhaustively applies the
+following modiﬁcation of the saturation rule:
+Ifpg,!p0sandp0s!qin the current automaton,
+then add a transition (ˆp;g;q).
+
+--- Page 17 ---
+Model Checking Procedural Programs 17
+(The only change is the substitution of ˆ pforpin the last line.) With this rule all
+new transitions start from states in ˆP, and so new transitions cannot generate further
+transitions. The correctness of the construction is easy to prove.
+This algorithm for computing Rep, presented in [13], has polynomial complexity,
+but can be improved. A more efﬁcient procedure involving Tarjan’s algorithm for
+computing strongly connected components is presented in [26].
+Theorem 3. [26] Given P= (P;G;D)and a set FP of repeat states, the set Rep
+can be computed in O (n2
+Pnd)time and O (nPnd)space.
+Recall that the algorithm for the generalized fair computation problem ﬁrst com-
+putes Repand then pre(RepG
+M). By Theorem 1, pre(RepG
+M)can be computed
+inO(jPMj2jDMj)time and O(jPMjjDMj)space, and so the generalized fair compu-
+tation problem can also be solved within the same time and space bounds.
+4 Specifying Requirements
+In order to specify requirements of programs modeled by RSMs, we ﬁrst choose
+a set Sofobservables . Each program statement, or a transition of the RSM, is
+labeled with an observation s2S. A (possibly inﬁnite) execution of the RSM then
+produces a sequence of observations. In this manner, we can associate a language
+L(M)with the RSM Mas its observational (linear) semantics. Requirements can be
+written using linear-time speciﬁcation formalisms such as Linear Temporal Logic
+(LTL) (see Chap. 2). Given an LTL speciﬁcation jover the observables S, and an
+RSM model M, the model checking question is to check if every sequence in L(M)
+satisﬁes the formula j. To solve this problem, we can compile the negation of the
+speciﬁcation into a B ¨uchi automaton A:jthat accepts all computations that violate
+j(see Chap. 7) and check that the intersection of the languages of MandA:jis
+empty. This can be algorithmically solved using the analysis algorithms discussed
+in Sect. 3. In this setup, even though the language L(M)is context-free (since the
+underlying model is a pushdown system), the requirement is given as an w-regular
+language.
+While many analysis problems such as identifying dead code and accesses to
+uninitialized variables can be captured as regular requirements, many others require
+inspection of the stack or matching of calls and returns, and are context-free. These
+include access control requirements such as “a procedure Pshould be invoked only
+if the procedure P0belongs to the call-stack,” bounds on stack size such as “if the
+number of interrupt-handling procedures in the call-stack currently is less than 5,
+then a property pholds,” and correctness speciﬁcations using pre and post condi-
+tions such as “if the property pholds when a procedure Pis invoked, the procedure
+Pmust return, and the property qholds upon return.” When viewed in isolation,
+each of these requirements is a context-free language, and checking context-free
+requirements of RSMs (or pushdown systems) is undecidable in general. However,
+the key feature of these example requirements is that the stacks in the model and the
+
+--- Page 18 ---
+18 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+requirement are correlated: while the stacks are not identical, the two synchronize
+on when to push and when to pop, and are always of the same depth. To formalize
+this, we view an execution of the program as a nested word , which consists of a
+linear sequence of states (or observations), augmented with nesting edges connect-
+ing calls with matching returns, that impart a tree-like hierarchical structure to the
+execution. Automata and logics over nested words can be used to express a variety
+of requirements such as stack-inspection properties, pre-post conditions, and inter-
+procedural data-ﬂow properties. Closure properties and decision problems of these
+automata can then be used for algorithmic veriﬁcation of procedural programs.
+4.1 Nested Words
+Nested words model data with both linear and hierarchical structure. Here we con-
+sider only inﬁnite nested words (which can model nonterminating executions of
+programs).
+Given a linear sequence, the hierarchical structure is added using edges that are
+well nested (that is, they do not cross). We will use edges starting at ¥and edges
+ending at +¥to model “pending” edges. Assume that ¥<i<+¥for every
+integer i. Amatching relation ;is a subset off¥;1;2;:::gf 1;2;:::+¥gsuch
+that (1) nesting edges go only forward: if i;jthen i<j; (2) no two nesting edges
+share a position: for each natural number i,jfjji;jgj 1 andjfjjj;igj 1;
+and (3) nesting edges do not cross: if i;jandi0;j0then it is not the case that
+i<i0j<j0.
+When i;jholds, the position iis called a call position . For a call position i,
+ifi;+¥, then iis called a pending call , otherwise iis called a matched call , and
+the unique position jsuch that i;jis called its return-successor . Similarly, when
+i;jholds, the position jis called a return position . For a return position j, if
+¥;j, then jis called a pending return , otherwise jis called a matched return ,
+and the unique position isuch that i;jis called its call-predecessor . A position i
+that is neither a call nor a return is called internal .
+Anested word w over an alphabet Sis a pair (a1a2;;)such that each aiis a
+symbol in S, and;is a matching relation. Let us denote the set of all nested words
+overSasNW(S). Alanguage of nested words over Sis a subset of NW(S).
+As an example, consider the program of Fig. 2 again. Suppose we are inter-
+ested in tracking read/write accesses to the global program variable x. Then, we can
+choose the following set of symbols for the observables S:rdto denote a read access
+tox,wrto denote a write access to x,clto denote beginning of a new scope (such
+as a call to the procedure P2),rtto denote the ending of the current scope, and sk
+to denote all other actions of the program. Note that in any structured programming
+language, in a given execution, there is a natural nested matching of the symbols cl
+andrt. Figure 7 shows a sample execution of the program modeled as a nested word
+(this execution corresponds to the initial state in which xis 0 and yis 1). For exam-
+ple, the second symbol (labeled rd) corresponds to the execution of the test “ ifx”,
+
+--- Page 19 ---
+Model Checking Procedural Programs 19
+9 85 6 7 10 113 4 12 13 21 14
+cl rt wr rd skrt cl
+sk sksk cl rt sk sk
+Fig. 7 Sample execution as a nested word.
+and the next corresponds to the assignment x:=y. Both these steps do not involve
+a change of context, and are internal positions. The procedure P2is called at posi-
+tion 4, and this call has a nesting edge to the matching position 12 (labeled rt). The
+subword from position 5 to position 11 encodes the execution of the called proce-
+dure. The main beneﬁt of explicitly augmenting the linear structure with the nesting
+edges, is that using nesting edges one can skip call to a procedure entirely, and con-
+tinue to trace a local path through the calling procedure. Consider the property that
+“if a procedure writes to xthen it later reads x.” This requires keeping track of the
+context. If we were to model executions as words, the set of executions satisfying
+this property would be a context-free language of words, and hence, not speciﬁable
+in classical temporal logics. Soon we will see that when we model executions as
+nested words, the set of executions satisfying this property is a regular language of
+nested words, and is amenable to algorithmic veriﬁcation.
+4.2 Nested Word Automata
+We deﬁne and study ﬁnite-state automata as acceptors of nested words. A nested
+word automaton (NWA) is similar to a classical ﬁnite-state word automaton, and
+reads the input from left to right according to the linear sequence. At a call, it can
+propagate states along both linear and nesting outgoing edges, and at a return, the
+new state is determined based on states labeling both the linear and nesting incoming
+edges. Thus, NWA combines the features of top-down and bottom-up tree automata.
+It can also be viewed as a restricted form of a pushdown automaton: at a call posi-
+tion, it pushes a symbol on the stack; at a return position, it pops a symbol from the
+stack; and at an internal position, it does not update or examine the stack. Thus, the
+updates to the stack are determined by the call/return structure of the input word, and
+that’s why a nested word automaton is also called a visibly pushdown automaton.
+In the context of program veriﬁcation, we are interested in nondeterministic
+NWAs: nondeterminism can arise due to inputs, due to abstraction, or when mul-
+
+--- Page 20 ---
+20 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+tiple states/transitions are associated with the same observation. We focus only on
+automata over inﬁnite words using the B ¨uchi acceptance condition.
+Anondeterministic B ¨uchi nested word automaton (BNWA) Aover an alphabet S
+consists of
+a ﬁnite set of states Q,
+a set of initial states Q0Q,
+a set of B ¨uchi states QfQ,
+a ﬁnite set of hierarchical states P,
+a set of initial hierarchical states P0P,
+a call transition relation dcQSQP,
+an internal transition relation dlQSQ, and
+a return transition relation drQPSQ.
+Given a nested word w, the automaton Astarts in an initial state, and reads the nested
+word from left to right according to the linear order. The state is propagated along
+the linear edges as in case of a standard word automaton. However, at a call, the
+nested word automaton can propagate a hierarchical state along the outgoing nesting
+edge also. At a return, the new state is determined based on the states propagated
+along the linear edge as well as along the incoming nesting edge. A pending nesting
+edge incident upon a pending return is labeled with an initial hierarchical state. The
+run is accepting if one of the B ¨uchi states repeats inﬁnitely often.
+Formally, a run rof the BNWA Aover a nested word w= (a1a2;;)is an
+inﬁnite sequence qi2Q, for i0, of states corresponding to linear edges, and a
+sequence pi2P, for call positions i, of hierarchical states corresponding to nest-
+ing edges, such that q02Q0, and for each position i1, if iis a call position
+then(qi1;ai;qi;pi)2dc; ifiis an internal position then (qi1;ai;qi)2dl; ifiis
+a matched return with call-predecessor jthen (qi1;pj;ai;qi)2dr, and if iis a
+pending return then (qi1;p0;ai;qi)2drfor some p02P0. The run is accepting if
+qi2Qffor inﬁnitely many indices i0. The automaton Aaccepts the nested word
+wifAhas some accepting run over w. The language L(A)is the set of nested words
+it accepts. A set Lof nested words is w-regular iff there is a BNWA Asuch that
+L(A) =L.
+4.2.1 RSMs as NWAs
+An RSM can be interpreted as a nested word automaton. Consider an RSM M=
+(A1;:::; Ak)with components Ai= (Ni;Bi;Yi;Eni;Exi;di). For the corresponding
+NWA AM, for each component Ai, for every node, call-port, and return port of Ai,
+there is a corresponding linear state in AM. The set of hierarchical states is the set of
+boxes of all the components. The entry nodes of the main component are the initial
+states, and the NWA does not rely on initial hierarchical states (since there will be
+no pending returns in the nested words it generates). For every transition u!vof
+each component Ai, there is a corresponding internal transition in AM. For every call
+port(en;b)ofAi, the NWA has a call transition from the state (en;b)to the state en
+
+--- Page 21 ---
+Model Checking Procedural Programs 21
+(a) (b)
+q0 q1wr
+q0
+rdwr,rti/1
+rd,hcl/1rd,sk,hcl/0,rti/0 wr,sk rd,sk,hcl,rti wr,sk,hcl,rti
+q1
+Fig. 8 Using NWA to specify program requirements.
+(corresponding to the entry node of the component AY(b)) propagating the hierarchi-
+cal state balong the nesting edge. For every return port (ex;b)ofAi, the NWA has a
+return transition to the state (ex;b)from the state ex(corresponding to the exit node
+of the component AY(b)) provided the hierarchical state along the incoming nesting
+edge is b. The labels on the transitions correspond to observations suitable for the
+analysis problem. In the example corresponding to Fig. 7, each call transition is la-
+beled with the symbol cl, each return transition is labeled with the symbol rt, and
+each internal transition is labeled with either rd,wr, orsk, depending on the type of
+the statement executed. The NWA is augmented with B ¨uchi acceptance condition
+if needed (for instance, to ensure fair resolution of choice when nondeterminism is
+used for abstraction).
+4.2.2 NWAs for Requirements
+The requirements of a program can also be described as an w-regular languages of
+nested words. Let us revisit the example used in Fig. 7. Suppose we want to specify
+that each write to xis followed by some read of x. We will consider two variations
+of this requirement.
+First, suppose we want to specify that a symbol wris followed by rd, without
+any reference to the procedural context. This can be captured by standard word
+automata, and also by NWAs. Figure 8 (a) shows the 2-state (deterministic) NWA for
+the requirement. We use the preﬁx hwith a symbol to indicate a call transition, and
+the sufﬁxiwith a symbol to indicate a return transition. Call and return transitions
+also have associated hierarchical states. In this example, hierarchical states are not
+needed.
+Now suppose, we want to specify that if a procedure writes to x, then the same
+invocation should read it before it returns. That is, between every pair of matching
+call and return, along the local path obtained deleting every enclosed well-matched
+subword between a call and its matching return, every wris followed by rd. Viewed
+as a property of words, this is not a regular language, and thus, not expressible in
+the classical speciﬁcation languages. However, over nested words, this can easily be
+speciﬁed using an NWA, see Fig. 8 (b). The initial state is q0, and has no pending
+
+--- Page 22 ---
+22 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+obligations, and is the only ﬁnal state. The hierarchical states are f0;1g, where 0 is
+the initial state. The state q1means that along the local path of the current scope, a
+write-access has been encountered with no following read access. While processing
+the call, the automaton remembers the current state by propagating 0 or 1 along
+the nesting edge, and starts checking the requirement for the called procedure by
+transitioning to the initial state q0. While processing internal read/write symbols, it
+updates the state as in the ﬁnite-state word automaton of case (a). At a return, if the
+current state is q0(meaning the current context satisﬁes the desired requirement), it
+restores the state of the calling context. Note that there are no return transitions from
+the state q1, and this means that if a return position is encountered while in state q1,
+the automaton rejects the input word.
+We now review some key properties of nested word automata that are useful in
+their application to model checking
+4.2.3 Closure Properties
+The class of w-regular (and regular) languages of nested words is closed under a
+variety of operations including union, intersection, complementation, preﬁxes, suf-
+ﬁxes, concatenation, Kleene-*, and language homomorphisms. For veriﬁcation, the
+most relevant operation is language intersection : given two BNWAs A1andA2, one
+can construct a product BNWA Asuch that L(A) =L(A1)\L(A2). IfA1captures
+the set of nested words generated by an RSM, and A2captures the set of nested
+words that violate a desired correctness requirement, then veriﬁcation corresponds
+to checking non-emptiness of the language of A. The product construction for NWAs
+is a simple extension of the product construction for ﬁnite (word) automata. A linear
+state of Ais a pair of linear states of A1andA2, and a hierarchical state of Ais a
+pair of hierarchical states of A1andA2. The call/internal/return transitions synchro-
+nize the transitions of A1andA2on a common input symbol, and update the two
+state components. Ensuring that B ¨uchi acceptance conditions of both are satisﬁed
+can be done the same way as in the product construction for B ¨uchi automata (see
+Chap. 7). It is worth noting that nested word automata can also be complemented
+and determinized. Determinization requires maintaining a set of “summaries” that
+capture executions of the nondeterministic automaton on the subword between a
+call and its matching return, and the acceptance condition needed is a parity condi-
+tion over states that repeat inﬁnitely often at the “top-level” of the input word (see
+[6] for details). The complexity of determinization as well as complementation is
+exponential.
+4.2.4 Decision Problems
+The emptiness problem for NWAs (given a BNWA A, isL(A) =/ 0?) is solvable
+in polynomial-time (in time cubic in the size of the automaton). The technique is
+the same as the one used in solving the fair computation problem for pushdown
+
+--- Page 23 ---
+Model Checking Procedural Programs 23
+systems discussed in Section 3.2. Problems such as universality (given a BNWA A,
+isL(A) =Sw?), language inclusion (given BNWAs A1andA2, isL(A1)L(A2)?),
+and language equivalence (given BNWAs A1andA2, isL(A1) =L(A2)?) can all
+be solved in EXPTIME by employing the complementation construction. Note that
+these problems are undecidable for pushdown automata (or context-free languages).
+Thus, given two RSMs, checking whether they generate the same sets of words is
+undecidable, while checking whether they generate the same sets of nested words
+is decidable. The latter is a stronger requirement which considers two executions
+equivalent when the two produce the same sequences of observations, and also agree
+on entries to and exits from procedural contexts.
+4.2.5 MSO Equivalence
+For word languages, the notion of regularity has many equivalent characterizations
+using ﬁnite automata, monadic second-order logic, and regular expressions. The
+notion of regularity for nested words also turns out to be robust. In particular, the
+monadic second order logic (MSO) of nested words has the same expressiveness
+as nested word automata. The vocabulary of nested sequences includes the linear
+successor and the matching relation ;. In order to model pending edges, we will
+use two unary predicates call andretcorresponding to call and return positions.
+Themonadic second-order logic of nested words is given by the syntax:
+f:=a(x)jX(x)jcall (x)jret(x)jx=y+1jx;yjf_fj:fj9x:fj9X:f;
+where a2S,x;yare ﬁrst-order variables, and Xis a second-order variable. The
+semantics is deﬁned over nested words in a natural way. The ﬁrst-order variables are
+interpreted over positions of the nested word, while set variables are interpreted over
+sets of positions. The formula a(x)holds if the symbol at the position interpreted
+forxisa,call (x)holds if the position interpreted for xis a call, x=y+1 holds
+if the position interpreted for yis (linear) next to the position interpreted for x, and
+x;yholds if the positions xandyare related by a nesting edge. For example,
+8x:(call (x)!9y:x;y)
+holds in a nested word iff it has no pending calls;
+8x:8y:(a(x)^x;y))b(y)
+holds in a nested word iff for every matched call labeled a, the corresponding return-
+successor is labeled b.
+For a sentence f(a formula with no free variables), the language it deﬁnes is the
+set of all nested words that satisfy f. It turns out that: a language Lof nested words
+overSisw-regular iff there is an MSO sentence foverSthat deﬁnes L.
+
+--- Page 24 ---
+24 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+4.3 Temporal Logics
+Over inﬁnite words, Linear Temporal Logic (LTL) has long been considered the
+temporal logic of choice for program veriﬁcation, not only because its temporal
+operators offer the right abstraction for reasoning about events over time, but also
+because it provides a good balance between expressiveness (ﬁrst-order complete),
+conciseness (can be exponentially more succinct compared to automata), and the
+complexity of model-checking (linear time in the size of the ﬁnite transition system,
+and PSPACE in the size of the temporal formula). This has motivated the study of
+temporal logics over nested words such as C ARET[4] and NWTL [1]. We brieﬂy
+review these logics in this section.
+Let us ﬁrst recall the syntax and semantics of LTL (see Chap. 2). Given a set
+APof atomic propositions, a formula of propositional LTL is built from atomic
+propositions, logical connectives (such as conjunction ^, disjunction_, negation:,
+implication!), and temporal operators (such as next , always 2, eventually 3,
+and until U). An LTL formula is evaluated with respect to an inﬁnite sequence w=
+a1a2overS=2AP, that is, each observation ajis an assignment of truth values
+to the propositions in AP. The semantics of LTL is deﬁned using the satisfaction
+relation (w;j)j=f, which means that the formula fis satisﬁed at position jin the
+model w. Example rules for evaluation are: (w;j)j=p, for an atomic proposition
+p, if the observation wjassigns the value 1 to p;(w;j)j=fif(w;j+1)j=f;
+(w;j)j=2fif(w;k)j=ffor every position kj; and (w;j)j=f1Uf2if there exists
+a position kjsuch that (w;k)j=f2and(w;l)j=f1for all positions jl<k.
+In the revised setting of nested words, a formula is interpreted over a nested word
+wover the set S=2APof observations. To motivate the deﬁnition of new temporal
+operators, let us examine the nested word shown in Fig. 7. Notice that unlike a
+linear sequence, the graph-like structure of a nested word means that one can deﬁne
+different kinds of paths. If we ignore the nesting edges, and focus on the linear
+sequence of positions, we obtain the linear path, and we can continue to interpret
+LTL operators over this linear path. In this example, the sequence 1 ;2;3;4;:::; 13;14
+of positions forms the linear path. Suppose we want to express the requirement that,
+along a global program execution, every write to a variable is followed by a read
+(see the automaton in Fig. 8 (a)). If wrandrddenote the atomic propositions that
+capture write and read operations, respectively, then the requirement is expressed
+by the LTL formula:
+2[wr!3rd]
+4.3.1 Abstract Next
+In a nested word, a call position has two successors: a linear edge to the next po-
+sition, and a nesting edge to the matching return. This motivates adding, besides
+the original LTL operator corresponding to the linear successor, another next
+operator, called abstract-next , denoteda. Its semantics is deﬁned by the rule:
+
+--- Page 25 ---
+Model Checking Procedural Programs 25
+(w;j)j=afholds if the position jis a call position, has a matching return
+position l(that is, j;l), and (w;l)j=f.
+It is easy to establish that the abstract-next operator is not deﬁnable in LTL. In the
+classical veriﬁcation formalisms such as Hoare logic, correctness of procedures is
+expressed using pre and post conditions. Partial correctness of a procedure Pspec-
+iﬁes that if the pre-condition pholds when the procedure Pis invoked, if the pro-
+cedure terminates, the post-condition qis satisﬁed upon return. Total correctness, in
+addition, requires the procedure to terminate. Assume that all calls to the procedure
+Pare characterized by the proposition clP. Then, the requirement
+2[(clP^p)!aq]
+expresses the total correctness, while
+2[(clP^p^aTrue )!aq]
+expresses the partial correctness.
+4.3.2 Abstract Paths
+Anabstract path in a nested word wis a sequence of positions i1;i2;:::ijsuch that,
+for each 1l<j, either ilis a call position with matching return position il+1,
+orilis an internal or a return position and il+1equals il+1 and is not a return
+position. For a nested word that models an execution of a procedural program, the
+abstract path starting at a position inside a procedure Pis obtained by successive
+applications of internal and nesting edges, and skips over invocations of other pro-
+cedures called from P. In the nested word of Fig. 7, examples of abstract paths are
+1;14, and 2;3;4;12;13, and 5;6;7;10;11, and 8;9. We can now deﬁne the abstract
+versions of temporal operators such as abstract-always 2a,abstract-eventually 3a,
+andabstract-until Ua. The semantics of these operators is deﬁned by interpreting
+them over abstract paths. For example,
+(w;j)j=f1Uaf2if there exists an abstract path j=i1;i2;:::iksuch that
+(w;ik)j=f2and(w;il)j=f1for all 1l<k.
+That is, f1Uaf2holds if there is abstract path leading to a position satisfying f2
+such that at all preceding positions along this abstract path f1holds. We can use
+these abstract modalities to specify context-bounded requirements. Let us revisit
+the requirement that if a procedure writes to a variable, then it (that is, the same
+invocation of the same procedure) will later read it (see the NWA of Fig. 8 (b)). The
+requirement is expressed by the following formula over abstract paths:
+2[wr!3ard]
+
+--- Page 26 ---
+26 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+4.3.3 Summary Paths
+Asummary path between positions iand j, with i<j, of a nested word wis a se-
+quence i=i1;i2:::ik=jof positions such that for 1 l<k, ifilis a matched call
+with a matching return position rjthen il+1=r, else il+1=il+1. Intuitively, a
+summary path between iandjis the “shortest” path from itojthat one can construct
+using linear and nesting edges. For example, in the nested word of Figure 7, the
+summary path between positions 2 and 14 is the sequence 2 ;3;4;12;13;14, while
+the summary path between positions 2 and 11 is the sequence 2 ;3;4;5;6;7;10;11.
+The summary-versions of temporal operators such as summary-until Us, are de-
+ﬁned by interpreting the temporal modalities over the summary paths. While not
+particularly natural for specifying program requirements, the interest in the sum-
+mary paths stems from their theoretical expressiveness: the expressiveness of the
+logic with abstract-next, and its past dual, abstract-previous, and summary-until,
+and its past dual, summary-since, coincides exactly with the ﬁrst-order logic over
+nested words (that is, logic with ﬁrst-order variables, quantiﬁcation over ﬁrst-order
+variables, logical connectives, binary predicates x=y+1,x<y,x;y, and unary
+predicates corresponding to call ,ret, and atomic propositions) [1]. This result is
+the analog of the result that the expressiveness of LTL coincides with the ﬁrst-order
+logic over words. Global, abstract, and other versions of temporal modalities are
+deﬁnable using ﬁrst-order logic over nested words, and this implies that require-
+ments about abstract paths can be deﬁned using modalities over summary paths.
+It seems unlikely that a similar completeness result holds for abstract modalities
+(more speciﬁcally, it is conjectured, but not proved, that the logic C ARET[4] is not
+ﬁrst-order complete).
+4.3.4 Model Checking
+Chapter 7 discusses the tableau-based approach to checking satisﬁability and model
+checking of LTL. This approach can be extended to temporal logics over nested
+words. In the sequel, we use NWTL to denote the logic with all the connectives we
+have discussed so far, and also their past duals. Given an NWTL formula j, we can
+construct a BNWA Ajsuch that (1) L(Aj)contains exactly those nested words that
+satisfy j, and (2) the size of Ajis 2O(jjj). To check whether jis satisﬁable, we can
+test whether the language of Ajis nonempty, and to check whether all executions
+of an RSM Msatisfy the NWTL speciﬁcation j, we can test language-emptiness
+of the product of the automata AMandA:j. Both satisﬁability and model checking
+problems for NWTL are EXPTIME-complete.
+The construction of the BNWA Ajcorresponding to the NWTL formula jfol-
+lows the same recipe as the tableau construction for LTL discussed in Chap. 7. We
+ﬁrst deﬁne the set Closure (j)of formulas; the linear and hierarchical states of Aj
+are subsets of Closure (j)that satisfy local consistency requirements; the transitions
+ofAjare deﬁned so that next-time requirements are correctly propagated along the
+linear edges, and the abstract-next-time requirements are correctly propagated along
+
+--- Page 27 ---
+Model Checking Procedural Programs 27
+the nesting edges; and each until-formula in the closure gives a B ¨uchi acceptance
+condition that ensures eventual fulﬁllment of the until obligations (this results in a
+generalized B¨uchi acceptance condition, which can be translated to B ¨uchi accep-
+tance condition by introducing a counter as described in Chap. 7). We refer the
+reader to [1] for details, but illustrate the essence of the construction by focusing on
+theabstract-until formulas of the form f1Uaf2.
+The closure contains propositions call ,ret, and int, that indicate the position
+types. Additionally, a proposition topis used to indicate whether the current posi-
+tion is “top-level”: a position iof a nested word wis top-level if it is not within a
+pair of matching call-return positions, that is, there are no positions jandksuch
+that j<i<kandj;k.
+The closure rule for the abstract-until formula says that if f1Uaf2is inClosure (j)
+then so are the formulas f1,f2,(f1Uaf2)anda(f1Uaf2). The size of the clo-
+sure is linear injjj.
+States correspond to subsets of the closure that satisfy consistency requirements.
+Sample consistency requirements on a state FClosure (j)are: exactly one of
+call ,ret, and int, belongs to F, and f1Uaf22Fiff either f22F, or (f12F
+andcall2Fanda(f1Uaf2)2F) or (f12Fandcall62Fandret62Fand
+(f1Uaf2)2F). Note this rule for the abstract-until formula captures its semantics
+inductively: to satisfy the formula f1Uaf2at a position either f2is satisﬁed in that
+position, or at a call position, f1is satisﬁed and the formula is propagated along
+the nesting edge, or at a return/internal position, f1is satisﬁed and the formula is
+propagated along the linear edge, provided the linear successor is not a return.
+The transitions of the automaton ensure that the desired propagation expressed by
+next and abstract-next formulas in a state is enforced. If there is an internal transition
+from state Fto state Y, then it must be the case that top2Fifftop2Yand for
+eachy2Closure (j),y2Yiffy2F. If there is a call transition from state
+Fto state Flwhile propagating state Fhon the nesting edge, then it must be the
+case that either none of F,YlandYhcontain top, ortop2Fand exactly one of Yl
+andYhcontains top; and for eachy2Closure (j),y2Yliffy2F; and for
+eachay2Closure (j),y2Yhiffay2F. Finally, if there is a return transition
+to state Yfrom state Flusing the incoming hierarchical state Fh, then it must be the
+case that top62Fl, and top2Fhifftop2Y; for eachy2Closure (j),y2Y
+iffy2Fl; and for eachay2Closure (j),y2Fhiffy2Fl.
+The B ¨uchi acceptance condition to ensure the eventual fulﬁllment of the abstract-
+until formula f1Uaf2demands that some state Fsuch that top2Fand either
+f22Forf1Uaf262Frepeats inﬁnitely often. This is based on the fact that the
+fulﬁllment of an abstract-until can be delayed forever by the propagation rules only
+along an abstract path that contains only top-level positions.
+
+--- Page 28 ---
+28 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+5 Bibliographical Remarks
+5.1 Summarization
+Two early papers proposing general frameworks for computing procedure sum-
+maries in the context of inter-procedural program analysis are [25] by Cousot and
+Cousot and [49] by Sharir and Pnueli. There is a lot of subsequent work aimed at
+investigating efﬁcient techniques for various kinds of abstract domains to account
+for data manipulated by the program, and designing efﬁcient and precise algorith-
+mic techniques for special classes of properties (c.f. [44, 46, 40, 31]). In particular,
+Reps et al. propose in [44] efﬁcient algorithms for inter-procedural data-ﬂow analy-
+sis based on graph reachability that is similar to checking reachability in pushdown
+systems. The tool Bebop by Ball and Rajamani [10] allows to verify sequential
+Boolean programs with procedure calls using basically the reachability analysis al-
+gorithm of [44]. The model of recursive state machines was deﬁned in [2] as a gen-
+eralization of the model of hierarchical state machines [7], and this work gives a de-
+tailed analysis of the complexity of solving reachability, fair computation problem,
+and model-checking problems for temporal logics such as LTL and CTL, based
+on summarization. Working directly with RSMs allows an understanding of the de-
+pendence of the computational complexity on the number of entry/exit nodes per
+component.
+5.2 Saturation
+The regularity of pre(L)for a regular language Lseems to have been ﬁrst observed
+by B ¨uchi in his work on regular canonical systems (see Chap. 5 of [16]), and has
+been rediscovered many times in slightly different contexts, for instance by Caucal
+in [22] and by Book and Otto in [11]. Book and Otto also present the saturation
+algorithms for monadic string-rewriting systems, a model closely related to PDSs.
+Saturation algorithms for computing sets of forward- and backward-reachable
+conﬁgurations of PDSs were presented by Bouajjani et al. and Finkel et al. [13, 30].
+Efﬁcient versions with a detailed complexity analysis were obtained by Esparza et
+al. [26] (see also [47]). Symbolic versions of the algorithms were implemented in the
+MOPED tool by Schwoon and applied to veriﬁcation problems of Linux drivers [29,
+47]. The jMOPED tool adds to MOPED a front-end that transforms Java programs
+into extended pushdown systems and allows to apply MOPED [52].
+The saturation technique has been extended in a number of ways. We brieﬂy
+summarize some of the contributions.
+Bouajjani et al. extend the technique to alternating pushdown systems , and ap-
+ply the algorithms to the global1model-checking problem of CTL [13]. They show
+1Here global model-checking means computing the set of all states in a given model that satisfy
+some given formula.
+
+--- Page 29 ---
+Model Checking Procedural Programs 29
+how to compute for a given CTL formula fand a PDS Pthe set of all conﬁgu-
+rations of Psatisfying f. A different extension leading to a similar algorithm for
+CTLis described by Esparza et al. in [27]. An efﬁcient algorithm for CTL model-
+checking based on solving emptiness of alternating B ¨uchi pushdown automata has
+been deﬁned in [50].
+Reps et al. show how to apply saturation to weighted pushdown systems , in which
+transition rules are labeled with elements of an idempotent semiring [45]. The satu-
+ration algorithm is extended so that it returns not only the sets pre(C)andpost(C),
+but for each conﬁguration cin them the total weight of the paths leading from cto
+Cor from Ctoc, respectively. The extensions are implemented in the Weighted
+Automata Library WALi [38]. While the original motivation of this work was to
+obtain a general framework for inter-procedural data-ﬂow analysis, the developed
+framework and algorithms were shown to be also useful for other applications, like
+modeling and verifying trust-management systems [37].
+Cachat describes a saturation algorithm for computing the attractor of a regular
+setCof conﬁgurations of a pushdown game system [21]. A pushdown game system
+is a PDS in whose states are partitioned into two sets under the control of two dif-
+ferent players. A play is a sequence of conﬁgurations, where the successor of the
+current conﬁguration is decided by the player owning its control state. The attrac-
+tor is the set of conﬁgurations such that the ﬁrst player can force the play to visit
+C. Hague and Ong extend Cachat’s ideas to algorithms for computing the winning
+regions of a given parity game [33], and for a given PDS Pand a given formula f
+of the m-calculus the set of all conﬁgurations of Psatisfying f[34].
+Higher-order pushdown systems (HPDSs) generalize PDSs by allowing nested
+stacks, i.e., stacks whose elements can be stacks themselves. Bouajjani and Meyer
+extend the saturation algorithm to HPDSs with one control state, also called higher-
+order context-free processes [15]. Hague and Ong extend the results to general
+HPDSs [32]. Seth gives an alternative construction for order 2 [48].
+5.3 Temporal Logic Model Checking
+Model checking of pushdown systems has been studied extensively for both linear-
+and branching-time requirements (see e.g. [20, 55, 13, 30, 26, 27, 42, 2]). The decid-
+ability of the model-checking problem of pushdown systems for the propositional
+m-calculus (which subsumes in expressiveness regular propositional temporal log-
+ics such as LTL and CTL) is a consequence of [39]. However, the model-checking
+algorithm derived from this result, that is based on a reduction to satisﬁability prob-
+lem of the monadic second order logic of two successors, has a non-elementary
+complexity. In [17], an elementary algorithm is provided for the class of context-
+free processes (equivalent to pushdown systems with a single control state) and the
+alternation-free (branching-time) propositional m-calculus. Basically, this algorithm
+generalizes the summarization construction as it is based on computing pairs of
+pre/post conditions of process. The algorithm has been extended to the full class of
+
+--- Page 30 ---
+30 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+pushdown systems, but still for alternation-free m-calculus) in [18], and then later to
+the full propositional m-calculus, but only for context-free processes, in [19]. The al-
+gorithms deﬁned in this series of work have been implemented in a tool called “The
+Fixpoint-Analysis Machine” [51] that has been used in practice for tackling various
+problems such as intra/inter-procedural data ﬂow analysis, model-checking, and be-
+havioral equivalence checking. The ﬁrst elementary model-checking algorithm for
+the full class of pushdown systems and the full propositional m-calculus has been
+deﬁned in [53].The algorithm is based on solving pushdown parity games. A global
+model-checking algorithm for this general case has been provided ﬁrst in [43]. In
+[53], the model-checking problem of pushdown systems for the full m-calculus is
+shown to be EXPTIME-complete. In [54], the problem is shown to be EXPTIME-
+complete even for CTL, and that it is PSPACE-complete for the EF fragment. In
+[13], the problem is shown to be EXPTIME-complete for LTL and the linear-time
+propositional m-calculus.
+Even though the general problem of checking context-free properties of push-
+down automata is undecidable, algorithmic solutions have been proposed for check-
+ing many different kinds of non-regular properties. For example, numerical proper-
+ties have been considered in [12, 14] where model-checking algorithms are deﬁned
+for extension of temporal logics with constraints on the number of occurrences of
+events/states along computations. These logics allow for instance to express proper-
+ties such as “ between every two pairs of events a and b, there is the same number of
+c’s and d’s ”. The model-checking algorithms proposed for these logics are based on
+reductions to the satisﬁability of Presburger arithmetics, using the fact that Parikh-
+images of context-free languages are semi-linear sets [41].
+Non-numerical properties have also been considered in several works. For in-
+stance, access control requirements such as “ a module A should be invoked only if
+the module B belongs to the call-stack ”, and bounds on stack size such as “ if the
+number of interrupt-handlers in the call-stack currently is less than 5, then a prop-
+erty p holds ” require inspection of the stack, and decision procedures for certain
+classes of stack properties have been proposed [36, 28, 23].
+The idea of explicit modalities that can reference to the matching structure of
+calls and returns ﬁrst appears in the temporal logic C ARET[4]. Subsequently, the
+model of visibly pushdown automata [5] and the theory of regular languages of
+nested words [6] were proposed as a unifying basis to explain which class of prop-
+erties are algorithmically checkable against pushdown models. [1] deﬁnes the tem-
+poral logic NWTL, and presents a systematic study of linear temporal logics over
+nested words. [24] describes a speciﬁcation language called P ALthat extends the
+query language of the software model checker B LAST [35] for writing nested word
+monitors, along with a tool to instrument C code.
+The nested structure on words can be extended to trees, and automata on nested
+trees are studied in [3]. A version of the m-calculus on nested structures has been
+deﬁned in [3], and is shown to be more powerful than the standard m-calculus, while
+at the same time remaining robust and tractable.
+
+--- Page 31 ---
+Model Checking Procedural Programs 31
+References
+1. R. Alur, M. Arenas, P. Barcelo, K. Etessami, N. Immerman, and L. Libkin. First-order and
+temporal logics for nested words. In Proceedings of the 22nd IEEE Symposium on Logic in
+Computer Science , pages 151–160, 2007.
+2. R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. W. Reps, and M. Yannakakis. Analysis of
+recursive state machines. ACM Trans. Program. Lang. Syst. , 27(4):786–818, 2005.
+3. R. Alur, S. Chaudhuri, and P. Madhusudan. A ﬁxpoint calculus for local and global program
+ﬂows. In Proceedings of the 33rd Annual ACM Symposium on Principles of Programming
+Languages , pages 153–165, 2006.
+4. R. Alur, K. Etessami, and P. Madhusudan. A temporal logic of nested calls and returns. In
+TACAS’04: Tenth International Conference on Tools and Algorithms for the Construction and
+Analysis of Software , LNCS 2988, pages 467–481. Springer, 2004.
+5. R. Alur and P. Madhusudan. Visibly pushdown languages. In Proceedings of the 36th ACM
+Symposium on Theory of Computing , pages 202–211, 2004.
+6. R. Alur and P. Madhusudan. Adding nesting structure to words. Journal of the ACM , 56(3),
+2009.
+7. R. Alur and M. Yannakakis. Model checking of hierarchical state machines. ACM Transac-
+tions on Programming Languages and Systems , 23(3):1–31, 2001.
+8. T. Ball, V . Levin, and S. K. Rajamani. A decade of software model checking with SLAM.
+Commun. ACM , 54(7):68–76, 2011.
+9. T. Ball and S. Rajamani. Bebop: A symbolic model checker for boolean programs. In SPIN
+00: SPIN Workshop , LNCS 1885, pages 113–130. Springer, 2000.
+10. T. Ball and S. K. Rajamani. Bebop: A symbolic model checker for boolean programs. In
+SPIN , volume 1885 of Lecture Notes in Computer Science , pages 113–130. Springer, 2000.
+11. R. Book and F. Otto. String-Rewriting Systems . Springer, 1993.
+12. A. Bouajjani, R. Echahed, and P. Habermehl. On the veriﬁcation problem of nonregular prop-
+erties for nonregular processes. In 10th Annual IEEE Symposium on Logic in Computer Sci-
+ence (LICS), San Diego, CA, USA , pages 123–133. IEEE Computer Society, 1995.
+13. A. Bouajjani, J. Esparza, and O. Maler. Reachability analysis of pushdown automata: Appli-
+cation to model checking. In Proc. CONCUR’97 , LNCS 1243, pages 135–150, 1997.
+14. A. Bouajjani and P. Habermehl. Constrained properties, semilinear systems, and petri nets. In
+7th International Conference on Concurrency Theory (CONCUR), Pisa, Italy , volume 1119
+ofLecture Notes in Computer Science , pages 481–497. Springer, 1996.
+15. A. Bouajjani and A. Meyer. Symbolic reachability analysis of higher-order context-free pro-
+cesses. In K. Lodaya and M. Mahajan, editors, FSTTCS , volume 3328 of Lecture Notes in
+Computer Science , pages 135–147. Springer, 2004.
+16. J. R. B ¨uchi. Finite Automata, Their Algebras and Grammars . Springer, 1988. D. Siefkes
+(ed.).
+17. O. Burkart and B. Steffen. Model checking for context-free processes. In 3rd International
+Conference on Concurrency Theory (CONCUR), Stony Brook, NY, USA , volume 630 of Lec-
+ture Notes in Computer Science , pages 123–137. Springer, 1992.
+18. O. Burkart and B. Steffen. Pushdown processes: Parallel composition and model checking. In
+5th International Conference on Concurrency Theory (CONCUR), Uppsala, Sweden , volume
+836 of Lecture Notes in Computer Science , pages 98–113. Springer, 1994.
+19. O. Burkart and B. Steffen. Model checking the full modal mu-calculus for inﬁnite sequen-
+tial processes. In 24th International Colloquium on Automata, Languages and Programming
+(ICALP), Bologna, Italy , volume 1256 of Lecture Notes in Computer Science , pages 419–429.
+Springer, 1997.
+20. O. Burkart and B. Steffen. Model checking the full modal mu-calculus for inﬁnite sequential
+processes. Theor. Comput. Sci. , 221(1-2):251–270, 1999.
+21. T. Cachat. Symbolic strategy synthesis for games on pushdown graphs. In P. Widmayer, F. T.
+Ruiz, R. M. Bueno, M. Hennessy, S. Eidenbenz, and R. Conejo, editors, ICALP , volume 2380
+ofLecture Notes in Computer Science , pages 704–715. Springer, 2002.
+
+--- Page 32 ---
+32 Rajeev Alur, Ahmed Bouajjani, and Javier Esparza
+22. D. Caucal. On the regular structure of preﬁx rewriting. Theor. Comput. Sci. , 106(1):61–86,
+1992.
+23. K. Chatterjee, D. Ma, R. Majumdar, T. Zhao, T. Henzinger, and J. Palsberg. Stack size analysis
+for interrupt driven programs. Information and Computation , 194(2):144–174, 2004.
+24. S. Chaudhuri and R. Alur. Instrumenting C programs with nested word monitors. In
+SPIN2007: 14th Internation Workshop on Model Checking Software , 2007.
+25. P. Cousot and R. Cousot. Static determination of dynamic properties of recursive procedures.
+InIFIP WG2.2 Conference on Formal Description of Programming Concepts , pages 237–277.
+North-Holland Publishing Company, 1978.
+26. J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Efﬁcient algorithms for model check-
+ing pushdown systems. In Proceedings of CAV 2000 , LNCS 1855, pages 232–247. Springer,
+2000.
+27. J. Esparza, A. Kucera, and S. Schwoon. Model checking ltl with regular valuations for push-
+down systems. Inf. Comput. , 186(2):355–376, 2003.
+28. J. Esparza, A. Kucera, and S. S. Schwoon. Model-checking LTL with regular valuations for
+pushdown systems. Information and Computation , 186(2):355–376, 2003.
+29. J. Esparza and S. Schwoon. A BDD-based model checker for recursive programs. In Proc.
+CAV’01 , LNCS 2102, pages 324–336. Springer, 2001.
+30. A. Finkel, B. Willems, and P. Wolper. A direct symbolic approach to model checking push-
+down systems. Electr. Notes Theor. Comput. Sci. , 9:27–37, 1997.
+31. S. Gulwani and A. Tiwari. Computing procedure summaries for interprocedural analysis. In
+ESOP , volume 4421 of Lecture Notes in Computer Science , pages 253–267. Springer, 2007.
+32. M. Hague and C.-H. L. Ong. Symbolic backwards-reachability analysis for higher-order push-
+down systems. In H. Seidl, editor, FoSSaCS , volume 4423 of Lecture Notes in Computer
+Science , pages 213–227. Springer, 2007.
+33. M. Hague and C.-H. L. Ong. Winning regions of pushdown parity games: A saturation
+method. In M. Bravetti and G. Zavattaro, editors, CONCUR , volume 5710 of Lecture Notes
+in Computer Science , pages 384–398. Springer, 2009.
+34. M. Hague and C.-H. L. Ong. A saturation method for the modal -calculus over pushdown
+systems. Inf. Comput. , 209(5):799–821, 2011.
+35. T. Henzinger, R. Jhala, R. Majumdar, G. Necula, G. Sutre, and W. Weimer. Temporal-safety
+proofs for systems code. In CAV 02: Proc. of 14th Conf. on Computer Aided Veriﬁcation ,
+LNCS 2404, pages 526–538. Springer, 2002.
+36. T. Jensen, D. L. Metayer, and T. Thorn. Veriﬁcation of control ﬂow based security properties.
+InProceedings of the IEEE Symposium on Security and Privacy , pages 89–103, 1999.
+37. S. Jha, S. Schwoon, H. Wang, and T. W. Reps. Weighted pushdown systems and trust-
+management systems. In TACAS , volume 3920 of Lecture Notes in Computer Science , pages
+1–26. Springer, 2006.
+38. N. Kidd, A. Lal, and T. Reps. WALi: The weighted automata library. See
+http://www.cs.wisc.edu/wpis/wpds/.
+39. D. E. Muller and P. E. Schupp. The theory of ends, pushdown automata, and second-order
+logic. Theor. Comput. Sci. , 37:51–75, 1985.
+40. M. M ¨uller-Olm and H. Seidl. Precise interprocedural analysis through linear algebra. In
+POPL , pages 330–341. ACM, 2004.
+41. R. Parikh. On context-free languages. J. ACM , 13(4):570–581, 1966.
+42. N. Piterman and M. Y . Vardi. Global model-checking of inﬁnite-state systems. In R. Alur and
+D. Peled, editors, CAV, volume 3114 of Lecture Notes in Computer Science , pages 387–400.
+Springer, 2004.
+43. N. Piterman and M. Y . Vardi. Global model-checking of inﬁnite-state systems. In 16th Inter-
+national Conference on Computer Aided Veriﬁcation (CAV), Boston, MA, USA , volume 3114
+ofLecture Notes in Computer Science , pages 387–400. Springer, 2004.
+44. T. Reps, S. Horwitz, and M. Sagiv. Precise interprocedural dataﬂow analysis via graph reach-
+ability. In Proceedings of POPL , pages 49–61. ACM, 1995.
+
+--- Page 33 ---
+Model Checking Procedural Programs 33
+45. T. Reps, S. Schwoon, S. Jha, and D. Melski. Weighted pushdown systems and their application
+to interprocedural dataﬂow analysis. Science of Computer Programming , 58(1–2):206–263,
+October 2005. Special Issue on the Static Analysis Symposium 2003.
+46. S. Sagiv, T. W. Reps, and S. Horwitz. Precise interprocedural dataﬂow analysis with applica-
+tions to constant propagation. Theoretical Computer Science , 167(1&2):131–170, 1996.
+47. S. Schwoon. Model-Checking Pushdown Systems . PhD thesis, TU M ¨unchen, 2002.
+48. A. Seth. An alternative construction in symbolic reachability analysis of second order push-
+down systems. Int. J. Found. Comput. Sci. , 19(4):983–998, 2008.
+49. M. Sharir and A. Pnueli. Two approaches to interprocedural data ﬂow analysis. In Program
+ﬂow analysis: Theory and applications , pages 189–233. Prentice-Hall, 1981.
+50. F. Song and T. Touili. Efﬁcient CTL model checking for pushdown systems. In CONCUR’11 ,
+volume 6901 of Lecture Notes in Computer Science , pages 434–449. Springer, 2011.
+51. B. Steffen, A. Claßen, M. Klein, J. Knoop, and T. Margaria. The ﬁxpoint-analysis machine.
+In6th International Conference on Concurrency Theory (CONCUR), Philadelphia, PA, USA ,
+volume 962 of Lecture Notes in Computer Science , pages 72–87. Springer, 1995.
+52. D. Suwimonteerabuth, S. Schwoon, and J. Esparza. jMoped: A Java bytecode checker based
+on Moped. In Proceedings of TACAS 2005 , LNCS 3440, pages 541–545. Springer, 2005.
+53. I. Walukiewicz. Pushdown processes: Games and model checking. In 8th International Con-
+ference on Computer Aided Veriﬁcation (CAV), New Brunswick, NJ, USA , volume 1102 of
+Lecture Notes in Computer Science , pages 62–74. Springer, 1996.
+54. I. Walukiewicz. Model checking ctl properties of pushdown systems. In 20th Conference
+on Foundations of Software Technology and Theoretical Computer Science (FSTTCS), New
+Delhi, India , volume 1974 of Lecture Notes in Computer Science , pages 127–138. Springer,
+2000.
+55. I. Walukiewicz. Pushdown processes: Games and model-checking. Inf. Comput. , 164(2):234–
+263, 2001.

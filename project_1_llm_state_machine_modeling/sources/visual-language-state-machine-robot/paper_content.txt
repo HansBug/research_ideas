@@ -1,0 +1,625 @@
+--- Page 1 ---
+Visual Language State Machine Robot∗
+Elias Goldsztejn, Dan Rouven Suissa, Ronen Brafman
+Department of Computer Science, Ben Gurion University of the Negev, Beer Sheva, Israel
+Keywords: Cognitive Robotics, Robot and Multi-Robot Systems, Task Planning and Execution, Vision and Perception
+Abstract: Autonomous mobile robots in human environments must balance efficiency with social compliance and safety.
+While Vision-Language Models (VLMs) enable semantic scene understanding, existing frameworks often lack
+dynamic reconfiguration in response to changing scenarios, gestures, and hazards. We present zero-shot VLM
+integration without fine-tuning using a modular state-machine architecture that dynamically adapts navigation,
+gesture-triggered transitions, and safety-critical overrides. Experiments show robust gesture recognition, ob-
+ject detection, and scenario adaptability, with seamless behavior switching at expected transition points.
+1 INTRODUCTION
+Effective interaction with complex environments
+and humans is a key challenge for autonomous
+robotic systems. Vision-Language Models (VLMs)
+are promising tools for addressing these challenges
+thanks to their semantically rich perception and
+decision-making capabilities (Liu et al., 2024; Jeong
+et al., 2024). In this paper, we utilize VLMs to con-
+trol and coordinate multiple off-the-shelf behaviors,
+allowing them to adapt dynamically to environmental
+changes, object detection, and human gestures. Un-
+like prior work relying on fine-tuning (Yang et al.,
+2024; Li et al., 2023) or end-to-end policies (Wang
+et al., 2024), our modular system requires no training
+and uses zero-shot VLM outputs to adapt its behavior.
+Our system leverages the VLM to interpret scenes,
+gestures, and hazards, dynamically adjusting behavior
+without per-task training. For navigation, the robot
+adapts its algorithm parameters based on scene un-
+derstanding; for Human Robot Interaction (HRI), it
+interprets gestures to trigger behaviors like following;
+for safety, it recognizes hazards and either navigates
+more cautiously or hands control to a human oper-
+ator. These behaviors are synchronized by a state-
+based controller informed by the VLM output. Rather
+than aiming for exhaustive coverage, we showcase
+how combining VLMs with control structures enables
+rich, adaptive robot behavior in diverse settings.
+∗This work was supported by ISF Grant 1651/19, the
+Helmsley Charitable Trust through the ABC Robotics Cen-
+ter of Ben-Gurion University, and the Lynn and William
+Frankel Center for Computer Science.
+Figure 1: Example of scene description using Llama-Vision
+11b in an office environment. The VLM accurately found
+that the environment is an office, the closest object is a door,
+and that there are no people close. The robot dynamically
+adjusts its inflation radius for smoother door passage and
+reduces its velocity accordingly.
+Specifically, we propose a zero-shot approach
+to high-level robot control using a VLM combined
+with a state machine, without additional task-specific
+fine-tuning. The VLM is used both to perform
+context-based parameter tuning and to drive the
+higher-level state-machine controller. This modu-
+lar approach can easily accommodate additional be-354
+Goldsztejn, E., Suissa, D. R. and Brafman, R.
+Visual Language State Machine Robot.
+DOI: 10.5220/0014310800004052
+Paper published under CC license (CC BY -NC-ND 4.0)
+InProceedings of the 18th International Conference on Agents and Artiﬁcial Intelligence (ICAART 2026) - Volume 1 , pages 354-361
+ISBN: 978-989-758-796-2; ISSN: 2184-433X
+Proceedings Copyright ©2026 by SCITEPRESS – Science and Technology Publications, Lda.
+
+
+--- Page 2 ---
+Figure 2: Example of scene description using Llama-Vision
+11b. The VLM accurately found that the environment is a
+hall, and a person is raising his hand. Because the person is
+raising his hand, the robot starts following him.
+haviors. In summary, our contribution is a uni-
+fied system that integrates and enhances diverse
+adaptive skills through zero-shot VLM perception,
+using a modular state-machine framework, vali-
+dated through empirical evaluation. Our system
+is open-sourced, and our code is freely available
+online: https://github.com/vlsmr/Visual-Language-
+State-Machine-Robot
+2 BACKGROUND AND RELATED
+WORK
+Visual Language Models (VLMs). Vision-
+Language Models (VLMs) (Li et al., 2025) combine
+computer vision and natural language processing to
+process and relate visual and textual data. As mul-
+timodal systems, they enable foundational tasks such
+as image captioning, VQA, and image-text retrieval.
+A typical VLM uses specialized encoders to estab-
+lish semantic connections across modalities. Recent
+efforts apply VLMs to robotics: (Li et al., 2023) in-
+troduced RoboFlamingo for manipulation, and (Song
+et al., 2024) proposed VLM-Social-Nav for socially
+aware navigation. (Cheng et al., 2024) also developed
+NaVILA, integrating VLM perception with locomo-
+tion for legged robots. These works demonstrate the
+VLM’s capacity to enhance flexibility and context-
+awareness in robotic systems.Adaptive Navigation using VLMs. Effective navi-
+gation requires dynamic parameter adjustment based
+on environmental elements like corridors or door-
+ways. VLMs generate high-level semantic represen-
+tations (Liu et al., 2024; Huang et al., 2023) that
+integrate perception with real-time decision-making.
+VLM-GroNav (Elnoor et al., 2024) estimates terrain
+properties using VLM and proprioception to dynami-
+cally adjust traversability. BehA V (Weerakoon et al.,
+2024) utilizes zero-shot scene understanding, allow-
+ing robots to follow complex instructions and respect
+constraints. Unlike fixed-policy pipelines (Yokoyama
+et al., 2024; Elnoor et al., 2024; Weerakoon et al.,
+2024), our system leverages VLM outputs to adjust
+a state machine, enabling more flexible and adaptive
+high-level behavior.
+Gesture Recognition using VLMs. Human ges-
+ture understanding is critical for HRI, yet traditional
+methods often rely on intensive tracking (e.g., HMMs
+(Chen et al., 2003)), large labeled datasets (Yu et al.,
+2022), or wearable sensors (Cheng et al., 2021).
+VLM-based methods offer a flexible alternative. Re-
+cent work, such as GIRAF (Lin et al., 2023), com-
+bines vision models with language prompts to inter-
+pret gestures and infer intent. GestLLM (Kobzarev
+et al., 2025) uses large language models and fea-
+ture extraction (MediaPipe) to recognize diverse ges-
+tures without training. Our work moves beyond sim-
+ple recognition by integrating gestures into a state-
+machine framework that directly triggers behavioral
+changes, such as initiating a ”follow” mode.
+Object and Hazard Detection. Accurate object
+recognition is vital for robot navigation. While clas-
+sical methods like YOLO offer speed (Terven et al.,
+2023), VLMs provide greater flexibility and contex-
+tual understanding (Zhang et al., 2021; Li et al.,
+2024). VLMs also excel in hazard detection. IN-
+SIGHT (Chen et al., 2025) is a hierarchical VLM
+framework for autonomous driving that integrates in-
+puts to detect unpredictable scenarios and improve
+safety. We utilize the VLM to detect both general con-
+texts and specific dangerous objects, incorporating
+this information into a state-machine-governed safety
+protocol for an immediate switch to human control.
+Distinction from Prior Work. Our approach in-
+tegrates continuous scene understanding and adap-
+tive control into a unified modular framework, ex-
+tending capabilities beyond monolithic methods like
+OpenFMNav (Kuang et al., 2024). Compared to
+VLM-based systems—VLM-Social-Nav (Song et al.,
+2024), BehA V (Weerakoon et al., 2024), and NaV-
+ILA (Cheng et al., 2024)—our system offers critical
+advancements. Where these often focus on naviga-
+tion or fixed policies, our system leverages zero-shotVisual Language State Machine Robot
+355
+
+
+--- Page 3 ---
+Figure 3: State diagram. The VLM analyzes images and
+provides descriptions, while a decision module adjusts the
+robot’s states accordingly.
+VLM perception within a hierarchical state machine
+for dynamic parameter adaptation based on real-time
+environmental context. Crucially, our framework
+supports seamless, gesture-triggered mode transitions
+and immediate safety-driven overrides without requir-
+ing fine-tuning or retraining. This inherent flexibility
+distinguishes our work from approaches that rely on
+dedicated training or rigid operational pipelines.
+3 APPROACH
+3.1 Robot
+We use a RoverZero robot (Fig. 5) with a top-mounted
+computer providing real-time visualization. The state
+machine (external computer) sends messages to the
+robot. The robot operates using ROS (Quigley et al.,
+2009) and employs the Dynamic Window Approach
+(DWA) (Fox et al., 1997) for Navigation. In this state,
+the state machine sets maximum speed and inflation
+radius parameters while the robot autonomously fol-
+lows goals. In Follow and Remote states, the state
+machine directly controls velocity.
+3.2 State-Machine (Master)
+The state machine uses the transitions package
+(Bronger et al., 2024) and communicates via Python’s
+multiprocessing shared memory (van Rossum and
+the Python Development Team, 2024). This ensures
+modularity by maintaining independent spaces forInitialize: History buffer H←/0
+Input : JSON from VLM; environment
+dictE; hazardous set Oh; object
+dictO
+Output : <state ><message >to the robot
+while truedo
+data←GetJSONFromVLM ()
+append data toH
+(person close ,raising hand ,ob ject ,env)←
+MajorityV ote (H)
+max speed←E[env]// retrieve max
+speed for environment
+in f lation radius ←O[ob ject ]
+// inflation radius from object
+dict
+ifperson close∧raising hand then
+state←FOLLOW
+else
+ifob ject ∈Ohthen
+state←REMOTE
+else
+state←NAVIGATION
+end
+end
+end
+Algorithm 1: State Machine Decision Process.
+each module. The machine exchanges commands
+based on a JSON file generated from parsed VLM de-
+scriptions of images captured at F Hz. A rule-based
+system determines the state (Fig. 3, Algorithm 1). See
+Fig. 6 for the robot’s view in different states. We im-
+plemented a stabilization mechanism using majority
+voting over the last kentries in a history buffer. This
+ensures outputs are selected no more frequently than
+every 2 seconds and no less than every 10 seconds.
+Since the VLM’s response frequency varies, we
+implemented a stabilization mechanism using major-
+ity voting over the last k entries in a history buffer.
+This ensures outputs are selected no more frequently
+than every 2 seconds and no less than every 10 sec-
+onds. The value of k is adapted based on the VLM’s
+response rate.
+3.3 VLM Error Correction + Parser
+We use Llama-Vision-11b via the GROQCloud API,
+achieving approximately 2 Hz throughput. We contin-
+uously upload images with a structured prompt query-
+ing: (1) Environment type, (2) Nearby objects, (3)
+Person presence, and (4) Hand gestures. See Figs.
+1 and 2. Responses are retrieved in JSON. The mod-
+ule handles errors, reattempts uploads, and cleans theICAART 2026 - 18th International Conference on Agents and Artiﬁcial Intelligence
+356
+
+
+--- Page 4 ---
+Figure 4: The diagram illustrates the interaction between the various modules and their core messages. The State-Machine
+(Master) communicates with independent modules to determine the appropriate state, and subsequently sends commands to
+the robot.
+Figure 5: The system setup includes a RoverZero Robot, an
+external computer, and a suite of sensors: RGBD, LiDAR,
+and odometry.
+output (lowercasing, filtering) before sending the pro-
+cessed JSON to the State-Machine.
+3.4 Tracking
+This module activates when a nearby person raises
+a hand (detected by VLM). Tracking is performed
+using Detectron2 (Wu et al., 2019), which runs lo-
+cally and is faster than the VLM for identification.
+We compute the center of mass (x,y,z)for each per-
+son using segmentation and RGB-D data. At approx.
+10 Hz, we assign positions by identifying the clos-
+est updated center of mass. To handle occlusions,
+the system stores the last known position and waits
+a short interval. Proximity constraints stop the robot
+if the person is too close. We convert the (x,z)po-
+sition into velocity commands using linear interpola-tion: linear vel=1,angular vel=k·x
+z. See Algo-
+rithm 2.
+3.5 Message Notification Application
+Even state-of-the-art navigation can falter in haz-
+ardous situations, so a readily activatable fallback is
+essential.
+In our implementation, VLM-detected objects are
+validated by the state machine against a predefined
+list of hazards (e.g., wet-floor sign, glass door); on a
+match, the Message module is invoked.
+We developed a notification application for An-
+droid, using the Firebase (Firebase, 2011) protocol to
+broadcast messages to all app users. The Message
+module connects to a dedicated Ktor (Ktor, 2018)
+server and sends the message: ”Request to Help
+Robot: <dangerous −ob ject >”. All users receive
+this notification.
+The robot then halts and waits for the first user to
+establish a connection. Upon connection, the robot
+sends the message: ”Got Help, Thanks!” The user
+then remotely controls the robot to move it away from
+the dangerous object. See Fig. 7
+3.6 User Remote Control of Robot
+When a user receives the notification, they can choose
+to assist the robot. The first user to do so gains real-
+time access to the robot’s camera feed and can send
+commands to move the robot.Visual Language State Machine Robot
+357
+
+
+--- Page 5 ---
+Figure 6: Screenshots from the robot’s camera, showing its point of view in different states.
+Figure 7: This diagram illustrates the remote control protocol, including the notification service and the user connection to
+the robot.
+We implemented the remote control functionality
+using a Wi-Fi connection with a socket protocol and
+observed a slight connection latency of approximately
+0.5 seconds.
+This approach is well-suited for our scenario,
+as the robot operates within the university campus,
+which has a robust and expansive Wi-Fi network.
+4 EXPERIMENTS
+Implementation runs on a PC (13th Gen i7, 32GB
+RAM, RTX 4070) and a RoverZero robot (Intel NUC
+i7, RPLiDAR A3, RealSense TD256 & D435). We
+used Llama-Vision 11b.
+We first evaluate VLM recognition capabilities,
+followed by autonomous navigation trials in two cir-
+cuits to measure expected switches against ground-
+truth annotations.
+4.1 Recognition
+We measured recognition distance and time (averaged
+over 10 trials) for Follow mode (raised hand) and Re-mote mode (wet floor sign), as summarized in Table
+1. Environment recognition precision, calculated over
+2-minute traversals, is detailed in Table 2.
+Both gestures and hazards were reliably detected
+within 2s (including network latency) at distances up
+to 10m and 12.5m, respectively. Environment recog-
+nition achieved 100% accuracy for Office and Cor-
+ridor settings. However, accuracy dropped for Hall
+(86%) and Park (78%) due to visual ambiguities,
+where specific camera angles resembled other envi-
+ronments.
+4.2 State-Machine
+We designed two test circuits containing specific haz-
+ards and gesture zones. Using DWA for autonomous
+navigation, we conducted 10 trials per circuit. Per-
+formance was evaluated against manually annotated
+ground truth by recording the robot-to-object distance
+at the moment of each mode switch.
+To assess the behavior-switching performance of
+our VLM-based system, we employ the following
+metrics:ICAART 2026 - 18th International Conference on Agents and Artiﬁcial Intelligence
+358
+
+
+--- Page 6 ---
+Input : RGB-D image stream; Detectron2
+model
+Output: Velocity commands
+(linear vel,angular vel)
+iftracking activated then
+start timer T←30 s
+while tracking active do
+run Detectron2
+extract people centers of mass (x,y,z)
+match detected persons to previous
+positions
+iftracking lost >1sorT expired
+then
+exit tracking
+end
+iftoo close then
+stop robot
+end
+else
+compute and send velocity
+commands
+linear vel←1
+angular vel←k·x
+z
+end
+end
+end
+Algorithm 2: Person Tracking Module.
+Table 1: Minimum and maximum distance and recognition
+time for Remote and Follow modes.
+Remote Follow
+Min. Distance (m) 0.5 2.0
+Max. Distance (m) 12.5 10.0
+Recognition Time (s) 1.8±0.3 1.6±0.1
+•Behavior Alignment Score (BAS): The percent-
+age of correct behavior transitions—i.e., instances
+where the robot switches to the correct mode at
+the expected location—out of all expected transi-
+tion points. This score indicates how well the sys-
+tem aligns with intended behavior (Jacoff et al.,
+2002; Chen et al., 2023). Higher is better.
+•Transition Latency ( Lt):The mean absolute dis-
+tance between the ground-truth trigger location
+(object or person) and the robot’s actual switching
+location, quantifying system responsiveness (Ja-
+coff et al., 2002; Norton et al., 2022). Lower is
+better.
+•False Positive Rate (FPR): The number of erro-
+neous behavior activations per minute of opera-
+tion, capturing switching precision (Norton et al.,
+2022). Lower is better.Table 2: Recognition accuracy in different environments.
+Navigation Office Hall Corridor Park
+Recognition
+Environment100% 86% 100% 78%
+Figure 8: Circuit A: The blue line represents Navigation
+mode, and the green line indicates Follow mode. Red “H”
+markers denote hazardous objects.
+Circuit A is described in Fig. 8. The robot started
+in an office (Navigation mode), encountered a chair,
+adjusted its inflation parameter to cross a door into
+a corridor, then turned and detected a person raising
+a hand, switching to Follow mode for up to 5 me-
+ters. It reverted to Navigation mode for 1 meter before
+detecting a wet floor sign and switching to Remote
+mode.
+In circuit B, the robot began in a park-like cen-
+tral courtyard within a building (Navigation mode),
+observed stairs, and entered Remote mode upon de-
+tecting a glass door. It then crossed into a corridor
+and switched to Follow mode upon detecting a person
+raising a hand.
+The results are summarized in Table 3. In Circuit
+A, all environments and objects were correctly recog-
+nized, resulting in successful execution of all required
+behavior switches (BAS = 100%). Although object
+locations ( Lt) varied across trials, they were consis-
+tently recognized before the corresponding switches.
+A false positive rate (FPR) of 0.10 was observed due
+to occasional misclassification of the corridor as an
+office.
+In Circuit B, a few expected behavior switches
+were missed (BAS = 93%), primarily due to the
+park being misclassified as an office in several tri-
+als—likely because it was located at a building en-
+trance. Additionally, the glass door was not recog-
+nized in one trial, leading to an aborted experimentVisual Language State Machine Robot
+359
+
+
+--- Page 7 ---
+Table 3: Behavior assessment across different circuits.
+BAS: Behavior Accuracy Score, Lt: Latency to switch,
+FPR: False Positive Rate.
+MetricCircuit A
+(Office →
+Corridor)Circuit B
+(Park→
+Corridor)
+BAS (%) 100 93
+Ltchair (m) 0.0±0.0 –
+Ltdoor (m) 1.35±0.24 –
+Ltwet sign (Remote) (m) 0.60±0.44 –
+Ltperson (Follow) (m) 1.8±0.35 0.78±0.55
+Ltstairs (m) – 0.0±0.0
+Ltglass door (Remote) (m) – 1.06±1.08
+FPR (/min) 0.10 0.48
+Figure 9: The robot stops when it detects a hazardous ob-
+ject, showing how visual language models help handle un-
+seen cases. Left: a red “do not pass” string. Right: a ladder.
+due to a potential collision. Despite these issues, most
+experiments showed correct recognition of environ-
+ments and objects at the expected locations.
+Transition latency was <2mat all sites in both
+circuits, meaning the robot switched no more than 2 m
+after the expected trigger locations.
+The system robustly recognizes environments, ob-
+jects, and gestures in real-world settings, enabling
+accurate behavior switching across circuits. Navi-
+gation is adapted to context—e.g., moving faster in
+parks or reducing inflation radius to pass through
+doors—resulting in more efficient navigation. Minor
+failures were due to ambiguous or low-visibility situ-
+ations.
+4.3 Open-Ended Recognition with VLM
+A key advantage of VLMs is their open-world adapt-
+ability. To test this, we introduced a general ”haz-
+ardous object detected” prompt to trigger Remotemode, bypassing predefined object lists. Experiments
+with unseen hazards—specifically a ladder and a bar-
+rier string—resulted in successful state transitions
+(see Fig. 9), demonstrating the system’s capacity to
+recognize and react to novel situations dynamically.
+5 CONCLUSION
+In this work, we demonstrate how a zero-shot sys-
+tem can leverage image descriptions provided by
+a VLM to dynamically adapt a robot’s operational
+modes. Our approach integrates three key compo-
+nents for mobile navigation: (1) adaptive navigation,
+(2) gesture recognition, and (3) hazardous object de-
+tection. By deploying this system on a real robot,
+we validate its effectiveness and highlight the essen-
+tial components required for practical implementa-
+tion. This work offers a unified framework for high-
+level robot control using zero-shot learning, allow-
+ing for reliable decision-making without the need for
+task-specific training. Although we expect VLM ca-
+pabilities to continually improve, their successful per-
+formance within our system indicates that they al-
+ready offer much utility for controlling autonomous
+robots.
+6 LIMITATIONS
+A key limitation of this work is the lack of temporal
+awareness. The system only queries prompts based
+on the current situation and ignores the past. While
+this is effective for clear, short-term decisions, it may
+be less suitable for long-term planning. Integrating
+temporal logic could help address this limitation.
+REFERENCES
+Bronger, T. et al. (2024). transitions: A lightweight,
+object-oriented finite state machine implementation in
+python.
+Chen, D., Zhang, Z., Liu, Y ., and Yang, X. T. (2025). In-
+sight: Enhancing autonomous driving safety through
+vision-language models on context-aware hazard de-
+tection and edge case evaluation. arXiv e-prints , pages
+arXiv–2502.
+Chen, F.-S., Fu, C.-M., and Huang, C.-L. (2003). Hand ges-
+ture recognition using a real-time tracking method and
+hidden markov models. Image and vision computing ,
+21(8):745–758.
+Chen, H. L., Hendrikx, B., Torta, E., Bruyninckx, H., and
+van de Molengraft, R. (2023). Behavior adaptation
+for mobile robots via semantic map compositions ofICAART 2026 - 18th International Conference on Agents and Artiﬁcial Intelligence
+360
+
+
+--- Page 8 ---
+constraint-based controllers. Frontiers in Robotics
+and AI , 10:917637.
+Cheng, A.-C., Ji, Y ., Yang, Z., Gongye, Z., Zou, X., Kautz,
+J., Bıyık, E., Yin, H., Liu, S., and Wang, X. (2024).
+Navila: Legged robot vision-language-action model
+for navigation. arXiv preprint arXiv:2412.04453 .
+Cheng, Y ., Li, G., Yu, M., Jiang, D., Yun, J., Liu, Y ., Liu,
+Y ., and Chen, D. (2021). Gesture recognition based
+on surface electromyography-feature image. Concur-
+rency and Computation: Practice and Experience ,
+33(6):e6051.
+Elnoor, M., Weerakoon, K., Seneviratne, G., Xian, R.,
+Guan, T., Jaffar, M. K. M., Rajagopal, V ., and
+Manocha, D. (2024). Robot navigation using physi-
+cally grounded vision-language models in outdoor en-
+vironments. arXiv preprint arXiv:2409.20445 .
+Firebase (2011). Firebase documentation. https://firebase.
+google.com/docs. Accessed: 2025-03-13.
+Fox, D., Burgard, W., and Thrun, S. (1997). The dy-
+namic window approach to collision avoidance. IEEE
+Robotics & Automation Magazine , 4(1):23–33.
+Huang, C., Mees, O., Zeng, A., and Burgard, W. (2023).
+Visual language maps for robot navigation. In 2023
+IEEE International Conference on Robotics and Au-
+tomation (ICRA) , pages 10608–10615. IEEE.
+Jacoff, A., Messina, E., and Evans, J. (2002). Performance
+evaluation of autonomous mobile robots. Industrial
+Robot: An International Journal , 29(3):259–267.
+Jeong, H., Lee, H., Kim, C., and Shin, S. (2024). A sur-
+vey of robot intelligence with large language models.
+Applied Sciences , 14(19):8868.
+Kobzarev, O., Lykov, A., and Tsetserukou, D. (2025).
+Gestllm: Advanced hand gesture interpretation via
+large language models for human-robot interaction.
+arXiv preprint arXiv:2501.07295 .
+Ktor (2018). Ktor documentation. https://ktor.io/docs/. Ac-
+cessed: 2025-03-13.
+Kuang, Y ., Lin, H., and Jiang, M. (2024). Openfm-
+nav: Towards open-set zero-shot object navigation via
+vision-language foundation models. arXiv preprint
+arXiv:2402.10670 .
+Li, X., Liu, M., Zhang, H., Yu, C., Xu, J., Wu, H., Cheang,
+C., Jing, Y ., Zhang, W., Liu, H., et al. (2023). Vision-
+language foundation models as effective robot imita-
+tors. arXiv preprint arXiv:2311.01378 .
+Li, Z., Wu, X., Du, H., Liu, F., Nghiem, H., and Shi,
+G. (2025). A survey of state of the art large vision
+language models: Alignment, benchmark, evaluations
+and challenges. arXiv preprint arXiv:2501.02189 .
+Li, Z., Xiang, Z., West, J., and Khoshelham, K. (2024).
+From open vocabulary to open world: Teaching vi-
+sion language models to detect novel objects. arXiv
+preprint arXiv:2411.18207 .
+Lin, L.-H., Cui, Y ., Hao, Y ., Xia, F., and Sadigh, D.
+(2023). Gesture-informed robot assistance via foun-
+dation models. In 7th Annual Conference on Robot
+Learning .
+Liu, S., Zhang, J., Gao, R. X., Wang, X. V ., and Wang,
+L. (2024). Vision-language model-driven scene un-
+derstanding and robotic object manipulation. In 2024IEEE 20th International Conference on Automation
+Science and Engineering (CASE) , pages 21–26. IEEE.
+Norton, A., Admoni, H., Crandall, J., Fitzgerald, T., Gau-
+tam, A., Goodrich, M., Saretsky, A., Scheutz, M.,
+Simmons, R., Steinfeld, A., et al. (2022). Metrics for
+robot proficiency self-assessment and communication
+of proficiency in human-robot teams. ACM Transac-
+tions on Human-Robot Interaction (THRI) , 11(3):1–
+38.
+Quigley, M., Conley, K., Gerkey, B., Faust, J., Foote, T.,
+Leibs, J., Wheeler, R., and Ng, A. (2009). Ros: an
+open-source robot operating system. In ICRA Work-
+shop on Open Source Software , volume 3.
+Song, D., Liang, J., Payandeh, A., Xiao, X., and Manocha,
+D. (2024). Socially aware robot navigation through
+scoring using vision-language models. arXiv e-prints ,
+pages arXiv–2404.
+Terven, J., C ´ordova-Esparza, D.-M., and Romero-
+Gonz ´alez, J.-A. (2023). A comprehensive review of
+yolo architectures in computer vision: From yolov1 to
+yolov8 and yolo-nas. Machine learning and knowl-
+edge extraction , 5(4):1680–1716.
+van Rossum, G. and the Python Development Team
+(2024). Python multiprocessing shared memory mod-
+ule. Python.
+Wang, Z., Shen, R., and Stadie, B. (2024). Solving robotics
+problems in zero-shot with vision-language models.
+arXiv preprint arXiv:2407.19094 .
+Weerakoon, K., Elnoor, M., Seneviratne, G., Rajagopal, V .,
+Arul, S. H., Liang, J., Jaffar, M. K. M., and Manocha,
+D. (2024). Behav: Behavioral rule guided autonomy
+using vlms for robot navigation in outdoor scenes.
+arXiv preprint arXiv:2409.16484 .
+Wu, Y ., Kirillov, A., Massa, F., Lo, W.-Y ., and Gir-
+shick, R. (2019). Detectron2. https://github.com/
+facebookresearch/detectron2.
+Yang, J., Mark, M. S., Vu, B., Sharma, A., Bohg, J., and
+Finn, C. (2024). Robot fine-tuning made easy: Pre-
+training rewards and policies for autonomous real-
+world reinforcement learning. In 2024 IEEE In-
+ternational Conference on Robotics and Automation
+(ICRA) , pages 4804–4811. IEEE.
+Yokoyama, N., Ha, S., Batra, D., Wang, J., and Bucher,
+B. (2024). Vlfm: Vision-language frontier maps for
+zero-shot semantic navigation. In 2024 IEEE In-
+ternational Conference on Robotics and Automation
+(ICRA) , pages 42–48. IEEE.
+Yu, J., Qin, M., and Zhou, S. (2022). Dynamic gesture
+recognition based on 2d convolutional neural network
+and feature fusion. Scientific Reports , 12(1):4345.
+Zhang, P., Li, X., Hu, X., Yang, J., Zhang, L., Wang, L.,
+Choi, Y ., and Gao, J. (2021). Vinvl: Revisiting visual
+representations in vision-language models. In Pro-
+ceedings of the IEEE/CVF conference on computer vi-
+sion and pattern recognition , pages 5579–5588.Visual Language State Machine Robot
+361
+

@@ -1,0 +1,1109 @@
+--- Page 1 ---
+HAL Id: hal-02309814
+https://hal.science/hal-02309814v1
+Submitted on 9 Oct 2019
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Quickly prototyping Petri nets tools with SNAKES
+Franck Pommereau
+To cite this version:
+Franck Pommereau. Quickly prototyping Petri nets tools with SNAKES. International Workshop on Petri
+Nets Tools and APplications PNTAP 2008„ Mar 2008, Marseille, France. ⟨hal-02309814⟩
+
+--- Page 2 ---
+Quickly prototyping Petri nets tools with SNAKES
+Franck Pommereau
+LACL, Université Paris Est
+61 avenue du Général de Gaulle
+94010 Créteil, France
+pommereau@univ-paris12.fr
+ABSTRACT
+This paper presents the toolkit snakes that is aimed at
+providing a exible solution to the problem of quickly pro-
+totyping Petri nets tools. In particular, snakes is expected
+to have as few built-in limitations as possible with respect
+to the particular variant of Petri net to be used. The goal
+is to make snakes suitable for any kind of Petri net model,
+including new ones for which there exists no available tool.
+For this purpose, snakes is designed as a very general Petri
+net core library enriched with a set of extension modules
+to provide specialised features. On the one hand, the core
+library is versatile in that it denes a general Petri net struc-
+ture where all the computational aspects are delegated to an
+interpreted programming language. On the other hand, the
+extension modules provide with enough exibility to allow
+to redene easily any part of the base Petri net model.
+snakes is released under the gnu lgpl , it can be down-
+loaded athhttp://www.univ-paris12.fr/lacl/pommereau/
+soft/snakesiwith the apidocumentation and a tutorial.
+Categories and Subject Descriptors
+D.2.2 [ Software Engineering ]: Design Tools and Tech-
+niques| Petri nets, Software libraries ; D.2.1 [ Software En-
+gineering ]: Specications| Rapid prototyping
+General Terms
+Design,Experimentation
+Keywords
+Petri nets, quick prototyping
+1. INTRODUCTION
+There exists a wide range of Petri net tools [19], most of
+them (if not all) being targeted to a particular variant of
+Petri nets or a few ones. When a new interesting variant is
+dened, it is often necessary to develop a software to sup-
+port it, and this tool has to be updated as the model and the
+International Workshop on Petri Nets Tools and APplications PNTAP 2008,
+March 3, 2008, Marseille, France.associated techniques evolve. When the research is targeted
+on a dened usage, as model-checking for instance, the for-
+malism is often xed and this situation causes no problem.
+The tool is simply improving over the time. But when the
+research is centred on the evolutions of the model itself, a
+tool often has a very short lifetime. It becomes then very
+hard for the developer to keep the pace with the theory and
+often it does not worth the eort as the tool will not be used
+anymore when the next variant of the model will be dened.
+snakes is an attempt to solve this problem by providing
+a general and exible Petri net library allowing for quick
+prototyping and development of ad-hoc and test tools. The
+requirements for such a toolkit may be the following:
+1.Built-in Petri net model. This is the most obvious
+need.
+2.General and exible. The toolkit should be able to
+cope with a large variety of Petri net models. More-
+over, it should be easy to extend it with new variants
+of Petri nets.
+3.Easy to use and portable. The goal being to be able to
+quickly implement new ideas, it should not be intim-
+idating to start programming, so the toolkit must be
+easy to understand. It should be also easy to install it
+anywhere, as well as the resulting programs.1
+4.Intended for prototyping. This requirement alleviates
+the question of performances and solves a contradic-
+tion that would arise otherwise: a exible and general
+tool with dynamic reconguration of its features would
+be hard to make fast.
+It is a well known pattern for programs that need to have
+few built-in limitations to dene a general framework with
+the basic required features and to provide then scripting ca-
+pabilities allowing to extend the tool or redene parts of it.
+This is the case for instance for the text editor emacs or
+the typesetting system T EX/LATEX, both being often per-
+ceived as tools with unlimited features. snakes follows this
+pattern by dening a simple but very general Petri net struc-
+ture: places, transitions, arcs, tokens. This is indeed what
+all Petri nets have in common. At this level of generality
+1This is actually a general requirement as if a software is
+complicated and works on a very specic platform, it is likely
+that only few people will use it.
+
+--- Page 3 ---
+however, not many features are available. Then, Python [28]
+has been chosen as the extension language. Python is a ma-
+ture, well established, interpreted language, that has all the
+required characteristics to meet the needs expressed above.
+According to its web site:
+Python is a dynamic object-oriented
+programming language that can be used for
+many kinds of software development. It oers
+strong support for integration with other
+languages and tools, comes with extensive
+standard libraries, and can be learned in a few
+days. Many Python programmers report
+substantial productivity gains and feel the
+language encourages the development of higher
+quality, more maintainable code.
+It may be added that Python is free software and runs on a
+very wide range of platforms. In order to provide with (hope-
+fully) unlimited scripting capabilities, snakes delegates all
+the computational aspects of Petri nets to Python. In par-
+ticular, a token is an arbitrary Python object, transitions
+execution can be guarded by arbitrary Python Boolean ex-
+pressions, and so on. As a result, a Petri net in snakes is
+mainly a skeleton with very general behavioural rules (con-
+sume and produce tokens in places through the execution of
+transitions) and with the full power of a programming lan-
+guage at any point where a computation is required. snakes
+itself is programmed in Python and uses the capability of
+the language to dynamically evaluate arbitrary statements.
+Using the same programming language for snakes and its
+extension language is a major advantage for the generality:
+Petri nets in snakes can use snakes as a library and work
+on Petri nets. For instance, as a token in snakes may be
+any Python object, it could be an instance of the Petri net
+class of snakes .
+snakes is more particularly targeted to the family of the
+Petri Box Calculus ( pbc) [4, 5] and M-nets [6] for which
+Petri nets may be composed as terms in a process algebra.
+Many variants of the base model exist and new ones are still
+under development, each being focused on the study of a par-
+ticular feature ( e.g., time, preemption, threads, exceptions,
+. . . ). In order to provide support for these models without
+specialising the general framework presented above, snakes
+comes with various extension modules (also called plugins)
+to address the various aspects of these models. This plugin
+system is a simple and convenient way to extend and spe-
+cialise the core library. Many short-life tools or prototypes
+can be developed as plugins; this was made for instance dur-
+ing a work about the verication of Petri nets equipped with
+unbounded integer variables [27]. This particular case is re-
+lated in the section 3.2.3 below where the perceived benets
+of prototyping with snakes in parallel with writing the pa-
+per are explained.
+All but one of the requirements listed above have been dis-
+cussed so far. The ease to use has been tested with four un-
+dergraduate students in computer science, at the end of their
+rst year of master degree. All four were average students
+having no prior knowledge of Python and only basic notions
+about Petri nets. They were given a one hour presentation
+of Python and snakes and provided with the Python tuto-rial. Each of them had to implement an algorithm described
+in a paper: McMillan's unfolding [20], Finkel's version of
+Karp &Miller's coverability graph [18], M-nets unfolding to
+p/t-nets [6] and Petri net semantics of mins [24]. All the
+four students could provide a working program after a few
+weeks of work, none of them did request for help except to
+understand the papers, and the quality of their programs
+distributed evenly from acceptable to excellent.
+1.1 Use cases
+snakes has been used to implement various Petri nets se-
+mantics:
+the Causal Time Calculus [25] is a pbc-like process al-
+gebra with a Petri net semantics that has been imple-
+mented on the top of snakes in less than 200 straight-
+forward lines of code;
+boon [9] is an object-oriented programming notation
+with a Petri net semantics that has been implemented
+using snakes called from a Java program;
+a Petri net semantics of mins interconnection networks
+has been implemented and used for simulation [24];
+a Petri net semantics of the Security Protocol Lan-
+guage ( spl) [8] has required also about 200 lines of
+code.
+In all these cases, performances were not an issue as the goal
+was to use the ability of snakes to perform various compo-
+sitions on Petri nets. But it was not used to execute the
+nets produced (except for mins where execution time was
+not critical). This kind of application is actually the main
+intended usage for snakes that was started in order to sup-
+port models from the pbcand M-nets family. It is often the
+case when working with this family that the main issue is
+to build a Petri net that is later veried using a specialised
+tool. This holds for instance with the semantics of splthat
+is computed using snakes , yielding a Petri net that is trans-
+lated to the Helena [15] formalism for fast verication.
+One other use case of snakes is developed more in details
+in the section 3.2.3 and consisted in implementing a state
+space construction. In this case also, performances were not
+an issue: most of the computation involved when building
+the state space was delegated to a library implemented in C.
+The computation performed by Python was small enough to
+allow us to run our examples and validate our algorithms.
+However, our implementation was only a prototype and to
+make it more ecient, one would need to replace snakes by
+a fast Petri net library, which would x the variant used.
+1.2 Related tools
+Several existing tools may be related in particular to snakes .
+The rst one is the Petri net kernel (pnk) [29] that shares
+with snakes the aim to provide a general framework for
+building Petri nets applications. The pnkprovides a graph-
+ical user interface for editing and simulating Petri nets, its
+main aim being to provide the basis to real applications
+rather than to allow for quick prototyping. With respect to
+snakes , the basic model of the pnk is a less general model
+
+--- Page 4 ---
+of coloured Petri nets; however, this may be extended by
+writing Java code. Another dierence is that the pnk does
+not provide any of the operations in order to manage models
+from the pbcand M-nets family, which is of course not its
+aim. The development of the pnk does not appear to be
+active anymore, the last release being dated of March 2002.
+Thepnk is free software distributed under the terms of the
+gnu gpl , which forces tools that use the pnkto be released
+under the same licence. snakes uses the gnu lgpl , which is
+less restrictive and allows to produce non-free software that
+usessnakes , but forces to release under the gnu lgpl any
+change made to snakes .
+Another tool with which snakes shares some goals is the
+Programming Environment based on Petri nets (pep) [23].
+The main similarity between the two tools is that both deal
+with pbc and M-net models. The main dierence is that
+pepis oriented toward model-checking, proposing a graphi-
+cal user interface to model Petri nets through various ways.
+The Petri nets models in pepare xed, mainly variants of
+pbc and a restricted version of M-nets, which cannot be
+changed by the user. pepalso appears to be not maintained
+anymore, the last release being dated of September 2004.
+pepwas the tool we used before to decide to develop snakes .
+The main reason for this decision was the impossibility to
+update pepquickly enough with respect to the theoretical
+developments in the pbcfamily, which is not surprising as
+pepwas never designed with this goal in mind. Like the
+pnk,pepis released under the gnu gpl .
+Compared with CPN tools [11],snakes shares the ability to
+use a programming language for the inscriptions of the nets:
+a variant of mlforcpntools, and Python for snakes . This
+makes it possible to extend a lot the features of cpntools.
+However, it uses xed (but very general) Petri net models
+and does not provide support to introduce another variant.
+So, there might be new models of Petri nets that cannot be
+represented using one of those provided by cpn tools, and
+thus for which the tools cannot be used. Another important
+dierence is that cpn tools feature an advanced graphical
+user interface while snakes is only a programming library.
+Finally, cpntools is not open source.
+More generally, as any Petri net modelled in snakes may
+be executed, it could be compared with any Petri net tool
+that can simulate nets or compute their reachability graph.
+However, executing nets is not the main purpose of snakes
+and it is not designed to do it eciently (even if it may be
+ecient enough for simulation). This feature is only required
+because using snakes for prototyping may require executing
+Petri nets. For instance, when working on a new model of
+Petri nets equipped with unbounded integer variables [27],
+the fact that snakes could execute this new class of net was
+necessary to prototype our state graph construction (see the
+section 3.2.3 for details).
+1.3 Outlines
+The next section gives an overview of the core library. Then
+we present the plugin system implemented in snakes . We
+conclude the paper with a list of ongoing and future works.
+2. THE CORE LIBRARY
+snakes is organised as a hierarchy of modules:snakes is the top-level module and denes the exceptions
+used in the library.
+snakes.data denes the basic data types ( e.g., multisets and
+substitutions) and data manipulation functions ( e.g.,
+cross product).
+snakes.typing denes a typing system that can be used to
+restrict the tokens accepted by a place (see the sec-
+tion 2.2.1).
+snakes.nets denes all the classes directly related to Petri
+nets: places, transitions, arcs, nets, markings, reach-
+ability graphs, etc. A simplied class diagram of this
+module is presented in the top of the gure 3. It also
+imports and makes available all the apifrom the mod-
+ules above.
+snakes.plugins is the root for all the extension modules of
+snakes .
+The rst four modules above (plus additional internal ones
+not listed here) form the core library ofsnakes which is
+described further in the rest of the section. (The plugin
+system will be described in the next section.)
+snakes is designed so that it can represent Petri nets in a
+very general fashion:
+each transition has a guard that can be an arbitrary
+Python Boolean expression;
+each place has a type that can be an arbitrary Python
+Boolean function that is used to accept or refuse to-
+kens;
+tokens may be arbitrary Python objects;
+input arcs ( i.e., from places to transitions) can be la-
+belled by values (to consume a known value), variables
+(to bind a token to a variable name) or several of these
+objects (to consume several tokens). New kind of arcs
+may be added ( e.g., read arcs are provided as a simple
+extension of existing arcs);
+output arcs ( i.e., from transitions to places) can be la-
+belled the same way as input arcs, moreover, they can
+be labelled by arbitrary Python expressions in order
+to compute new values to be produced;
+a Petri net with these annotations is fully executable,
+the transition rule being that of coloured nets: a bind-
+ing of variables must be found such that there are
+enough tokens in input places and the guard of the
+transition is respected as well as the type of the out-
+put places.
+More precisely, at any marking, each transition can compute
+its enabling bindings (also called its modes) as follows:
+each combination of the available tokens with the vari-
+ables on the input arcs provides a possible binding of
+these variables;
+
+--- Page 5 ---
+each such binding corresponds to a Python environ-
+ment ( i.e., a set of names associated to values) in which
+the guard of the transition is evaluated;
+if the guard evaluates to True, each output arc is then
+evaluated in the same environment and it is checked if
+the produced tokens are accepted by the corresponding
+places;
+if all these tests pass successfully, the binding is en-
+abling.
+Then, one of these enabling bindings can be used to re the
+transition, which follows the same process starting from the
+second step and ending by actually consuming and produc-
+ing the adequate tokens.
+2.1 Example
+A simple example of a coloured Petri net is depicted in the
+gure 1. In this example, place p1can be marked by any
+integer-valued token (it currently holds two such tokens)
+and place p2is restricted to non-negative integers. In order
+to model this net with snakes , one may run the following
+Python program:
+1from snakes .nets import
+2n=PetriNet ('simple net' )
+3n.add place (Place ('p1', [1, 2], tInteger ))
+4n.add place (Place ('p2', [], tNatural ))
+5n.add transition (Transition ('t',Expression ('x>0' )))
+6n.add input ('p1','t',Variable ('x'))
+7n.add output ('p2','t',Expression ('x+1' ))
+The rst line imports the main module. It exports in par-
+ticular the classes PetriNet ,Place ,Transition ,Expression and
+Variable , and the objects tInteger and tNatural . Then, a Petri
+net is created, being given the name \simple net". Two
+places are added to it, each is an instance of the class Place
+whose constructor expects the name of the place, a list of
+tokens for its marking and an optional constraint on the ac-
+cepted tokens (see the section 2.2.1). Similarly, a transition
+is added, being given a name and an optional Boolean ex-
+pression for its guard. Finally, two arcs are created: one
+input arc labelled by a variable and one output arc labelled
+by an expression.
+At the end of this program, various objects have been cre-
+ated, which is summarised in the gure 2. We see on this
+diagram that a new class appeared: instances of MultiSet
+(from the module snakes .data) are used to represent the
+marking of the places. Moreover, the attributes preand
+post of places and transitions are dictionaries whose keys
+are node names and whose values are arc annotations. For
+instance p1.post['t'] is the variable x, which is used this way
+on the diagram (instead of depicting the dictionary objects).
+In order to get the list of enabling bindings for the transition,
+one may use the following:
+2
+1p1
+Z tx >0 p2
+Nx x+ 1
+Figure 1: A simple coloured Petri net.8t=n.transition ('t')
+9m=t.modes ()
+(The rst line stores a reference to the transition in a vari-
+able tin order to avoid using\ n.transition ('t')"everywhere.)
+At this point, the value of mis the list [ Substitution (x=2)]
+because only the binding fx7!2genables t. Then, the tran-
+sition may be red with the rst binding discovered (if thad
+no enabling binding, this last statement would result in an
+exception as mwould be an empty list):
+10t.re(m[0])
+A class StateGraph is provided in order to automate this
+process and to compute the reachability graph by execut-
+ing all the possible transitions for all the possible modes at
+all the reached markings. The following code creates the
+StateGraph object, computes all the reachable markings and
+then iterates over the states in order to print their informa-
+tion (marking, successors and predecessors).
+9g=StateGraph (n)
+10g.build ()
+11forsing:
+12 print'state' ,s,'is',g.net.getmarking ()
+13 print'  successors:' ,g.successors ()
+14 print'  predecessors:' ,g.predecessors ()
+Executing this code after the line 7 above prints the following
+(except that lines have been wrapped below) where each
+arc in the marking graph is labelled by the corresponding
+transition and its mode at ring time:
+state 0 is Marking({'p1': MultiSet([2, -1])})
+successors: {1: (Transition('t', Expression('x>0')),
+Substitution(x=2))}
+predecessors: {}
+state 1 is Marking({'p2': MultiSet([3]),
+'p1': MultiSet([-1])})
+successors: {}
+predecessors: {0: (Transition('t', Expression('x>0')),
+Substitution(x=2))}
+2.2 Other features
+2.2.1 Type system for the places
+As seen above, places in a Petri net are given a type that
+is used to control the accepted tokens. We have used the
+types tInteger and tNatural from the module snakes .typing .
+This module actually provides a more general type system
+that one can use to build complex type checkers for places.
+In this system, a type is understood as a set of values, a
+type checker being a test that decides whether a given value
+belongs to the type or not.
+Several type constructors are provided in order to build basic
+types:
+Instances (c)builds a type whose elements are instances of
+the class c.
+OneOf (a,b, ...) creates a type whose values are just those
+enumerated, i.e.,a,b, etc.
+
+--- Page 6 ---
+Place :'p1' Place :'p2' Transition :'t'guard
+PetriNet :'simple net'tInteger tNatural Variable :x
+pre['p1'] post['t']Expression :x+ 1
+post['p2'] pre['t']Expression :x >0
+MultiSet :f1;2gtokens
+MultiSet :fgtokens
+Figure 2: The objects diagram after executing the line 7 of the program. Some links indicate the names of
+the attributes that hold the references.
+Collection (container ,items ,min,max)creates a type for
+collections of objects whose values are objects in the
+type container (usually listortuple) and contain at
+least minand at most maxvalues accepted by the type
+items . There is similarly a type constructor Mapping
+for dictionary-like objects.
+Range (rst,last,step)returns a type that accepts all the
+values ranging from rsttolastby steps of step.
+Greater (min)accepts all the values greater than min. Simi-
+larly, there are type constructors GreaterOrEqual ,Less
+and LessOrEqual .
+CrossProduct (t1,t2, ...) creates a type that accepts tuples
+of values from the given types t1,t2, . . .
+TypeCheck (fun)creates a type whose values are those for
+which the function funreturns True. This allows to
+build a type from an arbitrary Boolean function.
+On this basis, types may be combined using various sets
+operators: & (intersection), j(union),(dierence), b(dis-
+joint union) and(complement). For instance, the module
+snakes .typing denes:
+1tInteger =Instance (int)
+2tNatural =tInteger &GreaterOrEqual (0)
+2.2.2 Arcs
+We have seen so far that arcs may be labelled by values,
+variables or expressions (only on output arcs). It is also
+possible to create multi-arcs that transport multiple values.
+For instance, MultiArc ([Value (1), Variable ('x')]) can be the
+label of an input arc which is able to consume two tokens,
+one being the value 1 and the other being an arbitrary value
+bound to the variable x.
+snakes also provides test arcs that never transport values.
+On an input arc, this corresponds to a read arc; on an output
+arc, it is used to check the type of a place with respect to the
+annotation. For instance, creating an output arc with the
+label Test(Expression ('x**2' )) will never produce a token
+in the corresponding place but will allow the transition to
+check if the place type accepts the value computed from the
+expression.
+New kind of arcs may be created, it is only necessary to
+derive a class from the abstract class ArcAnnotation .2More-
+2There is no proper notion of abstract class in Python, how-
+ever, this can be simulated using a class whose methods that
+should be abstract raise NotImplementedError if called.over, like Test orMultiArc the new class may encapsulate
+existing arc classes.
+2.2.3 Support for the Petri Net Markup Language
+Every object that may be part of a Petri net in snakes can
+be exported to or imported from pnml . The required mod-
+ule for this purpose is snakes .pnml. It provides in particular
+a function dumps that takes an object as argument and re-
+turns its representation in pnml . The module also provides
+the function loads that does the reverse, i.e., building an
+object from its pnml representation.
+When an object has no known pnml representation, snakes
+uses standard Python serialisation (embedded in xml). This
+is convenient because any object can be saved to pnml ; but
+in such a case, there is no chance for the produced pnml to
+be compatible with an other tool.
+2.2.4 Controlling the execution environment
+It has been explained above how a transition binds the vari-
+ables on its input arcs in order to build an environment that
+is used to evaluate the Python expressions in the guard and
+output arcs. When one of these expressions needs functions
+or modules that are not available in the default environ-
+ment, the evaluation fails. In such a case, it is necessary to
+declare the needed objects before to start executing transi-
+tions. There are two ways to do so.
+One is to use the method declare of a PetriNet instance that
+expects an arbitrary Python statement given as a string and
+executes it. If this statement has some side eects, this will
+be recorded for the next evaluation. For instance, one may
+run n.declare ('import math' ) in order to make the module
+math available to all the evaluations occurring in the net n
+after that.
+The other solution is to access directly the evaluation envi-
+ronment that is a dictionary stored as an attribute globals .
+This attribute exists for any object that needs to evaluate
+Python code and is shared over a whole Petri net. For in-
+stance, in order to declare a global variable x, the method de-
+scribed above should be used as\ n.declare ('global x;x=2' )"
+(rst state that xis global and then assign it) or more simply,
+using the attribute globals : \n.globals ['x']=2".
+3. EXTENSION MODULES
+An extension module is meant to extend an existing module
+from the core library (usually snakes .nets) by subclassing
+some of its classes. Because we do not know in advance
+
+--- Page 7 ---
+NetElement ArcAnnotation
+Node
+Place TransitionValue Variable Expression Test MultiArc
+Marking PetriNet StateGraphsnakes.nets
+Place Transition PetriNetsnakes.plugins.pos
+Position
+PetriNet StateGraphsnakes.plugins.graphviz
+Figure 3: The loading of the plugin graphviz , that depends on pos, on the top of snakes .nets.
+which plugins will be loaded by the user and in which or-
+der, the classes hierarchy cannot be xed statically. In order
+to do it dynamically, an extension module provides a func-
+tion extend that takes as its single argument the module
+to extend, which may be snakes .nets or a version of it al-
+ready extended, and returns a new module with proper sub-
+classes. (Python allows to create classes at run time.) The
+module snakes .plugins provides some functions to make this
+easy, allowing the programmer to concentrate on writing the
+subclasses. This approach is summarised in the gure 3 that
+illustrate the loading of the plugin graphviz on the top of the
+plugin pos(on which it depends). First, the plugin posis
+loaded on the top of the module snakes .nets, which transpar-
+ently calls snakes .plugins .pos.extend (snakes .nets). This re-
+turns a new module whose classes are those from snakes .nets
+except for Place ,Transition and PetriNet that come from
+snakes .plugins .pos, with the inheritances depicted in the g-
+ure 3. Then, on the top of this new module, the plugin
+graphviz is loaded, following a similar process. The result is
+a module that exhibits the same interface as snakes .netsand
+whose classes come from snakes .plugins .graphviz forPetriNet ,
+snakes .plugins .posforPlace and Transition and snakes .netsfor
+the other ones.
+The loading of plugins is supported by helper functions, so,
+the example described above would simply result in the fol-
+lowing code:
+1import snakes .plugins
+2snakes .plugins .load('graphviz' ,'snakes.nets' ,'nets' )
+3from nets import
+The rst statement is a regular Python module import. The
+second statement is the loading of the plugin: the extensionmodule called 'graphviz' is loaded on the top of the module
+called'snakes.nets' and the result is imported as the mod-
+ule called 'nets' . This allows to execute the last statement
+that imports every visible name from the newly constructed
+module nets, thus avoiding to use the prex \ nets." in order
+to access its content.
+Several plugins may be loaded using a single loadstatement,
+in order to do so, it is just needed to give a list of plugin
+names to be loaded instead of only one. For instance:
+1snakes .plugins .load(['graphviz' ,'ops' ,'synchro' ],
+2 'snakes.nets' ,'nets' )
+3.1 Deﬁning new Petri net variants
+A new class of Petri nets can be easily dened using a plu-
+gin. Let's consider for example Merlin &Farber's time Petri
+nets [21]. A plugin is being developed to support them in
+snakes . In its current state, it extends classes Transition ,
+Place , and PetriNet . In order to simplify the presentation,
+the version presented here does not support transitions with
+multiple enabling, it is discussed below how this is supported
+in the actual implementation.
+First, each transition is given a earliest and latest ring time
+as well as a timer ( i.e., its current time value). The construc-
+tor of class Transition adds an attribute time for the timer,
+and two attributes min time and max time initialised from
+arguments added to the constructor. The default value for
+max time isNone , which is considered as an innite bound-
+ary. Then, the method enabled (that checks whether a bind-
+ing enables or not a transition) is redened in order to take
+time into account. It accepts an additional optional argu-
+
+--- Page 8 ---
+ment untimed that allows to avoid checking time boundaries.
+The method copy that duplicates a transition is also rede-
+ned in order to properly copy timing information.
+Next, class Place is extended so that whenever the marking
+of a place is changed, its successor transitions are examined
+in order to reset their timer if their enabling is changed. This
+implies to redene four methods: addthat adds tokens to a
+place, remove that removes tokens from a place, reset that
+replaces the marking of a place, and empty that removes all
+the tokens held by a place. In all cases, when a transition is
+newly enabled its timer is reset to zero. When a transition
+becomes disabled by its input marking, its timer is set to
+None , which avoids to consider it when time passes. As a
+result, the value None for a timer indicates that the tran-
+sition is not enabled because of the marking, but when the
+timer is not None , its value has to be compared with the
+earliest and latest ring time of the transition to know if it
+is enabled or not. Thus, the method Transition .enabled is
+written as follows:
+1defenabled (self,untimed =False ) :
+2 ifself.time isNone :
+3 return False
+4 elif untimed :
+5 return super (Transition ,self).enabled (binding )
+6 elif self.max time isNone :
+7 return (self.min time<=self.time)n
+8 and super (Transition ,self).enabled (binding )
+9 else :
+10 return (self.min time<=self.time)n
+11 and(self.time<=self.max time)n
+12 and super (Transition ,self).enabled (binding )
+The condition on the line 2 checks if the timer is None , in
+which case the transition is disabled because of the marking.
+Otherwise, the condition on the line 4 checks whether the
+new argument untimed has been set to True when calling
+the method. If so, the enabling is tested by the parent class
+super (Transition ,self), thus ignoring all timing information.
+Then, the line 6 corresponds to the case where no latest
+ring time has been given and the elsecase when it has been
+given. The assumption that a transition is not enabled then
+its timer is None is safe because this value is set by the pre-
+places of each transition when their markings are changed.
+For instance, the methods Place .addand Place .remove are
+programmed as follows:
+1defadd(self,tokens ) :
+2 enabled =self.post enabled ()
+3 super (Place ,self).add(tokens )
+4 forname inself.post :
+5 if not enabled [name ] :
+6 trans =self.net.transition (name )
+7 iflen(trans .modes ())>0 :
+8 trans .time = 0.0
+9defremove (self,tokens ) :
+10 enabled =self.post enabled ()
+11 super (Place ,self).remove (tokens )
+12 forname inself.post :
+13 ifenabled [name ] :
+14 trans =self.net.transition (name )
+15 iflen(trans .modes ()) == 0 :
+16 trans .time =None
+The method post enabled returns a dictionary whose keys
+are the names of the transitions in the post-set of a place,associated to Boolean values indicating whether each transi-
+tion is currently enabled or not (which is checked by compar-
+ing its timer to None ). Then, after adding the tokens line 3,
+the method addchecks if a transition becomes enabled by
+its marking, i.e., if at least one mode can be found for it. If
+so, its timer is set to 0 :0. Symmetrically, the method remove
+checks if a transition that was enabled becomes disabled, in
+which case its timer is set to None . In order to lift the im-
+plementation to the case where transition can be multiply
+enabled, it is enough to store one timer for each mode of
+each transition, which is quite a simple change with respect
+to the simplied implementation presented here.
+Finally, the class PetriNet is given two new methods step
+and time. The former computes the maximal delay that can
+pass until the enabling is changed, either by enabling a tran-
+sition (when its timer reaches its min time), or by requiring
+a transition to re (when its timer reaches its max time).
+The latter can be used to let time pass, which corresponds
+to increase all the timers that are not None . This method
+time expects a duration as argument and returns the actual
+duration that could be used. For instance, if the user request
+an increasing of 1 :0 but if after 0 :4 time units a transition
+becomes newly enabled, then the method will only increase
+time by 0 :4 and return this value to inform the user. Sim-
+ilarly, time will never be increased enough to overcome the
+latest ring time of a transition. So, when a transition has
+to re because of time, any call to time orstep will return
+0:0, corresponding to the fact that time cannot pass before
+the urgent transition is red.
+These changes have been implemented in less than 100 lines
+of code. In order to have a complete plugin, it will be neces-
+sary to implement an extended StateGraph class to construct
+a valid state space for time Petri nets ( e.g., one of those
+described in [3]). Support for transitions with multiple en-
+abling as described above will be included as well. When
+completed, the plugin will be included in snakes .
+3.2 Main available plugins
+3.2.1 Drawing nets and state graphs
+The plugin graphviz used above in the example is dedicated
+to draw PetriNet and StateGraph objects using GraphViz [1].
+There are two ways to layout a Petri net: either by giving
+an explicit position to each node,3or by letting GraphViz
+compute a layout using one of the ve available engines.
+Only the latter solution is available for a state graph. The
+gure 4 shows examples of state graphs drawn by GraphViz.
+3.2.2 PBC and M-nets operations
+Thepbcand M-nets models dene two kinds of operations,
+relying respectively on a labelling of places or transitions.
+First comes a family of control ow compositions for which
+places are given statuses indicating their roles. In particu-
+lar, one distinguishes entry places and exit places that corre-
+spond to the initial and nal markings of a net. For instance,
+a sequential composition of two nets consists in combining
+the exit places of the rst net with the entry places of the
+second net in such a way that the termination of the former
+3This feature is provided by the plugin poson which the
+plugin graphviz depends.
+
+--- Page 9 ---
+will correspond to the starting of the latter. Moreover, sta-
+tuses distinguish data places that are given a name, which
+corresponds to the variables in a program. When nets are
+composed, data places with the same name are merged in
+order to ensure a unique representation of each variable.
+Places statuses are implemented in the extension module
+status , then the extension module opsrelies on it in order to
+implement the usual pbccontrol ow operations (with au-
+tomatic merging of data places): sequence, iteration, choice
+and parallel. A name hiding operation is also provided, it re-
+moves the name of a data place so that it cannot be merged
+anymore, which corresponds to a local variable. All these
+operations are implemented as Python operators, so, for in-
+stance, if n1and n2are two PetriNet objects, one may write:
+1p=n1jn2# parallel composition
+2s=n1&n2# sequential composition
+3c=n1+n2# choice
+4i=n1n2# iteration
+5h=n1/'var' # hiding of name 'var'
+The other set of operations comprises the transitions syn-
+chronisation, restriction and scoping. They are inspired
+from the ccs[22] action synchronisation as transitions can
+synchronise on conjugated actions. However, with respect to
+ccs,pbcand M-nets use multi-actions, allowing more than
+two transitions to synchronise at the same time. Moreover,
+these models distinguish the synchronisation that enables
+the synchronised behaviour, from the restriction that for-
+bids the independent behaviour (the scoping is the successive
+application of both operations). Finally, these operations
+are purely statical and construct explicitly the synchronised
+transitions that may re or not at execution time. With re-
+spect to pbc, M-nets also dene parameters for the actions,
+allowing to exchange information between the synchronised
+transitions.
+This aspect is implemented in the plugin synchro that de-
+nes classes for actions and multi-actions and adds methods
+to the class PetriNet in order to perform the corresponding
+operations. snakes generalises the models by not imposing
+a xed number of parameters for each action name. Instead,
+matching the number of parameters becomes a part of the
+unication process that takes place when two conjugated
+actions participate in a synchronisation.
+The M-nets model also includes a general renement oper-
+ation that allows to replace a transition with an arbitrary
+M-net [13]. This operation has not been implemented in
+snakes and it is not intended to add it since it leads to
+very complex nets that are not tractable in practice. For
+instance, place types, tokens and arc annotations become
+trees after a renement, so ring a transition implies match-
+ing trees against trees. Moreover, the renement is always
+used for two purposes: synthesis of the control ow oper-
+ations (sequence, choice, etc.), and colour-safe execution of
+multiple instances of the same net. With the new models of
+the family, both these eects are now feasible without using
+the general renement, see [26] for instance.
+3.2.3 Handling unbounded counters
+The plugin lashdata has been developed while working on a
+model of p/tPetri nets equipped with unbounded integervariables [27]. This model has been given a semantics in
+terms of compact state graphs where one abstract state en-
+codes possibly innitely many concrete states that dier only
+by the values of the integers variables. The fact that snakes
+was available and allowed to implement this model has been
+a benet at several points. First, working on the theoretical
+denitions and implementing them in parallel helped a lot
+to clarify and simplify the denitions. Then, possible opti-
+misations were discovered during the implementation of the
+compact state graph construction. Indeed, going to the de-
+tailed program level allowed to identify where programming
+choices had to be made and thus to investigate the conse-
+quences of dierent choices. Moreover, running the proto-
+type on various examples allowed to exhibit cases where the
+current construction were not satisfactory, which led to im-
+prove the algorithm at the theoretical level. Another source
+of satisfaction was the ability to produce automatically ex-
+amples for illustrating the paper and the presentation, which
+was not only convenient but also increased the condence
+that no mistake was introduced in the examples. Finally,
+the fact that a prototype existed for the construction de-
+scribed in the paper was perceived as very positive by the
+referees as well as by the audience when the paper has been
+presented.
+The plugin lashdata relies on the library Lash [7] to represent
+integers variables added to a Petri net. (With respect to the
+paper [27], this plugin allows for any kind of Petri net and
+not only for p/tnets.) The plugin denes a class Data that
+encapsulates the data structures of Lash in order to store
+the values of the variables. For instance, the creation of a
+Petri net equipped with two variables xand yinitialised to
+zero requires the following Python code:
+1import snakes .plugins
+2snakes .plugins .load('lashdata' ,'snakes.nets' ,'nets' )
+3from nets import
+4n=PetriNet ('N',lash=Data(x=0, y=0))
+Then, the plugin extends transitions in order to take the
+integer variables into account: the ring is subject to a con-
+dition on the variables (which is independent of the guard)
+and it is allowed to update their values. For instance one
+may write:
+5n.add transition (Transition ('t'),
+6 condition ='x<y' ,
+7 update ='x=x+1; y=y-1' )
+Finally, the class StateGraph is extended in order to im-
+plement the construction dened in the paper: several op-
+tions are added to the constructor in order to enable various
+levels of compression. With no option, no compression is
+performed and the abstract state graph corresponds to the
+concrete reachability graph. Using the option \ loops =True"
+enables compression when a side-loop is detected ( i.e., a
+transition that changes the variables but not the marking).
+Using \ cycles =True" also enables the compression when gen-
+eral loops are detected ( i.e., cycles in the state graph). Using
+\remove =True" then enables the removing of covered states
+(i.e., existing abstract states that are included in newly com-
+puted ones). Finally, using\ fold=True"adds additional com-
+pression when sequences of the same transition are detected.
+This last option is not described in [27] and was added to the
+
+--- Page 10 ---
+0 1t_12t_2
+3t_1t_34
+t_4
+t_25
+t_1t_5
+t_36
+t_4
+t_27
+t_1t_5
+t_38t_4
+t_29
+t_1t_5
+t_310t_4
+t_211
+t_1t_5
+t_312t_4
+t_213
+t_1t_5
+t_314t_4
+t_215
+t_1t_5
+t_316t_4
+t_217
+t_1t_5
+t_318t_4
+t_219
+t_1t_5
+t_320t_4
+t_2t_5
+t_321t_4t_522t_3
+23t_4t_2
+t_524t_3
+25t_4t_2
+t_526t_3
+27t_4t_2
+t_528t_3
+29t_4t_2
+t_530t_3
+31t_4t_2
+t_532t_3
+33t_4t_2
+t_534t_3
+35t_4t_2
+t_536t_3
+37t_4t_2
+t_538t_3
+39t_4t_2
+t_540t_3
+41t_4t_2
+t_5
+0 1t_1t_12t_2
+t_3t_5
+3t_4t_4
+4t_35t_5
+t_1t_2t_4t_5
+6t_3
+t_1t_2
+0 6t_1t_3 8 t_5
+9t_4t_3t_5
+t_4
+t_3t_5t_4
+3t_4
+4t_3
+t_2t_1Figure 4: On the top: a concrete marking graph.
+Below: its compact versions when the various com-
+pression options are activated (top-down: loops,
+cycles orremove , and fold). On this example, the
+option remove does not provide more compression
+than cycles .
+plugin after the publication. The gure 4 shows an example
+of a state graph at the dierent levels of compression.
+One hidden but important task of the plugin lashdata is to
+perform the translation between the variable-based repre-
+sentation of data in the Petri nets and its vector-based im-
+plementation in Lash. Indeed, Lash actually handles sets of
+integer-vectors and matrix-based linear conditions and up-
+dates. The plugin thus assigns to each variable an index in
+such a vector and computes for each condition or update
+expressed in Python (with constraints on the syntax in or-
+der to ensure the linearity) the corresponding matrices as
+expected by Lash. This work is facilitated by the module
+snakes .compyler that was designed to handle Python expres-
+sions in snakes . For instance, it is used to correctly rename
+variables in expressions ( e.g., in guards); it may be used also
+to translate Python expression to another language like C
+(provided in snakes .compyler for illustration) or cpn-ml . To
+do so, the module compyler denes a class Parser that uses
+the standard Python library to parse Python code and build
+abstract syntax trees. This trees are then traversed and each
+node is examined by a dedicated method of the class Parser .
+By subclassing it, one may perform any operation on any
+node of the abstract trees.
+4. FUTURE AND ONGOING WORKS
+snakes is still under active development and is still consid-
+ered as a beta software at its current version (0.8.8). It is
+planned to release the rst stable version (numbered 1.0)
+after a few features will be implemented (agged \ ?" below)
+and after some positive feedback will be received from the
+users.?Improving the documentation. The current documen-
+tation for snakes is composed of an apireference manual
+and a tutorial. The former is automatically generated from
+the comments in the source code (Python \docstrings") that
+also contains the code used for unit testing. There are cur-
+rently some modules, classes, methods or functions that lack
+a proper documentation with sensible examples and unit-
+test, which must be xed in order to improve the usability.
+However, the core library is currently quite complete to this
+respect: 87% is documented, 47% has unit test and 49% has
+detailed apispecication. The tutorial is written separately
+and currently does not introduce all the plugins of snakes ,
+but its is quite complete about the core library.
+?Better PNML support. The current support of pnml is
+not well tested, in particular for import. Moreover, many
+extension modules do not properly support pnml export or
+import. For the rst stable release, it will be necessary to
+check that every (reasonable) Petri net in snakes can be
+exported to a pnml code that is compatible with the ma-
+jor tools available. Moreover, it will be necessary to check
+that import from these tools is possible for reasonable cases
+(i.e., classes of Petri nets that naturally map to snakes core
+library).
+Support for other formats. Apart for pnml , other le for-
+mats should be supported by snakes . In particular, those of
+various model checkers that do not support pnml . The idea
+is that snakes can be used to build a model taking advan-
+tage of the pbcand M-nets compositions, then this model
+can be model-checked with a specialised tool. This work re-
+quires rst a survey of the existing tools to see which ones
+do not support pnml and which formats are already sup-
+ported by some conversion tool. The goal is to minimise
+the number of output formats to add to snakes in order to
+avoid to duplicate existing tools. For instance, pepor the
+model-checking kit [14] provide quite a lot of such transla-
+tion tools.
+There may exist also formats for which it may be interesting
+to have an input lter to snakes , but this will not be a
+priority as snakes is not intended to be used at the end of
+a tool chain but rather at the beginning.
+Support for more Petri nets variants. From the begin-
+ning, snakes has been designed to be able to support as
+many variants of Petri nets as possible. This aim should be
+turned into acts by providing extension modules for popu-
+lar Petri net models, in particular, those with time (see [10]
+for a comprehensive survey), stochastic Petri nets [2] and
+object Petri nets [17]. As presented above, Merlin &Far-
+ber's time Petri nets are being implemented, which causes
+no particular diculty.
+API to other programming languages. As every library,
+snakes is bound to a particular programming languages,
+Python in its case. This may be a limitation to its usage,
+even if Python is a language that is very easy to learn. In
+
+--- Page 11 ---
+particular, this is a limitation for a programmer that would
+like to use snakes as the back-end of another application
+not written in Python. For instance, a graphical editor could
+usesnakes as its data model in order to provide simulation
+capabilities.
+In order to remove this limitation, a C binding of snakes
+is being developed. The approach chosen is to generate it
+automatically by inspecting the actual Python code. Wrap-
+pers for each class, method and function are generated as
+Pyrex [16] code. This is a dialect of Python mixed with C
+that can be compiled to pure C code. It is primarily in-
+tended for building Python extension but is also suitable for
+embedding Python into C programs.
+Then, with a C apiavailable, many other languages can be
+mapped. Thin bindings can be easily obtained for a variety
+of languages using a tool like swig [12]. But it is often more
+interesting to produce a thick binding that is oriented toward
+the programming style enforced by a particular language.
+For instance, a Java binding should be object-oriented as
+the original apiis. (Note that there is no a priory limitation
+with Java that can be interfaced to native libraries using the
+jniframework [30].)
+5. ACKNOWLEDGEMENTS
+The author would like to thank Hanna Klaudel for her good
+advices about how to present this paper, and Emmanuel
+Polonowski who helped with the uml notation.
+6. REFERENCES
+[1] AT &T Research. Graphviz, graph visualization
+software.hhttp://www.graphviz.org i.
+[2] F. Bause and P. S. Kritzinger. Stochastic Petri Nets
+(2nd Edition) . Vieweg Verlag, 2002.
+[3] B. Berthomieu and F. Vernadat. State space
+abstractions for time Petri nets. Handbook of Real
+Time Systems , to appear, 2006.
+[4] E. Best, R. Devillers, and J. Hall. The Petri box
+calculus: a new causal algebra with multilabel
+communication. In Advances in Petri Nets 1992 ,
+volume 609 of LNCS . Springer-Verlag, 1992.
+[5] E. Best, R. Devillers, and M. Koutny. Petri net
+algebra . Springer-Verlag, 2001.
+[6] E. Best, W. Fraczak, R. P. Hopkins, H. Klaudel, and
+E. Pelz. M-nets: an algebra of high-level Petri nets
+with an applications to the semantics of concurrent
+programming languages. Acta Informatica , 35(10),
+1998.
+[7] B. Boigelot. The Li ege automata-based symbolic
+handler.hhttp://www.montefiore.ulg.ac.be/
+~boigelot/research/lash i.
+[8] R. Bouroulet, H. Klaudel, and E. Pelz. A semantics of
+security protocol language (SPL) using a class of
+composable high-level Petri nets. In Proc. of
+ACSD'04 . IEEE Computer Society, 2004.
+[9] C. Bui Thanh. Generating coloured Petri nets of
+concurrent object-oriented programs. In Proc. of
+ESMc'04 . EUROSIS, 2004.
+[10] A. Cerone and A. Maggiolo-Schettini. Time-based
+expressivity of time Petri nets for system specication.
+Theoretical Computer Science , 216(1-2), 1999.[11] CPN Group, University of Aarhus. CPN Tools.
+hhttp://wiki.daimi.au.dk/cpntools i.
+[12] D. Beazley &al. Simplied wrapper and interface
+generator.hhttp://www.swig.org i.
+[13] R. Devillers, H. Klaudel, and R.-C. Riemann. General
+parameterised renement and recursion for the M-net
+calculus. Theoretical Computer Science , 300(1-3),
+2003.
+[14] J. Esparza, C. Schr oter, and S. Schwoon. The
+model-checking kit. hhttp://
+www.fmi.uni-stuttgart.de/szs/tools/mckit i.
+[15] S. Evangelista. High level petri nets analysis with
+Helena. In Proc. of ICATPN'05 , volume 3536 of
+LNCS . Springer-Verlag, 2005.
+[16] G. Ewing. Pyrex, a language for writing Python
+extension modules.
+hhttp://www.cosc.canterbury.ac.nz/greg.ewing/
+python/Pyrexi.
+[17] B. Farwer and K. Misra. Modelling with hierarchical
+object Petri nets. Fundamenta Informaticae , 55(2),
+2003.
+[18] A. Finkel. The minimal coverability graph for Petri
+nets. In Papers from the 12th International Conference
+on Applications and Theory of Petri Nets .
+Springer-Verlag, 1993.
+[19] F. Heitmann. Petri nets tool database at the Petri net
+world.hhttp://www.informatik.uni-hamburg.de/
+TGI/PetriNets/tools i.
+[20] K. L. McMillan. A technique of state space search
+based on unfolding. Formal Methods in System
+Design , 6(1):45{65, 1995.
+[21] P. M. Merlin and D. J. Farber. Recoverability of
+communication protocol. IEEE Trans. on
+Communications , 24(9), 1976.
+[22] R. Milner. Communication and concurrency .
+Prentice-Hall, 1989.
+[23] Parallel Systems Group, University of Oldenburg. The
+PEP tool.hhttp://peptool.sourceforge.net i.
+[24] E. Pelz and D. Tutsch. Formal models for multicast
+trac in network on chip architectures with
+compositional high-level Petri nets. In Proc. of
+ICATPN'07 , volume 4546 of LNCS . Springer-Verlag,
+2007.
+[25] F. Pommereau. Causal Time Calculus. In Proc. of
+FORMATS'03 , volume 2791 of LNCS .
+Springer-Verlag, 2003.
+[26] F. Pommereau. Versatile boxes: a multi-purpose
+algebra of high-level Petri nets. In Prof of DASDS'04 .
+SCS/ACM, 2004.
+[27] F. Pommereau, R. Devillers, and H. Klaudel. Ecient
+reachability graph representation of Petri nets with
+unbounded counters. In Proc. of Innity'07 , volume to
+appear of ENTCS . Elsevier, 2007.
+[28] Python Software Foundation. Python programming
+language.hhttp://www.python.org i.
+[29] Research Group Petri Net Technology, Humboldt
+Universit at of Berlin. The Petri net kernel.
+hhttp://www.informatik.hu-berlin.de/top/pnkn i.
+[30] Sun Microsystems, Inc. Java native interface. hhttp:/
+/java.sun.com/j2se/1.5.0/docs/guide/jni i.

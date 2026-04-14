@@ -1,0 +1,424 @@
+--- Page 1 ---
+ 1 GN&C SEQUENCING FOR ORION                             
+RENDEZVOUS, PROXIMIT Y OPERATIONS, AND DO CKING  
+Peter Z. Schulte ,* Peter T. Speha r,† and David C. Woffinden† 
+As part of the Artemis program to return humans t o the lunar surface, the Na-
+tional Aeronautics and Space Administration is planning to use the Orion Multi -
+Purpose Crew Vehicle to transport crew to a small orbital platform  called Gate-
+way in cis lunar space . To facilitate this activity, Orion is required to  perform 
+Rendezvous, Proximity Operations, and Docking (RPOD) with both the Gate-
+way and the launch vehicle upper stage.  
+The Orion spacecraft uses sequencing in the form of Phases, Segments, Activi-
+ties, and Modes (PSAM) to configure Guidance, Navigation, &  Control 
+(GN&C) software during each portion of the mission. Significant updates to 
+Orion PSAM definitions are required  for RPOD . This paper describes the pro-
+cess of defining these new sequencing elements, implementing them in proto-
+type flight software, an d testing them in an integrated simulation environment.  
+First, requirements are specified to determine the nominal and off -nominal se-
+quencing behavior necessary to complete the mission. These requirements also 
+specify which software functions should be ful ly autonomous and which func-
+tions require manual interactions from crew or ground operators. Next, the 
+RPOD concept of operations is defined with detailed events listed in a mission 
+timeline. Third, a state machine diagram is developed to show all  PSAM sta tes, 
+including all possible transitions between them. After this, the PSAM states and 
+transitions are entered into a sequencing software emulator and parameter values 
+and modes are defined for GN&C software elements. Finally, the PSAM archi-
+tecture is teste d within an integrated simulation environment by connecting it 
+with prototypes of relevant GN&C flight software elements and with detailed 
+vehicle models. After the sequencing design has been finalized and tested, it is 
+implemented in flight software.  
+INTR ODUCTION  
+The National Aeronautics and Space Administration (NASA)  has started  the Artemis program  
+to land humans on the lunar surface by 2024. This initial mission will be followed by a series of 
+human landings to establish sustainable human presence on th e Moon. To accomplish this goal, 
+NASA will launch crews of astronauts from Earth onboard the Orion spacecraft using the Space 
+                                                      
+* Senior Member, Technical Staff , Space craft Guidance, Navigation, & Control , The Charles Stark Draper Laboratory, 
+Inc., 17629 El Camino Real, Suite 470, Houston, Texas, 77058 . 
+† Aerospace Engineer , GN&C Autonomous Flight Systems Branch , NASA Johnson Space Center , 2101 NASA Park-
+way, Houston, Texas, 77058 . (Preprint) AAS XX-XXX 
+
+--- Page 2 ---
+ 2 Launch System (SLS) rocket. Orion will then transport the crew from Low Earth Orbit (LEO) to 
+cislunar space.  
+Prior to the arrival  of the first human landing mission, components of an orbital platform 
+called Gateway will be launched and assembled in a Near -Rectilinear Halo Orbit (NRHO) around 
+the Moon1. A human lunar lander will also be launched and docked to the Gateway prior to Ori-
+on’s arrival. Orion will conduct Rendezvous, Proximity Operations, and Docking (RPOD) with 
+the Gateway, and the crew will move from Orion into the Gateway. When Gateway has reached 
+the proper point in its orbit, crew members will board the lander and proce ed to the lunar surface. 
+After surface operations are complete, the crew will return to Gateway and board Orion, which 
+will then undock and return to Earth.  For some Artemis missions, Orion will also be required to 
+perform Proximity Operations and Docking with the Exploration Upper Stage (EUS) of the SLS 
+in order to extract a Comanifested Payload (CPL), such as a Gateway module, which Orion 
+would then transport to the Gateway2. 
+Orion is required to have the capability to perform RPOD both autonomously and m anually. 
+Although most RPOD functions will be autonomous, the crew of Orion will likely be involved in 
+manual commanding and control during key portions of RPOD operations , including monitoring 
+the automation . This paper focuses on the development of autom ated sequencing for Orion RPOD 
+Guidance, Navigation, & Control (GN&C) software. For the purpose of this paper, it is assumed 
+that all sequencing proceeds autonomously, but key points where manual interaction from crew or 
+ground operators is expected during  autonomous flight are specified. First, the Orion RPOD Con-
+cept of Operations  (ConOps)  is presented in detail. Next, the Orion GN&C sequencing architec-
+ture is explained and the RPOD -specific sequencing design described. Finally, the process for 
+implementat ion and testing of RPOD sequencing is outlined.  
+ORION RPOD CONCEPT O F OPERATIONS  
+After transferring from the Earth to the Moon, Orion performs a n Outbound P owered  Flyby 
+(OPF) burn near the Moon, which sets up an intercept with the NRHO in the vicinity of G ateway. 
+Several Outbound Trajectory Correction (OTC) burns are performed to adjust the trajectory dur-
+ing this transfer.  The NRHO Insertion (NRI) burn is performed to transition Orion from the trans-
+fer trajectory to the NRHO for RPOD operations . Orion remai ns in the NRHO docked to Gate-
+way for just over one full revolution  (9.5-11 days)  before undocking and performing an NRHO 
+Departure ( NRD) burn.1 Orion then performs a Return Powered Flyby (RPF) burn near the Moon 
+to place it on a return trajectory to Earth.  This sequence is  shown in Figure 1. 
+The dynamics of rendezvous operations in an NRHO are quite different from rendezvous in 
+LEO or other circular orbits. Rather than the typical cyclic behavior described by the Clohessy -
+Wiltshire equations, dynamics in an  NRHO are very nearly linear . Some unique requirements 
+also guided the trajectory design for Orion to dock with the Gateway.  The RPOD trajectory must 
+be passively safe, meaning that if any fault occurs that wi ll prevent Orion from performing trans-
+lational burns, the free -drift or coast trajectory should not intercept a 1 km Approach Sphere (AS) 
+or a 200 m Keep -Out Sphere (KOS) around Gateway for 24 hours. The trajectory is only allowed 
+to enter the AS or KOS af ter “Authority To Proceed” (ATP) is granted either by the crew or by 
+ground operators. The free -drift trajectories before each burn are shown as dotted lines in Figures 
+2 through 4. The RPOD trajectory is represented in a Gateway -centered reference frame, as 
+shown in Figure 2 . 
+
+--- Page 3 ---
+ 3 
+ 
+Figure  1. Orion intercept and departure trajectory with NRHO in Earth -Moon Rotating frame .1 
+The first portion of the RPOD trajectory is called “Far Range” and is shown in Figure 2. The 
+NRI burn is performed at a range of several hundred kilometers  from Gateway. The sa me point 
+relative to Gateway is targeted for NRI, regardless of the launch date and orbital mechanics of 
+Gateway relative to the Earth and Moon. This allows the RPOD approach trajectory to be stand-
+ardized  with minor modifications  for multiple missio ns and launch dates . Prior to NRI, relative 
+state estimation is derived by onboard state vector differencing between Orion and Gateway 
+states  and supplemented by relative sensor measurements if available. Post -NRI, relative sensor 
+measurements are the pri mary source of navigation .2  
+NRI is followed by a series of Rendezvous Burns (RB), which are designed to reduce the rela-
+tive velocity of Orion while maintaining passive safety. These burns are performed with Orion’s 
+Orbital Maneuvering Engine  and Auxiliary  engines using a “turn -to-burn” paradigm. An attitude 
+maneuver is performed to point the thrust vector of the engines in the direction of the burn. Dur-
+ing this time (~20 -30 minutes, depending on burn duration), relative sensors will not be able to 
+point to ward Gateway. After the burn is complete, Orion rotates its nose toward Gateway again to 
+resume acquisition of relative sensor measurements.  
+The Mid -Range portion of the RPOD trajectory begins after RB3 and is shown in Figure 3. 
+After the completion of th e RB3 burn, the AS constraint will be violated, meaning that an ATP is 
+necessary before performing RB3. During Mid -Range RPOD, Orion stays on a path parallel to 
+the docking axis for passive safety. Starting with RB4, all other burns until docking are compl et-
+ed as multi -axis burns using Orion’s Service Module Reaction Control System ( SM RCS ) thrust-
+ers. During multi -axis SM RCS  burns, the relative sensors can continue to track the target, be-
+cause a “turn -to-burn” attitude maneuver is required. Mid -Range RPOD ends with the RB5 burn 
+moving Orion off of the parallel path and toward the z -axis not. 
+
+--- Page 4 ---
+ 4 
+Y
+ZNRIRB2
+RB1RB3Approx
+To Moon
+Free -drift 
+trajectories are 
+passively safe 
+and robust to 
+under burns.
+2 
+Figure  2. Far Range RPOD tra jectory  (not to scale) . 
+3Y
+ZApproach
+Sphere 
+(AS)
+RB5
+RB3RB4
+Approx
+To Moon 
+Figure  3. Mid-Range RPOD trajectory  (not to scale) . 
+The Close Range portion of the RPOD trajectory begins at the completion of the RB5 burn 
+and continues until docking, as shown in Figure 4. RB5 is unique becau se during the burn the 
+free-drift path of Orion passes through Gateway’s KOS. Thus, if an underburn occurs there is a 
+risk of collision with Gateway. After RB5, Orion performs maneuvers to  ensure  that Gateway 
+will remain within the field of view of Orion’s relative sensors  during the transition to the dock-
+ing axis.  Unlike the previous burns, these correctio ns are not planned to occur at  specific time s 
+but will be automatically commanded by the GN&C system on an as -needed ba sis. 
+When Orion reaches the z -axis, the RB6 burn is performed to place Orion on its approach to 
+dock with Gateway. Because the free -drift trajectory will enter and stay in the KOS after the RB6 
+burn, an ATP is required prior to executing RB6. Foll owing RB6, Orion passes through a series 
+of range ra te (braking) gates, which are small burns to decrease range rate at set intervals based 
+on range to Gatew ay. Finally, at a range of several meters fr om Gateway, Orion performs a 
+planned hold by zeroing  its range rate and executing stationkeeping burns while aligning its dock-
+ing port with Gateway’s docking port. After a final ATP from the crew, Orion then moves for-
+ward to make contact and dock with Gateway.  
+When Orion is ready to depart from Gateway, it first releases the docking mechanism to push 
+off from the docking port. Orion then passes through the range rate gates in reverse to increase its 
+separation rate from Gateway at set intervals of range. When a range of several hundred meters is 
+reached, Ori on will perform an initial Departure Burn (DB1) using multi -axis SM RCS . Then, a 
+series of Departure Burns will be performed, followed by NRD to depart from the NRHO. Unlike 
+the approach burns, the timing, location, and engine used for each of these depart ure burns will be 
+
+--- Page 5 ---
+ 5 mission -specific and determined by the orbital mechanics of Gateway relative to the Earth and 
+Moon. A notional departure sequence is shown in Figure 5 . 
+4Y
+ZKeep Out
+Sphere
+(KOS)
+RB5RB6
+Free -drift 
+trajectories 
+remain outside 
+200m keep -out-
+sphere prior to 
+receiving the 
+authority to 
+proceed.Braking gates .
+Approx
+To Moon
+ 
+Figure  4. Close Range RPOD trajectory  (not to scale) . 
+5Y
+ZKeep Out
+Sphere
+(KOS)
+DB1
+NRDDB2Approach
+Sphere 
+(AS)
+Approx
+To Moon 
+Figure  5. RPOD Departure trajectory  (not to scale) . 
+ORION RPOD SEQUEN CING DESIGN  
+The Orion GN&C Flight Software (FSW) architecture is designed to operate highly autono-
+mously. Artemis I, the first test flight of Orion in cislun ar space is uncrewed and completely au-
+tonomous. Artemis II, the first crewed test flight of Orion, will include  the capability for both au-
+tonomous and manual control by the crew. The mechanisms developed to handle sequencing for 
+the autonomous GN&C FSW are  called Phases, Segments, Activities and Modes (PSAM) .3 The 
+PSAM sequencing architecture has been used extensively during the Artemis I and Artemis II 
+missions . However , RPOD is not used until Artemis III.  
+Phases define major portions of the mission such a s launch, low -Earth orbit, cislunar flight, 
+and entry. Segments define subdivisions within each mission phase, such as coast, burn configu-
+ration, and burn execution within the cislunar flight segment. Segments also involve vehicle -wide 
+reconfiguration and are handled by Timeline Management software rather than GN&C software. 
+Activities are specific divisions within each segment that define discrete software configurations 
+by specifying GN&C software parameter values and Modes. Modes define which GN&C soft-
+ware units in each GN&C software domain will run during a given activity.  Parameter values fed 
+as inputs to GN&C algorithms can also be changed at activity transition boundaries, allowing 
+multiple parameter sets to be used for each Computer Software Unit ( CSU) during different por-
+tions of the RPOD trajectory. Figure 6  illustrates  the hierarchy of PSAM sequencing elements 
+within the Orion mission timeline. Transitions between Phases, Segments, and Activities are data -
+
+--- Page 6 ---
+ 6 driven and can include conditions based on hardware states, software states, and vehicle dynamic 
+states.   
+ 
+Figure  6. Illustration of Orion GN&C sequencing Phases, Segments, Activities and Modes (PSAM) .3 
+The nominal Orion RPOD trajectory design and ConOps  described in the  previous section 
+were developed based on simulations with prototype GN&C algorithms . However, i n order to 
+implement these new operations  within the Orion GN&C FSW , an extensive new set of PSAM 
+sequencing is required. This includ es the addition of a new RP OD mission phase with multiple 
+new segments and dozens of new activities . Several goals were stated as the design of RPOD 
+PSAM sequencing began: to re -use as much of the Artemis I and Artemis II sequencing as possi-
+ble, to develop common RPOD Phases and Seg ments to support all future mission operations, 
+and to keep the sequencing agnostic to trajectory design where possible.  
+The first step in sequencing design was for the RPOD GN&C team to meet together and dis-
+cuss every step of the RPOD ConOps in detail. The name, contents, and transitions between each  
+RPOD event relevant to the GN&C software were recorded in a spreadsheet to document them 
+for common reference. Next, a nested state machine diagram was developed to describe the Phas-
+es, Segments, and Activitie s relevant to RPOD. It was decided that rather than extending an exist-
+ing mission Phase, a new Phase should be created called RPODOperations . This was done to re-
+duce confusion from altering existing Artemis I/II sequencing and to minimize the amount of se-
+quencing re -verification necessary.  
+Transitions into and out of the RPODOperations  Phase  are shown in Figure 7. If Orion needs 
+to perform RPOD with the  EUS to extract a CPL, then FSW will transition  the mission phase  
+from EarthOrbitOps  to RPODOperations  immediately after separation of Orion from EUS.  Prox-
+imity Operations, Docking, and CPL extraction from EUS all occur in RPODOperations . Then 
+after Orion departs  from EUS, FSW  transition s into ExoLEOOperations  for transfer from Earth to 
+the Moon . If no RPOD o perations with EUS are required, EarthOrbitOps  transitions directly to 
+ExoLEOOperations  (the default behavior for Artemis I and II).  Existing ExoLEOOperations  se-
+
+--- Page 7 ---
+ 7 quencing will be used for all translational burns prior to NRI. When the range to Gateway drops  
+below a parameterized value, FSW will transition from ExoLEOOperations into RPODOpera-
+tions . The exact range for this transition  is To Be Determined (TBD), but it  will be somewhat 
+larger than the maximum expected range that Orion’s relative sensors can obt ain measurements 
+of the relative position to Gateway (several hundred kilometers).  If this range is not reached by 
+one hour before NRI, the transition will occur anyway.  After Orion departs from Gateway and 
+leaves the NRHO, the phase will transition back t o ExoLEOOperations  for transfer back to Earth.  
+ 
+New for  
+Artemis III+
+Existing 
+Artemis I/II 
+Sequencing
+EarthOrbitOps
+Phase
+RPODOperations
+Phase
+ExoLEOOperations
+PhaseSoon after 
+Orion/EUS 
+separation Departure from 
+EUS/Gateway(RangeToTarget < [TBD] km)
+|| (NRI –1 hr)
+ 
+Figure  7. State  machine diagram showing transitions to and from the RPODOperations  Phase . 
+Segments within the RPODOperations phase were designed using the Far, Mid, and Close 
+Rang e divisions described in the previous section . Figure 8 shows  the nominal RPOD Segments 
+and transitions between them. Three segments are used to execute the Far Range portion of the 
+RPOD trajectory, where all burns use the “turn to burn” paradigm. During t he RPOD_Coast  
+Segment, Orion tracks Gateway with its relative sensors and runs initial burn targeting and guid-
+ance algorithms. Then, 20 minutes before the planned Time of Ignition (TIG) for a Far Range 
+burn, FSW transitions into the RPOD_Burn_Config  Segmen t, which rotates Orion to the burn 
+attitude and positions solar arrays for the burn. Finally, at 5 minutes before TIG, FSW transitions 
+into the RPOD_Burn  Segment for execution of the burn and evaluation of failures  before, during, 
+and after the burn . After  the burn and any subsequent trim are complete, FSW return s to the 
+RPOD_ Coast  segment. This cycle repeats for each Far Range burn. This sequencing is based on 
+the paradigm designed for Artemis I, but with modifications to allow for relative operations.4,5 
+The transition from the RPOD_Coast  Segment (Far Range) into the RPOD_Mid_Range Seg-
+ment occurs after the final “turn to burn” (currently RB3) is complete. All burns during 
+RPOD_Mid_Range use multi -axis SM RCS  and have discrete , pre-defined TIGs. As with the  Far 
+Range burns, there is some cyclic re -use of sequencing for the Mid -Range burns, but only one 
+Segment is used instead of three because fewer vehicle and GN&C software reconfigurations are 
+needed for multi -axis SM RCS  burns.  
+After RB5 is complete, F SW transitions into the RPOD_Close_Range  Segment. C lose Range 
+burns are not defined by discrete TIGs; they are either correction burns commanded as -needed or 
+are triggered based on range rather than time. Also, for an EUS docking and CPL extraction, 
+FSW tr ansitions directly into RPOD_Close_ Range , from the EarthOrbitOps Phase, bypassing the 
+
+--- Page 8 ---
+ 8 Far and Mid -Range segments. The sequencing for final approach and capture is re -used for both 
+the EUS docking and the Gateway docking. The transition from RPOD_Close_Rang e Segment to 
+the Docked  Segment occurs at the end of docking when hard capture is complete and an airtight 
+structural seal is established  between Orion and Gateway . FSW remains in the Docked  Segment 
+until an undocking command is given by the crew, triggeri ng a transition back into 
+RPOD_Close_Range . 
+  
+Orion Exploration Docking System
+Export Controlled Information Orion RPOD Working Group: 5 Sept 2019Notional Nominal RPOD 
+Segment Transitions
+RPOD Far Range
+RPOD_Coast
+Segment
+RPOD_Burn_
+Config
+Segment
+RPOD_Burn
+SegmentFrom 
+ExoLEO
+Phase
+(Gateway)
+RPOD_Mid_Range
+Segment
+RPOD_Close_
+Range Segment
+Docked
+Segment
+RPOD_Departure
+SegmentFrom 
+EarthOrbit
+Phase (EUS)RPOD Mid-Range
+RPOD Close Range
+To ExoLEO Phase
+(EUS & Gateway)After final 
+“turn to burn”
+After leaving 
+parallel trajectory
+Hard 
+CaptureUndock
+ 
+Figure  8. State  machine diagram showing nominal RPOD segments and transition s. 
+For departure from Gateway, FSW remain s in the RPOD_Close_Range Segment while back-
+ing away from Gatewa y and performing any additional Close Range maneuvers such as a fly 
+around inspection.  Before departing from EUS or Gateway, FSW transition s to the  
+RPOD_Departure  Segment and perform s the departure burn, For departure from EUS, FSW tran-
+sition s directly to the ExoLEOOperations  Phase, and for departure from Gateway, FSW transi-
+tions into the RPOD_Coast  Segment to execute a mission -specific set of departure  burns and then 
+NRD before returning to ExoLEOOperations . 
+In each of the Segments described above, detaile d Activities are defined to specify the behav-
+ior of the GN&C FSW from event to event. State machine diagrams are created using the State-
+flow toolbox in MATLAB/Simulink to illustrate the sequencing. These diagrams serve as docu-
+mentation of the RPOD sequenci ng design, though they do not translate directly to FSW code. 
+The diagram showing all RPOD activities is too large and complex to reproduce  here, but a small 
+portion of the diagram is included in Figure 9 . The particular group of activities in Figure 9  shows 
+the events from final approach through docking and then the undocking and separation sequence . 
+The RPOD GN&C team has discussed in detail the desired GN&C software behavior during each 
+Activity, which is then translated into GN&C M odes.  
+
+--- Page 9 ---
+ 9 
+ 
+Figure  9. Example  state machine diagram showing how RPOD activities are documented . 
+All of the sequencing described so far in this section has been for nominal  RPOD ConOps . 
+Off-nominal trajectory design is currently underway and has not been finalized. However, possi-
+ble off -nominal paths  have been established for Gateway RPOD . At any point prior to  RB6, Ori-
+on can perform a passive flyby simply by stopping all commands to execute burns. This involves 
+a transition to an RPOD_Passive_ Flyby  Segment. Also, during most portions of the RPOD trajec-
+tory, a position hold and/or retreat can be commanded to pause the approach sequence and re-
+sume within a few hours. This is achieved by t ransitioning into one of three S egments: 
+RPOD_Far_Range_Hold_Retreat , RPOD_Mid_Range_Hold_Retreat , or RPOD_Close_Range_  
+Hold_Retreat . The RPOD approach can be aborted temporarily, allowing the crew to stop the 
+RPOD sequence, perform a “safing” burn to set up for long -term troubleshooting,  and resume the 
+approach on the nex t crew day. Finally, the crew can abort the approach permanently and imme-
+diately depart from Gateway. These aborts are commanded by transitioning into 
+RPOD_Far_Range_Abort , RPOD_Mid_Range_Abort , or RPOD_Close_Range_Abort  Segments . 
+Of the scenarios listed h ere for Gateway, only short -term hold/retreat and abort followed by im-
+mediate departure are possible while performing RPOD with EUS. Currently , it is expected that 
+transitions into any of the off-nominal RPOD Segments will be manually commanded by the 
+crew , not triggered autonomously by on-board fault detection logic.  The notable exception to this 
+is automated collision avoidance maneuvers at very close range to Gateway and EUS. A Caution 
+& Warning display  to provide information about fault status to the cr ew and allow  them  to decide  
+if a manual transition command is necessary.  This display will show outputs from fault detection 
+logic and a ctive trajectory monitoring algorithms.   
+ORION RPOD SEQUENCING IMPL EMENTATION  
+After completion of the sequencing design process described in the previous section, the 
+RPOD sequencing is first implemented in simulation for testing  with GN&C FSW algorithms. 
+The Orion GN&C FSW is developed in MATLAB/Simulink using a tool called  the Rapid Algo-
+rithm MATLAB Simulink Engineering S imulation ( RAMSES ).6 Information about Phases, Seg-
+ments, and Activities from the state machine diagrams described in the previous section are en-
+tered into the PSAM Database Configuration Tool  (also known as the PSAM tool)  within the 
+RAMSES  environment .3 This includes defining exactly which data parameters within the FSW 
+will be used to e valuate  transition conditions between Segments and Activities.  The specific input 
+
+--- Page 10 ---
+ 10 parameter values for each CSU and the Mode for each GN&C FSW domain are specified within 
+each Activity in the PSAM tool. The RAMSES  environment is then used for extensive software 
+development and testing, using the PSAM data entered into the PSAM tool. For RPOD, the 
+RAMSES  environment is also used to perform human -in-the-loop simulations to eva luate GN&C 
+algorithm performance.  
+It should be noted that unlike the CSU s, PSAM sequencing information is not autocoded from 
+the PSAM tool directly into FSW but is rather entered manually by FSW developers into the 
+Rhapsody environment within Timeline Vehi cle Management software (for Phases and Seg-
+ments) and GN&C Executive software (for Activities and Modes).  When all GN&C CSUs and 
+PSAM information have been integrated with the rest of FSW in Rhapsody, source code is  gener-
+ated and tested for formal verifica tion & validation, through both software simulation and hard-
+ware -in-the-loop testing.  
+CONCLUSION S 
+This paper presented the Orion RPOD concept of operations , GN&C sequencing design, and 
+implementation process.  The RPOD sequencing capability builds upon exis ting Orion GN&C 
+sequencing design and expands it for the added challenges of Rendezvous, Proximity Operations, 
+and Docking. The design of the RPOD sequencing is intended to allow flexible operations and 
+accounts for both nominal and off -nominal scenarios, including the challenge of mixing between 
+autonomous and manual control.  
+ACKNOWLEDGMENT S 
+The authors wish to than k Ryan Odegard at the Charles Stark Draper  Laboratory  for his guid-
+ance in the process of developing and implementing the RPOD PSAM sequencing a nd for his 
+feedback in evaluating the  RPOD  sequencing design.  
+REFERENCES  
+1 J. Williams, D.E. Lee, R.J. Whitley, K.A. Bokelmann, D.C. Davis, C.F. Berry, “Targeting Cislunar Near Rectilinear 
+Halo Orbits for Human Space Exploration,” 27th AAS/AIAA Space Fligh t Mechanics Meeting , AAS 17 -267, San An-
+tonio, TX, Feb 2017.  
+2 Woffinden, D., Zanetti, R., Tuggle, K., D’Souza, C., Spehar, P., “Re -Evaluating Orion’s Relative Navigation Filter 
+Design for NASA’s Future Exploration Missions,” 2018 AAS Guidance, Navigation, & Control Conference, AAS 18 -
+142, Breckenridge, CO, February 2018.  
+3 R.G. Odegar d, T.K. Sliwinski, E.T. King,  J.J. Hart, “Configuring the Orion Guidance, Navigation, and Control Flight 
+Software for Automated Sequencing,” 2011 Institute of Electrical and El ectronics Engineers Aerospace Conference, 
+IEEEAC Paper 1470, Big Sky, MT, March 2011. https://doi.org/10.1109/AERO.2011.5747472 . 
+4 R. Odegard, J.L. Goodman, C.P. Barrett, K. Pohlkamp, S. Robinson, “ Orion Burn Management, Nominal and Re-
+sponse to Failures,” 2016 AAS Guidance, Navigation, & Control Conference, AAS 16 -113, Breckenridge, CO, Febru-
+ary 2016.  https://ntrs.na sa.gov/archive/nasa/casi.ntrs.nasa.gov/20160001186.pdf . 
+5 R. Odegard, D.P. Dannemiller, C.P. Barrett, K. Pohlkamp, “Orion Burn Automation Response to Failures,” 2018 
+AAS Guidance, Navigation, & Control Conference, AAS 18 -087, Breckenridge, CO, February 20 18. 
+6 M.C. Jackson, J.R. Henry, “Orion GN&C Model Based Development: Experience and Lessons Learned,” AIAA 
+Guidance, Navigation, & Control Conference, AIAA 2012 -5036, Minneapolis, MN, August 2012.  
+https://arc.aiaa.org/doi/pdf/10.2514/6.2012 -5036 . 
+ 
+ 

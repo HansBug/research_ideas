@@ -1,0 +1,552 @@
+--- Page 1 ---
+User-friendly Model Checking Integration in Model-based
+Development
+Alarico Campetelli, Florian H olzl, Philipp Neubeck
+Institut f ur Informatik
+Technische Universit at M unchen
+Garching bei M unchen, 85748, Germany
+fcampetel, hoelzlf, neubeck g@in.tum.de
+Abstract
+We present our approach to a user-friendly model
+checking integration in model-based development. The
+used modeling tool is Auto Focus 3, developed at our
+research group and specialized for reactive and em-
+bedded systems. For this integration, we approach
+usability at four points: tight coupling of verication
+properties with model elements, dierent specication
+languages for the formulation of properties, visualiza-
+tion of counterexamples as well as evaluation of dier-
+ent model checkers for adequate performance. Deal-
+ing with these issues leads to one of the rst model-
+based development environments incorporating prop-
+erty specication, model checking and debugging.
+Keywords : verication, model checking, model-
+based development, tool support, embedded systems
+1 Introduction
+With an increasing number of software-intensive
+systems and their steady increase in size and complex-
+ity, verication of their correct operation is critical.
+Formal verication based on formal methods is a tech-
+nique to prove this correctness in an exhaustive man-
+ner, compared to testing which is partial in principle.
+Still, the developers' acceptance of formal verication
+methods is rather limited. Be it because of bad tool
+integration, unacceptable tool performance or lack of
+knowledge. Formal verication techniques should be
+supported and applied throughout the whole develop-
+ment process, but currently they are applied only in
+rare cases or are abandoned completely. This calls
+for integrated development environments, where de-
+sign and verication tasks go hand in hand.
+A model-based development environment pro-
+vides model types to design dierent aspects of a sys-
+This work was partially funded by the German Federal Min-
+istry of Education and Research (BMBF), grant \SPES2020,
+01IS08045A". The responsibility for this article lies with the
+authors.tem, e. g., for embedded systems its functional behav-
+ior, its software architecture and its hardware archi-
+tecture. These models are used to automatically gen-
+erate the implementation code of the software system
+w.r.t. its hardware and execution environment. The
+design and code generation capability of the develop-
+ment environment is complemented by validation and
+verication mechanisms, such as test case generation,
+model checking and theorem proving.
+AutoFocus 3 [11] is a scientic tool for the devel-
+opment of reactive, software-intensive, embedded sys-
+tems based on the semantics of the Focus modeling
+theory [5] and implemented on top of the Eclipse1plat-
+form. In this tool, systems are modeled as software ar-
+chitectures based on components combined with exe-
+cutable behavior descriptions (e. g., automata with in-
+put and output). Hardware aspects are captured in a
+topology model, which describes execution and trans-
+mission units such as electronic control units and bus
+systems. A deployment model allocates components
+to execution units and allows to generate the complete
+code of the system. From the validation point of view,
+AutoFocus 3 provides a simulation environment, a
+test case generator as well as the model checker inte-
+gration. The advantages of model checking techniques
+suit with the criticality of embedded systems devel-
+opment, which require exhaustive verication. Fur-
+thermore, an on-target debugging and co-simulation
+mechanism is available.
+The current paper presents the actual state of the
+model checking integration into the Auto Focus 3 de-
+velopment tool and explains the underlying approach
+we are following. We tackle usability of verication
+mainly in four areas. Firstly, we integrate specication
+and verication tightly into the model-based develop-
+ment process. This means that verication properties
+are linked to model elements and can be veried lo-
+cally and easily during the development, for details
+see Sec. 2. The support for dierent specication lan-
+1http://www.eclipse.org
+
+--- Page 2 ---
+guages is essential. Therefore, in Sec. 3 we promote
+the use of property templates for the most simple but
+recurrent cases and high-level languages for the more
+intricate properties. Properties disproved by verica-
+tion must be analyzed and either the system model
+or the properties have to be corrected. In the case of
+model checking, disproof is given by counterexamples,
+which we present the user either as a simulation of the
+system model or as a message sequence chart [14], see
+Sec. 4. For formal verication to be actually practical,
+it must perform eciently and may not impose long
+delays on the user. Therefore, we evaluate various op-
+timization techniques implemented in dierent model
+checkers, currently the Cadence Symbolic Model Ver-
+ier (SMV) [12] and TVARC [6]. The latter is state-
+of-the-art and developed at our chair. It extensively
+applies model abstraction which seems very promising
+for our application. In Sec. 5 we discuss the implemen-
+tation and integration of the model checkers in detail.
+Sec. 6 presents related approaches and Sec. 7 considers
+future improvements and concludes the paper.
+2 Integration in Model-based Develop-
+ment
+Component Hierarchies In Auto Focus 3 the ba-
+sic modeling element is a component, from which a
+hierarchical architecture can be constructed. Any sys-
+tem to be developed must be described as a top-level
+component.
+A component has a syntactical interface described
+as a set of input and output ports (i/o-ports). These
+ports are used to interconnect several components for
+communication. Ports are assigned data types to re-
+strict the messages allowed to be transmitted.
+Besides this black-box view, we have two alterna-
+tives to describe the actual behavior of a component.
+By applying decomposition, we describe the compo-
+nent by a network of subcomponents. In this network
+the i/o-ports of the subcomponents and of the hosting
+component itself are interconnected.
+Alternatively, a component is dened by some op-
+erational behavior description. Depending on the kind
+of behavior the best description may be e. g., in terms
+of i/o-automata (for adaptive behavior) or tabular i/o-
+specications (for control-intensive behavior), which
+are both implemented in Auto Focus 3. In the fol-
+lowing discussion, we refer only to i/o-automata with
+state variables.
+Verication Properties Our approach allows the
+designer to attach verication properties to compo-
+nents in addition to their decomposition or their be-
+havior description.
+Figure 1: Property template options for model check-
+ing in Auto Focus 3
+The scope of a verication property is xed by the
+component it is attached to. Thus, the property can
+refer to the i/o-ports of this component. If available,
+the property can additionally refer to all i/o ports of
+the immediate subcomponents. If the component is
+dened by an automaton, the automaton's state vari-
+ables are also in scope.
+After augmenting the model with verication
+properties, we are able to choose the component to
+verify. If we verify a component, this component to-
+gether with all its subcomponents are considered. The
+chosen component is veried against all possible inputs
+allowed by the types of its input ports, thus the compo-
+nents environment (consisting of the non-descendant
+components) is completely ignored. Contrary, if we
+would like to verify a component together with its sib-
+ling components, we would have to verify the parent
+component containing both. Thus, the chosen compo-
+nent xes the verication context .
+For illustration, Fig. 1 shows a small component
+network in Auto Focus 3. In this view, the user se-
+lects a model element in the upper part and a pre-
+dened property template from the list below. The
+templates contain free variables which the user has to
+dene. Therefore, he can refer to model elements like
+i/o-ports or state variables. The context of the veri-
+cation is selectable from a drop-down list containing
+all parent components. Finally, the verication can
+be initiated. The verication is performed by a model
+checker. If the model checker is able to prove the prop-
+erty, the user is presented a conrmation. If the prop-
+erty is disproved, a counterexample is generated for
+the user's review. Counterexamples can be simulated
+or illustrated as MSCs, see Fig. 2 and 3.
+
+--- Page 3 ---
+Figure 2: Counterexample visualized as MSC
+Benets As explained, the user species a verica-
+tion condition in the scope of a certain component.
+This allows the tool to facilitate the formulation of ver-
+ication properties which would not be possible oth-
+erwise. For example, the property's formula is type
+checked with respect to the types of the ports and
+state variables. Other supportive functionality is dis-
+cussed in more detail in Section 3. This shows that
+the tight coupling of properties to the system model
+improves the process of verication and validation.
+Our approach also allows to locally verify prop-
+erties of a component. By verifying components
+and their subcomponents independently from the sur-
+rounding environment, the developer can apply ver-
+ication continuously throughout the development.
+Thus, implementation errors can be found earlier and
+bug-xing costs are reduced.
+Contrary to operational behavior descriptions,
+the developer can formulate verication properties in a
+declarative way. In many cases, a declarative descrip-
+tion is considerably shorter and comprehensible than
+the operational description. Furthermore, each prop-
+erty is specic to a certain aspect of the component's
+functionality allowing to abstract from the complexity
+of the component's behavior. With the presented tool
+integration, the developer can easily formulate such
+properties during the component's development.
+Similar the unit tests, which should be dened
+together with the implementation, we think that our
+model checker integration allows the same approach
+using verication. This way, as the system develop-
+ment proceeds, several verication properties are col-
+lected and contribute to the condence in the system's
+implementation.3 Specication of Properties
+The formal properties to be veried on the system
+model are specied in temporal logic, Computational
+Tree Logic (CTL) and Linear Time Logic (LTL) for
+SMV and -calculus for TVARC. Practical applica-
+tion of such temporal logics requires advanced skills
+in formal verication, since it is dicult to express
+properties in these formalisms. The acquisition of this
+level of knowledge may be an obstacle to the adoption
+of automated verication tools. In order to improve
+the usability and expressiveness in the specication
+of the properties, we propose three higher level ap-
+proaches. The most intuitive is based on predened
+Property Templates , the second uses a pattern-based
+approach , and the last is based on the Structured As-
+sertion Language for Temporal Logic (SALT) [2].
+The rst approach, as highlighted in Fig. 1, pro-
+vides templates that can be directly selected, cong-
+ured and executed from the graphical interface. We
+represent common properties to be veried, which are
+integrated in the model checker view and can be saved
+along with the model itself. The user selects an el-
+ement in the model view, then the appropriate tem-
+plates are shown. Examples of property templates for
+a port and a component are, respectively:
+Port value is eventually equal to X
+After input port A has value X, output port B
+has eventually value Y
+Templates contain variables, e. g., \X" in the prece-
+dent templates. Each variable is bound to the content
+of an associated text eld. Using these text elds,
+the user denes logical parts of the formula. Variables
+correspond to states or port values or, if they are in-
+dicated as \events", to general formulas. A type and
+name check is made for controlling the correctness of
+the values inserted by the user.
+The second approach is a pattern-based approach
+for the presentation, codication and reuse of prop-
+erty specications for verication. We refer to the
+specication pattern denition given by [8]: \ A prop-
+erty specication pattern is a generalized description
+of a commonly occurring requirement on the permis-
+sible state/event sequences in a nite-state model of
+a system. A property specication pattern describes
+the essential structure of some aspect of a system's be-
+havior and provides expressions of this behavior in a
+range of common formalisms ". The patterns are based
+on a survey of available specications, collecting over
+500 examples of property specications. Most of these
+specications were instances of the patterns.
+We added specication patterns in the model
+checker view, where the user has to select from a list
+
+--- Page 4 ---
+Figure 3: User interface for simulating counterexam-
+ples.
+a scope and a pattern [8]. After that step the corre-
+spondent formula parts are presented and should be
+lled with the desired elements by the user, as already
+explained for property templates. The user can ll the
+expressions with logical operators and elements of the
+model. In the selected pattern, the role of each text
+eld is indicated with a short description.
+The last approach is based on the specication
+language SALT, which provides a higher level of ab-
+straction compared to temporal logics like CTL and
+employs some constructs similar to a programming
+language. As a result, its specications are more intu-
+itive to utilize and to understand than temporal logic.
+We have added support for these three concepts in the
+front end view for SMV.
+4 Handling of Counterexamples
+In case the result of a verication is negative, the
+counterexample generated by SMV is reported in a
+tool view. The counterexample represents a path in
+the SMV model. This path can lead from the ini-
+tial state to a state where the property is violated or
+it can contain a loop, where the desired behavior is
+never reached. The path is visualized as a sequence
+of states, together with the eventual loop information.
+In this sequence each state describes current states of
+the state machines and a valuation of all variables and
+i/o ports that compose the model.
+In order to improve the representation and un-
+derstanding of such data, we perform the visualization
+of the counterexample as a message sequence chart.
+In the generated diagram, the actors are the dierent
+components of the model and the messages between
+them represent the value assignment in the model from
+Property Templates
+Specification Patterns 
+Assertion Language
+Temporal Logic
+C0 Code ImplementationFormal
+TransformationCadence SMV 
+TUM TVARCModel Checking
+AutoFOCUS 3 Model SMV AF3 ModelSMV AF3 Model
+TVARC ModelFormal 
+Transformation
+Formal 
+TransformationResult comparisonSystem ModelingFigure 4: Verication artifacts and activities in
+AutoFocus 3.
+an output port of the sender component to the in-
+put port of the receiver component. It is also possible
+to perform the simulation of the counterexample in
+AutoFocus 3. The view shown in Fig. 3 contains con-
+trols to execute forward and backward steps as well as
+continuous playback of the simulation. In other views
+the user can examine the current values of i/o ports
+and a state machine's transition system with the high-
+lighted current state. A step in the simulation corre-
+sponds to the passage from a state to the following one
+in the SMV counterexample.
+In case a property is disproved during the veri-
+cation, these views help to debug the model. The de-
+scribed debugging phase is solely based on the struc-
+tures previously modeled by the user. Thus, the in-
+termediate model generated for the model checker is
+de facto bypassed. We consider the integration of the
+verication and counterexample analysis in the tool to
+be a big advantage for the user as he is not bothered
+with the underlying structures and the model checker
+anymore.
+5 Implementation
+For the usability of verication it is essential to
+reduce delays between writing verication properties
+and their verication. The user must be able to it-
+eratively adapt the properties and the system model.
+This is impossible if a single verication takes several
+hours of computation. Therefore we evaluate several
+model checkers which implement dierent optimiza-
+tion strategies. Currently, we have implemented the
+translation of the model to the SMV and TVARC
+model checkers.
+We apply the TVARC model checker to the C0
+code generated from the model, to be precise its C
+intermediate language representation, and SMV di-
+rectly to the model design, as depicted in Fig. 4. Ca-
+dence SMV is a well-known model checker, branched
+
+--- Page 5 ---
+from the original SMV and developed by the Cadence
+Berkeley Labs. We generate two artifacts from the sys-
+tem model, namely a C0 (a subset of language C) code
+implementation, and an SMV representation. The cor-
+rectness of the transformation to C0 has been shown
+in [10]. The correctness proof of the export to the
+SMV model has not been published yet.
+For the execution of the SMV model checker,
+AutoFocus 3 automatically translates the selected
+component with all its subcomponents into an SMV
+instance, where each state machine is represented by
+an SMV module. Each module refers to the modules
+of the relative subcomponents.
+During this translation, we have restrictions for
+recursive constructs. In general, Auto Focus 3 sup-
+ports recursive functions and data types. However, the
+SMV generator does not permit them, neither does the
+C0 generator. This limitation is due to the niteness
+of the state space (required by SMV and often conve-
+nient in embedded systems design) and the fact that
+recursive data types induce a potentially innite state
+space (of course, only a nite part may be reached).
+In such a case, we return an error message to the user.
+Another limitation is given by large state vari-
+ables like integer variables. Excessive use of these
+quickly leads to the so called state explosion. Even
+in small projects, we noticed that the verication pro-
+cess required too much time and memory. Therefore,
+in the model checker view the user can restrict the
+value range of integer variables for the whole model,
+and also dene a specic range for certain variables
+(Fig. 1). It is important that the user species the
+smallest possible integer interval to avoid the state ex-
+plosion problem. With static analysis, we could auto-
+matically determine these intervals.
+The application of abstraction techniques may
+help to reduce these problems. TVARC supports such
+abstractions, which is benecial in our preliminary ex-
+periments. TVARC abstracts the model using abstract
+interpretation, that has the advantage of reducing the
+complexity of the original data structures involved in
+the verication. Moreover it uses the more expressive
+temporal logic -calculus. If the property or model to
+verify does not t with model abstraction applied from
+TVARC, SMV may be faster for the same model, be-
+cause it applies a dierent verication technique. We
+expect that TVARC works better for models where the
+data types are complex. In contrast using SMV, mod-
+els with large integer intervals result in a huge state
+space rendering the verication infeasible.
+Although the correctness of the generators can
+be shown mathematically, the generators may contain
+implementation faults. Since this is an inherent prob-
+lem of code generators and formal verication in gen-
+eral, we propose to tackle it by methodical steps. Wecan additionally verify the generated C0 implementa-
+tion with TVARC, using the same properties as for the
+SMV model checker and compare the results.
+6 Related Work
+To the best knowledge of the authors an inte-
+grated and user-friendly verication tool environment
+as presented in this paper has not been realized be-
+fore. Anyway, some modeling tools integrate formal
+verication capabilities. Simulink Design Verier and
+SCADE Design Verier are extensions for Simulink
+and the SCADE tool, which use formal analysis tech-
+niques provided by Prover Plug-In. Design Verier can
+only check assertions and not temporal logic properties
+as our model checking approach allows.
+Rhapsody in C++ [13] has a verication environ-
+ment for UML models, the specications to be veri-
+ed can be formulated using temporal patterns or a
+graphical specication formalism called Life Sequence
+Charts [7]. The verication is applied to UML mod-
+els composed by UML state charts and UML class di-
+agrams. They are transformed in a format for VIS
+model checker [4]: a nite state machine for the model
+and a temporal logic CTL formula for the property
+to verify. In Hugo/RT [1] UML state chart diagrams
+are associated with a UML class diagram to specify
+the model to verify and communication diagrams de-
+scribe how the objects of a model may interact. The
+tool generates input for two model checkers: SPIN and
+UPPAAL [3]. The model checkers can verify whether
+the interactions expressed by a UML communication
+diagram are realized by the state machines. Consid-
+ering the specication of the model checking proper-
+ties, none of these approaches integrates together user-
+friendly templates with correctness checks, specica-
+tion patterns, assertion language and temporal logic.
+Additionally, none of these tools has an integrated
+counterexample handling and simulation.
+7 Conclusion and Future Work
+The current paper presented one of the rst holis-
+tic and user-friendly verication environments with a
+spotlight on the model checker integration. We sup-
+port two dierent model checkers for the model and
+implementation code verication. In order to enhance
+the usability of model checking in model-based devel-
+opment, we integrate in the modeling tool dierent
+property specication concepts. We support speci-
+cation patterns, an assertion language, and property
+specication based on templates adapted for the model
+artifacts. Moreover we include back-translation of
+counterexamples to the model level, e.g., counterexam-
+
+--- Page 6 ---
+ples can be examined step by step in the Auto Focus 3
+simulator. Our idea is to render model checking usable
+not only by skilled developers, but also by common
+users. Moreover we think, that the strong integration
+in model-based development is an advantage.
+SMV has already been tested in a case study from
+the automotive domain [9], whereas the testing phase
+of TVARC's integration is just being nished. We con-
+sider as future work the extension of the TVARC in-
+tegration with the properties paradigms already im-
+plemented for SMV and the direct translation from
+system models to TVARC's model representation.
+We plan to conduct more case studies with indus-
+trial partners involved in the automotive and embed-
+ded system domain. We will focus on verication and
+domain-specic property specication. We will ana-
+lyze the performance of the model checkers in terms of
+memory and time, also to enhance TVARC. Due to a
+better model abstraction, we expect TVARC's results
+to be better than those of SMV, especially when the
+model has redundant data that does not aect the va-
+lidity of the property to verify. Since the performance
+of verication may still be infeasible for some model
+instances, we consider to introduce a timeout concept
+and bounded model checking as a fallback method.
+Acknowledgements
+We would like to thank Daniel Ratiu and Fortiss
+GmbH2in Munich for the support in the tool integra-
+tion.
+References
+[1] M. Balser, S. B aumler, A. Knapp, W. Reif, and
+A. Thums. Interactive Verication of UML State
+Machines. In J. Davies, W. Schulte, and M. Bar-
+nett, editors, 6th International Conference on
+Formal Engineering Methods (ICFEM'04, Pro-
+ceedings) , volume 3308 of Lecture Notes in Com-
+puter Science , pages 434{448. Springer, 2004.
+[2] A. Bauer, M. Leucker, and J. Streit. Salt - struc-
+tured assertion language for temporal logic. In
+Z. Liu and J. He, editors, ICFEM , volume 4260
+ofLecture Notes in Computer Science , pages 757{
+775. Springer, 2006.
+[3] G. Behrmann, A. David, and K. G. Larsen.
+A Tutorial on Uppaal . In M. Bernardo and
+F. Corradini, editors, Formal Methods for the
+Design of Real-Time Systems: 4th International
+School on Formal Methods for the Design of
+2http://www.fortiss.orgComputer, Communication, and Software Sys-
+tems (SFM-RT'04, Proceedings) , number 3185 in
+Lecture Notes in Computer Science, pages 200{
+236. Springer, September 2004.
+[4] R. K. Brayton et al. Vis: A system for verication
+and synthesis. In 8th International Conference
+on Computer Aided Verication , volume 1102 of
+Lecture Notes in Computer Science , pages 428{
+432. Springer, 1996.
+[5] M. Broy and K. Stlen. Specication and Devel-
+opment of Interactive Systems: Focus on Streams,
+Interfaces, and Renement . Springer, 2001.
+[6] G. Bruns and P. Godefroid. Model Checking Par-
+tial State Spaces with 3-Valued Temporal Log-
+ics. In 11th International Conference on Com-
+puter Aided Verication , pages 274{287, London,
+UK, 1999. Springer.
+[7] W. Damm and D. Harel. LSCs: Breathing Life
+into Message Sequence Charts. Formal Methods
+in System Design , 19(1):45{80, 2001.
+[8] M. B. Dwyer, G. S. Avrunin, and J. C. Corbett.
+Patterns in property specications for nite-state
+verication. In ICSE , pages 411{420, 1999.
+[9] M. Feilkas et al. A Top-Down Methodology for
+the Development of Automotive Software. Tech-
+nical Report TUM-I0902, Technische Universit at
+M unchen, 2009.
+[10] F. H olzl. The AutoFocus 3 C0 Code Generator.
+Technical Report TUM-I0918, Technische Univer-
+sit at M unchen, 2009.
+[11] F. H olzl and M. Feilkas. AutoFocus 3 - A Sci-
+entic Tool Prototype for Model-Based Develop-
+ment of Component-Based, Reactive, Distributed
+Systems. In Model-Based Engineering of Em-
+bedded Real-Time Systems , volume 6100 of Lec-
+ture Notes in Computer Science , pages 317{322.
+Springer Berlin / Heidelberg, 2011.
+[12] K. L. McMillan. Symbolic model checking: an ap-
+proach to the state explosion problem . PhD thesis,
+Pittsburgh, PA, USA, 1992.
+[13] I. Schinz, T. Toben, C. Mrugalla, and B. West-
+phal. The Rhapsody UML Verication Envi-
+ronment. In 2nd International Conference on
+Software Engineering and Formal Methods , pages
+174{183. IEEE Computer Society, 2004.
+[14] Standardization Sector of International Telecom-
+munication Union. Message Sequence Chart.
+Technical Report Z.120, Gen eve, 2004.

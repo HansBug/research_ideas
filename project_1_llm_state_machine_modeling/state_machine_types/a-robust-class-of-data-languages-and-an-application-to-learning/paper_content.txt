@@ -1,0 +1,1199 @@
+--- Page 1 ---
+Logical Methods in Computer Science
+Vol. 10(4:19)2014, pp. 1–23
+www.lmcs-online.orgSubmitted Jan. 29, 2014
+Published Dec. 29, 2014
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION
+TO LEARNING
+BENEDIKT BOLLIGa, PETER HABERMEHLb, MARTIN LEUCKERc, AND BENJAMIN MONMEGEd
+aLSV, ENS Cachan, CNRS & Inria, France
+e-mail address : bollig@lsv.ens-cachan.fr
+bUniv Paris Diderot, Sorbonne Paris Cit e, LIAFA, CNRS, France
+e-mail address : haberm@liafa.univ-paris-diderot.fr
+cISP, University of L ubeck, Germany
+e-mail address : leucker@isp.uni-luebeck.de
+dUniversit e Libre de Bruxelles, Belgium
+e-mail address : bmonmege@ulb.ac.be
+Abstract. We introduce session automata , an automata model to process data words,
+i.e., words over an innite alphabet. Session automata support the notion of fresh data
+values, which are well suited for modeling protocols in which sessions using fresh values are
+of major interest, like in security protocols or ad-hoc networks. Session automata have an
+expressiveness partly extending, partly reducing that of classical register automata. We show
+that, unlike register automata and their various extensions, session automata are robust:
+They (i) are closed under intersection, union, and (resource-sensitive) complementation,
+(ii) admit a symbolic regular representation, (iii) have a decidable inclusion problem (unlike
+register automata), and (iv) enjoy logical characterizations. Using these results, we establish
+a learning algorithm to infer session automata through membership and equivalence queries.
+1.Introduction
+The study of automata over data words, i.e., words over an innite alphabet, has its origins
+in the seminal work by Kaminski and Francez [ 21]. Their nite-memory automata (more
+commonly called register automata ) equip nite-state machines with registers in which data
+values (from the innite alphabet) can be stored and be reused later. Register automata
+preserve some of the good properties of nite automata: they have a decidable emptiness
+problem and are closed under union and intersection. On the other hand, register automata
+are neither determinizable nor closed under complementation, and they have an undecidable
+equivalence/inclusion problem. There are actually several variants of register automata,
+2012 ACM CCS: [Theory of computation ]: Formal languages and automata theory|Automata over
+innite objects; Theory and algorithms for application domains|Machine learning theory|Active learning.
+Key words and phrases: Register Automata; Data words; Angluin-style learning; Freshness.
+This paper is an extended and revised version of the paper \A Fresh Approach to Learning Register
+Automata" which appeared in DLT 2013.
+LOGICAL METHODSl IN COMPUTER SCIENCE DOI:10.2168/LMCS-10(4:19)2014c B. Bollig, P . Habermehl, M. Leucker, and B. Monmege
+CC Creative Commons
+
+--- Page 2 ---
+2 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+which all have the same expressive power but dier in the complexity of decision problems
+[14,5]. In the sequel, many more automata models have been introduced (not necessarily
+with registers), aiming at a good balance between expressivity, decidability, and closure
+properties [ 29,14,23,7,17,16]. Some of those models extend register automata, inheriting
+their drawbacks such as undecidability of the equivalence problem.
+We will follow the work on register automata and study a model that supports the
+notion of freshness . When reading a data value, it may enforce that the data value is fresh,
+i.e., it has not occurred in the whole history of the run. This feature has been proposed in
+[33] to model computation with names in the context of programming-language semantics.
+Actually, fresh names are needed to model object creation in object-oriented languages,
+and they are important ingredients in modeling security protocols which often make use of
+so-called fresh nonces to achieve their security assertions [ 24]. Fresh names are also crucial
+in the eld of network protocols, and they are one of the key features of the -calculus
+[28]. Like ordinary register automata, fresh-register automata preserve some of the good
+properties of nite automata. However, they are not closed under complement and also
+come with an undecidable equivalence problem.
+In this paper, we propose session automata , a robust automata model over data words.
+Like register automata, session automata are a syntactical restriction of fresh-register
+automata, but in an orthogonal way. Register automata drop the feature of checking global
+freshness (referring to the whole history) while keeping a local variant (referring to the
+registers). Session automata, on the other hand, discard local freshness, while keeping the
+global one. Session automata are well-suited whenever fresh values are important for a nite
+period, for which they will be stored in one of the registers. They correspond to the model
+from [8] without stacks.
+Not surprisingly, we will show that session automata and register automata describe
+incomparable classes of languages of data words, whereas both are strictly weaker than
+fresh-register automata. Contrary to nite-state unication based automata introduced
+in [22], session automata (like fresh-register automata) do not have the capability to reset
+the content of a register. However, they can test global freshness which the model of [ 22]
+cannot. The variable automata from [ 16] do not employ registers, but rather use bound and
+free variables. However, variable automata are close to our model: they use a nite set of
+bound variables to track the occurrences of some data values, and a single free variable for
+all other data values (that must be dierent from data values tracked by bound variables).
+Contrary to our model, variable automata cannot test for global freshness, but we are not
+able to recognize the language of all data words, contrary to them.
+In this paper, we show that session automata (i) are closed under intersection, union,
+and resource-sensitive complementation1, (ii) have a unique canonical form (analogous to
+minimal deterministic nite automata), (iii) have a decidable equivalence/inclusion problem,
+and (iv) enjoy logical characterizations. Altogether, this provides a versatile framework for
+languages over innite alphabets.
+In a second part of the paper, we present an application of our automata model in the
+area of learning, where decidability of the equivalence problem is crucial. Learning automata
+deals with the inference of automata based on some partial information, for example samples,
+which are words that either belong to the accepted language or not. A popular framework is
+that of active learning dened by Angluin [ 2] in which a learner may consult a teacher for
+1A notion similar to [25], but for a dierent model.
+
+--- Page 3 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 3
+so-called membership and equivalence queries to eventually infer the automaton in question.
+Learning automata has many applications in computer science. Notable examples are the
+use in model checking [15] and testing [3]. See [26] for an overview.
+While active learning of regular languages is meanwhile well understood and is supported
+by freely available libraries such as LearnLib [ 27] and libalf [ 10], extensions beyond plain
+regular languages are still an area of active research. Recently, automata dealing with
+potentially innite data as basis objects have been studied. Seminal works in this area are
+that of [ 1,20] and [ 19]. While the rst two use abstraction and renement techniques to
+cope with innite data, the second approach learns a sub-class of register automata. Note
+that session automata are incomparable with the model from [ 19]. Thanks to their closure
+and decidability properties, a conservative extension of Angluin's classical algorithm will do
+for their automatic inference.
+Outline. The paper is structured as follows. In Section 2 we introduce session automata.
+Section 3 presents the main tool allowing us to establish the results of this paper, namely
+the use of data words in symbolic normal form and the construction of a canonical session
+automaton. The section also presents some closure properties of session automata and the
+decidability of the equivalence problem. Section 4 gives logical characterizations of our
+model. In Section 5, we present an active learning algorithm for session automata. This
+paper is an extended version of [9].
+2.Data Words and Session Automata
+We let Nbe the set of natural numbers and N>0be the set of non-zero natural numbers.
+In the following, we x a non-empty nite alphabet  of labels and an innite set Dof
+data values . In examples, we usually use D=N. Adata word over  and Dis a sequence
+w= (a1;d1)(an;dn) of pairs ( ai;di)2D. In other words, wis an element from
+(D). Ford2fd1;:::;dng, we let rstw(d) denote the position j2f1;:::;ngwhere
+doccurs for the rst time, i.e., such that dj=dand there is no k < j such thatdk=d.
+Accordingly, we dene lastw(d) to be the last position where doccurs.
+An example data word over  = fa;bgandD=Nis given by w= (a;8)(b;4)(a;8)(c;3)
+(a;4)(b;4)(a;9). We have rstw(4) = 2 and lastw(4) = 6.
+This section recalls two existing automata models over data words { namely register
+automata, previously introduced in [ 21], and fresh-register automata, introduced in [ 33] as
+a generalization of register automata. Moreover, we introduce the new model of session
+automata, our main object of interest.
+Register automata (initially called nite-memory automata) equip nite-state machines
+with registers in which data values can be stored and be read out later. Fresh-register
+automata additionally come with an oracle that can determine if a data value is fresh, i.e.,
+has not occurred in the history of a run. Both register and fresh-register automata are closed
+under union and intersection, and they have a decidable emptiness problem. However, they
+are not closed under complementation, and their equivalence problem is undecidable, which
+limits their application in areas such as model checking and automata learning. Session
+automata, on the other hand, are closed under (resource-sensitive) complementation, and
+they have a decidable inclusion/equivalence problem.
+Given a setR, we letR"def=fr"jr2Rg ,Rdef=frjr2Rg , andR~def=fr~jr2Rg .
+In the automata models that we are going to introduce, Rwill be the set of registers.
+
+--- Page 4 ---
+4 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+Transitions will be labeled with an element from R~[R[R", which determines a register
+and the operation that is performed on it. More precisely, r~writes a globally fresh value
+intor,rwrites a locally fresh value into r, andr"uses the value that is currently stored in
+r. For2R~[R[R", we let reg() =rif2fr~;r;r"g. Similarly,
+op() =8
+><
+>:~ifis of the form r~
+ifis of the form r
+"ifis of the form r":
+Denition 2.1 (Fresh-Register Automaton, cf. [ 33]).Afresh-register automaton (over 
+andD) is a tupleA= (S;R;;F; ) where
+Sis the non-empty nite set of states ,
+R is the non-empty nite set of registers ,
+2Sis the initial state ,
+FSis the set of nal states , and
+ is a nite set of transitions : each transition is a tuple of the form ( s;(a;);s0) where
+s;s02Sare the source and target state, respectively, a2, and2R~[R[R". We
+call (a;) the transition label .
+For a transition ( s;(a;);s0)2, we also write s(a;)!s0. When taking this transition, the
+automaton moves from state sto states0and reads a symbol ( a;d)2D. If=r"2R",
+thendis the data value that is currently stored in register r. If=r~2R~, thendis
+some globally fresh data value, which has not been read in the whole history of the run; dis
+then written into register r. Finally, if =r2R, thendis some locally fresh data value,
+which is currently not stored in the registers; it will henceforth be stored in register r.
+Let us formally dene the semantics of A. Aconguration is a triple= (s;;U ) where
+s2Sis the current state, :R*D is a partial mapping encoding the current register
+assignment, and UDis the set of data values that have been used so far. By dom(), we
+denote the set of registers rsuch that(r) is dened. Moreover, (R)def=f(r)jr2dom()g.
+We say that isnal ifs2F. As usual, we dene a transition relation over congurations
+and let (s;;U )(a;d)= =)(s0;0;U0), where (a;d)2D, if there is a transition s(a;)!s0such
+that the following conditions hold:
+(1)8
+><
+>:d=(reg()) if op() ="
+d62(R) if op() =
+d62U ifop() =~;
+(2)dom(0) =dom()[freg()gandU0=U[fdg,
+(3)0(reg()) =dand0(r) =(r) for allr2dom()nfreg()g.
+A run ofAon a data word ( a1;d1)(an;dn)2(D)is a sequence
+0(a1;d1)= = = =)1(a2;d2)= = = =)(an;dn)= = = =)n
+for suitable congurations 0;:::;nwith0= (;;;;) (here the partial mapping ;represents
+the mapping with empty domain). The run is accepting ifnis a nal conguration. The
+languageL(A)(D)ofAis then dened as the set of data words for which there is
+an accepting run.
+Note that fresh-register automata cannot distinguish between data words that are
+equivalent up to permutation of data values. More precisely, given w;w02(D), we
+
+--- Page 5 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 5
+writeww0ifw= (a1;d1)(an;dn) andw0= (a1;d0
+1)(an;d0
+n) such that, for all
+i;j2f1;:::;ng, we havedi=djid0
+i=d0
+j. For instance, ( a;4)(b;2)(b;4)(a;2)(b;5)(b;2).
+In the following, the equivalence class of a data word wwrt.is written [ w]. We call
+L(D)adata language if, for allw;w02(D)such thatww0, we havew2Lif,
+and only if, w02L. In particular, L(A) is a data language for every fresh-register automaton
+A.
+We obtain natural subclasses of fresh-register automata when we restrict the transition
+labels (a;)2(R~[R[R") in the transitions.
+Denition 2.2 (Register Automaton, [ 21]).Aregister automaton is a fresh-register au-
+tomaton where every transition label is from  (R[R").
+Like register automata, session automata are a syntactical restriction of fresh-register
+automata, but in an orthogonal way. Instead of local freshness, they include the feature of
+global freshness.
+Denition 2.3 (Session Automaton) .Asession automaton is a fresh-register automaton
+where every transition label is from  (R~[R").
+We rst compare the three models of automata introduced above in terms of expressive
+power.
+Example 2.4. Consider the set of labels  = freq;ackgand the set of data values D=N,
+representing an innite supply of process identiers (pids). We model a simple (sequential)
+system where processes can approach a server and make a request, indicated by req, and where
+the server can acknowledge these requests, indicated by ack. More precisely, ( req;p)2D
+means that the process with pid pperforms a request, which is acknowledged when the
+system executes ( ack;p).
+Figure 1(a) depicts a register automaton that recognizes the language L1of data words
+verifying the following conditions:
+there are at most two open requests at a time;
+a process waits for an acknowledgment before making another request;
+every acknowledgment is preceded by a request;
+requests are acknowledged in the order they are received.
+In the gure, an edge label of the form ( req;r
+i_r"
+i) shall denote that there are two transitions,
+one labeled with ( req;r
+i), and one labeled with ( req;r"
+i). Whereas a transition labeled with
+(req;r
+i) is taken when the current data value does not appear currently in the registers
+(but could have appeared before in the data word) and store it in ri, transition labeled with
+(req;r"
+i) simply checks that the current data is stored in register ri. The automaton models a
+server that can store two requests at a time and will acknowledge them in the order they are
+received. For example, it accepts ( req;8)(req;4)(ack;8)(req;3)(ack;4)(req;8)(ack;3)(ack;8).
+When we want to guarantee that, in addition, every process makes at most one request,
+we need the global freshness operator. Figure 1(b) hence depicts a session automaton
+recognizing the language L2of all the data words of L1in which every process makes at
+most one request. Notice that the transition from s0tos1is now labeled with ( req;r~
+1),
+so that this transition can only be taken in case the current data value has never been
+seen before. We obtain A2fromA1by replacing every occurrence of r
+i_r"
+iwithr~
+i.
+While ( req;8)(req;4)(ack;8)(req;3)(ack;4)(req;8)(ack;3)(ack;8) is no longer contained in L2,
+(req;8) (req;4)(ack;8)(req;3)(ack;4)(ack;3) is still accepted.
+
+--- Page 6 ---
+6 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+s0 s1 s2s12
+s21(req,r⊙
+1∨r↑
+1)
+(ack,r↑
+1)(req,r⊙
+2∨r↑
+2)
+(req,r⊙
+1∨r↑
+1) (ack,r↑
+2)(ack,r↑
+1)
+(req,r⊙
+2∨r↑
+2)
+(ack,r↑
+2)
+s0 s1 s2s12
+s21(req,r⊛
+1)
+(ack,r↑
+1)(req,r⊛
+2)
+(req,r⊛
+1) (ack,r↑
+2)(ack,r↑
+1)
+(req,r⊛
+2)
+(ack,r↑
+2)
+(a) (b)
+Figure 1: (a) Register automaton A1forL1, (b) Session automaton A2forL2
+(req,r⊛)
+(ack,r⊙)
+(ack,r↑)
+Figure 2: Fresh-register automaton A3forL3
+As a last example, consider the language L3of data words in which every process makes
+at most one request (without any other condition). A fresh-register automaton recognizing
+it is given in Figure 2.
+Proposition 2.5. Register automata and session automata are incomparable in terms of
+expressive power. Moreover, fresh-register automata are strictly more expressive than both
+register automata and session automata.
+Proof. We use the languages L1,L2, andL3dened in Example 2.4 to separate the dierent
+automata models.
+First, the language L1, recognizable by a register automaton, is not recognized by any
+session automaton. Indeed, denoting wdthe data word ( req;d)(ack;d), no session automaton
+usingkregisters can accept
+w1w2wkwk+1wkw2w12L1:
+Intuitively, the session automaton must store all k+ 1 data values of the requests in order
+to check the acknowledgement, and cannot discard any of the krst data values to store
+the (k+ 1)th since all of them have to be reused afterwards (and at that time they are not
+globally fresh anymore). More precisely, after reading w1w2wkthe conguration must
+be of the form ( s;;f1;2;:::;kg) withbeing a permutation of f1;:::;kg. Readingwk+1,
+with fresh data value k+ 1, must then replace the content of a register with k+ 1. Suppose
+it is register j. Then, when reading the second occurrence of wj, data value jis not globally
+fresh anymore, yet it is not stored anymore in the registers, which does not allow us to
+accept this data word.
+Then, the language L2, recognizable by a session automaton, is indeed not recognizable
+by a register automaton, for the same reasons as already developed in Proposition 5 of [ 21].
+Intuitively, the automaton needs to register every data value encountered since it has to
+ensure the freshness of every pid.
+Finally, language L3, recognized by a fresh-register automaton, is not recognized by
+any register automaton (see again Proposition 5 of [ 21]) nor by any session automaton. In
+
+--- Page 7 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 7
+0 1 2
+3 4join,r⊛
+1forw,r↑
+1,r⊛
+2
+forw,r↑
+2,r⊛
+1 ack,r↑
+1 ack,r↑
+2
+com,r↑
+1 com,r↑
+2
+Figure 3: Session automaton for the P2P protocol
+particular, no session automaton with kregisters can accept the data word
+(req;1)(req;2)(req;k+ 1)( ack;1)(ack;2)(ack;k+ 1)2L3
+since when reading the letter ( req;k+ 1), all the k+ 1 data values seen so far should be
+registered to accept the sux afterwards. A formal proof can be done in the same spirit as
+forL1.
+Example 2.6. To conclude the section, we present a session automaton with 2 registers that
+models a P2P protocol. A user can join a host with address x, denoted by action ( join;x).
+The request is either forwarded by xto another host y, executing ( forw 1;x)(forw 2;y),
+or acknowledged by ( ack;x). In the latter case, a connection between the user and x
+is established so that they can communicate, indicated by action ( com;x). Note that
+the sequence of actions ( forw 1;x)(forw 2;y) should be considered as an encoding of a sin-
+gle action ( forw;x;y) and is a way of dealing with actions that actually take two or
+more data values, as considered, e.g., in [ 19]. An example execution of our protocol is
+(join;145)( forw;145;978)( forw;978;14)(ack;14)(com;14)(com;14)(com;14). In Figure 3, we
+show the session automaton for the P2P protocol: it uses 2 registers. Following [ 8], our
+automata can be easily extended to multi-dimensional data words. This also holds for the
+learning algorithm that will be presented in Section 5.
+3.Symbolic Normal Form and Canonical Session Automata
+Closure properties of session automata, decidability of inclusion/equivalence and the learning
+algorithm will be established by means of a symbolic normal form of a data word, as well as
+a canonical session automaton recognizing those normal forms. The crucial observation is
+that data equality in a data word recognized by a session automaton only depends on the
+transition labels that generate it. In this section, we suppose that the set of registers of a
+session automaton is of the form R=f1;:::;kg. In the following, we let  = N~
+>0[N"
+>0
+and, fork1, k=f1;:::;kg~[f1;:::;kg".
+3.1.Data Words in Symbolic Normal Forms. Suppose a session automaton reads a
+sequenceu= (a1;1)(an;n)2()of transition labels. We call uasymbolic word .
+It \produces" a data word if, and only if, a register is initialized before it is used. Formally,
+we say that uiswell-formed if, for all positions j2f1;:::;ngwith op(j) =", there is
+i<j such thati=reg(j)~. Let WF()be the set of all well-formed words.
+Withu= (a1;1)(an;n)2(), we can associate an equivalence relation u
+overf1;:::;ng, lettingiujif, and only if,
+reg(i) =reg(j), and
+
+--- Page 8 ---
+8 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+ijand there is no position k2fi+ 1;:::;jgsuch thatk=reg(i)~, or
+jiand there is no position k2fj+ 1;:::;igsuch thatk=reg(j)~.
+Ifuis well-formed, then the data values of every data word w= (a1;d1)(an;dn) that
+a session automaton \accepts via" uconform with the equivalence relation u, that is,
+we havedi=djiiuj. This motivates the following denition. Given a well-formed
+wordu= (a1;1)(an;n)2(), we callw2(D)aconcretization ofu
+if it is of the form w= (a1;d1)(an;dn) such that, for all i;j2f1;:::;ng, we have
+di=djiiuj. For example, w= (a;8)(a;5)(b;8)(a;3)(b;3) is a concretization of
+u= (a;1~)(a;2~)(b;1")(a;2~)(b;2").
+Let(u) denote the set of all concretizations of u. Observe that, if wis a data word from
+(u), then(u) = [w]. Concretization is extended to sets L()of well-formed words,
+and we let (L)def=S
+u2L\WF(u). Note that, here, we rst lter the well-formed words
+before applying the operator. Now, let A= (S;R;;F; ) be a session automaton. In the
+obvious way, we may consider Aas a nite automaton over the nite alphabet  (R~[R").
+We then obtain a regular language Lsymb(A)()(indeed,Lsymb(A)(k)if
+R=f1;:::;kg). It is not dicult to verify that L(A) =(Lsymb(A)).
+Though we have a symbolic representation of data languages recognized by session
+automata, it is in general dicult to compare their languages, since dierent symbolic words
+may give rise to the same concretizations. For example, we have ((a;1~)(a;1~)(a;1")) =
+((a;1~)(a;2~)(a;2")). However, we can associate, with every data word, a symbolic normal
+form, producing the same set of concretizations. Intuitively, the normal form uses the rst
+(according to the natural total order) register whose current data value will not be used
+anymore . In the above example, ( a;1~)(a;1~)(a;1") would be in symbolic normal form:
+the data value stored at the rst position in register 1 is not reused so that, at the second
+position, register 1 must be overwritten. For the same reason, ( a;1~)(a;2~)(a;2") is not in
+symbolic normal form, in contrast to ( a;1~)(a;2~)(a;2")(a;1") where register 1 is read at
+the end of the word.
+Formally, given a data word w= (a1;d1)(an;dn), we dene its symbolic normal
+form snf(w)def=(a1;1)(an;n)2()inductively, along with sets Free(i)N>0
+indicating the registers that are reusable after executing position i2f1;:::;ng. Setting
+Free(0) =N>0, we dene
+i=(
+min( Free(i1))~ifi=rstw(di)
+reg(rstw(di))"otherwise;
+and
+Free(i) =8
+><
+>:Free(i1)nmin( Free(i1)) ifi=rstw(di)6=lastw(di)
+Free(i1)[freg(i)g ifi=lastw(di)
+Free(i1) otherwise :
+We canonically extend snfto data languages L, setting snf(L) =fsnf(w)jw2Lg.
+Example 3.1. Letw= (a;8)(b;4)(a;8)(c;3)(a;4)(b;3)(a;9). Then, we have snf(w) =
+(a;1~)(b;2~)(a;1")(c;1~)(a;2")(b;1")(a;1~).
+The relation between the mappings and snfis illustrated below
+
+--- Page 9 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 9
+1 2 3 4 5 6 7 8 9
+a b a a c c b c c
+4 2 4 3 2 1 3 1 3
+a,1⊛
+a,1↑
+a,2⊛
+a,2↑
+(a) (b)
+Figure 4: (a) A data word and its sessions, (b) Session automaton recognizing all 2-bounded
+data words
+w
+∈γ(u)
+∈(Σ×D)∗u
+=snf(w)
+∈(Σ×Γ)∗snf
+γ
+One easily veries that L=(snf(L)), for all data languages L. Therefore, equality of data
+languages reduces to equality of their symbolic normal forms:
+Lemma 3.2. LetLandL0be data languages. Then, L=L0if, and only if, snf(L) =snf(L0).
+Of course, symbolic normal forms may use any number of registers so that the set of
+symbolic normal forms is a language over an innite alphabet as well. However, given a
+session automaton A, the symbolic normal forms that represent the language L(A) uses only a
+bounded (i.e., nite) number of registers. Indeed, an important notion in the context of session
+automata is the bound of a data word. Intuitively, the bound of w= (a1;d1)(an;dn)2
+(D)is the minimal number of registers that a session automaton needs in order to
+executew. Or, in other words, the bound is the maximal number of overlapping sessions .
+A session is an interval delimiting the occurrence of one particular data value. Formally, a
+session ofwis a setIN>0of the formfrstw(d);rstw(d) + 1;:::; lastw(d)gwithd2D
+a data value appearing in w. Givenk2N>0, we say that wisk-bounded if every position
+i2f1;:::;ngis contained in at most ksessions. Let DWkdenote the set of k-bounded data
+words, and let SNFkdef=snf(DWk) denote the set of symbolic normal forms of all k-bounded
+data words.
+One can verify that a data word wisk-bounded if, and only if, snf(w) is a word over the
+alphabet k. Notice that DWk=((k)). Indeed, inclusion DWk((k))
+is trivial. If, on the other hand, w2DWk, we must have snf(w)2(k), which implies
+thatw2(snf(w))((k)).
+A data language Lis said to be k-bounded ifLDWk. It is bounded if it isk-bounded
+for somek. Note that the set of all data words is not bounded.
+Figure 4(a) illustrates a data word wwith four dierent sessions. It is 2-bounded, as no
+position shares more than 2 sessions.
+Example 3.3. Consider the session automaton from Figure 4(b). It recognizes the set of
+all 2-bounded data words over  = fag.
+3.2.Deterministic Session Automata. Session automata come with two natural no-
+tions of determinism. We call A= (S;R;;F; )symbolically deterministic ifjfs02Sj
+(s;(a;);s0)2gj 1 for alls2S,a2, and2R~[R". Then,  can be seen as a
+partial function S((R~[R"))*S.
+
+--- Page 10 ---
+10 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+0,∅ 1,∅ 2,{1} 2,∅1⊛1⊛
+1↑
+2⊛2⊛
+2↑
+1↑
+2⊛1⊛
+1↑
+2↑
+Figure 5: A session automaton recognizing SNF 2
+We callAdata deterministic if it is symbolically deterministic and, for all s2S,a2,
+andr1;r22Rwithr16=r2, we have that ( s;(a;r~
+1))2dom() implies ( s;(a;r~
+2))=2dom().
+Intuitively, given a data word as input, the automaton is data deterministic if, in each state,
+given a pair letter/data value, there is at most one reable transition.
+Notice that session automata, even when symbolically or data deterministic, may not
+necessarily be \complete", in the sense that it is possible that a run over a data word falls
+into a deadlock situation: this is the case when the session automaton forced a data value to
+be removed from the set of registers, though it will be seen in the future.
+While \data deterministic" implies \symbolically deterministic" by denition, the
+converse is not true. E.g., the session automaton A2from Figure 1(b) and the one of
+Figure 4(b) are symbolically deterministic but not data deterministic. However, the session
+automaton obtained from A2by removing, e.g., the transition from s0tos2(coupled with
+the transition from s0tos1, it causes non-determinism when reading a fresh data value at a
+request), is data deterministic (and is indeed equivalent to A2, in the sense that it recognizes
+the same language L(A2)).
+Example 3.4. We explain how to construct a symbolically deterministic session automaton
+A, withk1 registers, such that Lsymb(A) =SNFk. Its state space is S=f0;:::;kg
+2f1;:::;kg, consisting of (i) the greatest register already initialized (indeed we will only use a
+registerrif every register r0<rhas already been used), (ii) a subset Pof registers that we
+promise to reuse again before resetting their value. The initial state of Ais (0;;), whereas
+the set of accepting states is ( f0;:::;kg)f;g . We now describe the set of transitions. For
+everya2,i2f0;:::;kg,Pf1;:::;kg, andr2f1;:::;kg:
+
+(i;P);(a;r")
+=(
+(i;Pnfrg) ifri
+not dened otherwise
+
+(i;P);(a;r~)
+=(
+(max(i;r);P[f1;:::;r1g) ifr1i^r =2P
+not dened otherwise
+Figure 5 depicts the session automaton for SNF 2(omitting ).
+By determinizing a nite-state automaton recognizing the symbolic language, it is easy
+to show that every language recognized by a session automaton is also recognized by a
+symbolically deterministic session automaton: we shall study this question in more detail in
+the next section. The next theorem shows that this is not true for data deterministic session
+automata.
+Theorem 3.5. Session automata are strictly more expressive than data deterministic session
+automata.
+
+--- Page 11 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 11
+Proof. We show that the data language L=DW2cannot be recognized by a data determin-
+istic session automaton. Indeed, suppose that such an automaton exists, with kregisters.
+Then, consider the word w= (a;1)(a;2)(a;3)(a;k+ 1)2L, where every data value
+is fresh. By data determinism, there is a unique run accepting w. Along this run, let
+i<j be two positions such that their two fresh data values have been stored in the same
+registerr(such a pair must exist since the automaton has only kregisters). Without loss
+of generality, we can consider the greatest position jverifying this condition, and then
+the greatest position iassociated with j. This means that register ris used for the last
+time when reading j, and has not been used in-between positions iandj. Now, the word
+(a;1)(a;2)(a;3)(a;k+ 1)(a;i)2Lmust be recognized by the automaton, but cannot
+since data value iappearing on the last position is not fresh anymore, and yet not stored in
+one of the registers (since register rwas reused at j).
+3.3.Canonical Session Automata. We now present the main result of this section
+showing that every session automaton Ais equivalent to a canonical session automaton AC,
+whose symbolic language Lsymb(AC) contains only symbolic normal forms.
+Theorem 3.6. LetA= (S;R;;F; )be a session automaton with R=f1;:::;kg. Then,
+L(A)isk-bounded. Moreover, snf(L(A))is a regular language over the nite alphabet
+k. A corresponding automaton ~Acan be eectively computed. Its number of states is
+at most exponential in kand linear injSj.
+Proof. First, ifAis a session automaton using kregisters, the language L(A) isk-bounded
+sinceLsymb(A)(k), which implies that L(A) =(Lsymb(A))((k)) =DWk.
+Example 3.4, constructing a symbolically deterministic session automaton for SNFk=
+snf(((k))), shows that regularity of the symbolic language ( k)is preserved
+under the application of snf(()). We now prove that this is the case for every regular
+language over k. In particular, for the symbolic regular languageLsymb(A), this will
+show that snf(L(A)), which is equal to snf((Lsymb(A))), is regular.
+LetL(k)be regular. Consider rst the language
+~L=fu2WF\(k)jthere isu02Lsuch that(u) =(u0)g
+i.e., the set of well-formed symbolic words having the same concretizations as some word from
+L. We show that snf((L)) = SNFk\~L. Indeed, if u2snf((L)), then there are u02Land
+w2(u0) such thatu=snf(w). Sinceu02(k), we haveu2snf(((k))) = SNFk.
+Moreover, we have [ w]=(u0) andw2(snf(w)) =(u) implying also [ w]=(u).
+Finally, we obtain (u) =(u0), so thatu2~L. Reciprocally, if u2SNFk\~L, then there is
+u02Lsuch that(u) =(u0). Hence, starting from a word win(u) (which is non empty
+sinceuis well-formed), we have u=snf(w) (by uniqueness of the symbolic normal form)
+andw2(u0)(L), so thatu2snf((L)).
+We know from Example 3.4 that SNFkis regular. We now show that ~Lis regular:
+knowing that snf((L)) = SNFk\~L, this will permit to conclude that snf((L)) is regular.
+To do so, letA= (S;R;;F; ) be a session automaton with R=f1;:::;kgsuch that
+Lsymb(A) =L. We construct a session automaton ~A= (SInj(k);R;(s0;;);FInj(k);~)
+recognizing the symbolic language ~L. Hereby, Inj(k) is the set of partial injective mappings
+fromf1;:::;kgtof1;:::;kg, and;2Inj(k) denotes the mapping with empty domain.
+These partial mappings are used to remember the correspondence between old registers and
+
+--- Page 12 ---
+12 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+new ones, so they may be understood as a set of constraints. For example, the mapping
+(27!1;17!3) stands for \old register 2 henceforth refers to 1, and old register 1 henceforth
+refers to 3". Each subset of these constraints forms always a valid partial injective mapping.
+In the following, such a subset is called a sub-mapping. For example, = (17!3) is a
+sub-mapping of the previous one; it can then be extended with the new constraint 2 7!2,
+which we denote [27!2]. We describe now the transition relation of ~A:
+~ =
+(s1;);(a;(r)");(s2;)
+j
+s1;(a;r");s2
+2	
+[
+(s1;1);(a;r~
+2);(s2;2)
+j
+s1;(a;r~
+1);s2
+2^2=[r17!r2]
+withmaximal sub-mapping of 1s.t.[r17!r2] injective	
+We simulate r"-transitions simply using the current mapping . Forr~-transitions, we
+update, recording the new permutation of the registers: the maximal sub-mapping 
+of1is either1itself or1where exactly one constraint r17!r3is removed to free r1.
+One can indeed show that Lsymb(~A) =~L. Inclusion Lsymb(~A)~Lis easy to show since
+an accepting run in ~Acan be mapped to an accepting run in Ausing the partial injective
+mappings maintained in the states of ~A. For the other inclusion, it suces to prove that
+for every symbolic word u2Land well-formed word u0such that(u0) =(u), we have
+u02Lsymb(~A). By denition of , we know that projections of uandu0over the nite
+alphabet  are the same, and that u=u0: the latter permits to reconstruct by induction
+a unique sequence of partial injective mappings linking the registers used in uand inu0. An
+accepting run ofAonucan therefore be mapped to an accepting run of ~Aonu0.
+Building the product of the automaton recognizing SNFkand the automaton ~A, we
+obtain a session automaton using kregisters recognizing snf((L)). Its number of states is
+bounded above by O(jQjk!(k+ 1)2k) (as the number of partial injective mappings
+in Inj(k) is bounded above by O(k!)).
+From the automaton ~Abuilt in the proof of the previous theorem, we can consider
+the (unique up to isomorphism) minimal deterministic nite-state automaton AC(i.e.,
+symbolically deterministic session automaton) equivalent to it: this automaton will be
+called the canonical session automaton . In caseAis data deterministic, we can verify
+that ~Ais symbolically deterministic, and hence the minimal automaton AChas at most
+O(jQjk!(k+1)2k) states. Otherwise, a determinization phase has to be done resulting
+in a canonical session automaton with at most 2O(jQjk!(k+1)2k)states.
+Example 3.7. Examples ofAand ~A, as dened in the previous proof, are given in Fig-
+ure 6. The gure also depicts the canonical automaton ACassociated withA, obtained by
+determinizing and minimizing the product of both ~Aand the symbolically deterministic au-
+tomaton recognizing SNF 2(as given in Figure 5). Note that ACis symbolically deterministic
+and minimal.
+3.4.Closure Properties. Using Theorem 3.6, we obtain some language theoretical closure
+properties of session automata, which they inherit from classical regular languages. These
+results demonstrate a certain robustness as required in verication tasks such as compositional
+verication [11] and innite-state regular model checking [18].
+Theorem 3.8. We have the following closure properties:
+Session automata are closed under union and intersection.
+
+--- Page 13 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 13
+a,1⊛
+b,1↑
+a,2⊛
+b,2↑
+∅
+1/mapsto→1 2/mapsto→1 1/mapsto→2 2/mapsto→2
+1/mapsto→1
+2/mapsto→21/mapsto→2
+2/mapsto→1a,1⊛
+a,1⊛a,2⊛a,2⊛
+a,1⊛
+b,1↑a,1⊛
+b,1↑a,2⊛
+b,2↑a,2⊛
+b,2↑
+a,1⊛a,2⊛
+a,1⊛a,2⊛a,1⊛a,2⊛
+a,2⊛a,2⊛
+a,1⊛a,1⊛a,1⊛
+a,2⊛
+b,1↑
+b,2↑a,1⊛
+a,2⊛
+b,1↑
+b,2↑a,1⊛a,1⊛a,2⊛a,2⊛
+a,1⊛
+a,1⊛
+b,1↑
+a,2⊛
+a,2⊛
+b,2↑
+b,1↑a,2⊛
+a,1⊛
+b,1↑
+b,2↑
+(a) (b) (c)
+Figure 6: (a) A session automaton A, (b) its automaton ~A, (c) its canonical automaton AC
+Session automata are closed under resource-sensitive complementation: Given a session
+automatonAwithkregisters, there is a session automaton A0withkregisters such that
+L(A0) =DWknL(A).
+Proof. LetAbe a session automaton using kregisters, andBa session automaton using
+k0registers. Using a classical product construction for ACandBC, we obtain a session
+automaton using min(k;k0) registers recognizing the data language L(A)\L(B). The
+languageL(A)[L(B) is recognized by the session automaton, using max(k;k0) registers,
+that we obtain as the \disjoint union" of AandB, branching on the rst transition in one
+of these two automata.
+Finally, let us consider a symbolically deterministic session automaton Ausingkregisters.
+Without loss of generality, by adding a sink state, we can suppose that Ais complete. Then,
+every well-formed symbolic word over  khas exactly one run in A. The automaton A0
+constructed from Aby taking as accepting states the non-accepting states of Averies that
+Lsymb(A0) = (k)nLsymb(A) so thatL(A0) =((k))nL(A). Notice thatA0is
+symbolically deterministic, but not necessarily data deterministic (even if Ais), because of
+the completion step.
+Theorem 3.9. The inclusion problem for session automata is decidable.
+Proof. Considering two session automata AandB, we can decide inclusion L(A)L(B) by
+considering the canonical automata ACandBC. Indeed,L(A)L(B)() snf(L(A))
+snf(L(B))()Lsymb(AC)Lsymb(BC). Thus, it is sucient to check inclusion for ACand
+BC.
+In caseBis data deterministic, BChas a size polynomial in the number of states of B,
+but exponential in the number of registers. Testing the inclusion Lsymb(AC)Lsymb(BC)
+may be done by rst complementing Lsymb(BC) (which does not add states since BCis
+symbolically deterministic) and then testing the emptiness of its intersection with Lsymb(AC).
+In the overall, this implies a complexity of the inclusion check that is polynomial in the
+number of states of AandB, but exponential in the number of registers used by B. In case
+
+--- Page 14 ---
+14 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+Bis not data deterministic, a determinization phase may add an exponent in the size and
+the number of registers of B.
+As a corollary, we obtain that the emptiness problem and the universality problem
+underk-boundedness (i.e., knowing whether the language of a session automaton with k
+registers is the whole set of k-bounded data words) are decidable for session automata. It is
+not surprising for the emptiness problem, since it already holds for fresh-register automata.
+Notice that the problem is shown co-NP-complete for register automata in [ 31], and we
+can show that the emptiness problem is co-NP-complete, too, for session automata. First,
+co-NP-hardness can be shown by a reduction to the 3-SAT problem, in a very similar way
+as in [ 31]. Then, the co-NP upper bound comes from the symbolic view. Indeed, for a
+session automaton Awithkregisters,L(A) =;if and only if Lsymb(A)\WFk=;(where
+WFkdenotes the set of well-formed symbolic words over alphabet  k). We may not
+construct a nite automaton recognizing Lsymb(A)\WFk(that has a size exponential in k),
+but instead non-deterministically search for a witness of non-emptiness of Lsymb(A)\WFk,
+i.e., a well-formed word usuch thatu2Lsymb(A). Notice that the membership test of uin
+the nite-state automaton Acan be performed in polynomial time, hence, to conclude, we
+must simply show the existence of a well-formed witness uof polynomial size. As for register
+automata in [ 31], this relies on the fact that, even though the total number of congurations
+ofAis exponential in k(due to the set Uof initialized registers), along a run of A, only a
+polynomial (inAandk) number of congurations can be visited, since the set Uwill take at
+mostk+ 1 values during the computation (the initialization of registers is done in a certain
+order, and no register can be emptied at any point). Hence, by disallowing the visit of two
+occurrences of the same conguration, the existence of a well-formed witness implies the
+existence of a well-formed witness of polynomial size.
+While fresh-register automata are not complementable for the set of all data words, they
+are complementable for k-bounded data words, using the previous theorem. The reason is
+that, given a fresh-register automaton A, one can construct a session automaton Bsuch
+thatL(B) =L(A)\DWk.
+4.Logical Characterizations
+In this section, we provide logical characterizations of session automata.
+4.1.MSO Logic over Data Words. We consider the standard data monadic second-order
+logic (dMSO), which is an extension of classical MSO logic by the binary predicate xyto
+compare data values.
+We x innite supplies of rst-order variables x;y;::: , which are interpreted as word
+positions, and second-order variables X;Y;::: , which are taken as sets of positions. We let
+dMSO be the set of formulae 'dened by the following grammar:
+'::= label(x) =ajx=yjy=x+ 1jxyjx2Xj:'j'_'j9x'j9X '
+withx;yrst-order variables, Xa second-order variable and a2. The semantics of
+formulae in dMSO is given in Table 1: we dene w;j='(to be read as \ wsatises'
+when free variables of 'are interpreted as prescribed in ") by induction over ', where
+w= (a1;d1)(an;dn)2(D)is a data word and is a valuation of (at least the) free
+variables in ', i.e., such that for every rst-order free variable x, we have(x)2f1;:::;ng
+and for every second-order free variable X, we have(X)f1;:::;ng. For a rst-order
+
+--- Page 15 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 15
+Table 1: Semantics of formulae in dMSO
+w;[x7!i;y7!j]j=x=yifi=j
+w;[x7!i]j= label(x) =aifai=a
+w;[x7!i;y7!j]j=y=x+ 1 ifj=i+ 1
+w;[x7!i;X7!I]j=x2Xifi2I
+w;[x7!i;y7!j]j=xyifdi=dj
+w;j=:'ifw;6j='
+w;j='1_'2ifw;j='1orw;j='2
+w;j=9x' if there exists i2f1;:::;ngsuch thatw;[x7!i]j='
+w;j=9X ' if there exists If1;:::;ngsuch thatw;[X7!I]j='
+variablexand a position i2f1;:::;ng, we let[x7!i] be the valuation such that
+(x) =iand() =() for every variable dierent from x. A similar denition holds
+for second-order variables.
+In addition, we use abbreviations such as true,xy,8x ','^ ,'! , etc. A
+sentence is a formula without free variables. For a dMSO sentence ', we setL(')def=fw2
+(D)jwj='g. Note that L(') is a data language.
+As usual, to deal with free variables, it is possible to extend the alphabet  as follows. If
+Vis the set of variables that occur in ', we have to consider data words over ^= f0;1gV
+andD. Intuitively, these data words include the interpretation of the free variables. If a
+data word carries, at position i, the letter ( a;b;d)2^Dwith b[x] = 1 (where b[x] refers to
+thex-component of b), thenxis interpreted as position i. Ifb[X] = 1, then Xis interpreted
+as a set containing i. Whenever we refer to a word over the extended alphabet ^, we will
+silently assume that the interpretation of a rst-order variable xis uniquely determined,
+i.e., there is exactly one position iwhere b[x] = 1. This is justied, since the set of those
+\well-shaped" words is (symbolically) regular. This way we can transform any well-shaped
+word ^w2(f0;1gVD)into a pair ( w;) wherewis a data word of ( D)andis
+a valuation of variables in V, and vice versa.
+Note that dMSO is a very expressive logic and goes beyond virtually all automata
+models dened for data words [ 29,32,6,12]. However, if we restrict to bounded languages,
+we can show that dMSO is no more expressive than session automata.
+Theorem 4.1. LetLbe a bounded data language. Then, the following statements are
+equivalent:
+There is a session automaton Asuch thatL(A) =L.
+There is a dMSO sentence 'such thatL(') =L.
+Proof. The construction of a dMSO formula of the form 9X19Xm(^8x8y(xy$)),
+withandclassical MSO formulae (not containing predicate ), from a session automaton
+Awas implicitly shown in [ 8] (with a dierent goal, though). The idea is that the existential
+second-order variables X1;:::;Xmare used to guess an assignment of transitions to positions.
+In, it is veried that the assignment corresponds to a run of A. Moreover, checks if
+data equality corresponds to the data ow as enforced by the transition labels from  k. The
+formula has a size polynomial in the size of the automaton. In Section 4.2, formulae of this
+shape will be studied in more detail.
+
+--- Page 16 ---
+16 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+For the converse direction, we perform, as usual, an induction on the structure of the
+formula'of dMSO such that L(') isk-bounded, for some k1. To cope with free variables,
+we use the encoding of a pair ( w;) as presented before.
+First, we have to deal with the base cases:
+Consider the formula label (x) =a. We construct a session automaton Awithkregisters
+such thatLsymb(A) consists of all \well-shaped" words u2(^k)containing a letter
+(a;b;) with b[x] = 1.
+Forx=y, the automaton has to verify that there is a letter ( a;b;) such that b[x] =
+b[y] = 1, which can be done since this is a regular condition on word over alphabet ^k.
+Formulaey=x+ 1 andx2Xare treated similarly.
+The most interesting base case is xy. LetLbe the symbolic language containing exactly
+the symbolic words u= (a1;b1;1)(an;bn;n)2(^k)satisfying the following:
+there are two positions i;j2f1;:::;ngsuch thatiuj,bi[x] = 1, and bj[y] = 1. Note
+thatLis indeed a regular language so that we can construct a corresponding session
+automatonAwithkregisters such that Lsymb(A) =L.
+In all of the above base cases, if 'is the atomic formula and Athe corresponding session
+automaton, the following holds: given a data word ^w2DWkencoding free variables, we
+have ^w2L(') i ^w2L(A).
+Let us come to the induction step. To deal with negation, we can indeed exploit the fact
+that session automata are closed under complementation when considering only k-bounded
+data words (Theorem 3.8). Suppose we have constructed a session automaton Awith
+kregisters such that L(A) =L(')\DWk. According to Theorem 3.8, there is a session
+automatonA0withkregisters such that L(A0) =DWknL(A). FromL(:') = (D)nL('),
+we deduce L(A0) =L(:')\DWk. To deal with disjunction, we exploit closure of session
+automata under union (again, Theorem 3.8). Finally, existential quantication corresponds,
+as usual, to projection.
+Because of the negations that require complementation (and hence determinization of
+nite-state automata), the automaton associated with a given dMSO formula has a size
+given as a tower of exponentials of the size given by the number of nested negations in the
+formula.
+By Theorems 3.9 and 4.1, we obtain, as a corollary, that model checking session automata
+against dMSO specications is decidable, though with non-elementary complexity (while it
+is undecidable for register automata). Note that this was already shown in [ 8] for a more
+powerful model with pushdown stacks.
+Theorem 4.2. Given a session automaton Aand a dMSO sentence ', one can decide
+whetherL(A)L(').
+4.2.Session MSO Logic. Next, we give an alternative logical characterization of session
+automata. We identify a fragment of dMSO, called session MSO logic , such that every
+formula from that fragment can be translated into a session automaton, without having to
+restrict the set of data words in advance. Note that register automata also enjoy a logical
+characterization [ 12]. There, guards are employed to tame the power of the predicate .
+Similarly, our logic also uses a guard, though in a quite dierent way.
+
+--- Page 17 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 17
+Denition 4.3. Asession MSO (sMSO) formula is a dMSO sentence of the form
+9X19Xm(^8x8y(xy$))
+such thatandare classical MSO formulae (not containing the predicate ).
+Example 4.4. The formula '1=8x8y(xy$x=y) is an sMSO formula. Its semantics
+L('1) is the set of data words in which every data value occurs at most once. Moreover,
+'2=8x8y(xy$true) is an sMSO formula, and L('2) is the set of data words where
+all data values coincide. As a last example, let '3=9X8x8y(xy$(:9z2X(x <
+zy_y < zx))). Then, L('3) is the set of 1-bounded data words. Intuitively, the
+second-order variable Xrepresents the set of positions where a fresh data value is introduced.
+Theorem 4.5. For all data languages L, the following statements are equivalent:
+There is a session automaton Asuch thatL(A) =L.
+There is an sMSO sentence 'such thatL(') =L.
+Proof. The construction of an sMSO formula from a session automaton Ahas already been
+sketched in the proof of Theorem 4.1.
+We turn to the converse direction and let '=9X19Xm(^8x8y(xy$)) be
+an sMSO sentence. By Theorem 4.1, it is sucient to show that L(') is bounded.
+The free variables of are among x;y;X 1;:::;Xm. As, moreover, is a \classical"
+MSO formula, which does not contain , it denes, in the expected manner, a set Lsymb()
+of words over the nite alphabet  f0;1gm+2. Similarly to the proof of Theorem 4.1,
+the idea is to interpret a position carrying letter ( a;1;b;b 1;:::;bm) asx, and a position
+labeled (a;b;1;b1;:::;bm) asy, while membership in Xiis indicated by bi. Words where
+xandyare not uniquely determined, are discarded. We can represent such models as
+tuples (w;i;j;I 1;:::;Im) wherew2,idenotes the position of the 1-entry in the unique
+rst component, and jdenotes the position of the 1-entry in the second component. As
+Lsymb()(f0;1gm+2)is MSO denable (in the classical sense, without data), it is, by
+B uchi's theorem, recognized by some minimal deterministic nite automaton A. Suppose
+thatAhask1 states.
+We claim that the data language L(') isk-bounded. To show this, let w= (a1;d1)
+(an;dn)2L('). There exists a tuple I= (I1;:::;Im) of subsets off1;:::;ngsuch that, for
+alli;j2f1;:::;ng,
+di=dj() (a1an;i;j;I)2Lsymb(): ()
+Suppose, towards a contradiction, that wis notk-bounded. Then, there are k>k
+and a position i2f1;:::;ngsuch thatiis contained in kdistinct sessions J1;:::;Jk. For
+l2f1;:::;kg, letil=min(Jl) andjl=max(Jl), so thatJl=fil;il+ 1;:::;jlg. Note
+that theilare pairwise distinct, and so are the jl. By (), for every l2f1;:::;kg, we
+havewl= (a1an;il;jl;I)2Lsymb(). Thus, for every such word wl, there is a unique
+accepting run of A, say, being in state qlafter executing position i. AsAhas onlyk
+states, there are l6=l0such thatql=ql0. Thus, there is an accepting run of Aeither on a
+word where one of the rst-order components is not unique, which is a contradiction, or on
+(a1an;il;jl0;I). The latter contradicts ( ), sinceJlandJl0are distinct sessions.
+
+--- Page 18 ---
+18 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+5.Learning Session Automata
+In this section, we introduce an active learning algorithm for session automata. In the usual
+active learning setting (as introduced by Angluin [ 2], see [ 13] for a general overview of active
+learning techniques), a learner interacts with a so-called minimally adequate teacher (MAT),
+an oracle which can answer membership and equivalence queries . In our case, the learner is
+given the task to infer the data language L(A) dened by a given session automaton A. We
+suppose here that the teacher knows the session automaton or any other device accepting
+L(A). In practice, this might not be the case | Acould be a black box | and equivalence
+queries could be (approximately) answered, for example, by extensive testing. The learner
+can ask if a data word is accepted by Aor not. Furthermore it can ask equivalence queries
+which consist in giving an hypothesis session automaton to the teacher who either answers
+yes, if the hypothesis is equivalent to A(i.e., both data languages are the same), or gives
+a data word which is a counterexample, i.e., a data word that is either accepted by the
+hypothesis automaton but should not, or vice versa.
+Given the data language L(A) accepted by a session automaton Aover  and D,
+our algorithm will learn the canonical session automaton AC, that uses kregisters, i.e.,
+the minimal symbolically deterministic automaton recognizing the language L(A) and the
+regular language Lsymb(AC) over k. Therefore one can consider that the learning
+target isLsymb(AC) and use an arbitrary active learning algorithm for regular languages.
+However, as the teacher answers only questions over data words, queries have to be adapted.
+SinceAConly accepts symbolic words which are in normal form, a membership query for a
+given symbolic word unot in normal form will be answered negatively (without consulting
+the teacher); otherwise, the teacher will be given one data word included in (u) (all the
+answers on words of (u) are the same). Likewise, before submitting an equivalence query
+to the teacher, the learning algorithm checks if the current hypothesis automaton accepts
+symbolic words not in normal form2. If yes, one of those is taken as a counterexample, else
+an equivalence query is submitted to the teacher. Since the number of registers needed to
+accept a data language is a priori not known, the learning algorithm starts by trying to
+learn a session automaton with 1 register and increases the number of registers as necessary.
+Every active learning algorithm for regular languages may be adapted to our setting.
+Here we describe a variant of Rivest and Schapire's algorithm [ 30] which is itself a variant of
+Angluin's Lalgorithm [ 2]. An overview of learning algorithms for deterministic nite state
+automata can be found, for example, in [4].
+The algorithm is based on the notion of observation table which contains the information
+accumulated by the learner during the learning process. An observation table over a given
+alphabet kis a tripleO= (T;U;V ) withU;V two sets of words over  ksuch that
+"2U\VandTis a mapping ( U[U(k))V!f+;g. A table is partitioned
+into an upper part Uand a lower part U(k). We dene for each u2U[U(k)
+a mapping row(u):V!f+;gwhererow(u)(v) =T(u;v). An observation table must
+satisfy the following property: for all u;u02Usuch thatu6=u0we haverow(u)6=row(u0),
+i.e., there exists v2Vsuch thatT(u;v)6=T(u0;v). This means that the rows of the upper
+part of the table are pairwise distinct. A table is closed if for allu02U(k) there exists
+u2Usuch thatrow(u) =row(u0). From a closed table we can construct a symbolically
+2This can be checked in polynomial time over the trimmed hypothesis automaton with a xed point
+computation labelling the states with the registers that should be used again before overwriting them.
+
+--- Page 19 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 19
+Algorithm 1: The learning algorithm for a session automaton A
+initializek:= 1 andO:= (T;U;V ) byU=V=f"gandT(u;") for allu2U[U(k) with
+membership queries;
+repeat
+whileOis not closed do
+ndu2Uand (a;)2ksuch that for all u02U:row(u(a;))6=row(u0);
+extend table toO:= (T0;U[fu(a;)g;V) by membership queries;
+end
+fromOconstruct the hypothesized automaton AO; // cf. Definition 5.1
+ifAOaccepts symbolic words not in normal form then
+letzbe one of those;
+else
+ifL(A) =L(AO)then
+equivalence test succeeds;
+else
+get counterexample w2(L(A)nL(AO))[(L(AO)nL(A));
+setz:=snf(w);
+nd minimal k0such thatz2(k0);
+ifk0>kthen
+setk:=k0;
+extend table toO:= (T0;U;V ) over kby membership queries;
+end
+end
+end
+ifOis closed then // is true if k0k
+nd a break-point for zwherevis the distinguishing word;
+extend table toO:= (T0;U;V[fvg) by membership queries;
+end
+until equivalence test succeeds ;
+returnAO
+deterministic session automaton whose states correspond to the rows of the upper part of
+the table:
+Denition 5.1. For a closed table O= (T;U;V ) over a nite alphabet  k, we dene a
+symbolically deterministic session automaton AO= (S;R;;F; ) over kbyS=U,
+R=f1;:::;kg,=",F=fu2SjT(u;") = +g, and for all u2Sand (a;)2k,
+(u;(a;)) =u0ifrow(u(a;)) =row(u0). This is well dened as the table is closed.
+We now describe in detail our active learning algorithm for a given session automaton
+Agiven in Table 1. It is based on a loop which repeatedly constructs a closed table using
+membership queries, builds the corresponding automaton and then asks an equivalence query.
+This is repeated until Ais learned. An important part of a active learning algorithm is the
+treatment of counterexamples provided by the teacher as an answer to an equivalence query.
+Suppose that for a given AOconstructed from a closed table O= (T;U;V ) the teacher
+answers by a counterexample data word w. Letz=snf(w). Ifzuses more registers than
+available in the current alphabet, we extend the alphabet and then the table. If the obtained
+table is not closed, we restart from the beginning of the loop. Otherwise { and also if zdoes
+not use more registers { we use Rivest and Schapire's [ 30] technique to extend the table by
+adding a suitable vtoVmaking it non-closed. The technique is based on the notion of break-
+point that we now recall. As zis a counterexample, (1) z2Lsymb(AO)()z62Lsymb(AC).
+
+--- Page 20 ---
+20 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+Letz=z1zm, withzi2. Then, for all iwith 1im+ 1, letzbe decomposed
+asz=uiviwithui;vi2(), whereu1=vm+1=",v1=um+1=zand the length of
+uiis equal to i1 (we have also z=uizivi+1for allisuch that 1im). Letsi2U
+be the state visited by zjust before reading the ith letter, along the computation of zon
+AO:iis a break-point if sizivi+12Lsymb(AO)()si+1vi+1=2Lsymb(AC). Because of (1)
+such a break-point must exist and can be obtained with O(log(m)) membership queries by a
+binary search. The word vi+1is called the distinguishing word. If Vis extended by vi+1the
+table is not closed anymore ( row(si) androw(sizi) become dierent). Now, the algorithm
+closes the table again, then asks another equivalence query and so forth until termination.
+At each iteration of the loop the number of rows (each of those correspond to a state in the
+automatonAC) is increased by at least one. Notice that the same counterexample might be
+given several times. The treatment of the counterexample only guarantees that the table
+will contain one more row in its upper part. We obtain the following:
+Theorem 5.2. LetAbe a session automaton over andD, usingk0registers. LetACbe
+the corresponding canonical session automaton. Let Nbe its number of states, kits number
+of registers and Mthe length of the longest counterexample returned by an equivalence
+query. Then, the learning algorithm for Aterminates with at most O(kjjN2+Nlog(M))
+membership and O(N)equivalence queries.
+Proof. This follows directly from the proof of correctness and complexity of Rivest and
+Schapire's algorithm [ 4,30]. Notice that the equivalence query cannot return a counterex-
+ample whose normal form uses more than kregisters, as such a word is rejected by both AC
+(by denition) and by AO(by construction).
+Let us discuss the complexity of our algorithm. In terms of the canonical session
+automaton, the number of required membership and equivalence queries is polynomial.
+When the session automaton Ais data deterministic, using the discussion after the proof
+of Theorem 3.6 over the size of AC, the overall complexity of the learning algorithm is
+polynomial in the number of states of A, but exponential in the number of registers it uses
+(with constant base). As usual, we have to add one exponent when we consider session
+automata which are not data deterministic. In [ 19], the number of equivalence queries is
+polynomial in the size of the underlying automaton. In contrast, the number of membership
+queries contains a factor nkwherenis the number of states and kthe number of registers.
+This may be seen as a drawback, as nis typically large. Note that [ 19] restrict to deterministic
+automata, since classical register automata are not determinizable.
+Example 5.3. We apply our learning algorithm on the data language given by the au-
+tomatonAof Figure 6(a). In Figure 7 the successive observation tables constructed by
+the algorithm are given. To save space some letters whose rows contain only 's are
+omitted. In Figure 8 the successive automata constructed from the closed observation
+tables are given. For sake of clarity we omit the sink states. We start with the alphabet
+1=f(a;1~);(a;1");(b;1~);(b;1")g. We omit letters ( a;1") and (b;1~). TableO1is
+obtained after initialization and closing by adding ( b;1") to the top. We use to indicate
+that all letters will lead to the same row. From O1the rst hypothesis automaton A1is
+constructed. We suppose that the equivalence query gives back as counterexample the
+data word ( a;3)(b;3) whose normal form is ( a;1~)(b;1"). Here the break-point yields the
+distinguishing word ( b;1"). We add it to V. The obtained table is not closed anymore. We
+close it by adding ( a;1~) to the top and get table O2yielding hypothesis automaton A2.
+
+--- Page 21 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 21
+O1"
+"+
+(b;1")
+(a;1~)+
+(b;1~))O2" (b;1")
+"+
+(b;1")
+(a;1~)+ +
+(b;1")
+(a;1~)(a;1~)+ +
+(a;1~)(b;1")+ +)O3" (b;1")
+"+
+(b;1")
+(a;1~)+ +
+(a;2~)
+(b;2")
+(b;1")
+(a;1~)(a;1~)+ +
+(a;1~)(b;1")+ +
+(a;1~)(a;2~) +
+(a;1~)(b;2"))
+O4" (b;1")
+"+
+(b;1")
+(a;1~)+ +
+(a;1~)(a;2~) +
+(a;2~)
+(b;2")
+(b;1")
+(a;1~)(a;1~)+ +
+(a;1~)(b;1")+ +
+(a;1~)(b;2")
+(a;1~)(a;2~)(a;1~)
+(a;1~)(a;2~)(b;1")+ +
+(a;1~)(a;2~)(a;2~) +
+(a;1~)(a;2~)(b;2") +)O5" (b;1")(b;2")
+"+
+(b;1")
+(a;1~)+ +
+(a;1~)(a;2~) +
+(a;1~)(a;2~)(b;1")+ + +
+(a;2~)
+(b;2")
+(b;1")
+(a;1~)(a;1~)+ +
+(a;1~)(b;1")+ +
+(a;1~)(b;2")
+(a;1~)(a;2~)(a;1~)
+(a;1~)(a;2~)(a;2~) +
+(a;1~)(a;2~)(b;2") +
+(a;1~)(a;2~)(b;1")(a;1~)+ + +
+(a;1~)(a;2~)(b;1")(b;1")+ + +
+(a;1~)(a;2~)(b;1")(a;2~) +
+(a;1~)(a;2~)(b;1")(b;2")+ + +
+Figure 7: The successive observation tables
+A1:
+a,1⊛A2:
+a,1⊛a,1⊛
+b,1↑ A4:
+a,1⊛a,1⊛
+b,1↑
+a,2⊛a,2⊛
+b,2↑
+b,1↑
+AC:
+a,1⊛a,1⊛
+b,1↑
+a,2⊛a,2⊛
+b,2↑
+b,1↑
+a,2⊛a,1⊛
+b,1↑
+b,2↑
+Figure 8: The successive hypothesis automata
+Notice that Lsymb(A2) =Lsymb(AC)\(1). This means that the equivalence query must
+give back a data word whose normal form is using at least 2 registers (here ( a;7)(a;4)(b;7)
+with normal form ( a;1~)(a;2~)(b;1")). As the word uses 2 registers, we extend the alphabet
+to 2and obtain table O3. We close the table and get O4. From there we obtain the
+
+--- Page 22 ---
+22 B. BOLLIG, P. HABERMEHL, M. LEUCKER, AND B. MONMEGE
+hypothesis automaton A4. After the equivalence query we get ( a;1~)(a;2~)(b;1")(b;2") as
+normal form of the data word counterexample ( a;9)(a;3)(b;9)(b;3). After adding ( b;2") to
+Vand closing the table by moving ( a;1~)(a;2~)(b;1") to the top we get nally the table O5
+from which the canonical automaton ACis obtained and the equivalence query succeeds.
+6.Conclusion
+In this paper, we developed a theory of session automata, which form a robust class of data
+languages. In particular, they are closed under union, intersection, and resource-sensitive
+complementation. Moreover, they enjoy logical characterizations in terms of (a fragment
+of) MSO logic with a predicate to compare data values for equality. Finally, unlike most
+other automata models for data words, session automata have a decidable inclusion problem.
+This makes them attractive for verication and learning. In fact, we provided a complete
+framework for algorithmic learning of session automata, making use of their canonical
+normal form. An interesting direction to follow would be to try to apply those methods
+to other models of automata dealing with data values like data automata [ 6,5] or variable
+automata [ 16]. As a next step, we plan to employ our setting for various verication tasks.
+In particular, the next step is to implement our framework, using possibly other learning
+algorithms than the one of Rivest and Shapire that we presented in this article, for instance
+using the LearnLib platform [27] or libalf [10].
+Acknowledgments. We are grateful to Thomas Schwentick for suggesting the symbolic normal
+form of data words, and to the reviewers for their valuable comments.
+References
+[1]F. Aarts, F. Heidarian, H. Kuppens, P. Olsen, and F. W. Vaandrager. Automata learning through
+counterexample guided abstraction renement. In FM, volume 7436 of Lecture Notes in Computer
+Science , pages 10{27. Springer, 2012.
+[2]D. Angluin. Learning regular sets from queries and counterexamples. Information and Computation ,
+75(2):87{106, 1987.
+[3]T. Berg, O. Grinchtein, B. Jonsson, M. Leucker, H. Raelt, and B. Steen. On the correspondence
+between conformance testing and regular inference. In FASE , volume 3442 of Lecture Notes in Computer
+Science , pages 175{189. Springer, 2005.
+[4]T. Berg and H. Raelt. Model checking. In Model-based Testing of Reactive Systems , volume 3472 of
+Lecture Notes in Computer Science . Springer, 2005.
+[5]H. Bj orklund and Th. Schwentick. On notions of regularity for data languages. Theoretical Computer
+Science , 411(4-5):702{715, 2010.
+[6]M. Bojanczyk, C. David, A. Muscholl, T. Schwentick, and L. Segoun. Two-variable logic on data words.
+ACM Trans. Comput. Log. , 12(4):27, 2011.
+[7]M. Boja nczyk and S. Lasota. An extension of data automata that captures XPath. In LICS 2010 , pages
+243{252. IEEE Computer Society, 2010.
+[8]B. Bollig, A. Cyriac, P. Gastin, and K. Narayan Kumar. Model checking languages of data words. In
+L. Birkedal, editor, Proceedings of FoSSaCS'12 , volume 7213 of Lecture Notes in Computer Science ,
+pages 391{405. Springer, 2012.
+[9]B. Bollig, P. Habermehl, M. Leucker, and B. Monmege. A fresh approach to learning register automata.
+InProceedings of the 17th International Conference on Developments in Language Theory (DLT'13) ,
+volume 7907 of Lecture Notes in Computer Science , pages 118{130. Springer, 2013.
+[10]B. Bollig, J.-P. Katoen, C. Kern, M. Leucker, D. Neider, and D. Piegdon. libalf: the automata learning
+framework. In CAV , volume 6174 of Lecture Notes in Computer Science , pages 360{364. Springer, 2010.
+
+--- Page 23 ---
+A ROBUST CLASS OF DATA LANGUAGES AND AN APPLICATION TO LEARNING 23
+[11]J. M. Cobleigh, D. Giannakopoulou, and C. S. Pasareanu. Learning assumptions for compositional
+verication. In TACAS , volume 2619 of Lecture Notes in Computer Science , pages 331{346. Springer,
+2003.
+[12]T. Colcombet, C. Ley, and G. Puppis. On the use of guards for logics with data. In Proceedings
+of MFCS'11 , volume 6907 of Lecture Notes in Computer Science , pages 243{255. Springer Berlin /
+Heidelberg, 2011.
+[13]C. de la Higuera. Grammatical Inference. Learning Automata and Grammars . Cambridge University
+Press, 2010.
+[14]S. Demri and R. Lazi c. LTL with the freeze quantier and register automata. ACM Transactions on
+Computational Logic , 10(3), 2009.
+[15]D. Giannakopoulou and J. Magee. Fluent model checking for event-based systems. In ESEC / SIGSOFT
+FSE, pages 257{266. ACM, 2003.
+[16]O. Grumberg, O. Kupferman, and S. Sheinvald. Variable automata over innite alphabets. In LATA ,
+volume 6031 of Lecture Notes in Computer Science , pages 561{572. Springer, 2010.
+[17]O. Grumberg, O. Kupferman, and S. Sheinvald. An automata-theoretic approach to reasoning about
+parameterized systems and specications. In ATVA , volume 8172 of Lecture Notes in Computer Science ,
+pages 397{411. Springer, 2013.
+[18]P. Habermehl and T. Vojnar. Regular model checking using inference of regular languages. Electronic
+Notes in Theoretical Computer Science , 138(3):21{36, 2005.
+[19]F. Howar, B. Steen, B. Jonsson, and S. Cassel. Inferring canonical register automata. In VMCAI ,
+volume 7148 of Lecture Notes in Computer Science , pages 251{266. Springer, 2012.
+[20]B. Jonsson. Learning of automata models extended with data. In SFM , volume 6659 of Lecture Notes in
+Computer Science , pages 327{349. Springer, 2011.
+[21]M. Kaminski and N. Francez. Finite-memory automata. Theoretical Computer Science , 134(2):329{363,
+1994.
+[22]M. Kaminski and T. Tan. Regular expressions for languages over innite alphabets. Fundamenta
+Informaticae , 69(3):301{318, 2006.
+[23]M. Kaminski and D. Zeitlin. Finite-memory automata with non-deterministic reassignment. International
+Journal of Foundations of Computer Science , 21(5):741{760, 2010.
+[24]K. O. K urtz, R. K usters, and T. Wilke. Selecting theories and nonce generation for recursive protocols.
+In P. Ning, V. Atluri, V. D. Gligor, and H. Mantel, editors, FMSE , pages 61{70. ACM, 2007.
+[25]A. Kurz, T. Suzuki, and E. Tuosto. On nominal regular languages with binders. In L. Birkedal, editor,
+Proceedings of FoSSaCS'12 , volume 7213 of Lecture Notes in Computer Science , pages 255{269. Springer,
+2012.
+[26]M. Leucker. Learning meets verication. In FMCO , volume 4709 of Lecture Notes in Computer Science ,
+pages 127{151. Springer, 2007.
+[27]T. Margaria, H. Raelt, B. Steen, and M. Leucker. The LearnLib in FMICS-jETI. In ICECCS , pages
+340{352. IEEE Computer Society Press, 2007.
+[28]R. Milner, J. Parrow, and D. Walker. A calculus of mobile processes, Parts I and II. Information and
+Computation , 100:1{77, Sept. 1992.
+[29]F. Neven, Th. Schwentick, and V. Vianu. Finite state machines for strings over innite alphabets. ACM
+Transactions on Computational Logic , 5(3):403{435, 2004.
+[30]R. Rivest and R. Schapire. Inference of nite automata using homing sequences. Information and
+Computation , 103:299{347, 1993.
+[31]H. Sakamoto and D. Ikeda. Intractability of decision problems for nite-memory automata. Theoretical
+Computer Science , 231:297{308, 2000.
+[32]L. Segoun. Automata and logics for words and trees over an innite alphabet. In Z. Esik, editor, CSL
+2006, volume 4207 of LNCS , pages 41{57. Springer, 2006.
+[33]N. Tzevelekos. Fresh-register automata. In T. Ball and M. Sagiv, editors, POPL , pages 295{306. ACM,
+2011.
+This work is licensed under the Creative Commons Attribution-NoDerivs License. To view
+a copy of this license, visit http://creativecommons.org/licenses/by-nd/2.0/ or send a
+letter to Creative Commons, 171 Second St, Suite 300, San Francisco, CA 94105, USA, or
+Eisenacher Strasse 2, 10777 Berlin, Germany

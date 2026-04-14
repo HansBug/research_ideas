@@ -1,0 +1,233 @@
+--- Page 1 ---
+Demonstrating Learning of Register Automata?
+Maik Merten1, Falk Howar1, Bernhard Steen1, Soa Cassel2, and Bengt
+Jonsson2
+1Technical University Dortmund, Chair for Programming Systems, Dortmund,
+D-44227, Germany
+{maik.merten|falk.howar|steffen}@cs.tu-dortmund.de
+2Dept. of Information Technology, Uppsala University, Sweden
+{sofia.cassel|bengt.jonsson}@it.uu.se
+Abstract We will demonstrate the impact of the integration of our most
+recently developed learning technology for inferring Register Automata
+into the LearnLib, our framework for active automata learning. This will
+not only illustrate the unique power of Register Automata, which allows
+one to faithfully model data independent systems, but also the ease of
+enhancing the LearnLib with new functionality.
+1 Introduction
+Active automata learning (aka regular extrapolation) has been proposed to semi-
+automatically infer formal behavioral models of underspecied systems. The re-
+sulting formal behavioral models can be used, e.g., for documentation or regres-
+sion testing and thus can be an enabler for continued system evolution. Au-
+tomated mediation between networked systems by automatically synthesizing
+connectors from behavioral models is a current research interest. This approach
+is currently in development in the Connect project [6].
+To cater the various use-cases of automata-learning, LearnLib has been cre-
+ated to oer a versatile library of learning algorithms and related tools. Result of
+an extensive reengineering eort, the Next Generation LearnLib [8] implements a
+exible component-based approach that supports quick iteration and renement
+of learning setups (in the following the Next Generation LearnLib will simply be
+referred to as \LearnLib").
+The reengineered LearnLib has seen continued evolution, for which a com-
+plete account will not be provided in this paper. We will rather focus on two
+main innovations:
+{The modeling paradigm in LearnLib Studio underwent signicant changes.
+For example, in the old modeling paradigm a dedicated setup phase would
+precede the actual learning process. This has been replaced by on-the-y
+conguration during the learning phase itself, with only minimal static con-
+guration needed beforehand.
+?This work is supported by the European FP 7 project CONNECT (IST 231167).
+
+--- Page 2 ---
+{LearnLib has been outtted with support for the Register Automata au-
+tomaton model [4], which is a simple extension of nite automata with data
+from innite domains. It can model data-independent systems [7], i.e., sys-
+tems that do not compute or manipulate data but manage their adequate
+distribution, such as protocols and mediators, in an intuitive way.
+The demonstration will not only cover these two points in isolation, but will
+also highlight the ease of integration of new functionality into the overall learning
+framework.
+In the remainder of the paper, we will recall the basics of active automata
+learning in Section 2, followed by an introduction to Register Automata in Sec-
+tion 3. A learning solution for Register Automata will be presented in Section 4,
+demonstrating the innovations outlined above. In Section 5 a conclusion is pro-
+vided, with references showcasing the broad application scope of the presented
+tool environment.
+2 Active automata learning
+Angluin's seminal algorithm L[2] denes two query types to gather information
+about the System Under Learning (SUL):
+{Membership Queries (MQs) are traces of symbols from a predened alphabet
+of inputs of the SUL. The learning algorithm will construct such input traces,
+execute these on the SUL and capture system output. From the gathered
+information a hypothesis model is generated.
+{Equivalence Queries (EQs) compare the produced hypotheses with the tar-
+get system. If the model is not accurate, a counterexample will be provided
+revealing a dierence between the current hypothesis and the SUL. Evaluat-
+ing counterexamples the learning algorithm will produce rened hypothesis
+models using additional MQs. Once no counterexample can be produced the
+learning procedure has produced an accurate model and can be stopped.
+With those two query types, Lis guaranteed to produce a minimal and
+correct model. In current practice, however, EQs can only be implemented ap-
+proximately for a large class of systems, e.g., with additional invocations of the
+target system.
+The original Lalgorithm has originally been presented for DFAs, but has
+since been adapted to Mealy Machines, which are a better t for learning actual
+reactive systems as they can encode system output in a natural way. A major
+and recent increase in expressiveness is achieved with Register Automata [5],
+which are described in the following section.
+3 Register Automata
+Register Automata are an extension of nite automata with data from innite
+domains and are, e.g., well-suited for describing communication protocols. Reg-
+ister Automata are dened as follows:
+
+--- Page 3 ---
+l0
+l1l2
+(register ;hp1;p2i)jtrue
+x1:=p1;x2:=p2(login ;hp1;p2i)jx1=p1^x2=p2
+(logout ;?)jtrue
+(delete ;?)jtrue
+(change ;hp1i)jtrue
+x2:=p1
+Figure 1. Partial RA model for a fragment of XMPP
+Denition 1. Let a symbolic input be a pair (a;¯p), of a parameterized input
+aof arity kand a sequence of symbolic parameters ¯p=hp1;:::; pkiLet further
+X=hx1;:::;xmibe a nite set of registers . Aguard is a conjunction of equalities
+and negated equalities, e.g., pi6=xj, over formal parameters and registers. An
+assignment is a partial mapping r:X!X[Pfor a set Pof formal parameters.
+Denition 2. ARegister Automaton (RA) is a tuple A= (A;L;l0;X;G;l), where
+{Ais a nite set of actions .
+{Lis a nite set of locations .
+{l02Lis the initial location .
+{Xis a nite set of registers .
+{Gis a nite set of transitions , each of which is of form hl;(a;¯p);g;r;l0i, where
+lis the source location ,l0is the target location , (a;¯p) is a parameterized
+action, gis a guard, and ris an assignment.
+{l:L7!f+;gmaps each location to either + (accept) or (reject).u t
+Let us dene the semantics of an RA A= (A;L;l0;X;G;l). A X-valuation,
+denoted by n, is a (partial) mapping from XtoD. Astate ofAis a pairhl;ni
+where l2Landnis aX-valuation. The initial state ishl0;n0i, i.e., the pair of
+initial location and empty valuation.
+AstepofA, denoted byhl;ni(a;¯d)!h l0;n0i, transfers Afromhl;nitohl0;n0ion
+input ( a;¯d) if there is a transition hl;(a;¯p);g;r;l0i2Gsuch that (1) gis modeled
+by¯dandn, i.e., if it becomes true when replacing all pibydiand all xibyn(xi),
+and such that (2) n0is the updated X-valuation, where n0(xi) =n(xj) wherever
+r(xi) =xj, and n0(xi) =djwherever r(xi) =pj.
+An example instance of a Register Automaton is provided in Figure 1, which
+models a subset of the XMPP instant messaging protocol focused on aspects of
+user authentication. In location l0no user account exists. With the parameterized
+action register a new account can be created, with the parameters p1and p2
+denoting a username and password. When executing the register action, the
+parameter values are copied into the registers x1andx2respectively. This action
+is unconditionally invocable in l0, meaning that its guard is true. In contrast,
+thelogin in action of l1has a guard that species that the parameters p1and p2
+provided with the login action have to match the register contents of x1andx2,
+i.e., the credentials provided during login have to match the ones stored in the
+registers. The other system actions represent logging out, changing the account
+password, and deleting the user account.
+
+--- Page 4 ---
+Figure 2. A modeled learning setup created in LearnLib Studio. The model is
+currently executed, with bold edges denoting the path of execution. The current
+query and its answer are made visible in the panel on the lower left side.
+4 The tool demo
+We will present the LearnLib framework and highlight recently integrated in-
+novations. LearnLib Studio allows the model-based composition and execution
+of learning setups, where LearnLib components are made available as reusable
+building blocks. In Figure 2 a learning setup tooled for learning register au-
+tomata is shown, congured to learn the system shown in Figure 1. The result
+of executing this learning setup is presented in Figure 3.
+The reworked modeling approach: In the learning setup presented in Figure
+2 the distinct pattern specic to active automata learning can be witnessed: a
+learning algorithm is invoked, resulting in MQs an \oracle" has to answer. In
+this context, oracles are components that execute queries on a target system
+and gather the invocation results, meaning they produce an answer for a given
+query. Once the learning algorithm has formed a hypothesis it can be displayed
+and the data structure gathering the observations can be visualized, e.g., for
+debugging purposes. In the displayed setup, EQs are approximated by a random
+walk conformance test, which generates additional queries that are answered by
+the system oracle. If no counterexample can be found, the learning procedure
+will terminate, displaying the nal result. Otherwise the counterexample will be
+consumed and analyzed, which can result in the production of additional queries.
+Once these have been answered and the counterexample is exploited so that a
+
+--- Page 5 ---
+Figure 3. The resulting model from executing the learning setup. Guards are
+in square brackets, the next register contents are explicitly denoted on every
+transition as is the acceptance status of the following state. Register values are
+denoted as vi.
+rened hypothesis can be produced, the learning process will restart the learning
+algorithm.
+The general workow is reusable in nature. The only application-specic
+parts that have to be provided are the denition of the alphabet and the system
+oracle, which has to interface the SUL. These application-specic parts can be
+loaded in a standardized way with parameterized building blocks.
+Compared to the previous modeling style supported by LearnLib Studio,
+the new modeling style is much improved in terms of usability and exibility:
+in the old modeling paradigm, a dedicated setup phase would create a xed
+conguration, connecting, e.g., the learning algorithm to the SUL oracle. This
+setup would then be instantiated and started, with limited ways to inuence
+the behavior of the setup afterwards. In the new modeling paradigm, only an
+alphabet has to be specied beforehand, after which the learning algorithm can
+directly begin operation. Learning queries are delegated on-the-y according to
+the setup execution ow. This greatly increases exibility, as, for instance, setups
+can decide at runtime what oracle instances are used to answer queries.
+Integration of Register Automata learning: Thanks to the exible
+component-based approach of LearnLib, components for learning this new model
+type could be integrated into the general framework without changes to the
+LearnLib architecture.
+In the learning setup presented above, the only components that are specic
+for the RA machine model are the building blocks encapsulating the learning al-
+gorithm and the equivalence approximation. The overall infrastructure provided
+by the LearnLib is reused to a high degree when using RAs despite adapting a
+much richer automata model. The overall avor of how learning setups can be
+created is completely unchanged compared to how setups are specied for other
+machine models, abstracting from the details of the underlying data structures
+and algorithms and thus shielding the user from additional complexity.
+Due to being integrated into the component framework, learning setups for
+Register Automata can use all facilities LearnLib oers for debugging, visualiza-
+
+--- Page 6 ---
+tion and statistics. Thus our extension provides a powerful and unique framework
+for learning data independent systems [7].
+5 Conclusion
+The LearnLib framework and accompanying tools provide a rich environment for
+experimentation with the new Register Automata formalism. Embedded into a
+exible component model, much functionality is shared between learning setups
+for dierent machine models, which enables a high degree of reuse. Users already
+versed in the operation of the LearnLib Studio will not have to learn a new style
+of modeling when adapting Register Automata, while users new to LearnLib
+Studio are only exposed to a limited set of generic concepts that are easy to
+understand.
+The LearnLib is mature and used by several independent research groups. It
+has, e.g., been used to infer the behavior of a electronic passports [1], in security
+research [3], and it is a central enabler within the Connect framework.
+LearnLib is available for download at http://www.learnlib.de and free for
+all academic purposes.
+References
+1. Fides Aarts, Julien Schmaltz, and Frits W. Vaandrager. Inference and Abstraction of
+the Biometric Passport. In Tiziana Margaria and Bernhard Steen, editors, ISoLA
+(1), volume 6415 of Lecture Notes in Computer Science , pages 673{686. Springer,
+2010.
+2. Dana Angluin. Learning Regular Sets from Queries and Counterexamples. Infor-
+mation and Computation , 75(2):87{106, 1987.
+3. G. Bossert, G. Hiet, and T. Henin. Modelling to Simulate Botnet Command and
+Control Protocols for the Evaluation of Network Intrusion Detection Systems. In
+Network and Information Systems Security (SAR-SSI), 2011 Conference on , pages
+1 {8, may 2011.
+4. Soa Cassel, Falk Howar, Bengt Jonsson, Maik Merten, and Bernhard Steen. A
+Succinct Canonical Register Automaton Model. In Tevk Bultan and Pao-Ann
+Hsiung, editors, Automated Technology for Verication and Analysis , volume 6996
+ofLecture Notes in Computer Science , pages 366{380. Springer Berlin / Heidelberg,
+2011.
+5. Falk Howar, Bernhard Steen, Soa Cassel, and Bengt Jonsson. Inferring Canonical
+Register Automata. In VMCAI 2012, to appear .
+6. Val erie Issarny, Bernhard Steen, Bengt Jonsson, Gordon S. Blair, Paul Grace,
+Marta Z. Kwiatkowska, Radu Calinescu, Paola Inverardi, Massimo Tivoli, Anto-
+nia Bertolino, and Antonino Sabetta. CONNECT Challenges: Towards Emergent
+Connectors for Eternal Networked Systems. In ICECCS , pages 154{161, 2009.
+7. R. Lazic and D. Nowak. A unifying approach to data-independence. In
+C. Palamidessi, editor, Proc. CONCUR 2000, 11thInt. Conf. on Concurrency The-
+ory, volume 1877 of Lecture Notes in Computer Science , pages 581{595, 2000.
+8. Maik Merten, Bernhard Steen, Falk Howar, and Tiziana Margaria. Next generation
+learnlib. TACAS'11/ETAPS'11, pages 220{223, Berlin, Heidelberg, 2011. Springer-
+Verlag.

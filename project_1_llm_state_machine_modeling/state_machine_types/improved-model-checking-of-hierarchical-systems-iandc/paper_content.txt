@@ -1,0 +1,1920 @@
+--- Page 1 ---
+Improved Model Checking of Hierarchical SystemsI
+Benjamin Aminofa,1, Orna Kupfermana, Aniello Muranob,2
+aHebrew University, School of Engineering and Computer Science, Jerusalem 91904,
+Israel.
+bUniversitµ a degli Studi di Napoli \Federico II", Computer Science Section of the Physics
+Department, 80126 Napoli, Italy.
+Abstract
+We present a uni¯ed game-based approach for branching-time model
+checking of hierarchical systems. Such systems are exponentially more suc-
+cinct than standard state-transition graphs, as repeated sub-systems are de-
+scribed only once. Early work on model checking of hierarchical systems
+shows that one can do better than a naive algorithm that \°attens" the
+system and removes the hierarchy.
+Given a hierarchical system Sand a branching-time speci¯cation Ãfor it,
+we reduce the model-checking problem (does Ssatisfy Ã?) to the problem of
+solving a hierarchical game obtained by taking the product of Swith an alter-
+nating tree automaton AÃforÃ. Our approach leads to clean, uniform, and
+improved model-checking algorithms for a variety of branching-time temporal
+logics. In particular, by improving the algorithm for solving hierarchical par-
+ity games, we are able to solve the model-checking problem for the ¹-calculus
+inPspace and time complexity that is only polynomial in the depth of the
+hierarchy. Our approach also leads to an abstraction-re¯nement paradigm
+for hierarchical systems. The abstraction maintains the hierarchy, and is
+obtained by merging both states and sub-systems into abstract states.
+Keywords: Hierarchical Systems, model checking, branching-time temporal
+IA preliminary version appeared in the proceedings of VMCAI 2010, volume 5944 of
+Lecture Notes in Computer Science, Elsevier.
+Email addresses: benj@cs.huji.ac.il (Benjamin Aminof), orna@cs.huji.ac.il
+(Orna Kupferman), murano@na.infn.it (Aniello Murano)
+1This work was partially done while the author was visiting Universitµ a degli Studi di
+Napoli \Federico II", supported by ESF GAMES project, short visit grant n.2789.
+2Partially supported by MIUR PRIN Project n.2007-9E5KM8.
+Preprint submitted to Information and Computation March 2, 2010
+
+--- Page 2 ---
+logics, two-player games, parity games, abstraction-re¯nement
+1. Introduction
+In model checking, we verify that a system meets its speci¯cation by
+translating the system to a ¯nite state machine (FSM), translating the spec-
+i¯cation to a temporal-logic formula, and checking that the FSM satis¯es
+the formula [6]. The translation of a high-level description of a system to
+an FSM involves a painful blow-up, and the size of the FSM is typically the
+computational bottleneck in model-checking algorithms.
+There are several sources of the blow-up that the translation involves. A
+well-studied source is the ability of components in the system to work in par-
+allel and communicate with each other, possibly using variables. Formally,
+concurrent FSMs are exponentially more succinct than °at(usual) ones [9].
+This has led to extensive research on compositional model checking, where
+the goal is to reason about a system by reasoning about its underlying com-
+ponents and without constructing an equivalent °at system (c.f., [8, 21]).
+Compositionality methods are successfully applied in practice (c.f., [22]), but
+it is a known reality that they cannot always work. Formally, the system
+complexity of the model-checking problem (that is, the complexity in terms
+of the system, assuming a speci¯cation of a ¯xed length) for all common
+temporal logics is exponentially higher in the concurrent setting [16]. This
+exponential gap is carried over to other related problems such as checking
+language-containment and bisimulation | all are exponentially harder in the
+concurrent setting [13, 23].
+Another source of the blow-up in the translation of systems to FSMs has
+to do with the ability of a high-level description of a system to reuse the
+same component in di®erent contexts (say, by calling a procedure). The se-
+quential setting is that of hierarchical FSMs , where some of the states of the
+FSM are boxes, which correspond to nested FSMs. The naive approach to
+model checking such systems is to \°atten" them by repeatedly substituting
+references to sub-structures with copies of these sub-structures. However,
+this results in a °at system that is exponential in the nesting depth of the
+hierarchical system. In [5], Alur and Yannakakis show that for Ltlmodel
+checking, one can avoid this blow-up altogether, whereas for Ctl, one can
+trade it for an exponential blow-up in the (often much smaller) size of the
+formula and the maximal number of exits of sub-structures. In other words,
+2
+
+--- Page 3 ---
+while hierarchical FSMs are exponentially more succinct than °at FSMs [4],
+in many cases the system complexity of the model-checking problem is not
+exponentially higher in the hierarchical setting! Thus, even more than with
+the feature of concurrency, here there is clear motivation not to °atten the
+FSM before model checking it.
+The results in [5] set the stage to further work on model-checking of hi-
+erarchical systems. As it so happened, however, this line of research has
+quickly been focused on recursive systems , which allow unbounded nesting
+of components. Having no bound on the nesting gives rise to in¯nite-state
+systems. The emergence of software model checking, the natural association
+of reusability with (possibly recursive) procedure calls, the challenge and
+abstraction that the in¯nite-state setting involves, and the neat connection
+to pushdown automata, have all put recursive systems in the central stage
+[1, 2, 3], leaving the hierarchical setting as a special case. This work hopes
+to shift some attention back to the hierarchical setting. We suggest a uni-
+form game-based approach for model checking such systems, and argue that
+the game-based approach enjoys the versatility and advantages it has proven
+to have in the °at setting. In particular, the game-based approach leads to
+improved model-checking algorithms and to an abstraction-re¯nement frame-
+work for hierarchical systems and Ctl formulas. An important conclusion
+of our work is that we should not hurry to give up the ¯nite-state nature
+of the hierarchical setting, as it does lead to simpler algorithms, and better
+complexities than the recursive setting.
+In the °at setting, the game-based approach reduces the model-checking
+problem (does a system Ssatisfy a branching temporal logic speci¯cation Ã?)
+to the problem of deciding a two-player game obtained by taking the prod-
+uct of Swith an alternating tree automaton AÃforÃ[16]. The game-based
+approach separates the logic-related aspects of the model-checking problem,
+which are handled in the translation of the speci¯cations to automata, and
+the combinatorial aspects, which are handled by the game-solving algorithm.
+Using the game-based approach, it was possible to tighten the time and space
+complexity of the branching-time model-checking problem [16]. We describe
+a uni¯ed game-based approach for branching-time model checking of hierar-
+chical systems. We de¯ne two-player hierarchical games , and reduce model
+checking to deciding such games. In a hierarchical game, an arena may have
+boxes, which refer to nested sub-arenas. As in the °at setting, one can take
+the product of a hierarchical system with an alternating tree automaton for
+its speci¯cation, and model checking is reduced to solving the game obtained
+3
+
+--- Page 4 ---
+by taking this product. Now, however, the hierarchy of the system induces
+hierarchy in the game.
+Having introduced the framework, we turn to the two main technical
+contributions of the paper: a new and improved algorithm for solving hierar-
+chical parity games, and an abstraction-re¯nement paradigm for hierarchical
+systems. We now brie°y describe both. Consider a hierarchical game G. The
+idea behind our algorithm is that even though a sub-arena may appear in
+di®erent contexts, it is possible to extract information about the sub-arena
+that is independent of the context in which it appears. Formally, for each
+strategy of one of the players, we can analyze the sub-arena and extract a
+summary function , mapping each exit of the sub-arena to the best color (of
+the parity condition) that the other player can hope for, given that the cur-
+rent play eventually leaves the sub-arena through this exit. The summary
+function is independent of the context and has to be calculated only once.
+The algorithm for solving the game Gthen solves a sequence of °at parity
+games, obtained by replacing sub-arenas by simple gadgets that implement
+the summary functions.
+While hierarchical systems may be exponentially more succinct than
+°at ones, they are not immune to the \state explosion problem", which,
+in some circumstances, could completely absorb the °avor of using hierar-
+chical state machines. For °at systems, a powerful solution to the state-
+explosion problem is based on reasoning about an abstraction of the con-
+crete model. In order to guarantee preservation of the branching-time spec-
+i¯cation from abstract models to concrete models, two transition relations
+have been considered [7, 18]: preservation of universal properties requires an
+over-approximation, whereas preservation of existential properties requires
+an under-approximation. This is accomplished by using Modal Transition
+Systems [11, 14]. We extend this approach to hierarchical state machines
+and introduce hierarchical modal transition systems (HMTS, for short) and
+hierarchical 3-valued games . We show how to abstract a hierarchical system
+and get an HMTS, and how to model check speci¯cations in Ctl. The ab-
+straction technique ¯ts into our game-based approach very naturally. Indeed,
+already in the °at setting, reasoning about abstractions has the °avor of solv-
+ing games [24]. From a technical point of view, combining our algorithm for
+the concrete hierarchical setting and the abstraction-re¯nement solution for
+the °at setting [24], is not di±cult, and is based on adding to the gadgets
+that capture the summary functions a layer in which the players can chose
+between winning and not losing (i.e., forcing the game to an unknown-winner
+4
+
+--- Page 5 ---
+value). We see this as a witness to the neatness of our framework.
+Related work. As described above, the formulation of hierarchical sys-
+tems as well as the observation that model-checking algorithms for them
+should not °atten the system, was done in [5]. The work since then was fo-
+cused on recursive systems, with the exception of [12, 17, 20]. The closest to
+our work here is [12], which proved that the model-checking problem for the
+¹-calculus and hierarchical systems is Pspace -complete (as opposed to the
+recursive setting, in which ¹-calculus model checking is Exptime -complete).
+As we specify below, the ¹-calculus model-checking algorithm that our ap-
+proach induces enjoys several advantages with respect to the one in [12].
+The ¯rst advantage is the complexity. While the algorithm in [12] is
+better than the naive \°attening" approach in terms of space complexity,
+no attention is given to its time complexity. We found no speci¯c analysis
+of the time complexity of the algorithm in [12]. According to our analysis,
+its time complexity is always worse than the \°attening" approach. Indeed,
+while the \°attening" approach for model-checking a ¹-calculus formula 'in
+a hierarchical system Kis exponential only in the nesting depth of Kand the
+alternation depth lof', the algorithm in [12] is super-exponential also in
+the formula and in an expression3that depends on the number of boxes and
+exits in sub-structures of K. On the other hand, our approach, which also
+gives an algorithm in Pspace , yields an algorithm with a much better time
+complexity of ( jKj¢j'j)l¢2O(j'j)¢e¢l¢logl, where eis the maximal number of exits
+in a sub-structure of K. We note that in many designs eis very small (often,
+eis constant). Note that our algorithm is not exponential in the number
+of boxes in a sub-structure of K, or in the nesting depth (the nesting-depth
+factor is subsumed in jKj, in which our algorithm is polynomial). Hence,
+beyond having a polynomial space complexity, the time complexity of our
+algorithm is usually much better than the one that follows the \°attening"
+approach, and in all cases it is much better than the one in [12].
+Second, recall that we reduce model-checking to solving hierarchical games.
+In particular, ¹-calculus model checking is reduced to solving parity games.
+Our algorithm for the latter is based on solving a sequence of (non-hierarchical)
+parity games. As such, it can bene¯t from existing and future algorithms and
+3More speci¯cally, it is exponential in ( w¢ j'j)2, where wis the maximal calls width of
+sub-structures of K, de¯ned by max ifP
+b2Bi(jexit¿i(b)j)g. Note that while the number of
+exitsjexit¿i(b)j, in the sub-structure that a box brefers to, is usually small; the number of
+boxes jBijcan be very big.
+5
+
+--- Page 6 ---
+tools for solving parity games. This has both practical and theoretical ad-
+vantages. For example, while it is an easy consequence of our algorithm that
+hierarchical parity games over arenas with a constant number of exits can
+be solved by solving a polynomial number of parity games, the work in [12]
+had to provide a special analysis in order to show the weaker result that such
+games are in NP\co-NP .
+Third, the algorithm presented in [12] does not deal directly with hierar-
+chical systems. Rather, it considers straight line programs (SLP) generated
+by a grammar with ¯ve graph rewriting rules. Translating a hierarchical
+system to an SLP is not hard, but it involves an application of quadrati-
+cally many rules. Beyond the blow-up that such a translation involves, it
+messes-up the direct relationship between the structure of the hierarchical
+system and the game. This direct relationship is crucial in understanding
+the output of the model-checking procedure, by means of counterexamples
+or certi¯cates, and in describing an abstraction-re¯nement paradigm on top
+of the game.
+Finally, unlike the uniform treatment that our approach suggests, the
+algorithm presented in [12] cannot be easily generalized to handle more set-
+tings. The uniformity of our approach is re°ected both in the fact that it can
+optimally handle many logics, and in the fact that it leads to tight complexity
+bounds even when we focus on di®erent components of the model-checking
+problem. For example, while it is immediate from our algorithm that the
+model-checking problem of constant size ¹-calculus formulas over hierarchi-
+cal systems with a constant number of exits is in Ptime , proving the same
+result in [12] required arguments that are orthogonal to the algorithm there,
+and are based on Courcelle's technique for evaluating ¯xed MSO-formulas
+over bounded-width graphs.
+2. Preliminaries
+2.1. Hierarchical Games and Systems
+Ahierarchical two-player game is a game played between two players,
+referred to as Player 0 and Player 1. The game is de¯ned by means of a
+hierarchical arena and a winning condition. The players move a token along
+the hierarchical arena, and the winning condition speci¯es the objectives
+of the players, which typically refer to the sequence of states traversed by
+the token. A hierarchical arena is a hierarchical FSM in which the state
+space of each of the underlying FSMs is partitioned into states belonging to
+6
+
+--- Page 7 ---
+Player 0 (that is, when the token is in these states, then Player 0 chooses
+a successor to which he moves the token) and states belonging to Player 1.
+We refer to the underlying FSMs as sub-arenas . Formally, a hierarchical
+two-player game is a pair G= (V;¡), where V=hV1;:::;Vniis a hierarchical
+arena, and ¡ is a winning condition. For every 1 ·i·n, the sub-arena
+Vi=hW0
+i; W1
+i;Bi;ini;exit i; ¿i;Riihas the following elements:
+²W0
+iandW1
+iare ¯nite sets of states . States in W0
+ibelong to Player 0,
+and states in W1
+ibelong to Player 1. We assume that W0
+i\W1
+i=;,
+and let Wi=W0
+i[W1
+i. The state ini2Wiis an initial state4, and
+exit iµWiis a set of exit-states . We assume that exit 1=;, i.e., the
+top-level arena V1has no exits.
+²A ¯nite set Biofboxes . We assume that W1;:::; W n;B1;:::;Bnare pair-
+wise disjoint.
+²An indexing function ¿i:Bi! fi+ 1;:::; ngthat maps each box of the
+i-th sub-arena to an index greater than i. If¿i(b) =j, we say that b
+refers toVj.
+²An edge relation Riµ(S
+b2Bi(fbg £exit ¿i(b))[Wi)£(Wi[ B i). Let
+the pair ( u; v) be an edge in Ri, with a source uand a target v. The
+source uis either a state of Vior a pair ( b; e), where bis a box of Vi
+andeis an exit-state of the sub-arenas that brefers to. The target v
+is either a state or a box of Vi.
+In a sub-arena, the edges connect states and boxes with one another.
+Edges entering a box implicitly lead to the unique initial state of the sub-
+arena that the box refers to. On the other hand, an edge exiting a box
+explicitly speci¯es the exit-state it comes out of. Note that the fact that
+boxes can refer only to sub-arenas of a greater index implies that the nesting
+depth of arenas is ¯nite. In contrast, in the recursive setting such a restriction
+does not exist [1].
+A parity winning condition ¡ for the game maps all states (of all sub-
+arenas) to a ¯nite set of colors C=fCmin;:::; C maxg ½I N. Thus, ¡ :S
+iWi!
+C. For technical convenience we allow ¡ to be partial, but require that in
+4We assume a single entry for each sub-arena. Multiple entries can be handled by
+duplicating sub-arenas.
+7
+
+--- Page 8 ---
+every sub-arena every cycle, as well as every path from an entry to an exit,
+has at least one colored state.
+Ahierarchical structure (hierarchical system ) can be viewed as a hierar-
+chical arena with a single player. In addition, the structure is de¯ned with
+respect to a set APofatomic propositions , and each state of the structure
+is mapped to the set of propositions that hold in it. Formally, a hierarchi-
+cal structure over APis a tuple K=hK1;:::;Kniofstructures , where each
+Ki=hAP;Vi; ¾iihas a sub-arena Viwith W1
+i=;, and a labeling function
+¾i:Wi£AP! ftt;®gthat assigns a truth value to a pair ( w; p)2Wi£AP,
+which indicates whether the atomic proposition pholds or not in w. For con-
+venience, we sometimes abuse notation and write ¾i(w) to denote the set
+fp2AP:¾i(w; p) =ttg.
+A sub-arena without boxes is °at. A °at sub-arena that has no exits is
+simple . A game over a °at (resp. simple) arena is called a °at (resp. sim-
+ple) game. The special case of a simple hierarchical structure is the classical
+Kripke structure. Each hierarchical arena Vcan be transformed to an equiv-
+alent °at arena Vf(called its °at expansion ) by recursively substituting each
+box by a copy of the sub-arena it refers to. Since di®erent boxes can refer
+to the same sub-arena, states may appear in di®erent contexts. In order to
+obtain unique names for states in the °at arena, we pre¯x each copy of a
+sub-arena's state by the sequence of boxes through which it was reached.
+Thus, a state ( b0;:::; b k; w) ofVfis a vector whose last component wis a state
+ofV, and the remaining components ( b0;:::; b k) are boxes that describe its
+context. For simplicity, we refer to vectors of length one as elements (that
+is,w, rather than ( w)).
+Formally, given a hierarchical arena V=hV1;:::;Vni, for each sub-arena
+Viwe inductively de¯ne its °at expansion Vf
+i=hW0
+if; W1
+if;;;ini;exit i;;;Rf
+ii
+as follows.5
+²For¾2 f0;1g, the set W¾
+ifµW¾
+i[(Bi£(Sn
+j=i+1W¾
+jf)) is de¯ned as
+follows:
+{Ifwis a state of W¾
+i, then wbelongs to W¾
+if;
+{Ifbis a box of Viwith ¿i(b) =j, and the tuple ( u1;:::; u h) is a
+state in W¾
+jf, then ( b; u1;:::; u h) belongs to W¾
+if.
+5We note that, unlike the de¯nition of °at structures in [5], our de¯nition of °at arenas
+also refers to exits. This is useful in the solution of games.
+8
+
+--- Page 9 ---
+²The transition relation Rf
+iis de¯ned as follows.
+{If (u; v)2 R i, where u2Wioru= (b; e), where b2 B iand
+e2exit ¿i(b), then if the target vis a state then ( u; v)2 Rf
+i; and if
+vis a box then ( u;(v;in¿i(v)))2 Rf
+i. Note that ( v;in¿i(v)) is indeed
+a state of Wf
+iby the second item in the de¯nition of states above.
+{Ifbis a box of Vi, and (( u1;:::; u h);(v1;:::; v h0)) is a transition of
+Vf
+¿i(b), then (( b; u1;:::; u h);(b; v1;:::; v h0)) belongs to Rf
+i.
+The arena Vf
+1is the required °at expansion VfofV. Let Wf
+i=W0
+if[
+W1
+if. In case K=hK1;:::;Kniis a hierarchical structure, where each Ki=
+hAP;Vi; ¾iiis a structure over AP, then the °at expansion is Kf
+i=hAP;Vf
+i; ¾f
+ii,
+where the labels are induced by the innermost state. Thus, ¾f
+i:Wf
+i£AP!
+ftt;®gis such that for every p2AP, ifw= (u1;:::; u h), then ¾f
+i(w; p) =
+¾j(uh; p), where jis the index of the structure of which uhis a state of. A
+hierarchical structure Ksatis¯es a formula '(denoted K j=') i® its °at ex-
+pansion Kfdoes. The hierarchical model-checking problem is to decide, given
+a hierarchical structure Kand temporal logic formula ', whether Ksatis¯es
+'.
+The semantics of a game over a hierarchical arena is de¯ned by means
+of its °at expansion, and thus the de¯nitions of a play, a strategy, etc. are
+essentially the classic de¯nitions for °at games. However, for our purpose, it
+is convenient to also consider plays over arenas Vi, for 1 < i·n, which are
+not the top level arena V1. Such arenas may have exit nodes, and we adjust
+the de¯nitions to deal with these exits. Intuitively, a play of a game over Vi
+proceeds by moving a token on the nodes of the °at expansion Vf
+i, starting at
+the initial node ini. If the token is placed on a node s2W0
+ifthen Player 0
+chooses the next move, and if it is placed on a node s2W1
+ifthen Player 1 is
+doing the choosing. The available moves are as follows. If shas no successors
+inVf
+i, and s62exit i(we call such a node a terminal node ), then the play ends;
+Otherwise, the player chooses a successor of sand moves the token to this
+successor, or, if s2exit i, he may choose instead to move the token \outside"
+Vf
+i, in which case the play also ends. A playof the game is thus a (¯nite or
+in¯nite) sequence of nodes ¼=¼0; ¼1;:::, namely, the sequence of nodes the
+token has traversed during the play, with possibly the symbol outat the end
+of a ¯nite sequence (indicating that the token was moved out of the arena).
+A play ¼isinitial if¼0=ini; it is maximal if it is (i)initial, and (ii)it is
+9
+
+--- Page 10 ---
+in¯nite, or it is ¯nite but it cannot be extended to a longer play. Note that
+we sometimes refer to plays as words in ( Wf)!+ (Wf)¤+ (Wf)¤¢ foutg.
+Consider a parity winning condition ¡. For a play ¼, let maxC (¼) be
+the maximal color that appears in¯nitely often along ¼(recall that by our
+assumptions an in¯nite play must have in¯nitely many colored nodes), or
+appears at least once if ¼is ¯nite and has at least one colored node. A play
+is winning for Player 0 if it ends in a terminal node s2W1
+if, i.e., if Player 1
+cannot extend the play; or if the play is in¯nite and satis¯es ¡, i.e., maxC (¼)
+is even. Similarly, a play is winning for Player 1 if it ends in a terminal node
+s2W0
+if, or if the play is in¯nite and does not satisfy the winning condition
+¡. A play that ends with out(i.e., because the token was moved outside the
+arena) is not winning for either player, and has an unde¯ned value.
+Astrategy for a player is a function from pre¯xes of plays ending in one of
+his nodes, to the set of nodes plus the action out, telling Player ¾what move
+to make in order to extend the play. Thus, for ¾2 f0;1g, a Player ¾strategy
+is a partial function »: (Wf)¤¢W¾
+if!(Wf[ foutg), such that for all u¢v,
+withu2(Wf)¤andv2W¾
+if, we have that »(u¢v) =outonly if v2exitf
+i, and
+otherwise, ( v; »(u¢v))2 Rf
+i. A pre¯x ¼0;:::; ¼ nis consistent with a strategy
+»of Player ¾, if for all j¸0 it holds that if ¼jis a Player ¾node then
+¼j+1=»(¼0;:::; ¼ j). The function is partial as there may be vertices in W¾
+if
+with no successors, and since we do not require it to be de¯ned over plays
+that are not consistent with it. A strategy »ismemoryless if its output does
+not depend on the whole pre¯x of the play, but only on the last position, i.e,
+if for all u; u02(Wf)¤and all v2W¾
+if, we have that »(u¢v) =»(u0¢v).
+We can thus abbreviate and think of a memoryless strategy for Player ¾as a
+partial function »:W¾
+if!(Wf[ foutg). Observe that if b1; b22 B iare two
+boxes that refer to the same sub-arena Vj, then it is normally notthe case
+that»(even if it is memoryless) behaves in the same way, inside Vj, in both
+cases. That is, the choice of how to move inside Vjdepends on the context
+in which it appears.
+It is easy to see that for every two strategies, »0for Player 0 and »1for
+Player 1, there is exactly one play consistent with both strategies. Thus,
+two strategies induce a play. We denote this play by outcome (»0; »1). A
+strategy »¾for Player ¾iswinning , if for all strategies »1¡¾for Player 1 ¡¾,
+the play outcome (»0; »1) is winning for Player ¾. Dually, a strategy »¾for
+Player ¾islosing , if there exists a strategy »1¡¾for Player 1 ¡¾, for which
+the play outcome (»0; »1) is winning for Player 1 ¡¾. Note that since plays
+that end with outhave an unde¯ned value, a strategy »¾may be neither
+10
+
+--- Page 11 ---
+winning nor losing. Also note that if »¾is not a losing strategy for Player ¾,
+then all plays agreeing with »¾that do not end with outare winning for
+Player ¾. If the arena Vihas no exits, i.e., if exit i=;, then neither does
+Vf
+i, and the semantics of a game over Vicoincides with the classic de¯nition
+for parity games over simple arenas. By [10], parity games are determined
+with memoryless strategies over simple arenas, i.e., it is always the case that
+one of the players (called the winner of the game) has a memoryless winning
+strategy. To solve a game over an arena with no exits is to ¯nd the winner
+of the game.
+Observe that an alternative way of looking at the semantics of a game over
+the hierarchical arena Viis to think of the token as being moved directly on
+the nodes of the sub-arenas Vi;:::;Vn, using an auxiliary stack to keep track of
+the context. Recall that a node s= (b0;:::; b k; w) ofVf
+iis a vector whose last
+component wis a node inSn
+j=i(Wj), and the remaining components b0;:::; b k
+are boxes inSn
+j=i(Bj) that give its context. Thus, a token that is positioned
+onscan be represented by a token positioned on w, with an auxiliary stack
+containing b1¢¢¢bk. Since the arena is hierarchical (and not recursive) the
+depth of the stack is bounded.
+The sizejVijof a sub-arena Viis the sum jWij+jBij+jRij, and the
+number of exits of Viisjexit ij. The size jVjof a hierarchical arena Vis
+the sum of the sizes of all its sub-arenas Vi, and the number of its exits
+exits (V) = max i(jexit ij) is the maximal number of exits in any of its sub-
+arenas. The nesting depth of V, denoted nd(V), is the length of the longest
+chain i1; i2;:::; i jof indices such that a box of Vilis mapped to il+1. Observe
+that each state of the expanded structure is a vector of length at most the
+nesting depth, and that the size of Vfcan be exponential in the nesting
+depth, i.e., ­( jVjnd(V)).
+2.2. Alternating Parity Tree Automata
+LetDbe a set. A D-treeis a pre¯x closed subset Tµ D¤such that if
+x¢c2T, where x2 D¤andc2 D, then also x2T. The elements of T
+are called nodes , and the empty word "is the root ofT. For x2T, the
+nodes x¢c2T, where c2 D, are the successors ofx. Aleafis a node with
+no successors. A path ofTis a set ¼µTsuch that "2Tand, for every
+x2¼, either xis a leaf or there is a unique c2 D such that x¢c2¼. For
+an alphabet §, a §-labeled D-tree is a pair hT; Viwhere Tµ D¤is aD-tree
+andV:T!§ maps each node of Tto a symbol in §.
+11
+
+--- Page 12 ---
+Alternating tree automata are a generalization of nondeterministic tree
+automata [19]. Intuitively, while a nondeterministic tree automaton that
+visits a node of the input tree sends exactly one copy of itself to each of
+the successors of the node, an alternating automaton can send several copies
+of itself to the same successor. A Symmetric alternating tree automaton
+[15, 25] does not distinguish between the di®erent successors of a node, and
+can send copies of itself only in a universal or an existential manner, possibly
+with "-transitions. We use a partition of the state space of the automaton in
+order to denote the type of transitions from it. Formally, an APT is a tuple
+A=h§; Q; q 0; ±; Fi, where § is a ¯nite input alphabet; Qis a ¯nite set of
+states, partitioned into universal ( Q^), existential ( Q_),"-and ( Q(";^)), and
+"-or (Q(";_)) states (we also write Q_;^=Q_[Q^, and Q"=Q(";_)[Q(";^));
+q02Qis an initial state; ±:Q£§!(Q[2Q) is a transition function such
+that for all ¾2§, we have that ±(q; ¾)2Qforq2Q_;^, and ±(q; ¾)22Q
+forq2Q"; and Fis an acceptance condition, to be de¯ned later. We assume
+thatQcontains in addition two special states ®andtt, called rejecting sink
+andaccepting sink , respectively, such that 8a2§ :±(tt; a) =tt; ±(®; a) =®.
+The classi¯cation of ®andttis arbitrary, and the acceptance condition F
+is de¯ned in such a way that paths in a run tree of Athat get stuck in the
+accepting (resp. rejecting) sink satisfy (resp. do not satisfy) F. Transitions
+from states in Q"launch copies of Athat stay on the same input node as
+before the transition, while transitions from states in Q_;^launch copies that
+advance to sons of the current node.
+When a symmetric alternating tree automaton Aruns on an input tree
+it starts with a copy in state q0whose reading head points to the root of
+the tree. It then follows ±in order to send further copies. For example, if
+a copy of Athat is in state q2Q(";_)is reading a node xlabeled ¾, and
+±(q; ¾) =fq1; q2g, then this copy proceeds either to state q1or to state q2, and
+its reading head stays in x. As another example, if q2Q^and±(q; ¾) =q1,
+thenAsends a copy in state q1to every son of x. Note that di®erent copies
+ofAmay have their reading head pointing to the same node of the input
+tree. Formally, a runofAon a §-labeled D-treehT; Viis a (T£Q)-labeled
+I N-tree hTr; ri. A node in Trlabeled by ( x; q) describes a copy of Ain state
+qthat reads the node xofT. A run has to satisfy r(") = ("; q0) and, for all
+y2Trwith r(y) = (x; q), the following holds:
+²Ifq2Q^(resp. q2Q_) and ±(q; V(x)) = p, then for each son
+(resp. for exactly one son) x¢dofx, there is a node y¢i2Trwith
+12
+
+--- Page 13 ---
+r(y¢i) = (x¢d; p).
+²Ifq2Q(";^)(resp. q2Q(";_)) and ±(q; V(x)) =fp0;:::; p kg, then for
+alli2 f0::kg(resp. for one i2 f0::kg) the node y¢i2Tr, and
+r(y¢i) = (x; pi).
+Aparity condition is a function F:Q!C, where C=fCmin;:::; C maxg ½
+I N is a set of colors. We assume that F(tt) is even, and that F(®) is odd.
+Consider a run hTr; ri. A path ¼µTrsatis¯es the acceptance condition F
+i® the maximal color appearing in¯nitely often in the coloring of the states
+labeling ¼is even. Formally, let inf(rj¼)µQbe the set of states that r
+visits in¯nitely often along ¼. Thus, q2inf(rj¼) i® there are in¯nitely many
+y2¼such that r(y)2T£ fqg. Then, maxC (¼) = max q2inf(rj¼)F(q), and
+¼satis¯es FifmaxC (¼) is even. The size jCjofCis called the index of
+the automaton. A run hTr; riis accepting if all its paths satisfy F. The
+automaton Aaccepts an input tree hT; Viif there is an accepting run of A
+onhT; Vi. The language of A, denoted L(A), is the set of §-labeled D-trees
+accepted by A. We say that an automaton Ais nonempty i® L(A)6=;.
+Note that since Ais symmetric, the set Dof directions of the trees plays no
+role in the de¯nition of a run.
+2.3. Automata for Temporal Logics
+A wide range of branching-time temporal logics can be translated to al-
+ternating tree automata. Among the others, here we consider Ctl,Ctl¤,
+the modal ¹-calculus, and the alternation-free ¹-calculus (for a full de¯ni-
+tion of the syntax and the semantics of these logics, see [16]). The size of
+the automaton, as well as its acceptance condition depend on the particular
+logic.
+Theorem 1. [10, 16] Given a temporal-logic formula ', it is possible to
+construct a tree automaton (either symmetric or asymmetric) A'such that
+Ã L(A')is exactly the set of trees satisfying '. Moreover,
+²If'is aCtl or an an alternation-free ¹-calculus formula, then A'is
+an alternating parity automaton with O(j'j)states and index 2.
+²If'is aCtl¤formula, then A'is an alternating parity automaton
+with 2O(j'j)states and index 3.
+13
+
+--- Page 14 ---
+²If'is a¹-calculus formula, then A'is an alternating parity automaton
+withO(j'j)states and index O(j'j).
+It is worth noting that for all the automata A'mentioned above have
+the special property that the only transitions that actually depend on the
+input letter are transitions that go to the accepting or rejecting sinks, i.e.,
+for every a; a02§, and every q2Q, we have that ±(q; a)6=±(q; a0) i®
+±(q; a); ±(q; a0)2 ftt;®g.
+3. The Hierarchical Model-Checking Game
+The game-based approach to model checking a °at system K, with re-
+spect to a branching-time temporal logic speci¯cation ', reduces the model-
+checking problem to solving a game obtained by taking the product of K
+with the alternating tree automaton A'[16]. In this section, we extend this
+approach to hierarchical structures: given a hierarchical system Kand an
+alternating tree automaton A, we construct a game GK;A, such that Player 0
+wins the game i® the tree obtained by unwinding the °at expansion of Kis
+accepted by A. In particular, when Aaccepts exactly all the tree models of
+a branching-time formula ', the above holds i® Ksatis¯es '. Note that a
+naive approach for doing this is to start by constructing the °at expansion
+ofKand then applying [16]. The whole point, however, is to avoid the expo-
+nentially large °at system and work directly in the hierarchical setting. We
+focus on the case in which Ais an alternating parity tree automaton (APT),
+to which ¹-calculus formulas are translated.
+Given a hierarchical system K=hK1;:::;Kniand an APT A=h§; Q; q 0;
+±; Fi, the hierarchical two-player game GK;A= (V;¡) for KandAis de¯ned
+as follows. The hierarchical arena Vhas a sub-arena Vi;qfor every 2 ·i·n
+and state q2Q, which is essentially the product of the structure KiwithA,
+where the initial state of Kiis paired with the state qofA. For i= 1, we need
+only the sub-arena V1;q0. The hierarchical order of the sub-arenas is consistent
+with the one in K. Thus, the sub-arena Vi;qcan be referred to by boxes of
+sub-arena Vj;ponly if i > j . Let Ki=hAP; W0
+i;B0
+i;in0
+i;exit0
+i; ¿0
+i;R0
+i; ¾0
+iiand
+letA=h2AP; Q; q 0; ±; Fibe an APT with Qpartitioned to Q(";^),Q(";_),Q^,
+andQ_. Then, the sub-arena Vi;q=hW0
+i;q; W1
+i;q;Bi;qini;q;exit i;q; ¿i;q;Ri;qiis
+de¯ned as follows.
+²W0
+i;q=W0
+i£(Q_[Q(";_)),W1
+i;q=W0
+i£(Q^[Q(";^)),ini;q= (in0
+i; q),
+andexit i;q=exit0
+i£Q_;^.
+14
+
+--- Page 15 ---
+²Bi;q=B0
+i£Q, and ¿i;q(b; q) = (¿0
+i(b); q).
+²For a state u= (w;^q)2W0
+i£Q, if ^q2Q"and±(^q; ¾0
+i(w)) =fp0;:::; p kg,
+then ( u; v)2 R i;qi®v2 f(w; p 0);:::;(w; p k)g; and if ^ q2Q_;^, then
+(u; v)2 R i;qi®v= (w0; ±(^q; ¾0
+i(w))) and ( w; w0)2 R0
+i.
+²For (b; p)2 B0
+i£Q, and an exit ( e;^q)2exit0
+¿0
+i(b)£Q_;^of this box, then
+(((b; p);(e;^q)); v)2 R i;qi®v= (w0; ±(^q; ¾0
+¿0
+i(b)(e))) and (( b; e); w0)2 R0
+i.
+The winning condition of the game GK;Ais induced by the acceptance
+condition of A. Formally, for each state ( w; q) ofVi;q, we have ¡( w; q) =F(q).
+We now argue that the model checking problem K j='can be reduced
+to solving the hierarchical game GK;A'. For that, we show that GK;A'is
+equivalent to the °at game GKf;A'. Since, by [16], the model-checking problem
+can be reduced to solving the latter, we are done. The proof of the equivalence
+between GK;A'andGKf;A'is based on a bijection between strategies of one
+game and strategies of the other. In particular, for every winning strategy
+for one of the players in GK;A, there is a corresponding winning strategy for
+the same player in GKf;A, and vice versa.
+Given a hierarchical system K=hK1;:::;Kni, and an APT A=h§; Q; q 0;
+±; Fi, consider a state u= (b1;:::; b h; w) ofKf. Observe that for every state
+qofA, there is a node (( b1;:::; b h; w); q) in the arena of GKf;Awhich rep-
+resents a copy of Athat is at state qand is reading u. On the other
+hand, the °at expansion of the arena of GK;Ais richer, and it has a node
+((b1; q1);:::;(bh; qh);(w; q)) for every sequence q1;:::; q h; qof states of A. As
+before, such a node represents a copy of Athat is at state qand is reading u.
+However, it also remembers for each of the boxes b1;:::; b h, the states q1;:::; q h
+that this copy of the automaton was at when it last entered each of these
+boxes. It is easy to see that every initial play of GK;Acan be transformed into
+a play of GKf;Aby simply dropping this extra information from every node.
+Note that the reverse is also possible since given a node on an initial play of
+GKf;A, the states at which the copy of the automaton was, when it entered the
+various boxes encoded in this node, can be recovered from previous nodes of
+the play. The following lemma formally describes this association between
+initial plays of GK;Aand initial plays of GKf;A.
+Lemma 1. There is a bijection expand from initial plays of GKf;Ato ini-
+tial plays of GK;A, such that expand preserves the winner of maximal plays.
+Moreover, ^¼is an extension of ¼i®expand (^¼)is an extension of expand (¼).
+15
+
+--- Page 16 ---
+Proof: Consider an initial play ¼=¼0; ¼1;:::ofGKf;A, and note that for
+every iwe have that ¼i=h(bi;1;:::; b i;hi; wi); qii, where bi;1;:::; b i;hiare boxes
+ofK,wiis a state of K, and qiis a state of A. Let Qin(i; j) be the state
+qm, where mis the largest index such that bi;j=bm;hmbutbi;j6=bm¡1;hm¡1.
+That is, mis the last time that ¼entered the box bi;j. Since ¼starts at
+the entry of the top level arena, mis well de¯ned. Let expand (¼; ¼ i) =
+h(bi;1; Qin (i;1));:::;(bi;hi; Qin (i; hi));(wi; qi)i, and let expand (¼) =expand (¼; ¼ 0),
+expand (¼; ¼ 1);:::. Observe that expand (¼) is an initial play of GK;A, and that
+if ^¼is an extension of ¼, then expand (^¼) is an extension of expand (¼). For
+the reverse mapping, let s=h(b1; q1);:::;(bh; qh);(w; q)ibe a node of GK;A,
+and let contract (s) =h(b1;:::; b h; w); qibe the projection of this node on the
+arena of GKf;A.
+It is easy to see that the mapping that maps every path ¼toexpand (¼)
+is one to one. Hence, to show that expand is a bijection, and contract is
+its inverse, it is enough to show that for every initial play ¼0ofGK;Awe
+have that expand (contract (¼0)) = ¼0. Consider then an initial play ¼0of
+GK;A, and assume by way of contradiction that expand (contract (¼0))6=¼0.
+Let¼=¼0; ¼1;:::be the contraction of ¼0, and for every i¸0 let ¼i=
+h(bi;1;:::; b i;hi; wi); qii. Let jbe the largest index for which expand (¼; ¼ j) =¼0
+j,
+and observe that since expand (¼; ¼ 0) =hin1; q0i=¼0
+0, then j > 0. Let
+¼0
+j=expand (¼; ¼ j) =h(bj;1; Qin (j;1)); :::;(bj;hj; Qin (j; hj));(wj; qj)i. By the
+de¯nition of the edges of GK;A, there are four options for the move from ¼0
+j
+to¼0
+j+1:
+²The token remained in the same sub-arena as wj. In this case, hj+1=
+hj, and ¼0
+j+1=h(bj;1; Qin (j;1));:::;(bj;hj; Qin (j; hj));(wj+1; qj+1)i. It
+follows that for every 1 ·l·hj+1we have that bj;l=bj+1;land
+Qin(j; l) =Qin(j+ 1; l).
+²The token exited the sub-arena of wjand returned to the calling sub-
+arena: In this case, hj+1=hj¡1, and ¼0
+j+1=h(bj;1; Qin (j;1));:::,
+(bj;hj¡1; Qin (j; hj¡1));(wj+1; qj+1)i. It follows that for every 1 ·l·
+hj+1we have that bj;l=bj+1;landQin(j; l) =Qin(j+ 1; l).
+²The token entered a new box ( b; q). In this case, hj+1=hj+ 1, and
+¼0
+j+1=h(bj;1; Qin (j;1)),:::, (bj;hj; Qin (j; hj)), (b; q), (wj+1; q)i. Note
+that since Kis hierarchical (and not recursive), bcannot be equal to
+any of the boxes bj;1;:::; b j;hj. It follows that for every 1 ·l·hjwe
+have that bj;l=bj+1;landQin(j; l) =Qin(j+ 1; l).
+16
+
+--- Page 17 ---
+²The token exited the sub-arena of wjand immediately entered a new
+box ( b; q). In this case, hj+1=hj, and ¼0
+j+1=h(bj;1; Qin (j;1));:::,
+(bj;hj¡1; Qin (j; hj¡1));(b; q);(wj+1; q)i. Note that since Kis hier-
+archical (and not recursive), bcannot be equal to any of the boxes
+bj;1;:::; b j;hj¡1. It follows that for every 1 ·l·hj¡1 we have that
+bj;l=bj+1;landQin(j; l) =Qin(j+ 1; l).
+It is not hard to see that in all cases it must be that expand (¼; ¼ j+1) =
+¼0
+j+1, which is a contradiction to our contrapositive assumption that expand (¼; ¼ j+1)
+6=¼0
+j+1. It follows that expand is a bijection and that contract is its inverse. It
+is left to show that the two mappings preserve the winner of maximal plays.
+Given a maximal initial play ¼ofGK;A, note that the winning condition of
+GK;Arefers only to the sequence of automaton states q0; q1;:::, taken from the
+right component of the last pair in the nodes of ¼, and the winning condition
+ofGKf;Arefers to the same sequence of automaton states as found in the nodes
+ofcontract (¼). Hence, contract preserves the winner of maximal plays, and,
+being its inverse, so does expand .
+Theorem 2. Consider a hierarchical system Kand a branching-time for-
+mula '. The following are equivalent: (i) Ksatis¯es '. (ii) Player 0has a
+winning strategy in the °at game GKf;A'. (iii) Player 0has a winning strategy
+in the hierarchical game GK;A'.
+Proof: As stated before, the equivalence of (i) and (ii) is proven in [16]. To
+prove the equivalence of (ii) and (iii), we show that for every winning strategy
+for one of the players in GK;A'there is a corresponding winning strategy of
+the same player in GKf;A', and vice versa.
+Given ¾2 f0;1gand a strategy »0for Player ¾inGK;A', Lemma 1 im-
+plies that the strategy »de¯ned by »(¼) =s, where sis the last node in the
+play contract (expand (¼)¢»0(expand (¼))), is a strategy for Player ¾inGKf;A'.
+Observe that if ¼0is a maximal play according to »0, then contract (¼0) is
+a maximal play according to ». Hence, since contract is a bijection that
+preserves the winner of maximal plays, it follows that »0is winning for
+Player ¾inGK;A'i®»is winning for Player ¾inGKf;A'. A symmetric ar-
+gument shows that »is a winning strategy for Player ¾inGKf;A', i® the
+strategy »0de¯ned by »0(¼0) = s0, where s0is the last node in the play
+expand (contract (¼0)¢»(contract (¼0))), is a winning strategy for Player ¾in
+GK;A'.
+17
+
+--- Page 18 ---
+In Section 4, we solve hierarchical two-player games and show how The-
+orem 2 leads to optimal model-checking algorithms for hierarchical systems.
+4. Solving Hierarchical Parity Games
+In this section we present an algorithm for solving hierarchical parity
+games. Consider a game G= (V;¡). A naive algorithm for solving the game
+would generate the °at expansion of Vand solve it. In the °at expansion,
+each sub-arena may appear in many di®erent contexts. The idea behind our
+algorithm is that even though the sub-arena appears in di®erent contexts,
+the e®ect of the strategies chosen by the players for the segment of the game
+inside the sub-arena is independent of the context and can be summarized
+e±ciently. The e®ects of every strategy of Player 0 for the segment of the
+play inside a sub-arena Vi, can be captured by a summary function mapping
+each exit of Vito the best color that Player 1 can hope for, if he chooses to
+respond by directing the token to leave Vithrough this exit. The algorithm
+for solving the game G= (V;¡) then solves a sequence of °at parity games,
+obtained by replacing sub-arenas by gadgets that represent the behavior of
+Player 0 as a choice among the possible summary functions, and the behavior
+of Player 1 as a choice of the exit through which he wants the token to exit
+the sub-arena. The gadgets also take into account the possibility that the
+game will stay forever in the sub-arena.
+We now describe the concept of summary functions in detail. Consider
+¯rst a play that enters a box that has a single exit. Each player has one
+goal that is independent of the context in which the box appears: to either
+win inside the box, or failing that, use a strategy that provides the biggest
+possible advantage over the segment of the play that goes through the box.
+In the case where the box has multiple exits, the situation is more involved:
+if a player cannot force a win inside the box, he is faced with the question
+of which exit he should try to force the play to exit through. Depending on
+the context in which the box appears, it may be bene¯cial to force the play
+to a speci¯c exit even if that involves letting the other player gain the upper
+hand in the path leading to it. Also, in certain situations, none of the players
+may force the game to a speci¯c exit, and the strategy a player chooses may
+re°ect a certain tradeo® between the di®erent colors achieved on the paths
+going to the di®erent exits.
+In order to describe the relative merit of colors, we de¯ne an ordering º0
+on colors by letting cº0c0when cis better for Player 0 than c0. Formally,
+18
+
+--- Page 19 ---
+cº0c0if the following holds: if c0is even then cis even and c¸c0; and if c0
+is odd then either cis even, or cis also odd and c·c0. We denote by minº0
+(maxº0) the operation of taking the minimal (maximal) color, according to
+º0, of a ¯nite set of colors. Consider a strategy »of Player 0 for a sub-arena
+Vi. We de¯ne a function g»:exit i!C[ fag , called the summary function
+of», that summarizes the best responses of Player 1 to ».6Lete2exit ibe
+an exit node of Vi. If»is such that no matter how Player 1 plays, the token
+never exits through e, then we set g»(e) =a. Otherwise, we set g»(e) to be
+the most bene¯cial color that Player 1 can achieve along all plays that agree
+with »and exit through e. Formally, let plays (»; e) be the set of all plays
+inVithat agree with »and exit through e. For every e2exit iwe de¯ne
+g»(e) =aifplays (»; e) =;, and g»(e) = minº0fmaxC (¼) :¼2plays (»; e)g.
+Recall that if »is not a losing strategy for Player 0 then all plays that
+agree with »and remain inside Viare winning for Player 0. Hence, if »is not
+a losing strategy then Player 1 will always direct the token to exit through
+some exit e2exit i. Note that Player 1 can only choose efor which g»(e)6=a,
+and that the choice of edepends on the context in which the sub-arena Vi
+appears. A key point in our algorithm is that, for every game Gin which the
+sub-arena Viis used, and every Player 0 strategy »forVi, if»is not a losing
+strategy then g»captures all the information needed to analyze the in°uence
+of the play inside VionG.
+LetSumm (Vi) =fg:gis a function from exit itoC[ fagg be the set
+of all summary functions7for strategies of Player 0 over Vi. IfVihas no
+exits, then Summ (Vi) contains only the empty summary function ". Based
+on the ordering º0we de¯ned for colors, we can de¯ne a partial order ºon
+Summ (Vi), by letting gºg0if for every exit node eofVithe following holds:
+g(e) =a, org(e)6=a6=g0(e) and g(e)º0g0(e). Observe that if »and%are two
+Player 0 strategies that are not losing strategies, and g»ºg%, then Player 0
+can always choose »over%. Given a summary function g2Summ (Vi), we
+say that a strategy »of Player 0 achieves gifg»ºg; we say that gisfeasible
+if there is a strategy »that achieves it; and we say that gisrelevant if it
+can be achieved by a memoryless strategy that is not losing. In particular, if
+Vihas no exits, deciding whether the empty summary function "is relevant
+6Note that our choice to consider summary functions of Player 0 strategies is arbitrary,
+and we could have taken Player 1's point of view instead.
+7We call every g2Summ (Vi) a \summary function" even if there is no Player 0 strategy
+whose summary is g.
+19
+
+--- Page 20 ---
+amounts to deciding if it is not losing, i.e., to solving the game over Vi.
+We now describe the algorithm for solving a hierarchical parity game. The
+outline of the algorithm is described in Algorithm 1. Given a hierarchical
+parity game G= (V;¡), where V=hV1;:::;Vni, our algorithm solves Gby
+working its way up the hierarchy, starting with the lowest level sub-arena
+Vn. At iteration n¸i¸1, the algorithm ¯rst calculates the set Miof
+relevant summary functions for strategies of Player 0 over Vi. It does so
+by going over all summary functions and checking their relevancy. In order
+to check whether a summary function gis relevant, the algorithm solves a
+simple parity game Gs
+i;g= (Vs
+i;g;¡s
+i;g), which is de¯ned in such a way that
+gis relevant i® Player 0 has a winning strategy for Gs
+i;g. The arena Vs
+i;gis
+built from Viby applying to it two operations: simplify , and loop. Once
+the set Miis found, the algorithm uses it in order to construct a 3-level
+DAG structure Hithat re°ects Player 0's choice of strategy for the sub-
+arena Vi, and Player 1's possible responses to this strategy. The gadget Hi,
+together with Hi+1;:::; H nwhich were constructed in previous iterations, is
+used in future iterations. Indeed, as detailed below, the essence of the simplify
+procedure is to replace a box that refers to a sub-arena Vjby the gadget Hj.
+Since the top-level arena V1has no exits, the only summary function it has is
+the empty summary function ", which, by de¯nition, is relevant i® Player 0
+winsG. Hence, the algorithm reduces the problem of solving the hierarchical
+gameGto the problem of solving the simple parity game Gs
+1;".
+Input :G= (V;¡), where V=hV1;:::;Vni
+Output :truei® Player 0 wins G
+fori=ndownto 1do
+Mi=;
+forall g2Summ (Vi)do
+Gs
+i;g=loop(g;simplify (Vi; Hi+1;:::; H n))
+ifPlayer 0winsGs
+i;gthen Mi=Mi[ fgg
+end
+ifi >1then construct HifromViandMi
+end
+return truei®M16=;
+Algorithm 1: Solving a Hierarchical Parity Game.
+We now describe the construction of the gadget Hi. Let Mibe the set
+20
+
+--- Page 21 ---
+of all relevant summary functions for Vi. Then, Hiis the following 3-level
+DAG:
+²The set of nodes of Hiisfpg[Mi[(exit i£C). The node pis a Player 0
+node, every g2Miis a Player 1 node, and a node ( e; c)2exit i£C
+belongs to the same player that ebelongs to.
+²The set of edges isS
+g2Mi(f(p; g)g[f(g;(e; g(e))) :e2exit i^g(e)6=ag).
+²A node ( e; c)2exit i£Cis colored by c. These are the only colored
+nodes.
+Finally, we remove from Hiall the nodes that are not reachable from its
+rootp. Thus, in particular, if Mi=;, then pis the only node that remains
+inHi. Intuitively, when the token is at the root pof the gadget Hi, Player 0
+chooses a relevant summary function gforVi, and moves the token to the
+node g. In response, Player 1 chooses an exit e2exit ifor which g(e)6=a,
+and moves the token to the node ( e; g(e)). The color of ( e; g(e)) isg(e), which
+is the best possible color achievable by Player 1 in any play over Vithat exits
+through e, when playing against a Player 0 strategy that achieves g.
+Observe that if Mi=;, then it must be that all the summary functions in
+Summ (Vi) are not relevant, i.e., that all Player 0 strategies for Viare losing.
+Note that this behavior is preserved if we turn all exit nodes of Vito non-exit
+nodes. Hence, from the determinacy of simple parity games it follows that
+Player 1 has a winning strategy for Vi, which explains why in this case Hiis
+a single terminal Player 0 node. Recall that for every g2Mithere exists at
+least one non-losing Player 0 strategy »gthat achieves g, and that since »gis
+not losing, every play that agrees with »gand does not exit Viis winning for
+Player 0. It follows that if for every e2exit iwe have g(e) =a(in particular,
+ifexit i=;), then every play that is consistent with »gcannot exit Vi, and is
+thus winning for Player 0. This explains why in such a case the node gis a
+terminal Player 1 node.
+It is left to describe and explain the operations simplify andloop. We
+start with simplify , which simpli¯es a hierarchical arena Viby replacing every
+boxb2 B iby a copy of the gadget H¿i(b). Observe that the hierarchical
+nesting of the sub-arenas guarantees that all the boxes in Birefer to arenas
+with an index higher than i, and thus the gadgets required for replacing
+them were already constructed in previous iterations. We usually denote
+the resulting °at arena simplify (Vi; Hi+1;:::H n) by the shorter notation Vs
+i.
+21
+
+--- Page 22 ---
+We now formally de¯ne Vs
+i. To prevent name clashes between copies of the
+same gadget, given a box b2 B i, letHbbe a copy of H¿i(b)with all nodes
+renamed by annotating them with b. Replacing bwith the gadget Hbis done
+by replacing every transition ( u; b)2 R ithat enters bwith a transition ( u; pb)
+that goes to the root of Hb, and replacing every transition (( b; e); v)2 R i
+that exits bwith one transition (( e; c)b; v) for every color cfor which ( e; c)b
+is present in Hb. Formally, given Vi=hW0
+i; W1
+i;Bi;ini;exit i; ¿i;Rii, then
+Vs
+i=hW0
+is; W1
+is;;;ini;exit i;;;Rs
+ii, and its coloring function ¡s
+i:Ws
+i!C
+are as follows:
+²For¾2 f0;1g, we have that W¾
+is=W¾
+i[S
+b2BiHb;¾, where Hb;¾is the
+set of Player ¾nodes of Hb.
+²Rs
+iis (Ws
+i£Ws
+i)\ hS
+b2Bi(f(u; pb) : (u; b)2 R ig [ f ((e; c)b; v) :c2
+C; e2exit ¿i(b);((b; e); v)2 R ig [R(Hb))[ R ii, with R(Hb) being the
+set of transitions of Hb.
+²¡s
+i(s) = ¡( s) for s2Wifor which ¡( s) is de¯ned; for every b2 B iand
+every ( e; c)2exit ¿i(b)£Cwe have ¡s
+i((e; c)b) =c; otherwise, ¡s
+i(s) is
+unde¯ned.
+We now describe the operation loop, used in the process of identifying
+relevant summary functions. Given a summary function gover a sub-arena
+Vi, the operation loop(g;Vs
+i) constructs a simple arena Vs
+i;gsuch that Player 0
+wins the associated simple parity game Gs
+i;g= (Vs
+i;g;¡s
+i;g) i®gis relevant.
+Since the modi¯cations done by loopto its input arena do not concern any
+of its boxes (if present), the operations simplify and loop, commute. I.e.,
+loop(g;simplify (Vi; Hi+1;:::; H n)) = simplify (loop(g;Vi); Hi+1;:::; H n)).
+LetVi;g=loop(g;Vi). To construct Vi;gfromVi, we add for every exit
+node e2exit ia new Player 0 node ( e;0). We color it by g(e) + 1 if g(e)
+is odd, we color it by g(e)¡1 ifg(e) is even, and we leave it uncolored
+ifg(e) =a. Also, if g(e)6=a, we add an edge ( e;(e;0)), and an edge
+((e;0);ini). Finally, we set all states of Vi;gas non-exits. Formally, given
+Vi=hW0
+i; W1
+i;Bi;ini;exit i; ¿i;Rii, then Vi;g=hW0
+i;g; W1;Bi;ini;;; ¿i;Ri;gi
+and its associated coloring function ¡ i;g:Wi;g! fCmin¡1;:::; C max+ 1gare
+as follows:
+²W0
+i;g=W0
+i[(exit i£ f0g).
+²Ri;g=RiS
+e2exiti^g(e)6=a(f(e;(e;0))g [ f ((e;0);ini)g).
+22
+
+--- Page 23 ---
+²¡i;g(s) = ¡( s) for s2W0
+i[W1
+ifor which ¡( s) is de¯ned; ¡ i;g(e;0) =
+g(e)+1 if g(e) is odd, and ¡ i;g(e;0) = g(e)¡1 ifg(e) is even; otherwise,
+¡i;g(s) is unde¯ned.
+Note that if Vihas no exits then it has only the empty summary function
+", and that Vs
+i=Vs
+i;". Thus, in particular, Vs=Vs
+1;".
+Lemma 2. Given a summary function g2Summ (Vi), over a sub-arena Vi,
+we have that gis relevant i® Player 0wins the game Gi;g.
+Proof: For a sub-arena Vi, and a summary function g2Summ (Vi), let
+Vi;g=loop(g;Vi) as de¯ned above. Observe that by replacing every move
+that exits Vithrough some exit e2exit i, by a move to the node ( e;0),
+every memoryless Player 0 strategy »overViinduces a memoryless Player 0
+strategy »0overVi;g, and vice versa. We prove the lemma by showing that »
+is not losing and achieves gi®»0is winning.
+Assume ¯rst that »0is winning. Thus, in particular, all plays consistent
+with »0that do not visit a node of the form ( e;0) are winning for Player 0.
+It follows that all plays consistent with »that do not exit Viare winning
+for Player 0, which implies that »is not losing. It remains to show that
+the summary function g»of»is such that g»ºg. Consider ¯rst an exit
+e2exit isuch that g(e) =a. Since in this case ( e;0) is a terminal Player 0
+node, it follows that no play consistent with »0can reach ( e;0). Hence, no
+play consistent with »can exit Vithrough e, and g»(e) =a. Consider now
+the case where g(e)6=a. Note that in order to show that g»ºg, we have to
+show that g»(e)º0g(e), i.e., that for every play ¼=ini¢¼1¢¢¢¼k¢e¢out
+consistent with »that exits through ewe have that maxC (¼)º0g(e). Let
+¼be such a play, and let c0be the color of ( e;0). Observe that the play
+¼0= (ini¢¼1¢¢¢¼k¢e¢(e;0))!is consistent with »0, and since »0is winning
+then maxC (¼0) is even.
+Observe that by the structure of ¼and¼0, either maxC (¼) =maxC (¼0)>
+c0, ormaxC (¼)·maxC (¼0) =c0. Consider ¯rst the case where maxC (¼) =
+maxC (¼0)> c0. Ifg(e) is odd, then since maxC (¼0) is even, we have that
+maxC (¼0)º0g(e). Ifg(e) is even, then c0=g(e)¡1, and since maxC (¼0)>
+c0, it must be that maxC (¼0)¸g(e). Since maxC (¼0) is even, it follows that
+maxC (¼0)º0g(e). Consider now the case where maxC (¼)·maxC (¼0) =c0.
+Since maxC (¼0) is even so is c0, and thus, it must be that g(e) is odd and
+thatc0=g(e)+1. It follows that either maxC (¼) =maxC (¼0), in which case
+23
+
+--- Page 24 ---
+maxC (¼) is even, or that maxC (¼)·g(e). Hence, since g(e) is odd, in both
+cases maxC (¼)º0g(e).
+Assume now that »is not losing and achieves g. It follows that all plays
+consistent with »that do not exit Viare winning for Player 0. Observe that,
+by the structure of Vi;g, this implies that in order to show that »0is winning
+it is enough to show that no play consistent with »0ends in a terminal node
+of the form ( e;0), and that all plays that go through a node of the form ( e;0)
+in¯nitely often are winning for Player 0. Consider ¯rst an exit e2exit isuch
+that ( e;0) is a terminal node. It follows that g(e) =a, and since »achieves g
+no play consistent with »can exit Vithrough e. Since eis the only predecessor
+of (e;0), then no play consistent with »0can reach ( e;0). Consider now the
+case where ( e;0) is not a terminal node (and thus g(e)6=a). Observe that,
+by the structure of Vi;g, all plays that go in¯nitely often through ( e;0) are
+a concatenation of in¯nitely many ¯nite plays from inito (e;0). Hence, to
+complete the proof that »0is winning, it is enough to show that for every play
+¼0=ini¢¼1¢¢¢¼k¢e¢(e;0) consistent with »0we have that maxC (¼0) is even.
+Let¼0be such a play, and observe that the play ¼=ini¢¼1¢¢¢¼k¢e¢outis
+a play consistent with »that exits through e. Since, by our assumption, »
+achieves g, then maxC (¼)º0g(e).
+Observe that by the structure of ¼and¼0, either maxC (¼) =maxC (¼0)>
+c0, ormaxC (¼)·maxC (¼0) =c0. Consider ¯rst the case where maxC (¼) =
+maxC (¼0)> c0. Ifg(e) is even, then since maxC (¼)º0g(e) we have that
+maxC (¼) is also even. If g(e) is odd, then c0=g(e)+1, and thus, maxC (¼)>
+c0implies that maxC (¼)> g(e). Hence, since maxC (¼)º0g(e) and g(e)
+is odd, then maxC (¼) is even. Consider now the case where maxC (¼)·
+maxC (¼0) =c0, and assume by way of contradiction that c0is odd. It follows
+that g(e) is even and that c0=g(e)¡1. Since maxC (¼)º0g(e), and g(e)
+is even, then maxC (¼)¸g(e), but this is a contradiction since maxC (¼)·
+maxC (¼0) =c0=g(e)¡1.
+Combining Lemma 2 with Theorem 3 we get:
+Corollary 1. A summary function gis relevant i® Player 0winsGs
+i;g.
+Observe that the de¯nition of a summary function of a strategy can also
+be applied to Player 0 strategies over Vs
+i. Since Vihas the same exit nodes as
+Vs
+i, then the sets of summary functions over ViandVs
+icoincide, and we can
+compare strategy functions over Viwith ones over Vs
+iusing the relation º.
+24
+
+--- Page 25 ---
+Given a strategy »of Player 0 for Vi, we say that a strategy »0, of Player 0
+forVs
+i, isas good as », when: (i)if»is a winning strategy then so is »0;
+and(ii)if»is not a losing strategy then so is »0, and g»0ºg». We de¯ne
+strategies over Vithat are as good as strategies over Vs
+iin a symmetric way.
+We claim that the following holds:
+Lemma 3. For every 1·i·n, and every memoryless strategy »of Player 0
+forVi, there is a memoryless strategy »0forVs
+ithat is as good as »; and vicev-
+ersa.
+Before we get to the proof of this lemma, we ¯rst need some de¯nitions.
+Given a memoryless strategy »for Player ¾overVi, and a box b2 B ithat
+refers to Vj, the restriction of»tob, denoted by »b, is a memoryless strategy
+for Player ¾overVjthat is obtained by limiting our attention to nodes
+inside b, and replacing by outevery move in »that exits b. Formally, let
+s= (b0;:::; b k; w) be a node in Vf
+j, and observe that s0= (b; b0;:::; b k; w) is a
+node of Vf
+i. Let »(s0) = ( b0
+0;:::; b0
+h; w0), and de¯ne »b(s) =»(s0) ifb0
+0=band
+there is an edge ( w; w0)2 R j(i.e., if »does not move the token from s0outside
+ofb), and de¯ne »b(s) =outotherwise. Note that the requirement above that
+there is an edge ( w; w0)2 R j, is to make sure that if the token moved from
+an exit of Vjback to its entry by using an edge of Viof the form (( b; e); b), it
+would not be wrongly considered as a possible move inside Vj. It is easy to
+see that »bis indeed a memoryless strategy for Player ¾overVj. Observes
+that if b1; b22 B iare two di®erent boxes such that ¿i(b1) =¿i(b2) =j, then
+it is normally notthe case that »b1=»b2. That is, the choice of how to move
+inside the sub-arena Vjmay depend on the context in which it appears.
+For technical convenience, throughout the proof of Lemma 3, we assume
+that Player 0 strategies are de¯ned over all Player 0 nodes. This can be easily
+done by directing missing transitions to a special losing terminal Player 0
+node, which we will assume is a node that was added to Wi. Note that if
+nodes for which the strategy is not de¯ned are not reachable by initial plays,
+this change makes no semantic di®erence. Also note that we keep referring
+to nodes for which the strategy is \unde¯ned", with the understanding that
+this refers to the state of a®airs before the missing transitions are added.
+We break the proof to two sub-lemmas, one for each direction.
+Lemma 4. For every 1·i·n, and every memoryless strategy »of Player 0
+forVi, there is a memoryless strategy »0forVs
+ithat is as good as ».
+25
+
+--- Page 26 ---
+Proof: Note that any strategy is as good as a losing strategy. We are thus
+left with the case that »is not losing. Given a non-losing memoryless strategy
+»of Player 0 for Vi, we de¯ne a memoryless Player 0 strategy »0forVs
+ias
+follows. Let sbe a Player 0 node of Vs
+i, then:
+²Ifs2Withen: »0(s) =»(s) if»(s)2Wi[ foutg, and »0(s) =pbif
+»(s) = (b;in¿i(b)) for some b2 B i.
+²Ifs=pbfor some b2 B i, then »0(s) =gb
+»bif (b;in¿i(b)) is reachable by
+some play consistent with », and is otherwise unde¯ned.
+²Ifs= (e; c)bwhere ( e; c)2exit j£Cis a node of some gadget Hj, then:
+»0(s) =»(b; e) if»(b; e)2Wi[ foutg;»0(s) =pb0if»(b; e) = (b0;in¿i(b0))
+for some b02 B i; otherwise, »0(s) is unde¯ned.
+In the second item in the de¯nition above, recall that g»bis the summary
+function of the restriction of »tob. Thus, if ( b;in¿i(b)) is reachable by some
+play consistent with », then since »is not losing it must be that g»bis relevant,
+and thus, gb
+»bis indeed a node of Vs
+i. In the third item in the de¯nition above,
+note that if »(b; e) is not of one of the two forms given, then it must be that
+»does not allow the token to exit bthrough e, in which case (by the way Hj
+was constructed, and the de¯nition of a summary function) the node ( e; c)b
+is not reachable from gb
+»b, which is its only possible predecessor on plays that
+agree with »0. Hence, in such cases we can safely leave »0(s) unde¯ned.
+We now show that »0is as good as ». Intuitively, »0is as good as »i®
+Player 1 can not do better when playing against »0than when playing against
+». Formally, it is enough to show that given any maximal play ¼0that is
+consistent with »0and is not losing for Player 1, there is a corresponding
+maximal play ¼that is consistent with », such that: (i)¼is in¯nite i® ¼0
+is, and if ¼0is ¯nite then the last node in ¼is equal to the last node in ¼0
+(note that we do not consider the special symbol \ out" to be a node); (ii)
+maxC (¼) =maxC (¼0).
+Let ­ = fpb¢gb
+»b¢(e; g»b(e))b:b2 B i; e2exit i; g»b(e)6=agbe the set of
+all paths consistent with »0, from roots to leaves of gadgets in Vs
+i. Consider
+¯rst maximal plays ¼0of the form ( W¤
+i+ ­¤)!+ (W¤
+i+ ­¤)¤¢exit i¢out(we
+will later see that all maximal plays consistent with »0, that are not losing
+for Player 1, are of this form). Given such a play ¼0, we derive from it the
+required play ¼, by replacing every sub-word x0=pb¢gb
+»b¢(e; g»b(e))b2­ of¼0
+by a word xoverVf
+i, as follows. Let ybe some play consistent with g»bover
+26
+
+--- Page 27 ---
+the arena Vf
+¿i(b), that starts in in¿i(b)and ends in e, such that the maximal
+color along yisg»b(e). Observe that by our de¯nition of a summary function
+such a play exists. The word xis obtained by simply appending bas the ¯rst
+component to each letter of y. I.e., a letter ( u1;:::; u h) inybecomes the letter
+(b; u1;:::; u h) inx. Since the only colored node in x0is the node ( e; g»b(e))b,
+and its color is g»b(e), we have that xandx0have the same maximal color,
+and thus maxC (¼) =maxC (¼0). It is not hard to see that ¼is indeed a
+maximal play consistent with », that it is in¯nite i® ¼0is in¯nite, and that if
+¼0is ¯nite then the last node of ¼is equal to that of ¼0.
+We now show that every maximal play ¼0that is consistent with »0and is
+not losing for Player 1 is indeed of the form ( W¤
+i+­¤)!+(W¤
+i+­¤)¤¢exit i¢out.
+Note that proving this also establishes that »0is well de¯ned, i.e., that no
+play consistent with it reaches a node for which »0is unde¯ned (and thus
+ends with the special losing terminal node in Wi). By the de¯nition of »0
+and the structure of Vs
+i, we only have to show that ¼0is not of the form
+(W¤
+i+­¤)¤+(W¤
+i+­¤)¤¢(­1+­ 2), where ­ 1and ­ 2are the sets of pre¯xes
+of words in ­ of lengths 1 and 2, respectively. Since by our assumption ¼0is
+maximal and not losing for Player 1, the last node of ¼0must be a Player 0
+node. Since all words in ­ 2end with a Player 1 node, it follows that ¼0cannot
+end with a word in ­ 2. Assume now that ¼02(W¤
+i+ ­¤)¤, and observe that
+by applying the construction above, which replaces every sub-word x02­
+of¼0with a path x2 Vf
+i, we derive a play ¼that is consistent with ». Let
+s; s0be the last nodes of ¼and¼0(respectively), and recall that s0must be
+a Player 0 node. Observe that if ¼02(W¤
+i+ ­¤)¤, then s0=s2Wi, or
+s0= (e; g»b(e))bands= (b; e), for some b2 B iande2exit i. Recall that,
+by de¯nition, the nodes ( e; g»b(e))band ( b; e) belong to the same player that
+owns e. It follows that in both cases, sbelongs to the player that owns s0,
+and thus it is a Player 0 node. Since we assumed that »is not losing (for
+Player 0), it must be that ¼can be extended to a longer play, i.e., that »(s)
+is de¯ned. Hence, by the de¯nition of »0, we also have that »0(s0) is de¯ned,
+and thus ¼0can also be extended, and is not maximal. Finally, to see why ¼0
+cannot end with a word in ­ 1(i.e., with a node of the form pb), we once more
+apply the construction that replaces every sub-word x02­ in¼0with a path
+x2 Vf
+i. Furthermore, we replace the last node pbof¼0with ( b;in¿i(b)). We
+thus obtain a play that is consistent with »and reaches ( b;in¿i(b)). By the
+de¯nition of »0, it follows that »0(p)is de¯ned, and thus ¼0can be extended
+and is not maximal.
+27
+
+--- Page 28 ---
+Lemma 5. For every 1·i·n, and every memoryless strategy »0of
+Player 0forVs
+i, there is a memoryless strategy »forVithat is as good as »0.
+Proof: Note that any strategy is as good as a losing strategy. We are thus
+left with the case that »0is not losing. Consider a non-losing memoryless
+strategy »0of Player 0 for Vs
+i. For every box b2 B ifor which »0(pb) is
+de¯ned, let gbbe the summary function gb=»0(pb), and let %bbe some (¯xed)
+arbitrarily chosen memoryless Player 0 strategy for the sub-arena V¿i(b)that
+achieves gb. Given s2W0
+if, we de¯ne the strategy »as follows:
+²Ifs2Withen: »(s) =»0(s) if»0(s)2Wi[foutg, and »(s) = (b;in¿i(b))
+if»0(s) =pbfor some b2 B i.
+²Ifs= (b; b1;:::; b k; w), where b2 B i, and »0(pb) is unde¯ned, then »(s)
+is also unde¯ned.
+²Ifs= (b; b1;:::; b k; w), where b2 B i, and %b(s)6=out, then »(s) =%b(s).
+²Ifs= (b; b1;:::; b k; w), where b2 B i, and %b(s) =out, then it must be
+thats= (b; e) where e2exit ¿i(b). Let c=gb(e), then: »(s) =»0((e; c)b)
+if»0((e; c)b)2Wi[ foutg, and »(s) = (b0;in¿i(b0)) if»0((e; c)b) =pb0for
+some b02 B i.
+We now prove that »is as good as »0. We use a similar argument to
+the one used in the proof of Lemma 4. Formally, we show that given any
+maximal play ¼that is consistent with »and is not losing for Player 1, there
+is a corresponding maximal play ¼0that is consistent with »0, such that: (i)
+¼0is in¯nite i® ¼is, and if ¼is ¯nite then the last node in ¼0is equal to the
+last node in ¼(note that we do not consider the special symbol \ out" to be
+a node); (ii) maxC (¼)º0maxC (¼0).
+For every b2 B i, letbstates =fbg £Wf
+¿i(b)be the set of all states in Wf
+i
+whose ¯rst coordinate is b, and let bpaths=fx2(bstates)¤: for all 0 ·j <
+jxjwe have that ( xj; xj+1)2 Rf
+i^(xj2W0
+if=)xj+1=»(xj))gbe the
+set of paths inside bthat are consistent with ». Finally, let ¨ = [b2Bibpaths.
+Consider ¯rst maximal plays ¼of the form ( W¤
+i+¨¤)!+(W¤
+i+¨¤)¤¢exit i¢out
+(we will later see that all maximal plays consistent with », that are not losing
+for Player 1, are of this form). We say that a sub-word x=¼j¢¢¢¼k2¨ of¼
+ismaximal , i® (¼j¡1¢¼j¢¢¢¼k)62¨ and ( ¼j¢¢¢¼k¢¼k+1)62¨. Observe that if
+x=x0¢¢¢xhis a maximal sub-word of ¼, then x2bpathsfor some box b2 B i,
+28
+
+--- Page 29 ---
+and it represents an entire sequence of moves from the point the token enters
+buntil it exits it. In particular, it must be that x0= (b;in¿i(b)) and that
+xh= (b; e) where e2exit ¿i(b). Note that ¼admits a single representation of
+the form ( W¤
+i+ ¨¤)!+ (W¤
+i+ ¨¤)¤¢exit i¢out, if sub-words in ¨ are chosen
+to be maximal. Given a play ¼as above, we derive from it the required
+play ¼0by replacing every maximal sub-word x2bpaths of¼by the word
+x0=pb¢gb¢(e; gb(e))b. Observe that, by the de¯nition of », the word x
+represents a play over Vf
+¿i(b)that is consistent with %b, and exits through e.
+Hence, by the de¯nition of a summary function, maxC (x)º0g%b(e). Recall
+that %bachieves gband thus g%b(e)º0gb(e). From transitivity of º0we
+get that maxC (x)º0gb(e). Since the only colored node in x0is the node
+(e; gb(e))b, and its color is gb(e), we get that maxC (x)º0maxC (x0), and
+thus overall, maxC (¼)º0maxC (¼0). It is not hard to see that ¼0is indeed a
+maximal play consistent with »0, that it is in¯nite i® ¼is in¯nite, and that if
+¼is ¯nite then the last nodes of ¼0and¼are the same.
+We now show that every maximal play ¼consistent with », that is not
+losing for Player 1, is indeed of the form ( W¤
+i+¨¤)!+(W¤
+i+¨¤)¤¢exit i¢out.
+Note that proving this also establishes that »is well de¯ned, i.e., that no play
+consistent with it reaches a node for which »is unde¯ned (and thus ends with
+the special losing terminal node in Wi). Given b2 B i, let b!-paths =fx2
+(bstates)!: for all 0 ·jwe have that ( xj; xj+1)2 Rf
+i^(xj2W0
+if=)
+xj+1=»(xj))gbe the set of in¯nite paths inside bthat are consistent with »,
+and let ¨ !=[b2Bib!-paths. Note that by the de¯nition of », and the structure
+ofVi, we only have to show that ¼is not of the form ( W¤
+i+¨¤)¤¢Wi+(W¤
+i+
+¨¤)¤¢(¨ + ¨ !), i.e., that ¼cannot reach a terminal node in Wi, or never
+come out of a nested sub-arena. Assume ¯rst that ¼2(W¤
+i+ ¨¤)¤¢Wi.
+Since by our assumption ¼is maximal and not losing for Player 1, the last
+node s2Wiof¼must be a Player 0 node. Observe that by applying the
+construction above, that replaces every maximal sub-word x2¨ of ¼with
+a 3-node path x02 V0
+i, we derive a play ¼0that is consistent with »0and ends
+with s. Since we assumed that »0is not a losing strategy, and we know that
+sis a Player 0 node, it must be that ¼0can be extended to a longer play, i.e.,
+that »0(s) is de¯ned. Hence, by the de¯nition of », we also have that »(s)
+is de¯ned, and thus ¼can also be extended, and is not maximal. Assume
+now that ¼2(W¤
+i+ ¨¤)¤¢(¨ + ¨ !), and let ¼0¢¢¢¼kbe the shortest pre¯x
+of¼such that the su±x ¼k+1¢¢¢is in ¨ + ¨ !. It follows that there is a
+boxb2 B isuch that ¼k+1= (b;in¿i(b)) and for every j¸kwe have that
+29
+
+--- Page 30 ---
+¼j2bstates. Furthermore, by the de¯nition of », there are only two options:
+(i)»0(pb) =gb, and the su±x ¼k+1¢¢¢of¼is a play consistent with %bover
+the sub-arena Vf
+¿i(b); or(ii)»0(pb) is unde¯ned. To see why the ¯rst option
+is impossible, observe that since %bis not a losing strategy (it achieves the
+relevant summary function gb), the su±x ¼k+1¢¢¢, and hence also ¼, is not
+losing for Player 0. On the other hand, by our assumption, ¼is not losing
+for Player 1, which is a contradiction (recall that a play that does not end
+with outcannot be a tie). To see why the second option is also impossible,
+we apply to the pre¯x ¼0¢¢¢¼kthe construction above that replaces maximal
+sub-words x2¨ with 3-node paths x02 V0
+i. We thus derive a play ¼0over
+Vs
+isuch that ¼0¢pbis consistent with »0. Since by our assumption »0is not a
+losing strategy, the play ¼0¢pbcannot be losing for Player 0, and thus, since
+pbis a Player 0 node, »0(pb) must be de¯ned.
+Recall that Vs=Vs
+1;", and thus, by applying Lemma 3 to the arenas V1
+andVs
+1, we get that:
+Theorem 3. Given a hierarchical parity game G= (V;¡), Player 0wins the
+game i® he wins the simple parity game Gs
+1;"= (Vs
+1;";¡s
+1;").
+Analyzing the time and space requirements of our algorithm for solving
+hierarchical parity games, we get the following:
+Theorem 4. LetG= (V;¡)be a hierarchical parity game with jCjcolors,
+ande=exits (V). Solving Gcan be done in time 2(jCj¢logjVj+O(jCj¢e¢logjCj), and
+it isPspace -complete.
+Proof: We start with the time complexity. It is not hard to see that the
+runtime of the algorithm is dominated by the time spent in deciding which
+summary functions are relevant. For every 1 ·i·n, and every summary
+function g2Summ (Vi), the algorithm has to solve one simple parity game
+Gs
+i;g= (Vs
+i;g;¡s
+i;g). The number of summary functions is jSumm (Vi)j= (jCj+
+1)jexitij, and thus, the number of nodes in the gadget HiisO((jCj+ 1)jexitij).
+Hence, the size of the arena Vs
+i;gisSi=jVij+P
+b2BiO((jCj+ 1)jexit¿i(b)j) =
+jVij ¢O((jCj+ 1)exits (V)). Overall, for every 1 ·i·n, the algorithm solves
+at most ( jCj+ 1)exits (V)such simple parity games. By [26], every such game
+30
+
+--- Page 31 ---
+can be solved in time O(SjCj
+i).8Therefore, the overall time complexity is
+jVjjCj¢ jCjO(jCj¢exits (V)).
+It is interesting to note that if the number of exits of Vis poly-logarithmic
+injVj(and in particular if it is constant), then the number of arenas as well
+as their sizes is polynomial in jVj. Thus, solving hierarchical parity games of
+this type is not harder then solving simple parity games.
+We now proceed to analyze the space complexity, and show that our
+algorithm can be implemented in space O(nd(V)¢(jVj ¢exits (V)¢logjCj+
+jVj ¢logjVj)), where nd(V) is the nesting depth of V. For every 1 ·i·n,
+and every summary function g2Summ (Vi), consider the simple parity game
+Gs
+i;gthat the algorithm has to solve. Note that here we can not use just any
+parity solver for Gs
+i;g, and we have to use one which is space e±cient. The
+key observation is that the cause of the exponential blow-up in the number
+of nodes of Vs
+i;g, compared to the hierarchical sub-arena Vi, is the set of
+nodes fgb:b2 B i^g2 M ¿i(b)g(i.e., the nodes of summary functions
+found in the di®erent gadgets inside Vs
+i;g), and that all nodes in this set
+are Player 1 nodes. Hence, the space required to remember a memoryless
+strategy of Player 0 for Vs
+i;gis polynomial in jVij, and not exponential. Let
+Ebe the set of edges of Vs
+i;g, Let Dbe the set of its nodes, let PµDbe
+the set of its Player 0 nodes, and let PB=fpb2P:b2 B igbe the set
+of all nodes in Vs
+i;gthat are entries (root nodes) of gadgets. Recall that a
+memoryless strategy »of Player 0 for Vs
+i;gis a function »:P!D. Note,
+however, that it can also be viewed as a pair of functions »= (_»;Ä») where
+_»:PnPB!D, and Ä»:PB! [n
+j=i+1Mj, where Mjis the set of all relevant
+summary functions for Vj. We can over-approximate the set of memoryless
+strategies of Player 0 by considering functions Ä»:PB! [n
+j=i+1Summ (Vj),
+that may assign to a node pb2PBa successor which is a strategy function
+that is not necessarily relevant. Given such an over approximation »= (_»;Ä»),
+letG»= (V»; E») be the graph induced by », i.e., V»=»(P)[(Dnsucc(P)),
+where succ(P) =fv2D: (u; v)2Eonly if u2Pgis the set of successors
+of nodes exclusively in P, and E»=f(u; v)2V»£V»: (u; v)2Eg. Note
+that since succ(P) contains all the summary function nodes of all the gadgets
+inVs
+i;g, the number of nodes in V»(that are reachable from inii) isO(jVij).
+Also, note that if »is an actual memoryless strategy of Player 0 (i.e., if for
+8Better complexities are known, but for the sake of simplicity we use the O(SjCj
+i) bound,
+and do not bother tightening the complexity here.
+31
+
+--- Page 32 ---
+allpb2Pwe have that Ä»(pb)2 [n
+j=i+1Mj), then G»is a subgraph of Vs
+i;g,
+and it contains all the possible moves for Player 1.
+This leads us to the following space e±cient procedure solve (i; g) for
+solving the simple parity game over Vs
+i;g. The procedure goes (lexicograph-
+ically) over all possible over-approximations »of memoryless strategies of
+Player 0 for Vs
+i;g. For each such over-approximation, the procedure checks if
+the graph G»contains a reachable cycle with a maximal color that is odd (this
+is the classic procedure used to check if a memoryless strategy of a simple
+parity game is losing). If there is such a cycle, the procedure goes on to try
+the next over-approximating strategy; otherwise, it checks to see if »is a real
+strategy or a super°uous over-approximation, by checking for every pb2PB,
+whether the summary function »(pb) is relevant. This check is done by a
+recursive call to solve (¿i(b); »(pb)). The procedure solve(i,g) needs to re-
+member the currently guessed strategy », which requires space O(jVj¢logjVj)
+for_», and O(jBij ¢exits (V)¢logjCj) for Ä». In addition, the memory required
+for the cycle-detection phase over the graph G», isO(log2jVj). Since the
+depth of the recursive calls to solve () is at most the nesting depth of the
+hierarchical system, we get that solving the game Gs
+1;"can be done in space
+O(nd(V)¢(jVj ¢exits (V)¢logjCj+jVj ¢logjVj)).
+We conclude this section with a theorem that speci¯es the model-checking
+complexity for various branching-time temporal logics. Given a hierarchical
+system Kand a branching-time temporal logic formula ', the time complex-
+ity of model checking Kwith respect to 'follows by applying our algorithm
+for solving hierarchical parity games to the game GK;A'= (V;¡), where A'
+is an APT accepting exactly the set of trees satisfying the formula '. In
+particular, we recall that by Theorem 1, if 'is aCtl or an alternation-free
+¹-calculus formula, then A'hasO(j'j) states and index 2, if 'is aCtl¤
+formula, then A'has 2O(j'j)states and index 3, and if 'is a¹-calculus for-
+mula, then A'hasO(j'j) states and index O(j'j). Let hbe the number
+of states of A', observe that jVj=jKj ¢h,exits (V) =exits (K)¢hand the
+number of sub-arenas of Vishtimes the number of sub-structures of K. As
+we show in Theorem 4 our algorithm for solving hierarchical parity games
+can be implemented in polynomial space, which gives an alternative proof
+of the Pspace upper bound for the hierarchical ¹-calculus model checking
+given in [12]. For the other logics, a Pspace upper bound follows by sim-
+ply °attening the system and applying the logspace algorithm from [16].
+ThePspace lower-bound for all these logics follows from the known result
+32
+
+--- Page 33 ---
+about Ctl [5]. Note that for the logic Ctl, the time complexity of the
+model-checking problem was already known and our algorithm suggests an
+alternative to the one in [5]. For the other logics, our approach leads to
+improved time complexities. It is interesting to note that for all branching-
+time temporal logics we consider, the hierarchical setting is easier than the
+recursive one.
+Theorem 5. Consider a hierarcical system Kand a speci¯cation 'for it.
+Letebe the number of exits of the system, and lbe the alternation depth of
+'.
+²For the ¹-calculus, the model checking problem is PSPACE-complete
+and can be solved in time (jKj ¢ j 'j)l¢2O(j'j)¢e¢l¢logl.
+²ForCtl and the alternation-free ¹-calculus, the model-checking prob-
+lem is PSPACE-complete and can be solved in time 2(2 logjKj+O(j'j)¢e).
+²ForCtl¤, the model-checking problem is PSPACE-complete and can
+be solved in time 2(3 logjKj+2O(j'j)¢e).
+5. An Abstraction-Re¯nement Paradigm
+In [24], Shoham and Grumberg de¯ned 3-valued games and used them to
+describe an abstraction-re¯nement framework for CTL. In this section, we lift
+their contribution to hierarchical systems. As we show, the idea of summary
+functions can be applied also for solving hierarchical 3-valued games . Due to
+the lack of space, we describe here in detail the new notions of hierarchical 3-
+valued games and abstractions, and give only the idea behind the algorithm.
+In fact, once the notions are de¯ned, then combining the algorithm in Sec-
+tion 4 for the concrete hierarchical setting, and the game-based approach to
+abstraction-re¯nement for the °at setting [24], into a game-based approach
+to abstraction-re¯nement of hierarchical systems, is not technically di±cult.
+Essentially, the idea is as follows. In a 2-valued game, the goal of a player is
+to win. In a 3-valued game, the goal of a player is to win or (in case he cannot
+win) not to lose (that is, force the game to an \unknown" winning value).
+Accordingly, the lifting of algorithm in Section 4 to the 3-valued setting is
+based on adding a layer to the gadgets Hidescribed there; a layer in which
+Player 0 chooses between winning and not losing.
+33
+
+--- Page 34 ---
+As in the °at setting, abstraction is based on merging sets of states of the
+concrete system into abstract states. What makes the hierarchical setting
+interesting is the fact that now it is possible to merge also boxes. Consider
+a (concrete) hierarchical structure. A sub-structure typically stands for a
+function, and a call to a function gfrom within another function fis modeled
+by a box inside the sub-structure modeling fthat refers to the sub-structure
+modeling g. The values of the local variables of fare typically di®erent in
+di®erent calls to g. Thus, the source of complexity is not the number of
+sub-structures, and rather it is the number of states and boxes in each sub-
+structure. Accordingly, our abstraction does not try to merge sub-systems
+and contains one abstract sub-system for each concrete sub-system. Our
+abstraction does merge sets of concrete states into a single abstract state
+and sets of concrete boxes (referring to the same structures) into a single
+abstract box.
+Ahierarchical 3-valued game is similar to a hierarchical game, only that
+there are two transition relations Rmust iandRmayi, referred to as the must
+andmay transitions. The transitions are de¯ned as Riin a hierarchical
+game and satisfy Rmust iµRmayi. Ahierarchical modal transition system
+(HMTS) over APis then similar to a hierarchical system, only that, again,
+there are both must and may transitions, and the labeling function ¾i:
+Wi£AP! ftt;®;?gcan map an atomic proposition also to ?(unknown).
+Note that, equivalently, we could have de¯ned HMTS by adding hierarchy
+to the MTS of [18].
+Given a (concrete) hierarchical system K=hK1;:::;Kni, with Ki=hAP; W i;
+Bi;ini,exit i; ¿i;Ri; ¾ii, an abstraction of Kis an HMTS M=hMA
+1;:::;MA
+ni,
+where for every 1 ·i·n, the sub-model MA
+i=hAP; WA
+i;BA
+i;inA
+i;exitA
+i; ¿A
+i;
+Rmust i;Rmayi; ¾A
+iiofMis an abstraction of the sub-structure Ki, de¯ned
+as follows. The set of abstract states is WA
+iµ2Wi, and it forms a partition
+ofWi. The set of abstract boxes is BA
+i, it forms a partition of Bi, and an ab-
+stract box contains only concrete boxes that refer to the same sub-structure.
+Thus, if b; b02ba2 BA
+i, then ¿i(b) =¿i(b0). The latter guarantees that the
+indexing function ¿A
+i:BA
+i! fi+1;:::; ng, de¯ned by ¿A
+i(ba) =¿i(b), for some
+b2ba, is well de¯ned. The initial state inA
+iis such that ini2inA
+i. The set
+of abstract exits exitA
+iµWA
+iis such that ea2exitA
+ii®ea\exit i6=;. Thus,
+the abstract initial state contains the concrete initial state, and an abstract
+exit contains at least one concrete exit. The transition relations Rmayiand
+Rmust iare subsets of (S
+b2BA
+i(fbg£exit¿A
+i(b))[WA
+i)£(WA
+i[BA
+i), and are over-
+34
+
+--- Page 35 ---
+and under-approximations of the concrete transitions. Given wa= (ba; ea)2S
+ba2BA
+i(fbag £exit¿A
+i(ba)), we write wc2waifwc= (bc; ec),bc2ba, and
+ec2ea. Using the above notation, we have that ( wa; wa0)2Rmayiif there
+exist wc2waandw0
+c2wa0such that ( wc; w0
+c)2Ri; and ( wa; wa0)2Rmust i
+only if for all wc2wathere exists w0
+c2wa0such that ( wc; w0
+c)2Ri. Finally,
+an atomic proposition holds (does not hold) in an abstract state if it holds
+(does not hold) in all the concrete states in it; otherwise, its truth value is
+unde¯ned.
+As shown for hierarchical systems, an HMTS Mcan be translated to a
+°at modal transition system (MTS) Mfby means of the °attening operation
+(since we only consider abstractions in which all the concrete boxes in an
+abstract box refer to the same structure, the °attening described for concrete
+systems can indeed be applied). The semantics of a temporal logic formula
+'overMis thus simply de¯ned to be the semantics of 'overMf. For the
+latter, we use the 3-valued semantics introduced in [14]. The idea is that
+since may transitions over-approximate concrete transitions, they are used
+to verify universal formulas or to refute existential formulas. Dually, since
+must transitions under-approximate concrete transitions, they are used to
+verify existential formulas or to refute universal formulas. We use [ MAj=']
+to denote the truth value (in ftt;®;?g) of'inMA. Applying the same
+considerations applied to MTSs [11], it is not hard to see that if an HMTS
+MAabstracts a hierarchical structure K, then [ MAj='] =tt(®) implies
+thatK j='(resp. K 6j=').
+Given an HMTS M, and a Ctl formula ', we reduce the problem of
+deciding the value of [ MAj='], to solving a 3-valued game GM;A'obtained
+by taking the product of Mwith the weak alternating tree automaton A'.
+The reason we restrict attention to Ctl formulas is that taking the product of
+an HMTS with a weak automaton that corresponds to a Ctl formula, there is
+a distinction between information lost in Mdue to atomic propositions whose
+value is unknown and information lost due to may and must transitions.
+Indeed, the states of the weak automaton are associated with either atomic
+propositions (in which case only the ¯rst type of missed information should
+be taken into an account) or with a subformula of the form AXorEX
+(where only the second type should be taken into an account). Furthermore,
+in the second case, the game is in either a universal ( AX) or existential ( EX)
+mode, so players can proceed along the must and may transitions in their
+attempt to prove or refute '.
+35
+
+--- Page 36 ---
+Now, as in [24], both players try to either prove or refute ', and winning
+strategies must be consistent : all transitions taken during a play are must
+transitions (note that the consistency requirement applies only to winning
+strategies; the opponent can take also may transitions). Also, a winning
+strategy cannot end in a state associated with an atomic proposition whose
+value is unknown. It may be that none of the players have a winning strategy,
+in which case the value of the game is ?. As described in Section 3 for
+concrete systems, the hierarchy in the system induces the hierarchy in the
+product game.
+We de¯ne GM;A'= (V;¡) as follows. The arena Vis di®erent from that
+of the concrete games considered in Section 3 in two aspects. First, since M
+has both may and must transitions then so does V. Second, since whether or
+not an atomic proposition holds at a state of Mmay be unknown, and the
+moves of the automaton A'depend on this information, we have to de¯ne
+the transitions of the arena accordingly. Formally, given an HMTS M=
+hM 1;:::;Mniand an APT A=h§; Q; q 0; ±; Fi, the hierarchical two-player
+game GM;A= (V;¡) for MandAis de¯ned as follows. The hierarchical
+arena Vhas a sub-arena Vi;qfor every 2 ·i·nand state q2Q. For
+i= 1, we need only the sub-arena V1;q0. The hierarchical order of the sub-
+arenas is consistent with the one in K. Thus, the sub-arena Vi;qcan be
+referred to by boxes of sub-arena Vj;ponly if i > j . Let MA
+i=hAP; WA
+i;
+BA
+i;inA
+i;exitA
+i; ¿A
+i;Rmust0
+i;Rmay0
+i; ¾A
+iiand let A=h2AP; Q; q 0; ±; Fibe an
+APT with Qpartitioned to Q(";^),Q(";_),Q^, and Q_. The sub-arena Vi;q=
+hW0
+i; W1
+i;Bi;ini;exit i; ¿i;Rmust i;Rmayiiis de¯ned as follows.
+²W0
+i=WA
+i£(Q_[Q(";_))[fag ,W1
+i=WA
+i£(Q^[Q(";^)),ini= (inA
+i; q),
+andexit i=exitA
+i£Q.
+²Bi=BA
+i£Q, and ¿i((b; q)) = ( ¿A
+i(b); q).
+²ForRx2 fRmust i;Rmayig, the relation Rxcontains all pairs ( u; v)
+that satisfy the following. Let u= (w; q) oru= ((b; q00);(w; q)).
+1.If±(q;fp2AP:¾A
+i(w; p) =ttg)6=±(q;fp2AP:¾A
+i(w; p)6=
+®g), then v=?;
+2.Otherwise, if q2Q"and±(q; ¾A
+i(w)) = ( p0; p1), then v2 f(w; p 0);
+(w; p 1)g;
+3.Otherwise, if q2Q_;^, then v= (w0; ±(q; ¾A
+i(w))) and either
+(w; w0)2 Rx, ifu= (w; q), or (( b; w); w0)2 Rx, otherwise.
+36
+
+--- Page 37 ---
+Note that the de¯nition above is simply a technical merge of the con-
+struction of Section 3, and the one in [11].
+As for concrete systems, the coloring of states is induced by the acceptance
+condition of the automaton, i.e., for each state ( w; q) of a sub-arena Vi;q, we
+have ¡( w; q) = F(q). However, in order to accommodate the possibility
+that [MAj='] =?, we need to modify winning condition. Intuitively, the
+players use must-transitions in order to win the game and may transitions in
+order to prevent the other player from winning. As a result it is possible that
+none of the players wins the play, i.e. the play ends with a tie. Formally,
+a play is winning for Player 0 if it ends in a terminal node that belongs to
+Player 1; or if the play is in¯nite and satis¯es ¡. Similarly, a play is winning
+for Player 1 if it ends in a terminal node that belongs to Player 0 (other than
+?), or if the play is in¯nite and does not satisfy the winning condition ¡. In
+all other cases the play is a tie. In light of the above, it is not hard to see
+that we have the following theorem:
+Theorem 6. Given an HMTS Mand a Ctl formula ', letGM;A'be the
+product of MwithA'. Then:
+²Player 0has a winning strategy in GM;A'i®[M j='] =tt.
+²Player 1has a winning strategy in GM;A'i®[M j='] =® .
+²None of the players have a winning strategy in GM;A'i®[M j='] =?.
+5.1. Solving the Game GM;A'
+The game GM;A'can be solved by adapting the algorithm de¯ned in
+Section 4 in the following way. Recall that in a game played over a concrete
+arena each player has only one goal: to try and win. On the other hand, since
+a play over an abstract arena may be a tie, a player may either try to win, in
+which case it only uses must transitions, or it may try not to lose, in which
+case it can also use may transitions. Consider a strategy »of Player 0 for an
+abstract sub-arena Vi, to fully capture the possible responses of Player 1 to
+», we have to associate with »two summary functions: gmust
+»andgmay
+». The
+function gmust
+»captures the possible responses of Player 1 if it only uses must
+transitions (i.e., it tries to win), while gmay
+»captures the possible responses
+of Player 1 if it uses may transitions (i.e., it tries not to lose). Note that
+whether Player 0 uses only must transitions or not, is speci¯ed by ». For
+every x= (x0; x1)2 fmay; must g £ f may; must gwe say that a summary
+37
+
+--- Page 38 ---
+function gisx-feasible (x-relevant ) if it is feasible (relevant) when Player 0
+uses only x0transitions, and Player 1 uses only x1transitions. It is easy to
+see that by limiting attention to only the speci¯ed types of transitions, the
+algorithm presented earlier for deciding whether a summary function (over
+a concrete arena) is relevant can be used to decide if a summary function is
+x-relevant. For every x2 fmay; must g £ f may; must g, letMx
+jbe the set of
+allx-relevant summary functions for Vj. Observe that Mx
+jµMy
+jifywas
+obtained from xby changing a must to a may.
+In order to re°ect the players' choice whether or not to use only must
+transitions, we adjust the construction of the gadget Hj, which is used to
+replace a sub-arena Vj, to produce the following 4-level DAG structure:
+²Its set of nodes is
+fp; tmay; tmustg [M(may;may )
+j [(exit j£C).
+²The node pis a Player 1 node, tmayandtmustare Player 0 nodes, every
+g2M(may;may )
+j is a Player 1 node, and a node ( e; c)2exit j£Cbelongs
+to the same player that ebelongs to.
+²Its set of may edges is
+f(p; tmaygS
+g2M(may;may )
+jf(tmay; g)gS
+g2M(may;must )
+jf(tmust; g)g.
+²Its set of must edges is
+f(p; tmust)gS
+g2M(must;may )
+jf(tmay; g)gS
+g2M(must;must )
+jf(tmust; g)gS
+g2M(may;may )
+jf(g;(e; g(e))) :e2exit j^g(e)6=ag.
+²A node ( e; c)2exit j£Cis colored by c. These are the only colored
+nodes.
+Intuitively, at the entrance pPlayer 1 makes the choice whether he wants
+to only use must transitions, in which case he takes the must transition to
+tmust, or to use may transitions, in which case he takes the may transition
+totmay. Note that if Player 1 has a winning strategy using only must transi-
+tions (and Player 0 is not limited) he would surely use it; otherwise, Player 0
+either has a winning strategy or it can force a tie, and thus Player 1 can only
+lose by limiting itself to must transitions, and it would decide to use may
+transitions. Since this line of reasoning is independent of the speci¯c strat-
+egy that Player 0 may choose, we are justi¯ed in assuming that Player 1
+38
+
+--- Page 39 ---
+makes this choice upfront. From the node tmust, Player 0 chooses a sum-
+mary function node gthat re°ects its strategy for the sub-arena Vj. Ifg
+is (must; must )-relevant then this transition is a must transition, re°ecting
+the fact that Player 0 can achieve gusing only must transition for his moves
+inside the sub-arena Vj; otherwise, gis only ( may; must )-relevant, and the
+transition is a may transition that is not a must transition. Observe that
+there are no edges from tmusttogifgis not ( may; must )-relevant (and is
+only ( may; may )-relevant), since moves from tmustmust re°ect the fact that
+Player 1 chooses to limit itself to must transitions inside Vj. The possible
+moves from the node tmayfollow the same reasoning. Finally, as for concrete
+games, Player 1 can move from a node gto any node ( e; g(e)) for which
+g(e)6=a. Note that all such transitions are must transitions since both play-
+ers' choices whether or not to use may transitions are already re°ected by
+the preceding moves (from ptotmustortmay, and from there to g).
+A very important feature of our construction above is that the gadgets
+used to replace boxes bare a direct and very natural connection with the
+abstract hierarchical system that is being model checked. To see this con-
+nection, consider for example the case of model checking a Ctl formula '.
+The states of the automaton A'are sub-formulas of ', and the nodes of a
+sub-arena Vi;qof the membership game are pairs consisting of a state s2WA
+i
+of the abstract HMTS, and a sub-formula Ã. The node ( s; Ã) is an exit of the
+sub-arena i® sis an exit of the sub-structure VA
+i. Intuitively, when the token
+is placed on the node ( s; Ã), Player 0 (Player 1) has a winning strategy i® it
+can prove that Ãholds (does not hold) at the state sof the sub-structure (in
+the current context). Observe that for Ctl we need just two colors, f1;2g,
+and thus a summary function goverVi;Ãassigns to every exit pair ( e; Ã0),
+where eis an exit of VA
+i, and Ã0a sub-formula in the closure of Ã, a value
+inf1;2;ag. When Player 0 moves the token to a node gin the gadget that
+replaces a box that refers to the sub-arena Vi;Ã, it essentially claims that it
+can prove that Ãholds at the initial state of the sub-structure Vi, and that
+this proof depends on certain assumptions as to which sub-formulas of Ãhold
+at which exit of Vi;Ã(which depends on the context of this reference to Vi;Ã)
+as speci¯ed by the context function g. The fact that we limit the gadgets to
+use only relevant summary functions means that Player 0 is only allowed to
+move to gif it can indeed prove that Ãholds at the initial state of the sub-
+structure Viunder these assumptions. If g(e; Ã0) =a, it means that Player 0
+makes no assumptions as to whether or not Ã0holds at e; ifg(e; Ã0) = 2, it
+means that Player 0 assumes that Ã0holds at e; and if g(e; Ã0) = 1, it means
+39
+
+--- Page 40 ---
+that Player 0 assumes that Ã0holds at e, and that he must prove it without
+forming a cycle that re-enters the gadget (the case of g(e; Ã0) = 1 is only
+possible if Ã=Ã0=µUµ0is an until formula, and such a cycle corresponds
+to trying to delay the forever the satisfaction of µ0). When Player 1 moves
+the token from the node g, to (( e; Ã0); g(e; Ã0)), it has the intuitive meaning
+that it wants Player 0 to make good on his word and actually prove that in
+the current context Ã0holds at the exit eofVA
+i.
+The discussion above not only demonstrates that a natural and direct
+connection is maintained between the gadgets and the underlying model-
+checking problem, but also that the gadgets themselves can be a site for the
+following form of information abstraction. Instead of including in a gadget Hi
+all the relevant summary functions, one can include only summary functions
+that assign the value ato a given subset of the exits. Note that in this case
+we must also add a move from tmustandtmayto the special node aof the
+sub-arena, to allow Player 0 to force a tie in case he is not happy with this
+limited choice of summary-functions. By considering only a subset of the
+summary functions one can drastically reduce the number of nodes in the
+gadget. In fact, we believe that in many cases one can consider summary
+functions that assign ato almost all the exits. The reason for this optimism is
+that the hierarchical structure of the system usually re°ects a corresponding
+hierarchical division of responsibility. Thus, in many cases, certain sub-
+structures will be responsible for satisfying certain parts of the speci¯cation.
+Thus, exits of the form ( e; Ã0), where the sub-formula Ã0should by design
+be satis¯ed inside the sub-structure that the gadget represents (or that have
+a disjunctive alternative that should be satis¯ed inside the sub-structure),
+should be assigned the value a. It is interesting to note that if the formula
+fails to validate when considering only summary functions that assign ato
+such exits, but does validate when considering all summary functions, then
+there is a bug in the sense that the designer's beliefs about the division of
+work between the di®erent sub-structures in the system is wrong.
+References
+[1]Alur, R., Benedikt, M., Etessami, K., Godefroid, P., Reps, T. W., Yan-
+nakakis, M., 2005. Analysis of recursive state machines. ACM Transac-
+tions on Programming Languagues and Systems 27 (4), 786{818.
+[2]Alur, R., Chaudhuri, S., Etessami, K., Madhusudan, P., 2005. On-the-°y
+reachability and cycle detection for recursive state machines. In: Proc.
+40
+
+--- Page 41 ---
+11th Int. Conf. on Tools and Algorithms for the Construction and Analy-
+sis of Systems. Vol. 3440 of Lecture Notes in Computer Science. Springer,
+pp. 61{76.
+[3]Alur, R., Etessami, K., Yannakakis, M., 2001. Analysis of recursive state
+machines. In: Proc 13th Int. Conf. on Computer Aided Veri¯cation.
+LNCS 2102. Springer, pp. 207{220.
+[4]Alur, R., Kannan, S., Yannakakis, M., 1999. Communicating hierarchi-
+cal state machines. In: Proc. 26th Int. Colloq. on Automata, Languages,
+and Programming. Vol. 1644 of Lecture Notes in Computer Science.
+Springer, pp. 169{178.
+[5]Alur, R., Yannakakis, M., 2001. Model checking of hierarchical state
+machines. ACM Transactions on Programming Languagues and Systems
+23 (3), 273{303.
+[6]Clarke, E., Grumberg, O., Peled, D., 1999. Model Checking. MIT Press.
+[7]Dams, D., Gerth, R., Grumberg, O., 1997. Abstract interpretation of
+reactive systems. ACM Transactions on Programming Languagues and
+Systems 19 (2), 253{291.
+[8]de Roever, W.-P., Langmaack, H., Pnueli, A. (Eds.), 1998. Composi-
+tionality: The Signi¯cant Di®erence. Proceedings of Compositionality
+Workshop. Vol. 1536 of Lecture Notes in Computer Science. Springer.
+[9]Drusinsky, D., Harel, D., 1994. On the power of bounded concurrency
+I: Finite automata. Journal of the ACM 41 (3), 517{539.
+[10]Emerson, E., Jutla, C., 1991. Tree automata, ¹-calculus and determi-
+nacy. In: Proc. 32nd IEEE Symp. on Foundations of Computer Science.
+pp. 368{377.
+[11]Godefroid, P., Jagadeesan, R., 2002. Automatic abstraction using gen-
+eralized model checking. In: Proc 14th Int. Conf. on Computer Aided
+Veri¯cation. Vol. 2404. pp. 137{150.
+[12]GÄ oller, S., Lohrey, M., 2005. Fixpoint logics on hierarchical structures.
+In: Proc. 25th Conf. on Foundations of Software Technology and Theo-
+retical Computer Science. Vol. 3821 of Lecture Notes in Computer Sci-
+ence. Springer, pp. 483{494.
+41
+
+--- Page 42 ---
+[13]Harel, D., Kupferman, O., Vardi, M., 2002. On the complexity of veri-
+fying concurrent transition systems. Information and Computation 173,
+1{19.
+[14]Huth, M., Jagadeesan, R., Schmidt, D., 2001. Model checking partial
+state spaces with 3-valued temporal logics. In: ESOP. pp. 155{169.
+[15]Janin, D., Walukiewicz, I., 1995. Automata for the modal ¹-calculus
+and related results. In: 20th Int. Symp. on Mathematical Foundations
+of Computer Science. Vol. 969 of Lecture Notes in Computer Science.
+Springer, pp. 552{562.
+[16]Kupferman, O., Vardi, M., Wolper, P., 2000. An automata-theoretic
+approach to branching-time model checking. Journal of the ACM 47 (2),
+312{360.
+[17]La Torre, S., Napoli, M., Parente, M., Parlato, G., 2008. Veri¯cation of
+scope-dependent hierarchical state machines. Inf. Comput. 206 (9-10),
+1161{1177.
+[18]Larsen, K., Thomsen, G., 1988. A modal process logic. In: Proc. 3rd
+IEEE Symp. on Logic in Computer Science.
+[19]Muller, D., Schupp, P., 1987. Alternating automata on in¯nite trees.
+Theoretical Computer Science 54, 267{276.
+[20]Murano, A., Napoli, M., Parente, M., 2008. Program complexity in
+hierarchical module checking. In: LPAR'08. LNCS 5330. Springer, pp.
+318{332.
+[21]Pnueli, A., 1985. In transition from global to modular temporal reason-
+ing about programs. In: Apt, K. (Ed.), Logics and Models of Concurrent
+Systems. Vol. F-13 of NATO Advanced Summer Institutes. Springer, pp.
+123{144.
+[22]Qadeer, S., 2008. Taming concurrency: A program veri¯cation perspec-
+tive. In: 19th Int. Conf. on Concurrency Theory. Vol. 5201 of Lecture
+Notes in Computer Science. Springer, p. 5.
+[23]Rabinovich, A., 1997. Complexity of equivalence problems for concurrent
+systems of ¯nite agents. Information and Computation 139 (2), 111{129.
+42
+
+--- Page 43 ---
+[24]Shoham, S., Grumberg, O., 2003. A game-based framework for CTL
+counterexamples and 3-valued abstraction-re¯nement. In: Proc 15th Int.
+Conf. on Computer Aided Veri¯cation. Vol. 2725. pp. 275{287.
+[25]Wilke, T., 1999. CTL+is exponentially more succinct than CTL. In:
+Proc. 19th Conf. on Foundations of Software Technology and Theoretical
+Computer Science. Vol. 1738 of Lecture Notes in Computer Science.
+Springer, pp. 110{121.
+[26]Wilke, T., 2001. Alternating tree automata, parity games, and modal
+¹-calculus. Bull. Soc. Math. Belg. 8 (2).
+43

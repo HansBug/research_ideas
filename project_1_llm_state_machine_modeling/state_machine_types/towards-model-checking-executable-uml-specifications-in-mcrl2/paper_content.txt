@@ -1,0 +1,543 @@
+--- Page 1 ---
+Innovations Syst Softw Eng (2010) 6:83–90
+DOI 10.1007/s11334-009-0116-1
+ORIGINAL PAPER
+Towards model checking executable UML speciﬁcations
+in mCRL2
+Helle Hvid Hansen ·Jeroen Ketema ·Bas Luttik ·
+MohammadReza Mousavi ·Jaco van de Pol
+Received: 30 November 2009 / Accepted: 5 December 2009 / Published online: 7 February 2010
+© The Author(s) 2010. This article is published with open access at Springerlink.com
+Abstract We describe a translation of a subset of execut-
+able UML (xUML) into the process algebraic speciﬁcationlanguage mCRL2. This subset includes class diagrams with
+class generalisations, and state machines with signal and
+change events. The choice of these xUML constructs is dic-tated by their use in the modelling of railway interlocking
+systems. The long-term goal is to verify safety properties
+of interlockings modelled in xUML using the mCRL2 andLTSmin toolsets. Initial veriﬁcation of an interlocking toy
+example demonstrates that the safety properties of model
+instances depend crucially on the run-to-completion assump-tions.
+Keywords Software veriﬁcation and validation ·
+Speciﬁcation languages ·Model checking ·
+Executable UML ·Process algebra
+1 Introduction
+We translate a subset of executable UML (xUML) [ 15]i n t o
+the formal speciﬁcation language mCRL2 [ 12] with the
+Helle Hvid Hansen ·Bas Luttik ·MohammadReza Mousavi
+Eindhoven University of Technology, Eindhoven,The Netherlandse-mail: h.h.hansen@tue.nl
+Bas Luttik
+e-mail: s.p.luttik@tue.nl
+MohammadReza Mousavi
+e-mail: m.r.mousavi@tue.nl
+Jeroen Ketema (
+B)·Jaco van de Pol
+University of Twente, Enschede, The Netherlands
+e-mail: j.ketema@ewi.utwente.nl
+Jaco van de Pol
+e-mail: j.c.vandepol@ewi.utwente.nlpurpose of verifying safety properties. The xUML constructs
+covered include class diagrams with class generalisationsand object associations, and state machines which consist of
+composite and concurrent states and have signal and change
+events.
+The mCRL2 language extends the process algebra ACP
+[3] with abstract data types. Its process algebraic foundation
+makes mCRL2 suitable for specifying dynamic, concurrentbehaviour. Moreover, it enables the use of compositional ver-
+iﬁcation methods and provides a clear, formal semantics [ 12].
+Our use of mCRL2 is strongly motivated by the availabilityof powerful veriﬁcation tools: The mCRL2 toolset
+1provides
+for explicit model checking, state space analysis and simu-
+lation. Symbolic model checking is provided by the LTSmin
+toolset2[4,5].
+Our work is part of INESS3, an EC FP7-funded project,
+which aims at developing uniform speciﬁcations for future
+railway interlockings. Brieﬂy, an interlocking prevents con-ﬂicting routes from being set by monitoring and controlling
+the operation of signals, points and other trackside elements.
+Here, a “route” is the concept used by railway signallers toguide trains over arrangements of tracks, points, etc. Thehigh-level safety requirements of interlockings are to ensure
+that trains neither collide nor derail. In INESS, the functional
+requirements of interlockings are expressed as an xUMLmodel, and one of the project tasks is to formally verify
+safety properties of such xUML interlocking models. Sev-
+eral approaches to this task are explored within the project.Our approach is based on model checking using mCRL2,
+and the current paper provides a ﬁrst step by presenting a
+translation from xUML to mCRL2.
+1http://www.mcrl2.org .
+2http://fmt.cs.utwente.nl/tools/ltsmin/ .
+3http://www.iness.eu .
+123
+
+--- Page 2 ---
+84 H. H. Hansen et al.
+As in most real-world applications, the xUML models
+arising from the interlocking domain are of considerable size.One of our secondary aims in the current paper is therefore
+to investigate the feasibility of performing veriﬁcation on the
+models resulting from translation. Moreover, we would liketo explore the kind of behaviours contained in xUML inter-locking models, and expose any kind of semantic assump-
+tion that is either underspeciﬁed or beyond the scope of the
+model. To this end, we also report on a small experimentusing a toy interlocking speciﬁcation, which was kindly pro-
+vided to us by KnowGravity Inc.
+4This toy speciﬁcation is
+almost as simple as it gets, but it shows, in particular, howdifferent run-to-completion assumptions give rise to a wide
+variety of model sizes and observable traces.
+The rest of this paper is organised as follows. In Sect. 2,w e
+describe and motivate the use of model checking in the veriﬁ-cation of xUML interlocking models. In Sect. 3, we introduce
+the xUML constructs covered by our translation, and discuss
+different types of run-to-completion assumptions. In Sect. 4,
+we describe our translation to mCRL2 and, in Sect. 5,w e
+expose some issues related to model checking xUML models
+and report on our observations made in translating and ver-ifying a toy xUML interlocking model. Finally, we discuss
+related work and conclude in Sects. 6and7, respectively.
+2 Model checking xUML interlocking models
+In model checking [ 2], a formal model describes all possi-
+ble executions of the system being modelled, and veriﬁca-tion is carried out by an exhaustive state space exploration
+of this model. In our case, we obtain a formal model as the
+mCRL2 translation of an instance of the xUML model. Moreprecisely, a model is obtained by instantiating the classes
+and associations of the xUML interlocking model according
+to a particular track layout. A track layout is a conﬁgura-tion of physical and logical railway elements such as tracks,
+points, signals and routes (see Sect. 5.1for an example).
+Model checking of xUML interlocking models is thus alwayscarried out with respect to a particular instantiation of themodel. Consequently, model checking cannot prove that all
+instances of the xUML model satisfy a given set of safety
+requirements.
+In spite of the above limitation, model checking can
+provide valuable information: First, for a ﬁxed track lay-
+out, veriﬁcation is exhaustive, in contrast with simulationand testing. Second, the violation of a safety property in
+a particular model instance shows that the xUML model
+is not correct in general; traces that witness this undesiredbehaviour can be used to improve the model. Finally, we canincrease conﬁdence in the correctness of the xUML model by
+verifying particularly significant model instances. For
+4http://www.knowgravity.com .example, ProRail5, the Dutch railway infrastructure manager,
+has designed three track layouts that together are supposed tocapture all features of track layouts found in the Netherlands.
+Proving that the model instances arising from these track lay-
+outs satisfy certain properties would increase the conﬁdencethat the properties also hold for other instances.
+3 Executable UML
+Executable UML (xUML) [ 15] consists of UML class dia-
+grams, UML state machines and an action language whichcomplies with the UML action semantics. There are several
+action languages in use; we refer to [ 15] for a—somewhat
+limited—overview.
+The xUML models to be translated are expressed in the
+Cassandra/xUML dialect [ 14], as developed by KnowGravity.
+We brieﬂy describe the modelling constructs relevant to us,following the UML 2.2 standard [ 17] wherever possible, and
+Cassandra/xUML otherwise.
+3.1 Constructs
+In class diagrams, we allow for class generalisations (inher-
+itance) and associations between classes (specifying which
+class instantiations may reference each other). Associationclasses, however, may not occur, i.e. no objects may be related
+to instances of associations.
+State machines may contain concurrent and composite
+states (AND- and OR-states) and initial pseudo-states. Cur-
+rently, we do not translate history and ﬁnal pseudo-states. All
+UML-deﬁned transitions may occur as far as they involve theallowed (pseudo-)states. A transition is labelled with a trig-ger and a sequence of actions, both of which may be empty.
+A trigger must be a signal event or a change event.
+Signals are communicated asynchronously. A signal can
+be sent either by an object within the system (an internal
+signal) or by the environment (an external signal). Each state
+machine is accompanied by an event pool which storesreceived signals until dispatched, i.e. until they are taken from
+the event pool by the state machine [ 17, Section 13.3.25].
+A change event [ 17, Section 13.3.7] is an event which is
+generated when a certain condition becomes true. The condi-tion typically refers to the states of objects referenced through
+associations. Contrary to the other modelling constructs rel-
+evant to us, the UML 2.2 semantics of change events [ 17,
+Section 13.3.7] is rather underspeciﬁed. For example, it is not
+detailed when a change event is evaluated or how a change
+event is detected. Also, implementations may or may not letchange events remain in case their condition becomes false
+again after having been true. In Cassandra/xUML, change
+5http://www.prorail.nl .
+123
+
+--- Page 3 ---
+Towards model checking xUML in mCRL2 85
+events are denoted by when (cond ), where cond is a Bool-
+ean expression. Given a state machine Xwith a transition
+tlabelled by a change event when (cond ), the Cassandra/
+xUML simulator adds an event ewhen (cond )to the event pool
+ofXwhenever cond changes from false to true (personal
+communication with KnowGravity). The event ewhen (cond )
+triggers transition tonce dispatched and remains in the event
+pool even in case cond becomes false before ewhen (cond )is
+dispatched.
+If a dispatched event is not the trigger of an enabled transi-
+tion, the event is discarded. Otherwise, the actions labelling
+the transition are carried out. The only type of action we cur-rently allow is the sending of a signal [ 17, Section 11.3.45],
+where the target may either be an object within the system
+or the environment.
+3.2 Run-to-completion
+An important aspect of concurrency is the interleaving of
+process executions. Run-to-completion (RTC) assumptionscan help reduce the complexity of a concurrent system. Alocal RTC step of a state machine Xconsists of processing
+all actions labelling a transition triggered by some event. In
+the literature, three different levels of RTC seem to be con-sidered (no ﬁxed terminology seems to exists and the names
+are our own):
+Local RTC : A local RTC step of a state machine Xmust be
+completed before the next event can be dispatched to X.
+Atomic RTC : While a state machine Xis executing a local
+RTC step, no event can be dispatched to any of the state
+machines in the system.
+Global RTC : External signals may only be dispatched to the
+system in case all event pools are empty and there are no
+remaining change events.
+Local RTC is required by the UML speciﬁcation [ 17,
+Section 15.3.12]. It ensures that a state machine is in a well-deﬁned conﬁguration before the next event is dispatched.
+With atomic RTC, local RTC steps in different state machines
+may not be interleaved (which is not forbidden by local RTC).Global RTC separates internal system interactions (between
+objects) from interactions with the environment. Note that
+atomic RTC implies local RTC, but that global RTC impliesneither local nor atomic RTC. Atomic RTC is used in [ 9,20].
+The Cassandra/xUML simulator employs both atomic RTC
+and global RTC [ 14, Section 4.3.5].
+4 Translation into mCRL2
+The mCRL2 speciﬁcation language [ 12] extends the process
+algebra ACP [ 3] with abstract datatypes, including built-intypes such as Booleans, integers and lists. New structured
+data types can be deﬁned using the struct keyword. Cur-
+rently, we use only enumerated data types, for example,
+sortElt _State =structReady |Not _Ready .
+Functions over sorts can be deﬁned by giving equations.
+The process speciﬁcation language of mCRL2 allows for
+the definition of basic actions with zero or more parame-
+ters. For example, act send ,read :Message deﬁnes
+the actions send andread which take a parameter of type
+Message . Similarly, a process speciﬁcation may take
+parameters, for example,
+procElement (state :Elt _State ).
+Processes can be composed using sequential and parallel
+composition and non-deterministic choice. Moreover,
+actions can be hidden (turned into the silent action) andblocked (disallowed). Synchronisation rules take the formof the so-called multi-actions a
+1|a2|...|an→c, which
+specify that the actions a1,a2,. . . , anmust synchronise and
+the result of this multi-party synchronisation is the action c.
+An mCRL2 speciﬁcation consists of data type definitions,
+equations over the data types, process speciﬁcations and an
+initial process. The above process speciﬁcation proc
+Element (state :Elt _State )could, for example, be
+initialised as initElement (Ready ).
+4.1 Translation
+In our translation from xUML to mCRL2, each class becomes
+a process speciﬁcation. Each of these process speciﬁcationsconsists of two parallel parts: one part is the translation of
+the state machine associated with the class and the other part
+formalises the event pool associated with the state machine asa buffer process. The buffer process essentially implements
+a queue. An event is placed in the queue by a synchronous
+communication between the sending process and the bufferprocess. The sending process can be either the environment,
+another process representing a state machine, or a process
+monitoring change events (described at the end of this sec-tion). Signals are dispatched on a FIFO basis through syn-chronous communication between the buffer process and the
+process representing a state machine.
+4.1.1 Class diagrams
+As mentioned in Sect. 3.1, we allow for class generalisa-
+tions and class associations. In our translation, the ﬁrst is
+dealt with by ﬂattening the class hierarchy; each superclass
+Yof a class Xoccurs only once in this ﬂattening, even in
+case there are several is-aassociations between XandYin
+the class diagram. Now, if Xis a class with superclasses
+Y
+1,..., Yn, the ﬂattened class X/primearising from Xhas all
+123
+
+--- Page 4 ---
+86 H. H. Hansen et al.
+attributes of X,Y1,..., Yn, and the state machine of X/primeis
+deﬁned as the concurrent composition of the state machinesofX,Y
+1,..., Yn.
+Class associations are translated by deﬁning an enumer-
+ated data type consisting of identiﬁers (depending on theinstantiation of the model) and supplementing each mCRL2representation of a class instance with one parameter (of the
+enumerated type) for each of its associations.
+6For example,
+if each instance of a class Xis associated with exactly one
+instance of a class Y, then the process speciﬁcation of Xwill
+be of the form proc X (. . . ,id_Y:Id,. . . ) , whereIdis
+the enumerated type consisting of identiﬁers.
+4.1.2 State machines
+The potential state conﬁgurations of a state machine Xare
+encoded as follows. For each non-concurrent composite state(OR-state) S, we deﬁne an enumerated type ancS _states
+whereancS identiﬁes Sin the state hierarchy. If S
+has substates P,..., Q, thenancS _states has mem-
+bersancS _substate _P,...,ancS _substate _Q, and
+ancS _substate _nop . The process speciﬁcation of the
+state machine Xis then supplied with a parameter
+ancS _state whose value represents the currently active
+substate of S. In particular, the top state Tof a state machine
+for a class is always a non-concurrent state and gives rise
+to a parameter T_state . We refer to ancS _state as a
+state parameter .I fSis not active, then ancS _state has
+the valueancS _substate _
+nop .
+The conﬁgurations of a concurrent state Sare not modelled
+by parameters, as they are determined by the state conﬁgura-tions of the (direct) substates of the concurrent components of
+S(the Cartesian product of these substates to be precise). To
+illustrate, consider the state machine Fin Fig. 1(transitions
+are unlabelled as we only wish to illustrate how composite
+states are treated). In Fig. 2, we list the data type definitions
+arising from Ftogether with the declaration of state parame-
+ters in the process speciﬁcation of F(disregarding any class
+attributes), and an initial process corresponding to the initial
+state conﬁguration.
+Since we treat class generalisation by ﬂattening, if a class
+Ygeneralises a class X, then the process speciﬁcation of the
+state machine for X(which concurrently composes the state
+machines for YandX) will have the state parameters aris-
+ing from both XandY. This is completely analogous to the
+handling of concurrent states within a state machine.
+6We actually employ macro preprocessing of the mCRL2 speciﬁcation
+before model checking. This is to avoid loop constructs when dealingwith one–many and many–many associations.NI J
+L MF
+G
+H
+K
+Fig. 1 A state machine
+Fig. 2 Translation of the state machine in Fig. 1: data types for repre-
+senting states, state parameters and initialisation
+4.1.3 Transitions
+Given the local RTC assumption, a process specifying the
+state machine of a class Xcan obtain an event from its buffer
+process (event pool) precisely when it is in a stable state, i.e.when no other transition is currently being taken. One of the
+transitions triggered by the obtained event is taken at random
+(non-deterministic choice), assuming such a transition exists.The actions labelling the chosen transition are executed and
+the state parameters of the process are updated to reﬂect the
+new state conﬁguration. If no transition is triggered by theevent, then the event is discarded, as allowed by the UMLstate machine semantics [ 17, Section 15.3.12].
+4.1.4 Change events
+We implement change events by introducing a process for
+each such event. This process monitors the value of the condi-
+tion in the change event. For example, if a state machine Xhas
+a transition from a state Striggered by (in pseudonotation)
+when (P.state =T&Q.state =U),
+123
+
+--- Page 5 ---
+Towards model checking xUML in mCRL2 87
+Fig. 3 A monitor process for a change event
+where PandQare state machines associated with X, then
+we create a process
+when _X_S(P_in_state _T:Bool ,Q_in_state _U:Bool ),
+and let PandQcommunicate synchronously with the mon-
+itor process whenever they enter or leave the states TandU,
+respectively. This communication updates the values of theBoolean parameters P_in_state _TandQ_in_state _U.
+When an update results in the condition changing from false
+to true, the monitor process places a signal in the buffer of
+X. This signal remains in the buffer of Xeven when the con-
+dition becomes false again. Whence, at the moment the state
+machine reacts to the event, the condition might no longerhold.
+Concretely, the monitor process when _X_Sdescribed
+above is speciﬁed as in Fig. 3. The process deﬁned in the
+ﬁgure can either receive an update from state machine P,
+represented by the action when _upd _P,o rf r o m Q, rep-
+resented by the action when _upd _Q. We explain commu-
+nication with P, the case of Qis analogous. The action
+when _upd _Pcarries a Boolean data argument bwhich indi-
+cates whether Pentered or left state T. The sum ensures that
+bcan have either the value True orFalse . Upon recep-
+tion ofwhen _upd _P(b), the process checks whether Pwas
+not in the state
+Tbefore ( !P_in_State _T), that Pis in the
+state Tnow ( b) and that Qis in state U(Q_in_State _U).
+If these conditions hold, a signal is put in the buffer of X
+(send _when _to_X) and the state of the monitor process is
+updated, written as when _X_S(b,Q_in_state _U),a f t e r
+which the process is able to receive a state update againfrom either PorQ. If one of the conditions does not hold,
+the state of when _X_Sis simply updated and again the
+process is able to receive a state update from either P
+orQ.4.1.5 Architecture
+We now summarise how the elements of an xUML model
+are mapped onto the elements of an mCRL2 speciﬁcation:
+For each ﬂattened class with associated state machine X,
+we deﬁne a process speciﬁcation proc X _Complex (id:
+Id,... ) consisting of the parallel composition of X(id:
+Id,... ) ,X_
+buffer (id:Id,... ) , andX_when i(id:Id,
+... )where iranges over the change events of X. The param-
+eteridrepresents the unique identiﬁer associated with an
+instance of the represented class. The translation of the state
+machine Xis embodied by X, and the process X_buffer
+represents the event pool. Each X_when imonitors one of
+the change events occurring in the state machine associated
+with X, as described earlier.
+An instance of an xUML model deﬁnes, in addition to
+the above, an enumerated type with object identiﬁers and an
+appropriate initialisation consisting of the parallel composi-
+tion of the processes arising from the objects in the instantia-tion, together with the required synchronisation constraints.
+5 Model checking
+From a model checking perspective, the UML 2.2 semantics
+presents us with two problems:
+1. Any instance of an xUML model has an inﬁnite state
+space; this comes about, as UML 2.2 neither limits thesize of event pools nor limits the number of events the
+instance may accept from the environment at any point
+in time.
+2. Class instances may starve, i.e. a class instance may have
+events in its event pool waiting to be dispatched, but the
+instance may never get its turn; this comes about, as UML
+2.2 does not impose any fairness restrictions concerningevent dispatching.
+Since our translation to mCRL2 faithfully follows the UML
+2.2 semantics, the obtained mCRL2 models will also have
+both inﬁnite state spaces and leave room for starvation. Toalleviate these problems, we propose two constraints on our
+mCRL2 models:
+A. Limit the size of buffers. This restriction will overcome
+the ﬁrst of the above problems. However, as an objectmay send several signals to itself during a local RTC step
+(cf. Sect. 3.2), we only impose this limit with regard to
+messages coming from other objects and from the envi-ronment in order to avoid deadlock.
+B. Add a mechanism which ensures that the system can only
+receive a message from the environment in case all mes-sage queues are empty. In other words, implement global
+123
+
+--- Page 6 ---
+88 H. H. Hansen et al.
+Fig. 4 Class diagram for the Micro interlocking
+t1p1t3
+t2 s1
+Fig. 5 Track layout for an instance of the Micro model
+RTC (cf. Sect. 3.2). This restriction addresses both of the
+above problems under the assumption that external sig-nals do not (directly or indirectly) trigger an unbounded
+number of internal events. Consequently, each process
+will eventually get the chance to empty its buffer.
+It should be clear that both A and B only eliminate traces from
+the translated model. Hence, as safety properties are vio-lated by ﬁnite traces, any safety violation found in a model
+restricted according to A or B is also present in the unre-
+stricted model.
+5.1 Model checking a toy speciﬁcation
+We have applied the translation from Sect. 4to a toy inter-
+locking speciﬁcation which we refer to as the Micro model.
+The Micro model has classes named element ,track ,point ,
+signal androute , where element is a generalisation of track,
+point and signal. The class diagram for this model is depicted
+in Fig. 4. An instance of the Micro model is obtained from
+the track layout depicted in Fig. 5.
+The layout consists of three tracks t
+1,t2,t3, one point p1
+(positioned left in the picture), one signal s1and two routes:
+route r1requires p1to be positioned left and goes from track
+t1to track t3; route r2requires p1to be positioned right and
+goes from t1tot2; both routes have s1as their entry signal.
+The model instance thus contains three track objects, onepoint object, one signal object and two route objects, and
+Fig. 6 State machine for class Route
+these objects are linked via the following associations:
+tracks ={ /angbracketleftr1,t1/angbracketright,/angbracketleftr1,t3/angbracketright,/angbracketleftr2,t1/angbracketright,/angbracketleftr2,t2/angbracketright}
+left_points ={ /angbracketleftr1,p1/angbracketright}
+right_points ={ /angbracketleftr2,p1/angbracketright}
+entry_signal ={ /angbracketleftr1,s1/angbracketright,/angbracketleftr2,s1/angbracketright}
+The main functionality of the Micro model is route set-
+ting and route cancellation. Informally described, when aroute receives a reserve request, it should signal to its leftand right points to move into position. When all points are
+positioned, all tracks along the route are clear and the entry
+signal is ready, the entry signal is set to show proceed. Whenone of the elements associated with the route is no longer in
+the required state, or the route is cancelled, the route entry
+signal is set to show stop. The state machine describing thebehaviour of the class Route is shown in Fig. 6.
+We translated the above instance of the Micro model into
+mCRL2 in two different ways corresponding to constraintsA and B from the previous section. The state space resultingfrom version A is huge (61 ×10
+12states) even with buffer
+size 1, but our symbolic tool LTSmin still computes the num-
+ber of states within seconds. The mentioned state space wasexplored in 113 seconds using 238MB memory of a machine
+equipped with an Intel Xeon 2.66 GHz, 32GB of memory and
+Linux 2.6.18. To obtain version B we used barrier synchro-nisation. This version has a significantly smaller state space
+with 8 million states. However, computing the number of
+states takes longer and uses more memory (160 seconds and311MB). The state space reduction that stems from a global
+123
+
+--- Page 7 ---
+Towards model checking xUML in mCRL2 89
+RTC assumption is thus significant, but run-time increases
+for the symbolic tools.
+We were able to prove the presence of certain (unwanted)
+traces in both versions A and B by placing a monitor pro-
+cess in parallel with the mCRL2 translation of Micro. Themonitor deadlocks the process in case a certain ﬁnite trace,representing the violation of a safety property, is present. The
+deadlock detection functionality of LTSmin was used to pro-
+duce a trace. The trace shows that when the entry signal s
+1
+has been set to show proceed, the system may command the
+point p1to move before it sets s1to show stop, thus risking the
+derailment of a train passing over p1. However, we point out
+that the Micro model is merely intended to illustrate the type
+of xUML model constructs that are used in the modelling of
+interlockings, and it is not claimed to be a safe interlockingspeciﬁcation. Our main point is that some of these traces can-not be observed in the Cassandra/xUML simulator, because
+it uses a stronger RTC assumption (atomic and global RTC)
+than our versions A (local RTC) and B (local and globalRTC).
+6 Related work
+There is extensive work on the formalisation of executable
+UML, and in particular, UML state machines, for the purposeof carrying out formal veriﬁcation [ 1,7,9,13,20]. Translation
+of xUML into a process algebraic language occurs in [ 19,22].
+More references can be found in [ 7] and in the survey article
+[18].
+In all aforementioned work, translation focuses on com-
+posite and concurrent states, history pseudo-states, (conﬂict-
+ing) transitions and the action language. We were not able tolocate any research that includes the formalisation of change
+events. The reason for this could be that change events are
+considered a problematic construct due to their underspeci-ﬁed semantics. An indication hereof is given by the fact that
+the “foundational subset for xUML” (fUML) [ 16] forbids the
+use of change events. Nonetheless, we want to include changeevents, as they are an essential ingredient of the interlockingspeciﬁcations provided to us. Consequently, we cannot (com-
+pletely) base our work on the formally better speciﬁed fUML.
+Formal methods have been widely applied in the veriﬁ-
+cation of interlockings. The work can be divided into two
+categories: veriﬁcation of concrete interlockings (see, e.g.,
+[11,6,10]) and veriﬁcation of more high-level interlocking
+speciﬁcations (see, e.g., [ 21,8]), as in our case.
+7 Conclusion
+We have presented a translation of a subset of xUML into the
+process algebra mCRL2. Each of the elements of the xUMLsubset is translated into a very simple mCRL2 construct,with the translation of the change events being the most
+complicated. Given the simplicity of the mCRL2 constructs,we expect that our translation can be automated without too
+much trouble. In fact, work on this automatic translation from
+xUML (in the form of XMI ﬁles) to mCRL2 has alreadybegun.
+Future work includes extending our translation to further
+constructs that occur in larger xUML interlocking models
+provided to us. These constructs include transition guards andcall events (synchronous communication), which we expect
+are easily added. In fact, we expect that our translation can
+also easily be extended to include history and ﬁnal pseudo-states, and even any chosen action language, bar operations
+like object creation and destruction. These last operations
+would correspond to on-the-ﬂy process creation and destruc-tion which are not possible in mCRL2. Other future workincludes deﬁning a formal semantics of xUML interlocking
+models, and proving the correctness of our translation with
+respect to this semantics.
+Our ﬁrst steps towards verifying safety properties of
+xUML interlocking speciﬁcations have demonstrated the fol-
+lowing:
+– The fairness and safety properties of an interlocking sys-
+tem may depend crucially on the run-to-completion
+(RTC) assumption employed in the implementation. Ver-iﬁcation should therefore be relative to a particular choice
+of RTC.
+– Even for small xUML models, such as our toy speciﬁ-
+cation, the state space can be enormous. Still the sym-
+bolic model checker seems to be able to deal quite well
+with the mCRL2 translations obtained from the toy spec-iﬁcation. However, in order to verify real interlockingspeciﬁcations, we expect it will be necessary to come up
+with speciﬁc abstraction and decomposition techniques,
+as well as reduce the number of event orderings, eitherin a generic way (partial-order reduction) or specifically
+(by using different RTC assumptions).
+Acknowledgments This research is partially funded by the European
+Comission (EC), as a grant to the FP7 project INESS, grant agreementno. 218575. Any opinions, ﬁndings and conclusions or recommenda-tions expressed in this material are those of the authors and do notnecessarily reﬂect the views of either the EC or the INESS consortium.
+Open Access This article is distributed under the terms of the Creative
+Commons Attribution Noncommercial License which permits anynoncommercial use, distribution, and reproduction in any medium,provided the original author(s) and source are credited.
+References
+1. Alur R, Yannakakis M (2001) Model checking of hierarchical state
+machines. ACM Trans Program Lang Syst 23(3):273–303
+123
+
+--- Page 8 ---
+90 H. H. Hansen et al.
+2. Baier C, Katoen J-P (2008) Principles of model checking. The MIT
+Press, New York
+3. Bergstra JA, Klop JW (1984) Process algebra for synchronous
+communicati. Inf Control 60(1–3):109–137
+4. Blom S, van de Pol J (2008) Symbolic reachability for process
+algebras with recursive data types. In: Proceedings on theoreticalaspects of computing (ICTAC 2008). Lecture Notes in ComputerScience, vol 5160. Springer, Berlin, pp 81–95
+5. Blom SCC, van de Pol JC, Weber M (2009) Bridging the gap
+between enumerative and symbolic model checkers. TechnicalReport TR-CTIT-09-30, CTIT, University of Twente, Enschede
+6. Cimatti A, Giunchiglia F, Mongardi G, Romano D, Torielli F,
+Traverso P (1998) Formal veriﬁcation of a railway interlockingsystem using model checking. Formal Aspects Comput 10(4):361–380
+7. Damm W, Josko B, Pnueli A, V otintseva A (2005) A discrete-time
+UML semantics for concurrency and communication in safety-crit-ical applications. Sci Comput Program 55:81–155
+8. Eriksson L-H (1996) Specifying railway interlocking requirements
+for practical use. In: Proceedings of the 15th international confer-ence on computer safety, reliability and security (SAFECOMP’96).Springer, Berlin
+9. Xie F, Levin V , Browne J (2001) Model checking for an execut-
+able subset of UML. In: 16th IEEE international conference onautomated software engineering (ASE 2001), pp 333–336
+10. Fokkink W (1996) Safety criteria for the vital processor inter-
+locking at Hoorn-Kersenboogerd. In: 5th conference on comput-ers in railways (COMPRAIL’96). V olume I: railway systems andmanagement
+11. Gnesi S, Latella D, Lenzini G, Abbaneo C, Amendola AM, Marmo
+P (2000) An automatic SPIN validation of a safety critical rail-way control system. In: Proceedings of the 2000 internationalconference on dependable systems and networks. IEEE ComputerSociety, Washington, DC, pp 119–12412. Groote JF, Mathijssen A, Reniers MA, Usenko YS, van
+Weerdenburg M (2007) The formal speciﬁcation language mCRL2.In: Proceedings of methods for modelling software systems,Dagstuhl seminar proceedings, vol 06351
+13. Hu Z, Shatz SM (2006) Explicit modeling of semantics associated
+with composite states in UML statecharts. J Autom Softw Eng13(4):423–467
+14. KnowGravity (2008) Cassandra/xUML user’s guide. http://www.
+knowgravity.com/eng/value/cassandra.htm
+15. Mellor SJ, Balcer M (2002) Executable UML: a foundation for
+model-driven architecture. Addison Wesley, Reading
+16. Object Management Group (2008) Semantics of a foundational
+subset for executable UML models. http://www.omg.org/spec/
+FUML/1.0/Beta1/PDF/ . Accessed Nov 2008
+17. Object Management Group (2009) OMG uniﬁed modeling lan-
+guage superstructure version 2.2. http://www.omg.org/spec/UML/
+2.2/Superstructure/PDF/ . Accessed Feb 2009
+18. Purandar B, Ramesh S (2004) Model checking of statechart
+models: survey and research directions. http://arxiv.org/abs/cs.SE/
+0407038 . Accessed July 2004
+19. Turner E, Treharne H, Schneider S, Evans N (2008) Automatic
+generation of CSP /bardblB skeletons from xUML models. In: Proc. of
+Theoretical Aspects of Computing (ICTAC 2008), pp. 364–379
+20. von der Beeck M (2001) Formalization of UML-statecharts. In:
+Proceedings UML 2001. Lecture Notes in Computer Science,vol 2185. Springer, Berlin, pp 406–421
+21. Winter K, Robinson NJ (2003) Modelling large railway interloc-
+kings and model checking small ones. In: ACSC ’03: Proceedingsof the 26th Australasian computer science conference, pp 309–316.Australian Computer Society, Inc.
+22. Yeung WL, Leung KRPH, Wang J, Dong W (2005) Improvements
+towards formalizing UML state diagrams in CSP. In: Proceedingsof the 12th Asia-Paciﬁc software engineering conference (APSEC2005). IEEE Computer Society
+123

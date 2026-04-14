@@ -1,0 +1,776 @@
+--- Page 1 ---
+Citation: da Silva, M.T.; Bitarães,
+S.M.; Yamashita, A.S.; Torre, M.P .;
+Moreira, V .d.S.; Euzébio, T.A.M.
+Centralized Finite State Machine
+Control to Increase the Production
+Rate in a Crusher Circuit. Energies
+2024 ,17, 3374. https://doi.org/
+10.3390/en17143374
+Academic Editor: Oscar Barambones
+Received: 15 May 2024
+Revised: 21 June 2024
+Accepted: 28 June 2024
+Published: 9 July 2024
+Copyright: © 2024 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+energies
+Article
+Centralized Finite State Machine Control to Increase the
+Production Rate in a Crusher Circuit
+Moisés T. da Silva1
+, Santino M. Bitarães2, Andre S. Yamashita3, Marcos P . Torre4, Vincius da S. Moreira4
+and Thiago A. M. Euzébio5,6,*
+1Unidade Acadêmica de Belo Jardim, Universidade Federal Rural de Pernambuco,
+Belo Jardim 55150-000, PE, Brazil; moises.tavares@ufrpe.br
+2Projetos Gerenciamento e Engenharia—PROGEN, São Paulo 01219-010, SP , Brazil; c0628991@vale.com
+3Control Engineering Group, Department of Computer Science, Electrical and Space Engineering, Luleå
+University of Technology, 971 87 Luleå, Sweden; andre.yamashita@ltu.se
+4Vale S.A., Rio de Janeiro 22250-145, RJ, Brazil; marcos.torre@vale.com (M.P .T.);
+vinicius.silva.moreira@vale.com (V .d.S.M.)
+5Helmholtz-Zentrum Dresden-Rossendorf, Institute of Fluid Dynamics, 01328 Dresden, Germany
+6Virtus-CC, Campina Grande 58429-900, PB, Brazil
+*Correspondence: t.melo-euzebio@hzdr.de
+Abstract: Crushing is a critical operation in mineral processing, and its efﬁcient performance is vital
+for minimizing energy consumption, maximizing productivity, and maintaining product quality.
+However, due to variations in feed material characteristics and safety constraints, achieving the
+intended circuit performance can be challenging. In this study, a centralized control strategy based
+on a ﬁnite state machine (FSM) is developed to improve the operations of an iron ore crushing circuit.
+The aim is to increase productivity by manipulating the closed-side-setting (CSS) of cone crushers
+and the speed of an apron feeder while considering intermediate storage silo levels and cone crusher
+power limits, as well as product quality. A dynamic simulation was conducted to compare the
+proposed control strategy with the usual practice of setting CSS to a constant value. Four scenarios
+were analyzed based on variations in bond work index (BWI) and particle size distribution. The
+simulation results demonstrate that the proposed control strategy increased average productivity
+by 6.88% and 48.77% when compared to the operation with a constant CSS of 38 mm and 41 mm,
+respectively. The proposed strategy resulted in smoother oscillation without interlocking, and it
+maintained constant ﬂow rates. This ultimately improved circuit reliability and predictability, leading
+to reduced maintenance costs.
+Keywords: crushing circuit; iron ore; multivariable control; process control; ﬁnite state machine
+1. Introduction
+Crushing circuits—comprising storage silos, conveyor belts, screens, feeders, and
+crushers—are responsible for reducing the particle size of rocks to either become a ﬁnal
+product (observed in the aggregates industry and in some mineral processing plants) or to
+prepare it for further processing in grinding and ﬂotation circuits (observed in most mineral
+processing plants). The control problem of a crushing circuit is not trivial due to long time
+delays and nonlinearities from the plant and the effect of unmeasured disturbances from
+upstream stages [ 1,2]. The importance of the crushing circuit, from both the industrial
+and academic perspectives, is evident from the number of publications addressing one or
+multiple issues of its proper operation [ 3]. For example, Refs. [ 4–7] focused on the modeling
+and control of the cone crusher, while Refs. [ 8,9] developed discrete element method (DEM)-
+based simulations to better understand the ﬁrst principles behind the comminution stages
+in the cone crusher. Ref. [ 10] showed how the layout of a crushing plant inﬂuences the
+circuit performance from a qualitative perspective, and [ 11–18] proposed different control
+strategies to optimize various operating aspects of the crushing circuit.
+Energies 2024 ,17, 3374. https://doi.org/10.3390/en17143374 https://www.mdpi.com/journal/energies
+
+--- Page 2 ---
+Energies 2024 ,17, 3374 2 of 17
+Among the many proposed control approaches, strategies based on expert systems
+stand out, since in general, these strategies are not computationally demanding and are
+simple for plant operators to understand and accept [ 19]. In this sense, Ref. [ 14] presented
+a control approach for a crushing circuit based on an expert system for the plant start-up
+phase, throughput setpoint change, and operation under power constraint cases. The
+strategy is compared to a proportional–integral–derivative (PID) control strategy in which
+the speeds of the feeder and conveyor belts in the crushing circuit are adjusted to control
+recirculating ﬂowrates, power consumption in the crusher and feed chamber hold-up in the
+crusher. Experimental results showed that the expert system could drive the throughput
+to its setpoint faster than could the PID strategy, both in plant start-up and throughput
+setpoint change scenarios. For a crushing circuit in a copper plant, Ref. [ 19] implemented
+an expert system to increase throughput, reduce variability, and reduce plant stops. The
+main manipulated variable was the feeder speed in the secondary and tertiary crushing
+circuits. To evaluate the proposed control strategy, the amount of material processed in
+the plant and the number of plant stops were measured during operation in manual mode
+and with the expert system. The expert system increased the circuit processing capacity
+by2.1% and decreased the number of plant stops by 55%. In contrast, Ref. [ 1] proposed
+a hierarchical control strategy for crushing circuits. The outer control strategy considers
+the mass balance of the crushing circuit, modeled as a single storage unit, allowing for
+maximum utilization of the circuit capacity by maximizing the feed rate. The simpliﬁed
+outer model is an integrating transfer function with time delay and ignores the complex
+interactions and nonlinearities of the crushing plant. The inner control loops, comprising
+mass ﬂow and level control loops, are responsible for guaranteeing equipment integrity.
+The control strategy was tested in an aggregates plant, resulting in stable operation and
+fast rejection of disturbances in the feed rate. In the same vein, Ref. [ 16] reported the
+implementation of a hierarchical control structure in a crushing circuit. The basic layer
+consists of PID and interlock sequences to guarantee that the plant operates within safety
+levels and to enforce the setpoints provided by the upper control layers. A supervisor layer
+based on a 75-rule fuzzy expert system allows for decoupling nonlinear process variables.
+Finally, an optimizing MPC layer tries to minimize the speciﬁc energy consumption of the
+plant, guaranteeing that the throughput is kept above its minimum threshold. Other goals
+of the control strategy are to calculate optimal bin levels to reduce plant interlocks, enforce
+the maximum utilization of the capacity of the plant, and address the effect of disturbances
+in the feed properties. The authors reported that the MPC strategy is responsible for an
+increase of 9%in plant throughput but reinforced that the improvement would not be
+achieved without effective base control layers.
+Alternatively, Ref. [ 17] implemented an FSM in an aggregate crushing circuit. The
+CSS of the crusher is adjusted based on the performance of the crushing circuit, measured
+in terms of product throughput. The algorithm has a momentum term, in which past
+derivatives of the performance with respect to the CSS are also considered in the CSS
+control rule. The crusher operating at the plant is an Allis Chalmers 3600Hydrocone
+equipped with a controller, called ASRc, that increases the CSS if the hydraulic pressure
+in the crushing chamber is too high. The proposed algorithm was compared to a ﬁxed
+CSS in 45 min intervals over 3 months of operation. The authors reported a 3.5% increase
+in the performance at a 3%signiﬁcance level and argued that the particular circuit has a
+high reduction ratio; thus, the ASRc controller often has to limit the CSS values due to high
+hydraulic pressure. This somehow capped the potential of the proposed algorithm. Similar
+work was reported by the same authors on the dynamic optimization of crushing circuits
+in a series of publications culminating in [ 18], in which an evolutionary operation (EVOP)
+algorithm was proposed for the eccentric speed control of a cone crusher in a crushing
+circuit, aiming to optimize the performance of the circuit in terms of product throughput.
+In this paper, a centralized control strategy is proposed to increase the product through-
+put of a crushing circuit. For this scenario, an FSM controls the efﬁciency of the crushing
+circuit, manipulating the CSS of the crusher and the speed of the feeder that extracts mate-
+
+--- Page 3 ---
+Energies 2024 ,17, 3374 3 of 17
+rial from a buffer silo located after the crusher and before the screens. A preliminary study
+evaluated performance results for different operating points and the admissible ranges of
+the CSS. This analysis indicates an inverse relationship between the product throughput
+and the quality of the crushed material. Thus, the FSM algorithm tries to keep the operating
+CSS at its minimum value ( 35mm) for as long as possible, taking into account safety aspects
+of the operation with respect to the levels of the storage silos and the power consumption of
+the crusher, regardless of the feed ore composition. If the raw material has ore with a higher
+hardness index, the CSS is increased to ensure that constraints on power consumption and
+pressure in the crusher are respected (to reduce the number of plant stops) at the expense
+of increasing the recirculating load and decreasing the product throughput.
+To investigate the performance of the proposed control strategy, a crushing circuit
+model is simulated using commercially available dynamic simulation software (IDEAS®).
+The simulated crushing circuit was validated using operational data collected from the
+Serra Leste iron plant, operated by Vale S.A. in Brazil. The case study presented here
+showcases a typical crushing circuit from mineral processing plants, and by considering
+buffer silos levels before and after the crusher, it is possible to create additional degrees of
+freedom for the control problem. In addition, the comprehensive simulation bed allows
+for the investigation of the performance of the crushing circuit under disturbances in feed
+hardness, size distribution, and ﬂowrate. The proposed control strategy is compared to a
+ﬁxed CSS setting, and the simulated results show that, in some cases, it can increase the
+throughput of product from 438.65 t/h to 675.31 t/h, corresponding to an improvement of
+53.95% . This increase in product throughput is a consequence of the reduction in variability
+and the number of plant stops.
+The selection of the proposed control strategy based on FSM is primarily attributed to
+its simplicity, in terms of both its development and maintenance. Mining plants are often
+situated in remote areas, which poses a challenge in terms of hiring and keeping trained
+personnel [ 20,21]. Consequently, the design and maintenance of sophisticated control
+strategies, such as hybrid model predictive control, adaptive control, and neuro-fuzzy,
+are often difﬁcult to implement and maintain. Therefore, many mining plants worldwide
+continue to require uncomplicated control strategies capable of enhancing productivity in
+such settings.
+The main contributions of this study are as follows: First, it proposes a centralized
+controller for a sector of a crushing circuit (feeding–screening–crushing) to enhance pro-
+duction by maximizing the operational time of the process without reaching interlocks.
+Second, the paper introduces a novel approach by employing silos levels, crusher CSS,
+and screen feed ﬂow rate as manipulated variables for the controller. Third, the proposed
+controller is evaluated using a realistic crushing circuit model and long-term data obtained
+from an iron ore plant, providing evidence of its effectiveness in practical applications.
+Lastly, the paper provides a set of recommended steps for tuning the parameters of the
+FSM used in the proposed controller, thereby facilitating its implementation in other similar
+contexts. Overall, this paper presents a comprehensive approach to improving crushing
+circuit operations and provides valuable insights into the design, implementation, and
+evaluation of centralized control strategies in the mining industry.
+This paper is organized as follows: In Section 2, the crushing circuit is described.
+In Section 3, the control problem of the crushing circuit under study is discussed. The
+application of the proposed control strategy to the crushing circuit is presented in Section 4.
+The results attained using the proposed control strategy are presented in Section 5. Finally,
+in Section 6, the conclusions are discussed.
+2. Crushing Circuit Flowsheet Description
+Figure 1 shows the crushing circuit from the Serra Leste iron mine addressed in this
+work. The mine is operated by Vale S.A. in Brazil and produces approximately 6million
+tonnes of iron ore per year. The cone crusher (CC) is fed to the circuit on the same conveyor
+belt (CB1) that carries the crushed material from the cone crusher (CC). The maximum
+
+--- Page 4 ---
+Energies 2024 ,17, 3374 4 of 17
+capacity of CB1 is 2094 t/h. The raw material comes from a primary crushing/screening
+circuit at around P80=125mm, and the CSS of CC is a manipulated variable of the circuit
+and can take values of 35, 38, or 41 mm.
+Figure 1. Flow chart of the crushing circuit at Serra Leste.
+The mixed material stream is carried to buffer silos (BS1). The material in BS1 is fed
+to the screening circuit (SC) by two apron feeders (AF1a, AF1b). AF1 has a total capacity
+of1959 t/h, and the speed is adjusted by a PI controller (PI SC) that tries to keep the level
+of BS1 at 80%. The undersize of SC with a size cut of 45mm is the ﬁnal product of this
+crushing circuit and is carried to downstream processing stages by a conveyor belt (CB2)
+with a maximum capacity of 718t/h. The oversize of SC is carried to another buffer silo
+(BS2) by two conveyor belts: CB3 and CB4, both with a maximum capacity of 2133 t/h.
+Then, the material in BS2 is fed to CC by an apron feeder (AF2). The speed of AF2 is also
+adjusted by a PI controller (PI CC) that tries to keep the level of material inside the CC at
+70%. The purpose of manipulating AF2 is just to keep the crusher chamber level at the
+appropriate value. In this way, the crusher works efﬁciently.
+The raw material coming from the upstream process can vary in quantity, hardness,
+particle size distribution and moisture level. These factors are treated as disturbances in
+the control problem, as explained in Section 3. The goal of the crushing circuit is to deliver
+as much product as possible at P8045 mm.
+The interlock rules are summarized in Table 1. These interlocking conditions are
+deﬁned by plant specialists and are implemented to guarantee operational safety and
+equipment integrity. The wide range between interlock and recovery conditions is deﬁned
+to ensure a consistent return to regular operation, i.e., avoid further triggering of interlocks
+in sequence. Without this range, a new interlock may occur shortly after the recovery of
+the regular condition, resulting in the unstable behavior of the plant and greater wear of
+the equipment.
+Table 1. Interlocks of the Serra Leste crushing circuit.
+Interlock Condition Action Goal Recovery Condition
+1 Level of BS2 above 95% Shut down AF1, CB3, CB4 Prevent overﬂow in BS2 Level of BS2 below 70%
+2 Level of BS2 below 10% Shut down AF2 Avoid loading damage in BS2 Level of BS2 above 20%
+3 Level of BS1 above 90% Shut down CB4, CB3, RAW Prevent overﬂow in BS1 Level of BS1 below 60%
+4 Level of BS1 below 10% Shut down AF1 Avoid loading damage in BS1 Level of BS1 above 20%
+5 Load of CB3 above 2133 t/h Shut down AF1 Avoid overloading CB3 Load of CB3 below 2133 t/h
+6 Load of CB2 above 718 t/h Shut down AF1 Avoid overloading CB2 Load of CB2 below 718 t/h
+
+--- Page 5 ---
+Energies 2024 ,17, 3374 5 of 17
+3. Problem Description
+The purpose of the crushing circuit control system presented here is to increase
+the product throughput while ensuring that all equipment operates within safety levels,
+according to the interlocking rules listed in Table 1. Furthermore, the product must meet
+quality speciﬁcations. However, in a run-of-mine mineral processing plant, the composition
+of the feed ore changes regularly and the characteristics of the feed ore, such as ore hardness
+and particle size distribution, vary. In addition, for complex crushing circuits, stability and
+good performance may be difﬁcult to achieve, as the circuit may have multiple parallel
+ﬂows, re-circulation mass, large time delays, partial integration of different stages and
+coupling between control variables [ 22]. Thus, the crushing circuit is challenging to operate
+manually due to complex process behavior and various unknown disturbances. The control
+objective can be summarized as being to increase production in a holistic way by increasing
+the product throughput when the plant is operating and by reducing the time in which the
+plant is not operating because of an interlock event.
+In the control strategy currently implemented at Serra Leste iron mine, hereafter
+addressed as MANUAL, the control loops for the feed section and the screening section
+are implemented in a non-integrated manner, following the safety recommendation from
+the interlock rules presented in Table 1. Such interlocks have a double-edged effect on
+production: on one hand, they ensure safe operation (by shutting down the plant before
+any accident), but on the other hand, they cause undesired plant stops that might halt
+production for a long time. Note that the MANUAL control strategy does not consider
+interactions between different sections of the circuit. In the absence of an integrated control
+system, the plant operator is responsible for choosing the proper operating conditions for
+the crushing circuit equipment. Thus, manual operation of the crushing circuit to enforce
+operation constraints and increase product throughput (and consequently the economic
+proﬁt) requires extensive knowledge of the process behavior and frequent monitoring to
+compensate for disturbances.
+The problem of the crushing circuit under study is that the MANUAL control system,
+in addition to disturbances in the properties of the raw material, can lead the operation to
+dangerous and unwanted conditions, such as when the energy consumption in the cone
+crusher is too high or when one of the buffer silos is about to overﬂow with material. Such
+dangerous and unwanted operating conditions in the MANUAL control strategy often
+lead to interlock events (when any of the operating constraints in Table 1 are violated).
+Equipment interlock leads in turn to plant shutdown, which reduces productivity and,
+therefore, the efﬁciency of the crushing circuit. To overcome the problems described, there
+are additional degrees of freedom available that allow for integrated operation of the
+control system. In this sense, the proposed control strategy uses the buffer silos before and
+after the cone crusher together with the apron feeder for the screening section. In addition,
+the proposed control strategy seeks to increase product throughput by keeping the CSS at
+its lowest setting (35 mm) for as long as possible.
+4. Development of the Centralized Control System
+In this section, control objectives are deﬁned to increase the product throughput of the
+crushing circuit. Then, the proposed centralized control system algorithm is presented.
+As described in Section 3, the MANUAL control strategy of the crushing system at the
+Serra Leste plant is non-integrated, which means that the controllers do not consider the
+interactions between the different parts of the process. Most of the time, the ﬁxed value for
+the CSS of the cone crushers is deﬁned by the operator depending on the characteristics of
+the ore that is fed into the circuit. However, both the quality and size distribution of the
+feed material change over time.
+4.1. Deﬁnition of Control Objectives
+The main objective of the crushing circuit control system proposed in this study is
+to increase the product throughput, which means producing the largest possible amount
+
+--- Page 6 ---
+Energies 2024 ,17, 3374 6 of 17
+of product with granulometry below 45mm. The highest productivity of the Serra Leste
+crushing circuit is obtained with the cone crushers operating with a CSS equal to 35mm as
+long as possible. The reason for this can be understood from the observation of the passing
+size distribution (PSD) for the crusher with different CSS values, shown in Figure 2. Note
+that for a CSS equal to 35mm, the cumulative pass of material at the crusher output is
+higher when compared to a CSS equal to 38and 41mm. Figure 3 illustrates the iron ore
+sampled at the crusher output with different CSS values. As a consequence of setting the
+CSS to 35mm, the recirculating load of the CB3 conveyor belt is smaller and, consequently,
+the amount of material that actually becomes product ( P8045mm) in CB2 is greater.
+Thus, the idea of the proposed control system is to set the CSS equal to 35mm for as long as
+possible regardless of the type of material that feeds the circuit and the operating conditions
+of the circuit. Therefore, the control strategy must make a series of changes to maintain
+these desired operating conditions without triggering the interlocks described in Table 1.
+Figure 2. Passing size distribution curves of crushed material for different CSS.
+(a) Feed material.
+ (b) CSS in 35 mm.
+ (c) CSS in 38 mm.
+ (d) CSS in 41 mm.
+Figure 3. Sampling of iron ore with different passing size distribution.
+4.2. Proposed Control Algorithms
+From the described control objectives, the FSM algorithm was introduced. A simple
+variant of the FSM called the Mealy machine is used, in which actions occur only at the
+entry of a state. The output of a state depends on the different conditions established for
+a given operating condition. Two FSM algorithms were developed: the ﬁrst FSM, shown
+in Figure 4, is used for operation in the event of interlocking in the crushing circuit; the
+second FSM, shown in Figure 5, is designed for regular operating conditions. Tables 2 and 3
+summarize the set of states, inputs, and outputs of the proposed control strategy. The
+following sections describe each FSM in detail.
+
+--- Page 7 ---
+Energies 2024 ,17, 3374 7 of 17
+Figure 4. The FSM used during interlock conditions.
+Figure 5. The FSM used during regular operating conditions.
+Table 2. Set of states of the proposed control strategy.
+States
+Number Condition
+Unsafe conditions1 CSS = 38 mm
+2 Regular operation
+3 Turn off circuit feed and set AF1 speed
+Regular operation2.1 Turn on circuit feed
+2.2 Decrease CSS
+2.3 Operate a while
+2.4 Increase CSS
+2.5 Decrease speed
+2.6 Increase speed
+
+--- Page 8 ---
+Energies 2024 ,17, 3374 8 of 17
+Table 3. Sets of inputs and outputs of the proposed control strategy.
+Inputs Outputs
+Unsafe conditionsPower crusher CSS
+Level BS1 AF1 speed
+Level BS2 Circuit feed
+Regular operationLevel BS1 CSS
+Level BS1 AF1 speed
+Capacity of conveyor belt CB1 Circuit feed
+Capacity of conveyor belt CB2
+Capacity of conveyor belt CB3
+AF1 speed
+4.2.1. The FSM Used in Case of Unsafe Conditions
+The FSM used in case of the unsafe operation of the crushing circuit equipment is
+illustrated in Figure 4. This FSM works similarly to a watchdog, which implies that in the
+event of undesired or unsafe operating conditions, actions are taken to minimize damage
+to the crushing circuit equipment. Thus, the condition to reach state 1 occurs if the crusher
+power reaches a value greater than 120kWh. Then, the CSS is set to 38mm, an intermediate
+value between 35 and 41 mm. State 1 is maintained as long as the crusher power has not
+decreased to the speciﬁed value. On the other hand, state 3 is reached when silos BS1 and
+BS2 exceed their acceptable levels. In this case, the speed of AF1 is set to 34% and new
+material feeding is disabled. In this way, the emptying of the silos is awaited to return
+the raw material feed. Note that interruption of raw material coming from the mine is
+undesirable, and this state should be avoided. The other variables of the crushing circuit
+are not changed.
+Note that the proposed control strategy allows the return to regular operation, deﬁned
+in state 2, only after the deﬁned time and the crusher power is less than 100kWh and/or
+when the BS1 and BS2 levels decrease to safe values.
+4.2.2. The FSM Used in the Case of Regular Conditions
+The FSM for regular crushing circuit operation is designed to keep the CSS at 35 mm
+as long as possible. However, keeping the CSS ﬁxed at 35mm for long periods of time
+could lead to interlocking due to increased levels of silos BS1 and/or BS2 or increased
+crusher power. As described in Section 2, the PI CCcontroller manipulates the speed of
+AF2 to keep the level inside CC at 70%. This controller does not consider the BS2 level
+or any other variable. Once the steady state of operation is reached, an increase in the
+BS2 level occurs due to the increase in the recirculated load. To overcome this problem,
+in the proposed control strategy, the speed of the feeder AF1 is manipulated and the silo
+BS1 works as a buffer. In addition, if the BS2 level continues to increase, the CSS must be
+increased. Thus, it is possible to reduce the BS2 level without stopping production. The
+FSM shown in Figure 5 implements these described operating conditions. Note that during
+regular operation, if the BS2 level is less than 70%, the “decrease CSS” state is reached
+(state 2.2). This state always decrements the CSS by 3mm. Thus, allowable CSS values
+for the crusher are 35,38, and 41mm. Then, depending on the level of BS1 and capacity
+of conveyor belts CB2 and CB3, it is possible to increase the speed of feeder AF1 by 10%
+(State 2.6). The purpose of this action is to increase the amount of product sent to the next
+stage of the crushing circuit. Always after an action, the control system reaches state 2.3
+operating for a while to wait for the effects of the actions taken.
+If the BS2 level increases above 70%, the speed of feeder AF1 is reduced by 10%
+(state 2.5). Thus, the amount of recirculated load is reduced and the circuit operates longer
+with the CSS at 35 mm. The purpose of this action is to avoid interlocking due to the high
+level of the BS2 silo.
+
+--- Page 9 ---
+Energies 2024 ,17, 3374 9 of 17
+The conditions to increase CSS (state 2.4) occur when the BS2 level is increasing and
+higher than 80%, CB2 and CB3 conveyor belts have capacity lower than 90%, and the BS1
+level is lower than 80%. The purpose of this action is to keep the circuit operating, even
+outside the desired operating condition, i.e., CSS equal to 35mm. Thus, the control waits
+for the crushing circuit to operate under conditions that allow reducing the CSS again.
+4.2.3. The FSM Tuning Procedure
+The procedure for tuning the FSM parameters aims to increase the productivity of
+the crushing circuit considering the trade-off between performance and robustness. These
+values are obtained based on the interlocking conditions described in Table 1 and observing
+the operating conditions of the plant by a multidisciplinary group of specialists.
+Initially, a group was established comprising representatives from various depart-
+ments, namely operation, control room, automation, maintenance, and process engineering,
+with the objective of tuning the parameters of the proposed FSM. Given the method’s
+inherent simplicity and the considerable expertise possessed by the participants, only
+three meetings sufﬁced to successfully accomplish this endeavor, resulting in a unani-
+mous consensus on the selected parameter values. In addition to the primary outcome
+of a ﬁnely tuned controller, ancillary beneﬁts emerged from this undertaking, including
+enhanced involvement of the team in the development process and the dissemination of a
+comprehensive understanding of the proposal to all key stakeholders within the mineral
+processing plant.
+The tuning procedure encompassed three primary stages. First, the range of feasible
+values for the manipulated variables was established. Subsequently, we addressed the
+stringent safety criteria that must be adhered to. Lastly, we accounted for the conveyors’
+and silos’ capacity limits in transitioning between states, aiming to enhance performance
+by increasing speed or reducing the CSS, or bolstering robustness by decreasing speed
+or increasing CSS. Consequently, the principal outcomes are systematically structured
+as follows:
+1. The allowable values for the CSS were predetermined to be 35, 38, and 41 mm, whereas
+the allowable range for the AF1 speed spanned from 20 to 100% in increments of 10%.
+These values were chosen considering both equipment limitations and the signiﬁcance
+of minor variations in the system.
+2. The hard safety requirement was deﬁned as the electrical power consumed by the
+crusher. This variable cannot surpass 120 kWh to avoid damage.
+3. The group deﬁned the limits for silo levels and conveyor capacities for state transitions
+so that an interlock would occur in roughly the next hour. In this way, we formulated
+the following question to guide us: What is the necessary silo/conveyor belt capacity to
+accommodate a ﬂow rate equal to the midpoint of the range plus 20%, while simultaneously
+maintaining the output ﬂow rate at the midpoint of the range? With this in mind, it follows
+that the answer lies in the required reminiscent capacity in the silo or conveyor
+belt to keep the circuit running without interlocking. These values are translated to
+simple inequalities in the FSM diagrams. Note that the system is dynamic, and those
+assumed stream rates of difﬁculty remain for an entire hour. Nevertheless, the group
+of specialists agree that the adopted assumption exhibits sufﬁcient conservatism for
+this speciﬁc circuit and holds practical utility in operational contexts.
+Throughout the specialist group meetings, draft FSM diagrams were consistently
+presented for examination, while historical data were also made available for consultation
+and analysis. The tuning outcomes were subsequently incorporated above the arrows repre-
+senting the transitions between states, subsequent to each technical discussion. Ultimately,
+complete diagrams were rendered and are displayed in Figures 4 and 5. It is essential to
+emphasize that the objective of this approach does not lie in ﬁnding an optimal solution.
+Instead, the focal requirements encompass simplicity and the involvement of numerous
+employees, thereby maximizing the probability of long-term success for the controller.
+
+--- Page 10 ---
+Energies 2024 ,17, 3374 10 of 17
+5. Results and Discussion
+In this section, the results obtained with the proposed control strategy based on the
+FSM are presented and compared with ﬁxed CSS operation. The crushing circuit model of
+Serra Leste is simulated using the dynamic simulation software IDEAS®.
+Four scenarios were simulated according to constant feed throughput set at 600t/h,
+different d80of iron ore and ﬁxed or dynamic bond ore work index (BWI). The constant
+value of 600t/h represents the usual operating value of the feed throughput of the crushing
+circuit under study. These operating conditions are deﬁned as the input of the crushing
+circuit simulator, i.e., the material that comes from the mine and feeds the feeding hopper;
+see Figure 1.
+The BWI index is used to indicate the hardness of the iron ore fed into the crushing
+circuit. Different methods are proposed in the literature with the aim of calculating the
+BWI in several scenarios [ 23]. According to [ 24], empirical methods that allow a direct
+calculation of BWI using a simple procedure are often more suitable for application to
+plants. For scenarios with a ﬁxed BWI, its value is equal to ﬁve, which consists of the
+average BWI of the ore fed into the circuit obtained from laboratory tests. On the other
+hand, the dynamic value of the BWI is deﬁned from the lower and upper limits of a set
+of ore samples from the crushing circuit. In this case, from historical data, a sinusoidal
+function is deﬁned with a frequency of 0.0001 rad/s. Thus, the dynamic value of the BWI
+presents a slow and gradual variation in hardness similar to the characteristics of the iron
+ore fed into the crushing circuit of the Serra Leste processing plant. Hence, the following
+sinusoidal function is used:
+BWI (t) =7.5+2.5sin(0.0001 t). (1)
+The following scenarios are considered:
+• Scenario 1: d80=121.96 mm and ﬁxed BWI;
+• Scenario 2: d80=87.76 mm and ﬁxed BWI;
+• Scenario 3: d80=121.96 mm and dynamic BWI;
+• Scenario 4: d80=87.76 mm and dynamic BWI.
+5.1. Simulation Environment
+The crushing circuit simulator is conﬁgured according to the process parameters and
+capabilities of each of the pieces of equipment that make up the crushing circuit of Serra
+Leste. The conveyor belts, apron feeders, silos, screens and cone crusher (Metso HP400,
+Espoo, Finland) were modeled using the default blocks from IDEAS®, and parameters such
+as belt length and screening efﬁciency were set to closely represent the actual crushing
+circuit.
+The centralized control system based on the FSM was implemented in Simulink®. The
+developed FSM algorithm is integrated with the crushing circuit simulator via an OPC
+(Open Platform Communications) server. In this framework, the OPC works as a bridge
+between IDEAS®and Simulink®. The OPC client uses the OPC server to obtain data from
+or send commands to the simulator in a sampling time of 1second. Figure 6 illustrates the
+framework of the control system with crushing circuit simulator.
+Figure 6. Schematic diagram of the integration of the Serra Leste circuit simulator and proposed
+control strategy.
+
+--- Page 11 ---
+Energies 2024 ,17, 3374 11 of 17
+5.2. Simulation Results
+For all scenarios considered, the simulation time is equal to four hours. This value
+is deﬁned according to the dynamics of the crushing circuit to evaluate the steady-state
+response in different scenarios. The results obtained with the proposed approach are
+compared with the CSS ﬁxed operation, which is the usual practice for operating the cone
+crusher in Serra Leste.
+The simulation always starts with the silo level at 50% and all conveyor belts, feeders
+and crushers empty. This initial crushing circuit condition is chosen to evaluate the transient
+response of the proposed control system during scenarios such as plant startup or return
+from an interlock condition. Also, for both decreasing and increasing, the CSS variation is
+3 mm. The speed of AF1, whether decreasing or increasing, is always changed by 10% of
+the current value. The parameters of the FSM algorithms are set as described in Section 4.2.3
+to achieve the maximum product throughput. Furthermore, the same set of parameters is
+considered independent of the evaluated scenario.
+Table 4 summarizes the results obtained with the proposed control strategy for all
+scenarios. The lower speciﬁc consumption obtained with the proposed strategy indicates
+the greater operational efﬁciency of the crushing circuit. The performance of the crushing
+circuit is evaluated based on the average value of the product throughput, which translates
+into the average value of the passing product rate on the conveyor belt (CB2) over the
+simulation time. Figure 7 shows the average value of the product throughput obtained in
+all scenarios. Note that with the proposed control strategy, in all scenarios, an increase in
+product throughput is obtained when compared to non-integrated operation and ﬁxed CSS.
+Among the simulated scenarios, the third ( d80=121.96 mm and dynamic BWI) is
+chosen for the discussion, in detail, of the results obtained with the proposed control
+strategy from the dynamics of the main variables of the crushing circuit. Figure 8 shows
+the levels of silos BS1 and BS2 in scenario 3. Note that for a ﬁxed CSS, there is always a BS2
+level interlock triggering, and the time this interlock occurs depends on the CSS value. For
+a CSS equal to 35 mm, the BS2 interlock occurs later than the operation with CSS at 41 mm
+because in the case of 35 mm, the amount of recirculated material is smaller, that is, more
+product passes through the screening circuit.
+1 2 3 4
+Scenario0100200300400500600700800900Average value of the passing screen (t/h)CSS=35 mm
+CSS=38 mm
+CSS=41 mm
+Proposed
+Figure 7. Production throughput performance in different scenarios.
+
+--- Page 12 ---
+Energies 2024 ,17, 3374 12 of 17
+Table 4. Average value of passing material in secondary crushing screens for ﬁxed CSS values and
+proposed control strategy.
+Scenario CSSAverage Valute of
+Passing Product
+Conveyor Belt (t/h)Speciﬁc
+Consumption
+of CC (kWh/t)
+135 615.92 0.1416
+38 532.52 0.1479
+41 438.65 0.1523
+Proposed 673.25 0.1174
+235 657.42 0.0922
+38 494.62 0.1009
+41 399.75 0.1017
+Proposed 675.31 0.0912
+335 616.09 0.1416
+38 537.17 0.1481
+41 442.6 0.1512
+Proposed 658.48 0.1179
+435 657.44 0.0921
+38 494.35 0.1012
+41 399.85 0.1017
+Proposed 673.91 0.0916
+0 0.5 1 1.5 2 2.5 3 3.5 450607080
+CSS=35
+0 0.5 1 1.5 2 2.5 3 3.5 450607080
+CSS=38
+0 0.5 1 1.5 2 2.5 3 3.5 450607080
+CSS=41
+0 0.5 1 1.5 2 2.5 3 3.5 4
+Time (h)50100Level BS1 (%)
+Proposed
+(a) Level of buffer silo (BS1).
+0 0.5 1 1.5 2 2.5 3 3.5 4050100
+CSS=35
+0 0.5 1 1.5 2 2.5 3 3.5 4050100
+CSS=38
+0 0.5 1 1.5 2 2.5 3 3.5 4050100
+CSS=41
+0 0.5 1 1.5 2 2.5 3 3.5 4
+Time (h)050100Level BS2 (%)
+Proposed (b) Level of buffer silo (BS2).
+Figure 8. Levels of silos for scenario 3.
+For operation with a ﬁxed CSS, the feeder speed is set only from silo-level BS1. There-
+fore, the apron feeder speed (AF1) continues to increase in an attempt to bring the level
+to its setpoint (see Figure 9). However, due to the interlocking of the buffer silo BS2 for a
+level above 90%, AF1, CB3 and CB4 are turned off (see Table 1). In this way, as shown in
+Figure 8a, there is high variation between 50 and 75% in the BS1 level due to the interlocks
+caused by the BS2 level. In contrast, for the proposed control strategy, there is no interlock-
+ing of the BS2 level; consequently, the amount of ore that becomes product is greater than
+that in the operation with a ﬁxed CSS. For the proposed control, also note that the variation
+of the BS1 level actually acts as a buffer, that is, this level varies smoothly throughout the
+operation of the crushing circuit. This result is obtained by changing the feeder speed AF1,
+as shown in Figure 9.
+Also for scenario 3, Figure 10 shows the recirculated load in CB3 and passing product
+in CB2. According to Table 1, in the event of level interlock in silo BS2, conveyor belts CB2
+and CB3 must be turned off. Since several interlocks occur in the operation with a ﬁxed
+CSS, CB2 and CB3 are turned off. In this case, less material becomes product, which directly
+impacts the productivity of the crushing circuit. On the other hand, for the proposed
+
+--- Page 13 ---
+Energies 2024 ,17, 3374 13 of 17
+control strategy, there is continuity in the operation of the CB2 and CB3 conveyor belts,
+which results in a higher product throughput.
+0 0.5 1 1.5 2 2.5 3 3.5 4
+Time (h)0102030405060708090100Speed AF1 (%)
+CSS=35
+CSS=38
+CSS=41
+Proposed
+Figure 9. Speed of feeder AF1 in Scenario 3.
+0 0.5 1 1.5 2 2.5 3 3.5 4010002000
+CSS=35
+0 0.5 1 1.5 2 2.5 3 3.5 4010002000
+CSS=38
+0 0.5 1 1.5 2 2.5 3 3.5 4010002000
+CSS=41
+0 0.5 1 1.5 2 2.5 3 3.5 4
+Time (h)010002000Recirculated load - CB3 (t/h)
+Proposed
+(a) Recirculated load (conveyor belt 3).
+0 0.5 1 1.5 2 2.5 3 3.5 405001000
+CSS=35
+0 0.5 1 1.5 2 2.5 3 3.5 405001000
+CSS=38
+0 0.5 1 1.5 2 2.5 3 3.5 405001000
+CSS=41
+0 0.5 1 1.5 2 2.5 3 3.5 4
+Time (h)05001000Passing product - CB2 (t/h)
+Proposed (b) Passing product (conveyor belt 2).
+Figure 10. Flow rate of conveyor belts 2 and 3 for scenario 3.
+Another action necessary to avoid interlocks during crushing circuit operation is to
+change the CSS. Figure 11 shows the CSS variation for scenario 3. As deﬁned in the control
+objectives in Section 4.1, most of the time, the CSS is kept at 35mm and the CSS increases
+only when the BS2 level rises above 80%. This action aims to guarantee the operation of the
+crushing circuit without interruptions. Considering the BS1 and BS2 levels, feeder speed,
+and CSS change in an integrated manner, it is possible to operate for a longer time with the
+CSS at 35 mm, avoiding the activation of the interlocks and guaranteeing an increase in the
+productivity of the crushing circuit.
+
+--- Page 14 ---
+Energies 2024 ,17, 3374 14 of 17
+0 0.5 1 1.5 2 2.5 3 3.5 4
+Time (h)35363738394041CSS (mm)
+Figure 11. CSS of the proposed control strategy in Scenario 3.
+For scenario 3, Figure 12 shows the average values of material at the crusher output
+and product throughput for ﬁxed CSS and the proposed control strategy. According to
+this ﬁgure, the integrated action of the control system based on the FSM algorithm has
+achieved the objective of maximizing the product throughput, which means less material
+recirculating and an increase in the product rate passing through the CB2 conveyor belt.
+In this case, compared to the ﬁxed CSS at 35mm, there is an increase of 6.88% in the
+average value of the product passing through the conveyor belt. When compared to CSS
+ﬁxed at 41mm, the average productivity increase is 48.77% . Therefore, the simulation
+results demonstrate that the proposed control strategy can establish greater productivity
+through operation with the CSS at 35mm, without the need to interrupt production due to
+the interlocks.
+1001.58 1008.78 996.41 1004.08
+616.09
+537.1707
+442.59658.48
+CSS=35 mm CSS=38 mm CSS=41 mm Proposed020040060080010001200Average value (t/h)Crusher outet flow
+Product throughput
+44.41%61.51%
+53.24%65.58%
+Figure 12. Performance with throughput equal to 600t/h, d80of121.96 mm and dynamic BWI
+(Scenario 3).
+6. Conclusions
+In this paper, a centralized control strategy based on the FSM algorithm was proposed
+to increase the product throughput of the crushing circuit of the Serra Leste iron plant, oper-
+ated by Vale S.A., in Brazil. Since the crushing circuit under study presents non-integrated
+control, depending on the operating conditions, undesired operation may occur. From
+a practical perspective, some conditions could lead to plant shutdown, which reduces
+
+--- Page 15 ---
+Energies 2024 ,17, 3374 15 of 17
+productivity and, therefore, the efﬁciency of the crushing circuit. Thus, the proposed solu-
+tion seeks to increase the circuit operation under both regular conditions and interlocking.
+Changes in the CSS of the cone crusher and speed of the apron feeder are considered to
+achieve this goal. Different scenarios were considered, varying the d80and BWI of the feed
+material. The proposed control strategy was compared with the operation of ﬁxed CSS
+values, which is the common practice in the plant. Regardless of the evaluated scenario,
+an increase in average productivity is observed with the proposed controller. The results
+illustrate the added value of using a centralized control strategy when compared to operat-
+ing on a ﬁxed CSS, even when the ﬁxed value is the one that intuitively maximizes output,
+i.e., the lowest CSS equal to 35 mm. In this case, with d80=121.96 mm and dynamic
+BWI, an average increase of 6.88% in productivity is observed. Compared to that under
+operation with the CSS ﬁxed at 38 mm, the productivity has an average increase of 22.58% .
+On the other hand, when comparing the operation on the largest CSS, the average increase
+is48.77% . In addition to the beneﬁt of increased productivity, the proposed control strategy
+contributes further to more stable operation, reﬂected by the elimination of interlocks
+during the simulated time and overall smoother recirculating load and product throughput
+ﬂowrate oscillations. This, in turn, increases the reliability and predictability of the crushing
+circuit and decreases maintenance costs. Future work will include the deﬁnition of the FSM
+algorithm parameters using a reinforcement learning approach, experimental validation
+of the proposed control strategy, and the inclusion of variables from the tertiary and qua-
+ternary crushing stage to increase the production of a speciﬁc product, for example, sinter
+feed. Advanced control strategies, such as [ 25,26], will also be evaluated and compared
+with the proposed control algorithm. Furthermore, a theoretical analysis of the stability and
+robustness properties of the proposed controller can contribute to advancing its industrial
+viability and acceptance. Finally, environmental analysis will also be carried out with a
+focus on reducing emissions and improving resource efﬁciency.
+Author Contributions: Conceptualization, V .d.S.M. and T.A.M.E.; Methodology, M.T.d.S., S.M.B.,
+M.P .T. and V .d.S.M.; Software, M.T.d.S. and S.M.B.; Validation, T.A.M.E.; Formal analysis, A.S.Y. and
+T.A.M.E.; Investigation, M.P .T. and V .d.S.M.; Resources, V .d.S.M.; Writing—original draft, M.T.d.S.,
+S.M.B. and A.S.Y.; Writing—review & editing, M.T.d.S., A.S.Y. and T.A.M.E.; Visualization, S.M.B.;
+Supervision, T.A.M.E.; Project administration, T.A.M.E.; Funding acquisition, T.A.M.E. All authors
+have read and agreed to the published version of the manuscript.
+Funding: Thiago A. M. Euzébio’s work has been partially funded by the project Investigação e
+experimentação tecnológica para infraestrutura de aplicações em plataformas de sensoriamento
+inteligente supported by CENTRO DE COMPETÊNCIA EMBRAPII VIRTUS EM HARDWARE
+INTELIGENTE PARA INDÚSTRIA, with ﬁnancial resources from the PPI HardwareBR of the MCTI
+grant number 055/2023, signed with EMBRAPII. Thiago A. M. Euzébio was also funded by the
+Conselho Nacional de Desenvolvimento Cientíﬁco e Tecnológico (CNPq) through grant 306394/2021-
+9. The APC was funded by Helmholtz-Zentrum Dresden-Rossendorf.
+Data Availability Statement: Data are contained within the article.
+Acknowledgments: The authors acknowledge the Universidade Federal de Ouro Preto, Instituto
+Tecnológico Vale, CAPES, HZDR, and FAPEMIG. We acknowledge also the comments and rec-
+ommendations of the anonymous reviewers that have contributed to improve the quality of our
+work.
+Conﬂicts of Interest: S.M.B. was employed by Projetos Gerenciamento e Engenharia—PROGEN.
+T.A.M.E. was employed by Virtus-CC. The remaining authors declare that the research was conducted
+in the absence of any commercial or ﬁnancial relationships that could be construed as a potential
+conﬂict of interest.
+
+--- Page 16 ---
+Energies 2024 ,17, 3374 16 of 17
+Abbreviations
+AFn Apron feeders
+BSn Buffer silo
+CBn Conveyor belt
+CSS Closed-side-setting
+BWI Bond work index
+CC Cone crusher
+EVOP Evolutionary operation
+FSM Finite state machine
+PSD Passing size distribution
+PID Proportional–integral–derivative
+OPC Open platform communications
+SC Screening circuit
+References
+1. Itävuo, P .; Hulthén, E.; Yahyaei, M.; Vilkko, M. Mass balance control of crushing circuits. Miner. Eng. 2019 ,135, 37–47. [CrossRef]
+2. Albuquerque, K.; Silva, H.; Teodoro, E.; Fonseca, A.; Garioli, G.; Lopes, Ê.; Cota, L.; Euzébio, T. Averaging level control of bulk
+solid material using a tripper car. IFAC-PapersOnLine 2019 ,52, 147–152. [CrossRef]
+3. Yamashita, A.S.; Thivierge, A.; Euzébio, T.A. A review of modeling and control strategies for cone crushers in the mineral
+processing and quarrying industries. Miner. Eng. 2021 ,170, 107036. [CrossRef]
+4. Atta, K.T.; Johansson, A.; Gustafsson, T. Control oriented modeling of ﬂow and size distribution in cone crushers. Miner. Eng.
+2014 ,56, 81–90. [CrossRef]
+5. Moshgbar, M.; Bearman, R.; Parkin, R. Optimum control of cone crushers utilizing an adaptive strategy for wear compensation.
+Miner. Eng. 1995 ,8, 367–376. [CrossRef]
+6. Zhang, Z.; Ren, T.; Cheng, J.; Jin, X. The improved model of inter-particle breakage considering the transformation of particle
+shape for cone crusher. Miner. Eng. 2017 ,112, 11–18. [CrossRef]
+7. Duarte, R.A.; Yamashita, A.S.; da Silva, M.T.; Cota, L.P .; Euzébio, T.A. Calibration and Validation of a Cone Crusher Model with
+Industrial Data. Minerals 2021 ,11, 1256. [CrossRef]
+8. Delaney, G.; Morrison, R.; Sinnott, M.; Cummins, S.; Cleary, P . DEM modelling of non-spherical particle breakage and ﬂow in an
+industrial scale cone crusher. Miner. Eng. 2015 ,74, 112–122. [CrossRef]
+9. Cleary, P .; Sinnott, M.; Morrison, R.; Cummins, S.; Delaney, G. Analysis of cone crusher performance with changes in material
+properties and operating conditions using DEM. Miner. Eng. 2017 ,100, 49–70. [CrossRef]
+10. While, L.; Barone, L.; Hingston, P .; Huband, S.; Tuppurainen, D.; Bearman, R. A multi-objective evolutionary algorithm approach
+for crusher optimisation and ﬂowsheet design. Miner. Eng. 2004 ,17, 1063–1074. [CrossRef]
+11. Sbarbaro, D. Control of Crushing Circuits with Variable Speed Drives ; IFAC: New York, NY, USA, 2005; Volume. 16, pp. 80–84.
+12. Bengtsson, M.; Hulthén, E.; Evertsson, C.M. Size and shape simulation in a tertiary crushing stage, a multi objective perspective.
+Miner. Eng. 2015 ,77, 72–77. [CrossRef]
+13. Hulthén, E.; Evertsson, M. On-Line Optimization of Crushing Stage Using Speed Regulation on Cone Crushers. In Proceedings
+of the XXIV International Mineral Processing Congress, Beijing, China, 24–28 September 2008; pp. 2396–2402.
+14. Fahrenkrog, E.; Cifuentes, E.; Sbarbaro, D. Expert supervisor prototype for a crushing plant. In Proceedings of the IEEE
+International Symposium on Intelligent Control, Arlington, VA, USA, 24–26 August 1988; IEEE Computer Society Press:
+Los Alamitos, CA, USA, 1989; pp. 757–762.
+15. Gruji´ c, M. Technology improvements of crushing process in Majdanpek Copper Mine. Int. J. Miner. Process. 1996 ,44–45 , 471–483.
+[CrossRef]
+16. Muller, D.; De Villiers, P .G.; Humphries, G. A Holistic Approach to Control and Optimisation of an Industrial Crushing Circuit ; IFAC:
+New York, NY, USA, 2010; Volume 43, pp. 142–146.
+17. Hulthén, E.; Evertsson, C.M. Algorithm for dynamic cone crusher control. Miner. Eng. 2009 ,22, 296–303. [CrossRef]
+18. Hulthén, E.; Magnus Evertsson, C. Real-time algorithm for cone crusher control with two variables. Miner. Eng. 2011 ,24, 987–994.
+[CrossRef]
+19. Leiva, C.; Arcos, K.; Poblete, D.; Serey, E.; Torres, C.; Ghorbani, Y. Design and Evaluation of an Expert System in a Crushing Plant.
+Minerals 2018 ,8, 469. [CrossRef]
+20. McKenzie, F.H. Attracting and retaining skilled and professional staff in remote locations of Australia. Rangel. J. 2011 ,33, 353–363.
+[CrossRef]
+21. Johansson, J.; Johansson, B.; Lööw, J.; Nygren, M.; Abrahamsson, L. Attracting young people to the mining industry: Six
+recommendations. Int. J. Min. Miner. Eng. 2018 ,9, 94–108. [CrossRef]
+22. Asbjörnsson, G.; Tavares, L.M.; Mainza, A.; Yahyaei, M. Different perspectives of dynamics in comminution processes. Miner.
+Eng. 2022 ,176, 107326. [CrossRef]
+23. Nikoli´ c, V .; Trumi´ c, M. A new approach to the calculation of bond work index for ﬁner samples. Miner. Eng. 2021 ,165, 106858.
+[CrossRef]
+
+--- Page 17 ---
+Energies 2024 ,17, 3374 17 of 17
+24. Napier-Munn, T.J.; Morrell, S.; Morrison, R.D.; Kojovic, T. Mineral Comminution Circuits: Their Operation and Optimisation ;
+University of Queensland: Brisbane, Australia, 1996.
+25. Shi, H.; Zuo, L.; Wang, S.; Yuan, Y.; Su, C.; Li, P . Robust predictive fault-tolerant switching control for discrete linear systems with
+actuator random failures. Comput. Chem. Eng. 2024 ,181, 108554. [CrossRef]
+26. Li, H.; Wang, S.; Shi, H.; Wang, L.; Su, C.; Li, P . Robust asynchronous fuzzy predictive fault-tolerant tracking control for nonlinear
+multi-phase batch processes with time-varying reference trajectories. Eng. Appl. Artif. Intell. 2024 ,133, 108415. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.

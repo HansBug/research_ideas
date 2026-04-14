@@ -1,0 +1,167 @@
+--- Page 1 ---
+RATSY{ A new Requirements Analysis Tool
+with Synthesis?
+Roderick Bloem1, Alessandro Cimatti2, Karin Greimel1, Georg Hoerek1,
+Robert K onighofer1, Marco Roveri2, Viktor Schuppan2, and Richard Seeber1
+1Graz University of Technology, Austria
+2Fondazione Bruno Kessler, Trento, Italy
+Abstract. Formal specications play an increasingly important role in
+system design-ows. Yet, they are not always easy to deal with. In this
+paper we present RATSY , a successor of the Requirements Analysis
+ToolRAT .RATSY extends RAT in several ways. First, it includes a
+new graphical user interface to specify system properties as simple B uchi
+word automata. Second, it can help debug incorrect specications by
+means of a game-based approach. Third, it allows correct-by-construction
+synthesis of systems from their temporal properties. These new features
+and their seamless integration assist in property-based design processes.
+1 Introduction
+Several (recent) trends in designing and implementing complex digital systems
+necessitate the existence of a formal specication for the system at hand. For
+example, specications can be used to unambiguously communicate design in-
+tents and interface assumptions between collaborating designers. They can also
+be used to formally verify implementations by means of a model checker. More-
+over, a complete formal specication may be used to automatically synthesize
+an implementation using tools like Lily [JB06], Anzu [JGWB07], or as shown
+in [SS09]. Formal specications are also created, sold, and used as third-party
+verication IPs [Del].
+For some of these use cases it is of interest to create and analyze the formal
+specication stand-alone, i.e., without a corresponding implementation, or before
+such an implementation is ready. The tool RAT [BCP+07] supports these tasks
+by allowing the user to write a specication in PSL syntax, to analyze it on a
+trace level, and to check if it is realizable, i.e., if a conforming system exists.
+However, RAT has some shortcomings when used for system design. Figure 1
+depicts a typical property-based design ow. Some informal design intent is
+turned into a formal specication, which is then rened in several iterations
+involving simulation and debugging. Finally, an implementation is derived from
+the specication, ideally using correct-by-construction synthesis. The user faces
+several problems when putting this design ow into practice. First, it is hard
+?This work was supported by EU grants 217069 (COCONUT) and 248613
+(DIAMOND) as well as Provincia Autonoma di Trento grant EMTELOS.
+
+--- Page 2 ---
+Fig. 1. A typical property-based design ow.
+to express the design intent in a formal language. Second, our experience shows
+that formal specications for complex designs are hardly ever written correctly
+on the rst try. Thus, there is a need for proper support in debugging. Finally,
+it must be possible to synthesize an implementation from the specication.
+We present the tool RATSY , an extension of RAT which provides several
+new features to assist the user in a property-based design ow. First, a graphical
+user interface for drawing B uchi automata has been added. These automata are
+an easy-to-understand way to specify system properties. Second, the debugging
+approach presented in [KHB09] has been integrated. It aids in debugging unreal-
+izable specications and in rening specications that allow undesired behavior.
+Third, synthesis functionality has been added. Finally, an additional realizability
+algorithm [SF07,FJR09] has been implemented, handling a strictly larger subset
+of PSL than the one in RAT [PPS06]. Together with the analysis features inher-
+ited from RAT , this yields a powerful tool with full support for property-based
+design processes.
+RATSY is available at http://rat.fbk.eu/ratsy/ . The following sections
+will detail the improvements and new features of RATSY .
+2 Automaton Editor
+The automaton editor provides an intuitive interface to specify system properties
+as B uchi automata. The graphical representation makes creating and especially
+maintaining specications easier and less error-prone. Automata are restricted to
+be deterministic and complete to allow for more ecient synthesis.1Completeness
+is ensured by providing an implicit \dead state" as the default destination of
+transitions. When transitions are added or changed, other transition conditions
+are updated by the tool to maintain determinism. Automata can be drawn once
+and instantiated multiple times, with template parameters allowing for dier-
+ent instantiations. For use with other features of RATSY , PSL formulas are
+generated automatically from the automata. Finally, the automata are used to
+visualize state information during simulation and debugging (see next section).
+3 Simulation and Debugging
+RATSY implements the ideas presented in [KHB09] to test and debug for-
+mal specications. First, it allows the user to test realizable specications. An
+1This is usually not a limiting factor since specications used in practice tend to be
+in this class [PPS06]; otherwise the designer can fall back to entering formulas in
+PSL.
+2
+
+--- Page 3 ---
+Fig. 2. A part of RATSY 's GUI.
+implementation is synthesized and the user can simulate it. Second, the tool
+provides an easy-to-use method to rule out undesired behavior observed during
+simulation. The user can simply modify an incorrect simulation trace to match
+the design intent. The tool then turns this modied trace into a property which
+enforces the desired response to the inputs, thereby eliminating the undesired be-
+havior. Third, the user can debug unrealizable specications. Following [KHB09],
+the user plays a diagnostic game in the role of the system against a counterstrat-
+egy or a countertrace synthesized from an unrealizable core of the specication.
+The diagnostic game illustrates where the specication is too restrictive to be
+realizable.
+Figure 2 shows a part of the screen when playing a diagnostic game to debug
+unrealizability. Testing a realizable specication looks similar. In every step of
+the game the counterstrategy determines values for the input signals, and the
+user sets values for the output signals in the game window or via the automata
+window. In every automaton of the specication, the current state, as well as
+transitions that can still be taken, are highlighted. The user can traverse a certain
+transition by clicking it. All restrictions on signal values associated with that
+transition are then applied. This integration with the automaton editor greatly
+increases the usability and helps the user to keep track of what is going on.
+4 Technical Aspects
+RATSY itself is implemented in Python. The symbolic algorithms rely on
+CUDD [Som] and NuSMV [CCG+02], which are accessed through a SWIG-
+generated [Bea96] wrapper. The synthesis functionality is based on a Python
+reimplementation of Anzu [JGWB07] with some minor implementation-specic
+improvements. The synthesis algorithm [PPS06] handles specications given in
+Generalized Reactivity (1) (GR(1)) format. By means of the NuSMV parser,
+RATSY can perform several syntactic transformations on its own in order to
+turn a specication into the required format. Furthermore, the NuSMV library
+3
+
+--- Page 4 ---
+automatically encodes multi-valued variables to Boolean signals. RATSY gener-
+ates circuits in BLIF and Verilog format. If syntactic transformation into GR(1)
+fails, but succeeds into LTL, then a preliminary implementation of an algo-
+rithm along the lines of [SF07,FJR09] can be used to determine realizability;
+debugging and synthesis are not yet available in that case. The conversion into
+non-deterministic B uchi automata required by [SF07,FJR09] is performed via a
+(slightly adapted) version of Wring [SB00] from Lily [JB06]. RATSY performs
+similar to Anzu [JGWB07,KHB09] when operating on GR(1) specications, and
+can decide most of the examples that Acacia [FJR09] can for full LTL.
+5 Conclusions and Future Work
+RATSY enhances the analysis features of RAT with a game-based debugging
+approach for specications. Furthermore, it eases specifying properties by rep-
+resenting them as B uchi automata, which can be edited via a graphical user
+interface. Once the user is satised with the result of debugging and analyzing
+her specication, she can synthesize an implementation with just a few clicks. All
+the new features integrate seamlessly with the well-established analysis features
+ofRAT . Thus, RATSY is a powerful tool to support property-based design.
+In the future, we plan to implement a wider variety of output formats for
+synthesis. Furthermore, we will continue work on improving the size of the syn-
+thesized circuits, as well as the time needed to perform synthesis. Concerning
+debugging, we plan to combine the already implemented approach with model-
+based diagnosis techniques. This should further simplify the localization of errors.
+References
+BCP+07. R. Bloem, R. Cavada, I. Pill, M. Roveri, and A. Tchaltsev. RAT: A Tool
+for the Formal Analysis of Requirements. In CAV , pages 263{267, 2007.
+Bea96. D.M. Beazley. SWIG: An easy to use tool for integrating scripting languages
+with C and C++. In Proc. 4th USENIX Tcl/Tk Workshop , pages 129{139,
+1996.
+CCG+02. A. Cimatti, E. Clarke, E. Giunchiglia, F. Giunchiglia, M. Pistore, M. Roveri,
+R. Sebastiani, and A. Tacchella. NuSMV Version 2: An OpenSource Tool
+for Symbolic Model Checking. In CAV , pages 359{364, 2002.
+Del. S. Dellacherie. Automatic Bus-Protocol Verication Using Assertions. In
+GSPx'04 .
+FJR09. E. Filiot, N. Jin, and J. Raskin. An Antichain Algorithm for LTL Realiz-
+ability. In CAV , pages 263{277, 2009.
+JB06. B. Jobstmann and R. Bloem. Optimizations for LTL Synthesis. In FMCAD ,
+pages 117{124, 2006.
+JGWB07. B. Jobstmann, S. Galler, M. Weiglhofer, and R. Bloem. Anzu: A Tool for
+Property Synthesis. In CAV , pages 258{262, 2007.
+KHB09. R. K onighofer, G. Hoerek, and R. Bloem. Debugging Formal Specications
+Using Simple Counterstrategies. In FMCAD , pages 152{159, 2009.
+PPS06. N. Piterman, A. Pnueli, and Y. Saar. Synthesis of Reactive(1) Designs. In
+VMCAI , pages 364{380. Springer, 2006. LNCS 3855.
+4
+
+--- Page 5 ---
+SB00. F. Somenzi and R. Bloem. Ecient B uchi Automata from LTL Formulae.
+InCAV , pages 248{263, 2000.
+SF07. S. Schewe and B. Finkbeiner. Bounded Synthesis. In ATVA , pages 474{488,
+2007.
+Som. F. Somenzi. CUDD: CU Decision Diagram Package . University of Colorado
+at Boulder, ftp://vlsi.colorado.edu/pub/ .
+SS09. S. Sohail and F. Somenzi. Safety First: A Two-Stage Algorithm for LTL
+Games. In FMCAD , pages 77{84, 2009.
+5

@@ -1,0 +1,674 @@
+--- Page 1 ---
+FDR3 — A Modern Reﬁnement Checker for CSP
+Thomas Gibson-Robinson, Philip Armstrong,
+Alexandre Boulgakov, and A.W. Roscoe
+Department of Computer Science, University of Oxford
+Wolfson Building, Parks Road, Oxford, OX1 3QD, UK
+{thomas.gibson-robinson, philip.armstrong,
+alexandre.boulgakov, bill.roscoe}@cs.ox.ac.uk
+Abstract. FDR3 is a complete rewrite of the CSP reﬁnement checker
+FDR2, incorporating a signiﬁcant number of enhancements. In this pa-
+per we describe the operation of FDR3 at a high level and then give a
+detailed description of several of its more important innovations. This
+includes the new multi-core reﬁnement-checking algorithm that is able
+to achieve a near linear speed up as the number of cores increase. Fur-
+ther, we describe the new algorithm that FDR3 uses to construct its in-
+ternal representation of CSP processes—this algorithm is more eﬃcient
+than FDR2’s, and is able to compile a large class of CSP processes to
+more eﬃcient internal representations. We also give some experimental
+results that compare FDR3 to related tools, which show it has particu-
+larly strong performance in the use of memory and backing store.
+1 Introduction
+FDR (Failures Divergence Reﬁnement) is the most widespread reﬁnement
+checker for the process algebra CSP [1,2,3]. FDR takes a list of CSP processes,
+written in machine-readable CSP (henceforth CSP M) which is a pure lazy func-
+tional language, and is able to check if the processes reﬁne each other according
+to the CSP denotational models (e.g. the traces, failures and failures-divergences
+models). It is also able to check for more properties, including deadlock-freedom,
+livelock-freedom and determinism, by constructing equivalent reﬁnement checks.
+FDR2 was released in 1996, and has been widely used both within industry
+and in academia for verifying systems [4,5,6]. It is also used as a veriﬁcation
+backend for several other tools including: Casper[7] which veriﬁes security pro-
+tocols; SVA [8] which can verify simple shared-variable programs; in addition to
+several industrial tools (e.g. ModelWorks and ASD).
+FDR3hasbeenunderdevelopmentforthelastfewyearsasacompleterewrite
+ofFDR2.ItrepresentsamajoradvanceoverFDR2,notonlyinthesizeofsystem
+that can be checked (we have veriﬁed systems with over ten billion states in a
+few hours), but also in terms of its ease of use. FDR3 has also been designed
+and engineered to be a stable platform for future development of CSP model-
+checking tools, in addition to tools for CSP-like languages [2]. In this paper we
+give an outline of FDR3, highlighting a selection of the advances made.
+
+--- Page 2 ---
+In Section 4 we describe the new multi-core reﬁnement-checking algorithm
+that is able to achieve a near linear increase in performance as the number
+of cores increases. Section 6 gives some experimental results that compare the
+performance of the new algorithm to FDR2 and Spin [9].
+InSection5wedetailthenew compilation algorithm,whichconstructsFDR’s
+internal representation of CSP processes (i.e. labelled-transition systems) from
+CSP Mprocesses. This algorithm is an entirely new development and is able to
+compile many CSP processes into more eﬃcient labelled-transition systems. It
+is also related to the operational semantics of CSP, unlike the FDR2 algorithm
+which was based on heuristics.
+In addition to the advances that we present in this paper, FDR3 incorporates
+a number of other new features. Most notably, the graphical user interface has
+been entirely rethought, and includes: a new CSP Mtype checker; a built-in ver-
+sion of ProBE, the CSP process animator; and a new debugger that emphasises
+interactions between processes. See the FDR3 manual [10] for further details.
+Before describing the new advances, in Section 2 we brieﬂy review CSP. In
+Section 3 we then outline the high-level design and structure of FDR3.
+2 CSP
+CSP[1,2,3]isa process algebra inwhichprogramsor processes thatcommunicate
+events from a set with an environment may be described. We sometimes
+structure events by sending them along a channel. For example, c:3denotes
+the value 3 being sent along the channel c. Further, given a channel cthe set
+fjcjg contains those events of the form c:x.
+The simplest CSP process is the process STOPthat can perform no events.
+The process a!Poﬀers the environment the event a2and then behaves
+like P. The process P2Qoﬀers the environment the choice of the events
+oﬀered by Pand by Qand is not resolved by the internal action .PuQ
+non-deterministically chooses which of PorQto behave like. P.Qinitially
+behaves like P, but can timeout (via ) and then behaves as Q.
+PAkBQallows Pand Qto perform only events from Aand Brespectively
+and forces PandQto synchronise on events in A\B.Pk
+AQallows PandQto
+run in parallel, forcing synchronisation on events in Aand arbitrary interleaving
+of events not in A. Theinterleaving of two processes, denoted PjjjQ, runs P
+andQin parallel but enforces no synchronisation. PnAbehaves as Pbut hides
+any events from Aby transforming them into the internal event . This event
+does not synchronise with the environment and thus can always occur. P[[R]],
+behaves as Pbut renames the events according to the relation R. Hence, if Pcan
+perform a, then P[[R]]can perform each bsuch that (a;b)2R, where the choice
+(if more than one such b) is left to the environment (like 2).P4Qinitially
+behaves like Pbut allows Qtointerrupt at any point and perform a visible
+event, at which point Pis discarded and the process behaves like Q.P  AQ
+initially behaves like P, but if Pever performs an event from A,Pis discarded
+and P  AQbehaves like Q.Skipis the process that immediately terminates .
+
+--- Page 3 ---
+The sequential composition of Pand Q, denoted P;Q, runs Puntil it
+terminates at which point Qis run. Termination is indicated using a X:Skipis
+deﬁned as X!STOPand, if the left argument of P;Qperforms a X,P;Q
+performs a to the state Q(i.e. Pis discarded and Qis started).
+Recursive processes can be deﬁned either equationally or using the notation
+XP. In the latter, every occurrence of Xwithin Prepresents a recursive call.
+An argument Pof a CSP operator Opisoniﬀ it can perform an event. P
+isoﬀiﬀ no such rule exists. For example, the left argument of the exception
+operator is on, whilst the right argument is oﬀ.
+The simplest approach to giving meaning to a CSP expression is by deﬁning
+an operational semantics. The operational semantics of a CSP process naturally
+creates a labelled transition system (LTS) where the edges are labelled by events
+from [fgand the nodes are process states. Formally, an LTS is a 3-tuple
+consisting of a set of nodes, an initial node, and a relationa !on the nodes: i.e.
+it is a directed graph where each edge is labelled by an event. The usual way of
+deﬁning the operational semantics of CSP processes is by presenting Structured
+Operational Semantics (SOS) style rules in order to deﬁnea !. For instance,
+the operational semantics of the exception operator are deﬁned by:
+Pa !P0
+P  AQa !Qa2APb !P0
+P  AQb !P0AQb=2AP !P0
+P  AQ !P0AQ
+Theinterestingruleistheﬁrst,whichspeciﬁesthatif Pperformsanevent a2A,
+then P  AQcan perform the event aand behave like Q.
+The SOS style ofoperational semantics is far more expressive than is required
+to give an operational semantics to CSP, and indeed can deﬁne operators which,
+for a variety of reasons, make no sense in CSP models. As pointed out in [3], it is
+possibletore-formulateCSP’ssemanticsinthehighlyrestricted combinator style
+ofoperationalsemantics,whichlargelyconcentratesontherelationshipsbetween
+events of argument processes and those of the constructed system. This style
+says,inter alia , that only onarguments can inﬂuence events, that any action
+of anonargument must be allowed to proceed freely, and that an argument
+process has changed state in the result state if and only if it has participated
+in the action. Cloning of onarguments is not permitted. Any language with a
+combinator operational semantics can be translated to CSP with a high degree
+of faithfulness [3] and is compositional over every CSP model. FDR3 is designed
+so that it can readily be extended to such CSP-like languages.
+CSP also has a number of denotational models , such as the traces, failures
+and failures-divergences models. In these models, each process is represented by
+a set of behaviours: the traces model represents a process by the set of sequences
+of events it can perform; the failures model represents a process by the set of
+events it can refuseafter each trace; the failures-divergences model augments the
+failuresmodelwithinformationaboutwhenaprocesscanperformanunbounded
+numberofevents.Twoprocessesareequalinadenotationalmodeliﬀtheyhave
+the same set of behaviours. If every behaviour of Implis a behaviour of Specin
+the denotational model X, then Specis reﬁned by Impl, denoted SpecvXImpl.
+
+--- Page 4 ---
+3 The Overall Structure of FDR3
+As FDR3 is a reﬁnement checker (deadlock freedom, determinism, etc. are con-
+verted into equivalent reﬁnement checks), we consider how FDR3 decides if
+PvQ.
+Since Pand Qwill actually be CSP Mexpressions, FDR3 needs to evaluate
+them to produce a tree of CSP operator applications. For example, if Pwas the
+CSP Mexpression if true then c?x -> STOP else STOP , this would evaluate
+toc.0 -> STOP [] c.1 -> STOP . Notice that the functional language has been
+removed: all that remains is a tree of trivial operator applications, as follows.
+Deﬁnition 1. Asyntactic process Pis generated according to the grammar:
+P::=Operator (P1;:::; PM)jNwhere the Piare also syntactic processes,
+Operator is any CSP operator (e.g. external choice, preﬁx etc) and Nis aprocess
+name. Asyntactic process environment is a function from process name to
+syntactic process such that (N)is never a process name.
+Theevaluator converts CSP Mexpressions to syntactic processes. This is
+written in Haskell and is available as part of the open-source Haskell library
+libcspm [11], which implements a parser, type-checker and evaluator for CSP M.
+Given a syntactic process, FDR3 then converts this to an LTS which is used
+to represent CSP processes during reﬁnement checks. In order to support various
+features (most importantly, the compressions such asnormalisation ), FDR in-
+ternally represents processes as generalised labelled transition systems (GLTSs),
+rather than LTSs. These diﬀer from LTSs in that the individual states can be
+labelled with properties according to the semantic model in use. For example,
+if the failures model is being used, a GLTS would allow states to be labelled
+with refusals. The compiler is responsible for converting syntactic processes into
+GLTSs. The primary challenge for the compiler is to decide which of FDR3’s in-
+ternal representations of GLTSs (which have various trade-oﬀs) should be used
+to represent each syntactic process. This algorithm is detailed in Section 5.
+After FDR3 has constructed GLTSs for the speciﬁcation and implementation
+processes, FDR3 checks for reﬁnement. Firstly, the speciﬁcation GLTS is nor-
+malised: using the algorithm of [3], this produces a GLTS with no ’s and such
+that for each state and each initial event of that state, there is a unique succes-
+sor state. FDR3 then checks if the implementation GLTS reﬁnes the normalised
+speciﬁcation GLTS according to the algorithm presented in Section 4.
+Like FDR2, FDR3 supports a variety of compressions which can be used to
+cut the state space of a system. FDR3 essentially supports the compressions
+of [3], in some cases with signiﬁcantly improved algorithms, which we will report
+on separately. It also supports the chaseoperator of FDR2 which forces actions
+and is a useful pruner of state spaces where it is semantically valid.
+Like recent versions of FDR2, FDR3 supports the Timed CSP language
+[12,13].It usesthe strategyoutlinedin [14,3]oftranslating thecontinuousTimed
+CSPlanguagetoavariantofuntimedCSPwithprioritisationandrelyingonthe-
+orems of digitisation [15]. In order to support this, FDR3 also supports the pri-
+oritiseoperator [3,16], which has other interesting applications as shown there.
+
+--- Page 5 ---
+4 Parallel Reﬁnement Checking
+We now describe the new multi-core reﬁnement-checking algorithm that FDR3
+uses to decide if a normalised GLTS P(recall that normalisation produces a
+GLTS with no ’s and such that for each state and each event, there is a unique
+successor state) is reﬁned by another GLTS Q. We begin by outlining the reﬁne-
+ment checking algorithm of [2] and describing the FDR2 implementation [17].
+Wethendeﬁnetheparallelreﬁnement-checkingalgorithm,beforecontrastingour
+approach with the approaches taken by others to parallelise similar problems.
+In this paper we concentrate on parallelising reﬁnement checking on shared-
+memory systems. We also concentrate on reﬁnement checking in models that do
+not consider divergence: we will report separately on parallelising this.
+The Single-Threaded Algorithm Reﬁnement checking proceeds by performing a
+searchovertheimplementation,checkingthateveryreachablestateiscompatible
+with every state of the speciﬁcation after the same trace. A breadth-ﬁrst search
+is performed since this produces a minimal counterexample when the check fails.
+The single threaded algorithm [2,17] is given in Figure 1.
+The interesting aspect of an implementation of the above algorithm is how
+it stores the sets of states (i.e. current,nextand done). FDR2 uses B-Trees for
+all of the above sets [17], primarily because this allowed checks to eﬃciently use
+disk-based storage when RAM was exhausted (in contrast to, e.g. hash tables,
+where performance often decays to the point of being unusable once RAM has
+been exhausted). This brings the additional beneﬁt that inserts into done(from
+current) can be performed in sorted order. Since B-Trees perform almost op-
+timally under such workloads, this makes insertions into the donetree highly
+eﬃcient. To improve eﬃciency, inserts into the nexttree are buﬀered, with the
+buﬀer being sorted before insertion. The storage that the B-Tree uses is also
+compressed, typically resulting in memory requirements being halved.
+Parallelisation Parallelising FDR3’s reﬁnement checking essentially reduces to
+parallelising the breadth-ﬁrst search of Figure 1. Our algorithm partitions the
+state space based on a hash function on the node pairs. Each worker is assigned
+a partition and has local current,nextand donesets. When a worker visits
+a transition, it computes the worker who is responsible for the destination by
+hashing the new state pair. This algorithm is presented in Figure 2.
+Whilst the abstract algorithm is straightforward, the implementation has to
+be carefully designed in order to obtain good performance. As before, our pri-
+mary consideration is minimising memory usage. In fact, this becomes even more
+critical in the parallel setting since memory will be consumed at a far greater
+rate: with 16 cores, FDR3 can visit up to 7 billion states per hour consuming
+70GB of storage. Thus, we need to allow checks to exceed the size of the available
+RAM. Given the above, B-Trees are a natural choice for storing the sets.
+All access to the doneand currentB-Trees is restricted to the worker who
+owns those B-Trees, meaning that there are no threading issues to consider. The
+nextB-Trees are more problematic: workers can generate node pairs for other
+
+--- Page 6 ---
+function Refines (S,I,M)
+done fg .The set of states that have been visited
+current f(root(S);root(I))g .States to visit on the current ply
+next fg .States to visit on the next ply
+while current6=fgdo
+for(s;i) currentndonedo
+Check if ireﬁnes saccording toM
+done done[f(s;i)g
+for(e;i0)2transitions (I;i)do
+ife=then next next[f(s;i0)g
+else t transitions (S;s;e)
+ift=fgthen
+Report trace error .Since Scannot perform the event
+elsefs0g t
+next next[f(s0;i0)g
+end if
+end if
+end for
+end for
+current next
+next fg
+end while
+end function
+Fig.1: The single-threaded reﬁnement-checking algorithm where: Sis the nor-
+malised speciﬁcation GLTS; Iis the implementation GLTS; Mis the denota-
+tional model to perform the check in; root(X)returns the root of the GLTS X;
+transitions (X;s)returns the set of all (e;s0)such that there is a transition from
+stos0in the GLTS Xlabelled by the event e;transitions (X;s;e)returns only
+successors under event e.
+workers. Thus, we need to provide some way of accessing the nextB-Trees of
+other workers in a thread-safe manner. Given the volume of data that needs to
+be put into next(which can be an order of magnitude greater than the volume
+put into done), locking the tree is undesirable. One option would be to use ﬁne-
+grained locking on the B-Tree, however this is diﬃcult to implement eﬃciently.
+Instead of using complex locks, we have generalised the buﬀering that is used
+to insert into nextunder the single-threaded algorithm. Each worker whas a set
+of buﬀers, one for each other worker, and a list of buﬀers it has received from
+other workers that require insertion into this worker’s next. When a buﬀer of
+worker wforworker w06=wﬁllsup,itimmediatelypassesittothetargetworker.
+Workers periodically check the stack of pending buﬀers to be ﬂushed, and when
+a certain size is exceeded, they perform a bulk insert into nextby performing a
+n-way merge of all of the pending buﬀers to produce a single sorted buﬀer.
+One potential issue this algorithm could suﬀer from is uneven distribution
+amongst the workers. We have not observed this problem: the workers have
+
+--- Page 7 ---
+function Worker (S,I,M,w)
+done w;current w;next w fg;fg;fg
+nished w true
+ifhash(root(S);root(I)) = wthen
+current w f(root(S);root(I))g
+nished w false
+end if
+while_w2Workers:nished wdo
+Wait for other workers to ensure the plys start together
+nished w true
+for(s;i) current wndone wdo
+nished w false
+Check if ireﬁnes saccording toM
+done w done w[f(s;i)g
+for(i0;e)2transitions (I;i)do
+ife=then w0 hash(s;i0) mod # Workers
+next w0 next w0[f(s;i0)g
+else t transitions (S;s;e)
+ift=fgthenReport Trace Error
+elsefs0g t
+w0 hash(s0;i0) mod # Workers
+next w0 next w0[f(s0;i0)g
+end if
+end if
+end for
+end for
+Wait for other workers to ﬁnish their ply
+current w next w
+next w fg
+end while
+end function
+Fig.2: Each worker in a parallel reﬁnement check executes the above function.
+The setofall workers isgiven by Workers .Hash (s;i)is aneﬃcient hashfunction
+on the state pair (s;i). All other functions are as per Figure 1.
+terminated at roughly the same time. If necessary this could be addressed by
+increasing the number of partitions, with workers picking a partition to work on.
+We give experimental results that show the algorithm is able to achieve a
+near linear speed up in Section 6.
+Related Work There have been many algorithms proposed for parallelising BFS,
+e.g. [18,19,20,21]. In general, these solutions do not attempt to optimise memory
+usage of performance once RAM has been exhausted to the same degree.
+The authors of [18] parallelised the FDR2 reﬁnement checker for cluster sys-
+tems that used MPI. The algorithm they used was similar to our algorithm in
+that nodes were partitioned amongst the workers and that B-Trees were used
+for storage. The main diﬀerence comes from the communication of next: in their
+
+--- Page 8 ---
+approach this was deferred until the end of each round where a bulk exchange
+was done, whereas in our model we use a complex buﬀer system.
+The authors of [19] propose a solution that is optimised for performing a
+BFS on sparse graphs. This uses a novel tree structure to eﬃciently (in terms
+of time) store the bag of nodes that are to be visited on the next ply. This was
+not suitable for FDR since it does not provide a general solution for eliminating
+duplicates in next, which would cause FDR3 to use vastly more memory.
+The author of [21] enhances the Spin Model Checker [9] to support parallel
+BFS. In this solution, doneis a lock-free hash-table and is shared between all
+of the workers, whilst new states are randomly assigned to a number of subsets
+which are lock-free linked lists. This approach is not suitable for FDR since hash-
+tables are well known not to perform well once RAM has been exhausted (due
+to their essentially random access pattern). Storing nextin a series of linked-
+lists is suitable for Spin since it can eﬃciently check if a node is in doneusing
+the lock-free hash-table. This is not the case for FDR, since there is no way of
+eﬃciently checking if a node is in the doneB-Tree of another worker.
+5 Compiler
+As outlined in Section 3, the compiler decides which of FDR3’s internal repre-
+sentations of GLTSs to use for each syntactic process, and then constructs the
+GLTS. The construction of GLTSs from syntactic processes is relatively straight-
+forward. In this section we concentrate on the algorithm that the compiler uses
+to decide which internal representation to use. This is of critical importance:
+if FDR3 were to choose the wrong representation this could cause the time to
+check a property and the memory requirements to greatly increase.
+In Section 5.1 we describe the types of GLTSs that FDR3 can internally
+represent, which are as per FDR2. In Section 5.2 we discuss each of the ways
+that FDR3 can convert a syntactic process into a GLTS; this is as per FDR2
+but with one new feature. In Section 5.3 we outline the entirely new algorithm
+that FDR3 uses to decide which strategy should be used to construct a syntactic
+process. In Section 5.4 we contrast the approaches taken by the FDRs.
+5.1 GLTSs
+FDR3’s simplest representation of a GLTS is an Explicitmachine which is a
+standard graph data structure. Nodes in an ExplicitGLTS are process states
+whilst the transitions are stored in a sorted list.
+LikeFDR2,FDR3canalsorepresentaGTLSasa Super-Combinator machine.
+This represents the LTS by a series of component LTSs along with a list of rules
+to combine the transitions of the components. Nodes for a Super-Combinator
+machine are tuples, with one entry for each component machine. For example,
+aSuper-Combinator forPjjjQconsists of the components hP;Qiand the rules:
+f(h17!ai;a)ja2P[fgg[f (h27!ai;a)ja2Q[fgg
+
+--- Page 9 ---
+whereXis the alphabet of the process X(i.e. the set of events it can perform).
+These rules describe how to combine the actions of Pand Qinto actions of the
+whole machine. A single rule is of the form (f;e)where fis a partial function
+from the index of a component machine (e.g. in the above example, 1 represents
+P) to the event that component must perform. eis the event the overall machine
+performs if all components perform their required events.
+Rules can also be split into formats, which are sets of rules. For example, a
+Super-Combinator forP;Qwould start in format 1, which has the rules:
+f(h17!ai;a;1)ja2P[fg;a6=Xg[f(h17!Xi;;2)ja2Q[fgg:
+The second format has the rules: f(h27!ai;a;2)ja2Q[fgg. Thus, the
+ﬁrst format allows Pto perform visible events and stay in format 1(as indicated
+by the third element of the tuple), but if Pperforms a Xand terminates, the
+second format is started which allows Qto perform visible events.
+Rules can also specify that component machines should be restarted . For
+example, to represent P=X;Pas a Super-Combinator , there needs to be a
+way ofrestarting the process Xafter a X. Thus, we add to the rules a list of
+components whose states should be discarded and replaced by their root states:
+f(f17!ag;a;1;hi)ja2X[fg;a6=X)g[f(f17!Xg;;1;h1i)g:
+The ﬁrst rule set allows Xto perform non- Xevents as usual. However, if Xever
+performs a Xthis is converted into a and component 1(i.e. X) is restarted.
+FDR also recursively combines the rules for Super-Combinator machines. For
+example, (PjjjQ)jjjRis not represented as two diﬀerent Super-Combinator
+machines, but instead the rules for PjjjQand jjj Rare combined. This
+processisknownas supercompilation .Asyoumightexpectfromthename,super-
+combinators are closely related to combinator operational semantics: the “super”
+essentially co-incides with the joining together using supercompilation.
+The advantage to Super-Combinator machines is that the LTS is not con-
+structed explicitly. A Super-Combinator machine for PjjjQcan be constructed
+almostinstantly,whereasthe Explicitmachinewouldrequireconsiderabletimeto
+construct since the cartesian product of PandQwould have to be formed. The
+disadvantage is that it is slower to ﬁnd out the transitions of a Super-Combinator :
+the compiler balances these concerns when deciding which representation to use.
+5.2 Strategies
+There are several diﬀerent strategies that FDR3 can use to construct Explicitor
+Super-Combinator machines from syntactic processes. These strategies diﬀer in
+the type of processes that they can support (e.g. some cannot support recursive
+processes), the time they take to execute and the type of the resulting GLTS.
+Thelow-level is the simplest strategy and supports any process. An Explicit
+LTS is constructed simply by directly applying CSP’s operational semantics.
+Thehigh-level compiles a process to a Super-Combinator . This is not able to
+compilerecursive processes, such as Pb=a!P. The supercombinator rules are
+directly constructed using the operational semantics of CSP.
+
+--- Page 10 ---
+Themixed-level is a hybrid of the low and high-level strategies where, in-
+tuitively, non-recursive parts of processes are compiled as per the high-level
+strategy whilst recursive parts are compiled as per the low-level strategy. For
+example, consider Pb=a!P2b!(XjjjY): compiling XjjjYat the
+high-level is preferable since it does not require the cartesian product of X
+and Yto be formed. If Pis compiled at the mixed-level, XjjjYis compiled
+at the high-level, and a!P2b!is compiled into an Explicitmachine.
+These are wrapped in a Super-Combinator machine that starts XjjjYwhen
+theExplicitmachine performs the b. The supercombinator has two formats,
+the ﬁrst with the rules: f(f17!ag;a;1);(f17!bg;b;2)gand the second with:
+f(f27!ag;a;2)ja2(XjjjY)[fgg. Thus, when the ﬁrst process performs
+b, the Super-Combinator moves to the second format in which XjjjYis run.
+The next section formalises the set of process that can be compiled in this way.
+Therecursive high-level strategy is new in FDR3. This compiles to a Super-
+Combinator machine and allows some recursive processes (which we formalise
+in the next section) to be compiled. This is used to compile processes such as
+Pb= (XjjjY) ;Pwhich are recursive, but are desirable to compile to Super-
+Combinator machines for eﬃciency reasons (as above, constructing XjjjYis
+expensive). In this particular case, XjjjYis compiled to a Super-Combinator
+machine, and then a recursive supercombinator is constructed with the rules:
+f(f17!ag;a;1;hi)ja2(XjjjY)[fg;a6=X)g[f(f17!Xg;;1;h1i)g:
+Recall that the last component in the above rules indicates that component 1
+should be reset. Thus, the above rules indicate that XjjjYcan perform non- X
+events normally, but a Xwill cause XjjjYto be reset to its initial state.
+The majority of processes can be compiled at the recursive high-level, with
+the exception of those that recurse through an onargument of an operator (e.g.
+P=a!P2b!P). This is the because all of these operators allow recursion
+through arguments that are on. For example, consider the process P=X;(P2
+:::): since 2is not discarded by a , it follows that this recursion is safe only
+when Xalways performs a visible event before a X(otherwise there would be an
+inﬁnite series of 2’s applied). This cannot be determined statically (i.e. without
+accessing the transitions of X), and thus it is not possible to determine if the
+process can be compiled at the recursive high-level. Thankfully, such processes
+are suﬃciently rare in the context where recursive high-level is of use.
+5.3 Picking a Strategy
+We now describe the new algorithm that FDR3 uses to decide how to compile a
+syntactic process. The input to the compilation algorithm is a syntactic process
+map (Deﬁnition 1) and the output is a list of strategies that specify how each
+syntactic processes should be compiled. All operators have a preferred levelof
+compilation, either low(indicating it prefers an Explicitrepresentation) or high
+(indicating it prefers a Super-Combinator representation). For example, preﬁx
+prefers the low whilst interleave prefers high. In general, FDR3 aims to compile
+
+--- Page 11 ---
+function Strategy (P,r) .Pis a syntactic process, ris an event type
+as hi .The strategy for each argument of P
+for each argument QofPdo
+forceLow false .Set to trueif this must be compiled at low
+ifQis anonargument of Pthen
+r0 rudiscards (P;Q)
+forceLow r=None
+else .Qisoﬀ
+ifruturnedOnBy (P;Q) =Nonethen.This might get turned onby
+forceLow true .an event that does not discard the context
+else r0 Any .The context is discarded when Qis turnedon
+end if
+end if
+ifforceLowthen as as_hLowi
+else as as_hStrategy (Q;r0)i
+end if
+end for
+allLow V
+a2asa=Low
+if(Pis recursive_r6=Any)^recursionType (P)6=Highthen
+ifallLowthen return Low
+else return Mixed
+end if
+else if Pis recursive then return RecursiveHigh
+else if Pprefers Lowthen
+ifallLowthen return Low
+else return Mixed
+end if
+else return High
+end if
+end function
+Fig.3: The algorithm FDR3 uses to decide how to compile syntactic processes.
+an operator at its preferred level. If this level is high, that may require using the
+mixed and recursive high-level strategies on the surrounding processes (thus, a
+preference for high is more important). When this is not possible (because, e.g.,
+the processes do not permit the mixed level), the low-level strategy is used.
+The ﬁrst step is to calculate the strongly connected components (SCCs) of
+recursive processes. This is done by performing a DFS on the recursion graph
+that is naturally formed from the syntactic process map. Then, we compute
+which SCCs can be compiled at the recursive high-level, and which SCCs would
+prefer to be compiled at the recursive high-level (by incorporating preferences,
+e.g. preﬁx prefers to recurse at low, but ;prefers high). The graph is also used to
+check for invalid processes, such as P=P2P: formally, for each process name
+Pwe check that on each path back to P, at least one oﬀargument is traversed.
+Using the recursion graph, FDR3 computes which strategy to use to compile
+a syntactic process P. This cannot be done in ignorance of the contextofP,
+
+--- Page 12 ---
+since this may dictate how a process is compiled. For example, P=a!P2Q
+requires Qto be compiled at the low-level, since Pis a low-level recursion and Q
+appears as an onargument of an operator that is on the recursion path. Thus,
+when compiling a syntactic process, we need to be aware of the surrounding
+context C[], (e.g. C1[X]b=XjjjSTOP). When deciding on the strategy for P,
+the relevant fact about the context is what events Pcan perform to cause the
+context to be discarded . For example, nothing can discard the context C1, whilst
+any visible event discards the context C2[X]b=X2STOP. As we are interested
+in statically analysing processes, we approximate these sets as follows.
+Deﬁnition 2. Anevent type is either None,Invisible,VisibleorAny. The
+relation<is deﬁned as None<Invisible,None<Visible,Invisible<Any,
+Visible<Any. Note<is a partial order on event types. The meet of e1and e2
+is denoted by e1ue2.
+Deﬁnition 3. Let Qbe an argument of a syntactic process P. IfQison,
+then discards (P;Q)returns the event type that Qperforms to cause Pto be
+discarded and Qto be left running (e.g. discards (X2Y;X) =Visible, whilst
+discards (XjjjY;X) =None). If Qisoﬀ, then turnedOnBy (P;Q)returns the
+event type that Pperforms in order to turn onQ. For example, turnedOnBy (X;
+Y;Y) =Invisible whilst turnedOnBy (X Y;Y) =Visible.
+Thus it is possible to use discards along with the meet on event types to
+compute when a context will be discarded.
+Figure 3 deﬁnes a function Strategy (P;r)that returns the strategy that
+should be used to compile the syntactic process Pin a context that is discarded
+by events of event type r. Informally, given a process Pand an event type rthis
+ﬁrstly calls each of its arguments, passing down an appropriate event restriction
+(which is computed using discards foronarguments and turnedOnBy foroﬀ
+arguments). It may also force some arguments to be low-level if the restriction
+becomes None. Then, a compilation strategy for Pis computed by considering
+the preferences of the operator, whether the operator is recursive and the de-
+ducedstrategiesforthearguments.Theoverridingobservationbehindthischoice
+is that compilation at high is only allowed when the process is non-recursive, and
+when there is no surrounding context (i.e. r=Anything ).
+5.4 Related Work
+FDR2 has support for both Explicitand Super-Combinator GLTSs, along with
+a GLTS deﬁnition for each CSP operator (e.g. external choice etc). We believe
+that the FDR3 representation is superior, since it requires fewer GLTS types to
+be maintained and because it makes the GLTSs independent of CSP, making
+other process algebras easier to support. As mentioned in Section 5.2, FDR2 did
+not make use of the recursive high-level, and was unable to compile processes
+such as P= (XjjjY) ;Pat the high-level. We have found that the recursive
+high-level has dramatically decreased compilation time on many examples.
+
+--- Page 13 ---
+The biggest diﬀerence is in the algorithm that each uses to compile syntac-
+tic processes. FDR2 essentially used a series of heuristics to accomplish this and
+would always start trying to compile the process at its preferred level, backtrack-
+ing where necessary. This produced undesirable behaviour on certain processes.
+We believe that since the new algorithm is based on the operational semantics of
+CSP, it is simpler and can be easily applied to other CSP-like process algebras.
+6 Experiments
+We now compare the performance of FDR3 beta-6 to FDR 2.94 and Spin 6.25
+on a complete traversal of a graph. The experiments were performed on a Linux
+server with two 8 core 2GHz Xeon Chips with hyperthreading (i.e. 32 virtual
+cores) and 128GB RAM. All input ﬁles are available from the ﬁrst author’s
+webpage. FDR2 and FDR3 were run in default mode. The output of Spin was
+compiled using -03 -DBFS -DNOREDUCE -DSAFETY -DNOFAIR -DHC4 for single-
+threaded checking and -O3 -DBFS PAR -DNOREDUCE -DSAFETY -DNOFAIR for
+multi-core checking and the resulting binaries were executed using -Ewith an
+appropriately sized hashtable. — denotes a check that took over 6 hours, whilst
+* denotes a check that was not attempted.
+Figure 4a compares the performance of FDR2 and FDR3 on a variety of
+traces and failures checks. There are several interesting observations. Firstly,
+FDR3 with 1 worker is faster than FDR2. We believe this is because FDR3’s
+B-Tree has been very heavily optimised, and that it makes far fewer allocations
+duringreﬁnementchecks.FDR3with1workeralsouseslessmemorythanFDR2:
+this is due to a new compaction algorithm used to compress B-Tree nodes that
+eﬃciently compacts sorted data by only storing the diﬀerence between keys.
+The extra memory used for the parallel version is for the extra buﬀers that are
+required for inserts into other workers’ trees.
+The speed-up that Figure 4a exhibits between 1 worker and 32 workers varies
+accordingtotheproblem. solitaire isspedupbyafactorof15(whichisalmost
+optimal given the 16 cores), whilst knightex.5.5 is only sped up by a factor
+of 9. The reason for this diﬀerence is down to the size of the plys during the
+check: the time spend waiting for other workers at the end of the ply is a larger
+percentage of the overall time when there are lots of plys (as in knightex.5.5 ).
+Figure 4b gives a more detailed table of the speed-ups.
+Figure 4c compares the performance of FDR3 and Spin on several problems.
+In general, Spin completes the checks up to three times faster than FDR3, but
+uses up to four times more memory. The decrease in speed for FDR3 is likely
+to be because supercombinators are not as cheap to execute, and because FDR3
+compresses the backing store used by B-Trees.
+7 Conclusions
+In this paper we have presented FDR3, a new reﬁnement checker for CSP that
+includes many enhancements over FDR2. We have described the new compiler
+
+--- Page 14 ---
+Input States ( 106)Transitions ( 106)Time (s) & Memory (GB)
+FDR2 FDR3-1 FDR3-32
+bully.7 163 1701 2205 (4.8) 1558 (3.0) 147 (7.2)
+cuberoll.0 7524 20065 — —3991 (101.7)
+ddb.0 65 377 722 (1.4) 479 (0.7) 44 (2.7)
+knightex.5.5 67 259 550 (1.4) 343 (0.7) 35 (2.8)
+phils.9 47 387 686 (1.0) 387 (0.4) 32 (2.0)
+solitare.0 187 1487 2059 (4.4) 1540 (1.8) 101 (4.8)
+solitare.1 1564 13971 19318 (35.1) 13730 (13.7) 986 (23.2)
+solitaire.2 11622 113767 * *11003 (140.1)
+tnonblock.7 322 635 2773 (6.7) 1175 (2.9) 122 (7.6)
+(a) Times comparing FDR2, FDR3 with 1 worker, and FDR3 with 32 workers.
+InputTime (s)
+FDR3 (workers)
+12481632
+bully.7 1558814441252172147
+solitare.0 1540786439236127101
+tnonblock.7 1175671362210124122
+(b) The scaling performance of FDR3.
+InputTime (s) & Memory (GB)
+Spin-1 Spin-32 FDR3-1 FDR3-32
+knightex.5.5 84 (6.9) 12 (5.8) 343 (0.7) 35 (2.8)
+knightex.3.10 *396 (115.0) *1111 (29.6)
+solitaire.0 1112 (20.4) 89 (15.5) 1540 (1.8) 101 (4.8)
+(c) A comparison between FDR3 and Spin. knightex.3.10 has2035106states
+and 6786106transitions.
+Fig.4: Experimental Results comparing FDR2, FDR3, and Spin.
+that is more eﬃcient, more clearly deﬁned and produces better representations
+than the FDR2 compiler. Further, we have detailed the new parallel reﬁnement-
+checking algorithm that is able to achieve a near-linear speed-up as the number
+of cores increases whilst ensuring eﬃcient memory usage.
+Thispaperconcentratesonparallelisingreﬁnementchecksonshared-memory
+systems. It would be interesting to extend this to support clusters instead: this
+would allow even larger checks to be run. It would also be useful to consider
+how to best parallelise checks in the failures-divergence model. This is a diﬃcult
+problem, in general, since this uses a depth-ﬁrst search to ﬁnd cycles.
+FDR3 is available for 64-bit Linux and Mac OS X from https://www.cs.
+ox.ac.uk/projects/fdr/ . FDR3 is free for personal use or academic research,
+whilst commercial use requires a license.
+Acknowledgements This work has beﬁtted from many useful conversations with
+Michael Goldsmith, Colin O’Halloran, Gavin Lowe, and Nick Moﬀat.
+
+--- Page 15 ---
+References
+1. C. A. R. Hoare, Communicating Sequential Processes . Upper Saddle River, NJ,
+USA: Prentice-Hall, Inc., 1985.
+2. A. W. Roscoe, The Theory and Practice of Concurrency . Prentice Hall, 1997.
+3. A. W. Roscoe, Understanding Concurrent Systems . Springer, 2010.
+4. J. Lawrence, “Practical Application of CSP and FDR to Software Design,” in Com-
+municating Sequential Processes. The First 25 Years , vol. 3525 of Lecture Notes in
+Computer Science , pp. 151–174, Springer, 2005.
+5. A. Mota and A. Sampaio, “Model-checking CSP-Z: strategy, tool support and
+industrial application,” Science of Computer Programming , vol. 40, no. 1, pp. 59–
+96, 2001.
+6. C. Fischer and H. Wehrheim, “Model-Checking CSP-OZ Speciﬁcations with FDR,”
+inIFM’99, pp. 315–334, Springer, 1999.
+7. G. Lowe, “Casper: A Compiler for the Analysis of Security Protocols,” Journal of
+Computer Security , vol. 6, no. 1-2, pp. 53–84, 1998.
+8. A. W. Roscoe and D. Hopkins, “SVA, a Tool for Analysing Shared-Variable Pro-
+grams,” in Proceedings of AVoCS 2007 , pp. 177–183, 2007.
+9. G. Holzmann, Spin Model Checker: The Primer and Reference Manual . Addison-
+Wesley Professional, ﬁrst ed., 2003.
+10. University of Oxford, Failures-Divergence Reﬁnement—FDR 3 User Manual , 2013.
+https://www.cs.ox.ac.uk/projects/fdr/manual/ .
+11. University of Oxford, libcspm, 2013. https://github.com/tomgr/libcspm .
+12. G. M. Reed and A. W. Roscoe, “A Timed Model for Communicating Sequential
+Processes,” Theoretical Computer Science , pp. 314–323, 1988.
+13. P. Armstrong, G. Lowe, J. Ouaknine, and A. Roscoe, “Model checking Timed
+CSP,”In Proceedings of HOWARD (Festschrift for Howard Barringer) , 2012.
+14. J. Ouaknine, Discrete Analysis of Continuous Behaviour in Real-Time Concurrent
+Systems. DPhil Thesis, 2001.
+15. H.Barringer,R.Kuiper,andA.Pnueli,“Areallyabstractconcurrentmodelandits
+temporal logic,” in Proceedings of the 13th ACM SIGACT-SIGPLAN symposium
+on Principles of programming languages , pp. 173–183, ACM, 1986.
+16. A. Roscoe and P. Hopcroft, “Slow abstraction via priority,” in Theories of Pro-
+gramming and Formal Methods , vol. 8051 of Lecture Notes in Computer Science ,
+pp. 326–345, Springer, 2013.
+17. A. W. Roscoe, “Model-Checking CSP,” A Classical Mind: Essays in Honour of
+CAR Hoare , pp. 353–378, 1994.
+18. M. Goldsmith and J. Martin, “The parallelisation of FDR,” in Proceedings of the
+Workshop on Parallel and Distributed Model Checking , 2002.
+19. C. E. Leiserson and T. B. Schardl, “A work-eﬃcient parallel breadth-ﬁrst search
+algorithm (or how to cope with the nondeterminism of reducers),” in Proceedings of
+the 22nd ACM symposium on Parallelism in algorithms and architectures , SPAA
+’10, pp. 303–314, ACM, 2010.
+20. R. E. Korf and P. Schultze, “Large-scale parallel breadth-ﬁrst search,” in Proceed-
+ings of the 20th national conference on Artiﬁcial intelligence - Volume 3 , AAAI’05,
+pp. 1380–1385, AAAI Press, 2005.
+21. G. J. Holzmann, “Parallelizing the Spin Model Checker,” in Model Checking Soft-
+ware, vol. 7385 of Lecture Notes in Computer Science , pp. 155–171, Springer, 2012.

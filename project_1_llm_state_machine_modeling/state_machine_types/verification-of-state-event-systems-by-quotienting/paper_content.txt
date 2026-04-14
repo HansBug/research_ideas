@@ -1,0 +1,679 @@
+--- Page 1 ---
+BRICS RS-99-41 Bodentien et al.: Veriﬁcationof State/Event Systems by QuotientingBRICS
+Basic ResearchinComputer Science
+Veriﬁcation of State/Event Systemsby
+Quotienting
+NickyO. Bodentien
+JacobVestergaard
+JakobFriis
+K˚areJ.Kristoffersen
+KimG.Larsen
+BRICSReport Series RS-99-41
+ISSN 0909-0878 December 1999
+
+--- Page 2 ---
+Copyright c/circlecopyrt1999, Nicky O.Bodentien & JacobVestergaard &
+JakobFriis&K ˚areJ.Kristoffersen& KimG.
+Larsen.
+BRICS, Department of Computer Science
+University of Aarhus. All rightsreserved.
+Reproduction ofallorpart ofthis work
+is permitted foreducational orresearch use
+on conditionthat thiscopyright noticeisincluded in any copy.
+SeebackinnerpageforalistofrecentBRICSReportSeriespublications.
+Copiesmay be obtained by contacting:
+BRICS
+Department of Computer Science
+Universityof Aarhus
+NyMunkegade, building 540DK–8000Aarhus CDenmark
+Telephone:+45 89423360
+Telefax: +45 89423255Internet: BRICS@brics.dk
+BRICS publications are in general accessible through the World Wide
+Weband anonymous FTP through these URLs:
+http://www.brics.dk
+ftp://ftp.brics.dkThis document insubdirectory RS/99/41/
+
+--- Page 3 ---
+Veriﬁcation of State/Event Systems byQuotienting
+Nicky Oliver Bodentien JacobVestergaard JakobFriis
+Kåre Jelling Kristoffersen Kim Guldstrand Larsen
+{oliver, jacob, freeze,jelling, kgl}@cs.auc.dk
+Aalborg University
+BRICS
+Departmentof ComputerScience
+Aalborg University
+Fredrik Bajers Vej7E
+DK-9220 AarhusØ, Denmark
+Abstract
+A rather new approach towards compositional veriﬁcation of concurrent systems is
+the quotient technique, where components are gradually removed from the concurrentsystem while transforming the speciﬁcation accordingly. When the intermediate speciﬁ-cations can be kept small using heuristics for minimization, the state explosion problem
+is avoided and there are already promising experimental results for systems with an in-
+terleaving semantics, including real-time systems. This paper extends the quotientingapproach to deal with a synchronous framework in the shape of state/event systems. Astate/event system isaconcurrent systemwithasetofinterdependent components operat-ing synchronously according to stimuli (input events) provided by an environment whileproducing output events in return for the environment. A compositional modal logic M
+suitable for expressing general safety and liveness properties subsystems is introduced. Aquotient construction for bulding components from a state/event system into the speciﬁ-cation is presented and heuristics for minimizing formulae are proposed. The techniquesare demonstrated on anexample. Thecorrectness of thetechniques are justiﬁed by proofsin an appendix.
+Basic ResearchinComputerScience,
+Centre ofthe DanishNationalResearchFoundation.
+1
+
+--- Page 4 ---
+1 Introduction
+Within the last decade, model checking and especially reachability checking has become a
+widelyusedtechniqueforverifyingﬁnitestatesystems. However,amajorprobleminapplying
+model checking on even moderate sized systems is the state explosion problem, arising from
+thepossiblecombinationofindependent transitions. It has been shownthatthisproblem isP-
+space complete, and thus in theory intractable. However, by inventingvarious heuristics used
+inanalyzingandverifyingsystems,ithas beenpossibletoverifysystemswithalargenumberofcomponents.
+One such attack on the state explosion problem is BDD’s, see [7, 9, 8, 1], which provides a
+canonicalformforbooleanformulaethatisoftensubstantiallymorecompactthanformulaeonconjunctive and disjunctive normal form, and very efﬁcient algorithms have been developed
+formanipulatingformulaebased on theirBDD representation.
+Anotheralternativeis compositionality,wherethemotivationis to reason about thebehaviour
+ofa large systembased on knowledgeofitscomponents. In thosecases where a globalinves-
+tigation can be avoided efﬁciency is gained. In [4, 1, 2], compositional reasoning has proven
+to be a successful technique in veriﬁcation of concurrent systems and embedded software.
+The Compositional Backwards Reachability technique (CBR) presented in [1], is used by the
+commercial veriﬁcation tool VisualSTATE
+TM. This tool uses the state/event model, in which
+a concurrent system with a set of interdependent state/event machines operate synchronously
+according to stimuli provided by an environment. A transition in a state/event machine is la-
+belled with en input event e, an output event oand a guard g, which is a the set of global
+states in which the transition is enabled. The machines operate synchronuosly in lock–step,
+i.e. whenever an input eis provided by the environment all machines that are able to take a
+stepwilldo so,hereby returningaset ofoutputsto theenvironment.
+VisualSTATETMmakes it possible to produce and verify embedded software e.g. in mobile
+phones. Itperformsreachabilitychecksandchecksforpossibledeadlocks. FurthermoreVisu-alSTATEcan generatecodeforstate/eventsystems.
+In this paper we apply the quotient framework in which the idea is to repeadetly remove one
+state/eventmachineinaparallelcompositionwhiletransformingthespeciﬁcationaccordingly.Themethodisapplicableto verifyingproblemsofthefollowingform:
+(M
+1j:::jMn)j=’; (1)
+where Miisastate/eventmachineand ’isthepropertyforthestate/eventsystem. Amachine
+isremovedbyapplyingaquotientoperator, =, totheformula,reducing theproblemto
+(M1j:::jMn−1)j=’=M n; (2)
+inthesensethat(1)is trueifand onlyif(2)is.
+2
+
+--- Page 5 ---
+If,aftereach factorizationstep,asetofminimizationheuristicsareappliedonthequotientthe
+modelchecking problemmay bebesigniﬁcantlyreduced.
+Themodallogic M0:
+’::=ttjffjgj’1^’2j’1_’2jhei’j[e]’jX;
+where gis a set of global states, eis an input event, hei;[e]denotes existential and univer-
+sal quantiﬁcation over events and Xis an identiﬁer, may be used to express both safety and
+liveness properties of state/event systems. Although the individual state/event machines have
+guards on their transitions, the global semantics of a state/event system will be one where all
+internalconditionsareresolved. Anotherwaytosaythisisthatastate/eventsystemasawholeisdependencyclosed .
+Unfortunately, M
+0is not compositional. In the process of removing machines, the lefthand
+side of the veriﬁcation problem above,( 2), may appear not to be dependency closed. Moreprecisely the remaining state/event machines may be contraining the machines just removed.
+Hence, we need an extended logic, Mwhere assumptions about other components are ac-
+countedfor.
+M1 M2M3
+Figure 1: This ﬁgure shows the dependency graph for a system consistingof three state/event
+machines M1;M2andM3. An arrow from one machine Mito another machine Mjindicates
+thatMidepends on Mj, i.e., that Mihas a transition with a guard that refers to a state in Mj.
+The system M1jM2jM3is dependency closed and thus the logic M0is ideal as a speciﬁca-
+tion formalism. However, if we in the quotient procedure remove machine M3the remaining
+system M1jM2isno longerdependencyclosed and thelogic Misused instead.
+To illustratethisidea welook at thesubsystem M1jM2jM3in Figure 1. Thissystemis depen-
+dency closed, i.e., it does not have constraints on any other machine and thus the logic M0is
+idealforexpressingproperties. However,ifweinthequotientprocedureremovemachine M3,
+the remaining system M1jM2is no longer dependency closed. More precisely, the transitions
+inM1jM2may be constraining the local states of M3. Therefore we extend the modalities in
+logicM0to the followingones: hu7!eiand[u7!e], where uis a set of states in thecontext
+of the current subsystem. Intuitively, for a state sto satisfy a formula hu7!ei’it should
+hold that shas an e–transition which can indeed be performed when the context is in one of
+the states in uand such that the derived state s0satisﬁes ’. Similary the xboksue’ formula is
+satisﬁed by a state sif, alle–derivatives, s0, that may be reached from sunderthe assumption
+thatthecontextisinstatein u, satisﬁes ’.
+3
+
+--- Page 6 ---
+Outline
+The state/event model is introduced and formally deﬁned in section 2. In Section 3 we in-
+troduce the logics MandM. Section 4 presents the quotient contruction for building a
+state/event machine into a speciﬁcation together with heuristics for minimizing formulae. Anexample of the use of the quotient technique is given in section 5, and section 6 draws some
+conclusions and depicts further work. The proofs of correctness of the quotient construction
+forS/E systemsappear inappendixA.
+2 State/eventsystems
+Thissectionwillgiveanintroductiontostate/eventsystems,whichwillbecalledS/Esystemsin the following. A S/E system consists of nmachines M
+1; :::; M nover an alphabet of input
+events Eand output events O. The presence of output events have no impact on veriﬁcation
+at all and henceforth we will not be considering outputs in this model. Each machine Mi
+is a triple (fig;s0
+i;!fig)of local states, an initial state and a set of transitions. The set of
+transitionsisa relation:
+!figfigEGfigfig
+where Gfigis the set of guards not containing references to machine i. These guards are
+generated from thefollowingsimplegrammar:
+g::=lj=pj:gjg^gjtt (3)
+The atomic predicate lj=pis read as “machine jis at local state p”a n d ttdenotes a true
+guard. Theglobalstateset oftheS/E systemistheproductofthelocal statesets:
+= f1gf2g:::fng:
+In addition to using the given syntax for guards, we ﬁnd it useful to use set notation. In set
+notation,a guardis simplyaset ofallowedstates. Forinstance, let
+1=f1;2;3g
+2=fa; b; cg
+3=f;;γ g(4)
+be state spaces. Then g= 2fgwould be a guard on a transition in M1, allowing M2to
+beinanystate,andrequiring M3tobeinstate . Itisimportanttonotethatalthoughasetcan
+express more complex guards than the above syntax could, every guard in set notation muststillbeequivalentto someguard builtfrom thesyntax.
+4
+
+--- Page 7 ---
+Projection
+Itissometimesnecessary toextractrequirementsononlyafew machinesfromalargerguard.
+For instance, using the state spaces in (4), the guard g0= 1fbgwould be a condition on
+M1andM2. With current constructs, we cannot say e.g. that M2in state bdoes not conﬂict
+withg0sinceformally, b62g0. Weuseprojectiontoremedy this.
+Deﬁnition 2.1(Projection)
+LetgIbeaguardonmachineswithindexset I=fi1;i2;:::;i lg,andlet J=fj1;j2;:::;j mg
+beasubsetof I. Thentheprojectionof gontoJ, denoted J(g),is theguard deﬁned by
+J(g)=
+(s1;s2;;sm)2Jj
+9(t1;t2;;tl)2g:8p2f1;mg
+8k2f1;;lg8j2J:
+(tk;sp2j,tk=sp)/bracerightbig
+Completeness
+InoursettingweonlyuseS/Emachineswithcompletetransitionrelations. Atransitionsystem
+is complete if there is always transition that can be taken, i.e. given a state s2i,a ne v e n t
+e2Eand the guards g1; :::; g mon the e-transitions of s, it holds that g1_:::_gm=tt
+or, using set notation,S
+i=f1::mggi= f1:::ngnf ig. An incomplete transistion relation can be
+made complete in the following way: Suppose a state sis not complete. Then by adding the
+transition se;:g1^:::^:gm−−−−−−−− !sweobtainasystemhavingexactlythesamesetofreachablestates.
+Composition
+A S/E systemcan becomposedofindividualS/E machines.
+Deﬁnition 2.2(Composition)
+LetMIandMJbe S/E machines, where I;Jf1:::ngandI\J=;Then we deﬁne the
+composition MI[Jtobe( IJ;s0
+Is0
+J;!I[J)where !I[Jis deﬁned as follows:
+seg−!Is0teh−!Jt0
+steI[J(fsgg\hftg)−−−−−−−−−−−−−! I[Js0t0
+where  s;s02Iandt;t02J
+It can easilybeshownthatcompletenessispreserved bycomposition.
+Deﬁnition 2.3(Dependency closedsystem)
+LetM=(  I;so;!I)be a S/E machine. Then, Mis dependency closed if all guards in !I
+are true.
+5
+
+--- Page 8 ---
+3 Logic
+In order to express interesting properties of S/E-systems, we employ a series of modal logics
+M,inwhichthereisaspeciﬁclogic M Iforeachset Iofmachineindices. Eachspeciﬁclogic
+applies to machines with the same index set as the logic. This allows us to apply the quotient
+operator to a property, that a set of machines must satisfy in order to obtain a property that a
+subsetofthosemachinesmustsatisfy.
+Syntax
+LetIbea setofmachineindices. Thenwedeﬁne logic M Ias
+’::=ttjffjgj’1^’2j’1_’2jhu7!ei’j[u7!e]’jX;
+where Xisan identiﬁer, eisan event, gIanduI
+Semantics
+LetIdenote a set of machine indices, and ’be a formula in logic M Iand let sbe a state in
+MI. Then the statement sj=I’is read “state ssatisﬁes formula ’under logic M I. Usually
+thespeciﬁc logicwill beclear from thecontext,so we simplywrite sj=’. The semanticsfor
+sj=’isgivenby
+sj=tt
+sj=g iffs2g
+sj=’1^’2iffsj=’1and sj=’2
+sj=’1_’2iffsj=’1or sj=’2
+sj=hu7!ei’iff9s0;g:seg−!s0s:t:ug^s0j=’
+sj=[u7!e]’iff8s0;g:( seg−!s0s:t:ug))s0j=’
+sj=X iffsj=D(X)
+Wewillusethestatement MIj=’tomean s0
+Ij=’, where s0
+Iistheinitialstateof MI.
+In our logic we express reachability properties as follows: Let g2G. Then the property that
+a state satisfying gis reachable is expressed as the minimal ﬁxpoint solution to the following
+equation:
+Reach (g)=g__
+e2EheiReach (g)
+6
+
+--- Page 9 ---
+4 Quotienting
+This section will describe the quotient technique, and the use of equation systems and mini-
+mizationheuristicswhen utilizingthetechnique.
+Deﬁning thequotientoperatorpresentstwochallenges:
+1. Themachinebeingfactored outmayhaveguardsrestrictingothermachines.
+2. Theremaybeothermachinesthatguardthemachinebeingfactoredout(wesaythatthe
+machineis guarded).
+In thefollowing,weformallydeﬁne and statethecorrectness ofthequotientoperator.
+Formaldeﬁnition of quotient
+Deﬁnition 4.1(Quotient operator)
+LetIandJbe sets of machine indices where JI.L e ts2J,a n dl e t ’be a formula in
+M I. Then, ’=sisaformulain M InJ. Itisdeﬁnedinductivelyonthestructureof ’asfollows:
+g=s=ft2InJjftgfsggg
+(’1^’2)=s=’1=s^’2=s
+(’1_’2)=s=’1=s_’2=s
+(hu7!ei’)=s=_
+jjsegj−−! Jsj
+j^hus7!ei(’=sj)
+([u7!e]’)=s=^
+jjsegj−−! Jsj
+j)[us7!e](’=sj)
+X=s=Xs;where Xs=D(X)=s
+where j= InJ
+[uInJ]\gj
+4.1 Equation systems
+When utilizingthequotient technique, it is necessary to use equation systems. When wanting
+to factor out some machine M=/angbracketleftbig
+(s0; :::; s k);s0;!
+, it is necessary to factor out each state
+in the S/E machine M. This is done with equation systems. Let Xbe an identiﬁerand ’2L
+7
+
+--- Page 10 ---
+then
+X=M =8
+>>><
+>>>:x
+0=’=s0
+x1=’=s1
+...=...
+x
+k=’=s k
+where x0is the “top formula” which represents the result we want to compute. We might
+obtainoneormoreequationsthatevaluateto ttorff.
+4.2 Minimization heuristics
+In thefollowinglet ’; g2M I;uIande2E.
+Simpleevaluation: ’_tt7!ttand’^tt7!’
+Trivialdiamondelimination: hu7!eitt7!tt
+Trivialboxelimination: [u7!e]ff7!ff
+Trivialdiamondeliminationand trivialbox eliminationare possiblebecause weuse complete
+S/E systems. According to the deﬁnition of completeness a complete S/E system is able to
+perform atransitionat anytime.
+Dead EventElimination: hu7!ei’7!’ifseg−!Isforall s2I.
+Dead Event Elimination may be a powerful reduction heuristic in those cases where we have
+sort–informationofthesysteminfocus.
+TrivialDisjunctionElimination:W
+igi7!ttifW
+igitt
+Deﬁnition 4.2(Context Equivalence)
+LetGbe theset of guards in machines not yet factored out, and let u1andu2be sets of states
+inthesubsystemalreadyfactoredout. Then u1andu2aresaidtobecontextequivalentmodulo
+G,u1=Gu2, ifthefollowingholds:
+8g2G:u1giffu2g
+ContextDependentReduction I: LetGbethesetofguards inmachines Mi;i2I.T h e n
+hu17!ei’_hu27!ei’7! hu17!ei’ifu1=Gu2:
+ContextDependentReduction II: LetGbetheset ofguards inmachines Mi;i2I.T h e n
+[u17!e]’_[u27!e]’7![u17!e]’ifu1=Gu2:
+Recursion Elimination: LetXbe an identiﬁer. Then, X=heiX7!ffwhen computing the
+minimalﬁxpoint.
+8
+
+--- Page 11 ---
+Theorem 4.3 (Correctness of quotient)
+LetM1jjMnbeaS/Esystem,let I=f1:::igbeasetofmachineindices,andlet s2Infig,
+si2iand’2M I. Then itholdsthat
+(s; s i)j=’()sj=’=s i|{z}
+LInfig
+5 Example
+As an example we shalle consider a lecture room with nblackboards B1;:::;B nwhich are
+placed side by side and are able to move up and down independently, see Figure 2. The
+out
+[O1;:::;O n]
+out
+OUTHIDDEN
+DOWN i
+Oi[HIDDEN ][HIDDEN ][HIDDEN ]
+down idown i
+down i
+stop i
+stop i
+plump iUP i
+STOP i
+up iup iup idunk iMAX iBi: OH:
+Figure2: Thei’thboard Biand theoverheadprojector OH.
+i0thboard has ﬁve states: MAX ifor being in the higehst possible position, UP irepresents
+upwards movement, STOP ifor not moving at all (also STOP iis the initial state), DOWN i
+9
+
+--- Page 12 ---
+for moving downwards and ﬁnally Oifor being in the lowest possible position. On the wall
+behind theboards there is a wideoverhead screen ( OH)which is initially HIDDEN , i.e. its
+alignement is vertical but may “tip” out to a suitableanglewhen all theboards are in position
+Oi. Similarly,theboards can onlymoveup when theoverheadscreen is HIDDEN .
+We want to prove that it is possible to get the overhead screen to the position OUT.W e
+thereforeget thefollowingspeciﬁcation:
+X=[OH@OUT]__
+e2E[ outheiX
+where Ei=fup i;d o wn i;s t o p i;p lum p i;d un k igandE=[
+i=1:::nEi.
+Now, the idea is to ﬁrst factor out the overhead projector followed by all the boards one by
+one. It turns out that it is possibleto keep the quotient down to only one single equation after
+eacf factorizationstep, andthusmakingtheveriﬁcationveryfeasible.
+Factoringout theoverheadprojectorgivestwovariables XHandXO:
+XH=[^
+i=1:::nBi@Oi^hH7!outiXO]__
+e6=outhH7!eiXH
+XO=(OH@OUT)=OUT =tt
+By substituting ttforXOinXHand applyingtrivialdiamondeliminationweget anew spec-
+iﬁcation, X, fortheboards
+X=^
+i=1:::nBi@Oi__
+e6=outhH7!eiX
+HereHdenotes fHIDDEN g
+Now,letus factoroutthe i0thboard Bi. We getthefollowingﬁveequations:
+XH=MAX i=ff_h(MAX i;H)7!down ii(XH=DOWN i)__
+ei2Einfdown igh(MAX i;H)7!eii(XH=MAX i)_
+_
+ej2En Eih(MAX i;H)7!eji(XH=MAX i)
+XH=UP i=ff_h(UP i;H)7!down ii(XH=DOWN i)_
+h(UP i;H)7!dunk ii(XH=MAX i)_
+h(UP i;H)7!stop ii(XH=STOP i)__
+ei2Einfdown i;dunk i;stop igh(UP i;H)7!eii(XH=UP i)_
+_
+ej2En Eih(UP i;H)7!eji(XH=UP i)
+10
+
+--- Page 13 ---
+XH=STOP i=ff_h(STOP i;H)7!up ii(XH=UP i)_
+h(STOP i;H)7!down ii(XH=DOWN i)__
+ei2Einfup i;down igh(STOP i;H)7!eii(XH=STOP i)_
+_
+ej2En Eih(STOP i;H)7!eji(XH=STOP i)
+XH=DOWN i=ff_h(DOWN i;H)7!up ii(XH=UP i)_
+h(DOWN i;H)7!stop ii(XH=STOP i)_
+h(DOWN i;H)7!plump ii(XH=O i)__
+ei2Einfup i;stop i;plump igh(DOWN i;H)7!eii(XH=DOWN i)_
+_
+ej2En Eih(DOWN i;H)7!eji(XH=DOWN i)
+XH=O i=ff_h(Oi;H)7!up ii(XH=UP i)__
+ei2Einfup igh(MAX i;H)7!eii(XH=O i)_
+_
+ej2En Eih(Oi;H)7!eji(XH=O i)_
+^
+j2f1:::ngnf igBj@Oj
+Now, since no board Bj;j6=iwill ever use any of the events in Eiwe may use the principle
+of Dead Event Elimination to simplify the equationa above. Moreover, we observe that all
+lefthandsides alsoappearunguarded onmostrighthandsidesand thuswemayconcludethat:
+XH=MAX i,XH=UP i,XH=STOP i,XH=DOWN i,XH=O i
+Hence, weget thefollowingnew speciﬁcation:
+X=^
+j2f1:::ngnf igBj@Oj__
+ej2En Eih(Li;H)7!ejiX
+where Li2fMAX i;UP i;STOP i;DOWN i;O ig.
+11
+
+--- Page 14 ---
+No board Bjeverconstrains board Bi,i. e .Bjdoes not distinguishbetween thestates MAX i,
+UP i,STOP i,DOWN i,a n dOiand thuswemay reduce Xto
+X=^
+j2f1:::ngnf igBj@Oj__
+ej2En EihH7!ejiX
+HereHdenotes EifHIDDEN g.
+Thus,afterhaving factored outall theboards wewillobtainthesingleequation
+Y=^
+j2;Bj@Oj__
+ej2;hH7!ejiY7!tt_ff7!tt
+Thuswehavesuccededinverifyingthesystemwhileavoidingtheburdenofthestateexplosion
+problem.
+6 Conclusionandfurtherwork
+In this paper we have addressed the state explosion problem by deﬁning and proving the cor-rectness of the quotient technique in Left Restricting state/event systems. We have found the
+simplediamond operator heiinsufﬁcient to deal withsystemsthat are not dependency closed.
+Therefore we have developed an extended modal logic featuring an extended diamond opera-torhu7!ei. Ourworkshouldprovideagoodframeworkforextendingthequotienttechnique
+todeal withcyclicdependencies.
+Hierachical systems is a new feature in VisualSTATE where states in the system can be ex-
+pressed as subsystems. Currently the compositional backwards reachability approach used
+in VisualSTATE fails to handle these systems effectively. The quotient technique might be asolutiontothisproblem.
+So far implementationof the technique and the gathering of experimental results is subject to
+furtherwork.
+12
+
+--- Page 15 ---
+References
+[1] Lind-Nielsen, J., Andersen, H.R., Behrmann, G., Hulgaard, H., Kristoffersen, K.J.,
+Larsen, K.G.
+VerﬁcationofLargeState/EventSystemsUsingCompositionalityandDependencyAnal-
+ysis
+Presented at TACAS’98 and publishedinLNCS 1384,SpringerVerlag 1998
+[2] Behrmann, G.,Kristoffersen,K.J, Larsen,K.G.
+Context DependentMinimizationof State/EventSystems
+PresentedatNWPT’97andappearsinProceedingsoftheEstonianAcademyofSciences.
+[3] KåreJellingKristoffersen
+CompositionalVerﬁcationofConcurrent Systems
+PhD thesis,AalborgUniversityaugust1998ISSN 1397-8640
+[4] HenrikReif Andersen
+PartialModelChecking (ExtendedAbstract)Appears inproceedingsofLICS95 (pp.398-407),IEEE ComputerSociety Press
+[5] KimGuldstrandLarsen
+FromModalLogictoProcessAlgebra
+AalborgUniversityCenter, September1987
+[6] HansHüttel,KimGuldstrandLarsen
+Bevissystemerforopfyldelighedi Hennessy-Milner-logikmed rekursion
+AalborgUniversityCenter, 18. Januar1999
+[7] R. E. Bryant. Graph–based algorithms for boolean function manipulation. IEEE Trans-
+actionson Computers ,C–35(8):677–691,1986.
+[8] J.R.Burch,E.M.Clarke,K.L.McMillan,D.L.Dill,andL.J.Hwang. Symbolicmodel
+checking: 10
+20states and beyond. Information and Computation , 98(2):142–170, June
+1992.
+[9] K.L.McMillan.Symbolicmodelchecking: AnapproachtotheStateExplosionProblem.
+Kluwer AcademicPublishers ,1993.
+13
+
+--- Page 16 ---
+A Provingcorrectnessof thequotienttechnique
+Toensurethatthethequotienttechniqueyieldscorrectresults,weneedtoprovethatifwehave
+a compound state s=(s1;:::;s i;:::;s n)in some set of machines, it holds that ssatisﬁes a
+formula ’ifandonlyifthesmallerstate (s1;:::;s i−1;si+1;:::;s n)satisﬁes'
+si.H o w e v e r ,w e
+lookat thesimplercase wheretheS/EsystemisLeft Restricting.
+A.1 Factoringout unguarded machines
+Theorem A.1 (Correctness of quotient)
+LetM1jjMnbe a Left Restricting S/E system, let I=f1:::igbe a set of machine indices,
+and let s2Infig,si2iand’2L I. Then itholdsthat
+(s; s i)j=’()sj=’=s i|{z}
+LInfig
+s1 si sjh1ee e
+hm hk
+sk
+i[tt]sie
+[tt]eM i
+e
+[tt]
+s1
+i smiMf1;:::;i−1g
+s
+Figure 3: Illustrates the S/E system used in the proof of correctness of quotient. Here we
+focus on e-transitions from sandsi. The guards on e-transitions from sarettsince this is
+a Left Restricting S/E system, and Mf1;:::;i−1gis the leftmost S/E machine. The guards on
+e-transitionsfrom sineed notbe tt.
+Proof
+This proof is by structural induction in ’. For convenience, the states under consideration are
+illustratedin ﬁgure3.
+Induction hypothesis: LetM1jjMnbe a Left Restricting S/E system. For any index i2
+f1;:::;n g,le ttandtibestates in Mf1;::: ;i−1gandMi,respectively. Then,
+(t; t i)j=’1,tj='1
+ti
+(t; t i)j=’2,tj='2
+ti
+14
+
+--- Page 17 ---
+Basestep: ’=g
+Show (s; s i)j=g,sj=g
+si.
+Weshowthebiimplicationbystartingfrom theright:
+sj=g
+si
+,sj=tjtfsig2g/bracerightbig
+,s2tjtfsig2g/bracerightbig
+,(s; s i)2g
+,(s; s i)j=g
+Inductive step: ’=g^’1
+Show (s; s i)j=g^’1,sj=g^'1
+si.
+We show the biimplicationby starting from the right. IH denotes application of the induction
+hypothesis.
+sj=g^'1
+si
+,sj=g
+si^sj='1
+siIH,(s; s i)j=g^(s; s i)j=’1
+,(s; s i)j=g^’1
+Inductive step: ’=’1_’2
+Show (s; s i)j=’1_’2,sj='1_'2
+si.
+sj='1_'2
+si
+,sj='1
+si_sj='2
+siIH,(s; s i)j=’1_(s; s i)j=’2
+,(s; s i)j=’1_’2
+Inductive step: ’=hei’1
+Show (s; s i)j=hei’1,sj=hei'1
+si.
+Weshowthebiimplicationfrom lefttoright. From thesemanticsofdiamondand thefact that
+thesystemis Left Restrictingwehave,
+(s; s i)j=hei’1
+,9j; k:
+(s; s i)e[tt]−−!/parenleftbig
+sj;sk
+i
+^/parenleftbig
+sj;sk
+i
+j=’1
+IH,9j; k:
+se[tt]−−!sj^sieh k−−!sk
+i^s2hk
+^sjj='1
+sk
+i
+Bycombiningtheunderlinedstatementstoadiamondformula,wecontinuethebiimplication:
+9k:
+sj=/parenleftbig
+hk^hei'1
+sk
+i
+^sieh k−−!sk
+i
+,sj=W
+kjsiehk−−!sk
+ihk^hei'1
+si
+,(s)j=hei'1
+si
+15
+
+--- Page 18 ---
+Which concludestheproof. 2Proof
+Again, structural induction on ’is used. Since the proof is largely similar to that of The-
+orem A.1, only the case of extended diamond is shown. For convenience, the states under
+considerationareillustratedinﬁgure4.
+s1 sjee e
+hm hk
+sk
+isiM i
+s1
+i smiM i+1jj M n M1jj M i−1
+u
+h1ee
+gjs
+e
+g1gp
+sp
+Figure 4: Illustrates the situation where machines M1toMi−1have been factored out. Only
+thee-transitions from state siinMiand state sinMi+1jjMnare shown. The rectangle
+represents theinformation uprovidesaboutthestateof M1jjMi−1.
+Induction Hypothesis: LetM1jjMnbe a Left Restricting S/E system. For any index
+i2f1;:::;n g,le ttiandtbestates in MiandMfi;::: ;n grespectively. Then,
+(ti;t)j=’1,tj='1
+ti
+Case’=hu7!ei’1
+Show (si;s)j=hu7!ei’1()sj=hu7!ei'1
+si.
+We show the biimplication by beginning with the left-hand side: From the semantics of ex-
+tended diamond,wehave:
+(si;s)j=hu7!ei’1
+,9k;j:
+(si;s)ef−!/parenleftbig
+sk
+i;sj
+^/parenleftbig
+sk
+i;sj
+j=’1^u2f
+where f= I/parenleftbig
+I(hk)fsig
+\gj
+istheguardresultingfromcomposing MfigandMInfig
+according to Deﬁnition 2.2. Note that ulies in fif and only if u2hkandu2I(gj)and
+16
+
+--- Page 19 ---
+si2fig(gj). Usingalsotheinductivehypothesis,thisexpandsthebiimplicationtoinclude
+9k;j:
+sieh k−−!sk
+i^seg j−−!sj
+^
+sjj='1
+sk
+i
+^u2hk
+^u2I(gj)^si2fig(gj)
+Observingthat/parenleftbig
+u2I(gj)^si2fig(gj)
+,fugfsig2gj,wecombinetheunderlined
+statements:
+9k:
+sieh k−−!sk
+i^u2hk
+^sj=hfugfsig7 !ei'1
+sk
+i
+Letk=
+Infig;u2hk
+; ;else:
+We now use the fact that sj=kif and only if u2hk, and at the same time change the
+existentialquantiﬁerintoadisjunction. Theremainingstepsare as follows:
+W
+kjsiehk−−!sk
+isj=/parenleftbig
+k^hufsig7 !ei'1
+sk
+i
+,sj=W
+kjsiehk−−!sk
+i/parenleftbig
+k^hufsig7 !ei'1
+sk
+i
+,sj=hu7!ei'1
+si
+2
+17
+
+--- Page 20 ---
+RecentBRICS ReportSeriesPublications
+RS-99-41 Nicky O. Bodentien, Jacob Vestergaard, Jakob Friis, K ˚are J.
+Kristoffersen, and Kim G. Larsen. Veriﬁcation of State/Event
+Systems by Quotienting . December 1999. 17 pp. Presented at
+Nordic Workshop in Programming Theory , Uppsala, Sweden,
+October 6–8,1999.
+RS-99-40 Bernd Grobauer and Zhe Yang. The Second Futamura Pro-
+jection for Type-Directed Partial Evaluation . November 1999.
+Extended version of an article to appear in Lawall, editor,ACMSIGPLANWorkshoponPartialEvaluationandSemantics-
+Based ProgramManipulation ,PEPM ’00 Proceedings, 2000.
+RS-99-39 Romeo Rizzi. On the Steiner Tree
+3
+2-Approximation for Quasi-
+BipartiteGraphs . November 1999. 6pp.
+RS-99-38 Romeo Rizzi. Linear Time Recognition of P4-Indifferent
+Graphs. November 1999. 11pp.
+RS-99-37 TiborJord ´an.ConstrainedEdge-SplittingProblems . November
+1999. 23pp.Apreliminaryversionwiththetitle Edge-Splitting
+Problems with Demands appeared in Cornujols, Burkard and
+W¨oginger, editors, Integer Programming and Combinatorial
+Optimization: 7thInternationalConference ,IPCO’99Proceed-
+ings, LNCS1610,1999,pages 273–288.
+RS-99-36 Gian Luca Cattani and Glynn Winskel. Presheaf Models for
+CCS-likeLanguages . November1999. ii+46pp.
+RS-99-35 Tibor Jord ´an and Zolt ´an Szigeti. Detachments Preserving Lo-
+cal Edge-Connectivity ofGraphs . November 1999. 16pp.
+RS-99-34 Flemming Friche Rodler. Wavelet Based 3D Compression for
+Very Large Volume Data Supporting Fast Random Access .O c -
+tober 1999. 36pp.
+RS-99-33 Luca Aceto, Zolt ´an´Esik, and Anna Ing ´olfsd´ottir.The Max-
+Plus Algebra of the Natural Numbers has no Finite Equational
+Basis. October1999. 25pp.Toappearin TheoreticalComputer
+Science.

@@ -1,0 +1,279 @@
+--- Page 1 ---
+Spot 2.0 — a framework for
+LTL and !-automata manipulation
+Alexandre Duret-Lutz, Alexandre Lewkowicz, Amaury Fauchille, Thibaud Michaud,
+´Etienne Renault, and Laurent Xu
+LRDE, EPITA, Kremlin-Bic ˆetre, France
+spot@lrde.epita.fr
+Abstract. We present Spot 2.0, a C ++library with Python bindings and an
+assortment of command-line tools designed to manipulate LTL and !-automata in
+batch. New automata-manipulation tools were introduced in Spot 2.0; they support
+arbitrary acceptance conditions, as expressible in the Hanoi Omega Automaton
+format. Besides being useful to researchers who have automata to process, its
+Python bindings can also be used in interactive environments to teach !-automata
+and model checking.
+1 Introduction
+Spot is a C ++library of model-checking algorithms that was ﬁrst presented in 2004 [ 15].
+It contains algorithms to perform the usual tasks in the automata-theoretic approach
+to LTL model checking [ 36]. It was purely a library until Spot 1.0, when we started
+distributing command-line tools for LTL manipulation [ 13] and translation of LTL to
+some generalizations of B ¨uchi Automata.
+Spot 2.0 is a very large rewrite of the core of the library, in C ++11, with a focus
+on supporting automata with arbitrary acceptance conditions as described in the Hanoi
+Omega Automata format (HOA) [ 6]. Those acceptance conditions are expressed as posi-
+tive Boolean formulas over terms such as Inf(n) and Fin(n), which indicate respectively
+that some set Snof states or transitions should be visited inﬁnitely or ﬁnitely often.
+Traditional acceptance conditions look as follows in this formalism:
+B¨uchi: Inf(0) generalized-B ¨uchi: Inf(0)^Inf(1)^Inf(2)^: : :
+co-B ¨uchi: Fin(0) generalized-co-B ¨uchi: Fin(0)_Fin(1)_Fin(2)_: : :
+Rabin: ( Fin(0)^Inf(1))_(Fin(2)^Inf(3))_: : :
+Streett: ( Fin(0)_Inf(1))^(Fin(2)_Inf(3))^: : :
+Parity acceptance, generalized-Rabin [ 24,5], and any Boolean combination of the above
+can be expressed as well. The use of HOA as default format makes it easy to chain Spot’s
+command-line tools, and interact with other tools that implement HOA, regardless of the
+actual acceptance condition used.
+Additionally, Spot 2.0 ships with Python bindings usable in interactive environments
+such as IPython /Jupyter [29], easing development, experimentation, and teaching.
+Spot is a free software and can be obtained from https://spot.lrde.epita.
+fr/. The reader who wants to try Spot without installing it is invited to visit http://
+spot-sandbox.lrde.epita.fr/ where a live installation of Jupyter and Spot allows
+all examples (command lines or Python) of this paper to be replayed.
+
+--- Page 2 ---
+libspot libspot-ltsmin
+libbddximport spot.ltsmin import spotrandltl genltl
+ltlfilt randaut
+autfilt ltl2tgba
+ltl2tgta dstar2tgba
+ltlcross ltlgrind ltldo
+divine SpinSIPython /Jupyter
+Fig. 1. Architecture of Spot. C ++libraries are in orange boxes, binaries in red, and Python
+packages in blue. The outlined area is what Spot distributes.
+Figure 1 shows that Spot is actually split in three libraries. libbddx is a customized
+version de BuDDy [ 26] for representing Binary Decision Diagrams [ 10] which we use to
+label transitions in automata, and to implement a few algorithms [ 14,4].libspot is the
+main library containing all data structures and algorithms. libspot-ltsmin contains
+code to interface with state-spaces generated as shared libraries by LTSmin [20].
+In the rest of this article, we highlight some of the features of Spot by presenting the
+command-line tools and the Python bindings built on top of these libraries. The reader
+should keep in mind that everything that we illustrate as shell command or in Python
+can be performed directly in C ++; in fact our web site gives several examples of tasks
+implemented with each of these three interfaces.
+2 Command-line tools
+Spot 2.0 installs the following eleven command-line tools, that are designed to be
+combined as traditional Unix tools.
+[13]8>>>>>>>>>>>>><>>>>>>>>>>>>>:randltl generates random LTL /PSL formulas
+genltl generates LTL formulas from scalable patterns
+ltlfilt ﬁlter, converts, and transforms LTL /PSL formulas
+ltl2tgba translates LTL /PSL formulas into generalized B ¨uchi automata [ 14],
+or deterministic parity automata (new in 2.0)
+ltl2tgta translates LTL /PSL formulas into Testing automata [8]
+ltlcross cross-compares LTL /PSL-to-automata translators to ﬁnd bugs
+(works with arbitrary acceptance conditions since Spot 2.0)
+ltlgrind mutates LTL /PSL formulas to help reproduce bugs on smaller ones
+dstar2tgba converts ltl2dstar automata into Generalized B ¨uchi automata [ 1]
+randaut generates random !-automata
+autfilt ﬁlters, converts, and transforms !-automata
+ltldo runs LTL /PSL formulas through other translators, providing
+uniform input and output interfaces
+The ﬁrst six tools were introduced in Spot 1.0 [ 13], and have since received sev-
+eral updates. For instance ltl2tgba now uses better simulation reductions and de-
+
+--- Page 3 ---
+generalization [ 4], and it now provides a way to output deterministic automata using
+transition-based parity acceptance; ltlfilt has learned to decide stutter-invariance
+of any LTL /PSL formula using an automaton-based check that is independent on the
+actual logic used [ 27]; and ltlcross can now perform precise equivalence checks of
+automata in addition to supporting arbitrary acceptance conditions—it has been used
+by the authors of ltl3dra [5],ltl2dstar [21,22], and Rabinizer 3 [ 23] to test recent
+releases of their respective tools.
+Thedstar2tgba tool was introduced in Spot 1.2 while working on the minimization
+of deterministic generalized B ¨uchi automata using a SAT-solver [ 1]. It implements
+algorithms that translate deterministic Rabin automata into B ¨uchi automata, preserving
+determinism if possible [ 25], as well as conversion from Streett to generalized B ¨uchi.
+These two di erent kinds of input correspond to the possible outputs of ltl2dstar .
+In Spot 2.0, these specialized acceptance conversions have been preserved, but they
+are supplemented with more general transformations that input automata with arbitrary
+acceptance conditions, and transform them into automata with “ Fin-less” acceptance, or
+with (Generalized) B ¨uchi acceptance. These acceptance transformations are essential to
+a few core algorithms that cannot cope with arbitrary acceptance: for instance currently
+Spot can only check the emptiness of automata with Fin-less acceptance (all SCC-based
+emptiness-checks [ 11,12,31] are compatible with that), so more complex acceptances
+are transformed when needed.
+All these acceptance transformations, as well as other automata transformations are
+available through the autfilt tool. This command can input a stream of automata in
+4 dierent formats (HOA [ 6], LBTT’s format [ 33], never claims [ 19], orltl2dstar ’s
+format [ 22]), and can output automata, maybe after ﬁltering or transformation, in some
+other format (including GraphViz’s dot format [17] for display).
+As an example of transformation and format conversion, consider:
+% spin -f '[]<>a' | autfilt --complement --dot=abr | dot -Tpng >aut.png
+This command translates the LTL formula GFainto a B ¨uchi automaton using spin [19],
+the resulting never claim is then fed into autfilt for complementation, and the com-
+plemented automaton is output into GraphViz’s format for graphical rendering with
+dot. The arguments a,b, and rpassed to --dot cause the acceptance condition to be
+displayed, and the acceptance marks to be shown as colored bullets.
+In the above example the input to autfilt happens to be a deterministic B ¨uchi
+automaton, so the complementation is as simple as changing the acceptance condition
+into co-B ¨uchi. If a B ¨uchi output is desired instead, the above command should be
+changed to autfilt --complement --ba and will output a non-deterministic B ¨uchi
+automaton. This of course works with arbitrary acceptance conditions as input.
+Complementation of non-deterministic automata is done via determinization. Our
+determinization algorithm inputs transition-based B ¨uchi automata (so we may have some
+preprocessing to do if the input has a di erent acceptance), and outputs automata with
+transition-based Parity acceptance. It mixes the construction of Redziejowski [30] with
+some optimizations of ltl2dstar [21, 22] and a few of our own.
+Theltldo command wraps third-party LTL translators and provides them with
+inputs and outputs that are compatible with the Spot tool-suite. In particular it allows
+using “single-shot” translators in a pipeline. For instance spin can only translate one
+
+--- Page 4 ---
+formula at a time to produce a never claim. The command ltldo spin will process
+multiple formulas (in any syntax supported by Spot [ 13]), translate them all using spin ,
+and output all results in any supported automaton format (HOA by default). For instance
+the following command uses Spin to translate 10 random LTL formulas into B ¨uchi
+automata in the HOA format:
+% randltl -n 10 a b | ltldo spin --name=%f
+Option --name=%f requests input formulas to be used as the “ name: ” ﬁeld in the HOA
+format. This ﬁeld could then be used to retrieve the original formula after further pro-
+cessing: autfilt --stats=%M can be used to print the name of each input automaton.
+As a more complex example, the following pipeline ﬁnds 10 formulas for which
+ltl3ba [3] produces a deterministic B ¨uchi automaton, but ltl2ba [18] does not.
+% randltl -n -1 a b |
+ltldo ltl3ba --name=%f | autfilt --is-deterministic --stats=%M |
+ltldo ltl2ba --name=%f | autfilt -v --is-deterministic --stats=%M -n 10
+This creates an inﬁnite ( -n -1 ) stream of LTL formulas over atomic propositions a
+andb, translates them using ltl3ba , retains those that were translated to deterministic
+automata, translate them with ltl2ba and retains the non-deterministic ones ( -vinverts
+matches, as with grep ). With the ﬁnal -n 10 , the pipeline is eventually killed once the
+last command has found 10 matches.
+Theautfilt tool provides access to other !-automata algorithms such as prod-
+uct, emptiness checks, language inclusion or equivalence, language-preserving sim-
+pliﬁcations of automata, reﬁnement of labels [ 9], strength-based decompositions [ 32],
+SAT-based minimization of deterministic automata with arbitrary input and output ac-
+ceptance [ 2], or conversion from transition-based acceptance to state-based acceptance.
+Most algorithms work with arbitrary acceptance conditions, except a few (emptiness
+checks, determinization) that currently have to reduce the acceptance conditions upfront.
+3 The Python Interface
+Similar tasks can be performed in a more “algorithm-friendly” environment using the
+Python interface. Combined with the IPython /Jupyter notebook [ 29] (a web application
+for interactive programming), this provides a nice environment for experiments, where
+automata and formulas are automatically displayed. Figure 2 shows two examples that
+we used in a practical lecture on model checking with students from EPITA.
+The ﬁrst example illustrates how LTL formulas can be parsed ( spot.formula() ),
+and then translated (using translate() ) into automata with transition-based general-
+ized B ¨uchi acceptance. Using product, negation, and emptiness check, a student can
+deﬁne a procedure to test the equivalence of two LTL formulas and then use it to explore
+her understanding of LTL.
+The second example illustrates the classical automata-theoretic approach to explicit
+LTL model checking [ 36]. Spot can read the shared-libraries used to represent state
+spaces in the LTSmin project [ 20]. Those can be compiled from Promela models using
+SpinS [ 35], or from DiVinE models using LTSmin’s modiﬁed version of DiVinE 2 [ 7]. In
+this example the %%dve keyword is used to specify a short DiVinE model called adding
+(this model comes from the BEEM database [ 28]) which is immediately compiled and
+
+--- Page 5 ---
+Fig. 2. Two examples of using the Python bindings of Spot in the Jupyter notebook.
+loaded as a shared library. Printing the adding Python variable reveals that it is an
+object using the LTSmin interface, and lists the variables that can be used to build atomic
+proposition on this model. A Kripke structure can be instantiated from the model by
+providing a list of atomic propositions that should be valuated on each state. Displaying
+large Kripke structures is of course not very practical: by default Spot displays only the
+50 ﬁrst states (this can be changed using for instance the maxstates argument in the
+ﬁrst cell). With this interface, we can now easily write a model check() procedure that
+inputs a model and a formula, instanciates a Kripke structure from the model using all
+the atomic propositions that appear in the formula, translates the negation of the formula
+into an automaton, and tests the emptiness of the product between the Kripke structure
+and this automaton. Note that otfproduct() performs an on-the-ﬂy product: the
+state-space and the product are constructed as needed by the emptiness check algorithm.
+4 Model checkers built using Spot
+At the C ++level, the interface with LTSmin demonstrated above wraps the LTSmin state-
+space as a subclass of Spot’s Kripke structure class. This class basically just speciﬁes
+the initial state and how to ﬁnd the successors of a state, therefore allowing on-the-ﬂy
+exploration. Model checkers like ITS-Tools [ 34] or Neco [ 16] have been implemented in
+the same way (both have been recently updated to Spot 2.0).
+
+--- Page 6 ---
+References
+1.S. Baarir and A. Duret-Lutz. Mechanizing the minimization of deterministic generalized
+B¨uchi automata. In FORTE’14 , vol. 8461 of LNCS , pp. 266–283. Springer, 2014.
+2.S. Baarir and A. Duret-Lutz. SAT-based minimization of deterministic !-automata. In
+LPAR’15 , vol. 9450 of LNCS , pp. 79–87. Springer, 2015.
+3.T. Babiak, M. K ˇret´ınsk´y, V . ˇReh´ak, and J. Strej ˇcek. LTL to B ¨uchi automata translation: Fast
+and more deterministic. In TACAS’12 , vol. 7214 of LNCS , pp. 95–109. Springer, 2012.
+4.T. Babiak, T. Badie, A. Duret-Lutz, M. K ˇret´ınsk´y, and J. Strej ˇcek. Compositional approach to
+suspension and other improvements to LTL translation. In SPIN’13 , vol. 7976 of LNCS , pp.
+81–98. Springer, 2013.
+5.T. Babiak, F. Blahoudek, M. K ˇret´ınsk´y, and J. Strej ˇcek. E ective translation of LTL to
+deterministic Rabin automata: Beyond the (F, G)-fragment. In ATVA’13 , vol. 8172 of LNCS ,
+pp. 24–39. Springer, 2013.
+6.T. Babiak, F. Blahoudek, A. Duret-Lutz, J. Klein, J. K ˇret´ınsk´y, D. M ¨uller, D. Parker, and
+J. Strej ˇcek. The Hanoi Omega-Automata format. In CAV’15 , vol. 9206 of LNCS . Springer,
+2015. See also http://adl.github.io/hoaf/ .
+7.J. Barnat, L. Brim, and P. Rockai. DiVinE 2.0: High-performance model checking. In HiBi’09 ,
+pp. 31–32. IEEE Computer Society Press, 2009.
+8.A. E. Ben Salem, A. Duret-Lutz, and F. Kordon. Model checking using generalized testing
+automata. Transactions on Petri Nets and Other Models of Concurrency (ToPNoC VI) , 7400:
+94–112, 2012.
+9.F. Blahoudek, A. Duret-Lutz, V . Rujbr, and J. Strej ˇcek. On reﬁnement of B ¨uchi automata for
+explicit model checking. In SPIN’15 , vol. 9232 of LNCS , pp. 66–83. Springer, 2015.
+10.R. E. Bryant. Graph-based algorithms for boolean function manipulation. IEEE Transactions
+on Computers , 35(8):677–691, 1986.
+11.J.-M. Couvreur. On-the-ﬂy veriﬁcation of temporal logic. In FM’99 , vol. 1708 of LNCS , pp.
+253–271. Springer, 1999.
+12.J.-M. Couvreur, A. Duret-Lutz, and D. Poitrenaud. On-the-ﬂy emptiness checks for general-
+ized B ¨uchi automata. In SPIN’05 , vol. 3639 of LNCS , pp. 143–158. Springer, 2005.
+13.A. Duret-Lutz. Manipulating LTL formulas using Spot 1.0. In ATVA’13 , vol. 8172 of LNCS ,
+pp. 442–445. Springer, 2013.
+14.A. Duret-Lutz. LTL translation improvements in Spot 1.0. Int. J. on Critical Computer-Based
+Systems , 5(1/2):31–54, 2014.
+15.A. Duret-Lutz and D. Poitrenaud. SPOT: an Extensible Model Checking Library using
+Transition-based Generalized B ¨uchi Automata. In MASCOTS’04 , pp. 76–83. IEEE Computer
+Society Press, 2004.
+16.Ł. Fronc and A. Duret-Lutz. LTL model checking with Neco. In ATVA’13 , vol. 8172
+ofLNCS , pp. 451–454. Springer, 2013. Code moved to https://github.com/Lvyn/
+neco-net-compiler .
+17.E. R. Gansner and S. C. North. An open graph visualization system and its applications to
+software engineering. Software – Practice and Experience , 30(11):1203–1233, 2000.
+18.P. Gastin and D. Oddoux. Fast LTL to B ¨uchi automata translation. In CAV’01 , vol. 2102 of
+LNCS , pp. 53–65. Springer, 2001.
+19.G. J. Holzmann. The Spin Model Checker: Primer and Reference Manual . Addison-Wesley,
+2003.
+20.G. Kant, A. Laarman, J. Meijer, J. Pol, S. Blom, and T. Dijk. LTSmin: High-performance
+language-independent model checking. In TACAS’15 , vol. 9035 of LNCS , pp. 692–707.
+Springer, 2015.
+
+--- Page 7 ---
+21.J. Klein and C. Baier. Experiments with deterministic !-automata for formulas of linear
+temporal logic. Theoretical Computer Science , 363(2):182–195, 2006.
+22.J. Klein and C. Baier. On-the-ﬂy stuttering in the construction of deterministic !-automata.
+InCIAA’07 , vol. 4783 of LNCS , pp. 51–61. Springer, 2007.
+23.Z. Kom ´arkov ´a and J. K ˇret´ınsk´y. Rabinizer 3: Safraless translation of LTL to small determinis-
+tic automata. In ATVA’14 , vol. 8837 of LNCS , pp. 235–241. Springer, 2014.
+24.J. Kˇret´ınsk´y and J. Esparza. Deterministic automata for the (F,G)-fragment of LTL. In
+CAV’12 , vol. 7358 of LNCS , pp. 7–22. Springer, 2012.
+25.S. C. Krishnan, A. Puri, and R. K. Brayton. Deterministic !-automata vis-a-vis deterministic
+B¨uchi automata. In ISAAC’94 , vol. 834 of LNCS , pp. 378–386. Springer, 1994.
+26.J. Lind-Nielsen and H. Cohen. BuDDy: Binary Decision Diagram package. Release 2.4,
+2014. https://sourceforge.net/projects/buddy/ .
+27.T. Michaud and A. Duret-Lutz. Practical stutter-invariance checks for !-regular languages.
+InSPIN’15 , vol. 9232 of LNCS , pp. 84–101. Springer, 2015.
+28.R. Pel ´anek. BEEM: benchmarks for explicit model checkers. In Proc. of the 14th international
+SPIN conference on Model checking software , LNCS, pp. 263–267. Springer, 2007.
+29.F. P´erez and B. E. Granger. IPython: a system for interactive scientiﬁc computing. Computing
+in Science and Engineering , 9(3):21–29, 2007. See also http://ipython.org .
+30.R. Redziejowski. An improved construction of deterministic omega-automaton using deriva-
+tives. Fundamenta Informaticae , 119(3-4):393–496, 2012.
+31.E. Renault, A. Duret-Lutz, F. Kordon, and D. Poitrenaud. Three SCC-based emptiness checks
+for generalized B ¨uchi automata. In LPAR’13 , vol. 8312 of LNCS , pp. 668–682. Springer,
+2013.
+32.E. Renault, A. Duret-Lutz, F. Kordon, and D. Poitrenaud. Strength-based decomposition of
+the property B ¨uchi automaton for faster model checking. In TACAS’13 , vol. 7795 of LNCS ,
+pp. 580–593. Springer, 2013.
+33.H. Tauriainen and K. Heljanko. Testing LTL formula translation into B ¨uchi automata. STTT ,
+4(1):57–70, 2002.
+34.Y . Thierry-Mieg. Symbolic model-checking using its-tools. In TACAS’15 , pp. 231–237.
+Springer, 2015.
+35.F. I. van der Berg and A. W. Laarman. SpinS: Extending LTSmin with Promela through
+SpinJa. In PDMC’12 , vol. 296 of ENTCS , pp. 95–105. Elsevier, 2012.
+36.M. Y . Vardi. An automata-theoretic approach to linear temporal logic. In Ban’94, vol. 1043
+ofLNCS , pp. 238–266. Springer, 1996.

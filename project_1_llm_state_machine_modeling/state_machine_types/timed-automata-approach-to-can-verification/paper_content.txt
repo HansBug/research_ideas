@@ -1,0 +1,587 @@
+--- Page 1 ---
+TIMED AUTOMATA APPROACH TO CAN
+VERIFICATION
+Jan Krakora and Zdenek Hanzalek
+Czech Technical University in Prague,
+Faculty of Electrical Engineering,
+Department of Control Engineering
+Karlovo namesti 13, Prague 2, 121 35, Czech Republic
+{krakorj,hanzalek }@fel.cvut.cz
+Abstract:
+This article deals with veriﬁcation of r eal time distributed system focusing
+on CAN model by timed automata and sp eciﬁcation of veriﬁed properties by
+temporal logic. Such system, based on several CPUs, consists of an application
+SW running under real-time operating system (e.g. OSEK) and using standardbroadcast communications based on the Controller Area Network (CAN). The
+crucial problem is to verify both, the time properties (e.g. message response time)
+and logic properties (e.g. deadlock) of such complex applications. The approachpresented in this article is based on the modeling the discrete event system by
+Timed Automata and on veriﬁcation by model checking tool (e.g. UPPAAL). In
+contrast to classical approaches dealing either with shared bus (guarantee messagelatencies approached by Tindell and Burns) or shared processor (rate monotonic
+analysis), our approach deals with both kinds of resources.
+Keywords: Controller Area Network, Real-time, Timed automata, Medium
+Access Control
+1. INTRODUCTION
+Let us assume the distributed real time control
+system consisting of application processes (de-signed by application developer) running under
+Real-Time Operating System (RTOS e.g. OSEK
+(Geischeder et al. , 2000)) while using several
+processors interconnected via standard broadcast
+communication based on the Controller Area Net-work (CAN) (Etschberger et al., 2001). Struc-
+ture of the application under consideration is
+depicted in Figure 1. The crucial problem is toverify both, the time properties (e.g. message re-
+sponse time, schedulability of periodic processes,
+response time) and logic properties (e.g. deadlock,
+mutual exclusion, priority based access) of the
+applications incorporating two kinds of sharedresources - the processor and the bus. Classical
+approaches deal separately either with the proces-sor sharing (studied for example by RMS (Klein
+et al., 1993)) or with the bus sharing (e.g. CAN
+message latency studied by Tindell (Tindell and
+Burns, 1994)).
+The task schedulability on monoprocessor and
+multiprocessor systems is widely studied subject
+((Buttazzo, 1997),(Liu, 2000)). For example Rate
+Monotonic Scheduling (RMS) can be used to guar-
+antee schedulability, when the application con-
+sisting of periodic processes is running on mono-processor with priority b ased preemptive kernel
+and the processes have their deadlines at the end
+of period. RMS assigns ﬁxed priorities to theprocesses according to their request rate (inverse
+
+--- Page 2 ---
+Processor 1
+Application
+processes
+RTOSsensor
+controlactuator
+control
+CAN busProcessor 2
+RTOSProcessor 3
+RTOScar environment
+RTCSApplication
+processesApplication
+processes
+Fig. 1. Real time control system structure
+to their period deadline), therefore the highest
+priority is assigned to the processes with highestfrequency. Schedulability of such processes can
+be veriﬁed using Utilization bound theorem or
+Completion time theorem.
+Prediction of the worst-case message latencies
+for CAN was presented by Tindell and Burnsin (Tindell and Burns, 1994). This method is a
+direct application of the scheduling theory where
+the common bus is consid ered as shared resource.
+In similar way, CAN operates the ﬁxed prior-
+ity scheduling algorithm and authors assume therate monotonic priority assignment. The message
+worst case response time is inﬂuenced not only by
+its length but also by the maximal length of onelower priority message since a high priority mes-
+sage cannot interrupt the message that is already
+transmitted. Moreover due to the priority based
+bus arbitration method the message worst-case
+response time is inﬂuenced by all higher prioritymessages, each of them considering their occur-
+rence ratio.
+This article presents an alternative approach
+based on model checking while using timed au-
+tomata (Alur and Dill, 1994) and temporal logics(Katoen, 1999). Using this approach we model
+parts of the distributed system (application SW,
+operating system and communication bus) by au-
+tomata. The automata use synchronization prim-
+itives enabling their interconnection. Please referto (Berard et al., 2001) on issues related to im-
+plementation and complexity of veriﬁcation algo-
+rithms.
+Modeling and veriﬁcation of concurrent processes
+sharing one processor have been shown in(Waszniowski and Hanzalek, 2003), (Corbett,
+1996). These works incorporate priority based
+preemptive and non-preemptive scheduling, inter-task communication primitives and interrupt han-
+dling. These models can be directly combined with
+CAN model shown in this article while using syn-
+chronization primitives. That is why the operating
+system part is neglected and one application pro-cesses per one processor is assumed in this paper.
+Veriﬁcation of the CAN model developed here can
+be directly compared to the results in (Tindell
+and Burns, 1994) and it can be simply enlarged to
+deal with internal structure of the application pro-
+cesses, timing parameters of diﬀerent operatingsystems, sporadic processes etc. Moreover, while
+using the model checking approach, one can verify
+not only the schedulability, but also rather com-plex properties linked to logic and timing behavior
+of the distributed system. On the other hand the
+complexity is a drawback of the model checking
+approach in contrast to straightforward equations
+of the scheduling theory.
+The paper is organized as follows: in Section 2
+basic behavior of CAN is modeled incorporating
+models of transceiver, bus and application pro-
+cess. Sections 3 provides v eriﬁcation of timing and
+logic properties and Section 4 shows a case studywith periodic and sporadic processes including
+comparison with Tindell’s approach.
+2. BASIC CONCEPT OF CAN MODEL
+The aim of this section is to model CAN by
+timed automata. Up to the standard the CAN is
+a message oriented transmission protocol. Due to
+the bus topology only one processor can transmit
+at a given time. Therefore the message responsetime (i.e. the length of time from the release
+time of the message to the instant when it is
+completely received) is given not only by themessage length, but also by the access to the
+shared communication media (so called Medium
+Access Control - MAC).
+The message priority is given by the message ID.
+The priorities are laid down during the systemdesign in the form of corresponding binary values
+and cannot be changed dynamically. The identiﬁer
+with the lowest binary number has the highest
+priority.
+MAC problem is resolved by bit-wise arbitration
+on the identiﬁers performed by each station ob-
+serving the bus level bit by bit. The resolution is inaccordance with the ”wired and” mechanism, by
+which the dominant level overwrites the recessive
+level. The transmission is denied for all processorswith recessive transmission and dominant obser-
+vation. All those processors automatically become
+receivers of the message with the highest priority
+and do not re-attempt transmission until the bus
+is idle again.
+In contrast to the results achieved in (Tindell
+and Burns, 1994) our approach can be simply
+enlarged to deal with internal structure of the
+application processes, timing parameters of dif-
+ferent operating systems, and other timing and
+2
+
+--- Page 3 ---
+logic properties of the real time control system.
+Therefore it allows to check the response time, i.e.
+the actuator to sensor reaction time including not
+only the message latency but also the latencies
+introduced by RTOS and application processes.
+Moreover, while using the veriﬁcation approach,one can verify not only the schedulability, but
+also rather complex properties linked to logic and
+timing behavior of the distributed system. Themodel is composed of timed automata described
+in the following subsections.
+2.1 Bit-wise arbitration model
+The model of CAN arbitration designed in timed
+automata (Pettersson and Larsen, 2000) is shown
+in Figure 3. The model describes MAC mechanism
+for one message accessing the bus. The locationno
+trans
+ needed represents a situation when the
+arbitration model is waiting for trans
+ request
+from the application process. The locations
+send
+bit
+to
+bus,listen
+ bus,check
+ next
+bitrep-
+resent the arbitration process. The locationsrequest
+denied andrequest
+ success give result of
+the arbitration process.
+Arbitration fieldStart-of-Frame-Bit (SOF)
+CAN Data Frame (length Cm[s])Control, Data, CRC, ACK etc.
+Fig. 2. CAN message frame format
+After processing of the Start of Frame Bit (SOF)
+(see the CAN message frame format in Figure 2)
+the ﬁrst bit from the arbitration ﬁled is sent to the
+bus (transition send
+bit
+to
+bus→listen
+ bus). At
+the same time the transmitting processor senses
+the bus and both transmitted bit (local variable
+id) and sensed bit (global variable signal )a r e
+compared. If they are identical and the end of the
+Arbitration ﬁeld ( nsigi states for the length of
+the Arbitration ﬁeld) was not reached the next
+bit is proceeded ( check
+ next
+bitlocation) when
+nominal bit-time elapses (deterministically givenastbitconstant). If the sensed bit is not iden-
+tical to the transmitted one, the transmission
+is denied ( request
+denied location). If they are
+identical and the end of the Arbitration ﬁeld
+was reached the processo r wins the arbitration
+(request
+ success location). The CAN Arbitration
+model includes the information about the dura-
+tion of each bit-time given by invariant t≤tbitin
+listen
+ buslocation and guards t≥tbit,t≥0o n
+outgoing transitions. When tbitis not determin-
+istic, i.e. tbitis bounded on interval /angbracketlefttbit l,t bit u/angbracketright
+then the duration of each bit-time given by invari-
+antt≤tbit uand guard t≥tbit l.send_bit_to_bus
+listen_bus
+t<=tbitcheck_next_bit
+request_denied request_successno_trans_needed
+signal[i]:=id[i]*signal[i], t:=0
+t>=tbit, i<(nsigi-1), id[i]==signal[i]
+t>=0, id[i]!=signal[i] t>=tbit, i==(nsigi-1), id[i]==signal[i]trans_request?
+i:=i+1
+Fig. 3. Arbitration model (in UPPAAL like nota-
+tion)
+2.2 Transceiver model
+Above explained bit-wise arbitration is a part of
+the transceiver model. The implementation of the
+complete transceiver model is depicted in Figure
+4, and its interconnection with other automata isshown in Figure 6. It is composed of the three
+sections:
+(1) the arbitration sectio n described already in
+Figure 3
+(2) synchronisation section
+(waiting
+for
+free
+bus→send
+bit
+to
+bus
+transition) that is used to synchronize all
+transmitting processors prior to arbitration (this part realises broad cast communication)
+and
+(3) data transmission section given by
+trans
+section ,trans
+ section
+ finished and
+trans
+ finished locations.
+The function of transceiver is the following: after
+receiving the transmission request, the processoris in the waiting state ( waiting
+for
+free
+bus)
+until the bus is free. Bus becomes idle, the
+arbitration processes start (synchronization byurgent broadcast
+synch channel). If the trans-
+mission was denied ( trans
+ denied location), the
+transmission request i s immediately repeated
+and the processor is waiting for free bus again
+(waiting
+ for
+free
+buslocation). Otherwise the
+processors message is sent. The duration of mes-
+sage is given by deterministic time Cm. When the
+transmission is ﬁnished ( trans
+ section
+ finished )
+the bus becomes idle ( bus
+trans
+ finished chan-
+nel) and the application process is informed about
+the end of transmission ( trans
+ compl
+ status chan-
+nel).
+2.3 Bus model
+Figure 5 depicts the physical bus model. The
+model is in idle location when there is no activity
+on the bus and it is in busy location when any
+processor transmits. The trans
+ voteglobal vari-
+able is used to detect that at least one processor
+3
+
+--- Page 4 ---
+send_bit_to_bus
+listen_bus
+t<=tbitcheck_next_bit
+request_deniedrequest_success
+trans_begunt <= Cmno_trans_needed
+trans_section_finished
+trans_finishedwaiting_for_free_bus
+signal[i]:=id[i]*signal[i], t:=0
+t>=tbit, i<(nsigi-1), 
+id[i]==signal[i]
+t>=tbit, id[i]!=signal[i]t>=tbit, i==(nsigi-1), id[i]==signal[i] t:=0i:=i+1trans_vote++,
+t_response_time := 0trans_request?
+t >= Cm
+bus_trans_finished!
+signal[0]:=1, signal[1]:=1, signal[2]:=1
+trans_compl_status!i:=0bus_broadcast_chan?
+trans_vote++,
+t_response_time := 0
+Fig. 4. Transceiver model
+is willing to start the transmission. If this is the
+case than the global synch ronization is realized
+viabus
+broadcast
+ chanfrom the bus model.
+idle
+busybus_trans_finished?trans_vote>0
+bus_broadcast_chan!trans_vote:=0
+Fig. 5. Bus model
+2.4 Application process model
+As seen from Figure 6 the case study assumes 4
+processors to be conn ected via CAN. Each pro-
+cessor is running one application process trans-
+mitting the messages of the same identiﬁer. The
+application processes 1, 2, and 3 are periodic pro-cesses transmitting messages with identiﬁer 1, 2,
+and 3 respectively. The application process 4 is a
+sporadic process transmitting the lowest priority
+message with identiﬁer 4.
+The periodic application process, with period T
+m,
+is depicted in Figure 7. Afterwards each mes-
+sage is delayed by an operating system delay -
+the time between zero and Ji(called jitter in
+(Tindell and Burns, 1994)). Then the transmis-
+sion request is done by trans
+ request channel.
+When the message is transmitted the process is in-
+formed by trans
+ compl
+ status channel. Location
+no
+transmission
+ activity represents a situation
+when the process does not perform transmission,
+i.e. it performs for example computations. Lo-
+cation init
+location starts the ﬁrst task period,
+delayed by time between zero and Tmin order to
+represent the phase shift of the task.no_trans_activity
+t_period<=Tm
+message_queueingt_jitter <= Jm
+transmissiontrans_finishedinit_locationt_period<=Tm
+t_period == Tm
+t_period := 0,
+t_jitter := 0, t_response_time := 0
+t_jitter >= 0
+t_jitter:=0
+trans_request !trans_compl_status ?t_response_time := 0t_period:=0, 
+t_jitter:=0, t_response_time := 0t_period>=0
+Fig. 7. Periodic application process model
+The sporadic process model is depicted in Figure
+8. Locations no
+trans
+ activity
+ 1a n d
+no
+trans
+ activity
+ 2 represent a situation when
+the process does not perform any transmission.
+The process resides an arbitrary time in lo-
+cation no
+trans
+ activity
+ 1, then the transmis-
+sion request is generated and when the mes-sage is transmitted the process is informed by
+trans
+compl
+ status channel, and then the pro-
+cess has no inﬂuence on the bus. Local variablet
+response
+ timein both models is used in prop-
+erties to be veriﬁed.
+no_trans_activity_1
+transmissiontrans_finishedno_trans_activity_2
+trans_request!
+t_response_time := 0
+trans_compl_status?t_response_time := 0
+Fig. 8. Sporadic application process model
+4
+
+--- Page 5 ---
+application 
+process 1
+transmiter 1
+busapplication 
+process 2
+transmiter 2application 
+process 3
+transmiter 3/g99processor 1
+application 
+process 4
+transmiter 4CHANNEL LEGEND
+/g99-t r a n s _ r e q u e s t
+/g100- trans_finished_ack
+/g101- bus_trans_finished
+/g102- bus_broadcast_chan/g100
+/g101/g102/g99/g100/g101/g102/g99/g100/g101/g102/g99/g100/g101/g102processor 2 processor 3 processor 4
+Fig. 6. Case study system conﬁguration
+3. VERIFICATION OF THE MODEL
+The section presents the case study with periodic
+and sporadic processes including comparison with
+Tindell’s approach (assu ming 125kbps baudrate).
+Table 1. Process parameters table
+Msg. ID Type Period Tm Deadline C m
+[µsec ][ µsec ][ µsec ]
+1 periodic 2000 2000 504
+2 periodic 3000 3000 5043 periodic 5000 4000 5044s p o r a d i c - - 1 0 4 0
+Timing and logical properties to be veriﬁed can
+be for example the following ones:
+(1) Is the system deadlock free?
+(2) Is there any state in which processor 1 and
+processor 2 are in the data transmissionsection?
+(3) Is there any situation in which the highest
+priority message does
+not win the arbitration?
+(4) Are all periodic messages transmitted prior
+to their deadlines?
+(5) What is the worst-case response time R
+mof
+the message withidentiﬁer m(form=1, 2 or 3)?
+These properties are formulated in the temporal
+logic based formalism used in the UPPAAL ver-
+iﬁcation tool UPPAAL (Pettersson and Larsen,
+2000) as follows:
+(1) A2(not deadlock)
+(2) E3(Transceiver
+1.request
+ success and
+Transceiver
+ 2.request
+ success)
+(3) E3(Transceiver
+ 1.request
+ denied)
+(4) A2(Process
+ m.trans
+ ﬁnished) ⇒
+(Process
+ m.t
+response
+ time<D e a d l i n e )
+(5) A2(Process
+ m.trans
+ ﬁnished) ⇒
+(Process
+ m.t
+response
+ time<R m)
+The veriﬁcation results of timed automata tool are
+as follows:
+(1) Property is satisﬁed
+(2) Property is not satisﬁed
+(3) Property is not satisﬁed
+(4) See the section bellow(5)Rmfound by iteration (using bisection) see
+the section bellow
+4. CASE STUDY
+In this section we assume the conﬁguration de-
+picted in Figure 6 where each processor is running
+one application process transmitting one type of
+message (the message ID is equal to the appli-cation ID is equal to the processor ID). Table
+1 shows parameters of three periodic and one
+sporadic process. The aim of the case study is
+twofold:
+•to verify whether the response time satisﬁes a
+given deadline of the message (corresponding
+to property 4)
+•to ﬁnd the worst-case response time R
+m
+iteratively by repeati ng the veriﬁcation for
+diﬀerent values of deadline (corresponding toproperty 5).
+Table 2. Results of the experiment re-
+lated to property 4 and 5
+Message ID J m[µsec ]f o r m u l a 4 r e s u l t Rm[µsec ]
+1 0 satisﬁed 1544
+2 0 satisﬁed 20483 0 satisﬁed 30564- - -
+Table 2 shows veriﬁcation results of the experi-
+ment related to property 4 and 5 without oper-ating system delay . The response time of each
+periodic message is shorter then corresponding
+deadline assuming also relatively long sporadic
+message.
+Table 3. Results of the experiment re-
+lated to property 4 and 5 with operating
+system delay
+Message ID J m[µsec ]f o r m u l a 4 r e s u l t Rm[µsec ]
+1 456 satisﬁed 2000
+2 0 satisﬁed 25523 0 satisﬁed 30564- - -
+Table 3 shows results of the experiment related
+to property 4 and 5 with operating system delay
+(Jm).
+5
+
+--- Page 6 ---
+Values of Rmin tables 2, 3 are identical to those
+calculated by iterative algorithm (Tindell and
+Burns, 1994) based on equation
+Rm=Cm+Jm+wm
+where
+wm=Bm+/summationdisplay
+∀j∈hp(m)/ceilingleftbiggwm+Jj+τbit
+Tj/ceilingrightbigg
+Cj
+The term Bmpresents the longest time that the
+given message mcan be delayed by lower priority
+messages, the τbitis the bit time of the bus. The
+sethp(m) is the set of messages of higher priority
+then message m.
+5. CONCLUSIONS AND FUTURE WORK
+This article shows a way of communication proto-
+col modeling by timed automata. Model of entire
+distributed application can be obtained simply
+by interconnection with real-time operating sys-
+tem (Waszniowski and Hanzalek, 2003) and ap-
+plication software automata. The resulting modelis suitable for veriﬁcation of desired/undesired
+states in the time critical distributed applications
+like automotive IT based on CAN and OSEK. Dueto this modular approach, the model is simply
+extensible to TT CAN.
+Veriﬁcation results of the CAN model can be
+directly compared to the results achieved by
+(Tindell and Burns, 1994), when obtaining identi-
+cal results from both approaches (try to compute
+R
+mfor values in Tables 2 and 3). Moreover our
+approach can be simply extended to deal with
+internal logic structure of the application pro-
+cesses, processor sharing managed by operatingsystem etc. On the other hand, high complexity
+is a drawback of the model checking approach
+in contrast to quite straightforward equations of
+the scheduling theory. For example veriﬁcation
+of system deadlock, which is the most time con-suming among tested properties, took 20 minutes
+for parameters in Table 1. on AMD-Athlon XP
+1,8GHz computer with 1,3GB RAM.
+Therefore our future work is related to hierar-
+chical modelling and veriﬁcation of distributedsystems, i.e. parts of the system will be mod-
+elled and their timing parameters will be veriﬁed.
+Consequently the part will be replaced by a loca-tion with upper and lower bound on its timing
+parameters and it will be used for veriﬁcation
+of upper layer. This approach certainly gives a
+little pessimistic result, but when tailored to the
+application logic, it can be rewarding.Acknowledgements : This research work has
+been supported by the research program
+No. J04/98:212300013”Decision Making and Con-
+trol for Manufacturing” of the Czech Technical
+University in Prague and by IST project 35102
+OCERA.
+REFERENCES
+Alur, Rajeev and David L. Dill (1994). A theory of
+timed automata. Theoretical Computer Sci-
+ence126(2), 183–235.
+Berard, B., M. Bidoit, A. Finkel, F. Laroussinie,
+A. Petit, L. Petrucci and P. Schnoebelen(2001). Systems and Software Veriﬁcation:
+Model-Checking Techniques and Tools .V o l .7
+ofISBN: 3-540-41523-8 . Springer.
+Buttazzo, G.C. (1997). Hard Real-Time comput-
+ing systems . Kluwer Academic Publishers.
+Corbett, James C. (1996). Timing analysis of
+Ada tasking programs. IEEE Transactions on
+Software Engineering 22(7), 461–483.
+Etschberger, K., Roman Hofmann, Joachim Stol-
+berg, Christian Schlegel and Stefan Wei-
+her (2001). Controller Area Network: Basics,
+Protocols, Chips and Applications .I S B N :3 -
+00-007376-0. IXXAT Automationpress.
+Geischeder, Manfred, Klaus Gresser, Adam
+Jankowiak, Jochem Spohr, Andree Za-
+hir, Markus Schwab, Erik Svenske, MaximTchervinsky, Ken Tindell, Gerhard Gser,
+Carsten Thierer, Winfried Janz and Volker
+Barthelmann (2000). Osek/vdx: Speciﬁcation
+2.1.
+Katoen, Joost-Pieter (1999). Concepts, algo-
+rithms, and tools for model checking.
+Klein, M.H., T. Ralya, B. Pollak, R. Obenza,
+M. Gonza and L. Harbour (1993). Practition-ers handbook for real-time analysis: Guide to
+rate monotonic analysis for real time systems.
+Liu, Jane W.S. (2000). Real-Time Systems .P r e n -
+tice Hall.
+Pettersson, Paul and Kim Guldstrand Larsen
+(2000). Uppaal2k.
+Tindell, K. and A. Burns (1994). Guaranteed mes-
+sage latencies for distributed safety criticalhard real-time networks.
+Waszniowski, Libor and Zdenek Hanzalek (2003).
+Analysis of real-time operating system based
+applications. FORMATS 2003 .
+6

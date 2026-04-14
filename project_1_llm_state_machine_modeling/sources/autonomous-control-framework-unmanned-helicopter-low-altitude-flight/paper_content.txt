@@ -1,0 +1,1539 @@
+--- Page 1 ---
+Citation: Jin, Z.; Nie, L.; Li, D.; Tu, Z.;
+Xiang, J. An Autonomous Control
+Framework of Unmanned Helicopter
+Operations for Low-Altitude Flight
+in Mountainous Terrains. Drones
+2022 ,6, 150. https://doi.org/
+10.3390/drones6060150
+Academic Editors: Andrzej
+Łukaszewicz, Wojciech Giernacki,
+Zbigniew Kulesza, Jaroslaw Pytka
+and Andriy Holovatyy
+Received: 1 June 2022
+Accepted: 14 June 2022
+Published: 17 June 2022
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).
+drones
+Article
+An Autonomous Control Framework of Unmanned Helicopter
+Operations for Low-Altitude Flight in Mountainous Terrains
+Zibo Jin1, Lu Nie2, Daochun Li1, Zhan T u1,3,* and Jinwu Xiang1
+1School of Aeronautic Science and Engineering, Beihang University, Beijing 100191, China;
+jinzibo@buaa.edu.cn (Z.J.); lidc@buaa.edu.cn (D.L.); xiangjw@buaa.edu.cn (J.X.)
+2Beijing Institute of Space Long March Vehicle, Beijing 100076, China; nielu@buaa.edu.cn
+3Institute of Unmanned System, Beihang University, Beijing 100191, China
+*Correspondence: zhantu@buaa.edu.cn; Tel.: +86-(010)-82338079
+Abstract: Low-altitude ﬂight in mountainous terrains is a difﬁcult ﬂight task applied in both military
+and civilian ﬁelds. The helicopter has to maintain low altitude to realize search and rescue, reconnais-
+sance, penetration, and strike operations. It contains complex environment perception, multilevel
+decision making, and multi-objective ﬂight control; thus, ﬂight is currently mainly conducted by
+human pilots. In this work, a control framework is implemented to realize autonomous ﬂight for
+unmanned helicopter operations in an unknown mountainous environment. The identiﬁcation of
+targets and threats is introduced using a deep neural network. A 3D vector ﬁeld histogram method
+is adopted for local terrain avoidance based on airborne Lidar sensors. In particular, we propose
+an intuitive direct-viewing method to judge and change the visibilities of the helicopter. On this
+basis, a ﬁnite state machine is built for decision making of the autonomous ﬂight. A highly realistic
+simulation environment is established to verify the proposed control framework. The simulation
+results demonstrate that the helicopter can autonomously complete ﬂight missions including a fast
+approach, threat avoidance, cover concealment, and circuitous ﬂight operations similar to human
+pilots. The proposed control framework provides an effective solution for complex ﬂight tasks and
+expands the ﬂight control technologies for high-level unmanned helicopter operations.
+Keywords: autonomous ﬂight control; unmanned helicopter operation; terrain avoidance; visual
+servo control; threat avoidance
+1. Introduction
+Unmanned aerial vehicles (UAVs) have received substantial interest from the research
+community and the general public alike in recent years [ 1,2], especially small UAVs and
+multi-rotors, whose low cost and convenient use provide ideal testbeds and development
+impetus for innovative technologies of control approaches [ 3,4], advanced intelligent
+perception [ 5], and complete autonomy [ 6–9]. Small and medium UAVs can hardly meet the
+demands of high payloads and long ﬂight distances. Therefore, more and more large-scale
+UAVs are being developed to provide long-endurance ﬂights and perform various missions
+like manned aircraft. There are also related research projects developing independent
+autonomous equipment [ 10,11] or executing modiﬁcations [ 12] to convert manned aircraft
+to UAVs. There is a great need to investigate autonomy ﬂight technologies for application
+scenarios of large-scale UAVs, manned aircraft, and helicopters for unmanned operations.
+Helicopters demonstrate unique characteristics of maneuverability and low-speed
+performance, signiﬁcantly extending their application in both military and civil ﬁelds [ 13].
+With the development of advanced sensing devices and technologies, various sensor sys-
+tems including cameras, radar, laser/light detection and ranging (Lidar), electro-optical
+(EO) system, acoustic system, and infrared (IR) sensors are deployed on helicopters to
+Drones 2022 ,6, 150. https://doi.org/10.3390/drones6060150 https://www.mdpi.com/journal/drones
+
+--- Page 2 ---
+Drones 2022 ,6, 150 2 of 25
+realize a higher level of perception and automation [ 14,15]. Researchers have been mo-
+tivated to investigate autopilot technologies based on multi-source information percep-
+tion to complete typical helicopter missions, such as target tracking [ 16–18], autonomous
+landing [ 16,19,20], and obstacle avoidance [ 21–24]. There have also been some stud-
+ies of unmanned helicopter operations focused on speciﬁc ﬂight scenes and missions.
+Gimenez [ 25,26] presented a transportation system for carrying a suspension payload
+through two helicopters considering collision avoidance, wind disturbance, and reasonable
+distribution of load weight. A ship–helicopter cooperative system was extensively inves-
+tigated to allow helicopters to automatically approach and land on vessel decks [ 27–30].
+Many studies demonstrated the landing performance of helicopter recovery on the vessels
+under visual guidance [ 31,32]. Chen [ 33] presented an efﬁcient algorithm for the path-
+planning problem of multiple-helicopter formations in a realistic environment. Different
+solutions and control frameworks for formation ﬂight and formation reconﬁguration can
+be found in [ 34–36]. Recently, some new control frameworks including deep reinforcement
+learning framework [ 37,38] and genetic fuzzy trees [ 39] were applied and achieved good
+results. Chamberlain [ 40] presented an autonomy package allowing a full-scale unmanned
+helicopter to automatically ﬂy through unmapped, obstacle-laden terrain, ﬁnd a landing
+zone, and perform a safe landing near a casualty, all with no human control or input.
+Nikolayevich [ 41] proposed a new method based on enhanced 3D motion primitives for 3D
+path planning close to the ﬂight dynamics limits of helicopters, enhancing their assistance
+and autonomy in missions. Schopferer [ 42] studied onboard and online ﬂight path planning
+for small-scale unmanned rotorcraft to plan safe, dynamically feasible, and time-efﬁcient
+ﬂight paths using cubic splines. To summarize, the existing studies of unmanned helicopter
+operations mainly focused on basic tasks such as path planning, target tracking, and ob-
+stacle avoidance. Due to the lack of a higher level of autonomy and integrated control
+frameworks, few adequate solutions of complex tasks with diversiﬁed ﬂight missions have
+been proposed.
+Low-altitude ﬂight in complex mountainous terrains is a difﬁcult ﬂight task applied
+in many ﬁelds. Especially for military applications, a low-altitude penetration ﬂight is
+a typical example making use of the ultralow-altitude maneuvering of helicopters, so
+as to effectively use the terrain to avoid the detection and threat of the defense system,
+as well as improve ﬂight survivability. Low-altitude ﬂight is also widely used in civil
+ﬁelds for low-level reconnaissance, remote site material delivery, search and rescue, and
+casualty evacuation. Matthew [ 43] studied the low-altitude ﬂight of a full-scale helicopter
+in complex terrains and demonstrated a tight integration of terrain avoidance, control, and
+autonomous landing. During the low-altitude ﬂight, increasing levels of concealment are
+achieved by adopting different tactics such as terrain following, terrain avoidance, and
+threat avoidance [ 44]. For low-altitude ﬂight, obstacle avoidance and terrain avoidance are
+the core ﬂight tasks [ 45]. Zheng [ 46] designed a real-time ﬂight control algorithm combin-
+ing the fuzzy obstacle avoidance algorithm with the L1 control algorithm for helicopter
+low-altitude ﬂight in complex environment. Chandrasekaran [ 47] reviewed helicopter
+wire strike protection and prevention devices for low-altitude ﬂight, and carried out a
+multicriteria decision-making analysis to rank different wire strike prevention methods.
+Merz [ 48] introduced a system enabling robotic helicopters to ﬂy safely without user inter-
+action at low altitude over unknown terrain with static obstacles. Wang [ 49] proposed a
+collision avoidance strategy method and the corresponding calculation approach of optimal
+collision avoidance for small unmanned helicopters in low-altitude applications. There
+have also been many studies focusing on UAV obstacle avoidance in dynamic building
+environments [ 50,51]. Low-altitude ﬂight also involves threat/target identiﬁcation, visi-
+bility judgement, multilevel decision making, and multi-objective ﬂight control. It poses
+a challenge to the implementation of unmanned operations. To automatically realize un-
+manned low-altitude ﬂight like human pilots. It is necessary to establish an integrated
+control framework, which was rarely studied systematically in previous research.
+
+--- Page 3 ---
+Drones 2022 ,6, 150 3 of 25
+In this research, the unmanned helicopter operations of low-altitude ﬂight in complex
+mountainous terrains are investigated in detail. The ﬂight scenes and mission requirements
+of low-altitude ﬂight are discussed considering target/threat recognition and decision mak-
+ing on the basis of the recognition result. Low-altitude ﬂight is divided into several basic
+tasks: target/threat recognition, target tracking, threat avoidance, and terrain following.
+We developed the control methods of the basic tasks according to the application scenarios
+of the mountainous terrains. A new method for judging target visibilities is proposed,
+which is inspired by the human perceptual method and is especially suitable for a complex
+and unknown environment. Then, we combined the basic tasks and established a coupled
+control method to realize ﬂight missions including active approaching, threat avoidance,
+and circuitous ﬂight operations. The control methods presented in this research were
+veriﬁed through high-realistic ﬂight simulations.
+The remainder of the paper is organized as follows: we brieﬂy describe the mission
+requirements of low-altitude ﬂight in mountainous terrains and present the modeling
+method of the simulation environment in Section 2; the implementation of target recogni-
+tion, visual servo control, and terrain avoidance is investigated in Section 3, which also
+contains simulation veriﬁcation and performance evaluation; Section 4 details the visibil-
+ity judgment method and proposes the overall control framework based on a ﬁnite state
+machine; Section 5 presents the simulation validation of the proposed control framework;
+lastly, the conclusions are summarized in Section 6.
+The main contributions and innovations of this research are listed as follows:
+ We extend the low-altitude penetration ﬂight by introducing target recognition and
+threat determination into the existing tactics [ 52–54], providing a wide perspective for
+the complicated ﬂight tasks and various ﬂight scenes of helicopter low-altitude ﬂight.
+ The helicopter visibility with respect to ground threats or speciﬁc facilities is inves-
+tigated in this research, which was rarely studied in previous studies about threat
+avoidance or survivability assessment [ 55,56]. We also propose a direct viewing
+method to judge and change the visibility quickly and robustly.
+ On the basis of the visibility judgement, an integrated control framework is established
+using the ﬁnite state machine. Compared with many existing studies [ 13,19,40,47,57],
+this framework focuses on solving complex multi-objective ﬂight tasks and realizing
+unmanned helicopter operations of cover concealment and circuitous ﬂight similar to
+human pilots.
+2. Problem Formulation
+2.1. Low-Altitude Flight in Complex Mountainous Terrains
+Low-altitude ﬂight is generally applied for mountainous or undulating terrains, where
+helicopters can make full use of the terrain to block detection and give full play to the
+advantages of mobility. Here, the low-altitude penetration ﬂight used in military ﬁelds
+provides a great example which covers massive ﬂight scenes of the low-altitude ﬂight.
+We intend to state the basic tasks of the penetration ﬂight and extend them to develop
+a more comprehensive control framework for the low-altitude ﬂight. The main feature
+of penetration ﬂight is maintaining a low ﬂight altitude to avoid radar detection, and
+ﬂying covertly to avoid ground defense and various detectors. To increase the level of
+concealment, TF/TA2tactics [ 58] have been developed and adopted as typical ﬂight tasks
+of the penetration ﬂight. The tactics are described as follows:
+ Terrain following: ﬂight maneuvering with the terrain contour in the vertical plane
+according to the predetermined minimum ground clearance. This penetration method
+can use terrain cover and reach the destination in a short time.
+ Terrain avoidance: ﬂight maneuvering in the azimuth plane, ﬂying around moun-
+tains and other tall obstacles. This penetration method can make full use of the
+terrain as cover and facilitate hiding, but increases the likelihood of colliding with
+terrain obstacles.
+
+--- Page 4 ---
+Drones 2022 ,6, 150 4 of 25
+ Threat avoidance: ﬂight maneuvering in the azimuth plane, avoiding detection and
+weapon attacks, fully approaching the target, realizing sudden attacks, and reducing
+enemy interference.
+The above tactics constitute the basic needs of the penetration ﬂight, but there is still a
+lack of an integrated decision-making framework or speciﬁc maneuvering methods when
+facing various ﬂight missions. Therefore, we extend the above tactics, and put forward
+broader ﬂight tasks as follows:
+ Target/threat recognition: identifying the target/threat facilities during the ﬂight and
+determining the threat degrees; making maneuvering decisions on the basis of the
+recognition result.
+ Target approaching: identifying the target using airborne cameras, tracking and
+approaching the target through visual servo control, avoiding terrain obstacles, and
+maintaining the ability to approach the target when it is blocked or temporarily lost.
+ Cover concealment: when a threat is detected, ﬁnding cover through the terrains and
+moving to the terrain cover to escape the threat; discriminating and changing the
+helicopter’s visibility through ﬂight maneuvers.
+ Circuitous ﬂight: comprehensive ﬂight maneuvering around the terrain, avoiding the
+threat, and following the terrain contour near the predetermined heading, so as to
+ﬁnally reach the destination safely.
+In this work, we focus on the implementations of the unmanned helicopter operations
+of these ﬂight tasks. Furthermore, we build a decision-making framework which can
+autonomously deal with different ﬂight tasks without human intervention.
+2.2. Modeling Method of the Simulation Environment
+A helicopter exhibits six-degree-of-freedom rigid-body dynamics. The ﬂight dynamic
+equations are as follows:
+.
+V=F
+m WV, (1)
+.
+S=I 1M I 1WIS, (2)
+.a=ES, (3)
+.
+P=RBGV, (4)
+where V= [u v w ]Tis the linear velocity, S= [p q r]Tis the angular velocity, a= [j q y ]T
+is the Euler angle of roll, pitch, and yaw, P= [X Y Z ]Tis the position vector in ground
+coordinates, mis the mass of the helicopter, and FandMare the forces and moments of the
+components of the helicopter.
+Iis the moment of the helicopter inertial matrix, Wis the angular rate antisymmetric
+matrix, RBGis the conversion matrix from body coordinates to ground coordinates, and E
+is the conversion matrix from body angular velocity to Euler angular velocity.
+RBG=2
+4cosqcosysinqsinycosy cosjsinysinqcosjcosy+sinjsiny
+cosqcosysinqsinjsiny+cosjcosysinqcosjcosy sinjsiny
+ sinq sinjcosq cosjcosq3
+5. (5)
+E=2
+41 sin jtanq cosjtanq
+0 cos j sinj
+0 sin j/ cos qcosj/ cos q3
+5. (6)
+For the helicopter dynamic model, FandMare generated by the aerodynamic forces
+of the fuselage and the control forces which originate from the main rotor thrust and tail
+rotor thrust. The helicopter has large aerodynamic interference and is a highly coupled
+complex dynamic system, which makes it difﬁcult to establish a fully dynamic model.
+Therefore, the linearized dynamic model was adopted in this research to simulate the
+
+--- Page 5 ---
+Drones 2022 ,6, 150 5 of 25
+helicopter dynamic responses. The linearized model is obtained through frequency-domain
+identiﬁcation of the ﬂight experiment, and it is widely used in helicopter controller design
+and dynamic characteristic analysis. The complete linearized dynamic model can be
+illustrated in state-space representation as follows [59]:
+.x = A mx + B mu, (7)
+where AmandBmare the system matrix and control matrix at different equilibrium points,
+establishing a linear-parameter-varying (LPV) helicopter dynamics model.
+x=[u w q qv pfry]is the state vector and u= [dedcdadp]is the control input vector,
+where dcis the collective control input of the main rotor blade, deand daare the cyclic
+control inputs giving the explicit pitch in longitude and lateral directions, and dpis the
+collective pitch for the tail rotor.
+Cascade PID (proportion integration differentiation) controllers were adopted to re-
+alize the low-level control of the helicopter. As shown in Figure 1, the helicopter control
+system was divided into the longitude channel, lateral channel, altitude channel, and
+yaw channel. For each channel, an independent cascade PID controller was applied. The
+inner loop controllers maintain the attitude stability, while the middle loop and outer
+loop controllers are used to track speed or position commands. The stability analysis
+and convergence of the cascade PID framework are essential for the controller implemen-
+tation, but beyond the scope of this work. A detailed analysis can be found in [ 51] for
+further discussion.
+Drones 2022 , 6, x FOR PEER REVIEW 5 of 26 
+ 
+1 sin tan cos tan
+0c o s s i n0 sin / cos cos / cosφθ φθ
+φφ
+φθ φθ=−
+
+
+E . (6)
+For the helicopter dynamic model, F and M are generated by the aerodynamic forces 
+of the fuselage and the control forces which originate from the main rotor thrust and tail 
+rotor thrust. The helicopter has large aerodyna mic interference and is a highly coupled 
+complex dynamic system, which makes it diff icult to establish a fully dynamic model. 
+Therefore, the linearized dynamic model was adopted in this research to simulate the hel-
+icopter dynamic responses. The linearized mo del is obtained through frequency-domain 
+identification of the flight experiment, and it is widely used in helicopter controller design 
+and dynamic characteristic analysis. The complete linearized dynamic model can be illus-
+trated in state-space representation as follows [59]: 
+mmx=A x+B u , (7)
+where Am and Bm are the system matrix and control matrix at different equilibrium points, 
+establishing a linear-parameter-varying (LPV) helicopter dynamics model. 
+[ ]       uwq vp r  θ φ ψ =x  is the state vector and []eca pδ δ δ δ=u  is the control input vector, 
+where  cδ  is the collective control input of the main rotor blade, eδ and aδ are the cy-
+clic control inputs giving the explicit pitch in longitude and lateral directions, and pδ is 
+the collective pitch for the tail rotor. 
+Cascade PID (proportion integration differen tiation) controllers were adopted to re-
+alize the low-level control of the helicopter. As shown in Figure 1, the helicopter control 
+system was divided into the longitude channel,  lateral channel, altitude channel, and yaw 
+channel. For each channel, an independent ca scade PID controller was applied. The inner 
+loop controllers maintain the attitude stability, while the middle loop and outer loop con-
+trollers are used to track speed or position commands. The stability analysis and conver-
+gence of the cascade PID framework are essent ial for the controller  implementation, but 
+beyond the scope of this work. A detailed analysis can be found in [51] for further discus-
+sion. 
+ 
+(a) 
+ 
+(b) 
+Figure 1. Cont .
+
+--- Page 6 ---
+Drones 2022 ,6, 150 6 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 6 of 26 
+ 
+(c) 
+(d) 
+Figure 1. Cascade PID controllers of the helicopter control channels: ( a) longitude channel; ( b) lateral 
+channel; ( c) altitude channel; ( d)yaw channel. 
+It should be mentioned that helicopters have multiple flight mode transitions arising 
+from the complicated aerodynamic nature of thrust generation, while the control channels 
+are strongly coupled. Various flight control methodologies have been developed for the 
+flight control system of helicopters to impr ove the flight performance, which is beyond 
+the scope of this research. We used simple an d decoupling low-level controllers to clearly 
+explain the implementation of visual servo co ntrol and terrain avoidance. In addition, the 
+simple controllers used in this study would cause more oscillations and longer adjustment 
+time during the flight. This required a high-level control framework to provide more mar-
+gins in the design stage, forcing the control framework to be more adaptive and practical 
+for engineering realizations. 
+A simulation based on realistic scenarios is a crucial part of testing algorithms. We 
+built the simulation environment using the Un real Engine package to visualize scenarios 
+with realistic graphics and generate sensor data. A co-simulation framework was used to 
+realize the communication interface between Unreal Engine and MATLAB Simulink, as 
+shown in Figure 2. For each simulation step, the helicopter dynamic model received the 
+flight control signals and updated the flight st ate. The flight state was sent to the simula-
+tion environment through a communication interface, driving the Unreal Engine to realize real-time virtual rendering. Various sensors were modeled to obtain ground-truth data in 
+the simulation environment. The established control framework receives the sensor data 
+and output control signals to the helicopter model, forming a closed-loop simulation sys-
+tem. 
+Figure 1. Cascade PID controllers of the helicopter control channels: ( a) longitude channel; ( b) lateral
+channel; ( c) altitude channel; ( d) yaw channel.
+It should be mentioned that helicopters have multiple ﬂight mode transitions arising
+from the complicated aerodynamic nature of thrust generation, while the control channels
+are strongly coupled. Various ﬂight control methodologies have been developed for the
+ﬂight control system of helicopters to improve the ﬂight performance, which is beyond
+the scope of this research. We used simple and decoupling low-level controllers to clearly
+explain the implementation of visual servo control and terrain avoidance. In addition, the
+simple controllers used in this study would cause more oscillations and longer adjustment
+time during the ﬂight. This required a high-level control framework to provide more
+margins in the design stage, forcing the control framework to be more adaptive and
+practical for engineering realizations.
+A simulation based on realistic scenarios is a crucial part of testing algorithms. We
+built the simulation environment using the Unreal Engine package to visualize scenarios
+with realistic graphics and generate sensor data. A co-simulation framework was used to
+realize the communication interface between Unreal Engine and MATLAB Simulink, as
+shown in Figure 2. For each simulation step, the helicopter dynamic model received the
+ﬂight control signals and updated the ﬂight state. The ﬂight state was sent to the simulation
+environment through a communication interface, driving the Unreal Engine to realize real-
+time virtual rendering. Various sensors were modeled to obtain ground-truth data in the
+simulation environment. The established control framework receives the sensor data and
+output control signals to the helicopter model, forming a closed-loop simulation system.
+
+--- Page 7 ---
+Drones 2022 ,6, 150 7 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 7 of 26 
+ 
+ 
+Figure 2. Closed-loop system of the real istic simulation environment. 
+A realistic scenario based on a mountainous map was built to carry out flight simu-
+lations of the low-altitude flight, as shown in Figure 3. We set up natural terrains and 
+different facilities in the scenario. The terrains and facilities were built using static meshes, which could be detected by the virtual Lidar sensors of the helicopter. The virtual camera 
+was mounted around the helicopter to obtain visual information. Benefitting from the 
+powerful lighting, rendering, and mapping abil ity of Unreal Engine package, the virtual 
+camera was able to display real-scene lighting effects such as area shadows and diffuse 
+reflection, providing a high-fidelity simu lation environment for this research. 
+ 
+Figure 3. Realistic scenario of the mountainous terrain. 
+3. Target Tracking and Terrain Avoidance 
+3.1. Target Tracking 3.1.1. Target Recognition 
+For a low-altitude flight, the flight map in formation and accurate facility positions 
+are generally unknown. Detecting targets and evaluating threat degrees represent the ba-
+sis of decision making in unmanned helicop ter operations. We expect that the target 
+recognition method should be able to cover diffe rent types of targets as best as possible to 
+deal with various unknown facilities that may appear in mountainous terrains. In this 
+research, target recognition was realized using the YOLOv2 network, which can be 
+trained offline on labeled images to cover a la rge number of target features [60]. The YOLO 
+model runs a deep learning CNN (convolutional neural network) on an input image to 
+Figure 2. Closed-loop system of the realistic simulation environment.
+A realistic scenario based on a mountainous map was built to carry out ﬂight sim-
+ulations of the low-altitude ﬂight, as shown in Figure 3. We set up natural terrains and
+different facilities in the scenario. The terrains and facilities were built using static meshes,
+which could be detected by the virtual Lidar sensors of the helicopter. The virtual camera
+was mounted around the helicopter to obtain visual information. Beneﬁtting from the
+powerful lighting, rendering, and mapping ability of Unreal Engine package, the virtual
+camera was able to display real-scene lighting effects such as area shadows and diffuse
+reﬂection, providing a high-ﬁdelity simulation environment for this research.
+Drones 2022 , 6, x FOR PEER REVIEW 7 of 26 
+ 
+ 
+Figure 2. Closed-loop system of the real istic simulation environment. 
+A realistic scenario based on a mountainous map was built to carry out flight simu-
+lations of the low-altitude flight, as shown in Figure 3. We set up natural terrains and 
+different facilities in the scenario. The terrains and facilities were built using static meshes, which could be detected by the virtual Lidar sensors of the helicopter. The virtual camera 
+was mounted around the helicopter to obtain visual information. Benefitting from the 
+powerful lighting, rendering, and mapping abil ity of Unreal Engine package, the virtual 
+camera was able to display real-scene lighting effects such as area shadows and diffuse 
+reflection, providing a high-fidelity simu lation environment for this research. 
+ 
+Figure 3. Realistic scenario of the mountainous terrain. 
+3. Target Tracking and Terrain Avoidance 
+3.1. Target Tracking 3.1.1. Target Recognition 
+For a low-altitude flight, the flight map in formation and accurate facility positions 
+are generally unknown. Detecting targets and evaluating threat degrees represent the ba-
+sis of decision making in unmanned helicop ter operations. We expect that the target 
+recognition method should be able to cover diffe rent types of targets as best as possible to 
+deal with various unknown facilities that may appear in mountainous terrains. In this 
+research, target recognition was realized using the YOLOv2 network, which can be 
+trained offline on labeled images to cover a la rge number of target features [60]. The YOLO 
+model runs a deep learning CNN (convolutional neural network) on an input image to 
+Figure 3. Realistic scenario of the mountainous terrain.
+3. Target Tracking and Terrain Avoidance
+3.1. Target Tracking
+3.1.1. Target Recognition
+For a low-altitude ﬂight, the ﬂight map information and accurate facility positions are
+generally unknown. Detecting targets and evaluating threat degrees represent the basis of
+decision making in unmanned helicopter operations. We expect that the target recognition
+method should be able to cover different types of targets as best as possible to deal with
+various unknown facilities that may appear in mountainous terrains. In this research,
+
+--- Page 8 ---
+Drones 2022 ,6, 150 8 of 25
+target recognition was realized using the YOLOv2 network, which can be trained ofﬂine on
+labeled images to cover a large number of target features [ 60]. The YOLO model runs a deep
+learning CNN (convolutional neural network) on an input image to decode the predictions
+and generate bounding boxes, as shown in Figure 4. The detection network contains a
+series of conventional, batch norm, and rectiﬁed linear unit (ReLU) layers. By labeling and
+adding training samples of speciﬁc scenes, the YOLO model can better recognize distant or
+fuzzy targets.
+Drones 2022 , 6, x FOR PEER REVIEW 8 of 26 
+ 
+decode the predictions and generate bounding boxes, as shown in Figure 4. The detection 
+network contains a series of conventional, ba tch norm, and rectified linear unit (ReLU) 
+layers. By labeling and adding training samples of specific scenes, the YOLO model can better recognize distant or fuzzy targets. 
+ 
+Figure 4. Structure of the YOLO Network. 
+The YOLO network introduces anchor boxes to improve the speed and efficiency for 
+of detection. The anchor boxes are defined on the basis of object sizes in the training da-
+tasets. During detection, the predefined anchor boxes are tiled across the image. The po-
+sition of an anchor box is determined by ma pping the location of the network output back 
+to the input image. The object detectors learn offsets to apply to each tiled anchor box, refining the anchor box position and size. The network predicts five coordinates for each 
+bounding box: t
+x, ty, th, tw, and to. The cell is offset from the top left corner of the image by 
+(cx, cy), and the bounding box prior has width and height pw, ph; the predictions can be 
+drawn as follows: 
+()x xxb= st + c , (8)
+()yy ybt cσ=+ , (9)
+wt
+w wb pe = , (10)
+ht
+h hb pe = , (11)
+() ( ) ( )oPr object IOU object,b = s t × , (12)
+where, bx, by, bh, and bw are the box position and size parameters, σ refers to the sigmoid 
+function, and ()otσ  is the value of confidence after sigmoid transformation. For target 
+recognition in low-altitude flights, the an chor boxes of the YOLO network provide the 
+target dynamics within the sight ranges. The positions and sizes of anchor boxes also im-
+ply the relative position and attitude information of the target, which can provide the basis for the visual servo control. 
+The detection efficiency and generalization capabilities of the YOLO network depend 
+on the number and diversity of training data. Without loss of generality, we extracted the images of some buildings and vehicles in th e simulation environment as recognition tar-
+gets. The images were manually calibrated to form a training dataset, and the network 
+was trained using the SGDM (stochastic gradient descent with momentum) method. The 
+precision of the trained detector at varying leve ls of recall is shown in Figure 5. The YOLO 
+network can be replaced by frontier and stronger algorithms to obtain better recognition performance, but it was considered fairly ef fective for the overall control framework of 
+this research. 
+Figure 4. Structure of the YOLO Network.
+The YOLO network introduces anchor boxes to improve the speed and efﬁciency for of
+detection. The anchor boxes are deﬁned on the basis of object sizes in the training datasets.
+During detection, the predeﬁned anchor boxes are tiled across the image. The position of
+an anchor box is determined by mapping the location of the network output back to the
+input image. The object detectors learn offsets to apply to each tiled anchor box, reﬁning
+the anchor box position and size. The network predicts ﬁve coordinates for each bounding
+box: tx,ty,th,tw, and to. The cell is offset from the top left corner of the image by ( cx,cy),
+and the bounding box prior has width and height pw,ph; the predictions can be drawn
+as follows:
+bx=s(tx) +cx, (8)
+by=s(ty) +cy, (9)
+bw=pwetw, (10)
+bh=pheth, (11)
+Pr(object )IOU(object ,b) =s(to), (12)
+where, bx,by,bh, and bware the box position and size parameters, srefers to the sigmoid
+function, and s(to)is the value of conﬁdence after sigmoid transformation. For target
+recognition in low-altitude ﬂights, the anchor boxes of the YOLO network provide the
+target dynamics within the sight ranges. The positions and sizes of anchor boxes also imply
+the relative position and attitude information of the target, which can provide the basis for
+the visual servo control.
+The detection efﬁciency and generalization capabilities of the YOLO network depend
+on the number and diversity of training data. Without loss of generality, we extracted
+the images of some buildings and vehicles in the simulation environment as recognition
+targets. The images were manually calibrated to form a training dataset, and the network
+was trained using the SGDM (stochastic gradient descent with momentum) method. The
+precision of the trained detector at varying levels of recall is shown in Figure 5. The YOLO
+network can be replaced by frontier and stronger algorithms to obtain better recognition
+performance, but it was considered fairly effective for the overall control framework of
+this research.
+
+--- Page 9 ---
+Drones 2022 ,6, 150 9 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 9 of 26 
+ 
+ 
+Figure 5. Precision–recall (PR) curve of the YOLO network. 
+3.1.2. Visual Servo Control 
+Visual servo control is an important part of unmanned helicopter operations in low-
+altitude flight. It can also help verify the stability of the YOLO detector and the effective-
+ness of the proposed helicopter controllers in this research. Therefore, we designed a typ-ical flight task to carry out flight simulation s on the basis of visual servo control. The hel-
+icopter identified the target through the YO LO detector, and then automatically hovered 
+around the target, as shown in Figure 6. This has been used as the ground target tracking 
+method of fixed-wing aircrafts [61,62]. For helicopters, we let the helicopter always head 
+to the target, move horizontally through late ral maneuvers, and finally hover around the 
+target. 
+ 
+Figure 6. Circling flight around the target. 
+The commonly used methods of visual serv o control can be divided into position-
+based visual servo (PBVS), image-based visual servo (IBVS), and end-to-end visual servo. 
+PBVS establishes the mapping relationship between the image signal and the helicopter 
+pose, calculates the pose information, and comp ares it with the required pose to form a 
+closed-loop control. As PBVS needs accurate im age signals, even a sm all error in the image 
+measurements can lead to a large offset in th e pose estimation. IBVS directly compares the 
+image signal measured in real time with the image signal of requir ed pose and uses the 
+obtained image error for feedback control. The end-to-end servo method takes the cap-
+tured image as the input, and directly outputs the control signals by constructing neural 
+networks. However, there exist challenges incl uding time complexity and servo stabilities 
+when using this method. For a low-altitude flight, the target is generally unknown and 
+Figure 5. Precision–recall (PR) curve of the YOLO network.
+3.1.2. Visual Servo Control
+Visual servo control is an important part of unmanned helicopter operations in low-
+altitude ﬂight. It can also help verify the stability of the YOLO detector and the effectiveness
+of the proposed helicopter controllers in this research. Therefore, we designed a typical
+ﬂight task to carry out ﬂight simulations on the basis of visual servo control. The helicopter
+identiﬁed the target through the YOLO detector, and then automatically hovered around
+the target, as shown in Figure 6. This has been used as the ground target tracking method
+of ﬁxed-wing aircrafts [ 61,62]. For helicopters, we let the helicopter always head to the
+target, move horizontally through lateral maneuvers, and ﬁnally hover around the target.
+Drones 2022 , 6, x FOR PEER REVIEW 9 of 26 
+ 
+ 
+Figure 5. Precision–recall (PR) curve of the YOLO network. 
+3.1.2. Visual Servo Control 
+Visual servo control is an important part of unmanned helicopter operations in low-
+altitude flight. It can also help verify the stability of the YOLO detector and the effective-
+ness of the proposed helicopter controllers in this research. Therefore, we designed a typ-ical flight task to carry out flight simulation s on the basis of visual servo control. The hel-
+icopter identified the target through the YO LO detector, and then automatically hovered 
+around the target, as shown in Figure 6. This has been used as the ground target tracking 
+method of fixed-wing aircrafts [61,62]. For helicopters, we let the helicopter always head 
+to the target, move horizontally through late ral maneuvers, and finally hover around the 
+target. 
+ 
+Figure 6. Circling flight around the target. 
+The commonly used methods of visual serv o control can be divided into position-
+based visual servo (PBVS), image-based visual servo (IBVS), and end-to-end visual servo. 
+PBVS establishes the mapping relationship between the image signal and the helicopter 
+pose, calculates the pose information, and comp ares it with the required pose to form a 
+closed-loop control. As PBVS needs accurate im age signals, even a sm all error in the image 
+measurements can lead to a large offset in th e pose estimation. IBVS directly compares the 
+image signal measured in real time with the image signal of requir ed pose and uses the 
+obtained image error for feedback control. The end-to-end servo method takes the cap-
+tured image as the input, and directly outputs the control signals by constructing neural 
+networks. However, there exist challenges incl uding time complexity and servo stabilities 
+when using this method. For a low-altitude flight, the target is generally unknown and 
+Figure 6. Circling ﬂight around the target.
+The commonly used methods of visual servo control can be divided into position-
+based visual servo (PBVS), image-based visual servo (IBVS), and end-to-end visual servo.
+PBVS establishes the mapping relationship between the image signal and the helicopter
+pose, calculates the pose information, and compares it with the required pose to form a
+closed-loop control. As PBVS needs accurate image signals, even a small error in the image
+measurements can lead to a large offset in the pose estimation. IBVS directly compares
+the image signal measured in real time with the image signal of required pose and uses
+the obtained image error for feedback control. The end-to-end servo method takes the
+captured image as the input, and directly outputs the control signals by constructing neural
+networks. However, there exist challenges including time complexity and servo stabilities
+when using this method. For a low-altitude ﬂight, the target is generally unknown and
+
+--- Page 10 ---
+Drones 2022 ,6, 150 10 of 25
+far away from the helicopter. It is difﬁcult to extract a characteristic point of the image
+and calculate relative pose information using PBVS. Therefore, we adopted IBVS to realize
+visual servo control; the control framework is illustrated in Figure 7. We used the size and
+position of the anchor boxes provided by the YOLO network as the control commands of
+the helicopters control channels. The control commands were calculated as follows:
+Sbox=bwbh, (13)
+uRe f= ku(Sbox Sdes), (14)
+rRe f= kr(bx bmid), (15)
+vRe f=Vdes a1(Sbox Sdes) a2(bx bmid), (16)
+uRe f=uf orward ,St=0,byt k>0
+ubackward ,St=0,byt k<0, (17)
+where Sboxrepresents the area of the anchor box, which characterizes the distance from
+the helicopter to the target. We deﬁned a desired box area Sdesthat points to the desired
+distance, and counted the error during feedback to the control command of linear velocity
+uRe f.kuis the control gain. The target center is restricted to the horizontal center of the
+image to ensure that the helicopter is always oriented to the target. The error between target
+center bxand image center bmidis calculated and multiplied by the control gain kras the
+control command of the yaw rate rRe f. We set Vdesas the desired lateral velocity and correct
+it through the errors of box area and helicopter orientation to generate the control command
+of lateral velocity vRe f, as shown in Equation (16), where a1anda2are the correction factors.
+In this way, priority is given to the helicopter maintaining its distance and orientation to
+the target, and then maneuvering laterally to hover around the target. Furthermore, in case
+the target is lost and deviates from the image, i.e., the anchor box area becomes 0, we preset
+longitudinal ﬂight maneuvers to retrieve the target, as shown in Equation (17). When the
+target disappears from the top of the image, and the vertical coordinate of the target center
+before disappearing is positive ( byt k>0), the helicopter will ﬂy forward to approach the
+target; otherwise, it will ﬂy backward with linear velocity ubackward .
+Drones 2022 , 6, x FOR PEER REVIEW 10 of 26 
+ 
+far away from the helicopter. It is difficult to  extract a characteristic point of the image and 
+calculate relative pose information using PBVS. Therefore, we adopted IBVS to realize 
+visual servo control; the control framework is illustrated in Figure 7. We used the size and position of the anchor boxes provided by th e YOLO network as the control commands of 
+the helicopters control channels. The cont rol commands were calculated as follows: 
+box w hSb b= , (13)
+()Ref u box desuk S S=− − , (14)
+()Ref r x midrk b b=− − , (15)
+12() ( )Ref des box des x midvV SS b b αα =− − − − , (16)
+,0 , 0
+,0 , 0tt k
+forward y
+Ref tt k
+backward yuS buuS b−
+− => ==< , (17)
+where boxS represents the area of the anchor box, which characterizes the distance from 
+the helicopter to the target. We defined a desired box area desS that points to the desired 
+distance, and counted the error during feedback  to the control command of linear velocity 
+Refu . uk is the control gain. The target center is restricted to the horizontal center of the 
+image to ensure that the helicopter is always oriented to the target. The error between 
+target center xb and image center midb  is calculated and multiplied by the control gain 
+rk as the control command of the yaw rate Refr. We set desV  as the desired lateral ve-
+locity and correct it through the errors of box area and helicopter orientation to generate 
+the control command of lateral velocity Refv , as shown in Equation (16), where 1α and 
+2α are the correction factors. In this way, priority is given to the helicopter maintaining 
+its distance and orientation to the target, and then maneuvering laterally to hover around 
+the target. Furthermore, in case the target is  lost and deviates from the image, i.e., the 
+anchor box area becomes 0, we preset longitudinal flight maneuvers to retrieve the target, 
+as shown in Equation (17). When the target disappears from the top of the image, and the 
+vertical coordinate of the target center before disappearing is positive ( 0tk
+yb−>),the hel-
+icopter will fly forward to approach the target; otherwise, it will fly backward with linear 
+velocity backwardu . 
+ 
+Figure 7. Visual servo control of the circling flight. 
+Figure 7. Visual servo control of the circling ﬂight.
+According to the above control frame, the IBVS method was established, and the
+control gains were determined. We set up the initial positions of helicopter and target, and
+we carried out ﬂight simulations. The virtual camera was mounted under the helicopter
+body with a downward pitch angle of 20. The sample time of the virtual camera was set as
+0.01 s and the resolution of each frame was set to 640 360 to maintain image accuracy and
+detection efﬁciency. The ﬂight path of the helicopter hovering around the static target is
+
+--- Page 11 ---
+Drones 2022 ,6, 150 11 of 25
+shown in Figure 8. It can be seen that the helicopter approached the target from a distance
+and gradually maintained a stable circular trajectory. The linear velocity of the helicopter
+contained high-frequency oscillations caused by the visual servo control, but the overall
+trend was regular and stable, as shown in Figure 9. Figure 10 shows the anchor box size
+during the ﬂight. The width and height of the anchor box changed periodically in a large
+range, which was caused by the different target poses under different viewing angles.
+The target was lost at some point and could be retrieved rapidly to continue tracking.
+On the basis of simulations around static targets, we carried out ﬂight simulations to
+circle and hover around a moving target. The ﬂight path is illustrated in Figure 11, which
+demonstrates the effectiveness of the control framework. Therefore, the proposed IBVS
+method can be further applied in low-altitude ﬂight.
+Drones 2022 , 6, x FOR PEER REVIEW 11 of 26 
+ 
+According to the above control frame, the IBVS method was established, and the con-
+trol gains were determined. We set up the initial positions of helicopter and target, and 
+we carried out flight simulations. The virtual camera was mounted under the helicopter body with a downward pitch angle of 20°. The sample time of the virtual camera was set 
+as 0.01 s and the resolution of each frame was set to 640 × 360 to maintain image accuracy 
+and detection efficiency. The flight path of the helicopter hovering arou nd the static target 
+is shown in Figure 8. It can be seen that the helicopter approached the target from a dis-
+tance and gradually maintained a stable circular trajectory. The linear velocity of the hel-icopter contained high-frequency oscillations caused by the visual servo control, but the 
+overall trend was regular and stable, as shown in Figure 9. Figure 10 shows the anchor 
+box size during the flight. The width and height of the anchor box changed periodically in a large range, which was caused by the different target poses under different viewing 
+angles. The target was lost at some point and could be retrieved rapidly to continue track-
+ing. On the basis of simulations around static targets, we carried out flight simulations to 
+circle and hover around a moving target. The flight path is illustrated in Figure 11, which 
+demonstrates the effectiveness of the control framework. Therefore, the proposed IBVS method can be further applied in low-altitude flight. 
+ 
+Figure 8. Flight path of the helicopter ho vering around a static target. 
+ 
+Figure 9. Helicopter linear velocities during a circling flight. 
+Figure 8. Flight path of the helicopter hovering around a static target.
+Drones 2022 , 6, x FOR PEER REVIEW 12 of 27 
+ 
+ 
+Figure 9. Helicopter linear velocities during a circling flight. 
+ 
+Figure 10. Anchor box size during a circling flight. 
+ 
+Figure 11. Flight path of the helicopter ho vering around a moving target. 
+Figure 9. Helicopter linear velocities during a circling ﬂight.
+
+--- Page 12 ---
+Drones 2022 ,6, 150 12 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 12 of 26 
+ 
+ 
+Figure 10. Anchor box size during a circling flight. 
+ 
+Figure 11. Flight path of the helicopter ho vering around a moving target. 
+3.2. Terrain Avoidance 
+Terrain avoidance is a basic task in low-altitude flight, whereby the helicopter senses 
+objects according to the airborne sensors, an d autonomously executes obstacle avoidance 
+and path planning in an unknown environment.  Therefore, the global obstacle avoidance 
+methods which rely on complete prior information are generally inappropriate. Moreo-ver, low-altitude flight generally requires a helicopter to reach the destination rapidly to 
+reduce flight time and risks. A reactive local obstacle avoidance method is more adaptable 
+compared with a global mapping method. The terrains of mountainous areas are compli-
+cated and contain various environment object s. Radar and Lidar equipment have been 
+commonly used for manned helicopters to sense and avoid terrain obstacles in mountain-ous terrains. Considering the sensing equipmen t, algorithm efficiency, spatial complexity, 
+and application scenes, the 3D VFH (vector fi eld histogram) method based on Lidar sen-
+sors was established to realize terrain avoi dance for unmanned helicopter operations in 
+this research. 
+The 3D VFH algorithm originates from the widely used VFH algorithm in a 2D envi-
+ronment. It does not need specific map inform ation, but it can provide multiple paths to 
+maintain different requirements by designing different path weights, which is especially 
+suitable for low-altitude flight. For 3D envi ronment applications, the 3D VFH method di-
+vides the voxels near the helicopter into multiple cells through the two dimensions of the 
+Figure 10. Anchor box size during a circling ﬂight.
+Drones 2022 , 6, x FOR PEER REVIEW 12 of 26 
+ 
+ 
+Figure 10. Anchor box size during a circling flight. 
+ 
+Figure 11. Flight path of the helicopter ho vering around a moving target. 
+3.2. Terrain Avoidance 
+Terrain avoidance is a basic task in low-altitude flight, whereby the helicopter senses 
+objects according to the airborne sensors, an d autonomously executes obstacle avoidance 
+and path planning in an unknown environment.  Therefore, the global obstacle avoidance 
+methods which rely on complete prior information are generally inappropriate. Moreo-ver, low-altitude flight generally requires a helicopter to reach the destination rapidly to 
+reduce flight time and risks. A reactive local obstacle avoidance method is more adaptable 
+compared with a global mapping method. The terrains of mountainous areas are compli-
+cated and contain various environment object s. Radar and Lidar equipment have been 
+commonly used for manned helicopters to sense and avoid terrain obstacles in mountain-ous terrains. Considering the sensing equipmen t, algorithm efficiency, spatial complexity, 
+and application scenes, the 3D VFH (vector fi eld histogram) method based on Lidar sen-
+sors was established to realize terrain avoi dance for unmanned helicopter operations in 
+this research. 
+The 3D VFH algorithm originates from the widely used VFH algorithm in a 2D envi-
+ronment. It does not need specific map inform ation, but it can provide multiple paths to 
+maintain different requirements by designing different path weights, which is especially 
+suitable for low-altitude flight. For 3D envi ronment applications, the 3D VFH method di-
+vides the voxels near the helicopter into multiple cells through the two dimensions of the 
+Figure 11. Flight path of the helicopter hovering around a moving target.
+3.2. Terrain Avoidance
+Terrain avoidance is a basic task in low-altitude ﬂight, whereby the helicopter senses
+objects according to the airborne sensors, and autonomously executes obstacle avoidance
+and path planning in an unknown environment. Therefore, the global obstacle avoidance
+methods which rely on complete prior information are generally inappropriate. Moreover,
+low-altitude ﬂight generally requires a helicopter to reach the destination rapidly to re-
+duce ﬂight time and risks. A reactive local obstacle avoidance method is more adaptable
+compared with a global mapping method. The terrains of mountainous areas are compli-
+cated and contain various environment objects. Radar and Lidar equipment have been
+commonly used for manned helicopters to sense and avoid terrain obstacles in mountain-
+ous terrains. Considering the sensing equipment, algorithm efﬁciency, spatial complexity,
+and application scenes, the 3D VFH (vector ﬁeld histogram) method based on Lidar sen-
+
+--- Page 13 ---
+Drones 2022 ,6, 150 13 of 25
+sors was established to realize terrain avoidance for unmanned helicopter operations in
+this research.
+The 3D VFH algorithm originates from the widely used VFH algorithm in a 2D
+environment. It does not need speciﬁc map information, but it can provide multiple paths
+to maintain different requirements by designing different path weights, which is especially
+suitable for low-altitude ﬂight. For 3D environment applications, the 3D VFH method
+divides the voxels near the helicopter into multiple cells through the two dimensions of the
+azimuth angle bzand the elevation angle be, as shown in Figure 12. The spherical voxels
+unfold into a 2D primary polar histogram, where each cell represents the possible direction
+of the helicopter.
+Drones 2022 , 6, x FOR PEER REVIEW 13 of 26 
+ 
+azimuth angle zβ and the elevation angle eβ, as shown in Figure 12. The spherical 
+voxels unfold into a 2D primary polar histog ram, where each cell represents the possible 
+direction of the helicopter. 
+ 
+Figure 12. Formation of the 2D primary polar histogram. 
+We built a virtual Lidar sensor which was fixed under the helicopter cockpit in the 
+simulation environment. It enabled the helicopter to sense the surrounding terrain obsta-cles in a determined range. Th e vertical and horizontal fields of view of the Lidar sensor 
+were set as 60° and 360°, respectively. The detection range was set to 300 m to maintain 
+the effectiveness and data scale. As shown in Figure 13, the Lidar sensor generated the 
+point-cloud data in an ellipsoid range centered on the helicopter. 
+ 
+Figure 13. Generation of point-cloud data of virtual Lidar sensor. 
+For any node iP of the point-cloud data, we assume the coordinates ()iiix,y ,z . The 
+azimuth angle and elevation angle can be calculated using Equations (18) and (19), where 
+α is the resolution of the 2D polar histogram, and the floor function creates natural 
+numbers as the coordinates of the 2D primary polar histogram. Using the point-cloud data, we can evaluate the distance and size of terrain obstacles to calculate the risk weights, and add them to the 2D primary polar histogram. The weight of the voxels can 
+be calculated using Equation (20), where 
+po is the occupancy certainty, Pl is the Euclid-
+ean distance, which is influenced by the helicopter radius, safe radius, and voxel size, and 
+a and  b are predefined constant values. The de tailed derivations can be found in [63]. 
+Figure 12. Formation of the 2D primary polar histogram.
+We built a virtual Lidar sensor which was ﬁxed under the helicopter cockpit in the
+simulation environment. It enabled the helicopter to sense the surrounding terrain obstacles
+in a determined range. The vertical and horizontal ﬁelds of view of the Lidar sensor were
+set as 60and 360, respectively. The detection range was set to 300 m to maintain the
+effectiveness and data scale. As shown in Figure 13, the Lidar sensor generated the point-
+cloud data in an ellipsoid range centered on the helicopter.
+Drones 2022 , 6, x FOR PEER REVIEW 13 of 26 
+ 
+azimuth angle zβ and the elevation angle eβ, as shown in Figure 12. The spherical 
+voxels unfold into a 2D primary polar histog ram, where each cell represents the possible 
+direction of the helicopter. 
+ 
+Figure 12. Formation of the 2D primary polar histogram. 
+We built a virtual Lidar sensor which was fixed under the helicopter cockpit in the 
+simulation environment. It enabled the helicopter to sense the surrounding terrain obsta-cles in a determined range. Th e vertical and horizontal fields of view of the Lidar sensor 
+were set as 60° and 360°, respectively. The detection range was set to 300 m to maintain 
+the effectiveness and data scale. As shown in Figure 13, the Lidar sensor generated the 
+point-cloud data in an ellipsoid range centered on the helicopter. 
+ 
+Figure 13. Generation of point-cloud data of virtual Lidar sensor. 
+For any node iP of the point-cloud data, we assume the coordinates ()iiix,y ,z . The 
+azimuth angle and elevation angle can be calculated using Equations (18) and (19), where 
+α is the resolution of the 2D polar histogram, and the floor function creates natural 
+numbers as the coordinates of the 2D primary polar histogram. Using the point-cloud data, we can evaluate the distance and size of terrain obstacles to calculate the risk weights, and add them to the 2D primary polar histogram. The weight of the voxels can 
+be calculated using Equation (20), where 
+po is the occupancy certainty, Pl is the Euclid-
+ean distance, which is influenced by the helicopter radius, safe radius, and voxel size, and 
+a and  b are predefined constant values. The de tailed derivations can be found in [63]. 
+Figure 13. Generation of point-cloud data of virtual Lidar sensor.
+
+--- Page 14 ---
+Drones 2022 ,6, 150 14 of 25
+For any node Piof the point-cloud data, we assume the coordinates (xi,yi,zi). The
+azimuth angle and elevation angle can be calculated using Equations (18) and (19), where a
+is the resolution of the 2D polar histogram, and the ﬂoor function creates natural numbers
+as the coordinates of the 2D primary polar histogram. Using the point-cloud data, we can
+evaluate the distance and size of terrain obstacles to calculate the risk weights, and add
+them to the 2D primary polar histogram. The weight of the voxels can be calculated using
+Equation (20), where opis the occupancy certainty, lPis the Euclidean distance, which is
+inﬂuenced by the helicopter radius, safe radius, and voxel size, and aand bare predeﬁned
+constant values. The detailed derivations can be found in [63].
+bz=ﬂoor(1
+aarctanxi
+yi). (18)
+be=ﬂoor(1
+aarctanzip
+xi2+yi2). (19)
+Hz,e=8
+<
+:å
+Pop2(a blP), ife2h
+be l
+a,be+l
+a]and z2h
+bz l
+a,bz+l
+ai
+0, otherwise. (20)
+The 2D primary polar histogram presents a simpliﬁed description of collision risks
+at different directions. A 2D binary polar histogram was established to further reduce
+the information. This was accomplished by comparing every cell in the 2D primary polar
+histogram with a threshold t. The size of the threshold depends on the helicopter radius,
+ﬂight speed, sensor resolution, and bounding sphere size. When the cell weight is higher
+than t, the point will be 1 in the 2D binary polar histogram. When the value is lower than
+t, the point will be 0 in the 2D binary polar histogram.
+The VFH method searches for available paths and detects openings by moving a
+window around the 2D binary polar histogram. This window marks the path passable if all
+the elements in the window are equal to 0. It deﬁnes three path weights combined for the
+candidate direction to select the path with lowest path weight m, as shown in Equation (20).
+The ﬁrst path weight m1is used to multiply the difference between the target angle ktand
+the candidate direction vc. The second path weight m2multiplies the difference between the
+helicopter yaw angle yand the candidate direction vc. The last path weight m3multiplies
+the difference between the previous selected direction kt 1and the candidate direction
+vc. The function D(x,y) calculates the difference between the two direction vectors. By
+changing the path weights, multiple ﬂight paths with different preferences can be obtained.
+For low-altitude ﬂight in mountainous terrains, we can change the path weight allowing
+the helicopter to maintain low-altitude ﬂight using turning motions or climbing motions to
+approach the target aggressively.
+m=m1D(kt,vc) +m2D(vy,vc) +m3D(kt 1,vc). (21)
+A narrow mountainous area with dense terrain obstacles was built to verify the terrain
+avoidance performance of the VFH method, as shown in Figure 14. We arranged an
+additional static mesh of obstacles in the terrains to increase the difﬁculty of obstacle
+avoidance. At each simulation step, the VFH method provided a desired direction and
+desired yaw angle according to the virtual Lidar sensor. For helicopters in low-altitude
+ﬂight, turning maneuvers are more sensitive and stable than lateral maneuvers. Therefore,
+we took the desired yaw and vertical components of the desired direction as the helicopter
+control command to realize terrain avoidance in the low-altitude ﬂight. The lateral control
+channel maintained the helicopter stability, and the longitudinal control channel changed
+the approaching speed of the helicopter to the destination.
+
+--- Page 15 ---
+Drones 2022 ,6, 150 15 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 15 of 26 
+ 
+ 
+Figure 14. Narrow mountainous area with  additional obstacles. 
+Lastly, we carried out flight simulations using the VFH method, where the helicopter 
+was placed in a narrow mountainous area without map information. The virtual Lidar 
+had a range resolution of 0.2 m. The vertical resolution and horizontal resolution of the Lidar were set as 2.5° and 5°, respectively. The vehicle size and minimum distance to ob-
+stacles of the VFH method were set as 5 m and 20 m. The sample time of the virtual Lidar 
+was 0.1 s. A distant destination was defined, and the helicopter approached the destina-
+tion and executed terrain avoi dance during the flight. The pa th weights in Equation (21) 
+were set as 3, 2, and 0.3, respectively. The flight path and linear velocities of the helicopter are illustrated in Figures 15 and 16, which demonstrates that the helicopter could maintain 
+a low altitude and stably approach the destin ation. Figure 17 further shows the helicopter 
+during the low-altitude flight. The helicopter avoided all the terrain obstacles in the nar-
+row environment. This shows the good adap tability of the proposed VFH method in 
+mountainous areas for the helicopter. 
+ 
+Figure 15. Flight path of the 3D VFH method. 
+Figure 14. Narrow mountainous area with additional obstacles.
+Lastly, we carried out ﬂight simulations using the VFH method, where the helicopter
+was placed in a narrow mountainous area without map information. The virtual Lidar had
+a range resolution of 0.2 m. The vertical resolution and horizontal resolution of the Lidar
+were set as 2.5and 5, respectively. The vehicle size and minimum distance to obstacles
+of the VFH method were set as 5 m and 20 m. The sample time of the virtual Lidar was
+0.1 s. A distant destination was deﬁned, and the helicopter approached the destination
+and executed terrain avoidance during the ﬂight. The path weights in Equation (21) were
+set as 3, 2, and 0.3, respectively. The ﬂight path and linear velocities of the helicopter are
+illustrated in Figures 15 and 16, which demonstrates that the helicopter could maintain a
+low altitude and stably approach the destination. Figure 17 further shows the helicopter
+during the low-altitude ﬂight. The helicopter avoided all the terrain obstacles in the
+narrow environment. This shows the good adaptability of the proposed VFH method in
+mountainous areas for the helicopter.
+Drones 2022 , 6, x FOR PEER REVIEW 15 of 26 
+ 
+ 
+Figure 14. Narrow mountainous area with  additional obstacles. 
+Lastly, we carried out flight simulations using the VFH method, where the helicopter 
+was placed in a narrow mountainous area without map information. The virtual Lidar 
+had a range resolution of 0.2 m. The vertical resolution and horizontal resolution of the Lidar were set as 2.5° and 5°, respectively. The vehicle size and minimum distance to ob-
+stacles of the VFH method were set as 5 m and 20 m. The sample time of the virtual Lidar 
+was 0.1 s. A distant destination was defined, and the helicopter approached the destina-
+tion and executed terrain avoi dance during the flight. The pa th weights in Equation (21) 
+were set as 3, 2, and 0.3, respectively. The flight path and linear velocities of the helicopter are illustrated in Figures 15 and 16, which demonstrates that the helicopter could maintain 
+a low altitude and stably approach the destin ation. Figure 17 further shows the helicopter 
+during the low-altitude flight. The helicopter avoided all the terrain obstacles in the nar-
+row environment. This shows the good adap tability of the proposed VFH method in 
+mountainous areas for the helicopter. 
+ 
+Figure 15. Flight path of the 3D VFH method. 
+Figure 15. Flight path of the 3D VFH method.
+
+--- Page 16 ---
+Drones 2022 ,6, 150 16 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 16 of 26 
+ 
+ 
+Figure 16. Helicopter linear velocities du ring the low-altitude flight. 
+ 
+Figure 17. Helicopter during the low-altitude flight. 
+4. Autonomous Decision-Making Framework 
+4.1. Visibility Judgment 
+For low-altitude flight in mountainous terra ins, helicopters can effectively avoid spe-
+cific facilities or threats such as dense buildings, fires, and danger using obstacle avoid-
+ance and path replanning methods. In previous studies, these threats were often regarded 
+as obstacles during the flight. However, in many situations of military applications, low-
+altitude flight requires the helicopter to resist ground detection and avoid ground defense to improve flight survivability. Since flying at low altitude can effectively block the detec-
+tion of ground radars, the visibility of the helicopter to the ground facilities is crucial for 
+decision making and maneuver selection. The helicopter needs to not only bypass and 
+avoid the threats, but also escape from the sight range of the threats. Human pilots esti-
+mate the visibility of the helicopter using their eyes and intuition to make decisions such as taking cover, avoiding re connaissance, or executing circ uitous flight. On the other 
+hand, the visibility judgement is quite difficult for unmanned operations, which generally 
+needs complete state estimation, threat location, and accurate map information. 
+Here, we propose an intuitive direct-viewing method which can quickly judge the 
+helicopter’s visibility, as shown in Figure 18. The threat detection method uses a deep neural network, which is the same as the ta rget recognition method presented in Section 
+3.1. We can add samples to the dataset and train a detection network to simultaneously 
+identify targets and threats. When the helico pter detects a threat during low-altitude 
+Figure 16. Helicopter linear velocities during the low-altitude ﬂight.
+Drones 2022 , 6, x FOR PEER REVIEW 16 of 26 
+ 
+ 
+Figure 16. Helicopter linear velocities du ring the low-altitude flight. 
+ 
+Figure 17. Helicopter during the low-altitude flight. 
+4. Autonomous Decision-Making Framework 
+4.1. Visibility Judgment 
+For low-altitude flight in mountainous terra ins, helicopters can effectively avoid spe-
+cific facilities or threats such as dense buildings, fires, and danger using obstacle avoid-
+ance and path replanning methods. In previous studies, these threats were often regarded 
+as obstacles during the flight. However, in many situations of military applications, low-
+altitude flight requires the helicopter to resist ground detection and avoid ground defense to improve flight survivability. Since flying at low altitude can effectively block the detec-
+tion of ground radars, the visibility of the helicopter to the ground facilities is crucial for 
+decision making and maneuver selection. The helicopter needs to not only bypass and 
+avoid the threats, but also escape from the sight range of the threats. Human pilots esti-
+mate the visibility of the helicopter using their eyes and intuition to make decisions such as taking cover, avoiding re connaissance, or executing circ uitous flight. On the other 
+hand, the visibility judgement is quite difficult for unmanned operations, which generally 
+needs complete state estimation, threat location, and accurate map information. 
+Here, we propose an intuitive direct-viewing method which can quickly judge the 
+helicopter’s visibility, as shown in Figure 18. The threat detection method uses a deep neural network, which is the same as the ta rget recognition method presented in Section 
+3.1. We can add samples to the dataset and train a detection network to simultaneously 
+identify targets and threats. When the helico pter detects a threat during low-altitude 
+Figure 17. Helicopter during the low-altitude ﬂight.
+4. Autonomous Decision-Making Framework
+4.1. Visibility Judgment
+For low-altitude ﬂight in mountainous terrains, helicopters can effectively avoid spe-
+ciﬁc facilities or threats such as dense buildings, ﬁres, and danger using obstacle avoidance
+and path replanning methods. In previous studies, these threats were often regarded as
+obstacles during the ﬂight. However, in many situations of military applications, low-
+altitude ﬂight requires the helicopter to resist ground detection and avoid ground defense
+to improve ﬂight survivability. Since ﬂying at low altitude can effectively block the detec-
+tion of ground radars, the visibility of the helicopter to the ground facilities is crucial for
+decision making and maneuver selection. The helicopter needs to not only bypass and
+avoid the threats, but also escape from the sight range of the threats. Human pilots estimate
+the visibility of the helicopter using their eyes and intuition to make decisions such as
+taking cover, avoiding reconnaissance, or executing circuitous ﬂight. On the other hand,
+the visibility judgement is quite difﬁcult for unmanned operations, which generally needs
+complete state estimation, threat location, and accurate map information.
+Here, we propose an intuitive direct-viewing method which can quickly judge the
+helicopter’s visibility, as shown in Figure 18. The threat detection method uses a deep
+neural network, which is the same as the target recognition method presented in Section 3.1.
+We can add samples to the dataset and train a detection network to simultaneously identify
+targets and threats. When the helicopter detects a threat during low-altitude ﬂight, it
+immediately turns to head to the target using the visual servo control method as mentioned
+in Section 3.1. At this moment, the helicopter is visible to the threat. To change its visibility,
+
+--- Page 17 ---
+Drones 2022 ,6, 150 17 of 25
+the helicopter maneuvers laterally. This is because when the helicopter is heading to the
+threat, lateral maneuvers gain more variation than longitude and vertical maneuvers in
+the sight range of the threat. This also helps the helicopter to approach terrain cover in
+mountainous areas. During lateral maneuvers, if the threat is lost from view and the Lidar
+sensor can detect obstacles ahead, it can be considered that the line of sight between the
+helicopter and the threat is blocked, and the visibility is changed. In order to ensure the
+complete concealment of the whole helicopter, we set a margin to make the helicopter
+continue to ﬂy laterally for a certain distance after its visibility changed.
+Drones 2022 , 6, x FOR PEER REVIEW 17 of 26 
+ 
+flight, it immediately turns to head to the target using the visual servo control method as 
+mentioned in Section 3.1. At this moment, the helicopter is visible to the threat. To change 
+its visibility, the helicopter maneuvers laterally. This is because when the helicopter is heading to the threat, lateral maneuvers gain more variation than longitude and vertical 
+maneuvers in the sight range of the threat. Th is also helps the helicopter to approach ter-
+rain cover in mountainous areas. During lateral maneuvers, if the threat is lost from view 
+and the Lidar sensor can detect obstacles ahead,  it can be considered that the line of sight 
+between the helicopter and the threat is blocked, and the visibility is changed. In order to ensure the complete concealment of the whole helicopter, we set a margin to make the 
+helicopter continue to fly laterally for a cert ain distance after its visibility changed. 
+ 
+Figure 18. Direct-viewing method of visibility judgement. 
+The proposed method of the visibility judgme nt is essentially based on the line of 
+sight, which is inspired by the perception method of human intuition. It is simple and 
+effective, but requires the helicopter to keep heading to the threat. Obviously, continu-ously heading to the threat is not the optimal method to avoid it. This limits the helicop-
+ter’s movement and possibly further exposes the helicopter to the threat. However, it pro-
+vides a fast and reliable method to realize real-time judgement of the visibility without 
+comprehensive map information or a complex calculation process. Moreover, the helicop-
+ter has good lateral maneuverability; when fa cing a threat, lateral maneuvers are faster 
+and more continuous than turning or other maneuvers to hide. Overall, this provides a 
+reactive method to judge and change the helicopter’s visibility, which is easy to deploy 
+and especially suitable for implementation in complex unknown environments. 
+  
+Figure 18. Direct-viewing method of visibility judgement.
+The proposed method of the visibility judgment is essentially based on the line of sight,
+which is inspired by the perception method of human intuition. It is simple and effective,
+but requires the helicopter to keep heading to the threat. Obviously, continuously heading
+to the threat is not the optimal method to avoid it. This limits the helicopter’s movement
+and possibly further exposes the helicopter to the threat. However, it provides a fast and
+reliable method to realize real-time judgement of the visibility without comprehensive map
+information or a complex calculation process. Moreover, the helicopter has good lateral
+maneuverability; when facing a threat, lateral maneuvers are faster and more continuous
+than turning or other maneuvers to hide. Overall, this provides a reactive method to judge
+and change the helicopter’s visibility, which is easy to deploy and especially suitable for
+implementation in complex unknown environments.
+4.2. Finite State Machine
+Visibility judgement and target and threat recognition are fundamental factors of
+decision making in low-altitude ﬂight. The visual servo control and terrain avoidance
+methods presented in this research were veriﬁed to be effective in target tracking and
+obstacle avoidance. On this basis, a ﬁnite state machine was established to combine the
+decision-making and control methods, thus forming the overall framework for unmanned
+helicopter operations in low-altitude ﬂight, as shown in Figure 19. The ﬁnite state machine
+established a continuous operation process without human interference and covered most
+scenes in the low-altitude ﬂight.
+
+--- Page 18 ---
+Drones 2022 ,6, 150 18 of 25
+Drones 2022 , 6, x FOR PEER REVIEW 18 of 26 
+ 
+4.2. Finite State Machine 
+Visibility judgement and target and threat recognition are fundamental factors of de-
+cision making in low-altitude flight. The visual servo control and terrain avoidance meth-ods presented in this research were verified to  be effective in target tracking and obstacle 
+avoidance. On this basis, a finite state machine was established to combine the decision-
+making and control methods, thus forming the overall framework for unmanned helicop-
+ter operations in low-altitude flight, as show n in Figure 19. The finite state machine estab-
+lished a continuous operation process without human interference and covered most scenes in the low-altitude flight. 
+ 
+Figure 19. Finite state machine of the decision-making framework. 
+In low-altitude flight, a helicopter is given a distant destination and required to ap-
+proach the destination at low altitude. Meanwhile, the detection network works to detect 
+targets and threat facilities. Once the target is detected, the helicopter immediately heads to the target through visual servo control and re vises the target’s position. In this case, the 
+helicopter does not know its exact position with respect to the target on the map; however, 
+it is able to estimate the distance and yaw direction using airborne equipment. Therefore, 
+the helicopter can estimate the target’s direction on the basis of its heading. Several target 
+points are placed along the target direction for path replanning of the VFH method. The helicopter continues heading toward the target. Generally, keeping the target in the center 
+of the camera can ensure that the target is no t lost during the flight approach. In case the 
+target is lost, the helicopter continues flying to the defined target points to approach the 
+target and returns to visual servo control when  the target is rediscovered. After arriving 
+at the target, the helicopter can revise the destination location to fly to the original desti-nation or end the flight mission. This fast a pproach process can realize a quick attack on 
+or reconnaissance of specific facilities. 
+If the detection network detects a threat during the flight, the threat degree E is firstly 
+evaluated. We propose a simple way to quantitatively evaluate the threat, as expressed in 
+Equation (22). 
+classξ  is the coefficient for different classes of threats. boxS  implies the 
+distance to the threat. Basically, a closer distance indicates a greater threat. There are more 
+intricate methods of threat evaluation, but they  are outside the scope of this research. We 
+calculated the threat degree mainly to di stinguish between serious threats and small 
+threats, so as to design different control strategies. We defined a threat threshold ET, 
+whereby a threat degree that higher than ET is considered as a serious threat. In this 
+Figure 19. Finite state machine of the decision-making framework.
+In low-altitude ﬂight, a helicopter is given a distant destination and required to
+approach the destination at low altitude. Meanwhile, the detection network works to
+detect targets and threat facilities. Once the target is detected, the helicopter immediately
+heads to the target through visual servo control and revises the target’s position. In this
+case, the helicopter does not know its exact position with respect to the target on the map;
+however, it is able to estimate the distance and yaw direction using airborne equipment.
+Therefore, the helicopter can estimate the target’s direction on the basis of its heading.
+Several target points are placed along the target direction for path replanning of the VFH
+method. The helicopter continues heading toward the target. Generally, keeping the target
+in the center of the camera can ensure that the target is not lost during the ﬂight approach.
+In case the target is lost, the helicopter continues ﬂying to the deﬁned target points to
+approach the target and returns to visual servo control when the target is rediscovered.
+After arriving at the target, the helicopter can revise the destination location to ﬂy to the
+original destination or end the ﬂight mission. This fast approach process can realize a quick
+attack on or reconnaissance of speciﬁc facilities.
+If the detection network detects a threat during the ﬂight, the threat degree Eis ﬁrstly
+evaluated. We propose a simple way to quantitatively evaluate the threat, as expressed
+in Equation (22). xclass is the coefﬁcient for different classes of threats. Sboximplies the
+distance to the threat. Basically, a closer distance indicates a greater threat. There are more
+intricate methods of threat evaluation, but they are outside the scope of this research. We
+calculated the threat degree mainly to distinguish between serious threats and small threats,
+so as to design different control strategies. We deﬁned a threat threshold ET, whereby a
+threat degree that higher than ETis considered as a serious threat. In this situation, the
+helicopter executes fast avoidance ﬂight to escape the sight range of the threat as soon as
+possible, seeking terrains as cover to change its visibility. For this purpose, the helicopter is
+forced to head to the threat for visibility judgement. The target points of the VFH method
+are reset as the points of the history path. Then, the helicopter executes lateral maneuvers
+so as to quickly restore invisibility behind terrain cover. When the threat is lost in the
+camera, the helicopter can ﬂy away from the threat or carry out further orders. In this
+research, we gave a higher priority to fast avoidance than to fast approach. The helicopter
+executes fast avoidance upon detecting a serious threat, regardless of whether a target is
+detected in the view. If multiple threats are detected during the ﬂight, the helicopter heads
+toward the threat with highest threat degree to execute fast avoidance.
+
+--- Page 19 ---
+Drones 2022 ,6, 150 19 of 25
+If the threat degree is lower than ET, the detected threat is considered a small threat,
+and the helicopter executes circuitous ﬂight. In this situation, the top priority is still
+restoring the helicopter’s invisibility, which requires the helicopter to head toward the
+threat and seek cover. However, the helicopter is allowed to move laterally. The target
+points of the VFH method are reset to the sides of the helicopter. When the threat is lost,
+the helicopter resets the target points and continues its approach to the destination. In this
+study, the helicopter automatically placed the target points on the opposite site of the threat
+and followed the path of the VFH method. Many other path-planning methods can also be
+used for circuitous ﬂight; however, we mainly focused on introducing visibility judgement
+and realizing reactive threat avoidance.
+E=Sboxxclass. (22)
+The ﬁnite state machine presents a detailed decision-making framework through the
+state transitions of different ﬂight tasks, such as long-range penetration, fast approach, fast
+avoidance, and circuitous ﬂight. These ﬂight tasks contain multiple objectives, and their im-
+plementation is complicated. Here, we designed the control law for each ﬂight task, all the
+control methods were derived from the visual servo control and terrain avoidance method
+in Section 3. Since the control channels are decoupled as illustrated in Section 2.2, we can
+clearly explain the control method through the control commands of different channels.
+For the long-range penetration task, the helicopter approaches the destination and
+avoids terrain obstacles according to the VFH method. Speciﬁcally, the VFH method
+provides the control commands of the yaw channel and altitude channel, as shown in
+Equation (23). RGBis the conversion matrix from ground coordinates to body coordinates.
+The desired direction produced by the VFH method is deﬁned in the ground coordinates
+and must be converted to body coordinates to generate control commands. u,v, and w
+are the control gains of the linear velocities. The longitude channel and lateral channel
+maintain the helicopter’s stability.
+8
+>><
+>>:y=yVFH
+u=u
+v=0
+w=wRGBZVFH. (23)
+For the fast approach task, the control command of the helicopter yaw channel is
+provided by the visual servo control method allowing the helicopter toward head to the
+target. The target points are placed according to the heading direction of the helicopter, as
+shown in Equation (24), where dis a predeﬁned value that affects the interval between target
+points, and Zis the reference altitude of the low-altitude ﬂight. The longitude channel,
+lateral channel, and altitude channel are all controlled by the VFH method, as shown
+in Equation (25), enabling safe terrain avoidance when the helicopter heading direction
+is locked to the target. If the target is lost in view, which may be caused by detection
+network failure, helicopter attitude oscillation, or terrain occlusion, the fast approach task
+is converted back to the long-range penetration task with revised target points.
+8
+<
+:XTarget =X+ndcosy
+YTarget =Y+ndsiny
+ZTarget =Z,n=1, 2, 3, . . . (24)
+8
+>><
+>>:rRe f= kr(bx bmid)
+u=uRGBXVFH
+v=vRGBYVFH
+w=wRGBZVFH. (25)
+The control laws of the fast avoidance and circuitous ﬂight are similar to those of the
+fast approach, as shown in Equation (23). The VFH method provides different maneuvers
+
+--- Page 20 ---
+Drones 2022 ,6, 150 20 of 25
+by setting different target points. The target points of fast avoidance and circuitous ﬂight
+are placed as shown in Equations (26) and (27), respectively, where Tis the predeﬁned time
+interval to sample the history path points, and ( XDestination ,YDestination ) are the coordinates
+of the original destination. For circuitous ﬂight, the target points are placed on the side of
+the helicopter, and the desired direction of the VFH method is converted to lateral control
+commands in the body coordinates. The direction of the lateral maneuver is determined
+according to the threat position, destination position, and history path. Generally, using
+three control channels to follow the control commands of the VFH method can ensure
+that the helicopter safely escapes the threat and takes cover behind the terrain to change
+its visibility.8
+<
+:XTarget =Xt nT
+YTarget =Yt nT
+ZTarget =Zt nT,n=1, 2, 3, . . . (26)
+8
+>>>><
+>>>>:XTarget =X ndsinysgn(D(cosy
+siny
+,XDestination X
+YDestination Y
+))
+YTarget =Y+ndcosysgn(D(cosy
+siny
+,XDestination X
+YDestination Y
+))
+ZTarget =Z,n=1, 2, 3, . . . (27)
+5. Simulation Experiments
+In order to verify the performance of the proposed control framework, we built a typi-
+cal mountainous map including target or threat facilities, as shown in Figure 20. The target
+and threat facilities were set at the same position, as were the helicopter initial position and
+original destination, to better compare the ﬂight performance of the different ﬂight tasks.
+We designed four ﬂight scenes by deﬁning different facilities in the target/threat position
+to carry out long-range penetration, fast approach, fast avoidance, and circuitous ﬂight.
+The installation and parameters of the virtual camera and Lidar were the same as those of
+the simulations in Section 3.
+Drones 2022 , 6, x FOR PEER REVIEW 21 of 26 
+ 
+ 
+Figure 20. Simulation scene of the low-altitude flight. 
+The long-range penetration flight path is il lustrated in Figure 21a. The target/threat 
+was removed from the map. The helicopter followed the command of the VFH method 
+on the premise of low altitude. The helicopter fi rst flew along the hillside of the right-side 
+mountain, and then selected the middle valley to approach the destination. At this mo-
+ment, the left-side terrain blocked the destination, and the helicopter continued to fly 
+along the hillside of the left-side terrain. When  the terrain altitude became low, the heli-
+copter went over the terrain gap and finally arrived at the destination. The whole flight 
+path was similar to that observed for terrai n avoidance in Section 3.2, showing good per-
+formance. 
+The flight path of the fast approach is illustrated in Figure 21b. A target facility was 
+set in the target/threat position. At the initial position, the target was blocked by the right-
+side mountain, and the helicopter followed the command of the VFH method. When the 
+helicopter bypassed the right-side mountain, the target was detected. The helicopter flew straight toward the target along the middle valley. Here, the forward velocity could be 
+tuned by changing the control gain 
+u to realize a faster approaching speed while satisfy-
+ing other task requirements. The sight range of the middle valley was wide; the helicopter 
+kept the target in view and finally reached the target position. 
+Figure 21c shows the flight path of the fast avoidance task. The facility in the tar-
+get/threat position was identified as a serious threat by the detection network. When the 
+threat was detected, the target points of the VFH method were reset as the path points 
+behind the right-side mountain. The helicopter maintained its heading toward the threat and then moved horizontally to fly away from the threat. The control gains of the linear 
+velocities could be tuned to decrease the flight oscillations and increase the flight stability. 
+Finally, the helicopter flew behind the obstacles and changed its visibility in a short time, 
+verifying the effectiveness of the fast avoidance method. The helicopter continued to fly 
+laterally for a while after the threat was lost from view, before turning around to head to the target points. 
+Figure 21d shows the flight path of the circuitous flight, which mainly contained 
+three flight phases. The facility in the target/threat position was identified as a small 
+threat. Firstly, the helicopter executed long-r ange penetration and flew along the hillside 
+of the right-side mountain, just as in the previous flight simulations. Then, the helicopter detected the threat and carried out visual servo control to maintain its heading toward the 
+threat. The target points of the VFH method were reset and placed on the left side of the 
+helicopter, which was closer to the destination. The helicopter moved laterally to the left 
+side and finally flew behind the left-side terr ain, changing its visibi lity. Subsequently, the 
+target point was set as the original destination, and the helicopter turned left to approach 
+Figure 20. Simulation scene of the low-altitude ﬂight.
+The long-range penetration ﬂight path is illustrated in Figure 21a. The target/threat
+was removed from the map. The helicopter followed the command of the VFH method
+on the premise of low altitude. The helicopter ﬁrst ﬂew along the hillside of the right-side
+mountain, and then selected the middle valley to approach the destination. At this moment,
+the left-side terrain blocked the destination, and the helicopter continued to ﬂy along the
+hillside of the left-side terrain. When the terrain altitude became low, the helicopter went
+
+--- Page 21 ---
+Drones 2022 ,6, 150 21 of 25
+over the terrain gap and ﬁnally arrived at the destination. The whole ﬂight path was similar
+to that observed for terrain avoidance in Section 3.2, showing good performance.
+Drones 2022 , 6, x FOR PEER REVIEW 22 of 26 
+ 
+the destination. Here, the VFH method consider ed the cost of the current direction, and 
+we could change the path weight to ensure that the helicopter would not return to the 
+threat once its visibility changed. We could also manually define a rule for the helicopter to choose a direction away from the threat. If the threat was detected again during the 
+flight, the helicopter would repeat the above operations to change the target points and 
+escape the threat. In the flight simulation, th e helicopter bypassed the left-side terrain and 
+finally arrived at the destination without detecting the threat. For a better comparison of 
+the flight paths, we present all flight tasks in Figure 22. The decision making and approx-imate paths of all flight tasks are shown, ve rifying the overall control framework and con-
+trol method proposed in this study. 
+ 
+(a) ( b) 
+ 
+(c) ( d) 
+Figure 21. Flight paths of the flight task s in the low-altitude flight: ( a) long-range penetration; ( b) 
+fast approach; ( c) fast avoidance; ( d) circuitous flight. 
+Figure 21. Flight paths of the ﬂight tasks in the low-altitude ﬂight: ( a) long-range penetration; (b) fast
+approach; ( c) fast avoidance; ( d) circuitous ﬂight.
+The ﬂight path of the fast approach is illustrated in Figure 21b. A target facility was
+set in the target/threat position. At the initial position, the target was blocked by the
+right-side mountain, and the helicopter followed the command of the VFH method. When
+the helicopter bypassed the right-side mountain, the target was detected. The helicopter
+ﬂew straight toward the target along the middle valley. Here, the forward velocity could be
+tuned by changing the control gain uto realize a faster approaching speed while satisfying
+other task requirements. The sight range of the middle valley was wide; the helicopter kept
+the target in view and ﬁnally reached the target position.
+Figure 21c shows the ﬂight path of the fast avoidance task. The facility in the tar-
+get/threat position was identiﬁed as a serious threat by the detection network. When the
+threat was detected, the target points of the VFH method were reset as the path points
+behind the right-side mountain. The helicopter maintained its heading toward the threat
+and then moved horizontally to ﬂy away from the threat. The control gains of the linear
+velocities could be tuned to decrease the ﬂight oscillations and increase the ﬂight stability.
+
+--- Page 22 ---
+Drones 2022 ,6, 150 22 of 25
+Finally, the helicopter ﬂew behind the obstacles and changed its visibility in a short time,
+verifying the effectiveness of the fast avoidance method. The helicopter continued to ﬂy
+laterally for a while after the threat was lost from view, before turning around to head to
+the target points.
+Figure 21d shows the ﬂight path of the circuitous ﬂight, which mainly contained three
+ﬂight phases. The facility in the target/threat position was identiﬁed as a small threat.
+Firstly, the helicopter executed long-range penetration and ﬂew along the hillside of the
+right-side mountain, just as in the previous ﬂight simulations. Then, the helicopter detected
+the threat and carried out visual servo control to maintain its heading toward the threat.
+The target points of the VFH method were reset and placed on the left side of the helicopter,
+which was closer to the destination. The helicopter moved laterally to the left side and
+ﬁnally ﬂew behind the left-side terrain, changing its visibility. Subsequently, the target
+point was set as the original destination, and the helicopter turned left to approach the
+destination. Here, the VFH method considered the cost of the current direction, and we
+could change the path weight to ensure that the helicopter would not return to the threat
+once its visibility changed. We could also manually deﬁne a rule for the helicopter to
+choose a direction away from the threat. If the threat was detected again during the ﬂight,
+the helicopter would repeat the above operations to change the target points and escape
+the threat. In the ﬂight simulation, the helicopter bypassed the left-side terrain and ﬁnally
+arrived at the destination without detecting the threat. For a better comparison of the ﬂight
+paths, we present all ﬂight tasks in Figure 22. The decision making and approximate paths
+of all ﬂight tasks are shown, verifying the overall control framework and control method
+proposed in this study.
+Drones 2022 , 6, x FOR PEER REVIEW 23 of 26 
+ 
+ 
+Figure 22. Diagrammatic presentation of all flight tasks. 
+6. Conclusions 
+In this study, the implementation of unmanned helicopter operations for low-altitude 
+flight was investigated. Specific flight scenes in mountainous terrains were discussed in 
+detail. We introduced target and threat reco gnition into the overall control framework, 
+and we disassembled the low-altitude flight into  several basic tasks. The target and threat 
+were identified using the YOLO network. Using the anchor box of the YOLO network, the 
+helicopter realized stable and effective visual servo control in the flight simulations. The 3D VFH method was used for terrain avoidanc e of the helicopter, achieving good adapt-
+ability and performance in unknown mountainous terrains. 
+Visibility judgment is crucial for low-altitude flight, yet it was rarely investigated in 
+previous research. We proposed a direct-vie wing method which can quickly estimate hel-
+icopter visibility without comprehensive map information or threat positions. On this ba-sis, we built the overall control framework using a finite state machine. Such a design 
+incorporated four flight tasks to cover most  flight scenes encoun tered in low-altitude 
+flight. A coupling control method of visual servo control and terrain avoidance was de-
+veloped to realize these tasks, and their performance was verified through high-fidelity 
+flight simulations. 
+Using the overall control framework presente d in this research, the helicopter could 
+automatically complete complex flight tasks su ch as fast attack, cover concealment, and 
+circuitous flight similar to human pilots. Th e control methods are explicable, and the con-
+trol gains can be tuned to adapt to various flight tasks and scenes. Furthermore, some 
+implementations of the framework can be optimized. For example, the detection network may lose the target, rendering the visual servo control invalid. This can be improved by 
+designing state observers and filters. The target point selection of the VFH method can be 
+further optimized to improve the flight performance and efficiency. 
+Author Contributions: Conceptualization, Z.J., L.N., D.L. and J.X.; methodology, Z.J., L.N. and D.L.; 
+software, Z.J. and L.N.; validation, Z.J. and L.N.; fo rmal analysis, Z.T.; invest igation, Z.J.; resources, 
+D.L. and J.X.; data curation, Z.J.; writing—original  draft preparation, Z.J. and L.N.; writing—review 
+and editing, D.L. and Z.T.; supervision, D.L. and Z.T.; project administration , D.L. All authors have 
+read and agreed to the publis hed version of the manuscript. 
+Funding: This research received no external funding. 
+Institutional Review Board Statement: Not applicable. 
+Figure 22. Diagrammatic presentation of all ﬂight tasks.
+6. Conclusions
+In this study, the implementation of unmanned helicopter operations for low-altitude
+ﬂight was investigated. Speciﬁc ﬂight scenes in mountainous terrains were discussed in
+detail. We introduced target and threat recognition into the overall control framework,
+and we disassembled the low-altitude ﬂight into several basic tasks. The target and threat
+were identiﬁed using the YOLO network. Using the anchor box of the YOLO network, the
+helicopter realized stable and effective visual servo control in the ﬂight simulations. The 3D
+VFH method was used for terrain avoidance of the helicopter, achieving good adaptability
+and performance in unknown mountainous terrains.
+Visibility judgment is crucial for low-altitude ﬂight, yet it was rarely investigated
+in previous research. We proposed a direct-viewing method which can quickly estimate
+
+--- Page 23 ---
+Drones 2022 ,6, 150 23 of 25
+helicopter visibility without comprehensive map information or threat positions. On this
+basis, we built the overall control framework using a ﬁnite state machine. Such a design
+incorporated four ﬂight tasks to cover most ﬂight scenes encountered in low-altitude
+ﬂight. A coupling control method of visual servo control and terrain avoidance was
+developed to realize these tasks, and their performance was veriﬁed through high-ﬁdelity
+ﬂight simulations.
+Using the overall control framework presented in this research, the helicopter could
+automatically complete complex ﬂight tasks such as fast attack, cover concealment, and
+circuitous ﬂight similar to human pilots. The control methods are explicable, and the
+control gains can be tuned to adapt to various ﬂight tasks and scenes. Furthermore, some
+implementations of the framework can be optimized. For example, the detection network
+may lose the target, rendering the visual servo control invalid. This can be improved by
+designing state observers and ﬁlters. The target point selection of the VFH method can be
+further optimized to improve the ﬂight performance and efﬁciency.
+Author Contributions: Conceptualization, Z.J., L.N., D.L. and J.X.; methodology, Z.J., L.N. and D.L.;
+software, Z.J. and L.N.; validation, Z.J. and L.N.; formal analysis, Z.T.; investigation, Z.J.; resources,
+D.L. and J.X.; data curation, Z.J.; writing—original draft preparation, Z.J. and L.N.; writing—review
+and editing, D.L. and Z.T.; supervision, D.L. and Z.T.; project administration, D.L. All authors have
+read and agreed to the published version of the manuscript.
+Funding: This research received no external funding.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: Not applicable.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+References
+1. Hassan, S.; Ali, A.; Raﬁc, Y. A survey on quadrotors: Conﬁgurations, modeling and identiﬁcation, control, collision avoidance,
+fault diagnosis and tolerant control. IEEE Aerosp. Electron. Syst. Mag. 2018 ,33, 14–33.
+2. Lee, H.; Kim, H.J. Trajectory tracking control of multirotors from modelling to experiments: A survey. Int. J. Control Autom. Syst.
+2016 ,15, 281–292. [CrossRef]
+3. Yang, H.; Lee, Y.; Jeon, S.Y.; Lee, D. Multi-rotor drone tutorial: Systems, mechanics, control and state estimation. Intell. Serv. Robot.
+2017 ,10, 79–93. [CrossRef]
+4. Nascimento, T.P .; Saska, M. Position and attitude control of multi-rotor aerial vehicles: A survey. Annu. Rev. Control 2019 ,48,
+129–146. [CrossRef]
+5. Skowron, M.; Chmielowiec, W.; Glowacka, K.; Krupa, M.; Srebro, A. Sense and avoid for small unmanned aircraft systems:
+Research on methods and best practices. Proc. Inst. Mech. Eng. 2019 ,233, 6044–6062. [CrossRef]
+6. Lin, Y.; Gao, F.; Qin, T.; Gao, W.; Liu, T.; Wu, W.; Yang, Z.; Shen, S. Autonomous aerial navigation using monocular visual-inertial
+fusion. J. Field Robot. 2018 ,35, 23–51. [CrossRef]
+7. Faessler, M.; Fontana, F.; Forster, C.; Mueggler, E.; Pizzoli, M.; Scaramuzza, D. Autonomous, Vision-based Flight and Live Dense
+3D Mapping with a Quadrotor Micro Aerial Vehicle. J. Field Robot. 2015 ,33, 431–450. [CrossRef]
+8. Doukhi, O.; Lee, D.J. Deep Reinforcement Learning for End-to-End Local Motion Planning of Autonomous Aerial Robots in
+Unknown Outdoor Environments: Real-Time Flight Experiments. Sensors 2021 ,21, 2534. [CrossRef]
+9. Zhou, Y.; Lai, S.; Cheng, H.; Hamid, M.; Chen, B.M. Towards Autonomy of Micro Aerial Vehicles in Unknown and GPS-denied
+Environments. IEEE Trans. Ind. Electron. 2021 ,68, 7642–7651. [CrossRef]
+10. Jin, Z.; Li, D.; Wang, Z. Research on the Operating Mechanicals of the Helicopter Robot Pilot. In IOP Conference Series: Materials
+Science and Engineering ; IOP Publishing: Bristol, UK, 2020; Volume 887, p. 012022.
+11. Jeong, H.; Kim, J.; Shim, D.H. Development of an Optionally Piloted Vehicle using a Humanoid Robot. In Proceedings of the
+52nd Aerospace Sciences Meeting, National Harbor, MD, USA, 13–17 January 2014.
+12. Kovalev, I.V .; Voroshilova, A.A.; Karaseva, M.V . On the problem of the manned aircraft modiﬁcation to UAVs. In Journal of Physics:
+Conference Series ; IOP Publishing: Bristol, UK, 2019; Volume 1399, p. 055100.
+13. Hu, J.; Gu, H. Survey on Flight Control Technology for Large-Scale Helicopter. Int. J. Aerosp. Eng. 2017 ,2017 , 5309403. [CrossRef]
+14. Xiang, Y.; Zhang, Y. Sense and avoid technologies with applications to unmanned aircraft systems: Review and prospects. Prog.
+Aerosp. Sci. 2015 ,74, 152–166.
+
+--- Page 24 ---
+Drones 2022 ,6, 150 24 of 25
+15. Bijjahalli, S.; Sabatini, R.; Gardi, A. Advances in Intelligent and Autonomous Navigation Systems for small UAS. Prog. Aerosp. Sci.
+2020 ,115, 100617. [CrossRef]
+16. Marantos, P .; Karras, G.C.; Vlantis, P .; Kyriakopoulos, K.J. Vision-based Autonomous Landing Control for Unmanned Helicopters.
+J. Intell. Robot. Syst. 2017 ,92, 145–158. [CrossRef]
+17. Lin, C.H.; Hsiao, F.Y.; Hsiao, F.B. Vision-Based Tracking and Position Estimation of Moving Targets for Unmanned Helicopter
+Systems. Asian J. Control Afﬁl. ACP A Asian Control Profr. Assoc. 2013 ,15, 1270–1283. [CrossRef]
+18. Lin, F.; Dong, X.; Chen, B.M.; Lum, K.Y.; Lee, T.H. A Robust Real-Time Embedded Vision System on an Unmanned Rotorcraft for
+Ground Target Following. IEEE Trans. Ind. Electron. 2012 ,59, 1038–1049. [CrossRef]
+19. Yong, C.; Liu, H.L. Feature article: Overview of landmarks for autonomous, vision-based landing of unmanned helicopters. IEEE
+Aerosp. Electron. Syst. Mag. 2016 ,31, 14–27.
+20. Miao, C.; Li, J. Autonomous Landing of Small Unmanned Aerial Rotorcraft Based on Monocular Vision in GPS-denied Area.
+IEEE/CAA J. Autom. Sin. 2015 ,2, 109–114.
+21. Andert, F.; Adolf, F.; Goormann, L.; Dittrich, J. Autonomous Vision-Based Helicopter Flights through Obstacle Gates. J. Intell.
+Robot. Syst. 2009 ,57, 259–280. [CrossRef]
+22. Marlow, S.Q.; Langelaan, J.W. Local Terrain Mapping for Obstacle Avoidance Using Monocular Vision. J. Am. Helicopter Soc. 2011 ,
+56, 22007. [CrossRef]
+23. Hrabar, S. An evaluation of stereo and laser—Based range sensing for rotorcraft unmanned aerial vehicle obstacle avoidance. J.
+Field Robot. 2012 ,29, 215–239. [CrossRef]
+24. Paul, T.; Krogstad, T.R.; Gravdahl, J.T. Modelling of UAV formation ﬂight using 3D potential ﬁeld. Simul. Model. Pract. Theory
+2008 ,16, 1453–1462. [CrossRef]
+25. Javier, G.; Gandolfo, D.C.; Salinas, L.R.; Claudio, R.; Ricardo, C. Multi-objective control for cooperative payload transport with
+rotorcraft UAVs. ISA Trans. 2018 ,80, 481–502.
+26. Gimenez, J.; Salinas, L.R.; Gandolfo, D.C.; Rosales, C.D.; Carelli, R. Control for cooperative transport of a bar-shaped payload
+with rotorcraft UAVs including a landing stage on mobile robots. Int. J. Syst. Sci. 2020 ,51, 3378–3392. [CrossRef]
+27. Watson, N.A.; Owen, I.; White, M.D. Piloted Flight Simulation of Helicopter Recovery to the Queen Elizabeth Class Aircraft
+Carrier. J. Aircr. 2020 ,57, 742–760. [CrossRef]
+28. Topczewski, S.; Narkiewicz, J.; Bibik, P . Helicopter Control During Landing on a Moving Conﬁned Platform. IEEE Access 2020 ,8,
+107315–107325. [CrossRef]
+29. Ngo, T.D.; Sultan, C. Variable Horizon Model Predictive Control for Helicopter Landing on Moving Decks. J. Guid. Control Dyn.
+2021 ,45, 774–780. [CrossRef]
+30. Zhao, S.; Hu, Z.; Yin, M.; Ang, K.Z.; Liu, P .; Wang, F.; Dong, X.; Lin, F.; Chen, B.M.; Lee, T.H. A Robust Real-Time Vision System
+for Autonomous Cargo Transfer by an Unmanned Helicopter. IEEE Trans. Ind. Electron. 2014 ,62, 1210–1219. [CrossRef]
+31. Truong, Q.H.; Rakotomamonjy, T.; Taghizad, A.; Biannic, J.-M. Vision-based control for helicopter ship landing with handling
+qualities constraints. IFAC-PapersOnLine 2016 ,49, 118–123. [CrossRef]
+32. Huang, Y.; Zhu, M.; Zheng, Z.; Low, K.H. Linear Velocity-Free Visual Servoing Control for Unmanned Helicopter Landing on a
+Ship with Visibility Constraint. IEEE Trans. Syst. Man Cybern. Syst. 2021 ,52, 2979–2993. [CrossRef]
+33. Chen, Y.B.; Yu, J.Q.; Su, X.L.; Luo, G.C. Path Planning for Multi-UAV Formation. J. Intell. Robot. Syst. 2015 ,77, 229–246. [CrossRef]
+34. Bassolillo, S.R.; Blasi, L.; D’Amato, E.; Mattei, M.; Notaro, I. Decentralized Triangular Guidance Algorithms for Formations of
+UAVs. Drones 2022 ,6, 7. [CrossRef]
+35. Fei, Y.; Sun, Y.; Shi, P . Robust Hierarchical Formation Control of Unmanned Aerial Vehicles via Neural-Based Observers. Drones
+2022 ,6, 40. [CrossRef]
+36. Karimoddini, A.; Lin, H.; Chen, B.M.; Tong, H.L. Hybrid three-dimensional formation control for unmanned helicopter. Automatica
+2013 ,49, 424–433. [CrossRef]
+37. Hu, D.; Yang, R.; Zuo, J.; Zhang, Z.; Wang, Y. Application of Deep Reinforcement Learning in Maneuver Planning of Beyond-
+Visual-Range Air Combat. IEEE Access 2021 ,9, 32282–32297. [CrossRef]
+38. Yang, Q.; Zhang, J.; Shi, G.; Hu, J.; Wu, Y. Maneuver Decision of UAV in Short-Range Air Combat Based on Deep Reinforcement
+Learning. IEEE Access 2019 ,8, 363–378. [CrossRef]
+39. Kivelevitch, E.; Ernest, N.; Schumacher, C.; Casbeer, D.; Cohen, K. Genetic Fuzzy Trees and their Application Towards Au-
+tonomous Training and Control of a Squadron of Unmanned Combat Aerial Vehicles. Unmanned Syst. 2015 ,3, 185–204.
+40. Chamberlain, L.; Scherer, S.; Singh, S. Self-aware helicopters: Full-scale automated landing and obstacle avoidance in unmapped
+environments. In Proceedings of the 67th American Helicopter Society International Annual Forum 2011, Virginia Beach, WV ,
+USA, 3–5 May 2011; pp. 3210–3219.
+41. Nikolajevic, K.; Belanger, N. A new method based on motion primitives to compute 3D path planning close to helicopters’
+ﬂight dynamics limits. In Proceedings of the 7th International Conference on Mechanical and Aerospace Engineering (ICMAE),
+Cambridge, UK, 18–20 July 2016; Volume 23, pp. 411–415.
+42. Schopferer, S.; Adolf, F.M. Rapid trajectory time reduction for unmanned rotorcraft navigating in unknown terrain. In Proceedings
+of the International Conference on Unmanned Aircraft Systems (ICUAS), Wyndham Grand, Orlando Resort, Orlando, FL, USA,
+27–30 May 2014; pp. 305–316.
+
+--- Page 25 ---
+Drones 2022 ,6, 150 25 of 25
+43. Whalley, M.S.; Takahashi, M.D.; Fletcher, J.W.; Moralez, E.; Ott, L.C.R.; Olmstead, L.M.G.; Savage, J.C.; Goerzen, C.L.; Schulein,
+G.J.; Burns, H.N.; et al. Autonomous Black Hawk in Flight: Obstacle Field Navigation and Landing—Site Selection on the
+RASCAL JUH—60A. J. Field Robot. 2014 ,31, 591–616. [CrossRef]
+44. Sridhar, B.; Cheng, V .H.L. Computer vision techniques for rotorcraft low-altitude ﬂight. Control Syst. Mag. IEEE 1988 ,8, 59–61.
+[CrossRef]
+45. Friesen, D.; Borst, C.; Pavel, M.D.; Stroosma, O.; Masarati, P .; Mulder, M. Design and Evaluation of a Constraint-Based Head-Up
+Display for Helicopter Obstacle Avoidance. J. Aerosp. Inf. Syst. 2021 ,18, 80–101. [CrossRef]
+46. Zheng, J.; Liu, B.; Meng, Z.; Zhou, Y. Integrated real time obstacle avoidance algorithm based on fuzzy logic and L1 control
+algorithm for unmanned helicopter. In Proceedings of the Chinese Control And Decision Conference (CCDC), Shenyang, China,
+9–11 June 2018; pp. 1865–1870.
+47. Chandrasekaran, R.; Payan, A.P .; Collins, K.B.; Mavris, D.N. Helicopter wire strike protection and prevention devices: Review,
+challenges, and recommendations. Aerosp. Sci. Technol. 2020 ,98, 105665. [CrossRef]
+48. Merz, T.; Kendoul, F. Dependable Low-Altitude Obstacle Avoidance for Robotic Helicopters Operating in Rural Areas. J. Field
+Robot. 2013 ,30, 439–471. [CrossRef]
+49. Wang, D.; Li, W.; Liu, X.; Li, N.; Zhang, C. UAV environmental perception and autonomous obstacle avoidance: A deep learning
+and depth camera combined solution. Comput. Electron. Agric. 2020 ,175, 105523. [CrossRef]
+50. Aldao, E.; Gonzalez-Desantos, L.M.; Michinel, H.; Gonzalez-Jorge, H. UAV Obstacle Avoidance Algorithm to Navigate in
+Dynamic Building Environments. Drones 2022 ,6, 16. [CrossRef]
+51. Hermand, E.; Nguyen, T.W.; Hosseinzadeh, M.; Garone, E. Constrained Control of UAVs in Geofencing Applications. In
+Proceedings of the 26th Mediterranean Conference on Control and Automation, Zadar, Croatia, 19 June 2018; pp. 217–222.
+52. Jiang, M.; Xu, C.; Ji, H. Path Planning for Aircrafts using Alternate TF/TA. In Proceedings of the Chinese Automation Congress
+(CAC), Shanghai, China, 6–8 November 2020; pp. 3702–3707.
+53. Kosari, A.; Kassaei, S.I. TF/TA optimal Flight trajectory planning using a novel regenerative ﬂattener mapping method. Sci. Iran.
+2020 ,27, 1324–1338. [CrossRef]
+54. Chen, H.-x.; Nan, Y.; Yang, Y. A Two-Stage Method for UCAV TF/TA Path Planning Based on Approximate Dynamic Program-
+ming. Math. Probl. Eng. 2018 ,2018 , 1092092. [CrossRef]
+55. Hao, L.; Cui, J.; Wu, L.; Yang, C.; Yu, R. Research on threat modeling technology for helicopter in low altitude. In Proceedings of
+the 7th IEEE International Conference on Software Engineering and Service Science (ICSESS), Beijing, China, 26–28 August 2016;
+pp. 774–778.
+56. Machovina, B.J. Susceptibility Modeling and Mission Flight Route Optimization in a Low Threat, Combat Environment. Doctoral
+Thesis, University of Denver, Denver, CO, USA, 2010.
+57. Woo, J.W.; Choi, Y.S.; An, J.Y.; Kim, C.J. An Approach to Air-To-Surface Mission Planner on 3D Environments for an Unmanned
+Combat Aerial Vehicle. Drones 2022 ,6, 20. [CrossRef]
+58. Tang, Q.; Zhang, X.; Liu, X. TF/TA2 trajectory tracking using nonlinear predictive control approach. J. Syst. Eng. Electron. 2006 ,
+17, 396–401. [CrossRef]
+59. Hilbert, K.B. A Mathematical Model of the UH-60 Helicopter ; No. NASA Technical Memorandum 85890; NSNA: Washington, DC,
+USA, 1984.
+60. Redmon, J.; Farhadi, A. YOLO9000: Better, Faster, Stronger. In Proceedings of the IEEE Conference on Computer Vision and
+Pattern Recognition, Honolulu, HI, USA, 21–26 July 2017; pp. 6517–6525.
+61. Yang, L.; Liu, Z.; Wang, X.; Xu, Y. An Optimized Image-Based Visual Servo Control for Fixed-Wing Unmanned Aerial Vehicle
+Target Tracking with Fixed Camera. IEEE Access 2019 ,7, 68455–68468. [CrossRef]
+62. Yang, L.; Liu, Z.; Wang, X.; Yu, X.; Wang, G.; Shen, L. Image-Based Visual Servo Tracking Control of a Ground Moving Target for
+a Fixed-Wing Unmanned Aerial Vehicle. J. Intell. Robot. Syst. 2021 ,102, 81. [CrossRef]
+63. Vanneste, S.; Bellekens, B.; Weyn, M. 3DVFH+: Real-Time Three-Dimensional Obstacle Avoidance Using an Octomap. In
+Proceedings of the Morse 2014—Model-Driven Robot Software Engineering, York, UK, 21 July 2014; Volume 1319, pp. 91–102.

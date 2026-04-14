@@ -1,0 +1,220 @@
+--- Page 1 ---
+NUSMV: a new Symbolic Model Veriﬁer
+A. Cimatti
+/BDE. Clarke
+/BEF. Giunchiglia
+/BDM. Roveri
+/BD /BN /BF/BDITC-IRST, Via Sommarive 18, 38055 Povo, Trento, Italy/CUcimatti,fausto,roveri /CV@irst.itc.it/BESCS, Carnegie-Mellon University, 5000 Forbes Avenue, Pitt sburgh, PA
+15213-3891, USA, Edmund.Clarke@cs.cmu.edu/BFDSI, University of Milano, Via Comelico 39, 20135 Milano, It aly
+1 Introduction
+This paper describes N USMV, a new symbolic model checker developed as a joint
+project between Carnegie Mellon University (CMU) and Istit uto per la Ricerca Scien-
+tiﬁca e Tecnolgica (IRST). N USMV is designed to be a well structured, open, ﬂexible
+and documented platform for model checking. In order to make NUSMV applicable
+in technology transfer projects, it was designed to be very r obust, close to the standards
+required by industry, and to allow for expressive speciﬁcat ion languages.
+NUSMV is the result of the reengineering, reimplementation an d extension of
+SMV [6], version 2.4.4 (SMV from now on). With respect to SMV, NUSMV
+has been extended and upgraded along three dimensions. Firs t, from the point of
+view of the system functionalities, N USMV features a textual interaction shell and
+a graphical interface, extended model partitioning techni ques, and allows for LTL
+model checking. Second, the system architecture of N USMV has been designed
+to be highly modular and open. The interdependencies betwee n different modules
+have been separated, and an external, state of the art BDD package [8] has been in-
+tegrated in the system kernel. Third, the quality of the impl ementation has been
+strongly enhanced. This makes of N USMV a robust, maintainable and well docu-
+mented system, with a relatively easy to modify source code. NUSMV is available at
+http://nusmv.irst.itc.it/ .
+2 System Functionalities
+NUSMV can process ﬁles written in SMV language [6], and allows f or the construc-
+tion of the model with different modalities, reachability a nalysis, fair CTL model
+checking, computation of quantitative characteristics of the model, and generation
+of counterexamples. In addition, N USMV features an enhanced partitioning method
+for synchronous models based on [7], and allows for disjunct ive partitioning of asyn-
+chronous models, and for the veriﬁcation of invariant prope rties in combination with
+1
+
+--- Page 2 ---
+Figure 1: A snapshot of the NuSMV GUI.
+reachability analysis. Furthermore, N USMV supports LTL model checking. The al-
+gorithm is based on the combination of a tableau constructor for the LTL formula with
+standard CTL model checking, along the lines described in [5 ].
+NUSMV can work in batch mode, just like SMV, processing an input ﬁle accord-
+ing to the speciﬁed command line options. In addition, N USMV has an interactive
+mode: it enters a shell performing a read-eval-print loop, a nd the user can activate
+the various computation steps (e.g. parsing, model constru ction, reachability analysis,
+model checking) as system commands with different options. (This interaction mode is
+largely inspired by the VIS interaction mode [2].) These ste ps can therefore be invoked
+separately, possibly undone or repeated under different mo dalities. Each command is
+associated with an on-line help. Furthermore, the internal parameters of the system can
+be inspected and modiﬁed to tune the veriﬁcation process. Fo r instance, the N USMV
+interactive shell provides full access to the conﬁguration options of the underlying BDD
+package. Thus, it is possible to investigate the effect of di fferent choices (e.g. whether
+and how to partition the model, the impact of different cache conﬁgurations) on the ver-
+iﬁcation process. For instance, it is possible to control th e application of BDD variable
+orderings in a particular phase of the veriﬁcation (e.g. aft er the model is built).
+On top of the interactive shell, a graphical user interface ( GUI from now on) has
+been developed (Figure 1). The GUI provides an integrated en vironment to edit and
+2
+
+--- Page 3 ---
+verify the ﬁle containing the model description. It provide s graphical access to all the
+commands interpreted by the textual shell of N USMV, and allows for the modiﬁcation
+of the options in a menu driven way. Moreover, the GUI offers a formula editor which
+helps the user in writing new speciﬁcations. Depending on th e kind of formula being
+edited (e.g. propositional, CTL, LTL), various buttons cor responding to modalities
+and/or boolean connectors are activated and deactivated.
+3 System Architecture
+Model checking is often referred to as “push-button” techno logy. However, it is very
+important to be able to customize the model checker accordin g to the system being
+veriﬁed. This is particularly true in technology transfer, when the model checker may
+act as the kernel for a custom veriﬁcation tool, to be used for a very speciﬁc class
+of applications. This may require the development of a trans lator or a compiler for a
+(possibly proprietary) speciﬁcation language, and the eff ective integration of decom-
+position techniques to tackle the state explosion.
+NUSMV has been explicitly designed to be an open system, which c an be eas-
+ily modiﬁed, customized or extended. The system architectu re of N USMV has been
+structured and organized in modules. Each module implement s a set of functionalities
+and communicates with the others via a precisely deﬁned inte rface. A clear distinction
+between the system back-end and front-end has been enforced , in order to make it pos-
+sible to reuse the internal components independently of the input language being used
+to describe the model.
+The architecture of N USMV (see Figure 2) is composed of the following modules:
+Kernel. The kernel provides the low level functionalities such as dy namic memory
+allocation, and manipulation of basic data structures (e.g . cons cells, hash tables). The
+kernel also provides all the basic BDD primitives, directly taken from the CUDD [8]
+BDD package. The integration of the CUDD package hides the detai ls of the garbage
+collection. The N USMV kernel can be used as a black box, following coding standa rds
+which have been precisely deﬁned.
+Parser. This module implements the routines to process a ﬁle written in N USMV
+language, check its syntactic correctness, and build a pars e tree representing the internal
+format of the input ﬁle.
+Compiler. This module is responsible for the compilation of the parsed model into
+BDDs. The Instantiation submodule processes the parse tree, and performs the instan ti-
+ation of the declared modules, building a description of the ﬁnite state machine (FSM)
+representing the model. The Encoding submodule performs the encoding of data types
+and ﬁnite ranges into boolean domains. Having separated thi s module makes it possi-
+ble to have different encoding policies which can be more app ropriate for different kind
+of variables (e.g. data path, control path). The FSM Compiler submodule provides the
+routines for constructing and manipulating FSM’s at the BDD level. It is responsible of
+all the necessary semantic checks on the read model, such as t he absence of circular
+deﬁnitions. The FSM’s can be represented in monolithic or pa rtitioned form [3]. The
+heuristics used to perform the conjunctive partitioning of the transition relation and
+reordering of the clusters [7] have been developed to work at theBDD level, indepen-
+dently of the input language. The interface to other modules is given by the primitives
+3
+
+--- Page 4 ---
+MEMORY  MANAGERS-EXPRS A-LISTSCUDD PackageDECISION   DIAGRAMSGRAPHICAL USER INTERFACE
+INTERACTION SHELL
+CTL   M. C.
+COMPUTE
+INVAR
+REACHABILITY
+EXPLAINPARSING
+Syncronous
+* No heuristic
+* IWLS95 heuristic- Monolithic
+- ConjunctiveAsyncronous
+- Monolithic
+- Disjunctive
+  LTLFSM  COMPILERENCODINGINSTANTIATION
+Figure 2: The NuSMV system architecture.
+for the computation of the image and counter-image of a set of states. These primitives
+are independent of the method used to represent the transiti on relation.
+Model Checking. This module provides the functionalities for reachability , fair
+CTL model checking, invariant checking, and computation of quantitative characteris-
+tics. Moreover, this module provides the routines for count erexample generation and
+inspection. Counterexamples can be produced with differen t levels of verbosity, in the
+form of reusable data structures, and can subsequently be in spected and navigated. All
+these routines are independent of the particular method use d to represent the FSM.
+LTL. The LTL module is a separated module which calls an external p rogram that
+translates the LTL formula into a tableau suitable to be load ed into N USMV. This
+program also generates a new CTL formula to be veriﬁed on the s ynchronous product
+of the original system and the generated tableau.
+Interactive shell. From the interaction shell the user has full access to all the func-
+tionalities provided by the system.
+Graphical user interface. The graphical user interface has been designed on top of
+the interactive shell. It allows the user to inspect and set t he value of the environment
+variables of the system, and provides full access to all the f unctionalities.
+4 Implementation
+NUSMV has been designed to be robust, close to the standards req uired by industry
+and easy to maintain and modify. N USMV is written in ANSI Cand is POSIX compli-
+ant. This makes the system portable to any compliant platfor m. It has been throughly
+debugged with Purify (http://www.pureatria.com ) to detect memory leaks
+and runtime memory corruptions errors.
+The kernel of N USMV provides low level functionalities, such as dynamic mem ory
+allocation, in a way independent from the underlying operat ing system. Moreover, it
+provides routines for the manipulation of basic data struct ures such as cons cells, hash
+tables, arrays of generic types, and encapsulates the CUDD BDD package [8].
+4
+
+--- Page 5 ---
+In order to implement the architecture depicted in Section 3 , the source code of N U-
+SMV has been organized in different packages. N USMV is composed of 11 packages.
+Each package exports a set of routines which manipulate the d ata structures deﬁned
+in the package and which allow to modify the options associat ed to the functionalities
+provided by the package itself. Moreover, each package is as sociated with a set of com-
+mands which can be interpreted by the N USMV interactive shell. We have packages
+for model checking, FSM compilation, BDD interface, LTL model checking and ker-
+nel functionalities. New packages can be added relatively e asily, following precisely
+deﬁned rules.
+The GUI has been developed in Tcl/Tk. It runs as a separate pro cess, synchronously
+communicating with N USMV by issuing textual commands to the interactive shell, an d
+processing the resulting output to display it graphically.
+The code of N USMV has been documented following the standards of the ext
+tool (http://alumnus.caltech.edu/˜sedwards/ext ), which allows for
+the automatic extraction of the programmer manual from the c omments in the sys-
+tem source code. The programmer manual is available in TXT orHTML format, and
+can be browsed by an HTML viewer. This tool is also used to generate the help on line
+available through the interactive shell and via the graphic al user interface.
+The user manual has been written following the TEXINFO standard, from which
+different formats (i.e. POSTSCRIPT ,PDF,DVI,INFO ,HTML ) can be automatically gen-
+erated, and accessed via an HTML viewer or in hardcopy.
+5 Results and Future Directions
+NUSMV is a robust, well structured and ﬂexible platform, desig ned to be applicable
+in technology transfer projects. The performance of N USMV have been compared
+with those of SMV by running a number of SMV examples. Despite the fact that
+NUSMV gives up some of the optimizations of SMV to simplify the d ependencies
+between modules, an improvement in computation time has bee n obtained. In most
+examples N USMV performs better than SMV, in particular for larger examp les. This
+enhancement in performance is mainly due to the use of CUDD BDD package.
+The N USMV architecture provides a precise distinction between th e front-end,
+speciﬁc to the SMV input language, and the back-end (includi ng the heuristics for
+model partitioning and model checking algorithms), which i s independent of the input
+language. This separation has been used to develop on top of N USMV the MBP sys-
+tem. MBP is a planner able to synthesize reactive controller s for achieving goals in
+nondeterministic domains [4].
+Functionalities currently under development are a simulat or, which is of paramount
+importance for the user to acquire conﬁdence in the correctn ess of the model, and a
+compiler for an imperative style input language, which can o ften be very convenient in
+the modeling process. Further developments will include th e integration of decompo-
+sition techniques (e.g. abstraction and compositional ver iﬁcation), and new and very
+promising techniques based on the use of efﬁcient procedure s for propositional satisﬁ-
+ability, following the ideas reported in [1].
+5
+
+--- Page 6 ---
+References
+[1] A. Biere, A. Cimatti, E. Clarke, and Y . Zhu. Symbolic Mode l Checking without
+BDDs. In Proc. TACAS’99 , March 1999. To appear.
+[2] R. K. Brayton et al. VIS: A system for Veriﬁcation and Synt hesis. In Proc. of
+CAV’96 . LNCS 1102, Springer-Verlag.
+[3] J. Burch, E. Clarke, and D. Long. Representing Circuits M ore Efﬁciently in
+Symbolic Model Checking. In Proc. of the 28th ACM/IEEE Design Automation
+Conference , pages 403–407, Los Alamitos, CA, June 1991. IEEE Computer S o-
+ciety Press.
+[4] A. Cimatti, M. Roveri, and P. Traverso. Automatic OBDD-b ased Generation of
+Universal Plans in Non-Deterministic Domains. In Proc. of the 15th National
+Conference on Artiﬁcial Intelligence (AAAI-98) , Madison, Wisconsin, 1998.
+AAAI-Press.
+[5] O. Grumberg E. Clarke and K. Hamaguchi. Another Look at LT L Model Check-
+ing. Formal Methods in System Design , 10(1):57–71, February 1997.
+[6] K.L. McMillan. Symbolic Model Checking . Kluwer Academic Publ., 1993.
+[7] R. K. Ranjan, A. Aziz, B. Plessier, C. Pixley, and R. K. Bra yton. Efﬁcient BDD
+algorithms for FSM synthesis and veriﬁcation. In IEEE/ACM Proceedings Inter-
+national Workshop on Logic Synthesis , Lake Tahoe (NV), May 1995.
+[8] F. Somenzi. CUDD: CU Decision Diagram package — release 2 .1.2. Department
+of Electrical and Computer Engineering — University of Colo rado at Boulder,
+April 1997. ftp://vlsi.colorado.edu/pub/
+6

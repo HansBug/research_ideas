@@ -1,0 +1,1020 @@
+--- Page 1 ---
+A V ATAR: A SysML Environment for the Formal
+Veriﬁcation of Safety and Security Properties
+Gabriel Pedroza, Ludovic Apvrille, Daniel Knorreck
+System-on-Chip laboratory (LabSoC), Institut Telecom, Te lecom ParisTech, LTCI CNRS
+2229, route des Cr ˆetes, B.P. 193, F-06904 Sophia-Antipolis Cedex
+Email:{gabriel.pedroza, ludovic.apvrille, daniel.knorreck }@telecom-paristech.fr
+Abstract —Critical embedded systems - e.g., automotive systems
+- are now commonly distributed, thus exposing their commu-
+nication links to attackers. The design of those systems shall
+therefore handle new security threats whilst maintaining a high
+level of safety. To address that issue, the paper introduces
+a SysML-based environment named A V ATAR. A V ATAR can
+capture both safety and security related elements in the same
+SysML model. TTool [1], an open-source UML toolkit, provides
+A V ATAR editing capabilities, and offers a press-button approach
+for property proof. Indeed, after having modeled an abstract
+representation of the system and given a description of the safe ty
+and security properties, the designer may formally and directly
+verify those properties with the well established UPPAAL and
+ProVerif toolkits, respectively. The applicability of our approach
+is highlighted with a realistic embedded automotive system taken
+from an ongoing joint project of academia and industry called
+EVITA [2].
+I. I NTRODUCTION
+The ever increasing prevalence of distributed systems has
+triggered the necessity to examine their resistance to secu rity
+threats, in addition to safety issues. The extensive need fo r
+data exchange between system entities is satisﬁed by dedi-
+cated physical devices like ﬁeld buses, or shared media like
+networks. Even if it is sometimes possible to physically pro tect
+dedicated links from malicious access, bets are off when
+wireless communication comes into play. Thus, the sophis-
+ticated communication patterns required by today’s embedd ed
+systems open the door to new kind of attacks. Security ﬂaws
+in systems may for instance compromise the conﬁdentiality
+of messages or the privacy of users. Moreover, many of
+these embedded systems are safety critical, i.e., failures may
+not only have a severe economic impact but also endanger
+human beings. Examples are systems used in the ﬁeld of
+transportation, energy generation and distribution, medi cal
+appliances, etc. In this paper, an automotive application s erves
+as a representative of this class of systems. Indeed, while
+being critical, car systems are soon expected to offer advan ced
+communications with other external systems, e.g., with roa d
+sign units, or with other cars [2].
+A lot of work is concerned with modeling environments
+capturing safety properties during all development stages ,
+including requirements engineering and design. To reduce
+veriﬁcation complexity, formal proofs at design stage are
+usually applied to high-level models, or to subparts of more
+detailed designs. Unfortunately, current approaches are m ostlydedicated to safety properties. And so, the developer has
+to come up with additional models relying on different for-
+malisms amenable to security proofs. Additional effort has
+therefore to be spent on the creation and maintenance of two
+models - one for safety issues, and one for security ones -
+instead of one, and also on model consistency.
+To overcome this limitation, we have introduced a SysML
+environment called A V ATAR based on insights obtained from
+previous formally deﬁned UML proﬁles [3] [4] [5]. A V ATAR
+models are able to express both safety and security prop-
+erties and provide means for their veriﬁcation. The major
+contribution is that proofs can be conducted from the same
+model, and at the push of a button. Safety and security
+requirements are expressed in terms of SysML Requirement
+Diagrams, whereas the static and the behavioral aspects of t he
+system are represented with Block and State Machine Dia-
+grams respectively. Safety properties are further reﬁned w ithin
+Parametric Diagrams, and security properties are describe d
+within speciﬁc pragmas of Block Diagrams. Finally, safety
+and security proofs are accomplished by ﬁrst transforming
+the SysML model to the respective domain speciﬁc language:
+UPPAAL for safety proofs, and ProVerif for security proofs.
+Modeling features and translators are implemented in TTool
+[1], an open-source UML toolkit supporting several proﬁles in
+addition to A V ATAR.
+Safety properties modeling and veriﬁcation in A V ATAR has
+been already introduced in [6]. This paper covers security
+issues only. The case study is taken from the European EVITA
+project [2], which focuses on security and safety matters of
+embedded automotive systems.
+The paper is organized as follows. Section II reviews enviro n-
+ments for modeling and proving safety or security propertie s.
+Section III introduces the A V ATAR SysML environment, as
+published in [6]. The next section (section IV) explains how
+A V ATAR can be efﬁciently extended to support security prop-
+erties. The semantics of A V ATAR for security is described in
+section V. A case study (section VI) illustrates the modelin g
+and proof of security properties with A V ATAR, based on an
+example extracted from the EVITA project. At last, section
+VII concludes the paper.
+
+--- Page 2 ---
+II. R ELATED WORK
+A. Safety Properties
+The following graphical environments offer a high level
+front-end for formal languages, and are mostly based on UML
+or SysML. In addition to the shortcoming of not addressing
+security features, the main differences to the A V ATAR envi-
+ronment consist in the expressiveness of the respective pro ﬁle,
+the underlying formal language, to what extent details of th e
+latter are masked to the designer and the model transformati on
+which may be more or less automated.
+[7] relies on timed automata to model and analyze timeliness
+properties of embedded systems. The UPPAAL model checker
+is used to evaluate the automata which must be created
+manually. There is no automated translation routine from
+a high level language (UML,...) and thus the creation of
+the automata turns out to be error prone, and cannot easily
+be integrated into a wider-ranger methodology, including f or
+example requirements capture and tracing.
+[8] provides means for formal and simulation based evaluati on
+of UML/SysML models for performance analysis of SoCs.
+UML Sequence diagrams constitute the starting point for the
+functional description. They are subsequently transforme d into
+so called communication dependency graphs (CDGs) which
+capture the control ﬂow, synchronization dependencies and
+timing information. CDGs are in turn amenable to static
+analysis in order to determine key performance parameters
+like BCRT and WCRT1, and also I/O data rates. A drawback
+of this approach is that data ﬂow independence has to be kept,
+thus preventing more sophisticated control ﬂow structures to
+be modeled.
+[9] advocates a nice graphical notation to formally capture
+requirements. System executions are expressed in the form
+of time line diagrams discriminating optional, mandatory,
+fail events and related constraints. As for other trace base d
+approaches, conditional or varying system behavior cannot
+easily be expressed. Moreover, the approach does not addres s
+real-time or performance requirements.
+The MARTE proﬁle embraces VSL [10] which aims at
+specifying the values of constraints, properties and stere otype
+attributes particularly related to non-functional aspect s. Even
+when used in combination with sequence diagrams, VSL
+makes it cumbersome if not impossible to specify complex
+sets of sequential behaviors.
+The Rhapsody tool used by [11] similarly enables formal
+veriﬁcation of SysML diagrams using UPPAAL. Unlike TTool,
+Rhapsody does not distinguish between requirements and
+properties. Nor it supports a property expression language
+- such as TEPE [6] - and computation operators in state
+machines. In terms of user-friendliness, TTool allows one t o
+right-click on an action symbol and automatically verify th e
+reachability of that action. In the same situation, the user of
+Rhapsody is obliged to manually enter a logic formula. The
+OMEGA2 environment [12] also has strong connections with
+1Best Case Response Time, Worst Case Response TimeRhapsody for it implements the same semantics. OMEGA2
+supports requirement diagrams as deﬁned in SysML. Con-
+versely ARTISAN [13] extends SysML to cope with con-
+tinuous ﬂows. ARTISAN models may contain probabilities
+and interruptible regions, two concepts not yet supported b y
+A V ATAR. The open-source environment Topcased also enables
+requirement modeling in a SysML fashion [14].
+Electronic System Level (ESL), which is an emerging elec-
+tronic design methodology, has stimulated research work on
+joint use of SysML and formal languages supported by sim-
+ulation tools. Several papers discuss solutions where a mod el
+is designed in SysML and translated into VHDL-AMS [15] or
+Simulink [16]. Mechanical engineering is another area wher e
+SysML is combined with already existing domain speciﬁc
+languages, such as Modelica or bond graphs.
+B. Security Properties
+A wide range of methodologies and tools has been proposed
+for modeling and verifying security in embedded systems.
+[17] proposes to verify cryptographic protocols with a prob a-
+bilistic analysis approach. Protocols are represented as t rees
+whose nodes capture knowledge whilst edges are assigned
+with transition probabilities. Although these trees could in-
+clude malicious agents in order to model attacks and threats ,
+security properties are nonetheless not explicitly repres ented.
+Moreover, for threat analysis, attacks should be explicitl y
+expressed and manually solved. [18] deﬁnes a formal basic
+set of security services for accomplishing security goals.
+In this approach, security properties analysis strongly re lies
+on designer’s experience. Moreover, threat assessment is n ot
+easily feasible.
+In more recent efforts, temporal logic languages are used
+for expressing security properties. For instance, [19] emb eds
+a ﬁrst order Linear Temporal Logic (LTL) in the theorem
+prover Isabelle/HOL, making it possible to model both a
+system and its security properties. Although this is a rigor ous
+approach, security properties and goals can be built upon
+security concepts, unfortunately leading to non-easily re usable
+speciﬁc models. Another example of temporal logic based
+veriﬁcation is presented in [20]. In that approach the desig ner
+has to establish assumptions, knowledge and communication
+axioms, and represent them in a temporal logic language, and
+so specialized skills are deﬁnitely necessary. Additional ly, the
+proposal only targets authenticity and is protocol oriente d.
+Evaluating both security and performance is tackled in [21] .
+If the methodology aims to offer a good trade-off between
+Quality of Service (QoS) and Security, it nonetheless requi res
+a qualitative evaluation of security leaks. Indeed, when se curity
+ﬂaws are detected, the designer must decide to use a new
+security mechanism - and so to degrade performance - or to
+keep the leak, in case the designer assumes that it is of low
+importance in the system. As a consequence, this approach
+strongly relies on designer skills and experience.
+Assessment of security in embedded systems mostly relies on
+formal approaches. However, [22] mixes formal and informal
+security properties. The authors argue that uniﬁed securit y
+
+--- Page 3 ---
+approaches won’t provide enough ﬂexibility to cope with
+highly heterogeneous requirements of distributed scenari os.
+Thus, the framework allows a user to deﬁne his own security
+properties and create dependencies between them, making th e
+model probably difﬁcult to reuse. Furthermore, the overall
+veriﬁcation process is not completely automated, again re-
+quiring speciﬁc skills. Analogously, the Software Archite c-
+ture Modeling (SAM) framework [23] aims to bridge the
+gap between informal security requirements and their forma l
+representation and veriﬁcation. Indeed, SAM uses formal an d
+informal security techniques to accomplish deﬁned goals an d
+mitigate ﬂaws. Thus, liveness and deadlock-freedom proper ties
+can be veriﬁed on LTL models relying on the Symbolic Model
+Veriﬁer (SMV). Even if SAM relies on a well established
+toolkit - SMV - and considers a threat model, the ”security
+properties to proof” process is not yet automated.
+UMLsec [24] deﬁnes how to integrate security design ele-
+ments, and security properties in a UML methodology. How-
+ever, design elements and security properties are mixed on
+the same diagrams, as well as functional and non functional
+requirements. Also, UMLsec is not formally deﬁned nor it
+covers threat analysis (e.g., attack trees).
+As a conclusion, all these solutions usually make a trade-of f
+between rigorousness and simplicity. On the one hand, secur ity
+in embedded systems obviously requires rigorousness in the
+formal veriﬁcation process. On the other hand, the complexi ty
+and diversity of systems and requirements, along with time-
+to-market and software-engineering criteria advocate for user-
+oriented tools with automated and simpliﬁed veriﬁcation.
+A V ATAR positively answers that need: it is based on a popular
+and friendly language (SysML), it is supported by an open-
+source toolkit (TTool) which relies on a recognized securit y
+veriﬁcation toolkit (ProVerif). A V ATAR further supports t hreat
+analyses and code generation, therefore supporting all sec ure
+system development phases: analysis, design, formal proof and
+code generation. On the contrary, other tools such as ST-
+Tool [25] and STA [26] are dedicated to one given system
+development phase, and based on non-reusable models.
+III. T HEAVATAR S YSML ENVIRONMENT
+A. Basics
+The A V ATAR environment reuses eight of the SysML
+diagrams (Package diagrams are not supported). It further
+structures Sequence Diagrams using an Interaction Overvie w
+Diagram (a diagram deﬁned in UML2, not by SysML). The
+A V ATAR proﬁle is syntactically and semantically deﬁned by a
+meta-model. Besides a syntax, a semantics and a tool support ,
+a proﬁle is also characterized by a methodology.
+B. Methodology
+The A V ATAR methodology comprises the following stages:
+1)Requirement capture . Requirements and properties are
+structured using A V ATAR Requirement Diagrams. At
+this step, properties are just deﬁned with a speciﬁc label
+as test cases.2)System analysis . A system may be analyzed using usual
+UML diagrams, such as Use Case Diagrams, Interaction
+Overview Diagrams and Sequence Diagrams.
+3)System design . The system is designed in terms of
+communicating SysML blocks described in an A V ATAR
+Block Diagram, and in terms of behaviors described with
+A V ATAR State Machines.
+4)Property modeling . The formal semantics of properties
+is deﬁned within TEPE [6] Parametric Diagrams (PDs).
+Since TEPE PDs involve elements deﬁned during the
+system design phase (e.g, a given integer attribute of
+a block), TEPE PDs may be deﬁned only after a ﬁrst
+system design has been performed.
+5)Formal veriﬁcation of safety properties can ﬁnally be
+conducted over the system design, and for each test case.
+Once all properties are proved to hold, requirements, syste m
+analysis and design, as well as properties may be further
+reﬁned. Thereafter, and similarly to most UML proﬁles for
+embedded systems, the A V ATAR methodological stages are
+reiterated. Having reached a certain level of detail, reﬁne d
+models may not be amenable to formal veriﬁcation any more.
+Therefore the generation of prototyping code may become the
+only realistic option.
+C. Block and State Machine Diagrams
+Apart from their formal semantics, A V ATAR Block and
+State Machine Diagrams only have a few characteristics whic h
+differ from the SysML ones.
+An A V ATAR block deﬁnes a list of attributes, methods and
+signals. Signals can be sent over synchronous or asynchrono us
+channels. Channels are deﬁned using connectors between
+ports. Those connectors contain a list of signal associatio ns.
+A block deﬁning a data structure merely contains attributes .
+On the contrary, a block deﬁned to model a sub-behavior of
+the system must deﬁne an A V ATAR State Machine.
+A V ATAR State Machine Diagrams are built upon SysML
+State Machines, including hierarchical states. A V ATAR Sta te
+Machines further enhance the SysML ones with temporal
+operators:
+•Delay:after(tmin,tmax). It models a variable delay
+during which the activity of the block is suspended,
+waiting for a delay between tmin andtmax to expire.
+•Complexity: computeFor (tmin,tmax). It models a time
+during which the activity of the block actively executes
+instructions, before transiting to the next state: that com -
+putation may last from tmin totmax units of time.
+The combination of complexity operators ( computeFor ()),
+delay operators, as well as the support of hierarchical stat es -
+and the possibility to suspend an ongoing activity of a subst ate
+- endows A V ATAR with main features for supporting real-time
+system schedulability analysis.
+IV. E XPRESSING SECURITY IN AVATAR
+A. Current limitations of AVATAR for security
+Let’s consider the following Alice and Bob system, in which
+Alice wants to send a conﬁdential data to Bob, using a pre-
+
+--- Page 4 ---
+Fig. 1. Example 1: Block diagram of the Alice and Bob system
+shared symmetric key, and relying on an authentic message
+containing the ciphered conﬁdential data of Alice. Figure 1
+presents the SysML internal block diagram of this Alice and
+Bob system.
+Several limitations make it difﬁcult to prove conﬁdentiali ty
+and authenticity properties in this toy system:
+•Initial knowledge : A V ATAR provides no way to pre-
+share data, i.e., make data common to several blocks
+before the system starts.
+•Cryptographic functions : Cryptographic systems com-
+monly rely on a set of well-known functions (symmetric
+cipher and decipher, compute MAC, etc.) that are not
+deﬁned in A V ATAR, and have thus to be explicitly
+modeled by a designer.
+•Communication architecture : A V ATAR channels cannot
+be listened by an external Block, i.e., a network on
+which an attacker could listen packets has to be explicitly
+modeled.
+•Attacker model : A V ATAR does not include any attacker
+model. Having a default attacker model, e.g., based on
+Dolev-Yao [27], would avoid users of A V ATAR to have
+to model by hand an attacker model.
+•Security properties : Security properties cannot be de-
+ﬁned in A V ATAR Requirement Diagrams, nor in TEPE,
+nor at Block Diagram level.
+B. Extending AVATAR for security purpose
+We now show how we have addressed all aforementioned
+limitations in A V ATAR.
+•Initial knowledge
+SysML offers several ways to share data between classes,
+using for example block attributes , or using a dedicated
+block storing that shared knowledge. Unfortunately, those two
+solutions suffer two drawbacks:
+1) The sharing is not really explicit, i.e., it is not clear
+which block intends to use a given block attribute, or
+given data of a dedicated block.
+2) The sharing is deﬁned for the entire system execution:
+in security, we are interested by the pre sharing of
+information, not by the sharing of this information
+during the entire system execution.
+To overcome those two limitations, we propose to use speciﬁc
+directives - or pragmas - in notes of Block Diagrams. The
+pragma is as follows:
+Fig. 2. Example 2: Block diagram of the Alice and Bob system
+♯InitialCommonKnowledge BlockID.attribute
+[BlockID.attribute ]*
+Figure 2 contains the internal block diagram of the Alice and
+Bob system enhanced with A V ATAR extensions for security.
+Similarly to the ﬁrst design, the new design has two blocks
+(Alice and Bob), and declares two data structures ( Key and
+Message ). A note now declares that skis a pre-shared data (a
+key) between Alice and Bob:
+♯InitialCommonKnowledge Alice.sk Bob.sk
+•Cryptographic functions
+A V ATAR includes the deﬁnition of a speciﬁc block called
+cryptographic block . That block deﬁnes a set of cryptographic
+functions that can be used as usual methods by the state
+machine of these blocks (some methods are visible in Figure
+2). For example, Alice and Bob declare a set of cryptographic
+methods. A few examples of cryptographic functions we have
+deﬁned:
+•encrypt(Message msg,Key k ) and
+decrypt(Message msg,Key k ), for encrypting and
+decrypting messages with asymmetric keys, respectively.
+•sencrypt (Message msg,Key k ) and
+sdecrypt (Message msg,Key k ), for encrypting and
+decrypting messages with symmetric keys, respectively.
+•MAC(Message msg,Key k ) and
+verifyMAC (Messagemsg,Key k,Messagemacm ),
+for computing the MAC of a message, and verifying the
+MAC of a message, respectively.
+For instance, the behavior of Alice andBob is provided within
+two respective State Machine Diagrams (see Figures 3-a and 3 -
+b, respectively). Alice ﬁrst puts its secretData into a message
+m.data=secretData , then encrypts this message m1 =
+sencrypt (m,sk)with the symmetric encryption function, and
+ﬁnally sends the resulting message on the broadcast channel
+chout(m1).Bob waits for a message on the broadcast channel
+chin(m2). Then, Bob tries to decrypt the received message
+m=sdecrypt (m2,sk)and then extracts from the message
+thesecretData sent by Alice: receivedData =m.data .
+•Communication architecture
+A V ATAR communications were ﬁrstly based upon unidirec-
+tional one-to-one synchronous or asynchronous communica-
+tions. We now assume that each block has two special signals:
+chout andchin , which can be respectively used for sending
+and receiving purpose respectively. No channels need to be
+declared for using those signals, which are considered to
+
+--- Page 5 ---
+a – Alice b – Bob
+Fig. 3. Example 2: State Machine Diagrams of the Alice and Bob sy stem
+be sent on / received from a public broadcast asynchronous
+channel common to all blocks. This public broadcast channel
+is particularly interesting for modeling messages that can be
+probed by an attacker.
+•Attacker model
+In A V ATAR, the attacker model is implicit, i.e., there is no
+need to model an attacker either at Block Diagram level, or at
+State Machine Diagram level. More precisely, A V ATAR relies
+on the attacker model of ProVerif, see section V-B.
+•Security properties
+Security properties are modeled in two different stages of
+the A V ATAR methodology (see section III): at requirement
+capture stage, and at property modeling stage.
+1) Security-oriented requirements: We have already pub-
+lished an extension of SysML Requirement Diagrams sup-
+porting security requirements [28]. Basically, our contri bution
+relies on the identiﬁcation of attacks represented within a ttack
+trees in a SysML Parametric Diagram, on the use of a
+security-domain identiﬁer (e.g., conﬁdentiality ,authenticity ,
+privacy , etc.) added to SysML requirements, and on a precise
+methodology applied to identify these security requiremen ts,
+based on use cases, attack trees, and a very ﬁrst design of
+system functions.
+2) Security properties: TEPE [6] has already been
+proposed for modeling safety-related properties in A V ATAR .
+However, safety properties are commonly complex to express .
+Indeed, they generally involve several attributes and sign als
+of blocks, as explained in [6] on an elevator system. On the
+contrary, security properties can be usually deﬁned with a
+type (e.g., conﬁdentiality), and with elements related to t hat
+kind (e.g., the conﬁdentiality of the attribute of a block).
+This simplicity advocates for a simple modeling solution, n ot
+based on a different diagram. Finally, our solution relies o n
+pragmas provided in notes of Block Diagrams: conﬁdentiality
+andauthenticity can be directly expressed at this level.
+Conﬁdentiality
+Conﬁdentiality in A V ATAR can be modeled as a simple
+pragma provided in the note of a Block Diagram. The con-
+ﬁdentiality must be speciﬁed as the conﬁdentiality of an
+attribute of a block:♯Confidentiality block.attribute
+Coming back to the example provided in Figure 2, the
+following statement models that the attribute secretData of
+Alice shall remain conﬁdential i.e., never accessible to an
+attacker:
+♯Confidentiality Alice.secretData
+Authenticity
+Authenticity in A V ATAR is also modeled as a pragma. An
+authenticity pragma states that a message m2received by a
+blockblock2was necessarily sent before in a message m1by a
+blockblock1. The authenticity pragma speciﬁes two states: one
+of the sender block, i.e. one state s1ofblock1, and one state
+s2ofblock2. Also, in the state machine diagram of block1,
+s1corresponds to the state right before the sending of m1.
+Analogously, s2corresponds to the state right after message
+m2has been received and accepted as authentic. Finally, the
+authenticity pragma is as follows:
+♯Authenticity block1.s1.m1 block2.s2.m2
+For example, in Figure 2, the authenticity pragma states tha t
+all messages m1sent by Alice after state sendingMessage
+shall be authentic for Bob receiving it into a message named
+m2before its state messageDecrypted .
+♯Authenticity Alice.sendingMessage.m1
+Bob.messageDecrypted.m2
+V. S EMANTICS OF AVATAR
+A. General approach
+Previous section has emphasized several particularities o f
+A V ATAR which obviously have to be taken into account by the
+underlying proof mechanism. Just to mention a few of these
+particularities: A V ATAR assumes public broadcast channel s
+between blocks that can be listened up by an attacker. A V ATAR
+also assumes a Dolev-Yao attacker model [27].
+Several environments target the proof of security properti es,
+e.g., SHVT [29], A VISPA [30], and ProVerif [31]. Proofs
+within the SHVT environment cannot be automatically con-
+ducted: so, it was excluded. In A VISPA, the tool is system
+dependent, and really focused on cryptographic protocols,
+which is not the case of A V ATAR which targets embedded
+systems in general. ProVerif is based on process algebra, an d
+is therefore well suited for modeling communicating entiti es as
+found in embedded systems. Also, to our experience, ProVeri f
+nicely solves the trade-off between expressiveness, compl exity
+and automation of formal approaches.
+B. ProVerif
+ProVerif [31] is a toolkit that relies on Horn clauses
+resolution for the automated analysis of security properti es
+over cryptographic protocols. ProVerif takes as input a set
+of Horn Clauses, or a speciﬁcation in pi-calculus (a process
+algebra) and a set of queries. ProVerif outputs whether each
+query is satisﬁed or not. In the latter case, ProVerif tries t o
+identify a trace explaining how it came to the conclusion tha t
+a query is not satisﬁed.
+In ProVerif, a speciﬁcation takes the form of a system repre-
+sented as spi-calculus processes and properties represented as
+queries .
+
+--- Page 6 ---
+•Processes are themselves composed of a declaration part ,
+ofa deﬁnition of a set of sub-processes , and the deﬁnition
+of a main process .
+The declaration part can be used to declare global terms,
+including channels. Functions and functions reduction can
+also be declared.
+Main process constructs are summarized in Table I,
+the semantics of which is explained informally and in
+pi-calculus. [32] offers a complete speciﬁcation of the
+ProVerif grammar.
+TABLE I
+MAINPROVERIF PROCESS CONSTRUCTS
+Construct Semantics
+out(c,M);
+PSending of Min channel c, and execution of
+processP, i.e.,¯c/an}bracketle{tM/an}bracketri}ht.P.
+in(c,
+M);PReceiving of Message Mfrom channel c, and
+execution of process P, i.e.,c(M).P.
+new a;
+PDeﬁnition of a new term a, and subsequent
+execution of process P, i.e.,(νa)P.
+begin(M);
+PExecution of an event, and subsequent execu-
+tion of process P, i.e.,begin(M).P.
+!P Replication of process P, i.e., an inﬁnite num-
+ber of instances of P are executed.
+P|Q Parallel composition between processes Pand
+Q.
+... ... other pi-calculus constructs, such as if then
+constructs, etc.
+•Properties are represented with ProVerif queries . Queries
+are formal clauses in which the left hand side of the
+implication is a set of facts that should be accomplished
+whilst the right hand side includes the hypotheses to be
+veriﬁed. Queries can be used to express conﬁdentiality
+[33] and authenticity requirements [31].
+Conﬁdentiality queries directly express which data shall
+not be accessible to the attacker, e.g., that a private key
+shall not be accessible to an attacker:
+query attacker: myKey.
+Authenticity of messages relies on ProVerif events. When-
+ever a message msent by a process Ato a process B
+shall be authenticated, one event shall be included in each
+process: one shall be included in Abefore the sending of
+m(e.g.,eventSendM ), and one after the receiving of m
+(e.g.,eventReceiveM ). Since the attacker is not allowed
+to execute events, it sufﬁces to prove that to each receiving
+event ofmcorresponds exactly one sending of m. Finally, an
+injective query is used to model authenticity:
+query evinj:eventReceiveM(x) ==>
+evinj:eventSendM(x).
+Important note : ProVerif also makes it possible to study
+the reachability of events, based on queries. And so, ProVer if
+may also be used for proving safety properties. Reachabilit y
+is always studied on the system augmented with the attacker.
+ProVerif integrates its own attacker model , which is itself
+a process implementing a Dolev-Yao approach [27]. This
+process acts like an adversary relying upon a set of known
+names, variables and terms which is referred to as knowledge .Attacker knowledge increase relies on public channel probi ng
+and execution of functions non prohibited to the attacker.
+Finally, ProVerif is not intended to perform computational
+attacks nor proves, but CryptoVerif [34] could be used for
+that purpose.
+To verify a query , ProVerif implements a resolution
+algorithm [31], [35] [36] that ﬁrst translates the complete
+pi-process speciﬁcation to Horn Clauses [31]. To verify a
+query, the resolution algorithm determines, based upon a se t
+of inference rules, if the attacker reasoning is able to deri ve a
+trace that contradicts the query, thus proving that the quer y is
+false. Otherwise, if the attacker is unable to ﬁnd such a trac e,
+then the property is satisﬁed. Additionally, if facts on whi ch
+the query is based upon are not reachable, the algorithm
+informs that the query can not be proved.
+C. Translation
+The translation process takes as parameter an A V ATAR
+design, including its sets of pragmas (as deﬁned in section
+IV), and outputs a ProVerif speciﬁcation.
+Brieﬂy, the translation process is as follows:
+Deﬁnition 1: A V ATAR translation process
+LetTthe translation process that takes as input a Block
+Diagram BD, and a set of pragmas P, andPrthe resulting
+ProVerif speciﬁcation:
+Pr=T(BD,P).
+•ABD is composed by three graphical entities named <<
+block >> ,<< datatype >> and<< pragmas >> .
+A block contains a set of attributes, a set of functions,
+a set of signals and a reference to a State Machine
+Diagram ( SMD ).<< datatype >> can be ignored for
+the translation process since they can easily be removed.
+•AnSMD is a set of interconnected logical operators:
+start states ,stop states ,transitions - with attribute settings
+and function calls -, choices ,states ,sending in a channel ,
+receiving from a channel .
+•The type of a pragma in P is either
+InitialCommonKnowledge ,Confidentiality , or
+Authenticity .
+Tapplies the following set of rules:
+1) For each block b∈BD, a “ﬁrst” process fpis
+generated. Then, for each state sof the State Machine
+Diagram smd ofb, another process psis generated.
+2)fp instantiates all attributes that are not listed
+inInitialCommonKnowledge orConfidentiality
+pragmas: ‘ new attr; ’. Then,fpmakes a call to the
+psprocess corresponding to the start state of smd.
+3) Each psis created as follows. An event is ﬁrst
+called for tracing the reachability of states ‘ event
+entering_state_nameofs(); ’. Then, each branch
+of logical operators linked from sis considered until
+another state is reached on that branch:
+
+--- Page 7 ---
+•Sending on a channel cof a message mis translated
+as an ‘out(c, m); ’.
+•Receiving on a channel cof a message mis trans-
+lated as an ‘ in(c, m); ’.
+•The assignment of a variable is translated using a
+‘let’ operator, e.g.:
+‘let m1.data = (m2.data, m3.data); ’.
+•The call of a cryptographic function is translated
+with a ProVerif cryptographic function and a ‘ let’
+operator:
+‘let mac = MAC(msg1.data, Key.data); ’.
+•The call of a non-cryptographic function is trans-
+lated with a simple call to an event having the
+name of the corresponding function, and with the
+same parameters, e.g., ‘ event function(par0,
+par1); ’.
+•The various branches starting from state sare se-
+lected using the ‘ if...else ’ ProVerif statement.
+4) The main process mp of the ProVerif
+speciﬁcation instantiates all attributes listed in
+InitialCommonKnowledge pragmas. Then,
+it instantiates in parallel, and for an inﬁnite
+number of sessions, all fp processes, e.g.,
+‘(!fp1)|(!fp 2)|...|(!fp n)’.
+5)Confidentiality pragmas referencing a block band an
+attributeattr ofbare translated as a declaration of attr
+as follows: ‘ private free attr. ’ and with a query
+of the following form:
+‘query attacker:attr. ’
+6)Authenticity pragmas of the form
+b1.state1.attr1b2.state2.attr2 are translated
+using statements of the following form:
+‘query evinj:b2_state2(attr2) ==>
+evinj:b1_state1(attr1). ’.
+Additionally, in the process pswheres=s1, a call
+to ‘event b1_state1(attr1); ’ is added at the
+beginning of the process. Similarly, a call to ‘ event
+b2_state2(attr2); ’ is added at the beginning of the
+processpswheres=s2.
+A few of these translations rules are presented in tables II
+and III. Even if A V ATAR supports algebraic integer operatio ns
+(+,−,/) inSMD transitions, those operations have no
+meaning at ProVerif level and so, they are translated as a new
+variable instantiation using the ‘ new <variable_name>; ’
+statement. Similarly, only basic boolean expressions of gu ards
+can be directly converted into ProVerif (e.g., comparison
+between two variables).
+D. Toolkit support
+TTool [1] fully supports A V ATAR, including the security
+extensions presented in this paper: TTool therefore implem ents
+a press-button approach for verifying conﬁdentiality and a u-
+thenticity security properties from A V ATAR models: TTool
+executes T, then it makes a call to ProVerif, and outputs the
+following results:TABLE II
+AFEW AVATAR B LOCK DIAGRAM→PROVERIF TRANSLATION RULES
+A V ATAR ProVerif Semantics
+Block declaration
+ let
+myBlock 0=Block declaration with
+name myBlock . The ini-
+tial process myBlock 0is
+declared
+Block data types
+ new
+data1;Integer attribute named
+data1
+Block input signal
+ free
+ch1.Declaration of input
+channel ch1. Quite
+similar rule for output
+orprivate channel
+Common knowledge
+val in blocks {Bi}
+new
+val;The static variable val
+preshared by {Blocki},
+i=1...n , has the same
+initial value
+Conﬁdentiality pragma
+ query
+attacker:
+data.data is deﬁned as conﬁ-
+dential
+TABLE III
+AFEW AVATAR S TATE MACHINE DIAGRAM→PROVERIF TRANSLATION
+RULES
+A V ATAR ProVerif Semantics
+State declaration
+ let
+myBlock i=
+event
+myBlock_State
+j();
+(myBlock i+1
+|...|
+myBlock i+n).The state Statej
+with n outgoing
+transitions. Each sub-
+process myBlock i+k
+corresponds to a
+single transition
+Guard declaration
+ if var1=var2
+then
+myBlock i.Transition with con-
+dition var1 equals to
+var2
+Simple assignation
+ let
+var1=var2
+inmyBlock i.Transition with assig-
+nation of var2 tovar1
+Assign predeﬁned
+function
+letvar1=
+encrypt(m,k)
+inmyBlock i.Transition with as-
+signment of var1 to
+result of pre-deﬁned
+A V ATAR method en-
+crypt
+Assign non prede-
+ﬁned function
+event
+ready(m);
+new var1;Transition with ready
+being a non prede-
+ﬁned A V ATAR func-
+tion
+Input signal
+ in(ch1,Data); Reads a signal from
+channel ch1, and
+stores its content in
+Data
+Stop state 0. The end of a process
+branch
+•For eachConfidential pragma, TTool indicates whether
+data provided in the pragma was proved to be secret, or
+not.
+
+--- Page 8 ---
+Fig. 4. Example of veriﬁcation results as displayed by TTool
+•For each Authenticity pragma, TTool indicates whether
+the authenticity holds, or not.
+•For each state sof eachsmd, TTool indicates whether s
+is reachable, or not. Reachability is studied for both the
+system and the attacker model running together, which
+means that a given state of the system may be reachable
+because of the attacker.
+•Each query that could not be proved is also listed. An
+option makes it possible to obtain the trace leading to
+the query violation.
+Figure 4 shows the results provided by TTool when applying
+the veriﬁcation on the Alice-Bob example.
+VI. C ASE STUDY
+A. Keying Protocol Description
+This protocol was veriﬁed in the scope of the EVITA project
+[37]. Its speciﬁcation is provided in [38].
+The Keying Protocol with Key Master aims to securely dis-
+tribute a randomly generated key among the members of a
+group of in-car Electronic Control Units (ECUs). The key
+to be distributed is referred to as Session Key ( SesK ). In
+our description, the ECU that creates the SesK is referred as
+generator (ECU1). The generator creates the SesK and sends
+it to the Key Master ECU (ECU-KM) for group distribution
+(see Figure 5). Since the Key Master owns the Pre-shared
+Symmetric Key (PSK) of every ECU in the group, the gen-
+erator encrypts the SesK with its PSK. Further, this message
+includes a time stamp and is protected with a MAC (Message
+1). After reception, the Key Master veriﬁes Message 1 (See
+Figure 5) and in case of a valid request, the SesK is imported
+into an internal module named Hardware Security Module
+(HSM) [39]. From this point, the Key Master is responsible
+forSesK distribution. Consequently, the SesK is protected with
+the PSK of the respective target ECU (ECUN). Again, this
+message is time stamped and MAC protected (Message 2).
+After reception of Message 2, the target ECU ﬁrst veriﬁes its
+validity and then imports the new SesK into its local HSM.Finally, a message including an acknowledgement ﬂag (ACK)
+is sent by the target ECU to the Key Master thus informing
+SesK acceptance (Message 3). Message 3 also includes a time
+stamp and is MAC protected. The Key Master receives the
+acknowledgement and a security check is performed. The Key
+Master has to repeat Messages 2 and 3 for every ECU in the
+group (different from the generator). After SesK distribution,
+the Key Master informs the generator about the result: parti al
+or total accomplishment. The message includes the respecti ve
+ACK code, the time stamp and is MAC protected (Message
+4). Finally, the generator veriﬁes Message 4.
+Once distributed, the SesK key allows for conﬁdential and au-
+thentic unidirectional communications between the genera tor
+and the rest of the group.
+B. Protocol Modeling in AVATAR
+This quite complex cryptographic protocol is modeled in
+A V ATAR as follows (see Figure 6):
+•One A V ATAR block is used for ECU1, one for the Key
+Master, and for each ECU of the group ( ECUN ).
+•Pre-shared keys are modeled using InitialCommonKnowl-
+edge pragmas.
+•Symmetric and MAC cryptographic functions are used
+by the states machines of each block. The State Machine
+Diagram of the Key Master contains around 15 states.
+•Only one public common channel is used for the commu-
+nication between ECUs. We thus assume that an attacker
+can listen to all communications between ECUs. We
+also assume that communications between internal ECU
+components (e.g. CPU and HSM [39]) cannot be listened
+up by an attacker, as stated in [38].
+Two conﬁdentiality properties and one authenticity proper ty
+have been modeled for the sake of this case study: the
+conﬁdentiality of SesK states that an attacker shall never be
+able to obtain this key. The attacker shall also never be able to
+retrieve a conﬁdential data that ECU1 sends after the protoc ol
+run, and using SesK . An authenticity property states that an
+attacker shall never send an authentic message Message1 to
+the key Master ECU-KM, i.e., the ﬁrst message of the protocol
+sent to the Key Master cannot be forged by an attacker. Other
+authenticity properties of the protocol can obviously be pr oved
+the same way.
+This is an excerpt of the veriﬁcation results as displayed by
+TTool, and computed by ProVerif in a transparent way.
+Non reachable states:
+enteringState__ECU1__NotAnACK
+Confidential Data:
+confData
+SesK__data
+Satisfied Authenticity:
+KM__decipherOK__msgauth__data
+The three properties are satisﬁed. Moreover, all states of t he
+system are reachable, apart from one: that state correspond s to
+the acceptance by ECU1 of a message with a non valid MAC.
+
+--- Page 9 ---
+Fig. 5. Sequence Diagram of the Keying Protocol
+Fig. 6. A V ATAR Block Diagram for the Key Master protocol
+VII. C ONCLUSIONS AND FUTURE WORK
+A V ATAR is a SysML based environment targeting the
+modeling and formal veriﬁcation of distributed, real-time and
+embedded systems. While safety properties have already been
+discussed in a previous contribution [6], security propert ies
+can now be modeled and proved from an A V ATAR model. For
+security proofs, A V ATAR relies on ProVerif which provides
+a formal framework for security proofs, based on Horn
+clauses resolution. TTool fully supports A V ATAR, includin g
+its security extensions. No or little knowledge of ProVerif is
+necessary to perform security proofs.
+Even if ProVerif is a strong formal approach, it only targets
+veriﬁcation of conﬁdentiality and authenticity propertie s
+thus limiting A V ATAR security proof capabilities. To our
+knowledge, richer notion of attackers are indeed required
+to address other security properties, e.g. message freshne ss.Additionally, ProVerif attacker and semantics are not yet
+suitable for temporal analyses. Thus, we are currently work ing
+in two different but complementary directions. First, we wo uld
+like to extend security properties that ProVerif can handle :
+integrity and freshness properties. The second direction
+is to enhance A V ATAR with the new security properties
+that ProVerif could handle. For example, when ProVerif
+will support freshness properties, it will probably become
+necessary to enhance the A V ATAR-to-Proverif translation
+process, so as to handle differently the temporal operators of
+A V ATAR.
+Following techniques proposed in [40], code generation
+preserving security properties is also one of our next resea rch
+topics. As shown and explained in [41], maintainability of t he
+automatically generated code shall subsequently be addres sed.
+
+--- Page 10 ---
+REFERENCES
+[1] LabSoc, “TTool,” in http://labsoc.comelec.enst.fr/turtle/ttool.html .
+[2] “The EVITA european project,” http://www.evita-proje ct.org/.
+[3] L. Apvrille, J.-P. Courtiat, C. Lohr, and P. de Saqui-San nes, “TURTLE:
+A Real-Time UML Proﬁle Supported by a Formal Validation Toolki t,”
+inIEEE transactions on Software Engineering , vol. 30, no. 7, Jul 2004,
+pp. 473–487.
+[4] L. Apvrille, W. Muhammad, R. Ameur-Boulifa, S. Coudert, and
+R. Pacalet, “A UML-based environment for system design space ex-
+ploration,” in Electronics, Circuits and Systems, 2006. ICECS’06. 13th
+IEEE International Conference on , Nice, France, Dec. 2006.
+[5] S. Ahumada et al. , “Specifying Fractal and GCM components with
+UML,” in XXVI International Conference of the Chilean Computer
+Science Society (SCCC’07) , Iquique, Chile, nov 2007.
+[6] D. Knorreck, L. Apvrille, and P. D. Saqui-Sannes, “TEPE: A SysML lan-
+guage for timed-constrained property modeling and formal veri ﬁcation,”
+inProceedings of the UML&Formal Methods Workshop (UML&FM) ,
+Shanghai, China, November 2010.
+[7] M. Hendriks and M. Verhoef, “Timed automata based analysis of
+embedded system architectures,” in Parallel and Distributed Processing
+Symposium, 2006. IPDPS 2006. 20th International , April 2006, p. 8.
+[8] A. Viehl, T. Schonwald, O. Bringmann, and W. Rosenstiel, “ Formal
+performance analysis and simulation of UML/SysML models for ES L
+design,” Design, Automation and Test in Europe, 2006. DATE’06.
+Proceedings , vol. 1, pp. 1–6, March 2006.
+[9] M. H. Smith, “Events and constraints: a graphical editor f or capturing
+logic properties of programs,” in Proceedings of the 5th International
+Symposium on Requirements Engineering , 2001, pp. 14–22.
+[10] OMG, “A UML proﬁle for MARTE, beta 2, www.omg.org,” 2008.
+[11] E. C. da Silva and E. Villani, “Integrando SysML e model ch ecking
+para v&v de software cr ´ıtico espacial,” in Brasilian Symposium on
+Aeropspace Engineering and Applications, S ˜ao Jos ´e dos Campos, SP ,
+Brasil , September 2009.
+[12] I. Ober and I. Dragomir, “OMEGA2: A new version of the proﬁ le and the
+tools (regular paper),” in UML&AADL’2009 - 14th IEEE International
+Conference on Engineering of Complex Computer Systems . Potsdam:
+IEEE, June 2009, pp. 373–378.
+[13] M. Hause and J. Holt, “Testing solutions with UML/SysML ,”
+inhttp://www.artist-embedded.org/docs/Events/2010/UML AADL /s-
+lides/Session1 Matthew Hause.pdf , 2010.
+[14] M. Audrain and B. Marconato, “TOPCASED 3.4 tutorial - re quirement
+management,” in http://www.topcased.org/index.php? documentsSynthe-
+sis=y&Itemid=59 , 2010.
+[15] “SysML companion,” in http://www.realtimeatwork.com/?page id=683 .
+[16] Y . Vanderperren and W. Dehaene, “From UML/SysML to Mat-
+lab/Simulink: current state and future perspectives,” in DATE’06: Pro-
+ceedings of the conference on Design, automation and test in Europe .
+3001 Leuven, Belgium, Belgium: European Design and Automation
+Association, 2006, pp. 93–93.
+[17] M. J. Toussaint, “A new method for analyzing the security of crypto-
+graphic protocols,” in Journal on Selected Areas in Communications ,
+vol. 11, No. 5. IEEE, June 1993.
+[18] D. Trcek and B. J. Blazic, “Formal language for security s ervices
+base modelling and analysis,” in Elsevier Science Journal, Computer
+Communications , vol. V ol. 18, No. 12. Elsevier Science, 1995.
+[19] M. Drouineaud, M. Bortin, P. Torrini, and K. Sohr, “A ﬁrs t step
+towards formal veriﬁcation of security policy properties fo r RBAC,” in
+Proceedings of the Fourth International Conference on Qual ity Software
+(QSIC’04) , vol. 0-7695-2207-6/04. IEEE, 2004.
+[20] C. Dixon, M.-C. F. Gago, M. Fisher, and W. van der Hoek, “U sing
+temporal logics of knowledge in the formal veriﬁcation of secu rity
+protocols,” in Proceedings of the 11th International Symposium on
+Temporal Representation and Reasoning (TIME’04) , vol. IEEE 1530-
+1311/04, 2004.
+[21] A. Aldini and M. Bernardo, “A formal approach to the integ rated
+analysis of security and QoS,” in Reliability Engineering and System
+Safety , vol. V ol. 92. Elsevier, 2007, pp. 1503–1520.
+[22] A. M. na and G. Pujol, “Towards formal speciﬁcation of abs tract security
+properties,” in The Third International Conference on Availability,
+Reliability and Security , vol. 0-7695-3102-4/08. IEEE, 2008.
+[23] Y . Ali, S. El-Kassas, and M. Mahmoud, “A rigorous methodol ogy for
+security architecture modeling and veriﬁcation,” in Proceedings of the42nd Hawaii International Conference on System Sciences , vol. 978-0-
+7695-3450-3/09. IEEE, 2009.
+[24] J. J ¨urjens, “UMLsec: Extending UML for secure systems developmen t,”
+inProceedings of the 5th International Conference on The Uniﬁ ed
+Modeling Language , ser. UML’02. London, UK, UK: Springer-Verlag,
+2002, pp. 412–425.
+[25] P. Giorgini, F. Massacci, J. Mylopoulos, and N. Zannone , “St-tool:
+a case tool for security requirements engineering,” in Requirements
+Engineering, 2005. Proceedings. 13th IEEE International C onference
+on, aug.-sept. 2005, pp. 451 – 452.
+[26] M. Boreale and M. G. Buscemi, “Experimenting with STA, a to ol for
+automatic analysis of security protocols,” in Proceedings of the 2002
+ACM symposium on Applied computing , ser. SAC’02. New York, NY ,
+USA: ACM, 2002, pp. 281–285.
+[27] D. Dolev and A. Yao, “On the security of public key protoc ols,” IEEE
+trans. on Information Theory , vol. 29, pp. 198–208, 1983.
+[28] M. Idrees, Y . Roudier, and L. Apvrille, “A framework towa rds the
+efﬁcient identiﬁcation and modelling of security requiremen ts,” in
+5`eme Conf. sur la S ´ecurit ´e des Architectures R ´eseaux et Syst `emes
+d’Information (SAR-SSI 2010) , Menton, France, May 2010.
+[29] P. Ochsenschl ¨ager, J. Repp, and R. Rieke, “The sh-veriﬁcation tool,”
+inProceedings of the Thirteenth International Florida Artiﬁ cial Intelli-
+gence Research Society Conference . AAAI Press, 2000, pp. 18–22.
+[30] A. Armando, D. Basin, Y . Boichut, Y . Chevalier, L. Compagn a,
+J. Cuellar, P. H. Drielsma, P. H. O. Kouchnarenko, J. Mantovan i,
+S. M ¨odersheim, D. von Oheimb, M. Rusinowitch, J. Santiago, M. Turu -
+ani, L. Vigan `o, and L. Vigneron, “The A VISPA tool for the automated
+validation of internet security protocols and application s,” in CAV 2005 ,
+ser. LNCS, vol. 3576. Springer Verlag, 2005, pp. 281–285.
+[31] B. Blanchet, “Automatic veriﬁcation of correspondence s for security
+protocols,” Journal of Computer Security , vol. 17, no. 4, pp. 363–434,
+Jul. 2009.
+[32] ——, “Proverif automatic cryptographic protocol veriﬁe r user manual,”
+CNRS, D ´epartement d’Informatique ´Ecole Normale Sup ´erieure, Paris,
+Tech. Rep., July 2010.
+[33] ——, “From Secrecy to Authenticity in Security Protocol s,” in 9th
+International Static Analysis Symposium (SAS’02) , ser. Lecture Notes
+on Computer Science, M. Hermenegildo and G. Puebla, Eds., vol. 2477.
+Madrid, Spain: Springer Verlag, Sep. 2002, pp. 342–359.
+[34] B. Blanchet and D. Pointcheval, “The computational and d ecisional
+Difﬁe-Hellman assumptions in CryptoVerif,” in Workshop on Formal
+and Computational Cryptography (FCC 2010) , Edimburgh, United
+Kingdom, Jul. 2010.
+[35] M. Abadi and B. Blanchet, “Analyzing Security Protocol s with Secrecy
+Types and Logic Programs,” in 29th Annual ACM SIGPLAN - SIGACT
+Symposium on Principles of Programming Languages (POPL 200 2).
+Portland, Oregon: ACM Press, Jan. 2002, pp. 33–44.
+[36] B. Blanchet and A. Podelski, “Veriﬁcation of cryptogra phic protocols:
+Tagging enforces termination,” Theoretical Computer Science , vol. 333,
+no. 1-2, pp. 67–90, Mar. 2005, special issue FoSSaCS’03.
+[37] A. Fuchs, S. G ¨urgens, L. Apvrille, and G. Pedroza, “On-Board Architec-
+ture and Protocols Veriﬁcation,” EVITA Project, Tech. Rep. Deliverable
+D3.4.3, 2010.
+[38] H. Schweppe, M. S. Idrees, Y . Roudier, B. Weyl, R. E. Khay ari,
+O. Henniger, D. Scheuermann, G. Pedroza, L. Apvrille, H. Seud i´e,
+H. Platzdasch, and M. Sall, “Secure on-board protocols spec iﬁcation,”
+EVITA Project, Tech. Rep. Deliverable D3.3, 2010.
+[39] H. Seudi ´e, J. Shokrollahi, B. Weyl, A. Keil, M. Wolf, F. Zweers, T. Gen -
+drullis, M. S. Idrees, Y . Roudier, H. Schweppe, H. Platzdasc h, R. E.
+Khayari, O. Henniger, D. Scheuermann, L. Apvrille, and G. Ped roza,
+“Secure on-board architecture speciﬁcation,” EVITA Proje ct, Tech. Rep.
+Deliverable D3.2, 2010.
+[40] P.-A. Muller, F. Fleurey, and J.-M. J ´ez´equel, “Weaving executability
+into object-oriented meta-languages,” in Model Driven Engineering Lan-
+guages and Systems , ser. Lecture Notes in Computer Science. Springer
+Berlin / Heidelberg, 2005, vol. 3713, pp. 264–278.
+[41] O. Chebaro, L. Broto, J.-P. Bahsoun, and D. Hagimont, “Se lf-TUNe-
+ing of a J2EE clustered application,” in Engineering of Autonomic and
+Autonomous Systems, 2009. EASe 2009. Sixth IEEE Conference and
+Workshops on , 2009, pp. 23 –31.

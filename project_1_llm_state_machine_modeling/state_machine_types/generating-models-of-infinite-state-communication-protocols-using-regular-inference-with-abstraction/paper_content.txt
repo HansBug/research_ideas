@@ -1,0 +1,722 @@
+--- Page 1 ---
+Generating Models of Innite-State
+Communication Protocols using Regular
+Inference with Abstraction?
+Fides Aarts??1, Bengt Jonsson2, and Johan Uijen1
+1Inst. f. Comp. and Inf. Sciences, Radboud University, Nijmegen, The Netherlands
+ff.aarts,j.uijen g@cs.ru.nl
+2Department of Computer Systems, Uppsala University, Sweden
+bengt@it.uu.se
+Abstract. In order to facilitate model-based verication and valida-
+tion, eort is underway to develop techniques for generating models of
+communication system components from observations of their external
+behavior. Most previous such work has employed regular inference tech-
+niques which generate modest-size nite-state models. They typically
+suppress parameters of messages, although these have a signicant im-
+pact on control ow in many communication protocols. We present a
+framework, which adapts regular inference to include data parameters
+in messages and states for generating components with large or innite
+message alphabets. A main idea is to adapt the framework of predicate
+abstraction, successfully used in formal verication. Since we are in a
+black-box setting, the abstraction must be supplied externally, using in-
+formation about how the component manages data parameters. We have
+implemented our techniques by connecting the LearnLib tool for regular
+inference with the protocol simulator ns-2, and generated a model of the
+SIP component as implemented in ns-2.
+1 Introduction
+Model-based techniques for verication and validation of communication proto-
+cols and reactive systems, including model checking and model-based testing [7]
+have witnessed drastic advances in the last decades, and are being applied in
+industrial settings (e.g., [20]). They require formal models that specify the in-
+tended behavior of system components, which ideally should be developed during
+specication and design. However, the construction of models typically requires
+signicant manual eort, implying that in practice often models are not available,
+or become outdated as the system evolves. Automated support for constructing
+models of the behavior of implemented components would therefore be extremely
+useful, e.g., for regression testing, for replacing manual testing by model based
+testing, for producing models of standardized protocols, for analyzing whether
+?Supported in part by EC Proj. 231167 (CONNECT).
+??Supported in part by the EC Progr. No. 214755 (QUASIMODO).
+
+--- Page 2 ---
+an existing system is vulnerable to attacks, etc. Techniques, developed for pro-
+gram analysis, that construct models from source code (e.g., [4, 19]) are often
+of limited use, due to the presence of library modules, third-party components,
+etc., that make analysis of source code dicult. We therefore consider techniques
+for constructing models from observations of their external behavior.
+The construction of models from observations of component behavior can be
+performed using regular inference (aka automata learning) techniques [3, 11, 22,
+31]. This class of techniques is now receiving increasing attention in the testing
+and verication community, e.g., for regression testing of telecommunication
+systems [18, 21], for integration testing [17, 23], security protocol testing [33],
+and for combining conformance testing and model checking [28, 16]. One of the
+most used algorithms for regular inference, L, poses a sequence of membership
+queries , each of which observes the component's output in response to a certain
+input string, and produces a minimal deterministic nite-state machine which
+conforms to the observations. If the sequence of membership queries is suciently
+large, the produced machine will be a model of the observed component.
+Since regular inference techniques are designed for nite-state models, previ-
+ous applications to model generation have been limited to generating a moderate-
+size nite-state view of the system behavior, implying that the alphabet must
+be made nite, e.g., by suppressing parameters of messages. However, param-
+eters have a signicant impact on control ow in typical protocols: they can be
+sequence numbers, conguration parameters, agent and session identiers, etc.
+The inuence of data on control ow is taken into account by model-based test
+generation tools, such as ConformiQ Qtronic [20]. It is therefore important to
+extend inference techniques to handle message alphabets and state-spaces with
+structures containing data parameters with large domains.
+In this paper, we present a general framework for generating models of pro-
+tocol components with large or innite structured message alphabets and state
+spaces. The framework is inspired by predicate abstraction [24, 9], which has
+been successful for extending nite-state model checking to large and innite
+state spaces. In contrast to that work, however, we are now in a black-box set-
+ting, where an abstraction cannot be dened based on the source code or model
+of a component, since it is not accessible. Instead, we must construct an exter-
+nally supplied abstraction, which translates between a large message alphabet of
+the component to be modeled and a small nite alphabet of the regular inference
+algorithm. Via regular inference, a nite-state model of the abstracted interface
+is inferred. The abstraction can then be reversed to generate a faithful model of
+the component.
+We describe how to construct a suitable abstraction, utilizing pre-existing
+knowledge about which operators are sucient to express guards and opera-
+tions on data in a faithful model of the component. We have implemented our
+techniques by connecting the LearnLib tool for regular inference with the pro-
+tocol simulator ns-2, which provides implementations of standard protocols. We
+have used it to generate models of ns-2 protocol implementations.
+
+--- Page 3 ---
+Related Work. Regular inference techniques have been used for several tasks in
+verication and test generation, e.g., to create models of environment constraints
+with respect to which a component should be veried [10], for regression testing
+to create a specication and test suite [18, 21], to perform model checking with-
+out access to source code or formal models [16, 28], for program analysis [2], and
+for formal specication and verication [10]. Groz, Li, and Shahbaz [23, 32, 17]
+extend regular inference to Mealy machines with data values, for use in integra-
+tion testing. They use only a nite set of the data values in the obtained model,
+and do not infer internal state variables. Shu and Lee [33] learns the behavior
+of security protocol implementations for a nite subset of input symbols, which
+can be extended in response to new information obtained in counterexamples.
+Lorenzoli, Mariani, and Pezz e infer models of software components that consider
+both sequence of method invocations and their associated data parameters [25,
+26]. They use a passive learning approach where the model is inferred from a
+given sample of traces. They infer a nite control structure capturing possible
+sequences of method invocations, by an extension of the k-tails algorithm, and
+using Daikon [8] to infer guards and relations on method parameters. In con-
+trast to their passive learning, we use an active learning approach where new
+queries may be supplied to the system; this is an added requirement but allows
+to generate a more informative sample.
+In previous work, we have considered extensions of regular inference to handle
+data parameters. In [5], we show how guards on boolean parameters can be
+rened lazily. This technique for maintaining guards have inspired the more
+general notion of abstractions on input symbols presented in the current paper.
+We have also proposed techniques to handle innite-state systems, in which
+parameters of messages and state variables are from an unbounded domain, e.g.,
+for identiers [6], and timers [13, 12]. These extensions are specialized towards
+a particular data domain, and their worst-case complexities do not immediate
+suggest an ecient implementation. This paper proposes a general framework for
+incorporating a range of such data domains, into which techniques specialized for
+dierent data domains can be incorporated, and which we have also evaluated
+on realistic protocol models.
+Organization. In the next section, we give basic denitions of Mealy machines.
+We present our inference and abstraction techniques in Section 3. The application
+to SIP is reported in Section 4. Section 5 contains conclusions and directions for
+future work.
+2 Mealy Machines
+Basic Denitions. We will use Mealy machines to model communication protocol
+entities. A Mealy machine is a tupleM=hI;O;Q;q 0;;iwhereIis a
+nonempty set of input symbols ,Ois a nonempty set of output symbols ,Qis
+a nonempty set of states ,q02Qis the initial state ,:QI!Qis the
+transition function , and:QI!Ois the output function . The sets of
+
+--- Page 4 ---
+states and symbols can be nite or innite: if they are all nite we say that the
+Mealy machine is nite . Elements of 
+Iare called input strings , and elements
+of
+Oare called output strings . We extend the transition and output functions
+to input strings in the standard way, by dening:
+(q;") =q  (q;") ="
+(q;ua) =((q;u);a)(q;ua) =(q;u)((q;u);a)
+whereu2
+I. We dene M(u) =(q0;u) foru2
+I. Two Mealy machines M
+andM0with the same set of input symbols are equivalent ifM(u) =M0(u)
+for all input strings u.
+Intuitively, a Mealy machine behaves as follows. At any point in time, the
+machine is in some state q2Q. When supplied with an input symbol a2I,
+it responds by producing an output symbol (q;a) and transforms itself to a
+new state(q;a). We use the notation qa=b !q0to denote that (q;a) =q0and
+(q;a) =b; in this case qa=b !q0is called a transition ofM.
+The Mealy machines that we consider are deterministic , meaning that for
+each stateqand input symbol aexactly one next state (q;a) and output string
+(q;a) is possible.
+Symbolic Representation. In order to conveniently model entities of communica-
+tion protocols, we should be able to describe messages as consisting of a message
+type with a number of parameters, and states as consisting of a control location
+and values of a set of state variables. We therefore introduce a symbolic repre-
+sentation of Mealy machines, similar to Extended Finite State Machines [29].
+So, assume a set of action types . Each action type has a certain arity, which
+is a tuple of domains (a domain is a set of allowed data values) D;1;:::;D;n
+(wherendepends on ). For a set Iof action types, let Ibe the set of terms
+of form(d1;:::;dn), wheredi2D;iis a data value in the appropriate domain
+for eachiwith 1in. Assume a set of formal parameters , ranged over by
+p1;p2;:::, to be used as placeholders for parameters of symbols.
+Also, assume a set of state variables . Each state variable vhas a domain of
+possible values, and a unique initial value. For a set Vof state variables, let a
+V-valuationbe a partial mapping from Vto data values in their respective
+domains, and let V
+0be theV-valuation which maps each variable in Vto its
+initial value. We extend V-valuations to expressions over state variables in the
+natural way; for instance, if (v3) = 8, then (2v3+ 4) = 20.
+Denition 1. ASymbolic Mealy machine is a tupleSM =hI;O;L;l 0;V; !
+i, whereIandOare disjoint nite sets of actions ( input actions and output
+actions ), whereLis a nite set of locations , wherel02Lis the initial location ,
+whereVis a nite set of state variables , and where !is a nite set of symbolic
+transitions , each of form
+ilil0-(p1;:::;pn)wheng = v 1;:::;vk:=e1;:::;ek;(eout1;:::;eoutm)
+
+--- Page 5 ---
+in whichlandl0are locations, 2Iand2Oare actions, p1;:::;pnare distinct
+formal parameters, v1;:::;vkare distinct state variables in V, in whichg(the
+guard ) is a boolean expression over p1;:::;pnandV, and in which e1;:::;ekand
+eout1;:::;eoutmare expressions over p1;:::;pnandV. We assume that the arities
+ofandand the domains of v1;:::;vkare respected. For each input action 2
+I, each location l2L, and eachV-valuation, the set !must contain exactly
+one symbolic transition of the above form for which (g[d1;:::;dn=p1;:::;pn])
+is true. u t
+In the following, we will use pforp1;:::;pnanddford1;:::;dn.
+Intuitively, a symbolic transition of the above form denotes that whenever a
+Symbolic Mealy machine (SMM for short) SM is in location land some input
+symbol of form (d) is received, such that the guard gis satised when the formal
+parameters pare bound to the data values d, then the state variables among
+v1;:::;vkare simultaneously assigned new values, an output symbol obtained
+by evaluating (eout1;:::;eoutm), is generated, and SM moves to location l0.
+The meaning of a SMM SM =hI;O;L;l 0;V; !i is dened by its deno-
+tation, which is the Mealy machine MSM=hI;O;Q;q 0;;i, whereIis
+obtained from Ias described earlier, and similarly for O, whereQis the set of
+pairshl;iconsisting of a location l2Land aV-valuation, whereq0is the
+pairhl0;V
+0i, and where andare such that for any symbolic transition in  !
+of form
+ilil0-(p1;:::;pn)wheng = v 1;:::;vk:=e1;:::;ek;(eout1;:::;eoutm)
+for anyV-valuationand data values dwith(g[d=p]) being true, it holds that
+{(hl;i;(d)) =hl0;0i, where0is theV-valuation such that 0(vi) =
+(ei[d=p]) for 1ik, and0(v) =(v) ifvis not among v1;:::;vk,
+{(hl;i;(d)) =(0(eout
+1[d=p]);:::;0(eout
+m[d=p])).
+We useSMto denoteMSM, and say thatSM andSM0are equivalent if
+SM(u) =SM0(u) for all input strings u. We can similarly say that an SMM
+is equivalent to a Mealy machine.
+Example We consider a simplistic SMM, which models a component that services
+requests to set up a connection. Its sets of input and output actions are I=
+fREQ;CONFgandO=fREPL;ACK;REJg. The arity of REJ is the empty
+tuple (i.e., it has no parameters), and the arity of the other actions is the pair
+I N;I N i.e., input symbols are of form REQ (id;sn ) and CONF (id;sn ) whereidand
+snare natural numbers, and analogously for output symbols. There are two state
+variables, curidand curid, both ranging over I N [?, with?(a distinguished
+symbol denoting \undened") as initial values. The set of locations ( fl0;l1;l2g)
+and symbolic transitions are shown in Figure 1. We have suppressed symbolic
+transitions where the machine replies with the output symbol REJ and lead to a
+terminal error state (also not shown). For each location and input action, there
+is one such symbolic transition, guarded by the negation of the guard on the
+transition from the same location with the same input action. u t
+
+--- Page 6 ---
+?jl0
+?REQ (id;sn )when curid=cursn=?=
+curid;cursn:=id;sn ;REPL (curid;cursn);
+jl1
+?CONF (id;sn )when (id=curid+ 1^
+sn=cursn+ 1)=
+ACK (curid;cursn+ 1) ;jl2
+
+REQ (id;sn )when (id=curid^sn=cursn)=
+REPL (curid;cursn) ;
+Fig. 1. Symbolic transitions of SMM in Example
+3 Inference of Symbolic Mealy Machines
+3.1 The Setting of Inference
+The problem considered in this paper is the following: Given an SMM SM,
+how can a component, called the Learner , which communicates with SM, infer
+an SMM equivalent to SM by observing how SM responds to a set of input
+strings. We use the same setting as Angluin's Lalgorithm [3]. There the Learner
+initially knows the static interface of SM, i.e., the sets IandOof input and
+output actions together with their arities. It may then ask a sequence of member-
+ship queries ; each one supplying a chosen input string u2(I)and observing
+the response SM(u). After a \sucient" number of membership membership
+queries the Learner can build a \stable" hypothesis Hfrom the obtained infor-
+mation. The hypothesis Hshould of course agree with SM on the performed
+membership queries (i.e., SM(u) =H(u) whenever uwas supplied in a mem-
+bership query), but must make suitable generalizations for other input strings.
+In order to increase condence in the hypothesis H, one can subject SM to
+thorough conformance testing or longer-term monitoring in order to search for
+input strings on which SM disagrees withH. In the setting of L, this is ide-
+alized as an equivalence query , which asks whether His equivalent toSM, and
+which is replied with either yes, meaning thatHis indeed equivalent to SM,
+or withnoand a counterexample , which is an input string u2
+Isuch that
+SM(u)6=H(u).
+For nite Mealy machines the above problem is well understood. The L
+algorithm, which has been adapted to Mealy machines by Niese [27], generates
+hypothesesHthat are the minimal Mealy machines that agree with the per-
+formed membership queries. It is implemented in the LearnLib tool [30], which
+also realizes approximate equivalence queries by test suites of user-controllable
+size.
+3.2 Inference Using Abstraction
+TheLalgorithm works only for nite Mealy machines. In order to use it for
+inferring models of large or innite-state SMMs, we adapt ideas from predicate
+
+--- Page 7 ---
+abstraction [24, 9], which has been successful for extending nite-state model
+checking to large and innite state spaces.
+In the following, consider an SMM SM =hI;O;L;l 0;V; !i withMSM=
+hI;O;Q;q 0;;i, in whichI,O, andQmay be large or innite. To apply
+regular inference to SM, we should dene an abstraction from IandOto
+(small) nite sets of abstract input and output symbols. For instance, in the
+SMM in Figure 1, symbols of form REQ (id;sn ) can be abstracted to symbols of
+form REQ (ID;SN), where IDandSNare from a small domain. Let us abstract
+a parameter value idbyCUR ifidis the \current" session identier, and by
+OTHER otherwise. By the \current" session identier, we mean the value of
+idreceived in the rst symbol of form REQ (id;sn ). We abstract the parame-
+tersnin a similar way. In this way, the input string REQ (25;4)REQ (25;7) is
+abstracted to REQ (CUR;CUR )REQ (CUR;OTHER ), whereas the input string
+REQ (42;4)REQ (25;7) is abstracted to REQ (CUR;CUR )REQ (OTHER;OTHER ).
+Thus, the abstraction of a symbol, such as REQ (25;7), in general depends on
+the previous history of symbols. In model checking using abstraction [24, 9], this
+dependency is taken into account by letting the abstraction depend on internal
+state variables, such as curidand cursnin the SMM of Figure 1. However, we
+are now in a black-box setting where the state variables of the SMM are not
+accessible. Therefore, the abstraction must maintain a set of additional state
+variables that record relevant history information. In our example, they can be
+absidand abssn, where absidis assigned the value of the idparameter in the
+rst input symbol of form REQ (id;sn ), and is thereafter used to decide whether
+id-parameters should be mapped to CUR orOTHER . Let us formalize.
+Denition 2. LetIandObe disjoint nite sets of (input and output) actions.
+AnhI;Oi-abstraction is a tupleA=hA
+I;A
+O;R;r 0;abstrI;abstrO;Ri, where
+{A
+IandA
+Oare nite sets of abstract input and output symbols,
+{Ris a (possibly innite) set of local states ,
+{r02Ris an initial local state ,
+{abstrI:RI7!A
+Imaps input symbols to abstract ones,
+{abstrO:RO7!A
+Omaps output symbols to abstract ones, and
+{R:R(I[O)7!Rupdates the local state when a new input or output
+symbol occurs. u t
+Intuitively, an abstraction Amaps input and output symbols to abstract ones,
+and updates its local state immediately after the occurrence of each symbol.
+We letAbe implemented by a Mapper module, as shown in Figure 2. The
+Mapper maintains the local state rof the abstraction. Each abstract input symbol
+aAsupplied by the Learner (such as REQ (CUR;CUR )), is translated by the
+Mapper to a concrete input symbol asuch thataA=abstrI(r;a), and sent to
+SUT. The corresponding reply bbySUT is translated to the abstract symbol
+abstrO(R(r;a);b) and sent back to the Learner . Finally the local state ris
+updated to R(R(r;a);b). To keep the notation simpler, we will in the following
+assume that the local state is updated only in response to input symbols (i.e.,
+thatR(r;b) =rfor any output symbol b); the extension to the general case
+
+--- Page 8 ---
+Learner Mapper SUT-REQ (CUR;CUR ) -REQ (25;4)
+REPL (25;4)REPL (CUR;CUR )
+Fig. 2. Introduction of Mapper module
+is straight-forward. We extend the transition and input abstraction function to
+input strings by:
+R(r;") =q abstrI(r;") ="
+R(r;ua) =R(R(r;u);a) abstrI(r;ua) =abstrI(r;u)abstrI(R(r;u);a)
+In particular, abstrI(r0;u) is the abstraction of an arbitrary input string u.
+The Learner interacts with the combination of the Mapper and the SUT,
+using the nite sets A
+IandA
+O. In general, this combination is not a (deter-
+ministic) Mealy machine, but rather some nondeterministic state machine, since
+each (abstract) input symbol aAcan be translated by the Mapper (in stater) to
+any input symbol awithaA=abstrI(r;a): dierent choices of acan, in general,
+cause the SUT to move to dierent states and subsequently cause dierent (ab-
+stract) output symbols to be generated. The states of this combination, denoted
+QhSM;Ai, is the set of pairs in QRof formh(q0;u);R(r0;u)ifor some input
+stringu2I.
+Although the combination of the Mapper and the SUT is in general nonde-
+terministic, a well-designed Mapper will mask this nondeterminism so that the
+Learner perceives a deterministic Mealy machine, in the sense that a produced
+abstract output symbol is uniquely determined by the preceding sequence of ab-
+stract input symbols. We formalize this by dening Ato be adequate forSM
+ifabstrI(r0;ua) = abstrI(r0;u0a0) implies abstrO(R(r0;ua);((q0;u);a)) =
+abstrO(R(r0;u0a0);((q0;u0);a0)) for all input strings u,u0and symbols a,a0.
+IfAis adequate forSM, then the Learner will perceive that the combina-
+tion of the Mapper and the SUT is equivalent to a (deterministic) Mealy machine
+(which may or may not be nite-state). This deterministic Mealy machine can
+be dened by a (Nerode-like) quotient construction, as follows. Dene the equiv-
+alence'onQhSM;Aibyhq;ri'hq0;r0iif for any input strings u;u02I
+and input symbols a;a02Iwe have that abstrI(r;ua) = abstrI(r0;u0a0) im-
+plies abstrO(R(r;ua);((q;u);a)) = abstrO(R(r0;u0a0);((q0;u0);a0)). Intu-
+itively, two elements of QhSM;Aiare equivalent if they cannot be distinguished
+by the Learner , i.e., any two subsequent input strings that are identied by
+abstrItrigger two subsequent output strings that are identied by abstrO. If
+Ais adequate forSM, deneAhhSMii to be the MMhA
+I;A
+O;QhSM;Ai='
+;[hq0;r0i]';A;Ai, where for any a2Iwith abstrI(r;a) =aAwe have
+{A([hq;ri]';aA) = [h(q;a);R(r;a)i]', and
+{A([hq;ri]';aA) =abstrO(R(r;a);(q;a)).
+
+--- Page 9 ---
+For anyaA2A
+Ifor which there is no a2Iwith abstrI(r;a) =aA, we
+letA([hq;ri]';aA) be a designated error symbol, and let A([hq;ri]';aA) be
+a designated error state with a self-loop from which only the error symbol is
+output. The denition of 'can be used to show that AhhSMii is well-dened.
+If a nite Mealy machine MA=hA
+I;A
+O;QA;qA
+0;A;Aiis produced by the
+Learner , then we must nally \reverse" the eect of the abstraction Ato obtain
+an SMMSM such thatAhhSMii is equivalent toMA. In general, we then
+run into the problem that an abstract output symbol may correspond to several
+concrete output symbols, implying that there is not a unique deterministic SMM
+that causes the Learner to produceMA. Therefore, dene Ato be unambiguous
+forMAif for all input symbols aand allhqA;ri2QhSM;Ai, there is at most
+one output symbol bwhich satises
+abstrO(R(r;a);b) =A(qA;abstrI(r;a))
+Intuitively, this means that we can deduce which output symbol is produced by
+SM by seeing only its abstraction.
+IfAis unambiguous for MA, then deneA 1hhMAiito be the Mealy ma-
+chinehI;O;QAR;hqA
+0;r0i;;i, where
+{(hqA;ri;a) =hA(qA;abstrI(r;a));R(r;a)i, and
+{(hqA;ri;a) =b, wherebis such that abstrO(R(r;a);b) =A(qA;abstrI(r;a)).
+Proposition 1. IfAis adequate forSM and unambiguous for MA, and if
+AhhSMii is equivalent toMA, thenSM is equivalent toA 1hhMAii.u t
+The equivalence can be proven by observing that a state hqA;riofA 1hhSMii
+is equivalent to a state qofSM if there is a common input string u2Iwhich
+drives the state of A 1hhMAiitohqA;ri, and the state of SM toq.
+Example Let us dene an abstraction for the SMM in Figure 1. Since the in-
+niteness typically stems from the innite domains of the parameters in sym-
+bols, the abstraction maps parameter values to small domains. We map each
+symbol form REQ (id;sn ) to an abstract symbol of form REQ (ID;SN), where
+ID2fCUR;OTHERgandSN2fCUR;CUR + 1;OTHERg. The state of the
+abstraction is dened by two local variables that range over I N: absid, which is
+initially \undened" (denoted ?), and thereafter assigned to the idparameter
+of the rst received REQ message, and abssn, which is also initially \undened"
+and thereafter assigned to the snparameter of the rst received REQ message.
+parCUR CUR + 1 OTHER
+idcurid=?^ mtype =REQ
+_
+id=curid^curid6=?id6=curid
+^curid6=?
+sncursn=?^ mtype =REQ
+_
+sn=cursn^cursn6=?sn=cursn+ 1
+^cursn6=?sn6=cursn^sn6=cursn+ 1
+^cursn6=?
+Table 1. Abstraction mappings for parameters
+
+--- Page 10 ---
+The input and output abstraction mappings abstrIandabstrOcan be dened
+by supplying, for each parameter (being either idorsn) and each abstract pa-
+rameter value D, a predicate which denes the set of parameter values that are
+mapped to D. We can organize these predicates into a table, as in Table 1. We
+usemtype to denote the action type of the symbol considered (being either REQ ,
+CONF ,RESP , orACK ). Thus, in total there are 12 abstract input symbols and
+13 abstract output symbols (the symbol REJ is mapped to itself).
+A possible result by the Learner is the Mealy machine MAin the gure
+below.
+?jl0
+?REQ (CUR;CUR )=REPL (CUR;CUR )
+jl1
+?CONF (CUR;CUR + 1)=ACK (CUR;CUR + 1)
+jl2
+	
+REQ (CUR;CUR )=REPL (CUR;CUR )
+Each arc is labeled by an abstract input symbol followed by the abstract output
+symbol that the Learner observes in response. From the picture, we have ex-
+cluded all arcs that contain the output symbol REJ: these all go to the terminal
+statel2.
+We can construct A 1hhMAiifromMA, as an SMM, whose set of locations
+isfl0;l1;l2g, whose state variables are the local variables of A, and such that for
+each each transition qAaA=bA
+ !rAofMAthere is a symbolic transition
+mqAmrA-(p)whengaA
+=v:=e;(eout
+1;:::;eout
+m)
+wheregaA
+is the conjunction of constraints on parameter values punder which
+an input symbol (p) is abstracted to aA, wherev:=eis the update of local
+variables in the abstraction A, and where (eout
+1;:::;eout
+m) is composed from the
+expressions that cause an output symbol of form (d1;:::;dm) to be abstracted
+tobA.
+When carrying this out on the nite Mealy machine MAobtained by the
+Learner , we obtain the SMM of Figure 1, but with location l2merged with the
+terminal error location.
+3.3 Systematic Construction of Abstractions
+The construction of a suitable abstraction is crucial for successful inference of
+an SMMSM. In this subsection, we discuss techniques by which an abstraction
+can be constructued more systematically. We assume, as before, that the sets I
+andOof input and output actions of SM, together with their arities, are known
+a priori . In the running example in the previous subsection, we see that typically
+the abstraction mapping for input symbols uses expressions that become guards
+in the resulting SMM, and that the abstraction mapping for output symbol uses
+
+--- Page 11 ---
+expressions that occur in output expressions of the SMM. We therefore assume
+that a set of guards and expressions, which is sucient to construct a model
+ofSM, is also known a priori . This set can be seen as describing how state
+variables ofSM can inuence control ow through guards, and how they can be
+used in expressions that produce output symbols. We assume that the updates
+of state variables in SM do not need operators, i.e., they simply save some of
+the data values received in input parameters; operators that occur in updates to
+state variables can often be moved (\inlined") to the expressions in guards and
+output symbols where these state variables are used.
+Under the above assumptions, we can construct an abstraction which maps
+combinations of parameterized input actions and guards in a possibe SMM to
+abstract input symbols, and maps combinations of expressions in output symbols
+of a possible SMM to abstract output symbols, as in the running example. The
+updates to state variables will simply consist in assigning some input parameters
+to state variables: the problem here is to decide which input parameters will
+inuence the future behavior of SM, and must be remembered in state variables.
+In our experiments, we have made this decision based on observing the response
+ofSM to selected input strings, i.e., by posing membership queries, and saving
+those parameter values that are used to produce future output. For parameter
+values on which the only performed operation is a test for equality, such as the
+idparameter of the running example, we have made these ideas more precise in
+our earlier work [6], as follows:
+Consider an input string u, which contains a parameter value d. We observe
+the output ofMin response to uand to selected continuations of u, and decide
+to storedin a state variable if there is some continuation vofusuch thatd
+is used to produce the response to v. More precisely, this happens if there is a
+fresh (i.e., previously unused) data value d0such that the response ((q0;u);v)
+tovand the response ((q0;u);v[d0=d]) tov[d0=d] (i.e.,vwhere all occurrences
+ofdhave been replaced by d0) satisfy((q0;u);v)[d0=d]6=((q0;u);v[d0=d]),
+i.e.,SM does not treat din the same way as a fresh (previously unused) value
+d0. This happens, e.g., if ((q0;u);v[d0=d]) contains the data value dimplying
+thatdmust have been remembered before seeing the subsequent input v[d0=d],
+and thatdshould be stored in a state variable.
+4 Experiments
+We have implemented and applied our approach to infer models of two imple-
+mented standard protocols: the Session Initiation Protocol (SIP) and the Trans-
+mission Control Protocol (TCP). Due to space restrictions we were not able to
+include the TCP case study in this paper, but the methodology for inferring
+TCP is similar to SIP. In this section, we rst describe our experimental setup,
+thereafter its application to the protocol. In order to have access to a large num-
+ber of standard communication protocols, for evaluation of inference techniques,
+we use the protocol simulator ns-23, which provides implementations of many
+3http:/www.isi.edu/nsnam/ns/
+
+--- Page 12 ---
+protocols, to serve as SMM Under Test (SUT). Messages are represented as C++
+structures, saving us the trouble of parsing messages represented as bitstrings.
+AsLearner , we use the LearnLib tool [30], developed at the Technical Univer-
+sity Dortmund, which has an ecient implementation of the Lalgorithm that
+can construct both nite automata and Mealy machines. LearnLib provides sev-
+eral dierent realizations of equivalence queries, including random test suites of
+user-controlled size.
+SIP SIP is an application layer protocol for creating and managing multimedia
+communication sessions. Although a lot of documentation is available, such as
+theRFC 3261 , no proper reference model, as a state machine, is available. We
+aimed to infer the behavior of the SIP Server entity when setting up connections
+with a SIP Client. We represent input messages from the SIP Client to the SIP
+Server as Method (From;To;Contact;CallId;CSeq;Via), where
+{Method denes the type of request, either INVITE, PRACK, or ACK,
+{From andToare addresses of the originator and receiver of the request,
+{CallId is a unique session identier,
+{CSeq is a sequence number that orders transactions in a session,
+{Contact is the address where the Client wants to receive input messages, and
+{Viaindicates the transport path that is used for the transaction.
+We represent output messages from the SIP Server to the SIP Client as
+StatusCode (From;To;CallId;CSeq;Contact;Via), where StatusCode is a three
+digit status code that indicates the outcome of a previous request from the
+Client, and the other parameters are as for a input message.
+Abstraction Mapping. We have constructed an abstraction mapping for the SIP
+server, which maps each parameter to an abstract value. The parameters From ,
+To, and Contact must be pre-congured in a session with ns-2, so they are set to
+constant values throughout the experiment. The Viaparameter is a pair, con-
+sisting of a default address and a variable branch. The parameters Via,CallId ,
+andCSeq are potentially interesting parameters. A priori, they can be handled
+as parameters from a large domain, on which test for equality and potentially
+incrementation can be performed. Monitoring of membership queries, as de-
+scribed in Section 3.3 reveals that for each of these parameters, the ns-2 SIP
+implementation remembers the value which is received in the rst Invite mes-
+sage (presumably, it is interpreted as parameters of the connection that is being
+established). The implementation also remembers the value received in the most
+recent input message when producing the corresponding reply, but thereafter
+forgets it. We therefore equip the abstraction with six state variables. The state
+variable rstId stores the CallId parameter of the rst Invite message, and lastId
+stores the CallId parameter value of the most recently received message. The
+state variables rstCSeq and lastCSeq store the analogous values for the CSeq
+parameter, and the state variables rstVia and lastVia for the Viaparameter.
+The abstraction mapping for input symbols is shown in Table 2. Intuitively,
+the input parameter CallId is compared with the variable rstId (assigned at the
+
+--- Page 13 ---
+occurrence of the rst Invite message) to check if it should be mapped to FIRST
+or LAST. For the input parameters ViaandCseq , we merged the abstract values
+FIRST and LAST into the single value ANY, since we found that these input
+parameters are not tested by ns-2: we could also have followed the methodology
+of Section 3.3 and kept these two values separate. In output messages, for which
+the mapping is shown in Table 3, these three parameters can take the value
+received in the rst Invite message, or the value in the just received message,
+corresponding to the two abstract values FIRST andLAST .
+The SIP Server does not always respond to each input message, and some-
+times responds with more than one message. To stay within the Mealy machine
+formalism, we introduce the nilinput symbol which denotes the absense of input,
+in order to allow sequences of outputs, and the timeout output symbol, denoting
+the absence of output. This could be made more systematic by using techniques
+in [1].
+par FIRST LAST ANY
+CSeq isInteger (CSeq )
+Via Via:Address =Default
+^isInteger (Via:Branch )
+CallId rstId =?^mtype =Invite otherwise
+_rstId6=?^CallId =rstId
+Table 2. Mapping table for input messages of SIP Server
+par FIRST LAST OTHER
+CSeqCSeq =rstCSeqCSeq =lastCSeqOther
+ViaVia=rstVia Via=lastViaOther
+CallIdCallId =rstIdCallId =lastIdOther
+Table 3. Mapping table for output messages of SIP Server
+Results. The inference performed by LearnLib needed about one thousand mem-
+bership queries and one equivalence query, and resulted in an abstract model
+with 10 locations and 70 transitions. For presentation purposes, we have pruned
+the model as follows: (1) removing transitions triggered by abstract symbols
+that have no corresponding concrete symbol: the Mapper will immediately re-
+ject these, and react with a distinguished error symbol, (2) removing transi-
+tions with empty input and output symbol, i.e., with labels nil/timeout , (3)
+removing locations which have become unreachable after the previous steps.
+In Figure 3, we show the resulting abstract model with 9 locations and 48
+transitions. For readability, some transitions with same source location, out-
+put symbol and next location (but with dierent input symbols) are merged:
+the original input method types are listed, separated by a bar ( j). Due to space
+limitations, we have suppressed the (abstract) parameter values. However, the
+CallId parameter of the input messages with abstract value FIRST, is depicted
+in the model with solid transition lines, the remaining transitions have a dashed
+line pattern. We suppressed all other parameters in the gure. A full abstract
+model, showing the abstract values of other output parameters can be found
+athttp://www.it.uu.se/research/group/testing/sip , together with a de-
+scription of the corresponding concrete model.
+
+--- Page 14 ---
+5 Conclusions and Future Work
+We have presented an approach to infer models of entities in communication
+protocols, which also handles message parameters. The approach adapts ab-
+straction, as used in formal verication, to the black-box inference setting. This
+necessitates to dene an abstraction together with the local state needed to de-
+ne it. This makes nding suitable abstractions more challenging, but we have
+presented techniques for systematically deriving abstractions under restrictions
+on what operations the component may perform on data. We have shown the fea-
+sibility of the approach towards inference of realistic communication protocols,
+by a feasibility studies on the SIP, as implemented in the protocol simulator ns-2.
+Our work shows how regular inference can infer the inuence of data parameters
+on control ow, and how data parameters are produced. Thus, models generated
+using our extension are more useful for thorough model-based test generation,
+than are nite-state models where data aspects are suppressed. In future work,
+we plan to supply a library of dierent inference techniques specialized towards
+dierent data domains that are commonly used in communication protocols.
+Acknowledgement We are grateful to Falk Howar from TU Dortmund for his
+generous LearnLib support, to Falk Howar and Bernhard Steen for fruitful
+discussions, and to Frits Vaandrager for many indispensable comments.
+References
+1. F. Aarts and F. Vaandrager. Learning I/O automata. In CONCUR 2010 ,LNCS
+6269, pp. 71{85, to appear.
+2. G. Ammons, R. Bodik, and J. Larus. Mining specications. In Proc. 29thACM
+Symp. on Principles of Programming Languages , pp. 4{16, 2002.
+3. D. Angluin. Learning regular sets from queries and counterexamples. Information
+and Computation , 75(2):87{106, 1987.
+4. T. Ball and S. Rajamani. The SLAM project: Debugging system software via static
+analysis. In Proc. 29thACM POPL , pp. 1{3, 2002.
+5. T. Berg, B. Jonsson, and H. Raelt. Regular inference for state machines with
+parameters. In FASE 2006 ,LNCS 3922 , pp. 107{121. 2006.
+6. T. Berg, B. Jonsson, and H. Raelt. Regular inference for state machines using
+domains with equality tests. In FASE 2008 ,LNCS 4961 , pp. 317{331. Springer,
+2008.
+7. M. Broy, B. Jonsson, J.-P. Katoen, M. Leucker, and A. Pretschner, editors. Model-
+Based Testing of Reactive Systems , volume 3472 of LNCS . Springer Verlag, 2004.
+8. Y. Brun and M. Ernst. Finding latent code errors via machine learning over
+program executions. In ICSE'04 , pp. 480{490, May 2004.
+9. E. M. Clarke, O. Grumberg, S. Jha, Y. Lu, and H. Veith. Counterexample-
+guided abstraction renement for symbolic model checking. Journal of the ACM ,
+50(5):752{794, 2003.
+10. J. Cobleigh, D. Giannakopoulou, and C. Pasareanu. Learning assumptions for
+compositional verication. In Proc. TACAS '03 ,LNCS 2619 , pp. 331{346. 2003.
+11. E. M. Gold. Language identication in the limit. Information and Control ,
+10(5):447{474, 1967.
+
+--- Page 15 ---
+12. O. Grinchtein. Learning of Timed Systems . PhD thesis, Dept. of IT, Uppsala
+University, Sweden, 2008.
+13. O. Grinchtein, B. Jonsson, and M. Leucker. Learning of event-recording automata.
+InProc. FORMATS and FTRTFT ,LNCS 3253 , pp. 379{396, Sept. 2004.
+14. O. Grinchtein, B. Jonsson, and M. Leucker. Inference of timed transition systems.
+Electr. Notes Theor. Comput. Sci. , 138(3):87{99, 2005.
+15. O. Grinchtein, B. Jonsson, and P. Pettersson. Inference of event-recording au-
+tomata using timed decision trees. In Proc. CONCUR 2006 ,LNCS 4137 , pp.
+435{449, 2006.
+16. A. Groce, D. Peled, and M. Yannakakis. Adaptive model checking. In Proc. TACAS
+'02,LNCS 2280 , pp. 357{370. Springer Verlag, 2002.
+17. R. Groz, K. Li, A. Petrenko, and M. Shahbaz. Modular system verication by
+inference, testing and reachability analysis. In TestCom/FATES ,LNCS 5047 , pp.
+216{233, 2008.
+18. A. Hagerer, H. Hungar, O. Niese, and B. Steen. Model generation by moderated
+regular extrapolation. In Proc. FASE '02 ,LNCS 2306 , pp. 80{95.
+19. T. Henzinger, R. Jhala, R. Majumdar, and G. Sutre. Lazy abstraction. In Proc.
+29thACM Symp. on Principles of Programming Languages , pp. 58{70, 2002.
+20. A. Huima. Implementing conformiq qtronic. In Proc. TestCom/FATES, 2007 ,
+LNCS 4581 , pp. 1{12, 2007.
+21. H. Hungar, O. Niese, and B. Steen. Domain-specic optimization in automata
+learning. In Proc. 15thInt. Conf. on Computer Aided Verication , 2003.
+22. M. Kearns and U. Vazirani. An Introduction to Computational Learning Theory .
+MIT Press, 1994.
+23. K. Li, R. Groz, and M. Shahbaz. Integration testing of distributed components
+based on learning parameterized I/O models. In, FORTE 2006 ,LNCS 4229 , pages
+436{450, 2006.
+24. C. Loiseaux, S. Graf, J. Sifakis, A. Boujjani, and S. Bensalem. Property preserving
+abstractions for the verication of concurrent systems. Formal Methods in System
+Design , 6(1):11{44, 1995.
+25. D. Lorenzoli, L. Mariani, and M. Pezz e. Automatic generation of software behav-
+ioral models. In Proc. ICSE'08 , pp. 501{510, 2008.
+26. L. Mariani and M. Pezz. Dynamic detection of COTS components incompatibility.
+IEEE Software , 24(5):76{85, September/October 2007.
+27. O. Niese. An integrated approach to testing complex systems. Technical report,
+Dortmund University, 2003. Doctoral thesis.
+28. D. Peled, M. Y. Vardi, and M. Yannakakis. Black box checking. In FORTE/PSTV
+1999, pp. 225{240, Beijing, China, 1999. Kluwer.
+29. A. Petrenko, S. Boroday, and R. Groz. Conrming congurations in EFSM testing.
+IEEE Trans. on Software Engineering , 30(1):29{42, 2004.
+30. H. Raelt, B. Steen, and T. Berg. Learnlib: a library for automata learning and
+experimentation. In FMICS '05 : pp. 62{71, New York, NY, USA, 2005.
+31. R. Rivest and R. Schapire. Inference of nite automata using homing sequences.
+Information and Computation , 103:299{347, 1993.
+32. M. Shahbaz, K. Li, and R. Groz. Learning and integration of parameterized com-
+ponents through testing. In TestCom/FATES 2007 ,LNCS 4581 , pp. 319{334.
+Springer, 2007.
+33. G. Shu and D. Lee. Testing security properties of protocol implementations - a
+machine learning based approach. In Proc. ICDCS'07 . IEEE, 2007.
+
+--- Page 16 ---
+0PRACK|ACK/timeout
+1INVITE/100
+3INVITE/100
+4INVITE/100
+5PRACK/200
+6PRACK/481 ACK/timeout ACK/timeout nil/183INVITE/100
+INVITE/100
+PRACK/200PRACK/481 ACK/timeout ACK/timeout nil/486INVITE/100
+INVITE/100
+PRACK/200PRACK/481 ACK/timeout ACK/timeout nil/486
+7INVITE/100
+8INVITE/100
+9PRACK|ACK/timeout PRACK|ACK/timeout nil/180INVITE/100
+INVITE/100
+PRACK/200PRACK/481 ACK/timeout ACK/timeout
+INVITE/100
+INVITE/100
+PRACK|ACK/timeout PRACK|ACK/timeout nil/486INVITE/100
+INVITE/100
+PRACK|ACK/timeout PRACK|ACK/timeout nil/486INVITE/100
+INVITE/100
+PRACK|ACK/timeout PRACK|ACK/timeout
+Fig. 3. Full SIP model

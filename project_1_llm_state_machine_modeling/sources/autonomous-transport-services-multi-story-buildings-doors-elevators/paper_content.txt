@@ -1,0 +1,863 @@
+--- Page 1 ---
+TYPEOriginalResearch
+PUBLISHED 25 February 2025
+DOI10.3389/frobt.2025.1546894
+OPENACCESS
+EDITEDBY
+Fangzhou Xia,
+TheUniversityofTexasatAustin,UnitedStates
+REVIEWEDBY
+Jiajie Qiu,
+Massachusetts Institute of Technology,
+United States
+Yu Mei,
+Michigan State University, United States
+*CORRESPONDENCE
+Paul Robert Schulze,
+paul-robert.schulze@tu-ilmenau.de
+RECEIVED 17 December 2024
+ACCEPTED 29 January 2025
+PUBLISHED 25 February 2025
+CITATION
+Schulze PR, Müller S, Müller T and Gross H-M
+(2025) On realizing autonomous transport
+services in multi story buildings with doors
+and elevators.
+Front. Robot. AI 12:1546894.
+doi: 10.3389/frobt.2025.1546894
+COPYRIGHT
+© 2025 Schulze, Müller, Müller and Gross.
+This is an open-access article distributed
+under the terms of the Creative Commons
+Attribution License (CC BY) . The use,
+distribution or reproduction in other forums is
+permitted, provided the original author(s) and
+the copyright owner(s) are credited and that
+the original publication in this journal is cited,
+in accordance with accepted academic
+practice. No use, distribution or reproduction
+is permitted which does not comply with
+these terms.On realizing autonomous
+transport services in multi story
+buildings with doors and
+elevators
+Paul Robert Schulze* , Steffen Müller , Tristan Müller and
+Horst-Michael Gross
+Neuroinformatics and Cognitive Robotics Lab, Department of Computer Science and Automation,
+Institute for Technical Informatics and Engineering Informatics, Technische Universität Ilmenau,
+Ilmenau, Germany
+Mobile service robots for transportation tasks are usually restricted to a barrier-
+free environment where they can navigate freely. To enable the use of such
+assistive robots in existing buildings, the robot should be able to overcome
+closed doors independently and operate elevators with the interface designed
+for humans while being polite to passers-by. The integration of these required
+capabilities in an autonomous mobile service robot is explained using the
+exampleofaSCITOSG5robotequippedwithdifferentialdriveandaKinovaGen
+II arm with 7 DoF. This robot also defines the framework conditions with certain
+limitations in terms of maneuverability and perceptual abilities. Results of field
+tests with that robot in an elderly care facility as well as in a university office
+buildingareshown,whereitperformedtransportationandmessagingtasks.We
+also report on the success rates achieved and highlight the main problems we
+have encountered and dicsuss open issues.
+KEYWORDS
+elevatorriding,doormanipulation,doordetection,differentialdrive,systemsolution
+1 Introduction
+For years the development of socially assistive robots for home and also public
+applications has yielded promising user studies with positive expectations, but the lack of
+appearance of such systems on the market paints a different picture. One reason might
+be incisive boundary conditions for the robots’ deployment. Environments needed to
+be barrier-free, otherwise an expensive integration into the buildings’ infrastructure is
+necessary,ortherobotswouldneedhumanassistanceoftheirown.
+Against this background, the aim of our research project RobInCare1(robots in care)
+was to enable robots to overcome the reason for impediment by developing respective
+capabilities to use an elevator and open closed doors on their own. The functionality is
+realized in our layered architecture Gross et al. (2012) , which allows to integrate the new
+capabilitiesintootherapplicationsofourmobileservicerobotseasily.
+Inordertotestandevaluatetherealizedcapabilities,wehaveintegratedthedeveloped
+methods into a transport and messaging robot, which is used in our university on the one
+1https://www.robincare.de/
+Frontiers in Robotics and AI 01 frontiersin.org
+
+--- Page 2 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE1
+Robot performing a transport task in an elderly care facility; (from left to right, top to bottom) (1) task is scheduled via web interface, (2–4) robot opens
+and passes door to receive the goods, (5–7) robot has to ride an elevator on its way to the target person, (8) robot contacts the target person and
+finishes the transport task.
+hand and in an elderly care facility on the other (see Figure 1). The
+latterconsistsofathreestorybuildingwith24apartmentsandpublic
+roomsforsocialinteraction.
+Thisarticleservesasasummaryoftheindividualmethodology
+used for realization of autonomous door manipulation and floor
+switchingcapabilitiesbymeansofoperatinganelevator.Itdescribes
+theintegrationofthesenewfunctionalityintoaserviceapplication,
+while minor changes, which were necessary to achieve a smooth
+operation in a populated environment, are highlighted. We report
+the concluding experimental results conducted at the end of our
+research project and identify the open issues, which need to be
+addressedinfuturework.
+Inthefollowing,wediscussthestateoftheartregardingrobotic
+systems able to autonomously ride the elevator and pass through
+closeddoors.Thenanoverviewofourrobotandthemethodsused
+are presented. Finally, we describe the setup and outcome of the
+experimentsweconductedinordertoevaluatetherobustnessofthe
+autonomousnavigationcapabilities.
+2 Related work
+To the best of our knowledge, there is no publication of
+a comparable robot system which deploys the detection andmanipulation of closed doors and the ability to ride an elevator
+in a real-life application. Nevertheless, there is significant literature
+dealingwiththeindividualskills.
+2.1 Using the elevator
+One of the main problems to be solved for such a capability
+is the recognition and localization of the buttons to be pressed.
+Chenetal.(2023) recentlyintroducedanapproachtodetectelevator
+buttons by means of a YOLOv7 object detector in images, which
+is a well understood standard approach that offers little room
+for improvement. Alternatively, Zhu et al. (2020) use an eye in
+hand system with a two step network architecture. One subsystem
+functioning as the button detector, and a second one implements
+a character recognizer to interpret the labels of the buttons,
+which might be necessary for environments with excessively many
+floors. Besides, there are also classic image processing approaches.
+Nguyen et al. (2023) read displays and button labels by applying
+a seven segment mask after the detection of squares and circles in
+the image. Abdulla et al. (2016) describes a novel framework for
+multi-story navigation through the use of an elevator by a mobile
+robot.Usingexternallandmarksforaccuratepositioninginfrontof
+theelevatordoorandbuttonpanel,itdetectsbuttonsusingadepth
+Frontiers in Robotics and AI 02 frontiersin.org
+
+--- Page 3 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+cameraandmultiplestagesofimagefilters.Theworkdeclaresa98%
+accuracyinbuttondetections.
+Independent of the method used, the handling of unavoidable
+remaining detection errors is the key to a robust deployment.
+Zhuetal.(2020) useamulti-camerasystemandapostprocessingof
+detectionsbymeansofsoft-non-maximumsuppressionandoutlier
+removal to reach higher accuracy. For executing the actual push
+action, most systems rely on off-the-shelf offline motion planning,
+which is not described any further. The analysis in said studies
+concludes with giving success rates of the pure button detection or
+atmostreportthesuccessrateofpressingbuttonswitharobot(e.g.,
+96%Nguyen et al. (2023) ). Data on implementation of the whole
+procedure of calling, embarking, and riding the elevator are rare.
+Shinetal.(2023) describeacompletesystemandreportareal-world
+experiment with nine out of 10 successful button operations and
+3/10successfulboardings,whichshowsthatreal-worlddeployment
+isstillquestionable.Inourownpreviouswork Mülleretal.(2023b)
+(sumarized in 3.1.3), we also describe the realization of the whole
+process with other necessary recognition skills, like floor tracking
+and cabin state analysis. The complete procedure also includes
+fallbackanderrorhandlingincaseofafailedbuttonpress,orfailed
+elevatorboarding.
+2.2 Door manipulation
+Similar to the elevator problem, there are no reports of
+real-world applications involving door handling. Rather, a broad
+variety of lab experiments concentrate on individual aspects of the
+door manipulation. One can divide the problem in the detection
+part and the actual manipulation. Image-based door detection
+is predominant among the approaches found. Arduengo et al.
+Arduengo et al. (2021) for example, apply a YOLO detector for
+the doors and use the depth image for identification of the door’s
+plane,andafterwardsdeviatingpointsinsidethedoorrectangleare
+interpreted as the door handle. The utilization of depth image data
+and the fitting of geometric primitives is a standard approach for
+analyzing the door’s exact location and opening angle. In contrast,
+we suggest to use a computationally less expensive approach based
+onlidarrangescans Mülleretal.(2023a) .
+Ontheotherhand,thereistheactualmanipulationofthedoor.
+Newapproachesareconcentratingonlearningtheopeningprocess
+bymeansofimitationandreinforcementlearning Sunetal.(2021) ;
+Welschehold et al. (2017) ;Ito et al. (2022) . These may be capable
+of adapting to open new doors but at the cost of excessive training
+in real world as well as in simulation. Traditionally, in contrast
+therearemanyclassicapproaches,whichcategorizethedoor’sstate
+and specify respective heuristics for processing these situations.
+For instance, Jang et al. (2023) use a graph of distinguishable
+situations and an A∗planner to define a solving sequence
+ofactions.
+Often generic solutions are proposed that intend to work on
+arbitraryunseendoors,butthisisnotnecessaryforadeploymentin
+a given environment. Incorporation of prior knowledge regarding
+specifics of the doors encountered helps to make an approach
+resilient. Experience from previous trials can also be taken into
+account when calculating door parameters for the next trial with a
+similardoormodel Arduengoetal.(2021) .Another crucial limitation that we have with our robot system
+compared to other solutions is the differential drive. While robots
+with a holonomic drive Arduengo et al. (2021) ;Welschehold et al.
+(2017);Itoetal.(2022) ;Stoyanovetal.(2023) caneasilycompensate
+the limited range of the robotic arm by moving sideways during
+the execution of the opening arc movements with hand on
+the handle, non-holonomic robots Karayiannidis et al. (2012) ;
+Endresetal.(2013) ;Sunetal.(2021) inliteratureoftenhandleonly
+a subset of the complete spectrum of door states neglecting the
+difficultcases.
+Ourpreviouspaper Müller T.etal.(2023) (recapitulatedin3.1.4)
+describes the advantages and disadvantages of current approaches
+indetailandpresentsourownsolutiononadifferentialdriverobot,
+whichconsistsofapredefinedsequenceofmanipulationstrategies.
+These are based on prior knowledge of door geometry, which can
+beeasilyacquiredwheninstallingthesystemandthereforeleadtoa
+comparativelysimpletransfertonewapplicationenvironments.
+3 Materials and methods
+3.1 System overview
+3.1.1 Robot platform
+Themethodsforopeningdoorsoriginallyhavebeendeveloped
+on a TIAGo robot with an under-articulated five-finger hand as
+end effector. Although successful door manipulation was possible
+with that robot, we later transferred the methods to a Scitos G5
+robot by Metralabs, which is equipped with a Kinova Gen II
+7 DoF arm. Figure 2shows the robot with its main components
+used. The platform has a differential drive, which limits its
+maneuverability drastically compared to omnidirectional drives.
+This explicitly had to be considered during the door opening
+movementsequences.ForperceptiontherobothastwoSICKLidar
+sensors at a height of 40 cm, one being oriented forward and one
+backward.Furthermore,weuseanAzureKinectRGB-Dcameraon
+apan-tiltunitontopoftherobottodetectbuttonswhenoperating
+the elevator and to map the doors. An additional ASUS Xtion
+depth camera is used for obstacle mapping in order to ensure a
+safe operation of the arm. The active stereo approach of this device
+yieldsfewerartifactsinthepointcloudthanthetime-of-flightKinect
+camera. The built-in accelerometer of the robot platform is used
+to estimate the vertical movement in the elevator. Additionally it is
+equippedwithatouchdisplayforuserinteraction.
+3.1.2 System architecture
+We followed the layered architecture of Gross et al. (2012)
+when designing the modular software for our demonstrator. The
+implementation uses the robotic framework MIRA2, and our
+architecture depicted in Figure 3is organized as follows: At the top
+is theControl Layer , which manages the interaction with users and
+the control flow. Here, the robot hosts a website for scheduling
+transportation or messaging tasks, which are stored in a local
+database on the platform. Having everything on board is crucial
+for the robot, as the WiFi connection might be interrupted inside
+2https://www.mira-project.org
+Frontiers in Robotics and AI 03 frontiersin.org
+
+--- Page 4 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE2
+Used robot platform (Scitos G5 by Metralabs) as also seen in
+Müller et al. (2023b) .
+the elevator and when switching access points on the way through
+the building. A user therefore can either interact with the robot via
+mobile devices to call the robot remotely or via the GUI displayed
+ontherobot’stouchdisplay.
+In theBehavior Layer , we developed a hierarchy of reusable
+controlloopsthatareactivatedexclusivelyoneaftertheother.These
+behaviors make use of basic perception and action capabilities that
+are implemented as real-time processing units of the Skill Layer ,
+whichoperateinparallel.Finally,thesensorsandactorsareaccessed
+throughthe HardwareLayer .
+Fornavigation,weuseahybridprerecordedmapofthebuilding.
+Each topological section (floor) consists of a 2D occupancy grid
+defining the navigable areas, the location of doors and their
+properties (for example, the width of the door, or its opening
+direction), the location of button panels for interacting with the
+elevators,andaseriesofdestinationpointsthatcanbeselectedinthe
+tasksbytheusers.Forsafeobstacleavoidanceduringmanipulation,
+a local 3D voxel map is generated in real time, using the live point
+cloud from the ASUS Xtion camera and vertical walls generated
+from the horizontal lidar scans, which comprise areas that are not
+covered by the camera. This is illustrated in Figure 4, with the
+robot positioned in front of an elevator. Furthermore, for non-
+verticalstructuressuchashandrails,a3Drepresentationofobstacles
+is added manually and also stored in the global maps. The local
+collision map has a cell resolution of 2 cm, while in each cell, the
+exact position of the obstacles are stored. For collision testing with
+therobotgeometryduringmotionplanningthelocalcollisionmapisprocessedwithadistancetransforminordertoyielddistancesto
+theclosestobstacleineachofthegridcells.
+The mapping process of the door properties is semi-
+automated. To this end, a YOLOv5 detector network trained on
+the dataset of Arduengo et al. (2021) identifies doors and detects
+door handles in the RGB images during the initial mapping of the
+building.Thepointcloudofthedepthcameraisthenusedtoanalyze
+the properties of the doors in the detected bounding boxes. Points
+areprojectedonthegroundplanewherelinesarefittedtocalculate
+the distance between the door and the enclosing walls. This yields
+theopeningdirectionofthedoor.Inasimilarway,theoccurrences
+of buttons for the elevator are recorded during mapping, while
+the geometry and semantics of the button panels are annotated
+manually. With the help of this automation, the deployment in a
+three-story building was completed in just a few hours, although
+there is certainly still potential for further automation of these
+annotationtasks.
+Basedonthedatainthemaps,weimplementedthefundamental
+Drive To Navpoint Behavior (seeFigure 3), which checks whether
+the destination is on the same floor and activates the Ride Elevator
+Behavior ifnecessary.Fornavigationtodestinationsonthecurrent
+floor,theplannedpathisintersectedwiththelinesofcloseddoorsin
+ordertotriggerthe PassDoorBehavior ,ifnecessary,whichanalyzes
+the actual state of the door and triggers corresponding actions
+toopenit.
+The2Dnavigationskillsoftherobotarebasedonan E∗metric
+planner and an evolutionary local motion planner, described in
+detailin( Mülleretal.,2017 ).
+For localizing the robot in the environment, a Monte Carlo
+approach ( Fox, 2001 ) is used, which relies on matching the lidar
+scansagainsttheoccupancymaps.Inapreviousproject( Grossetal.,
+2015) using the same localization method on a similar differential
+drive robot, the accuracy of the localization has been evaluated to
+bewithin7 cm.Unfortunately,thislimitedaccuracyalsoaffectsthe
+position of modeled obstacles. In order to reach buttons and door
+handleswiththearmwithoutcollisions,amoreaccuratelocalization
+isrequired.Tothatend,weusethedetectionsofbuttonpanelsand
+door keypoints as additional observation updates for the particle
+filter-based localization, such that the deviation due to the coarse
+map resolution of 5 cm can be reduced when the robot is facing a
+doororbutton.
+3.1.3 Operating the elevator
+TheRide Elevator Behavior (seeFigure 5for a coarse sequence
+of the algorithm) implements a sequence of actions in order to use
+the elevator. The workflow is basically the same as described in
+Müller et al. (2023b) , except that a handling of traffic in front of
+a lift to be used is added. First, the area in front of the elevator
+is analyzed for other people who might be waiting for a ride.
+They get precedence, and in this case the robot drives to a waiting
+position. Wengefeld et al. (2019) gives an overview of the multi-
+modalpeopledetectionandtrackingsystemweuseontherobot.
+Oncethewayisfree,therobotplacesitselfinfrontoftheelevator
+door and activates the Press Button Behavior to call the elevator.
+Thenitobservesthestateofthecabindoorandbringsitsarmback
+to a safe home position, which is used for driving. The state of the
+elevator door is determined in the lidar range scanby checking the
+widthofthefreegapontheknownlineofthedoor.Whenthedoor
+Frontiers in Robotics and AI 04 frontiersin.org
+
+--- Page 5 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE3
+System architecture consisting of the fundamental skills necessary to ride elevators autonomously and open doors on the way.
+FIGURE4
+This figure illustrates the models used for safe navigation and manipulation. Navigation uses the 2D occupancy grid map (black and white on the floor).
+The arm motion planner relies on a 3d local collision map which combines data of various sources. The dots represent occupied voxels (green is the
+ground plane, pink the laser detections projected upwards, red static collision objects). The red boxes show the manually defined geometry of static
+objects. The blue door’s states are updated when seen in the lidar scan and are added to the 3d local map as planes if in range. Additionally, the
+pointcloud of the depth camera is integrated in the 3d local map as well.
+opens, the cabin is analyzed for people inside, which might leave
+the cabin. If there are passengers in the elevator, the robot gives
+way and starts over with the call elevator procedure afterwards. In
+the case of an empty cabin, the robot enters the elevator as quickly
+as possible, which was a tough challenge as the door only stays
+openfor6 s.
+Inside the elevator, the Press Button Behavior is used again in
+order to select the destination floor, and the robot immediately
+retracts its arm and moves to a waiting pose in front of the
+door, as the time for exiting is also limited. In the meantime,
+the robot keeps track of the current floor the elevator is on bymeasuring the time between the peaks of vertical acceleration and
+deceleration(see Mülleretal.(2023b) foramoredetailedanalysisof
+thissolution).
+When the elevator stops at the target floor, the robot leaves the
+cabin and communicates to potential passengers waiting in front,
+thatitneedsspacetomaneuver.Incasetheelevatorstopsatanother
+floor,therobottellswaitingpeople,thatitisoccupyingtheelevator
+andwantstogoaloneinordertopreventanycontactandblocking
+of passengers, and starts over with the dial target floor procedure
+in case a wrong button has been pressed, since the robot cannot
+distinguish the reason for the stop at the unintended floor. This
+Frontiers in Robotics and AI 05 frontiersin.org
+
+--- Page 6 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE5
+Flow-diagram of the ride elevator behavior algorithm.
+repetition of dialing is also triggered, if the elevator does not move
+afterabuttonhasbeenpushed.
+ThePressButtonBehavior (seeFigure 6forabroadprocedureof
+thealgorithm)isrelyingonaFaster-RCNNdetectorabletolocalize
+16 button classes in the color image. The resulting bounding boxes
+are used for a lookup in the depth image to obtain 3D positions
+and surface normals of the individual buttons, which are matched
+againstthepreviouslyknownbuttonpatternsonthemappedpanels.
+The number of distinguishable buttons limits the applicability to
+buildingswithreasonablenumberoffloors.Nonetheless,morethan
+10 floors are also possible due to the panel matching as described
+in (Müller et al., 2023b ). The matching of complete panels to
+incomplete detections allows to compensate for unrecognized and
+misclassified buttons and therefore correct buttons can be pressed
+even if they cannot be detected individually. A detailed evaluation
+ofthedetectionaccuracycanbefoundin( Mülleretal.,2023b ).
+Having the 3D pose of the target buttons, the
+motion planner ( Müller et al., 2021 ) is used to execute a preparing
+approachmovementthatbringsafingerinfrontofthebutton.This
+isfollowedbyalinearpushmovement,thatisterminatedbyaforce
+feedbackevent.
+Since we do not use an eye in hand setup but determine the
+targetpositionforthepushmovementincameraimages,therobot
+model needs to be carefully calibrated against the movable camera.
+Tothatend,theendeffectorofthearmislabeledwithasetofArUco
+markers (see Figure 10 right), which allows to calculate the exact
+position of the fingers in camera coordinates at runtime, provided
+FIGURE6
+Flow-diagram of the Press Button Behavior as also seen in
+Müller et al. (2023b) .
+they are visible. This is used to compensate for deviations between
+therobotmodelusedforplanningthemotionandtherealposition
+of the robot arm with respect to the camera and increases the hit
+rate drastically during the push movement. The marker and button
+detections runs with a frequency of 5 Hz on a 1280 by 720 pixel
+image. The accuracy of the marker localization in lateral direction
+usuallyisintherangeofthepixelresolution,whiledepthestimation
+from 2d image data is more error prone. Fortunately, the accuracy
+ofthetargets’distanceinthedirectionofmovementwhenpressing
+thebuttonsplaysasubordinaterole.
+3.1.4 Opening doors
+Opening and passing through doors is governed by the Pass
+Door Behavior (seeFigure 7), that initially approaches a coarse
+observationposition,fromwherethedoor’scurrentstateandexact
+positionisanalyzed.Unlikemanyothersolutions,ourdooranalysis
+isbasedonlidarrangescanningandnotonimageprocessing.This
+saves computational resources and is robust enough, as an analysis
+of the position accuracy for reaching the door handle shows (see
+Section 4.1.1 ). A detailed description of the door localization in
+range scans using a 1D CNN can be found in ( Müller et al., 2023a )
+The detection of the door runs at the rate of the lidar scans, which
+is15 Hz.Thisadditionallyincreasestherobustnessoftheestimated
+positionofthedoor.
+Depending on the observed opening state of the door,
+specializedsubordinatebehaviors(unlatchdoor,pull/pushdoor,or
+simply pass through the open door) are activated, each of which
+is responsible for bringing the door to the next more open state
+(closed→unlatched →partly open →fully open). Figure 8shows
+theprocedureforunlatchingacloseddoorforexample,.
+For these operations, it depends on the side of the door and
+the opening directionwhethertograspthedoorhandle forpulling
+or only to push the door on its edge or face with the open hand
+Frontiers in Robotics and AI 06 frontiersin.org
+
+--- Page 7 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE7
+Flow-diagram of the pass door behavior.
+FIGURE8
+Flow-diagram of the unlatch door behavior.
+(seeFigure 9). All movement sequences have been designed by
+hand and consist of a series of intermediate navigation points for
+both the robot base and the arm, which are defined in the door
+referenceframeandscaledwiththeknowndoorwidth.Inthisway,
+individual deviations in the robot’s position can be compensated.
+One aspect of importance is the fact that coordinated movements
+oftherobot’sbaseandthearmarenecessarybecauseofthelimited
+reach of the arm when the door swings open. This coordinated
+movement is achieved by using a closed loop motion planner
+forthearm( Mülleretal.,2021 ),whichrunsatafrequencyof4 Hz.
+Bymeansofthat,theslowermotionsofthebasecanbecompensated
+for and the end effector trajectory with respect to the door can
+beachieved.
+FIGURE9
+Flow-diagram of the pull/push door behavior.
+Thelimitationsduetothedifferentialdrive(robotcannotmove
+sideways) and the limited free space behind an open door make it
+impossibleforoursystemtoopenadoorswingingtowardstherobot
+without repositioning of the hand from the inside to the outside
+handle. In order to pull open a door to the fully open state with
+the end effector at the inside handle, due to the limited reach of
+the used arm, the robot base would need to follow the door in a
+circular movement ending up behind the open door. This, in most
+ofthedoorsseeninourscenarioisnotpossiblebecauseofrestricted
+free space. Consequently, we have to let go the handle, when the
+robotismovingthroughthedoor.Asweonlyhaveonemanipulator
+onboard,therobotispreventedfromopeningdoorswithautomatic
+closingmechanisms,sinceduringrepositionoftheendeffectorand
+whenpassingtheopendoor,thedoorcannotbelockedinposition.
+Other external disturbances at the door, such as people
+opening the door from the other side, can be compensated by the
+supervising Pass Door Behavior . This triggers retry mechanisms
+for the individual strategies. A repetition is also triggered if the
+gripper slips off the handle while manipulating the door. This is
+recognizedbymonitoringtheforceandtorquemeasurementsatthe
+endeffector.
+If the door could not be opened after three retires or restarts of
+thebehaviors,itishighlylikely,thattherobotisfalselylocalizedor
+the door might be locked and required human intervention. More
+detailsregardingthedoormanipulationstrategiesandthe PassDoor
+Behavior canbefoundin Müller T.etal.(2023) .
+3.1.5 Limitations
+Unlikeotherpublications,oursystemdoesnotaimtoreactively
+handle unseen doors. Rather, we intended to realize a reliable
+solution for deploying a transportation service in a predefined
+operation environment. Although we rely on a previously mapped
+environment (doors and elevator), achieving a robust autonomous
+transport service managing the doors and elevators is still
+challenging. The robot needs a high degree of introspection and
+needstobeabletorecognizedeviationsfromtheexpectedbehavior,
+especiallyduringthemanipulationactivities.
+Frontiers in Robotics and AI 07 frontiersin.org
+
+--- Page 8 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+For example, collision detection is implemented based on the
+forces measured at the end effector. If a certain threshold is
+exceeded,thesystemhalts.Here,itisdifficulttodistinguishintended
+interaction forces from accidental contact. In contact situations,
+ethicalquestionsarise,suchaswhethertherobotisallowedtoretry
+movingorwhetherhumaninterventionisrequiredtorecoverfrom
+suchsituations.
+Another situation is in the elevator. The robot tells people that
+it occupies the cabin and wants to go alone in order to prevent any
+contact and blocking of passengers. Nevertheless, nothing prevents
+people from entering the elevator and interfering with the robot’s
+behavior. If people push the robot around, it may get stuck and
+requireforhumaninterventiontorecover.
+In conclusion, we have tried our best to detect and handle
+as many exceptional situations as possible, but due to a lack of
+recognitioncapabilities,therewillalwaysbesituationsthattherobot
+cannothandleautonomously.Intheevaluationsectionwewillgive
+examplesthathaveoccurred.
+4 Results and discussion
+4.1 Evaluation
+4.1.1 Analysis of grasp pipeline accuracy
+Allintermediategraspposesofthedoormanipulationstrategies
+are designed by hand and might depend on the exact situation at
+the site of development. Nevertheless, each individual door handle
+should be reached consistently in order to achieve a reasonable
+successrateforopeningthedoor.
+Therefore, we first tested the positioning stability of the entire
+pipelineoftheintegratedsystematonce.Sotheinfluenceofthedoor
+localization in the range scan, the robot platform localization and
+navigationcapabilities,andtheaccuracyoftheexecutionofthearm
+motion contribute to the final end effector position with respect to
+thedoorhandle.
+In order to measure the consistency of the end effector
+positioning, we utilized ArUco markers, which we placed beside
+the door handle in an exact reference position to the axis of
+the handle. For four different doors of different kinds (since
+the evaluation environment did not offer more variety), we used
+these visually recognizable markers and the calibration markers on
+thearm(see Figure 10 right)torecordthedistributionoftherelative
+position of the end effector to the door handle. For each of the 15
+trials per door, the robot first was approaching the manipulation
+position with the robots’ base and conducted a grasping motion to
+approach the handle afterwards. When the target position on the
+door handle has been reached, the positions have been recorded.
+Since the necessary door analysis is carried out in lidar data only,
+the additional visual markers have no influence on the results, but
+theydoallowtomeasuretherelativepositionprecisely.
+Figure 10 shows the intra- and inter-door variance of the four
+measureddoors,withthehandlepivotpointin (0.0;0.0).Theintra-
+doorvariancedescribesthedistributionoftheresultinggraspposes
+for one individual door and therefore reflects the stability of the
+graspingpipelineinapplicationconditions.Theinter-doorvariance,
+ontheotherhand,mainlyreflectstheinfluenceofthedooranalysis
+andlocalizationnetwork.Theexactlocalizationoutputsforthedoorhinge and handle depend on the profile of the actual closed door,
+seen in the lidar scan. Since different doors have differently shaped
+door frames, a bigger inter-door standard deviation of 5 mm in x-
+direction, 9 mm in y-direction (see the black ellipsis in Figure 10 )
+results. For application in our scenario, this is of minor relevance,
+becauseitcanbecompensatedforwithadoorspecificcorrectionof
+thegrasptargetposeatthehandle.
+Theaverageintra-doorstandarddeviationoveralltrials(3.2 mm
+inx-directionand3.5 mmin y-direction)confirmsthatthestability
+of the localization method and the navigation and manipulation
+pipelinetogetherissufficientforarobustmanipulationofthedoors.
+Theactualminimumandmaximumgraspingpositionliesinarange
+ofabout1.5 cmaroundthetargetatthehandleforagivendoor.The
+horizontalandverticaldeviationofthetargetedpointonthehandle
+ofalltrialsisabout3 cm,whichisroughlytheareaweneedtohitin
+ordertoapplysufficienttorqueonthehandlepivotpoint,tounlatch
+the door (not too close to the axis of the handle) without slipping
+offtheotherendofthehandle.Theseresultssupportthehypothesis
+thatthesystemwilleasilygeneralizetootherdoors.
+4.1.2 Stability of the deployed system
+Sinceourapproachisoneofthefirstknownautonomousrobotic
+systemstoperformaseriesofcombineddooropeningsandelevator
+uses, the evaluation of our approach (see Table 1) might be able to
+functionasacoarsereferencemetricforfuturesystems.Wefirsttake
+a look at the system as a whole, then go into detail on the specific
+behaviors of elevator riding and door manipulation, and conclude
+withasummaryofproblemsencounteredduringtesting.
+4.1.2.1 Task and duration evaluation
+Therobotsystemwasfullytestedattwodifferentlocations.The
+firstoneisanelderlycarefacilityoftheworkerswelfareassociation
+(short ger.: AWO) and the second one is our office building named
+after Konrad Zuse. A floor map can be seen in Figure 11 with the
+doors and elevator included. In both buildings, the robot had to
+execute a total of 119 transportation and notification tasks. In a
+transportation task, the robot has to drive from the home position
+to a pick-up location and afterwards to the destination, where the
+object is delivered. For messaging tasks, the robot simply drives to
+thedestinationandwaitsforapersontobenotified.Oncethepeople
+trackerrecognizesahuman,themessageispresentedtotheperson.
+During the test campaign, each task comprised one or more
+dooropeningproceduresanduptotwoelevatoruses.Therobotwas
+accompanied by a supervisor who noted exceptional behavior and
+recoveredthesystemifnecessary.
+79 of the tasks were performed at the AWO facility with an
+overallsuccessrateof88 .6%,leadingtoafailurein9cases.Wehada
+slightlylowersuccessrateof80 .0%forthetestsintheZusebuilding.
+Theaveragetimetosuccessfullycompleteataskstaysbetween5and
+7 min andismainlyinfluencedbythedistancetodrive,thenumber
+of doors to open and floor changes required. The minimum time
+spanof1–2 min arisesfromataskinwhichthetargetisonthesame
+floorbehindjustonecloseddoor.Whereasthemaximumdurations
+ofthe10 min canbetracedbacktosituationswheremanyretriesin
+thedoormanipulationstrategieswerenecessary.
+Further, we evaluated each use of the elevator separately. In the
+AWO environment 41 out of 44 elevator rides were successfully
+Frontiers in Robotics and AI 08 frontiersin.org
+
+--- Page 9 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE10
+Distribution of end effector positions for multiple trials of approaching and grasping the door handle of four different doors. The colored lines mark the
+maximal deviation on both axes. With (0, 0) marking the handle pivot point.
+TABLE1 Evaluationofthepresentedsystem.
+Location Tasks Quote Duration [min:sec]
+MinAvgMax
+Full system
+AWO 79 88,6% 01:13 05:47 13:47
+Zuse 40 80,0% 02:15 06:37 12:03
+Elevator riding
+AWO 44 93,2% 01:39 02:07 05:23
+Zuse 25 88,0% 01:26 02:48 06:14
+Door manipulation
+AWO 115 94,8% 01:06 01:45 04:30
+Zuse 42 88,1% 01:06 02:07 06:03
+completed, while in the Zuse building 22 of 25 rides worked well.
+Thisyieldsasuccessrateof93 .2%and88 .0%respectively.
+On average, the robot needs around 2–3 min for an elevator
+ride,with1:30 min beingtheminimumtimespantochangefloors.
+One fact that must be taken into consideration is other people
+using the elevator, causing the robot to wait for the next free cabin.
+Considering necessary retries while waiting and traveling to an
+intermediate floor, the maximum time period the robot took was
+lessthan7 min.
+Thedooropeningprocedurewasevaluatedattheendof Table 1
+with 115 tasks in the AWO environment and 42 attempts in the
+Zusebuilding.Ourapproachsuccessfullyopened94 .8%ofthedoorsat AWO and 88 .1% in the office building. The varying success rate
+in the two buildings is due to various problems, ranging from
+localization errors to problems with force thresholds for detecting
+the end points of movements (as seen in Figure 8orFigure 9). The
+latterhadthelargestimpactontheduration,aseachnewattemptto
+unlatchthehandleaddsatleast20 stothetotaltime.Theminimum
+timerequiredtoopenadoorisabout1 minute,independentofthe
+location.Wecanthereforeassumethatdifferentbuildingsgenerally
+havenoinfluenceonthedurationofthepuremanipulation.
+4.1.2.2 Failure reasoning
+The main failures can be divided into three classes: i)
+Localization , ii)Detection, and iii) Obstacle Perception and
+Motionplanning .
+Starting with the localization, one of the major differences
+between the two buildings is their internal structure. The Zuse
+building has long hallways with few features for localization on the
+onehandandwideopenspacesontheother.Inaddition,therobot
+often has to cover distances of up to 100 m. In contrast, the AWO
+facility is more feature rich with clear edges and junctions as well
+as much shorter hallways, like in a home environment. Therefore,
+the localization of the robot in its map at the AWO facility is more
+robust,whichisreflectedintheoverallsuccessrates.
+Although we extended the Monte Carlo localization approach
+to accurately localize the robot with respect to observed doors
+and buttons, sometimes the robot could not recover from global
+localization errors. The reason for this is that these additional
+observations are only active when such targets are nearby and
+also require a good prior estimation of the robot’s position to
+work (correct sections of the range scan need to be extracted for
+analysis). Incorrect positioning in the map and thus a following
+localization error of door features or button positions can lead to
+subsequent misbehavior without a direct indication for the robot
+to recognize them. For example, a wrong position may prevent the
+Frontiers in Robotics and AI 09 frontiersin.org
+
+--- Page 10 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+FIGURE11
+This figure shows one floor map of our three-storey university building with the 3D collision objects (elevator and doors) as overlay on the 2D
+occupancy grid map.
+robot from recognizing the elevator door to be opened, resulting
+in an infinite loop of attempts to call the elevator. It finally needed
+human intervention in such situations as occured two times in the
+Zuse building. Thus, one of the main disadvantages we will have
+to overcome in the future is the precise self localization in large,
+wide-openandunstructuredareas.
+A second problem related to the localization is caused by false
+localizationofbuttonsanddoorfeatures.Iftheerroneousdetections
+are used to adjust the robot’s global pose in the map, it might
+virtually be moved into static obstacles. Then the robot gets stuck
+during navigation or manipulation as it spuriously believes to be
+in collision. It can no longer safely recover from this situation, as
+localizationupdatesrequiretherobottomoveinordertoobtainnew
+independent measurements. Therefore, finally human intervention
+is needed. This problem occured in the AWO elevator, which has
+very little space left for manouvering (less than 4 cm at the robots
+tailwhenturning).
+Concerning the problems related to the detection and
+localization of door keypoints, we observe an instability of the
+predicted positions when the robot moves during operation. Since
+the door analysis runs continuously during door manipulation in
+order to keep track of the opening angle, the actual arc trajectory
+of the hand may shift with the localization of the door hinge used
+as the pivot point. When the arm motion planner reacts to that
+changingtargettrajectory,contactforcescanexceedthresholdsand
+the opening process is interrupted, requiring a retry. We aborted
+theoperationafterthethirdattemptofeachstageoftheprocedure.
+Sucherroneouslocalizationofdoorfeaturesoccurredmainlywhen
+the robot was close to the door or in between the door frame.
+These are poses that were not part of the dataset of lidar scans
+used to train the detector. We tried to make the detection more
+robust in these situations by verifying the location of the door’s
+hingeandopeningangleusingalinefittingheuristic.Nevertheless,
+uncertainties remain when there are contradictory predictions forthe position of the door, and exceptional situations could not be
+completelyavoided.
+Thelastcategoryofproblemsisrelatedtothelimitedperception
+of the environment and a lack of accuracy in the internal
+representation of the robot’s geometry in relation to its real shape.
+Due to the limited precision of depth perception and difficult
+conditions,e.g.,intheelevatorwheremirrorsandreflectivesurfaces
+are prevalent, the robot can come into unintentional contact with
+obstacles. This resulted in one of the unsuccessful elevator rides.
+Also, the non-deterministic nature of the used motion planner is
+sometimes causing problems, when occasionally unconventional
+solutions for a movement trajectory are produced that have not
+beenseenduringdevelopment.Thesealternativesolutionscanbring
+the arm into unforeseen configurations, which result in inadequate
+poses for succeeding steps, due to unfavorable joint limits. Further
+restrictions in the definition of the desired movements must be
+introducedinordertoeliminatethesecircumstancesinfuture.
+To summarize, there are many interdependent subsystems in
+our approach that can fail and the success rate for complete task
+execution is the product of the individual ones. Although the
+individual parts can be made more robust, there will always be
+critical situations that the robot cannot perceive with its limited
+sensory capabilities alone. This requires a safe hardware design to
+makeitusableanyway.
+5 Conclusion
+In this article, we presented a first integrated solution for a
+service robot operating in populated buildings with elevators and
+closed doors. The long-term real-world application tests revealed
+that the system basically operates autonomously thanks to its safe
+hardwaredesign.Althoughtaskcompletionstillfailsin14%ofcases
+whendoorsandelevatorsareontheway,therobotcannotharmany
+people and can be left running unattended. We identified aspects
+Frontiers in Robotics and AI 10 frontiersin.org
+
+--- Page 11 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+for future improvement in our methodology, but ultimately there
+will always be situations that cannot be anticipated and require
+human intervention due to the robot’s limited introspective and
+perceptioncapabilities.Inthelatter,weseethegreatestpotentialfor
+optimizationinthefuture.
+Data availability statement
+Theoriginalcontributionspresentedinthestudyareincludedin
+thearticle/ SupplementaryMaterial ,furtherinquiriescanbedirected
+tothecorrespondingauthor.
+Ethics statement
+Written informed consent was obtained from the individual(s)
+for the publication of any potentially identifiable images or data
+includedinthisarticle.
+Author contributions
+PS: Data curation, Software, Visualization, Writing–original
+draft, Writing–review and editing. SM: Conceptualization, Data
+curation, Formal Analysis, Investigation, Methodology, Software,
+Supervision, Validation, Visualization, Writing–original draft,
+Writing–reviewandediting.TM:Conceptualization,Datacuration,
+Methodology,Software,Validation,Visualization,Writing–original
+draft, Writing–review and editing. H-MG: Conceptualization,
+Project administration, Resources, Supervision, Writing–review
+andediting.
+Funding
+The author(s) declare that financial support was received for
+the research, authorship, and/or publication of this article. Thisresearch has received funding from the Thuringian project of
+innovationpotentialsaspartofthethurAIproject(grantagreement
+2021 FGI 0008). We acknowledge support for the publication
+costs by the Open Access Publication Fund of the Technische
+UniversitätIlmenau.
+Conflict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or financial relationships that could be
+construedasapotentialconflictofinterest.
+Generative AI statement
+The author(s) declare that no Generative AI was used in the
+creationofthismanuscript.
+Publisher’s note
+All claims expressed in this article are solely those of the
+authors and do not necessarily represent those of their affiliated
+organizations, or those of the publisher, the editors and the
+reviewers.Anyproductthatmaybeevaluatedinthisarticle,orclaim
+thatmaybemadebyitsmanufacturer,isnotguaranteedorendorsed
+bythepublisher.
+Supplementary material
+The Supplementary Material for this article can be found
+online at: https://www.frontiersin.org/articles/10.3389/frobt.2025.
+1546894/full#supplementary-material
+References
+Abdulla,A.,Liu,H.,Stoll,N.,andThurow,K.(2016).Anewrobustmethodformobile
+robotmultifloornavigationindistributedlifesciencelaboratories. JournalControlSci.
+Eng.2016,1–17.doi: 10.1155/2016/3589395
+Arduengo, M., Torras, C., and Sentis, L. (2021). Robust and adaptive door
+operation with a mobile robot. Intell. Serv. Robot. 14, 409–425. doi: 10.1007/s11370-
+021-00366-7
+Chen, M.-H., Huang, W.-H., and Li, T.-H. S. (2023). “A yolov7-based method
+for detecting buttons in service robots during autonomous elevator-taking tasks,”
+in2023 international conference on advanced robotics and intelligent systems (ARIS)
+(IEEE),1–6.
+Endres, F., Trinkle, J., and Burgard, W. (2013). “Learning the dynamics of doors for
+robotic manipulation,” in 2013 IEEE/RSJ international conference on intelligent robots
+andsystems ,3543–3549.doi: 10.1109/IROS.2013.6696861
+Fox, D. (2001). KLD-sampling: adaptive particle filters. Proceedings of the 14th
+International Conference on Neural Information Processing Systems: Natural and
+Synthetic,713–720.doi: 10.5555/2980539.2980632
+Gross, H.-M., Mueller, St., Schroeter, Ch., Volkhardt, M., Scheidig, A., Debes, K.,
+et al. (2015). “Robot companion for domestic health assistance: implementation, test
+andcasestudyundereverydayconditionsinprivateapartments,”in IEEE/RSJint.Conf.
+Onintelligentrobotsandsystems(IROS) (IEEE),5992–5999.Gross, H.-M., Schroeter, Ch., Müller, St., Volkhardt, M., Einhorn, E., Bley, A., et al.
+(2012). “Further progress towards a home robot companion for people with mild
+cognitiveimpairment,”in Ieeeint.Conf.Onsystems,man,andcybernetics(SMC)(IEEE) ,
+637–644.
+Ito, H., Yamamoto, K., Mori, H., and Ogata, T. (2022). Efficient multitask learning
+with an embodied predictive model for door opening and entry with whole-body
+control.Sci.Robotics 7,eaax8177.doi: 10.1126/scirobotics.aax8177
+Jang, K., Kim, S., and Park, J. (2023). Motion planning of mobile manipulator for
+navigation including door traversal. IEEE Robotics Automation Lett. 8, 4147–4154.
+doi:10.1109/lra.2023.3279612
+Karayiannidis, Y., Smith, C., Viña, F. E., Ogren, P., and Kragic, D. (2012). “open
+sesame!” adaptive force/velocity control for opening unknown doors . IEEE/RSJ
+International Conference on Intelligent Robots and Systems, 4040–4047.
+doi:10.1109/IROS.2012.6385835
+Müller, St., Müller, T., Ahmed, A., and Gross, H.-M. (2023a). Laser-based
+door localization for autonomous mobile service robots. Sensors23, 5247.
+doi:10.3390/s23115247
+Müller, St., Stephan, B., and Gross, H.-M. (2021). “Mdp-based motion planning for
+grasping in dynamic szenarios,” in Europ. Conf. On mobile robotics (ECMR), bonn,
+Germany(IEEE) ,8.
+Frontiers in Robotics and AI 11 frontiersin.org
+
+--- Page 12 ---
+Schulze et al. 10.3389/frobt.2025.1546894
+Müller, St., Stephan, B., Müller, T., and Gross, H. M. (2023b). “Robust
+perception skills for autonomous elevator operation by mobile robots,” in
+European conference on mobile robots (ECMR 2023) (Coimbra, Portugal: IEEE),
+1–7.doi:10.1109/ECMR59166.2023.10256353
+Müller,St.,Trinh,T.Q.,andGross,H.-M.(2017).“Localreal-timemotionplanning
+usingevolutionaryoptimization,”in Towardsautonomousroboticsystems:18thannual
+conference, TAROS 2017, guildford, UK, july 19–21, 2017, proceedings 18 (Springer),
+211–221.
+Müller, T., Müller, St., and Gross, H.-M. (2023c). “Door manipulation as a
+fundamental skill realized on robots with differential drive,” in ISR europe 2023; 56th
+internationalsymposiumonrobotics (Berlin,Germany:VDEVerlag),338–345.
+Nguyen, T. V., Jeong, J.-H., and Jo, J. (2023). An efficient approach for the elevator
+buttonmanipulationusingthevisual-basedself-drivingmobilemanipulator. Industrial
+RobotInt.J.roboticsRes.Appl. 50,84–93.doi: 10.1108/ir-03-2022-0063
+Shin, S., Lee, J. H., Noh, J., and Choi, S. (2023). “Robust detection for autonomous
+elevator boarding using a mobile manipulator,” in Asian conference on pattern
+recognition (Springer),15–28.Stoyanov,T.,Popov,V.,Topalov,A., Ahmed-Shieva,S., Shakev,N., andNedelcheva,
+B. (2023). “Visual servoing in door opening task for omnidirectional mobile
+manipulator,” in 2023 international conference automatics and informatics (ICAI)
+(IEEE),82–87.
+Sun, Y., Zhang, L., and Ma, O. (2021). Force-vision sensor fusion improves
+learning-based approach for self-closing door pulling. IEEE Access 9, 137188–137197.
+doi:10.1109/ACCESS.2021.3118594
+Welschehold, T., Dornhege, C., and Burgard, W. (2017). “Learning mobile
+manipulation actions from human demonstrations,” in 2017 IEEE/RSJ
+international conference on intelligent robots and systems (IROS) , 3196–3201.
+doi:10.1109/IROS.2017.8206152
+Wengefeld,T.,Müller,St.,Lewandowski,B.,andGross,H.M.(2019).“Amultimodal
+people tracker for real time human robot interaction,” in Ieee int. Symp. On robot and
+humaninteractivecommunication(RO-MAN) (NewDelhi,India:IEEE),1–8.
+Zhu,D.,Min,Z.,Zhou,T.,Li,T.,andMeng,M.Q.-H.(2020).Anautonomouseye-in-
+handroboticsystemforelevatorbuttonoperationbasedondeeprecognitionnetwork.
+IEEETrans.Instrum.Meas. 70,1–13.doi: 10.1109/tim.2020.3043118
+Frontiers in Robotics and AI 12 frontiersin.org

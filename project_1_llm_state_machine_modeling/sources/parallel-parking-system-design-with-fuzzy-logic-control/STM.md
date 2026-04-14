@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：Hybrid（混成状态机）
+- 代表时间级别：T3（混成时间 / 连续时间耦合）
+- 结构标签概况：连续耦合
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
-- 简要判断：论文同时给出了自动泊车中的倒车轨迹分段逻辑和基于轨迹偏差的转向控制闭环，能提取出两类子控制逻辑。
+- 简要判断：倒车轨迹分段逻辑已可进主样本，轨迹跟踪与模糊转向修正也已不再停留在摘要级。
 
 ## 条目 1: Reverse parking stroke with maximum-steer then straightening
 - 控制对象：自动泊车系统中的倒车入位轨迹执行逻辑
+- 状态机类型：Hybrid（混成状态机）
+- 时间级别：T3（混成时间 / 连续时间耦合）
+- 结构标签：连续耦合
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -38,19 +49,44 @@
 > compl ete the steering will return to angle 0 constantly. The car
 > goes to the parking space on the orders of the operator.
 
+#### 摘录 C
+- 出处：第 4-5 页，`Parking Trajectory Design`，行 219-230
+> Radius is an important variable in designing a parking trajectory.
+> Therefore, before designing the trajectory, it is necessary to first
+> test the minimum radius of the test car. By using equation (1)
+> where θ comes from the reading of the GY -25 heading sensor.
+> The method of testing the turning radius is to run the car in reverse
+> and the steering angle is 45 °. The turning radius is the largest
+> coordinate value for the x -axis. The prototype test car received a
+> maximum x value of 44.2 cm. Based on the data above, the
+> turning radius that will be used in the parking trajectory design is
+> 44.2 cm.  After the car follows the quarter -circle trajectory, the car moves
+> backward following the straight -line trajectory.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The automatic parking system uses a reference parking trajectory so that the car enters the parking space in the correct direction. During the reverse parking stroke, the steering is first turned to the maximum angle so that the car follows a circular trajectory, and after the turning process is complete the steering returns to zero while the car continues reversing along a short straight segment into the parking space.
+The automatic parking system uses a designed reference trajectory so that the car can enter the parking space in the correct direction. For garage parking, the vehicle first reverses with the steering turned to the maximum angle so that it follows a circular path, and on the prototype this phase uses a constant steering angle of 45° and a reverse speed of 0.13 m/s. The turning radius used in the trajectory design is 44.2 cm. After the car follows the quarter-circle segment, the steering returns to 0 and the car continues reversing along a short straight-line segment to the parking end point.
 
 ### 3. 逐句溯源
 
 1. 句子 1：The automatic parking system uses a reference parking trajectory so that the car enters the parking space in the correct direction.
    对应摘录：A
-2. 句子 2：During the reverse parking stroke, the steering is first turned to the maximum angle so that the car follows a circular trajectory, and after the turning process is complete the steering returns to zero while the car continues reversing along a short straight segment into the parking space.
+2. 句子 2：For garage parking, the vehicle first reverses with the steering turned to the maximum angle so that it follows a circular path, and on the prototype this phase uses a constant steering angle of 45° and a reverse speed of 0.13 m/s.
    对应摘录：A, B
+3. 句子 3：The turning radius used in the trajectory design is 44.2 cm.
+   对应摘录：C
+4. 句子 4：After the car follows the quarter-circle segment, the steering returns to 0 and the car continues reversing along a short straight-line segment to the parking end point.
+   对应摘录：A, B, C
 
 ## 条目 2: Fuzzy steering correction during parking
 - 控制对象：自动泊车系统中的轨迹跟踪与转向修正控制
+- 状态机类型：Hybrid（混成状态机）
+- 时间级别：T3（混成时间 / 连续时间耦合）
+- 结构标签：连续耦合
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
+- 数据集角色：🧰 清洗后保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -72,13 +108,46 @@ The automatic parking system uses a reference parking trajectory so that the car
 > control to get the value of the steering angle that must be
 > executed.
 
+#### 摘录 B
+- 出处：第 5-6 页，fuzzy controller design，对 input memberships / output steering angle 的说明，行 267-272, 327-331
+> Based on the system block diagram in Figure 4, fuzzy logic
+> control uses 1 input and 1 output. The input is the difference
+> between the facing direction read by the gyro sensor and the
+> facing direction setpoint at that point. Facing error is processed to
+> determine fuzzy logic (fuzzyfication). In this stu dy, the facing
+> error uses 3 membership, namely Negative (N), Neutral (Z) and
+> Positive (P).
+> Due to the fuzzy logic control Sugeno method
+> the output is in the form of numeric values. Inference engi ne and
+> defuzzyfication are combined. The result of this system is the
+> steering angle. The steering system uses a servo motor with a
+> 180° range of motion.
+
+#### 摘录 C
+- 出处：第 6-7 页，testing results，对 fuzzy correction effect 的说明，行 436-452
+> In phase 2 testing the car will park towards the end point
+> following the designed trajectory. The difference in the direction
+> that is read by the GY25 sensor with the facing direction should
+> be pro cessed with fuzzy logic control to get the steering angle.
+> From the parking trajectory graph in Figure 10, it can be
+> concluded that the parking system can follow the trajectory that
+> has been des igned. The use of fuzzy logic control to control the
+> direction of the car is able to reduce the error value facing the
+> direction and position at the end point significantly. From table 4
+> the average error value for the position is x = 1.25 cm, y = 0.59
+> cm and the direction error is 1.59 °.
+
 ### 2. 基于原文整理后的自然语言描述
 
-To drive the car to the parking destination, the controller uses sensor input to estimate the car coordinates and compares the current vehicle position with the designed parking trajectory. The difference between the current facing direction and the trajectory-facing direction is then processed by Sugeno fuzzy logic control to compute the steering angle that must be executed.
+To drive the car to the parking destination, the controller uses sensor input to estimate the car coordinates and compares the current vehicle position with the designed parking trajectory. Its single control input is the difference between the facing direction read by the gyro sensor and the trajectory-facing direction at the current point. This facing error is fuzzified into three memberships, Negative, Neutral, and Positive, processed by a Sugeno fuzzy controller, and defuzzified into the steering-angle command for the servo motor. In the reported phase-2 test, this fuzzy steering correction reduced the average final errors to `x = 1.25 cm`, `y = 0.59 cm`, and `1.59°` in facing direction.
 
 ### 3. 逐句溯源
 
 1. 句子 1：To drive the car to the parking destination, the controller uses sensor input to estimate the car coordinates and compares the current vehicle position with the designed parking trajectory.
    对应摘录：A
-2. 句子 2：The difference between the current facing direction and the trajectory-facing direction is then processed by Sugeno fuzzy logic control to compute the steering angle that must be executed.
-   对应摘录：A
+2. 句子 2：Its single control input is the difference between the facing direction read by the gyro sensor and the trajectory-facing direction at the current point.
+   对应摘录：A, B
+3. 句子 3：This facing error is fuzzified into three memberships, Negative, Neutral, and Positive, processed by a Sugeno fuzzy controller, and defuzzified into the steering-angle command for the servo motor.
+   对应摘录：B
+4. 句子 4：In the reported phase-2 test, this fuzzy steering correction reduced the average final errors to `x = 1.25 cm`, `y = 0.59 cm`, and `1.59°` in facing direction.
+   对应摘录：C

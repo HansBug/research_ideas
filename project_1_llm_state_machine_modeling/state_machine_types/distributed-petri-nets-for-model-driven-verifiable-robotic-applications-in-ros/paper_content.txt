@@ -1,0 +1,1527 @@
+--- Page 1 ---
+Innovations in Systems and Software Engineering (2024) 20:531–557
+https://doi.org/10.1007/s11334-024-00570-5
+SPECIAL ISSUE ON MODEL-DRIVEN ENGINEERING AND SYSTEM ANALYSIS
+AND MODELLING
+Distributed Petri nets for model-driven veriﬁable robotic applications
+in ROS
+Sebastian Ebert1,3·Johannes Mey2,3·René Schöne2,3·Sebastian Götz3·Uwe Aßmann1,2,3
+Received: 17 January 2024 / Accepted: 27 May 2024 / Published online: 25 June 2024
+© The Author(s) 2024
+Abstract
+V erifying industrial robotic systems is a complex task because those systems are distributed and solely deﬁned by their
+implementation instead of models of the system to be veriﬁed. Some technologies mitigate parts of this problem, e.g., roboticmiddleware such as the Robotic Operating System (ROS) or concrete solutions such as automata-based speciﬁcation of robot
+behavior. However, they all lack the required modeling depth to describe the structure, behavior, and communication of the
+system. We introduce an improved version of our previous model-driven approach based on Petri nets, integrating thesethree aspects of ROS-based systems. Using a formal modeling language enables veriﬁcation of the described system andthe generation of complete system parts in the form of ROS nodes. This reduces testing effort because the speciﬁcation of
+component workﬂows and interfaces remains formally proven, while only changed implementations have to be revalidated. We
+extended our previous approach with novel model transformations, which considerably improved our approach’s performanceand memory requirements. We evaluate our approach in a case study involving multiple industrial robotic arms and show that
+the structure of and communication between ROS nodes can be described and veriﬁed.
+Keywords Petri nets ·Model-driven engineering ·Robotic software engineering ·Robot operating system
+1 Introduction
+Developing and extending robotic software in industrial or
+end-user applications, especially with human interaction, is
+an intensive task. Such software comprises physically dis-tributed communicating components, which need to adapt
+B Sebastian Ebert
+sebastian.ebert@tu-dresden.de
+Johannes Mey
+johannes.mey@tu-dresden.de
+René Schöne
+rene.schoene@tu-dresden.de
+Sebastian Götz
+sebastian.goetz1@tu-dresden.de
+Uwe Aßmann
+uwe.assmann@tu-dresden.de
+1Centre for Tactile Internet with Human-in-the-Loop (CeTI),Dresden, Germany
+26G-life, Dresden, Germany
+3Technische Universität Dresden, Chair of SoftwareTechnology, Dresden, Germanyto varying environments and tasks. Hence, these robotic sys-
+tems are complex and safety-critical and require a huge effortto test, develop, and extend them.
+The creation and evolution of robotic systems are often
+realized ad hoc, resulting in unstructured systems deﬁnedentirely by their implementation[ 1], complicating validation
+and preventing veriﬁcation. On the contrary, constructing
+these systems upon formal models allows the automatic
+addressing of properties such as safety and reliability beforethe actual implementation, during and after runtime. An
+instance of this is deﬁning a safety model and examining its
+state transitions. The de-facto standard robotic middleware,the Robot Operating System (ROS)[ 2], also does not pro-
+vide a formal foundation for creating and verifying models
+to guarantee the global and concurrent behavior of dis-tributed applications. Furthermore, the veriﬁcation shouldreﬂect the inﬂuence of other applications and models to check
+mission-critical reactions to changing environments. Exist-
+ing approaches building on top of ROS either enable themodeling of infrastructural aspects of ROS, verify parts of
+ROS applications, or deal with the inﬂuence of external appli-
+cations [ 3–22]. Our approach, Distributed Petri Nets for ROS
+123
+
+--- Page 2 ---
+532 S. Ebert et al.
+(DiNeROS), aims to address all three aspects by using Petri
+nets to realize a model-driven toolchain for ROS applica-tions generating stubs as an integration target for user-deﬁned
+implementations.
+Petri nets were chosen for this work because they provide
+advantageous features for the ﬁeld of robotics compared toother formalisms. Firstly, they allow modeling concurrency,
+a common characteristic in robotics where multiple actions
+occur simultaneously on possibly distributed devices. Sec-ondly, Petri nets are nondeterministic, which matches the
+aspect that robotic environments contain uncertainties, such
+as changing environmental conditions and unpredictableevents. Thirdly, Petri nets offer high expressiveness, allowing
+the modeling of more system states within a smaller structure
+compared to, for example, automata. Robotic applicationstypically provide a large state space due to interactions withtheir environment. Finally, Petri nets offer a graphical rep-
+resentation allowing to visualize the behavior of robotic
+systems, aiding understanding interactions and dependen-cies.
+Communication of ROS applications quickly becomes
+complex, even for small applications. For example, changingcommunication channel capacities generates side effects on
+other indirectly connected components. Formally describ-
+ing the coordination of distributed actions, e.g., multiplemoving robots working in the same environment, enablestheir veriﬁcation and improves extensibility compared to a
+hand-crafted implementation. Therefore, the models need to
+include not only behavior but also communication and struc-tural aspects of ROS and provide a formal underpinning to
+develop and verify ROS applications efﬁciently, leading to
+the ﬁrst research question RQ1 :How to enable the develop-
+ment of veriﬁed ROS applications using Petri nets as formal
+underpinning? ROS-based applications may communicate
+with external components, such as sensor interfaces or pro-priatory software components, whose interfaces are often notformally modeled, leading to RQ2 :How to enable the inte-
+gration of other formalisms and non-formal components? We
+use Petri nets as a formal modeling language, leveraging theirnon-determinism to control the application’s behavior. This
+leads to RQ3 :How to use Petri nets as runtime models [23]
+in ROS applications?
+This paper is an extended version of a previously published
+workshop paper [ 24]. We extended the original approach
+with novel model transformationson signaling and ROStopics, which are considerably more performant and lessmemory-demanding. Moreover, we provide a much more
+detailed description of the analysis features provided by
+our approach. This includes ﬁrstly new state space analysisalgorithms reasoning about communication behavior, dead
+application parts and effects of external components. Sec-
+ondly, we present a new tool to visualize traces at modelingtime and runtime.We evaluate our approach using a case study, where mul-
+tiple industrial robotic arms are coordinated to sort objectswithin a shared workspace based on their properties. Using
+our model-driven approach, we can verify the resulting ROS
+application and identify incorrect system constructions, suchas an unrealizable condition.
+This paper is structured according to the following out-
+line: Sect. 2introduces the Robot Operating System and the
+Petri net formalism, Sect. 4describes the case study, followed
+by Sect. 5describing the model-driven development chain,
+as well as the integrated models and their transformations.
+Section 6models the case study, and Sect. 7analyzes the
+constructed model. Section 8treats the performance aspects
+of analyzing the model, while Sect. 9shows how to debug
+the model and the resulting application using traces. Finally,Sect. 10discusses the feasibility of our approach, and Sect. 11
+concludes the paper.
+2 Background and terminology
+Our approach is based on Petri nets as deﬁned in ISO/IEC
+15909, where a Petri net (PN) is a directed bipartite graph
+PN=/angbracketleftP,T,F,RP,RT,PG/angbracketrightconsisting of a set of places
+P, depicted with circles, and transitions T , depicted with
+bars, connected by arcs deﬁned as the incidence ﬂow rela-
+tion F⊆(P×T)∪(T×P), where SA(a)and TA(a)are
+source and target of an arc a∈F. Places, drawn as cir-
+cles, contain a discrete number of tokens represented by dotsor their number in places. The distribution of tokens within
+the places is called a marking M
+i=[m1(i),..., mn(i)]
+for a Petri net at time iwith nplaces. A transition, repre-
+sented by a bar is enabled and thus can ﬁre if there is atleast one token in each input place, hence ∀M
+i(s)≥1.
+If a transition, ﬁres, tokens from each input-place of the
+transition are destroyed and newly created inside everyoutput-place of the ﬁring transition, creating a new mark-
+ingM
+i+1[25]. The number of tokens to be destroyed and
+created depends on the weight of the respective arc betweenplace and transition. An essential characteristic of Petri nets
+is that transitions ﬁre non-deterministically, i.e., if multi-
+ple transitions can ﬁre, no precedence is given to any ofthem. An inhibitor arc , marked by a circle at the arc tar-
+get, enables a transition if the source place is empty [ 26].
+In the following, we refer to all objects in a Petri net as
+O=T∪P∪R
+T∪RP∪PG, which is the set of all non-arc
+elements and to a labeling assigning objects to pages as a
+function l:O→PG∪/Theta1,o→pG∪/Theta1, where /Theta1deﬁnes
+that no page is assigned.
+Structuring Petri nets is done with a set of pages P G,
+reference transitions R T, and reference places R P. A page
+may contain other pages, deﬁning a hierarchy of sub-pages,where arcs must connect transitions, places, and references
+123
+
+--- Page 3 ---
+Distributed Petri nets for ROS… 533
+Fig. 1 A nondeterministic
+safety controller modeled by a
+Petri net
+on them within the same page, deﬁning an assignment for
+page iasSi={o|o∈O∧l(o)=i}. Thus, pages do
+not add semantics but facilitate the partitioning of Petrinets. Connecting pages is done by selecting a representa-
+tive place or transition in one page and integrating it into
+the other pages as respective references, which are attachedas a property to referencing elements. Reference places ortransitions may be connected with other places or transitions
+within the same page by arcs, but cyclic references are not
+allowed [ 27].
+The Petri Net Markup Language (PNML) provides an
+XML-based interchange format for Petri nets. PNML sup-
+ports Petri nets with references and high-level Petri nets [ 28].
+Moreover, PNML is modular and provides generic extension
+points for additional information for each element. TINA [29]
+is a toolbox providing the abilities for editing and analyzingPetri nets.
+Petri nets have special properties, making them a great
+candidate for modeling robotic systems. First, their non-
+deterministic [ 25] nature reﬂects the non-determinism of
+distributed robotic environments and enables modeling syn-
+chronous and asynchronous control. An example of this, a
+simple safety model, is shown in Fig. 1, where T
+Safe and
+TUnsafe represent the results of a sensor detecting humans
+within a robots range. Depending on the ﬁred transition either
+the currently performed task is continued ( TContinue )o rt h e
+robot needs to wait ( TWait). Second, the state of a PN is rep-
+resented by its marking, i.e., the distribution of tokens to
+places depicted by dots within places. This enables mod-
+eling concurrent control ﬂow, an inherent characteristic ofrobotic applications.
+Third, PNs provide various analyzable properties,
+enabling automated veriﬁcation over concurrent systems.Most importantly, building state spaces based on a PN spec-
+iﬁcation to reason about the reachability of system states is
+possible. Furthermore, it is possible to analyze the bound-edness, liveness, and deadlocks of a Petri nets marking [ 25,
+26].
+The Robot Operating System (ROS) is an open-source
+middleware providing tools and libraries facilitating thedevelopment of robotic applications. ROS enables the cre-
+ation of components structured within packages and nodes,
+providing control of robotic hardware and pure softwarefunctionalities. Nodes themselves are communicating based
+on topics and services. A ROS-based process called node isregistered at the ROS master . Libraries and nodes are grouped
+within packages , enabling reuse and loose coupling [ 2]. An
+example of such a package is displayed in Fig. 2, where
+nodes are depicted as ellipses, topics as blue boxes, and ser-
+vices as green boxes. Within the example, objects are selected
+in an according node and sent to a node logging the selectedobjects and a controller executing actions on selected objectsby accessing a robot controlling node.
+ROS provides a structured communication layer, letting
+nodes communicate based on messages within topics and ser-vices. Topics , such as the /Objects -topic, are uniquely named
+and based on the publish-subscribe pattern. Each publisher
+has an outgoing message queue of a speciﬁc size, where newmessages get lost when it is exceeded, so selections of objects
+within the example may get lost. For subscribers, dispatch-
+ers and callbacks exist. When a node has subscribed to atopic, it runs a dispatcher thread for that topic, collectingmessages within a queue with ﬁxed capacity and distribut-
+ing messages to callbacks listening to the topic within the
+node, which again has its own bounded queue. Types ofmessages are user-deﬁned and vary between topics. Syn-
+chronous communication is enabled by services , following
+the request-response pattern, where each client can sendat most one request in parallel and blocks while waiting
+for the response, which means the call to the /Execute -
+service within the example is synchronous. The server sideis controlled by a thread pool, enabling handling requestsin parallel. On arrival within a server instance, the request
+is processed, creating a single result returned to the calling
+client, who may call other services [ 2]. These underlying
+mechanisms vary between client library implementations.
+The core of ROS is usable independently of any program-
+ming language. Client libraries are provided for languageslike C++, Java, and Python. RosJava , developed at Google,
+provides basic ROS functionalities such as topics, services,
+and nodes within the Java environment [ 30]. Our focus
+is the common subset of the Java and C++ implementa-tion.
+3 State of the art
+Software development based on formal models for roboticapplications is already applied by various approaches, focus-ing on ROS aspects, application models, or both. In this
+123
+
+--- Page 4 ---
+534 S. Ebert et al.
+Fig. 2 Visualization of a simple
+ROS package
+Table 1 Related ROS approaches, with full support denoted with /squaresolid, partial support with /squareplus, and no support with /square
+ROS-based
+approachROS
+structureROS
+communicationExternal
+componentsModel-driven
+developmentModeling
+approachFormal
+approach
+Lesire [ 3] /square/squareplus/squaresolid/squaresolid Petri nets /squaresolid
+Dondrup [ 4] /square/squareplus/square/squaresolid Petri nets /squaresolid
+Pelletier [ 5] /square/square/squaresolid/squaresolid Petri nets /squaresolid
+dos Santos [ 6] /square/square/squaresolid/squaresolid Petri nets /squaresolid
+Figat [ 7] /square/square/squaresolid/squaresolid Petri nets /squaresolid
+Dal Zilio [ 8] /square/square/squaresolid/squaresolid Petri nets /squaresolid
+Halder [ 9] /squaresolid/squareplus/square/square Automata /squaresolid
+Wang [ 10] /squaresolid/squareplus/square/squaresolid Automata /squaresolid
+Cheng [ 11] /squareplus/square/squaresolid/squaresolid GSN /square
+Kortik [ 12] /squareplus/squareplus/squaresolid/square Linear Logic /squaresolid
+Zander [ 13] /squareplus/square/square/squaresolid Ontologies /squaresolid
+Estévez [ 14] /squareplus/squareplus/squareplus/squaresolid RDIS /square
+Chaudhuri [ 15] /square/square/squareplus/squaresolid CNL /square
+Kilgo [ 16] /squareplus/square/squareplus/squaresolid UML /square
+Beaulieu [ 17] /square/square/squareplus/squaresolid UML /square
+Brugali [ 18] /squareplus/squaresolid/squareplus/squaresolid DSL /square
+El Baccouri [ 19] /squareplus/squareplus/squareplus/squaresolid DSL /square
+Ramaswamy [ 20] /square/square/squareplus/squaresolid DSL /squaresolid
+Baumgartl [ 21] /square/square/squareplus/squaresolid DSL /square
+Heinzemann [ 22] /square/squaresolid/squareplus/squaresolid DSL /squaresolid
+DiNeROS (this work) /squaresolid/squaresolid/squaresolid/squaresolid Petri nets /squaresolid
+section, we compare existing approaches and our approach
+Distributed Petri Nets for ROS (DiNeROS) w.r.t. our three
+modeling requirements (structure, communication, external
+components) and usage of (formal) Model-driven devel-opment (MDD). The analyzed approaches are compared
+in Table 1, where full support in terms of communication
+is about models specifying topics and services, while thestructure is about nodes and packages. Modeling topics and
+services allows to reason about communication based behav-
+ior, by reﬁning the application describing models. Modelingnodes and packages allows using the application’s distribu-tion within reasoning, increasing its expressiveness. External
+components treat formally deﬁned (full support), program-
+matic (partial support) and no interfaces. MDD can be eithersupported or not. The following section takes a closer look
+at ROS-based approaches.
+3.1 Petri net based ROS approaches
+ASPiC [ 3] introduces constrained Petri nets called control-
+ﬂow Petri nets modeling robotic skills, parameterized by
+required resources (locks, inputs, outputs). The approachmodels ROS action interfaces abstractly, not including the
+underlying topics and services. Structural aspects are not
+described and the constructed models are used to generatestate spaces and check well-formedness criteria. Dondrup
+et al. [ 4] handles interactions between robots and humans
+with interaction patterns modeled as Petri nets. Action inter-faces are modeled even more abstractly then in [ 3], while
+123
+
+--- Page 5 ---
+Distributed Petri nets for ROS… 535
+the actual veriﬁcation is not described. Within SkiNet by
+Pelletier et al. [ 5], where the skill-based system architec-
+tures are transformed into Petri nets. These Petri nets model
+the state-machine-based behaviors of robotic skills used
+resources. Regarding model-checking, user-deﬁned tempo-ral logic speciﬁcations are evaluated at runtime using theTINA [ 29] tooling. Dos Santos et. al [ 6] introduces a soft-
+ware framework allowing the execution of a robot task,
+deﬁned by Marked Petri nets, which e.g. extend places withcapacities. The framework is built on top of ROS and is capa-
+ble of real-time execution of hierarchically structured tasks.
+Furthermore, the framework provides structural veriﬁcationtooling for marked Petri nets, without considering any ROS
+concepts. Figat et. al [ 7] provides a framework based on hier-
+archically structured Petri nets allowing to model distributedrobotic systems. A speciﬁcation language is used to con-struct such systems. The languages instances are veriﬁed by
+transformed them into a six layered Petri net, where further
+analysis are not described. Additionally, controller code isgenerated based on these models. The framework is ROS-
+based, but the models do not contain ROS concepts in detail.
+Dal Zilio et. al [ 8] deﬁnes a domain-speciﬁc language based
+on an extended version of Time Petri nets. The approach
+describes how these formal models can be executed and how
+they provide the basis for monitoring and runtime veriﬁca-tion, aided by the TINA tooling [ 29]. No ROS concepts are
+modeled.
+All Petri net-based approaches introduce an MDD chain
+for ROS applications to generate executable code. However,no approach is available for extension or fully supports mod-
+eling structural and communication aspects of ROS.
+3.2 Model based ROS approaches
+Halder et al. [ 9] use timed automata and verify ROS applica-
+tions based on real-time properties with Uppaal [ 31]. The
+approach enables modeling control ﬂow concepts within
+ROS nodes and topic-based messaging but no formal inter-
+faces. Uppaal allows forward analysis based on extrapola-tion, which is used in this work to vary combinations of
+parameter values of ROS nodes. Wang et al. [ 10] propose
+an MDD method based on timed automata, generating exe-cutable ROS code. Their approach enables checking safetyrequirements using the Uppaal query language to detect dead-
+locks. The expressiveness of the models is comparable to [ 9].
+Cheng et al. [ 11] focuses on guaranteeing safety require-
+ments during runtime adaptation. Goal Structuring Notation
+(GSN) models are used as a speciﬁcation language for a
+central adaptation node. Only structural aspects of ROSare modeled. Kortik et al. [ 12] focus on verifying correct-
+ness based on linear logic, where the correct behavior is
+veriﬁed by analyzing the computational graphs consistency(idle publishers/subscribers, type consistencies). Structuralaspects (nodes) and communication aspects (topics) are mod-
+eled abstractly. The approach of Zander et al. [ 13] provides
+an MDD toolchain built upon ontological semantics, where
+developers create a local model including capabilities and
+interfaces of robotic software components. The modelingapproach does not cover communication aspects. V eriﬁ-cation and validation algorithms are demarcated as future
+work.Chaudhuri et al. [ 15] use a constrained natural lan-
+guage and an ontology-based knowledge representation toexpress robotic capabilities and workﬂows to generate ROS
+code. No aspects of ROS are modeled, while external com-
+ponents are included programmatically. Kilgo et al. [ 16]
+deﬁne a metamodel describing ROS applications, including
+topic interfaces combined with the Robot Device Inter-
+face Speciﬁcation (RDIS) describing hardware interfaces.External components are only integrated when having RDISinterfaces. Beaulieu et al. [ 17] uses UML and Finite State
+Machines for multiple robotic application areas: localization,
+mapping, and swarming. It was implemented in ROS withoutmodeling it or describing its veriﬁcation.
+Summarized, many approaches introduce an MDD chain.
+No approach is available for extension or supports model-ing ROS structure respectively communication. Additionally,
+[11] and [ 12] provide formal interfaces for external applica-
+tions.
+3.3 DSL based ROS approaches
+The ART2ool [ 14] provides a modeling mechanism for
+UML-based task models, where communication is abstractly
+described and transformed to ROS code and other middle-
+wares. The code is the only interface for external models.HyperFlex [ 18] enables designing robotic software as a hier-
+archical composition of functional subsystems. V ariation
+points for resources, algorithms, and control are modeled
+and resolved by a feature model. A control system variesthese points. The approach models components and interfac-
+ing of nodes, services, and topics. In [ 19], parameterization
+and scenario-centralized modeling are used to evaluate dif-ferent control settings and environmental contexts. Based
+on their DSL, code is generated mapping to ROS packages,
+nodes, and topics. Saferobots [ 20] divides software develop-
+ment into problem, solution, and operational space, wherebyeach space has a knowledge and application level. The mod-
+eled solution space is used to generate ROS code. Problem
+speciﬁc models can be simulated by an editor, providing asimple form of veriﬁcation. Baumgartl et al. [ 21]u s eaD S Lt o
+specify tasks at a high abstraction level and encapsulate oper-
+ations. The DSL is transformed into C++ code. ROS conceptsare not part of the DSL. The vTSL DSL [ 22] enables specify-
+ing robotic tasks and verifying them against a set of safety and
+integrity constraints by transforming the vTSL to Promelamodels veriﬁed by the SPIN model checker [ 32]. Especially
+123
+
+--- Page 6 ---
+536 S. Ebert et al.
+Fig. 3 Architecture of our case
+study. Services are green and
+topics blue
+the existence of deadlocks, temporal properties and satisfac-
+tions of assertions is checked.The approach focuses on topics
+and services.
+In summary, all DSL-based approaches provide an MDD
+chain, while [ 18] and [ 22] model communication aspects
+of ROS. Furthermore only [ 22] is the formal approach of
+[18,22], but provides only code-based integration of external
+applications. Again, no approach is available for extension.
+3.4 Non ROS based approaches
+Formal approaches are also used in non-ROS robotic applica-tions. There, the majority of approaches use state-transitionsystems to describe system structure and application ﬂow [ 33,
+34]. Petri nets are used in modeling, where [ 35] proposes
+distributed, locally synchronous Petri nets connected by
+asynchronous channels and veriﬁed by provided tooling.Bera [ 36] integrates interaction patterns with communicating
+Petri nets within an architectural framework. Robotic Task
+Models [ 37] run Petri nets with a central coordinator pro-
+viding robotic workﬂows constructed upon primitive tasks.
+Kotb et al. [ 38] enable distributed robotics to collaborate by
+modeling their abilities with Petri nets.
+4 Running example
+To illustrate our approach, let us introduce our case study:interactive, collaborative, and human-aware sorting of col-ored objects by two robots in a shared space, where theapplication parts are distributed among multiple ROS nodes.
+Sorting is a key application for industrial tasks.
+Conceptually, the case study shown in Fig. 3consists of
+six components, where each component is realized as a ROS
+node and implemented by its developer team. The SELEC-
+TOR -component represents the handling of user input, which
+is about creating selection tasks for objects to be sorted
+and implicitly the robot executing the sorting operation. The
+selections are sent to the CONTROLLER -component con-
+taining one robot controller for each robot, assigned to colorsof objects by the connected topic. These robot controllers rep-
+resent the central workﬂow that describes the steps to sort an
+object and coordinates the other components. The controllercomponent is connected to the SYNCHRONIZER compo-
+nent, which acts as a semaphore for the shared workspace
+of the two robots. To control the robot, the controller calls
+pick and place services located within the executor compo-nent, developed by robotics experts. These services let the
+robot perform the trajectories for picking and placing but can
+also abort the execution based on a safety model handlinghuman presence. These safety models obtain information
+about human presence based on the SENSORICS compo-
+nents service implemented by a sensor integration team.The FEEDBACK component receives the results of a sorting
+operation based on the subscription to the feedback topic and
+displays the received information within a user interface. For
+evaluation, the case study is subject to multiple variations. Wechange the number and types of objects and modify the con-
+trol of the robots used for sorting, resulting in effects all over
+the distributed system.
+5 Model-driven development with DiNeROS
+Model-driven development enables the creation of applica-
+tions based on models representing them. Distributed Petri
+Nets for ROS (DiNeROS) uses this concept and describes
+an MDD toolchain in combination with multiple extensions
+to the Petri net (PN) formalism supporting the construction
+of efﬁciently veriﬁable ROS applications by generating ROSpackage stubs from PN based speciﬁcations. These pack-
+ages represent the border between veriﬁcation and validation.
+This is because the stubs follow the PN-based speciﬁcations,while the actual actions, optionally attached to the modeltransitions, are implemented by developers extending them
+at the toolchain’s end, which are subject to testing. The next
+sections describe the available MDD tooling,
+1the modeling
+approach, and how they interact.
+1https://dineros.pages.st.inf.tu-dresden.de
+123
+
+--- Page 7 ---
+Distributed Petri nets for ROS… 537
+Fig. 4 Workﬂow within the
+DiNeROS MDD
+5.1 Overview
+We differentiate three interacting roles in development as
+shown in Fig. 4.A modeler , expert in system design, is
+responsible for creating a Petri net based model deﬁning and
+controlling the system, while a developer , expert in compo-
+nent construction, generates a ROS package based on this
+model and implements the concrete actions either executing
+the PN or being deﬁned by the transitions of the PN. Thesystem engineer , expert in formal methods, is ﬁrstly respon-
+sible for verifying the system deﬁning model, and secondly
+analysing the behavior of DiNeROS applications, based on
+traces, and reporting detected issues to the modelers. Partic-ipants in the development process take exactly one of these
+roles, which are orthogonal aspects, allowing mutual control
+of their results, improving the software quality.Essentially, DiNeROS covers three Petri net based mod-
+els, which are embedded within a toolchain shown in Fig. 5:
+a System Model (SyM), a Runtime Model (RTM), and aPetri Net Model (PNM). Each model describes a differ-
+ent view within the MDD toolchain shown in Fig. 5.T h e
+SyM describes a distributed ROS application within a sin-gle model, containing communication channels (topics and
+services) as ﬁrst-class citizen modeling elements. Addition-
+ally, signals are attached to transitions and combined toclauses, providing an externally accessible enabling mech-anism. Thus, those clauses model all possible states of an
+input. An RTM is a PN describing exactly one ROS node
+and, therefore, only covers inputs and outputs of topic- andservice-based communication. An PNM provides the same
+concepts as a SyM but is transformed into a PN, as deﬁned
+in Sect. 2, modeling the internal mechanisms of ROS and
+enabling analyzability through existing model checkers.
+Fig. 5 MDD chain of DiNeROS
+123
+
+--- Page 8 ---
+538 S. Ebert et al.
+Additionally, we introduce the concept of node nets .O n e
+node net deﬁnes the model contained in exactly one ROSnode. A node net itself is deﬁned by an annotated page of a
+PN, and therefore contained in all three models. A node net is
+solely connected to other node nets through references fromcommunication channels representing topics and services. Inother words, all elements of a node net can only be connected
+to elements being part of the same node net or by incoming
+references from channels.
+5.2 Model-driven development chain
+Our MDD toolchain is visualized in Fig. 5, where all tools
+but TINA are newly developed based on JastAdd [ 39] and
+lip6 [ 40]. JastAdd is a compiler construction system based
+on attribute grammars, transforming the latter to Java classes.The process starts with the speciﬁcation of a SyM based
+on PNML extended with the previously described features,
+where the extensions are domain-speciﬁc elements for topics,etc. This speciﬁcation is manually performed by modelers
+based on given requirements. The chain is built on top of
+a runtime model-based environment, the Petri Net Engine ,
+extending default PN execution in four ways: balloon tokens,advanced transition logic, handlers, and signals. Balloon
+Tokens , inspired by [ 41], replace the primitive tokens of PNs
+to enable data transfer between nodes and model parts. Thedata within these tokens is opaque concerning the execution
+semantics of PNs by requiring the same data format for all
+tokens. By doing so, we avoid the immense state space growthcaused by heterogeneous tokens [ 42], but still allow data
+transfer. Balloon tokens are objects containing data ﬁelds,
+lists, and maps. Transitions have also been extended to handleballoon tokens and to attach developer-deﬁned logic. If a tran-sition in DiNeROS ﬁres, it consumes one balloon token from
+each input place with possibly differing contents. Developers
+can register handlers at transitions to specify the processingof balloon tokens. The handlers attached to transitions own
+a priority, allowing not just to exchange them at runtime, but
+additionally to change their execution order based on. Han-dlers are not allowed to modify the marking or structure of
+a Petri net because this would break the execution semantics
+of Petri nets. Handlers provide a programmatic interface forthe developers to write applications, extending the modelsthey are attached to. They serve as interfaces to loosely cou-
+ple code and models, enabling efﬁcient testing of individual
+code contained in a handler without the need to re-test thewhole application after changing it. Listing 1shows an exam-
+ple of a handler attached to T
+Feedback in Fig. 14,11reporting
+the result of an operation.
+The engine also automatically handles pushing received
+messages to input places of a receiving channel side. Vice
+versa, the engine provides interfacing for pushing messagesfrom the sending side channel element to the receiving side.Messages are received based on the speciﬁed names of top-
+ics and services, and the respective subscriber and server-sideoutput places are automatically ﬁlled with a token containing
+the message content. For this, the engine integrates PNs into
+the lifecycle of ROS nodes as interpreted runtime models.Whenever the marking or signals change within a node net,and there are enabled transitions, the engine uses a function
+provided by the developer to select up to one to ﬁre. Such
+a function is shown in Listing 2, where ﬁring the transitions
+T
+Unsafe and TSafe is prioritized over the others depending
+on the input tokens content. Signals are connected to the
+environment based on channels connected to transitions, real-ized with RagConnect [ 43]. Moreover, the engine-integrated
+trace generator creates a trace at runtime containing ﬁred
+transitions, signaling activity, and usages of communicationchannels.
+The engine treats RQ3 using RTM models directly within
+ROS nodes as a runtime model controlling the application.
+RQ1 is partly treated by providing a systematic approachintegrating formal modeling with PNs and writing applica-
+tion code connected to them. The message-based interface
+for input signals and clauses treats RQ2 as they enable inte-gration of external applications through formally deﬁned
+interfaces.
+Listing 1 User-deﬁned handler for Tfeedback with priority 1
+1petrinet.registerHandler( "T_Feedback" , 1, (tokens) ->
+{
+2 SortingControllerToken result = tokens.get(0);
+3 if(result.isPickPlaceSuccess()) {
+4 print( "Successfully sorted " + result.getObject())
+;
+5 }else {
+6 print( "Failed to sort " + result.getObject());
+7 print(result.getErrorList());
+8 }
+9 return List.of(result); //last handler returns one
+token
+10 });
+Listing 2 User-deﬁned controller callback
+1@Override
+2FiringSelection onChange(Set<Transition> enabledTs) {
+3 // check for prioritized enabled transitions
+4 for (Transition t : enabledTs) {
+5 if(t.getId().equals( "T_Unsafe" ))
+6 if(t.getInputToken( "P_SensorResponse" )
+7 .get( "humanDetected" )= = true )
+8 return new FiringSelectionSuccess(t);
+9 for (Transition t : enabledTs) {
+10 if(t.getId().equals( "T_Safe" ))
+11 if(t.getInputToken( "P_SensorResponse" )
+12 .get( "humanDetected" )= = false )
+13 return new FiringSelectionSuccess(t);
+14 // if there is none, fire any other enabled
+transition
+15 return super .onChange(enabledTs);
+16 }
+The system model is used as input for the Petri Net Flattener
+toolto a Petri net model, removing all special language fea-
+tures of the SyM by applying the transformations describedin Sect. 5.5. Finally, the ﬂattened model acts as input for
+123
+
+--- Page 9 ---
+Distributed Petri nets for ROS… 539
+the TINA tooling landscape, whose output is analyzed by
+the system engineer. If the model fails to satisfy the initialrequirements, the SyM is revised, establishing a feedback
+loop by restarting from the DiNeROS PNML. This loop is
+run until the quality of the model meets the requirements.
+The Trace Visualizer assists the system engineer in ana-
+lyzing execution paths contained in the results of TINA and
+the engines runtime traces. For this purpose, a graphical
+representation is generated as depicted in Sect. 9, which is
+continuously updated at runtime or can be used at modeling
+time to visualize a selected TINA-generated trace.
+The Net Analyzer provides algorithms for static model-
+checking, which further analyze the results provided by
+the TINA-provided tools. These algorithms are presented in
+Sect. 7and provide further insights on communication and
+signal defects as well as unused application parts.
+The Petri Net Splitter transforms the SyM to RTMs. It
+splits the channels of both services and topics on the sending
+and receiving sides and assigns the newly created elementsto node nets based on their inputs on the sending side and
+outputs on the receiving side. In the second step, these models
+become a new RTM. Pages spanning multiple node nets arecopied to each PN with elements located within such a page.
+Finally, each net is exported as a separate PNML ﬁle deﬁning
+the runtime models.
+The Petri Net Package Generator takes the various gener-
+ated RTMs and generates ROS nodes based on the description
+having the RTMs as runtime models.The generated nodes
+are automatically started up and conﬁgured. The generatoris integrated with the runtime engine to enable this, provid-
+ing the execution logic interfacing with the developer. The
+generated package contains extension points for messagehandling, logic-to-transition bindings, and business logic.
+Furthermore, these extensions, if needed, are manually added
+by the developer, based on callbacks and handlers. Within theﬁnal stage of the chain, developers extend the generated ROSnodes corresponding to the respective models, resulting in a
+distributed deployable veriﬁed application. Whenever a ROS
+package is newly generated because the SyM model changed,all base classes and ﬁles are also newly generated. Thus, for
+now, developers must separate their handwritten code and
+call it from the generated classes to keep them. In summary,the MDD toolchain provides the necessary features to treat
+RQ1 by using PNs as a formal foundation to generate ROS
+packages. The three models (SyM, RTM, and PNM) treatRQ1 by providing a formal underpinning mapped to PNswith inhibitor arcs and treating RQ2 by providing signals as
+integration interfaces for other formalisms and components.
+5.3 System model (SyM)
+The SyM, the ﬁrst artifact shown in Fig. 5,o fad i s t r i b u t e d
+ROS application is a single model and introduces the con-Fig. 6 Example topic model within a System Model
+cepts of services, topics, signals and node nets to PNs. These
+concepts are later transformed to a PN in Sect. 5.5. Intro-
+ducing these concepts as new modeling elements instead of
+using places and transitions simpliﬁes the complexity of the
+model and improves its readability and usability.
+5.3.1 Topics
+A topic is represented by a new named element, the topic
+channel , shown as a blue box in Fig. 6, providing references
+connected to places working as input- and output ports. Each
+subscribing node has one subscriber for the topic, while the
+directly subscriber-connected places represent entry pointsof callbacks registered on subscribers. Each callback entry
+modeling place is part of a callback-modeling page within the
+subscribing node net. In the example, SN
+2has two callbacks
+on a subscriber to the image1 topic. A topic channel sub-
+mits tokens to its outputs when at least one of its connected
+input places has a token. It removes exactly one token fromone input place–the message to be transported–and placesit as a token in each subscriber-side output place. For each
+unique topic, there is exactly one responsible topic channel,
+preventing ambiguity. Each topic channel assigns capacitylimits for each publisher and subscriber callback, as publish-
+ers and subscribers are also parameterized in this way within
+ROS to deﬁne the capacities of sender and receiver buffers.
+5.3.2 Services
+Synchronous and bidirectional communication is provided
+by services, which have a pair of service channels ,s h o w n
+as green boxes in Fig. 7. A service channel models both
+the request and the response part of service communication.Again, references are provided, connecting the input and out-put places of clients and servers, represented as input and
+output ports. A service channel element has per-client sub-
+elements representing the individual connections from eachclient to the according server. Each server element, deﬁned
+within its /lessmuchserver /greatermuchpage, e.g., on the right side of Fig. 7,i s
+a prototype, which means that for each client, there will bea runtime instance of it, executing requests independently. A
+client-wise channel is enabled if the request port of the chan-
+nel contains a token, which was submitted to the connectedserver as shown on the left of Fig. 7. After this, and when a
+123
+
+--- Page 10 ---
+540 S. Ebert et al.
+Fig. 7 Example service model within a System Model
+token is placed accessible for the channel via the server-side
+response place (for example, PS4in Fig. 7), it is sent back
+to the calling client based on the client-side response port.The calling direction is blocked as long as a client has not
+received a response from the previous request.
+5.3.3 Signals
+Integrating external components, which are not based on
+PNs, is realized through signals. Formally describing signalsenables the integration of all possible signal conﬁgurationsinto model-checking. Binary valued and arc indicated input
+signals (IS) are an extension of the enabling mechanism of
+transitions shown in the upper part of Fig. 11. Input sig-
+nals can be linked by the logical operators ∧or∨, and
+inverted by ¬, within a conjunctive normal form, enabling
+arbitrarily complex logical named expressions, referred toasinput signal clause (IC). Input signals can be applied to
+multiple transitions, but only within the same node, so top-
+ics and services remain the only interaction mechanism fornodes. Multiple occurrences of input signals cause interac-tions. Modeling ICs with Petri nets makes these interactions
+analyzeable. Input signals extract a formally sound subset,
+extending existing works such as [ 44,45].
+5.3.4 Metamodel of the system model
+Each System Model is based in ﬁxed metamodel where an
+extract of it as an AST -model is shown in Listing 3, extending
+the ISO deﬁned metamodel.
+First, on lines 1 and 2, we extend transitions and places by
+subclasses, adding additional information. A TransitionInfo
+deﬁned on line 7 has three subclasses which are integrating
+signal clauses to transitions (line 14), or integrate service-
+and topic channels. The connection of these channels to theplaces of publishers, subscribers, clients, and services is then
+deﬁned in ports starting at line 16. Therefore, we have dif-
+ferent port types, where topic ports provide capacities andservice channel ports deﬁne the connection between request-
+ing and responding places. Hence, a topic always provides
+multiple subscribers and publishers, while a service providesone server and multiple clients. The modeler conﬁgures allof this information using our extended PNML format, which
+is then parsed by DiNeROS.
+Listing 3 Grammer extension for System Models
+1DinerosTransition:Transition ::= [Ti:TransitionInfo ];
+2DinerosPlace:Place ::= [Pi:PlaceInfo ];
+3
+4abstract PnObjectInfo;
+5PlaceInformation:PnObjectInfo;
+6
+7abstract TransitionInfo:PnObjectInfo;
+8TopicInfo:TransitionInfo ::= <TopicName: String >
+9 SuPort:SubscriberPort *
+10 PuPort:PublisherPort *;
+11 ServiceInfo:TransitionInfo ::= <ServiceName: String >
+12 ServerChannel:ServiceChannel
+13 ClientChannel:ServiceChannel *;
+14 SignalInfo:TransitionInfo ::= /Clause:
+InputSignalClause /;
+15
+16 abstract Port;
+17 abstract TopicPort:Port ::= <PlaceId: String ><Limit:
+int>;
+18 SubscriberPort:TopicPort;
+19 PublisherPort:TopicPort;
+20 ServiceChannel:Port ::= <RequestPlaceId: String >
+21 <ResponsePlaceId: String ><Id:String >;
+5.4 Runtime model (RTM)
+The RTM is a runtime model of the distributed ROS appli-
+cation, ensuring that it follows the SyM-modeled workﬂows
+(RQ3). An RTM is a subset of a SyM describing the behaviorof one ROS node, while multiple RTMs describe the wholeapplication and are generated automatically based on one
+SyM. Thus, the RTM differs only w.r.t. the service and topic
+elements from a SyM. All channel elements are removedexcept the input and output ports of senders and receivers
+which are added to the according places as additional infor-
+mation. Furthermore, tokens in ports of sending nets areautomatically sent via ROS. Vice versa, ports of receiving
+nets are automatically ﬁlled, by the later presented runtime
+environment, while ROS handles the actual communication.No other transformations are needed because topics and ser-vices are the only connections between node nets.
+5.5 Petri net model (PNM)
+The PNM describes the ROS application using a Petri netas deﬁned in Sect. 2, but with additional inhibitor arcs intro-
+duced within the transformations in Fig. 8. Each PNM results
+from multiple transformations replacing all newly introducedmodeling features from a SyM by PN elements, including
+inhibitor arcs, enabling model checking with TINA [ 29]. We
+analyzed the ROS client library implementations of Java andC++ to enable a correct transformation of the SyM to an PNM
+model covering the internal communication mechanisms of
+ROS. Those implementations vary with regard to subscriberand server-side queuing features. Therefore, we modeled the
+123
+
+--- Page 11 ---
+Distributed Petri nets for ROS… 541
+common subset of both, covering all RosJava features and a
+usable conﬁguration of the C++ library.
+In the following, we describe the transformations for each
+concept. They are additive, i.e., only add elements to the PN
+and do not remove or modify existing Petri net objects. Thegraphical representation of these transformations follows arule matching pattern. The left hand side (LHS) deﬁnes the
+matched pattern, and the right hand side (RHS) the rule on
+how to replace found matches. Additionally, elements, whichare underlined on LHS and RHS, refer to each other.
+5.5.1 Topics
+Communication requires integrating models for publisher-
+queuing, dispatchers, and callbacks to transform it. Those
+transformation rules are shown in Fig. 8.R u l e T1 inserts for
+each topic element a connected place P
+topic and transition
+Ttopic representing the channel between ROS nodes. Rule
+T2 treats the input of the topic by connecting a model frag-
+ment for each publisher representing the overﬂowing sending
+queue to the publisher’s output place and the channel. The
+queue itself has a capacity lpubdeﬁned as a parameter of the
+SyMs topic input matched in the LHS, set as the initial mark-ing of the capacity, which is reduced by inserting a new token
+into the queue via T
+pinand increased by pushing a token to the
+actual communication channel by ﬁring Tpout. If no capacity
+is remaining, then newly incoming tokens (i.e., messages) are
+trashed by ﬁring the inhibitor arc. The rules T3 and T4a r e
+transforming the outputs of topic elements by ﬁrstly insertinginT3 for each subscribing node N
+Sa receiving overﬂowing
+dispatcher queue, with a capacity ln, which can be altered
+by the modeler. Within rule T4, for each subscribing place
+Psub, another overﬂowing queue is created, whose capacity
+is deﬁned within the associated topic element’s input. This
+callback queue is attached to its corresponding dispatcher
+output transition Tsubs,i and to the subscribing node’s place
+Psub.
+The rules T5aand T5bare the two options on how to
+deﬁne the actual overﬂow-mechanism of the inserted queues.The ﬁrst option uses inhibitor arcs, which improves the
+resulting PNMs readability, by checking for the exhaus-
+tion of P
+Capacity . The second option uses normal arcs and
+checks against PLoad . We introduced the second option as it
+allows the use of optimization techniques in model checking
+tools like TINAs reduce , which does not support inhibitor
+arcs. We will show in Sect. 8that this leads to consider-
+able improvements concerning the performance and memory
+requirements of the model checker.
+5.5.2 Transforming a example
+Figure 9illustrates how a fragment of the running example is
+transformed into an PNM. More in detail, as shown in Fig. 9a,the selected fragment contains two publishers PSortRed and
+PSortBlue , originating from the selector component, publish-
+i n gt ot h e LeftCellObjects topic to which the controller
+component PReqControlLsubscribes to.
+Figure 9b illustrates which rules are applied and how.
+More in detail, ﬁrst T1 is utilized once for the topic channel
+between the nodes, followed by applying rule T2 for both
+publishers, creating the publisher queues for red and blue
+objects and connecting them via references to the channel.Both inserted queues provide a capacity of 10, deﬁned by the
+example-deﬁned publisher limits. Then, rule T3 creates the
+subscriber’s side dispatcher queue equipped with a capac-ityl
+nset to 16. We used 16 here, as an example as it is the
+default capacity in the ROS-Java implementation. Next, the
+dispatcher queue is referenced by applying rule T4, provid-
+ing again a capacity of 10, deﬁned by the example-deﬁnedsubscriber limits. Finally, rule T5
+bis used four times to cre-
+ate the connections between the places PLoad and PDrop of
+the various inserted queues.
+The ﬁnal result, shown in Fig. 9c, no longer has refer-
+ences and pages. This is because references are not supported
+by the complete TINA tooling. Therefore, the Petri Net
+Flattener removes the pages and resolves all references.
+Thus, the resulting net contains the directly publisher-
+connected publisher queues, connected to the channel, mod-eled by P
+LeftCellTopic andTLeftCellTopic . This channel transmits
+tokens representing selections to the dispatcher and sub-
+scriber queues, delivering the tokens to the subscribing place
+PReqControlL.
+5.5.3 Services
+Flattening service communication requires modeling the
+server-side thread pool and connections between requesting
+clients and their respective server instances. The correspond-
+ing transformation rules are depicted in Fig. 10.R u l e S1
+covers the communication between server instances and
+clients, which are attached through place references to
+clients. Service clients perform blocking calls, representedby a client-side place P
+ready marked with one token removed
+when a request is sent and added when a corresponding
+response is received. The transitions Treq,c and Tres,c model
+the channel cbetween client and server. The SyM models a
+server prototype, which is replicated for each required server
+instance, deﬁned by instance count Civia rule S4, where the
+number of needed instances is computed by attributes basedon a service’s total number of clients. This knowledge enables
+ﬁxing the connection between client and server by explicitly
+modeling a client’s server instances. Additionally, rule S4
+describes the interfaces of each service instance with P
+entry,i
+consuming requests and Pexit,i providing the result, which is
+sent back to the connected client. The server side in rule S1
+has two purple marked places, referenced in the RHS of rule
+123
+
+--- Page 12 ---
+542 S. Ebert et al.
+Fig. 8 Transformation rules for
+topic-based communication
+S2, acting as a cross-product connecting each client to all
+server instance’s interfaces and therefore looping over each
+channel cand server instances i. Each server instance com-
+municates its status based on Pactive,i andPinactive,i , which are
+referenced within S2 and included for each server instance in
+S3. Similarly, PinUse,c,i provides the usage status of a client-
+to-server connection.
+5.5.4 Signals
+An input signal clause (IC) on a transition Txrequires
+its transformation to preserve its semantics within the PN,enabled by the clause in conjunctive normal form and addi-
+tive transformation rules depicted in Fig. 11.R u l e I1 creates
+a place PDi=true for each disjunction term and connects it
+toTx. The signal usages, the ICs literals, are combined into
+these disjunctions by the rules I2fully-enabled andI3fully-enabled
+referencing the signal value changing transitions TtoTrue ,sand
+TtoFalse ,son their RHS. The decision of applying either rule
+I2fully-enabled orI3fully-enabled depends on the negation of a
+literals value within a clause, i.e., a non-negated signal usagetriggers rule I2
+fully-enabled and a negated rule triggers I3. This
+decision is reﬂected in the LHS of rules I2fully-enabled and
+I3fully-enabled by matching against the literal or its negated
+123
+
+--- Page 13 ---
+Distributed Petri nets for ROS… 543
+Fig. 9 Flattening of a topic with two publishers and a subscriber
+123
+
+--- Page 14 ---
+544 S. Ebert et al.
+Fig. 10 Transformation rules
+for service-based
+communication
+version. Rule I4 is applied for each input signal sand inserts
+places for both states of an IS: PSfortrue and P¬Sforfalse ,
+representing literals of a clause. The rule I5fully-enabled con-
+nect these places, allowing a signals value change. The rule
+I5fully-enabled connects these places, allowing a signal value
+change.
+The results of the previously described transformations are
+referred to in the following as fully enabled signals, because
+they can change their value at any time, justiﬁed by the fact
+that TtoTrue ,sandTtoFalse ,sjust depend on the signals current
+state. This increases the state space by two to the power ofsignal usages. Thus, we introduce two optimizations here.The input-enabled variant is described in Fig. 12, where rule
+I5
+input-enabled , creates for each signal usage new transitions
+TtoTrue ,s,TxandTtoFalse ,s,Tx, and links them to the signal state
+deﬁning places. The new rule I6input-enabled bidirectionally
+connects the input places of Txto the aforementioned tran-
+sitions, whereby the corresponding signal model fragment
+marking now only changes when the inputs of at least one of
+this signal using transitions are enabled, reducing the result-ing state space. The original rules I2 and I3 are also modiﬁed
+for the input-enabled variant to reﬂect the per-signal usage
+included in rule I5
+input-enabled .
+123
+
+--- Page 15 ---
+Distributed Petri nets for ROS… 545
+Fig. 11 Transformation rules
+for input signal clauses using
+fully-enabled signaling
+The io-enabled variant, extends the input-enabled vari-
+ant by additionally creating transitions TtoTrueOut ,s,Txand
+TtoFalseOut ,s,Tx. These transitions are additionally bidirection-
+ally linked to the output places of Tx. Although this variant
+allows more changes to the signal value, it describes the
+actual behavior of a signal more closely, as it can reset itsvalue after it has been introduced into the system.
+5.5.5 Distribution
+In DiNeROS, communicating node nets are independently
+executed. The ﬁring of transitions in different node nets is
+performed in parallel, potentially creating race conditions.However, no such conﬂicts can happen since node nets are
+decoupled using only topics and services.
+6 Modeling the running example
+To evaluate that our proposed approach is feasible and
+enables the detection of bugs, we ﬁrst describe the SyMof our case study, followed by scenarios in which we used
+path analyzes to detect erroneous behavior introduced by
+unaligned changes of different developers. Finally, we ana-lyze the use of the resulting runtime models, which are
+obtained by removing the SyM-introduced channel elements
+as described in Sect. 5.4.
+The physical representation of the case study involves two
+industrial robot arms, shown in Fig. 13. Both arms collaborate
+within a ﬁxed zone to sort objects, while a human operator
+can interrupt the robots. The corresponding SyM is shownin Fig. 14. It represents node nets modeling the components
+described in Sect. 4. We use balloon tokens to capture infor-
+mation about the color, pose, and name of objects and forstatus information, namely if picking and placing succeeded.
+The ﬂag humanDetected , used in Listing 2, stores sensor
+information. If a token goes through the sensor component, itis enriched with sensor information. The selector componentprovides places
+1for each color with tokens for the objects.
+These tokens are consumed when the attached transition ﬁres,
+which are controlled by individual ICs representing the user
+123
+
+--- Page 16 ---
+546 S. Ebert et al.
+Fig. 12 Transformation rules
+for input signal clauses using
+input-enabled signaling
+Fig. 13 Physical setup of our
+case study
+123
+
+--- Page 17 ---
+Distributed Petri nets for ROS… 547
+Fig. 14 Running example as SyM, where e.g. ICPickSuccess :=(RobotIsIdle ∨RobotHasFinished )∧ObjectIsPicked
+123
+
+--- Page 18 ---
+548 S. Ebert et al.
+input. Depending on the color, the selector net sends objects
+via topics to the controller, where two identical robot con-trollers
+2are sorting the objects based on the topic they
+listen on. These controllers represent the central workﬂow
+describing the steps to sort an object and coordinate theother components. A robot-controller’s workﬂow starts withrequesting access to the robots’ shared workspace, picking
+objects, placing them into bins, leaving the shared workspace,
+and releasing the control over it after the P
+ObjPlaced place
+indicates that this pick-place process has ﬁnished. Request-
+ing and releasing control is done based on two services
+3/5within the node net of the synchronizer component.
+The exclusive access to the workspace is represented by the
+place PGetwithin the control state page 4, connected to
+the instances of the control requesting and releasing servicesbased on references. This resource can only be acquired by asingle GetControl server instance at a time because there
+is only a single token within P
+StateGet .
+The actual picking and placing actions are realized by
+service calls in the controller nets, where the correspond-
+ing servers represent the executor component within a ROS
+node. This component consists of the application logic 6
+and a shared safety model 7. Sharing the safety model is
+realized by letting the pick and place services access it with
+place references. The ﬁrst transitions TPick and TPlace of the
+executor’s services access the safety model based on refer-ences and lets a robot pick respectively place an object by its
+attached callback when it is safe
+8. The result-tokens of pick
+and place operations are output in a respective place. Thesetokens are processed further depending on whether signals
+indicate failure or success, or the state of the safety model.
+The safety model queries the sensor component
+9to
+check if the current environment is safe, which can either
+result in a token in PSafeorPUnsafe , aborting execution within
+the referencing pick and place services. The sensor compo-nent is represented by a node net retrieving data if a detectingsensor is active. The availability of new data itself is indicated
+by the attached signal clause IC
+Sensor 10, solely deﬁned by
+a single signal named Sensor . Finally, the controller node
+nets sends the result of their workﬂow execution via the topic
+UITopic to the node net controlling the user interface 11.
+For our evaluation, the previously deﬁned application wasdeveloped with DiNeROS by a team of developers splitting
+responsibility for the different application components.
+7 Analyzing DiNeROS applications
+V arious analyzes can be carried out on the basis of a PNMand its statespace. TINA [ 29] provides basic algorithms, such
+as (partial) state space generation and path search, which aidin analyzing PNMs. The Net Analyzer uses these algorithmsfor domain-speciﬁc analysis methods in DiNeROS. These
+analysis methods are presented below.
+7.1 Analyzing state spaces
+Whenever a message, represented as a token, is lost within
+a PN-based ROS application, this affects all dependent Petri
+net parts. Detecting erroneous communication constructs fortopics is possible by a path analyzis when looking at the over-
+ﬂow transitions of publishers, dispatchers, and subscribers
+of an PNM. Every time one of these transitions ( T
+Drop in
+Fig. 8, rules T2–T4) is enabled, a queue will overﬂow. In
+Algorithm 1, we generate the state space of an PNM until
+a state satisﬁes this overﬂow condition. This is done for all
+topic channels (Line 2) and their containing overﬂow transi-tions (Line 3) on the publisher and subscriber side. Thus, the
+algorithm covers all potentially overﬂowing transitions.
+Algorithm 1 Analyzing topic channels
+1: procedure AnalyzeOverflows (model )
+2: forchannel inTopicChannels (model )do
+3: fort_overﬂow inFindOverflowTransitions (channel )do
+4: violating_state ←sift -R -k -f "- ({$t_overflow});" -df $model
+5: partial_space ←sift -R -k -c $violating_state -df $model
+6: trace←pathto -p $violating_state $partial_space
+7: VisualizeTrace (trace )
+8: end for
+9: end for
+10: end procedure
+Within the ﬁrst step on Line 4, we use sift, which is part
+of TINA and enables the construction of reachability graphs
+(i.e., state space) and on-the-ﬂy veriﬁcation of reachability
+properties. More in detail, the -foption is used to specify
+in the following a stopping condition for the state space gen-eration, where we stop if an overﬂow transition is enabled.
+The-df option uses a depth-ﬁrst approach in our exam-
+ple, but depending on a Petri nets structure, a breadth-ﬁrstapproach could result in a faster termination. Additionally,
+the TINA tool selt can be used to check any linear temporal
+logic (LTL) formula. The second step on Line 5 creates apartial state space contain the previously identiﬁed invalid
+application state, by using the -coption. This partial space
+is used by TINA ’s sift tool, creating a trace from the ini-
+tial marking to the violating state. The trace is analyzed andvisualized by the Trace Visualizer , simplifying development
+using Petri nets as formalism (RQ1). By this, we avoid gen-
+erating the complete state space, which gets impractical forgrowing Petri net sizes.
+Within Algorithm 2, the state space of an PNM is exam-
+ined to ﬁnd and analyze unused parts of it, allowing it toeither repair or minimize the net afterward. The algorithm
+assumes the satisﬁability of all signal clauses deﬁned within
+the net. Therefore, all model fragments deﬁning the signalsand their bindings are removed on Lines 5 to 7. Additionally,
+123
+
+--- Page 19 ---
+Distributed Petri nets for ROS… 549
+Algorithm 2 Analyzing dead transitions
+1:procedure AnalyzeDeadTransitions (model )
+2:
+3: problems ←[ ]
+4:5:
+forsignal_fragment inGetSignalFragments (model )do
+6: RemoveSignal (signal_fragment )
+7: end for
+8:
+9: deadTransitions ← GetDeadTransitions (tina -s 0 $model )
+10:
+11: fortindeadTransitions do
+12: ifIsServiceCallTransition (t)then
+13: problems ←(GetService (t) is never called)
+14: else if IsServiceRespTransition (t)then
+15: problems ←(GetService (t) never returns)
+16: else if IsTopicChannelTransition (t)then
+17: problems ←(GetTopicChannel (t) is never used)
+18: end if
+19: end for
+20: return problems
+21: end procedure
+it is assumed that, based on the results of Algorithm 1, over-
+ﬂows on topic channels have been detected and resolved. On
+Line 9, the output of TINA, which is the state space of an
+PNM, is used to get the list of all dead transitions. This list isiterated over (Lines 11–19), and based on the contained tran-
+sitions and types, it is determined whether a topic is used, a
+service is never returned, or a service is getting called.
+Algorithm 3also examines the TINA-generated state
+space (Line 2), but checks whether a node deﬁned by a
+given model_fragment is ever used (autonomously or
+by call). This involves checking whether all transitions in themodel_fragment , i.e., including communication inter-
+faces, are dead (Line 4–10). If a node is dead, it will either
+never be called, or its transitions will not ﬁre on their own.This is an indication of either a modeling error or an obsolete
+node.
+Algorithm 3 Checking of node usage
+1:procedure IsNodeDead (node_fragment )
+2: deadTransitions ← GetDeadTransitions (tina -s 0 $model )
+3: matchCount ←0
+4: fordeadTransition indeadTransitions do
+5: fortransition inTransitionsInNode (node_fragment )do
+6: iftransition equals deadTransition then
+7: matchCount ←matchCount +1
+8: end if
+9: end for
+10: end for
+11: return matchCount == NumTransitions (node_fragment)
+12: end procedure
+7.2 Signal-caused effects
+The satisﬁability of signal clauses has a major effect on
+the accessibility of net parts. When examining Fig. 14,aﬁrst example can be created by deﬁning the clause ICSTOP
+in7asDanger ∧¬Danger . This clearly disables the bound
+transition permanently, where Danger is initially fa l s e and
+updated at runtime. This would make the application unsafe
+because, when having the response token of the sensor com-ponents service in P
+Safe, it is impossible to reach PUnsafe
+again. Additionally, the SensorService is thereby also called
+a maximum of once. This defect was detected by analyzing
+the sift-generated reachability graph of 8and 10, showing
+that the ICSTOP transition is never, and transitions in 10are
+only enabled once. Detecting such erroneous constructs is
+done by iterating over all signal clauses and investigatingtheir satisﬁability, by using a SA T-solver, and reporting not
+satisﬁable clauses as list.
+A second example is deﬁning the clause IC
+PickSuccess as
+constantly evaluating to false, preventing the pick servicefrom returning, essentially blocking all robots. Such proper-
+ties can be expressed as LTL formulas and checked with selt,
+where the only content of the formula is the identiﬁer of theservices P
+exit(see Fig. 10). Hence, this formula checks if the
+transition is ever enabled, which is not the case if the service
+ever responds. Thus, the inﬂuence of signal-based attachedcomponents and models is analyzable (RQ2).
+8 Scalability of analyzing DiNeROS nets
+One of the advantages of Petri nets is that they can specify alarge state space in comparison to the model size. However,this also implies that the generation of state spaces consumes
+more time and memory as the model size increases. The state
+space of a PNM grows even faster. This is ﬁrstly because ofthe usage of signals. When using the fully enabled versionof signals, we increase the number of states by 2
+suwhere
+suis the number of signal usages on transitions. Secondly,
+the usage of queues within topic channels increases the statespace. Therefore, we performed an evaluation of the scala-
+bility of the state space generations in relation to the signal
+ﬂattening variations. Within the evaluation, the results of thethree types of signal transformations were compared with a
+model not using signals ( without signals ). We measured each
+of these types both with and without reduction by TINAs
+reduce tooling. Especially, as shown in Algorithm 4,w e
+use a two-stage approach. First, in Line 2, a reduction is
+performed that preserves the reachability set and removes
+duplicate places and transitions as well as identity transi-tions [ 46]. Within the second stage on Line 3, we use the tr
+algorithm to compute clusters, reducing the net even more.
+This algorithm always reduces the input nets of our runningexample in less than one second. We use a desktop PC with
+a Ryzen 9 3900X and 64 gigabytes of RAM running Ubuntu
+20.04 as the measurement system. The measurement of timeand memory consumption values was conducted with the
+123
+
+--- Page 20 ---
+550 S. Ebert et al.
+Unix Time tool. More speciﬁcally, the Non-Bash-integrated
+version of this tool was taken, as this allows more accuratemeasurements of memory usage. Unfortunately, the accuracy
+of time measurements is limited to 10
+−2seconds. The rea-
+son for using an external tool for measuring is that the TINAsource code is not publicly available.
+Algorithm 4 Reduction of a PNM with TINA
+1:procedure Reduce (pn_model )
+2: rg_reduced ←reduce -rg,redundant,compact $pn_model
+3: tr_reduced ←reduce -tr,cluster,4ti2 $rg_reduced
+4: return tr_reduced
+5:end procedure
+Figure 15shows the number of states and transitions of
+the generated state space depending on the number of tokens
+used in the object pool places from our running example
+(i.e., the number of colored objects subject to sorting). Thediagram shows two variants of four alternative approaches.
+The default case (fully-enabled) was introduced in our pre-
+vious work [ 24]. Next, we introduced two optimizations to
+reduce the state space of signals by modifying the result ofthe signal translation shown in Fig. 11. The ﬁrst, called io-
+enabled, restricts the transitions of signals to be only enabled
+when there is a token in either an input or an output place ofthe original transition. That is, each transition T
+toTrue ,Ljand
+TtoFalse ,Ljgets each input and output place of Txas input
+place. This reduces the state space of the overall net. Thesecond optimization is called input-enabled and restricts the
+signal transitions further by just enabling them when there is
+a token in an input place of T
+x. The rationale behind these two
+optimizations is that a signal typically does not change whenthe respective part of the net is not currently active. Addition-
+ally, we added without signals as a reference version of the
+case study without signals. For each of these four approaches,we show the variant with and without TINA reduction as
+shown in Algorithm 4. Some measurement sequences do not
+capture the whole range of objects to be sorted, because inthese cases the measurements could not be completed as the
+measuring systems RAM was exceeded.
+The ﬁrst insight that can be observed is that – compared to
+the fully enabled and not reduced version proposed in the pre-ceding work – the io-enabled version reduces the state space
+by one magnitude and the input-enabled by an additional one.
+This is possible, because with these modiﬁcations signal tran-sitions are not always enabled, but only if there are tokens in
+the inputs and/or outputs of the connected transitions of the
+model. Reducing the io- and input-enabled version based onAlgorithm 4reduces the size of the state space successfully.
+Both are not as performant as the fully-enabled reduced vari-
+ant, because the reduction step for the fully-enabled variantcompletely removes the signals. The additional arcs to enableFig. 15 State space size (states) dependent on used approach
+Fig. 16 Time consumption of the state space generation
+signal switches for in- and output places prohibits this opti-
+mization.
+The second interesting insight is about comparing the fully
+enabled approaches result with its reduced version and the
+model that does not use signals. It can be observed that both,reducing the fully enabled approach, and the version without
+signals generate spaces of the same size. This is because the
+reduction removes signals in the fully enabled model, as theycan always ﬁre there and only introduce redundancy in termsof the state space. Therefore, after the removal of signals
+the non-signal and fully enabled version can be reduced in
+the same way, resulting both in a four magnitudes less largenumber of states and transitions.
+In addition to examining the number of transitions and
+places in the state space, the memory consumption and thetime required to generate the state space were also consid-
+ered, within Figs. 17and 16. When measuring the times, they
+are limited to 10
+−2.because they are below the measurement
+accuracy of the used tooling.
+123
+
+--- Page 21 ---
+Distributed Petri nets for ROS… 551
+Fig. 17 Memory usage of the state space generation
+Both diagrams show that we can observe a trend in mem-
+ory and time consumption, where in both cases, the additionalmemory or time required increases as the number of objectsto be sorted increases, especially when considering signal-
+less and reduced models. Thus, if a transformation reduces
+the state space by several magnitudes, more tokens can beincluded in the state space generation. Nevertheless, the
+increase in time and memory consumption is exponential.
+Reduced fully-enabled and signal-less models have nearlythe same memory consumption clearly justiﬁed therein that
+their state space shares the same number of places and
+transitions, and the models themselves follow a nearly iden-tical structure. In terms of memory consumption, there isa noticeable aspect related to the fully enabled and signal-
+less reduced variants, both sharing the lowest memory usage.
+Both variants have a strong increase in memory usage fromtwo to three objects to be sorted, compared to the directly
+following measurements. This is because the reduction has
+a stronger effect on the ﬁrst two scalings, as the ﬁrst twotokens only ﬂow into the LeftCellObjects topic, and
+therefore, a signiﬁcant part of the selector component can
+be reduced away, which is not the case for the third scalinganymore. This effect is still visible even in the unreducedvariant without signals, as the signal-less state space grows
+more slowly, due to the non-use of a topic. By not reduc-
+ing and using input- or io-signals, this effect is not presentin the other measurement series. A second noticeable aspect,
+shared by the four right-hand memory measurement series, is
+about their respective two last scalings, in which the increasein memory growth decreases. This is because less memory
+is allocated by TINA when the RAM is close to exhaustion,
+while more optimistic allocations can be made in the otherscalings.Generalization of findings
+The results of analyzing the scalability of the individual mea-
+surement series are speciﬁc to the running example. However,
+some ﬁndings can be generalized. First, the input-enabled andio-enabled versions always reduce the state space, regardlessof the model used. This is important, because the improve-
+ments of the reduce tool might only work that well for the
+example shown in this paper. Other Petri nets might not ben-eﬁt that heavily from using the reduce tool, but will beneﬁt
+from using the input- or io-enabled versions. In our exam-
+ple, the signals are recognized by the optimizer as irrelevantto the state space in the reduction, while in general, the sig-
+nals could be considered relevant. Second, the location of
+signal usages is important. When signals are used in frontof communication channels or more complex sub-networks,the state space increases considerably more compared to the
+case where signals are used in less complex sub-networks.
+Finally, the distribution of the Petri net to node nets and theirinternal net structure inﬂuences the efﬁciency of the reduce
+tool.
+9 Debugging the running example
+The detection of erroneous models can take place in
+DiNeROS at modeling time on the one hand and at applica-
+tion runtime on the other. This is illustrated below using the
+running example, where we use the io-based ﬂattening of sig-nals, reducing the potential number of signal value changes
+and thus improving the readability of traces to be analyzed.
+9.1 Analysis of traces
+An important tool for detecting errors in a DiNeROS appli-
+cation is the analysis of traces as introduced in Sect. 5.2.
+These traces are always only one possible run-through and,
+therefore, only represent a part of the overall picture. Within
+DiNeROS, we are able to analyze two kinds of traces: TINA-generated modeling-time traces and runtime execution traces
+generated by the Petri Net Engine. The following section
+takes a closer look at the analysis of modeling time traces.
+A modeling-time trace is generated as shown in Algo-
+rithm 5by searching a goal state where a given transition
+is enabled with sift, generating the partial state space and
+building a trace to the goal state with pathto . In the use case,
+if we want to know when an object has passed through the
+workﬂow, the goal state corresponds to the last transition
+T
+ShowResult . The complete PNM of an application is used for
+this, as signals are necessary to obtain a complete understand-
+ing. As already determined, the state space grows strongly.
+Therefore, partial state spaces are used for modeling-timetraces.
+123
+
+--- Page 22 ---
+552 S. Ebert et al.
+Algorithm 5 Creating a trace for a sorting operation.
+1: procedure CreateTrace (model ,goal_transition )
+2: goal_state ←sift -R -k -f "- ({$goal_transition});" -df $model
+3: partial_space ←sift -R -k -c $goal_state -df $model
+4: return pathto -p $violating_state $partial_space
+5: end procedure
+A modeling-time trace of our running example is shown
+in Fig. 18, where a ﬁrst (red) object was sorted and the pro-
+cess for a second (green) initiated. First, on the x-axis, we
+can observe the number of ﬁred transitions, while the y-axisis used to indicate information about the state of signals.Second, below the x-axis, additional information about topic
+usages and selected transitions with attached handlers are
+displayed. Third, the use of services is indicated by curlybrackets, which provide information about a services name
+and the identiﬁer of communicating service instance ( I) and
+client ( C). The brackets start at the service call and end when
+the service returns.
+This visualized trace of the running example starts on the
+left-hand side with the ﬁrst execution of the sensor service,called by the safety model. This call is repeated over the entiretrace, because the trace is built using depth-ﬁrst search. More-
+over, in principle the sensor is always allowed to be called,
+when having a token within the safety models calling place,because only the pick-and-place workﬂow is dependent on
+the safety model, not vice versa. More in detail, the sen-
+sor signal marked in yellow changes its state several times,e.g., when the sensor is called up for the ﬁrst time. This
+is possible because with the io-enabled approach a signal’s
+state is allowed to change before and after ﬁring the attachedtransition, i.e., when there are tokens in the transition’s in-or output places. TINA exploits all possible traces, i.e., all
+allowed sequences of signal states, service calls, and so on.
+The visualization shows one of many possible traces. Next,the sorting signal for Red objects is activated, followed by the
+signal for Green objects. The Blue signal is never activated
+because no blue object is included in the example. Selec-tions of objects are sent using the LeftCellTopic and
+RightCellTopic to the controllers, where a controller
+acquires control via the according service and calls the Pick
+service. After the Pick transition ﬁred, the PickSuccess signal
+indicates the operation’s success. Two callbacks are called.
+One for the Pick transition and one for PickSuccess .B o t h
+callbacks are called relatively late in the pick-services call,as transitions of safety model and sensor service are ﬁred
+beforehand.
+This is followed equally for the place operation and by
+releasing control over the shared space via the EndControl
+service call, which allows the second GetControl call to
+proceed. The trace ends with reporting the result of sortingthe red object to the UI-component via the UITopic .9.2 Analysis of the state space
+In the following, we look at analyzes of the state space using
+the analysis algorithms from Sect. 7.1, for two scenarios. Fur-
+thermore, the model used permanently enabled signals toreduce the size growth of the state space.
+9.2.1 Scenario 1: Sorting more types of objects
+We start with one type of object to be sorted and have
+a detailed look at the topic-based communication between
+the selector and one of the robot controllers of the initial
+model. Because the Petri net is 10-bounded, we do not gen-erate an overﬂow when assigning capacity 10 to input andoutput of the selector topic and a maximum of 10 tokens
+to the source place of the selector. Assume a new devel-
+oper extends the selector component with two more typesof objects, setting the number of objects for each type and
+the topic’s input capacities to ﬁve. However, the robot con-
+troller’s developer does not modify the output capacity, whichis high enough individually, but not in total. This scenario
+leads to a state where the corresponding overﬂow transition
+is enabled. We can detect these potential overﬂows by usingAlgorithm 1,without the Trace Visualizer , because the visu-
+alization does not contain useful information in this context.
+9.2.2 Scenario 2: Changing signal-clauses
+The second scenario deals with the effect of changing the
+clause IC
+Sensor within the sensorics component to an unsat-
+isﬁable variant by the developer of this component withoutusing an SA T solver to detect the unsatisﬁability. This causesthe sensor service to never return again and, thus, to never
+reinsert a token into the safety model, which again leads to the
+effect that the pick operation never returns to the controllercomponent, ultimately blocking the complete application.
+We can detect this by using Algorithm 2. The algorithm’s
+result lists the Sensor service and Pick service as never
+returning, the Place service as never called, and further-
+more, the UITopic channel as unused.
+9.3 Examining the runtime behavior
+Beside using Petri nets within our approach at modeling time
+for veriﬁcation purposes, Petri nets are also used as models
+at runtime, enabling system monitoring. In the following, weprovide a detailed answer to research question 3.
+First, the non-determinism of Petri nets must be handled,
+which is done using a handler, as shown in Listing 2, and
+defaults to an eager ﬁring logic, ﬁring a random enabled
+transition whenever possible. This eagerness is essential for
+safety in robotic applications, e.g., in Fig. 14
+7, where the
+execution logic ensures the safety mode is adapted as soon
+123
+
+--- Page 23 ---
+Distributed Petri nets for ROS… 553
+Fig. 18 Trace of picking and
+placing an object, based on a
+generated state space
+as possible, and the non-determinism is resolved as shown
+in Listing 2. Second, the data ﬂow modeled with balloon
+tokens is speciﬁed in the transition handlers (as shown inListing 1), computing the output token balloons based on
+the input tokens. Third, the causal connection to other ROS
+components, a deﬁning feature for models at runtime [ 23], is
+established using callback handlers for outgoing and signalsfor incoming communication.
+Fourth, at runtime, the execution of the RTMs of each
+node is handled by a node controller responsible for ﬁringtransitions and calling handlers. In conclusion, the runtime
+behavior is derived from the Petri net, with non-determinism,
+data ﬂow, and connection with other systems deﬁned by theuser.
+Finally, a runtime execution trace, the second type of trace,
+is generated by saving the transitions ﬁred by the applica-tion as well as the originating and resulting states within atrace ﬁle, which is continuously evaluated at runtime by the
+Trace Visualizer . Runtime execution traces are displayed in
+a similar way as modeling-traces, which is shown in Fig. 19.
+However, the x-axis now displays information about the
+actual time spent by the application. Additionally, informa-
+tion about the usage of service instances is already partiallyshown when a token is still active within an instance and
+updated at each new generation of the visualization. The
+exemplary trace in Fig. 19shows again the sorting of a red and
+a green object. Similar to the modeling-time trace the sensor
+service is called at a certain interval. However, the sensor
+signal does not ﬂicker as much because we have implicitpriorities due to the handler and callback connected code.Another difference is that a user chooses the time of object
+color selection and does so with a greater time interval. Con-
+sequently, it can be seen how after the value change of thered signal, and the sending of the selection to the controller
+via the LeftCellTopic , control is acquired and the picking
+starts, resulting in the PickingSuccess signals value change
+and the returning of the Pick service. During the place oper-
+ation of the red object, the sorting of green objects is ﬁnally
+started by the user, which is submitted to the right cell’s con-troller via the according topic. The place services node net,receives the new value of the PlacingSuccess signal after the
+robot has successfully ﬁnished placing and after executing
+the bound transition, returns to the controller. Just like themodeling-time trace, the runtime trace ends with the ﬁrst
+picking controller ending the control over the shared space
+and reporting the results using the UITopic .
+123
+
+--- Page 24 ---
+554 S. Ebert et al.
+Fig. 19 Trace of picking and
+placing an object, based on an
+application execution
+10 Discussion
+In the following, we discuss the practical and theoretical
+implications of the proposed approach, as well as consid-
+erations regarding its feasibility and generalizability.
+There is always the possibility of introducing faults
+through hand-inserted code on the levels of handlers and call-backs despite correct model veriﬁcation. Thus, a solid testing
+method is crucial for any additions of handwritten code. Nev-
+ertheless, the overall control is always correct with respectto its Petri net-based speciﬁcation. The correctness of the
+model-based speciﬁcation relies on the expertise and knowl-
+edge of the modeler. Hence, despite the model checkingmethods in DiNeROS there exists a risk of incompleteness
+or ambiguity in the speciﬁcation.
+The growing model complexity and size is a challenge in
+our research framework. As the model evolves and expandsin scope, driven by the requirements of the system subject
+to modeling. That’s why we use pages as means to separate
+concerns such as nodes, groups of nodes and net parts ofnodes, enabling switching between abstractions. Neverthe-
+less, the complexity of the system model speciﬁcation itself
+is a barrier, especially without graphical modeling. Hence,we are currently developing a visual editor to circumvent this
+barrier.The learning curve associated with our modeling frame-
+work is steep. The concepts of Petri nets and the Robot
+Operating System (ROS) required by modelers and devel-opers can be learned relatively quickly. The challenging part
+of the learning curve lies in analyzing the Petri net model.
+This analysis requires detailed knowledge of Petri net-basedmodel checking. For this reason, we introduced the separaterole of the system engineer. Additionally the proposed tools
+within DiNeROS, such as Petri Net Splitter orPackage Gen-
+erator are automated, allowing users to focus on modeling,
+implementation and model checking.
+Looking at the formal analysis methods and the growth
+of the state space, the resulting limitations become apparent.Successful generation of the complete state space of a model
+becomes increasingly unlikely with increasing model size
+and complexity. This is the reason why we only generatepartial state spaces in this work, even if this limits the amountof guaranteed properties, such as invariants.
+Regarding the engine, no guarantees can be made regard-
+ing real-time properties because the Java client library forROS does not support them. Therefore, these are not imple-
+mented in the engine. However, ROS allows DiNeROS to be
+used for any robotic platform, as robotic components can beattached based on handlers and signals.
+123
+
+--- Page 25 ---
+Distributed Petri nets for ROS… 555
+The case study reﬂects essential aspects contained in
+ROS applications: chained topic and service calls, distributedcoordination and access to hardware (robots, sensor). How-
+ever, the case study’s scale may not fully reﬂect large-scale
+ROS applications because it operates within a simpliﬁed sce-nario that focuses on the investigated aspects. Furthermore,the controlled nature of the case studies environment may
+lack the unpredictability of real-world ROS applications. In
+other words, our small-scaled case study is beneﬁcial forinternal validity as we eliminate external inﬂuencing factors,
+but it diminishes our external validity in terms of generaliz-
+ability.
+11 Conclusion and future work
+In this paper, we introduced a novel model-driven toolchain
+to develop robotic applications based on the Robot Oper-
+ating System. In our approach, ﬁrst, modelers design theapplication using an extended Petri net language, the System
+Model (SyM), which offers dedicated language constructs
+for ROS-based applications. This answers RQ1, i.e., howto develop ROS applications, which can be formally veri-ﬁed in terms of communication defects, inﬂuence of external
+applications, unused parts and the node internal workﬂows
+based on TINA. Input signals can be speciﬁed within the SyMto enable integration with other formalisms, which answers
+RQ2. Second, system engineers use these models to verify
+the formal properties of the designed applications. To enableusing off-the-shelf veriﬁcation tools, the extended Petri nets
+are transformed into basic Petri nets. Finally, the SyM is split
+into Runtime Models (RTMs) for each ROS node, of whicheach is used to generate ROS code with dedicated exten-sion points to be used by developers. The ﬁnal application
+uses these RTMs at runtime and invokes the code provided
+by developers, which answers RQ3. We showed the feasi-bility of our approach using an industrial case study where
+two robot arms collaboratively sort objects in a shared work
+environment. To show the usefulness of Petri net veriﬁca-tion, we presented three scenarios. In summary, our approach
+improves the development of safe ROS applications due to
+the integration of veriﬁcation activities and MDD with codegeneration combined with runtime models.
+The presented work offers the opportunity for numerous
+extensions in connection to the ROS landscape. Firstly, for
+scope reasons, ROS actions were not addressed in this work,as these are based on topics and are, therefore, implicitly
+supported by DiNeROS. Furthermore, the states of an action
+server can be modeled with Petri nets. Secondly, a centralextension of this work will be the modeling of the ROS
+successor system ROS 2, which provides quality of service
+(QoS) properties in the area of communication. For this rea-son, the use of Time Petri Nets will be necessary.Acknowledgements Funded by the German Research Foundation
+(DFG) as part of Germany’s Excellence Strategy - EXC 2050/1 - ProjectID 390696704 - Cluster of Excellence “Centre for Tactile Internet withHuman-in-the-Loop”(CeTI) of Technische Universität Dresden, and bythe Federal Ministry of Education and Research of Germany in the pro-gramme of “Souverän. Digital. V ernetzt.”. Joint project 6 G-life, ProjectID: 16KISK001K.
+Author contributions Sebastian Ebert. and Johannes Mey. developed
+the main concepts and wrote most of the main manuscript text andprepared the ﬁgures. Measurements were conducted by Sebastian Ebert.The implementation was done by Sebastian Ebert with contributionsfrom Johannes Mey. and René Schöne. Sebastian Götz. wrote partsof the abstract, introduction and conclusion sections. Uwe Aßmann.and Sebastian Götz. and R.S. contributed to the concepts and designdecisions. All authors reviewed the manuscript.
+Funding Open Access funding enabled and organized by Projekt
+DEAL.
+Data availability No datasets were generated or analysed during the
+current study.
+Declarations
+Conﬂict of interest The authors declare no competing interests.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and your
+intended use is not permitted by statutory regulation or exceeds the
+permitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+1. Ciccozzi F, Di Ruscio D, Malavolta I, Pelliccione P , Tumova
+J (2017) Engineering the software of robotic systems. In: 2017
+IEEE/ACM 39th International conference on software engineering
+companion (ICSE-C), pp 507–508. IEEE
+2. Quigley M, Conley K, Gerkey B, Faust J, Foote T, Leibs J et al
+(2009) ROS: an open-source Robot Operating System. In: ICRAWorkshop on open source software, vol 3, p 5. Kobe, Japan
+3. Lesire C, Pommereau F (2018) ASPiC: an acting system based on
+skill petri net composition. In: International conference on intel-ligent robots and systems (IROS), pp. 6952–6958. https://doi.org/
+10.1109/IROS.2018.8594328 . IEEE
+4. Dondrup C, Papaioannou I, Lemon O (2019) Petri Net machines
+for human-agent interaction . https://doi.org/10.48550/arXiv.1909.
+06174
+5. Pelletier B, Lesire C, Grand C, Doose D, Rognant M (2023) Pre-
+dictive runtime veriﬁcation of skill-based robotic systems usingPetri Nets. In: 2023 IEEE International conference on robotics andautomation (ICRA), pp 10580–10586. IEEE
+123
+
+--- Page 26 ---
+556 S. Ebert et al.
+6. Santos PMP (2016) PN-RTE, petri net robot task execution. Mas-
+ter’s thesis, Tecnico Lisboa
+7. Figat M, Zieli´ nski C (2022) Synthesis of robotic system controllers
+using robotic system speciﬁcation language. IEEE Robot AutomLett 8(2):688–695
+8. Dal Zilio S, Hladik P-E, Ingrand F, Mallet A (2023) A formal
+toolchain for ofﬂine and run-time veriﬁcation of robotic systems.Robot Auton Syst 159:104301
+9. Halder R, Proença J, Macedo N, Santos A (2017) Formal veriﬁ-
+cation of ROS-based robotic applications using timed-automata.In: 2017 IEEE/ACM 5th International FME workshop on formalmethods in software engineering (FormaliSE). https://doi.org/10.
+1109/FormaliSE.2017.9 . IEEE
+10. Wang R, Guan Y , Song H, Li X, Li X, Shi Z, Song X (2018) A
+formal model-based design method for robotic systems. IEEE SystJ 13(1):1096–1107. https://doi.org/10.1109/JSYST.2018.2867285
+11. Cheng BH, Clark RJ, Fleck JE, Langford MA, et al.: (2020)
+AC-ROS: assurance case driven adaptation for the robot operat-ing system. In: Proceedings of the 23rd ACM/IEEE internationalconference on model driven engineering languages and systems.https://doi.org/10.1145/3365438.3410952
+12. Kortik S, Shastha TK (2021) Formal veriﬁcation of ROS based
+systems using a linear logic theorem prover. In: International con-
+ference on robotics and automation (ICRA), pp 9368–9374. https://
+doi.org/10.1109/ICRA48506.2021.9561191 . IEEE
+13. Zander S, Heppner G, Neugschwandtner G, Awad R, Essinger
+M, Ahmed N (2015) A model-driven engineering approach forROS using ontological semantics. In: 6th International workshopon domain-speciﬁc languages and models for robotic systems(DSLRob-15). https://doi.org/10.48550/arXiv.1601.03998
+14. Estévez E, García A, García J, Ortega J (2018) ART
+2ool: a model-
+driven framework to generate target code for robot handling tasks.Int J Adv Manuf Technol. https://doi.org/10.1007/s00170-018-
+1976-z
+15. Chaudhuri SR, Banerjee A, Swaminathan N, Choppella V , Pal A,
+Balamurali P (2019) A knowledge centric approach to conceptu-alizing robotic solutions. In: Proceedings of the 12th innovationson software engineering conference, pp 1–11 . https://doi.org/10.
+1145/3299771.3299782
+16. Kilgo P , Syriani E, Anderson M (2012) A visual modeling language
+for RDIS and ROS nodes using A ToM 3. Lecture notes in computerscience 7628 LNAI, 125–136 https://doi.org/10.1007/978-3-642-
+34327-8_14
+17. Beaulieu A, Givigi SN, Ouellet D, Turner JT (2018) Model-driven
+development architectures to solve complex autonomous roboticsproblems. IEEE Syst J 12(2):1404–1413. https://doi.org/10.1109/
+JSYST.2016.2583403
+18. Brugali D, Gherardi L (2016) HyperFlex: a model driven toolchain
+for designing and conﬁguring software control systems forautonomous robots. Stud Comput Intell 625 https://doi.org/10.
+1007/978-3-319-26054-9_20
+19. El Baccouri H, Guillou G, Babau J-P (2018) Robotic system testing
+with AMSA framework. In: MoDELS (Workshops), pp 316–325
+20. Ramaswamy A, Monsuez B, Tapus A (2014) Saferobots: A model-
+driven approach for designing robotic software architectures. In:International conference on collaboration technologies and systems.https://doi.org/10.1109/CTS.2014.6867554 . IEEE
+21. Baumgartl J, Buchmann T, Henrich D, Westfechtel B (2013)
+Towards easy robot programming-using DSLS, code generatorsand software product Lines. In: Proceedings of the 8th Internationaljoint conference on software technologies - volume 1: ICSOFT-PT,(ICSOFT 2013), pp 548–554
+22. Heinzemann C, Lange R (2018) vTSL—a formally veriﬁable DSL
+for specifying robot tasks. In: IEEE/RSJ International conferenceon intelligent robots and systems (IROS), pp 8308–8314. https://
+doi.org/10.1109/IROS.2018.859355923. Bencomo N, G"otz S, Song H, (2019) Models@run.time: a guided
+tour of the state of the art and research challenges. Int J Softw SystModel https://doi.org/10.1007/s10270-018-00712-x
+24. Ebert S, Mey J, Schöne R, Götz S, Aßmann U (2023) DiNeROS:
+A model-driven framework for veriﬁable ros applications withPetri Nets. In: 2023 ACM/IEEE International conference on modeldriven engineering languages and systems companion (MODELS-C), pp 791–800. IEEE
+25. Reisig W (2012) Petri Nets: an introduction vol. 4. Springer, Hei-
+delberg. https://doi.org/10.1007/978-3-642-69968-9
+26. Peterson JL (1977) Petri Nets. ACM Comput Surveys (CSUR)
+9(3):223–252. https://doi.org/10.1145/356698.356702
+27. Hillah LM, Kindler E, Kordon F, Petrucci L, Trèves N (2009) A
+primer on the Petri Net Markup Language and ISO/IEC 15909–2.Petri Net Newsletter 76:9–28
+28. Jensen K (1983) High-level Petri nets. In: applications and theory
+of Petri Nets: selected papers from the 3rd European workshopon applications and theory of Petri Nets V arenna, Italy, Septem-ber 27–30, 1982 (under Auspices of AFCET, AICA, GI, andEA TCS), pp 166–180. https://doi.org/10.1007/978-3-642-69028-
+0_12 . Springer
+29. Berthomieu B, V ernadat F (2006) Time petri nets analysis with
+TINA. In: Proceedings of the 3rd international conference on the
+quantitative evaluation of systems, vol 6, pp 123–124. https://doi.
+org/10.1109/QEST.2006.56
+30. Rosjava. Accessed: 2023-01-30 (2017). http://wiki.ros.org/rosjava
+31. Behrmann G, David A, Larsen KG (2004) A tutorial on Uppaal.
+Formal methods for the design of real-time systems, 200–236https://doi.org/10.1007/978-3-540-30080-9_7
+32. Holzmann GJ (2004) The SPIN model checker: primer and refer-
+ence manual vol 1003. Addison-Wesley, Reading
+33. Luckcuck M, Farrell M, Dennis LA, Dixon C, Fisher M (2019)
+Formal speciﬁcation and veriﬁcation of autonomous robotic sys-tems: a survey. ACM Comput Surveys 52(5):1–41. https://doi.org/
+10.1145/3342355
+34. de Araújo Silva E, V alentin E, Carvalho JRH, da Silva Barreto R
+(2021) A survey of model driven engineering in robotics. J ComputLang 62:1021. https://doi.org/10.1016/j.cola.2020.101021
+35. Moutinho F, Gomes L (2014) Asynchronous-channels within
+Petri net-based GALS distributed embedded systems modeling.Trans Ind Inf 10(4):2024–2033. https://doi.org/10.1109/TII.2014.
+2341933
+36. Bera D et al.: (2014) Petri nets for modeling robots. PhD thesis,
+Einhofen University of Technology
+37. Milutinovic D, Lima P (2002) Petri net models of robotic tasks. In:
+Proceedings 2002 IEEE international conference on robotics andautomation, vol 4, pp 4059–4064. https://doi.org/10.1109/ROBOT.
+2002.1014376
+38. Kotb YT, Beauchemin SS, Barron JL (2007) Petri net-based coop-
+eration in multi-agent systems. In: Fourth Canadian conference oncomputer and robot vision (CRV), pp 123–130. https://doi.org/10.
+1109/CRV .2007.49 . IEEE
+39. Hedin G, Magnusson E (2003) JastAdd—an aspect-oriented com-
+piler construction system. Sci. Comput. Progr. 47(1):37–58
+40. Hillah L-M, Kordon F, Petrucci L, Treves N (2010) PNML frame-
+work: an extendable reference implementation of the Petri NetMarkup Language. In: 31st International conference on applica-tions and theory of petri nets, Braga, Portugal. Springer
+41. Almeida PS (1997) Balloon types: controlling sharing of state
+in data types. In: ECOOP’97–11th European conference object-oriented programming Jyväskylä, Finland, pp 32–59. https://doi.
+org/10.1007/BFb0053373 . Springer
+42. Jensen K (1996) Coloured petri nets: basic concepts, analysis
+methods and practical use. Springer, Heidelberg. https://doi.org/
+10.1007/978-3-662-03241-1
+123
+
+--- Page 27 ---
+Distributed Petri nets for ROS… 557
+43. Schöne R, Mey J, Ebert S, Götz S, Aßmann U (2022) Incremen-
+tal causal connection for self-adaptive systems based on relationalreference attribute grammars. In: Proceedings of the 25th inter-national conference on model driven engineering languages andsystems, pp 1–12. https://doi.org/10.1145/3550355.3552460
+44. Minas M, Frey G (2002) Visual PLC-programming using signal
+interpreted Petri nets. In: Proceedings of the American control con-ference, vol 6, pp 5019–5024. https://doi.org/10.1109/ACC.2002.
+1025461 . IEEE45. Vyatkin V , Hanisch H (2000) Practice of modeling and veriﬁcation
+of distributed controllers using signal net systems. In: Internationalworkshop on concurrency, speciﬁcation and programming
+46. Berthomieu B, Le Botlan D, Dal Zilio S (2020) Counting Petri
+net markings from reduction equations. Int J Softw Tools TechnolTransfer 22:163–181
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123

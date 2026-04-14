@@ -1,0 +1,694 @@
+--- Page 1 ---
+Veriﬁed Model Checking of Timed
+Automata
+Simon Wimmer(B)and Peter Lammich(B)
+Fakult¨ at f¨ur Informatik,
+Technische Universit¨ at M¨unchen,
+Munich, Germany
+{wimmers,lammich }@in.tum.de
+Abstract. We have constructed a mechanically veriﬁed prototype
+implementation of a model checker for timed automata, a popular for-
+malism for modeling real-time systems. Our goal is two-fold: ﬁrst, we
+want to provide a reference implementation that is fast enough to checkother model checkers against it on reasonably sized benchmarks; second,
+we strive for maximal feature compatibility with the state-of-the-art tool
+Uppaal . The starting point of our work is an existing highly abstract
+formalization of reachability checking of timed automata. We reduce
+checking of Uppaal -style models to the problem of model checking a
+single automaton in this abstract formalization, while retaining the abil-ity to perform on the ﬂy model-checking. Using the Isabelle Reﬁnement
+Framework, the abstract speciﬁcation of the model checker is reﬁned,
+via multiple intermediate steps, to an actual imperative implementationin Standard ML. The resulting tool is evaluated on a set of standard
+benchmarks to demonstrate its practical usability.
+1 Introduction
+Timed automata [ 1] are a widely used formalism for modeling real-time systems,
+which is employed in a class of successful model checkers such as Uppaal [2].
+These tools can be understood as trust-multipliers: we trust their correctness to
+deduce trust in the safety of systems checked by these tools. However, mistakes
+have previously been made. This particularly concerns an approximation oper-
+ation that is used by model-checking algorithms to obtain a ﬁnite search space.The use of this operation induced a soundness problem in the tools employing it
+[3], which was only discovered years after the ﬁrst model checkers were devised.
+Our ongoing work
+1addresses this issue by constructing a fully veriﬁed model
+checker for timed automata, using Isabelle/HOL [ 4]. Our tool is not intended
+to replace existing model checkers, but to serve as a reference implementation
+against which other implementations can be validated. Thus, it must providesuﬃcient performance to check real world examples. To this end, we use the
+1https://github.com/wimmers/munta .
+c/circlecopyrtThe Author(s) 2018
+D. Beyer and M. Huisman (Eds.): TACAS 2018, LNCS 10805, pp. 61–78, 2018.https://doi.org/10.1007/978-3-319-89960-2
+_4
+
+--- Page 2 ---
+62 S. Wimmer and P. Lammich
+Isabelle Reﬁnement Framework (IRF) [ 5,6] to obtain eﬃcient imperative imple-
+mentations of the algorithms required for model checking.
+Our work starts from an existing abstract formalization of reachability check-
+ing of timed automata [ 7]. To close the gap to a practical model checker, we need
+to address two types of issues: eﬃcient implementation of abstract model check-ing algorithms, and expressiveness of the oﬀered modeling formalism. Two kinds
+of algorithms deserve special attention here. The ﬁrst are operations to manip-
+ulate Diﬀerence Bound Matrices (DBMs) [ 2], which represent abstract states.
+With the help of the IRF, we obtain eﬃcient implementations of DBMs repre-
+sented as arrays. The second are search algorithms that govern the search for
+reachable states. These algorithms are interesting in their own right, since theymake use of subsumption : during the search process an abstract state can be
+ignored if a larger abstract state was already explored. We provide a generalized
+framework for diﬀerent variants of search algorithms, including a version which
+resembles Uppaal ’s uniﬁed passed and waiting list [ 2].
+We aim to oﬀer a modeling formalism that is comparable in its expressiveness
+to the one of Uppaal . To accomplish this goal while keeping the formalization
+eﬀort manageable, we opt to accept Uppaal bytecode as input. At the current
+state of the project we have formalized the semantics of a subset of the bytecodeproduced by Uppaal . We support the essential modeling features: networks of
+automata with synchronization, and bounded integer state variables. We apply
+a product construction to reduce models of this formalism to a single timedautomaton. As in real model checkers, the whole construction is computed on
+the ﬂy . However, not every bytecode input designates a valid automaton. To this
+end, we employ a simple program analysis to accept a suﬃciently large subset
+of the valid inputs.
+We conducted experiments on a small number of established benchmark mod-
+els. The throughput of our model checker — the number of explored states pertime unit — is within an order of magnitude of a version of Uppaal running a
+comparable algorithm.
+1.1 Isabelle/HOL
+Isabelle/HOL [ 4] is an interactive theorem prover based on Higher-Order Logic
+(HOL). You can think of HOL as a combination of a functional programming
+language with logic. Although Isabelle/HOL largely follows ordinary mathe-
+matical notation, there are some operators and conventions that should beexplained. Like in functional programming, functions are mostly curried, i.e.
+of type τ
+1⇒τ2⇒τinstead of τ1×τ2⇒τ. This means that function applica-
+tion is usually written fab instead of f(a,b). Lambda terms are written in the
+standard syntax λx. t(the function that maps xtot) but can also have multiple
+arguments λx y. t , paired arguments λ(x,y).t, or dummy arguments λ.t.T y p e
+variables are written/primea,/primeb, etc. Compound types are written in postﬁx syntax:
+τs e t is the type of sets of elements of type τ. In some places in the paper we
+have simpliﬁed formulas or code marginally to avoid distraction by syntactic or
+technical details, but in general we have stayed faithful to the sources.
+
+--- Page 3 ---
+Veriﬁed Model Checking of Timed Automata 63
+1.2 Related Work
+The basis of the work presented in this paper is our existing formalization of
+timed automata [ 7]. We are aware of one previous proof-assistant formalization
+of timed automata using PVS [ 8,9]. This work has the basic decidability result
+using regions and claims to make some attempt to extend the formalization
+towards DBMs. Another line of work [ 10,11] aims at modeling the class of p-
+automata [ 12] in Coq and proving properties of concrete p-automata within Coq.
+A similar approach was pursued with the help of Isabelle/HOL in the CClair
+project [ 13]. In contrast, our formalization [ 7] focuses on the foundations of
+timed automata model checking. In particular, it encompasses a formalization
+of the relevant DBM algorithms and the rather intricate developments towards
+the correctness proof for the approximation operation.
+We are not aware of any previous formalizations or veriﬁed implementations
+of timed automata model checking. The ﬁrst veriﬁcation of a model checker we
+are aware of is by Sprenger for the modal μ-calculus in Coq [ 14]. Our important
+forerunner, however, is the CAVA project [ 15–17] by Esparza et al. It sets out for
+similar goals as we do but for ﬁnite state LTL model checking. A signiﬁcant part
+of the reﬁnement technology that we make use of was developed for this project,and it was the ﬁrst project to demonstrate that veriﬁcation of model checking
+can yield practical implementations. Compared to CAVA, our work oﬀers sev-
+eral novelties: we target model checking of timed automata, which have an inﬁ-
+nite state space; we use imperative data structures, which is crucial for eﬃcient
+DBMs; ﬁnally, we implemented complex search algorithms with subsumption.Additionally, we operate on automata annotated with Uppaal bytecode, which
+has interesting ramiﬁcations: for the product construction, and because we need
+to ensure that the input actually deﬁnes a timed automaton.
+2 Timed Automata and Model Checking
+2.1 Transition Systems
+We take a very simple view of transition systems: they are simply a relation →
+of type/primea⇒/primea⇒bool. We model (ﬁnite) runs asinductive lists, and inﬁnite
+runsascoinductive streams. We write a→xs→bto denote the →-run from
+atobusing the intermediate states in the list xs,a n d a→ysto denote the
+inﬁnite →-run starting in aand then continuing with states from the stream ys.
+Additionally, we deﬁne:
+a→+b=(∃xs. a→xs→b)a n d a→∗b=(a→+b∨a=b).
+
+--- Page 4 ---
+64 S. Wimmer and P. Lammich
+We deﬁne the ﬁve CTL properties that are supported by Uppaal ,A♦,
+A/square,E♦,E/square,a n d /axisshort/axisshort/arrowaxisright, as properties of inﬁnite runs2starting from a state.
+For instance,
+A♦φx=(∀xs. x →xs=⇒ev(holds φ )(x·xs)),
+and
+φ/axisshort/axisshort/arrowaxisrightψ=A/square(λx. φ x =⇒A♦ψx),
+where evspeciﬁes that a property on a stream eventually holds, and holds con-
+strains evto the current state instead of the remainder stream. It then is trivial
+to prove identities such as E/squareφx=(¬A♦(Not◦φ)x).
+2.2 Timed Automata
+Compared to standard ﬁnite automata, timed automata introduce a notion of
+clocks. Figure 1depicts an example of a timed automaton. We will assume that
+clocks are of type nat.A clock valuation uis a function of type nat⇒real.
+Fig. 1. Example of a timed automaton with two clocks.
+Locations and transitions are guarded by clock constraints , which have to
+be fulﬁlled to stay in a location or to take a transition. Clock constraints areconjunctions of constraints of the form c∼dfor a clock c, an integer d,a n d
+∼∈{ <,≤,=,≥,>}. We write u/turnstileleftccif the clock constraint ccholds for the
+clock valuation u. We deﬁne a timed automaton Aas a pair ( T,I) where Iis
+an assignment of clock constraints to locations (also named invariants); and T
+is a set of transitions written as A/turnstileleftl−→
+g,a,rl/primewhere landl/primeare start and
+successor location, gis the guard of the transition, ais an action label, and ris
+a list of clocks that will be reset to zero when the transition is taken. States of
+timed automata are pairs of a location and a clock valuation. The operationalsemantics deﬁne two kinds of steps:
+–D e l a y :( l,u)→
+d(l,u⊕d)i fd≥0a n d u⊕d/turnstileleftIl;
+– Action: ( l,u)→ a(l/prime,[r→0]u)
+ifA/turnstileleftl−→g,a,rl/prime,u/turnstileleftg, and [ r→0]u/turnstileleftIl/prime;
+2This is fairly standard in the literature [ 2,3,12,18] but diﬀers slightly from the
+implementation in Uppaal .
+
+--- Page 5 ---
+Veriﬁed Model Checking of Timed Automata 65
+where u⊕d=(λc. u c +d) and [ r→0]u=(λc. ifc∈rthen0elseuc). For any
+(timed) automaton A, we consider the transition system
+(l,u)→ A(l/prime,u/prime)=(∃d≥0.∃au/prime/prime.(l,u)→d(l,u/prime/prime)∧(l,u/prime/prime)→ a(l/prime,u/prime)).
+That is, each transition consists of a delay step that advances all clocks by some
+amount of time, followed by an action step that takes a transition and resetsthe clocks annotated to the transition. We write A,s
+0|=φifφholds in state s0
+w.r.t. → A. Note that it is crucial to combine the two types of steps in order to
+reason about liveness. Consider the automaton from Fig. 1and assume the two
+kinds of steps could be taken independently. Then the automaton has a run on
+which some predicate Pholds everywhere if and only if Ps 1holds.
+2.3 Model Checking
+Due to the use of clock valuations, the state space of timed automata is inher-
+ently inﬁnite. Thus, model checking algorithms for timed automata are based
+on the idea of abstracting from concrete valuations to setsof clock valuations
+of type ( nat⇒real)set, often called zones. The initial decidability result [ 1]
+partitioned the state space into a quotient of zones, the so-called regions, andshowed that these yield a sound and complete abstraction
+3. However, practi-
+cal model checking algorithms rather explore the state space in an on-the-ﬂy
+manner, computing successors directly on zones, which are typically representedsymbolically as Diﬀerence Bound Matrices (DBMs). DBMs are simply a matrix-
+form representation of clock constraints, which contain exactly one conjunct for
+each pair of clocks. To represent constraints on single clocks, an artiﬁcial 0-clock
+is added, which is assumed to be assigned 0 in any valuation.
+The delicate part of this method is that the number of reachable zones could
+still be inﬁnite. Therefore, an over-approximation is applied to zones to obtain aﬁnite search space. We call the transition system of zones the zone graph , and the
+version where over-approximations are applied the abstract zone graph [18]. The
+soundness argument for this method (due to over-approximation completenessis trivial), starts from the region construction and then introduces the notion of
+the closure of a zone, which is deﬁned to be the union of all regions intersecting
+with a zone. It can be shown from the correctness of the region construction that
+closures yield a sound over-approximation of zones. Finally, one shows that the
+result of applying the over-approximation operator to zones is always containedin the closure, thus inheriting soundness from the soundness of closures. We have
+formalized this argument and all of the material summarized in this section in
+previous work [ 7]. It only covers the case of reachability, but we will demonstrate
+how to extend the soundness argument to liveness below.
+3We use the same notions as in [ 7]. Soundness: for every abstract run, there is a
+concrete instantiation. Completeness: every concrete run can be abstracted.
+
+--- Page 6 ---
+66 S. Wimmer and P. Lammich
+3 A First Glance at the Model Checker
+This section provides a ﬁrst overview of our model checker, its construction,
+and the correctness theorem we proved. The input to our checker consists of amodel, i.e. a network of Timed Automata, and a formula to be checked against
+the model. To achieve high compatibility with Uppaal , guards and updates
+can be formulated in Uppaal bytecode
+4. This intermediate representation is
+computed by Uppaal from the original C-style input before the actual model
+checking process is started. Given such an input, our tool will ﬁrst determine
+whether the input is valid and lies in the supported fragment. This is achieved
+by a simple program analysis. As input formulae, our model checker accepts the
+same (T)CTL fragment that is supported by UPPAAL, but restricts formulaeto not contain clocks. While this is not a principal limitation of our work, it
+reduced the complexity of our ﬁrst prototype. If the input is invalid, our tool
+answers with “invalid input”, else it determines whether
+convN,(init,s
+0,u0)/satisfiesmax stepsφ
+holds for the all-zero valuation u0under the assumption that the automaton is
+deadlock-free5, and answers with true/false. Here, Nis the input automaton,
+convconverts all integer constants to reals (as the semantics are speciﬁed on
+reals), and φis the input formula. The relation /satisfiesmax stepsis a variant of /satisfies
+lifted to networks of timed automata with shared state and Uppaal bytecode
+annotations. It is indexed with the maximum number of steps that any execution
+of a piece of Uppaal bytecode can use (i.e. max steps is the fuelavailable to
+executions). The vector of start locations init, and the shared state s0(part of
+the input) describe the initial conﬁguration.
+The actual model checking proceeds in two steps. First, a product construc-
+tion converts the network to a single timed automaton, expressed by HOL func-
+tions for the transition relation and the invariant assignment. Second, accordingto the formula, a model checking algorithm is run on the single automaton. We
+need three algorithms: a reachability checker for E♦and A/square, a loop detection
+algorithm for E/squareand A♦, and a combination of both to check /axisshort/axisshort/arrowaxisright-properties.
+Note that the aforementioned HOL functions are simply functional programs
+that construct the product automaton’s state and invariant assignments on-the-
+ﬂy. The ﬁnal correctness theorem we proved can be stated as follows:
+{emp}
+precond
+mcpmk max steps IT prog formula bounds Ps 0
+{λSome r⇒valid input pm max steps IT prog bounds Ps 0na k∧
+(¬deadlock (convN)(init,s0,u0)=⇒
+r=convN,(init,s0,u0)/satisfiesmax steps formula )
+|None ⇒¬ valid input pm max steps IT prog bounds Ps 0na k}
+4For the time being, the bytecode needs to be pre-processed slightly, mainly to rename
+textual identiﬁers to integers.
+5Adding a check for deadlocked states to our algorithms would be conceptually simplebut is left for future work.
+
+--- Page 7 ---
+Veriﬁed Model Checking of Timed Automata 67
+This Hoare triple states that the model checker terminates and produces the
+result None if the input is invalid. If the input is valid and deadlock free, it
+produces the result Some r , where ris the answer to the model checking problem.
+4 Single Automaton Model Checking
+In this section, we describe the route from the abstract semantics of timed
+automata to the implementation of an actual model checker. The next sectionwill describe the construction of a single timed automaton from the Uppaal -
+model.
+4.1 Implementation Semantics
+Although we have established that the DBM-based semantics from Sect. 2can
+only explore ﬁnitely many zones, it is still “too inﬁnite”: the automaton and
+DBMs are described by real constants, and operations on DBMs are performed
+on inﬁnitely many dimensions (i.e. clocks). Thus, we introduce an implementa-
+tion semantics , in which automata are given by integer constants, and where the
+number of clocks is ﬁxed. We prove equivalence of the semantics in two steps:ﬁrst, we show that DBM operations need only be performed on the clocks that
+actually occur in the automaton; second, we show that all computations can be
+performed on integers, provided the initial state only contains integers.
+For the former step, we simplify the operations under the assumptions that
+they maintain canonicity of DBMs. A DBM is canonical if it stores the tightest
+derivable constraint for each pair of clocks, i.e.
+canonical Mn=(∀ijk .i ≤n∧j≤n∧k≤n→Mik ≤Mij +Mjk ).
+During model checking, the Floyd-Warshall algorithm is used to turn a DBM
+into its canonical counterpart.
+For the latter step, we use Isabelle’s integrated parametricity prover [ 19]t o
+semi-automatically transfer the operations from reals to integers.
+As an example, Fig. 2displays the reﬁnement steps of the upoperation, which
+computes the time successor of a zone Z, i.e. the set {u⊕d|u∈Z∧d≥0}.
+Fig. 2. Reﬁnement stages of the upoperation for computing time successors.
+
+--- Page 8 ---
+68 S. Wimmer and P. Lammich
+In the step from uptoup1, the assumption that the input DBM is canonical
+is introduced. In up2, which is the version used in the implementation semantics,
+the operation is constrained to clocks 1 to n. Finally, in up3, the matrices are
+implemented as arrays and the fold is implemented as a foreach loop.
+At this point, a naive exploration of the transitive closure of the implemen-
+tation semantics would already yield a simple but ineﬃcient model checker. The
+rest of this section outlines the derivation of a more elaborate implementation
+that is close to what can be found in Uppaal .
+4.2 Semantic Reﬁnement of Successor Computation
+We further reﬁne the implementation semantics to add two optimizations to the
+computation of successor DBMs: to canonicalize DBMs it is sometimes suﬃcient
+to only “repair” single rows or columns instead of running the full Floyd-Warshall
+algorithm; moreover, we can terminate the computation early whenever we dis-cover a DBM that represents an empty zone (as it will remain empty). Both
+arguments are again carried out on the semantic level.
+4.3 Abstraction of Transition Systems with Closures
+Recall that the correctness of the reachability analysis on the abstract zone
+graph in Sect. 2was obtained arguing that the region closure of zones forms
+a sound over-approximation of zones, which in turn is larger than the abstractzone graph. We want to reuse the same kind of argument to also argue that there
+exists a cycle in the abstract zone graph if and only if there is a cycle in the
+automaton’s transition system. This proof is carried out in a general abstract
+framework for transition systems and their abstractions.
+We consider a concrete step relation →
+Cover type/primeaand what is supposed
+to be its simulation, a step relation → A1over type/primeas e t. We say that → A1is
+post-stable [20]i fS→ A1Timplies
+∀s/prime∈T.∃s∈S. s→ Cs/prime,
+and that → A1ispre-stable [20]i fS→ A1Timplies
+∀s∈S.∃s/prime∈T. s→ Cs/prime.
+In the timed automata setting, for instance, the simulation graph is post-stable
+and the region graph is pre-stable.
+Lemma 1. If→ A1is post-stable and we have a→ A1as→ A1awithaﬁnite
+and non-empty, then there exist xsandx∈asuch that x→ Cxs→ Cx.
+
+--- Page 9 ---
+Veriﬁed Model Checking of Timed Automata 69
+Proof. Letx→y=(∃xs. x → Cxs→ Cy). As → A1is post-stable, every ahas
+an ingoing →-edge. Because ais ﬁnite we can thus ﬁnd an →-cycle in a,a n d
+obtain the claim.
+Lemma 2. If→ A1is pre-stable and we have a→ A1as→ A1aandx∈a, then
+there exist xssuch that x→xs
+Candxspasses through ainﬁnitely often.
+Proof. By coinduction. From pre-stability we can ﬁnd x1∈asuch that x→+
+Cx1,
+fromx1we ﬁnd x2∈asuch that x1→+
+Cx2, and so forth.
+We can now consider doubly-layered abstractions as in the case for regions
+and zones. That is, we add a second simulation → A2and two predicates P1and
+P2that designate valid states of the ﬁrst and second simulation layer, respec-
+tively. Then we deﬁne the closure Cof a state of the second layer as
+Ca={x|P1x∧a∩x/negationslash=∅}anda→Cb=(∃xy .a =Cx∧b=Cy∧x→ A2y).
+We assume that → A1is pre-stable w.r.t. → Cand that →Cis post-stable w.r.t.
+→ A1. Along with some side conditions on P1andP26we can prove:
+Theorem 1. Ifa0→ A2as→ A2a→ A2bs→ A2aandP2a, then there exist
+x∈/uniontext(Ca0)andxssuch that x→xs
+Candxspasses through/uniontext(Ca)inﬁnitely
+often.
+Proof. We ﬁrst apply Cto the second layer states and get a path of the form:
+Ca0→Cas/prime→CCa→Cbs/prime→CCafor some as/primeandbs/prime. From Lemma 1and
+post-stability, we obtain a path of the form a01→ A1as1→ A1a1→ A1bs1→ A1
+a1witha01∈Ca0anda1∈Ca. By applying Lemma 2and pre-stability, we
+obtain the desired result.
+This is the main theorem that allows us to run cycle detection on the abstract
+zone graph during model checking: the other direction is trivial, and the theorem
+can be directly instantiated for regions and (abstracted) zones. There is a slight
+subtlety here since we only guarantee x∈/uniontext(Ca0). However we typically have
+Ca0=a0, as all clocks are initially set to zero.
+4.4 Implementation of Search Algorithms
+We ﬁrst implement the three main model checking algorithms abstractly in the
+nondeterminism monad provided by the IRF. On this abstraction level, we canuse such abstract notions as sets and specify the algorithm for an arbitrary
+(ﬁnite) transition system →. We only showcase the implementation of our cyclic-
+ity checker (used for A♦andE/square). The techniques used for the other algorithms
+are similar. The code for our cyclicity checker is displayed in Listing 1.1.
+6P1states are distinct and there are only ﬁnitely many of them. For every P2state,
+there is an overlapping P1state.
+
+--- Page 10 ---
+70 S. Wimmer and P. Lammich
+dfsP=do{
+(P,ST,r )←rec T(λdfs(P,ST,v ).
+do{
+if∃v/prime∈set ST. v/prime/precedesequalvthen return (P,ST, True)
+else do {
+if∃v/prime∈P. v/precedesequalv/primethen return (P,ST, False)
+else do {
+letST=v·ST;
+(P,ST/prime,r)←
+foreach {v/prime|v→v/prime}(λ(,,b).¬b)
+(λv/prime(P,ST, ).dfs(P,ST,v/prime))
+(P,ST, False);
+assert (ST/prime=ST);
+return (insert vP , t lS T/prime,r)
+}
+}
+})(P,[],a0);
+return (r, P)}
+Listing 1.1. Cyclicity Checker
+We claim that this closely resembles the pseudo-code found, e.g., in [ 21]. The
+algorithm takes a passed set, and produces a new passed set in addition to
+the answer. This can be used in the algorithm for checking /axisshort/axisshort/arrowaxisright-properties. The
+crux of the algorithm is the use of the subsumption operator /precedesequal, to check whether
+smaller states are already subsumed by larger states that we may have discovered
+earlier (for timed automata, this would correspond to set inclusion on zones).We assume that /precedesequalis a pre-order and monotone w.r.t. →. Then, using the IRF’s
+veriﬁcation condition generator, we prove:
+dfsP≤SPEC (λ(r, P
+/prime).(r=⇒(∃x. a 0→∗x∧x→+x))
+∧(¬r=⇒¬(∃x. a 0→∗x∧x→+x)∧liveness compatible P/prime))
+ifliveness compatible P.
+The invariant we maintain for the passed set Pis encoded in the predicate
+liveness compatible P. We say that a state xis covered by Pif there exists
+x/prime∈Psuch that x/precedesequalx/prime. Then, informally, liveness compatible Pstates that the
+successors of every node that is covered by Pare also covered, and that there is
+no cycle through nodes that are covered by P. After specifying the correct loop
+invariant (using liveness compatible as the main insight) and the termination
+relation, together with some key lemmas about the invariant, the veriﬁcation
+conditions can be discharged nearly automatically.
+In subsequent steps, we gradually reﬁne this implementation to use more
+eﬃcient data structures. The ﬁnal version uses a function to compute a list of
+successors, and is able to index the passed set and the stack according to a key
+function on states (this corresponds to the location part of states in the abstract
+zone graph). The reﬁnement theorem can be stated as:
+dfs mapP≤⇓(Id×rmap set rel)(dfsP/prime)i f(P,P/prime)∈map set rel.
+
+--- Page 11 ---
+Veriﬁed Model Checking of Timed Automata 71
+That is, dfs mapis a reﬁnement of dfs, where the passed set is data-reﬁned w.r.t.
+the relation map set rel. This relation describes the implementation of passed
+sets indexed by keys.
+These reﬁnement steps are conducted inside the nondeterminism monad of
+the IRF. The ﬁnal step leads into the heap-monad of Imperative HOL [ 22], which
+supports imperative data structures. Here, the Sepref tool [6] replaces functional
+by imperative data structures and generates a reﬁnement theorem automatically.
+Maps are implemented via hash tables, which poses a challenge for the imple-
+mentation as the maps contain objects stored on the heap. This was not sup-
+ported by the existing implementation in the Imperative Collections Framework,
+due to sharing issues: when retrieving a value from the map, we cannot obtainownership of the value while the map also retains ownership. This is even true
+if the value is read-only. One way to solve this problem would be to extend
+the separation logic that underlies the IRF to fractional permissions or read-
+only permissions. Our solution, however, is more ad-hoc: we simply restrict the
+operations that we perform on the hash map to insertions and an extract oper-
+ation, which deletes a key-value pair from the map and returns the value (i.e.
+it combines lookup and delete). To deﬁne the map implementation, we use a
+trick similar to Chargueraud’s ideas from [ 23]: we use a heap assertion that ﬁrst
+connects an abstract map mwith an intermediate map m
+hof pointers to the
+elements, and then implements the map of pointers by a regular hash map mi.
+Formally, the assertion is deﬁned as:
+hms assnAmm i=(∃Amh.ismapmhmi∗map assnAmm h).
+Here ismapis the assertion for an existing map implementation from the Imper-
+ative Collections Framework (which cannot store heap objects, but supportspointers), and map
+assnAmm hconnects a map of abstract values with a map
+of pointers, where the relation between abstract values and pointed-to objects
+is deﬁned by A.
+Then, the ﬁnal implementation is produced by proving that all map-related
+operations in dfs mapcan be replaced by insert and extract operations, and
+letting Sepref synthesize the imperative variant, making use of our new hash mapimplementation. The key theorem on the ﬁnal implementation is the following
+Hoare triple:
+{emp}
+dfs
+map impl/primesuccsi a0iLei keyi copyi
+{λr. r=(∃x. a 0→∗x∧x→+x)}
+It is expressed in a locale (Isabelle’s module system) that assumes that a0i,
+succsi , etc., are the correct imperative implementations of a0, the successor
+function, and so forth. Versions of the search algorithm for concrete transition
+systems are obtained by simply instantiating the locale with the operations ofthe transition system and their implementations.
+
+--- Page 12 ---
+72 S. Wimmer and P. Lammich
+4.5 Imperative Implementations of Model Checking Operations
+Recall the reﬁnement of the upoperation (Fig. 2). It is crucial that up2is
+expressed as a fold-operation with explicit updates, as only then the IRF canextract an eﬃcient imperative version with destructive updates and a foreach
+loop. The imperative implementation up
+3is, again, synthesized by the Sepref
+tool. As can be witnessed for up3, the pattern foldf[1..< n+ 1] is turned into
+a foreach loop. Technically, this is achieved by a set of rewrite rules that are
+applied automatically by the Sepref tool at the end of the synthesis process.
+The only hurdle for this kind of synthesis is that the dimension of DBMs needsto become a parameter of the reﬁnement relations. For nclocks, we deﬁne
+mtx
+assn=asmtx assn(n+1 ) idassn.
+This speciﬁes that our DBMs are implemented by square-arrays of dimension
+n+ 1, and their elements are reﬁned by the identity relation.
+The reﬁnement theorem for up3is proved automatically by the Sepref tool:
+(up3,up 2)∈[λ(,i).i≤n]mtx assnd∗nat assnk→mtx assn.
+This theorem states that, if the speciﬁed dimension is in bounds, up3reﬁnes up2.
+The·dannotation indicates that the operation is allowed to overwrite (destroy)
+the input matrix on the heap. Symmetrically, the ·kannotation means that the
+second parameter is not overwritten (kept).
+4.6 Code Extraction
+Finally, Isabelle/HOL’s code generator [ 24] is used to extract imperative Stan-
+dard ML code from the Isabelle speciﬁcations generated by Sepref. Code gener-
+ation involves some optimizations and rewritings that are carried out as reﬁne-
+ment steps and proved correct, followed by pretty printing from the functional
+fragment of HOL and the heap monad to Standard ML.
+5 From UPPAAL-Style Semantics to a Single Automaton
+5.1 UPPAAL-Style Semantics
+Due to the lack of documentation on the Uppaal intermediate format, we deﬁne
+an approximation of this assembler-like language by reverse engineering. This is
+suﬃcient to check typical benchmarks, and gives a clearly deﬁned semantics tothe fragment that we cover. The language is deﬁned as a simple data type instr.
+Astepfunction of type instr ⇒state ⇒state option computes the successor
+state after executing an instruction, or fails. A state consists of an instruction
+pointer, the stack, the state of the shared integer variables, the state of the
+comparison ﬂag, and a list of clocks that have been marked for reset. Using afuel parameter, we execute programs by repeatedly applying the stepfunction
+
+--- Page 13 ---
+Veriﬁed Model Checking of Timed Automata 73
+until we either reach a halt instruction, fail, or run out of fuel, which we also
+regard as a failed execution.
+A special instruction CEXP is used to check whether an atomic clock con-
+straint holds for a given valuation u. However, this instruction cannot simply be
+executed during model checking as it would need to work on zones instead of val-uations. Unconstrained use of the CEXP instruction would allow for disjunctions
+of clock constraints on edges, which is not part of the standard timed automata
+formalism. Thus, in the same way as Uppaal , we restrict the valid input pro-
+grams to those that only yield conjunctions of clock constraints on edges. We then
+replace every CEXP instruction by a special meta instruction that sets the com-
+parison ﬂag to true. This amounts to enforcing a program execution where theclock constraint, which is expressed by a piece of bytecode, holds for a valua-
+tion. Edges are annotated with the conjunction of the atomic clock constraints
+encountered during execution. In the current version of our tool, we separate
+concerns for locations by using a state predicate, which is not allowed to use
+CEXP instructions, and a separate clock constraint. The two could be merged
+by using the same approach as for edges.
+5.2 Program Analysis
+As stated in the last section, we need to ensure that successful program execu-
+tions can only induce conjunctive clock constraints. That is, we need to ensurethat program executions can only be successful when all CEXP instructions that
+are encountered during execution evaluate to true. To this end, we use a naive
+analysis, which recognizes a subclass of these programs that is suﬃciently largeto cover common timed automata benchmarks. This analysis tries to identify
+what we call conjunction blocks . A conjunction block reaching from addresses
+pc
+stopc tends with a haltinstruction at pc t, starts with a CEXP instruction
+atpc sand then is extended to pc tby repeatedly using one of the following two
+patterns:
+–a copyinstruction to push the ﬂag on the stack, followed by CEXP and an
+andinstruction;
+–a copyinstruction, followed by a jump-on-zero instruction with pc tas the
+destination, followed by CEXP and an andinstruction.
+We simultaneously show the two key properties of conjunction blocks via induc-
+tion: if there is a conjunction block from pc stopc t, then any successful execution
+starting from pc sends in pc t, and every CEXP instruction that is encountered
+has to evaluate to true. Given a start address pc s, the whole analysis works by
+computing an approximation of the set of possible addresses that can be reached
+frompc s,s a yS, and then checking whether
+Min{pc|pc∈S∧(∃ac. P pc=CEXP ac)}toMaxS
+is a conjunction block, where Ppcis the program instruction at address pc.A
+major limitation of this analysis is that it cannot approximate the reachable
+
+--- Page 14 ---
+74 S. Wimmer and P. Lammich
+Uppaal Networks:
+shared bounded
+integer variables
+State Networks:
+arbitrary ﬁnite
+shared state
+Networks:
+synchronization only
+Single AutomatonEncode programs
+One per state
+Encode location vectorsPair locations & state
+Fig. 3. Outline of the product construction.
+set for calland return instructions, so we are not able to handle inputs that
+are compiled from Uppaal programs with sub-routines. However, as the main
+objective of our work is not program analysis, we consider the current naive
+analysis suﬃcient to demonstrate the general viability of our approach.
+5.3 Product Construction
+The general shape of our product construction is outlined in Fig. 3. The ﬁrst stage
+of the construction encodes the bytecode annotations as guards and updates onthe shared state. The subsequent stage constructs a network of automata for
+each shared state by essentially ﬁltering the transitions that are valid for a given
+state. For a simple network, the product can be constructed in the obvious way.However, this is only used in the correctness proof of the ﬁnal step, which directly
+constructs a single automaton by pairing the location vector and the state.
+The result of this construction is a highly contrived description of the single
+automaton. To obtain an eﬃciently executable version of this description, we
+specify an alternative functional implementation and prove the equivalence of
+the two.
+6 Experimental Evaluation
+We conducted experiments on some standard benchmark models for timedautomata: a variant of Fischer’s mutual-exclusion protocol, the FDDI token ring
+protocol, and the CSMA/CD protocol used in Ethernet networks. We tested one
+reachability and one liveness property for each model: E♦(c>1) and P
+1.b/axisshort/axisshort/arrowaxisright
+
+--- Page 15 ---
+Veriﬁed Model Checking of Timed Automata 75
+P1.cfor Fischer’s protocol; E♦(¬P1.idle∧¬P2.idle)a n d true/axisshort/axisshort/arrowaxisright zasync 1for
+FDDI; and E♦(P1.abort∧P2.send), and collision /axisshort/axisshort/arrowaxisright active for CSMA/CD. We
+compare (c.f. Table 1) our tool against Uppaal conﬁgured with two diﬀerent
+approximation operators: diﬀerence ( Uppaal 1) and location-based ( Uppaal 2)
+extrapolation. We give the computation time in seconds and the number ofexplored states, as reported by our tool and Uppaal
+7. Since the number of
+explored states diﬀers signiﬁcantly, we also calculated throughput , i.e. the num-
+ber of explored states per second. The ratio of Uppaal ’s throughput and our
+tool’s throughput is given in the column TR. We specify the problem size as the
+number of automata in the network.
+Table 1. Experimental results on a set of standard benchmarks.
+Model PropSATSizeOur tool Uppaal 1 Uppaal 2
+Time #States Time #States TRTime #States TR
+Fischer RN 56,61 38578 0,31 12363 6,830,04 3739 16,02
+LY 57,52 42439 0,31 20340 11,80,04 8149 40,1
+Y 6485,9 697612 42,85 249295 4,11,53 67325 30,7
+FDDI RN 816,04 6720 0,34 5416 37,60,31 5416 42,0
+N10142,8 29759 6,63 24210 17,56,44 24120 18,0
+LY 62,58 2083 0,05 2439 61,70,04 2439 68,7
+Y 76,50 3737 0,15 4944 57,00,14 4944 62,3
+CSMA/CD RN 54,48 9959 0,03 2704 45,30,03 2769 40,6
+N 671,70 81463 1,70 17613 9,21,79 17939 8,8
+LY 54,93 11526 0,04 3802 42,40,04 3867 42,4
+Y 676,83 96207 1,78 23128 10,41,86 12603 10,1
+The results indicate that our tool’s throughput is around one order of magni-
+tude lower than Uppaal ’s. Encouragingly, the gap seems to decrease for larger
+models. However, for larger problem sizes of some models, we also start to run
+out of memory because our tool is not tuned towards space consumption. We donot have a convincing explanation for the diﬀerence in states explored by our
+tool and Uppaal — particularly, because our tool already implements location-
+based extrapolation. Nevertheless, we conclude that the performance oﬀered byour tool is reasonable for a reference implementation against which other tools
+can be validated: we can check medium sized instances of common benchmark
+models, which should be suﬃcient to scrutinize the functionality of a modelchecker.
+7Uppaal comes with a note suggesting that these numbers might be wrong for liveness
+properties.
+
+--- Page 16 ---
+76 S. Wimmer and P. Lammich
+7 Conclusion
+We have derived an eﬃciently executable and formally veriﬁed model checker
+for timed automata. Starting from an abstract formalization of timed automata,
+we ﬁrst reduced the problem to model checking of a single automaton, and thenused stepwise reﬁnement techniques to gradually replace abstract mathematical
+notions by eﬃcient algorithms and data structures. Some of the veriﬁed algo-
+rithms and data structures, e.g. search with subsumption and Diﬀerence BoundMatrices, are interesting in their own right. Our experiments demonstrate that
+our tool’s performance is suitable for validating other model checkers against
+it on medium sized instances of classic benchmark models. Using a simple pro-gram analysis, we can cover a subset of the Uppaal bytecode that is suﬃcient
+to accept common models as an input.
+Following the construction we expounded above, our checker can be improved
+on two diﬀerent axes: advanced modeling feature such as broadcast channels or
+committed locations can be enabled by elaborating the product construction;using the reﬁnement techniques that we demonstrated above, further improve-
+ments of the model checking algorithms can achieve better performance.
+An alternative approach to tackle performance problems is to resort to cer-
+tiﬁcation of model checking results. For the simple CTL properties that are
+supported by our tool and Uppaal , passed sets could be used as the certiﬁcates
+and the model checking algorithms could be reused for certiﬁcate checking. Asthe model checking algorithms for timed automata make use of subsumption,
+passed sets can contain signiﬁcantly less states than the total number of states
+explored during model checking. We plan on exploring this avenue in the future.
+Data Availability Statement. The datasets generated during and analyzed during
+the current study are available in the ﬁgshare repository [ 25]:https://doi.org/10.6084/
+m9.ﬁgshare.5917363.v1 .
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theoret. Comput. Sci. 126(2),
+183–235 (1994)
+2. Bengtsson, J., Yi, W.: Timed automata: semantics, algorithms and tools. In: Desel,
+J., Reisig, W., Rozenberg, G. (eds.) ACPN 2003. LNCS, vol. 3098, pp. 87–124.
+Springer, Heidelberg (2004). https://doi.org/10.1007/978-3-540-27755-2 3
+3. Bouyer, P.: Untameable timed automata! In: Alt, H., Habib, M. (eds.) STACS
+2003. LNCS, vol. 2607, pp. 620–631. Springer, Heidelberg (2003). https://doi.org/
+10.1007/3-540-36494-3 54
+4. Nipkow, T., Wenzel, M., Paulson, L.C. (eds.): Isabelle/HOL. LNCS, vol. 2283.
+Springer, Heidelberg (2002). https://doi.org/10.1007/3-540-45949-9
+5. Lammich, P., Tuerk, T.: Applying data reﬁnement for monadic programs to
+Hopcroft’s algorithm. In: Beringer, L., Felty, A. (eds.) ITP 2012. LNCS, vol.
+7406, pp. 166–182. Springer, Heidelberg (2012). https://doi.org/10.1007/978-3-
+642-32347-8 12
+
+--- Page 17 ---
+Veriﬁed Model Checking of Timed Automata 77
+6. Lammich, P.: Reﬁnement to Imperative/HOL. In: Urban, C., Zhang, X. (eds.) ITP
+2015. LNCS, vol. 9236, pp. 253–269. Springer, Cham (2015). https://doi.org/10.
+1007/978-3-319-22102-1 17
+7. Wimmer, S.: Formalized timed automata. In: Blanchette, J.C., Merz, S. (eds.) ITP
+2016. LNCS, vol. 9807, pp. 425–440. Springer, Cham (2016). https://doi.org/10.
+1007/978-3-319-43144-4 26
+8. Xu, Q., Miao, H.: Formal veriﬁcation framework for safety of real-time system
+based on timed automata model in PVS. In: Proceedings of the IASTED Interna-
+tional Conference on Software Engineering, pp. 107–112 (2006)
+9. Xu, Q., Miao, H.: Manipulating clocks in timed automata using PVS. In: Proceed-
+ings of SNPD 2009, pp. 555–560 (2009)
+10. Paulin-Mohring, C.: Modelisation of timed automata in Coq. In: Kobayashi, N.,
+Pierce, B.C. (eds.) TACS 2001. LNCS, vol. 2215, pp. 298–315. Springer, Heidelberg
+(2001). https://doi.org/10.1007/3-540-45500-0 15
+11. Garnacho, M., Bodeveix, J.-P., Filali-Amine, M.: A mechanized semantic frame-
+work for real-time systems. In: Braberman, V., Fribourg, L. (eds.) FORMATS
+2013. LNCS, vol. 8053, pp. 106–120. Springer, Heidelberg (2013). https://doi.org/
+10.1007/978-3-642-40229-6 8
+12. Alur, R., Henzinger, T.A., Vardi, M.Y.: Parametric real-time reasoning. In: Pro-
+ceedings of the Twenty-Fifth Annual ACM Symposium on Theory of Computing,pp. 592–601 (1993)
+13. Cast´ eran, P., Rouillard, D.: Towards a generic tool for reasoning about labeled
+transition systems. In: TPHOLs 2001: Supplemental Proceedings (2001). http://
+www.informatics.ed.ac.uk/publications/report/0046.html
+14. Sprenger, C.: A veriﬁed model checker for the modal μ- c a l c u l u si nC o q .I n :S t e ﬀ e n ,
+B. (ed.) TACAS 1998. LNCS, vol. 1384, pp. 167–183. Springer, Heidelberg (1998).https://doi.org/10.1007/BFb0054171
+15. Esparza, J., Lammich, P., Neumann, R., Nipkow, T., Schimpf, A., Smaus, J.-G.:
+A fully veriﬁed executable LTL model checker. In: Sharygina, N., Veith, H. (eds.)CAV 2013. LNCS, vol. 8044, pp. 463–478. Springer, Heidelberg (2013). https://
+doi.org/10.1007/978-3-642-39799-8
+31
+16. Neumann, R.: Using promela in a fully veriﬁed executable LTL model checker.
+In: Giannakopoulou, D., Kroening, D. (eds.) VSTTE 2014. LNCS, vol. 8471, pp.
+105–114. Springer, Cham (2014). https://doi.org/10.1007/978-3-319-12154-3 7
+17. Brunner, J., Lammich, P.: Formal veriﬁcation of an executable LTL model checker
+with partial order reduction. J. Autom. Reasoning 60(1), 3–21 (2018)
+18. Herbreteau, F., Srivathsan, B., Tran, T.T., Walukiewicz, I.: Why liveness for timed
+automata is hard, and what we can do about it. In: Lal, A., Akshay, S., Saurabh, S.,Sen, S. (eds.) FSTTCS 2016, vol. 65. LIPIcs. Schloss Dagstuhl - Leibniz-Zentrum
+f¨ur Informatik, pp. 48:1–48:14 (2016)
+19. Huﬀman, B., Kunˇ car, O.: Lifting and transfer: a modular design for quotients in
+Isabelle/HOL. In: Gonthier, G., Norrish, M. (eds.) CPP 2013. LNCS, vol. 8307, pp.
+131–146. Springer, Cham (2013). https://doi.org/10.1007/978-3-319-03545-1
+9
+20. Bouajjani, A., Tripakis, S., Yovine, S.: On-the-ﬂy symbolic model checking for real-
+time systems. In: Proceedings of the 18th IEEE Real-Time Systems Symposium
+(RTSS 1997), 3–5 December 1997, San Francisco, CA, USA, pp. 25–34 (1997)
+21. Behrmann, G., Larsen, K.G., Rasmussen, J.I.: Beyond liveness: eﬃcient parameter
+synthesis for time bounded liveness. In: Pettersson, P., Yi, W. (eds.) FORMATS
+2005. LNCS, vol. 3829, pp. 81–94. Springer, Heidelberg (2005). https://doi.org/10.
+1007/11603009 7
+
+--- Page 18 ---
+78 S. Wimmer and P. Lammich
+22. Bulwahn, L., Krauss, A., Haftmann, F., Erk¨ ok, L., Matthews, J.: Imperative func-
+tional programming with Isabelle/HOL. In: Mohamed, O.A., Mu˜ noz, C., Tahar, S.
+(eds.) TPHOLs 2008. LNCS, vol. 5170, pp. 134–149. Springer, Heidelberg (2008).https://doi.org/10.1007/978-3-540-71067-7
+14
+23. Chargu´ eraud, A.: Higher-order representation predicates in separation logic. In:
+Proceedings of the 5th ACM SIGPLAN Conference on Certiﬁed Programs andProofs, CPP 2016, St. Petersburg, FL, USA, pp. 2–14. ACM, New York (2016).
+https://doi.org/10.1145/2854065.2854068
+24. Haftmann, F., Nipkow, T.: Code generation via higher-order rewrite systems. In:
+Blume, M., Kobayashi, N., Vidal, G. (eds.) FLOPS 2010. LNCS, vol. 6009, pp.
+103–117. Springer, Heidelberg (2010). https://doi.org/10.1007/978-3-642-12251-
+4
+9
+25. Wimmer, S., Lammich, P.: Veriﬁed model checking of timed automata - artifact
+(2018)
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter’s
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter’s Creative Commons license and your intendeduse is not permitted by statutory regulation or exceeds the permitted use, you will
+need to obtain permission directly from the copyright holder.

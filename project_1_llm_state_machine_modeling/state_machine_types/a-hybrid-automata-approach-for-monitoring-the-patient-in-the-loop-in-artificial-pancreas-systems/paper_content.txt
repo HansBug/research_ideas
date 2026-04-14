@@ -1,0 +1,1291 @@
+--- Page 1 ---
+sensors
+Article
+A Hybrid Automata Approach for Monitoring the Patient in the
+Loop in Artiﬁcial Pancreas Systems
+Aleix Beneyto1
+, Vicenç Puig2
+, B. Wayne Bequette3
+and Josep Vehi1,4,*
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Citation: Beneyto, A.; Puig, V .;
+Bequette, B.W.; Vehi, J. A Hybrid
+Automata Approach for Monitoring
+the Patient in the Loop in Artiﬁcial
+Pancreas Systems. Sensors 2021 ,21,
+7117. https://doi.org/10.3390/
+s21217117
+Academic Editor: Jonathan Golledge
+Received: 2 September 2021
+Accepted: 23 October 2021
+Published: 27 October 2021
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2021 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).1Department of Electrical, Electronic and Automatic Engineering, University of Girona, 17004 Girona, Spain;
+aleix.beneyto@udg.edu
+2Automatic Control Department-Campus de Terrassa, Universitat Politècnica de Catalunya (UPC),
+08222 Terrassa, Spain; vicenc.puig@upc.edu
+3Department of Chemical Engineering, Rensselaer Polytechnic Institute, Troy, NY 12180, USA;
+bequette@rpi.edu
+4Centro de Investigación Biomédica en Red de Diabetes y Enfermedades Metabólicas Asociadas,
+28029 Madrid, Spain
+*Correspondence: josep.vehi@udg.edu
+Abstract: The use of automated insulin delivery systems has become a reality for people with type
+1 diabetes (T1D), with several hybrid systems already on the market. One of the particularities
+of this technology is that the patient is in the loop. People with T1D are the plant to control and
+also a plant operator, because they may have to provide information to the control loop. The
+most immediate information provided by patients that affects performance and safety are the
+announcement of meals and exercise. Therefore, to ensure safety and performance, the human factor
+impact needs to be addressed by designing fault monitoring strategies. In this paper, a monitoring
+system is developed to diagnose potential patient modes and faults. The monitoring system is
+based on the residual generation of a bank of observers. To that aim, a linear parameter varying
+(LPV) polytopic representation of the system is adopted and a bank of Kalman ﬁlters is designed
+using linear matrix inequalities (LMI). The system uncertainty is propagated using a zonotopic-set
+representation, which allows determining conﬁdence bounds for each of the observer outputs and
+residuals. For the detection of modes, a hybrid automaton model is generated and diagnosis is
+performed by interpreting the events and transitions within the automaton. The developed system
+is tested in simulation, showing the potential beneﬁts of using the proposed approach for artiﬁcial
+pancreas systems.
+Keywords: artiﬁcial pancreas; hybrid automaton; Kalman ﬁlter; patient in the loop; type 1 diabetes
+1. Introduction
+Type 1 diabetes (T1D) is a serious metabolic disease characterized by an autoimmune
+destruction of the insulin-producing b-cells in the pancreas and subsequent insulin deﬁ-
+ciency. Insulin is a hormone that allows glucose uptake from the blood into cells, either to
+be used as fuel or stored for future use. Low levels of insulin inevitably lead to high blood
+glucose (BG) concentrations, known as hyperglycemia, which can also lead to long-term
+complications [ 1,2]. Current therapies are based on administering exogenous insulin using
+devices such as insulin pumps or pens [3,4].
+Artiﬁcial pancreas (AP) is a closed-loop (CL) system in which insulin is delivered
+automatically by adjusting a pump’s insulin infusion rate depending on continuous glucose
+monitor (CGM) readings [ 5]. CGM sensors measure glucose subcutaneously and provide
+an estimate of current BG levels. Many different control strategies for AP are available in
+the literature [ 5–7]. AP systems have been an important focus of research and discussion
+over the last years, with a multitude of clinical trials being conducted world-wide [ 8].
+There is clinical evidence that suggests that using an AP is safe, robust, and efﬁcacious for
+people with T1D when compared to traditional open-loop therapy [7,8].
+Sensors 2021 ,21, 7117. https://doi.org/10.3390/s21217117 https://www.mdpi.com/journal/sensors
+
+--- Page 2 ---
+Sensors 2021 ,21, 7117 2 of 25
+However, AP technology is not exempt of risks during operation [ 9]. It is especially
+critical to take into account the concept of patient-in-the-loop in the design phase for this
+kind of technology [ 10], because ultimately, patients will wear and operate APs. Patients
+will have to provide inputs, maintain the system, and ideally undertake training before
+using any AP . Therefore, the patient will play a signiﬁcant role in any conﬁguration—a
+clear example is the Medtronic MiniMed 670G AP [ 11]. Undoubtedly, research is trying to
+ﬁnd solutions that reduce the impact of patient behaviors and decisions. Therefore, any
+developed AP must implement fault tolerant control (FTC) strategies to mitigate faults and
+ensure and maintain stability, performance, and safety for the patient.
+In the context of FTC research for AP systems, most of the literature is focused on
+fault detection (FD) and fault identiﬁcation (FI) for either the CGM [ 12,13] or insulin
+pumps [ 14–17]. Only few tackle the issue of how the patient-in-the-loop affects the system
+and what potential faults may arise from it [ 9]. Developed strategies to detect speciﬁc
+patient behaviors exist, however, they were not developed for safety but as ad-hoc ap-
+proaches for control. Most of the approaches involving the patient estimate the glucose
+rate of appearance to allow AP to operate without meal announcement [ 18–23]. Other
+strategies try to detect when patients exercise and modify or adapt their control strategy
+accordingly [ 24,25]. In any case, the roads being followed are either hybrid systems, which
+rely on patient input, or fully CL systems. The patient-in-the-loop paradigm links both
+approaches allowing fully CL systems to operate, but also to rely on contrasted patient
+input information to enhance performance and safety. Hence, patient modes and inputs
+should be monitored and potential faults must be uncovered for fully CL systems that may
+from time to time may use patient information. Here, a patient operational mode is deﬁned
+by its signiﬁcantly different system dynamics, for example the increased insulin sensitivity
+during aerobic exercise. Additionally, patient inputs are considered as any action that the
+patient can perform with direct implications to BG control.
+The aim of this work is to provide robust and safe solutions to deal with the patient-
+in-the-loop in AP systems. In the context of diabetes and AP systems, the patient should
+be considered as part of the control loop [ 26]. Depending on the system conﬁguration,
+the patient may have to take the role of an actuator or a sensor, besides being the plant
+to control. Speciﬁcally, the subjects will be considered actuators performing the control
+action of eating the recommended carbohydrates (CHO) [ 27] or informing about meal
+consumption or exercise. It is known that patient information can be erroneous, for example,
+studies show that patients have signiﬁcant estimation errors when counting CHO [ 28].
+Therefore, the detection and monitoring of patient modes can be used to help the control
+system in maintaining performance and safety despite patient faults. Considering the
+patient-in-the-loop, the monitoring of system modes can be aided by the feed-forward
+information provided by the patient. That information is inherently affected by uncertainty
+and must be checked to exclude any possible fault.
+The implemented approach is a model-based FD system and can work with any kind
+of hybrid or fully CL control architecture that announces meals and/or uses insulin and/or
+CHO as a control action. The physiology of a person with T1D is subjected to highly
+nonlinear phenomena. A way of extending traditional linear system theory to nonlinear
+systems is by means of the linear varying parameter (LPV) paradigm [ 29]. Here, this
+approach will be used for modeling T1D subjects. Then, we design a bank of polytopic
+Kalman ﬁlters by solving the dual of the linear quadratic control (LQC) problem and
+imposing constraints on the system stability and performance by using linear matrix
+inequalities (LMI). Dealing with system uncertainties in model-based approaches is known
+to be an important factor. In this work, we use a deterministic approach using zonotopes
+to build interval observers (IO). The resulting bank of IO will be used to generate a set
+of residual signals online. A hybrid automaton (HA) is built based on a conﬁguration of
+normal and faulty patient modes. Transitions between modes are done by analyzing the
+patient input events and checking the residuals consistency.
+
+--- Page 3 ---
+Sensors 2021 ,21, 7117 3 of 25
+This paper is organized as follows: Section 2 presents the problem formulation and
+brieﬂy describes the control system. Section 3 describes the patient monitoring system.
+Section 4 describes the modeling process of a T1D patient. Section 5 is focused on the
+residual generation by designing IO. In Section 6, in-silico benchmarks are proposed to
+evaluate the monitoring system. Finally, Sections 7 and 8 include the discussion and
+conclusions from this work.
+2. Problem Statement
+The Spanish consortium on artiﬁcial pancreas and diabetes technology (eSCAPE)
+has developed a multivariable hybrid AP system for the regulation of glucose to cope
+with the two disturbances that have the biggest effect on BG, meals, and exercise. The
+system uses both insulin and CHO as control actions to maintain BG in the euglycemic
+range 70–140 mg/dL. The insulin feedback loop is based on a proportional-derivative (PD)
+controller with insulin feedback (IFB) that integrates a safety layer with insulin-on-board
+(IOB) constraints and sliding mode reference conditioning (SMRC) [ 30,31]. The second
+feedback loop uses a predictive PD controller with a quantization system that encourages
+the patient to consume CHO if there is danger of hypoglycemia [ 27]. Both control loops
+are coordinated by using coupled carbohydrates-on-board (COB) inhibition signals that
+ensure that insulin and CHO control actions are effective and not mutually counteracted.
+The system has recently been upgraded with additional modules to enhance perfor-
+mance and safety when exercise is announced. If patients announce exercise, a feed-forward
+controller will adapt the insulin gains and, if required, the consumption of a snack will be
+suggested [ 32]. Furthermore, we included an adaptive IOB system to enhance postprandial
+control [ 33]. This control system has already been tested in clinical trials against meals and
+exercise and has showed promising results [ 34–36]. The overall control strategy is depicted
+in Figure 1 and is the control system that will be used in this work.
+Insulin
+ControllerAdaptive
+IOBSliding Mode
+Reference ConditioningInsulin
+PK model
+g
+Insulin
+Pump
+SubjectFeedforward
+Controller
+Carbohydrates
+ControllerPrediction and
+Quantization
+CHO FFCOB k
+CGM+
+
+++++
++Gr f ud ˜udˆIpdIOB
+uGrExercise
+G
+ucho ˜uchoCHO r Gr,CHO
+Figure 1. Multivariable hybrid AP . The black blocks and signals are elements from the insulin
+feedback loop, the blue from the CHO feedback loop, the red from the feed-forward exercise control,
+the violet is the IOB adaptive algorithm and the orange block is the patient to control.
+This system is a hybrid AP where the patient takes fundamental roles. We want to
+address the patient-in-the-loop situation that arises when using patients as an operator and
+as the plant to control. In this conﬁguration, patients play a sensor role when announcing
+meals and exercise. They also play an actuator role when the CHO controller suggests
+rescue CHO. Therefore, patients can introduce errors into the system that could eventually
+lead to faults. We consider patient-in-the-loop faults as poorly estimated meal boluses,
+
+--- Page 4 ---
+Sensors 2021 ,21, 7117 4 of 25
+when patients do not follow the CHO controller recommendations, or when the dynamical
+plant is behaving in an unexpected manner.
+3. Materials and Methods
+In this work, we develop a system for the detection of patient modes by using the
+scheme proposed in [ 37] based on creating a HA model that presents as many states as
+patient modes. For mode detection, we will generate a set of residual signals. Checking at
+every time instant which residuals are consistent with the current mode, we can detect the
+change of mode. Residuals will be generated by using a bank of zonotopic Kalman ﬁlters.
+3.1. Hybrid Automaton
+The HA has been developed based on [ 37]. The idea behind using an HA is to mimic
+real patient operational modes and transitions. Using this approach, the HA is deﬁned by
+the following components, HAk=<Q,X,U,Y,F,G,H,S,T>where:
+1.Qis the set of modes. Each of the modes qi2Q represents an operational mode of
+the patient. The set of modes is constituted by nominal and faulty operational modes,
+i.e.,Q=QN[Q F. Particularly, we consider three nominal operational modes and
+three faulty modes, see Figure 2;
+2.X Rnxdeﬁnes the state space of the system on each of the modes x(k)2 X ,
+where x(k)is the state space vector. URnuandYRnydeﬁne the continuous
+input and output spaces. In this work, the input space includes both insulin, rescue
+CHO and meal inputs, and the output space only considers the CGM measurements.
+Gdeﬁnes the set of discrete time state functions and His the set of discrete time
+output functions;
+3.S=SS[SC[SFis a set of events. This set of events can be split into spontaneous
+mode switching events SS, input events SCand fault events SF. Spontaneous switch-
+ing events are unknown events that may produce transitions between modes in the
+real patient. For example, an unannounced meal may lead to a spontaneous transition
+to the meal operational mode, even if that event (eating) is unknown to the system.
+Input events are deﬁned by patient actions, such as announcing meals or exercise.
+Fault events are deﬁned by checking the consistency of the residuals and the ending
+transitioning mode;
+4.Fis the set of possible faults. For each faulty mode qi2Q Fthe system has a speciﬁc
+fi2F, which is associated with a fault event SF;
+5.T:QS!Q is the transition function. Transitions from one mode qito another
+mode qjare labeled by an event s2S. Transitions labeled as sf2SFindicate that
+the transition is a faulty transition.
+The HA operational modes and transitions for the patient are presented in Figure 2 .
+Three automata modes deﬁne the normal operation for the system. These modes were
+selected for its differentiated dynamics and signiﬁcance during operation. Transitions
+between and to these modes are labeled SS[SC=fs1,s2,. . .,s13gand include input
+patient information about meals and exercise, and events triggered by the consistency of
+residuals. Transitions to faulty modes are possible depending on the current operation
+mode. The set SF=fsf1,sf2,. . .,sf7grepresent the fault events. Some of these faults
+may be structural (faults in the actuator) such as not eating rescue CHO or injecting
+inappropriate boluses for meals.
+3.2. Online Diagnoser
+The online diagnoser is responsible of the mode change detection within the HA. At
+every sampling time k, the patient observable events SCand the generated residuals are
+processed and used by the hybrid diagnosis to detect speciﬁc modes or faults. Patient-in-
+the-loop faults are detected when a triggered transition leads to one of the faulty modes,
+see Figure 2.
+
+--- Page 5 ---
+Sensors 2021 ,21, 7117 5 of 25
+Mode ( q1)
+Meal
+& PostprandialMode ( q2)
+Altered Insulin
+Sensitivity
+Mode ( q3)
+Rest & FastingFaulty Rescue
+CHO Mode ( q4)Faulty Exercise
+Mode ( q5)
+Faulty Meal
+Mode ( q6)s1
+s2
+s3
+s4 s5s6sf1 s7sf2s8
+sf3s9
+sf4s10sf5
+sf6
+s11
+s12
+sf7 s13
+Normal Operation
+Figure 2. Component automata. The hybrid model of the automata includes three normal operation
+modes and considers three faulty modes.
+The consistency of the residuals is checked at every sampling time against the de-
+signed thresholds. A potential mode change is detected if the residuals violate any of
+the thresholds. Then, a binary signature vector (F)is generated and checked with the
+admissible rows of the fault signature matrix ( FSM ). The FSM is a binary matrix that
+displays the signatures required to move from one automaton mode to another. A signature
+is used to describe a conﬁguration of symptoms that may lead to a transition. Each of the
+rows of the FSM are related to each of the possible automaton transitions T. Hence, the
+FSM has as many rows as possible events s(ns=20) and as many columns as existing
+automaton modes ( nm=6).
+FSM =2
+6664f1,1 f1,2 f1,nm
+f2,1 f2,2 f2,nm
+............
+fns,1fns,2 fns,nm3
+7775(1)
+This can be viewed as having a total of nmdifferent subsets of FSMs for each of the
+HA modes. For example, the FSM associated to the mode q1is as follows
+FSM q1:=2
+40fs1,q2 0 0 0 0
+0 0 fs3,q30 0 0
+0 0 0 0 0 fsf3,q63
+5=2
+40 1 0 0 0 0
+0 0 1 0 0 0
+0 0 0 0 0 13
+5 (2)
+The FSM q1will only be used when the current HA mode is q1. Then, the binary signa-
+ture vector F1nmis constructed at every sampling time. Elements fiofFare computed as
+fi=(
+1, if ÕM
+i=1
+tl
+ri<0_tu
+ri>0
+=1
+0, otherwise(3)
+where i=1,,nmindicates the binary residual generated by the appropriate observers
+for the current operation mode at time instant k,Mnoaccounts for possible residual
+
+--- Page 6 ---
+Sensors 2021 ,21, 7117 6 of 25
+combinations that may be used to generate the binary signal, nois the total number of
+observers, tl
+riand tu
+riare the lower and upper interval residual bands generated by the i-th
+zonotopic observer. Essentially, if the observer predicted band does not include the zero
+residual, then the real system behavior cannot be explained and a fault is triggered by that
+residual signal. The vector Fis then compared element-wise to each of the rows of the
+appropriate FSM qi. If the signature Fis not matched by any of the rows of the particular
+FSM qi, then transition detection is not possible and the HA stays at the current mode.
+3.3. Observable Events Processing
+Using a binary transition and fault detection system might not be enough for detection
+if several signatures have the same binary combination, i.e., they are not isolable. For
+that reason, the transitions may be aided with external information, such as input events,
+the sign of the residuals and by the value and trend of the measured variables. In this
+work, the system makes use of patient information, if available, such as meal/exercise
+announcements. Particularly, we consider the following transitions based on the FSM and
+patient information:
+1. Meal and Postprandial Mode Detection : Transitions between the meal/postprandial
+mode ( q1) and the resting/fasting mode ( q3) happen when in normal operation. If
+meals are announced, the system can instantly switch to the meal/postprandial
+mode and if in a designed period of 15 min the meal observer does not explain the
+system behavior, a transition to the meal faulty mode ( q6) will be triggered. In the
+situation where both meal and rest residuals are consistent, the system returns to the
+resting/fasting operational mode.
+2. Altered Sensitivity Periods Detection : Transitions s1,s2,s5, and s6to and from the
+changed insulin sensitivity mode ( q2) are considered. Similarly to s4, the transition
+events s1and s6are activated if the altered sensitivity residual is consistent with
+the observations. In this approach, an altered sensitivity period is caused when
+performing aerobic physical activity. Then, if exercise is announced, a transition to
+theq2mode can instantly happen if the altered sensitivity residuals are consistent.
+Transition events s2ands5are triggered if the meal or the rest residuals consistency
+are valid and the altered insulin sensitivity residual is not. If the consistency of both
+residuals generated by the meal and rest observers are satisﬁed, then the binary FSM
+cannot tell which transition to execute. In such a case, prior patient inputs can be used
+to decide if a transition needs to be made. If the residual from the altered sensitivity
+observer is no longer consistent, the residual with minimum absolute value is picked
+as the next transition event to be processed.
+3. Misestimated Meals Detection : The AP used in this work requires patients to announce
+meals. Announcing a meal means that the patient needs to provide two inputs: (1) the
+time when the meal is going to be consumed and (2) the quantity of CHO in grams of
+that meal. The detection of a misestimated meal ( q6) involves the transition events
+s9,s10,sf3andsf4. Transition towards q6is possible through events sf3andsf4. If a
+meal is not announced while being on mode q3and the rest observer is not consistent,
+then the CGM signal is checked. If CGM is higher than 160 mg/dL and the trend for
+the last 30 min is positive, a transition to mode q6happens. Contrarily, if the meal is
+announced, then transition event sf3might be triggered when in mode q1, if the meal
+observer is not consistent.
+4. Missed Rescue Carbohydrates Detection : Two types of rescue CHO are considered:
+(1) feed-forward rescue CHO when exercise is announced and (2) rescue CHO sug-
+gested by the feedback controller. This control action is a source of potential patient-in-
+the-loop faults in free living conditions. Patients may forget to consume the suggested
+CHO or they will simply not consume them for other physiological reasons, such as
+weight gain. Transitions to the faulty rescue CHO mode ( q4) are expected through
+events sf6orsf7, which are only checked when the controller triggers a recommenda-
+tion of CHO. Transitions s8,s11ands13return the HA to normal operational modes,
+
+--- Page 7 ---
+Sensors 2021 ,21, 7117 7 of 25
+respectively to q2,q1and q3. These transitions are exclusive, meaning that if any of
+the meal, rest or altered sensitivity observer residuals are consistent, a transition to
+any of the aforementioned normal operation modes will be triggered.
+4. Modeling of T1D Patients
+In this section, the model used for the design of observers is presented. Several
+dynamical models are available in the literature to describe normal and impaired glucose
+metabolism in humans. One of the early models and most likely the most used is the so-
+called minimal model [ 38], which only consists of three state variables and is able to capture
+some of the underlying glucose dynamics. Since then, many other models have appeared
+such as the more complex Food and Drug Administration (FDA) accepted UVA/Padova
+T1D Simulator [ 39]. Selecting a model for the design of observers is crucial and one has
+to trade off precision and complexity with simplicity and usability. Particularly, complex
+glucose models may present observability issues because only one variable is measured.
+For that reason, we use a modiﬁed version of the Hovorka nonlinear model [ 40], which is
+of intermediate complexity [41].
+4.1. The Reduced Hovorka Model
+The model used in this work is a reduced version of the nonlinear Hovorka model [ 40]
+as proposed in [ 42]. Figure 3 shows the whole block diagram of both model versions. It is a
+compartmental model with four main sub-systems: carbohydrate absorption, subcutaneous
+insulin absorption, insulin action on glucose uptake and removal, and the BG dynamics.
+D1 D2 Q1 Q2G
+S1 S2 Ix1 x2 x3d(t) Ug
+u(t)ka3ka1ka2FR Fc
+01
+kb3 kb1 kb2EGP 0k12Gsub(t)
+keInsulin subsystemCarbohydrate absorption
+Insulin actionGlucose subsystem
+Figure 3. Block diagram of the reduced Hovorka nonlinear model. The dashed red nodes and arrows
+indicate the structural relations removed from the original nonlinear Hovorka model. The thicker
+black lines denote new relations in the reduced model.
+The simpliﬁed model excludes the states I(t),x2(t)and x3(t). By doing this reduction,
+not only have we decreased the system complexity, but most importantly we have improved
+the structural behavior of the overall model. Notice the new direct connections from
+node S2toQ1and Q2. Those connections greatly simplify any observability issues since
+
+--- Page 8 ---
+Sensors 2021 ,21, 7117 8 of 25
+more relations between different states are considered. The removed states deﬁne insulin
+dynamics and are described by
+˙I(t) =S2(t)
+tmaxIVikeI(t)
+˙x2(t) =ka2x2(t) +Sf
+IDka2I(t)
+˙x3(t) =ka3x3(t) +Sf
+IEka3I(t)(4)
+The reduced model is obtained by considering the steady state value of the removed
+states into the rest of the equations. One can easily obtain the following steady state relations
+Iss=S2
+tmaxIVike(5)
+which leads to
+xss
+2=Sf
+ID
+tmaxIVikeS2
+xss
+3=Sf
+IE
+tmaxIVikeS2(6)
+Plugging these equations into the original Hovorka model and removing the afore-
+mentioned states leads to the ﬁnal model
+˙S1(t) =u(t)S1(t)
+tmaxI
+˙S2(t) =S1(t)S2(t)
+tmaxI
+˙x1(t) =ka1 
+kaSf
+IT
+VIkeS2(t)x1(t)!
+˙Q1(t) =x1(t)Q1(t) +k12Q2(t)Fc
+01FRUg+
++EGP 0 
+1kaSf
+IE
+VIkeS2(t)!
+˙Q2(t) =x1(t)Q1(t)k12Q2(t) +kaSf
+ID
+VIkeS2(t)Q2(t)(7)
+where u(t)is the exogenous insulin infusion (basal and bolus), Q1and Q2are the masses of
+glucose in the accessible and non-accessible (not measurable) compartments, respectively,
+S1and S2deﬁne the insulin absorption rate dynamics and FRand Fc
+01are deﬁned as
+Fc
+01(t) =(
+F01 ifG(t)4.5 mmol L1
+F01G/4.5 otherwise(8)
+FR(t) =(
+0.003(G(t)9)VgifG(t)9 mmol L1
+0 otherwise(9)
+The original Hovorka model assumes that the compartment Grepresents the measur-
+able glucose concentration and deﬁnes it as G(t) =Q1(t)/Vg. However, one can use any
+other CGM model available in the literature.
+
+--- Page 9 ---
+Sensors 2021 ,21, 7117 9 of 25
+The glucose absorption sub-system can be deﬁned separately as
+˙D1(t) =D1(t)
+tmaxG+d(t)B
+˙D2(t) =D1(t)
+tmaxGD2(t)
+tmaxG
+Ug(t) =D2(t)
+tmaxG(10)
+where Ugis the rate of carbohydrate absorption, d(t)is the input meal content in grams
+and D1and D2are glucose compartments. If meals are considered in the model, the state
+vector is simply extended with states D1and D2.
+4.2. Model Parameters and Individualization
+For the purpose of state estimation, we use the model constants and mean parameter
+values presented in [40] and summarized in Table 1.
+Table 1. Model parameters.
+Parameter Value Description
+B(kg) Individualized Weight
+k12(min1) 0.066 Transfer rate
+ka1(min1) 0.006 Deactivation rate
+ka2(min1) 0.06 Deactivation rate
+ka3(min1) 0.03 Deactivation rate
+ke(min1) 0.138 Time constant of insulin elimination
+Vi(L) 0.12 BW Insulin distribution volume
+Vg(L) 0.16 BW Glucose distribution volume
+Sf
+IT(L min1mU1) 51.2104Insulin sensitivity on transport
+Sf
+ID(L min1mU1) 8.2104Insulin sensitivity of disposal
+Sf
+IE(L mU1) 520104Insulin sensitivity of EGP 0
+EGP 0(mmol kg1min1) 0.0161 Endogenous glucose production at
+zero insulin
+F01(mmol kg1min1) 0.0097 Non-insulin-dependant glucose ﬂux
+tmaxI(min1) 55 Time constant of insulin absorption
+The model is ﬁrstly individualized by the patient’s weight. The patient weight alters
+the insulin sensitivity parameters and the available glucose and insulin distribution vol-
+umes. However, this might not be sufﬁcient to characterize highly varying patients and
+therefore model predictions will be inherently erroneous. To address this individualization
+issue, the insulin sensitivity parameters are adapted based on the fasting patient glucose
+and basal infusion rate. Then, a new tuning parameter his introduced and obtained by
+solving the steady state of the original model
+f(S1,S2,x1,x2,x3,I,Q2,h) =0 (11)
+were f(S1,S2,x1,x2,x3,I,Q2,h)represents the non-linear model equations and his a factor
+that multiplies the insulin sensitivity Sf
+IT,Sf
+IDand Sf
+IEterms.
+
+--- Page 10 ---
+Sensors 2021 ,21, 7117 10 of 25
+4.3. Linear Parameter Varying Model
+LPV systems are linear time varying systems whose state-space system matrices
+depend on a vector of varying parameters. These parameters can be estimated online or
+measured. Then, the continuous system representation is given by
+˙x(t) =A(F(t))x(t) +B(F(t))u(t)
+y(k) =C(F(t))x(t) +D(F(t))u(t)(12)
+where A(F(t))2Rnxnx,B(F(t))2Rnxnu,C(F(t))2Rnynxand D(F(t))2Rnynu
+are the system state space matrices that depend on the varying time-dependent vector
+F(t)2Rl. The vector of varying parameters F(t)depends at the same time on some
+measurable signals r2RnF, referred to as scheduling variables, that can be estimated
+using an appropriate scheduling function
+F(t) =p(r(t)) (13)
+where p:Rl!RnFis a continuous mapping. If the vector of scheduling variables depend
+on some internal variables, such as internal states, the system is called quasi-LPV [ 43]. In
+this work, the system is strictly proper, with input and output matrices being invariant
+B(F(t)) = B,C(F(t)) = Cand D(F(t)) = 0.
+Particularly, the reduced Hovorka nonlinear model can be transformed into the LPV
+representation (12) using the nonlinear embedding approach proposed in [ 43]. This ap-
+proach is based on embedding the system nonlinearities inside the scheduling parameters
+of the LPV model. Then, the following state space matrices are obtained for the reduced
+Hovorka model in LPV form
+A(F(t)) =2
+66666666666664ka 0 0 0 0 0 0
+kaka 0 0 0 0 0
+0 a31ka10 0 0 0
+0 a41 a43 a44k12+a45 0 a47
+0 a52 a53 0k12 0 0
+0 0 0 0 0 a66 0
+0 0 0 0 0 a76a773
+77777777777775
+B(F(t)) =
+1 0 0 0 0 0 0T(14)
+with the following output equation y(t) = Q2(t)/Vgmeasurable from the CGM sensor.
+The following terms have constant values
+a31=hkaSf
+ITka1
+Vike
+a41=hkaSf
+IEEGP 0
+Vike
+a47=a66=a76=a77=1
+tmaxG(15)
+
+--- Page 11 ---
+Sensors 2021 ,21, 7117 11 of 25
+and the nonlinearities can be embedded in the following terms
+a43=Q1(t)
+a44=Fc
+01(G(t))
+Q1(t)FR(G(t))
+a45=EGP 0
+Q2
+a52=hkaSf
+ID
+VIkeQ2(t)
+a53=Q2(t)(16)
+Furthermore, if measurements of Fare available, and its admissible range of operation
+is known
+FiFiFi,i=1, . . . , l (17)
+where FiandFiare the lower and upper bounds of each element in F, then we can put
+the parameter vector Finto polytopic form [44,45]
+F2Cofw1,w2, . . . , wNg:=(
+N
+å
+i=1miwi:mi0,N
+å
+i=1mi=1)
+(18)
+where N=f1, . . . , 2nFg. This transformation is known as the bounding box method,
+because Fis the convex hull generated by vertex wi. Hence, a polytopic representation
+of the system is obtained by the state space matrices deﬁned at the different vertex of the
+convex hull
+[A(F)]2Cof[Ai]:=[Ai(wi)]g (19)
+Using this approach, the system (12) can be represented as a weighting function of the
+system matrices at the polytope vertices
+˙x(t) =2nF
+å
+i=1(mi(F))(Ai(F)x(t) +Bi(F)u(t))
+y(t) =2nF
+å
+i=1(mi(F))(Ci(F)x(t) +Di(F)u(t))(20)
+where m(i)are the membership functions. Basically, at any given time instant the state
+space system description is obtained by a linear interpolation of the system matrices at the
+polytope vertices. The weighting function is deﬁned as in [46]
+mi(F) =2nF
+Õ
+j=1xij(hj
+0,hj
+1),8i=f1, . . . , 2nFg (21)
+with
+xij(hj
+0,hj
+1) =(
+hj
+0, if mod(n, 2m)2
+1, . . . , 2j1	
+hj
+1, otherwise(22)
+hj
+0=FjF(k)
+FjFj(23)
+hj
+1=1hj
+0(24)
+
+--- Page 12 ---
+Sensors 2021 ,21, 7117 12 of 25
+where j=1,. . .,nFand each element of the vector Fis known and varies in a known
+interval Fj(k)2h
+Fj,Fji
+. The scheduling variables for the reduced Hovorka model can be
+deﬁned as
+F(t) =
+Q1(t)Q2(t)
+(25)
+leading to four linear time invariant (LTI) systems that will conform the vertices of the
+polytope. Notice that this representation is not unique and other scheduling variables can
+be chosen depending on the model. The operational range for these variables is attached in
+Table 2.
+Table 2. Limits for the system scheduling variables.
+Variable Minimum Maximum
+Q1(mmol) 10 400
+Q2(mmol) 10 400
+The original continuous time system can be discretized using a number of discretiza-
+tion methods. In this work, we use the zero order hold approach with a sampling time
+of 5 min, which is a common measurement rate provided by CGM devices. Then, the
+continuous polytopic system (20) takes the following discrete-time representation
+x(k+1) =2nF
+å
+i=1(mi(F))(Ad,i(F)x(k) +Bd,i(F)u(k))
+y(k) =2nF
+å
+i=1(mi(F))(Cd,i(F)x(k) +Dd,i(F)u(k))(26)
+where Ad,i(F)2Rnxnx,Bd,i(F)2Rnxnu,Cd,i(F)2Rnynxand Dd,i(F)2Rnynuare
+the discretized state space matrices for the i-th vertex.
+5. Residual Generation
+The AP systems are characterized by having few sensors and actuators. Therefore, to
+monitor the system and patient state, observers are designed for the purpose of generating
+residuals. However, only little information is available for AP systems. In most cases,
+the only information available from sensors is the CGM glucose measurements. To tackle
+this limitation, the design of a robust state estimator for residual generation has been
+considered in this section.
+5.1. Design Method
+Residual generation is based on the state estimation using the polytopic LPV model (26)
+by means of a Kalman filter of the following form
+ˆx(k+1) =2nF
+å
+i=1(mi(F))(Ad,i(F)x(k) +Bd,i(F)u(k))+
++L(F)(y(k)ˆy(k))(27)
+were ˆx2Rnxare the estimated states and L(F)2Rnxnyis the observer gain deﬁned as
+L(F)=2nF
+å
+i=1mi(F)Li (28)
+
+--- Page 13 ---
+Sensors 2021 ,21, 7117 13 of 25
+andLiare the observer gains for each one of the systems at the vertices of the polytope. Prior
+to the observer design, the observability property is checked. A total of 2nFobservability
+matrices are generated, for each one of the vertex polytopic representations
+O=2
+6664Cd,i(F)
+Cd,i(F)Ad,i(F)
+...
+Cd,i(F)Ad,i(F)nx13
+7775(29)
+then, the system is observable if each observability matrix is of full rank, i.e., rank(O) =nx.
+The observer gain can be designed by solving the associated LQC dual problem [ 47].
+Given the system description (26), tuning matrices Q=QT=HTH0,R=RT>0and
+the performance bound g. Then, the observer gains for the polytopic system are obtained
+by ﬁnding Uand Withrough the solution of the following LMI minimization problem
+min
+g,U=UT,Wg (30)
+subject to
+gInIn
+InU
+>0 (31)
+2
+664U U Ad,iWTCd,iUHTWT
+AT
+d,iUCT
+d,iWU 0 0
+HU 0 Inx 0
+W 0 0R13
+775<0 (32)
+rU qU+AT
+d,iUCT
+d,iW
+qU+UAd,iWC d,irU
+<0 (33)
+where q=0and r=1are the center and radius of a unitary circle respectively and Inxis
+the identity matrix of size nx. Note that constraints (33) are not mandatory to solve the
+original LQC problem [47]. However, they guarantee the stability of the observer system.
+In this paper, the process disturbances ( w2Rnx) and measurement noise ( u2Rny)
+are unknown but assumed to be bounded and represented by zonotopes
+W=fwk2Rnx:jwkcwjw,cw2Rnx,w2Rnxg=hcw,Rwi (34)
+V=fuk2Rny:jukcuju,cu2Rny,u2Rnyg=hcu,Rui (35)
+where cwand cuare the centers of the process disturbances and measurement noise zono-
+topes, with the generator matrices being Rw2Rnxnxand Ru2Rnyny. Then, according
+to [48] the polytopic observer in (27) can be converted into a zonotopic state estimation
+observer by computing the center and the generator matrix of the state observer, i.e.,
+ˆX=hcx,Rxi, at every single step as follows
+cx(k+1) =cp(k) +L 
+y(k)2nF
+å
+i=1(mi(F)Ci)cp(k)!
+(36)
+Rx(k+1) =" 
+IL2nF
+å
+i=1(mi(F)Ci)!
+Rp(k)LEv#
+(37)
+
+--- Page 14 ---
+Sensors 2021 ,21, 7117 14 of 25
+with Lbeing deﬁned in Equation (28) and
+cp(k+1) =2nF
+å
+i=1(mi(F))(Ai(F)x(k) +Biu(k)) (38)
+Rp(k+1) ="
+2nF
+å
+i=1(mi(F))(Ai(F))Rx(k)Ew#
+(39)
+where Ewand Evare the distribution matrices of the state disturbance and measurement
+noise vectors, respectively.
+5.2. The Bank of Observers
+The bank of interval zonotopic observers is designed to generate appropriate residual
+signals. The residual signals have to be sensitive to speciﬁc mode changes. Therefore,
+several observers based on variations of the reduced Hovorka model have been considered.
+Each of the observers tackle one speciﬁc mode of operation. A total of four different
+observers have been designed (no=4):
+1. Meal observer : Observer designed to track meal and postprandial periods for an-
+nounced meals. It allows the system to detect faults in meal estimations and erroneous
+boluses. It includes the whole Hovorka model with two extended states related to
+CHO consumption. Its state space vector is deﬁned by x(k) =[S1S2x1Q1Q2D1D2]T.
+The CHO model time constant tmaxG is set to 40 min as in [40];
+2. Resting and fasting observer : Observer designed to track night and in-between distur-
+bances periods. Its state space vector is deﬁned by x(k) =[S1S2x1Q1Q2]T. We
+assume that sleeping periods are characterized by having no disturbances affecting
+the system and/or the effect of previous disturbances is small. For this reason, the ob-
+server is designed considering only insulin inputs. Consistent estimations should be
+provided by this observer during periods similar to steady state periods, i.e., resting
+or fasting periods;
+3. Altered insulin sensitivity observer : Observer designed to track periods with increased
+sensitivity, for example during aerobic exercise sessions. The model parameter hhas
+been increased by a trial and error procedure to match simulated aerobic exercise
+sessions based on clinical results [ 32]. Its state space vector is deﬁned by x(k) =
+[S1S2x1Q1Q2]T;
+4. Rescue carbohydrates observer : Observer designed to detect a speciﬁc patient-in-the-loop
+control action. The presented control approach uses CHO as a counter-regulatory
+action to prevent hypoglycemia. This observer takes the insulin and CHO controller
+actions as its inputs. The goal of the observer is to monitor the adherence of the patient
+to the rescue CHO. Its state space vector is deﬁned by x(k) =[S1S2x1Q1Q2D1D2]T.
+The CHO model time constant tmaxG is set to 20 min as in [27].
+Each of the designed observers return a full state space interval estimation ˆx1,ˆx2,. . .ˆxno.
+Then, using those estimations, the interval residuals are computed based on the state
+bounding zonotope ˆX(k)with the following residual center (cr)and generator matrix Rr
+cr(k) =y(k)2nF
+å
+i=1(mi(F)Ci)ˆx(k) (40)
+Rr(k) ="
+2nF
+å
+i=1CiRx(k)Ev#
+(41)
+Hence, the FD test is based on checking the following condition
+0 /2<cr(k)Rr(k)> (42)
+
+--- Page 15 ---
+Sensors 2021 ,21, 7117 15 of 25
+A fault (or change of mode) is triggered when 0 is not included in the zonotope
+<cr(k)Rr(k)>. To reduce the computational burden, condition (42) can be simplified
+to check whether or not 0 is included in a box enclosing the zonotope
+0 /2<cr(k)b(Rr(k))> (43)
+where b(Rr(k))=diag(jjRr(k)jj1)andjjjj 1is the element by element absolute value
+operator. Then, the zonotopic interval upper and lower bands used for FD in the FSM in
+Equation (3) are deﬁned as
+tu
+ri(k) =cr(k) +jjRr(k)jj1 (44)
+tl
+ri(k) =cr(k)jjRr(k)jj1 (45)
+The overall method scheme of the fault diagnosis system is shown in Figure 4. The
+observer design problem is solved ofﬂine and the observer gains are obtained. For the
+online observer iterations, a continuous-discrete approach can be used. With this approach
+the a priori state estimation is obtained by integrating the original non-linear model, for
+example using the ode45 function from Matlab. Then, the polytopic observer gain is found
+by interpolation using (28). Residuals are then generated for each of the observers and fed
+to the signature analysis module.
+rn(k)r2(k)Real System
+B1R
+C1L1
+A1m1(F)mn(F)
+FåResidual
+Generation
+Signature
+AnalysisHybrid
+DiagnoserObservable Events
+ProcessingOnline DiagnoserPolytopic Vertex 1Polytopic Vertex 2Polytopic Vertex n
+Polytopic Observer 1Polytopic Observer 2Polytopic Observer nou(k)sc
+y(k)ss
+ˆx1(k)
+r1(k)
+HAk......
+Figure 4. Conceptual diagram of the patient monitoring and FD system.
+6. Results
+6.1. In Silico Benchmarks
+To test the robustness and precision of the monitoring system, two in silico benchmarks
+have been developed. Each of the benchmarks were designed to check the proper behavior
+of the system and its ability to detect different patient-in-the-loop modes and faults. All
+simulations have been executed with Matlab R2019a using an AMD Ryzen 3800 3.9 GHz
+processor with 32 GB of RAM.
+The FDA accepted UVa/Padova T1D Simulator (v3.2) [ 49] was used to evaluate the
+strategy. All of the benchmarks share some scenario settings, which include a virtual cohort
+of 10 adult patients. Scenarios last 4 days and 3 mixed meals of 60, 80, and 70 grams are
+included each day at 8:00, 13:00, and 21:00, respectively. Intra-subject variability in insulin
+absorption was included by assuming a 30% in parameters (kd,ka1,ka2), and variability
+
+--- Page 16 ---
+Sensors 2021 ,21, 7117 16 of 25
+in insulin sensitivity was modeled by a sinusoidal pattern in parameters (Vmx,kp3)[50].
+The ﬁrst scenario is designed to evaluate performance when only meal disturbances appear.
+The second scenario includes one session of aerobic exercise of heavy intensity (60%
+VO 2max) during the second scenario day at 18:00 for a total duration of 50 min. Exercise
+was included into the simulation by using a previous developed model, which was ﬁt to
+clinical data, that increases insulin sensitivity [32,51].
+6.2. Patient Mode Detection
+Scenarios 1 and 2 were used to perform four complete simulations, which consider
+different patient-in-the-loop faults. The simulations have the following characteristics:
+(1) scenario 1 without faults, (2) scenario 2 without faults, (3) scenario 1 with patient
+misestimated meals, and (4) scenario 2 with misestimated meals and missed rescue CHO.
+In total, 480 meals were consumed and 20 exercise sessions were performed across all
+simulations. Faults were introduced in a total of 160 meals, with over- and underestimations
+of60%, and feed-forward rescue CHO were also simulated with patient-in-the-loop faults
+in 10 occasions.
+Meals were correctly detected in 461 occasions out of the total 480 meals across all
+simulations, resulting in a high sensitivity of 96.0%. Transitions towards the meal mode
+q1were triggered by the announcements and validated by the meal residual observer,
+resulting in a detection time from the start of the event of 13min, while the average
+time in meal and postprandial period was 158min. All exercise sessions were correctly
+detected without false positives/negatives. The effect of exercise is known to last during
+the following hours after an exercise session, this is also reﬂected in the time the system
+remained on mode q2of328min. Rest periods were considered as the periods in-between
+meals, without periods where exercise happened, or during night. No detection time for
+these periods is provided since there is no possible deﬁnition of when these events started,
+average time in this period was 328 min.
+Transitions to faulty modes only happened in simulations 3 and 4. Faults in the
+consumption of rescue CHO, leading to transitions towards mode q4, were recorded from
+simulation 4. A total of 10 missed rescue CHO consumption events were considered at the
+instant of exercise announcement at 17:40 of simulation day 2. The HA correctly detected
+8 of these faulty events and was also able to transition afterwards to the q2mode. Two
+of the faulty events were not detected and the HA automaton directly transitioned to the
+altered insulin sensitivity mode q2, indicating a exercise. Misestimated meals were correctly
+detected in 73 occasions with a sensitivity of 45.6%. No transitions to state q5happened.
+Table 3 shows the detection performance of the proposed approach for the aggregated
+four simulations. Figures 5–9 showcase a simulation portion (from 39 to 55 simulation
+hours) for the adult patient 10. Exercise starts at time instant 42 h and feed-forward
+CHO are suggested at 39 h and 40 min. In this, case the patient does not consume the
+recommended amount of CHO and the system transitions to a faulty CHO state. Notice,
+that the system does not know if the patient has consumed or not the suggested rescue
+CHO. Afterwards, the system transitions to the exercise state and remains in that state for
+the following hours. This is an expected behavior of the system due to the modiﬁed insulin
+sensitivity that last several hours after the end of exercise. Then, at time instant 45 h the
+patient consumes a meal but the HA state remains at exercise. That is a normal behavior
+due to the intertwined disturbance effects on the residuals.
+6.3. Example of Controller Reconﬁguration
+This section provides insights regarding the beneﬁts of using the proposed HA model
+for the detection of patient-in-the-loop faults and controller reconﬁguration. Particularly,
+we focus on the case of announced exercise. When people using an AP announce exercise,
+the feed-forward control can be applied in advance to mitigate the risk of exercise induced
+hypoglycemia. The AP used in this work has an embedded feed-forward controller for ex-
+ercise [ 32]. This block may degrade performance if triggered by an exercise announcement
+
+--- Page 17 ---
+Sensors 2021 ,21, 7117 17 of 25
+from the patient, but no physical activity is performed afterwards. To test the beneﬁts of
+controller reconﬁguration, we use scenario 1, which does not include exercise, and assume
+exercise at 16:00 during the second simulation day.
+Table 3. Population performance metrics of patients mode transition by the HA.
+Mode TP FP FN Sensitivity (%) Mean Transition Time (min) Mean Activated Time (min)
+q1 461 1 19 96.0 13 158
+q2 20 0 0 100.0 55 288
+q3 476 0 33 93.5 - 328
+q4 8 0 2 80.0 17 83
+q6 73 20 87 45.6 28 22
+40 42 44 46 48 50 52 5420020
+Time (h)Residual (mg/dl)
+Figure 5. Representative fast and resting observer residual for the period 39–55 h from patient 10.
+40 42 44 46 48 50 52 5420020
+Time (h)Residual (mg/dl)
+Figure 6. Representative meal observer residual for the period 39–55 h from patient 10.
+40 42 44 46 48 50 52 54100102030
+Time (h)Residual (mg/dl)
+Figure 7. Representative altered insulin sensitivity observer residual for the period 39–55 h from
+patient 10.
+The actions triggered by the feed-forward block are: (1) suggestion of feed-forward
+CHO, (2) basal insulin reduction, (3) reduction of the next insulin bolus, and (4) decrease of
+the insulin controller aggressivity (lower controller gains for the next 6 h after the ending of
+the exercise session). Controller reconﬁguration happens if there is a mode detection change
+to mode q5in a timely manner and the CGM is higher than 150 mg/dL. We assume exercise
+is announced 20 min prior to the start [ 32] and we let the system monitor the patient until
+
+--- Page 18 ---
+Sensors 2021 ,21, 7117 18 of 25
+20 min after the supposed start of exercise. If the HAkis in a normal operational mode and
+there is no mode change detection to q2or a mode transition to q5happens in that period
+of time, then the controller resumes its original tuning and assumes that the patient is not
+exercising even though there was an announcement.
+40 42 44 46 48 50 52 542010010
+Time (h)Residual (mg/dl)
+Figure 8. Representative rescue carbohydrates observer residual for the period 39–55 h from pa-
+tient 10.
+40 42 44 46 48 50 52 54MealRestExerciseFault ExerciseFault CHOFault Meal
+Time (h)Qk
+Exercise
+Meals
+Figure 9. Representative detection of faulty rescue CHO by the automaton state Qkfor patient 10.
+Data shown correspond to the simulation period from 39 to 55 h. The meal period comprises the 2 h
+following the meal and the exercise period includes the active exercise and the time in advance of the
+exercise announcement.
+Table 4 shows the glycemic results when comparing the strategies with (AP+HA
+column) and without (AP column) controller reconﬁguration when faults in exercise
+announcement happen. Figures 10 and 11 show the CGM trajectories and insulin infusions
+for each case. The patient announces exercise at time instant 39 h and 40 min (day 2, 15:40).
+The patient is supposed to start exercising at 40 h (day 2, 16:00) and have dinner at 45 h
+(day 2, 21:00). Results show that reconﬁguration allows for early insulin infusion to start
+the following meal with lower BG and allows for better and tighter BG control during the
+postprandial period following an exercise session.
+Controller reconﬁguration allowed for a tighter and better BG control during and
+after the false exercise session and also for the next postprandial period. Overall, time in
+range 70–180 mg/dL signiﬁcantly increased from 38.3 (34.3, 47.5)% to 62.0 (58.4, 71.5)%
+and the mean CGM was also reduced from 211.7 (172.4, 231.9) mg/dL to 154.9 (121.0,
+206.3) mg/dL. The risk of hyperglycemia was also minimized as reﬂected by the time
+ranges above 180 mg/dL, and no risk of hypoglycemia was observed. Insulin infusion was
+resumed earlier upon mode detection as shown in Figure 11, allowing lower BG at the start
+of the second day dinner. Postprandial control was specially improved in the reconﬁgured
+controller, mainly due to the restored insulin bolus previously mitigated by the exercise
+feedforward actions.
+
+--- Page 19 ---
+Sensors 2021 ,21, 7117 19 of 25
+Table 4. Glycemic performance when subjects introduce faults in the exercise announcement.
+Performance Indicator AP AP+HA
+Mean CGM (mg/dL) 211.7 (172.4, 231.9 ) 154.9 (121.0, 206.3 )
+Median CGM (mg/dL) 199.8 (164.4, 221.1 ) 153.7 (117.5, 200.6 )
+Maximum CGM (mg/dL) 361.3 (258.1, 410.3 ) 200.9 (174.0, 265.3 )
+Minimum CGM (mg/dL) 142.9 (125.9, 162.1 ) 108.2 (87.3, 157.9 )
+% of time CGM
+>250 mg/dL 8.0 (0.0, 18.3 ) 0.0(0.0, 16.8 )
+>180 mg/dL 51.1 (35.8, 52.6 ) 30.7(20.4, 37.2 )
+70–180 mg/dL 38.3 (34.3, 47.5 ) 62.0(58.4, 71.5 )
+<70 mg/dL 0.0 (0.0, 0.0 ) 0.0(0.0, 0.0 )
+<54 mg/dL 0.0 (0.0, 0.0 ) 0.0(0.0, 0.0 )
+The results are median (interquartile range) during the time period between the 40th and 51th simulation hours.
+*pvalue <0.01 (Wilcoxon signed rank test). AP refers to the system without controller reconﬁguration and
+AP+HA refers to the system with controller reconﬁguration.
+Figure 10. Population CGM trajectory (MEAN STD) when an exercise announcement patient-in-
+the-loop fault affects the system. The blue curve represents the controller without reconﬁguration
+and the magenta curve represents the controller with reconﬁguration. The exercise announcement
+occurs at time instant 39 h and 40 min.
+Figure 11. Population insulin trajectory (MEAN STD) when an exercise announcement patient-in-
+the-loop fault affects the system. The blue curve represents the controller without reconﬁguration
+and the magenta curve represents the controller with reconﬁguration. The circular and star points at
+the 45th simulation hour represent the mean boluses taken in each simulation.
+7. Discussion
+The patient-in-the-loop concept is fundamental for any diabetes treatment. Patients
+play essential roles within the treatment, from being the plant to control to actuate as an
+operator. This is the case for both OL and CL insulin therapies, and signiﬁcantly more
+important in OL strategies where patients have more responsibility. Errors introduced by
+patients may compromise the performance and stability of treatments and patients may
+put themselves at risk. To minimize patient-in-the-loop faults, tools that monitor and detect
+those behaviors are needed. Detection of faults may allow CL controllers to take additional
+
+--- Page 20 ---
+Sensors 2021 ,21, 7117 20 of 25
+corrective actions to minimize the impact of the fault on the system performance. However,
+not all patient-in-the-loop faults might be easy to respond to. In any situation, monitoring
+systems will allow the collection of patient data that could be used to individualize the
+tuning of controllers or identify when faults are most likely to happen. Additionally, the
+detection of patient-in-the-loop faults with minimal impact during CL operation can be
+hard. CL systems are designed to reduce variability of the controlled variable and for
+disturbance rejection. Therefore, faults that have a small impact on the system and on BG
+concentration might be counteracted by the CL system itself and not detected as a fault.
+This is the case of misestimated meals in hybrid AP settings. In the case of OL therapies,
+this issue should be of less importance, allowing for more accurate detection.
+To tackle this issue, we proposed a methodology based on a HA model. Even though
+the results we obtained were satisfactory and promising, our study suffered from several
+limitations. The ﬁrst one is related to the data used to classify patient modes and faults.
+We used a simulation environment to stress the system and check its robustness and
+performance in several proof-of-concept examples. Certain limitations exist when trying
+to replicate real patient-in-the-loop faults in a simulation environment. BG trajectories
+may signiﬁcantly vary depending on what the patient is performing, which may fall under
+normal operation. For example, postprandial periods where the patient is mostly in a
+sedentary state may differ from periods where the patient engages in slow walks. In
+any situation, these should not be detected as different patient states since there is no
+abnormality in the system. Real free-living condition data is still needed to assess the
+performance and detection capabilities of the proposed approach.
+In this approach, we used a bank of interval zonotopic Kalman ﬁlters for the purpose
+of generating residuals. There are limitations to this approach due to the fact of using
+an approximate model and limited measurements. Particularly, the altered sensitivity
+observer has been designed to detect decreases in BG caused by aerobic exercise. Other
+types of exercise may have different effects on insulin sensitivity, requiring additional
+observers. Other factors such as illness, stress, menstruation cycle, sleep apnea, or some
+medications can also lead to important physiological changes, including changes in insulin
+sensitivity [ 52,53]. Therefore, the system is assumed to be working under normal operation
+for the detection of aerobic exercise. The major limitation of using a bank of observers is
+the need to build many different observers for the detection of the multitude of factors
+encountered in free living conditions. We used a reduced glucoregulatory model to relax
+the problem of observability of linear systems when only one measurement is available,
+but many states have to be estimated. Even though we only used the observers as a mean
+to generate residuals, the information from the observers could also be used to estimate
+other physiological parameters, such as the rates of glucose absorption.
+We used the basic AP conﬁguration, which only includes a CGM and an insulin pump.
+This was decided because even though there are studies using additional signals (such as
+using heart rate monitors, energy expenditure information and galvanic skin responses)
+these additional signals mean that the user (the patient) will have to wear additional sensors.
+Thus, although this could be of beneﬁt for better detection performance, it also means that
+there is an increased risk of faults because more devices are used. Ultimately, the CGM and
+an insulin pump are always required devices for any AP operation. The proposed approach
+has two goals: (1) provide information for the AP in real time, and (2) provide information
+for long term decision making. By classifying patient errors, we believe that the system
+can be ﬁne-tuned to maximize performance and minimize the risk of hypoglycemia due to
+patient actions. The developed approach could also work with different AP conﬁgurations,
+for example, AP systems with additional control signals such as glucagon [ 54]. This holds
+true because the developed approach is model-based, and by adding extra control actions
+the real model (the patient) retains the same dynamics. However, notice that this may
+require a re-tuning of the approach since not all possible modes have been considered,
+for example, faults regarding glucagon. The system performance may be compromised
+if used with other treatment options such as cadaveric islet or stem-cell derived islet
+
+--- Page 21 ---
+Sensors 2021 ,21, 7117 21 of 25
+transplantation. This also holds true when using the proposed approach for very speciﬁc
+sub-cohorts of people with T1D. All approaches that may modify the open-loop dynamics
+of the patient will require a model check for the proposed system to work.
+Automated insulin delivery systems are still under research and improvement, with
+few systems such as the Medtronic 670 G and newer 780 G available on the market [ 55].
+The most common AP uses the so-called subcutaneous route to sense glucose and deliver
+insulin. Non-physiological routes inevitably create non-physiological delays that are
+nonexistent in the healthy endogenous beta cells when sensing glucose and secreting
+insulin [ 56]. The major limiting factor of the subcutaneous route is related to the absorption
+of fast or ultra-fast insulin analogues. Most of these insulin formulations start actuating
+10–15 min after their injection with a maximum peak of action between 1 and 2 h [ 57]. One
+of the consequences of this is the fact that most AP systems are rather conservative in insulin
+delivery to avoid overdoses of insulin, which may lead to hypoglycemia. As new insulins
+come to the market with faster proﬁles, the AP systems should be able to better control
+blood glucose due to a lowered delay of the control action effect. For example, newer
+formulations of insulin Aspart such as AT247, IAsp and FIAsp still have an approximate
+onset of exposure of 5 min [ 58–60]. On the other hand, CGM sensors have gradually
+improved their accuracy and some models can already be used as non-adjunctive, such as
+de Dexcom G6 [ 61]. Delays in blood glucose sensing by CGMs have been acknowledged
+for a long time [ 62]. Newer models already reported MARD < 10%, however, delays
+between plasma insulin and measured CGM glucose concentrations are still in the range
+of5–10 min [61]. CGM technology provides close to continuous ﬂux of glucose readings,
+generally between 1 and 5 min. Although this measurement sampling rate is much slower
+compared to how fast the healthy endogenous beta cells sense glucose, it is fast enough to
+control blood glucose since the dynamics of the overall system are much slower.
+Current AP systems will certainly improve their performance if the delays associated
+with the subcutaneous route are reduced [ 56]. Especially, in situations where fast distur-
+bances affect the system, for example for postprandial control [ 63]. Recent clinical trial
+outcomes of AP systems suggest that night periods are better controlled compared to tradi-
+tional therapies [ 8], while day periods remain a challenge. This is caused by the absence of
+disturbances, mainly meals, during nights. Therefore, controlling postprandial periods is
+still difﬁcult for AP systems even with the newest improved algorithms. Improving the
+absorption of insulin analogues will most likely allow for better control of postprandial
+periods than improving the already tested algorithms. The proposed approach should be
+able to accommodate improvements for newer insulin formulations and CGM systems
+since it is model-based. Theoretically, these improvements are equivalent to changing
+the time constants of the insulin and glucose sub-systems change. Then, the proposed
+approach would require including these new time constants in the models used. Clearly,
+the model change will have to be validated and the system performance assessed again.
+Detection performance should be analyzed in depth before performing controller
+reconﬁguration. While some patient-in-the-loop faults might be easier to detect with high
+accuracy, others might show higher rate of FP and FN. The results presented in this paper
+showed that detecting faults in CHO control actions can be accurately performed, while
+detecting errors in meal estimation is harder. The detection of meal misestimations is
+especially critical for the case of FP events, where controller reconﬁguration could be
+triggered erroneously. This is something that must be taken into consideration when
+designing the FTC strategy. Detecting faults of people with type 1 diabetes is a complex
+task. Unfortunately, to discriminate different faults, the use of different observers is
+required. Nevertheless, the HA model is not restricted to work with observers. Residuals
+can be generated in a multitude of ways. In this work we used a bank of observers for the
+generation of residuals. However, any other methodology for the residual generation can
+be used and incorporated into the HA model.
+
+--- Page 22 ---
+Sensors 2021 ,21, 7117 22 of 25
+8. Conclusions
+A methodology to monitor patient-in-the-loop modes and faults has been presented.
+The system is built around a HA model that replicate patient’s real life operation modes.
+Transitions between different modes allow for the identiﬁcation of key operational modes
+and faults. The diagnoser is responsible for mode recognition by using a group of indicators
+generated from a set of residuals for every mode. A bank of interval zonotopic Kalman
+ﬁlters was constructed for the residual generation, allowing the system to have conﬁdence
+bounds on the state estimation and residual generation.
+Several proof of concept simulated benchmarks were done using challenging scenarios.
+The results suggest that mode and patient-in-the-loop faults can be detected in real time.
+Next, the information resulting from this study could be used as a tool to reconﬁgure CL
+controllers, monitor the system continuously and classify patient-in-the-loop behaviors.
+The exploration of these areas will be part of future research. Moreover, the adaptation of
+the LPV Hovorka reduced model to represent glycemic dynamics will be investigated.
+Author Contributions: Conceptualization, A.B. and V .P .; methodology, A.B., V .P ., B.W.B. and J.V .;
+software, A.B.; validation, A.B.; formal analysis, A.B. and V .P .; investigation, A.B.; resources, V .P .,
+B.W.B. and J.V .; data curation, A.B.; writing—original draft preparation, A.B.; writing—review
+and editing, V .P ., B.W.B. and J.V .; visualization, A.B.; supervision, V .P ., B.W.B. and J.V .; project
+administration, V .P . and J.V .; funding acquisition, J.V . All authors have read and agreed to the
+published version of the manuscript.
+Funding: This work was partially supported by the Spanish Ministry of Science and Innovation
+through grant PID2019-107722RB-C22, in part by the Autonomous Government of Catalonia under
+Grant 2017 SGR 1551, in part by the Ministerio de Educación, Cultura y Deporte under Grant FPU0244
+2015, and in part EU through FEDER funds.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Abbreviations
+The following abbreviations are used in this manuscript:
+T1D Type 1 Diabetes
+BG Blood Glucose
+AP Artiﬁcial Pancreas
+CL Closed-Loop
+CGM Continuous Glucose Monitoring
+FTC Fault Tolerant Control
+FD Fault Detection
+FI Fault Identiﬁcation
+CHO Carbohydrates
+LPV Linear Parameter Varying
+LQC Linear Quadratic Control
+LMI Linear Matrix Inequalities
+IO Interval Observers
+HA Hybrid Automaton
+IFB Insulin Feedback
+PD Proportional-Derivative
+IOB Insulin-On-Board
+SMRC Sliding Mode Reference Conditioning
+COB Carbohydrates-On-Board
+FDA Food and Drug Administration
+
+--- Page 23 ---
+Sensors 2021 ,21, 7117 23 of 25
+References
+1. Jacobson, A.M.; Braffett, B.H.; Cleary, P .A.; Gubitosi-Klug, R.A.; Larkin, M.E.; DCCT/EDIC Research Group. The long-term
+effects of type 1 diabetes treatment and complications on health-related quality of life: A 23-year follow-up of the Diabetes
+Control and Complications/Epidemiology of Diabetes Interventions and Complications cohort. Diabetes Care 2013 ,36, 3131–3138.
+[CrossRef] [PubMed]
+2. Cade, W.T. Diabetes-related microvascular and macrovascular diseases in the physical therapy setting. Phys. Ther. 2008 ,88,
+1322–1335. [CrossRef] [PubMed]
+3. Walsh, J. Using Insulin: Everything You Need for Success with Insulin ; Torrey Pines Press: San Diego, CA, USA, 2003.
+4. Walsh, J.; Roberts, R. Pumping Insulin: Everything You Need for Success on a Smart Insulin Pump ; Torrey Pines Press: San Diego, CA,
+USA, 2003.
+5. Doyle, F.J.; Huyett, L.M.; Lee, J.B.; Zisser, H.C.; Dassau, E. Closed-loop artiﬁcial pancreas systems: Engineering the algorithms.
+Diabetes Care 2014 ,37, 1191–1197. [CrossRef] [PubMed]
+6. Thabit, H.; Hovorka, R. Coming of age: The artiﬁcial pancreas for type 1 diabetes. Diabetologia 2016 ,59, 1795–1805. [CrossRef]
+7. Bertachi, A.; Ramkissoon, C.M.; Bondia, J.; Vehí, J. Automated blood glucose control in type 1 diabetes: A review of progress and
+challenges. Endocrinol. Diabetes Nutr. 2018 ,65, 172–181. [CrossRef]
+8. Bekiari, E.; Kitsios, K.; Thabit, H.; Tauschmann, M.; Athanasiadou, E.; Karagiannis, T.; Haidich, A.-B.; Hovorka, R.; Tsapas, A.
+Artiﬁcial pancreas treatment for outpatients with type 1 diabetes: Systematic review and meta-analysis. BMJ 2018 ,361, k1310.
+[CrossRef]
+9. Ramkissoon, C.M.; Aufderheide, B.; Bequette, B.W.; Vehí, J. A review of safety and hazards associated with the artiﬁcial pancreas.
+IEEE Rev. Biomed. Eng. 2017 ,10, 44–62. [CrossRef] [PubMed]
+10. Bequette, B.W. Human-in-the-loop insulin dosing. J. Diabetes Sci. Technol. 2021 ,15, 699–704. [CrossRef] [PubMed]
+11. Saunders, A.; Messer, L.H.; Forlenza, G.P . MiniMed 670G hybrid closed loop artiﬁcial pancreas system for the treatment of type 1
+diabetes mellitus: Overview of its safety and efﬁcacy. Expert Rev. Med. Devices 2019 ,16, 845–853. [CrossRef]
+12. Turksoy, K.; Roy, A.; Cinar, A. Real-time model-based fault detection of continuous glucose sensor measurements. IEEE Trans.
+Biomed. Eng. 2016 ,64, 1437–1445. [CrossRef] [PubMed]
+13. Mahmoudi, Z.; Nørgaard, K.; Poulsen, N.K.; Madsen, H.; Jørgensen, J.B. Fault and meal detection by redundant continuous
+glucose monitors and the unscented Kalman ﬁlter. Biomed. Signal Process. Control 2017 ,38, 86–99. [CrossRef]
+14. Howsmon, D.P .; Cameron, F.; Baysal, N.; Ly, T.T.; Forlenza, G.P .; Maahs, D.M.L.; Buckingham, B.A.; Hahn, J.; Bequette, B.W.
+Continuous glucose monitoring enables the detection of losses in infusion set actuation (LISAs). Sensors 2017 ,17, 161. [CrossRef]
+[PubMed]
+15. Meneghetti, L.; Terzi, M.; Del Favero, S.; Susto, G.A.; Cobelli, C. Data-driven anomaly recognition for unsupervised model-free
+fault detection in artiﬁcial pancreas. IEEE Trans. Control. Syst. Technol. 2018 ,28, 33–47. [CrossRef]
+16. Meneghetti, L.; Susto, G.A.; Del Favero, S. Detection of insulin pump malfunctioning to improve safety in artiﬁcial pancreas
+using unsupervised algorithms. J. Diabetes Sci. Technol. 2019 ,13, 1065–1076. [CrossRef] [PubMed]
+17. Baysal, N.; Cameron, F.; Buckingham, B.A.; Wilson, D.M.; Chase, H.P .; Maahs, D.M.; In Home Closed-Loop Study Group (IHCL).
+A novel method to detect pressure-induced sensor attenuations (PISA) in an artiﬁcial pancreas. J. Diabetes Sci. Technol. 2014 ,8,
+1091–1096. [CrossRef] [PubMed]
+18. Samadi, S.; Rashid, M.; Turksoy, K.; Feng, J.; Hajizadeh, I.; Hobbs, N.; Cinar, A. Automatic detection and estimation of
+unannounced meals for multivariable artiﬁcial pancreas system. Diabetes Technol. Ther. 2018 ,20, 235–246. [CrossRef] [PubMed]
+19. Ramkissoon, C.M.; Herrero, P .; Bondia, J.; Vehi, J. Unannounced meals in the artiﬁcial pancreas: Detection using continuous
+glucose monitoring. Sensors 2018 ,18, 884. [CrossRef]
+20. Sala-Mira, I.; Diez, J.L.; Ricarte, B.; Bondia, J. Sliding-mode disturbance observers for an artiﬁcial pancreas without meal
+announcement. J. Process. Control. 2019 ,78, 68–77. [CrossRef]
+21. Sanz, R.; García, P .; Díez, J.L.; Bondia, J. Artiﬁcial Pancreas System with Unannounced Meals Based on a Disturbance Observer
+and Feedforward Compensation. IEEE Trans. Control. Syst. Technol. 2020 ,29, 454–460. [CrossRef]
+22. Cameron, F.; Niemeyer, G.; Wilson, D.M.; Bequette, B.W.; Benassi, K.S.; Clinton, P .; Buckingham, B.A. Inpatient trial of an artiﬁcial
+pancreas based on multiple model probabilistic predictive control with repeated large unannounced meals. Diabetes Technol. Ther.
+2014 ,16, 728–734. [CrossRef]
+23. Cameron, F.M.; Ly, T.T.; Buckingham, B.A.; Maahs, D.M.; Forlenza, G.P .; Levy, C.J.; Levister, C. Closed-loop control without meal
+announcement in type 1 diabetes. Diabetes Technol. Ther. 2017 ,19, 527–532. [CrossRef] [PubMed]
+24. Jacobs, P .G.; Resalat, N.; El Youssef, J.; Reddy, R.; Branigan, D.; Preiser, N.; Castle, J. Incorporating an exercise detection, grading,
+and hormone dosing algorithm into the artiﬁcial pancreas using accelerometry and heart rate. J. Diabetes Sci. Technol. 2015 ,9,
+1175–1184. [CrossRef] [PubMed]
+25. Ramkissoon, C.M.; Bertachi, A.; Beneyto, A.; Bondia, J.; Vehi, J. Detection and control of unannounced exercise in the artiﬁcial
+pancreas without additional physiological signals. IEEE J. Biomed. Health Inform. 2019 ,24, 259–267. [CrossRef]
+26. Beneyto, A.; Bequette, B.W.; Vehi, J. Fault Tolerant Strategies for Automated Insulin Delivery Considering the Human Component:
+Current and Future Perspectives. J. Diabetes Sci. Technol. 2021 . [CrossRef] [PubMed]
+27. Beneyto, A.; Bertachi, A.; Bondia, J.; Vehi, J. A new blood glucose control scheme for unannounced exercise in type 1 diabetic
+subjects. IEEE Trans. Control. Syst. Technol. 2018 ,28, 593–600. [CrossRef]
+
+--- Page 24 ---
+Sensors 2021 ,21, 7117 24 of 25
+28. Brazeau, A.S.; Mircescu, H.; Desjardins, K.; Leroux, C.; Strychar, I.; Ekoé, J.M.; Rabasa-Lhoret, R. Carbohydrate counting accuracy
+and blood glucose variability in adults with type 1 diabetes. Diabetes Res. Clin. Pract. 2013 ,99, 19–23. [CrossRef] [PubMed]
+29. Mohammadpour, J.; Scherer, C.W. (Eds.) Control of Linear Parameter Varying Systems with Applications ; Springer Science & Business:
+New York, NY, USA, 2012.
+30. Revert, A.; Garelli, F.; Picó, J.; De Battista, H.; Rossetti, P .; Vehí, J.; Bondia, J. Safety auxiliary feedback element for the artiﬁcial
+pancreas in type 1 diabetes. IEEE Trans. Biomed. Eng. 2013 ,60, 2113–2122. [CrossRef]
+31. León-Vargas, F.; Garelli, F.; De Battista, H.; Vehí, J. Postprandial response improvement via safety layer in closed-loop blood
+glucose controllers. Biomed. Signal Process. Control. 2015 ,16, 80–87. [CrossRef]
+32. Bertachi, A.; Beneyto, A.; Ramkissoon, C.M.; Vehi, J. Assessment of mitigation methods to reduce the risk of hypoglycemia for
+announced exercise in a uni-hormonal artiﬁcial pancreas. Diabetes Technol. Ther. 2018 ,20, 285–295. [CrossRef]
+33. Bertachi, A.; Biagi, L.; Beneyto, A.; Vehí, J. Dynamic rule-based algorithm to tune insulin-on-board constraints for a hybrid
+artiﬁcial pancreas system. J. Healthc. Eng. 2020 ,2020 , 1414597. [CrossRef] [PubMed]
+34. Rossetti, P .; Quiros, C.; Moscardo, V .; Comas, A.; Giménez, M.; Ampudia-Blasco, F.J.; Vehí, J. Closed-loop control of postprandial
+glycemia using an insulin-on-board limitation through continuous action on glucose target. Diabetes Technol. Ther. 2017 ,19,
+355–362. [CrossRef]
+35. Quirós, C.; Bertachi, A.; Giménez, M.; Biagi, L.; Viaplana, J.; Viñals, C.; Bondia, J. Control de la glucemia durante el ejercicio físico
+aeróbico y anaeróbico mediante un nuevo sistema de páncreas artiﬁcial. Endocrinol. Diabetes Nutr. 2018 ,65, 342–347. [CrossRef]
+36. Viñals, C.; Beneyto, A.; Martín-SanJosé, J.F.; Furió-Novejarque, C.; Bertachi, A.; Bondia, J.; Giménez, M. Artiﬁcial pancreas with
+carbohydrate suggestion performance for unannounced and announced exercise in Type 1 Diabetes. J. Clin. Endocrinol. Metab.
+2021 ,106, 55–63. [CrossRef]
+37. Vento, J.; Travé-Massuyès, L.; Puig, V .; Sarrate, R. An incremental hybrid system diagnoser automaton enhanced by discernibility
+properties. IEEE Trans. Syst. Man Cybern. Syst. 2014 ,45, 788–804. [CrossRef]
+38. Bergman, R.N.; Ider, Y.Z.; Bowden, C.R.; Cobelli, C. Quantitative estimation of insulin sensitivity. Am. J. -Physiol.-Endocrinol.
+Metab. 1979 ,236, E667. [CrossRef] [PubMed]
+39. Visentin, R.; Campos-Náñez, E.; Schiavon, M.; Lv, D.; Vettoretti, M.; Breton, M.; Cobelli, C. The UVA/Padova type 1 diabetes
+simulator goes from single meal to single day. J. Diabetes Sci. Technol. 2018 ,12, 273–281. [CrossRef]
+40. Hovorka, R.; Canonico, V .; Chassin, L.J.; Haueter, U.; Massi-Benedetti, M.; Federici, M.O.; Wilinska, M.E. Nonlinear model
+predictive control of glucose concentration in subjects with type 1 diabetes. Physiol. Meas. 2004 ,25, 905. [CrossRef]
+41. Bondia, J.; Romero-Vivo, S.; Ricarte, B.; Diez, J.L. Insulin estimation and prediction: A review of the estimation and prediction of
+subcutaneous insulin pharmacokinetics in closed-loop glucose control. IEEE Control. Syst. Mag. 2018 ,38, 47–66.
+42. Kovács, L.; Szalay, P . Uncertainties and Modeling Errors of Type 1 Diabetes Models. In Prediction Methods for Blood Glucose
+Concentration ; Springer: Cham, Switzerland, 2016; pp. 211–225.
+43. Kwiatkowski, A.; Boll, M.T.; Werner, H. Automated generation and assessment of afﬁne LPV models. In Proceedings of the 45th
+IEEE Conference on Decision and Control, San Diego, CA, USA, 13–15 December 2006; pp. 6690–6695.
+44. Sun, X.D.; Postlethwaite, I. Afﬁne LPV modelling and its use in gain-scheduled helicopter control. In Proceedings of the UKACC
+International Conference on Control’98, Swansea, UK, 1–4 September 1998; pp. 1504–1509.
+45. Rotondo, D.; Nejjari, F.; Puig, V . Quasi-LPV modeling, identiﬁcation and control of a twin rotor MIMO system. Control. Eng.
+Pract. 2013 ,21, 829–846. [CrossRef]
+46. Alcala, E.; Puig, V .; Quevedo, J.; Escobet, T. Gain-scheduling LPV control for autonomous vehicles including friction force
+estimation and compensation mechanism. IET Control. Theory Appl. 2018 ,12, 1683–1693. [CrossRef]
+47. Ostertag, E. Mono- and Multivariable Control and Estimation: Linear, Quadratic and LMI Methods ; Springer Science & Business:
+Berlin/Heidelberg, Germany, 2011.
+48. Xu, F.; Puig, V .; Ocampo-Martinez, C.; Olaru, S.; Stoican, F. Set-theoretic methods in robust detection and isolation of sensor faults.
+Int. J. Syst. Sci. 2015 ,46, 2317–2334. [CrossRef]
+49. Man, C.D.; Micheletto, F.; Lv, D.; Breton, M.; Kovatchev, B.; Cobelli, C. The UVA/PADOVA type 1 diabetes simulator: New
+features. J. Diabetes Sci. Technol. 2014 ,8, 26–34. [CrossRef]
+50. Herrero, P .; Bondia, J.; Oliver, N.; Georgiou, P . A coordinated control strategy for insulin and glucagon delivery in type 1 diabetes.
+Comput. Methods Biomech. Biomed. Eng. 2017 ,20, 1474–1482. [CrossRef]
+51. Dalla Man, C.; Breton, M.D.; Cobelli, C. Physical Activity into the Meal Glucose—Insulin Model of Type 1 Diabetes: In Silico
+Studies. J. Diabetes Sci. Technol. 2009 ,3, 56–67. [CrossRef]
+52. Pulido, J.M.E.; Salazar, M.A. Changes in insulin sensitivity, secretion and glucose effectiveness during menstrual cycle. Arch. Med.
+Res. 1999 ,30, 19–22. [CrossRef]
+53. Pretty, C.; Le Compte, A.; Chase, J.G.; Shaw, G.; Preiser, J.C.; Penning, S.; Desaive, T. Variability of insulin sensitivity during the
+ﬁrst 4 days of critical illness. Crit. Care 2012 ,16, 1–189. [CrossRef]
+54. Moscardó, V .; Díez, J.L.; Bondia, J. Parallel control of an artiﬁcial pancreas with coordinated insulin, glucagon, and rescue
+carbohydrate control actions. J. Diabetes Sci. Technol. 2019 ,13, 1026–1034. [CrossRef]
+55. Allen, N.; Gupta, A. Current diabetes technology: Striving for the artiﬁcial pancreas. Diagnostics 2019 ,9, 31. [CrossRef] [PubMed]
+56. Christiansen, S.C.; Fougner, A.L.; Stavdahl, Ø.; Kölle, K.; Ellingsen, R.; Carlsen, S.M. A review of the current challenges associated
+with the development of an artiﬁcial pancreas by a double subcutaneous approach. Diabetes Ther. 2017 ,8, 489–506. [CrossRef]
+
+--- Page 25 ---
+Sensors 2021 ,21, 7117 25 of 25
+57. Hirsch, I.B.; Juneja, R.; Beals, J.M.; Antalis, C.J.; Wright, E.E., Jr. The evolution of insulin and how it informs therapy and treatment
+choices. Endocr. Rev. 2020 ,41, 733–755. [CrossRef] [PubMed]
+58. Haahr, H.; Heise, T. Fast-acting insulin aspart: A review of its pharmacokinetic and pharmacodynamic properties and the clinical
+consequences. Clin. Pharmacokinet. 2020 ,59, 155–172. [CrossRef] [PubMed]
+59. Heise, T.; Hövelmann, U.; Brøndsted, L.; Adrian, C.L.; Nosek, L.; Haahr, H. Faster-acting insulin aspart: Earlier onset of
+appearance and greater early pharmacokinetic and pharmacodynamic effects than insulin aspart. Diabetes Obes. Metab. 2015 ,17,
+682–688. [CrossRef] [PubMed]
+60. Svehlikova, E.; Mursic, I.; Augustin, T.; Magnes, C.; Gerring, D.; Jezek, J.; Pieber, T.R. Pharmacokinetics and Pharmacodynamics
+of Three Different Formulations of Insulin Aspart: A Randomized, Double-Blind, Crossover Study in Men with Type 1 Diabetes.
+Diabetes Care 2021 ,44, 448–455. [CrossRef]
+61. Cappon, G.; Vettoretti, M.; Sparacino, G.; Facchinetti, A. Continuous glucose monitoring sensors for diabetes management: A
+review of technologies and applications. Diabetes Metab. J. 2019 ,43, 383–397. [CrossRef]
+62. Schmelzeisen-Redeker, G.; Schoemaker, M.; Kirchsteiger, H.; Freckmann, G.; Heinemann, L.; Del Re, L. Time delay of CGM
+sensors: Relevance, causes, and countermeasures. J. Diabetes Sci. Technol. 2015 ,9, 1006–1015. [CrossRef] [PubMed]
+63. Goodwin, G.C.; Medioli, A.M.; Carrasco, D.S.; King, B.R.; Fu, Y. A fundamental control limitation for linear positive systems with
+application to Type 1 diabetes treatment. Automatica 2015 ,55, 73–77. [CrossRef]

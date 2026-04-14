@@ -1,0 +1,1574 @@
+--- Page 1 ---
+Microgrid Power Flow Control with Integrated
+Battery Management Functions
+Qian Long∗, Hui Yu∗, Fuhong Xie∗, Wente Zeng†, Srdjan Lukic∗, Ning Lu∗and David Lubkeman∗
+∗Department of Electrical and Computer Engineering, North Carolina State University, Raleigh, NC
+†Total New Energies Ventures USA, San Francisco, CA
+Abstract —This paper presents a microgrid power ﬂow control
+for islanded microgrids consisting of photovoltaic (PV) system,
+battery energy storage system (BESS) and diesel generator. The
+proposed control ensures automatic coordination among the
+microgrid units. To achieve the coordination, the local control
+of PV system and BESS are conﬁgured to regulate power ﬂow
+without relying on communications. The generator is controlled
+as the back-up source and its connection depends on battery state
+of charge (SOC). A state machine with hysteresis settings is used
+to trigger smooth transition among operation modes. Not only
+does the proposed controller consider battery SOC and power
+limits, but also integrates three-stage charging control as battery
+charging mechanism, which is not considered in the existing
+literature. The proposed control is validated for an islanded
+hybrid microgrid using an OPAL-RT real-time simulator.
+Index Terms —Power ﬂow control, three-stage charging control,
+islanded hybrid microgrids
+I. I NTRODUCTION
+Islanded hybrid microgrids, consisting of photovoltaic (PV)
+systems, battery energy storage systems (BESS) and diesel
+generators, present a clean and economical approach to power
+rural areas where the utility service is inaccessible or has poor
+quality [1]. While the integration of PV system and BESS
+provides ﬂexibility of supplying energy, the diesel generator
+can be used as the back-up source when an islanded microgrid
+faces energy deﬁcit problems. Power management, as a critical
+application to islanded microgrid operation, coordinates output
+power of these microgrid units while maintaining system
+frequency and voltage. However, how to properly integrate
+the constraints of BESS into power ﬂow control still needs to
+be considered.
+Microgrid power ﬂow control in islanded microgrids has
+been widely studied using centralized architecture [2]–[4].
+Under this architecture, the communication links between
+microgrid controller and each microgrid component are re-
+quired to coordinate the operation of microgrid units. In [2], a
+centralized power management control has been implemented
+into an embedded microcontroller. The state of charge (SOC)
+management is achieved by dispatching the fuel-cell system.
+However, the BESS power limiting function is not explored
+because it is assumed that the PV system has lower rated
+power than the battery maximum charging power. Another
+centralized power management system is proposed in [3] to
+coordinate hybrid PV-battery unit with the generator. While the
+SOC management is integrated into the BESS local control,
+the power limiting functions for the BESS and the generator
+are not carefully considered in the study. An adaptive coordi-
+nation scheme is described in [4] to achieve close frequencyregulation as well as SOC and power limiting functions. To
+manage high SOC scenarios, battery charging power is set
+directly to zero. However, this charging control is not realistic
+since the battery management system (BMS) in reality might
+still allow the battery to be charged.
+The other approach of solving coordination issues is through
+decentralized power management control. This approach re-
+quires no information exchange between units or between
+a unit and a centralized control entity, but takes advantage
+of the fact that each microgrid unit shares a universal fre-
+quency across the system. A Fuzzy-Logic controller based
+on frequency-signal techniques is developed in [5] to manage
+power ﬂow of an islanded microgrid with a PV system, a BESS
+and a microturbine unit while considering battery maximum
+power limit and SOC limit. The authors in [6] introduced
+a decentralized method to achieve power ﬂow control in an
+islanded microgrid consisting of multiple PV units, battery
+units and PV/battery hybrid units. Discrete control modes
+are deﬁned, and adaptive droop control is employed in each
+control mode to respect the SOC and power limits of BESS
+units. Multi-segment adaptive droop control is proposed in
+[7], [8] as a fully decentralized control strategy to ﬁt into
+islanded microgrids with a general structure (i.e. multiple PV
+units, battery units, hybrid PV/battery units and conventional
+droop-controlled generators). The strategy also ensures that
+the operation constraints of each BESS are complied with.
+Although all these strategies mentioned above consider battery
+SOC and power limits in their designs, a three-stage charging
+control, which is a realistic charging mechanism of BMS, is
+not studied. The lack of this mechanism might still lead to
+inappropriate charging, poor battery voltage regulation and
+reduced life-time of the battery system.
+The paper proposes a novel microgrid power ﬂow control
+that integrates realistic battery management functions with the
+proper coordination of multiple operation modes for islanded
+microgrids. Section II describes the assumed operating modes
+of the microgrid. Section III provides the design details of the
+proposed microgrid power ﬂow control, especially regarding
+integration of three-stage charging control while considering
+the coordination with other operation modes. Section IV
+presents real-time simulation results for an islanded microgrid
+with the proposed controller. Section V concludes the paper.
+II. M ICROGRID SYSTEM OVERVIEW
+The system schematic of the islanded hybrid microgrid is
+shown in Fig. 1, where the component sizes are given to
+represent the studied microgrid in Section IV . PV arrays are
+
+--- Page 2 ---
+DC
+DCDC
+AC
+DC
+ACCritical
+Load
+Non-Critical
+Load16kW Diesel Generator
+18kW/43.2kWh Lead-Acid BESS25kW PV System
+vDC+
+-vPV+
+-iPV
+vB+
+-PPV PDG
+400V/50Hz 
+AC NetworkPB
+ PLOADiBFig. 1: Microgrid system diagram
+interfaced with the microgrid AC bus by a two-stage DC/AC
+inverter. A battery unit is connected to the AC bus using a
+single-stage DC/AC inverter. The connection to the AC bus is
+controlled by a relay for either the generator unit or the load.
+The assumed operation of the microgrid is described as
+follows:
+1) The operation mode of the PV system is only decided
+by the frequency. Overfrequency events activate the
+frequency-watt (freq-watt) curtailment. Otherwise, the PV
+system operates under MPPT control. The ﬁrst stage of
+the PV system, the DC-DC converter, is controlled by
+either the MPPT controller or the freq-watt curtailment
+controller. The second stage of the PV system, the three-
+phase DC-AC inverter, is modeled as a grid-feeding unit
+regulating the DC link capacitor voltage and injecting
+power into the system.
+2) The BESS is the master unit providing the frequency
+and voltage reference of the microgrid AC bus when the
+generator is ofﬂine. The droop control is implemented in
+the battery inverter to achieve seamless transition between
+non-generator operation and generator-connected opera-
+tion. The secondary control of the battery inverter is de-
+veloped for multiple purposes. In general, the secondary
+control is able to bring the frequency and voltage back
+to nominal value. However, the secondary control also
+enables other microgrid operation modes when needed,
+such as generator synchronization and three-stage charg-
+ing control. Once the generator is online and connected,
+the BESS switches to power dispatch mode where it
+follows the real and reactive power setpoints.
+3) The generator, as a back-up source, only starts at a low
+SOC level. The generator synchronization is achieved
+by the battery inverter. The relay closes automatically
+when there is sufﬁciently small voltage angle and mag-
+nitude difference on both sides of the generator breaker.
+Note that the generator in this study is an isochronous
+generator, consisting of an isochronous speed control
+and an excitation system. The generator relay is set to
+trip the generator whenever its output current exceeds
+the maximum allowable current or goes into a reverse
+direction.
+4) The load is fully supplied in most situations. The non-
+critical load is only curtailed in generator-connected
+operation when there is a extremely low SOC level.
+Table I summarizes all the microgrid operation modes.
+In Mode 1, the generator is turned off. The full load is
+supplied since the battery SOC is at a relatively high level. The
+BESS regulates voltage and frequency and compensates anyTABLE I: Microgrid operation modes
+Mode BESS PV System Generator Loads
+Mode 1 V/fregulation decided by f ofﬂine full
+Mode 2 Pdispatch MPPT V/fregulation full
+Mode 3 Pdispatch MPPT V/fregulation critical
+Mode 4 ofﬂine ofﬂine ofﬂine ofﬂine
+power difference between PV generation and load consump-
+tion. However, the output power of the BESS should always
+conform to its rated capacity and also, more importantly, the
+maximum allowable charging power. Under constant power
+charging, the maximum allowable charging power is equal to
+the rated capacity of the battery inverter, while under constant
+voltage charging, the maximum allowable charging power is a
+variable limit. If the BESS output power violates the maximum
+allowable charging power, the battery inverter increases system
+frequency to curtail PV power.
+In Mode 2, the battery SOC is at a relatively low SOC level.
+The generator becomes the master unit to regulate voltage
+and frequency and to compensate any power difference among
+the PV system, the BESS and the load. Since the generator
+provides ﬁxed system frequency in this mode, the PV system
+only operates under MPPT control. The BESS in Mode 2 acts
+as a grid-feeding unit and its power dispatch strategy will be
+discussed in the next section. The only difference between
+Mode 3 and Mode 2 is that all the non-critical loads are shed
+in Mode 3. Mode 4 represents the mode where all the units
+are shut down and disconnected.
+III. M ICROGRID POWER FLOW CONTROL WITH
+INTEGRATED BMS
+The challenge of integrating three-phase charging control in
+islanded microgrids is to have the grid-forming battery inverter
+regulate output power while maintaining voltage and frequency
+regulation. Also, with irradiance and load variations, the three-
+stage charging control should be able to adapt to different
+operating conditions. To achieve that, both the PV control and
+the BESS control are conﬁgured in a coordinated way such
+that BESS is able to indirectly control its output power by
+controlling system frequency. This section discusses the details
+of this control design and implementation.
+A. Local PV Control
+A two-stage three-phase PV inverter is utilized, as shown
+in Fig. 1, . The DC-DC boost converter is controlled by either
+the MPPT controller or the freq-watt curtailment control. The
+inverter control is implemented using the dual-loop controller
+for DC capacitor voltage regulation.
+The control diagram for the ﬁrst stage of the PV inverter is
+shown in Fig. 2. It consists of the MPPT controller, which is
+implemented using a data-driven MPP estimation algorithm,
+and the freq-watt curtailment control. The ﬁnal PV real power
+setpoint is jointly determined by both the MPPT control and
+the frequency curtailment control. The PI control regulates the
+
+--- Page 3 ---
+PPV_measPPV_ref
++–PIMd_fw
+saturation01
+LPFfmeas
+5152100%
+PratedPMPP
+Min
+look-up table
+PmeasVbatt_ref
+VbattΔf2
+Δf3PI2Δf1
+Δf+frefPmeas PI1
+PI35052Max
+saturationhysteresisSOCLPF
+LPFPrated
+Pfloatfnom
++–frefδfPI4
+fmeasPrimary
+ControlInstantaneous
+Voltage Control PWM to 
+Inverter Secondary 
+Control+––
++–
+––
+vrefConstant Power Mode
+Constant 
+Volatge Mode 
+Floating Mode 
+PI
+01
+PWM
+SMA
+Sunny 
+Tripower 
+Inverterf(Irr, T)Irr
+TMPPT
+Freq-Watt 
+CurtailmentFig. 2: Control diagram for the PV DC-DC converter
+DC output power from the PV arrays based on the ﬁnal real
+power setpoint.
+The look-up table, shown in Fig. 2, determines a piece-
+wise linear relationship between frequency and real power
+curtailment during an over-frequency period. The freq-watt
+curtailment only takes effect when the frequency goes above
+51Hz. Between 51Hz and 52Hz, there is a proportional de-
+crease in the PV output power as the frequency increases.
+Above 52Hz, the PV power is fully curtailed. However, the
+freq-watt curtailment is still subject to MPPT control. During
+the PV real power curtailment, it is still possible that the power
+setpoint is determined from the MPPT control rather than from
+the freq-watt curtailment because the PV output power can be
+no greater than the maximum available power. The advantage
+of this control design is that it avoids the two PV control
+modes from switching back and forth and enables automatic
+adaptation to irradiance variations.
+B. Local BESS Control
+As discussed in Section II, two different control modes exist
+in the BESS depending on the status of the diesel generator.
+When the generator is ofﬂine, the BESS adopts a frequency-
+based power management method in coordination with the
+PV system; when the generator is online, the BESS directly
+follows the power setpoints. A complete control structure
+that achieves smooth transition between different modes is
+proposed here.
+1) Control Strategy in Mode 1: Fig. 3 illustrates the fre-
+quency generation control that takes the battery three-stage
+charging function into account. Firstly, the constant power
+mode is activated when battery SOC is considerably low. The
+BESS is charged by available power in the system, which is
+no more than the battery inverter rated power Prated . A PI
+controller is implemented here to achieve the power limiting
+control. The output of the PI controller is the frequency
+deviation f1, which will be added to the nominal frequency
+fnom later to generate the required frequency reference fref.
+Under constant power mode, as the battery SOC increases, the
+battery voltage Vbatt also increases and the battery inverter
+ﬁnally goes to constant voltage mode. In this mode, battery
+voltage will be clamped to a reference value Vbatt refby
+using another PI controller to generate the corresponding
+frequency deviation f2. This frequency deviation f2will
+be compared with f1. When f2is larger than f1, the
+charging control will transition from constant power mode
+to constant voltage mode. Lastly, when battery SOC further
+increases and becomes higher than a predeﬁned threshold, the
+PWM
+dVoltage 
+ControlPoC
+dDroop 
+Control+
+–Rest 
+of the 
+Network
+𝐿𝑓 
+𝐿𝑔 
+𝐶𝑓 
+Current 
+Control+–+–
+𝑖𝑓 
+𝑣𝑜 
+𝑖𝑜 
+𝑖𝑓 
+𝑣𝑜 dPower
+Calculation
+𝑖𝑔 +
+–
+𝑣𝑔 
+𝑣𝑔 
+𝑃 
+𝑄 
+𝑣𝑜∗ 
+𝑃∗ 
+𝑄∗ 
++
+–Lfifdq
+vodq Cfiodq
++
+–vgdq+–vodq
+skvi kvp+skii kip+jωCf vodq
+– – * *ifdq+jωLf
++vcdqifdqLg vodq
+skvi kvp+ skii kip+jωCf vodq
+– – * *ifdq+jωLf
++
+vcdqifdq+–Lfifdq
+vodq Cfiodq+–vgdq +
+–Lg
+sCf+jωCf1
+sLf+jωLf1
+vodqiodq ifdqvcdq
+–sLg+jωLg1–vgdqvodq
+skvi kvp+skii kip+jωCf vodq
+– – * *ifdq+jωLf
++ifdq
+vcdq
+–PWMPoC
+dPrimary  
+Control+
+–Rest 
+of the 
+Network
+Voltage 
+Control+–+
+–Lfif
+vo Cfio
+vgLg
+vo*voio vo
+dSecondary  
+Controlω E * *+
+–vc
+s+ωcωcpPmP–ω*
+1
+sθ 
+qQmQ–E*
+E–P*
+–Q*
+s+ωcωc
+++
+++
+vodq
+skvi kvp+skii kip+jω Cf vodq
+– – * *ifdq+jω Lf
++ifdq
+vcdq* *DC
+DCDC
+AC
+DC
+AC
+Critical
+Load
+Non-
+Critical
+LoadVoltage Control
+Droop Control
+Secondary Control Microgrid Controller MPP TCurrent Control
+Generator
+ControlDiesel GeneratorBattery SystemPV System
+fMGvPViPVvDCvDC+
+-vPV+
+-iPV
+vB+
+-
+vB
+SOC
+PBfref
+fMGvMG
+Load 
+ControlFreq-Watt 
+Curtailment hysteresisPPV
+PB
+PGEN
+PLOADOnOff Gen
+PPVfMGOnOff Gen
+Pref
+SOC
+SOCPPV
+PLOAD
+PPV_measPPV_ref
++–PIMd_fw
+saturation01
+LPFfmeasMPPT
+Freq -Watt 
+Curtailmentfmeas
+hysteresisMd_fwMd_mpp
+To DC -DC boost 
+converterMode Selection
+5152100%
+PratedPMPP
+Min
+look-up tableMode 1
+Mode 2 Mode 3Mode 4SOC > GenSOC ub
+OR
+genset protection 
+activatedSOC < GenSOC lbSOC < LoadSOC lb
+SOC > LoadSOC ubSOC < SOC min
+PmeasVbatt_ref
+VbattΔf2
+Δf3PI2Δf1
+Δf+frefPmeas PI1
+PI35052Max
+saturationhysteresisSOCLPF
+LPFPrated
+Pfloatfnom
++–
+ΔΩ PI
+θmeass2π  θref
++ P mp
+V*+Q mqω*Vsin(ωt)
+Vωvref+–
+Pref
++–
+Qref++++–frefδfPI4
+fmeasPrimary
+ControlInstantaneous
+Voltage Control PWM to 
+Inverter Secondary 
+Control+––
++–
+––
+vrefConstant Power Mode
+Constant 
+Voltage Mode 
+Floating Mode 
+Vbatt_ref
+VbattPIΔf+fref
+5052
+saturation fnominal++–Constant 
+Volatge Mode 
++–PR +– kpiL(s)*
+vmeas imeasLPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterBattery 
+Model– +
+Psma_ca l c
+-Psma_ca l c
+saturationPref
++–Vbatt_ref
+(62.5V)
+VbattPcharge _ref2
+200WPcharge _ref3Pcharge _refPImin (Ppv-Pload, battery 
+rated charging power )Pcharge _ref1 Constant 
+Current 
+Mode
+Constant 
+Voltage 
+Mode
+Floating 
+ModeTo battery 
+inverters
+SOCVbatt_ref
+Vbatt
+Pref3PI4Min
+hysteresisSOCPrated
+Pfloat+–Constant Power Mode
+Constant 
+Voltage Mode 
+Floating Mode Inverter 
+Primary
+ControlPrefPref1
+Pref2Min
+90%Pgen_rated +Ppv−Pload
++–
+ΔΩ PI
+θmeass2π  θref
++ Pmeas mp
+V*+Qmeas mqω*Vsin(ωt)
+Vωvref+–
+0
++–
+0+++Pfloat = 200WPIΔf+fref
+5052
+saturation fnominal+––Floating Mode 
+LPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterPmeas
+LPF
++–
+ΔΩ PI
+θmeass2π  θref
++ Pmeas mp
+V*+Qmeas mqω*Vsin(ωt)
+Vωvref+–
+0
++–
+0+++Prated = 18kWPIΔf+fref
+5052
+saturation fnominal+––Constant 
+Current Mode 
+LPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterPmeas
+LPFImeas _batt_inv 
+Vmeas _batt_inv
++–
+ΔΩ PI
+θinverter _measθgrid_meas
++ Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
+0
++–
+0+++
+LPF
+LPF+
+ΔV
++–PIPLLPLLVgrid_meas
+Vmeas _batt_inv
+Vgrid_meas+ Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
++–
+0++
+LPF
+LPFPrefmin (Ppv-Pload, battery 
+rated charging power )Constant 
+Current 
+Mode
++Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
++–
+0++
+LPF
+LPFPref200WFloating 
+Mode
++ Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
++–
+0++
+LPF
+LPFPref+–Vbatt_ref PIConstant 
+Voltage ModeLoadGrid
+LoadGrid
+LoadGrid
+LoadGrid
+LoadGrid
+LoadGridPPV_measPPV_ref
++– PI
+saturation01
+LPFfmeas
+5152100%
+Prated
+PMPPMin
+look-up table
+Instantaneous
+Voltage ControlPWMSMA
+Sunny 
+Tripower 
+InverterPLLImeas _pv , Vmeas _pvVmeas _pv
+PPV_measPPV_ref
++– PI
+saturation01
+LPFfmeas
+5152100%
+Prated
+PMPPMin
+look-up table
+PWMSMA
+Sunny 
+Tripower 
+InverterPLLImeas _pv , Vmeas _pvVmeas _pv
+Imeas _batt_inv 
+Vmeas _batt_invInstantaneous
+Voltage Control
+PWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlImeas _batt_inv 
+Vmeas _batt_inv
+Vmeas _batt_inv
+PWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlBattery 
+ModelVbatt = 
+f(SOC , PB)– +Vbatt+–
+ΔΩ PI
+θmeass2π  θref
++ Pmeas mp
+V*+Qmeas mqω*Vsin(ωt)
+Vωvref+–
+0
++–
+0+++PIΔf+fref
+5052
+saturation fnominal++–Constant Voltage Mode 
+LPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterLoadGridPPV_measPPV_ref
++– PI
+saturation01
+LPFfmeas
+5152100%
+Prated
+PMPPMin
+look-up table
+PWMSMA
+Sunny 
+Tripower 
+InverterPLLImeas _pv , Vmeas _pvVmeas _pv
+Imeas _batt_inv 
+Vmeas _batt_inv Instantaneous
+Voltage ControlBattery 
+ModelVbatt = 
+f(SOC , PB)– +Vbatt_ref
+Vbatt
+PV InverterShut 
+Down
+PWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlImeas _batt_inv 
+Vmeas _batt_invImeas _batt_inv 
+Vmeas _batt_invPWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlImeas _batt_inv 
+Vmeas _batt_inv
+VDC_measPPV_ref
++–PILPF
+PWMSMA
+Sunny 
+Tripower 
+InverterInner -Loop 
+Current  Control2/VDCvrefVDC_ref
+id_refDC
+AC
+Voltage Control
+Droop Control
+Secondary Control Microgrid Controller vB+
+-
+vB
+SOC
+PBfrefPB
+PGENPrefPPV
+PLOADDC
+DCDC
+AC
+DC
+ACCritical
+Load
+Non-Critical
+Load16kW Diesel Generator
+18kW/43.2kWh Lead -Acid BESS25kW PV System
+vDC+
+-vPV+
+-iPV
+vB+
+-PPV PDG
+400V/50Hz 
+AC NetworkPB PLOADiB
+f(Irr, T)Irr
+TMPPT
+Freq -Watt 
+CurtailmentFig. 3: Battery inverter frequency reference generation control
+PWM
+dVoltage 
+ControlPoC
+dDroop 
+Control+
+–Rest 
+of the 
+Network
+𝐿𝑓 
+𝐿𝑔 
+𝐶𝑓 
+Current 
+Control+–+–
+𝑖𝑓 
+𝑣𝑜 
+𝑖𝑜 
+𝑖𝑓 
+𝑣𝑜 dPower
+Calculation
+𝑖𝑔 +
+–
+𝑣𝑔 
+𝑣𝑔 
+𝑃 
+𝑄 
+𝑣𝑜∗ 
+𝑃∗ 
+𝑄∗ 
++
+–Lfifdq
+vodq Cfiodq
++
+–vgdq+–vodq
+skvi kvp+skii kip+jωCf vodq
+– – * *ifdq+jωLf
++vcdqifdqLg vodq
+skvi kvp+ skii kip+jωCf vodq
+– – * *ifdq+jωLf
++
+vcdqifdq+–Lfifdq
+vodq Cfiodq+–vgdq +
+–Lg
+sCf+jωCf1
+sLf+jωLf1
+vodqiodq ifdqvcdq
+–sLg+jωLg1–vgdqvodq
+skvi kvp+skii kip+jωCf vodq
+– – * *ifdq+jωLf
++ifdq
+vcdq
+–PWMPoC
+dPrimary  
+Control+
+–Rest 
+of the 
+Network
+Voltage 
+Control+–+
+–Lfif
+vo Cfio
+vgLg
+vo*voio vo
+dSecondary  
+Controlω E * *+
+–vc
+s+ωcωcpPmP–ω*
+1
+sθ 
+qQmQ–E*
+E–P*
+–Q*
+s+ωcωc
+++
+++
+vodq
+skvi kvp+skii kip+jω Cf vodq
+– – * *ifdq+jω Lf
++ifdq
+vcdq* *DC
+DCDC
+AC
+DC
+AC
+Critical
+Load
+Non-
+Critical
+LoadVoltage Control
+Droop Control
+Secondary Control Microgrid Controller MPP TCurrent Control
+Generator
+ControlDiesel GeneratorBattery SystemPV System
+fMGvPViPVvDCvDC+
+-vPV+
+-iPV
+vB+
+-
+vB
+SOC
+PBfref
+fMGvMG
+Load 
+ControlFreq-Watt 
+Curtailment hysteresisPPV
+PB
+PGEN
+PLOADOnOff Gen
+PPVfMGOnOff Gen
+Pref
+SOC
+SOCPPV
+PLOAD
+PPV_measPPV_ref
++– PIMd_fw
+saturation01
+LPFfmeasMPPT
+Freq -Watt 
+Curtailmentfmeas
+hysteresisMd_fwMd_mpp
+To DC -DC boost 
+converterMode Selection
+5152100%
+Prated
+PMPPMin
+look-up tableMode 1
+Mode 2 Mode 3Mode 4SOC > GenSOC ub
+OR
+genset protection 
+activatedSOC < GenSOC lbSOC < LoadSOC lb
+SOC > LoadSOC ubSOC < SOC min
+PmeasVbatt_ref
+VbattΔf2
+Δf3PI2Δf1
+Δf+frefPmeas PI1
+PI35052Max
+saturation hysteresisSOCLPF
+LPFPrated
+Pfloatfnominal
++–fref
+ΔΩ PI4
+θmeass2π  θref
++Pmp
+V*+Qmqω*Vsin(ωt)
+Vωvref+–
+Pref
++–
+Qref+++
++–frefδfPI4
+fmeasPrimary
+ControlInstantaneous
+Voltage Control PWM to 
+Inverter Secondary 
+Control+––
++–
+––
+vref
+Fig. 4: Hierarchical frequency control structure
+charging control enters ﬂoating mode with minimal charging
+power Pfloat . A third PI controller is implemented here to
+regulate the charging power to Pfloat . A switch triggered
+by SOC is implemented for selection between the former
+two modes and the ﬂoating mode. A hysteresis block is
+adopted to avoid frequent mode switch. A saturation block
+is implemented to limit the system frequency reference within
+the range between 50Hz to 52Hz to be consistent with PV
+freq-watt curtailment.
+The frequency reference frefgenerated in Fig. 3 will be
+sent to a hierarchical frequency control structure, as shown in
+Fig. 4. The control objective is to make the measured system
+frequency fmeas precisely follow the frequency reference. A
+PI controller is implemented as the secondary controller, the
+output of which will be sent to the primary control to generate
+the instantaneous voltage reference. The voltage control regu-
+lates the inverter output voltage to desired voltage magnitude
+and frequency. Details of primary control and voltage tracking
+control are omitted here, but can be found in [9], [10].
+2) Control Strategy in Mode 2 and 3: Under this condition,
+the isochronous generator provides voltage and frequency ref-
+erences for the rest of the system, both of which are designed
+to be at their nominal values. With voltage and frequency
+references, the BESS can easily track the power setpoints using
+primary control [10]. Similar to the case without the generator,
+a three-stage charging control structure is proposed. With low
+SOC, the charging control is in constant power mode and the
+power reference is selected from the smaller value between
+Prated and90%Pgen rated+Ppv−Pload. As both the SOC
+and battery terminal voltage increase, the constant voltage
+mode might be triggered, for which case a PI controller is
+implemented to generate a power reference and clamp the
+voltage to its reference Vbatt ref. When the battery is almost
+fully charged, the charging control enters ﬂoating mode. A
+hysteresis-based switch triggered by SOC is implemented for
+
+--- Page 4 ---
+PWM
+dVoltage 
+ControlPoC
+dDroop 
+Control+
+–Rest 
+of the 
+Network
+𝐿𝑓 
+𝐿𝑔 
+𝐶𝑓 
+Current 
+Control+–+–
+𝑖𝑓 
+𝑣𝑜 
+𝑖𝑜 
+𝑖𝑓 
+𝑣𝑜 dPower
+Calculation
+𝑖𝑔 +
+–
+𝑣𝑔 
+𝑣𝑔 
+𝑃 
+𝑄 
+𝑣𝑜∗ 
+𝑃∗ 
+𝑄∗ 
++
+–Lfifdq
+vodq Cfiodq
++
+–vgdq+–vodq
+skvi kvp+skii kip+jωCf vodq
+– – * *ifdq+jωLf
++vcdqifdqLg vodq
+skvi kvp+ skii kip+jωCf vodq
+– – * *ifdq+jωLf
++
+vcdqifdq+–Lfifdq
+vodq Cfiodq+–vgdq +
+–Lg
+sCf+jωCf1
+sLf+jωLf1
+vodqiodq ifdqvcdq
+–sLg+jωLg1–vgdqvodq
+skvi kvp+skii kip+jωCf vodq
+– – * *ifdq+jωLf
++ifdq
+vcdq
+–PWMPoC
+dPrimary  
+Control+
+–Rest 
+of the 
+Network
+Voltage 
+Control+–+
+–Lfif
+vo Cfio
+vgLg
+vo*voio vo
+dSecondary  
+Controlω E * *+
+–vc
+s+ωcωcpPmP–ω*
+1
+sθ 
+qQmQ–E*
+E–P*
+–Q*
+s+ωcωc
+++
+++
+vodq
+skvi kvp+skii kip+jω Cf vodq
+– – * *ifdq+jω Lf
++ifdq
+vcdq* *DC
+DCDC
+AC
+DC
+AC
+Critical
+Load
+Non-
+Critical
+LoadVoltage Control
+Droop Control
+Secondary Control Microgrid Controller MPP TCurrent Control
+Generator
+ControlDiesel GeneratorBattery SystemPV System
+fMGvPViPVvDCvDC+
+-vPV+
+-iPV
+vB+
+-
+vB
+SOC
+PBfref
+fMGvMG
+Load 
+ControlFreq-Watt 
+Curtailment hysteresisPPV
+PB
+PGEN
+PLOADOnOff Gen
+PPVfMGOnOff Gen
+Pref
+SOC
+SOCPPV
+PLOAD
+PPV_measPPV_ref
++–PIMd_fw
+saturation01
+LPFfmeasMPPT
+Freq -Watt 
+Curtailmentfmeas
+hysteresisMd_fwMd_mpp
+To DC -DC boost 
+converterMode Selection
+5152100%
+PratedPMPP
+Min
+look-up tableMode 1
+Mode 2 Mode 3Mode 4SOC > GenSOC ub
+OR
+genset protection 
+activatedSOC < GenSOC lbSOC < LoadSOC lb
+SOC > LoadSOC ubSOC < SOC min
+PmeasVbatt_ref
+VbattΔf2
+Δf3PI2Δf1
+Δf+frefPmeas PI1
+PI35052Max
+saturationhysteresisSOCLPF
+LPFPrated
+Pfloatfnom
++–
+ΔΩ PI
+θmeass2π  θref
++ P mp
+V*+Q mqω*Vsin(ωt)
+Vωvref+–
+Pref
++–
+Qref++++–frefδfPI4
+fmeasPrimary
+ControlInstantaneous
+Voltage Control PWM to 
+Inverter Secondary 
+Control+––
++–
+––
+vrefConstant Power Mode
+Constant 
+Voltage Mode 
+Floating Mode 
+Vbatt_ref
+VbattPIΔf+fref
+5052
+saturation fnominal++–Constant 
+Volatge Mode 
++–PR +– kpiL(s)*
+vmeas imeasLPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterBattery 
+Model– +
+Psma_ca l c
+-Psma_ca l c
+saturationPref
++–Vbatt_ref
+(62.5V)
+VbattPcharge _ref2
+200WPcharge _ref3Pcharge _refPImin (Ppv-Pload, battery 
+rated charging power )Pcharge _ref1 Constant 
+Current 
+Mode
+Constant 
+Voltage 
+Mode
+Floating 
+ModeTo battery 
+inverters
+SOCVbatt_ref
+Vbatt
+Pref3PI4Min
+hysteresisSOCPrated
+Pfloat+–Constant Power Mode
+Constant 
+Voltage Mode 
+Floating Mode Inverter 
+Primary
+ControlPrefPref1
+Pref2Min
+90%Pgen_rated +Ppv−Pload
++–
+ΔΩ PI
+θmeass2π  θref
++ Pmeas mp
+V*+Qmeas mqω*Vsin(ωt)
+Vωvref+–
+0
++–
+0+++Pfloat = 200WPIΔf+fref
+5052
+saturation fnominal+––Floating Mode 
+LPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterPmeas
+LPF
++–
+ΔΩ PI
+θmeass2π  θref
++ Pmeas mp
+V*+Qmeas mqω*Vsin(ωt)
+Vωvref+–
+0
++–
+0+++Prated = 18kWPIΔf+fref
+5052
+saturation fnominal+––Constant 
+Current Mode 
+LPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterPmeas
+LPFImeas _batt_inv 
+Vmeas _batt_inv
++–
+ΔΩ PI
+θinverter _measθgrid_meas
++ Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
+0
++–
+0+++
+LPF
+LPF+
+ΔV
++–PIPLLPLLVgrid_meas
+Vmeas _batt_inv
+Vgrid_meas+ Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
++–
+0++
+LPF
+LPFPrefmin (Ppv-Pload, battery 
+rated charging power )Constant 
+Current 
+Mode
++Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
++–
+0++
+LPF
+LPFPref200WFloating 
+Mode
++ Pmeas mp
+V*
++ Qmeas mqω*
+Vsin(ωt)
+Vωvref+–
++–
+0++
+LPF
+LPFPref+–Vbatt_ref PIConstant 
+Voltage ModeLoadGrid
+LoadGrid
+LoadGrid
+LoadGrid
+LoadGrid
+LoadGridPPV_measPPV_ref
++– PI
+saturation01
+LPFfmeas
+5152100%
+Prated
+PMPPMin
+look-up table
+Instantaneous
+Voltage ControlPWMSMA
+Sunny 
+Tripower 
+InverterPLLImeas _pv , Vmeas _pvVmeas _pv
+PPV_measPPV_ref
++– PI
+saturation01
+LPFfmeas
+5152100%
+Prated
+PMPPMin
+look-up table
+PWMSMA
+Sunny 
+Tripower 
+InverterPLLImeas _pv , Vmeas _pvVmeas _pv
+Imeas _batt_inv 
+Vmeas _batt_invInstantaneous
+Voltage Control
+PWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlImeas _batt_inv 
+Vmeas _batt_inv
+Vmeas _batt_inv
+PWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlBattery 
+ModelVbatt = 
+f(SOC , PB)– +Vbatt+–
+ΔΩ PI
+θmeass2π  θref
++ Pmeas mp
+V*+Qmeas mqω*Vsin(ωt)
+Vωvref+–
+0
++–
+0+++PIΔf+fref
+5052
+saturation fnominal++–Constant Voltage Mode 
+LPF
+LPFPWMSMA
+Sunny 
+Island 
+InverterLoadGridPPV_measPPV_ref
++– PI
+saturation01
+LPFfmeas
+5152100%
+Prated
+PMPPMin
+look-up table
+PWMSMA
+Sunny 
+Tripower 
+InverterPLLImeas _pv , Vmeas _pvVmeas _pv
+Imeas _batt_inv 
+Vmeas _batt_inv Instantaneous
+Voltage ControlBattery 
+ModelVbatt = 
+f(SOC , PB)– +Vbatt_ref
+Vbatt
+PV InverterShut 
+Down
+PWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlImeas _batt_inv 
+Vmeas _batt_invImeas _batt_inv 
+Vmeas _batt_invPWMSMA
+Sunny 
+Island 
+InverterInstantaneous
+Voltage ControlImeas _batt_inv 
+Vmeas _batt_inv
+VDC_measPPV_ref
++–PILPF
+PWMSMA
+Sunny 
+Tripower 
+InverterInner -Loop 
+Current  Control2/VDCvrefVDC_ref
+id_refDC
+AC
+Voltage Control
+Droop Control
+Secondary Control Microgrid Controller vB+
+-
+vB
+SOC
+PBfrefPB
+PGENPrefPPV
+PLOADDC
+DCDC
+AC
+DC
+ACCritical
+Load
+Non-Critical
+Load16kW Diesel Generator
+18kW/43.2kWh Lead -Acid BESS25kW PV System
+vDC+
+-vPV+
+-iPV
+vB+
+-PPV PDG
+400V/50Hz 
+AC NetworkPB PLOADiB
+f(Irr, T)Irr
+TMPPT
+Freq -Watt 
+CurtailmentFig. 5: Three-stage charging with diesel generator
+Mode 1
+Mode 2 Mode 3Mode 4SOC > GenSOC ub
+OR
+genset protection 
+activatedSOC < GenSOC lbSOC < LoadSOC lb
+SOC > LoadSOC ubSOC < SOC min
+Psma_calc
+-Psma_calc
+saturationPref
+PPV_measPPV_ref
++–PIfmeas
+5152100%
+Prated
+PMPPMin
+look-up tablePLLImeas_pv , Vmeas_pvVmeas_pv
+Fig. 6: Microgrid control state machine
+smooth transition between different modes.
+C. Smooth Mode Transitions
+The state machine for the microgrid power ﬂow controller
+is depicted in Fig. 6 and all the operation modes correspond to
+Table I. Battery SOC is the main trigger for state transitions.
+To ensure smooth state transition, SOC settings with hysteresis
+are applied to transitions between Mode 1 and Mode 2. In
+order to bring the generator online, the battery SOC must
+be lower than the lower bound GenSOC lb. However, when
+the battery SOC is above this threshold, the generator would
+not be disconnected until the SOC exceeds the upper bound
+GenSOC ub. The similar hysteresis settings LoadSOC lband
+LoadSOC ubare applied to transitions between Mode 2 and
+Mode 3. Note that in moving from Mode 1 to Mode 2, there
+are a series of actions in terms of the battery inverter synchro-
+nizing with the generator. The resynchronization strategy in
+[9] is employed in this paper.
+Besides triggered by SOC, Mode 1 can be transitioned to
+from Mode 2 or Mode 3 whenever the generator is tripped
+by the overcurrent/undercurrent protection. The overcurrent
+protection guarantees the generator output current will not
+exceed its maximum output current while the undercurrent
+protection avoids the output current in the reverse direction.
+Mode 4, in which the whole microgrid is shut down, can only
+be entered from Mode 3 when battery SOC is below SOC min.
+IV. R EAL-TIMESIMULATION RESULTS
+The proposed method has been evaluated using an OPAL-
+RT real-time simulator with the schematic as shown in Fig. 1.
+Two case studies are performed to evaluate the performanceof the proposed microgrid power ﬂow control under different
+operating conditions. In the ﬁrst case study, the three-stage
+charging mechanism is studied with PV and load variations.
+The second case study evaluates the performance that includes
+the transition among multiple operating modes.
+A. Smooth Charging Control with Irradiance and Load Vari-
+ations
+Fig. 7(a) shows the output power of the PV system and the
+BESS as well as load consumption. Initially, the output power
+of the PV system under MPPT mode is equal to 15kW and
+load consumption is equal to 2kW. As the grid-forming device,
+the battery unit is charged by 13kW. At t = 0.28h (1000s),
+the irradiance is increased from 600W/m2to 1000W/m2. The
+battery charging power is temporarily increased to 22.8kW,
+followed by a decrease to 18kW due to the effect of the
+proposed control. As is shown in Fig. 7(b), the frequency
+of the islanded microgrid settles at 51.3Hz. After t = 0.69h
+(2500s), there are a sequence of load switching actions. For
+a load decrease, the BESS increases the frequency to curtail
+PV generation. For a load increase, the BESS ﬁrst decreases
+the frequency to release PV generation. Once PV generation is
+fully released, the battery inverter starts to decrease its charg-
+ing power to compensate for the increase of load consumption.
+At t = 1.03h (3700s) when load consumption keeps increasing,
+the battery inverter decreases the frequency back to 50Hz
+and changes from being charged to being discharged. The
+subsequent load decrease causes the BESS to start charging.
+After the charging power hits the battery inverter rated power,
+the frequency is increased again to curtail PV generation.
+Fig. 7(a) shows that at t = 1.69h (6100s), the charging
+control switches from constant power charging to constant
+voltage charging. During the constant voltage charging, the
+charging power decreases exponentially. Note that small load
+variations have no impact on battery charging power during
+constant voltage charging as long as there are still available
+reserves from the PV system. However, a large load step
+during constant voltage charging can possibly change the
+BESS from being charged to being discharged. At t = 2.69h
+(9700s), the battery goes into ﬂoat mode where there is only a
+minimal charging power ﬂowing into the battery unit. Fig. 7(c)
+illustrates battery terminal voltage during the process. Al-
+though there are transients initiated by load switching actions,
+no signiﬁcant overvoltage is observed.
+B. Transition of Multiple Operation Modes
+Fig. 8 shows component power levels for different mode
+transitions of the islanded microgrid. In the beginning of the
+simulation, since PV generation is high, the constant power
+charging is triggered with the charging power limit imposed.
+At t = 0.09h (310s), as the load increases, PV generation is
+released and the BESS changes from being charged to being
+discharged, similar to the ﬁrst case. To force the microgrid
+to transition from Mode 1 into Mode 2, the load is kept
+at maximum level to keep the discharging of the BESS. At
+t = 0.96h (3400s) when battery SOC hits the lower bound
+
+--- Page 5 ---
+1 2 3
+Time (hr)-3-2-10123Power (W)104
+PV
+BATT
+LOAD
+1 2 3
+Time (hr)49.55050.55151.55252.5Frequency (Hz)
+1 2 3
+Time (hr)50556065Voltage (V)Constant Power Constant Voltage Float
+0.5 1 1.5 2Time (hr)-3-2-10123Power (kW)104
+PV
+BATTLOAD
+GEN
+0.5 1 1.5 2
+Time (hr)49.55050.55151.55252.5 Frequency (Hz)
+25303545
+Freq
+SOC
+SOC (%)40(a)
+1 2 3
+Time (hr)-3-2-10123Power (W)104
+PV
+BATT
+LOAD
+1 2 3
+Time (hr)49.55050.55151.55252.5Frequency (Hz)
+1 2 3
+Time (hr)50556065Voltage (V)Constant Power Constant Voltage Float
+0.5 1 1.5 2Time (hr)-3-2-10123Power (kW)104
+PV
+BATTLOAD
+GEN
+0.5 1 1.5 2
+Time (hr)49.55050.55151.55252.5 Frequency (Hz)
+25303545
+Freq
+SOC
+SOC (%)40
+(b)
+1 2 3
+Time (hr)-3-2-10123Power (W)104
+PV
+BATT
+LOAD
+1 2 3
+Time (hr)49.55050.55151.55252.5Frequency (Hz)
+1 2 3
+Time (hr)50556065Voltage (V)Constant Power Constant Voltage Float
+0.5 1 1.5 2Time (hr)-3-2-10123Power (kW)104
+PV
+BATTLOAD
+GEN
+0.5 1 1.5 2
+Time (hr)49.55050.55151.55252.5 Frequency (Hz)
+25303545
+Freq
+SOC
+SOC (%)40
+(c)
+Fig. 7: Islanded microgrid operation data (a) output power of each unit (b)
+system frequency (c) battery terminal voltage
+GenSOC lb, the generator is started up and resynchronized
+to the microgrid. As described in Section III, the battery is
+charged at a power level such that the generator runs at 90%
+loading level in Mode 2. At t = 1.69h (6100s), the generator
+is tripped and shuts down when battery SOC hits the upper
+bound GenSOC ub. The microgrid operation mode then goes
+back to Mode 1.
+V. C ONCLUSION
+The microgrid power ﬂow control presented in this paper
+not only considers battery power and SOC limits, but also
+integrates a three-stage charging mechanism, which is more
+realistic in real-world applications. The three-stage charging
+mechanism limits battery charging power based on maximum
+charging power and battery terminal voltage, and allows the
+battery to be discharged to compensate for load increase with
+variable PV generation. Two case studies are presented to
+demonstrate the performance of the proposed control. The
+1 2 3
+Time (hr)-3-2-10123Power (W)104
+PV
+BATT
+LOAD
+1 2 3
+Time (hr)49.55050.55151.55252.5Frequency (Hz)
+1 2 3
+Time (hr)50556065Voltage (V)Constant Power Constant Voltage Float
+0.5 1 1.5 2Time (hr)-3-2-10123Power (kW)104
+PV
+BATTLOAD
+GEN
+0.5 1 1.5 2
+Time (hr)49.55050.55151.55252.5 Frequency (Hz)
+25303545
+Freq
+SOC
+SOC (%)40Fig. 8: Mode transition in the islanded microgrid
+1 2 3
+Time (hr)-3-2-10123Power (W)104
+PV
+BATT
+LOAD
+1 2 3
+Time (hr)49.55050.55151.55252.5Frequency (Hz)
+1 2 3
+Time (hr)50556065Voltage (V)Constant Power Constant Voltage Float
+0.5 1 1.5 2Time (hr)-3-2-10123Power (kW)104
+PV
+BATTLOAD
+GEN
+0.5 1 1.5 2
+Time (hr)49.55050.55151.55252.5 Frequency (Hz)
+25303545
+Freq
+SOC
+SOC (%)40
+Fig. 9: Frequency of the islanded microgrid and battery SOC
+results show that the proposed control is effective in managing
+battery operating constraints while maintaining the stability of
+islanded microgrid under different operating conditions.
+REFERENCES
+[1] J. Sachs and O. Sawodny, “A two-stage model predictive control strategy
+for economic diesel-pv-battery island microgrid operation in rural areas,”
+IEEE Transactions on Sustainable Energy , vol. 7, no. 3, pp. 903–913,
+2016.
+[2] B. Belvedere, M. Bianchi, A. Borghetti, C. A. Nucci, M. Paolone, and
+A. Peretto, “A microcontroller-based power management system for
+standalone microgrids with hybrid power supply,” IEEE Transactions
+on Sustainable Energy , vol. 3, no. 3, pp. 422–431, 2012.
+[3] S. Adhikari and F. Li, “Coordinated vf and pq control of solar photo-
+voltaic generators with mppt and battery storage in microgrids,” IEEE
+Transactions on Smart Grid , vol. 5, no. 3, pp. 1270–1281, 2014.
+[4] C. Sun, G. Joos, and F. Bouffard, “Adaptive coordination for power and
+soc limiting control of energy storage in islanded ac microgrid with
+impact load,” IEEE Transactions on Power Delivery , 2019.
+[5] R. Al Badwawi, W. R. Issa, T. K. Mallick, and M. Abusara, “Supervisory
+control for power management of an islanded ac microgrid using a
+frequency signalling-based fuzzy logic controller,” IEEE Transactions
+on Sustainable Energy , vol. 10, no. 1, pp. 94–104, 2018.
+[6] Y . Karimi, H. Oraee, M. S. Golsorkhi, and J. M. Guerrero, “Decentral-
+ized method for load sharing and power management in a pv/battery
+hybrid source islanded microgrid,” IEEE Transactions on Power Elec-
+tronics , vol. 32, no. 5, pp. 3525–3535, 2016.
+[7] H. Mahmood and J. Jiang, “Autonomous coordination of multiple
+pv/battery hybrid units in islanded microgrids,” IEEE Transactions on
+Smart Grid , vol. 9, no. 6, pp. 6359–6368, 2017.
+[8] H. Mahmood and J. Jiang, “Decentralized power management of mul-
+tiple pv, battery, and droop units in an islanded microgrid,” IEEE
+Transactions on Smart Grid , vol. 10, no. 2, pp. 1898–1906, 2017.
+[9] J. M. Guerrero, J. C. Vasquez, J. Matas, L. G. De Vicu ˜na, and
+M. Castilla, “Hierarchical control of droop-controlled ac and dc micro-
+grids - a general approach toward standardization,” IEEE Transactions
+on Industrial Electronics , vol. 58, no. 1, pp. 158–172, 2010.
+[10] J. Rocabert, A. Luna, F. Blaabjerg, and P. Rodriguez, “Control of power
+converters in ac microgrids,” IEEE Transactions on Power Electronics ,
+vol. 27, no. 11, pp. 4734–4749, 2012.

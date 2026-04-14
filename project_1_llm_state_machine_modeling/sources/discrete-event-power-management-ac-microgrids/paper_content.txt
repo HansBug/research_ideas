@@ -1,0 +1,1429 @@
+--- Page 1 ---
+Academic Editor: José Matas
+Received: 29 April 2025
+Revised: 20 June 2025
+Accepted: 24 June 2025
+Published: 24 July 2025
+Citation: Erazo Huera, P .C.; de Paula,
+T.B.; do Amaral, J.M.T.; Tuxi, T.M.;
+Viana, G.S.; van Emmerik, E.L.; Dias,
+R.F.S. A Discrete-Event Based Power
+Management System Framework for
+AC Microgrids. Energies 2025 ,18, 3964.
+https://doi.org/10.3390/
+en18153964
+Copyright: © 2025 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license
+(https://creativecommons.org/
+licenses/by/4.0/).
+Article
+A Discrete-Event Based Power Management System Framework
+for AC Microgrids
+Paolo C. Erazo Huera1
+, Thamiris B. de Paula2, João M. T. do Amaral1
+, Thiago M. T uxi3,*
+,
+Gustavo S. Viana1,2,*
+, Emanuel L. van Emmerik1
+and Robson F. S. Dias1,2,*
+1Electrical Engineering Program, COPPE/UFRJ, Federal University of Rio de Janeiro,
+Rio de Janeiro 21941-617, RJ, Brazil; paoloerazo@lafae.ufrj.br (P .C.E.H.); amaral@lafae.ufrj.br (J.M.T.d.A.);
+emanuel.emmerik@lafae.ufrj.br (E.L.v.E.)
+2Electrical Engineering Program, Poli/UFRJ, Federal University of Rio de Janeiro,
+Rio de Janeiro 21941-617, RJ, Brazil; thamiris@lafae.ufrj.br
+3Control and Automation Engineering Program, CEFET/RJ, Federal Center of Technological Education,
+Rio de Janeiro 20271-004, RJ, Brazil
+*Correspondence: thiago.tuxi@cefet-rj.br (T.M.T.); gustavo.viana@poli.ufrj.br (G.S.V .);
+dias@lafae.ufrj.br (R.F.S.D.)
+Abstract
+This paper presents a practical framework for the design and real-time implementation of a
+Power Management System (PMS) for microgrids based on Supervisory Control Theory
+(SCT) for discrete-event systems. A detailed step-by-step methodology is provided, which
+covers the entire process from defining discrete events, modeling microgrid components,
+synthesizing supervisory controllers, and realizing them in MATLAB (R2024b) Stateflow.
+This methodology is applied to a case study, where a decentralized supervisor controller is
+designed for a microgrid containing a Battery Energy Storage System (BESS), a generator set
+(Genset), a wind and a solar generation system, critical loads, and noncritical loads. Unlike
+previous works based on SCT, the proposed PMS addresses the following functionalities:
+(i)grid-connected and islanded operation; (ii)peak shaving; (iii)voltage support; (iv)load
+shedding. Finally, a CHIL testing is employed to validate the synthesized SCT-based PMS.
+Keywords: microgrid; supervisory control; power management
+1. Introduction
+As energy consumption continues to grow and the energy matrix undergoes transfor-
+mations, there is an increasing need for ways to integrate and control renewable energy
+sources [ 1]. Microgrids, which consist of interconnected distributed energy resources
+(DERs) such as photovoltaic (PV) systems, wind turbines, and Battery Energy Storage
+Systems (BESS), have emerged as a key solution for ensuring energy resilience, particularly
+in isolated or critical infrastructures [ 2,3]. However, the variable nature and complex
+interactions among DERs result in significant challenges for microgrid control, particularly
+in maintaining voltage and frequency stability and optimizing energy use [4].
+Control functions in microgrids are typically divided into two complementary lay-
+ers: energy management [ 5–8] and power management [ 9–11]. The Energy Management
+System (EMS) operates at a higher level and focuses on long-term planning tasks, such
+as minimizing operational costs or energy losses through optimization techniques, in-
+cluding Mixed Integer Linear Programming [ 12], Model Predictive Control [ 13,14], or
+heuristic-based economic algorithms [ 15]. In contrast, the Power Management System
+Energies 2025 ,18, 3964 https://doi.org/10.3390/en18153964
+
+--- Page 2 ---
+Energies 2025 ,18, 3964 2 of 31
+(PMS) operates on shorter timescales and is primarily concerned with maintaining system
+stability, ensuring adequate voltage and frequency levels and allowing for safe transitions
+between operational states [9–11].
+PMS are categorized in two main paradigms: Continuous Power Management Systems
+(CPMS) [ 16,17] and Discrete-Event Power Management Systems (DPMS) [ 18–23]. CPMS
+are primarily designed to regulate the dynamic behavior of voltage and frequency under
+standard operating conditions. However, in the presence of discrete events that alter the
+operating mode of the system, such as critical state of charge (SOC) thresholds or abrupt
+disconnections, CPMS may be inadequate since they are not inherently structured to handle
+state transitions [ 9,10]. To overcome this limitation, DPMS are applied to define decision-
+making sequences activated by event-driven conditions, ensuring that technical constraints
+and system logic are systematically enforced during microgrid operation [24].
+In order to model a DPMS, various approaches have been proposed in the litera-
+ture [ 18,19,22,23,25,26]. In [ 18], rule sets (“ i f. . .then . . .” commands) are used to operate
+distributed energy resources such as storage and generation units, as well as loads in
+islanded microgrids. In [ 19,25], discrete-event approaches based on Finite State Machines
+(FSM) are presented to coordinate a PMS in a hybrid-source islanded microgrid and to
+implement a centralized control for a DC microgrid, respectively. In [ 26], a flowchart is
+proposed to manage the SOC of a BESS. In [ 22,23], Petri nets are used to model a PMS
+for DC microgrids. In both works, the entire microgrid, including all components and
+transitions, is modeled using a single Petri net structure, which may limit modularity and
+scalability. Although the aforementioned approaches are straightforward to implement
+and intuitive for small-scale systems, they suffer from critical limitations. Specifically,
+rule sets, Petri net-based DPMS, and FSM-based DPMS do not guarantee nonblocking
+behavior, are prone to deadlocks, and become increasingly difficult to scale as the microgrid
+architecture grows in complexity. They typically lack formal mathematical rigor in how
+control objectives are defined and enforced. Although there are tools available to check the
+logical consistency [ 27], they do not support systematic synthesis. Consequently, heuristic
+designs often face scalability limitations and offer no guarantees of handling the full range
+of discrete-event scenarios that may arise in practical applications. Furthermore, most
+DPMS implementations rely on empirical testing to validate correctness, which limits their
+reliability when transitioning to real-world operational environments [21].
+Supervisory Control Theory (SCT), originally developed by Ramadge and Wonham
+in the 1980s [ 28], offers a formal framework for the synthesis of discrete-event controllers
+that are correct-by-construction [ 29,30]. SCT guarantees properties such as nonblocking
+behavior, safety, and strict adherence to system specifications, providing significant ad-
+vantages over heuristic or rule-based approaches. In [ 31], SCT is applied to a custom
+power park (CPP) to manage power quality devices. Although the work employs formal
+synthesis and MATLAB Stateflow simulation, it focuses only on static fault-based switching
+and does not address broader operational specifications such as SOC management, peak
+shaving, or multi-mode operation. In addition, no real-time validation or practical guide is
+performed. In [ 32], SCT is used for HVDC transmission systems, which focus on the start-
+up procedure of point-to-point links using modular multilevel converters. However, the
+scope is limited to a predefined start-up sequence and does not cover broader operational
+scenarios common in microgrids. Validation in real-time environments is not proposed
+in [32]. In [ 33,34], the authors apply SCT to manage battery-enhanced DC Fast-Charging
+(DCFC) stations, focusing on power dispatch, SOC protection, and seamless transition to
+autonomous operation. Although these works present real-time validated solutions, their
+scope is restricted to the specific architecture of DCFC stations without addressing broader
+microgrid functionalities. In addition, a practical guide is not provided.
+
+--- Page 3 ---
+Energies 2025 ,18, 3964 3 of 31
+Despite some existing applications of SCT in power systems, its adoption in microgrid
+power management remains limited. The work of Ghasaei et al. (2021) [ 21] introduced a
+discrete event supervisory control system for islanded microgrids, demonstrating the ap-
+plication of SCT to ensure logically optimized nonblocking supervisory control. Although
+this approach represents an important step in applying SCT to PMS, it is limited to island
+mode operation and does not address critical functionalities such as voltage support, peak
+shaving, and transitions between grid-connected and islanded modes. In addition, the
+microgrid presented in [ 21] does not include wind power generation. Finally, no clear
+step-by-step methodology is provided for the implementation of SCT-based PMS.
+This paper proposes an improved Power Management System (PMS) for microgrids
+based on Supervisory Control Theory (SCT) for discrete-event systems. Firstly, a step-by-
+step methodology is provided, covering the entire process from defining discrete events,
+modeling microgrid components, synthesizing decentralized supervisory controllers, and
+realizing the proposed PMS in MATLAB Stateflow. Secondly, this framework is applied
+to the following case study: a microgrid containing a BESS, a Genset, a wind and solar
+system, critical loads, and noncritical loads. The proposed PMS provides SOC management,
+grid-connected and islanded operation, peak shaving, voltage support, and load shedding.
+Finally, CHIL testing is used to validate the proposed methodology.
+The novelty of this paper is summarized as follows:
+• Step-by-step implementation guide: a detailed step-by-step methodology is provided,
+which defines discrete events, microgrid component models, supervisory controller
+synthesis, and its realization in MATLAB Stateflow. This practical guide ensures that
+researchers and practitioners can replicate and adapt the proposed methodology to
+their specific microgrid configurations.
+• Development of an improved PMS based on SCT with the following new functionali-
+ties: (i) grid-connected and islanded operation; (ii) peak shaving; (iii) voltage support;
+(iv) load shedding function.
+• Integration of two types of renewable energy resources: a PV and a Wind power Plant
+operating simultaneously, controlled by an SCT-based PMS.
+Table 1 presents a comparison of different DPMS methodologies reported in the litera-
+ture, including the approach proposed in this work. To the best of the author’s knowledge,
+this is the first work that proposes the application of SCT to microgrids with multi-mode
+operation, providing scalable solutions and performing experimental validation while
+providing a step-by-step implementation guide.
+Table 1. Comparison of DPMS design approaches in previous works.
+Study Methodology Multi-Mode Operation Scalability Experimental Validation Implementation Guide
+[18,26] Heuristic/Rule-Based Partial Low No No
+[19,22,23,25] Petri Nets/Automata Limited Medium No Partial
+[31] SCT (CPP) No High No Partial
+[32] SCT (HVDC) Not applicable High No Limited
+[33,34] SCT (DCFC station) Not applicable High Yes No
+[21] SCT (microgrids) No High Yes No
+This Work SCT (microgrids) Yes High Yes Yes (step-by-step)
+The remainder of this paper is structured as follows. Section 2 introduces the fun-
+damentals of DES and Supervisory Control Theory (SCT). Section 3 details the PMS
+framework and its application to AC microgrids, including modeling of DERs and con-
+trol specifications. Section 4 details the CHIL experimental setup and presents the val-
+idation results that demonstrate the effectiveness of the proposed PMS in real-time op-
+
+--- Page 4 ---
+Energies 2025 ,18, 3964 4 of 31
+eration. Section 5 concludes the paper with a discussion of practical implications and
+future directions.
+2. Supervisory Control Theory for Discrete Event Systems
+In this paper, the methodology utilized in the proposed Power Management System
+is based on Supervisory Control Theory [ 30]. In the SCT framework, each component of
+the plant is modeled by automata, thereby avoiding the need to explicitly model the total
+behavior of the plant. The required system behavior is also modeled by automata, called
+specifications, which express the desired and/or forbidden sequences of events of the plant.
+With the system component models and the system specifications, SCT can synthesize a
+supervisor that will guarantee that plant behavior will not violate the required system
+behavior. In the context of microgrids, plant components can be PV systems, WTG systems,
+BESS, and other components. The required system behavior may be related to BESS SOC,
+voltage and frequency regulation, power exportation to the main grid, etc.
+2.1. Background of Discrete-Event Systems
+A Discrete-Event System is an event-driven system characterized by discrete states,
+where transitions between states occur in response to discrete asynchronous events over
+time [ 29]. In DES, events are associated with symbols in an alphabet Σ.Σ∗denotes the
+set of all finite-length sequences of events formed by the juxtaposition and concatenation
+of symbols in Σ, plus the empty trace ε. Given traces s,t∈Σ∗,sis said to be a prefix of t,
+denoted s≥t, if there exists a trace u∈Σ∗such that su=t. The dynamics of DES can be
+described through languages. A language over the alphabet Σis defined as any subset of
+Σ∗. The prefix closure of a language L⊆Σ∗is represented by L={s∈Σ∗:(∃t∈L)s≤t}.
+A language Lis considered prefix-closed if it satisfies L=L.
+A compact way to describe languages is by using automata. An automaton is a six-
+tuple G= (X,Σ,δ,Γ,x0,Xm), where Σis the alphabet, Xis the set of states, δ:X×Σ→X
+is the transition function, Γ(x) ={σ∈Σ:δ(x,σ)!}is the set of all events defined
+in state x,x0∈Xis the initial state and Xm⊆Xis the set of marked states. δ(x,σ)!
+is used if a transition is defined for a state xand an event σ∈Σ. The transition
+function can be extended to the sequence of events in Σ∗[29]. A pair of languages
+are associated with an automaton, the generated language L(G) ={s∈Σ∗:δ(x0,s)!}
+and the marked language Lm(G) ={s∈Σ∗:δ(x,s)∈Xm}. The automaton is said to
+be nonblocking when L(G) =Lm(G). The accessible part of automaton Gis given by
+Ac(G) = ( Xac,Σ,δac,x0,Xac,m), where Xac={x∈X:(∃s∈Σ∗)[δ(x0,s) = x]},
+Xac,m=Xm∩Xacandδac:Xac×Σ→Xac. In words, the accessible part operation
+removes all the states and transitions of the automaton G, which are not reachable from the
+initial state x0.
+Let G1= ( X1,Σ1,δ1,Γ1,x01,Xm1)and G2= ( X2,Σ2,δ2,Γ2,x02,Xm2)be two au-
+tomata, the parallel composition between G1and G2, as defined in [ 29], will be denoted
+asG1∥G2=Ac(X1×X2,Σ1∪Σ2,δ1∥2,(x01,x02),Xm1×Xm2), where δ1∥2((x1,x2),σ) =
+(δ1(x1,σ),δ2(x2,σ)), ifσ∈Γ1(x1)∩Γ2(x2),δ1∥2((x1,x2),σ) = ( δ1(x1,σ),x2), ifσ∈
+Γ1(x1)\Σ2,δ1∥2((x1,x2),σ) = ( x1,δ2(x2,σ)), ifσ∈Γ2(x2)\Σ1, and undefined other-
+wise. In other words, parallel composition synchronizes shared events between automata
+while allowing private events to proceed asynchronously, forming a combined system.
+2.2. Supervisory Control Theory of DES
+In classical control theory, a variety of control techniques can be used to synthesize
+controllers to regulate physical systems. Analogously, for DES, there exist control tech-
+niques that facilitate the synthesis of controllers to govern the behavior of DES. One of
+
+--- Page 5 ---
+Energies 2025 ,18, 3964 5 of 31
+these techniques is SCT, which allows the synthesis of a control that possesses two principal
+attributes: (i) nonblocking, which means that the system will always be able to perform
+desired tasks; (ii) minimally restrictive plant behavior, which allows the system to meet
+desired control specifications with minimal impact on its inherent operation [30].
+SCT considers a feedback control system that, through the action of a supervisor
+S:L(G)→2Σ, observes the sequence of events sgenerated by the plant Gand enables or
+disables events of Gto have a closed-loop behavior that satisfies the control specifications,
+as shown in Figure 1.
+Figure 1. Supervisory control scheme.
+The generated language of plant G,L(G), represents the uncontrolled behavior of a
+DES. In addition, the plant is considered autonomous, generating its events spontaneously
+fromΣ.Σcan be partitioned into two disjoint subsets: (i) set of controllable events, Σc,
+events that can be disabled or avoided to occur, for example, a command to turn on a motor
+or to reduce the power generated by a photovoltaic unit; (ii) set of uncontrollable events, Σuc,
+events that cannot be disabled, e.g., alarms generated by the plant, sensor feedback signals
+such as SOC level, voltage levels, etc. Generally, instead of directly modeling the behavior
+of the whole plant, which can be complex, each component of the plant G1,G2,· · ·,Gnis
+modeled and composed to generate the model of the plant G=G1∥G2∥ · · · ∥ Gn.
+A language K⊆ L(G)is controllable when KΣuc∩ L(G)⊆K. IfKis not control-
+lable, then the maximum controllable language supC(K)⊂Kis used [ 30]. Generally,
+K=G∥Eis called the target language and models the behavior of the plant that satisfies
+the specifications E=E1∥ · · · ∥ Ensuch that E1,· · ·,Enrepresent the desired behavior of
+the plant.
+Formally, given a plant G, a target language Kand a supervisor S, the language of the
+closed-loop system is L(S/G) =supC(K). In essence, the supervisor only restricts some
+behavior of the plant, without creating new ones. The marked language of the closed-loop
+system is given by Lm(S/G) = M∩ L m(G), where M⊆ L m(G)denotes the marking
+indicated by the supervisor. A supervisor is nonblocking when Lm(S/G) =L(S/G).
+A supervisor Scan be realized by an automaton ZifL(Z∥G) =L(S/G)and
+Lm(Z∥G) =Lm(S/G). In a nutshell, automata Z(From now on, we call Zthe automaton
+representation of a supervisor S.) can be used as a supervisor if the closed-loop behavior
+S/Gcan be described by the synchronous composition Z∥G.
+Typically, rather than directly implementing the automata realization of the supervisor
+S, its reduced form ZRis used. In this context, ZRrepresents the reduced automaton
+realization of supervisor S, formally Z=G∥ZRholds true [35].
+2.3. Decentralized Supervisory Control
+In supervisory control theory, the choice of control architecture is fundamental to the
+system’s performance, scalability, and reliability [ 29]. In Section 2.2, SCT is defined for
+
+--- Page 6 ---
+Energies 2025 ,18, 3964 6 of 31
+centralized control as shown in Figure 1. However, this architecture is often impractical for
+larger or more complex systems due to significant drawbacks, such as scalability issues. As
+the system size increases, a centralized supervisor becomes computationally burdensome
+and difficult to manage.
+In contrast, a decentralized control architecture distributes supervisory tasks among
+multiple local supervisors, each of which is responsible for a subset of events and states
+within a specific subsystem. These local supervisors operate in parallel, independently
+monitoring their designated parts of the system and making localized control decisions. In
+order to avoid the drawback of computing target language K, nonblocking supervisors S1
+and S2can be synthesized such that Lm(S1/G) =K1andLm(S2/G) =K2, and thus build
+the decentralized control architecture where supervisor S1∧S2is obtained by computing
+the conjunction of S1and S2, i.e., for all s∈ L(G),S1∧S2(s) =S1(s)∩S2(s), as shown in
+Figure 2. As a consequence, Lm(S1∧S2/G) = K1∩K2. Moreover, supervisor S1∧S2is
+nonblocking if and only if languages K1and K2are nonconflicting, i.e., K1∩K2=K1∩K2.
+For simplicity, a decentralized supervisory control with two agents is shown in Figure 2,
+although as many supervisors as necessary can be used.
+GS1(s)
+S(s)ANDsS1
+S2(s)
+S2
+Figure 2. Decentralized supervisory control with two agents.
+The main advantage is that it significantly enhances scalability, as each local super-
+visor manages only a smaller, manageable part of the system, making it easier to expand
+control as the main system grows. In addition, this setup minimizes the volume of data
+exchange, allowing faster response times and greater efficiency, especially in geographically
+distributed systems. The realization of a reduced supervisor SR
+iwithin a decentralized
+framework is feasible, in which each associated decentralized reduced supervisor ZR
+ican
+be computed from supervisor Ziand the plant G[35].
+3. A Framework for PMS Design Based on Supervisory Control Theory
+In this section, a framework for the design of a Power Management System utilizing
+SCT is presented. The main reasons for using SCT are as follows: (i) correctness, whereby
+the synthesized PMS is validated by design, ensuring accuracy and eliminating the risk
+of errors during logic programming; (ii) flexibility, as the synthesis of the PMS allows for
+seamless modifications in existing functionalities or the integration of new functionalities
+with minimal effort, merely requiring a reiteration of the synthesis process; (iii) scalability, as
+this framework facilitates computation for microgrids with varying numbers of Distributed
+Energy Resources (DERs), thereby enabling the generation of a PMS that is inherently more
+scalable. In essence, the proposed methodology for PMS design using SCT consists of
+five steps:
+
+--- Page 7 ---
+Energies 2025 ,18, 3964 7 of 31
+(i) Define events for PMS modeling;
+(ii) Model microgrid components;
+(iii) Model microgrid requirements;
+(iv) Synthesis of PMS decentralized supervisors;
+(v) PMS supervisor realization in MATLAB Stateflow.
+In the following subsections, each step will be explained in more detail.
+3.1. Define Events for PMS Modeling
+The first step of the proposed methodology involves defining the necessary commands
+and feedback signals for the PMS, effectively establishing the plant alphabet Σ. Commands
+such as opening/closing breakers, turning on/off generators, and switching to Maximum
+Power Point Tracking (MPPT) or Curtailment modes are represented as controllable events
+Σc. Feedback signals, including SOC, voltage, frequency, and active/reactive power levels,
+are typically continuous variables that, for the purposes of SCT, must be discretized into
+categories such as Normal (N), Low (L), High (H), Low Low (LL) and High High (HH), and
+are thereby abstracted as uncontrollable events. An example of such conversion is shown
+in Figure 3. The commands generate transitions in the operating modes of the internal PMS
+controllers to generate setpoints for plant DERs.
+t{{
+Low (L)High (H)
+Normal 
+(N)
+Low Low 
+(LL) N H N LLL LNf(t)
+Figure 3. Signal to events conversion example.
+3.2. Model Microgrid Components
+The second step of the methodology is to model the nplant components (DERs) as
+automata Gi. Each operational mode is described as a state within the automaton that
+represents the DER. For example, the behavior of a BESS can be abstracted into operational
+modes corresponding to three distinct states: (i) Standby; (ii) Charging; (iii) Discharging as
+shown in Figure 4. Consider BESS starting in the Standby state. If an event Start Discharge
+occurs, the system reaches the Discharging state. If the BESS discharging is stopped (event
+Stop Discharge ), then the system goes back to Standby mode, and so on. Marked states
+represent desired states in the model; for the case of BESS, it is desired that the BESS can
+always return to standby mode. Finally, all the ncomponents Giare composed using the
+synchronous composition, creating the model behavior of the plant G=G1∥ · · · ∥ Gn.
+StandbyCharging DischargingStop Charge
+Start Charge Stop DischargeStart Discharge
+Figure 4. A possible DES model for BESS.
+
+--- Page 8 ---
+Energies 2025 ,18, 3964 8 of 31
+3.3. Model Microgrid Requirements
+The third step of the methodology involves translating a set of nrequirements into
+formal specifications represented as automata. These specifications E1,· · ·,Endefine the
+allowed behavior of the system. For example, the permissible behavior of the BESS includes
+the following: (i) charge mode can be reached only when the SOC is below threshold H;
+(ii) discharge mode can be reached only when the SOC exceeds threshold L. Figure 5 shows
+an automaton that models the specification related to the charging of BESS, considering the
+aforementioned events.
+12 3
+4SOC N,SOC L
+SOC N,SOC LStart Charge
+Stop Charge
+SOC HSOC H
+Figure 5. BESS specification example.
+3.4. Synthesis of PMS Decentralized Supervisors
+The fourth step of the methodology involves the computation of the target languages
+Ki=G∥Ei,i=1,. . .,n, along with the synthesis of the associated supervisors Si. As
+discussed in Section 2, the target language Kidelineates the desired closed-loop behavior
+of the system that a supervisor Simay impose on the system. For example, suppose that
+the following services are offered: (i)SOC coordination; (ii)voltage support; (iii)peak
+shaving. Thus, three decentralized supervisors should be synthesized: Z1,Z2, and Z3.
+Then, a nonconflicting test has to be performed [ 30] to guarantee that all decentralized
+supervisors work correctly together. If they are nonconflicting, they can be applied to
+coordinate the system. Otherwise, a combination of one or more services should be tried.
+The final step is to compute the reduced decentralized supervisors ZR
+i[35].
+3.5. PMS Supervisors Realization in MATLAB Stateflow
+The final step of the methodology involves the creation of reduced decentralized
+supervisors ZR
+i, which are computed in the last step as state machines in MATLAB Stateflow.
+To this end, we consider as a hypothesis that uncontrollable events Σuchave priority over
+controllable events Σc.
+Taking into account this hypothesis, the following procedure is presented to de-
+scribe the construction process of the decentralized supervisor ZR
+ias a MATLAB
+Stateflow machine.
+1. For each state x∈Xof the reduced decentralized supervisor ZR
+i, a corresponding
+state state_ xmust be defined in a Stateflow state machine;
+2. Define the initial state state_ x0in Stateflow state machine;
+3. For each event σ∈Σ, ifσ∈Σucdefine in MATLAB Stateflow an input variable uσ;
+otherwise, define evσcand xσcas input and output variables in MATLAB Stateflow,
+respectively.
+
+--- Page 9 ---
+Energies 2025 ,18, 3964 9 of 31
+4. For each state x1∈X, uncontrollable event σuc∈Σucand state x2=δ(x1,σuc), define
+the transition state_ x1uσuc==1− − − − − → state_ x2;
+5. For each state x1∈X, controllable event σc∈Σcand and state x2=δ(x1,σc), define
+the transition state_ x1evσc==1− − − − − → state_ x2;
+6. Lets∈ L(SR
+i/G),Gbe the plant model, xGa state of Gand XSthe set of states of ZR
+i.
+For each state xS=δ(x0,s)∈XSof the supervisor, the output of the state machine
+is defined as follows. Define xσc=1for all σc∈Γ(xG)∩S(s);xσc=0for all events
+σc∈Σ\S(xs)∩Γ(xG)disabled by supervisor ZR
+iin state x, otherwise xσc=xσc
+(keeping the last value of the variable xσc).
+Here, the output variables xσwith σ∈Σare defined. These variables represent
+commands that will be issued by the PMS. The input variables uσare associated with
+uncontrollable events. It is worth remarking that since MATLAB Stateflow machines have
+priorities in their transitions, as a hypothesis, uncontrollable events have priority over
+controllable ones. Therefore, transitions with uncontrollable events are defined in Step 4
+(resp., controllable events in Step 5).
+Figure 6 shows the implementation of supervisor ZR
+iin MATLAB Stateflow for plant
+Gof Figure 4 and BESS specification of Figure 5. In Table 2, we show the disable events
+of supervisor SR
+i, which are used in Step 6of the supervisor implementation procedure in
+MATLAB Stateflow.
+1 2
+43
+MEAS SOCSOC N,Start Charge ,SOC L
+SOC N,SOC LSOC H,MEAS SOC
+SOC HStop Charge
+(a) State transition diagram—TCT.
+State_04
+entry:
+xStop_Charge	=	
+1
+;
+xStop_Discharge		=	
+1
+;
+xMEAS_SOC		=	
+0
+;
+State_02
+entry:
+xStart_Discharge	=	
+0
+;
+xStart_Charge						=	
+1
+;
+xStop_Discharge		=	
+1
+;
+xStop_Charge						=	
+0
+;
+xMEAS_SOC							=	
+0
+;
+State_01
+entry:
+xStart_Discharge		=	
+0
+;
+xStart_Charge						=	
+0
+;
+xStop_Discharge		=	
+1
+;
+xStop_Charge						=	
+1
+;
+xMEAS_SOC							=	
+1
+;
+State_03
+entry:
+xStart_Charge	=	
+1
+;
+xStop_Discharge		=	
+1
+;
+xStop_Charge	=	
+0
+;
+xMEAS_SOC		=	
+1
+;
+[uSOC_H==
+1
+]
+2
+[evMEAS_SOC==
+1
+]
+3
+[uSOC_H==
+1
+]
+2
+[evMEAS_SOC==
+1
+]
+[evStart_Charge]
+3
+[uSOC_N==
+1
+|uSOC_L==
+1
+]
+1
+[evStop_Charge==
+1
+]
+[uSOC_N==
+1
+|uSOC_L==
+1
+] 
+1
+(b) State transition diagram—Stateflow/Simulink.
+Figure 6. Converting synthesized reduced supervisor ZR
+ito Simulink Stateflow state machine.
+
+--- Page 10 ---
+Energies 2025 ,18, 3964 10 of 31
+Table 2. Table of events that are disabled by Supervisor in each state.
+State: Disable Events
+1: Start Discharge ,Start Charge
+2: Start Discharge ,Stop Charge ,MEAS SOC
+3: Stop Charge
+4: MEAS SOC
+4. Framework Application Case Study
+In this section, the framework proposed in Section 3 is applied to design a PMS in
+a case study to validate its simplicity and effectiveness. First, the power plant topology
+of the case study is described, which is managed by the designed PMS. After that, each
+DER is discussed with respect to its modeling and functionalities. Then the requirements
+of the system are discussed and modeled as specifications. Finally, the PMS supervisors
+are synthesized.
+4.1. Case Study Description
+Figure 7 shows an AC microgrid used as the case study. In this work, the power
+sources are composed of a BESS, a Genset, and a wind and solar system, all connected at the
+Point Of Interconnection (POI). There is one critical load that cannot be disconnected, and
+another noncritical load connected to breaker 6 (BRK 6) that is applicable for load shedding
+in case of an emergency. The microgrid operates either in grid-connected or islanded mode.
+Table A2 in Appendix A summarizes the nominal apparent and active power of the sources
+and loads used in the development of the PMS for this specific microgrid; other values can
+be used accordingly.
+BESS
+Utility Grid
+Critical Load
+Solar
+cmds cmds
+M
+Non-critical
+ Loadcmds
+                         Control Signals
+                     
+                      Measurements Signals
+ 
+                          Electrical ConnectionBRK 1BRK 3 BRK 4
+BRK 5BRK 6Supervisor 1
+POISupervisor  2
+SOCSOC
+cmds
+GensetBRK 2
+WindSupervisor 3Power Management System
+Figure 7. AC microgrid, case study of SCT-based PMS implementation.
+
+--- Page 11 ---
+Energies 2025 ,18, 3964 11 of 31
+As shown in Figure 7, the PMS operates in a secondary layer, sending control com-
+mands to each source to guarantee harmonious operation between the different sources
+and ensure reliability in supplying the connected loads. As a simplifying hypothesis, it is
+assumed that the PMS operates without fault scenarios and communication issues such
+as data package loss. The PMS receives measurements from the microgrid, such as grid
+power, Pgrid, shown in Figure 7, the RMS voltage at POI, and the SOC of the BESS. Based
+on SCT, the supervisors are synthesized and are responsible for observing the sequence of
+events in the plant and responding by sending commands to each source via their local
+controllers. Each local controller adjusts its operating mode according to these commands.
+The local controllers (LCs) are described next.
+4.2. Local Controllers, Breaker and Measurement Description
+A brief description of each DER controller and the events considered in the proposed
+PMS framework is provided. In addition to that, all the PMS events received by the LCs
+of each source, as well as the command to enable the BRK6 circuit breaker and the peak
+shaving commands, are summarized in Table 3.
+4.2.1. PV System
+The PV system model consists of a two-stage converter with a DC/DC boost con-
+verter [ 36], which is responsible for implementing the MPPT and curtailment algorithm,
+and a three-phase inverter to supply power to the grid, as shown in Figure 8. Inverter
+control is carried out in the dq reference frame [ 37], using two loops: an internal loop
+responsible for controlling the current injected into the grid and an external loop that
+controls the DC bus voltage.
+The PV system can operate in two different modes: In normal operation, the converter
+works in MPPT by varying the duty cycle to generate the required voltage to extract
+maximum power from the PV system; the other mode is curtailment mode. In the event
+that the POI frequency is above normal operating conditions, it must inject less power
+to maintain the frequency balance [ 38]. The local controller of the PV system receives
+operational commands from the PMS to ensure grid stability and optimal power balance.
+According to the first step of the methodology presented in Section 3, two events are
+defined for the PVsystem: (i)Start PVcurtailment, which takes the PV system to the curtailment
+mode; (ii)Start PVMPPT, which takes the PV system to MPPT mode.
+Boost
+Converter
+(average)VSC
+(average)
+MPPT
+Algorithm
+Curtailment
+AlgorithmVoltage
+ControlPMS comands
+0: MPPT
+1: CurtailmentVoltage
+ControlCurrent
+Control
+Current
+Controldq to abc
+transformationTransforms
+and PLLIrradiance
+TemperatureRest of
+MG
+Boost
+Control
+VSC
+Control
+Figure 8. Simulink model of PV system.
+
+--- Page 12 ---
+Energies 2025 ,18, 3964 12 of 31
+4.2.2. BESS Model
+The BESS contains a battery, a small DC capacitor to protect the battery against high
+DC voltage spikes, a Voltage Source Converter (VSC), RLC filter, a three-phase breaker,
+and voltage and current sensors, as shown in Figure 9. The BESS has three main operation
+modes: charging, discharging, and standby. The local control of the BESS is based on the
+Synchronverter control [ 39–41] and can form the grid, acting as a voltage reference, in the
+absence of the Genset. The BESS is capable of switching seamlessly between the charging
+and discharging modes. Therefore, a BESS can be considered as a load or source, thus
+being the only device that can receive power reference signals from the PMS for all four
+quadrants, since the PV and WT systems and the Genset do not absorb active power from
+the microgrid in steady state.
+VSC
+(average)Rest of
+MG
+Pref
+ PMS
+SOC
+Synchronverter
+Control [25]
+Figure 9. Diagram of BESS.
+In addition to the active power drooping by frequency, the voltage reference is drooped
+by reactive power. However, there are two other reactive power modes available. These
+are voltage control without droop and reactive power control. Anyway, priority is given to
+the active power reference above the reactive power control.
+The BESS contains a secondary frequency controller, since the BESS is normally con-
+nected to the microgrid. The output of this controller can be passed to the PMS, which can
+distribute this signal to other frequency drooped sources. In addition to this signal, the SOC
+value and its breaker status can also be sent to the PMS. In this paper, the SOC is used for
+the PMS framework. BESS can receive from the PMS the operation mode, reference values
+for reactive and active power, voltage, if it should operate in grid-forming, a command to
+open the breaker, command to synchronize the entire microgrid with the grid, grid voltage
+values, grid breaker status, and a secondary reference signal, in case this BESS has disabled
+the internal secondary frequency controller.
+According to the first step of the methodology presented in Section 3, the defined
+events for the operation model of BESS are as follows: (i)Start BESS charging, which takes the
+BESS to the charging mode; (ii)Start BESS discharging, which takes the BESS to the discharging
+mode; (iii)Stop BESS charging;(iv)Stop BESS discharging, where both events take the BESS to the
+standby mode.
+4.2.3. Genset
+The physical circuit of the Genset contains a synchronous machine model, an excitation
+circuit, turbine dynamics, an inertial (mechanical) model, brake resistors, a three-phase
+breaker, and voltage and current sensors, as shown in Figure 10. Control consists of a
+synchronization algorithm for synchronization of the Genset with the microgrid and an
+algorithm for the Genset to synchronize the entire microgrid with the utility grid, besides a
+speed reference generator, an Automatic Voltage Regulator (AVR), an optionally enabled
+secondary frequency controller (in case this one is disabled at BESS), fuel tank model and
+an algorithm to command the chopper. The governor dynamics contain power/frequency
+
+--- Page 13 ---
+Energies 2025 ,18, 3964 13 of 31
+droop. The voltage is drooped with the inserted reactive power, measured at the generator
+terminals ( vabc).
+The PMS sends commands to the Genset to operate in nominal or standby mode. These
+commands determine whether the Genset should inject nominal active power defined
+as the event Start Genset Nominal, or switch to provide minimal power defined as the event
+Start Genset Standby.
+SM
+SSN
+SSN
+Synchronous
+MachineVf1m
+A
+B
+CEngine GovernorMeasurement
+AVR with
+Droop ControlPhysical
+Excitation
+CircuitRest of
+MGSpeed
+reference
+generator
+Power
+reference
+generatorStart
+Tank LevelClose
+Sec ref
+PQ
+calculateMechanical
+ModelPMS comands
+0: Nominal mode
+1: Standby mode
+Figure 10. Diagram of Genset.
+4.2.4. Wind Turbine System
+The Wind Turbine (WT) model is based on a simplified Type-4 WT [ 42], employing
+a VSC and a current source, as shown in Figure 11. The power circuit contains a VSC
+converter with an LC filter responsible for injecting power into the grid. In the DC stage,
+there is a capacitor CDCwith high susceptance, and, therefore, a current source can be
+used to represent the wind turbine, electrical generator, and rectifier. The reference current
+is calculated with a generic power curve that has as input a wind speed signal, and the
+maximum power for that wind speed is calculated, thus enabling the MPPT operation.
+Power
+CurveVSC
+(average)
+Voltage
+ControllerCurrent
+Controller
+Current
+Controllerdq to abc
+transformationTransforms
+and PLLWind ProfileRest of
+MG
+WTG Control/
+Voltage
+Droop
+PMS
+comands
+0: Q Control
+1: V droop
+Figure 11. Diagram of WT system.
+
+--- Page 14 ---
+Energies 2025 ,18, 3964 14 of 31
+For the VSC, the controller design follows the same procedure as the PV system, con-
+trolling vdcthrough a cascaded structure performed in the dq-frame. An inner loop controls
+the AC current, and consequently, the active and reactive powers. For the active power
+loop, an outer loop is responsible for controlling the DC-link voltage, which injects all the
+power received from the primary energy source, and for the reactive power loop, the model
+presents two types of outer loops. For normal operation, the converter can control its output
+Reactive Power, whereas the reference can be sent by the PMS. If requested, the PMS sends
+a command to switch the operation to voltage-droop mode, event Start WT Support, where the
+reactive power will change according to the voltage amplitude in the output of the LC filter.
+In normal operation, the WT operates with Constant Power Factor, event Start WT CPF.
+4.2.5. Noncritical Load Breaker
+To maintain stability in the system and prevent blackouts during periods of high
+demand or low supply, the PMS must disconnect nonessential loads in isolated mode. This
+helps to reduce overall power demand and prevent overloading. The breaker (BRK6 in
+Figure 7) that disconnects nonessential loads is modeled with two states and two events.
+Here, state 1 is a noncritical load connected, and state 2 is a load disconnected.
+4.2.6. SOC, Power and Voltage Measurements
+The relevant measurements of the plant for the PMS are the battery SOC, the active
+power of the grid, and the voltage at the POI, which are continuous variables. The SOC
+and POI voltage values are discretized into four categories: Normal (N); Low (L); High
+(H); Low Low (LL). The grid power is discretized into three categories: N, L, and H. The
+associated events are in the form of MDwhere the letter Mis the variable being measured,
+and Dis the category in which the measure falls. For example, SOC Lis an event, where
+Mis the SOC measurement and Dis the category Low, which means a low SOC level
+measurement. All measurement events are detailed in Table 4.
+It is worth noting that the number of categories has been chosen as four or three
+categories; however, in case of necessity, more categories can be created depending on the
+control objectives or the plant.
+Table 3. Description of the DERs automata model and peak shaving activation command shown in
+Figure 12.
+Model State Events Description
+G1: PV1: MPPT
+2: CurtailmentX:Start PVcurtailmentY:Start PVMPPTThe PV system can operate in MPPT mode (state 1) or in curtailment mode
+(state 2). The events are enabled or disabled by the supervisors, depending on
+the operation of the system.
+G2: BESS Operation1: BESS Standby
+2: BESS Charging
+3: BESS DischargingU:Start BESScharging
+W1: Stop BESScharging
+V:Start BESSdischarging
+W2:Stop BESSdischargingOperation mode of BESS is represented by a three-state automaton with four
+events. The BESS operating model is designed for taking into account
+charging, discharging and standby mode without power injection.
+G3: Genset1: Genset at standby mode
+2: Genset at nominal modeX:Start GensetnominalY:Start GensetstandbyThe Genset is modeled with two states and two events. Event
+Start Gensetnominalrepresents the injection of its nominal ative
+power considering a power factor of 0.85, while event Start Gensetstandby
+indicates that the generator have to inject its minimum power,
+depending on the voltage and frequency of the grid.
+G4: WT1: WT at Constant Power Factor
+2: WT at Support voltageX:Start WTSupport
+Y:Start WTCPFThe WT system can operate as a P-Q bus (state 1) working in the
+MPPT control, and as a P− |V|providing voltage support function (state 2).
+G5: Noncritical load Breaker1: Load connected
+2:Load disconnectedX:Start LoadconnectedY:Start LoaddisconnectedThe breaker that disconnects nonessential loads is modeled with two states
+and two events. Where state 1 is noncritical load connected and state 2
+load disconnected.
+G6: Peak shaving command1: Disable Peak Shaving
+2: Enable Peak ShavingX:Enable Peakshaving
+Y:Disable PeakshavingThe peak shaving mode is activated or deactivated by command, to do
+this, it is modeled with two states and two events.
+
+--- Page 15 ---
+Energies 2025 ,18, 3964 15 of 31
+Table 4. Description of the measurements of the microgrid in automata presented in Figure 13.
+Model State Events Description
+G7: BMS1:SOC L<SOC<SOC H
+2: SOC >SOC H
+3:SOC LL<SOC<SOC L
+4: SOC <SOC LLX1,X2,X3: Initialization of BMS
+U:SOC H
+V:SOC N
+W:SOC L
+Y:SOC LLMonitoring the maximum and minimum SOC of the BESS: When the SOC is above
+SOC H, the PV goes into curtailment mode and when the SOC returns below SOC H,
+the PV returns into MPPT mode. If SOC is below SOC L, the noncritical load is
+disconnected. When the SOC drops below SOC LL, the Genset must inject its
+nominal power.
+G8: Pgrid1:Pgrid L<Pgrid<Pgrid H
+2:Pgrid≥Pgrid H
+3:Pgrid≤Pgrid LX1,X2: Initialization of Pgrid
+U:Pgrid H
+V:Pgrid N
+W:Pgrid LMonitoring the grid’s active power: The grid’s power must not exceed the contracted
+value. If Pgrid>Pgrid H, the BESS goes into discharge mode. If Pgrid<Pgrid L,
+the BESS goes into charging mode. Otherwise, BESS is in stamdby mode.
+G9: Vrms1:Vrms>VL
+2:VLL<Vrms<VL
+3:Vrms<VLLX1,X2: Initialization of VRMS
+U:VH
+V:VN
+W:VL
+V:VLLMonitoring the POI’s RMS voltage: The voltage must not drop below VLL, as
+required by the grid code. To ensure this, the WT and genset provide voltage support.
+When the voltage (Vrms) at the POI is above VL, the WT remains in constant power
+factor mode. If the voltage drops below VL, the WT switches to voltage support mode.
+If the voltage drop persists, the Genset also comes into operation to provide additional
+voltage support.
+1 2
+YX
+(a) DER 1.
+2 1 3
+U W2W1 V (b) DER 2.
+Figure 12. LC modeling in DES.
+1 32
+W,VU,V X2
+X1
+(a) Measurement 1.
+3 2 14
+X3
+V,U
+V,WX2W,Y
+X1 (b) Measurement 2.
+Figure 13. Measurement modeling in DES.
+4.3. Discrete Event System Plant Modeling
+As detailed in Section 3, the subsequent phase of the proposed framework involves
+modeling the relevant components of the plant, specifically those elements capable of
+influencing plant behavior, while taking into account the events delineated in the initial
+step of the methodology.
+The automaton model of some DERs follows a pattern, where for each command
+σc∈Σc, the DER goes to a specific operation mode. Some DERs, such as PV , Genset, WT,
+breakers, and the peak shaving activation commands, follow a template of an automaton
+with two states and two events. A generic automaton model of this template is illustrated
+in Figure 12a. The generic events Xand Yare detailed in Table 3. For example, Xrepresents
+the event Start PVCurtailmentin the PVautomaton model. In contrast, the BESS operation
+and its mode are modeled by automata with three states and four events, as illustrated in
+Figure 12b. The generic events U,V,W1 and W2, are also detailed in Table 3.
+The automata model of SOC, grid power, and voltage at POI measurements also
+follows a pattern. A generic automaton model of the grid power measurement with three
+states and four events is shown in Figure 13a. The generic events X1and X2represent
+commands to initiate the measurement, while events Uand Vrepresent the possible
+discrete categories of the measurement, for example if it is in L, H, or N level. On the other
+hand, the generic automaton model for the SOC and POI voltage measurements has four
+states and seven events. as shown in Figure 13b. The generic events, X1,X2,X3, represent
+commands to initiate the measurement, while events U,V,W, and Yrepresent the possible
+
+--- Page 16 ---
+Energies 2025 ,18, 3964 16 of 31
+discrete categories of the measurement. All events related to measurements are shown in
+Table 4.
+The specific values for defining the threshold values for each discrete category can be
+adapted for each specific PMS design, without interfering with the SCT synthesis process.
+The threshold values for the power and voltage of the grid at the POI can be determined on
+the basis of the utility’s grid codes. SOC levels can be determined on the basis of specific
+manufacturer recommendations. The specific values considered in this case study are
+shown in Table A1 in the Appendix A.
+Following the second step of the proposed framework in Section 3, all components are
+composed to create an automaton G=G1∥ · · · ∥ Gnthat models every possible behavior
+of the microgrid plant. Automaton Ghas 3456 possible states and 43,488 transitions, and
+therefore its visual representation is omitted here. The plant Gmodels all the possible
+behavior of the plant, including some forbidden ones that are desired to avoid by means
+of a supervisor. However, it is first necessary to define the requirements of the plant and
+translate them as formal specifications.
+4.4. Modeling of Control Specifications
+The fourth step of the proposed PMS design framework described in Section 3 is to
+model microgrid requirements as specifications. In this case study four requirements are
+modeled: (i) High SOC Management; (ii) Low SOC Management; (iii) Voltage Support
+function; (iv) Peak Shaving Function. Requirements (i) to (iii) consider that the microgrid is
+operating in islanded mode, while requirement (iv) considers grid-connected mode. The
+modeling of each requirement as a specification is described as follows.
+4.4.1. Specification E1—High SOC Management
+In addition, for the case where the microgrid is operating in islanded mode, if the SOC
+hits its high limit (H), then the PV system must enter curtailment mode. When the SOC
+returns within the normal range (N), the PV system can return to MPPT mode. Specification
+E1is shown in Figure 14, states 1 and 3 of E1include auto-loops, to enable the measurement
+of SOC, in order to allow the plant to perform other tasks and to avoid deadlocks.
+12 3
+4Start PVMPPTStart PVCurtailmentIni1SOC,SOC H
+Ini1SOC,Ini2SOC,Ini3SOC,SOC N,SOC L,SOC LLSOC HSOC N
+Figure 14. Modeling of the specifications in DES for Specification 1—High SOC management.
+4.4.2. Specification E2—Low SOC Management
+If the SOC reaches its lower limit (L), then the noncritical load must be disconnected.
+If the SOC falls below the LL level, then Genset must inject nominal power into the
+microgrid to recharge the BESS. Since SOC returns to normal range, Genset is lead to
+Standby mode, where the load can be connected. Specification E2is shown in Figure 15,
+analogously to E1auto-loops are added to states 1 and 3, in order to perform other tasks
+and to avoid deadlocks.
+
+--- Page 17 ---
+Energies 2025 ,18, 3964 17 of 31
+4 12 35 6
+7
+SOC L,Ini2SOC,Ini3SOCStart Genset StandbySOC LLIni2SOC,Ini3SOC,SOC L
+Start Load disconnected
+SOC NStart Genset nominal
+SOC N
+SOC LL,SOC N,Ini1SOC,Ini2SOC,Ini3SOC,SOC HSOC L
+Start Load connected
+Figure 15. Modeling of the specifications in DES for Specification 2—Low SOC management.
+4.4.3. Specification E3—POI Voltage Support Function
+If the voltage at the POI falls within the low limit (L), the voltage Support function of
+the WT system must be activated, and the generator remains in standby mode. If the POI
+voltage drops below the Low Low Level (LL), the Genset must operate at its nominal mode
+to compensate with reactive power. Once the voltage returns to its normal level (N), the
+WT system and Genset must return to the constant power factor mode and Standby mode,
+respectively. Specification E3is shown in Figure 16.
+36
+2
+1 475
+Start Genset StandbyStart Genset nominal
+VL
+Start WTCPF
+Ini1V rms ,Ini2V rms ,VLL,VNVN
+VNVL,Ini1V rms ,Ini2V rms
+Ini1V rms ,Ini2V rms ,VLStart WTSupportVLL
+Figure 16. Modeling of the specifications in DES for Specification 2—Voltage support.
+4.4.4. Specification E4—Peak Shaving Function
+When the user enables the peak shaving function, event Enable Peakshaving occurs, acti-
+vating the peak shaving mode. As a consequence, the active power injected into the utility
+grid must be limited according to the contracted power with the electrical distribution
+companies. If the grid power, Pgrid(see Figure 7), is at a low level (L) of the contracted
+power, the BESS must start charging, taking advantage of the low load. When the grid
+power is at a high level (H) of the contracted power, the BESS must go to discharge mode.
+If the grid power is in the normal range (N) of the contracted power, the BESS must go to
+standby mode. The operator cannot deactivate the peak shaving function if the grid power
+is not in the normal range (N). Specification E4is shown in Figure 17.
+
+--- Page 18 ---
+Energies 2025 ,18, 3964 18 of 31
+1 2
+63 4
+5
+78Enable P eakshaving
+Disable P eakshavingStop BESSdischarging
+Start BESSdischargingP grid H
+Stop BESSchargingStart BESScharging
+P grid N
+P grid L,Ini2P gridIni1P grid ,Ini2P grid ,P grid N
+P grid NDisable P eakshaving
+P grid LIni1P grid ,P grid H
+Figure 17. Modeling of the specifications in DES for Specification 4—Peak shaving.
+4.5. PMS Supervisors Realization in MATLAB Stateflow
+Given the synthesized plant model Gand the specifications E1,· · ·,En, the final steps
+of the proposed PMS design framework described in Section 3 is to synthesize a set of
+reduced decentralized supervisors SR
+i. For this case study, three reduced decentralized
+supervisors have been synthesized, each performing one of the following control tasks:
+(i) SOC management; (ii) POI voltage support function; (iii) Peak shaving function. Each of
+the reduced decentralized supervisors SR
+iis discussed next.
+The first reduced supervisor SR
+1is the reduced version of supervisor S1=supC(K1),
+where K1=G∥E1∥E2, which performs the BESS SOC management. The second reduced
+supervisor SR
+2is the reduced version of supervisor S2=supC(K2), where K2=G∥E3,
+which performs the POI voltage support function. Finally, the third reduced supervisor SR
+3
+is the reduced version of supervisor S3=supC(K3), where K3=G∥E4, which performs
+the peak shaving function. All reduced decentralized supervisors SR
+1,SR
+2,SR
+3, are shown in
+Figures 18, 19, and 20, respectively.
+6 1238 7
+45
+Ini1SOC,Ini2SOC,Ini3SOC,SOC NSOC L,Start Genset Standby ,Start Load disconnected
+SOC HSOC N
+SOC LIni2SOCStart Genset nominal
+Ini2SOC,Ini3SOCSOC H,Start PVCurtailmentSOC LLSOC L
+Ini1SOC
+SOC N
+Start Load connected ,Start PVMPPTSOC N
+Figure 18. Supervisor 1—High and Low SOC Management.
+
+--- Page 19 ---
+Energies 2025 ,18, 3964 19 of 31
+5
+36
+12
+4Start WTSupport ,Start Genset Standby ,VL
+VLVLL
+VN,Ini1V rms ,Ini2V rms ,VLLIni1V rms ,Ini2V rms
+VNStart Genset nominal
+Start WTCPFVL,VLL
+Ini1V rms ,Ini2V rms ,VN
+Figure 19. Supervisor 2—POI voltage support function.
+12
+3
+45
+6P grid LIni1P gridP grid N,Disable P eakshaving ,Stop BESSdischarging ,Stop BESScharging
+P grid NP grid H,Start BESSdischarging
+Ini2P gridEnable P eakshaving ,Ini1P grid ,Ini2P grid
+P grid H
+P grid L
+Start BESScharging
+Figure 20. Supervisor 3—Peak shaving function.
+5. Simulation Results and Discussions
+To validate the proposed supervisory controller, HIL testing was employed. Two
+real-time simulators, OPAL-RT and OP5707 XG, are utilized to obtain experimental results
+that closely replicate real-world conditions without requiring the assembly of the physical
+system. This approach offers several advantages, such as the ability to test and validate
+the system in various scenarios prior to construction, leading to significant time and
+cost savings. In addition, it ensures the safe testing of high-power systems. The setup,
+shown in Figure 21, includes one simulator responsible for modeling the local controls
+and the microgrid, providing signals of SOC, RMS voltage, and frequency at the POI. The
+supervisory controller state machines are executed on a second simulator, which handles
+the command signals to change the operating state. Data communication between the
+simulators is carried out using the Modbus protocol, as shown in Figure 22. As mentioned
+in Section 4, communication issues such as delays and packet losses are not considered in
+this paper.
+
+--- Page 20 ---
+Energies 2025 ,18, 3964 20 of 31
+Simulator 1
+ Simulator 2
+Supervisory Control (PMS)
+Commands:Local Simulation (LAF AE)
+Modbus TCP
+eth0
+Peak shaving on/of f
+Charging\ Discharging BESS
+Voltage support WT  plantMeasurements:
+SoC, f, V rmsMicrogrid Plant
+eth0BESS
+Utility Grid
+Critical Load
+Solar
+cmds cmds
+M
+Non-critical
+ Loadcmds
+BRK 1BRK 3BRK 4
+BRK 5BRK 6POISOC
+cmds
+GensetBRK 2
+WindCommands received from Simulator 1
+Figure 21. Setup of the Hardware-in-the-Loop of the local controllers and supervisory control.
+Modbus 
+TCP
+Simulator 2Simulator 1
+Figure 22. Hardware-in-the-Loop testbed.
+The load profile and the wind speed profile used to evaluate the PMS functions are
+illustrated in Figures 23 and 24, respectively. These profiles are obtained from a distributed
+power resource management database [ 43]. In addition, the irradiation and temperature
+profiles of the PV system illustrated in Figure 25 are obtained from real data, which were
+used to demonstrate the functionality of the supervisory controller. The PMS functions are
+not dependent on these profiles; any other load, wind speed, irradiation, or temperature
+profile can be used.
+
+--- Page 21 ---
+Energies 2025 ,18, 3964 21 of 31
+Figure 23. Power consumption profile of critical and noncritical loads in the microgrid.
+Figure 24. Wind profile for wind generation system.
+
+--- Page 22 ---
+Energies 2025 ,18, 3964 22 of 31
+Figure 25. Irradiance and temperature profile used for the PV system.
+The functionalities that are developed, implemented, and tested are:
+• Peak shaving: In this operating mode, the power supplied from the utility grid to
+the microgrid is restricted to the contracted power, without compromising the energy
+supplied to the loads. For this, the BESS is charged during low-demand periods, when
+electricity costs are lower. On the other hand, the BESS is discharged during periods
+of high demand.
+• Islanded Operation: The microgrid should have the capability to provide power to the
+loads in isolated mode, ensuring adequate voltage and frequency levels. The transition
+from grid-connected to islanded operation can occur as either a planned or unintended
+event. In the event of islanding, at least one source within the microgrid must regulate
+the voltage at POI to its nominal value and establish a reference frequency that matches
+the nominal frequency of the utility grid.
+– Monitoring the voltage at the POI: The supervisors must ensure that the voltage
+is within the acceptable range of operation, sending operation commands to the
+different sources in the microgrid.
+– Monitoring the SOC of the BESS: In order to prolong the life of the battery, it is
+important that it operates in a quasi-linear charge and discharge mode. To this
+end, the supervisors change the operating modes of the BESS.
+Six scenarios were designed in order to test the PMS functionalities. (i) Grid connected
+with peak shaving function under normal renewable generation conditions; (ii) Grid con-
+nected with peak shaving function under low renewable generation conditions; (iii) Grid
+connected with peak shaving function under high renewable generation conditions; (iv) Is-
+landed operation under low renewable generation; (v) Islanded operation under high
+renewable generation; (vi) Voltage support operation condition.
+
+--- Page 23 ---
+Energies 2025 ,18, 3964 23 of 31
+5.1. Grid-Connected OPERATION
+5.1.1. Peak Shaving Under Normal Renewable Generation Conditions (Scenario (i))
+The algorithm implemented for peak shaving consists of discharging the BESS during
+peak hours, as shown in Figure 26a. At time t=193.41 s, the power absorbed by the
+microgrid is above 0.9p.u. of the contracted power, Pcontracted =5000 kW (superior pink
+line). At this point, the Supervisor issues a command to discharge the BESS, as shown in
+Figure 27a, thus avoiding exceeding the contracted power limit and preventing possible
+penalties. At t=217.37 s, the power of the grid remains within the range of 0.25 p.u. to
+0.9p.u., triggering a control signal for the BESS to transition to standby mode, during
+which it ceases power injection. During peak hours, the BESS injects power and limits
+the power grid to the contracted power. Figure 26a shows that the active power from the
+power grid (blue line) never exceeds the contracted power (superior pink line), without
+reducing the load (red line). Active power of BESS (black line) when negative indicates
+that the BESS is being charged when the demand for energy is low, and when positive
+indicates its discharge during peak hours. Figure 27b shows the SOC of the BESS, which
+varies between charge and discharge, respectively.
+Figure 26b shows the active power of the wind power plant and PV farm in the
+connected mode of the MG. At t=350s, the RES’s energy generation is low, so the BESS
+enters discharge mode, avoiding to exceed the contracted power.
+Figure 26. Supervisor 1’s performance of peak shaving, active power of MG.
+5.1.2. Peak Shaving Under Low Renewable Generation Conditions (Scenario (ii))
+In this simulation scenario, the objective is to deliberately drive the Battery Energy
+Storage System (BESS) into Low and Low–Low SOC levels while the system remains grid-
+connected and engaged in peak shaving operations. To accomplish this, photovoltaic (PV)
+generation is intentionally reduced, leading the BESS to discharge and supply power to the
+grid, thus preventing it from recharging. Under conditions of low renewable generation,
+the Power Management System (PMS) is configured to perform load shedding when the
+SOC reaches the Low threshold. If this load reduction is insufficient to balance power
+
+--- Page 24 ---
+Energies 2025 ,18, 3964 24 of 31
+generation and demand, the SOC continues to decrease. Once it reaches the Low–Low
+threshold, the PMS sets the standby genset’s power reference to its nominal value.
+Figure 27. Commands sent by PMS and state of charge of BESS.
+Figure 28 presents the BESS SOC and active power of MG components for Scenario (ii).
+As shown, the output of both the Wind Turbine Generator (WTG) and the PV system is
+reduced, forcing the BESS to deliver power to the grid and causing the SOC to drop. At
+time t1=294.5 s, the SOC reaches the Low threshold of 40%. After a delay of approximately
+3.1 milliseconds, the PMS initiates the shedding of noncritical loads, thereby reducing
+overall demand and temporarily balancing generation and demand.
+Subsequently, as demand gradually increases again, even after load shedding, the
+BESS resumes discharging to support the grid, leading to a further SOC reduction. At
+time t2=571.7 s, the SOC falls to the Low–Low threshold of 30%. After a communication
+delay of 2.6 milliseconds, the PMS sets the genset’s power reference to its nominal capacity,
+ensuring that the grid is supplied and that the BESS can be recharged with the surplus
+power. At time t3=722.3 s, the SOC recovers to the normal operating range. After an
+additional delay of 5.6 milliseconds, the PMS commands the reconnection of noncritical
+loads and returns the genset to standby mode.
+5.1.3. Peak Shaving Under High Renewable Generation Conditions (Scenario (iii))
+In this simulation scenario, the objective is to deliberately drive the Battery Energy
+Storage System (BESS) into High SOC level while the system remains grid-connected and
+engaged in peak shaving operations. To accomplish this, photovoltaic (PV) generation is
+intentionally increased, leading the BESS to charge from the surplus power of the grid.
+Under conditions of high renewable generation, the Power Management System (PMS) is
+configured to perform curtailment of PV when the SOC reaches the High threshold.
+
+--- Page 25 ---
+Energies 2025 ,18, 3964 25 of 31
+30405060708090SoC [%]SOC SOCHSOCLSOCLL
+0 100 200 300 400 500 600 700
+Time [s]-1.5-1-0.500.511.5Active Power [p.u.]
+BESS Genset Load PV WTG Grid Grid limitt1t2t3
+Figure 28. Peak shaving under low renewable generation.
+Figure 29 presents the results for Scenario (iii). As shown, the output of both the
+Wind Turbine Generator (WTG) and the PV system is increased, allowing the BESS to
+absorb power from the grid and causing the SOC to increase. At time t1=450.3 s, the SOC
+reaches the High threshold of 80%. After a delay of approximately 3.1 milliseconds, the
+PMS initiates the curtailment of PV , thereby reducing PV generation and reducing the BESS
+charging power.
+Subsequently, as the load demand gradually increases, the BESS begin to discharge to
+support the grid, leading to a SOC reduction. At time t2=589.9 s, the SOC falls to the High
+threshold of 80%. After a communication delay of 4.2 milliseconds, the PMS sets the PV
+back to MPPT mode.
+30405060708090SoC [%]
+SOC SOCHSOCLSOCLL
+0 100 200 300 400 500 600 700
+Time [s]-1-0.500.511.5Active Power [p.u.]
+BESS Genset Load PV WTG Grid Grid Limitt1t2
+Figure 29. Peak shaving under high renewable generation.
+
+--- Page 26 ---
+Energies 2025 ,18, 3964 26 of 31
+5.2. Islanded Operation
+The microgrid must be able to supply power to the loads in isolated mode, guaran-
+teeing the appropriate voltage and frequency levels. The transition from grid-connected
+to islanded operation can occur as either a planned or unintended event. In the event of
+islanding, at least one source within the microgrid must regulate the voltage at POI to its
+nominal value and establish a reference frequency that matches the nominal frequency of
+the utility grid.
+5.2.1. Low Renewable Generation Conditions (Scenario (iv))
+In this simulation scenario, as in scenario (ii), the objective is to deliberately drive
+the Battery Energy Storage System (BESS) into Low and Low–Low SOC levels while the
+system remains in islanded operation. To accomplish this, photovoltaic (PV) generation
+is intentionally reduced to prevent the BESS from recharging. As in the grid-connected
+operation, the PMS is configured to perform load shedding when the SOC reaches the Low
+threshold. In case the SOC decreases even further, reaching the Low–Low threshold, the
+PMS sets the standby genset’s power reference to its nominal value.
+Figure 30 presents the results for Scenario (iv). As shown, the output of both the WTG
+and the PV system is reduced, and the BESS is continuously supporting the grid, causing
+the SOC to drop. At time t1=157.9 s, the SOC reaches the Low threshold of 40%. After a
+delay of approximately 6 milliseconds, the PMS initiates the shedding of noncritical loads,
+thereby reducing overall demand and temporarily balancing generation and demand.
+Figure 30. Islanded operation under low renewable generation.
+Subsequently, the BESS keeps supporting the grid without charging, leading to a
+further SOC reduction. At time t2=318.6 s, the SOC falls to the Low–Low threshold of
+30%. After a communication delay of 4.7 milliseconds, the PMS sets the genset’s power
+reference to its nominal capacity, ensuring that the grid is supplied and that the BESS can
+be recharged with the surplus power. At time t3=376s, the SOC recovers to the normal
+operating range. After an additional delay of 2.6 milliseconds, the PMS commands the
+reconnection of noncritical loads and returns the genset power reference to standby mode.
+
+--- Page 27 ---
+Energies 2025 ,18, 3964 27 of 31
+Later, at time t4=574.6 s, the SOC falls to the Low threshold of 40% again. The PMS
+initiates again the shedding of noncritical loads after 3.8 milliseconds of communication
+delay. The load shedding is effective and at time t5=628.1 s, the SOC returns to normal
+range and the noncritical load is reconnected.
+5.2.2. High Renewable Generation Conditions (Scenario (v))
+In this simulation scenario, the objective is to deliberately drive the Battery Energy
+Storage System (BESS) into High SOC level while the system remains in islanded operation.
+To accomplish this, photovoltaic (PV) generation is intentionally increased, leading the
+BESS to charge from the surplus power of the grid. As discussed before, the PMS is
+designed to perform curtailment of PV when the SOC reaches the High threshold.
+Figure 31 presents the results for Scenario (iv). As shown, the output of both the Wind
+Turbine Generator (WTG) and the PV system is increased, leading the BESS to absorb power
+to support the grid and causing the SOC to increase. At time t1=493.8 s, the SOC reaches
+theHigh threshold of 80%. After a delay of approximately 6 milliseconds, the PMS initiates
+the curtailment of PV , thereby reducing PV generation and stopping the BESS charging.
+Subsequently, as the load demand gradually increases, the BESS begins to discharge
+to support the grid, leading to a SOC reduction. At time t2=674.5 s, the SOC falls to the
+normal range and the PMS sets the PV back to MPPT mode.
+30405060708090SoC [%]
+SOC SOCHSOCLSOCLL
+0 100 200 300 400 500 600 700
+Time [s]-1.5-1-0.500.511.5Active Power [p.u.]
+BESS Genset Load PV WTGt1t2
+Figure 31. Islanded operation under high renewable generation.
+5.2.3. Voltage Support Operation Condition Scenario (vi)
+As shown in Figure 32a, when the voltage decreases to 0.92 p.u. (with a base voltage
+of 13.8 kV) at time t=1009 s, the supervisor activates the voltage support function of the
+WT system, as shown in Figure 32c. Consequently, there is a noticeable increase in reactive
+power (Figure 32b), demonstrating its role in providing voltage support functionality.
+Figure 33a shows that when Supervisor 2, which is responsible for monitoring and
+controlling voltage sags, is not in operation, the system collapses at t=745s. The voltage
+at the POI drops drastically, and the MG becomes unstable. After the voltage drops below
+0.5p.u., the sources should disconnect to prevent the system from collapsing [ 44]. However,
+
+--- Page 28 ---
+Energies 2025 ,18, 3964 28 of 31
+with the activation of the supervisor, it is evident in Figure 33 that both the WT system and
+Genset contribute to this support, preventing the system from collapsing.
+Figure 32. Supervisor 3’s performance in managing the support voltage provided by the wind system.
+Figure 33. Comparison between the operation of the system with the implementation of a supervisory
+control and the droop operation without its use.
+6. Conclusions
+This paper presented a discrete-event based framework for the design and implemen-
+tation of Power Management Systems in AC microgrids by using Supervisory Control
+Theory. A step-by-step implementation guide was provided, making this work applicable
+and reproducible in real-world microgrid projects. The proposed methodology enables
+systematic modeling of DERs and control specifications, allowing for the synthesis of
+
+--- Page 29 ---
+Energies 2025 ,18, 3964 29 of 31
+decentralized supervisors that ensure logically correct and nonblocking behavior. Unlike
+previous approaches limited to static transitions or specific applications, this framework in-
+tegrates multiple DERs—including PV , wind, BESS, and genset—under a unified SCT-based
+structure, supporting functionalities such as peak shaving, SOC management, voltage sup-
+port, and multi-mode operation. A practical case study was developed and validated in a
+Controller Hardware-in-the-Loop (CHIL) platform, demonstrating the real-time feasibility
+and effectiveness of the proposed PMS. Future investigations aim to remove the assumption
+that the system operates without faults and communication issues such as data package
+loss. The supervisory system’s ability to perform real-time reconfiguration will be explored
+if a system change is required during unknown events.
+Author Contributions: Conceptualization, G.S.V ., T.M.T. and R.F.S.D.; methodology, G.S.V . and
+T.M.T.; software, P .C.E.H. and T.M.T.; validation, G.S.V ., E.L.v.E. and T.M.T.; formal analysis, G.S.V .
+and T.M.T.; investigation, P .C.E.H., T.B.d.P . and J.M.T.d.A.; resources, P .C.E.H. and J.M.T.d.A.; data
+curation, P .C.E.H., T.B.d.P . and J.M.T.d.A.; writing—original draft preparation, P .C.E.H., T.B.d.P .
+and J.M.T.d.A., G.S.V .; writing—review and editing, P .C.E.H., T.B.d.P ., J.M.T.d.A., G.S.V ., E.L.v.E.
+and T.M.T.; visualization, P .C.E.H., T.B.d.P . and J.M.T.d.A.; supervision, G.S.V ., E.L.v.E. and T.M.T.;
+project administration, R.F.S.D.; funding acquisition, R.F.S.D. All authors have read and agreed to the
+published version of the manuscript.
+Funding: This study was financed in part by the Coordenação de Aperfeiçoamento de Pes-
+soal de Nível Superior—Brasil (CAPES)—Finance Code 001, ANP PRH17.1/ANP-FINEP (FINEP
+No. 01.19.0220.00 ), Instituto Nacional de Ciência e Tecnologia em Energia Elétrica (INERGE), and
+TotalEnergies EP Brasil in accordance with ANP Resolution 918/2023.
+Data Availability Statement: Data are contained within the article.
+Acknowledgments: The authors would like to thank LAMCE for providing the necessary data
+for simulations. This study was financed in part by the Coordenação de Aperfeiçoamento de
+Pessoal de Nível Superior—Brasil (CAPES)—Finance Code 001, ANP PRH17.1/ANP-FINEP (FINEP
+No. 01.19.0220.00), Instituto Nacional de Ciência e Tecnologia em Energia Elétrica (INERGE), and
+TotalEnergies EP Brasil in accordance with ANP Resolution 918/2023.
+Conflicts of Interest: The authors declare no conflicts of interest.
+Appendix A. Values Used to Compare PMS Signals
+The values selected are considered specifically for this project; other values can be
+used, and the PMS will respond in the same way.
+Table A1. Description of values considered for event-triggered.
+Variable Value Base
+Pgrid H 0.9 p.u. 5000 [kW]
+Pgrid L 0.25 p.u. 5000 [kW]
+VL 0.92 p.u. 13.8 [kV]
+VLL 0.85 p.u. 13.8 [kV]
+SOC H 80%
+SOC L 40%
+SOC LL 30%
+Nominal apparent and active power of the sources and loads used in the development
+of the PMS.
+
+--- Page 30 ---
+Energies 2025 ,18, 3964 30 of 31
+Table A2. Technical data of microgrid components.
+Components Snom(kV A) Pnom(kW)
+PV system 4800.0 4800.0
+Wind system 5700.0 5415.0
+BESS 8400.0 8400.0
+Genset 5960.0 5364.0
+Total Generation Power 24,860.0 23,979.0
+Load Snom(kV A) Pnom(kW)
+Critical maximum 5420.0 4607.0
+Critical minimum 1591.0 1352.0
+Critical average 1000.0 850.0
+Noncritical 2000.0 2000.0
+References
+1. Ritchie, H.; Roser, M.; Rosado, P . Electricity Production by Source, World. 2022.
+2. Hirsch, A.; Parag, Y.; Guerrero, J. Microgrids: A review of technologies, key drivers, and outstanding issues. Renew. Sustain.
+Energy Rev. 2018 ,90, 402–411. [CrossRef]
+3. Cagnano, A.; De Tuglie, E.; Mancarella, P . Microgrids: Overview and guidelines for practical implementations and operation.
+Appl. Energy 2020 ,258, 114039. [CrossRef]
+4. Olivares, D.E.; Mehrizi-Sani, A.; Etemadi, A.H.; Cañizares, C.A.; Iravani, R.; Kazerani, M.; Hajimiragha, A.H.; Gomis-Bellmunt,
+O.; Saeedifard, M.; Palma-Behnke, R.; et al. Trends in microgrid control. IEEE Trans. Smart Grid 2014 ,5, 1905–1919. [CrossRef]
+5. Meng, L.; Sanseverino, E.R.; Luna, A.; Dragicevic, T.; Vasquez, J.C.; Guerrero, J.M. Microgrid supervisory controllers and energy
+management systems: A literature review. Renew. Sustain. Energy Rev. 2016 ,60, 1263–1273. [CrossRef]
+6. Zahraoui, Y.; Alhamrouni, I.; Mekhilef, S.; Basir Khan, M.R.; Seyedmahmoudian, M.; Stojcevski, A.; Horan, B. Energy management
+system in microgrids: A comprehensive review. Sustainability 2021 ,13, 10492. [CrossRef]
+7. Vuddanti, S.; Salkuti, S.R. Review of energy management system approaches in microgrids. Energies 2021 ,14, 5459. [CrossRef]
+8. Ahmad, S.; Shafiullah, M.; Ahmed, C.B.; Alowaifeer, M. A review of microgrid energy management and control strategies. IEEE
+Access 2023 ,11, 21729–21757. [CrossRef]
+9. Colson, C.M.; Nehrir, M.H. A review of challenges to real-time power management of microgrids. In Proceedings of the 2009
+IEEE Power & Energy Society General Meeting, Calgary, AB, Canada, 26–30 July 2009 ; pp. 1–8.
+10. Yang, N.; Paire, D.; Gao, F.; Miraoui, A. Power management strategies for microgrid-A short review. In Proceedings of the 2013
+IEEE Industry Applications Society Annual Meeting, Orlando, FL, USA, 6–11 October 2013; pp. 1–9.
+11. Jamal, S.; Tan, N.M.; Pasupuleti, J. A review of energy management and power management systems for microgrid and nanogrid
+applications. Sustainability 2021 ,13, 10331. [CrossRef]
+12. El Barkouki, B.; Laamim, M.; Ouassaid, M.; Mahir, O.; Rochd, A. Real-time supervisory control strategy for a grid-connected
+microgrid using hardware-in-the-loop simulation. Comput. Electr. Eng. 2025 ,124, 110419. [CrossRef]
+13. Garcia-Torres, F.; Zafra-Cabeza, A.; Silva, C.; Grieu, S.; Darure, T.; Estanqueiro, A. Model predictive control for microgrid
+functionalities: Review and future challenges. Energies 2021 ,14, 1296. [CrossRef]
+14. Joshal, K.S.; Gupta, N. Microgrids with model predictive control: A critical review. Energies 2023 ,16, 4851. [CrossRef]
+15. Meydani, A.; Shahinzadeh, H.; Nafisi, H.; Gharehpetian, G.B. Optimizing Microgrid Energy Management: Metaheuristic versus
+Conventional Techniques. In Proceedings of the 2024 11th Iranian Conference on Renewable Energy and Distribution Generation
+(ICREDG), Yazd, Iran, 6–7 March 2024; Volume 11, pp. 1–15.
+16. Farrokhabadi, M.; Solanki, B.V .; Canizares, C.A.; Bhattacharya, K.; Koenig, S.; Sauter, P .S.; Leibfried, T.; Hohmann, S. Energy
+Storage in Microgrids: Compensating for Generation and Demand Fluctuations While Providing Ancillary Services. IEEE Power
+Energy Mag. 2017 ,15, 81–91. [CrossRef]
+17. Chen, M.; Xiao, X.; Guerrero, J.M. Secondary restoration control of islanded microgrids with a decentralized event-triggered
+strategy. IEEE Trans. Ind. Inform. 2017 ,14, 3870–3880. [CrossRef]
+18. Diaz, N.L.; Luna, A.C.; Vasquez, J.C.; Guerrero, J.M. Centralized control architecture for coordination of distributed renewable
+generation and energy storage in islanded AC microgrids. IEEE Trans. Power Electron. 2016 ,32, 5202–5213. [CrossRef]
+
+--- Page 31 ---
+Energies 2025 ,18, 3964 31 of 31
+19. Karimi, Y.; Oraee, H.; Golsorkhi, M.S.; Guerrero, J.M. Decentralized method for load sharing and power management in a
+PV/battery hybrid source islanded microgrid. IEEE Trans. Power Electron. 2016 ,32, 3525–3535. [CrossRef]
+20. Lu, X.; Zhou, M.; Ammari, A.C.; Ji, J. Hybrid Petri nets for modeling and analysis of microgrid systems. IEEE/CAA J. Autom. Sin.
+2016 ,3, 349–356. [CrossRef]
+21. Ghasaei, A.; Zhang, Z.J.; Wonham, W.M.; Iravani, R. A Discrete-Event Supervisory Control for the AC Microgrid. IEEE Trans.
+Power Deliv. 2020 ,36, 663–675. [CrossRef]
+22. Liu, X.; Zhao, M.; Wei, Z.; Lu, M. The energy management and economic optimization scheduling of microgrid based on Colored
+Petri net and Quantum-PSO algorithm. Sustain. Energy Technol. Assess. 2022 ,53, 102670. [CrossRef]
+23. Mishra, J.; Behera, P .K.; Pattnaik, M.; Babu, B.C. A multi-agent Petri net model power management strategy for wind–solar-battery
+driven DC microgrid. Sustain. Energy Technol. Assess. 2023 ,55, 102859. [CrossRef]
+24. Jirdehi, M.A.; Tabar, V .S.; Ghassemzadeh, S.; Tohidi, S. Different aspects of microgrid management: A comprehensive review. J.
+Energy Storage 2020 ,30, 101457. [CrossRef]
+25. Saleh, M.; Esa, Y.; Mohamed, A. Centralized control for DC microgrid using finite state machine. In Proceedings of the 2017 IEEE
+Power & Energy Society Innovative Smart Grid Technologies Conference (ISGT), Torino, Italy, 26–29 September 2017; pp. 1–5.
+26. Bhaduri, R.; Rahul Saravana, G.; Vaskar, C. Supervisory controller for power management of microgrid using hybrid technique.
+Trans. Electr. Electron. Mater. 2020 ,21, 30–47. [CrossRef]
+27. Sugumar, G.; Selvamuthukumaran, R.; Novak, M.; Dragicevic, T. Supervisory energy-management systems for microgrids:
+Modeling and formal verification. IEEE Ind. Electron. Mag. 2019 ,13, 26–37. [CrossRef]
+28. Ramadge, P .J.; Wonham, W.M. Supervisory control of a class of discrete event processes. SIAM J. Control Optim. 1987 ,25, 206–230.
+[CrossRef]
+29. Cassandras, C.G.; Lafortune, S. Introduction to Discrete Event Systems ; Springer: Berlin/Heidelberg, Germany, 2008.
+30. Wonham, W.M.; Cai, K. Supervisory Control of Discrete-Event Systems ; Springer International Publishing: Berlin/Heidelberg,
+Germany, 2019.
+31. Kharrazi, A.; Mishra, Y.; Sreeram, V . Discrete-event systems supervisory control for a custom power park. IEEE Trans. Smart Grid
+2017 ,10, 483–492. [CrossRef]
+32. Romero-Rodríguez, M.; Delpoux, R.; Piétrac, L.; Dai, J.; Benchaib, A.; Niel, E. An implementation method for the supervisory
+control of time-driven systems applied to high-voltage direct current transmission grids. Control Eng. Pract. 2019 ,82, 97–107.
+[CrossRef]
+33. Mahfouz, M.M.; Iravani, R. A supervisory control for resilient operation of the battery-enabled DC fast charging station and the
+grid. IEEE Trans. Power Deliv. 2020 ,36, 2532–2541. [CrossRef]
+34. Mahfouz, M.; Iravani, R. Autonomous Operation of the DC Fast-Charging Station. IEEE Trans. Ind. Electron. 2021 ,69, 3787–3797.
+[CrossRef]
+35. Su, R.; Wonham, W. Supervisor Reduction for Discrete-Event Systems. Discret. Event Dyn. Syst. 2004 ,14, 31–53. [CrossRef]
+36. Manitoba Hydro International Ltd. Photovoltaic Example: Written for PSCAD v4.6 ; Revision 1 ; Manitoba Hydro International Ltd.:
+Winnipeg, MB, Canada, 2018.
+37. Yazdani, A.; Iravani, R. Voltage-Sourced Converters in Power Systems: Modeling, Control, and Applications ; John Wiley & Sons:
+Hoboken, NJ, USA, 2010.
+38. Wu, D.; Tang, F.; Dragicevic, T.; Vasquez, J.C.; Guerrero, J.M. Autonomous Active Power Control for Islanded AC Microgrids
+With Photovoltaic Generation and Energy Storage System. IEEE Trans. Energy Convers. 2014 ,29, 882–892. [CrossRef]
+39. Zhong, Q.C.; Weiss, G. Synchronverters: Inverters That Mimic Synchronous Generators. IEEE Trans. Ind. Electron. 2011 ,
+58, 1259–1267. [CrossRef]
+40. Nguyen, P .L.; Zhong, Q.C.; Blaabjerg, F.; Guerrero, J.M. Synchronverter-based operation of STATCOM to Mimic Synchronous
+Condensers. In Proceedings of the 2012 7th IEEE Conference on Industrial Electronics and Applications (ICIEA), Singapore,
+18–20 July 2012; pp. 942–947.
+41. Zhong, Q.C.; Nguyen, P .L.; Ma, Z.; Sheng, W. Self-Synchronized Synchronverters: Inverters Without a Dedicated Synchronization
+Unit. IEEE Trans. Power Electron. 2014 ,29, 617–630. [CrossRef]
+42. Wang, Y.; Wen, M.; Chen, Y. A simplified model of Type-4 wind turbine for short-circuit currents simulation analysis. IET Gener.
+Transm. Distrib. 2022 ,16, 3036–3049. [CrossRef]
+43. Hackathon—SEPOC 2021. Available online : https://2021.sepoc.com.br/hackathon/ (accessed on 11 June 2023).
+44. 1547-2018 ; IEEE Standard for Interconnection and Interoperability of Distributed Energy Resources with Associated Electric
+Power Systems Interfaces. IEEE: Piscataway, NJ, USA, 2018.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.

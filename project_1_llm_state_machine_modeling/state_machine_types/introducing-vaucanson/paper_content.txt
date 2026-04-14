@@ -1,0 +1,440 @@
+--- Page 1 ---
+Introducing Vaucanson
+SylvainLombardy1,Rapha elPoss2,YannRegis-Gianas2,andJacques Sakarovitch3
+1LIAFA,UniversiteParis7,lombardy@liafa.jussieu.fr
+2LRDE, EPITA,fyann.regis-gianas,raphael .poss g@lrde.epita.fr
+3LTCI,CNRS /ENST,sakarovitch@enst.fr
+Abstract. Thispaperreportsonanewsoftwareplatform dedicated tothecompu-
+tation withautomata andtransducers, called Vaucanson ,themainfeature ofwhich
+isthecapacit yofdealing withautomata whose labelsmaybelong tovarious algebraic
+structures.
+Thepapersuccessiv elyshowshowVaucanson allowstoprogram algorithms onau-
+tomata inawaywhichisveryclosetothemathematical expression ofthealgorithm,
+describ essomefeatures oftheVaucanson platform, including thefactthatthevery
+richdatastructure usedtoimplemen tautomata doesnotweighttoomuchonthe
+performance andnally explains themain issues oftheprogramming design that
+allowtoachievebothgenericit yandeciency .
+Thispaperreportsonanewsoftwareplatform dedicated tothecomputation withau-
+tomata andtransducers, whichwehavenamed Vaucanson4.Thepresen tstatus ofVau-
+canson isstillfairly experimen talandmanyofitsfunctions areunder activedevelopmen t.
+However,thepurposes,thedesign policy,andtheimplemen tation issues oftheplatform are
+well-established bynow,sothatithasappeared thatVaucanson could beintroduced to
+thecomm unity5,withtheundisguised aimthatthissoftwarewillbetriedandtested and
+thattheauthors willgetsome feedbac k.
+Thestriking feature ofautomata istheversatilit yoftheconcept |alabelledoriented
+graph |anditsabilitytomodelize somanydieren tkinds ofmachines simply byvarying
+thedomain where thelabelsaretaken.Inthemostgeneral setting, these labelsarepolyno-
+mials (orevenrational series indeed) overamonoid Mwithmultiplicit yinasemiring K.
+\Classical" automata areobtained when Misafreemonoid A,when themultiplicit ysemir-
+ingistheBoolean semiring Bandwhen everylabelisaletter inA;transducers canbeseen
+asautomata overamonoid ABwithmultiplicit yinBaswellasautomata overAwith
+multiplicit yinP(B);automata overAwithmultiplicit yin(N;min;+)havebeenusedin
+order torepresen tjobshop problems, etc.
+Manysystems already existwhichmanipulate automata andrelated structures (expres-
+sions, grammars, ...)butalmost allthese systems dealwithautomata thelabelsofwhich
+areletters orwords|withthenotable exception ofFSMwhichcancompute withtransduc-
+ersandautomata with\numerical" multiplicit y.Most ofthese systems dealwithautomata
+thelabelofwhichareletters, orwords|withthenotable exception oftheFSM system
+whichcancompute withtransducers andautomata withmultiplicit y.Themain ideainde-
+signing Vaucanson hasbeentotakeadvantageofthemost recenttechniques ingeneric
+4Jacques Vaucanson (1709{1782), aFrenchautomaton maker,builtthefamous \ute player"and
+\duck"automata.
+5Twooftheauthors ofthepaper(S.L.andJ.S.)havewritten aLATEXmacro packagethathas
+alsobeencoined Vaucanson .Thelatter name willsoonbechanged inorder toavoidconfusion.
+
+--- Page 2 ---
+programming inorder todealwithautomata thelabelsofwhichmaybefreely chosen in
+anyalgebraic structure, withthecapacit yofwriting independen tly(asfarastheyareinde-
+penden t)thealgorithms ontheautomata ononehand andtheoperations inthestructure
+ontheother hand.
+Inthebriefpresen tation thatfollows,weshallrstshowhowthefunctions implemen ted
+inVaucanson allowtoprogram algorithms onautomata inawaywhichisveryclosetothe
+mathematical expression ofthealgorithm. Thesecond partwilldescrib esomefeatures ofthe
+Vaucanson platform, including thefactthattheveryrichdatastructure usedtoimplemen t
+automata doesnotweighttoomuchontheperformance. Thethird partexplains themain
+issues oftheprogramming design oftheplatform thatallowtoachievebothgenericit yand
+eciency .
+1Writing algorithms withVaucanson
+Another characteristic feature automata theory ,when seenfromamathematical pointof
+viewisthatmost statemen tsareeective andthatproofsareindeed algorithms |and
+moreo ver,inmanycases\good"proofsyieldalgorithms of\optimal" complexit y.Arstgoal
+thatisaimed withVaucanson istogivethepossibilit yofwriting programs foralgorithms
+onautomata inalanguage thatisascloseaspossible ofthemathematical description ofthe
+algorithm. Weillustrate thiscapacit yonanexample thatisnottoowell-kno wnandthat
+wetreatcompletely .
+1.1Theuniversalautomaton ofalanguage
+Theuniversalautomaton ofarational language Lisacanonical automaton. Ithasbeen
+introduced byConwayin1971[3].Thisautomaton canbeusedtondthesmallest NFA
+thataccepts thelanguage (cf.[1,12]),or,tostudy properties ofsomeregular languages (e.g.
+starheight[10,9]orreversibilit y[8]).
+Themain propertyofthisautomaton UListhatthere isamorphism ofanyautomaton
+thataccepts thelanguage LintoUL.
+Thestates ofthisautomaton arethe(maximal) factorizations ofthelanguage, i.e.the
+maximal pairs(X;Y)oflanguages suchthatX:Yisasubset ofL.Astate(X;Y)isinitial
+(resp.nal) itheemptywordbelongs toX(resp.toY).There isatransition labeled
+byabetween(X;Y)and(X0;Y0)iX:a:Y0isasubset ofL.These factorizations canbe
+computed inthesyntactic monoid, hence theuniversalautomaton isnite andeectiv ely
+computable.
+1.2Construction oftheuniversalautomaton
+Wegivehereanother construction (cf.[8,14]),thatdoesnotrequire thecomputation ofthe
+syntactic monoid.
+LetD=<Q;A;;fig;T>beadeterministic automaton thataccepts L(forinstance, the
+minimal automaton), where Qisitssetofstates, Aisthealphab et,thetransition function
+(p2(p;a)means thatthere isatransition fromptoqwithlabela),iistheinitial state
+andTisthesetofnalstates.
+
+--- Page 3 ---
+{Compute theco-determinized automaton Coftheautomaton D.LetPbethesetof
+states ofC.Everyelemen tofPisasubset ofQ.
+{Compute theclosure under intersection ofP.Theresult isasetR:everyelemen tofR
+isasubset ofQ.
+{Theuniversalautomaton isUL=<R;A;;J;U>,where:
+{J=fX2Rji2Xg:astateXisinitial iitcontainstheinitial stateofD;
+{U=fX2RjXTg:astateXisnalieveryelemen tofXisnalinD;
+{(X;a)=fY2Rj8p2X;(p;a)\Y6=;g:there isatransition fromXtoYlabeled
+byaiforeveryelemen tofX,there isatransition labeledbyatosome elemen tofY.
+Thisalgorithm iswritten inpseudo-language onFigure 1.J,Uand(X;a)(forevery
+stateXandeveryletter a)aresets.Inthepseudo-co deandintheC++ program, theyare
+builtincremen tally.
+Thisalgorithm canbetranslated intoaC++ function written withVaucanson .The
+codeisgivenonFigure 2.InC++, there isnoneedforvariables todealwithinitial states,
+nalstates ortransition function ofautomata, sincetheyareelds ormetho dsoftheau-
+tomaton object.
+1.3Commen tsonthecode
+Agoodunderstanding ofthisparagraph mayrequire some knowledge aboutC++.
+{Vaucanson provides alotofnewtypes.Everytypeisdesigned byawordending by
+t,likeusualautomatont,hstatet,...
+{l.3:thealiasAUTOMATONTYPESEXACT describ estheframe inwhichthefunction willbe
+dened andused. Itxesparticulary some types.Forinstance, theautomata wedeal
+witharehereBoolean automata (without anymultiplicit y)onfreemonoid. Thisim-
+pliesdenitions ofparticular names fortypes.Forinstance,automatontisanaliasfor
+usualautomatont.Thisisthereason whyusualautomatontmustbeusedinthedec-
+laration offunction whereas, afterline3,onecandeclaret,coruasautomatont.Like-
+wise,alphabett,statestaredened, whatisusedinsomemacros likeforeachstate
+thatwewillexplain further.
+{l.4:disanautomaton,d.initial() isthesetofitsinitial states (whichhasoneelemen t,
+becausedisdeterministic).d.initial().begi n()isapointerontherstelemen tof
+thissetandthusiistheinitial stateofd.
+{l.6:Itholds co-determinized (D)=transp osed(determinized(transp osed(D)).thename of
+thefunction isautotranspose toavoidanyconfusion withthetransp osition (ormirror
+image) ofwords.
+{l.7:EverystateofCisasubset ofstates ofD.Thisrelation mustbemade explicit: this
+isdonewithsubsetcstate ,whichisamapfromeverystateofctoasubset ofstates
+ofd.Thismapisanoptional parameter ofdeterminize .Likewise,subsetustate is
+amapfromeverystateofutoasubset ofstates ofd.
+{l.11:Thedeclaration ofthevariableuinduces thecreation oftheautomaton.
+{l.12:Some parameters ofautomata aredynamically dened. Ingeneral, itcanbethe
+monoid oflabelsandthesemiring where multiplicities stand. Thislinemeans thatthese
+parameters arethesameforuasford.Thisassignemen tismoreanassignemen toftypes
+thananusual assignemen tofvalues. Inthisparticulary case,weonlyhavetodene the
+alphab etsincetheother characteristics areinduced bythetypeautomatont(dened
+line3).
+
+--- Page 4 ---
+Universel (A=<Q;A;;fig;T>)
+C:=co-determinized (A)
+P:=states-of (C)(*P(Q)*)
+R:=intersection-closure (P)
+J:=;U:=;
+8X2R,8a2A,(X;a):=;
+8X2R(*,XstateofU*)
+if(i2X)thenJ:=J[fXg
+if(XT)thenU:=U[fXg
+8a2A
+if(8p2X,(p;a)6=;)then
+8Y2R
+if((X;a)Y)then
+(X;a):=(X;a)[Y
+return U=<R;A;;J;U>
+Fig.1.Construction oftheuniversalautomaton: thealgorithm
+1usualautomatontuniversal(constusualautomatont&d)
+2f
+3AUTOMATONTYPESEXACT(usualautomatont);
+4hstateti=*d.initial().begin();
+5maptsubsetcstate;
+6automatontt=autotranspose(t);
+7automatontc=autotranspose(determinize(t,subsetcstate));
+8pstatetcstates=image(subsetcstate);
+9pstatetustates(intersectionclosure(cstates));
+10
+11automatontu;
+12u.series()=d.series();
+13maptsubsetustate;
+14foreachconst(pstatet,s,ustates)
+15 f
+16hstatetnews=u.addstate();
+17subsetustate[news]=*s;
+18 g
+19foreachstate(x,u)
+20 f
+21if(iselement(i,subsetustate[x]))
+22u.setinitial(x);
+23if(issubset(subsetustate[x],d.final()))
+24u.setfinal(x);
+25foreachletter(a,u.series().monoid().alphabet())
+26 f
+27std::set <hstatet>deltaret;
+28boolcomp=deltaset(d,deltaret,subsetustate[*x],*a);
+29if(comp)
+30 foreachstate(y,u)
+31 if(issubset(dret,subsetustate[*y]))
+32 u.addletteredge(*x,*y,*a);
+33 g
+34 g
+35returnu;
+36g
+Fig.2.Construction oftheuniversalautomaton: Vaucanson code
+
+--- Page 5 ---
+{l.14:Foreveryelemen toftheclosureustates ,astateiscreated andonestorethelink
+betweenthestateandthecorresp onding subset.
+foreachconst isamacro thattakesthree parameters, therstoneisatype,thethird
+oneisacontainer ofthistypeandthesecond oneisaniterator thathandles every
+elemen tofthatcontainer. Thislineisequivalentto:
+for(pstate_t::iterato rs=u_states.begin() ;
+s!=u_state.end();
+s++)
+{l.19:foreachstate isamacro; therstparameter isaniterator ofstates andthe
+second isanautomaton. Thislineisequivalentto:
+for(state_t::iterator x=u.states().begin( );
+x!=u.states().end();
+x++)
+{l.21-24: Foreverystate, theinitial andnalproperties areset.
+{l.25:Fromtheautomatonu,onecanaccess tothe\series" ofu,andthen,tothemonoid
+onwhichthisseries isbuild. Once themonoid isknown,onecangetthegenerators of
+thismonoid, i.e.thealphab et.
+{l.28:Theresult ofdeltasetistrueifandonlyif,foreveryelemen tpofsubsetustate[*x],
+there exists atransition labeledby*a.Inthiscase,thesetoftheaimsoftransitions
+labeledby*awhose origin isinsubsetustate[*x]isstored indeltaret.
+{l.32:Atransition fromxtoyiscreated, withlabela;actually ,x,yandaareiterators,
+andthisisthereason whythere isastaratthefrontofeachofthem.
+2Glimpses ofthelibrary
+Thepurposeofthiscomm unication isnottobeausermanualofVaucanson andevennot
+listallitsfunctionalities. Wegivehereonlyfewhintsonwhatistobefound inthelibrary .
+2.1Determinization forbenchmarking
+Thedeterminization ofautomata (overA)isabasicalgorithm found ineverysystem. Itis
+knownthatthisalgorithm mayimply acombinatorial explosion.
+Weconsider thefollowing family ofautomata: Anisanautomaton withnstates:
+0;1;:::;n1suchthat0istheonlyinitial andtheonlynalstate, thealphab etisfa;b;cg
+andthetransition function (onthealphab etfa;b;cg)isdened by:
+(0;q)=f1g;(0;b)=(0;c)=;;
+8i6=0;(i;a)=fi+1modng;(i;b)=fig;(i;c)=f0;ig:
+ThefollowingtesthasbeenrunonaXeon 2.4Ghz, 256Ko cachememory ,1GoRAM.
+
+--- Page 6 ---
+0
+1
+2
+3 n-3n-2n-1
+a
+aaaa;c
+c
+c cca
+cb;c
+b;c
+b;c b;cb;cb;c
+Fig.3.Theautomaton An
+n 3 5 7 9 11 13 15 17 19
+FSM 0:010:010:020:020:050:211:045:7435:7
+Time (s) AMoRE 0:020:020:030:130:552:6212:057:4
+Vaucanson 0:000:000:000:010:080:391:899:0843:0
+FSM 0:0060:010:030:10:41:77:330:5128
+Space (MB)AMoRE 0:60:60:60:60:60:72:18:1
+Vaucanson 0:0150:040:10:41:77 29 116 437
+2.2Minimization ofK-automata
+Inmanysemirings ofmultiplicities, itcanbehardandsometimes evenimpossible tond
+asmallest automaton thatrealizes aseries. Yet,there existsome localconditions onthe
+states ofanautomaton thatallowtomerge some ofthem. Theresult ofthisprocessisan
+equivalentK-automaton called theminimal K-covering (cf.[14]). Thisisnotacanonical
+automaton ofthelanguage. TwoK-automata arebisimulation equivalentitheyhavethe
+same minimal K-covering. Thisisageneralization ofthewell-kno wnNerodeequivalence
+involvedintheminimization ofDFAs.Vaucanson provides ageneralized version ofthe
+Hopcroftalgorithm thatcomputes thisequivalence foranautomaton Awithmultiplicit yin
+Kandthecorresp onding minimal K-covering.
+2.3Fromautomata toexpression andback
+Almost allsystems computing withautomata implemen tKleene's Theorem, thatiscompute
+arational (regular) expression equivalenttoagivenautomaton andconversely.Vaucanson
+library implemen tstheso-called stateelimination method.Thismetho drelies (astheother
+metho dsindeed) onanordering ofthestates oftheautomaton andtheexpression obtained
+astheresult dependsonthatordering. Afeature oftheVaucanson implemen tation isthat
+theordering isaparameter ofthealgorithm andcanalsobecomputed viaheuristics.
+Thetransformation ofanexpression intoanautomaton hasgivenrisetoaveryrichlit-
+terature. Vaucanson implemen tsthree metho ds:theThompson construction, thestandard
+automaton ofanexpression (alsocalled position automaton orGlushkov automaton )andthe
+automaton ofderivedterms ofanexpression (alsocalled partial derivatives orAntimir ov
+automaton ).Forthelatter, Vaucanson implemen tsthealgorithm duetoChamparnaud
+andZiadi [2].
+
+--- Page 7 ---
+2.4Transducer computation
+Vaucanson implemen tsthetwocentraltheorems: theevaluation theorem andthecom-
+position theorem, withalgorithms thatcorresp ondtothetwomains proofmetho ds:the
+morphism realization andtherepresen tation realization andthatareusedaccording tothe
+typeofthetransducers (normalized, letter-to-letter, real-time).
+2.5Programming thealgebraic structures
+Thedenition ofanautomaton requires thedenition ofasemiring ofmultiplicities (or
+weights)andamonoid oflabels.Vaucanson allowsthedenition ofanyofthese structures
+{andeverygeneric algorithm canbeapplied ontheresulting automata. Afewofthem are
+providede.g.freemonoids overanynite alphab etorproductofmonoids; thisgivesaccess
+totransducers thatcanbeconsidered asautomata overamonoid AB.Some semirings
+arepre-dened too:theBoolean semiring, theusual numerical semirings (integers, oating
+numbers)andtropical semirings (forinstance (N;min;+)or(Z;max;+)).
+Aseries overamonoid withmultiplicit yinasemiring isitselfasemiring andcanbeused
+assuch.Forinstance, Rat(B)(therational series overBwithBoolean coecien ts)isa
+semiring andautomata overAwithmultiplicit yinthissemiring areanother represen tation
+oftransducers.
+3Design forgenericit y
+Thefacilities exposedintheprevious sections arenotdirectly presen tinC++. Asoftware
+layerisnecessary toyieldanabstraction levelpowerfulenough forgenericit y.Yet,abstrac-
+tionshould notimply pooreciency sothewayofimplemen tingpolymorphism hastobe
+carefully chosen.
+Thissection pointsoutthedesign issues involvedinthedevelopmen toftheVaucanson
+library anditsposition confron tedwiththecurren tknownsolutions ofgeneric program-
+ming. First, wedescrib ewhat helps thewriting ofalgorithms intheframew ork.Then, we
+explain howwedealwiththeusual trade-o betweengenericit yandeciency .AnewDesign
+Pattern (cf[7])forthispurposeispresen tedandconstitutes thecontribution inthegeneric
+programming eld.
+3.1Aunied generic framew ork
+Wedescrib etheframew orkforthewriting ofalgorithm. Itrelies onhowtheobjectare
+typed,howthetypesofalgorithm inputs arespecied andhowVaucanson canbeadapted
+toforeign environmen ts.
+EveryVaucanson objectisanelemen tofasetAsinJavawhere everyentityhas
+theObject type,everyVaucanson entity(automaton, series ...)isaninstance ofthe
+Element<S,T>class.Element<S,T>canbereadlikeanelement ofasetSimplemente d
+bythetypeT.Aninstance oftheElement<S,T>classisalwayslinkedwithaninstance of
+Sandaninstance ofT.TheSinstance denotes thedynamic features ofthesetandtheT
+instance represen tsthevalueoftheelemen t.
+
+--- Page 8 ---
+Asaset,theSattribute represen tstheconcept handled bytheelemen t.Because itis
+alwayslinkedtoitsset,anelemen tcanretriev eallthealgebraic information itwasbuilt
+from. Forexample, inthealgorithm (Figure 2),u.set().series() .monoid().alphabet()
+returns thealphab etonwhichtheautomatonuisdened. Thisencapsulation enables shorter
+function protot ypesandthen, betterreadabilit y.
+GivenasetS,anelemen tofShasawelldened interface whatev eritsimplemen tation.
+Therefore, analgorithm canmixelemen tsimplemen tedbydieren twaystransparen tly,just
+byspecifying thattheimplemen tations canbedieren t.Forinstance, ageneric algorithm
+whichcomputes theproductoftwoautomata could beprotot ypedby:
+template<classT1,classT2>
+Element<Automata, T1>
+product(Element<Automata, T1>,Element<Automata, T2>);
+Finally ,theimplemen tation parameter allowsachoice betweendieren talgorithm ver-
+sionsdepending ontheunderlying datastructure. Forexample, aseriecanbeimplemen ted
+asanite maporasarational expression. Theconstan ttermiscomputed dieren tlyac-
+cording tothechosen implemen tation.
+Focusonweightedautomata services Thanks toourgeneric design, thedesign issues
+arecentered onthegeneral algebraic concepts (weightedautomaton, general series ...).
+Although algebraic objects(alphab et,monoid, semiring andseries) donotinvolveparticular
+problems, thedesign decisions abouttheautomaton objectareessentialaccording toan
+algorithmic andanergonomic pointofview.
+Asemphasized in[11],thefunction (thesuccessor function )isacrucial primitiv e
+because itisageneral mechanism witharealalgorithmic eect andwhichdependsboth
+ontheimplemen tation andontheconcept. Thefunction mustactasagluebetween
+algorithms anddatastructures conveying onlynecessary information. Indeed, tooricha
+canleadtoineciency whereas toopooraimplies clumsy use.Asaconsequence, the
+Vaucanson library provides alargevarietyoffunctions depending onalgorithm needs.
+Theusercanchoosebetweenstates oredges asresults. Inorder toobtain them, shealso
+hasthechoice betweencontainer, output iterator orread-only access begin/end iterator
+couple. Finally ,acriterion denes what kindofsuccessors hastoberetriev ed.Onecan
+choosetoreturn alloutput transitions, transitions whose labelsmatchaparticular letter or
+ausercondition passed asanfunction-ob ject.
+Extending Vaucanson withanewautomaton implemen tation doesnotnecessarily imply
+thedenition ofallofthese .Indeed, manydefault implemen tations areautomatically
+deduced fromtheothers.
+Interaction withexternal libraries Initiated bytheStandard Template Library (STL),
+theiterator concept isacommon ground betweenC++ libraries. Itisanabstract way
+ofdening thegeneric traversalofdatastructures. Vaucanson implemen tsittomanage
+interoperabilit ywithSTL.Vaucanson algorithms anddatastructures arehighly based
+onSTL, so,alotofdevelopmen teort issaved,avoiding thedevelopmen tofwellknown
+structures suchaslist,bitvectororred-blac ktree.
+Furthermore, importing newdatastructure fromanexternal library touseitasimple-
+mentation ofsomeelemen tcanbedoneeasily.Theuserhasjusttospecifytheforeign Cor
+
+--- Page 9 ---
+C++ typeasimplemen tation. Next, onlyasmall setofexternal functions mustbewritten
+toexplain howtheforeign implemen tation willlltheconcept requiremen ts.Then, linking
+withC/C++ external libraries ismade natural andsimple.
+3.2Polymorphism using C++ templates
+Letusnowintroducetheconsiderations aboutgenericit ywhichhaveledtoourframew ork.
+Object-Orien tedlanguages enable reusabilit ybased oncontracts dened byabstract
+classes. Yet,inpractice, thelatebinding toabstract services istooexpensiveandleadstoo
+badperformance forintensiv ecomputing. Thegenerativ epowerofC++ template allows
+thestatic resolution ofabstract services. Thisresults inhigh-lev elC++ programs whose
+speediscomparable todedicated low-levelCprograms. TheSTLhasinitiated thistrend
+anddemonstrates itsrelevancybyitspopularit y.
+STLapproac hAsmentioned in[13],thewriting ofgeneric algorithms ismade easier by
+using primitiv eservices common toalllibrary datastructures. Forexample, theiterator
+concept usesthepresence ofabegin()/end() metho dcouple ineverycontainer toabstract
+itstraversal. Analgorithm whichisgeneric w.r.t. thecontainer concept isparameterized by
+afreetypevariableC.Thecodeiswritten assuming thataninstance ofCwillbeacontainer.
+Yet,parameterization alaSTLdoesnotprovideanyconstrain tstoensure thatparame-
+tersreally lltherequiremen t.Moreo ver,thisgeneral typing leadstooverloading problems,
+likeprotot yping twoalgorithms withthesamename andarity.Asaconsequence, negrained
+specialization isunavailable. Concretely ,thismeans thatwriting ageneric algorithm fora
+particular classofautomata isnotallowed.
+Themain explanation isthatSTLlostthesubclassing relation betweenobjectsbe-
+cause ofanonconstrained universaltypequantication. TheVaucanson design solvedthis
+problem bymaking astepfurther ingeneric programming thatconsists inimplemen tinga
+generic objectframew orkwithstatic dispatc husing C++-templates [6,4].These program-
+mingmetho dsentailastronger typing, whichenables anerspecialization powerandsolves
+theoverloading problem.
+Beyondclassical useoftemplates Oneclassical objecthierarc hyisnotenough toobtain
+extensibilit yinourframew ork.Thecurren tsection willdescrib eanewdesign pattern we
+developpedtoallowarichergenericit y.
+Onemore time, themain issueistobound asprecisely aspossible thedomain ofan
+algorithm. Using onlyoneobjecthierarc hywouldyieldaonedimensional discrimination.
+Yet,anegrained specialization wouldrequire thehierarc hytobeadirected acyclic graph
+(with multiple inheritance).
+Tosimplify theobjectorganization, wedene morecomponentstocharacterize anobject.
+Wenotice thatabstraction andimplemen tation arequiteorthogonal foratleasttworeasons.
+Firstly ,when writing ageneral algorithm, people should onlyfocusonthemathematical
+concepts. Implemen tation constrain tsaretakenintoaccoun tafterw ards.Second, algorithm
+specialization should dependonimplemen tation andconcept symmetrically .
+Because ofthisorthogonalit y,itiseasier todesign theimplemen tation andtheconcept
+separately .Design patterns forthispurposearetheclassical bridge [7]ormore recently
+thegeneric bridge [5].However,there remain twoproblems forus:rst,itisasymmetric,
+
+--- Page 10 ---
+privileging concept uponimplemen tation; second, itdoesnotallowsubclassing w.r.tthetwo
+parameters because template argumen tsareinvariant.
+Tosolveallthese problems, theVaucanson library usesanewdesign pattern called
+Element/Met aElement .Themain ideaistoenable de-construction ofanobjectw.r.t
+itstwocomponentsandtousethem fortyping purpose.Elemen tisageneric classasso-
+ciating aconcept classandanimplemen tation one.TheroleofMetaElemen tistodene
+theinteraction betweenthese twocomponentsthatis,howthedatastructur eimplements
+theconcept.Akindofmulti-metho dswithstatic dispatc hisalsousedtoallowdefault im-
+plemen tation andspecialization ofn-ary metho ds.Thepattern isillustrated inthegure
+4using theUnied Modelling Language. Itseectiv eimplemen tation involvessome C++
+meta-programming techniques whichwillnotbeexplicited inthispaper.
+ImplementationSet
+MetaElementMetaElement
+ImplementationSet
+Element Implementation Set
+Fig.4.UML diagram oftheElement/Met aElement design pattern.
+References
+1.A.Arnold, A.Dicky,andM.Nivat,Anoteaboutminimal non-deterministic automata ,Bullot
+theEATCS47(1992), 166{169.
+2.J.-M. Champarnaud andD.Ziadi, Canonic alderivatives, partialderivatives andniteautoma-
+tonconstructions ,Theor. Comp. Sci.289(2002), no.1,137{163.
+3.J.H.Conway,Regularalgebraandnitemachines ,Chapman andHall,1971.
+4.J.Darbon,T.Geraud, andA.Duret-Lutz, Generic implementation ofmorpholo gicalimage
+operators,Int.Symp. onMathematical Morphology VI(ISMM'2002), April 2002, pp.175{184.
+5.A.Duret-Lutz, T.Geraud, andA.Demaille, Design patterns forgeneric programming inC++,
+Proc.ofthe6thUSENIX Conf. onObject-Orien tedTechnologies andSystems (COOTS'01),
+USENIX Association, 2001, pp.189{202.
+6.A.Fabri,G.-J. Giezeman, L.Kettner, S.Schirra, andS.Schonherr, Onthedesign ofCGAL,
+thecomputational geometry algorithms library,Tech.Report3407, INRIA, April 1998.
+7.E.Gamma, R.Helm, R.Johnson, andJ.Vlissides, Design patterns: Abstraction andreuseof
+object-oriente ddesign ,LNCS 707(1993), 406{431.
+8.S.Lombardy,Ontheconstruction ofreversible automata forreversible languages ,Proc.of
+ICALP'02, LNCS 2380 (2002), 170{182.
+9.S.Lombardy andJ.Sakarovitch,Starheight ofreversible languages anduniversal automata ,
+Proc.ofLATIN'02, LNCS 2286 (2002), 76{89.
+10. ,Onthestarheight ofrational languages, anewpresentation fortwooldresults,World
+Scientic(toappear).
+11.V.LeMaout, Cursors ,Proc.ofCIAA 2000, LNCS 2088 (2001), 195{207.
+12.O.Matz andA.Pottho, Computing smallnondeterministic nite automata ,proc.of
+TACAS'95, BRICS Notes Series, 1995, pp.74{88.
+13.D.R.Musser andA.A.Stepano v,Algorithm-oriente dgeneric libraries,Software-Practice and
+Experience 24(1994), no.7,623{642.
+14.J.Sakarovitch,Elements detheoriedesautomates ,Vuibert,2003.

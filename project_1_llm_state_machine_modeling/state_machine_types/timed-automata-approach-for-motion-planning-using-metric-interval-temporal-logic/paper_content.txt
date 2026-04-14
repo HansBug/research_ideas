@@ -1,0 +1,798 @@
+--- Page 1 ---
+Timed Automata Approach for Motion Planning Using Metric Interval
+Temporal Logic
+Yuchen Zhou, Dipankar Maity and John S. Baras
+Abstract — In this paper, we consider the robot motion (or
+task) planning problem under some given time bounded high
+level speciﬁcations. We use metric interval temporal logic
+(MITL), a member of the temporal logic family, to represent
+the task speciﬁcation and then we provide a constructive way to
+generate a timed automaton and methods to look for accepting
+runs on the automaton to ﬁnd a feasible motion (or path)
+sequence for the robot to complete the task.
+Index Terms — Timed automata, Temporal Logic, Metric
+Temporal Logic
+I. I NTRODUCTION
+Motion planning and task planning have gained an enor-
+mous thrust in the robotics community in the past decade
+or so. Though, motion (task) planning has attracted a great
+deal of research in the past few decades, however recently,
+researchers have come up with new metrics and methodology
+to represent motion and task speciﬁcations. Initially, motion
+planning for a mobile robot started with the aim of moving
+a point mass from an initial position to a ﬁnal position in
+some optimal fashion. With course of time, people started to
+consider planning in cluttered domains (i.e. in presence of
+obstacles) and also accounted for the dimensionality and the
+physical constraints of the robot.
+Though we have efﬁcient approaches for general mo-
+tion planning, very few are available or scalable to plan
+in dynamic environments or under ﬁnite time constraints.
+Temporal logics have been used greatly to address complex
+motion speciﬁcations, motion sequencing and timing behav-
+iors etc. Historically temporal logic was originated for model
+checking, validation and veriﬁcation in software community
+[1] and later on researchers found it very helpful to use
+Linear Temporal logic (LTL), Computational Tree logic
+(CTL), Signal Temporal logic (STL) etc. for representing
+complex motion (or task) speciﬁcations. The developments
+of tools such as SPIN [2], NuSMV [3] made it easier to
+check if a given speciﬁcations can be met by creating a
+suitable automaton and looking for a feasible path on that
+automaton. However, the construction of the automaton from
+a given temporal logic formula is based on the implicit
+assumption that there is no time constraints associated with
+the speciﬁcation.
+This work is supported by NSF grant CNS-1035655, NIST grant
+70NANB11H148 and by DARPA (through ARO) grant W911NF1410384.
+The authors are with the Department of Electrical and Computer En-
+gineering, and the Institute for Systems Research, University of Mary-
+land, College Park, Maryland, USA. email: fyzh89, dmaity,
+baras g@umd.edu .Currently motion planning for robots is in such a stage
+where it is very crucial to incorporate time constraints since
+these constraints can arise from different aspects of the
+problem: dynamic environment, sequential processing, time
+optimality etc. Planning with time bounded objectives is
+inherently hard due to the fact that every transition from
+one state to another in the associated automaton has to be
+carried out, by some controller, exactly in time from an
+initial conﬁguration to the ﬁnal conﬁguration. Time bounded
+motion planning has been done in heuristic ways [4], [5]
+and also by using mixed integer linear programming (MILP)
+framework [6], [7]. In this paper, we are interested in
+extending the idea of using LTL for time-unconstrained
+planning to use MITL for time-constrained motion planning.
+In [8], the authors proposed a method to represent time
+constrained planning task as an LTL formula rather than
+MITL formula. This formulation reduced the complexity
+of E XP-SPACE -complete for MITL to P SPACE -complete for
+LTL. However, the number of states in the generated B ¨uchi
+automata increases with time steps.
+In this paper, we mainly focus on motion planning based
+on the construction of an efﬁcient timed automaton from a
+given MITL speciﬁcation. A dedicated controller to navigate
+the robot can be constructed for the general planning problem
+once the discrete path is obtained from the automaton. The
+earlier results on construction of algorithms to verify timing
+properties of real time systems can be found in [9]. The
+complexity of satisﬁability and model checking problems
+for MTL formulas has been already studied in [10] and it
+has been shown that commonly used real-time properties
+such as bounded response and invariance can be decided
+in polynomial time or exponential space. More works on the
+decidability on MTL can be found in [11] and the references
+there in. The concept of alternating timed automata for
+bounded time model checking can be found in [12]. [13]
+talks about constructing deterministic timed automata from
+MTL speciﬁcations and this provides a uniﬁed framework
+to include all the future operators of MTL. The key to
+the approach of [13] was in separating the continuous time
+monitoring from the discrete time predictions of the future.
+We restrict our attention to generate timed automata from
+MITL based on the work done in [14]. It is done by
+constructing a timed automaton to generate a sequence of
+states and another to check whether the sequence generated
+is actually a valid one in the sense that it satisﬁes the given
+MITL speciﬁcation.
+The rest of the paper is organized as follows, section II
+provides a background on MITL and the timed automataarXiv:1603.08246v2  [cs.SY]  29 Mar 2016
+
+--- Page 2 ---
+pos0
+z1pos1:B
+z1
+pos3:A
+z1pos2
+z1z1jz:= 0
+z1
+z:= 0
+z1jz= 0z>0
+z:= 0
+Fig. 1. Timed Automata based on cell decomposition and robot dynamics
+based approach for MITL. Section III illustrates how the
+timed automata can be used to motion synthesis and we also
+provide UPPAAL [15] implementation of the same. Section
+IV gives some examples on different time bounded tasks and
+shows the implementation results. Section V provides a brief
+overview of how a continuous trajectory can be generated
+from the discrete plan. Finally, we conclude in section VI.
+II. P RELIMINARIES
+In this paper, we consider a surveying task in an area by a
+robot whose motion is abstracted to a graph. In particular for
+our particular setup, the robot motion is captured as a timed
+automaton (Fig. 1). Every edge is a timed transition that
+represents navigation of the robot from one location to other
+in space and every vertex of the graph represents a partition
+of the space. Our objective is to ﬁnd an optimal time path
+that satisﬁes the speciﬁcation given by timed temporal logic.
+A. Metric Interval Temporal Logic (MITL)
+Metric interval temporal logic is a speciﬁcation that in-
+cludes timed temporal speciﬁcation for model checking. It
+differs from Linear Temporal Logic on the part that it has
+constraints on the temporal operators.
+The formulas for LTL are build on atomic propositions by
+obeying the following grammar.
+Deﬁnition 2.1: The syntax of LTL formulas are deﬁned
+according to the following grammar rules:
+::=>jj:j_jXjU
+2the set of propositions, >and?(=:>)are the
+Boolean constants true andfalse respectively._denotes
+the disjunction operator and :denotes the negation operator.
+Urepresents the Until operator. MITL extends the Until
+operator to incorporate timing constraints.
+Deﬁnition 2.2: The syntax of MITL formulas are deﬁned
+according to the following grammar rules:
+::=>jj:j_jUI
+whereI[0;1]is an interval with end points in N[
+f1g .UIsymbolizes the timed Until operator. Sometimes
+we will represent U[0;1]byU. Other Boolean and temporal
+operators such as conjunction ( ^), eventually within I(I),
+always onI(I) etc. can be represented using the grammar
+desired in deﬁnition 2.2. For example, we can express time
+constrained eventually operator I>UIand so on. In
+this paper all the untimed temporal logic is transformed into
+until operator and all the timed operator is transformed to
+eventually within I, to make it easier to generate a timed
+automaton.MITL is interpreted over n-dimensional Boolean !-
+sequences of the form :N!Bn, wherenis the number
+of propositions.
+Deﬁnition 2.3: The semantics of any MTL formula is
+recursively deﬁned over a trajectory (;t)as:
+(;t)j=iff(;t)satisﬁesat timet
+(;t)j=:iff(;t)does not satisfy at timet
+(;t)j=1_2iff(;t)j=1or(;t)j=2
+(;t)j=1^2iff(;t)j=1and(;t)j=2
+(;t)j=iff(;t+ 1)j=
+(;t)j=1UI2iff9s2Is.t.(;t+s)j=2and8
+s0s;(;t+s0)j=1.
+Thus, the expression 1UI2means that 2will be true
+within time interval Iand until2becomes true, 1must
+be true. The MITL operator means that the speciﬁcation
+is true at next time instance, Imeans thatis always
+true for the time duration I,Imeans thatwill eventually
+become true within the time interval I. Composition of
+two or more MITL operators can express very sophisticated
+speciﬁcations; for example I1I2means that within time
+intervalI1,will be true and from that instance it will
+hold true always for a duration of I2. Other Boolean oper-
+ators such as implication ( )) and equivalence ( ,) can be
+expressed using the grammar rules and semantics given in
+deﬁnitions 2.2 and 2.3. More details on MITL grammar and
+semantics can be found in [16], [9].
+B. MITL and Timed Automata Based Approach
+An LTL formula can be transformed into a B ¨uchi au-
+tomaton which can be used in optimal path synthesis [17]
+and automata based guidance [18]. Similarly, in this paper,
+we focus on developing a timed automata based approach
+for MITL based motion planning. MITL, a modiﬁcation of
+Metric Temporal Logics (MTL), disallows the punctuation in
+the temporal interval, so that the left boundary and the right
+boundary have to be different. In general the complexity
+of model checking for MTL related logic is higher than
+that of LTL. The theoretical model checking complexity
+for LTL is P SPACE -complete [19]. The algorithm that has
+been implemented is exponential to the size of the formula.
+MTL by itself is undecidable. The model checking process
+of MITL includes transforming it into a timed automaton
+[9] [14]. CoFlatMTL and BoundedMTL deﬁned in [20] are
+more expressive fragments of MTL than MITL, which can be
+translated to LTL-Past but with exponential increase in size.
+SafetyMTL [11] and MTL, evaluated over ﬁnite and discrete
+timed word, can be translated into alternative timed automata.
+Although theoretically, the results suggest many fragments
+of MTL are usable, many algorithms developed for model
+checking are based on language emptiness check, which are
+very different from the control synthesis i.e. ﬁnding a feasible
+path. From best of our knowledge, the algorithm that is close
+to implementation for motion planning is that of [14].
+This paper uses the MITL and timed automaton generation
+based on [14]. In the following section, the summary of the
+transformation and our implementation for control synthesis
+are discussed.
+
+--- Page 3 ---
+^
+U
+:
+p(B)p(A)[l;r]
+p(B)
+Fig. 2. Logic tree representation of .
+III. MITL FOR MOTION PLANNING
+A. MITL to Timed Automata Transformation
+Consider the following requirements: a robot has to even-
+tually visit an area Aand another area Bin time interval
+[l;r], and the area Ahas to be visited ﬁrst. This can be
+captured in the following MITL,
+= (:BUA)^([l;r]B)
+It can be represented by a logic tree structure, where every
+node that has children is a temporal logic operator and every
+leaf node is an atomic proposition, as shown in Fig. 2. Every
+link represents an input output relationship.
+The authors in [14] propose to change every temporal logic
+operator into a timed signal transducer, which is a temporal
+automaton that accepts input and generates output. Based on
+their deﬁnition the Input Output Timed Automaton (IOTA)
+used in this paper is deﬁned as the following to ﬁt the control
+synthesis problem,
+Deﬁnition 3.1 (Input Output Timed Automaton):
+An input output timed automaton is a tuple
+A= (;Q;;C;;;I; ;q0;F), where
+is the input alphabet, Qis the ﬁnite set of discrete states,
+is the output alphabet, Cis the set of clock variables, and
+Iis the invariant condition deﬁned by conjunction of
+inequalities of clock variables. The clock variables can be
+disabled and activated by setting the rate of the clock 0or
+1in the invariant I.
+:Q!is the input function, which labels every state to
+an input, while
+:Q!is the output function, which labels every state
+to an output.
+is the transition relationship between states which is
+deﬁned by (p;q;r;g ), wherepis the start state, qis the end
+state,ris the clock resets, and gis the guard condition on
+the clock variables.
+q0is the initial state of the timed automaton.
+Fis the set of B ¨uchi states that have to be visited inﬁnitely
+often.
+The transformation of Until operator and timed Eventually
+operator is summarized in Figs. 3, 4 and 5. This is based
+on [14] with minor changes to match with our deﬁnition of
+IOTA. In Fig. 3, the timed automaton for pUqis shown. The
+inputs outputs of the states are speciﬁed in the second line
+within the box of each state. pqmeans the inputs are [1;0]sp
+p== 0spq
+pq== 0
+spq
+pq== 1spq
+pq= = 1z>0jz:= 0
+z>0jz:= 0
+z>0
+z:= 0
+z>0jz:= 0
+z>0jz:= 0z>0
+z:= 0z>0
+z:= 0z>0
+z:= 0
+Fig. 3. The timed automaton for pUq. The inputs and outputs of the
+states are speciﬁed in the second line of each state. pqmeans the inputs are
+[1;0]andpmeans the inputs can be [0;1]or[0;0], and= 1 means the
+output is 1. Transitions are speciﬁed in the format of guard jreset. In this
+case all the transitions have guard z >0and reset clock z. All states in
+this automaton are B ¨uchi accepting states except spq. The B ¨uchi accepting
+states are highlighted.
+Gen1
+x0
+1== 1
+== 0Gen0
+x0
+i== 0 ,y0
+i== 0 ,8i= 1;:::;m
+Gen2
+y0
+1== 1
+== 1
+Gen3
+x0
+2== 1
+== 0Gen4
+y0
+2== 1
+== 1
+::: :::
+Gen2m1
+x0
+m== 1
+== 0Gen2m
+y0
+m== 1
+== 1jy1:= 0jx1:= 0 jy1:= 0
+jx2:= 0
+jy2:= 0
+jx3:= 0
+:::
+jym:= 0
+jx1:= 0
+Fig. 4. The timed automaton for the generator part of Iafor motion
+planning. 2mis the number of clocks required to store the states of the
+timed eventually ( I) operator. It is computed based on the interval I.
+Detailed computation and derivation can be found in [14]. x0
+irepresents the
+rate of the clock xi. By setting the rate to be 0, we essentially deactivate
+the clock. The ‘’ symbol means that there is no value for that particular
+input, output or guard for that state. There are no B ¨uchi states since the
+time is bounded
+andpmeans the inputs can be [0;1]or[0;0], and= 1
+means the output is 1. Transitions are speciﬁed in the format
+ofgjr. In this case, all the transitions have guard z > 0
+and reset clock z. All states in this automaton are B ¨uchi
+accepting states except spq. The B ¨uchi accepting states are
+highlighted.
+The IOTA for timed eventually ( Ia) is decomposed into
+two automata, the generator generates predictions of the
+future outputs of the system, while the checker veriﬁes
+that the generated outputs actually ﬁt the inputs. Detailed
+derivations and veriﬁcations of the models can be found in
+[14]. The composition between them is achieved through the
+shared clock variables. Additional synchronization (‘ch!’) is
+added in our case to determine the ﬁnal satisfaction condition
+for the control synthesis. A ﬁnite time trajectory satisﬁes the
+MITL, when the output signal of the generator automaton
+
+--- Page 4 ---
+Chk1
+y1b
+p=Chk00
+x1aChk01
+y1a
+Chk2
+x2a
+p=Chk3
+z<ba
+&x2a
+p=
+Chk4
+y2b
+p=Chk5
+x3a
+p=Chk6
+z<ba
+&x3a
+p=
+::: :::
+Chk3m2
+ymb
+p=Chk3m1
+x1a
+p=Chk3m
+z<ba
+&x1a
+p=y1bjjz:= 0x1ajy1ajy1a
+z:= 0
+x2aj ch!
+y2bjjz:= 0
+x3aj
+:::
+ymbjjz:= 0
+x1aj
+Fig. 5. The timed automaton for the checker part of Iafor motion
+planning. 2mis the number of clocks required for the timed eventually
+(I) operator. There are no B ¨uchi states since the time is bounded
+(Fig. 4) includes a pair of raising edge and falling edge
+veriﬁed by the checker automaton. The transition from Chk 2
+to Chk 4(Fig. 5) marks the exact time when such falling edge
+is veriﬁed. This guarantees that the time trajectory before the
+synchronization is a ﬁnite time trajectory that satisﬁes the
+MITL.
+The composition of IOTA based on logic trees such as that
+of Fig. 2 is deﬁned similar to [14] with some modiﬁcations
+to handle cases when logic nodes have two children, for
+example the until and conjunction operators.
+Deﬁnition 3.2 (I/O Composition):
+LetA1
+1= (1
+1;Q1
+1;1
+1;C1
+1;1
+1;1
+1;I1
+1;1
+1;q1
+10;F1
+1),A1
+2=
+(1
+2;Q1
+2;1
+2;C1
+2;1
+2;1
+2;I1
+2;1
+2;q1
+20;F1
+2)be the input sides
+of the automaton. If there is only one, then A1
+1is used.
+LetA2= (2;Q2;2;C2;2;2;I2;2;q2
+0;F2)be the
+output side of the automaton. Because of the input output
+relationship between them, they should satisﬁes the condition
+that[1
+1;1
+2] = 2. The composition is an new IOTA such
+that,
+A= (A1
+1;A1
+2)
+(A2) = ([1
+1;1
+2];Q;2;C;;;I; ;q0;F)
+where
+Q=f(q1
+1;q1
+2;q2)2Q1
+1Q1
+2Q2;
+s:t:(1
+1(q1
+1);1
+2(q1
+2)) =2(q2)g
+C= (C1
+1[C1
+2[C2),(q1
+1;q1
+2;q2) = [1
+1(q1
+1);1
+2(q1
+2)],
+I(q1
+1;q1
+2;q2)=I1
+(q1
+1;q1
+2)\I2
+q2,q0= (q1
+10;q1
+20;q2
+0)andF=
+F1
+1\F1
+2[F2.
+B. Path Synthesis using UPPAAL
+The overall path synthesis framework is summarized as
+following,
+First, the robot and the environments are abstracted to
+a timed automaton (TA) Tmapusing cell decomposition,
+and the time to navigate from one cell to another isestimated based on the robot’s dynamics. For example
+Fig. 1.
+Second, MITL formula is translated to IOTA Ausing
+method described in previous section.
+IOTAAis then taken product with the TA Tmapusing
+the location label. For instance pos1 :Bin Fig. 1 will
+be taken product with all states in IOTA that do not
+satisfy the predicate p(a)but satisﬁes p(b).
+The resulting timed automata are then automatically
+transformed to an UPPAAL [15] model with additional
+satisfaction condition veriﬁer. An initial state is chosen
+so that the output at that state is 1. Any ﬁnite trajectory
+which initiated from that state and satisfying the fol-
+lowing conditions will satisfy the MITL speciﬁcation.
+Firstly, it has to visit at least one of the B ¨uchi accepting
+states, and secondly, it has to meet the acceptance
+condition for the timed eventually operator. To perform
+such a search in UPPAAL, a ﬁnal state is added to
+allow transitions from any B ¨uchi accepting state to
+itself. A veriﬁcation automaton is created to check the
+ﬁnite acceptance conditions for every timed eventually
+operator.
+An optimal timed path is then synthesized using the
+UPPAAL veriﬁcation tool.
+The implementation of the ﬁrst and the second step is
+based on parsing and simpliﬁcation functions of ltl2ba tool
+[21] with additional capabilities to generate IOTA. We then
+use the generated IOTA to autogenerate a python script
+which constructs the UPPAAL model automatically through
+PyUPPAAL, a python interface to create and layout models
+for UPPAAL. The complete set of tools1is implemented in
+C to optimize speed.
+IV. C ASE STUDY AND DISCUSSION
+We demonstrate our framework for a simple environment
+and for some typical temporal logic formulas. Although our
+tool is not limited by the complexity of the environment,
+we use a simple environment to make the resulting timed
+automaton easy to visualize. Let us consider the timed
+automaton from the abstraction in Fig. 1 and the LTL formula
+is given as the following,
+1= (:AUB)^(A):
+This speciﬁcation requires the robot to visit the area Bﬁrst
+and eventually visit Aalso. The resulting automaton based
+on the methods in the previous section is as shown in Fig. 6.
+Each state corresponds to a product state between a state in
+Tmapand a state in IOTA A. The B ¨uchi accepting states are
+indicated by an additional bin their state names. We obtained
+the optimal path by ﬁrst adding a ﬁnal state and linking every
+accepting states to it, and then using UPPAAL to ﬁnd one
+of the shortest path that satisﬁes condition “ E <> final ”.
+UPPAAL will then compute one fastest path in the timed
+automaton that goes to ﬁnal state, if one such exists. If such
+1The tool is available on https://github.com/yzh89/
+MITL2Timed
+
+--- Page 5 ---
+Fig. 6. The Resulting timed automaton in UPPAAL of 1. The purple colored texts under the state names represent I. The green colored texts along the
+edges represent guard conditions, while the blue ones represent clock resets. The B ¨uchi accepting states are represented by a subscript b in state names.
+exists, this feasible path is a ﬁnite trajectory that satisﬁes
+the speciﬁcation. In this paper, we are more interested in
+planning a path that satisﬁes MITL, so ﬁnite time trajectory
+is a valid solution. The initial states of the automaton is
+loc0 which is the only state at pos0 that outputs 1. The
+optimal trajectory is loc0!loc2!loc7!loc6b, in the
+product automaton. This trajectory means that the optimal
+way for a robot to satisfy the LTL is to traverse the map in
+the following order, pos0!pos1 :B!pos0!pos3 :A.
+In the second test case, the environment stays the same
+and the requirement is captured in a MITL formula 2
+2=[0;2]A
+This requires the robot to perform periodic survey of area
+Aevery 2s. The resulting timed automata are shown in Fig.
+7 and Fig. 8. As we discussed earlier, if a synchronization
+signal (ch!) is sent, the falling edge for output of generator
+automaton is detected and veriﬁed. This marks the end of a
+ﬁnite trajectory that satisﬁes the MITL constraints. We used
+the automaton in Fig. 8 (b) to receive such signal. Similar
+to the LTL case, we ask UPPAAL to ﬁnd a fastest path that
+leads to the ﬁnal states in Fig. 8(a) and 8(b) if such exists.
+The optimal trajectory in this case is (loc19;loc28)!
+(loc3;loc28)!(loc3;loc22b), which corresponds to
+(pos0;t2[0;1])!(pos3 :A;t2[1;2])!(pos0;t2
+[2;3]). Then this trajectory repeats itself.
+All the computations are done on a computer with 3.4GHz
+processor and 8GB memory. Both of the previous examples
+require very small amount of time (<0:03s). We also
+tested our implementation against various other complex
+environments and MITL formulas. The Table I summarizes
+our results for complex systems and formulas. The map weTABLE I
+COMPUTATION TIME FOR TYPICAL MITL FORMULA
+MITL Map Transformation Num of Timed Synthesis
+Formula Grid Time Automata Transitions Time
+1 2x2<0:001s 22 0.016s
+2 2x2 0:004s 69 0.018s
+3 2x2 0:40s 532 0.10s
+4 2x2 0:46s 681 0.12s
+1 4x4 0:004s 181 0.062s
+1 8x8 0:015s 886 0.21s
+2 8x8 0:015s 1795 0.32s
+demonstrated earlier is a 2x2 map (Fig. 1), we also examine
+the cases for 4x4 and 8x8 grid maps. The used temporal logic
+formulas are listed below. The time intervals in the formula
+is scaled accordingly to the map size.
+3=[0;4]A^[0;4]B
+4=[2;4]A^[0;2]B
+It can be seen from the Table I that our algorithm works
+very well with common MITL formulas and scales satisfac-
+torily with the dimensions of the map.
+V. C ONTINUOUS TRAJECTORY GENERATION
+In this section, we brieﬂy talk about generating a con-
+tinuous trajectory from the discrete motion plan obtained
+from the timed automaton. Let us consider the nonholonomic
+dynamics of a unicycle car as given in (1).
+_2
+4x
+y
+3
+5=u2
+4cos
+sin
+03
+5+!2
+40
+0
+13
+5 (1)
+
+--- Page 6 ---
+Fig. 7. This shows one of the resulting timed automata in UPPAAL of 2corresponding to the checker of timed eventually operator and untimed always.
+Some of the edges are further annotated by synchronization signal (ch!).
+(a)
+ (b)
+Fig. 8. Fig. (a) shows the other timed automata of 2corresponding to the generator of timed eventually. Fig. (b) shows the veriﬁcation timed automaton,
+that checks if the falling edge of generator is ever detected, i.e. if a synchronization signal (ch!) has happened. This signal marks the end of a full eventually
+cycle. Similar to the LTL case, we ask UPPAAL to check for us the following property, if there is a trajectory that leads to the ﬁnal states in (a) and
+(b). The optimal path in this case is (loc19;loc28)!(loc3;loc28)!(loc3;loc22b). The states are products of states of Fig. 7 and Fig. (a). This path
+corresponds to (pos0;t2[0;1])!(pos3 :A;t2[1;2])!(pos0;t2[2;3])in physical space. Repeating this path will satisfy 2.
+
+--- Page 7 ---
+Fig. 9. Workspace and the continuous trajectory for the speciﬁcation 1.
+The initial location is the top-left corner cell (I).
+where!anduare the control inputs. It should be noted
+that the above nonholonomic dynamics is controllable and
+we assume no constraints on the control inputs at this point.
+The above sections provide the sequence of cells to be visited
+in the grid like environment (Fig. 9).
+The output of the timed automaton are treated as the time-
+stamped way points for the robot to move. We have to assure
+that the robot moves from one way point to the next with
+the given initial and ﬁnal time and at the same time, the
+trajectory should remain within the associated cells.
+Since our environment is decomposed in rectangular cells,
+the robot will only move forward, turn right, turn left and
+make a U-turn. We synthesize a controller that can make the
+robot to perform these elementary motion segments within
+the given time.
+For moving forward the input !is chosen to be 0and the
+velocityuis tuned so that the robot reaches the ﬁnal position
+in time. For turning left and turning right !is chosen to take
+positive and negative values respectively so that a circular arc
+is traversed. Similarly the U-turn is also implemented so that
+the robot performs the U-turn within a single cell.
+Let us denote the state of the system at time tby the
+pair(q;t)i.e.x(t) =q1; y(t) =q2and(t) =q3where
+q= [q1; q2; q3]. Then we have the following lemma on the
+optimality of the control inputs.
+Lemma 5.1: Ifu(t)and!(t),t2[0;1]is a pair of
+control inputs s.t. the dynamics moves from the state (q0;0)
+to(q1;1), thenu(t0+t) =1
+u(t
+)and!(t0+t) =1
+!(t
+)
+move the system from (q0;t0)to(q1;t0+)for any>0.
+Moreover, if uand!move the system optimally, i.e.
+J(u;!) = min
+u();w()Z1
+0[r1u2(t) +r2w2(t)]dt (2)
+thenuand!given above are also optimal for moving the
+system from (q0;t0)to(q1;t0+), i.e.
+J1(u;!) = min
+u1();w1()Zt0+
+t0[r1u2
+1(t) +r2w2
+1(t)]dt: (3)Proof: Let us ﬁrst denote
+G(q) =2
+4cos((t)) 0
+sin((t)) 0
+0 13
+5
+whereq= [x(t);y(t);(t)]. Therefore, dynamics (1)
+can be written as _q=G(q)u
+!
+:Let us now consider
+q(t) = [x(t0+t); y(t0+t); (t0+t)]. Therefore,
+_q=G(q)u(t0+t)
+!(t0+t)
+. Using the deﬁnition of u
+and!in the lemma, we get _q=G(q)u
+!
+By the
+hypothesis of the lemma, uand!move the system from
+(q0;0)to(q1;1)i.e. from [x(t0);y(t0);(t0)] =q0to
+q1= q(1) = [x(t0+);y(t0+);(t0+)].
+For optimality, let the proposed u; ! be not optimal and
+uand!are optimal ones i.e.
+Zt0+
+t0[r1u2(t)+r2!(t)2]dtZt0+
+t0[r1u2(t)+r2!2(t)]dt
+(4)
+Now let us construct u(t) =u(t0+t)and!(t) =
+!(t0+t).
+Therefore from (4),
+Z1
+0[r1u2(t0+s) +r2!2(t0+s)]ds
+Z1
+0[r1u2(t0+s) +r2!2(t0+s)]ds
+Z1
+0[r1u2(s) +r2!2(s)]dsZ1
+0[r1u2(s) +r2!2(s)]ds
+(5)
+But, by the hypothesis, uand!are optimal and hence
+Z1
+0[r1u2(s) +r2!2(s)]dsZ1
+0[r1u2(s) +r2!2(s)]ds
+(6)
+Combining (5) and (6) we get,
+Z1
+0[r1u2(s) +r2!2(s)]ds=Z1
+0[r1u2(s) +r2!2(s)]ds
+(7)
+After changing the dummy variables inside integration
+again, one can obtain
+Zt0+
+t0[r1u2(s)+r2!2(s)]ds=Zt0+
+t0[r1u2(s)+r2!2(s)]ds
+(8)
+Hence the proposed uand!are optimal whenever uand
+!are optimal.
+Remark 5.2: Lemma 5.1 states that if the controls for
+elementary motions from initial time 0to ﬁnal time 1are
+synthesized, then by properly scaling and shifting in the time
+and scaling the magnitude, controls for any movement from
+any initial time to any ﬁnal time can be synthesized without
+further solving any optimization problem.
+
+--- Page 8 ---
+VI. C ONCLUSION
+In this paper, we have presented a timed automaton based
+approach to generate a discrete plan for the robot to perform
+temporal tasks with ﬁnite time constraints. We implemented
+the algorithm in an efﬁcient and generic way so that it can
+translate the time constraints and temporal speciﬁcations to
+timed automaton models in UPPAAL and synthesize the path
+accordingly. We then demonstrated our algorithm in grid
+type environments with different MITL formulas. We have
+considered grid type of environment for our case studies,
+but it can be generalized to most of the motion planning
+problems when the environment can be decomposed into
+cells. We also provide a brief overview of how an optimal
+continuous trajectory can be generated from the discrete plan.
+For future works, we are considering to extend the work to
+include dynamic obstacles as well as for multiagent system.
+REFERENCES
+[1] C. Baier and J.-P. Katoen, Principles of model checking . Cambridge,
+Mass.: MIT Press, 2008.
+[2] G. J. Holzmann, “The model checker SPIN,” IEEE Transactions on
+software engineering , no. 5, pp. 279–295, 1997.
+[3] A. Cimatti, E. Clarke, E. Giunchiglia, F. Giunchiglia, M. Pistore,
+M. Roveri, R. Sebastiani, and A. Tacchella, “NuSMV 2: An open-
+source tool for symbolic model checking,” in Computer Aided Veriﬁ-
+cation . Springer, 2002, pp. 359–364.
+[4] K. Kant and S. W. Zucker, “Toward efﬁcient trajectory planning: The
+path-velocity decomposition,” The International Journal of Robotics
+Research , vol. 5, no. 3, pp. 72–89, 1986.
+[5] M. Erdmann and T. Lozano-Perez, “On multiple moving objects,”
+Algorithmica , vol. 2, no. 1-4, pp. 477–521, 1987.
+[6] A. Richards and J. P. How, “Aircraft trajectory planning with collision
+avoidance using mixed integer linear programming,” in Proceedings
+of the 2002 American Control Conference , vol. 3. IEEE, 2002, pp.
+1936–1941.
+[7] Y . Zhou, D. Maity, and J. S. Baras, “Optimal mission planner with
+timed temporal logic constraints,” in 2015 European Control Confer-
+ence (ECC) , July 2015, pp. 759–764.
+[8] D. Maity and J. Baras, “Motion planning in dynamic environments
+with bounded time temporal logic speciﬁcations,” in 2015 23th
+Mediterranean Conference on Control and Automation (MED) , Jun.
+2015, pp. 940–946.
+[9] R. Alur, T. Feder, and T. A. Henzinger, “The beneﬁts of relaxing
+punctuality,” Journal of the ACM (JACM) , vol. 43, no. 1, pp. 116–
+146, 1996.
+[10] J. Ouaknine and J. Worrell, “Some recent results in metric temporal
+logic,” in Formal Modeling and Analysis of Timed Systems . Springer,
+2008, pp. 1–13.
+[11] ——, “On the decidability of metric temporal logic,” in 20th Annual
+IEEE Symposium on Logic in Computer Science, 2005. LICS 2005.
+IEEE, 2005, pp. 188–197.
+[12] M. Jenkins, J. Ouaknine, A. Rabinovich, and J. Worrell, “Alternating
+timed automata over bounded time,” in 2010 25th Annual IEEE
+Symposium on Logic in Computer Science (LICS) . IEEE, 2010, pp.
+60–69.
+[13] D. Ni ˇckovi ´c and N. Piterman, From MTL to deterministic timed
+automata . Springer, 2010.
+[14] O. Maler, D. Nickovic, and A. Pnueli, “From MITL to timed au-
+tomata,” in Formal Modeling and Analysis of Timed Systems , ser.
+Lecture Notes in Computer Science, E. Asarin and P. Bouyer, Eds.
+Springer Berlin Heidelberg, 2006, no. 4202, pp. 274–289.
+[15] G. Behrmann, A. David, K. G. Larsen, J. Hakansson, P. Petterson,
+W. Yi, and M. Hendriks, “UPPAAL 4.0,” in Third International
+Conference on Quantitative Evaluation of Systems, 2006. QEST 2006.
+IEEE, 2006, pp. 125–126.
+[16] R. Koymans, “Specifying real-time properties with metric temporal
+logic,” Real-time systems , vol. 2, no. 4, pp. 255–299, 1990.[17] S. L. Smith, J. Tumova, C. Belta, and D. Rus, “Optimal path planning
+under temporal logic constraints,” in 2010 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) , 2010, pp. 3288–
+3293.
+[18] E. M. Wolff, U. Topcu, and R. M. Murray, “Automaton-guided
+controller synthesis for nonlinear systems with temporal logic,” in
+IEEE/RSJ International Conference on Intelligent Robots and Systems ,
+Tokyo Big Sight, Japan, 2013.
+[19] A. P. Sistla and E. M. Clarke, “The complexity of propositional linear
+temporal logics,” Journal of the ACM (JACM) , vol. 32, no. 3, pp.
+733–749, 1985.
+[20] P. Bouyer, N. Markey, J. Ouaknine, and J. Worrell, “On expressiveness
+and complexity in real-time model checking,” in Automata, Languages
+and Programming . Springer, 2008, pp. 124–135.
+[21] P. Gastin and D. Oddoux, “Fast LTL to b ¨uchi automata translation,” in
+Computer Aided Veriﬁcation , ser. Lecture Notes in Computer Science,
+G. Berry, H. Comon, and A. Finkel, Eds. Springer Berlin Heidelberg,
+2001, no. 2102, pp. 53–65.

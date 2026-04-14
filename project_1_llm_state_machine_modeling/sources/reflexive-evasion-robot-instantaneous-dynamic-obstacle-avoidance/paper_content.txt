@@ -1,0 +1,1046 @@
+--- Page 1 ---
+REBot: Reflexive Evasion Robot for Instantaneous
+Dynamic Obstacle Avoidance
+Zihao Xu1, Ce Hao1, Chunzheng Wang2, Kuankuan Sima2, Fan Shi2, and Jin Song Dong1
+Abstract — Dynamic obstacle avoidance (DOA) is critical for
+quadrupedal robots operating in environments with moving
+obstacles or humans. Existing approaches typically rely on
+navigation-based trajectory replanning, which assumes sufficient
+reaction time and leading to fails when obstacles approach
+rapidly. In such scenarios, quadrupedal robots require re-
+flexive evasion capabilities to perform instantaneous, low-
+latency maneuvers. This paper introduces Reflexive Evasion
+Robot (REBot), a control framework that enables quadrupedal
+robots to achieve real-time reflexive obstacle avoidance. REBot
+integrates an avoidance policy and a recovery policy within a
+finite-state machine. With carefully designed learning curricula
+and by incorporating regularization and adaptive rewards,
+REBot achieves robust evasion and rapid stabilization in
+instantaneous DOA tasks. We validate REBot through extensive
+simulations and real-world experiments, demonstrating notable
+improvements in avoidance success rates, energy efficiency, and
+robustness to fast-moving obstacles. Videos and appendix are
+available on https://rebot-2025.github.io/.
+I. I NTRODUCTION
+Ensuring the safety of a robot is essential during task
+execution [1]. For instance, a mobile robot must not only
+perform its primary tasks but also perceive surrounding
+obstacles and take appropriate evasive actions [2]–[4]. When
+encountering slow-moving obstacles (reaction time >2s),
+the robot typically has sufficient time to stop its current
+actions and replan a new trajectory using a decision-making
+model to avoid collisions [5], [6]. This type of behavior
+is commonly referred to as dynamic obstacle avoidance
+(DOA) via navigation-based trajectory replanning [7]. For
+legged robots, such as quadrupedal robots, DOA involves
+both high-level navigation decision-making and low-level
+locomotion control [8]. For example, in the Agile but Safe
+(ABS) framework [9], a quadrupedal robot encountering a
+quasi-static obstacle during high-speed locomotion can reduce
+its speed and replan a navigation trajectory to safely bypass
+the obstacle.
+However, when obstacles approach at high speeds, the
+robot is left with extremely limited reaction time ( <1.5s),
+necessitating immediate evasive maneuvers [10]. Due to
+limitations in mechanical structure and motor power, the robot
+often fails to generate sufficient velocity within the available
+time to accurately track a replanned navigation trajectory [11].
+To achieve instantaneous DOA, we draw inspiration from
+the spinal reflex systems of vertebrates. Unlike decision-
+making processes governed by the brain, spinal reflexes enable
+rapid, localized decisions through neural circuits in the spinal
+1School of Computing, National University of Singapore, Singapore.
+2Department of Electrical and Computer Engineering, National University
+of Singapore, Singapore.cord, allowing animals to execute unconventional evasive
+actions instantaneously [12]. For example, an antelope might
+execute a sudden backward leap to evade an ambush from
+an underwater crocodile while drinking, relying entirely on
+reflexive evasion.
+In this paper, we propose the Reflexive Evasion Robot
+(REBot) system for instantaneous dynamic obstacle avoidance.
+Using the quadrupedal robot Unitree Go2 as an example
+platform [13], [14], REBot demonstrates real-time evasion
+of high-speed obstacles with a reaction time of less than 1.5
+seconds. The REBot system is structured as a finite-state
+machine with three behavioral stages. During the normal
+stage, the robot performs its primary functional tasks. When
+an approaching obstacle is detected, REBot transitions to
+the avoidance stage, executing reflexive evasion maneuvers.
+During evasion, reinforcement learning (RL) policy [15]–[17]
+trained by PPO enables rapid avoidance while preserving the
+robot’s safety, balance, and energy efficiency. After an evasive
+maneuver, the robot may become unstable. REBot then enters
+the recovery stage, during which a policy stabilizes the robot
+and restores normal function.
+We trained the REBot system for quadrupedal robots
+in Isaac Gym simulator [18], evaluated its performance,
+and deployed it on a real robot for demonstration. REBot
+achieved the highest avoidance and recovery success rates in
+both static and dynamic obstacle scenarios, while reducing
+maximum joint power and avoidance distance. We observed
+that the robot’s reflexive evasion performance varied with
+obstacle direction and speed; it performed best when avoiding
+frontal obstacles due to its structural advantages in backward
+maneuvers. Ablation studies confirmed that the recovery
+policy, curriculum learning, and adaptive reward design
+significantly improved avoidance success rates. Finally, real-
+world experiments (Fig. 1) validated REBot’s capability for
+real-time, instantaneous dynamic obstacle avoidance, offering
+insights into robot safety system design.
+In summary, the contributions of this paper are as follows:
+•We formally identify and formulate the reflexive evasion
+problem for dynamic obstacle avoidance under constrained
+reaction time in quadrupedal robots.
+•We design the REBot system as a finite-state machine
+integrating avoidance and recovery policies to achieve
+robust, real-time reflexive evasion.
+•We conduct comprehensive simulations and real-world
+experiments with thorough analysis to validate REBot’s
+effectiveness across various obstacle scenarios.arXiv:2508.06229v1  [cs.RO]  8 Aug 2025
+
+--- Page 2 ---
+(a)
+(b)
+(c)
+(e)(d)Fig. 1: The Reflexive Evasion Robot ( REBot ) system achieves instantaneous dynamic obstacle avoidance. When the fast-
+moving obstacles approach the quadrupedal robots (reaction time <1.5s), REBot switches to the avoidance policy and performs
+reflexive evasion maneuvers. In (a) and (b), the robot is poked on the frontal and dorsal sides using a stick; in (c) and (d), a
+ball is launched toward the robot from both frontal and lateral directions; in (e), to evaluate robustness, the quadrupedal
+robot was subjected to intentional kicks from multiple directions. Experimental results demonstrate that the REBot system
+successfully controlled the quadrupedal robot to avoid all obstacles.
+II. R ELATED WORKS
+Quadrupedal robots have achieved significant progress in
+recent years [19], [20], enabled by both model-based and
+learning-based control frameworks. Model-based approaches
+such as zero-moment point (ZMP) planning [21], [22],
+centroidal dynamics optimization [23], [24], and Model
+Predictive Control (MPC) [25], [26] enable precise trajectory
+tracking and support dynamic maneuvers under unstructured
+environments. In parallel, RL has empowered quadrupeds
+with a wide range of locomotion skills [16], from diverse
+gaits [27] to robust terrain traversal [28] and morphology
+adaptation [29]. RL has also been applied to static obstacle
+avoidance [9], where methods like ABS combine learned
+control with navigation planning to produce collision-free
+paths. However, such methods rely heavily on trajectory
+replanning and sufficient reaction time, which limits their
+applicability under fast or unpredictable conditions.
+Dynamic obstacle avoidance has been extensively studied
+across UA Vs [4], [10], [30], [31], mobile robots [2], [32],
+humanoids [3], [33], and manipulators [34], [35]. UA Vs
+leverage high-frequency planning and reactive control [4],
+[10], while Fan et al. [31] proposed a deep RL-based policy
+that enables fast, map-free evasive maneuvers against dynamic
+threats, even at high relative speeds. In mobile platforms, RL
+frameworks with motion constraints [2] improve navigationin crowded environments. For humanoids and manipulators,
+full-body coordination has been exploited to intercept or avoid
+moving objects [3], [35]. These advances demonstrate diverse
+platform-specific strategies for dynamic avoidance, but few
+translate directly to legged locomotion.
+Despite these advances, quadrupedal robots currently lack
+general-purpose frameworks for dynamic obstacle avoidance
+under constrained reaction time. Existing approaches often
+rely on predefined motion primitives such as sidestepping,
+without the reflexive strategies seen in other platforms.
+Bridging this gap remains an open challenge and is critical
+for deploying legged robots in fast-changing environments.
+III. P RELIMINARY
+Problem formulation . Fig. 2 shows that the dynamic
+obstacle avoidance (DOA) system has two entities: dynamic
+obstacles and quadruped robots. The dynamic obstacles O
+are modeled as a rigid sphere with states (rO, pO
+t, vO
+t)of
+radius, position, velocity and acceleration in 3D space. The
+quadruped robot Ris a high-dimensional articulated system
+with a robot base and four independently actuated legs. The
+states sR
+tconsist of base position pR
+t∈R3, linear velocity
+vR
+t∈R3, angular velocity ωR
+t∈R3, joint position qR
+t∈R12,
+joint velocity ˙qR
+t∈R12, joint torque τR
+t∈R12, contact
+force fR
+t∈R4×3and orientation angle θR
+t∈R3. The robot
+is driven by servo motors on the joints to move on the
+
+--- Page 3 ---
+Reflexive evasionNavigation
+𝑂1
+𝑂2
+𝑅Treact<1.5s
+Treact>2sℬ𝑅Fig. 2: Robot dynamic obstacle avoidance based on different
+reaction time. Red line: reflexive evasion under shorter
+reaction time; blue line: navigation_based avoidance under
+longer reaction time.
+ground via action aR
+t, where aR
+t∈R12denotes the joint
+target angles. In this work, we utilize the Unitree Go2 robot
+to conduct experiments. We define a successful dynamic
+obstacle avoidance (DOA) as the robot maintaining collision-
+free motion throughout the task duration. A collision is
+considered to occur if the signed distance function (SDF)
+from the obstacle center pO
+tto the robot’s oriented bounding
+box (OBB), denoted as BR, is smaller than the obstacle’s
+radius rO; that is, if d(pO
+t,BR)< rO.
+Dynamic obstacle Avoidance Strategies . The
+robot adopts a control system with observation
+(pR
+t, ωR
+t, qR
+t,˙qR
+t, τR
+t, fR
+t, pO
+t, vO
+t, rO)and action (aR
+t),
+enabling the robot to avoid approaching obstacles while
+maintaining balance. When faced with static or slow-moving
+obstacles, the robot can temporarily stop and replan its
+trajectory, a behavior classified as navigation avoidance [9].
+However, when the obstacles approach instantaneously,
+the robot must react immediately. We categorize such
+behavior as reflexive evasion (Fig. 2). The reaction time
+Treactdetermines the reaction of navigation or reflex, and
+we distinguish these two behaviors by the maximum joint
+power of the robot. In the following sections, we design the
+REBot system to achieve the reflexive DOA and analyze the
+behaviors in both simulation and real-world experiments.
+IV. M ETHOD
+In this section, we design the reflexive evasion robot
+(REBot ) system to achieve DOA in Fig. 3(a). As shown in
+Fig. 3, the REBot system consists of three behavioral stages
+organized as a finite state machine (FSM). In the following
+sections, we introduce the FSM stages and transition criteria
+(Sec. IV-A), the training strategies of the avoidance policy
+(Sec. IV-B) and the recovery policy (Sec. IV-C). Finally, we
+delineate the training and deployment of the REBot system
+in simulation and on real quadruped robots, respectively
+(Sec. IV-D).
+A. REBot Stages and Transition Criteria
+The robot initially stays in the normal stage with functional
+behaviors such as standing, walking, or trotting. During
+this stage, the robot continuously observes the environment
+and potential obstacles. In this work, we define the normalbehavior as standing still while maintaining balance via the
+PD controller. When the obstacle is approaching the robot,
+(i.e.,⟨vO
+t, pR
+t−pO
+t⟩>0), REBot switches to the avoidance
+stage to execute reflexive evasion, in which the avoidance
+policy performs reactive maneuvers under constrained reaction
+time.
+However, severe evasion may cause the robots’ instability.
+Therefore, the REBot correspondingly switches to the recov-
+ery stage , where a recovery policy drives the robot back
+to normal functions. REBot judges the instability with three
+criteria: (i) body orientation exceeds a safe range ∥θR
+t∥> θR
+th;
+(ii) joint velocity surpasses a stability limit ∥˙qR
+t∥>˙qR
+th; (iii)
+base height drops below a threshold value hR
+t< hR
+th. Here,
+θR
+t,˙qR
+t, and hR
+t∈Rdenote the robot’s orientation, joint
+velocity, and base height, respectively. The corresponding
+thresholds are θR
+th,˙qR
+th, and hR
+th.
+B. Avoidance Policy
+The avoidance policy is trained via RL to achieve reflexive
+evasion under constrained reaction time. The objective is
+to avoid collisions while maintaining postural stability and
+minimizing energy consumption. The reward function consists
+of three parts: r=ravoidance +rregularization +radaptive .
+Avoidance reward is composed of ravoidance =rdistance +
+rcollision . The distance reward is defined as rdistance =
+−exp(−(d(pO
+t,BR)−rO))to encourage the robot to main-
+tain a safe distance from the moving obstacle throughout
+the entire task. The collision penalty is defined as rcollision =
+1(c= 0)−1(c= 1) to penalize any contact event, where
+c∈ {0,1}denotes the collision. We adopt a two-stage
+curriculum to improve policy training efficiency. In the first
+stage, a static obstacle appears instantaneously in a random
+location near the robot at a predefined activation time. In the
+second stage, the obstacle follows a directed trajectory toward
+the robot at varying speeds, simulating realistic threats.
+Regularization reward consists of three terms
+rregularization =rwalk+renergy +rcontact . It is designed to ensure
+the learned evasive maneuvers remain both stable and natural
+(Fig. 3(b)). To promote natural and coordinated motion,
+we encourage symmetric limb phasing consistent with a
+trot gait. The term rwalk=1
+2(1(cFL=cRR) +1(cFR=cRL))
+rewards synchronized contact patterns between diagonal leg
+pairs, where ci,jdenotes different contact leg. We penalize
+the product of joint torque and joint velocity across all
+actuated degrees of freedom to reduce excessive power
+consumption through renergy =−P
+i|τR,i
+t·˙qR,i
+t|, where
+τR,i
+tand ˙qR,i
+trepresent the torque and angular velocity
+of each joint respectively. We also penalize the temporal
+fluctuation of vertical foot contact forces to reduce instability
+viarcontact =−P
+i
+fR,i,z
+t−fR,i,z
+t−12
+, where fR,i,z
+t denotes
+vertical foot contact force of each leg.
+Adaptive reward is designed as radaptive =rdiversity +rthreat+
+rdirection to encourage motion diversity, speed modulation, and
+direction efficiency [36]. RL policy tends to converge toward
+a single locally optimal behavior (Fig. 3(b)). In this task,
+it manifests as the robot repeatedly using a fixed evasion
+
+--- Page 4 ---
+(a) REBot  Framework (b) Avoid ance & Recovery Policy Design (c) Simulation Training 
+& Real -Robot Deployment
+Normal stage
+Avoidance stage
+Recovery stageReal Robot𝜋recovery𝜋avoid
+Obstacle
+Stable
+Y
+YN
+N+Reg.
++Adap .
++StableIsaac Gym
+RL policy training
+Sim2Real
+Unitree Go2 + Stick & Ball
+Curr. 1 Curr. 2
+Static 𝑂 Dynamic 𝑂w/o w/
+w/ w/o
+w/o w/
+Fig. 3: (a) REBot Framework: A finite-state machine (FSM) governs transitions between the Normal, Avoidance, and
+Recovery stages. The quadrupedal robot performs reflexive evasion to avoid obstacles (red balls). (b) Policy Design: The
+avoidance policy is trained not only for successful obstacle avoidance but also incorporates regulation rewards for state
+stabilization and adaptive rewards to encourage diverse evasive behaviors. (c) Training and Deployment: REBot is trained
+in Isaac Gym using a two-stage curriculum from static to dynamic obstacles, and deployed on a real Unitree Go2 robot.
+gait regardless of obstacle state. We defined a diversity
+reward to encourage the policy to appropriate behaviors
+rdiversity =VarsR∼DsR
+π(aR
+t|sR
+t)
+. We define the threat
+level of the obstacle through the reaction time and the
+robot learns to adapt its speed in response to the levels
+of perceived threat as rthreat=−∥vR
+t−vR,safe
+t∥, vR,safe
+t =
+vR,cmd
+t +λexp(−ηTreaction ), where vR,cmd
+t denotes the com-
+mand velocity, λandηdenote the hyperparameters. To
+discourage evasive movements that deviate unnecessarily
+from the ideal escape direction, we penalize wrong the robot
+movement direction via rdirection =−⟨vR
+t, pO
+t−pR
+t⟩.
+C. Recovery Policy
+The recovery policy ensures a smooth transition from the
+avoidance stage back to the normal stage, allowing the robot to
+regain balance (Fig. 3(b)). Therefore, the reward function r=
+rorientation +rstable+rposition +radditional is designed corresponding
+to the instability criteria. The orientation reward defined as
+rorientation =−P
+i(θR,i
+t−θR,i
+0)2penalizes excessive tilt of the
+robot, where θR,i
+0∈Rdenotes the default orientation angles.
+The stable reward rstable=P
+iexp(−|˙qR,i
+t|)encourages low
+joint velocities via exponential decay. And the position term
+rposition =−∥pR
+t−pR
+0∥2penalizes too slow base height, where
+pR
+0denotes the default position. The additional reward term
+radditional includes penalties on large joint torque and action
+discontinuities. These components are designed to reduce
+abrupt joint movements and encourage smoother transitions
+during recovery.
+D. Training in Simulation and Real-Robot Deployment
+We implement the REBot system on the Unitree Go2
+quadrupedal robot (Fig. 3(c)). We train the avoidance andrecovery policies in the Isaac gym simulator [37] with
+PPO algorithm [38]–[40]. Specifically, the avoidance policy
+is trained in two curricula. First, a stationary obstacle is
+randomly placed around the robot and activates after a delay;
+Go2 must react within the available response time. Second,
+a moving obstacle approaches with fixed velocity from a
+random direction, requiring real-time evasion. Both curricula
+randomize obstacle parameters to prevent overfitting and
+encourage generalization across planning-based and reflexive
+behaviors. Then we deploy the REBot system to the real
+Unitree Go2 robot. A motion capture system was used to
+provide real-time position data for both the robot and the
+dynamic obstacle. To emulate dynamic obstacles, we used a
+rigid rod with a lightweight ball attached to its tip, serving
+as a physical proxy for an incoming object. The obstacle’s
+position was continuously tracked via reflective markers.
+V. S IMULATION EXPERIMENTS
+We validate and estimate the performance of REBot in
+the simulation system. In this section, we answer three
+questions: Q1Can REBot achieve successful evasion under
+instantaneous DOA? (Sec. V-B) Q2What are the robots’
+reactions under different obstacle conditions? (Sec. V-C) Q3
+How can the rewards’ design and recovery stage influence
+DOA performance? (Sec. V-D)
+A. Experiment Settings
+Tasks . We conducted simulation experiments in the Isaac
+gym [37] to evaluate the DOA ability of the REBot sys-
+tem. During testing, the obstacle approaches from diverse
+directions within a 180 °arc in the XZ, YZ, and XY planes
+of the robot’s body frame (Fig. 6), covering frontal, lateral,
+
+--- Page 5 ---
+(a) (d)
+(b)
+(c)(e)
+(f)
+Curriculum 1 : static obstacle Curriculum 2 : moving  obstacleFig. 4: Illustration of simulation experiments. Curriculum 1 : Static obstacle appears with a delayed time.  robot in normal
+stage; robot avoiding the obstacle;  the obstacle appears and the robot evades the forbidden region. Curriculum 2 : The
+robot avoids the red fast-moving obstacle at all times.
+overhead, and ground-level threats. The response time is
+expanded beyond training, with Treact∈[0.1,4.0]s, allowing
+evaluation across both immediate reaction and delayed
+planning scenarios.
+Metrics . The systems are evaluated with five metrics.
+The avoidance success rate ( ASR):Navoid/Ntotal; the re-
+covery stability rate ( RSR):Nrecover/Navoid, indicating the
+proportion of trials where the robot successfully stabilizes
+after avoidance; maximum joint power ( MJP ); avoidance
+moving distance ( AMD ): the base displacement between the
+robot’s initial and final positions; and gait diversity index
+(GDI):EsR∼D(sR)
+VaraR∼π(aR|sR)[aR]
+the expected action
+variance under the learned policy, where π(aR|sR)denotes
+the policy distribution over actions at state sR, andD(sR)is
+the state distribution collected during execution.
+Baselines . 1) Agile But Safe (ABS) [9] achieved robust
+static obstacle avoidance with high-speed navigation motions,
+without the capability for dynamic obstacles. 2) Reactive
+RL (RRL) [31] is developed for dynamic obstacle avoidance
+in the UA V system. The avoidance strategy is based on
+simplified rigid-body dynamics, which do not generalize to
+legged whole-body systems.
+𝑇react/𝑠𝑇react/𝑠 𝑇react/𝑠
+𝑇react/𝑠MJP / 𝑘𝑊
+AMD / 𝑚ASR Reflex Reflex(a) Avoidance success rate (ASR) 
+(c) Maximum joint power (MJP) (d) Avoidance moving distance (AMD) 
+ReflexReflex
+RSR(b) Recovery success rate (RSR)
+Fig. 5: Performances over Reaction Time. Red dashed region
+indicates reflexive evasion; longer reaction time corresponds
+to navigation-based avoidance.TABLE I: Simulation Experiment Results
+Treact/ s Metric ABS⋄RRL⋄REBot
+0.1∼0.5ASR↑∗0.00 0.00 0.05
+RSR↑∗0.00 0.00 0.03
+MJP↓∗0.51 0.52 0.50
+AMD↓∗0.84 0.85 0.82
+0.5∼1.5ASR↑ 0.11 0.09 0.65
+RSR↑ 0.06 0.05 0.59
+MJP↓ 0.52 0.51 0.49
+AMD↓ 0.80 0.86 0.47
+1.5∼4.0ASR↑ 0.51 0.41 0.81
+RSR↑ 0.42 0.32 0.74
+MJP↓ 0.40 0.45 0.34
+AMD↓ 0.60 0.70 0.26
+*ASR: avoidance success rate; RSR: recovery success rate;
+MJP: maximum joint power; AMD: avoidance moving
+distance.
+⋄ABS: Agile But Safe [9]; RRL: Reactive RL [31].
+B. Main Experimental Results
+The REBot system is trained in static obstacle and dynamic
+obstacle avoidance curricula. Fig. 4 visualizes the simulation
+experimental results with different obstacle conditions and
+avoidance behaviors. When obstacles appear in front or
+on the sides, the robot tends to jump away for evasion
+(Fig. 4(a)(b)(e)). When obstacles appear on top, the robot
+will crouch down (Fig. 4(c)(d)(f)). These results demonstrate
+that REBot enables the robot to select appropriate avoidance
+strategies based on the obstacle state.
+We categorize the reaction time range into three intervals
+(Tab. I and Fig. 5(a)(b)): 0.1 ∼0.5s, 0.5 ∼1.5s and 1.5 ∼
+4.0s. In the first interval, REBot and both baselines obtain
+nearly 0 success rates due to insufficient reaction time. In the
+second interval with moderately short reaction times, REBot
+exhibits reflexive evasion behaviors, while the two baselines
+still take low-speed gaits for navigation. This difference leads
+to much higher ASR and RSR of REBot compared to both
+baselines. In the third interval, REBot remains high ASR and
+RSR. ABS and RRL also improve their performance due to
+
+--- Page 6 ---
+180° 0°
+90°
+0°
+x
+z 180°
+z
+x90°
+180°
+y0°
+y
+90°
+I II III I II III I II III
+𝑇react/𝑠 𝑇react/𝑠 𝑇react/𝑠Angle / °X-Y planeAngle / °Angle / °Y-Z plane X-Z plane
+(a) (b) (c)Fig. 6: Robot avoids obstacles in various directions and reaction time. Top row shows the obstacles’ approaching directions
+in three planes. Bottom row figures indicate the different avoidance behaviors. Region I: avoidance failure, II: reflexive
+evasion, III: navigation avoidance.
+the longer reaction time, but still fall short of REBot because
+they are not specialized for active DOA. The overall trend, as
+illustrated in Fig 5, indicates that REBot effectively addresses
+instantaneous DOA challenges.
+We also explore the relationship between MJP, AMD
+and reaction time (Fig. 5(c)(d)). When the reaction time
+is extremely short (e.g., below 0.5s), we observe a high MJP
+over 500 W and a large AMD, caused by intense evasion
+behaviors such as jumping away. In the moderately short
+reaction time interval, both MJP and AMD decrease, where
+REBot can adopt more appropriate avoidance behaviors such
+as crouching down. With longer reaction time, both MJP and
+AMD converge to lower values, as REBot has enough time to
+execute smoother navigation-based avoidance behaviors. The
+trends show that REBot adapts avoidance behaviors based
+on time constraints and avoidance efficiency.
+C. Analysis of Avoidance Ability
+We evaluate the effect of the obstacle direction on the
+robot’s avoidance ability by applying impacts from different
+angles within the X-Z, Y-Z and X-Y planes of the robot’s
+body frame (Fig. 6). Based on ASR and MJD, we divide the
+robot’s avoidance behavior space into three regions: region
+I, where the robot fails to avoid; region II, where the robot
+adopts reflexive evasion; and region III, where the robot adopts
+navigation-based avoidance. The boundary between region
+I and II is defined by ASR over 30%, while the boundary
+between region II and III is defined by MJD below 300 W.
+In the X-Z and X-Y planes (Fig. 6(a)(c)), we observe
+that obstacles appearing in front of the robot are easier to
+avoid, and navigation-based avoidance can be achieved with
+shorter reaction time. In contrast, obstacles approaching from
+the back require longer reaction time and make navigation-TABLE II: Ablation Performances of REBot
+Treact/ s Metric w/o rcv.1w/o curr.2w/o adp.3REBot
+0.5∼1.5ASR↑∗0.63 0.48 0.59 0.65
+RSR↑∗0.31 0.39 0.51 0.59
+GDI↑∗2.46 2.41 1.43 2.51
+1.5∼4.0ASR 0.80 0.71 0.78 0.81
+RSR 0.63 0.60 0.69 0.74
+GDI 2.06 2.24 1.36 2.13
+*ASR: avoidance success rate; RSR: recovery success rate;
+GDI: gait diversity index.
+1w/o recovery stage;2w/o curriculum one learning;3w/o
+adaptive reward in avoidance policy.
+based avoidance more difficult. This asymmetry is attributed
+to the mechanical design of Unitree Go2, where the leg
+structure facilitates faster backward motion but makes forward
+jumping more challenging. In the Y-Z plane (Fig. 6(b)), we
+find that obstacles approaching from the sides are easier to
+avoid compared to those from the top or bottom, with a
+shorter transition time from reflexive evasion to navigation-
+based avoidance. These results highlight the robot’s avoidance
+capability varies significantly depending on the obstacle
+direction.
+D. Ablation Studies of REBot System
+The recovery stage ensures a stable standing posture
+after rapid reflexive evasion. To validate its effectiveness,
+we compare the performance of the REBot system with
+and without the recovery policy. As shown in Table II and
+Fig. 7(a), removing the recovery stage leads to a drop (20%)
+in the success rate within the reflex region. Additionally, as
+reaction time increases, avoidance behaviors shift from reflex
+to navigation, reducing the influence of the recovery stage
+
+--- Page 7 ---
+𝑇react/𝑠 𝑇react/𝑠Success rate(a) w/o recovery stage (b) w/o curriculum training
+ReflexReflexFig. 7: Success Rate of Ablation Studies. Red dashed region
+indicates reflexive evasion; longer reaction time corresponds
+to navigation-based avoidance.
+on robot stabilization.
+Curriculum learning enables a smooth transition from
+normal stage to fast-moving reflexive evasion. In the first
+stage, the robot learns to avoid obstacles that appear suddenly
+at varying positions; in the second stage, it generalizes to
+obstacles approaching from different directions. An ablation
+study reveals the importance of this progressive training:
+when policies are trained directly on the second curriculum
+(bypassing the first), Table II and Fig. 7(b) show removing
+the first curriculum causes a 5% decline in both ASR and
+RSR for both reflexive evasion and navigation avoidance.
+This performance gap stems from the more moderate and
+diverse gaits learned during static obstacle avoidance, which
+prove beneficial for a stabilized start when facing fast-moving
+obstacles.
+The adaptive reward encourages diversified avoidance
+gaits that improve avoidance robustness. Without this term,
+the reinforcement learning algorithm converges to a single
+avoidance behavior (e.g., consistently jumping backward)
+regardless of obstacle variations. We conduct an ablation
+study to evaluate the adaptive reward’s effectiveness. As
+shown in Tab. II, removing the adaptive reward results in:
+(1) a significant 40% decrease in gait diversity index (GDI),
+demonstrating reduced behavioral diversity, and (2) moderate
+declines in both ASR and RSR. These findings indicate that
+the gait diversity promoted by the adaptive reward contributes
+directly to improved avoidance performance.
+VI. R EAL-ROBOT DEMONSTRATION
+We deploy the REBot system on a Unitree Go2 robot to
+demonstrate its reflexive evasion capabilities in real-world
+scenarios. The robot and obstacles are tracked using an
+OptiTrack motion capture system to provide accurate position
+information. To generate diverse dynamic obstacles, we
+test three interaction types: poking with a stick (Fig. 8(a)),
+throwing a ball (Fig. 8(b)), and kicking (Fig. 8(c)), each
+targeting the robot from different directions, including front,
+left, right, left-front, and right-front.
+When an obstacle approaches, the robot triggers the
+avoidance mode to perform reflexive evasion. The primary
+avoidance actions include jumping away from the obstacle and
+crouching down. After completing the avoidance maneuver,
+the robot switches to the recovery mode to regain a stable
+standing posture. Additionally, we observe that when the
+poking motion is relatively slow, the robot tends to adoptnavigation-based avoidance strategies instead of reflexive ac-
+tions, leveraging the longer available reaction time to perform
+smoother behaviors.Under the real-world test conditions, the
+REBot system achieves an ASR of 56% and an RSR of
+53%. The performance gap compared to simulation is mainly
+attributed to Sim2Real challenges such as unmodeled actuator
+dynamics, latency in control execution, and surface friction
+variability, which particularly affect fast reflexive responses
+requiring precise torque delivery.
+VII. C ONCLUSION
+We initiate the study of reflexive evasion as a critical
+capability for dynamic obstacle avoidance in quadrupedal
+robots, where traditional navigation-based methods fall short
+under tight reaction constraints. To address this challenge, we
+develop REBot, a unified control system that couples rapid
+avoidance and stability recovery through reinforcement learn-
+ing and structured training strategies. Extensive experiments
+in simulation and on real hardware confirm REBot’s ability to
+perform reliable, adaptive evasive maneuvers, while revealing
+important characteristics of reflexive responses shaped by
+robot morphology and obstacle dynamics. Our results point
+toward new directions for building more agile, resilient, and
+safety-aware legged robotic systems in dynamic environments.
+Despite its effectiveness, REBot has several limitations.
+First, while we focus on the reflexive evasion policy, we
+leave precise obstacle position perception as an assumption;
+independent perception will be addressed in next work.
+Second, the avoidance behavior is biased by the hardware
+design of the robot, showing a preference for backward jumps
+due to leg morphology. Lastly, a Sim2Real gap remains in low-
+level motor control, as joint velocity commands in simulation
+do not fully capture the dynamics of torque-based servo
+actuation in high-speed evasive maneuvers, nor the variability
+introduced by real-world ground friction.
+REFERENCES
+[1]F. Shi, C. Zhang, T. Miki, J. Lee, M. Hutter, and S. Coros, “Re-
+thinking robustness assessment: Adversarial attacks on learning-based
+quadrupedal locomotion controllers,” arXiv preprint arXiv:2405.12424 ,
+2024.
+[2]Y . Tao, M. Li, X. Cao, and P. Lu, “Mobile robot collision avoidance
+based on deep reinforcement learning with motion constraints,” IEEE
+Transactions on Intelligent Vehicles , 2024.
+[3]Y . Sun, R. Chen, K. S. Yun, Y . Fang, S. Jung, F. Li, B. Li, W. Zhao,
+and C. Liu, “Spark: A modular benchmark for humanoid robot safety,”
+2025. [Online]. Available: https://arxiv.org/abs/2502.03132
+[4]D. Falanga, K. Kleber, and D. Scaramuzza, “Dynamic obstacle
+avoidance for quadrotors with event cameras,” Science Robotics , vol. 5,
+no. 40, p. eaaz9712, 2020.
+[5]D. Hoeller, L. Wellhausen, F. Farshidian, and M. Hutter, “Learning
+a state representation and navigation in cluttered and dynamic envi-
+ronments,” IEEE Robotics and Automation Letters , vol. 6, no. 3, pp.
+5081–5088, 2021.
+[6]T. Dudzik, M. Chignoli, G. Bledt, B. Lim, A. Miller, D. Kim, and
+S. Kim, “Robust autonomous navigation of a small-scale quadruped
+robot in real-world environments,” in 2020 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) . IEEE, 2020,
+pp. 3664–3671.
+[7]R. Yang, M. Zhang, N. Hansen, H. Xu, and X. Wang, “Learning
+vision-guided quadrupedal locomotion end-to-end with cross-modal
+transformers,” arXiv preprint arXiv:2107.03996 , 2021.
+
+--- Page 8 ---
+(a)
+(b)
+(c)Fig. 8: REBot system real-robot demonstrations on Unitree Go2 Robot (See video). (a) the robot is poked from different
+directions using a stick; (b) a ball is launched towards the robot from different directions; (c) the robot is subjected to
+intentional kicks from different directions.
+[8]X. Huang, Z. Li, Y . Xiang, Y . Ni, Y . Chi, Y . Li, L. Yang, X. B. Peng, and
+K. Sreenath, “Creating a dynamic quadrupedal robotic goalkeeper with
+reinforcement learning,” in 2023 IEEE/RSJ International Conference on
+Intelligent Robots and Systems (IROS) . IEEE, 2023, pp. 2715–2722.
+[9]T. He, C. Zhang, W. Xiao, G. He, C. Liu, and G. Shi, “Agile but safe:
+Learning collision-free high-speed legged locomotion,” arXiv preprint
+arXiv:2401.17583 , 2024.
+[10] M. Lu, X. Fan, H. Chen, and P. Lu, “Fapp: Fast and adaptive perception
+and planning for uavs in dynamic cluttered environments,” IEEE
+Transactions on Robotics , 2024.
+[11] Z. Li, X. B. Peng, P. Abbeel, S. Levine, G. Berseth, and K. Sreenath,
+“Robust and versatile bipedal jumping control through reinforcement
+learning,” arXiv preprint arXiv:2302.09450 , 2023.
+[12] T. Umeda, O. Yokoyama, M. Suzuki, M. Kaneshige, T. Isa, and
+Y . Nishimura, “Future spinal reflex is embedded in primary motor
+cortex output,” Science Advances , vol. 10, no. 51, p. eadq4194, 2024.
+[13] M. Liu, J. Xiao, and Z. Li, “Deployment of whole-body locomotion
+and manipulation algorithm based on nmpc onto unitree go2quadruped
+robot,” in 2024 6th International Conference on Industrial Artificial
+Intelligence (IAI) . IEEE, 2024, pp. 1–6.
+[14] F. Xiao, T. Chen, and Y . Li, “Egocentric visual locomotion in a
+quadruped robot,” in Proceedings of the 2024 8th International
+Conference on Electronic Information Technology and Computer
+Engineering , 2024, pp. 172–177.
+[15] J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov, “Prox-
+imal policy optimization algorithms,” arXiv preprint arXiv:1707.06347 ,
+2017.
+[16] M. Gurram, P. K. Uttam, and S. S. Ohol, “Reinforcement learning for
+quadrupedal locomotion: Current advancements and future perspectives,”
+in2025 9th International Conference on Mechanical Engineering and
+Robotics Research (ICMERR) . IEEE, 2025, pp. 28–38.
+[17] Z. Xu, A. H. Raj, X. Xiao, and P. Stone, “Dexterous legged locomotion
+in confined 3d spaces with reinforcement learning,” in 2024 IEEE
+International Conference on Robotics and Automation (ICRA) . IEEE,
+2024, pp. 11 474–11 480.
+[18] V . Makoviychuk, L. Wawrzyniak, Y . Guo, M. Lu, K. Storey, M. Macklin,
+D. Hoeller, N. Rudin, A. Allshire, A. Handa et al. , “Isaac gym: High
+performance gpu-based physics simulation for robot learning,” arXiv
+preprint arXiv:2108.10470 , 2021.
+[19] M. Tranzatto, T. Miki, M. Dharmadhikari, L. Bernreiter, M. Kulkarni,
+F. Mascarich, O. Andersson, S. Khattak, M. Hutter, R. Siegwart et al. ,
+“Cerberus in the darpa subterranean challenge,” Science Robotics , vol. 7,
+no. 66, p. eabp9742, 2022.
+[20] S.-j. Sun, S.-h. Jiang, S.-h. Cui, Y . Kang, and Y .-t. Chen, “Path planning
+of forest fire-fighting robots based on deep learning.” 2020.
+[21] X. Meng, W. Liu, L. Tang, Z. Lu, H. Lin, and J. Fang, “Trot gait
+stability control of small quadruped robot based on mpc and zmp
+methods,” Processes , vol. 11, no. 1, p. 252, 2023.
+[22] J. Chen, K. Xu, and X. Ding, “Adaptive gait planning for quadruped
+robot based on center of inertia over rough terrain,” Biomimetic
+Intelligence and Robotics , vol. 2, no. 1, p. 100031, 2022.[23] Z. Zhou, B. Wingo, N. Boyd, S. Hutchinson, and Y . Zhao, “Momentum-
+aware trajectory optimization and control for agile quadrupedal
+locomotion,” IEEE Robotics and Automation Letters , vol. 7, no. 3, pp.
+7755–7762, 2022.
+[24] W. Chi, X. Jiang, and Y . Zheng, “A linearization of centroidal
+dynamics for the model-predictive control of quadruped robots,” in
+2022 International Conference on Robotics and Automation (ICRA) .
+IEEE, 2022, pp. 4656–4663.
+[25] S. Gangapurwala, M. Geisert, R. Orsolino, M. Fallon, and I. Havoutis,
+“Rloc: Terrain-aware legged locomotion using reinforcement learning
+and optimal control,” IEEE Transactions on Robotics , vol. 38, no. 5,
+pp. 2908–2927, 2022.
+[26] J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V . Tsounis, V . Koltun,
+and M. Hutter, “Learning agile and dynamic motor skills for legged
+robots. sci,” Robotics , vol. 4, p. 26, 2019.
+[27] J. Wu, Y . Xue, and C. Qi, “Learning multiple gaits within latent space
+for quadruped robots,” arXiv preprint arXiv:2308.03014 , 2023.
+[28] Z. Luo, Y . Dong, X. Li, R. Huang, Z. Shu, E. Xiao, and P. Lu,
+“Moral: Learning morphologically adaptive locomotion controller for
+quadrupedal robots on challenging terrains,” IEEE Robotics and
+Automation Letters , 2024.
+[29] X. Zhang, Z. Xiao, Q. Zhang, and W. Pan, “Synloco: Synthesizing
+central pattern generator and reinforcement learning for quadruped
+locomotion,” in 2024 IEEE 63rd Conference on Decision and Control
+(CDC) . IEEE, 2024, pp. 2640–2645.
+[30] R. Azzam, M. Chehadeh, O. A. Hay, M. A. Humais, I. Boiko,
+and Y . Zweiri, “Learning-based navigation and collision avoidance
+through reinforcement for uavs,” IEEE Transactions on Aerospace and
+Electronic Systems , vol. 60, no. 3, pp. 2614–2628, 2023.
+[31] X. Fan, M. Lu, B. Xu, and P. Lu, “Flying in highly dynamic
+environments with end-to-end learning approach,” IEEE Robotics and
+Automation Letters , vol. 10, no. 4, p. 3851–3858, Apr. 2025. [Online].
+Available: http://dx.doi.org/10.1109/LRA.2025.3547306
+[32] Y . Wang, X. Li, J. Zhang, S. Li, Z. Xu, and X. Zhou, “Review of
+wheeled mobile robot collision avoidance under unknown environment,”
+Science Progress , vol. 104, no. 3, p. 00368504211037771, 2021.
+[33] D. Kim, M. Srouji, C. Chen, and J. Zhang, “Armor: Egocentric
+perception for humanoid robot collision avoidance and motion planning,”
+arXiv preprint arXiv:2412.00396 , 2024.
+[34] K.-T. Song and C.-H. Lin, “Mpc-based optimization design for 3d
+collision avoidance of a mobile manipulator based-on obstacle velocity
+estimation,” in 2024 International Automatic Control Conference
+(CACS) . IEEE, 2024, pp. 1–6.
+[35] Y . Zhang, T. Liang, Z. Chen, Y . Ze, and H. Xu, “Catch it! learning
+to catch in flight with mobile dexterous hands,” arXiv preprint
+arXiv:2409.10319 , 2024.
+[36] B. Eysenbach, A. Gupta, J. Ibarz, and S. Levine, “Diversity is all
+you need: Learning skills without a reward function,” arXiv preprint
+arXiv:1802.06070 , 2018.
+[37] N. Rudin, D. Hoeller, P. Reist, and M. Hutter, “Learning to walk
+
+--- Page 9 ---
+in minutes using massively parallel deep reinforcement learning,” in
+Conference on Robot Learning . PMLR, 2022, pp. 91–100.
+[38] X. Han and M. Zhao, “Learning quadrupedal high-speed running on
+uneven terrain,” Biomimetics , vol. 9, no. 1, p. 37, 2024.
+[39] Y . Zhao, T. Wu, Y . Zhu, X. Lu, J. Wang, H. Bou-Ammar, X. Zhang,
+and P. Du, “Zsl-rppo: Zero-shot learning for quadrupedal locomotion
+in challenging terrains using recurrent proximal policy optimization,”
+arXiv preprint arXiv:2403.01928 , 2024.
+[40] J. W. Mock and S. S. Muknahallipatna, “A comparison of ppo, td3 and
+sac reinforcement algorithms for quadruped walking gait generation,”
+Journal of Intelligent Learning Systems and Applications , vol. 15, no. 1,
+pp. 36–56, 2023.
+
+--- Page 10 ---
+APPENDIX I
+RL P OLICY TRAINING DETAILS
+We trained two separate RL policies using PPO: an
+avoidance policy focused on dynamic obstacle evasion and a
+recovery policy responsible for post-disturbance stabilization.
+Both policies used actor-critic architectures implemented as
+multilayer perceptrons (MLPs) with hidden layers of 512,
+256, and 128 units, using ELU activations.
+For optimization, we applied a clipped surrogate objective
+with a clip parameter ϵ= 0.2(Tab. III), an entropy coefficient
+c2= 0.01, and a value loss coefficient c1= 1.0. We used the
+Adam optimizer with an initial learning rate α= 1×10−3,
+combined with adaptive learning rate scheduling. The discount
+factor was set to γ= 0.99, and the generalized advantage
+estimation (GAE) parameter was set to λ= 0.95. Each PPO
+iteration collected 24 steps per environment across 4096
+parallel environments, followed by 5 learning epochs over 4
+mini-batches. The maximum gradient norm was clipped at
+1.0, and the desired KL divergence threshold was set to 0.01.
+Training was conducted using Isaac Gym on an NVIDIA
+RTX 4090 GPU.
+TABLE III: Summary of PPO hyperparameters used for
+training
+Hyperparameter Value
+Actor hidden layers [512, 256, 128]
+Critic hidden layers [512, 256, 128]
+Activation ELU
+Learning rate ( α) 1×10−3
+Clip parameter ( ϵ) 0.2
+Value loss coefficient ( c1) 1.0
+Entropy coefficient ( c2) 0.01
+Discount factor ( γ) 0.99
+GAE parameter ( λ) 0.95
+Desired KL divergence 0.01
+Max gradient norm 1.0
+Steps per env per iter 24
+Mini-batches per iter 4
+Learning epochs per iter 5
+Max iterations 5000
+Parallel environments 4096
+Building on the PPO optimization framework, the avoid-
+ance policy is guided by a reward structure that combines
+three main components: avoidance rewards that encourage
+maintaining safe distances from dynamic obstacles and
+penalize collisions, regularization rewards that promote stable,
+symmetric, and energy-efficient gait patterns, and adaptive
+rewards that foster motion diversity, speed adaptation, and
+directional efficiency under varying threat levels. This com-
+bination ensures that the robot can execute timely evasive
+maneuvers while maintaining locomotion stability and natural
+gait coordination.
+In parallel, the recovery policy employs a dedicated reward
+design focused on regaining upright posture, minimizing joint
+velocities, returning to the nominal base position, and ensuring
+smooth, low-torque recovery transitions after disturbances.
+This structure enables the robot to rapidly restore balance andseamlessly transition back to its default locomotion behaviors
+after a disturbance or evasive event.
+In addition to these task-specific rewards, we incorporate
+a set of auxiliary regularization terms to enforce physical
+plausibility, smoothness, and mechanical safety. These terms
+play a critical role in constraining the robot’s low-level
+dynamics, preventing unrealistic or unsafe behaviors, and
+improving the overall robustness and hardware transferability
+of the learned policies. The complete set of these auxiliary
+terms is summarized in Tab. IV.
+TABLE IV: Summary of auxiliary regularization terms
+Term Purpose
+|vR,z
+t|2Penalize vertical velocity
+∥˙θR,xy
+t∥ Penalize horizontal angular velocity
+∥θR,xy
+t∥ Penalize non-flat orientationP
+i(aR,i
+t−aR,i
+t−1)2Penalize abrupt action changesP
+i1i
+c Penalize body collisions
+||vR,xy
+t−vR,xy, cmd
+t || Track command linear velocity
+|ωR,z
+t−ωR,z, cmd
+t | Track command angular velocityP
+i 
+ti
+air−0.5
+Reward long foot swing phases
+1
+maxifR,xy,i
+t/fR,z,i
+t
+>5
+Penalize stumbling events
+P
+i∥fR,i
+t−fR,i
+th∥2Penalize excessive foot contact forces
+APPENDIX II
+DOMAIN RANDOMIZATION & C URRICULA
+To enhance policy generalization and robustness, we
+applied domain randomization and a staged curriculum
+strategy during training. Domain randomization (Tab. V)
+introduces variability across observation parameters (e.g.,
+joint position and velocity noise), dynamics parameters (e.g.,
+ground friction, added base mass, and obstacle velocity),
+and episode-level parameters (e.g., commanded yaw and
+episode duration). By sampling these parameters uniformly
+within predefined ranges at the start of each episode, the
+policy is exposed to a diverse set of conditions, improving its
+ability to handle modeling uncertainties, mitigate overfitting to
+narrow simulation settings, and transfer reliably to real-world
+deployment.
+TABLE V: Domain Randomization Settings for Policy
+Training
+Term Value
+Observation
+Joint position noise U(−0.01,0.01)rad
+Joint velocity noise U(−1.5,1.5)rad/s
+Angular velocity noise U(−0.2,0.2)rad/s
+Projected gravity noise U(−0.05,0.05)m/s2
+Height measure noise U(−0.1,0.1)m
+Dynamics
+Friction factor U(0.5,1.25)
+Added base mass U(−1.0,1.0)kg
+Obstacle position (per axis) U(−0.4,0.4)m
+Obstacle radius U(0.05,0.3)m
+Obstacle velocity U(1.0,6.0)m/s
+Reaction time U(0.1,4.0)s
+Episode
+Episode length U(8.0,10.0)s
+Command robot yaw U(−1.0,1.0)rad
+Command robot velocity U(−1.0,1.0)m/s
+Command robot heading U(−π, π)rad
+
+--- Page 11 ---
+Curriculum 1: static obstacle Curriculum 2: moving obstacle(a)
+(b)
+(c)(d)
+(e)
+(f)Fig. 9: Additional results of simulation experiments. (a) and (d) show the obstacle hits from the back; (b) and (e) hit from
+the right; (c) and (f) hit from the bottom.
+Isaac GymMujoco
+OptiTrack
+Go2BallStickSim2Sim
+Sim2RealValidate
+Fig. 10: Transfer pathways from Isaac Gym to MuJoCo
+(sim2sim) and to the real robot (sim2real). Real-robot
+experiments involve dynamic obstacles including a ball, a
+stick, and a human foot, representing diverse scenarios.
+The curriculum learning strategy is implemented to grad-
+ually increase task complexity. Initially, the policy learns
+to avoid static obstacles that suddenly appear at specific
+positions near the robot, without any external perturbations.
+In the next stage, dynamic obstacles with varying speeds and
+trajectories are introduced, requiring the robot to perform
+rapid, adaptive avoidance maneuvers. Finally, disturbances
+and environmental uncertainties are incorporated to ensure the
+policy remains stable and robust under real-world deployment
+conditions. Additional experimental results are provided in
+Fig. 9.
+APPENDIX III
+REAL-ROBOT EXPERIMENT SETTINGS
+To evaluate the real-world feasibility of the proposed
+avoidance-recovery strategy, experiments were conducted on
+a Unitree Go2 quadrupedal robot. Prior to deployment, the
+learned policies were validated through sim-to-sim transfer
+from Isaac Gym to MuJoCo to ensure robustness under a
+higher-fidelity simulation environment (Fig.10). Only after
+passing these intermediate robustness tests were the policies
+transferred to the real robot.
+For the real-robot setup, we employed an OptiTrack motion
+capture system to provide precise localization of both therobot and the dynamic obstacles (Fig. 10). The system offers
+sub-millimeter positioning accuracy, enabling high-fidelity
+state tracking without relying on onboard perception (e.g.,
+cameras or LiDAR). This design ensures that the robot directly
+receives ground truth position and velocity information for
+both itself and the obstacles at each control step.
+To simulate various dynamic threats, we used three types
+of physical obstacles: a rigid ball, a stick with a marker-
+attached tip, and a human foot. Marker points were affixed
+to each obstacle, allowing their motion to be tracked and
+fed into the robot’s control pipeline. During experiments, the
+Go2 executed the trained avoidance and recovery policies in
+real time, responding to incoming obstacles by performing
+reflexive evasion and subsequent stabilization maneuvers.
+APPENDIX IV
+ADDITIONAL EXPERIMENT RESULTS
+We present additional qualitative results to illustrate the
+effectiveness and versatility of the proposed avoidance-
+recovery strategy across diverse scenarios. Figure 11 shows
+an example where the robot employs navigation-based avoid-
+ance strategies, relying on trajectory adjustment rather than
+reflexive maneuvers. This is feasible because the approaching
+obstacles are slow, providing sufficient reaction time for
+planned avoidance.
+Figure 12 demonstrates the robot’s reflexive response
+under stick-induced prodding attacks from various directions,
+showcasing its ability to rapidly adjust posture and evade
+external physical disturbances.
+Figure 13 presents results where a ball is thrown toward
+the robot from multiple angles, testing the policy’s capacity
+to execute fast evasive maneuvers under short reaction times.
+Finally, Figure 14 highlights experiments where the robot
+faces unexpected kicks from a human foot at different
+approach angles, demonstrating the policy’s robustness in
+handling unstructured, real-world disturbances.
+
+--- Page 12 ---
+(b)
+(a)Fig. 11: Navigation-based avoidance under slow-moving stick disturbances, providing sufficient reaction time. (a) Poking
+from the front; (b) poking from the left.
+(a)
+(b)
+(c)
+(d)
+(e)
+Fig. 12: Reflexive evasion under fast stick disturbances with short reaction time. (a) From the front; (b) from the left; (c)
+from the left front; (d) from the right; (e) from the right front.
+
+--- Page 13 ---
+(a)
+(b)
+(c)
+(d)
+(e)Fig. 13: Reflexive evasion under ball-throw impacts from different directions. (a) From the front; (b) from the left; (c) from
+the left front; (d) from the right; (e) from the right front.
+(a)
+(b)
+(c)
+(d)
+(e)
+Fig. 14: Reflexive evasion under foot-kick disturbances from different directions. (a) From the front; (b) from the left; (c)
+from the left front; (d) from the right; (e) from the right front.

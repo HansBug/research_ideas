@@ -1,0 +1,826 @@
+--- Page 1 ---
+HAL Id: hal-00913665
+https://inria.hal.science/hal-00913665v1
+Submitted on 10 Dec 2013
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Compatibility Checking for Asynchronously Communicating
+Software
+Meriem Ouederni, Gwen Salaün, Tevfik Bultan
+To cite this version:
+Meriem Ouederni, Gwen Salaün, Tevfik Bultan. Compatibility Checking for Asynchronously Communicating
+Software. FACS 2013, Oct 2013, Nanchang, China. ⟨hal-00913665⟩
+
+--- Page 2 ---
+Compatibility Checking for Asynchronously
+Communicating Software
+Meriem Ouederni1, Gwen Sala¨ un2, and Tevﬁk Bultan3
+1Toulouse INP, IRIT, France
+meriem.ouederni@irit.fr
+2Grenoble INP, Inria, LIG, France
+gwen.salaun@inria.fr
+3UCSB, USA
+bultan@cs.ucsb.edu
+Abstract. Compatibility is a crucial problem that is encountered whil e
+constructing new software by reusing and composing existin g compo-
+nents. A set of software components is called compatible if t heir compo-
+sition preserves certain properties, such as deadlock free dom. However,
+checking compatibility for systems communicating asynchr onously is an
+undecidable problem, and asynchronous communication is a c ommon
+interaction mechanism used in building software systems. A typical ap-
+proach in analyzing such systems is to bound the state space. In this
+paper, we take a diﬀerent approach and do not impose any bound s on
+the number of participants or the sizes of the message buﬀers . Instead,
+we present a suﬃcient condition for checking compatibility of a set of
+asynchronously communicating components. Our approach re lies on the
+synchronizability property which identiﬁes systems for wh ich interac-
+tion behavior remains the same when asynchronous communica tion is
+replaced with synchronous communication. Using the synchr onizability
+property, we can check the compatibility of systems with unb ounded
+message buﬀers by analyzing only a ﬁnite part of their behavi or. We
+have implemented a prototype tool to automate our approach a nd we
+have applied it to many examples.
+1 Introduction
+A widely accepted view in software development is that the so ftware systems
+should be built by reusing and composing existing pieces of c ode. Moreover,
+recent trends in computing technology promote development of software appli-
+cations that are intrinsically concurrent and distributed . For example, service-
+oriented computing promotes development of Web-accessibl e software systems
+that are composed of distributed services that interact wit h each other by ex-
+changing messages over the Internet. Cyber-physical syste ms, on the other hand,
+involve integration of physical and computational compone nts that interact in a
+variety of ways to implement a common functionality. Finall y, pervasive systems
+combine large numbers of sensors and computational element s integrated into
+everyday environment and require their coordination in a dy namic setting. All
+
+--- Page 3 ---
+2 M. Ouederni, G. Sala¨ un, and T. Bultan
+these computing paradigms involve concurrent execution of distributed compo-
+nents that are required to interact with each other to achiev e a shared goal.
+A central problem in composing distributed components is ch ecking their
+compatibility. Compatibility checking is used to identify if composed components
+can interoperate without errors. This veriﬁcation is cruci al for ensuring correct
+execution of a distributed system at runtime. Compatibilit y errors that are not
+identiﬁed during the design phase can make a distributed sys tem malfunction
+or deadlock during its execution, which can result in delays , ﬁnancial loss, and
+even physical damage in the case of cyber-physical systems.
+In this paper, we focus on the compatibility checking proble m for closed sys-
+tems involving composition of distributed components. We c all the components
+that participate in a composed system peers. A set of peers is compatible if, when
+they are composed, they satisfy a certain property. We call s uch a property a
+compatibility notion. It is worth observing that the compat ibility problem de-
+pends on several parameters: the behavioral model used to de scribe the peers (ﬁ-
+nite state machines, Petri nets, etc.), the communication m odel (synchronous vs.
+asynchronous, pairwise vs.broadcast/multicast, ordered vs.unordered buﬀers,
+lossy channels, etc.), and the compatibility notion. In thi s paper, we use Labeled
+Transition Systems (LTSs) to describe peer behaviors. We fo cus on pairwise
+asynchronous communication model (which corresponds to me ssage-based com-
+munication via FIFO buﬀers). Pairwise communication means that each indi-
+vidual message is exchanged between two peers (no broadcast communication).
+As for compatibility, there are several compatibility noti ons existing in the lit-
+erature. Here, we focus on two widely used notions, namely de adlock-freedom
+(DF) [15] and unspeciﬁed receptions ( UR) [11,34]. A set of peers is DFcompat-
+ible if their composition does not contain any deadlock, i.e., starting from their
+initial states peers can either progress by following trans itions in their respective
+LTSs or terminate if they are in ﬁnal states. A set of peers is URcompatible if
+they do not deadlock and for each message that is sent there is a peer that can
+receive that message.
+Most results in the literature for verifying the compatibil ity of behavioral
+models assume two interacting peers and synchronous commun ication, e.g., [34,
+15,13,9]. However, asynchronous communication is more sui table than syn-
+chronous communication in a distributed setting, since asy nchronous commu-
+nication is non-blocking. In asynchronous communication t he sender does not
+have to wait for the receiver when it needs to emit a message. A nalyzing asyn-
+chronously communicating systems is more complicated than synchronously
+communicating systems since it is necessary to represent th e contents of the
+message buﬀers during analysis of a system that uses asynchr onous communica-
+tion. Moreover, asynchronous communication with unbounde d message buﬀers
+leads to inﬁnite state spaces. This means that, in general, v eriﬁcation techniques
+based on explicit state space exploration will not be sound f or such systems.
+Analysis of asynchronously communicating systems has been investigated ex-
+tensively during the last 30 years, e.g., [11,24,26,14,31]. A common approach
+used in analyzing asynchronously communicating systems is to bound the state
+
+--- Page 4 ---
+Compatibility Checking for Asynchronously Communicating Software 3
+space by bounding the number of cycles, peers, or buﬀers. Bou nding buﬀers to
+an arbitrary size during its execution is not a satisfactory solution since, if at
+some point buﬀers’ sizes change (due to changes in memory req uirements for
+example), it is not possible to know how the system would beha ve compared to
+its former version and new unexpected errors can show up. Thi s is the case for
+instance of the simpliﬁed news server protocol shown in Figu re 1. Transitions
+are labeled with either emissions (exclamation marks) or re ceptions (question
+marks). Initial states are marked with incoming half-arrow and ﬁnal states have
+no outgoing transitions. With buﬀer size 1, the system execu tes correctly (no
+deadlock). However, if we increase the buﬀer size to 2, a dead lock appears when
+the news server sends message sendnews! followed by stop!. In that situation, the
+news server is in a ﬁnal state, but the reader is not able to rea d thestopmessage
+from its buﬀer and cannot interact properly with the news ser ver.
+Fig.1. Motivating Example (1)
+Figure 2 shows another simple example involving three peers : a client ( cl), a
+server ( sv), and a database ( db), which exchange three messages request ,result,
+andlog. Peer svreceives a request, sends a result, and loops. Peer clsends a
+request, receives a result, sends a log message, and loops. P eerdbreceives log
+messages. If we try to generate the LTS corresponding to the c omposition of
+these three peers interacting asynchronously through unbo unded buﬀers, this
+results in an inﬁnite state system. Indeed, the peers svandclcan loop inﬁnitely,
+and the peer dbcan consume from its input buﬀer whenever it wants, meaning
+that its buﬀer can grow arbitrarily large. Analyzing such sy stem is therefore a
+complicated task (undecidable in general [11]), and to the b est of our knowledge,
+existing approaches cannot analyze compatibility of such s ystems, because they
+cannot handle systems that communicate with asynchronous c ommunication via
+unbounded buﬀers.
+It was recently shown that it is decidable to check certain pr operties of dis-
+tributed systems interacting asynchronously through unbo unded buﬀers using
+thesynchronizability property [3,4]. A set of peers is synchronizable if and only
+if the system generates the same sequences of messages under synchronous and
+unbounded asynchronous communication (considering only t he ordering of the
+send actions and ignoring the ordering of receive actions). It was shown that
+synchronizability can be veriﬁed by checking the equivalen ce of synchronous
+and 1-bounded asynchronous (where buﬀer sizes are bounded t o be 1) versions
+
+--- Page 5 ---
+4 M. Ouederni, G. Sala¨ un, and T. Bultan
+Fig.2. Motivating Example (2)
+of the given system [3,4]. Hence, synchronizability checki ng can be achieved
+using equivalence checking techniques for ﬁnite state spac es, although the sys-
+tem consisting of peers interacting asynchronously can res ult in inﬁnite state
+spaces. For example, the system described in Figure 2 is sync hronizable because
+the synchronous system consists of sequences of interactio ns on request ,result,
+andlog, and this order is the same in the 1-bounded asynchronous sys tem con-
+sidering only send actions. Focusing only on send actions an d ignoring receive
+actions makes sense for checking synchronizability becaus e: (i) send actions are
+the actions that transfer messages to the network and are the refore observable,
+(ii) receive actions correspond to local consumptions by pe ers from their buﬀers
+and can therefore be considered to be local and private infor mation.
+In this paper, we propose a new approach for checking the comp atibility of a
+set of peers interacting asynchronously through unbounded FIFO buﬀers. Peers
+are described using LTSs and exhibit their internal behavio rs in these models
+(e.g., replacing conditional constructs with non-deterministi c choices of internal
+actions). Compatibility checking relies on synchronizabi lity, which ensures that
+the synchronous system behaves like the asynchronous one fo r any buﬀer size.
+Thus, we can check the compatibility on the synchronous vers ion of the system
+and the results hold for the asynchronous versions. We propo se a branching
+notion of synchronizability to take internal actions prese nt in the peer models
+into account. We also need to check that the system is well-formed , meaning
+that every message sent to a buﬀer will be eventually consume d. We show that
+our approach can be used to check DFandURcompatibility. Many systems
+involving loops do respect the synchronizability property . Thus, these systems
+can be analyzed using the approach proposed in this paper, wh ereas they could
+not be analyzed using existing approaches. This is the case f or the example given
+in Figure 2. This set of peers is synchronizable and the synch ronous system
+is deadlock-free for instance. Therefore, we can conclude u sing our result that
+the asynchronous version of this system is also deadlock-fr ee compatible even if
+buﬀers are unbounded.
+Our approach is fully automated through an encoding of the pe er model into
+the process algebra LOTOS [23], one of the input languages of the CADP veri-
+ﬁcation toolbox [19]. By doing so, we can reuse all CADP tools and particularly
+state space exploration tools for generating synchronous a nd asynchronous sys-
+tems, equivalence checking techniques for verifying synch ronizability, and model
+checking techniques for searching deadlocks. We have valid ated our approach on
+
+--- Page 6 ---
+Compatibility Checking for Asynchronously Communicating Software 5
+many case studies, most of them borrowed from real-world sce narios found in
+the literature. The evaluation shows that (i) most systems a re synchronizable
+and can be analyzed using our approach, and (ii) this check is achieved in a
+reasonable time (seconds for examples involving up to ten pe ers, and minutes
+for systems up to 18 peers).
+Our contributions with respect to earlier results on formal analysis of behav-
+ioral models for synchronizability and compatibility chec king are the following:
+–A general framework for verifying the compatibility of sync hronizable sys-
+tems interacting asynchronously through unbounded buﬀers ;
+–A generalization of synchronizability and well-formednes s results to branch-
+ing time equivalences for peer models involving internal ac tions;
+–A fully automated tool support that implements the presente d approach for
+checking asynchronous compatibility.
+The organization of the rest of this paper is as follows. Sect ion 2 deﬁnes
+our models for peers and their composition. Section 3 presen ts a branching
+notion of synchronizability. In Section 4, we present our so lution for checking
+asynchronous compatibility. Section 5 illustrates our app roach on a case study.
+Section 6 describes our tool support and experiments we carr ied out to evaluate
+our approach. Finally, Section 7 reviews related work and Se ction 8 concludes.
+2 Behavioral Models
+2.1 Peer Model
+We use Labeled Transition Systems (LTSs) for modeling peers . This behavioral
+model deﬁnes the order in which a peer executes the send and re ceive actions.
+Deﬁnition 1 (Peer). A peer is an LTS P= (S,s0,Σ,T)whereSis a ﬁnite
+set of states, s0∈Sis the initial state, Σ=Σ!∪Σ?∪ {τ}is a ﬁnite alphabet
+partitioned into a set of send messages, receive messages, a nd the internal action,
+andT⊆S×Σ×Sis a transition relation.
+We writem! for a send message m∈Σ!andm? for a receive message
+m∈Σ?. We use the symbol τ(tauin ﬁgures) for representing internal activities.
+A transition is represented as ( s,l,s′)∈Twherel∈Σ.
+Finally, we assume that peers are deterministic on observab le messages mean-
+ing that if there are several transitions going out from one p eer state, and if all
+the transition labels are observable, then they are all diﬀe rent from one an-
+other. However, nondeterminism can result from internal ac tions when several
+transitions (at least two) outgoing from a same state are lab eled withτ.
+It is crucial to represent internal activities in the peer mo del usingτactions,
+particularly when we reason in terms of synchronous communi cation. These
+internal actions are used to model internal choices, that is , if/while constructs
+in programming languages for instance. Figure 3 shows a simp le example where
+we see that two peers p1andp2are deadlock-free if we do not explicitly show
+the internal actions. If we consider an abstraction closer t o reality by modeling
+the internal actions, we observe that the peers ( p1’andp2) actually deadlock.
+
+--- Page 7 ---
+6 M. Ouederni, G. Sala¨ un, and T. Bultan
+Fig.3. p1andp2are Deadlock-free; p1’andp2Deadlock
+2.2 Synchronous Composition
+The synchronous composition of a set of peers corresponds to the system in which
+the peer LTSs communicate using synchronous communication . In this context,
+a communication between two peers occurs if both agree on a sy nchronization
+label,i.e., if one peer is in a state in which a message can be sent, then th e other
+peer must be in a state in which that message can be received. O ne peer can
+evolve independently from the others through an internal ac tion.
+Deﬁnition 2 (Synchronous Composition). Given a set of peers
+{P1,...,Pn}with Pi= (Si,s0
+i,Σi,Ti), the synchronous composition
+(P1|...| Pn)is the labeled transition system LTS s= (Ss,s0
+s,Σs,Ts)
+where:
+–Ss=S1×...×Sn
+–s0
+s∈Sssuch thats0
+s= (s0
+1,...,s0
+n)
+–Σs=∪iΣi
+–Ts⊆Ss×Σs×Ss, and fors= (s1,...,s n)∈Ssands′= (s′
+1,...,s′
+n)∈Ss
+(interact)sm− →s′∈Tsif∃i,j∈ {1,...,n }where i /ne}ationslash=j:m∈Σ!
+i∩Σ?
+jwhere ∃
+sim!− − →s′
+i∈Ti, andsjm?− − →s′
+j∈Tjsuch that ∀k∈ {1,...,n },k/ne}ationslash=i∧k/ne}ationslash=
+j⇒s′
+k=sk
+(internal)sτ− →s′∈Tsif∃i∈ {1,...,n },∃siτ− →s′
+i∈Tisuch that ∀k∈
+{1,...,n },k/ne}ationslash=i⇒s′
+k=sk
+2.3 Asynchronous Composition
+In the asynchronous composition, the peers communicate wit h each other asyn-
+chronously through FIFO buﬀers. Each peer Piis equipped with an unbounded
+message buﬀer Qi. A peer can either send a message m∈Σ!to the tail of the
+receiver buﬀer Qjat any state where this send message is available, read a mes-
+sagem∈Σ?from its buﬀer Qiif the message is available at the buﬀer head, or
+evolve independently through an internal action. Since rea ding from the buﬀer
+is not considered as an observable action, it is encoded as an internal action in
+the asynchronous system.
+
+--- Page 8 ---
+Compatibility Checking for Asynchronously Communicating Software 7
+Deﬁnition 3 (Asynchronous Composition). Given a set of peers
+{P1,...,Pn}withPi= (Si,s0
+i,Σi,Ti), andQibeing its associated buﬀer, the
+asynchronous composition ((P1,Q1)||...||(Pn,Qn))is the labeled transition
+systemLTS a= (Sa,s0
+a,Σa,Ta)where:
+–Sa⊆S1×Q1×...×Sn×Qnwhere ∀i∈ {1,...,n }, Qi⊆(Σ?
+i)∗
+–s0
+a∈Sasuch thats0
+a= (s0
+1,ǫ,...,s0
+n,ǫ)(whereǫdenotes an empty buﬀer)
+–Σa=∪iΣi
+–Ta⊆Sa×Σa×Sa, and fors= (s1,Q1,...,s n,Qn)∈Saands′=
+(s′
+1,Q′
+1,...s′
+n,Q′
+n)∈Sa
+(send)sm!− − →s′∈Taif∃i,j∈ {1,...,n }wherei /ne}ationslash=j:m∈Σ!
+i∩Σ?
+j, (i)sim!− − →
+s′
+i∈Ti, (ii)Q′
+j=Qjm, (iii) ∀k∈ {1,...,n }:k/ne}ationslash=j⇒Q′
+k=Qk, and
+(iv)∀k∈ {1,...,n }:k/ne}ationslash=i⇒s′
+k=sk
+(consume) sτ− →s′∈Taif∃i∈ {1,...,n }:m∈Σ?
+i, (i)sim?− − →s′
+i∈Ti, (ii)mQ′
+i=
+Qi, (iii) ∀k∈ {1,...,n }:k/ne}ationslash=i⇒Q′
+k=Qk, and (iv) ∀k∈ {1,...,n }:
+k/ne}ationslash=i⇒s′
+k=sk
+(internal)sτ− →s′∈Taif∃i∈ {1,...,n }, (i)siτ− →s′
+i∈Ti, (ii)∀k∈ {1,...,n }:
+Q′
+k=Qk, and (iii) ∀k∈ {1,...,n }:k/ne}ationslash=i⇒s′
+k=sk
+We useLTSk
+ato deﬁne the bounded asynchronous composition , where each
+message buﬀer is bounded to size k. The deﬁnition of LTSk
+acan be obtained from
+Def. 3 by allowing send transitions only if the message buﬀer that the message
+is being written to has less than kmessages in it.
+3 Branching Synchronizability and Well-Formedness
+Although peers are represented with ﬁnite models, their par allel execution could
+be an inﬁnite state system due to the communication over unbo unded buﬀers.
+This makes the exhaustive analysis of all executed communic ation traces impos-
+sible and most veriﬁcation tasks in this setting are undecid able [11]. However,
+this issue can be avoided for systems that are synchronizabl e,i.e., if the se-
+quences of send actions generated by the peer composition re mains the same
+under synchronous and asynchronous communication semanti cs. Thus, the syn-
+chronizability condition [4] enables us to analyze asynchronous systems, e ven
+those generating an inﬁnite state space, using the synchron ous version of the
+given system (which has a ﬁnite state space). The results pre sented below show
+that synchronizability can be checked by bounding buﬀers to k= 1 and com-
+paring interactions in the synchronous system with the inte ractions in the asyn-
+chronous system.
+In this paper, the peer model and corresponding composition s take inter-
+nal behaviors into account. Therefore, we need to extend syn chronizability to
+branching time semantics [32]4. This is crucial for considering models closer to
+4We assume that the reader is familiar with branching time bis imulations, refer to [32]
+otherwise.
+
+--- Page 9 ---
+8 M. Ouederni, G. Sala¨ un, and T. Bultan
+reality (see Fig. 3) and for analyzing the internal structur e to detect possible
+issues at this level. In this paper, we refer to branching equ ivalence as ≡br.
+Deﬁnition 4 (Branching Synchronizability). Given a set of peers
+{P1,...,Pn}, their synchronous composition LTS s= (Ss,s0
+s,Ls,Ts), and their
+asynchronous composition LTS a= (Sa,s0
+a,La,Ta), we say that LTS ais branch-
+ing synchronizable, SYNC br(LTS a), if and only if LTS s≡brLTS a.
+Theorem 1. ALTS adeﬁned over a set of peers {P1,...,Pn}is branching syn-
+chronizable if and only if LTS s≡brLTS1
+a. In other words: LTS s≡brLTS1
+a⇔
+LTS s≡brLTS a
+Proofs of the theorems from this section are available on the ﬁrst author
+Webpage.
+Below we deﬁne the well-formedness property and present two theorems re-
+lated to well-formedness.
+Deﬁnition 5. An asynchronous system is well-formed if and only if every me s-
+sage that is sent is eventually consumed.
+Given a labeled transition system LTS adeﬁned over a set of peers
+{P1,...,Pn}, we use WF(LTS a) to denote that LTS ais well-formed.
+Theorem 2. A synchronizable system LTS ais well-formed if and only if LTS1
+a
+is well-formed, i.e., WF(LTS1
+a)⇔ WF (LTS a).
+Theorem 3. Every asynchronous system LTS athat is branching synchronizable
+and composed of observationally deterministic peers is alw ays well-formed.
+4 Compatibility
+In this section, we present how to check the compatibility of a set of peers com-
+municating asynchronously over unbounded FIFO buﬀers. Thi s problem is unde-
+cidable in the general case [11] since unbounded buﬀers may l ead to inﬁnite state
+spaces. We present the compatibility checking for synchron ous communication,
+and then show how we extend these results to asynchronous com munication. We
+ﬁrst focus on DFandURcompatibility notions. We use DFto detect blocking
+behaviors where system remains inﬁnitely in a pending state with no further ex-
+ecution. We use URto detect cases where some emissions are never received. As
+a second step, we show how other compatibility notions can al so be considered
+such as bidirectional complementarity and goal oriented co mpatibility ( BCand
+GOC for short, respectively). BCrequires that every emission must be received
+and every message that is expected to be received must be sent during peer com-
+munication. GOC describes a temporal logic-based compatibility (expresse d in
+Linear Time Logic for example), that must be respected by the peers. It is worth
+noting that here we focus on checking properties related to o rdering of message
+exchanges among peers, leaving properties such as state rea chability out of the
+scope of this paper.
+
+--- Page 10 ---
+Compatibility Checking for Asynchronously Communicating Software 9
+4.1 Synchronous Compatibility
+Givenncommunicating peers described using LTSs ( Si,s0
+i,Σi,Ti), we deﬁne a
+global state as a tuple of states ( s1,...,s n) wheresiis the current state of LTS i.
+We refer to a label las a message in Σtogether with its direction ( d∈ {!,?}),
+i.e.,l=m!|m?. Two labels l1=m1d1andl2=m2d2are considered compatible ,
+lab-comp(l1,l2), if and only if m1=m2andd1=d2where ! =? and ? =!.
+Compatibility checking requires to verify the interaction at every global state
+reachable during system execution. Reachability returns the set of gl obal states
+thatninteroperating peers can reach from a current global state ( s1,...,s n)
+through independent evolutions (internal behaviors) or sy nchronizations.
+TheDFcompatibility is deﬁned as follows. Given a set of peers, we c all them
+DFcompatible if and only if, starting from their initial globa l state, they can
+always evolve until reaching a global state where every peer state has no outgoing
+transition (correct termination).
+TheURcompatibility is deﬁned as follows. Given a set of peers, we c all them
+URcompatible if, when one peer can send a message at a reachable state, there
+is another peer which must eventually receive that emission , and the system is
+deadlock-free. A set of peers can be compatible even if one pe er is able to receive
+a message that cannot be sent by any of the other peers, i.e., there might be
+additional receptions. It is also possible that one peer hol ds an emission that
+will not be received by its partners as long as the state from w hich this emission
+goes out is unreachable when those peers interact together.
+More details about these compatibility notions ( DFandURbut also BCand
+GOC) as well as their formal deﬁnitions can be found in [17].
+4.2 Asynchronous Compatibility
+In this section we present suﬃcient conditions for checking asynchronous compat-
+ibility. The behaviors of synchronizable systems remain id entical for any buﬀer
+size, therefore, we can check compatibility of synchroniza ble systems using exist-
+ing techniques for checking synchronous compatibility. A s et of communicating
+peers{P1,...,P n}is asynchronous compatible if the following conditions hol d:
+– Synchronizability. Peer composition LTSs are branching synchronizable
+(Theorem 1).
+– Well-formedness. Every message sent to a buﬀer is eventually consumed
+(Theorems 2 and 3).
+– Compatibility. The set of peers is compatible under synchronous commu-
+nication semantics (Section 4.1).
+In the rest of this section, we deﬁne the asynchronous DFandURcompati-
+bility ( DFaandURafor short, resp.) and we ﬁnally show how our asynchronous
+checking can be generalized to check other notions, e.g.,BCaandOGC a.
+Deadlock-Freedom. An asynchronous system LTS adeﬁned over a set of peers
+{P1,...,P n}, isDFacompatible if SYNC br(LTS a) and WF(LTS a), and the
+corresponding LTS sisDF(referred to as DF(LTS s)).
+
+--- Page 11 ---
+10 M. Ouederni, G. Sala¨ un, and T. Bultan
+Theorem 4. (SYNC (LTS a)∧ WF (LTS a)∧DF(LTS s))⇒DFa(LTS a)
+Proof.LTS s≡brLTS afollows from SYNC (LTS a) (Theorem 1). Then, we have
+DF(LTS s)⇒DFa(LTS a). /squaresolid
+Unspeciﬁed Receptions. Although both DFandURcompatibility are dif-
+ferent under the synchronous communication semantics, in t he asynchronous
+setting, they can be checked similarly. Recall that URcompatibility requires
+us to check that (i) every reachable sent message must be rece ived (i.e., con-
+sumed from the buﬀer where it has been stored), and (ii) the sy stem must be
+deadlock-free.
+Theorem 5. (SYNC (LTS a)∧ WF (LTS a)∧DF(LTS s))⇒URa(LTS a)
+Proof. Condition (i) for URcompatibility is ensured by well-formedness. Thus,
+this claim follows directly from URcompatibility deﬁnition and Theorem 1. /squaresolid
+Property 1. Our condition for checking DFaandURais not a necessary condi-
+tion.
+Proof. Let us consider the example given in Figure 4. The asynchrono us system
+starts with an interleaving of both emissions that can be exe cuted in peer 1 and
+peer 2, whereas no synchronization is possible under synchr onous communica-
+tion. Thus, this example is not synchronizable and we cannot conclude anything
+about its compatibility. Yet the asynchronous version of th is system is deadlock-
+free compatible. As a result, our condition for asynchronou s compatibility is
+suﬃcient but not necessary. /squaresolid
+Fig.4. Asynchronous but not Synchronous DFCompatible Example
+Note that ﬁnding a necessary and suﬃcient condition for asyn chronous com-
+patibility of behavioral peers is still an open problem.
+Generalization. The former results can be generalized to deﬁne a suﬃcient
+condition for verifying any notion of compatibility CNaon synchronizable sys-
+tems. Examples of other notions that can be derived are BCaandOGC a. For
+instance,OGC acan be formalized in terms of liveness and safety properties ,
+e.g.,G(φ⇒Fψ) andG(¬φ) in LTL, resp.
+
+--- Page 12 ---
+Compatibility Checking for Asynchronously Communicating Software 11
+Theorem 6. (SYNC (LTS a)∧ WF (LTS a)∧CN(LTS s))⇒CNa(LTS a)
+Proof. The claim follows from Theorems 1 and 3. /squaresolid
+Complexity. The complexity of our asynchronous compatibility checking lies
+on the cost of checking the synchronizability and the compat ibility on the syn-
+chronous composition. Branching bisimulation complexity isO(S′×T′) [20]
+whereS′andT′are the total number of states and transitions in LTS s
+andLTS1
+a. As for compatibility checking, given nLTSs (S,s0,Σ,T),S=/producttextn
+i=1|Si|represents an upper bound of the number of possible global st ates,
+andT=/summationtextn
+i=1|Ti|represents an upper bound for the number of transitions
+available from any particular global state. SandTare greater than or equal to
+the number of states reachable from ( I1,...,I n). Both URaandDFacompati-
+bilities have a time complexity of O(S×T) andBCahas a time complexity of
+O(S2×T2).
+5 Illustrative Example
+We consider a simpliﬁed version of a Web application involvi ng four peers: a
+client, a Web interface, a Web server, and a database. Figure 5 shows the peer
+LTSs. The client starts with a request ( request! ), and expects an acknowledg-
+ment ( ack?). Then, the client either interacts with the Web server as lo ng as it
+needs ( access! ), or decides to terminate its processing ( terminate! ). This internal
+choice is modeled using a branching of internal actions. Fin ally, the client waits
+for an invoice ( invoice? ). The server ﬁrst receives a setup request ( setup? ). Then,
+the server is accessed by the client ( access? ) and it expects to either be released
+(free?) or receive an alarm if an error occurs ( alarm? ). Finally, the server submits
+information to be stored ( log!),e.g., start/end time and used resources. Every
+time a client request is received ( request? ), theinterface triggers a setup request
+(setup! ) and sends back an acknowledgment ( ack!) to the client. Then, if a ter-
+mination message is received ( terminate? ), the interface asks the Web server to
+be freed ( free!). If an error occurs ( error?), the interface sends an alarm message
+(alarm! ). Finally, the database waits for some information to be stored ( log?).
+Synchronizability. LTS sandLTS1
+aare branching equivalent and therefore
+SYNC br(LTS a). Figure 6 (left) shows LTS s, where transitions are labeled with
+the messages on which the peers can synchronize as presented in Deﬁnition 2.
+Well-formedness. The set of peers are observationally deterministic and
+SYNC br(LTS a), hence WF(LTS a).
+Synchronous Compatibility. This system cannot be compatible wrt. DF ,UR,
+andBCnotions since the peers deadlock at the last state in Figure 6 (left). In
+that situation, all peers are in their initial states and may continue interacting
+with each other, except the client, which is expecting an inv oice that is not
+provided by any of the partners.
+Asynchronous Compatibility. SinceLTS ais branching synchronizable and
+well-formed, we can use results for synchronous compatibil ity for this system.
+
+--- Page 13 ---
+12 M. Ouederni, G. Sala¨ un, and T. Bultan
+Fig.5. Peer LTSs
+Fig.6. Synchronous Peer Composition, V1 (left), Web Server Peer, V 2 (right)
+The system is not DFaandURacompatible because there is a deadlock in LTS s.
+We can ﬁx this issue by, e.g., adding the missing invoice! message to the server
+peer (Fig. 6, right). Thus, the new system is branching synch ronizable (see the
+resulting synchronous composition in Fig. 7), well-formed , andLTS sis deadlock-
+free, so it is DFaandURacompatible. However, LTS ais still not compatible
+wrt.BCa, because there are still messages, e.g.,error? in the interface peer, that
+have no counterpart in any other peer. This issue could also b e detected using
+GOC compatibility and checking the following LTL formula: LTS s|=♦/squareerror.
+Fig.7. Synchronous Peer Composition, V2
+Note that the second version of our example with peers commun icating over
+unbounded buﬀers has an inﬁnite state space since the client , the server, and
+the interface peers can loop arbitrary many times while the d atabase peer does
+
+--- Page 14 ---
+Compatibility Checking for Asynchronously Communicating Software 13
+never consume the log?messages from its buﬀer. Although this is not a ﬁnite
+state system, we can analyze it using the techniques we propo se in this paper.
+6 Tool Support and Evaluation
+Our approach for checking the asynchronous compatibility i s fully automated.
+This is achieved by a translation we implemented from peer mo dels to the LO-
+TOS process algebra. The CADP veriﬁcation toolbox [19] acce pts LOTOS as in-
+put and provides eﬃcient tools for generating LTSs from LOTO S speciﬁcations
+and for analyzing these LTSs using equivalence and model che cking techniques,
+which enable us to check all the notions of compatibility pre sented in this paper.
+6.1 LOTOS Encoding
+LOTOS [23] is an abstract formal language for specifying con current processes,
+communicating via messages. We chose LOTOS because (i) it pr ovides expres-
+sive operators for encoding LTSs and generating their compo sitions, and (ii) it is
+supported by state-of-the-art veriﬁcation tools (CADP) th at can be used for an-
+alyzing LOTOS speciﬁcations. With regards to compatibilit y checking, we ﬁrst
+encode peer LTSs into LOTOS processes following the state ma chine pattern
+(one process is generated per state in the LTS). Each peer com es with an input
+buﬀer. Buﬀers are processes, which interact with the peers a nd store/handle mes-
+sages using classic structures (lists) and operations on th em (add, remove, etc.).
+Finally, we use the LOTOS parallel composition for specifyi ng the synchronous
+and asynchronous composition of peers.
+Based on this encoding, we ﬁrst use state space exploration t ools to generate
+LTSs corresponding to the LOTOS speciﬁcation, in particula r for synchronous
+and 1-bounded asynchronous system. Then, we check the synch ronizability con-
+dition using branching equivalence checking, and ﬁnally we check compatibility
+conditions using the deadlock-freedom check or model check ing of properties
+written in MCL [29], which subsumes both LTL and CTL.
+6.2 Experiments
+We carried out experiments on a Mac OS machine running on a 2.5 3 GHz Intel
+dual core processor with 4 GB of RAM. Our database of examples includes 160
+examples of communicating systems: 10 case studies taken fr om the literature
+(Web services, cloud computing, e-commerce, etc.), 86 exam ples of Singularity
+channel contracts [1], which is a contract notation for Micr osoft’s Singularity
+operating system, and 64 hand-crafted examples. We emphasi ze that out of the
+96 real-world examples, only 5 are not branching synchroniz able and well-formed.
+Thus, 91 examples out of 96 can be analyzed using our approach .
+Tables 1, 2, and 3 present experiments for some examples from our database.
+Each table considers DFacompatibility for illustration purposes, but we recall
+thatDFais equivalent to URafor asynchronous systems. Each table shows, for
+
+--- Page 15 ---
+14 M. Ouederni, G. Sala¨ un, and T. Bultan
+each example, the number of peers, the total number of transi tions and states
+involved in these peers, the size of the synchronous system, the size of the 1-
+bounded asynchronous system, the compatibility result (“√” denotes that the
+system is compatible, “ ×” denotes that the system is not compatible, and “-
+” denotes that the system does not satisfy the suﬃcient condi tion,i.e., it is
+not synchronizable), the successive time for computing the synchronous and 1-
+bounded asynchronous system, and for checking synchroniza bility and deadlock-
+freedom, respectively.
+We can see that analyzing the examples given in Tables 1 and 2 o nly takes
+a few seconds. This is due to systems involving a reasonable n umber of peers
+(up to 6 in Table 1), which results in quite small LTSs, even fo r the 1-bounded
+asynchronous composition (up to 100 states and 200 transiti ons in Table 1).
+Table 3 presents a few examples with more than 10 peers. The nu mber of
+interacting peers is the main factor of state space explosio n, because it induces
+more parallelism in the corresponding composition. The cos t in terms of compu-
+tation time mainly lies on the generation of the 1-bounded as ynchronous system,
+that is compiling LOTOS code into LTSs by enumerating all the possible be-
+haviors (interleavings of concurrent emissions/receptio ns) and minimizing the
+resulting LTS using CADP tools. In particular, reducing LTS s with respect to
+a branching relation needs a certain amount of time (see exam ples 0115, 0153,
+and 0159). In contrast, checking synchronizability and dea dlock-freedom using
+equivalence and model checking techniques takes only few se conds because LTSs
+obtained after reduction are much smaller.
+We have also made a few experiments, increasing the buﬀer siz e (k=5, k=10,
+etc.). We have observed that the resulting, reduced LTS rema ins the same due to
+the synchronizability property, but the generation time in creases because there
+are more possibilities of adding/removing messages from bu ﬀers. Consequently,
+computation time for our solution is much lower than approac hes using arbitrary
+bounds for buﬀers.
+Table 1. Case Studies From the Literature
+Example |peers||T|/|S|LTS sLTS1
+aDF Analysis Time
+|T|/|S||T|/|S|Comp. Gen.Sync. DF
+Supply Chain Management Application [7] 620/25 20/17 216/97 ×5.05s 0.35s 0.15s
+Health System [12] 621/20 10/11 22/21 ×4.48s 1.99s 2.26s
+Cloud System [21] 419/15 10/9 29/22 ×4.65s 2.25s 1.88s
+Cloud System (V2) [21] 420/16 12/10 78/43√4.44s 1.96s 1.60s
+Sanitary Agency [30] 437/27 26/21 159/100 -4.76s 2.28s -
+E-Marketplace [18] 38/11 6/7 15/14√4.35s 1.96s 1.49s
+Filter Collaboration [34] 210/11 10/10 14/14√4.18s 2.22s 1.51s
+Car Rental [8] 417/17 9/9 59/44 -4.99s 2.04s -
+Client/Server [11] 210/6 9/6 19/14 -4.68s 2.09s -
+Airline Ticket Reservation [33] 2 9/9 7/7 15/13 ×4.30s 2.01s 1.49s
+
+--- Page 16 ---
+Compatibility Checking for Asynchronously Communicating Software 15
+Table 2. Singularity Channels Contracts [1]
+Example |peers||T|/|S|LTS sLTS1
+aDF Analysis Time
+|T|/|S||T|/|S|Comp. Gen.Sync. DF
+Smb Client Manager 2 40/18 21/10 41/30√6,83s 3.30s 2.53s
+Calculator 2 12/10 7/6 13/12√6.89s 2.40s 2.51s
+File System Controller 2 16/10 9/6 17/14√6,87s 2.21s 2.30s
+Tcp Contract 2 8/8 5/5 9/9√6.612.55s 2.26s
+Pipe Multiplex Control 2 4/4 2/2 5/5√6.44s 2.10s 2.27s
+Udp Connection Contract 2134/60 69/32 136/99√7.26s 2.52s 2.14s
+IP Contract 2 64/28 33/15 65/47√7.072.30s 2.23s
+Routing Contract 2 44/20 23/11 45/33√6.65s 2.10s 2.27s
+Reservation Session 2 16/12 9/7 23/19 -6.66s 2.37s -
+Tpm Contract 2 38/24 20/13 44/35 -6.802.36s -
+Table 3. Hand-Crafted Examples
+Example |peers||T|/|S|LTS s LTS1
+a LTS ared. DF Analysis Time
+|T|/|S| |T|/|S| |T|/|S|Comp. Gen. Red. Sync. DF
+0097 919/19 103/27 1,543/387 98/26√4.59s 2.2s 2.45s 1.43s
+0101 1442/29 4,277/649 334,379/54,433 3,402/486√1m15s 4m2s 2.46s 1.80s
+0115 1648/41 14,754/1,945 2,332,812/326,593 11,664/1,458√3m34s 11m33s 2.44s 1.45s
+0153 1838/38 4,616/577 1,179,656/147,457 4,608/576√7.51s 18m52s 2.60s 1.43s
+0159 2045/43 15,561/1,729 7,962,633/884,737 15,552/1,728√24.28s 5h58m 2.62s 1.64s
+7 Related Work
+One of the ﬁrst approaches on compatibility checking is prop osed by Brand
+and Zaﬁropulo [11]. It deﬁnes the unspeciﬁed receptions com patibility notion
+for interaction protocols described using Communicating F inite State Machines
+(CFSMs). This work focuses on the compatibility of ninteracting processes ex-
+ecuted in parallel and exchanging messages via FIFO buﬀers. When considering
+unbounded buﬀers, the authors show that the resulting state spaces may be
+inﬁnite, and the problem becomes undecidable.
+The approaches used in [15,6] deal with two kinds of processe s compatibility,
+namely optimistic andpessimistic notions. De Alfaro and Henzinger [15] argue
+for the use of the optimistic notion that considers two proce ssesP1andP2(I/O
+automata) as compatible if there is an environment that can properly communi-
+cate with their composite process. Note that an environment is also composed
+of one or more processes. A proper communication holds if the composition of
+the interface product P1⊗P2with its environment is deadlock-free. The ap-
+proach introduced in [6] addresses the pessimistic notion w hich states that two
+processesP1andP2are compatible if no deadlock occurs between P1andP2, in
+anyenvironment of P1⊗P2. [5] deﬁnes an asynchronous compatibility for modal
+I/O transition systems. The authors do not propose any decis ion criterion but
+they claim that this veriﬁcation is undecidable in the gener al case due to the
+buﬀering mechanism which may lead to inﬁnite state spaces.
+[22] treats diﬀerent compatibility problems for non-order ed buﬀers and for
+open systems using Petri nets. [28,31,25,27] rely on an exte nsion of Petri nets,
+
+--- Page 17 ---
+16 M. Ouederni, G. Sala¨ un, and T. Bultan
+namely open nets to model and verify behavioral interfaces o f processes described
+as workﬂows, assuming asynchronous communication over mes sage buﬀers. This
+model provides a graphical representation, and can be compu ted from existing
+programming languages. [28] rely on the usability concept to analyze the com-
+patibility of processes represented as workﬂows. This comp atibility notion is an
+environment-aware compatibility where two processes AandBare considered
+compatible if there is an environment E, which uses the composed system A⊗B.
+In such a case, A⊗Bis considered usable, meaning that its composition with
+Eis deadlock-free. The condition, yet necessary, is not suﬃc ient in the case
+ofnprocesses. A similar compatibility deﬁnition used in the li terature is that
+ofcontrollability [31,25,27]. A process Ais controllable if it has a compatible
+partnerBin the sense that the composite process A⊗Bis deadlock-free. As
+far as asynchronous semantics is considered, controllabil ity has proven to be
+undecidable for unbounded open nets. For implementing cont rollability, the au-
+thors require that open nets are bounded and satisfy k-limited communication,
+for some given k. Consequently, using a Petri net-based model requires a muc h
+higher computational and space complexity than our approac h.
+Darondeau and colleagues [14] identify a decidable class of systems consist-
+ing of non-deterministic communicating processes that can be scheduled while
+ensuring boundedness of buﬀers. Abdulla et al. [2] propose some veriﬁcation
+techniques for CFSMs. They present a method for performing s ymbolic forward
+analysis of unbounded lossy channel systems. Jeron and Jard [24] propose a
+suﬃcient condition for testing unboundedness, which can be used as a decision
+procedure for checking reachability for CFSMs. In [26], the authors present an
+incomplete boundedness test for communication channels in Promela and UML
+RT models. They also provide a method to derive upper bound estimates for
+the maximal occupancy of each individual message buﬀer. Mor e recently, [16]
+proposed a causal chain analysis to determine upper bounds o n buﬀer sizes for
+multi-party sessions with asynchronous communication. Re cently, Bouajjani and
+Emmi [10] consider a bounded analysis for message-passing p rograms, which does
+not limit the number of communicating processes nor the buﬀe rs’ size. However,
+they limit the number of communication cycles. They propose a decision pro-
+cedure for reachability analysis when programs can be seque ntialized. By doing
+so, program analysis can easily scale while previous relate d techniques quickly
+explode.
+8 Conclusion
+In this paper, we have presented results that go beyond all ex isting works on
+checking the compatibility of systems communicating async hronously by mes-
+sage exchange over unbounded buﬀers. In our approach, we do n ot have any
+restrictions on the number of participants, on the presence of communication
+cycles in behavioral models, or on the buﬀer sizes. Instead, we focus on the class
+of synchronizable systems and propose a suﬃcient condition for analyzing asyn-
+chronous compatibility. This results in a generic framewor k for verifying whether
+
+--- Page 18 ---
+Compatibility Checking for Asynchronously Communicating Software 17
+a set of peers respect some property such as deadlock-freedo m or unspeciﬁed
+receptions. In order to obtain these results for peer models involving internal be-
+haviors, we have extended synchronizability results to bra nching time. Finally,
+we have implemented a prototype tool which enables us to auto matically check
+the asynchronous compatibility using the CADP toolbox, and we have conducted
+experiments on many examples. In the future we plan to develo p techniques for
+enforcing the asynchronous compatibility of a set of peers w hen the compati-
+bility check fails, by automatically generating a set of dis tributed controllers as
+advocated in [21] for enforcing choreography realizabilit y.
+References
+1. Singularity Design Note 5: Channel Contracts. Singulari ty RDK Documentation
+(v1.1). http://www.codeplex.com/singularity, 2004.
+2. P. A. Abdulla, A. Bouajjani, and B. Jonsson. On-the-Fly An alysis of Systems with
+Unbounded, Lossy FIFO Channels. In Proc. CAV’98 , volume 1427 of LNCS , pages
+305–318. Springer, 1998.
+3. S. Basu and T. Bultan. Choreography Conformance via Synch ronizability. In Proc.
+of WWW’11 , pages 795–804. ACM Press, 2011.
+4. S. Basu, T. Bultan, and M. Ouederni. Deciding Choreograph y Realizability. In
+Proc. of POPL’12 , pages 191–202. ACM, 2012.
+5. S. S. Bauer, R. Hennicker, and S. Janisch. Interface Theor ies for (A)synchronously
+Communicating Modal I/O-Transition Systems. In Proc. of FIT’10 , volume 46 of
+EPTCS , pages 1–8, 2010.
+6. S. S. Bauer, P. Mayer, A. Schroeder, and R. Hennicker. On We ak Modal Compat-
+ibility, Reﬁnement, and the MIO Workbench. In Proc. of TACAS’10 , volume 6015
+ofLNCS , pages 175–189. Springer, 2010.
+7. D. Beyer, A. Chakrabarti, and T. Henzinger. Web Service in terfaces. In Proc. of
+WWW’05 , pages 148–159. ACM, 2005.
+8. D. Bianculli, D. Giannakopoulou, and C. S. Pasareanu. Int erface Decomposition
+for Service Compositions. In Proc. of ICSE’11 , pages 501–510. ACM, 2011.
+9. L. Bordeaux, G. Sala¨ un, D. Berardi, and M. Mecella. When a re Two Web Services
+Compatible? In Proc. of TES’04 , volume 3324 of LNCS , pages 15–28. Springer,
+2004.
+10. A. Bouajjani and M. Emmi. Bounded Phase Analysis of Messa ge-Passing Pro-
+grams. In Proc. of TACAS’12 , volume 7214 of LNCS , pages 451–465. Springer,
+2012.
+11. D. Brand and P. Zaﬁropulo. On Communicating Finite-Stat e Machines. J. ACM ,
+30(2):323–342, 1983.
+12. A. Bucchiarone, H. Melgratti, and F. Severoni. Testing S ervice Composition. In
+Proc. of ASSE’07 , 2007.
+13. C. Canal, E. Pimentel, and J. M. Troya. Compatibility and Inheritance in Software
+Architectures. Science of Computer Programming , 41(2):105–138, 2001.
+14. P. Darondeau, B. Genest, P. S. Thiagarajan, and S. Yang. Q uasi-Static Scheduling
+of Communicating Tasks. In Proc. CONCUR’08 , volume 5201 of LNCS , pages
+310–324. Springer, 2008.
+15. L. de Alfaro and T. Henzinger. Interface Automata. In Proc. of ESEC/FSE’01 ,
+pages 109–120. ACM Press, 2001.
+
+--- Page 19 ---
+18 M. Ouederni, G. Sala¨ un, and T. Bultan
+16. P.-M. Deni´ elou and N. Yoshida. Buﬀered Communication A nalysis in Distributed
+Multiparty Sessions. In Proc. CONCUR’10 , volume 6269 of LNCS , pages 343–357.
+Springer, 2010.
+17. F. Dur´ an, M. Ouederni, and G. Sala¨ un. A Generic Framewo rk for N-Protocol Com-
+patibility Checking. Science of Computer Programming , 77(7-8):870–886, 2012.
+18. H. Foster, S. Uchitel, J. Kramer, and J. Magee. Compatibi lity Veriﬁcation for Web
+Service Choreography. In Proc. of ICWS’04 . IEEE Computer Society, 2004.
+19. H. Garavel, F. Lang, R. Mateescu, and W. Serwe. CADP 2010: A Toolbox for
+the Construction and Analysis of Distributed Processes. In Proc. of TACAS’11 ,
+volume 6605 of LNCS , pages 372–387. Springer, 2011.
+20. J. F. Groote and F. W. Vaandrager. An Eﬃcient Algorithm fo r Branching Bisim-
+ulation and Stuttering Equivalence. In Proc. of ICALP’90 , volume 443 of LNCS ,
+pages 626–638. Springer, 1990.
+21. M. G¨ udemann, G. Sala¨ un, and M. Ouederni. Counterexamp le Guided Synthesis
+of Monitors for Realizability Enforcement. In Proc. of ATVA’12 , volume 7561 of
+LNCS , pages 238–253. Springer, 2012.
+22. S. Haddad, R. Hennicker, and M. H. Møller. Channel Proper ties of Asynchronously
+Composed Petri Nets. In Proc. of Petri Nets 2013 , volume 7927 of LNCS , pages
+369–388. Springer, 2013.
+23. ISO/IEC. LOTOS — A Formal Description Technique Based on the Temporal
+Ordering of Observational Behaviour. International Stand ard 8807, ISO, 1989.
+24. T. J´ eron and C. Jard. Testing for Unboundedness of FIFO C hannels. Theor.
+Comput. Sci. , 113(1):93–117, 1993.
+25. K. Kaschner and K. Wolf. Set Algebra for Service Behavior : Applications and Con-
+structions. In Proc. of BPM’09 , volume 5701 of LNCS , pages 193–210. Springer,
+2009.
+26. S. Leue, R. Mayr, and W. Wei. A Scalable Incomplete Test fo r Message Buﬀer
+Overﬂow in Promela Models. In Proc. SPIN’04 , volume 2989 of LNCS , pages
+216–233. Springer, 2004.
+27. N. Lohmann. Why Does My Service Have No Partners? In Proc. of WS-FM’08 ,
+volume 5387 of LNCS , pages 191–206. Springer, 2008.
+28. A. Martens, S. Moser, A. Gerhardt, and K. Funk. Analyzing Compatibility of
+BPEL Processes. In Proc. of AICT/ICIW’06 , pages 147–156. IEEE Computer
+Society, 2006.
+29. R. Mateescu and D. Thivolle. A Model Checking Language fo r Concurrent Value-
+Passing Systems. In Proc. of FM’08 , volume 5014 of LNCS . Springer, 2008.
+30. G. Sala¨ un, L. Bordeaux, and M. Schaerf. Describing and R easoning on Web Ser-
+vices using Process Algebra. International Journal on Business Process and Inte-
+gration Management , 1(2):116–128, 2006.
+31. W. M. P. van der Aalst, A. J. Mooij, C. Stahl, and K. Wolf. Se rvice Interaction:
+Patterns, Formalization, and Analysis. In Proc. of SFM’09 , volume 5569 of LNCS ,
+pages 42–88. Springer, 2009.
+32. R. J. van Glabbeek and W. P. Weijland. Branching Time and A bstraction in
+Bisimulation Semantics. J. ACM , 43(3):555–600, 1996.
+33. P. Wong and J. Gibbons. Verifying Business Process Compa tibility. In Proc. of
+QSIC’08 , pages 126–131. IEEE Computer Society, 2008.
+34. D. M. Yellin and R. E. Strom. Protocol Speciﬁcations and C omponent Adaptors.
+ACM Transactions on Programming Languages and Systems , 19(2):292–333, 1997.

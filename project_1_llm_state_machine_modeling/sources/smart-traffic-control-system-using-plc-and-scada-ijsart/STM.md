@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
+- 文件级角色：🧰 需清洗样本
+- 代表状态机类型：EFSM（扩展状态机）
+- 代表时间级别：T1（工程定时 / 局部定时）
+- 结构标签概况：-（无代表标签）
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：正文明确给出了密度优先与按当前交通状况切换红黄绿的控制意图，但具体状态时序较分散。
 
 ## 条目 1: Density-Driven Priority Signal Control
 - 控制对象：四岔路口交通灯优先控制器
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T1（工程定时 / 局部定时）
+- 结构标签：-（无额外结构标签）
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
+- 数据集角色：🧰 清洗后保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -26,13 +37,13 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation. The PLC logic assigns priorities automatically for a four-way intersection and adjusts the ON/OFF times of the green, yellow, and red lights according to the detected lane densities. Signal changes from red to green are therefore synchronized with current traffic conditions rather than being fixed in advance.
+The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation at a four-way intersection. The PLC program uses timer instructions together with the detected lane priorities to change the ON/OFF times of the green, yellow, and red lights. In this way, signal changes from red to green are synchronized with current traffic conditions instead of remaining fixed in advance, and the SCADA layer is used to monitor and supervise the same process.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation.
+1. 句子 1：The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation at a four-way intersection.
    对应摘录：A
-2. 句子 2：The PLC logic assigns priorities automatically for a four-way intersection and adjusts the ON/OFF times of the green, yellow, and red lights according to the detected lane densities.
-   对应摘录：A
-3. 句子 3：Signal changes from red to green are therefore synchronized with current traffic conditions rather than being fixed in advance.
+2. 句子 2：The PLC program uses timer instructions together with the detected lane priorities to change the ON/OFF times of the green, yellow, and red lights.
+   对应摘录：A, B
+3. 句子 3：In this way, signal changes from red to green are synchronized with current traffic conditions instead of remaining fixed in advance, and the SCADA layer is used to monitor and supervise the same process.
    对应摘录：B

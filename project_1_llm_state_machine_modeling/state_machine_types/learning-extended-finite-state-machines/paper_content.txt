@@ -1,0 +1,841 @@
+--- Page 1 ---
+Learning Extended Finite State Machines?
+Soa Cassel1, Falk Howar2, Bengt Jonsson1, and Bernhard Steen3
+1Dept. of Information Technology, Uppsala University, Sweden
+fsofia.cassel|bengt.jonsson g@it.uu.se
+2Carnegie Mellon University
+howar@cmu.edu
+3Chair for Programming Systems, Technical University Dortmund, Germany
+steffen@cs.tu-dortmund.de
+Abstract. We present an active learning algorithm for inferring ex-
+tended nite state machines (EFSM)s, combining data ow and control
+behavior. Key to our learning technique is a novel learning model based
+on so-called tree queries . The learning algorithm uses the tree queries to
+infer symbolic data constraints on parameters, e.g., sequence numbers,
+time stamps, identiers, or even simple arithmetic. We describe sucient
+conditions for the properties that the symbolic constraints provided by a
+tree query in general must have to be usable in our learning model. We
+have evaluated our algorithm in a black-box scenario, where tree queries
+are realized through (black-box) testing. Our case studies include con-
+nection establishment in TCP and a priority queue from the Java Class
+Library.
+1 Introduction
+Behavioral models of components and interfaces are the basis for many powerful
+software development and verication techniques, such as model checking, model
+based test generation, controller synthesis, and service composition. Ideally, such
+models should be part of documentation (e.g., of a component library), but
+in practice they are often nonexistent or outdated. To address this problem,
+techniques for automatically generating models of component behavior are being
+developed. These techniques can be based on static analysis, dynamic analysis,
+or a combination of both approaches. Static analysis of a component requires
+access to its source code; so when source code is not available, or when models
+must be generated on the y, dynamic analysis is a better alternative.
+In dynamic analysis, test executions are used to drive and observe compo-
+nent behavior. Mature techniques for generating nite-state models, describing
+the possible orderings of interactions between a component and its environment,
+have been developed to support, e.g., interface modeling [4], test generation [27],
+and security analysis [23]. However, faithful models should capture not only the
+ordering between interactions (control ow aspects), but also the constraints
+?Supported in part by the European FP7 project CONNECT (IST 231167), and by
+the UPMARC centre of excellence.
+
+--- Page 2 ---
+on any data parameters passed with these interactions (data ow aspects). Data
+ow aspects are commonly captured by extending nite state machines with vari-
+ables. Together with the data parameters passed with interactions, the variables
+inuence the control ow by means of guards, and the control ow can cause
+updates of variables. Dierent dialects of extended nite state machines (EF-
+SMs) are successfully used in tools for model-based testing [18], software model
+checking [19], and model-based development [11]. However, dynamic analysis
+techniques that generate EFSM models with guards and assignments to vari-
+ables are still lacking: existing techniques either handle only a limited range of
+operations on data (typically only equality [16, 15]), require signicant manual
+eort [2], or rely on access to source code.
+In this paper, we present a black-box technique for generating register au-
+tomata (RAs), which are a particular form of EFSMs in which transitions are
+equipped with guards and assignments to variables (called registers ). Our contri-
+bution is an active automata learning algorithm for RAs, which is parameterized
+on a particular theory , i.e., a set of operations and tests on the data domain that
+can be used in guards. By an appropriate choice of theory, we can infer RA
+models where data parameters and variables represent sequence numbers, time
+stamps, numbers with limited arithmetic, identiers, etc.
+Our algorithm has been evaluated in a black-box scenario, using SMT-based
+test generation for realizing tree queries for integers with addition (+), equal-
+ities (=), and inequalities ( <;>). We have learned models of the connection
+establishment in TCP and the priority queue from the Java Class Library.
+Illustrating example. We give an example of an RA that can be generated
+using our technique. We begin by describing the language that it recognizes.
+Consider a simplistic sliding window protocol without retransmission, with a
+window of size two, in which the receipt of messages must be acknowledged in
+order. The protocol is described as a data language Lseqover messages of form
+msg(d) andack(d), wheredranges over natural numbers. A sequence of mes-
+sages=msg(d1):::ack (dm) is in the language Lseqif (i)has equally many
+msg andackmessages, (ii) the data parameter din eachmsg(d)-message must
+be one more than the data parameter of the previous msg-message. (iii) the
+data parameter din eachack(d)-message must be one more than the data pa-
+rameter of the previous ack-message. (iv) whenever msg(d) immediately pre-
+cedesack(d0), thend1d0d. Sequences msg(1)ack(1)msg(2)ack(2) and
+msg(1)msg(2)ack(1)ack(2) are examples of data words in Lseq.
+Fig. 1 shows a register automaton that accepts Lseq. Locations are annotated
+with registers. Accepting locations are denoted by double circles; l0is the initial
+location. Transitions are denoted by arrows and labeled with a message, a guard
+over parameters of the message and registers of the automaton, and an assign-
+ment to these registers. A sink location and its adjacent transitions are omitted
+in the gure. The automaton processes sequences by rst moving from l0to
+l1and storing the data value of the initial msg inx1. It then moves between
+locationsl1(waiting for an ack),l2(waiting for two acks), andl3(accepting).
+Lseqis used as a running example throughout the paper.
+
+--- Page 3 ---
+l0 l1x1l3x1
+l2x1
+x2msg(p)jtrue
+x1:=pack(p)jp=x1
+x1:=p
+msg(p)jp=x1+ 1
+x2:=pack(p)jp=x1
+x1:=x2msg(p)jp=x1+ 1
+x1:=p
+Fig. 1: A simple sliding window protocol with sequence numbers.
+Main ideas. In classic active learning for nite automata (e.g., L[5]), each
+location of an inferred automaton is identied by a word that reaches it from the
+initial location. Two words lead to the same location if they behave the same
+when prepended to the same sux (i.e., both are accepted or both rejected).
+Similarly, each location in the RAs we infer is identied by a data word. To
+determine whether two data words represent the same location, it is, however,
+not sucient to check whether they behave the same when prepended to the
+same sux, since we want to model relations between data parameters and not
+concrete data values. For example, when learning Lseq, we might wrongly de-
+duce thatmsg(3) andmsg(1) represent dierent locations, by observing that
+msg(3)ack(3)2Lseqbutmsg(1)ack(3)=2Lseq. To remedy this, we have gener-
+alized theLalgorithm to the symbolic setting.
+We describe our learning framework as a game between a learner and a
+teacher: the learner has to infer an automaton model of an unknown target
+language by making queries to a teacher who knows it. The concept of a teacher
+is an abstraction that helps us separate dierent concerns; the concrete learning
+framework is dened by the types of queries that the teacher can answer, and
+the class of languages that can be learned.
+Teacher. In our framework, the Teacher answers equivalence queries and tree
+queries . The answer to an equivalence query tells us if a conjectured automaton
+is correct, i.e., it accepts the unknown language. If not, the teacher provides a
+counterexample, i.e., a data word that is in the language but not accepted by
+the conjectured automaton, or vice versa. In practice, counterexamples can be
+provided by, e.g., conformance testing or monitoring.
+A tree query consists of a concrete prex (e.g., a sequence of messages where
+data parameters are instantiated with concrete data values) and a symbolic suf-
+x. Symbolic suxes are obtained from concrete suxes by replacing data values
+by symbolic parameters (e.g., ack(p)). The answer to a tree query is a symbolic
+decision tree (SDT), which describes which instantiations of the symbolic sux
+are accepted and which are rejected. Fig. 2 shows examples of SDTs for Lseq.
+We depict trees with the root location at the top and annotate locations with
+registers. A register in the root location with index iholds thei-th data value
+of the corresponding prex. The trees describe the fragments of Lseqfor suxes
+of formack(p) after prexes msg(1) (Tree [a]) and msg(1)ack(1)msg(2) (Tree
+[b]). They each have a register at the root location and two guarded initial tran-
+
+--- Page 4 ---
+[a] [b]x1 x3
+ack(p)jp=x1
+ack(p)jp6=x1ack(p)jp=x3
+ack(p)jp6=x3
+Fig. 2: Isomorphic SDTs for ack(p) after [a]msg(1), and [b] msg(1)ack(1)msg(2).
+sitions. In both trees, ack(p) leads to an accepting location only when the value
+of the parameter pis equal to the value of the register in the root location (i.e.,
+the value of the parameter from the most recent msg(p)).
+Learner. The learner infers a register automaton that accepts the unknown
+target language by making tree queries and equivalence queries. At a very ab-
+stract level, our learning algorithm builds a prex-closed set of prexes , i.e., test
+sequences with concrete data values that reach control locations of the inferred
+register automaton. To determine when prexes should lead to the same control
+location in the automaton, the learner compares SDTs to each other. Prexes
+with equivalent SDTs (isomorphic up to renaming of registers and locations) can
+be unied. The transitions of SDTs will be used to create registers, guards, and
+assignments in the automaton. For example, the trees in Fig. 2 are equivalent
+| meaning that the corresponding prexes msg(1) andmsg(1)ack(1)msg(2)
+should lead to the same location.
+The learner submits the hypothesis automaton to an equivalence query. If the
+equivalence query is successful, the algorithm terminates; otherwise, a counterex-
+ample is returned. Counterexamples guide the algorithm to make tree queries
+for larger fragments of the target language, e.g., for more and/or longer suxes
+after a given prex. The resulting SDTs will lead to renements in the hypoth-
+esis: previously unied prexes may be split, new registers may be introduced,
+and transitions may be rened or new ones introduced.
+Related work. The problem of generating models from implementations has
+been addressed in a number of dierent ways. Proposed approaches range from
+mining source code [4], static analysis [25] and predicate abstraction [3, 24] to
+dynamic analysis [12, 6, 28, 22]. Closest to our work are approaches that combine
+an automata learning algorithm with a method for inferring constraints on data.
+An early black-box approach to inferring EFSM-like models is [20], where models
+are generated from execution traces by combining passive automata learning
+with the Daikon tool [10].
+A number of approaches combine active automata learning with dierent
+methods for inferring constraints on data parameters. All these approaches follow
+a pattern similar to CEGAR (counterexample guided abstraction renement).
+A sequence of models is rened in a process that is usually monotonic and con-
+verges to a xpoint. Active automata learning has been combined with symbolic
+execution [13, 8] and an approach based on support vector machines [29] for
+inferring constraints on data parameters in white-box scenarios. In white-box
+
+--- Page 5 ---
+learning scenarios (as in other static analyses) registers or state variables do not
+have to be inferred as they are readily available. Sometimes abstraction is used
+to reduce the size of constructed models. In contrast, our approach will infer
+models with a minimal set of required registers.
+Previous works based on active automata learning that infer data constraints
+from tests in a black-box scenario have been restricted to the case where the only
+operation on data is comparison for equality [16, 1, 7]. Other approaches infer
+models without symbolic data constraints [17, 23] or require manually provided
+abstractions on the data domain [2]. In general, black-box methods can infer
+complex (e.g., arithmetic) constraints only at a very high cost | if at all. Our
+black-box implementation is subject to these principal limitations, too.
+While existing approaches extend active learning to a x class of behavioral
+models, we present a general purpose automata learning algorithm that can be
+combined with any method for generating data constraints (meeting the require-
+ments we discuss in this paper).
+Register automata are similar to the symbolic transducers of [26]. It is an
+open question if some of the decidability results for symbolic transducers can be
+adapted to RAs to help answer for which relations and operations tree queries
+and equivalence queries are decidable.
+Outline. In Sec. 2, we introduce register automata and data languages. In Sec. 3,
+we dene symbolic decision trees and discuss how a tree oracle answers tree
+queries. We present the details of the learning algorithm in Sec. 4, and Sec. 5
+presents the results of applying it in a small series of experiments. Here, we
+also briey describe the implementation of a teacher for our learning framework.
+Conclusions are in Sec. 6.
+2 Preliminaries
+In this section, we introduce the central concepts of our framework: theories,
+data languages, and register automata.
+Theories. Our framework is parameterized by a theory , which consists of an
+unbounded domain Dofdata values , andRis a set of relations onD. The
+relations inRcan have arbitrary arity. Known constants can be represented by
+unary relations. For example, the theory of natural numbers with inequality is
+the theoryhN;f<giwhere Nis the natural numbers and <is the inequality
+relation on N. In the following, we assume that some theory has been xed.
+Data languages. We assume a set ofactions , each with an arity that de-
+termines how many parameters it takes from the domain D. In this paper, we
+assume that all actions have arity 1; it is straightforward to extend our results
+to the case where actions have arbitrary arity. A data symbol is a term of form
+(d), whereis an action and d2Dis a data value. A data word is a sequence
+of data symbols. For a data word w=1(d1):::n(dn), letActs(w) denote its
+sequence of actions 1:::n, andVals (w) its sequence of data values d1:::dn.
+The concatenation of two data words wandw0is denotedww0. Two data words
+
+--- Page 6 ---
+w=1(d1):::n(dn) andw0=1(d0
+1):::n(d0
+n) areR-indistinguishable , de-
+notedwRw0, ifActs(w) =Acts(w0) andR(di1;:::;dij)$R(d0
+i1;:::;d0
+ij)
+wheneverR2R andi1;:::;ijare indices between 1 and n. Intuitively, wand
+w0areR-indistinguishable if they have the same sequences of actions and cannot
+be distinguished by the relations in R.
+Adata languageLis a set of data words that respects Rin the sense that
+wRw0impliesw2L$w02L. A data language can be represented as a
+mapping from the set of data words to f+;g, where + stands for accept and
+forreject .
+Register automata. Assume a set of registers (or variables), ranged over by
+x1;x2;:::. Aparameterized symbol is a term of form (p), whereis an action
+andpa formal parameter. A guard is a conjunction of negated and unnegated
+relations (fromR) over the parameter pand registers. An assignment is a simple
+parallel update of registers with values from registers or p.
+Denition 1. Aregister automaton (RA) is a tupleA= (L;l0;X;; ), where
+{Lis a nite set of locations , withl02Las the initial location ,
+{maps eachl2Ltof+;g,
+{Xmaps each location l2Lto a nite setX(l) of registers, and
+{is a nite set of transitions , each of formhl;(p);g;;l0i, where
+l2Lis a source location,
+l02Lis a target location,
+(p) is a parameterized symbol,
+gis a guard over pandX(l), and
+(the assignment ) is a mapping from X(l0) toX(l)[fpg(meaning that
+the value of (xi) is assigned to the register xi2X(l0)).u t
+We require register automata to be completely specied in the sense that when-
+ever there is an -transitions from some location l2L, then the disjunction of
+the guards on -transitions from listrue.
+Let us now describe the semantics of an RA. A state of an RAA= (L;l0;X;; )
+is a pairhl;iwherel2Landis a valuation over X(l), i.e., a mapping from
+X(l) toD. The state is initial ifl=l0. Astep ofA, denotedhl;i(d)!hl0;0i,
+transfersAfromhl;itohl0;0ion input of the data symbol (d) if there is a
+transitionhl;(p);g;;l0i2with
+1.j=g[d=p], i.e.,dsatises the guard gunder the valuation , and
+2.0is the updated valuation with 0(xi) =(xj) if(xi) =xj, otherwise
+0(xi) =dif(xi) =p.
+ArunofAover a data word w=(d1):::(dn) is a sequence of steps
+hl0;0i1(d1)! hl1;1i:::hln1;n1in(dn)! hln;ni
+for some initial valuation 0. The run is accepting if(ln) = + and rejecting if
+(ln) =. The word wisaccepted (rejected) by Aunder0ifAhas an accepting
+
+--- Page 7 ---
+(rejecting) run over wwhich starts inhl0;0i. Note that an RA dened as above
+does not necessarily have runs over all data words.
+We dene a simple register automaton (SRA) to be an RA with no registers
+in the initial location, whose runs over a given data word are either all accepting
+or all rejecting. We use SRAs as acceptors for data languages.
+3 Tree Queries
+In this section, we rst dene symbolic decision trees (SDTs), which are used to
+symbolically describe a fragment of a data language. We then state conditions
+for the construction of SDTs, which is done by a tree oracle .
+Symbolic decision trees. Asymbolic decision tree (SDT) is an RA T=
+(L;l0;X;; ) whereLandform a tree rooted at l0. In general, an SDT
+has registers in the initial location; we use X(T) to denote these registers X(l0).
+Thus, an SDT has well-dened semantics only wrt. a given valuation of X(T).
+Iflis a location ofT, letT[l] denote the subtree of Trooted atl. LetT
+andT0be two SDTs, such that :X(T)7!X (T0) is a bijection from the initial
+registers ofTto the initial registers of T. We say thatTandT0areequivalent
+under, denotedT 'T0, ifcan be extended to a bijection from all registers
+ofTto all registers of T0, under whichTandT0are isomorphic.
+Let a symbolic sux be a sequence of actions in . Letube a data word
+withVals (u) =d1;:::;dk. Letube dened by u(xi) =di. We require that
+for each data word uand each guard goverpandVals (u), the guard ghas
+arepresentative data value inD, denoted dg
+u, such that uj=g[dg
+u=p] (i.e., dg
+u
+satisespafteru), and such that whenever g0is a stronger guard satised by dg
+u
+(i.e.,uj=g[dg
+u=p]) then dg0
+u=dg
+u.
+Denition 2. For a data language L, a data word uwithVals (u) =d1;:::;dk,
+and a setVof symbolic suxes, a ( u;V)-tree is an SDTTthat has runs over
+all data words vwithActs(v)2V, such that vis accepted byTunderui
+uv2L(and rejected i uv62L) whenever Acts(v)2V. Moreover, in any run of
+Tover a data word v, the register ximay contain only the value of the ith data
+value inuv. u t
+The last requirement simplies the matching of decision trees. It can be enforced,
+e.g., by requiring that whenever hl;(p);g;;l0iis thejth transition on some
+path froml0, then for each xi2X(l0) we have either (i) i<k +jand(xi) =xi,
+or (ii)i=k+jand(xi) =p(recall that kis the length of u).
+The initial-transitions of an SDT are the transitions for action from
+the root location l0, guarded by initial-guards . The SDT in Fig. 2 [a] has two
+initialack(p)-transitions with initial ack(p)-guardsp=x1andp6=x1.
+Tree oracles. A key concept in our approach is that of tree queries. Tree queries
+are made to a tree oracle, which returns an SDT. To ensure the consistency of
+tree queries, a tree oracle must satisfy the conditions in the following denition.
+
+--- Page 8 ---
+[a] [b] [c]msg(p)jtrue x1x2
+x3msg(p)jtrue
+x1:=p
+ack(p)jp6=x1ack(p)jp=x1msg(p)jp6=x2+ 1msg(p)jp=x2+ 1
+x3:=p
+ack(p)jp6=x3ack(p)jp=x3
+Fig. 3: [a] SDT for msg(p) after prexes andmsg(1)ack(1). Rened SDTs for
+suxmsg(p)ack(p) after [b]and [c]msg(1)ack(1).
+Denition 3. LetLbe a data language. A tree oracle forLis a functionOL,
+which for a data word uand a setVof symbolic suxes returns a ( u;V)-tree
+T, and satises the following constraints.
+1. IfVV0, thenOL(u;V0)'OL(u;V0) impliesOL(u;V)'OL(u;V) for
+allu;u0and(i.e., adding more symbolic suxes cannot make inequivalent
+trees equivalent).
+2. IfVV0, then for each initial -transition ofOL(u;V) with guard g,
+there is some initial transition ofOL(u;V0) with a stronger guard g0(i.e.,
+uj=g0!g).
+3. Ifhl0;(p);g;;liis an initial transition of OL(u;V), thenOL(u;V)[l]'
+OL(u(d);1V), whered=dg
+u, andis the identify mapping (i.e., any
+subtree ofOL(u;V) must be isomorphic to the subtree after d: here1V
+denotes the set of sequences 1nsuch that1n2V).u t
+The rst two conditions in Def. 3 ensure monotonicity: First, extending V
+will only preserve or introduce inequivalence between trees of dierent prexes.
+Second, by gradually extending V, we will only rene trees and not, e.g., merge
+transitions or forget registers. Fig. 9 [b] and [c] show SDTs that rene SDT [a].
+SDT [b] renes [a] by adding an assignment x1:=pto the initial transition and
+by adding new transitions after the initial one. SDT [c] renes [a] by splitting
+the initial transition into two transitions with rened guards, and by initializing
+a register in the root location. The third condition ensures that it is sucient
+to consider concrete prexes with representative data values during learning.
+Finally, let two data words uandu0be equivalent, denoted by uOLu0if
+OL(u;V)'OL(u0;V) for someand any nite V. A data language Lisregular
+ifOLhas nite index. The regularity of Lis relative to the implementation of
+tree queries, since OLis dened on SDTs.
+The following adaptation of the Myhill/Nerode theorem provides the basis
+for convergence of the automata learning algorithm presented in the next section.
+Theorem 1 (Myhill-Nerode). LetLbe a data language, and let OLbe a
+tree oracle forL. If the equivalence OLhas nite index, then there is an SRA
+which accepts precisely the language L. u t
+
+--- Page 9 ---
+[a]l0 l1msg(p)
+x1:=p
+ack(p)jp=x1
+[b]
+msg(p)jtrue
+x1:=p
+ack(p)jp=x1 ack(p)jp6=x1U[U+Vf; msg (p); ack (p)g
+
+msg(1)
+ack(1)
+msg(1)ack(1)(l0)
+(l1)
+(l2)msg(p)
+ack(p)
+x1msg(p)
+ack(p)jx16=p
+ack(p)jx1=p
+msg(p)
+ack(p)
+msg(p)
+ack(p)
+::: :::
+Fig. 4: Hypothesis [a] (without error location l2) and its observation table (right).
+Transitions [b] for sux msg(p)ack(p) after prex msg(1)ack(1) in hypothesis.
+4 The SLAlgorithm
+This section presents the central ideas for an active automata learning algorithm
+SL(SymbolicL, reminiscent of the Lalgorithm). To construct an SRA for
+some unknown data language, we need to infer locations, transitions, and reg-
+isters. Locations of an SRA can be characterized by their SDTs, which are
+obtained by making tree queries. Data words with equivalent SDTs will lead to
+the same location. The initial transitions of the SDTs will serve as transitions
+in the SRA. The registers of an SDT will become registers in the location that
+the SDT represents. A hypothesis automaton is constructed and submitted for
+anequivalence query . If it matches (which will happen eventually for regular data
+languages), the algorithm terminates. Otherwise, the returned counterexample
+is processed, leading to renement of the hypothesis.
+TheSLalgorithm maintains an observation table hU;V;Zi, whereUis a
+prex-closed set of data words, called short prexes ,Vis a set of symbolic
+suxes, and Zmaps each element uinUto its (u;V)-tree. The algorithm also
+maintains a nite set U+of extended prexes of the form u(d) (abbreviated
+u), such that u2Uanddisdg
+u, wheregis an initial -guard ofZ(u). Fig. 4
+(right) shows an observation table for the example in Sec. 1. A set of symbolic
+suxesVlabels the column; rows are labeled with short prexes from U(above
+the double line) and with prexes from U+(below the double line). Each table
+cell (referred to by row label uand column label V) stores the SDT Z(u).
+Algorithm 1 shows a pseudocode description of SL. The algorithm is initial-
+ized (line 1) with Ucontaining the empty word, the set of symbolic suxes V
+being the empty sequence together with the set of all actions, and Z() being the
+SDTOL(;V). The algorithm then iterates three phases: hypothesis construction ,
+hypothesis validation , and counterexample processing until no more counterex-
+amples are found, monotonically adding locations and transitions to hypothesis
+automata. We detail these phases below, referring to lines in Algorithm 1.
+
+--- Page 10 ---
+Algorithm 1 SL
+Require: A setof actions, a data language L, a tree oracleOLforL.
+Ensure: An SRAHwithL(H) =L
+1:U fg,V (fg[),Z() OL(;V) .Initialization
+2:loop
+3: repeat .Hypothesis construction
+4:U+ fu(dg
+u) :u2U,2, andginitial-guard ofZ(u)g
+5: For each u2(U[U+),Z(u) OL(u;V)
+6: if9u2U+s.t.Z(u)6'Z(u0)for anyandu02Uthen
+7: U U[fug
+8: if9u2U+and9xi2X(Z(u))\Vals (u)s.t.xi=2X(Z(u))then
+9: V V[fvgforv2Vwithxi2X(OL(u;fvg))
+10: untilhU;V;Ziisclosed and register-consistent
+11:H Hyp(hU;V;Zi)
+12: ifeq(H)then ReturnH .Hypothesis validation
+13: else .Counterexample processing
+14: forhui1;i(p);gi;i;uiiin run ofHoverdo
+15: ifgidoes not rene an initial trans. of OL(ui1;Vi1)thenV V[Vi1
+16: ifOL(ui1i;Vi)6'OL(ui;Vi)forused to construct Hthen
+17: V V[Vi
+18:end loop
+Hypothesis construction (lines 3-11). In this phase, the algorithm attempts
+to construct a hypothesis automaton by making tree queries and entering the
+results in an observation table. The answer to a tree query for the prex uand
+the set of symbolic suxes Vis the SDTOL(u;V), stored in the table as Z(u).
+An observation table hU;V;Ziis
+{closed , if for every u2U+there is a short prex u02Uand asuch that
+Z(u)'Z(u0). Closedness ensures that all transitions in the automaton
+have a target location. If the table is not closed, then uleads to a location
+not covered by U, andZ(u) proves it by not being equivalent to Z(u0) for
+any short prex u0.hU;V;Ziis closed by making ua short prex, i.e., adding
+it toU.
+{register-consistent , if (X(Z(u)\Vals (u))X(Z(u)) for every u2U+.
+Register-consistency ensures that whenever a data value in uis needed to
+construct the SDT after u, then it also occurs in the tree after u. If the
+table is not register-consistent, then Z(u) has a register that expects a value
+fromubutZ(u) does not have a register for storing this value. We make
+hU;V;Ziregister-consistent by extending Vwith the appropriate abstract
+wordvwithv2V, propagating the missing register backwards to Z(u).
+A closed and register-consistent observation table hU;V;Zican be used to-
+gether with a set U+of extended prexes to construct a hypothesis automaton
+Hyp(hU;V;Zi) = (L;l0;X;; ), where
+{L=Uandl0=,
+
+--- Page 11 ---
+{Xmaps each location u2UtoX(Z(u)) (X(l0) is the empty set),
+{(u) = + ifu2L, otherwise (u) =, and
+{eachu2(U[U+) with corresponding initial -transitionhl0;(p);g;;l0i
+ofZ(u) generates a transition hu;(p);g;0;u0iin, where
+u0is the (unique) prex in UwithZ(u)'Z(u0),
+0is an assignment X(Z(u0))7!(X(Z(u))[fpg). Forxi2X(Z(u0)),
+we dene0(xi) =1(xi) if1(xi) stores a data value of uinZ(u),
+and0(xi) =potherwise.
+Fig. 4 shows an observation table that is closed and register-consistent. Fig. 4 [a]
+shows the hypothesis that can be constructed from it. In the table, rows for short
+prexes (above the double line) are annotated with corresponding locations in
+the hypothesis. The assignment on the transition from l0tol1and the guard on
+the transition from l1tol0are both derived from the SDT for prex msg(1).
+Hypothesis validation (line 12). The hypothesis automaton His submitted
+for an equivalence query. The teacher either replies 'OK', or returns a counterex-
+ample (a word that is accepted by Hbut rejected by the target system, or vice
+versa). If it replies 'OK', the algorithm terminates and returns H. Otherwise,
+the counterexample has to be analyzed.
+Counterexample analysis (lines 13-16). A counterexample indicates either
+that a location is missing, (i.e., that Uhas to be extended), or that a transition
+is missing, (i.e., that SDTs need to be rened), or that we used an incorrect
+renamingbetween some SDTs when constructing the hypothesis. For a coun-
+terexample of lengthmwe denote by iits prex of length i, and byviits
+sux of length mi. Moreover, let Vibe the singleton set fActs(vi)g.
+In a run ofHover, thei-th stephui1;i1ii(di)! hui;iitraverses tran-
+sitionhui1;i(p);gi;i;uii, i.e., prex ileads to the location corresponding to
+short prex uifromU. In order to determine at which step the run of Hover
+diverges from the behavior of the system under learning, we analyze the sequence
+u0=;:::;umand the corresponding ( ui;Vi)-trees for 0imcomputed by
+OL(ui;Vi), using an argument similar to the one presented in [21]: Since is
+a counterexample and Vcontains, there is an index jof the counterexample
+for whichuj1together withOL(uj1;Vj1) contains a counterexample to H,
+whileujandOL(uj;Vj) do not. We can then distinguish two cases.
+Case 1. The guard gjin the step ofHfromuj1toujdoes not rene an
+initial transition of OL(uj1;Vj1). In this case the SDT distinguishes cases
+thatHdoes not distinguish. Adding Vj1toVwill result in new and rened
+transitions from uj1in the hypothesis. This is guaranteed by the monotonicity
+requirement on tree constructors in Def. 3. Consider, e.g., the counterexample
+msg(1)ack(1)msg(1)ack(1) to the hypothesis in Fig. 4 at index 3. The hypothesis
+in Fig. 4 [b] has only one transition with guard true aftermsg(1)ack(1). The
+corresponding SDT for Lseq(Fig. 9 [c]), on the other hand, has two initial
+transitions, and neither of them is rened by the true. Addingmsg(p)ack(p) to
+Vwill add these transitions to the hypothesis.
+
+--- Page 12 ---
+Case 2. The treeOL(uj;Vj) is not isomorphic to the corresponding subtree
+after(dgjuj1) ofOL(uj1;Vj1) under the renaming of registers that was
+used in the hypothesis (only one of these trees contains a counterexample to
+H). AddingVjtoVwill lead to either OL(uj;V)6'OL(uj1(dgjuj1);V) and
+uj1(dgjuj1) will become a separate location, or will be rened. Consider again
+the counterexample msg(1)ack(1)msg(1)ack(1) to the hypothesis in Fig. 4; this
+time at index 2. Here, uj1(dgjuj1) ismsg(1)ack(1), anduj=u2is. The
+SDTs for these two prexes and the sux msg(p)ack(p) are shown in Fig. 9 [b]
+and Fig. 9 [c]. They are not equivalent. Adding the sux msg(p)ack(p) toV
+will lead to a new location for msg(1)ack(1) in the next hypothesis.
+Correctness and termination. ThatSLreturns a correct SRA upon ter-
+mination follows by the properties of our teacher. For regular data languages,
+termination follows from the properties of tree queries in Sec. 3, from Theorem 3,
+and from the algorithm itself: SDTs will only be rened when adding symbolic
+suxes, and this can happen only nitely often. Each added symbolic sux will
+either lead to a new transition, a rened transition, a new register assignment or
+a new location. By adapting arguments from other contexts [5, 16], Theorem 3
+can be used to show that SLconverges to a minimal (in terms of locations and
+registers) SRA for L. Note that this minimal number of locations and transitions
+also depends on the particular tree oracle that is used.
+Complexity. We estimate the worst case number of counterexamples and show
+how they lead to a correct model with nlocations,ttransitions, and at most r
+registers per location. Since each location has one access sequence, nt, and
+thus we estimate the costs in tandronly. The nal model is minimal relative
+to the implementation of tree queries: it has one location per class of OL. Each
+counterexample results in one additional sux in the observation table, leading
+to a new transition or to discarding a bijection between two prexes in U. The
+former can happen ttimes before all transitions are identied. The latter can
+happen at most trtimes, since it corresponds to breaking a symmetry between
+two of at most rregisters at one of ntlocations (cf. [14]). The algorithm
+terminates after O(tr) equivalence queries. The number of tree queries depends
+on the length mof the longest counterexample and on the size of the observation
+table. The algorithm uses a maximum of mcalls per counterexample, and the
+size ofU[U+in the nal observation table is t+ 1. This leads to O(t2r+trm)
+tree queries and yields the following theorem.
+Theorem 2. The algorithm SLinfers a data language LwithO(tr) equiva-
+lence queries and O(t2r+trm) tree queries. u t
+5 Implementation and Evaluation
+We have implemented the SLalgorithm together with a teacher for a black-box
+scenario and xed set of relations on integers and rationals. We allow equalities
+and/or inequalities as well as simple sums of registers and pre-dened constants
+(e.g.,p=x1+x2orp=x1+ 5).
+
+--- Page 13 ---
+l0 l1 l2l3
+l4 l5init (p)jp=x
+x:=psyn(p)jp=x+1
+x:=pack(p)jp=x
+
+finack(p)jp=x
+finack(p)jp=x
+
+ack(p)jp=x
+
+Fig. 5: Connection establishment of TCP (only non-reexive transitions).
+The implementation of tree queries Ou(V;) is based on the ideas for construct-
+ing canonical constraint decision trees presented in [9] (Proof of Theorem 1). The
+set ofR-distinguishable classes of data words of the form uvwhereActs(v)2V
+can be represented in an SDT with maximally rened guards (so-called atoms ).
+We use an SMT solver (Z34) to generate tests for all atoms in this SDT. Finally,
+atoms are merged in a bottom-up fashion based on test results.
+Equivalence queries have been implemented using tree queries (similar to the
+approach in [13]). We generate OL(;w) for allw2kup to some depth kand
+compare the SDTs to the hypothesis. We start with k= 3 and increase kuntil
+a xed time limit is reached (10 minutes) or until a counterexample is found.
+We have inferred a simplied version of the connection establishment phase
+of TCP, a bounded priority queue from the Java Class Library, and a set of ve
+smaller models (Alternating-bit protocol, Sequence number, Timeout, an ATM,
+and a Fibonacci counter). Here, we only detail the TCP model. Fig. 5 shows the
+connection establishment phase of TCP. The example uses a set of ve actions:
+init,syn,synack,ack, andfinack. The transition init(p) was added to get
+an initial sequence number. Each synchronizing message increases this number;
+all other messages use the current sequence number.
+We used common optimizations for saving tests: a cache and a prex-closure
+lter. Table 1 shows the results. We report the locations, variables, and transi-
+tions for all inferred models. For each case, we state the number of constants,
+relations (denotes the combination of equalities and inequalities), and sup-
+ported terms: p+cindicates sums of parameters and constants, and p+psums
+of dierent parameters. We report the number of tree queries (TQs) and equiv-
+alence queries (EQs) made. For equivalence queries, we also state the depth k1
+at which the last counterexample was found and the greatest explored depth k2
+(up to which inferred models are guaranteed to be correct). Finally, we show
+execution times.
+Time consumption for learning is below one second for most of the exam-
+ples; the only \real" Java class, the priority queue, takes a little more time (4.3
+seconds). The dierence between k1andk2gives an idea of how likely the nal
+hypothesis is correct: If k2is bigger than k1, then the depth was increased by
+k2k1without nding a new counterexample. A big dierence suggests that
+the learning algorithm has converged to the correct RA. For some examples
+no counterexamples where found and for the Timeout example k2=1, i.e.,
+the equivalence query terminated successfully. This was possible because all se-
+quences of length greater than two are not in the language of this example. For
+4http://z3.codeplex.com
+
+--- Page 14 ---
+Model Language class Queries EQ Times
+Loc's Var's Trans's Const's Rel's Op's TQs EQsk1k2TQs [s] EQs [s]
+ABP 3 0 5 2 = - 9 1 - 11 0.1 599.9
+Sequence Number 3 1 4 1 = p+c 8 1 - 10 0.1 599.9
+TCP 7 1 51 1 = p+c 187 2 6 7 0.6 599.4
+PriorityQueue 8 2 33 0 - 113 5 6 7 4.3 595.7
+Timeout 4 1 5 1p+c 9 1 -1 0.2 0.1
+ATM 3 1 7 3p+c 16 2 3 4 1.3 598.7
+Fibonacci counter 4 2 6 0p+p 19 2 3 5 0.2 599.8
+Table 1: Experimental results obtained on a 2GHz Intel Core i7 with 8GB of
+memory running Linux kernel 3.8.0.
+the examples with more relations ( , andp+corp+p) the reached depth
+k2is smaller, regardless of the number of locations and transitions in the nal
+model. This is due to the exploding number of R-distinguishable classes of data
+words in such cases. One way of addressing this challenge in the future could be
+introducing typed parameters and using multiple simpler disjoint domains.
+6 Conclusions
+We have presented a symbolic learning algorithm which can be parameterized by
+methods for constructing symbolic decision trees and which infers models that
+capture both control and data aspects of a system. Our preliminary implemen-
+tation demonstrates that the approach can infer protocols comprising sequence
+numbers, time stamps, and variables that are manipulated using simple arith-
+metic operations or compared for inequality even in a black-box scenario.
+A particularly promising direction for future research will be the combination
+with white-box methods like symbolic execution, both for searching counterex-
+amples as well as for supporting construction of decision trees. We also plan to
+investigate decidability of tree queries and equivalence queries in our learning
+model for dierent data domains.
+References
+1. F. Aarts, F. Heidarian, H. Kuppens, P. Olsen, and F. Vaandrager. Automata
+learning through counterexample guided abstraction renement. In FM '12 , vol.
+7436 of LNCS , pp. 10{27, 2012.
+2. F. Aarts, B. Jonsson, and J. Uijen. Generating models of innite-state communi-
+cation protocols using regular inference with abstraction. In ICTSS '10 , vol. 6435
+ofLNCS , pp. 188{204, 2010.
+3. R. Alur, P. Cern y, P. Madhusudan, and W. Nam. Synthesis of interface specica-
+tions for java classes. In POPL '05 , pp. 98{109, 2005.
+4. G. Ammons, R. Bodik, and J. Larus. Mining specications. In POPL '02 , pp.
+4{16, 2002.
+5. D. Angluin. Learning regular sets from queries and counterexamples. Information
+and Computation , 75(2):87{106, 1987.
+6. A. Bertolino, P. Inverardi, P. Pelliccione, and M. Tivoli. Automatic synthesis of
+behavior protocols for composable web-services. In ESEC/FSE '09 , pp. 141{150,
+2009.
+
+--- Page 15 ---
+7. B. Bollig, P. Habermehl, M. Leucker, and B. Monmege. A fresh approach to
+learning register automata. In Developments in Language Theory , vol. 7907 of
+LNCS , pp. 118{130. Springer, 2013.
+8. M. Botin can and D. Babi c. Sigma*: symbolic learning of input-output specica-
+tions. In POPL '13 , pp. 443{456, 2013.
+9. S. Cassel, B. Jonsson, F. Howar, and B. Steen. A succinct canonical register
+automaton model for data domains with binary relations. In ATVA '12 , pp. 57{
+71, 2012.
+10. M. D. Ernst, J. H. Perkins, P. J. Guo, S. McCamant, C. Pacheco, M. S. Tschantz,
+and C. Xiao. The Daikon system for dynamic detection of likely invariants. Sci.
+Comput. Programming , 69(1-3):35{45, 2007.
+11. E. Gery, D. Harel, and E. Palachi. Rhapsody: A complete life-cycle model-based
+development system. In IFM '02 , vol. 2335 of LNCS , pp. 1{10, 2002.
+12. C. Ghezzi, A. Mocci, and M. Monga. Synthesizing Intentional Behavior Models by
+Graph Transformation. In ICSE '09 , 2009.
+13. D. Giannakopoulou, Z. Rakamari, and V. Raman. Symbolic learning of component
+interfaces. In SAS '12 , vol. 7460 of LNCS , pp. 248{264. Springer, 2012.
+14. F. Howar. Active learning of interface programs . PhD thesis, Technical University
+of Dortmund, Germany, 2012.
+15. F. Howar, M. Isberner, B. Steen, O. Bauer, and B. Jonsson. Inferring semantic
+interfaces of data structures. In ISoLA '12 , vol. 7609 of LNCS , pp. 554{571, 2012.
+16. F. Howar, B. Steen, B. Jonsson, and S. Cassel. Inferring canonical register au-
+tomata. In VMCAI '12 , vol. 7148 of LNCS , pp. 251{266. Springer, 2012.
+17. F. Howar, B. Steen, and M. Merten. Automata Learning with Automated Al-
+phabet Abstraction Renement. In VMCAI '11 , vol. 6538 of LNCS , pp. 263{277,
+2011.
+18. A. Huima. Implementing Conformiq Qtronic. In TestCom/FATES '07 , vol. 4581
+ofLNCS , pp. 1{12, 2007.
+19. R. Jhala and R. Majumdar. Software model checking. ACM Comput. Surv. , 41(4),
+2009.
+20. D. Lorenzoli, L. Mariani, and M. Pezz e. Automatic generation of software behav-
+ioral models. In ICSE '08 , pp. 501{510, 2008.
+21. R. L. Rivest and R. E. Schapire. Inference of nite automata using homing se-
+quences. Information and Computation , 103(2):299{347, 1993.
+22. M. Schur, A. Roth, and A. Zeller. Mining behavior models from enterprise web
+applications. In ESEC/FSE '13 , pp. 422{432, 2013.
+23. G. Shu and D. Lee. Testing security properties of protocol implementations - a
+machine learning based approach. In ICDCS '07 , 2007.
+24. R. Singh, D. Giannakopoulou, and C. S. Pasareanu. Learning component interfaces
+with may and must abstractions. In CAV '10 , pp. 527{542, 2010.
+25. O. Tkachuk and M. B. Dwyer. Adapting side eects analysis for modular program
+model checking. In ESEC/FSE '03 , pp. 188{197, 2003.
+26. M. Veanes, P. Hooimeijer, B. Livshits, D. Molnar, and N. Bjorner. Symbolic nite
+state transducers: Algorithms and applications. In POPL '12 , pp. 137{150, 2012.
+27. N. Walkinshaw, K. Bogdanov, J. Derrick, and J. Paris. Increasing functional cov-
+erage by inductive testing: A case study. In ICTSS '10 , vol. 6435 of LNCS , pp.
+126{141, 2010.
+28. J. Whaley, M. C. Martin, and M. S. Lam. Automatic extraction of object-oriented
+component interfaces. In ISSTA '02 , pp. 218{228, 2002.
+29. H. Xiao, J. Sun, Y. Liu, S.-W. Lin, and C. Sun. Tzuyu: Learning stateful typestates.
+InASE '13 , pp. 432{442, 2013.
+
+--- Page 16 ---
+A Examples
+The inferred model of the Java class java.util.PriorityQueue is shown in
+Fig. 6. The capacity of the queue was limited articially to three elements in
+the test driver. Output of polloperations is modeled as extra input parameter,
+describing constraints on data values in traces of the queue. The learned model
+distinguishes between states with two dierent elements ( l2) and two identical
+elements (l4) in the queue since the learning algorithm does not consider sub-
+sumption between locations.
+Models for the smaller examples are shown in Fig. 7. Nonaccepting states are
+omitted in the gures, and we assume a single action (p).
+ABP is an abstract model of the alternating bit protocol. It alternates two states;
+on each transition, a data parameter is tested for equality against two constants
+0 and 1.
+Sequence Number models the behavior of a sequence number. The rst number
+seen is always stored; all numbers in subsequent transitions then have to equal
+the previous sequence number plus one.
+Timeout species a timeout. We imagine the parameters to be time stamps. In
+the rst transition of this model, a data parameter (time stamp) is stored. A
+second transition is only available if performed within less than 24 time units
+(e.g., hours) after the rst step. (This example system would also accept if the
+second step in the process has a time stamp smaller than the rst step. We could
+avoid this by introducing an additional constraint on the set of legal data words,
+similar to e.g., timed languages.)
+Fibonacci Sequence accepts a relaxed version of the the Fibonacci sequence (with
+no constraint on the rst two numbers).
+ATM models a bank account with a credit limit of USD 500, where no more
+than USD 300 can be withdrawn in a single transaction. In the rst transition,
+the balance of the account is set. It can then be updated to max. USD 300 less
+than the old balance; generally, the balance has to be above USD -500.
+l0 l1 l2
+l3 l4 l5 l6offer (p)jtrue
+x1:=p
+poll(p)jp=x1
+offer (p)jp<x 1
+x2:=x1;x1:=p,
+offer (p)jp>x 1
+x2:=p
+poll(p)jp=x1
+x1:=x2offer (p)jpx1
+x3:=x1;x1:=p,
+offer (p)jx1<px2
+x3:=p,
+offer (p)jx2<p
+x3:=x2;x2:=p
+poll(p)jp=x1
+x1:=x3offer (p)jp=x1
+poll(p)jp=x1
+
+offer (p)jp>x 1
+x2:=ppoll(p)jp=x1
+offer (p)jpx1
+x2:=p
+poll(p)jp=x2
+
+Fig. 6: Priority queue from the Java Class Library.
+
+--- Page 17 ---
+l0
+l1(p)jp=0
+(p)jp=1
+
+Alternating-bitl0 l1(p)jtrue
+x:=p
+(p)jx+1=p
+x:=p
+Sequence number counterl0 l1
+l2(p)jtrue
+x:=p
+(p)jp<x +24
+
+Timeout
+l0 l1
+l2(p)jtrue
+x1:=p
+(p)jtrue
+x2:=p
+(p)jx1+x2=p
+x1:=x2;x2:=p
+Relaxed Fibonacci sequencel0
+l1(p)jtrue
+x:=p
+(p)j(x300p)^(500p)
+x:=p
+ATM
+Fig. 7: Small models combining control ow and data.
+l0
+l1 l2l3 l4
+l5init (p)jp=x
+x:=p
+synack(p)jp=x+1
+x:=p,
+finack(p)jp=x
+,ack(p)jp=x
+syn(p)jp=x+1
+x:=p
+synack(p)jp=x+1
+x:=pack(p)jp=x
+finack(p)jp=x
+synack(p)jp=x+1
+x:=pfinack(p)jp=x
+synack(p)jp=x+1
+x:=p,
+finack(p)jp=x
+
+ack(p)jp=x
+
+syn(p)jp=x+1
+x:=p,finack(p)jp=x
+,
+synack(p)jp=x+1
+x:=p,ack(p)jp=x
+
+Fig. 8: Connection establishment of TCP (with reexive transitions).
+TCP Finally, Fig. 8 shows the model for connection establishment of TCP de-
+scribed in Sec. 5 with reexive transitions.
+B Falk's Proof
+Assumptions.
+1.Vis the nal set of suxes that is sucient for building an automaton A.
+2. Letu2Uandua(dg)2U+. Letuj=g[dg=p] for some a-transition in
+thehu;Vi-tree. Thehua(dg);Vi-treeTclassies all words ua(d)vcorrectly,
+whereuj=g[d=p].
+Inductive Start. The empty word is processed correctly by A:Vcontains
+the empty sux and Ucontains the empty prex, determining if lis accepting
+or not.
+
+--- Page 18 ---
+Inductive Step. If a wordwis processed correctly by Athen so is a word
+wa(d).
+1. ForAto processwcorrectly means that a run of wonAends in location
+luwithu2Us.t. for some mapping on the setfx1;x2;:::gthehu;Vi-
+treeTuclassies all words wvwithActs(v)2Vcorrectly under the initial
+assignment w.
+2. Now, let gbe the initial guard of an a-transition in Tuand letdsuch that
+(ww;u)j=g[d=p]. Letua(dg) be the word from U+for the corresponding
+a-transition at lu. The assumptions ensure that Tua(dg)classies all wa(d)v
+correctly (vas above).
+3. The word ua(dg) has a prex in u02Ufor whichTua(dg)andTu0are iso-
+morphic, which makes up the target location of the transition in A.
+4. Hencewa(d) has a run in Athat ends in location lu0withu02Us.t. for
+some mapping 0on the setfx1;x2;:::gthehu0;Vi-treeTu0classies all words
+wa(d)vwithActs(v)2Vcorrectly under the initial assignment wa(d)0.
