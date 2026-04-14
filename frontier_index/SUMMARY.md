@@ -75,6 +75,7 @@
    - [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
 4. `2026` 投稿日期与主页核查表：
    - [CCF_SE_2026_DEADLINES.md](./CCF_SE_2026_DEADLINES.md)
+   - 已补 `P1/P2/P3/P4` 四列 project 相关性先验
 
 ### 3.2 `arXiv` 方向入口
 
@@ -146,6 +147,11 @@ python -m tools.ccf_se_index_builder --year 2024
 7. `2025` 年条目已经完成全量人工终判；若后续扩展到新年份，继续沿用“直接写回 `metadata/*.json` 终判字段并重跑分类器”的流程推进。
 
 ## 6. 更新日志
+
+- `2026-04-14 22:51:36`
+  - 更新 [CCF_SE_2026_DEADLINES.md](./CCF_SE_2026_DEADLINES.md)，为 `57` 个保留 venue 全部补上四个 project 维度的 venue 级相关性先验：`P1 建模 / P2 场景与性质生成 / P3 验证 / P4 修复`。
+  - emoji 口径统一为：`🟢` 高相关、`🟡` 中相关、`🟠` 弱相关、`⚪` 基本无关；明确这些符号只表示 venue 级跟踪优先级，不替代单篇论文终判。
+  - 判定依据收紧为仓库内现有项目定义：`P1` 以 [../project_1_llm_state_machine_modeling/README.md](../project_1_llm_state_machine_modeling/README.md) 为准，`P2/P3/P4` 以 [../TARGET.md](../TARGET.md) 的研究内容二、三、四为准；不凭往年记录或目录名臆测。
 
 - `2026-04-14 22:36:36`
   - 新增 [CCF_SE_2026_DEADLINES.md](./CCF_SE_2026_DEADLINES.md)，把 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 当前保留的 `57` 个 `A/B/C` 软工相关 venue 全部补成一份 `2026` 投稿日期 / 主页核查表。
