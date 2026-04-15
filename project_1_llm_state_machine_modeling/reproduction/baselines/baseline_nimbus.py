@@ -4,6 +4,14 @@ import json
 from typing import Any
 
 import pandas as pd
+from pathlib import Path
+
+import sys
+
+CURRENT_DIR = Path(__file__).resolve().parent
+PARENT_DIR = CURRENT_DIR.parent
+if str(PARENT_DIR) not in sys.path:
+    sys.path.insert(0, str(PARENT_DIR))
 
 from eval_utils import (
     ensure_json,

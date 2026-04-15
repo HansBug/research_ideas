@@ -6,6 +6,14 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 import pandas as pd
+from pathlib import Path
+
+import sys
+
+CURRENT_DIR = Path(__file__).resolve().parent
+PARENT_DIR = CURRENT_DIR.parent
+if str(PARENT_DIR) not in sys.path:
+    sys.path.insert(0, str(PARENT_DIR))
 
 from eval_utils import json_dumps, macro_f1, prf_from_counts
 from io_utils import baseline_result_dir, load_discussion_parquet, write_json, write_parquet

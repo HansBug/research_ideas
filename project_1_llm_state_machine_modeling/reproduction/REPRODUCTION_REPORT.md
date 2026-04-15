@@ -17,10 +17,10 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/run_all.py rep
 - `run_all.py`: 顶层 CLI 入口，统一调度下载、增强、运行、报告。
 - `tasks.py`: 原始数据下载、parquet 回填、报告生成。
 - `llm_client.py`: 官方 `openai` client + provider fallback + 磁盘缓存。
-- `baseline_llms_emp.py`: `llms_emp` 复现主入口。
-- `baseline_ttool.py`: `ttool-ai` 与本地 `sm/MTI` 复现主入口。
-- `baseline_nimbus.py`: `Nimbus` 4 个 fragment 复现主入口。
-- `baseline_structure_event.py`: `Structure/Event-Driven` 四策略复现主入口。
+- `baselines/baseline_llms_emp.py`: `llms_emp` 复现主入口。
+- `baselines/baseline_ttool.py`: `ttool-ai` 与本地 `sm/MTI` 复现主入口。
+- `baselines/baseline_nimbus.py`: `Nimbus` 4 个 fragment 复现主入口。
+- `baselines/baseline_structure_event.py`: `Structure/Event-Driven` 四策略复现主入口。
 
 ## 3. Raw Data
 
