@@ -5,7 +5,7 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLING_DIR="$BASE_DIR/tooling"
 TXL_ROOT="$BASE_DIR/txl"
 JENV_ROOT="${JENV_ROOT:-$HOME/.jenv}"
-JDK_HOME="${JDK_HOME:-$HOME/.local/jdks/temurin-17.0.18+8}"
+TARGET_JDK_HOME="${TARGET_JDK_HOME:-$HOME/.local/jdks/temurin-17.0.18+8}"
 
 TEMURIN_URL="${TEMURIN_URL:-https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.18%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.18_8.tar.gz}"
 UMPLE_JAR_URL="${UMPLE_JAR_URL:-https://try.umple.org/scripts/umple.jar}"
@@ -13,7 +13,7 @@ NUSMV_URL="${NUSMV_URL:-https://nusmv.fbk.eu/distrib/NuSMV-2.6.0-linux64.tar.gz}
 ALLOY_URL="${ALLOY_URL:-https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/alloy-6.2.0-linux-amd64.tar.gz}"
 TXL_DOWNLOAD_PAGE="${TXL_DOWNLOAD_PAGE:-https://www.txl.ca/cgi-bin/txl-download.cgi}"
 
-mkdir -p "$TOOLING_DIR" "$TXL_ROOT" "$(dirname "$JDK_HOME")"
+mkdir -p "$TOOLING_DIR" "$TXL_ROOT" "$(dirname "$TARGET_JDK_HOME")"
 
 download_to() {
   local url="$1"
@@ -21,11 +21,26 @@ download_to() {
   curl -fsSL -o "$output" "$url"
 }
 
+ensure_jenv_shell_init() {
+  local file
+  local marker='__JENV_INITIALIZED'
+  local block
+  block=$'if [ -z "${__JENV_INITIALIZED:-}" ] && [ -d "$HOME/.jenv" ]; then\n  export PATH="$HOME/.jenv/bin:$PATH"\n  if command -v jenv >/dev/null 2>&1; then\n    eval "$(jenv init -)"\n    export __JENV_INITIALIZED=1\n  fi\nfi'
+
+  for file in "$HOME/.bash_profile" "$HOME/.bashrc"; do
+    touch "$file"
+    if ! rg -F "$marker" "$file" >/dev/null 2>&1; then
+      printf '\n%s\n' "$block" >> "$file"
+    fi
+  done
+}
+
 init_jenv() {
   export PATH="$JENV_ROOT/bin:$PATH"
   if [ ! -d "$JENV_ROOT" ]; then
     git clone https://github.com/jenv/jenv.git "$JENV_ROOT"
   fi
+  ensure_jenv_shell_init
   set +u
   export PROMPT_COMMAND="${PROMPT_COMMAND-}"
   eval "$(jenv init - bash)"
@@ -33,21 +48,24 @@ init_jenv() {
 }
 
 install_temurin() {
-  if [ ! -x "$JDK_HOME/bin/java" ]; then
+  local jdk_home
+  jdk_home="${TARGET_JDK_HOME:-$HOME/.local/jdks/temurin-17.0.18+8}"
+
+  if [ ! -x "$jdk_home/bin/java" ]; then
     local tmpdir
     tmpdir="$(mktemp -d)"
     download_to "$TEMURIN_URL" "$tmpdir/jdk.tar.gz"
     tar xzf "$tmpdir/jdk.tar.gz" -C "$tmpdir"
     local extracted
     extracted="$(find "$tmpdir" -maxdepth 1 -mindepth 1 -type d -name 'jdk-*' | head -n 1)"
-    rm -rf "$JDK_HOME"
-    mv "$extracted" "$JDK_HOME"
+    rm -rf "$jdk_home"
+    mv "$extracted" "$jdk_home"
     rm -rf "$tmpdir"
   fi
 
   init_jenv
   if ! jenv versions --bare | rg -x '17\.0\.18' >/dev/null 2>&1; then
-    jenv add "$JDK_HOME"
+    jenv add "$jdk_home"
   fi
   jenv rehash
 }
@@ -112,7 +130,7 @@ install_alloy
 install_txl
 
 cd "$BASE_DIR"
-echo "java_home=$JDK_HOME"
+echo "java_home=$TARGET_JDK_HOME"
 java -version
 java -jar "$TOOLING_DIR/umple.jar" -version
 "$TOOLING_DIR/nusmv-2.6.0-linux64/bin/NuSMV" -h 2>&1 | sed -n '1,3p' || true
