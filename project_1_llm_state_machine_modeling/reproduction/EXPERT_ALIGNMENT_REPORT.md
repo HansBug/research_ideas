@@ -1,46 +1,46 @@
-# Expert Review Alignment Report
+# 专家评审对齐报告
 
-## 1. Scope
+## 1. 范围
 
-This file records the final alignment experiments for the standalone [`expert_review`](./expert_review/) agent against real human expert scores from the TTool-AI baseline dataset.
+本文件记录了独立 [`expert_review`](./expert_review/) agent 与 TTool-AI 基线数据集中真实人类专家评分之间的最终对齐实验。
 
-Alignment target:
+对齐目标：
 
-- Keep the external interface unchanged: `prompt`, `input`, `pred-output`, optional `ref-output`
-- Keep the review flow LLM-first
-- Do not add hidden baseline-specific dispatch inside the agent
-- Use the published human scores from [`results.ods`](./data/raw/ttool-ai/results.ods)
-- Produce final structured results in [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet) and [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
+- 保持外部接口不变：`prompt`、`input`、`pred-output`、可选的 `ref-output`
+- 保持评审流程以 LLM 为先
+- 不在 agent 内部添加隐藏的、基于特定 baseline 的分派逻辑
+- 使用已发布的人类评分，来源为 [`results.ods`](./data/raw/ttool-ai/results.ods)
+- 在 [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet) 和 [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json) 中产出最终结构化结果
 
-Final chosen prompt variant:
+最终选定的 prompt 变体：
 
 - `paper_rubric_v5`
 
-Key agent-side changes kept in the final version:
+最终版本中保留的 agent 侧关键改动：
 
-- streaming fallback for `airouter` JSON responses
-- compact precomputed context instead of huge raw dumps
-- exact state/block name extraction from parsed artifact payloads
-- generic semantic-grounding calibration for behavior models
-- generic architecture-grounding calibration plus LLM/heuristic stability blend for architecture-like models
-- retry on malformed or unusable LLM JSON
+- 针对 `airouter` JSON 响应的流式回退机制
+- 使用紧凑的预计算上下文，而不是庞大的原始转储
+- 从解析后的 artifact 载荷中精确提取状态/块名称
+- 面向行为模型的通用语义锚定校准
+- 面向类架构模型的通用架构锚定校准，以及 LLM/启发式稳定性混合
+- 在 LLM JSON 格式错误或不可用时重试
 
-## 2. Reproduction Commands
+## 2. 复现命令
 
-Full alignment run:
+完整对齐运行：
 
 ```bash
 venv/bin/python project_1_llm_state_machine_modeling/reproduction/align_ttool_expert_review.py \
   --prompt-variant paper_rubric_v5
 ```
 
-Main outputs:
+主要输出：
 
-- Summary: [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
-- Row-level table: [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
-- Per-sample cached request/result payloads: [`cache/`](./results/ttool/expert_alignment/paper_rubric_v5/cache/)
+- 汇总：[`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
+- 逐条表：[`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
+- 每个样本缓存的请求/结果载荷：[`cache/`](./results/ttool/expert_alignment/paper_rubric_v5/cache/)
 
-Representative replay command using the exact stored request for one sample:
+使用某个样本精确保存的请求进行复现回放的代表性命令：
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/reproduction venv/bin/python - <<'PY'
@@ -69,7 +69,7 @@ print({
 PY
 ```
 
-Another replay command for a low-score state-machine case:
+针对一个低分状态机案例的另一条回放命令：
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/reproduction venv/bin/python - <<'PY'
@@ -98,81 +98,81 @@ print({
 PY
 ```
 
-## 3. Final Metrics
+## 3. 最终指标
 
-From [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json):
+来自 [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)：
 
-| scope | reviews | human_mean | pred_mean | MAE | RMSE | Pearson | Spearman | within_5 | within_10 | within_15 |
+| 范围 | 评审数 | 人类均值 | 预测均值 | MAE | RMSE | Pearson | Spearman | 5分内占比 | 10分内占比 | 15分内占比 |
 |:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| overall | 30 | 72.10 | 69.04 | 11.98 | 15.22 | 0.662 | 0.594 | 0.333 | 0.567 | 0.700 |
+| 总体 | 30 | 72.10 | 69.04 | 11.98 | 15.22 | 0.662 | 0.594 | 0.333 | 0.567 | 0.700 |
 | bd | 15 | 81.20 | 78.27 | 13.04 | 16.21 | 0.523 | 0.287 | 0.333 | 0.400 | 0.600 |
 | smd | 15 | 63.00 | 59.81 | 10.92 | 14.16 | 0.631 | 0.560 | 0.267 | 0.733 | 0.800 |
 
-Per-case average absolute error:
+按案例计算的平均绝对误差：
 
-| case_id | avg_absolute_error |
+| 案例ID | 平均绝对误差 |
 |:--|--:|
 | automated_braking | 9.56 |
 | platooning | 12.49 |
 | space_based_system | 13.89 |
 
-Interpretation:
+解读：
 
-- `automated_braking` is the best-aligned case family overall.
-- `smd` is now materially better than the earlier iterations and ended with lower `MAE` than `bd`.
-- The hardest remaining family is `space_based_system`, especially some over-scored block diagrams and under-scored high-quality state machines.
+- `automated_braking` 整体上是对齐效果最好的案例族。
+- `smd` 现在明显优于更早的迭代，并且最终的 `MAE` 低于 `bd`。
+- 目前最难的剩余案例族是 `space_based_system`，尤其是其中一些被高估的块图和一些被低估的高质量状态机。
 
-## 4. Full Final Result Table
+## 4. 完整最终结果表
 
-From [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet):
+来自 [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)：
 
-| case_id            | variant_name   | artifact_type   |   human_score_100 |   predicted_score_100 |   absolute_error |
-|:-------------------|:---------------|:----------------|------------------:|----------------------:|-----------------:|
-| automated_braking  | System1        | bd              |                85 |               87.5077 |           2.5077 |
-| automated_braking  | System1        | smd             |                65 |               56      |           9      |
-| automated_braking  | System2        | bd              |               100 |               83.2103 |          16.7897 |
-| automated_braking  | System2        | smd             |                45 |               73.8    |          28.8    |
-| automated_braking  | System3        | bd              |                95 |               86.0466 |           8.9534 |
-| automated_braking  | System3        | smd             |                30 |               38.2    |           8.2    |
-| automated_braking  | System4        | bd              |                45 |               41.6974 |           3.3026 |
-| automated_braking  | System4        | smd             |                30 |               39.6    |           9.6    |
-| automated_braking  | System5        | bd              |                90 |               90.4466 |           0.4466 |
-| automated_braking  | System5        | smd             |                70 |               62      |           8      |
-| platooning         | Platoon1       | bd              |               100 |               89.9    |          10.1    |
-| platooning         | Platoon1       | smd             |                85 |               70      |          15      |
-| platooning         | Platoon2       | bd              |                75 |               62      |          13      |
-| platooning         | Platoon2       | smd             |                75 |               72.2    |           2.8    |
-| platooning         | Platoon3       | bd              |                75 |               61      |          14      |
-| platooning         | Platoon3       | smd             |                65 |               56      |           9      |
-| platooning         | Platoon4       | bd              |                90 |               71.6211 |          18.3789 |
-| platooning         | Platoon4       | smd             |                70 |               73.6    |           3.6    |
-| platooning         | Platoon5       | bd              |                75 |               43      |          32      |
-| platooning         | Platoon5       | smd             |                40 |               47      |           7      |
-| space_based_system | System1        | bd              |                88 |               90.125  |           2.125  |
-| space_based_system | System1        | smd             |                70 |               70.8    |           0.8    |
-| space_based_system | System2        | bd              |                60 |               89.35   |          29.35   |
-| space_based_system | System2        | smd             |                75 |               57      |          18      |
-| space_based_system | System3        | bd              |                70 |               89.975  |          19.975  |
-| space_based_system | System3        | smd             |                65 |               56      |           9      |
-| space_based_system | System4        | bd              |                75 |               96.4    |          21.4    |
-| space_based_system | System4        | smd             |                70 |               68      |           2      |
-| space_based_system | System5        | bd              |                95 |               91.75   |           3.25   |
-| space_based_system | System5        | smd             |                90 |               57      |          33      |
+| 案例ID            | 变体名         | artifact 类型  |   人类得分（百分制） |   预测得分（百分制） |   绝对误差 |
+|:-------------------|:---------------|:----------------|---------------------:|---------------------:|-----------:|
+| automated_braking  | System1        | bd              |                   85 |               87.5077 |     2.5077 |
+| automated_braking  | System1        | smd             |                   65 |               56      |     9      |
+| automated_braking  | System2        | bd              |                  100 |               83.2103 |    16.7897 |
+| automated_braking  | System2        | smd             |                   45 |               73.8    |    28.8    |
+| automated_braking  | System3        | bd              |                   95 |               86.0466 |     8.9534 |
+| automated_braking  | System3        | smd             |                   30 |               38.2    |     8.2    |
+| automated_braking  | System4        | bd              |                   45 |               41.6974 |     3.3026 |
+| automated_braking  | System4        | smd             |                   30 |               39.6    |     9.6    |
+| automated_braking  | System5        | bd              |                   90 |               90.4466 |     0.4466 |
+| automated_braking  | System5        | smd             |                   70 |               62      |     8      |
+| platooning         | Platoon1       | bd              |                  100 |               89.9    |    10.1    |
+| platooning         | Platoon1       | smd             |                   85 |               70      |    15      |
+| platooning         | Platoon2       | bd              |                   75 |               62      |    13      |
+| platooning         | Platoon2       | smd             |                   75 |               72.2    |     2.8    |
+| platooning         | Platoon3       | bd              |                   75 |               61      |    14      |
+| platooning         | Platoon3       | smd             |                   65 |               56      |     9      |
+| platooning         | Platoon4       | bd              |                   90 |               71.6211 |    18.3789 |
+| platooning         | Platoon4       | smd             |                   70 |               73.6    |     3.6    |
+| platooning         | Platoon5       | bd              |                   75 |               43      |    32      |
+| platooning         | Platoon5       | smd             |                   40 |               47      |     7      |
+| space_based_system | System1        | bd              |                   88 |               90.125  |     2.125  |
+| space_based_system | System1        | smd             |                   70 |               70.8    |     0.8    |
+| space_based_system | System2        | bd              |                   60 |               89.35   |    29.35   |
+| space_based_system | System2        | smd             |                   75 |               57      |    18      |
+| space_based_system | System3        | bd              |                   70 |               89.975  |    19.975  |
+| space_based_system | System3        | smd             |                   65 |               56      |     9      |
+| space_based_system | System4        | bd              |                   75 |               96.4    |    21.4    |
+| space_based_system | System4        | smd             |                   70 |               68      |     2      |
+| space_based_system | System5        | bd              |                   95 |               91.75   |     3.25   |
+| space_based_system | System5        | smd             |                   90 |               57      |    33      |
 
-## 5. Representative Examples
+## 5. 代表性示例
 
-### Example A: High-Quality Block Diagram Close to Human Score
+### 示例 A：接近人类评分的高质量块图
 
-Cached sample:
+缓存样本：
 
 - [`automated_braking__System1__bd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/automated_braking__System1__bd.json)
 
-Human vs agent:
+人类与 agent：
 
-- Human expert: `85`
-- Agent: `87.5077`
+- 人类专家：`85`
+- Agent：`87.5077`
 
-Real agent output summary:
+实际 agent 输出摘要：
 
 ```json
 {
@@ -185,31 +185,31 @@ Real agent output summary:
     "pragmatic_clarity": 0.65
   },
   "notes": [
-    "No reference output was available, so scoring was done directly against the input architecture and requirements.",
-    "Assessment prioritized architecture-level adequacy, but explicit safety, security, and timing requirements still had to be traceable to earn higher scores.",
-    "Applied generic architecture-grounding boost because the model contains many requirement-grounded block names and explicit interactions.",
-    "Applied architecture stability blend: llm_weight=0.25, heuristic_weight=0.75."
+    "没有可用的参考输出，因此评分直接依据输入的架构和需求进行。",
+    "评估优先考虑架构层面的充分性，但若要获得更高分，显式的安全、安全防护和时序需求仍然必须可追溯。",
+    "由于模型包含许多由需求支撑的块名称和显式交互，因此应用了通用架构锚定加成。",
+    "应用了架构稳定性混合：llm_weight=0.25，heuristic_weight=0.75。"
   ]
 }
 ```
 
-Why this is aligned:
+这为何是对齐的：
 
-- The agent gave substantial credit for the core ECU → CSC → communication/broadcast chain.
-- It still deducted for missing safety/privacy/timing architecture, which matches the human reviewers’ non-perfect score rather than giving a near-100 score.
+- agent 对核心 ECU → CSC → communication/broadcast 链条给予了较多加分。
+- 它仍然因为缺少安全/隐私/时序架构而扣分，这与人类评审给出的非满分结果一致，而不是给出接近 100 的评分。
 
-### Example B: Weak Block Diagram Close to Human Score
+### 示例 B：接近人类评分的薄弱块图
 
-Cached sample:
+缓存样本：
 
 - [`automated_braking__System4__bd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/automated_braking__System4__bd.json)
 
-Human vs agent:
+人类与 agent：
 
-- Human expert: `45`
-- Agent: `41.6974`
+- 人类专家：`45`
+- Agent：`41.6974`
 
-Real agent output summary:
+实际 agent 输出摘要：
 
 ```json
 {
@@ -222,31 +222,31 @@ Real agent output summary:
     "pragmatic_clarity": 0.32
   },
   "notes": [
-    "No reference output was available, so scoring is based directly on the input description and the requested architecture-level review task.",
-    "High-level architecture credit was given for the presence of several core subsystems, but heavy deductions were applied because the main interaction story is not actually connected in the model.",
-    "Applied generic architecture penalty because the model contains many blocks but almost no explicit interactions.",
-    "Applied architecture stability blend: llm_weight=0.75, heuristic_weight=0.25."
+    "没有可用的参考输出，因此评分直接基于输入描述和所请求的架构级评审任务。",
+    "由于存在若干核心子系统，给予了高层架构层面的分数，但由于主要的交互链路在模型中实际上并未连通，因此进行了大幅扣分。",
+    "由于模型包含许多块但几乎没有显式交互，因此应用了通用架构惩罚。",
+    "应用了架构稳定性混合：llm_weight=0.75，heuristic_weight=0.25。"
   ]
 }
 ```
 
-Why this is aligned:
+这为何是对齐的：
 
-- The agent did not over-punish mere block presence, but it strongly penalized the lack of exchanges.
-- That is very close to the human grading pattern for this case.
+- agent 并未因为只是存在若干块而过度扣分，但它对缺乏交互进行了强烈扣分。
+- 这与该案例的人类评分模式非常接近。
 
-### Example C: Good State-Machine Set with Moderate Remaining Gap
+### 示例 C：有一定剩余差距的优质状态机集合
 
-Cached sample:
+缓存样本：
 
 - [`platooning__Platoon1__smd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/platooning__Platoon1__smd.json)
 
-Human vs agent:
+人类与 agent：
 
-- Human expert: `85`
-- Agent: `70`
+- 人类专家：`85`
+- Agent：`70`
 
-Real agent output summary:
+实际 agent 输出摘要：
 
 ```json
 {
@@ -259,30 +259,30 @@ Real agent output summary:
     "pragmatic_clarity": 0.57
   },
   "notes": [
-    "No reference model was available, so scoring is against the input requirements only.",
-    "The advanced platoon-splitting feature appears optional from the wording; it was not treated as a primary missing behavior driver.",
-    "Applied generic semantic-grounding boost because the model contains many domain-specific state names and comparatively few placeholder states."
+    "没有可用的参考模型，因此评分仅针对输入需求进行。",
+    "从表述来看，高级车队分裂功能似乎是可选的；它没有被视为导致缺失行为扣分的主要因素。",
+    "由于模型包含许多领域特定的状态名称，且占位状态相对较少，因此应用了通用语义锚定加成。"
   ]
 }
 ```
 
-Why this is only partially aligned:
+这为何只是部分对齐：
 
-- The agent correctly recognized this as a clearly stronger-than-average behavior model.
-- It still stayed below the human score because it kept deducting for under-modeled causal details and weaker guard/timing logic.
+- agent 正确识别出这显然是一个强于平均水平的行为模型。
+- 但它仍低于人类评分，因为它持续针对因果细节建模不足以及较弱的守卫/时序逻辑进行扣分。
 
-### Example D: Low-Quality State-Machine Set Pulled Down After Final Fixes
+### 示例 D：在最终修复后被拉低分数的低质量状态机集合
 
-Cached sample:
+缓存样本：
 
 - [`platooning__Platoon5__smd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/platooning__Platoon5__smd.json)
 
-Human vs agent:
+人类与 agent：
 
-- Human expert: `40`
-- Agent: `47`
+- 人类专家：`40`
+- Agent：`47`
 
-Real agent output summary:
+实际 agent 输出摘要：
 
 ```json
 {
@@ -295,52 +295,52 @@ Real agent output summary:
     "pragmatic_clarity": 0.63
   },
   "notes": [
-    "No reference model was available, so scoring is a standalone expert review against the textual requirements.",
-    "Timing details were not treated as syntax issues, but their absence still reduces completeness and traceability because they are explicitly required behavior here."
+    "没有可用的参考模型，因此评分是基于文本需求进行的独立专家评审。",
+    "时序细节未被视为语法问题，但它们的缺失仍然降低了完整性和可追溯性，因为这里明确要求了这些行为。"
   ]
 }
 ```
 
-Why this improved over earlier iterations:
+这为何比早期迭代有所改进：
 
-- Earlier versions over-scored this case because they were misled by polluted pseudo-state extraction.
-- After switching to exact parsed state-name extraction, the agent treated it as a shallow behavior model instead of a rich one.
+- 早期版本高估了这个案例，因为它们被受污染的伪状态提取误导了。
+- 切换到精确的已解析状态名提取后，agent 将其视为一个浅层行为模型，而不是一个丰富的行为模型。
 
-## 6. What Worked
+## 6. 哪些做法有效
 
-- `airouter` streaming fallback removed empty-response failures and made LLM-first review stable enough for repeated runs.
-- Compact review context prevented the earlier giant-prompt failure mode.
-- Exact state/block name extraction fixed false semantic boosts caused by generic text scraping.
-- Generic behavior-model calibration improved high-vs-low separation for `smd`.
-- Generic architecture calibration plus LLM/heuristic blending greatly improved `bd` alignment, especially for obviously good and obviously weak block diagrams.
+- `airouter` 流式回退机制消除了空响应失败，并让以 LLM 为先的评审足够稳定，可反复运行。
+- 紧凑的评审上下文避免了早先那种超大 prompt 的失败模式。
+- 精确的状态/块名称提取修复了由通用文本抓取造成的错误语义加成。
+- 通用行为模型校准提升了 `smd` 高分与低分之间的区分度。
+- 通用架构校准加上 LLM/启发式混合，显著改善了 `bd` 的对齐效果，尤其是在明显较好和明显较弱的块图上。
 
-## 7. Remaining Gaps
+## 7. 剩余差距
 
-Largest remaining errors:
+剩余误差最大的案例：
 
-- `space_based_system / System5 / smd`: human `90`, agent `57`
-- `space_based_system / System2 / bd`: human `60`, agent `89.35`
-- `space_based_system / System4 / bd`: human `75`, agent `96.4`
-- `platooning / Platoon5 / bd`: human `75`, agent `43`
-- `automated_braking / System2 / smd`: human `45`, agent `73.8`
+- `space_based_system / System5 / smd`：人类 `90`，agent `57`
+- `space_based_system / System2 / bd`：人类 `60`，agent `89.35`
+- `space_based_system / System4 / bd`：人类 `75`，agent `96.4`
+- `platooning / Platoon5 / bd`：人类 `75`，agent `43`
+- `automated_braking / System2 / smd`：人类 `45`，agent `73.8`
 
-Observed failure modes:
+观察到的失效模式：
 
-- Some `space_based_system` block diagrams still get over-rewarded for architecture coverage even when the human graders were more conservative.
-- Some strong `space_based_system` state-machine sets are still under-scored because the agent keeps treating missing detailed behavioral evidence as more important than the human experts did.
-- `automated_braking / System2 / smd` remains a persistent false positive.
+- 某些 `space_based_system` 块图即使在人类评分者更为保守的情况下，仍然会因为架构覆盖度而被过度奖励。
+- 某些高质量的 `space_based_system` 状态机集合仍被低估，因为 agent 持续把缺失的细节行为证据看得比人类专家更重要。
+- `automated_braking / System2 / smd` 仍然是一个持续存在的假阳性。
 
-Practical conclusion:
+实际结论：
 
-- The current version is no longer a naive over-scoring reviewer.
-- For `automated_braking` it is already strongly aligned.
-- For `platooning` it is reasonably aligned with some remaining behavior-side conservatism.
-- For `space_based_system` it is usable but not yet as tightly aligned as the other two families.
+- 当前版本不再是一个会天真地普遍给出高分的评审器。
+- 对于 `automated_braking`，它已经实现了较强对齐。
+- 对于 `platooning`，它的对齐程度是合理的，但在行为侧仍残留一些保守性。
+- 对于 `space_based_system`，它已经可用，但对齐程度还没有另外两个案例族那么紧。
 
-## 8. Final File Pointers
+## 8. 最终文件位置
 
-- Final summary: [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
-- Final row table: [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
-- Final per-sample caches: [`cache/`](./results/ttool/expert_alignment/paper_rubric_v5/cache/)
-- Alignment runner: [`align_ttool_expert_review.py`](./align_ttool_expert_review.py)
-- Standalone agent: [`expert_review/expert_review_agent.py`](./expert_review/expert_review_agent.py)
+- 最终汇总：[`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
+- 最终逐条表：[`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
+- 最终逐样本缓存：[`cache/`](./results/ttool/expert_alignment/paper_rubric_v5/cache/)
+- 对齐运行器：[`align_ttool_expert_review.py`](./align_ttool_expert_review.py)
+- 独立 agent：[`expert_review/expert_review_agent.py`](./expert_review/expert_review_agent.py)
