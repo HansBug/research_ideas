@@ -1,0 +1,98 @@
+use driver_license_requirements.ump;
+
+namespace Reproduction.DriverLicense;
+
+class Applicant
+{
+  unique Integer applicantId;
+  Integer nameCode = 101;
+  Integer birthYear = 1990;
+  Integer addressCode = 501;
+  Integer feePaid = 0;
+  Integer lastScore = 0;
+  Integer suspensionCode = 0;
+
+  // Each applicant may hold at most one current license.
+  1 -- 0..1 DrivingLicense currentLicense;
+
+  // Every stored test record belongs to exactly one applicant.
+  1 -- * TestRecord testRecords;
+
+  implementsReq L01-Levels;
+  implementsReq L02-G1Test;
+  implementsReq L03-G2Test;
+  implementsReq L04-GTest;
+  implementsReq L05-Expiry;
+  implementsReq L06-NonRenewG1OrG2;
+  implementsReq L07-RenewG;
+  implementsReq L08-Suspension;
+
+  licenseLifecycle {
+    NoLicense {
+      payFee -> / { setFeePaid(1); } NoLicense;
+      passG1Test [feePaid == 1] -> / {
+        setLastScore(80);
+        setFeePaid(0);
+      } G1;
+    }
+
+    Licensed {
+      G1 {
+        entry / { setSuspensionCode(0); }
+        payFee -> / { setFeePaid(1); } G1;
+        passG2Test [feePaid == 1] -> / {
+          setLastScore(82);
+          setFeePaid(0);
+        } G2;
+        expire -> NoLicense;
+        suspend -> / { setSuspensionCode(1); } Suspended;
+      }
+
+      G2 {
+        entry / { setSuspensionCode(0); }
+        payFee -> / { setFeePaid(1); } G2;
+        passGTest [feePaid == 1] -> / {
+          setLastScore(88);
+          setFeePaid(0);
+        } G;
+        expire -> NoLicense;
+        suspend -> / { setSuspensionCode(2); } Suspended;
+      }
+
+      G {
+        entry / { setSuspensionCode(0); }
+        expire -> ExpiredG;
+        suspend -> / { setSuspensionCode(3); } Suspended;
+      }
+    }
+
+    Suspended {
+      reinstateAsG1 [suspensionCode == 1] -> / { setSuspensionCode(0); } G1;
+      reinstateAsG2 [suspensionCode == 2] -> / { setSuspensionCode(0); } G2;
+      reinstateAsG [suspensionCode == 3] -> / { setSuspensionCode(0); } G;
+    }
+
+    ExpiredG {
+      renewG -> G;
+    }
+  }
+}
+
+class DrivingLicense
+{
+  unique Integer licenseNumber;
+  Integer issuedYear = 2026;
+  Integer kindCode = 3;
+
+  implementsReq L09-LicenseData;
+}
+
+class TestRecord
+{
+  unique Integer recordId;
+  Integer testTypeCode = 1;
+  Integer score;
+  Integer passCode = 1;
+
+  implementsReq L11-TestData;
+}
