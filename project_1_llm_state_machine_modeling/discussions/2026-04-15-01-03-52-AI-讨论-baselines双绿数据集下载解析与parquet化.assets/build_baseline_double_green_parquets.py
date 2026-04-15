@@ -41,6 +41,16 @@ STRUCTURE_EVENT_DRIVEN_NSHOT_URL = (
     "https://anonymous.4open.science/api/repo/llm_state_machine_modeling/file/"
     "backend/resources/n_shot_examples_single_prompt.py"
 )
+STRUCTURE_EVENT_REFERENCE_PROMPT_FILES = {
+    "printer_winter_2017": "printer.txt",
+    "spa_manager_winter_2018": "spa-manager.txt",
+    "dishwasher_winter_2019": "dishwasher.txt",
+    "chess_clock_fall_2019": "chess-clock.txt",
+    "automatic_bread_maker_fall_2020": "bread-maker.txt",
+    "thermomix_fall_2021": "thermomix.txt",
+    "WUMPLE_fall_2023": "wumple.txt",
+    "SSC7_fall_2024": "ssc7.txt",
+}
 
 
 def json_compact(value: Any) -> str:
@@ -962,6 +972,7 @@ STRUCTURE_EVENT_CASE_ID_BY_METRIC_NAME = {
     "automatic bread maker": "automatic_bread_maker_fall_2020",
     "thermomix": "thermomix_fall_2021",
     "thermomix tm6": "thermomix_fall_2021",
+    "digital chess clock": "chess_clock_fall_2019",
     "w umple": "WUMPLE_fall_2023",
     "w-umple": "WUMPLE_fall_2023",
     "wumple": "WUMPLE_fall_2023",
@@ -1091,6 +1102,48 @@ def parse_structure_event_metrics(workbook_path: Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def structure_event_reference_counts(metrics_df: pd.DataFrame) -> pd.DataFrame:
+    usable = metrics_df[metrics_df["component"] != "All"].copy()
+    usable["reference_count"] = usable["tp"].fillna(0) + usable["fn"].fillna(0)
+    grouped = usable.groupby(["case_id", "component"], as_index=False)["reference_count"].median()
+    pivot = grouped.pivot(index="case_id", columns="component", values="reference_count").reset_index()
+    pivot.columns.name = None
+    return pivot.fillna(0)
+
+
+def structure_event_prompt_path(raw_root: Path, case_id: str) -> Path | None:
+    filename = STRUCTURE_EVENT_REFERENCE_PROMPT_FILES.get(case_id)
+    if filename is None:
+        return None
+    candidates = [
+        raw_root / "structure_event" / "reference_solutions" / filename,
+        raw_root / "structure_event" / "extracted" / "Reference Solutions" / filename,
+        raw_root / "reference_solutions" / filename,
+        raw_root / "extracted" / "Reference Solutions" / filename,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def structure_event_image_path(raw_root: Path, case_id: str) -> Path | None:
+    filename = STRUCTURE_EVENT_REFERENCE_PROMPT_FILES.get(case_id)
+    if filename is None:
+        return None
+    stem = filename.replace(".txt", ".png")
+    candidates = [
+        raw_root / "structure_event" / "reference_solutions" / stem,
+        raw_root / "structure_event" / "extracted" / "Reference Solutions" / stem,
+        raw_root / "reference_solutions" / stem,
+        raw_root / "extracted" / "Reference Solutions" / stem,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def simple_umple_stats(code: str) -> dict[str, Any]:
     transition_count = len(re.findall(r"->", code))
     state_names = set()
@@ -1113,10 +1166,16 @@ def build_structure_event_driven(raw_root: Path) -> dict[str, pd.DataFrame]:
     descriptions = parse_state_machine_descriptions(descriptions_text)
     references = parse_n_shot_reference_solutions(nshot_text)
     metrics_df = parse_structure_event_metrics(metrics_path)
+    counts_df = structure_event_reference_counts(metrics_df)
+    counts_lookup = counts_df.set_index("case_id").to_dict(orient="index") if not counts_df.empty else {}
 
     case_rows = []
     for case_id, description in descriptions.items():
         is_paper_case = case_id != "ATAS_fall_2022"
+        prompt_path = structure_event_prompt_path(raw_root, case_id)
+        image_path = structure_event_image_path(raw_root, case_id)
+        prompt_text = prompt_path.read_text(encoding="utf-8").strip() if prompt_path is not None else None
+        count_row = counts_lookup.get(case_id, {})
         case_rows.append(
             {
                 "dataset_id": "structure_event_driven",
@@ -1134,6 +1193,23 @@ def build_structure_event_driven(raw_root: Path) -> dict[str, pd.DataFrame]:
                 "output_metamodel": "UML state machine (single-prompt reference solutions expressed in Umple)",
                 "system_description": description,
                 "has_full_reference_solution": case_id in references,
+                "reference_prompt_text": prompt_text,
+                "reference_prompt_local_path": str(prompt_path) if prompt_path is not None else None,
+                "reference_image_local_path": str(image_path) if image_path is not None else None,
+                "reference_components_json": json_compact(
+                    {
+                        f"reference_{field.lower().replace(' ', '_')}_count": int(count_row.get(field, 0))
+                        for field in [
+                            "States",
+                            "Transitions",
+                            "Guards",
+                            "Actions",
+                            "Hierarchical states",
+                            "History States",
+                            "Parallel Regions",
+                        ]
+                    }
+                ),
                 "reference_solution_representation": (
                     "Umple state machine" if case_id in references else None
                 ),
@@ -1147,18 +1223,42 @@ def build_structure_event_driven(raw_root: Path) -> dict[str, pd.DataFrame]:
     cases_df = pd.DataFrame(case_rows)
 
     reference_rows = []
-    for case_id, code in references.items():
-        stats = simple_umple_stats(code)
+    for case_id, description in descriptions.items():
+        code = references.get(case_id)
+        stats = simple_umple_stats(code) if code else {}
+        prompt_path = structure_event_prompt_path(raw_root, case_id)
+        image_path = structure_event_image_path(raw_root, case_id)
+        prompt_text = prompt_path.read_text(encoding="utf-8").strip() if prompt_path is not None else None
+        count_row = counts_lookup.get(case_id, {})
         reference_rows.append(
             {
                 "dataset_id": "structure_event_driven",
                 "case_id": case_id,
                 "case_name": STRUCTURE_EVENT_CASE_NAME_MAP.get(case_id, case_id),
                 "is_paper_evaluation_case": case_id != "ATAS_fall_2022",
-                "reference_solution_representation": "Umple state machine",
+                "reference_solution_representation": (
+                    "Umple state machine" if code else "Prompt + image + component counts"
+                ),
                 "reference_solution_text": code,
-                "output_metamodel": "UML state machine in Umple syntax",
+                "reference_prompt_text": prompt_text,
+                "reference_prompt_local_path": str(prompt_path) if prompt_path is not None else None,
+                "reference_image_local_path": str(image_path) if image_path is not None else None,
+                "output_metamodel": (
+                    "UML state machine in Umple syntax" if code else "UML state machine"
+                ),
                 **stats,
+                **{
+                    f"reference_{field.lower().replace(' ', '_')}_count": int(count_row.get(field, 0))
+                    for field in [
+                        "States",
+                        "Transitions",
+                        "Guards",
+                        "Actions",
+                        "Hierarchical states",
+                        "History States",
+                        "Parallel Regions",
+                    ]
+                },
             }
         )
     references_df = pd.DataFrame(reference_rows)
@@ -1239,8 +1339,8 @@ def build_catalog(frames: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "output_metamodel": "UML state machine; accessible full references are in Umple",
                 "sample_granularity": "one row per benchmark case",
                 "raw_sample_count": se_cases,
-                "experiment_ready_sample_count": se_reference_cases,
-                "notes": "All descriptions and all published metrics were recovered; 5 paper cases plus 1 extra artifact case expose full Umple references in the public snapshot.",
+                "experiment_ready_sample_count": 8,
+                "notes": "All 8 paper evaluation cases expose prompt text, reference image, and metric-derived component counts locally; 6 cases additionally expose full Umple text from the public artifact.",
             },
         ]
     )

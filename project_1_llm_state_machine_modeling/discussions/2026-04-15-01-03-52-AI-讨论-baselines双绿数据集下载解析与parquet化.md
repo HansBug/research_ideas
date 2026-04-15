@@ -31,7 +31,7 @@
 | [light_control_nimbus_states.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_states.parquet) | `Light Control` 的 20 个层次状态节点 |
 | [light_control_nimbus_rules.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_rules.parquet) | `Light Control` 的 16 条 RSML-e 规则 |
 | [structure_event_driven_cases.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_cases.parquet) | `Structure/Event-Driven` 的 9 个公开描述样本 |
-| [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | `Structure/Event-Driven` 中可恢复的 6 个 Umple 参考解 |
+| [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | `Structure/Event-Driven` 的 8 个论文案例 prompt/image/count ground truth 与 6 个 Umple 文本参考解 |
 | [structure_event_driven_metrics.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_metrics.parquet) | `Structure/Event-Driven` 的 512 条逐组件评测记录 |
 
 ## 2. 统一复现方式
@@ -88,7 +88,7 @@ curl -L \
 说明：
 
 - 匿名工件的官方文件接口在实测中存在 `429` 限流与子目录不可枚举的问题，因此这里使用了 `r.jina.ai` 文本镜像去拉取 `.py` 文本文件。
-- `Final Detailed F1-Scores.xlsx` 可以直接下载，但匿名源并没有稳定暴露 `Reference Solutions/` 的目录列表；这会影响 3 个案例参考解的完整恢复，后文会单独说明。
+- `Final Detailed F1-Scores.xlsx` 可以直接下载；结合本地保留的 zip 快照后，`Reference Solutions/` 目录下 8 个论文案例的 prompt/image 以及逐组件 count 级 ground truth 已全部恢复，另有 6 个案例还能恢复完整 Umple 文本参考解。
 
 ### 2.2 重新生成全部 `parquet`
 
@@ -1122,12 +1122,12 @@ print(fragment_dataset.loc[0, "rule_rows"])
 这里的最终元模型必须区分两层：
 
 1. 论文任务目标是 `UML state machine` [1]
-2. 在匿名工件中，当前能恢复出来的完整参考解文本是 `Umple` 语法 [2]
+2. 在匿名工件中，8 个论文案例都能恢复 prompt + reference image，另有 6 个案例能恢复完整 `Umple` 文本参考解 [2]
 
 因此，本次 `parquet` 的建模口径是：
 
 - `structure_event_driven_cases.parquet`：保留原始自然语言描述
-- `structure_event_driven_reference_solutions.parquet`：保留当前可访问的 Umple 参考解
+- `structure_event_driven_reference_solutions.parquet`：统一保留 prompt / image / metric-derived counts，并在可恢复时补上 Umple 文本参考解
 - `structure_event_driven_metrics.parquet`：保留官方逐组件 `TP / FN / FP / Precision / Recall / F1`
 
 ### 6.2 本地抽取结果与完整性状态
@@ -1137,37 +1137,38 @@ print(fragment_dataset.loc[0, "rule_rows"])
 | `parquet` | 规模 | 说明 |
 | --- | --- | --- |
 | [structure_event_driven_cases.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_cases.parquet) | 9 行 | 8 个论文正式案例 + 1 个工件额外案例 `ATAS` |
-| [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | 6 行 | 5 个论文正式案例 + 1 个额外 `ATAS` 的完整 Umple 参考解 |
+| [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | 9 行 | 8 个论文正式案例全部带 prompt/image/count ground truth；其中 6 个案例 + 1 个额外 `ATAS` 还带完整 Umple 文本 |
 | [structure_event_driven_metrics.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_metrics.parquet) | 512 行 | 4 种策略 × 2 个 LLM × 逐案例 × 逐组件的评测记录 |
 
 当前完整性状态必须如实说明：
 
 | 案例 | 描述 | 完整参考解 |
 | --- | --- | --- |
-| `Printer` | 有 | 有 |
-| `Spa Manager` | 有 | 有 |
-| `Dishwasher` | 有 | 有 |
-| `Chess Clock` | 有 | 有 |
-| `Automatic Bread Maker` | 有 | 无 |
-| `Thermomix TM6` | 有 | 有 |
-| `W-UMPLE` | 有 | 无 |
-| `SSC7` | 有 | 无 |
-| `ATAS` | 有 | 有，但它不是论文正式 8 案例之一 |
+| `Printer` | 有 | 有，且有 Umple 文本 |
+| `Spa Manager` | 有 | 有，且有 Umple 文本 |
+| `Dishwasher` | 有 | 有，且有 Umple 文本 |
+| `Chess Clock` | 有 | 有，且有 Umple 文本 |
+| `Automatic Bread Maker` | 有 | 有，但仅有 prompt/image/count |
+| `Thermomix TM6` | 有 | 有，且有 Umple 文本 |
+| `W-UMPLE` | 有 | 有，但仅有 prompt/image/count |
+| `SSC7` | 有 | 有，但仅有 prompt/image/count |
+| `ATAS` | 有 | 有 Umple 文本，但它不是论文正式 8 案例之一 |
 
 也就是说：
 
 - 8 个论文正式案例的自然语言描述都已经恢复
 - 官方指标表也已经完整恢复
-- 但匿名工件对 `Reference Solutions/` 的目录和剩余文件并没有稳定公开，因此 `Automatic Bread Maker / W-UMPLE / SSC7` 三个正式案例目前只有描述和指标，没有完整参考解文本
+- 8 个论文正式案例的 prompt/image/count 级 ground truth 现在也都已恢复
+- 但 `Automatic Bread Maker / W-UMPLE / SSC7` 三个正式案例仍然只有 prompt/image/count，没有公开的完整 Umple 文本参考解
 
-这一点已经在 `structure_event_driven_cases.parquet` 的 `has_full_reference_solution` 与 `reference_solution_missing_reason` 两列中显式编码。
+这一点已经在 `structure_event_driven_cases.parquet` 与 `structure_event_driven_reference_solutions.parquet` 中显式编码。
 
 ### 6.3 `parquet` 字段
 
 | `parquet` | 关键字段 | 含义 |
 | --- | --- | --- |
-| `cases` | `case_id`, `case_name`, `is_paper_evaluation_case`, `system_description`, `has_full_reference_solution` | 案例主表 |
-| `reference_solutions` | `case_id`, `reference_solution_text`, `umple_transition_count`, `umple_block_count` | 已恢复的 Umple 参考解 |
+| `cases` | `case_id`, `case_name`, `is_paper_evaluation_case`, `system_description`, `reference_prompt_text`, `reference_components_json`, `has_full_reference_solution` | 案例主表 |
+| `reference_solutions` | `case_id`, `reference_solution_text`, `reference_prompt_text`, `reference_image_local_path`, `reference_states_count`, `reference_transitions_count` 等 | prompt/image/count ground truth 与已恢复 Umple 文本 |
 | `metrics` | `strategy_name`, `llm_name`, `component`, `tp`, `fn`, `fp`, `precision`, `recall`, `f1_score`, `image_reference` | 官方逐组件评测表 |
 
 ### 6.4 三个真实完整例子
