@@ -176,27 +176,32 @@ python \
 - `model_name`: `State machine diagram of basic braking device subsystem`
 - `diagram_type`: `stm`
 - `model_source`: `HSTBS`
-- 输入是 3 条自然语言要求，输出是一个带初始结点、制动态、运行态和钳夹态的状态机。
+- 这是 `llms_emp` 里最典型的“短自然语言描述 -> 平面状态机”样本之一。
+- 原论文关心的是 LLM 是否能把这类离散行为要求稳定映射到 `SysML STM` [3]；这个例子对应的关注对象就是“状态、事件触发和收尾反馈”。
 
-输入片段：
+完整输入：
 
 ```text
-1 This state machine model represents the train's basic braking device...
-2 When the basic braking device receives a brake signal, it transitions from the initial state to the braking state...
+1 This state machine model represents the train's basic braking device, which serves as the final execution unit for train braking operations. 
+2 When the basic braking device receives a brake signal, it transitions from the initial state to the braking state. If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state. 
 3 After entering the braking state, the system transitions to the brake caliper clamping state.
 ```
 
-输出片段：
+完整输出：
 
 ```plantuml
-@startuml
-[*] --> Initial_State
-Initial_State --> Braking_State : Signal_sent_successfully
-Braking_State --> Brake_Caliper_Closed_State
-Running_State --> Brake_Caliper_Relaxed_State
-Initial_State --> Running_State : Signal_sending_failed
-Running_State --> Initial_State : Send_signal_feedback
-Braking_State --> Initial_State : Send_signal_feedback
+@startuml 
+[*] --> Initial_State 
+
+Initial_State --> Braking_State : Signal_sent_successfully 
+
+Braking_State --> Brake_Caliper_Closed_State 
+
+Running_State --> Brake_Caliper_Relaxed_State 
+
+Initial_State --> Running_State : Signal_sending_failed 
+Running_State --> Initial_State : Send_signal_feedback 
+Braking_State --> Initial_State : Send_signal_feedback 
 @enduml
 ```
 
@@ -205,24 +210,42 @@ Braking_State --> Initial_State : Send_signal_feedback
 - `model_name`: `Activity diagram of train brake control`
 - `diagram_type`: `act`
 - `model_source`: `HSTBS`
-- 输入描述了制动指令、常规/紧急信号分支、中央控制处理与执行机构动作。
+- 这是 `llms_emp` 里“过程控制流程 -> 活动图”的代表样本。
+- 原论文对这类样本的关注对象是动作节点、判断分支和整体流程语义，而不是状态层次 [3]。
 
-输出片段：
+完整输入：
+
+```text
+1- Brake command issue: The process begins when the driver or passenger gives a brake command. 
+2- Signal generation: According to different situations, two types of brake signals are generated: 
+Normal braking signal: This is the standard signal for normal braking scenarios. 
+Emergency braking signal: This is a signal that requires immediate action in an emergency situation. 
+3- Central control system: Both signals are sent to the central control system, which is represented in the figure as a central buffer. The system processes the input signal. 
+4- Calculation of braking force and electric-pneumatic brake distribution calculation: The central control system calculates the required braking force and electric-pneumatic brake distribution. 
+5- Valve open: According to the calculation, the appropriate valve is opened to control the flow of air or fluid required for braking. 
+Compressed air charging: Compressed air enters the braking system directly to start the braking process. 
+6- Brake caliper closed: Finally, the brake caliper engages and physically applies the brake to the train wheels, slowing or stopping the train.
+```
+
+完整输出：
 
 ```plantuml
-@startuml
-start
-:Initiation of Braking Command;
-if (Type of Braking Command?) then (Routine)
- :Generate Routine Braking Signal;
-else (Emergency)
- :Generate Emergency Braking Signal;
-endif
-:Send Braking Signal to Central Control System;
-:Central Control System processes the signal;
-:Calculate Braking Force and Electro-Pneumatic Distribution;
-...
-stop
+@startuml 
+start 
+:Initiation of Braking Command; 
+if (Type of Braking Command?) then (Routine) 
+ :Generate Routine Braking Signal; 
+else (Emergency) 
+ :Generate Emergency Braking Signal; 
+endif 
+:Send Braking Signal to Central Control System; 
+:Central Control System processes the signal; 
+:Calculate Braking Force and Electro-Pneumatic Distribution; 
+:Consider Air Pressure Signal; 
+:Activate Appropriate Valves; 
+:Inflate Compressed Air into Braking System; 
+:Engage Brake Calipers; 
+stop 
 @enduml
 ```
 
@@ -231,26 +254,64 @@ stop
 - `model_name`: `TCU Rectification Detection Sequence Diagram`
 - `diagram_type`: `sd`
 - `model_source`: `EMUTC`
-- 输入描述 `CCU / MVB / TCU / Rectifier / WTB / HMI` 的消息交换，输出是 7 个 lifeline 和 10 条消息的时序图。
+- 这是 `llms_emp` 里“通信交互叙述 -> 时序图”的代表样本。
+- 原论文在这类样本上重点观察 lifeline、消息顺序和交互完整性，这也是 `SD` 在论文中通常比 `STM/ACT` 更容易出语义偏差的原因之一 [3]。
 
-输出片段：
+完整输入：
+
+```text
+1. Central Control Unit (CCU) sends rectification information to TCU via Multifunction Vehicle Bus (MVB): 
+ - CCU initiates the communication. 
+ - CCU sends a message containing rectification information. 
+ - MVB transmits the message from CCU to TCU. 
+2. TCU forwards rectification information to Rectifier: 
+ - TCU receives the rectification information from CCU. 
+ - TCU forwards the rectification information to the Rectifier. 
+3. Rectifier sends fault information to TCU upon failure: 
+ - Rectifier detects a fault. 
+ - Rectifier sends a fault message to TCU. 
+4. TCU sends fault information to CCU via MVB: 
+ - TCU receives the fault message from the Rectifier. 
+ - TCU sends the fault message to CCU via MVB. 
+5. CCU forms train-level diagnostic information via Wire Train Bus (WTB): 
+ - CCU receives the fault message from TCU. 
+ - CCU processes the fault information. 
+ - CCU sends the diagnostic information to form a train-level alert via WTB. 
+6. Host Message Interface (HMI) receives the diagnostic information and triggers an alarm: 
+ - HMI is a component that monitors the WTB. 
+ - HMI receives the train-level diagnostic information from CCU. 
+ - HMI processes the information and triggers an alarm to alert the operator.
+```
+
+完整输出：
 
 ```plantuml
-@startuml
-participant CCU
-participant MVB
-participant TCU
+@startuml 
+participant CCU 
+participant MVB 
+participant TCU 
 participant Traction_Converter
-participant WTB
-participant HMI
+participant WTB 
+participant HMI 
 participant Alarm_Device
-autonumber
+
+autonumber 
+
 CCU -> MVB ++ : Detect the status signal of the traction converter
-...
+activate CCU 
+MVB -> TCU ++ : Detect the status signal of the traction converter
+TCU -> Traction_Converter ++ : Detect the status signal of the traction converter
+Traction_Converter -> TCU -- : Abnormal operation of converter components
+TCU -> MVB -- : Abnormal operation signal of converter components
+MVB -> CCU -- : Abnormal operation of converter components
+CCU -> WTB ++ : Abnormal operation of converter components
+WTB -> HMI ++ : Start the alarm device
+HMI --> Alarm_Device **: Abnormal operation signal of the converter
+HMI -> Alarm_Device !!: Turn off the alarm
 @enduml
 ```
 
-### 3.5 Python 加载方式
+### 3.5 Python 加载与组装方式
 
 原始 Excel：
 
@@ -263,7 +324,7 @@ raw_df = pd.read_excel(raw_path)
 print(raw_df.columns.tolist())
 ```
 
-加载实验子集 `parquet`：
+加载并组装 `parquet`：
 
 ```python
 from pathlib import Path
@@ -278,6 +339,47 @@ df = pd.read_parquet(assets / "llms_emp_complete_samples.parquet")
 stm_df = df[df["diagram_type"] == "stm"].copy()
 print(df.shape, stm_df.shape)
 print(df[["row_id", "model_name", "diagram_type"]].head())
+```
+
+组装成可直接用于训练/评测的监督样本：
+
+```python
+from pathlib import Path
+import pandas as pd
+
+assets = Path(
+    "project_1_llm_state_machine_modeling/discussions/"
+    "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
+)
+raw_df = pd.read_parquet(assets / "llms_emp_raw_samples.parquet")
+complete_df = pd.read_parquet(assets / "llms_emp_complete_samples.parquet")
+
+supervised_df = (
+    complete_df.assign(
+        input_text=complete_df["requirements_description"],
+        output_text=complete_df["plantuml_code"],
+    )[
+        [
+            "row_id",
+            "model_name",
+            "model_source",
+            "diagram_type",
+            "output_metamodel",
+            "input_text",
+            "output_text",
+        ]
+    ]
+    .sort_values("row_id")
+    .reset_index(drop=True)
+)
+
+raw_account = raw_df[
+    ["row_id", "model_name", "diagram_type", "has_requirements", "has_output_model", "is_complete_sample"]
+].copy()
+
+print(supervised_df.head(3))
+print(supervised_df["diagram_type"].value_counts())
+print(raw_account[["row_id", "model_name", "is_complete_sample"]].tail(12))
 ```
 
 ## 4. 数据集二：`ttool-ai`
@@ -328,89 +430,210 @@ print(df[["row_id", "model_name", "diagram_type"]].head())
 
 #### 例 1：`platooning / Platoon4 / Vehicle`
 
-这是一个较复杂的车辆状态机面板，包含 10 个状态节点和 26 条迁移。解析结果里可以直接看到显式的动作状态和请求触发：
+这是一个较复杂的车辆状态机面板，包含 10 个状态节点和 26 条迁移。
 
-状态节点：
+- 这个例子的关注对象是 `platoon` 形成、加入、离开、分裂和紧急制动等车辆协同行为。
+- 结合原论文 [5]，这里最值得观察的是：自然语言规范里写的是完整系统说明，但 TTool-AI 实际生成的是“多 block + 多状态机面板”的 AVATAR 设计，因此这里展示的是其中一个 `Vehicle` 面板的完整输入与完整输出。
+
+完整输入：
 
 ```text
-JoiningPlatoon
-SplittingPlatoon
-EmergencyBraking
-DetectingDistance
-DetectingLane
-BreakingOrChangingLane
-Monitoring
-CreatingPlatoon
-Idle
-Start
+Platooning is a transportation technique that consists in grouping trucks or vehicles together to reduce CO2 emissions. A platoon consists of one or several vehicles, the first one in the platoon playing the role of the platoon leader, the other ones playing the role of followers.
+
+1. A vehicle can  create a platoon: this vehicle is then the leader of this platoon. This vehicle informs neighbour cars about this platoon by sending a platoon information message (position, speed, acceleration) every second. Once followers have joined, it regularly informs ---every half second --- the followers of its current situation (speed, acceleration, direction, selected lane). Whenever there is an important modification of speed / acceleration / direction / lane, the leader immediately informs the followers. 
+ 
+2. A follower can join a platoon only at the last position, i.e. behind all other vehicles of the platoon. When it joins the platoon, it informs the leader about this. When a follower wishes to leave the platoon, it informs all other vehicles of the platoon (with a "leave" message) and  then brakes or changes of lane.
+  
+3. Leaders and followers use front and back cameras to detect the lanes and the distance to other vehicles. The distance between vehicles within a platoon is considered to be between a min and a max distance. If there is less than the min distance between two vehicles, then the first vehicle detecting this situation broadcasts the information to all others and all vehicles of the platoon must perform an emergency braking. If the distance between two vehicles v1 and v2 ---with v1 before v2--- gets over max, then v2 and all the vehicles behind v2 have to leave the platoon. v2 is assumed to send the "leave" message. Obviously, one important goal of the platooning software is to keep the inter-vehicle distance between min and max so as to ensure that the platoon works for a long time. 
+
+In a more advanced version of the platooning system, the platoon can split i.e. a given follower can decide to become the leader of all the followers behind it.
+
+Use at least 2 blocks and at most 10 blocks.
 ```
 
-迁移片段：
+完整输出状态节点：
 
 ```text
-Idle -> createPlatoon()               guard_or_trigger = createPlatoonRequest
-Idle -> joinPlatoon()                 guard_or_trigger = joinPlatoonRequest
-Monitoring -> detectDistance()        guard_or_trigger = detectDistanceRequest
-Monitoring -> splitPlatoon()          guard_or_trigger = splitPlatoonRequest
-CreatingPlatoon -> Monitoring         guard_or_trigger = platoonCreationSuccess
-CreatingPlatoon -> Idle               guard_or_trigger = platoonCreationFailure
+node_type,node_name
+state,JoiningPlatoon
+other,joinPlatoon()
+state,SplittingPlatoon
+other,splitPlatoon()
+state,EmergencyBraking
+state,DetectingDistance
+other,detectDistance()
+state,DetectingLane
+other,detectLane()
+state,BreakingOrChangingLane
+other,brakeOrChangeLane()
+other,leavePlatoon()
+state,Monitoring
+state,CreatingPlatoon
+other,createPlatoon()
+state,Idle
+state,Start
+start_state,null
+```
+
+完整输出迁移：
+
+```text
+source_node_name,target_node_name,guard_or_trigger,actions
+CreatingPlatoon,Monitoring,platoonCreationSuccess,
+SplittingPlatoon,Monitoring,,
+EmergencyBraking,Monitoring,,
+detectDistance(),DetectingDistance,,
+Monitoring,detectDistance(),detectDistanceRequest,
+JoiningPlatoon,Monitoring,platoonJoinSuccess,
+Monitoring,brakeOrChangeLane(),breakingOrChangingLaneRequest,
+Idle,joinPlatoon(),joinPlatoonRequest,
+BreakingOrChangingLane,Monitoring,,
+DetectingLane,Monitoring,,
+CreatingPlatoon,Idle,platoonCreationFailure,
+detectLane(),DetectingLane,,
+Monitoring,leavePlatoon(),platoonLeavingRequest,
+Monitoring,splitPlatoon(),splitPlatoonRequest,
+splitPlatoon(),SplittingPlatoon,,
+brakeOrChangeLane(),BreakingOrChangingLane,,
+leavePlatoon(),Idle,,
+JoiningPlatoon,Idle,platoonJoinFailure,
+Idle,createPlatoon(),createPlatoonRequest,
+Monitoring,detectLane(),detectLaneRequest,
+null,Start,,
+createPlatoon(),CreatingPlatoon,,
+Monitoring,EmergencyBraking,emergencyBrakingBroadcast,
+Start,Idle,,
+DetectingDistance,Monitoring,,
+joinPlatoon(),JoiningPlatoon,,
 ```
 
 #### 例 2：`automated_braking / System1 / Driver`
 
-这个面板比较规整，适合作为“简单交通控制状态机”样本。它有 4 个普通状态和 1 个起始伪状态：
+这个面板比较规整，适合作为“简单交通控制状态机”样本。
+
+- 原论文把完整规范交给 TTool-AI，由其生成多个 block 的状态机 [5]。
+- 在这个 `Driver` 面板里，关注对象是“驾驶者相关控制模式是否被正确抽成一条清晰的状态演化链”。
+
+完整输入：
 
 ```text
-Parking
-Driving
-Ready
-Start
+When a dangerous situation occurs that forces the driver, or the car itself, to perform a
+manoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends
+out a warning message. Nearby cars that are in danger can then react according to the
+information provided within the message.
+An ECU of the chassis & safety domain detects a danger; this may be the trigger of an airbag,
+an obstacle in direction of travel seen by an environmental sensor, or an emergency braking
+performed by the driver or an automatic system. The Chassis Safety Controller (CSC) gets
+information about the dangerous situation via the Chassis Domain Bus. The CSC will assess
+the situation and will take measures to mitigate the danger for the car. The measures will
+result in commands to actuator ECUs in the chassis & safety domain and additionally com-
+mands to the powertrain domain to get a helpful driving power adjustment. In parallel it
+will also send information to the Communication Unit (CU). This information will contain
+data about the current vehicle dynamic status and detailed information about the planned
+actions (deceleration or acceleration, steering, etc.).
+The CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles. The emergency message contains longitude, latitude, altitude,
+speed, acceleration and heading of the car, the time of message generation, the expiry time
+of the message, an indicator for the reliability of the information, a code that is classifying
+the car, an id that is identifying the sender of the message, an event code that is classifying
+the emergency situation and the planed acceleration and heading. All this information is
+packed in a message frame that adds checksum, information for protocol processing and if
+necessary security information.
+
+Functional requirements
+- No warning message without a real danger is allowed
+- No failure in any single unit may be succeeded by a false message
+- No failure of any single communication may be succeeded by a false message
+- Any single fault in an ECU has to be detectable
+- Information about dangerous events has to be broadcast according to the communica-
+tion congestion control algorithms
+- Information about the dangers have to be broadcast to other cars with highest priority
+- Privacy of the broadcast car information has to be guaranteed
+Technical Requirements
+- The maximum delay from danger detection to broadcast of the car2X message should
+be less than 150 ms
+- Additional security information on the busses in the chassis and safety & powertrain
+domains should be less than 15% of the net data
+Security aspects
+- Privacy of the broadcast car information has to be guaranteed
+
+Use between 4 and 10 blocks
 ```
 
-迁移关系：
+完整输出状态节点：
 
 ```text
-null -> Start
-Start -> Ready
-Ready -> Driving
-Driving -> Parking
-Parking -> Ready
+node_type,node_name
+state,Parking
+state,Driving
+state,Ready
+state,Start
+start_state,null
+```
+
+完整输出迁移：
+
+```text
+source_node_name,target_node_name,guard_or_trigger,actions
+null,Start,,
+Driving,Parking,,
+Parking,Ready,,
+Ready,Driving,,
+Start,Ready,,
 ```
 
 #### 例 3：`space_based_system / System5 / Software`
 
-这是最适合后续做复杂状态机学习的一个例子之一，节点多、触发明确：
+这是最适合后续做复杂状态机学习的一个例子之一，节点多、触发明确。
 
-状态节点：
+- 原论文关注的是 LLM 是否能从长篇安全关键系统规范中恢复多 block 设计 [5]。
+- 在这个 `Software` 面板里，关注对象集中在 `TC/TM` 处理、异常位翻转处理和 `CRC` 相关软件流程。
 
-```text
-ComputeCRC
-HandleBitFlip
-ComputeTM
-SendTM
-EncipherTM
-HandleTM
-HandleRequest
-DecipherTC
-HandleTC
-Idle
-Start
-```
-
-迁移片段：
+完整输入：
 
 ```text
-Idle -> HandleTC        guard_or_trigger = requestData
-Idle -> ComputeTM       guard_or_trigger = computeTM
-Idle -> HandleBitFlip   guard_or_trigger = bitFlip
-HandleTC -> DecipherTC
-DecipherTC -> HandleRequest
-HandleRequest -> HandleTM   guard_or_trigger = buildAnswer
-EncipherTM -> SendTM
-SendTM -> Idle
+A ground station needs to regularly monitor the safety data of a space-based system: 3D position, temperature, battery level, fuel quantity. For this, a ground station can send, via radio-frequencies, a TC (TeleCommand) to the space-based system. Once received by the RF receiver, the software of the space-based system gets the request for information. Data of TCs are ciphered. Once the software has deciphered data, it stores data in an intermediate buffer, and a task to handle this request is triggered. This task builds the answer by reading requested values from sensors. Once the answer packet has been built, it is first enciphered and then sent via a TM (TeleMetry) to the ground station, using the RF transmitter. To ensure that the system does not crash, a microcontroller of this system is dedicated to execute a software task that checks, every 10ms, that all other software tasks of the space-based embedded system are still responsive. For this, a signal is sent to each task. If some of the tasks have not responded to this signal, then the whole system is restarted, apart from the watchdog: the latter is not expected to crash, apart if the battery is too low to power the microcontroller. Obviously, this watchdog task is of prime importance for this reliability of
+the system. Sometimes, while the software system is computing a TM, another TC is received. To avoid redundancy, the TM under construction is canceled: a new TM corresponding to the latest TC is computed and sent. Last but not least, space-based systems are not well protected against high-energy particles. Such a particle can provoke a bit flip from 0 to 1, or the opposite. The memory is the most sensitive elements of the platform. Therefore, for each block of data the software writes into memory, an error correction code (CRC) of this block has to be computed by the software and stored into memory along with the data block. When this block is read, the corresponding CRC must also be read and checked.
 ```
 
-### 4.5 Python 加载方式
+完整输出状态节点：
+
+```text
+node_type,node_name
+state,ComputeCRC
+state,HandleBitFlip
+state,ComputeTM
+state,SendTM
+state,EncipherTM
+state,HandleTM
+state,HandleRequest
+state,DecipherTC
+state,HandleTC
+state,Idle
+state,Start
+start_state,null
+```
+
+完整输出迁移：
+
+```text
+source_node_name,target_node_name,guard_or_trigger,actions
+HandleTM,EncipherTM,,
+HandleBitFlip,ComputeCRC,,
+Idle,HandleTC,requestData,
+HandleTC,DecipherTC,,
+HandleRequest,HandleTM,buildAnswer,
+ComputeCRC,Idle,,
+Start,Idle,,
+Idle,ComputeTM,computeTM,
+Idle,HandleBitFlip,bitFlip,
+DecipherTC,HandleRequest,,
+EncipherTM,SendTM,,
+SendTM,Idle,,
+ComputeTM,Idle,,
+null,Start,,
+```
+
+### 4.5 Python 加载与组装方式
 
 原始 Markdown 规范与 XML：
 
@@ -428,7 +651,7 @@ print(spec_text[:300])
 print(len(modelings), [m.attrib["nameTab"] for m in modelings])
 ```
 
-加载 `parquet`：
+加载并组装 `parquet`：
 
 ```python
 from pathlib import Path
@@ -446,6 +669,52 @@ transitions = pd.read_parquet(assets / "ttool_ai_transitions.parquet")
 software_panels = panels[panels["panel_name"] == "Software"]
 print(models.shape, panels.shape, states.shape, transitions.shape)
 print(software_panels[["case_id", "variant_name", "state_count", "transition_count"]])
+```
+
+按单个状态机面板组装成“输入规范 + 状态集合 + 迁移集合”：
+
+```python
+from pathlib import Path
+import pandas as pd
+
+assets = Path(
+    "project_1_llm_state_machine_modeling/discussions/"
+    "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
+)
+models = pd.read_parquet(assets / "ttool_ai_models.parquet")
+panels = pd.read_parquet(assets / "ttool_ai_state_machine_panels.parquet")
+states = pd.read_parquet(assets / "ttool_ai_states.parquet")
+transitions = pd.read_parquet(assets / "ttool_ai_transitions.parquet")
+
+panel_row = panels.query(
+    "case_id == 'platooning' and variant_name == 'Platoon4' and panel_name == 'Vehicle'"
+).iloc[0]
+
+panel_states = (
+    states[states["panel_id"] == panel_row["panel_id"]]
+    [["node_id", "node_type", "node_name", "x", "y"]]
+    .sort_values(["node_type", "node_name"], na_position="last")
+    .reset_index(drop=True)
+)
+panel_transitions = (
+    transitions[transitions["panel_id"] == panel_row["panel_id"]]
+    [["source_node_name", "target_node_name", "guard_or_trigger", "actions"]]
+    .reset_index(drop=True)
+)
+
+assembled_panel = {
+    "case_id": panel_row["case_id"],
+    "variant_name": panel_row["variant_name"],
+    "panel_name": panel_row["panel_name"],
+    "input_spec_text": panel_row["input_spec_text"],
+    "states": panel_states.to_dict("records"),
+    "transitions": panel_transitions.to_dict("records"),
+}
+
+print(models[["case_id", "variant_name"]].drop_duplicates().head())
+print(panel_states.head())
+print(panel_transitions.head())
+print(assembled_panel["input_spec_text"][:400])
 ```
 
 ## 5. 数据集三：`Nimbus Light Control`
@@ -490,9 +759,48 @@ print(software_panels[["case_id", "variant_name", "state_count", "transition_cou
 
 #### 例 1：`room_state_hierarchy_req`
 
-输入需求覆盖 `U1 / U2 / U3 / U4 / U11 / U12 / FM1 / FM3 / FM6 / FM7 / FM8` [7][8]，输出是房间级 RSML-e 状态层次。
+这是 `Nimbus` 案例里最基础也最关键的房间级状态层次样本。
 
-状态树核心节点：
+- 它包含占用状态、灯光场景状态和故障状态三个并列关注对象。
+- 结合原论文，关注点就在 REQ 层房间状态树与 `Light_Maintenance_Modes` 的划分位置，也就是图 6 和图 8 所在的建模部分 [7]；原始自然语言需求则来自 `Dagstuhl` 灯光控制案例 [8]。
+
+完整输入：
+
+```text
+U1: If a person occupies a room, the light has to be sufficient to move safely, if nothing else is desired by a chosen light scene.
+U2: As long as the room is occupied, the actual chosen light scene has to be maintained.
+U3: If the room is reoccupied within T1 minutes after the last person has left the room, the last chosen light scene has to be reestablished.
+U4: If the room is reoccupied after more than T1 minutes since the last person has left the room, the standard light scene has to be established.
+U11: If the outdoor light sensor or the motion detector of a room does not work correctly, the user has to be informed.
+U12: The ceiling lights and the task light should be maintained by the control system depending on different light scenes.
+FM1: Use daylight to achieve the desired light whenever possible.
+FM3: If a room is unoccupied for more than T3 minutes, all lights must be switched off.
+FM6: The facility manager can turn off any light in a room or hallway section that is not occupied.
+FM7: If a malfunction occurs, the facility manager has to be informed.
+FM8: If a malfunction occurs, the control system supports the facility manager by finding the reason.
+```
+
+完整输出，原始片段：
+
+```text
+Light_Control_System_Room
+Light_Maintenance_Modes
+Room_Occupied
+Room_Occupied_Eq
+Maintain_Light_Scene
+User_Set_Mode
+Room_Empty
+Occupancy_UndetectableChosen_Light_Scene
+Chosen1_LS
+Chosen2_LS
+Chosen3_LS
+Default_LS
+Failure_Modes
+Ok
+Failed
+```
+
+完整输出，结构化状态树重建：
 
 ```text
 Light_Control_System_Room
@@ -504,56 +812,227 @@ Light_Control_System_Room
     Room_Empty
     Occupancy_Undetectable
   Chosen_Light_Scene
-    Chosen1_LS / Chosen2_LS / Chosen3_LS / Default_LS
+    Chosen1_LS
+    Chosen2_LS
+    Chosen3_LS
+    Default_LS
   Failure_Modes
-    Ok / Failed
+    Ok
+    Failed
 ```
 
-这说明该案例天然是“层次 + 并行”状态模型，不是平面 FSM [7]。
+完整输出，结构化规则：
+
+```text
+target_variable,assigned_value,condition
+Light_Maintenance_Modes,Room_Occupied,Occupied_InVar = TRUE && Occupied_Detectable_InVar = TRUE
+Light_Maintenance_Modes,Occupancy_Undetectable,Occupied_Detectable_InVar = FALSE
+Light_Maintenance_Modes,Room_Empty,Occupied_InVar = FALSE && Occupied_Detectable_InVar = TRUE
+```
 
 #### 例 2：`occupancy_and_timeout_req`
 
-这是整个案例里最有价值的控制逻辑片段，直接体现 `T1 / T3 / reoccupy / facility-manager shutoff` 的耦合 [7][8]。
+这是整个 `Nimbus` 数据集中最适合做“自然语言控制约束 -> RSML-e 规则”实验的片段之一。
 
-规则片段：
+- 它完整包含 `T1`、`T3`、重新占用、场景按钮和设施管理员关灯指令这几类关键控制因素。
+- 结合原论文，关注对象就在 `Current_LS_Light_Level` 的定义位置，也就是图 9 及其前后的说明段落 [7]；这些规则正是从原始需求 `U1/U2/U3/U4/U10/FM1/FM3/FM5/FM6` 被组织出来的 [8]。
+
+完整输入：
 
 ```text
-Current_LS_Light_Level := Light_Level_InVar
-  IF ..Room_Occupied_Eq IN_STATE User_Set_Mode
+U1: If a person occupies a room, the light has to be sufficient to move safely, if nothing else is desired by a chosen light scene.
+U2: As long as the room is occupied, the actual chosen light scene has to be maintained.
+U3: If the room is reoccupied within T1 minutes after the last person has left the room, the last chosen light scene has to be reestablished.
+U4: If the room is reoccupied after more than T1 minutes since the last person has left the room, the standard light scene has to be established.
+U10: The value T1 can be set for each room separately (not by using the control panel).
+FM1: Use daylight to achieve the desired light whenever possible.
+FM3: If a room is unoccupied for more than T3 minutes, all lights must be switched off.
+FM5: The value T3 can be set for each room separately.
+FM6: The facility manager can turn off any light in a room or hallway section that is not occupied.
+```
 
-Current_LS_Light_Level := 0
-  IF ..Light_Maintenance_Modes IN_STATE Room_Empty
-  AND (TIME >= TIME_ENTERED(Room_Empty) + T3_InVar
-       OR MESSAGE_AT(FacM_Shutoff))
+完整输出，原始片段：
 
-Current_LS_Light_Level := Reoccupied_Light_Level()
-  IF ..Room_Occupied_Eq IN_STATE Maintain_Light_Scene
-  AND PREV_STEP(..Light_Maintenance_Modes IN_STATE Room_Occupied) = FALSE
+```text
+State Variable 
+Light_Maintenance_Modes 
+ 
+Location:  Light_Control_System_Room 
+:= Room_Occupied IF 
+Occupied_InVar = TRUE T 
+Occupied_Detectable_InVar = TRUE T 
+:= Occupancy_Undetectable IF 
+Occupied_Detectable_InVar = TRUE F 
+:= Room_Empty IF 
+Occupied_InVar = TRUE F 
+Occupied_Detectable_InVar = TRUE T 
+ 
+Figure 8: Light Maintenance Modes in the REQ Relation
+[Fig. 6] shows this partitioning of the Light Maintenance Modes. Each mode
+has certain conditions under which it is active. These conditions are speciﬁed
+with a state variable deﬁnition as shown in [Fig. 8]. These modes depend on twomonitored variables (see [Tab. 1]) Occupancy
+Detectable and Room Occupied ,
+which determine whether we can detect the occupancy status of the room, and
+if so, whether or not the room is occupied. Note that because this is a speciﬁca-
+tion of REQ, the monitored variables are actually the input quantities. Thus, in[Fig. 8], the monitored quantities have the suﬃx
+InVar (this is a naming con-
+vention that we commonly use in RSML−especiﬁcations, not something which
+is enforced by the tool). Also, we have adopted the convention for boolean vari-ables of writing the more lengthy expression “X
+var = TRUE” rather than simly
+“Xvar” which would be a valid boolean expression by itself. Nimbus ,o fc o u r s e ,
+
+--- Page 14 ---
+allows either convention to be used.
+The way that we have chosen to describe the control of the light level in the
+room is as follows: (1) the light level in the room is compared with the light
+level required by the current light scene, (2) if light level is not equal to the lightlevel speciﬁed in the current light scene, the light intensity of the window/walllight banks are adjusted proportionally up or down by a small increment. Then,
+the system will poll the light level again within a short amount of time and
+eventually, the light in the room will comply with the selected light scene.
+There is an issue, however, with the fact that it is notdesirable to have the
+control system chage the light intensity at the same time as the user attemptsto adjust it; that is, the control system should not ﬁght the user for control over
+the lights. Thus, it is necessary to partition the Room
+Occupied mode into two
+sub-modes: one where the system is receiving user input and should produce nocontrol actions and one where the system is responsible for maintaining the lightlevel in the room. This partition can be seen in [Fig. 6].
+The current light scene is the basis of the control of the light in the room.
+First, it is computed and then it is used to determine the values of the controlledvariables. The current light scene, like any other light scene, consists of a lightlevel (in lux) and the intensity of the window and wall light banks.
+[Fig. 9] shows the state variable deﬁnition for the light level of the current
+light scene. On the right, the cases are labeled to clarify the presentation in thispaper; this labeling is not a part of RSML
+−e. The ﬁrst case in the deﬁnition
+simply states that the light level will be updated to the current light level in the
+room if the user is setting the controls for the room. This ensures that as the
+user makes changes to the lights, the changes are maintained, not reset, by thesystem.
+The second group of cases in [Fig. 9] (cases 2-5) handles the user pressing one
+of the light scene buttons on the RCP. If the user presses one of these buttons,
+the light level associated with the selected light scene is used as the current light
+scene and will thus be maintained by the system.
+The sixth case determines the light level in the room if the room is unoccu-
+pied. The lights are shut oﬀ (the light level set to zero) if the room is empty and
+either T3 has passed or the facility manager has issued the shutoﬀ command.
+T3 is measured from the time that the Light
+Maintenance Modes state variable
+assumes the value Room Empty (the TIME ENTERED part of line 2). If the
+facility manager issues a shutoﬀ command, this is indicated by the reciept of a
+message at the FacM Shutoﬀ interface. The MESSAGE AT expression in line 3
+of the condition table is true if this is the case.
+The speciﬁcation determines whether the room has been reoccupied by ex-
+amining the Light Maintenance Modes state variable. In order to detect a change
+in the variable, the speciﬁcation must be able to reason about previous values of
+the variable. RSML−eallows this through the use of the PREV STEP expres-
+sion, which returns the value its sub-expression had at the close of the previouscomputation of the RSML
+−especiﬁcation. In case 7, the room is reoccupied if
+theRoom Occupied Eqstate variable has the value Maintain Light Scene and
+in the previous step, the Light Maintenance Modes state machine did not have
+the value Room Occupied4. When the room is reoccupied, then the light level is
+determined by whether or not T1 has passed (case seven). The function Reoccu-
+4Note that the “..” notation in the ﬁgure before the state variable names is used to
+indicate that the RSML−eparser should search through the state variable tree to
+ﬁnd the given state variable. This notation avoids having to specify full path nameswithin the speciﬁcation, as duplicate names are allowed in the tree.
+
+--- Page 15 ---
+Case 8:
+Otherwise, the lightlevel should remainconstantOutput Variable
+Current_LS_Light_Level
+Type: INTEGER
+Units: lux
+Expected Min:  0
+Expected Max:  10000
+:= Light_Level_InVar IF
+..Room_Occupied_Eq IN_STATE  User_Set_Mode T
+:= Chosen1_LS_Light_Level IF
+Chosen1_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= Chosen2_LS_Light_Level IF
+Chosen2_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= Chosen3_LS_Light_Level IF
+Chosen3_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= Default_LS_Light_Level IF
+Default_LS_Button_InVar = ButtonPressType::kPressed T
+Set_Light_Scene_Button_InVar = ButtonPressType::kNotPressed T
+:= 0 IF
+..Light_Maintenance_Modes IN_STATE  Room_Empty T T
+TIME >= ..Light_Maintenance_Modes TIME_ENTERED  Room_Empty +
+T3_InVarT*
+MESSAGE_AT(FacM_Shutoff) * T
+:= Reoccupied_Light_Level() IF
+..Room_Occupied_Eq IN_STATE  Maintain_Light_Scene T
+PREV_STEP (..Light_Maintenance_Modes IN_STATE  Room_Occupied) F
+:= PREV_STEP(Current_LS_Light_Level) IF
+..Room_Occupied_Eq IN_STATE  Maintain_Light_Scene T
+PREV_STEP (..Light_Maintenance_Modes IN_STATE  Room_Occupied) TCase 1:
+```
+
+完整输出，结构化规则：
+
+```text
+target_variable,assigned_value,condition
+Current_LS_Light_Level,Light_Level_InVar,..Room_Occupied_Eq IN_STATE User_Set_Mode
+Current_LS_Light_Level,Chosen1_LS_Light_Level,Chosen1_LS_Button_InVar = kPressed && Set_Light_Scene_Button_InVar = kNotPressed
+Current_LS_Light_Level,Chosen2_LS_Light_Level,Chosen2_LS_Button_InVar = kPressed && Set_Light_Scene_Button_InVar = kNotPressed
+Current_LS_Light_Level,Chosen3_LS_Light_Level,Chosen3_LS_Button_InVar = kPressed && Set_Light_Scene_Button_InVar = kNotPressed
+Current_LS_Light_Level,Default_LS_Light_Level,Default_LS_Button_InVar = kPressed && Set_Light_Scene_Button_InVar = kNotPressed
+Current_LS_Light_Level,0,..Light_Maintenance_Modes IN_STATE Room_Empty && (TIME >= TIME_ENTERED(Room_Empty) + T3_InVar || MESSAGE_AT(FacM_Shutoff))
+Current_LS_Light_Level,Reoccupied_Light_Level(),..Room_Occupied_Eq IN_STATE Maintain_Light_Scene && PREV_STEP(..Light_Maintenance_Modes IN_STATE Room_Occupied) = FALSE
+Current_LS_Light_Level,PREV_STEP(Current_LS_Light_Level),..Room_Occupied_Eq IN_STATE Maintain_Light_Scene && PREV_STEP(..Light_Maintenance_Modes IN_STATE Room_Occupied) = TRUE
 ```
 
 #### 例 3：`occupied_in_soft_refinement`
 
-这是 `REQ -> SOFT` 细化后的 `Occupied_In` 规则，直接把传感器故障与占用检测耦合起来 [7]。
+这是 `REQ -> SOFT` 细化层里最适合做故障感知状态抽取的一个样本。
 
-规则片段：
+- 它讨论的不是灯光场景本身，而是“房间是否可被可靠检测到占用”。
+- 结合原论文，关注对象就在 `Occupied_In` 这个细化状态变量定义，也就是图 16 及其故障检测相关论述 [7]；输入自然语言仍然来自原始案例中的故障需求 [8]。
+
+完整输入：
 
 ```text
-Occupied_In := Not_Occupied
-  IF Motion_Detected_InVar = FALSE
-
-Occupied_In := Occupied
-  IF PREV_STEP(DoorSensor_InVar = kClosed)
-  AND PREV_STEP(..Occupied_In IN_STATE Not_Occupied) = FALSE
-  AND Motion_Detected_InVar = TRUE
-
-Occupied_In := Not_Detectable
-  IF PREV_STEP(DoorSensor_InVar = kClosed)
-  AND PREV_STEP(..Occupied_In IN_STATE Not_Occupied) = TRUE
-  AND Motion_Detected_InVar = TRUE
-  AND DoorSensor_InVar = kClosed
+U11: If the outdoor light sensor or the motion detector of a room does not work correctly, the user has to be informed.
+FM7: If a malfunction occurs, the facility manager has to be informed.
+FM8: If a malfunction occurs, the control system supports the facility manager by finding the reason.
 ```
 
-### 5.5 Python 加载方式
+完整输出，原始片段：
+
+```text
+State Variable
+Occupied_In
+Location:  Light_Control_System_Room
+:= Not_Occupied IF
+Motion_Detected_InVar = FALSE T
+:= Occupied IF
+PREV_STEP(DoorSensor_InVar = DoorSensorType::kClosed) * *
+PREV_STEP(..Occupied_In IN_STATE  Not_Occupied) T F
+Motion_Detected_InVar = TRUE T T
+DoorSensor_InVar = DoorSensorType::kClosed F *
+:= Not_Detectable IF
+PREV_STEP(DoorSensor_InVar = DoorSensorType::kClosed) T
+PREV_STEP(..Occupied_In IN_STATE  Not_Occupied) T
+Motion_Detected_InVar = TRUE T
+DoorSensor_InVar = DoorSensorType::kClosed T
+Figure 16: The deﬁnition for the Occupied Instate variable
+```
+
+完整输出，结构化状态树重建：
+
+```text
+Light_Control_System_Room
+  Occupied_In
+    Occupied
+    Not_Occupied
+    Not_Detectable
+```
+
+完整输出，结构化规则：
+
+```text
+target_variable,assigned_value,condition
+Occupied_In,Not_Occupied,Motion_Detected_InVar = FALSE
+Occupied_In,Occupied,PREV_STEP(DoorSensor_InVar = kClosed) && PREV_STEP(..Occupied_In IN_STATE Not_Occupied) = FALSE && Motion_Detected_InVar = TRUE
+Occupied_In,Not_Detectable,PREV_STEP(DoorSensor_InVar = kClosed) && PREV_STEP(..Occupied_In IN_STATE Not_Occupied) = TRUE && Motion_Detected_InVar = TRUE && DoorSensor_InVar = kClosed
+```
+
+### 5.5 Python 加载与组装方式
 
 原始文本：
 
@@ -567,7 +1046,7 @@ print(original_case.read_text(encoding="utf-8")[:1200])
 print(nimbus_case.read_text(encoding="utf-8")[:1200])
 ```
 
-加载 `parquet`：
+加载并组装 `parquet`：
 
 ```python
 from pathlib import Path
@@ -578,7 +1057,9 @@ assets = Path(
     "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
 )
 fragments = pd.read_parquet(assets / "light_control_nimbus_fragments.parquet")
+documents = pd.read_parquet(assets / "light_control_nimbus_documents.parquet")
 variables = pd.read_parquet(assets / "light_control_nimbus_variables.parquet")
+states = pd.read_parquet(assets / "light_control_nimbus_states.parquet")
 rules = pd.read_parquet(assets / "light_control_nimbus_rules.parquet")
 
 req_fragments = fragments[fragments["abstraction_level"] == "REQ"]
@@ -587,7 +1068,52 @@ print(variables[["variable_name", "variable_group"]].head())
 print(rules[rules["fragment_id"] == "occupancy_and_timeout_req"])
 ```
 
-## 6. 数据集四：`Structure- and Event-Driven ...`
+组装成“片段输入 + 原始输出片段 + 状态树 + 规则表”的实验对象：
+
+```python
+from pathlib import Path
+import pandas as pd
+
+assets = Path(
+    "project_1_llm_state_machine_modeling/discussions/"
+    "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
+)
+documents = pd.read_parquet(assets / "light_control_nimbus_documents.parquet")
+fragments = pd.read_parquet(assets / "light_control_nimbus_fragments.parquet")
+variables = pd.read_parquet(assets / "light_control_nimbus_variables.parquet")
+states = pd.read_parquet(assets / "light_control_nimbus_states.parquet")
+rules = pd.read_parquet(assets / "light_control_nimbus_rules.parquet")
+
+state_rows = (
+    states.sort_values(["fragment_id", "depth", "state_name"])
+    .groupby("fragment_id")[["state_name", "parent_state_name", "depth"]]
+    .apply(lambda g: g.to_dict("records"))
+    .rename("state_rows")
+    .reset_index()
+)
+rule_rows = (
+    rules.sort_values(["fragment_id", "target_variable", "assigned_value"])
+    .groupby("fragment_id")[["target_variable", "assigned_value", "condition"]]
+    .apply(lambda g: g.to_dict("records"))
+    .rename("rule_rows")
+    .reset_index()
+)
+
+fragment_dataset = (
+    fragments.merge(state_rows, on="fragment_id", how="left")
+    .merge(rule_rows, on="fragment_id", how="left")
+    .sort_values(["abstraction_level", "fragment_id"])
+    .reset_index(drop=True)
+)
+
+print(documents[["document_role", "source_url"]])
+print(variables[["variable_name", "variable_group"]].head())
+print(fragment_dataset[["fragment_id", "abstraction_level", "fragment_title"]])
+print(fragment_dataset.loc[0, "state_rows"])
+print(fragment_dataset.loc[0, "rule_rows"])
+```
+
+## 6. 数据集四：`Structure- and Event-Driven Frameworks`
 
 ### 6.1 原始来源、输入输出与最终元模型
 
@@ -648,9 +1174,20 @@ print(rules[rules["fragment_id"] == "occupancy_and_timeout_req"])
 
 #### 例 1：`Printer`
 
-输入描述涉及上电、刷卡登录、扫描/打印、缺纸和卡纸恢复 [1][2]。
+这是该 benchmark 里最标准的“办公设备行为说明 -> 专家状态机”案例之一。
 
-参考解开头：
+- 它包含账号授权、扫描/打印二选一、缺纸、卡纸、暂停恢复等典型反应式行为。
+- 结合原论文，关注对象是 LLM 能否从自由文本里恢复出状态、触发、守卫和动作，并与专家 ground truth 对齐 [1]；完整参考解文本来自匿名工件中的 Umple 实现 [2]。
+
+完整输入：
+
+```text
+The printer has a master switch which turns the printer on or off. Once the printer is turned on, a user needs to log in before being able to print or scan a document. To login, a user taps her/his printer card on the printer's card reader. Each printer card has a unique ID. If the printer card is authorized, the user can either choose "scan" or "print". If the printer card is not authorized, a login error message is shown.
+For the "print" option, the user presses the start button to print the user's first document in the user's print queue. If there is no document in the print queue, an error message is shown instead of performing the printing task. For the "scan" option, the user presses the start button for the printer to scan an original document, which was placed by the user in the automatic page feeder. The scan is sent to the user's email inbox. If the printer does not detect an original document, an error message is shown instead of performing the scanning task. When the printer is done printing or scanning, the user can print or scan the next document. The user may also stop the printing/scanning task at any time by pressing the stop button. The user is allowed to logoff either before or after a printing/scanning task but not while the printer is in the middle of a printing/scanning task.
+If there is a paper jam, the printer will suspend the printing/scanning task to allow the user to clear the paper jam. The user may then either cancel the printing/scanning task or resume it. In case the printer runs out of paper during a printing task, the printer suspends the printing task to allow the user to resupply paper. The user may then either cancel the printing task or resume it.
+```
+
+完整输出：
 
 ```umple
 class Printer{
@@ -662,21 +1199,71 @@ class Printer{
        login(cardID) [!idAuthorized(cardID)] -> Idle;
        login(cardID) [idAuthorized(cardID)] / {action="none";} -> Ready;
      }
+     
      Ready{
        logoff -> Idle;
-       ...
+       start [action=="scan" && !originalLoaded()] -> Ready;
+       start [action=="print" && !documentInQueue()] -> Ready;
+       
+       scan /{action="scan";} -> Ready;
+       
+       print /{action="print";} -> Ready;
+       
+       start [action=="scan" && originalLoaded()] -> ScanAndEmail;
+       
+       start [action=="print" && documentInQueue()] -> Print;
+     }
+     
+     Busy{
+      ScanAndEmail{
+        
+      }
+       
+       Print{
+         outOfPaper -> Suspended;
+       }
+       
+       jam -> Suspended;
+       
+       stop -> Ready;
+       done -> Ready;
+     }
+     
+     Suspended{
+      cancel -> Ready;
+       
+       resume -> Busy.H;
+     }
+   }
+ }
+}
 ```
 
 #### 例 2：`Chess Clock`
 
-输入描述涵盖 `flip / plus / minus / startStop / select / onOff` 六种事件，以及白方/黑方计时切换 [1][2]。
+这是最能体现并行状态和时间驱动切换的一个案例。
 
-参考解片段：
+- 它同时包含配置阶段、白黑棋手座位方向配置、运行阶段双时钟切换和暂停/结束逻辑。
+- 结合原论文，关注对象是 LLM 是否能把这种带并行结构、计时事件和历史恢复的描述映射成较复杂的状态机 [1]；匿名工件则给出了完整 Umple ground truth [2]。
+
+完整输入：
+
+```text
+The digital chess clock has six buttons (each of which corresponds to one event): flip (the large white button on the top), minus, plus, startStop, select (the four blue buttons from left to right below the screen), onOff (at the bottom of the clock, not shown in figure).
+After turning on the chess clock (with the onOff button), players can iterate through all the (predefined) timings using the plus and minus buttons, and finally select the designated timing by the select button. A timing option has a predefined base time (minutes and seconds) and an increment (in seconds, which can be zero). The game then starts when the startStop button is pressed.
+At any time before the game is started, the players can set the clock to match the actual seating of White and Black players using the flip button (e.g. see the placement of the small symbols with the White and Black kings on the screen which can be swapped by pressing the flip button).
+When the game is started, White's clock starts counting down (in each second) until the flip button is pressed. At this moment, White's clock stops (and receives a bonus time defined by the increment in the timing option), and Black's clock starts counting down. If the flip button is pressed again, then the same procedure is applied with reversed colors. Both clocks can be stopped by pressing the startStop button, while the game can be continued by pressing the startStop button again. If the clock of the current player counts down to zero, then a flashing flag shall appear on the screen.
+The chess clock can be turned off at any time by pressing the onOff button.
+```
+
+完整输出：
 
 ```umple
 class ChessClock {
   status {
-    Off { onOff -> On; }
+    Off {
+      onOff -> On;
+    }
     On {
       GameSetup {
         TimingSelection {
@@ -685,40 +1272,109 @@ class ChessClock {
         }
         ||
         WhiteKingStatus {
-          WhiteKingOnLeft { flip -> WhiteKingOnRight; }
-          WhiteKingOnRight { flip -> WhiteKingOnLeft; }
+          WhiteKingOnLeft {
+            flip -> WhiteKingOnRight;
+          }
+          WhiteKingOnRight {
+            flip -> WhiteKingOnLeft;
+          }
         }
       select -> ReadyToStart;
       }
-      ...
+      ReadyToStart{
+        startStop -> GameRunning;
+      }
+      GameRunning {
+        WhiteClockRunning {
+          after(1) [wc > 0] -> /{decrTimer(wc);} WhiteClockRunning;
+          after(1) [wc == 0] -> /{flashFlag(white);} GameFinished;
+          flip -> BlackClockRunning;
+          entry / {startTimer(wc);}
+          exit / {stopTimer(wc);}
+        }
+        BlackClockRunning {
+          after(1) [bc > 0] -> /{decrTimer(bc);} BlackClockRunning;
+          after(1) [bc == 0] -> /{flashFlag(black);} GameFinished;
+          flip -> WhiteClockRunning;
+          entry / {startTimer(bc);}
+          exit / {stopTimer(bc);}
+        }
+      startStop -> GamePaused;
+      }
+      GamePaused {
+        startStop -> GameRunning.H;
+      }
+      GameFinished {
+      }
+    onOff -> Off;
+    }
+  }    
+}
 ```
 
 #### 例 3：`Thermomix TM6`
 
-输入描述涵盖运输模式、开关机、自动关机、称重、切碎、烹饪与加料循环 [1][2]。
+这是三个例子里输入最长、控制流程也最丰富的一个。
 
-参考解片段：
+- 它包含运输模式、手动开关机、自动关机、称重、切碎、烹饪、反复加料等多个阶段。
+- 结合原论文，关注对象是 LLM 在长篇消费电子设备描述上能否稳定保留守卫、定时、循环步骤和历史回到 `On.H` 这类结构 [1]；完整参考解同样来自匿名工件 [2]。
+
+完整输入：
+
+```text
+The Thermomix TM6 is an all-in-one kitchen appliance that preps ingredients and cooks them to perfection.
+On delivery, the Thermomix TM6 is set to transportation mode. When the selector (button) is pressed to start up the Thermomix TM6 for the first time, the transportation mode is automatically deactivated, and the home screen is shown. To turn the Thermomix TM6 off, hold the selector down for at least five seconds until a message appears to confirm that the Thermomix TM6 is switching off. You can then release the selector. If the Thermomix TM6 has been turned off, pressing the selector turns it back on and the home screen is shown. To save energy, the Thermomix TM6 switches off automatically after 15 minutes when not in use. A message appears for the last 30 seconds, allowing automatic shutdown to be canceled and the home screen to be shown (by selecting cancel on the appliance's screen or by removing the cooking bowl).
+To cook a meal, select a recipe on the screen and then select start to follow the step-by-step instructions. First, add ingredients as instructed. The integrated scale weighs them and allows the next step only if the correct amount has been added. Continue to the next step by selecting next on the screen. The Thermomix TM6 chops the ingredients for as long as and at the speed required for the recipe. When the chopping step is done, select next for the Thermomix TM6 to start the cooking step. Again, the Thermomix TM6 cooks the meal at the temperature and time required for the recipe. At the end of any recipe step, the Thermomix TM6 may prompt you to add further ingredients, which are then again weighed, chopped, and cooked. After the last step, the Thermomix TM6 informs you that the meal is ready to be served. When the cooking bowl is removed, the Thermomix TM6 returns to the home screen. It is not possible to cook a meal if the cooking bowl is not correctly placed on the Thermomix TM6.
+The selector button raises the following events: selectorPressed (the selector is pressed and released immediately), selectorHeld (the selector is pressed and not released immediately), and selectorReleased (the selector is released after being held).
+```
+
+完整输出：
 
 ```umple
 class Thermomix {
   sm {
-    TransportationMode { selectorPressed -> On; }
-    PreparingOff {
-      selectorReleased -> On.H;
-      after5sec -> Off;
+    TransportationMode {
+    	selectorPressed -> On;
     }
-    Off { selectorPressed -> On; }
+    PreparingOff {
+     	selectorReleased -> On.H ;
+      	after5sec -> Off;
+    }
+    Off {
+      	selectorPressed -> On;
+    }
     On {
-      selectorHeld -> PreparingOff;
-      bowlRemoved -> On;
-      Home {
-        after14min30sec -> PreparingShutdown;
-        start [!bowlRemoved()] / {action=setIngredients();} -> PromptToAdd;
-      }
-      ...
+      	selectorHeld -> PreparingOff;
+      	bowlRemoved -> On;
+		Home {
+          after14min30sec -> PreparingShutdown;
+          start [!bowlRemoved()] / {action=setIngredients();} -> PromptToAdd;
+        }
+      	PreparingShutdown {
+        	cancel -> Home;
+          	after30sec -> Off;
+        }
+      	PromptToAdd {
+			next[weightCorrect() && moreIngredientsRequired] / {action=setIngredients;} -> PromptToAdd;
+          	next[weightCorrect() && !moreIngredientsRequired] / {action=setChoppingSpeedAndTime();} -> Chop;
+        }
+      	Chop {
+          next [choppingTimeDone && moreIngredientsRequired()] / {action=setIngredients();} -> PromptToAdd;
+          next [choppingTimeDone && !moreIngredientsRequired()] / {action=setCookingSpeedAndTime();} -> Cook;
+        }
+      	Cook {
+          afterChoppingTime [moreIngredientsRequired] / {action=setIngredients();} -> PromptToAdd;
+          afterCookingTime [!moreIngredientsRequired] -> Ready;
+        }
+      	Ready {
+        	after14min30sec -> PreparingShutdown; 
+        }
+    }
+  }
+}
 ```
 
-### 6.5 Python 加载方式
+### 6.5 Python 加载与组装方式
 
 原始描述和参考解文本：
 
@@ -743,7 +1399,7 @@ available_refs = re.findall(
 print(len(available_refs))
 ```
 
-加载 `parquet`：
+加载并组装 `parquet`：
 
 ```python
 from pathlib import Path
@@ -763,6 +1419,48 @@ complete_cases = paper_cases[paper_cases["has_full_reference_solution"]]
 print(cases[["case_id", "case_name", "has_full_reference_solution"]])
 print(metrics.groupby(["strategy_name", "llm_name"])["f1_score"].mean())
 print(refs[["case_id", "umple_transition_count", "umple_block_count"]])
+```
+
+组装成“自然语言描述 + 参考解 + 官方评测指标”的统一案例表：
+
+```python
+from pathlib import Path
+import pandas as pd
+
+assets = Path(
+    "project_1_llm_state_machine_modeling/discussions/"
+    "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
+)
+cases = pd.read_parquet(assets / "structure_event_driven_cases.parquet")
+refs = pd.read_parquet(assets / "structure_event_driven_reference_solutions.parquet")
+metrics = pd.read_parquet(assets / "structure_event_driven_metrics.parquet")
+
+case_metric_summary = (
+    metrics.groupby("case_id", as_index=False)[["precision", "recall", "f1_score"]]
+    .mean()
+    .rename(
+        columns={
+            "precision": "mean_precision",
+            "recall": "mean_recall",
+            "f1_score": "mean_f1_score",
+        }
+    )
+)
+
+assembled_cases = (
+    cases.merge(
+        refs[["case_id", "reference_solution_text", "umple_transition_count", "umple_block_count"]],
+        on="case_id",
+        how="left",
+    )
+    .merge(case_metric_summary, on="case_id", how="left")
+    .sort_values(["is_paper_evaluation_case", "case_name"], ascending=[False, True])
+    .reset_index(drop=True)
+)
+
+print(assembled_cases[["case_name", "has_full_reference_solution", "mean_f1_score"]])
+print(assembled_cases.loc[0, "system_description"][:400])
+print(assembled_cases.loc[0, "reference_solution_text"][:400])
 ```
 
 ## 7. 统一使用建议
