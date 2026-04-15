@@ -23,6 +23,42 @@ class RequirementItem:
     text: str
 
 
+REQUIREMENT_LINE_PATTERN = re.compile(r"^([A-Za-z]+[\d._-]*|R\d+|U\d+|FM\d+|REQ[_-]?\d+)\s*[:.)-]\s*(.+)$")
+
+
+def _split_free_text_requirements(text: str) -> list[str]:
+    paragraphs: list[str] = []
+    current: list[str] = []
+    for raw_line in text.splitlines():
+        clean = raw_line.strip()
+        if not clean:
+            if current:
+                paragraphs.append(" ".join(current))
+                current = []
+            continue
+        if clean.startswith(("- ", "* ")):
+            if current:
+                paragraphs.append(" ".join(current))
+                current = []
+            paragraphs.append(clean[2:].strip())
+            continue
+        current.append(clean)
+    if current:
+        paragraphs.append(" ".join(current))
+
+    items: list[str] = []
+    for paragraph in paragraphs:
+        if not paragraph:
+            continue
+        sentence_parts = re.split(r"(?<=[.!?])\s+|;\s+|\s+-\s+", paragraph)
+        kept = [part.strip(" -") for part in sentence_parts if len(part.strip(" -")) >= 12]
+        if kept:
+            items.extend(kept)
+        else:
+            items.append(paragraph.strip())
+    return items
+
+
 def parse_requirement_items(text: str | None, provided_items: list[dict[str, Any]]) -> list[RequirementItem]:
     if provided_items:
         items: list[RequirementItem] = []
@@ -35,17 +71,25 @@ def parse_requirement_items(text: str | None, provided_items: list[dict[str, Any
             return items
     if not text:
         return []
-    items = []
+    explicit_items: list[RequirementItem] = []
+    explicit_match_count = 0
     for idx, line in enumerate(text.splitlines(), start=1):
         clean = line.strip()
         if not clean:
             continue
-        match = re.match(r"^([A-Za-z]+[\d._-]*|R\d+|U\d+|FM\d+|REQ[_-]?\d+)\s*[:.)-]\s*(.+)$", clean)
+        match = REQUIREMENT_LINE_PATTERN.match(clean)
         if match:
-            items.append(RequirementItem(requirement_id=match.group(1), text=match.group(2).strip()))
+            explicit_match_count += 1
+            explicit_items.append(RequirementItem(requirement_id=match.group(1), text=match.group(2).strip()))
         else:
-            items.append(RequirementItem(requirement_id=f"req_{idx}", text=clean))
-    return items
+            explicit_items.append(RequirementItem(requirement_id=f"req_{idx}", text=clean))
+    if explicit_match_count > 0:
+        return explicit_items
+
+    return [
+        RequirementItem(requirement_id=f"req_{idx}", text=item_text)
+        for idx, item_text in enumerate(_split_free_text_requirements(text), start=1)
+    ]
 
 
 def parse_json_payload(value: str | None) -> dict[str, Any] | list[Any] | None:

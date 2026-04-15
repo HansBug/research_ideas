@@ -1,0 +1,672 @@
+{
+  "case_id": "automated_braking",
+  "case_name": "Automated Braking",
+  "variant_name": "System2",
+  "artifact_type": "smd",
+  "prompt_variant": "paper_rubric_v5",
+  "human_score_100": 45.0,
+  "predicted_score_100": 73.79999999999998,
+  "absolute_error": 28.799999999999983,
+  "request": {
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "input_text": "When a dangerous situation occurs that forces the driver, or the car itself, to perform a\nmanoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends\nout a warning message. Nearby cars that are in danger can then react according to the\ninformation provided within the message.\nAn ECU of the chassis & safety domain detects a danger; this may be the trigger of an airbag,\nan obstacle in direction of travel seen by an environmental sensor, or an emergency braking\nperformed by the driver or an automatic system. The Chassis Safety Controller (CSC) gets\ninformation about the dangerous situation via the Chassis Domain Bus. The CSC will assess\nthe situation and will take measures to mitigate the danger for the car. The measures will\nresult in commands to actuator ECUs in the chassis & safety domain and additionally com-\nmands to the powertrain domain to get a helpful driving power adjustment. In parallel it\nwill also send information to the Communication Unit (CU). This information will contain\ndata about the current vehicle dynamic status and detailed information about the planned\nactions (deceleration or acceleration, steering, etc.).\nThe CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles. The emergency message contains longitude, latitude, altitude,\nspeed, acceleration and heading of the car, the time of message generation, the expiry time\nof the message, an indicator for the reliability of the information, a code that is classifying\nthe car, an id that is identifying the sender of the message, an event code that is classifying\nthe emergency situation and the planed acceleration and heading. All this information is\npacked in a message frame that adds checksum, information for protocol processing and if\nnecessary security information.\n\nFunctional requirements\n- No warning message without a real danger is allowed\n- No failure in any single unit may be succeeded by a false message\n- No failure of any single communication may be succeeded by a false message\n- Any single fault in an ECU has to be detectable\n- Information about dangerous events has to be broadcast according to the communica-\ntion congestion control algorithms\n- Information about the dangers have to be broadcast to other cars with highest priority\n- Privacy of the broadcast car information has to be guaranteed\nTechnical Requirements\n- The maximum delay from danger detection to broadcast of the car2X message should\nbe less than 150 ms\n- Additional security information on the busses in the chassis and safety & powertrain\ndomains should be less than 15% of the net data\nSecurity aspects\n- Privacy of the broadcast car information has to be guaranteed\n\nUse between 4 and 10 blocks",
+    "pred_output": "{\"artifact_type\": \"ttool_avatar_state_machine_diagrams\", \"blocks\": [{\"attributes\": [{\"name\": \"dangerCode\", \"type\": \"8\"}], \"name\": \"ActuatorECU\", \"signals\": [{\"direction\": \"in\", \"name\": \"dangerAssessed(int dangerCode)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"Active\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Emergency\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"dangerCode > 0\", \"guard\": \"dangerCode > 0\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"Active\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"dangerCode == 0\", \"guard\": \"dangerCode == 0\", \"source\": \"Active\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Active\", \"source_kind\": \"state\", \"target\": \"Emergency\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Emergency\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"dangerCode\", \"type\": \"8\"}, {\"name\": \"powerAdjustment\", \"type\": \"8\"}, {\"name\": \"latitude\", \"type\": \"8\"}, {\"name\": \"longitude\", \"type\": \"8\"}, {\"name\": \"altitude\", \"type\": \"8\"}, {\"name\": \"speed\", \"type\": \"8\"}, {\"name\": \"acceleration\", \"type\": \"8\"}, {\"name\": \"heading\", \"type\": \"8\"}, {\"name\": \"drivingPowerAdjusted\", \"type\": \"8\"}, {\"name\": \"dynamicStatusUpdated\", \"type\": \"4\"}], \"name\": \"ChassisSafetyController\", \"signals\": [{\"direction\": \"in\", \"name\": \"dangerDetected(int dangerCode)\"}, {\"direction\": \"out\", \"name\": \"dangerAssessed(int dangerCode)\"}, {\"direction\": \"out\", \"name\": \"drivingPowerAdjusted(int powerAdjustment)\"}, {\"direction\": \"out\", \"name\": \"dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"AdjustDrivingPower\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"AssessDanger\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"BroadcastDangerInfo\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"dangerCode == 0\", \"guard\": \"dangerCode == 0\", \"source\": \"AssessDanger\", \"source_kind\": \"state\", \"target\": \"BroadcastDangerInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"dangerCode != 0\", \"guard\": \"dangerCode != 0\", \"source\": \"AssessDanger\", \"source_kind\": \"state\", \"target\": \"AdjustDrivingPower\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"AssessDanger\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"AdjustDrivingPower\", \"source_kind\": \"state\", \"target\": \"BroadcastDangerInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"BroadcastDangerInfo\", \"source_kind\": \"state\", \"target\": \"AssessDanger\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"dangerDetected\", \"type\": \"4\"}, {\"name\": \"longitude\", \"type\": \"8\"}, {\"name\": \"latitude\", \"type\": \"8\"}, {\"name\": \"altitude\", \"type\": \"8\"}, {\"name\": \"speed\", \"type\": \"8\"}, {\"name\": \"acceleration\", \"type\": \"8\"}, {\"name\": \"heading\", \"type\": \"8\"}, {\"name\": \"messageTime\", \"type\": \"8\"}, {\"name\": \"expiryTime\", \"type\": \"8\"}, {\"name\": \"reliability\", \"type\": \"8\"}, {\"name\": \"carCode\", \"type\": \"8\"}, {\"name\": \"senderID\", \"type\": \"8\"}, {\"name\": \"eventCode\", \"type\": \"8\"}, {\"name\": \"plannedAcceleration\", \"type\": \"8\"}, {\"name\": \"plannedHeading\", \"type\": \"8\"}], \"name\": \"CommunicationUnit\", \"signals\": [{\"direction\": \"in\", \"name\": \"dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)\"}, {\"direction\": \"out\", \"name\": \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"SendingWarningMessage\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"dangerDetected\", \"guard\": \"dangerDetected\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"SendingWarningMessage\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[action] warningMessageSent()\", \"source_kind\": \"other\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"SendingWarningMessage\", \"source_kind\": \"state\", \"target\": \"[action] warningMessageSent()\", \"target_kind\": \"other\"}]}, {\"attributes\": [{\"name\": \"warningMessageSent\", \"type\": \"8\"}, {\"name\": \"longitude\", \"type\": \"8\"}, {\"name\": \"latitude\", \"type\": \"8\"}, {\"name\": \"altitude\", \"type\": \"8\"}, {\"name\": \"speed\", \"type\": \"8\"}, {\"name\": \"acceleration\", \"type\": \"8\"}, {\"name\": \"heading\", \"type\": \"8\"}, {\"name\": \"messageTime\", \"type\": \"8\"}, {\"name\": \"expiryTime\", \"type\": \"8\"}, {\"name\": \"reliability\", \"type\": \"8\"}, {\"name\": \"carCode\", \"type\": \"8\"}, {\"name\": \"senderID\", \"type\": \"8\"}, {\"name\": \"eventCode\", \"type\": \"8\"}, {\"name\": \"plannedAcceleration\", \"type\": \"8\"}, {\"name\": \"plannedHeading\", \"type\": \"8\"}], \"name\": \"DSRCInterface\", \"signals\": [{\"direction\": \"in\", \"name\": \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"dangerDetected\", \"type\": \"8\"}, {\"name\": \"dangerCode\", \"type\": \"8\"}], \"name\": \"DangerDetection\", \"signals\": [{\"direction\": \"out\", \"name\": \"dangerDetected(int dangerCode)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"powerAdjustment\", \"type\": \"8\"}], \"name\": \"PowertrainECU\", \"signals\": [{\"direction\": \"in\", \"name\": \"drivingPowerAdjusted(int powerAdjustment)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"AdjustingPower\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"powerAdjustment=0\", \"event\": \"powerAdjustment=0\", \"guard\": \"powerAdjustment=0\", \"source\": \"AdjustingPower\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"powerAdjustment != 0\", \"guard\": \"powerAdjustment != 0\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"AdjustingPower\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}]}], \"counts\": {\"action_node_count\": 1, \"initial_pseudostate_count\": 6, \"panel_count\": 6, \"send_signal_node_count\": 1, \"state_count\": 18, \"state_to_state_transition_count\": 17, \"transition_count\": 25}, \"machine_name\": \"automated_braking_System2_smd\", \"notes\": [\"This summary is intended for state-machine grading only.\", \"unused_attribute_candidates are heuristic lexical findings, not ground truth.\", \"[initial] denotes a start pseudostate. [action] X denotes a non-state action/signal node rather than a normal state.\"], \"panels\": [{\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 2, \"other_nodes\": [], \"panel_name\": \"ActuatorECU\", \"start_pseudostate_count\": 1, \"state_count\": 4, \"state_names\": [\"Active\", \"Emergency\", \"Idle\", \"Start\"], \"state_to_state_transition_count\": 5, \"transition_count\": 6}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 2, \"other_nodes\": [], \"panel_name\": \"ChassisSafetyController\", \"start_pseudostate_count\": 1, \"state_count\": 4, \"state_names\": [\"AdjustDrivingPower\", \"AssessDanger\", \"BroadcastDangerInfo\", \"Start\"], \"state_to_state_transition_count\": 5, \"transition_count\": 6}, {\"action_node_transition_count\": 2, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 1, \"other_nodes\": [\"warningMessageSent()\"], \"panel_name\": \"CommunicationUnit\", \"start_pseudostate_count\": 1, \"state_count\": 3, \"state_names\": [\"Idle\", \"SendingWarningMessage\", \"Start\"], \"state_to_state_transition_count\": 2, \"transition_count\": 5}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 0, \"other_nodes\": [], \"panel_name\": \"DSRCInterface\", \"start_pseudostate_count\": 1, \"state_count\": 2, \"state_names\": [\"Idle\", \"Start\"], \"state_to_state_transition_count\": 1, \"transition_count\": 2}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 0, \"other_nodes\": [], \"panel_name\": \"DangerDetection\", \"start_pseudostate_count\": 1, \"state_count\": 2, \"state_names\": [\"Idle\", \"Start\"], \"state_to_state_transition_count\": 1, \"transition_count\": 2}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 1, \"nonempty_guard_count\": 2, \"other_nodes\": [], \"panel_name\": \"PowertrainECU\", \"start_pseudostate_count\": 1, \"state_count\": 3, \"state_names\": [\"AdjustingPower\", \"Idle\", \"Start\"], \"state_to_state_transition_count\": 3, \"transition_count\": 4}], \"unused_attribute_candidates\": [{\"attributes\": [\"latitude\", \"longitude\", \"altitude\", \"speed\", \"acceleration\", \"heading\", \"drivingPowerAdjusted\", \"dynamicStatusUpdated\"], \"block\": \"ChassisSafetyController\"}, {\"attributes\": [\"longitude\", \"latitude\", \"altitude\", \"speed\", \"acceleration\", \"heading\", \"messageTime\", \"expiryTime\", \"reliability\", \"carCode\", \"senderID\", \"eventCode\", \"plannedAcceleration\", \"plannedHeading\"], \"block\": \"CommunicationUnit\"}, {\"attributes\": [\"longitude\", \"latitude\", \"altitude\", \"speed\", \"acceleration\", \"heading\", \"messageTime\", \"expiryTime\", \"reliability\", \"carCode\", \"senderID\", \"eventCode\", \"plannedAcceleration\", \"plannedHeading\"], \"block\": \"DSRCInterface\"}]}",
+    "ref_output": null
+  },
+  "review_result": {
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "overall_score": 0.7379999999999999,
+    "overall_judgement": "partially_acceptable",
+    "overall_reason_text": "The model gets substantial credit because the main emergency-warning chain is recognizable across the key roles: danger detection, CSC assessment/mitigation, CU message generation, and DSRC broadcast. It loses clear points because many explicit requirements are not behaviorally modeled, especially false-message prevention under single faults, fault detection, congestion-control/highest-priority broadcasting, privacy/security handling, and the 150 ms timing constraint. Some transitions are also weakly specified, so the causal logic is only partially preserved.",
+    "used_review_backend": "llm_primary",
+    "dimension_results": [
+      {
+        "dimension_name": "notation_syntax",
+        "title": "Notation and Syntax",
+        "score": 0.84,
+        "judgement": "acceptable",
+        "reason_text": "The artifact is recognizably a set of state-machine diagrams with 6 blocks, initial nodes, named states, signals, and connected transitions, so it is largely well formed at the notation level. I did not see malformed pseudostate usage by itself, and the use of [initial] / [action] is allowed by the review prompt. It loses some syntax-quality credit because several transitions appear underspecified or event/guard fields are used in a slightly muddled way.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "\"artifact_type\": \"ttool_avatar_state_machine_diagrams\" with 6 blocks each containing states and transitions",
+            "explanation": "This supports that the submission is actually attempting the intended notation rather than generic prose.",
+            "locator": "artifact_type and blocks"
+          },
+          {
+            "source": "precomputed_context",
+            "snippet": "Transitions include \"[initial]|Start\" and \"SendingWarningMessage|[action] warningMessageSent()\"",
+            "explanation": "These are consistent with the prompt's allowance for initial pseudostates and action nodes, though they also show some nonstandard-looking transition encoding.",
+            "locator": "prediction_summary.transitions"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "transition_ActuatorECU_Active_Emergency",
+            "element_kind": "transition",
+            "element_text": "Active -> Emergency with no event/guard/action",
+            "issue_type": "warning",
+            "reason_text": "A bare transition is notation-weak and reduces confidence that the state machine is disciplined."
+          },
+          {
+            "element_id": "transition_CU_Idle_SendingWarningMessage",
+            "element_kind": "transition",
+            "element_text": "Idle -> SendingWarningMessage labeled dangerDetected|dangerDetected",
+            "issue_type": "warning",
+            "reason_text": "Using the same text as both event and guard suggests fuzzy syntax usage even if the model remains readable."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.76
+      },
+      {
+        "dimension_name": "semantic_completeness",
+        "title": "Semantic Completeness",
+        "score": 0.62,
+        "judgement": "acceptable",
+        "reason_text": "The required operational backbone is present: detection of danger, CSC assessment, actuator/powertrain adjustment, CU involvement, and warning-message broadcast. However, many explicit requirements are absent from the behavior model, especially no-false-message constraints under single unit/communication failure, ECU fault detectability, congestion-control and highest-priority broadcast policy, privacy/security behavior, and the stated timing bound. Because these are not minor edge cases but named requirements, completeness must score below the 'broadly good' range.",
+        "evidence": [
+          {
+            "source": "input",
+            "snippet": "Requirements include: no warning without real danger; no single unit/communication failure may cause false message; any single ECU fault detectable; congestion control; highest priority; privacy",
+            "explanation": "These are explicit required behaviors and constraints that should be represented or at least behaviorally reflected.",
+            "locator": "functional requirements"
+          },
+          {
+            "source": "prediction",
+            "snippet": "Blocks and states cover DangerDetection, ChassisSafetyController, CommunicationUnit, DSRCInterface, AssessDanger, AdjustDrivingPower, SendingWarningMessage",
+            "explanation": "This shows the model does cover the main nominal operational scenario, earning real completeness credit.",
+            "locator": "major blocks/signals/states"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "req_false_message_faults",
+            "element_kind": "requirement",
+            "element_text": "No single unit/communication failure may lead to a false message; ECU faults must be detectable",
+            "issue_type": "missing",
+            "reason_text": "No fault states, failure transitions, diagnostics, or validation logic are modeled."
+          },
+          {
+            "element_id": "req_broadcast_policy_security",
+            "element_kind": "requirement",
+            "element_text": "Congestion control, highest-priority broadcast, privacy/security, and 150 ms delay",
+            "issue_type": "missing",
+            "reason_text": "The model does not show scheduling/priority, privacy-preserving behavior, security packaging, or timing constraints."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.89
+      },
+      {
+        "dimension_name": "behavioral_consistency",
+        "title": "Behavioral Consistency",
+        "score": 0.76,
+        "judgement": "good",
+        "reason_text": "The broad trigger-effect chain is plausible: danger is detected, CSC assesses it, mitigation commands are issued, and warning information is sent toward broadcast. The strongest inconsistency is that CSC appears to transition from AssessDanger to BroadcastDangerInfo on dangerCode == 0, which conflicts with the requirement that no warning be sent without a real danger. Several other bare transitions also make sequencing and conditions under-specified.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "\"AssessDanger|AdjustDrivingPower|dangerCode != 0\" and later AdjustDrivingPower -> BroadcastDangerInfo",
+            "explanation": "This supports the intended emergency-response flow when a real danger exists.",
+            "locator": "ChassisSafetyController transitions"
+          },
+          {
+            "source": "precomputed_context",
+            "snippet": "\"AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|\"",
+            "explanation": "This is behaviorally risky because it suggests the broadcast path may occur for the no-danger case, contradicting a core requirement.",
+            "locator": "prediction_summary.transitions"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "transition_CSC_AssessDanger_BroadcastDangerInfo",
+            "element_kind": "transition",
+            "element_text": "AssessDanger -> BroadcastDangerInfo on dangerCode == 0",
+            "issue_type": "warning",
+            "reason_text": "This looks like a polarity error against 'No warning message without a real danger is allowed'."
+          },
+          {
+            "element_id": "transition_set_unspecified",
+            "element_kind": "transition",
+            "element_text": "Multiple transitions such as Active -> Emergency and Emergency -> Idle lack triggers/guards",
+            "issue_type": "warning",
+            "reason_text": "Underspecified transitions weaken confidence that the intended causal chain is preserved."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.86
+      },
+      {
+        "dimension_name": "requirement_traceability",
+        "title": "Requirement Traceability",
+        "score": 0.73,
+        "judgement": "acceptable",
+        "reason_text": "Traceability is reasonably good for the main architecture-level requirements because the key roles and message flow can be mapped to blocks, signals, and domain-specific states. It is weak for the safety, dependability, privacy, and timing requirements because there are no clear model elements implementing them. The model also includes some generic states whose requirement justification is thin.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "DangerDetection -> ChassisSafetyController via dangerDetected; CSC outputs dangerAssessed, drivingPowerAdjusted, dynamicStatusUpdated; CommunicationUnit outputs warningMessageSent to DSRCInterface",
+            "explanation": "These elements give a concrete mapping from the narrative roles to model elements.",
+            "locator": "blocks and signals"
+          },
+          {
+            "source": "input",
+            "snippet": "The warning message should include rich vehicle/event data and security/protocol additions; privacy must be guaranteed",
+            "explanation": "Only part of this can be traced, mainly data fields in warningMessageSent, while security/privacy and protocol behavior are not behaviorally mapped.",
+            "locator": "message content and nonfunctional requirements"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "req_privacy_security_timing",
+            "element_kind": "requirement",
+            "element_text": "Privacy guarantee, security information, and max 150 ms delay",
+            "issue_type": "missing",
+            "reason_text": "These major requirements cannot be linked to concrete behavioral states or transitions."
+          },
+          {
+            "element_id": "state_Emergency",
+            "element_kind": "state",
+            "element_text": "Emergency",
+            "issue_type": "warning",
+            "reason_text": "The state name is plausible but its exact role and relation to required danger categories are not clearly traced."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.83
+      },
+      {
+        "dimension_name": "pragmatic_clarity",
+        "title": "Pragmatic Clarity",
+        "score": 0.74,
+        "judgement": "acceptable",
+        "reason_text": "The model is fairly understandable because it uses 6 blocks within the requested size and several domain-specific names such as AssessDanger, AdjustDrivingPower, CommunicationUnit, and DSRCInterface. Clarity drops because some machines are generic or thinly justified, and several transitions lack explicit triggers or effects. Overall it is readable enough for a reviewer to follow the main scenario, but not disciplined enough to be considered cleanly maintainable.",
+        "evidence": [
+          {
+            "source": "input",
+            "snippet": "Requested size: 4 to 10 blocks; prediction uses 6 blocks",
+            "explanation": "The decomposition is proportionate and respects the requested abstraction size.",
+            "locator": "use between 4 and 10 blocks"
+          },
+          {
+            "source": "precomputed_context",
+            "snippet": "Domain-specific state examples: Emergency, AdjustDrivingPower, AssessDanger, BroadcastDangerInfo, SendingWarningMessage; generic examples: Idle, Start",
+            "explanation": "This mix shows the model is not just placeholder loops, but still contains some generic structure.",
+            "locator": "prediction_state_name_quality"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "generic_states",
+            "element_kind": "state",
+            "element_text": "Idle, Start, Active appear in multiple places",
+            "issue_type": "warning",
+            "reason_text": "Generic naming reduces explanatory power compared with more requirement-specific behavioral modes."
+          },
+          {
+            "element_id": "underspecified_flow",
+            "element_kind": "transition",
+            "element_text": "Several transitions have empty event/guard/action fields",
+            "issue_type": "warning",
+            "reason_text": "This makes the model harder to review and maintain because causality is implicit rather than explicit."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.78
+      }
+    ],
+    "requirement_trace_results": [
+      {
+        "requirement_id": "req_1",
+        "requirement_text": "When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles.",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_1; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_2",
+        "requirement_text": "In order to warn other vehicles, the car sends out a warning message.",
+        "status": "matched",
+        "reason_text": "Requirement req_2 is supported by 8 predicted element(s), including SendingWarningMessage|||.",
+        "matched_element_ids": [
+          "SendingWarningMessage|||",
+          "messageTime",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)",
+          "SendingWarningMessage",
+          "warningMessageSent",
+          "[action] warningMessageSent()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_3",
+        "requirement_text": "Nearby cars that are in danger can then react according to the information provided within the message.",
+        "status": "matched",
+        "reason_text": "Requirement req_3 is supported by 8 predicted element(s), including AssessDanger|||.",
+        "matched_element_ids": [
+          "AssessDanger|||",
+          "BroadcastDangerInfo|||",
+          "SendingWarningMessage|||",
+          "dangerCode",
+          "dangerAssessed(int dangerCode)",
+          "dangerDetected(int dangerCode)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_4",
+        "requirement_text": "An ECU of the chassis & safety domain detects a danger",
+        "status": "matched",
+        "reason_text": "Requirement req_4 is supported by 8 predicted element(s), including AssessDanger|||.",
+        "matched_element_ids": [
+          "AssessDanger|||",
+          "BroadcastDangerInfo|||",
+          "dangerCode",
+          "dangerAssessed(int dangerCode)",
+          "ChassisSafetyController",
+          "dangerDetected(int dangerCode)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_5",
+        "requirement_text": "this may be the trigger of an airbag, an obstacle in direction of travel seen by an environmental sensor, or an emergency braking performed by the driver or an automatic system.",
+        "status": "matched",
+        "reason_text": "Requirement req_5 is supported by 4 predicted element(s), including Emergency|||.",
+        "matched_element_ids": [
+          "Emergency|||",
+          "Emergency",
+          "Active|Emergency|||",
+          "Emergency|Idle|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_6",
+        "requirement_text": "The Chassis Safety Controller (CSC) gets information about the dangerous situation via the Chassis Domain Bus.",
+        "status": "matched",
+        "reason_text": "Requirement req_6 is supported by 6 predicted element(s), including ChassisSafetyController.",
+        "matched_element_ids": [
+          "ChassisSafetyController",
+          "ChassisSafetyController",
+          "dangerDetected(int dangerCode)|in|ChassisSafetyController",
+          "dangerAssessed(int dangerCode)|out|ChassisSafetyController",
+          "drivingPowerAdjusted(int powerAdjustment)|out|ChassisSafetyController",
+          "dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)|out|ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_7",
+        "requirement_text": "The CSC will assess the situation and will take measures to mitigate the danger for the car.",
+        "status": "matched",
+        "reason_text": "Requirement req_7 is supported by 8 predicted element(s), including AssessDanger|||.",
+        "matched_element_ids": [
+          "AssessDanger|||",
+          "BroadcastDangerInfo|||",
+          "dangerCode",
+          "dangerAssessed(int dangerCode)",
+          "dangerDetected(int dangerCode)",
+          "AssessDanger"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_8",
+        "requirement_text": "The measures will result in commands to actuator ECUs in the chassis & safety domain and additionally com- mands to the powertrain domain to get a helpful driving power adjustment.",
+        "status": "matched",
+        "reason_text": "Requirement req_8 is supported by 8 predicted element(s), including AdjustDrivingPower|||.",
+        "matched_element_ids": [
+          "AdjustDrivingPower|||",
+          "AdjustingPower|||",
+          "ActuatorECU",
+          "powerAdjustment",
+          "drivingPowerAdjusted",
+          "ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_9",
+        "requirement_text": "In parallel it will also send information to the Communication Unit (CU).",
+        "status": "matched",
+        "reason_text": "Requirement req_9 is supported by 8 predicted element(s), including SendingWarningMessage|||.",
+        "matched_element_ids": [
+          "SendingWarningMessage|||",
+          "senderID",
+          "CommunicationUnit",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)",
+          "SendingWarningMessage",
+          "Idle|SendingWarningMessage|dangerDetected|dangerDetected|"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_10",
+        "requirement_text": "This information will contain data about the current vehicle dynamic status and detailed information about the planned actions (deceleration or acceleration, steering, etc.).",
+        "status": "matched",
+        "reason_text": "Requirement req_10 is supported by 8 predicted element(s), including acceleration.",
+        "matched_element_ids": [
+          "acceleration",
+          "dynamicStatusUpdated",
+          "dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)",
+          "plannedAcceleration",
+          "plannedHeading",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_11",
+        "requirement_text": "The CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles.",
+        "status": "matched",
+        "reason_text": "Requirement req_11 is supported by 8 predicted element(s), including SendingWarningMessage|||.",
+        "matched_element_ids": [
+          "SendingWarningMessage|||",
+          "messageTime",
+          "senderID",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)",
+          "SendingWarningMessage",
+          "warningMessageSent"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_12",
+        "requirement_text": "The emergency message contains longitude, latitude, altitude, speed, acceleration and heading of the car, the time of message generation, the expiry time of the message, an indicator for the reliability of the information, a code that is classifying the car, an id that is identifying the sender of the message, an event code that is classifying the emergency situation and the planed acceleration and heading.",
+        "status": "matched",
+        "reason_text": "Requirement req_12 is supported by 8 predicted element(s), including Emergency|||.",
+        "matched_element_ids": [
+          "Emergency|||",
+          "SendingWarningMessage|||",
+          "dangerCode",
+          "dangerAssessed(int dangerCode)",
+          "Emergency",
+          "latitude"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_13",
+        "requirement_text": "All this information is packed in a message frame that adds checksum, information for protocol processing and if necessary security information.",
+        "status": "matched",
+        "reason_text": "Requirement req_13 is supported by 8 predicted element(s), including SendingWarningMessage|||.",
+        "matched_element_ids": [
+          "SendingWarningMessage|||",
+          "messageTime",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)",
+          "SendingWarningMessage",
+          "warningMessageSent",
+          "[action] warningMessageSent()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_14",
+        "requirement_text": "Functional requirements",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_14; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_15",
+        "requirement_text": "No warning message without a real danger is allowed",
+        "status": "matched",
+        "reason_text": "Requirement req_15 is supported by 8 predicted element(s), including AssessDanger|||.",
+        "matched_element_ids": [
+          "AssessDanger|||",
+          "BroadcastDangerInfo|||",
+          "SendingWarningMessage|||",
+          "dangerCode",
+          "dangerAssessed(int dangerCode)",
+          "dangerDetected(int dangerCode)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_16",
+        "requirement_text": "No failure in any single unit may be succeeded by a false message",
+        "status": "matched",
+        "reason_text": "Requirement req_16 is supported by 8 predicted element(s), including SendingWarningMessage|||.",
+        "matched_element_ids": [
+          "SendingWarningMessage|||",
+          "messageTime",
+          "CommunicationUnit",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)",
+          "SendingWarningMessage",
+          "warningMessageSent"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_17",
+        "requirement_text": "No failure of any single communication may be succeeded by a false message",
+        "status": "matched",
+        "reason_text": "Requirement req_17 is supported by 8 predicted element(s), including SendingWarningMessage|||.",
+        "matched_element_ids": [
+          "SendingWarningMessage|||",
+          "messageTime",
+          "CommunicationUnit",
+          "warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)",
+          "SendingWarningMessage",
+          "warningMessageSent"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_18",
+        "requirement_text": "Any single fault in an ECU has to be detectable",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_18; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_19",
+        "requirement_text": "Information about dangerous events has to be broadcast according to the communica",
+        "status": "matched",
+        "reason_text": "Requirement req_19 is supported by 8 predicted element(s), including BroadcastDangerInfo|||.",
+        "matched_element_ids": [
+          "BroadcastDangerInfo|||",
+          "BroadcastDangerInfo",
+          "CommunicationUnit",
+          "AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|",
+          "AdjustDrivingPower|BroadcastDangerInfo|||",
+          "BroadcastDangerInfo|AssessDanger|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_20",
+        "requirement_text": "tion congestion control algorithms",
+        "status": "matched",
+        "reason_text": "Requirement req_20 is supported by 8 predicted element(s), including action.",
+        "matched_element_ids": [
+          "action",
+          "acceleration",
+          "ChassisSafetyController",
+          "dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)",
+          "plannedAcceleration",
+          "CommunicationUnit"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_21",
+        "requirement_text": "Information about the dangers have to be broadcast to other cars with highest priority",
+        "status": "matched",
+        "reason_text": "Requirement req_21 is supported by 5 predicted element(s), including BroadcastDangerInfo|||.",
+        "matched_element_ids": [
+          "BroadcastDangerInfo|||",
+          "BroadcastDangerInfo",
+          "AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|",
+          "AdjustDrivingPower|BroadcastDangerInfo|||",
+          "BroadcastDangerInfo|AssessDanger|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_22",
+        "requirement_text": "Privacy of the broadcast car information has to be guaranteed",
+        "status": "matched",
+        "reason_text": "Requirement req_22 is supported by 5 predicted element(s), including BroadcastDangerInfo|||.",
+        "matched_element_ids": [
+          "BroadcastDangerInfo|||",
+          "BroadcastDangerInfo",
+          "AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|",
+          "AdjustDrivingPower|BroadcastDangerInfo|||",
+          "BroadcastDangerInfo|AssessDanger|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_23",
+        "requirement_text": "Technical Requirements",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_23; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_24",
+        "requirement_text": "The maximum delay from danger detection to broadcast of the car2X message should",
+        "status": "matched",
+        "reason_text": "Requirement req_24 is supported by 8 predicted element(s), including AssessDanger|||.",
+        "matched_element_ids": [
+          "AssessDanger|||",
+          "BroadcastDangerInfo|||",
+          "SendingWarningMessage|||",
+          "dangerCode",
+          "dangerAssessed(int dangerCode)",
+          "dangerDetected(int dangerCode)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_25",
+        "requirement_text": "be less than 150 ms",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_25; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_26",
+        "requirement_text": "Additional security information on the busses in the chassis and safety & powertrain",
+        "status": "matched",
+        "reason_text": "Requirement req_26 is supported by 8 predicted element(s), including ChassisSafetyController.",
+        "matched_element_ids": [
+          "ChassisSafetyController",
+          "PowertrainECU",
+          "ChassisSafetyController",
+          "PowertrainECU",
+          "dangerDetected(int dangerCode)|in|ChassisSafetyController",
+          "dangerAssessed(int dangerCode)|out|ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_27",
+        "requirement_text": "domains should be less than 15% of the net data Security aspects",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_27; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_28",
+        "requirement_text": "Privacy of the broadcast car information has to be guaranteed",
+        "status": "matched",
+        "reason_text": "Requirement req_28 is supported by 5 predicted element(s), including BroadcastDangerInfo|||.",
+        "matched_element_ids": [
+          "BroadcastDangerInfo|||",
+          "BroadcastDangerInfo",
+          "AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|",
+          "AdjustDrivingPower|BroadcastDangerInfo|||",
+          "BroadcastDangerInfo|AssessDanger|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_29",
+        "requirement_text": "Use between 4 and 10 blocks",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_29; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      }
+    ],
+    "unsupported_model_elements": [],
+    "evidence_summary": [
+      {
+        "source": "prediction",
+        "snippet": "\"artifact_type\": \"ttool_avatar_state_machine_diagrams\" with 6 blocks each containing states and transitions",
+        "explanation": "This supports that the submission is actually attempting the intended notation rather than generic prose.",
+        "locator": "artifact_type and blocks"
+      },
+      {
+        "source": "input",
+        "snippet": "Requirements include: no warning without real danger; no single unit/communication failure may cause false message; any single ECU fault detectable; congestion control; highest priority; privacy",
+        "explanation": "These are explicit required behaviors and constraints that should be represented or at least behaviorally reflected.",
+        "locator": "functional requirements"
+      },
+      {
+        "source": "prediction",
+        "snippet": "\"AssessDanger|AdjustDrivingPower|dangerCode != 0\" and later AdjustDrivingPower -> BroadcastDangerInfo",
+        "explanation": "This supports the intended emergency-response flow when a real danger exists.",
+        "locator": "ChassisSafetyController transitions"
+      },
+      {
+        "source": "prediction",
+        "snippet": "DangerDetection -> ChassisSafetyController via dangerDetected; CSC outputs dangerAssessed, drivingPowerAdjusted, dynamicStatusUpdated; CommunicationUnit outputs warningMessageSent to DSRCInterface",
+        "explanation": "These elements give a concrete mapping from the narrative roles to model elements.",
+        "locator": "blocks and signals"
+      },
+      {
+        "source": "input",
+        "snippet": "Requested size: 4 to 10 blocks; prediction uses 6 blocks",
+        "explanation": "The decomposition is proportionate and respects the requested abstraction size.",
+        "locator": "use between 4 and 10 blocks"
+      }
+    ],
+    "notes": [
+      "No reference output was available, so scoring was performed directly against the input description and rubric.",
+      "I gave strong credit for the recognizable multi-role emergency-warning scenario, per the prompt's calibration, but deducted heavily where explicit safety/security/fault requirements were absent or contradicted.",
+      "Applied generic semantic-grounding boost because the model contains many domain-specific state names and comparatively few placeholder states."
+    ],
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "confidence": 0.82
+  },
+  "flat_row": {
+    "case_id": "automated_braking",
+    "case_name": "Automated Braking",
+    "variant_name": "System2",
+    "artifact_type": "smd",
+    "prompt_variant": "paper_rubric_v5",
+    "human_score_100": 45.0,
+    "predicted_score_100": 73.79999999999998,
+    "absolute_error": 28.799999999999983,
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "used_review_backend": "llm_primary",
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "overall_score": 0.7379999999999999,
+    "overall_judgement": "partially_acceptable",
+    "overall_reason_text": "The model gets substantial credit because the main emergency-warning chain is recognizable across the key roles: danger detection, CSC assessment/mitigation, CU message generation, and DSRC broadcast. It loses clear points because many explicit requirements are not behaviorally modeled, especially false-message prevention under single faults, fault detection, congestion-control/highest-priority broadcasting, privacy/security handling, and the 150 ms timing constraint. Some transitions are also weakly specified, so the causal logic is only partially preserved.",
+    "dimension_results_json": "[{\"confidence\": 0.76, \"dimension_name\": \"notation_syntax\", \"evidence\": [{\"explanation\": \"This supports that the submission is actually attempting the intended notation rather than generic prose.\", \"locator\": \"artifact_type and blocks\", \"snippet\": \"\\\"artifact_type\\\": \\\"ttool_avatar_state_machine_diagrams\\\" with 6 blocks each containing states and transitions\", \"source\": \"prediction\"}, {\"explanation\": \"These are consistent with the prompt's allowance for initial pseudostates and action nodes, though they also show some nonstandard-looking transition encoding.\", \"locator\": \"prediction_summary.transitions\", \"snippet\": \"Transitions include \\\"[initial]|Start\\\" and \\\"SendingWarningMessage|[action] warningMessageSent()\\\"\", \"source\": \"precomputed_context\"}], \"issues\": [{\"element_id\": \"transition_ActuatorECU_Active_Emergency\", \"element_kind\": \"transition\", \"element_text\": \"Active -> Emergency with no event/guard/action\", \"issue_type\": \"warning\", \"reason_text\": \"A bare transition is notation-weak and reduces confidence that the state machine is disciplined.\"}, {\"element_id\": \"transition_CU_Idle_SendingWarningMessage\", \"element_kind\": \"transition\", \"element_text\": \"Idle -> SendingWarningMessage labeled dangerDetected|dangerDetected\", \"issue_type\": \"warning\", \"reason_text\": \"Using the same text as both event and guard suggests fuzzy syntax usage even if the model remains readable.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The artifact is recognizably a set of state-machine diagrams with 6 blocks, initial nodes, named states, signals, and connected transitions, so it is largely well formed at the notation level. I did not see malformed pseudostate usage by itself, and the use of [initial] / [action] is allowed by the review prompt. It loses some syntax-quality credit because several transitions appear underspecified or event/guard fields are used in a slightly muddled way.\", \"score\": 0.84, \"title\": \"Notation and Syntax\", \"trace_links\": []}, {\"confidence\": 0.89, \"dimension_name\": \"semantic_completeness\", \"evidence\": [{\"explanation\": \"These are explicit required behaviors and constraints that should be represented or at least behaviorally reflected.\", \"locator\": \"functional requirements\", \"snippet\": \"Requirements include: no warning without real danger; no single unit/communication failure may cause false message; any single ECU fault detectable; congestion control; highest priority; privacy\", \"source\": \"input\"}, {\"explanation\": \"This shows the model does cover the main nominal operational scenario, earning real completeness credit.\", \"locator\": \"major blocks/signals/states\", \"snippet\": \"Blocks and states cover DangerDetection, ChassisSafetyController, CommunicationUnit, DSRCInterface, AssessDanger, AdjustDrivingPower, SendingWarningMessage\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"req_false_message_faults\", \"element_kind\": \"requirement\", \"element_text\": \"No single unit/communication failure may lead to a false message; ECU faults must be detectable\", \"issue_type\": \"missing\", \"reason_text\": \"No fault states, failure transitions, diagnostics, or validation logic are modeled.\"}, {\"element_id\": \"req_broadcast_policy_security\", \"element_kind\": \"requirement\", \"element_text\": \"Congestion control, highest-priority broadcast, privacy/security, and 150 ms delay\", \"issue_type\": \"missing\", \"reason_text\": \"The model does not show scheduling/priority, privacy-preserving behavior, security packaging, or timing constraints.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The required operational backbone is present: detection of danger, CSC assessment, actuator/powertrain adjustment, CU involvement, and warning-message broadcast. However, many explicit requirements are absent from the behavior model, especially no-false-message constraints under single unit/communication failure, ECU fault detectability, congestion-control and highest-priority broadcast policy, privacy/security behavior, and the stated timing bound. Because these are not minor edge cases but named requirements, completeness must score below the 'broadly good' range.\", \"score\": 0.62, \"title\": \"Semantic Completeness\", \"trace_links\": []}, {\"confidence\": 0.86, \"dimension_name\": \"behavioral_consistency\", \"evidence\": [{\"explanation\": \"This supports the intended emergency-response flow when a real danger exists.\", \"locator\": \"ChassisSafetyController transitions\", \"snippet\": \"\\\"AssessDanger|AdjustDrivingPower|dangerCode != 0\\\" and later AdjustDrivingPower -> BroadcastDangerInfo\", \"source\": \"prediction\"}, {\"explanation\": \"This is behaviorally risky because it suggests the broadcast path may occur for the no-danger case, contradicting a core requirement.\", \"locator\": \"prediction_summary.transitions\", \"snippet\": \"\\\"AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|\\\"\", \"source\": \"precomputed_context\"}], \"issues\": [{\"element_id\": \"transition_CSC_AssessDanger_BroadcastDangerInfo\", \"element_kind\": \"transition\", \"element_text\": \"AssessDanger -> BroadcastDangerInfo on dangerCode == 0\", \"issue_type\": \"warning\", \"reason_text\": \"This looks like a polarity error against 'No warning message without a real danger is allowed'.\"}, {\"element_id\": \"transition_set_unspecified\", \"element_kind\": \"transition\", \"element_text\": \"Multiple transitions such as Active -> Emergency and Emergency -> Idle lack triggers/guards\", \"issue_type\": \"warning\", \"reason_text\": \"Underspecified transitions weaken confidence that the intended causal chain is preserved.\"}], \"judgement\": \"good\", \"metric_payload\": {}, \"reason_text\": \"The broad trigger-effect chain is plausible: danger is detected, CSC assesses it, mitigation commands are issued, and warning information is sent toward broadcast. The strongest inconsistency is that CSC appears to transition from AssessDanger to BroadcastDangerInfo on dangerCode == 0, which conflicts with the requirement that no warning be sent without a real danger. Several other bare transitions also make sequencing and conditions under-specified.\", \"score\": 0.76, \"title\": \"Behavioral Consistency\", \"trace_links\": []}, {\"confidence\": 0.83, \"dimension_name\": \"requirement_traceability\", \"evidence\": [{\"explanation\": \"These elements give a concrete mapping from the narrative roles to model elements.\", \"locator\": \"blocks and signals\", \"snippet\": \"DangerDetection -> ChassisSafetyController via dangerDetected; CSC outputs dangerAssessed, drivingPowerAdjusted, dynamicStatusUpdated; CommunicationUnit outputs warningMessageSent to DSRCInterface\", \"source\": \"prediction\"}, {\"explanation\": \"Only part of this can be traced, mainly data fields in warningMessageSent, while security/privacy and protocol behavior are not behaviorally mapped.\", \"locator\": \"message content and nonfunctional requirements\", \"snippet\": \"The warning message should include rich vehicle/event data and security/protocol additions; privacy must be guaranteed\", \"source\": \"input\"}], \"issues\": [{\"element_id\": \"req_privacy_security_timing\", \"element_kind\": \"requirement\", \"element_text\": \"Privacy guarantee, security information, and max 150 ms delay\", \"issue_type\": \"missing\", \"reason_text\": \"These major requirements cannot be linked to concrete behavioral states or transitions.\"}, {\"element_id\": \"state_Emergency\", \"element_kind\": \"state\", \"element_text\": \"Emergency\", \"issue_type\": \"warning\", \"reason_text\": \"The state name is plausible but its exact role and relation to required danger categories are not clearly traced.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"Traceability is reasonably good for the main architecture-level requirements because the key roles and message flow can be mapped to blocks, signals, and domain-specific states. It is weak for the safety, dependability, privacy, and timing requirements because there are no clear model elements implementing them. The model also includes some generic states whose requirement justification is thin.\", \"score\": 0.73, \"title\": \"Requirement Traceability\", \"trace_links\": []}, {\"confidence\": 0.78, \"dimension_name\": \"pragmatic_clarity\", \"evidence\": [{\"explanation\": \"The decomposition is proportionate and respects the requested abstraction size.\", \"locator\": \"use between 4 and 10 blocks\", \"snippet\": \"Requested size: 4 to 10 blocks; prediction uses 6 blocks\", \"source\": \"input\"}, {\"explanation\": \"This mix shows the model is not just placeholder loops, but still contains some generic structure.\", \"locator\": \"prediction_state_name_quality\", \"snippet\": \"Domain-specific state examples: Emergency, AdjustDrivingPower, AssessDanger, BroadcastDangerInfo, SendingWarningMessage; generic examples: Idle, Start\", \"source\": \"precomputed_context\"}], \"issues\": [{\"element_id\": \"generic_states\", \"element_kind\": \"state\", \"element_text\": \"Idle, Start, Active appear in multiple places\", \"issue_type\": \"warning\", \"reason_text\": \"Generic naming reduces explanatory power compared with more requirement-specific behavioral modes.\"}, {\"element_id\": \"underspecified_flow\", \"element_kind\": \"transition\", \"element_text\": \"Several transitions have empty event/guard/action fields\", \"issue_type\": \"warning\", \"reason_text\": \"This makes the model harder to review and maintain because causality is implicit rather than explicit.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The model is fairly understandable because it uses 6 blocks within the requested size and several domain-specific names such as AssessDanger, AdjustDrivingPower, CommunicationUnit, and DSRCInterface. Clarity drops because some machines are generic or thinly justified, and several transitions lack explicit triggers or effects. Overall it is readable enough for a reviewer to follow the main scenario, but not disciplined enough to be considered cleanly maintainable.\", \"score\": 0.74, \"title\": \"Pragmatic Clarity\", \"trace_links\": []}]",
+    "requirement_trace_results_json": "[{\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_1; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_1\", \"requirement_text\": \"When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles.\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendingWarningMessage|||\", \"messageTime\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\", \"SendingWarningMessage\", \"warningMessageSent\", \"[action] warningMessageSent()\"], \"reason_text\": \"Requirement req_2 is supported by 8 predicted element(s), including SendingWarningMessage|||.\", \"requirement_id\": \"req_2\", \"requirement_text\": \"In order to warn other vehicles, the car sends out a warning message.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"AssessDanger|||\", \"BroadcastDangerInfo|||\", \"SendingWarningMessage|||\", \"dangerCode\", \"dangerAssessed(int dangerCode)\", \"dangerDetected(int dangerCode)\"], \"reason_text\": \"Requirement req_3 is supported by 8 predicted element(s), including AssessDanger|||.\", \"requirement_id\": \"req_3\", \"requirement_text\": \"Nearby cars that are in danger can then react according to the information provided within the message.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"AssessDanger|||\", \"BroadcastDangerInfo|||\", \"dangerCode\", \"dangerAssessed(int dangerCode)\", \"ChassisSafetyController\", \"dangerDetected(int dangerCode)\"], \"reason_text\": \"Requirement req_4 is supported by 8 predicted element(s), including AssessDanger|||.\", \"requirement_id\": \"req_4\", \"requirement_text\": \"An ECU of the chassis & safety domain detects a danger\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"Emergency|||\", \"Emergency\", \"Active|Emergency|||\", \"Emergency|Idle|||\"], \"reason_text\": \"Requirement req_5 is supported by 4 predicted element(s), including Emergency|||.\", \"requirement_id\": \"req_5\", \"requirement_text\": \"this may be the trigger of an airbag, an obstacle in direction of travel seen by an environmental sensor, or an emergency braking performed by the driver or an automatic system.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ChassisSafetyController\", \"ChassisSafetyController\", \"dangerDetected(int dangerCode)|in|ChassisSafetyController\", \"dangerAssessed(int dangerCode)|out|ChassisSafetyController\", \"drivingPowerAdjusted(int powerAdjustment)|out|ChassisSafetyController\", \"dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)|out|ChassisSafetyController\"], \"reason_text\": \"Requirement req_6 is supported by 6 predicted element(s), including ChassisSafetyController.\", \"requirement_id\": \"req_6\", \"requirement_text\": \"The Chassis Safety Controller (CSC) gets information about the dangerous situation via the Chassis Domain Bus.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"AssessDanger|||\", \"BroadcastDangerInfo|||\", \"dangerCode\", \"dangerAssessed(int dangerCode)\", \"dangerDetected(int dangerCode)\", \"AssessDanger\"], \"reason_text\": \"Requirement req_7 is supported by 8 predicted element(s), including AssessDanger|||.\", \"requirement_id\": \"req_7\", \"requirement_text\": \"The CSC will assess the situation and will take measures to mitigate the danger for the car.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"AdjustDrivingPower|||\", \"AdjustingPower|||\", \"ActuatorECU\", \"powerAdjustment\", \"drivingPowerAdjusted\", \"ChassisSafetyController\"], \"reason_text\": \"Requirement req_8 is supported by 8 predicted element(s), including AdjustDrivingPower|||.\", \"requirement_id\": \"req_8\", \"requirement_text\": \"The measures will result in commands to actuator ECUs in the chassis & safety domain and additionally com- mands to the powertrain domain to get a helpful driving power adjustment.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendingWarningMessage|||\", \"senderID\", \"CommunicationUnit\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\", \"SendingWarningMessage\", \"Idle|SendingWarningMessage|dangerDetected|dangerDetected|\"], \"reason_text\": \"Requirement req_9 is supported by 8 predicted element(s), including SendingWarningMessage|||.\", \"requirement_id\": \"req_9\", \"requirement_text\": \"In parallel it will also send information to the Communication Unit (CU).\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"acceleration\", \"dynamicStatusUpdated\", \"dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)\", \"plannedAcceleration\", \"plannedHeading\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\"], \"reason_text\": \"Requirement req_10 is supported by 8 predicted element(s), including acceleration.\", \"requirement_id\": \"req_10\", \"requirement_text\": \"This information will contain data about the current vehicle dynamic status and detailed information about the planned actions (deceleration or acceleration, steering, etc.).\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendingWarningMessage|||\", \"messageTime\", \"senderID\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\", \"SendingWarningMessage\", \"warningMessageSent\"], \"reason_text\": \"Requirement req_11 is supported by 8 predicted element(s), including SendingWarningMessage|||.\", \"requirement_id\": \"req_11\", \"requirement_text\": \"The CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"Emergency|||\", \"SendingWarningMessage|||\", \"dangerCode\", \"dangerAssessed(int dangerCode)\", \"Emergency\", \"latitude\"], \"reason_text\": \"Requirement req_12 is supported by 8 predicted element(s), including Emergency|||.\", \"requirement_id\": \"req_12\", \"requirement_text\": \"The emergency message contains longitude, latitude, altitude, speed, acceleration and heading of the car, the time of message generation, the expiry time of the message, an indicator for the reliability of the information, a code that is classifying the car, an id that is identifying the sender of the message, an event code that is classifying the emergency situation and the planed acceleration and heading.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendingWarningMessage|||\", \"messageTime\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\", \"SendingWarningMessage\", \"warningMessageSent\", \"[action] warningMessageSent()\"], \"reason_text\": \"Requirement req_13 is supported by 8 predicted element(s), including SendingWarningMessage|||.\", \"requirement_id\": \"req_13\", \"requirement_text\": \"All this information is packed in a message frame that adds checksum, information for protocol processing and if necessary security information.\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_14; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_14\", \"requirement_text\": \"Functional requirements\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"AssessDanger|||\", \"BroadcastDangerInfo|||\", \"SendingWarningMessage|||\", \"dangerCode\", \"dangerAssessed(int dangerCode)\", \"dangerDetected(int dangerCode)\"], \"reason_text\": \"Requirement req_15 is supported by 8 predicted element(s), including AssessDanger|||.\", \"requirement_id\": \"req_15\", \"requirement_text\": \"No warning message without a real danger is allowed\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendingWarningMessage|||\", \"messageTime\", \"CommunicationUnit\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\", \"SendingWarningMessage\", \"warningMessageSent\"], \"reason_text\": \"Requirement req_16 is supported by 8 predicted element(s), including SendingWarningMessage|||.\", \"requirement_id\": \"req_16\", \"requirement_text\": \"No failure in any single unit may be succeeded by a false message\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendingWarningMessage|||\", \"messageTime\", \"CommunicationUnit\", \"warningMessageSent(int longitude, int latitude, int altitude, int speed, int acceleration, int heading, int messageTime, int expiryTime, int reliability, int carCode, int senderID, int eventCode, int plannedAcceleration, int plannedHeading)\", \"SendingWarningMessage\", \"warningMessageSent\"], \"reason_text\": \"Requirement req_17 is supported by 8 predicted element(s), including SendingWarningMessage|||.\", \"requirement_id\": \"req_17\", \"requirement_text\": \"No failure of any single communication may be succeeded by a false message\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_18; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_18\", \"requirement_text\": \"Any single fault in an ECU has to be detectable\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"BroadcastDangerInfo|||\", \"BroadcastDangerInfo\", \"CommunicationUnit\", \"AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|\", \"AdjustDrivingPower|BroadcastDangerInfo|||\", \"BroadcastDangerInfo|AssessDanger|||\"], \"reason_text\": \"Requirement req_19 is supported by 8 predicted element(s), including BroadcastDangerInfo|||.\", \"requirement_id\": \"req_19\", \"requirement_text\": \"Information about dangerous events has to be broadcast according to the communica\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"action\", \"acceleration\", \"ChassisSafetyController\", \"dynamicStatusUpdated(int latitude, int longitude, int altitude, int speed, int acceleration, int heading)\", \"plannedAcceleration\", \"CommunicationUnit\"], \"reason_text\": \"Requirement req_20 is supported by 8 predicted element(s), including action.\", \"requirement_id\": \"req_20\", \"requirement_text\": \"tion congestion control algorithms\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"BroadcastDangerInfo|||\", \"BroadcastDangerInfo\", \"AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|\", \"AdjustDrivingPower|BroadcastDangerInfo|||\", \"BroadcastDangerInfo|AssessDanger|||\"], \"reason_text\": \"Requirement req_21 is supported by 5 predicted element(s), including BroadcastDangerInfo|||.\", \"requirement_id\": \"req_21\", \"requirement_text\": \"Information about the dangers have to be broadcast to other cars with highest priority\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"BroadcastDangerInfo|||\", \"BroadcastDangerInfo\", \"AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|\", \"AdjustDrivingPower|BroadcastDangerInfo|||\", \"BroadcastDangerInfo|AssessDanger|||\"], \"reason_text\": \"Requirement req_22 is supported by 5 predicted element(s), including BroadcastDangerInfo|||.\", \"requirement_id\": \"req_22\", \"requirement_text\": \"Privacy of the broadcast car information has to be guaranteed\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_23; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_23\", \"requirement_text\": \"Technical Requirements\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"AssessDanger|||\", \"BroadcastDangerInfo|||\", \"SendingWarningMessage|||\", \"dangerCode\", \"dangerAssessed(int dangerCode)\", \"dangerDetected(int dangerCode)\"], \"reason_text\": \"Requirement req_24 is supported by 8 predicted element(s), including AssessDanger|||.\", \"requirement_id\": \"req_24\", \"requirement_text\": \"The maximum delay from danger detection to broadcast of the car2X message should\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_25; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_25\", \"requirement_text\": \"be less than 150 ms\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ChassisSafetyController\", \"PowertrainECU\", \"ChassisSafetyController\", \"PowertrainECU\", \"dangerDetected(int dangerCode)|in|ChassisSafetyController\", \"dangerAssessed(int dangerCode)|out|ChassisSafetyController\"], \"reason_text\": \"Requirement req_26 is supported by 8 predicted element(s), including ChassisSafetyController.\", \"requirement_id\": \"req_26\", \"requirement_text\": \"Additional security information on the busses in the chassis and safety & powertrain\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_27; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_27\", \"requirement_text\": \"domains should be less than 15% of the net data Security aspects\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"BroadcastDangerInfo|||\", \"BroadcastDangerInfo\", \"AssessDanger|BroadcastDangerInfo|dangerCode == 0|dangerCode == 0|\", \"AdjustDrivingPower|BroadcastDangerInfo|||\", \"BroadcastDangerInfo|AssessDanger|||\"], \"reason_text\": \"Requirement req_28 is supported by 5 predicted element(s), including BroadcastDangerInfo|||.\", \"requirement_id\": \"req_28\", \"requirement_text\": \"Privacy of the broadcast car information has to be guaranteed\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_29; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_29\", \"requirement_text\": \"Use between 4 and 10 blocks\", \"status\": \"missing\"}]",
+    "unsupported_model_elements_json": "[]",
+    "evidence_summary_json": "[{\"explanation\": \"This supports that the submission is actually attempting the intended notation rather than generic prose.\", \"locator\": \"artifact_type and blocks\", \"snippet\": \"\\\"artifact_type\\\": \\\"ttool_avatar_state_machine_diagrams\\\" with 6 blocks each containing states and transitions\", \"source\": \"prediction\"}, {\"explanation\": \"These are explicit required behaviors and constraints that should be represented or at least behaviorally reflected.\", \"locator\": \"functional requirements\", \"snippet\": \"Requirements include: no warning without real danger; no single unit/communication failure may cause false message; any single ECU fault detectable; congestion control; highest priority; privacy\", \"source\": \"input\"}, {\"explanation\": \"This supports the intended emergency-response flow when a real danger exists.\", \"locator\": \"ChassisSafetyController transitions\", \"snippet\": \"\\\"AssessDanger|AdjustDrivingPower|dangerCode != 0\\\" and later AdjustDrivingPower -> BroadcastDangerInfo\", \"source\": \"prediction\"}, {\"explanation\": \"These elements give a concrete mapping from the narrative roles to model elements.\", \"locator\": \"blocks and signals\", \"snippet\": \"DangerDetection -> ChassisSafetyController via dangerDetected; CSC outputs dangerAssessed, drivingPowerAdjusted, dynamicStatusUpdated; CommunicationUnit outputs warningMessageSent to DSRCInterface\", \"source\": \"prediction\"}, {\"explanation\": \"The decomposition is proportionate and respects the requested abstraction size.\", \"locator\": \"use between 4 and 10 blocks\", \"snippet\": \"Requested size: 4 to 10 blocks; prediction uses 6 blocks\", \"source\": \"input\"}]",
+    "notes_json": "[\"No reference output was available, so scoring was performed directly against the input description and rubric.\", \"I gave strong credit for the recognizable multi-role emergency-warning scenario, per the prompt's calibration, but deducted heavily where explicit safety/security/fault requirements were absent or contradicted.\", \"Applied generic semantic-grounding boost because the model contains many domain-specific state names and comparatively few placeholder states.\"]",
+    "confidence": 0.82
+  }
+}

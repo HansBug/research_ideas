@@ -119,6 +119,27 @@ Good review reasoning:
 """.strip()
 
 
+REVIEW_CALIBRATION_GUIDANCE = """
+General calibration notes for rigorous modeling review:
+
+1. Human experts do not reward model size by itself.
+   A large number of blocks or states is not a positive if the decomposition is generic, weakly justified, or poorly connected.
+2. Architecture and behavior are graded differently.
+   A block diagram may still score well if the decomposition and exchanges are sensible, even if it is not the only valid architecture.
+   A state-machine model should be graded more strictly when the control logic is shallow, generic, or missing critical reactions.
+3. Score bands should be used meaningfully.
+   0.85 to 1.00: strong, near-complete, and clearly specification-grounded.
+   0.70 to 0.84: broadly good but with visible omissions or weaker design choices.
+   0.50 to 0.69: partially acceptable yet missing important behavior, interactions, or justification.
+   0.30 to 0.49: weak, generic, or significantly under-justified.
+   below 0.30: largely unusable or badly mismatched.
+4. Typical low-score signals for block diagrams:
+   many blocks but almost no justified exchanges, generic data-holder blocks, or many declared attributes that never support any behavior.
+5. Typical low-score signals for state machines:
+   generic Idle/Processing loops, placeholder states, little requirement-specific trigger logic, missing fault/recovery paths, or many attributes/signals with no behavioral role.
+""".strip()
+
+
 def render_dimension_guidance(dimensions: list[DimensionDefinition]) -> str:
     lines: list[str] = []
     for idx, dimension in enumerate(dimensions, start=1):
@@ -156,7 +177,8 @@ def render_request_prompt(request: ExpertReviewRequest) -> str:
         f"Review prompt:\n{review_prompt}\n\n"
         f"Reference handling:\n{reference_policy}\n\n"
         f"Review guidance:\n{PROMPT_GUIDANCE}\n\n"
-        f"Concrete examples:\n{REVIEW_EXAMPLES}"
+        f"Concrete examples:\n{REVIEW_EXAMPLES}\n\n"
+        f"Calibration guidance:\n{REVIEW_CALIBRATION_GUIDANCE}"
     )
 
 

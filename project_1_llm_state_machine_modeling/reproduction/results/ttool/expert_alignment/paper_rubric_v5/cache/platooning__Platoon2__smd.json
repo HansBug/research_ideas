@@ -1,0 +1,562 @@
+{
+  "case_id": "platooning",
+  "case_name": "Platooning",
+  "variant_name": "Platoon2",
+  "artifact_type": "smd",
+  "prompt_variant": "paper_rubric_v5",
+  "human_score_100": 75.0,
+  "predicted_score_100": 72.2,
+  "absolute_error": 2.799999999999997,
+  "request": {
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "input_text": "Platooning is a transportation technique that consists in grouping trucks or vehicles together to reduce CO2 emissions. A platoon consists of one or several vehicles, the first one in the platoon playing the role of the platoon leader, the other ones playing the role of followers.\n\n1. A vehicle can  create a platoon: this vehicle is then the leader of this platoon. This vehicle informs neighbour cars about this platoon by sending a platoon information message (position, speed, acceleration) every second. Once followers have joined, it regularly informs ---every half second --- the followers of its current situation (speed, acceleration, direction, selected lane). Whenever there is an important modification of speed / acceleration / direction / lane, the leader immediately informs the followers. \n \n2. A follower can join a platoon only at the last position, i.e. behind all other vehicles of the platoon. When it joins the platoon, it informs the leader about this. When a follower wishes to leave the platoon, it informs all other vehicles of the platoon (with a \"leave\" message) and  then brakes or changes of lane.\n  \n3. Leaders and followers use front and back cameras to detect the lanes and the distance to other vehicles. The distance between vehicles within a platoon is considered to be between a min and a max distance. If there is less than the min distance between two vehicles, then the first vehicle detecting this situation broadcasts the information to all others and all vehicles of the platoon must perform an emergency braking. If the distance between two vehicles v1 and v2 ---with v1 before v2--- gets over max, then v2 and all the vehicles behind v2 have to leave the platoon. v2 is assumed to send the \"leave\" message. Obviously, one important goal of the platooning software is to keep the inter-vehicle distance between min and max so as to ensure that the platoon works for a long time. \n\nIn a more advanced version of the platooning system, the platoon can split i.e. a given follower can decide to become the leader of all the followers behind it.\n\nUse at least 2 blocks and at most 10 blocks.",
+    "pred_output": "{\"artifact_type\": \"ttool_avatar_state_machine_diagrams\", \"blocks\": [{\"attributes\": [{\"name\": \"leader\", \"type\": \"8\"}, {\"name\": \"followers\", \"type\": \"8\"}, {\"name\": \"min_distance\", \"type\": \"8\"}, {\"name\": \"max_distance\", \"type\": \"8\"}, {\"name\": \"is_split\", \"type\": \"4\"}, {\"name\": \"createPlatoon\", \"type\": \"4\"}, {\"name\": \"joinPlatoon\", \"type\": \"4\"}, {\"name\": \"informPlatoonInfo\", \"type\": \"4\"}, {\"name\": \"informModificationInfo\", \"type\": \"4\"}, {\"name\": \"leavePlatoon\", \"type\": \"4\"}, {\"name\": \"informFollowerInfo\", \"type\": \"4\"}], \"name\": \"Platoon\", \"signals\": [{\"direction\": \"in\", \"name\": \"createPlatoon()\"}, {\"direction\": \"in\", \"name\": \"informPlatoonInfo(int position, int speed, int acceleration)\"}, {\"direction\": \"in\", \"name\": \"informFollowerInfo(int speed, int acceleration, int direction, int selectedLane)\"}, {\"direction\": \"in\", \"name\": \"informModificationInfo(int speed, int acceleration, int direction, int lane)\"}, {\"direction\": \"in\", \"name\": \"joinPlatoon(bool lastPosition)\"}, {\"direction\": \"in\", \"name\": \"leavePlatoon()\"}, {\"direction\": \"out\", \"name\": \"emergencyBraking()\"}, {\"direction\": \"out\", \"name\": \"splitPlatoon()\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"EmergencyBraking\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Follower\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"NoPlatoon\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"PlatoonLeader\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"informFollowerInfo&&distance < min_distance\", \"guard\": \"informFollowerInfo&&distance < min_distance\", \"source\": \"Follower\", \"source_kind\": \"state\", \"target\": \"EmergencyBraking\", \"target_kind\": \"state\"}, {\"action\": \"followers=followers-1\", \"event\": \"leavePlatoon\", \"guard\": \"leavePlatoon\", \"source\": \"PlatoonLeader\", \"source_kind\": \"state\", \"target\": \"NoPlatoon\", \"target_kind\": \"state\"}, {\"action\": \"followers=followers+1\", \"event\": \"joinPlatoon\", \"guard\": \"joinPlatoon\", \"source\": \"NoPlatoon\", \"source_kind\": \"state\", \"target\": \"Follower\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"leavePlatoon\", \"guard\": \"leavePlatoon\", \"source\": \"Follower\", \"source_kind\": \"state\", \"target\": \"NoPlatoon\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"EmergencyBraking\", \"source_kind\": \"state\", \"target\": \"NoPlatoon\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"createPlatoon\", \"guard\": \"createPlatoon\", \"source\": \"NoPlatoon\", \"source_kind\": \"state\", \"target\": \"PlatoonLeader\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"informPlatoonInfo&&distance < min_distance\", \"guard\": \"informPlatoonInfo&&distance < min_distance\", \"source\": \"PlatoonLeader\", \"source_kind\": \"state\", \"target\": \"EmergencyBraking\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"leader == 0&&followers==0\", \"guard\": \"leader == 0&&followers==0\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"NoPlatoon\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"position\", \"type\": \"8\"}, {\"name\": \"speed\", \"type\": \"8\"}, {\"name\": \"acceleration\", \"type\": \"8\"}, {\"name\": \"direction\", \"type\": \"8\"}, {\"name\": \"selected_lane\", \"type\": \"8\"}, {\"name\": \"is_leader\", \"type\": \"4\"}, {\"name\": \"is_follower\", \"type\": \"4\"}, {\"name\": \"createPlatoon\", \"type\": \"4\"}, {\"name\": \"joinPlatoon\", \"type\": \"4\"}, {\"name\": \"informModificationInfo\", \"type\": \"4\"}, {\"name\": \"emergencyBraking\", \"type\": \"4\"}, {\"name\": \"splitPlatoon\", \"type\": \"4\"}], \"name\": \"Vehicle\", \"signals\": [{\"direction\": \"out\", \"name\": \"createPlatoon()\"}, {\"direction\": \"out\", \"name\": \"informPlatoonInfo(int position, int speed, int acceleration)\"}, {\"direction\": \"out\", \"name\": \"informFollowerInfo(int speed, int acceleration, int direction, int selectedLane)\"}, {\"direction\": \"out\", \"name\": \"informModificationInfo(int speed, int acceleration, int direction, int lane)\"}, {\"direction\": \"out\", \"name\": \"joinPlatoon(bool lastPosition)\"}, {\"direction\": \"out\", \"name\": \"leavePlatoon()\"}, {\"direction\": \"in\", \"name\": \"emergencyBraking()\"}, {\"direction\": \"in\", \"name\": \"splitPlatoon()\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"CreatingPlatoon\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"InformingFollowerInfo\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"InformingModificationInfo\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"InformingPlatoonInfo\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"JoiningPlatoon\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"joinPlatoon\", \"guard\": \"joinPlatoon\", \"source\": \"JoiningPlatoon\", \"source_kind\": \"state\", \"target\": \"InformingFollowerInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[action] informFollowerInfo()\", \"source_kind\": \"other\", \"target\": \"InformingModificationInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"InformingPlatoonInfo\", \"source_kind\": \"state\", \"target\": \"InformingFollowerInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[action] informPlatoonInfo()\", \"source_kind\": \"other\", \"target\": \"InformingPlatoonInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"joinPlatoon\", \"guard\": \"joinPlatoon\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"JoiningPlatoon\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"informModificationInfo\", \"guard\": \"informModificationInfo\", \"source\": \"InformingFollowerInfo\", \"source_kind\": \"state\", \"target\": \"[action] informFollowerInfo()\", \"target_kind\": \"other\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[action] informModificationInfo()\", \"source_kind\": \"other\", \"target\": \"InformingFollowerInfo\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"JoiningPlatoon\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"createPlatoon\", \"guard\": \"createPlatoon\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"CreatingPlatoon\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"InformingModificationInfo\", \"source_kind\": \"state\", \"target\": \"[action] informModificationInfo()\", \"target_kind\": \"other\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"CreatingPlatoon\", \"source_kind\": \"state\", \"target\": \"[action] informPlatoonInfo()\", \"target_kind\": \"other\"}]}], \"counts\": {\"action_node_count\": 3, \"initial_pseudostate_count\": 2, \"panel_count\": 2, \"send_signal_node_count\": 3, \"state_count\": 12, \"state_to_state_transition_count\": 14, \"transition_count\": 22}, \"machine_name\": \"platooning_Platoon2_smd\", \"notes\": [\"This summary is intended for state-machine grading only.\", \"unused_attribute_candidates are heuristic lexical findings, not ground truth.\", \"[initial] denotes a start pseudostate. [action] X denotes a non-state action/signal node rather than a normal state.\"], \"panels\": [{\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 2, \"nonempty_guard_count\": 7, \"other_nodes\": [], \"panel_name\": \"Platoon\", \"start_pseudostate_count\": 1, \"state_count\": 5, \"state_names\": [\"EmergencyBraking\", \"Follower\", \"NoPlatoon\", \"PlatoonLeader\", \"Start\"], \"state_to_state_transition_count\": 8, \"transition_count\": 9}, {\"action_node_transition_count\": 6, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 4, \"other_nodes\": [\"informFollowerInfo()\", \"informModificationInfo()\", \"informPlatoonInfo()\"], \"panel_name\": \"Vehicle\", \"start_pseudostate_count\": 1, \"state_count\": 7, \"state_names\": [\"CreatingPlatoon\", \"Idle\", \"InformingFollowerInfo\", \"InformingModificationInfo\", \"InformingPlatoonInfo\", \"JoiningPlatoon\", \"Start\"], \"state_to_state_transition_count\": 6, \"transition_count\": 13}], \"unused_attribute_candidates\": [{\"attributes\": [\"max_distance\", \"is_split\"], \"block\": \"Platoon\"}, {\"attributes\": [\"position\", \"speed\", \"acceleration\", \"direction\", \"selected_lane\", \"is_leader\", \"is_follower\", \"splitPlatoon\"], \"block\": \"Vehicle\"}]}",
+    "ref_output": null
+  },
+  "review_result": {
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "overall_score": 0.7220000000000001,
+    "overall_judgement": "mixed",
+    "overall_reason_text": "The model earns credit because the main platooning roles and several recognizable scenarios are present: create platoon, join, leader/follower modes, follower leave, information dissemination, and emergency braking. It loses substantial credit because key requirement logic is under-modeled or missing, especially the max-distance forced leave chain, explicit last-position join constraint, and the required leave-then-brake/change-lane behavior. Some transitions are also behaviorally weak or ambiguous, so the artifact is only partially adequate.",
+    "used_review_backend": "llm_primary",
+    "dimension_results": [
+      {
+        "dimension_name": "notation_syntax",
+        "title": "Notation and Syntax",
+        "score": 0.79,
+        "judgement": "acceptable",
+        "reason_text": "The artifact is recognizably a state-machine model with two blocks, named states, signals, and connected transitions, so it gets solid notation credit. Pseudostates and action nodes are acceptable here, but several transitions mix event and guard text awkwardly and reference undeclared data such as distance, which weakens formal cleanliness.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "Platoon block contains states NoPlatoon, Follower, PlatoonLeader, EmergencyBraking and connected transitions from [initial] and between these states.",
+            "explanation": "This shows the artifact is structured as a state machine rather than free-form prose.",
+            "locator": "blocks[0].states/transitions"
+          },
+          {
+            "source": "prediction",
+            "snippet": "Transition uses event and guard \"informFollowerInfo&&distance < min_distance\".",
+            "explanation": "This suggests notation-level awkwardness because trigger and guard are conflated and distance is not clearly declared in the shown model.",
+            "locator": "blocks[0].transitions"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "transition:Follower->EmergencyBraking",
+            "element_kind": "transition",
+            "element_text": "informFollowerInfo&&distance < min_distance",
+            "issue_type": "warning",
+            "reason_text": "Event/guard formulation is non-disciplined and may not be well-formed in a strict tool interpretation."
+          },
+          {
+            "element_id": "transition:PlatoonLeader->EmergencyBraking",
+            "element_kind": "transition",
+            "element_text": "informPlatoonInfo&&distance < min_distance",
+            "issue_type": "warning",
+            "reason_text": "Uses undeclared condition data in the visible excerpt, reducing syntactic precision."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.76
+      },
+      {
+        "dimension_name": "semantic_completeness",
+        "title": "Semantic Completeness",
+        "score": 0.64,
+        "judgement": "acceptable",
+        "reason_text": "The model covers several core scenarios, especially creation, join, leader/follower roles, periodic/immediate informing, leave, and emergency braking. However, important required behavior is absent or too shallow: the over-max-distance rule for v2 and all trailing vehicles leaving is not modeled, the join-only-at-last-position constraint is not enforced, and leaving does not capture the required braking or lane change action.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "States and signals include PlatoonLeader, Follower, NoPlatoon, EmergencyBraking, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo, informModificationInfo.",
+            "explanation": "These elements support several main required scenarios and justify partial completeness credit.",
+            "locator": "states/signals"
+          },
+          {
+            "source": "input",
+            "snippet": "\"A follower can join a platoon only at the last position\" and \"If distance ... gets over max, then v2 and all the vehicles behind v2 have to leave the platoon.\"",
+            "explanation": "These are explicit requirements, but the shown model excerpt does not implement the last-position constraint or the cascading max-distance leave behavior.",
+            "locator": "requirement 2 and 3"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "req_join_last_position",
+            "element_kind": "requirement",
+            "element_text": "Follower can join only at the last position",
+            "issue_type": "missing",
+            "reason_text": "joinPlatoon(bool lastPosition) exists, but no visible guard or state logic enforces lastPosition=true."
+          },
+          {
+            "element_id": "req_max_distance_leave_chain",
+            "element_kind": "requirement",
+            "element_text": "If distance > max, v2 and all vehicles behind v2 leave",
+            "issue_type": "missing",
+            "reason_text": "No visible state or transition models max-distance detection and the required trailing split/leave cascade."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.84
+      },
+      {
+        "dimension_name": "behavioral_consistency",
+        "title": "Behavioral Consistency",
+        "score": 0.66,
+        "judgement": "acceptable",
+        "reason_text": "The artifact preserves some intended causal logic, such as create leading to leader mode, join leading into follower behavior, and too-small distance causing emergency braking. But several cause-effect relations are weak or incorrect in detail: emergency braking is tied to information events rather than clear detection-and-broadcast logic, and the emergency state falls immediately back to NoPlatoon without a justified recovery or stop sequence.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "NoPlatoon -> PlatoonLeader on createPlatoon; NoPlatoon -> Follower on joinPlatoon; Follower/PlatoonLeader -> EmergencyBraking on distance < min_distance-related conditions.",
+            "explanation": "These transitions make the main operational scenarios behaviorally recognizable.",
+            "locator": "transitions"
+          },
+          {
+            "source": "prediction",
+            "snippet": "EmergencyBraking -> NoPlatoon with empty event/guard/action.",
+            "explanation": "This weakens behavioral consistency because emergency braking has no specified stabilization, recovery condition, or explicit post-brake logic.",
+            "locator": "transitions"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "transition:EmergencyBraking->NoPlatoon",
+            "element_kind": "transition",
+            "element_text": "unguarded transition to NoPlatoon",
+            "issue_type": "warning",
+            "reason_text": "The required emergency response is reduced to an immediate unlabeled exit, which under-models the intended causal chain."
+          },
+          {
+            "element_id": "transition:*->EmergencyBraking",
+            "element_kind": "transition",
+            "element_text": "distance violation encoded as inform...&&distance<min_distance",
+            "issue_type": "warning",
+            "reason_text": "The requirement says the first detecting vehicle broadcasts the warning and all vehicles brake; the model ties braking to message events without clearly modeling detection then broadcast then collective reaction."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.78
+      },
+      {
+        "dimension_name": "requirement_traceability",
+        "title": "Requirement Traceability",
+        "score": 0.78,
+        "judgement": "good",
+        "reason_text": "Many major requirements can be mapped to concrete model elements because the block, state, and signal names are domain-specific and recognizable. Traceability drops because some explicit requirements cannot be located in the behavior and some added structure, such as splitPlatoon, is only weakly connected to visible state logic.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "Vehicle and Platoon blocks; signals createPlatoon, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo; states PlatoonLeader, Follower, EmergencyBraking.",
+            "explanation": "These names make it possible to trace several major textual requirements directly to model elements.",
+            "locator": "blocks/signals/states"
+          },
+          {
+            "source": "prediction",
+            "snippet": "Signal splitPlatoon() is declared, but no corresponding visible transition/state behavior is shown in the excerpt.",
+            "explanation": "This is only weakly traceable to the advanced split requirement because a signal alone does not demonstrate behavior.",
+            "locator": "signals"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "signal:splitPlatoon()",
+            "element_kind": "signal",
+            "element_text": "splitPlatoon()",
+            "issue_type": "warning",
+            "reason_text": "Supported by the advanced-version requirement in principle, but no visible behavioral realization is shown, so traceability is incomplete."
+          },
+          {
+            "element_id": "req_leave_then_brake_or_lane_change",
+            "element_kind": "requirement",
+            "element_text": "Follower informs all others then brakes or changes lane",
+            "issue_type": "missing",
+            "reason_text": "leavePlatoon is traceable, but the required subsequent braking/lane-change behavior is not clearly mapped to model elements."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.74
+      },
+      {
+        "dimension_name": "pragmatic_clarity",
+        "title": "Pragmatic Clarity",
+        "score": 0.74,
+        "judgement": "acceptable",
+        "reason_text": "The model is reasonably understandable because most important states are named with platooning concepts rather than generic placeholders, and the two-block decomposition stays within the requested size. Clarity is reduced by mixing protocol/action-like states with role states, by some generic nodes like Idle/Start, and by attributes/signals that do not clearly participate in disciplined behavior.",
+        "evidence": [
+          {
+            "source": "precomputed_context",
+            "snippet": "Domain-specific states include EmergencyBraking, Follower, NoPlatoon, PlatoonLeader, InformingFollowerInfo, InformingModificationInfo, InformingPlatoonInfo.",
+            "explanation": "These names make the main scenarios easy to recognize and review.",
+            "locator": "prediction_state_name_quality"
+          },
+          {
+            "source": "precomputed_context",
+            "snippet": "State set also includes Start, Idle, action, leader, followers.",
+            "explanation": "This indicates some muddled abstraction and less disciplined separation between behavioral states, actions, and data concepts.",
+            "locator": "prediction_summary.states"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "state:Idle",
+            "element_kind": "state",
+            "element_text": "Idle",
+            "issue_type": "warning",
+            "reason_text": "Generic naming adds little domain meaning compared with the other role-specific states."
+          },
+          {
+            "element_id": "states:action/leader/followers",
+            "element_kind": "state",
+            "element_text": "action, leader, followers",
+            "issue_type": "warning",
+            "reason_text": "These appear conceptually inconsistent with normal state naming and make the model harder to interpret cleanly."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.72
+      }
+    ],
+    "requirement_trace_results": [
+      {
+        "requirement_id": "req_1",
+        "requirement_text": "Platooning is a transportation technique that consists in grouping trucks or vehicles together to reduce CO2 emissions.",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_1; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_2",
+        "requirement_text": "A platoon consists of one or several vehicles, the first one in the platoon playing the role of the platoon leader, the other ones playing the role of followers.",
+        "status": "matched",
+        "reason_text": "Requirement req_2 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "leader"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_3",
+        "requirement_text": "A vehicle can  create a platoon: this vehicle is then the leader of this platoon.",
+        "status": "matched",
+        "reason_text": "Requirement req_3 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "leader"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_4",
+        "requirement_text": "This vehicle informs neighbour cars about this platoon by sending a platoon information message (position, speed, acceleration) every second.",
+        "status": "matched",
+        "reason_text": "Requirement req_4 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "createPlatoon"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_5",
+        "requirement_text": "Once followers have joined, it regularly informs ---every half second --- the followers of its current situation (speed, acceleration, direction, selected lane).",
+        "status": "matched",
+        "reason_text": "Requirement req_5 is supported by 8 predicted element(s), including followers.",
+        "matched_element_ids": [
+          "followers",
+          "informPlatoonInfo(int position, int speed, int acceleration)",
+          "informFollowerInfo(int speed, int acceleration, int direction, int selectedLane)",
+          "informModificationInfo(int speed, int acceleration, int direction, int lane)",
+          "speed",
+          "acceleration"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_6",
+        "requirement_text": "Whenever there is an important modification of speed / acceleration / direction / lane, the leader immediately informs the followers.",
+        "status": "matched",
+        "reason_text": "Requirement req_6 is supported by 8 predicted element(s), including PlatoonLeader|||.",
+        "matched_element_ids": [
+          "PlatoonLeader|||",
+          "InformingModificationInfo|||",
+          "leader",
+          "followers",
+          "informModificationInfo",
+          "informPlatoonInfo(int position, int speed, int acceleration)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_7",
+        "requirement_text": "A follower can join a platoon only at the last position, i.e.",
+        "status": "matched",
+        "reason_text": "Requirement req_7 is supported by 8 predicted element(s), including Follower|||.",
+        "matched_element_ids": [
+          "Follower|||",
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingFollowerInfo|||",
+          "InformingPlatoonInfo|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_8",
+        "requirement_text": "behind all other vehicles of the platoon.",
+        "status": "matched",
+        "reason_text": "Requirement req_8 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "createPlatoon"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_9",
+        "requirement_text": "When it joins the platoon, it informs the leader about this.",
+        "status": "matched",
+        "reason_text": "Requirement req_9 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "leader"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_10",
+        "requirement_text": "When a follower wishes to leave the platoon, it informs all other vehicles of the platoon (with a \"leave\" message) and  then brakes or changes of lane.",
+        "status": "matched",
+        "reason_text": "Requirement req_10 is supported by 8 predicted element(s), including Follower|||.",
+        "matched_element_ids": [
+          "Follower|||",
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingFollowerInfo|||",
+          "InformingPlatoonInfo|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_11",
+        "requirement_text": "Leaders and followers use front and back cameras to detect the lanes and the distance to other vehicles.",
+        "status": "matched",
+        "reason_text": "Requirement req_11 is supported by 8 predicted element(s), including followers.",
+        "matched_element_ids": [
+          "followers",
+          "min_distance",
+          "max_distance",
+          "Follower|EmergencyBraking|informFollowerInfo&&distance < min_distance|informFollowerInfo&&distance < min_distance|",
+          "PlatoonLeader|NoPlatoon|leavePlatoon|leavePlatoon|followers=followers-1",
+          "NoPlatoon|Follower|joinPlatoon|joinPlatoon|followers=followers+1"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_12",
+        "requirement_text": "The distance between vehicles within a platoon is considered to be between a min and a max distance.",
+        "status": "matched",
+        "reason_text": "Requirement req_12 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "min_distance"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_13",
+        "requirement_text": "If there is less than the min distance between two vehicles, then the first vehicle detecting this situation broadcasts the information to all others and all vehicles of the platoon must perform an emergency braking.",
+        "status": "matched",
+        "reason_text": "Requirement req_13 is supported by 8 predicted element(s), including EmergencyBraking|||.",
+        "matched_element_ids": [
+          "EmergencyBraking|||",
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_14",
+        "requirement_text": "If the distance between two vehicles v1 and v2 ---with v1 before v2--- gets over max, then v2 and all the vehicles behind v2 have to leave the platoon.",
+        "status": "matched",
+        "reason_text": "Requirement req_14 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "min_distance"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_15",
+        "requirement_text": "v2 is assumed to send the \"leave\" message.",
+        "status": "matched",
+        "reason_text": "Requirement req_15 is supported by 8 predicted element(s), including leavePlatoon.",
+        "matched_element_ids": [
+          "leavePlatoon",
+          "leavePlatoon()",
+          "PlatoonLeader|NoPlatoon|leavePlatoon|leavePlatoon|followers=followers-1",
+          "Follower|NoPlatoon|leavePlatoon|leavePlatoon|",
+          "leavePlatoon()|in|Platoon",
+          "leavePlatoon()|out|Vehicle"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_16",
+        "requirement_text": "Obviously, one important goal of the platooning software is to keep the inter-vehicle distance between min and max so as to ensure that the platoon works for a long time.",
+        "status": "matched",
+        "reason_text": "Requirement req_16 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "min_distance"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_17",
+        "requirement_text": "In a more advanced version of the platooning system, the platoon can split i.e.",
+        "status": "matched",
+        "reason_text": "Requirement req_17 is supported by 8 predicted element(s), including NoPlatoon|||.",
+        "matched_element_ids": [
+          "NoPlatoon|||",
+          "PlatoonLeader|||",
+          "CreatingPlatoon|||",
+          "InformingPlatoonInfo|||",
+          "JoiningPlatoon|||",
+          "is_split"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_18",
+        "requirement_text": "a given follower can decide to become the leader of all the followers behind it.",
+        "status": "matched",
+        "reason_text": "Requirement req_18 is supported by 8 predicted element(s), including Follower|||.",
+        "matched_element_ids": [
+          "Follower|||",
+          "PlatoonLeader|||",
+          "InformingFollowerInfo|||",
+          "leader",
+          "followers",
+          "informFollowerInfo"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_19",
+        "requirement_text": "Use at least 2 blocks and at most 10 blocks.",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_19; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      }
+    ],
+    "unsupported_model_elements": [],
+    "evidence_summary": [
+      {
+        "source": "prediction",
+        "snippet": "Platoon block contains states NoPlatoon, Follower, PlatoonLeader, EmergencyBraking and connected transitions from [initial] and between these states.",
+        "explanation": "This shows the artifact is structured as a state machine rather than free-form prose.",
+        "locator": "blocks[0].states/transitions"
+      },
+      {
+        "source": "prediction",
+        "snippet": "States and signals include PlatoonLeader, Follower, NoPlatoon, EmergencyBraking, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo, informModificationInfo.",
+        "explanation": "These elements support several main required scenarios and justify partial completeness credit.",
+        "locator": "states/signals"
+      },
+      {
+        "source": "prediction",
+        "snippet": "NoPlatoon -> PlatoonLeader on createPlatoon; NoPlatoon -> Follower on joinPlatoon; Follower/PlatoonLeader -> EmergencyBraking on distance < min_distance-related conditions.",
+        "explanation": "These transitions make the main operational scenarios behaviorally recognizable.",
+        "locator": "transitions"
+      },
+      {
+        "source": "prediction",
+        "snippet": "Vehicle and Platoon blocks; signals createPlatoon, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo; states PlatoonLeader, Follower, EmergencyBraking.",
+        "explanation": "These names make it possible to trace several major textual requirements directly to model elements.",
+        "locator": "blocks/signals/states"
+      },
+      {
+        "source": "precomputed_context",
+        "snippet": "Domain-specific states include EmergencyBraking, Follower, NoPlatoon, PlatoonLeader, InformingFollowerInfo, InformingModificationInfo, InformingPlatoonInfo.",
+        "explanation": "These names make the main scenarios easy to recognize and review.",
+        "locator": "prediction_state_name_quality"
+      }
+    ],
+    "notes": [
+      "No reference model was available, so the review is a standalone judgement against the input requirements.",
+      "Timing details such as every second and every half second were not heavily penalized because the prompt allows implicit treatment at this abstraction level.",
+      "Applied generic semantic-grounding boost because the model contains many domain-specific state names and comparatively few placeholder states."
+    ],
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "confidence": 0.77
+  },
+  "flat_row": {
+    "case_id": "platooning",
+    "case_name": "Platooning",
+    "variant_name": "Platoon2",
+    "artifact_type": "smd",
+    "prompt_variant": "paper_rubric_v5",
+    "human_score_100": 75.0,
+    "predicted_score_100": 72.2,
+    "absolute_error": 2.799999999999997,
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "used_review_backend": "llm_primary",
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "overall_score": 0.7220000000000001,
+    "overall_judgement": "mixed",
+    "overall_reason_text": "The model earns credit because the main platooning roles and several recognizable scenarios are present: create platoon, join, leader/follower modes, follower leave, information dissemination, and emergency braking. It loses substantial credit because key requirement logic is under-modeled or missing, especially the max-distance forced leave chain, explicit last-position join constraint, and the required leave-then-brake/change-lane behavior. Some transitions are also behaviorally weak or ambiguous, so the artifact is only partially adequate.",
+    "dimension_results_json": "[{\"confidence\": 0.76, \"dimension_name\": \"notation_syntax\", \"evidence\": [{\"explanation\": \"This shows the artifact is structured as a state machine rather than free-form prose.\", \"locator\": \"blocks[0].states/transitions\", \"snippet\": \"Platoon block contains states NoPlatoon, Follower, PlatoonLeader, EmergencyBraking and connected transitions from [initial] and between these states.\", \"source\": \"prediction\"}, {\"explanation\": \"This suggests notation-level awkwardness because trigger and guard are conflated and distance is not clearly declared in the shown model.\", \"locator\": \"blocks[0].transitions\", \"snippet\": \"Transition uses event and guard \\\"informFollowerInfo&&distance < min_distance\\\".\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"transition:Follower->EmergencyBraking\", \"element_kind\": \"transition\", \"element_text\": \"informFollowerInfo&&distance < min_distance\", \"issue_type\": \"warning\", \"reason_text\": \"Event/guard formulation is non-disciplined and may not be well-formed in a strict tool interpretation.\"}, {\"element_id\": \"transition:PlatoonLeader->EmergencyBraking\", \"element_kind\": \"transition\", \"element_text\": \"informPlatoonInfo&&distance < min_distance\", \"issue_type\": \"warning\", \"reason_text\": \"Uses undeclared condition data in the visible excerpt, reducing syntactic precision.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The artifact is recognizably a state-machine model with two blocks, named states, signals, and connected transitions, so it gets solid notation credit. Pseudostates and action nodes are acceptable here, but several transitions mix event and guard text awkwardly and reference undeclared data such as distance, which weakens formal cleanliness.\", \"score\": 0.79, \"title\": \"Notation and Syntax\", \"trace_links\": []}, {\"confidence\": 0.84, \"dimension_name\": \"semantic_completeness\", \"evidence\": [{\"explanation\": \"These elements support several main required scenarios and justify partial completeness credit.\", \"locator\": \"states/signals\", \"snippet\": \"States and signals include PlatoonLeader, Follower, NoPlatoon, EmergencyBraking, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo, informModificationInfo.\", \"source\": \"prediction\"}, {\"explanation\": \"These are explicit requirements, but the shown model excerpt does not implement the last-position constraint or the cascading max-distance leave behavior.\", \"locator\": \"requirement 2 and 3\", \"snippet\": \"\\\"A follower can join a platoon only at the last position\\\" and \\\"If distance ... gets over max, then v2 and all the vehicles behind v2 have to leave the platoon.\\\"\", \"source\": \"input\"}], \"issues\": [{\"element_id\": \"req_join_last_position\", \"element_kind\": \"requirement\", \"element_text\": \"Follower can join only at the last position\", \"issue_type\": \"missing\", \"reason_text\": \"joinPlatoon(bool lastPosition) exists, but no visible guard or state logic enforces lastPosition=true.\"}, {\"element_id\": \"req_max_distance_leave_chain\", \"element_kind\": \"requirement\", \"element_text\": \"If distance > max, v2 and all vehicles behind v2 leave\", \"issue_type\": \"missing\", \"reason_text\": \"No visible state or transition models max-distance detection and the required trailing split/leave cascade.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The model covers several core scenarios, especially creation, join, leader/follower roles, periodic/immediate informing, leave, and emergency braking. However, important required behavior is absent or too shallow: the over-max-distance rule for v2 and all trailing vehicles leaving is not modeled, the join-only-at-last-position constraint is not enforced, and leaving does not capture the required braking or lane change action.\", \"score\": 0.64, \"title\": \"Semantic Completeness\", \"trace_links\": []}, {\"confidence\": 0.78, \"dimension_name\": \"behavioral_consistency\", \"evidence\": [{\"explanation\": \"These transitions make the main operational scenarios behaviorally recognizable.\", \"locator\": \"transitions\", \"snippet\": \"NoPlatoon -> PlatoonLeader on createPlatoon; NoPlatoon -> Follower on joinPlatoon; Follower/PlatoonLeader -> EmergencyBraking on distance < min_distance-related conditions.\", \"source\": \"prediction\"}, {\"explanation\": \"This weakens behavioral consistency because emergency braking has no specified stabilization, recovery condition, or explicit post-brake logic.\", \"locator\": \"transitions\", \"snippet\": \"EmergencyBraking -> NoPlatoon with empty event/guard/action.\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"transition:EmergencyBraking->NoPlatoon\", \"element_kind\": \"transition\", \"element_text\": \"unguarded transition to NoPlatoon\", \"issue_type\": \"warning\", \"reason_text\": \"The required emergency response is reduced to an immediate unlabeled exit, which under-models the intended causal chain.\"}, {\"element_id\": \"transition:*->EmergencyBraking\", \"element_kind\": \"transition\", \"element_text\": \"distance violation encoded as inform...&&distance<min_distance\", \"issue_type\": \"warning\", \"reason_text\": \"The requirement says the first detecting vehicle broadcasts the warning and all vehicles brake; the model ties braking to message events without clearly modeling detection then broadcast then collective reaction.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The artifact preserves some intended causal logic, such as create leading to leader mode, join leading into follower behavior, and too-small distance causing emergency braking. But several cause-effect relations are weak or incorrect in detail: emergency braking is tied to information events rather than clear detection-and-broadcast logic, and the emergency state falls immediately back to NoPlatoon without a justified recovery or stop sequence.\", \"score\": 0.66, \"title\": \"Behavioral Consistency\", \"trace_links\": []}, {\"confidence\": 0.74, \"dimension_name\": \"requirement_traceability\", \"evidence\": [{\"explanation\": \"These names make it possible to trace several major textual requirements directly to model elements.\", \"locator\": \"blocks/signals/states\", \"snippet\": \"Vehicle and Platoon blocks; signals createPlatoon, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo; states PlatoonLeader, Follower, EmergencyBraking.\", \"source\": \"prediction\"}, {\"explanation\": \"This is only weakly traceable to the advanced split requirement because a signal alone does not demonstrate behavior.\", \"locator\": \"signals\", \"snippet\": \"Signal splitPlatoon() is declared, but no corresponding visible transition/state behavior is shown in the excerpt.\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"signal:splitPlatoon()\", \"element_kind\": \"signal\", \"element_text\": \"splitPlatoon()\", \"issue_type\": \"warning\", \"reason_text\": \"Supported by the advanced-version requirement in principle, but no visible behavioral realization is shown, so traceability is incomplete.\"}, {\"element_id\": \"req_leave_then_brake_or_lane_change\", \"element_kind\": \"requirement\", \"element_text\": \"Follower informs all others then brakes or changes lane\", \"issue_type\": \"missing\", \"reason_text\": \"leavePlatoon is traceable, but the required subsequent braking/lane-change behavior is not clearly mapped to model elements.\"}], \"judgement\": \"good\", \"metric_payload\": {}, \"reason_text\": \"Many major requirements can be mapped to concrete model elements because the block, state, and signal names are domain-specific and recognizable. Traceability drops because some explicit requirements cannot be located in the behavior and some added structure, such as splitPlatoon, is only weakly connected to visible state logic.\", \"score\": 0.78, \"title\": \"Requirement Traceability\", \"trace_links\": []}, {\"confidence\": 0.72, \"dimension_name\": \"pragmatic_clarity\", \"evidence\": [{\"explanation\": \"These names make the main scenarios easy to recognize and review.\", \"locator\": \"prediction_state_name_quality\", \"snippet\": \"Domain-specific states include EmergencyBraking, Follower, NoPlatoon, PlatoonLeader, InformingFollowerInfo, InformingModificationInfo, InformingPlatoonInfo.\", \"source\": \"precomputed_context\"}, {\"explanation\": \"This indicates some muddled abstraction and less disciplined separation between behavioral states, actions, and data concepts.\", \"locator\": \"prediction_summary.states\", \"snippet\": \"State set also includes Start, Idle, action, leader, followers.\", \"source\": \"precomputed_context\"}], \"issues\": [{\"element_id\": \"state:Idle\", \"element_kind\": \"state\", \"element_text\": \"Idle\", \"issue_type\": \"warning\", \"reason_text\": \"Generic naming adds little domain meaning compared with the other role-specific states.\"}, {\"element_id\": \"states:action/leader/followers\", \"element_kind\": \"state\", \"element_text\": \"action, leader, followers\", \"issue_type\": \"warning\", \"reason_text\": \"These appear conceptually inconsistent with normal state naming and make the model harder to interpret cleanly.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The model is reasonably understandable because most important states are named with platooning concepts rather than generic placeholders, and the two-block decomposition stays within the requested size. Clarity is reduced by mixing protocol/action-like states with role states, by some generic nodes like Idle/Start, and by attributes/signals that do not clearly participate in disciplined behavior.\", \"score\": 0.74, \"title\": \"Pragmatic Clarity\", \"trace_links\": []}]",
+    "requirement_trace_results_json": "[{\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_1; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_1\", \"requirement_text\": \"Platooning is a transportation technique that consists in grouping trucks or vehicles together to reduce CO2 emissions.\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"leader\"], \"reason_text\": \"Requirement req_2 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_2\", \"requirement_text\": \"A platoon consists of one or several vehicles, the first one in the platoon playing the role of the platoon leader, the other ones playing the role of followers.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"leader\"], \"reason_text\": \"Requirement req_3 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_3\", \"requirement_text\": \"A vehicle can  create a platoon: this vehicle is then the leader of this platoon.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"createPlatoon\"], \"reason_text\": \"Requirement req_4 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_4\", \"requirement_text\": \"This vehicle informs neighbour cars about this platoon by sending a platoon information message (position, speed, acceleration) every second.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"followers\", \"informPlatoonInfo(int position, int speed, int acceleration)\", \"informFollowerInfo(int speed, int acceleration, int direction, int selectedLane)\", \"informModificationInfo(int speed, int acceleration, int direction, int lane)\", \"speed\", \"acceleration\"], \"reason_text\": \"Requirement req_5 is supported by 8 predicted element(s), including followers.\", \"requirement_id\": \"req_5\", \"requirement_text\": \"Once followers have joined, it regularly informs ---every half second --- the followers of its current situation (speed, acceleration, direction, selected lane).\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"PlatoonLeader|||\", \"InformingModificationInfo|||\", \"leader\", \"followers\", \"informModificationInfo\", \"informPlatoonInfo(int position, int speed, int acceleration)\"], \"reason_text\": \"Requirement req_6 is supported by 8 predicted element(s), including PlatoonLeader|||.\", \"requirement_id\": \"req_6\", \"requirement_text\": \"Whenever there is an important modification of speed / acceleration / direction / lane, the leader immediately informs the followers.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"Follower|||\", \"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingFollowerInfo|||\", \"InformingPlatoonInfo|||\"], \"reason_text\": \"Requirement req_7 is supported by 8 predicted element(s), including Follower|||.\", \"requirement_id\": \"req_7\", \"requirement_text\": \"A follower can join a platoon only at the last position, i.e.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"createPlatoon\"], \"reason_text\": \"Requirement req_8 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_8\", \"requirement_text\": \"behind all other vehicles of the platoon.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"leader\"], \"reason_text\": \"Requirement req_9 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_9\", \"requirement_text\": \"When it joins the platoon, it informs the leader about this.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"Follower|||\", \"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingFollowerInfo|||\", \"InformingPlatoonInfo|||\"], \"reason_text\": \"Requirement req_10 is supported by 8 predicted element(s), including Follower|||.\", \"requirement_id\": \"req_10\", \"requirement_text\": \"When a follower wishes to leave the platoon, it informs all other vehicles of the platoon (with a \\\"leave\\\" message) and  then brakes or changes of lane.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"followers\", \"min_distance\", \"max_distance\", \"Follower|EmergencyBraking|informFollowerInfo&&distance < min_distance|informFollowerInfo&&distance < min_distance|\", \"PlatoonLeader|NoPlatoon|leavePlatoon|leavePlatoon|followers=followers-1\", \"NoPlatoon|Follower|joinPlatoon|joinPlatoon|followers=followers+1\"], \"reason_text\": \"Requirement req_11 is supported by 8 predicted element(s), including followers.\", \"requirement_id\": \"req_11\", \"requirement_text\": \"Leaders and followers use front and back cameras to detect the lanes and the distance to other vehicles.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"min_distance\"], \"reason_text\": \"Requirement req_12 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_12\", \"requirement_text\": \"The distance between vehicles within a platoon is considered to be between a min and a max distance.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"EmergencyBraking|||\", \"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\"], \"reason_text\": \"Requirement req_13 is supported by 8 predicted element(s), including EmergencyBraking|||.\", \"requirement_id\": \"req_13\", \"requirement_text\": \"If there is less than the min distance between two vehicles, then the first vehicle detecting this situation broadcasts the information to all others and all vehicles of the platoon must perform an emergency braking.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"min_distance\"], \"reason_text\": \"Requirement req_14 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_14\", \"requirement_text\": \"If the distance between two vehicles v1 and v2 ---with v1 before v2--- gets over max, then v2 and all the vehicles behind v2 have to leave the platoon.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"leavePlatoon\", \"leavePlatoon()\", \"PlatoonLeader|NoPlatoon|leavePlatoon|leavePlatoon|followers=followers-1\", \"Follower|NoPlatoon|leavePlatoon|leavePlatoon|\", \"leavePlatoon()|in|Platoon\", \"leavePlatoon()|out|Vehicle\"], \"reason_text\": \"Requirement req_15 is supported by 8 predicted element(s), including leavePlatoon.\", \"requirement_id\": \"req_15\", \"requirement_text\": \"v2 is assumed to send the \\\"leave\\\" message.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"min_distance\"], \"reason_text\": \"Requirement req_16 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_16\", \"requirement_text\": \"Obviously, one important goal of the platooning software is to keep the inter-vehicle distance between min and max so as to ensure that the platoon works for a long time.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"NoPlatoon|||\", \"PlatoonLeader|||\", \"CreatingPlatoon|||\", \"InformingPlatoonInfo|||\", \"JoiningPlatoon|||\", \"is_split\"], \"reason_text\": \"Requirement req_17 is supported by 8 predicted element(s), including NoPlatoon|||.\", \"requirement_id\": \"req_17\", \"requirement_text\": \"In a more advanced version of the platooning system, the platoon can split i.e.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"Follower|||\", \"PlatoonLeader|||\", \"InformingFollowerInfo|||\", \"leader\", \"followers\", \"informFollowerInfo\"], \"reason_text\": \"Requirement req_18 is supported by 8 predicted element(s), including Follower|||.\", \"requirement_id\": \"req_18\", \"requirement_text\": \"a given follower can decide to become the leader of all the followers behind it.\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_19; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_19\", \"requirement_text\": \"Use at least 2 blocks and at most 10 blocks.\", \"status\": \"missing\"}]",
+    "unsupported_model_elements_json": "[]",
+    "evidence_summary_json": "[{\"explanation\": \"This shows the artifact is structured as a state machine rather than free-form prose.\", \"locator\": \"blocks[0].states/transitions\", \"snippet\": \"Platoon block contains states NoPlatoon, Follower, PlatoonLeader, EmergencyBraking and connected transitions from [initial] and between these states.\", \"source\": \"prediction\"}, {\"explanation\": \"These elements support several main required scenarios and justify partial completeness credit.\", \"locator\": \"states/signals\", \"snippet\": \"States and signals include PlatoonLeader, Follower, NoPlatoon, EmergencyBraking, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo, informModificationInfo.\", \"source\": \"prediction\"}, {\"explanation\": \"These transitions make the main operational scenarios behaviorally recognizable.\", \"locator\": \"transitions\", \"snippet\": \"NoPlatoon -> PlatoonLeader on createPlatoon; NoPlatoon -> Follower on joinPlatoon; Follower/PlatoonLeader -> EmergencyBraking on distance < min_distance-related conditions.\", \"source\": \"prediction\"}, {\"explanation\": \"These names make it possible to trace several major textual requirements directly to model elements.\", \"locator\": \"blocks/signals/states\", \"snippet\": \"Vehicle and Platoon blocks; signals createPlatoon, joinPlatoon, leavePlatoon, informPlatoonInfo, informFollowerInfo; states PlatoonLeader, Follower, EmergencyBraking.\", \"source\": \"prediction\"}, {\"explanation\": \"These names make the main scenarios easy to recognize and review.\", \"locator\": \"prediction_state_name_quality\", \"snippet\": \"Domain-specific states include EmergencyBraking, Follower, NoPlatoon, PlatoonLeader, InformingFollowerInfo, InformingModificationInfo, InformingPlatoonInfo.\", \"source\": \"precomputed_context\"}]",
+    "notes_json": "[\"No reference model was available, so the review is a standalone judgement against the input requirements.\", \"Timing details such as every second and every half second were not heavily penalized because the prompt allows implicit treatment at this abstraction level.\", \"Applied generic semantic-grounding boost because the model contains many domain-specific state names and comparatively few placeholder states.\"]",
+    "confidence": 0.77
+  }
+}

@@ -1,0 +1,685 @@
+{
+  "case_id": "automated_braking",
+  "case_name": "Automated Braking",
+  "variant_name": "System5",
+  "artifact_type": "bd",
+  "prompt_variant": "paper_rubric_v5",
+  "human_score_100": 90.0,
+  "predicted_score_100": 90.4466,
+  "absolute_error": 0.44660000000000366,
+  "request": {
+    "prompt": "You are simulating a practical human review of a high-level architecture/block diagram. Score on 0.0 to 1.0. Use generous but disciplined credit for architecture-level adequacy: if the main actors/subsystems are present and the end-to-end interaction story is recognizable, the model can still deserve roughly 0.75 to 0.90 even when some detailed constraints, data abstractions, or supporting mechanisms are imperfect or implicit. Subtract moderately for extra data-holder blocks, noisy attributes, duplicated interfaces, or exceeding the requested block count. Subtract heavily only when the main architectural flow is broken, key participants are absent, or exchanges are implausible.",
+    "input_text": "When a dangerous situation occurs that forces the driver, or the car itself, to perform a\nmanoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends\nout a warning message. Nearby cars that are in danger can then react according to the\ninformation provided within the message.\nAn ECU of the chassis & safety domain detects a danger; this may be the trigger of an airbag,\nan obstacle in direction of travel seen by an environmental sensor, or an emergency braking\nperformed by the driver or an automatic system. The Chassis Safety Controller (CSC) gets\ninformation about the dangerous situation via the Chassis Domain Bus. The CSC will assess\nthe situation and will take measures to mitigate the danger for the car. The measures will\nresult in commands to actuator ECUs in the chassis & safety domain and additionally com-\nmands to the powertrain domain to get a helpful driving power adjustment. In parallel it\nwill also send information to the Communication Unit (CU). This information will contain\ndata about the current vehicle dynamic status and detailed information about the planned\nactions (deceleration or acceleration, steering, etc.).\nThe CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles. The emergency message contains longitude, latitude, altitude,\nspeed, acceleration and heading of the car, the time of message generation, the expiry time\nof the message, an indicator for the reliability of the information, a code that is classifying\nthe car, an id that is identifying the sender of the message, an event code that is classifying\nthe emergency situation and the planed acceleration and heading. All this information is\npacked in a message frame that adds checksum, information for protocol processing and if\nnecessary security information.\n\nFunctional requirements\n- No warning message without a real danger is allowed\n- No failure in any single unit may be succeeded by a false message\n- No failure of any single communication may be succeeded by a false message\n- Any single fault in an ECU has to be detectable\n- Information about dangerous events has to be broadcast according to the communica-\ntion congestion control algorithms\n- Information about the dangers have to be broadcast to other cars with highest priority\n- Privacy of the broadcast car information has to be guaranteed\nTechnical Requirements\n- The maximum delay from danger detection to broadcast of the car2X message should\nbe less than 150 ms\n- Additional security information on the busses in the chassis and safety & powertrain\ndomains should be less than 15% of the net data\nSecurity aspects\n- Privacy of the broadcast car information has to be guaranteed\n\nUse between 4 and 10 blocks",
+    "pred_output": "{\"artifact_type\": \"ttool_avatar_block_diagram\", \"blocks\": [{\"attributes\": [{\"name\": \"dangerDetected\", \"type\": \"4\"}, {\"name\": \"airbagTriggered\", \"type\": \"4\"}, {\"name\": \"obstacleDetected\", \"type\": \"4\"}, {\"name\": \"emergencyBraking\", \"type\": \"4\"}], \"name\": \"DangerDetectionECU\", \"signals\": [{\"direction\": \"out\", \"name\": \"dangerDetected(int trigger)\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"dangerousSituation\", \"type\": \"4\"}, {\"name\": \"actionTaken\", \"type\": \"8\"}], \"name\": \"ChassisSafetyController\", \"signals\": [{\"direction\": \"in\", \"name\": \"dangerDetected(int trigger)\"}, {\"direction\": \"out\", \"name\": \"assessSituation()\"}, {\"direction\": \"out\", \"name\": \"adjustDrivingPower()\"}, {\"direction\": \"out\", \"name\": \"sendInformation()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"accelerationCommand\", \"type\": \"8\"}, {\"name\": \"steeringCommand\", \"type\": \"8\"}, {\"name\": \"brakingCommand\", \"type\": \"8\"}], \"name\": \"ActuatorECUs\", \"signals\": [{\"direction\": \"in\", \"name\": \"assessSituation()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"drivingPowerAdjustment\", \"type\": \"8\"}], \"name\": \"PowertrainDomain\", \"signals\": [{\"direction\": \"in\", \"name\": \"adjustDrivingPower()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"vehicleDynamicStatus\", \"type\": \"8\"}, {\"name\": \"plannedActions\", \"type\": \"8\"}], \"name\": \"CommunicationUnit\", \"signals\": [{\"direction\": \"in\", \"name\": \"sendInformation()\"}, {\"direction\": \"out\", \"name\": \"generateWarningMessage()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"longitude\", \"type\": \"8\"}, {\"name\": \"latitude\", \"type\": \"8\"}, {\"name\": \"altitude\", \"type\": \"8\"}, {\"name\": \"speed\", \"type\": \"8\"}, {\"name\": \"acceleration\", \"type\": \"8\"}, {\"name\": \"heading\", \"type\": \"8\"}, {\"name\": \"timeOfGeneration\", \"type\": \"8\"}, {\"name\": \"expiryTime\", \"type\": \"8\"}, {\"name\": \"reliability\", \"type\": \"8\"}, {\"name\": \"carCode\", \"type\": \"8\"}, {\"name\": \"senderId\", \"type\": \"8\"}, {\"name\": \"eventCode\", \"type\": \"8\"}, {\"name\": \"plannedAcceleration\", \"type\": \"8\"}, {\"name\": \"plannedHeading\", \"type\": \"8\"}, {\"name\": \"generateWarningMessage\", \"type\": \"4\"}, {\"name\": \"broadcastMessage\", \"type\": \"4\"}], \"name\": \"DSRCInterface\", \"signals\": [{\"direction\": \"in\", \"name\": \"generateWarningMessage()\"}, {\"direction\": \"out\", \"name\": \"broadcastMessage()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"name\", \"type\": \"8\"}, {\"name\": \"type\", \"type\": \"8\"}, {\"name\": \"broadcastMessage\", \"type\": \"4\"}, {\"name\": \"packMessage\", \"type\": \"8\"}], \"name\": \"NearbyVehicles\", \"signals\": [{\"direction\": \"in\", \"name\": \"broadcastMessage()\"}, {\"direction\": \"out\", \"name\": \"packMessage()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"CreatingMessage\", \"type\": \"8\"}, {\"name\": \"AddingChecksum\", \"type\": \"8\"}, {\"name\": \"packMessage\", \"type\": \"4\"}, {\"name\": \"addChecksum\", \"type\": \"4\"}], \"name\": \"EmergencyMessageFrame\", \"signals\": [{\"direction\": \"in\", \"name\": \"packMessage()\"}, {\"direction\": \"out\", \"name\": \"addChecksum()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"receive\", \"type\": \"4\"}, {\"name\": \"processChecksum\", \"type\": \"8\"}, {\"name\": \"send\", \"type\": \"4\"}, {\"name\": \"processProtocol\", \"type\": \"4\"}, {\"name\": \"Start\", \"type\": \"8\"}, {\"name\": \"Idle\", \"type\": \"8\"}, {\"name\": \"CalculateChecksum\", \"type\": \"8\"}, {\"name\": \"SendChecksum\", \"type\": \"8\"}], \"name\": \"Checksum\", \"signals\": [{\"direction\": \"in\", \"name\": \"addChecksum()\"}, {\"direction\": \"out\", \"name\": \"processProtocol()\"}], \"states\": [], \"transitions\": []}, {\"attributes\": [{\"name\": \"Start\", \"type\": \"8\"}, {\"name\": \"Processing\", \"type\": \"8\"}], \"name\": \"ProtocolProcessingInformation\", \"signals\": [{\"direction\": \"in\", \"name\": \"processProtocol()\"}], \"states\": [], \"transitions\": []}], \"counts\": {\"block_count\": 10, \"declared_attribute_count\": 46, \"declared_signal_count\": 18, \"exchange_count\": 9, \"unresolved_exchange_count\": 0}, \"machine_name\": \"automated_braking_System5_bd\", \"notes\": [\"This summary is intended for block-diagram grading only.\", \"Signals at top level represent block-to-block exchanges resolved from connector endpoints.\"], \"signals\": [{\"direction\": \"out\", \"name\": \"dangerDetected(int trigger)\", \"payload\": [], \"source_block\": \"DangerDetectionECU\", \"source_signal\": \"dangerDetected(int trigger)\", \"target_block\": \"ChassisSafetyController\", \"target_signal\": \"dangerDetected(int trigger)\"}, {\"direction\": \"out\", \"name\": \"assessSituation()\", \"payload\": [], \"source_block\": \"ChassisSafetyController\", \"source_signal\": \"assessSituation()\", \"target_block\": \"ActuatorECUs\", \"target_signal\": \"assessSituation()\"}, {\"direction\": \"out\", \"name\": \"adjustDrivingPower()\", \"payload\": [], \"source_block\": \"ChassisSafetyController\", \"source_signal\": \"adjustDrivingPower()\", \"target_block\": \"PowertrainDomain\", \"target_signal\": \"adjustDrivingPower()\"}, {\"direction\": \"out\", \"name\": \"sendInformation()\", \"payload\": [], \"source_block\": \"ChassisSafetyController\", \"source_signal\": \"sendInformation()\", \"target_block\": \"CommunicationUnit\", \"target_signal\": \"sendInformation()\"}, {\"direction\": \"out\", \"name\": \"generateWarningMessage()\", \"payload\": [], \"source_block\": \"CommunicationUnit\", \"source_signal\": \"generateWarningMessage()\", \"target_block\": \"DSRCInterface\", \"target_signal\": \"generateWarningMessage()\"}, {\"direction\": \"out\", \"name\": \"broadcastMessage()\", \"payload\": [], \"source_block\": \"DSRCInterface\", \"source_signal\": \"broadcastMessage()\", \"target_block\": \"NearbyVehicles\", \"target_signal\": \"broadcastMessage()\"}, {\"direction\": \"out\", \"name\": \"packMessage()\", \"payload\": [], \"source_block\": \"NearbyVehicles\", \"source_signal\": \"packMessage()\", \"target_block\": \"EmergencyMessageFrame\", \"target_signal\": \"packMessage()\"}, {\"direction\": \"out\", \"name\": \"addChecksum()\", \"payload\": [], \"source_block\": \"EmergencyMessageFrame\", \"source_signal\": \"addChecksum()\", \"target_block\": \"Checksum\", \"target_signal\": \"addChecksum()\"}, {\"direction\": \"out\", \"name\": \"processProtocol()\", \"payload\": [], \"source_block\": \"Checksum\", \"source_signal\": \"processProtocol()\", \"target_block\": \"ProtocolProcessingInformation\", \"target_signal\": \"processProtocol()\"}]}",
+    "ref_output": null
+  },
+  "review_result": {
+    "prompt": "You are simulating a practical human review of a high-level architecture/block diagram. Score on 0.0 to 1.0. Use generous but disciplined credit for architecture-level adequacy: if the main actors/subsystems are present and the end-to-end interaction story is recognizable, the model can still deserve roughly 0.75 to 0.90 even when some detailed constraints, data abstractions, or supporting mechanisms are imperfect or implicit. Subtract moderately for extra data-holder blocks, noisy attributes, duplicated interfaces, or exceeding the requested block count. Subtract heavily only when the main architectural flow is broken, key participants are absent, or exchanges are implausible.",
+    "overall_score": 0.904466,
+    "overall_judgement": "excellent",
+    "overall_reason_text": "The model captures the main end-to-end architecture: danger detection flows to the CSC, then to actuators/powertrain and in parallel to the communication path that broadcasts to nearby vehicles. It loses credit because many safety, security, timing, and communication-control requirements are not represented, and several extra message/detail blocks and attributes inflate the diagram without clearly supporting the required architecture-level behavior. There is also weak support for critical constraints such as suppressing false warnings and handling single faults. Final overall score blended LLM judgement (0.25) with a deterministic architecture-oriented reviewer (0.75) for stability.",
+    "used_review_backend": "llm_primary",
+    "dimension_results": [
+      {
+        "dimension_name": "notation_syntax",
+        "title": "Notation and Syntax",
+        "score": 0.82,
+        "judgement": "acceptable",
+        "reason_text": "As a TTool/AVATAR-style block diagram, it is structurally coherent: named blocks carry attributes and typed in/out signals, and the main interfaces align across sender and receiver blocks. It loses some credit because the excerpt shows no explicit connectors/relations beyond matching signal names, and some elements look more like stored data than disciplined interface-centric architecture blocks.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "\"artifact_type\": \"ttool_avatar_block_diagram\" with blocks such as DangerDetectionECU, ChassisSafetyController, CommunicationUnit, each declaring in/out signals.",
+            "explanation": "This supports that the artifact is intended and formed as a block diagram rather than free text.",
+            "locator": "artifact_type/blocks/signals"
+          },
+          {
+            "source": "prediction",
+            "snippet": "Matching pairs exist, e.g. \"dangerDetected(int trigger)\" out of DangerDetectionECU and in to ChassisSafetyController; \"generateWarningMessage()\" out of CommunicationUnit and in to DSRCInterface.",
+            "explanation": "Consistent signal pairing is evidence of syntactic modeling discipline.",
+            "locator": "signals"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "EmergencyMessageFrame",
+            "element_kind": "block",
+            "element_text": "EmergencyMessageFrame and similar message-detail blocks",
+            "issue_type": "warning",
+            "reason_text": "These look closer to payload decomposition/data holders than clearly connected architectural blocks."
+          },
+          {
+            "element_id": "connectors",
+            "element_kind": "block",
+            "element_text": "Explicit block connections not visible in the excerpt",
+            "issue_type": "warning",
+            "reason_text": "Signal name matching suggests intent, but the review cannot fully verify connector-level well-formedness from the provided excerpt."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.79
+      },
+      {
+        "dimension_name": "semantic_completeness",
+        "title": "Semantic Completeness",
+        "score": 0.86,
+        "judgement": "good",
+        "reason_text": "The key participants and main flow are present: danger detection, CSC assessment/mitigation, commands to chassis and powertrain, communication via CU/DSRC, and receipt by nearby vehicles. However, several important requirement-driven concerns are absent or only implicit, especially single-fault detectability, prevention of false messages under unit/communication failure, congestion control, highest-priority broadcast, privacy/security handling, and timing/overhead constraints.",
+        "evidence": [
+          {
+            "source": "input",
+            "snippet": "Danger is detected, CSC assesses and commands actuator ECUs and powertrain, and in parallel sends information to the CU, which broadcasts via DSRC to nearby vehicles.",
+            "explanation": "This defines the required architectural story the model should cover.",
+            "locator": "main scenario"
+          },
+          {
+            "source": "prediction",
+            "snippet": "Blocks and signals cover DangerDetectionECU -> ChassisSafetyController -> {ActuatorECUs, PowertrainDomain, CommunicationUnit} -> DSRCInterface -> NearbyVehicles.",
+            "explanation": "This shows strong coverage of the core end-to-end architecture.",
+            "locator": "blocks/signals"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "fault_and_false_message_requirements",
+            "element_kind": "requirement",
+            "element_text": "No warning without real danger; no single unit/communication failure may lead to a false message; any single ECU fault must be detectable",
+            "issue_type": "missing",
+            "reason_text": "The diagram contains no architectural mechanisms for validation, fault detection, redundancy, or failure containment."
+          },
+          {
+            "element_id": "security_qos_requirements",
+            "element_kind": "requirement",
+            "element_text": "Congestion control, highest-priority broadcast, privacy guarantee, <150 ms latency, <15% extra security overhead",
+            "issue_type": "missing",
+            "reason_text": "These constraints are not represented by dedicated blocks, interfaces, or annotations, so coverage is weak."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.88
+      },
+      {
+        "dimension_name": "behavioral_consistency",
+        "title": "Behavioral Consistency",
+        "score": 0.71,
+        "judgement": "acceptable",
+        "reason_text": "The observable high-level flow is behaviorally plausible: a detected danger leads to mitigation actions and a broadcast warning in parallel. But the model does not encode the critical guard that warning messages must only be sent for real danger, and some interface choices are questionable, such as NearbyVehicles emitting \"packMessage()\" rather than only consuming the broadcast.",
+        "evidence": [
+          {
+            "source": "input",
+            "snippet": "\"No warning message without a real danger is allowed\" and the CSC sends information to the CU in parallel while taking mitigation measures.",
+            "explanation": "These are the key trigger-condition-effect expectations for behavior.",
+            "locator": "functional requirements + scenario"
+          },
+          {
+            "source": "prediction",
+            "snippet": "CSC has out signal \"sendInformation()\" to CommunicationUnit; DSRCInterface outputs \"broadcastMessage()\" to NearbyVehicles; NearbyVehicles also has out signal \"packMessage()\".",
+            "explanation": "The main flow is preserved, but the extra output from NearbyVehicles is behaviorally unsupported.",
+            "locator": "ChassisSafetyController/CommunicationUnit/NearbyVehicles signals"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "sendInformation()/generateWarningMessage()",
+            "element_kind": "signal",
+            "element_text": "Broadcast path lacks an explicit real-danger gating or validation mechanism",
+            "issue_type": "missing",
+            "reason_text": "Without guards or validating components, the model does not preserve the key anti-false-message constraint."
+          },
+          {
+            "element_id": "NearbyVehicles.packMessage()",
+            "element_kind": "signal",
+            "element_text": "NearbyVehicles -> packMessage()",
+            "issue_type": "extra",
+            "reason_text": "Packing the emergency message belongs on the sender side, not as behavior of receiving nearby vehicles."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.8
+      },
+      {
+        "dimension_name": "requirement_traceability",
+        "title": "Requirement Traceability",
+        "score": 0.79,
+        "judgement": "good",
+        "reason_text": "Many core narrative requirements are traceable to concrete blocks and signals, especially the detection, CSC, actuation, powertrain adjustment, communication unit, DSRC broadcast, and message fields. Traceability weakens for the nonfunctional and safety/security requirements, and some added structure is only loosely justified at architecture level.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "DangerDetectionECU, ChassisSafetyController, ActuatorECUs, PowertrainDomain, CommunicationUnit, DSRCInterface, NearbyVehicles.",
+            "explanation": "These blocks map directly to the major actors named in the input description.",
+            "locator": "blocks"
+          },
+          {
+            "source": "prediction",
+            "snippet": "Attributes include longitude, latitude, altitude, speed, acceleration, heading, timeOfGeneration, expiryTime, reliability, senderId, eventCode, plannedAcceleration, plannedHeading.",
+            "explanation": "This gives direct traceability to the specified emergency-message content.",
+            "locator": "DSRCInterface attributes"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "privacy_and_congestion_requirements",
+            "element_kind": "requirement",
+            "element_text": "Privacy guarantee and congestion-control/highest-priority broadcasting",
+            "issue_type": "missing",
+            "reason_text": "The reviewer cannot map these major requirements to concrete blocks, ports, or signals."
+          },
+          {
+            "element_id": "Checksum/ProtocolProcessingInformation",
+            "element_kind": "block",
+            "element_text": "Checksum and ProtocolProcessingInformation as standalone blocks",
+            "issue_type": "warning",
+            "reason_text": "They are somewhat justified by the message-frame text, but as top-level blocks they weaken clean requirement-to-architecture mapping."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.84
+      },
+      {
+        "dimension_name": "pragmatic_clarity",
+        "title": "Pragmatic Clarity",
+        "score": 0.68,
+        "judgement": "acceptable",
+        "reason_text": "The main architecture is understandable because the core control and communication chain is easy to follow and the block count stays within the requested 4-10 range. Clarity is reduced by many low-level payload attributes and extra data-oriented blocks that crowd the architecture, making the diagram feel more like a mixed structural/data model than a disciplined high-level block view.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "There are 10 blocks, exactly within the requested range, including the main functional participants.",
+            "explanation": "This supports basic diagram discipline and scope control.",
+            "locator": "blocks"
+          },
+          {
+            "source": "prediction",
+            "snippet": "DSRCInterface carries many payload fields, and additional blocks include EmergencyMessageFrame, Checksum, ProtocolProcessingInformation.",
+            "explanation": "This shows inflation with message-detail structure that is not essential for a high-level architecture diagram.",
+            "locator": "DSRCInterface + extra blocks"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "DSRCInterface",
+            "element_kind": "block",
+            "element_text": "DSRCInterface with extensive message-field attributes",
+            "issue_type": "warning",
+            "reason_text": "Too much payload detail is embedded in one architectural block, reducing readability."
+          },
+          {
+            "element_id": "EmergencyMessageFrame/Checksum/ProtocolProcessingInformation",
+            "element_kind": "block",
+            "element_text": "Three separate message-detail blocks at top level",
+            "issue_type": "extra",
+            "reason_text": "These add noise and consume block budget without improving the main interaction story proportionally."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.87
+      }
+    ],
+    "requirement_trace_results": [
+      {
+        "requirement_id": "req_1",
+        "requirement_text": "When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles.",
+        "status": "matched",
+        "reason_text": "Requirement req_1 is supported by 8 predicted element(s), including dangerousSituation.",
+        "matched_element_ids": [
+          "dangerousSituation",
+          "assessSituation()",
+          "NearbyVehicles",
+          "NearbyVehicles",
+          "assessSituation()|out|ChassisSafetyController",
+          "assessSituation()|in|ActuatorECUs"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_2",
+        "requirement_text": "In order to warn other vehicles, the car sends out a warning message.",
+        "status": "matched",
+        "reason_text": "Requirement req_2 is supported by 8 predicted element(s), including generateWarningMessage().",
+        "matched_element_ids": [
+          "generateWarningMessage()",
+          "generateWarningMessage",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "packMessage",
+          "NearbyVehicles"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_3",
+        "requirement_text": "Nearby cars that are in danger can then react according to the information provided within the message.",
+        "status": "matched",
+        "reason_text": "Requirement req_3 is supported by 8 predicted element(s), including dangerDetected.",
+        "matched_element_ids": [
+          "dangerDetected",
+          "DangerDetectionECU",
+          "dangerDetected(int trigger)",
+          "dangerousSituation",
+          "sendInformation()",
+          "generateWarningMessage()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_4",
+        "requirement_text": "An ECU of the chassis & safety domain detects a danger",
+        "status": "matched",
+        "reason_text": "Requirement req_4 is supported by 8 predicted element(s), including dangerDetected.",
+        "matched_element_ids": [
+          "dangerDetected",
+          "DangerDetectionECU",
+          "dangerDetected(int trigger)",
+          "dangerousSituation",
+          "ChassisSafetyController",
+          "PowertrainDomain"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_5",
+        "requirement_text": "this may be the trigger of an airbag, an obstacle in direction of travel seen by an environmental sensor, or an emergency braking performed by the driver or an automatic system.",
+        "status": "matched",
+        "reason_text": "Requirement req_5 is supported by 8 predicted element(s), including airbagTriggered.",
+        "matched_element_ids": [
+          "airbagTriggered",
+          "obstacleDetected",
+          "emergencyBraking",
+          "dangerDetected(int trigger)",
+          "brakingCommand",
+          "EmergencyMessageFrame"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_6",
+        "requirement_text": "The Chassis Safety Controller (CSC) gets information about the dangerous situation via the Chassis Domain Bus.",
+        "status": "matched",
+        "reason_text": "Requirement req_6 is supported by 8 predicted element(s), including dangerousSituation.",
+        "matched_element_ids": [
+          "dangerousSituation",
+          "ChassisSafetyController",
+          "assessSituation()",
+          "sendInformation()",
+          "PowertrainDomain",
+          "ProtocolProcessingInformation"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_7",
+        "requirement_text": "The CSC will assess the situation and will take measures to mitigate the danger for the car.",
+        "status": "matched",
+        "reason_text": "Requirement req_7 is supported by 8 predicted element(s), including dangerDetected.",
+        "matched_element_ids": [
+          "dangerDetected",
+          "DangerDetectionECU",
+          "dangerDetected(int trigger)",
+          "dangerousSituation",
+          "actionTaken",
+          "assessSituation()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_8",
+        "requirement_text": "The measures will result in commands to actuator ECUs in the chassis & safety domain and additionally com- mands to the powertrain domain to get a helpful driving power adjustment.",
+        "status": "matched",
+        "reason_text": "Requirement req_8 is supported by 8 predicted element(s), including ChassisSafetyController.",
+        "matched_element_ids": [
+          "ChassisSafetyController",
+          "adjustDrivingPower()",
+          "ActuatorECUs",
+          "drivingPowerAdjustment",
+          "PowertrainDomain",
+          "ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_9",
+        "requirement_text": "In parallel it will also send information to the Communication Unit (CU).",
+        "status": "matched",
+        "reason_text": "Requirement req_9 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "CommunicationUnit",
+          "senderId",
+          "send",
+          "SendChecksum",
+          "ProtocolProcessingInformation"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_10",
+        "requirement_text": "This information will contain data about the current vehicle dynamic status and detailed information about the planned actions (deceleration or acceleration, steering, etc.).",
+        "status": "matched",
+        "reason_text": "Requirement req_10 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "accelerationCommand",
+          "steeringCommand",
+          "vehicleDynamicStatus",
+          "plannedActions",
+          "acceleration"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_11",
+        "requirement_text": "The CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles.",
+        "status": "matched",
+        "reason_text": "Requirement req_11 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "generateWarningMessage()",
+          "senderId",
+          "generateWarningMessage",
+          "broadcastMessage",
+          "DSRCInterface"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_12",
+        "requirement_text": "The emergency message contains longitude, latitude, altitude, speed, acceleration and heading of the car, the time of message generation, the expiry time of the message, an indicator for the reliability of the information, a code that is classifying the car, an id that is identifying the sender of the message, an event code that is classifying the emergency situation and the planed acceleration and heading.",
+        "status": "matched",
+        "reason_text": "Requirement req_12 is supported by 8 predicted element(s), including emergencyBraking.",
+        "matched_element_ids": [
+          "emergencyBraking",
+          "dangerousSituation",
+          "assessSituation()",
+          "sendInformation()",
+          "accelerationCommand",
+          "generateWarningMessage()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_13",
+        "requirement_text": "All this information is packed in a message frame that adds checksum, information for protocol processing and if necessary security information.",
+        "status": "matched",
+        "reason_text": "Requirement req_13 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "generateWarningMessage()",
+          "generateWarningMessage",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "packMessage"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_14",
+        "requirement_text": "Functional requirements",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_14; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_15",
+        "requirement_text": "No warning message without a real danger is allowed",
+        "status": "matched",
+        "reason_text": "Requirement req_15 is supported by 8 predicted element(s), including dangerDetected.",
+        "matched_element_ids": [
+          "dangerDetected",
+          "DangerDetectionECU",
+          "dangerDetected(int trigger)",
+          "dangerousSituation",
+          "generateWarningMessage()",
+          "generateWarningMessage"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_16",
+        "requirement_text": "No failure in any single unit may be succeeded by a false message",
+        "status": "matched",
+        "reason_text": "Requirement req_16 is supported by 8 predicted element(s), including CommunicationUnit.",
+        "matched_element_ids": [
+          "CommunicationUnit",
+          "generateWarningMessage()",
+          "generateWarningMessage",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "packMessage"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_17",
+        "requirement_text": "No failure of any single communication may be succeeded by a false message",
+        "status": "matched",
+        "reason_text": "Requirement req_17 is supported by 8 predicted element(s), including CommunicationUnit.",
+        "matched_element_ids": [
+          "CommunicationUnit",
+          "generateWarningMessage()",
+          "generateWarningMessage",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "packMessage"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_18",
+        "requirement_text": "Any single fault in an ECU has to be detectable",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_18; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_19",
+        "requirement_text": "Information about dangerous events has to be broadcast according to the communica",
+        "status": "matched",
+        "reason_text": "Requirement req_19 is supported by 8 predicted element(s), including dangerousSituation.",
+        "matched_element_ids": [
+          "dangerousSituation",
+          "sendInformation()",
+          "CommunicationUnit",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "ProtocolProcessingInformation"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_20",
+        "requirement_text": "tion congestion control algorithms",
+        "status": "matched",
+        "reason_text": "Requirement req_20 is supported by 8 predicted element(s), including DangerDetectionECU.",
+        "matched_element_ids": [
+          "DangerDetectionECU",
+          "dangerousSituation",
+          "actionTaken",
+          "ChassisSafetyController",
+          "assessSituation()",
+          "sendInformation()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_21",
+        "requirement_text": "Information about the dangers have to be broadcast to other cars with highest priority",
+        "status": "matched",
+        "reason_text": "Requirement req_21 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "ProtocolProcessingInformation",
+          "ProtocolProcessingInformation",
+          "sendInformation()|out|ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_22",
+        "requirement_text": "Privacy of the broadcast car information has to be guaranteed",
+        "status": "matched",
+        "reason_text": "Requirement req_22 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "ProtocolProcessingInformation",
+          "ProtocolProcessingInformation",
+          "sendInformation()|out|ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_23",
+        "requirement_text": "Technical Requirements",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_23; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_24",
+        "requirement_text": "The maximum delay from danger detection to broadcast of the car2X message should",
+        "status": "matched",
+        "reason_text": "Requirement req_24 is supported by 8 predicted element(s), including dangerDetected.",
+        "matched_element_ids": [
+          "dangerDetected",
+          "DangerDetectionECU",
+          "dangerDetected(int trigger)",
+          "dangerousSituation",
+          "generateWarningMessage()",
+          "generateWarningMessage"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_25",
+        "requirement_text": "be less than 150 ms",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_25; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_26",
+        "requirement_text": "Additional security information on the busses in the chassis and safety & powertrain",
+        "status": "matched",
+        "reason_text": "Requirement req_26 is supported by 8 predicted element(s), including ChassisSafetyController.",
+        "matched_element_ids": [
+          "ChassisSafetyController",
+          "sendInformation()",
+          "PowertrainDomain",
+          "ProtocolProcessingInformation",
+          "ChassisSafetyController",
+          "PowertrainDomain"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_27",
+        "requirement_text": "domains should be less than 15% of the net data Security aspects",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_27; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_28",
+        "requirement_text": "Privacy of the broadcast car information has to be guaranteed",
+        "status": "matched",
+        "reason_text": "Requirement req_28 is supported by 8 predicted element(s), including sendInformation().",
+        "matched_element_ids": [
+          "sendInformation()",
+          "broadcastMessage",
+          "broadcastMessage()",
+          "ProtocolProcessingInformation",
+          "ProtocolProcessingInformation",
+          "sendInformation()|out|ChassisSafetyController"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_29",
+        "requirement_text": "Use between 4 and 10 blocks",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_29; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      }
+    ],
+    "unsupported_model_elements": [],
+    "evidence_summary": [
+      {
+        "source": "prediction",
+        "snippet": "\"artifact_type\": \"ttool_avatar_block_diagram\" with blocks such as DangerDetectionECU, ChassisSafetyController, CommunicationUnit, each declaring in/out signals.",
+        "explanation": "This supports that the artifact is intended and formed as a block diagram rather than free text.",
+        "locator": "artifact_type/blocks/signals"
+      },
+      {
+        "source": "input",
+        "snippet": "Danger is detected, CSC assesses and commands actuator ECUs and powertrain, and in parallel sends information to the CU, which broadcasts via DSRC to nearby vehicles.",
+        "explanation": "This defines the required architectural story the model should cover.",
+        "locator": "main scenario"
+      },
+      {
+        "source": "input",
+        "snippet": "\"No warning message without a real danger is allowed\" and the CSC sends information to the CU in parallel while taking mitigation measures.",
+        "explanation": "These are the key trigger-condition-effect expectations for behavior.",
+        "locator": "functional requirements + scenario"
+      },
+      {
+        "source": "prediction",
+        "snippet": "DangerDetectionECU, ChassisSafetyController, ActuatorECUs, PowertrainDomain, CommunicationUnit, DSRCInterface, NearbyVehicles.",
+        "explanation": "These blocks map directly to the major actors named in the input description.",
+        "locator": "blocks"
+      },
+      {
+        "source": "prediction",
+        "snippet": "There are 10 blocks, exactly within the requested range, including the main functional participants.",
+        "explanation": "This supports basic diagram discipline and scope control.",
+        "locator": "blocks"
+      }
+    ],
+    "notes": [
+      "No reference model was available; scoring is based directly on the input description and architecture-review guidance.",
+      "Generous architecture-level credit was given for the recognizable end-to-end subsystem flow despite missing detailed safety/security mechanisms.",
+      "Applied generic architecture-grounding boost because the model contains many requirement-grounded block names and explicit interactions.",
+      "Applied architecture stability blend: llm_weight=0.25, heuristic_weight=0.75."
+    ],
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "confidence": 0.84
+  },
+  "flat_row": {
+    "case_id": "automated_braking",
+    "case_name": "Automated Braking",
+    "variant_name": "System5",
+    "artifact_type": "bd",
+    "prompt_variant": "paper_rubric_v5",
+    "human_score_100": 90.0,
+    "predicted_score_100": 90.4466,
+    "absolute_error": 0.44660000000000366,
+    "prompt": "You are simulating a practical human review of a high-level architecture/block diagram. Score on 0.0 to 1.0. Use generous but disciplined credit for architecture-level adequacy: if the main actors/subsystems are present and the end-to-end interaction story is recognizable, the model can still deserve roughly 0.75 to 0.90 even when some detailed constraints, data abstractions, or supporting mechanisms are imperfect or implicit. Subtract moderately for extra data-holder blocks, noisy attributes, duplicated interfaces, or exceeding the requested block count. Subtract heavily only when the main architectural flow is broken, key participants are absent, or exchanges are implausible.",
+    "used_review_backend": "llm_primary",
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "overall_score": 0.904466,
+    "overall_judgement": "excellent",
+    "overall_reason_text": "The model captures the main end-to-end architecture: danger detection flows to the CSC, then to actuators/powertrain and in parallel to the communication path that broadcasts to nearby vehicles. It loses credit because many safety, security, timing, and communication-control requirements are not represented, and several extra message/detail blocks and attributes inflate the diagram without clearly supporting the required architecture-level behavior. There is also weak support for critical constraints such as suppressing false warnings and handling single faults. Final overall score blended LLM judgement (0.25) with a deterministic architecture-oriented reviewer (0.75) for stability.",
+    "dimension_results_json": "[{\"confidence\": 0.79, \"dimension_name\": \"notation_syntax\", \"evidence\": [{\"explanation\": \"This supports that the artifact is intended and formed as a block diagram rather than free text.\", \"locator\": \"artifact_type/blocks/signals\", \"snippet\": \"\\\"artifact_type\\\": \\\"ttool_avatar_block_diagram\\\" with blocks such as DangerDetectionECU, ChassisSafetyController, CommunicationUnit, each declaring in/out signals.\", \"source\": \"prediction\"}, {\"explanation\": \"Consistent signal pairing is evidence of syntactic modeling discipline.\", \"locator\": \"signals\", \"snippet\": \"Matching pairs exist, e.g. \\\"dangerDetected(int trigger)\\\" out of DangerDetectionECU and in to ChassisSafetyController; \\\"generateWarningMessage()\\\" out of CommunicationUnit and in to DSRCInterface.\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"EmergencyMessageFrame\", \"element_kind\": \"block\", \"element_text\": \"EmergencyMessageFrame and similar message-detail blocks\", \"issue_type\": \"warning\", \"reason_text\": \"These look closer to payload decomposition/data holders than clearly connected architectural blocks.\"}, {\"element_id\": \"connectors\", \"element_kind\": \"block\", \"element_text\": \"Explicit block connections not visible in the excerpt\", \"issue_type\": \"warning\", \"reason_text\": \"Signal name matching suggests intent, but the review cannot fully verify connector-level well-formedness from the provided excerpt.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"As a TTool/AVATAR-style block diagram, it is structurally coherent: named blocks carry attributes and typed in/out signals, and the main interfaces align across sender and receiver blocks. It loses some credit because the excerpt shows no explicit connectors/relations beyond matching signal names, and some elements look more like stored data than disciplined interface-centric architecture blocks.\", \"score\": 0.82, \"title\": \"Notation and Syntax\", \"trace_links\": []}, {\"confidence\": 0.88, \"dimension_name\": \"semantic_completeness\", \"evidence\": [{\"explanation\": \"This defines the required architectural story the model should cover.\", \"locator\": \"main scenario\", \"snippet\": \"Danger is detected, CSC assesses and commands actuator ECUs and powertrain, and in parallel sends information to the CU, which broadcasts via DSRC to nearby vehicles.\", \"source\": \"input\"}, {\"explanation\": \"This shows strong coverage of the core end-to-end architecture.\", \"locator\": \"blocks/signals\", \"snippet\": \"Blocks and signals cover DangerDetectionECU -> ChassisSafetyController -> {ActuatorECUs, PowertrainDomain, CommunicationUnit} -> DSRCInterface -> NearbyVehicles.\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"fault_and_false_message_requirements\", \"element_kind\": \"requirement\", \"element_text\": \"No warning without real danger; no single unit/communication failure may lead to a false message; any single ECU fault must be detectable\", \"issue_type\": \"missing\", \"reason_text\": \"The diagram contains no architectural mechanisms for validation, fault detection, redundancy, or failure containment.\"}, {\"element_id\": \"security_qos_requirements\", \"element_kind\": \"requirement\", \"element_text\": \"Congestion control, highest-priority broadcast, privacy guarantee, <150 ms latency, <15% extra security overhead\", \"issue_type\": \"missing\", \"reason_text\": \"These constraints are not represented by dedicated blocks, interfaces, or annotations, so coverage is weak.\"}], \"judgement\": \"good\", \"metric_payload\": {}, \"reason_text\": \"The key participants and main flow are present: danger detection, CSC assessment/mitigation, commands to chassis and powertrain, communication via CU/DSRC, and receipt by nearby vehicles. However, several important requirement-driven concerns are absent or only implicit, especially single-fault detectability, prevention of false messages under unit/communication failure, congestion control, highest-priority broadcast, privacy/security handling, and timing/overhead constraints.\", \"score\": 0.86, \"title\": \"Semantic Completeness\", \"trace_links\": []}, {\"confidence\": 0.8, \"dimension_name\": \"behavioral_consistency\", \"evidence\": [{\"explanation\": \"These are the key trigger-condition-effect expectations for behavior.\", \"locator\": \"functional requirements + scenario\", \"snippet\": \"\\\"No warning message without a real danger is allowed\\\" and the CSC sends information to the CU in parallel while taking mitigation measures.\", \"source\": \"input\"}, {\"explanation\": \"The main flow is preserved, but the extra output from NearbyVehicles is behaviorally unsupported.\", \"locator\": \"ChassisSafetyController/CommunicationUnit/NearbyVehicles signals\", \"snippet\": \"CSC has out signal \\\"sendInformation()\\\" to CommunicationUnit; DSRCInterface outputs \\\"broadcastMessage()\\\" to NearbyVehicles; NearbyVehicles also has out signal \\\"packMessage()\\\".\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"sendInformation()/generateWarningMessage()\", \"element_kind\": \"signal\", \"element_text\": \"Broadcast path lacks an explicit real-danger gating or validation mechanism\", \"issue_type\": \"missing\", \"reason_text\": \"Without guards or validating components, the model does not preserve the key anti-false-message constraint.\"}, {\"element_id\": \"NearbyVehicles.packMessage()\", \"element_kind\": \"signal\", \"element_text\": \"NearbyVehicles -> packMessage()\", \"issue_type\": \"extra\", \"reason_text\": \"Packing the emergency message belongs on the sender side, not as behavior of receiving nearby vehicles.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The observable high-level flow is behaviorally plausible: a detected danger leads to mitigation actions and a broadcast warning in parallel. But the model does not encode the critical guard that warning messages must only be sent for real danger, and some interface choices are questionable, such as NearbyVehicles emitting \\\"packMessage()\\\" rather than only consuming the broadcast.\", \"score\": 0.71, \"title\": \"Behavioral Consistency\", \"trace_links\": []}, {\"confidence\": 0.84, \"dimension_name\": \"requirement_traceability\", \"evidence\": [{\"explanation\": \"These blocks map directly to the major actors named in the input description.\", \"locator\": \"blocks\", \"snippet\": \"DangerDetectionECU, ChassisSafetyController, ActuatorECUs, PowertrainDomain, CommunicationUnit, DSRCInterface, NearbyVehicles.\", \"source\": \"prediction\"}, {\"explanation\": \"This gives direct traceability to the specified emergency-message content.\", \"locator\": \"DSRCInterface attributes\", \"snippet\": \"Attributes include longitude, latitude, altitude, speed, acceleration, heading, timeOfGeneration, expiryTime, reliability, senderId, eventCode, plannedAcceleration, plannedHeading.\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"privacy_and_congestion_requirements\", \"element_kind\": \"requirement\", \"element_text\": \"Privacy guarantee and congestion-control/highest-priority broadcasting\", \"issue_type\": \"missing\", \"reason_text\": \"The reviewer cannot map these major requirements to concrete blocks, ports, or signals.\"}, {\"element_id\": \"Checksum/ProtocolProcessingInformation\", \"element_kind\": \"block\", \"element_text\": \"Checksum and ProtocolProcessingInformation as standalone blocks\", \"issue_type\": \"warning\", \"reason_text\": \"They are somewhat justified by the message-frame text, but as top-level blocks they weaken clean requirement-to-architecture mapping.\"}], \"judgement\": \"good\", \"metric_payload\": {}, \"reason_text\": \"Many core narrative requirements are traceable to concrete blocks and signals, especially the detection, CSC, actuation, powertrain adjustment, communication unit, DSRC broadcast, and message fields. Traceability weakens for the nonfunctional and safety/security requirements, and some added structure is only loosely justified at architecture level.\", \"score\": 0.79, \"title\": \"Requirement Traceability\", \"trace_links\": []}, {\"confidence\": 0.87, \"dimension_name\": \"pragmatic_clarity\", \"evidence\": [{\"explanation\": \"This supports basic diagram discipline and scope control.\", \"locator\": \"blocks\", \"snippet\": \"There are 10 blocks, exactly within the requested range, including the main functional participants.\", \"source\": \"prediction\"}, {\"explanation\": \"This shows inflation with message-detail structure that is not essential for a high-level architecture diagram.\", \"locator\": \"DSRCInterface + extra blocks\", \"snippet\": \"DSRCInterface carries many payload fields, and additional blocks include EmergencyMessageFrame, Checksum, ProtocolProcessingInformation.\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"DSRCInterface\", \"element_kind\": \"block\", \"element_text\": \"DSRCInterface with extensive message-field attributes\", \"issue_type\": \"warning\", \"reason_text\": \"Too much payload detail is embedded in one architectural block, reducing readability.\"}, {\"element_id\": \"EmergencyMessageFrame/Checksum/ProtocolProcessingInformation\", \"element_kind\": \"block\", \"element_text\": \"Three separate message-detail blocks at top level\", \"issue_type\": \"extra\", \"reason_text\": \"These add noise and consume block budget without improving the main interaction story proportionally.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The main architecture is understandable because the core control and communication chain is easy to follow and the block count stays within the requested 4-10 range. Clarity is reduced by many low-level payload attributes and extra data-oriented blocks that crowd the architecture, making the diagram feel more like a mixed structural/data model than a disciplined high-level block view.\", \"score\": 0.68, \"title\": \"Pragmatic Clarity\", \"trace_links\": []}]",
+    "requirement_trace_results_json": "[{\"confidence\": 0.7, \"matched_element_ids\": [\"dangerousSituation\", \"assessSituation()\", \"NearbyVehicles\", \"NearbyVehicles\", \"assessSituation()|out|ChassisSafetyController\", \"assessSituation()|in|ActuatorECUs\"], \"reason_text\": \"Requirement req_1 is supported by 8 predicted element(s), including dangerousSituation.\", \"requirement_id\": \"req_1\", \"requirement_text\": \"When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"generateWarningMessage()\", \"generateWarningMessage\", \"broadcastMessage\", \"broadcastMessage()\", \"packMessage\", \"NearbyVehicles\"], \"reason_text\": \"Requirement req_2 is supported by 8 predicted element(s), including generateWarningMessage().\", \"requirement_id\": \"req_2\", \"requirement_text\": \"In order to warn other vehicles, the car sends out a warning message.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerDetected\", \"DangerDetectionECU\", \"dangerDetected(int trigger)\", \"dangerousSituation\", \"sendInformation()\", \"generateWarningMessage()\"], \"reason_text\": \"Requirement req_3 is supported by 8 predicted element(s), including dangerDetected.\", \"requirement_id\": \"req_3\", \"requirement_text\": \"Nearby cars that are in danger can then react according to the information provided within the message.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerDetected\", \"DangerDetectionECU\", \"dangerDetected(int trigger)\", \"dangerousSituation\", \"ChassisSafetyController\", \"PowertrainDomain\"], \"reason_text\": \"Requirement req_4 is supported by 8 predicted element(s), including dangerDetected.\", \"requirement_id\": \"req_4\", \"requirement_text\": \"An ECU of the chassis & safety domain detects a danger\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"airbagTriggered\", \"obstacleDetected\", \"emergencyBraking\", \"dangerDetected(int trigger)\", \"brakingCommand\", \"EmergencyMessageFrame\"], \"reason_text\": \"Requirement req_5 is supported by 8 predicted element(s), including airbagTriggered.\", \"requirement_id\": \"req_5\", \"requirement_text\": \"this may be the trigger of an airbag, an obstacle in direction of travel seen by an environmental sensor, or an emergency braking performed by the driver or an automatic system.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerousSituation\", \"ChassisSafetyController\", \"assessSituation()\", \"sendInformation()\", \"PowertrainDomain\", \"ProtocolProcessingInformation\"], \"reason_text\": \"Requirement req_6 is supported by 8 predicted element(s), including dangerousSituation.\", \"requirement_id\": \"req_6\", \"requirement_text\": \"The Chassis Safety Controller (CSC) gets information about the dangerous situation via the Chassis Domain Bus.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerDetected\", \"DangerDetectionECU\", \"dangerDetected(int trigger)\", \"dangerousSituation\", \"actionTaken\", \"assessSituation()\"], \"reason_text\": \"Requirement req_7 is supported by 8 predicted element(s), including dangerDetected.\", \"requirement_id\": \"req_7\", \"requirement_text\": \"The CSC will assess the situation and will take measures to mitigate the danger for the car.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ChassisSafetyController\", \"adjustDrivingPower()\", \"ActuatorECUs\", \"drivingPowerAdjustment\", \"PowertrainDomain\", \"ChassisSafetyController\"], \"reason_text\": \"Requirement req_8 is supported by 8 predicted element(s), including ChassisSafetyController.\", \"requirement_id\": \"req_8\", \"requirement_text\": \"The measures will result in commands to actuator ECUs in the chassis & safety domain and additionally com- mands to the powertrain domain to get a helpful driving power adjustment.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"CommunicationUnit\", \"senderId\", \"send\", \"SendChecksum\", \"ProtocolProcessingInformation\"], \"reason_text\": \"Requirement req_9 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_9\", \"requirement_text\": \"In parallel it will also send information to the Communication Unit (CU).\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"accelerationCommand\", \"steeringCommand\", \"vehicleDynamicStatus\", \"plannedActions\", \"acceleration\"], \"reason_text\": \"Requirement req_10 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_10\", \"requirement_text\": \"This information will contain data about the current vehicle dynamic status and detailed information about the planned actions (deceleration or acceleration, steering, etc.).\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"generateWarningMessage()\", \"senderId\", \"generateWarningMessage\", \"broadcastMessage\", \"DSRCInterface\"], \"reason_text\": \"Requirement req_11 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_11\", \"requirement_text\": \"The CU will send out a warning message that contains this information via the DSRC interface to nearby vehicles.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"emergencyBraking\", \"dangerousSituation\", \"assessSituation()\", \"sendInformation()\", \"accelerationCommand\", \"generateWarningMessage()\"], \"reason_text\": \"Requirement req_12 is supported by 8 predicted element(s), including emergencyBraking.\", \"requirement_id\": \"req_12\", \"requirement_text\": \"The emergency message contains longitude, latitude, altitude, speed, acceleration and heading of the car, the time of message generation, the expiry time of the message, an indicator for the reliability of the information, a code that is classifying the car, an id that is identifying the sender of the message, an event code that is classifying the emergency situation and the planed acceleration and heading.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"generateWarningMessage()\", \"generateWarningMessage\", \"broadcastMessage\", \"broadcastMessage()\", \"packMessage\"], \"reason_text\": \"Requirement req_13 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_13\", \"requirement_text\": \"All this information is packed in a message frame that adds checksum, information for protocol processing and if necessary security information.\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_14; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_14\", \"requirement_text\": \"Functional requirements\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerDetected\", \"DangerDetectionECU\", \"dangerDetected(int trigger)\", \"dangerousSituation\", \"generateWarningMessage()\", \"generateWarningMessage\"], \"reason_text\": \"Requirement req_15 is supported by 8 predicted element(s), including dangerDetected.\", \"requirement_id\": \"req_15\", \"requirement_text\": \"No warning message without a real danger is allowed\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CommunicationUnit\", \"generateWarningMessage()\", \"generateWarningMessage\", \"broadcastMessage\", \"broadcastMessage()\", \"packMessage\"], \"reason_text\": \"Requirement req_16 is supported by 8 predicted element(s), including CommunicationUnit.\", \"requirement_id\": \"req_16\", \"requirement_text\": \"No failure in any single unit may be succeeded by a false message\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CommunicationUnit\", \"generateWarningMessage()\", \"generateWarningMessage\", \"broadcastMessage\", \"broadcastMessage()\", \"packMessage\"], \"reason_text\": \"Requirement req_17 is supported by 8 predicted element(s), including CommunicationUnit.\", \"requirement_id\": \"req_17\", \"requirement_text\": \"No failure of any single communication may be succeeded by a false message\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_18; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_18\", \"requirement_text\": \"Any single fault in an ECU has to be detectable\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerousSituation\", \"sendInformation()\", \"CommunicationUnit\", \"broadcastMessage\", \"broadcastMessage()\", \"ProtocolProcessingInformation\"], \"reason_text\": \"Requirement req_19 is supported by 8 predicted element(s), including dangerousSituation.\", \"requirement_id\": \"req_19\", \"requirement_text\": \"Information about dangerous events has to be broadcast according to the communica\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"DangerDetectionECU\", \"dangerousSituation\", \"actionTaken\", \"ChassisSafetyController\", \"assessSituation()\", \"sendInformation()\"], \"reason_text\": \"Requirement req_20 is supported by 8 predicted element(s), including DangerDetectionECU.\", \"requirement_id\": \"req_20\", \"requirement_text\": \"tion congestion control algorithms\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"broadcastMessage\", \"broadcastMessage()\", \"ProtocolProcessingInformation\", \"ProtocolProcessingInformation\", \"sendInformation()|out|ChassisSafetyController\"], \"reason_text\": \"Requirement req_21 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_21\", \"requirement_text\": \"Information about the dangers have to be broadcast to other cars with highest priority\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"broadcastMessage\", \"broadcastMessage()\", \"ProtocolProcessingInformation\", \"ProtocolProcessingInformation\", \"sendInformation()|out|ChassisSafetyController\"], \"reason_text\": \"Requirement req_22 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_22\", \"requirement_text\": \"Privacy of the broadcast car information has to be guaranteed\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_23; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_23\", \"requirement_text\": \"Technical Requirements\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"dangerDetected\", \"DangerDetectionECU\", \"dangerDetected(int trigger)\", \"dangerousSituation\", \"generateWarningMessage()\", \"generateWarningMessage\"], \"reason_text\": \"Requirement req_24 is supported by 8 predicted element(s), including dangerDetected.\", \"requirement_id\": \"req_24\", \"requirement_text\": \"The maximum delay from danger detection to broadcast of the car2X message should\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_25; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_25\", \"requirement_text\": \"be less than 150 ms\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ChassisSafetyController\", \"sendInformation()\", \"PowertrainDomain\", \"ProtocolProcessingInformation\", \"ChassisSafetyController\", \"PowertrainDomain\"], \"reason_text\": \"Requirement req_26 is supported by 8 predicted element(s), including ChassisSafetyController.\", \"requirement_id\": \"req_26\", \"requirement_text\": \"Additional security information on the busses in the chassis and safety & powertrain\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_27; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_27\", \"requirement_text\": \"domains should be less than 15% of the net data Security aspects\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"sendInformation()\", \"broadcastMessage\", \"broadcastMessage()\", \"ProtocolProcessingInformation\", \"ProtocolProcessingInformation\", \"sendInformation()|out|ChassisSafetyController\"], \"reason_text\": \"Requirement req_28 is supported by 8 predicted element(s), including sendInformation().\", \"requirement_id\": \"req_28\", \"requirement_text\": \"Privacy of the broadcast car information has to be guaranteed\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_29; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_29\", \"requirement_text\": \"Use between 4 and 10 blocks\", \"status\": \"missing\"}]",
+    "unsupported_model_elements_json": "[]",
+    "evidence_summary_json": "[{\"explanation\": \"This supports that the artifact is intended and formed as a block diagram rather than free text.\", \"locator\": \"artifact_type/blocks/signals\", \"snippet\": \"\\\"artifact_type\\\": \\\"ttool_avatar_block_diagram\\\" with blocks such as DangerDetectionECU, ChassisSafetyController, CommunicationUnit, each declaring in/out signals.\", \"source\": \"prediction\"}, {\"explanation\": \"This defines the required architectural story the model should cover.\", \"locator\": \"main scenario\", \"snippet\": \"Danger is detected, CSC assesses and commands actuator ECUs and powertrain, and in parallel sends information to the CU, which broadcasts via DSRC to nearby vehicles.\", \"source\": \"input\"}, {\"explanation\": \"These are the key trigger-condition-effect expectations for behavior.\", \"locator\": \"functional requirements + scenario\", \"snippet\": \"\\\"No warning message without a real danger is allowed\\\" and the CSC sends information to the CU in parallel while taking mitigation measures.\", \"source\": \"input\"}, {\"explanation\": \"These blocks map directly to the major actors named in the input description.\", \"locator\": \"blocks\", \"snippet\": \"DangerDetectionECU, ChassisSafetyController, ActuatorECUs, PowertrainDomain, CommunicationUnit, DSRCInterface, NearbyVehicles.\", \"source\": \"prediction\"}, {\"explanation\": \"This supports basic diagram discipline and scope control.\", \"locator\": \"blocks\", \"snippet\": \"There are 10 blocks, exactly within the requested range, including the main functional participants.\", \"source\": \"prediction\"}]",
+    "notes_json": "[\"No reference model was available; scoring is based directly on the input description and architecture-review guidance.\", \"Generous architecture-level credit was given for the recognizable end-to-end subsystem flow despite missing detailed safety/security mechanisms.\", \"Applied generic architecture-grounding boost because the model contains many requirement-grounded block names and explicit interactions.\", \"Applied architecture stability blend: llm_weight=0.25, heuristic_weight=0.75.\"]",
+    "confidence": 0.84
+  }
+}

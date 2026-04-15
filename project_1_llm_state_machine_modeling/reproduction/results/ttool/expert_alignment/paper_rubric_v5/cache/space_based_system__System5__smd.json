@@ -1,0 +1,545 @@
+{
+  "case_id": "space_based_system",
+  "case_name": "Space-Based System",
+  "variant_name": "System5",
+  "artifact_type": "smd",
+  "prompt_variant": "paper_rubric_v5",
+  "human_score_100": 90.0,
+  "predicted_score_100": 56.99999999999999,
+  "absolute_error": 33.00000000000001,
+  "request": {
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "input_text": "A ground station needs to regularly monitor the safety data of a space-based system: 3D position, temperature, battery level, fuel quantity. For this, a ground station can send, via radio-frequencies, a TC (TeleCommand) to the space-based system. Once received by the RF receiver, the software of the space-based system gets the request for information. Data of TCs are ciphered. Once the software has deciphered data, it stores data in an intermediate buffer, and a task to handle this request is triggered. This task builds the answer by reading requested values from sensors. Once the answer packet has been built, it is first enciphered and then sent via a TM (TeleMetry) to the ground station, using the RF transmitter. To ensure that the system does not crash, a microcontroller of this system is dedicated to execute a software task that checks, every 10ms, that all other software tasks of the space-based embedded system are still responsive. For this, a signal is sent to each task. If some of the tasks have not responded to this signal, then the whole system is restarted, apart from the watchdog: the latter is not expected to crash, apart if the battery is too low to power the microcontroller. Obviously, this watchdog task is of prime importance for this reliability of\nthe system. Sometimes, while the software system is computing a TM, another TC is received. To avoid redundancy, the TM under construction is canceled: a new TM corresponding to the latest TC is computed and sent. Last but not least, space-based systems are not well protected against high-energy particles. Such a particle can provoke a bit flip from 0 to 1, or the opposite. The memory is the most sensitive elements of the platform. Therefore, for each block of data the software writes into memory, an error correction code (CRC) of this block has to be computed by the software and stored into memory along with the data block. When this block is read, the corresponding CRC must also be read and checked.",
+    "pred_output": "{\"artifact_type\": \"ttool_avatar_state_machine_diagrams\", \"blocks\": [{\"attributes\": [], \"name\": \"GroundStation\", \"signals\": [{\"direction\": \"out\", \"name\": \"tC(int signal)\"}, {\"direction\": \"in\", \"name\": \"tM(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"ComputeTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"SendTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"!tC.ready\", \"guard\": \"!tC.ready\", \"source\": \"SendTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ComputeTM\", \"source_kind\": \"state\", \"target\": \"SendTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"tC.ready\", \"guard\": \"tC.ready\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"ComputeTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"tC.ready\", \"guard\": \"tC.ready\", \"source\": \"SendTM\", \"source_kind\": \"state\", \"target\": \"ComputeTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"!tC.ready\", \"guard\": \"!tC.ready\", \"source\": \"ComputeTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"Start\", \"type\": \"8\"}, {\"name\": \"WaitingRequest\", \"type\": \"8\"}, {\"name\": \"ProcessingRequest\", \"type\": \"8\"}, {\"name\": \"requestData\", \"type\": \"4\"}], \"name\": \"IntermediateBuffer\", \"signals\": [{\"direction\": \"in\", \"name\": \"requestData(int signal)\"}, {\"direction\": \"out\", \"name\": \"handleRequest(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"ProcessingRequest\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"WaitingRequest\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"requestData\", \"guard\": \"requestData\", \"source\": \"WaitingRequest\", \"source_kind\": \"state\", \"target\": \"ProcessingRequest\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"WaitingRequest\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ProcessingRequest\", \"source_kind\": \"state\", \"target\": \"WaitingRequest\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"someTaskNotResponding\", \"type\": \"4\"}, {\"name\": \"newTCReceived\", \"type\": \"4\"}, {\"name\": \"cancelTM\", \"type\": \"4\"}], \"name\": \"Microcontroller\", \"signals\": [{\"direction\": \"out\", \"name\": \"checkResponse(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"CheckingTasks\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"ComputingTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"RestartingSystem\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"SendingTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"!newTCReceived\", \"guard\": \"!newTCReceived\", \"source\": \"CheckingTasks\", \"source_kind\": \"state\", \"target\": \"ComputingTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"SendingTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"CheckingTasks\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"newTCReceived\", \"guard\": \"newTCReceived\", \"source\": \"CheckingTasks\", \"source_kind\": \"state\", \"target\": \"ComputingTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ComputingTM\", \"source_kind\": \"state\", \"target\": \"SendingTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"RestartingSystem\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"someTaskNotResponding\", \"guard\": \"someTaskNotResponding\", \"source\": \"CheckingTasks\", \"source_kind\": \"state\", \"target\": \"RestartingSystem\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"tC\", \"type\": \"8\"}, {\"name\": \"cipheredData\", \"type\": \"8\"}], \"name\": \"RFReceiver\", \"signals\": [{\"direction\": \"in\", \"name\": \"tC(int signal)\"}, {\"direction\": \"out\", \"name\": \"cipheredData(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"BuildingAnswer\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Deciphering\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Enciphering\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Sending\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Waiting\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[action] cipheredData()\", \"source_kind\": \"other\", \"target\": \"BuildingAnswer\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Sending\", \"source_kind\": \"state\", \"target\": \"Waiting\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"BuildingAnswer\", \"source_kind\": \"state\", \"target\": \"Enciphering\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Enciphering\", \"source_kind\": \"state\", \"target\": \"Sending\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Waiting\", \"source_kind\": \"state\", \"target\": \"Deciphering\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Deciphering\", \"source_kind\": \"state\", \"target\": \"[action] cipheredData()\", \"target_kind\": \"other\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Waiting\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"in_cipheredAnswer\", \"type\": \"8\"}, {\"name\": \"out_tM\", \"type\": \"8\"}], \"name\": \"RfTransmitter\", \"signals\": [{\"direction\": \"in\", \"name\": \"cipheredAnswer(int signal)\"}, {\"direction\": \"out\", \"name\": \"tM(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Receiving\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Receiving\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"in_cipheredAnswer\", \"guard\": \"in_cipheredAnswer\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"Receiving\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"x\", \"type\": \"8\"}], \"name\": \"Sensor\", \"signals\": [], \"states\": [{\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"State1\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"State2\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"State2\", \"source_kind\": \"state\", \"target\": \"State1\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"State1\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"State1\", \"source_kind\": \"state\", \"target\": \"State2\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"requestData\", \"type\": \"8\"}, {\"name\": \"buildAnswer\", \"type\": \"8\"}, {\"name\": \"computeTM\", \"type\": \"8\"}, {\"name\": \"bitFlip\", \"type\": \"8\"}], \"name\": \"Software\", \"signals\": [{\"direction\": \"in\", \"name\": \"cipheredData(int signal)\"}, {\"direction\": \"out\", \"name\": \"requestData(int signal)\"}, {\"direction\": \"in\", \"name\": \"buildAnswer(int signal)\"}, {\"direction\": \"out\", \"name\": \"cipheredAnswer(int signal)\"}, {\"direction\": \"in\", \"name\": \"restartSystem(int signal)\"}, {\"direction\": \"out\", \"name\": \"checkTMReceived(int signal)\"}, {\"direction\": \"in\", \"name\": \"computeTM(int signal)\"}, {\"direction\": \"in\", \"name\": \"bitFlip(int signal)\"}, {\"direction\": \"out\", \"name\": \"computeCRC(int signal)\"}, {\"direction\": \"in\", \"name\": \"readCRC(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"ComputeCRC\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"ComputeTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"DecipherTC\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"EncipherTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"HandleBitFlip\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"HandleRequest\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"HandleTC\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"HandleTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"SendTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"HandleTM\", \"source_kind\": \"state\", \"target\": \"EncipherTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"HandleBitFlip\", \"source_kind\": \"state\", \"target\": \"ComputeCRC\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"requestData\", \"guard\": \"requestData\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"HandleTC\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"HandleTC\", \"source_kind\": \"state\", \"target\": \"DecipherTC\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"buildAnswer\", \"guard\": \"buildAnswer\", \"source\": \"HandleRequest\", \"source_kind\": \"state\", \"target\": \"HandleTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ComputeCRC\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"computeTM\", \"guard\": \"computeTM\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"ComputeTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"bitFlip\", \"guard\": \"bitFlip\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"HandleBitFlip\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"DecipherTC\", \"source_kind\": \"state\", \"target\": \"HandleRequest\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"EncipherTM\", \"source_kind\": \"state\", \"target\": \"SendTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"SendTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ComputeTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"receive\", \"type\": \"4\"}, {\"name\": \"trigger\", \"type\": \"4\"}, {\"name\": \"timeout\", \"type\": \"4\"}, {\"name\": \"cancelTM\", \"type\": \"4\"}, {\"name\": \"restartSystem\", \"type\": \"8\"}], \"name\": \"SpaceBasedSystem\", \"signals\": [{\"direction\": \"out\", \"name\": \"bitFlip(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"CheckingTasks\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"ReceivingTC\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"SendingTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"CheckingTasks\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"CheckingTasks\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"SendingTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"ReceivingTC\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"SendingTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ReceivingTC\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"buildAnswer\", \"type\": \"8\"}, {\"name\": \"checkResponse\", \"type\": \"8\"}, {\"name\": \"checkTMReceived\", \"type\": \"8\"}, {\"name\": \"computeTM\", \"type\": \"8\"}, {\"name\": \"handleRequest\", \"type\": \"8\"}, {\"name\": \"restartSystem\", \"type\": \"8\"}], \"name\": \"Task\", \"signals\": [{\"direction\": \"in\", \"name\": \"handleRequest(int signal)\"}, {\"direction\": \"out\", \"name\": \"buildAnswer(int signal)\"}, {\"direction\": \"in\", \"name\": \"checkResponse(int signal)\"}, {\"direction\": \"out\", \"name\": \"restartSystem(int signal)\"}, {\"direction\": \"in\", \"name\": \"checkTMReceived(int signal)\"}, {\"direction\": \"out\", \"name\": \"computeTM(int signal)\"}], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"BuildAnswer\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"ComputeTM\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"HandleRequest\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"BuildAnswer\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"HandleRequest\", \"source_kind\": \"state\", \"target\": \"BuildAnswer\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"BuildAnswer\", \"source_kind\": \"state\", \"target\": \"ComputeTM\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"HandleRequest\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"HandleRequest\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ComputeTM\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}]}, {\"attributes\": [{\"name\": \"newTCReceived\", \"type\": \"4\"}, {\"name\": \"cancelTMConstruction\", \"type\": \"4\"}, {\"name\": \"sendTM\", \"type\": \"4\"}], \"name\": \"Watchdog\", \"signals\": [], \"states\": [{\"is_history\": false, \"is_initial\": false, \"name\": \"Idle\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": false, \"name\": \"ProcessingTC\", \"parallel_group\": null, \"parent\": null}, {\"is_history\": false, \"is_initial\": true, \"name\": \"Start\", \"parallel_group\": null, \"parent\": null}], \"transitions\": [{\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"Start\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"newTCReceived\", \"guard\": \"newTCReceived\", \"source\": \"Idle\", \"source_kind\": \"state\", \"target\": \"ProcessingTC\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"[initial]\", \"source_kind\": \"start_state\", \"target\": \"Start\", \"target_kind\": \"state\"}, {\"action\": \"\", \"event\": \"\", \"guard\": \"\", \"source\": \"ProcessingTC\", \"source_kind\": \"state\", \"target\": \"Idle\", \"target_kind\": \"state\"}]}], \"counts\": {\"action_node_count\": 1, \"initial_pseudostate_count\": 10, \"panel_count\": 10, \"send_signal_node_count\": 1, \"state_count\": 49, \"state_to_state_transition_count\": 58, \"transition_count\": 70}, \"machine_name\": \"space_based_system_System5_smd\", \"notes\": [\"This summary is intended for state-machine grading only.\", \"unused_attribute_candidates are heuristic lexical findings, not ground truth.\", \"[initial] denotes a start pseudostate. [action] X denotes a non-state action/signal node rather than a normal state.\"], \"panels\": [{\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 4, \"other_nodes\": [], \"panel_name\": \"GroundStation\", \"start_pseudostate_count\": 1, \"state_count\": 4, \"state_names\": [\"ComputeTM\", \"Idle\", \"SendTM\", \"Start\"], \"state_to_state_transition_count\": 6, \"transition_count\": 7}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 1, \"other_nodes\": [], \"panel_name\": \"IntermediateBuffer\", \"start_pseudostate_count\": 1, \"state_count\": 3, \"state_names\": [\"ProcessingRequest\", \"Start\", \"WaitingRequest\"], \"state_to_state_transition_count\": 3, \"transition_count\": 4}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 3, \"other_nodes\": [], \"panel_name\": \"Microcontroller\", \"start_pseudostate_count\": 1, \"state_count\": 6, \"state_names\": [\"CheckingTasks\", \"ComputingTM\", \"Idle\", \"RestartingSystem\", \"SendingTM\", \"Start\"], \"state_to_state_transition_count\": 8, \"transition_count\": 9}, {\"action_node_transition_count\": 2, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 0, \"other_nodes\": [\"cipheredData()\"], \"panel_name\": \"RFReceiver\", \"start_pseudostate_count\": 1, \"state_count\": 6, \"state_names\": [\"BuildingAnswer\", \"Deciphering\", \"Enciphering\", \"Sending\", \"Start\", \"Waiting\"], \"state_to_state_transition_count\": 5, \"transition_count\": 8}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 1, \"other_nodes\": [], \"panel_name\": \"RfTransmitter\", \"start_pseudostate_count\": 1, \"state_count\": 3, \"state_names\": [\"Idle\", \"Receiving\", \"Start\"], \"state_to_state_transition_count\": 3, \"transition_count\": 4}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 0, \"other_nodes\": [], \"panel_name\": \"Sensor\", \"start_pseudostate_count\": 1, \"state_count\": 3, \"state_names\": [\"Start\", \"State1\", \"State2\"], \"state_to_state_transition_count\": 3, \"transition_count\": 4}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 4, \"other_nodes\": [], \"panel_name\": \"Software\", \"start_pseudostate_count\": 1, \"state_count\": 11, \"state_names\": [\"ComputeCRC\", \"ComputeTM\", \"DecipherTC\", \"EncipherTM\", \"HandleBitFlip\", \"HandleRequest\", \"HandleTC\", \"HandleTM\", \"Idle\", \"SendTM\", \"Start\"], \"state_to_state_transition_count\": 13, \"transition_count\": 14}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 0, \"other_nodes\": [], \"panel_name\": \"SpaceBasedSystem\", \"start_pseudostate_count\": 1, \"state_count\": 5, \"state_names\": [\"CheckingTasks\", \"Idle\", \"ReceivingTC\", \"SendingTM\", \"Start\"], \"state_to_state_transition_count\": 7, \"transition_count\": 8}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 0, \"other_nodes\": [], \"panel_name\": \"Task\", \"start_pseudostate_count\": 1, \"state_count\": 5, \"state_names\": [\"BuildAnswer\", \"ComputeTM\", \"HandleRequest\", \"Idle\", \"Start\"], \"state_to_state_transition_count\": 7, \"transition_count\": 8}, {\"action_node_transition_count\": 0, \"initial_transition_count\": 1, \"nonempty_action_count\": 0, \"nonempty_guard_count\": 1, \"other_nodes\": [], \"panel_name\": \"Watchdog\", \"start_pseudostate_count\": 1, \"state_count\": 3, \"state_names\": [\"Idle\", \"ProcessingTC\", \"Start\"], \"state_to_state_transition_count\": 3, \"transition_count\": 4}], \"unused_attribute_candidates\": [{\"attributes\": [\"cancelTM\"], \"block\": \"Microcontroller\"}, {\"attributes\": [\"out_tM\"], \"block\": \"RfTransmitter\"}, {\"attributes\": [\"x\"], \"block\": \"Sensor\"}, {\"attributes\": [\"receive\", \"trigger\", \"timeout\", \"cancelTM\", \"restartSystem\"], \"block\": \"SpaceBasedSystem\"}, {\"attributes\": [\"checkResponse\", \"checkTMReceived\", \"restartSystem\"], \"block\": \"Task\"}, {\"attributes\": [\"cancelTMConstruction\"], \"block\": \"Watchdog\"}]}",
+    "ref_output": null
+  },
+  "review_result": {
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "overall_score": 0.57,
+    "overall_judgement": "partially_acceptable",
+    "overall_reason_text": "The prediction gets substantial credit for recognizable domain-specific structure across major roles such as GroundStation, RFReceiver, Software, IntermediateBuffer, RfTransmitter, Microcontroller, Task, and Watchdog, and it does reflect the main TC-to-TM handling flow plus watchdog/restart intent. It loses clear points because much of the control logic is shallow or ambiguous, cancellation/replacement of a TM under construction is only weakly modeled, and the CRC write/read-check behavior required for memory protection is not clearly represented. The result is reviewable and partly specification-grounded, but behaviorally under-specified in important areas.",
+    "used_review_backend": "llm_primary",
+    "dimension_results": [
+      {
+        "dimension_name": "notation_syntax",
+        "title": "Notation and Syntax",
+        "score": 0.83,
+        "judgement": "acceptable",
+        "reason_text": "The artifact is presented as a coherent set of state machines with blocks, states, signals, and transitions, and the use of [initial] pseudostates is acceptable per the prompt. It loses some syntax-quality credit because several transitions use event and guard redundantly or awkwardly (for example 'tC.ready' as both event and guard), which weakens confidence in disciplined state-machine notation even if the structure is mostly well formed.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "\"[initial]\" -> \"Start\" -> \"Idle\" and named transitions among Idle, ComputeTM, SendTM",
+            "explanation": "This shows a recognizable state-machine structure rather than free-form prose.",
+            "locator": "GroundStation.transitions"
+          },
+          {
+            "source": "prediction",
+            "snippet": "transition uses event \"tC.ready\" and guard \"tC.ready\"; another uses event \"!tC.ready\" and guard \"!tC.ready\"",
+            "explanation": "This suggests notation misuse or at least undisciplined modeling of triggers versus guards.",
+            "locator": "GroundStation.transitions"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "GroundStation.transition.Idle-ComputeTM",
+            "element_kind": "transition",
+            "element_text": "event \"tC.ready\", guard \"tC.ready\"",
+            "issue_type": "warning",
+            "reason_text": "Trigger and guard are duplicated instead of clearly separated."
+          },
+          {
+            "element_id": "GroundStation.transition.ComputeTM-Idle",
+            "element_kind": "transition",
+            "element_text": "event \"!tC.ready\", guard \"!tC.ready\"",
+            "issue_type": "warning",
+            "reason_text": "Negative readiness is modeled as an event, which is questionable for state-machine notation."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.73
+      },
+      {
+        "dimension_name": "semantic_completeness",
+        "title": "Semantic Completeness",
+        "score": 0.45,
+        "judgement": "weak",
+        "reason_text": "The model covers the main monitoring chain at a coarse level: TC reception, deciphering, buffering, answer building, enciphering, TM sending, and watchdog/restart concepts. However, the requirement that CRC must be computed on each memory write and checked on each read is not clearly modeled, and the 'cancel current TM and recompute latest one' scenario is only weakly present rather than fully expressed as a concrete cancellation-and-replacement flow.",
+        "evidence": [
+          {
+            "source": "precomputed_context",
+            "snippet": "states include Deciphering, BuildingAnswer, Enciphering, Sending, CheckingTasks, RestartingSystem",
+            "explanation": "These elements support several core required behaviors at this abstraction level.",
+            "locator": "prediction_summary.states"
+          },
+          {
+            "source": "input",
+            "snippet": "\"for each block of data the software writes into memory, an error correction code (CRC) ... has to be computed ... When this block is read, the corresponding CRC must also be read and checked\"",
+            "explanation": "This is an explicit required behavior, but it is not clearly represented in the visible model elements.",
+            "locator": "memory protection requirement"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "req_crc_memory",
+            "element_kind": "requirement",
+            "element_text": "CRC compute on write and CRC read/check on read",
+            "issue_type": "missing",
+            "reason_text": "No clear state/transition set shows mandatory CRC generation and verification around memory access."
+          },
+          {
+            "element_id": "req_cancel_recompute_tm",
+            "element_kind": "requirement",
+            "element_text": "Cancel TM under construction and compute/send a new TM for the latest TC",
+            "issue_type": "missing",
+            "reason_text": "The latest-request-preempts-current-answer scenario is not explicitly and completely modeled."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.85
+      },
+      {
+        "dimension_name": "behavioral_consistency",
+        "title": "Behavioral Consistency",
+        "score": 0.56,
+        "judgement": "partially_acceptable",
+        "reason_text": "The prediction preserves the broad intended sequence from receiving a telecommand to producing and sending telemetry, and it also reflects the idea that watchdog detection can lead to restart. It loses credit because several transitions are too generic to preserve clear trigger-condition-effect logic, and the visible logic around new TC arrival during TM computation does not clearly show cancellation of the old TM before replacement.",
+        "evidence": [
+          {
+            "source": "prediction",
+            "snippet": "states such as Deciphering -> BuildingAnswer -> Enciphering -> Sending are present",
+            "explanation": "This aligns with the intended operational ordering of request handling and reply generation.",
+            "locator": "Software/processing states"
+          },
+          {
+            "source": "precomputed_context",
+            "snippet": "CheckingTasks -> ComputingTM on both \"!newTCReceived\" and \"newTCReceived\"",
+            "explanation": "This does not clearly encode distinct effects for normal continuation versus interruption/cancellation, so the causal logic is weak.",
+            "locator": "prediction_summary.transitions"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "CheckingTasks_to_ComputingTM",
+            "element_kind": "transition",
+            "element_text": "same target used for both newTCReceived and !newTCReceived",
+            "issue_type": "warning",
+            "reason_text": "Different conditions appear to lead to insufficiently differentiated behavior."
+          },
+          {
+            "element_id": "tm_preemption_logic",
+            "element_kind": "requirement",
+            "element_text": "cancel old TM when a new TC arrives during computation",
+            "issue_type": "missing",
+            "reason_text": "The required trigger-condition-effect chain is not explicitly preserved as cancellation then recomputation."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.75
+      },
+      {
+        "dimension_name": "requirement_traceability",
+        "title": "Requirement Traceability",
+        "score": 0.62,
+        "judgement": "acceptable",
+        "reason_text": "Many major requirements can be mapped to model elements: GroundStation/RFReceiver/Software/IntermediateBuffer/RfTransmitter capture the communication chain, and Microcontroller/Watchdog/RestartingSystem capture the reliability mechanism. Traceability drops because some important requirements do not map cleanly to concrete elements, especially the explicit CRC memory-protection behavior and the exact preemption semantics for replacing an in-progress TM.",
+        "evidence": [
+          {
+            "source": "precomputed_context",
+            "snippet": "blocks include GroundStation, RFReceiver, Software, IntermediateBuffer, RfTransmitter, Microcontroller, Task, Watchdog",
+            "explanation": "These named blocks make several textual requirements directly traceable to model structure.",
+            "locator": "prediction_summary.blocks"
+          },
+          {
+            "source": "prediction",
+            "snippet": "signals include tC, cipheredData, requestData, buildAnswer, cipheredAnswer, tM",
+            "explanation": "These signals support traceability of the TC->decipher->buffer->build->encipher->TM path.",
+            "locator": "signals"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "req_crc_memory",
+            "element_kind": "requirement",
+            "element_text": "CRC computed/stored on write and checked on read",
+            "issue_type": "missing",
+            "reason_text": "No clearly traceable model element implements this explicit requirement."
+          },
+          {
+            "element_id": "cancelTMConstruction",
+            "element_kind": "state",
+            "element_text": "implicit/partial cancellation concept only",
+            "issue_type": "warning",
+            "reason_text": "A partial hint is not enough to cleanly trace the full replacement behavior demanded by the text."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.81
+      },
+      {
+        "dimension_name": "pragmatic_clarity",
+        "title": "Pragmatic Clarity",
+        "score": 0.41,
+        "judgement": "weak",
+        "reason_text": "The model is understandable at a high level because the block names are mostly domain-specific and correspond to system roles. But clarity is reduced by inflated decomposition, many generic states like Start/Idle/Waiting/Processing, and weakly discriminating transitions that make review of actual behavior harder than necessary.",
+        "evidence": [
+          {
+            "source": "precomputed_context",
+            "snippet": "domain-specific block examples include GroundStation, IntermediateBuffer, Microcontroller, Software, Watchdog",
+            "explanation": "These names help a reviewer understand the intended allocation of responsibilities.",
+            "locator": "prediction_block_name_quality"
+          },
+          {
+            "source": "precomputed_context",
+            "snippet": "generic or placeholder examples include Idle, Start, ProcessingRequest, WaitingRequest, Waiting, State1, State2",
+            "explanation": "Generic naming and inflated state count reduce maintainability and obscure the requirement mapping.",
+            "locator": "prediction_state_name_quality"
+          }
+        ],
+        "trace_links": [],
+        "issues": [
+          {
+            "element_id": "generic_state_naming",
+            "element_kind": "state",
+            "element_text": "Idle/Start/Waiting/Processing/State1/State2 patterns",
+            "issue_type": "warning",
+            "reason_text": "These names are weakly informative and make the control logic harder to audit."
+          },
+          {
+            "element_id": "model_size_vs_behavior",
+            "element_kind": "block",
+            "element_text": "49 states across 10 panels with limited concrete effects",
+            "issue_type": "warning",
+            "reason_text": "The decomposition adds review burden without consistently adding requirement-grounded behavioral precision."
+          }
+        ],
+        "metric_payload": {},
+        "confidence": 0.83
+      }
+    ],
+    "requirement_trace_results": [
+      {
+        "requirement_id": "req_1",
+        "requirement_text": "A ground station needs to regularly monitor the safety data of a space-based system: 3D position, temperature, battery level, fuel quantity.",
+        "status": "matched",
+        "reason_text": "Requirement req_1 is supported by 8 predicted element(s), including RestartingSystem|||.",
+        "matched_element_ids": [
+          "RestartingSystem|||",
+          "GroundStation",
+          "requestData",
+          "requestData(int signal)",
+          "RestartingSystem",
+          "cipheredData"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_2",
+        "requirement_text": "For this, a ground station can send, via radio-frequencies, a TC (TeleCommand) to the space-based system.",
+        "status": "matched",
+        "reason_text": "Requirement req_2 is supported by 8 predicted element(s), including SendTM|||.",
+        "matched_element_ids": [
+          "SendTM|||",
+          "RestartingSystem|||",
+          "SendingTM|||",
+          "Sending|||",
+          "GroundStation",
+          "SendTM"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_3",
+        "requirement_text": "Once received by the RF receiver, the software of the space-based system gets the request for information.",
+        "status": "matched",
+        "reason_text": "Requirement req_3 is supported by 8 predicted element(s), including ProcessingRequest|||.",
+        "matched_element_ids": [
+          "ProcessingRequest|||",
+          "WaitingRequest|||",
+          "RestartingSystem|||",
+          "HandleRequest|||",
+          "WaitingRequest",
+          "ProcessingRequest"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_4",
+        "requirement_text": "Data of TCs are ciphered.",
+        "status": "matched",
+        "reason_text": "Requirement req_4 is supported by 8 predicted element(s), including requestData.",
+        "matched_element_ids": [
+          "requestData",
+          "requestData(int signal)",
+          "cipheredData",
+          "cipheredData(int signal)",
+          "in_cipheredAnswer",
+          "cipheredAnswer(int signal)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_5",
+        "requirement_text": "Once the software has deciphered data, it stores data in an intermediate buffer, and a task to handle this request is triggered.",
+        "status": "matched",
+        "reason_text": "Requirement req_5 is supported by 8 predicted element(s), including ProcessingRequest|||.",
+        "matched_element_ids": [
+          "ProcessingRequest|||",
+          "WaitingRequest|||",
+          "CheckingTasks|||",
+          "HandleBitFlip|||",
+          "HandleRequest|||",
+          "HandleTC|||"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_6",
+        "requirement_text": "This task builds the answer by reading requested values from sensors.",
+        "status": "matched",
+        "reason_text": "Requirement req_6 is supported by 8 predicted element(s), including CheckingTasks|||.",
+        "matched_element_ids": [
+          "CheckingTasks|||",
+          "BuildingAnswer|||",
+          "BuildAnswer|||",
+          "someTaskNotResponding",
+          "CheckingTasks",
+          "BuildingAnswer"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_7",
+        "requirement_text": "Once the answer packet has been built, it is first enciphered and then sent via a TM (TeleMetry) to the ground station, using the RF transmitter.",
+        "status": "matched",
+        "reason_text": "Requirement req_7 is supported by 8 predicted element(s), including BuildingAnswer|||.",
+        "matched_element_ids": [
+          "BuildingAnswer|||",
+          "BuildAnswer|||",
+          "GroundStation",
+          "BuildingAnswer",
+          "in_cipheredAnswer",
+          "RfTransmitter"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_8",
+        "requirement_text": "To ensure that the system does not crash, a microcontroller of this system is dedicated to execute a software task that checks, every 10ms, that all other software tasks of the space-based embedded system are still responsive.",
+        "status": "matched",
+        "reason_text": "Requirement req_8 is supported by 8 predicted element(s), including CheckingTasks|||.",
+        "matched_element_ids": [
+          "CheckingTasks|||",
+          "RestartingSystem|||",
+          "someTaskNotResponding",
+          "Microcontroller",
+          "CheckingTasks",
+          "RestartingSystem"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_9",
+        "requirement_text": "For this, a signal is sent to each task.",
+        "status": "matched",
+        "reason_text": "Requirement req_9 is supported by 8 predicted element(s), including CheckingTasks|||.",
+        "matched_element_ids": [
+          "CheckingTasks|||",
+          "tC(int signal)",
+          "tM(int signal)",
+          "requestData(int signal)",
+          "handleRequest(int signal)",
+          "someTaskNotResponding"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_10",
+        "requirement_text": "If some of the tasks have not responded to this signal, then the whole system is restarted, apart from the watchdog: the latter is not expected to crash, apart if the battery is too low to power the microcontroller.",
+        "status": "matched",
+        "reason_text": "Requirement req_10 is supported by 8 predicted element(s), including CheckingTasks|||.",
+        "matched_element_ids": [
+          "CheckingTasks|||",
+          "RestartingSystem|||",
+          "tC(int signal)",
+          "tM(int signal)",
+          "requestData(int signal)",
+          "handleRequest(int signal)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_11",
+        "requirement_text": "Obviously, this watchdog task is of prime importance for this reliability of the system.",
+        "status": "matched",
+        "reason_text": "Requirement req_11 is supported by 8 predicted element(s), including CheckingTasks|||.",
+        "matched_element_ids": [
+          "CheckingTasks|||",
+          "RestartingSystem|||",
+          "someTaskNotResponding",
+          "CheckingTasks",
+          "RestartingSystem",
+          "restartSystem(int signal)"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_12",
+        "requirement_text": "Sometimes, while the software system is computing a TM, another TC is received.",
+        "status": "matched",
+        "reason_text": "Requirement req_12 is supported by 8 predicted element(s), including ComputingTM|||.",
+        "matched_element_ids": [
+          "ComputingTM|||",
+          "RestartingSystem|||",
+          "newTCReceived",
+          "ComputingTM",
+          "RestartingSystem",
+          "Software"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_13",
+        "requirement_text": "To avoid redundancy, the TM under construction is canceled: a new TM corresponding to the latest TC is computed and sent.",
+        "status": "partial",
+        "reason_text": "Requirement req_13 has only limited lexical support in the prediction; manual semantic confirmation is still needed.",
+        "matched_element_ids": [
+          "cancelTMConstruction"
+        ],
+        "confidence": 0.5
+      },
+      {
+        "requirement_id": "req_14",
+        "requirement_text": "Last but not least, space-based systems are not well protected against high-energy particles.",
+        "status": "matched",
+        "reason_text": "Requirement req_14 is supported by 3 predicted element(s), including SpaceBasedSystem.",
+        "matched_element_ids": [
+          "SpaceBasedSystem",
+          "SpaceBasedSystem",
+          "bitFlip(int signal)|out|SpaceBasedSystem"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_15",
+        "requirement_text": "Such a particle can provoke a bit flip from 0 to 1, or the opposite.",
+        "status": "matched",
+        "reason_text": "Requirement req_15 is supported by 8 predicted element(s), including HandleBitFlip|||.",
+        "matched_element_ids": [
+          "HandleBitFlip|||",
+          "bitFlip",
+          "bitFlip(int signal)",
+          "HandleBitFlip",
+          "HandleBitFlip|ComputeCRC|||",
+          "Idle|HandleBitFlip|bitFlip|bitFlip|"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_16",
+        "requirement_text": "The memory is the most sensitive elements of the platform.",
+        "status": "missing",
+        "reason_text": "No clear predicted element could be traced to requirement req_16; this likely indicates an omission or a naming mismatch.",
+        "matched_element_ids": [],
+        "confidence": 0.45
+      },
+      {
+        "requirement_id": "req_17",
+        "requirement_text": "Therefore, for each block of data the software writes into memory, an error correction code (CRC) of this block has to be computed by the software and stored into memory along with the data block.",
+        "status": "matched",
+        "reason_text": "Requirement req_17 is supported by 8 predicted element(s), including requestData.",
+        "matched_element_ids": [
+          "requestData",
+          "requestData(int signal)",
+          "cipheredData",
+          "cipheredData(int signal)",
+          "Software",
+          "[action] cipheredData()"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "requirement_id": "req_18",
+        "requirement_text": "When this block is read, the corresponding CRC must also be read and checked.",
+        "status": "matched",
+        "reason_text": "Requirement req_18 is supported by 8 predicted element(s), including readCRC(int signal).",
+        "matched_element_ids": [
+          "readCRC(int signal)",
+          "SendTM|Idle|!tC.ready|!tC.ready|",
+          "Idle|ComputeTM|tC.ready|tC.ready|",
+          "SendTM|ComputeTM|tC.ready|tC.ready|",
+          "ComputeTM|Idle|!tC.ready|!tC.ready|",
+          "readCRC(int signal)|in|Software"
+        ],
+        "confidence": 0.7
+      }
+    ],
+    "unsupported_model_elements": [],
+    "evidence_summary": [
+      {
+        "source": "prediction",
+        "snippet": "\"[initial]\" -> \"Start\" -> \"Idle\" and named transitions among Idle, ComputeTM, SendTM",
+        "explanation": "This shows a recognizable state-machine structure rather than free-form prose.",
+        "locator": "GroundStation.transitions"
+      },
+      {
+        "source": "precomputed_context",
+        "snippet": "states include Deciphering, BuildingAnswer, Enciphering, Sending, CheckingTasks, RestartingSystem",
+        "explanation": "These elements support several core required behaviors at this abstraction level.",
+        "locator": "prediction_summary.states"
+      },
+      {
+        "source": "prediction",
+        "snippet": "states such as Deciphering -> BuildingAnswer -> Enciphering -> Sending are present",
+        "explanation": "This aligns with the intended operational ordering of request handling and reply generation.",
+        "locator": "Software/processing states"
+      },
+      {
+        "source": "precomputed_context",
+        "snippet": "blocks include GroundStation, RFReceiver, Software, IntermediateBuffer, RfTransmitter, Microcontroller, Task, Watchdog",
+        "explanation": "These named blocks make several textual requirements directly traceable to model structure.",
+        "locator": "prediction_summary.blocks"
+      },
+      {
+        "source": "precomputed_context",
+        "snippet": "domain-specific block examples include GroundStation, IntermediateBuffer, Microcontroller, Software, Watchdog",
+        "explanation": "These names help a reviewer understand the intended allocation of responsibilities.",
+        "locator": "prediction_block_name_quality"
+      }
+    ],
+    "notes": [
+      "No reference model was available, so the review judges the prediction directly against the input requirements and the requested abstraction level.",
+      "The score gives credit for recognizable domain scenarios across roles, consistent with the prompt, but does not reward unsupported size or vague control loops."
+    ],
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "confidence": 0.8
+  },
+  "flat_row": {
+    "case_id": "space_based_system",
+    "case_name": "Space-Based System",
+    "variant_name": "System5",
+    "artifact_type": "smd",
+    "prompt_variant": "paper_rubric_v5",
+    "human_score_100": 90.0,
+    "predicted_score_100": 56.99999999999999,
+    "absolute_error": 33.00000000000001,
+    "prompt": "You are simulating a practical human review of state-machine behavior models. Score on 0.0 to 1.0. At this abstraction level, give strong credit when the main operational scenarios are recognizable through domain-specific states and transitions across the important roles, even if some timing details, quantitative constraints, or secondary edge cases are only implicit. A model with clear role-specific behavior such as coordination, join/leave, braking, warning, or recovery can still deserve roughly 0.75 to 0.90 if those main scenarios are present and behaviorally plausible. The normalized summary may contain [initial] pseudostates and [action] nodes; do not count those conventions as syntax problems by themselves. Score below 0.50 mainly when the behavior collapses into generic placeholder loops, the major scenarios are not recognizable, or the causal chain is seriously under-modeled.",
+    "used_review_backend": "llm_primary",
+    "llm_model_name": "gpt-5.4",
+    "llm_provider": "airouter",
+    "overall_score": 0.57,
+    "overall_judgement": "partially_acceptable",
+    "overall_reason_text": "The prediction gets substantial credit for recognizable domain-specific structure across major roles such as GroundStation, RFReceiver, Software, IntermediateBuffer, RfTransmitter, Microcontroller, Task, and Watchdog, and it does reflect the main TC-to-TM handling flow plus watchdog/restart intent. It loses clear points because much of the control logic is shallow or ambiguous, cancellation/replacement of a TM under construction is only weakly modeled, and the CRC write/read-check behavior required for memory protection is not clearly represented. The result is reviewable and partly specification-grounded, but behaviorally under-specified in important areas.",
+    "dimension_results_json": "[{\"confidence\": 0.73, \"dimension_name\": \"notation_syntax\", \"evidence\": [{\"explanation\": \"This shows a recognizable state-machine structure rather than free-form prose.\", \"locator\": \"GroundStation.transitions\", \"snippet\": \"\\\"[initial]\\\" -> \\\"Start\\\" -> \\\"Idle\\\" and named transitions among Idle, ComputeTM, SendTM\", \"source\": \"prediction\"}, {\"explanation\": \"This suggests notation misuse or at least undisciplined modeling of triggers versus guards.\", \"locator\": \"GroundStation.transitions\", \"snippet\": \"transition uses event \\\"tC.ready\\\" and guard \\\"tC.ready\\\"; another uses event \\\"!tC.ready\\\" and guard \\\"!tC.ready\\\"\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"GroundStation.transition.Idle-ComputeTM\", \"element_kind\": \"transition\", \"element_text\": \"event \\\"tC.ready\\\", guard \\\"tC.ready\\\"\", \"issue_type\": \"warning\", \"reason_text\": \"Trigger and guard are duplicated instead of clearly separated.\"}, {\"element_id\": \"GroundStation.transition.ComputeTM-Idle\", \"element_kind\": \"transition\", \"element_text\": \"event \\\"!tC.ready\\\", guard \\\"!tC.ready\\\"\", \"issue_type\": \"warning\", \"reason_text\": \"Negative readiness is modeled as an event, which is questionable for state-machine notation.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"The artifact is presented as a coherent set of state machines with blocks, states, signals, and transitions, and the use of [initial] pseudostates is acceptable per the prompt. It loses some syntax-quality credit because several transitions use event and guard redundantly or awkwardly (for example 'tC.ready' as both event and guard), which weakens confidence in disciplined state-machine notation even if the structure is mostly well formed.\", \"score\": 0.83, \"title\": \"Notation and Syntax\", \"trace_links\": []}, {\"confidence\": 0.85, \"dimension_name\": \"semantic_completeness\", \"evidence\": [{\"explanation\": \"These elements support several core required behaviors at this abstraction level.\", \"locator\": \"prediction_summary.states\", \"snippet\": \"states include Deciphering, BuildingAnswer, Enciphering, Sending, CheckingTasks, RestartingSystem\", \"source\": \"precomputed_context\"}, {\"explanation\": \"This is an explicit required behavior, but it is not clearly represented in the visible model elements.\", \"locator\": \"memory protection requirement\", \"snippet\": \"\\\"for each block of data the software writes into memory, an error correction code (CRC) ... has to be computed ... When this block is read, the corresponding CRC must also be read and checked\\\"\", \"source\": \"input\"}], \"issues\": [{\"element_id\": \"req_crc_memory\", \"element_kind\": \"requirement\", \"element_text\": \"CRC compute on write and CRC read/check on read\", \"issue_type\": \"missing\", \"reason_text\": \"No clear state/transition set shows mandatory CRC generation and verification around memory access.\"}, {\"element_id\": \"req_cancel_recompute_tm\", \"element_kind\": \"requirement\", \"element_text\": \"Cancel TM under construction and compute/send a new TM for the latest TC\", \"issue_type\": \"missing\", \"reason_text\": \"The latest-request-preempts-current-answer scenario is not explicitly and completely modeled.\"}], \"judgement\": \"weak\", \"metric_payload\": {}, \"reason_text\": \"The model covers the main monitoring chain at a coarse level: TC reception, deciphering, buffering, answer building, enciphering, TM sending, and watchdog/restart concepts. However, the requirement that CRC must be computed on each memory write and checked on each read is not clearly modeled, and the 'cancel current TM and recompute latest one' scenario is only weakly present rather than fully expressed as a concrete cancellation-and-replacement flow.\", \"score\": 0.45, \"title\": \"Semantic Completeness\", \"trace_links\": []}, {\"confidence\": 0.75, \"dimension_name\": \"behavioral_consistency\", \"evidence\": [{\"explanation\": \"This aligns with the intended operational ordering of request handling and reply generation.\", \"locator\": \"Software/processing states\", \"snippet\": \"states such as Deciphering -> BuildingAnswer -> Enciphering -> Sending are present\", \"source\": \"prediction\"}, {\"explanation\": \"This does not clearly encode distinct effects for normal continuation versus interruption/cancellation, so the causal logic is weak.\", \"locator\": \"prediction_summary.transitions\", \"snippet\": \"CheckingTasks -> ComputingTM on both \\\"!newTCReceived\\\" and \\\"newTCReceived\\\"\", \"source\": \"precomputed_context\"}], \"issues\": [{\"element_id\": \"CheckingTasks_to_ComputingTM\", \"element_kind\": \"transition\", \"element_text\": \"same target used for both newTCReceived and !newTCReceived\", \"issue_type\": \"warning\", \"reason_text\": \"Different conditions appear to lead to insufficiently differentiated behavior.\"}, {\"element_id\": \"tm_preemption_logic\", \"element_kind\": \"requirement\", \"element_text\": \"cancel old TM when a new TC arrives during computation\", \"issue_type\": \"missing\", \"reason_text\": \"The required trigger-condition-effect chain is not explicitly preserved as cancellation then recomputation.\"}], \"judgement\": \"partially_acceptable\", \"metric_payload\": {}, \"reason_text\": \"The prediction preserves the broad intended sequence from receiving a telecommand to producing and sending telemetry, and it also reflects the idea that watchdog detection can lead to restart. It loses credit because several transitions are too generic to preserve clear trigger-condition-effect logic, and the visible logic around new TC arrival during TM computation does not clearly show cancellation of the old TM before replacement.\", \"score\": 0.56, \"title\": \"Behavioral Consistency\", \"trace_links\": []}, {\"confidence\": 0.81, \"dimension_name\": \"requirement_traceability\", \"evidence\": [{\"explanation\": \"These named blocks make several textual requirements directly traceable to model structure.\", \"locator\": \"prediction_summary.blocks\", \"snippet\": \"blocks include GroundStation, RFReceiver, Software, IntermediateBuffer, RfTransmitter, Microcontroller, Task, Watchdog\", \"source\": \"precomputed_context\"}, {\"explanation\": \"These signals support traceability of the TC->decipher->buffer->build->encipher->TM path.\", \"locator\": \"signals\", \"snippet\": \"signals include tC, cipheredData, requestData, buildAnswer, cipheredAnswer, tM\", \"source\": \"prediction\"}], \"issues\": [{\"element_id\": \"req_crc_memory\", \"element_kind\": \"requirement\", \"element_text\": \"CRC computed/stored on write and checked on read\", \"issue_type\": \"missing\", \"reason_text\": \"No clearly traceable model element implements this explicit requirement.\"}, {\"element_id\": \"cancelTMConstruction\", \"element_kind\": \"state\", \"element_text\": \"implicit/partial cancellation concept only\", \"issue_type\": \"warning\", \"reason_text\": \"A partial hint is not enough to cleanly trace the full replacement behavior demanded by the text.\"}], \"judgement\": \"acceptable\", \"metric_payload\": {}, \"reason_text\": \"Many major requirements can be mapped to model elements: GroundStation/RFReceiver/Software/IntermediateBuffer/RfTransmitter capture the communication chain, and Microcontroller/Watchdog/RestartingSystem capture the reliability mechanism. Traceability drops because some important requirements do not map cleanly to concrete elements, especially the explicit CRC memory-protection behavior and the exact preemption semantics for replacing an in-progress TM.\", \"score\": 0.62, \"title\": \"Requirement Traceability\", \"trace_links\": []}, {\"confidence\": 0.83, \"dimension_name\": \"pragmatic_clarity\", \"evidence\": [{\"explanation\": \"These names help a reviewer understand the intended allocation of responsibilities.\", \"locator\": \"prediction_block_name_quality\", \"snippet\": \"domain-specific block examples include GroundStation, IntermediateBuffer, Microcontroller, Software, Watchdog\", \"source\": \"precomputed_context\"}, {\"explanation\": \"Generic naming and inflated state count reduce maintainability and obscure the requirement mapping.\", \"locator\": \"prediction_state_name_quality\", \"snippet\": \"generic or placeholder examples include Idle, Start, ProcessingRequest, WaitingRequest, Waiting, State1, State2\", \"source\": \"precomputed_context\"}], \"issues\": [{\"element_id\": \"generic_state_naming\", \"element_kind\": \"state\", \"element_text\": \"Idle/Start/Waiting/Processing/State1/State2 patterns\", \"issue_type\": \"warning\", \"reason_text\": \"These names are weakly informative and make the control logic harder to audit.\"}, {\"element_id\": \"model_size_vs_behavior\", \"element_kind\": \"block\", \"element_text\": \"49 states across 10 panels with limited concrete effects\", \"issue_type\": \"warning\", \"reason_text\": \"The decomposition adds review burden without consistently adding requirement-grounded behavioral precision.\"}], \"judgement\": \"weak\", \"metric_payload\": {}, \"reason_text\": \"The model is understandable at a high level because the block names are mostly domain-specific and correspond to system roles. But clarity is reduced by inflated decomposition, many generic states like Start/Idle/Waiting/Processing, and weakly discriminating transitions that make review of actual behavior harder than necessary.\", \"score\": 0.41, \"title\": \"Pragmatic Clarity\", \"trace_links\": []}]",
+    "requirement_trace_results_json": "[{\"confidence\": 0.7, \"matched_element_ids\": [\"RestartingSystem|||\", \"GroundStation\", \"requestData\", \"requestData(int signal)\", \"RestartingSystem\", \"cipheredData\"], \"reason_text\": \"Requirement req_1 is supported by 8 predicted element(s), including RestartingSystem|||.\", \"requirement_id\": \"req_1\", \"requirement_text\": \"A ground station needs to regularly monitor the safety data of a space-based system: 3D position, temperature, battery level, fuel quantity.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SendTM|||\", \"RestartingSystem|||\", \"SendingTM|||\", \"Sending|||\", \"GroundStation\", \"SendTM\"], \"reason_text\": \"Requirement req_2 is supported by 8 predicted element(s), including SendTM|||.\", \"requirement_id\": \"req_2\", \"requirement_text\": \"For this, a ground station can send, via radio-frequencies, a TC (TeleCommand) to the space-based system.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ProcessingRequest|||\", \"WaitingRequest|||\", \"RestartingSystem|||\", \"HandleRequest|||\", \"WaitingRequest\", \"ProcessingRequest\"], \"reason_text\": \"Requirement req_3 is supported by 8 predicted element(s), including ProcessingRequest|||.\", \"requirement_id\": \"req_3\", \"requirement_text\": \"Once received by the RF receiver, the software of the space-based system gets the request for information.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"requestData\", \"requestData(int signal)\", \"cipheredData\", \"cipheredData(int signal)\", \"in_cipheredAnswer\", \"cipheredAnswer(int signal)\"], \"reason_text\": \"Requirement req_4 is supported by 8 predicted element(s), including requestData.\", \"requirement_id\": \"req_4\", \"requirement_text\": \"Data of TCs are ciphered.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ProcessingRequest|||\", \"WaitingRequest|||\", \"CheckingTasks|||\", \"HandleBitFlip|||\", \"HandleRequest|||\", \"HandleTC|||\"], \"reason_text\": \"Requirement req_5 is supported by 8 predicted element(s), including ProcessingRequest|||.\", \"requirement_id\": \"req_5\", \"requirement_text\": \"Once the software has deciphered data, it stores data in an intermediate buffer, and a task to handle this request is triggered.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CheckingTasks|||\", \"BuildingAnswer|||\", \"BuildAnswer|||\", \"someTaskNotResponding\", \"CheckingTasks\", \"BuildingAnswer\"], \"reason_text\": \"Requirement req_6 is supported by 8 predicted element(s), including CheckingTasks|||.\", \"requirement_id\": \"req_6\", \"requirement_text\": \"This task builds the answer by reading requested values from sensors.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"BuildingAnswer|||\", \"BuildAnswer|||\", \"GroundStation\", \"BuildingAnswer\", \"in_cipheredAnswer\", \"RfTransmitter\"], \"reason_text\": \"Requirement req_7 is supported by 8 predicted element(s), including BuildingAnswer|||.\", \"requirement_id\": \"req_7\", \"requirement_text\": \"Once the answer packet has been built, it is first enciphered and then sent via a TM (TeleMetry) to the ground station, using the RF transmitter.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CheckingTasks|||\", \"RestartingSystem|||\", \"someTaskNotResponding\", \"Microcontroller\", \"CheckingTasks\", \"RestartingSystem\"], \"reason_text\": \"Requirement req_8 is supported by 8 predicted element(s), including CheckingTasks|||.\", \"requirement_id\": \"req_8\", \"requirement_text\": \"To ensure that the system does not crash, a microcontroller of this system is dedicated to execute a software task that checks, every 10ms, that all other software tasks of the space-based embedded system are still responsive.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CheckingTasks|||\", \"tC(int signal)\", \"tM(int signal)\", \"requestData(int signal)\", \"handleRequest(int signal)\", \"someTaskNotResponding\"], \"reason_text\": \"Requirement req_9 is supported by 8 predicted element(s), including CheckingTasks|||.\", \"requirement_id\": \"req_9\", \"requirement_text\": \"For this, a signal is sent to each task.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CheckingTasks|||\", \"RestartingSystem|||\", \"tC(int signal)\", \"tM(int signal)\", \"requestData(int signal)\", \"handleRequest(int signal)\"], \"reason_text\": \"Requirement req_10 is supported by 8 predicted element(s), including CheckingTasks|||.\", \"requirement_id\": \"req_10\", \"requirement_text\": \"If some of the tasks have not responded to this signal, then the whole system is restarted, apart from the watchdog: the latter is not expected to crash, apart if the battery is too low to power the microcontroller.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"CheckingTasks|||\", \"RestartingSystem|||\", \"someTaskNotResponding\", \"CheckingTasks\", \"RestartingSystem\", \"restartSystem(int signal)\"], \"reason_text\": \"Requirement req_11 is supported by 8 predicted element(s), including CheckingTasks|||.\", \"requirement_id\": \"req_11\", \"requirement_text\": \"Obviously, this watchdog task is of prime importance for this reliability of the system.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"ComputingTM|||\", \"RestartingSystem|||\", \"newTCReceived\", \"ComputingTM\", \"RestartingSystem\", \"Software\"], \"reason_text\": \"Requirement req_12 is supported by 8 predicted element(s), including ComputingTM|||.\", \"requirement_id\": \"req_12\", \"requirement_text\": \"Sometimes, while the software system is computing a TM, another TC is received.\", \"status\": \"matched\"}, {\"confidence\": 0.5, \"matched_element_ids\": [\"cancelTMConstruction\"], \"reason_text\": \"Requirement req_13 has only limited lexical support in the prediction; manual semantic confirmation is still needed.\", \"requirement_id\": \"req_13\", \"requirement_text\": \"To avoid redundancy, the TM under construction is canceled: a new TM corresponding to the latest TC is computed and sent.\", \"status\": \"partial\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"SpaceBasedSystem\", \"SpaceBasedSystem\", \"bitFlip(int signal)|out|SpaceBasedSystem\"], \"reason_text\": \"Requirement req_14 is supported by 3 predicted element(s), including SpaceBasedSystem.\", \"requirement_id\": \"req_14\", \"requirement_text\": \"Last but not least, space-based systems are not well protected against high-energy particles.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"HandleBitFlip|||\", \"bitFlip\", \"bitFlip(int signal)\", \"HandleBitFlip\", \"HandleBitFlip|ComputeCRC|||\", \"Idle|HandleBitFlip|bitFlip|bitFlip|\"], \"reason_text\": \"Requirement req_15 is supported by 8 predicted element(s), including HandleBitFlip|||.\", \"requirement_id\": \"req_15\", \"requirement_text\": \"Such a particle can provoke a bit flip from 0 to 1, or the opposite.\", \"status\": \"matched\"}, {\"confidence\": 0.45, \"matched_element_ids\": [], \"reason_text\": \"No clear predicted element could be traced to requirement req_16; this likely indicates an omission or a naming mismatch.\", \"requirement_id\": \"req_16\", \"requirement_text\": \"The memory is the most sensitive elements of the platform.\", \"status\": \"missing\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"requestData\", \"requestData(int signal)\", \"cipheredData\", \"cipheredData(int signal)\", \"Software\", \"[action] cipheredData()\"], \"reason_text\": \"Requirement req_17 is supported by 8 predicted element(s), including requestData.\", \"requirement_id\": \"req_17\", \"requirement_text\": \"Therefore, for each block of data the software writes into memory, an error correction code (CRC) of this block has to be computed by the software and stored into memory along with the data block.\", \"status\": \"matched\"}, {\"confidence\": 0.7, \"matched_element_ids\": [\"readCRC(int signal)\", \"SendTM|Idle|!tC.ready|!tC.ready|\", \"Idle|ComputeTM|tC.ready|tC.ready|\", \"SendTM|ComputeTM|tC.ready|tC.ready|\", \"ComputeTM|Idle|!tC.ready|!tC.ready|\", \"readCRC(int signal)|in|Software\"], \"reason_text\": \"Requirement req_18 is supported by 8 predicted element(s), including readCRC(int signal).\", \"requirement_id\": \"req_18\", \"requirement_text\": \"When this block is read, the corresponding CRC must also be read and checked.\", \"status\": \"matched\"}]",
+    "unsupported_model_elements_json": "[]",
+    "evidence_summary_json": "[{\"explanation\": \"This shows a recognizable state-machine structure rather than free-form prose.\", \"locator\": \"GroundStation.transitions\", \"snippet\": \"\\\"[initial]\\\" -> \\\"Start\\\" -> \\\"Idle\\\" and named transitions among Idle, ComputeTM, SendTM\", \"source\": \"prediction\"}, {\"explanation\": \"These elements support several core required behaviors at this abstraction level.\", \"locator\": \"prediction_summary.states\", \"snippet\": \"states include Deciphering, BuildingAnswer, Enciphering, Sending, CheckingTasks, RestartingSystem\", \"source\": \"precomputed_context\"}, {\"explanation\": \"This aligns with the intended operational ordering of request handling and reply generation.\", \"locator\": \"Software/processing states\", \"snippet\": \"states such as Deciphering -> BuildingAnswer -> Enciphering -> Sending are present\", \"source\": \"prediction\"}, {\"explanation\": \"These named blocks make several textual requirements directly traceable to model structure.\", \"locator\": \"prediction_summary.blocks\", \"snippet\": \"blocks include GroundStation, RFReceiver, Software, IntermediateBuffer, RfTransmitter, Microcontroller, Task, Watchdog\", \"source\": \"precomputed_context\"}, {\"explanation\": \"These names help a reviewer understand the intended allocation of responsibilities.\", \"locator\": \"prediction_block_name_quality\", \"snippet\": \"domain-specific block examples include GroundStation, IntermediateBuffer, Microcontroller, Software, Watchdog\", \"source\": \"precomputed_context\"}]",
+    "notes_json": "[\"No reference model was available, so the review judges the prediction directly against the input requirements and the requested abstraction level.\", \"The score gives credit for recognizable domain scenarios across roles, consistent with the prompt, but does not reward unsupported size or vague control loops.\"]",
+    "confidence": 0.8
+  }
+}
