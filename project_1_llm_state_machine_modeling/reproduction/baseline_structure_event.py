@@ -7,9 +7,10 @@ from typing import Any
 
 import pandas as pd
 
-from eval_utils import ensure_json, macro_f1, prf_from_counts
+from eval_utils import ensure_json, json_dumps, macro_f1, prf_from_counts, safe_float
 from io_utils import baseline_result_dir, load_discussion_parquet, write_json, write_parquet
 from llm_client import LLMClient
+from result_schema import finalize_result_df
 
 
 REFERENCE_PROMPT_FILES = {
@@ -166,6 +167,15 @@ def prompt_text(case_id: str) -> str:
         if candidate.exists():
             return candidate.read_text(encoding="utf-8").strip()
     raise FileNotFoundError(f"Missing prompt text for case {case_id}")
+
+
+def optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    if safe_float(value) is None and str(value).strip().lower() == "nan":
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def example_block(case_id: str, cases_df: pd.DataFrame, refs_df: pd.DataFrame) -> str:
@@ -366,6 +376,7 @@ def run_structure_event() -> None:
     for _, case_row in cases_df.iterrows():
         case_id = case_row["case_id"]
         description = case_row["system_description"]
+        ref_row = refs_df.loc[refs_df["case_id"] == case_id].iloc[0]
         single_prompt_umple = safe_umple_call(run_single_prompt, llm, case_id, cases_df, refs_df)
         structure_raw = safe_umple_call(run_structure_driven, llm, case_id, description)
         event_raw = safe_umple_call(run_event_driven, llm, case_id, description)
@@ -387,9 +398,62 @@ def run_structure_event() -> None:
             )
             rows.append(
                 {
+                    "baseline_name": "structure_event",
+                    "dataset_id": case_row["dataset_id"],
+                    "sample_id": f"struct_event::{case_id}::{strategy_name}",
                     "case_id": case_id,
                     "case_name": case_row["case_name"],
+                    "variant_id": case_id,
+                    "variant_name": case_row["case_name"],
+                    "sample_kind": "non_structured_nl_to_umple_state_machine",
                     "strategy_name": strategy_name,
+                    "input_modality": case_row["input_modality"],
+                    "input_text": optional_text(case_row["reference_prompt_text"]) or description,
+                    "input_payload_json": json_dumps(
+                        {
+                            "system_description": description,
+                            "reference_prompt_text": optional_text(case_row["reference_prompt_text"]),
+                        }
+                    ),
+                    "reference_output_text": ref_row["reference_solution_text"],
+                    "reference_output_json": json_dumps(
+                        {
+                            "reference_solution_text": ref_row["reference_solution_text"],
+                            "reference_prompt_text": ref_row["reference_prompt_text"],
+                            "reference_image_local_path": ref_row["reference_image_local_path"],
+                        }
+                    ),
+                    "prediction_output_text": umple_text,
+                    "prediction_output_json": json_dumps(
+                        {
+                            "generated_umple": umple_text,
+                        }
+                    ),
+                    "reference_output_format": "umple",
+                    "prediction_output_format": "umple",
+                    "reference_counts_json": json_dumps(
+                        {
+                            "States": int(ref_row["reference_states_count"]),
+                            "Transitions": int(ref_row["reference_transitions_count"]),
+                            "Guards": int(ref_row["reference_guards_count"]),
+                            "Actions": int(ref_row["reference_actions_count"]),
+                            "Hierarchical states": int(
+                                ref_row["reference_hierarchical_states_count"]
+                            ),
+                            "History States": int(ref_row["reference_history_states_count"]),
+                            "Parallel Regions": int(ref_row["reference_parallel_regions_count"]),
+                        }
+                    ),
+                    "prediction_counts_json": json.dumps(
+                        predicted_counts, ensure_ascii=False, sort_keys=True
+                    ),
+                    "llm_provider": None,
+                    "llm_model_name": llm.model,
+                    "llm_raw_mode": None,
+                    "is_repaired": False,
+                    "evaluation_method": "manual_paper_protocol_approximated_by_count_based_component_macro_f1",
+                    "primary_metric_name": "macro_component_f1",
+                    "primary_metric_value": macro_component_f1,
                     "generated_umple": umple_text,
                     "predicted_counts_json": json.dumps(
                         predicted_counts, ensure_ascii=False, sort_keys=True
@@ -399,9 +463,9 @@ def run_structure_event() -> None:
                         component_metrics, ensure_ascii=False, sort_keys=True
                     ),
                 }
-            )
+        )
 
-    pred_df = pd.DataFrame(rows)
+    pred_df = finalize_result_df(pd.DataFrame(rows))
     summary = {
         "baseline": "structure_event",
         "case_count": int(pred_df["case_id"].nunique()),

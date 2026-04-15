@@ -7,9 +7,10 @@ from typing import Any
 
 import pandas as pd
 
-from eval_utils import macro_f1, prf_from_counts
+from eval_utils import json_dumps, macro_f1, prf_from_counts
 from io_utils import baseline_result_dir, load_discussion_parquet, write_json, write_parquet
 from llm_client import LLMClient, LLMResult
+from result_schema import finalize_result_df
 
 
 COMPONENTS_BY_DIAGRAM_TYPE = {
@@ -347,6 +348,74 @@ def run_llms_emp() -> None:
 
     pred_df = pd.DataFrame(asdict(record) for record in rows)
     merged = df.merge(pred_df, on=["row_id", "diagram_type"], how="left")
+    merged["baseline_name"] = "llms_emp"
+    merged["sample_id"] = merged["row_id"].map(lambda value: f"llms_emp::{int(value)}")
+    merged["case_id"] = merged["sample_id"]
+    merged["case_name"] = merged["model_name"]
+    merged["variant_id"] = merged["diagram_type"]
+    merged["variant_name"] = merged["diagram_type"]
+    merged["sample_kind"] = merged["diagram_type"]
+    merged["strategy_name"] = "single_prompt_with_optional_repair"
+    merged["input_text"] = merged["requirements_description"]
+    merged["input_payload_json"] = merged.apply(
+        lambda row: json_dumps(
+            {
+                "diagram_type": row["diagram_type"],
+                "requirements_description": row["requirements_description"],
+            }
+        ),
+        axis=1,
+    )
+    merged["reference_output_text"] = merged["plantuml_code"]
+    merged["reference_output_json"] = merged.apply(
+        lambda row: json_dumps(
+            {
+                "diagram_type": row["diagram_type"],
+                "plantuml_code": row["plantuml_code"],
+            }
+        ),
+        axis=1,
+    )
+    merged["prediction_output_text"] = merged["generated_plantuml"]
+    merged["prediction_output_json"] = merged.apply(
+        lambda row: json_dumps(
+            {
+                "diagram_type": row["pred_diagram_type"],
+                "plantuml_code": row["generated_plantuml"],
+            }
+        ),
+        axis=1,
+    )
+    merged["reference_output_format"] = "plantuml"
+    merged["prediction_output_format"] = "plantuml"
+    merged["reference_counts_json"] = merged.apply(
+        lambda row: json_dumps(
+            {
+                field_name: safe_int(row[field_name])
+                for field_name, _ in COMPONENTS_BY_DIAGRAM_TYPE[row["diagram_type"]]
+            }
+        ),
+        axis=1,
+    )
+    merged["prediction_counts_json"] = merged.apply(
+        lambda row: json_dumps(
+            {
+                field_name: safe_int(row[f"pred_{field_name}"])
+                for field_name, _ in COMPONENTS_BY_DIAGRAM_TYPE[row["diagram_type"]]
+            }
+        ),
+        axis=1,
+    )
+    merged["llm_provider"] = merged["provider"]
+    merged["llm_model_name"] = llm.model
+    merged["llm_raw_mode"] = merged["raw_mode"]
+    merged["is_repaired"] = merged["repaired"]
+    merged["evaluation_method"] = (
+        "count_based_component_macro_f1_over_reference_plantuml_features"
+    )
+    merged["primary_metric_name"] = "macro_component_f1"
+    merged["primary_metric_value"] = merged["macro_component_f1"]
+    merged = finalize_result_df(merged)
     summary = {
         "baseline": "llms_emp",
         "sample_count": int(len(merged)),

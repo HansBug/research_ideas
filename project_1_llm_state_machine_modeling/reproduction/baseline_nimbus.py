@@ -5,9 +5,17 @@ from typing import Any
 
 import pandas as pd
 
-from eval_utils import ensure_json, macro_f1, normalize_id, prf_from_counts, prf_from_sets
+from eval_utils import (
+    ensure_json,
+    json_dumps,
+    macro_f1,
+    normalize_id,
+    prf_from_counts,
+    prf_from_sets,
+)
 from io_utils import baseline_result_dir, load_discussion_parquet, write_json, write_parquet
 from llm_client import LLMClient
+from result_schema import finalize_result_df
 
 
 def _generate_json(
@@ -123,9 +131,65 @@ def run_nimbus() -> None:
             strict_metrics["rules"] = prf_from_sets(predicted_rules, reference_rules)
         rows.append(
             {
+                "baseline_name": "nimbus",
+                "dataset_id": fragment["dataset_id"],
+                "sample_id": f"nimbus::{fragment['fragment_id']}",
                 "fragment_id": fragment["fragment_id"],
+                "case_id": fragment["case_id"],
+                "case_name": fragment["fragment_title"],
+                "variant_id": fragment["fragment_id"],
+                "variant_name": fragment["abstraction_level"],
                 "fragment_title": fragment["fragment_title"],
                 "sample_kind": fragment["sample_kind"],
+                "strategy_name": "single_prompt_rsml_json",
+                "input_modality": "Structured natural-language requirement fragment",
+                "input_text": fragment["input_requirement_text"],
+                "input_payload_json": json_dumps(
+                    {
+                        "fragment_id": fragment["fragment_id"],
+                        "fragment_title": fragment["fragment_title"],
+                        "sample_kind": fragment["sample_kind"],
+                        "abstraction_level": fragment["abstraction_level"],
+                        "input_requirement_ids_json": fragment["input_requirement_ids_json"],
+                        "input_requirement_text": fragment["input_requirement_text"],
+                    }
+                ),
+                "reference_output_text": json_dumps(
+                    {
+                        "states": sorted(reference_states),
+                        "rules": sorted(reference_rules),
+                    }
+                ),
+                "reference_output_json": json_dumps(
+                    {
+                        "states": sorted(reference_states),
+                        "rules": sorted(reference_rules),
+                    }
+                ),
+                "prediction_output_text": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                "prediction_output_json": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                "reference_output_format": "rsmle_state_rule_sets",
+                "prediction_output_format": "canonical_json",
+                "reference_counts_json": json_dumps(
+                    {
+                        "state_count": len(reference_states),
+                        "rule_count": len(reference_rules),
+                    }
+                ),
+                "prediction_counts_json": json_dumps(
+                    {
+                        "state_count": len(predicted_states),
+                        "rule_count": len(predicted_rules),
+                    }
+                ),
+                "llm_provider": None,
+                "llm_model_name": llm.model,
+                "llm_raw_mode": None,
+                "is_repaired": False,
+                "evaluation_method": "primary_count_based_macro_f1_with_secondary_strict_set_match",
+                "primary_metric_name": "macro_f1",
+                "primary_metric_value": macro_f1(metrics.values()),
+                "component_metrics_json": json.dumps(metrics, ensure_ascii=False, sort_keys=True),
                 "prediction_json": json.dumps(payload, ensure_ascii=False, sort_keys=True),
                 "pred_state_count": len(predicted_states),
                 "ref_state_count": len(reference_states),
@@ -140,7 +204,7 @@ def run_nimbus() -> None:
             }
         )
 
-    pred_df = pd.DataFrame(rows)
+    pred_df = finalize_result_df(pd.DataFrame(rows))
     summary = {
         "baseline": "nimbus",
         "fragment_count": int(len(pred_df)),

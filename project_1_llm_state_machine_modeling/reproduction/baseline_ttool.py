@@ -6,9 +6,10 @@ from typing import Any
 import pandas as pd
 
 from canonical_model import count_machine_components, normalize_machine
-from eval_utils import ensure_json, macro_f1, prf_from_counts
+from eval_utils import ensure_json, json_dumps, macro_f1, prf_from_counts
 from io_utils import baseline_result_dir, load_discussion_parquet, write_json, write_parquet
 from llm_client import LLMClient
+from result_schema import finalize_result_df
 
 
 def local_system_prompt(
@@ -102,6 +103,30 @@ def build_reference_table() -> pd.DataFrame:
         )
     )
     return reference
+
+
+def build_reference_outputs() -> pd.DataFrame:
+    models = load_discussion_parquet("ttool_ai_models").copy()
+    rows: list[dict[str, Any]] = []
+    for (case_id, case_name, input_spec_text), part in models.groupby(
+        ["case_id", "case_name", "input_spec_text"], as_index=False
+    ):
+        rows.append(
+            {
+                "case_id": case_id,
+                "case_name": case_name,
+                "input_spec_text": input_spec_text,
+                "reference_model_count": int(len(part)),
+                "reference_xml_examples_json": json_dumps(
+                    [
+                        {"variant_name": row["variant_name"], "raw_xml": row["raw_xml"]}
+                        for _, row in part[["variant_name", "raw_xml"]].iterrows()
+                    ]
+                ),
+                "reference_variant_names_json": json_dumps(list(part["variant_name"])),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def run_ttool_prompt(llm: LLMClient, case_id: str, spec_text: str) -> dict[str, Any]:
@@ -456,6 +481,10 @@ def run_ttool() -> None:
         return
 
     reference = build_reference_table()
+    reference_outputs = build_reference_outputs()
+    reference = reference.merge(
+        reference_outputs, on=["case_id", "case_name", "input_spec_text"], how="left"
+    )
     llm = LLMClient()
     rows: list[dict[str, Any]] = []
     for _, ref_row in reference.iterrows():
@@ -469,9 +498,58 @@ def run_ttool() -> None:
             counts, macro_component_f1, component_metrics = evaluate_case(payload, ref_row)
             rows.append(
                 {
+                    "baseline_name": "ttool",
+                    "dataset_id": "ttool_ai",
+                    "sample_id": f"ttool::{case_id}::{strategy_name}",
                     "case_id": case_id,
                     "case_name": ref_row["case_name"],
+                    "variant_id": case_id,
+                    "variant_name": ref_row["case_name"],
+                    "sample_kind": "system_specification_to_avatar_design",
                     "strategy_name": strategy_name,
+                    "input_modality": "Natural-language system specification",
+                    "input_text": spec_text,
+                    "input_payload_json": json_dumps(
+                        {
+                            "case_id": case_id,
+                            "input_spec_text": spec_text,
+                        }
+                    ),
+                    "reference_output_text": ref_row["reference_xml_examples_json"],
+                    "reference_output_json": json_dumps(
+                        {
+                            "reference_model_count": int(ref_row["reference_model_count"]),
+                            "reference_variant_names": json.loads(
+                                ref_row["reference_variant_names_json"]
+                            ),
+                            "reference_xml_examples": json.loads(
+                                ref_row["reference_xml_examples_json"]
+                            ),
+                        }
+                    ),
+                    "prediction_output_text": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                    "prediction_output_json": json.dumps(
+                        payload, ensure_ascii=False, sort_keys=True
+                    ),
+                    "reference_output_format": "ttool_avatar_xml_aggregate",
+                    "prediction_output_format": "canonical_json",
+                    "reference_counts_json": json_dumps(
+                        {
+                            "state_machine_panel_count": int(ref_row["state_machine_panel_count"]),
+                            "state_count": int(ref_row["state_count"]),
+                            "transition_count": int(ref_row["transition_count"]),
+                            "guard_count": int(ref_row["guard_count"]),
+                            "action_count": int(ref_row["action_count"]),
+                        }
+                    ),
+                    "prediction_counts_json": json_dumps(counts),
+                    "llm_provider": None,
+                    "llm_model_name": llm.model,
+                    "llm_raw_mode": None,
+                    "is_repaired": False,
+                    "evaluation_method": "count_based_component_macro_f1_against_case_level_reference_medians",
+                    "primary_metric_name": "macro_component_f1",
+                    "primary_metric_value": macro_component_f1,
                     "prediction_json": json.dumps(payload, ensure_ascii=False, sort_keys=True),
                     "pred_state_machine_panel_count": counts["state_machine_panel_count"],
                     "pred_state_count": counts["state_count"],
@@ -490,7 +568,7 @@ def run_ttool() -> None:
                 }
             )
 
-    pred_df = pd.DataFrame(rows)
+    pred_df = finalize_result_df(pd.DataFrame(rows))
     summary = {
         "baseline": "ttool",
         "scenario_count": int(pred_df["case_id"].nunique()),
