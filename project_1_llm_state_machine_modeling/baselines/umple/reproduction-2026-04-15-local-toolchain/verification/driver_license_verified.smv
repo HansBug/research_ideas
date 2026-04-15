@@ -1,0 +1,126 @@
+-- Verification-ready NuSMV model derived from the Umple-generated
+-- models/driver_license_system.smv.
+--
+-- The raw export is useful as a skeleton, but it leaves integer-typed
+-- variables unconstrained and does not encode effect updates. This file
+-- keeps the generated control-state structure and makes the data semantics
+-- explicit so that CTL checking becomes meaningful and executable in NuSMV 2.6.0.
+
+MODULE ApplicantLicenseLifecycle(_licenseLifecycleLicensed)
+  VAR
+    state : {LicenseLifecycle_NoLicense, LicenseLifecycle_Licensed, LicenseLifecycle_Suspended, LicenseLifecycle_ExpiredG};
+    event : {ev_suspend, ev_renewG, ev_reinstateAsG, ev_payFee, ev_passGTest, ev_expire, ev_passG1Test, ev_reinstateAsG2, ev_reinstateAsG1, ev_passG2Test, ev_null};
+    applicantId : 0..10;
+    nameCode : 0..200;
+    birthYear : 1900..2100;
+    addressCode : 0..1000;
+    feePaid : 0..1;
+    lastScore : 0..100;
+    suspensionCode : 0..3;
+
+  DEFINE
+    licenseLifecycle_stable := !(event = ev_suspend | event = ev_renewG | event = ev_reinstateAsG | event = ev_payFee | event = ev_passGTest | event = ev_expire | event = ev_passG1Test | event = ev_reinstateAsG2 | event = ev_reinstateAsG1 | event = ev_passG2Test);
+    t1 := event = ev_payFee & state = LicenseLifecycle_NoLicense;
+    t2 := event = ev_passG1Test & state = LicenseLifecycle_NoLicense & g1;
+    t3 := event = ev_reinstateAsG1 & state = LicenseLifecycle_Suspended & g2;
+    t4 := event = ev_reinstateAsG2 & state = LicenseLifecycle_Suspended & g3;
+    t5 := event = ev_reinstateAsG & state = LicenseLifecycle_Suspended & g4;
+    t6 := event = ev_renewG & state = LicenseLifecycle_ExpiredG;
+    t7 := event = ev_payFee & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1;
+    t8 := event = ev_passG2Test & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1 & g1;
+    t9 := event = ev_expire & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1;
+    t10 := event = ev_suspend & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1;
+    t11 := event = ev_payFee & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2;
+    t12 := event = ev_passGTest & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2 & g1;
+    t13 := event = ev_expire & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2;
+    t14 := event = ev_suspend & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2;
+    t15 := event = ev_expire & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G;
+    t16 := event = ev_suspend & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G;
+    g1 := feePaid = 1;
+    g2 := suspensionCode = 1;
+    g3 := suspensionCode = 2;
+    g4 := suspensionCode = 3;
+
+  ASSIGN
+    init(state) := LicenseLifecycle_NoLicense;
+    next(state) := case
+      t9 | t1 | t13 : LicenseLifecycle_NoLicense;
+      t7 | t8 | t4 | t5 | t2 | t3 | t11 | t12 | t6 : LicenseLifecycle_Licensed;
+      t14 | t10 | t16 : LicenseLifecycle_Suspended;
+      t15 : LicenseLifecycle_ExpiredG;
+      TRUE : state;
+    esac;
+
+    init(event) := ev_null;
+    next(event) := case
+      licenseLifecycle_stable : {ev_suspend, ev_renewG, ev_reinstateAsG, ev_payFee, ev_passGTest, ev_expire, ev_passG1Test, ev_reinstateAsG2, ev_reinstateAsG1, ev_passG2Test};
+      TRUE : ev_null;
+    esac;
+
+    init(applicantId) := 1;
+    next(applicantId) := applicantId;
+
+    init(nameCode) := 101;
+    next(nameCode) := nameCode;
+
+    init(birthYear) := 1990;
+    next(birthYear) := birthYear;
+
+    init(addressCode) := 501;
+    next(addressCode) := addressCode;
+
+    init(feePaid) := 0;
+    next(feePaid) := case
+      t1 | t7 | t11 : 1;
+      t2 | t8 | t12 : 0;
+      TRUE : feePaid;
+    esac;
+
+    init(lastScore) := 0;
+    next(lastScore) := case
+      t2 : 80;
+      t8 : 82;
+      t12 : 88;
+      TRUE : lastScore;
+    esac;
+
+    init(suspensionCode) := 0;
+    next(suspensionCode) := case
+      t10 : 1;
+      t14 : 2;
+      t16 : 3;
+      t2 | t3 | t4 | t5 | t6 | t7 | t8 | t11 | t12 : 0;
+      TRUE : suspensionCode;
+    esac;
+
+MODULE ApplicantLicenseLifecycleLicensed(_licenseLifecycle)
+  VAR
+    state : {LicenseLifecycleLicensed_G1, LicenseLifecycleLicensed_G2, LicenseLifecycleLicensed_G, null};
+
+  ASSIGN
+    init(state) := null;
+    next(state) := case
+      _licenseLifecycle.t9 | _licenseLifecycle.t13 | _licenseLifecycle.t15 | _licenseLifecycle.t1 | _licenseLifecycle.t10 | _licenseLifecycle.t14 | _licenseLifecycle.t16 : null;
+      _licenseLifecycle.t7 | _licenseLifecycle.t2 | _licenseLifecycle.t3 : LicenseLifecycleLicensed_G1;
+      _licenseLifecycle.t11 | _licenseLifecycle.t8 | _licenseLifecycle.t4 : LicenseLifecycleLicensed_G2;
+      _licenseLifecycle.t5 | _licenseLifecycle.t12 | _licenseLifecycle.t6 : LicenseLifecycleLicensed_G;
+      _licenseLifecycle.state = LicenseLifecycle_Licensed & state = null : LicenseLifecycleLicensed_G1;
+      TRUE : state;
+    esac;
+
+MODULE ApplicantLicenseLifecycle_Machine
+  VAR
+    applicantLicenseLifecycle : ApplicantLicenseLifecycle(applicantLicenseLifecycleLicensed);
+    applicantLicenseLifecycleLicensed : ApplicantLicenseLifecycleLicensed(applicantLicenseLifecycle);
+
+MODULE main
+  VAR
+    applicantLicenseLifecycle_Machine : ApplicantLicenseLifecycle_Machine;
+
+  CTLSPEC EF(applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_Licensed)
+  CTLSPEC EF(applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = LicenseLifecycleLicensed_G)
+  CTLSPEC AG(applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2 -> applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_Licensed)
+  CTLSPEC AG(applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_Suspended -> (applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.suspensionCode = 1 | applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.suspensionCode = 2 | applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.suspensionCode = 3))
+  CTLSPEC AG(applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_ExpiredG -> applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = null)
+  CTLSPEC AG(applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_ExpiredG -> EF(applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = LicenseLifecycleLicensed_G))
+  CTLSPEC AG(applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state != LicenseLifecycle_Suspended)
