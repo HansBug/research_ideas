@@ -1,0 +1,134 @@
+-- This file is generated from driver_license_system.ump --
+
+-- PLEASE DO NOT EDIT THIS CODE --
+-- This code was generated using the UMPLE 1.36.0.8155.852949be7 modeling language! --
+
+
+-- This defines a NuSMV module for ApplicantLicenseLifecycle --
+MODULE ApplicantLicenseLifecycle ( _licenseLifecycleLicensed )
+
+   -- This part declares state variables for the given NuSMV module --
+   VAR
+     state : { LicenseLifecycle_NoLicense , LicenseLifecycle_Licensed , LicenseLifecycle_Suspended , LicenseLifecycle_ExpiredG };
+     event : { ev_suspend , ev_renewG , ev_reinstateAsG , ev_payFee , ev_passGTest , ev_expire , ev_passG1Test , ev_reinstateAsG2 , ev_reinstateAsG1 , ev_passG2Test , ev_null };
+     applicantId : integer;
+     nameCode : integer;
+     birthYear : integer;
+     addressCode : integer;
+     feePaid : integer;
+     lastScore : integer;
+     suspensionCode : integer;
+
+   -- This part defines macros that summarize the transitions and guards (if any) of the given NuSMV module --
+   DEFINE
+     licenseLifecycle_stable :=  !( event = ev_suspend | event = ev_reinstateAsG | event = ev_passGTest | event = ev_passG1Test | event = ev_reinstateAsG1 | event = ev_renewG | event = ev_payFee | event = ev_expire | event = ev_reinstateAsG2 | event = ev_passG2Test );
+     t1 := event = ev_payFee & state = LicenseLifecycle_NoLicense;
+     t2 := event = ev_passG1Test & state = LicenseLifecycle_NoLicense & g1;
+     t3 := event = ev_reinstateAsG1 & state = LicenseLifecycle_Suspended & g2;
+     t4 := event = ev_reinstateAsG2 & state = LicenseLifecycle_Suspended & g3;
+     t5 := event = ev_reinstateAsG & state = LicenseLifecycle_Suspended & g4;
+     t6 := event = ev_renewG & state = LicenseLifecycle_ExpiredG;
+     t7 := event = ev_payFee & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1;
+     t8 := event = ev_passG2Test & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1 & g1;
+     t9 := event = ev_expire & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1;
+     t10 := event = ev_suspend & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1;
+     t11 := event = ev_payFee & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2;
+     t12 := event = ev_passGTest & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2 & g1;
+     t13 := event = ev_expire & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2;
+     t14 := event = ev_suspend & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2;
+     t15 := event = ev_expire & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G;
+     t16 := event = ev_suspend & _licenseLifecycleLicensed.state = LicenseLifecycleLicensed_G;
+     g1 := feePaid = 1;
+     g2 := suspensionCode = 1;
+     g3 := suspensionCode = 2;
+     g4 := suspensionCode = 3;
+
+   -- This part defines logic for the assignment of values to state variable "state" of this NuSMV module --
+   ASSIGN
+     init( state ) := LicenseLifecycle_NoLicense;
+     next( state ) := case
+       t9 | t1 | t13 : LicenseLifecycle_NoLicense;
+       t7 | t8 | t4 | t5 | t2 | t3 | t11 | t12 | t6 : LicenseLifecycle_Licensed;
+       t14 | t10 | t16 : LicenseLifecycle_Suspended;
+       t15 : LicenseLifecycle_ExpiredG;
+       TRUE : state;
+     esac;
+
+   -- This part defines logic for the assignment of values to state variable "event" of this NuSMV module --
+   ASSIGN
+     init( event ) := ev_null;
+     next( event ) := case
+       licenseLifecycle_stable : { ev_suspend , ev_renewG , ev_reinstateAsG , ev_payFee , ev_passGTest , ev_expire , ev_passG1Test , ev_reinstateAsG2 , ev_reinstateAsG1 , ev_passG2Test };
+       TRUE : ev_null;
+     esac;
+
+   -- This part defines logic for the assignment of values to state variable "applicantId" of this NuSMV module --
+   ASSIGN
+     init( applicantId ) := 0;
+
+   -- This part defines logic for the assignment of values to state variable "nameCode" of this NuSMV module --
+   ASSIGN
+     init( nameCode ) := 101;
+
+   -- This part defines logic for the assignment of values to state variable "birthYear" of this NuSMV module --
+   ASSIGN
+     init( birthYear ) := 1990;
+
+   -- This part defines logic for the assignment of values to state variable "addressCode" of this NuSMV module --
+   ASSIGN
+     init( addressCode ) := 501;
+
+   -- This part defines logic for the assignment of values to state variable "feePaid" of this NuSMV module --
+   ASSIGN
+     init( feePaid ) := 0;
+
+   -- This part defines logic for the assignment of values to state variable "lastScore" of this NuSMV module --
+   ASSIGN
+     init( lastScore ) := 0;
+
+   -- This part defines logic for the assignment of values to state variable "suspensionCode" of this NuSMV module --
+   ASSIGN
+     init( suspensionCode ) := 0;
+
+-- This defines a NuSMV module for ApplicantLicenseLifecycleLicensed --
+MODULE ApplicantLicenseLifecycleLicensed ( _licenseLifecycle )
+
+   -- This part declares state variables for the given NuSMV module --
+   VAR
+     state : { LicenseLifecycleLicensed_G1 , LicenseLifecycleLicensed_G2 , LicenseLifecycleLicensed_G , null };
+
+   -- This part defines logic for the assignment of values to state variable "state" of this NuSMV module --
+   ASSIGN
+     init( state ) := null;
+     next( state ) := case
+       _licenseLifecycle.t9 | _licenseLifecycle.t13 | _licenseLifecycle.t15 | _licenseLifecycle.t1 | _licenseLifecycle.t10 | _licenseLifecycle.t14 | _licenseLifecycle.t16 : null;
+       _licenseLifecycle.t7 | _licenseLifecycle.t2 | _licenseLifecycle.t3 : LicenseLifecycleLicensed_G1;
+       _licenseLifecycle.t11 | _licenseLifecycle.t8 | _licenseLifecycle.t4 : LicenseLifecycleLicensed_G2;
+       _licenseLifecycle.t5 | _licenseLifecycle.t12 | _licenseLifecycle.t6 : LicenseLifecycleLicensed_G;
+       _licenseLifecycle.state = LicenseLifecycle_Licensed & state = null : LicenseLifecycleLicensed_G1;
+       TRUE : state;
+     esac;
+
+-- This defines a NuSMV module for ApplicantLicenseLifecycle_Machine --
+MODULE ApplicantLicenseLifecycle_Machine
+
+   -- This part declares state variables for the given NuSMV module --
+   VAR
+     applicantLicenseLifecycle : ApplicantLicenseLifecycle( applicantLicenseLifecycleLicensed );
+     applicantLicenseLifecycleLicensed : ApplicantLicenseLifecycleLicensed( applicantLicenseLifecycle );
+
+-- This defines a NuSMV module for main --
+MODULE main
+
+   -- This part declares state variables for the given NuSMV module --
+   VAR
+     applicantLicenseLifecycle_Machine : ApplicantLicenseLifecycle_Machine;
+
+   -- The following properties are specified to certify that non-symbolic state(s) of this model is (or are) reachable. 
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_NoLicense )
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_Licensed )
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_Suspended )
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycle.state = LicenseLifecycle_ExpiredG )
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = LicenseLifecycleLicensed_G1 )
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = LicenseLifecycleLicensed_G2 )
+   CTLSPEC   EF( applicantLicenseLifecycle_Machine.applicantLicenseLifecycleLicensed.state = LicenseLifecycleLicensed_G )
