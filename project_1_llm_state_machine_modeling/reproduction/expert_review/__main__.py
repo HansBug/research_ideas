@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from . import review_model
+from .compatibility import review_model
 from .expert_review_schema import to_json
 
 

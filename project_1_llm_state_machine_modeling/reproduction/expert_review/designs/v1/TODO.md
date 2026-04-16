@@ -746,43 +746,206 @@
 
 ### Todolist
 
-* [ ] 将当前各分析步骤正式提升为内部 agent role：
-  * [ ] Contract Router
-  * [ ] Evidence Regime Estimator
-  * [ ] Input Analyst
-  * [ ] Prediction Extractor
-  * [ ] Reference Extractor
-  * [ ] Traceability Agent
-  * [ ] Equivalence and Difference Agent
-  * [ ] Pragmatic Quality Agent
-  * [ ] Missing-Evidence Critic
-  * [ ] Disagreement Arbiter
-  * [ ] Score Composer
-  * [ ] Final Synthesizer
-* [ ] 明确每个 agent 的输入上下文最小化原则。
-* [ ] 明确 fan-out / fan-in 关系。
-* [ ] 明确 agent 间冲突与裁决机制。
-* [ ] 确保多智能体组织不是“表面拆函数”，而是真正影响运行流。
-* [ ] 按 v1 设计稿第 `13` 节推动 `expert_review/` 路径显式收敛到 `schemas/`、`prompts/`、`tools/`、`agents/`、`graph/`、`compatibility/` 等主干层次。
-* [ ] 让历史单文件只保留兼容层或薄封装职责，不再长期承载跨层核心逻辑。
-* [ ] 保持外部接口不变。
-* [ ] 跑一次完整 phase-level 回放，形成 v1 候选冻结基线。
-* [ ] 在 Phase 5 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
-* [ ] 记录 Phase 5 每一轮迭代的修改项与指标前后变化。
+* [x] 将当前各分析步骤正式提升为内部 agent role：
+  * [x] Contract Router
+  * [x] Evidence Regime Estimator
+  * [x] Input Analyst
+  * [x] Prediction Extractor
+  * [x] Reference Extractor
+  * [x] Traceability Agent
+  * [x] Equivalence and Difference Agent
+  * [x] Pragmatic Quality Agent
+  * [x] Missing-Evidence Critic
+  * [x] Disagreement Arbiter
+  * [x] Score Composer
+  * [x] Final Synthesizer
+* [x] 明确每个 agent 的输入上下文最小化原则。
+* [x] 明确 fan-out / fan-in 关系。
+* [x] 明确 agent 间冲突与裁决机制。
+* [x] 确保多智能体组织不是“表面拆函数”，而是真正影响运行流。
+* [x] 按 v1 设计稿第 `13` 节推动 `expert_review/` 路径显式收敛到 `schemas/`、`prompts/`、`tools/`、`agents/`、`graph/`、`compatibility/` 等主干层次。
+* [x] 让历史单文件只保留兼容层或薄封装职责，不再长期承载跨层核心逻辑。
+* [x] 保持外部接口不变。
+* [x] 跑一次完整 phase-level 回放，形成 v1 候选冻结基线。
+* [x] 在 Phase 5 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
+* [x] 记录 Phase 5 每一轮迭代的修改项与指标前后变化。
 
 ### Checklist
 
-* [ ] 内部 reviewer 架构已整体符合 v1 设计稿。
-* [ ] agent role 不是命名装饰，而是运行时真实节点。
-* [ ] 各 agent 间输入上下文已裁剪，不是所有节点共享全量 prompt。
-* [ ] 冲突结论存在真实 arbitration。
-* [ ] `expert_review/` 路径结构已能直接映射到 v1 设计稿第 `13` 节建议目录架构。
-* [ ] 历史单文件不再承载多数核心职责，只保留兼容层或过渡薄封装。
-* [ ] 外部接口仍保持兼容。
-* [ ] 没有新增明显不可达 agent 节点。
-* [ ] 已记录 Phase 5 的完整对齐指标。
-* [ ] 已保留 Phase 5 多轮自我迭代链路记录。
-* [ ] 停止 Phase 5 迭代的原因已明确记录为“提升边际化”或等价结论。
+* [x] 内部 reviewer 架构已整体符合 v1 设计稿。
+* [x] agent role 不是命名装饰，而是运行时真实节点。
+* [x] 各 agent 间输入上下文已裁剪，不是所有节点共享全量 prompt。
+* [x] 冲突结论存在真实 arbitration。
+* [x] `expert_review/` 路径结构已能直接映射到 v1 设计稿第 `13` 节建议目录架构。
+* [x] 历史单文件不再承载多数核心职责，只保留兼容层或过渡薄封装。
+* [x] 外部接口仍保持兼容。
+* [x] 没有新增明显不可达 agent 节点。
+* [x] 已记录 Phase 5 的完整对齐指标。
+* [x] 已保留 Phase 5 多轮自我迭代链路记录。
+* [x] 停止 Phase 5 迭代的原因已明确记录为“提升边际化”或等价结论。
+
+### Phase 5 当前状态回写
+
+- 回写时间：`2026-04-16 20:34:05`
+- 完成状态：`Phase 5` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 5`，未推进到 `Phase 6`。
+- 真实接入情况：
+  - `expert_review/graph/runtime.py` 已成为默认主编排。
+  - `expert_review_agent.py` 已直接走 `graph.runtime.run_expert_review_workflow()`。
+  - `__init__.py` / `__main__.py` 已改为通过 `compatibility/legacy_api.py` 暴露兼容入口。
+  - `expert_review_v1_runtime.py` 已压缩为兼容薄封装，仅保留测试仍需使用的 helper re-export 与 workflow wrapper。
+- 结构收敛情况：
+  - 已新增并真实接入 `schemas/`：`request.py`、`result.py`、`dossiers.py`、`graph_state.py`
+  - 已新增并真实接入 `prompts/`：`contract_router.py`、`review_policy.py`、`extraction.py`、`synthesis.py`
+  - 已新增并真实接入 `tools/`：`artifact_io.py`、`known_format_lift.py`、`artifact_probe.py`、`structured_extract.py`、`dossier_merge.py`、`validation.py`
+  - 已新增并真实接入 `agents/`：`contract_router.py`、`evidence_regime_estimator.py`、`input_analyst.py`、`prediction_extractor.py`、`reference_extractor.py`、`review_policy_builder.py`、`score_composer.py`、`final_synthesizer.py`、`orchestrator.py`
+  - 已新增并真实接入 `graph/`：`edges.py`、`subgraphs.py`、`runtime.py`
+  - 已新增并真实接入 `compatibility/`：`legacy_api.py`
+- 多智能体运行流：
+  - preparation fan-out：`Input Analyst / Prediction Extractor / Reference Extractor`
+  - analysis fan-out：`Traceability Agent / Equivalence and Difference Agent / Pragmatic Quality Agent`
+  - final fan-in：`Missing-Evidence Critic -> Disagreement Arbiter -> Score Composer -> Final Synthesizer`
+- 上下文最小化情况：
+  - 每个 agent 已不再共享全量 `prompt + input + pred + ref + 全部中间结果`
+  - 当前运行时会在 `notes` 中显式写出 `Agent context trimming: agent => context_keys`
+  - 例如 `Traceability Agent` 只看 `input_dossier + pred_dossier`，`Pragmatic Quality Agent` 只看 `contract + regime + policy_packet + input_dossier + pred_dossier`
+- 冲突与裁决情况：
+  - `Traceability Agent` 与 `Equivalence and Difference Agent` 的冲突会进入 `Disagreement Arbiter`
+  - arbitration 结果会真实回写 `trace_conflict_count / trace_upgrade_count / equivalence_strength`
+  - 最终 `Score Composer` 读取的已是裁决后结果，而不是绕开仲裁直接拼分
+- 可运行性验证：
+  - `review_artifacts()` 已验证
+  - `review_model()` 已验证
+  - `python -m expert_review` 已验证
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已验证
+  - `run_benchmark_iteration(llm_mode='off')` 已验证
+- 未完成项：无。
+- 当前旧逻辑保留情况：
+  - `expert_review_schema.py` 仍承担对外 schema 定义
+  - `expert_review_tools.py` 与 `expert_review_utils.py` 仍承担底层历史工具职责
+  - `expert_review_prompts.py`、`expert_review_rubrics.py` 仍在树中，但已不再承载 Phase 5 新主路径的核心编排
+- 停止原因：
+  - `Round 0` 的结构收敛本身已把 Phase 5 的主要目标完成，并拿到了本阶段最佳基线
+  - 在 Phase 5 架构边界内继续做 `Round 1..3` patch 后，`HAI` 均低于 `Round 0`
+  - 说明后续局部 patch 已开始明显边际化，且伴随 record/summary 双侧退化
+  - 因此当前按规则停止在 `Phase 5`，并保留完整迭代链路，不再继续用退化 patch 硬推
+
+### Phase 5 指标总表
+
+本节记录 `2026-04-16 20:34:05` 基于 `run_benchmark_iteration(llm_mode='off')` 的 `Phase 5 Round 0` 收尾快照，也是本阶段最终保留基线。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `78.68` |
+| `RAS` | `74.87` |
+| `SAS` | `75.02` |
+| `PDS` | `93.75` |
+| `normalized_mae` | `0.1751` |
+| `rmse` | `0.1911` |
+| `issue_f1` | `0.8202` |
+| `human_issue_coverage_recall` | `0.8500` |
+| `equivalence_false_reject_rate` | `0.0000` |
+| `equivalence_false_accept_rate` | `0.1429` |
+| `unsupported_claim_rate` | `0.1778` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.5302` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.7500` |
+
+### Phase 5 本阶段改进记录
+
+- 最明显提升 1：内部 reviewer 已从“单大文件 staged runtime”收敛成真实多智能体 graph 主路径，`Contract Router / Evidence Regime Estimator / Input Analyst / Prediction Extractor / Reference Extractor / Traceability Agent / Equivalence and Difference Agent / Pragmatic Quality Agent / Missing-Evidence Critic / Disagreement Arbiter / Score Composer / Final Synthesizer` 全部真实参与运行流。
+- 最明显提升 2：运行时已显式记录 `Agent context trimming`，并把 fan-out / fan-in 结构回写到 `notes`，说明当前 reviewer 不再是“所有节点共享全量 prompt”的伪多智能体。
+- 最明显提升 3：`expert_review/` 的目录布局已经真实收敛到 v1 设计要求的 `schemas / prompts / tools / agents / graph / compatibility` 主干层次，且 `expert_review_v1_runtime.py` 已退化为兼容薄封装。
+
+- 最明显退化风险 1：summary-level 仍会对某些高分 public row 过于保守，`sncs:connected_device:BD:1` 人工 `1.0`，当前 agent `0.667827`。
+- 最明显退化风险 2：record-level 仍存在“partial 很多但仍偏高分”的个别 case，例如 `STM Results:8` 人工 `0.476190`，当前 agent `0.757145`。
+- 最明显退化风险 3：protocol-only 的分数 restraint 已经很稳，但 issue taxonomy 仍偏 record-style，`protocol::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 仍会带出 `missing_required_behavior / wrong_guard_or_trigger` 这类更像 artifact review 的标签。
+
+- 当前仍未完全解决的问题 1：summary-level 对公开高分 row 仍有保守低估，尤其是 `summary_quality` 场景下的 readability/noise 惩罚还偏强。
+- 当前仍未完全解决的问题 2：record-level 的个别 partial-heavy 样例仍会高于人工，说明 `trace_ratio -> score` 的某些段还偏宽松。
+- 当前仍未完全解决的问题 3：protocol-only 的 taxonomy 仍需要在 `Phase 6` 做最后收口，否则 reviewer 虽然“分数和 restraint 像人”，但问题分类语言还不够像真人 protocol reviewer。
+
+### Phase 5 本阶段运行记录
+
+- 已验证入口：
+  - `review_artifacts()`
+  - `review_model()`
+  - `python -m expert_review`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py`
+  - `run_benchmark_iteration(llm_mode='off')`
+- 已被替换的真实路径：
+  - `expert_review_agent.py` 从历史 runtime 直接切到 `graph/runtime.py`
+  - `__init__.py` / `__main__.py` 从根路径直接暴露旧实现，改为经过 `compatibility/legacy_api.py`
+  - `expert_review_v1_runtime.py` 从核心大文件退化为兼容 re-export
+- 本阶段真实落位的目标层次：
+  - `schemas / prompts / tools / agents / graph / compatibility` 六层已全部有真实代码归宿，且都进入当前主路径
+- 仍保留的旧逻辑：
+  - `expert_review_schema.py`
+  - `expert_review_tools.py`
+  - `expert_review_utils.py`
+  - 历史 `expert_review_prompts.py / expert_review_rubrics.py`
+- 当前仍属过渡件的部分：
+  - `expert_review_agent.py` 仍承担 provider/LLM 初始化壳层
+  - `expert_review_schema.py` 仍是新旧路径共用的对外 schema 定义
+  - `expert_review_tools.py / expert_review_utils.py` 仍有若干底层 helper 待在 `Phase 6` 再判断是否进一步细拆
+
+### Phase 5 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 4` 收尾状态基础上完成 Phase 5 架构收敛后的起始快照，也是当前本地最终保留的最佳 `Phase 5` 代码状态。
+- `Round 1..3` 都只在 `Phase 5` 架构边界内做 summary/protocol quality、record-level calibration 与 branch-family credit 相关 patch，不提前进入 `Phase 6` 的冻结清理工作。
+- 当前本地最终保留的是 `Round 0` 代码；`Round 1..3` 都被完整记录，但由于净收益不成立且出现退化，已全部回退。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | 新增并接入 `schemas/`、`compatibility/`、`graph/runtime.py`；新增并接入 `contract_router / evidence_regime_estimator / input_analyst / prediction_extractor / reference_extractor / review_policy_builder / score_composer / final_synthesizer / orchestrator`；新增并接入 `artifact_probe / structured_extract / dossier_merge / validation`；让 graph 主路径真实记录 `Agent context trimming` 与 fan-out / fan-in | `contract_understanding_error` / `element_extraction_error` / `evidence_discipline_error` | `HAI 78.62 / RAS 74.76 / SAS 75.02 / PDS 93.75` | `HAI 78.68 / RAS 74.87 / SAS 75.02 / PDS 93.75 / normalized_mae 0.1751 / issue_f1 0.8202 / equivalence_false_reject_rate 0.0000 / unsupported_claim_rate 0.1778` | `HAI +0.06` | `是` | Phase 5 架构收敛完成且指标未退化；兼容入口保持不变，多智能体最小上下文与 arbitration 真正进入主路径 |
+| `Round 1` | 尝试压低 summary/protocol 下的质量侧过惩罚；尝试对 record-level 的 partial-heavy 样例加 conservative cap；尝试补 action/effect 级冲突识别 | `quality_judgement_error` / `evidence_discipline_error` | `HAI 78.68 / RAS 74.87 / SAS 75.02 / PDS 93.75` | `HAI 77.06 / RAS 72.42 / SAS 73.90 / PDS 93.75 / normalized_mae 0.1897 / issue_f1 0.8104 / equivalence_false_reject_rate 0.1000 / unsupported_claim_rate 0.1944` | `HAI -1.63` | `是` | 明确暴露出“partial cap 会误伤 branch-family credit”的真实边界；record-level 和 summary-level 双退化，`equivalence_false_reject_rate` 从 `0.0000` 升到 `0.1000` |
+| `Round 2` | 收窄 `partial-only` 惩罚触发条件，避免无差别打压非同构等价设计 | `quality_judgement_error` | `HAI 77.06 / RAS 72.42 / SAS 73.90 / PDS 93.75` | `HAI 77.06 / RAS 72.42 / SAS 73.90 / PDS 93.75` | `HAI +0.00` | `是` | 证实问题不在单一 partial cap，而在 parallel penalty 与 branch-family credit 的冲突；没有新增改善，收益已明显变小 |
+| `Round 3` | 尝试消除 `parallel penalties` 与 `parallel_branch_credit` 同时生效的冲突 | `equivalence_reasoning_error` | `HAI 77.06 / RAS 72.42 / SAS 73.90 / PDS 93.75` | `HAI 77.43 / RAS 73.10 / SAS 73.90 / PDS 93.75 / normalized_mae 0.1871 / issue_f1 0.8141 / equivalence_false_reject_rate 0.0000 / unsupported_claim_rate 0.1889` | `HAI +0.38` | `否` | branch-family credit 恢复正常，相关单测回到安全水位，但仍显著低于 `Round 0`，且 `SAS` 完全没有恢复；说明继续 patch 已明显边际化，因此停止并回退保留 `Round 0` 最佳实现 |
+
+### Phase 5 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 5` 已完成并停止，等待下一步指令，不进入 `Phase 6`。
+- TODO 已完成项：
+  - Phase 5 全部 Todolist 已打勾
+  - Phase 5 全部 Checklist 已打勾
+  - 本阶段 round-by-round 记录已完整补齐
+  - PR body 已要求同步到当前结论
+- TODO 尚未完成项：无；当前剩余问题已明确转交给 `Phase 6`。
+- 当前对齐程度总览：
+  - 当前本地收尾 `HAI 78.68`，相对 `Phase 4` 收尾的 `78.62` 小幅提升 `+0.06`
+  - 其中 `RAS 74.76 -> 74.87`，`SAS 75.02 -> 75.02`，`PDS 93.75 -> 93.75`
+  - 这说明 `Phase 5` 的主要收益不是“继续拉高分数”，而是“在不牺牲对齐的前提下完成 v1 真正需要的内部多智能体结构收敛”
+- 从人类评审视角看：
+  - `HAI 78.68`：当前 reviewer 已能像真人一样同时处理 record、summary、protocol 三种证据形态，并且在架构上已经能解释自己“为什么这么评”
+  - `RAS 74.87`：record-level 基本进入“整体像真人 reviewer，但仍有少量分数校准偏差”的阶段
+  - `SAS 75.02`：summary-level 已有稳定公共语义意识，会区分 aggregate quality 与 std-dev row，但对某些高分 public row 仍偏保守
+  - `PDS 93.75`：protocol-only 已经非常接近真人 reviewer 的 restraint 水平，即“没有 artifact 就不装作看到了 artifact”
+  - `equivalence_false_reject_rate 0.0000`：从人类视角意味着当前 reviewer 已基本不会把“等效但不同构”的设计误判成明显错误
+  - `unsupported_claim_rate 0.1778`：从人类视角意味着 reviewer 乱说、说多、说偏的情况已经被压到相对可控水位
+- 真实例子对比：
+  - 例子 1：branch-family 等价重构 case 当前 `0.609222`
+    - 说明 reviewer 已能给“不同构但等价”的设计保留正向 credit，而不是只看表面结构
+    - 当前 `overall_reason_text` 中会明确写出 `supported equivalent-but-different structure` 与 `branch-family restructuring`
+  - 例子 2：`sncs:connected_device:SMD:Std Dev`
+    - 人工 `0.05`
+    - 当前 agent `0.160750`
+    - 说明 reviewer 已知道这是 `std-dev / dispersion` 语义，能把分数压低到接近人工，而不是把 summary row 当正常 artifact review
+  - 例子 3：`STM Results:8`
+    - 人工 `0.476190`
+    - 当前 agent `0.757145`
+    - 说明 reviewer 仍会对 “partial 很多但人工其实更严” 的样例偏乐观，这仍是下一阶段要继续收口的 record-level calibration 问题
+  - 例子 4：`protocol::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models`
+    - 当前 agent `0.488989`，`confidence 0.42`
+    - 说明 reviewer 已能老老实实把 protocol-only task 当 assurance review 处理，而不会虚构元素级结论
+    - 但 issue taxonomy 仍带有 `missing_required_behavior / wrong_guard_or_trigger` 等 record-style 标签，说明 protocol-only 的表述语气还需要 Phase 6 清理
+- 当前仍与人类有偏差的地方：
+  - 高分 summary row 仍偏保守
+  - 个别 partial-heavy record row 仍偏高
+  - protocol-only 的 issue taxonomy 语言还不够“像人工 protocol reviewer”
+- 当前 phase 是否停止：`是`，停止在 `Phase 5`，等待下一步指令。
 
 ## 8. Phase 6: V1 冻结前验证与收口
 

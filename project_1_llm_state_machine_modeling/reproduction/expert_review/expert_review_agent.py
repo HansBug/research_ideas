@@ -9,7 +9,7 @@ from .expert_review_utils import (
     PROVIDER_CONFIGS,
     resolve_api_env,
 )
-from .expert_review_v1_runtime import run_expert_review_workflow
+from .graph.runtime import run_expert_review_workflow
 
 
 class ExpertReviewAgent:
@@ -54,7 +54,7 @@ class ExpertReviewAgent:
         return None, None
 
     def review(self, request: ExpertReviewRequest) -> ExpertReviewResult:
-        backend_label = "v1_multi_agent_runtime"
+        backend_label = "langgraph_multi_agent_v1"
         if self._llm is None:
             return run_expert_review_workflow(
                 request,
@@ -84,9 +84,9 @@ class ExpertReviewAgent:
 
 
 def heuristic_expert_review(request: ExpertReviewRequest, llm: ChatOpenAI | None = None) -> ExpertReviewResult:
-    backend_label = "v1_multi_agent_runtime_deterministic"
+    backend_label = "langgraph_multi_agent_v1_deterministic"
     if llm is not None:
-        backend_label = "v1_multi_agent_runtime_hybrid"
+        backend_label = "langgraph_multi_agent_v1_hybrid"
     return run_expert_review_workflow(
         request,
         llm=llm,

@@ -63,13 +63,14 @@ def build_result(with_reference: bool = True):
 def test_heuristic_review_returns_structured_result() -> None:
     result = build_result()
     assert result.prompt.startswith("Review the predicted printer state machine")
-    assert result.used_review_backend.startswith("v1_multi_agent_runtime")
+    assert result.used_review_backend.startswith("langgraph_multi_agent_v1")
     assert result.overall_score >= 0.0
     assert result.dimension_results
     assert any(item.dimension_name == "evidence_discipline" for item in result.dimension_results)
     assert all(item.reason_text for item in result.dimension_results)
     assert result.requirement_trace_results
     assert result.overall_reason_text
+    assert any("Agent context trimming" in note for note in result.notes)
 
 
 def test_heuristic_review_flags_extra_structure() -> None:
@@ -83,7 +84,7 @@ def test_heuristic_review_supports_missing_reference() -> None:
     result = build_result(with_reference=False)
     assert result.overall_score >= 0.0
     assert result.dimension_results
-    assert result.used_review_backend.startswith("v1_multi_agent_runtime")
+    assert result.used_review_backend.startswith("langgraph_multi_agent_v1")
     assert result.unsupported_model_elements == []
     assert any("mixed_evidence" in item.reason_text for item in result.dimension_results)
     assert any("Avoid exact-match penalties" in note for note in result.notes)
@@ -104,7 +105,7 @@ Working -> Fault : error
         ref_output=None,
     )
     result = heuristic_expert_review(request)
-    assert result.used_review_backend.startswith("v1_multi_agent_runtime")
+    assert result.used_review_backend.startswith("langgraph_multi_agent_v1")
     assert result.dimension_results
     assert result.requirement_trace_results
     assert result.overall_reason_text

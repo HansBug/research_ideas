@@ -5,6 +5,18 @@ from typing import Any
 from langchain_openai import ChatOpenAI
 
 from ..agents import (
+    build_dimensions,
+    build_input_dossier,
+    build_review_policy_packet,
+    compose_scores,
+    estimate_evidence_regime,
+    extract_prediction_dossier,
+    extract_reference_dossier,
+    final_confidence,
+    maybe_refine_overall_reason,
+    overall_reason,
+    route_contract,
+    synthesize_result,
     arbitrate_trace_and_equivalence,
     arbitrate_with_llm,
     deterministic_missing_evidence_critic,
@@ -16,6 +28,65 @@ from ..agents import (
     pragmatic_quality_with_llm,
     traceability_with_llm,
 )
+
+
+def run_contract_router_node(
+    llm: ChatOpenAI | None,
+    prompt: str,
+) -> tuple[Any, list[str]]:
+    notes: list[str] = []
+    return route_contract(prompt, llm, notes), notes
+
+
+def run_input_analyst_node(request: Any) -> tuple[Any, list[str]]:
+    return build_input_dossier(request), []
+
+
+def run_prediction_extractor_node(
+    llm: ChatOpenAI | None,
+    pred_output: str | None,
+) -> tuple[Any, list[str]]:
+    notes: list[str] = []
+    return extract_prediction_dossier(pred_output, llm, notes), notes
+
+
+def run_reference_extractor_node(
+    llm: ChatOpenAI | None,
+    ref_output: str | None,
+) -> tuple[Any, list[str]]:
+    notes: list[str] = []
+    return extract_reference_dossier(ref_output, llm, notes), notes
+
+
+def run_evidence_regime_node(
+    request: Any,
+    pred_dossier: Any,
+    ref_dossier: Any,
+) -> tuple[Any, list[str]]:
+    return estimate_evidence_regime(request, pred_dossier, ref_dossier), []
+
+
+def run_review_policy_builder_node(
+    llm: ChatOpenAI | None,
+    contract: Any,
+    regime: Any,
+    request: Any,
+    input_dossier: Any,
+    pred_dossier: Any,
+    ref_dossier: Any,
+) -> tuple[dict[str, Any], list[Any], list[str]]:
+    notes: list[str] = []
+    policy_packet = build_review_policy_packet(
+        llm,
+        contract,
+        regime,
+        request,
+        input_dossier,
+        pred_dossier,
+        ref_dossier,
+        notes,
+    )
+    return policy_packet, build_dimensions(contract, regime), notes
 
 
 def run_traceability_node(
@@ -149,3 +220,77 @@ def run_missing_evidence_node(
         return llm_report, notes
     notes.append("Missing-evidence critic fell back to deterministic evidence-discipline rules.")
     return report, notes
+
+
+def run_score_composer_node(
+    dimensions: list[Any],
+    request: Any,
+    contract: Any,
+    regime: Any,
+    policy_packet: dict[str, Any],
+    pred_dossier: Any,
+    ref_dossier: Any,
+    trace_results: list[Any],
+    equivalence_report: dict[str, Any],
+    quality_report: dict[str, Any],
+    evidence_critic: dict[str, Any],
+) -> tuple[list[Any], list[Any], float, float]:
+    dimension_results, harmful_issues, overall_score = compose_scores(
+        dimensions,
+        request,
+        contract,
+        regime,
+        policy_packet,
+        pred_dossier,
+        ref_dossier,
+        trace_results,
+        equivalence_report,
+        quality_report,
+        evidence_critic,
+    )
+    confidence = final_confidence(regime, policy_packet, trace_results, equivalence_report, evidence_critic)
+    return dimension_results, harmful_issues, overall_score, confidence
+
+
+def run_final_synthesizer_node(
+    llm: ChatOpenAI | None,
+    *,
+    request: Any,
+    backend_label: str,
+    regime: Any,
+    policy_packet: dict[str, Any],
+    overall_score: float,
+    trace_results: list[Any],
+    equivalence_report: dict[str, Any],
+    quality_report: dict[str, Any],
+    harmful_issues: list[Any],
+    evidence_critic: dict[str, Any],
+    dimension_results: list[Any],
+    notes: list[str],
+    confidence: float,
+) -> tuple[Any, list[str]]:
+    draft_reason = overall_reason(
+        regime,
+        policy_packet,
+        overall_score,
+        trace_results,
+        equivalence_report,
+        quality_report,
+        harmful_issues,
+        evidence_critic,
+    )
+    final_reason = maybe_refine_overall_reason(llm, regime, policy_packet, draft_reason, notes, dimension_results)
+    return (
+        synthesize_result(
+            request=request,
+            backend_label=backend_label,
+            overall_score=overall_score,
+            overall_reason_text=final_reason,
+            dimension_results=dimension_results,
+            trace_results=trace_results,
+            harmful_issues=harmful_issues,
+            notes=notes,
+            confidence=confidence,
+        ),
+        [],
+    )
