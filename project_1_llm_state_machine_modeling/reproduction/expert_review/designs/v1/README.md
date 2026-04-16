@@ -5,6 +5,7 @@
 ## 当前文档
 
 - [EXPERT_REVIEW_DESIGN_V1.md](./EXPERT_REVIEW_DESIGN_V1.md)
+- [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md)
 
 ## 作用
 
@@ -17,8 +18,10 @@
 3. 引入真正的多智能体系统
 4. 主智能体调度、子智能体上下文可隔离
 5. 保持当前外部接口兼容
+6. reviewer 运行时自包含，但允许离线用真实人工评审 benchmark 做自我迭代
 
 ## 阅读顺序
 
 1. 先读 [GUIDE.md](./GUIDE.md)
 2. 再读 [EXPERT_REVIEW_DESIGN_V1.md](./EXPERT_REVIEW_DESIGN_V1.md)
+3. 最后读 [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md)
