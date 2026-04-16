@@ -165,6 +165,117 @@ def test_v1_runtime_gives_credit_to_equivalent_but_different_structure() -> None
     assert behavioral.score >= 0.5
 
 
+def test_v1_runtime_preserves_branch_family_credit_for_non_isomorphic_parallel_controls() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "Review the predicted state machine. Reward semantically equivalent but differently structured designs, "
+            "especially when a branch family is decomposed into more detailed control logic."
+        ),
+        input_text=(
+            "1. There are three region in this diagram.\n"
+            "2. This sub-machine becomes active when a possible frontend collision, rear-end collision or collision "
+            "with pedestrian is detected.\n"
+            "3. The orthogonal regions of the active mode of collision avoidance allow for concurrent activation of "
+            "different collision avoidance controls."
+        ),
+        pred_output="""
+        @startuml
+        [*] --> InitialState
+        state InitialState {
+            [*] --> DetectionState
+            DetectionState --> BrakingControl : Frontend Collision Detected
+            DetectionState --> SteeringControl : Rear-End Collision Detected
+            DetectionState --> AlertSystem : Collision With Pedestrian Detected
+        }
+        state CollisionAvoidance {
+            state BrakingControl {
+                [*] --> ActivateABS
+                ActivateABS --> ApplyBrakes : Immediate Action Required
+            }
+            state SteeringControl {
+                [*] --> ActivateESC
+                ActivateESC --> SteerAway : Collision Imminent
+            }
+            state AlertSystem {
+                [*] --> SendAlert
+                SendAlert --> SoundAlarm
+            }
+        }
+        @enduml
+        """,
+        ref_output="""
+        @startuml
+        state Collision_Avoidance {
+         [*] --> front_inactive
+         front_inactive --> avoid_frontend_collision: dist_to_front<10 & urban=true
+         avoid_frontend_collision --> front_inactive: dist_to_front>15
+         --
+         [*] --> rear_inactive
+         rear_inactive --> avoid_rearend_collision: dist_to_rear<5 & vel>30
+         avoid_rearend_collision --> rear_inactive: dist_to_rear>12
+         --
+         [*] --> pedestrian_inactive
+         pedestrian_inactive --> avoid_pedestrian_collision: pedestrian_detected
+         avoid_pedestrian_collision --> pedestrian_inactive
+        }
+        @enduml
+        """,
+    )
+    result = heuristic_expert_review(request)
+    assert result.overall_score >= 0.55
+    assert "branch-family restructuring" in result.overall_reason_text
+    assert not any("InitialState" in item.element_text for item in result.unsupported_model_elements)
+
+
+def test_v1_runtime_penalizes_parallel_branch_collapse_with_cross_state_transitions() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "Review the predicted state machine. Penalize unsupported cross-branch transitions when the reference "
+            "exposes orthogonal or parallel structure."
+        ),
+        input_text=(
+            "1. The system begins in the PumpControl state.\n"
+            "2. Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.\n"
+            "3. The system first transitions to the PumpState substate.\n"
+            "4. The system can also transition to the WaterState substate.\n"
+            "5. Similarly, the system can transition to the MethaneState substate."
+        ),
+        pred_output="""
+        @startuml
+        [*] --> PumpControl
+        state PumpControl {
+        [*] --> PumpState
+        state PumpState
+        state WaterState
+        state MethaneState
+        PumpState --> WaterState : Water Flow Detected
+        PumpState --> MethaneState : Methane Flow Detected
+        WaterState --> PumpState : Water Flow Controlled
+        WaterState --> MethaneState : Transition to Methane
+        MethaneState --> PumpState : Methane Flow Controlled
+        MethaneState --> WaterState : Transition to Water
+        }
+        @enduml
+        """,
+        ref_output="""
+        @startuml
+        [*]-->PumpControl
+        state PumpControl{
+        [*] --> PumpState
+        --
+        [*] --> WaterState
+        --
+        [*] --> MethaneState
+        }
+        @enduml
+        """,
+    )
+    result = heuristic_expert_review(request)
+    assert result.overall_score < 0.5
+    assert "parallel or orthogonal structure mismatch" in result.overall_reason_text
+    assert any(item.issue_type == "contradiction" for item in result.unsupported_model_elements)
+
+
 def test_input_dossier_splits_inline_requirement_markers() -> None:
     request = ExpertReviewRequest(
         prompt="Review this model.",

@@ -455,37 +455,145 @@
 
 ### Todolist
 
-* [ ] 强化 requirement-to-artifact trace candidate 生成。
-* [ ] 强化 trace 裁决：
-  * [ ] `matched`
-  * [ ] `partial`
-  * [ ] `missing`
-* [ ] 强化 equivalence reasoning：
-  * [ ] 非同构但行为兼容应给 credit
-  * [ ] 表面相似但 guard/trigger/action 错误应严罚
-* [ ] 强化 dependency-aware judgement：
-  * [ ] state 错误时，其依附 transition / guard / action 不能被轻易放过
-* [ ] 强化 harmful extra / supported restructure / contradiction 的区分。
-* [ ] 引入更明确的 arbitration 逻辑，处理 trace 与 equivalence 的冲突结论。
-* [ ] 将 `traceability / equivalence / arbitration` 的实现边界朝 v1 的 `agents/`、`prompts/`、`graph/` 目标形态收敛，而不是继续只在单个 runtime 文件里追加补丁。
-* [ ] 为上述三类节点建立清晰的中间产物与调用边界，使其未来可自然落位到 `agents/traceability.py`、`agents/equivalence.py`、`agents/arbiter.py` 或等价归宿。
-* [ ] 重点回放 `record-level` 样本并记录误差簇。
-* [ ] 在 Phase 3 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
-* [ ] 记录 Phase 3 每一轮迭代的修改项与指标前后变化。
+* [x] 强化 requirement-to-artifact trace candidate 生成。
+* [x] 强化 trace 裁决：
+  * [x] `matched`
+  * [x] `partial`
+  * [x] `missing`
+* [x] 强化 equivalence reasoning：
+  * [x] 非同构但行为兼容应给 credit
+  * [x] 表面相似但 guard/trigger/action 错误应严罚
+* [x] 强化 dependency-aware judgement：
+  * [x] state 错误时，其依附 transition / guard / action 不能被轻易放过
+* [x] 强化 harmful extra / supported restructure / contradiction 的区分。
+* [x] 引入更明确的 arbitration 逻辑，处理 trace 与 equivalence 的冲突结论。
+* [x] 将 `traceability / equivalence / arbitration` 的实现边界朝 v1 的 `agents/`、`prompts/`、`graph/` 目标形态收敛，而不是继续只在单个 runtime 文件里追加补丁。
+* [x] 为上述三类节点建立清晰的中间产物与调用边界，使其未来可自然落位到 `agents/traceability.py`、`agents/equivalence.py`、`agents/arbiter.py` 或等价归宿。
+* [x] 重点回放 `record-level` 样本并记录误差簇。
+* [x] 在 Phase 3 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
+* [x] 记录 Phase 3 每一轮迭代的修改项与指标前后变化。
 
 ### Checklist
 
-* [ ] reviewer 不再主要依赖简单 lexical overlap 做等价判断。
-* [ ] reviewer 能在显式 bad case 上压低分数。
-* [ ] reviewer 能在等价变体上给出合理 credit。
-* [ ] trace 与 equivalence 的输出口径一致。
-* [ ] `traceability / equivalence / arbitration` 已具有清晰的路径归宿和职责边界，而不是继续附着在单文件补丁段落里。
-* [ ] 新增推理链路与 v1 的 `agents / prompts / graph` 目标形态存在可追溯映射关系。
-* [ ] `equivalence_false_reject_rate` 和 `equivalence_false_accept_rate` 有明确阶段记录。
-* [ ] 没有新增不可达裁决分支。
-* [ ] 已记录 Phase 3 的完整对齐指标。
-* [ ] 已保留 Phase 3 多轮自我迭代链路记录。
-* [ ] 停止 Phase 3 迭代的原因已明确记录为“提升边际化”或等价结论。
+* [x] reviewer 不再主要依赖简单 lexical overlap 做等价判断。
+* [x] reviewer 能在显式 bad case 上压低分数。
+* [x] reviewer 能在等价变体上给出合理 credit。
+* [x] trace 与 equivalence 的输出口径一致。
+* [x] `traceability / equivalence / arbitration` 已具有清晰的路径归宿和职责边界，而不是继续附着在单文件补丁段落里。
+* [x] 新增推理链路与 v1 的 `agents / prompts / graph` 目标形态存在可追溯映射关系。
+* [x] `equivalence_false_reject_rate` 和 `equivalence_false_accept_rate` 有明确阶段记录。
+* [x] 没有新增不可达裁决分支。
+* [x] 已记录 Phase 3 的完整对齐指标。
+* [x] 已保留 Phase 3 多轮自我迭代链路记录。
+* [x] 停止 Phase 3 迭代的原因已明确记录为“提升边际化”或等价结论。
+
+### Phase 3 当前状态回写
+
+- 回写时间：`2026-04-16 18:18:18`
+- 完成状态：`Phase 3` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 3`，未推进到 `Phase 4`。
+- 真实接入情况：
+  - 新增 `prompts/traceability.py`、`prompts/equivalence.py`、`prompts/arbitration.py`
+  - 新增 `agents/common.py`、`agents/llm_helpers.py`、`agents/traceability.py`、`agents/equivalence.py`、`agents/arbiter.py`
+  - 新增 `graph/nodes.py`，并让 `run_expert_review_workflow()` 真实通过 `run_traceability_node()`、`run_equivalence_node()`、`run_arbitration_node()` 走主路径
+  - `traceability / equivalence / arbitration` 不再只是 `expert_review_v1_runtime.py` 里的连续补丁段，而已有独立路径归宿
+  - 当前仍保留的过渡点：`dossier` 相关 dataclass 还在 `expert_review_v1_runtime.py`，尚未迁到 `schemas/`，这部分留给后续 phase 继续收敛
+- Phase 3 的核心能力变化：
+  - traceability 改为 `candidate-guided + structural-hint-aware`，不再只看 lexical overlap
+  - equivalence 增加对 `parallel branch credit / parallel collapse penalty / dependency break` 的显式裁决
+  - arbiter 会把 trace 结果与 equivalence 冲突对齐，执行 downgrade / upgrade，而不是让两边各说各话
+- 可运行性：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已通过，共 `10` 个测试
+  - `python -m expert_review` 已验收
+  - `review_artifacts()`、`review_model()` 已通过 deterministic monkeypatch 烟测验收
+- 未完成项：无。
+- 当前未同步项：
+  - 由于本轮按用户要求停在**本地未提交状态**，PR #6 的 body 仍停留在 `Phase 2` 口径，尚未同步到 `Phase 3`
+  - 待允许提交后，再同步 PR phase checkbox 和当前基线摘要
+- 已知遗留问题：
+  - `STM Results:0` 这类“方向看对但惩罚仍偏软”的 record-level 坏例仍未完全压下
+  - `unsupported_claim_rate` 与 `issue_f1` 还没有随着 `HAI/RAS` 同步改善，说明 taxonomy/quality discipline 仍有 Phase 4 工作量
+  - `SAS` 未提升，summary-level 标度问题仍明确留在 `Phase 4`
+
+### Phase 3 指标总表
+
+本节记录 `2026-04-16 18:18:18` 基于 `run_benchmark_iteration(llm_mode='off')` 的当前本地收尾快照。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `68.13` |
+| `RAS` | `63.94` |
+| `SAS` | `61.84` |
+| `PDS` | `87.50` |
+| `normalized_mae` | `0.1772` |
+| `rmse` | `0.1943` |
+| `issue_f1` | `0.5621` |
+| `human_issue_coverage_recall` | `0.8361` |
+| `equivalence_false_reject_rate` | `0.0000` |
+| `equivalence_false_accept_rate` | `0.1429` |
+| `unsupported_claim_rate` | `0.5704` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.6109` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.5000` |
+
+### Phase 3 本阶段改进记录
+
+- 最明显提升 1：`record-level` 总体对齐显著提升，`HAI 66.12 -> 68.13`，`RAS 60.30 -> 63.94`。
+- 最明显提升 2：`equivalence_false_accept_rate 0.4286 -> 0.1429`，说明“结构性坏例被放过”的问题被明显压下。
+- 最明显提升 3：`equivalence_false_reject_rate 0.1000 -> 0.0000`，说明通过多轮调参后，高分等价变体样本已不再被误杀到阈值以下。
+- 最明显提升 4：`normalized_mae 0.2285 -> 0.1772`，逐条 record-level 给分已明显更贴近人工。
+- 最明显提升 5：结构收敛已真实发生，`traceability / equivalence / arbitration` 有了 `prompts/`、`agents/`、`graph/` 的实际代码归宿。
+- 最明显退化/暴露问题 1：`unsupported_claim_rate 0.5398 -> 0.5704`，说明当前虽然分数更准，但 issue taxonomy 和 claim discipline 并没有同步变得更“像人”。
+- 最明显退化/暴露问题 2：`issue_f1 0.5924 -> 0.5621`，说明 agent 仍然会报出一些人类未必采纳的问题类别。
+- 最明显退化/暴露问题 3：`SAS = 61.84` 基本没动，说明本阶段提升主要集中在 `record-level`，summary-level 几乎没受益。
+- 仍未解决错误簇 1：`STM Results:0` 仍偏高，当前 agent `0.664754`，人工 `0.4166666667`。
+- 仍未解决错误簇 2：`STM Results:6` 虽已明显下压，但当前 agent `0.364063` 仍高于人工 `0.2222222222`。
+- 仍未解决错误簇 3：低 issue precision 问题仍在，当前多个样本仍会被自动映射出过宽 issue taxonomy。
+
+### Phase 3 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 2` 收尾状态。
+- `Round 1..5` 都只在 `Phase 3` 架构边界内做 trace/equivalence/arbitration 与结构收敛相关改动，不提前引入 `Phase 4` 的 quality/evidence discipline 重构。
+- 当前本地最终保留的是 `Round 5` 代码，但 `Round 4` 和 `Round 5` 的指标完全相同，说明这一轮以后收益已经明显边际化。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 2` 收尾状态，trace/equivalence 仍主要靠 runtime 内联逻辑，尚无真实 arbiter 节点与结构归宿 | `equivalence_reasoning_error` / `contract_understanding_error` | `HAI 66.12 / RAS 60.30 / SAS 61.84 / PDS 87.50` | `--` | `--` | `是` | 作为 `Phase 3` 起点 |
+| `Round 1` | 新增 `prompts/`、`agents/`、`graph/`；把 trace/equivalence/arbitration 接入真实主路径；引入 parallel branch credit、parallel collapse penalty、dependency break 与 trace/equivalence arbitration | `equivalence_reasoning_error` / `element_extraction_error` | `HAI 66.12` | `HAI 66.86` | `+0.74` | `是` | 坏例压制明显增强，`STM Results:13` 从 `0.83775` 直接降到 `0.379688`，但高分等价样本误杀上升 |
+| `Round 2` | 收紧 severe parallel mismatch 触发条件；修 branch-family 样本被无关 harmful extra 连坐降级的问题 | `equivalence_reasoning_error` | `HAI 66.86` | `HAI 67.92` | `+1.06` | `是` | `equivalence_false_reject_rate` 从 `0.2` 回落到 `0.1`，`STM Results:9` 从 `0.357812` 修回到 `0.686553` |
+| `Round 3` | 去掉 branch-family 中 `InitialState` wrapper 的硬惩罚，并加强 branch credit | `equivalence_reasoning_error` / `quality_judgement_error` | `HAI 67.92` | `HAI 67.87` | `-0.05` | `是` | `STM Results:7` 从 `0.499431` 提到 `0.547634`，但整体 `HAI` 轻微回落，开始进入 trade-off 区间 |
+| `Round 4` | 在 score composer 中微调 `parallel_branch_credit` 的最终加权，专门救回高分等价 branch-family 样本 | `equivalence_reasoning_error` | `HAI 67.87` | `HAI 68.13` | `+0.25` | `是` | `equivalence_false_reject_rate` 降到 `0.0`，`STM Results:7` 进一步到 `0.562165` |
+| `Round 5` | 尝试收紧 wrapper-state relation 的自动 credit，针对 `STM Results:0` 这类高估坏例做最后一轮局部修正 | `equivalence_reasoning_error` / `quality_judgement_error` | `HAI 68.13` | `HAI 68.13` | `+0.00` | `否` | 指标完全不动，说明在当前架构边界下继续细修已基本无收益 |
+
+### Phase 3 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 3` 已完成并停止，等待下一步指令，不进入 `Phase 4`。
+- TODO 打勾情况：`Phase 3` 的 Todolist 与 Checklist 均已如实打勾。
+- TODO 尚未完成项：无；当前剩余问题已明确转交给 `Phase 4 / Phase 5`。
+- 当前对齐程度总览：当前本地收尾 `HAI 68.13`，相对 `Phase 2 Round 0` 的 `66.12` 提升 `+2.00`；其中主要收益集中在 `record-level`，`RAS 60.30 -> 63.94`。
+- 从人类评审视角看，这意味着 reviewer 已经不只是“能抽元素”，而是开始对**等价但不同构**、**parallel collapse**、**dependency break** 这类人类专家真正在意的结构性问题有裁决能力。
+- `HAI 68.13` 的人类含义：总体可用性从“方向对但经常误判结构”进入到“多数 record-level 判断已经比 Phase 2 更像真人”，但离冻结目标仍有明显差距。
+- `RAS 63.94` 的人类含义：逐条 record-level 判断更稳了，尤其是在高分等价样本与低分结构坏例之间的边界更清晰。
+- `SAS 61.84` 的人类含义：summary-level 仍基本停滞，说明本阶段没有触及 summary 口径和证据纪律的核心问题。
+- `PDS 87.50` 的人类含义：protocol-only restraint 没被破坏，说明 Phase 3 的结构推理增强没有反过来把 reviewer 带回 overclaim。
+- `equivalence_false_reject_rate 0.0000` 的人类含义：当前 benchmark slice 上，高分等价变体已不再被阈值意义上误杀。
+- `equivalence_false_accept_rate 0.1429` 的人类含义：低分坏例被放过的问题仍在，但比 `Phase 2` 已大幅改善。
+- `normalized_mae 0.1772` 与 `rmse 0.1943` 的人类含义：当前单条打分偏差已显著收窄，比 Phase 2 更接近真人尺度。
+- `unsupported_claim_rate 0.5704` 的人类含义：虽然结构裁决更准了，但当前 reviewer 仍会“说得比人多”，这一点需要 `Phase 4` 去压。
+- 真实对齐例子 1：`STM Results:13`，人工 `0.375`，Phase 2 agent `0.83775`，当前 agent `0.379688`；说明并行/正交结构缺失现在已经能被压到接近人工。
+- 真实对齐例子 2：`STM Results:6`，人工 `0.2222222222`，Phase 2 agent `0.582013`，当前 agent `0.364063`；说明结构性坏例已被显著下压，但还没完全收紧到人工口径。
+- 真实对齐例子 3：`STM Results:7`，人工 `0.8196721311`，Phase 2 agent `0.388866`，当前 agent `0.562165`；说明等价 branch-family 样本已经明显救回，但仍偏保守。
+- 真实对齐例子 4：`STM Results:9`，人工 `0.9574468085`，Round 1 一度误杀到 `0.357812`，当前回升到 `0.686553`；说明多轮迭代确实修掉了“parallel mismatch 触发过宽”的问题。
+- 真实失配例子：`STM Results:0`，人工 `0.4166666667`，当前 agent `0.664754`；这类“方向看对但惩罚不够狠”的样本仍需要下一阶段的质量口径与更细的证据纪律来处理。
+- 结构收敛现状：当前 `traceability / equivalence / arbitration` 已真正落到 `agents/`、`prompts/`、`graph/`，但 `dossier schemas` 仍未独立拆出，这部分仍要继续向 v1 目录架构收敛。
+- 停止原因：
+  - `Round 1 -> Round 4` 的收益真实且明显，尤其是 `HAI`、`RAS`、`equivalence_false_accept_rate`、`equivalence_false_reject_rate`
+  - 但 `Round 4 -> Round 5` 指标完全不动，说明在当前 `Phase 3` 架构边界下继续 patch 已进入明显边际化
+  - 当前剩余问题更多集中在 `issue taxonomy / unsupported claim discipline / summary-level scaling`
+  - 后续若要继续提升，必须进入 `Phase 4` 处理 quality review 与 evidence discipline，或在后续 phase 继续做更深的架构拆分
 
 ## 6. Phase 4: Quality Review 与 Evidence Discipline 强化
 

@@ -19,6 +19,7 @@ from .expert_review_schema import (
     TraceLink,
     judgement_from_score,
 )
+from .graph import run_arbitration_node, run_equivalence_node, run_traceability_node
 from .expert_review_tools import (
     extract_generic_inventory_from_text,
     machine_elements_from_payload,
@@ -1988,6 +1989,7 @@ def _score_and_reason_dimensions(
     trace_ratio = (matched + 0.5 * partial) / requirement_count
     harmful_extras = list(equivalence_report.get("harmful_extras", []))
     contradictions = list(equivalence_report.get("contradictions", []))
+    dependency_breaks = list(equivalence_report.get("dependency_breaks", []))
     quality_issues = list(quality_report.get("issues", []))
     dimension_results: list[DimensionReviewResult] = []
 
@@ -2064,6 +2066,33 @@ def _score_and_reason_dimensions(
         completeness_score = min(completeness_score, pseudo_cap)
         traceability_score = min(traceability_score, pseudo_cap)
 
+    if equivalence_report.get("parallel_structure_mismatch"):
+        completeness_score = _clip01(completeness_score - 0.18)
+        behavior_score = _clip01(behavior_score - 0.24)
+        traceability_score = _clip01(traceability_score - 0.16)
+        clarity_score = _clip01(clarity_score - 0.10)
+        structural_cap = _clip01(0.18 + 0.52 * behavior_score)
+        completeness_score = min(completeness_score, structural_cap)
+        traceability_score = min(traceability_score, structural_cap)
+    elif equivalence_report.get("parallel_branch_credit"):
+        behavior_score = _clip01(behavior_score + 0.10)
+        completeness_score = _clip01(completeness_score + 0.06)
+        traceability_score = _clip01(traceability_score + 0.05)
+
+    if dependency_breaks:
+        penalty = min(0.28, 0.07 * len(dependency_breaks))
+        completeness_score = _clip01(completeness_score - min(0.18, penalty * 0.70))
+        behavior_score = _clip01(behavior_score - penalty)
+        traceability_score = _clip01(traceability_score - min(0.16, penalty * 0.80))
+        clarity_score = _clip01(clarity_score - min(0.10, penalty * 0.45))
+
+    trace_conflict_count = int(equivalence_report.get("trace_conflict_count", 0) or 0)
+    if trace_conflict_count:
+        penalty = min(0.16, 0.05 * trace_conflict_count)
+        completeness_score = _clip01(completeness_score - penalty)
+        behavior_score = _clip01(behavior_score - min(0.12, penalty))
+        traceability_score = _clip01(traceability_score - penalty)
+
     score_map = {
         "notation_syntax": syntax_score,
         "semantic_completeness": completeness_score,
@@ -2094,6 +2123,11 @@ def _score_and_reason_dimensions(
                 if behavior_score >= 0.7
                 else "Behavioral preservation is incomplete or contradicted by visible evidence."
             )
+            + (
+                " The arbiter also found dependency-sensitive mismatches between supported states and their attached transitions."
+                if dependency_breaks
+                else ""
+            )
         ),
         "requirement_traceability": (
             "Traceability was assessed from explicit requirement-to-artifact links and unsupported extras. "
@@ -2101,6 +2135,11 @@ def _score_and_reason_dimensions(
                 "Most major requirements can be grounded to visible predicted content."
                 if traceability_score >= 0.7
                 else "Too many requirements or predicted structures remain weakly grounded."
+            )
+            + (
+                f" {trace_conflict_count} trace judgement(s) were downgraded after arbitration."
+                if trace_conflict_count
+                else ""
             )
         ),
         "pragmatic_clarity": (
@@ -2157,7 +2196,7 @@ def _score_and_reason_dimensions(
         "notation_syntax": [],
         "semantic_completeness": harmful_extras[:4],
         "behavioral_consistency": contradictions[:4],
-        "requirement_traceability": harmful_extras[:6],
+        "requirement_traceability": (harmful_extras + dependency_breaks)[:6],
         "pragmatic_clarity": quality_issues[:6],
         "evidence_discipline": [],
     }
@@ -2209,6 +2248,10 @@ def _score_and_reason_dimensions(
                     "trace_ratio": round(trace_ratio, 6),
                     "structural_warning_count": len(pred_dossier.structural_warnings),
                     "extraction_conflict_count": len(pred_dossier.extraction_conflicts),
+                    "parallel_structure_mismatch": bool(equivalence_report.get("parallel_structure_mismatch")),
+                    "parallel_branch_credit": bool(equivalence_report.get("parallel_branch_credit")),
+                    "trace_conflict_count": trace_conflict_count,
+                    "dependency_break_count": len(dependency_breaks),
                 },
                 confidence=min(float(evidence_critic.get("confidence_cap", 0.7)), 0.90),
             )
@@ -2216,7 +2259,7 @@ def _score_and_reason_dimensions(
 
     total_weight = sum(item.weight for item in dimensions) or 1.0
     overall_score = sum(item.score * dimension.weight for item, dimension in zip(dimension_results, dimensions)) / total_weight
-    return dimension_results, harmful_extras + contradictions, _clip01(overall_score)
+    return dimension_results, harmful_extras + contradictions + dependency_breaks, _clip01(overall_score)
 
 
 def _json_safe_report(report: dict[str, Any]) -> dict[str, Any]:
@@ -2263,6 +2306,10 @@ def _final_confidence(
     base = 0.55 * base + 0.45 * float(equivalence_report.get("confidence", 0.55))
     if regime.regime == "record_level":
         base += 0.06
+    if equivalence_report.get("parallel_structure_mismatch"):
+        base -= 0.10
+    if equivalence_report.get("trace_conflict_count"):
+        base -= min(0.10, 0.03 * int(equivalence_report.get("trace_conflict_count", 0) or 0))
     return round(min(float(evidence_critic.get("confidence_cap", 0.75)), _clip01(base)), 6)
 
 
@@ -2287,6 +2334,14 @@ def _overall_reason(
         parts.append(f"{len(contradictions)} likely behavioral contradiction(s) were detected.")
     elif harmful_issues:
         parts.append(f"{len(harmful_issues)} unsupported or risky extra item(s) were identified.")
+    if equivalence_report.get("parallel_structure_mismatch"):
+        parts.append("A major parallel or orthogonal structure mismatch was detected and propagated into the final judgement.")
+    elif equivalence_report.get("parallel_branch_credit"):
+        parts.append("The arbiter retained credit for branch-family restructuring even though the surface form differs from the reference.")
+    if equivalence_report.get("trace_conflict_count"):
+        parts.append(
+            f"Arbitration downgraded {int(equivalence_report.get('trace_conflict_count', 0) or 0)} trace judgement(s) after reconciling semantic support with structural conflicts."
+        )
     if evidence_critic.get("warnings"):
         parts.append(f"Caution: {evidence_critic['warnings'][0]}")
     return " ".join(parts)
@@ -2315,21 +2370,26 @@ def run_expert_review_workflow(
     regime = _estimate_evidence_regime(request, pred_dossier, ref_dossier)
     dimensions = _build_dimensions(contract, regime)
 
-    trace_results = _traceability_with_llm(llm, input_dossier, pred_dossier) if llm is not None else None
-    if not trace_results:
-        trace_results = _deterministic_traceability(input_dossier, pred_dossier)
-        if llm is not None:
-            notes.append("Traceability agent fell back to deterministic candidate scoring.")
+    trace_results, trace_notes = run_traceability_node(llm, input_dossier, pred_dossier)
+    notes.extend(trace_notes)
 
     if regime.has_reference:
-        equivalence_report = _deterministic_equivalence(input_dossier, pred_dossier, ref_dossier)
-        if llm is not None:
-            llm_equivalence = _equivalence_with_llm(llm, input_dossier, pred_dossier, ref_dossier, equivalence_report)
-            if llm_equivalence is not None:
-                equivalence_report = llm_equivalence
-                notes.append("Equivalence agent used deterministic candidates plus LLM arbitration.")
-            else:
-                notes.append("Equivalence agent fell back to deterministic comparison.")
+        equivalence_report, equivalence_notes = run_equivalence_node(
+            llm,
+            input_dossier,
+            pred_dossier,
+            ref_dossier,
+        )
+        notes.extend(equivalence_notes)
+        trace_results, equivalence_report, arbitration_notes = run_arbitration_node(
+            llm,
+            input_dossier,
+            pred_dossier,
+            ref_dossier,
+            trace_results,
+            equivalence_report,
+        )
+        notes.extend(arbitration_notes)
     else:
         trace_matched, trace_partial, _trace_missing = _status_counts(trace_results)
         trace_ratio = (trace_matched + 0.5 * trace_partial) / max(1, len(trace_results))
@@ -2339,6 +2399,11 @@ def run_expert_review_workflow(
             "harmful_extras": [],
             "missing_items": [],
             "contradictions": [],
+            "dependency_breaks": [],
+            "parallel_structure_mismatch": False,
+            "parallel_branch_credit": False,
+            "major_relation_divergence_count": 0,
+            "trace_conflict_count": 0,
             "evidence": pred_dossier.evidence[:2],
             "confidence": 0.58 if regime.regime == "record_level" else 0.52,
         }
