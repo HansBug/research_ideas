@@ -69,6 +69,9 @@
 5. [DESC_GUIDE.md](./DESC_GUIDE.md)
    - `DESC.md` 的专项规范。
    - 规定如何用中等篇幅说明论文在讲什么、系统是什么、控制系统描述在文中的角色，以及后续人工应如何回原文细读。
+6. [manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md](./manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md)
+   - `EFSM/HSM + T0 + 双A` 候选采样的专项审核规范。
+   - 规定 `cluster_key / scope_level / complexity_bin / evidence_compactness / hidden_time_risk / pyfcstm_fit` 六个新增字段的定义、边界和 few-shot 例子。
 
 AI 在开始具体工作前，推荐阅读顺序为：
 
@@ -77,9 +80,10 @@ AI 在开始具体工作前，推荐阅读顺序为：
 3. [SUMMARY.md](./SUMMARY.md)
 4. [STM_GUIDE.md](./STM_GUIDE.md)（仅当任务涉及 `STM.md`）
 5. [DESC_GUIDE.md](./DESC_GUIDE.md)（仅当任务涉及 `DESC.md`）
-6. 目标论文目录下的 `bibtex.bib`
-7. 目标论文目录下的 `paper_content.txt`
-8. 必要时核对 `paper.pdf`
+6. [manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md](./manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md)（仅当任务涉及 `EFSM/HSM + T0 + 双A` 候选采样）
+7. 目标论文目录下的 `bibtex.bib`
+8. 目标论文目录下的 `paper_content.txt`
+9. 必要时核对 `paper.pdf`
 
 ## 6. 单论文路径约束
 
@@ -96,6 +100,7 @@ AI 在开始具体工作前，推荐阅读顺序为：
 2. `STM.md` 是本论文集的核心派生文件，必须遵循 [STM_GUIDE.md](./STM_GUIDE.md)。
 3. `DESC.md` 在本论文集中不是强制文件；但只要该目录下已经存在 `DESC.md`，或任务明确要求生成/重写 `DESC.md`，就必须遵循 [DESC_GUIDE.md](./DESC_GUIDE.md) 的中等篇幅说明口径。
    - 默认还应保留一节“如果需要人工细读，建议怎么读”，用于在 `STM.md` 不足或失效时指导人工直接回原文重读。
+4. 若任务涉及 `EFSM/HSM + T0 + 双A` 候选采样治理，则还应参照 [SUMMARY.md](./SUMMARY.md) 中的候选采样子账以及 [manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md](./manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md)。
 
 ## 7. AI 工作入口提示
 
@@ -106,8 +111,9 @@ AI 在开始具体工作前，推荐阅读顺序为：
 3. 再看 [SUMMARY.md](./SUMMARY.md)，掌握当前总账、失败历史和领域分布。
 4. 若需要生成或重写 `STM.md`，必须再读 [STM_GUIDE.md](./STM_GUIDE.md)。
 5. 若需要生成或重写 `DESC.md`，必须再读 [DESC_GUIDE.md](./DESC_GUIDE.md)。
-6. 进入具体论文目录后，严格按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> 派生文件` 的顺序处理。
-7. 完成单篇目录后，必须回写 [SUMMARY.md](./SUMMARY.md)，不能只在目录里留下未入账的半成品。
+6. 若需要给 `EFSM/HSM + T0 + 双A` 候选补 `cluster_key / scope_level / complexity_bin / evidence_compactness / hidden_time_risk / pyfcstm_fit` 六列，必须先读 [manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md](./manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md)，再进入逐条审核；执行上允许用小批量 `codex exec` 承载，但每条案例都必须独立给结论。
+7. 进入具体论文目录后，严格按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> 派生文件` 的顺序处理。
+8. 完成单篇目录后，必须回写 [SUMMARY.md](./SUMMARY.md)，不能只在目录里留下未入账的半成品。
 
 ## 8. 后续 AI 应优先做什么、避免做什么
 
@@ -116,6 +122,7 @@ AI 在开始具体工作前，推荐阅读顺序为：
 1. 补齐缺失的 `paper_content.txt`、`STM.md` 和完整 `bibtex.bib`。
 2. 基于已有高命中论文反推新的检索关键词簇，并回写 [SUMMARY.md](./SUMMARY.md)。
 3. 优先搜索那些当前样本数偏少、但逻辑上仍容易命中有效控制对象的领域。
+4. 在需要冻结 `EFSM/HSM + T0 + 双A` 实验候选池时，优先维护 [SUMMARY.md](./SUMMARY.md) 中的候选采样子账，并按 [manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md](./manual_audit/EFSM_HSM_T0_DOUBLE_A_AUDIT_GUIDE.md) 做逐条人工审核。
 
 应避免的事：
 
