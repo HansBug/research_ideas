@@ -62,9 +62,10 @@ def build_result(with_reference: bool = True):
 def test_heuristic_review_returns_structured_result() -> None:
     result = build_result()
     assert result.prompt.startswith("Review the predicted printer state machine")
-    assert result.used_review_backend == "heuristic"
+    assert result.used_review_backend.startswith("v1_multi_agent_runtime")
     assert result.overall_score >= 0.0
     assert result.dimension_results
+    assert any(item.dimension_name == "evidence_discipline" for item in result.dimension_results)
     assert all(item.reason_text for item in result.dimension_results)
     assert result.requirement_trace_results
     assert result.overall_reason_text
@@ -81,9 +82,10 @@ def test_heuristic_review_supports_missing_reference() -> None:
     result = build_result(with_reference=False)
     assert result.overall_score >= 0.0
     assert result.dimension_results
-    assert result.used_review_backend == "heuristic"
+    assert result.used_review_backend.startswith("v1_multi_agent_runtime")
     assert result.unsupported_model_elements == []
-    assert any("No reference output was provided" in item.reason_text for item in result.dimension_results)
+    assert any("mixed_evidence" in item.reason_text for item in result.dimension_results)
+    assert any("Avoid exact-match penalties" in note for note in result.notes)
 
 
 def test_heuristic_review_supports_unknown_free_text_format() -> None:
@@ -97,11 +99,66 @@ state Working
 state Fault
 Idle -> Working : start
 Working -> Fault : error
-""",
+    """,
         ref_output=None,
     )
     result = heuristic_expert_review(request)
-    assert result.used_review_backend == "heuristic"
+    assert result.used_review_backend.startswith("v1_multi_agent_runtime")
     assert result.dimension_results
     assert result.requirement_trace_results
     assert result.overall_reason_text
+
+
+def test_v1_runtime_gives_credit_to_equivalent_but_different_structure() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "Review the predicted state machine. Reward semantically equivalent but differently structured designs, "
+            "and focus on behavior plus unsupported extras."
+        ),
+        input_text=(
+            "R1: login moves the system from Idle to Ready.\n"
+            "R2: start moves the system from Ready to Printing.\n"
+            "R3: paper jam suspends printing and allows resume.\n"
+            "R4: power off can terminate from Ready or Printing."
+        ),
+        ref_output="""
+        {
+          "states": [{"name": "Idle"}, {"name": "Ready"}, {"name": "Printing"}, {"name": "Suspended"}, {"name": "Final"}],
+          "transitions": [
+            {"source": "Idle", "target": "Ready", "event": "login", "guard": "", "action": ""},
+            {"source": "Ready", "target": "Printing", "event": "start", "guard": "", "action": ""},
+            {"source": "Printing", "target": "Suspended", "event": "paperJam", "guard": "", "action": ""},
+            {"source": "Suspended", "target": "Printing", "event": "resume", "guard": "", "action": ""},
+            {"source": "Ready", "target": "Final", "event": "powerOff", "guard": "", "action": ""},
+            {"source": "Printing", "target": "Final", "event": "powerOff", "guard": "", "action": ""}
+          ]
+        }
+        """,
+        pred_output="""
+        {
+          "states": [
+            {"name": "Idle"},
+            {"name": "Ready"},
+            {"name": "Printing"},
+            {"name": "Paused"},
+            {"name": "JamPaused", "parent": "Paused"},
+            {"name": "ReloadPaused", "parent": "Paused"},
+            {"name": "Final"}
+          ],
+          "transitions": [
+            {"source": "Idle", "target": "Ready", "event": "login", "guard": "", "action": ""},
+            {"source": "Ready", "target": "Printing", "event": "start", "guard": "", "action": ""},
+            {"source": "Printing", "target": "JamPaused", "event": "paperJam", "guard": "", "action": ""},
+            {"source": "JamPaused", "target": "ReloadPaused", "event": "reload", "guard": "", "action": ""},
+            {"source": "ReloadPaused", "target": "Printing", "event": "resume", "guard": "", "action": ""},
+            {"source": "Ready", "target": "Final", "event": "powerOff", "guard": "", "action": ""},
+            {"source": "Printing", "target": "Final", "event": "powerOff", "guard": "", "action": ""}
+          ]
+        }
+        """,
+    )
+    result = heuristic_expert_review(request)
+    assert result.overall_score >= 0.6
+    assert "equivalent-but-different" in result.overall_reason_text
+    behavioral = {item.dimension_name: item for item in result.dimension_results}["behavioral_consistency"]
+    assert behavioral.score >= 0.5
