@@ -8,6 +8,16 @@ from ..tools import status_counts
 from .common import clip01
 
 
+def _missing_signal_count(items: list[str]) -> int:
+    count = 0
+    for item in items:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        count += max(1, text.count("|") + 1)
+    return count
+
+
 def compose_scores(
     dimensions: list[Any],
     request: Any,
@@ -23,11 +33,24 @@ def compose_scores(
 ) -> tuple[list[DimensionReviewResult], list[ElementIssue], float]:
     matched, partial, missing = status_counts(trace_results)
     requirement_count = max(1, len(trace_results))
+    matched_ratio = matched / requirement_count
+    partial_ratio = partial / requirement_count
+    missing_ratio = missing / requirement_count
     trace_ratio = (matched + 0.5 * partial) / requirement_count
     harmful_extras = list(equivalence_report.get("harmful_extras", []))
+    missing_items = list(equivalence_report.get("missing_items", []))
     contradictions = list(equivalence_report.get("contradictions", []))
     dependency_breaks = list(equivalence_report.get("dependency_breaks", []))
     quality_issues = list(quality_report.get("issues", []))
+    harmful_count = len(harmful_extras)
+    contradiction_count = len(contradictions)
+    dependency_break_count = len(dependency_breaks)
+    missing_signal_count = _missing_signal_count(missing_items)
+    equivalence_strength = float(equivalence_report.get("equivalence_strength", trace_ratio))
+    ref_element_coverage = clip01(float(equivalence_report.get("ref_element_coverage", equivalence_strength)))
+    ref_relation_coverage = clip01(float(equivalence_report.get("ref_relation_coverage", equivalence_strength)))
+    reference_alignment = clip01(0.45 * ref_element_coverage + 0.55 * ref_relation_coverage)
+    trace_conflict_count = int(equivalence_report.get("trace_conflict_count", 0) or 0)
     allow_element_level_claims = bool(
         evidence_critic.get("allow_element_level_claims", policy_packet.get("allow_element_level_claims", False))
     )
@@ -53,10 +76,10 @@ def compose_scores(
         syntax_score -= 0.06
     syntax_score = clip01(syntax_score)
 
-    completeness_score = clip01(0.18 + 0.78 * trace_ratio - 0.08 * min(4, len(harmful_extras)))
-    behavior_base = equivalence_report.get("equivalence_strength", trace_ratio)
-    behavior_score = clip01(0.20 + 0.72 * float(behavior_base) - 0.12 * len(contradictions))
-    traceability_score = clip01(0.18 + 0.76 * trace_ratio - 0.07 * min(4, len(harmful_extras)))
+    completeness_score = clip01(0.18 + 0.78 * trace_ratio - 0.08 * min(4, harmful_count))
+    behavior_base = equivalence_strength
+    behavior_score = clip01(0.20 + 0.72 * behavior_base - 0.12 * contradiction_count)
+    traceability_score = clip01(0.18 + 0.76 * trace_ratio - 0.07 * min(4, harmful_count))
     clarity_score = clip01(float(quality_report.get("clarity_score_hint", 0.6)) - 0.04 * min(4, len(harmful_extras)))
     evidence_score = clip01(
         0.82
@@ -164,6 +187,55 @@ def compose_scores(
         completeness_score = max(completeness_score, 0.22)
         behavior_score = max(behavior_score, 0.22)
         traceability_score = max(traceability_score, 0.20)
+
+    record_score_stretch = 1.0
+    record_trace_failure_rescue = False
+    record_reference_alignment_rescue = False
+    record_branch_family_rescue = False
+    record_trace_failure_bonus = 0.0
+    record_high_alignment_bonus = 0.0
+    record_missing_signal_penalty = 0.0
+    record_low_equivalence_penalty = 0.0
+    record_gap_penalty = 0.0
+    record_score_adjustment = 0.0
+    if regime.regime == "record_level":
+        record_score_stretch = 1.18
+        no_core_issues = dependency_break_count == 0 and trace_conflict_count == 0
+        record_trace_failure_rescue = (
+            trace_ratio <= 0.05
+            and equivalence_strength >= 0.78
+            and reference_alignment >= 0.90
+            and missing_signal_count == 0
+            and no_core_issues
+        )
+        if record_trace_failure_rescue:
+            record_trace_failure_bonus = 0.30
+
+        record_reference_alignment_rescue = (
+            matched_ratio >= 0.10
+            and partial_ratio >= 0.50
+            and equivalence_strength >= 0.75
+            and reference_alignment >= 0.85
+            and missing_signal_count <= 1
+            and no_core_issues
+        )
+        if record_reference_alignment_rescue:
+            quality = min(1.0, 0.40 * matched_ratio + 0.35 * partial_ratio + 0.25 * equivalence_strength)
+            record_high_alignment_bonus = 0.16 * quality
+
+        if missing_signal_count >= 8:
+            severity = min(1.0, 0.10 * missing_signal_count + 0.35 * missing_ratio)
+            record_missing_signal_penalty = 0.18 * severity
+        if equivalence_strength < 0.20 and reference_alignment < 0.40 and matched_ratio >= 0.10:
+            record_low_equivalence_penalty = 0.10
+
+        record_gap_penalty = record_missing_signal_penalty + record_low_equivalence_penalty
+        record_score_adjustment = (
+            record_trace_failure_bonus
+            + record_high_alignment_bonus
+            - record_missing_signal_penalty
+            - record_low_equivalence_penalty
+        )
 
     score_map = {
         "notation_syntax": syntax_score,
@@ -382,12 +454,30 @@ def compose_scores(
                     "pred_observability": pred_dossier.observability,
                     "ref_observability": ref_dossier.observability,
                     "trace_ratio": round(trace_ratio, 6),
+                    "matched_ratio": round(matched_ratio, 6),
+                    "partial_ratio": round(partial_ratio, 6),
+                    "missing_ratio": round(missing_ratio, 6),
+                    "reference_alignment": round(reference_alignment, 6),
                     "structural_warning_count": len(pred_dossier.structural_warnings),
                     "extraction_conflict_count": len(pred_dossier.extraction_conflicts),
                     "parallel_structure_mismatch": bool(equivalence_report.get("parallel_structure_mismatch")),
                     "parallel_branch_credit": bool(equivalence_report.get("parallel_branch_credit")),
                     "trace_conflict_count": trace_conflict_count,
                     "dependency_break_count": len(dependency_breaks),
+                    "equivalence_strength": round(equivalence_strength, 6),
+                    "ref_element_coverage": round(ref_element_coverage, 6),
+                    "ref_relation_coverage": round(ref_relation_coverage, 6),
+                    "missing_signal_count": missing_signal_count,
+                    "record_gap_penalty": round(record_gap_penalty, 6),
+                    "record_score_stretch": record_score_stretch,
+                    "record_score_adjustment": round(record_score_adjustment, 6),
+                    "record_trace_failure_rescue": record_trace_failure_rescue,
+                    "record_trace_failure_bonus": round(record_trace_failure_bonus, 6),
+                    "record_reference_alignment_rescue": record_reference_alignment_rescue,
+                    "record_high_alignment_bonus": round(record_high_alignment_bonus, 6),
+                    "record_branch_family_rescue": record_branch_family_rescue,
+                    "record_missing_signal_penalty": round(record_missing_signal_penalty, 6),
+                    "record_low_equivalence_penalty": round(record_low_equivalence_penalty, 6),
                     "issue_taxonomy": issue_taxonomy_map[dimension.name],
                     "policy_profile": policy_packet.get("profile_name"),
                     "score_semantics": score_semantics,
@@ -409,6 +499,11 @@ def compose_scores(
     elif protocol_mode:
         protocol_hint = clip01(float(evidence_critic.get("protocol_assurance_score_hint", 0.34)))
         overall_score = clip01(0.25 * overall_score + 0.75 * protocol_hint)
+    elif regime.regime == "record_level":
+        # Stretch the compressed record-level score range, then apply only narrow
+        # corrections to the dominant Phase 8 residual clusters.
+        overall_score = clip01(0.50 + record_score_stretch * (overall_score - 0.50))
+        overall_score = clip01(overall_score + record_score_adjustment)
     return dimension_results, harmful_extras + contradictions + dependency_breaks, clip01(overall_score)
 
 

@@ -259,27 +259,29 @@ python -m expert_review.benchmark \
 
 ## 当前状态
 
-### Phase 7 结论
+### Phase 8 结论
 
-当前 `Phase 7` 已完成“全量 benchmark 口径固定与下一阶段提分地图”，并且已经确认：
+当前 `Phase 8` 已完成 `record-level` 的数值校准、压缩效应修复与 partial-heavy 定向惩罚，并且已经确认：
 
-1. `slice benchmark` 与 `full available benchmark` 已正式分开
-2. `train / dev / validation / lockbox` 切片规则已落地
-3. LOFO 评测脚手架、component schema 与统一 error map 已接入 benchmark harness
-4. 这轮改动只落在离线 harness，没有混入 `Phase 8` 的评分 patch，也没有回退线上 runtime
+1. `record` 总分已从“明显压缩”拉到更接近人工排序的尺度
+2. `summary / protocol` 路径未被这轮 patch 破坏，`SAS / PDS / unsupported_claim_rate` 仍保持稳定
+3. 当前改动只落在 `equivalence.py + score_composer.py` 的 deterministic `record-level` 路径
+4. 当前主瓶颈已经从 `record-level` 分数压缩，转移到 `summary-level` 排序与 public-row score semantics
 
-当前 `Phase 7` 的 `full available benchmark` 收口快照为：
+当前 `Phase 8` 的 `full available benchmark` 收口快照为：
 
 | 指标 | 当前值 |
 |---|---:|
-| `HAI` | `79.68` |
-| `RAS` | `77.33` |
+| `HAI` | `81.42` |
+| `RAS` | `80.48` |
 | `SAS` | `73.62` |
 | `PDS` | `93.75` |
-| `normalized_mae` | `0.2126` |
+| `normalized_mae` | `0.1643` |
+| `record spearman_rho` | `0.6683` |
+| `record pairwise_order_accuracy` | `0.6910` |
 | `issue_f1` | `0.9126` |
 | `unsupported_claim_rate` | `0.0865` |
-| `ece` | `0.4764` |
+| `ece` | `0.4229` |
 
 当前 benchmark coverage 也已经被明确写实：
 
@@ -289,15 +291,15 @@ python -m expert_review.benchmark \
 4. `summary-level` 仍主要来自 `ttool-ai`
 5. `protocol-only` 仍只有 `4` 个 paper family，必须保守解释泛化性
 
-### Phase 8 入口
+### Phase 9 入口
 
-后续继续提分已经明确进入 `Phase 8`，重点不再是评测口径，而是继续处理：
+后续继续提分已经明确进入 `Phase 9`，重点不再是 `record-level` 数值压缩，而是继续处理：
 
-1. `record-level` 排序风险仍高：`spearman_rho = 0.4817`，`pairwise_order_accuracy = 0.6164`
-2. `summary-level` 排序风险更高：`spearman_rho = 0.2781`，`pairwise_order_accuracy = 0.5307`
-3. full error map 中 `calibration_error = 202` 仍是最大错误簇
-4. `element_extraction_error = 133` 与 `quality_judgement_error = 124` 仍然显著
-5. `lockbox PDS = 75.00`，说明 protocol-only family holdout 仍有脆弱点
+1. `summary-level` 排序仍弱：`summary spearman_rho = 0.2781`，`summary pairwise_order_accuracy = 0.5307`
+2. `SAS = 73.62` 仍明显落后于 `Milestone A` 的 `76`
+3. `validation` 的 `record pairwise_order_accuracy = 0.5968` 仍提示 family-split 下排名泛化还不够稳
+4. full error map 中 `calibration_error = 182` 虽已下降，但并行结构误杀与 partial-only 高估仍有残差
+5. `lockbox PDS = 75.00` 仍提示 protocol-only family holdout 不能被过度乐观解释
 
 相关结论见：
 

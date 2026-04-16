@@ -139,10 +139,10 @@
 当前目录状态是：
 
 1. `Phase 7` 已完成评测口径固定与 benchmark harness 扩展
-2. `Phase 8` 已创建，但尚未开始实现
-3. 当前后续工作的核心目标是继续提分，而不是再做一轮评测层重构
+2. `Phase 8` 已完成 `record-level` 数值校准、压缩效应修复与 partial-heavy 定向惩罚
+3. 当前后续工作的核心目标已转到 `Phase 9`：summary-level 排序、public-row score semantics 与更稳的 split 泛化
 
 因此后续改动默认应优先回答两件事：
 
-1. 这次改动是否真实改善 `HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`
+1. 这次改动是否真实改善 `HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响 `record` 还是 `summary`
 2. 这次改动是否会破坏当前已经稳定的 `PDS`、issue taxonomy restraint 以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测口径

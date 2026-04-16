@@ -309,6 +309,11 @@ def deterministic_equivalence(
 
     return {
         "equivalence_strength": equivalence_strength,
+        "ref_element_coverage": ref_element_coverage,
+        "ref_relation_coverage": ref_relation_coverage,
+        "missing_item_count": len(missing_items),
+        "harmful_extra_count": harmful_count,
+        "contradiction_count": contradiction_count,
         "supported_restructures": dedupe_strings(supported_restructures)[:8],
         "harmful_extras": harmful_extras[:10],
         "missing_items": dedupe_strings(missing_items)[:10],

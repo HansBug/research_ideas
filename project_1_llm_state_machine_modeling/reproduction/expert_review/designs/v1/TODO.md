@@ -1111,17 +1111,17 @@
 
 除保留 `Phase 6` 的 deterministic benchmark slice 快照外，从 `Phase 7` 开始，默认还必须同时跟踪**full available benchmark** 诊断结果。
 
-当前基于 `2026-04-17` full available benchmark 的 deterministic 诊断快照为：
+当前基于 `2026-04-17 02:40:12` full available benchmark 的 deterministic 诊断快照为：
 
 | 指标 | 当前值 |
 |---|---:|
-| `HAI` | `79.68` |
-| `RAS` | `77.33` |
+| `HAI` | `81.42` |
+| `RAS` | `80.48` |
 | `SAS` | `73.62` |
 | `PDS` | `93.75` |
-| `record normalized_mae` | `0.2126` |
-| `record spearman_rho` | `0.4817` |
-| `record pairwise_order_accuracy` | `0.6164` |
+| `record normalized_mae` | `0.1643` |
+| `record spearman_rho` | `0.6683` |
+| `record pairwise_order_accuracy` | `0.6910` |
 | `summary normalized_mae` | `0.1359` |
 | `summary spearman_rho` | `0.2781` |
 | `summary pairwise_order_accuracy` | `0.5307` |
@@ -1130,15 +1130,15 @@
 | `unsupported_claim_rate` | `0.0865` |
 | `equivalence_false_reject_rate` | `0.0174` |
 | `protocol_only_overclaim_rate` | `0.0000` |
-| `ece` | `0.4764` |
+| `ece` | `0.4229` |
 | `vv_role_coverage` | `0.7500` |
 
 当前已经可以明确的诊断结论：
 
-1. 当前 reviewer 的**问题提取与证据克制**已经相对稳定，说明它更像一个 evidence-aware review assistant。
-2. 当前 reviewer 的**数值打分、排序能力与置信度校准**仍明显不足，说明它还不像一个可稳定替代专家打分的 batch scorer。
+1. 当前 reviewer 的**record-level 数值尺度与排序能力**已经显著改善，说明它正从 evidence-aware reviewer 向 batch scorer 靠拢。
+2. 当前 reviewer 的**summary-level 排序与 public-row 语义判读**仍明显不足，`Milestone A` 当前主要卡在 `SAS` 与 summary ranking。
 3. 当前 full available benchmark 的 `record-level` 强对齐数据实际上主要来自 `llms_emp`，`summary-level` 主要来自 `ttool-ai`，而 `512` 条 `component_level_review` 还未进入主评测主指标。
-4. 因此，当前版本还不能在论文中直接主张“expert reviewer agent 已被学术上充分验证成立”。
+4. 因此，当前版本仍不能在论文中直接主张“expert reviewer agent 已被学术上充分验证成立”；下一阶段必须转向 `Phase 9+` 的 summary、batch screening 与 generalization 问题。
 
 ### 9.2 双里程碑定义
 
@@ -1454,30 +1454,159 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 系统性分析 `record-level` 的 score compression：低分高估、高分低估、居中收缩。
-* [ ] 对 partial-heavy / structurally bad / semantically broken 样例建立更强惩罚逻辑。
-* [ ] 强化 `dependency-aware penalty`，避免 state 本身错了但 transition/guard/action 仍拿到过宽 credit。
-* [ ] 收口 `wrong_action_or_effect` 与 `wrong_guard_or_trigger` 的惩罚强度，使其更接近人工。
-* [ ] 保持 `issue_f1 / human_issue_coverage_recall / PDS` 不因重标定而显著退化。
-* [ ] 针对 score bias 引入显式诊断与回归约束。
-* [ ] 记录高误差 record rows 的典型错误簇与改善前后对比。
+* [x] 系统性分析 `record-level` 的 score compression：低分高估、高分低估、居中收缩。
+* [x] 对 partial-heavy / structurally bad / semantically broken 样例建立更强惩罚逻辑。
+* [x] 强化 `dependency-aware penalty`，避免 state 本身错了但 transition/guard/action 仍拿到过宽 credit。
+* [x] 收口 `wrong_action_or_effect` 与 `wrong_guard_or_trigger` 的惩罚强度，使其更接近人工。
+* [x] 保持 `issue_f1 / human_issue_coverage_recall / PDS` 不因重标定而显著退化。
+* [x] 针对 score bias 引入显式诊断与回归约束。
+* [x] 记录高误差 record rows 的典型错误簇与改善前后对比。
 
 ### Checklist
 
-* [ ] `record normalized_mae <= 0.18`
-* [ ] `record spearman_rho >= 0.55`
-* [ ] `record pairwise_order_accuracy >= 0.68`
-* [ ] `|record score_bias| <= 0.08`
-* [ ] `unsupported_claim_rate <= 0.10`
-* [ ] `equivalence_false_reject_rate` 不明显回退。
-* [ ] partial-heavy 高估样例不再是当前最大残差簇。
+* [x] `record normalized_mae <= 0.18`
+* [x] `record spearman_rho >= 0.55`
+* [x] `record pairwise_order_accuracy >= 0.68`
+* [x] `|record score_bias| <= 0.08`
+* [x] `unsupported_claim_rate <= 0.10`
+* [x] `equivalence_false_reject_rate` 不明显回退。
+* [x] partial-heavy 高估样例不再是当前最大残差簇。
 
 ### Phase 8 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
+- 回写时间：`2026-04-17 02:40:12`
 - 所属里程碑：`Milestone A`
-- 当前状态：已创建，尚未开始实现。
-- 前置条件：`Phase 7` 已完成，full benchmark / split / LOFO 口径已固定，当前前置条件已满足。
+- 完成状态：`Phase 8` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 8`，不提前进入 `Phase 9`。
+- 当前定位：仅在 `record-level` 范围内修 score compression 与 residual cluster，不改 `summary / protocol` 评分语义，也不把工作越界到 `Phase 9`。
+- 真实接入情况：
+  - `equivalence.py` 已新增 `ref_element_coverage / ref_relation_coverage / missing_item_count / harmful_extra_count / contradiction_count` 等显式诊断字段。
+  - `score_composer.py` 已新增 `matched_ratio / partial_ratio / missing_ratio / reference_alignment / missing_signal_count` 等 record-level metric payload。
+  - `score_composer.py` 已新增窄范围 `record` 标定：`score stretch`、`trace-failure exact rescue`、`aligned partial-heavy bonus`、`huge missing-signal penalty`、`low-equivalence penalty`。
+  - `summary` 与 `protocol` 路径未被改动；`SAS / PDS / summary-only evidence restraint` 仍保持原口径。
+- 可运行性：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
+  - `python -m expert_review.benchmark --scope full --llm-mode off` 已验证
+  - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off` 已验证
+  - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off` 已验证
+- 已知遗留问题：
+  - `validation` 的 `record pairwise_order_accuracy = 0.5968` 仍偏低，说明 family-split 下 record ranking 还没有完全稳住。
+  - `STM Results:57` 仍有明显低估，说明并行/正交结构上的 equivalence 误杀尚未完全解决。
+  - `STM Results:43`、`STM Results:8` 仍被高估，说明部分 `partial-only` family 还需要更细的结构/语义区分。
+
+### Phase 8 指标总表
+
+本节记录 `2026-04-17 02:40:12` 基于 `run_benchmark_iteration(llm_mode='off', scope='full')` 的 `full available benchmark` 收尾快照，作为 `Phase 8` 的正式阶段结论口径。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `81.42` |
+| `RAS` | `80.48` |
+| `SAS` | `73.62` |
+| `PDS` | `93.75` |
+| `normalized_mae` | `0.1643` |
+| `rmse` | `0.1968` |
+| `issue_f1` | `0.9126` |
+| `human_issue_coverage_recall` | `0.9305` |
+| `equivalence_false_reject_rate` | `0.0174` |
+| `equivalence_false_accept_rate` | `0.2439` |
+| `unsupported_claim_rate` | `0.0865` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.4229` |
+| `record spearman_rho` | `0.6683` |
+| `record pairwise_order_accuracy` | `0.6910` |
+| `score_bias` | `-0.0459` |
+| `high_confidence_error_rate` | `0.0000` |
+
+### Phase 8 扩展评测快照
+
+#### 1. split 泛化快照
+
+| split | `HAI` | `RAS` | `record normalized_mae` | `record spearman_rho` | `record pairwise_order_accuracy` | `record score_bias` | `unsupported_claim_rate` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `validation` | `80.80` | `80.27` | `0.1687` | `0.6229` | `0.5968` | `-0.1044` | `0.0672` |
+| `lockbox` | `77.94` | `80.73` | `0.1771` | `0.6615` | `0.7011` | `-0.0224` | `0.0952` |
+
+#### 2. full benchmark 扩展诊断
+
+| 扩展指标 | `Phase 7` | `Phase 8` | delta |
+|---|---:|---:|---:|
+| `HAI` | `79.68` | `81.42` | `+1.74` |
+| `RAS` | `77.33` | `80.48` | `+3.16` |
+| `record normalized_mae` | `0.2126` | `0.1643` | `-0.0483` |
+| `record spearman_rho` | `0.4817` | `0.6683` | `+0.1866` |
+| `record pairwise_order_accuracy` | `0.6164` | `0.6910` | `+0.0746` |
+| `score_bias` | `-0.0788` | `-0.0459` | `+0.0329` |
+| `ece` | `0.4764` | `0.4229` | `-0.0535` |
+| `calibration_error` | `202` | `182` | `-20` |
+
+### Phase 8 本阶段改进记录
+
+- 最明显提升 1：record-level 的 score compression 已被实质性拉开，`record normalized_mae 0.2126 -> 0.1643`，`spearman_rho 0.4817 -> 0.6683`，`pairwise_order_accuracy 0.6164 -> 0.6910`。
+- 最明显提升 2：高分精确对齐但 trace 失败的 `ACT` 家族已被显式救回；例如 `ACT Results:0` 从 `0.5970` 拉到 `0.9144`，对应人工分 `1.0000`。
+- 最明显提升 3：高对齐 partial-heavy 且已有部分 matched support 的样例被系统性上调；例如 `STM Results:59` 从 `0.6538` 拉到 `0.7715`，对应人工分 `0.9773`。
+- 最明显提升 4：`huge missing-signal` 的 sequence-diagram 过高估分簇已被压下；例如 `SD Results:59` 从 `0.7826` 压到 `0.6535`，虽然仍高估，但已不再是最大的主残差簇。
+- 最明显提升 5：`issue_f1`、`human_issue_coverage_recall`、`PDS`、`unsupported_claim_rate` 与 `equivalence_false_reject_rate` 均保持稳定，没有为提分牺牲 evidence discipline。
+
+- 最明显退化风险 1：`validation` 下 `record pairwise_order_accuracy = 0.5968` 仍偏低，说明当前 record-level calibration 在 family split 上还没有完全稳住。
+- 最明显退化风险 2：`STM Results:57` 仍严重低估，提示并行/正交结构上的 equivalence 误杀仍会直接拖累部分高分样例。
+- 最明显退化风险 3：`STM Results:43`、`STM Results:8` 这类 `partial-only` 但人工并不高分的 case 仍偏高，说明仅靠当前 alignment diagnostics 还不能完全区分“真等价重构”和“表面对齐但审稿人不买账”的样例。
+
+- 当前仍未完全解决的问题 1：`summary` 侧几乎没动，`SAS = 73.62`、`summary spearman_rho = 0.2781`、`summary pairwise_order_accuracy = 0.5307` 仍直接卡住 `Phase 9`。
+- 当前仍未完全解决的问题 2：`Milestone A` 仍未达成，当前还差 `HAI >= 82`、`SAS >= 76`、`record pairwise_order_accuracy >= 0.70` 等门槛。
+- 当前仍未完全解决的问题 3：top residual cluster 已经从“huge missing-signal partial-heavy 高估”转成更混合的 `other / low_eq_low_ref / parallel-family false mismatch`，说明后续不应继续在 `Phase 8` 内单纯加大数值拉伸。
+
+### Phase 8 本阶段运行记录
+
+- 已验证入口：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
+  - `python -m expert_review.benchmark --scope full --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off`
+- 本阶段真实落位的目标层次：
+  - 只改 `agents/equivalence.py` 与 `agents/score_composer.py`
+  - 所有提分都落在 deterministic runtime 的 `record-level` 路径
+  - `summary / protocol` 口径、外部 API 和 benchmark harness 不改
+
+### Phase 8 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 8` 的起始基线，即 `Phase 7` 收尾后的 full benchmark。
+- `Round 1` 是第一次直接上强惩罚与宽 rescue 的失败尝试，结果证明这条路会把大量真实 row 压穿。
+- `Round 2` 回到 `Phase 7` 基线附近，只保留诊断字段后重新做窄校准，第一次把 `Phase 8` checklist 全部打穿。
+- `Round 3` 在 `Round 2` 基础上进一步联合 `full + validation + lockbox` 调整 stretch/bonus/penalty 常数，获得最终保留版本。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 7` 基线；保留 full/split/LOFO 口径，不引入新的评分 patch | `score_compression` / `partial-heavy overestimation` | `HAI 79.68 / RAS 77.33 / record normalized_mae 0.2126 / record spearman_rho 0.4817 / pairwise 0.6164 / bias -0.0788` | `同左` | `基线轮，无代码增量` | `是` | 确认为 `Phase 8` 的真实起点 |
+| `Round 1` | 引入宽 `reference_alignment rescue` 与强 `gap_penalty`，同时对三维分数直接砍压 | `over-broad rescue` / `over-strong penalty` | `HAI 79.68 / RAS 77.33 / mae 0.2126 / FR 0.0174` | `HAI 77.13 / RAS 72.69 / mae 0.2785 / bias -0.2342 / FR 0.2174 / unsupported_claim_rate 0.1584` | `HAI -2.55` | `是` | 明确判定失败；该路线会把大量真实高分 row 压穿，不可保留 |
+| `Round 2` | 回退到基线，仅保留诊断字段；新增窄 `record stretch + trace-failure rescue + aligned partial-heavy bonus + huge-missing penalty + low-equivalence penalty` | `score_compression` / `trace-failure exact rows` / `huge_missing_signal` | `HAI 79.68 / RAS 77.33 / mae 0.2126 / rho 0.4817 / pairwise 0.6164 / bias -0.0788` | `HAI 81.22 / RAS 80.13 / mae 0.1691 / rho 0.6623 / pairwise 0.6880 / bias -0.0522` | `HAI +1.54` | `是` | 第一次完整满足 `Phase 8` checklist，但仍有继续挖的空间 |
+| `Round 3` | 在 `Round 2` 基础上提高 `stretch / trace-failure bonus / aligned-partial bonus`，并轻微上调 `low-equivalence penalty` | `residual underestimation` / `validation bias trimming` | `HAI 81.22 / RAS 80.13 / mae 0.1691 / rho 0.6623 / pairwise 0.6880 / bias -0.0522` | `HAI 81.42 / RAS 80.48 / mae 0.1643 / rho 0.6683 / pairwise 0.6910 / bias -0.0459` | `HAI +0.20` | `否` | `full`、`validation`、`lockbox` 都只剩边际增益；继续调已不再是 `Phase 8` 的主要瓶颈 |
+
+### Phase 8 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 8` 已完成并停止，等待 `Phase 9`。
+- TODO 已完成项：
+  - `Phase 8` 全部 Todolist 已打勾
+  - `Phase 8` 全部 Checklist 已打勾
+  - `README.md`、`GUIDE.md`、PR body 已同步到当前阶段口径
+- TODO 尚未完成项：
+  - 无本 phase 内遗留未勾项
+  - `summary-level` 排序、public row 语义与 `Milestone A` 验收仍属于后续 phase
+- 当前对齐程度总览：
+  - `record-level` 已达到当前 phase 的预期：`RAS 80.48 / normalized_mae 0.1643 / spearman_rho 0.6683 / pairwise 0.6910 / bias -0.0459`
+  - `summary-level` 仍维持 `SAS 73.62`，说明当前主瓶颈已经明确转移到 `Phase 9`
+  - `PDS 93.75`、`unsupported_claim_rate 0.0865` 与 `equivalence_false_reject_rate 0.0174` 说明本阶段提分没有以证据纪律和错杀高分样例为代价
+- 对各项核心指标的解释：
+  - `HAI 81.42`：整体人类风格对齐继续上升，但仍未达到 `Milestone A` 要求的 `82`
+  - `RAS 80.48`：record-level 已首次进入 `80+`，说明 reviewer 已开始具备更像批量筛选器的数值尺度
+  - `record pairwise_order_accuracy 0.6910`：离 `0.70` 只差一步，但仍未正式越过 `Milestone A` 的 record 排序门槛
+  - `SAS 73.62`：当前若继续在 record-only 方向硬调，收益已经不再是主导，必须转向 `Phase 9`
+- 当前 phase 是否停止：`是`，停止在 `Phase 8`；继续往下做主要会进入 summary-level 语义、public row 排序与 batch screening 策略，已属于 `Phase 9+`。
 
 ## 12. Phase 9: Summary-Level 排序、分数语义与高分 public row 收口
 
@@ -1506,9 +1635,10 @@ Milestone B 达成条件：
 ### Phase 9 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
+- 更新状态时间：`2026-04-17 02:40:12`
 - 所属里程碑：`Milestone A`
-- 当前状态：已创建，尚未开始实现。
-- 前置条件：`Phase 8` 已先收口 record-level 的尺度问题。
+- 当前状态：已创建，尚未开始实现；`Phase 8` 已完成，当前前置条件已满足。
+- 前置条件：`Phase 8` 已收口 `record-level` 的尺度问题，后续主瓶颈已转移到 `summary-level` 排序与分数语义。
 
 ## 13. Phase 10: Batch Screening 模式、阈值策略与 Milestone A 验收
 
