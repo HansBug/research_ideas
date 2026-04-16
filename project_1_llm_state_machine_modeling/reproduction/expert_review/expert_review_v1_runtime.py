@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import re
 from dataclasses import dataclass, field
@@ -215,7 +216,13 @@ class ArtifactDossier:
     ambiguities: list[str] = field(default_factory=list)
     evidence: list[EvidenceItem] = field(default_factory=list)
     observability: str = "low"
+    format_confidence: float = 0.0
+    observability_reason: str = ""
     analysis_mode: str = "parser_only"
+    surface_markers: dict[str, int] = field(default_factory=dict)
+    structural_warnings: list[str] = field(default_factory=list)
+    canonical_names: list[str] = field(default_factory=list)
+    extraction_conflicts: list[str] = field(default_factory=list)
     parser_notes: list[str] = field(default_factory=list)
 
 
@@ -223,6 +230,13 @@ class ArtifactDossier:
 class InputDossier:
     summary: str
     requirements: list[RequirementTraceResult]
+    behaviors: list[str] = field(default_factory=list)
+    constraints: list[str] = field(default_factory=list)
+    ambiguities: list[str] = field(default_factory=list)
+    evidence: list[EvidenceItem] = field(default_factory=list)
+    observability: str = "low"
+    observability_reason: str = ""
+    entity_hints: list[str] = field(default_factory=list)
     context_clues: list[str] = field(default_factory=list)
 
 
@@ -318,24 +332,59 @@ def _overlap_score(a: str, b: str) -> float:
     return len(a_tokens & b_tokens) / len(a_tokens | b_tokens)
 
 
+def _make_evidence_item(source: str, locator: str | None, snippet: str, explanation: str) -> EvidenceItem:
+    return EvidenceItem(
+        source=source,
+        locator=locator,
+        snippet=snippet.strip(),
+        explanation=explanation.strip(),
+    )
+
+
 def _guess_format(text: str | None) -> str:
     if not text or not text.strip():
         return "missing"
     stripped = text.strip()
     payload = parse_json_payload(stripped)
-    if isinstance(payload, (dict, list)):
-        return "json"
-    if stripped.startswith("<") and stripped.endswith(">"):
-        return "xml"
+    if isinstance(payload, dict):
+        if any(key in payload for key in ["states", "transitions", "blocks", "signals", "rules"]):
+            return "json_structured_model"
+        return "json_generic"
+    if isinstance(payload, list):
+        return "json_list"
     lowered = stripped.lower()
+    if stripped.startswith("<?xml") or re.search(r"</?[A-Za-z][A-Za-z0-9:_-]*[^>]*>", stripped):
+        if "turtlegmodeling" in lowered or "avatar" in lowered or "<modeling " in lowered:
+            return "ttool_xml"
+        return "xml"
     if "@startuml" in lowered or "state " in lowered or "[*]" in lowered:
         return "plantuml_like"
+    if "statemachine" in lowered or "umple" in lowered or ("class " in lowered and "state" in lowered):
+        return "umple_like"
     if stripped.startswith("---") or "score" in lowered or "average" in lowered or "std" in lowered:
         return "summary_text"
     return "free_text"
 
 
+def _format_confidence(format_guess: str, text: str | None) -> float:
+    if format_guess == "missing":
+        return 0.0
+    if format_guess in {"json_structured_model", "plantuml_like", "ttool_xml"}:
+        return 0.95
+    if format_guess in {"json_generic", "xml", "umple_like"}:
+        return 0.82
+    if format_guess in {"json_list", "summary_text"}:
+        return 0.74
+    if len((text or "").strip()) >= 180:
+        return 0.58
+    return 0.42
+
+
 def _artifact_family_guess(inventory: dict[str, list[str]], text: str | None) -> str:
+    architecture_signal = len(inventory.get("blocks", [])) + len(inventory.get("signals", []))
+    behavior_signal = len(inventory.get("states", [])) + len(inventory.get("transitions", []))
+    if architecture_signal >= max(3, behavior_signal + 2):
+        return "architecture_model"
     if inventory.get("states") or inventory.get("transitions"):
         return "behavior_model"
     if inventory.get("blocks") or inventory.get("signals"):
@@ -388,27 +437,305 @@ def _dedupe_strings(items: list[str]) -> list[str]:
     return result
 
 
-def _inventory_from_text(text: str | None) -> tuple[dict[str, list[str]], dict[str, Any], str]:
+def _self_named_composite_count_from_text(text: str | None) -> int:
+    raw = text or ""
+    count = 0
+    for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw):
+        name = match.group(1).strip()
+        block_start = match.end()
+        block_end = raw.find("}", block_start)
+        if block_end == -1:
+            continue
+        block = raw[block_start:block_end]
+        if re.search(rf"\[\*\]\s*(?:-->|->)\s*{re.escape(name)}\b", block):
+            count += 1
+    return count
+
+
+def _cross_composite_transition_risk_from_text(text: str | None) -> int:
+    raw = text or ""
+    composites = [match.group(1).strip() for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw)]
+    if len(composites) < 2:
+        return 0
+    risk = 0
+    for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw):
+        current = match.group(1).strip()
+        block_start = match.end()
+        block_end = raw.find("}", block_start)
+        if block_end == -1:
+            continue
+        block = raw[block_start:block_end]
+        for other in composites:
+            if other == current:
+                continue
+            if re.search(rf"(?:->|-->)\s*{re.escape(other)}\b", block):
+                risk += 1
+    return risk
+
+
+def _surface_markers_from_text(text: str | None) -> dict[str, int]:
+    raw = text or ""
+    lowered = raw.lower()
+    return {
+        "parallel": len(re.findall(r"^\s*--\s*$", raw, flags=re.M)),
+        "choice": len(re.findall(r"\bchoice\b", lowered)),
+        "fork": len(re.findall(r"\bfork\b", lowered)),
+        "join": len(re.findall(r"\bjoin\b", lowered)),
+        "junction": len(re.findall(r"\bjunction\b", lowered)),
+        "xml_connector": len(re.findall(r"<CONNECTOR\b", raw, flags=re.I)),
+        "xml_signal": len(re.findall(r"<Signal\b", raw, flags=re.I)),
+        "self_named_composite": _self_named_composite_count_from_text(text),
+        "cross_composite_transition": _cross_composite_transition_risk_from_text(text),
+    }
+
+
+def _extract_xml_inventory(text: str | None) -> tuple[dict[str, list[str]], list[str]]:
+    raw = text or ""
+    inventory = {"states": [], "transitions": [], "blocks": [], "signals": [], "rules": []}
+    notes: list[str] = []
+    if not raw.strip():
+        return inventory, notes
+
+    for match in re.finditer(r'<Modeling[^>]*type="([^"]+)"[^>]*nameTab="([^"]+)"(?:[^>]*tabs="([^"]+)")?', raw, re.I):
+        modeling_type = html.unescape(match.group(1)).strip()
+        name_tab = html.unescape(match.group(2)).strip()
+        tabs = html.unescape(match.group(3) or "").strip()
+        if modeling_type:
+            inventory["rules"].append(f"modeling_type:{modeling_type}")
+        if name_tab:
+            inventory["blocks"].append(name_tab)
+        if tabs:
+            inventory["blocks"].extend(item.strip() for item in tabs.split("$") if item.strip())
+
+    for pattern in [
+        r"<AVATARBlockDiagramPanel[^>]*name=\"([^\"]+)\"",
+        r"<UseCaseDiagramPanel[^>]*name=\"([^\"]+)\"",
+        r"<AVATARBlock[^>]*name=\"([^\"]+)\"",
+        r"<Block[^>]*name=\"([^\"]+)\"",
+    ]:
+        for match in re.finditer(pattern, raw, re.I):
+            inventory["blocks"].append(html.unescape(match.group(1)).strip())
+
+    for match in re.finditer(r'<Validated[^>]*value="([^"]+)"', raw, re.I):
+        inventory["blocks"].extend(item.strip() for item in html.unescape(match.group(1)).split(";") if item.strip())
+
+    for match in re.finditer(r'<(?:Signal|AvatarSignal)[^>]*name="([^"]+)"', raw, re.I):
+        inventory["signals"].append(html.unescape(match.group(1)).strip())
+
+    for match in re.finditer(r'<infoparam[^>]*name="Block"[^>]*value="([^"]+)"', raw, re.I):
+        inventory["blocks"].append(html.unescape(match.group(1)).strip())
+    for match in re.finditer(r'<infoparam[^>]*name="state"[^>]*value="([^"]+)"', raw, re.I):
+        inventory["states"].append(html.unescape(match.group(1)).strip())
+    for match in re.finditer(r'<infoparam[^>]*name="connector"[^>]*value="([^"]+)"', raw, re.I):
+        value = html.unescape(match.group(1)).strip()
+        if value and value.lower() != "null":
+            inventory["rules"].append(f"connector:{value}")
+
+    for match in re.finditer(r'<(?:isd|oso)[^>]*value="([^"]+)"', raw, re.I):
+        value = html.unescape(match.group(1)).strip()
+        if value:
+            inventory["signals"].append(value)
+            inventory["rules"].append(f"connector_action:{value}")
+
+    for connector in re.findall(r"<CONNECTOR\b.*?</CONNECTOR>", raw, flags=re.I | re.S):
+        inbound = [html.unescape(item).strip() for item in re.findall(r'<isd[^>]*value="([^"]+)"', connector, re.I) if item.strip()]
+        outbound = [html.unescape(item).strip() for item in re.findall(r'<oso[^>]*value="([^"]+)"', connector, re.I) if item.strip()]
+        label = " / ".join(inbound + outbound).strip()
+        if label:
+            inventory["transitions"].append(f"Connector -> Connector : {label}")
+
+    if inventory["blocks"] or inventory["signals"] or inventory["states"]:
+        notes.append("Applied TTool/XML-specific probe to lift named blocks, signals, states, and connector hints.")
+    return {key: _dedupe_strings(value) for key, value in inventory.items()}, notes
+
+
+def _derive_behavior_lines(text: str | None, inventory: dict[str, list[str]], format_guess: str) -> list[str]:
+    if inventory.get("transitions"):
+        return _dedupe_strings(inventory["transitions"] + inventory.get("rules", []))[:20]
+    if format_guess in {"ttool_xml", "xml"}:
+        candidates = []
+        for block in inventory.get("blocks", [])[:8]:
+            candidates.append(f"Observed structural block or panel: {block}.")
+        for signal in inventory.get("signals", [])[:8]:
+            candidates.append(f"Observed signal or connector action: {signal}.")
+        return _dedupe_strings(candidates)[:20]
+    lines = [line.strip(" -") for line in (text or "").splitlines() if len(line.strip(" -")) >= 18]
+    return _dedupe_strings(lines[:10])
+
+
+def _derive_constraint_lines(text: str | None, inventory: dict[str, list[str]]) -> list[str]:
+    rules = list(inventory.get("rules", []))
+    lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+    for line in lines:
+        lowered = line.lower()
+        if line.lstrip().startswith("<") and line.rstrip().endswith(">"):
+            continue
+        if any(token in lowered for token in [" if ", " when ", " only ", " must ", " cannot ", " not ", "<", ">", "="]):
+            rules.append(line)
+    return _dedupe_strings(rules)[:16]
+
+
+def _derive_ambiguities(text: str | None, inventory: dict[str, list[str]]) -> list[str]:
+    ambiguities = list(inventory.get("rules", []))
+    for line in (text or "").splitlines():
+        clean = line.strip()
+        lowered = clean.lower()
+        if len(clean) >= 12 and any(token in lowered for token in ["maybe", "possible", "approx", "etc", "and/or", "unknown", "?"]):
+            ambiguities.append(clean)
+    return _dedupe_strings(ambiguities)[:10]
+
+
+def _canonical_names_from_inventory(inventory: dict[str, list[str]]) -> list[str]:
+    names: list[str] = []
+    for key in ["states", "blocks", "signals"]:
+        names.extend(item.split("|", 1)[0].strip() for item in inventory.get(key, []))
+    for raw_relation in inventory.get("transitions", []):
+        source, target, _trigger, _condition, _action = _parse_transition_signature(raw_relation)
+        if source:
+            names.append(source)
+        if target:
+            names.append(target)
+    return _dedupe_strings(names)
+
+
+def _explicit_state_names_from_text(text: str | None) -> list[str]:
+    raw = text or ""
+    names = [match.group(1).strip() for match in re.finditer(r"^\s*state\s+([A-Za-z_][A-Za-z0-9_.-]*)\b", raw, re.M)]
+    return _dedupe_strings(names)
+
+
+def _observability_from_inventory(
+    text: str | None,
+    inventory: dict[str, list[str]],
+    counts: dict[str, Any],
+    format_guess: str,
+) -> tuple[str, str]:
+    item_count = sum(len(inventory.get(key, [])) for key in ["states", "transitions", "blocks", "signals", "rules"])
+    text_len = len((text or "").strip())
+    transition_count = int(counts.get("transition_count", 0) or 0)
+    if (
+        format_guess in {"ttool_xml", "xml"}
+        and len(inventory.get("blocks", [])) >= 3
+        and len(inventory.get("states", [])) < 2
+        and len(inventory.get("transitions", [])) <= 1
+    ):
+        return "medium", "XML probe exposed named architecture entities, but behavior relations remain only partially observable."
+    if item_count >= 8 or transition_count >= 4:
+        return "high", "Multiple major elements and relations were directly observed."
+    if format_guess in {"json_structured_model", "plantuml_like", "ttool_xml"} and item_count >= 4:
+        return "high", f"Known format probe `{format_guess}` exposed enough named structure to support detailed review."
+    if item_count >= 3 or text_len >= 180:
+        return "medium", "Only part of the structure is directly visible, but there is enough evidence for conservative review."
+    return "low", "Visible structure is sparse, so downstream conclusions must remain cautious."
+
+
+def _structural_warnings_from_probe(
+    format_guess: str,
+    inventory: dict[str, list[str]],
+    markers: dict[str, int],
+) -> list[str]:
+    warnings: list[str] = []
+    if markers.get("self_named_composite", 0):
+        warnings.append("Composite states appear to self-initialize inside their own body, which often indicates a structural modeling problem.")
+    if markers.get("cross_composite_transition", 0):
+        warnings.append("Cross-composite transitions were observed inside nested blocks, which can indicate scope leakage or malformed hierarchy.")
+    if format_guess in {"ttool_xml", "xml"} and inventory.get("blocks") and not inventory.get("transitions"):
+        warnings.append("Only architecture-side structure was directly observed from XML; behavior relations remain partially implicit.")
+    if len(inventory.get("blocks", [])) >= 6 and not inventory.get("signals"):
+        warnings.append("Many block-like observations were found but almost no explicit signal relations were recovered.")
+    return _dedupe_strings(warnings)
+
+
+def _summary_from_inventory(
+    role: str,
+    inventory: dict[str, list[str]],
+    format_guess: str,
+    observability: str,
+    observability_reason: str,
+) -> str:
+    parts: list[str] = [f"{role} artifact detected as {format_guess}."]
+    counts = {
+        "states": len(inventory.get("states", [])),
+        "transitions": len(inventory.get("transitions", [])),
+        "blocks": len(inventory.get("blocks", [])),
+        "signals": len(inventory.get("signals", [])),
+        "rules": len(inventory.get("rules", [])),
+    }
+    count_bits = [f"{name}={value}" for name, value in counts.items() if value]
+    if count_bits:
+        parts.append("Observed " + ", ".join(count_bits) + ".")
+    else:
+        parts.append("Only sparse structure could be observed directly.")
+    parts.append(f"Observability is {observability}: {observability_reason}")
+    return " ".join(parts)
+
+
+def _inventory_from_text(text: str | None) -> dict[str, Any]:
+    format_guess = _guess_format(text)
     payload = parse_json_payload(text)
+    parser_notes: list[str] = []
+    inventory = {"states": [], "transitions": [], "blocks": [], "signals": [], "rules": []}
+    counts: dict[str, Any] = {}
+
     if isinstance(payload, dict):
         inventory = merge_inventory(machine_elements_from_payload(payload), extract_generic_inventory_from_text(text or ""))
         counts = count_machine_components(payload)
+        parser_notes.append("Applied JSON payload probe before generic text extraction.")
+    elif format_guess in {"ttool_xml", "xml"}:
+        xml_inventory, xml_notes = _extract_xml_inventory(text)
+        inventory = merge_inventory(xml_inventory, extract_generic_inventory_from_text(text or ""))
+        parser_notes.extend(xml_notes)
     else:
         inventory = extract_generic_inventory_from_text(text or "")
-        counts = {}
-    format_guess = _guess_format(text)
-    return inventory, counts, format_guess
+
+    if format_guess == "plantuml_like":
+        explicit_states = _explicit_state_names_from_text(text)
+        if explicit_states:
+            inventory["states"] = _dedupe_strings(explicit_states)
+            parser_notes.append("Collapsed PlantUML state inventory to explicit state declarations for a less noisy major-element dossier.")
+
+    surface_markers = _surface_markers_from_text(text)
+    behaviors = _derive_behavior_lines(text, inventory, format_guess)
+    constraints = _derive_constraint_lines(text, inventory)
+    ambiguities = _derive_ambiguities(text, inventory)
+    observability, observability_reason = _observability_from_inventory(text, inventory, counts, format_guess)
+    structural_warnings = _structural_warnings_from_probe(format_guess, inventory, surface_markers)
+    canonical_names = _canonical_names_from_inventory(inventory)
+    return {
+        "inventory": inventory,
+        "counts": counts,
+        "format_guess": format_guess,
+        "format_confidence": _format_confidence(format_guess, text),
+        "behaviors": behaviors,
+        "constraints": constraints,
+        "ambiguities": ambiguities,
+        "observability": observability,
+        "observability_reason": observability_reason,
+        "surface_markers": surface_markers,
+        "structural_warnings": structural_warnings,
+        "canonical_names": canonical_names,
+        "parser_notes": parser_notes,
+    }
 
 
 def _element_from_raw(kind: str, raw_value: str, idx: int, role: str) -> ArtifactElement:
     label = raw_value.split("|", 1)[0].strip()
+    cleaned = raw_value.strip()
+    if kind == "state":
+        state_match = re.match(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)", cleaned)
+        if state_match:
+            label = state_match.group(1).strip()
+    elif kind in {"block", "component"}:
+        block_match = re.match(r"(?:block|component)\s+([A-Za-z_][A-Za-z0-9_.-]*)", cleaned, re.I)
+        if block_match:
+            label = block_match.group(1).strip()
     element_id = f"{role}_{kind}_{idx}"
     return ArtifactElement(
         element_id=element_id,
         kind=kind,
-        label=label or raw_value.strip(),
-        text=raw_value.strip(),
-        evidence_text=raw_value.strip(),
+        label=label or cleaned,
+        text=cleaned,
+        evidence_text=cleaned,
     )
 
 
@@ -436,35 +763,37 @@ def _relation_from_raw(raw_value: str, idx: int, role: str) -> ArtifactRelation:
     )
 
 
-def _observability_from_inventory(
-    text: str | None,
-    inventory: dict[str, list[str]],
-    counts: dict[str, Any],
-) -> str:
-    item_count = sum(len(inventory.get(key, [])) for key in ["states", "transitions", "blocks", "signals", "rules"])
-    text_len = len((text or "").strip())
-    if item_count >= 8 or int(counts.get("transition_count", 0) or 0) >= 4:
-        return "high"
-    if item_count >= 3 or text_len >= 180:
-        return "medium"
-    return "low"
+def _element_merge_key(element: ArtifactElement) -> str:
+    return normalize_id("|".join([element.kind, element.label or element.text]))
 
 
-def _summary_from_inventory(role: str, inventory: dict[str, list[str]], format_guess: str) -> str:
-    parts: list[str] = [f"{role} artifact detected as {format_guess}."]
-    counts = {
-        "states": len(inventory.get("states", [])),
-        "transitions": len(inventory.get("transitions", [])),
-        "blocks": len(inventory.get("blocks", [])),
-        "signals": len(inventory.get("signals", [])),
-        "rules": len(inventory.get("rules", [])),
-    }
-    count_bits = [f"{name}={value}" for name, value in counts.items() if value]
-    if count_bits:
-        parts.append("Observed " + ", ".join(count_bits) + ".")
-    else:
-        parts.append("Only sparse structure could be observed directly.")
-    return " ".join(parts)
+def _relation_merge_key(relation: ArtifactRelation) -> str:
+    base = "|".join(
+        [
+            relation.source_label,
+            relation.target_label,
+            relation.trigger,
+            relation.condition,
+            relation.action,
+        ]
+    )
+    if normalize_id(base):
+        return normalize_id(base)
+    return normalize_id(relation.description or relation.evidence_text)
+
+
+def _same_relation_family(left: ArtifactRelation, right: ArtifactRelation) -> bool:
+    left_pair = normalize_id("|".join([left.source_label, left.target_label]))
+    right_pair = normalize_id("|".join([right.source_label, right.target_label]))
+    if left_pair and right_pair and left_pair != right_pair:
+        return False
+    if left_pair != right_pair and (left_pair or right_pair):
+        return False
+    if left.trigger and right.trigger and normalize_id(left.trigger) != normalize_id(right.trigger):
+        return False
+    if left_pair and right_pair:
+        return True
+    return normalize_id(left.description or left.evidence_text) == normalize_id(right.description or right.evidence_text)
 
 
 def _render_artifact_schema_hint() -> dict[str, Any]:
@@ -497,74 +826,137 @@ def _render_artifact_schema_hint() -> dict[str, Any]:
         "constraints": ["A short constraint statement."],
         "ambiguities": ["A short ambiguity statement if needed."],
         "observability": "high",
+        "observability_reason": "Short reason for the observability judgement.",
     }
 
 
 def _build_parser_dossier(role: str, text: str | None) -> ArtifactDossier:
-    inventory, counts, format_guess = _inventory_from_text(text)
+    probe = _inventory_from_text(text)
+    inventory = probe["inventory"]
     elements: list[ArtifactElement] = []
     relations: list[ArtifactRelation] = []
+    element_index: dict[str, int] = {}
+    relation_index: dict[str, int] = {}
     for kind in ["states", "blocks", "signals", "rules"]:
         singular = kind[:-1] if kind.endswith("s") else kind
         for idx, raw_value in enumerate(inventory.get(kind, []), start=1):
-            elements.append(_element_from_raw(singular, raw_value, idx, role))
+            candidate = _element_from_raw(singular, raw_value, idx, role)
+            key = _element_merge_key(candidate)
+            if key in element_index:
+                existing = elements[element_index[key]]
+                existing.text = _merge_text_fragments(existing.text, candidate.text)
+                existing.evidence_text = _merge_text_fragments(existing.evidence_text, candidate.evidence_text)
+                continue
+            element_index[key] = len(elements)
+            elements.append(candidate)
     for idx, raw_value in enumerate(inventory.get("transitions", []), start=1):
-        relations.append(_relation_from_raw(raw_value, idx, role))
-    behaviors = _dedupe_strings([item.description for item in relations if item.description] + inventory.get("rules", []))
-    constraints = _dedupe_strings(
-        [item.condition for item in relations if item.condition] + inventory.get("rules", [])
-    )
+        if "[*]" in raw_value:
+            continue
+        candidate = _relation_from_raw(raw_value, idx, role)
+        key = _relation_merge_key(candidate)
+        if key in relation_index:
+            existing = relations[relation_index[key]]
+            existing.description = _merge_text_fragments(existing.description, candidate.description)
+            existing.evidence_text = _merge_text_fragments(existing.evidence_text, candidate.evidence_text)
+            continue
+        merged = False
+        for existing_idx, existing in enumerate(relations):
+            if _same_relation_family(existing, candidate) and (not existing.trigger or not candidate.trigger):
+                if candidate.trigger and not existing.trigger:
+                    existing.trigger = candidate.trigger
+                if candidate.condition and not existing.condition:
+                    existing.condition = candidate.condition
+                if candidate.action and not existing.action:
+                    existing.action = candidate.action
+                existing.description = _merge_text_fragments(existing.description, candidate.description)
+                existing.evidence_text = _merge_text_fragments(existing.evidence_text, candidate.evidence_text)
+                relation_index[_relation_merge_key(existing)] = existing_idx
+                merged = True
+                break
+        if merged:
+            continue
+        relation_index[key] = len(relations)
+        relations.append(candidate)
     evidence: list[EvidenceItem] = []
-    for raw_value in inventory.get("transitions", [])[:3]:
+    for idx, raw_value in enumerate(inventory.get("transitions", [])[:3], start=1):
         evidence.append(
-            EvidenceItem(
-                source=role,
-                locator=None,
-                snippet=raw_value,
-                explanation=f"Observed {role} relation from direct parser/probe extraction.",
+            _make_evidence_item(
+                role,
+                f"{role}:relation:{idx}",
+                raw_value,
+                f"Observed {role} relation from direct parser/probe extraction.",
             )
         )
-    for raw_value in inventory.get("states", [])[:2]:
+    for idx, raw_value in enumerate((inventory.get("states", []) + inventory.get("blocks", []) + inventory.get("signals", []))[:3], start=1):
         evidence.append(
-            EvidenceItem(
-                source=role,
-                locator=None,
-                snippet=raw_value,
-                explanation=f"Observed {role} element from direct parser/probe extraction.",
+            _make_evidence_item(
+                role,
+                f"{role}:element:{idx}",
+                raw_value,
+                f"Observed {role} element from direct parser/probe extraction.",
             )
         )
     return ArtifactDossier(
         role=role,
-        format_guess=format_guess,
+        format_guess=probe["format_guess"],
         artifact_family_guess=_artifact_family_guess(inventory, text),
-        summary=_summary_from_inventory(role, inventory, format_guess),
+        summary=_summary_from_inventory(
+            role,
+            inventory,
+            probe["format_guess"],
+            probe["observability"],
+            probe["observability_reason"],
+        ),
         elements=elements,
         relations=relations,
-        behaviors=behaviors[:16],
-        constraints=constraints[:12],
-        ambiguities=[],
+        behaviors=probe["behaviors"][:16],
+        constraints=probe["constraints"][:12],
+        ambiguities=probe["ambiguities"][:10],
         evidence=evidence[:6],
-        observability=_observability_from_inventory(text, inventory, counts),
+        observability=probe["observability"],
+        format_confidence=float(probe["format_confidence"]),
+        observability_reason=probe["observability_reason"],
         analysis_mode="parser_only",
-        parser_notes=[],
+        surface_markers=dict(probe["surface_markers"]),
+        structural_warnings=list(probe["structural_warnings"]),
+        canonical_names=list(probe["canonical_names"]),
+        extraction_conflicts=[],
+        parser_notes=list(probe["parser_notes"]),
     )
 
 
 def _should_use_llm_extractor(dossier: ArtifactDossier, text: str | None) -> bool:
     if not text or not text.strip():
         return False
-    if dossier.format_guess in {"json", "plantuml_like"} and dossier.observability == "high":
+    if dossier.format_guess in {"json_structured_model", "plantuml_like"} and dossier.observability == "high":
         return False
     if dossier.observability == "low":
         return True
-    if dossier.format_guess in {"xml", "free_text", "summary_text"}:
+    if dossier.format_guess in {"ttool_xml", "xml", "free_text", "summary_text", "json_generic", "json_list"}:
         return True
     return len(dossier.behaviors) < 2 and len((text or "").strip()) >= 200
+
+
+def _merge_text_fragments(first: str, second: str) -> str:
+    left = first.strip()
+    right = second.strip()
+    if not left:
+        return right
+    if not right or normalize_id(left) == normalize_id(right):
+        return left
+    if normalize_id(right) in normalize_id(left):
+        return left
+    if normalize_id(left) in normalize_id(right):
+        return right
+    return f"{left} | {right}"
 
 
 def _merge_artifact_dossiers(parser_dossier: ArtifactDossier, llm_payload: dict[str, Any]) -> ArtifactDossier:
     elements = list(parser_dossier.elements)
     relations = list(parser_dossier.relations)
+    element_index = {_element_merge_key(item): idx for idx, item in enumerate(elements)}
+    relation_index = {_relation_merge_key(item): idx for idx, item in enumerate(relations)}
+    extraction_conflicts = list(parser_dossier.extraction_conflicts)
     for idx, item in enumerate(llm_payload.get("major_elements", []), start=1):
         if not isinstance(item, dict):
             continue
@@ -572,46 +964,54 @@ def _merge_artifact_dossiers(parser_dossier: ArtifactDossier, llm_payload: dict[
         text = str(item.get("text") or label).strip()
         if not label and not text:
             continue
-        key = normalize_id(label or text)
-        if key and any(normalize_id(existing.label) == key for existing in elements):
-            continue
-        elements.append(
-            ArtifactElement(
-                element_id=str(item.get("element_id") or f"{parser_dossier.role}_llm_element_{idx}"),
-                kind=str(item.get("kind") or "element"),
-                label=label or text,
-                text=text,
-                evidence_text=str(item.get("evidence_text") or text),
-            )
+        candidate = ArtifactElement(
+            element_id=str(item.get("element_id") or f"{parser_dossier.role}_llm_element_{idx}"),
+            kind=str(item.get("kind") or "element"),
+            label=label or text,
+            text=text,
+            evidence_text=str(item.get("evidence_text") or text),
         )
+        key = _element_merge_key(candidate)
+        if key and key in element_index:
+            existing = elements[element_index[key]]
+            if candidate.kind != existing.kind:
+                extraction_conflicts.append(
+                    f"LLM retyped `{candidate.label or candidate.text}` from `{existing.kind}` to `{candidate.kind}`; kept parser kind."
+                )
+            existing.text = _merge_text_fragments(existing.text, candidate.text)
+            existing.evidence_text = _merge_text_fragments(existing.evidence_text, candidate.evidence_text)
+            continue
+        element_index[key] = len(elements)
+        elements.append(candidate)
     for idx, item in enumerate(llm_payload.get("major_relations", []), start=1):
         if not isinstance(item, dict):
             continue
         description = str(item.get("description", "")).strip()
         source = str(item.get("source_label", "")).strip()
         target = str(item.get("target_label", "")).strip()
-        key = normalize_id("|".join([source, target, str(item.get("trigger", "")), str(item.get("condition", ""))]))
-        if key and any(
-            normalize_id(
-                "|".join([existing.source_label, existing.target_label, existing.trigger, existing.condition])
-            )
-            == key
-            for existing in relations
-        ):
-            continue
-        relations.append(
-            ArtifactRelation(
-                relation_id=str(item.get("relation_id") or f"{parser_dossier.role}_llm_relation_{idx}"),
-                kind=str(item.get("kind") or "relation"),
-                source_label=source,
-                target_label=target,
-                trigger=str(item.get("trigger", "")).strip(),
-                condition=str(item.get("condition", "")).strip(),
-                action=str(item.get("action", "")).strip(),
-                description=description or str(item.get("evidence_text", "")).strip(),
-                evidence_text=str(item.get("evidence_text") or description),
-            )
+        candidate = ArtifactRelation(
+            relation_id=str(item.get("relation_id") or f"{parser_dossier.role}_llm_relation_{idx}"),
+            kind=str(item.get("kind") or "relation"),
+            source_label=source,
+            target_label=target,
+            trigger=str(item.get("trigger", "")).strip(),
+            condition=str(item.get("condition", "")).strip(),
+            action=str(item.get("action", "")).strip(),
+            description=description or str(item.get("evidence_text", "")).strip(),
+            evidence_text=str(item.get("evidence_text") or description),
         )
+        key = _relation_merge_key(candidate)
+        if key and key in relation_index:
+            existing = relations[relation_index[key]]
+            existing.description = _merge_text_fragments(existing.description, candidate.description)
+            existing.evidence_text = _merge_text_fragments(existing.evidence_text, candidate.evidence_text)
+            if candidate.condition and not existing.condition:
+                existing.condition = candidate.condition
+            if candidate.action and not existing.action:
+                existing.action = candidate.action
+            continue
+        relation_index[key] = len(relations)
+        relations.append(candidate)
     behaviors = _dedupe_strings(parser_dossier.behaviors + [str(item) for item in llm_payload.get("behaviors", [])])
     constraints = _dedupe_strings(
         parser_dossier.constraints + [str(item) for item in llm_payload.get("constraints", [])]
@@ -620,24 +1020,24 @@ def _merge_artifact_dossiers(parser_dossier: ArtifactDossier, llm_payload: dict[
         parser_dossier.ambiguities + [str(item) for item in llm_payload.get("ambiguities", [])]
     )
     evidence = list(parser_dossier.evidence)
-    for item in llm_payload.get("major_elements", [])[:2]:
+    for idx, item in enumerate(llm_payload.get("major_elements", [])[:2], start=1):
         if not isinstance(item, dict):
             continue
         evidence.append(
-            EvidenceItem(
-                source=parser_dossier.role,
-                locator=None,
+            _make_evidence_item(
+                parser_dossier.role,
+                f"{parser_dossier.role}:llm_element:{idx}",
                 snippet=str(item.get("evidence_text") or item.get("text") or item.get("label") or ""),
                 explanation=f"LLM-extracted {parser_dossier.role} element summary.",
             )
         )
-    for item in llm_payload.get("major_relations", [])[:2]:
+    for idx, item in enumerate(llm_payload.get("major_relations", [])[:2], start=1):
         if not isinstance(item, dict):
             continue
         evidence.append(
-            EvidenceItem(
-                source=parser_dossier.role,
-                locator=None,
+            _make_evidence_item(
+                parser_dossier.role,
+                f"{parser_dossier.role}:llm_relation:{idx}",
                 snippet=str(item.get("evidence_text") or item.get("description") or ""),
                 explanation=f"LLM-extracted {parser_dossier.role} relation summary.",
             )
@@ -645,6 +1045,13 @@ def _merge_artifact_dossiers(parser_dossier: ArtifactDossier, llm_payload: dict[
     summary = str(llm_payload.get("summary") or parser_dossier.summary).strip()
     artifact_family_guess = str(llm_payload.get("artifact_family_guess") or parser_dossier.artifact_family_guess)
     observability = str(llm_payload.get("observability") or parser_dossier.observability)
+    observability_reason = str(llm_payload.get("observability_reason") or parser_dossier.observability_reason).strip()
+    canonical_names = _dedupe_strings(
+        parser_dossier.canonical_names
+        + [item.label for item in elements if item.label]
+        + [relation.source_label for relation in relations if relation.source_label]
+        + [relation.target_label for relation in relations if relation.target_label]
+    )
     return ArtifactDossier(
         role=parser_dossier.role,
         format_guess=parser_dossier.format_guess,
@@ -657,7 +1064,13 @@ def _merge_artifact_dossiers(parser_dossier: ArtifactDossier, llm_payload: dict[
         ambiguities=ambiguities[:10],
         evidence=evidence[:8],
         observability=observability,
+        format_confidence=parser_dossier.format_confidence,
+        observability_reason=observability_reason,
         analysis_mode="parser_plus_llm",
+        surface_markers=dict(parser_dossier.surface_markers),
+        structural_warnings=_dedupe_strings(parser_dossier.structural_warnings),
+        canonical_names=canonical_names[:40],
+        extraction_conflicts=_dedupe_strings(extraction_conflicts)[:12],
         parser_notes=list(parser_dossier.parser_notes),
     )
 
@@ -913,26 +1326,80 @@ def _build_dimensions(contract: ReviewContract, regime: EvidenceRegime) -> list[
 
 
 def _build_input_dossier(request: ExpertReviewRequest) -> InputDossier:
-    requirements = [
-        RequirementTraceResult(
-            requirement_id=item.requirement_id,
-            requirement_text=item.text,
-            status="unreviewed",
-            reason_text="Requirement extracted from input text and awaiting traceability analysis.",
-            matched_element_ids=[],
-            confidence=0.5,
+    raw_requirements = parse_requirement_items(request.input_text, [])
+    requirements = []
+    for item in raw_requirements:
+        requirements.append(
+            RequirementTraceResult(
+                requirement_id=item.requirement_id,
+                requirement_text=item.text,
+                status="unreviewed",
+                reason_text="Requirement extracted from input text and awaiting traceability analysis.",
+                matched_element_ids=[],
+                confidence=0.5,
+            )
         )
-        for item in parse_requirement_items(request.input_text, [])
-    ]
+    requirement_texts = [item.requirement_text for item in requirements]
     clues: list[str] = []
     lowered = request.prompt.lower()
     if "equivalent" in lowered or "等效" in request.prompt:
         clues.append("Prompt explicitly allows semantic equivalence beyond structural isomorphism.")
     if "hallucination" in lowered or "额外" in request.prompt:
         clues.append("Prompt explicitly asks to inspect unsupported extra structure.")
+    behaviors = _dedupe_strings(requirement_texts)
+    constraints = _dedupe_strings(
+        [
+            text
+            for text in requirement_texts
+            if any(
+                token in text.lower()
+                for token in [" if ", " when ", " only ", " must ", " cannot ", " not ", "<", ">", "within", "every"]
+            )
+        ]
+    )
+    ambiguities = _dedupe_strings(
+        [
+            text
+            for text in requirement_texts
+            if any(token in text.lower() for token in ["possible", "may ", "maybe", "roughly", "and/or", "etc"])
+        ]
+    )
+    evidence = [
+        _make_evidence_item(
+            "input",
+            f"input:requirement:{item.requirement_id}",
+            item.requirement_text,
+            "Requirement extracted into the input dossier.",
+        )
+        for item in requirements[:4]
+    ]
+    entity_hints = _dedupe_strings(
+        [
+            token
+            for text in requirement_texts
+            for token in _content_tokens(text)
+            if token not in {"shall", "should", "must", "allow", "system"}
+        ]
+    )[:20]
+    if len(requirements) >= 4 or len(request.input_text.strip()) >= 220:
+        observability = "high"
+        observability_reason = "Input dossier contains multiple explicit requirements and enough textual detail for grounding."
+    elif requirements or len(request.input_text.strip()) >= 80:
+        observability = "medium"
+        observability_reason = "Input dossier exposes some grounding clues, but not all constraints are explicit."
+    else:
+        observability = "low"
+        observability_reason = "Input dossier is sparse, so requirement grounding will remain limited."
     return InputDossier(
         summary=request.input_text.strip() or "No explicit input description was provided.",
         requirements=requirements,
+        behaviors=behaviors[:16],
+        constraints=constraints[:12],
+        ambiguities=ambiguities[:8],
+        evidence=evidence,
+        observability=observability,
+        observability_reason=observability_reason,
+        entity_hints=entity_hints,
         context_clues=clues,
     )
 
@@ -961,6 +1428,8 @@ def _candidate_texts_from_dossier(dossier: ArtifactDossier) -> list[tuple[str, s
         )
     for idx, item in enumerate(dossier.behaviors, start=1):
         candidates.append((f"{dossier.role}_behavior_{idx}", "behavior", item))
+    for idx, item in enumerate(dossier.constraints, start=1):
+        candidates.append((f"{dossier.role}_constraint_{idx}", "constraint", item))
     return candidates
 
 
@@ -1048,7 +1517,12 @@ def _traceability_with_llm(
                 "Review each requirement against the prediction dossier.\n\n"
                 "Return JSON with key trace_results, where each item has: "
                 "requirement_id, status, reason_text, matched_element_ids, confidence.\n\n"
+                f"Input summary:\n{input_dossier.summary}\n\n"
+                f"Input behaviors:\n{json.dumps(input_dossier.behaviors[:10], ensure_ascii=False, indent=2)}\n\n"
+                f"Input constraints:\n{json.dumps(input_dossier.constraints[:10], ensure_ascii=False, indent=2)}\n\n"
                 f"Prediction summary:\n{pred_dossier.summary}\n\n"
+                f"Prediction constraints:\n{json.dumps(pred_dossier.constraints[:10], ensure_ascii=False, indent=2)}\n\n"
+                f"Prediction ambiguities:\n{json.dumps(pred_dossier.ambiguities[:8], ensure_ascii=False, indent=2)}\n\n"
                 f"Trace candidates:\n{json.dumps(compact_candidates, ensure_ascii=False, indent=2)}",
             ),
         ],
@@ -1080,6 +1554,12 @@ def _requirement_grounding_tokens(input_dossier: InputDossier) -> set[str]:
     tokens: set[str] = set()
     for item in input_dossier.requirements:
         tokens.update(_token_set(item.requirement_text))
+    for item in input_dossier.behaviors:
+        tokens.update(_token_set(item))
+    for item in input_dossier.constraints:
+        tokens.update(_token_set(item))
+    for item in input_dossier.entity_hints:
+        tokens.update(_token_set(item))
     return tokens
 
 
@@ -1298,10 +1778,13 @@ def _equivalence_with_llm(
                 "Return JSON with keys: equivalence_strength, supported_restructures, harmful_extras, "
                 "missing_items, contradictions, confidence.\n\n"
                 f"Requirements:\n{json.dumps([item.requirement_text for item in input_dossier.requirements], ensure_ascii=False, indent=2)}\n\n"
+                f"Input constraints:\n{json.dumps(input_dossier.constraints[:10], ensure_ascii=False, indent=2)}\n\n"
                 f"Prediction summary:\n{pred_dossier.summary}\n"
                 f"Prediction behaviors:\n{json.dumps(pred_dossier.behaviors[:10], ensure_ascii=False, indent=2)}\n\n"
+                f"Prediction constraints:\n{json.dumps(pred_dossier.constraints[:10], ensure_ascii=False, indent=2)}\n\n"
                 f"Reference summary:\n{ref_dossier.summary}\n"
                 f"Reference behaviors:\n{json.dumps(ref_dossier.behaviors[:10], ensure_ascii=False, indent=2)}\n\n"
+                f"Reference constraints:\n{json.dumps(ref_dossier.constraints[:10], ensure_ascii=False, indent=2)}\n\n"
                 f"Deterministic candidate report:\n{json.dumps(_json_safe_report(base_report), ensure_ascii=False, indent=2)}",
             ),
         ],
@@ -1402,15 +1885,28 @@ def _quality_report(input_dossier: InputDossier, pred_dossier: ArtifactDossier) 
         complexity_penalty += 0.10
     if generic_count >= 2:
         complexity_penalty += min(0.20, generic_count * 0.05)
+    if pred_dossier.structural_warnings:
+        complexity_penalty += min(0.18, 0.06 * len(pred_dossier.structural_warnings))
+    if pred_dossier.extraction_conflicts:
+        complexity_penalty += min(0.12, 0.04 * len(pred_dossier.extraction_conflicts))
     clarity_score_hint = _clip01(0.86 - complexity_penalty - max(0.0, 0.25 - 0.35 * grounded_ratio))
     evidence = []
     if pred_dossier.elements:
         evidence.append(
-            EvidenceItem(
-                source="prediction",
-                locator=None,
+            _make_evidence_item(
+                "prediction",
+                "prediction:quality:element",
                 snippet=pred_dossier.elements[0].evidence_text,
                 explanation="Representative predicted element used for quality inspection.",
+            )
+        )
+    for idx, warning in enumerate(pred_dossier.structural_warnings[:2], start=1):
+        evidence.append(
+            _make_evidence_item(
+                "prediction",
+                f"prediction:quality:warning:{idx}",
+                warning,
+                "Structural warning emitted by dossier probe.",
             )
         )
     return {
@@ -1422,6 +1918,8 @@ def _quality_report(input_dossier: InputDossier, pred_dossier: ArtifactDossier) 
         "notes": [
             f"Generic-name count: {generic_count}.",
             f"Requirement-grounded element ratio: {grounded_ratio:.2f}.",
+            f"Dossier structural warnings: {len(pred_dossier.structural_warnings)}.",
+            f"Dossier extraction conflicts: {len(pred_dossier.extraction_conflicts)}.",
         ],
     }
 
@@ -1454,6 +1952,9 @@ def _missing_evidence_critic(
     if not input_dossier.requirements:
         confidence_cap = min(confidence_cap, 0.60)
         warnings.append("No explicit requirement list was extracted, so traceability conclusions remain limited.")
+    elif input_dossier.observability == "low":
+        confidence_cap = min(confidence_cap, 0.60)
+        warnings.append("Input dossier observability is low, so requirement-grounding claims must remain conservative.")
     uncertain_count = len(equivalence_report.get("missing_items", []))
     if uncertain_count >= 4 and regime.regime != "record_level":
         warnings.append("Many possible missing items were detected, but the current evidence regime is too weak for aggressive omission claims.")
@@ -1463,54 +1964,6 @@ def _missing_evidence_critic(
         "warnings": warnings,
         "confidence": min(0.85, confidence_cap + 0.05),
     }
-
-
-def _special_marker_count(text: str | None) -> dict[str, int]:
-    raw = (text or "").lower()
-    return {
-        "parallel": raw.count("--"),
-        "choice": len(re.findall(r"\bchoice", raw)),
-        "fork": len(re.findall(r"\bfork", raw)),
-        "join": len(re.findall(r"\bjoin", raw)),
-        "junction": len(re.findall(r"\bjunction", raw)),
-    }
-
-
-def _self_named_composite_count(text: str | None) -> int:
-    raw = text or ""
-    count = 0
-    for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw):
-        name = match.group(1).strip()
-        block_start = match.end()
-        block_end = raw.find("}", block_start)
-        if block_end == -1:
-            continue
-        block = raw[block_start:block_end]
-        if re.search(rf"\[\*\]\s*-->\s*{re.escape(name)}\b", block):
-            count += 1
-    return count
-
-
-def _cross_composite_transition_risk(text: str | None) -> int:
-    raw = text or ""
-    composites = [match.group(1).strip() for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw)]
-    if len(composites) < 2:
-        return 0
-    risk = 0
-    for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw):
-        current = match.group(1).strip()
-        block_start = match.end()
-        block_end = raw.find("}", block_start)
-        if block_end == -1:
-            continue
-        block = raw[block_start:block_end]
-        for other in composites:
-            if other == current:
-                continue
-            if re.search(rf"->\s*{re.escape(other)}\b", block):
-                risk += 1
-    return risk
-
 
 def _status_counts(results: list[RequirementTraceResult]) -> tuple[int, int, int]:
     matched = sum(1 for item in results if item.status == "matched")
@@ -1545,7 +1998,7 @@ def _score_and_reason_dimensions(
         syntax_score += 0.18
     if pred_dossier.relations:
         syntax_score += 0.20
-    if pred_dossier.format_guess in {"json", "plantuml_like", "xml"}:
+    if pred_dossier.format_guess in {"json_structured_model", "json_generic", "plantuml_like", "ttool_xml", "xml"}:
         syntax_score += 0.10
     if pred_dossier.observability == "low":
         syntax_score -= 0.06
@@ -1563,14 +2016,16 @@ def _score_and_reason_dimensions(
         + (0.06 if regime.regime == "record_level" else 0.0)
     )
 
-    summary_mode = regime.regime == "summary_only" or "summary-level" in request.prompt.lower()
+    summary_mode = regime.regime == "summary_only"
     if summary_mode and not regime.has_reference:
         completeness_score = max(completeness_score, _clip01(0.46 + 0.12 * syntax_score + 0.12 * clarity_score))
         behavior_score = max(behavior_score, _clip01(0.44 + 0.15 * syntax_score + 0.10 * clarity_score))
         traceability_score = max(traceability_score, _clip01(0.42 + 0.10 * syntax_score + 0.08 * clarity_score))
         evidence_score = max(evidence_score, 0.66)
 
-    self_named_composites = _self_named_composite_count(request.pred_output)
+    pred_markers = pred_dossier.surface_markers
+    ref_markers = ref_dossier.surface_markers
+    self_named_composites = pred_markers.get("self_named_composite", 0)
     if self_named_composites:
         syntax_score = _clip01(syntax_score - 0.22)
         behavior_score = _clip01(behavior_score - 0.16)
@@ -1578,7 +2033,7 @@ def _score_and_reason_dimensions(
         completeness_score = _clip01(completeness_score - 0.10)
         traceability_score = _clip01(traceability_score - 0.08)
 
-    composite_transition_risk = _cross_composite_transition_risk(request.pred_output)
+    composite_transition_risk = pred_markers.get("cross_composite_transition", 0)
     if composite_transition_risk:
         penalty = min(0.24, 0.08 * composite_transition_risk)
         syntax_score = _clip01(syntax_score - penalty)
@@ -1590,8 +2045,6 @@ def _score_and_reason_dimensions(
         completeness_score = min(completeness_score, structural_cap)
         traceability_score = min(traceability_score, structural_cap)
 
-    ref_markers = _special_marker_count(request.ref_output)
-    pred_markers = _special_marker_count(request.pred_output)
     if ref_markers["parallel"] > pred_markers["parallel"]:
         completeness_score = _clip01(completeness_score - 0.10)
         behavior_score = _clip01(behavior_score - 0.10)
@@ -1623,7 +2076,8 @@ def _score_and_reason_dimensions(
         "notation_syntax": (
             "The predicted artifact is "
             + ("structurally reviewable" if syntax_score >= 0.7 else "only partially well-formed")
-            + f", with format guess `{pred_dossier.format_guess}` and {len(pred_dossier.elements)} visible elements."
+            + f", with format guess `{pred_dossier.format_guess}` and {len(pred_dossier.elements)} visible elements. "
+            + pred_dossier.observability_reason
         ),
         "semantic_completeness": (
             f"{matched} requirement(s) were matched, {partial} partial, and {missing} missing. "
@@ -1748,9 +2202,13 @@ def _score_and_reason_dimensions(
                 issues=issue_map[dimension.name],
                 metric_payload={
                     "regime": regime.regime,
+                    "format_guess": pred_dossier.format_guess,
+                    "analysis_mode": pred_dossier.analysis_mode,
                     "pred_observability": pred_dossier.observability,
                     "ref_observability": ref_dossier.observability,
                     "trace_ratio": round(trace_ratio, 6),
+                    "structural_warning_count": len(pred_dossier.structural_warnings),
+                    "extraction_conflict_count": len(pred_dossier.extraction_conflicts),
                 },
                 confidence=min(float(evidence_critic.get("confidence_cap", 0.7)), 0.90),
             )
@@ -1902,6 +2360,10 @@ def run_expert_review_workflow(
     notes.extend(contract.notes)
     notes.append(f"Contract strictness: {contract.strictness}.")
     notes.append(f"Prediction dossier mode: {pred_dossier.analysis_mode}; reference dossier mode: {ref_dossier.analysis_mode}.")
+    notes.append(
+        "Prediction dossier probe: "
+        f"{pred_dossier.format_guess} (confidence={pred_dossier.format_confidence:.2f}, observability={pred_dossier.observability})."
+    )
     notes.append(f"Evidence regime rationale: {regime.rationale}")
     if regime.regime == "protocol_only":
         vv_roles = []

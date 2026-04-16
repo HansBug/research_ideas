@@ -291,34 +291,138 @@
 
 ### Todolist
 
-* [ ] 细化 `input dossier / prediction dossier / reference dossier` 结构。
-* [ ] 强化已知格式探测逻辑，但只把它作为加速器。
-* [ ] 强化未知格式下的通用要素抽取。
-* [ ] 让 dossier 明确记录：
-  * [ ] major elements
-  * [ ] major relations
-  * [ ] behaviors
-  * [ ] constraints
-  * [ ] ambiguities
-  * [ ] observability
-* [ ] 引入更稳定的 evidence item 组织方式。
-* [ ] 让 traceability、equivalence、quality 三类后续节点只依赖 dossier，而不是直接依赖原始输入。
-* [ ] 减少 parser-only 与 llm-extracted 中间产物之间的冲突。
-* [ ] 跑一轮以 extraction/dossier 为主的误差分析。
-* [ ] 在 Phase 2 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
-* [ ] 记录 Phase 2 每一轮迭代的修改项与指标前后变化。
+* [x] 细化 `input dossier / prediction dossier / reference dossier` 结构。
+* [x] 强化已知格式探测逻辑，但只把它作为加速器。
+* [x] 强化未知格式下的通用要素抽取。
+* [x] 让 dossier 明确记录：
+  * [x] major elements
+  * [x] major relations
+  * [x] behaviors
+  * [x] constraints
+  * [x] ambiguities
+  * [x] observability
+* [x] 引入更稳定的 evidence item 组织方式。
+* [x] 让 traceability、equivalence、quality 三类后续节点只依赖 dossier，而不是直接依赖原始输入。
+* [x] 减少 parser-only 与 llm-extracted 中间产物之间的冲突。
+* [x] 跑一轮以 extraction/dossier 为主的误差分析。
+* [x] 在 Phase 2 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
+* [x] 记录 Phase 2 每一轮迭代的修改项与指标前后变化。
 
 ### Checklist
 
-* [ ] dossier 已成为真实运行流中的标准中间层。
-* [ ] 已知格式探测失败不会阻塞评审。
-* [ ] 未知格式仍能给出保守但结构化的 dossier。
-* [ ] dossier 信息已足够支撑后续节点。
-* [ ] 新增 dossier 字段不是摆设，已被真实消费。
-* [ ] 没有新增不可达中间模块。
-* [ ] 已记录 Phase 2 的完整对齐指标。
-* [ ] 已保留 Phase 2 多轮自我迭代链路记录。
-* [ ] 停止 Phase 2 迭代的原因已明确记录为“提升边际化”或等价结论。
+* [x] dossier 已成为真实运行流中的标准中间层。
+* [x] 已知格式探测失败不会阻塞评审。
+* [x] 未知格式仍能给出保守但结构化的 dossier。
+* [x] dossier 信息已足够支撑后续节点。
+* [x] 新增 dossier 字段不是摆设，已被真实消费。
+* [x] 没有新增不可达中间模块。
+* [x] 已记录 Phase 2 的完整对齐指标。
+* [x] 已保留 Phase 2 多轮自我迭代链路记录。
+* [x] 停止 Phase 2 迭代的原因已明确记录为“提升边际化”或等价结论。
+
+### Phase 2 当前状态回写
+
+- 回写时间：`2026-04-16 17:36:56`
+- 完成状态：`Phase 2` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 2`，未推进到 `Phase 3`。
+- 真实接入情况：
+  - `InputDossier` 已扩展为 `summary / requirements / behaviors / constraints / ambiguities / evidence / observability / entity_hints / context_clues`
+  - `ArtifactDossier` 已扩展为 `format_confidence / observability_reason / surface_markers / structural_warnings / canonical_names / extraction_conflicts`
+  - runtime 现在会对 `json_structured_model / json_generic / json_list / ttool_xml / xml / plantuml_like / umple_like / summary_text / free_text` 做 probe
+  - `ttool_xml` 已有专门的 named blocks / signals / connector hints lift 逻辑
+  - `traceability / equivalence / quality / scoring` 已改为消费 dossier 中的结构化产物，而不再直接读取原始 artifact 文本做判定
+- 可运行性：
+  - `review_artifacts()`、`review_model()` 已验收
+  - `python -m expert_review` 已验收
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已通过
+- 未完成项：无。
+- 当前未同步项：
+  - 由于本轮按用户要求停在**本地未提交状态**，PR #6 的 body 仍停留在 `Phase 1` 口径，未同步到 `Phase 2` 完成状态
+  - 待允许提交后，再同步 PR phase checkbox 和当前基线摘要
+- 已知遗留问题：
+  - `STM Results:7` 这类“等价但不同构”的高分样本仍会被误杀，属于 `Phase 3` 的等价推理问题
+  - `STM Results:13`、`STM Results:6` 这类结构性坏例 / 并行结构缺失样本仍会被放宽，属于 `Phase 3` 的 trace/equivalence 裁决问题
+  - `summary-level` 的整体尺度仍偏高或排序仍不稳，属于 `Phase 4` 的 summary 级质量与证据纪律问题
+
+### Phase 2 指标总表
+
+本节记录 `2026-04-16 17:36:56` 基于 `run_benchmark_iteration(llm_mode='off')` 的当前本地收尾快照。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `66.12` |
+| `RAS` | `60.30` |
+| `SAS` | `61.84` |
+| `PDS` | `87.50` |
+| `normalized_mae` | `0.2285` |
+| `rmse` | `0.2583` |
+| `issue_f1` | `0.5924` |
+| `human_issue_coverage_recall` | `0.8500` |
+| `equivalence_false_reject_rate` | `0.1000` |
+| `equivalence_false_accept_rate` | `0.4286` |
+| `unsupported_claim_rate` | `0.5398` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.6909` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.5000` |
+
+### Phase 2 本阶段改进记录
+
+- 最明显提升 1：dossier 已从“轻量字段集合”升级为真实标准中间层，下游节点开始消费 `format_confidence / observability_reason / surface_markers / structural_warnings / canonical_names / extraction_conflicts`。
+- 最明显提升 2：已知格式 probe 明显增强，`ttool_xml` 不再被误判成 `free_text`，并能抽出 blocks / signals / connector behaviors。
+- 最明显提升 3：evidence item 已有更稳定的 locator 组织方式，例如 `prediction:relation:1`、`input:requirement:R1`、`prediction:quality:element`。
+- 最明显提升 4：parser + LLM merge 已开始做去重与冲突缓解，不再简单堆叠重复 element/relation。
+- 最明显提升 5：`traceability / equivalence / quality / scoring` 的原始 artifact 直读口子已基本收掉，改为消费 dossier marker 与 structured candidates。
+- 最明显退化/暴露问题 1：当前收尾 `HAI = 66.12`，略低于 `Phase 1` 收尾的 `66.58`，说明仅靠 dossier 层优化还不足以自然带来整体对齐跃升。
+- 最明显退化/暴露问题 2：`equivalence_false_accept_rate = 0.4286` 仍高，说明“结构差异很大但被放宽”的问题还没有靠 dossier 层本身解决。
+- 最明显退化/暴露问题 3：`SAS = 61.84`，说明 summary-level 的总体尺度仍需要后续 phase 专门处理。
+- 仍未解决错误簇 1：`STM Results:7` 仍被大幅低估，当前 agent `0.388866`，人工 `0.8196721311`。
+- 仍未解决错误簇 2：`STM Results:13` 仍被高估，当前 agent `0.83775`，人工 `0.375`。
+- 仍未解决错误簇 3：`STM Results:6` 仍被高估，当前 agent `0.582013`，人工 `0.2222222222`。
+- 仍未解决错误簇 4：部分 `summary_level` TTool XML 样本仍偏高，例如 `sncs:connected_device:SMD:Std Dev` 当前 agent `0.591887`，人工 `0.05`。
+
+### Phase 2 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 2` 开始前、即 `Phase 1` 收尾状态。
+- `Round 1..4` 都只在 `Phase 2` 架构边界内做 dossier / extraction / marker / merge 改动，不提前引入 `Phase 3` 的大裁决改造。
+- `Round 3` 的 `HAI` 是本阶段多轮迭代中最高的一次，但最终本地保留的是 `Round 4` 代码，因为它把 `major-element dossier` 的口径做得更干净，尽管总分略有回落。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 1` 收尾状态，dossier 仍较薄，格式 probe 粗糙，score 节点仍残留少量 raw artifact 依赖 | `element_extraction_error` | `HAI 66.58 / RAS 60.82 / SAS 62.51 / PDS 87.50` | `--` | `--` | `是` | 作为 `Phase 2` 起点 |
+| `Round 1` | 扩充 input/pred/ref dossier 字段；引入 `ttool_xml` probe、observability reason、surface markers、extraction conflicts；收紧 raw-text 依赖 | `element_extraction_error` / `evidence_discipline_error` | `HAI 66.58` | `HAI 66.04` | `-0.54` | `是` | 第一次回放出现回归，暴露出 XML observability 偏高和伪状态边被当 major relation 的副作用 |
+| `Round 2` | 抑制 `[*]` 初始边进入 major relations；把纯 architecture-side XML observability 从 `high` 收回到 `medium`；修掉 inline requirement 拆分 | `element_extraction_error` / `contract_understanding_error` | `HAI 66.04` | `HAI 66.16` | `+0.12` | `是` | 回归开始收敛，但整体仍低于起始态 |
+| `Round 3` | 修复 `parallel` marker 误把 `-->` 箭头也计入的问题，让正交/并行结构 probe 只统计真正的 `--` separator | `element_extraction_error` / `quality_judgement_error` | `HAI 66.16` | `HAI 66.36` | `+0.20` | `是` | 这是本阶段最高 `HAI` 的一轮，说明 marker probe 修正是有效的 |
+| `Round 4` | 收紧 `major elements` 口径：PlantUML 在存在显式声明时，dossier 优先保留 explicit states，减少把内部 leaf states 全抬成 major elements | `element_extraction_error` | `HAI 66.36` | `HAI 66.12` | `-0.24` | `否` | `unsupported_claim_rate` 进一步降到 `0.5398`，但 `HAI` 又轻微回落；后续收益已进入边际化与 trade-off 区间 |
+
+### Phase 2 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 2` 已完成并停止，等待下一步指令，不进入 `Phase 3`。
+- TODO 打勾情况：`Phase 2` 的 Todolist 与 Checklist 均已如实打勾。
+- TODO 尚未完成项：无；当前剩余问题已明确转交给 `Phase 3 / Phase 4`。
+- 当前对齐程度总览：当前本地收尾 `HAI 66.12`，相对 `Phase 2 Round 0` 的 `66.58` 轻微回落 `-0.46`；但 dossier 结构化能力和运行时中间层质量有实质提升。
+- 从人类评审视角看，这个阶段的核心收益不在于“总分立刻跃升”，而在于 reviewer 终于开始有一个更可信、可复用、可审计的标准 dossier 中间层；这为后续 `Phase 3` 的 trace/equivalence 裁决和 `Phase 4` 的 summary/protocol discipline 提供了真实基础。
+- `HAI 66.12` 的人类含义：总体可用性与 `Phase 1` 相当，没有实现明显跃迁；如果只看总分，这一阶段收益有限。
+- `RAS 60.30` 的人类含义：record-level 仍处在“经常能看对方向，但单条样本给分还不够像真人”的区间。
+- `SAS 61.84` 的人类含义：summary-level 的排序与尺度仍偏弱，dossier 加固本身没有自然修复 summary 评审口径。
+- `PDS 87.50` 的人类含义：protocol-only restraint 仍保持住，没有因为 dossier 扩张而重新走向 overclaim。
+- `unsupported_claim_rate 0.5398` 的人类含义：虽然仍偏高，但比 `Round 3` 又略降，说明 `major-element dossier` 收紧后，reviewer 的“乱报额外结构”开始减少。
+- `issue_f1 0.5924` 的人类含义：比 `Phase 1` 的 `0.5810` 略有提升，说明 dossier 的结构化抽取让 reviewer 抓问题的组织性稍微好了些。
+- 真实对齐例子 1：`STM Results:10`，人工 `0.88`，agent `0.815358`；说明在较常规的 high-quality record-level 样本上，Phase 2 没有把原有可用性打坏。
+- 真实对齐例子 2：`STM Results:2`，人工 `0.8888888889`，agent `0.760219`；说明等价但较规整的样本仍能拿到较高分。
+- 真实近失配例子：`STM Results:5`，人工 `0.3846153846`，agent `0.500334`；说明 reviewer 依旧能看到问题，但惩罚力度仍偏软。
+- 真实失配例子 1：`STM Results:7`，人工 `0.8196721311`，agent `0.388866`；这不是 dossier 层能独立解决的问题，已经进入 `Phase 3` 的等价裁决域。
+- 真实失配例子 2：`STM Results:13`，人工 `0.375`，agent `0.83775`；这里的并行/正交结构缺失已能被 dossier marker 感知到，但当前裁决与评分仍放得过宽，属于 `Phase 3` 问题。
+- 真实失配例子 3：`STM Results:6`，人工 `0.2222222222`，agent `0.582013`；这是典型的“结构性坏例仍未被严罚”，也属于 `Phase 3`。
+- `summary-level` 例子：`sncs:connected_device:SMD:Std Dev`，人工 `0.05`，agent `0.591887`；Phase 2 已把它从 `free_text` 提升为 `ttool_xml` 且 observability 从误判的 `high` 收回到 `medium`，但 summary-level 标度本身还没有修好。
+- `protocol-only` 例子：`protocol::llms_emp` 和 `protocol::ttool-ai` 仍分别保持 `0.250645 / 0.42` 的低分低置信度输出，说明 dossier 加固没有破坏 protocol restraint。
+- 停止原因：
+  - `Round 1 -> Round 3` 的迭代确实在修 dossier probe 的明显错误，收益真实存在
+  - 但 `Round 3 -> Round 4` 已进入“unsupported_claim_rate 继续下降、HAI 反而轻微回落”的 trade-off 区间
+  - 继续在 `Phase 2` 里靠 dossier 小修小补，已经不太可能稳定提升 `HAI / RAS / SAS`
+  - 后续若要再提升，必须进入 `Phase 3` 处理 trace/equivalence 裁决，或进入 `Phase 4` 处理 summary/protocol 口径
 
 ## 5. Phase 3: Traceability 与 Equivalence 推理强化
 

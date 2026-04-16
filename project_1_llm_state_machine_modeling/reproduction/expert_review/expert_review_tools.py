@@ -23,7 +23,8 @@ class RequirementItem:
     text: str
 
 
-REQUIREMENT_LINE_PATTERN = re.compile(r"^([A-Za-z]+[\d._-]*|R\d+|U\d+|FM\d+|REQ[_-]?\d+)\s*[:.)-]\s*(.+)$")
+REQUIREMENT_LINE_PATTERN = re.compile(r"^((?:[A-Za-z]{1,8}\d+(?:[._-]\d+)*)|REQ[_-]?\d+)\s*[:.)-]\s*(.+)$")
+INLINE_REQUIREMENT_PATTERN = re.compile(r"((?:[A-Za-z]{1,8}\d+(?:[._-]\d+)*)|REQ[_-]?\d+)\s*[:.)-]\s*")
 
 
 def _split_free_text_requirements(text: str) -> list[str]:
@@ -59,6 +60,21 @@ def _split_free_text_requirements(text: str) -> list[str]:
     return items
 
 
+def _split_inline_explicit_requirements(text: str) -> list[RequirementItem]:
+    matches = list(INLINE_REQUIREMENT_PATTERN.finditer(text))
+    if len(matches) <= 1:
+        return []
+    items: list[RequirementItem] = []
+    for idx, match in enumerate(matches):
+        requirement_id = match.group(1)
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        requirement_text = text[start:end].strip(" -.;\n\t")
+        if requirement_text:
+            items.append(RequirementItem(requirement_id=requirement_id, text=requirement_text))
+    return items
+
+
 def parse_requirement_items(text: str | None, provided_items: list[dict[str, Any]]) -> list[RequirementItem]:
     if provided_items:
         items: list[RequirementItem] = []
@@ -76,6 +92,11 @@ def parse_requirement_items(text: str | None, provided_items: list[dict[str, Any
     for idx, line in enumerate(text.splitlines(), start=1):
         clean = line.strip()
         if not clean:
+            continue
+        inline_items = _split_inline_explicit_requirements(clean)
+        if inline_items:
+            explicit_match_count += len(inline_items)
+            explicit_items.extend(inline_items)
             continue
         match = REQUIREMENT_LINE_PATTERN.match(clean)
         if match:
