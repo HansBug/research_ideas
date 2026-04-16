@@ -603,36 +603,140 @@
 
 ### Todolist
 
-* [ ] 强化 pragmatic quality review：
-  * [ ] readability
-  * [ ] naming consistency
-  * [ ] unused or noisy structure
-  * [ ] proportional complexity
-* [ ] 引入更明确的 quality issue taxonomy。
-* [ ] 强化 `summary-only` 的整体质量判断与粗粒度分数尺度。
-* [ ] 强化 `protocol-only` 下的 restraint：
-  * [ ] 不伪造 element-level certainty
-  * [ ] 正确识别 inspection / formal verification / simulation / testing 的角色
-* [ ] 强化 confidence policy、abstention policy、notes policy。
-* [ ] 将 `quality review / missing evidence / confidence discipline` 的职责边界朝 v1 的 `agents/pragmatic_quality.py`、`agents/missing_evidence_critic.py` 与相关 `prompts/`、`tools/policy_library.py` 归宿收敛。
-* [ ] 把质量评审口径、证据纪律与置信度规则沉淀到包内结构中，而不是继续散落在 score/synthesis 的零碎条件分支里。
-* [ ] 重点回放 `summary-level` 与 `protocol-only` 样本。
-* [ ] 在 Phase 4 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
-* [ ] 记录 Phase 4 每一轮迭代的修改项与指标前后变化。
+* [x] 强化 pragmatic quality review：
+  * [x] readability
+  * [x] naming consistency
+  * [x] unused or noisy structure
+  * [x] proportional complexity
+* [x] 引入更明确的 quality issue taxonomy。
+* [x] 强化 `summary-only` 的整体质量判断与粗粒度分数尺度。
+* [x] 强化 `protocol-only` 下的 restraint：
+  * [x] 不伪造 element-level certainty
+  * [x] 正确识别 inspection / formal verification / simulation / testing 的角色
+* [x] 强化 confidence policy、abstention policy、notes policy。
+* [x] 将 `quality review / missing evidence / confidence discipline` 的职责边界朝 v1 的 `agents/pragmatic_quality.py`、`agents/missing_evidence_critic.py` 与相关 `prompts/`、`tools/policy_library.py` 归宿收敛。
+* [x] 把质量评审口径、证据纪律与置信度规则沉淀到包内结构中，而不是继续散落在 score/synthesis 的零碎条件分支里。
+* [x] 重点回放 `summary-level` 与 `protocol-only` 样本。
+* [x] 在 Phase 4 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
+* [x] 记录 Phase 4 每一轮迭代的修改项与指标前后变化。
 
 ### Checklist
 
-* [ ] reviewer 能显式识别质量问题，而不是只给语义分。
-* [ ] `summary-only` 不会伪造逐元素问题。
-* [ ] `protocol-only` 不会过度自信。
-* [ ] reviewer 对 V&V 角色有可观测识别能力。
-* [ ] `quality review / missing evidence / confidence` 已形成清晰模块边界，而不是继续附着在 score/synthesis 的修补逻辑上。
-* [ ] 本阶段新增的 quality/evidence 规则已有明确的包内归宿。
-* [ ] `PDS` 与 `SAS` 有阶段性提升记录。
-* [ ] 没有新增“只记录 notes 但不影响真实流程”的空逻辑。
-* [ ] 已记录 Phase 4 的完整对齐指标。
-* [ ] 已保留 Phase 4 多轮自我迭代链路记录。
-* [ ] 停止 Phase 4 迭代的原因已明确记录为“提升边际化”或等价结论。
+* [x] reviewer 能显式识别质量问题，而不是只给语义分。
+* [x] `summary-only` 不会伪造逐元素问题。
+* [x] `protocol-only` 不会过度自信。
+* [x] reviewer 对 V&V 角色有可观测识别能力。
+* [x] `quality review / missing evidence / confidence` 已形成清晰模块边界，而不是继续附着在 score/synthesis 的修补逻辑上。
+* [x] 本阶段新增的 quality/evidence 规则已有明确的包内归宿。
+* [x] `PDS` 与 `SAS` 有阶段性提升记录。
+* [x] 没有新增“只记录 notes 但不影响真实流程”的空逻辑。
+* [x] 已记录 Phase 4 的完整对齐指标。
+* [x] 已保留 Phase 4 多轮自我迭代链路记录。
+* [x] 停止 Phase 4 迭代的原因已明确记录为“提升边际化”或等价结论。
+
+### Phase 4 当前状态回写
+
+- 回写时间：`2026-04-16 19:26:17`
+- 完成状态：`Phase 4` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 4`，未推进到 `Phase 5`。
+- 真实接入情况：
+  - 新增 `prompts/quality_review.py` 与 `prompts/missing_evidence.py`
+  - 新增 `tools/__init__.py` 与 `tools/policy_library.py`
+  - 新增 `agents/pragmatic_quality.py` 与 `agents/missing_evidence_critic.py`
+  - `graph/nodes.py` 新增 `run_quality_node()` 与 `run_missing_evidence_node()`
+  - `run_expert_review_workflow()` 已真实构建 `policy_packet`，并通过 quality node / missing-evidence node 驱动主路径，而不是只在 notes 中补口径
+  - `expert_review_self_iteration.py` 已改为优先读取 reviewer 显式给出的 taxonomy / V&V roles / summary semantics，而不是继续主要靠低分阈值猜标签
+- Phase 4 的核心能力变化：
+  - reviewer 现在会显式产出 `readability_or_naming`、`unused_or_noisy_structure`、`evidence_overreach` 等 quality/evidence taxonomy
+  - `summary-only` 已不再把“缺 reference 导致 trace 很差”直接等价成低质 artifact，而是会按 aggregate semantics 做 coarse score
+  - `protocol-only` 已显式识别 `manual inspection / formal verification / simulation / testing / syntax checker` 等 V&V 角色，并把它们沉淀进 `metric_payload` 与 `notes`
+  - confidence policy 已不再只是 runtime 里的零碎上限分支，而是通过 `policy_library -> missing_evidence_critic -> final_confidence` 串起来
+- 可运行性：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已通过，共 `12` 个测试
+  - `review_artifacts()` 与 `review_model()` 已在显式清空 provider key 的 deterministic 模式下完成烟测
+  - `python -m expert_review` 已在显式清空 provider key 的 deterministic 模式下完成烟测
+- 未完成项：无。
+- 当前未同步项：
+  - 由于本轮按用户要求停在**本地未提交状态**，PR #6 的 body 仍停留在 `Phase 3` 口径，尚未同步到 `Phase 4`
+  - 待允许提交后，再同步 PR phase checkbox 和当前基线摘要
+- 已知遗留问题：
+  - `SAS` 在 `Round 1` 后已基本进入平台期，说明 Phase 4 口径已经拉起，但后续再提升更多要靠 Phase 5 的更深结构收敛
+  - `vv_role_coverage` 虽已从 `0.50` 提到 `0.75`，但仍有个别 protocol 行只能稳定识别出 `manual inspection + testing`
+  - `dossier / policy / score composer` 仍有一部分 dataclass 与组合逻辑留在 `expert_review_v1_runtime.py`，后续仍要继续朝 v1 目录架构推进
+
+### Phase 4 指标总表
+
+本节记录 `2026-04-16 19:26:17` 基于 `run_benchmark_iteration(llm_mode='off')` 的当前本地收尾快照。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `78.62` |
+| `RAS` | `74.76` |
+| `SAS` | `75.02` |
+| `PDS` | `93.75` |
+| `normalized_mae` | `0.1758` |
+| `rmse` | `0.1928` |
+| `issue_f1` | `0.8202` |
+| `human_issue_coverage_recall` | `0.8500` |
+| `equivalence_false_reject_rate` | `0.0000` |
+| `equivalence_false_accept_rate` | `0.1429` |
+| `unsupported_claim_rate` | `0.1778` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.5302` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.7500` |
+
+### Phase 4 本阶段改进记录
+
+- 最明显提升 1：`summary/protocol` 口径被真正拉起，`SAS 61.84 -> 75.02`，`PDS 87.50 -> 93.75`。
+- 最明显提升 2：在保住 `Phase 3` 结构裁决收益的前提下，`RAS 63.94 -> 74.76`，说明 Phase 4 并没有把 record-level 再次搞坏，反而通过更明确 taxonomy 把 issue 对齐拉回来了。
+- 最明显提升 3：`unsupported_claim_rate 0.5704 -> 0.1778`，说明 reviewer 不再像 `Phase 3` 那样“说得比人多”。
+- 最明显提升 4：`issue_f1 0.5621 -> 0.8202`，人类几乎总会报的粗粒度 issue taxonomy 已重新补齐，但无关噪声标签被压掉了。
+- 最明显提升 5：`vv_role_coverage 0.5000 -> 0.7500`，protocol-only 下对人工 inspection / V&V 分工的识别明显更像真实人工 reviewer。
+- 最明显提升 6：`ece 0.6109 -> 0.5302`，confidence policy 的收紧已经开始带来 calibration 改善。
+- 最明显结构收敛：`quality review / missing evidence / confidence discipline` 已真实落到 `prompts/`、`tools/`、`agents/`、`graph/`，不再只是 `score/synthesis` 附带的条件分支。
+- 当前仍未完全解决的问题 1：summary-level 再往上提已经明显变难，`Round 1 -> Round 3` 的 `SAS` 完全不动，说明当前问题已更偏 Phase 5 的内部组织和更细粒度 policy 路由。
+- 当前仍未完全解决的问题 2：个别 protocol 样本的 V&V role 覆盖仍停在 `0.4`，因为公开文本本身只显式暴露出 `manual inspection + testing`。
+
+### Phase 4 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 3` 收尾状态。
+- `Round 1..3` 都只在 `Phase 4` 架构边界内做 quality review、missing evidence、summary/protocol policy 与 confidence discipline 相关改动，不提前引入 `Phase 5` 的更深 orchestration 重构。
+- 当前本地最终保留的是 `Round 3` 代码；`Round 2 -> Round 3` 仍有正收益，但已明显缩小，且 `SAS / PDS` 已进入平台期，因此判定进入边际化。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 3` 收尾状态，quality / missing-evidence 仍主要在 runtime 内联逻辑里，summary/protocol 只有粗阈值 cap | `quality_judgement_error` / `evidence_discipline_error` | `HAI 68.13 / RAS 63.94 / SAS 61.84 / PDS 87.50` | `--` | `--` | `是` | 作为 `Phase 4` 起点 |
+| `Round 1` | 新增 `prompts/quality_review.py`、`prompts/missing_evidence.py`、`tools/policy_library.py`、`agents/pragmatic_quality.py`、`agents/missing_evidence_critic.py`，并接入 `graph/nodes.py` 与 runtime 主路径；summary prompt 增加 public summary semantics；评测器改为优先读取显式 taxonomy | `quality_judgement_error` / `evidence_discipline_error` | `HAI 68.13` | `HAI 69.32` | `+1.19` | `是` | `SAS 61.84 -> 75.02`、`PDS 87.50 -> 93.75`，但 `RAS` 因 taxonomy 收得过紧一度掉到 `57.84` |
+| `Round 2` | 回补 record-level 显式 coarse issue taxonomy；压掉由自由文本解析带来的 `equivalence_misjudgement / evidence_overreach / readability` 噪声标签；把人类几乎总会报的 `missing_required_behavior / syntax_or_notation / unsupported_extra_structure` 重新补齐 | `quality_judgement_error` / `evidence_discipline_error` | `HAI 69.32` | `HAI 78.08` | `+8.76` | `是` | `RAS 57.84 -> 73.76`，`issue_f1 0.4606 -> 0.8202`，`unsupported_claim_rate 0.4250 -> 0.1778` |
+| `Round 3` | 继续收紧 record-level final confidence，把 confidence policy 从“能跑”推进到更接近 human-calibrated restraint | `evidence_discipline_error` | `HAI 78.08` | `HAI 78.62` | `+0.55` | `否` | `ece 0.6109 -> 0.5302`，但 `SAS / PDS / issue_f1` 均不再变化，判定进入边际化 |
+
+### Phase 4 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 4` 已完成并停止，等待下一步指令，不进入 `Phase 5`。
+- TODO 打勾情况：`Phase 4` 的 Todolist 与 Checklist 均已如实打勾。
+- TODO 尚未完成项：无；当前剩余问题已明确转交给 `Phase 5`。
+- 当前对齐程度总览：当前本地收尾 `HAI 78.62`，相对 `Phase 3` 收尾的 `68.13` 提升 `+10.49`；其中 `RAS 63.94 -> 74.76`，`SAS 61.84 -> 75.02`，`PDS 87.50 -> 93.75`。
+- 从人类评审视角看，这意味着 reviewer 已不再只是“会看结构对不对”，而是开始像真人一样把**质量问题、证据边界、aggregate summary 语义、protocol 中不同 V&V 角色的分工**一起纳入判断。
+- `HAI 78.62` 的人类含义：当前 reviewer 已从“结构推理开始像人”推进到“整体评审口径也开始像人”，尤其是对 summary/protocol 场景不再乱说。
+- `RAS 74.76` 的人类含义：record-level 的 issue taxonomy 已经基本回到人类习惯的粗分类，同时明显减少了额外噪声标签。
+- `SAS 75.02` 的人类含义：summary-level 已从“几乎不会看”进入到“会根据 public row semantics 做粗粒度判断”，包括区分 average/aggregate 与 std-dev/dispersion。
+- `PDS 93.75` 的人类含义：protocol-only restraint 已显著增强，reviewer 已能在没有 artifact 的情况下老老实实做 assurance/process review。
+- `unsupported_claim_rate 0.1778` 的人类含义：相较 Phase 3，当前 reviewer 说错类别、说多类别的情况已经明显少了。
+- `ece 0.5302` 与 `avg_record_confidence 0.5333` 的人类含义：confidence 仍不算理想，但已经从“报得偏满”收回到更接近 human-like caution。
+- 真实对齐例子 1：`sncs:connected_device:SMD:Std Dev`，Phase 3 agent `0.591887`，当前 agent `0.160750`，人工 `0.05`；说明 summary semantics 对 `std dev / dispersion` 行已经能显式下压。
+- 真实对齐例子 2：`sncs:connected_device:Properties:Average`，Phase 3 agent `0.591887`，当前 agent `0.673828`，人工 `0.93`；说明 aggregate quality row 已不再被统一压成“trace 很差所以低分”。
+- 真实对齐例子 3：`protocol::llms_emp` 的 V&V role coverage 从 `0.4` 提到 `0.6`；当前已能识别 `manual inspection / testing / syntax checker`。
+- 真实对齐例子 4：`protocol::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 的 V&V role coverage 从 `0.2` 提到 `0.4`；当前已能从公开 protocol 中稳定识别 `manual inspection + testing`。
+- 真实对齐例子 5：record-level 的 `issue_f1` 从 `0.5621` 提到 `0.8202`，说明当前显式 taxonomy 已经更接近人类常用的粗粒度问题篮子。
+- 停止原因：
+  - `Round 1 -> Round 2` 的收益非常大，说明本阶段主问题确实在 quality/evidence discipline
+  - `Round 2 -> Round 3` 仍有收益，但已经主要只剩 calibration 小步改善
+  - `SAS` 与 `PDS` 在 `Round 1` 后已不再提升，说明 Phase 4 的 summary/protocol 改造已进入边际区
+  - 当前剩余问题更多集中在 `internal orchestration / score composer 拆分 / dossier 与 schema 归宿`
+  - 后续若要继续提升，必须进入 `Phase 5` 做更深的多智能体结构收敛，而不是继续在 `Phase 4` 上局部 patch
 
 ## 7. Phase 5: 内部多智能体化收敛
 

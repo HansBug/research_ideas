@@ -355,3 +355,67 @@ Idle --> Ready : login
     assert len([item for item in merged.elements if item.label == "Idle"]) == 1
     assert len([item for item in merged.relations if item.source_label == "Idle" and item.target_label == "Ready"]) == 1
     assert merged.analysis_mode == "parser_plus_llm"
+
+
+def test_v1_runtime_summary_policy_distinguishes_average_and_stddev_rows() -> None:
+    average_request = ExpertReviewRequest(
+        prompt=(
+            "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
+            "This is a summary-level task for a published score row.\n"
+            "Public summary row semantics: This published row is an average or aggregate quality statistic.\n"
+            "Calibrate the coarse score to that public summary semantics and avoid pseudo-precise element blame."
+        ),
+        input_text=(
+            "The controller has Idle, Monitoring, and Alert modes. It reacts to darkness, presence detection, and WiFi updates."
+        ),
+        pred_output="""
+        @startuml
+        [*] --> Idle
+        Idle --> Monitoring : darkness
+        Monitoring --> Alert : presenceDetected
+        Alert --> Monitoring : clear
+        Monitoring --> Idle : dayLight
+        @enduml
+        """,
+        ref_output=None,
+    )
+    stddev_request = ExpertReviewRequest(
+        prompt=average_request.prompt.replace(
+            "average or aggregate quality statistic",
+            "standard-deviation or dispersion statistic",
+        ),
+        input_text=average_request.input_text,
+        pred_output=average_request.pred_output,
+        ref_output=None,
+    )
+    average_result = heuristic_expert_review(average_request)
+    stddev_result = heuristic_expert_review(stddev_request)
+    assert average_result.overall_score > stddev_result.overall_score
+    assert average_result.unsupported_model_elements == []
+    assert stddev_result.unsupported_model_elements == []
+
+
+def test_v1_runtime_protocol_policy_exposes_vv_roles() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "You are an expert reviewer of a human evaluation protocol for software modeling artifacts. "
+            "There is no full per-record prediction/reference evidence in this task. "
+            "Review what the protocol can validate, which V&V roles it uses, and what claims should remain uncertain."
+        ),
+        input_text=(
+            "Execution uses manual inspection against a reference model, formal verification with a model checker, "
+            "simulation on representative scenarios, and testing with TP/FP/FN based F1 reporting."
+        ),
+        pred_output="",
+        ref_output=None,
+    )
+    result = heuristic_expert_review(request)
+    evidence_dimension = next(item for item in result.dimension_results if item.dimension_name == "evidence_discipline")
+    assert set(evidence_dimension.metric_payload.get("vv_roles", [])) >= {
+        "manual inspection",
+        "formal verification",
+        "simulation",
+        "testing",
+    }
+    assert any("Recognized V&V roles from evidence" in note for note in result.notes)
+    assert result.confidence <= 0.42

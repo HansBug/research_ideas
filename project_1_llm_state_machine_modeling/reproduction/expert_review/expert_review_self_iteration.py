@@ -159,30 +159,49 @@ def _human_issue_set_from_record(row: pd.Series) -> set[str]:
 
 def _agent_issue_set(result: ExpertReviewResult) -> set[str]:
     tags: set[str] = set()
+    issue_type_map = {
+        "extra": {"unsupported_extra_structure"},
+        "contradiction": {"wrong_guard_or_trigger"},
+        "low_grounding": {"unused_or_noisy_structure"},
+        "readability_or_naming": {"readability_or_naming"},
+        "unused_or_noisy_structure": {"unused_or_noisy_structure"},
+        "evidence_overreach": {"evidence_overreach"},
+        "wrong_action_or_effect": {"wrong_action_or_effect"},
+        "wrong_guard_or_trigger": {"wrong_guard_or_trigger"},
+        "missing_required_behavior": {"missing_required_behavior"},
+        "syntax_or_notation": {"syntax_or_notation"},
+        "unsupported_extra_structure": {"unsupported_extra_structure"},
+    }
     for issue in result.unsupported_model_elements:
-        raw = f"{issue.issue_type} {issue.reason_text} {issue.element_text}".lower()
-        if issue.issue_type == "extra":
-            tags.add("unsupported_extra_structure")
-        if issue.issue_type == "contradiction":
-            tags.add("wrong_guard_or_trigger")
-        if issue.issue_type == "low_grounding":
-            tags.add("unused_or_noisy_structure")
-        tags.update(_taxonomy_from_text([raw]))
+        mapped = issue_type_map.get(issue.issue_type, set())
+        tags.update(mapped)
+        if not mapped:
+            raw = f"{issue.issue_type} {issue.reason_text} {issue.element_text}".lower()
+            tags.update(_taxonomy_from_text([raw]))
     for dimension in result.dimension_results:
-        if dimension.dimension_name == "notation_syntax" and dimension.score < 0.60:
-            tags.add("syntax_or_notation")
-        if dimension.dimension_name == "semantic_completeness" and dimension.score < 0.60:
-            tags.add("missing_required_behavior")
-        if dimension.dimension_name == "behavioral_consistency" and dimension.score < 0.60:
-            tags.add("wrong_guard_or_trigger")
-        if dimension.dimension_name == "requirement_traceability" and dimension.score < 0.60:
-            tags.add("unsupported_extra_structure")
-        if dimension.dimension_name == "pragmatic_clarity" and dimension.score < 0.60:
-            tags.update({"readability_or_naming", "unused_or_noisy_structure"})
-        if dimension.dimension_name == "evidence_discipline" and dimension.score < 0.60:
-            tags.add("evidence_overreach")
-        tags.update(_taxonomy_from_text([dimension.reason_text]))
-    tags.update(_taxonomy_from_text([result.overall_reason_text] + result.notes))
+        metric_taxonomy = {str(item) for item in dimension.metric_payload.get("issue_taxonomy", []) if str(item)}
+        tags.update(metric_taxonomy)
+        for issue in dimension.issues:
+            mapped = issue_type_map.get(issue.issue_type, set())
+            tags.update(mapped)
+            if not mapped:
+                raw = f"{issue.issue_type} {issue.reason_text} {issue.element_text}".lower()
+                tags.update(_taxonomy_from_text([raw]))
+        if not metric_taxonomy:
+            if dimension.dimension_name == "notation_syntax" and dimension.score < 0.45:
+                tags.add("syntax_or_notation")
+            if dimension.dimension_name == "semantic_completeness" and dimension.score < 0.45:
+                tags.add("missing_required_behavior")
+            if dimension.dimension_name == "behavioral_consistency" and dimension.score < 0.45:
+                tags.add("wrong_guard_or_trigger")
+            if dimension.dimension_name == "requirement_traceability" and dimension.score < 0.45:
+                tags.add("unsupported_extra_structure")
+            if dimension.dimension_name == "pragmatic_clarity" and dimension.score < 0.45:
+                tags.update({"readability_or_naming", "unused_or_noisy_structure"})
+            if dimension.dimension_name == "evidence_discipline" and dimension.score < 0.45:
+                tags.add("evidence_overreach")
+    if not tags:
+        tags.update(_taxonomy_from_text([result.overall_reason_text] + result.notes))
     return tags
 
 
@@ -409,14 +428,38 @@ def _build_summary_prompt(row: pd.Series) -> str:
     rubric = _safe_text(row.get("review_rubric_text")).strip()
     limitations = _safe_text(row.get("public_artifact_limitations")).strip()
     target = _safe_text(row.get("review_target")).strip() or "artifact"
+    public_summary = _safe_text(row.get("human_review_summary")).strip()
+    summary_semantics = _summary_semantics_from_row(row)
     return (
         "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
         f"This is a summary-level task for {target}.\n"
+        f"Public summary row semantics: {summary_semantics}\n"
         "Give an overall review that respects evidence limits. Do not invent precise element-level mismatch claims "
-        "when the public evidence only supports overall judgement.\n"
+        "when the public evidence only supports overall judgement. If the contract refers to average/max/min/std-dev "
+        "style published statistics, calibrate the coarse score to that public summary semantics rather than pretending "
+        "you saw hidden per-run annotations.\n"
+        f"Public row note:\n{public_summary or 'No extra public row note was recorded.'}\n"
         f"Public rubric:\n{rubric or 'No explicit rubric text was published for this row.'}\n"
         f"Public limitations:\n{limitations or 'No extra public limitations were recorded.'}"
     )
+
+
+def _summary_semantics_from_row(row: pd.Series) -> str:
+    review_record_id = _safe_text(row.get("review_record_id")).lower()
+    record_type = _safe_text(row.get("record_type")).lower()
+    if any(token in review_record_id for token in ["std_dev", "std dev", "stddev"]) or "std" in review_record_id:
+        return "This published row is a standard-deviation or dispersion statistic."
+    if "average" in review_record_id or record_type in {"summary", "case_aggregate_stat", "overall_aggregate_stat"}:
+        return "This published row is an average or aggregate quality statistic."
+    if any(token in review_record_id for token in [":max", "maximum", "highest"]):
+        return "This published row is a highest-score or best-case aggregate statistic."
+    if any(token in review_record_id for token in [":min", "minimum", "lowest"]):
+        return "This published row is a minimum-score or worst-case aggregate statistic."
+    if record_type == "raw_score_row":
+        return "This published row is a raw public score row without per-element justification."
+    if record_type == "summary_level_run_score":
+        return "This published row is a run-level summary score."
+    return "This published row is a public summary-level score."
 
 
 def _build_protocol_prompt(row: pd.Series) -> str:
@@ -585,6 +628,12 @@ def _dimension_score(result: ExpertReviewResult, name: str) -> float:
 
 
 def _vv_role_coverage(result: ExpertReviewResult) -> float:
+    for item in result.dimension_results:
+        if item.dimension_name != "evidence_discipline":
+            continue
+        roles = item.metric_payload.get("vv_roles", [])
+        if roles:
+            return len({str(role).strip().lower() for role in roles if str(role).strip()}) / 5.0
     text = " ".join([result.overall_reason_text] + result.notes + [item.reason_text for item in result.dimension_results]).lower()
     role_hints = {
         "inspection": ["inspection", "manual", "人工", "逐项对照", "手工"],

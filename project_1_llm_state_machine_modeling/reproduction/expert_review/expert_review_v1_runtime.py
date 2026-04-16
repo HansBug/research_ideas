@@ -19,7 +19,13 @@ from .expert_review_schema import (
     TraceLink,
     judgement_from_score,
 )
-from .graph import run_arbitration_node, run_equivalence_node, run_traceability_node
+from .graph import (
+    run_arbitration_node,
+    run_equivalence_node,
+    run_missing_evidence_node,
+    run_quality_node,
+    run_traceability_node,
+)
 from .expert_review_tools import (
     extract_generic_inventory_from_text,
     machine_elements_from_payload,
@@ -28,6 +34,7 @@ from .expert_review_tools import (
     parse_requirement_items,
 )
 from .expert_review_utils import count_machine_components, ensure_json, normalize_id
+from .tools import build_review_policy
 
 
 INPUT_STOPWORDS = {
@@ -1976,7 +1983,9 @@ def _status_counts(results: list[RequirementTraceResult]) -> tuple[int, int, int
 def _score_and_reason_dimensions(
     dimensions: list[DimensionDefinition],
     request: ExpertReviewRequest,
+    contract: ReviewContract,
     regime: EvidenceRegime,
+    policy_packet: dict[str, Any],
     pred_dossier: ArtifactDossier,
     ref_dossier: ArtifactDossier,
     trace_results: list[RequirementTraceResult],
@@ -1991,6 +2000,14 @@ def _score_and_reason_dimensions(
     contradictions = list(equivalence_report.get("contradictions", []))
     dependency_breaks = list(equivalence_report.get("dependency_breaks", []))
     quality_issues = list(quality_report.get("issues", []))
+    allow_element_level_claims = bool(evidence_critic.get("allow_element_level_claims", policy_packet.get("allow_element_level_claims", False)))
+    allow_requirement_defect_claims = bool(
+        evidence_critic.get("allow_requirement_defect_claims", policy_packet.get("allow_requirement_defect_claims", False))
+    )
+    summary_mode = regime.regime == "summary_only"
+    protocol_mode = regime.regime == "protocol_only"
+    score_semantics = str(policy_packet.get("score_semantics") or "artifact_quality")
+    vv_roles = list(evidence_critic.get("vv_roles", []))
     dimension_results: list[DimensionReviewResult] = []
 
     syntax_score = 0.18
@@ -2017,13 +2034,30 @@ def _score_and_reason_dimensions(
         - 0.08 * len(evidence_critic.get("warnings", []))
         + (0.06 if regime.regime == "record_level" else 0.0)
     )
-
-    summary_mode = regime.regime == "summary_only"
-    if summary_mode and not regime.has_reference:
-        completeness_score = max(completeness_score, _clip01(0.46 + 0.12 * syntax_score + 0.12 * clarity_score))
-        behavior_score = max(behavior_score, _clip01(0.44 + 0.15 * syntax_score + 0.10 * clarity_score))
-        traceability_score = max(traceability_score, _clip01(0.42 + 0.10 * syntax_score + 0.08 * clarity_score))
-        evidence_score = max(evidence_score, 0.66)
+    summary_score_hint = _clip01(float(quality_report.get("summary_score_hint", clarity_score)))
+    if summary_mode:
+        if score_semantics == "summary_stat_stddev":
+            syntax_score = _clip01(0.12 + 0.28 * syntax_score)
+            completeness_score = _clip01(0.05 + 0.30 * summary_score_hint)
+            behavior_score = _clip01(0.05 + 0.32 * summary_score_hint)
+            traceability_score = _clip01(0.04 + 0.24 * summary_score_hint)
+            clarity_score = _clip01(0.12 + 0.24 * float(quality_report.get("quality_score_hint", clarity_score)))
+            evidence_score = max(evidence_score, 0.74)
+        else:
+            syntax_score = _clip01(0.35 * syntax_score + 0.65 * summary_score_hint)
+            completeness_score = _clip01(0.25 * completeness_score + 0.75 * summary_score_hint)
+            behavior_score = _clip01(0.25 * behavior_score + 0.75 * summary_score_hint)
+            traceability_score = _clip01(0.20 * traceability_score + 0.80 * summary_score_hint)
+            clarity_score = _clip01(0.30 * clarity_score + 0.70 * float(quality_report.get("quality_score_hint", clarity_score)))
+            evidence_score = max(evidence_score, 0.70)
+    elif protocol_mode:
+        protocol_hint = _clip01(float(evidence_critic.get("protocol_assurance_score_hint", 0.34)))
+        syntax_score = _clip01(0.10 + 0.20 * protocol_hint)
+        completeness_score = _clip01(0.14 + 0.28 * protocol_hint)
+        behavior_score = _clip01(0.16 + 0.28 * protocol_hint)
+        traceability_score = _clip01(0.14 + 0.24 * protocol_hint)
+        clarity_score = _clip01(0.34 + 0.22 * float(quality_report.get("quality_score_hint", clarity_score)))
+        evidence_score = _clip01(0.48 + 0.28 * protocol_hint + 0.05 * min(4, len(vv_roles)))
 
     pred_markers = pred_dossier.surface_markers
     ref_markers = ref_dossier.surface_markers
@@ -2093,6 +2127,14 @@ def _score_and_reason_dimensions(
         behavior_score = _clip01(behavior_score - min(0.12, penalty))
         traceability_score = _clip01(traceability_score - penalty)
 
+    if summary_mode and not allow_requirement_defect_claims:
+        completeness_score = max(completeness_score, 0.18 if score_semantics == "summary_stat_stddev" else 0.42)
+        traceability_score = max(traceability_score, 0.16 if score_semantics == "summary_stat_stddev" else 0.40)
+    if protocol_mode:
+        completeness_score = max(completeness_score, 0.22)
+        behavior_score = max(behavior_score, 0.22)
+        traceability_score = max(traceability_score, 0.20)
+
     score_map = {
         "notation_syntax": syntax_score,
         "semantic_completeness": completeness_score,
@@ -2103,48 +2145,73 @@ def _score_and_reason_dimensions(
     }
     reason_map = {
         "notation_syntax": (
-            "The predicted artifact is "
-            + ("structurally reviewable" if syntax_score >= 0.7 else "only partially well-formed")
-            + f", with format guess `{pred_dossier.format_guess}` and {len(pred_dossier.elements)} visible elements. "
-            + pred_dossier.observability_reason
+            (
+                "No concrete artifact was provided, so notation review can only reflect what the public protocol says it checks."
+                if protocol_mode
+                else "Only coarse structural observables are available, so notation review remains summary-level rather than element-level."
+                if summary_mode
+                else "The predicted artifact is "
+                + ("structurally reviewable" if syntax_score >= 0.7 else "only partially well-formed")
+                + f", with format guess `{pred_dossier.format_guess}` and {len(pred_dossier.elements)} visible elements. "
+                + pred_dossier.observability_reason
+            )
         ),
         "semantic_completeness": (
-            f"{matched} requirement(s) were matched, {partial} partial, and {missing} missing. "
-            + (
-                "Key requirement-driven content is largely covered."
-                if completeness_score >= 0.7
-                else "Important requirement-driven content is still missing or weakly evidenced."
+            (
+                f"Requirement coverage was judged as a coarse summary statistic (`{policy_packet.get('aggregate_signal')}`), not as direct per-element matching."
+                if summary_mode and not allow_requirement_defect_claims
+                else "Protocol-only evidence does not justify per-element completeness claims; only coarse assurance coverage can be reported."
+                if protocol_mode
+                else f"{matched} requirement(s) were matched, {partial} partial, and {missing} missing. "
+                + (
+                    "Key requirement-driven content is largely covered."
+                    if completeness_score >= 0.7
+                    else "Important requirement-driven content is still missing or weakly evidenced."
+                )
             )
         ),
         "behavioral_consistency": (
-            "Behavioral judgement emphasizes semantic equivalence rather than surface isomorphism. "
-            + (
-                "The prediction preserves core behavior reasonably well."
-                if behavior_score >= 0.7
-                else "Behavioral preservation is incomplete or contradicted by visible evidence."
-            )
-            + (
-                " The arbiter also found dependency-sensitive mismatches between supported states and their attached transitions."
-                if dependency_breaks
-                else ""
+            (
+                "Behavioral consistency was judged at the public-summary level rather than by exact transition-by-transition replay."
+                if summary_mode
+                else "Behavioral judgement in protocol-only mode reflects what the evaluation process can validate, not hidden artifact behavior."
+                if protocol_mode
+                else "Behavioral judgement emphasizes semantic equivalence rather than surface isomorphism. "
+                + (
+                    "The prediction preserves core behavior reasonably well."
+                    if behavior_score >= 0.7
+                    else "Behavioral preservation is incomplete or contradicted by visible evidence."
+                )
+                + (
+                    " The arbiter also found dependency-sensitive mismatches between supported states and their attached transitions."
+                    if dependency_breaks
+                    else ""
+                )
             )
         ),
         "requirement_traceability": (
-            "Traceability was assessed from explicit requirement-to-artifact links and unsupported extras. "
-            + (
-                "Most major requirements can be grounded to visible predicted content."
-                if traceability_score >= 0.7
-                else "Too many requirements or predicted structures remain weakly grounded."
-            )
-            + (
-                f" {trace_conflict_count} trace judgement(s) were downgraded after arbitration."
-                if trace_conflict_count
-                else ""
+            (
+                "Traceability remained coarse because the current evidence regime does not justify direct requirement-to-element blame."
+                if summary_mode and not allow_requirement_defect_claims
+                else "Protocol-only evidence supports process-level traceability comments only; no direct requirement-to-element trace can be claimed."
+                if protocol_mode
+                else "Traceability was assessed from explicit requirement-to-artifact links and unsupported extras. "
+                + (
+                    "Most major requirements can be grounded to visible predicted content."
+                    if traceability_score >= 0.7
+                    else "Too many requirements or predicted structures remain weakly grounded."
+                )
+                + (
+                    f" {trace_conflict_count} trace judgement(s) were downgraded after arbitration."
+                    if trace_conflict_count
+                    else ""
+                )
             )
         ),
         "pragmatic_clarity": (
-            f"Quality inspection found grounded-ratio={quality_report.get('grounded_ratio', 0.0):.2f} "
-            f"and generic-name-count={quality_report.get('generic_name_count', 0)}. "
+            f"Quality inspection found grounded-ratio={quality_report.get('grounded_ratio', 0.0):.2f}, "
+            f"generic-name-count={quality_report.get('generic_name_count', 0)}, "
+            f"and score-semantics=`{score_semantics}`. "
             + (
                 "The artifact remains reasonably disciplined."
                 if clarity_score >= 0.7
@@ -2152,14 +2219,25 @@ def _score_and_reason_dimensions(
             )
         ),
         "evidence_discipline": (
-            f"Current regime is `{regime.regime}`. "
+            f"Current regime is `{regime.regime}` with policy profile `{policy_packet.get('profile_name')}`. "
             + (
                 "The review stayed broadly within the visible evidence."
                 if evidence_score >= 0.7
                 else "The evidence regime forces caution, and confidence must remain restrained."
             )
+            + (f" Visible V&V roles: {', '.join(vv_roles[:4])}." if vv_roles else "")
         ),
     }
+    evidence_issues = [
+        ElementIssue(
+            element_id=f"evidence_warning_{idx}",
+            element_kind="evidence_regime",
+            element_text=warning,
+            issue_type="evidence_overreach",
+            reason_text=warning,
+        )
+        for idx, warning in enumerate(evidence_critic.get("warnings", [])[:2], start=1)
+    ]
     evidence_map = {
         "notation_syntax": pred_dossier.evidence[:2],
         "semantic_completeness": [
@@ -2182,23 +2260,15 @@ def _score_and_reason_dimensions(
             for item in trace_results[:2]
         ],
         "pragmatic_clarity": list(quality_report.get("evidence", []))[:2],
-        "evidence_discipline": [
-            EvidenceItem(
-                source="precomputed_context",
-                locator=None,
-                snippet=warning,
-                explanation="Evidence-regime caution emitted by the missing-evidence critic.",
-            )
-            for warning in evidence_critic.get("warnings", [])[:2]
-        ],
+        "evidence_discipline": list(evidence_critic.get("evidence", []))[:2],
     }
     issue_map = {
         "notation_syntax": [],
-        "semantic_completeness": harmful_extras[:4],
-        "behavioral_consistency": contradictions[:4],
-        "requirement_traceability": (harmful_extras + dependency_breaks)[:6],
+        "semantic_completeness": harmful_extras[:4] if allow_element_level_claims else [],
+        "behavioral_consistency": (contradictions + dependency_breaks)[:4] if allow_element_level_claims else [],
+        "requirement_traceability": (harmful_extras + dependency_breaks)[:6] if allow_element_level_claims else [],
         "pragmatic_clarity": quality_issues[:6],
-        "evidence_discipline": [],
+        "evidence_discipline": evidence_issues[:2],
     }
     trace_link_map = {
         "notation_syntax": [],
@@ -2211,7 +2281,9 @@ def _score_and_reason_dimensions(
             )
             for item in trace_results
             if item.matched_element_ids
-        ][:6],
+        ][:6]
+        if allow_element_level_claims
+        else [],
         "behavioral_consistency": [],
         "requirement_traceability": [
             TraceLink(
@@ -2222,9 +2294,60 @@ def _score_and_reason_dimensions(
             )
             for item in trace_results
             if item.matched_element_ids
-        ][:6],
+        ][:6]
+        if allow_element_level_claims
+        else [],
         "pragmatic_clarity": [],
         "evidence_discipline": [],
+    }
+    issue_taxonomy_map = {
+        "notation_syntax": (
+            ["syntax_or_notation"]
+            if not protocol_mode
+            and (
+                syntax_score < 0.60
+                or (regime.regime == "record_level" and (trace_ratio < 0.98 or pred_dossier.structural_warnings))
+            )
+            else []
+        ),
+        "semantic_completeness": (
+            [
+                *(
+                    ["missing_required_behavior"]
+                    if allow_requirement_defect_claims
+                    and (missing or partial or (regime.regime == "record_level" and trace_ratio < 0.98))
+                    else []
+                ),
+                *(["unsupported_extra_structure"] if harmful_extras and allow_element_level_claims else []),
+            ]
+        ),
+        "behavioral_consistency": ["wrong_guard_or_trigger"] if (contradictions or dependency_breaks) and allow_element_level_claims else [],
+        "requirement_traceability": (
+            [
+                *(
+                    ["missing_required_behavior"]
+                    if allow_requirement_defect_claims
+                    and (missing or partial or (regime.regime == "record_level" and trace_ratio < 0.98))
+                    else []
+                ),
+                *(
+                    ["unsupported_extra_structure"]
+                    if allow_element_level_claims
+                    and (
+                        harmful_extras
+                        or equivalence_report.get("missing_items")
+                        or (regime.regime == "record_level" and trace_ratio < 0.98)
+                    )
+                    else []
+                ),
+            ]
+        ),
+        "pragmatic_clarity": (
+            list(quality_report.get("issue_taxonomy", []))
+            if clarity_score < 0.60 or {"clarity", "quality"} & {normalize_id(item) for item in contract.requested_focus}
+            else []
+        ),
+        "evidence_discipline": list(evidence_critic.get("issue_taxonomy", [])),
     }
 
     for dimension in dimensions:
@@ -2252,6 +2375,14 @@ def _score_and_reason_dimensions(
                     "parallel_branch_credit": bool(equivalence_report.get("parallel_branch_credit")),
                     "trace_conflict_count": trace_conflict_count,
                     "dependency_break_count": len(dependency_breaks),
+                    "issue_taxonomy": issue_taxonomy_map[dimension.name],
+                    "policy_profile": policy_packet.get("profile_name"),
+                    "score_semantics": score_semantics,
+                    "aggregate_signal": policy_packet.get("aggregate_signal"),
+                    "allow_element_level_claims": allow_element_level_claims,
+                    "allow_requirement_defect_claims": allow_requirement_defect_claims,
+                    "vv_roles": vv_roles,
+                    "missing_evidence_flags": evidence_critic.get("missing_evidence_flags", []),
                 },
                 confidence=min(float(evidence_critic.get("confidence_cap", 0.7)), 0.90),
             )
@@ -2259,6 +2390,12 @@ def _score_and_reason_dimensions(
 
     total_weight = sum(item.weight for item in dimensions) or 1.0
     overall_score = sum(item.score * dimension.weight for item, dimension in zip(dimension_results, dimensions)) / total_weight
+    if summary_mode:
+        blend = 0.20 if score_semantics == "summary_stat_stddev" else 0.35
+        overall_score = _clip01(blend * overall_score + (1.0 - blend) * summary_score_hint)
+    elif protocol_mode:
+        protocol_hint = _clip01(float(evidence_critic.get("protocol_assurance_score_hint", 0.34)))
+        overall_score = _clip01(0.25 * overall_score + 0.75 * protocol_hint)
     return dimension_results, harmful_extras + contradictions + dependency_breaks, _clip01(overall_score)
 
 
@@ -2295,6 +2432,7 @@ def _json_safe_report(report: dict[str, Any]) -> dict[str, Any]:
 
 def _final_confidence(
     regime: EvidenceRegime,
+    policy_packet: dict[str, Any],
     trace_results: list[RequirementTraceResult],
     equivalence_report: dict[str, Any],
     evidence_critic: dict[str, Any],
@@ -2305,7 +2443,11 @@ def _final_confidence(
         base = sum(item.confidence for item in trace_results) / len(trace_results)
     base = 0.55 * base + 0.45 * float(equivalence_report.get("confidence", 0.55))
     if regime.regime == "record_level":
-        base += 0.06
+        base = 0.08 + 0.78 * base
+    if policy_packet.get("score_semantics") == "summary_stat_stddev":
+        base -= 0.06
+    if regime.regime == "protocol_only":
+        base = 0.40 + 0.08 * min(4, len(evidence_critic.get("vv_roles", [])))
     if equivalence_report.get("parallel_structure_mismatch"):
         base -= 0.10
     if equivalence_report.get("trace_conflict_count"):
@@ -2315,25 +2457,41 @@ def _final_confidence(
 
 def _overall_reason(
     regime: EvidenceRegime,
+    policy_packet: dict[str, Any],
     overall_score: float,
     trace_results: list[RequirementTraceResult],
     equivalence_report: dict[str, Any],
+    quality_report: dict[str, Any],
     harmful_issues: list[ElementIssue],
     evidence_critic: dict[str, Any],
 ) -> str:
     matched, partial, missing = _status_counts(trace_results)
     supported_restructures = equivalence_report.get("supported_restructures", [])
     contradictions = equivalence_report.get("contradictions", [])
+    score_semantics = policy_packet.get("score_semantics")
     parts = [
-        f"Review used the `{regime.regime}` evidence regime and produced an overall score of {overall_score:.3f}.",
-        f"Requirement traceability found {matched} matched, {partial} partial, and {missing} missing requirements.",
+        f"Review used the `{regime.regime}` evidence regime with policy `{policy_packet.get('profile_name')}` and produced an overall score of {overall_score:.3f}.",
     ]
+    if regime.regime == "summary_only":
+        parts.append(
+            "The task was treated as a coarse summary-level judgement rather than a direct per-element comparison."
+            if score_semantics != "summary_stat_stddev"
+            else "The task was treated as an aggregate variability/dispersion row, so the score remained contract-driven and intentionally coarse."
+        )
+    elif regime.regime == "protocol_only":
+        parts.append("The task was treated as a protocol-level assurance review, not as direct artifact-level defect detection.")
+        if evidence_critic.get("vv_roles"):
+            parts.append("Recognized V&V roles: " + ", ".join(evidence_critic["vv_roles"][:4]) + ".")
+    else:
+        parts.append(f"Requirement traceability found {matched} matched, {partial} partial, and {missing} missing requirements.")
     if supported_restructures:
         parts.append("The comparison explicitly gave credit for supported equivalent-but-different structure where visible behavior remained aligned.")
     if contradictions:
         parts.append(f"{len(contradictions)} likely behavioral contradiction(s) were detected.")
     elif harmful_issues:
         parts.append(f"{len(harmful_issues)} unsupported or risky extra item(s) were identified.")
+    if quality_report.get("issue_taxonomy"):
+        parts.append("Quality review explicitly tracked: " + ", ".join(quality_report["issue_taxonomy"][:3]) + ".")
     if equivalence_report.get("parallel_structure_mismatch"):
         parts.append("A major parallel or orthogonal structure mismatch was detected and propagated into the final judgement.")
     elif equivalence_report.get("parallel_branch_credit"):
@@ -2368,6 +2526,7 @@ def run_expert_review_workflow(
     pred_dossier = _extract_artifact_dossier("prediction", request.pred_output, llm, notes)
     ref_dossier = _extract_artifact_dossier("reference", request.ref_output, llm, notes)
     regime = _estimate_evidence_regime(request, pred_dossier, ref_dossier)
+    policy_packet = build_review_policy(contract, regime, request, input_dossier, pred_dossier, ref_dossier)
     dimensions = _build_dimensions(contract, regime)
 
     trace_results, trace_notes = run_traceability_node(llm, input_dossier, pred_dossier)
@@ -2408,12 +2567,34 @@ def run_expert_review_workflow(
             "confidence": 0.58 if regime.regime == "record_level" else 0.52,
         }
 
-    quality_report = _quality_report(input_dossier, pred_dossier)
-    evidence_critic = _missing_evidence_critic(regime, input_dossier, pred_dossier, ref_dossier, equivalence_report)
+    quality_report, quality_notes = run_quality_node(
+        llm,
+        contract,
+        regime,
+        policy_packet,
+        input_dossier,
+        pred_dossier,
+    )
+    notes.extend(quality_notes)
+    evidence_critic, evidence_notes = run_missing_evidence_node(
+        llm,
+        contract,
+        regime,
+        request,
+        policy_packet,
+        input_dossier,
+        pred_dossier,
+        ref_dossier,
+        equivalence_report,
+        quality_report,
+    )
+    notes.extend(evidence_notes)
     dimension_results, harmful_issues, overall_score = _score_and_reason_dimensions(
         dimensions,
         request,
+        contract,
         regime,
+        policy_packet,
         pred_dossier,
         ref_dossier,
         trace_results,
@@ -2421,31 +2602,22 @@ def run_expert_review_workflow(
         quality_report,
         evidence_critic,
     )
-    confidence = _final_confidence(regime, trace_results, equivalence_report, evidence_critic)
+    confidence = _final_confidence(regime, policy_packet, trace_results, equivalence_report, evidence_critic)
     notes.extend(contract.notes)
     notes.append(f"Contract strictness: {contract.strictness}.")
+    notes.append(f"Policy profile: {policy_packet.get('profile_name')}.")
     notes.append(f"Prediction dossier mode: {pred_dossier.analysis_mode}; reference dossier mode: {ref_dossier.analysis_mode}.")
     notes.append(
         "Prediction dossier probe: "
         f"{pred_dossier.format_guess} (confidence={pred_dossier.format_confidence:.2f}, observability={pred_dossier.observability})."
     )
     notes.append(f"Evidence regime rationale: {regime.rationale}")
-    if regime.regime == "protocol_only":
-        vv_roles = []
-        lower_input = request.input_text.lower()
-        role_hints = {
-            "manual inspection": ["manual inspection", "manual compare", "manually compare", "manual check", "manual", "人工", "逐项对照", "手工"],
-            "formal verification": ["formal verification", "model checker", "model-checking", "verification", "形式化验证", "模型检查"],
-            "simulation": ["simulation", "simulator", "仿真", "模拟"],
-            "testing": ["testing", "test", "测试"],
-            "syntax checker": ["syntax checker", "grammar", "format checking", "语法", "格式检查"],
-        }
-        for role, hints in role_hints.items():
-            if any(hint in lower_input for hint in hints):
-                vv_roles.append(role)
-        if vv_roles:
-            notes.append("Recognized V&V roles from protocol evidence: " + ", ".join(vv_roles[:4]) + ".")
+    if evidence_critic.get("vv_roles"):
+        notes.append("Recognized V&V roles from evidence: " + ", ".join(evidence_critic["vv_roles"][:4]) + ".")
     notes.extend(regime.caution_rules[:2])
+    notes.extend(quality_report.get("notes", [])[:2])
+    if evidence_critic.get("missing_evidence_flags"):
+        notes.append("Missing-evidence flags: " + ", ".join(evidence_critic["missing_evidence_flags"][:4]) + ".")
     notes.extend(evidence_critic.get("warnings", [])[:2])
 
     return ExpertReviewResult(
@@ -2454,9 +2626,11 @@ def run_expert_review_workflow(
         overall_judgement=judgement_from_score(overall_score),
         overall_reason_text=_overall_reason(
             regime,
+            policy_packet,
             overall_score,
             trace_results,
             equivalence_report,
+            quality_report,
             harmful_issues,
             evidence_critic,
         ),
