@@ -35,7 +35,7 @@
 
 ### 1.3 输出格式尽量保持兼容
 
-`v1` 的内部实现可以大幅重构，但最终外部输出仍应优先兼容 [`../expert_review_schema.py`](../expert_review_schema.py) 中的 `ExpertReviewResult` 结构。
+`v1` 的内部实现可以大幅重构，但最终外部输出仍应优先兼容 [`expert_review_schema.py`](../../expert_review_schema.py) 中的 `ExpertReviewResult` 结构。
 
 ### 1.4 大部分流程基于 LLM 完成
 
@@ -714,8 +714,18 @@ expert_review/
 │   └── legacy_api.py
 └── designs/
     ├── README.md
-    ├── EXPERT_REVIEW_DESIGN_V0.md
-    └── EXPERT_REVIEW_DESIGN_V1.md
+    ├── GUIDE.md
+    ├── v0/
+    │   ├── README.md
+    │   ├── GUIDE.md
+    │   ├── EXPERT_REVIEW_RESEARCH.md
+    │   ├── EXPERT_REVIEW_ARCHITECTURE.md
+    │   ├── EXPERT_ALIGNMENT_REPORT.md
+    │   └── EXPERT_REVIEW_DESIGN_V0.md
+    └── v1/
+        ├── README.md
+        ├── GUIDE.md
+        └── EXPERT_REVIEW_DESIGN_V1.md
 ```
 
 这个路径架构的核心目的有两个：

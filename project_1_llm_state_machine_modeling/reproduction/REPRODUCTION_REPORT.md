@@ -24,10 +24,10 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/run_all.py rep
 
 ## 3. Raw Data
 
-- `llms_emp`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/data/raw/llms_emp_gmodel`
-- `ttool-ai`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/data/raw/ttool-ai`
-- `light_control`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/data/raw/light_control`
-- `structure_event`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/data/raw/structure_event`
+- `llms_emp`: `data/raw/llms_emp_gmodel`
+- `ttool-ai`: `data/raw/ttool-ai`
+- `light_control`: `data/raw/light_control`
+- `structure_event`: `data/raw/structure_event`
 
 ## 4. Dataset Augmentation
 
@@ -144,9 +144,9 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/run_all.py rep
 
 ## 8. Result Files
 
-- `llms_emp`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/results/llms_emp`
-- `ttool`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/results/ttool`
-- `nimbus`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/results/nimbus`
-- `structure_event`: `/home/zhangshaoang/oo-projects/research_ideas-2/project_1_llm_state_machine_modeling/reproduction/results/structure_event`
+- `llms_emp`: `results/llms_emp`
+- `ttool`: `results/ttool`
+- `nimbus`: `results/nimbus`
+- `structure_event`: `results/structure_event`
 
 各 baseline 的主入口都由 `project_1_llm_state_machine_modeling/reproduction/run_all.py` 统一调度。

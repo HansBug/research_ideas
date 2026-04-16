@@ -2,15 +2,15 @@
 
 ## 1. 范围
 
-本文件记录了独立 [`expert_review`](./expert_review/) agent 与 TTool-AI 基线数据集中真实人类专家评分之间的最终对齐实验。
+本文件记录了独立 [`expert_review`](../../README.md) agent 与 TTool-AI 基线数据集中真实人类专家评分之间的最终对齐实验。
 
 对齐目标：
 
 - 保持外部接口不变：`prompt`、`input`、`pred-output`、可选的 `ref-output`
 - 保持评审流程以 LLM 为先
 - 不在 agent 内部添加隐藏的、基于特定 baseline 的分派逻辑
-- 使用已发布的人类评分，来源为 [`results.ods`](./data/raw/ttool-ai/results.ods)
-- 在 [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet) 和 [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json) 中产出最终结构化结果
+- 使用已发布的人类评分，来源为 [`results.ods`](../../../data/raw/ttool-ai/results.ods)
+- 在 [`alignment_reviews.parquet`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet) 和 [`alignment_summary.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json) 中产出最终结构化结果
 
 最终选定的 prompt 变体：
 
@@ -36,9 +36,9 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/align_ttool_ex
 
 主要输出：
 
-- 汇总：[`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
-- 逐条表：[`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
-- 每个样本缓存的请求/结果载荷：[`cache/`](./results/ttool/expert_alignment/paper_rubric_v5/cache/)
+- 汇总：[`alignment_summary.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
+- 逐条表：[`alignment_reviews.parquet`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
+- 每个样本缓存的请求/结果载荷：[`cache/`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/)
 
 使用某个样本精确保存的请求进行复现回放的代表性命令：
 
@@ -100,7 +100,7 @@ PY
 
 ## 3. 最终指标
 
-来自 [`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)：
+来自 [`alignment_summary.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)：
 
 | 范围 | 评审数 | 人类均值 | 预测均值 | MAE | RMSE | Pearson | Spearman | 5分内占比 | 10分内占比 | 15分内占比 |
 |:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -124,7 +124,7 @@ PY
 
 ## 4. 完整最终结果表
 
-来自 [`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)：
+来自 [`alignment_reviews.parquet`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)：
 
 | 案例ID            | 变体名         | artifact 类型  |   人类得分（百分制） |   预测得分（百分制） |   绝对误差 |
 |:-------------------|:---------------|:----------------|---------------------:|---------------------:|-----------:|
@@ -165,7 +165,7 @@ PY
 
 缓存样本：
 
-- [`automated_braking__System1__bd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/automated_braking__System1__bd.json)
+- [`automated_braking__System1__bd.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/automated_braking__System1__bd.json)
 
 人类与 agent：
 
@@ -202,7 +202,7 @@ PY
 
 缓存样本：
 
-- [`automated_braking__System4__bd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/automated_braking__System4__bd.json)
+- [`automated_braking__System4__bd.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/automated_braking__System4__bd.json)
 
 人类与 agent：
 
@@ -239,7 +239,7 @@ PY
 
 缓存样本：
 
-- [`platooning__Platoon1__smd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/platooning__Platoon1__smd.json)
+- [`platooning__Platoon1__smd.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/platooning__Platoon1__smd.json)
 
 人类与 agent：
 
@@ -275,7 +275,7 @@ PY
 
 缓存样本：
 
-- [`platooning__Platoon5__smd.json`](./results/ttool/expert_alignment/paper_rubric_v5/cache/platooning__Platoon5__smd.json)
+- [`platooning__Platoon5__smd.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/platooning__Platoon5__smd.json)
 
 人类与 agent：
 
@@ -339,8 +339,8 @@ PY
 
 ## 8. 最终文件位置
 
-- 最终汇总：[`alignment_summary.json`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
-- 最终逐条表：[`alignment_reviews.parquet`](./results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
-- 最终逐样本缓存：[`cache/`](./results/ttool/expert_alignment/paper_rubric_v5/cache/)
-- 对齐运行器：[`align_ttool_expert_review.py`](./align_ttool_expert_review.py)
-- 独立 agent：[`expert_review/expert_review_agent.py`](./expert_review/expert_review_agent.py)
+- 最终汇总：[`alignment_summary.json`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_summary.json)
+- 最终逐条表：[`alignment_reviews.parquet`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
+- 最终逐样本缓存：[`cache/`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/)
+- 对齐运行器：[`align_ttool_expert_review.py`](../../../align_ttool_expert_review.py)
+- 独立 agent：[`expert_review_agent.py`](../../expert_review_agent.py)

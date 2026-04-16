@@ -2,9 +2,9 @@
 
 本文档将当前 `expert_review` 系统的三类已有材料整合为一个统一的 `v0` 版本描述：
 
-1. 理论与评审口径来源见 [`../../EXPERT_REVIEW_RESEARCH.md`](../../EXPERT_REVIEW_RESEARCH.md)
-2. 当前实现结构见 [`../../EXPERT_REVIEW_ARCHITECTURE.md`](../../EXPERT_REVIEW_ARCHITECTURE.md)
-3. 与 TTool-AI 人类评分的对齐结果见 [`../../EXPERT_ALIGNMENT_REPORT.md`](../../EXPERT_ALIGNMENT_REPORT.md)
+1. 理论与评审口径来源见 [`EXPERT_REVIEW_RESEARCH.md`](./EXPERT_REVIEW_RESEARCH.md)
+2. 当前实现结构见 [`EXPERT_REVIEW_ARCHITECTURE.md`](./EXPERT_REVIEW_ARCHITECTURE.md)
+3. 与 TTool-AI 人类评分的对齐结果见 [`EXPERT_ALIGNMENT_REPORT.md`](./EXPERT_ALIGNMENT_REPORT.md)
 
 该文档的作用不是重复全文，而是给后续 `v1` 重构提供一个可引用的基线。
 
@@ -18,7 +18,7 @@
 - 输入 `input_text`
 - 输入 `pred_output`
 - 可选输入 `ref_output`
-- 输出一个结构化的 [`ExpertReviewResult`](../expert_review_schema.py)
+- 输出一个结构化的 [`ExpertReviewResult`](../../expert_review_schema.py)
 
 这个结果里包含：
 
@@ -47,7 +47,7 @@
 
 ### 3.1 建模质量框架
 
-来自 [`../../EXPERT_REVIEW_RESEARCH.md`](../../EXPERT_REVIEW_RESEARCH.md) 的核心结论是：
+来自 [`EXPERT_REVIEW_RESEARCH.md`](./EXPERT_REVIEW_RESEARCH.md) 的核心结论是：
 
 1. 评审不能只看“像不像参考答案”
 2. 至少要分开看：
@@ -79,12 +79,12 @@
 
 主模块如下：
 
-- [`../expert_review_agent.py`](../expert_review_agent.py)
-- [`../expert_review_tools.py`](../expert_review_tools.py)
-- [`../expert_review_schema.py`](../expert_review_schema.py)
-- [`../expert_review_prompts.py`](../expert_review_prompts.py)
-- [`../expert_review_rubrics.py`](../expert_review_rubrics.py)
-- [`../expert_review_utils.py`](../expert_review_utils.py)
+- [`expert_review_agent.py`](../../expert_review_agent.py)
+- [`expert_review_tools.py`](../../expert_review_tools.py)
+- [`expert_review_schema.py`](../../expert_review_schema.py)
+- [`expert_review_prompts.py`](../../expert_review_prompts.py)
+- [`expert_review_rubrics.py`](../../expert_review_rubrics.py)
+- [`expert_review_utils.py`](../../expert_review_utils.py)
 
 ## 5. V0 的外部接口
 
@@ -92,18 +92,18 @@
 
 ### 5.1 Python API
 
-通过 [`../__init__.py`](../__init__.py) 暴露：
+通过 [`__init__.py`](../../__init__.py) 暴露：
 
 - `review_artifacts()`
 - `review_model()`
 
 ### 5.2 CLI
 
-通过 [`../__main__.py`](../__main__.py) 提供单次命令行入口。
+通过 [`__main__.py`](../../__main__.py) 提供单次命令行入口。
 
 ### 5.3 请求对象
 
-请求对象是 [`ExpertReviewRequest`](../expert_review_schema.py)：
+请求对象是 [`ExpertReviewRequest`](../../expert_review_schema.py)：
 
 - `prompt`
 - `input_text`
@@ -112,7 +112,7 @@
 
 ### 5.4 返回对象
 
-返回对象是 [`ExpertReviewResult`](../expert_review_schema.py)。
+返回对象是 [`ExpertReviewResult`](../../expert_review_schema.py)。
 
 ## 6. V0 的默认维度
 
@@ -124,7 +124,7 @@
 4. `requirement_traceability`
 5. `pragmatic_clarity`
 
-这些维度由 [`../expert_review_rubrics.py`](../expert_review_rubrics.py) 的 `resolve_review_profile()` 返回。
+这些维度由 [`expert_review_rubrics.py`](../../expert_review_rubrics.py) 的 `resolve_review_profile()` 返回。
 
 当前实现中，虽然 `resolve_review_profile(prompt)` 接收 `prompt`，但它并不会真正因 prompt 不同而切换不同维度组合，实际仍然是固定 profile。
 
@@ -151,7 +151,7 @@ request
 
 ### 8.1 inventory 抽取
 
-`v0` 的 inventory 抽取由 [`../expert_review_tools.py`](../expert_review_tools.py) 提供，主要有两条路径：
+`v0` 的 inventory 抽取由 [`expert_review_tools.py`](../../expert_review_tools.py) 提供，主要有两条路径：
 
 1. JSON payload 路径
 2. 自由文本启发式路径
@@ -204,7 +204,7 @@ request
 2. 读取压缩后的 deterministic precomputed context
 3. 给出结构化 JSON 评审结果
 
-`v0` 的 LLM 主要由 [`llm_primary_review()`](../expert_review_agent.py) 驱动。
+`v0` 的 LLM 主要由 [`llm_primary_review()`](../../expert_review_agent.py) 驱动。
 
 它具备：
 
@@ -258,7 +258,7 @@ heuristic 对各维度均有明确规则，例如：
 
 ## 12. V0 的对齐实验结论
 
-从 [`../../EXPERT_ALIGNMENT_REPORT.md`](../../EXPERT_ALIGNMENT_REPORT.md) 可以提炼出 `v0` 的关键对齐结果。
+从 [`EXPERT_ALIGNMENT_REPORT.md`](./EXPERT_ALIGNMENT_REPORT.md) 可以提炼出 `v0` 的关键对齐结果。
 
 ### 12.1 最终采用的 prompt 变体
 
@@ -369,7 +369,7 @@ LLM 当前更多是在 deterministic context 上做一次结构化打分，而�
 
 ### 15.2 输出 schema
 
-不应轻易推翻 [`ExpertReviewResult`](../expert_review_schema.py) 的核心字段，因为它已经和批处理、对齐脚本、实验产物耦合。
+不应轻易推翻 [`ExpertReviewResult`](../../expert_review_schema.py) 的核心字段，因为它已经和批处理、对齐脚本、实验产物耦合。
 
 ### 15.3 结构化中间产物意识
 
