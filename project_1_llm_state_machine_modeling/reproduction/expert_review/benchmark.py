@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 import json
 import math
 import random
@@ -33,6 +34,25 @@ ISSUE_TAXONOMY = [
     "evidence_overreach",
 ]
 
+RECORD_LEVEL_RECORD_TYPES = {"sample_level_review"}
+SUMMARY_LEVEL_RECORD_TYPES = {"summary_level_run_score", "case_aggregate_stat", "raw_score_row", "summary"}
+COMPONENT_LEVEL_RECORD_TYPES = {"component_level_review"}
+SPLIT_ORDER = ("train", "dev", "validation", "lockbox")
+DEFAULT_SPLIT_RATIOS = {
+    "train": 0.50,
+    "dev": 0.20,
+    "validation": 0.15,
+    "lockbox": 0.15,
+}
+PHASE7_ERROR_BUCKETS = (
+    "contract_understanding_error",
+    "element_extraction_error",
+    "equivalence_reasoning_error",
+    "quality_judgement_error",
+    "evidence_discipline_error",
+    "calibration_error",
+)
+
 
 @dataclass(slots=True)
 class BenchmarkTask:
@@ -47,6 +67,341 @@ class BenchmarkTask:
     human_issue_set: set[str]
     group_key: str
     metadata: dict[str, Any]
+
+
+def _stable_token(value: Any, *, fallback: str = "na") -> str:
+    text = _safe_text(value).strip()
+    if not text:
+        return fallback
+    return text.replace("\n", " ").strip()
+
+
+def _family_key_for_record_row(row: pd.Series) -> str:
+    paper_slug = _stable_token(row.get("paper_slug"), fallback="paper")
+    record_type = _stable_token(row.get("record_type"), fallback="record")
+    case_id = _stable_token(row.get("case_id"))
+    case_name = _stable_token(row.get("case_name"))
+    diagram_type = _stable_token(row.get("diagram_type"))
+    llm_name = _stable_token(row.get("llm_name"))
+    review_target = _stable_token(row.get("review_target"), fallback="target")
+
+    if record_type in RECORD_LEVEL_RECORD_TYPES:
+        family_parts = [paper_slug]
+        if case_id != "na":
+            family_parts.append(case_id)
+        elif case_name != "na":
+            family_parts.append(case_name)
+        if diagram_type != "na":
+            family_parts.append(diagram_type)
+        if llm_name != "na":
+            family_parts.append(llm_name)
+        return "::".join(family_parts)
+
+    if record_type in SUMMARY_LEVEL_RECORD_TYPES:
+        family_parts = [paper_slug]
+        if case_id != "na":
+            family_parts.append(case_id)
+        elif case_name != "na":
+            family_parts.append(case_name)
+        else:
+            family_parts.append(_stable_token(row.get("split_name"), fallback="summary"))
+        family_parts.append(review_target)
+        return "::".join(family_parts)
+
+    if record_type in COMPONENT_LEVEL_RECORD_TYPES:
+        family_parts = [paper_slug]
+        if case_id != "na":
+            family_parts.append(case_id)
+        elif case_name != "na":
+            family_parts.append(case_name)
+        if llm_name != "na":
+            family_parts.append(llm_name)
+        return "::".join(family_parts)
+
+    return "::".join([paper_slug, review_target, record_type])
+
+
+def _family_key_for_protocol_row(row: pd.Series) -> str:
+    return _stable_token(row.get("paper_slug"), fallback="protocol")
+
+
+def _prepare_record_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    df = records[
+        records["record_type"].isin(RECORD_LEVEL_RECORD_TYPES)
+        & records["pred_output_text"].notna()
+        & records["input_text"].notna()
+        & records["ref_output_text"].notna()
+    ].copy()
+    if not df.empty:
+        df["family_key"] = df.apply(_family_key_for_record_row, axis=1)
+    return df
+
+
+def _prepare_summary_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    df = records[
+        records["record_type"].isin(SUMMARY_LEVEL_RECORD_TYPES)
+        & records["pred_output_text"].notna()
+    ].copy()
+    if not df.empty:
+        df["family_key"] = df.apply(_family_key_for_record_row, axis=1)
+    return df
+
+
+def _prepare_component_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    df = records[records["record_type"].isin(COMPONENT_LEVEL_RECORD_TYPES)].copy()
+    if not df.empty:
+        df["family_key"] = df.apply(_family_key_for_record_row, axis=1)
+        df["component_bucket"] = df["review_target"].fillna("NA").astype(str)
+    return df
+
+
+def _prepare_protocol_level_pool(protocols: pd.DataFrame) -> pd.DataFrame:
+    df = protocols.copy()
+    if not df.empty:
+        df["family_key"] = df.apply(_family_key_for_protocol_row, axis=1)
+    return df
+
+
+def build_benchmark_inventory(
+    records: pd.DataFrame,
+    protocols: pd.DataFrame,
+    availability: pd.DataFrame,
+) -> dict[str, pd.DataFrame]:
+    return {
+        "records_all": records.copy(),
+        "protocols_all": protocols.copy(),
+        "availability_all": availability.copy(),
+        "record_level": _prepare_record_level_pool(records),
+        "summary_level": _prepare_summary_level_pool(records),
+        "component_level": _prepare_component_level_pool(records),
+        "protocol_only": _prepare_protocol_level_pool(protocols),
+    }
+
+
+def _counts_dict(series: pd.Series) -> dict[str, int]:
+    return {str(key): int(value) for key, value in series.fillna("NA").value_counts().to_dict().items()}
+
+
+def build_component_alignment_schema(component_df: pd.DataFrame) -> dict[str, Any]:
+    if component_df.empty:
+        return {
+            "rows": 0,
+            "family_count": 0,
+            "canonical_components": [],
+            "score_unit_counts": {},
+            "paper_counts": {},
+            "llm_counts": {},
+            "family_key_rule": "paper_slug::case_id::llm_name",
+        }
+    return {
+        "rows": int(len(component_df)),
+        "family_count": int(component_df["family_key"].nunique()),
+        "canonical_components": sorted({str(item) for item in component_df["component_bucket"].dropna().tolist()}),
+        "score_unit_counts": _counts_dict(component_df["human_review_score_unit"]),
+        "paper_counts": _counts_dict(component_df["paper_slug"]),
+        "llm_counts": _counts_dict(component_df["llm_name"]),
+        "case_count": int(component_df["case_id"].fillna(component_df["case_name"]).nunique()),
+        "family_key_rule": "paper_slug::case_id::llm_name",
+    }
+
+
+def summarize_benchmark_coverage(
+    records: pd.DataFrame,
+    protocols: pd.DataFrame,
+    availability: pd.DataFrame,
+) -> dict[str, Any]:
+    inventory = build_benchmark_inventory(records, protocols, availability)
+    record_df = inventory["record_level"]
+    summary_df = inventory["summary_level"]
+    component_df = inventory["component_level"]
+    protocol_df = inventory["protocol_only"]
+
+    coverage_gaps: list[str] = []
+    if record_df["paper_slug"].nunique() <= 1:
+        coverage_gaps.append("record-level 强对齐当前主要集中在单个 paper family，外推性不足。")
+    if summary_df["paper_slug"].nunique() <= 1:
+        coverage_gaps.append("summary-level 当前主要集中在单个 paper family，排序口径覆盖仍偏窄。")
+    if not component_df.empty:
+        coverage_gaps.append("component_level_review 已整理完成，但当前仍未进入主 HAI/RAS/SAS 指标。")
+    if len(protocol_df) <= 4:
+        coverage_gaps.append("protocol-only benchmark 样本数仍较小，应保守解释 protocol discipline 的泛化性。")
+
+    return {
+        "table_rows": {
+            "records_all": int(len(records)),
+            "protocols_all": int(len(protocols)),
+            "availability_all": int(len(availability)),
+        },
+        "main_eval_rows": {
+            "record": int(len(record_df)),
+            "summary": int(len(summary_df)),
+            "protocol": int(len(protocol_df)),
+        },
+        "deferred_rows": {
+            "component": int(len(component_df)),
+        },
+        "family_counts": {
+            "record": int(record_df["family_key"].nunique()) if not record_df.empty else 0,
+            "summary": int(summary_df["family_key"].nunique()) if not summary_df.empty else 0,
+            "protocol": int(protocol_df["family_key"].nunique()) if not protocol_df.empty else 0,
+            "component": int(component_df["family_key"].nunique()) if not component_df.empty else 0,
+        },
+        "paper_coverage": {
+            "record": _counts_dict(record_df["paper_slug"]) if not record_df.empty else {},
+            "summary": _counts_dict(summary_df["paper_slug"]) if not summary_df.empty else {},
+            "protocol": _counts_dict(protocol_df["paper_slug"]) if not protocol_df.empty else {},
+            "component": _counts_dict(component_df["paper_slug"]) if not component_df.empty else {},
+        },
+        "granularity": {
+            "record_record_type_counts": _counts_dict(record_df["record_type"]) if not record_df.empty else {},
+            "record_diagram_type_counts": _counts_dict(record_df["diagram_type"]) if not record_df.empty else {},
+            "record_llm_counts": _counts_dict(record_df["llm_name"]) if not record_df.empty else {},
+            "summary_record_type_counts": _counts_dict(summary_df["record_type"]) if not summary_df.empty else {},
+            "summary_target_counts": _counts_dict(summary_df["review_target"]) if not summary_df.empty else {},
+            "protocol_status_counts": _counts_dict(protocol_df["public_human_review_status"]) if not protocol_df.empty else {},
+        },
+        "component_alignment_schema": build_component_alignment_schema(component_df),
+        "availability_status": {
+            "public_human_review_status": _counts_dict(availability["public_human_review_status"])
+            if "public_human_review_status" in availability
+            else {},
+        },
+        "coverage_gaps": coverage_gaps,
+    }
+
+
+def _rows_to_tasks(regime_name: str, df: pd.DataFrame) -> list[BenchmarkTask]:
+    if df.empty:
+        return []
+    if regime_name == "record":
+        return [_build_record_task(row) for _, row in df.iterrows()]
+    if regime_name == "summary":
+        return [_build_summary_task(row) for _, row in df.iterrows()]
+    if regime_name == "protocol":
+        return [_build_protocol_task(row) for _, row in df.iterrows()]
+    raise ValueError(f"Unsupported regime_name: {regime_name}")
+
+
+def _family_split_assignments(
+    df: pd.DataFrame,
+    *,
+    seed: int,
+    split_ratios: dict[str, float] | None = None,
+) -> dict[str, set[str]]:
+    assignments = {split: set() for split in SPLIT_ORDER}
+    if df.empty or "family_key" not in df:
+        return assignments
+
+    ratios = dict(DEFAULT_SPLIT_RATIOS if split_ratios is None else split_ratios)
+    family_rows = (
+        df.groupby("family_key", dropna=False)
+        .size()
+        .reset_index(name="row_count")
+        .sample(frac=1.0, random_state=seed)
+        .sort_values("row_count", ascending=False, kind="stable")
+        .to_dict("records")
+    )
+    if not family_rows:
+        return assignments
+
+    current_rows = {split: 0 for split in SPLIT_ORDER}
+    target_rows = {split: max(1.0, ratios.get(split, 0.0) * len(df)) for split in SPLIT_ORDER}
+
+    if len(family_rows) >= len(SPLIT_ORDER):
+        for split, family in zip(SPLIT_ORDER, family_rows[: len(SPLIT_ORDER)]):
+            assignments[split].add(str(family["family_key"]))
+            current_rows[split] += int(family["row_count"])
+        family_rows = family_rows[len(SPLIT_ORDER) :]
+
+    for family in family_rows:
+        family_key = str(family["family_key"])
+        row_count = int(family["row_count"])
+        chosen_split = min(
+            SPLIT_ORDER,
+            key=lambda split: (
+                current_rows[split] / target_rows[split],
+                current_rows[split],
+                len(assignments[split]),
+                split,
+            ),
+        )
+        assignments[chosen_split].add(family_key)
+        current_rows[chosen_split] += row_count
+    return assignments
+
+
+def build_benchmark_split_bundle(
+    records: pd.DataFrame,
+    protocols: pd.DataFrame,
+    availability: pd.DataFrame,
+    *,
+    seed: int = 7,
+    split_ratios: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    inventory = build_benchmark_inventory(records, protocols, availability)
+    regime_frames = {
+        "record": inventory["record_level"],
+        "summary": inventory["summary_level"],
+        "protocol": inventory["protocol_only"],
+    }
+    split_frames: dict[str, dict[str, pd.DataFrame]] = {split: {} for split in SPLIT_ORDER}
+    manifest: dict[str, Any] = {"ratios": dict(DEFAULT_SPLIT_RATIOS if split_ratios is None else split_ratios), "regimes": {}}
+
+    for offset, (regime_name, frame) in enumerate(regime_frames.items()):
+        assignments = _family_split_assignments(frame, seed=seed + offset, split_ratios=split_ratios)
+        manifest["regimes"][regime_name] = {}
+        for split in SPLIT_ORDER:
+            family_keys = assignments[split]
+            subset = frame[frame["family_key"].isin(family_keys)].copy() if family_keys else frame.iloc[0:0].copy()
+            split_frames[split][regime_name] = subset
+            manifest["regimes"][regime_name][split] = {
+                "rows": int(len(subset)),
+                "family_count": int(subset["family_key"].nunique()) if not subset.empty else 0,
+                "family_keys": sorted(str(item) for item in family_keys),
+            }
+
+    return {
+        "task_bundles": {
+            split: {
+                "record": _rows_to_tasks("record", split_frames[split]["record"]),
+                "summary": _rows_to_tasks("summary", split_frames[split]["summary"]),
+                "protocol": _rows_to_tasks("protocol", split_frames[split]["protocol"]),
+            }
+            for split in SPLIT_ORDER
+        },
+        "manifest": manifest,
+    }
+
+
+def build_lofo_task_bundles(
+    records: pd.DataFrame,
+    protocols: pd.DataFrame,
+    availability: pd.DataFrame,
+) -> dict[str, Any]:
+    inventory = build_benchmark_inventory(records, protocols, availability)
+    regime_frames = {
+        "record": inventory["record_level"],
+        "summary": inventory["summary_level"],
+        "protocol": inventory["protocol_only"],
+    }
+    bundles: dict[str, dict[str, list[BenchmarkTask]]] = {}
+    manifest: dict[str, Any] = {"families": {}}
+
+    for regime_name, frame in regime_frames.items():
+        if frame.empty:
+            continue
+        for family_key, subset in frame.groupby("family_key", dropna=False):
+            namespaced_key = f"{regime_name}::{family_key}"
+            bundles[namespaced_key] = {"record": [], "summary": [], "protocol": []}
+            bundles[namespaced_key][regime_name] = _rows_to_tasks(regime_name, subset)
+            manifest["families"][namespaced_key] = {
+                "regime": regime_name,
+                "family_key": str(family_key),
+                "rows": int(len(subset)),
+                "paper_slug_counts": _counts_dict(subset["paper_slug"]) if "paper_slug" in subset else {},
+            }
+
+    return {"task_bundles": bundles, "manifest": manifest}
 
 
 def _load_benchmark_tables(base_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -482,12 +837,18 @@ def _build_record_task(row: pd.Series) -> BenchmarkTask:
         human_score=_normalize_score(row.get("human_review_score"), row.get("human_review_score_unit")),
         human_score_unit=_safe_text(row.get("human_review_score_unit")) or None,
         human_issue_set=_human_issue_set_from_record(row),
-        group_key=f"{row.get('paper_slug')}::{row.get('diagram_type')}::{row.get('review_target')}",
+        group_key=str(row.get("family_key") or f"{row.get('paper_slug')}::{row.get('diagram_type')}::{row.get('review_target')}"),
         metadata={
             "paper_slug": row.get("paper_slug"),
             "record_type": row.get("record_type"),
             "diagram_type": row.get("diagram_type"),
             "review_target": row.get("review_target"),
+            "llm_name": row.get("llm_name"),
+            "case_id": row.get("case_id"),
+            "case_name": row.get("case_name"),
+            "split_name": row.get("split_name"),
+            "sheet_name": row.get("sheet_name"),
+            "family_key": row.get("family_key"),
         },
     )
 
@@ -503,12 +864,17 @@ def _build_summary_task(row: pd.Series) -> BenchmarkTask:
         human_score=_normalize_score(row.get("human_review_score"), row.get("human_review_score_unit")),
         human_score_unit=_safe_text(row.get("human_review_score_unit")) or None,
         human_issue_set=_human_issue_set_from_record(row),
-        group_key=f"{row.get('paper_slug')}::{row.get('review_target')}::{row.get('record_type')}",
+        group_key=str(row.get("family_key") or f"{row.get('paper_slug')}::{row.get('review_target')}::{row.get('record_type')}"),
         metadata={
             "paper_slug": row.get("paper_slug"),
             "record_type": row.get("record_type"),
             "diagram_type": row.get("diagram_type"),
             "review_target": row.get("review_target"),
+            "case_id": row.get("case_id"),
+            "case_name": row.get("case_name"),
+            "split_name": row.get("split_name"),
+            "sheet_name": row.get("sheet_name"),
+            "family_key": row.get("family_key"),
         },
     )
 
@@ -543,8 +909,13 @@ def _build_protocol_task(row: pd.Series) -> BenchmarkTask:
         human_score=None,
         human_score_unit=None,
         human_issue_set=protocol_issue_set,
-        group_key=f"protocol::{row.get('paper_slug')}",
-        metadata={"paper_slug": row.get("paper_slug"), "record_type": "protocol_only"},
+        group_key=str(row.get("family_key") or f"protocol::{row.get('paper_slug')}"),
+        metadata={
+            "paper_slug": row.get("paper_slug"),
+            "record_type": "protocol_only",
+            "family_key": row.get("family_key"),
+            "public_human_review_status": row.get("public_human_review_status"),
+        },
     )
 
 
@@ -581,25 +952,33 @@ def build_benchmark_slices(
     protocol_limit: int,
     seed: int,
 ) -> dict[str, list[BenchmarkTask]]:
-    strong_record_df = records[
-        (records["record_type"] == "sample_level_review")
-        & records["pred_output_text"].notna()
-        & records["input_text"].notna()
-        & records["ref_output_text"].notna()
-    ].copy()
-    summary_df = records[
-        records["record_type"].isin(
-            ["summary_level_run_score", "case_aggregate_stat", "raw_score_row", "summary"]
-        )
-        & records["pred_output_text"].notna()
-    ].copy()
-    sampled_record_df = _sample_grouped(strong_record_df, record_limit, ["paper_slug", "record_type", "review_target"], seed)
-    sampled_summary_df = _sample_grouped(summary_df, summary_limit, ["paper_slug", "record_type", "review_target"], seed + 1)
-    sampled_protocol_df = protocols.head(protocol_limit).copy()
+    strong_record_df = _prepare_record_level_pool(records)
+    summary_df = _prepare_summary_level_pool(records)
+    sampled_record_df = _sample_grouped(strong_record_df, record_limit, ["paper_slug", "diagram_type", "llm_name"], seed)
+    sampled_summary_df = _sample_grouped(
+        summary_df,
+        summary_limit,
+        ["paper_slug", "record_type", "review_target", "case_id"],
+        seed + 1,
+    )
+    sampled_protocol_df = _prepare_protocol_level_pool(protocols).head(protocol_limit).copy()
     return {
-        "record": [_build_record_task(row) for _, row in sampled_record_df.iterrows()],
-        "summary": [_build_summary_task(row) for _, row in sampled_summary_df.iterrows()],
-        "protocol": [_build_protocol_task(row) for _, row in sampled_protocol_df.iterrows()],
+        "record": _rows_to_tasks("record", sampled_record_df),
+        "summary": _rows_to_tasks("summary", sampled_summary_df),
+        "protocol": _rows_to_tasks("protocol", sampled_protocol_df),
+    }
+
+
+def build_full_available_task_bundle(
+    records: pd.DataFrame,
+    protocols: pd.DataFrame,
+    availability: pd.DataFrame,
+) -> dict[str, list[BenchmarkTask]]:
+    inventory = build_benchmark_inventory(records, protocols, availability)
+    return {
+        "record": _rows_to_tasks("record", inventory["record_level"]),
+        "summary": _rows_to_tasks("summary", inventory["summary_level"]),
+        "protocol": _rows_to_tasks("protocol", inventory["protocol_only"]),
     }
 
 
@@ -656,6 +1035,8 @@ def _rerun_subset(
     rerun_count: int,
 ) -> dict[str, tuple[float, float]]:
     result: dict[str, tuple[float, float]] = {}
+    if rerun_count <= 0:
+        return result
     for task in tasks[:rerun_count]:
         request = ExpertReviewRequest(
             prompt=task.prompt,
@@ -673,31 +1054,138 @@ def _rerun_subset(
     return result
 
 
-def run_benchmark_iteration(
+def _error_buckets_for_row(row: dict[str, Any]) -> list[str]:
+    buckets: set[str] = set()
+    human_issues = set(row.get("human_issue_set", []))
+    agent_issues = set(row.get("agent_issue_set", []))
+    expected_regime = str(row.get("expected_regime", ""))
+    actual_regime = str(row.get("actual_regime", ""))
+    human_score = row.get("human_score")
+    agent_score = row.get("agent_score")
+
+    if expected_regime and actual_regime and expected_regime != actual_regime:
+        buckets.add("contract_understanding_error")
+
+    extraction_tags = {"syntax_or_notation", "wrong_guard_or_trigger", "wrong_action_or_effect"}
+    if (human_issues & extraction_tags) != (agent_issues & extraction_tags):
+        buckets.add("element_extraction_error")
+
+    quality_tags = {"readability_or_naming", "unused_or_noisy_structure"}
+    if (human_issues & quality_tags) != (agent_issues & quality_tags):
+        buckets.add("quality_judgement_error")
+
+    if human_score is not None and agent_score is not None:
+        delta = float(agent_score) - float(human_score)
+        if abs(delta) > 0.10:
+            buckets.add("calibration_error")
+        if expected_regime == "record_level" and (
+            (human_score >= 0.75 and agent_score < 0.55)
+            or (human_score <= 0.45 and agent_score > 0.65)
+            or "equivalence_misjudgement" in (human_issues | agent_issues)
+        ):
+            buckets.add("equivalence_reasoning_error")
+
+    if expected_regime in {"summary_level", "protocol_only"} and (
+        int(row.get("element_claim_count", 0)) > 0 or int(row.get("trace_matched_count", 0)) > 0
+    ):
+        buckets.add("evidence_discipline_error")
+    elif row.get("issue_precision") is not None and float(row["issue_precision"]) < 0.5:
+        buckets.add("evidence_discipline_error")
+
+    return sorted(buckets)
+
+
+def _build_error_map(
+    normalized_rows: list[dict[str, Any]],
     *,
-    base_dir: Path = DEFAULT_BENCHMARK_DIR,
-    record_limit: int = 18,
-    summary_limit: int = 16,
-    protocol_limit: int = 4,
-    seed: int = 7,
-    rerun_count: int = 4,
-    llm_mode: str = "off",
+    record_metrics: dict[str, Any],
+    summary_metrics: dict[str, Any],
 ) -> dict[str, Any]:
-    records, protocols, _availability = _load_benchmark_tables(base_dir)
-    slices = build_benchmark_slices(
-        records,
-        protocols,
-        record_limit=record_limit,
-        summary_limit=summary_limit,
-        protocol_limit=protocol_limit,
-        seed=seed,
-    )
+    bucket_counts = {bucket: 0 for bucket in PHASE7_ERROR_BUCKETS}
+    top_examples: dict[str, list[dict[str, Any]]] = {bucket: [] for bucket in PHASE7_ERROR_BUCKETS}
+    regime_confusions: dict[str, int] = defaultdict(int)
+
+    for row in normalized_rows:
+        row["error_buckets"] = _error_buckets_for_row(row)
+        if row.get("expected_regime") != row.get("actual_regime"):
+            confusion_key = f"{row.get('expected_regime')}->{row.get('actual_regime')}"
+            regime_confusions[confusion_key] += 1
+        for bucket in row["error_buckets"]:
+            if bucket not in bucket_counts:
+                continue
+            bucket_counts[bucket] += 1
+            if len(top_examples[bucket]) < 5:
+                human_score = row.get("human_score")
+                agent_score = row.get("agent_score")
+                delta = None
+                if human_score is not None and agent_score is not None:
+                    delta = round(float(agent_score) - float(human_score), 4)
+                top_examples[bucket].append(
+                    {
+                        "task_id": row.get("task_id"),
+                        "expected_regime": row.get("expected_regime"),
+                        "actual_regime": row.get("actual_regime"),
+                        "human_score": human_score,
+                        "agent_score": agent_score,
+                        "delta": delta,
+                        "metadata": row.get("metadata", {}),
+                    }
+                )
+
+    ranking_risk = {
+        "record": {
+            "spearman_rho": record_metrics.get("spearman_rho", 0.0),
+            "pairwise_order_accuracy": record_metrics.get("pairwise_order_accuracy", 0.0),
+        },
+        "summary": {
+            "spearman_rho": summary_metrics.get("spearman_rho", 0.0),
+            "pairwise_order_accuracy": summary_metrics.get("pairwise_order_accuracy", 0.0),
+        },
+    }
+    for regime_name, metrics in ranking_risk.items():
+        spearman = float(metrics.get("spearman_rho", 0.0))
+        pairwise = float(metrics.get("pairwise_order_accuracy", 0.0))
+        if spearman >= 0.75 and pairwise >= 0.80:
+            risk = "low"
+        elif spearman >= 0.55 and pairwise >= 0.65:
+            risk = "medium"
+        else:
+            risk = "high"
+        metrics["risk_level"] = risk
+
+    return {
+        "bucket_counts": bucket_counts,
+        "top_examples": {key: value for key, value in top_examples.items() if value},
+        "regime_confusions": dict(sorted(regime_confusions.items())),
+        "ranking_risk": ranking_risk,
+    }
+
+
+def _task_inventory(tasks_by_regime: dict[str, list[BenchmarkTask]]) -> dict[str, Any]:
+    inventory: dict[str, Any] = {}
+    for regime_name, tasks in tasks_by_regime.items():
+        inventory[regime_name] = {
+            "rows": len(tasks),
+            "family_count": len({task.group_key for task in tasks}),
+        }
+    return inventory
+
+
+def _evaluate_task_bundle(
+    tasks_by_regime: dict[str, list[BenchmarkTask]],
+    *,
+    llm_mode: str,
+    rerun_count: int,
+    report_label: str,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     provider_order = None if llm_mode == "auto" else []
     agent = ExpertReviewAgent(provider_order=provider_order)
-    reruns = _rerun_subset(agent, slices["record"][:rerun_count] + slices["summary"][:rerun_count], rerun_count=rerun_count)
+    rerun_seed_tasks = tasks_by_regime["record"][:rerun_count] + tasks_by_regime["summary"][:rerun_count]
+    reruns = _rerun_subset(agent, rerun_seed_tasks, rerun_count=rerun_count)
 
     normalized_rows: list[dict[str, Any]] = []
-    for regime_name, tasks in slices.items():
+    for tasks in tasks_by_regime.values():
         for task in tasks:
             request = ExpertReviewRequest(
                 prompt=task.prompt,
@@ -767,12 +1255,14 @@ def run_benchmark_iteration(
     protocol_metrics = _protocol_metrics(protocol_rows)
     hai = 0.55 * ras + 0.25 * sas + 0.20 * protocol_metrics["PDS"]
 
-    return {
+    report = {
+        "report_label": report_label,
         "sample_sizes": {
             "record": len(record_rows),
             "summary": len(summary_rows),
             "protocol": len(protocol_rows),
         },
+        "task_inventory": _task_inventory(tasks_by_regime),
         "record_metrics": {
             **record_score,
             **record_reason,
@@ -790,22 +1280,292 @@ def run_benchmark_iteration(
         },
         "protocol_metrics": protocol_metrics,
         "HAI": hai,
+        "metadata": {} if metadata is None else dict(metadata),
         "normalized_rows": normalized_rows,
+    }
+    report["error_map"] = _build_error_map(
+        normalized_rows,
+        record_metrics=report["record_metrics"],
+        summary_metrics=report["summary_metrics"],
+    )
+    return report
+
+
+def run_benchmark_iteration(
+    *,
+    base_dir: Path = DEFAULT_BENCHMARK_DIR,
+    record_limit: int = 18,
+    summary_limit: int = 16,
+    protocol_limit: int = 4,
+    seed: int = 7,
+    rerun_count: int = 4,
+    llm_mode: str = "off",
+    scope: str = "slice",
+    split_name: str | None = None,
+) -> dict[str, Any]:
+    records, protocols, availability = _load_benchmark_tables(base_dir)
+    if scope == "slice":
+        task_bundle = build_benchmark_slices(
+            records,
+            protocols,
+            record_limit=record_limit,
+            summary_limit=summary_limit,
+            protocol_limit=protocol_limit,
+            seed=seed,
+        )
+        report_label = "slice"
+        metadata = {
+            "scope": "slice",
+            "record_limit": record_limit,
+            "summary_limit": summary_limit,
+            "protocol_limit": protocol_limit,
+            "seed": seed,
+        }
+    elif scope == "full":
+        task_bundle = build_full_available_task_bundle(records, protocols, availability)
+        report_label = "full_available"
+        metadata = {"scope": "full"}
+    elif scope == "split":
+        if split_name not in SPLIT_ORDER:
+            raise ValueError(f"split scope requires split_name in {SPLIT_ORDER}, got {split_name!r}")
+        split_bundle = build_benchmark_split_bundle(records, protocols, availability, seed=seed)
+        task_bundle = split_bundle["task_bundles"][split_name]
+        report_label = f"split:{split_name}"
+        metadata = {
+            "scope": "split",
+            "split_name": split_name,
+            "split_manifest": split_bundle["manifest"],
+        }
+    else:
+        raise ValueError(f"Unsupported scope: {scope}")
+
+    return _evaluate_task_bundle(
+        task_bundle,
+        llm_mode=llm_mode,
+        rerun_count=rerun_count,
+        report_label=report_label,
+        metadata=metadata,
+    )
+
+
+def _summarize_lofo_reports(lofo_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for report in lofo_reports.values():
+        regime = str(report.get("metadata", {}).get("lofo_regime", "unknown"))
+        grouped[regime].append(report)
+
+    summary: dict[str, Any] = {}
+    for regime, reports in grouped.items():
+        if regime == "record":
+            worst_family, min_ras = min(
+                (
+                    (str(report.get("metadata", {}).get("lofo_family", "unknown")), report["record_metrics"]["RAS"])
+                    for report in reports
+                ),
+                key=lambda item: item[1],
+            )
+            summary[regime] = {
+                "family_count": len(reports),
+                "avg_RAS": statistics.mean(report["record_metrics"]["RAS"] for report in reports),
+                "avg_normalized_mae": statistics.mean(report["record_metrics"]["normalized_mae"] for report in reports),
+                "avg_spearman_rho": statistics.mean(report["record_metrics"]["spearman_rho"] for report in reports),
+                "avg_pairwise_order_accuracy": statistics.mean(
+                    report["record_metrics"]["pairwise_order_accuracy"] for report in reports
+                ),
+                "min_RAS": min_ras,
+                "worst_family": worst_family,
+            }
+        elif regime == "summary":
+            worst_family, min_sas = min(
+                (
+                    (str(report.get("metadata", {}).get("lofo_family", "unknown")), report["summary_metrics"]["SAS"])
+                    for report in reports
+                ),
+                key=lambda item: item[1],
+            )
+            summary[regime] = {
+                "family_count": len(reports),
+                "avg_SAS": statistics.mean(report["summary_metrics"]["SAS"] for report in reports),
+                "avg_normalized_mae": statistics.mean(report["summary_metrics"]["normalized_mae"] for report in reports),
+                "avg_spearman_rho": statistics.mean(report["summary_metrics"]["spearman_rho"] for report in reports),
+                "avg_pairwise_order_accuracy": statistics.mean(
+                    report["summary_metrics"]["pairwise_order_accuracy"] for report in reports
+                ),
+                "min_SAS": min_sas,
+                "worst_family": worst_family,
+            }
+        elif regime == "protocol":
+            worst_family, min_pds = min(
+                (
+                    (str(report.get("metadata", {}).get("lofo_family", "unknown")), report["protocol_metrics"]["PDS"])
+                    for report in reports
+                ),
+                key=lambda item: item[1],
+            )
+            summary[regime] = {
+                "family_count": len(reports),
+                "avg_PDS": statistics.mean(report["protocol_metrics"]["PDS"] for report in reports),
+                "avg_vv_role_coverage": statistics.mean(report["protocol_metrics"]["vv_role_coverage"] for report in reports),
+                "avg_protocol_only_overclaim_rate": statistics.mean(
+                    report["protocol_metrics"]["protocol_only_overclaim_rate"] for report in reports
+                ),
+                "min_PDS": min_pds,
+                "worst_family": worst_family,
+            }
+    return summary
+
+
+def _summarize_split_reports(split_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    for split in SPLIT_ORDER:
+        report = split_reports.get(split)
+        if report is None:
+            continue
+        summary[split] = {
+            "HAI": report["HAI"],
+            "RAS": report["record_metrics"]["RAS"],
+            "SAS": report["summary_metrics"]["SAS"],
+            "PDS": report["protocol_metrics"]["PDS"],
+            "record_normalized_mae": report["record_metrics"]["normalized_mae"],
+            "record_spearman_rho": report["record_metrics"]["spearman_rho"],
+            "summary_spearman_rho": report["summary_metrics"]["spearman_rho"],
+        }
+    return summary
+
+
+def _summarize_lofo_generalization(
+    full_report: dict[str, Any],
+    lofo_summary: dict[str, Any],
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    if "record" in lofo_summary:
+        summary["record"] = {
+            "full_RAS": full_report["record_metrics"]["RAS"],
+            "avg_RAS": lofo_summary["record"]["avg_RAS"],
+            "avg_gap_vs_full": full_report["record_metrics"]["RAS"] - lofo_summary["record"]["avg_RAS"],
+            "worst_holdout_RAS": lofo_summary["record"]["min_RAS"],
+            "worst_holdout_gap_vs_full": full_report["record_metrics"]["RAS"] - lofo_summary["record"]["min_RAS"],
+            "worst_family": lofo_summary["record"]["worst_family"],
+        }
+    if "summary" in lofo_summary:
+        summary["summary"] = {
+            "full_SAS": full_report["summary_metrics"]["SAS"],
+            "avg_SAS": lofo_summary["summary"]["avg_SAS"],
+            "avg_gap_vs_full": full_report["summary_metrics"]["SAS"] - lofo_summary["summary"]["avg_SAS"],
+            "worst_holdout_SAS": lofo_summary["summary"]["min_SAS"],
+            "worst_holdout_gap_vs_full": full_report["summary_metrics"]["SAS"] - lofo_summary["summary"]["min_SAS"],
+            "worst_family": lofo_summary["summary"]["worst_family"],
+        }
+    if "protocol" in lofo_summary:
+        summary["protocol"] = {
+            "full_PDS": full_report["protocol_metrics"]["PDS"],
+            "avg_PDS": lofo_summary["protocol"]["avg_PDS"],
+            "avg_gap_vs_full": full_report["protocol_metrics"]["PDS"] - lofo_summary["protocol"]["avg_PDS"],
+            "worst_holdout_PDS": lofo_summary["protocol"]["min_PDS"],
+            "worst_holdout_gap_vs_full": full_report["protocol_metrics"]["PDS"] - lofo_summary["protocol"]["min_PDS"],
+            "worst_family": lofo_summary["protocol"]["worst_family"],
+        }
+    return summary
+
+
+def run_phase7_evaluation_bundle(
+    *,
+    base_dir: Path = DEFAULT_BENCHMARK_DIR,
+    record_limit: int = 18,
+    summary_limit: int = 16,
+    protocol_limit: int = 4,
+    seed: int = 7,
+    rerun_count: int = 4,
+    llm_mode: str = "off",
+) -> dict[str, Any]:
+    records, protocols, availability = _load_benchmark_tables(base_dir)
+    coverage = summarize_benchmark_coverage(records, protocols, availability)
+    slice_tasks = build_benchmark_slices(
+        records,
+        protocols,
+        record_limit=record_limit,
+        summary_limit=summary_limit,
+        protocol_limit=protocol_limit,
+        seed=seed,
+    )
+    full_tasks = build_full_available_task_bundle(records, protocols, availability)
+    split_bundle = build_benchmark_split_bundle(records, protocols, availability, seed=seed)
+    lofo_bundle = build_lofo_task_bundles(records, protocols, availability)
+
+    slice_report = _evaluate_task_bundle(
+        slice_tasks,
+        llm_mode=llm_mode,
+        rerun_count=rerun_count,
+        report_label="phase7:slice",
+        metadata={"scope": "slice", "seed": seed},
+    )
+    full_report = _evaluate_task_bundle(
+        full_tasks,
+        llm_mode=llm_mode,
+        rerun_count=rerun_count,
+        report_label="phase7:full_available",
+        metadata={"scope": "full"},
+    )
+    split_reports = {
+        split: _evaluate_task_bundle(
+            task_bundle,
+            llm_mode=llm_mode,
+            rerun_count=0,
+            report_label=f"phase7:split:{split}",
+            metadata={"scope": "split", "split_name": split},
+        )
+        for split, task_bundle in split_bundle["task_bundles"].items()
+    }
+    lofo_reports = {
+        namespaced_key: _evaluate_task_bundle(
+            task_bundle,
+            llm_mode=llm_mode,
+            rerun_count=0,
+            report_label=f"phase7:lofo:{namespaced_key}",
+            metadata={
+                "scope": "lofo",
+                "lofo_family": namespaced_key,
+                "lofo_regime": lofo_bundle["manifest"]["families"][namespaced_key]["regime"],
+            },
+        )
+        for namespaced_key, task_bundle in lofo_bundle["task_bundles"].items()
+    }
+
+    lofo_summary = _summarize_lofo_reports(lofo_reports)
+    split_summary = _summarize_split_reports(split_reports)
+
+    return {
+        "coverage": coverage,
+        "slice_report": slice_report,
+        "full_report": full_report,
+        "split_manifest": split_bundle["manifest"],
+        "split_reports": split_reports,
+        "split_summary": split_summary,
+        "lofo_manifest": lofo_bundle["manifest"],
+        "lofo_reports": lofo_reports,
+        "lofo_summary": lofo_summary,
+        "lofo_generalization": _summarize_lofo_generalization(full_report, lofo_summary),
     }
 
 
 def _format_report(report: dict[str, Any]) -> str:
     sample_sizes = report["sample_sizes"]
+    task_inventory = report.get("task_inventory", {})
     record = report["record_metrics"]
     summary = report["summary_metrics"]
     protocol = report["protocol_metrics"]
     lines = [
-        "# Alignment Report",
+        f"# Alignment Report: {report.get('report_label', 'unnamed')}",
         "",
         "## Sample Sizes",
         f"- record: {sample_sizes['record']}",
         f"- summary: {sample_sizes['summary']}",
         f"- protocol: {sample_sizes['protocol']}",
+        "",
+        "## Task Inventory",
+        f"- record families: {task_inventory.get('record', {}).get('family_count', 0)}",
+        f"- summary families: {task_inventory.get('summary', {}).get('family_count', 0)}",
+        f"- protocol families: {task_inventory.get('protocol', {}).get('family_count', 0)}",
         "",
         "## Record Metrics",
         f"- ScoreAlign: {record['ScoreAlign']:.2f}",
@@ -840,6 +1600,178 @@ def _format_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _jsonable_report(report: dict[str, Any]) -> dict[str, Any]:
+    jsonable = dict(report)
+    jsonable["normalized_rows"] = [
+        {key: value for key, value in row.items() if key != "result"}
+        for row in report.get("normalized_rows", [])
+    ]
+    return jsonable
+
+
+def _jsonable_phase7_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "coverage": bundle["coverage"],
+        "slice_report": _jsonable_report(bundle["slice_report"]),
+        "full_report": _jsonable_report(bundle["full_report"]),
+        "split_manifest": bundle["split_manifest"],
+        "split_reports": {key: _jsonable_report(value) for key, value in bundle["split_reports"].items()},
+        "split_summary": bundle["split_summary"],
+        "lofo_manifest": bundle["lofo_manifest"],
+        "lofo_reports": {key: _jsonable_report(value) for key, value in bundle["lofo_reports"].items()},
+        "lofo_summary": bundle["lofo_summary"],
+        "lofo_generalization": bundle["lofo_generalization"],
+    }
+
+
+def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
+    coverage = bundle["coverage"]
+    component_schema = coverage["component_alignment_schema"]
+    full_error_map = bundle["full_report"]["error_map"]
+    lines = [
+        "# Phase 7 Evaluation Bundle",
+        "",
+        "## Coverage",
+        f"- main record rows: {coverage['main_eval_rows']['record']}",
+        f"- main summary rows: {coverage['main_eval_rows']['summary']}",
+        f"- protocol rows: {coverage['main_eval_rows']['protocol']}",
+        f"- deferred component rows: {coverage['deferred_rows']['component']}",
+        f"- record families: {coverage['family_counts']['record']}",
+        f"- summary families: {coverage['family_counts']['summary']}",
+        f"- protocol families: {coverage['family_counts']['protocol']}",
+        f"- component families: {coverage['family_counts']['component']}",
+        "",
+        "## Component Alignment Schema",
+        f"- deferred component rows: {component_schema['rows']}",
+        f"- component families: {component_schema['family_count']}",
+        f"- component cases: {component_schema.get('case_count', 0)}",
+        f"- canonical components: {', '.join(component_schema['canonical_components']) if component_schema['canonical_components'] else 'none'}",
+        "",
+        "## Coverage Gaps",
+    ]
+    gaps = coverage.get("coverage_gaps", [])
+    if gaps:
+        lines.extend(f"- {item}" for item in gaps)
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "## Slice Report",
+            f"- HAI: {bundle['slice_report']['HAI']:.2f}",
+            f"- RAS: {bundle['slice_report']['record_metrics']['RAS']:.2f}",
+            f"- SAS: {bundle['slice_report']['summary_metrics']['SAS']:.2f}",
+            f"- PDS: {bundle['slice_report']['protocol_metrics']['PDS']:.2f}",
+            "",
+            "## Full Available Report",
+            f"- HAI: {bundle['full_report']['HAI']:.2f}",
+            f"- RAS: {bundle['full_report']['record_metrics']['RAS']:.2f}",
+            f"- SAS: {bundle['full_report']['summary_metrics']['SAS']:.2f}",
+            f"- PDS: {bundle['full_report']['protocol_metrics']['PDS']:.2f}",
+            f"- record normalized_mae: {bundle['full_report']['record_metrics']['normalized_mae']:.4f}",
+            f"- record spearman_rho: {bundle['full_report']['record_metrics']['spearman_rho']:.4f}",
+            f"- summary spearman_rho: {bundle['full_report']['summary_metrics']['spearman_rho']:.4f}",
+            "",
+            "## Split Metrics",
+        ]
+    )
+    for split in SPLIT_ORDER:
+        metrics = bundle["split_summary"][split]
+        record_rows = bundle["split_manifest"]["regimes"]["record"][split]["rows"]
+        summary_rows = bundle["split_manifest"]["regimes"]["summary"][split]["rows"]
+        protocol_rows = bundle["split_manifest"]["regimes"]["protocol"][split]["rows"]
+        lines.append(
+            f"- {split}: record={record_rows}, summary={summary_rows}, protocol={protocol_rows}, "
+            f"HAI={metrics['HAI']:.2f}, RAS={metrics['RAS']:.2f}, SAS={metrics['SAS']:.2f}, PDS={metrics['PDS']:.2f}"
+        )
+    lines.extend(
+        [
+            "",
+            "## LOFO Summary",
+        ]
+    )
+    for regime_name, metrics in bundle["lofo_summary"].items():
+        if regime_name == "record":
+            lines.append(
+                "- record: "
+                f"families={metrics['family_count']}, "
+                f"avg_RAS={metrics['avg_RAS']:.2f}, "
+                f"min_RAS={metrics['min_RAS']:.2f}, "
+                f"avg_normalized_mae={metrics['avg_normalized_mae']:.4f}, "
+                f"avg_spearman_rho={metrics['avg_spearman_rho']:.4f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+        elif regime_name == "summary":
+            lines.append(
+                "- summary: "
+                f"families={metrics['family_count']}, "
+                f"avg_SAS={metrics['avg_SAS']:.2f}, "
+                f"min_SAS={metrics['min_SAS']:.2f}, "
+                f"avg_normalized_mae={metrics['avg_normalized_mae']:.4f}, "
+                f"avg_spearman_rho={metrics['avg_spearman_rho']:.4f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+        elif regime_name == "protocol":
+            lines.append(
+                "- protocol: "
+                f"families={metrics['family_count']}, "
+                f"avg_PDS={metrics['avg_PDS']:.2f}, "
+                f"min_PDS={metrics['min_PDS']:.2f}, "
+                f"avg_vv_role_coverage={metrics['avg_vv_role_coverage']:.4f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+    lines.extend(
+        [
+            "",
+            "## LOFO Generalization",
+        ]
+    )
+    for regime_name, metrics in bundle["lofo_generalization"].items():
+        if regime_name == "record":
+            lines.append(
+                "- record: "
+                f"full_RAS={metrics['full_RAS']:.2f}, "
+                f"avg_gap_vs_full={metrics['avg_gap_vs_full']:.2f}, "
+                f"worst_holdout_gap_vs_full={metrics['worst_holdout_gap_vs_full']:.2f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+        elif regime_name == "summary":
+            lines.append(
+                "- summary: "
+                f"full_SAS={metrics['full_SAS']:.2f}, "
+                f"avg_gap_vs_full={metrics['avg_gap_vs_full']:.2f}, "
+                f"worst_holdout_gap_vs_full={metrics['worst_holdout_gap_vs_full']:.2f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+        elif regime_name == "protocol":
+            lines.append(
+                "- protocol: "
+                f"full_PDS={metrics['full_PDS']:.2f}, "
+                f"avg_gap_vs_full={metrics['avg_gap_vs_full']:.2f}, "
+                f"worst_holdout_gap_vs_full={metrics['worst_holdout_gap_vs_full']:.2f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+    lines.extend(
+        [
+            "",
+            "## Full Error Map",
+        ]
+    )
+    for bucket_name, count in full_error_map["bucket_counts"].items():
+        lines.append(f"- {bucket_name}: {count}")
+    ranking_risk = full_error_map.get("ranking_risk", {})
+    if ranking_risk:
+        lines.extend(
+            [
+                "",
+                "## Ranking Risk",
+                f"- record: risk={ranking_risk['record']['risk_level']}, spearman={ranking_risk['record']['spearman_rho']:.4f}, pairwise={ranking_risk['record']['pairwise_order_accuracy']:.4f}",
+                f"- summary: risk={ranking_risk['summary']['risk_level']}, spearman={ranking_risk['summary']['spearman_rho']:.4f}, pairwise={ranking_risk['summary']['pairwise_order_accuracy']:.4f}",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--benchmark-dir", type=Path, default=DEFAULT_BENCHMARK_DIR)
@@ -849,7 +1781,32 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--rerun-count", type=int, default=4)
     parser.add_argument("--llm-mode", choices=["off", "auto"], default="off")
+    parser.add_argument("--scope", choices=["slice", "full", "split", "phase7"], default="slice")
+    parser.add_argument("--split-name", choices=SPLIT_ORDER, default=None)
+    parser.add_argument("--output-markdown", type=Path, default=None)
+    parser.add_argument("--output-json", type=Path, default=None)
     args = parser.parse_args()
+    if args.scope == "phase7":
+        payload = run_phase7_evaluation_bundle(
+            base_dir=args.benchmark_dir,
+            record_limit=args.record_limit,
+            summary_limit=args.summary_limit,
+            protocol_limit=args.protocol_limit,
+            seed=args.seed,
+            rerun_count=args.rerun_count,
+            llm_mode=args.llm_mode,
+        )
+        markdown = _format_phase7_bundle(payload)
+        if args.output_markdown is not None:
+            args.output_markdown.write_text(markdown + "\n", encoding="utf-8")
+        if args.output_json is not None:
+            args.output_json.write_text(
+                json.dumps(_jsonable_phase7_bundle(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        print(markdown)
+        return
+
     report = run_benchmark_iteration(
         base_dir=args.benchmark_dir,
         record_limit=args.record_limit,
@@ -858,8 +1815,18 @@ def main() -> None:
         seed=args.seed,
         rerun_count=args.rerun_count,
         llm_mode=args.llm_mode,
+        scope=args.scope,
+        split_name=args.split_name,
     )
-    print(_format_report(report))
+    markdown = _format_report(report)
+    if args.output_markdown is not None:
+        args.output_markdown.write_text(markdown + "\n", encoding="utf-8")
+    if args.output_json is not None:
+        args.output_json.write_text(
+            json.dumps(_jsonable_report(report), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    print(markdown)
 
 
 if __name__ == "__main__":

@@ -51,6 +51,7 @@
    - [`benchmark.py`](./benchmark.py)
 5. 模块级测试：
    - [`test_review.py`](./test_review.py)
+   - [`test_benchmark.py`](./test_benchmark.py)
 
 除上述职责外，新增能力默认不得再落到根层。
 
@@ -120,8 +121,10 @@
 最低限度的模块级回归入口如下：
 
 1. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
-2. `python -m expert_review` 的 deterministic smoke
-3. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
+2. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
+3. `python -m expert_review` 的 deterministic smoke
+4. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
+5. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`
 
 只要涉及以下变更，完成后就应至少跑上述三类验证中的相关部分：
 
@@ -135,11 +138,11 @@
 
 当前目录状态是：
 
-1. `Phase 6` 已完成收口与冻结核验
-2. `Phase 7` 已创建，但尚未开始实现
-3. 当前后续工作的核心目标是继续提分，而不是再做一轮表面清理
+1. `Phase 7` 已完成评测口径固定与 benchmark harness 扩展
+2. `Phase 8` 已创建，但尚未开始实现
+3. 当前后续工作的核心目标是继续提分，而不是再做一轮评测层重构
 
 因此后续改动默认应优先回答两件事：
 
 1. 这次改动是否真实改善 `HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`
-2. 这次改动是否会破坏当前已经稳定的 `PDS`、issue taxonomy restraint 和无明显回退状态
+2. 这次改动是否会破坏当前已经稳定的 `PDS`、issue taxonomy restraint 以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测口径

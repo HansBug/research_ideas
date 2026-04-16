@@ -1232,32 +1232,219 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 把 `slice benchmark` 与 `full available benchmark` 的用途彻底分开：前者用于快迭代，后者用于阶段验收。
-* [ ] 明确当前主评测实际覆盖了哪些论文、哪些 regime、哪些 review 粒度，不能再把 coverage 缺口隐含带过。
-* [ ] 把 `Phase 6` 之后的实际需求、双里程碑、阶段目标与 target metrics 正式固化到本 `TODO`。
-* [ ] 设计并落地 `train / dev / validation / lockbox` 切片构造规则。
-* [ ] 设计并落地 leave-one-family-out 的评测脚手架。
-* [ ] 为 `component_level_review` 的纳入准备统一 taxonomy 与结果对齐 schema。
-* [ ] 给后续 phase 形成统一误差地图：`contract / extraction / equivalence / quality / evidence discipline / calibration / ranking`。
-* [ ] 在不引入评分逻辑回退的前提下，让 benchmark harness 能同时导出 slice 与 full report。
+* [x] 把 `slice benchmark` 与 `full available benchmark` 的用途彻底分开：前者用于快迭代，后者用于阶段验收。
+* [x] 明确当前主评测实际覆盖了哪些论文、哪些 regime、哪些 review 粒度，不能再把 coverage 缺口隐含带过。
+* [x] 把 `Phase 6` 之后的实际需求、双里程碑、阶段目标与 target metrics 正式固化到本 `TODO`。
+* [x] 设计并落地 `train / dev / validation / lockbox` 切片构造规则。
+* [x] 设计并落地 leave-one-family-out 的评测脚手架。
+* [x] 为 `component_level_review` 的纳入准备统一 taxonomy 与结果对齐 schema。
+* [x] 给后续 phase 形成统一误差地图：`contract / extraction / equivalence / quality / evidence discipline / calibration / ranking`。
+* [x] 在不引入评分逻辑回退的前提下，让 benchmark harness 能同时导出 slice 与 full report。
 
 ### Checklist
 
-* [ ] 后续不再只以默认 `18 + 16 + 4` 的 slice 作为阶段结论口径。
-* [ ] 已明确写出当前 benchmark coverage 与当前空白区，而不是笼统地说“已对齐人工”。
-* [ ] `Phase 7` 完成后，后续每个 phase 都可同时汇报：
-  * [ ] slice 快速指标
-  * [ ] full available benchmark 指标
-  * [ ] validation / lockbox 指标
-  * [ ] LOFO 指标
-* [ ] 本 phase 没有提前混入下一阶段的大量评分 patch。
+* [x] 后续不再只以默认 `18 + 16 + 4` 的 slice 作为阶段结论口径。
+* [x] 已明确写出当前 benchmark coverage 与当前空白区，而不是笼统地说“已对齐人工”。
+* [x] `Phase 7` 完成后，后续每个 phase 都可同时汇报：
+  * [x] slice 快速指标
+  * [x] full available benchmark 指标
+  * [x] validation / lockbox 指标
+  * [x] LOFO 指标
+* [x] 本 phase 没有提前混入下一阶段的大量评分 patch。
 
 ### Phase 7 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
+- 回写时间：`2026-04-17 01:25:43`
 - 所属里程碑：`Milestone A`
-- 当前状态：已创建，尚未开始实现。
-- 当前定位：先把“怎么评估后续 phase 是否真的进步”这件事固定下来。
+- 完成状态：`Phase 7` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 7`，不提前进入 `Phase 8`。
+- 当前定位：已把“怎么评估后续 phase 是否真的进步”固定为正式 benchmark harness，而不是继续依赖单一 `slice-only` 快照。
+- 真实接入情况：
+  - `benchmark.py` 已支持 `slice / full / split / phase7` 四类入口
+  - `build_benchmark_inventory()`、`summarize_benchmark_coverage()`、`build_benchmark_split_bundle()`、`build_lofo_task_bundles()` 已进入真实 benchmark 主路径
+  - `component_level_review` 的 alignment schema、统一 error map 与 ranking risk 已真实进入 phase7 bundle 导出结果
+- 可运行性：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
+  - `python -m expert_review.benchmark --scope slice --llm-mode off` 已验证
+  - `python -m expert_review.benchmark --scope full --llm-mode off` 已验证
+  - `python -m expert_review.benchmark --scope split --split-name train|dev|validation|lockbox --llm-mode off` 已验证
+  - `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0 --output-markdown /tmp/expert_review_phase7_bundle.md --output-json /tmp/expert_review_phase7_bundle.json` 已验证
+- 结构收敛：
+  - `expert_review/` 的正式 runtime 未被触碰；本阶段只把根层 `benchmark.py` 真正收敛成后续 phase 的统一离线评测 harness
+  - 新增 `test_benchmark.py` 作为 benchmark harness 的固定最小回归入口
+- 未完成项：
+  - `component_level_review` 仍未进入主 `HAI / RAS / SAS` 指标，这一项本 phase 只完成 schema 预埋，不提前进入 `Phase 11`
+- 已知遗留问题：
+  - full benchmark 下 `record` 与 `summary` 的 ranking risk 仍都是 `high`
+  - `calibration_error = 202` 仍是最大错误簇
+  - `lockbox PDS = 75.00` 暴露 protocol-only family holdout 的脆弱点
+
+### Phase 7 指标总表
+
+本节记录 `2026-04-17 01:25:43` 基于 `run_benchmark_iteration(llm_mode='off', scope='full')` 的 `full available benchmark` 收尾快照，作为 `Phase 7` 的正式阶段结论口径。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `79.68` |
+| `RAS` | `77.33` |
+| `SAS` | `73.62` |
+| `PDS` | `93.75` |
+| `normalized_mae` | `0.2126` |
+| `rmse` | `0.2357` |
+| `issue_f1` | `0.9126` |
+| `human_issue_coverage_recall` | `0.9305` |
+| `equivalence_false_reject_rate` | `0.0174` |
+| `equivalence_false_accept_rate` | `0.2439` |
+| `unsupported_claim_rate` | `0.0865` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.4764` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.7500` |
+
+### Phase 7 扩展评测快照
+
+#### 1. coverage 与主评测口径
+
+| 评测池 | 行数 | family 数 | 当前覆盖 |
+|---|---:|---:|---|
+| `record` | `192` | `18` | 目前全部来自 `llms_emp` |
+| `summary` | `84` | `12` | 目前全部来自 `ttool-ai` |
+| `protocol` | `4` | `4` | `llms_emp / requirements-capture-and-evaluation-in-nimbus-light-control / structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models / ttool-ai` |
+| `component` | `512` | `16` | 当前 deferred；来自 `structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` |
+
+`component_level_review` 当前已固定的 canonical component taxonomy：
+
+`Actions / All / Guards / Hierarchical states / History States / Parallel Regions / States / Transitions`
+
+#### 2. slice、split 与 lockbox 快照
+
+- `slice` 快速口径：`18 + 16 + 4`
+  - `HAI 74.40 / RAS 71.01 / SAS 66.37 / PDS 93.75`
+
+| split | `record` | `summary` | `protocol` | `HAI` | `RAS` | `SAS` | `PDS` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `train` | `86` | `35` | `1` | `81.95` | `78.10` | `75.97` | `100.00` |
+| `dev` | `43` | `21` | `1` | `79.97` | `75.88` | `72.96` | `100.00` |
+| `validation` | `32` | `14` | `1` | `79.07` | `77.11` | `66.61` | `100.00` |
+| `lockbox` | `31` | `14` | `1` | `75.69` | `76.66` | `74.13` | `75.00` |
+
+#### 3. LOFO 泛化快照
+
+| regime | family 数 | 平均指标 | 最差指标 | 平均 gap vs full | 最差 gap vs full | 最差 family |
+|---|---:|---|---|---:|---:|---|
+| `record` | `18` | `avg_RAS = 76.75` | `min_RAS = 71.17` | `0.58` | `6.15` | `record::llms_emp::stm::GPT-4o` |
+| `summary` | `12` | `avg_SAS = 73.15` | `min_SAS = 64.45` | `0.47` | `9.17` | `summary::ttool-ai::automated_braking::BD` |
+| `protocol` | `4` | `avg_PDS = 93.75` | `min_PDS = 75.00` | `0.00` | `18.75` | `protocol::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` |
+
+#### 4. full benchmark 扩展诊断
+
+| 扩展指标 | 当前值 |
+|---|---:|
+| `record spearman_rho` | `0.4817` |
+| `record pairwise_order_accuracy` | `0.6164` |
+| `summary spearman_rho` | `0.2781` |
+| `summary pairwise_order_accuracy` | `0.5307` |
+| `score_bias` | `-0.0788` |
+| `high_confidence_error_rate` | `0.0000` |
+
+| error bucket | 数量 |
+|---|---:|
+| `calibration_error` | `202` |
+| `element_extraction_error` | `133` |
+| `quality_judgement_error` | `124` |
+| `contract_understanding_error` | `84` |
+| `evidence_discipline_error` | `50` |
+| `equivalence_reasoning_error` | `12` |
+
+### Phase 7 本阶段改进记录
+
+- 最明显提升 1：benchmark 口径已经从“默认只看 `18 + 16 + 4` slice”升级为同时固定 `slice / full available / train-dev-validation-lockbox / LOFO` 四套口径；后续每个 phase 现在都能报告真正可比较的阶段验收结果。
+- 最明显提升 2：当前 coverage 缺口不再被隐含带过；`record = 192`、`summary = 84`、`protocol = 4`、`component = 512` 的真实覆盖、family 分布与论文来源已经全部显式化。
+- 最明显提升 3：`component_level_review` 的统一 taxonomy/schema、full error map 和 ranking risk 已经进入 benchmark 导出物，后续 phase 不再需要重新发明“问题分桶”和“组件级对齐”口径。
+
+- 最明显退化风险 1：本 phase 没有引入新的 runtime 回退，但新的 family-aware slice/phase7 报告让原来被单一快照掩盖的排序风险与泛化脆弱点完全暴露出来。
+- 最明显退化风险 2：`lockbox PDS = 75.00` 与 protocol LOFO 最差 gap `18.75` 说明 protocol-only 目前不能只看整体 `PDS 93.75` 就宣称泛化稳定。
+- 最明显退化风险 3：新的 full error map 显示 `calibration_error = 202`、`element_extraction_error = 133`、`quality_judgement_error = 124`，说明下一阶段不能再凭总分感觉式提分，而必须按错误簇精确打。
+
+- 当前仍未完全解决的问题 1：`record` 排序仍偏弱，`spearman_rho = 0.4817`、`pairwise_order_accuracy = 0.6164`，这已直接进入 `Phase 8` 的主目标。
+- 当前仍未完全解决的问题 2：`summary` 排序更弱，`spearman_rho = 0.2781`、`pairwise_order_accuracy = 0.5307`，说明 `Phase 9` 前不能提前宣称 summary-level 已接近人工排序。
+- 当前仍未完全解决的问题 3：`component_level_review` 虽已完成 schema 收口，但仍未进入主 `HAI / RAS / SAS`；这部分必须留到后续独立 phase 正式纳入。
+
+### Phase 7 本阶段运行记录
+
+- 已验证入口：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `python -m expert_review.benchmark --scope slice --llm-mode off`
+  - `python -m expert_review.benchmark --scope full --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name train --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name dev --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off`
+  - `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0 --output-markdown /tmp/expert_review_phase7_bundle.md --output-json /tmp/expert_review_phase7_bundle.json`
+- 已被替换或新增的真实路径：
+  - `benchmark.py` 从单一 slice replay 脚本扩展为统一 `slice / full / split / phase7 bundle` 入口
+  - 新增 `build_benchmark_inventory()` 作为评测数据盘点入口
+  - 新增 `build_benchmark_split_bundle()` 与 `build_lofo_task_bundles()` 作为后续阶段固定切片器
+  - 新增 `summarize_benchmark_coverage()`、`build_component_alignment_schema()`、`error_map` 导出路径
+  - 新增 `test_benchmark.py` 用于锁住 coverage / split / LOFO 的最小回归
+- 本阶段真实落位的目标层次：
+  - `tools` 向离线侧延伸出正式 benchmark harness 能力，但未侵入 runtime 主图
+  - `compatibility` 边界保持稳定；外部 `review_artifacts()`、`review_model()`、`python -m expert_review` 未受影响
+- 当前仍保留的旧逻辑：
+  - `benchmark.py` 仍位于根层，作为统一离线 replay/analysis 入口
+  - `component_level_review` 仍仅做 deferred schema，不提前纳入主评分
+- 当前仍属过渡或特殊保留的部分：
+  - LOFO 当前是评测脚手架而不是训练式 holdout 优化器
+  - `component_level_review` 当前只完成 taxonomy/schema 收口，未进入 `CRAS`
+
+### Phase 7 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 7` 的主实现轮：先把 coverage / split / LOFO / component schema / error map 真实接到 benchmark 主路径，并验证所有新增入口。
+- `Round 1` 只在 `Phase 7` 边界内继续补 benchmark bundle 的摘要层，让 `validation / lockbox / LOFO / full error map` 直接进入 markdown/json 导出，不提前进入 `Phase 8` 的评分 patch。
+- 当前本地最终保留的是 `Round 1` 代码；本阶段没有对 reviewer runtime 做任何评分逻辑修改。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | 新增 `record / summary / component / protocol` inventory；新增 coverage summary、component schema、split bundle、LOFO bundle、error map、`scope=slice|full|split|phase7` CLI；新增 `test_benchmark.py` | `contract_understanding_error` / `element_extraction_error` / `equivalence_reasoning_error` / `quality_judgement_error` / `evidence_discipline_error` / `calibration_error` | `Phase 6 slice-only: HAI 78.68 / RAS 74.87 / SAS 75.02 / PDS 93.75` | `slice HAI 74.40 / RAS 71.01 / SAS 66.37 / PDS 93.75`；`full HAI 79.68 / RAS 77.33 / SAS 73.62 / PDS 93.75`；`validation HAI 79.07 / lockbox HAI 75.69` | `口径切换，不做旧 slice 与新 full 的直接分差比较` | `是` | 本轮核心收益是把评测口径固定下来而不是直接提分；runtime 未改，新增变化全部属于 benchmark harness |
+| `Round 1` | 新增 `split_summary`、`lofo_generalization`、`full error map` 与 `ranking risk` 的 bundle 汇总；同步更新 `README.md` 与 `GUIDE.md` 的 benchmark 入口说明 | `evaluation_surface` / `coverage_reporting` | `slice HAI 74.40 / full HAI 79.68 / validation HAI 79.07 / lockbox HAI 75.69` | `slice HAI 74.40 / full HAI 79.68 / validation HAI 79.07 / lockbox HAI 75.69` | `HAI +0.00` | `否` | 说明后续继续 patch 只会进入报告层细节，不会再带来新的阶段价值；继续做就会越界到 `Phase 8` 的评分优化，因此按规则停止 |
+
+### Phase 7 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 7` 已完成并停止，等待下一步指令；`Phase 8` 的前置条件已经满足，但当前不提前启动。
+- TODO 已完成项：
+  - `Phase 7` 全部 Todolist 已打勾
+  - `Phase 7` 全部 Checklist 已打勾
+  - `slice / full / split / LOFO / component schema / error map` 已全部写回当前 TODO
+  - `README.md`、`GUIDE.md` 与 benchmark CLI 说明已同步
+- TODO 尚未完成项：
+  - 无本 phase 内遗留未勾项
+  - `component_level_review` 未纳入主评测并不属于漏做，而是按规划留给后续 phase 正式接入
+- 当前对齐程度总览：
+  - 当前正式阶段结论不再只看单一 slice，而是以 `full available benchmark` 为主：`HAI 79.68 / RAS 77.33 / SAS 73.62 / PDS 93.75`
+  - 同时保留 `slice HAI 74.40` 作为快迭代口径，`validation HAI 79.07` 与 `lockbox HAI 75.69` 作为更保守的泛化口径
+  - LOFO 的平均 gap 目前不大，但最差 family gap 已经把真实脆弱点直接暴露出来：`record 6.15 / summary 9.17 / protocol 18.75`
+- 对各项核心指标的解释：
+  - `HAI 79.68`：从整体上看 reviewer 已具备相当强的人类风格 alignment，但当前 phase 的核心结论是“评测口径已经可信”，不是“能力已经达标”
+  - `RAS 77.33` 与 `normalized_mae 0.2126`：record-level 总体已能稳定工作，但排序仍弱，说明如果拿去做大规模筛选仍会有误排
+  - `SAS 73.62`：summary-level 仍明显弱于可用于学术主张的门槛，特别是排序而非平均分接近的问题还很重
+  - `PDS 93.75`：整体 restraint 仍稳，但 `lockbox` 与 protocol LOFO 已证明它不是无条件稳，需要继续补 protocol family 泛化
+  - `unsupported_claim_rate 0.0865` 与 `ece 0.4764`：当前 reviewer 的“乱说”已经明显压下来了，但“给分和排序是否真像人”仍远未完成
+- 真实例子对比：
+  - 例子 1：`record::llms_emp::stm::GPT-4o`
+    - 这是当前 `record` LOFO 最差 family，`worst_holdout_gap_vs_full = 6.15`
+    - 说明 reviewer 在某些 diagram-type + model family 组合上仍存在明显 family dependence，不能只看 full aggregate 就乐观
+  - 例子 2：`summary::ttool-ai::automated_braking::BD`
+    - 这是当前 `summary` LOFO 最差 family，`worst_holdout_gap_vs_full = 9.17`
+    - 说明 summary-level 的排序和尺度语义还不稳，尤其不能提前宣称 public row 排序已经充分对齐人工
+  - 例子 3：`protocol::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models`
+    - 这是当前 protocol LOFO 最差 family，`min_PDS = 75.00`
+    - 说明 protocol-only restraint 虽然总体高，但遇到 family holdout 仍可能退到仅“勉强可用”的程度
+- 当前 phase 是否停止：`是`，停止在 `Phase 7`；继续往下做已经会跨入 `Phase 8` 的评分校准与错误簇定向修复，因此本轮按规则收口。
 
 ## 11. Phase 8: Record-Level 数值校准、压缩效应修复与 partial-heavy 严惩
 
@@ -1290,7 +1477,7 @@ Milestone B 达成条件：
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone A`
 - 当前状态：已创建，尚未开始实现。
-- 前置条件：`Phase 7` 完成并固定 full benchmark / split / LOFO 口径。
+- 前置条件：`Phase 7` 已完成，full benchmark / split / LOFO 口径已固定，当前前置条件已满足。
 
 ## 12. Phase 9: Summary-Level 排序、分数语义与高分 public row 收口
 

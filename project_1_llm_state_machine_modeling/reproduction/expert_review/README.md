@@ -36,6 +36,7 @@
 | [utils.py](./utils.py) | 根层共享环境解析、规范化与通用计算 helper |
 | [benchmark.py](./benchmark.py) | 离线 benchmark replay 与评测汇总，不属于线上运行时主路径 |
 | [test_review.py](./test_review.py) | 模块级最小回归测试 |
+| [test_benchmark.py](./test_benchmark.py) | benchmark harness 的切片、coverage、LOFO 单测 |
 | [GUIDE.md](./GUIDE.md) | 目录级维护规则 |
 | [designs/README.md](./designs/README.md) | 设计与演化文档入口 |
 
@@ -231,64 +232,72 @@ python -m expert_review \
 
 ### Benchmark Replay
 
-离线对齐评测入口在 [`benchmark.py`](./benchmark.py)。典型调用方式：
+离线对齐评测入口在 [`benchmark.py`](./benchmark.py)。常用调用方式如下：
 
 ```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review.benchmark --scope slice --llm-mode off
+PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review.benchmark --scope full --llm-mode off
+PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review.benchmark --scope split --split-name validation --llm-mode off
 PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
-python - <<'PY'
-from expert_review.benchmark import run_benchmark_iteration
-
-report = run_benchmark_iteration(llm_mode="off")
-print(report["HAI"])
-print(report["record_metrics"]["RAS"])
-print(report["summary_metrics"]["SAS"])
-print(report["protocol_metrics"]["PDS"])
-PY
+python -m expert_review.benchmark \
+  --scope phase7 \
+  --llm-mode off \
+  --rerun-count 0 \
+  --output-markdown /tmp/expert_review_phase7_bundle.md \
+  --output-json /tmp/expert_review_phase7_bundle.json
 ```
 
 `benchmark.py` 的职责是：
 
 1. 回放 double-green benchmark
-2. 计算 `HAI / RAS / SAS / PDS / normalized_mae / issue_f1 / ece`
-3. 作为 phase 收尾和自我迭代的外环评测工具
+2. 同时导出 `slice / full available / split / phase7 bundle` 四类评测口径
+3. 计算 `HAI / RAS / SAS / PDS / normalized_mae / issue_f1 / ece` 以及 split / LOFO / error map
+4. 暴露 coverage gaps、`component_level_review` schema 和后续 phase 要用的误差地图
+5. 作为 phase 收尾和自我迭代的外环评测工具
 
 它不参与 `review_artifacts()` 的线上主链路。
 
 ## 当前状态
 
-### Phase 6 结论
+### Phase 7 结论
 
-当前 `Phase 6` 已完成“冻结前核验与代码树收口”，并且已经确认：
+当前 `Phase 7` 已完成“全量 benchmark 口径固定与下一阶段提分地图”，并且已经确认：
 
-1. 正式运行时主干稳定
-2. 兼容边界已收敛
-3. 根层长名字文件已完成整理
-4. benchmark 指标与 `Phase 5 Round 0` 一致，没有观察到明显回退
+1. `slice benchmark` 与 `full available benchmark` 已正式分开
+2. `train / dev / validation / lockbox` 切片规则已落地
+3. LOFO 评测脚手架、component schema 与统一 error map 已接入 benchmark harness
+4. 这轮改动只落在离线 harness，没有混入 `Phase 8` 的评分 patch，也没有回退线上 runtime
 
-当前 `Phase 6` 收口快照为：
+当前 `Phase 7` 的 `full available benchmark` 收口快照为：
 
 | 指标 | 当前值 |
 |---|---:|
-| `HAI` | `78.68` |
-| `RAS` | `74.87` |
-| `SAS` | `75.02` |
+| `HAI` | `79.68` |
+| `RAS` | `77.33` |
+| `SAS` | `73.62` |
 | `PDS` | `93.75` |
-| `normalized_mae` | `0.1751` |
-| `issue_f1` | `0.8202` |
-| `unsupported_claim_rate` | `0.1778` |
-| `ece` | `0.5302` |
+| `normalized_mae` | `0.2126` |
+| `issue_f1` | `0.9126` |
+| `unsupported_claim_rate` | `0.0865` |
+| `ece` | `0.4764` |
 
-这说明 `Phase 6` 的收口没有带来明显退化，但也没有把当前版本推到可冻结状态。
+当前 benchmark coverage 也已经被明确写实：
 
-### Phase 7 入口
+1. 主评测 `record / summary / protocol` 分别是 `192 / 84 / 4` 行
+2. deferred `component_level_review` 是 `512` 行、`16` 个 family、`8` 个 case
+3. `record-level` 仍主要来自 `llms_emp`
+4. `summary-level` 仍主要来自 `ttool-ai`
+5. `protocol-only` 仍只有 `4` 个 paper family，必须保守解释泛化性
 
-后续继续提分已经明确进入 `Phase 7`，重点不再是清理目录，而是继续处理：
+### Phase 8 入口
 
-1. `record-level` partial-heavy 样例仍偏高分
-2. `summary-level` 高分样例仍偏保守
-3. `unsupported_claim_rate` 仍高
-4. `ece` 仍高
-5. `protocol-only` taxonomy 语言仍不够像真人 reviewer
+后续继续提分已经明确进入 `Phase 8`，重点不再是评测口径，而是继续处理：
+
+1. `record-level` 排序风险仍高：`spearman_rho = 0.4817`，`pairwise_order_accuracy = 0.6164`
+2. `summary-level` 排序风险更高：`spearman_rho = 0.2781`，`pairwise_order_accuracy = 0.5307`
+3. full error map 中 `calibration_error = 202` 仍是最大错误簇
+4. `element_extraction_error = 133` 与 `quality_judgement_error = 124` 仍然显著
+5. `lockbox PDS = 75.00`，说明 protocol-only family holdout 仍有脆弱点
 
 相关结论见：
 
