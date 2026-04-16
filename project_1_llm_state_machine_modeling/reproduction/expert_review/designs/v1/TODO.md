@@ -40,19 +40,22 @@
    - score composer / final synthesizer
 3. 已新增离线自我迭代 harness，但 benchmark 仅用于外环评测，不进入 reviewer 运行时依赖。
 
-当前基线对齐指标：
+当前基线对齐指标（`2026-04-16 16:46:49` 的 deterministic 收尾快照）：
 
 | 指标 | 当前值 |
 |---|---:|
-| `HAI` | `66.16` |
-| `RAS` | `59.91` |
-| `SAS` | `62.85` |
+| `HAI` | `66.58` |
+| `RAS` | `60.82` |
+| `SAS` | `62.51` |
 | `PDS` | `87.50` |
-| `normalized_mae` | `0.2119` |
-| `equivalence_false_reject_rate` | `0.1250` |
-| `unsupported_claim_rate` | `0.5508` |
+| `normalized_mae` | `0.2177` |
+| `issue_f1` | `0.5810` |
+| `human_issue_coverage_recall` | `0.8500` |
+| `equivalence_false_reject_rate` | `0.1000` |
+| `unsupported_claim_rate` | `0.5547` |
 | `summary_only_element_claim_rate` | `0.0000` |
 | `protocol_only_overclaim_rate` | `0.0000` |
+| `vv_role_coverage` | `0.5000` |
 
 当前主要问题：
 
@@ -161,28 +164,114 @@
 
 ### Todolist
 
-* [ ] 保持现有外部接口不变。
-* [ ] 将旧 reviewer 的主入口切换到新的 staged runtime。
-* [ ] 引入 `contract -> regime -> dossier -> trace/equivalence/quality -> score/synthesis` 主流程。
-* [ ] 明确区分运行时逻辑与离线 benchmark 逻辑。
-* [ ] 确保未知格式输入不会阻塞评审。
-* [ ] 确保 reviewer 没有回退到路径外数据依赖。
-* [ ] 建立该阶段的基线测试。
-* [ ] 建立该阶段的基线对齐快照。
-* [ ] 在 Phase 1 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
-* [ ] 记录 Phase 1 每一轮迭代的修改项与指标前后变化。
+* [x] 保持现有外部接口不变。
+* [x] 将旧 reviewer 的主入口切换到新的 staged runtime。
+* [x] 引入 `contract -> regime -> dossier -> trace/equivalence/quality -> score/synthesis` 主流程。
+* [x] 明确区分运行时逻辑与离线 benchmark 逻辑。
+* [x] 确保未知格式输入不会阻塞评审。
+* [x] 确保 reviewer 没有回退到路径外数据依赖。
+* [x] 建立该阶段的基线测试。
+* [x] 建立该阶段的基线对齐快照。
+* [x] 在 Phase 1 当前架构下开展多轮自我迭代，直到提升开始明显边际化。
+* [x] 记录 Phase 1 每一轮迭代的修改项与指标前后变化。
 
 ### Checklist
 
-* [ ] `review_artifacts()` 能跑通。
-* [ ] `review_model()` 能跑通。
-* [ ] `python -m expert_review` 能跑通。
-* [ ] 旧主路径不再主导评审逻辑。
-* [ ] 新运行时已经是默认主路径。
-* [ ] 没有新增明显不可达代码。
-* [ ] 已记录 Phase 1 的完整对齐基线。
-* [ ] 已保留 Phase 1 多轮自我迭代链路记录。
-* [ ] 停止 Phase 1 迭代的原因已明确记录为“提升边际化”或等价结论。
+* [x] `review_artifacts()` 能跑通。
+* [x] `review_model()` 能跑通。
+* [x] `python -m expert_review` 能跑通。
+* [x] 旧主路径不再主导评审逻辑。
+* [x] 新运行时已经是默认主路径。
+* [x] 没有新增明显不可达代码。
+* [x] 已记录 Phase 1 的完整对齐基线。
+* [x] 已保留 Phase 1 多轮自我迭代链路记录。
+* [x] 停止 Phase 1 迭代的原因已明确记录为“提升边际化”或等价结论。
+
+### Phase 1 当前状态回写
+
+- 回写时间：`2026-04-16 16:46:49`
+- 完成状态：`Phase 1` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 1`，未推进到 `Phase 2`。
+- 真实接入情况：`expert_review_agent.py` 已默认路由到 `expert_review_v1_runtime.py` 的 staged runtime；`heuristic_expert_review()` 已退化为对该 runtime 的兼容包装，不再主导评审逻辑。
+- 运行时边界：`expert_review_self_iteration.py` 仅承担离线 benchmark 回放与分析；运行时不依赖 `expert_review/` 路径外数据。
+- 可运行性：`review_artifacts()`、`review_model()`、`python -m expert_review`、`pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 均已验证。
+- 未完成项：无。
+- 已知遗留问题：`record-level` 分数校准仍偏弱；等价但不同构设计的裁决仍不稳定；`protocol-only` 的 V&V 角色覆盖只达到部分覆盖。
+
+### Phase 1 指标总表
+
+本节记录 `2026-04-16 16:46:49` 基于 `run_benchmark_iteration(llm_mode='off')` 的收尾快照。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `66.58` |
+| `RAS` | `60.82` |
+| `SAS` | `62.51` |
+| `PDS` | `87.50` |
+| `normalized_mae` | `0.2177` |
+| `rmse` | `0.2513` |
+| `issue_f1` | `0.5810` |
+| `human_issue_coverage_recall` | `0.8500` |
+| `equivalence_false_reject_rate` | `0.1000` |
+| `equivalence_false_accept_rate` | `0.2857` |
+| `unsupported_claim_rate` | `0.5547` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.6857` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.5000` |
+
+### Phase 1 本阶段改进记录
+
+- 最明显提升 1：真实默认主路径已切到 v1 staged runtime，外部接口保持兼容，且未知格式自由文本输入不会阻塞评审。
+- 最明显提升 2：`summary-only` 与 `protocol-only` 的证据纪律已经被压稳，`summary_only_element_claim_rate = 0.0000`，`protocol_only_overclaim_rate = 0.0000`。
+- 最明显提升 3：`protocol-only` 下开始显式识别 V&V 分工并控制置信度，`PDS = 87.50`，`confidence_discipline = 1.0000`。
+- 最明显退化/暴露问题 1：`record-level` 校准仍弱，`normalized_mae = 0.2177`，说明对单条样本的给分偏差仍然较大。
+- 最明显退化/暴露问题 2：`unsupported_claim_rate = 0.5547` 仍高，说明 agent 还存在“问题抓得太多、证据不够硬”的倾向。
+- 最明显退化/暴露问题 3：`ece = 0.6857`，说明当前置信度与真实正确性仍不够一致。
+- 仍未解决错误簇 1：高人工分的等价变体仍会被误杀，例如 `STM Results:7`、`STM Results:9`。
+- 仍未解决错误簇 2：低人工分的坏例仍有被打高分的情况，例如 `STM Results:6`、`STM Results:0`、`STM Results:8`。
+- 仍未解决错误簇 3：`protocol-only` 下的 V&V 角色覆盖仍只有 `0.5000`，说明 reviewer 知道要克制，但还没有把角色理解补满。
+
+### Phase 1 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是运行时骨架替换刚完成后的起始快照。
+- `Round 1..4` 是 Phase 1 架构边界内的局部优化轮次。
+- 历史中间轮次保留了 `HAI` 主指标快照；完整子指标只对起始态与收尾态做了保留。这里不补造不存在的中间明细。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | 完成主路径切换，建立 `contract -> regime -> dossier -> trace/equivalence/quality -> score/synthesis` 骨架 | `contract_understanding_error` / `element_extraction_error` | 无 | `HAI 56.90 / RAS 54.09 / SAS 48.61 / PDS 75.00` | `--` | `是` | 起始基线，说明骨架替换后 reviewer 已进入真实新路径，但对齐仍明显不够 |
+| `Round 1` | 清理 slice/regime 路由与运行时边界，修正 benchmark 只在外环使用，收紧未知格式降级路径 | `contract_understanding_error` / `evidence_discipline_error` | `HAI 56.90` | `HAI 60.45` | `+3.55` | `是` | 先把运行边界与 regime 识别做稳，避免旧路径语义泄漏 |
+| `Round 2` | 强化 `summary-only` 证据纪律与 notes policy，压制无依据的元素级断言 | `quality_judgement_error` / `evidence_discipline_error` | `HAI 60.45` | `HAI 63.13` | `+2.68` | `是` | 这一轮主要修复“只看 summary 却假装看到元素细节”的问题 |
+| `Round 3` | 强化 `protocol-only` 的 V&V 角色识别、mixed-evidence 提示与保守置信度策略 | `evidence_discipline_error` / `quality_judgement_error` | `HAI 63.13` | `HAI 66.59` | `+3.46` | `是` | `PDS` 明显抬升，reviewer 已基本学会“什么时候不能装懂” |
+| `Round 4` | 调整结构性惩罚与等价裁决权重，尝试同时压低坏例分数并保留合理等价 credit | `equivalence_reasoning_error` / `quality_judgement_error` | `HAI 66.59` | `历史快照 HAI 66.16` | `-0.43` | `否` | 当前树收尾重跑为 `HAI 66.58`，说明这轮之后提升已进入边际化区间，没有形成稳定的新增收益 |
+
+### Phase 1 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 1` 已完成并停止，等待下一步指令，不进入 `Phase 2`。
+- TODO 打勾情况：`Phase 1` 的 Todolist 与 Checklist 均已如实打勾。
+- TODO 尚未完成项：无；现存问题已转化为下一阶段 backlog，而不是本阶段未完成项。
+- 当前对齐程度总览：`HAI 66.58`，相对起始基线 `56.90` 提升 `+9.68`；说明 reviewer 已从“新骨架刚接上但与人工还有明显距离”提升到“方向上可用、局部已接近人工，但还远未到冻结水位”。
+- `HAI 66.58` 的人类含义：整体对齐已脱离不可用区，很多判断方向已对，但离 [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md) 中建议的冻结目标 `HAI >= 85` 仍有明显差距。
+- `RAS 60.82` 的人类含义：逐条记录级判断已经从低 50 分段抬到低 60 分段，代表 reviewer 常能抓到问题方向，但单条样本上的打分幅度和误差控制仍不够像真人。
+- `SAS 62.51` 的人类含义：summary 级整体分数与证据纪律明显比旧实现稳，但 `RankAlign = 32.50` 仍低，说明“哪一组整体更好”的排序还不够像人工。
+- `PDS 87.50` 的人类含义：`protocol-only` 场景下，reviewer 基本已经学会克制，不会在没有逐元素证据时伪造细节，这一点已比较接近真人的保守习惯。
+- `normalized_mae 0.2177` 与 `rmse 0.2513` 的人类含义：在 `0..1` 分数尺度上，当前平均误差仍在约 `0.22` 左右，说明“能看出好坏方向”和“给出接近真人的准分”仍是两回事。
+- `issue_f1 0.5810` 与 `human_issue_coverage_recall 0.8500` 的人类含义：大多数真人会指出的问题 reviewer 已经能覆盖到，但它又额外说了太多真人并不会采纳的问题。
+- `unsupported_claim_rate 0.5547` 的人类含义：当前 reviewer 仍偏“爱挑问题”，超过一半的问题主张在人工口径下证据不够硬，这会直接拉低可用性。
+- `equivalence_false_reject_rate 0.1000` 的人类含义：每十个合理变体里，大约还有一个会被误拒；对真正要冻结的 expert reviewer 来说，这仍偏高。
+- `vv_role_coverage 0.5000` 的人类含义：reviewer 已知道 inspection / verification / simulation / testing 不是一回事，但只覆盖到一半左右的应识别角色，还不够像真人专家。
+- 真实对齐例子 1：`STM Results:10`，人工 `0.88`，agent `0.813744`；这说明 reviewer 已经能对“整体正确、但仍有局部问题”的样本给出接近人工的高分判断。
+- 真实对齐例子 2：`STM Results:2`，人工 `0.8888888889`，agent `0.790336`；说明 reviewer 在一部分高质量样本上已经能保持“高分但不满分”的真人风格。
+- 真实近失配例子：`STM Results:5`，人工 `0.3846153846`，agent `0.483567`；说明 reviewer 已看到有问题，但惩罚力度仍偏软。
+- 真实失配例子 1：`STM Results:7`，人工 `0.8196721311`，agent `0.314871`；这是典型的“等价但不同构设计被误杀”，说明等价推理还没有稳住。
+- 真实失配例子 2：`STM Results:6`，人工 `0.2222222222`，agent `0.604218`；这是典型的“明显坏例却给高分”，说明结构性坏例惩罚仍不稳定。
+- 真实失配例子 3：`STM Results:0`，人工 `0.4166666667`，agent `0.686849`；说明 reviewer 仍会对部分中低质量样本过宽。
+- `protocol-only` 例子 1：`protocol::llms_emp` 的 agent 分数为 `0.250645`，置信度 `0.42`，`vv_role_coverage = 0.4`；说明 reviewer 已会低分、低置信度保守输出，但角色理解还不完整。
+- `protocol-only` 例子 2：`protocol::ttool-ai` 的 agent 分数同样为 `0.250645`，置信度 `0.42`，`vv_role_coverage = 0.8`；说明同样的克制策略已经成立，但不同协议样本间的角色覆盖仍不均衡。
+- 停止原因：在 `Phase 1` 允许的局部调整内，多轮迭代已经把主路径切换、未知格式兜底和证据纪律做到基本稳定；继续靠本阶段的小修小补已无法稳定提升 `HAI/RAS/SAS`，收益开始明显边际化，因此按规则停止并待命。
 
 ## 4. Phase 2: 抽取器与 Dossier 加固
 
