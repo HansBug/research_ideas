@@ -18,13 +18,16 @@
 | 文件 | 作用 |
 | --- | --- |
 | [build_baseline_double_green_parquets.py](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_parquets.py) | 统一抽取脚本，负责把 4 组数据源转换成全部 `parquet` |
+| [build_baseline_double_green_human_review_parquets.py](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_human_review_parquets.py) | 人工评审抽取脚本，负责把公开人评结果、方法复原和可用性目录转换成 `parquet` |
 | [baseline_double_green_dataset_catalog.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_dataset_catalog.parquet) | 总目录，汇总每个数据集的样本粒度、规模、元模型和完整性状态 |
 | [llms_emp_raw_samples.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_raw_samples.parquet) | `llms_emp` 原始公开账本 107 行 |
 | [llms_emp_complete_samples.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_complete_samples.parquet) | `llms_emp` 清洗后 98 个可直接实验样本 |
+| [llms_emp_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_human_review.parquet) | `llms_emp` 公开逐样本人评结果 192 行，含 `input/ref/pred` 与人工检查结果 |
 | [ttool_ai_models.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_models.parquet) | `ttool-ai` 的 15 个完整 AVATAR 设计模型变体 |
 | [ttool_ai_state_machine_panels.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_state_machine_panels.parquet) | `ttool-ai` 的 122 个状态机面板 |
 | [ttool_ai_states.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_states.parquet) | `ttool-ai` 摊平后的 708 个状态节点 |
 | [ttool_ai_transitions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_transitions.parquet) | `ttool-ai` 摊平后的 798 条迁移 |
+| [ttool_ai_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_human_review.parquet) | `ttool-ai` 公开人评结果 39 行，以测试级总分为主，不是逐样本 rubric |
 | [light_control_nimbus_documents.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_documents.parquet) | `Light Control` 的两份原始文档全文 |
 | [light_control_nimbus_fragments.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_fragments.parquet) | `Light Control` 重建后的 4 个可实验片段 |
 | [light_control_nimbus_variables.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/light_control_nimbus_variables.parquet) | `Light Control` 的 17 个 monitored / controlled variables |
@@ -33,6 +36,10 @@
 | [structure_event_driven_cases.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_cases.parquet) | `Structure/Event-Driven` 的 9 个公开描述样本 |
 | [structure_event_driven_reference_solutions.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_reference_solutions.parquet) | `Structure/Event-Driven` 的 8 个论文案例 prompt/image/count ground truth 与 6 个 Umple 文本参考解 |
 | [structure_event_driven_metrics.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_metrics.parquet) | `Structure/Event-Driven` 的 512 条逐组件评测记录 |
+| [structure_event_driven_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_human_review.parquet) | `Structure/Event-Driven` 的 512 条统一字段人评记录 |
+| [baseline_double_green_human_review_records.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_records.parquet) | 跨论文统一人评总表 743 行 |
+| [baseline_double_green_human_review_protocols.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_protocols.parquet) | 四篇论文的人评方法复原表 |
+| [baseline_double_green_human_review_availability.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_availability.parquet) | 四篇论文公开人评可用性与缺口总表 |
 
 ## 2. 统一复现方式
 
@@ -101,6 +108,24 @@ python \
 ```
 
 脚本不会覆写 Markdown，只会重新计算所有 `parquet`。
+
+### 2.3 重新生成人工评审相关 `parquet`
+
+```bash
+python \
+  project_1_llm_state_machine_modeling/discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_human_review_parquets.py \
+  --raw-root /tmp/baseline_double_green/raw \
+  --output-dir \
+  project_1_llm_state_machine_modeling/discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets
+```
+
+该脚本会生成：
+
+1. 3 个论文级人评表：`llms_emp_human_review.parquet`、`ttool_ai_human_review.parquet`、`structure_event_driven_human_review.parquet`
+2. 1 个跨论文统一人评总表：`baseline_double_green_human_review_records.parquet`
+3. 2 个配套说明表：`baseline_double_green_human_review_protocols.parquet`、`baseline_double_green_human_review_availability.parquet`
+
+其中 `Nimbus` 没有逐样本人评原始分数，因此不会生成 `nimbus_human_review.parquet` 这类伪造结果表，而是只进入方法与可用性目录。
 
 ## 3. 数据集一：`llms_emp`
 
@@ -1499,6 +1524,238 @@ structure_cases = pd.read_parquet(assets / "structure_event_driven_cases.parquet
 print(catalog)
 print(llms_emp.shape, ttool_panels.shape, light_fragments.shape, structure_cases.shape)
 ```
+
+## 8. 人工评审结果抽取总览
+
+这 4 篇“双绿” baseline 里，公开人评信息的可复用程度并不一致。统一结论如下：
+
+| 论文 | 公开人评状态 | 已抽取记录数 | `input` | `ref output` | `pred output` | `human expert review` | 备注 |
+| --- | --- | ---: | --- | --- | --- | --- | --- |
+| `llms_emp` | `sample_level_available` | 192 | 🟢 | 🟢 | 🟢 | 🟢 | 最完整；结果表直接给出逐样本 `input/ref/pred` 与人工检查结果 |
+| `ttool-ai` | `summary_only_available` | 39 | 🟢 | ⚪ | 🟡 | 🟡 | 只有测试级总分与时间；公开仓库没有逐次输出版本和 gold reference |
+| `Nimbus Light Control` | `method_only_no_raw_scores` | 0 | 🟢 | 🟢 | ⚪ | ⚪ | 公开的是案例与 V&V 方法，不是 LLM 输出评分表 |
+| `Structure/Event-Driven` | `sample_level_available` | 512 | 🟢 | 🟢 | 🟡 | 🟢 | 逐组件 TP/FP/FN/F1 公开；多数预测只公开图片，少数案例缺预测工件路径 |
+
+这里的 `human expert review` 统一落在 4 个字段上：
+
+1. `human_review_score`
+2. `human_review_score_unit`
+3. `human_review_summary`
+4. `human_review_details_json`
+
+其中：
+
+1. `llms_emp` 的 `human_review_details_json` 同时保留 `initial` 与 `regenerated` 两轮人工检查结果，包含 `PlantUML` 准确率、`SysML` 语法准确率、语义 `TP/FP/FN/F1` 和记录到的 hallucination 类型。
+2. `ttool-ai` 的 `human_review_details_json` 主要是总分、时间和来源表信息；公开数据没有逐条扣分明细，因此不能强行伪造细粒度 rubric。
+3. `Structure/Event-Driven` 的 `human_review_details_json` 保留逐组件的 `TP/FP/FN/precision/recall/F1`。
+
+如果只想直接使用“统一字段”的总表，入口是 [baseline_double_green_human_review_records.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_records.parquet)。该表共 `743` 行，等于：
+
+1. `llms_emp = 192`
+2. `ttool-ai = 39`
+3. `Structure/Event-Driven = 512`
+
+`Nimbus` 不在这个总表里，因为它没有公开逐样本或逐测试的人评原始行。
+
+## 9. 新增人工评审 `parquet` 产物
+
+### 9.1 论文级人评表
+
+| 文件 | 行数 | 适用方式 |
+| --- | ---: | --- |
+| [llms_emp_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_human_review.parquet) | 192 | 逐样本人评 benchmark；最接近“`input -> ref -> pred -> 人评`”完整链条 |
+| [ttool_ai_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/ttool_ai_human_review.parquet) | 39 | 测试级总分表；适合做“人工总体评分复盘”，不适合做逐样本监督 |
+| [structure_event_driven_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/structure_event_driven_human_review.parquet) | 512 | 逐组件人评 benchmark；适合做 TP/FP/FN 风格的细粒度比较 |
+
+三张表都统一包含如下主字段：
+
+1. `input_text`
+2. `ref_output_text`
+3. `ref_output_format`
+4. `ref_output_artifact_path`
+5. `pred_output_text`
+6. `pred_output_format`
+7. `pred_output_artifact_path`
+8. `human_review_score`
+9. `human_review_summary`
+10. `human_review_details_json`
+11. `review_rubric_text`
+12. `public_artifact_limitations`
+
+其中 `ttool-ai` 的 `ref_output_text` 默认为空，因为公开包没有 gold reference；`Structure/Event-Driven` 的 `pred_output_text` 多数为空，因为公开的是渲染图片而不是完整 `Umple` 文本。
+
+### 9.2 跨论文说明表
+
+| 文件 | 行数 | 作用 |
+| --- | ---: | --- |
+| [baseline_double_green_human_review_records.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_records.parquet) | 743 | 把 3 篇有公开人评行的论文统一到同一 schema |
+| [baseline_double_green_human_review_protocols.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_protocols.parquet) | 4 | 4 篇论文的人评方法复原、评审对象、评审维度、执行步骤和公开缺口 |
+| [baseline_double_green_human_review_availability.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/baseline_double_green_human_review_availability.parquet) | 4 | 4 篇论文“公开到什么粒度”的统一目录 |
+
+如果你要直接做跨论文过滤，推荐先读：
+
+```python
+from pathlib import Path
+import pandas as pd
+
+assets = Path(
+    "project_1_llm_state_machine_modeling/discussions/"
+    "2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets"
+)
+
+records = pd.read_parquet(assets / "baseline_double_green_human_review_records.parquet")
+availability = pd.read_parquet(assets / "baseline_double_green_human_review_availability.parquet")
+protocols = pd.read_parquet(assets / "baseline_double_green_human_review_protocols.parquet")
+
+print(records.groupby("paper_slug").size())
+print(availability[["paper_slug", "public_human_review_status", "extracted_record_count"]])
+print(protocols[["paper_slug", "reviewer_pool", "review_dimensions_json"]])
+```
+
+## 10. 四篇论文人工评测方法复原
+
+### 10.1 `llms_emp`
+
+公开数据与论文说明可以把人工部分复原到如下粒度：
+
+1. 评审对象：按 `STM / ACT / SD` 三类任务逐样本评审 `LLM -> PlantUML` 输出。
+2. 评审人员：`G_Model` 组，包含 `1` 名高年级本科生、`2` 名硕士、`2` 名博士；均有软件工程与 `MDD` 背景，且有 `100+` 小时建模经验。
+3. 参考基准：公开 `G_Model` 数据集中的人工重建参考模型；语法与语义规则依据 `SysML v1.6`。
+4. 评审维度：
+   - `PlantUML` 格式正确性
+   - `SysML` 语法正确性
+   - `SysML` 语义一致性
+   - 与参考模型的一致性 `TP/FP/FN/F1`
+   - hallucination 类型归类
+5. 可照着执行的步骤：
+   1. 准备自然语言需求、参考 `PlantUML` 模型和任务类型。
+   2. 用论文给定 prompt 让 LLM 生成 `PlantUML`。
+   3. 先做 `PlantUML` 语法/格式检查，记录正确句数与总句数，得到 `Acc_P`。
+   4. 再做 `SysML` 语法检查。由于 `PlantUML` 没有现成的 `SysML` grammar checker，论文做法是人工逐项对照 `SysML v1.6` 规则记录语法错误。
+   5. 再做 `SysML` 语义检查。公开工作簿里有单独的 `SysML Grammar &Semantic` 工作表，列出人工检查依据；论文说明总计检查 `55` 条语义约束。
+   6. 最后把生成模型与参考模型逐组件比较，统计 `TP/FP/FN`，并按 $F1 = 2TP / (2TP + FP + FN)$ 计算需求语义一致性。
+   7. 将发现的问题归入 `PlantUML format`、`SysML grammar`、`SysML semantics`、`requirements inconsistency` 四类 hallucination。
+   8. 把检测到的问题写回 prompt 的 `Error` 区，开启全新会话重新生成，再重复同样的检查流程。
+6. 公开结果能直接复用的部分：
+   - [llms_emp_human_review.parquet](./2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/llms_emp_human_review.parquet) 已把 `input/ref/pred` 和 `initial/regenerated` 人评结果整理好。
+   - 公开包没有逐条人工批注日志文件；目前能恢复到的最细粒度就是工作簿里每个样本的汇总列。
+
+### 10.2 `ttool-ai`
+
+这篇论文的人评是“人工总评分实验”，不是“逐组件 gold alignment”。
+
+1. 评审对象：`Block Diagram (BD)` 与 `State Machine Diagram (SMD)` 的整体设计质量。
+2. 受试对象：
+   - 约 `15` 名 master-level 学生
+   - `TTool-AI` 自动生成结果
+3. 训练与实验设置：
+   1. 学生先接受 `21` 小时教学。
+   2. 正式评测前至少练习 `3` 份规格。
+   3. 正式实验时，每位学生拿到相同规格，限时 `1.5` 小时手工建模。
+   4. 对 `TTool-AI`，论文明确关闭人工交互，直接从规格自动生成模型。
+4. 评分对象与记录项：
+   - `BD / SMD` 各自一个 `0-100` 总分
+   - 生成或建模时间
+   - 汇总后的均值、标准差、最高分、最低分
+5. 论文公开说明的评分维度：
+   1. 图是否满足规格
+   2. 在 `TTool` simulator 中观察到的行为是否符合规格
+   3. blocks 之间交换是否足够
+   4. 图是否可读
+   5. blocks / states 数量与命名是否一致
+   6. blocks 中声明但未在状态机中使用的属性是否存在
+   7. `TTool` syntax checker 的错误与 warning 数量
+6. 可照着执行的复原流程：
+   1. 准备论文公开的 `desc` 规格文本。
+   2. 让人工建模者与 `TTool-AI` 分别基于同一规格生成 `BD` 和 `SMD`。
+   3. 用相同 rubric 对每份结果给 `BD` 总分和 `SMD` 总分。
+   4. 运行 `TTool` simulator 与 syntax checker，结合上面的 7 类标准给出最终分数。
+   5. 记录每次用时，并在案例级汇总均值与方差。
+7. 公开缺口：
+   - 主仓库只公开规格、最终 `XML` 模型和结果总表，没有公开逐次测试的独立输出版本。
+   - 没有 gold reference 模型。
+   - 论文没有公开每个维度的具体权重或扣分表，因此我们只能复原“步骤和口径”，不能声称恢复了原始精确打分 rubric。
+
+### 10.3 `Nimbus Light Control`
+
+这篇论文不是 LLM baseline，但它公开了一个很完整的“人工 + 形式化 + 仿真”的需求评估流程。
+
+1. 评审对象：`REQ/SOFT` 层 `RSML-e` 规格、环境模型、控制面板 mockup 与仿真结果。
+2. 建模人员：两名熟悉 `RSML-e`、形式语义和 `Nimbus` 环境的研究生，约用 `3` 周兼职完成模型。
+3. 人工相关参与方：规格团队、客户、系统工程师、监管代表，以及控制面板 mockup 的预期用户。
+4. 论文强调三种 `V&V` 方法必须联合使用：
+   1. `manual inspections`
+   2. `formal verification`
+   3. `simulation and testing`
+5. 可照着执行的流程：
+   1. 先基于案例文档建立 `REQ` 关系，再逐步细化到 `SOFT`。
+   2. 在 `Nimbus` 中对 `REQ` 规格做可视化执行，让规格团队、客户、系统工程师和监管代表做人工 inspection，检查形式化行为是否符合现实世界预期。
+   3. 对规格做形式化分析，检查完整性、一致性以及危险状态是否可达。
+   4. 用文本测试文件、环境模型、传感器/执行器模型和房间控制面板 `mockup` 做仿真与测试。
+   5. 将仿真日志保存下来，回放并逐步分析特定场景。
+   6. 让真实用户与 `RCP mockup` 交互；论文中就因为 mockup 试用发现时间输入方式不合理，进而修改了面板设计。
+   7. 根据人工 inspection、形式化验证和仿真结果反复修改 `REQ/SOFT`。
+6. 公开缺口：
+   - 论文没有公开逐条 inspection checklist。
+   - 没有逐样本分数或 reviewer-by-reviewer 打分表。
+   - 因此这里能恢复的是“高可信 V&V 流程”，不是 `input/ref/pred/score` 型 benchmark。
+
+### 10.4 `Structure- and Event-Driven`
+
+这篇论文公开的人评最适合做“组件级 TP/FP/FN benchmark”。
+
+1. 评审对象：`Single Prompt`、`Structure-Driven`、`Event-Driven`、`Hybrid` 四种生成策略在 `8` 个论文案例上的输出。
+2. 评审人员组织：论文说明每个设计策略由单个作者负责评审；为了降低偏差，作者事先约定统一评审准则。
+3. 参考基准：`8` 个英文案例的专家手工 ground-truth `UML state machine`。
+4. 人工评审的 7 个组件维度：
+   1. `states`
+   2. `transitions`
+   3. `guards`
+   4. `actions`，但只统计 transition actions，不统计 entry/exit/do actions
+   5. `hierarchical states`
+   6. `parallel regions`
+   7. `history states`
+
+   另有一个聚合维度 `All`。
+5. 组件匹配规则：
+   1. 完全一致算匹配。
+   2. 语义等价也算匹配；名称不同但表达同一概念可以算 `TP`。
+   3. `superstate` 或 `parallel region` 若其包含的子状态集合等价，也可算匹配。
+   4. 生成结果中不存在于 ground truth 的组件记为 `FP`。
+   5. ground truth 中缺失的组件记为 `FN`。
+   6. 对 `transitions / guards / actions` 采用严格口径：如果其依附的状态本身不匹配，则这些组件默认也按 `FP` 处理。
+6. 可照着执行的流程：
+   1. 准备每个案例的英文需求描述与人工 ground truth。
+   2. 对每个 `strategy x LLM x case` 运行一次生成。
+   3. 把输出与 ground truth 按 7 个组件维度逐项人工比对。
+   4. 对每个维度分别统计 `TP/FP/FN`。
+   5. 计算 precision、recall 与 `F1-score`。
+   6. 再汇总出 `All` 维度的整体分数。
+7. 公开缺口：
+   - 公开工件提供了逐组件分数和大多数预测图像，但大部分预测没有公开对应的完整 `Umple` 文本。
+   - `512` 条记录里有 `32` 条缺 `pred_output_artifact_path`，对应 `4` 组公开工件缺口：
+     1. `single_prompt + GPT-4o + WUMPLE`
+     2. `structure_driven + GPT-4o + Dishwasher`
+     3. `event_driven + GPT-4o + Dishwasher`
+     4. `event_driven + GPT-4o + Spa Manager`
+
+## 11. 公开缺口与可直接复用性判断
+
+如果目标是做“`input/ref/pred/human review` 一体化基准”，这四篇的可复用性应该这样区分：
+
+| 论文 | 是否可直接作为统一 benchmark | 结论 |
+| --- | --- | --- |
+| `llms_emp` | `是` | 最适合直接复用；公开表本身就接近完整监督样本和逐样本人评日志 |
+| `Structure/Event-Driven` | `基本是` | 适合做组件级 benchmark，但要接受“预测多为图片而非文本”以及 `32` 条路径缺失 |
+| `ttool-ai` | `否，只有汇总级` | 适合复盘人工总评分方法，不适合做逐样本 `ref/pred` 对齐 |
+| `Nimbus Light Control` | `否，只有方法级` | 适合作为需求建模与 V&V 流程来源，不是公开人评分数数据集 |
+
+因此，后续如果要做统一实验，我建议：
+
+1. `llms_emp` 作为主样本级 benchmark。
+2. `Structure/Event-Driven` 作为组件级评测 benchmark。
+3. `ttool-ai` 只保留为“人工总评分协议 + 案例规格 + 最终模型”的参考源。
+4. `Nimbus` 只保留为“高可信需求评估流程”的方法源。
 
 ## 参考文献
 
