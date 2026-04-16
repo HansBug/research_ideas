@@ -17,6 +17,10 @@
 2. 再读 [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md)
 3. 最后读本文
 
+关联 PR：
+
+1. 当前执行 PR：[PR #6：将 expert review 重构到 v1 多智能体运行时方向](https://github.com/HansBug/research_ideas/pull/6)
+
 ## 1. 当前基线
 
 当前基线版本：`dev/reviewer` 分支上 PR #6 创建时的实现
@@ -112,6 +116,12 @@
 3. 该打勾的打勾。
 4. 没有完成的项目必须明确说明当前现状、阻塞原因和下一步处理口径。
 5. TODO 不是计划草稿，而是整个 phase 执行过程中的真实状态台账。
+6. 每次 phase 状态发生变化后，必须同步更新 [PR #6](https://github.com/HansBug/research_ideas/pull/6) 的 body。
+7. PR body 至少要同步：
+   - 当前 phase checkbox 状态
+   - 当前 phase 是否完成
+   - 当前对齐基线摘要
+8. TODO 与 PR body 的 phase 状态、阶段结论和基线摘要不得长期不一致；若短时间内存在差异，必须在当次任务结束前补齐同步。
 
 ### 2.2.1 每一轮自我迭代必须记录的内容
 
