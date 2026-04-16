@@ -1097,50 +1097,432 @@
     - 但 taxonomy 语气仍不够像真人 protocol reviewer，这一问题已明确转交 `Phase 7`
 - 当前 phase 是否停止：`是`，停止在 `Phase 6`；后续待命，等待是否进入 `Phase 7` 的实现指令。
 
-## 9. Phase 7: 面向提分的下一轮校准与收敛
+## 9. 后续总目标、双里程碑与 Phase 7-15 路线图
+
+从 `Phase 7` 开始，后续工作不再只是泛泛地“继续提分”，而是明确围绕以下**实际用途**推进：
+
+1. 把 `expert_review` 做成一个可对 `proj1` 各类 baseline / 生成模型结果进行**批量评分、排序、筛选**的 reviewer。
+2. reviewer 不只要“讲得通”，还要能在论文中以可追溯指标与实验设计支撑“**agent-based review 在学术上成立**”。
+3. 后续迭代必须同时服务两条主线：
+   - 工程主线：做到可稳定批量筛选。
+   - 学术主线：做到可在论文中主张 human-aligned / evidence-aware / agent-based reviewer 成立。
+
+### 9.1 当前诊断基线
+
+除保留 `Phase 6` 的 deterministic benchmark slice 快照外，从 `Phase 7` 开始，默认还必须同时跟踪**full available benchmark** 诊断结果。
+
+当前基于 `2026-04-17` full available benchmark 的 deterministic 诊断快照为：
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `79.68` |
+| `RAS` | `77.33` |
+| `SAS` | `73.62` |
+| `PDS` | `93.75` |
+| `record normalized_mae` | `0.2126` |
+| `record spearman_rho` | `0.4817` |
+| `record pairwise_order_accuracy` | `0.6164` |
+| `summary normalized_mae` | `0.1359` |
+| `summary spearman_rho` | `0.2781` |
+| `summary pairwise_order_accuracy` | `0.5307` |
+| `issue_f1` | `0.9126` |
+| `human_issue_coverage_recall` | `0.9305` |
+| `unsupported_claim_rate` | `0.0865` |
+| `equivalence_false_reject_rate` | `0.0174` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `ece` | `0.4764` |
+| `vv_role_coverage` | `0.7500` |
+
+当前已经可以明确的诊断结论：
+
+1. 当前 reviewer 的**问题提取与证据克制**已经相对稳定，说明它更像一个 evidence-aware review assistant。
+2. 当前 reviewer 的**数值打分、排序能力与置信度校准**仍明显不足，说明它还不像一个可稳定替代专家打分的 batch scorer。
+3. 当前 full available benchmark 的 `record-level` 强对齐数据实际上主要来自 `llms_emp`，`summary-level` 主要来自 `ttool-ai`，而 `512` 条 `component_level_review` 还未进入主评测主指标。
+4. 因此，当前版本还不能在论文中直接主张“expert reviewer agent 已被学术上充分验证成立”。
+
+### 9.2 双里程碑定义
+
+后续路线固定为两个逐级里程碑：
+
+1. **Milestone A：达到可用于整体筛选的程度**
+   - 用途定位：批量预筛、批量排序、异常样本优先级上浮、人类专家工作量缩减。
+   - 结论边界：可以说“能用于整体筛选”，但不能说“已经能替代专家最终裁决”。
+2. **Milestone B：达到可用于论文中学术主张的程度**
+   - 用途定位：不仅能用于批量筛选，还能在论文中支撑“agent-based review 作为 human-aligned reviewer surrogate 是成立的”。
+   - 结论边界：必须同时过 full benchmark、generalization、lockbox、ablation 与稳定性门槛。
+
+路线归属如下：
+
+1. `Phase 7` 到 `Phase 10`：服务 `Milestone A`
+2. `Phase 11` 到 `Phase 15`：服务 `Milestone B`
+
+### 9.3 Milestone A：可用于整体筛选
 
 目标：
 
-在 `Phase 6` 完成结构收口与冻结核验之后，围绕当前仍明显落后于人工的指标继续提分，同时保持 `Phase 5/6` 已建立的多智能体主路径、证据纪律和结构边界不被破坏。
+把当前 reviewer 从“会提问题的 review assistant”推进到“可以稳定做 batch ranking / filtering / triage 的 automated reviewer”。
+
+Milestone A 达成条件：
+
+1. `HAI >= 82`
+2. `RAS >= 80`
+3. `SAS >= 76`
+4. `PDS >= 90`
+5. `record normalized_mae <= 0.15`
+6. `record spearman_rho >= 0.60`
+7. `record pairwise_order_accuracy >= 0.70`
+8. `summary spearman_rho >= 0.45`
+9. `summary pairwise_order_accuracy >= 0.65`
+10. `unsupported_claim_rate <= 0.08`
+11. `ece <= 0.20`
+12. `protocol_only_overclaim_rate = 0`
+13. `rerun_score_std <= 0.03`
+14. 已具备批量执行、结果导出与筛选阈值策略，而不是只支持单条 demo 评审。
+
+### 9.4 Milestone B：可用于论文中的学术论证
+
+目标：
+
+把 reviewer 从“可用的 batch scorer”推进到“在论文中可 defensible 地主张 human-aligned / agent-based review 成立”的级别。
+
+Milestone B 达成条件：
+
+1. 满足 [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md) 第 `14` 节停止标准。
+2. 额外满足以下学术门槛：
+   - `PDS >= 90`
+   - `record spearman_rho >= 0.75`
+   - `record pairwise_order_accuracy >= 0.80`
+   - `summary spearman_rho >= 0.60`
+   - `summary pairwise_order_accuracy >= 0.75`
+   - `|score_bias| <= 0.05`
+   - `high_confidence_error_rate <= 0.05`
+   - `critical_issue_recall >= 0.90`
+   - `weighted_kappa >= 0.60`
+   - `lockbox` 集任一核心指标退化不超过 `2` 点
+   - leave-one-family-out 的 `HAI` 降幅不超过 `5` 点
+3. 已补齐对 `component_level_review` 的正式主评测，并形成可单独报告的 `CRAS` 或等价组件级对齐指标。
+4. 已完成关键 agent / policy / routing 的 ablation，能证明当前“agent-based reviewer”不是纯包装，而是结构上确有增益。
+5. 已完成 deterministic 主路径与 LLM-enabled 主路径的稳定性、成本与风险边界说明。
+
+### 9.5 从 Phase 7 开始必须新增并持续跟踪的指标
+
+除当前已有指标外，后续必须逐步补齐以下新增指标：
+
+1. `CRAS`
+   - Component Review Alignment Score
+   - 用于吃进 `component_level_review` 的 states / transitions / guards / actions / hierarchy / parallel / history 等分项人工审查结果
+2. `critical_issue_recall`
+   - 专门约束 reviewer 不能漏掉对人工最关键的问题
+3. `weighted_kappa`
+   - 用于判断 overall judgement / coarse judgement 是否和人工具有一致性，而不只是分数接近
+4. `high_confidence_error_rate`
+   - 专门压 reviewer 的“高置信错判”
+5. `evidence_locator_validity`
+   - reviewer 给出的 evidence locator 是否真的指向可追溯证据
+6. `LOFO_generalization_gap`
+   - leave-one-family-out 下的性能降幅
+7. `latency_p95`
+8. `token_cost_per_record`
+
+## 10. Phase 7: 全量 benchmark 口径固定与下一阶段提分地图
+
+目标：
+
+把当前 `slice-only` 快照升级为后续所有 phase 都能统一依赖的 full benchmark / train-dev-validation-lockbox / LOFO 评测框架，并固定 `Milestone A / B` 的正式验收口径。
 
 ### Todolist
 
-* [ ] 针对当前最主要残差簇制定新一轮提分方案，并明确哪些属于 `contract / extraction / equivalence / quality / evidence discipline` 哪一类问题。
-* [ ] 优先收口 `record-level` 的 partial-heavy 高估问题，避免继续出现“partial 很多但仍偏高分”的样例。
-* [ ] 优先收口 `summary-level` 的高分 public row 过度保守问题，降低不必要的 readability/noise 过惩罚。
-* [ ] 优先收口 `protocol-only` 的 issue taxonomy 语言，使其更像真人 protocol reviewer，而不是 record-style artifact review。
-* [ ] 在不牺牲 `PDS` 与 `equivalence_false_reject_rate` 的前提下继续降低 `unsupported_claim_rate` 与 `ece`。
-* [ ] 本 phase 内继续坚持结构收敛，新增能力必须落在正式 `prompts / tools / agents / graph` 路径，而不是回流到历史根层大文件。
-* [ ] 在 `Phase 7` 当前架构边界内开展多轮自我迭代，直到提分收益明显边际化。
-* [ ] 记录 `Phase 7` 每一轮迭代的修改项、风险点与指标前后变化。
+* [ ] 把 `slice benchmark` 与 `full available benchmark` 的用途彻底分开：前者用于快迭代，后者用于阶段验收。
+* [ ] 明确当前主评测实际覆盖了哪些论文、哪些 regime、哪些 review 粒度，不能再把 coverage 缺口隐含带过。
+* [ ] 把 `Phase 6` 之后的实际需求、双里程碑、阶段目标与 target metrics 正式固化到本 `TODO`。
+* [ ] 设计并落地 `train / dev / validation / lockbox` 切片构造规则。
+* [ ] 设计并落地 leave-one-family-out 的评测脚手架。
+* [ ] 为 `component_level_review` 的纳入准备统一 taxonomy 与结果对齐 schema。
+* [ ] 给后续 phase 形成统一误差地图：`contract / extraction / equivalence / quality / evidence discipline / calibration / ranking`。
+* [ ] 在不引入评分逻辑回退的前提下，让 benchmark harness 能同时导出 slice 与 full report。
 
 ### Checklist
 
-* [ ] `HAI / RAS / SAS` 相对 `Phase 6` 有实质提升，而不是只在局部样例上改善。
-* [ ] `PDS` 不出现明显回退。
-* [ ] `equivalence_false_reject_rate` 不出现明显回退。
-* [ ] `unsupported_claim_rate` 与 `ece` 至少有一项出现明确改善，且另一项不明显恶化。
-* [ ] protocol-only 的 issue taxonomy 已不再明显带有 record-style 标签。
-* [ ] 本 phase 新增逻辑均已进入真实主路径，而不是实验旁路。
-* [ ] 已保留完整 `round-by-round` 提分链路记录。
-* [ ] 若仍未达到冻结门槛，已明确下一阶段或下一版设计入口。
+* [ ] 后续不再只以默认 `18 + 16 + 4` 的 slice 作为阶段结论口径。
+* [ ] 已明确写出当前 benchmark coverage 与当前空白区，而不是笼统地说“已对齐人工”。
+* [ ] `Phase 7` 完成后，后续每个 phase 都可同时汇报：
+  * [ ] slice 快速指标
+  * [ ] full available benchmark 指标
+  * [ ] validation / lockbox 指标
+  * [ ] LOFO 指标
+* [ ] 本 phase 没有提前混入下一阶段的大量评分 patch。
 
 ### Phase 7 当前状态回写
 
-- 创建时间：`2026-04-16 21:48:23`
-- 当前状态：`Phase 7` 已创建，尚未开始实现；等待下一步指令。
-- 创建原因：
-  - `Phase 6` 已完成收口与冻结核验，但当前版本未达到冻结门槛
-  - 当前最需要的已不是代码树清理，而是继续提分
-- 进入前提：
-  - `Phase 6` 已确认无明显回退
-  - `Phase 6` 的版本级对齐报告与冻结说明已固定到 [V1_ALIGNMENT_REPORT.md](./V1_ALIGNMENT_REPORT.md)
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone A`
+- 当前状态：已创建，尚未开始实现。
+- 当前定位：先把“怎么评估后续 phase 是否真的进步”这件事固定下来。
 
-## 10. 每个 Phase 的统一对齐记录模板
+## 11. Phase 8: Record-Level 数值校准、压缩效应修复与 partial-heavy 严惩
+
+目标：
+
+优先修当前最伤 batch scoring 的问题：低分样例被抬高、高分样例被压低、partial-heavy 样例仍高估。
+
+### Todolist
+
+* [ ] 系统性分析 `record-level` 的 score compression：低分高估、高分低估、居中收缩。
+* [ ] 对 partial-heavy / structurally bad / semantically broken 样例建立更强惩罚逻辑。
+* [ ] 强化 `dependency-aware penalty`，避免 state 本身错了但 transition/guard/action 仍拿到过宽 credit。
+* [ ] 收口 `wrong_action_or_effect` 与 `wrong_guard_or_trigger` 的惩罚强度，使其更接近人工。
+* [ ] 保持 `issue_f1 / human_issue_coverage_recall / PDS` 不因重标定而显著退化。
+* [ ] 针对 score bias 引入显式诊断与回归约束。
+* [ ] 记录高误差 record rows 的典型错误簇与改善前后对比。
+
+### Checklist
+
+* [ ] `record normalized_mae <= 0.18`
+* [ ] `record spearman_rho >= 0.55`
+* [ ] `record pairwise_order_accuracy >= 0.68`
+* [ ] `|record score_bias| <= 0.08`
+* [ ] `unsupported_claim_rate <= 0.10`
+* [ ] `equivalence_false_reject_rate` 不明显回退。
+* [ ] partial-heavy 高估样例不再是当前最大残差簇。
+
+### Phase 8 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone A`
+- 当前状态：已创建，尚未开始实现。
+- 前置条件：`Phase 7` 完成并固定 full benchmark / split / LOFO 口径。
+
+## 12. Phase 9: Summary-Level 排序、分数语义与高分 public row 收口
+
+目标：
+
+让 reviewer 不只会在 `summary-level` 场景里“少乱说”，还要能更接近人工地做高低分区分和排序。
+
+### Todolist
+
+* [ ] 修复高分 public row 过度保守的问题。
+* [ ] 压低无必要的 `readability_or_naming` / `unused_or_noisy_structure` 过惩罚。
+* [ ] 收口 summary-level 的 score semantics，使 aggregate / std-dev / min / max / run-score 的语义判读更像人工。
+* [ ] 继续保持 `summary_only_element_claim_rate = 0` 的证据纪律。
+* [ ] 建立 summary-specific rank error 与 score bias 诊断视图。
+* [ ] 对真实低分 summary row 保持足够惩罚，避免为了拉高高分 row 而整体漂白。
+
+### Checklist
+
+* [ ] `SAS >= 76`
+* [ ] `summary normalized_mae <= 0.12`
+* [ ] `summary spearman_rho >= 0.45`
+* [ ] `summary pairwise_order_accuracy >= 0.65`
+* [ ] `summary_only_element_claim_rate = 0`
+* [ ] 高分 public row 的系统性低估不再是主要误差簇。
+
+### Phase 9 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone A`
+- 当前状态：已创建，尚未开始实现。
+- 前置条件：`Phase 8` 已先收口 record-level 的尺度问题。
+
+## 13. Phase 10: Batch Screening 模式、阈值策略与 Milestone A 验收
+
+目标：
+
+把 reviewer 从“评测时可用”推进到“实际可批量跑、可导出、可用于整体筛选”的状态，并完成 `Milestone A` 验收。
+
+### Todolist
+
+* [ ] 为 batch review 明确输入协议、批量执行方式与结果导出格式。
+* [ ] 建立基于 `overall_score / confidence / unsupported extras / evidence discipline` 的 triage 阈值策略。
+* [ ] 明确哪些分数段直接放行、哪些进入人工复核、哪些高风险上浮。
+* [ ] 加入 batch 模式下的延迟、成本与失败重试统计。
+* [ ] 对 deterministic 路径做批量稳定性验证，避免 batch 跑时出现口径漂移。
+* [ ] 输出 `Milestone A` 验收报告：当前 reviewer 可以怎么用，不可以怎么用。
+
+### Checklist
+
+* [ ] `Milestone A` 的全部门槛均已满足。
+* [ ] 已形成可操作的 batch screening 使用口径，而不是只有 benchmark 指标。
+* [ ] `latency_p95`、失败重试和导出结构已可观测。
+* [ ] 当前 reviewer 可被明确表述为“可用于整体筛选”，但尚未越界宣称“可替代专家最终裁决”。
+
+### Phase 10 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone A`
+- 当前状态：已创建，尚未开始实现。
+- 停止条件：本 phase 结束时必须明确判断 `Milestone A` 是否已达成。
+
+## 14. Phase 11: Component-Level Human Review 对齐与 `CRAS` 建立
+
+目标：
+
+把目前还未纳入主评测的 `component_level_review` 正式吸入评测主干，补上“像真人逐项检查 states / transitions / guards / actions / hierarchy / parallel / history”的证据链。
+
+### Todolist
+
+* [ ] 正式接入 `512` 条 `component_level_review` 到 benchmark 主评测流程。
+* [ ] 统一组件级 issue taxonomy 与 TP/FP/FN 归约规则。
+* [ ] 为各组件类建立独立统计：
+  * [ ] states
+  * [ ] transitions
+  * [ ] guards
+  * [ ] actions
+  * [ ] hierarchical states
+  * [ ] parallel regions
+  * [ ] history states
+* [ ] 定义并落地 `CRAS` 或等价组件级总指标。
+* [ ] 明确哪些组件维度是 reviewer 当前真正强项，哪些仍是缺口。
+
+### Checklist
+
+* [ ] `component_level_review` 已不再游离于主评测之外。
+* [ ] `CRAS >= 80`
+* [ ] 各主要组件类别 `macro_f1 >= 0.75`
+* [ ] 组件级 report 可独立解释，而不是只有一个黑盒总分。
+
+### Phase 11 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone B`
+- 当前状态：已创建，尚未开始实现。
+- 当前定位：补齐论文论证里最缺的一块“逐组件人工对齐”证据。
+
+## 15. Phase 12: Judgement / Reason / Evidence Reliability 深化
+
+目标：
+
+让 reviewer 不只在“分数”上接近人工，也在 judgement、关键问题召回、evidence locator 与 explanation 一致性上达到论文可用程度。
+
+### Todolist
+
+* [ ] 补齐 `overall_judgement` / coarse judgement 的对齐指标：
+  * [ ] `macro_f1`
+  * [ ] `weighted_kappa`
+  * [ ] `judgement_flip_rate`
+* [ ] 补齐 `critical_issue_recall`。
+* [ ] 补齐 `evidence_locator_validity`。
+* [ ] 收口 `contradiction_rate`，避免维度之间互相打架。
+* [ ] 继续压 `unsupported_claim_rate` 到学术可接受范围。
+* [ ] 让 explanation 更像人工 expert review，而不是只像 taxonomy dump。
+
+### Checklist
+
+* [ ] `critical_issue_recall >= 0.88`
+* [ ] `weighted_kappa >= 0.50`
+* [ ] `unsupported_claim_rate <= 0.08`
+* [ ] `evidence_locator_validity >= 0.90`
+* [ ] `contradiction_rate` 明显低于当前版本。
+
+### Phase 12 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone B`
+- 当前状态：已创建，尚未开始实现。
+- 前置条件：`Phase 11` 已让组件级对齐进入正式评测。
+
+## 16. Phase 13: Generalization、Validation / Lockbox 与 LOFO 验证
+
+目标：
+
+证明当前 reviewer 不是只会对齐当前 benchmark 风格，而是具有真正的泛化性与可复现性。
+
+### Todolist
+
+* [ ] 正式落地 `train / dev / validation / lockbox` 数据切分与版本晋升机制。
+* [ ] 正式落地 leave-one-family-out 测试。
+* [ ] 把阶段验收默认从“单次 full available benchmark”提升为“validation + lockbox + LOFO”联合口径。
+* [ ] 对 lockbox 上的主要残差簇做单独分析。
+* [ ] 明确哪些 patch 是真泛化提升，哪些只是对当前可见 benchmark 过拟合。
+
+### Checklist
+
+* [ ] 已有可复用的 validation / lockbox 报告流程。
+* [ ] `lockbox` 任一核心指标退化不超过 `4` 点。
+* [ ] `LOFO_generalization_gap` 已可计算。
+* [ ] 当前 reviewer 的提升不再主要依赖可见 benchmark 风格。
+
+### Phase 13 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone B`
+- 当前状态：已创建，尚未开始实现。
+- 当前定位：把“对齐 benchmark”推进到“对齐人工评审机制”的泛化论证。
+
+## 17. Phase 14: LLM-Enabled 主路径、随机性稳定性与成本边界
+
+目标：
+
+把当前主要以 deterministic 口径评测的 reviewer，推进到可对外说明 deterministic / LLM-enabled 两条主路径的差异、收益、风险与成本。
+
+### Todolist
+
+* [ ] 在 `llm_mode='auto'` 或等价真实 LLM 路径下做重复实验。
+* [ ] 报告 deterministic 与 LLM-enabled 两条主路径的：
+  * [ ] 对齐差异
+  * [ ] 置信度差异
+  * [ ] rerun 稳定性
+  * [ ] `latency_p50 / latency_p95`
+  * [ ] `token_cost_per_record`
+* [ ] 判断 LLM 是否带来实质收益，还是只增加波动与成本。
+* [ ] 明确默认对外主路径与 fallback 口径。
+
+### Checklist
+
+* [ ] LLM-enabled 主路径没有引入不可接受的随机性漂移。
+* [ ] `rerun_score_std <= 0.03`
+* [ ] 已可说明 deterministic 与 LLM-enabled 分别适合什么场景。
+* [ ] 成本与延迟边界已可被论文与工程说明同时接受。
+
+### Phase 14 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone B`
+- 当前状态：已创建，尚未开始实现。
+- 当前定位：补齐“agent-based reviewer 是否必须依赖在线 LLM 才成立”的论证。
+
+## 18. Phase 15: 学术冻结候选、Ablation 与论文级证据包
+
+目标：
+
+完成 `Milestone B` 的最终验收，冻结一个可在论文中正式引用的 reviewer 版本，并给出完整证据包。
+
+### Todolist
+
+* [ ] 以 full benchmark + validation + lockbox + LOFO 为基础做最终验收。
+* [ ] 完成关键模块的 ablation：
+  * [ ] regime detection / review policy
+  * [ ] equivalence + arbiter
+  * [ ] missing-evidence critic
+  * [ ] score composer / synthesis policy
+  * [ ] deterministic-only vs LLM-enabled
+* [ ] 明确当前“agent-based”结构到底带来了哪些独立贡献。
+* [ ] 输出 paper-ready evidence package：
+  * [ ] 最终 alignment report
+  * [ ] milestone report
+  * [ ] ablation report
+  * [ ] failure case appendix
+  * [ ] claims / non-claims 边界说明
+* [ ] 明确此时可以在论文中怎么说，不可以怎么说。
+
+### Checklist
+
+* [ ] `Milestone B` 的全部门槛均已满足。
+* [ ] 已能基于 ablation 证明当前 reviewer 的 agent-based 结构具有必要性，而不是纯包装。
+* [ ] 已有完整 paper-ready 证据链，而不是只剩单个总分。
+* [ ] 若仍未达标，已明确开启 `Phase 16+` 的原因与下一批技术入口。
+
+### Phase 15 当前状态回写
+
+- 创建时间：`2026-04-17 00:38:42`
+- 所属里程碑：`Milestone B`
+- 当前状态：已创建，尚未开始实现。
+- 停止条件：本 phase 结束时必须明确判断 `Milestone B` 是否已达成，若未达成则按规则新开 `Phase 16+`。
+
+## 19. 每个 Phase 的统一对齐记录模板
 
 每个 phase 完成后，至少记录以下内容：
 
-### 10.1 指标总表
+### 19.1 指标总表
 
 1. `HAI`
 2. `RAS`
@@ -1157,13 +1539,13 @@
 13. `ece`
 14. `rerun_score_std`
 
-### 10.2 本阶段改进记录
+### 19.2 本阶段改进记录
 
 1. 本阶段最明显提升的三项能力。
 2. 本阶段最明显退化的三项能力。
 3. 本阶段仍未解决的三类错误簇。
 
-### 10.3 本阶段运行记录
+### 19.3 本阶段运行记录
 
 1. 哪些入口已验证。
 2. 哪些真实路径被替换。
@@ -1171,7 +1553,7 @@
 4. 哪些旧逻辑仍然保留。
 5. 哪些模块只是临时过渡件。
 
-### 10.4 本阶段多轮自我迭代记录
+### 19.4 本阶段多轮自我迭代记录
 
 每个 phase 内部，应追加一个 round-by-round 记录区，至少包含：
 
@@ -1188,7 +1570,7 @@
    - 指标已经达到目标
    - 或进一步提升已明显边际化
 
-### 10.5 本阶段收尾汇报记录
+### 19.5 本阶段收尾汇报记录
 
 每个 phase 在所有当期要求的事项都处理完之后，必须追加一段“阶段收尾汇报记录”，至少包含：
 
@@ -1204,7 +1586,7 @@
    - reviewer 当前和人类还偏差在哪里
 7. 明确说明是否停止在当前 phase，等待下一步指令
 
-## 11. 阶段推进规则
+## 20. 阶段推进规则
 
 1. 除非当前阶段的真实运行已经稳定，否则不推进到下一阶段。
 2. 除非当前阶段已留下完整指标记录，否则不算完成。
@@ -1226,7 +1608,7 @@
 11. 每个后续 phase 都必须同时推进结构收敛；如果只是继续在旧文件和旧路径上叠补丁、没有让项目架构更接近 v1 设计，则不得视为完成该 phase。
 12. 若当前最后一个 phase 结束时仍未达到冻结条件，允许继续新增后续 phase；但必须明确写出为什么现有阶段不足、下一阶段具体补什么，以及新增 phase 的停止标准。
 
-## 12. 最终目标
+## 21. 最终目标
 
 最终目标不是“写完一个看起来像 v1 的新目录”，而是：
 
