@@ -343,4 +343,4 @@ PY
 - 最终逐条表：[`alignment_reviews.parquet`](../../../results/ttool/expert_alignment/paper_rubric_v5/alignment_reviews.parquet)
 - 最终逐样本缓存：[`cache/`](../../../results/ttool/expert_alignment/paper_rubric_v5/cache/)
 - 对齐运行器：[`align_ttool_expert_review.py`](../../../align_ttool_expert_review.py)
-- 独立 agent：[`expert_review_agent.py`](../../expert_review_agent.py)
+- 独立 agent：[`agent.py`](../../agent.py)

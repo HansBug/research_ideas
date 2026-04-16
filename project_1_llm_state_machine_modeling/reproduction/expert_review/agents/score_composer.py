@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..expert_review_schema import DimensionReviewResult, ElementIssue, EvidenceItem, TraceLink, judgement_from_score
-from ..expert_review_utils import normalize_id
+from ..schema import DimensionReviewResult, ElementIssue, EvidenceItem, TraceLink, judgement_from_score
+from ..utils import normalize_id
 from ..tools import status_counts
 from .common import clip01
 

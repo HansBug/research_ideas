@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .expert_review_schema import DimensionDefinition, ExpertReviewRequest
+from ..schema import DimensionDefinition, ExpertReviewRequest
 
 
 AGENT_SYSTEM_PROMPT = """

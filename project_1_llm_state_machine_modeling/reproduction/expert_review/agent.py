@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
 
-from .expert_review_schema import ExpertReviewRequest, ExpertReviewResult
-from .expert_review_utils import (
+from .schema import ExpertReviewRequest, ExpertReviewResult
+from .utils import (
     DEFAULT_MODEL,
     DEFAULT_PROVIDER_ORDER,
     PROVIDER_CONFIGS,
@@ -81,16 +81,3 @@ class ExpertReviewAgent:
             )
             result.notes.append(f"LLM-enabled runtime failed and fell back to deterministic flow: {type(exc).__name__}: {exc}")
             return result
-
-
-def heuristic_expert_review(request: ExpertReviewRequest, llm: ChatOpenAI | None = None) -> ExpertReviewResult:
-    backend_label = "langgraph_multi_agent_v1_deterministic"
-    if llm is not None:
-        backend_label = "langgraph_multi_agent_v1_hybrid"
-    return run_expert_review_workflow(
-        request,
-        llm=llm,
-        llm_model_name=None,
-        llm_provider=None,
-        backend_label=backend_label,
-    )

@@ -1,3 +1,3 @@
-from ..expert_review_schema import ExpertReviewResult
+from ..schema import ExpertReviewResult
 
 __all__ = ["ExpertReviewResult"]

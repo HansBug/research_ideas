@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..expert_review_schema import DimensionReviewResult, ElementIssue, EvidenceItem, ExpertReviewResult, RequirementTraceResult
+from ..schema import DimensionReviewResult, ElementIssue, EvidenceItem, ExpertReviewResult, RequirementTraceResult
 
 
 def status_counts(results: list[RequirementTraceResult]) -> tuple[int, int, int]:

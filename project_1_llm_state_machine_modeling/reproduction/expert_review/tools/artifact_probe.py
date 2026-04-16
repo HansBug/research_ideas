@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from ..expert_review_schema import EvidenceItem
+from ..schema import EvidenceItem
 from ..schemas.dossiers import ArtifactDossier, ArtifactElement, ArtifactRelation
 from .known_format_lift import (
     artifact_family_guess,

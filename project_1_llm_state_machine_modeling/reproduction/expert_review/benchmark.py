@@ -12,8 +12,8 @@ from typing import Any
 
 import pandas as pd
 
-from .expert_review_agent import ExpertReviewAgent
-from .expert_review_schema import ExpertReviewRequest, ExpertReviewResult
+from .agent import ExpertReviewAgent
+from .schema import ExpertReviewRequest, ExpertReviewResult
 
 
 DEFAULT_BENCHMARK_DIR = Path(

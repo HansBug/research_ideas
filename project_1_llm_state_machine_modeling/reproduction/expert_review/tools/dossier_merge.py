@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..expert_review_schema import EvidenceItem
+from ..schema import EvidenceItem
 from ..schemas.dossiers import ArtifactDossier, ArtifactElement, ArtifactRelation
-from ..expert_review_utils import normalize_id
+from ..utils import normalize_id
 from .artifact_probe import merge_text_fragments
 from .known_format_lift import dedupe_strings
 

@@ -4,13 +4,13 @@ import html
 import re
 from typing import Any
 
-from ..expert_review_tools import (
+from ..inventory import (
     extract_generic_inventory_from_text,
     machine_elements_from_payload,
     merge_inventory,
     parse_json_payload,
 )
-from ..expert_review_utils import count_machine_components, normalize_id
+from ..utils import count_machine_components, normalize_id
 
 
 def dedupe_strings(items: list[str]) -> list[str]:

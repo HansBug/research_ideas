@@ -37,7 +37,7 @@
 
 ### 1.3 输出格式尽量保持兼容
 
-`v1` 的内部实现可以大幅重构，但最终外部输出仍应优先兼容 [`expert_review_schema.py`](../../expert_review_schema.py) 中的 `ExpertReviewResult` 结构。
+`v1` 的内部实现可以大幅重构，但最终外部输出仍应优先兼容 [`schema.py`](../../schema.py) 中的 `ExpertReviewResult` 结构。
 
 ### 1.4 大部分流程基于 LLM 完成
 

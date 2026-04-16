@@ -224,9 +224,9 @@
 
 - 回写时间：`2026-04-16 16:46:49`
 - 完成状态：`Phase 1` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 1`，未推进到 `Phase 2`。
-- 真实接入情况：`expert_review_agent.py` 已默认路由到 `expert_review_v1_runtime.py` 的 staged runtime；`heuristic_expert_review()` 已退化为对该 runtime 的兼容包装，不再主导评审逻辑。
-- 运行时边界：`expert_review_self_iteration.py` 仅承担离线 benchmark 回放与分析；运行时不依赖 `expert_review/` 路径外数据。
-- 可运行性：`review_artifacts()`、`review_model()`、`python -m expert_review`、`pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 均已验证。
+- 真实接入情况：`agent.py` 已默认路由到 `expert_review_v1_runtime.py` 的 staged runtime；`heuristic_expert_review()` 已退化为对该 runtime 的兼容包装，不再主导评审逻辑。
+- 运行时边界：`benchmark.py` 仅承担离线 benchmark 回放与分析；运行时不依赖 `expert_review/` 路径外数据。
+- 可运行性：`review_artifacts()`、`review_model()`、`python -m expert_review`、`pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 均已验证。
 - 未完成项：无。
 - 已知遗留问题：`record-level` 分数校准仍偏弱；等价但不同构设计的裁决仍不稳定；`protocol-only` 的 V&V 角色覆盖只达到部分覆盖。
 
@@ -356,7 +356,7 @@
 - 可运行性：
   - `review_artifacts()`、`review_model()` 已验收
   - `python -m expert_review` 已验收
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已通过
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已通过
 - 未完成项：无。
 - 当前未同步项：
   - 由于本轮按用户要求停在**本地未提交状态**，PR #6 的 body 仍停留在 `Phase 1` 口径，未同步到 `Phase 2` 完成状态
@@ -502,7 +502,7 @@
   - equivalence 增加对 `parallel branch credit / parallel collapse penalty / dependency break` 的显式裁决
   - arbiter 会把 trace 结果与 equivalence 冲突对齐，执行 downgrade / upgrade，而不是让两边各说各话
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已通过，共 `10` 个测试
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已通过，共 `10` 个测试
   - `python -m expert_review` 已验收
   - `review_artifacts()`、`review_model()` 已通过 deterministic monkeypatch 烟测验收
 - 未完成项：无。
@@ -644,14 +644,14 @@
   - 新增 `agents/pragmatic_quality.py` 与 `agents/missing_evidence_critic.py`
   - `graph/nodes.py` 新增 `run_quality_node()` 与 `run_missing_evidence_node()`
   - `run_expert_review_workflow()` 已真实构建 `policy_packet`，并通过 quality node / missing-evidence node 驱动主路径，而不是只在 notes 中补口径
-  - `expert_review_self_iteration.py` 已改为优先读取 reviewer 显式给出的 taxonomy / V&V roles / summary semantics，而不是继续主要靠低分阈值猜标签
+  - `benchmark.py` 已改为优先读取 reviewer 显式给出的 taxonomy / V&V roles / summary semantics，而不是继续主要靠低分阈值猜标签
 - Phase 4 的核心能力变化：
   - reviewer 现在会显式产出 `readability_or_naming`、`unused_or_noisy_structure`、`evidence_overreach` 等 quality/evidence taxonomy
   - `summary-only` 已不再把“缺 reference 导致 trace 很差”直接等价成低质 artifact，而是会按 aggregate semantics 做 coarse score
   - `protocol-only` 已显式识别 `manual inspection / formal verification / simulation / testing / syntax checker` 等 V&V 角色，并把它们沉淀进 `metric_payload` 与 `notes`
   - confidence policy 已不再只是 runtime 里的零碎上限分支，而是通过 `policy_library -> missing_evidence_critic -> final_confidence` 串起来
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已通过，共 `12` 个测试
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已通过，共 `12` 个测试
   - `review_artifacts()` 与 `review_model()` 已在显式清空 provider key 的 deterministic 模式下完成烟测
   - `python -m expert_review` 已在显式清空 provider key 的 deterministic 模式下完成烟测
 - 未完成项：无。
@@ -790,7 +790,7 @@
 - 完成状态：`Phase 5` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 5`，未推进到 `Phase 6`。
 - 真实接入情况：
   - `expert_review/graph/runtime.py` 已成为默认主编排。
-  - `expert_review_agent.py` 已直接走 `graph.runtime.run_expert_review_workflow()`。
+  - `agent.py` 已直接走 `graph.runtime.run_expert_review_workflow()`。
   - `__init__.py` / `__main__.py` 已改为通过 `compatibility/legacy_api.py` 暴露兼容入口。
   - `expert_review_v1_runtime.py` 已压缩为兼容薄封装，仅保留测试仍需使用的 helper re-export 与 workflow wrapper。
 - 结构收敛情况：
@@ -816,13 +816,13 @@
   - `review_artifacts()` 已验证
   - `review_model()` 已验证
   - `python -m expert_review` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py` 已验证
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
   - `run_benchmark_iteration(llm_mode='off')` 已验证
 - 未完成项：无。
 - 当前旧逻辑保留情况：
-  - `expert_review_schema.py` 仍承担对外 schema 定义
-  - `expert_review_tools.py` 与 `expert_review_utils.py` 仍承担底层历史工具职责
-  - `expert_review_prompts.py`、`expert_review_rubrics.py` 仍在树中，但已不再承载 Phase 5 新主路径的核心编排
+  - `schema.py` 仍承担对外 schema 定义
+  - `inventory.py` 与 `utils.py` 仍承担底层历史工具职责
+  - `legacy/prompts.py`、`legacy/rubrics.py` 仍在树中，但已不再承载 Phase 5 新主路径的核心编排
 - 停止原因：
   - `Round 0` 的结构收敛本身已把 Phase 5 的主要目标完成，并拿到了本阶段最佳基线
   - 在 Phase 5 架构边界内继续做 `Round 1..3` patch 后，`HAI` 均低于 `Round 0`
@@ -872,23 +872,23 @@
   - `review_artifacts()`
   - `review_model()`
   - `python -m expert_review`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_expert_review.py`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
   - `run_benchmark_iteration(llm_mode='off')`
 - 已被替换的真实路径：
-  - `expert_review_agent.py` 从历史 runtime 直接切到 `graph/runtime.py`
+  - `agent.py` 从历史 runtime 直接切到 `graph/runtime.py`
   - `__init__.py` / `__main__.py` 从根路径直接暴露旧实现，改为经过 `compatibility/legacy_api.py`
   - `expert_review_v1_runtime.py` 从核心大文件退化为兼容 re-export
 - 本阶段真实落位的目标层次：
   - `schemas / prompts / tools / agents / graph / compatibility` 六层已全部有真实代码归宿，且都进入当前主路径
 - 仍保留的旧逻辑：
-  - `expert_review_schema.py`
-  - `expert_review_tools.py`
-  - `expert_review_utils.py`
-  - 历史 `expert_review_prompts.py / expert_review_rubrics.py`
+  - `schema.py`
+  - `inventory.py`
+  - `utils.py`
+  - 历史 `legacy/prompts.py / legacy/rubrics.py`
 - 当前仍属过渡件的部分：
-  - `expert_review_agent.py` 仍承担 provider/LLM 初始化壳层
-  - `expert_review_schema.py` 仍是新旧路径共用的对外 schema 定义
-  - `expert_review_tools.py / expert_review_utils.py` 仍有若干底层 helper 待在 `Phase 6` 再判断是否进一步细拆
+  - `agent.py` 仍承担 provider/LLM 初始化壳层
+  - `schema.py` 仍是新旧路径共用的对外 schema 定义
+  - `inventory.py / utils.py` 仍有若干底层 helper 待在 `Phase 6` 再判断是否进一步细拆
 
 ### Phase 5 多轮自我迭代记录
 
@@ -955,35 +955,192 @@
 
 ### Todolist
 
-* [ ] 对照 [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md) 的停止标准做完整核验。
-* [ ] 对所有 phase 的指标演化做总汇总。
-* [ ] 明确哪些指标已经达到停止门槛，哪些还未达到。
-* [ ] 整理最终 v1 的 prompt / policy / rubric / agent 角色定义。
-* [ ] 对照 v1 设计稿第 `13` 节核对最终路径结构与模块归宿，补齐缺失项并删除明显偏离项。
-* [ ] 去掉已经被替换掉的旧临时实现和旁路逻辑。
-* [ ] 确保兼容层与 v1 内核彻底分离，历史 API 只保留在 `compatibility/` 或等价薄层中。
-* [ ] 做一次不可达路径检查，确保最终 v1 代码树干净。
-* [ ] 输出版本级对齐报告与冻结说明。
-* [ ] 汇总所有 phase 内部多轮自我迭代记录，形成完整优化链路总账。
+* [x] 对照 [SELF_ITERATION_GUIDE.md](./SELF_ITERATION_GUIDE.md) 的停止标准做完整核验。
+* [x] 对所有 phase 的指标演化做总汇总。
+* [x] 明确哪些指标已经达到停止门槛，哪些还未达到。
+* [x] 整理最终 v1 的 prompt / policy / rubric / agent 角色定义。
+* [x] 对照 v1 设计稿第 `13` 节核对最终路径结构与模块归宿，补齐缺失项并删除明显偏离项。
+* [x] 去掉已经被替换掉的旧临时实现和旁路逻辑。
+* [x] 确保兼容层与 v1 内核彻底分离，历史 API 只保留在 `compatibility/` 或等价薄层中。
+* [x] 做一次不可达路径检查，确保最终 v1 代码树干净。
+* [x] 输出版本级对齐报告与冻结说明。
+* [x] 汇总所有 phase 内部多轮自我迭代记录，形成完整优化链路总账。
 
 ### Checklist
 
-* [ ] v1 的真实实现已经不是“半旧半新”混合状态。
-* [ ] 最终代码路径结构、模块边界和运行时组织都已与 v1 设计稿对齐，而不是只做到行为近似。
-* [ ] 所有阶段性临时逻辑都有归宿：
-  * [ ] 要么进入正式路径
-  * [ ] 要么被删除
-* [ ] 没有明显不可达代码残留。
-* [ ] 有完整 phase-by-phase 对齐演化记录。
-* [ ] 有完整 phase-by-phase 且 round-by-round 的优化链路记录。
-* [ ] 有最终冻结版本说明。
-* [ ] 若未达门槛，已明确写出阻塞项与下一版设计入口。
+* [x] v1 的真实实现已经不是“半旧半新”混合状态。
+* [x] 最终代码路径结构、模块边界和运行时组织都已与 v1 设计稿对齐，而不是只做到行为近似。
+* [x] 所有阶段性临时逻辑都有归宿：
+  * [x] 要么进入正式路径
+  * [x] 要么被删除
+* [x] 没有明显不可达代码残留。
+* [x] 有完整 phase-by-phase 对齐演化记录。
+* [x] 有完整 phase-by-phase 且 round-by-round 的优化链路记录。
+* [x] 有最终冻结版本说明。
+* [x] 若未达门槛，已明确写出阻塞项与下一版设计入口。
 
-## 9. 每个 Phase 的统一对齐记录模板
+### Phase 6 当前状态回写
+
+- 回写时间：`2026-04-16 21:48:23`
+- 完成状态：`Phase 6` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 6`，并已按规则新增 `Phase 7` 作为后续提分入口。
+- 真实接入情况：
+  - `expert_review/graph/runtime.py` 继续作为默认主编排，当前 benchmark 与入口验证都直接以此路径为准。
+  - `compatibility/legacy_api.py` 成为历史 API 的唯一正式兼容面，`review_artifacts()`、`review_model()`、`heuristic_expert_review()` 均由此统一暴露。
+  - `expert_review_v1_runtime.py` 已删除，不再保留“测试 helper 通过旧运行时兼容中转”的旁路。
+  - `test_review.py` 已改为直接引用正式模块：`agents/input_analyst.py`、`tools/artifact_probe.py`、`tools/dossier_merge.py`、`compatibility/legacy_api.py`。
+  - `agent.py` 已移除 `heuristic_expert_review()`，只保留 provider/LLM 初始化壳层与 `ExpertReviewAgent.review()` 主职责。
+- 结构收敛情况：
+  - 当前正式运行时目录主干已稳定为 `schemas / prompts / tools / agents / graph / compatibility`
+  - 根层保留物已明确收缩为包入口、对外 schema、共享 helper 与 provider 壳层
+  - 当前版本级核验与冻结说明已单独固化到 [V1_ALIGNMENT_REPORT.md](./V1_ALIGNMENT_REPORT.md)
+- 未完成项：无；`Phase 6` 自身事项已全部闭合。
+- 当前停止原因：
+  - `Phase 6` 的目标是冻结前核验与代码树收口，而不是继续在当前 phase 内做提分 patch
+  - 当前收口后 benchmark 指标与 `Phase 5 Round 0` 保持一致，未观察到明显回退
+  - 由于冻结门槛仍显著未达标，后续继续提分已明确转交给 `Phase 7`
+
+### Phase 6 指标总表
+
+本节记录 `2026-04-16 21:48:23` 基于 `run_benchmark_iteration(llm_mode='off')` 的 `Phase 6` 收口快照。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `78.68` |
+| `RAS` | `74.87` |
+| `SAS` | `75.02` |
+| `PDS` | `93.75` |
+| `normalized_mae` | `0.1751` |
+| `rmse` | `0.1911` |
+| `issue_f1` | `0.8202` |
+| `human_issue_coverage_recall` | `0.8500` |
+| `equivalence_false_reject_rate` | `0.0000` |
+| `equivalence_false_accept_rate` | `0.1429` |
+| `unsupported_claim_rate` | `0.1778` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `ece` | `0.5302` |
+| `rerun_score_std` | `0.0000` |
+| `vv_role_coverage` | `0.7500` |
+
+### Phase 6 本阶段改进记录
+
+- 最明显提升 1：删除 `expert_review_v1_runtime.py`，并让测试直接引用正式模块，当前代码树不再保留“旧 runtime 兼容中转层”。
+- 最明显提升 2：历史 API 已进一步收口到 `compatibility/legacy_api.py`，`agent.py` 不再继续承担兼容函数暴露职责。
+- 最明显提升 3：当前版本级对齐报告、冻结判断、phase 演化总表与 `Phase 7` 入口已经固定到 [V1_ALIGNMENT_REPORT.md](./V1_ALIGNMENT_REPORT.md) 与本 `TODO`，后续不会再缺失冻结前收尾台账。
+
+- 最明显退化风险 1：未观察到新的 `HAI / RAS / SAS / PDS` 级明显回退；当前 benchmark 指标与 `Phase 5 Round 0` 保持一致。
+- 最明显退化风险 2：由于 `Phase 6` 故意不做提分 patch，冻结差距本身没有缩小，说明该 phase 不能替代真正的下一轮提分工作。
+- 最明显退化风险 3：历史 `legacy/prompts.py / legacy/rubrics.py` 仍作为 `v0` 参考快照留在树中，虽然不再进入主路径，但后续若要继续压缩根层噪声，仍应优先在新 phase 内评估是否进一步归档。
+
+- 当前仍未完全解决的问题 1：`record-level` 的个别 partial-heavy 样例仍高于人工，`RAS` 远未达到冻结门槛。
+- 当前仍未完全解决的问题 2：`summary-level` 的高分 public row 仍偏保守，`SAS` 仍不足以支持冻结。
+- 当前仍未完全解决的问题 3：`unsupported_claim_rate` 与 `ece` 仍显著高于停止标准，这已不是 `Phase 6` 收口能解决的问题，而是 `Phase 7` 的核心提分目标。
+
+### Phase 6 本阶段运行记录
+
+- 已验证入口：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `python -m expert_review`（在清空 provider env 的 deterministic 模式下）
+  - `run_benchmark_iteration(llm_mode='off')`
+- 已被替换或删除的真实路径：
+  - `expert_review_v1_runtime.py` 已删除
+  - `test_review.py` 不再通过旧 runtime helper re-export 访问正式能力
+  - `agent.py` 不再保留 `heuristic_expert_review()`
+- 本阶段真实落位的目标层次：
+  - `schemas / prompts / tools / agents / graph / compatibility` 六层均仍由当前主路径真实使用
+- 当前仍保留的旧逻辑：
+  - `schema.py`
+  - `inventory.py`
+  - `utils.py`
+  - 历史 `legacy/prompts.py / legacy/rubrics.py`
+- 当前仍属过渡或特殊保留的部分：
+  - 无明显 runtime 过渡件；根层保留物当前都已有明确职责或历史参考定位
+
+### Phase 6 多轮自我迭代记录
+
+说明：
+
+- `Phase 6` 的 round 记录以“冻结核验与收口”而不是“继续局部提分”作为边界。
+- 因此本 phase 只保留 `Round 0`：完成代码树收口、兼容边界清理、版本级对齐核验，并确认当前版本无明显回退。
+- 后续若要继续做评分逻辑、policy 或 agent 分工层面的 patch，按规则必须进入新开的 `Phase 7`，而不是继续把提分工作混进 `Phase 6`。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | 删除 `expert_review_v1_runtime.py`；测试改为直连正式模块；从 `agent.py` 移除 `heuristic_expert_review()`；补齐版本级对齐报告、冻结判断与 `Phase 7` 入口 | `compatibility_boundary` / `codebase_hygiene` | `HAI 78.68 / RAS 74.87 / SAS 75.02 / PDS 93.75` | `HAI 78.68 / RAS 74.87 / SAS 75.02 / PDS 93.75 / normalized_mae 0.1751 / issue_f1 0.8202 / unsupported_claim_rate 0.1778 / ece 0.5302` | `HAI +0.00` | `否` | 说明 `Phase 6` 收口未引入明显回退；当前 phase 目标已完成，继续提分需进入 `Phase 7` |
+
+### Phase 6 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 6` 已完成并停止，等待下一步指令；`Phase 7` 已创建但尚未开始实现。
+- TODO 已完成项：
+  - `Phase 6` 全部 Todolist 已打勾
+  - `Phase 6` 全部 Checklist 已打勾
+  - 版本级对齐报告与冻结说明已写入 [V1_ALIGNMENT_REPORT.md](./V1_ALIGNMENT_REPORT.md)
+  - `Phase 7` 已写入当前 `TODO`
+- TODO 尚未完成项：无；当前未冻结原因已如实转交给 `Phase 7`。
+- 当前对齐程度总览：
+  - 当前 `HAI 78.68 / RAS 74.87 / SAS 75.02 / PDS 93.75`
+  - 与 `Phase 5 Round 0` 相比，本次 `Phase 6` 收口没有带来明显回退，也没有试图伪造“只靠清理代码就能继续提分”的假象
+  - 当前 reviewer 已具备稳定的多智能体主路径和较强的 protocol restraint，但离冻结标准仍有明显差距
+- 对各项核心指标的解释：
+  - `HAI 78.68`：整体已经进入“明显像真人 reviewer”的区间，但还不足以宣告和人工达到可接受对齐
+  - `RAS 74.87`：record-level 仍是当前冻结的最大阻塞项之一，说明逐条人工评审对齐还不够严密
+  - `SAS 75.02`：summary-level 语义意识已稳定，但高分 public row 仍偏保守
+  - `PDS 93.75`：protocol-only restraint 已经很稳，`Phase 7` 不能以牺牲这一点为代价去换分
+  - `unsupported_claim_rate 0.1778` 与 `ece 0.5302`：当前 reviewer 仍有“说得偏多、置信度校准偏松”的系统性问题，这也是下一阶段必须重点压的项
+- 真实例子对比：
+  - 例子 1：branch-family 等价重构 case 仍保持 `0.609222`
+    - 说明本次 `Phase 6` 收口没有破坏“不同构但等价应给 credit”的核心能力
+  - 例子 2：`sncs:connected_device:SMD:Std Dev` 仍保持接近 `Phase 5` 的低分 summary 语义处理
+    - 说明 `summary-only` 语义识别未因代码树收口而回退
+  - 例子 3：`protocol::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` 仍不会虚构元素级结论
+    - 说明 protocol-only restraint 未被破坏
+    - 但 taxonomy 语气仍不够像真人 protocol reviewer，这一问题已明确转交 `Phase 7`
+- 当前 phase 是否停止：`是`，停止在 `Phase 6`；后续待命，等待是否进入 `Phase 7` 的实现指令。
+
+## 9. Phase 7: 面向提分的下一轮校准与收敛
+
+目标：
+
+在 `Phase 6` 完成结构收口与冻结核验之后，围绕当前仍明显落后于人工的指标继续提分，同时保持 `Phase 5/6` 已建立的多智能体主路径、证据纪律和结构边界不被破坏。
+
+### Todolist
+
+* [ ] 针对当前最主要残差簇制定新一轮提分方案，并明确哪些属于 `contract / extraction / equivalence / quality / evidence discipline` 哪一类问题。
+* [ ] 优先收口 `record-level` 的 partial-heavy 高估问题，避免继续出现“partial 很多但仍偏高分”的样例。
+* [ ] 优先收口 `summary-level` 的高分 public row 过度保守问题，降低不必要的 readability/noise 过惩罚。
+* [ ] 优先收口 `protocol-only` 的 issue taxonomy 语言，使其更像真人 protocol reviewer，而不是 record-style artifact review。
+* [ ] 在不牺牲 `PDS` 与 `equivalence_false_reject_rate` 的前提下继续降低 `unsupported_claim_rate` 与 `ece`。
+* [ ] 本 phase 内继续坚持结构收敛，新增能力必须落在正式 `prompts / tools / agents / graph` 路径，而不是回流到历史根层大文件。
+* [ ] 在 `Phase 7` 当前架构边界内开展多轮自我迭代，直到提分收益明显边际化。
+* [ ] 记录 `Phase 7` 每一轮迭代的修改项、风险点与指标前后变化。
+
+### Checklist
+
+* [ ] `HAI / RAS / SAS` 相对 `Phase 6` 有实质提升，而不是只在局部样例上改善。
+* [ ] `PDS` 不出现明显回退。
+* [ ] `equivalence_false_reject_rate` 不出现明显回退。
+* [ ] `unsupported_claim_rate` 与 `ece` 至少有一项出现明确改善，且另一项不明显恶化。
+* [ ] protocol-only 的 issue taxonomy 已不再明显带有 record-style 标签。
+* [ ] 本 phase 新增逻辑均已进入真实主路径，而不是实验旁路。
+* [ ] 已保留完整 `round-by-round` 提分链路记录。
+* [ ] 若仍未达到冻结门槛，已明确下一阶段或下一版设计入口。
+
+### Phase 7 当前状态回写
+
+- 创建时间：`2026-04-16 21:48:23`
+- 当前状态：`Phase 7` 已创建，尚未开始实现；等待下一步指令。
+- 创建原因：
+  - `Phase 6` 已完成收口与冻结核验，但当前版本未达到冻结门槛
+  - 当前最需要的已不是代码树清理，而是继续提分
+- 进入前提：
+  - `Phase 6` 已确认无明显回退
+  - `Phase 6` 的版本级对齐报告与冻结说明已固定到 [V1_ALIGNMENT_REPORT.md](./V1_ALIGNMENT_REPORT.md)
+
+## 10. 每个 Phase 的统一对齐记录模板
 
 每个 phase 完成后，至少记录以下内容：
 
-### 9.1 指标总表
+### 10.1 指标总表
 
 1. `HAI`
 2. `RAS`
@@ -1000,13 +1157,13 @@
 13. `ece`
 14. `rerun_score_std`
 
-### 9.2 本阶段改进记录
+### 10.2 本阶段改进记录
 
 1. 本阶段最明显提升的三项能力。
 2. 本阶段最明显退化的三项能力。
 3. 本阶段仍未解决的三类错误簇。
 
-### 9.3 本阶段运行记录
+### 10.3 本阶段运行记录
 
 1. 哪些入口已验证。
 2. 哪些真实路径被替换。
@@ -1014,7 +1171,7 @@
 4. 哪些旧逻辑仍然保留。
 5. 哪些模块只是临时过渡件。
 
-### 9.4 本阶段多轮自我迭代记录
+### 10.4 本阶段多轮自我迭代记录
 
 每个 phase 内部，应追加一个 round-by-round 记录区，至少包含：
 
@@ -1031,7 +1188,7 @@
    - 指标已经达到目标
    - 或进一步提升已明显边际化
 
-### 9.5 本阶段收尾汇报记录
+### 10.5 本阶段收尾汇报记录
 
 每个 phase 在所有当期要求的事项都处理完之后，必须追加一段“阶段收尾汇报记录”，至少包含：
 
@@ -1047,7 +1204,7 @@
    - reviewer 当前和人类还偏差在哪里
 7. 明确说明是否停止在当前 phase，等待下一步指令
 
-## 10. 阶段推进规则
+## 11. 阶段推进规则
 
 1. 除非当前阶段的真实运行已经稳定，否则不推进到下一阶段。
 2. 除非当前阶段已留下完整指标记录，否则不算完成。
@@ -1067,9 +1224,9 @@
    - 真实例子对比
 10. 在完成上述回写与汇报前，不得视为该 phase 真正收尾。
 11. 每个后续 phase 都必须同时推进结构收敛；如果只是继续在旧文件和旧路径上叠补丁、没有让项目架构更接近 v1 设计，则不得视为完成该 phase。
-12. 若 `Phase 6` 结束时仍未达到冻结条件，允许继续新增后续 phase；但必须明确写出为什么现有阶段不足、下一阶段具体补什么，以及新增 phase 的停止标准。
+12. 若当前最后一个 phase 结束时仍未达到冻结条件，允许继续新增后续 phase；但必须明确写出为什么现有阶段不足、下一阶段具体补什么，以及新增 phase 的停止标准。
 
-## 11. 最终目标
+## 12. 最终目标
 
 最终目标不是“写完一个看起来像 v1 的新目录”，而是：
 

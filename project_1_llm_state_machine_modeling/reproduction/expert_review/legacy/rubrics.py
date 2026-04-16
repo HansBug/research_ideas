@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .expert_review_prompts import default_dimension_examples
-from .expert_review_schema import DimensionDefinition
+from .prompts import default_dimension_examples
+from ..schema import DimensionDefinition
 
 
 def _clone_dimensions(names: list[str], weights: dict[str, float] | None = None) -> list[DimensionDefinition]:

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_agent import ExpertReviewAgent
-from ..expert_review_schema import ExpertReviewRequest, ExpertReviewResult
+from ..agent import ExpertReviewAgent
+from ..schema import ExpertReviewRequest, ExpertReviewResult
 from ..graph.runtime import run_expert_review_workflow
 
 

@@ -13,7 +13,7 @@ import pandas as pd
 
 from config import RAW_ROOT, RESULTS_ROOT
 from expert_review import ExpertReviewAgent, ExpertReviewRequest, result_to_flat_row
-from expert_review.expert_review_schema import to_dict
+from expert_review.schema import to_dict
 from io_utils import load_discussion_parquet, write_json, write_parquet
 
 

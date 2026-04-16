@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import re
 
-from ..expert_review_schema import EvidenceItem, RequirementTraceResult
-from ..expert_review_tools import parse_requirement_items
+from ..schema import EvidenceItem, RequirementTraceResult
+from ..inventory import parse_requirement_items
 from ..schemas.dossiers import InputDossier
-from ..expert_review_utils import normalize_id
+from ..utils import normalize_id
 
 
 INPUT_STOPWORDS = {

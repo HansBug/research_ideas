@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 
 from expert_review import ExpertReviewAgent, ExpertReviewRequest, result_to_flat_row
-from expert_review.expert_review_schema import to_dict
+from expert_review.schema import to_dict
 from io_utils import baseline_result_dir, write_json, write_parquet
 
 

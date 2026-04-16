@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ..expert_review_schema import EvidenceItem
-from ..expert_review_utils import normalize_id
+from ..schema import EvidenceItem
+from ..utils import normalize_id
 
 
 INPUT_STOPWORDS = {

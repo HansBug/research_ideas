@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 from .compatibility import review_model
-from .expert_review_schema import to_json
+from .schema import to_json
 
 
 def main() -> None:

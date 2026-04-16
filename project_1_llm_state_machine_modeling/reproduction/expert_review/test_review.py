@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from .expert_review_agent import heuristic_expert_review
-from .expert_review_schema import ExpertReviewRequest
-from .expert_review_v1_runtime import _build_input_dossier, _build_parser_dossier, _merge_artifact_dossiers
+from .agents.input_analyst import build_input_dossier
+from .compatibility import heuristic_expert_review
+from .schema import ExpertReviewRequest
+from .tools.artifact_probe import build_parser_dossier
+from .tools.dossier_merge import merge_artifact_dossiers
 
 
 def build_request(with_reference: bool = True) -> ExpertReviewRequest:
@@ -284,14 +286,14 @@ def test_input_dossier_splits_inline_requirement_markers() -> None:
         pred_output="state Idle",
         ref_output=None,
     )
-    dossier = _build_input_dossier(request)
+    dossier = build_input_dossier(request)
     assert [item.requirement_id for item in dossier.requirements] == ["R1", "R2", "R3"]
     assert any("only from Ready" in item for item in dossier.constraints)
     assert dossier.evidence
 
 
 def test_parser_dossier_probes_ttool_xml_into_structure() -> None:
-    dossier = _build_parser_dossier(
+    dossier = build_parser_dossier(
         "prediction",
         """<?xml version="1.0" encoding="UTF-8"?>
 <TURTLEGMODELING>
@@ -317,7 +319,7 @@ def test_parser_dossier_probes_ttool_xml_into_structure() -> None:
 
 
 def test_merge_artifact_dossiers_reconciles_duplicate_llm_items() -> None:
-    parser_dossier = _build_parser_dossier(
+    parser_dossier = build_parser_dossier(
         "prediction",
         """
 @startuml
@@ -326,7 +328,7 @@ Idle --> Ready : login
 @enduml
 """,
     )
-    merged = _merge_artifact_dossiers(
+    merged = merge_artifact_dossiers(
         parser_dossier,
         {
             "summary": "Merged dossier",

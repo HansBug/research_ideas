@@ -5,7 +5,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_schema import ElementIssue, EvidenceItem
+from ..schema import ElementIssue, EvidenceItem
 from ..prompts import EQUIVALENCE_SYSTEM_PROMPT
 from .common import (
     clip01,

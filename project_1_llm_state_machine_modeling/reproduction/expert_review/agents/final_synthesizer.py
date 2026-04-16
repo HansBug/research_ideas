@@ -5,7 +5,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_schema import ExpertReviewResult, judgement_from_score
+from ..schema import ExpertReviewResult, judgement_from_score
 from ..prompts.synthesis import FINAL_SYNTHESIS_SYSTEM_PROMPT
 from ..tools import evidence_summary_from_dimensions, validate_result_shape
 from .llm_helpers import invoke_llm_json

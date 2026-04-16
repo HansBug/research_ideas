@@ -4,7 +4,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_utils import ensure_json
+from ..utils import ensure_json
 
 
 def content_to_text(content: object) -> str:

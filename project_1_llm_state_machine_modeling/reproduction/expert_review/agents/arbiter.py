@@ -5,7 +5,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_schema import RequirementTraceResult
+from ..schema import RequirementTraceResult
 from ..prompts import ARBITRATION_SYSTEM_PROMPT
 from .common import clip01
 from .llm_helpers import invoke_llm_json

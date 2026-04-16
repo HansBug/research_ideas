@@ -6,7 +6,7 @@
 
 - 设计调研与理论依据见 [`EXPERT_REVIEW_RESEARCH.md`](./EXPERT_REVIEW_RESEARCH.md)
 - 对齐实验结果见 [`EXPERT_ALIGNMENT_REPORT.md`](./EXPERT_ALIGNMENT_REPORT.md)
-- 主实现见 [`expert_review_agent.py`](../../expert_review_agent.py)
+- 主实现见 [`agent.py`](../../agent.py)
 
 ## 1. 一句话结论
 
@@ -31,7 +31,7 @@
 - `pred_output`
 - 可选 `ref_output`
 
-输出一个结构化专家评审结果 [`ExpertReviewResult`](../../expert_review_schema.py)，其中包括：
+输出一个结构化专家评审结果 [`ExpertReviewResult`](../../schema.py)，其中包括：
 
 - 总分 `overall_score`
 - 总体文字判断 `overall_judgement`
@@ -57,27 +57,27 @@
 
 | 文件 | 作用 |
 |:--|:--|
-| [`expert_review_schema.py`](../../expert_review_schema.py) | 定义所有输入输出 dataclass，以及序列化辅助函数 |
-| [`expert_review_prompts.py`](../../expert_review_prompts.py) | 定义系统 prompt、评审指导语、示例、校准说明、维度模板 |
-| [`expert_review_rubrics.py`](../../expert_review_rubrics.py) | 把当前评审 profile 固定为 5 个维度，并返回 `comparison_policy` |
-| [`expert_review_tools.py`](../../expert_review_tools.py) | 需求拆分、inventory 抽取、集合匹配、trace 构建等可复用工具函数 |
-| [`expert_review_utils.py`](../../expert_review_utils.py) | provider 配置、环境变量解析、JSON 提取、machine 归一化、计数等基础函数 |
-| [`expert_review_agent.py`](../../expert_review_agent.py) | 主控制器。负责 provider 选择、预计算、LLM 主评审、heuristic 评审、回退与混合 |
+| [`schema.py`](../../schema.py) | 定义所有输入输出 dataclass，以及序列化辅助函数 |
+| [`legacy/prompts.py`](../../legacy/prompts.py) | 定义系统 prompt、评审指导语、示例、校准说明、维度模板 |
+| [`legacy/rubrics.py`](../../legacy/rubrics.py) | 把当前评审 profile 固定为 5 个维度，并返回 `comparison_policy` |
+| [`inventory.py`](../../inventory.py) | 需求拆分、inventory 抽取、集合匹配、trace 构建等可复用工具函数 |
+| [`utils.py`](../../utils.py) | provider 配置、环境变量解析、JSON 提取、machine 归一化、计数等基础函数 |
+| [`agent.py`](../../agent.py) | 主控制器。负责 provider 选择、预计算、LLM 主评审、heuristic 评审、回退与混合 |
 | [`__init__.py`](../../__init__.py) | 暴露 `review_artifacts()`、`review_model()` 等简化 API |
 | [`__main__.py`](../../__main__.py) | 提供单次 CLI 入口 |
 | [`run_expert_review.py`](../../../run_expert_review.py) | 面向 baseline 数据集的批量评审入口 |
 | [`align_ttool_expert_review.py`](../../../align_ttool_expert_review.py) | 面向 TTool-AI 的专家评分对齐实验入口 |
-| [`test_expert_review.py`](../../test_expert_review.py) | 当前最小测试集，主要覆盖 heuristic 路径 |
+| [`test_review.py`](../../test_review.py) | 当前最小测试集，主要覆盖 heuristic 路径 |
 
 一个很重要的事实是：
 
-`expert_review_tools.py` 里虽然把若干函数包装成了 LangChain `@tool`，但当前 `ExpertReviewAgent` 并没有进入 tool-calling agent 模式，它只是**直接调用这些 Python 函数**。所以“工具层”在当前版本更像是“可复用函数层”，而不是“智能体外设”。
+`inventory.py` 里虽然把若干函数包装成了 LangChain `@tool`，但当前 `ExpertReviewAgent` 并没有进入 tool-calling agent 模式，它只是**直接调用这些 Python 函数**。所以“工具层”在当前版本更像是“可复用函数层”，而不是“智能体外设”。
 
 ## 4. 输入输出数据模型
 
 ### 4.1 输入对象
 
-入口请求对象是 [`ExpertReviewRequest`](../../expert_review_schema.py)：
+入口请求对象是 [`ExpertReviewRequest`](../../schema.py)：
 
 - `prompt`
 - `input_text`
@@ -93,7 +93,7 @@
 
 ### 4.2 输出对象
 
-核心输出对象是 [`ExpertReviewResult`](../../expert_review_schema.py)，字段含义如下：
+核心输出对象是 [`ExpertReviewResult`](../../schema.py)，字段含义如下：
 
 - `overall_score`：`0.0` 到 `1.0`
 - `overall_judgement`：通过 `judgement_from_score()` 离散化得到
@@ -109,7 +109,7 @@
 
 ### 4.3 当前启用的评分维度
 
-默认 profile 由 [`resolve_review_profile()`](../../expert_review_rubrics.py) 固定返回 5 个维度：
+默认 profile 由 [`resolve_review_profile()`](../../legacy/rubrics.py) 固定返回 5 个维度：
 
 1. `notation_syntax`
 2. `semantic_completeness`
@@ -117,7 +117,7 @@
 4. `requirement_traceability`
 5. `pragmatic_clarity`
 
-每个维度都是 [`DimensionDefinition`](../../expert_review_schema.py)，包含：
+每个维度都是 [`DimensionDefinition`](../../schema.py)，包含：
 
 - 名称
 - 标题
@@ -152,11 +152,11 @@ review_artifacts / review_model / CLI
 
 ## 6. Provider 选择与 LLM 初始化
 
-LLM 初始化逻辑在 [`ExpertReviewAgent.__init__()`](../../expert_review_agent.py) 和 `_build_llm()` 中。
+LLM 初始化逻辑在 [`ExpertReviewAgent.__init__()`](../../agent.py) 和 `_build_llm()` 中。
 
 ### 6.1 默认模型与 provider 顺序
 
-定义在 [`expert_review_utils.py`](../../expert_review_utils.py)：
+定义在 [`utils.py`](../../utils.py)：
 
 - 默认模型：`gpt-5.4`
 - 默认 provider 顺序：`airouter -> findcg -> miaocg`
@@ -208,7 +208,7 @@ LLM 初始化逻辑在 [`ExpertReviewAgent.__init__()`](../../expert_review_agen
 
 ### 7.1 解析评审 profile
 
-调用 [`resolve_review_profile()`](../../expert_review_rubrics.py) 后返回三样东西：
+调用 [`resolve_review_profile()`](../../legacy/rubrics.py) 后返回三样东西：
 
 - `rubric_text`
 - `comparison_policy`
@@ -225,7 +225,7 @@ LLM 初始化逻辑在 [`ExpertReviewAgent.__init__()`](../../expert_review_agen
 
 ### 7.2 解析 requirements
 
-需求解析由 [`parse_requirement_items()`](../../expert_review_tools.py) 完成，规则是：
+需求解析由 [`parse_requirement_items()`](../../inventory.py) 完成，规则是：
 
 1. 如果调用者显式提供了结构化 requirement 列表，优先使用它。
 2. 否则尝试按行匹配 requirement 编号模式，如 `R1:`、`REQ_2:`、`FM3-...`。
@@ -235,7 +235,7 @@ LLM 初始化逻辑在 [`ExpertReviewAgent.__init__()`](../../expert_review_agen
 
 ### 7.3 提取 inventory
 
-inventory 提取由 [`extract_model_inventory()`](../../expert_review_tools.py) 完成。
+inventory 提取由 [`extract_model_inventory()`](../../inventory.py) 完成。
 
 它会同时处理 `prediction` 和 `reference` 两侧，每侧都做两件事：
 
@@ -254,7 +254,7 @@ inventory 提取由 [`extract_model_inventory()`](../../expert_review_tools.py) 
 
 #### 7.3.2 自由文本路径
 
-如果输入不是规整 JSON，系统会用 [`extract_generic_inventory_from_text()`](../../expert_review_tools.py) 做弱结构抽取：
+如果输入不是规整 JSON，系统会用 [`extract_generic_inventory_from_text()`](../../inventory.py) 做弱结构抽取：
 
 - 从 `state X`、`block Y` 之类模式抽名字
 - 从 `A -> B` 之类模式抽迁移
@@ -291,8 +291,8 @@ inventory 提取由 [`extract_model_inventory()`](../../expert_review_tools.py) 
 
 trace 生成分两层：
 
-1. [`build_requirement_trace()`](../../expert_review_tools.py) 做最底层 lexical overlap 匹配
-2. `_requirement_results()` 把它包装成 [`RequirementTraceResult`](../../expert_review_schema.py)
+1. [`build_requirement_trace()`](../../inventory.py) 做最底层 lexical overlap 匹配
+2. `_requirement_results()` 把它包装成 [`RequirementTraceResult`](../../schema.py)
 
 当前 trace 逻辑是：
 
@@ -315,7 +315,7 @@ trace 生成分两层：
 - prediction state 集合 vs reference state 集合
 - prediction transition 集合 vs reference transition 集合
 
-然后把 prediction 中多出来的元素记成 [`ElementIssue`](../../expert_review_schema.py)：
+然后把 prediction 中多出来的元素记成 [`ElementIssue`](../../schema.py)：
 
 - `element_kind`: `state` 或 `transition`
 - `issue_type`: `extra`
@@ -327,7 +327,7 @@ trace 生成分两层：
 
 ## 8. LLM 主评审路径
 
-如果 `ExpertReviewAgent` 成功初始化了 LLM，`review()` 会优先尝试 [`llm_primary_review()`](../../expert_review_agent.py)。
+如果 `ExpertReviewAgent` 成功初始化了 LLM，`review()` 会优先尝试 [`llm_primary_review()`](../../agent.py)。
 
 ### 8.1 这条路径的基本思路
 
@@ -562,7 +562,7 @@ heuristic 结果会主动为 `semantic_completeness` 和 `requirement_traceabili
 
 ### 11.1 一个当前实现注意点
 
-按当前代码阅读，[`_architecture_blend_weight()`](../../expert_review_agent.py) 里有一处明显的调用参数不匹配风险：
+按当前代码阅读，[`_architecture_blend_weight()`](../../agent.py) 里有一处明显的调用参数不匹配风险：
 
 - `_block_name_quality_summary()` 需要 `input_text, artifact_text, inventory`
 - 但 `_architecture_blend_weight()` 当前只传了两个参数
@@ -611,7 +611,7 @@ heuristic 结果会主动为 `semantic_completeness` 和 `requirement_traceabili
 
 ## 13. Prompt 层是怎么组织的
 
-Prompt 层在 [`expert_review_prompts.py`](../../expert_review_prompts.py)。
+Prompt 层在 [`legacy/prompts.py`](../../legacy/prompts.py)。
 
 它不是只靠一个长 system prompt，而是由几块拼出来：
 
@@ -648,7 +648,7 @@ Prompt 层在 [`expert_review_prompts.py`](../../expert_review_prompts.py)。
 - 理论框架比实现更宽
 - 实现是一个可运行、可对齐、可回退的收缩版
 
-## 14. `expert_review_tools.py` 里的关键函数到底有什么用
+## 14. `inventory.py` 里的关键函数到底有什么用
 
 ### 14.1 `parse_requirement_items()`
 
@@ -749,7 +749,7 @@ python -m expert_review \
 
 ## 17. 测试与当前可验证结论
 
-当前测试文件是 [`test_expert_review.py`](../../test_expert_review.py)。
+当前测试文件是 [`test_review.py`](../../test_review.py)。
 
 它主要验证：
 
@@ -767,10 +767,10 @@ python -m expert_review \
 
 如果你后面还想回去读代码，建议按这个顺序：
 
-1. 先看 [`expert_review_schema.py`](../../expert_review_schema.py)
-2. 再看 [`expert_review_agent.py`](../../expert_review_agent.py) 的 `review()`、`_precompute()`、`llm_primary_review()`、`heuristic_expert_review()`
-3. 不明白 inventory/trace 时，再回看 [`expert_review_tools.py`](../../expert_review_tools.py)
-4. 最后看 [`expert_review_prompts.py`](../../expert_review_prompts.py) 和 [`align_ttool_expert_review.py`](../../../align_ttool_expert_review.py)
+1. 先看 [`schema.py`](../../schema.py)
+2. 再看 [`agent.py`](../../agent.py) 的 `review()`、`_precompute()`、`llm_primary_review()`、`heuristic_expert_review()`
+3. 不明白 inventory/trace 时，再回看 [`inventory.py`](../../inventory.py)
+4. 最后看 [`legacy/prompts.py`](../../legacy/prompts.py) 和 [`align_ttool_expert_review.py`](../../../align_ttool_expert_review.py)
 
 只要抓住下面这个骨架，整套系统就不会迷路：
 

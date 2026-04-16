@@ -6,8 +6,8 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_schema import DimensionDefinition
-from ..expert_review_utils import normalize_id
+from ..schema import DimensionDefinition
+from ..utils import normalize_id
 from ..prompts.review_policy import REVIEW_POLICY_SYSTEM_PROMPT
 from ..schemas.dossiers import EvidenceRegime, ReviewContract
 from ..tools import build_review_policy

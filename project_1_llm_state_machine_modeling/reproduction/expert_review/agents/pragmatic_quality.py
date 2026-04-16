@@ -4,9 +4,9 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_schema import ElementIssue
+from ..schema import ElementIssue
 from ..prompts import QUALITY_REVIEW_SYSTEM_PROMPT
-from ..expert_review_utils import normalize_id
+from ..utils import normalize_id
 from .common import clip01, is_grounded_to_input, make_evidence_item, requirement_grounding_tokens
 from .llm_helpers import invoke_llm_json
 

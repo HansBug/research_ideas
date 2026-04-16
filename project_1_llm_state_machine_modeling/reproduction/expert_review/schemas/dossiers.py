@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..expert_review_schema import EvidenceItem, RequirementTraceResult
+from ..schema import EvidenceItem, RequirementTraceResult
 
 
 @dataclass(slots=True)

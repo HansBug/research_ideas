@@ -5,7 +5,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from ..expert_review_schema import RequirementTraceResult
+from ..schema import RequirementTraceResult
 from ..prompts import TRACEABILITY_SYSTEM_PROMPT
 from .common import (
     candidate_texts_from_dossier,
