@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import importlib.util
 import json
 import math
@@ -17,6 +18,8 @@ import pandas as pd
 RAW_ROOT_DEFAULT = Path("/tmp/baseline_double_green/raw")
 ASSET_DIR = Path(__file__).resolve().parent
 BASE_BUILD_SCRIPT = ASSET_DIR / "build_baseline_double_green_parquets.py"
+REPO_ROOT = ASSET_DIR.parents[2]
+BASELINES_DIR = REPO_ROOT / "project_1_llm_state_machine_modeling" / "baselines"
 
 PAPER_TITLES = {
     "llms_emp": "Generating SysML Behavior Models via Large Language Models: an Empirical Study",
@@ -33,6 +36,28 @@ ODS_NS = {
     "office": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
     "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
     "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+}
+
+PAPER_METHOD_EXCERPT_SPECS = {
+    "llms_emp": [
+        ("reviewer_pool", 339, 347),
+        ("evaluation_process", 410, 453),
+        ("hallucination_examples", 701, 708),
+    ],
+    "ttool-ai": [
+        ("review_setup", 868, 893),
+        ("results_summary", 895, 905),
+    ],
+    "requirements-capture-and-evaluation-in-nimbus-light-control": [
+        ("vv_triage", 598, 610),
+        ("manual_inspection_roles", 605, 609),
+        ("modeling_team", 941, 948),
+    ],
+    "structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models": [
+        ("evaluation_procedure", 331, 357),
+        ("matching_rules", 377, 427),
+        ("bias_statement", 840, 845),
+    ],
 }
 
 
@@ -60,12 +85,192 @@ def normalize_number(value: Any) -> float | int | None:
         value = value.strip()
         if value in {"", "-", "nan"}:
             return None
+        if "." not in value and value.count(",") == 1 and re.fullmatch(r"-?\d+,\d+", value):
+            value = value.replace(",", ".")
     number = pd.to_numeric(value, errors="coerce")
     if pd.isna(number):
         return None
     if float(number).is_integer():
         return int(number)
     return float(number)
+
+
+def raw_source_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, (list, dict)):
+        return value
+    try:
+        if pd.isna(value):
+            return None
+    except TypeError:
+        pass
+    if isinstance(value, str):
+        return value.replace("\r\n", "\n").replace("\r", "\n")
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if math.isnan(value):
+            return None
+        if value.is_integer():
+            return int(value)
+        return float(value)
+    try:
+        normalized = normalize_number(value)
+        if normalized is not None:
+            return normalized
+    except Exception:
+        pass
+    return str(value)
+
+
+def row_to_original_json(row: pd.Series, columns: list[str]) -> str:
+    payload = {column: raw_source_value(row[column]) for column in columns if column in row.index}
+    return json_compact(payload)
+
+
+def lines_excerpt(path: Path, start: int, end: int) -> str:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return "\n".join(lines[start - 1 : end]).strip()
+
+
+@lru_cache(maxsize=None)
+def paper_method_excerpt_bundle(slug: str) -> tuple[str | None, str | None]:
+    specs = PAPER_METHOD_EXCERPT_SPECS.get(slug, [])
+    if not specs:
+        return None, None
+    path = paper_dir(slug) / "paper_content.txt"
+    if not path.exists():
+        return None, None
+    segments = []
+    for label, start, end in specs:
+        text = lines_excerpt(path, start, end)
+        if not text:
+            continue
+        segments.append(
+            {
+                "label": label,
+                "source_path": str(path),
+                "start_line": start,
+                "end_line": end,
+                "text": text,
+                "verbatim_extracted": True,
+            }
+        )
+    if not segments:
+        return None, None
+    combined = "\n\n".join(f"[{segment['label']}]\n{segment['text']}" for segment in segments)
+    return combined, json_compact(segments)
+
+
+def verbatim_entries_to_text(entries: list[dict[str, Any]]) -> str | None:
+    if not entries:
+        return None
+    blocks = []
+    for entry in entries:
+        label = entry.get("label") or entry.get("column_name") or "excerpt"
+        text = entry.get("text")
+        if not text:
+            continue
+        blocks.append(f"[{label}]\n{text}")
+    if not blocks:
+        return None
+    return "\n\n".join(blocks)
+
+
+def normalize_structure_metric_case_name(value: Any) -> str | None:
+    text = normalize_text(value)
+    if not text:
+        return None
+    text = text.split("\n", 1)[0].strip()
+    text = re.sub(r"\s*\([^)]*\)\s*$", "", text).strip()
+    return text or None
+
+
+def xlsx_verbatim_entry(
+    *,
+    sheet_name: str,
+    row_idx: int,
+    column_name: str,
+    label: str,
+    text: str,
+) -> dict[str, Any]:
+    return {
+        "source_kind": "xlsx_cell",
+        "sheet_name": sheet_name,
+        "row_index_0_based": row_idx,
+        "row_number_1_based_with_header": row_idx + 2,
+        "column_name": column_name,
+        "label": label,
+        "text": text,
+        "verbatim_extracted": True,
+    }
+
+
+def ods_verbatim_row_payload(
+    *,
+    source_path: Path,
+    sheet_name: str,
+    row_label: str | None,
+    header_row: list[str | None],
+    raw_row: list[str | None],
+    row_index: int | None = None,
+    header_row_index: int | None = None,
+    extra_rows: dict[str, list[str | None]] | None = None,
+    extra_row_indexes: dict[str, int] | None = None,
+) -> str:
+    payload: dict[str, Any] = {
+        "source_kind": "ods_row",
+        "source_path": str(source_path),
+        "sheet_name": sheet_name,
+        "row_label": row_label,
+        "header_row": [raw_source_value(value) for value in header_row],
+        "raw_row": [raw_source_value(value) for value in raw_row],
+        "header_to_value": {},
+    }
+    if row_index is not None:
+        payload["row_index_0_based"] = row_index
+    if header_row_index is not None:
+        payload["header_row_index_0_based"] = header_row_index
+    for idx, header in enumerate(header_row):
+        if header is None:
+            continue
+        cell_value = raw_row[idx] if idx < len(raw_row) else None
+        payload["header_to_value"][str(header)] = raw_source_value(cell_value)
+    if extra_rows:
+        payload["extra_rows"] = {
+            key: [raw_source_value(value) for value in values] for key, values in extra_rows.items()
+        }
+    if extra_row_indexes:
+        payload["extra_row_indexes_0_based"] = dict(extra_row_indexes)
+    return json_compact(payload)
+
+
+def raw_ods_row_text(raw_row: list[str | None]) -> str | None:
+    values = [raw_source_value(value) for value in raw_row]
+    values = [value for value in values if value not in {None, ""}]
+    if not values:
+        return None
+    return "\t".join(str(value) for value in values)
+
+
+TTOOL_STAT_LABEL_MAP = {
+    "average": "average",
+    "std. d.": "std_dev",
+    "std dev": "std_dev",
+    "std dev.": "std_dev",
+    "highest grade": "highest_grade",
+    "lowest grade": "lowest_grade",
+}
+
+
+def normalize_ttool_stat_label(value: str | None) -> str | None:
+    text = normalize_text(value)
+    if not text:
+        return None
+    return TTOOL_STAT_LABEL_MAP.get(text.lower())
 
 
 def df_value(row: pd.Series, *candidates: str) -> Any:
@@ -86,17 +291,163 @@ def column_in(df: pd.DataFrame, *candidates: str) -> str | None:
 
 
 def paper_dir(slug: str) -> Path:
-    return (
-        Path("/home/hansbug/oo-projects/research_ideas-2")
-        / "project_1_llm_state_machine_modeling"
-        / "baselines"
-        / slug
-    )
+    return BASELINES_DIR / slug
+
+
+LLMS_EMP_REVIEW_SOURCE_COLUMNS = [
+    "Model Source",
+    "Model Name",
+    "Requirement Description",
+    "PlantUML",
+    "Grammar Point",
+    "Prompt",
+    "LLMs",
+    "Generation PlantUML",
+    "Generation Time",
+    "PlantUML Accuracy",
+    "Plantuml Accuracy",
+    "PlantUML Accuracy Rate",
+    "SysML Grammar Accuracy",
+    "SysML Grammar Accuracy Rate",
+    "True Positive",
+    "False Positive",
+    "False Negative",
+    "F1 Score",
+    "Format Hallucinations",
+    "Result with Format Checking",
+    "Resolved",
+    "PlantUML Accuracy.1",
+    "Generation Time.1",
+    "SysML Grammar Hallucinations",
+    "Result with Grammar Checking",
+    "Resolved.1",
+    "SysML Grammar Accuracy.1",
+    "Generation Time.2",
+    "Semmantic Hallucinations",
+    "SysML Semmantic Hallucinations",
+    "Result with Semantic Checking",
+    "Resolved.2",
+    "True Positive.1",
+    "False Positive.1",
+    "False Negative.1",
+    "F1 Score.1",
+    "Generation PlantUML.1",
+    "Generation PlantUML.2",
+    "Generation PlantUML.3",
+    "Generation Time.3",
+    "Grammar Accuracy",
+]
+
+LLMS_EMP_REVIEW_TEXT_COLUMNS = [
+    ("Format Hallucinations", "format_hallucinations"),
+    ("SysML Grammar Hallucinations", "grammar_hallucinations"),
+    ("Semmantic Hallucinations", "semantic_hallucinations"),
+    ("SysML Semmantic Hallucinations", "semantic_hallucinations"),
+]
+
+
+def llms_emp_verbatim_entries(row: pd.Series, sheet_name: str, row_idx: int) -> list[dict[str, Any]]:
+    entries = []
+    seen: set[tuple[str, str]] = set()
+    for column_name, label in LLMS_EMP_REVIEW_TEXT_COLUMNS:
+        if column_name not in row.index:
+            continue
+        text = raw_source_value(row[column_name])
+        if not isinstance(text, str) or not text.strip():
+            continue
+        dedupe_key = (column_name, text)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        entries.append(
+            xlsx_verbatim_entry(
+                sheet_name=sheet_name,
+                row_idx=row_idx,
+                column_name=column_name,
+                label=label,
+                text=text,
+            )
+        )
+    return entries
+
+
+def structure_event_raw_review_index(workbook_path: Path) -> dict[tuple[str, str, str, str], str]:
+    sheet_specs = {
+        "SinglePrompt": ("single_prompt", [("GPT-4o", 0), ("Claude 3.5 Sonnet", 10)]),
+        "StructureDriven": ("structure_driven", [("GPT-4o", 0), ("Claude 3.5 Sonnet", 10)]),
+        "EventDriven": ("event_driven", [("GPT-4o", 0), ("Claude 3.5 Sonnet", 10)]),
+        "Hybrid": ("hybrid", [("GPT-4o", 0), ("Claude 3.5 Sonnet", 10)]),
+    }
+    index: dict[tuple[str, str, str, str], str] = {}
+    for sheet_name, (strategy_name, blocks) in sheet_specs.items():
+        df = pd.read_excel(workbook_path, sheet_name=sheet_name, header=None)
+        for llm_name, col in blocks:
+            header_row = None
+            for idx in range(len(df)):
+                if normalize_text(df.iat[idx, col]) == "System Name":
+                    header_row = idx
+                    break
+            if header_row is None:
+                continue
+            current_system = None
+            current_image_reference = None
+            header_values = [raw_source_value(df.iat[header_row, col + offset]) for offset in range(9)]
+            for row_idx in range(header_row + 1, len(df)):
+                system_value = df.iat[row_idx, col]
+                component_value = df.iat[row_idx, col + 1] if col + 1 < df.shape[1] else None
+                if pd.isna(system_value) and pd.isna(component_value):
+                    continue
+                normalized_system = normalize_structure_metric_case_name(system_value)
+                if normalized_system:
+                    current_system = normalized_system
+                    current_image_reference = raw_source_value(df.iat[row_idx, col + 8])
+                if current_system is None:
+                    continue
+                component = normalize_text(component_value)
+                if not component:
+                    continue
+                key = (
+                    strategy_name,
+                    llm_name,
+                    base.canonical_structure_event_case_id(current_system),
+                    component,
+                )
+                raw_row = [raw_source_value(df.iat[row_idx, col + offset]) for offset in range(9)]
+                payload = {
+                    "source_kind": "xlsx_row",
+                    "source_path": str(workbook_path),
+                    "sheet_name": sheet_name,
+                    "row_index_0_based": row_idx,
+                    "row_number_1_based_with_header": row_idx + 1,
+                    "strategy_name": strategy_name,
+                    "llm_name": llm_name,
+                    "system_name_raw": raw_source_value(system_value),
+                    "system_name_normalized": current_system,
+                    "component_raw": raw_source_value(component_value),
+                    "image_reference_raw": current_image_reference,
+                    "header_row": header_values,
+                    "raw_row": raw_row,
+                    "header_to_value": {
+                        str(header_values[offset]): raw_row[offset]
+                        for offset in range(min(len(header_values), len(raw_row)))
+                        if header_values[offset] not in {None, ""}
+                    },
+                }
+                index[key] = json_compact(payload)
+    return index
 
 
 def build_protocols() -> pd.DataFrame:
+    def protocol_row(base_row: dict[str, Any]) -> dict[str, Any]:
+        excerpt_text, excerpt_json = paper_method_excerpt_bundle(base_row["paper_slug"])
+        base_row["paper_method_verbatim_excerpt"] = excerpt_text
+        base_row["paper_method_verbatim_excerpt_json"] = excerpt_json
+        base_row["paper_method_verbatim_verified"] = excerpt_text is not None
+        return base_row
+
     rows = [
-        {
+        protocol_row(
+            {
             "paper_slug": "llms_emp",
             "paper_title": PAPER_TITLES["llms_emp"],
             "paper_local_path": str(paper_dir("llms_emp") / "paper_content.txt"),
@@ -138,8 +489,10 @@ def build_protocols() -> pd.DataFrame:
             "public_gap_notes": (
                 "公开包给出了逐样本结果表，但没有把人工检查过程的逐条注释拆成独立日志文件。"
             ),
-        },
-        {
+        }
+        ),
+        protocol_row(
+            {
             "paper_slug": "ttool-ai",
             "paper_title": PAPER_TITLES["ttool-ai"],
             "paper_local_path": str(paper_dir("ttool-ai") / "paper_content.txt"),
@@ -181,8 +534,10 @@ def build_protocols() -> pd.DataFrame:
                 "主仓库公开了规格、XML 模型与总分表，但没有公开每次测试的独立输出版本与逐项评分表，"
                 "因此只能恢复 summary-level 人评。"
             ),
-        },
-        {
+        }
+        ),
+        protocol_row(
+            {
             "paper_slug": "requirements-capture-and-evaluation-in-nimbus-light-control",
             "paper_title": PAPER_TITLES["requirements-capture-and-evaluation-in-nimbus-light-control"],
             "paper_local_path": str(
@@ -223,8 +578,10 @@ def build_protocols() -> pd.DataFrame:
             "public_gap_notes": (
                 "公开材料是案例规格与论文说明，不存在逐样本人评原始分数表。"
             ),
-        },
-        {
+        }
+        ),
+        protocol_row(
+            {
             "paper_slug": "structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models",
             "paper_title": PAPER_TITLES[
                 "structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models"
@@ -280,13 +637,15 @@ def build_protocols() -> pd.DataFrame:
             "public_gap_notes": (
                 "公开 artifact 给出逐组件 TP/FN/FP/F1 和预测图像，但大多数预测的文本版 Umple 未公开。"
             ),
-        },
+        }
+        ),
     ]
     return pd.DataFrame(rows)
 
 
 def build_llms_emp_human_review(raw_root: Path) -> pd.DataFrame:
     workbook = raw_root / "llms_emp_gmodel" / "Experiment Results.xlsx"
+    paper_excerpt_text, paper_excerpt_json = paper_method_excerpt_bundle("llms_emp")
     rows: list[dict[str, Any]] = []
     for sheet_name, diagram_type in (
         ("STM Results", "stm"),
@@ -301,6 +660,8 @@ def build_llms_emp_human_review(raw_root: Path) -> pd.DataFrame:
             llm_name = normalize_text(df_value(row, "LLMs"))
             if not input_text or not ref_output or not pred_output or not llm_name:
                 continue
+            source_row_json = row_to_original_json(row, LLMS_EMP_REVIEW_SOURCE_COLUMNS)
+            verbatim_entries = llms_emp_verbatim_entries(row, sheet_name, row_idx)
 
             details = {
                 "initial": {
@@ -389,6 +750,12 @@ def build_llms_emp_human_review(raw_root: Path) -> pd.DataFrame:
                         "Manual grammar + semantic review with reference-model TP/FP/FN accounting."
                     ),
                     "human_review_details_json": json_compact(details),
+                    "human_review_source_record_json": source_row_json,
+                    "human_review_original_text": verbatim_entries_to_text(verbatim_entries),
+                    "human_review_original_text_json": json_compact(verbatim_entries),
+                    "paper_method_verbatim_excerpt": paper_excerpt_text,
+                    "paper_method_verbatim_excerpt_json": paper_excerpt_json,
+                    "verbatim_extraction_verified": True,
                     "review_rubric_text": (
                         "Grammar: manual comparison against SysML v1.6 grammar points. "
                         "Semantics: manual check against 55 semantics. "
@@ -476,11 +843,16 @@ def structure_event_output_paths(
 
 
 def build_structure_event_human_review(raw_root: Path) -> pd.DataFrame:
+    source_path = raw_root / "llm_state_machine_final_f1_scores.xlsx"
+    paper_excerpt_text, paper_excerpt_json = paper_method_excerpt_bundle(
+        "structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models"
+    )
     frames = base.build_structure_event_driven(raw_root)
     cases_df = frames["structure_event_driven_cases"].copy()
     refs_df = frames["structure_event_driven_reference_solutions"].copy()
     metrics_df = frames["structure_event_driven_metrics"].copy()
     output_index = build_structure_event_output_index(raw_root)
+    raw_index = structure_event_raw_review_index(source_path)
 
     cases = cases_df.set_index("case_id").to_dict(orient="index")
     refs = refs_df.set_index("case_id").to_dict(orient="index")
@@ -506,13 +878,26 @@ def build_structure_event_human_review(raw_root: Path) -> pd.DataFrame:
             if pred_text_path is not None and pred_text_path.exists()
             else None
         )
+        raw_record_json = raw_index.get(
+            (
+                metric["strategy_name"],
+                metric["llm_name"],
+                case_id,
+                metric["component"],
+            )
+        )
+        raw_record_text = None
+        if raw_record_json is not None:
+            raw_payload = json.loads(raw_record_json)
+            raw_row = raw_payload.get("raw_row") or []
+            raw_record_text = "\t".join(str(value) for value in raw_row if value not in {None, ""}) or None
         rows.append(
             {
                 "paper_slug": "structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models",
                 "paper_title": PAPER_TITLES[
                     "structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models"
                 ],
-                "record_source": str(raw_root / "llm_state_machine_final_f1_scores.xlsx"),
+                "record_source": str(source_path),
                 "record_type": "component_level_review",
                 "review_record_id": f"{metric['strategy_name']}:{metric['llm_name']}:{case_id}:{metric['component']}:{idx}",
                 "case_id": case_id,
@@ -547,6 +932,24 @@ def build_structure_event_human_review(raw_root: Path) -> pd.DataFrame:
                         "f1_score": metric["f1_score"],
                     }
                 ),
+                "human_review_source_record_json": raw_record_json,
+                "human_review_original_text": raw_record_text,
+                "human_review_original_text_json": json_compact(
+                    [
+                        {
+                            "source_kind": "xlsx_row",
+                            "sheet_name": metric["sheet_name"],
+                            "label": metric["component"],
+                            "text": raw_record_text,
+                            "verbatim_extracted": raw_record_text is not None,
+                        }
+                    ]
+                    if raw_record_text is not None
+                    else []
+                ),
+                "paper_method_verbatim_excerpt": paper_excerpt_text,
+                "paper_method_verbatim_excerpt_json": paper_excerpt_json,
+                "verbatim_extraction_verified": True,
                 "review_rubric_text": (
                     "Exact or near-exact semantic matches count as TP; "
                     "extra components count as FP; missing ground-truth components count as FN; "
@@ -611,7 +1014,9 @@ def row_value(row: list[str | None], idx: int) -> str | None:
 
 
 def build_ttool_ai_main_review(raw_root: Path, models_df: pd.DataFrame) -> pd.DataFrame:
-    tables = read_ods_tables(raw_root / "ttool-ai" / "results.ods")
+    source_path = raw_root / "ttool-ai" / "results.ods"
+    paper_excerpt_text, paper_excerpt_json = paper_method_excerpt_bundle("ttool-ai")
+    tables = read_ods_tables(source_path)
     model_lookup = (
         models_df.drop_duplicates(subset=["case_id"], keep="first")
         .set_index("case_id")
@@ -623,17 +1028,297 @@ def build_ttool_ai_main_review(raw_root: Path, models_df: pd.DataFrame) -> pd.Da
         "Automated braking": "automated_braking",
     }
     rows: list[dict[str, Any]] = []
+
+    def append_main_record(
+        *,
+        sheet_name: str,
+        case_id: str,
+        case_name: str | None,
+        record_type: str,
+        review_record_id: str,
+        split_name: str,
+        review_target: str,
+        review_index: int | None,
+        human_review_score: float | int | None,
+        row_label: str | None,
+        raw_row: list[str | None],
+        row_idx: int,
+        header_row: list[str | None],
+        header_row_idx: int,
+        input_text: str | None,
+        pred_output_text: str | None,
+        pred_output_format: str | None,
+        pred_output_path: str | None,
+        elapsed_s: float | int | None,
+        statistic_kind: str | None,
+        review_population: str,
+        summary_scope: str,
+        student_count: int | None = None,
+    ) -> None:
+        mapping_status = None
+        if review_population == "ttool_ai" and pred_output_path is not None:
+            if summary_scope == "run":
+                mapping_status = (
+                    "Public repo exposes one XML artifact per case, but not distinct per-test outputs."
+                )
+            else:
+                mapping_status = (
+                    "Public repo exposes one XML artifact per case, but not the full set of artifacts behind "
+                    "aggregate score rows."
+                )
+        rows.append(
+            {
+                "paper_slug": "ttool-ai",
+                "paper_title": PAPER_TITLES["ttool-ai"],
+                "record_source": str(source_path),
+                "record_type": record_type,
+                "review_record_id": review_record_id,
+                "case_id": case_id,
+                "case_name": case_name,
+                "split_name": split_name,
+                "review_target": review_target,
+                "review_index": review_index,
+                "input_text": input_text,
+                "ref_output_text": None,
+                "ref_output_format": None,
+                "ref_output_artifact_path": None,
+                "pred_output_text": pred_output_text,
+                "pred_output_format": pred_output_format,
+                "pred_output_artifact_path": pred_output_path,
+                "human_review_score": human_review_score,
+                "human_review_score_unit": "/100",
+                "human_review_summary": (
+                    "Grade row copied verbatim from the public results.ods sheet."
+                    if summary_scope == "run"
+                    else "Aggregate score row copied verbatim from the public results.ods sheet."
+                ),
+                "human_review_details_json": json_compact(
+                    {
+                        "elapsed_seconds": elapsed_s,
+                        "statistic_kind": statistic_kind,
+                        "review_population": review_population,
+                        "summary_scope": summary_scope,
+                        "student_count": student_count,
+                        "mapping_status": mapping_status,
+                    }
+                ),
+                "human_review_source_record_json": ods_verbatim_row_payload(
+                    source_path=source_path,
+                    sheet_name=sheet_name,
+                    row_label=row_label,
+                    header_row=header_row,
+                    raw_row=raw_row,
+                    row_index=row_idx,
+                    header_row_index=header_row_idx,
+                ),
+                "human_review_original_text": raw_ods_row_text(raw_row),
+                "human_review_original_text_json": json_compact(
+                    [
+                        {
+                            "source_kind": "ods_row",
+                            "sheet_name": sheet_name,
+                            "row_index_0_based": row_idx,
+                            "header_row_index_0_based": header_row_idx,
+                            "row_label": row_label,
+                            "text": raw_ods_row_text(raw_row),
+                            "verbatim_extracted": True,
+                        }
+                    ]
+                ),
+                "paper_method_verbatim_excerpt": paper_excerpt_text,
+                "paper_method_verbatim_excerpt_json": paper_excerpt_json,
+                "verbatim_extraction_verified": True,
+                "review_rubric_text": (
+                    "Specification adequacy, behavior consistency under TTool simulator, "
+                    "exchange richness, readability, number/naming of blocks and states, "
+                    "unused attributes, and syntax-checker errors/warnings."
+                ),
+                "public_artifact_limitations": (
+                    "主结果表公开了测试级与汇总级分数，但没有公开每次测试的独立输出版本，"
+                    "学生分数也只给了 cohort 统计。"
+                ),
+            }
+        )
+
     for sheet_name, case_id in sheet_case_map.items():
         table = tables.get(sheet_name, [])
         case_model = model_lookup.get(case_id, {})
         input_text = case_model.get("input_spec_text")
         pred_output_text = case_model.get("raw_xml")
         pred_output_path = case_model.get("xml_path")
-        for raw_row in table:
+        header_row_idx = next(
+            (
+                idx
+                for idx, row in enumerate(table)
+                if any(normalize_text(cell) == "Test" for cell in row if cell is not None)
+            ),
+            None,
+        )
+        if header_row_idx is None:
+            continue
+        header_row = table[header_row_idx]
+        student_header_idx = next(
+            (
+                idx
+                for idx in range(header_row_idx + 1, len(table))
+                if (row_value(table[idx], 1) or "").startswith("Students:")
+            ),
+            None,
+        )
+
+        run_rows_end = student_header_idx if student_header_idx is not None else len(table)
+        for row_idx in range(header_row_idx + 1, run_rows_end):
+            raw_row = table[row_idx]
             label = row_value(raw_row, 1)
-            if label is None or not re.fullmatch(r"\d+", label):
+            if label is None:
                 continue
-            test_index = int(label)
+            time_bd = normalize_number(row_value(raw_row, 2))
+            grade_bd = normalize_number(row_value(raw_row, 3))
+            time_smd = normalize_number(row_value(raw_row, 4))
+            grade_smd = normalize_number(row_value(raw_row, 5))
+            if re.fullmatch(r"\d+", label):
+                test_index = int(label)
+                for review_target, grade, elapsed_s in (
+                    ("BD", grade_bd, time_bd),
+                    ("SMD", grade_smd, time_smd),
+                ):
+                    append_main_record(
+                        sheet_name=sheet_name,
+                        case_id=case_id,
+                        case_name=case_model.get("case_name"),
+                        record_type="summary_level_run_score",
+                        review_record_id=f"main:{case_id}:ttool_ai:{review_target}:{test_index}",
+                        split_name="main_results",
+                        review_target=review_target,
+                        review_index=test_index,
+                        human_review_score=grade,
+                        row_label=label,
+                        raw_row=raw_row,
+                        row_idx=row_idx,
+                        header_row=header_row,
+                        header_row_idx=header_row_idx,
+                        input_text=input_text,
+                        pred_output_text=pred_output_text,
+                        pred_output_format="TTool AVATAR XML",
+                        pred_output_path=pred_output_path,
+                        elapsed_s=elapsed_s,
+                        statistic_kind=None,
+                        review_population="ttool_ai",
+                        summary_scope="run",
+                    )
+                continue
+
+            statistic_kind = normalize_ttool_stat_label(label)
+            if statistic_kind is None:
+                continue
+            for review_target, grade, elapsed_s in (
+                ("BD", grade_bd, time_bd),
+                ("SMD", grade_smd, time_smd),
+            ):
+                if grade is None and elapsed_s is None:
+                    continue
+                append_main_record(
+                    sheet_name=sheet_name,
+                    case_id=case_id,
+                    case_name=case_model.get("case_name"),
+                    record_type="case_aggregate_stat",
+                    review_record_id=f"main:{case_id}:ttool_ai:{review_target}:{statistic_kind}",
+                    split_name="main_results",
+                    review_target=review_target,
+                    review_index=None,
+                    human_review_score=grade,
+                    row_label=label,
+                    raw_row=raw_row,
+                    row_idx=row_idx,
+                    header_row=header_row,
+                    header_row_idx=header_row_idx,
+                    input_text=input_text,
+                    pred_output_text=pred_output_text,
+                    pred_output_format="TTool AVATAR XML",
+                    pred_output_path=pred_output_path,
+                    elapsed_s=elapsed_s,
+                    statistic_kind=statistic_kind,
+                    review_population="ttool_ai",
+                    summary_scope="case",
+                )
+
+        if student_header_idx is not None:
+            student_header_row = table[student_header_idx]
+            student_count_match = re.search(r"Students:\s*(\d+)", row_value(student_header_row, 1) or "")
+            student_count = int(student_count_match.group(1)) if student_count_match else None
+            for row_idx in range(student_header_idx + 1, len(table)):
+                raw_row = table[row_idx]
+                label = row_value(raw_row, 1)
+                statistic_kind = normalize_ttool_stat_label(label)
+                if statistic_kind is None:
+                    continue
+                time_bd = normalize_number(row_value(raw_row, 2))
+                grade_bd = normalize_number(row_value(raw_row, 3))
+                time_smd = normalize_number(row_value(raw_row, 4))
+                grade_smd = normalize_number(row_value(raw_row, 5))
+                for review_target, grade, elapsed_s in (
+                    ("BD", grade_bd, time_bd),
+                    ("SMD", grade_smd, time_smd),
+                ):
+                    if grade is None and elapsed_s is None:
+                        continue
+                    append_main_record(
+                        sheet_name=sheet_name,
+                        case_id=case_id,
+                        case_name=case_model.get("case_name"),
+                        record_type="case_aggregate_stat",
+                        review_record_id=f"main:{case_id}:students:{review_target}:{statistic_kind}",
+                        split_name="main_results",
+                        review_target=review_target,
+                        review_index=None,
+                        human_review_score=grade,
+                        row_label=label,
+                        raw_row=raw_row,
+                        row_idx=row_idx,
+                        header_row=student_header_row,
+                        header_row_idx=student_header_idx,
+                        input_text=input_text,
+                        pred_output_text=None,
+                        pred_output_format=None,
+                        pred_output_path=None,
+                        elapsed_s=elapsed_s,
+                        statistic_kind=statistic_kind,
+                        review_population="students",
+                        summary_scope="case",
+                        student_count=student_count,
+                    )
+
+    overall_table = tables.get("Overall", [])
+    overall_sections = {
+        "TTool + AI": "ttool_ai",
+        "Students": "students",
+    }
+    for section_label, review_population in overall_sections.items():
+        section_idx = next(
+            (
+                idx
+                for idx, row in enumerate(overall_table)
+                if row_value(row, 1) == section_label
+            ),
+            None,
+        )
+        if section_idx is None:
+            continue
+        section_row = overall_table[section_idx]
+        next_section_idx = min(
+            [
+                idx
+                for idx, row in enumerate(overall_table)
+                if idx > section_idx and row_value(row, 1) in overall_sections
+            ]
+            or [len(overall_table)]
+        )
+        for row_idx in range(section_idx + 1, next_section_idx):
+            raw_row = overall_table[row_idx]
+            label = row_value(raw_row, 1)
+            statistic_kind = normalize_ttool_stat_label(label)
+            if statistic_kind is None:
+                continue
             time_bd = normalize_number(row_value(raw_row, 2))
             grade_bd = normalize_number(row_value(raw_row, 3))
             time_smd = normalize_number(row_value(raw_row, 4))
@@ -642,51 +1327,39 @@ def build_ttool_ai_main_review(raw_root: Path, models_df: pd.DataFrame) -> pd.Da
                 ("BD", grade_bd, time_bd),
                 ("SMD", grade_smd, time_smd),
             ):
-                rows.append(
-                    {
-                        "paper_slug": "ttool-ai",
-                        "paper_title": PAPER_TITLES["ttool-ai"],
-                        "record_source": str(raw_root / "ttool-ai" / "results.ods"),
-                        "record_type": "summary_level_run_score",
-                        "review_record_id": f"main:{case_id}:{review_target}:{test_index}",
-                        "case_id": case_id,
-                        "case_name": case_model.get("case_name"),
-                        "split_name": "main_results",
-                        "review_target": review_target,
-                        "review_index": test_index,
-                        "input_text": input_text,
-                        "ref_output_text": None,
-                        "ref_output_format": None,
-                        "ref_output_artifact_path": None,
-                        "pred_output_text": pred_output_text,
-                        "pred_output_format": "TTool AVATAR XML",
-                        "pred_output_artifact_path": pred_output_path,
-                        "human_review_score": grade,
-                        "human_review_score_unit": "/100",
-                        "human_review_summary": "Grade assigned with shared software-engineering quality criteria.",
-                        "human_review_details_json": json_compact(
-                            {
-                                "elapsed_seconds": elapsed_s,
-                                "mapping_status": (
-                                    "Public repo exposes one XML artifact per case, but not distinct per-test outputs."
-                                ),
-                            }
-                        ),
-                        "review_rubric_text": (
-                            "Specification adequacy, behavior consistency under TTool simulator, "
-                            "exchange richness, readability, number/naming of blocks and states, "
-                            "unused attributes, and syntax-checker errors/warnings."
-                        ),
-                        "public_artifact_limitations": (
-                            "主结果表只有测试级分数与时间，没有逐次输出版本，因此分数无法和独立测试产物一一精确绑定。"
-                        ),
-                    }
+                if grade is None and elapsed_s is None:
+                    continue
+                append_main_record(
+                    sheet_name="Overall",
+                    case_id="overall",
+                    case_name="Overall",
+                    record_type="overall_aggregate_stat",
+                    review_record_id=f"overall:{review_population}:{review_target}:{statistic_kind}",
+                    split_name="overall_summary",
+                    review_target=review_target,
+                    review_index=None,
+                    human_review_score=grade,
+                    row_label=label,
+                    raw_row=raw_row,
+                    row_idx=row_idx,
+                    header_row=section_row,
+                    header_row_idx=section_idx,
+                    input_text=None,
+                    pred_output_text=None,
+                    pred_output_format=None,
+                    pred_output_path=None,
+                    elapsed_s=elapsed_s,
+                    statistic_kind=statistic_kind,
+                    review_population=review_population,
+                    summary_scope="overall",
                 )
     return pd.DataFrame(rows)
 
 
 def build_ttool_ai_supplementary_review(raw_root: Path) -> pd.DataFrame:
-    tables = read_ods_tables(raw_root / "ttool-ai" / "SNCS_complementaryEvaluation" / "evaluation.ods")
+    source_path = raw_root / "ttool-ai" / "SNCS_complementaryEvaluation" / "evaluation.ods"
+    paper_excerpt_text, paper_excerpt_json = paper_method_excerpt_bundle("ttool-ai")
+    tables = read_ods_tables(source_path)
     case_meta = {
         "connectedDevice": {
             "case_id": "connected_device",
@@ -734,7 +1407,7 @@ def build_ttool_ai_supplementary_review(raw_root: Path) -> pd.DataFrame:
                 continue
             ttool_columns.append((col_idx, dimension))
 
-        for raw_row in table[header_row_idx + 1 :]:
+        for row_idx, raw_row in enumerate(table[header_row_idx + 1 :], start=header_row_idx + 1):
             first_cell = row_value(raw_row, 0)
             if first_cell in {"Average", "Std Dev", "Std dev"}:
                 record_type = "summary"
@@ -779,9 +1452,7 @@ def build_ttool_ai_supplementary_review(raw_root: Path) -> pd.DataFrame:
                     {
                         "paper_slug": "ttool-ai",
                         "paper_title": PAPER_TITLES["ttool-ai"],
-                        "record_source": str(
-                            raw_root / "ttool-ai" / "SNCS_complementaryEvaluation" / "evaluation.ods"
-                        ),
+                        "record_source": str(source_path),
                         "record_type": record_type,
                         "review_record_id": f"sncs:{meta['case_id']}:{dimension}:{first_cell or review_index}",
                         "case_id": meta["case_id"],
@@ -805,6 +1476,38 @@ def build_ttool_ai_supplementary_review(raw_root: Path) -> pd.DataFrame:
                                 "row_semantics_documented": False,
                             }
                         ),
+                        "human_review_source_record_json": ods_verbatim_row_payload(
+                            source_path=source_path,
+                            sheet_name=sheet_name,
+                            row_label=first_cell,
+                            header_row=header_row,
+                            raw_row=raw_row,
+                            row_index=row_idx,
+                            header_row_index=header_row_idx,
+                            extra_rows={
+                                "group_row": group_row,
+                            },
+                            extra_row_indexes={
+                                "group_row": header_row_idx - 1,
+                            },
+                        ),
+                        "human_review_original_text": raw_ods_row_text(raw_row),
+                        "human_review_original_text_json": json_compact(
+                            [
+                                {
+                                    "source_kind": "ods_row",
+                                    "sheet_name": sheet_name,
+                                    "row_index_0_based": row_idx,
+                                    "header_row_index_0_based": header_row_idx,
+                                    "row_label": first_cell,
+                                    "text": raw_ods_row_text(raw_row),
+                                    "verbatim_extracted": True,
+                                }
+                            ]
+                        ),
+                        "paper_method_verbatim_excerpt": paper_excerpt_text,
+                        "paper_method_verbatim_excerpt_json": paper_excerpt_json,
+                        "verbatim_extraction_verified": True,
                         "review_rubric_text": (
                             "仓库只公开了分数字段，没有在主论文中解释该补充表的逐行评审组织方式；"
                             "因此仅保留原始分数，不对 row-level 语义做额外推断。"
@@ -913,6 +1616,12 @@ def build_combined_records(
         "human_review_score_unit",
         "human_review_summary",
         "human_review_details_json",
+        "human_review_source_record_json",
+        "human_review_original_text",
+        "human_review_original_text_json",
+        "paper_method_verbatim_excerpt",
+        "paper_method_verbatim_excerpt_json",
+        "verbatim_extraction_verified",
         "review_rubric_text",
         "public_artifact_limitations",
     ]
