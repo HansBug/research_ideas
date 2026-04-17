@@ -570,6 +570,35 @@ def test_policy_library_prefers_structured_multilingual_metadata() -> None:
     assert infer_record_diagram_type(request.prompt, request=request) == "act"
 
 
+def test_runtime_scores_component_public_evidence_from_structured_metadata() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "Review the published component evidence for the state-machine artifact. "
+            "Focus on the States component only and judge from TP/FP/FN semantics."
+        ),
+        input_text="状态机需求可以是中文，component label 可以是英文；评审必须按语义而不是按词面进行。",
+        pred_output='{"artifact_type":"public_component_audit","component_target":"States","tp":6,"fp":0,"fn":3}',
+        ref_output='{"states":[{"name":"Idle"},{"name":"Active"},{"name":"Done"}],"transitions":[]}',
+        metadata={
+            "review_surface": "summary_public_score",
+            "artifact_semantics": "reactive_state_model",
+            "component_target": "States",
+            "component_source_kind": "xlsx_row",
+            "component_public_tp": 6,
+            "component_public_fp": 0,
+            "component_public_fn": 3,
+            "component_pred_total": 6,
+            "component_reference_total": 9,
+        },
+    )
+    result = heuristic_expert_review(request)
+    assert abs(result.overall_score - 0.8) <= 0.03
+    completeness = next(item for item in result.dimension_results if item.dimension_name == "semantic_completeness")
+    assert completeness.metric_payload.get("component_review_mode") is True
+    assert completeness.metric_payload.get("component_target") == "States"
+    assert abs(float(completeness.metric_payload.get("component_public_f1")) - 0.8) <= 1e-6
+
+
 def test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text() -> None:
     request = ExpertReviewRequest(
         prompt=(

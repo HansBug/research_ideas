@@ -147,7 +147,9 @@
 2. `Phase 8` 已完成 `record-level` 数值校准、压缩效应修复与 partial-heavy 定向惩罚
 3. `Phase 9` 已完成 `summary-level` 排序、public-row score semantics 与高分 public row 收口
 4. `Phase 10` 已完成 batch screening 输入协议、triage 阈值、结果导出与 `Milestone A` 验收
-5. 当前后续工作的核心目标已转到 `Phase 11+`：`component_level_review`、generalization、evidence reliability 与论文级证据链
+5. `Phase 11` 已完成去硬特判、语义路由、多语言验证与 prompt/profile 收口
+6. `Phase 12` 已完成 `component_level_review` 正式接入、`CRAS` 与逐组件报告建立；最终口径是 `456` 条具备完整 `TP / FP / FN` structured public evidence 的 component row 进入主 benchmark，`56` 条证据不完整 row 显式 deferred，且整个 phase 明确不引入视觉/OCR/CV
+7. 当前后续工作的核心目标已转到 `Phase 13+`：judgement / reason / evidence reliability、generalization 与论文级证据链
 
 因此后续改动默认应优先回答两件事：
 

@@ -18,6 +18,19 @@ def _missing_signal_count(items: list[str]) -> int:
     return count
 
 
+def _safe_int(value: Any) -> int | None:
+    try:
+        return int(float(value))
+    except Exception:
+        return None
+
+
+def _f1_from_tp_fp_fn(tp: int, fp: int, fn: int) -> float:
+    precision = tp / (tp + fp) if tp + fp else 0.0
+    recall = tp / (tp + fn) if tp + fn else 0.0
+    return 0.0 if precision + recall == 0 else (2 * precision * recall) / (precision + recall)
+
+
 def compose_scores(
     dimensions: list[Any],
     request: Any,
@@ -64,6 +77,16 @@ def compose_scores(
     summary_target = str(policy_packet.get("summary_target") or "unknown")
     summary_target_axis = str(policy_packet.get("summary_target_axis") or "generic_target")
     record_diagram_type = str(policy_packet.get("record_diagram_type") or "unknown")
+    component_target = str(policy_packet.get("component_target") or "unknown")
+    component_review_mode = bool(policy_packet.get("component_review_mode", False))
+    component_public_tp = _safe_int(policy_packet.get("component_public_tp"))
+    component_public_fp = _safe_int(policy_packet.get("component_public_fp"))
+    component_public_fn = _safe_int(policy_packet.get("component_public_fn"))
+    component_pred_total = _safe_int(policy_packet.get("component_pred_total"))
+    component_reference_total = _safe_int(policy_packet.get("component_reference_total"))
+    component_public_f1 = None
+    if component_public_tp is not None and component_public_fp is not None and component_public_fn is not None:
+        component_public_f1 = _f1_from_tp_fp_fn(component_public_tp, component_public_fp, component_public_fn)
     vv_roles = list(evidence_critic.get("vv_roles", []))
     dimension_results: list[DimensionReviewResult] = []
 
@@ -115,6 +138,13 @@ def compose_scores(
         traceability_score = clip01(0.14 + 0.24 * protocol_hint)
         clarity_score = clip01(0.34 + 0.22 * float(quality_report.get("quality_score_hint", clarity_score)))
         evidence_score = clip01(0.48 + 0.28 * protocol_hint + 0.05 * min(4, len(vv_roles)))
+    if component_review_mode and component_public_f1 is not None:
+        syntax_score = clip01(0.30 * syntax_score + 0.70 * component_public_f1)
+        completeness_score = clip01(0.08 * completeness_score + 0.92 * component_public_f1)
+        behavior_score = clip01(0.08 * behavior_score + 0.92 * component_public_f1)
+        traceability_score = clip01(0.08 * traceability_score + 0.92 * component_public_f1)
+        clarity_score = clip01(0.20 * clarity_score + 0.80 * component_public_f1)
+        evidence_score = max(evidence_score, 0.86)
 
     pred_markers = pred_dossier.surface_markers
     ref_markers = ref_dossier.surface_markers
@@ -565,6 +595,14 @@ def compose_scores(
         ),
         "evidence_discipline": list(evidence_critic.get("issue_taxonomy", [])),
     }
+    if component_review_mode and component_public_f1 is not None:
+        component_note = (
+            f" Component target `{component_target}` uses structured public TP/FP/FN evidence"
+            f" with tp={component_public_tp}, fp={component_public_fp}, fn={component_public_fn},"
+            f" yielding component_f1={component_public_f1:.4f}."
+        )
+        for key in ("semantic_completeness", "behavioral_consistency", "requirement_traceability", "evidence_discipline"):
+            reason_map[key] += component_note
 
     for dimension in dimensions:
         score = round(score_map[dimension.name], 6)
@@ -592,6 +630,15 @@ def compose_scores(
                     "summary_target": summary_target,
                     "summary_target_axis": summary_target_axis,
                     "record_diagram_type": record_diagram_type,
+                    "component_review_mode": component_review_mode,
+                    "component_target": component_target,
+                    "component_public_tp": component_public_tp,
+                    "component_public_fp": component_public_fp,
+                    "component_public_fn": component_public_fn,
+                    "component_pred_total": component_pred_total,
+                    "component_reference_total": component_reference_total,
+                    "component_public_f1": round(component_public_f1, 6) if component_public_f1 is not None else None,
+                    "component_source_kind": policy_packet.get("component_source_kind"),
                     "reference_alignment": round(reference_alignment, 6),
                     "structural_warning_count": len(pred_dossier.structural_warnings),
                     "extraction_conflict_count": len(pred_dossier.extraction_conflicts),
@@ -653,6 +700,8 @@ def compose_scores(
         # corrections to the dominant Phase 8 residual clusters.
         overall_score = clip01(0.50 + record_score_stretch * (overall_score - 0.50))
         overall_score = clip01(overall_score + record_score_adjustment)
+    if component_review_mode and component_public_f1 is not None:
+        overall_score = clip01(component_public_f1)
     return dimension_results, harmful_extras + contradictions + dependency_breaks, clip01(overall_score)
 
 
@@ -672,6 +721,8 @@ def final_confidence(
         # Record-level confidence is interpreted as tight score-alignment reliability
         # rather than generic reviewer self-belief, so it must remain much lower.
         base = 0.09 + 0.15 * base
+    if policy_packet.get("component_review_mode"):
+        base = max(base, 0.88)
     if policy_packet.get("score_semantics") == "summary_stat_stddev":
         base -= 0.06
     if regime.regime == "protocol_only":

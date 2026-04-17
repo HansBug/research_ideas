@@ -356,20 +356,20 @@ python -m expert_review.batch \
 
 当前 benchmark coverage 也已经被明确写实：
 
-1. 主评测 `record / summary / protocol` 分别是 `192 / 84 / 4` 行
-2. deferred `component_level_review` 是 `512` 行、`16` 个 family、`8` 个 case
+1. 主评测 `record / summary / component / protocol` 分别是 `192 / 84 / 456 / 4` 行
+2. `component_level_review` 原始共有 `512` 行；其中 `456` 行具备完整 `TP / FP / FN` structured public evidence，进入主评测，另外 `56` 行因公开证据不完整而被显式 deferred
 3. `record-level` 仍主要来自 `llms_emp`
 4. `summary-level` 仍主要来自 `ttool-ai`
 5. `protocol-only` 仍只有 `4` 个 paper family，必须保守解释泛化性
 
-### Phase 11 入口
+### Phase 12 入口
 
-`Milestone A` 已完成，后续继续推进已经进入 `Phase 11+`，重点转为：
+`Milestone A` 已完成，后续继续推进已经进入 `Phase 12+`，重点转为：
 
-1. `Phase 11` 需要把 `512` 条 `component_level_review` 接入主评测，建立 `CRAS` 与逐组件对齐证据
-2. `Phase 12` 需要补 judgement / reason / evidence reliability，避免只有分数对齐而缺少解释层证据
-3. `Phase 13` 需要把验收从单次 full available benchmark 提升到 `validation + lockbox + LOFO`
-4. `Phase 14-15` 需要补 deterministic / LLM-enabled 边界、成本与 ablation，形成论文级证据包
+1. `Phase 12` 已经把 `component_level_review` 正式接入 benchmark 主路径，并建立 `CRAS` 与逐组件对齐报告；实现口径是**非视觉 structured public evidence**，不会引入 OCR/CV，也不会把 `F-Score` 原样回灌进 prompt
+2. `Phase 13` 需要补 judgement / reason / evidence reliability，避免只有分数对齐而缺少解释层证据
+3. `Phase 14` 需要把验收从单次 full available benchmark 提升到 `validation + lockbox + LOFO`
+4. `Phase 15-16` 需要补 deterministic / LLM-enabled 边界、成本与 ablation，形成论文级证据包
 5. 当前 batch 结果虽然可用于整体筛选，但 `manual_review` 仍占大头，这和“高精度预筛器”定位一致，不应过度宣称自动化程度
 
 相关结论见：

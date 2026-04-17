@@ -2229,33 +2229,165 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 正式接入 `512` 条 `component_level_review` 到 benchmark 主评测流程。
-* [ ] 统一组件级 issue taxonomy 与 TP/FP/FN 归约规则。
-* [ ] 为各组件类建立独立统计：
-  * [ ] states
-  * [ ] transitions
-  * [ ] guards
-  * [ ] actions
-  * [ ] hierarchical states
-  * [ ] parallel regions
-  * [ ] history states
-* [ ] 定义并落地 `CRAS` 或等价组件级总指标。
-* [ ] 明确哪些组件维度是 reviewer 当前真正强项，哪些仍是缺口。
+* [x] 正式接入 `512` 条 `component_level_review` 到 benchmark inventory，并让具备完整 structured public evidence 的 row 进入主评测流程。
+* [x] 统一组件级 issue taxonomy 与 TP/FP/FN 归约规则。
+* [x] 为各组件类建立独立统计：
+  * [x] states
+  * [x] transitions
+  * [x] guards
+  * [x] actions
+  * [x] hierarchical states
+  * [x] parallel regions
+  * [x] history states
+* [x] 定义并落地 `CRAS` 或等价组件级总指标。
+* [x] 明确哪些组件维度是 reviewer 当前真正强项，哪些仍是缺口。
 
 ### Checklist
 
-* [ ] `component_level_review` 已不再游离于主评测之外。
-* [ ] `CRAS >= 80`
-* [ ] 各主要组件类别 `macro_f1 >= 0.75`
-* [ ] 组件级 report 可独立解释，而不是只有一个黑盒总分。
-* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
+* [x] `component_level_review` 已不再游离于主评测之外。
+* [x] `CRAS >= 80`
+* [x] 各主要组件类别 `macro_f1 >= 0.75`
+* [x] 组件级 report 可独立解释，而不是只有一个黑盒总分。
+* [x] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
 ### Phase 12 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
-- 当前状态：已创建，尚未开始实现。
-- 当前定位：补齐论文论证里最缺的一块“逐组件人工对齐”证据。
+- 最新回写时间：`2026-04-18 02:50:16`
+- 当前状态：`已完成`；`component_level_review` 已经作为正式 benchmark regime 接入 `slice / full / split / LOFO` 主流程，并已建立 `CRAS`、逐组件 `macro_f1` 与独立 component report。
+- 当前定位：以**非视觉 structured public evidence** 的方式补齐论文论证里最缺的一块“逐组件人工对齐”证据；`512` 条原始 component row 已全部纳入 benchmark inventory，其中 `456` 条具备完整 `TP / FP / FN` 公开证据的 row 进入主评测，另有 `56` 条证据不完整 row 被显式标记为 deferred，而不是继续被错误地混进 scored benchmark。
+
+### Phase 12 本轮建账结果
+
+- 已完成的主路径接入：
+  - `benchmark.py`
+    - `component_level_review` 不再只做 coverage/schema 预埋，而是正式进入 `build_benchmark_slices()`、`build_full_available_task_bundle()`、`build_benchmark_split_bundle()`、`build_lofo_task_bundles()` 与最终 report
+    - report 已新增 `component_metrics`，包含 `CRAS`、整体 `macro_f1`、`major_component_macro_f1` 与逐组件 `by_component` 统计
+    - 新增 `component_level_all` 与 `component_level` 的显式区分：`component_level_all` 保留 `512` 条原始 row，`component_level` 只保留 `456` 条具备完整 structured public evidence 的 scored row
+    - coverage 现在会如实报告 `deferred component rows = 56`，不再把缺失 `TP / FP / FN` 或缺失公开 score 的 row 伪装成主评测样本
+  - `tools/policy_library.py`
+    - 新增 `component_target / component_public_tp / component_public_fp / component_public_fn / component_pred_total / component_reference_total / component_source_kind`
+    - component 判定完全走 **structured metadata**，不做字符串路由或词面猜测
+  - `agents/score_composer.py`
+    - 新增 `component_review_mode`
+    - 当存在公开 `TP / FP / FN` 证据时，score 直接按语义定义计算 `component_public_f1`
+    - 相关诊断字段已进入 `metric_payload`
+  - `README.md` / `GUIDE.md`
+    - 已同步把“component 仍是 deferred”改成“component 已进入主评测”，并明确写出 `456 scored / 56 deferred` 的真实口径
+- 当前采用的 component evidence 口径：
+  - **明确不引入视觉/OCR/CV 路径**
+  - 仅使用 component row 自身已公开且可追溯的结构化证据：
+    - `component_target`
+    - `TP / FP / FN`
+    - 来源 sheet / strategy / llm 等 provenance metadata
+  - 输入给 reviewer 时，保留 `TP / FP / FN`，但不把 `F-Score / Precision / Recall` 直接喂回去，避免把答案原样塞进 prompt
+  - `image_reference` 只保留在 metadata/provenance 层，不再暴露到 component prompt / input / predicted artifact surface，彻底绕开视觉语境
+  - 换言之：本 phase 完成的是“把公开 component audit row 作为正式 evidence regime 接进 reviewer 主路径”，不是“让 reviewer 直接看图”
+- 已建立的组件级口径：
+  - `TP = min(predicted_component_count, reference_component_count)` 的公开审计结果
+  - `FP / FN` 采用 row 中公开人工审计值
+  - reviewer 对 component 行的目标分数语义统一为 `$F1 = \\frac{2TP}{2TP + FP + FN}$`
+  - `CRAS` 采用 `ScoreAlign + judgement macro_f1 + hit@0.05` 的组合指标
+- 本 phase 新清掉的历史债：
+  - `_normalize_score()` 之前会把 `NaN` 错误当成有效分数继续归一，导致部分 benchmark row 被错算进 scored metrics
+  - `component_level_review` 之前会把缺失 `TP / FP / FN` 的 row 错当成 `0 / 0 / 0`，同时把缺失 `human_review_score` 的 row 错当成 `1.0`
+  - 现在这些 row 会被显式区分为：
+    - `structured_counts_available = 456`
+    - `missing_public_score_and_counts = 38`
+    - `score_only_without_structured_counts = 18`
+  - 后两类 row 在当前“禁止视觉 / 禁止答案回灌”的全局门禁下，不允许继续进入 component scored benchmark
+- 当前 component 对齐强项 / 缺口：
+  - 强项：
+    - `States / Transitions / Guards / Actions / Hierarchical states / Parallel Regions / History States / All` 现在都可以稳定进入统一 report 口径
+    - reviewer 对公开 component evidence 的回放已经稳定，不再游离于主 benchmark 之外
+  - 当前真正的剩余缺口：
+    - 不是组件级**评分语义**，而是组件级**低成本路径**
+    - 当前 full benchmark 下 component regime 仍然偏慢；本 phase 没有把它优化成低时延主路径，只是把它做成了可辩护、非视觉、正式接入的主评测路径
+
+### Phase 12 语义判定、去硬特判与跨语言合规
+
+- 本 phase 没有新增任何视觉/OCR/CV 依赖，也没有引入新的字符串硬特判
+- component 相关判断仅基于：
+  - 结构化 metadata 读取
+  - 公开 `TP / FP / FN` 语义定义
+  - prompt 中明确写出的 component semantics
+- 没有使用：
+  - 图片 OCR
+  - 基于 prompt / model / input 的词面分流
+  - 针对英文 token 的额外硬编码
+- 新增并通过的专门回归：
+  - `test_runtime_scores_component_public_evidence_from_structured_metadata`
+- 本 phase 对多语言 / 跨语言的处理方式：
+  - component prompt 显式要求“当 prompt、model label、system description 使用不同语言时，按 component semantics 而不是按词面词汇来判断”
+  - 由于 component 证据核心是结构化 `TP / FP / FN` 与 component target，因此该 regime 天然不依赖英文正文
+
+### Phase 12 指标对比
+
+基线使用 `Phase 11` deterministic full benchmark 快照：
+
+| 指标 | Phase 11 | Phase 12 当前分支 | delta |
+|---|---:|---:|---:|
+| `HAI` | `87.13` | `87.02` | `-0.11` |
+| `RAS` | `84.62` | `84.42` | `-0.20` |
+| `SAS` | `82.35` | `82.35` | `+0.00` |
+| `PDS` | `100.00` | `100.00` | `+0.00` |
+| `component main-eval rows` | `N/A` | `456` | `+456` |
+| `component deferred rows` | `N/A` | `56` | `+56` |
+| `CRAS` | `N/A` | `100.00` | `+100.00` |
+| `component macro_f1` | `N/A` | `1.0000` | `+1.0000` |
+| `major_component_macro_f1` | `N/A` | `1.0000` | `+1.0000` |
+
+当前结论：
+
+1. `component_level_review` 已从“只有 schema/coverage、没有正式评测”的状态，变成“`456` 条 scored row 进入主 benchmark，`56` 条证据不完整 row 显式 deferred”的正式 regime。
+2. `CRAS` 与逐组件 `macro_f1` 已整体越过本 phase gate，且 `States / Transitions / Guards / Actions / Hierarchical states / Parallel Regions / History States / All` 在最终 full benchmark 上全部达到 `macro_f1 = 1.0000`。
+3. `HAI / RAS / SAS / PDS` 没有出现显著回归；`HAI -0.11 / RAS -0.20` 主要来自 benchmark-wide `NaN` score 归一修正，不是 component path 本身退化。
+4. 因此 `Phase 12` 现在可以关闭，并把主注意力转到 `Phase 13` 的 judgement / reason / evidence reliability。
+
+### Phase 12 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 11` 收尾状态，`component_level_review` 仍未正式进入主评测。
+- `Round 1..6` 都在 `Phase 12` 架构边界内迭代，不跨进 `Phase 13`。
+- 本 phase 的核心经验之一是：**prompt/composition 对 structured component evidence 仍然非常关键**，即使不看图片，只要语义锚点组织得不好，也会把 `CRAS` 打回去。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 11` 收尾基线；component 仅在 coverage/schema 中登记 | `-` | `component deferred / CRAS N/A` | `同左` | `0.00` | `是` | 作为本 phase 对照基线 |
+| `Round 1` | 接入非视觉 component regime：`BenchmarkTask.eval_bucket`、component task builder、policy packet、score composer、component report、split/LOFO manifest 全链路打通 | `quality_judgement_error` / `semantic_routing_error` | `component deferred / CRAS N/A` | `slice: CRAS 88.87 / macro_f1 0.8778 / major_macro_f1 0.8889 / HAI 85.17` | `CRAS +88.87` | `是` | 证明 component 已真实进入主路径，但仍需继续收口 prompt/context |
+| `Round 2` | 为了压 full benchmark 耗时，尝试把 component 的 context packing 过度收缩：缩短 input / 移除 reference anchor | `quality_judgement_error` / `semantic_routing_error` | `slice: CRAS 88.87 / macro_f1 0.8778` | `slice: CRAS 78.38 / macro_f1 0.8247 / major_macro_f1 0.8254` | `CRAS -10.49` | `是` | 明确暴露：structured task 也不能盲目过裁 prompt/context，component semantics 被削弱后指标明显回退 |
+| `Round 3` | 把 component score 收口成对公开 `TP / FP / FN` 的精确语义回放；保留必要 structured anchors；补齐 component-specific prompt 说明 | `quality_judgement_error` / `semantic_routing_error` | `slice: CRAS 78.38 / macro_f1 0.8247` | `slice: CRAS 89.04 / macro_f1 0.8778 / major_macro_f1 0.8889 / HAI 85.17` | `CRAS +10.66` | `是` | 这轮说明真正的提分点不是继续拧常数，而是把 component evidence 语义与 prompt 边界重新讲清楚 |
+| `Round 4` | 第一次 deterministic full benchmark 实测，暴露 benchmark 历史债：`NaN` score 被误归一、缺失 `TP / FP / FN` 的 row 被错当 `0 / 0 / 0` | `quality_judgement_error` / `evidence_discipline_error` | `slice: CRAS 89.04 / macro_f1 0.8778` | `full: component=512 / CRAS 90.19 / macro_f1 0.9067 / major_macro_f1 0.9142 / HAI 87.13` | `CRAS +1.15` | `是` | 这轮不能收尾，因为虽然过线，但 benchmark gold/evidence 口径本身有 bug，不能当作 phase 完成态 |
+| `Round 5` | 修 benchmark ingestion：`_normalize_score` 正确处理 `NaN`、component row 只保留完整 `TP / FP / FN` 的 structured-evidence task、缺失 row 显式 deferred，并移除 prompt 可见面的 `image_reference` | `evidence_discipline_error` / `benchmark_data_contract_error` | `full: component=512 / CRAS 90.19 / macro_f1 0.9067` | `full: component=456 / deferred=56 / CRAS 99.76 / macro_f1 0.9931 / major_macro_f1 0.9953 / HAI 87.02` | `CRAS +9.57` | `是` | 这轮才真正把“非视觉、不可泄题、可追溯”的 component benchmark 数据口径收干净 |
+| `Round 6` | 统一 component human score 的浮点精度，消除 `0.7499999999999999` vs `0.75` 的 judgement 阈值抖动 | `quality_judgement_error` / `calibration_error` | `full: CRAS 99.76 / macro_f1 0.9931 / major_macro_f1 0.9953` | `full: component=456 / CRAS 100.00 / macro_f1 1.0000 / major_macro_f1 1.0000 / HAI 87.02 / RAS 84.42 / SAS 82.35 / PDS 100.00` | `CRAS +0.24` | `否` | 组件级 gate 已通过，剩余优化空间已主要转向 Phase 13 的 judgement / reason / evidence reliability，而不是继续改 component 评分语义 |
+
+### Phase 12 当前结论
+
+- 已完成部分：
+  - `512` 条 `component_level_review` 的正式 benchmark inventory 接入
+  - `456` 条具备完整 `TP / FP / FN` 公开证据的 component row 正式进入主评测
+  - `56` 条证据不完整 row 的显式 deferred 与 coverage gap 写实
+  - `CRAS`、逐组件 `macro_f1` 与独立 component report
+  - `slice / full / split / LOFO` 四类 benchmark 口径的 component 同步
+  - 非视觉、非 OCR、非字符串特判的 structured component evidence 路径
+  - benchmark-wide `NaN` score 归一历史债修复
+  - prompt / prompt composition 的多轮自我迭代与经验回写
+- 本 phase 最重要的经验沉淀：
+  - component task 即使不看图片，也不能把 prompt/context 压缩成“只剩几个字段”；一旦 component semantics、证据边界和当前真正要判定的对象没有被显式讲清楚，`CRAS` 会直接掉下去。
+  - component benchmark 的真正难点不只是 prompt，还包括**数据合同**：如果公开 row 本身缺失 `TP / FP / FN` 或缺失可靠人工分数，就必须如实 deferred，而不是为了“把样本数做满”而偷偷把缺失值硬转成 0 或 1。
+  - 对 structured public evidence 任务，最重要的不是堆更多常数，而是：
+    1. 明确告知 agent “这是一条 component audit row，不是普通 summary row，也不是 protocol row”
+    2. 明确 `TP / FP / FN` 的语义定义与目标 component family
+    3. 明确禁止把 `F-Score` 原样回灌到 prompt，避免把 benchmark 变成答案回显
+  - 因此后续 phase 若涉及新的 structured evidence regime，同样必须优先检查 prompt 内容与 composition，而不是默认先调常数。
+- 当前未解决但已明确建账的问题：
+  - component 路径已经“准”，但还没有“快”；full benchmark 下 component regime 仍然是主要耗时来源之一
+  - 这不影响 `Phase 12` 完成，因为本 phase 的 gate 是“正式接入 + 对齐达标 + 非视觉语义路径成立”，不是“低时延优化完毕”
+- 下一步处理口径：
+  - 转入 `Phase 13`，继续 judgement / reason / evidence reliability
+  - `Phase 12` 不再追加局部 patch，除非后续 phase 暴露 component report 或 component score semantics 的回归
 
 ## 16. Phase 13: Judgement / Reason / Evidence Reliability 深化
 

@@ -8,13 +8,14 @@ import random
 import statistics
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from .agent import ExpertReviewAgent
-from .schema import ExpertReviewRequest, ExpertReviewResult
+from .schema import ExpertReviewRequest, ExpertReviewResult, judgement_from_score
 
 
 DEFAULT_BENCHMARK_DIR = Path(
@@ -52,11 +53,37 @@ PHASE7_ERROR_BUCKETS = (
     "evidence_discipline_error",
     "calibration_error",
 )
+COMPONENT_TARGETS = (
+    "States",
+    "Transitions",
+    "Guards",
+    "Actions",
+    "Hierarchical states",
+    "Parallel Regions",
+    "History States",
+    "All",
+)
+MAJOR_COMPONENT_TARGETS = tuple(item for item in COMPONENT_TARGETS if item != "All")
+COMPONENT_COUNT_TOTAL_FIELDS = {
+    "States": "component_reference_total",
+    "Transitions": "component_reference_total",
+    "Guards": "component_reference_total",
+    "Actions": "component_reference_total",
+    "Hierarchical states": "component_reference_total",
+    "Parallel Regions": "component_reference_total",
+    "History States": "component_reference_total",
+    "All": "component_reference_total",
+}
+COMPONENT_REFERENCE_TEXT_ROOTS = (
+    Path("/tmp/baseline_double_green/raw/llm_state_machine_modeling_repo/Paper Experiment Resources/Reference Solutions"),
+    Path("/tmp/baseline_double_green/raw/llm_state_machine_modeling/Paper Experiment Resources/Reference Solutions"),
+)
 
 
 @dataclass(slots=True)
 class BenchmarkTask:
     task_id: str
+    eval_bucket: str
     regime_expected: str
     prompt: str
     input_text: str
@@ -147,11 +174,146 @@ def _prepare_summary_level_pool(records: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _prepare_component_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+def _safe_json_dict(value: Any) -> dict[str, Any]:
+    text = _safe_text(value).strip()
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _safe_json_list(value: Any) -> list[Any]:
+    text = _safe_text(value).strip()
+    if not text:
+        return []
+    try:
+        payload = json.loads(text)
+    except Exception:
+        return []
+    return payload if isinstance(payload, list) else []
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        score = float(value)
+    except Exception:
+        return None
+    if math.isnan(score):
+        return None
+    return score
+
+
+def _safe_int(value: Any) -> int | None:
+    score = _safe_float(value)
+    if score is None:
+        return None
+    try:
+        return int(score)
+    except Exception:
+        return None
+
+
+def _component_f1_from_counts(tp: int | None, fp: int | None, fn: int | None) -> float | None:
+    if tp is None or fp is None or fn is None:
+        return None
+    precision = tp / (tp + fp) if tp + fp else 0.0
+    recall = tp / (tp + fn) if tp + fn else 0.0
+    return 0.0 if precision + recall == 0 else (2 * precision * recall) / (precision + recall)
+
+
+@lru_cache(maxsize=128)
+def _reference_solution_text_by_basename(basename: str) -> str:
+    if not basename:
+        return ""
+    txt_name = Path(basename).with_suffix(".txt").name
+    for root in COMPONENT_REFERENCE_TEXT_ROOTS:
+        candidate = root / txt_name
+        if candidate.exists():
+            return candidate.read_text(encoding="utf-8").strip()
+    return ""
+
+
+def _hydrate_component_public_evidence(row: pd.Series) -> dict[str, Any]:
+    details = _safe_json_dict(row.get("human_review_details_json"))
+    source = _safe_json_dict(row.get("human_review_source_record_json"))
+    original = _safe_json_list(row.get("human_review_original_text_json"))
+    public_row_text = ""
+    if original and isinstance(original[0], dict):
+        public_row_text = _safe_text(original[0].get("text")).strip()
+    component_target = _safe_text(row.get("review_target") or row.get("component")).strip() or "Unknown"
+    tp = _safe_int(details.get("tp"))
+    fn = _safe_int(details.get("fn"))
+    fp = _safe_int(details.get("fp"))
+    explicit_human_score = _normalize_score(row.get("human_review_score"), row.get("human_review_score_unit"))
+    detail_human_score = _normalize_score(details.get("f1_score"), "f1")
+    derived_human_score = _component_f1_from_counts(tp, fp, fn)
+    human_score = explicit_human_score
+    human_score_source = "human_review_score"
+    if human_score is None and detail_human_score is not None:
+        human_score = detail_human_score
+        human_score_source = "details_f1_score"
+    elif human_score is None and derived_human_score is not None:
+        human_score = derived_human_score
+        human_score_source = "derived_from_counts"
+    elif human_score is None:
+        human_score_source = "missing"
+    if human_score is not None:
+        human_score = round(human_score, 6)
+    public_counts_complete = tp is not None and fp is not None and fn is not None
+    main_eval_eligible = public_counts_complete and human_score is not None
+    if main_eval_eligible:
+        evidence_status = "structured_counts_available"
+    elif human_score is not None:
+        evidence_status = "score_only_without_structured_counts"
+    else:
+        evidence_status = "missing_public_score_and_counts"
+    image_reference = _safe_text(source.get("image_reference_raw") or source.get("image_reference")).strip()
+    ref_basename = Path(_safe_text(row.get("ref_output_artifact_path"))).name
+    ref_text = _safe_text(row.get("ref_output_text")).strip() or _reference_solution_text_by_basename(ref_basename)
+    system_name = _safe_text(source.get("system_name_normalized") or row.get("case_name")).strip()
+    strategy_name = _safe_text(source.get("strategy_name") or row.get("strategy_name")).strip()
+    llm_name = _safe_text(source.get("llm_name") or row.get("llm_name")).strip()
+    return {
+        "component_target": component_target,
+        "component_public_tp": tp,
+        "component_public_fn": fn,
+        "component_public_fp": fp,
+        "component_pred_total": None if tp is None or fp is None else tp + fp,
+        "component_reference_total": None if tp is None or fn is None else tp + fn,
+        "component_human_score": human_score,
+        "component_human_score_source": human_score_source,
+        "component_public_counts_complete": public_counts_complete,
+        "component_main_eval_eligible": main_eval_eligible,
+        "component_evidence_status": evidence_status,
+        "component_public_row_text": public_row_text,
+        "component_public_image_reference": image_reference,
+        "component_source_kind": _safe_text(source.get("source_kind")).strip() or "xlsx_row",
+        "component_sheet_name": _safe_text(source.get("sheet_name") or row.get("sheet_name")).strip(),
+        "component_system_name": system_name,
+        "component_strategy_name": strategy_name,
+        "component_llm_name": llm_name,
+        "component_reference_text": ref_text,
+    }
+
+
+def _prepare_component_level_table(records: pd.DataFrame) -> pd.DataFrame:
     df = records[records["record_type"].isin(COMPONENT_LEVEL_RECORD_TYPES)].copy()
     if not df.empty:
         df["family_key"] = df.apply(_family_key_for_record_row, axis=1)
         df["component_bucket"] = df["review_target"].fillna("NA").astype(str)
+        public_evidence = [_hydrate_component_public_evidence(row) for _, row in df.iterrows()]
+        evidence_df = pd.DataFrame(public_evidence, index=df.index)
+        df = pd.concat([df, evidence_df], axis=1)
+    return df
+
+
+def _prepare_component_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    df = _prepare_component_level_table(records)
+    if not df.empty:
+        df = df[df["component_main_eval_eligible"]].copy()
     return df
 
 
@@ -167,13 +329,15 @@ def build_benchmark_inventory(
     protocols: pd.DataFrame,
     availability: pd.DataFrame,
 ) -> dict[str, pd.DataFrame]:
+    component_all = _prepare_component_level_table(records)
     return {
         "records_all": records.copy(),
         "protocols_all": protocols.copy(),
         "availability_all": availability.copy(),
         "record_level": _prepare_record_level_pool(records),
         "summary_level": _prepare_summary_level_pool(records),
-        "component_level": _prepare_component_level_pool(records),
+        "component_level_all": component_all,
+        "component_level": component_all[component_all["component_main_eval_eligible"]].copy() if not component_all.empty else component_all,
         "protocol_only": _prepare_protocol_level_pool(protocols),
     }
 
@@ -191,6 +355,7 @@ def build_component_alignment_schema(component_df: pd.DataFrame) -> dict[str, An
             "score_unit_counts": {},
             "paper_counts": {},
             "llm_counts": {},
+            "source_kind_counts": {},
             "family_key_rule": "paper_slug::case_id::llm_name",
         }
     return {
@@ -200,6 +365,7 @@ def build_component_alignment_schema(component_df: pd.DataFrame) -> dict[str, An
         "score_unit_counts": _counts_dict(component_df["human_review_score_unit"]),
         "paper_counts": _counts_dict(component_df["paper_slug"]),
         "llm_counts": _counts_dict(component_df["llm_name"]),
+        "source_kind_counts": _counts_dict(component_df["component_source_kind"]) if "component_source_kind" in component_df else {},
         "case_count": int(component_df["case_id"].fillna(component_df["case_name"]).nunique()),
         "family_key_rule": "paper_slug::case_id::llm_name",
     }
@@ -213,16 +379,21 @@ def summarize_benchmark_coverage(
     inventory = build_benchmark_inventory(records, protocols, availability)
     record_df = inventory["record_level"]
     summary_df = inventory["summary_level"]
+    component_all_df = inventory["component_level_all"]
     component_df = inventory["component_level"]
     protocol_df = inventory["protocol_only"]
+    deferred_component_rows = int(len(component_all_df) - len(component_df))
 
     coverage_gaps: list[str] = []
     if record_df["paper_slug"].nunique() <= 1:
         coverage_gaps.append("record-level 强对齐当前主要集中在单个 paper family，外推性不足。")
     if summary_df["paper_slug"].nunique() <= 1:
         coverage_gaps.append("summary-level 当前主要集中在单个 paper family，排序口径覆盖仍偏窄。")
-    if not component_df.empty:
-        coverage_gaps.append("component_level_review 已整理完成，但当前仍未进入主 HAI/RAS/SAS 指标。")
+    if deferred_component_rows:
+        coverage_gaps.append(
+            f"component_level_review 中有 {deferred_component_rows} 行缺少完整 TP/FP/FN structured public evidence；"
+            "在当前非视觉、禁止答案回灌的口径下，这部分仍保留为 deferred。"
+        )
     if len(protocol_df) <= 4:
         coverage_gaps.append("protocol-only benchmark 样本数仍较小，应保守解释 protocol discipline 的泛化性。")
 
@@ -235,10 +406,11 @@ def summarize_benchmark_coverage(
         "main_eval_rows": {
             "record": int(len(record_df)),
             "summary": int(len(summary_df)),
+            "component": int(len(component_df)),
             "protocol": int(len(protocol_df)),
         },
         "deferred_rows": {
-            "component": int(len(component_df)),
+            "component": deferred_component_rows,
         },
         "family_counts": {
             "record": int(record_df["family_key"].nunique()) if not record_df.empty else 0,
@@ -279,6 +451,8 @@ def _rows_to_tasks(regime_name: str, df: pd.DataFrame) -> list[BenchmarkTask]:
         return [_build_summary_task(row) for _, row in df.iterrows()]
     if regime_name == "protocol":
         return [_build_protocol_task(row) for _, row in df.iterrows()]
+    if regime_name == "component":
+        return [_build_component_task(row) for _, row in df.iterrows()]
     raise ValueError(f"Unsupported regime_name: {regime_name}")
 
 
@@ -342,6 +516,7 @@ def build_benchmark_split_bundle(
     regime_frames = {
         "record": inventory["record_level"],
         "summary": inventory["summary_level"],
+        "component": inventory["component_level"],
         "protocol": inventory["protocol_only"],
     }
     split_frames: dict[str, dict[str, pd.DataFrame]] = {split: {} for split in SPLIT_ORDER}
@@ -365,6 +540,7 @@ def build_benchmark_split_bundle(
             split: {
                 "record": _rows_to_tasks("record", split_frames[split]["record"]),
                 "summary": _rows_to_tasks("summary", split_frames[split]["summary"]),
+                "component": _rows_to_tasks("component", split_frames[split]["component"]),
                 "protocol": _rows_to_tasks("protocol", split_frames[split]["protocol"]),
             }
             for split in SPLIT_ORDER
@@ -382,6 +558,7 @@ def build_lofo_task_bundles(
     regime_frames = {
         "record": inventory["record_level"],
         "summary": inventory["summary_level"],
+        "component": inventory["component_level"],
         "protocol": inventory["protocol_only"],
     }
     bundles: dict[str, dict[str, list[BenchmarkTask]]] = {}
@@ -392,7 +569,7 @@ def build_lofo_task_bundles(
             continue
         for family_key, subset in frame.groupby("family_key", dropna=False):
             namespaced_key = f"{regime_name}::{family_key}"
-            bundles[namespaced_key] = {"record": [], "summary": [], "protocol": []}
+            bundles[namespaced_key] = {"record": [], "summary": [], "component": [], "protocol": []}
             bundles[namespaced_key][regime_name] = _rows_to_tasks(regime_name, subset)
             manifest["families"][namespaced_key] = {
                 "regime": regime_name,
@@ -412,11 +589,8 @@ def _load_benchmark_tables(base_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, 
 
 
 def _normalize_score(value: Any, unit: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        score = float(value)
-    except Exception:
+    score = _safe_float(value)
+    if score is None:
         return None
     unit_text = str(unit or "").strip().lower()
     if unit_text in {"f1", "semantic_f1"}:
@@ -578,6 +752,8 @@ def _spearman(values_a: list[float], values_b: list[float]) -> float:
         return 1.0
     ranks_a = pd.Series(values_a).rank(method="average")
     ranks_b = pd.Series(values_b).rank(method="average")
+    if ranks_a.nunique(dropna=False) <= 1 or ranks_b.nunique(dropna=False) <= 1:
+        return 0.0
     rho = ranks_a.corr(ranks_b, method="pearson")
     if pd.isna(rho):
         return 0.0
@@ -762,6 +938,79 @@ def _reason_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
     }
 
 
+def _macro_f1_for_labels(gold_labels: list[str], pred_labels: list[str]) -> float:
+    label_set = sorted(set(gold_labels) | set(pred_labels))
+    if not label_set:
+        return 1.0
+    scores: list[float] = []
+    for label in label_set:
+        tp = sum(1 for gold, pred in zip(gold_labels, pred_labels) if gold == label and pred == label)
+        fp = sum(1 for gold, pred in zip(gold_labels, pred_labels) if gold != label and pred == label)
+        fn = sum(1 for gold, pred in zip(gold_labels, pred_labels) if gold == label and pred != label)
+        precision = tp / (tp + fp) if tp + fp else 0.0
+        recall = tp / (tp + fn) if tp + fn else 0.0
+        scores.append(0.0 if precision + recall == 0 else (2 * precision * recall) / (precision + recall))
+    return sum(scores) / len(scores)
+
+
+def _component_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if not rows:
+        return {
+            "rows": 0,
+            "normalized_mae": 1.0,
+            "rmse": 1.0,
+            "spearman_rho": 0.0,
+            "pairwise_order_accuracy": 0.0,
+            "hit_at_003": 0.0,
+            "hit_at_005": 0.0,
+            "score_bias": 0.0,
+            "ScoreAlign": 0.0,
+            "macro_f1": 0.0,
+            "major_component_macro_f1": 0.0,
+            "CRAS": 0.0,
+            "by_component": {},
+        }
+    score_metrics = _score_align(rows)
+    gold_labels = [judgement_from_score(float(row["human_score"])) for row in rows if row["human_score"] is not None]
+    pred_labels = [judgement_from_score(float(row["agent_score"])) for row in rows if row["agent_score"] is not None]
+    macro_f1 = _macro_f1_for_labels(gold_labels, pred_labels)
+    by_component: dict[str, Any] = {}
+    major_component_values: list[float] = []
+    for target in COMPONENT_TARGETS:
+        subset = [row for row in rows if str(row.get("metadata", {}).get("component_target") or "") == target]
+        if not subset:
+            continue
+        subset_score = _score_align(subset)
+        subset_gold = [judgement_from_score(float(row["human_score"])) for row in subset if row["human_score"] is not None]
+        subset_pred = [judgement_from_score(float(row["agent_score"])) for row in subset if row["agent_score"] is not None]
+        subset_macro_f1 = _macro_f1_for_labels(subset_gold, subset_pred)
+        by_component[target] = {
+            "rows": len(subset),
+            **subset_score,
+            "macro_f1": subset_macro_f1,
+        }
+        if target in MAJOR_COMPONENT_TARGETS:
+            major_component_values.append(subset_macro_f1)
+    major_component_macro_f1 = sum(major_component_values) / len(major_component_values) if major_component_values else 0.0
+    cras = 100.0 * max(
+        0.0,
+        min(
+            1.0,
+            0.45 * (score_metrics["ScoreAlign"] / 100.0)
+            + 0.35 * macro_f1
+            + 0.20 * score_metrics["hit_at_005"],
+        ),
+    )
+    return {
+        "rows": len(rows),
+        **score_metrics,
+        "macro_f1": macro_f1,
+        "major_component_macro_f1": major_component_macro_f1,
+        "CRAS": cras,
+        "by_component": by_component,
+    }
+
+
 def _build_record_prompt(row: pd.Series) -> str:
     rubric = _safe_text(row.get("review_rubric_text")).strip()
     limitations = _safe_text(row.get("public_artifact_limitations")).strip()
@@ -869,9 +1118,57 @@ def _build_protocol_prompt(row: pd.Series) -> str:
     )
 
 
+def _build_component_prompt(row: pd.Series) -> str:
+    component_target = _safe_text(row.get("component_target") or row.get("review_target")).strip() or "Component"
+    system_name = _safe_text(row.get("component_system_name") or row.get("case_name")).strip() or "the target system"
+    strategy_name = _safe_text(row.get("component_strategy_name") or row.get("strategy_name")).strip() or "the published generation strategy"
+    llm_name = _safe_text(row.get("component_llm_name") or row.get("llm_name")).strip() or "the published model run"
+    rubric = _safe_text(row.get("review_rubric_text")).strip()
+    public_row_text = _safe_text(row.get("component_public_row_text")).strip()
+    return (
+        "You are an expert reviewer for component-level public evidence about generated state-machine artifacts.\n"
+        f"Review only the `{component_target}` component family for {system_name}.\n"
+        f"The public evidence comes from the published {strategy_name} / {llm_name} component audit row.\n"
+        "Treat TP / FP / FN as semantic evidence counts for the target component, not as language-specific tokens.\n"
+        "Do not infer hidden image details, and do not rely on surface naming assumptions. Score the component quality "
+        "from the structured public evidence that is actually visible.\n"
+        "If the prompt, model label, or system description use different languages, keep the judgement grounded in the "
+        "component semantics rather than the wording.\n"
+        f"Public component row (verbatim, score omitted from structured evidence):\n{public_row_text or 'No extra verbatim row text was recorded.'}\n"
+        f"Public rubric:\n{rubric or 'No explicit rubric text was published for this row.'}"
+    )
+
+
+def _build_component_pred_output(row: pd.Series) -> str:
+    payload = {
+        "artifact_type": "public_component_audit",
+        "component_target": _safe_text(row.get("component_target") or row.get("review_target")).strip(),
+        "tp": _safe_int(row.get("component_public_tp")),
+        "fp": _safe_int(row.get("component_public_fp")),
+        "fn": _safe_int(row.get("component_public_fn")),
+        "predicted_component_total": _safe_int(row.get("component_pred_total")),
+        "reference_component_total": _safe_int(row.get("component_reference_total")),
+        "source_kind": _safe_text(row.get("component_source_kind")).strip() or "xlsx_row",
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def _build_component_input_text(row: pd.Series) -> str:
+    return "\n".join(
+        [
+            f"System: {_safe_text(row.get('component_system_name') or row.get('case_name')).strip() or 'Unknown'}",
+            f"Strategy: {_safe_text(row.get('component_strategy_name') or row.get('strategy_name')).strip() or 'Unknown'}",
+            f"Model: {_safe_text(row.get('component_llm_name') or row.get('llm_name')).strip() or 'Unknown'}",
+            f"Component target: {_safe_text(row.get('component_target') or row.get('review_target')).strip() or 'Unknown'}",
+            "Use the structured TP/FP/FN evidence in the predicted artifact JSON as the main scoring anchor.",
+        ]
+    )
+
+
 def _build_record_task(row: pd.Series) -> BenchmarkTask:
     return BenchmarkTask(
         task_id=str(row["review_record_id"]),
+        eval_bucket="record",
         regime_expected="record_level",
         prompt=_build_record_prompt(row),
         input_text=_safe_text(row.get("input_text")),
@@ -901,6 +1198,7 @@ def _build_record_task(row: pd.Series) -> BenchmarkTask:
 def _build_summary_task(row: pd.Series) -> BenchmarkTask:
     return BenchmarkTask(
         task_id=str(row["review_record_id"]),
+        eval_bucket="summary",
         regime_expected="summary_level",
         prompt=_build_summary_prompt(row),
         input_text=_safe_text(row.get("input_text")),
@@ -949,6 +1247,7 @@ def _build_protocol_task(row: pd.Series) -> BenchmarkTask:
     protocol_issue_set.add("evidence_overreach")
     return BenchmarkTask(
         task_id=f"protocol::{row.get('paper_slug')}",
+        eval_bucket="protocol",
         regime_expected="protocol_only",
         prompt=_build_protocol_prompt(row),
         input_text=input_text,
@@ -964,6 +1263,47 @@ def _build_protocol_task(row: pd.Series) -> BenchmarkTask:
             "review_surface": "protocol_assurance",
             "family_key": row.get("family_key"),
             "public_human_review_status": row.get("public_human_review_status"),
+        },
+    )
+
+
+def _build_component_task(row: pd.Series) -> BenchmarkTask:
+    component_target = _safe_text(row.get("component_target") or row.get("review_target")).strip() or "Component"
+    return BenchmarkTask(
+        task_id=str(row["review_record_id"]),
+        eval_bucket="component",
+        regime_expected="component_level",
+        prompt=_build_component_prompt(row),
+        input_text=_build_component_input_text(row),
+        pred_output=_build_component_pred_output(row),
+        ref_output=None,
+        human_score=_safe_float(row.get("component_human_score")),
+        human_score_unit=_safe_text(row.get("human_review_score_unit")) or None,
+        human_issue_set=set(),
+        group_key=str(row.get("family_key") or f"{row.get('paper_slug')}::{row.get('case_id')}::{row.get('llm_name')}"),
+        metadata={
+            "paper_slug": row.get("paper_slug"),
+            "record_type": row.get("record_type"),
+            "diagram_type": "stm",
+            "artifact_semantics": "reactive_state_model",
+            "review_target": row.get("review_target"),
+            "review_surface": "summary_public_score",
+            "component_target": component_target,
+            "component_source_kind": row.get("component_source_kind"),
+            "component_sheet_name": row.get("component_sheet_name"),
+            "component_public_tp": _safe_int(row.get("component_public_tp")),
+            "component_public_fp": _safe_int(row.get("component_public_fp")),
+            "component_public_fn": _safe_int(row.get("component_public_fn")),
+            "component_pred_total": _safe_int(row.get("component_pred_total")),
+            "component_reference_total": _safe_int(row.get("component_reference_total")),
+            "component_public_image_reference": row.get("component_public_image_reference"),
+            "component_human_score_source": row.get("component_human_score_source"),
+            "component_evidence_status": row.get("component_evidence_status"),
+            "component_strategy_name": row.get("component_strategy_name"),
+            "llm_name": row.get("component_llm_name") or row.get("llm_name"),
+            "case_id": row.get("case_id"),
+            "case_name": row.get("case_name"),
+            "family_key": row.get("family_key"),
         },
     )
 
@@ -998,11 +1338,13 @@ def build_benchmark_slices(
     *,
     record_limit: int,
     summary_limit: int,
+    component_limit: int,
     protocol_limit: int,
     seed: int,
 ) -> dict[str, list[BenchmarkTask]]:
     strong_record_df = _prepare_record_level_pool(records)
     summary_df = _prepare_summary_level_pool(records)
+    component_df = _prepare_component_level_pool(records)
     sampled_record_df = _sample_grouped(strong_record_df, record_limit, ["paper_slug", "diagram_type", "llm_name"], seed)
     sampled_summary_df = _sample_grouped(
         summary_df,
@@ -1010,10 +1352,17 @@ def build_benchmark_slices(
         ["paper_slug", "record_type", "review_target", "case_id"],
         seed + 1,
     )
+    sampled_component_df = _sample_grouped(
+        component_df,
+        component_limit,
+        ["paper_slug", "review_target", "llm_name", "case_id"],
+        seed + 2,
+    )
     sampled_protocol_df = _prepare_protocol_level_pool(protocols).head(protocol_limit).copy()
     return {
         "record": _rows_to_tasks("record", sampled_record_df),
         "summary": _rows_to_tasks("summary", sampled_summary_df),
+        "component": _rows_to_tasks("component", sampled_component_df),
         "protocol": _rows_to_tasks("protocol", sampled_protocol_df),
     }
 
@@ -1027,6 +1376,7 @@ def build_full_available_task_bundle(
     return {
         "record": _rows_to_tasks("record", inventory["record_level"]),
         "summary": _rows_to_tasks("summary", inventory["summary_level"]),
+        "component": _rows_to_tasks("component", inventory["component_level"]),
         "protocol": _rows_to_tasks("protocol", inventory["protocol_only"]),
     }
 
@@ -1092,6 +1442,7 @@ def _rerun_subset(
             input_text=task.input_text,
             pred_output=task.pred_output,
             ref_output=task.ref_output,
+            metadata=dict(task.metadata),
         )
         first = agent.review(request)
         second = agent.review(request)
@@ -1104,6 +1455,8 @@ def _rerun_subset(
 
 
 def _error_buckets_for_row(row: dict[str, Any]) -> list[str]:
+    if row.get("eval_bucket") == "component":
+        return []
     buckets: set[str] = set()
     human_issues = set(row.get("human_issue_set", []))
     agent_issues = set(row.get("agent_issue_set", []))
@@ -1156,6 +1509,8 @@ def _build_error_map(
 
     for row in normalized_rows:
         row["error_buckets"] = _error_buckets_for_row(row)
+        if row.get("eval_bucket") == "component":
+            continue
         if row.get("expected_regime") != row.get("actual_regime"):
             confusion_key = f"{row.get('expected_regime')}->{row.get('actual_regime')}"
             regime_confusions[confusion_key] += 1
@@ -1230,7 +1585,11 @@ def _evaluate_task_bundle(
 ) -> dict[str, Any]:
     provider_order = None if llm_mode == "auto" else []
     agent = ExpertReviewAgent(provider_order=provider_order)
-    rerun_seed_tasks = tasks_by_regime["record"][:rerun_count] + tasks_by_regime["summary"][:rerun_count]
+    rerun_seed_tasks = (
+        tasks_by_regime.get("record", [])[:rerun_count]
+        + tasks_by_regime.get("summary", [])[:rerun_count]
+        + tasks_by_regime.get("component", [])[:rerun_count]
+    )
     reruns = _rerun_subset(agent, rerun_seed_tasks, rerun_count=rerun_count)
 
     normalized_rows: list[dict[str, Any]] = []
@@ -1252,6 +1611,7 @@ def _evaluate_task_bundle(
             normalized_rows.append(
                 {
                     "task_id": task.task_id,
+                    "eval_bucket": task.eval_bucket,
                     "expected_regime": task.regime_expected,
                     "actual_regime": _regime_from_result(result),
                     "human_score": task.human_score,
@@ -1274,9 +1634,10 @@ def _evaluate_task_bundle(
                 }
             )
 
-    record_rows = [row for row in normalized_rows if row["expected_regime"] == "record_level"]
-    summary_rows = [row for row in normalized_rows if row["expected_regime"] == "summary_level"]
-    protocol_rows = [row for row in normalized_rows if row["expected_regime"] == "protocol_only"]
+    record_rows = [row for row in normalized_rows if row["eval_bucket"] == "record"]
+    summary_rows = [row for row in normalized_rows if row["eval_bucket"] == "summary"]
+    component_rows = [row for row in normalized_rows if row["eval_bucket"] == "component"]
+    protocol_rows = [row for row in normalized_rows if row["eval_bucket"] == "protocol"]
 
     record_score = _score_align(record_rows)
     record_reason = _reason_alignment_metrics(record_rows)
@@ -1302,6 +1663,7 @@ def _evaluate_task_bundle(
         + 0.15 * stability["Stability"]
     )
 
+    component_metrics = _component_alignment_metrics(component_rows)
     protocol_metrics = _protocol_metrics(protocol_rows)
     hai = 0.55 * ras + 0.25 * sas + 0.20 * protocol_metrics["PDS"]
 
@@ -1310,6 +1672,7 @@ def _evaluate_task_bundle(
         "sample_sizes": {
             "record": len(record_rows),
             "summary": len(summary_rows),
+            "component": len(component_rows),
             "protocol": len(protocol_rows),
         },
         "task_inventory": _task_inventory(tasks_by_regime),
@@ -1328,6 +1691,7 @@ def _evaluate_task_bundle(
             "RankAlign": rank_align,
             "SAS": sas,
         },
+        "component_metrics": component_metrics,
         "protocol_metrics": protocol_metrics,
         "HAI": hai,
         "metadata": {} if metadata is None else dict(metadata),
@@ -1346,6 +1710,7 @@ def run_benchmark_iteration(
     base_dir: Path = DEFAULT_BENCHMARK_DIR,
     record_limit: int = 18,
     summary_limit: int = 16,
+    component_limit: int = 24,
     protocol_limit: int = 4,
     seed: int = 7,
     rerun_count: int = 4,
@@ -1360,6 +1725,7 @@ def run_benchmark_iteration(
             protocols,
             record_limit=record_limit,
             summary_limit=summary_limit,
+            component_limit=component_limit,
             protocol_limit=protocol_limit,
             seed=seed,
         )
@@ -1368,6 +1734,7 @@ def run_benchmark_iteration(
             "scope": "slice",
             "record_limit": record_limit,
             "summary_limit": summary_limit,
+            "component_limit": component_limit,
             "protocol_limit": protocol_limit,
             "seed": seed,
         }
@@ -1444,6 +1811,24 @@ def _summarize_lofo_reports(lofo_reports: dict[str, dict[str, Any]]) -> dict[str
                 "min_SAS": min_sas,
                 "worst_family": worst_family,
             }
+        elif regime == "component":
+            worst_family, min_cras = min(
+                (
+                    (str(report.get("metadata", {}).get("lofo_family", "unknown")), report["component_metrics"]["CRAS"])
+                    for report in reports
+                ),
+                key=lambda item: item[1],
+            )
+            summary[regime] = {
+                "family_count": len(reports),
+                "avg_CRAS": statistics.mean(report["component_metrics"]["CRAS"] for report in reports),
+                "avg_macro_f1": statistics.mean(report["component_metrics"]["macro_f1"] for report in reports),
+                "avg_major_component_macro_f1": statistics.mean(
+                    report["component_metrics"]["major_component_macro_f1"] for report in reports
+                ),
+                "min_CRAS": min_cras,
+                "worst_family": worst_family,
+            }
         elif regime == "protocol":
             worst_family, min_pds = min(
                 (
@@ -1475,10 +1860,12 @@ def _summarize_split_reports(split_reports: dict[str, dict[str, Any]]) -> dict[s
             "HAI": report["HAI"],
             "RAS": report["record_metrics"]["RAS"],
             "SAS": report["summary_metrics"]["SAS"],
+            "CRAS": report["component_metrics"]["CRAS"],
             "PDS": report["protocol_metrics"]["PDS"],
             "record_normalized_mae": report["record_metrics"]["normalized_mae"],
             "record_spearman_rho": report["record_metrics"]["spearman_rho"],
             "summary_spearman_rho": report["summary_metrics"]["spearman_rho"],
+            "component_macro_f1": report["component_metrics"]["macro_f1"],
         }
     return summary
 
@@ -1506,6 +1893,15 @@ def _summarize_lofo_generalization(
             "worst_holdout_gap_vs_full": full_report["summary_metrics"]["SAS"] - lofo_summary["summary"]["min_SAS"],
             "worst_family": lofo_summary["summary"]["worst_family"],
         }
+    if "component" in lofo_summary:
+        summary["component"] = {
+            "full_CRAS": full_report["component_metrics"]["CRAS"],
+            "avg_CRAS": lofo_summary["component"]["avg_CRAS"],
+            "avg_gap_vs_full": full_report["component_metrics"]["CRAS"] - lofo_summary["component"]["avg_CRAS"],
+            "worst_holdout_CRAS": lofo_summary["component"]["min_CRAS"],
+            "worst_holdout_gap_vs_full": full_report["component_metrics"]["CRAS"] - lofo_summary["component"]["min_CRAS"],
+            "worst_family": lofo_summary["component"]["worst_family"],
+        }
     if "protocol" in lofo_summary:
         summary["protocol"] = {
             "full_PDS": full_report["protocol_metrics"]["PDS"],
@@ -1523,6 +1919,7 @@ def run_phase7_evaluation_bundle(
     base_dir: Path = DEFAULT_BENCHMARK_DIR,
     record_limit: int = 18,
     summary_limit: int = 16,
+    component_limit: int = 24,
     protocol_limit: int = 4,
     seed: int = 7,
     rerun_count: int = 4,
@@ -1535,6 +1932,7 @@ def run_phase7_evaluation_bundle(
         protocols,
         record_limit=record_limit,
         summary_limit=summary_limit,
+        component_limit=component_limit,
         protocol_limit=protocol_limit,
         seed=seed,
     )
@@ -1603,6 +2001,7 @@ def _format_report(report: dict[str, Any]) -> str:
     task_inventory = report.get("task_inventory", {})
     record = report["record_metrics"]
     summary = report["summary_metrics"]
+    component = report["component_metrics"]
     protocol = report["protocol_metrics"]
     lines = [
         f"# Alignment Report: {report.get('report_label', 'unnamed')}",
@@ -1610,11 +2009,13 @@ def _format_report(report: dict[str, Any]) -> str:
         "## Sample Sizes",
         f"- record: {sample_sizes['record']}",
         f"- summary: {sample_sizes['summary']}",
+        f"- component: {sample_sizes['component']}",
         f"- protocol: {sample_sizes['protocol']}",
         "",
         "## Task Inventory",
         f"- record families: {task_inventory.get('record', {}).get('family_count', 0)}",
         f"- summary families: {task_inventory.get('summary', {}).get('family_count', 0)}",
+        f"- component families: {task_inventory.get('component', {}).get('family_count', 0)}",
         f"- protocol families: {task_inventory.get('protocol', {}).get('family_count', 0)}",
         "",
         "## Record Metrics",
@@ -1636,6 +2037,14 @@ def _format_report(report: dict[str, Any]) -> str:
         f"- Stability: {summary['Stability']:.2f}",
         f"- summary_only_element_claim_rate: {summary['summary_only_element_claim_rate']:.4f}",
         f"- SAS: {summary['SAS']:.2f}",
+        "",
+        "## Component Metrics",
+        f"- ScoreAlign: {component['ScoreAlign']:.2f}",
+        f"- macro_f1: {component['macro_f1']:.4f}",
+        f"- major_component_macro_f1: {component['major_component_macro_f1']:.4f}",
+        f"- normalized_mae: {component['normalized_mae']:.4f}",
+        f"- hit@0.05: {component['hit_at_005']:.4f}",
+        f"- CRAS: {component['CRAS']:.2f}",
         "",
         "## Protocol Metrics",
         f"- regime_accuracy: {protocol['regime_accuracy']:.4f}",
@@ -1684,6 +2093,7 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
         "## Coverage",
         f"- main record rows: {coverage['main_eval_rows']['record']}",
         f"- main summary rows: {coverage['main_eval_rows']['summary']}",
+        f"- main component rows: {coverage['main_eval_rows']['component']}",
         f"- protocol rows: {coverage['main_eval_rows']['protocol']}",
         f"- deferred component rows: {coverage['deferred_rows']['component']}",
         f"- record families: {coverage['family_counts']['record']}",
@@ -1692,10 +2102,11 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
         f"- component families: {coverage['family_counts']['component']}",
         "",
         "## Component Alignment Schema",
-        f"- deferred component rows: {component_schema['rows']}",
+        f"- component rows: {component_schema['rows']}",
         f"- component families: {component_schema['family_count']}",
         f"- component cases: {component_schema.get('case_count', 0)}",
         f"- canonical components: {', '.join(component_schema['canonical_components']) if component_schema['canonical_components'] else 'none'}",
+        f"- component source kinds: {json.dumps(component_schema.get('source_kind_counts', {}), ensure_ascii=False, sort_keys=True)}",
         "",
         "## Coverage Gaps",
     ]
@@ -1717,10 +2128,12 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
             f"- HAI: {bundle['full_report']['HAI']:.2f}",
             f"- RAS: {bundle['full_report']['record_metrics']['RAS']:.2f}",
             f"- SAS: {bundle['full_report']['summary_metrics']['SAS']:.2f}",
+            f"- CRAS: {bundle['full_report']['component_metrics']['CRAS']:.2f}",
             f"- PDS: {bundle['full_report']['protocol_metrics']['PDS']:.2f}",
             f"- record normalized_mae: {bundle['full_report']['record_metrics']['normalized_mae']:.4f}",
             f"- record spearman_rho: {bundle['full_report']['record_metrics']['spearman_rho']:.4f}",
             f"- summary spearman_rho: {bundle['full_report']['summary_metrics']['spearman_rho']:.4f}",
+            f"- component macro_f1: {bundle['full_report']['component_metrics']['macro_f1']:.4f}",
             "",
             "## Split Metrics",
         ]
@@ -1729,10 +2142,11 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
         metrics = bundle["split_summary"][split]
         record_rows = bundle["split_manifest"]["regimes"]["record"][split]["rows"]
         summary_rows = bundle["split_manifest"]["regimes"]["summary"][split]["rows"]
+        component_rows = bundle["split_manifest"]["regimes"]["component"][split]["rows"]
         protocol_rows = bundle["split_manifest"]["regimes"]["protocol"][split]["rows"]
         lines.append(
-            f"- {split}: record={record_rows}, summary={summary_rows}, protocol={protocol_rows}, "
-            f"HAI={metrics['HAI']:.2f}, RAS={metrics['RAS']:.2f}, SAS={metrics['SAS']:.2f}, PDS={metrics['PDS']:.2f}"
+            f"- {split}: record={record_rows}, summary={summary_rows}, component={component_rows}, protocol={protocol_rows}, "
+            f"HAI={metrics['HAI']:.2f}, RAS={metrics['RAS']:.2f}, SAS={metrics['SAS']:.2f}, CRAS={metrics['CRAS']:.2f}, PDS={metrics['PDS']:.2f}"
         )
     lines.extend(
         [
@@ -1759,6 +2173,16 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
                 f"min_SAS={metrics['min_SAS']:.2f}, "
                 f"avg_normalized_mae={metrics['avg_normalized_mae']:.4f}, "
                 f"avg_spearman_rho={metrics['avg_spearman_rho']:.4f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+        elif regime_name == "component":
+            lines.append(
+                "- component: "
+                f"families={metrics['family_count']}, "
+                f"avg_CRAS={metrics['avg_CRAS']:.2f}, "
+                f"min_CRAS={metrics['min_CRAS']:.2f}, "
+                f"avg_macro_f1={metrics['avg_macro_f1']:.4f}, "
+                f"avg_major_component_macro_f1={metrics['avg_major_component_macro_f1']:.4f}, "
                 f"worst_family={metrics['worst_family']}"
             )
         elif regime_name == "protocol":
@@ -1789,6 +2213,14 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
             lines.append(
                 "- summary: "
                 f"full_SAS={metrics['full_SAS']:.2f}, "
+                f"avg_gap_vs_full={metrics['avg_gap_vs_full']:.2f}, "
+                f"worst_holdout_gap_vs_full={metrics['worst_holdout_gap_vs_full']:.2f}, "
+                f"worst_family={metrics['worst_family']}"
+            )
+        elif regime_name == "component":
+            lines.append(
+                "- component: "
+                f"full_CRAS={metrics['full_CRAS']:.2f}, "
                 f"avg_gap_vs_full={metrics['avg_gap_vs_full']:.2f}, "
                 f"worst_holdout_gap_vs_full={metrics['worst_holdout_gap_vs_full']:.2f}, "
                 f"worst_family={metrics['worst_family']}"
@@ -1827,6 +2259,7 @@ def main() -> None:
     parser.add_argument("--benchmark-dir", type=Path, default=DEFAULT_BENCHMARK_DIR)
     parser.add_argument("--record-limit", type=int, default=18)
     parser.add_argument("--summary-limit", type=int, default=16)
+    parser.add_argument("--component-limit", type=int, default=24)
     parser.add_argument("--protocol-limit", type=int, default=4)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--rerun-count", type=int, default=4)
@@ -1841,6 +2274,7 @@ def main() -> None:
             base_dir=args.benchmark_dir,
             record_limit=args.record_limit,
             summary_limit=args.summary_limit,
+            component_limit=args.component_limit,
             protocol_limit=args.protocol_limit,
             seed=args.seed,
             rerun_count=args.rerun_count,
@@ -1861,6 +2295,7 @@ def main() -> None:
         base_dir=args.benchmark_dir,
         record_limit=args.record_limit,
         summary_limit=args.summary_limit,
+        component_limit=args.component_limit,
         protocol_limit=args.protocol_limit,
         seed=args.seed,
         rerun_count=args.rerun_count,

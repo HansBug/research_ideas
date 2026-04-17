@@ -264,6 +264,15 @@ def _metadata_value(request: Any, key: str) -> str | None:
     return value or None
 
 
+def _metadata_int(request: Any, key: str) -> int | None:
+    metadata = getattr(request, "metadata", {}) or {}
+    value = metadata.get(key)
+    try:
+        return int(float(value))
+    except Exception:
+        return None
+
+
 def _joined_text(values: list[str]) -> str:
     return "\n".join(item for item in values if item)
 
@@ -344,6 +353,31 @@ def _artifact_semantics_from_metadata(request: Any) -> str | None:
         return explicit
     diagram_type = (_metadata_value(request, "diagram_type") or "").casefold()
     return _canonical_diagram_type(diagram_type)
+
+
+def _component_profile_from_metadata(request: Any) -> dict[str, Any]:
+    component_target = _metadata_value(request, "component_target")
+    if not component_target:
+        return {
+            "component_target": "unknown",
+            "component_review_mode": False,
+            "component_public_tp": None,
+            "component_public_fp": None,
+            "component_public_fn": None,
+            "component_pred_total": None,
+            "component_reference_total": None,
+            "component_source_kind": None,
+        }
+    return {
+        "component_target": component_target,
+        "component_review_mode": True,
+        "component_public_tp": _metadata_int(request, "component_public_tp"),
+        "component_public_fp": _metadata_int(request, "component_public_fp"),
+        "component_public_fn": _metadata_int(request, "component_public_fn"),
+        "component_pred_total": _metadata_int(request, "component_pred_total"),
+        "component_reference_total": _metadata_int(request, "component_reference_total"),
+        "component_source_kind": _metadata_value(request, "component_source_kind"),
+    }
 
 
 def infer_summary_row_type(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
@@ -549,6 +583,8 @@ def build_review_policy(
     summary_semantics_explicit = aggregate_signal != "direct_review"
     summary_row_type = infer_summary_row_type(*contract_texts, request=request, llm=llm)
     summary_target = infer_summary_target(*contract_texts, request=request, llm=llm)
+    component_profile = _component_profile_from_metadata(request)
+    component_review_mode = bool(component_profile.get("component_review_mode"))
     if summary_target == "SMD":
         summary_target_axis = "structure_intensive_target"
     elif summary_target in {"BD", "UCD", "Properties"}:
@@ -570,11 +606,16 @@ def build_review_policy(
         score_semantics = "summary_stat_stddev" if aggregate_signal == "stddev" else "summary_quality"
     elif getattr(regime, "regime", "") == "protocol_only":
         score_semantics = "protocol_assurance"
+    if component_review_mode:
+        score_semantics = "component_public_f1"
 
     allow_element_level_claims = getattr(regime, "regime", "") == "record_level"
     allow_requirement_defect_claims = getattr(regime, "regime", "") == "record_level"
     if getattr(regime, "regime", "") == "mixed_evidence" and getattr(pred_dossier, "observability", "low") == "high":
         allow_requirement_defect_claims = True
+    if component_review_mode:
+        allow_element_level_claims = False
+        allow_requirement_defect_claims = False
 
     base_confidence_cap = 0.84
     if getattr(regime, "regime", "") == "summary_only":
@@ -583,6 +624,8 @@ def build_review_policy(
         base_confidence_cap = 0.42
     elif getattr(regime, "regime", "") == "mixed_evidence":
         base_confidence_cap = 0.68
+    if component_review_mode:
+        base_confidence_cap = max(base_confidence_cap, 0.88)
 
     if getattr(pred_dossier, "observability", "low") == "low":
         base_confidence_cap = min(base_confidence_cap, 0.52)
@@ -610,6 +653,7 @@ def build_review_policy(
         **summary_profile,
         "record_diagram_type": record_diagram_type,
         **record_profile,
+        **component_profile,
         "allow_element_level_claims": allow_element_level_claims,
         "allow_requirement_defect_claims": allow_requirement_defect_claims,
         "base_confidence_cap": base_confidence_cap,

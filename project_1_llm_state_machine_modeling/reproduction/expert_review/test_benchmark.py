@@ -4,6 +4,7 @@ import pandas as pd
 
 from .benchmark import (
     build_benchmark_split_bundle,
+    build_full_available_task_bundle,
     build_lofo_task_bundles,
     summarize_benchmark_coverage,
 )
@@ -88,6 +89,47 @@ def _availability_row(**overrides):
     return row
 
 
+def _component_row(**overrides):
+    row = _record_row(
+        record_type="component_level_review",
+        review_record_id="component-0",
+        paper_slug="paper-c",
+        case_id="dishwasher",
+        case_name="Dishwasher",
+        diagram_type=None,
+        llm_name="GPT-4o",
+        review_target="States",
+        component="States",
+        input_text="Problem description",
+        ref_output_text=None,
+        pred_output_text=None,
+        human_review_score=0.8,
+        human_review_score_unit="f1",
+        human_review_details_json='{"tp": 6, "fn": 3, "fp": 0, "f1_score": 0.8}',
+        human_review_source_record_json=(
+            '{"source_kind": "xlsx_row", "sheet_name": "SinglePrompt", "strategy_name": "single_prompt", '
+            '"system_name_normalized": "Dishwasher", "image_reference_raw": "dishwasher.png", "llm_name": "GPT-4o"}'
+        ),
+        human_review_original_text_json='[{"text": "Dishwasher\\tStates\\t6\\t3\\t0", "label": "States"}]',
+        ref_output_artifact_path="/tmp/does-not-exist/dishwasher.png",
+    )
+    row.update(overrides)
+    return row
+
+
+def _component_row_without_public_counts(**overrides):
+    row = _component_row(
+        review_record_id="component-missing",
+        human_review_score=float("nan"),
+        human_review_details_json='{"tp": null, "fn": null, "fp": null, "f1_score": null}',
+        human_review_original_text_json='[{"text": "Dishwasher\\tActions", "label": "Actions"}]',
+        review_target="Actions",
+        component="Actions",
+    )
+    row.update(overrides)
+    return row
+
+
 def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:
     records = pd.DataFrame(
         [
@@ -119,21 +161,13 @@ def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:
                 human_review_score=76,
                 human_review_score_unit="/100",
             ),
-            _record_row(
+            _component_row(
                 review_record_id="component-1",
-                paper_slug="paper-c",
-                record_type="component_level_review",
-                case_id="dishwasher",
-                case_name="Dishwasher",
-                diagram_type=None,
-                llm_name="GPT-4o",
-                review_target="States",
-                input_text=None,
-                ref_output_text=None,
-                pred_output_text=None,
                 human_review_score=0.7,
-                human_review_score_unit="f1",
+                review_target="States",
+                component="States",
             ),
+            _component_row_without_public_counts(),
         ]
     )
     protocols = pd.DataFrame(
@@ -152,12 +186,13 @@ def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:
 
     coverage = summarize_benchmark_coverage(records, protocols, availability)
 
-    assert coverage["main_eval_rows"] == {"record": 2, "summary": 2, "protocol": 2}
+    assert coverage["main_eval_rows"] == {"record": 2, "summary": 2, "component": 1, "protocol": 2}
     assert coverage["deferred_rows"]["component"] == 1
     assert coverage["family_counts"]["record"] == 2
     assert coverage["family_counts"]["summary"] == 2
     assert coverage["family_counts"]["protocol"] == 2
     assert coverage["component_alignment_schema"]["canonical_components"] == ["States"]
+    assert coverage["component_alignment_schema"]["source_kind_counts"] == {"xlsx_row": 1}
     assert any("component_level_review" in item for item in coverage["coverage_gaps"])
 
 
@@ -190,7 +225,19 @@ def test_benchmark_split_bundle_keeps_family_keys_disjoint() -> None:
                 human_review_score_unit="/100",
             )
         )
-    records = pd.DataFrame(sample_rows + summary_rows)
+    component_rows = []
+    for case_id, llm_name in [("dishwasher", "GPT-4o"), ("printer", "Claude")]:
+        component_rows.append(
+            _component_row(
+                review_record_id=f"component-{case_id}-{llm_name}",
+                case_id=case_id,
+                case_name=case_id.title(),
+                llm_name=llm_name,
+                review_target="States",
+                component="States",
+            )
+        )
+    records = pd.DataFrame(sample_rows + summary_rows + component_rows)
     protocols = pd.DataFrame(
         [
             _protocol_row(paper_slug="paper-a"),
@@ -211,7 +258,7 @@ def test_benchmark_split_bundle_keeps_family_keys_disjoint() -> None:
     bundle = build_benchmark_split_bundle(records, protocols, availability, seed=13)
     manifest = bundle["manifest"]["regimes"]
 
-    for regime_name in ("record", "summary", "protocol"):
+    for regime_name in ("record", "summary", "component", "protocol"):
         seen: set[str] = set()
         for split_name in ("train", "dev", "validation", "lockbox"):
             family_keys = set(manifest[regime_name][split_name]["family_keys"])
@@ -241,6 +288,12 @@ def test_lofo_task_bundles_namespace_family_holdouts_by_regime() -> None:
                 human_review_score=70,
                 human_review_score_unit="/100",
             ),
+            _component_row(
+                review_record_id="component-dishwasher-gpt4o",
+                case_id="dishwasher",
+                case_name="Dishwasher",
+                llm_name="GPT-4o",
+            ),
         ]
     )
     protocols = pd.DataFrame([_protocol_row(paper_slug="paper-a"), _protocol_row(paper_slug="paper-b")])
@@ -250,6 +303,7 @@ def test_lofo_task_bundles_namespace_family_holdouts_by_regime() -> None:
 
     assert any(key.startswith("record::") for key in lofo["task_bundles"])
     assert any(key.startswith("summary::") for key in lofo["task_bundles"])
+    assert any(key.startswith("component::") for key in lofo["task_bundles"])
     assert any(key.startswith("protocol::") for key in lofo["task_bundles"])
 
     for namespaced_key, task_bundle in lofo["task_bundles"].items():
@@ -257,3 +311,60 @@ def test_lofo_task_bundles_namespace_family_holdouts_by_regime() -> None:
         non_empty_regimes = [regime for regime, tasks in task_bundle.items() if tasks]
         assert non_empty_regimes == [manifest["regime"]]
         assert manifest["rows"] == len(task_bundle[manifest["regime"]])
+
+
+def test_full_task_bundle_builds_component_tasks_with_structured_public_counts() -> None:
+    records = pd.DataFrame([_component_row()])
+    protocols = pd.DataFrame([_protocol_row(paper_slug="paper-a")])
+    availability = pd.DataFrame([_availability_row(paper_slug="paper-a")])
+
+    bundle = build_full_available_task_bundle(records, protocols, availability)
+
+    assert len(bundle["component"]) == 1
+    task = bundle["component"][0]
+    assert task.eval_bucket == "component"
+    assert task.metadata["component_target"] == "States"
+    assert task.metadata["component_public_tp"] == 6
+    assert task.metadata["component_public_fp"] == 0
+    assert task.metadata["component_public_fn"] == 3
+    assert '"tp": 6' in task.pred_output
+    assert "public_image_reference" not in task.pred_output
+    assert "Public image reference" not in task.input_text
+
+
+def test_full_task_bundle_defers_component_rows_without_structured_public_counts() -> None:
+    records = pd.DataFrame([_component_row_without_public_counts()])
+    protocols = pd.DataFrame([_protocol_row(paper_slug="paper-a")])
+    availability = pd.DataFrame([_availability_row(paper_slug="paper-a")])
+
+    bundle = build_full_available_task_bundle(records, protocols, availability)
+    coverage = summarize_benchmark_coverage(records, protocols, availability)
+
+    assert bundle["component"] == []
+    assert coverage["main_eval_rows"]["component"] == 0
+    assert coverage["deferred_rows"]["component"] == 1
+
+
+def test_component_task_derives_human_score_from_public_counts_when_score_cell_missing() -> None:
+    records = pd.DataFrame(
+        [
+            _component_row(
+                review_record_id="component-derived-score",
+                human_review_score=float("nan"),
+                human_review_details_json='{"tp": 0, "fn": 0, "fp": 2, "f1_score": null}',
+                review_target="Parallel Regions",
+                component="Parallel Regions",
+                human_review_original_text_json='[{"text": "Dishwasher\\tParallel Regions\\t0\\t0\\t2", "label": "Parallel Regions"}]',
+            )
+        ]
+    )
+    protocols = pd.DataFrame([_protocol_row(paper_slug="paper-a")])
+    availability = pd.DataFrame([_availability_row(paper_slug="paper-a")])
+
+    bundle = build_full_available_task_bundle(records, protocols, availability)
+
+    assert len(bundle["component"]) == 1
+    task = bundle["component"][0]
+    assert task.metadata["component_evidence_status"] == "structured_counts_available"
+    assert task.metadata["component_human_score_source"] == "derived_from_counts"
+    assert task.human_score == 0.0
