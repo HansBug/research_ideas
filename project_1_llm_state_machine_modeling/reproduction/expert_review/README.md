@@ -259,29 +259,32 @@ python -m expert_review.benchmark \
 
 ## 当前状态
 
-### Phase 8 结论
+### Phase 9 结论
 
-当前 `Phase 8` 已完成 `record-level` 的数值校准、压缩效应修复与 partial-heavy 定向惩罚，并且已经确认：
+当前 `Phase 9` 已完成 `summary-level` 排序、public-row score semantics 与高分 public row 收口，并且已经确认：
 
-1. `record` 总分已从“明显压缩”拉到更接近人工排序的尺度
-2. `summary / protocol` 路径未被这轮 patch 破坏，`SAS / PDS / unsupported_claim_rate` 仍保持稳定
-3. 当前改动只落在 `equivalence.py + score_composer.py` 的 deterministic `record-level` 路径
-4. 当前主瓶颈已经从 `record-level` 分数压缩，转移到 `summary-level` 排序与 public-row score semantics
+1. `summary-level` 已从“排序明显偏弱”提升到更接近人工的尺度与排序
+2. `record / protocol` 路径未因这轮 patch 出现明显回退，`RAS / PDS / unsupported_claim_rate` 基本保持稳定
+3. 当前改动主要落在 `policy_library.py + score_composer.py` 的 deterministic `summary-level` 路径
+4. 当前主瓶颈已经从 `summary-level` 排序，转移到 `Milestone A` 所需的 batch screening 执行口径与剩余 record 指标
 
-当前 `Phase 8` 的 `full available benchmark` 收口快照为：
+当前 `Phase 9` 的 `full available benchmark` 收口快照为：
 
 | 指标 | 当前值 |
 |---|---:|
-| `HAI` | `81.42` |
+| `HAI` | `83.39` |
 | `RAS` | `80.48` |
-| `SAS` | `73.62` |
+| `SAS` | `81.51` |
 | `PDS` | `93.75` |
-| `normalized_mae` | `0.1643` |
+| `record normalized_mae` | `0.1643` |
+| `summary normalized_mae` | `0.1044` |
 | `record spearman_rho` | `0.6683` |
 | `record pairwise_order_accuracy` | `0.6910` |
+| `summary spearman_rho` | `0.7319` |
+| `summary pairwise_order_accuracy` | `0.7286` |
 | `issue_f1` | `0.9126` |
 | `unsupported_claim_rate` | `0.0865` |
-| `ece` | `0.4229` |
+| `ece` | `0.3969` |
 
 当前 benchmark coverage 也已经被明确写实：
 
@@ -291,15 +294,15 @@ python -m expert_review.benchmark \
 4. `summary-level` 仍主要来自 `ttool-ai`
 5. `protocol-only` 仍只有 `4` 个 paper family，必须保守解释泛化性
 
-### Phase 9 入口
+### Phase 10 入口
 
-后续继续提分已经明确进入 `Phase 9`，重点不再是 `record-level` 数值压缩，而是继续处理：
+后续继续推进已经进入 `Phase 10`，重点不再是 summary ranking，而是继续处理：
 
-1. `summary-level` 排序仍弱：`summary spearman_rho = 0.2781`，`summary pairwise_order_accuracy = 0.5307`
-2. `SAS = 73.62` 仍明显落后于 `Milestone A` 的 `76`
-3. `validation` 的 `record pairwise_order_accuracy = 0.5968` 仍提示 family-split 下排名泛化还不够稳
-4. full error map 中 `calibration_error = 182` 虽已下降，但并行结构误杀与 partial-only 高估仍有残差
-5. `lockbox PDS = 75.00` 仍提示 protocol-only family holdout 不能被过度乐观解释
+1. `Milestone A` 仍未完成，主要卡在 `record normalized_mae = 0.1643`、`record pairwise_order_accuracy = 0.6910`、`unsupported_claim_rate = 0.0865` 与 `ece = 0.3969`
+2. 需要把当前 reviewer 从 benchmark 可用推进到 batch screening 可执行，包括输入协议、导出格式与 triage 阈值
+3. `validation / lockbox` 已证明 summary patch 具备一定泛化，但 protocol-only holdout 仍只有 `4` 个 paper family，不能过度乐观解释
+4. `component_level_review` 的 `512` 条人工对齐数据仍未进入主评测主指标，后续论文论证所需证据链仍不完整
+5. 当前 residual 主要集中在 `summary_level_run_score + SMD` 与部分 `summary average` 保守估分，但它们已不再是当前阶段的主导瓶颈
 
 相关结论见：
 

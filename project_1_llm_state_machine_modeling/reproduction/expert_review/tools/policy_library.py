@@ -47,6 +47,37 @@ def infer_aggregate_signal(*texts: str) -> str:
     return "direct_review"
 
 
+def infer_summary_row_type(*texts: str) -> str:
+    text = _joined_text([str(item or "") for item in texts])
+    aggregate_signal = infer_aggregate_signal(*texts)
+    if "raw public score row" in text:
+        return "raw_score_row"
+    if "run-level summary score" in text or "run-level public score" in text:
+        return "run_level_score"
+    if "standard-deviation or dispersion statistic" in text or aggregate_signal == "stddev":
+        return "aggregate_stddev"
+    if "highest-score or best-case aggregate statistic" in text or aggregate_signal == "max":
+        return "aggregate_max"
+    if "minimum-score or worst-case aggregate statistic" in text or aggregate_signal == "min":
+        return "aggregate_min"
+    if "average or aggregate quality statistic" in text or aggregate_signal in {"average", "summary"}:
+        return "aggregate_average"
+    return "summary_public_score"
+
+
+def infer_summary_target(*texts: str) -> str:
+    text = _joined_text([str(item or "") for item in texts])
+    if "summary-level task for bd" in text or "task for bd" in text:
+        return "BD"
+    if "summary-level task for smd" in text or "task for smd" in text:
+        return "SMD"
+    if "summary-level task for ucd" in text or "task for ucd" in text:
+        return "UCD"
+    if "summary-level task for properties" in text or "task for properties" in text:
+        return "Properties"
+    return "unknown"
+
+
 def detect_vv_roles(texts: list[str]) -> list[str]:
     text = _joined_text(texts)
     roles: list[str] = []
@@ -77,6 +108,8 @@ def build_review_policy(
     ]
     aggregate_signal = infer_aggregate_signal(*contract_texts)
     summary_semantics_explicit = aggregate_signal != "direct_review"
+    summary_row_type = infer_summary_row_type(*contract_texts)
+    summary_target = infer_summary_target(*contract_texts)
 
     quality_axes = {
         "readability": 1.20 if {"clarity", "quality"} & focus else 1.0,
@@ -128,6 +161,8 @@ def build_review_policy(
         "aggregate_signal": aggregate_signal,
         "score_semantics": score_semantics,
         "summary_semantics_explicit": summary_semantics_explicit,
+        "summary_row_type": summary_row_type,
+        "summary_target": summary_target,
         "allow_element_level_claims": allow_element_level_claims,
         "allow_requirement_defect_claims": allow_requirement_defect_claims,
         "base_confidence_cap": base_confidence_cap,

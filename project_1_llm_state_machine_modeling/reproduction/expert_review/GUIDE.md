@@ -140,9 +140,10 @@
 
 1. `Phase 7` 已完成评测口径固定与 benchmark harness 扩展
 2. `Phase 8` 已完成 `record-level` 数值校准、压缩效应修复与 partial-heavy 定向惩罚
-3. 当前后续工作的核心目标已转到 `Phase 9`：summary-level 排序、public-row score semantics 与更稳的 split 泛化
+3. `Phase 9` 已完成 `summary-level` 排序、public-row score semantics 与高分 public row 收口
+4. 当前后续工作的核心目标已转到 `Phase 10`：batch screening 输入协议、triage 阈值、结果导出与 `Milestone A` 验收
 
 因此后续改动默认应优先回答两件事：
 
-1. 这次改动是否真实改善 `HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响 `record` 还是 `summary`
-2. 这次改动是否会破坏当前已经稳定的 `PDS`、issue taxonomy restraint 以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测口径
+1. 这次改动是否真实改善 `HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响 `record`、`summary` 还是 batch execution surface
+2. 这次改动是否会破坏当前已经稳定的 `PDS`、summary evidence discipline 以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测口径

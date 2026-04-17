@@ -5,6 +5,7 @@ from .compatibility import heuristic_expert_review
 from .schema import ExpertReviewRequest
 from .tools.artifact_probe import build_parser_dossier
 from .tools.dossier_merge import merge_artifact_dossiers
+from .tools.policy_library import infer_summary_row_type, infer_summary_target
 
 
 def build_request(with_reference: bool = True) -> ExpertReviewRequest:
@@ -396,6 +397,66 @@ def test_v1_runtime_summary_policy_distinguishes_average_and_stddev_rows() -> No
     assert average_result.overall_score > stddev_result.overall_score
     assert average_result.unsupported_model_elements == []
     assert stddev_result.unsupported_model_elements == []
+
+
+def test_summary_policy_library_infers_row_type_and_target_from_public_prompt() -> None:
+    prompt = (
+        "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
+        "This is a summary-level task for BD.\n"
+        "Public summary row semantics: This published row is a raw public score row.\n"
+        "Calibrate the coarse score to that public summary semantics and avoid pseudo-precise element blame."
+    )
+    assert infer_summary_row_type(prompt) == "raw_score_row"
+    assert infer_summary_target(prompt) == "BD"
+
+
+def test_v1_runtime_summary_policy_distinguishes_raw_public_row_and_smd_target() -> None:
+    raw_bd_request = ExpertReviewRequest(
+        prompt=(
+            "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
+            "This is a summary-level task for BD.\n"
+            "Public summary row semantics: This published row is a raw public score row.\n"
+            "Calibrate the coarse score to that public summary semantics and avoid pseudo-precise element blame."
+        ),
+        input_text=(
+            "The controller has Idle, Monitoring, and Alert modes. It reacts to darkness, presence detection, and WiFi updates."
+        ),
+        pred_output="""
+        @startuml
+        [*] --> Idle
+        Idle --> Monitoring : darkness
+        Monitoring --> Alert : presenceDetected
+        Alert --> Monitoring : clear
+        Monitoring --> Idle : dayLight
+        @enduml
+        """,
+        ref_output=None,
+    )
+    average_bd_request = ExpertReviewRequest(
+        prompt=raw_bd_request.prompt.replace(
+            "raw public score row",
+            "average or aggregate quality statistic",
+        ),
+        input_text=raw_bd_request.input_text,
+        pred_output=raw_bd_request.pred_output,
+        ref_output=None,
+    )
+    raw_smd_request = ExpertReviewRequest(
+        prompt=raw_bd_request.prompt.replace("for BD", "for SMD"),
+        input_text=raw_bd_request.input_text,
+        pred_output=raw_bd_request.pred_output,
+        ref_output=None,
+    )
+
+    raw_bd_result = heuristic_expert_review(raw_bd_request)
+    average_bd_result = heuristic_expert_review(average_bd_request)
+    raw_smd_result = heuristic_expert_review(raw_smd_request)
+
+    assert raw_bd_result.overall_score > average_bd_result.overall_score
+    assert raw_bd_result.overall_score > raw_smd_result.overall_score
+    assert raw_bd_result.unsupported_model_elements == []
+    assert average_bd_result.unsupported_model_elements == []
+    assert raw_smd_result.unsupported_model_elements == []
 
 
 def test_v1_runtime_protocol_policy_exposes_vv_roles() -> None:
