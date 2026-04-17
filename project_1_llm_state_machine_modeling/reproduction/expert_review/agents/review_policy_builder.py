@@ -85,7 +85,15 @@ def build_review_policy_packet(
     ref_dossier: Any,
     notes: list[str],
 ) -> dict[str, Any]:
-    policy_packet = build_review_policy(contract, regime, request, input_dossier, pred_dossier, ref_dossier)
+    policy_packet = build_review_policy(
+        contract,
+        regime,
+        request,
+        input_dossier,
+        pred_dossier,
+        ref_dossier,
+        llm=llm,
+    )
     if llm is None:
         return policy_packet
     payload = invoke_llm_json(

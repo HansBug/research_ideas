@@ -128,7 +128,7 @@ def run_expert_review_workflow(
         context_keys=["prompt", "input_dossier", "pred_dossier", "ref_dossier"],
         summary="Evidence regime inference without task-type assumptions.",
     )
-    state.regime, regime_notes = run_evidence_regime_node(request, state.pred_dossier, state.ref_dossier)
+    state.regime, regime_notes = run_evidence_regime_node(llm, request, state.pred_dossier, state.ref_dossier)
     state.notes.extend(regime_notes)
 
     record_agent_context(

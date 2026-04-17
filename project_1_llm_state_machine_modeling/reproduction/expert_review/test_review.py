@@ -492,3 +492,101 @@ def test_v1_runtime_protocol_policy_exposes_vv_roles() -> None:
     }
     assert any("Recognized V&V roles from evidence" in note for note in result.notes)
     assert result.confidence <= 0.42
+
+
+def test_runtime_supports_mixed_language_prompt_and_shared_anchor_artifacts() -> None:
+    request = ExpertReviewRequest(
+        prompt="请审查这个状态机模型，重点关注行为一致性、需求覆盖以及是否有无依据的额外结构。",
+        input_text=(
+            "R1：当 login 发生时，系统从 Idle 进入 Ready。\n"
+            "R2：当 error 发生时，系统进入 Fault。"
+        ),
+        pred_output="""
+        {
+          "states": [{"name": "Idle"}, {"name": "Ready"}, {"name": "Fault"}],
+          "transitions": [
+            {"source": "Idle", "target": "Ready", "event": "login", "guard": "", "action": ""},
+            {"source": "Ready", "target": "Fault", "event": "error", "guard": "", "action": ""}
+          ]
+        }
+        """,
+        ref_output="""
+        {
+          "states": [{"name": "Idle"}, {"name": "Ready"}, {"name": "Fault"}],
+          "transitions": [
+            {"source": "Idle", "target": "Ready", "event": "login", "guard": "", "action": ""},
+            {"source": "Ready", "target": "Fault", "event": "error", "guard": "", "action": ""}
+          ]
+        }
+        """,
+    )
+    result = heuristic_expert_review(request)
+    assert result.overall_score >= 0.5
+    assert result.unsupported_model_elements == []
+    assert {item.requirement_id for item in result.requirement_trace_results} == {"R1", "R2"}
+
+
+def test_runtime_supports_cjk_model_identifiers_with_english_requirements() -> None:
+    request = ExpertReviewRequest(
+        prompt="Review the predicted model and focus on requirement coverage and unsupported extras.",
+        input_text=(
+            "R1: login moves the system from 空闲 to 就绪.\n"
+            "R2: 故障 leads the system into 错误."
+        ),
+        pred_output="""
+        {
+          "states": [{"name": "空闲"}, {"name": "就绪"}, {"name": "错误"}],
+          "transitions": [
+            {"source": "空闲", "target": "就绪", "event": "login", "guard": "", "action": ""},
+            {"source": "就绪", "target": "错误", "event": "故障", "guard": "", "action": ""}
+          ]
+        }
+        """,
+        ref_output=None,
+    )
+    result = heuristic_expert_review(request)
+    assert result.overall_score >= 0.4
+    assert result.dimension_results
+    assert result.unsupported_model_elements == []
+
+
+def test_policy_library_prefers_structured_multilingual_metadata() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "Evalue este artefacto resumido. Aunque el texto mencione un promedio, "
+            "la metadata estructurada debe gobernar la semántica de revisión."
+        ),
+        input_text="Resumen público del artefacto.",
+        pred_output="score: 0.81",
+        ref_output=None,
+        metadata={
+            "summary_row_type": "raw_score_row",
+            "summary_target": "SMD",
+            "diagram_type": "act",
+        },
+    )
+    assert infer_summary_row_type(request.prompt, request=request) == "raw_score_row"
+    assert infer_summary_target(request.prompt, request=request) == "SMD"
+    assert infer_record_diagram_type(request.prompt, request=request) == "act"
+
+
+def test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text() -> None:
+    request = ExpertReviewRequest(
+        prompt=(
+            "Eres un revisor experto del protocolo de evaluación humana para artefactos de modelado. "
+            "No hay evidencia completa por registro; analiza qué puede validar el protocolo y qué debe seguir incierto."
+        ),
+        input_text=(
+            "执行流程包含 manual inspection、formal verification、simulation，以及 testing with TP/FP/FN based F1 reporting."
+        ),
+        pred_output="",
+        ref_output=None,
+    )
+    result = heuristic_expert_review(request)
+    evidence_dimension = next(item for item in result.dimension_results if item.dimension_name == "evidence_discipline")
+    assert set(evidence_dimension.metric_payload.get("vv_roles", [])) >= {
+        "manual inspection",
+        "formal verification",
+        "simulation",
+        "testing",
+    }

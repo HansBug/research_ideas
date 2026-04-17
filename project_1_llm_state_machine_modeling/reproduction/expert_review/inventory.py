@@ -14,6 +14,7 @@ from .utils import (
     normalize_machine,
     normalize_text,
     prf_from_sets,
+    semantic_terms,
 )
 
 
@@ -23,8 +24,12 @@ class RequirementItem:
     text: str
 
 
-REQUIREMENT_LINE_PATTERN = re.compile(r"^((?:[A-Za-z]{1,8}\d+(?:[._-]\d+)*)|REQ[_-]?\d+)\s*[:.)-]\s*(.+)$")
-INLINE_REQUIREMENT_PATTERN = re.compile(r"((?:[A-Za-z]{1,8}\d+(?:[._-]\d+)*)|REQ[_-]?\d+)\s*[:.)-]\s*")
+REQUIREMENT_LINE_PATTERN = re.compile(
+    r"^((?:[A-Za-z]{1,8}\d+(?:[._-]\d+)*)|REQ[_-]?\d+|(?:需求|要求|规则|约束)\s*\d+|\d+)\s*[：:.)-]\s*(.+)$"
+)
+INLINE_REQUIREMENT_PATTERN = re.compile(
+    r"((?:[A-Za-z]{1,8}\d+(?:[._-]\d+)*)|REQ[_-]?\d+|(?:需求|要求|规则|约束)\s*\d+|\d+)\s*[：:.)-]\s*"
+)
 
 
 def _split_free_text_requirements(text: str) -> list[str]:
@@ -51,7 +56,7 @@ def _split_free_text_requirements(text: str) -> list[str]:
     for paragraph in paragraphs:
         if not paragraph:
             continue
-        sentence_parts = re.split(r"(?<=[.!?])\s+|;\s+|\s+-\s+", paragraph)
+        sentence_parts = re.split(r"(?<=[.!?。！？])\s+|[;；]\s*|\s+-\s+", paragraph)
         kept = [part.strip(" -") for part in sentence_parts if len(part.strip(" -")) >= 12]
         if kept:
             items.extend(kept)
@@ -138,7 +143,7 @@ def extract_plain_elements(text: str) -> list[str]:
         if "->" in line or "-->" in line:
             elements.append(line)
             continue
-        if re.match(r"^[A-Za-z_][A-Za-z0-9_.]*\s*\{$", line):
+        if re.match(r"^[\w\u3400-\u9FFF][\w\u3400-\u9FFF.]*\s*\{$", line):
             elements.append(line.rstrip("{").strip())
             continue
         if re.match(r"^(state|transition|initial|final|block|component)\b", line, re.I):
@@ -196,9 +201,9 @@ def extract_generic_inventory_from_text(text: str) -> dict[str, list[str]]:
         else:
             states.append(item)
 
-    for match in re.finditer(r"\b(?:state|substate)\s+([A-Za-z_][A-Za-z0-9_.-]*)", text, flags=re.I):
+    for match in re.finditer(r"\b(?:state|substate)\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)", text, flags=re.I):
         states.append(match.group(1))
-    for match in re.finditer(r"\b(?:block|component)\s+([A-Za-z_][A-Za-z0-9_.-]*)", text, flags=re.I):
+    for match in re.finditer(r"\b(?:block|component)\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)", text, flags=re.I):
         blocks.append(match.group(1))
     for match in re.finditer(r'["\']name["\']\s*:\s*["\']([^"\']+)["\']', text):
         states.append(match.group(1))
@@ -219,7 +224,7 @@ def extract_generic_inventory_from_text(text: str) -> dict[str, list[str]]:
     for match in re.finditer(r"<Signal[^>]*name=\"([^\"]+)\"", text):
         signals.append(match.group(1))
     for match in re.finditer(
-        r"([A-Za-z_][A-Za-z0-9_.-]*)\s*(?:->|-->|=>)\s*([A-Za-z_][A-Za-z0-9_.-]*)",
+        r"([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\s*(?:->|-->|=>)\s*([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)",
         text,
     ):
         transitions.append(f"{match.group(1)}->{match.group(2)}")
@@ -381,11 +386,11 @@ def build_requirement_trace(
             searchable.append((key, value, normalize_id(value)))
     results = []
     for item in requirements:
-        req_norm = normalize_id(item.text)
-        tokens = [token for token in req_norm.split() if len(token) >= 4]
+        tokens = [token for token in semantic_terms(item.text) if len(token) >= 2]
         matches = []
         for kind, raw_value, norm_value in searchable:
-            overlap = [token for token in tokens if token in norm_value]
+            candidate_terms = semantic_terms(raw_value) | semantic_terms(norm_value)
+            overlap = [token for token in tokens if token in candidate_terms]
             if overlap:
                 matches.append(
                     {

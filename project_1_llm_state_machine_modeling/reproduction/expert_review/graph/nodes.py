@@ -59,11 +59,12 @@ def run_reference_extractor_node(
 
 
 def run_evidence_regime_node(
+    llm: ChatOpenAI | None,
     request: Any,
     pred_dossier: Any,
     ref_dossier: Any,
 ) -> tuple[Any, list[str]]:
-    return estimate_evidence_regime(request, pred_dossier, ref_dossier), []
+    return estimate_evidence_regime(request, pred_dossier, ref_dossier, llm=llm), []
 
 
 def run_review_policy_builder_node(

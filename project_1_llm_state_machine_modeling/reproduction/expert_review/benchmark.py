@@ -799,20 +799,47 @@ def _build_summary_prompt(row: pd.Series) -> str:
     )
 
 
-def _summary_semantics_from_row(row: pd.Series) -> str:
+def _summary_row_type_from_row(row: pd.Series) -> str:
     review_record_id = _safe_text(row.get("review_record_id")).lower()
     record_type = _safe_text(row.get("record_type")).lower()
     if any(token in review_record_id for token in ["std_dev", "std dev", "stddev"]) or "std" in review_record_id:
-        return "This published row is a standard-deviation or dispersion statistic."
+        return "aggregate_stddev"
     if "average" in review_record_id or record_type in {"summary", "case_aggregate_stat", "overall_aggregate_stat"}:
-        return "This published row is an average or aggregate quality statistic."
+        return "aggregate_average"
     if any(token in review_record_id for token in [":max", "maximum", "highest"]):
-        return "This published row is a highest-score or best-case aggregate statistic."
+        return "aggregate_max"
     if any(token in review_record_id for token in [":min", "minimum", "lowest"]):
-        return "This published row is a minimum-score or worst-case aggregate statistic."
+        return "aggregate_min"
     if record_type == "raw_score_row":
-        return "This published row is a raw public score row without per-element justification."
+        return "raw_score_row"
     if record_type == "summary_level_run_score":
+        return "run_level_score"
+    return "summary_public_score"
+
+
+def _artifact_semantics_from_row(row: pd.Series) -> str | None:
+    diagram_type = _safe_text(row.get("diagram_type")).strip().lower()
+    return {
+        "stm": "reactive_state_model",
+        "sd": "interaction_sequence_model",
+        "act": "control_flow_model",
+        "bd": "architecture_structure_model",
+    }.get(diagram_type)
+
+
+def _summary_semantics_from_row(row: pd.Series) -> str:
+    row_type = _summary_row_type_from_row(row)
+    if row_type == "aggregate_stddev":
+        return "This published row is a standard-deviation or dispersion statistic."
+    if row_type == "aggregate_average":
+        return "This published row is an average or aggregate quality statistic."
+    if row_type == "aggregate_max":
+        return "This published row is a highest-score or best-case aggregate statistic."
+    if row_type == "aggregate_min":
+        return "This published row is a minimum-score or worst-case aggregate statistic."
+    if row_type == "raw_score_row":
+        return "This published row is a raw public score row without per-element justification."
+    if row_type == "run_level_score":
         return "This published row is a run-level summary score."
     return "This published row is a public summary-level score."
 
@@ -843,6 +870,8 @@ def _build_record_task(row: pd.Series) -> BenchmarkTask:
             "record_type": row.get("record_type"),
             "diagram_type": row.get("diagram_type"),
             "review_target": row.get("review_target"),
+            "review_surface": "direct_artifact_review",
+            "artifact_semantics": _artifact_semantics_from_row(row),
             "llm_name": row.get("llm_name"),
             "case_id": row.get("case_id"),
             "case_name": row.get("case_name"),
@@ -870,6 +899,8 @@ def _build_summary_task(row: pd.Series) -> BenchmarkTask:
             "record_type": row.get("record_type"),
             "diagram_type": row.get("diagram_type"),
             "review_target": row.get("review_target"),
+            "review_surface": "summary_public_score",
+            "summary_row_type": _summary_row_type_from_row(row),
             "case_id": row.get("case_id"),
             "case_name": row.get("case_name"),
             "split_name": row.get("split_name"),
@@ -913,6 +944,7 @@ def _build_protocol_task(row: pd.Series) -> BenchmarkTask:
         metadata={
             "paper_slug": row.get("paper_slug"),
             "record_type": "protocol_only",
+            "review_surface": "protocol_assurance",
             "family_key": row.get("family_key"),
             "public_human_review_status": row.get("public_human_review_status"),
         },
@@ -1192,6 +1224,7 @@ def _evaluate_task_bundle(
                 input_text=task.input_text,
                 pred_output=task.pred_output,
                 ref_output=task.ref_output,
+                metadata=dict(task.metadata),
             )
             start = time.perf_counter()
             result = agent.review(request)

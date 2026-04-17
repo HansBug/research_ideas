@@ -72,6 +72,7 @@ class ExpertReviewRequest:
     input_text: str
     pred_output: str
     ref_output: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

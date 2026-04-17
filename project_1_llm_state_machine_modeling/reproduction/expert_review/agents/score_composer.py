@@ -62,6 +62,7 @@ def compose_scores(
     score_semantics = str(policy_packet.get("score_semantics") or "artifact_quality")
     summary_row_type = str(policy_packet.get("summary_row_type") or "summary_public_score")
     summary_target = str(policy_packet.get("summary_target") or "unknown")
+    summary_target_axis = str(policy_packet.get("summary_target_axis") or "generic_target")
     record_diagram_type = str(policy_packet.get("record_diagram_type") or "unknown")
     vv_roles = list(evidence_critic.get("vv_roles", []))
     dimension_results: list[DimensionReviewResult] = []
@@ -193,9 +194,17 @@ def compose_scores(
 
     summary_score_stretch = 1.0
     summary_score_adjustment = 0.0
-    summary_target_offset = 0.0
-    summary_row_bonus = 0.0
-    summary_target_penalty = 0.0
+    summary_target_offset = float(policy_packet.get("summary_target_semantic_bias", 0.0) or 0.0)
+    summary_row_interaction = float(policy_packet.get("summary_row_target_interaction_bias", 0.0) or 0.0)
+    summary_row_bonus = max(0.0, summary_row_interaction)
+    summary_target_penalty = max(0.0, -summary_row_interaction)
+    summary_semantic_adjustment = 0.0
+    summary_public_signal = clip01(0.65 * summary_score_hint + 0.20 * evidence_score + 0.15 * clarity_score)
+    summary_hidden_risk = clip01(
+        0.50 * (1.0 - summary_score_hint)
+        + 0.25 * (1.0 - clarity_score)
+        + 0.25 * min(1.0, len(pred_dossier.structural_warnings) / 4.0)
+    )
     summary_row_pivot = 0.5
     if summary_mode:
         if summary_row_type == "raw_score_row":
@@ -211,26 +220,36 @@ def compose_scores(
             summary_row_pivot = 0.41
             summary_score_stretch = 1.01
 
-        if summary_row_type != "aggregate_stddev":
-            summary_target_offset = {
-                "BD": 0.06,
-                "Properties": 0.02,
-                "SMD": -0.08,
-                "UCD": 0.06,
-            }.get(summary_target, 0.0)
-            if summary_row_type == "raw_score_row" and summary_target in {"BD", "Properties", "UCD"}:
-                summary_row_bonus = 0.10
-            if summary_row_type == "run_level_score" and summary_target == "SMD":
-                summary_target_penalty += 0.01
-            if summary_row_type in {
-                "aggregate_average",
-                "aggregate_max",
-                "aggregate_min",
-                "summary_public_score",
-            } and summary_target == "SMD":
-                summary_target_penalty = 0.08
-
-        summary_score_adjustment = summary_target_offset + summary_row_bonus - summary_target_penalty
+        row_semantic_gain = {
+            "raw_score_row": 1.00,
+            "run_level_score": 0.86,
+            "aggregate_average": 0.58,
+            "aggregate_max": 0.62,
+            "aggregate_min": 0.62,
+            "summary_public_score": 0.46,
+            "aggregate_stddev": 0.0,
+        }.get(summary_row_type, 0.46)
+        row_semantic_bias = {
+            "raw_score_row": 0.03,
+            "run_level_score": 0.01,
+            "aggregate_average": -0.01,
+            "aggregate_max": 0.0,
+            "aggregate_min": 0.0,
+            "summary_public_score": 0.0,
+            "aggregate_stddev": -0.02,
+        }.get(summary_row_type, 0.0)
+        if summary_target_axis == "coarse_public_quality_target":
+            summary_semantic_adjustment = 0.14 * (summary_public_signal - 0.44) - 0.03 * summary_hidden_risk
+        elif summary_target_axis == "structure_intensive_target":
+            summary_semantic_adjustment = 0.06 * (summary_public_signal - 0.58) - 0.11 * summary_hidden_risk
+        else:
+            summary_semantic_adjustment = 0.10 * (summary_public_signal - 0.50) - 0.05 * summary_hidden_risk
+        summary_score_adjustment = (
+            summary_target_offset
+            + summary_row_interaction
+            + row_semantic_bias
+            + row_semantic_gain * summary_semantic_adjustment
+        )
 
     record_score_stretch = 1.0
     record_trace_failure_rescue = False
@@ -238,11 +257,13 @@ def compose_scores(
     record_branch_family_rescue = False
     record_trace_failure_bonus = 0.0
     record_high_alignment_bonus = 0.0
+    record_high_fidelity_bonus = 0.0
     record_missing_signal_penalty = 0.0
     record_low_equivalence_penalty = 0.0
+    record_partial_ambiguity_penalty = 0.0
     record_gap_penalty = 0.0
     record_score_adjustment = 0.0
-    record_diagram_offset = 0.0
+    record_diagram_offset = float(policy_packet.get("record_diagram_semantic_bias", 0.0) or 0.0)
     if regime.regime == "record_level":
         record_score_stretch = 1.18
         no_core_issues = dependency_break_count == 0 and trace_conflict_count == 0
@@ -257,16 +278,38 @@ def compose_scores(
             record_trace_failure_bonus = 0.30
 
         record_reference_alignment_rescue = (
-            matched_ratio >= 0.10
-            and partial_ratio >= 0.50
+            partial_ratio >= 0.50
             and equivalence_strength >= 0.75
             and reference_alignment >= 0.85
             and missing_signal_count <= 1
             and no_core_issues
         )
         if record_reference_alignment_rescue:
-            quality = min(1.0, 0.40 * matched_ratio + 0.35 * partial_ratio + 0.25 * equivalence_strength)
+            quality = min(
+                1.0,
+                0.20 * matched_ratio + 0.30 * partial_ratio + 0.25 * equivalence_strength + 0.25 * reference_alignment,
+            )
             record_high_alignment_bonus = 0.16 * quality
+        if (
+            matched_ratio <= 0.05
+            and partial_ratio >= 0.50
+            and equivalence_strength >= 0.78
+            and reference_alignment >= 0.95
+            and missing_signal_count == 0
+            and no_core_issues
+        ):
+            record_high_fidelity_bonus = 0.18
+        if (
+            partial_ratio >= 0.50
+            and reference_alignment < 0.60
+            and missing_signal_count >= 2
+            and not equivalence_report.get("parallel_branch_credit")
+        ):
+            severity = min(1.0, 0.70 * partial_ratio + 0.30 * min(1.0, missing_signal_count / 4.0))
+            record_partial_ambiguity_penalty = 0.12 * severity
+            ambiguity_cap = clip01(0.18 + 0.60 * behavior_score)
+            completeness_score = min(completeness_score, ambiguity_cap)
+            traceability_score = min(traceability_score, ambiguity_cap)
 
         if missing_signal_count >= 8:
             severity = min(1.0, 0.10 * missing_signal_count + 0.35 * missing_ratio)
@@ -274,18 +317,15 @@ def compose_scores(
         if equivalence_strength < 0.20 and reference_alignment < 0.40 and matched_ratio >= 0.10:
             record_low_equivalence_penalty = 0.10
 
-        record_diagram_offset = {
-            "act": 0.12,
-            "sd": -0.02,
-            "stm": 0.0,
-        }.get(record_diagram_type, 0.0)
-        record_gap_penalty = record_missing_signal_penalty + record_low_equivalence_penalty
+        record_gap_penalty = record_missing_signal_penalty + record_low_equivalence_penalty + record_partial_ambiguity_penalty
         record_score_adjustment = (
             record_trace_failure_bonus
             + record_high_alignment_bonus
+            + record_high_fidelity_bonus
             + record_diagram_offset
             - record_missing_signal_penalty
             - record_low_equivalence_penalty
+            - record_partial_ambiguity_penalty
         )
 
     score_map = {
@@ -510,6 +550,7 @@ def compose_scores(
                     "missing_ratio": round(missing_ratio, 6),
                     "summary_row_type": summary_row_type,
                     "summary_target": summary_target,
+                    "summary_target_axis": summary_target_axis,
                     "record_diagram_type": record_diagram_type,
                     "reference_alignment": round(reference_alignment, 6),
                     "structural_warning_count": len(pred_dossier.structural_warnings),
@@ -527,6 +568,9 @@ def compose_scores(
                     "record_score_adjustment": round(record_score_adjustment, 6),
                     "summary_score_stretch": summary_score_stretch,
                     "summary_score_adjustment": round(summary_score_adjustment, 6),
+                    "summary_public_signal": round(summary_public_signal, 6),
+                    "summary_hidden_risk": round(summary_hidden_risk, 6),
+                    "summary_semantic_adjustment": round(summary_semantic_adjustment, 6),
                     "summary_target_offset": round(summary_target_offset, 6),
                     "summary_row_bonus": round(summary_row_bonus, 6),
                     "summary_target_penalty": round(summary_target_penalty, 6),
@@ -534,9 +578,11 @@ def compose_scores(
                     "record_trace_failure_bonus": round(record_trace_failure_bonus, 6),
                     "record_reference_alignment_rescue": record_reference_alignment_rescue,
                     "record_high_alignment_bonus": round(record_high_alignment_bonus, 6),
+                    "record_high_fidelity_bonus": round(record_high_fidelity_bonus, 6),
                     "record_branch_family_rescue": record_branch_family_rescue,
                     "record_missing_signal_penalty": round(record_missing_signal_penalty, 6),
                     "record_low_equivalence_penalty": round(record_low_equivalence_penalty, 6),
+                    "record_partial_ambiguity_penalty": round(record_partial_ambiguity_penalty, 6),
                     "record_diagram_offset": round(record_diagram_offset, 6),
                     "issue_taxonomy": issue_taxonomy_map[dimension.name],
                     "policy_profile": policy_packet.get("profile_name"),

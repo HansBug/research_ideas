@@ -4,6 +4,7 @@ import json
 import math
 import os
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -52,14 +53,82 @@ def resolve_api_env() -> dict[str, str]:
 def normalize_text(value: Any) -> str:
     if value is None:
         return ""
-    text = str(value).replace("\r\n", "\n").replace("\r", "\n").strip()
+    text = unicodedata.normalize("NFKC", str(value)).replace("\r\n", "\n").replace("\r", "\n").strip()
     return re.sub(r"\s+", " ", text)
 
 
 def normalize_id(value: Any) -> str:
-    text = normalize_text(value).lower()
-    text = re.sub(r"[^a-z0-9]+", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+    text = normalize_text(value).casefold()
+    pieces: list[str] = []
+    for char in text:
+        pieces.append(char if char.isalnum() else " ")
+    return re.sub(r"\s+", " ", "".join(pieces)).strip()
+
+
+def is_cjk(char: str) -> bool:
+    code = ord(char)
+    return (
+        0x3400 <= code <= 0x4DBF
+        or 0x4E00 <= code <= 0x9FFF
+        or 0xF900 <= code <= 0xFAFF
+        or 0x3040 <= code <= 0x30FF
+        or 0xAC00 <= code <= 0xD7AF
+    )
+
+
+def unicode_word_tokens(value: Any) -> list[str]:
+    text = normalize_text(value).casefold()
+    tokens: list[str] = []
+    current: list[str] = []
+    for char in text:
+        if char.isalnum() or char == "_":
+            current.append(char)
+            continue
+        if current:
+            tokens.append("".join(current))
+            current = []
+    if current:
+        tokens.append("".join(current))
+    return tokens
+
+
+def semantic_terms(value: Any) -> set[str]:
+    text = normalize_text(value).casefold()
+    terms: set[str] = set()
+    for token in unicode_word_tokens(text):
+        if any(is_cjk(char) for char in token):
+            if token:
+                terms.add(token)
+            if len(token) >= 2:
+                for size in (2, 3):
+                    if len(token) < size:
+                        continue
+                    for idx in range(len(token) - size + 1):
+                        terms.add(token[idx : idx + size])
+            continue
+        if len(token) >= 2:
+            terms.add(token)
+        if len(token) >= 4:
+            terms.add(token[:4])
+    contiguous_cjk: list[str] = []
+    current_cjk: list[str] = []
+    for char in text:
+        if is_cjk(char):
+            current_cjk.append(char)
+            continue
+        if current_cjk:
+            contiguous_cjk.append("".join(current_cjk))
+            current_cjk = []
+    if current_cjk:
+        contiguous_cjk.append("".join(current_cjk))
+    for chunk in contiguous_cjk:
+        terms.add(chunk)
+        for size in (2, 3):
+            if len(chunk) < size:
+                continue
+            for idx in range(len(chunk) - size + 1):
+                terms.add(chunk[idx : idx + size])
+    return {item for item in terms if item}
 
 
 def safe_float(value: Any) -> float | None:

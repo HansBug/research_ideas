@@ -1,50 +1,13 @@
 from __future__ import annotations
 
-import re
+from typing import Any
 
 from ..schema import EvidenceItem, RequirementTraceResult
 from ..inventory import parse_requirement_items
+from ..semantic_router import SemanticCategory, semantic_multi_label
 from ..schemas.dossiers import InputDossier
 from ..utils import normalize_id
-
-
-INPUT_STOPWORDS = {
-    "the",
-    "and",
-    "for",
-    "with",
-    "that",
-    "this",
-    "from",
-    "into",
-    "when",
-    "where",
-    "which",
-    "while",
-    "then",
-    "will",
-    "have",
-    "has",
-    "are",
-    "must",
-    "should",
-    "than",
-    "less",
-    "more",
-    "also",
-    "other",
-    "about",
-    "according",
-    "system",
-    "information",
-    "model",
-    "diagram",
-    "state",
-    "machine",
-    "behavior",
-    "review",
-    "expert",
-}
+from .common import content_tokens
 
 
 def _make_evidence_item(source: str, locator: str | None, snippet: str, explanation: str) -> EvidenceItem:
@@ -56,14 +19,55 @@ def _make_evidence_item(source: str, locator: str | None, snippet: str, explanat
     )
 
 
-def _content_tokens(value: str) -> list[str]:
-    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", value)
-    spaced = spaced.replace("_", " ").replace("-", " ")
-    return [
-        item.lower()
-        for item in re.findall(r"[A-Za-z][A-Za-z0-9]*", spaced)
-        if len(item) >= 3 and item.lower() not in INPUT_STOPWORDS
-    ]
+PROMPT_CONTEXT_CATEGORIES = [
+    SemanticCategory(
+        name="semantic_equivalence",
+        definition="The review explicitly says semantically equivalent but differently structured outputs should receive credit.",
+        positive_examples=(
+            "reward semantically equivalent but differently structured designs",
+            "允许等价但不同构的设计获得 credit",
+            "focus on semantic equivalence rather than exact structure",
+        ),
+        negative_examples=("exact string match only",),
+    ),
+    SemanticCategory(
+        name="unsupported_extra_structure",
+        definition="The review explicitly asks to inspect unsupported, hallucinated, unjustified, or extra structure.",
+        positive_examples=(
+            "check unsupported extra structure",
+            "指出没有需求依据的额外结构",
+            "inspect hallucinated or unjustified model elements",
+        ),
+        negative_examples=("ignore extra content",),
+    ),
+]
+
+REQUIREMENT_INTENT_CATEGORIES = [
+    SemanticCategory(
+        name="conditional_constraint",
+        definition="The statement expresses a constraint, guard, prohibition, or condition under which behavior is allowed, required, or forbidden.",
+        positive_examples=(
+            "only allow logoff when printing is inactive",
+            "power off only from Ready",
+            "when a paper jam occurs, suspend printing",
+            "必须满足条件后才能迁移",
+            "仅在某条件下允许执行",
+        ),
+        negative_examples=("simple descriptive background sentence",),
+        threshold=0.14,
+    ),
+    SemanticCategory(
+        name="ambiguous_statement",
+        definition="The statement intentionally leaves uncertainty, approximation, or optional interpretation rather than stating one precise requirement.",
+        positive_examples=(
+            "a possible collision may activate one of several controls",
+            "roughly choose one branch and/or another",
+            "可能触发其中某个动作",
+            "大致如此但不完全确定",
+        ),
+        negative_examples=("precise requirement with explicit trigger and target",),
+    ),
+]
 
 
 def _dedupe_strings(items: list[str]) -> list[str]:
@@ -94,28 +98,30 @@ def build_input_dossier(request: Any) -> InputDossier:
     ]
     requirement_texts = [item.requirement_text for item in requirements]
     clues: list[str] = []
-    lowered = request.prompt.lower()
-    if "equivalent" in lowered or "等效" in request.prompt:
+    semantic_context = semantic_multi_label(
+        [request.prompt],
+        PROMPT_CONTEXT_CATEGORIES,
+        task_name="input_prompt_context",
+    )
+    if "semantic_equivalence" in semantic_context["labels"]:
         clues.append("Prompt explicitly allows semantic equivalence beyond structural isomorphism.")
-    if "hallucination" in lowered or "额外" in request.prompt:
+    if "unsupported_extra_structure" in semantic_context["labels"]:
         clues.append("Prompt explicitly asks to inspect unsupported extra structure.")
     behaviors = _dedupe_strings(requirement_texts)
+    requirement_intents = {
+        text: semantic_multi_label(
+            [text],
+            REQUIREMENT_INTENT_CATEGORIES,
+            task_name="requirement_intent",
+            allow_empty=True,
+        )["labels"]
+        for text in requirement_texts
+    }
     constraints = _dedupe_strings(
-        [
-            text
-            for text in requirement_texts
-            if any(
-                token in text.lower()
-                for token in [" if ", " when ", " only ", " must ", " cannot ", " not ", "<", ">", "within", "every"]
-            )
-        ]
+        [text for text, labels in requirement_intents.items() if "conditional_constraint" in labels]
     )
     ambiguities = _dedupe_strings(
-        [
-            text
-            for text in requirement_texts
-            if any(token in text.lower() for token in ["possible", "may ", "maybe", "roughly", "and/or", "etc"])
-        ]
+        [text for text, labels in requirement_intents.items() if "ambiguous_statement" in labels]
     )
     evidence = [
         _make_evidence_item(
@@ -130,7 +136,7 @@ def build_input_dossier(request: Any) -> InputDossier:
         [
             token
             for text in requirement_texts
-            for token in _content_tokens(text)
+            for token in content_tokens(text)
             if token not in {"shall", "should", "must", "allow", "system"}
         ]
     )[:20]

@@ -95,7 +95,7 @@ def parse_transition_signature(text: str) -> tuple[str, str, str, str, str]:
                 parts[4].strip(),
             )
     match = re.match(
-        r"([A-Za-z_][A-Za-z0-9_.-]*)\s*(?:->|-->|=>)\s*([A-Za-z_][A-Za-z0-9_.-]*)(?:\s*:\s*(.+))?",
+        r"([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\s*(?:->|-->|=>)\s*([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)(?:\s*:\s*(.+))?",
         raw,
     )
     if match:
@@ -112,7 +112,7 @@ def parse_transition_signature(text: str) -> tuple[str, str, str, str, str]:
 def _self_named_composite_count_from_text(text: str | None) -> int:
     raw = text or ""
     count = 0
-    for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw):
+    for match in re.finditer(r"state\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\s*\{", raw):
         name = match.group(1).strip()
         block_start = match.end()
         block_end = raw.find("}", block_start)
@@ -126,11 +126,14 @@ def _self_named_composite_count_from_text(text: str | None) -> int:
 
 def _cross_composite_transition_risk_from_text(text: str | None) -> int:
     raw = text or ""
-    composites = [match.group(1).strip() for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw)]
+    composites = [
+        match.group(1).strip()
+        for match in re.finditer(r"state\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\s*\{", raw)
+    ]
     if len(composites) < 2:
         return 0
     risk = 0
-    for match in re.finditer(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)\s*\{", raw):
+    for match in re.finditer(r"state\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\s*\{", raw):
         current = match.group(1).strip()
         block_start = match.end()
         block_end = raw.find("}", block_start)
@@ -272,7 +275,10 @@ def _canonical_names_from_inventory(inventory: dict[str, list[str]]) -> list[str
 
 def _explicit_state_names_from_text(text: str | None) -> list[str]:
     raw = text or ""
-    names = [match.group(1).strip() for match in re.finditer(r"^\s*state\s+([A-Za-z_][A-Za-z0-9_.-]*)\b", raw, re.M)]
+    names = [
+        match.group(1).strip()
+        for match in re.finditer(r"^\s*state\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\b", raw, re.M)
+    ]
     return dedupe_strings(names)
 
 

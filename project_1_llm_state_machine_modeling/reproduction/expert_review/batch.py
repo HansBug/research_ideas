@@ -113,6 +113,7 @@ def _build_request(item: BatchReviewItem) -> ExpertReviewRequest:
         input_text=item.input_text,
         pred_output=item.pred_output,
         ref_output=item.ref_output,
+        metadata=dict(item.metadata),
     )
 
 

@@ -90,6 +90,29 @@
 3. agent 逻辑不靠历史超级文件中转
 4. graph 负责编排，agents 负责能力，tools 负责复用 helper，schemas 负责数据结构
 
+## 语义路由与跨语言约束
+
+`Phase 11` 之后，runtime 对“怎么判定任务语义、证据制度、summary row 语义、review policy 和校准 profile”的要求又收紧了一层：
+
+1. 不再允许用 prompt / input / label 上的裸字符串特判去直接决定 `task / regime / policy / score`
+2. 这类判定默认先读结构化 `metadata`，再走语义分类器，失败时保守降级到 `unknown / generic / needs more evidence`
+3. 仍允许保留 deterministic 逻辑的地方只限：
+   - schema / field existence
+   - JSON / XML / PlantUML / free-text 等格式解析
+   - 显式 CLI 参数和用户结构化配置
+4. `input / pred / ref / prompt / label` 不再假设同语种；当前主路径默认支持：
+   - 中文、英文与混合文本
+   - CJK 标识符状态/事件名
+   - 不同语言 prompt 与结构化 metadata 混用
+
+当前相关实现主要分布在：
+
+1. [`semantic_router.py`](./semantic_router.py)：语义分类与 deterministic semantic fallback
+2. [`agents/contract_router.py`](./agents/contract_router.py)：review contract 语义路由
+3. [`agents/evidence_regime_estimator.py`](./agents/evidence_regime_estimator.py)：review surface / regime 语义判定
+4. [`tools/policy_library.py`](./tools/policy_library.py)：summary row、target、diagram family 与 policy packet 语义归类
+5. [`utils.py`](./utils.py)：Unicode 规范化、跨语言 token/term 归一化
+
 ## Agent 架构与流程
 
 当前真实编排入口是 [`graph/runtime.py`](./graph/runtime.py) 的 `run_expert_review_workflow()`。

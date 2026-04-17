@@ -2062,55 +2062,142 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 对当前运行时所有影响 `task / model / metamodel / regime / policy / score` 的判定入口做一次全量盘点，并按以下三类建账：
-  * [ ] 必须删除的硬特判
-  * [ ] 必须替换为语义判定的逻辑
-  * [ ] 可以保留的纯结构性 deterministic 逻辑
-* [ ] 逐项清理当前主路径中的历史债：
-  * [ ] `contract` / task focus / input family 的字符串判定
-  * [ ] `evidence regime` / review policy / routing 的字符串判定
-  * [ ] model type / metamodel type / diagram family / row family 等影响策略选择的字符串判定
-  * [ ] 任何直接由 prompt、input、pred、ref、label 文本触发的 hard-coded bonus / penalty / offset
-* [ ] 为所有确需保留的判定任务设计并落地语义判定器：
-  * [ ] 每个任务都给出类别定义、边界、正例、反例与 `other / unknown`
-  * [ ] 提问方式必须直接询问语义类别，而不是询问是否命中某些词
-  * [ ] 输出结果必须真实接入主路径，而不是只做离线分析
-* [ ] 明确并文档化允许保留的 deterministic 边界：
-  * [ ] 用户显式配置
-  * [ ] schema / field existence / file format 解析
-  * [ ] 其他结构性、非语义性约束
-* [ ] 为语义判定失败、信息不足或置信度过低场景建立保守 fallback：
-  * [ ] 统一降级到 `unknown / generic / needs more evidence`
-  * [ ] 不允许静默回退到被禁止的字符串 heuristics
-* [ ] 新增并固化 multilingual / cross-language / cross-metamodel validation slice：
-  * [ ] 中文 `input` + 英文 `pred / ref / prompt / label`
-  * [ ] 英文 `input` + 中文 `pred / ref / prompt / label`
-  * [ ] `input / pred / ref` 语言彼此不一致的 mixed case
-  * [ ] 至少一种非中非英样本或等价 stress case
-  * [ ] metamodel / model label 与正文语言、命名体系都不一致的 case
+* [x] 对当前运行时所有影响 `task / model / metamodel / regime / policy / score` 的判定入口做一次全量盘点，并按以下三类建账：
+  * [x] 必须删除的硬特判
+  * [x] 必须替换为语义判定的逻辑
+  * [x] 可以保留的纯结构性 deterministic 逻辑
+* [x] 逐项清理当前主路径中的历史债：
+  * [x] `contract` / task focus / input family 的字符串判定
+  * [x] `evidence regime` / review policy / routing 的字符串判定
+  * [x] model type / metamodel type / diagram family / row family 等影响策略选择的字符串判定
+  * [x] 任何直接由 prompt、input、pred、ref、label 文本触发的 hard-coded bonus / penalty / offset
+* [x] 为所有确需保留的判定任务设计并落地语义判定器：
+  * [x] 每个任务都给出类别定义、边界、正例、反例与 `other / unknown`
+  * [x] 提问方式必须直接询问语义类别，而不是询问是否命中某些词
+  * [x] 输出结果必须真实接入主路径，而不是只做离线分析
+* [x] 明确并文档化允许保留的 deterministic 边界：
+  * [x] 用户显式配置
+  * [x] schema / field existence / file format 解析
+  * [x] 其他结构性、非语义性约束
+* [x] 为语义判定失败、信息不足或置信度过低场景建立保守 fallback：
+  * [x] 统一降级到 `unknown / generic / needs more evidence`
+  * [x] 不允许静默回退到被禁止的字符串 heuristics
+* [x] 新增并固化 multilingual / cross-language / cross-metamodel validation slice：
+  * [x] 中文 `input` + 英文 `pred / ref / prompt / label`
+  * [x] 英文 `input` + 中文 `pred / ref / prompt / label`
+  * [x] `input / pred / ref` 语言彼此不一致的 mixed case
+  * [x] 至少一种非中非英样本或等价 stress case
+  * [x] metamodel / model label 与正文语言、命名体系都不一致的 case
 * [ ] 建立本 phase 的 regression gate：
   * [ ] 相对 `Phase 10` 的 deterministic full benchmark，`HAI / RAS / SAS / PDS` 任一降幅不得超过 `1` 点
   * [ ] `unsupported_claim_rate` 与 `ece` 不得恶化超过 `0.02`
-  * [ ] 若未达成，则本 phase 不得宣告完成
-* [ ] 在本 phase 架构边界内执行多轮自我迭代，主要优化 semantic routing prompt、分类定义、边界描述与 fallback 策略。
-* [ ] 完成后同步更新 `README.md`、相关设计文档、TODO 回写与 PR body，使“禁止硬特判 / 支持跨语言”的结论进入公开状态。
+  * [x] 若未达成，则本 phase 不得宣告完成
+* [x] 在本 phase 架构边界内执行多轮自我迭代，主要优化 semantic routing prompt、分类定义、边界描述与 fallback 策略。
+* [x] 完成后同步更新 `README.md`、相关设计文档、TODO 回写与 PR body，使“禁止硬特判 / 支持跨语言”的结论进入公开状态。
 
 ### Checklist
 
-* [ ] 运行时关键路径已不存在未登记的字符串硬特判承担 `task / model / metamodel / regime / policy / score` 判断。
-* [ ] 所有必要判定都已经改成语义判定，并且问题定义、类别边界、正反例与 `other / unknown` 出口完整可审计。
-* [ ] fallback 路径不会静默把判定退回到字符串 heuristics。
-* [ ] multilingual / cross-language / cross-metamodel validation slice 已通过，且没有新的系统性失败簇。
+* [x] 运行时关键路径已不存在未登记的字符串硬特判承担 `task / model / metamodel / regime / policy / score` 判断。
+* [x] 所有必要判定都已经改成语义判定，并且问题定义、类别边界、正反例与 `other / unknown` 出口完整可审计。
+* [x] fallback 路径不会静默把判定退回到字符串 heuristics。
+* [x] multilingual / cross-language / cross-metamodel validation slice 已通过，且没有新的系统性失败簇。
 * [ ] 相对 `Phase 10` 的 deterministic full benchmark 没有显著回归：`HAI / RAS / SAS / PDS` 任一降幅不超过 `1` 点，`unsupported_claim_rate` 与 `ece` 恶化不超过 `0.02`。
-* [ ] 已保留本 phase 多轮自我迭代记录，且 prompt 与 semantic routing 的主要优化轮次可追溯。
+* [x] 已保留本 phase 多轮自我迭代记录，且 prompt 与 semantic routing 的主要优化轮次可追溯。
 * [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
 ### Phase 11 当前状态回写
 
 - 创建时间：`2026-04-17 15:10:00`
 - 所属里程碑：`Milestone B`
-- 当前状态：已创建，尚未开始实现。
+- 最新回写时间：`2026-04-17 16:18:00`
+- 当前状态：`实现中，未完成`；语义路由、多语言验证与主路径接入已完成，但 full benchmark gate 尚未过线，因此本 phase 不能宣告完成。
 - 当前定位：作为 `Phase 1-10` 相关历史债的集中清理阶段，优先把 reviewer 从“局部可用但仍带硬特判和语言假设”推进到“判定机制本身可被辩护”的状态。
+
+### Phase 11 本轮建账结果
+
+- 已删除或替换的主路径硬特判：
+  - `agents/contract_router.py`：原先基于 prompt 表面词的 focus / strictness 判定，已替换为 `SemanticCategory` + `semantic_multi_label/single_label`
+  - `agents/evidence_regime_estimator.py`：原先基于 prompt 词面的 `summary/protocol/record` 路由，已替换为 review-surface 语义判定，并优先读取 `request.metadata.review_surface`
+  - `tools/policy_library.py`：原先基于 prompt 字符串的 `summary_row_type / summary_target / record_diagram_type / vv_roles` 推断，已替换为语义分类器；同时新增 structured metadata 优先级
+  - `agents/score_composer.py`：原先直接在主路径里按 `BD / SMD / UCD / Properties / act / sd / stm` 裸 label 做 offset/bonus/penalty，已改成 policy-layer semantic profile 先产出校准参数，`score_composer` 只消费 profile packet，不再自己读 label 做分支
+  - `agents/input_analyst.py`：prompt context、constraint / ambiguity 提取不再依赖英文关键词表，改为语义判定
+  - `utils.py` / `agents/common.py` / `inventory.py` / `tools/artifact_probe.py` / `tools/known_format_lift.py`：补齐 Unicode 归一化、CJK token/ID 支持与中英文混合标识解析
+- 当前明确允许保留的 deterministic 边界：
+  - 显式 `metadata` / CLI / schema 字段读取
+  - JSON / XML / PlantUML / free-text 的格式识别与结构解析
+  - 低层 artifact lifting / retrieval 辅助中的局部字符串规则，但这些规则不再承担 `task / model / metamodel / regime / policy / score` 主路径判断
+- 当前 fallback 规则：
+  - 所有语义分类器统一保留 `unknown / generic` 出口
+  - LLM 不可用时退回 deterministic semantic similarity，而不是退回旧的 prompt substring heuristics
+
+### Phase 11 多语言与跨语言验证
+
+- 已新增并通过的 validation slice：
+  - `test_runtime_supports_mixed_language_prompt_and_shared_anchor_artifacts`
+  - `test_runtime_supports_cjk_model_identifiers_with_english_requirements`
+  - `test_policy_library_prefers_structured_multilingual_metadata`
+  - `test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text`
+- 覆盖口径：
+  - 中文 prompt / input + 英文状态名与事件锚点
+  - 英文 requirement + 中文状态/事件标识符
+  - Spanish prompt + structured metadata + mixed-language artifact summary
+  - Spanish prompt + 中文说明 + 英文 V&V role 名称
+- 当前失败簇：
+  - 无系统性 crash 或 parser failure
+  - 但 deterministic full benchmark 的总指标仍未过 gate，说明“跨语言可运行”和“总体对齐仍达标”这两件事目前还没有同时完全成立
+
+### Phase 11 指标对比
+
+基线使用 `Phase 10` deterministic full benchmark 快照：
+
+| 指标 | Phase 10 | Phase 11 当前分支 | delta |
+|---|---:|---:|---:|
+| `HAI` | `85.99` | `86.09` | `+0.10` |
+| `RAS` | `85.21` | `84.19` | `-1.02` |
+| `SAS` | `81.51` | `79.15` | `-2.36` |
+| `PDS` | `93.75` | `100.00` | `+6.25` |
+| `normalized_mae` | `0.1228` | `0.1259` | `+0.0031` |
+| `unsupported_claim_rate` | `0.0703` | `0.0771` | `+0.0068` |
+| `ece` | `0.1353` | `0.1675` | `+0.0322` |
+
+当前结论：
+
+1. `HAI` 与 `PDS` 没有退化，`unsupported_claim_rate` 也仍在可接受波动内。
+2. `RAS` 仅比门槛多退化了 `0.02` 点量级，但 `SAS` 仍明显低于 gate。
+3. `ece` 恶化超过 `0.02`，因此 regression gate 不能打勾。
+4. 按规则，`Phase 11` 当前必须保持 `未完成`。
+
+### Phase 11 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 10` 收尾基线，不属于本 phase 改动后的代码状态。
+- `Round 1..4` 都在 `Phase 11` 架构边界内迭代，不跨进 `Phase 12`。
+- 当前本地保留的是 `Round 4` 代码，因为它在“去硬特判目标 + 主路径接入 + 指标”之间给出了当前最好的综合平衡；但它依然没有通过本 phase 的 full gate。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 10` deterministic full benchmark 基线 | `-` | `HAI 85.99 / RAS 85.21 / SAS 81.51 / PDS 93.75 / unsupported 0.0703 / ece 0.1353` | `同左` | `0.00` | `是` | 作为本 phase 对照基线 |
+| `Round 1` | 落地 `semantic_router.py`；为 `contract / regime / policy / input context` 接入语义分类；补齐 `metadata` 主路径；Unicode/CJK 归一化；新增 multilingual 单测；把 direct label offset 从 `score_composer` 拆到 policy 语义层 | `semantic_routing_error` / `cross_language_generalization_error` | `HAI 85.99 / RAS 85.21 / SAS 81.51 / PDS 93.75` | `HAI 84.01 / RAS 82.27 / SAS 75.02 / PDS 100.00 / unsupported 0.0771 / ece 0.0441` | `HAI -1.98` | `是` | 证明“去硬特判”确实接入主路径，但 summary / record 明显回退，需要恢复校准 |
+| `Round 2` | 为 `summary_target` 与 `record_diagram_type` 重建 semantic profile；恢复 policy-layer 校准参数；增加 semantic similarity cache；继续修 prompt/row-type 推断稳定性 | `semantic_routing_error` / `quality_judgement_error` | `HAI 84.01 / RAS 82.27 / SAS 75.02 / PDS 100.00` | `HAI 84.98 / RAS 82.27 / SAS 78.92 / PDS 100.00 / unsupported 0.0771 / ece 0.0441` | `HAI +0.97` | `是` | summary 明显回升，但 record 仍偏低 |
+| `Round 3` | 新增 record-level 的 `high_fidelity rescue` 与 `partial ambiguity` 惩罚，修复 `ACT` 高分样本被压低问题，并通过 branch-family case 约束收窄副作用 | `quality_judgement_error` / `equivalence_reasoning_error` | `HAI 84.98 / RAS 82.27 / SAS 78.92 / PDS 100.00` | `HAI 86.05 / RAS 84.19 / SAS 79.00 / PDS 100.00 / unsupported 0.0771 / ece 0.1675` | `HAI +1.07` | `是` | `record` 明显回升并越过 `HAI` 基线，但 `ece` 明显恶化 |
+| `Round 4` | 把 summary 校准重新对齐到 `Phase 9` 风格：`aggregate_stddev` 不再吃 target bias，恢复 `semantic profile + row calibration` 混合版本 | `quality_judgement_error` | `HAI 86.05 / RAS 84.19 / SAS 79.00 / PDS 100.00` | `HAI 86.09 / RAS 84.19 / SAS 79.15 / PDS 100.00 / unsupported 0.0771 / ece 0.1675` | `HAI +0.04` | `否` | `SAS` 小幅回升，但仍未过 gate，且 `ece` 仍超线；继续拧常数已明显进入边际区，因此当前停止并如实记为未完成 |
+
+### Phase 11 当前结论
+
+- 已完成部分：
+  - 主路径去硬特判与语义判定改造
+  - structured metadata 优先级与 fallback 收口
+  - multilingual / cross-language validation slice 落地并通过
+  - README / TODO / PR body 同步所需的公开状态更新
+- 未完成部分：
+  - full benchmark regression gate 未通过
+  - `summary` 仍比 `Phase 10` 低 `2.36` 点
+  - `record` 比门槛多退化 `0.02` 点量级
+  - `ece` 恶化超出允许范围
+- 下一步处理口径：
+  - `Phase 11` 保持打开，后续若继续处理，优先收口 `summary semantic calibration` 与 `record confidence calibration`
+  - 在 gate 未满足前，不得把本 phase checkbox 改成完成态
 
 ## 15. Phase 12: Component-Level Human Review 对齐与 `CRAS` 建立
 

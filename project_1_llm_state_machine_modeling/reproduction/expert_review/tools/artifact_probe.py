@@ -26,11 +26,11 @@ def _element_from_raw(kind: str, raw_value: str, idx: int, role: str) -> Artifac
     label = raw_value.split("|", 1)[0].strip()
     cleaned = raw_value.strip()
     if kind == "state":
-        state_match = re.match(r"state\s+([A-Za-z_][A-Za-z0-9_.-]*)", cleaned)
+        state_match = re.match(r"state\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)", cleaned)
         if state_match:
             label = state_match.group(1).strip()
     elif kind in {"block", "component"}:
-        block_match = re.match(r"(?:block|component)\s+([A-Za-z_][A-Za-z0-9_.-]*)", cleaned, re.I)
+        block_match = re.match(r"(?:block|component)\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)", cleaned, re.I)
         if block_match:
             label = block_match.group(1).strip()
     element_id = f"{role}_{kind}_{idx}"

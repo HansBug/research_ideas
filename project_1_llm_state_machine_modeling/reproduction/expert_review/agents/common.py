@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from ..schema import EvidenceItem
-from ..utils import normalize_id
+from ..utils import normalize_id, semantic_terms, unicode_word_tokens
 
 
 INPUT_STOPWORDS = {
@@ -61,12 +61,19 @@ def clip01(value: float) -> float:
 
 def tokenize(value: str) -> list[str]:
     spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", value)
-    spaced = spaced.replace("_", " ").replace("-", " ")
-    return [item.lower() for item in re.findall(r"[A-Za-z][A-Za-z0-9]*", spaced)]
+    spaced = spaced.replace("-", " ")
+    return [item.lower() for item in unicode_word_tokens(spaced)]
 
 
 def content_tokens(value: str) -> list[str]:
-    return [item for item in tokenize(value) if len(item) >= 3 and item not in INPUT_STOPWORDS]
+    result: list[str] = []
+    for item in tokenize(value):
+        if any(ord(char) > 127 for char in item):
+            result.append(item)
+            continue
+        if len(item) >= 3 and item not in INPUT_STOPWORDS:
+            result.append(item)
+    return result
 
 
 def _stem(token: str) -> str:
@@ -79,11 +86,17 @@ def _stem(token: str) -> str:
 
 
 def token_set(value: str) -> set[str]:
-    return set(content_tokens(value))
+    return set(content_tokens(value)) | semantic_terms(value)
 
 
 def stem_set(value: str) -> set[str]:
-    return {_stem(item) for item in content_tokens(value)}
+    stems: set[str] = set()
+    for item in content_tokens(value):
+        if any(ord(char) > 127 for char in item):
+            stems.add(item)
+        else:
+            stems.add(_stem(item))
+    return stems
 
 
 def overlap_score(a: str, b: str) -> float:
