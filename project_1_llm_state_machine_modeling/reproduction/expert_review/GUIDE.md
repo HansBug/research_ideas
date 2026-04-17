@@ -49,9 +49,12 @@
    - [`agent.py`](./agent.py)
 4. 离线 benchmark replay：
    - [`benchmark.py`](./benchmark.py)
-5. 模块级测试：
+5. batch screening 与导出：
+   - [`batch.py`](./batch.py)
+6. 模块级测试：
    - [`test_review.py`](./test_review.py)
    - [`test_benchmark.py`](./test_benchmark.py)
+   - [`test_batch.py`](./test_batch.py)
 
 除上述职责外，新增能力默认不得再落到根层。
 
@@ -122,9 +125,11 @@
 
 1. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
 2. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
-3. `python -m expert_review` 的 deterministic smoke
-4. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
-5. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`
+3. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py`
+4. `python -m expert_review` 的 deterministic smoke
+5. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
+6. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`
+7. `python -m expert_review.batch --input ... --llm-mode off`
 
 只要涉及以下变更，完成后就应至少跑上述三类验证中的相关部分：
 
@@ -141,9 +146,10 @@
 1. `Phase 7` 已完成评测口径固定与 benchmark harness 扩展
 2. `Phase 8` 已完成 `record-level` 数值校准、压缩效应修复与 partial-heavy 定向惩罚
 3. `Phase 9` 已完成 `summary-level` 排序、public-row score semantics 与高分 public row 收口
-4. 当前后续工作的核心目标已转到 `Phase 10`：batch screening 输入协议、triage 阈值、结果导出与 `Milestone A` 验收
+4. `Phase 10` 已完成 batch screening 输入协议、triage 阈值、结果导出与 `Milestone A` 验收
+5. 当前后续工作的核心目标已转到 `Phase 11+`：`component_level_review`、generalization、evidence reliability 与论文级证据链
 
 因此后续改动默认应优先回答两件事：
 
-1. 这次改动是否真实改善 `HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响 `record`、`summary` 还是 batch execution surface
-2. 这次改动是否会破坏当前已经稳定的 `PDS`、summary evidence discipline 以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测口径
+1. 这次改动是否真实改善 `CRAS / HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响组件级、`record`、`summary` 还是 batch/generalization surface
+2. 这次改动是否会破坏当前已经稳定的 `PDS`、summary evidence discipline、batch triage 口径，以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测框架

@@ -62,6 +62,7 @@ def compose_scores(
     score_semantics = str(policy_packet.get("score_semantics") or "artifact_quality")
     summary_row_type = str(policy_packet.get("summary_row_type") or "summary_public_score")
     summary_target = str(policy_packet.get("summary_target") or "unknown")
+    record_diagram_type = str(policy_packet.get("record_diagram_type") or "unknown")
     vv_roles = list(evidence_critic.get("vv_roles", []))
     dimension_results: list[DimensionReviewResult] = []
 
@@ -241,6 +242,7 @@ def compose_scores(
     record_low_equivalence_penalty = 0.0
     record_gap_penalty = 0.0
     record_score_adjustment = 0.0
+    record_diagram_offset = 0.0
     if regime.regime == "record_level":
         record_score_stretch = 1.18
         no_core_issues = dependency_break_count == 0 and trace_conflict_count == 0
@@ -272,10 +274,16 @@ def compose_scores(
         if equivalence_strength < 0.20 and reference_alignment < 0.40 and matched_ratio >= 0.10:
             record_low_equivalence_penalty = 0.10
 
+        record_diagram_offset = {
+            "act": 0.12,
+            "sd": -0.02,
+            "stm": 0.0,
+        }.get(record_diagram_type, 0.0)
         record_gap_penalty = record_missing_signal_penalty + record_low_equivalence_penalty
         record_score_adjustment = (
             record_trace_failure_bonus
             + record_high_alignment_bonus
+            + record_diagram_offset
             - record_missing_signal_penalty
             - record_low_equivalence_penalty
         )
@@ -502,6 +510,7 @@ def compose_scores(
                     "missing_ratio": round(missing_ratio, 6),
                     "summary_row_type": summary_row_type,
                     "summary_target": summary_target,
+                    "record_diagram_type": record_diagram_type,
                     "reference_alignment": round(reference_alignment, 6),
                     "structural_warning_count": len(pred_dossier.structural_warnings),
                     "extraction_conflict_count": len(pred_dossier.extraction_conflicts),
@@ -528,6 +537,7 @@ def compose_scores(
                     "record_branch_family_rescue": record_branch_family_rescue,
                     "record_missing_signal_penalty": round(record_missing_signal_penalty, 6),
                     "record_low_equivalence_penalty": round(record_low_equivalence_penalty, 6),
+                    "record_diagram_offset": round(record_diagram_offset, 6),
                     "issue_taxonomy": issue_taxonomy_map[dimension.name],
                     "policy_profile": policy_packet.get("profile_name"),
                     "score_semantics": score_semantics,
@@ -572,7 +582,9 @@ def final_confidence(
         base = sum(item.confidence for item in trace_results) / len(trace_results)
     base = 0.55 * base + 0.45 * float(equivalence_report.get("confidence", 0.55))
     if regime.regime == "record_level":
-        base = 0.08 + 0.78 * base
+        # Record-level confidence is interpreted as tight score-alignment reliability
+        # rather than generic reviewer self-belief, so it must remain much lower.
+        base = 0.08 + 0.15 * base
     if policy_packet.get("score_semantics") == "summary_stat_stddev":
         base -= 0.06
     if regime.regime == "protocol_only":

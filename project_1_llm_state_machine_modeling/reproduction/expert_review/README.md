@@ -35,8 +35,10 @@
 | [inventory.py](./inventory.py) | 根层共享 inventory / requirement / artifact helper |
 | [utils.py](./utils.py) | 根层共享环境解析、规范化与通用计算 helper |
 | [benchmark.py](./benchmark.py) | 离线 benchmark replay 与评测汇总，不属于线上运行时主路径 |
+| [batch.py](./batch.py) | batch screening 入口，负责批量执行、triage、导出与运行统计 |
 | [test_review.py](./test_review.py) | 模块级最小回归测试 |
 | [test_benchmark.py](./test_benchmark.py) | benchmark harness 的切片、coverage、LOFO 单测 |
+| [test_batch.py](./test_batch.py) | batch triage / export / CLI 面的最小回归测试 |
 | [GUIDE.md](./GUIDE.md) | 目录级维护规则 |
 | [designs/README.md](./designs/README.md) | 设计与演化文档入口 |
 
@@ -257,34 +259,77 @@ python -m expert_review.benchmark \
 
 它不参与 `review_artifacts()` 的线上主链路。
 
+### Batch Screening
+
+`Phase 10` 之后，离线批量筛选入口同时固定到 [`batch.py`](./batch.py)。
+
+最小输入协议如下：
+
+```json
+[
+  {
+    "item_id": "demo:1",
+    "prompt": "Review this model.",
+    "input_text": "R1: login moves the system from Idle to Ready.",
+    "pred_output": "{\"machine_name\":\"Demo\",\"states\":[{\"name\":\"Idle\"},{\"name\":\"Ready\"}],\"transitions\":[{\"source\":\"Idle\",\"target\":\"Ready\",\"event\":\"login\",\"guard\":\"\",\"action\":\"\"}]}",
+    "ref_output": null,
+    "metadata": {"family": "demo"}
+  }
+]
+```
+
+典型调用方式如下：
+
+```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+python -m expert_review.batch \
+  --input /tmp/expert_review_batch.json \
+  --llm-mode off \
+  --rerun-count 4 \
+  --output-json /tmp/expert_review_batch_run.json \
+  --output-jsonl /tmp/expert_review_batch_rows.jsonl \
+  --output-csv /tmp/expert_review_batch_rows.csv
+```
+
+当前 batch surface 提供：
+
+1. `direct_pass / manual_review / high_risk_reject` 三桶 triage
+2. `overall_score / confidence / evidence_discipline / unsupported_issue_count` 驱动的默认阈值策略
+3. `json / jsonl / csv` 三种导出
+4. `latency_p50 / latency_p95 / latency_max / retry_total / rerun_score_std / triage_flip_rate` 运行统计
+5. deterministic 零成本口径和后续 `llm_mode='auto'` 的同构执行入口
+
 ## 当前状态
 
-### Phase 9 结论
+### Phase 10 结论
 
-当前 `Phase 9` 已完成 `summary-level` 排序、public-row score semantics 与高分 public row 收口，并且已经确认：
+当前 `Phase 10` 已完成 batch screening 输入协议、triage 阈值、导出结构与 record-level 最后一轮门槛收口，并且已经确认：
 
-1. `summary-level` 已从“排序明显偏弱”提升到更接近人工的尺度与排序
-2. `record / protocol` 路径未因这轮 patch 出现明显回退，`RAS / PDS / unsupported_claim_rate` 基本保持稳定
-3. 当前改动主要落在 `policy_library.py + score_composer.py` 的 deterministic `summary-level` 路径
-4. 当前主瓶颈已经从 `summary-level` 排序，转移到 `Milestone A` 所需的 batch screening 执行口径与剩余 record 指标
+1. `Milestone A` 已正式达成，当前 reviewer 可被表述为“可用于整体筛选”
+2. 本轮提分主要落在 deterministic `record-level + batch surface`，`summary-level` 与 `protocol` 主口径没有被打坏
+3. `unsupported_claim_rate`、`ece`、`summary_only_element_claim_rate` 与 `rerun_score_std` 同时受控，说明不是靠放松证据纪律或制造随机漂移换分
+4. 当前系统仍不能宣称“可替代专家最终裁决”或“已在论文中充分证明 agent-based reviewer surrogate 成立”
 
-当前 `Phase 9` 的 `full available benchmark` 收口快照为：
+当前 `Phase 10` 的 deterministic `full available benchmark` 收口快照为：
 
 | 指标 | 当前值 |
 |---|---:|
-| `HAI` | `83.39` |
-| `RAS` | `80.48` |
+| `HAI` | `85.99` |
+| `RAS` | `85.21` |
 | `SAS` | `81.51` |
 | `PDS` | `93.75` |
-| `record normalized_mae` | `0.1643` |
+| `record normalized_mae` | `0.1228` |
 | `summary normalized_mae` | `0.1044` |
-| `record spearman_rho` | `0.6683` |
-| `record pairwise_order_accuracy` | `0.6910` |
+| `record spearman_rho` | `0.8366` |
+| `record pairwise_order_accuracy` | `0.7695` |
 | `summary spearman_rho` | `0.7319` |
 | `summary pairwise_order_accuracy` | `0.7286` |
-| `issue_f1` | `0.9126` |
-| `unsupported_claim_rate` | `0.0865` |
-| `ece` | `0.3969` |
+| `issue_f1` | `0.9226` |
+| `unsupported_claim_rate` | `0.0703` |
+| `ece` | `0.1353` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `rerun_score_std` | `0.0000` |
 
 当前 benchmark coverage 也已经被明确写实：
 
@@ -294,15 +339,15 @@ python -m expert_review.benchmark \
 4. `summary-level` 仍主要来自 `ttool-ai`
 5. `protocol-only` 仍只有 `4` 个 paper family，必须保守解释泛化性
 
-### Phase 10 入口
+### Phase 11 入口
 
-后续继续推进已经进入 `Phase 10`，重点不再是 summary ranking，而是继续处理：
+`Milestone A` 已完成，后续继续推进已经进入 `Phase 11+`，重点转为：
 
-1. `Milestone A` 仍未完成，主要卡在 `record normalized_mae = 0.1643`、`record pairwise_order_accuracy = 0.6910`、`unsupported_claim_rate = 0.0865` 与 `ece = 0.3969`
-2. 需要把当前 reviewer 从 benchmark 可用推进到 batch screening 可执行，包括输入协议、导出格式与 triage 阈值
-3. `validation / lockbox` 已证明 summary patch 具备一定泛化，但 protocol-only holdout 仍只有 `4` 个 paper family，不能过度乐观解释
-4. `component_level_review` 的 `512` 条人工对齐数据仍未进入主评测主指标，后续论文论证所需证据链仍不完整
-5. 当前 residual 主要集中在 `summary_level_run_score + SMD` 与部分 `summary average` 保守估分，但它们已不再是当前阶段的主导瓶颈
+1. `Phase 11` 需要把 `512` 条 `component_level_review` 接入主评测，建立 `CRAS` 与逐组件对齐证据
+2. `Phase 12` 需要补 judgement / reason / evidence reliability，避免只有分数对齐而缺少解释层证据
+3. `Phase 13` 需要把验收从单次 full available benchmark 提升到 `validation + lockbox + LOFO`
+4. `Phase 14-15` 需要补 deterministic / LLM-enabled 边界、成本与 ablation，形成论文级证据包
+5. 当前 batch 结果虽然可用于整体筛选，但 `manual_review` 仍占大头，这和“高精度预筛器”定位一致，不应过度宣称自动化程度
 
 相关结论见：
 

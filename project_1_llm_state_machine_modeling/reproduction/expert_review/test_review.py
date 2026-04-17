@@ -5,7 +5,7 @@ from .compatibility import heuristic_expert_review
 from .schema import ExpertReviewRequest
 from .tools.artifact_probe import build_parser_dossier
 from .tools.dossier_merge import merge_artifact_dossiers
-from .tools.policy_library import infer_summary_row_type, infer_summary_target
+from .tools.policy_library import infer_record_diagram_type, infer_summary_row_type, infer_summary_target
 
 
 def build_request(with_reference: bool = True) -> ExpertReviewRequest:
@@ -408,6 +408,15 @@ def test_summary_policy_library_infers_row_type_and_target_from_public_prompt() 
     )
     assert infer_summary_row_type(prompt) == "raw_score_row"
     assert infer_summary_target(prompt) == "BD"
+
+
+def test_policy_library_infers_record_diagram_type_from_prompt() -> None:
+    prompt = (
+        "You are an expert reviewer for generated software modeling artifacts.\n"
+        "Target type: act / generated_behavior_model.\n"
+        "Treat the prompt as a review contract, not as a generation request."
+    )
+    assert infer_record_diagram_type(prompt) == "act"
 
 
 def test_v1_runtime_summary_policy_distinguishes_raw_public_row_and_smd_target() -> None:

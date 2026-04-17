@@ -78,6 +78,20 @@ def infer_summary_target(*texts: str) -> str:
     return "unknown"
 
 
+def infer_record_diagram_type(*texts: str) -> str:
+    text = _joined_text([str(item or "") for item in texts])
+    match = re.search(r"target type:\s*([a-z0-9_-]+)\s*/", text)
+    if match:
+        return str(match.group(1)).strip().lower()
+    if "sequence diagram" in text or "target type: sd" in text:
+        return "sd"
+    if "activity diagram" in text or "target type: act" in text:
+        return "act"
+    if "state machine" in text or "target type: stm" in text:
+        return "stm"
+    return "unknown"
+
+
 def detect_vv_roles(texts: list[str]) -> list[str]:
     text = _joined_text(texts)
     roles: list[str] = []
@@ -110,6 +124,7 @@ def build_review_policy(
     summary_semantics_explicit = aggregate_signal != "direct_review"
     summary_row_type = infer_summary_row_type(*contract_texts)
     summary_target = infer_summary_target(*contract_texts)
+    record_diagram_type = infer_record_diagram_type(*contract_texts)
 
     quality_axes = {
         "readability": 1.20 if {"clarity", "quality"} & focus else 1.0,
@@ -163,6 +178,7 @@ def build_review_policy(
         "summary_semantics_explicit": summary_semantics_explicit,
         "summary_row_type": summary_row_type,
         "summary_target": summary_target,
+        "record_diagram_type": record_diagram_type,
         "allow_element_level_claims": allow_element_level_claims,
         "allow_requirement_defect_claims": allow_requirement_defect_claims,
         "base_confidence_cap": base_confidence_cap,

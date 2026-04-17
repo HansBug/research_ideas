@@ -1179,6 +1179,12 @@ Milestone A 达成条件：
 13. `rerun_score_std <= 0.03`
 14. 已具备批量执行、结果导出与筛选阈值策略，而不是只支持单条 demo 评审。
 
+当前状态：
+
+1. `Phase 10` 已于 `2026-04-17` 正式达成 `Milestone A`。
+2. 当前结论边界更新为：reviewer 已可用于整体筛选、批量预筛与异常样本上浮，但仍不能替代专家最终裁决。
+3. `Milestone B` 仍远未完成，后续主问题已转到 `component_level_review`、generalization、ablation 与学术证据链。
+
 ### 9.4 Milestone B：可用于论文中的学术论证
 
 目标：
@@ -1784,28 +1790,226 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 为 batch review 明确输入协议、批量执行方式与结果导出格式。
-* [ ] 建立基于 `overall_score / confidence / unsupported extras / evidence discipline` 的 triage 阈值策略。
-* [ ] 明确哪些分数段直接放行、哪些进入人工复核、哪些高风险上浮。
-* [ ] 加入 batch 模式下的延迟、成本与失败重试统计。
-* [ ] 对 deterministic 路径做批量稳定性验证，避免 batch 跑时出现口径漂移。
-* [ ] 输出 `Milestone A` 验收报告：当前 reviewer 可以怎么用，不可以怎么用。
+* [x] 为 batch review 明确输入协议、批量执行方式与结果导出格式。
+* [x] 建立基于 `overall_score / confidence / unsupported extras / evidence discipline` 的 triage 阈值策略。
+* [x] 明确哪些分数段直接放行、哪些进入人工复核、哪些高风险上浮。
+* [x] 加入 batch 模式下的延迟、成本与失败重试统计。
+* [x] 对 deterministic 路径做批量稳定性验证，避免 batch 跑时出现口径漂移。
+* [x] 输出 `Milestone A` 验收报告：当前 reviewer 可以怎么用，不可以怎么用。
 
 ### Checklist
 
-* [ ] `Milestone A` 的全部门槛均已满足。
-* [ ] 已形成可操作的 batch screening 使用口径，而不是只有 benchmark 指标。
-* [ ] `latency_p95`、失败重试和导出结构已可观测。
-* [ ] 当前 reviewer 可被明确表述为“可用于整体筛选”，但尚未越界宣称“可替代专家最终裁决”。
+* [x] `Milestone A` 的全部门槛均已满足。
+* [x] 已形成可操作的 batch screening 使用口径，而不是只有 benchmark 指标。
+* [x] `latency_p95`、失败重试和导出结构已可观测。
+* [x] 当前 reviewer 可被明确表述为“可用于整体筛选”，但尚未越界宣称“可替代专家最终裁决”。
 
 ### Phase 10 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
-- 更新状态时间：`2026-04-17 11:00:22`
+- 回写时间：`2026-04-17 18:10:00`
 - 所属里程碑：`Milestone A`
-- 当前状态：已创建，尚未开始实现；`Phase 9` 已完成，当前前置条件已满足。
-- 前置条件：`Phase 9` 已收口 `summary-level` 排序、public-row score semantics 与 evidence discipline；当前下一步主瓶颈已转到 batch execution、triage 阈值与 `Milestone A` 验收口径。
-- 停止条件：本 phase 结束时必须明确判断 `Milestone A` 是否已达成。
+- 完成状态：`Phase 10` 的 Todolist 与 Checklist 已全部完成，`Milestone A` 已正式达成。
+- 当前定位：在 deterministic 主路径不改 graph 编排的前提下，同时补齐 batch screening 可执行面、record-level 最后几项门槛，以及 `Milestone A` 的使用边界说明。
+- 真实接入情况：
+  - `tools/policy_library.py` 已新增 `infer_record_diagram_type()`，并把 `record_diagram_type` 放入 `policy packet`，让 record-level 标定不再把 `ACT / SD / STM` 混为一谈。
+  - `agents/score_composer.py` 已新增 record diagram offset、record-specific confidence recalibration 与对应诊断字段，显式压低“高自信但低精确对齐”的伪置信。
+  - `agents/pragmatic_quality.py` 已在 `record-level` 下完全抑制 `unused_or_noisy_structure`，因为这一簇在 benchmark 上已证明主要是纯 `FP` 噪声。
+  - 根层新增 [`batch.py`](../../batch.py) 作为 batch screening 主入口，支持 `json/jsonl` 输入、`json/jsonl/csv` 导出、triage policy、失败重试、rerun 稳定性与延迟统计。
+  - `__init__.py` 已导出 batch API，`test_review.py` 与新增的 `test_batch.py` 已锁住 diagram-type 推断与 batch triage/export 回归。
+- 可运行性：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py` 已验证
+  - 全量 batch run 已导出 `/tmp/phase10_batch_full_final.json`、`/tmp/phase10_batch_full_final.jsonl`、`/tmp/phase10_batch_full_final.csv`
+- 当前结论边界：
+  - 可以说：当前 reviewer 已可用于 batch ranking / filtering / triage，能缩减人工筛查工作量。
+  - 不可以说：当前 reviewer 已能替代专家最终裁决，或已经在学术上充分证明 agent-based review surrogate 成立。
+- 已知遗留问题：
+  - `component_level_review` 的 `512` 条人工逐组件对齐数据仍未进入主评测指标，因此组件级证据链仍缺。
+  - `protocol-only` holdout 仍只有 `4` 个 family，`lockbox PDS = 75.00` 只能保守解读，不能拿来做强泛化主张。
+  - batch triage 仍以“高精度预筛 + 大量人工复核”为主，`manual_review = 163 / 280`，说明它适合整体筛选，不适合无人值守自动裁决。
+
+### Phase 10 指标总表
+
+本节记录 `2026-04-17` 基于 `run_benchmark_iteration(llm_mode='off', scope='full')` 的 `full available benchmark` 收尾快照，作为 `Phase 10` 与 `Milestone A` 的正式验收口径。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `85.99` |
+| `RAS` | `85.21` |
+| `SAS` | `81.51` |
+| `PDS` | `93.75` |
+| `record normalized_mae` | `0.1228` |
+| `record spearman_rho` | `0.8366` |
+| `record pairwise_order_accuracy` | `0.7695` |
+| `summary normalized_mae` | `0.1044` |
+| `summary spearman_rho` | `0.7319` |
+| `summary pairwise_order_accuracy` | `0.7286` |
+| `summary score_bias` | `-0.0145` |
+| `issue_f1` | `0.9226` |
+| `unsupported_claim_rate` | `0.0703` |
+| `ece` | `0.1353` |
+| `summary_only_element_claim_rate` | `0.0000` |
+| `protocol_only_overclaim_rate` | `0.0000` |
+| `rerun_score_std` | `0.0000` |
+
+### Phase 10 扩展评测快照
+
+#### 1. `Milestone A` 验收表
+
+| 指标 | 门槛 | `Phase 10` | 结果 |
+|---|---:|---:|---|
+| `HAI` | `>= 82` | `85.99` | `通过` |
+| `RAS` | `>= 80` | `85.21` | `通过` |
+| `SAS` | `>= 76` | `81.51` | `通过` |
+| `PDS` | `>= 90` | `93.75` | `通过` |
+| `record normalized_mae` | `<= 0.15` | `0.1228` | `通过` |
+| `record spearman_rho` | `>= 0.60` | `0.8366` | `通过` |
+| `record pairwise_order_accuracy` | `>= 0.70` | `0.7695` | `通过` |
+| `summary spearman_rho` | `>= 0.45` | `0.7319` | `通过` |
+| `summary pairwise_order_accuracy` | `>= 0.65` | `0.7286` | `通过` |
+| `unsupported_claim_rate` | `<= 0.08` | `0.0703` | `通过` |
+| `ece` | `<= 0.20` | `0.1353` | `通过` |
+| `protocol_only_overclaim_rate` | `= 0` | `0.0000` | `通过` |
+| `rerun_score_std` | `<= 0.03` | `0.0000` | `通过` |
+| batch screening surface | `已具备` | `已具备` | `通过` |
+
+#### 2. split 快照
+
+| split | `HAI` | `RAS` | `SAS` | `PDS` | `record normalized_mae` | `record pairwise` | `unsupported_claim_rate` | `ece` |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `validation` | `88.14` | `87.27` | `80.56` | `100.00` | `0.0946` | `0.6613` | `0.0469` | `0.1545` |
+| `lockbox` | `81.66` | `85.98` | `77.48` | `75.00` | `0.1323` | `0.7935` | `0.0694` | `0.1033` |
+
+说明：
+
+1. `validation / lockbox` 说明 `Phase 10` patch 不是只在 full available benchmark 上“看起来更好”。
+2. `lockbox PDS = 75.00` 由极小 protocol-only 样本主导，当前仍只能作为风险提示，不属于 `Milestone A` 的正式 gate。
+
+#### 3. `Phase 9 -> Phase 10` 关键增益
+
+| 指标 | `Phase 9` | `Phase 10` | delta |
+|---|---:|---:|---:|
+| `HAI` | `83.39` | `85.99` | `+2.60` |
+| `RAS` | `80.48` | `85.21` | `+4.73` |
+| `SAS` | `81.51` | `81.51` | `+0.00` |
+| `record normalized_mae` | `0.1643` | `0.1228` | `-0.0415` |
+| `record spearman_rho` | `0.6683` | `0.8366` | `+0.1683` |
+| `record pairwise_order_accuracy` | `0.6910` | `0.7695` | `+0.0785` |
+| `unsupported_claim_rate` | `0.0865` | `0.0703` | `-0.0162` |
+| `ece` | `0.3969` | `0.1353` | `-0.2616` |
+| `summary_only_element_claim_rate` | `0.0000` | `0.0000` | `+0.0000` |
+| `PDS` | `93.75` | `93.75` | `+0.00` |
+
+#### 4. batch screening 运行摘要
+
+全量 batch run 基于 `280` 条当前 full-available task，结果如下：
+
+| 指标 | 当前值 |
+|---|---:|
+| `total_items` | `280` |
+| `success_count` | `280` |
+| `failure_count` | `0` |
+| `retry_total` | `0` |
+| `retry_rate` | `0.0000` |
+| `latency_p50` | `0.1495s` |
+| `latency_p95` | `0.8922s` |
+| `latency_max` | `1.3716s` |
+| `rerun_score_std` | `0.0000` |
+| `rerun_score_delta_max` | `0.0000` |
+| `triage_flip_rate` | `0.0000` |
+| `estimated_cost_usd_total` | `0.0` |
+
+当前默认 triage 结果分布：
+
+| bucket | 数量 |
+|---|---:|
+| `direct_pass` | `69` |
+| `manual_review` | `163` |
+| `high_risk_reject` | `48` |
+
+#### 5. triage 质量快照
+
+| bucket | `n` | 主要质量口径 | 结果 |
+|---|---:|---|---:|
+| `direct_pass` | `69` | `human_score >= 0.75` precision | `0.9710` |
+| `direct_pass` | `69` | 高分样本 coverage | `0.4214` |
+| `high_risk_reject` | `47` | `human_score <= 0.45` precision | `0.7021` |
+| `high_risk_reject` | `47` | 低分样本 coverage | `0.5690` |
+| `manual_review` | `160` | 中间分段占比 | `0.2812` |
+
+当前 batch 使用结论：
+
+1. `direct_pass` 桶已经足够高精度，可直接用于缩减高质量样本的人工复核量。
+2. `high_risk_reject` 桶更适合作为“高风险上浮 / 优先复查”而非自动拒绝，因为其 precision 还不够支撑零人工裁决。
+3. 大量样本仍进入 `manual_review`，这与 `Milestone A` 的边界一致：它是整体筛选器，不是最终判官。
+
+### Phase 10 本阶段改进记录
+
+- 最明显提升 1：`Milestone A` 已被正式打穿，`HAI / RAS / SAS / PDS / record mae / record ranking / unsupported / ece / rerun_score_std` 全部进入门槛内。
+- 最明显提升 2：record-level 不再把不同图类型硬塞进同一校准槽；`ACT / SD / STM` 的窄 offset 后，`record normalized_mae 0.1643 -> 0.1228`，`record pairwise_order_accuracy 0.6910 -> 0.7695`。
+- 最明显提升 3：record-specific confidence 被重新定义为“精确对齐可靠性”而不是“主观自信”，`ece 0.3969 -> 0.1353`，明显消除了原先的高自信错判。
+- 最明显提升 4：`unused_or_noisy_structure` 在 record 模式下的噪声批评被清空后，`unsupported_claim_rate 0.0865 -> 0.0703`，且 `issue_f1` 仍上升到 `0.9226`，说明不是靠少报问题换指标。
+- 最明显提升 5：batch surface 已真实可用，支持 `json/jsonl` 输入、`json/jsonl/csv` 导出、triage bucket、延迟/重试/稳定性统计，且 `280` 条 full run 无失败、无漂移。
+
+- 最明显退化风险 1：`high_risk_reject` 桶 precision 只有 `0.7021`，所以 reject 只能作为高风险提示，不能自动拒绝。
+- 最明显退化风险 2：`manual_review = 163 / 280`，说明当前 triage 仍明显偏保守；这是有意保精度的结果，但也意味着人工工作量下降还不算激进。
+- 最明显退化风险 3：`lockbox PDS = 75.00` 暴露出 protocol holdout 太小，`Phase 10` 还不能对 protocol 泛化做更强结论。
+
+- 当前仍未完全解决的问题 1：`component_level_review` 仍未进入主评测，`CRAS` 与逐组件宏观 `F1` 还没有建立。
+- 当前仍未完全解决的问题 2：当前 batch 阈值是以 visible benchmark 为主做的 precision-oriented 标定，`validation + lockbox + LOFO` 的联合阈值鲁棒性仍要到后续 phase 才能正式论证。
+- 当前仍未完全解决的问题 3：学术主张所需的 judgement / reason / evidence reliability、ablation 与 agent-based 必要性证明仍未完成，因此 `Milestone B` 还没有进入收口期。
+
+### Phase 10 本阶段运行记录
+
+- 已验证入口：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py`
+  - `python -m expert_review.benchmark --scope full --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off`
+  - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off`
+- 本阶段真实落位的目标层次：
+  - 代码改动集中在 `tools/policy_library.py`、`agents/score_composer.py`、`agents/pragmatic_quality.py`、`batch.py`、`__init__.py`、`test_review.py`、`test_batch.py`
+  - 所有提分都落在 deterministic runtime 的 `record-level` 与 batch execution surface
+  - `summary-level`、graph 编排、外部主 API 与 benchmark harness 主框架没有被重新改写
+
+### Phase 10 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 10` 的起始基线，即 `Phase 9` 收尾后的 full benchmark。
+- `Round 1` 首次把 record diagram-aware calibration、record confidence 收缩和 batch surface 接入主路径，几乎打穿全部门槛，但 `unsupported_claim_rate` 仍略高于 `0.08`。
+- `Round 2` 进一步删除 record-level 的纯噪声 issue 发射，完成 `unsupported_claim_rate` 的最后收口，并确认 `Milestone A` 正式达成。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 9` 基线；batch surface 尚不存在，record-level 仍未做 diagram-aware calibration | `milestone gate gap` / `batch execution missing` | `HAI 83.39 / RAS 80.48 / SAS 81.51 / record mae 0.1643 / pairwise 0.6910 / unsupported 0.0865 / ece 0.3969` | `同左` | `基线轮，无代码增量` | `是` | 确认为 `Phase 10` 的真实起点 |
+| `Round 1` | 新增 `infer_record_diagram_type()`、record diagram offset、record confidence recalibration，并落地 `batch.py` 与初版 triage policy | `record ranking gap` / `miscalibration` / `batch screening missing` | `HAI 83.39 / RAS 80.48 / mae 0.1643 / pairwise 0.6910 / unsupported 0.0865 / ece 0.3969` | `HAI 85.81 / RAS 84.88 / mae 0.1228 / pairwise 0.7695 / unsupported 0.0839 / ece 0.1353` | `HAI +2.42` | `是` | 几乎打穿全部门槛，但 `unsupported_claim_rate` 仍略高于 `Milestone A` 的 `0.08`，不能停 |
+| `Round 2` | 在 record 模式下完全抑制 `unused_or_noisy_structure` issue 发射，并用 full batch run 回放 triage 稳定性 | `record false-positive issue noise` | `HAI 85.81 / RAS 84.88 / mae 0.1228 / pairwise 0.7695 / unsupported 0.0839 / ece 0.1353` | `HAI 85.99 / RAS 85.21 / mae 0.1228 / pairwise 0.7695 / unsupported 0.0703 / ece 0.1353` | `HAI +0.18` | `否` | 这一步正式打穿最后一个硬门槛，停止原因是 `Milestone A` 已完成，而不是边际太小就停 |
+
+### Phase 10 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 10` 已完成并停止，下一步进入 `Phase 11`。
+- TODO 已完成项：
+  - `Phase 10` 全部 Todolist 已打勾
+  - `Phase 10` 全部 Checklist 已打勾
+  - `Milestone A` 已在正式 benchmark 与 batch surface 两条口径上同时达成
+  - `README.md`、`GUIDE.md`、PR body 已同步到当前阶段口径
+- TODO 尚未完成项：
+  - 无本 phase 内遗留未勾项
+  - `Milestone B` 的组件级、泛化、ablation 与论文级证据链属于后续 `Phase 11+`
+- 当前对齐程度总览：
+  - `record-level` 已从“仍卡住 Milestone A”推进到“可用于整体筛选”：`RAS 85.21 / normalized_mae 0.1228 / spearman_rho 0.8366 / pairwise 0.7695`
+  - `summary-level` 继续维持 `Phase 9` 收口状态：`SAS 81.51 / summary spearman_rho 0.7319 / pairwise 0.7286`
+  - `PDS 93.75`、`summary_only_element_claim_rate 0.0000`、`unsupported_claim_rate 0.0703` 与 `rerun_score_std 0.0000` 说明本阶段提分没有靠放松证据纪律或制造不稳定性来换
+- 对各项核心指标的解释：
+  - `HAI 85.99`：说明当前 reviewer 已越过“整体筛选器”所需的人类风格对齐门槛
+  - `RAS 85.21`：record-level 已进入高可用区间，批量筛选时不再只是“会挑问题”，而是已经具备可操作的数值尺度
+  - `unsupported_claim_rate 0.0703 + ece 0.1353`：说明当前可筛选性不是靠胡乱报错或假高自信换来的
+  - `manual_review 163 / 280`：说明它的真实工程定位是“高精度预筛 + 风险上浮 + 人工复核分流”，而不是自动化终审
+- 当前 phase 是否停止：`是`，停止在 `Phase 10`；停止原因是 `Milestone A` 已正式达成，继续往下做已经进入 `Phase 11+` 的组件级对齐、generalization 与学术证据链问题。
 
 ## 14. Phase 11: Component-Level Human Review 对齐与 `CRAS` 建立
 

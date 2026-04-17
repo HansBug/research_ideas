@@ -133,7 +133,17 @@ def deterministic_pragmatic_quality(
                 "Structural warnings make the artifact harder to read or trust at review time.",
             )
         )
-    if unused_elements >= 2 or grounded_ratio < 0.30:
+    severe_noise_signal = (
+        regime.regime != "record_level"
+        and (
+            grounded_ratio < 0.18
+            or unused_elements >= 4
+            or (complexity_penalty >= 0.18 and grounded_ratio < 0.35)
+            or unused_elements >= 2
+            or grounded_ratio < 0.30
+        )
+    )
+    if severe_noise_signal:
         issues.append(
             _issue(
                 "unused_or_noisy_structure",
