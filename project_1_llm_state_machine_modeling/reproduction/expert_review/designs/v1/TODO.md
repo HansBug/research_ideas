@@ -16,6 +16,10 @@
 6. 最终在最后一个 phase 完成后，内部 reviewer 架构需要整体达到 [EXPERT_REVIEW_DESIGN_V1.md](./EXPERT_REVIEW_DESIGN_V1.md) 所定义的 v1 目标形态。
 7. 后续各 phase 不只追求“行为上更像 v1”，还必须让 `expert_review/` 的目录布局、模块职责与运行时编排逐步落到 v1 设计稿建议的 `schemas / prompts / tools / agents / graph / compatibility` 形态上。
 8. 当前 phase 数量不是硬上限；若为了真正完成 v1 结构收敛仍需补充阶段，可以继续新增 phase，但不得借此跳过已有阶段的收尾、验收和如实回写。
+9. 禁止把运行时关键判定建立在硬特判上，尤其禁止基于原始字符串、子串、正则、词表或等价表面形式规则，直接对 `task type / model type / metamodel / regime / policy / score offset / prompt family / input family` 做主路径判断。
+10. 如果某类任务确实需要细分或路由，必须由 LLM 或等价语义判定器完成，并且提问方式必须是语义性的，例如“该任务是否关注状态机结构语义”“该样本属于 A / B / C / other 哪一类”，每个类别都要有清晰定义、可执行边界和例子；禁止把“是否包含某关键词”伪装成 LLM 判定。
+11. `expert_review` 必须把多语言、跨语言和跨元模型不一致视为默认支持场景，而不是英文默认场景；不得假设 `input / pred / ref / prompt / model label / metamodel label` 同语种、同命名体系或同表达习惯。
+12. 从本规则引入起，每个 phase 的 checklist 都必须包含“语义判定与跨语言泛化合规”专门硬性检查项；在该项未通过前，该 phase 不能算完成。`Phase 1-10` 的相关历史债统一并入后续专项清理 phase，不因旧 checklist 缺项而视为天然合规。
 
 推荐阅读顺序：
 
@@ -117,6 +121,27 @@
 3. 若某阶段还不能一次完成正式拆分，也必须明确临时归宿与后续迁移目标，避免新逻辑继续无边界堆进历史大文件。
 4. 阶段验收不仅看指标，也看路径结构和职责边界是否更接近 v1 设计，而不是继续停留在旧工程组织上。
 
+### 2.1.3 语义判定、去硬特判与跨语言泛化硬要求
+
+1. 运行时关键判断不得再依赖字符串特判：
+   - 不允许 `"xxx" in text`、关键词表、正则命中、英文专用 token 猜测、标签别名表或类似机制，直接决定 `task / regime / policy / scoring / model-family / metamodel-family`。
+   - 不允许把这类表面规则包一层 prompt 或 helper 之后继续作为主判断依据。
+2. 如必须做任务分类、工件类型判定、证据制度判定、策略路由或模型类型归类，必须改为语义判定：
+   - 问题本身必须问“它在语义上属于什么”，而不是“它表面上像什么词”。
+   - 类别集合必须带定义、边界、正例与反例。
+   - 必须保留 `other / unknown / ambiguous` 出口，不能强行把未知样本塞进某个硬编码类别。
+3. 允许保留的 deterministic 逻辑只限非语义边界，例如：
+   - 用户显式配置或 CLI 参数
+   - 文件格式 / schema / field existence 解析
+   - 明确协议字段或结构化元数据读取
+   - 这类逻辑不得越界替代语义判定本身
+4. 如果 LLM 语义判定失败、置信度过低或输入信息不足，fallback 必须是保守降级到 `unknown / generic / needs more evidence`，不能静默退回被禁止的字符串 heuristics。
+5. 多语言、跨语言与跨元模型泛化是主路径要求，不是附加 bonus：
+   - 至少要覆盖 `input / pred / ref` 彼此不同语言的情况
+   - 至少要覆盖 `prompt / model label / metamodel label` 与工件正文不同语言或不同命名体系的情况
+   - 至少要覆盖中英混合与非英文单语样本
+6. 本小节从现在起对所有后续 phase 生效；`Phase 1-10` 已存在的违例不视为可接受遗留，而是必须在后续历史债清理 phase 中全部建账、替换和验收。
+
 ### 2.2 每一阶段必须满足的记录要求
 
 每个阶段都必须留下：
@@ -130,6 +155,8 @@
 7. 本阶段相对上阶段的退化项。
 8. 本阶段已知未解决问题。
 9. 本阶段内部每一轮自我迭代的完整记录。
+10. 本阶段新增、删除或保留的语义判定器与硬特判清单，以及对应理由。
+11. 本阶段多语言 / 跨语言 / 跨元模型验证覆盖情况与失败簇。
 
 补充硬要求：
 
@@ -155,9 +182,11 @@
 3. 本轮修改属于哪类问题修复：
    - `contract_understanding_error`
    - `element_extraction_error`
+   - `semantic_routing_error`
    - `equivalence_reasoning_error`
    - `quality_judgement_error`
    - `evidence_discipline_error`
+   - `cross_language_generalization_error`
 4. 本轮修改前指标
 5. 本轮修改后指标
 6. 本轮指标 delta
@@ -188,6 +217,12 @@
 4. 若某阶段对齐退化，必须记录原因，不得只保留“最好的一轮”。
 5. 某阶段内的每一轮自我迭代都必须有前后指标对比，不能只记录 phase 结束时的最终一组数。
 6. phase 结束时除了阶段终态指标，还必须保留“本阶段多轮优化链路”的完整记录。
+7. 每个 phase 结束时都必须追加一组“语义判定与跨语言泛化”专门验证，不能只在英文、同语言或已知标签样本上验收。
+8. 该专门验证至少应覆盖：
+   - `input` 与 `pred / ref` 不同语言
+   - `prompt / model label / metamodel label` 与正文不同语言或不同命名体系
+   - 中文、英文以及至少一种非中非英样本或等价 stress case
+9. 若该专门验证未通过，或发现仍有运行时关键字符串特判残留，则该 phase checklist 必须判定为未通过。
 
 ## 3. Phase 1: 运行时骨架替换
 
@@ -1097,7 +1132,7 @@
     - 但 taxonomy 语气仍不够像真人 protocol reviewer，这一问题已明确转交 `Phase 7`
 - 当前 phase 是否停止：`是`，停止在 `Phase 6`；后续待命，等待是否进入 `Phase 7` 的实现指令。
 
-## 9. 后续总目标、双里程碑与 Phase 7-15 路线图
+## 9. 后续总目标、双里程碑与 Phase 7-16 路线图
 
 从 `Phase 7` 开始，后续工作不再只是泛泛地“继续提分”，而是明确围绕以下**实际用途**推进：
 
@@ -1138,7 +1173,7 @@
 1. 当前 reviewer 的**record-level 数值尺度与排序能力**保持 `Phase 8` 收口状态，没有因为 `Phase 9` 的 summary patch 出现明显回退。
 2. 当前 reviewer 的**summary-level 排序与 public-row 语义判读**已经显著改善，`SAS / summary normalized_mae / summary ranking` 全部越过 `Phase 9` 目标线。
 3. 当前 `Milestone A` 的主瓶颈已不再是 summary ranking，而是 `record normalized_mae / record pairwise / unsupported_claim_rate / ece` 以及 batch screening 的执行与阈值口径。
-4. 当前 full available benchmark 的 `record-level` 强对齐数据实际上主要来自 `llms_emp`，`summary-level` 主要来自 `ttool-ai`，而 `512` 条 `component_level_review` 还未进入主评测主指标；因此仍不能在论文中直接主张“expert reviewer agent 已被学术上充分验证成立”，下一阶段应转向 `Phase 10+` 的 batch screening、component-level 与 generalization 问题。
+4. 当前 full available benchmark 的 `record-level` 强对齐数据实际上主要来自 `llms_emp`，`summary-level` 主要来自 `ttool-ai`，而 `512` 条 `component_level_review` 还未进入主评测主指标；此外，运行时仍存在需要清理的语义判定硬编码与跨语言泛化历史债。因此仍不能在论文中直接主张“expert reviewer agent 已被学术上充分验证成立”，下一阶段应先处理去硬特判与泛化债，再推进 `component_level_review`、generalization 与学术证据链。
 
 ### 9.2 双里程碑定义
 
@@ -1154,7 +1189,7 @@
 路线归属如下：
 
 1. `Phase 7` 到 `Phase 10`：服务 `Milestone A`
-2. `Phase 11` 到 `Phase 15`：服务 `Milestone B`
+2. `Phase 11` 到 `Phase 16`：服务 `Milestone B`
 
 ### 9.3 Milestone A：可用于整体筛选
 
@@ -1209,6 +1244,10 @@ Milestone B 达成条件：
 3. 已补齐对 `component_level_review` 的正式主评测，并形成可单独报告的 `CRAS` 或等价组件级对齐指标。
 4. 已完成关键 agent / policy / routing 的 ablation，能证明当前“agent-based reviewer”不是纯包装，而是结构上确有增益。
 5. 已完成 deterministic 主路径与 LLM-enabled 主路径的稳定性、成本与风险边界说明。
+6. 已通过“去硬特判 / 语义判定 / 多语言与跨语言 / 跨元模型泛化”硬门槛：
+   - 运行时关键判断中不存在未登记的字符串硬特判残留
+   - 必要分类任务均已采用带定义、边界与例子的语义判定
+   - 跨语言 validation 中不存在系统性失败簇
 
 ### 9.5 从 Phase 7 开始必须新增并持续跟踪的指标
 
@@ -1229,6 +1268,10 @@ Milestone B 达成条件：
    - leave-one-family-out 下的性能降幅
 7. `latency_p95`
 8. `token_cost_per_record`
+9. `cross_language_validation_pass_rate`
+   - 用于跟踪 `input / pred / ref / prompt / model label / metamodel label` 跨语言组合的通过率
+10. `semantic_gate_violation_count`
+   - 用于跟踪运行时关键路径中仍残留多少被禁止的硬特判或伪语义判定
 
 ## 10. Phase 7: 全量 benchmark 口径固定与下一阶段提分地图
 
@@ -1280,7 +1323,7 @@ Milestone B 达成条件：
   - `expert_review/` 的正式 runtime 未被触碰；本阶段只把根层 `benchmark.py` 真正收敛成后续 phase 的统一离线评测 harness
   - 新增 `test_benchmark.py` 作为 benchmark harness 的固定最小回归入口
 - 未完成项：
-  - `component_level_review` 仍未进入主 `HAI / RAS / SAS` 指标，这一项本 phase 只完成 schema 预埋，不提前进入 `Phase 11`
+  - `component_level_review` 仍未进入主 `HAI / RAS / SAS` 指标，这一项本 phase 只完成 schema 预埋，不提前进入 `Phase 12`
 - 已知遗留问题：
   - full benchmark 下 `record` 与 `summary` 的 ranking risk 仍都是 `high`
   - `calibration_error = 202` 仍是最大错误簇
@@ -1999,7 +2042,7 @@ Milestone B 达成条件：
   - `README.md`、`GUIDE.md`、PR body 已同步到当前阶段口径
 - TODO 尚未完成项：
   - 无本 phase 内遗留未勾项
-  - `Milestone B` 的组件级、泛化、ablation 与论文级证据链属于后续 `Phase 11+`
+  - `Milestone B` 的去硬特判历史债、组件级、泛化、ablation 与论文级证据链属于后续 `Phase 11+`
 - 当前对齐程度总览：
   - `record-level` 已从“仍卡住 Milestone A”推进到“可用于整体筛选”：`RAS 85.21 / normalized_mae 0.1228 / spearman_rho 0.8366 / pairwise 0.7695`
   - `summary-level` 继续维持 `Phase 9` 收口状态：`SAS 81.51 / summary spearman_rho 0.7319 / pairwise 0.7286`
@@ -2009,9 +2052,67 @@ Milestone B 达成条件：
   - `RAS 85.21`：record-level 已进入高可用区间，批量筛选时不再只是“会挑问题”，而是已经具备可操作的数值尺度
   - `unsupported_claim_rate 0.0703 + ece 0.1353`：说明当前可筛选性不是靠胡乱报错或假高自信换来的
   - `manual_review 163 / 280`：说明它的真实工程定位是“高精度预筛 + 风险上浮 + 人工复核分流”，而不是自动化终审
-- 当前 phase 是否停止：`是`，停止在 `Phase 10`；停止原因是 `Milestone A` 已正式达成，继续往下做已经进入 `Phase 11+` 的组件级对齐、generalization 与学术证据链问题。
+- 当前 phase 是否停止：`是`，停止在 `Phase 10`；停止原因是 `Milestone A` 已正式达成，继续往下做已经进入 `Phase 11+` 的去硬特判历史债、组件级对齐、generalization 与学术证据链问题。
 
-## 14. Phase 11: Component-Level Human Review 对齐与 `CRAS` 建立
+## 14. Phase 11: 去硬特判、语义判定与跨语言泛化历史债清理
+
+目标：
+
+系统性清理当前运行时中与“硬特判、字符串判定、英文默认假设、跨语言脆弱性”相关的历史债，把所有仍影响主路径判断的脆弱规则替换成真正的语义判定与保守 fallback，并在不引入显著性能回归的前提下完成多轮自我迭代，重点优化 prompt 与 semantic routing。
+
+### Todolist
+
+* [ ] 对当前运行时所有影响 `task / model / metamodel / regime / policy / score` 的判定入口做一次全量盘点，并按以下三类建账：
+  * [ ] 必须删除的硬特判
+  * [ ] 必须替换为语义判定的逻辑
+  * [ ] 可以保留的纯结构性 deterministic 逻辑
+* [ ] 逐项清理当前主路径中的历史债：
+  * [ ] `contract` / task focus / input family 的字符串判定
+  * [ ] `evidence regime` / review policy / routing 的字符串判定
+  * [ ] model type / metamodel type / diagram family / row family 等影响策略选择的字符串判定
+  * [ ] 任何直接由 prompt、input、pred、ref、label 文本触发的 hard-coded bonus / penalty / offset
+* [ ] 为所有确需保留的判定任务设计并落地语义判定器：
+  * [ ] 每个任务都给出类别定义、边界、正例、反例与 `other / unknown`
+  * [ ] 提问方式必须直接询问语义类别，而不是询问是否命中某些词
+  * [ ] 输出结果必须真实接入主路径，而不是只做离线分析
+* [ ] 明确并文档化允许保留的 deterministic 边界：
+  * [ ] 用户显式配置
+  * [ ] schema / field existence / file format 解析
+  * [ ] 其他结构性、非语义性约束
+* [ ] 为语义判定失败、信息不足或置信度过低场景建立保守 fallback：
+  * [ ] 统一降级到 `unknown / generic / needs more evidence`
+  * [ ] 不允许静默回退到被禁止的字符串 heuristics
+* [ ] 新增并固化 multilingual / cross-language / cross-metamodel validation slice：
+  * [ ] 中文 `input` + 英文 `pred / ref / prompt / label`
+  * [ ] 英文 `input` + 中文 `pred / ref / prompt / label`
+  * [ ] `input / pred / ref` 语言彼此不一致的 mixed case
+  * [ ] 至少一种非中非英样本或等价 stress case
+  * [ ] metamodel / model label 与正文语言、命名体系都不一致的 case
+* [ ] 建立本 phase 的 regression gate：
+  * [ ] 相对 `Phase 10` 的 deterministic full benchmark，`HAI / RAS / SAS / PDS` 任一降幅不得超过 `1` 点
+  * [ ] `unsupported_claim_rate` 与 `ece` 不得恶化超过 `0.02`
+  * [ ] 若未达成，则本 phase 不得宣告完成
+* [ ] 在本 phase 架构边界内执行多轮自我迭代，主要优化 semantic routing prompt、分类定义、边界描述与 fallback 策略。
+* [ ] 完成后同步更新 `README.md`、相关设计文档、TODO 回写与 PR body，使“禁止硬特判 / 支持跨语言”的结论进入公开状态。
+
+### Checklist
+
+* [ ] 运行时关键路径已不存在未登记的字符串硬特判承担 `task / model / metamodel / regime / policy / score` 判断。
+* [ ] 所有必要判定都已经改成语义判定，并且问题定义、类别边界、正反例与 `other / unknown` 出口完整可审计。
+* [ ] fallback 路径不会静默把判定退回到字符串 heuristics。
+* [ ] multilingual / cross-language / cross-metamodel validation slice 已通过，且没有新的系统性失败簇。
+* [ ] 相对 `Phase 10` 的 deterministic full benchmark 没有显著回归：`HAI / RAS / SAS / PDS` 任一降幅不超过 `1` 点，`unsupported_claim_rate` 与 `ece` 恶化不超过 `0.02`。
+* [ ] 已保留本 phase 多轮自我迭代记录，且 prompt 与 semantic routing 的主要优化轮次可追溯。
+* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
+
+### Phase 11 当前状态回写
+
+- 创建时间：`2026-04-17 15:10:00`
+- 所属里程碑：`Milestone B`
+- 当前状态：已创建，尚未开始实现。
+- 当前定位：作为 `Phase 1-10` 相关历史债的集中清理阶段，优先把 reviewer 从“局部可用但仍带硬特判和语言假设”推进到“判定机制本身可被辩护”的状态。
+
+## 15. Phase 12: Component-Level Human Review 对齐与 `CRAS` 建立
 
 目标：
 
@@ -2038,15 +2139,16 @@ Milestone B 达成条件：
 * [ ] `CRAS >= 80`
 * [ ] 各主要组件类别 `macro_f1 >= 0.75`
 * [ ] 组件级 report 可独立解释，而不是只有一个黑盒总分。
+* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
-### Phase 11 当前状态回写
+### Phase 12 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
 - 当前状态：已创建，尚未开始实现。
 - 当前定位：补齐论文论证里最缺的一块“逐组件人工对齐”证据。
 
-## 15. Phase 12: Judgement / Reason / Evidence Reliability 深化
+## 16. Phase 13: Judgement / Reason / Evidence Reliability 深化
 
 目标：
 
@@ -2071,15 +2173,16 @@ Milestone B 达成条件：
 * [ ] `unsupported_claim_rate <= 0.08`
 * [ ] `evidence_locator_validity >= 0.90`
 * [ ] `contradiction_rate` 明显低于当前版本。
+* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
-### Phase 12 当前状态回写
+### Phase 13 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
 - 当前状态：已创建，尚未开始实现。
-- 前置条件：`Phase 11` 已让组件级对齐进入正式评测。
+- 前置条件：`Phase 12` 已让组件级对齐进入正式评测。
 
-## 16. Phase 13: Generalization、Validation / Lockbox 与 LOFO 验证
+## 17. Phase 14: Generalization、Validation / Lockbox 与 LOFO 验证
 
 目标：
 
@@ -2099,15 +2202,16 @@ Milestone B 达成条件：
 * [ ] `lockbox` 任一核心指标退化不超过 `4` 点。
 * [ ] `LOFO_generalization_gap` 已可计算。
 * [ ] 当前 reviewer 的提升不再主要依赖可见 benchmark 风格。
+* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
-### Phase 13 当前状态回写
+### Phase 14 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
 - 当前状态：已创建，尚未开始实现。
 - 当前定位：把“对齐 benchmark”推进到“对齐人工评审机制”的泛化论证。
 
-## 17. Phase 14: LLM-Enabled 主路径、随机性稳定性与成本边界
+## 18. Phase 15: LLM-Enabled 主路径、随机性稳定性与成本边界
 
 目标：
 
@@ -2131,15 +2235,16 @@ Milestone B 达成条件：
 * [ ] `rerun_score_std <= 0.03`
 * [ ] 已可说明 deterministic 与 LLM-enabled 分别适合什么场景。
 * [ ] 成本与延迟边界已可被论文与工程说明同时接受。
+* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
-### Phase 14 当前状态回写
+### Phase 15 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
 - 当前状态：已创建，尚未开始实现。
 - 当前定位：补齐“agent-based reviewer 是否必须依赖在线 LLM 才成立”的论证。
 
-## 18. Phase 15: 学术冻结候选、Ablation 与论文级证据包
+## 19. Phase 16: 学术冻结候选、Ablation 与论文级证据包
 
 目标：
 
@@ -2168,20 +2273,21 @@ Milestone B 达成条件：
 * [ ] `Milestone B` 的全部门槛均已满足。
 * [ ] 已能基于 ablation 证明当前 reviewer 的 agent-based 结构具有必要性，而不是纯包装。
 * [ ] 已有完整 paper-ready 证据链，而不是只剩单个总分。
-* [ ] 若仍未达标，已明确开启 `Phase 16+` 的原因与下一批技术入口。
+* [ ] 若仍未达标，已明确开启 `Phase 17+` 的原因与下一批技术入口。
+* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
-### Phase 15 当前状态回写
+### Phase 16 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
 - 当前状态：已创建，尚未开始实现。
-- 停止条件：本 phase 结束时必须明确判断 `Milestone B` 是否已达成，若未达成则按规则新开 `Phase 16+`。
+- 停止条件：本 phase 结束时必须明确判断 `Milestone B` 是否已达成，若未达成则按规则新开 `Phase 17+`。
 
-## 19. 每个 Phase 的统一对齐记录模板
+## 20. 每个 Phase 的统一对齐记录模板
 
 每个 phase 完成后，至少记录以下内容：
 
-### 19.1 指标总表
+### 20.1 指标总表
 
 1. `HAI`
 2. `RAS`
@@ -2198,13 +2304,13 @@ Milestone B 达成条件：
 13. `ece`
 14. `rerun_score_std`
 
-### 19.2 本阶段改进记录
+### 20.2 本阶段改进记录
 
 1. 本阶段最明显提升的三项能力。
 2. 本阶段最明显退化的三项能力。
 3. 本阶段仍未解决的三类错误簇。
 
-### 19.3 本阶段运行记录
+### 20.3 本阶段运行记录
 
 1. 哪些入口已验证。
 2. 哪些真实路径被替换。
@@ -2212,7 +2318,7 @@ Milestone B 达成条件：
 4. 哪些旧逻辑仍然保留。
 5. 哪些模块只是临时过渡件。
 
-### 19.4 本阶段多轮自我迭代记录
+### 20.4 本阶段多轮自我迭代记录
 
 每个 phase 内部，应追加一个 round-by-round 记录区，至少包含：
 
@@ -2229,7 +2335,19 @@ Milestone B 达成条件：
    - 指标已经达到目标
    - 或进一步提升已明显边际化
 
-### 19.5 本阶段收尾汇报记录
+### 20.5 本阶段语义判定与跨语言泛化合规记录
+
+每个 phase 完成后，必须额外记录以下合规信息：
+
+1. 本阶段移除了哪些硬特判、保留了哪些 deterministic 逻辑，以及保留理由。
+2. 本阶段新增或修改了哪些语义判定任务。
+3. 每个语义判定任务的类别定义、边界、正例、反例与 `other / unknown` 出口是否齐全。
+4. fallback 是否仍保持保守且未回退到字符串 heuristics。
+5. 本阶段跑了哪些 multilingual / cross-language / cross-metamodel case。
+6. 这些 case 中哪些通过、哪些失败、失败簇是什么。
+7. 是否存在仍未清掉的违例；若存在，则该 phase 不能判为完成。
+
+### 20.6 本阶段收尾汇报记录
 
 每个 phase 在所有当期要求的事项都处理完之后，必须追加一段“阶段收尾汇报记录”，至少包含：
 
@@ -2245,7 +2363,7 @@ Milestone B 达成条件：
    - reviewer 当前和人类还偏差在哪里
 7. 明确说明是否停止在当前 phase，等待下一步指令
 
-## 20. 阶段推进规则
+## 21. 阶段推进规则
 
 1. 除非当前阶段的真实运行已经稳定，否则不推进到下一阶段。
 2. 除非当前阶段已留下完整指标记录，否则不算完成。
@@ -2263,11 +2381,13 @@ Milestone B 达成条件：
    - 当前对齐程度
    - 各项核心指标的含义及其人类视角解释
    - 真实例子对比
-10. 在完成上述回写与汇报前，不得视为该 phase 真正收尾。
-11. 每个后续 phase 都必须同时推进结构收敛；如果只是继续在旧文件和旧路径上叠补丁、没有让项目架构更接近 v1 设计，则不得视为完成该 phase。
-12. 若当前最后一个 phase 结束时仍未达到冻结条件，允许继续新增后续 phase；但必须明确写出为什么现有阶段不足、下一阶段具体补什么，以及新增 phase 的停止标准。
+10. 每个 phase 的 checklist 都必须包含并实际执行“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”专门检查项；若该项未通过，则不得推进到下一 phase。
+11. 若发现某阶段仍依赖字符串硬特判、英文默认假设或跨语言系统性失败，则必须在当前阶段继续修复或显式开新 phase 清债，不能把问题沉默带入下一阶段。
+12. 在完成上述回写与汇报前，不得视为该 phase 真正收尾。
+13. 每个后续 phase 都必须同时推进结构收敛；如果只是继续在旧文件和旧路径上叠补丁、没有让项目架构更接近 v1 设计，则不得视为完成该 phase。
+14. 若当前最后一个 phase 结束时仍未达到冻结条件，允许继续新增后续 phase；但必须明确写出为什么现有阶段不足、下一阶段具体补什么，以及新增 phase 的停止标准。
 
-## 21. 最终目标
+## 22. 最终目标
 
 最终目标不是“写完一个看起来像 v1 的新目录”，而是：
 
