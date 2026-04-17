@@ -20,6 +20,11 @@
 10. 如果某类任务确实需要细分或路由，必须由 LLM 或等价语义判定器完成，并且提问方式必须是语义性的，例如“该任务是否关注状态机结构语义”“该样本属于 A / B / C / other 哪一类”，每个类别都要有清晰定义、可执行边界和例子；禁止把“是否包含某关键词”伪装成 LLM 判定。
 11. `expert_review` 必须把多语言、跨语言和跨元模型不一致视为默认支持场景，而不是英文默认场景；不得假设 `input / pred / ref / prompt / model label / metamodel label` 同语种、同命名体系或同表达习惯。
 12. 从本规则引入起，每个 phase 的 checklist 都必须包含“语义判定与跨语言泛化合规”专门硬性检查项；在该项未通过前，该 phase 不能算完成。`Phase 1-10` 的相关历史债统一并入后续专项清理 phase，不因旧 checklist 缺项而视为天然合规。
+13. `agent prompt` 本身是绝对重点优化区域，不得把它视为次要包装层：
+   - prompt 的**内容本身**、**信息组织顺序**、**上下文裁剪方式**、**structured metadata 注入策略**、**类别定义与边界描述**、**跨语言提示方式**、**few-shot/例子选择**、**不同 agent 的 prompt 拆分与拼接策略**，都属于一等优化面。
+   - 后续 phase 做自我迭代时，禁止只盯着阈值、权重、offset、bonus/penalty 常数反复微调，而忽略 prompt 与 prompt composition。
+   - 若某轮指标回退或卡在平台区，默认必须优先检查：是不是 prompt 语义表达太弱、上下文顺序不对、关键信息没有被显式注入、类别定义不清、或者跨语言锚点没有被正确组织。
+   - 对多智能体 reviewer 来说，prompt 不只是“把已有逻辑翻译成文字”，而是运行时语义边界、信息流设计与泛化能力的一部分；因此它必须进入正式优化、记录与验收范围。
 
 推荐阅读顺序：
 
@@ -107,6 +112,11 @@
 5. 每一轮都只能在该阶段允许的局部调整范围内继续优化，不能偷偷跨 phase 提前引入下一阶段的大结构改动。
 6. 每一轮迭代后 reviewer 仍必须保持完整可运行。
 7. 每一轮迭代都必须留下完整记录，形成从 phase 开始到 phase 收敛的连续优化链路。
+8. 后续每个 phase 的自我迭代都必须把 `prompt / prompt composition` 视为默认优先检查面，而不是把 prompt 当成冻结背景：
+   - 至少要检查 agent prompt 的语义表达是否足够强、类别定义是否足够清晰、跨语言提示是否足够明确。
+   - 至少要检查 context packing 是否合理，例如 requirement、pred/ref anchor、structured metadata、policy hints、public evidence semantics 的先后顺序是否会误导下游 agent。
+   - 至少要检查 prompt 是否把真正关键的判定边界显式讲清楚，而不是把它隐含在代码常数里。
+9. 若某个 phase 的优化主要集中在参数层，但没有同步审视 prompt 内容与拼接组织策略，则默认不能认定该 phase 已充分迭代到“收益边际化”。
 
 ### 2.1.2 每一阶段必须满足的结构收敛要求
 
@@ -157,6 +167,7 @@
 9. 本阶段内部每一轮自我迭代的完整记录。
 10. 本阶段新增、删除或保留的语义判定器与硬特判清单，以及对应理由。
 11. 本阶段多语言 / 跨语言 / 跨元模型验证覆盖情况与失败簇。
+12. 本阶段对 `prompt / prompt composition` 做了哪些优化、哪些尝试无效、哪些经验需要带到后续 phase。
 
 补充硬要求：
 
@@ -194,6 +205,7 @@
 8. 本轮新增或暴露出的退化点
 9. 本轮结束后是否继续迭代
 10. 若停止，停止原因是否为“收益明显边际化”
+11. 本轮是否修改了 prompt 内容、prompt 拼接组织策略或 context packing；如果修改了，必须记录具体改动点与效果判断
 
 ### 2.3 每一阶段必须满足的对齐要求
 
@@ -2197,6 +2209,14 @@ Milestone B 达成条件：
   - README / TODO / PR body 同步所需的公开状态更新
 - 未完成部分：
   - 无；`Phase 11` 本 phase 目标已闭合
+- 本 phase 对后续 phase 的明确经验沉淀：
+  - prompt 不是装饰层，而是 reviewer 语义能力的一部分；这次真正拉回 `SAS` 的关键动作之一，不是继续硬拧 summary 常数，而是把 `summary_target` 的 structured metadata、target semantics 和更明确的 prompt 语义锚点重新组织进主路径。
+  - prompt 的**拼接组织策略**与 prompt 文案本身同等重要；同一批信息如果注入顺序不对、层级不清、语义边界不显式，就会直接把 agent 推向错误的 target family 或错误的 evidence interpretation。
+  - 对后续 phase，默认优先检查三类 prompt 相关问题：
+    1. agent 是否被明确告知“当前真正要判定的语义对象是什么”
+    2. 关键 structured metadata、evidence regime、public row semantics、component semantics 是否被显式注入且顺序合理
+    3. prompt 是否为跨语言 / 跨命名体系场景提供了足够稳定的语义锚点
+  - 因此后续 phase 若只做参数微调、而没有同步审视 prompt 内容与 composition 策略，原则上不应视为“已经充分迭代”。
 - 下一步处理口径：
   - 转入 `Phase 12`，开始 component-level human review 对齐与 `CRAS` 建立
   - `Phase 11` 不再继续追加局部 patch，除非后续 phase 暴露出新的去硬特判回归
