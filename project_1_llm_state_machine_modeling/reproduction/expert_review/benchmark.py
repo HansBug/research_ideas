@@ -767,12 +767,20 @@ def _build_record_prompt(row: pd.Series) -> str:
     limitations = _safe_text(row.get("public_artifact_limitations")).strip()
     diagram_type = _safe_text(row.get("diagram_type")).strip() or "model"
     target = _safe_text(row.get("review_target")).strip() or "generated artifact"
+    diagram_semantics = {
+        "stm": "state-machine semantics centered on states, transitions, guards, hierarchy, and reactive behavior",
+        "sd": "interaction-order semantics centered on participants, messages, and temporal ordering",
+        "act": "control-flow semantics centered on actions, branches, joins, and workflow progression",
+        "bd": "block-structure semantics centered on components, ports, signals, and composition",
+    }.get(diagram_type.lower(), "artifact semantics inferred from the visible modeling notation and structure")
     return (
         "You are an expert reviewer for generated software modeling artifacts.\n"
         f"Target type: {diagram_type} / {target}.\n"
+        f"Target semantics: {diagram_semantics}.\n"
         "Treat the prompt as a review contract, not as a generation request.\n"
         "Focus on semantic adequacy, behavioral consistency, requirement traceability, unsupported extra structure, "
         "and equivalent-but-different designs.\n"
+        "Interpret the artifact by meaning rather than by surface naming or language-specific keywords.\n"
         "Use the reference as a semantic anchor rather than an exact string target.\n"
         f"Public rubric:\n{rubric or 'No explicit rubric text was published for this row.'}\n"
         f"Public limitations:\n{limitations or 'No extra public limitations were recorded.'}"
@@ -785,14 +793,22 @@ def _build_summary_prompt(row: pd.Series) -> str:
     target = _safe_text(row.get("review_target")).strip() or "artifact"
     public_summary = _safe_text(row.get("human_review_summary")).strip()
     summary_semantics = _summary_semantics_from_row(row)
+    target_semantics = {
+        "BD": "behavior-description quality with emphasis on visible behavioral coverage and understandable public behavior narratives",
+        "SMD": "state-machine design quality with emphasis on structural rigor while still allowing semantically equivalent alternative designs",
+        "UCD": "use-case or interaction communication quality with emphasis on publicly visible interaction adequacy",
+        "Properties": "property-set quality with emphasis on whether visible constraints and verification targets are coherent and useful",
+    }.get(target, "summary-level artifact quality judged from the public evidence that is actually visible")
     return (
         "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
         f"This is a summary-level task for {target}.\n"
+        f"Target semantics: {target_semantics}\n"
         f"Public summary row semantics: {summary_semantics}\n"
         "Give an overall review that respects evidence limits. Do not invent precise element-level mismatch claims "
         "when the public evidence only supports overall judgement. If the contract refers to average/max/min/std-dev "
         "style published statistics, calibrate the coarse score to that public summary semantics rather than pretending "
         "you saw hidden per-run annotations.\n"
+        "When the target label and the artifact text use different languages or naming styles, follow semantic meaning rather than surface tokens.\n"
         f"Public row note:\n{public_summary or 'No extra public row note was recorded.'}\n"
         f"Public rubric:\n{rubric or 'No explicit rubric text was published for this row.'}\n"
         f"Public limitations:\n{limitations or 'No extra public limitations were recorded.'}"
@@ -899,6 +915,7 @@ def _build_summary_task(row: pd.Series) -> BenchmarkTask:
             "record_type": row.get("record_type"),
             "diagram_type": row.get("diagram_type"),
             "review_target": row.get("review_target"),
+            "summary_target": row.get("review_target"),
             "review_surface": "summary_public_score",
             "summary_row_type": _summary_row_type_from_row(row),
             "case_id": row.get("case_id"),

@@ -9,8 +9,9 @@ Rules:
 1. Do not invent task-specific knowledge that is not stated or strongly implied.
 2. Preserve any explicit tolerance for equivalent-but-different designs.
 3. Preserve any explicit strictness requirements or banned shortcuts.
-4. Prefer concise structured extraction over verbose explanation.
-5. Return strict JSON only.
+4. When the prompt is multilingual, cross-language, or uses unfamiliar naming, recover the intended semantics instead of copying surface tokens.
+5. Prefer concise structured extraction over verbose explanation.
+6. Return strict JSON only.
 """.strip()
 
 __all__ = ["CONTRACT_ROUTER_SYSTEM_PROMPT"]

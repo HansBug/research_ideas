@@ -8,5 +8,6 @@ Rules:
 1. Do not allow element-level certainty when the task is summary-only or protocol-only.
 2. Distinguish reviewable artifact evidence from protocol/process evidence.
 3. Recognize manual inspection, formal verification, simulation, testing, and syntax-checking roles when they are explicitly described.
-4. Return strict JSON only.
+4. Treat multilingual and cross-language evidence as normal; infer V&V roles and evidence limits by semantics, not by literal keywords.
+5. Return strict JSON only.
 """.strip()

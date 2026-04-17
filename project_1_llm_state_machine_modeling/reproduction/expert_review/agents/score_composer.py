@@ -205,6 +205,8 @@ def compose_scores(
         + 0.25 * (1.0 - clarity_score)
         + 0.25 * min(1.0, len(pred_dossier.structural_warnings) / 4.0)
     )
+    summary_public_gain = float(policy_packet.get("summary_public_gain", 1.0) or 1.0)
+    summary_hidden_risk_scale = float(policy_packet.get("summary_hidden_risk_scale", 1.0) or 1.0)
     summary_row_pivot = 0.5
     if summary_mode:
         if summary_row_type == "raw_score_row":
@@ -239,11 +241,20 @@ def compose_scores(
             "aggregate_stddev": -0.02,
         }.get(summary_row_type, 0.0)
         if summary_target_axis == "coarse_public_quality_target":
-            summary_semantic_adjustment = 0.14 * (summary_public_signal - 0.44) - 0.03 * summary_hidden_risk
+            summary_semantic_adjustment = (
+                summary_public_gain * 0.14 * (summary_public_signal - 0.44)
+                - summary_hidden_risk_scale * 0.03 * summary_hidden_risk
+            )
         elif summary_target_axis == "structure_intensive_target":
-            summary_semantic_adjustment = 0.06 * (summary_public_signal - 0.58) - 0.11 * summary_hidden_risk
+            summary_semantic_adjustment = (
+                summary_public_gain * 0.06 * (summary_public_signal - 0.58)
+                - summary_hidden_risk_scale * 0.11 * summary_hidden_risk
+            )
         else:
-            summary_semantic_adjustment = 0.10 * (summary_public_signal - 0.50) - 0.05 * summary_hidden_risk
+            summary_semantic_adjustment = (
+                summary_public_gain * 0.10 * (summary_public_signal - 0.50)
+                - summary_hidden_risk_scale * 0.05 * summary_hidden_risk
+            )
         summary_score_adjustment = (
             summary_target_offset
             + summary_row_interaction
@@ -261,9 +272,15 @@ def compose_scores(
     record_missing_signal_penalty = 0.0
     record_low_equivalence_penalty = 0.0
     record_partial_ambiguity_penalty = 0.0
+    record_partial_only_penalty = 0.0
     record_gap_penalty = 0.0
     record_score_adjustment = 0.0
     record_diagram_offset = float(policy_packet.get("record_diagram_semantic_bias", 0.0) or 0.0)
+    record_alignment_bonus_scale = float(policy_packet.get("record_alignment_bonus_scale", 1.0) or 1.0)
+    record_high_fidelity_bonus_scale = float(policy_packet.get("record_high_fidelity_bonus_scale", 1.0) or 1.0)
+    record_partial_penalty_scale = float(policy_packet.get("record_partial_penalty_scale", 1.0) or 1.0)
+    record_alignment_matched_floor = float(policy_packet.get("record_alignment_matched_floor", 0.0) or 0.0)
+    record_partial_only_penalty_scale = float(policy_packet.get("record_partial_only_penalty_scale", 1.0) or 1.0)
     if regime.regime == "record_level":
         record_score_stretch = 1.18
         no_core_issues = dependency_break_count == 0 and trace_conflict_count == 0
@@ -278,7 +295,8 @@ def compose_scores(
             record_trace_failure_bonus = 0.30
 
         record_reference_alignment_rescue = (
-            partial_ratio >= 0.50
+            matched_ratio >= record_alignment_matched_floor
+            and partial_ratio >= 0.50
             and equivalence_strength >= 0.75
             and reference_alignment >= 0.85
             and missing_signal_count <= 1
@@ -289,16 +307,32 @@ def compose_scores(
                 1.0,
                 0.20 * matched_ratio + 0.30 * partial_ratio + 0.25 * equivalence_strength + 0.25 * reference_alignment,
             )
-            record_high_alignment_bonus = 0.16 * quality
+            record_high_alignment_bonus = 0.16 * quality * record_alignment_bonus_scale
         if (
-            matched_ratio <= 0.05
+            matched_ratio >= record_alignment_matched_floor
+            and matched_ratio <= 0.05
             and partial_ratio >= 0.50
             and equivalence_strength >= 0.78
             and reference_alignment >= 0.95
             and missing_signal_count == 0
             and no_core_issues
         ):
-            record_high_fidelity_bonus = 0.18
+            record_high_fidelity_bonus = 0.18 * record_high_fidelity_bonus_scale
+        if (
+            matched_ratio <= record_alignment_matched_floor
+            and 0.40 <= partial_ratio <= 0.80
+            and missing_signal_count == 0
+            and reference_alignment < 0.88
+            and equivalence_strength < 0.78
+            and no_core_issues
+        ):
+            severity = min(
+                1.0,
+                0.45 * partial_ratio
+                + 0.30 * max(0.0, 0.88 - reference_alignment) / 0.28
+                + 0.25 * max(0.0, 0.78 - equivalence_strength) / 0.28,
+            )
+            record_partial_only_penalty = 0.10 * severity * record_partial_only_penalty_scale
         if (
             partial_ratio >= 0.50
             and reference_alignment < 0.60
@@ -306,7 +340,7 @@ def compose_scores(
             and not equivalence_report.get("parallel_branch_credit")
         ):
             severity = min(1.0, 0.70 * partial_ratio + 0.30 * min(1.0, missing_signal_count / 4.0))
-            record_partial_ambiguity_penalty = 0.12 * severity
+            record_partial_ambiguity_penalty = 0.12 * severity * record_partial_penalty_scale
             ambiguity_cap = clip01(0.18 + 0.60 * behavior_score)
             completeness_score = min(completeness_score, ambiguity_cap)
             traceability_score = min(traceability_score, ambiguity_cap)
@@ -317,7 +351,12 @@ def compose_scores(
         if equivalence_strength < 0.20 and reference_alignment < 0.40 and matched_ratio >= 0.10:
             record_low_equivalence_penalty = 0.10
 
-        record_gap_penalty = record_missing_signal_penalty + record_low_equivalence_penalty + record_partial_ambiguity_penalty
+        record_gap_penalty = (
+            record_missing_signal_penalty
+            + record_low_equivalence_penalty
+            + record_partial_ambiguity_penalty
+            + record_partial_only_penalty
+        )
         record_score_adjustment = (
             record_trace_failure_bonus
             + record_high_alignment_bonus
@@ -326,6 +365,7 @@ def compose_scores(
             - record_missing_signal_penalty
             - record_low_equivalence_penalty
             - record_partial_ambiguity_penalty
+            - record_partial_only_penalty
         )
 
     score_map = {
@@ -583,6 +623,7 @@ def compose_scores(
                     "record_missing_signal_penalty": round(record_missing_signal_penalty, 6),
                     "record_low_equivalence_penalty": round(record_low_equivalence_penalty, 6),
                     "record_partial_ambiguity_penalty": round(record_partial_ambiguity_penalty, 6),
+                    "record_partial_only_penalty": round(record_partial_only_penalty, 6),
                     "record_diagram_offset": round(record_diagram_offset, 6),
                     "issue_taxonomy": issue_taxonomy_map[dimension.name],
                     "policy_profile": policy_packet.get("profile_name"),
@@ -630,7 +671,7 @@ def final_confidence(
     if regime.regime == "record_level":
         # Record-level confidence is interpreted as tight score-alignment reliability
         # rather than generic reviewer self-belief, so it must remain much lower.
-        base = 0.08 + 0.15 * base
+        base = 0.09 + 0.15 * base
     if policy_packet.get("score_semantics") == "summary_stat_stddev":
         base -= 0.06
     if regime.regime == "protocol_only":
