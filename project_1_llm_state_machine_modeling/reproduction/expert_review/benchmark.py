@@ -53,6 +53,8 @@ DEFAULT_SPLIT_RATIOS = {
     "validation": 0.15,
     "lockbox": 0.15,
 }
+PHASE14_CORE_METRICS = ("HAI", "RAS", "SAS", "CRAS", "PDS")
+PHASE14_LOCKBOX_MAX_DEGRADE = 4.0
 PHASE7_ERROR_BUCKETS = (
     "contract_understanding_error",
     "element_extraction_error",
@@ -1786,6 +1788,7 @@ def _evaluate_task_bundle(
     rerun_count: int,
     report_label: str,
     metadata: dict[str, Any] | None = None,
+    review_cache: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     provider_order = None if llm_mode == "auto" else []
     agent = ExpertReviewAgent(provider_order=provider_order)
@@ -1806,9 +1809,17 @@ def _evaluate_task_bundle(
                 ref_output=task.ref_output,
                 metadata=dict(task.metadata),
             )
-            start = time.perf_counter()
-            result = agent.review(request)
-            latency = time.perf_counter() - start
+            cache_key = f"{llm_mode}::{task.task_id}"
+            cached = review_cache.get(cache_key) if review_cache is not None else None
+            if cached is None:
+                start = time.perf_counter()
+                result = agent.review(request)
+                latency = time.perf_counter() - start
+                if review_cache is not None:
+                    review_cache[cache_key] = {"result": result, "latency_s": latency}
+            else:
+                result = cached["result"]
+                latency = float(cached.get("latency_s", 0.0))
             agent_issue_set = _agent_issue_set(result)
             issue_precision, issue_recall, issue_f1 = _issue_f1(task.human_issue_set, agent_issue_set)
             rerun_score_delta, rerun_issue_jaccard, rerun_judgement_flip = reruns.get(task.task_id, (0.0, 1.0, False))
@@ -2129,6 +2140,242 @@ def _summarize_lofo_generalization(
     return summary
 
 
+def _core_metric_value(report: dict[str, Any], metric_name: str) -> float:
+    if metric_name == "HAI":
+        return float(report.get("HAI", 0.0))
+    if metric_name == "RAS":
+        return float(report.get("record_metrics", {}).get("RAS", 0.0))
+    if metric_name == "SAS":
+        return float(report.get("summary_metrics", {}).get("SAS", 0.0))
+    if metric_name == "CRAS":
+        return float(report.get("component_metrics", {}).get("CRAS", 0.0))
+    if metric_name == "PDS":
+        return float(report.get("protocol_metrics", {}).get("PDS", 0.0))
+    raise KeyError(f"Unsupported core metric: {metric_name}")
+
+
+def _build_phase14_lockbox_gate(split_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    validation_report = split_reports.get("validation")
+    lockbox_report = split_reports.get("lockbox")
+    if validation_report is None or lockbox_report is None:
+        return {
+            "status": "failed",
+            "reason": "missing_validation_or_lockbox_report",
+            "lockbox_max_core_metric_degrade": PHASE14_LOCKBOX_MAX_DEGRADE,
+            "core_metric_deltas": {},
+        }
+
+    core_metric_deltas: dict[str, Any] = {}
+    max_degrade = 0.0
+    passed = True
+    for metric_name in PHASE14_CORE_METRICS:
+        validation_value = _core_metric_value(validation_report, metric_name)
+        lockbox_value = _core_metric_value(lockbox_report, metric_name)
+        degrade = validation_value - lockbox_value
+        metric_passed = degrade <= PHASE14_LOCKBOX_MAX_DEGRADE
+        max_degrade = max(max_degrade, degrade)
+        passed = passed and metric_passed
+        core_metric_deltas[metric_name] = {
+            "validation": validation_value,
+            "lockbox": lockbox_value,
+            "degrade": degrade,
+            "passed": metric_passed,
+        }
+
+    return {
+        "status": "passed" if passed else "failed",
+        "lockbox_max_core_metric_degrade": PHASE14_LOCKBOX_MAX_DEGRADE,
+        "max_observed_degrade": max_degrade,
+        "core_metric_deltas": core_metric_deltas,
+    }
+
+
+def _build_phase14_lofo_gate(lofo_generalization: dict[str, Any]) -> dict[str, Any]:
+    if not lofo_generalization:
+        return {
+            "status": "failed",
+            "reason": "missing_lofo_generalization",
+            "LOFO_generalization_gap": {},
+        }
+
+    max_avg_gap = 0.0
+    max_worst_gap = 0.0
+    gap_payload: dict[str, Any] = {}
+    for regime_name, metrics in lofo_generalization.items():
+        avg_gap = float(metrics.get("avg_gap_vs_full", 0.0))
+        worst_gap = float(metrics.get("worst_holdout_gap_vs_full", 0.0))
+        max_avg_gap = max(max_avg_gap, avg_gap)
+        max_worst_gap = max(max_worst_gap, worst_gap)
+        gap_payload[regime_name] = {
+            "avg_gap_vs_full": avg_gap,
+            "worst_holdout_gap_vs_full": worst_gap,
+            "worst_family": metrics.get("worst_family"),
+        }
+
+    return {
+        "status": "passed",
+        "LOFO_generalization_gap": gap_payload,
+        "max_avg_gap_vs_full": max_avg_gap,
+        "max_worst_holdout_gap_vs_full": max_worst_gap,
+    }
+
+
+def _score_delta(row: dict[str, Any]) -> float | None:
+    human_score = row.get("human_score")
+    agent_score = row.get("agent_score")
+    if human_score is None or agent_score is None:
+        return None
+    return float(agent_score) - float(human_score)
+
+
+def _lockbox_primary_bucket(row: dict[str, Any]) -> str:
+    buckets = list(row.get("error_buckets") or [])
+    if buckets:
+        return str(buckets[0])
+
+    delta = _score_delta(row)
+    if row.get("eval_bucket") == "component":
+        if delta is not None and abs(delta) > 0.05:
+            return "component_score_gap"
+        return "clean"
+
+    if delta is not None and abs(delta) > 0.10:
+        return "calibration_error"
+    if row.get("issue_f1") is not None and float(row.get("issue_f1", 1.0)) < 0.5:
+        return "evidence_discipline_error"
+    return "clean"
+
+
+def _lockbox_cluster_focus(row: dict[str, Any]) -> str:
+    metadata = row.get("metadata") or {}
+    eval_bucket = str(row.get("eval_bucket", "unknown"))
+    if eval_bucket == "record":
+        return str(metadata.get("diagram_type") or metadata.get("review_target") or "generic")
+    if eval_bucket == "summary":
+        return str(metadata.get("review_target") or metadata.get("paper_slug") or "generic")
+    if eval_bucket == "component":
+        return str(metadata.get("component_target") or "generic")
+    return str(metadata.get("paper_slug") or metadata.get("family_key") or "generic")
+
+
+def _summarize_lockbox_residual_clusters(
+    lockbox_report: dict[str, Any] | None,
+    *,
+    top_k: int = 6,
+) -> dict[str, Any]:
+    if lockbox_report is None:
+        return {
+            "status": "failed",
+            "reason": "missing_lockbox_report",
+            "analyzed_rows": 0,
+            "residual_rows": 0,
+            "residual_row_rate": 0.0,
+            "bucket_counts": {},
+            "clusters": [],
+        }
+
+    normalized_rows = list(lockbox_report.get("normalized_rows", []))
+    residual_rows: list[dict[str, Any]] = []
+    bucket_counts: dict[str, int] = defaultdict(int)
+    cluster_rows: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+
+    for row in normalized_rows:
+        primary_bucket = _lockbox_primary_bucket(row)
+        if primary_bucket == "clean":
+            continue
+        bucket_counts[primary_bucket] += 1
+        cluster_key = (str(row.get("eval_bucket", "unknown")), primary_bucket, _lockbox_cluster_focus(row))
+        cluster_rows[cluster_key].append(row)
+        residual_rows.append(row)
+
+    clusters: list[dict[str, Any]] = []
+    for (eval_bucket, primary_bucket, focus_key), rows in cluster_rows.items():
+        deltas = [abs(delta) for delta in (_score_delta(row) for row in rows) if delta is not None]
+        issue_f1_values = [float(row["issue_f1"]) for row in rows if row.get("issue_f1") is not None]
+        family_keys = sorted(
+            {
+                str((row.get("metadata") or {}).get("family_key") or "unknown")
+                for row in rows
+            }
+        )
+        clusters.append(
+            {
+                "eval_bucket": eval_bucket,
+                "primary_bucket": primary_bucket,
+                "focus_key": focus_key,
+                "rows": len(rows),
+                "family_count": len(family_keys),
+                "avg_abs_score_delta": statistics.mean(deltas) if deltas else 0.0,
+                "avg_issue_f1": statistics.mean(issue_f1_values) if issue_f1_values else 0.0,
+                "sample_families": family_keys[:3],
+                "sample_task_ids": [str(row.get("task_id")) for row in rows[:3]],
+            }
+        )
+
+    clusters.sort(
+        key=lambda item: (
+            -int(item["rows"]),
+            -float(item["avg_abs_score_delta"]),
+            str(item["eval_bucket"]),
+            str(item["primary_bucket"]),
+            str(item["focus_key"]),
+        )
+    )
+    analyzed_rows = len(normalized_rows)
+    residual_count = len(residual_rows)
+    return {
+        "status": "passed",
+        "analyzed_rows": analyzed_rows,
+        "residual_rows": residual_count,
+        "residual_row_rate": (residual_count / analyzed_rows) if analyzed_rows else 0.0,
+        "bucket_counts": dict(sorted(bucket_counts.items())),
+        "clusters": clusters[:top_k],
+    }
+
+
+def _build_phase14_promotion_evaluation(
+    *,
+    candidate_version: str | None,
+    split_reports: dict[str, dict[str, Any]],
+    lofo_generalization: dict[str, Any],
+    lockbox_residuals: dict[str, Any],
+) -> dict[str, Any]:
+    validation_report = split_reports.get("validation")
+    validation_stage = {
+        "status": "passed" if validation_report is not None else "failed",
+        "required_artifact": "validation_report",
+        "metrics": (
+            {metric_name: _core_metric_value(validation_report, metric_name) for metric_name in PHASE14_CORE_METRICS}
+            if validation_report is not None
+            else {}
+        ),
+    }
+    lockbox_stage = _build_phase14_lockbox_gate(split_reports)
+    lofo_stage = _build_phase14_lofo_gate(lofo_generalization)
+    residual_stage = {
+        "status": "passed" if lockbox_residuals.get("status") == "passed" else "failed",
+        "required_artifact": "lockbox_residual_analysis",
+        "residual_rows": lockbox_residuals.get("residual_rows", 0),
+        "residual_row_rate": lockbox_residuals.get("residual_row_rate", 0.0),
+        "cluster_count": len(lockbox_residuals.get("clusters", [])),
+    }
+
+    stages = {
+        "validation": validation_stage,
+        "lockbox": lockbox_stage,
+        "lofo": lofo_stage,
+        "residual_audit": residual_stage,
+    }
+    all_passed = all(stage.get("status") == "passed" for stage in stages.values())
+    return {
+        "candidate_version": candidate_version or "unlabeled",
+        "default_acceptance_surface": "validation + lockbox + LOFO + lockbox_residual_audit",
+        "stages": stages,
+        "generalization_evidence_ready": all_passed,
+        "promotion_status": "promoted_to_phase14_default" if all_passed else "hold",
+    }
+
+
 def run_phase7_evaluation_bundle(
     *,
     base_dir: Path = DEFAULT_BENCHMARK_DIR,
@@ -2154,6 +2401,7 @@ def run_phase7_evaluation_bundle(
     full_tasks = build_full_available_task_bundle(records, protocols, availability)
     split_bundle = build_benchmark_split_bundle(records, protocols, availability, seed=seed)
     lofo_bundle = build_lofo_task_bundles(records, protocols, availability)
+    review_cache: dict[str, dict[str, Any]] | None = {} if llm_mode == "off" else None
 
     slice_report = _evaluate_task_bundle(
         slice_tasks,
@@ -2161,6 +2409,7 @@ def run_phase7_evaluation_bundle(
         rerun_count=rerun_count,
         report_label="phase7:slice",
         metadata={"scope": "slice", "seed": seed},
+        review_cache=review_cache,
     )
     full_report = _evaluate_task_bundle(
         full_tasks,
@@ -2168,6 +2417,7 @@ def run_phase7_evaluation_bundle(
         rerun_count=rerun_count,
         report_label="phase7:full_available",
         metadata={"scope": "full"},
+        review_cache=review_cache,
     )
     split_reports = {
         split: _evaluate_task_bundle(
@@ -2176,6 +2426,7 @@ def run_phase7_evaluation_bundle(
             rerun_count=0,
             report_label=f"phase7:split:{split}",
             metadata={"scope": "split", "split_name": split},
+            review_cache=review_cache,
         )
         for split, task_bundle in split_bundle["task_bundles"].items()
     }
@@ -2190,6 +2441,7 @@ def run_phase7_evaluation_bundle(
                 "lofo_family": namespaced_key,
                 "lofo_regime": lofo_bundle["manifest"]["families"][namespaced_key]["regime"],
             },
+            review_cache=review_cache,
         )
         for namespaced_key, task_bundle in lofo_bundle["task_bundles"].items()
     }
@@ -2208,6 +2460,49 @@ def run_phase7_evaluation_bundle(
         "lofo_reports": lofo_reports,
         "lofo_summary": lofo_summary,
         "lofo_generalization": _summarize_lofo_generalization(full_report, lofo_summary),
+    }
+
+
+def run_phase14_evaluation_bundle(
+    *,
+    base_dir: Path = DEFAULT_BENCHMARK_DIR,
+    record_limit: int = 18,
+    summary_limit: int = 16,
+    component_limit: int = 24,
+    protocol_limit: int = 4,
+    seed: int = 7,
+    rerun_count: int = 4,
+    llm_mode: str = "off",
+    candidate_version: str | None = None,
+) -> dict[str, Any]:
+    bundle = run_phase7_evaluation_bundle(
+        base_dir=base_dir,
+        record_limit=record_limit,
+        summary_limit=summary_limit,
+        component_limit=component_limit,
+        protocol_limit=protocol_limit,
+        seed=seed,
+        rerun_count=rerun_count,
+        llm_mode=llm_mode,
+    )
+    lockbox_residuals = _summarize_lockbox_residual_clusters(bundle["split_reports"].get("lockbox"))
+    promotion_evaluation = _build_phase14_promotion_evaluation(
+        candidate_version=candidate_version,
+        split_reports=bundle["split_reports"],
+        lofo_generalization=bundle["lofo_generalization"],
+        lockbox_residuals=lockbox_residuals,
+    )
+    return {
+        **bundle,
+        "candidate_version": candidate_version or "unlabeled",
+        "phase14_policy": {
+            "split_order": list(SPLIT_ORDER),
+            "split_ratios": dict(DEFAULT_SPLIT_RATIOS),
+            "lockbox_max_core_metric_degrade": PHASE14_LOCKBOX_MAX_DEGRADE,
+            "core_metrics": list(PHASE14_CORE_METRICS),
+        },
+        "lockbox_residual_analysis": lockbox_residuals,
+        "promotion_evaluation": promotion_evaluation,
     }
 
 
@@ -2311,6 +2606,19 @@ def _jsonable_phase7_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         "lofo_summary": bundle["lofo_summary"],
         "lofo_generalization": bundle["lofo_generalization"],
     }
+
+
+def _jsonable_phase14_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    payload = _jsonable_phase7_bundle(bundle)
+    payload.update(
+        {
+            "candidate_version": bundle["candidate_version"],
+            "phase14_policy": bundle["phase14_policy"],
+            "lockbox_residual_analysis": bundle["lockbox_residual_analysis"],
+            "promotion_evaluation": bundle["promotion_evaluation"],
+        }
+    )
+    return payload
 
 
 def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
@@ -2484,6 +2792,104 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_phase14_bundle(bundle: dict[str, Any]) -> str:
+    validation_report = bundle["split_reports"]["validation"]
+    lockbox_report = bundle["split_reports"]["lockbox"]
+    lockbox_gate = bundle["promotion_evaluation"]["stages"]["lockbox"]
+    lofo_gate = bundle["promotion_evaluation"]["stages"]["lofo"]
+    residuals = bundle["lockbox_residual_analysis"]
+    lines = [
+        "# Phase 14 Generalization Bundle",
+        "",
+        "## Candidate",
+        f"- candidate_version: {bundle['candidate_version']}",
+        f"- default_acceptance_surface: {bundle['promotion_evaluation']['default_acceptance_surface']}",
+        f"- promotion_status: {bundle['promotion_evaluation']['promotion_status']}",
+        f"- generalization_evidence_ready: {bundle['promotion_evaluation']['generalization_evidence_ready']}",
+        "",
+        "## Split Policy",
+        f"- split_order: {', '.join(bundle['phase14_policy']['split_order'])}",
+        f"- split_ratios: {json.dumps(bundle['phase14_policy']['split_ratios'], ensure_ascii=False, sort_keys=True)}",
+        f"- lockbox_max_core_metric_degrade: {bundle['phase14_policy']['lockbox_max_core_metric_degrade']:.2f}",
+        "",
+        "## Full Reference Metrics",
+        f"- HAI: {bundle['full_report']['HAI']:.2f}",
+        f"- RAS: {bundle['full_report']['record_metrics']['RAS']:.2f}",
+        f"- SAS: {bundle['full_report']['summary_metrics']['SAS']:.2f}",
+        f"- CRAS: {bundle['full_report']['component_metrics']['CRAS']:.2f}",
+        f"- PDS: {bundle['full_report']['protocol_metrics']['PDS']:.2f}",
+        "",
+        "## Validation Metrics",
+        f"- HAI: {validation_report['HAI']:.2f}",
+        f"- RAS: {validation_report['record_metrics']['RAS']:.2f}",
+        f"- SAS: {validation_report['summary_metrics']['SAS']:.2f}",
+        f"- CRAS: {validation_report['component_metrics']['CRAS']:.2f}",
+        f"- PDS: {validation_report['protocol_metrics']['PDS']:.2f}",
+        "",
+        "## Lockbox Metrics",
+        f"- HAI: {lockbox_report['HAI']:.2f}",
+        f"- RAS: {lockbox_report['record_metrics']['RAS']:.2f}",
+        f"- SAS: {lockbox_report['summary_metrics']['SAS']:.2f}",
+        f"- CRAS: {lockbox_report['component_metrics']['CRAS']:.2f}",
+        f"- PDS: {lockbox_report['protocol_metrics']['PDS']:.2f}",
+        "",
+        "## Validation To Lockbox Core Delta",
+    ]
+    for metric_name in PHASE14_CORE_METRICS:
+        metric = lockbox_gate["core_metric_deltas"][metric_name]
+        lines.append(
+            f"- {metric_name}: validation={metric['validation']:.2f}, lockbox={metric['lockbox']:.2f}, "
+            f"degrade={metric['degrade']:.2f}, status={'pass' if metric['passed'] else 'fail'}"
+        )
+    lines.extend(
+        [
+            "",
+            "## LOFO Generalization Gap",
+        ]
+    )
+    for regime_name, metrics in lofo_gate["LOFO_generalization_gap"].items():
+        lines.append(
+            f"- {regime_name}: avg_gap_vs_full={metrics['avg_gap_vs_full']:.2f}, "
+            f"worst_holdout_gap_vs_full={metrics['worst_holdout_gap_vs_full']:.2f}, "
+            f"worst_family={metrics['worst_family']}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Lockbox Residual Analysis",
+            f"- analyzed_rows: {residuals['analyzed_rows']}",
+            f"- residual_rows: {residuals['residual_rows']}",
+            f"- residual_row_rate: {residuals['residual_row_rate']:.4f}",
+            f"- bucket_counts: {json.dumps(residuals['bucket_counts'], ensure_ascii=False, sort_keys=True)}",
+        ]
+    )
+    if residuals["clusters"]:
+        lines.append("")
+        lines.append("## Lockbox Residual Clusters")
+        for cluster in residuals["clusters"]:
+            lines.append(
+                "- "
+                f"{cluster['eval_bucket']} / {cluster['primary_bucket']} / {cluster['focus_key']}: "
+                f"rows={cluster['rows']}, families={cluster['family_count']}, "
+                f"avg_abs_score_delta={cluster['avg_abs_score_delta']:.4f}, "
+                f"avg_issue_f1={cluster['avg_issue_f1']:.4f}, "
+                f"sample_families={json.dumps(cluster['sample_families'], ensure_ascii=False)}, "
+                f"sample_task_ids={json.dumps(cluster['sample_task_ids'], ensure_ascii=False)}"
+            )
+    lines.extend(
+        [
+            "",
+            "## Promotion Stages",
+            f"- validation: {bundle['promotion_evaluation']['stages']['validation']['status']}",
+            f"- lockbox: {lockbox_gate['status']} (max_observed_degrade={lockbox_gate.get('max_observed_degrade', 0.0):.2f})",
+            f"- lofo: {lofo_gate['status']} (max_avg_gap_vs_full={lofo_gate.get('max_avg_gap_vs_full', 0.0):.2f}, "
+            f"max_worst_holdout_gap_vs_full={lofo_gate.get('max_worst_holdout_gap_vs_full', 0.0):.2f})",
+            f"- residual_audit: {bundle['promotion_evaluation']['stages']['residual_audit']['status']}",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--benchmark-dir", type=Path, default=DEFAULT_BENCHMARK_DIR)
@@ -2494,8 +2900,9 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--rerun-count", type=int, default=4)
     parser.add_argument("--llm-mode", choices=["off", "auto"], default="off")
-    parser.add_argument("--scope", choices=["slice", "full", "split", "phase7"], default="slice")
+    parser.add_argument("--scope", choices=["slice", "full", "split", "phase7", "phase14"], default="slice")
     parser.add_argument("--split-name", choices=SPLIT_ORDER, default=None)
+    parser.add_argument("--candidate-version", type=str, default=None)
     parser.add_argument("--output-markdown", type=Path, default=None)
     parser.add_argument("--output-json", type=Path, default=None)
     args = parser.parse_args()
@@ -2516,6 +2923,28 @@ def main() -> None:
         if args.output_json is not None:
             args.output_json.write_text(
                 json.dumps(_jsonable_phase7_bundle(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        print(markdown)
+        return
+    if args.scope == "phase14":
+        payload = run_phase14_evaluation_bundle(
+            base_dir=args.benchmark_dir,
+            record_limit=args.record_limit,
+            summary_limit=args.summary_limit,
+            component_limit=args.component_limit,
+            protocol_limit=args.protocol_limit,
+            seed=args.seed,
+            rerun_count=args.rerun_count,
+            llm_mode=args.llm_mode,
+            candidate_version=args.candidate_version,
+        )
+        markdown = _format_phase14_bundle(payload)
+        if args.output_markdown is not None:
+            args.output_markdown.write_text(markdown + "\n", encoding="utf-8")
+        if args.output_json is not None:
+            args.output_json.write_text(
+                json.dumps(_jsonable_phase14_bundle(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
         print(markdown)

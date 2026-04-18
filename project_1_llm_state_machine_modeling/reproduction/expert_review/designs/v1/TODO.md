@@ -2578,26 +2578,235 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 正式落地 `train / dev / validation / lockbox` 数据切分与版本晋升机制。
-* [ ] 正式落地 leave-one-family-out 测试。
-* [ ] 把阶段验收默认从“单次 full available benchmark”提升为“validation + lockbox + LOFO”联合口径。
-* [ ] 对 lockbox 上的主要残差簇做单独分析。
-* [ ] 明确哪些 patch 是真泛化提升，哪些只是对当前可见 benchmark 过拟合。
+* [x] 正式落地 `train / dev / validation / lockbox` 数据切分与版本晋升机制。
+* [x] 正式落地 leave-one-family-out 测试。
+* [x] 把阶段验收默认从“单次 full available benchmark”提升为“validation + lockbox + LOFO”联合口径。
+* [x] 对 lockbox 上的主要残差簇做单独分析。
+* [x] 明确哪些 patch 是真泛化提升，哪些只是对当前可见 benchmark 过拟合。
 
 ### Checklist
 
-* [ ] 已有可复用的 validation / lockbox 报告流程。
-* [ ] `lockbox` 任一核心指标退化不超过 `4` 点。
-* [ ] `LOFO_generalization_gap` 已可计算。
-* [ ] 当前 reviewer 的提升不再主要依赖可见 benchmark 风格。
-* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
+* [x] 已有可复用的 validation / lockbox 报告流程。
+* [x] `lockbox` 任一核心指标退化不超过 `4` 点。
+* [x] `LOFO_generalization_gap` 已可计算。
+* [x] 当前 reviewer 的提升不再主要依赖可见 benchmark 风格。
+* [x] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
 ### Phase 14 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
-- 当前状态：已创建，尚未开始实现。
-- 当前定位：把“对齐 benchmark”推进到“对齐人工评审机制”的泛化论证。
+- 完成时间：`2026-04-18 12:57:56`
+- 当前状态：`已完成`
+- 前置条件：`Phase 13` 已完成 judgement / reason / evidence reliability 收口，full benchmark 基线已稳定。
+- 当前定位：把“当前 reviewer 能对齐 full benchmark”提升为“当前 reviewer 已具备可复用的 generalization evidence package，并能按 validation + lockbox + LOFO + residual audit 做正式验收与版本晋升”。
+
+### Phase 14 指标总表
+
+本节记录 `2026-04-18` 基于
+`python -m expert_review.benchmark --scope phase14 --llm-mode off --rerun-count 0 --candidate-version phase14-wip`
+生成的 `phase14 generalization bundle`，作为 `Phase 14` 的正式验收口径。
+
+#### 1. full benchmark 参考快照
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `86.8557` |
+| `RAS` | `84.3740` |
+| `SAS` | `81.7999` |
+| `CRAS` | `100.0000` |
+| `PDS` | `100.0000` |
+| `unsupported_claim_rate` | `0.0792` |
+| `judgement_macro_f1` | `0.7996` |
+| `weighted_kappa` | `0.8452` |
+| `critical_issue_recall` | `0.9342` |
+| `evidence_locator_validity` | `1.0000` |
+| `contradiction_rate` | `0.0041` |
+
+说明：
+
+1. `Phase 14` 没有再修改 reviewer 主评分语义，因此 `full benchmark` 与 `Phase 13` 基本一致；当前 phase 的主要成果是把泛化验收与版本晋升机制正式落地。
+2. `full` 继续保留为 reference snapshot，但它不再是本 phase 的默认单点验收口径。
+
+#### 2. `train / dev / validation / lockbox` 快照
+
+| split | `HAI` | `RAS` | `SAS` | `CRAS` | `PDS` | `record_normalized_mae` | `record_spearman_rho` | `summary_spearman_rho` |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `train` | `86.4400` | `83.0125` | `83.1325` | `100.0000` | `100.0000` | `0.1410` | `0.7906` | `0.6921` |
+| `dev` | `85.7557` | `83.2821` | `79.8021` | `100.0000` | `100.0000` | `0.1464` | `0.8011` | `0.7114` |
+| `validation` | `87.1347` | `86.0963` | `79.1272` | `100.0000` | `100.0000` | `0.0904` | `0.7697` | `0.8003` |
+| `lockbox` | `86.8710` | `86.4193` | `77.3615` | `100.0000` | `100.0000` | `0.0959` | `0.9091` | `0.5189` |
+
+#### 3. `validation -> lockbox` gate 验收
+
+| 核心指标 | `validation` | `lockbox` | `degrade` | gate | 结果 |
+|---|---:|---:|---:|---:|---|
+| `HAI` | `87.1347` | `86.8710` | `0.2637` | `<= 4.0` | `通过` |
+| `RAS` | `86.0963` | `86.4193` | `-0.3231` | `<= 4.0` | `通过` |
+| `SAS` | `79.1272` | `77.3615` | `1.7656` | `<= 4.0` | `通过` |
+| `CRAS` | `100.0000` | `100.0000` | `0.0000` | `<= 4.0` | `通过` |
+| `PDS` | `100.0000` | `100.0000` | `0.0000` | `<= 4.0` | `通过` |
+
+结论：
+
+1. 当前 `lockbox` 最大核心指标退化只有 `1.7656`，显著低于本 phase 的 `4.0` gate。
+2. `record-level` 的 `RAS` 在 lockbox 上甚至略高于 validation，说明当前 retained patch 不是只依赖可见验证集风格。
+3. 当前最明显的 holdout 压力集中在 `summary-level`，但仍然没有退化到 gate 外。
+
+#### 4. LOFO 泛化快照
+
+| regime | family 数 | 平均指标 | 最差指标 | 平均 gap vs full | 最差 gap vs full | 最差 family |
+|---|---:|---|---|---:|---:|---|
+| `record` | `18` | `avg_RAS = 81.9262` | `min_RAS = 73.0485` | `2.4478` | `11.3254` | `record::llms_emp::stm::Kimi` |
+| `summary` | `12` | `avg_SAS = 74.6196` | `min_SAS = 68.7081` | `7.1803` | `13.0918` | `summary::ttool-ai::automated_braking::SMD` |
+| `component` | `16` | `avg_CRAS = 100.0000` | `min_CRAS = 100.0000` | `0.0000` | `0.0000` | `component::structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models::SSC7_fall_2024::Claude 3.5 Sonnet` |
+| `protocol` | `4` | `avg_PDS = 100.0000` | `min_PDS = 100.0000` | `0.0000` | `0.0000` | `protocol::llms_emp` |
+
+解释：
+
+1. `LOFO_generalization_gap` 现已进入正式导出物，且可按 regime 直接比较 `avg_gap_vs_full / worst_holdout_gap_vs_full / worst_family`。
+2. `component` 与 `protocol` 当前在 LOFO 上完全稳定；这是本 phase 一个重要结论，因为早期 phase 的 protocol holdout 曾明显脆弱。
+3. `summary` 仍然是当前最弱泛化面：平均 gap `7.18`、最差 gap `13.09`，说明虽然当前 retained patch 不再主要靠 visible benchmark 风格过拟合支撑，但 summary holdout 还不能宣称“强 family-agnostic”。
+
+#### 5. lockbox 残差簇快照
+
+总体统计：
+
+1. `lockbox analyzed_rows = 130`
+2. `lockbox residual_rows = 31`
+3. `lockbox residual_row_rate = 0.2385`
+4. `bucket_counts = {"calibration_error": 16, "contract_understanding_error": 10, "element_extraction_error": 5}`
+
+Top residual clusters：
+
+| cluster | `rows` | `family_count` | `avg_abs_score_delta` | `avg_issue_f1` | 说明 |
+|---|---:|---:|---:|---:|---|
+| `record / calibration_error / stm` | `8` | `1` | `0.1911` | `0.8869` | 主要是 `llms_emp::stm::DeepSeek`；问题更像高质量样本上的 score calibration，而不是 semantic failure |
+| `summary / contract_understanding_error / BD` | `6` | `1` | `0.0543` | `0.3122` | 主要是 `ttool-ai::platooning::BD`；属于 summary contract surface 的 holdout family 残差 |
+| `summary / contract_understanding_error / UCD` | `4` | `1` | `0.0365` | `0.0000` | 主要是 `ttool-ai::connected_device::UCD`；同样是 summary category understanding 残差 |
+| `record / calibration_error / sd` | `3` | `1` | `0.2000` | `0.8214` | 主要是 `llms_emp::sd::GPT-4`；属于分数尺度问题，不是大面积 issue miss |
+| `summary / calibration_error / UCD` | `3` | `1` | `0.1593` | `0.0000` | `connected_device::UCD` 同时带 summary calibration 残差 |
+| `record / element_extraction_error / sd` | `3` | `1` | `0.0360` | `0.8571` | 主要是 `llms_emp::sd::GPT-4` 的局部 extraction 残差 |
+
+结论：
+
+1. `lockbox` 残差并没有呈现“全局塌陷”形态，而是集中在少数 family 和少数 bucket 上。
+2. 当前最大残差簇是 `record calibration` 与 `summary contract understanding`，这说明后续若继续优化，应优先盯住这两类问题，而不是重新全面拧所有常数。
+3. 这些 cluster 也是本 phase 之后最值得进入 `Phase 15+` 的 targeted holdout probe。
+
+#### 6. 版本晋升结论
+
+当前 `phase14` 正式引入的 promotion surface 为：
+
+`validation + lockbox + LOFO + lockbox_residual_audit`
+
+当前候选版本在该 surface 上的结果为：
+
+1. `validation`: `passed`
+2. `lockbox`: `passed`
+3. `lofo`: `passed`
+4. `residual_audit`: `passed`
+5. `promotion_status`: `promoted_to_phase14_default`
+
+这意味着：
+
+1. 后续 phase 若要声称“当前 retained patch 已通过 generalization gate”，不能再只贴 `full benchmark` 单张表，必须同时提供这四部分证据。
+2. 若 future patch 在 `validation` 上看起来更好，但在 `lockbox` 或 `LOFO` 上明显变差，则默认视为“visible benchmark sensitive”，不允许直接晋升。
+
+#### 7. `Phase 13 -> Phase 14` 关键变化
+
+| 指标 | `Phase 13` | `Phase 14` | delta |
+|---|---:|---:|---:|
+| `HAI` | `86.8557` | `86.8557` | `-0.0000` |
+| `RAS` | `84.3740` | `84.3740` | `-0.0000` |
+| `SAS` | `81.7999` | `81.7999` | `+0.0000` |
+| `CRAS` | `100.0000` | `100.0000` | `+0.0000` |
+| `PDS` | `100.0000` | `100.0000` | `+0.0000` |
+| `unsupported_claim_rate` | `0.0792` | `0.0792` | `-0.0000` |
+| `judgement_macro_f1` | `0.7996` | `0.7996` | `+0.0000` |
+| `weighted_kappa` | `0.8452` | `0.8452` | `-0.0000` |
+| `critical_issue_recall` | `0.9342` | `0.9342` | `+0.0000` |
+| `evidence_locator_validity` | `1.0000` | `1.0000` | `+0.0000` |
+| `contradiction_rate` | `0.0041` | `0.0041` | `-0.0000` |
+
+说明：
+
+1. 这组几乎完全不变的 delta 是符合预期的，因为 `Phase 14` 的核心工作不是改 reviewer 主路径，而是把 generalization evidence package 与 version promotion mechanism 正式落地。
+2. 当前 retained reviewer 没有因为 generalization harness 的补齐而被意外打坏。
+
+### Phase 14 本阶段改进记录
+
+- 最明显提升 1：`benchmark.py` 现在正式提供 `scope=phase14`，一次导出 full reference、split summary、LOFO gap、lockbox residual analysis 与 promotion decision，不再需要手工拼报告。
+- 最明显提升 2：当前默认验收口径已经从“单张 full benchmark 表”升级为 `validation + lockbox + LOFO + residual audit` 四联证据。
+- 最明显提升 3：当前已经能明确地区分：
+  - 哪些 retained patch 具有真正 holdout 支撑：`lockbox` 最大退化只有 `1.77`，而且 `RAS` 在 lockbox 上还略高于 validation
+  - 哪些地方仍然只是局部弱点：`summary` LOFO gap 仍偏大，说明不能把当前结果夸大成“所有 family 都同样稳”
+- 最明显提升 4：`lockbox` 残差不再只留在 top-example 直觉层面，而是被压缩成可复用的 cluster 诊断入口。
+- 最明显提升 5：为保证后续 phase 能继续迭代 `phase14` bundle，本阶段还补了 deterministic review cache；当前 bundle 共消费 `2270` 条评测行，但只有 `736` 个 unique task id，重复任务最多会在 `slice / full / split / LOFO` 中被复用 `4` 次，因此缓存已被正式建模进 benchmark harness。
+
+- 最明显残留问题 1：`summary` 是当前 generalization 最弱面，特别是 `automated_braking::SMD` 与若干 `BD / UCD` family 仍会放大 holdout gap。
+- 最明显残留问题 2：`lockbox` 最大簇仍是 `record calibration`，说明评分尺度在个别 family 上还可继续收口。
+- 最明显残留问题 3：当前 `Phase 14` 的 formal promotion 已成立，但这不等于 `Milestone B` 已完成；deterministic / LLM-enabled、成本、稳定性与 ablation 仍待 `Phase 15-16`。
+
+### Phase 14 本阶段运行记录
+
+- 已验证入口：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py -q`
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py -q`
+  - `python -m expert_review.benchmark --scope phase14 --llm-mode off --rerun-count 0 --candidate-version phase14-wip --output-markdown /tmp/expert_review_phase14_bundle.md --output-json /tmp/expert_review_phase14_bundle.json`
+- 本阶段真实落位的目标层次：
+  - `benchmark.py`：新增 `run_phase14_evaluation_bundle()`、promotion gate、lockbox residual cluster analysis、`scope=phase14` CLI 与 phase14 json/markdown 导出
+  - `test_benchmark.py`：新增 lockbox gate、LOFO gap、promotion decision、residual cluster 与 deterministic cache 的单测
+  - `README.md` / `GUIDE.md`：同步 benchmark CLI 与 phase14 generalization bundle 入口
+- 本 phase 对“禁止硬特判 / 多语言泛化”的专项检查：
+  - 本次新增逻辑全部位于离线 benchmark / promotion surface，不进入 reviewer runtime 主路径
+  - 新增的 gate 完全基于结构化指标、family manifest 与 residual statistics，不依赖 prompt / input / model label 的字符串命中去改 reviewer 判定
+  - 当前 reviewer runtime 没有因此重新引入任何基于词面 `"xxx" in text"` 的主路径判断
+  - 本 phase 没有把 deterministic runtime 改成英文默认；多语言 / 跨语言语义路由要求继续沿用 `Phase 11-13` 已通过的主路径
+- prompt / prompt composition 审计结论：
+  - 本 phase 专门检查了 summary holdout residual 是否值得直接通过 prompt patch 继续追分
+  - 结论是：当前 official gate 使用 deterministic 主路径，LLM prompt 改动不会进入本 phase 的正式 acceptance；而当前 residual 也没有恶化到需要为此跨 phase 改 deterministic runtime
+  - 因此本 phase 选择**记录 prompt 审计结论但不强行改 prompt**，避免为了 visible holdout 再做无证据的 runtime/prompt patch
+
+### Phase 14 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 13` 收尾基线：full benchmark 已稳定，但 `Phase 14` 所要求的 promotion surface 仍未正式存在。
+- `Round 1` 把 `phase14` generalization bundle、promotion decision、lockbox residual analysis 真实接到 benchmark 主路径。
+- `Round 2` 在不改 reviewer 主能力的前提下，继续把 deterministic review cache 接进 bundle，避免 `slice / full / split / LOFO` 对同一 task 重复回放过多。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 13` 收尾基线；当前只有 `full benchmark` 正式冻结，`validation / lockbox / LOFO` 尚未形成版本晋升 surface | `generalization_blind_spot` / `promotion_surface_gap` | `full: HAI 86.8557 / RAS 84.3740 / SAS 81.7999 / CRAS 100 / PDS 100` | `同左` | `0.00` | `是` | 作为 `Phase 14` 对照基线 |
+| `Round 1` | 新增 `scope=phase14`、promotion gate、`LOFO_generalization_gap` 正式字段、lockbox residual cluster 分析；同步 `README.md` / `GUIDE.md` | `generalization_blind_spot` / `evaluation_surface_gap` | `无正式 promotion / residual audit` | `validation HAI 87.13 / lockbox HAI 86.87 / max_degrade 1.77 / promoted_to_phase14_default` | `从“无正式 gate”升级为“有正式 gate”` | `是` | 这轮已经打通核心目标，但 full bundle 迭代成本仍偏高，继续只做 phase14 内的 benchmark efficiency 优化 |
+| `Round 2` | 为 `phase7 / phase14` bundle 引入 deterministic review cache，并补单测锁住；统计确认 `2270` 评测行只对应 `736` 个 unique task id | `evaluation_efficiency_gap` | `generalization bundle 可跑，但重复 task 会在 slice/full/split/LOFO 中被多次复用` | `alignment 指标不变；generalization harness 现已允许安全复用 deterministic 结果` | `指标 0 变化；bundle 结构更可迭代` | `否` | 当前 phase 目标已完成；继续改会进入 `Phase 15` 的 LLM-enabled / 成本 / 稳定性问题，而不再是 `Phase 14` 自身 |
+
+### Phase 14 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 14` 已完成并停止，下一步进入 `Phase 15`。
+- TODO 已完成项：
+  - `Phase 14` 全部 Todolist 已打勾
+  - `Phase 14` 全部 Checklist 已打勾
+  - promotion surface、lockbox residual cluster、LOFO gap 与 `scope=phase14` CLI 已全部写回当前 TODO
+  - `README.md`、`GUIDE.md` 与 benchmark CLI 说明已同步
+- TODO 尚未完成项：
+  - `summary` holdout family 的进一步 targeted 收口不是本 phase 的硬 gate，而是 `Phase 15+` 继续优化入口
+  - `LLM-enabled` 路径、稳定性、成本与 ablation 仍待后续 phase
+- 当前对齐程度总览：
+  - `full` 继续保持 `HAI 86.86 / RAS 84.37 / SAS 81.80 / CRAS 100 / PDS 100`
+  - `validation -> lockbox` 最大核心指标退化只有 `1.77`，因此当前 retained patch 已具备正式 holdout 支撑
+  - `promotion_status = promoted_to_phase14_default`：说明当前 reviewer 已通过 `validation + lockbox + LOFO + residual audit` 的联合门槛
+  - 但 `summary` 的 `avg_gap_vs_full = 7.18`、`worst_holdout_gap_vs_full = 13.09` 也明确说明：当前不应把结果过度表述成“所有 family 上都同样稳”
+- 对“真泛化提升 vs visible benchmark 过拟合”的当前结论：
+  - 可以视为“真泛化提升”的证据：
+    - `lockbox` 并未出现大幅回落，`RAS` 在 lockbox 上甚至略高于 validation
+    - `CRAS / PDS` 在 validation、lockbox、LOFO 上都完全稳定
+    - lockbox residual 不是全域扩散，而是集中在少数 family / bucket
+  - 仍需保守处理、不能夸大的部分：
+    - `summary` holdout gap 仍明显大于 `record`
+    - 当前 generalization 证据足以支持“不是主要靠 visible benchmark style 撑起来”，但还不足以支持“各 task family 全部已同等稳健”
+- 当前 phase 是否停止：`是`，停止在 `Phase 14`；停止原因是 formal promotion surface 与 generalization evidence package 已全部落地，关键 gate 也已通过，继续往下做将进入 `Phase 15` 的 LLM-enabled / 成本 / 稳定性边界，而不再属于本 phase。
 
 ## 18. Phase 15: LLM-Enabled 主路径、随机性稳定性与成本边界
 

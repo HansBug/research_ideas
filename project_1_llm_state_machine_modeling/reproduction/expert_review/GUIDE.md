@@ -129,7 +129,8 @@
 4. `python -m expert_review` 的 deterministic smoke
 5. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
 6. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`
-7. `python -m expert_review.batch --input ... --llm-mode off`
+7. `python -m expert_review.benchmark --scope phase14 --llm-mode off --rerun-count 0 --candidate-version ...`
+8. `python -m expert_review.batch --input ... --llm-mode off`
 
 只要涉及以下变更，完成后就应至少跑上述三类验证中的相关部分：
 
@@ -149,9 +150,11 @@
 4. `Phase 10` 已完成 batch screening 输入协议、triage 阈值、结果导出与 `Milestone A` 验收
 5. `Phase 11` 已完成去硬特判、语义路由、多语言验证与 prompt/profile 收口
 6. `Phase 12` 已完成 `component_level_review` 正式接入、`CRAS` 与逐组件报告建立；最终口径是 `456` 条具备完整 `TP / FP / FN` structured public evidence 的 component row 进入主 benchmark，`56` 条证据不完整 row 显式 deferred，且整个 phase 明确不引入视觉/OCR/CV
-7. 当前后续工作的核心目标已转到 `Phase 13+`：judgement / reason / evidence reliability、generalization 与论文级证据链
+7. `Phase 13` 已完成 judgement / reason / evidence reliability 收口，并固定了当前 deterministic full benchmark 基线
+8. `Phase 14` 已完成 generalization surface 落地：默认验收现在是 `validation + lockbox + LOFO + lockbox residual audit`，并且 `benchmark.py` 已提供 `scope=phase14`
+9. 当前后续工作的核心目标已转到 `Phase 15+`：deterministic / LLM-enabled 边界、稳定性、成本与论文级证据链
 
 因此后续改动默认应优先回答两件事：
 
 1. 这次改动是否真实改善 `CRAS / HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响组件级、`record`、`summary` 还是 batch/generalization surface
-2. 这次改动是否会破坏当前已经稳定的 `PDS`、summary evidence discipline、batch triage 口径，以及 `Phase 7` 固定下来的 `full / split / LOFO` 评测框架
+2. 这次改动是否会破坏当前已经稳定的 `PDS`、summary evidence discipline、batch triage 口径，以及 `Phase 14` 已固定下来的 `validation + lockbox + LOFO + residual audit` 验收框架

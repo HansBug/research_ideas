@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import pandas as pd
 
+from . import benchmark as benchmark_module
 from .benchmark import (
+    BenchmarkTask,
     _agent_critical_issue_set,
     _agent_issue_set,
+    _build_phase14_lofo_gate,
+    _build_phase14_lockbox_gate,
+    _build_phase14_promotion_evaluation,
+    _evaluate_task_bundle,
     _evidence_locator_metrics,
     _judgement_metrics,
+    _summarize_lockbox_residual_clusters,
     build_benchmark_split_bundle,
     build_full_available_task_bundle,
     build_lofo_task_bundles,
@@ -435,3 +442,172 @@ def test_component_task_derives_human_score_from_public_counts_when_score_cell_m
     assert task.metadata["component_evidence_status"] == "structured_counts_available"
     assert task.metadata["component_human_score_source"] == "derived_from_counts"
     assert task.human_score == 0.0
+
+
+def test_phase14_lockbox_gate_limits_core_metric_degrade() -> None:
+    split_reports = {
+        "validation": {
+            "HAI": 86.0,
+            "record_metrics": {"RAS": 84.0},
+            "summary_metrics": {"SAS": 82.0},
+            "component_metrics": {"CRAS": 100.0},
+            "protocol_metrics": {"PDS": 100.0},
+        },
+        "lockbox": {
+            "HAI": 83.5,
+            "record_metrics": {"RAS": 80.5},
+            "summary_metrics": {"SAS": 79.0},
+            "component_metrics": {"CRAS": 97.5},
+            "protocol_metrics": {"PDS": 98.0},
+        },
+    }
+
+    gate = _build_phase14_lockbox_gate(split_reports)
+
+    assert gate["status"] == "passed"
+    assert gate["core_metric_deltas"]["RAS"]["degrade"] == 3.5
+    assert gate["core_metric_deltas"]["CRAS"]["passed"] is True
+
+
+def test_phase14_lofo_gate_exposes_generalization_gap_payload() -> None:
+    gate = _build_phase14_lofo_gate(
+        {
+            "record": {"avg_gap_vs_full": 2.0, "worst_holdout_gap_vs_full": 5.5, "worst_family": "record::a"},
+            "summary": {"avg_gap_vs_full": 1.0, "worst_holdout_gap_vs_full": 3.0, "worst_family": "summary::b"},
+        }
+    )
+
+    assert gate["status"] == "passed"
+    assert gate["LOFO_generalization_gap"]["record"]["worst_family"] == "record::a"
+    assert gate["max_avg_gap_vs_full"] == 2.0
+    assert gate["max_worst_holdout_gap_vs_full"] == 5.5
+
+
+def test_lockbox_residual_clusters_group_by_bucket_and_focus() -> None:
+    report = {
+        "normalized_rows": [
+            {
+                "task_id": "record-1",
+                "eval_bucket": "record",
+                "human_score": 0.2,
+                "agent_score": 0.5,
+                "issue_f1": 0.25,
+                "error_buckets": ["calibration_error"],
+                "metadata": {"diagram_type": "stm", "family_key": "paper-a::case-1"},
+            },
+            {
+                "task_id": "record-2",
+                "eval_bucket": "record",
+                "human_score": 0.3,
+                "agent_score": 0.55,
+                "issue_f1": 0.35,
+                "error_buckets": ["calibration_error"],
+                "metadata": {"diagram_type": "stm", "family_key": "paper-a::case-2"},
+            },
+            {
+                "task_id": "summary-1",
+                "eval_bucket": "summary",
+                "human_score": 0.7,
+                "agent_score": 0.4,
+                "issue_f1": 0.4,
+                "error_buckets": ["contract_understanding_error"],
+                "metadata": {"review_target": "BD", "family_key": "paper-b::case-3"},
+            },
+        ]
+    }
+
+    residuals = _summarize_lockbox_residual_clusters(report, top_k=4)
+
+    assert residuals["status"] == "passed"
+    assert residuals["residual_rows"] == 3
+    assert residuals["bucket_counts"]["calibration_error"] == 2
+    assert residuals["clusters"][0]["focus_key"] == "stm"
+    assert residuals["clusters"][0]["rows"] == 2
+
+
+def test_phase14_promotion_evaluation_requires_validation_lockbox_lofo_and_residuals() -> None:
+    split_reports = {
+        "validation": {
+            "HAI": 86.0,
+            "record_metrics": {"RAS": 84.0},
+            "summary_metrics": {"SAS": 82.0},
+            "component_metrics": {"CRAS": 100.0},
+            "protocol_metrics": {"PDS": 100.0},
+        },
+        "lockbox": {
+            "HAI": 83.5,
+            "record_metrics": {"RAS": 80.5},
+            "summary_metrics": {"SAS": 79.0},
+            "component_metrics": {"CRAS": 97.5},
+            "protocol_metrics": {"PDS": 98.0},
+        },
+    }
+    evaluation = _build_phase14_promotion_evaluation(
+        candidate_version="candidate-1",
+        split_reports=split_reports,
+        lofo_generalization={
+            "record": {"avg_gap_vs_full": 2.0, "worst_holdout_gap_vs_full": 5.5, "worst_family": "record::a"}
+        },
+        lockbox_residuals={
+            "status": "passed",
+            "residual_rows": 3,
+            "residual_row_rate": 0.2,
+            "clusters": [{"eval_bucket": "record"}],
+        },
+    )
+
+    assert evaluation["promotion_status"] == "promoted_to_phase14_default"
+    assert evaluation["generalization_evidence_ready"] is True
+    assert evaluation["stages"]["lockbox"]["status"] == "passed"
+
+
+def test_evaluate_task_bundle_reuses_deterministic_review_cache(monkeypatch) -> None:
+    call_counter = {"count": 0}
+
+    class FakeAgent:
+        def __init__(self, provider_order=None):
+            self.provider_order = provider_order
+
+        def review(self, request):
+            call_counter["count"] += 1
+            return ExpertReviewResult(
+                prompt=request.prompt,
+                overall_score=0.8,
+                overall_judgement="good",
+                overall_reason_text="reason",
+                used_review_backend="deterministic",
+            )
+
+    monkeypatch.setattr(benchmark_module, "ExpertReviewAgent", FakeAgent)
+    task = BenchmarkTask(
+        task_id="cache-task",
+        eval_bucket="record",
+        regime_expected="record_level",
+        prompt="Review this model.",
+        input_text="R1: x",
+        pred_output='{"states":[{"name":"A"}],"transitions":[]}',
+        ref_output='{"states":[{"name":"A"}],"transitions":[]}',
+        human_score=0.8,
+        human_score_unit="semantic_f1",
+        human_issue_set=set(),
+        group_key="family-a",
+        metadata={"family_key": "family-a", "diagram_type": "stm"},
+    )
+    review_cache = {}
+
+    _evaluate_task_bundle(
+        {"record": [task], "summary": [], "component": [], "protocol": []},
+        llm_mode="off",
+        rerun_count=0,
+        report_label="first",
+        review_cache=review_cache,
+    )
+    _evaluate_task_bundle(
+        {"record": [task], "summary": [], "component": [], "protocol": []},
+        llm_mode="off",
+        rerun_count=0,
+        report_label="second",
+        review_cache=review_cache,
+    )
+
+    assert call_counter["count"] == 1

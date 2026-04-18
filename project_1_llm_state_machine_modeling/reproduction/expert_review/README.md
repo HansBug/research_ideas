@@ -270,14 +270,22 @@ python -m expert_review.benchmark \
   --rerun-count 0 \
   --output-markdown /tmp/expert_review_phase7_bundle.md \
   --output-json /tmp/expert_review_phase7_bundle.json
+PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+python -m expert_review.benchmark \
+  --scope phase14 \
+  --llm-mode off \
+  --rerun-count 0 \
+  --candidate-version phase14-candidate \
+  --output-markdown /tmp/expert_review_phase14_bundle.md \
+  --output-json /tmp/expert_review_phase14_bundle.json
 ```
 
 `benchmark.py` 的职责是：
 
 1. 回放 double-green benchmark
-2. 同时导出 `slice / full available / split / phase7 bundle` 四类评测口径
-3. 计算 `HAI / RAS / SAS / PDS / normalized_mae / issue_f1 / ece` 以及 split / LOFO / error map
-4. 暴露 coverage gaps、`component_level_review` schema 和后续 phase 要用的误差地图
+2. 同时导出 `slice / full available / split / phase7 bundle / phase14 generalization bundle` 五类评测口径
+3. 计算 `HAI / RAS / SAS / PDS / normalized_mae / issue_f1 / ece` 以及 split / LOFO / lockbox residual / promotion gate
+4. 暴露 coverage gaps、`component_level_review` schema 和后续 phase 要用的误差地图与 generalization 诊断结果
 5. 作为 phase 收尾和自我迭代的外环评测工具
 
 它不参与 `review_artifacts()` 的线上主链路。
@@ -362,15 +370,24 @@ python -m expert_review.batch \
 4. `summary-level` 仍主要来自 `ttool-ai`
 5. `protocol-only` 仍只有 `4` 个 paper family，必须保守解释泛化性
 
-### Phase 12 入口
+### Phase 14 结论
 
-`Milestone A` 已完成，后续继续推进已经进入 `Phase 12+`，重点转为：
+当前 `Phase 14` 已完成，当前 reviewer 的正式 generalization 结论为：
 
-1. `Phase 12` 已经把 `component_level_review` 正式接入 benchmark 主路径，并建立 `CRAS` 与逐组件对齐报告；实现口径是**非视觉 structured public evidence**，不会引入 OCR/CV，也不会把 `F-Score` 原样回灌进 prompt
-2. `Phase 13` 需要补 judgement / reason / evidence reliability，避免只有分数对齐而缺少解释层证据
-3. `Phase 14` 需要把验收从单次 full available benchmark 提升到 `validation + lockbox + LOFO`
-4. `Phase 15-16` 需要补 deterministic / LLM-enabled 边界、成本与 ablation，形成论文级证据包
-5. 当前 batch 结果虽然可用于整体筛选，但 `manual_review` 仍占大头，这和“高精度预筛器”定位一致，不应过度宣称自动化程度
+1. 默认验收口径已经从“单次 full available benchmark”升级为 `validation + lockbox + LOFO + lockbox residual audit`
+2. `benchmark.py` 已提供正式的 `scope=phase14` generalization bundle，能同时导出 split、LOFO、promotion decision 与 lockbox residual cluster
+3. 当前 deterministic candidate 在该 surface 上已经被标记为 `promoted_to_phase14_default`
+4. `validation -> lockbox` 最大核心指标退化只有 `1.77`，说明 retained patch 不再主要依赖 visible benchmark 风格
+5. 当前最明显残留弱点仍是 `summary` holdout family；这意味着当前可以宣称“已有真实 generalization evidence”，但还不能夸大成“所有 family 全部同样稳”
+
+### Phase 15 入口
+
+`Milestone A` 已完成，`Phase 14` 也已把 generalization / promotion surface 正式落地；后续继续推进已经进入 `Phase 15+`，重点转为：
+
+1. `Phase 15` 需要补 deterministic / LLM-enabled 两条主路径的对齐差异、稳定性、延迟与成本边界
+2. `Phase 16` 需要补 ablation、paper-ready evidence package 与论文级 claims / non-claims 边界
+3. 当前 batch 结果虽然可用于整体筛选，但 `manual_review` 仍占大头，这和“高精度预筛器”定位一致，不应过度宣称自动化程度
+4. `summary` holdout family 的进一步 targeted 收口属于后续 phase 的重要优化入口，但不再阻碍 `Phase 14` 关闭
 
 相关结论见：
 
