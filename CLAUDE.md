@@ -828,6 +828,17 @@ xxx(xxx): 中文标题
 6. 若本轮改动明显仍处于持续推进中，PR 默认应考虑添加 `status:wip` 或等价状态标签。
 7. 若本轮改动同时涉及规范更新、总账更新、结构调整等多种类型，label 应覆盖主要方面，但不应滥贴无关标签。
 
+## GitHub CLI 身份一致性规范
+
+当需要执行任何 `gh` 命令时，默认遵循以下硬性规则：
+
+1. 在执行前，必须先确认**当前仓库的 git 身份**与**准备使用的 GitHub CLI 身份**一致。
+2. `git 身份`至少应通过 `git config user.name` 与 `git config user.email` 确认；`gh 身份`至少应通过 `gh auth status`、当前活动账号以及仓库远端归属综合确认。
+3. 只有当 `gh` 当前活动账号能够与当前仓库里用于 `commit / push / PR / comment / edit / assign / label` 的身份稳定对应时，才允许继续执行 `gh` 操作。
+4. 若发现 `gh` 当前活动账号与当前仓库 git 身份不一致，必须先切换到一致的账号，再执行对应 `gh` 命令。
+5. 若本机找不到与当前仓库 git 身份稳定对应的 GitHub CLI 账号，或无法可靠证明两者一致，则**不得执行任何 `gh` 操作**；此时应如实说明原因和阻塞点，而不是用其他账号代操作。
+6. 这条规则适用于所有 `gh` 场景，包括但不限于：`pr view`、`pr create`、`pr edit`、`pr comment`、`issue comment`、`api` 直调、label / assignee / reviewer 修改等。
+
 ## 数据集信息
 
 研究使用来自9个控制系统的101条功能安全需求数据集：
