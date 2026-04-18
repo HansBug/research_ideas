@@ -96,6 +96,11 @@ def build_review_policy_packet(
     )
     if llm is None:
         return policy_packet
+    if regime.regime in {"record_level", "mixed_evidence"} or bool(policy_packet.get("component_review_mode")):
+        notes.append(
+            "Policy builder kept deterministic policy for direct-artifact/component review to reduce stochastic drift in core scoring."
+        )
+        return policy_packet
     payload = invoke_llm_json(
         llm,
         [
@@ -109,6 +114,7 @@ def build_review_policy_packet(
                 f"Base policy:\n{json.dumps(policy_packet, ensure_ascii=False, indent=2)}",
             ),
         ],
+        operation="review_policy_builder",
     )
     if not isinstance(payload, dict):
         return policy_packet

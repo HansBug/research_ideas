@@ -131,6 +131,7 @@
 6. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`
 7. `python -m expert_review.benchmark --scope phase14 --llm-mode off --rerun-count 0 --candidate-version ...`
 8. `python -m expert_review.batch --input ... --llm-mode off`
+9. `python -m expert_review.benchmark --scope phase15 --phase15-comparison-scope slice --model gpt-4o --provider-order airouter`
 
 只要涉及以下变更，完成后就应至少跑上述三类验证中的相关部分：
 
@@ -152,7 +153,13 @@
 6. `Phase 12` 已完成 `component_level_review` 正式接入、`CRAS` 与逐组件报告建立；最终口径是 `456` 条具备完整 `TP / FP / FN` structured public evidence 的 component row 进入主 benchmark，`56` 条证据不完整 row 显式 deferred，且整个 phase 明确不引入视觉/OCR/CV
 7. `Phase 13` 已完成 judgement / reason / evidence reliability 收口，并固定了当前 deterministic full benchmark 基线
 8. `Phase 14` 已完成 generalization surface 落地：默认验收现在是 `validation + lockbox + LOFO + lockbox residual audit`，并且 `benchmark.py` 已提供 `scope=phase14`
-9. 当前后续工作的核心目标已转到 `Phase 15+`：deterministic / LLM-enabled 边界、稳定性、成本与论文级证据链
+9. `Phase 15` 已完成 deterministic / LLM-enabled 边界、LLM telemetry、`scope=phase15` 对比面与默认主路径判定：当前默认仍应保持 deterministic，LLM-enabled 仅作为可选补充路径
+10. 当前后续工作的核心目标已转到 `Phase 16`：ablation、paper-ready evidence package 与论文级 claims / non-claims 边界
+
+补充说明：
+
+1. 当前 `token_cost_per_record` 在 `Phase 15` 口径中指的是**每条样本的总 LLM token 预算**，而不是绑定某个 provider 计费单价的 USD；这样做是因为代理 provider 的实际结算口径并不稳定。
+2. 当前 runtime 已导出结构化 `llm_usage_summary`，其中可直接读取 `effective_llm_used`、`fallback_only`、成功/失败操作数、token 总量与 `latency_p50 / latency_p95`。
 
 因此后续改动默认应优先回答两件事：
 

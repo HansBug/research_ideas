@@ -389,6 +389,14 @@ python -m expert_review.batch \
 3. 当前 batch 结果虽然可用于整体筛选，但 `manual_review` 仍占大头，这和“高精度预筛器”定位一致，不应过度宣称自动化程度
 4. `summary` holdout family 的进一步 targeted 收口属于后续 phase 的重要优化入口，但不再阻碍 `Phase 14` 关闭
 
+当前 `Phase 15` 已完成的结论是：
+
+1. runtime 已补齐 `llm_usage_summary`、`fallback_only` backend 标识、`scope=phase15` CLI 与 `token_cost_per_record` 统计面
+2. 当前 provider 预检显示 `airouter` 上 `gpt-4o / gpt-4.1 / gpt-5.4` 可调用，但 `findcg` 对本轮候选并不稳定，因此 `Phase 15` 的 retained probe 主要基于 `airouter`
+3. `gpt-4.1` 在小切片上表现出明显漂移和更差的对齐，已被排除
+4. `gpt-4o` 经两轮 prompt / merge policy 收口后，在最小 4-task 切片上已可接近 deterministic，但扩到 5-task 小切片后仍没有形成实质净增益
+5. 因此当前默认对外主路径仍应保持 deterministic；LLM-enabled 更适合做可选的补充审阅、解释增强或 runtime probe，而不是默认打分路径
+
 相关结论见：
 
 1. [GUIDE.md](./GUIDE.md)

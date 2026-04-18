@@ -147,27 +147,46 @@ def arbitrate_with_llm(
                 f"Equivalence report:\n{json.dumps({'equivalence_strength': equivalence_report.get('equivalence_strength'), 'supported_restructures': equivalence_report.get('supported_restructures', []), 'harmful_extras': [{'element_id': item.element_id, 'element_text': item.element_text, 'reason_text': item.reason_text} for item in equivalence_report.get('harmful_extras', [])], 'contradictions': [{'element_id': item.element_id, 'element_text': item.element_text, 'reason_text': item.reason_text} for item in equivalence_report.get('contradictions', [])], 'parallel_structure_mismatch': equivalence_report.get('parallel_structure_mismatch', False)}, ensure_ascii=False, indent=2)}",
             ),
         ],
+        operation="arbiter",
     )
     if not isinstance(payload, dict):
         return None
 
     override_map = {item.requirement_id: item for item in trace_results}
-    for item in payload.get("requirement_overrides", []):
-        if not isinstance(item, dict):
-            continue
-        requirement_id = str(item.get("requirement_id") or "").strip()
-        if requirement_id not in override_map:
-            continue
-        base = override_map[requirement_id]
-        override_map[requirement_id] = RequirementTraceResult(
-            requirement_id=base.requirement_id,
-            requirement_text=base.requirement_text,
-            status=str(item.get("status") or base.status),
-            reason_text=str(item.get("reason_text") or base.reason_text),
-            matched_element_ids=base.matched_element_ids[:4],
-            confidence=float(item.get("confidence", base.confidence)),
-        )
+    allow_status_override = bool(
+        equivalence_report.get("trace_conflict_count")
+        or equivalence_report.get("trace_upgrade_count")
+        or equivalence_report.get("parallel_structure_mismatch")
+        or equivalence_report.get("contradictions")
+        or equivalence_report.get("dependency_breaks")
+    )
+    if allow_status_override:
+        for item in payload.get("requirement_overrides", []):
+            if not isinstance(item, dict):
+                continue
+            requirement_id = str(item.get("requirement_id") or "").strip()
+            if requirement_id not in override_map:
+                continue
+            base = override_map[requirement_id]
+            override_status = str(item.get("status") or base.status).strip() or base.status
+            if override_status not in {"matched", "partial", "missing"}:
+                override_status = base.status
+            override_map[requirement_id] = RequirementTraceResult(
+                requirement_id=base.requirement_id,
+                requirement_text=base.requirement_text,
+                status=override_status,
+                reason_text=str(item.get("reason_text") or base.reason_text),
+                matched_element_ids=base.matched_element_ids[:4],
+                confidence=float(item.get("confidence", base.confidence)),
+            )
     report = dict(equivalence_report)
-    report["equivalence_strength"] = float(payload.get("equivalence_strength", report.get("equivalence_strength", 0.5)))
-    notes = [str(item).strip() for item in payload.get("arbitration_notes", []) if str(item).strip()]
+    base_strength = float(report.get("equivalence_strength", 0.5))
+    proposed_strength = float(payload.get("equivalence_strength", base_strength))
+    report["equivalence_strength"] = clip01(max(base_strength - 0.06, min(base_strength + 0.06, proposed_strength)))
+    raw_notes = payload.get("arbitration_notes", [])
+    if isinstance(raw_notes, str):
+        raw_notes = [raw_notes]
+    notes = [str(item).strip() for item in raw_notes if str(item).strip()]
+    if not allow_status_override and payload.get("requirement_overrides"):
+        notes.append("LLM arbitration notes were retained, but requirement statuses stayed with deterministic arbitration because no explicit conflict required override.")
     return list(override_map.values()), report, notes

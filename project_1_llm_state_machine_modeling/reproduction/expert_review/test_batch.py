@@ -72,6 +72,8 @@ def test_run_batch_review_produces_triage_and_observability() -> None:
     assert labels["good-1"] in {"direct_pass", "manual_review"}
     assert labels["bad-1"] in {"manual_review", "high_risk_reject"}
     assert run.summary["rerun_score_std"] >= 0.0
+    assert run.summary["token_cost_per_record"] == 0.0
+    assert run.summary["llm_effective_record_rate"] == 0.0
 
 
 def test_batch_load_and_export_round_trip(tmp_path) -> None:

@@ -10,6 +10,18 @@ from .common import clip01, make_evidence_item
 from .llm_helpers import invoke_llm_json
 
 
+def _dedup_str_list(values: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in values:
+        text = str(item).strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
+
+
 def deterministic_missing_evidence_critic(
     contract: Any,
     regime: Any,
@@ -129,18 +141,27 @@ def missing_evidence_with_llm(
                 f"Deterministic critic report:\n{base_report}",
             ),
         ],
+        operation="missing_evidence_critic",
     )
     if not isinstance(payload, dict):
         return None
     merged = dict(base_report)
     if "confidence_cap" in payload:
-        merged["confidence_cap"] = clip01(float(payload.get("confidence_cap", merged.get("confidence_cap", 0.6))))
+        proposed_cap = clip01(float(payload.get("confidence_cap", merged.get("confidence_cap", 0.6))))
+        if regime.regime == "record_level" and not base_report.get("warnings"):
+            base_cap = float(base_report.get("confidence_cap", 0.6))
+            merged["confidence_cap"] = max(base_cap - 0.03, min(base_cap, proposed_cap))
+        else:
+            merged["confidence_cap"] = proposed_cap
         merged["confidence"] = min(0.85, merged["confidence_cap"] + 0.05)
     if isinstance(payload.get("warnings"), list):
-        merged["warnings"] = [str(item).strip() for item in payload["warnings"] if str(item).strip()][:8]
+        proposed_warnings = [str(item).strip() for item in payload["warnings"] if str(item).strip()]
+        if regime.regime == "record_level" and not base_report.get("warnings"):
+            merged["warnings"] = list(base_report.get("warnings", []))
+        else:
+            merged["warnings"] = _dedup_str_list([*base_report.get("warnings", []), *proposed_warnings])[:8]
         merged["issue_taxonomy"] = ["evidence_overreach"] if merged["warnings"] else []
     if isinstance(payload.get("vv_roles"), list):
-        merged["vv_roles"] = [str(item).strip() for item in payload["vv_roles"] if str(item).strip()][:5]
-    if isinstance(payload.get("missing_evidence_flags"), list):
-        merged["missing_evidence_flags"] = [str(item).strip() for item in payload["missing_evidence_flags"] if str(item).strip()][:8]
+        merged["vv_roles"] = _dedup_str_list([*base_report.get("vv_roles", []), *payload["vv_roles"]])[:5]
+    merged["missing_evidence_flags"] = list(base_report.get("missing_evidence_flags", []))[:8]
     return merged

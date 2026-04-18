@@ -16,6 +16,7 @@ import pandas as pd
 
 from .agent import ExpertReviewAgent
 from .schema import ExpertReviewRequest, ExpertReviewResult, judgement_from_score
+from .utils import DEFAULT_MODEL
 
 
 DEFAULT_BENCHMARK_DIR = Path(
@@ -111,6 +112,16 @@ def _stable_token(value: Any, *, fallback: str = "na") -> str:
     if not text:
         return fallback
     return text.replace("\n", " ").strip()
+
+
+def _p95(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if len(values) == 1:
+        return values[0]
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round(0.95 * (len(ordered) - 1))))
+    return ordered[index]
 
 
 def _family_key_for_record_row(row: pd.Series) -> str:
@@ -1781,6 +1792,38 @@ def _task_inventory(tasks_by_regime: dict[str, list[BenchmarkTask]]) -> dict[str
     return inventory
 
 
+def _runtime_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    latencies = [float(row.get("latency_s", 0.0) or 0.0) for row in rows]
+    confidences = [float(row.get("agent_confidence", 0.0) or 0.0) for row in rows]
+    llm_rows = [row for row in rows if bool(row.get("llm_configured"))]
+    successful_llm_rows = [row for row in llm_rows if bool(row.get("llm_effective_used"))]
+    total_tokens = sum(int(row.get("llm_total_tokens", 0) or 0) for row in rows)
+    prompt_tokens = sum(int(row.get("llm_prompt_tokens", 0) or 0) for row in rows)
+    completion_tokens = sum(int(row.get("llm_completion_tokens", 0) or 0) for row in rows)
+    operation_attempts = sum(int(row.get("llm_operation_attempt_count", 0) or 0) for row in rows)
+    operation_successes = sum(int(row.get("llm_operation_success_count", 0) or 0) for row in rows)
+    operation_failures = sum(int(row.get("llm_operation_failure_count", 0) or 0) for row in rows)
+    return {
+        "confidence_mean": statistics.mean(confidences) if confidences else 0.0,
+        "latency_p50": statistics.median(latencies) if latencies else 0.0,
+        "latency_p95": _p95(latencies),
+        "llm_configured_record_count": len(llm_rows),
+        "llm_effective_record_count": len(successful_llm_rows),
+        "llm_effective_record_rate": len(successful_llm_rows) / len(llm_rows) if llm_rows else 0.0,
+        "llm_fallback_only_record_rate": (
+            sum(1 for row in llm_rows if bool(row.get("llm_fallback_only"))) / len(llm_rows) if llm_rows else 0.0
+        ),
+        "llm_total_tokens": total_tokens,
+        "llm_prompt_tokens": prompt_tokens,
+        "llm_completion_tokens": completion_tokens,
+        "token_cost_per_record": total_tokens / max(1, len(rows)),
+        "llm_operation_attempt_count": operation_attempts,
+        "llm_operation_success_count": operation_successes,
+        "llm_operation_failure_count": operation_failures,
+        "llm_operation_success_rate": operation_successes / max(1, operation_attempts),
+    }
+
+
 def _evaluate_task_bundle(
     tasks_by_regime: dict[str, list[BenchmarkTask]],
     *,
@@ -1789,9 +1832,20 @@ def _evaluate_task_bundle(
     report_label: str,
     metadata: dict[str, Any] | None = None,
     review_cache: dict[str, dict[str, Any]] | None = None,
+    model: str | None = None,
+    provider_order: list[str] | None = None,
+    temperature: float = 0.0,
+    timeout: int = 180,
 ) -> dict[str, Any]:
-    provider_order = None if llm_mode == "auto" else []
-    agent = ExpertReviewAgent(provider_order=provider_order)
+    if llm_mode == "auto":
+        agent = ExpertReviewAgent(
+            model=model or DEFAULT_MODEL,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
+        )
+    else:
+        agent = ExpertReviewAgent(provider_order=[])
     rerun_seed_tasks = (
         tasks_by_regime.get("record", [])[:rerun_count]
         + tasks_by_regime.get("summary", [])[:rerun_count]
@@ -1847,6 +1901,18 @@ def _evaluate_task_bundle(
                     "rerun_score_delta": rerun_score_delta,
                     "rerun_issue_jaccard": rerun_issue_jaccard,
                     "rerun_judgement_flip": rerun_judgement_flip,
+                    "used_review_backend": result.used_review_backend,
+                    "llm_model_name": result.llm_model_name,
+                    "llm_provider": result.llm_provider,
+                    "llm_configured": result.llm_usage_summary.llm_configured,
+                    "llm_effective_used": result.llm_usage_summary.effective_llm_used,
+                    "llm_fallback_only": result.llm_usage_summary.fallback_only,
+                    "llm_operation_attempt_count": result.llm_usage_summary.operation_attempt_count,
+                    "llm_operation_success_count": result.llm_usage_summary.operation_success_count,
+                    "llm_operation_failure_count": result.llm_usage_summary.operation_failure_count,
+                    "llm_prompt_tokens": result.llm_usage_summary.prompt_tokens,
+                    "llm_completion_tokens": result.llm_usage_summary.completion_tokens,
+                    "llm_total_tokens": result.llm_usage_summary.total_tokens,
                     "metadata": task.metadata,
                     "result": result,
                 }
@@ -1887,6 +1953,7 @@ def _evaluate_task_bundle(
     evidence_metrics = _evidence_locator_metrics(normalized_rows)
     contradiction_metrics = _contradiction_metrics(normalized_rows)
     critical_issue_metrics = _critical_issue_metrics(record_rows + summary_rows)
+    runtime_metrics = _runtime_metrics(normalized_rows)
     hai = 0.55 * ras + 0.25 * sas + 0.20 * protocol_metrics["PDS"]
 
     report = {
@@ -1919,6 +1986,7 @@ def _evaluate_task_bundle(
         "evidence_metrics": evidence_metrics,
         "contradiction_metrics": contradiction_metrics,
         "critical_issue_metrics": critical_issue_metrics,
+        "runtime_metrics": runtime_metrics,
         "HAI": hai,
         "metadata": {} if metadata is None else dict(metadata),
         "normalized_rows": normalized_rows,
@@ -1943,6 +2011,10 @@ def run_benchmark_iteration(
     llm_mode: str = "off",
     scope: str = "slice",
     split_name: str | None = None,
+    model: str | None = None,
+    provider_order: list[str] | None = None,
+    temperature: float = 0.0,
+    timeout: int = 180,
 ) -> dict[str, Any]:
     records, protocols, availability = _load_benchmark_tables(base_dir)
     if scope == "slice":
@@ -1988,6 +2060,10 @@ def run_benchmark_iteration(
         rerun_count=rerun_count,
         report_label=report_label,
         metadata=metadata,
+        model=model,
+        provider_order=provider_order,
+        temperature=temperature,
+        timeout=timeout,
     )
 
 
@@ -2386,6 +2462,10 @@ def run_phase7_evaluation_bundle(
     seed: int = 7,
     rerun_count: int = 4,
     llm_mode: str = "off",
+    model: str | None = None,
+    provider_order: list[str] | None = None,
+    temperature: float = 0.0,
+    timeout: int = 180,
 ) -> dict[str, Any]:
     records, protocols, availability = _load_benchmark_tables(base_dir)
     coverage = summarize_benchmark_coverage(records, protocols, availability)
@@ -2410,6 +2490,10 @@ def run_phase7_evaluation_bundle(
         report_label="phase7:slice",
         metadata={"scope": "slice", "seed": seed},
         review_cache=review_cache,
+        model=model,
+        provider_order=provider_order,
+        temperature=temperature,
+        timeout=timeout,
     )
     full_report = _evaluate_task_bundle(
         full_tasks,
@@ -2418,6 +2502,10 @@ def run_phase7_evaluation_bundle(
         report_label="phase7:full_available",
         metadata={"scope": "full"},
         review_cache=review_cache,
+        model=model,
+        provider_order=provider_order,
+        temperature=temperature,
+        timeout=timeout,
     )
     split_reports = {
         split: _evaluate_task_bundle(
@@ -2427,6 +2515,10 @@ def run_phase7_evaluation_bundle(
             report_label=f"phase7:split:{split}",
             metadata={"scope": "split", "split_name": split},
             review_cache=review_cache,
+            model=model,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
         )
         for split, task_bundle in split_bundle["task_bundles"].items()
     }
@@ -2442,6 +2534,10 @@ def run_phase7_evaluation_bundle(
                 "lofo_regime": lofo_bundle["manifest"]["families"][namespaced_key]["regime"],
             },
             review_cache=review_cache,
+            model=model,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
         )
         for namespaced_key, task_bundle in lofo_bundle["task_bundles"].items()
     }
@@ -2474,6 +2570,10 @@ def run_phase14_evaluation_bundle(
     rerun_count: int = 4,
     llm_mode: str = "off",
     candidate_version: str | None = None,
+    model: str | None = None,
+    provider_order: list[str] | None = None,
+    temperature: float = 0.0,
+    timeout: int = 180,
 ) -> dict[str, Any]:
     bundle = run_phase7_evaluation_bundle(
         base_dir=base_dir,
@@ -2484,6 +2584,10 @@ def run_phase14_evaluation_bundle(
         seed=seed,
         rerun_count=rerun_count,
         llm_mode=llm_mode,
+        model=model,
+        provider_order=provider_order,
+        temperature=temperature,
+        timeout=timeout,
     )
     lockbox_residuals = _summarize_lockbox_residual_clusters(bundle["split_reports"].get("lockbox"))
     promotion_evaluation = _build_phase14_promotion_evaluation(
@@ -2506,6 +2610,221 @@ def run_phase14_evaluation_bundle(
     }
 
 
+def _metric_delta(candidate: dict[str, Any], baseline: dict[str, Any], key: str) -> float:
+    return float(candidate.get(key, 0.0) or 0.0) - float(baseline.get(key, 0.0) or 0.0)
+
+
+def _phase15_recommendation(comparison: dict[str, Any]) -> str:
+    candidate_runtime = comparison["candidate_runtime"]
+    candidate_alignment = comparison["candidate_alignment"]
+    deltas = comparison["delta"]
+    if candidate_runtime.get("llm_effective_record_rate", 0.0) < 0.50:
+        return "deterministic_default_llm_not_effective_enough"
+    if candidate_alignment["summary_metrics"].get("rerun_score_std", 1.0) > 0.03:
+        return "deterministic_default_llm_drift_too_high"
+    if deltas["HAI"] <= 0.0 and candidate_runtime.get("token_cost_per_record", 0.0) > 0.0:
+        return "deterministic_default_no_alignment_gain"
+    if deltas["HAI"] >= 1.0 and candidate_alignment["summary_metrics"].get("rerun_score_std", 1.0) <= 0.03:
+        return "llm_optional_gain_visible"
+    return "deterministic_default_llm_optional"
+
+
+def _build_phase15_report_comparison(
+    baseline_report: dict[str, Any],
+    candidate_report: dict[str, Any],
+) -> dict[str, Any]:
+    delta = {
+        "HAI": _metric_delta(candidate_report, baseline_report, "HAI"),
+        "RAS": _metric_delta(candidate_report["record_metrics"], baseline_report["record_metrics"], "RAS"),
+        "SAS": _metric_delta(candidate_report["summary_metrics"], baseline_report["summary_metrics"], "SAS"),
+        "CRAS": _metric_delta(candidate_report["component_metrics"], baseline_report["component_metrics"], "CRAS"),
+        "PDS": _metric_delta(candidate_report["protocol_metrics"], baseline_report["protocol_metrics"], "PDS"),
+        "record_spearman_rho": _metric_delta(
+            candidate_report["record_metrics"],
+            baseline_report["record_metrics"],
+            "spearman_rho",
+        ),
+        "record_pairwise_order_accuracy": _metric_delta(
+            candidate_report["record_metrics"],
+            baseline_report["record_metrics"],
+            "pairwise_order_accuracy",
+        ),
+        "summary_spearman_rho": _metric_delta(
+            candidate_report["summary_metrics"],
+            baseline_report["summary_metrics"],
+            "spearman_rho",
+        ),
+        "summary_pairwise_order_accuracy": _metric_delta(
+            candidate_report["summary_metrics"],
+            baseline_report["summary_metrics"],
+            "pairwise_order_accuracy",
+        ),
+        "weighted_kappa": _metric_delta(
+            candidate_report["judgement_metrics"],
+            baseline_report["judgement_metrics"],
+            "weighted_kappa",
+        ),
+        "confidence_mean": _metric_delta(
+            candidate_report["runtime_metrics"],
+            baseline_report["runtime_metrics"],
+            "confidence_mean",
+        ),
+        "rerun_score_std": _metric_delta(
+            candidate_report["summary_metrics"],
+            baseline_report["summary_metrics"],
+            "rerun_score_std",
+        ),
+        "issue_jaccard_across_runs": _metric_delta(
+            candidate_report["summary_metrics"],
+            baseline_report["summary_metrics"],
+            "issue_jaccard_across_runs",
+        ),
+        "latency_p50": _metric_delta(
+            candidate_report["runtime_metrics"],
+            baseline_report["runtime_metrics"],
+            "latency_p50",
+        ),
+        "latency_p95": _metric_delta(
+            candidate_report["runtime_metrics"],
+            baseline_report["runtime_metrics"],
+            "latency_p95",
+        ),
+        "token_cost_per_record": _metric_delta(
+            candidate_report["runtime_metrics"],
+            baseline_report["runtime_metrics"],
+            "token_cost_per_record",
+        ),
+        "llm_effective_record_rate": _metric_delta(
+            candidate_report["runtime_metrics"],
+            baseline_report["runtime_metrics"],
+            "llm_effective_record_rate",
+        ),
+        "llm_fallback_only_record_rate": _metric_delta(
+            candidate_report["runtime_metrics"],
+            baseline_report["runtime_metrics"],
+            "llm_fallback_only_record_rate",
+        ),
+    }
+    comparison = {
+        "baseline_alignment": {
+            "HAI": baseline_report["HAI"],
+            "record_metrics": baseline_report["record_metrics"],
+            "summary_metrics": baseline_report["summary_metrics"],
+            "component_metrics": baseline_report["component_metrics"],
+            "protocol_metrics": baseline_report["protocol_metrics"],
+        },
+        "candidate_alignment": {
+            "HAI": candidate_report["HAI"],
+            "record_metrics": candidate_report["record_metrics"],
+            "summary_metrics": candidate_report["summary_metrics"],
+            "component_metrics": candidate_report["component_metrics"],
+            "protocol_metrics": candidate_report["protocol_metrics"],
+        },
+        "baseline_runtime": baseline_report["runtime_metrics"],
+        "candidate_runtime": candidate_report["runtime_metrics"],
+        "delta": delta,
+    }
+    comparison["default_path_recommendation"] = _phase15_recommendation(comparison)
+    return comparison
+
+
+def run_phase15_comparison_bundle(
+    *,
+    base_dir: Path = DEFAULT_BENCHMARK_DIR,
+    record_limit: int = 18,
+    summary_limit: int = 16,
+    component_limit: int = 24,
+    protocol_limit: int = 4,
+    seed: int = 7,
+    rerun_count: int = 4,
+    comparison_scope: str = "full",
+    split_name: str | None = None,
+    candidate_version: str | None = None,
+    model: str | None = None,
+    provider_order: list[str] | None = None,
+    temperature: float = 0.0,
+    timeout: int = 180,
+) -> dict[str, Any]:
+    if comparison_scope == "phase14":
+        baseline_payload = run_phase14_evaluation_bundle(
+            base_dir=base_dir,
+            record_limit=record_limit,
+            summary_limit=summary_limit,
+            component_limit=component_limit,
+            protocol_limit=protocol_limit,
+            seed=seed,
+            rerun_count=rerun_count,
+            llm_mode="off",
+            candidate_version="deterministic_baseline",
+            model=model,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
+        )
+        candidate_payload = run_phase14_evaluation_bundle(
+            base_dir=base_dir,
+            record_limit=record_limit,
+            summary_limit=summary_limit,
+            component_limit=component_limit,
+            protocol_limit=protocol_limit,
+            seed=seed,
+            rerun_count=rerun_count,
+            llm_mode="auto",
+            candidate_version=candidate_version or "llm_enabled_candidate",
+            model=model,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
+        )
+        baseline_report = baseline_payload["full_report"]
+        candidate_report = candidate_payload["full_report"]
+    else:
+        baseline_payload = run_benchmark_iteration(
+            base_dir=base_dir,
+            record_limit=record_limit,
+            summary_limit=summary_limit,
+            component_limit=component_limit,
+            protocol_limit=protocol_limit,
+            seed=seed,
+            rerun_count=rerun_count,
+            llm_mode="off",
+            scope=comparison_scope,
+            split_name=split_name,
+            model=model,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
+        )
+        candidate_payload = run_benchmark_iteration(
+            base_dir=base_dir,
+            record_limit=record_limit,
+            summary_limit=summary_limit,
+            component_limit=component_limit,
+            protocol_limit=protocol_limit,
+            seed=seed,
+            rerun_count=rerun_count,
+            llm_mode="auto",
+            scope=comparison_scope,
+            split_name=split_name,
+            model=model,
+            provider_order=provider_order,
+            temperature=temperature,
+            timeout=timeout,
+        )
+        baseline_report = baseline_payload
+        candidate_report = candidate_payload
+
+    return {
+        "comparison_scope": comparison_scope,
+        "split_name": split_name,
+        "candidate_model": model or DEFAULT_MODEL,
+        "provider_order": [] if provider_order is None else list(provider_order),
+        "baseline_payload": _jsonable_phase14_bundle(baseline_payload) if comparison_scope == "phase14" else _jsonable_report(baseline_payload),
+        "candidate_payload": _jsonable_phase14_bundle(candidate_payload) if comparison_scope == "phase14" else _jsonable_report(candidate_payload),
+        "comparison": _build_phase15_report_comparison(baseline_report, candidate_report),
+    }
+
+
 def _format_report(report: dict[str, Any]) -> str:
     sample_sizes = report["sample_sizes"]
     task_inventory = report.get("task_inventory", {})
@@ -2517,6 +2836,7 @@ def _format_report(report: dict[str, Any]) -> str:
     evidence = report.get("evidence_metrics", {})
     contradiction = report.get("contradiction_metrics", {})
     critical = report.get("critical_issue_metrics", {})
+    runtime = report.get("runtime_metrics", {})
     lines = [
         f"# Alignment Report: {report.get('report_label', 'unnamed')}",
         "",
@@ -2578,6 +2898,14 @@ def _format_report(report: dict[str, Any]) -> str:
         f"- evidence_locator_validity: {evidence.get('evidence_locator_validity', 0.0):.4f}",
         f"- contradiction_rate: {contradiction.get('contradiction_rate', 0.0):.4f}",
         "",
+        "## Runtime / LLM Observability",
+        f"- confidence_mean: {runtime.get('confidence_mean', 0.0):.4f}",
+        f"- latency_p50: {runtime.get('latency_p50', 0.0):.4f}",
+        f"- latency_p95: {runtime.get('latency_p95', 0.0):.4f}",
+        f"- token_cost_per_record: {runtime.get('token_cost_per_record', 0.0):.2f}",
+        f"- llm_effective_record_rate: {runtime.get('llm_effective_record_rate', 0.0):.4f}",
+        f"- llm_fallback_only_record_rate: {runtime.get('llm_fallback_only_record_rate', 0.0):.4f}",
+        "",
         "## Overall",
         f"- HAI: {report['HAI']:.2f}",
     ]
@@ -2619,6 +2947,18 @@ def _jsonable_phase14_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
         }
     )
     return payload
+
+
+def _jsonable_phase15_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "comparison_scope": bundle["comparison_scope"],
+        "split_name": bundle["split_name"],
+        "candidate_model": bundle["candidate_model"],
+        "provider_order": bundle["provider_order"],
+        "baseline_payload": bundle["baseline_payload"],
+        "candidate_payload": bundle["candidate_payload"],
+        "comparison": bundle["comparison"],
+    }
 
 
 def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
@@ -2890,6 +3230,63 @@ def _format_phase14_bundle(bundle: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _format_phase15_bundle(bundle: dict[str, Any]) -> str:
+    comparison = bundle["comparison"]
+    delta = comparison["delta"]
+    baseline_runtime = comparison["baseline_runtime"]
+    candidate_runtime = comparison["candidate_runtime"]
+    lines = [
+        "# Phase 15 Comparison Bundle",
+        "",
+        "## Scope",
+        f"- comparison_scope: {bundle['comparison_scope']}",
+        f"- split_name: {bundle['split_name'] or 'n/a'}",
+        f"- candidate_model: {bundle['candidate_model']}",
+        f"- provider_order: {json.dumps(bundle['provider_order'], ensure_ascii=False)}",
+        "",
+        "## Alignment Delta",
+        f"- HAI: {delta['HAI']:.2f}",
+        f"- RAS: {delta['RAS']:.2f}",
+        f"- SAS: {delta['SAS']:.2f}",
+        f"- CRAS: {delta['CRAS']:.2f}",
+        f"- PDS: {delta['PDS']:.2f}",
+        f"- record_spearman_rho: {delta['record_spearman_rho']:.4f}",
+        f"- record_pairwise_order_accuracy: {delta['record_pairwise_order_accuracy']:.4f}",
+        f"- summary_spearman_rho: {delta['summary_spearman_rho']:.4f}",
+        f"- summary_pairwise_order_accuracy: {delta['summary_pairwise_order_accuracy']:.4f}",
+        f"- weighted_kappa: {delta['weighted_kappa']:.4f}",
+        "",
+        "## Stability / Confidence Delta",
+        f"- confidence_mean: {delta['confidence_mean']:.4f}",
+        f"- rerun_score_std: {delta['rerun_score_std']:.4f}",
+        f"- issue_jaccard_across_runs: {delta['issue_jaccard_across_runs']:.4f}",
+        "",
+        "## Runtime Delta",
+        f"- latency_p50: {delta['latency_p50']:.4f}",
+        f"- latency_p95: {delta['latency_p95']:.4f}",
+        f"- token_cost_per_record: {delta['token_cost_per_record']:.2f}",
+        f"- llm_effective_record_rate: {delta['llm_effective_record_rate']:.4f}",
+        f"- llm_fallback_only_record_rate: {delta['llm_fallback_only_record_rate']:.4f}",
+        "",
+        "## Candidate Runtime",
+        f"- latency_p50: {candidate_runtime.get('latency_p50', 0.0):.4f}",
+        f"- latency_p95: {candidate_runtime.get('latency_p95', 0.0):.4f}",
+        f"- token_cost_per_record: {candidate_runtime.get('token_cost_per_record', 0.0):.2f}",
+        f"- llm_effective_record_rate: {candidate_runtime.get('llm_effective_record_rate', 0.0):.4f}",
+        f"- llm_fallback_only_record_rate: {candidate_runtime.get('llm_fallback_only_record_rate', 0.0):.4f}",
+        f"- llm_total_tokens: {candidate_runtime.get('llm_total_tokens', 0)}",
+        "",
+        "## Baseline Runtime",
+        f"- latency_p50: {baseline_runtime.get('latency_p50', 0.0):.4f}",
+        f"- latency_p95: {baseline_runtime.get('latency_p95', 0.0):.4f}",
+        f"- token_cost_per_record: {baseline_runtime.get('token_cost_per_record', 0.0):.2f}",
+        "",
+        "## Recommendation",
+        f"- default_path_recommendation: {comparison['default_path_recommendation']}",
+    ]
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--benchmark-dir", type=Path, default=DEFAULT_BENCHMARK_DIR)
@@ -2900,9 +3297,14 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--rerun-count", type=int, default=4)
     parser.add_argument("--llm-mode", choices=["off", "auto"], default="off")
-    parser.add_argument("--scope", choices=["slice", "full", "split", "phase7", "phase14"], default="slice")
+    parser.add_argument("--scope", choices=["slice", "full", "split", "phase7", "phase14", "phase15"], default="slice")
     parser.add_argument("--split-name", choices=SPLIT_ORDER, default=None)
     parser.add_argument("--candidate-version", type=str, default=None)
+    parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--provider-order", nargs="*", default=None)
+    parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--phase15-comparison-scope", choices=["slice", "full", "split", "phase14"], default="full")
     parser.add_argument("--output-markdown", type=Path, default=None)
     parser.add_argument("--output-json", type=Path, default=None)
     args = parser.parse_args()
@@ -2916,6 +3318,10 @@ def main() -> None:
             seed=args.seed,
             rerun_count=args.rerun_count,
             llm_mode=args.llm_mode,
+            model=args.model,
+            provider_order=args.provider_order,
+            temperature=args.temperature,
+            timeout=args.timeout,
         )
         markdown = _format_phase7_bundle(payload)
         if args.output_markdown is not None:
@@ -2938,6 +3344,10 @@ def main() -> None:
             rerun_count=args.rerun_count,
             llm_mode=args.llm_mode,
             candidate_version=args.candidate_version,
+            model=args.model,
+            provider_order=args.provider_order,
+            temperature=args.temperature,
+            timeout=args.timeout,
         )
         markdown = _format_phase14_bundle(payload)
         if args.output_markdown is not None:
@@ -2945,6 +3355,33 @@ def main() -> None:
         if args.output_json is not None:
             args.output_json.write_text(
                 json.dumps(_jsonable_phase14_bundle(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        print(markdown)
+        return
+    if args.scope == "phase15":
+        payload = run_phase15_comparison_bundle(
+            base_dir=args.benchmark_dir,
+            record_limit=args.record_limit,
+            summary_limit=args.summary_limit,
+            component_limit=args.component_limit,
+            protocol_limit=args.protocol_limit,
+            seed=args.seed,
+            rerun_count=args.rerun_count,
+            comparison_scope=args.phase15_comparison_scope,
+            split_name=args.split_name,
+            candidate_version=args.candidate_version,
+            model=args.model,
+            provider_order=args.provider_order,
+            temperature=args.temperature,
+            timeout=args.timeout,
+        )
+        markdown = _format_phase15_bundle(payload)
+        if args.output_markdown is not None:
+            args.output_markdown.write_text(markdown + "\n", encoding="utf-8")
+        if args.output_json is not None:
+            args.output_json.write_text(
+                json.dumps(_jsonable_phase15_bundle(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
         print(markdown)
@@ -2961,6 +3398,10 @@ def main() -> None:
         llm_mode=args.llm_mode,
         scope=args.scope,
         split_name=args.split_name,
+        model=args.model,
+        provider_order=args.provider_order,
+        temperature=args.temperature,
+        timeout=args.timeout,
     )
     markdown = _format_report(report)
     if args.output_markdown is not None:

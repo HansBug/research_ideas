@@ -195,6 +195,7 @@ def traceability_with_llm(
                 f"Trace candidates:\n{json.dumps(compact_candidates, ensure_ascii=False, indent=2)}",
             ),
         ],
+        operation="traceability",
     )
     if not isinstance(payload, dict):
         return None

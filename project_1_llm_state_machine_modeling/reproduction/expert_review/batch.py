@@ -11,7 +11,9 @@ from typing import Any
 
 from .agent import ExpertReviewAgent
 from .compatibility import heuristic_expert_review
+from .llm_telemetry import LLMUsageSummary
 from .schema import ExpertReviewRequest, result_to_flat_row, to_dict
+from .utils import DEFAULT_MODEL
 
 
 BATCH_SCHEMA_VERSION = "v1"
@@ -56,6 +58,7 @@ class BatchReviewRow:
     used_review_backend: str | None
     llm_model_name: str | None
     llm_provider: str | None
+    llm_usage_summary: LLMUsageSummary = field(default_factory=LLMUsageSummary)
     metadata: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     review_result: dict[str, Any] = field(default_factory=dict)
@@ -208,6 +211,7 @@ def _row_to_export_dict(row: BatchReviewRow) -> dict[str, Any]:
         "used_review_backend": row.used_review_backend,
         "llm_model_name": row.llm_model_name,
         "llm_provider": row.llm_provider,
+        "llm_usage_summary_json": json.dumps(asdict(row.llm_usage_summary), ensure_ascii=False, sort_keys=True),
         "metadata_json": json.dumps(row.metadata, ensure_ascii=False, sort_keys=True),
         "notes_json": json.dumps(row.notes, ensure_ascii=False, sort_keys=True),
         **flat_result,
@@ -267,7 +271,7 @@ def run_batch_review(
     agent: ExpertReviewAgent | None = None
     if llm_mode == "auto":
         agent = ExpertReviewAgent(
-            model=model or "gpt-4.1-mini",
+            model=model or DEFAULT_MODEL,
             provider_order=provider_order,
             temperature=temperature,
             timeout=timeout,
@@ -316,6 +320,7 @@ def run_batch_review(
                     used_review_backend=None,
                     llm_model_name=None,
                     llm_provider=None,
+                    llm_usage_summary=LLMUsageSummary(token_cost_per_record=0.0),
                     metadata=dict(item.metadata),
                     notes=[failure_reason] if failure_reason else [],
                     review_result={},
@@ -343,6 +348,7 @@ def run_batch_review(
                 used_review_backend=result.used_review_backend,
                 llm_model_name=result.llm_model_name,
                 llm_provider=result.llm_provider,
+                llm_usage_summary=result.llm_usage_summary,
                 metadata=dict(item.metadata),
                 notes=list(result.notes),
                 review_result={
@@ -366,6 +372,8 @@ def run_batch_review(
     latencies = [row.latency_s for row in rows]
     scores = [row.overall_score for row in rows if row.success]
     confidences = [row.confidence for row in rows if row.success]
+    llm_rows = [row for row in rows if row.success and row.llm_usage_summary.llm_configured]
+    successful_llm_rows = [row for row in llm_rows if row.llm_usage_summary.effective_llm_used]
     triage_counts: dict[str, int] = {}
     for row in rows:
         triage_counts[row.triage_label] = triage_counts.get(row.triage_label, 0) + 1
@@ -387,8 +395,21 @@ def run_batch_review(
         "rerun_score_std": round(statistics.mean(rerun_deltas), 6) if rerun_deltas else 0.0,
         "rerun_score_delta_max": round(max(rerun_deltas), 6) if rerun_deltas else 0.0,
         "triage_flip_rate": round(rerun_triage_flips / len(rerun_rows), 6) if rerun_rows else 0.0,
-        "estimated_cost_usd_total": 0.0 if llm_mode == "off" else None,
-        "cost_tracking_status": "deterministic_zero_cost" if llm_mode == "off" else "not_instrumented",
+        "llm_configured_record_count": len(llm_rows),
+        "llm_effective_record_count": len(successful_llm_rows),
+        "llm_effective_record_rate": round(len(successful_llm_rows) / max(1, len(llm_rows)), 6) if llm_rows else 0.0,
+        "llm_fallback_only_record_rate": (
+            round(sum(1 for row in llm_rows if row.llm_usage_summary.fallback_only) / len(llm_rows), 6) if llm_rows else 0.0
+        ),
+        "llm_total_tokens": sum(row.llm_usage_summary.total_tokens for row in rows if row.success),
+        "llm_prompt_tokens": sum(row.llm_usage_summary.prompt_tokens for row in rows if row.success),
+        "llm_completion_tokens": sum(row.llm_usage_summary.completion_tokens for row in rows if row.success),
+        "token_cost_per_record": round(
+            sum(row.llm_usage_summary.total_tokens for row in rows if row.success) / max(1, len([row for row in rows if row.success])),
+            6,
+        ),
+        "estimated_cost_usd_total": 0.0,
+        "cost_tracking_status": "token_budget_only",
     }
     return BatchReviewRun(
         schema_version=BATCH_SCHEMA_VERSION,
@@ -407,6 +428,10 @@ def main() -> None:
     parser.add_argument("--llm-mode", choices=["off", "auto"], default="off")
     parser.add_argument("--max-retries", type=int, default=0)
     parser.add_argument("--rerun-count", type=int, default=4)
+    parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--provider-order", nargs="*", default=None)
+    parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--output-json", type=Path, default=None)
     parser.add_argument("--output-jsonl", type=Path, default=None)
     parser.add_argument("--output-csv", type=Path, default=None)
@@ -418,6 +443,10 @@ def main() -> None:
         llm_mode=args.llm_mode,
         max_retries=args.max_retries,
         rerun_count=args.rerun_count,
+        model=args.model,
+        provider_order=args.provider_order,
+        temperature=args.temperature,
+        timeout=args.timeout,
     )
     export_batch_run(
         run,

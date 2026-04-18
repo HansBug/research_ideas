@@ -155,6 +155,7 @@ def maybe_refine_overall_reason(
                 f"Dimension reasons:\n{json.dumps([item.reason_text for item in dimension_results], ensure_ascii=False, indent=2)}",
             ),
         ],
+        operation="final_synthesizer",
     )
     if not isinstance(payload, dict):
         return draft_reason

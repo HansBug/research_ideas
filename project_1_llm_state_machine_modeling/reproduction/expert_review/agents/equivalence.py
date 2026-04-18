@@ -400,6 +400,7 @@ def equivalence_with_llm(
                 f"Deterministic candidate report:\n{json.dumps(_json_safe_report(base_report), ensure_ascii=False, indent=2)}",
             ),
         ],
+        operation="equivalence",
     )
     if not isinstance(payload, dict):
         return None

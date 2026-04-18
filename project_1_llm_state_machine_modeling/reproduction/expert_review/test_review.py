@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+from .agents import arbiter as arbiter_module
+from .agents import llm_helpers as llm_helpers_module
+from .agents import missing_evidence_critic as missing_evidence_critic_module
+from .agents import review_policy_builder as review_policy_builder_module
 from .agents.final_synthesizer import coarse_overall_judgement
 from .agents.input_analyst import build_input_dossier
+from .agents.review_policy_builder import build_review_policy_packet
 from .compatibility import heuristic_expert_review
-from .schema import DimensionReviewResult, EvidenceItem, ExpertReviewRequest
+from .graph.runtime import run_expert_review_workflow
+from .schema import DimensionReviewResult, EvidenceItem, ExpertReviewRequest, RequirementTraceResult
 from .tools.artifact_probe import build_parser_dossier
 from .tools.dossier_merge import merge_artifact_dossiers
+from .tools import policy_library as policy_library_module
+from .tools.policy_library import build_review_policy
 from .tools.policy_library import infer_record_diagram_type, infer_summary_row_type, infer_summary_target
 from .tools.validation import evidence_summary_from_dimensions
 
@@ -76,6 +84,8 @@ def test_heuristic_review_returns_structured_result() -> None:
     assert result.requirement_trace_results
     assert result.overall_reason_text
     assert any("Agent context trimming" in note for note in result.notes)
+    assert result.llm_usage_summary.llm_configured is False
+    assert result.llm_usage_summary.total_tokens == 0
 
 
 def test_evidence_summary_prefers_locator_bearing_items() -> None:
@@ -610,6 +620,97 @@ def test_policy_library_prefers_structured_multilingual_metadata() -> None:
     assert infer_record_diagram_type(request.prompt, request=request) == "act"
 
 
+def test_record_level_policy_skips_summary_semantic_llm_calls(monkeypatch) -> None:
+    request = build_request()
+    contract = type(
+        "Contract",
+        (),
+        {
+            "task_summary": request.prompt,
+            "requested_focus": ["coverage", "equivalence"],
+            "domain_knowledge": [],
+            "equivalence_rules": [],
+            "evidence_rules": [],
+            "notes": [],
+            "strictness": "balanced",
+        },
+    )()
+    regime = type("Regime", (), {"regime": "record_level", "has_reference": True})()
+    input_dossier = build_input_dossier(request)
+    pred_dossier = build_parser_dossier("prediction", request.pred_output)
+    ref_dossier = build_parser_dossier("reference", request.ref_output)
+
+    def _unexpected(*args, **kwargs):
+        raise AssertionError("summary semantic classifier should not run for record-level policy construction")
+
+    monkeypatch.setattr(policy_library_module, "infer_summary_row_type", _unexpected)
+    monkeypatch.setattr(policy_library_module, "infer_summary_target", _unexpected)
+    monkeypatch.setattr(policy_library_module, "infer_summary_target_axis", _unexpected)
+    monkeypatch.setattr(policy_library_module, "infer_record_diagram_type", lambda *args, **kwargs: "stm")
+
+    policy = build_review_policy(
+        contract,
+        regime,
+        request,
+        input_dossier,
+        pred_dossier,
+        ref_dossier,
+        llm=object(),
+    )
+    assert policy["summary_row_type"] == "direct_review"
+    assert policy["summary_target"] == "unknown"
+    assert policy["record_diagram_type"] == "stm"
+
+
+def test_review_policy_packet_skips_llm_refinement_for_record_level(monkeypatch) -> None:
+    request = build_request()
+    contract = type(
+        "Contract",
+        (),
+        {
+            "task_summary": request.prompt,
+            "requested_focus": ["coverage", "equivalence"],
+            "domain_knowledge": [],
+            "equivalence_rules": [],
+            "evidence_rules": [],
+            "notes": [],
+            "strictness": "balanced",
+        },
+    )()
+    regime = type(
+        "Regime",
+        (),
+        {
+            "regime": "record_level",
+            "has_reference": True,
+            "pred_observability": "high",
+            "ref_observability": "high",
+        },
+    )()
+    input_dossier = build_input_dossier(request)
+    pred_dossier = build_parser_dossier("prediction", request.pred_output)
+    ref_dossier = build_parser_dossier("reference", request.ref_output)
+    notes: list[str] = []
+
+    monkeypatch.setattr(
+        review_policy_builder_module,
+        "invoke_llm_json",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("record-level policy packet should skip LLM refinement")),
+    )
+    policy = build_review_policy_packet(
+        object(),
+        contract,
+        regime,
+        request,
+        input_dossier,
+        pred_dossier,
+        ref_dossier,
+        notes,
+    )
+    assert policy["record_diagram_type"] == "stm"
+    assert any("kept deterministic policy" in note for note in notes)
+
+
 def test_runtime_scores_component_public_evidence_from_structured_metadata() -> None:
     request = ExpertReviewRequest(
         prompt=(
@@ -659,3 +760,110 @@ def test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text() 
         "simulation",
         "testing",
     }
+
+
+def test_runtime_marks_llm_fallback_only_when_no_stage_returns_usable_llm_output(monkeypatch) -> None:
+    class DummyLLM:
+        pass
+
+    def _always_fail_transport(*args, **kwargs):
+        raise RuntimeError("llm transport unavailable")
+
+    monkeypatch.setattr(llm_helpers_module, "_invoke_transport", _always_fail_transport)
+    result = run_expert_review_workflow(
+        build_request(),
+        llm=DummyLLM(),
+        llm_model_name="gpt-test",
+        llm_provider="provider-test",
+        backend_label="langgraph_multi_agent_v1_llm",
+    )
+    assert result.used_review_backend == "langgraph_multi_agent_v1_llm_fallback_only"
+    assert result.llm_model_name == "gpt-test"
+    assert result.llm_provider == "provider-test"
+    assert result.llm_usage_summary.llm_configured is True
+    assert result.llm_usage_summary.effective_llm_used is False
+    assert result.llm_usage_summary.operation_failure_count > 0
+    assert any("effectively deterministic" in note for note in result.notes)
+
+
+def test_arbiter_llm_does_not_override_status_without_explicit_conflict(monkeypatch) -> None:
+    monkeypatch.setattr(
+        arbiter_module,
+        "invoke_llm_json",
+        lambda *args, **kwargs: {
+            "requirement_overrides": [
+                {
+                    "requirement_id": "R1",
+                    "status": "missing",
+                    "reason_text": "hallucinated downgrade",
+                    "confidence": 0.2,
+                }
+            ],
+            "equivalence_strength": 0.1,
+            "arbitration_notes": "Keep the deterministic status.",
+        },
+    )
+    trace_results = [
+        RequirementTraceResult(
+            requirement_id="R1",
+            requirement_text="R1 text",
+            status="matched",
+            reason_text="deterministic trace",
+            matched_element_ids=["t1"],
+            confidence=0.8,
+        )
+    ]
+    updated_trace, updated_report, notes = arbiter_module.arbitrate_with_llm(
+        object(),
+        input_dossier=type("Input", (), {"requirements": []})(),
+        pred_dossier=type("Pred", (), {"summary": "pred"})(),
+        ref_dossier=type("Ref", (), {"summary": "ref"})(),
+        trace_results=trace_results,
+        equivalence_report={"equivalence_strength": 0.6, "trace_conflict_count": 0},
+    )
+    assert updated_trace[0].status == "matched"
+    assert updated_trace[0].reason_text == "deterministic trace"
+    assert 0.54 <= updated_report["equivalence_strength"] <= 0.66
+    assert any("statuses stayed with deterministic arbitration" in note for note in notes)
+
+
+def test_missing_evidence_llm_cannot_invent_record_level_flags_without_base_warning(monkeypatch) -> None:
+    monkeypatch.setattr(
+        missing_evidence_critic_module,
+        "invoke_llm_json",
+        lambda *args, **kwargs: {
+            "confidence_cap": 0.2,
+            "warnings": ["invented structural concern"],
+            "vv_roles": ["manual inspection", "simulation"],
+            "missing_evidence_flags": ["missing transition X -> Y"],
+        },
+    )
+    request = build_request()
+    base_report = {
+        "confidence_cap": 0.84,
+        "warnings": [],
+        "confidence": 0.85,
+        "allow_element_level_claims": True,
+        "allow_requirement_defect_claims": True,
+        "missing_evidence_flags": [],
+        "vv_roles": ["manual inspection"],
+        "issue_taxonomy": [],
+        "evidence": [],
+    }
+    merged = missing_evidence_critic_module.missing_evidence_with_llm(
+        object(),
+        contract=type("Contract", (), {"task_summary": request.prompt})(),
+        regime=type("Regime", (), {"regime": "record_level"})(),
+        request=request,
+        policy_packet={"base_confidence_cap": 0.84},
+        input_dossier=build_input_dossier(request),
+        pred_dossier=build_parser_dossier("prediction", request.pred_output),
+        ref_dossier=build_parser_dossier("reference", request.ref_output),
+        equivalence_report={},
+        quality_report={},
+        base_report=base_report,
+    )
+    assert merged["warnings"] == []
+    assert merged["missing_evidence_flags"] == []
+    assert merged["vv_roles"] == ["manual inspection", "simulation"]
+    assert round(merged["confidence_cap"], 6) >= 0.81

@@ -10,6 +10,7 @@ from .benchmark import (
     _build_phase14_lofo_gate,
     _build_phase14_lockbox_gate,
     _build_phase14_promotion_evaluation,
+    _build_phase15_report_comparison,
     _evaluate_task_bundle,
     _evidence_locator_metrics,
     _judgement_metrics,
@@ -611,3 +612,43 @@ def test_evaluate_task_bundle_reuses_deterministic_review_cache(monkeypatch) -> 
     )
 
     assert call_counter["count"] == 1
+
+
+def test_phase15_report_comparison_exposes_runtime_and_alignment_deltas() -> None:
+    baseline = {
+        "HAI": 86.0,
+        "record_metrics": {"RAS": 84.0, "spearman_rho": 0.70, "pairwise_order_accuracy": 0.78},
+        "summary_metrics": {"SAS": 81.0, "spearman_rho": 0.60, "pairwise_order_accuracy": 0.72, "rerun_score_std": 0.01, "issue_jaccard_across_runs": 0.95},
+        "component_metrics": {"CRAS": 100.0},
+        "protocol_metrics": {"PDS": 100.0},
+        "judgement_metrics": {"weighted_kappa": 0.60},
+        "runtime_metrics": {
+            "confidence_mean": 0.55,
+            "latency_p50": 0.10,
+            "latency_p95": 0.20,
+            "token_cost_per_record": 0.0,
+            "llm_effective_record_rate": 0.0,
+            "llm_fallback_only_record_rate": 0.0,
+        },
+    }
+    candidate = {
+        "HAI": 87.5,
+        "record_metrics": {"RAS": 85.0, "spearman_rho": 0.73, "pairwise_order_accuracy": 0.80},
+        "summary_metrics": {"SAS": 82.0, "spearman_rho": 0.63, "pairwise_order_accuracy": 0.75, "rerun_score_std": 0.02, "issue_jaccard_across_runs": 0.96},
+        "component_metrics": {"CRAS": 100.0},
+        "protocol_metrics": {"PDS": 100.0},
+        "judgement_metrics": {"weighted_kappa": 0.64},
+        "runtime_metrics": {
+            "confidence_mean": 0.60,
+            "latency_p50": 0.45,
+            "latency_p95": 0.90,
+            "token_cost_per_record": 3200.0,
+            "llm_effective_record_rate": 0.92,
+            "llm_fallback_only_record_rate": 0.08,
+        },
+    }
+    comparison = _build_phase15_report_comparison(baseline, candidate)
+    assert comparison["delta"]["HAI"] == 1.5
+    assert comparison["delta"]["token_cost_per_record"] == 3200.0
+    assert comparison["delta"]["llm_effective_record_rate"] == 0.92
+    assert comparison["default_path_recommendation"] == "llm_optional_gain_visible"

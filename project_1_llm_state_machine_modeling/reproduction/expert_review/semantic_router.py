@@ -9,7 +9,8 @@ from typing import Any, Iterable, Sequence
 
 from langchain_openai import ChatOpenAI
 
-from .utils import ensure_json, normalize_id, normalize_text, semantic_terms
+from .agents.llm_helpers import invoke_llm_json
+from .utils import normalize_id, normalize_text, semantic_terms
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,36 +22,13 @@ class SemanticCategory:
     threshold: float = 0.18
 
 
-def _content_to_text(content: object) -> str:
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for item in content:
-            text = getattr(item, "text", None)
-            if isinstance(text, str):
-                parts.append(text)
-            else:
-                parts.append(str(item))
-        return "".join(parts)
-    return "" if content is None else str(content)
-
-
-def _invoke_llm_json(llm: ChatOpenAI, messages: list[tuple[str, str]]) -> dict[str, Any] | None:
-    try:
-        runnable = llm.bind(response_format={"type": "json_object"})
-        response = runnable.invoke(messages)
-        text = _content_to_text(getattr(response, "content", response)).strip()
-        if not text:
-            chunks: list[str] = []
-            for chunk in runnable.stream(messages):
-                part = _content_to_text(getattr(chunk, "content", chunk)).strip()
-                if part:
-                    chunks.append(part)
-            text = "".join(chunks).strip()
-        return ensure_json(text)
-    except Exception:
-        return None
+def _invoke_llm_json(
+    llm: ChatOpenAI,
+    messages: list[tuple[str, str]],
+    *,
+    operation: str,
+) -> dict[str, Any] | None:
+    return invoke_llm_json(llm, messages, operation=operation)
 
 
 @lru_cache(maxsize=200000)
@@ -177,6 +155,7 @@ def semantic_single_label(
                     + json.dumps(prepared, ensure_ascii=False, indent=2),
                 ),
             ],
+            operation=f"semantic_router:{task_name}",
         )
         if isinstance(payload, dict):
             label = normalize_text(payload.get("label") or default_label) or default_label
@@ -236,6 +215,7 @@ def semantic_multi_label(
                     + json.dumps(prepared, ensure_ascii=False, indent=2),
                 ),
             ],
+            operation=f"semantic_router:{task_name}",
         )
         if isinstance(payload, dict) and isinstance(payload.get("labels"), list):
             allowed = {category.name for category in categories}

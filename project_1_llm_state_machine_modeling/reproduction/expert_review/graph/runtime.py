@@ -5,6 +5,7 @@ from typing import Any
 from langchain_openai import ChatOpenAI
 
 from ..agents import record_agent_context, record_fanout, run_parallel
+from ..llm_telemetry import llm_run_context, summarize_current_llm_usage
 from ..schemas.graph_state import ReviewGraphState
 from ..schemas.request import ExpertReviewRequest
 from ..schemas.result import ExpertReviewResult
@@ -94,223 +95,242 @@ def run_expert_review_workflow(
     llm_provider: str | None = None,
     backend_label: str = "langgraph_multi_agent_v1",
 ) -> ExpertReviewResult:
-    state = ReviewGraphState(
-        request=request,
-        llm=llm,
-        llm_model_name=llm_model_name,
-        llm_provider=llm_provider,
-        backend_label=backend_label,
-    )
+    with llm_run_context(
+        llm_configured=llm is not None,
+        configured_model_name=llm_model_name,
+        configured_provider=llm_provider,
+    ):
+        state = ReviewGraphState(
+            request=request,
+            llm=llm,
+            llm_model_name=llm_model_name,
+            llm_provider=llm_provider,
+            backend_label=backend_label,
+        )
 
-    record_agent_context(state, "Contract Router", context_keys=["prompt"], summary="Prompt-only contract parsing.")
-    state.contract, contract_notes = run_contract_router_node(llm, request.prompt)
-    state.notes.extend(contract_notes)
+        record_agent_context(state, "Contract Router", context_keys=["prompt"], summary="Prompt-only contract parsing.")
+        state.contract, contract_notes = run_contract_router_node(llm, request.prompt)
+        state.notes.extend(contract_notes)
 
-    record_fanout(state, "preparation_fanout", ("Input Analyst", "Prediction Extractor", "Reference Extractor"))
-    record_agent_context(state, "Input Analyst", context_keys=["input_text", "prompt"], summary="Requirement and grounding extraction.")
-    record_agent_context(state, "Prediction Extractor", context_keys=["pred_output"], summary="Prediction-only artifact lifting.")
-    record_agent_context(state, "Reference Extractor", context_keys=["ref_output"], summary="Reference-only artifact lifting.")
-    preparation = run_parallel(
-        {
-            "input": lambda: run_input_analyst_node(request),
-            "prediction": lambda: run_prediction_extractor_node(llm, request.pred_output),
-            "reference": lambda: run_reference_extractor_node(llm, request.ref_output),
-        }
-    )
-    state.input_dossier, input_notes = preparation["input"]
-    state.pred_dossier, pred_notes = preparation["prediction"]
-    state.ref_dossier, ref_notes = preparation["reference"]
-    state.notes.extend(input_notes + pred_notes + ref_notes)
+        record_fanout(state, "preparation_fanout", ("Input Analyst", "Prediction Extractor", "Reference Extractor"))
+        record_agent_context(state, "Input Analyst", context_keys=["input_text", "prompt"], summary="Requirement and grounding extraction.")
+        record_agent_context(state, "Prediction Extractor", context_keys=["pred_output"], summary="Prediction-only artifact lifting.")
+        record_agent_context(state, "Reference Extractor", context_keys=["ref_output"], summary="Reference-only artifact lifting.")
+        preparation = run_parallel(
+            {
+                "input": lambda: run_input_analyst_node(request),
+                "prediction": lambda: run_prediction_extractor_node(llm, request.pred_output),
+                "reference": lambda: run_reference_extractor_node(llm, request.ref_output),
+            }
+        )
+        state.input_dossier, input_notes = preparation["input"]
+        state.pred_dossier, pred_notes = preparation["prediction"]
+        state.ref_dossier, ref_notes = preparation["reference"]
+        state.notes.extend(input_notes + pred_notes + ref_notes)
 
-    record_agent_context(
-        state,
-        "Evidence Regime Estimator",
-        context_keys=["prompt", "input_dossier", "pred_dossier", "ref_dossier"],
-        summary="Evidence regime inference without task-type assumptions.",
-    )
-    state.regime, regime_notes = run_evidence_regime_node(llm, request, state.pred_dossier, state.ref_dossier)
-    state.notes.extend(regime_notes)
+        record_agent_context(
+            state,
+            "Evidence Regime Estimator",
+            context_keys=["prompt", "input_dossier", "pred_dossier", "ref_dossier"],
+            summary="Evidence regime inference without task-type assumptions.",
+        )
+        state.regime, regime_notes = run_evidence_regime_node(llm, request, state.pred_dossier, state.ref_dossier)
+        state.notes.extend(regime_notes)
 
-    record_agent_context(
-        state,
-        "Review Policy Builder",
-        context_keys=["contract", "regime", "input_dossier", "pred_dossier", "ref_dossier"],
-        summary="Policy packet and rubric weight assembly.",
-    )
-    state.policy_packet, state.dimensions, policy_notes = run_review_policy_builder_node(
-        llm,
-        state.contract,
-        state.regime,
-        request,
-        state.input_dossier,
-        state.pred_dossier,
-        state.ref_dossier,
-    )
-    state.notes.extend(policy_notes)
-
-    record_fanout(
-        state,
-        "analysis_fanout",
-        ("Traceability Agent", "Equivalence and Difference Agent", "Pragmatic Quality Agent"),
-    )
-    record_agent_context(
-        state,
-        "Traceability Agent",
-        context_keys=["input_dossier", "pred_dossier"],
-        summary="Requirement-to-prediction linking only.",
-    )
-    record_agent_context(
-        state,
-        "Equivalence and Difference Agent",
-        context_keys=["input_dossier", "pred_dossier", "ref_dossier"],
-        summary="Prediction/reference semantic comparison only.",
-    )
-    record_agent_context(
-        state,
-        "Pragmatic Quality Agent",
-        context_keys=["contract", "regime", "policy_packet", "input_dossier", "pred_dossier"],
-        summary="Pragmatic quality and proportionality inspection.",
-    )
-
-    analysis_tasks: dict[str, Any] = {
-        "trace": lambda: run_traceability_node(llm, state.input_dossier, state.pred_dossier),
-        "quality": lambda: run_quality_node(
+        record_agent_context(
+            state,
+            "Review Policy Builder",
+            context_keys=["contract", "regime", "input_dossier", "pred_dossier", "ref_dossier"],
+            summary="Policy packet and rubric weight assembly.",
+        )
+        state.policy_packet, state.dimensions, policy_notes = run_review_policy_builder_node(
             llm,
             state.contract,
             state.regime,
-            state.policy_packet,
-            state.input_dossier,
-            state.pred_dossier,
-        ),
-    }
-    if state.regime.has_reference:
-        analysis_tasks["equivalence"] = lambda: run_equivalence_node(
-            llm,
+            request,
             state.input_dossier,
             state.pred_dossier,
             state.ref_dossier,
         )
-    analysis_results = run_parallel(analysis_tasks)
-    state.trace_results, trace_notes = analysis_results["trace"]
-    state.quality_report, quality_notes = analysis_results["quality"]
-    state.notes.extend(trace_notes + quality_notes)
-    if "equivalence" in analysis_results:
-        state.equivalence_report, equivalence_notes = analysis_results["equivalence"]
-        state.notes.extend(equivalence_notes)
-    else:
-        state.equivalence_report = _default_equivalence_report(state)
+        state.notes.extend(policy_notes)
 
-    record_agent_context(
-        state,
-        "Missing-Evidence Critic",
-        context_keys=[
-            "contract",
-            "regime",
-            "policy_packet",
-            "input_dossier",
-            "pred_dossier",
-            "ref_dossier",
-            "equivalence_report",
-            "quality_report",
-        ],
-        summary="Evidence discipline and confidence capping.",
-    )
-    state.evidence_critic, evidence_notes = run_missing_evidence_node(
-        llm,
-        state.contract,
-        state.regime,
-        request,
-        state.policy_packet,
-        state.input_dossier,
-        state.pred_dossier,
-        state.ref_dossier,
-        state.equivalence_report,
-        state.quality_report,
-    )
-    state.notes.extend(evidence_notes)
-
-    if state.regime.has_reference:
+        record_fanout(
+            state,
+            "analysis_fanout",
+            ("Traceability Agent", "Equivalence and Difference Agent", "Pragmatic Quality Agent"),
+        )
         record_agent_context(
             state,
-            "Disagreement Arbiter",
-            context_keys=["input_dossier", "pred_dossier", "ref_dossier", "trace_results", "equivalence_report"],
-            summary="Conflict resolution between traceability and equivalence outputs.",
+            "Traceability Agent",
+            context_keys=["input_dossier", "pred_dossier"],
+            summary="Requirement-to-prediction linking only.",
         )
-        state.trace_results, state.equivalence_report, arbitration_notes = run_arbitration_node(
+        record_agent_context(
+            state,
+            "Equivalence and Difference Agent",
+            context_keys=["input_dossier", "pred_dossier", "ref_dossier"],
+            summary="Prediction/reference semantic comparison only.",
+        )
+        record_agent_context(
+            state,
+            "Pragmatic Quality Agent",
+            context_keys=["contract", "regime", "policy_packet", "input_dossier", "pred_dossier"],
+            summary="Pragmatic quality and proportionality inspection.",
+        )
+
+        analysis_tasks: dict[str, Any] = {
+            "trace": lambda: run_traceability_node(llm, state.input_dossier, state.pred_dossier),
+            "quality": lambda: run_quality_node(
+                llm,
+                state.contract,
+                state.regime,
+                state.policy_packet,
+                state.input_dossier,
+                state.pred_dossier,
+            ),
+        }
+        if state.regime.has_reference:
+            analysis_tasks["equivalence"] = lambda: run_equivalence_node(
+                llm,
+                state.input_dossier,
+                state.pred_dossier,
+                state.ref_dossier,
+            )
+        analysis_results = run_parallel(analysis_tasks)
+        state.trace_results, trace_notes = analysis_results["trace"]
+        state.quality_report, quality_notes = analysis_results["quality"]
+        state.notes.extend(trace_notes + quality_notes)
+        if "equivalence" in analysis_results:
+            state.equivalence_report, equivalence_notes = analysis_results["equivalence"]
+            state.notes.extend(equivalence_notes)
+        else:
+            state.equivalence_report = _default_equivalence_report(state)
+
+        record_agent_context(
+            state,
+            "Missing-Evidence Critic",
+            context_keys=[
+                "contract",
+                "regime",
+                "policy_packet",
+                "input_dossier",
+                "pred_dossier",
+                "ref_dossier",
+                "equivalence_report",
+                "quality_report",
+            ],
+            summary="Evidence discipline and confidence capping.",
+        )
+        state.evidence_critic, evidence_notes = run_missing_evidence_node(
             llm,
+            state.contract,
+            state.regime,
+            request,
+            state.policy_packet,
             state.input_dossier,
+            state.pred_dossier,
+            state.ref_dossier,
+            state.equivalence_report,
+            state.quality_report,
+        )
+        state.notes.extend(evidence_notes)
+
+        if state.regime.has_reference:
+            record_agent_context(
+                state,
+                "Disagreement Arbiter",
+                context_keys=["input_dossier", "pred_dossier", "ref_dossier", "trace_results", "equivalence_report"],
+                summary="Conflict resolution between traceability and equivalence outputs.",
+            )
+            state.trace_results, state.equivalence_report, arbitration_notes = run_arbitration_node(
+                llm,
+                state.input_dossier,
+                state.pred_dossier,
+                state.ref_dossier,
+                state.trace_results,
+                state.equivalence_report,
+            )
+            state.notes.extend(arbitration_notes)
+            state.arbitration_log.extend(arbitration_notes)
+
+        record_fanout(state, "final_fanin", ("Missing-Evidence Critic", "Disagreement Arbiter", "Score Composer", "Final Synthesizer"))
+        record_agent_context(
+            state,
+            "Score Composer",
+            context_keys=[
+                "dimensions",
+                "contract",
+                "regime",
+                "policy_packet",
+                "pred_dossier",
+                "ref_dossier",
+                "trace_results",
+                "equivalence_report",
+                "quality_report",
+                "evidence_critic",
+            ],
+            summary="Dimension scoring and confidence composition.",
+        )
+        state.dimension_results, state.harmful_issues, state.overall_score, state.confidence = run_score_composer_node(
+            state.dimensions,
+            request,
+            state.contract,
+            state.regime,
+            state.policy_packet,
             state.pred_dossier,
             state.ref_dossier,
             state.trace_results,
             state.equivalence_report,
+            state.quality_report,
+            state.evidence_critic,
         )
-        state.notes.extend(arbitration_notes)
-        state.arbitration_log.extend(arbitration_notes)
 
-    record_fanout(state, "final_fanin", ("Missing-Evidence Critic", "Disagreement Arbiter", "Score Composer", "Final Synthesizer"))
-    record_agent_context(
-        state,
-        "Score Composer",
-        context_keys=[
-            "dimensions",
-            "contract",
-            "regime",
-            "policy_packet",
-            "pred_dossier",
-            "ref_dossier",
-            "trace_results",
-            "equivalence_report",
-            "quality_report",
-            "evidence_critic",
-        ],
-        summary="Dimension scoring and confidence composition.",
-    )
-    state.dimension_results, state.harmful_issues, state.overall_score, state.confidence = run_score_composer_node(
-        state.dimensions,
-        request,
-        state.contract,
-        state.regime,
-        state.policy_packet,
-        state.pred_dossier,
-        state.ref_dossier,
-        state.trace_results,
-        state.equivalence_report,
-        state.quality_report,
-        state.evidence_critic,
-    )
+        _append_runtime_notes(state)
+        record_agent_context(
+            state,
+            "Final Synthesizer",
+            context_keys=[
+                "request",
+                "regime",
+                "policy_packet",
+                "dimension_results",
+                "trace_results",
+                "equivalence_report",
+                "quality_report",
+                "evidence_critic",
+                "notes",
+            ],
+            summary="Final result assembly with no new findings.",
+        )
+        state.result, synth_notes = run_final_synthesizer_node(
+            llm,
+            request=request,
+            backend_label=backend_label,
+            regime=state.regime,
+            policy_packet=state.policy_packet,
+            overall_score=state.overall_score,
+            trace_results=state.trace_results,
+            equivalence_report=state.equivalence_report,
+            quality_report=state.quality_report,
+            harmful_issues=state.harmful_issues,
+            evidence_critic=state.evidence_critic,
+            dimension_results=state.dimension_results,
+            notes=state.notes,
+            confidence=state.confidence,
+        )
+        state.notes.extend(synth_notes)
 
-    _append_runtime_notes(state)
-    record_agent_context(
-        state,
-        "Final Synthesizer",
-        context_keys=[
-            "request",
-            "regime",
-            "policy_packet",
-            "dimension_results",
-            "trace_results",
-            "equivalence_report",
-            "quality_report",
-            "evidence_critic",
-            "notes",
-        ],
-        summary="Final result assembly with no new findings.",
-    )
-    state.result, synth_notes = run_final_synthesizer_node(
-        llm,
-        request=request,
-        backend_label=backend_label,
-        regime=state.regime,
-        policy_packet=state.policy_packet,
-        overall_score=state.overall_score,
-        trace_results=state.trace_results,
-        equivalence_report=state.equivalence_report,
-        quality_report=state.quality_report,
-        harmful_issues=state.harmful_issues,
-        evidence_critic=state.evidence_critic,
-        dimension_results=state.dimension_results,
-        notes=state.notes,
-        confidence=state.confidence,
-    )
-    state.notes.extend(synth_notes)
-    return state.result
+        llm_usage_summary = summarize_current_llm_usage(record_count=1)
+        state.result.llm_model_name = llm_model_name
+        state.result.llm_provider = llm_provider
+        state.result.llm_usage_summary = llm_usage_summary
+        if llm is not None and not llm_usage_summary.effective_llm_used:
+            state.result.used_review_backend = f"{backend_label}_fallback_only"
+            state.result.notes.append(
+                "LLM was configured, but no workflow stage produced a usable LLM output; this run is effectively deterministic."
+            )
+        elif llm is not None and llm_usage_summary.operation_failure_count > 0:
+            state.result.notes.append(
+                "LLM path was partially effective, but some stages fell back after unusable LLM responses."
+            )
+        return state.result

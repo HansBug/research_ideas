@@ -535,6 +535,10 @@ def _record_semantic_profile(record_diagram_type: str) -> dict[str, Any]:
 
 def infer_aggregate_signal(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
     row_type = infer_summary_row_type(*texts, request=request, llm=llm)
+    return _aggregate_signal_from_row_type(row_type)
+
+
+def _aggregate_signal_from_row_type(row_type: str) -> str:
     return {
         "aggregate_stddev": "stddev",
         "aggregate_average": "average",
@@ -579,19 +583,33 @@ def build_review_policy(
         str(getattr(pred_dossier, "summary", "") or ""),
         str(getattr(ref_dossier, "summary", "") or ""),
     ]
-    aggregate_signal = infer_aggregate_signal(*contract_texts, request=request, llm=llm)
-    summary_semantics_explicit = aggregate_signal != "direct_review"
-    summary_row_type = infer_summary_row_type(*contract_texts, request=request, llm=llm)
-    summary_target = infer_summary_target(*contract_texts, request=request, llm=llm)
     component_profile = _component_profile_from_metadata(request)
     component_review_mode = bool(component_profile.get("component_review_mode"))
-    if summary_target == "SMD":
-        summary_target_axis = "structure_intensive_target"
-    elif summary_target in {"BD", "UCD", "Properties"}:
-        summary_target_axis = "coarse_public_quality_target"
+    regime_name = getattr(regime, "regime", "")
+
+    if regime_name == "summary_only" and not component_review_mode:
+        summary_row_type = infer_summary_row_type(*contract_texts, request=request, llm=llm)
+        aggregate_signal = _aggregate_signal_from_row_type(summary_row_type)
+        summary_semantics_explicit = aggregate_signal != "direct_review"
+        summary_target = infer_summary_target(*contract_texts, request=request, llm=llm)
+        if summary_target == "SMD":
+            summary_target_axis = "structure_intensive_target"
+        elif summary_target in {"BD", "UCD", "Properties"}:
+            summary_target_axis = "coarse_public_quality_target"
+        else:
+            summary_target_axis = infer_summary_target_axis(*contract_texts, request=request, llm=llm)
     else:
-        summary_target_axis = infer_summary_target_axis(*contract_texts, request=request, llm=llm)
-    record_diagram_type = infer_record_diagram_type(*contract_texts, request=request, llm=llm)
+        summary_row_type = "direct_review"
+        aggregate_signal = "direct_review"
+        summary_semantics_explicit = False
+        summary_target = "unknown"
+        summary_target_axis = "generic_target"
+
+    if regime_name in {"record_level", "mixed_evidence"} and not component_review_mode:
+        record_diagram_type = infer_record_diagram_type(*contract_texts, request=request, llm=llm)
+    else:
+        record_diagram_type = _artifact_semantics_from_metadata(request) if request is not None else None
+        record_diagram_type = record_diagram_type or "unknown"
     summary_profile = _summary_semantic_profile(summary_target, summary_row_type)
     record_profile = _record_semantic_profile(record_diagram_type)
 

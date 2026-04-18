@@ -116,6 +116,7 @@ def route_contract(prompt: str, llm: ChatOpenAI | None, notes: list[str]) -> Rev
                 f"Prompt:\n{prompt}",
             ),
         ],
+        operation="contract_router",
     )
     if not isinstance(payload, dict):
         notes.append("Contract router fell back to deterministic prompt parsing.")

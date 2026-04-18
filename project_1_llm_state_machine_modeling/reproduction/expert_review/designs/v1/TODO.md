@@ -2816,30 +2816,102 @@ Top residual clusters：
 
 ### Todolist
 
-* [ ] 在 `llm_mode='auto'` 或等价真实 LLM 路径下做重复实验。
-* [ ] 报告 deterministic 与 LLM-enabled 两条主路径的：
-  * [ ] 对齐差异
-  * [ ] 置信度差异
-  * [ ] rerun 稳定性
-  * [ ] `latency_p50 / latency_p95`
-  * [ ] `token_cost_per_record`
-* [ ] 判断 LLM 是否带来实质收益，还是只增加波动与成本。
-* [ ] 明确默认对外主路径与 fallback 口径。
+* [x] 在 `llm_mode='auto'` 或等价真实 LLM 路径下做重复实验。
+* [x] 报告 deterministic 与 LLM-enabled 两条主路径的：
+  * [x] 对齐差异
+  * [x] 置信度差异
+  * [x] rerun 稳定性
+  * [x] `latency_p50 / latency_p95`
+  * [x] `token_cost_per_record`
+* [x] 判断 LLM 是否带来实质收益，还是只增加波动与成本。
+* [x] 明确默认对外主路径与 fallback 口径。
 
 ### Checklist
 
-* [ ] LLM-enabled 主路径没有引入不可接受的随机性漂移。
-* [ ] `rerun_score_std <= 0.03`
-* [ ] 已可说明 deterministic 与 LLM-enabled 分别适合什么场景。
-* [ ] 成本与延迟边界已可被论文与工程说明同时接受。
-* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
+* [x] LLM-enabled 主路径没有引入不可接受的随机性漂移。
+* [x] `rerun_score_std <= 0.03`
+* [x] 已可说明 deterministic 与 LLM-enabled 分别适合什么场景。
+* [x] 成本与延迟边界已可被论文与工程说明同时接受。
+* [x] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
 ### Phase 15 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
-- 当前状态：已创建，尚未开始实现。
-- 当前定位：补齐“agent-based reviewer 是否必须依赖在线 LLM 才成立”的论证。
+- 当前状态：`已完成`
+- 当前定位：已补齐“agent-based reviewer 是否必须依赖在线 LLM 才成立”的 runtime telemetry、对比实验面与默认主路径结论。
+
+本 phase 实际落地项：
+
+1. runtime 已新增结构化 `llm_usage_summary`，可追踪：
+   - `effective_llm_used`
+   - `fallback_only`
+   - LLM 成功/失败操作数
+   - `prompt_tokens / completion_tokens / total_tokens`
+   - `latency_p50 / latency_p95`
+   - `token_cost_per_record`
+2. `batch.py` 与 `benchmark.py` 已新增：
+   - `model / provider_order / timeout / temperature` CLI 参数
+   - `scope=phase15`
+   - deterministic vs LLM-enabled 的结构化 comparison bundle
+3. 最初 probe 暴露出两个关键问题：
+   - `llm_mode='auto'` 可能在无有效 LLM 输出时看起来仍像“LLM 模式”，现已显式标成 `..._fallback_only`
+   - direct-artifact path 中存在不必要的 summary semantic probe 与过度激进的 LLM merge，导致成本高、漂移大、对齐退化
+4. 本 phase 的主要收口动作：
+   - 按 regime 裁掉 direct-artifact / component path 中不必要的 summary semantic LLM 分类
+   - 对 `arbiter` 增加“无显式 deterministic conflict 时不得改 requirement status”的硬约束
+   - 对 `missing_evidence_critic` 改成更保守的 merge 策略，禁止在 clean record-level case 中凭空发明新的 missing-evidence flag
+   - 对 `review_policy_builder` 改成 `record_level / mixed_evidence / component_review_mode` 默认保持 deterministic policy
+
+真实实验与结论：
+
+1. provider/model 原始可用性预检：
+   - `airouter + gpt-5.4`：可调用
+   - `airouter + gpt-4.1`：可调用
+   - `airouter + gpt-4o`：可调用
+   - `findcg`：对本轮候选表现为 timeout / model-not-found，不适合作为 retained Phase 15 probe provider
+2. retained candidate 比较：
+   - `gpt-4.1` 在 `1+1+1+1` 小切片上出现明显退化与漂移：
+     - `HAI delta = -13.81`
+     - `rerun_score_std delta = +0.1930`
+     - `latency_p95 delta = +86.66s`
+     - `token_cost_per_record = 6615`
+     - 结论：淘汰
+   - `gpt-4o` 第一轮虽然 `effective_llm_record_rate = 1.0`，但小切片仍有明显退化：
+     - `HAI delta = -5.34`
+     - 主要问题是 record-level arbiter / critic 过度降级 deterministic trace judgement
+   - `gpt-4o` 经两轮 merge/prompt 组织策略收口后：
+     - `1+1+1+1` 小切片达到近乎等分：
+       - `HAI delta = -0.07`
+       - `RAS delta = -0.12`
+       - `SAS delta = -0.01`
+       - `rerun_score_std = 0.0`
+       - `latency_p50 / latency_p95 = 32.47s / 54.63s`
+       - `token_cost_per_record = 6098.5`
+     - 但扩到 `2+1+1+1` 小切片后仍无净增益：
+       - `HAI delta = -4.82`
+       - `RAS delta = -8.76`
+       - `SAS delta = -0.01`
+       - `rerun_score_std = 0.0`
+       - `latency_p50 / latency_p95 = 32.09s / 49.97s`
+       - `token_cost_per_record = 5881`
+3. 因此当前 Phase 15 的正式结论是：
+   - `LLM-enabled` 路径在当前架构下**可以稳定工作**，并且不再存在“看起来启用了 LLM 但其实全在 silent fallback”的观测盲区
+   - 但它**没有带来足够稳定、足够可重复、足够大幅度的净对齐收益**，不足以取代 deterministic 作为默认主路径
+   - retained default path 应继续保持 deterministic
+   - `LLM-enabled` 更适合作为：
+     - 可选补充审阅
+     - 解释增强 / second opinion
+     - 针对特定 hard case 的人工触发 probe
+   - 不适合作为：
+     - 当前默认 batch scoring path
+     - 当前论文中主张“必须依赖在线 LLM 才成立”的核心证据
+
+停止原因：
+
+1. 本 phase 的目标不是强行让 LLM 成为默认，而是把 deterministic / LLM-enabled 的收益、成本、风险边界说清楚。
+2. 当前经过多轮结构与 prompt 组织优化后，`gpt-4o` 已逼近 deterministic，但扩展切片仍无净增益；继续推进将进入 `Phase 16` 的 ablation / paper-ready evidence package 范围，而不再属于 `Phase 15` 本身。
+3. 因此当前应正式停止在 `Phase 15`，并把后续工作转向 `Phase 16`。
 
 ## 19. Phase 16: 学术冻结候选、Ablation 与论文级证据包
 

@@ -253,6 +253,7 @@ def pragmatic_quality_with_llm(
                 f"Deterministic candidate report:\n{base_report}",
             ),
         ],
+        operation="pragmatic_quality",
     )
     if not isinstance(payload, dict):
         return None

@@ -9,5 +9,6 @@ Rules:
 2. Distinguish reviewable artifact evidence from protocol/process evidence.
 3. Recognize manual inspection, formal verification, simulation, testing, and syntax-checking roles when they are explicitly described.
 4. Treat multilingual and cross-language evidence as normal; infer V&V roles and evidence limits by semantics, not by literal keywords.
-5. Return strict JSON only.
+5. Missing-evidence flags must be generic evidence-discipline tags, not newly invented structural defects, transition names, or requirement contents.
+6. Return strict JSON only.
 """.strip()

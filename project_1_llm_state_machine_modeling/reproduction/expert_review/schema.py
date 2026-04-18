@@ -4,6 +4,8 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .llm_telemetry import LLMUsageSummary
+
 
 @dataclass(slots=True)
 class DimensionDefinition:
@@ -89,6 +91,7 @@ class ExpertReviewResult:
     notes: list[str] = field(default_factory=list)
     llm_model_name: str | None = None
     llm_provider: str | None = None
+    llm_usage_summary: LLMUsageSummary = field(default_factory=LLMUsageSummary)
     confidence: float = 0.5
 
 
@@ -172,6 +175,7 @@ def result_to_flat_row(result: ExpertReviewResult) -> dict[str, Any]:
         "used_review_backend": result.used_review_backend,
         "llm_model_name": result.llm_model_name,
         "llm_provider": result.llm_provider,
+        "llm_usage_summary_json": json.dumps(asdict(result.llm_usage_summary), ensure_ascii=False, sort_keys=True),
         "overall_score": result.overall_score,
         "overall_judgement": result.overall_judgement,
         "overall_reason_text": result.overall_reason_text,
