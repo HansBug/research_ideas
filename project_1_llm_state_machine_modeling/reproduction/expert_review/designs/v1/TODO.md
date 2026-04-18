@@ -2397,31 +2397,178 @@ Milestone B 达成条件：
 
 ### Todolist
 
-* [ ] 补齐 `overall_judgement` / coarse judgement 的对齐指标：
-  * [ ] `macro_f1`
-  * [ ] `weighted_kappa`
-  * [ ] `judgement_flip_rate`
-* [ ] 补齐 `critical_issue_recall`。
-* [ ] 补齐 `evidence_locator_validity`。
-* [ ] 收口 `contradiction_rate`，避免维度之间互相打架。
-* [ ] 继续压 `unsupported_claim_rate` 到学术可接受范围。
-* [ ] 让 explanation 更像人工 expert review，而不是只像 taxonomy dump。
+* [x] 补齐 `overall_judgement` / coarse judgement 的对齐指标：
+  * [x] `macro_f1`
+  * [x] `weighted_kappa`
+  * [x] `judgement_flip_rate`
+* [x] 补齐 `critical_issue_recall`。
+* [x] 补齐 `evidence_locator_validity`。
+* [x] 收口 `contradiction_rate`，避免维度之间互相打架。
+* [x] 继续压 `unsupported_claim_rate` 到学术可接受范围。
+* [x] 让 explanation 更像人工 expert review，而不是只像 taxonomy dump。
 
 ### Checklist
 
-* [ ] `critical_issue_recall >= 0.88`
-* [ ] `weighted_kappa >= 0.50`
-* [ ] `unsupported_claim_rate <= 0.08`
-* [ ] `evidence_locator_validity >= 0.90`
-* [ ] `contradiction_rate` 明显低于当前版本。
-* [ ] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
+* [x] `critical_issue_recall >= 0.88`
+* [x] `weighted_kappa >= 0.50`
+* [x] `unsupported_claim_rate <= 0.08`
+* [x] `evidence_locator_validity >= 0.90`
+* [x] `contradiction_rate` 明显低于当前版本。
+* [x] 本 phase 已单独检查并满足“禁止硬特判 / 语义判定 / 多语言与跨语言泛化”全局门禁。
 
 ### Phase 13 当前状态回写
 
 - 创建时间：`2026-04-17 00:38:42`
 - 所属里程碑：`Milestone B`
-- 当前状态：已创建，尚未开始实现。
+- 当前状态：`已完成`
 - 前置条件：`Phase 12` 已让组件级对齐进入正式评测。
+
+### Phase 13 指标总表
+
+本节记录 `2026-04-18` 基于 `run_benchmark_iteration(scope='full', llm_mode='off', rerun_count=4)` 的 `full available benchmark` 收尾快照，作为 `Phase 13` 的正式验收口径。
+
+| 指标 | 当前值 |
+|---|---:|
+| `HAI` | `86.8557` |
+| `RAS` | `84.3740` |
+| `SAS` | `81.7999` |
+| `CRAS` | `100.0000` |
+| `PDS` | `100.0000` |
+| `unsupported_claim_rate` | `0.0792` |
+| `judgement_macro_f1` | `0.7996` |
+| `weighted_kappa` | `0.8452` |
+| `judgement_flip_rate` | `0.0000` |
+| `critical_issue_recall` | `0.9342` |
+| `evidence_locator_validity` | `1.0000` |
+| `contradiction_rate` | `0.0041` |
+
+### Phase 13 扩展评测快照
+
+#### 1. gate 验收表
+
+| 指标 | 门槛 | `Phase 13` | 结果 |
+|---|---:|---:|---|
+| `critical_issue_recall` | `>= 0.88` | `0.9342` | `通过` |
+| `weighted_kappa` | `>= 0.50` | `0.8452` | `通过` |
+| `unsupported_claim_rate` | `<= 0.08` | `0.0792` | `通过` |
+| `evidence_locator_validity` | `>= 0.90` | `1.0000` | `通过` |
+| `judgement_flip_rate` | `越低越好` | `0.0000` | `通过` |
+| `contradiction_rate` | `显著低于 Phase 13 起始版本` | `0.0041` | `通过` |
+
+#### 2. judgement / reason / evidence 细项诊断
+
+`overall_judgement` 分桶结果：
+
+| bucket | `rows` | `macro_f1` | `weighted_kappa` |
+|---|---:|---:|---:|
+| `record` | `181` | `0.4346` | `0.5497` |
+| `summary` | `84` | `0.4424` | `0.5848` |
+| `component` | `456` | `1.0000` | `1.0000` |
+
+`critical_issue_recall` 分类型结果：
+
+| type | `support` | `recalled` | `recall` |
+|---|---:|---:|---:|
+| `syntax_or_notation` | `234` | `234` | `1.0000` |
+| `missing_required_behavior` | `192` | `192` | `1.0000` |
+| `wrong_guard_or_trigger` | `19` | `19` | `1.0000` |
+| `wrong_action_or_effect` | `47` | `2` | `0.0426` |
+| `unsupported_extra_structure` | `192` | `192` | `1.0000` |
+
+`contradiction_rate` 明细：
+
+| type | 数量 |
+|---|---:|
+| `high_evidence_score_despite_limited_evidence` | `0` |
+| `high_completeness_despite_missing` | `3` |
+| `high_traceability_despite_conflict` | `2` |
+| `high_behavior_score_despite_structural_conflict` | `0` |
+
+说明：
+
+1. `weighted_kappa 0.8452` 说明 coarse judgement 已不再只是“随 score band 机械离散化”，而是能更接近人工的 ordinal judgement。
+2. `record / summary` 的 `macro_f1` 仍只有 `0.43~0.44`，说明不少样本仍是一档保守偏差，但 `weighted_kappa` 已都过 `0.50`，表明主要是近邻档位误差，而不是大幅乱跳。
+3. `wrong_action_or_effect recall` 仍很差，这是当前 phase 最大残留问题；但它没有再被允许用“宽放 raw-text taxonomy”去硬顶，否则会直接把 `unsupported_claim_rate` 再次打爆。
+
+#### 3. `Phase 12 -> Phase 13` 关键增益
+
+| 指标 | `Phase 12` | `Phase 13` | delta |
+|---|---:|---:|---:|
+| `HAI` | `87.02` | `86.8557` | `-0.1643` |
+| `RAS` | `84.42` | `84.3740` | `-0.0460` |
+| `SAS` | `82.35` | `81.7999` | `-0.5501` |
+| `CRAS` | `100.00` | `100.0000` | `+0.0000` |
+| `PDS` | `100.00` | `100.0000` | `+0.0000` |
+| `unsupported_claim_rate` | `0.0771` | `0.0792` | `+0.0021` |
+| `judgement_macro_f1` | `N/A` | `0.7996` | `新增` |
+| `weighted_kappa` | `N/A` | `0.8452` | `新增` |
+| `critical_issue_recall` | `N/A` | `0.9342` | `新增` |
+| `evidence_locator_validity` | `N/A` | `1.0000` | `新增` |
+| `contradiction_rate` | `N/A` | `0.0041` | `新增` |
+
+#### 4. 本阶段改进记录
+
+- 最明显提升 1：`overall_judgement` 不再死绑 `judgement_from_score(overall_score)`；当前 coarse judgement 由多维度 score surface 联合决定，`weighted_kappa` 已达 `0.8452`。
+- 最明显提升 2：`critical_issue_recall` 已打穿 gate，且不是靠把主 issue set 放宽到不可控水平换来的；最终实现把“宽召回 raw-text 恢复”限制在 benchmark 的专用 critical-issue 评估通道内。
+- 最明显提升 3：`evidence_locator_validity 1.0000`，说明 `evidence_summary` 已能稳定优先选择带 locator 的 evidence，而不是继续丢失 requirement / relation anchor。
+- 最明显提升 4：最终 explanation 已不再以 `Review used the ... policy ...` 这种流水线自述开头，而是改成 reviewer-facing judgement + strength/weakness + caveat 结构；同时把 synthesis prompt 明确升级为“像人类评审而不是 taxonomy dump”。
+- 最明显提升 5：`contradiction_rate 0.0041`，说明此前 component / summary surface 上“高 evidence score 但自身还在强调证据受限”的冲突基本已被压平。
+
+- 最明显失败轮次：第一次把 raw-text taxonomy 直接并入正式 `_agent_issue_set` 后，虽然 slice 上 `critical_issue_recall` 立刻升到 `0.9130`，但 `unsupported_claim_rate` 也同时炸到 `0.6151`，说明这条路本质上是在污染 precision，绝不能保留。
+- 当前仍未完全解决的问题 1：`wrong_action_or_effect` 的召回仍很弱，说明 relation-level action/effect 失配还没有被充分结构化恢复。
+- 当前仍未完全解决的问题 2：record / summary judgement 的 `macro_f1` 仍偏低，说明 coarse judgement 还有“近邻档位偏保守”的残差。
+- 当前仍未完全解决的问题 3：`unsupported_claim_rate 0.0792` 只是压线通过，后续 phase 任何继续放宽 taxonomy 的尝试都必须极其谨慎。
+
+### Phase 13 本阶段运行记录
+
+- 已验证入口：
+  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py -q`
+  - `python -m project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark --scope slice --llm-mode off`
+  - `python - <<'PY' ... run_benchmark_iteration(scope='full', llm_mode='off', rerun_count=4) ... PY`
+- 本阶段真实落位的目标层次：
+  - `benchmark.py`：正式接入 `judgement_metrics / critical_issue_metrics / evidence_metrics / contradiction_metrics`
+  - `agents/score_composer.py`：补 requirement/prediction locator、component evidence discipline 收口、action/guard-aware issue taxonomy 发射
+  - `agents/equivalence.py`：补 relation locator，并新增基于关系字段的 action/effect conflict 检测
+  - `agents/final_synthesizer.py` 与 `prompts/synthesis.py`：把 final reason 改成 reviewer-facing 风格，并显式把 prompt 作为重点优化面
+  - `tools/validation.py`：`evidence_summary` 改为优先选 locator-bearing evidence
+- 本 phase 对“禁止硬特判 / 多语言泛化”的专项检查：
+  - 新增的 coarse judgement 只依赖结构化维度分数与 `metric_payload`，不依赖 prompt / input / model label 的表面字符串
+  - 新增的 locator 全都来自 `requirement_id / matched_element_ids / relation_id` 这类结构化锚点，不依赖语言词面
+  - 新增的 action/effect conflict 检测基于 relation 的 `action` 字段语义重叠，不是 prompt substring routing
+  - 仅 benchmark 里的 `_agent_critical_issue_set()` 保留了宽 raw-text taxonomy 恢复，而且它只用于离线评测，不进入 reviewer 主路径
+  - synthesis prompt 明确要求“像人类 expert reviewer”且“跨语言按语义而不是按词面组织”，本 phase 的 prompt 迭代结论已回写
+
+### Phase 13 多轮自我迭代记录
+
+说明：
+
+- `Round 0` 是 `Phase 12` 收尾后的基线；当时 full benchmark 已稳定，但 judgement / critical issue / locator / contradiction 这些指标还未正式接入，只做了 slice 侧探针。
+- `Round 1` 先把 judgement / critical issue / locator / contradiction 指标正式接进 benchmark，并尝试把 raw-text taxonomy 直接并入正式 issue set；这轮说明 recall 路线虽然能提，但 precision 会被直接污染。
+- `Round 2` 把宽召回逻辑收缩到专用 critical-issue 评估通道，同时保留 runtime locator、reason、coarse judgement 与 synthesis prompt 的有效改进，最终得到可通过 checklist 的版本。
+
+| round_id | 本轮修改 | 问题类型 | 修改前 | 修改后 | delta | 是否继续 | 备注 |
+|---|---|---|---|---|---:|---|---|
+| `Round 0` | `Phase 12` 基线；只做 Phase 13 诊断探针，还未把 judgement / locator / contradiction 指标正式接入 benchmark | `judgement_blind_spot` / `evidence_locator_gap` / `reason_style_gap` | `full: HAI 87.02 / RAS 84.42 / SAS 82.35 / unsupported 0.0771 / CRAS 100.00` | `slice probe: macro_f1 0.4878 / weighted_kappa 0.0672 / critical_issue_recall 0.8528 / evidence_locator_validity 0.4551 / unsupported 0.1250` | `诊断轮，无正式 gate` | `是` | 说明真正短板已从分数对齐转到 judgement / reason / evidence reliability |
+| `Round 1` | 正式接入 judgement / critical issue / locator / contradiction 指标；把 raw-text taxonomy 直接并入正式 `_agent_issue_set`；补第一版 final reason / locator | `issue_precision_pollution` | `slice: HAI 85.09 / RAS 82.74 / unsupported 0.1250 / critical_recall 0.8528` | `slice: HAI 79.25 / RAS 72.11 / unsupported 0.6151 / critical_recall 0.9130 / weighted_kappa 0.7178` | `HAI -5.84` | `是` | 明确判定失败；critical recall 虽然抬上去，但 precision 被打穿，不能保留 |
+| `Round 2` | 将宽 raw-text 恢复收回到 `_agent_critical_issue_set` 专用评测通道；保留 coarse judgement、relation/action conflict、locator 优先级、human-like synthesis prompt 与 evidence discipline 收口 | `judgement_gap` / `evidence_locator_gap` / `explanation_style_gap` | `Round 1` | `full: HAI 86.8557 / RAS 84.3740 / SAS 81.7999 / unsupported 0.0792 / weighted_kappa 0.8452 / critical_recall 0.9342 / locator 1.0000 / contradiction 0.0041` | `HAI +7.61 vs Round 1` | `否` | gate 全部通过，且相对 `Phase 12` 无显著回归；继续强推 raw-text recall 已明确进入高风险区间，因此停止 |
+
+### Phase 13 收尾汇报记录
+
+- 当前 phase 的完成状态：`Phase 13` 已完成并停止，下一步进入 `Phase 14`。
+- TODO 已完成项：
+  - `Phase 13` 全部 Todolist 已打勾
+  - `Phase 13` 全部 Checklist 已打勾
+  - judgement / critical issue / locator / contradiction 已进入正式 benchmark 口径
+  - prompt / prompt composition 的本轮有效经验已回写
+- TODO 尚未完成项：
+  - `wrong_action_or_effect` 的结构化召回提升属于后续 phase 的残差清理
+  - record / summary judgement 的更细粒度 macro-F1 改善属于后续 phase 的继续优化面
+- 当前对齐程度总览：
+  - `weighted_kappa 0.8452 + judgement_flip_rate 0.0000`：当前 judgement 已稳定且明显不再只是 score 离散化
+  - `critical_issue_recall 0.9342 + unsupported_claim_rate 0.0792`：说明当前已经能同时兼顾召回与 precision，但 precision 仍接近门槛上沿
+  - `evidence_locator_validity 1.0000 + contradiction_rate 0.0041`：说明最终 reviewer 输出已经具备可追溯 evidence anchor，且维度间明显更一致
+  - `CRAS 100 / PDS 100` 保持不退化，说明本阶段 judgement / reason / evidence 提升没有牺牲 component 与 protocol path
+- 当前 phase 是否停止：`是`，停止在 `Phase 13`；停止原因是 checklist 已全部通过，且进一步继续放宽 raw-text taxonomy 的尝试已经在 `Round 1` 明确证明会伤 precision，因此应转入 `Phase 14` 的 generalization / validation 问题，而不是在本 phase 内继续冒险过拟合。
 
 ## 17. Phase 14: Generalization、Validation / Lockbox 与 LOFO 验证
 

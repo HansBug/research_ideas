@@ -31,6 +31,65 @@ def _f1_from_tp_fp_fn(tp: int, fp: int, fn: int) -> float:
     return 0.0 if precision + recall == 0 else (2 * precision * recall) / (precision + recall)
 
 
+def _normalized_locator_token(value: Any, fallback: str) -> str:
+    token = normalize_id(str(value or ""))
+    return token or fallback
+
+
+def _requirement_locator(requirement_id: str) -> str:
+    return f"input:requirement:{_normalized_locator_token(requirement_id, 'unknown_requirement')}"
+
+
+def _prediction_locator(element_id: str) -> str:
+    return f"prediction:element:{_normalized_locator_token(element_id, 'unknown_element')}"
+
+
+def _trace_dimension_evidence(trace_results: list[Any], *, limit: int = 2) -> list[EvidenceItem]:
+    status_priority = {"missing": 0, "partial": 1, "matched": 2}
+    ranked = sorted(
+        trace_results,
+        key=lambda item: (
+            status_priority.get(str(getattr(item, "status", "")), 3),
+            -len(getattr(item, "matched_element_ids", [])),
+            -float(getattr(item, "confidence", 0.0) or 0.0),
+        ),
+    )
+    evidence: list[EvidenceItem] = []
+    seen: set[tuple[str, str]] = set()
+    for item in ranked:
+        req_locator = _requirement_locator(str(getattr(item, "requirement_id", "")))
+        req_key = ("input", req_locator)
+        if req_key not in seen:
+            seen.add(req_key)
+            evidence.append(
+                EvidenceItem(
+                    source="input",
+                    locator=req_locator,
+                    snippet=str(getattr(item, "requirement_text", "") or ""),
+                    explanation=str(getattr(item, "reason_text", "") or ""),
+                )
+            )
+        matched_ids = list(getattr(item, "matched_element_ids", []))
+        if matched_ids:
+            pred_locator = _prediction_locator(str(matched_ids[0]))
+            pred_key = ("prediction", pred_locator)
+            if pred_key not in seen:
+                seen.add(pred_key)
+                evidence.append(
+                    EvidenceItem(
+                        source="prediction",
+                        locator=pred_locator,
+                        snippet=str(matched_ids[0]),
+                        explanation=(
+                            f"Predicted element anchor currently used for requirement {getattr(item, 'requirement_id', '')}."
+                        ),
+                    )
+                )
+        if len(evidence) >= limit:
+            break
+    return evidence[:limit]
+
+
 def compose_scores(
     dimensions: list[Any],
     request: Any,
@@ -88,6 +147,13 @@ def compose_scores(
     if component_public_tp is not None and component_public_fp is not None and component_public_fn is not None:
         component_public_f1 = _f1_from_tp_fp_fn(component_public_tp, component_public_fp, component_public_fn)
     vv_roles = list(evidence_critic.get("vv_roles", []))
+    evidence_warning_count = len(evidence_critic.get("warnings", []))
+    missing_flag_count = len(evidence_critic.get("missing_evidence_flags", []))
+    behavior_issue_types = {
+        str(item.issue_type)
+        for item in contradictions + dependency_breaks
+        if str(getattr(item, "issue_type", "")).strip()
+    }
     dimension_results: list[DimensionReviewResult] = []
 
     syntax_score = 0.18
@@ -144,7 +210,7 @@ def compose_scores(
         behavior_score = clip01(0.08 * behavior_score + 0.92 * component_public_f1)
         traceability_score = clip01(0.08 * traceability_score + 0.92 * component_public_f1)
         clarity_score = clip01(0.20 * clarity_score + 0.80 * component_public_f1)
-        evidence_score = max(evidence_score, 0.86)
+        evidence_score = clip01(0.35 * evidence_score + 0.65 * component_public_f1)
 
     pred_markers = pred_dossier.surface_markers
     ref_markers = ref_dossier.surface_markers
@@ -214,6 +280,15 @@ def compose_scores(
         behavior_score = clip01(behavior_score - min(0.12, penalty))
         traceability_score = clip01(traceability_score - penalty)
 
+    if missing_ratio >= 0.45 and trace_ratio <= 0.55:
+        missing_cap = clip01(0.22 + 0.46 * trace_ratio + 0.18 * reference_alignment)
+        completeness_score = min(completeness_score, missing_cap)
+        traceability_score = min(traceability_score, missing_cap)
+
+    if dependency_break_count or trace_conflict_count or equivalence_report.get("parallel_structure_mismatch"):
+        behavior_cap = clip01(0.22 + 0.42 * equivalence_strength + 0.18 * matched_ratio)
+        behavior_score = min(behavior_score, behavior_cap)
+
     if summary_mode and not allow_requirement_defect_claims:
         completeness_score = max(completeness_score, 0.18 if score_semantics == "summary_stat_stddev" else 0.42)
         traceability_score = max(traceability_score, 0.16 if score_semantics == "summary_stat_stddev" else 0.40)
@@ -221,6 +296,15 @@ def compose_scores(
         completeness_score = max(completeness_score, 0.22)
         behavior_score = max(behavior_score, 0.22)
         traceability_score = max(traceability_score, 0.20)
+
+    evidence_score = clip01(evidence_score - min(0.22, 0.025 * evidence_warning_count + 0.020 * missing_flag_count))
+    if missing_flag_count:
+        evidence_cap = clip01(0.84 - 0.03 * max(0, missing_flag_count - 1))
+        if summary_mode and not allow_element_level_claims:
+            evidence_cap = min(evidence_cap, 0.74)
+        if component_review_mode:
+            evidence_cap = min(evidence_cap, 0.78)
+        evidence_score = min(evidence_score, evidence_cap)
 
     summary_score_stretch = 1.0
     summary_score_adjustment = 0.0
@@ -441,6 +525,16 @@ def compose_scores(
                 else "Behavioral preservation is incomplete or contradicted by visible evidence."
             )
             + (
+                " The main mismatch is in guard or trigger semantics."
+                if "wrong_guard_or_trigger" in behavior_issue_types
+                else ""
+            )
+            + (
+                " The main mismatch is in action or effect semantics."
+                if "wrong_action_or_effect" in behavior_issue_types
+                else ""
+            )
+            + (
                 " The arbiter also found dependency-sensitive mismatches between supported states and their attached transitions."
                 if dependency_breaks
                 else ""
@@ -496,13 +590,11 @@ def compose_scores(
     evidence_map = {
         "notation_syntax": pred_dossier.evidence[:2],
         "semantic_completeness": [
-            EvidenceItem(source="input", locator=None, snippet=item.requirement_text, explanation=item.reason_text)
-            for item in trace_results[:2]
+            *_trace_dimension_evidence(trace_results, limit=2)
         ],
         "behavioral_consistency": list(equivalence_report.get("evidence", []))[:2],
         "requirement_traceability": [
-            EvidenceItem(source="input", locator=None, snippet=item.requirement_text, explanation=item.reason_text)
-            for item in trace_results[:2]
+            *_trace_dimension_evidence(trace_results, limit=2)
         ],
         "pragmatic_clarity": list(quality_report.get("evidence", []))[:2],
         "evidence_discipline": list(evidence_critic.get("evidence", []))[:2],
@@ -567,7 +659,18 @@ def compose_scores(
                 *(["unsupported_extra_structure"] if harmful_extras and allow_element_level_claims else []),
             ]
         ),
-        "behavioral_consistency": ["wrong_guard_or_trigger"] if (contradictions or dependency_breaks) and allow_element_level_claims else [],
+        "behavioral_consistency": (
+            sorted(
+                {
+                    issue_type
+                    for issue_type in behavior_issue_types
+                    if issue_type in {"wrong_guard_or_trigger", "wrong_action_or_effect"}
+                }
+            )
+            if allow_element_level_claims
+            else []
+        )
+        or (["wrong_guard_or_trigger"] if (contradictions or dependency_breaks) and allow_element_level_claims else []),
         "requirement_traceability": (
             [
                 *(

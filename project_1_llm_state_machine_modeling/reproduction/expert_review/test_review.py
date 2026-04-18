@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from .agents.final_synthesizer import coarse_overall_judgement
 from .agents.input_analyst import build_input_dossier
 from .compatibility import heuristic_expert_review
-from .schema import ExpertReviewRequest
+from .schema import DimensionReviewResult, EvidenceItem, ExpertReviewRequest
 from .tools.artifact_probe import build_parser_dossier
 from .tools.dossier_merge import merge_artifact_dossiers
 from .tools.policy_library import infer_record_diagram_type, infer_summary_row_type, infer_summary_target
+from .tools.validation import evidence_summary_from_dimensions
 
 
 def build_request(with_reference: bool = True) -> ExpertReviewRequest:
@@ -74,6 +76,44 @@ def test_heuristic_review_returns_structured_result() -> None:
     assert result.requirement_trace_results
     assert result.overall_reason_text
     assert any("Agent context trimming" in note for note in result.notes)
+
+
+def test_evidence_summary_prefers_locator_bearing_items() -> None:
+    summary = evidence_summary_from_dimensions(
+        [
+            DimensionReviewResult(
+                dimension_name="semantic_completeness",
+                title="Semantic Completeness",
+                score=0.8,
+                judgement="good",
+                reason_text="reason",
+                evidence=[
+                    EvidenceItem(source="input", locator=None, snippet="R1", explanation="fallback"),
+                    EvidenceItem(
+                        source="input",
+                        locator="input:requirement:r1",
+                        snippet="R1",
+                        explanation="locator-bearing",
+                    ),
+                ],
+            )
+        ]
+    )
+    assert len(summary) == 1
+    assert summary[0].locator == "input:requirement:r1"
+
+
+def test_coarse_overall_judgement_can_uplift_summary_level_result() -> None:
+    regime = type("Regime", (), {"regime": "summary_only"})()
+    dimension_results = [
+        DimensionReviewResult("semantic_completeness", "Semantic Completeness", 0.82, "good", "reason"),
+        DimensionReviewResult("behavioral_consistency", "Behavioral Consistency", 0.80, "good", "reason"),
+        DimensionReviewResult("requirement_traceability", "Requirement Traceability", 0.79, "good", "reason"),
+        DimensionReviewResult("pragmatic_clarity", "Pragmatic Clarity", 0.81, "good", "reason"),
+        DimensionReviewResult("evidence_discipline", "Evidence Discipline", 0.74, "acceptable", "reason"),
+    ]
+    judgement = coarse_overall_judgement(regime, {"score_semantics": "summary_quality"}, 0.72, dimension_results)
+    assert judgement == "good"
 
 
 def test_heuristic_review_flags_extra_structure() -> None:

@@ -75,8 +75,8 @@ def deterministic_missing_evidence_critic(
     issue_taxonomy = ["evidence_overreach"] if warnings else []
     evidence = [
         make_evidence_item(
-            "precomputed_context",
-            None,
+            "critic",
+            "critic:warning:1",
             warnings[0],
             "Primary evidence-discipline warning emitted by the missing-evidence critic.",
         )

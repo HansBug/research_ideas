@@ -34,6 +34,14 @@ ISSUE_TAXONOMY = [
     "unused_or_noisy_structure",
     "evidence_overreach",
 ]
+CRITICAL_ISSUE_TAXONOMY = (
+    "syntax_or_notation",
+    "missing_required_behavior",
+    "wrong_guard_or_trigger",
+    "wrong_action_or_effect",
+    "unsupported_extra_structure",
+)
+JUDGEMENT_LABELS = ("poor", "weak", "acceptable", "good", "excellent")
 
 RECORD_LEVEL_RECORD_TYPES = {"sample_level_review"}
 SUMMARY_LEVEL_RECORD_TYPES = {"summary_level_run_score", "case_aggregate_stat", "raw_score_row", "summary"}
@@ -656,6 +664,33 @@ def _taxonomy_from_text(texts: list[str]) -> set[str]:
     return tags
 
 
+def _judgement_label_index(label: str) -> int:
+    try:
+        return JUDGEMENT_LABELS.index(str(label))
+    except ValueError:
+        return 0
+
+
+def _weighted_kappa(gold_labels: list[str], pred_labels: list[str]) -> float:
+    if not gold_labels or not pred_labels or len(gold_labels) != len(pred_labels):
+        return 0.0
+    total = len(gold_labels)
+    scale = max(1, len(JUDGEMENT_LABELS) - 1)
+    gold_indices = [_judgement_label_index(item) for item in gold_labels]
+    pred_indices = [_judgement_label_index(item) for item in pred_labels]
+    observed = sum(abs(gold - pred) / scale for gold, pred in zip(gold_indices, pred_indices)) / total
+    gold_dist = [gold_indices.count(idx) / total for idx in range(len(JUDGEMENT_LABELS))]
+    pred_dist = [pred_indices.count(idx) / total for idx in range(len(JUDGEMENT_LABELS))]
+    expected = sum(
+        gold_prob * pred_prob * abs(gold_idx - pred_idx) / scale
+        for gold_idx, gold_prob in enumerate(gold_dist)
+        for pred_idx, pred_prob in enumerate(pred_dist)
+    )
+    if expected <= 1e-12:
+        return 1.0 if observed <= 1e-12 else 0.0
+    return max(-1.0, min(1.0, 1.0 - observed / expected))
+
+
 def _human_issue_set_from_record(row: pd.Series) -> set[str]:
     texts: list[str] = []
     for key in ["human_review_summary", "human_review_original_text", "review_rubric_text", "public_artifact_limitations"]:
@@ -731,6 +766,19 @@ def _agent_issue_set(result: ExpertReviewResult) -> set[str]:
                 tags.add("evidence_overreach")
     if not tags:
         tags.update(_taxonomy_from_text([result.overall_reason_text] + result.notes))
+    return tags
+
+
+def _agent_critical_issue_set(result: ExpertReviewResult) -> set[str]:
+    tags = set(_agent_issue_set(result)) & set(CRITICAL_ISSUE_TAXONOMY)
+    extra_texts: list[str] = [result.overall_reason_text, *result.notes]
+    for issue in result.unsupported_model_elements:
+        extra_texts.append(f"{issue.issue_type} {issue.reason_text} {issue.element_text}")
+    for dimension in result.dimension_results:
+        extra_texts.append(dimension.reason_text)
+        for issue in dimension.issues:
+            extra_texts.append(f"{issue.issue_type} {issue.reason_text} {issue.element_text}")
+    tags.update(_taxonomy_from_text(extra_texts) & set(CRITICAL_ISSUE_TAXONOMY))
     return tags
 
 
@@ -935,6 +983,158 @@ def _reason_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
         "human_issue_coverage_recall": sum(recalls) / len(recalls),
         "unsupported_claim_rate": unsupported_claim_rate,
         "ReasonAlign": reason_align,
+    }
+
+
+def _judgement_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    scored_rows = [row for row in rows if row.get("human_judgement") and row.get("agent_judgement")]
+    if not scored_rows:
+        return {
+            "rows": 0,
+            "macro_f1": 0.0,
+            "weighted_kappa": 0.0,
+            "judgement_flip_rate": 0.0,
+            "by_bucket": {},
+        }
+
+    gold_labels = [str(row["human_judgement"]) for row in scored_rows]
+    pred_labels = [str(row["agent_judgement"]) for row in scored_rows]
+    rerun_rows = [row for row in scored_rows if row.get("rerun_judgement_flip") is not None]
+    by_bucket: dict[str, Any] = {}
+    for bucket in ("record", "summary", "component"):
+        subset = [row for row in scored_rows if row.get("eval_bucket") == bucket]
+        if not subset:
+            continue
+        subset_gold = [str(row["human_judgement"]) for row in subset]
+        subset_pred = [str(row["agent_judgement"]) for row in subset]
+        by_bucket[bucket] = {
+            "rows": len(subset),
+            "macro_f1": _macro_f1_for_labels(subset_gold, subset_pred),
+            "weighted_kappa": _weighted_kappa(subset_gold, subset_pred),
+        }
+    return {
+        "rows": len(scored_rows),
+        "macro_f1": _macro_f1_for_labels(gold_labels, pred_labels),
+        "weighted_kappa": _weighted_kappa(gold_labels, pred_labels),
+        "judgement_flip_rate": (
+            sum(1.0 for row in rerun_rows if bool(row.get("rerun_judgement_flip"))) / len(rerun_rows) if rerun_rows else 0.0
+        ),
+        "by_bucket": by_bucket,
+    }
+
+
+def _critical_issue_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    relevant_rows = [row for row in rows if row.get("eval_bucket") != "component"]
+    by_type = {
+        issue: {"support": 0, "recalled": 0, "recall": 0.0}
+        for issue in CRITICAL_ISSUE_TAXONOMY
+    }
+    total = 0
+    recalled = 0
+    for row in relevant_rows:
+        human = set(row.get("human_issue_set", [])) & set(CRITICAL_ISSUE_TAXONOMY)
+        agent = _agent_critical_issue_set(row["result"])
+        total += len(human)
+        recalled += len(human & agent)
+        for issue in human:
+            by_type[issue]["support"] += 1
+            if issue in agent:
+                by_type[issue]["recalled"] += 1
+    for issue, stats in by_type.items():
+        support = int(stats["support"])
+        stats["recall"] = stats["recalled"] / support if support else 1.0
+    return {
+        "critical_issue_support": total,
+        "critical_issue_recalled": recalled,
+        "critical_issue_recall": recalled / total if total else 1.0,
+        "by_type": by_type,
+    }
+
+
+def _dimension_map(result: ExpertReviewResult) -> dict[str, Any]:
+    return {item.dimension_name: item for item in result.dimension_results}
+
+
+def _evidence_locator_valid(item: Any) -> bool:
+    source = str(getattr(item, "source", "") or "").strip().lower()
+    locator = str(getattr(item, "locator", "") or "").strip()
+    if not source or not locator:
+        return False
+    prefix = locator.split(":", 1)[0].lower()
+    allowed_prefixes = {
+        "input": {"input"},
+        "prediction": {"prediction"},
+        "reference": {"reference"},
+        "comparison": {"comparison"},
+        "critic": {"critic"},
+        "precomputed_context": {"critic", "precomputed_context"},
+    }.get(source, {source})
+    return prefix in allowed_prefixes and bool(str(getattr(item, "snippet", "") or "").strip())
+
+
+def _evidence_locator_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    items = [item for row in rows for item in row["result"].evidence_summary]
+    if not items:
+        return {
+            "evidence_summary_items": 0,
+            "evidence_locator_coverage": 0.0,
+            "evidence_locator_validity": 0.0,
+        }
+    coverage = sum(1.0 for item in items if str(item.locator or "").strip()) / len(items)
+    validity = sum(1.0 for item in items if _evidence_locator_valid(item)) / len(items)
+    return {
+        "evidence_summary_items": len(items),
+        "evidence_locator_coverage": coverage,
+        "evidence_locator_validity": validity,
+    }
+
+
+def _contradiction_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    inspected_rows = [row for row in rows if row.get("eval_bucket") != "protocol"]
+    contradiction_counts = {
+        "high_evidence_score_despite_limited_evidence": 0,
+        "high_completeness_despite_missing": 0,
+        "high_traceability_despite_conflict": 0,
+        "high_behavior_score_despite_structural_conflict": 0,
+    }
+    contradictory_rows = 0
+    for row in inspected_rows:
+        dims = _dimension_map(row["result"])
+        row_flags = 0
+        evidence = dims.get("evidence_discipline")
+        completeness = dims.get("semantic_completeness")
+        traceability = dims.get("requirement_traceability")
+        behavior = dims.get("behavioral_consistency")
+        if evidence is not None:
+            missing_flags = list(evidence.metric_payload.get("missing_evidence_flags", []))
+            if evidence.score >= 0.82 and missing_flags and row.get("agent_confidence", 0.0) >= 0.68:
+                contradiction_counts["high_evidence_score_despite_limited_evidence"] += 1
+                row_flags += 1
+        if completeness is not None:
+            missing_ratio = float(completeness.metric_payload.get("missing_ratio", 0.0) or 0.0)
+            missing_signal_count = int(completeness.metric_payload.get("missing_signal_count", 0) or 0)
+            if completeness.score >= 0.70 and (missing_ratio >= 0.35 or missing_signal_count >= 6):
+                contradiction_counts["high_completeness_despite_missing"] += 1
+                row_flags += 1
+        if traceability is not None:
+            trace_conflict_count = int(traceability.metric_payload.get("trace_conflict_count", 0) or 0)
+            missing_ratio = float(traceability.metric_payload.get("missing_ratio", 0.0) or 0.0)
+            if traceability.score >= 0.70 and (trace_conflict_count > 0 or missing_ratio >= 0.35):
+                contradiction_counts["high_traceability_despite_conflict"] += 1
+                row_flags += 1
+        if behavior is not None:
+            dependency_break_count = int(behavior.metric_payload.get("dependency_break_count", 0) or 0)
+            parallel_mismatch = bool(behavior.metric_payload.get("parallel_structure_mismatch"))
+            if behavior.score >= 0.70 and (dependency_break_count > 0 or parallel_mismatch):
+                contradiction_counts["high_behavior_score_despite_structural_conflict"] += 1
+                row_flags += 1
+        if row_flags:
+            contradictory_rows += 1
+    return {
+        "rows": len(inspected_rows),
+        "contradictory_rows": contradictory_rows,
+        "contradiction_rate": contradictory_rows / len(inspected_rows) if inspected_rows else 0.0,
+        "by_type": contradiction_counts,
     }
 
 
@@ -1432,8 +1632,8 @@ def _rerun_subset(
     tasks: list[BenchmarkTask],
     *,
     rerun_count: int,
-) -> dict[str, tuple[float, float]]:
-    result: dict[str, tuple[float, float]] = {}
+) -> dict[str, tuple[float, float, bool]]:
+    result: dict[str, tuple[float, float, bool]] = {}
     if rerun_count <= 0:
         return result
     for task in tasks[:rerun_count]:
@@ -1450,7 +1650,11 @@ def _rerun_subset(
         issue_second = _agent_issue_set(second)
         union = len(issue_first | issue_second)
         jaccard = len(issue_first & issue_second) / union if union else 1.0
-        result[task.task_id] = (abs(first.overall_score - second.overall_score), jaccard)
+        result[task.task_id] = (
+            abs(first.overall_score - second.overall_score),
+            jaccard,
+            str(first.overall_judgement) != str(second.overall_judgement),
+        )
     return result
 
 
@@ -1607,7 +1811,7 @@ def _evaluate_task_bundle(
             latency = time.perf_counter() - start
             agent_issue_set = _agent_issue_set(result)
             issue_precision, issue_recall, issue_f1 = _issue_f1(task.human_issue_set, agent_issue_set)
-            rerun_score_delta, rerun_issue_jaccard = reruns.get(task.task_id, (0.0, 1.0))
+            rerun_score_delta, rerun_issue_jaccard, rerun_judgement_flip = reruns.get(task.task_id, (0.0, 1.0, False))
             normalized_rows.append(
                 {
                     "task_id": task.task_id,
@@ -1615,7 +1819,9 @@ def _evaluate_task_bundle(
                     "expected_regime": task.regime_expected,
                     "actual_regime": _regime_from_result(result),
                     "human_score": task.human_score,
+                    "human_judgement": judgement_from_score(float(task.human_score)) if task.human_score is not None else None,
                     "agent_score": result.overall_score,
+                    "agent_judgement": str(result.overall_judgement or judgement_from_score(result.overall_score)),
                     "agent_confidence": result.confidence,
                     "human_issue_set": sorted(task.human_issue_set),
                     "agent_issue_set": sorted(agent_issue_set),
@@ -1629,6 +1835,7 @@ def _evaluate_task_bundle(
                     "latency_s": latency,
                     "rerun_score_delta": rerun_score_delta,
                     "rerun_issue_jaccard": rerun_issue_jaccard,
+                    "rerun_judgement_flip": rerun_judgement_flip,
                     "metadata": task.metadata,
                     "result": result,
                 }
@@ -1665,6 +1872,10 @@ def _evaluate_task_bundle(
 
     component_metrics = _component_alignment_metrics(component_rows)
     protocol_metrics = _protocol_metrics(protocol_rows)
+    judgement_metrics = _judgement_metrics(record_rows + summary_rows + component_rows)
+    evidence_metrics = _evidence_locator_metrics(normalized_rows)
+    contradiction_metrics = _contradiction_metrics(normalized_rows)
+    critical_issue_metrics = _critical_issue_metrics(record_rows + summary_rows)
     hai = 0.55 * ras + 0.25 * sas + 0.20 * protocol_metrics["PDS"]
 
     report = {
@@ -1693,6 +1904,10 @@ def _evaluate_task_bundle(
         },
         "component_metrics": component_metrics,
         "protocol_metrics": protocol_metrics,
+        "judgement_metrics": judgement_metrics,
+        "evidence_metrics": evidence_metrics,
+        "contradiction_metrics": contradiction_metrics,
+        "critical_issue_metrics": critical_issue_metrics,
         "HAI": hai,
         "metadata": {} if metadata is None else dict(metadata),
         "normalized_rows": normalized_rows,
@@ -2003,6 +2218,10 @@ def _format_report(report: dict[str, Any]) -> str:
     summary = report["summary_metrics"]
     component = report["component_metrics"]
     protocol = report["protocol_metrics"]
+    judgement = report.get("judgement_metrics", {})
+    evidence = report.get("evidence_metrics", {})
+    contradiction = report.get("contradiction_metrics", {})
+    critical = report.get("critical_issue_metrics", {})
     lines = [
         f"# Alignment Report: {report.get('report_label', 'unnamed')}",
         "",
@@ -2052,6 +2271,17 @@ def _format_report(report: dict[str, Any]) -> str:
         f"- vv_role_coverage: {protocol['vv_role_coverage']:.4f}",
         f"- confidence_discipline: {protocol['confidence_discipline']:.4f}",
         f"- PDS: {protocol['PDS']:.2f}",
+        "",
+        "## Judgement Metrics",
+        f"- macro_f1: {judgement.get('macro_f1', 0.0):.4f}",
+        f"- weighted_kappa: {judgement.get('weighted_kappa', 0.0):.4f}",
+        f"- judgement_flip_rate: {judgement.get('judgement_flip_rate', 0.0):.4f}",
+        "",
+        "## Reason / Evidence Reliability",
+        f"- critical_issue_recall: {critical.get('critical_issue_recall', 0.0):.4f}",
+        f"- unsupported_claim_rate: {record['unsupported_claim_rate']:.4f}",
+        f"- evidence_locator_validity: {evidence.get('evidence_locator_validity', 0.0):.4f}",
+        f"- contradiction_rate: {contradiction.get('contradiction_rate', 0.0):.4f}",
         "",
         "## Overall",
         f"- HAI: {report['HAI']:.2f}",

@@ -3,11 +3,16 @@ from __future__ import annotations
 import pandas as pd
 
 from .benchmark import (
+    _agent_critical_issue_set,
+    _agent_issue_set,
+    _evidence_locator_metrics,
+    _judgement_metrics,
     build_benchmark_split_bundle,
     build_full_available_task_bundle,
     build_lofo_task_bundles,
     summarize_benchmark_coverage,
 )
+from .schema import ElementIssue, EvidenceItem, ExpertReviewResult
 
 
 def _record_row(**overrides):
@@ -128,6 +133,68 @@ def _component_row_without_public_counts(**overrides):
     )
     row.update(overrides)
     return row
+
+
+def test_judgement_metrics_track_kappa_and_flip_rate() -> None:
+    rows = [
+        {"human_judgement": "good", "agent_judgement": "good", "eval_bucket": "record", "rerun_judgement_flip": False},
+        {"human_judgement": "acceptable", "agent_judgement": "acceptable", "eval_bucket": "summary", "rerun_judgement_flip": True},
+    ]
+    metrics = _judgement_metrics(rows)
+    assert metrics["rows"] == 2
+    assert metrics["macro_f1"] == 1.0
+    assert metrics["weighted_kappa"] == 1.0
+    assert metrics["judgement_flip_rate"] == 0.5
+
+
+def test_agent_critical_issue_set_recovers_action_effect_from_raw_issue_text() -> None:
+    result = ExpertReviewResult(
+        prompt="prompt",
+        overall_score=0.52,
+        overall_judgement="weak",
+        overall_reason_text="The generated transition keeps a brake action that is unsupported.",
+        used_review_backend="deterministic",
+        unsupported_model_elements=[
+            ElementIssue(
+                element_id="rel-1",
+                element_kind="relation",
+                element_text="Ready -> Stop : Brake Pressed",
+                issue_type="extra",
+                reason_text="The visible effect is unsupported by the requirements.",
+            )
+        ],
+    )
+    tags = _agent_critical_issue_set(result)
+    assert "unsupported_extra_structure" in tags
+    assert "wrong_action_or_effect" in tags
+
+
+def test_evidence_locator_metrics_validate_summary_locators() -> None:
+    result = ExpertReviewResult(
+        prompt="prompt",
+        overall_score=0.8,
+        overall_judgement="good",
+        overall_reason_text="reason",
+        used_review_backend="deterministic",
+        evidence_summary=[
+            EvidenceItem(
+                source="input",
+                locator="input:requirement:r1",
+                snippet="R1: start moves to Running",
+                explanation="Requirement anchor.",
+            ),
+            EvidenceItem(
+                source="prediction",
+                locator=None,
+                snippet="Running",
+                explanation="Missing locator on purpose.",
+            ),
+        ],
+    )
+    metrics = _evidence_locator_metrics([{"result": result}])
+    assert metrics["evidence_summary_items"] == 2
+    assert metrics["evidence_locator_coverage"] == 0.5
+    assert metrics["evidence_locator_validity"] == 0.5
 
 
 def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:

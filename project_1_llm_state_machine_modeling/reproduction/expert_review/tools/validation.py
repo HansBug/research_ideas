@@ -45,8 +45,27 @@ def json_safe_report(report: dict[str, Any]) -> dict[str, Any]:
 
 def evidence_summary_from_dimensions(dimension_results: list[DimensionReviewResult]) -> list[EvidenceItem]:
     items: list[EvidenceItem] = []
+    seen: set[tuple[str, str, str]] = set()
     for dimension in dimension_results:
-        items.extend(dimension.evidence[:1])
+        ranked = sorted(
+            dimension.evidence,
+            key=lambda item: (
+                not bool(str(item.locator or "").strip()),
+                not bool(str(item.snippet or "").strip()),
+                not bool(str(item.explanation or "").strip()),
+            ),
+        )
+        for item in ranked:
+            key = (
+                str(item.source or "").strip(),
+                str(item.locator or "").strip(),
+                str(item.snippet or "").strip(),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(item)
+            break
     return items[:8]
 
 

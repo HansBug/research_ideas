@@ -73,6 +73,14 @@ def _detect_guard_polarity_conflict(pred_relation: Any, ref_relation: Any) -> bo
     return False
 
 
+def _detect_action_effect_conflict(pred_relation: Any, ref_relation: Any) -> bool:
+    pred_action = str(getattr(pred_relation, "action", "") or "").strip()
+    ref_action = str(getattr(ref_relation, "action", "") or "").strip()
+    if not pred_action or not ref_action:
+        return False
+    return combined_overlap_score(pred_action, ref_action) < 0.22
+
+
 def _major_relation_labels(pred_dossier: Any) -> tuple[set[str], set[str]]:
     major_names = major_element_name_set(pred_dossier)
     major_relations: set[str] = set()
@@ -167,8 +175,17 @@ def deterministic_equivalence(
                     contradictions.append(
                         _extra_issue_from_relation(
                             pred_relation,
-                            "contradiction",
+                            "wrong_guard_or_trigger",
                             "The relation looks aligned to a reference behavior but the guard polarity appears inconsistent.",
+                        )
+                    )
+                    break
+                if score >= 0.40 and _detect_action_effect_conflict(pred_relation, ref_relation):
+                    contradictions.append(
+                        _extra_issue_from_relation(
+                            pred_relation,
+                            "wrong_action_or_effect",
+                            "The relation aligns structurally, but the action or visible effect does not match the reference behavior.",
                         )
                     )
                     break
@@ -283,7 +300,7 @@ def deterministic_equivalence(
         evidence.append(
             make_evidence_item(
                 "reference",
-                None,
+                f"reference:relation:{ref_dossier.relations[0].relation_id}",
                 ref_dossier.relations[0].evidence_text,
                 "Reference relation used as a comparison anchor.",
             )
@@ -292,7 +309,7 @@ def deterministic_equivalence(
         evidence.append(
             make_evidence_item(
                 "prediction",
-                None,
+                f"prediction:relation:{pred_dossier.relations[0].relation_id}",
                 pred_dossier.relations[0].evidence_text,
                 "Predicted relation compared against the reference and requirements.",
             )

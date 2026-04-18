@@ -274,6 +274,7 @@ def run_final_synthesizer_node(
         regime,
         policy_packet,
         overall_score,
+        dimension_results,
         trace_results,
         equivalence_report,
         quality_report,
