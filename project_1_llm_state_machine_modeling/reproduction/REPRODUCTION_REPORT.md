@@ -10,7 +10,7 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/run_all.py run
 venv/bin/python project_1_llm_state_machine_modeling/reproduction/run_all.py report
 ```
 
-默认 provider fallback 顺序是 `airouter -> findcg -> miaocg`，默认模型是 `gpt-5.4`，不会自动尝试 `api68886868`。
+默认 provider fallback 顺序是 `airouter -> findcg -> miaocg`，默认模型是 `gpt-5.5`，不会自动尝试 `api68886868`。
 
 ## 2. Code Entry Points
 

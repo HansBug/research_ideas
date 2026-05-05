@@ -158,7 +158,7 @@ LLM 初始化逻辑在 [`ExpertReviewAgent.__init__()`](../../agent.py) 和 `_bu
 
 定义在 [`utils.py`](../../utils.py)：
 
-- 默认模型：`gpt-5.4`
+- 默认模型：`gpt-5.5`
 - 默认 provider 顺序：`airouter -> findcg -> miaocg`
 
 ### 6.2 provider 配置

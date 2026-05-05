@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-DEFAULT_MODEL = "gpt-5.4"
+DEFAULT_MODEL = "gpt-5.5"
 DEFAULT_PROVIDER_ORDER = ["airouter", "findcg", "miaocg"]
 
 PROVIDER_CONFIGS = {

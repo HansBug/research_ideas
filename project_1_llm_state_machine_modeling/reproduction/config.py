@@ -30,7 +30,7 @@ CODEX_ENV_FILES = [
     Path.home() / ".codex" / "findcg.env",
 ]
 
-DEFAULT_MODEL = "gpt-5.4"
+DEFAULT_MODEL = "gpt-5.5"
 DEFAULT_PROVIDER_ORDER = ["airouter", "findcg", "miaocg"]
 
 
