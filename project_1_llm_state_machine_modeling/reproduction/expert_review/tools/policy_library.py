@@ -442,26 +442,21 @@ def infer_summary_target_axis(*texts: str, request: Any | None = None, llm: Chat
 
 
 def _summary_semantic_profile(summary_target: str, summary_row_type: str) -> dict[str, Any]:
+    # Tier 1 ablation 验证：summary_public_gain / summary_hidden_risk_scale 单独中和 |ΔHAI| < 0.05；
+    # summary_target_semantic_bias 单独中和 ΔHAI = -0.25。
+    # 真正承载 ΔHAI 的字段只有 summary_row_target_interaction_bias 与（次级的）target_bias。
     if summary_target == "SMD":
         profile_name = "structure_intensive_target"
         target_bias = -0.03
-        summary_public_gain = 0.94 if summary_row_type == "run_level_score" else 0.52
-        summary_hidden_risk_scale = 0.55 if summary_row_type == "run_level_score" else 1.0
     elif summary_target == "Properties":
         profile_name = "property_constraint_target"
         target_bias = 0.02
-        summary_public_gain = 1.00
-        summary_hidden_risk_scale = 0.85
     elif summary_target in {"BD", "UCD"}:
         profile_name = "public_behavior_quality_target"
         target_bias = 0.06
-        summary_public_gain = 1.00
-        summary_hidden_risk_scale = 0.85
     else:
         profile_name = "generic_target"
         target_bias = 0.0
-        summary_public_gain = 0.90
-        summary_hidden_risk_scale = 1.0
 
     if summary_row_type == "aggregate_stddev":
         target_bias = 0.0
@@ -486,50 +481,37 @@ def _summary_semantic_profile(summary_target: str, summary_row_type: str) -> dic
         "summary_profile_name": profile_name,
         "summary_target_semantic_bias": target_bias,
         "summary_row_target_interaction_bias": row_target_bias,
-        "summary_public_gain": summary_public_gain,
-        "summary_hidden_risk_scale": summary_hidden_risk_scale,
     }
 
 
 def _record_semantic_profile(record_diagram_type: str) -> dict[str, Any]:
+    # Tier 1 ablation 验证：act/sd/stm 三套
+    # record_alignment_bonus_scale / record_high_fidelity_bonus_scale /
+    # record_partial_penalty_scale / record_partial_only_penalty_scale 全部单独中和后 |ΔHAI| ≤ 0.07，
+    # 且其中 record_high_fidelity_bonus_scale 在当前 dataset 上 if 分支一次也未触发（strict 0）。
+    # 只保留 record_diagram_semantic_bias 与 record_alignment_matched_floor 这两个对 record 路径有信号的字段。
     if record_diagram_type == "act":
         return {
             "record_profile_name": "control_flow_explicit_profile",
             "record_diagram_semantic_bias": 0.12,
-            "record_alignment_bonus_scale": 1.12,
-            "record_high_fidelity_bonus_scale": 1.15,
-            "record_partial_penalty_scale": 0.88,
             "record_alignment_matched_floor": 0.0,
-            "record_partial_only_penalty_scale": 0.35,
         }
     if record_diagram_type == "sd":
         return {
             "record_profile_name": "interaction_order_sensitive_profile",
             "record_diagram_semantic_bias": -0.02,
-            "record_alignment_bonus_scale": 0.72,
-            "record_high_fidelity_bonus_scale": 0.25,
-            "record_partial_penalty_scale": 1.08,
             "record_alignment_matched_floor": 0.12,
-            "record_partial_only_penalty_scale": 1.05,
         }
     if record_diagram_type == "stm":
         return {
             "record_profile_name": "state_reactive_balance_profile",
             "record_diagram_semantic_bias": 0.0,
-            "record_alignment_bonus_scale": 0.75,
-            "record_high_fidelity_bonus_scale": 0.20,
-            "record_partial_penalty_scale": 1.06,
             "record_alignment_matched_floor": 0.10,
-            "record_partial_only_penalty_scale": 0.90,
         }
     return {
         "record_profile_name": "generic_record_profile",
         "record_diagram_semantic_bias": 0.0,
-        "record_alignment_bonus_scale": 1.00,
-        "record_high_fidelity_bonus_scale": 1.00,
-        "record_partial_penalty_scale": 1.00,
         "record_alignment_matched_floor": 0.0,
-        "record_partial_only_penalty_scale": 0.70,
     }
 
 
