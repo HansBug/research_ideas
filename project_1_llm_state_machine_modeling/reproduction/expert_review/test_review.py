@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from .agents import arbiter as arbiter_module
 from .agents import llm_helpers as llm_helpers_module
 from .agents import missing_evidence_critic as missing_evidence_critic_module
 from .agents import review_policy_builder as review_policy_builder_module
@@ -784,47 +783,6 @@ def test_runtime_marks_llm_fallback_only_when_no_stage_returns_usable_llm_output
     assert result.llm_usage_summary.effective_llm_used is False
     assert result.llm_usage_summary.operation_failure_count > 0
     assert any("effectively deterministic" in note for note in result.notes)
-
-
-def test_arbiter_llm_does_not_override_status_without_explicit_conflict(monkeypatch) -> None:
-    monkeypatch.setattr(
-        arbiter_module,
-        "invoke_llm_json",
-        lambda *args, **kwargs: {
-            "requirement_overrides": [
-                {
-                    "requirement_id": "R1",
-                    "status": "missing",
-                    "reason_text": "hallucinated downgrade",
-                    "confidence": 0.2,
-                }
-            ],
-            "equivalence_strength": 0.1,
-            "arbitration_notes": "Keep the deterministic status.",
-        },
-    )
-    trace_results = [
-        RequirementTraceResult(
-            requirement_id="R1",
-            requirement_text="R1 text",
-            status="matched",
-            reason_text="deterministic trace",
-            matched_element_ids=["t1"],
-            confidence=0.8,
-        )
-    ]
-    updated_trace, updated_report, notes = arbiter_module.arbitrate_with_llm(
-        object(),
-        input_dossier=type("Input", (), {"requirements": []})(),
-        pred_dossier=type("Pred", (), {"summary": "pred"})(),
-        ref_dossier=type("Ref", (), {"summary": "ref"})(),
-        trace_results=trace_results,
-        equivalence_report={"equivalence_strength": 0.6, "trace_conflict_count": 0},
-    )
-    assert updated_trace[0].status == "matched"
-    assert updated_trace[0].reason_text == "deterministic trace"
-    assert 0.54 <= updated_report["equivalence_strength"] <= 0.66
-    assert any("statuses stayed with deterministic arbitration" in note for note in notes)
 
 
 def test_missing_evidence_llm_cannot_invent_record_level_flags_without_base_warning(monkeypatch) -> None:

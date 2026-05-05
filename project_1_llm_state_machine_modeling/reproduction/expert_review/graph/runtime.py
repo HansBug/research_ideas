@@ -10,7 +10,6 @@ from ..schemas.graph_state import ReviewGraphState
 from ..schemas.request import ExpertReviewRequest
 from ..schemas.result import ExpertReviewResult
 from .nodes import (
-    run_arbitration_node,
     run_contract_router_node,
     run_equivalence_node,
     run_evidence_regime_node,
@@ -83,8 +82,6 @@ def _append_runtime_notes(state: ReviewGraphState) -> None:
     state.notes.extend(state.evidence_critic.get("warnings", [])[:2])
     if state.fanout_log:
         state.notes.append("Fan-out/fan-in: " + " | ".join(state.fanout_log))
-    if state.arbitration_log:
-        state.notes.extend(state.arbitration_log[:4])
 
 
 def run_expert_review_workflow(
@@ -235,25 +232,11 @@ def run_expert_review_workflow(
         )
         state.notes.extend(evidence_notes)
 
-        if state.regime.has_reference:
-            record_agent_context(
-                state,
-                "Disagreement Arbiter",
-                context_keys=["input_dossier", "pred_dossier", "ref_dossier", "trace_results", "equivalence_report"],
-                summary="Conflict resolution between traceability and equivalence outputs.",
-            )
-            state.trace_results, state.equivalence_report, arbitration_notes = run_arbitration_node(
-                llm,
-                state.input_dossier,
-                state.pred_dossier,
-                state.ref_dossier,
-                state.trace_results,
-                state.equivalence_report,
-            )
-            state.notes.extend(arbitration_notes)
-            state.arbitration_log.extend(arbitration_notes)
+        # Tier 2 ablation 验证（E1）：跳过 arbiter 整段 ΔHAI = +0.1556（反向贡献），
+        # 已删除 arbitrate_trace_and_equivalence 调用与 arbiter 模块。trace_conflict_count
+        # 仍由 deterministic_equivalence 在 equivalence_report 中维护。
 
-        record_fanout(state, "final_fanin", ("Missing-Evidence Critic", "Disagreement Arbiter", "Score Composer", "Final Synthesizer"))
+        record_fanout(state, "final_fanin", ("Missing-Evidence Critic", "Score Composer", "Final Synthesizer"))
         record_agent_context(
             state,
             "Score Composer",

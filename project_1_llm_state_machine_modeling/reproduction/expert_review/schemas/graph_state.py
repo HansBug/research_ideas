@@ -34,7 +34,6 @@ class ReviewGraphState:
     result: ExpertReviewResult | None = None
     context_packets: dict[str, dict[str, Any]] = field(default_factory=dict)
     fanout_log: list[str] = field(default_factory=list)
-    arbitration_log: list[str] = field(default_factory=list)
 
 
 __all__ = ["ReviewGraphState"]

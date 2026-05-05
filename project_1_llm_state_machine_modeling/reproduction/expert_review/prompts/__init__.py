@@ -1,6 +1,5 @@
 from .contract_router import CONTRACT_ROUTER_SYSTEM_PROMPT
 from .extraction import ARTIFACT_EXTRACTOR_SYSTEM_PROMPT
-from .arbitration import ARBITRATION_SYSTEM_PROMPT
 from .equivalence import EQUIVALENCE_SYSTEM_PROMPT
 from .missing_evidence import MISSING_EVIDENCE_SYSTEM_PROMPT
 from .quality_review import QUALITY_REVIEW_SYSTEM_PROMPT
@@ -10,7 +9,6 @@ from .traceability import TRACEABILITY_SYSTEM_PROMPT
 
 __all__ = [
     "ARTIFACT_EXTRACTOR_SYSTEM_PROMPT",
-    "ARBITRATION_SYSTEM_PROMPT",
     "CONTRACT_ROUTER_SYSTEM_PROMPT",
     "EQUIVALENCE_SYSTEM_PROMPT",
     "FINAL_SYNTHESIS_SYSTEM_PROMPT",

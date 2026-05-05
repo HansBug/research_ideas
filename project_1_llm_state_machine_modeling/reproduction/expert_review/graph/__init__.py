@@ -1,6 +1,5 @@
 from .nodes import (
     run_contract_router_node,
-    run_arbitration_node,
     run_equivalence_node,
     run_evidence_regime_node,
     run_final_synthesizer_node,
@@ -17,7 +16,6 @@ from .runtime import run_expert_review_workflow
 
 __all__ = [
     "run_contract_router_node",
-    "run_arbitration_node",
     "run_equivalence_node",
     "run_evidence_regime_node",
     "run_expert_review_workflow",

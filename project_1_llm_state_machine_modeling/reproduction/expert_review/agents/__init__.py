@@ -7,7 +7,6 @@ from .prediction_extractor import extract_prediction_dossier
 from .reference_extractor import extract_reference_dossier
 from .review_policy_builder import build_dimensions, build_review_policy_packet
 from .score_composer import compose_scores, final_confidence
-from .arbiter import arbitrate_trace_and_equivalence, arbitrate_with_llm
 from .equivalence import deterministic_equivalence, equivalence_with_llm
 from .missing_evidence_critic import deterministic_missing_evidence_critic, missing_evidence_with_llm
 from .pragmatic_quality import deterministic_pragmatic_quality, pragmatic_quality_with_llm
@@ -17,8 +16,6 @@ __all__ = [
     "ANALYSIS_FANOUT",
     "FINAL_FANIN",
     "PREPARATION_FANOUT",
-    "arbitrate_trace_and_equivalence",
-    "arbitrate_with_llm",
     "build_dimensions",
     "build_input_dossier",
     "build_review_policy_packet",

@@ -17,8 +17,6 @@ from ..agents import (
     overall_reason,
     route_contract,
     synthesize_result,
-    arbitrate_trace_and_equivalence,
-    arbitrate_with_llm,
     deterministic_missing_evidence_critic,
     deterministic_pragmatic_quality,
     deterministic_equivalence,
@@ -121,40 +119,6 @@ def run_equivalence_node(
         return llm_report, notes
     notes.append("Equivalence agent fell back to deterministic comparison.")
     return report, notes
-
-
-def run_arbitration_node(
-    llm: ChatOpenAI | None,
-    input_dossier: Any,
-    pred_dossier: Any,
-    ref_dossier: Any,
-    trace_results: list[Any],
-    equivalence_report: dict[str, Any],
-) -> tuple[list[Any], dict[str, Any], list[str]]:
-    trace_results, equivalence_report, notes = arbitrate_trace_and_equivalence(
-        input_dossier,
-        pred_dossier,
-        ref_dossier,
-        trace_results,
-        equivalence_report,
-    )
-    if llm is None:
-        return trace_results, equivalence_report, notes
-    llm_result = arbitrate_with_llm(
-        llm,
-        input_dossier,
-        pred_dossier,
-        ref_dossier,
-        trace_results,
-        equivalence_report,
-    )
-    if llm_result is None:
-        return trace_results, equivalence_report, notes
-    llm_trace, llm_report, llm_notes = llm_result
-    notes.extend(llm_notes[:4])
-    if llm_notes:
-        notes.append("Arbiter used deterministic reconciliation plus LLM conflict review.")
-    return llm_trace, llm_report, notes
 
 
 def run_quality_node(

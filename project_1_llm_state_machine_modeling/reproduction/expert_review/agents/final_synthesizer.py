@@ -123,7 +123,7 @@ def overall_reason(
         parts.append(f"{len(harmful_issues)} unsupported or risky extra structure item(s) were identified.")
     if equivalence_report.get("trace_conflict_count"):
         parts.append(
-            f"{int(equivalence_report.get('trace_conflict_count', 0) or 0)} trace judgement(s) had to be downgraded after arbitration."
+            f"{int(equivalence_report.get('trace_conflict_count', 0) or 0)} trace judgement(s) conflicted with the equivalence report."
         )
     if evidence_critic.get("warnings"):
         parts.append(f"Caution: {evidence_critic['warnings'][0]}")
