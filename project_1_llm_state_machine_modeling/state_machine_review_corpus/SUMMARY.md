@@ -1,12 +1,12 @@
 # `state_machine_review_corpus/` Summary
 
-本文件是 `project_1_llm_state_machine_modeling/state_machine_review_corpus/` 的总账。记录当前已正式收录的论文、当前 reviewer 系统可消费的总样本量、所有候选论文（含已收录与已排除）的逐项细节、外部待跟进候选、检索关键词簇与更新日志。
+本文件是 `project_1_llm_state_machine_modeling/state_machine_review_corpus/` 的总账。记录当前已正式收录的论文、当前 reviewer 系统可消费的总样本量、所有候选论文（含已收录与已排除）的逐项细节、外部已审查候选、检索关键词簇与更新日志。
 
 推荐使用顺序：
 
 1. 先读 [README.md](./README.md)，理解硬条件与边界。
 2. 再读 [GUIDE.md](./GUIDE.md)，确认筛选与抽取流程。
-3. 用本文件查看统计、清单、待跟进与历史。
+3. 用本文件查看统计、清单、已审查候选与历史。
 4. 若涉及单篇 `review_extraction.md`，再读 [REVIEW_GUIDE.md](./REVIEW_GUIDE.md)。
 
 ## 一、当前收录统计
@@ -14,7 +14,7 @@
 - 已收录论文（🟢 + 🟡 + ⏳）：**3** 篇
 - 🟢 直接可用：**3** 篇
 - 🟡 可整理：**0** 篇
-- ⚪ 未收获（评估后排除）：**18+** 篇（不进目录，仅在"§ 三、调研记录"中保留排除原因与维度）
+- ⚪ 未收获（评估后排除）：**23 篇**（baselines/ 内 18 篇 + 外部 5 篇）—— 仅在"§ 三、调研记录"与"§ 五、外部已审查候选"中保留排除原因与维度
 - ⏳ 尚未提取：**0** 篇
 - 当前 reviewer benchmark 实际可消费样本量：**820 行**（`baseline_double_green_human_review_records.parquet`）
 
@@ -87,7 +87,7 @@
 | `safety` (LLM 状态图扩展 + 安全测试) | ✅ | State Diagram 扩展（HSM 族） | ❌ 平均执行轮数 + 算法稳定性 | — | — | 1 case | ⚪ 联系作者 | — | **H3 失败**：单 case + 自动评估 | 2026-05-05 |
 | `STPA` (LLM + FSM + STPA + IEC 61499) | ✅ | FSM | 🟡 作者主观分类（正/负/中性变更） | 🔴 作者主观 | ❌ | 1 case | ⚪ 不公开 | — | **H3 失败**：单 case + 作者主观非独立 reviewer | 2026-05-05 |
 | `fsm-gen-iec-61499` (fbAssistant tool paper) | ✅ | FSM | ❌ 缺独立 review | — | — | tool 视频 | ⚪ 无 dataset | tool 演示视频 | **H3 失败**：tool paper 无 dataset 无 review | 2026-05-05 |
-| `LLM-FSM` (Stanford 2602.07032) | ✅ | FSM (RTL 码) | 🟡 LLM-as-Judge + SAT-solver + human review on subset | 🟢 SE/HW 研究者（subset） | ☑ 是（subset） | 1000 problems（subset 待查） | 🟡 待查 GitHub | [arXiv:2602.07032](https://arxiv.org/abs/2602.07032) | **H3 部分通过**：LLM-judge + SAT 不算；human review on subset 待确认公开度 → 升级到 §五 外部候选 | 2026-05-06 |
+| `LLM-FSM` (Stanford 2602.07032) | ✅ | FSM (RTL 码) | 🟡 LLM-as-Judge + SAT-solver + human review on subset | 🟢 SE/HW 研究者（subset） | ☑ 是（subset） | 1000 problems（subset 大小未披露） | ⚪ 不公开 | [arXiv:2602.07032](https://arxiv.org/abs/2602.07032) | **H3 失败**：经 2026-05-06 web 验证，论文无 github/zenodo URL；作者 GitHub 主页 6 repo 与本工作无关；human review subset 数据不公开。详见 §五 | 2026-05-06 |
 | `I4.0` (PROFINET / OPC UA + diagram recognition) | ❌ **输入是图像** | 状态机表示 | ❌ 边识别准确率 vs IEC ground truth | — | — | PROFINET 80 + OPC UA 15 状态图 | 🟢 Zenodo 公开 | [zenodo:14730727](https://zenodo.org/records/14730727) | **H1 失败**：图像 → SM 不是 NL → SM；评估是自动 metric | 2026-05-05 |
 | `req` (Volvo Cars 硕士论文) | ✅ | Statechart (Mermaid) | ✅ Likert + ANOVA / Tukey HSD / Wilcoxon + 半结构化访谈 | 🟢 4 位 Volvo Cars 领域专家 | ☑ 是 | 20 product functional requirements | ⚪ 工业专有不公开 | 论文 tables（仅聚合统计） | **H3 失败**：方法学完美但**原始评分不可获取**；review 数据是工业专有 | 2026-05-05 |
 | `chatgpt-uml-assessment` (Cámara 2024) | 🟡 部分（UML 含 SM 但比例小） | UML（含状态机片段） | 🟡 作者经验报告 | 🔴 作者主观 | ❌ | 40 UML/OCL 练习 | 🟢 公开 GitHub | [atenearesearchgroup/chatgpt-uml](https://github.com/atenearesearchgroup/chatgpt-uml) | **H2 部分失败**：状态机比例小；**H3 失败**：作者经验报告非独立 reviewer ≥5 人 | 2026-05-05 |
@@ -104,16 +104,21 @@
 
 ### 3.3 排除原因维度统计
 
-为后续调研提供参考——**排除原因不是单一**：
+为后续调研提供参考——**排除原因不是单一**（一篇论文可能命中多个原因）：
 
-| 排除原因 | 论文数 | 备注 |
+| 排除原因 | 论文数（含外部 5 篇） | 备注 |
 |---|---:|---|
-| 仅自动 metric（ICP / EUCP / F1 / BLEU / pass-fail / LLM-as-Judge） | 7 | umple / enhance / safety / fsm-gen-iec-61499 / I4.0 / mcet / Carvalho |
-| 数据公开但**范式 H1 不符**（图像 / scenario / LSC / 协议日志 输入） | 3 | I4.0 / Damas / Harel 2002 |
+| 仅自动 metric（ICP / EUCP / F1 / BLEU / pass-fail / LLM-as-Judge / SAT-solver） | 9 | umple / enhance / safety / fsm-gen-iec-61499 / I4.0 / mcet / Carvalho / **LLM-FSM** / **AIAA NL→SM** |
+| 数据公开但**范式 H1 不符**（图像 / scenario / LSC / 协议日志 / dialog 控制流 输入） | 4 | I4.0 / Damas / Harel 2002 / **CLASP 2025** |
 | **状态机 H2 不符**（输出 sequence diagram / FBD / state-NER / 类图等） | 4 | mcet / spec2control / extraction-of-system-states / 多数 UML class-only |
-| 范式符合但**数据不公开**（工业专有 / 仅 case 内描述） | 4 | req(Volvo) / completion-of-sysml-state-machines / Daimler / Carvalho 1 case |
+| 范式符合但**数据不公开**（工业专有 / 仅 case 内描述 / arXiv 无 release） | 7 | req(Volvo) / completion-of-sysml-state-machines / Daimler / Carvalho 1 case / **LLM-FSM** / **SpecGPT** / **AIAA** |
+| **reference-as-ground-truth 而非 review on LLM output** | 3 | pushing-envelope / **SysMBench** / **SpecGPT** |
 | 范式符合但**reviewer 是作者主观 / 单 case** | 3 | STPA / chatgpt-uml-assessment / pushing-envelope |
 | 经典文献（无 LLM 或无独立 reviewer） | 多 | 多数 baselines/ 经典论文 |
+
+加粗的 5 篇是本次（2026-05-06）新增的外部候选审查结论。
+
+> 🔑 **5 个外部候选全部排除的核心原因**：4 篇数据不公开（论文文字宣称但实际无公开仓库 URL），1 篇范式不符（CLASP 是 dialog statechart 控制流，statechart 是设计者手写）。说明 baselines/ 已经覆盖了主要的可获取候选。
 
 ## 四、检索关键词簇
 
@@ -144,17 +149,21 @@
 - **调整方向**：转向外部 arxiv 2024-2026 与 thesis 论文，重点关注汽车 / 航空 / 工业控制三个领域的状态机建模实证研究
 - **避免**：再次进入"看到 'state machine' 字样就收"的粗筛模式
 
-## 五、外部待跟进候选
+## 五、外部已审查候选（已全部审查完毕）
 
-下列论文在外部 arXiv / Google Scholar 调研中识别，需要进一步验证 review 数据可获取性。每行铺开的维度与 §3.1 / §3.2 一致。
+下列论文在外部 arXiv / Google Scholar 调研中识别，**已全部完成可获取性验证**，结果如下表。每行铺开的维度与 §3.1 / §3.2 一致。
 
-| 候选 | 来源 | 范式 H1 | 状态机 H2 | review 类型 | reviewer 资质 | reviewer 是否独立 | 样本量 | 数据获取类型 | 待跟进任务 | 当前 emoji |
-|---|---|:---:|---|---|---|:---:|:---:|---|---|:---:|
-| LLM-FSM: Scaling LLMs for Finite-State Reasoning in RTL Code Generation (Stanford) | [arXiv:2602.07032](https://arxiv.org/abs/2602.07032) | ✅ NL spec → RTL FSM | FSM (RTL 码) | 🟡 1000 problems + LLM-judge + SAT-solver + **human review on subset** | 🟢 SE/HW 研究者（subset） | ☑ 是 | subset 待查 | 🟡 待查 GitHub repo | 查 replication package；判定 subset 公开度与样本量 | 🟡 |
-| Automated Extraction of Protocol State Machines from 3GPP Specifications (SpecGPT) | [arXiv:2510.14348](https://arxiv.org/abs/2510.14348) | ✅ 3GPP 规范 → protocol SM | Protocol state machine | 🟡 manually annotated reference state machines | 🟢 协议专家 | ☑ 是 | 5G NAS / NGAP / PFCP 三协议 | 🟡 待查 supplementary | 评估"manual annotation as reference"是否算 expert review；查 supplementary | 🟡 |
-| A System Model Generation Benchmark from Natural Language Requirements (SysMBench) | [arXiv:2508.03215](https://arxiv.org/abs/2508.03215) | ✅ NL → system model（含 SM 片段） | System model（含 SysML SM 子集） | 🟡 151 human-curated reference models + SysMEval（语义 metric） | 🟢 PKU 研究者 | ☑ 是 | 151 scenarios | 🟡 待查 GitHub | 抽取 SM 子集；判定 reference vs review；评估是否含 human review on LLM output | 🟡 |
-| From Natural Language Standard Documents to State Machines | [AIAA 2024](https://arc.aiaa.org/doi/abs/10.2514/1.I010525) | ✅ aviation NL spec → SM | State machine | 🟡 工业实验 | 待查 | 待查 | 待查 | ⚪ 不公开 | 邮件联系作者询问 review 数据 | 🔴 阻塞 |
-| Combining Information State Update + Harel Statecharts (CLASP 2025) | [aclanthology.org/2025.clasp-main.3](https://aclanthology.org/2025.clasp-main.3.pdf) | ✅ NL dialog → Harel statechart | Harel statechart | 待细查 | 待查 | 待查 | 待查 | 待查 | 通读论文判定 review 形式 | 🟡 |
+| slug / 标题 | 来源 | H1（NL→SM 范式）| H2（状态机族）| review 类型 | reviewer 资质 | 独立 | 样本量 | 数据获取类型 | 入口 URL 验证 | 排除原因（按 H1/H2/H3 分类） | emoji |
+|---|---|:---:|---|---|---|:---:|:---:|---|---|---|:---:|
+| LLM-FSM: Scaling LLMs for Finite-State Reasoning in RTL Code Generation (Stanford) | [arXiv:2602.07032](https://arxiv.org/abs/2602.07032) | ✅ NL spec → RTL FSM | FSM (RTL 码) | 🟡 1000 problems + LLM-judge + SAT-solver + human review on subset | 🟢 SE/HW 研究者（subset） | ☑ 是 | subset 大小未在论文披露 | ⚪ 不公开 | arXiv 无 supplementary URL；论文 888 行内 0 个 github/zenodo URL；作者 Yuheng Wu GitHub 主页（joel-wu）公开 6 个 repo 全部与本工作无关 | **H3 失败**：human review subset 数据未公开 | ⚪ |
+| Automated Extraction of Protocol State Machines from 3GPP Specifications (SpecGPT) | [arXiv:2510.14348](https://arxiv.org/abs/2510.14348) | ✅ 3GPP 规范 → protocol SM | Protocol state machine | 🟡 manually annotated reference state machines | 🟢 协议专家 | ☑ 是 | 5G NAS / NGAP / PFCP 三协议 | ⚪ 不公开 | arXiv PDF 全文 0 个仓库 URL；论文未提供 release 声明 | **H3 失败**：data 不公开；且 manual annotation 是 ground truth 不是 review on LLM output | ⚪ |
+| A System Model Generation Benchmark from Natural Language Requirements (SysMBench) | [arXiv:2508.03215](https://arxiv.org/abs/2508.03215) | ✅ NL → system model（含 SM 片段） | System model（含 SysML SM 子集） | ❌ 151 human-curated **reference models** + 自动 metric (BLEU/ROUGE/BertScore/SysMEval) | 🟢 PKU 研究者 | ☑ 是（reference 创建者） | 151 scenarios | 🟡 论文宣称"release"但 HTML 中无 URL | abstract 与 conclusion 各提一次"We release SysMBench"；HTML 实际无 GitHub/Zenodo URL；human 参与是 annotation/validation/labeling 不是 review on LLM output | **H3 失败**：reference-as-ground-truth 不是 review on LLM output（按 [REVIEW_GUIDE §4](./REVIEW_GUIDE.md) 常见错误模式 #1） | ⚪ |
+| From Natural Language Standard Documents to State Machines | [AIAA 2024 / 10.2514/1.I010525](https://arc.aiaa.org/doi/abs/10.2514/1.I010525) | ✅ ECSS Packet Utilization Standard → EFSM | EFSM | ❌ semi-automatic 工具评估 | — | — | — | ⚪ 付费墙 | AIAA 出版页 403 拒访；DOI PDF 同样 403；无外部公开镜像 | **H3 失败**：semi-automatic 工具评估非 human review；且付费墙数据不可获取 | ⚪ |
+| Combining Information State Update + Harel Statecharts + LLMs for Conversational AI (CLASP 2025) | [aclanthology.org/2025.clasp-main.3](https://aclanthology.org/2025.clasp-main.3.pdf) | ❌ statechart 是**设计者手写**用于控制 dialog flow（不是从 NL 生成） | Harel statechart | ❌ 无 review on artifacts | — | — | — | 🟡 工具 Talkamatic Studio（无公开 GitHub） | 论文无 GitHub repo；实现细节"available in Talkamatic Studio"无公开访问 | **H1 失败**：范式不符（dialog 控制 statechart 是手写设计，不是 NL→SM 工件流）；**H3 失败**：无 review on artifacts | ⚪ |
+
+**结论**：5 个外部候选全部审完，**0 篇可加入文库**。
+
+调研验证日期：`2026-05-06 14:35`（含 web search + arxiv WebFetch + 作者主页 + GitHub 验证）。
 
 ## 六、当前 reviewer 系统数据预算
 
@@ -177,9 +186,10 @@
 
 ### 7.1 待办（短期 1-2 周）
 
-1. 审查 LLM-FSM (Stanford 2602.07032) 的 GitHub repo，判定 human review subset 是否公开
-2. 跟进 SysMBench / SpecGPT 的 supplementary，确认有无 review-on-LLM-output 数据
-3. 邮件联系候选作者：Volvo Cars (`req` 论文)、Leidos (`pushing-envelope`)、AIAA `From NL Standard Documents to State Machines`
+1. ~~审查 LLM-FSM (Stanford 2602.07032) 的 GitHub repo，判定 human review subset 是否公开~~ ✅ 完成（2026-05-06）：作者 GitHub 主页无相关 repo；论文无 supplementary URL → 数据不公开
+2. ~~跟进 SysMBench / SpecGPT 的 supplementary，确认有无 review-on-LLM-output 数据~~ ✅ 完成（2026-05-06）：SysMBench 是 reference-as-ground-truth 不是 review；SpecGPT 数据不公开
+3. （仍可选）邮件联系候选作者：Volvo Cars (`req` 论文)、Leidos (`pushing-envelope`)、AIAA `From NL Standard Documents to State Machines`、Stanford `LLM-FSM` 团队询问 human review subset 是否可申请获取
+4. **新待办**：转向"路径 C 自补 review"——拿现成的 LLM 输出（SysMBench 151 scenarios + LLM-FSM 1000 problems），自己组织 reviewer 做 human review，做出新的 NL→SM expert-review 数据
 
 ### 7.2 阻塞
 
@@ -197,6 +207,13 @@
 
 ## 八、更新日志
 
+- `2026-05-06 14:35:00` 完成 5 个外部候选的可获取性验证
+  - **LLM-FSM** (Stanford 2602.07032)：arXiv 页面无 supplementary URL；作者 Yuheng Wu (joel-wu) GitHub 主页 6 个 repo 全部与本工作无关；论文 888 行内 0 个 github/zenodo URL → ⚪ 排除（H3 失败：数据不公开）
+  - **SpecGPT** (3GPP 2510.14348)：arXiv PDF 全文 0 个仓库 URL；论文未提供 release 声明 → ⚪ 排除（H3 失败：数据不公开 + manual annotation 是 ground truth 不是 review on LLM output）
+  - **SysMBench** (2508.03215)：abstract 与 conclusion 各提一次"We release SysMBench"，但 HTML 实际无 GitHub/Zenodo URL；human 参与是 annotation/validation/labeling 不是 review on LLM output → ⚪ 排除（H3 失败：reference-as-ground-truth 不是 review；按 [REVIEW_GUIDE §4](./REVIEW_GUIDE.md) 常见错误模式 #1）
+  - **AIAA NL→SM** (10.2514/1.I010525)：AIAA 出版页 403 拒访；DOI PDF 同样 403；无外部公开镜像；semi-automatic 工具评估非 human review → ⚪ 排除（H3 失败 + 付费墙）
+  - **CLASP 2025** (2025.clasp-main.3)：论文 statechart 是设计者**手写**用于 dialog 控制流（不是从 NL 生成）；Talkamatic Studio 工具无公开 GitHub → ⚪ 排除（H1 失败：范式不符 + H3 失败：无 review）
+  - 同步更新 §一 收录统计（⚪ 排除从 18+ → 23）、§3.3 排除原因维度统计（含外部 5 篇按原因分类）、§五 标题从"待跟进"改为"已审查"、§7.1 待办勾掉已完成项 + 新增"路径 C 自补 review"
 - `2026-05-06 13:54:54` 文库初始化建立
   - 创建 `README.md` / `GUIDE.md` / `SUMMARY.md` / `REVIEW_GUIDE.md`
   - 从 `baselines/` **复制**（不 move）3 篇硬条件符合论文的 `paper.pdf / paper_content.txt / bibtex.bib`：`structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models` / `llms_emp` / `ttool-ai`（按 README §3.4：同篇论文可同时存在于 baselines/ 与本文库；两边独立维护各自的派生文件）

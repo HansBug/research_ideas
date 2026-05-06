@@ -131,8 +131,9 @@ AI 推荐阅读顺序如下：
 优先做：
 
 1. 优先确认每篇候选的 review 数据是否真的可获取（不只看论文文字声称，要真的尝试访问仓库 / 抽取数据）。
-2. 推动外部候选（SysMBench / SpecGPT / LLM-FSM / Volvo 等）的 review 数据实际入库。
-3. 维护 [SUMMARY.md](./SUMMARY.md) 中"当前 reviewer 系统可消费的总样本量"实时统计。
+2. ~~推动外部候选（SysMBench / SpecGPT / LLM-FSM / Volvo 等）的 review 数据实际入库。~~ 已于 2026-05-06 完成所有外部候选的可获取性验证（详见 [SUMMARY.md §五](./SUMMARY.md)）：5 个候选全部排除，确认 review 数据不可获取或范式不符。
+3. 转向"自补 review"路径：拿现成 LLM 输出（SysMBench 151 scenarios / LLM-FSM 1000 problems 等）+ 自己组织 reviewer 做 human review，做出新的 NL→SM expert-review 数据集。
+4. 维护 [SUMMARY.md](./SUMMARY.md) 中"当前 reviewer 系统可消费的总样本量"实时统计。
 
 避免做：
 
