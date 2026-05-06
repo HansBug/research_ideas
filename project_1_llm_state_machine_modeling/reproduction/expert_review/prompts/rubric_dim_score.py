@@ -200,6 +200,26 @@ def _format_pitfalls(pitfalls: list[str]) -> str:
     return "\n".join(f"  - {p}" for p in pitfalls)
 
 
+_DIFFERENTIATION_HINT = """
+DIFFERENTIATION REQUIREMENT (read carefully):
+You are scoring ONE artifact, but it belongs to a batch of similar artifacts
+(same protocol family / same case / same domain). Your score MUST reflect
+the SPECIFIC quality of THIS artifact, not the average of the batch.
+
+Concretely:
+  - Two artifacts with identical deterministic hints can still differ in actual
+    quality — your rubric score MUST capture that difference.
+  - Do NOT default to the deterministic hint just to be safe. The hint is a
+    coarse heuristic; your job is to refine it based on the rubric criteria
+    actually visible in the artifact text below.
+  - If the artifact has clear domain-specific naming, full transition coverage,
+    or canonical syntax, score in the upper bands (≥ 0.7) regardless of hint.
+  - If the artifact uses generic placeholders, missing core states/transitions,
+    or mismatched semantics, score in the lower bands (≤ 0.4) regardless of hint.
+  - The deterministic hint is a soft anchor, NOT a target.
+"""
+
+
 def build_rubric_prompt(
     dim_name: str,
     pred_summary: str,
@@ -208,11 +228,17 @@ def build_rubric_prompt(
     regime_label: str,
     deterministic_hint: float,
     extra_signals: dict[str, Any] | None = None,
+    differentiation_mode: bool = False,
 ) -> str:
     """Construct the LLM prompt for one dim's rubric scoring.
 
     `pred_summary` / `ref_summary` / `input_summary` should be already-truncated
     summaries (<1000 chars each) to keep prompt small.
+
+    `differentiation_mode` (Iter-B flag): when True, append an explicit
+    instruction telling the LLM to score the artifact's specific quality
+    rather than defaulting to the deterministic hint. This is meant to
+    counteract LLM's tendency to compress scores in summary regime.
     """
     rubric = _DIM_RUBRICS[dim_name]
     extras = extra_signals or {}
@@ -223,6 +249,8 @@ def build_rubric_prompt(
     parts.append("Rubric (score → criteria):\n" + _format_rubric_table(rubric["rubric_table"]))
     parts.append("\nAnchor examples:\n" + _format_anchors(rubric["anchors"]))
     parts.append("\nPitfalls to avoid:\n" + _format_pitfalls(rubric["pitfalls"]))
+    if differentiation_mode:
+        parts.append(_DIFFERENTIATION_HINT.strip())
     parts.append(f"\nRegime: {regime_label}")
     parts.append(f"Deterministic hint (current heuristic estimate): {deterministic_hint:.3f}")
     if extras:
@@ -235,11 +263,19 @@ def build_rubric_prompt(
         parts.append(f"\nReference artifact (truncated):\n{ref_summary}")
     else:
         parts.append("\nReference artifact: (none — score independently)")
-    parts.append(
-        "\nReturn the JSON now. Be strict: do NOT default to 0.5 to be safe; "
-        "use the rubric to pick the most accurate band, and stay close to the "
-        "deterministic hint unless evidence clearly justifies otherwise."
-    )
+    if differentiation_mode:
+        parts.append(
+            "\nReturn the JSON now. Use the rubric to pick the most accurate band "
+            "based on what is actually visible in the artifact. Do NOT clip your "
+            "score toward the deterministic hint; pick the band that the rubric "
+            "criteria DEMAND given the artifact text."
+        )
+    else:
+        parts.append(
+            "\nReturn the JSON now. Be strict: do NOT default to 0.5 to be safe; "
+            "use the rubric to pick the most accurate band, and stay close to the "
+            "deterministic hint unless evidence clearly justifies otherwise."
+        )
     return "\n".join(parts)
 
 

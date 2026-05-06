@@ -26,7 +26,10 @@ from .llm_helpers import invoke_llm_json
 
 
 # Sanity bounds: (min_offset_from_det, max_offset_from_det)
-_SANITY_BOUNDS: dict[str, tuple[float, float]] = {
+# Iter-A introduces asymmetric bounds keyed by (regime, dim) — summary regime
+# needs MORE room for the LLM to express rank differentiation. Week 1 v0
+# experiment showed symmetric tight bounds collapsed summary RankAlign 69→63.
+_SANITY_BOUNDS_DEFAULT: dict[str, tuple[float, float]] = {
     "notation_syntax": (-0.20, 0.30),
     "semantic_completeness": (-0.20, 0.20),
     "behavioral_consistency": (-0.20, 0.20),
@@ -34,6 +37,36 @@ _SANITY_BOUNDS: dict[str, tuple[float, float]] = {
     "pragmatic_clarity": (-0.25, 0.25),
     "evidence_discipline": (-0.15, 0.15),
 }
+
+# Iter-A: regime-aware bounds. summary_only / protocol_only get LOOSER bounds
+# so the LLM can keep its rank-differentiation advantage; record_level /
+# component_review_mode keep the tight bounds to anchor LLM against
+# absolute-score drift.
+_SANITY_BOUNDS_BY_REGIME: dict[tuple[str, str], tuple[float, float]] = {
+    # summary regime — LOOSEN ±0.30..0.35 to preserve rank differentiation
+    ("summary_only", "notation_syntax"): (-0.30, 0.40),
+    ("summary_only", "semantic_completeness"): (-0.35, 0.35),
+    ("summary_only", "behavioral_consistency"): (-0.35, 0.35),
+    ("summary_only", "requirement_traceability"): (-0.30, 0.30),
+    ("summary_only", "pragmatic_clarity"): (-0.35, 0.35),
+    ("summary_only", "evidence_discipline"): (-0.30, 0.30),
+    # protocol regime — also loosen
+    ("protocol_only", "notation_syntax"): (-0.30, 0.40),
+    ("protocol_only", "semantic_completeness"): (-0.35, 0.35),
+    ("protocol_only", "behavioral_consistency"): (-0.35, 0.35),
+    ("protocol_only", "requirement_traceability"): (-0.30, 0.30),
+    ("protocol_only", "pragmatic_clarity"): (-0.35, 0.35),
+    ("protocol_only", "evidence_discipline"): (-0.30, 0.30),
+}
+
+
+def _get_sanity_bound(dim_name: str, regime_label: str, asymmetric: bool) -> tuple[float, float]:
+    """Resolve sanity bound based on Iter-A flag (asymmetric)."""
+    if asymmetric:
+        key = (regime_label, dim_name)
+        if key in _SANITY_BOUNDS_BY_REGIME:
+            return _SANITY_BOUNDS_BY_REGIME[key]
+    return _SANITY_BOUNDS_DEFAULT[dim_name]
 
 # Hard-clip threshold: scores deviating more than 2× the bound trigger fallback
 _HARD_REJECT_MULTIPLIER = 2.0
@@ -84,6 +117,8 @@ def llm_rubric_score(
     deterministic_estimate: float,
     extra_signals: dict[str, Any] | None = None,
     llm: Any = None,
+    asymmetric_bounds: bool = False,    # Iter-A flag
+    differentiation_mode: bool = False,  # Iter-B flag
 ) -> RubricScore:
     """Run rubric-based LLM scoring for a single dimension.
 
@@ -95,7 +130,7 @@ def llm_rubric_score(
         raise ValueError(f"Unsupported dim: {dim_name!r}")
 
     det = max(0.0, min(1.0, float(deterministic_estimate)))
-    bound_lo_off, bound_hi_off = _SANITY_BOUNDS[dim_name]
+    bound_lo_off, bound_hi_off = _get_sanity_bound(dim_name, regime_label, asymmetric_bounds)
     bound_lo = max(0.0, det + bound_lo_off)
     bound_hi = min(1.0, det + bound_hi_off)
     hard_lo = max(0.0, det + _HARD_REJECT_MULTIPLIER * bound_lo_off)
@@ -122,6 +157,7 @@ def llm_rubric_score(
         regime_label=regime_label,
         deterministic_hint=det,
         extra_signals=extra_signals,
+        differentiation_mode=differentiation_mode,
     )
     messages = [
         ("system", "You are a strict, calibrated state-machine reviewer. Output only JSON."),

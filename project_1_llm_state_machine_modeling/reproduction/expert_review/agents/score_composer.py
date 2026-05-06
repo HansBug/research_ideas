@@ -190,11 +190,31 @@ def compose_scores(
     # component_review_mode blends) intact. Sanity bounds prevent the LLM
     # from giving extreme scores (Phase 15 / Week 0 LLM-mode showed record
     # ScoreAlign collapsing -19.30 without rubric anchoring).
+    #
+    # Iter feature flags (read from request.metadata):
+    #   rubric_llm_enabled       — master on/off
+    #   rubric_iter_a_asymmetric — Iter-A: regime-aware bound widths
+    #   rubric_iter_b_diff_prompt — Iter-B: append differentiation hint
+    #   rubric_iter_c_regimes    — Iter-C: list of regimes to actually apply
+    #                              rubric on (e.g. ["record_level"]); empty
+    #                              list means apply on all regimes
     rubric_metadata: dict[str, RubricScore] = {}
+    request_metadata = getattr(request, "metadata", None) or {}
     rubric_flag = bool(
         policy_packet.get("rubric_llm_enabled", False)
-        or (getattr(request, "metadata", None) or {}).get("rubric_llm_enabled", False)
+        or request_metadata.get("rubric_llm_enabled", False)
     )
+    iter_a_asymmetric = bool(request_metadata.get("rubric_iter_a_asymmetric", False))
+    iter_b_diff_prompt = bool(request_metadata.get("rubric_iter_b_diff_prompt", False))
+    iter_c_regimes = list(request_metadata.get("rubric_iter_c_regimes", []) or [])
+
+    # Iter-C: selective application by regime
+    regime_label_for_check = str(regime.regime if hasattr(regime, "regime") else regime)
+    if rubric_flag and iter_c_regimes:
+        rubric_active_for_regime = regime_label_for_check in iter_c_regimes
+        if not rubric_active_for_regime:
+            rubric_flag = False  # skip rubric for this regime
+
     if rubric_flag and llm is not None:
         regime_label = str(regime.regime if hasattr(regime, "regime") else regime)
         input_text_summary = str(getattr(request, "input_text", "") or "")
@@ -226,6 +246,8 @@ def compose_scores(
                 deterministic_estimate=det_estimate,
                 extra_signals=common_extras,
                 llm=llm,
+                asymmetric_bounds=iter_a_asymmetric,
+                differentiation_mode=iter_b_diff_prompt,
             )
             rubric_metadata[dim_name] = rubric_result
             if dim_name == "notation_syntax":
