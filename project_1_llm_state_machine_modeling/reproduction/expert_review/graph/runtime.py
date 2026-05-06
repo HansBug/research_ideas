@@ -266,6 +266,7 @@ def run_expert_review_workflow(
             state.equivalence_report,
             state.quality_report,
             state.evidence_critic,
+            llm=llm,
         )
 
         _append_runtime_notes(state)

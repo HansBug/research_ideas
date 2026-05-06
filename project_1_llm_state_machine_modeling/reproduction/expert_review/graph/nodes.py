@@ -199,6 +199,8 @@ def run_score_composer_node(
     equivalence_report: dict[str, Any],
     quality_report: dict[str, Any],
     evidence_critic: dict[str, Any],
+    *,
+    llm: ChatOpenAI | None = None,
 ) -> tuple[list[Any], list[Any], float, float]:
     dimension_results, harmful_issues, overall_score = compose_scores(
         dimensions,
@@ -212,6 +214,7 @@ def run_score_composer_node(
         equivalence_report,
         quality_report,
         evidence_critic,
+        llm=llm,
     )
     confidence = final_confidence(regime, policy_packet, trace_results, equivalence_report, evidence_critic)
     return dimension_results, harmful_issues, overall_score, confidence

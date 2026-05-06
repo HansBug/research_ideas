@@ -6,6 +6,7 @@ from ..schema import DimensionReviewResult, ElementIssue, EvidenceItem, TraceLin
 from ..utils import normalize_id
 from ..tools import status_counts
 from .common import clip01
+from .rubric_scorer import RubricScore, llm_rubric_score
 
 
 def _missing_signal_count(items: list[str]) -> int:
@@ -102,6 +103,8 @@ def compose_scores(
     equivalence_report: dict[str, Any],
     quality_report: dict[str, Any],
     evidence_critic: dict[str, Any],
+    *,
+    llm: Any = None,
 ) -> tuple[list[DimensionReviewResult], list[ElementIssue], float]:
     matched, partial, missing = status_counts(trace_results)
     requirement_count = max(1, len(trace_results))
@@ -180,6 +183,64 @@ def compose_scores(
         - 0.08 * len(evidence_critic.get("warnings", []))
         + (0.06 if regime.regime == "record_level" else 0.0)
     )
+
+    # ─── S2-Q1: rubric-LLM override (feature flag) ────────────────────────────
+    # Replaces the 6 deterministic dim scores above with LLM rubric outputs,
+    # while keeping the post-transforms (summary_mode / protocol_mode /
+    # component_review_mode blends) intact. Sanity bounds prevent the LLM
+    # from giving extreme scores (Phase 15 / Week 0 LLM-mode showed record
+    # ScoreAlign collapsing -19.30 without rubric anchoring).
+    rubric_metadata: dict[str, RubricScore] = {}
+    rubric_flag = bool(
+        policy_packet.get("rubric_llm_enabled", False)
+        or (getattr(request, "metadata", None) or {}).get("rubric_llm_enabled", False)
+    )
+    if rubric_flag and llm is not None:
+        regime_label = str(regime.regime if hasattr(regime, "regime") else regime)
+        input_text_summary = str(getattr(request, "input_text", "") or "")
+        pred_text_summary = str(getattr(request, "pred_output", "") or "")
+        ref_text_summary = getattr(request, "ref_output", None)
+        ref_text_summary = str(ref_text_summary) if ref_text_summary else None
+        common_extras = {
+            "trace_ratio": round(trace_ratio, 3),
+            "matched_ratio": round(matched_ratio, 3),
+            "missing_ratio": round(missing_ratio, 3),
+            "harmful_count": harmful_count,
+            "contradiction_count": contradiction_count,
+            "equivalence_strength": round(equivalence_strength, 3),
+        }
+        for dim_name, det_estimate, current_score_var in [
+            ("notation_syntax", syntax_score, "syntax_score"),
+            ("semantic_completeness", completeness_score, "completeness_score"),
+            ("behavioral_consistency", behavior_score, "behavior_score"),
+            ("requirement_traceability", traceability_score, "traceability_score"),
+            ("pragmatic_clarity", clarity_score, "clarity_score"),
+            ("evidence_discipline", evidence_score, "evidence_score"),
+        ]:
+            rubric_result = llm_rubric_score(
+                dim_name,
+                pred_summary=pred_text_summary,
+                ref_summary=ref_text_summary,
+                input_summary=input_text_summary,
+                regime_label=regime_label,
+                deterministic_estimate=det_estimate,
+                extra_signals=common_extras,
+                llm=llm,
+            )
+            rubric_metadata[dim_name] = rubric_result
+            if dim_name == "notation_syntax":
+                syntax_score = rubric_result.score
+            elif dim_name == "semantic_completeness":
+                completeness_score = rubric_result.score
+            elif dim_name == "behavioral_consistency":
+                behavior_score = rubric_result.score
+            elif dim_name == "requirement_traceability":
+                traceability_score = rubric_result.score
+            elif dim_name == "pragmatic_clarity":
+                clarity_score = rubric_result.score
+            elif dim_name == "evidence_discipline":
+                evidence_score = rubric_result.score
+
     summary_score_hint = clip01(float(quality_report.get("summary_score_hint", clarity_score)))
     if summary_mode:
         if score_semantics == "summary_stat_stddev":
