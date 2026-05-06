@@ -12,7 +12,6 @@ from .benchmark import (
     _build_phase14_promotion_evaluation,
     _build_phase15_report_comparison,
     _evaluate_task_bundle,
-    _evidence_locator_metrics,
     _judgement_metrics,
     _summarize_lockbox_residual_clusters,
     build_benchmark_split_bundle,
@@ -175,34 +174,6 @@ def test_agent_critical_issue_set_recovers_action_effect_from_raw_issue_text() -
     tags = _agent_critical_issue_set(result)
     assert "unsupported_extra_structure" in tags
     assert "wrong_action_or_effect" in tags
-
-
-def test_evidence_locator_metrics_validate_summary_locators() -> None:
-    result = ExpertReviewResult(
-        prompt="prompt",
-        overall_score=0.8,
-        overall_judgement="good",
-        overall_reason_text="reason",
-        used_review_backend="deterministic",
-        evidence_summary=[
-            EvidenceItem(
-                source="input",
-                locator="input:requirement:r1",
-                snippet="R1: start moves to Running",
-                explanation="Requirement anchor.",
-            ),
-            EvidenceItem(
-                source="prediction",
-                locator=None,
-                snippet="Running",
-                explanation="Missing locator on purpose.",
-            ),
-        ],
-    )
-    metrics = _evidence_locator_metrics([{"result": result}])
-    assert metrics["evidence_summary_items"] == 2
-    assert metrics["evidence_locator_coverage"] == 0.5
-    assert metrics["evidence_locator_validity"] == 0.5
 
 
 def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:

@@ -1068,38 +1068,10 @@ def _dimension_map(result: ExpertReviewResult) -> dict[str, Any]:
     return {item.dimension_name: item for item in result.dimension_results}
 
 
-def _evidence_locator_valid(item: Any) -> bool:
-    source = str(getattr(item, "source", "") or "").strip().lower()
-    locator = str(getattr(item, "locator", "") or "").strip()
-    if not source or not locator:
-        return False
-    prefix = locator.split(":", 1)[0].lower()
-    allowed_prefixes = {
-        "input": {"input"},
-        "prediction": {"prediction"},
-        "reference": {"reference"},
-        "comparison": {"comparison"},
-        "critic": {"critic"},
-        "precomputed_context": {"critic", "precomputed_context"},
-    }.get(source, {source})
-    return prefix in allowed_prefixes and bool(str(getattr(item, "snippet", "") or "").strip())
-
-
-def _evidence_locator_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    items = [item for row in rows for item in row["result"].evidence_summary]
-    if not items:
-        return {
-            "evidence_summary_items": 0,
-            "evidence_locator_coverage": 0.0,
-            "evidence_locator_validity": 0.0,
-        }
-    coverage = sum(1.0 for item in items if str(item.locator or "").strip()) / len(items)
-    validity = sum(1.0 for item in items if _evidence_locator_valid(item)) / len(items)
-    return {
-        "evidence_summary_items": len(items),
-        "evidence_locator_coverage": coverage,
-        "evidence_locator_validity": validity,
-    }
+# A2 简化：移除 `_evidence_locator_valid` / `_evidence_locator_metrics`。
+# 22 ablation 实测 `evidence_locator_validity` 在所有 ablation 下恒为 1.0 ——
+# 因为 evidence_summary 的 locator 由 score_composer / final_synthesizer 用固定 prefix
+# 自己生成，benchmark 又用同一套 prefix 验证，结构上必然 1.0。无判别力。
 
 
 def _contradiction_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1950,11 +1922,18 @@ def _evaluate_task_bundle(
     component_metrics = _component_alignment_metrics(component_rows)
     protocol_metrics = _protocol_metrics(protocol_rows)
     judgement_metrics = _judgement_metrics(record_rows + summary_rows + component_rows)
-    evidence_metrics = _evidence_locator_metrics(normalized_rows)
     contradiction_metrics = _contradiction_metrics(normalized_rows)
     critical_issue_metrics = _critical_issue_metrics(record_rows + summary_rows)
     runtime_metrics = _runtime_metrics(normalized_rows)
-    hai = 0.55 * ras + 0.25 * sas + 0.20 * protocol_metrics["PDS"]
+    # A1 公式重定义：
+    # 旧 HAI = 0.55·RAS + 0.25·SAS + 0.20·PDS：PDS 自 Phase 13 起所有 split / LOFO 都是 100，
+    # 意味着 HAI 公式中固定 20 分来自一个不再产生信号的 metric；同时 CRAS（component 维度）
+    # 完全没进 HAI 公式。新 HAI 重新分配权重让所有项都"会动"，且把 CRAS 拉进 promotion 决策。
+    # 旧 HAI 仍以 hai_legacy 形式输出，便于和历史 phase 对比。PDS 转为独立的 binary gate。
+    hai_legacy = 0.55 * ras + 0.25 * sas + 0.20 * protocol_metrics["PDS"]
+    hai = 0.40 * ras + 0.30 * sas + 0.30 * component_metrics["CRAS"]
+    pds_gate_threshold = 95.0
+    pds_gate_pass = bool(protocol_metrics["PDS"] >= pds_gate_threshold)
 
     report = {
         "report_label": report_label,
@@ -1983,11 +1962,16 @@ def _evaluate_task_bundle(
         "component_metrics": component_metrics,
         "protocol_metrics": protocol_metrics,
         "judgement_metrics": judgement_metrics,
-        "evidence_metrics": evidence_metrics,
         "contradiction_metrics": contradiction_metrics,
         "critical_issue_metrics": critical_issue_metrics,
         "runtime_metrics": runtime_metrics,
         "HAI": hai,
+        "HAI_legacy": hai_legacy,
+        "pds_gate": {
+            "threshold": pds_gate_threshold,
+            "value": protocol_metrics["PDS"],
+            "passed": pds_gate_pass,
+        },
         "metadata": {} if metadata is None else dict(metadata),
         "normalized_rows": normalized_rows,
     }
@@ -2435,17 +2419,47 @@ def _build_phase14_promotion_evaluation(
         "residual_row_rate": lockbox_residuals.get("residual_row_rate", 0.0),
         "cluster_count": len(lockbox_residuals.get("clusters", [])),
     }
+    # A1: 显式 PDS binary gate（之前 PDS 通过 0.20 权重隐式进入 HAI；现在 HAI 公式不再含 PDS，
+    # 改为独立 gate，确保 PDS 退化能阻止 promotion，但不再"占 HAI 20 分恒值"）。
+    pds_gate_threshold = 95.0
+
+    def _resolve_pds_gate(report: dict[str, Any] | None) -> dict[str, Any] | None:
+        if report is None:
+            return None
+        existing = report.get("pds_gate")
+        if isinstance(existing, dict) and "passed" in existing:
+            return existing
+        pds_value = float(report.get("protocol_metrics", {}).get("PDS", 0.0))
+        return {
+            "threshold": pds_gate_threshold,
+            "value": pds_value,
+            "passed": bool(pds_value >= pds_gate_threshold),
+        }
+
+    validation_pds_gate = _resolve_pds_gate(validation_report)
+    lockbox_pds_gate = _resolve_pds_gate(split_reports.get("lockbox"))
+    pds_gate_passed = bool(
+        validation_pds_gate and validation_pds_gate.get("passed")
+        and lockbox_pds_gate and lockbox_pds_gate.get("passed")
+    )
+    pds_gate_stage = {
+        "status": "passed" if pds_gate_passed else "failed",
+        "required_artifact": "pds_gate",
+        "validation": validation_pds_gate,
+        "lockbox": lockbox_pds_gate,
+    }
 
     stages = {
         "validation": validation_stage,
         "lockbox": lockbox_stage,
         "lofo": lofo_stage,
         "residual_audit": residual_stage,
+        "pds_gate": pds_gate_stage,
     }
     all_passed = all(stage.get("status") == "passed" for stage in stages.values())
     return {
         "candidate_version": candidate_version or "unlabeled",
-        "default_acceptance_surface": "validation + lockbox + LOFO + lockbox_residual_audit",
+        "default_acceptance_surface": "validation + lockbox + LOFO + lockbox_residual_audit + pds_gate",
         "stages": stages,
         "generalization_evidence_ready": all_passed,
         "promotion_status": "promoted_to_phase14_default" if all_passed else "hold",
@@ -2833,7 +2847,6 @@ def _format_report(report: dict[str, Any]) -> str:
     component = report["component_metrics"]
     protocol = report["protocol_metrics"]
     judgement = report.get("judgement_metrics", {})
-    evidence = report.get("evidence_metrics", {})
     contradiction = report.get("contradiction_metrics", {})
     critical = report.get("critical_issue_metrics", {})
     runtime = report.get("runtime_metrics", {})
@@ -2895,7 +2908,6 @@ def _format_report(report: dict[str, Any]) -> str:
         "## Reason / Evidence Reliability",
         f"- critical_issue_recall: {critical.get('critical_issue_recall', 0.0):.4f}",
         f"- unsupported_claim_rate: {record['unsupported_claim_rate']:.4f}",
-        f"- evidence_locator_validity: {evidence.get('evidence_locator_validity', 0.0):.4f}",
         f"- contradiction_rate: {contradiction.get('contradiction_rate', 0.0):.4f}",
         "",
         "## Runtime / LLM Observability",
@@ -2907,7 +2919,10 @@ def _format_report(report: dict[str, Any]) -> str:
         f"- llm_fallback_only_record_rate: {runtime.get('llm_fallback_only_record_rate', 0.0):.4f}",
         "",
         "## Overall",
-        f"- HAI: {report['HAI']:.2f}",
+        f"- HAI: {report['HAI']:.2f}    (公式 v2 = 0.40·RAS + 0.30·SAS + 0.30·CRAS)",
+        f"- HAI_legacy: {report.get('HAI_legacy', 0.0):.2f}    (公式 v1 = 0.55·RAS + 0.25·SAS + 0.20·PDS)",
+        f"- PDS gate: {'PASS' if report.get('pds_gate', {}).get('passed') else 'FAIL'}    "
+        f"(value={report.get('pds_gate', {}).get('value', 0.0):.2f}, threshold={report.get('pds_gate', {}).get('threshold', 95.0)})",
     ]
     return "\n".join(lines)
 
