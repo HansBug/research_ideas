@@ -65,14 +65,18 @@
 
 ## 6. 落盘与 parquet 化
 
-- 本地数据路径：尚未克隆 SyNSec-den GitHub
-- parquet schema 是否对齐：⚪ 待对齐
-- parquet 行数：⚪ 待生成（预计：3 specifications × ~5,000 paragraphs/spec = ~15,000+ 行 paragraph-level / 或聚合到 transition-level ~1000 行）
-- 当前 reviewer benchmark 是否已能消费：⚪ 否，需 ETL
+- 本地数据路径：[`./data/`](./data/)（`git clone --depth 1 https://github.com/SyNSec-den/hermes-spec-to-fsm.git data` 完成，2026-05-06 15:04）
+- parquet schema 是否对齐：🟢 已对齐（34 列）
+- parquet 行数：**3 行**（`case_aggregate_stat`，4G-NAS Release 16 / 5G-NAS Release 17 / 5G-RRC Release 17 spec-level paper-reported accuracy 0.8721）
+- ETL 入口：[`../etl/build_protocol_fsm_records.py`](../etl/build_protocol_fsm_records.py)
+- 输出文件：[`../etl/out/protocol_fsm_human_review_records.parquet`](../etl/out/protocol_fsm_human_review_records.parquet)
+- 当前 reviewer benchmark 是否已能消费：🟢 是（`summarize_benchmark_coverage` 校验通过）
+
+注：Hermes 论文本身的 NEUTREX 模型权重 gated 在 Google Drive，repo 内**仅包含 TCNL 标签 + 原始 spec txt 文件**；无 LLM/模型预测可用，因此每个 spec 只产生 1 行 spec-level 聚合行（不展开到 transition 级别）。
 
 ## 7. 状态
 
-🟡 可整理：论文文字明确 GitHub 公开 + 已访问 SyNSec-den org 主页；具体 Hermes repo + dataset 二次克隆与 schema 对齐工作未完成。
+🟢 直接可用：数据已 clone、ETL 已完成（spec-level）、parquet 已对齐 schema、reviewer benchmark 已消费验证。
 
 ## 8. 后续动作
 

@@ -65,14 +65,16 @@
 
 ## 6. 落盘与 parquet 化
 
-- 本地数据路径：尚未拉取（待办）
-- parquet schema 是否对齐到 `baseline_double_green_human_review_records` schema：⚪ 待对齐（PSM 转 record 形式需要协议 → state/transition 展开）
-- parquet 行数：⚪ 待生成（预计：14 协议 × 平均 ~21 transitions = ~300+ 行）
-- 当前 reviewer benchmark 是否已能消费：⚪ 否，需 ETL 工作
+- 本地数据路径：[`./data/`](./data/)（`git clone --depth 1 https://github.com/Zilinlin/RFC_PSM_Benchmark.git data` 完成，2026-05-06 15:03）
+- parquet schema 是否对齐到 `baseline_double_green_human_review_records` schema：🟢 已对齐（34 列）
+- parquet 行数：**140 行**（`summary_level_run_score` 126 + `case_aggregate_stat` 14）
+- ETL 入口：[`../etl/build_protocol_fsm_records.py`](../etl/build_protocol_fsm_records.py)
+- 输出文件：[`../etl/out/protocol_fsm_human_review_records.parquet`](../etl/out/protocol_fsm_human_review_records.parquet)（合并版：`combined_human_review_records.parquet` 973 行）
+- 当前 reviewer benchmark 是否已能消费：🟢 是（`summarize_benchmark_coverage` 校验通过）
 
 ## 7. 状态
 
-🟡 可整理：来源已确认可获取，仓库与 dataset 都已 浏览验证；但抽取/对齐到 reviewer schema 尚未完成。
+🟢 直接可用：数据已 clone、ETL 已完成、parquet 已对齐 schema、reviewer benchmark 已消费验证。
 
 ## 8. 后续动作
 

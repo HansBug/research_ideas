@@ -64,14 +64,18 @@
 
 ## 6. 落盘与 parquet 化
 
-- 本地数据路径：尚未克隆 RFCNLP/RFCNLP GitHub
-- parquet schema 是否对齐：⚪ 待对齐
-- parquet 行数：⚪ 待生成（预计：6 RFCs × 平均 ~80 paragraphs/RFC = ~500 行 paragraph-level / 或聚合到 transition-level ~200 行）
-- 当前 reviewer benchmark 是否已能消费：⚪ 否，需 ETL
+- 本地数据路径：[`./data/`](./data/)（`git clone --depth 1 https://github.com/RFCNLP/RFCNLP.git data` 完成，2026-05-06 15:04）
+- parquet schema 是否对齐：🟢 已对齐（34 列）
+- parquet 行数：**10 行**（`case_aggregate_stat` 6 + `summary_level_run_score` 4）
+  - 6 协议 ground-truth：BGPv4 / DCCP / LTP / PPTP / SCTP / TCP（从 `rfcs-annotated-tidied/*.xml` 提取 def_state / def_event / def_action 列表）
+  - 4 NLP 预测器跑分：BERT-CRF + linear_phrases × TCP/DCCP，9 类标签 macro-F1（其中 def_* 类完美命中，control/trigger/transition 类有差异）
+- ETL 入口：[`../etl/build_protocol_fsm_records.py`](../etl/build_protocol_fsm_records.py)
+- 输出文件：[`../etl/out/protocol_fsm_human_review_records.parquet`](../etl/out/protocol_fsm_human_review_records.parquet)
+- 当前 reviewer benchmark 是否已能消费：🟢 是（`summarize_benchmark_coverage` 校验通过）
 
 ## 7. 状态
 
-🟡 可整理：来源已确认可获取（GitHub repo 含完整标注文件目录）；schema 对齐与 ETL 工作未完成。
+🟢 直接可用：数据已 clone、ETL 已完成、parquet 已对齐 schema、reviewer benchmark 已消费验证。
 
 ## 8. 后续动作
 

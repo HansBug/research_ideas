@@ -12,11 +12,12 @@
 ## 一、当前收录统计
 
 - 已收录论文（🟢 + 🟡 + ⏳）：**6** 篇（baselines 来源 3 + 外部 protocol-FSM 新增 3）
-- 🟢 直接可用：**3** 篇（structure-event-driven / llms_emp / ttool-ai）
-- 🟡 可整理：**3** 篇（**新增** psmbench / hermes / rfcnlp —— 数据已确认 GitHub 公开，待克隆并 ETL 为 parquet）
+- 🟢 直接可用：**6** 篇（structure-event-driven / llms_emp / ttool-ai / **psmbench / hermes / rfcnlp**）—— 后 3 篇 2026-05-06 完成 ETL，已落盘到 `etl/out/`
+- 🟡 可整理：**0** 篇
 - ⚪ 未收获（评估后排除）：**23 篇**（baselines/ 内 18 篇 + 外部 5 篇）—— 仅在"§ 三、调研记录"与"§ 五、外部已审查候选"中保留排除原因与维度
 - ⏳ 尚未提取：**0** 篇
-- 当前 reviewer benchmark 实际可消费样本量：**820 行**（`baseline_double_green_human_review_records.parquet`，来自 🟢 三篇）；**🟡 三篇 ETL 完成后预计再增 ~1,500-15,000 行**（取决于按 paragraph-level 还是 transition-level 展开）
+- 当前 reviewer benchmark 实际可消费样本量：**973 行**（`combined_human_review_records.parquet`：baseline 820 + 新增 153）—— 详见 [§六 数据预算](#六当前-reviewer-系统数据预算)
+- summary 主评测样本量：**84 → 214 行（2.55×）**；summary families：**12 → 28（2.33×）**；protocol families：**4 → 7（1.75×）**
 
 ## 二、评估口径与维度
 
@@ -76,17 +77,19 @@
 
 合计 **3 篇 / 820 行 review 数据**（与 reviewer 现有 dataset 完全对齐）。
 
-### 3.1.1 🟡 已收录（可整理 / 待 ETL，2026-05-06 新增）
+### 3.1.1 🟢 已收录（直接可用，2026-05-06 新增 + ETL 完成）
 
-下表的 3 篇是 2026-05-06 第二轮外部学术检索的命中：均为 **protocol state machine** 域，状态机来源是 **人工标注 / cross-verified ground truth**（按用户口径"状态机来源不限，含人写"——符合 H3）。数据均已确认 GitHub 公开，待 ETL 为 reviewer parquet schema 后转 🟢。
+下表的 3 篇是 2026-05-06 第二轮外部学术检索 + 数据 clone + ETL 后的命中，均为 **protocol state machine** 域，状态机来源是 **人工标注 / cross-verified ground truth**（按用户口径"状态机来源不限，含人写"——符合 H3）。**ETL 已完成，153 行数据可被 reviewer benchmark 消费**（详见 [§六](#六当前-reviewer-系统数据预算)）。
 
 | slug | 年份 / Venue | 作者团队 | H1（NL→SM 范式）| H2（状态机族）| 状态机来源 | review 类型 | reviewer 资质 | reviewer N | 独立 | inter-rater agreement | 样本量 | 样本量底线 | 数据获取类型 | 入口 URL | 当前可访问性 | 首次访问时间 | 原始 vs 聚合 | 可消费行数 | record_type 分布 | review_target | diagram_type | case 多样性 | score scale | score unit | schema 对齐 | verbatim 抽取 | public_artifact_limitations | emoji |
 |---|---|---|:---:|---|---|---|---|:---:|:---:|---|:---:|:---:|---|---|:---:|---|:---:|:---:|---|---|---|---|---|---|:---:|:---:|---|:---:|
-| [psmbench](./psmbench/review_extraction.md) | 2025 NeurIPS Datasets & Benchmarks | Lin Zilin et al. | ✅ RFC → Protocol State Machine | Protocol state machine | 人工 cross-verified ground-truth | annotator A 提取 → annotator B 审查 → 分歧讨论解决 | 🟢 domain experts / network protocol researchers | N（论文未单独披露具体 N） | ✅ | ☑ **κ=0.82 (states) / κ=0.78 (transitions)**（论文显式报告） | 14 协议 / 108 states / 297 transitions / 1,580 页 RFC | ✅ ≥100（含 14 协议 × 多 transitions） | 🟢 公开仓库（GitHub + HuggingFace） | [GitHub Zilinlin/RFC_PSM_Benchmark](https://github.com/Zilinlin/RFC_PSM_Benchmark) / [HF zilinlin/RFC2PSM](https://huggingface.co/datasets/zilinlin/RFC2PSM) | ☑ 已 web 验证 | 2026-05-06 14:39 | 🟢 单一 ground-truth（cross-verified）+ 数据集级 κ | ⚪ 待 ETL（预计 ~300+ transition-level / ~1,500+ RFC chunk-level） | ⚪ 待 ETL 后定义 | PSM (states + transitions) | protocol state machine | 14 协议（BGP / DCCP / DHCP / FTP / IMAP / MQTT / NNTP / POP3 / PPP / PPTP / RTSP / SIP / SMTP / TCP） | F1 + κ | state F1 / transition F1 | ⚪ 待对齐 | ⚪ 待 ETL | dataset-level κ；非 review-on-LLM-output（按用户口径"人写也算"） | 🟡 |
-| [hermes](./hermes/review_extraction.md) | 2024 USENIX Security | Penn State (Al-Ishtiaq / Hussain 等) | ✅ cellular spec → FSM | Protocol state machine（cellular FSM） | 人工 TCNL grammar 标注 + 双 expert verify | paragraph-level grammar annotation + verification | 🟢 cellular systems researchers + 🟢 domain experts | **4 + 2** | ✅（标注 / 验证两阶段） | ⚪ 未显式 Kappa；含 cross-verify 流程 | ~16,000 datapoints / 2,800 person-hours / 3 specs | ✅ ≥100 | 🟢 公开仓库（GitHub） | [github.com/SyNSec-den](https://github.com/SyNSec-den) | ☑ org 主页可访问；待找具体 Hermes repo | 2026-05-06 14:44 | 🟢 paragraph-level 标注 + Gold FSM | ⚪ 待 ETL（预计 paragraph-level ~15,000+ / transition-level ~1,000+） | ⚪ 待 ETL 后定义 | FSM (states + transitions) | cellular protocol FSM | 4G-NAS R17 / 5G-NAS R17 / 5G-RRC R17 三大 cellular 规范 | 87.21% accuracy（论文报告） | transition Jaccard / state F1 | ⚪ 待对齐 | ⚪ 待 ETL | anchor 是 org 级；具体 repo 待克隆验证 | 🟡 |
-| [rfcnlp](./rfcnlp/review_extraction.md) | 2022 IEEE S&P | Purdue + Northeastern (Pacheco / von Hippel / Weintraub / Goldwasser / Nita-Rotaru) | ✅ IETF RFC → FSM | Protocol state machine（FSM） | 人工 XML grammar 标注 + ground-truth FSM | 文档级 XML annotation + BIO tagging + Gold FSM | 🟢 domain experts（5 位 author 中至少多人参与） | N（论文未单独披露具体 N） | ☑ 标注与验证由不同 author 协作 | ⚪ 未显式 Kappa | 6 完整 RFC（BGPv4/DCCP/LTP/PPTP/SCTP/TCP）+ 9 类标签 | ⚪ 待 ETL（预计 ~500 paragraph / ~200 transition） | 🟢 公开仓库（GitHub） | [github.com/RFCNLP/RFCNLP](https://github.com/RFCNLP/RFCNLP) | ☑ org + 子目录已 web 验证 | 2026-05-06 14:46 | 🟢 paragraph-level XML + BIO + Gold FSM | ⚪ 待 ETL | ⚪ 待 ETL 后定义 | FSM (states + transitions + events) | protocol FSM | 6 协议（BGPv4 / DCCP / LTP / PPTP / SCTP / TCP） | 9 类标签 F1 + FSM transition accuracy | component F1 | ⚪ 待对齐 | ⚪ 待 ETL | TCP/DCCP 标注被 PSMBench 复用（lineage：rfcnlp → psmbench） | 🟡 |
+| [psmbench](./psmbench/review_extraction.md) | 2025 NeurIPS Datasets & Benchmarks | Lin Zilin et al. | ✅ RFC → Protocol State Machine | Protocol state machine | 人工 cross-verified ground-truth | annotator A 提取 → annotator B 审查 → 分歧讨论解决 | 🟢 domain experts / network protocol researchers | N（论文未单独披露具体 N） | ✅ | ☑ **κ=0.82 (states) / κ=0.78 (transitions)**（论文显式报告） | 14 协议 / 108 states / 297 transitions / 1,580 页 RFC | ✅ ≥100（14 协议 × 9 LLMs = 126 LLM 跑分 + 14 ground-truth） | 🟢 公开仓库（GitHub + HuggingFace） | [GitHub Zilinlin/RFC_PSM_Benchmark](https://github.com/Zilinlin/RFC_PSM_Benchmark) / [HF zilinlin/RFC2PSM](https://huggingface.co/datasets/zilinlin/RFC2PSM) | ☑ 已 clone 到 `psmbench/data/` | 2026-05-06 14:39 | 🟢 ground-truth + 9 LLM 输出 + 数据集级 κ | **140** | `summary_level_run_score` 126 / `case_aggregate_stat` 14 | PSM (states + transitions) | protocol_state_machine | 14 协议（BGP / DCCP / DHCP / FTP / IMAP / MQTT / NNTP / POP3 / PPP / PPTP / RTSP / SIP / SMTP / TCP） | 0-1 | `psm_combined_f1` (state F1 + transition F1 各占 50%) | 🟢 已对齐（34 列 schema） | ☑ ETL via `etl/build_protocol_fsm_records.py` | F1 由 difflib SequenceMatcher 重算（论文用 sentence-transformer，数值略不同） | 🟢 |
+| [hermes](./hermes/review_extraction.md) | 2024 USENIX Security | Penn State (Al-Ishtiaq / Hussain 等) | ✅ cellular spec → FSM | Protocol state machine（cellular FSM） | 人工 TCNL grammar 标注 + 双 expert verify | paragraph-level grammar annotation + verification | 🟢 cellular systems researchers + 🟢 domain experts | **4 + 2** | ✅（标注 / 验证两阶段） | ⚪ 未显式 Kappa；含 cross-verify 流程 | ~16,000 datapoints / 2,800 person-hours / 3 specs | ✅ ≥3（按 spec 聚合） | 🟢 公开仓库（GitHub） | [SyNSec-den/hermes-spec-to-fsm](https://github.com/SyNSec-den/hermes-spec-to-fsm) | ☑ 已 clone 到 `hermes/data/` | 2026-05-06 14:44 | 🟢 spec-level paper-reported accuracy + TCNL constituency-tree 标签计数 | **3** | `case_aggregate_stat` × 3 | FSM_TCNL | cellular_protocol_fsm | 4G-NAS R16 / 5G-NAS R17 / 5G-RRC R17 三大 cellular 规范 | 0-1 | `tcnl_accuracy` (paper-reported 0.8721) | 🟢 已对齐 | ☑ ETL | 模型权重 gated（Google Drive），repo 内仅 TCNL 标签 + 原始 spec txt；无 LLM/模型预测可用 | 🟢 |
+| [rfcnlp](./rfcnlp/review_extraction.md) | 2022 IEEE S&P | Purdue + Northeastern (Pacheco / von Hippel / Weintraub / Goldwasser / Nita-Rotaru) | ✅ IETF RFC → FSM | Protocol state machine（FSM） | 人工 XML grammar 标注 + ground-truth FSM | 文档级 XML annotation + BIO tagging + Gold FSM | 🟢 domain experts（5 位 author 中至少多人参与） | N（论文未单独披露具体 N） | ☑ 标注与验证由不同 author 协作 | ⚪ 未显式 Kappa | 6 完整 RFC（BGPv4/DCCP/LTP/PPTP/SCTP/TCP）+ 9 类标签 + 2 NLP 预测器 (BERT-CRF + linear) × TCP/DCCP | ✅ ≥10 | 🟢 公开仓库（GitHub） | [github.com/RFCNLP/RFCNLP](https://github.com/RFCNLP/RFCNLP) | ☑ 已 clone 到 `rfcnlp/data/` | 2026-05-06 14:46 | 🟢 ground-truth XML + 2 NLP 预测器 输出 | **10** | `case_aggregate_stat` 6 / `summary_level_run_score` 4 | FSM_definitions | protocol_state_machine | 6 协议；NLP 预测覆盖 2 协议 | 0-1 | `rfcnlp_macro_f1_9class` (9 类标签宏平均) | 🟢 已对齐 | ☑ ETL | TCP/DCCP 标注被 PSMBench 复用（lineage：rfcnlp → psmbench）；NLP 预测器仅 TCP/DCCP 公开 | 🟢 |
 
-合计 **3 篇 / ETL 待完成 / 预计可消费 ~1,500-15,000 行**（按 paragraph-level 或 transition-level 展开口径而定）。
+合计 **3 篇 / ETL 完成 / 153 行可消费**（PSMBench 140 + Hermes 3 + RFCNLP 10）。
+
+ETL 入口：[`etl/build_protocol_fsm_records.py`](./etl/build_protocol_fsm_records.py) 与 [`etl/build_combined_parquets.py`](./etl/build_combined_parquets.py)（合并 baseline 820 + 新增 153 = **973 行**）。
 
 ### 3.2 ⚪ 评估后排除（baselines/ 内审查过）
 
@@ -194,7 +197,9 @@
 
 ## 六、当前 reviewer 系统数据预算
 
-按当前 corpus 实际能提供的 review 样本量盘点（与 reviewer benchmark 真实可消费一致）：
+### 6.0 baseline（820 行）
+
+按当前 baseline corpus 实际能提供的 review 样本量盘点：
 
 | record_type | 行数 | 占比 | 来源 paper |
 |---|---:|---:|---|
@@ -207,18 +212,70 @@
 | `overall_aggregate_stat` | 8 | 1.0% | ttool-ai |
 | **合计** | **820** | 100% | 3 篇论文 |
 
-**当前 LOFO worst gap = 13.09**（参考 reviewer Phase 14 报告）—— 直接来自 dataset 仅来自 3 篇论文 / 域分布窄的事实。
+### 6.1 ETL 实际产出（2026-05-06 完成）
 
-**🟡 三篇 ETL 完成后的预期增量**：
+| 来源 | record_type 分布 | 实际行数 | 备注 |
+|---|---|---:|---|
+| psmbench | `summary_level_run_score` 126 + `case_aggregate_stat` 14 | **140** | 14 协议 × 9 LLM 跑分（state F1 + transition F1）+ 14 ground-truth |
+| rfcnlp | `case_aggregate_stat` 6 + `summary_level_run_score` 4 | **10** | 6 协议 ground-truth + 2 NLP 预测器 × 2 协议 |
+| hermes | `case_aggregate_stat` × 3 | **3** | 4G-NAS R16 / 5G-NAS R17 / 5G-RRC R17 spec-level paper-reported accuracy |
+| **新增合计** | summary 130 + case_aggregate 23 | **153** | — |
 
-| 来源 | record_type 候选 | 预计行数（paragraph-level） | 预计行数（transition-level） | 备注 |
-|---|---|---:|---:|---|
-| psmbench | `transition_review` / `state_review` | ~1,500 | ~300 | 14 协议 × 108 states + 297 transitions |
-| hermes | `paragraph_grammar_annotation` | ~15,000 | ~1,000 | 3 specs × ~5,000 paragraphs |
-| rfcnlp | `xml_paragraph_annotation` / `bio_token` | ~500 | ~200 | 6 RFC × ~80 paragraphs |
-| **合计** | — | **~17,000** | **~1,500** | 选展开口径取决于与 reviewer schema 对齐策略 |
+ETL 入口：[`etl/build_protocol_fsm_records.py`](./etl/build_protocol_fsm_records.py)
+合并入口：[`etl/build_combined_parquets.py`](./etl/build_combined_parquets.py) → `etl/out/combined_human_review_records.parquet`
 
-ETL 完成后预期总样本量：**820（现有）+ 1,500-17,000（新增）≈ 2,300-17,800 行**，且**首次包含 protocol state machine 域**（覆盖度提升）。
+### 6.2 reviewer benchmark 集成验证（2026-05-06）
+
+| 指标 | baseline (820) | combined (820+153=973) | 增量 |
+|---|---:|---:|---:|
+| `total_records` | 820 | **973** | +153 |
+| `summary` 主评测可消费行 | 84 | **214** | +130（**2.55×**）|
+| `summary` family 数 | 12 | **28** | +16（**2.33×**）|
+| `protocol` 主评测可消费行 | 4 | **7** | +3（**1.75×**）|
+| 状态机族覆盖 | UML / SysML / Statechart | **+ Protocol state machine** | 首次扩域 |
+
+校验入口：调用 [`reproduction/expert_review/benchmark.py`](../reproduction/expert_review/benchmark.py) 的 `summarize_benchmark_coverage` 并通过 `build_lofo_task_bundles` 重建 LOFO families（69 families，含 28 summary + 16 component + 7 protocol + 18 record）。
+
+### 6.3 PSMBench LLM 排名（2026-05-06 difflib 重算 macro-F1）
+
+下表是 14 协议平均得分，用于刻画 protocol-FSM 抽取能力的 LLM 间差异：
+
+| LLM | mean | std | min | max | 备注 |
+|---|---:|---:|---:|---:|---|
+| deepseek-chat | **0.547** | 0.237 | 0.168 | 0.862 | 综合最强 |
+| deepseek-reasoner | 0.533 | 0.270 | 0.102 | **0.883** | 单点峰值最高 |
+| claude-3-7-sonnet-20250219 | 0.438 | 0.280 | 0.059 | 0.880 | 第二梯队头部 |
+| qwen3:32b | 0.369 | 0.227 | 0.000 | 0.659 | — |
+| gemini-2.0-flash | 0.365 | 0.228 | 0.071 | 0.692 | — |
+| gpt-4o-mini | 0.318 | 0.207 | 0.060 | 0.688 | — |
+| gemma3:27b | 0.302 | 0.204 | 0.000 | 0.635 | 开源中下 |
+| qwq | 0.253 | 0.237 | 0.000 | 0.607 | — |
+| mistral-small3.1 | **0.205** | 0.214 | 0.000 | 0.680 | 综合最弱 |
+
+**说明**：F1 由 difflib SequenceMatcher 重算（threshold=0.7），与论文 sentence-transformer + cosine 数值略有差异，但 LLM 间排序与论文 Table 整体一致。
+
+### 6.4 Per-protocol 难度（PSMBench 14 协议 × 9 LLM 平均）
+
+| 协议 | mean F1 | 备注 |
+|---|---:|---|
+| TCP | **0.715** | 最易（RFC 9293 完善 + 教科书 PSM） |
+| DHCP | 0.634 | — |
+| BGP | 0.592 | — |
+| POP3 | 0.511 | — |
+| DCCP | 0.500 | — |
+| PPTP | 0.411 | — |
+| IMAP | 0.383 | — |
+| RTSP | 0.302 | — |
+| PPP | 0.286 | — |
+| FTP | 0.236 | — |
+| MQTT | 0.222 | — |
+| SIP | 0.205 | — |
+| NNTP | 0.107 | — |
+| SMTP | **0.077** | 最难（应用层 + 长 RFC + 状态较隐式） |
+
+→ **观察**：协议难度跨度 ~10× 倍（SMTP 0.077 → TCP 0.715），为后续 LOFO 提供清晰梯度。
+
+**当前 LOFO worst gap = 13.09**（基线，参考 reviewer Phase 14 报告）—— 直接来自 dataset 仅来自 3 篇论文 / 域分布窄的事实。**新增 protocol-FSM 域 + 28 summary families** 的 LOFO 重测结果待跑完 reviewer benchmark 后回填。
 
 ## 七、待补 / 阻塞 / 下一步
 
@@ -228,11 +285,15 @@ ETL 完成后预期总样本量：**820（现有）+ 1,500-17,000（新增）≈
 2. ~~跟进 SysMBench / SpecGPT 的 supplementary，确认有无 review-on-LLM-output 数据~~ ✅ 完成（2026-05-06）：SysMBench 是 reference-as-ground-truth 不是 review；SpecGPT 数据不公开
 3. （仍可选）邮件联系候选作者：Volvo Cars (`req` 论文)、Leidos (`pushing-envelope`)、AIAA `From NL Standard Documents to State Machines`、Stanford `LLM-FSM` 团队询问 human review subset 是否可申请获取
 4. **路径 C 自补 review**：拿现成的 LLM 输出（SysMBench 151 scenarios + LLM-FSM 1000 problems），自己组织 reviewer 做 human review，做出新的 NL→SM expert-review 数据
-5. **🟡 三篇 ETL（短期高优）**：
-   - `git clone https://github.com/Zilinlin/RFC_PSM_Benchmark` 或 `datasets.load_dataset("zilinlin/RFC2PSM")` → 把 14 协议 PSM 展开为 reviewer parquet schema
-   - 在 `github.com/SyNSec-den` 找具体 Hermes repo 并 `git clone` → 把 4G/5G 标注转换为 reviewer parquet schema
-   - `git clone https://github.com/RFCNLP/RFCNLP` → 把 6 协议 XML/BIO/FSM 展开为 reviewer parquet schema
-   - 三篇 ETL 完成后由 🟡 → 🟢，并把 §3.1.1 行迁入 §3.1
+5. ~~**🟡 三篇 ETL（短期高优）**~~ ✅ 完成（2026-05-06）：
+   - ✅ `git clone Zilinlin/RFC_PSM_Benchmark` → 14 协议 PSM 展开为 140 行（126 LLM 跑分 + 14 ground-truth）
+   - ✅ `git clone SyNSec-den/hermes-spec-to-fsm` → 3 specs spec-level paper-reported accuracy 展开为 3 行
+   - ✅ `git clone RFCNLP/RFCNLP` → 6 协议 XML 展开为 10 行（6 ground-truth + 4 NLP 预测器）
+   - ✅ 三篇全部由 🟡 → 🟢
+6. **expert_review 实验 LOFO 重测（待跑）**：
+   - 用 `etl/out/combined_human_review_records.parquet`（973 行）跑完整 reviewer benchmark
+   - 对比 baseline LOFO worst gap = 13.09，验证 protocol-FSM 域加入后的 worst gap 变化
+   - 预计需 30-60 分钟 LLM API 时间
 
 ### 7.2 阻塞
 
@@ -250,6 +311,24 @@ ETL 完成后预期总样本量：**820（现有）+ 1,500-17,000（新增）≈
 
 ## 八、更新日志
 
+- `2026-05-06 16:30:00` 完成 3 个 protocol-FSM 数据集 clone + ETL + expert_review 集成验证（🟡 → 🟢）
+  - **数据 clone**：
+    - PSMBench：[Zilinlin/RFC_PSM_Benchmark](https://github.com/Zilinlin/RFC_PSM_Benchmark) → `psmbench/data/`（14 协议 ground-truth + 9 LLMs × 14 协议 = 126 LLM 输出）
+    - Hermes：[SyNSec-den/hermes-spec-to-fsm](https://github.com/SyNSec-den/hermes-spec-to-fsm) → `hermes/data/`（3 specs × ~1 MB raw + TCNL constituency tree 标签）
+    - RFCNLP：[RFCNLP/RFCNLP](https://github.com/RFCNLP/RFCNLP) → `rfcnlp/data/`（6 协议 XML annotation + 2 NLP 预测器 × TCP/DCCP）
+  - **ETL** (新增 [`etl/build_protocol_fsm_records.py`](./etl/build_protocol_fsm_records.py))：
+    - PSMBench: 140 行（`summary_level_run_score` 126 + `case_aggregate_stat` 14；F1 由 difflib SequenceMatcher 重算 threshold=0.7）
+    - RFCNLP: 10 行（`case_aggregate_stat` 6 + `summary_level_run_score` 4，9 类标签 macro-F1）
+    - Hermes: 3 行（`case_aggregate_stat`，paper-reported overall accuracy 0.8721）
+    - 合计 **153 行**，34 列 schema 与 baseline 完全一致
+  - **集成** (新增 [`etl/build_combined_parquets.py`](./etl/build_combined_parquets.py))：
+    - 输出 `etl/out/combined_human_review_records.parquet`（820 + 153 = **973 行**）
+    - reviewer benchmark `summarize_benchmark_coverage` 校验通过
+    - summary 主评测：**84 → 214 行（2.55×）**；families：**12 → 28（2.33×）**
+    - protocol families：**4 → 7（1.75×）**
+    - 状态机族覆盖：**首次纳入 protocol state machine 域**
+  - **PSMBench LLM 排名**（详见 §6.3）：deepseek-chat 最强 (0.547)，mistral-small3.1 最弱 (0.205)；TCP 最易 (0.715)，SMTP 最难 (0.077)
+  - 同步更新 §一 (🟢=6 / 🟡=0 / 总样本 973 行)、§3.1.1（🟢 状态 + 实际行数 + record_type 分布）、§六 (4 个子节)、§7.1（ETL 待办勾掉 + 新增 LOFO 重测）
 - `2026-05-06 14:48:00` 完成第二轮外部学术检索，新增 3 篇 protocol-state-machine 论文入库（🟡 可整理）
   - **PSMBench** (NeurIPS 2025 D&B Track)：RFC2PSM 14 协议，108 states + 297 transitions，论文显式报告 **κ=0.82 (states) / κ=0.78 (transitions)**；GitHub `Zilinlin/RFC_PSM_Benchmark` + HuggingFace `zilinlin/RFC2PSM` 均 web 验证可访问；论文 PDF + paper_content.txt + bibtex.bib + review_extraction.md 已落盘
   - **Hermes** (USENIX Security 2024)：cellular spec → FSM，4 cellular researchers + 2 domain experts cross-verify；~16,000 datapoints / 2,800 person-hours；3 specs（4G-NAS R17 / 5G-NAS R17 / 5G-RRC R17）；GitHub org `SyNSec-den` 已 web 验证（具体 repo 待克隆）；论文文件均落盘
