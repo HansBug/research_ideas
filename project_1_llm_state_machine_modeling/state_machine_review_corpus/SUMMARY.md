@@ -11,12 +11,12 @@
 
 ## 一、当前收录统计
 
-- 已收录论文（🟢 + 🟡 + ⏳）：**3** 篇
-- 🟢 直接可用：**3** 篇
-- 🟡 可整理：**0** 篇
+- 已收录论文（🟢 + 🟡 + ⏳）：**6** 篇（baselines 来源 3 + 外部 protocol-FSM 新增 3）
+- 🟢 直接可用：**3** 篇（structure-event-driven / llms_emp / ttool-ai）
+- 🟡 可整理：**3** 篇（**新增** psmbench / hermes / rfcnlp —— 数据已确认 GitHub 公开，待克隆并 ETL 为 parquet）
 - ⚪ 未收获（评估后排除）：**23 篇**（baselines/ 内 18 篇 + 外部 5 篇）—— 仅在"§ 三、调研记录"与"§ 五、外部已审查候选"中保留排除原因与维度
 - ⏳ 尚未提取：**0** 篇
-- 当前 reviewer benchmark 实际可消费样本量：**820 行**（`baseline_double_green_human_review_records.parquet`）
+- 当前 reviewer benchmark 实际可消费样本量：**820 行**（`baseline_double_green_human_review_records.parquet`，来自 🟢 三篇）；**🟡 三篇 ETL 完成后预计再增 ~1,500-15,000 行**（取决于按 paragraph-level 还是 transition-level 展开）
 
 ## 二、评估口径与维度
 
@@ -48,9 +48,9 @@
 | `HSM`（层次状态机） | 部分（Hierarchical states 在 SMF 中作为 review_target） | 来自 structure-event-driven |
 | `Timed Automata` | ⚪ | — |
 | `Petri net / ECC` | ⚪ | — |
-| `Protocol state machine` | ⚪ | — |
+| `Protocol state machine` | ✅ | psmbench / hermes / rfcnlp（2026-05-06 新增） |
 
-→ **当前 corpus 状态机族覆盖度低**：仅 UML/SysML 主流家族；扩库时优先补 `EFSM / TA / Protocol SM`。
+→ **当前 corpus 状态机族覆盖度**：UML/SysML 主流家族（baselines 来源 3 篇） + Protocol state machine（外部新增 3 篇）；仍缺 `EFSM / TA / Petri / ECC`。
 
 ## 三、调研记录（按候选论文逐项记录维度）
 
@@ -75,6 +75,18 @@
 | [ttool-ai](./ttool-ai/review_extraction.md) | 2024 MODELSWARD | Télécom Paris (Apvrille / Sultan) | ✅ NL 系统规范 → SysML 联合模型（含 SMD） | SysML state machine（含 BD/IBD） | LLM 生成（GPT-4 + 知识注入） | 学生组 vs 工程师对照（0-100 分） | 🟡 学生 + 🟢 系统工程师对照 | 学生组 + 工程师组（具体 N 未明示） | ✅ | ⚪ 未显式 Kappa；含学生 vs 专家对照 | 116 | ✅ ≥100 | 🟢 公开仓库（GitHub） | [zebradile/ttool-ai](https://github.com/zebradile/ttool-ai) | ☑ 已下载+parquet化 | ~2026-04-15 01:03:52 | 🟢 两种都持有（30 raw + 各级聚合） | 116 | `summary_level_run_score` 30 / `case_aggregate_stat` 36 / `raw_score_row` 30 / `summary` 12 / `overall_aggregate_stat` 8 | `BD / SMD / Properties / UCD / All` | `bd` / `smd` | 3 测试系统 × 多 sub-case (platooning / space-based / AutomatedBraking) | 0-100 | `score_0_100` | 🟢 已对齐（保留分类标签 + diagram_type） | ☑ | result.ods 含 raw_score_row 但 reviewer 个人 ID 已脱敏 | 🟢 |
 
 合计 **3 篇 / 820 行 review 数据**（与 reviewer 现有 dataset 完全对齐）。
+
+### 3.1.1 🟡 已收录（可整理 / 待 ETL，2026-05-06 新增）
+
+下表的 3 篇是 2026-05-06 第二轮外部学术检索的命中：均为 **protocol state machine** 域，状态机来源是 **人工标注 / cross-verified ground truth**（按用户口径"状态机来源不限，含人写"——符合 H3）。数据均已确认 GitHub 公开，待 ETL 为 reviewer parquet schema 后转 🟢。
+
+| slug | 年份 / Venue | 作者团队 | H1（NL→SM 范式）| H2（状态机族）| 状态机来源 | review 类型 | reviewer 资质 | reviewer N | 独立 | inter-rater agreement | 样本量 | 样本量底线 | 数据获取类型 | 入口 URL | 当前可访问性 | 首次访问时间 | 原始 vs 聚合 | 可消费行数 | record_type 分布 | review_target | diagram_type | case 多样性 | score scale | score unit | schema 对齐 | verbatim 抽取 | public_artifact_limitations | emoji |
+|---|---|---|:---:|---|---|---|---|:---:|:---:|---|:---:|:---:|---|---|:---:|---|:---:|:---:|---|---|---|---|---|---|:---:|:---:|---|:---:|
+| [psmbench](./psmbench/review_extraction.md) | 2025 NeurIPS Datasets & Benchmarks | Lin Zilin et al. | ✅ RFC → Protocol State Machine | Protocol state machine | 人工 cross-verified ground-truth | annotator A 提取 → annotator B 审查 → 分歧讨论解决 | 🟢 domain experts / network protocol researchers | N（论文未单独披露具体 N） | ✅ | ☑ **κ=0.82 (states) / κ=0.78 (transitions)**（论文显式报告） | 14 协议 / 108 states / 297 transitions / 1,580 页 RFC | ✅ ≥100（含 14 协议 × 多 transitions） | 🟢 公开仓库（GitHub + HuggingFace） | [GitHub Zilinlin/RFC_PSM_Benchmark](https://github.com/Zilinlin/RFC_PSM_Benchmark) / [HF zilinlin/RFC2PSM](https://huggingface.co/datasets/zilinlin/RFC2PSM) | ☑ 已 web 验证 | 2026-05-06 14:39 | 🟢 单一 ground-truth（cross-verified）+ 数据集级 κ | ⚪ 待 ETL（预计 ~300+ transition-level / ~1,500+ RFC chunk-level） | ⚪ 待 ETL 后定义 | PSM (states + transitions) | protocol state machine | 14 协议（BGP / DCCP / DHCP / FTP / IMAP / MQTT / NNTP / POP3 / PPP / PPTP / RTSP / SIP / SMTP / TCP） | F1 + κ | state F1 / transition F1 | ⚪ 待对齐 | ⚪ 待 ETL | dataset-level κ；非 review-on-LLM-output（按用户口径"人写也算"） | 🟡 |
+| [hermes](./hermes/review_extraction.md) | 2024 USENIX Security | Penn State (Al-Ishtiaq / Hussain 等) | ✅ cellular spec → FSM | Protocol state machine（cellular FSM） | 人工 TCNL grammar 标注 + 双 expert verify | paragraph-level grammar annotation + verification | 🟢 cellular systems researchers + 🟢 domain experts | **4 + 2** | ✅（标注 / 验证两阶段） | ⚪ 未显式 Kappa；含 cross-verify 流程 | ~16,000 datapoints / 2,800 person-hours / 3 specs | ✅ ≥100 | 🟢 公开仓库（GitHub） | [github.com/SyNSec-den](https://github.com/SyNSec-den) | ☑ org 主页可访问；待找具体 Hermes repo | 2026-05-06 14:44 | 🟢 paragraph-level 标注 + Gold FSM | ⚪ 待 ETL（预计 paragraph-level ~15,000+ / transition-level ~1,000+） | ⚪ 待 ETL 后定义 | FSM (states + transitions) | cellular protocol FSM | 4G-NAS R17 / 5G-NAS R17 / 5G-RRC R17 三大 cellular 规范 | 87.21% accuracy（论文报告） | transition Jaccard / state F1 | ⚪ 待对齐 | ⚪ 待 ETL | anchor 是 org 级；具体 repo 待克隆验证 | 🟡 |
+| [rfcnlp](./rfcnlp/review_extraction.md) | 2022 IEEE S&P | Purdue + Northeastern (Pacheco / von Hippel / Weintraub / Goldwasser / Nita-Rotaru) | ✅ IETF RFC → FSM | Protocol state machine（FSM） | 人工 XML grammar 标注 + ground-truth FSM | 文档级 XML annotation + BIO tagging + Gold FSM | 🟢 domain experts（5 位 author 中至少多人参与） | N（论文未单独披露具体 N） | ☑ 标注与验证由不同 author 协作 | ⚪ 未显式 Kappa | 6 完整 RFC（BGPv4/DCCP/LTP/PPTP/SCTP/TCP）+ 9 类标签 | ⚪ 待 ETL（预计 ~500 paragraph / ~200 transition） | 🟢 公开仓库（GitHub） | [github.com/RFCNLP/RFCNLP](https://github.com/RFCNLP/RFCNLP) | ☑ org + 子目录已 web 验证 | 2026-05-06 14:46 | 🟢 paragraph-level XML + BIO + Gold FSM | ⚪ 待 ETL | ⚪ 待 ETL 后定义 | FSM (states + transitions + events) | protocol FSM | 6 协议（BGPv4 / DCCP / LTP / PPTP / SCTP / TCP） | 9 类标签 F1 + FSM transition accuracy | component F1 | ⚪ 待对齐 | ⚪ 待 ETL | TCP/DCCP 标注被 PSMBench 复用（lineage：rfcnlp → psmbench） | 🟡 |
+
+合计 **3 篇 / ETL 待完成 / 预计可消费 ~1,500-15,000 行**（按 paragraph-level 或 transition-level 展开口径而定）。
 
 ### 3.2 ⚪ 评估后排除（baselines/ 内审查过）
 
@@ -148,6 +160,7 @@
 - **基本结论**：`baselines/` 内已基本穷尽硬条件交集；继续在 baselines/ 内挖掘 ROI 极低
 - **调整方向**：转向外部 arxiv 2024-2026 与 thesis 论文，重点关注汽车 / 航空 / 工业控制三个领域的状态机建模实证研究
 - **避免**：再次进入"看到 'state machine' 字样就收"的粗筛模式
+- **2026-05-06 第二轮新发现**：放宽"状态机来源不限（含人写）"后，**protocol state machine** 域立刻命中 3 篇高质量论文（NeurIPS 2025 PSMBench / USENIX 2024 Hermes / IEEE S&P 2022 RFCNLP）；说明 H3 真正瓶颈是"review 数据可获取"而非"LLM-only"；下一轮可继续追 RFC + cellular spec + IoT protocol 域
 
 ## 五、外部已审查候选（已全部审查完毕）
 
@@ -161,9 +174,23 @@
 | From Natural Language Standard Documents to State Machines | [AIAA 2024 / 10.2514/1.I010525](https://arc.aiaa.org/doi/abs/10.2514/1.I010525) | ✅ ECSS Packet Utilization Standard → EFSM | EFSM | ❌ semi-automatic 工具评估 | — | — | — | ⚪ 付费墙 | AIAA 出版页 403 拒访；DOI PDF 同样 403；无外部公开镜像 | **H3 失败**：semi-automatic 工具评估非 human review；且付费墙数据不可获取 | ⚪ |
 | Combining Information State Update + Harel Statecharts + LLMs for Conversational AI (CLASP 2025) | [aclanthology.org/2025.clasp-main.3](https://aclanthology.org/2025.clasp-main.3.pdf) | ❌ statechart 是**设计者手写**用于控制 dialog flow（不是从 NL 生成） | Harel statechart | ❌ 无 review on artifacts | — | — | — | 🟡 工具 Talkamatic Studio（无公开 GitHub） | 论文无 GitHub repo；实现细节"available in Talkamatic Studio"无公开访问 | **H1 失败**：范式不符（dialog 控制 statechart 是手写设计，不是 NL→SM 工件流）；**H3 失败**：无 review on artifacts | ⚪ |
 
-**结论**：5 个外部候选全部审完，**0 篇可加入文库**。
+**结论（第一轮）**：5 个外部候选全部审完，**0 篇可加入文库**。
 
 调研验证日期：`2026-05-06 14:35`（含 web search + arxiv WebFetch + 作者主页 + GitHub 验证）。
+
+### 五-bis、第二轮外部学术检索（2026-05-06 下午）
+
+第一轮全部排除后，跳出原候选清单继续按硬条件检索，重点放在 **protocol state machine** 与 **cellular spec** 这两个尚未覆盖的状态机族。3 篇全部命中并已正式收录到 §3.1.1：
+
+| slug / 标题 | 来源 | H1 | H2 | review 类型 | reviewer 资质 | 独立 | 样本量 | 数据获取类型 | 入口 URL 验证 | 入库判定 | emoji |
+|---|---|:---:|---|---|---|:---:|:---:|---|---|---|:---:|
+| **PSMBench**: Benchmark for Evaluating LLMs on Extracting Protocol State Machines from RFC Specifications | [OpenReview NeurIPS 2025](https://openreview.net/forum?id=5HGBErIHuV) | ✅ | Protocol SM | cross-verified annotation + κ | 🟢 domain experts | ✅ | 14 协议 / 108 states / 297 transitions | 🟢 GitHub + HuggingFace | [Zilinlin/RFC_PSM_Benchmark](https://github.com/Zilinlin/RFC_PSM_Benchmark) + [HF zilinlin/RFC2PSM](https://huggingface.co/datasets/zilinlin/RFC2PSM) 均 web 验证可访问 | ✅ 全部硬条件命中（含 κ=0.82/0.78） | 🟡 |
+| **Hermes**: Synthesizing Finite State Machines from Cellular Network Specifications | [USENIX Security 2024](https://www.usenix.org/conference/usenixsecurity24/presentation/al-ishtiaq) / [arXiv:2310.04381](https://arxiv.org/abs/2310.04381) | ✅ | Protocol SM (cellular FSM) | grammar annotation + 2-stage verify | 🟢 cellular researchers + domain experts | ✅ | 4+2 reviewer / ~16,000 datapoints / 2,800 person-hours | 🟢 GitHub | [github.com/SyNSec-den](https://github.com/SyNSec-den) org 主页可访问；具体 Hermes repo 待克隆 | ✅ 硬条件命中 | 🟡 |
+| **RFCNLP**: Automated Attack Synthesis by Extracting FSMs from Protocol Specification Documents | [IEEE S&P 2022](https://doi.org/10.1109/SP46214.2022.9833673) / [arXiv:2202.09470](https://arxiv.org/abs/2202.09470) | ✅ | Protocol SM (FSM) | XML grammar + BIO + Gold FSM | 🟢 domain experts | ☑ 协作标注 + 验证 | 6 协议 / 9 类标签 | 🟢 GitHub | [github.com/RFCNLP/RFCNLP](https://github.com/RFCNLP/RFCNLP) 已 web 验证（含 5 个标注子目录） | ✅ 硬条件命中（PSMBench 的源数据集之一） | 🟡 |
+
+**结论（第二轮）**：3 个外部候选全部命中，**全部加入文库**（详见 §3.1.1）。这一轮的关键洞察是：第一轮聚焦"NL→SM + LLM 生成 + LLM 输出 review"导致候选集过窄（H1+H2+H3+"LLM 必须是 reviewer 对象"四个交集），而用户口径已经明确**状态机来源不限**——一旦放宽到"含人写状态机 + cross-verified review"，protocol-FSM 域立刻出现 3 篇高质量命中（含 1 篇 NeurIPS 2025、1 篇 USENIX 2024、1 篇 IEEE S&P 2022）。
+
+调研验证日期：`2026-05-06 14:39 - 14:48`（含 web search + arxiv 全文核实 + GitHub repo 入口验证 + 论文 PDF 下载 + paper_content.txt 提取 + bibtex.bib 写入 + review_extraction.md 9 节模板填充）。
 
 ## 六、当前 reviewer 系统数据预算
 
@@ -182,6 +209,17 @@
 
 **当前 LOFO worst gap = 13.09**（参考 reviewer Phase 14 报告）—— 直接来自 dataset 仅来自 3 篇论文 / 域分布窄的事实。
 
+**🟡 三篇 ETL 完成后的预期增量**：
+
+| 来源 | record_type 候选 | 预计行数（paragraph-level） | 预计行数（transition-level） | 备注 |
+|---|---|---:|---:|---|
+| psmbench | `transition_review` / `state_review` | ~1,500 | ~300 | 14 协议 × 108 states + 297 transitions |
+| hermes | `paragraph_grammar_annotation` | ~15,000 | ~1,000 | 3 specs × ~5,000 paragraphs |
+| rfcnlp | `xml_paragraph_annotation` / `bio_token` | ~500 | ~200 | 6 RFC × ~80 paragraphs |
+| **合计** | — | **~17,000** | **~1,500** | 选展开口径取决于与 reviewer schema 对齐策略 |
+
+ETL 完成后预期总样本量：**820（现有）+ 1,500-17,000（新增）≈ 2,300-17,800 行**，且**首次包含 protocol state machine 域**（覆盖度提升）。
+
 ## 七、待补 / 阻塞 / 下一步
 
 ### 7.1 待办（短期 1-2 周）
@@ -189,7 +227,12 @@
 1. ~~审查 LLM-FSM (Stanford 2602.07032) 的 GitHub repo，判定 human review subset 是否公开~~ ✅ 完成（2026-05-06）：作者 GitHub 主页无相关 repo；论文无 supplementary URL → 数据不公开
 2. ~~跟进 SysMBench / SpecGPT 的 supplementary，确认有无 review-on-LLM-output 数据~~ ✅ 完成（2026-05-06）：SysMBench 是 reference-as-ground-truth 不是 review；SpecGPT 数据不公开
 3. （仍可选）邮件联系候选作者：Volvo Cars (`req` 论文)、Leidos (`pushing-envelope`)、AIAA `From NL Standard Documents to State Machines`、Stanford `LLM-FSM` 团队询问 human review subset 是否可申请获取
-4. **新待办**：转向"路径 C 自补 review"——拿现成的 LLM 输出（SysMBench 151 scenarios + LLM-FSM 1000 problems），自己组织 reviewer 做 human review，做出新的 NL→SM expert-review 数据
+4. **路径 C 自补 review**：拿现成的 LLM 输出（SysMBench 151 scenarios + LLM-FSM 1000 problems），自己组织 reviewer 做 human review，做出新的 NL→SM expert-review 数据
+5. **🟡 三篇 ETL（短期高优）**：
+   - `git clone https://github.com/Zilinlin/RFC_PSM_Benchmark` 或 `datasets.load_dataset("zilinlin/RFC2PSM")` → 把 14 协议 PSM 展开为 reviewer parquet schema
+   - 在 `github.com/SyNSec-den` 找具体 Hermes repo 并 `git clone` → 把 4G/5G 标注转换为 reviewer parquet schema
+   - `git clone https://github.com/RFCNLP/RFCNLP` → 把 6 协议 XML/BIO/FSM 展开为 reviewer parquet schema
+   - 三篇 ETL 完成后由 🟡 → 🟢，并把 §3.1.1 行迁入 §3.1
 
 ### 7.2 阻塞
 
@@ -207,6 +250,12 @@
 
 ## 八、更新日志
 
+- `2026-05-06 14:48:00` 完成第二轮外部学术检索，新增 3 篇 protocol-state-machine 论文入库（🟡 可整理）
+  - **PSMBench** (NeurIPS 2025 D&B Track)：RFC2PSM 14 协议，108 states + 297 transitions，论文显式报告 **κ=0.82 (states) / κ=0.78 (transitions)**；GitHub `Zilinlin/RFC_PSM_Benchmark` + HuggingFace `zilinlin/RFC2PSM` 均 web 验证可访问；论文 PDF + paper_content.txt + bibtex.bib + review_extraction.md 已落盘
+  - **Hermes** (USENIX Security 2024)：cellular spec → FSM，4 cellular researchers + 2 domain experts cross-verify；~16,000 datapoints / 2,800 person-hours；3 specs（4G-NAS R17 / 5G-NAS R17 / 5G-RRC R17）；GitHub org `SyNSec-den` 已 web 验证（具体 repo 待克隆）；论文文件均落盘
+  - **RFCNLP** (IEEE S&P 2022)：6 协议 RFC（BGPv4/DCCP/LTP/PPTP/SCTP/TCP）的 XML grammar + BIO + Gold FSM；domain expert 协作标注 + 验证；GitHub `RFCNLP/RFCNLP` 已 web 验证（5 个标注子目录 `rfcs-annotated` / `rfcs-annotated-tidied` / `rfcs-bio` / `rfcs-original` / `rfcs-predicted`）；为 PSMBench 的源数据集（lineage：rfcnlp → psmbench）；论文文件均落盘
+  - 同步更新 §一 收录统计（🟢=3 + 🟡=3，合计 6 篇）、§2.3 状态机族覆盖度（Protocol state machine ⚪ → ✅）、§3.1.1（新增 🟡 已收录小节，每行 = 一篇论文，全部 27 列维度展开）、§五-bis（第二轮检索完整记录）、§六（ETL 完成后 reviewer 数据预算预期 ~2,300-17,800 行）、§7.1（新增 ETL 短期高优待办 + 完成后由 🟡 → 🟢）
+  - **关键洞察**：第一轮聚焦"NL→SM + LLM 生成 + LLM 输出 review"导致候选集过窄；用户口径明确"状态机来源不限，含人写"后，protocol-FSM 域立刻命中 3 篇高质量论文（NeurIPS 2025 + USENIX 2024 + IEEE S&P 2022）；说明硬条件中 H3 的"review 数据可获取"才是真正的瓶颈，不是"LLM-only"
 - `2026-05-06 14:35:00` 完成 5 个外部候选的可获取性验证
   - **LLM-FSM** (Stanford 2602.07032)：arXiv 页面无 supplementary URL；作者 Yuheng Wu (joel-wu) GitHub 主页 6 个 repo 全部与本工作无关；论文 888 行内 0 个 github/zenodo URL → ⚪ 排除（H3 失败：数据不公开）
   - **SpecGPT** (3GPP 2510.14348)：arXiv PDF 全文 0 个仓库 URL；论文未提供 release 声明 → ⚪ 排除（H3 失败：数据不公开 + manual annotation 是 ground truth 不是 review on LLM output）
