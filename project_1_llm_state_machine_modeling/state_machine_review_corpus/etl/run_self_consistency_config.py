@@ -66,19 +66,33 @@ def _aggregate_runs(
 ) -> dict[str, Any]:
     """Aggregate N runs into a single result.
 
-    Rules (per Week 2 design):
+    Rules (per Week 2 design, **patched 2026-05-07** after self-investigation):
+
+    Score / judgement (unchanged):
     - score: median across runs
     - dim_scores: median per dim
     - judgement: derived from median overall_score (not majority vote)
-    - confidence: clip(1 - alpha * max_dim_std, 0.10, 0.99)
-    - disagreement_flag: True if any run's judgement differs from median-derived
-    - run_judgements / run_scores / dim_std: kept for analysis
+    - disagreement_flag: True if any run's judgement differs from the others
+
+    Confidence (CHANGED):
+    - `confidence` (the field consumed by `agent_confidence` downstream) is now
+      the **median of per-run LLM-output confidences**, NOT the SC-derived
+      `1 - alpha * max_dim_std`. Reason: the std-based formula collapses to
+      ~0.99 when LLM agreement is high, which is incompatible with
+      benchmark.py's confidence-thresholded heuristics
+      (`_summary_discipline_metrics` requires <=0.70 for self_awareness;
+      `_protocol_metrics` requires <=0.55 for confidence_discipline; calibration
+      heavily punishes overconfident wrong answers). See
+      `etl/sc_self_investigation_report.md` for the full mechanistic trace.
+    - `sc_consistency_confidence` is preserved as auxiliary field for analysis;
+      the original SC formula `clip(1 - alpha * max_dim_std, 0.10, 0.99)`.
     """
     if not runs:
         return {
             "overall_score": 0.0,
             "overall_judgement": "poor",
             "confidence": 0.10,
+            "sc_consistency_confidence": 0.10,
             "disagreement_flag": True,
             "n_runs": 0,
             "n_failed": 0,
@@ -105,23 +119,26 @@ def _aggregate_runs(
         for dim, vals in dim_scores_per_run.items() if vals
     }
     max_dim_std = max(dim_stds.values()) if dim_stds else 0.0
-    confidence = max(0.10, min(0.99, 1.0 - confidence_alpha * max_dim_std))
+    sc_consistency_confidence = max(0.10, min(0.99, 1.0 - confidence_alpha * max_dim_std))
 
     # Judgement: derive from median overall score (consistent with score)
     median_judgement = str(judgement_from_score(median_overall))
 
-    # Disagreement flag: any individual run's judgement differs from the median's
+    # Disagreement flag: any individual run's judgement differs from the others
     individual_judgements = [str(getattr(r, "overall_judgement", "?")) for r in runs]
     judgement_counter = Counter(individual_judgements)
     disagreement_flag = len(set(individual_judgements)) > 1
 
-    # Confidence stats
+    # Median of per-run LLM-output confidences (downstream-compatible with
+    # benchmark.py's confidence-thresholded metrics)
     individual_confidences = [float(getattr(r, "confidence", 0.0)) for r in runs]
+    median_confidence = statistics.median(individual_confidences) if individual_confidences else 0.0
 
     return {
         "overall_score": median_overall,
         "overall_judgement": median_judgement,
-        "confidence": confidence,
+        "confidence": median_confidence,  # PATCHED 2026-05-07: median of run confidences
+        "sc_consistency_confidence": sc_consistency_confidence,  # SC-derived auxiliary
         "disagreement_flag": disagreement_flag,
         "n_runs": len(runs),
         "n_failed": 0,
@@ -578,7 +595,11 @@ def _recompute_aggregated_metrics(sc_result: dict[str, Any]) -> dict[str, Any]:
             row = dict(row)
             row["agent_score"] = agg.get("overall_score", row.get("agent_score"))
             row["agent_judgement"] = agg.get("overall_judgement", row.get("agent_judgement"))
+            # PATCHED 2026-05-07: agent_confidence = median of run confidences
+            # (downstream-compatible). SC-derived consistency confidence kept as
+            # separate auxiliary field for analysis.
             row["agent_confidence"] = agg.get("confidence", row.get("agent_confidence"))
+            row["sc_consistency_confidence"] = agg.get("sc_consistency_confidence")
             row["sc_disagreement_flag"] = agg.get("disagreement_flag")
             row["sc_max_dim_std"] = agg.get("max_dim_std")
             row["sc_n_runs"] = agg.get("n_runs")
