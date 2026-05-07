@@ -123,9 +123,9 @@
 
 最低限度的模块级回归入口如下：
 
-1. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
-2. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
-3. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py`
+1. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
+2. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py`
+3. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_batch.py`
 4. `python -m expert_review` 的 deterministic smoke
 5. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
 6. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`

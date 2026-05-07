@@ -16,17 +16,17 @@ Slices covered:
 - 40-task: q3_temp_n3, q3_para_n3, q3_both_n3
 - 62-task: q3_both_n3_62task
 
-Run: python -m project_1_llm_state_machine_modeling.state_machine_review_corpus.etl.sc_reaggregate_from_checkpoints
+Run: python -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.sc_reaggregate_from_checkpoints
 """
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from project_1_llm_state_machine_modeling.state_machine_review_corpus.etl.run_self_consistency_config import (
+from project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.run_self_consistency_config import (
     _aggregate_runs,
 )
-from project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark import (
+from project_ex1_llm_judge_for_stm.src.expert_review.benchmark import (
     CRITICAL_ISSUE_TAXONOMY,
     _calibration_metrics,
     _component_alignment_metrics,

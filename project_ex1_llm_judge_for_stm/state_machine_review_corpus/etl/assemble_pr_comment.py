@@ -75,7 +75,7 @@ def main() -> None:
     md.append(f"- **Baseline (UML/SysML 旧域) 样本**：{base.get('n_paired', 0)} 行 — SED component_level + llms_emp sample_level + ttool-ai summary_level")
     md.append(f"- **New (protocol-FSM 新域) 样本**：{new.get('n_paired', 0)} 行 — PSMBench (9 LLMs × 3 协议) + RFCNLP NLP-predictor")
     md.append("- **人评 ground truth**：baseline 论文公开 0-100 / F1，new 用 PSMBench κ=0.82/0.78 cross-verified ground-truth + paper 9 类标签 macro-F1 / paper-reported accuracy")
-    md.append("- **指标公式**：与 [`benchmark.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_1_llm_state_machine_modeling/reproduction/expert_review/benchmark.py) 一致 (`ScoreAlign = 100·(1-MAE)`; `RankAlign = 100·pairwise_order`; HAI = 0.40·RAS + 0.30·SAS + 0.30·CRAS)")
+    md.append("- **指标公式**：与 [`benchmark.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_ex1_llm_judge_for_stm/src/expert_review/benchmark.py) 一致 (`ScoreAlign = 100·(1-MAE)`; `RankAlign = 100·pairwise_order`; HAI = 0.40·RAS + 0.30·SAS + 0.30·CRAS)")
     md.append("")
     # Section 2
     md.append("### 二、Headline 指标对比（new vs baseline）")
@@ -205,15 +205,15 @@ def main() -> None:
     # Section 10
     md.append("### 十、Artifact 落点")
     md.append("")
-    md.append("- **样本与结果**：[`state_machine_review_corpus/etl/out/`](https://github.com/HansBug/research_ideas/tree/dev/reviewer/project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/out)")
+    md.append("- **样本与结果**：[`state_machine_review_corpus/etl/out/`](https://github.com/HansBug/research_ideas/tree/dev/reviewer/project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/out)")
     md.append("  - `experiment_baseline_sample.jsonl` / `experiment_new_sample.jsonl`（输入）")
     md.append("  - `experiment_baseline_result.jsonl` / `experiment_new_result.jsonl`（reviewer 原始输出）")
     md.append("  - `experiment_alignment.json`（指标聚合）")
     md.append("- **可视化**：`charts/10_*.png` ~ `charts/16_*.png` 共 7 张")
     md.append("- **入口脚本**：")
-    md.append("  - [`build_experiment_batches.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/build_experiment_batches.py)（采样）")
-    md.append("  - [`compute_alignment_metrics.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/compute_alignment_metrics.py)（指标）")
-    md.append("  - [`build_experiment_charts.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/build_experiment_charts.py) + [`build_dimension_charts.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/build_dimension_charts.py)（图）")
+    md.append("  - [`build_experiment_batches.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/build_experiment_batches.py)（采样）")
+    md.append("  - [`compute_alignment_metrics.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/compute_alignment_metrics.py)（指标）")
+    md.append("  - [`build_experiment_charts.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/build_experiment_charts.py) + [`build_dimension_charts.py`](https://github.com/HansBug/research_ideas/blob/dev/reviewer/project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/build_dimension_charts.py)（图）")
     md.append("")
     # Section 11
     md.append("### 十一、下一步")

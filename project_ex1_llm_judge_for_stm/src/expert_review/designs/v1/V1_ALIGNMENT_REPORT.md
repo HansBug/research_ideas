@@ -128,9 +128,9 @@
 
 当前已完成的验证：
 
-1. `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
-2. `AIROUTER_API_KEY= FINDCG_API_KEY= MIAOCG_API_KEY= PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review ...`
-3. `PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python - <<'PY' ... run_benchmark_iteration(llm_mode='off') ... PY`
+1. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
+2. `AIROUTER_API_KEY= FINDCG_API_KEY= MIAOCG_API_KEY= PYTHONPATH=project_ex1_llm_judge_for_stm/src python -m expert_review ...`
+3. `PYTHONPATH=project_ex1_llm_judge_for_stm/src python - <<'PY' ... run_benchmark_iteration(llm_mode='off') ... PY`
 
 验证结论：
 

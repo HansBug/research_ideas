@@ -2,7 +2,7 @@
 
 ## 1. 论文集定位
 
-`project_1_llm_state_machine_modeling/state_machine_review_corpus/` 是 `project_1` 下专门维护"**输入文本 → 状态机模型** 范式下、**含可获取的 human expert review 数据**的论文与 review 数据集"的论文集工作区。
+`project_ex1_llm_judge_for_stm/state_machine_review_corpus/` 是 `project_1` 下专门维护"**输入文本 → 状态机模型** 范式下、**含可获取的 human expert review 数据**的论文与 review 数据集"的论文集工作区。
 
 它服务于本研究中 reviewer 子系统（详见 `reproduction/expert_review/`）的训练与评估扩库需求。这里的核心目标，是把"reviewer 系统能用上的真实 human expert review 数据"作为一等资产，逐篇沉淀其论文、获取入口、原始评分表（或可推断的等价数据）和 review schema 对齐说明。
 

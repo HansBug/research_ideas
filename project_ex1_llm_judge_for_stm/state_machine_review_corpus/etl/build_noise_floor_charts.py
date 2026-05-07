@@ -13,7 +13,7 @@ Produces 6 charts in etl/out/charts/:
   75_noise_high_var_tasks.png        — top-K most volatile tasks per config
 
 Run:
-  python project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/build_noise_floor_charts.py
+  python project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/build_noise_floor_charts.py
 """
 from __future__ import annotations
 

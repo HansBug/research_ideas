@@ -18,7 +18,7 @@ set -uo pipefail
 
 cd "$(dirname "$0")/../../.."  # repo root
 
-BASE=project_1_llm_state_machine_modeling/state_machine_review_corpus/etl/out/phase14_combined
+BASE=project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/out/phase14_combined
 OUT=$BASE/week3_noise
 mkdir -p "$OUT"
 
@@ -32,7 +32,7 @@ run_n1_w15() {
     # W1.5 B-only via standard ablation runner — replicates production baseline
     for K in 1 2 3 4 5; do
         LABEL="noise_n1_w15_rep${K}"
-        python3 -m project_1_llm_state_machine_modeling.state_machine_review_corpus.etl.run_ablation_config \
+        python3 -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.run_ablation_config \
             --base-dir "$BASE" \
             $SLICE_ARGS \
             --rubric --iter-b \
@@ -50,7 +50,7 @@ run_n2_sc_n1() {
     # via SC code path. Measures pipeline divergence vs N1.
     for K in 1 2 3 4 5; do
         LABEL="noise_n2_sc_n1_rep${K}"
-        python3 -m project_1_llm_state_machine_modeling.state_machine_review_corpus.etl.run_self_consistency_config \
+        python3 -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.run_self_consistency_config \
             --base-dir "$BASE" \
             $SLICE_ARGS \
             --rubric --iter-b \
@@ -69,7 +69,7 @@ run_n3_w0() {
     # W0 LLM-mode auto (no rubric, no iter)
     for K in 1 2 3 4 5; do
         LABEL="noise_n3_w0_rep${K}"
-        python3 -m project_1_llm_state_machine_modeling.state_machine_review_corpus.etl.run_ablation_config \
+        python3 -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.run_ablation_config \
             --base-dir "$BASE" \
             $SLICE_ARGS \
             --provider-order $PROVIDER_CHAIN \
@@ -85,7 +85,7 @@ run_n4_w1_v0() {
     # W1 rubric v0 (rubric on, no iter)
     for K in 1 2 3 4 5; do
         LABEL="noise_n4_w1_rep${K}"
-        python3 -m project_1_llm_state_machine_modeling.state_machine_review_corpus.etl.run_ablation_config \
+        python3 -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.run_ablation_config \
             --base-dir "$BASE" \
             $SLICE_ARGS \
             --rubric \

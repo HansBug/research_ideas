@@ -32,6 +32,7 @@
 - `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
 - `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
+- `project_ex1_llm_judge_for_stm/` - **计划外项目（ex = extra/unplanned）**：针对状态机制品的 LLM-as-Judge 评审子系统，从 project_1 拆出独立。**边界**：本项目专注 reviewer 系统 + 评审方法学，不做 STM 生成（那是 project_1 的 baselines/）/ verification（那是 project_2/3）/ repair（project_4）。详见该目录下的 [README.md](./project_ex1_llm_judge_for_stm/README.md)。
 - `talks/` - 与导师、同门、合作者等人类讨论的纪要工作区
 - `tools/` - Python工具集（详见下方"工具使用说明"）
   - `pdf_extractor.py` - PDF文本提取工具

@@ -30,7 +30,7 @@
 完整对齐运行：
 
 ```bash
-venv/bin/python project_1_llm_state_machine_modeling/reproduction/align_ttool_expert_review.py \
+venv/bin/python project_ex1_llm_judge_for_stm/src/align_ttool_expert_review.py \
   --prompt-variant paper_rubric_v5
 ```
 
@@ -43,14 +43,14 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/align_ttool_ex
 使用某个样本精确保存的请求进行复现回放的代表性命令：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction venv/bin/python - <<'PY'
+PYTHONPATH=project_ex1_llm_judge_for_stm/src venv/bin/python - <<'PY'
 import json
 from pathlib import Path
 from expert_review import review_artifacts
 
 payload = json.loads(
     Path(
-        "project_1_llm_state_machine_modeling/reproduction/results/ttool/"
+        "project_ex1_llm_judge_for_stm/src/results/ttool/"
         "expert_alignment/paper_rubric_v5/cache/automated_braking__System1__bd.json"
     ).read_text(encoding="utf-8")
 )
@@ -72,14 +72,14 @@ PY
 针对一个低分状态机案例的另一条回放命令：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction venv/bin/python - <<'PY'
+PYTHONPATH=project_ex1_llm_judge_for_stm/src venv/bin/python - <<'PY'
 import json
 from pathlib import Path
 from expert_review import review_artifacts
 
 payload = json.loads(
     Path(
-        "project_1_llm_state_machine_modeling/reproduction/results/ttool/"
+        "project_ex1_llm_judge_for_stm/src/results/ttool/"
         "expert_alignment/paper_rubric_v5/cache/platooning__Platoon5__smd.json"
     ).read_text(encoding="utf-8")
 )

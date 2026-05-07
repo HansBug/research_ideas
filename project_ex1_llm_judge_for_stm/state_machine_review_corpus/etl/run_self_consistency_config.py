@@ -25,12 +25,12 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark import (
+from project_ex1_llm_judge_for_stm.src.expert_review.benchmark import (
     _evaluate_task_bundle,
     _load_benchmark_tables,
     build_benchmark_slices,
 )
-from project_1_llm_state_machine_modeling.reproduction.expert_review.schema import (
+from project_ex1_llm_judge_for_stm.src.expert_review.schema import (
     judgement_from_score,
 )
 
@@ -183,11 +183,11 @@ def _evaluate_task_bundle_parallel(
     """
     # Import everything we need from benchmark (lazy to avoid import cycles)
     import statistics as stats_mod
-    from project_1_llm_state_machine_modeling.reproduction.expert_review.agent import ExpertReviewAgent
-    from project_1_llm_state_machine_modeling.reproduction.expert_review.schema import (
+    from project_ex1_llm_judge_for_stm.src.expert_review.agent import ExpertReviewAgent
+    from project_ex1_llm_judge_for_stm.src.expert_review.schema import (
         ExpertReviewRequest, judgement_from_score,
     )
-    from project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark import (
+    from project_ex1_llm_judge_for_stm.src.expert_review.benchmark import (
         _agent_issue_set, _issue_f1, _regime_from_result, _vv_role_coverage,
         _dimension_score, _score_align, _reason_alignment_metrics, _equivalence_metrics,
         _calibration_metrics, _summary_discipline_metrics, _stability_metrics,
@@ -561,7 +561,7 @@ def _recompute_aggregated_metrics(sc_result: dict[str, Any]) -> dict[str, Any]:
     Trick: take the FIRST rerun's report, replace its normalized_rows agent_*
     fields with the aggregated medians, then re-run the metric calculations
     """
-    from project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark import (
+    from project_ex1_llm_judge_for_stm.src.expert_review.benchmark import (
         _critical_issue_metrics,
         _component_alignment_metrics,
         _contradiction_metrics,

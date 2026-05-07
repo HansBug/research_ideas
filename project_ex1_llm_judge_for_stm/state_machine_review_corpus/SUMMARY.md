@@ -1,6 +1,6 @@
 # `state_machine_review_corpus/` Summary
 
-本文件是 `project_1_llm_state_machine_modeling/state_machine_review_corpus/` 的总账。记录当前已正式收录的论文、当前 reviewer 系统可消费的总样本量、所有候选论文（含已收录与已排除）的逐项细节、外部已审查候选、检索关键词簇与更新日志。
+本文件是 `project_ex1_llm_judge_for_stm/state_machine_review_corpus/` 的总账。记录当前已正式收录的论文、当前 reviewer 系统可消费的总样本量、所有候选论文（含已收录与已排除）的逐项细节、外部已审查候选、检索关键词簇与更新日志。
 
 推荐使用顺序：
 

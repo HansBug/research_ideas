@@ -17,7 +17,7 @@ import json
 import time
 from pathlib import Path
 
-from project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark import (
+from project_ex1_llm_judge_for_stm.src.expert_review.benchmark import (
     _evaluate_task_bundle,
     _load_benchmark_tables,
     build_benchmark_slices,

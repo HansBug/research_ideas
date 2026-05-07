@@ -230,7 +230,7 @@ print(result.overall_reason_text)
 [`__main__.py`](./__main__.py) 支持直接从命令行调用：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+PYTHONPATH=project_ex1_llm_judge_for_stm/src \
 python -m expert_review \
   --prompt "帮我评审这个状态机，重点看需求覆盖、行为一致性和无依据额外结构。" \
   --input "R1: 登录后进入 Ready。R2: start 触发 Printing。R3: jam 会进入 Suspended 并允许 resume。" \
@@ -248,7 +248,7 @@ python -m expert_review \
 AIROUTER_API_KEY= \
 FINDCG_API_KEY= \
 MIAOCG_API_KEY= \
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+PYTHONPATH=project_ex1_llm_judge_for_stm/src \
 python -m expert_review \
   --prompt "Review this model." \
   --input "R1: login moves the system from Idle to Ready." \
@@ -260,17 +260,17 @@ python -m expert_review \
 离线对齐评测入口在 [`benchmark.py`](./benchmark.py)。常用调用方式如下：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review.benchmark --scope slice --llm-mode off
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review.benchmark --scope full --llm-mode off
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction python -m expert_review.benchmark --scope split --split-name validation --llm-mode off
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+PYTHONPATH=project_ex1_llm_judge_for_stm/src python -m expert_review.benchmark --scope slice --llm-mode off
+PYTHONPATH=project_ex1_llm_judge_for_stm/src python -m expert_review.benchmark --scope full --llm-mode off
+PYTHONPATH=project_ex1_llm_judge_for_stm/src python -m expert_review.benchmark --scope split --split-name validation --llm-mode off
+PYTHONPATH=project_ex1_llm_judge_for_stm/src \
 python -m expert_review.benchmark \
   --scope phase7 \
   --llm-mode off \
   --rerun-count 0 \
   --output-markdown /tmp/expert_review_phase7_bundle.md \
   --output-json /tmp/expert_review_phase7_bundle.json
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+PYTHONPATH=project_ex1_llm_judge_for_stm/src \
 python -m expert_review.benchmark \
   --scope phase14 \
   --llm-mode off \
@@ -312,7 +312,7 @@ python -m expert_review.benchmark \
 典型调用方式如下：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/reproduction \
+PYTHONPATH=project_ex1_llm_judge_for_stm/src \
 python -m expert_review.batch \
   --input /tmp/expert_review_batch.json \
   --llm-mode off \

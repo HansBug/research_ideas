@@ -273,7 +273,7 @@
 - 完成状态：`Phase 1` 的 Todolist 与 Checklist 已全部完成，当前停止在 `Phase 1`，未推进到 `Phase 2`。
 - 真实接入情况：`agent.py` 已默认路由到 `expert_review_v1_runtime.py` 的 staged runtime；`heuristic_expert_review()` 已退化为对该 runtime 的兼容包装，不再主导评审逻辑。
 - 运行时边界：`benchmark.py` 仅承担离线 benchmark 回放与分析；运行时不依赖 `expert_review/` 路径外数据。
-- 可运行性：`review_artifacts()`、`review_model()`、`python -m expert_review`、`pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 均已验证。
+- 可运行性：`review_artifacts()`、`review_model()`、`python -m expert_review`、`pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 均已验证。
 - 未完成项：无。
 - 已知遗留问题：`record-level` 分数校准仍偏弱；等价但不同构设计的裁决仍不稳定；`protocol-only` 的 V&V 角色覆盖只达到部分覆盖。
 
@@ -403,7 +403,7 @@
 - 可运行性：
   - `review_artifacts()`、`review_model()` 已验收
   - `python -m expert_review` 已验收
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已通过
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已通过
 - 未完成项：无。
 - 当前未同步项：
   - 由于本轮按用户要求停在**本地未提交状态**，PR #6 的 body 仍停留在 `Phase 1` 口径，未同步到 `Phase 2` 完成状态
@@ -549,7 +549,7 @@
   - equivalence 增加对 `parallel branch credit / parallel collapse penalty / dependency break` 的显式裁决
   - arbiter 会把 trace 结果与 equivalence 冲突对齐，执行 downgrade / upgrade，而不是让两边各说各话
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已通过，共 `10` 个测试
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已通过，共 `10` 个测试
   - `python -m expert_review` 已验收
   - `review_artifacts()`、`review_model()` 已通过 deterministic monkeypatch 烟测验收
 - 未完成项：无。
@@ -698,7 +698,7 @@
   - `protocol-only` 已显式识别 `manual inspection / formal verification / simulation / testing / syntax checker` 等 V&V 角色，并把它们沉淀进 `metric_payload` 与 `notes`
   - confidence policy 已不再只是 runtime 里的零碎上限分支，而是通过 `policy_library -> missing_evidence_critic -> final_confidence` 串起来
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已通过，共 `12` 个测试
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已通过，共 `12` 个测试
   - `review_artifacts()` 与 `review_model()` 已在显式清空 provider key 的 deterministic 模式下完成烟测
   - `python -m expert_review` 已在显式清空 provider key 的 deterministic 模式下完成烟测
 - 未完成项：无。
@@ -863,7 +863,7 @@
   - `review_artifacts()` 已验证
   - `review_model()` 已验证
   - `python -m expert_review` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已验证
   - `run_benchmark_iteration(llm_mode='off')` 已验证
 - 未完成项：无。
 - 当前旧逻辑保留情况：
@@ -919,7 +919,7 @@
   - `review_artifacts()`
   - `review_model()`
   - `python -m expert_review`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
   - `run_benchmark_iteration(llm_mode='off')`
 - 已被替换的真实路径：
   - `agent.py` 从历史 runtime 直接切到 `graph/runtime.py`
@@ -1086,7 +1086,7 @@
 ### Phase 6 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
   - `python -m expert_review`（在清空 provider env 的 deterministic 模式下）
   - `run_benchmark_iteration(llm_mode='off')`
 - 已被替换或删除的真实路径：
@@ -1325,8 +1325,8 @@ Milestone B 达成条件：
   - `build_benchmark_inventory()`、`summarize_benchmark_coverage()`、`build_benchmark_split_bundle()`、`build_lofo_task_bundles()` 已进入真实 benchmark 主路径
   - `component_level_review` 的 alignment schema、统一 error map 与 ranking risk 已真实进入 phase7 bundle 导出结果
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已验证
   - `python -m expert_review.benchmark --scope slice --llm-mode off` 已验证
   - `python -m expert_review.benchmark --scope full --llm-mode off` 已验证
   - `python -m expert_review.benchmark --scope split --split-name train|dev|validation|lockbox --llm-mode off` 已验证
@@ -1436,8 +1436,8 @@ Milestone B 达成条件：
 ### Phase 7 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
   - `python -m expert_review.benchmark --scope slice --llm-mode off`
   - `python -m expert_review.benchmark --scope full --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name train --llm-mode off`
@@ -1546,8 +1546,8 @@ Milestone B 达成条件：
   - `score_composer.py` 已新增窄范围 `record` 标定：`score stretch`、`trace-failure exact rescue`、`aligned partial-heavy bonus`、`huge missing-signal penalty`、`low-equivalence penalty`。
   - `summary` 与 `protocol` 路径未被改动；`SAS / PDS / summary-only evidence restraint` 仍保持原口径。
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py` 已验证
   - `python -m expert_review.benchmark --scope full --llm-mode off` 已验证
   - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off` 已验证
   - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off` 已验证
@@ -1622,8 +1622,8 @@ Milestone B 达成条件：
 ### Phase 8 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py`
   - `python -m expert_review.benchmark --scope full --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off`
@@ -1706,8 +1706,8 @@ Milestone B 达成条件：
   - `score_composer.py` 的 metric payload 已显式暴露 `summary_row_type / summary_target / summary_score_stretch / summary_score_adjustment` 等诊断字段，支持按 public row 语义回放误差。
   - `test_review.py` 已新增 summary policy 回归测试，锁定 `raw public row / average row / BD / SMD` 的语义区分。
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py` 已验证
   - `python -m expert_review.benchmark --scope full --llm-mode off` 已验证
   - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off` 已验证
   - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off` 已验证
@@ -1788,8 +1788,8 @@ Milestone B 达成条件：
 ### Phase 9 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py`
   - `python -m expert_review.benchmark --scope full --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off`
@@ -1873,9 +1873,9 @@ Milestone B 达成条件：
   - 根层新增 [`batch.py`](../../batch.py) 作为 batch screening 主入口，支持 `json/jsonl` 输入、`json/jsonl/csv` 导出、triage policy、失败重试、rerun 稳定性与延迟统计。
   - `__init__.py` 已导出 batch API，`test_review.py` 与新增的 `test_batch.py` 已锁住 diagram-type 推断与 batch triage/export 回归。
 - 可运行性：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py` 已验证
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py` 已验证
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_batch.py` 已验证
   - 全量 batch run 已导出 `/tmp/phase10_batch_full_final.json`、`/tmp/phase10_batch_full_final.jsonl`、`/tmp/phase10_batch_full_final.csv`
 - 当前结论边界：
   - 可以说：当前 reviewer 已可用于 batch ranking / filtering / triage，能缩减人工筛查工作量。
@@ -2019,9 +2019,9 @@ Milestone B 达成条件：
 ### Phase 10 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_batch.py`
   - `python -m expert_review.benchmark --scope full --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name validation --llm-mode off`
   - `python -m expert_review.benchmark --scope split --split-name lockbox --llm-mode off`
@@ -2522,8 +2522,8 @@ Milestone B 达成条件：
 ### Phase 13 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py -q`
-  - `python -m project_1_llm_state_machine_modeling.reproduction.expert_review.benchmark --scope slice --llm-mode off`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py -q`
+  - `python -m project_ex1_llm_judge_for_stm.src.expert_review.benchmark --scope slice --llm-mode off`
   - `python - <<'PY' ... run_benchmark_iteration(scope='full', llm_mode='off', rerun_count=4) ... PY`
 - 本阶段真实落位的目标层次：
   - `benchmark.py`：正式接入 `judgement_metrics / critical_issue_metrics / evidence_metrics / contradiction_metrics`
@@ -2751,8 +2751,8 @@ Top residual clusters：
 ### Phase 14 本阶段运行记录
 
 - 已验证入口：
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_benchmark.py -q`
-  - `pytest project_1_llm_state_machine_modeling/reproduction/expert_review/test_review.py project_1_llm_state_machine_modeling/reproduction/expert_review/test_batch.py -q`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py -q`
+  - `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py project_ex1_llm_judge_for_stm/src/expert_review/test_batch.py -q`
   - `python -m expert_review.benchmark --scope phase14 --llm-mode off --rerun-count 0 --candidate-version phase14-wip --output-markdown /tmp/expert_review_phase14_bundle.md --output-json /tmp/expert_review_phase14_bundle.json`
 - 本阶段真实落位的目标层次：
   - `benchmark.py`：新增 `run_phase14_evaluation_bundle()`、promotion gate、lockbox residual cluster analysis、`scope=phase14` CLI 与 phase14 json/markdown 导出
