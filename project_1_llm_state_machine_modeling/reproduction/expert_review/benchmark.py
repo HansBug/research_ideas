@@ -1808,6 +1808,7 @@ def _evaluate_task_bundle(
     provider_order: list[str] | None = None,
     temperature: float = 0.0,
     timeout: int = 180,
+    max_workers: int = 1,
 ) -> dict[str, Any]:
     if llm_mode == "auto":
         agent = ExpertReviewAgent(
@@ -1825,70 +1826,91 @@ def _evaluate_task_bundle(
     )
     reruns = _rerun_subset(agent, rerun_seed_tasks, rerun_count=rerun_count)
 
-    normalized_rows: list[dict[str, Any]] = []
+    # Flatten ordered task list (preserve regime order for downstream metrics
+    # that subset by eval_bucket, but row order doesn't actually matter).
+    all_tasks: list[BenchmarkTask] = []
     for tasks in tasks_by_regime.values():
-        for task in tasks:
-            request = ExpertReviewRequest(
-                prompt=task.prompt,
-                input_text=task.input_text,
-                pred_output=task.pred_output,
-                ref_output=task.ref_output,
-                metadata=dict(task.metadata),
-            )
-            cache_key = f"{llm_mode}::{task.task_id}"
-            cached = review_cache.get(cache_key) if review_cache is not None else None
-            if cached is None:
-                start = time.perf_counter()
-                result = agent.review(request)
-                latency = time.perf_counter() - start
-                if review_cache is not None:
-                    review_cache[cache_key] = {"result": result, "latency_s": latency}
-            else:
-                result = cached["result"]
-                latency = float(cached.get("latency_s", 0.0))
-            agent_issue_set = _agent_issue_set(result)
-            issue_precision, issue_recall, issue_f1 = _issue_f1(task.human_issue_set, agent_issue_set)
-            rerun_score_delta, rerun_issue_jaccard, rerun_judgement_flip = reruns.get(task.task_id, (0.0, 1.0, False))
-            normalized_rows.append(
-                {
-                    "task_id": task.task_id,
-                    "eval_bucket": task.eval_bucket,
-                    "expected_regime": task.regime_expected,
-                    "actual_regime": _regime_from_result(result),
-                    "human_score": task.human_score,
-                    "human_judgement": judgement_from_score(float(task.human_score)) if task.human_score is not None else None,
-                    "agent_score": result.overall_score,
-                    "agent_judgement": str(result.overall_judgement or judgement_from_score(result.overall_score)),
-                    "agent_confidence": result.confidence,
-                    "human_issue_set": sorted(task.human_issue_set),
-                    "agent_issue_set": sorted(agent_issue_set),
-                    "issue_precision": issue_precision,
-                    "issue_recall": issue_recall,
-                    "issue_f1": issue_f1,
-                    "element_claim_count": len(result.unsupported_model_elements),
-                    "trace_matched_count": sum(1 for item in result.requirement_trace_results if item.status == "matched"),
-                    "evidence_discipline_score": _dimension_score(result, "evidence_discipline"),
-                    "vv_role_coverage": _vv_role_coverage(result),
-                    "latency_s": latency,
-                    "rerun_score_delta": rerun_score_delta,
-                    "rerun_issue_jaccard": rerun_issue_jaccard,
-                    "rerun_judgement_flip": rerun_judgement_flip,
-                    "used_review_backend": result.used_review_backend,
-                    "llm_model_name": result.llm_model_name,
-                    "llm_provider": result.llm_provider,
-                    "llm_configured": result.llm_usage_summary.llm_configured,
-                    "llm_effective_used": result.llm_usage_summary.effective_llm_used,
-                    "llm_fallback_only": result.llm_usage_summary.fallback_only,
-                    "llm_operation_attempt_count": result.llm_usage_summary.operation_attempt_count,
-                    "llm_operation_success_count": result.llm_usage_summary.operation_success_count,
-                    "llm_operation_failure_count": result.llm_usage_summary.operation_failure_count,
-                    "llm_prompt_tokens": result.llm_usage_summary.prompt_tokens,
-                    "llm_completion_tokens": result.llm_usage_summary.completion_tokens,
-                    "llm_total_tokens": result.llm_usage_summary.total_tokens,
-                    "metadata": task.metadata,
-                    "result": result,
-                }
-            )
+        all_tasks.extend(tasks)
+
+    def _process_task(task):
+        request = ExpertReviewRequest(
+            prompt=task.prompt,
+            input_text=task.input_text,
+            pred_output=task.pred_output,
+            ref_output=task.ref_output,
+            metadata=dict(task.metadata),
+        )
+        cache_key = f"{llm_mode}::{task.task_id}"
+        cached = review_cache.get(cache_key) if review_cache is not None else None
+        if cached is None:
+            start = time.perf_counter()
+            result = agent.review(request)
+            latency = time.perf_counter() - start
+            if review_cache is not None:
+                review_cache[cache_key] = {"result": result, "latency_s": latency}
+        else:
+            result = cached["result"]
+            latency = float(cached.get("latency_s", 0.0))
+        return task, result, latency
+
+    if max_workers > 1:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        completed_results: list[tuple] = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_process_task, t): t for t in all_tasks}
+            for fut in as_completed(futures):
+                completed_results.append(fut.result())
+        # Re-sort to original task order to keep deterministic outputs across runs
+        order = {t.task_id: i for i, t in enumerate(all_tasks)}
+        completed_results.sort(key=lambda x: order[x[0].task_id])
+    else:
+        completed_results = [_process_task(t) for t in all_tasks]
+
+    normalized_rows: list[dict[str, Any]] = []
+    for task, result, latency in completed_results:
+        agent_issue_set = _agent_issue_set(result)
+        issue_precision, issue_recall, issue_f1 = _issue_f1(task.human_issue_set, agent_issue_set)
+        rerun_score_delta, rerun_issue_jaccard, rerun_judgement_flip = reruns.get(task.task_id, (0.0, 1.0, False))
+        normalized_rows.append(
+            {
+                "task_id": task.task_id,
+                "eval_bucket": task.eval_bucket,
+                "expected_regime": task.regime_expected,
+                "actual_regime": _regime_from_result(result),
+                "human_score": task.human_score,
+                "human_judgement": judgement_from_score(float(task.human_score)) if task.human_score is not None else None,
+                "agent_score": result.overall_score,
+                "agent_judgement": str(result.overall_judgement or judgement_from_score(result.overall_score)),
+                "agent_confidence": result.confidence,
+                "human_issue_set": sorted(task.human_issue_set),
+                "agent_issue_set": sorted(agent_issue_set),
+                "issue_precision": issue_precision,
+                "issue_recall": issue_recall,
+                "issue_f1": issue_f1,
+                "element_claim_count": len(result.unsupported_model_elements),
+                "trace_matched_count": sum(1 for item in result.requirement_trace_results if item.status == "matched"),
+                "evidence_discipline_score": _dimension_score(result, "evidence_discipline"),
+                "vv_role_coverage": _vv_role_coverage(result),
+                "latency_s": latency,
+                "rerun_score_delta": rerun_score_delta,
+                "rerun_issue_jaccard": rerun_issue_jaccard,
+                "rerun_judgement_flip": rerun_judgement_flip,
+                "used_review_backend": result.used_review_backend,
+                "llm_model_name": result.llm_model_name,
+                "llm_provider": result.llm_provider,
+                "llm_configured": result.llm_usage_summary.llm_configured,
+                "llm_effective_used": result.llm_usage_summary.effective_llm_used,
+                "llm_fallback_only": result.llm_usage_summary.fallback_only,
+                "llm_operation_attempt_count": result.llm_usage_summary.operation_attempt_count,
+                "llm_operation_success_count": result.llm_usage_summary.operation_success_count,
+                "llm_operation_failure_count": result.llm_usage_summary.operation_failure_count,
+                "llm_prompt_tokens": result.llm_usage_summary.prompt_tokens,
+                "llm_completion_tokens": result.llm_usage_summary.completion_tokens,
+                "llm_total_tokens": result.llm_usage_summary.total_tokens,
+                "metadata": task.metadata,
+                "result": result,
+            }
+        )
 
     record_rows = [row for row in normalized_rows if row["eval_bucket"] == "record"]
     summary_rows = [row for row in normalized_rows if row["eval_bucket"] == "summary"]
@@ -1999,6 +2021,7 @@ def run_benchmark_iteration(
     provider_order: list[str] | None = None,
     temperature: float = 0.0,
     timeout: int = 180,
+    max_workers: int = 1,
 ) -> dict[str, Any]:
     records, protocols, availability = _load_benchmark_tables(base_dir)
     if scope == "slice":
@@ -2048,6 +2071,7 @@ def run_benchmark_iteration(
         provider_order=provider_order,
         temperature=temperature,
         timeout=timeout,
+        max_workers=max_workers,
     )
 
 

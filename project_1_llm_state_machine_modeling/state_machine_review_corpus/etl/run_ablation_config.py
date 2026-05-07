@@ -48,6 +48,8 @@ def main() -> None:
     parser.add_argument("--provider-order", nargs="*", default=["airouter"])
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--timeout", type=int, default=240)
+    parser.add_argument("--max-workers", type=int, default=1,
+                        help="Task-level parallelism (default 1 = sequential, backward compat)")
     args = parser.parse_args()
 
     records, protocols, availability = _load_benchmark_tables(args.base_dir)
@@ -92,6 +94,7 @@ def main() -> None:
         provider_order=args.provider_order if args.llm_mode == "auto" else None,
         temperature=args.temperature,
         timeout=args.timeout,
+        max_workers=args.max_workers,
     )
     elapsed = time.time() - t0
 
