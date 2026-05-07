@@ -190,11 +190,7 @@ def _evaluate_task_bundle_parallel(
     else:
         agent = ExpertReviewAgent(provider_order=[])
 
-    all_tasks = []
-    for regime_name, tasks in tasks_by_regime.values() if isinstance(tasks_by_regime, dict) else []:
-        # iterate dict.values() not items() — but we need both
-        pass
-    all_tasks = []
+    all_tasks: list = []
     for tasks in tasks_by_regime.values():
         all_tasks.extend(tasks)
 
@@ -227,6 +223,13 @@ def _evaluate_task_bundle_parallel(
         latency = time.time() - t0
         agent_issue_set = _agent_issue_set(result)
         issue_precision, issue_recall, issue_f1 = _issue_f1(task.human_issue_set, agent_issue_set)
+        # Capture per-dim scores so SC aggregator can compute dim_std (was missing)
+        agent_dim_scores: dict[str, float] = {}
+        for d in (result.dimension_results or []):
+            try:
+                agent_dim_scores[str(getattr(d, "dimension_name"))] = float(getattr(d, "score"))
+            except Exception:
+                continue
         row = {
             "task_id": task.task_id,
             "eval_bucket": task.eval_bucket,
@@ -240,6 +243,7 @@ def _evaluate_task_bundle_parallel(
             "agent_score": result.overall_score,
             "agent_judgement": str(result.overall_judgement or judgement_from_score(result.overall_score)),
             "agent_confidence": result.confidence,
+            "agent_dim_scores": agent_dim_scores,  # ← NEW: preserved across checkpoint serialization
             "human_issue_set": sorted(task.human_issue_set),
             "agent_issue_set": sorted(agent_issue_set),
             "issue_precision": issue_precision,
@@ -494,14 +498,21 @@ def run_with_self_consistency(
     aggregated_rows = []
     for tid, rows in task_index.items():
         # Build pseudo-result objects from rows so we can reuse _aggregate_runs.
-        # Each row has agent_score / agent_judgement / agent_confidence / etc.
+        # Each row has agent_score / agent_judgement / agent_confidence / agent_dim_scores
         class _Wrapper:
             def __init__(self, row: dict):
                 self.overall_score = row.get("agent_score", 0.0)
                 self.overall_judgement = row.get("agent_judgement", "?")
                 self.confidence = row.get("agent_confidence", 0.0)
-                # No dimension_results in normalized_rows; use dim-level data if present
-                self.dimension_results = []
+                # NEW: preserve per-dim scores so dim_std aggregation works
+                dim_scores = row.get("agent_dim_scores") or {}
+                if isinstance(dim_scores, dict):
+                    self.dimension_results = [
+                        {"dimension_name": k, "score": float(v)}
+                        for k, v in dim_scores.items()
+                    ]
+                else:
+                    self.dimension_results = []
 
         wrappers = [_Wrapper(r) for r in rows]
         agg = _aggregate_runs(wrappers, confidence_alpha=confidence_alpha)
