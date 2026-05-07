@@ -207,6 +207,14 @@ def compose_scores(
     iter_a_asymmetric = bool(request_metadata.get("rubric_iter_a_asymmetric", False))
     iter_b_diff_prompt = bool(request_metadata.get("rubric_iter_b_diff_prompt", False))
     iter_c_regimes = list(request_metadata.get("rubric_iter_c_regimes", []) or [])
+    # Q3-paraphrase / Q3-temp: per-rerun overrides driven by SC wrapper
+    rubric_prompt_variant = str(request_metadata.get("rubric_prompt_variant", "v1") or "v1")
+    rubric_temp_override = request_metadata.get("rubric_temperature_override")
+    if rubric_temp_override is not None:
+        try:
+            rubric_temp_override = float(rubric_temp_override)
+        except (TypeError, ValueError):
+            rubric_temp_override = None
 
     # Iter-C: selective application by regime
     regime_label_for_check = str(regime.regime if hasattr(regime, "regime") else regime)
@@ -248,6 +256,8 @@ def compose_scores(
                 llm=llm,
                 asymmetric_bounds=iter_a_asymmetric,
                 differentiation_mode=iter_b_diff_prompt,
+                prompt_variant=rubric_prompt_variant,
+                temperature_override=rubric_temp_override,
             )
             rubric_metadata[dim_name] = rubric_result
             if dim_name == "notation_syntax":

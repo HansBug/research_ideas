@@ -11,6 +11,68 @@ from __future__ import annotations
 from typing import Any
 
 
+# Paraphrase variants for Q3 self-consistency (Week 2). The CONTENT (rubric,
+# anchors, pitfalls) stays identical; only the framing (prologue / closing /
+# differentiation hint) is rephrased so the LLM's stochastic interpretation
+# can give us meaningful score variance for the median aggregator.
+_PROLOGUE_VARIANTS = {
+    "v1": (
+        "You are a strict, calibrated reviewer of a state-machine artifact.\n"
+        "Score ONLY the requested dimension. Use the rubric below; do NOT improvise new criteria.\n"
+        "You must output a single JSON object that conforms to the schema."
+    ),
+    "v2": (
+        "You are an expert evaluator of state-machine artifacts. Apply the rubric below to "
+        "assess this artifact on the specified dimension.\n"
+        "Use ONLY the rubric criteria (do not invent new ones). Your output must be a single "
+        "JSON object that strictly conforms to the schema."
+    ),
+    "v3": (
+        "Your task: rate this state-machine artifact on a single dimension using the provided "
+        "scoring rubric. Be precise and grounded in the artifact text.\n"
+        "Stick to the rubric — do not add criteria. Output exactly one JSON object matching "
+        "the schema (no markdown, no commentary)."
+    ),
+}
+
+_CLOSING_VARIANTS = {
+    "v1": (
+        "Return the JSON now. Be strict: do NOT default to 0.5 to be safe; "
+        "use the rubric to pick the most accurate band, and stay close to the "
+        "deterministic hint unless evidence clearly justifies otherwise."
+    ),
+    "v2": (
+        "Output the JSON now. Apply the rubric criteria carefully and pick the band "
+        "that best fits the artifact's actual characteristics — refuse to default "
+        "to a middle band when evidence supports a higher or lower one."
+    ),
+    "v3": (
+        "Produce the JSON now. The score must reflect what the artifact actually shows. "
+        "The deterministic hint is a soft starting anchor; deviate from it when the "
+        "rubric criteria visible in the artifact demand it."
+    ),
+}
+
+_DIFF_PROLOGUE_VARIANTS = {
+    "v1": (
+        "Return the JSON now. Use the rubric to pick the most accurate band "
+        "based on what is actually visible in the artifact. Do NOT clip your "
+        "score toward the deterministic hint; pick the band that the rubric "
+        "criteria DEMAND given the artifact text."
+    ),
+    "v2": (
+        "Output the JSON now. Score this specific artifact against the rubric. "
+        "Two artifacts with the same hint can differ in real quality — your "
+        "score MUST capture that real difference. Do not default to the hint."
+    ),
+    "v3": (
+        "Produce the JSON now. The deterministic hint is a coarse heuristic. "
+        "Read the artifact text and apply the rubric — if the artifact deserves "
+        "a higher (or lower) band than the hint, give that band, with reasoning."
+    ),
+}
+
+
 _COMMON_PROLOGUE = """You are a strict, calibrated reviewer of a state-machine artifact.
 Score ONLY the requested dimension. Use the rubric below; do NOT improvise new criteria.
 You must output a single JSON object that conforms to the schema.
@@ -229,6 +291,7 @@ def build_rubric_prompt(
     deterministic_hint: float,
     extra_signals: dict[str, Any] | None = None,
     differentiation_mode: bool = False,
+    prompt_variant: str = "v1",
 ) -> str:
     """Construct the LLM prompt for one dim's rubric scoring.
 
@@ -243,7 +306,33 @@ def build_rubric_prompt(
     rubric = _DIM_RUBRICS[dim_name]
     extras = extra_signals or {}
 
-    parts = [_COMMON_PROLOGUE.strip()]
+    # Iter-Q3-paraphrase: pick prologue/closing/diff variants by variant key.
+    # Variants share identical content (rubric/anchors/pitfalls/data) — only
+    # framing wording differs, so LLM stochasticity gives meaningful variance
+    # without changing the actual scoring criteria.
+    variant_key = prompt_variant if prompt_variant in _PROLOGUE_VARIANTS else "v1"
+    prologue = _PROLOGUE_VARIANTS[variant_key] + (
+        "\n\nRubric scale (every dimension):\n"
+        "  1.0 excellent  — flawless on this dimension; can be adopted as-is\n"
+        "  0.7 good       — main aspects correct; minor issues\n"
+        "  0.5 acceptable — fixable with rework; key defects identified\n"
+        "  0.3 weak       — multiple key defects; not usable as-is\n"
+        "  0.0 poor       — complete failure on this dimension\n\n"
+        "Output schema (strict JSON, no markdown):\n"
+        "{\n"
+        '  "dimension": <dim_name>,\n'
+        '  "score": <float in [0.0, 1.0]>,\n'
+        '  "band": <"excellent"|"good"|"acceptable"|"weak"|"poor">,\n'
+        '  "reason_anchor_id": <one of the anchors below or null>,\n'
+        '  "reason_text": <one short sentence>,\n'
+        '  "specific_defects": [\n'
+        '    {"locator": "<source>:<kind>:<idx>", "snippet": "<short text>", "issue": "<short>"}\n'
+        "  ],\n"
+        '  "confidence": <float in [0.0, 1.0] — your own confidence in this score>\n'
+        "}"
+    )
+
+    parts = [prologue]
     parts.append(f"\nDimension: {dim_name}\n")
     parts.append(f"What this dimension measures:\n  {rubric['what']}\n")
     parts.append("Rubric (score → criteria):\n" + _format_rubric_table(rubric["rubric_table"]))
@@ -264,18 +353,9 @@ def build_rubric_prompt(
     else:
         parts.append("\nReference artifact: (none — score independently)")
     if differentiation_mode:
-        parts.append(
-            "\nReturn the JSON now. Use the rubric to pick the most accurate band "
-            "based on what is actually visible in the artifact. Do NOT clip your "
-            "score toward the deterministic hint; pick the band that the rubric "
-            "criteria DEMAND given the artifact text."
-        )
+        parts.append("\n" + _DIFF_PROLOGUE_VARIANTS[variant_key])
     else:
-        parts.append(
-            "\nReturn the JSON now. Be strict: do NOT default to 0.5 to be safe; "
-            "use the rubric to pick the most accurate band, and stay close to the "
-            "deterministic hint unless evidence clearly justifies otherwise."
-        )
+        parts.append("\n" + _CLOSING_VARIANTS[variant_key])
     return "\n".join(parts)
 
 

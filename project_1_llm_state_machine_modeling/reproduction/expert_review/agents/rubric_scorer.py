@@ -119,6 +119,8 @@ def llm_rubric_score(
     llm: Any = None,
     asymmetric_bounds: bool = False,    # Iter-A flag
     differentiation_mode: bool = False,  # Iter-B flag
+    prompt_variant: str = "v1",          # Q3-paraphrase: rubric prompt variant
+    temperature_override: float | None = None,  # Q3-temp: rebind LLM temp
 ) -> RubricScore:
     """Run rubric-based LLM scoring for a single dimension.
 
@@ -158,13 +160,21 @@ def llm_rubric_score(
         deterministic_hint=det,
         extra_signals=extra_signals,
         differentiation_mode=differentiation_mode,
+        prompt_variant=prompt_variant,
     )
     messages = [
         ("system", "You are a strict, calibrated state-machine reviewer. Output only JSON."),
         ("user", prompt),
     ]
+    # Q3-temp: rebind LLM with override temperature for this single rubric call
+    effective_llm = llm
+    if temperature_override is not None and llm is not None:
+        try:
+            effective_llm = llm.bind(temperature=float(temperature_override))
+        except Exception:
+            effective_llm = llm  # fall back if bind not supported
     try:
-        payload = invoke_llm_json(llm, messages, operation=f"rubric_dim_score:{dim_name}")
+        payload = invoke_llm_json(effective_llm, messages, operation=f"rubric_dim_score:{dim_name}")
     except Exception as exc:
         return RubricScore(
             dimension=dim_name,
