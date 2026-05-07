@@ -4,13 +4,17 @@ import json
 import math
 import os
 import re
+import time
+import threading
 import unicodedata
 from pathlib import Path
 from typing import Any, Iterable
 
 
 DEFAULT_MODEL = "gpt-5.5"
-DEFAULT_PROVIDER_ORDER = ["airouter", "findcg", "miaocg"]
+# Order = quality preference. airouter > findcg > miaocg > api68886868.
+# Fallback is automatic — providers in cooldown after recent failure are skipped.
+DEFAULT_PROVIDER_ORDER = ["airouter", "findcg", "miaocg", "api68886868"]
 
 PROVIDER_CONFIGS = {
     "airouter": {
@@ -25,7 +29,25 @@ PROVIDER_CONFIGS = {
         "base_url": "https://api.miaocg.cn/v1",
         "env_keys": ("MIAOCG_API_KEY", "FINDCG_API_KEY"),
     },
+    "api68886868": {
+        "base_url": "https://api.68886868.xyz/v1",
+        "env_keys": ("API68886868_API_KEY",),
+    },
 }
+
+# Per-provider cooldown after failure. Higher-quality providers (airouter)
+# are periodically retried so we use them as soon as they recover.
+PROVIDER_COOLDOWN_SECONDS = {
+    "airouter": 180,    # retry every 3 min — top quality, want it back ASAP
+    "findcg": 180,
+    "miaocg": 180,
+    "api68886868": 180,
+}
+DEFAULT_COOLDOWN_SECONDS = 180
+
+# Per-attempt timeout — fail fast to fall through to next provider.
+# Default ChatOpenAI timeout is too long for a fallback chain.
+PROVIDER_FALLBACK_TIMEOUT = 30  # seconds per provider attempt
 
 
 def resolve_api_env() -> dict[str, str]:

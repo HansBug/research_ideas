@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
 
+from .fallback_llm import FallbackLLMClient, build_fallback_chain
 from .schema import ExpertReviewRequest, ExpertReviewResult
 from .utils import (
     DEFAULT_MODEL,
     DEFAULT_PROVIDER_ORDER,
     PROVIDER_CONFIGS,
+    PROVIDER_COOLDOWN_SECONDS,
+    PROVIDER_FALLBACK_TIMEOUT,
+    DEFAULT_COOLDOWN_SECONDS,
     resolve_api_env,
 )
 from .graph.runtime import run_expert_review_workflow
@@ -24,34 +28,32 @@ class ExpertReviewAgent:
         self.provider_order = list(DEFAULT_PROVIDER_ORDER) if provider_order is None else list(provider_order)
         self.temperature = temperature
         self.timeout = timeout
+        # Use a SHORT per-attempt timeout so we fail-fast through the fallback
+        # chain. The user-supplied `timeout` is treated as the upper bound on
+        # the entire fallback attempt; per-provider timeout is capped tighter.
+        self._per_attempt_timeout = min(int(timeout), PROVIDER_FALLBACK_TIMEOUT)
         self._provider_key, self._llm = self._build_llm()
 
-    def _build_llm(self) -> tuple[str | None, ChatOpenAI | None]:
+    def _build_llm(self) -> tuple[str | None, FallbackLLMClient | None]:
         env = resolve_api_env()
-        for provider_key in self.provider_order:
-            provider = PROVIDER_CONFIGS.get(provider_key)
-            if provider is None:
-                continue
-            api_key = None
-            for env_key in provider["env_keys"]:
-                api_key = env.get(env_key)
-                if api_key:
-                    break
-            if not api_key:
-                continue
-            try:
-                llm = ChatOpenAI(
-                    model=self.model_name,
-                    api_key=api_key,
-                    base_url=provider["base_url"],
-                    temperature=self.temperature,
-                    timeout=self.timeout,
-                    max_retries=0,
-                )
-                return provider_key, llm
-            except Exception:
-                continue
-        return None, None
+        chain = build_fallback_chain(
+            model=self.model_name,
+            provider_order=self.provider_order,
+            provider_configs=PROVIDER_CONFIGS,
+            env=env,
+            temperature=self.temperature,
+            timeout=self._per_attempt_timeout,
+        )
+        if not chain:
+            return None, None
+        client = FallbackLLMClient(
+            chain,
+            cooldown_seconds=PROVIDER_COOLDOWN_SECONDS,
+            default_cooldown=DEFAULT_COOLDOWN_SECONDS,
+        )
+        # Backward-compat: report the FIRST provider as the "provider_key".
+        # Telemetry can read `client.last_provider_used` after each call.
+        return client.primary_provider_key, client
 
     def review(self, request: ExpertReviewRequest) -> ExpertReviewResult:
         backend_label = "langgraph_multi_agent_v1"
