@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 import numpy as np
 
 CORPUS_ROOT = Path(__file__).resolve().parent.parent
@@ -17,12 +18,41 @@ WK15 = PHASE14 / "week15"
 CHARTS = CORPUS_ROOT / "etl" / "out" / "charts"
 CHARTS.mkdir(parents=True, exist_ok=True)
 
+
+def _resolve_cjk_font() -> str:
+    candidates = [
+        "Noto Sans CJK SC",
+        "Noto Sans CJK JP",
+        "Noto Sans CJK HK",
+        "WenQuanYi Zen Hei",
+        "WenQuanYi Micro Hei",
+        "Source Han Sans SC",
+        "Microsoft YaHei",
+        "SimHei",
+        "AR PL UMing CN",
+    ]
+    available = {f.name for f in font_manager.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            return name
+    for ttc in ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",):
+        if Path(ttc).exists():
+            font_manager.fontManager.addfont(ttc)
+            return font_manager.FontProperties(fname=ttc).get_name()
+    return "DejaVu Sans"
+
+
+_CJK = _resolve_cjk_font()
+
 plt.rcParams.update({
     "figure.dpi": 130,
     "savefig.dpi": 140,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "font.size": 10,
+    "font.family": "sans-serif",
+    "font.sans-serif": [_CJK, "DejaVu Sans", "Arial", "sans-serif"],
+    "axes.unicode_minus": False,
 })
 
 
@@ -186,7 +216,7 @@ def chart_acceptance_gates():
     ax.set_yticklabels(cfgs_present, fontsize=9)
     for i in range(arr.shape[0]):
         for j in range(arr.shape[1]):
-            ch = "✓" if arr[i, j] == 1 else "✗"
+            ch = "✓" if arr[i, j] == 1 else "×"
             ax.text(j, i, ch, ha="center", va="center", fontsize=14,
                     color="white", fontweight="bold")
     pass_counts = arr.sum(axis=1)
