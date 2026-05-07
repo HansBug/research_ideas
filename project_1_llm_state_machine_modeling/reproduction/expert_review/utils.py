@@ -12,14 +12,22 @@ from typing import Any, Iterable
 
 
 DEFAULT_MODEL = "gpt-5.5"
-# Order = quality preference. airouter > findcg > miaocg > api68886868.
-# Fallback is automatic — providers in cooldown after recent failure are skipped.
-DEFAULT_PROVIDER_ORDER = ["airouter", "findcg", "miaocg", "api68886868"]
+# Quality / cost preference (per user 2026-05-07):
+#   airouter     — cheapest + best quality (primary)
+#   deepghs      — fast secondary fallback (JSON-mode confirmed)
+#   findcg       — older fallback, sometimes slow
+#   miaocg       — stable backup, more expensive, supports 50 concurrent
+#   api68886868  — last resort (often returns malformed responses)
+DEFAULT_PROVIDER_ORDER = ["airouter", "deepghs", "findcg", "miaocg", "api68886868"]
 
 PROVIDER_CONFIGS = {
     "airouter": {
         "base_url": "https://airouter.service.itstudio.club/v1",
         "env_keys": ("AIROUTER_API_KEY",),
+    },
+    "deepghs": {
+        "base_url": "https://new-api.deepghs.org/v1",
+        "env_keys": ("DEEPGHS_API_KEY",),
     },
     "findcg": {
         "base_url": "https://www.findcg.com/v1",
@@ -39,6 +47,7 @@ PROVIDER_CONFIGS = {
 # are periodically retried so we use them as soon as they recover.
 PROVIDER_COOLDOWN_SECONDS = {
     "airouter": 180,    # retry every 3 min — top quality, want it back ASAP
+    "deepghs": 180,
     "findcg": 180,
     "miaocg": 180,
     "api68886868": 180,
@@ -46,8 +55,10 @@ PROVIDER_COOLDOWN_SECONDS = {
 DEFAULT_COOLDOWN_SECONDS = 180
 
 # Per-attempt timeout — fail fast to fall through to next provider.
-# Default ChatOpenAI timeout is too long for a fallback chain.
-PROVIDER_FALLBACK_TIMEOUT = 30  # seconds per provider attempt
+# Default ChatOpenAI timeout is too long for a fallback chain. Set short
+# enough that an unresponsive provider gets skipped quickly so we can land
+# on a healthy one (currently miaocg) without burning experiment time.
+PROVIDER_FALLBACK_TIMEOUT = 10  # seconds per provider attempt
 
 
 def resolve_api_env() -> dict[str, str]:
