@@ -36,6 +36,12 @@
 ```
 project_ex1_llm_judge_for_stm/
 ├── README.md                    (本文件)
+├── experiments/                 (⚙️ 实验脚手架，原 state_machine_review_corpus/etl/，已迁出)
+│   ├── run_ablation_config.py
+│   ├── run_self_consistency_config.py
+│   ├── analyze_default_verify_v4.py
+│   ├── analyze_noise_floor.py
+│   └── ...
 ├── src/                         (我们的正经代码，非"复现"包装)
 │   ├── expert_review/           (核心 reviewer 库)
 │   │   ├── agent.py             (ExpertReviewAgent 入口)
@@ -55,11 +61,10 @@ project_ex1_llm_judge_for_stm/
 │   ├── align_ttool_expert_review.py  (对齐 TTool-AI 输出做评分)
 │   ├── tasks.py / config.py     (task 定义 + 配置)
 │   └── REPRODUCTION_REPORT.md   (历史复现报告)
-└── state_machine_review_corpus/ (文库 + ETL + benchmark)
+└── state_machine_review_corpus/ (📚 STM artifact 数据集 + benchmark；原 etl/ 已迁至 experiments/)
     ├── README.md / SUMMARY.md / GUIDE.md / REVIEW_GUIDE.md
     ├── hermes/ llms_emp/ psmbench/ rfcnlp/ ttool-ai/
     ├── structure-and-event-driven-frameworks-...
-    ├── etl/                     (实验脚本：run_ablation_config / run_self_consistency_config / analyze_noise_floor / ...)
     └── out/                     (gitignored，eval reports + checkpoints + charts)
 ```
 
