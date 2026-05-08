@@ -795,7 +795,10 @@ def _agent_critical_issue_set(result: ExpertReviewResult) -> set[str]:
     return tags
 
 
-def _issue_f1(human: set[str], agent: set[str]) -> tuple[float, float, float]:
+def _issue_f1(human, agent) -> tuple[float, float, float]:
+    # Coerce to set — checkpoint round-trip turns sets into lists
+    human = set(human) if not isinstance(human, set) else human
+    agent = set(agent) if not isinstance(agent, set) else agent
     if not human and not agent:
         return 1.0, 1.0, 1.0
     if not human:
@@ -1796,6 +1799,47 @@ def _runtime_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _serialize_dc(obj):
+    """Recursively convert dataclasses / lists / dicts to JSON-friendly values.
+
+    Uses fields() + getattr (NOT asdict) to preserve nested dataclass markers,
+    so deserialization can rebuild SimpleNamespace tree with attribute access."""
+    from dataclasses import is_dataclass, fields
+    if is_dataclass(obj):
+        return {
+            "__dc__": type(obj).__name__,
+            **{f.name: _serialize_dc(getattr(obj, f.name)) for f in fields(obj)},
+        }
+    if isinstance(obj, (list, tuple)):
+        return [_serialize_dc(x) for x in obj]
+    if isinstance(obj, set):
+        return sorted(_serialize_dc(x) for x in obj)
+    if isinstance(obj, dict):
+        return {str(k): _serialize_dc(v) for k, v in obj.items()}
+    if isinstance(obj, (str, int, float, bool)) or obj is None:
+        return obj
+    return str(obj)
+
+
+def _deserialize_dc(data):
+    """Reverse of _serialize_dc; dataclass-tagged dicts become SimpleNamespace
+    so attribute access (result.overall_score, result.dimension_results[0].score, etc)
+    keeps working in downstream metric computation."""
+    import types
+    if isinstance(data, dict):
+        if "__dc__" in data:
+            ns = types.SimpleNamespace()
+            for k, v in data.items():
+                if k == "__dc__":
+                    continue
+                setattr(ns, k, _deserialize_dc(v))
+            return ns
+        return {k: _deserialize_dc(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [_deserialize_dc(x) for x in data]
+    return data
+
+
 def _evaluate_task_bundle(
     tasks_by_regime: dict[str, list[BenchmarkTask]],
     *,
@@ -1810,6 +1854,7 @@ def _evaluate_task_bundle(
     timeout: int = 180,
     max_workers: int = 1,
     strict_llm: bool = False,
+    checkpoint_dir: Path | None = None,
 ) -> dict[str, Any]:
     if llm_mode == "auto":
         agent = ExpertReviewAgent(
@@ -1833,7 +1878,37 @@ def _evaluate_task_bundle(
     for tasks in tasks_by_regime.values():
         all_tasks.extend(tasks)
 
+    # 2026-05-08: per-task checkpointing — rep 中途 fail 重启可断点续跑
+    # 每完成 1 task → JSON 落盘到 {checkpoint_dir}/task_<safe_id>.json
+    # 重启时若 task checkpoint 已有 → skip LLM call，用 cached (task, result, latency)
+    # 用 dataclasses.asdict + SimpleNamespace round-trip（避免 pickle 风险）
+    import re as _re
+    task_checkpoints: dict[str, tuple] = {}
+    if checkpoint_dir is not None:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        loaded = 0
+        for ckpt_file in sorted(checkpoint_dir.glob("task_*.json")):
+            try:
+                with open(ckpt_file, "r", encoding="utf-8") as fp:
+                    data = json.load(fp)
+                cached_task_id = data["task_id"]
+                cached_task = _deserialize_dc(data["task"])
+                cached_result = _deserialize_dc(data["result"])
+                cached_latency = float(data["latency"])
+                task_checkpoints[cached_task_id] = (cached_task, cached_result, cached_latency)
+                loaded += 1
+            except Exception as exc:
+                print(f"[checkpoint] failed to load {ckpt_file.name}: {exc}", flush=True)
+        if loaded > 0:
+            print(f"[checkpoint] {report_label} loaded {loaded} cached task results from {checkpoint_dir}", flush=True)
+
+    def _safe_task_id_for_filename(tid: str) -> str:
+        return _re.sub(r"[^A-Za-z0-9._-]+", "_", tid)[:200]
+
     def _process_task(task):
+        # checkpoint hit — return cached without calling LLM
+        if task.task_id in task_checkpoints:
+            return task_checkpoints[task.task_id]
         request = ExpertReviewRequest(
             prompt=task.prompt,
             input_text=task.input_text,
@@ -1863,6 +1938,20 @@ def _evaluate_task_bundle(
                 f"Provider chain exhausted → deterministic-only fallback was triggered. "
                 f"Re-run with healthy LLM provider chain or remove --strict-llm."
             )
+        # 落盘 task checkpoint：仅在 LLM 真正调用成功（strict 通过）后写
+        if checkpoint_dir is not None:
+            try:
+                ckpt_file = checkpoint_dir / f"task_{_safe_task_id_for_filename(task.task_id)}.json"
+                payload = {
+                    "task_id": task.task_id,
+                    "task": _serialize_dc(task),
+                    "result": _serialize_dc(result),
+                    "latency": float(latency),
+                }
+                with open(ckpt_file, "w", encoding="utf-8") as fp:
+                    json.dump(payload, fp, ensure_ascii=False, default=str)
+            except Exception as exc:
+                print(f"[checkpoint] failed to save {task.task_id}: {exc}", flush=True)
         return task, result, latency
 
     if max_workers > 1:
@@ -2035,6 +2124,7 @@ def run_benchmark_iteration(
     timeout: int = 180,
     max_workers: int = 1,
     strict_llm: bool = False,
+    checkpoint_dir: Path | None = None,
 ) -> dict[str, Any]:
     records, protocols, availability = _load_benchmark_tables(base_dir)
     if scope == "slice":
@@ -2086,6 +2176,7 @@ def run_benchmark_iteration(
         timeout=timeout,
         max_workers=max_workers,
         strict_llm=strict_llm,
+        checkpoint_dir=checkpoint_dir,
     )
 
 

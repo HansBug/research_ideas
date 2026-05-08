@@ -60,6 +60,10 @@ def main() -> None:
     parser.add_argument("--strict-llm", action=argparse.BooleanOptionalAction, default=False,
                         help="STRICT: fail rep if any task falls back to deterministic-only "
                              "(LLM chain exhaust). Required for reproducible LLM ablation experiments.")
+    # 2026-05-08: per-task checkpoint — rep 中途 fail 重启可断点续跑
+    parser.add_argument("--checkpoint-dir", type=Path, default=None,
+                        help="Per-task checkpoint dir. 每完成 1 task 落盘 JSON；重启时 skip "
+                             "已完成 task。每 rep 应使用独立 checkpoint dir 避免污染。")
     args = parser.parse_args()
 
     records, protocols, availability = _load_benchmark_tables(args.base_dir)
@@ -106,6 +110,7 @@ def main() -> None:
         timeout=args.timeout,
         max_workers=args.max_workers,
         strict_llm=args.strict_llm,
+        checkpoint_dir=args.checkpoint_dir,
     )
     elapsed = time.time() - t0
 
