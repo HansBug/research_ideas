@@ -187,7 +187,10 @@ def build_fallback_chain(
                 base_url=provider["base_url"],
                 temperature=temperature,
                 timeout=timeout,
-                max_retries=0,
+                # 2026-05-08: retry on 429/5xx/timeout — langchain-openai 默认指数 backoff
+                # 之前 max_retries=0 让 airouter 偶发 burst 限速立刻 raise，触发 strict-llm
+                # 误杀整 rep。改为 3 次，让短 spike 自动消化。
+                max_retries=3,
             )
             if use_responses:
                 # use_responses_api routes to /v1/responses with proper reasoning-model handling

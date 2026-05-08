@@ -59,11 +59,10 @@ PROVIDER_COOLDOWN_SECONDS = {
 }
 DEFAULT_COOLDOWN_SECONDS = 180
 
-# Per-attempt timeout — fail fast to fall through to next provider.
-# Default ChatOpenAI timeout is too long for a fallback chain. Set short
-# enough that an unresponsive provider gets skipped quickly so we can land
-# on a healthy one (currently miaocg) without burning experiment time.
-PROVIDER_FALLBACK_TIMEOUT = 10  # seconds per provider attempt
+# Per-attempt timeout — balance fail-fast vs reasoning-model latency.
+# 2026-05-08: airouter gpt-5.5 是 reasoning model，~25k tokens/call 时 latency
+# 5-30s 正常。10s 太激进会误杀真实成功响应。bump 到 60s 让 reasoning 完成。
+PROVIDER_FALLBACK_TIMEOUT = 60  # seconds per provider attempt
 
 
 def resolve_api_env() -> dict[str, str]:
