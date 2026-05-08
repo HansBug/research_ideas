@@ -1,0 +1,542 @@
+--- Page 1 ---
+arXiv:2503.02246v1  [cs.SE]  4 Mar 2025From Codeto Courtroom: LLMsas the NewSo/f_tware Judges
+JUNDA HEand JIEKESHI, Singapore Management University, Singapore
+TERRYYUE ZHUO∗,Monash University & CSIRO’s Data61,Australia
+CHRISTOPHTREUDE, Singapore Management University, Singapore
+JIAMOUSUN, CSIRO’s Data61,Australia
+ZHENCHANG XING, CSIRO’s Data61 &AustralianNational University, Australi a
+XIAONING DU, Monash University, Australia
+DAVIDLO, Singapore Management University, Singapore
+Recently,LargeLanguage Models(LLMs)havebeenincreasinglyuse dtoautomate SEtaskssuchascode generationandsummariza-
+tion. However, evaluating the quality of LLM-generated software a rtifacts remains challenging. Human evaluation, while eﬀective,
+isvery costlyand time-consuming. Traditionalautomated metrics likeB LEU relyonhigh-quality referencesandstruggletocapture
+nuanced aspects of software quality, such as readability and usefu lness.In response, the LLM-as-a-Judge paradigm, which employs
+LLMsforautomatedevaluation,hasemerged.GiventhatLLMspos sessstrongcodingabilitiesandreasoningskills,theyholdpromise
+ascost-eﬀectiveandscalablesurrogatesforhumanevaluator s.Nevertheless,LLM-as-a-JudgeresearchintheSEcommunity is stillin
+its earlystages,withmany breakthroughs needed.
+Thisforward-lookingSE2030paperaimstosteertheresearchcom munity towardadvancingLLM-as-a-JudgeforevaluatingLLM-
+generatedsoftwareartifacts,whilealsosharingpotentialresear chpathstoachievethisgoal.Weprovidealiteraturereviewofexis ting
+SEstudiesonLLM-as-a-Judgeandenvisiontheseframeworksasrel iable,robust,andscalablehumansurrogatescapableofevalu ating
+softwareartifacts withconsistent, multi-faceted assessmentsby 2030andbeyond.Tovalidatethis vision,weanalyze thelimitations
+of current studies, identify key research gaps, and outline a detailed roadmap to guide future developments of LLM-as-a-Judge in
+software engineering.Whilenot intendedto bea deﬁnitive guide,our work aim s tofosterfurtherresearch andadoption of LLM-as-
+a-Judge frameworkswithintheSE community, ultimatelyimproving th eeﬀectivenessand scalabilityof software artifact evaluation
+methods.
+AdditionalKeyWords andPhrases:LargeLanguage Models,Softwar eEngineering, LLM-as-a-Judge, Research Roadmap
+1 INTRODUCTION
+With signiﬁcant advances in Artiﬁcial Intelligence (AI)—p articularly in Deep Learning (DL) [ 20,32] and Large Lan-
+guage Models (LLMs) [ 3,9,44]—various ﬁelds have increasingly leveraged LLMs to develo p automated solutions,
+notably within Software Engineering (SE) [ 13,16,24,56,64]. Demonstrating exceptional performance across a spec-
+trumoflongstandingchallenges,rangingfromcodegenerat ion[39,89]andsummarization[ 2,60]toprogramtransla-
+tion[45,80]andrepair[ 27,29],LLMshavepoweredaseriesofnewapplicationsandtoolsth atstreamlinethesoftware
+development process,such as GitHubCopilot[ 18],CursorCodeEditor[ 4],and more.
+However, these useful innovations have also brought new cha llenges in SE research, among which a key question
+is:
+∗Corresponding author
+Authors’ addresses: Junda He, jundahe@smu.edu.sg; Jieke S hi, jiekeshi@smu.edu.sg, Singapore Management Universit y, Singapore; Terry Yue Zhuo,
+terry.zhuo@monash.edu,MonashUniversity&CSIRO’sData6 1,Australia;ChristophTreude,ctreude@smu.edu.sg,Sing aporeManagement University,
+Singapore;JiamouSun,frank.sun@anu.edu.au,CSIRO’sDat a61,Australia;ZhenchangXing,zhenchang.xing@anu.edu. au,CSIRO’sData61&Australian
+National University,Australia;Xiaoning Du, xiaoning.du @monash.edu, Monash University,Australia;David Lo, davi dlo@smu.edu.sg,Singapore Man-
+agement University,Singapore.
+Manuscriptsubmitted to ACM 1
+
+--- Page 2 ---
+2 Heet al.
+How can we comprehensivelyandscalably evaluate thequalit yof LLM-generatedsoftware artifacts?
+Assessing these LLM-generated software artifacts through experienced developers, i.e., human evaluation , is an
+ideal approach,as softwarequalityshouldbejudged based o n its eﬀectiveness in real-world scenarios [ 62]. However,
+rigoroushumanevaluationposessigniﬁcant challenges. A s urvey ofSEresearchers foundthat84%agree thathuman
+evaluationisproblematic,primarilyduetotimeconstrain ts,theneedforspecializedpracticalknowledge,andthehi gh
+cost involved [ 7]. Additionally, human evaluators may experience fatigue a nd reduced focus, further compromising
+thequalityof theevaluation and delaying theevaluation pr ocess[30].
+Therefore, researchers have increasingly adopted automat ed metrics for evaluating LLM-generated software arti-
+facts [25,37,46], given their relatively low cost and scalability. However , traditional automated metrics come with
+their ownlimitations.Forexample, Pass@ /u1D458, a widelyusedmetricfor measuring codecorrectness,invol ves executing
+the ﬁrst/u1D458generated code snippets against unit tests. Although usefu l, it still demands signiﬁcant human eﬀort to
+design comprehensive test suites and manuallyconﬁgure exe cution environments. Similarly, theeﬀectiveness of text
+similarity-basedmetricslikeBLEU[ 46]andCodeBLEU[ 51],alongwithembedding-basedmetricslikeBERTScore[ 82]
+andCodeBERTScore[ 87],relyheavilyonhigh-qualityreferencesthataretypical lyannotatedbyhumanexperts.More-
+over,thesemethodsnotonlyfailtocapturenuancedaspects ofsoftwareartifacts—suchasnaturalness,usefulness,an d
+adherence tobestpractices—as humanswould,butthey alsoo ftenleadtomisalignment withhumanjudgment,asev-
+idenced in several studies [ 12,25,30,52].Consequently,achieving comprehensive evaluationwhil e ensuring scalable
+automationremains a persistent challenge in assessing the qualityof LLM-generated softwareartifacts.
+Recently,theremarkablesuccessofLLMshasinspiredtheem ergenceoftheLLM-as-a-Judge(LLM-J)paradigm[ 85],
+whichextendsLLMs’rolefromcontentgenerationtocompreh ensive contentevaluation,positioningthemasscalable
+and cost-eﬀective surrogates for human evaluators. This pa radigm is driven by several key attributes of LLMs. First,
+numerousstudieshaveshownthatLLMsexhibitbothimpressi vecodingabilities[ 34,38,42]andhuman-likereasoning
+skills [22,26,48]. Additionally, since LLMs are often trained through reinf orcement learning from human feedback
+(RLHF) [5], their outputs closely align with human expert judgments [ 8,17]. Moreover, unlike human evaluators,
+LLMs do not experience fatigue or reduced eﬃciency from prol onged work, allowing them to maintain consistent
+performance over extended periods. These attributes colle ctively make LLMs highly suitable in content evaluation
+tasks.
+In this paper, we argue that LLM-as-a-Judge systems oﬀer a pr omising solution to address the limitations of both
+costlyhuman evaluationand traditional automatedmetrics inSE.Our research communityis beginning torecognize
+the potential of LLM-as-a-Judge, as evidenced by a few empir ical studies and emerging methodologies on this topic
+such as [1,65,68]. Nevertheless, these studies represent only initial prog ress, and theﬁeld remains in its early stages.
+Many breakthroughs are still needed, and the overall landsc ape is far from being fully mapped,especially as we look
+to2030andbeyond. Thisnecessitates thispapertoredirect theresearch community’sfocusbypresenting avisionfor
+thefutureof LLM-as-a-Judge and a roadmapthatinspires fur therprogress.
+In the following sections, this paper ﬁrst provides a formal deﬁnition of the LLM-as-a-Judge concept ( Section2).
+Wethenreview keyhistoricalmilestonesandrecentadvance s inLLM-as-a-Judgeforsoftwareengineering ( Section3).
+Lookingbeyond2030,weenvisionLLM-as-a-Judgesystemsas reliable,robust,andscalablehumansurrogatescapable
+of evaluating a wide range of software artifacts while provi ding consistent, multi-faceted assessments. To validate
+this vision, we identify key limitations and research gaps, outlining a roadmap with speciﬁc research directions and
+Manuscriptsubmitted to ACM
+
+--- Page 3 ---
+From CodetoCourtroom: LLMs as theNew SoftwareJudges 3
+potential solutions for the SE research community to pursue (Section4). In summary, our study makes the following
+key contributions:
+•Weconducta comprehensive review of16primarystudies onLL M-as-a-Judge insoftwareengineering.
+•Weanalyzethelimitationsofexistingresearch onLLM-as-a -JudgeinSE,identifying majorchallenges andresearch
+gaps.
+•We present a forward-looking vision for LLM-as-a-Judge in S E by 2030 and beyond, proposing a detailed research
+roadmap withkey opportunitiesforfutureexploration.
+2 DEFINITIONOFLLM-AS-A-JUDGE
+As a recent emerging topic, various deﬁnitions of LLM-as-a- Judge are currently proposed and not yet uniﬁed. This
+paper was inspired by thedeﬁnition proposedby Li et al. [ 33].Informally speaking, LLM-as-a-Judge utilizes LLMs as
+evaluativetoolstoassesssoftwareartifactbasedonprede ﬁnedevaluationcriteria.Formallyspeaking,LLM-as-a-Ju dge
+is deﬁned as follows:
+/u1D438(T,C,X,R) → (Y ,E,F) (1)
+Thefunction /u1D438is thecoreevaluation mechanism powered byLLMs. Ittakes th efollowingkey inputs:
+• T– EvaluationType.It mainly covers threetypes: point-wise ,pairwise,andlist-wise.
+– Point-wise Evaluation: Function /u1D438evaluates a single candidate content independently and oft en provides a
+scoreorcategorical classiﬁcation.
+– Pair-wiseEvaluation: Function /u1D438compares twocandidates and determines their relative qual ity.
+– List-wiseEvaluation: Function /u1D438ranks multiple(morethan2) candidates.
+• C–EvaluationCriteria.It describes theassessment aspects ,e.g., correctness, helpfulness, readability,etc.
+• X– Evaluation Item. It is the content to be judged. Note that Xcan be a single candidate or a set of candidates
+(/u1D4651,/u1D4652,...,/u1D465/u1D45B), where/u1D465/u1D456is the/u1D456/u1D461ℎcandidatetobeevaluated.
+• R–Optional reference information.For instance, a codeimpl ementationthatsuccessfullyfulﬁllstherequirements
+of a codingtask.
+Given theseinputs, /u1D438can producethreeprimary outputs:
+• Y– EvaluationResult. Ycantakeoneof thefollowingforms:
+– GradedEvaluation: Each candidateis assigned a score, either numerical (discr eteorcontinuous)orcategorical.
+– Rank Ordering: Candidates (/u1D4651,/u1D4652,...,/u1D465/u1D45B)are ranked basedontheir assessed quality.
+– Best-ChoiceSelection: Function /u1D438selectsthemostsuitablecandidate( /u1D465/u1D456)from thegiven set (/u1D4651,/u1D4652,...,/u1D465/u1D45B).
+• E–EvaluationExplanation.Optionallyprovides reasoning a nd justiﬁcationfortheevaluation.
+• F– Feedback.Optionallyoﬀers constructivesuggestions for improving theevaluated item X.
+Diﬀerence to previous work. Note that this deﬁnition of LLM-as-a-Judge is stricter than the deﬁnition pro-
+posed by Wang et al. [ 65]. Wang et al. broadly deﬁne LLM-as-a-Judge as any method tha t leverages any features of
+LLM to evaluate content quality, which includes embedding- based approaches, such as BERTScore [ 82] and Code-
+BERTScore[ 87].Embedding-basedmethodsevaluatecontentsimilarityby convertingboththeevaluatedcontentand
+references intonumericalrepresentations (LLMembedding s).However,wearguethattheirdeﬁnitionisbettercharac-
+terized as LLM-basedevaluation rather than LLM-as-a-Judge .The key distinction is that we envision LLM-as-a-Judge
+Manuscriptsubmitted to ACM
+
+--- Page 4 ---
+4 Heet al.
+Table1. LiteratureReviewon theApplications ofLLM-as-a- Judge in So/f_tware Engineering
+Task Reference
+CodeGeneration [ 1,47,58,61,63,65,66,70,84,88]
+CodeSummarization [ 1,14,65,66,68]
+BugReportSummarization [ 30]
+CodeTranslation [ 65]
+QuestionAnswering [ 85]
+Requirements CausalityExtraction [ 1]
+CodePatches Generation [ 1,35,71]
+as a truesurrogateforhumanevaluation. Inourview, anLLM- as-a-Judge system shouldbecapableofindependently
+assessing content withoutrequiring a strict reference. Mo reover, it should be able to perform a wide spectrumof nu-
+anced assessments (e.g., usefulness, adequacy, and concis eness) and can ideally provide justiﬁcations or constructi ve
+feedback.Incontrast,embedding-basedmethodsrelysolel yonthenumericalrepresentation ofassessingcontentsim-
+ilarityandinherentlylackthesecapabilities.Consequen tly,wedonotincludetheminourdeﬁnitionandinsteadleave
+a stricterdeﬁnition toprevious work.
+3 LITERATURE REVIEW
+This section, we provide an overview of studies that evaluat e the eﬀectiveness of LLM-as-a-Judge in SE tasks, with
+Table1providingastructuredsummarythatmapseachstudytoitsco rrespondingSEtask.Followingthis,wepresent
+a detaileddiscussionof theevaluationobjectives ofthese studies.
+3.1 CodeGeneration
+Eﬀectivelyandautomaticallyevaluating thequalityofgen eratedcodeisoneofthemostcriticalproblemsinsoftware
+engineering. Before the introduction of LLM-as-a-Judge, a utomated code evaluation primarily relied on test-based
+method, i.e., executing the code based on pre-deﬁned test ca ses [8,23,89]. However, passing all the test cases does
+not necessarily mean the quality of the code is good, as the te st cases may not comprehensively cover all the edge
+cases [11]. Constructing test cases can also be particularly challen ging for certain tasks [ 63], such as AI model train-
+ing, web scraping, etc. When test cases are unavailable, man y studies rely on reference-based metrics [ 10,86], such
+as CodeBLEU [ 51] and CodeBERTScore [ 87]. However, the quality of the reference code restricts the e ﬀectiveness
+of reference-based metrics. Prior research [ 12] highlighted that reference-based metrics frequently mis align human
+judgments incodegeneration.
+Consequently, a substantial body of research has explored t he eﬀectiveness of LLMs in evaluating code genera-
+tion[47,61,63,65,84,85,88].WesummarizethreemaincharacteristicsofLLM-as-a-Jud ge thatarediﬀerent fromthe
+test-based and reference-based metrics:
+•Execution-free: It doesnotrequirecomposaryexecutionof thecode.
+•Reference-free: Unlike reference-based metrics, LLM-as-a-Judge does not r equire a reference code. Even though
+we can still optionally provide the reference code. However , as demonstrated by Zhuo et al. [ 88], providing the
+reference doesnotgenerally improve thecodeevaluation pe rformance.
+•Multi-Facet Evaluation: LLM-as-a-Judge assesses intrinsic codequalities that tra ditionallyrequired human judg-
+ment, such as readabilityand usefulness.
+Manuscriptsubmitted to ACM
+
+--- Page 5 ---
+From CodetoCourtroom: LLMs as theNew SoftwareJudges 5
+Among existing studies, Zhuo et al. [ 88] and Weyssow et al. [ 66] utilize GPT-3.5 [ 43], and Xu et al. [ 70] use GPT-
+4 to annotate code snippets. CodeJudge [ 63] ﬁrst leverages a detailed taxonomy of common programming e rrors to
+guide the LLM in analyzing the generated code. Then, CodeJud ge summarizes the analysis report to produce its ﬁ-
+nal judgment. Wang et al. [ 65] experiment with a series of general-purpose LLM-as-a-Jud ge methods from the natu-
+ral language processing (NLP) domain in code generation eva luation, including BatchEval [ 79], GPTScore [ 15], and
+G-Eval [41]. Ahmed et al. [ 1] investigate LLM’s ability to evaluate variable name-valu e inconsistency and function
+similarities. Gu et al. [ 21] focus on analyzing LLM’s judgments on counterfeit code sam ples, i.e., incorrect programs
+generated bylanguagemodelsthatpassweak butnon-trivial correctnesschecks.Zhaoetal.[ 84]empiricallyevaluate
+theperformanceof12LLMsoncodegenerationevaluation.Pa teletal.[ 47]hypothesisthatacombinationofmultiple
+evaluatorscanapproximatetheoptimalevaluation.Thus,t heyproposetheAIMEframework,whichemploysmultiple
+LLMs toevaluate diﬀerent aspectsof thecode,including cod ecorrectness,readability, runtimeperformance,etc.
+Further, we summarize the common evaluation criteria used i n the literature for code generation. We categorize
+them into twomaincriteria: CodeFunctionality andCodeQuality .
+CodeFunctionality: Thiscriterionassesses theoveralleﬀectiveness, maintai nability, andclarityofthecodebeyond
+its functional correctness.It evaluates intrinsic codeat tributes.Keyaspectsinclude:
+-ExecutionStability: LLM-as-a-Judge’sevaluationprocessdoesnotmandatecode execution,meaningthatrunning
+thecodeis not a requiredstep.
+-FunctionalCorrectness: Veriﬁeswhetherthecodeproducestheexpectedoutputaccor dingtothetaskdescription.
+-Fault Tolerance & Error Handling: Evaluates how the code manages edge cases, exceptions, inva lid inputs, and
+unexpectedfailures.
+CodeQuality: These criteria evaluateintrinsic attributessuchas reada bility and adherence tobestpractices.
+-Complexity &Eﬃciency: Analyzes computationalcomplexity,executiontime, and me moryusage.
+-Helpfulness: Evaluates whether the code contributes meaningfully to sol ving the problem. This includes distin-
+guishing partiallycorrectsolutionsfrom completelyunus eful and irrelevant code.
+-Readability: Measures how easily the code can be understood, including as pects like ﬂuency, clarity, and concise-
+ness.
+-StylisticConsistency: Ensuresadherencetoestablishedcodingstandards,format tingguidelines,andbestpractices.
+-ReferenceSimilarity: Assesses how closelythegenerated codealigns with a given r eference implementation.
+-Minor Anomalies & Warnings: Identiﬁes non-critical issues such as redundant codeor unu sed variables that do
+not aﬀect execution.
+3.2 CodeChange
+Beyond code generation, LLM-as-a-Judge has been explored f or evaluating code modiﬁcations. Ahmed et al. [ 1] use
+LLM-as-a-Judge to determine whether a code patch eﬀectivel y resolves a static analysis warning. Li et al. [ 35] apply
+LLMs toassess whether a patchsuccessfullyﬁxes a vulnerabi lity,while Yadavallyet al.[ 71] leverage LLMs topredict
+testoutcomesof codepatches.
+3.3 So/f_tware Documentation Summarization
+LLM-based judges have also been applied to assess natural la nguage software documentation. Ahmed et al. [ 1] and
+Wuetal.[ 68]introduceLLMjudgestoevaluatecodesummaries.Wuetal.[ 68]introduceCODERPE,aframeworkthat
+Manuscriptsubmitted to ACM
+
+--- Page 6 ---
+6 Heet al.
+utilizes multiple LLMs and assigns LLMs with diﬀerent roles to evaluate code summaries from various perspectives.
+Theserolesincludeacodereviewer,theoriginalcodeautho r,acodeeditor,andasystemanalyst.Inaddition,Kumaret
+al.[30]utilizedLLMstoevaluatethequalityofbugreporttitlesa ndsummaries.Forcodesummarization,thecommon
+evaluationcriteria include:
+•Language-related: Ensure clear,well-structuredsentences withprecise and a ppropriatewording.
+•Content-related: Summarizethecorefunctionalityandlogicconcisely,prov idingsuﬃcientdetailwithoutincluding
+unnecessary information.
+•Eﬀectiveness-related: Evaluatewhether the summary is useful for developers and en hances their understanding
+of thecode.
+3.4 OtherSE Tasks
+LLM-as-a-Judge has also been explored in other software eng ineering tasks. Zheng et al. [ 85] apply this approach to
+assessthequalityofprogramming-relatedquestionanswer ing.Wangetal.[ 65]investigateitseﬀectivenessinassessing
+code translation quality. In addition, Ahmed et al. [ 1] leverage LLMs to evaluate causal relationships extracted from
+naturallanguage requirements.
+4 THEROAD AHEAD
+This section outlines a research roadmap for achieving scal able, reliable, and eﬀective LLM-as-a-Judge systems in
+software engineering. We begin by outlining the key limitat ions in current approaches and then propose concrete
+research opportunitiesand actionable steps that can signi ﬁcantly broaden the applicability of LLM-as-a-Judge acros s
+diverse SE contexts,steeringus towardourenvisioned futu re.
+4.1 More Empirical Evaluation andBenchmarking
+Limitation 1: Lack of High-Quality and Large-Scale Human-A nnotated Benchmarks. In Section 3, we re-
+viewed numerous studies evaluating the eﬀectiveness of LLM -as-a-Judge in software engineering. Benchmarks such
+as HumanEval [ 8], HumanEval-XL [ 49], and CoNaLa [ 78] provide useful test cases to evaluate the ability of LLMs in
+assessing codecorrectness. However, these benchmarks fal l short when assessing more nuanced aspects like helpful-
+ness, readability, and alignment with human judgment. A cri tical limitation in existing LLM-as-a-Judge of SE is their
+reliance on small-scale datasets to measure human alignmen t [65,68], often comprising only a few hundred samples.
+For example, Wang et al. [ 65] conducted experiments on three SE tasks, i.e., CodeTransl ation, Code Generation, and
+CodeSummarization, using a total of only 450 samples. Simil arly, Ahmed et al. [ 1] evaluated codesummarization us-
+ingjust420samples.Whilethesesamplesizesmaybesuﬃcien tfordemonstratingstatisticalsigniﬁcance, larger-scal e
+benchmarks arealsoessential toensure generalizability a nd mitigatethreats toexternal validity.
+Limitation2:InconsistentEmpiricalFindings. Relatedtothesesmall-scaleexperiments,anothermajorch allenge
+is the inconsistency in empirical ﬁndings. A few works reach ed varying conclusions due to discrepancies in dataset
+selection,promptingstrategies,andLLMconﬁgurations.F orinstance,Wangetal.[ 65]foundthattraditionalevaluation
+metrics(e.g.,ROUGE[ 37],METEOR[ 6],andChrF++[ 50])signiﬁcantly outperformedLLM-as-a-Judgemethodswhen
+aligning with human judgment for code summarization. In con trast, Wu et al. [ 68] reportedthat the LLM-as-a-Judge
+method surpassed conventional metrics in code summarizati on. These conﬂicting results highlight the need for a
+standardized,large-scale empirical studytoenable fair a nd meaningful comparisonsacross studies.
+Manuscriptsubmitted to ACM
+
+--- Page 7 ---
+From CodetoCourtroom: LLMs as theNew SoftwareJudges 7
+Limitation3: Lackof EmpiricalFindingsin BiasofLLM-as-a -JudgesystemsinSE. Despitethegrowing adop-
+tion of LLM-as-a-Judge in SE, software artifacts and data ma y contain biases [ 67,72]. LLMs are already known to be
+susceptibletovariousbiasesandfairnessissues.Forexam ple,Positionbias[ 36],whereLLMsmayfavorresponsesbased
+on their positioning within the text when making comparison ; Verbosity bias [ 28], where LLMs show a tendency for
+longer, verbose responses, regardless of their qualities; Egocentric Bias [ 76], where LLMs may overrate AI-generated
+solutions compared to human-written code. However, curren tly, there is a lack of thorough empirical investigation
+into thebias ofLLM-as-a-Judge systems inSE.
+Opportunity: Develop Comprehensive and Diverse Benchmark s.Future research should work on creating large-
+scale,multi-dimensional benchmarks thatcapturethecomp lexityofreal-worldsoftwareengineering tasks.Keysteps
+include:
+(1)Expert Annotations and Quality Control: Engage a diverse pool of expert programmers to provide high- quality
+annotations. This annotation process should focus more on t he nuanced criteria beyond code correctness, such
+as readability, helpfulness, and maintainability. In the b eginning, deﬁne clear annotation guidelines that describe
+thesenuanceddimensionstoeliminateambiguity.Duringth eprocess,cross-validationandconsensusmechanisms
+shouldbeconductedtoensure thereliabilityof theannotat ion.
+(2)Dataset Expansion: Expand existing datasets to include a larger volume of high- quality expert-annotated samples.
+These benchmarks should encompass SE tasks at varying diﬃcu lty levels, various programming topics, and mul-
+tiple programming languages. Additionally, new benchmark s should be extended to evaluate a broader spectrum
+of SE artifacts. For instance, expert evaluations could be g athered for software requirements documentation, sys-
+tem design, and API documentation. In the long term, we may al so consider updating human preferences in the
+benchmarks toreﬂect evolving SE practices.
+Opportunity: Comprehensive Empirical Evaluation in SE Tas ks.Ultimately, these benchmarks will lay a solid
+foundationforunderstandingthestrengthsandweaknesses ofLLM-as-a-JudgesystemsinSE.Large-scaleexperiments
+that systematically compare LLM-as-a-Judge methods with t raditional metrics, while the impacts of design choices,
+such as prompting strategies and LLM conﬁguration, will be i nvestigated. Further, a thorough investigation into the
+bias and fairness of LLM-as-a-Judge systems in SEwillbecon ducted.
+4.2 Be/t_terJudgmentFrom InternalFactors
+Limitation 4: Inadequate SE Domain-Speciﬁc Expertise in LL Ms.While ideally, human evaluations should be
+conductedbyexperienceddevelopers.Likehumanevaluator s,LLMmustexhibitadeepunderstandingofthetaskand
+therelevant domainknowledgetoprovideanaccurateevalua tion.Recentresearch highlightsthatLLMshaveremark-
+able coding abilities, which builds conﬁdence in their abil ity to assess tasks like code summarization and generation.
+However, research also indicates that somecomplex codingt asks are stillchallenging for LLMs [ 83,89].For instance,
+Zhaoetal.[ 83]observedthatcurrentLLMscannotgenerateacompletelibr aryfromscratch,whichalsoimpliesLLMs’
+ability to evaluate library quality is still limited. Simil ar limitations extend to other critical areas in software en gi-
+neering, such as software design, formal veriﬁcation, dist ributed systems debugging, etc. Beyond gaps in SE-speciﬁc
+knowledge,LLMsmayalsostrugglewithdiscerningsubtledi ﬀerences amongalternativesolutions.AsZhaoetal.[ 84]
+highlighted, an LLM’s ability to generate correct code does not guarantee that it can eﬀectively evaluate alternative
+implementations forthesametask.
+Manuscriptsubmitted to ACM
+
+--- Page 8 ---
+8 Heet al.
+Opportunity: Enhancing SE Expertisein LLM. Futureresearch can strengthen theSE domain-speciﬁc exper tiseof
+LLMs. A key approach is training LLMs on richer and more high- quality SE datasets [ 40]. Enhancing SE expertise
+in LLMs oﬀers several beneﬁts. For instance, LLMs with stron ger formal veriﬁcation capabilities can more accurately
+assesscodecorrectness.Further,research canexpandLLM- as-a-Judge’sapplicabilitytoabroaderrangeofSEartifac ts,
+such as Dockerﬁles, UMLdiagrams, and formalspeciﬁcations .
+Opportunity: EmbeddingExpert Tacit Knowledge. Another critical research direction for enhancing judgmen t in-
+volves capturing the tacit and procedural knowledge that hu man experts develop over years of experience, i.e., their
+intuitionandunspokendecision-makingprocesses.Wecane mploymethodssuchasstructuredinterviews [ 54],think-
+aloud protocols [ 81], and cognitive task analyses [ 53], where experts are asked to articulate their reasoning whi le
+conducting real-world evaluations. This approach enables the systematic extraction of procedural knowledge that is
+typically not documented in software artifacts. Once captu red, this knowledge can be integrated into LLM training
+through techniques likereinforcement learning [ 5]orneuro-symbolic methods[ 31].
+4.3 Be/t_terJudgmentThrough External Factors
+Limitation5:RelianceonInternalEvaluationMechanisms. CurrentworkstendtodependsolelyonLLMs’own
+abilities for evaluation. This shortfall underscores the n eed for additional mechanisms to assist LLM-as-a-Judge in
+decision-making.
+Opportunity: Integrating SE tools with LLM-as-a-Judge. As humans rely on other tools to assist their judgment,
+LLM-as-a-Judge canincorporateoutputsfromvariousanaly sis tools.Integrating toolssuchasstaticanalyzers,form al
+veriﬁcation frameworks, and modelcheckers intotheevalua tionpipeline—or conversely, embeddingLLM-as-a-Judge
+into othertoolslikeIntegrated Development Environments (IDEs) [55–57]—can addadditional layers of validation.
+Opportunity: Human-in-the-loop. For tasks that cannot be reliably automated by LLMs, we need t o develop col-
+laborativeand interactive methodstoincludehuman oversi ght. Also,identifying theoptimalratio of LLM evaluators
+to human experts remains another challenge. Moreover, enha ncing LLMs with the ability to assess their own conﬁ-
+dencelevelsiscrucial.WhenLLMgenerateslow-conﬁdencer atings,itshouldautomaticallyﬂagthesecasesforhuman
+review.
+4.4 Addressing The Security Issues ofUsing LLM-as-a-Judge
+Limitation 6: Insuﬃcient Research on Adversarial Threats a nd Defensive Methods in SE. Adversarial at-
+tacks [73,74,77] on LLM-as-a-Judge systems posesigniﬁcant risks by subtly manipulating software artifacts to alter
+evaluation outcomes. For example, attackers may obfuscate code by injecting misleading comments or rearranging
+segments tomask critical vulnerabilities. Adversaries mi ght alsomodifybugreportsorcommit messages withdecep-
+tive context to inﬂuence LLM’s code quality, maintainabili ty, and security assessment. However, at the current stage,
+we noticethatthis threat forLLM-as-a-Judge is under-expl oredin theSEcommunity.
+Opportunity: Adversarial Testing and Robust DefensiveMec hanisms. Future research should adopt approaches
+that develop both adversarial methods and defensive strate gies. On the one hand, developing adversarial training
+techniques[ 19,69]iscrucialtoenhancetheLLM’srobustness,wherecrafteda dversarialexamplesareincorporatedinto
+the training process, On the other hand, additional robust d efensive mechanisms, such as anomaly detection [ 59,75],
+shouldbeintegrated todetectand mitigatethethreat ofadv ersarial attacksproactively.
+Manuscriptsubmitted to ACM
+
+--- Page 9 ---
+From CodetoCourtroom: LLMs as theNew SoftwareJudges 9
+5 CONCLUSION
+Thisforward-lookingSE2030paperﬁrstpresentabriefover viewofthecurrentlandscapeofLLM-as-a-Judgesystems,
+identifying their limitations while highlighting the asso ciated opportunities and presenting a future vision for the ir
+adoption in the SE community. To realize this vision by 2030 a nd beyond, we propose a research roadmap outlining
+the speciﬁc paths and potential solutions that the research community can pursue. Through these eﬀorts, we aim to
+encourage broaderparticipationintheLLM-as-a-Judge res earch journey.
+REFERENCES
+[1] TouﬁqueAhmed,PremkumarDevanbu,ChristophTreude,an dMichaelPradel.2024.CanLLMsreplacemanualannotationo fsoftwareengineering
+artifacts? arXiv preprint arXiv:2408.05534 (2024).
+[2] TouﬁqueAhmed, KunalSureshPai,PremkumarDevanbu,and EarlBarr.2024. Automatic semanticaugmentationof langua gemodel prompts(for
+code summarization).In Proceedings of the IEEE/ACM46thinternational conference o nsoftwareengineering . 1–13.
+[3] Anthropic. 2023. Claude(Oct 8 version)[Largelanguage model]. https://www.anthropic.com/
+[4] Anysphere.2025. Cursor-The AI Code Editor —cursor.com .https://www.cursor.com .
+[5] YuntaoBai,Andy Jones,KamalNdousse,AmandaAskell,An naChen,NovaDasSarma,DawnDrain,StanislavFort,DeepGan guli,TomHenighan,
+et al.2022. Trainingahelpful and harmlessassistantwith r einforcementlearning fromhumanfeedback. arXiv preprint arXiv:2204.05862 (2022).
+[6] SatanjeevBanerjeeandAlonLavie.2005. METEOR:Anauto maticmetricforMTevaluationwithimprovedcorrelationwi thhumanjudgments.In
+Proceedings ofthe acl workshopon intrinsicand extrinsicev aluation measuresfor machinetranslation and/or summariz ation.65–72.
+[7] Raymond PL Buse, Caitlin Sadowski, and Westley Weimer. 2 011. Beneﬁts and barriers of user evaluation in software eng ineering research. In
+Proceedings ofthe 2011ACMinternational conference onObje ct oriented programmingsystemslanguages and application s. 643–656.
+[8] MarkChen,JerryTworek,HeewooJun,QimingYuan,Henriq uePondeDeOliveiraPinto,JaredKaplan,HarriEdwards,Yur iBurda,NicholasJoseph,
+GregBrockman,et al.2021. Evaluating largelanguagemodel s trained oncode. arXiv preprintarXiv:2107.03374 (2021).
+[9] AixinLiuDeepSeek-AI,BeiFeng,BinWang,BWang,BLiu,C Zhao,CDengr,CRuan,DDai,DGuo,etal.[n.d.].Deepseek-v2 :Astrong,economical,
+and eﬃcient mixture-of-expertslanguagemodel, 2024. URLhttps://arxiv.org/abs/2405.04434 ([n.d.]).
+[10] Enrique Dehaerne, Bappaditya Dey, Sandip Halder, Stef an De Gendt, and Wannes Meert. 2022. Code generation using ma chine learning: A sys-
+tematicreview. Ieee Access 10(2022), 82434–82455.
+[11] ShihanDou,HaoxiangJia,ShenxiWu,HuiyuanZheng,Wei kangZhou,MulingWu,MingxuChai,JessicaFan,CaishuangHu ang,YunboTao,etal.
+2024. What’s Wrongwith Your Code Generated byLargeLanguag eModels? An Extensive Study. arXiv preprint arXiv:2407.06153 (2024).
+[12] Mikhail Evtikhiev, Egor Bogomolov, Yaroslav Sokolov, and Timofey Bryksin. 2023. Out of the bleu: how should we asse ss quality of the code
+generationmodels? Journal of Systemsand Software 203 (2023), 111741.
+[13] Angela Fan, Beliz Gokkaya, Mark Harman, Mitya Lyubarsk iy, Shubho Sengupta, Shin Yoo, and Jie M. Zhang. 2023. Large L anguage Models
+for Software Engineering: Survey and Open Problems. In 2023 IEEE/ACM International Conference on Software Engine ering: Future of Software
+Engineering(ICSE-FoSE) .31–53.https://doi.org/10.1109/ICSE-FoSE59343.2023.00008
+[14] Eitan Farchi, Shmulik Froimovich,Rami Katan, and Orna Raz. 2024. Automatic Generation of Benchmarks and Reliable LLM Judgment for Code
+Tasks.arXiv preprintarXiv:2410.21071 (2024).
+[15] JinlanFu,See-Kiong Ng,Zhengbao Jiang,and Pengfei Li u.2023. Gptscore:Evaluate asyou desire. arXiv preprint arXiv:2302.04166 (2023).
+[16] CuiyunGao,XingHu,ShanGao,XinXia,andZhiJin.2025. TheCurrentChallengesofSoftwareEngineeringintheEraof LargeLanguageModels.
+ACMTrans.Softw.Eng.Methodol. (Jan. 2025). https://doi.org/10.1145/3712005 JustAccepted.
+[17] GitHub.2025. GitHubCopilot: Your AI PairProgrammer. https://github.com/features/copilot/ . Accessed on [insertaccessdate].
+[18] GitHub.2025. GitHub Copilot ·Your AI pairprogrammer. https://github.com/features/copilot/ .
+[19] ChenGong,ZhouYang,Yunpeng Bai,JiekeShi,AruneshSi nha,BowenXu,DavidLo,XinwenHou,and GuoliangFan.2022. C uriosity-drivenand
+victim-awareadversarialpolicies.In Proceedings of the 38thAnnual ComputerSecurity Applicatio ns Conference .186–200.
+[20] IanGoodfellow, YoshuaBengio, AaronCourville,and Yo shuaBengio. 2016. Deep learning . Vol. 1. MIT pressCambridge.
+[21] Alex Gu, Wen-Ding Li, Naman Jain, Theo Olausson, Celine Lee, Koushik Sen, and Armando Solar-Lezama. 2024. The Count erfeit Conun-
+drum: Can Code Language Models Grasp the Nuances of Their Inc orrect Generations?. In Findings of the Association for Computational Linguis-
+tics: ACL 2024 , Lun-Wei Ku, Andre Martins, and Vivek Srikumar (Eds.). Asso ciation for Computational Linguistics, Bangkok, Thailand , 74–117.
+https://doi.org/10.18653/v1/2024.ﬁndings-acl.7
+[22] DayaGuo,DejianYang,HaoweiZhang,JunxiaoSong,Ruoy uZhang,RunxinXu,QihaoZhu,ShirongMa,PeiyiWang,XiaoBi ,etal.2025.Deepseek-
+r1:Incentivizing reasoningcapabilityinllms viareinfor cementlearning. arXiv preprint arXiv:2501.12948 (2025).
+[23] DanHendrycks,Steven Basart,SauravKadavath, Mantas Mazeika,Akul Arora,Ethan Guo, Collin Burns, SamirPuranik , Horace He, Dawn Song,
+et al.2021. Measuringcoding challenge competence with app s(2021).arXiv preprint arXiv:2105.09938 (2021).
+[24] Xinyi Hou, Yanjie Zhao, Yue Liu, Zhou Yang, Kailong Wang , Li Li, Xiapu Luo, David Lo, John Grundy, and Haoyu Wang. 2024 . Large Language
+Models for Software Engineering: A Systematic Literature R eview.ACM Trans. Softw. Eng. Methodol. 33, 8, Article 220 (Dec. 2024), 79 pages.
+Manuscriptsubmitted to ACM
+
+--- Page 10 ---
+10 Heet al.
+https://doi.org/10.1145/3695988
+[25] XingHu,QiuyuanChen,HaoyeWang,XinXia,DavidLo,and ThomasZimmermann.2022. Correlatingautomatedandhumane valuationofcode
+documentation generationquality. ACMTransactionson Software Engineering and Methodology ( TOSEM)31,4 (2022), 1–28.
+[26] Anna A Ivanova.2025. How to evaluatethe cognitiveabil itiesof LLMs. NatureHuman Behaviour (2025), 1–4.
+[27] Nan Jiang, Kevin Liu, Thibaud Lutellier, and Lin Tan. 20 23. Impact of Code Language Models on Automated Program Repa ir. InPro-
+ceedings of the 45th International Conference on Software E ngineering (Melbourne, Victoria, Australia) (ICSE ’23) . IEEE Press, 1430–1442.
+https://doi.org/10.1109/ICSE48619.2023.00125
+[28] Tong Jiao, Jian Zhang, Kui Xu, Rui Li, Xi Du, Shangqi Wang , and Zhenbo Song. 2024. Enhancing Fairness in LLM Evaluatio ns: Unveiling and
+MitigatingBiasesinStandard-Answer-BasedEvaluations. InProceedings of the AAAISymposiumSeries , Vol. 4. 56–59.
+[29] Matthew Jin, Syed Shahriar, Michele Tufano, Xin Shi, Sh uai Lu, Neel Sundaresan, and Alexey Svyatkovskiy. 2023. Inf erFix: End-to-End Pro-
+gram Repair with LLMs. In Proceedings of the 31st ACM Joint European Software Engineer ing Conference and Symposium on the Foundations
+of Software Engineering (San Francisco, CA, USA) (ESEC/FSE 2023) . Association for Computing Machinery, New York, NY, USA, 16 46–1656.
+https://doi.org/10.1145/3611643.3613892
+[30] AbhishekKumar,Sonia Haiduc,ParthaPratimDas,andPa rthaPratimChakrabarti.2024. LLMsasEvaluators:ANovelA pproachtoEvaluateBug
+Report Summarization. arXiv preprint arXiv:2409.00630 (2024).
+[31] JoeKwon,SydneyLevine,andJoshuaBTenenbaum.2023.N euro-symbolicmodelsofhumanmoraljudgment:LLMsasautom aticfeatureextractors.
+(2023).
+[32] YannLeCun,YoshuaBengio, and GeoﬀreyHinton. 2015. De ep learning. nature521,7553 (2015), 436–444.
+[33] HaitaoLi,QianDong, JunjieChen, Huixue Su,YujiaZhou , Qingyao Ai,ZiyiYe, and YiqunLiu.2024. Llms-as-judges:a comprehensivesurveyon
+llm-basedevaluationmethods. arXiv preprintarXiv:2412.05579 (2024).
+[34] Raymond Li,LoubnaBen Allal, Yangtian Zi,NiklasMuenn ighoﬀ, DenisKocetkov, Chenghao Mou,MarcMarone,Christop herAkiki,JiaLi,Jenny
+Chim,et al. 2023. Starcoder:maythe sourcebewith you! arXiv preprintarXiv:2305.06161 (2023).
+[35] YikunLi,TingZhang,RatnadiraWidyasari,YanNaingTu n,HuuHungNguyen,TanBui,IvanaClairineIrsan,YiranChen g,XiangLan,HanWeiAng,
+et al.2024. CleanVul:Automatic Function-Level Vulnerabi lityDetection inCode CommitsUsing LLMHeuristics. arXiv preprint arXiv:2411.17274
+(2024).
+[36] Zongjie Li, Chaozheng Wang, Pingchuan Ma, Daoyuan Wu, S huai Wang, Cuiyun Gao, and Yang Liu. 2024. Split and Merge: Al ign-
+ing Position Biases in LLM-based Evaluators. In Proceedings of the 2024 Conference on Empirical Methods in Na tural Language Processing ,
+Yaser Al-Onaizan, Mohit Bansal, and Yun-Nung Chen (Eds.). A ssociation for Computational Linguistics, Miami, Florida , USA, 11084–11108.
+https://doi.org/10.18653/v1/2024.emnlp-main.621
+[37] Chin-YewLin. 2004. Rouge: A packagefor automaticeval uationof summaries.In Textsummarizationbranchesout .74–81.
+[38] Aixin Liu, Bei Feng, Bing Xue, Bingxuan Wang, Bochao Wu, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Cho ng Ruan, et al.
+2024. Deepseek-v3 technical report. arXiv preprint arXiv:2412.19437 (2024).
+[39] Fang Liu, Yang Liu, Lin Shi, Houkun Huang, Ruifeng Wang, Zhen Yang, Li Zhang, Zhongqi Li, and Yuchi Ma. 2024. Explorin g and evaluating
+hallucinations inllm-powered code generation. arXiv preprint arXiv:2404.00971 (2024).
+[40] YangLiu,JiahuanCao,ChongyuLiu,KaiDing,andLianwe nJin.2024. Datasetsforlargelanguagemodels:Acomprehen sivesurvey. arXivpreprint
+arXiv:2402.18041 (2024).
+[41] Yang Liu,DanIter,Yichong Xu, Shuohang Wang, Ruochen X u, and Chenguang Zhu. 2023. G-eval:Nlg evaluationusinggpt -4 with better human
+alignment. arXiv preprintarXiv:2303.16634 (2023).
+[42] AntonLozhkov,RaymondLi,LoubnaBenAllal,FedericoC assano,JoelLamy-Poirier,NouamaneTazi,AoTang,DmytroP ykhtar,JiaweiLiu,Yuxiang
+Wei, etal. 2024. Starcoder 2and the stackv2:The next genera tion.arXiv preprint arXiv:2402.19173 (2024).
+[43] OpenAI. 2023. GPT-3.5:Advancements inLargeLanguage Models. OpenAI Technical Report. https://openai.com/research/gpt-3-5
+[44] OpenAI. 2023. GPT-4Technical Report. arXiv preprint arXiv:2303.08774 (2023).https://arxiv.org/abs/2303.08774
+[45] RangeetPan,AliRezaIbrahimzada,RahulKrishna,Divy aSankar,LambertPouguemWassi,MicheleMerler,BorisSobo lev,RajuPavuluri,Saurabh
+Sinha,and Reyhaneh Jabbarvand.2023. Understanding the eﬀ ectivenessof largelanguage models incode translation. CoRR(2023).
+[46] KishorePapineni,SalimRoukos,ToddWard,andWei-Jin gZhu.2002.Bleu:amethodforautomaticevaluationofmachi netranslation.In Proceedings
+ofthe 40thannual meeting of the AssociationforComputatio nal Linguistics .311–318.
+[47] BhrijPatel,Souradip Chakraborty,WesleyA Suttle, Me ngdi Wang,AmritSingh Bedi, and DineshManocha.2024. AIME: AI SystemOptimization
+viaMultiple LLMEvaluators. arXiv preprint arXiv:2410.03131 (2024).
+[48] AvinashPatil.2025. AdvancingReasoninginLargeLang uageModels:PromisingMethodsandApproaches. arXivpreprintarXiv:2502.03671 (2025).
+[49] Qiwei Peng, Yekun Chai, and Xuhong Li. 2024. Humaneval- xl: A multilingual code generation benchmark for cross-lin gual natural language
+generalization. arXiv preprintarXiv:2402.16694 (2024).
+[50] MajaPopović. 2017. chrF++:wordshelping charactern- grams.In Proceedings of the second conferenceon machinetranslation . 612–618.
+[51] ShuoRen,DayaGuo,ShuaiLu,LongZhou,ShujieLiu,Duyu Tang,NeelSundaresan,MingZhou,AmbrosioBlanco,andShua iMa.2020. Codebleu:
+amethod forautomaticevaluationofcode synthesis. arXiv preprint arXiv:2009.10297 (2020).
+[52] DevjeetRoy,SarahFakhoury,andVeneraArnaoudova.20 21.Reassessingautomaticevaluationmetricsforcodesumm arizationtasks.In Proceedings
+ofthe29thACMJointMeetingonEuropeanSoftwareEngineeri ngConferenceandSymposiumontheFoundationsofSoftwareE ngineering .1105–1116.
+Manuscriptsubmitted to ACM
+
+--- Page 11 ---
+From CodetoCourtroom: LLMs as theNew SoftwareJudges 11
+[53] JanMaartenSchraagen,SusanF Chipman,and ValerieLSh alin. 2000. Cognitivetaskanalysis . Psychology Press.
+[54] DanielLSegal,FrederickLCoolidge,AlisaO’Riley,an dBenjaminAHeinz.2006. Structuredandsemistructuredint erviews. In Clinician’shandbook
+ofadult behavioral assessment .Elsevier,121–144.
+[55] Jieke Shi, Zhou Yang, Hong JinKang, Bowen Xu, Junda He, a nd David Lo. 2024. Greening Large Language Models of Code. In Proceedings of the
+46thInternationalConferenceonSoftwareEngineering:So ftwareEngineeringinSociety (Lisbon,Portugal) (ICSE-SEIS’24) .AssociationforComputing
+Machinery,NewYork,NY, USA, 142–153. https://doi.org/10.1145/3639475.3640097
+[56] JiekeShi,ZhouYang,andDavidLo.2024. EﬃcientandGre enLargeLanguageModelsforSoftwareEngineering:Visiona ndtheRoadAhead. ACM
+Trans.Softw.Eng.Methodol. (Dec. 2024). https://doi.org/10.1145/3708525 JustAccepted.
+[57] Jieke Shi, Zhou Yang, Bowen Xu, Hong Jin Kang, and David L o. 2023. Compressing Pre-trained Models of Code into 3 MB. In Proceedings of the
+37thIEEE/ACMInternationalConferenceonAutomatedSoftw areEngineering (Rochester,MI,USA) (ASE’22).AssociationforComputingMachinery,
+NewYork,NY, USA, Article24, 12pages. https://doi.org/10.1145/3551349.3556964
+[58] ZachariahSollenberger,JayPatel, ChristianMunley, AaronJarmusch,and Sunita Chandrasekaran.2024. LLM4VV:E xploring LLM-as-a-Judgefor
+Validationand VeriﬁcationTestsuites.In SC24-W: Workshops of the International Conference for High PerformanceComputing, Networking,Storage
+and Analysis .IEEE, 1885–1893.
+[59] Shuang Song, Yifei Zhang, and Neng Gao. 2025. Confront I nsider Threat: Precise Anomaly Detection in Behavior Logs B ased on LLM Fine-
+Tuning. In Proceedings of the 31st International Conference on Computa tional Linguistics , Owen Rambow, Leo Wanner, Marianna Apidianaki,
+Hend Al-Khalifa, Barbara Di Eugenio, and Steven Schockaert (Eds.). Association for Computational Linguistics, Abu Dh abi, UAE, 8589–8601.
+https://aclanthology.org/2025.coling-main.574/
+[60] Weisong Sun,YunMiao,YuekangLi,Hongyu Zhang,Chunro ng Fang,Yi Liu,GeleiDeng,Yang Liu,and Zhenyu Chen.2024. S ourcecode summa-
+rizationinthe eraof largelanguage models. arXiv preprintarXiv:2407.07959 (2024).
+[61] Sijun Tan, Siyuan Zhuang, Kyle Montgomery, William Y Ta ng, Alejandro Cuadron, Chenguang Wang, Raluca Ada Popa, and Ion Stoica. 2024.
+Judgebench:A benchmarkforevaluatingllm-based judges. arXiv preprintarXiv:2410.12784 (2024).
+[62] JeﬀTian.2005. Software quality engineering: testing,quality assurance ,and quantiﬁable improvement . John Wiley& Sons.
+[63] Weixi Tong and TianyiZhang. 2024. CodeJudge: Evaluati ng Code Generation with LargeLanguageModels. In Proceedings of the 2024Conference
+onEmpiricalMethods inNaturalLanguage Processing ,YaserAl-Onaizan,Mohit Bansal,and Yun-NungChen(Eds.). AssociationforComputational
+Linguistics,Miami,Florida,USA, 20032–20051. https://doi.org/10.18653/v1/2024.emnlp-main.1118
+[64] JunjieWang,YuchaoHuang,ChunyangChen,ZheLiu,Song Wang,andQingWang.2024. SoftwareTestingWithLargeLangu ageModels:Survey,
+Landscape,and Vision. IEEETransactionson Software Engineering 50,4(2024), 911–936. https://doi.org/10.1109/TSE.2024.3368208
+[65] Ruiqi Wang, Jiyu Guo, Cuiyun Gao, Guodong Fan, Chun Yong Chong, and Xin Xia. 2025. Can LLMs Replace Human Evaluators? An Empirical
+Study of LLM-as-a-JudgeinSoftwareEngineering. arXiv preprint arXiv:2502.06193 (2025).
+[66] MartinWeyssow,AtonKamanda,XinZhou,andHouariSahr aoui.2024. Codeultrafeedback:Anllm-as-a-judgedataset foraligninglargelanguage
+models to coding preferences. arXiv preprintarXiv:2403.09032 (2024).
+[67] RatnadiraWidyasari,StefanusAgusHaryono,FerdianT hung,JiekeShi,ConstanceTan,FionaWee,JackPhan,andDav idLo.2022.OntheInﬂuence
+of BiasesinBug Localization: Evaluationand Benchmark.In 2022IEEEInternational Conferenceon Software Analysis, E volution and Reengineering
+(SANER).128–139. https://doi.org/10.1109/SANER53432.2022.00027
+[68] YangWu,YaoWan,ZhaoyangChu,WentingZhao,YeLiu,Hon gyuZhang,XuanhuaShi,andPhilipSYu.2024. CanLargeLangu ageModelsServe
+asEvaluatorsfor Code Summarization? arXiv preprintarXiv:2412.01333 (2024).
+[69] SophieXhonneux, AlessandroSordoni,StephanGünnema nn,GauthierGidel,andLeoSchwinn. 2024. EﬃcientAdversar ialTraininginLLMswith
+Continuous Attacks. arXiv: 2405.15589 [cs.LG]https://arxiv.org/abs/2405.15589
+[70] FangzhouXu,SaiZhang,ZhenchangXing,XiaowangZhang ,YahongHan,andZhiyongFeng.2024. Human-LikeCodeQualit yEvaluationthrough
+LLM-basedRecursiveSemanticComprehension. arXiv preprintarXiv:2412.00314 (2024).
+[71] AashishYadavally,HoanNguyen,LaurentCallot,andGa uthierGuinet.2025. LargeLanguageModelCriticsforExecu tion-FreeEvaluationofCode
+Changes. arXiv preprint arXiv:2501.16655 (2025).
+[72] Zhou Yang, Harshit Jain, Jieke Shi, Muhammad Hilmi Asyr oﬁ, and David Lo. 2021. BiasHeal: On-the-Fly Black-Box Heal ing of
+Bias in Sentiment Analysis Systems. In 2021 IEEE International Conference on Software Maintenanc e and Evolution (ICSME) . 644–648.
+https://doi.org/10.1109/ICSME52107.2021.00073
+[73] Zhou Yang, Jieke Shi, Muhammad Hilmi Asyroﬁ, and David L o. 2022. Revisiting Neuron Coverage Metrics and Quality of
+Deep Neural Networks. In 2022 IEEE International Conference on Software Analysis, E volution and Reengineering (SANER) . 408–419.
+https://doi.org/10.1109/SANER53432.2022.00056
+[74] ZhouYang,JiekeShi,JundaHe,andDavidLo.2022.Natur alattackforpre-trainedmodelsofcode.In Proceedingsofthe44thInternationalConference
+onSoftware Engineering . 1482–1493.
+[75] Zhou Yang, Bowen Xu, Jie M. Zhang, Hong Jin Kang, Jieke Sh i, Junda He, and David Lo. 2024. Stealthy Backdoor Attack for Code Models. IEEE
+TransactionsonSoftware Engineering 50,4 (2024), 721–741. https://doi.org/10.1109/TSE.2024.3361661
+[76] Jiayi Ye, Yanbo Wang, Yue Huang, Dongping Chen, Qihui Zh ang, Nuno Moniz, Tian Gao, Werner Geyer, Chao Huang, Pin-Yu C hen, et al. 2024.
+Justiceor prejudice?quantifying biasesinllm-as-a-judg e.arXiv preprint arXiv:2410.02736 (2024).
+Manuscriptsubmitted to ACM
+
+--- Page 12 ---
+12 Heet al.
+[77] Noam Yefet, Uri Alon, and Eran Yahav. 2020. Adversarial examples for models of code. Proceedings of the ACM on Programming Languages 4,
+OOPSLA(2020), 1–30.
+[78] PengchengYin,BowenDeng,EdgarChen,BogdanVasilesc u,andGrahamNeubig.2018. Learningtominealignedcodeand naturallanguagepairs
+fromstackoverﬂow.In Proceedings of the 15thinternational conference onminings oftwarerepositories .476–486.
+[79] PeiwenYuan,ShaoxiongFeng,YiweiLi,XinglinWang,Bo yuanPan,HedaWang,andKanLi.2023.BatchEval:TowardsHum an-likeTextEvaluation.
+arXiv preprint arXiv:2401.00437 (2023).
+[80] Zhiqiang Yuan, Weitong Chen, Hanlin Wang, Kai Yu, Xin Pe ng, and Yiling Lou. 2024. Transagent: An llm-based multi-ag ent system for code
+translation. arXiv preprint arXiv:2409.19894 (2024).
+[81] Lawrence Jun Zhang and Donglan Zhang. 2019. Think-alou d protocols. In The Routledge handbook of research methods in applied lingu istics.
+Routledge, 302–311.
+[82] TianyiZhang,VarshaKishore,FelixWu,KilianQWeinbe rger,andYoavArtzi.2019. Bertscore:Evaluatingtextgene rationwithbert. arXivpreprint
+arXiv:1904.09675 (2019).
+[83] Wenting Zhao, Nan Jiang, Celine Lee, Justin T Chiu, Clai re Cardie, Matthias Gallé, and Alexander M Rush. 2024. Commi t0: Library Generation
+fromScratch. arXiv preprint arXiv:2412.01769 (2024).
+[84] YuweiZhao,ZiyangLuo,YuchenTian,HongzhanLin,Weix iangYan,AnnanLi,andJingMa.2025. CodeJudge-Eval:CanLa rgeLanguageModelsbe
+GoodJudgesinCodeUnderstanding?. In Proceedingsofthe31stInternationalConferenceonComputa tionalLinguistics ,OwenRambow,LeoWanner,
+MariannaApidianaki,Hend Al-Khalifa,BarbaraDiEugenio, and StevenSchockaert(Eds.). Associationfor Computation alLinguistics,Abu Dhabi,
+UAE, 73–95. https://aclanthology.org/2025.coling-main.7/
+[85] LianminZheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhua ng, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al.
+2024. Judging llm-as-a-judgewith mt-benchand chatbotare na.Advances in Neural Information ProcessingSystems 36(2024).
+[86] Qinkai Zheng, Xiao Xia, Xu Zou, Yuxiao Dong, Shan Wang, Y ufei Xue, Lei Shen, Zihan Wang, Andi Wang, Yang Li, et al. 2023 . Codegeex: A
+pre-trained model for code generation with multilingual be nchmarking on humaneval-x. In Proceedings of the 29th ACM SIGKDD Conference on
+Knowledge Discoveryand Data Mining .5673–5684.
+[87] Shuyan Zhou, Uri Alon, Sumit Agarwal, and Graham Neubig . 2023. Codebertscore: Evaluating code generation with pre trained models of code.
+arXiv preprint arXiv:2302.05527 (2023).
+[88] TerryYue Zhuo. 2023. ICE-Score:Instructing LargeLan guageModels to Evaluate Code. arXiv preprint arXiv:2304.14317 (2023).
+[89] TerryYueZhuo,MinhChienVu,JennyChim,HanHu,Wenhao Yu,RatnadiraWidyasari,ImamNurBaniYusuf,HaolanZhan,J undaHe,Indraneil
+Paul,etal.2024.Bigcodebench:Benchmarkingcodegenerat ionwithdiversefunctioncallsandcomplexinstructions. arXivpreprintarXiv:2406.15877
+(2024).
+Received 20February 2025;revised; accepted
+Manuscriptsubmitted to ACM
