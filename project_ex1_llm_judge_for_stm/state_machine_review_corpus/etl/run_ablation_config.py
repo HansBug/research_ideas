@@ -33,14 +33,19 @@ def main() -> None:
     parser.add_argument("--protocol-limit", type=int, default=4)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--rerun-count", type=int, default=0)
-    parser.add_argument("--rubric", action="store_true", default=False,
-                        help="Master on/off for rubric_llm_enabled")
-    parser.add_argument("--iter-a", action="store_true", default=False,
-                        help="Iter-A: asymmetric sanity bounds (looser for summary/protocol)")
-    parser.add_argument("--iter-b", action="store_true", default=False,
-                        help="Iter-B: append differentiation hint to rubric prompt")
+    # 2026-05-08: rubric + iter_b set as DEFAULT after W3 noise floor 实测：
+    # W1.5 B-only (rubric+iter_b) 在 W3 noise 中 HAI=83.26±0.42 (production-track)。
+    # 用户决定以此为新默认；其他 levers (iter_a / iter_c / SC) 在 W1.5 ablation /
+    # W3 noise 实证后均判定无显著价值，保持默认 off。
+    # Use --no-rubric / --no-iter-b to opt out.
+    parser.add_argument("--rubric", action=argparse.BooleanOptionalAction, default=True,
+                        help="Master on/off for rubric_llm_enabled (default: ON)")
+    parser.add_argument("--iter-a", action=argparse.BooleanOptionalAction, default=False,
+                        help="Iter-A: asymmetric sanity bounds (default: OFF; W1.5 ablation 实证有害)")
+    parser.add_argument("--iter-b", action=argparse.BooleanOptionalAction, default=True,
+                        help="Iter-B: append differentiation hint to rubric prompt (default: ON; W1.5 选作 production)")
     parser.add_argument("--iter-c", nargs="*", default=None,
-                        help="Iter-C: list of regimes where rubric applies (default all)")
+                        help="Iter-C: list of regimes where rubric applies (default: all/none; W1.5 ablation 实证有害)")
     parser.add_argument("--config-label", type=str, default="ablation")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--llm-mode", type=str, default="auto", choices=["auto", "off"])

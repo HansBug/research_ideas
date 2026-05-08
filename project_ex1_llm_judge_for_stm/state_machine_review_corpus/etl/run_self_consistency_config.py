@@ -694,9 +694,10 @@ def main() -> None:
     parser.add_argument("--component-limit", type=int, default=12)
     parser.add_argument("--protocol-limit", type=int, default=4)
     parser.add_argument("--seed", type=int, default=7)
-    parser.add_argument("--rubric", action="store_true", default=False)
-    parser.add_argument("--iter-a", action="store_true", default=False)
-    parser.add_argument("--iter-b", action="store_true", default=False)
+    # 2026-05-08: rubric + iter_b default ON (统一 with run_ablation_config.py)
+    parser.add_argument("--rubric", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--iter-a", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--iter-b", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--iter-c", nargs="*", default=None)
     # Q3 args
     parser.add_argument("--variance-source", choices=["temp", "paraphrase", "both"], default="both")
