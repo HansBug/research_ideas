@@ -3,6 +3,8 @@
 > **计划外的 LLM-as-Judge 子系统**，从 [project_1](../project_1_llm_state_machine_modeling/) 拆出的独立项目，专注**针对状态机制品（State Machine artifacts）的 LLM-as-Judge 评审方法学**。
 >
 > `ex1` = "extra-1"，PhD 原计划没有，是实际工作中分化出来的独立子系统。
+>
+> **研究方向**：Software Engineering（SE）方向；目标产物为**方法学论文**（methodology paper）。详见 [discussions/2026-05-08-19-39-19-AI-讨论-SE视角下methodology-paper定位与LLM-as-Judge方法学详细综述.md](./discussions/2026-05-08-19-39-19-AI-讨论-SE视角下methodology-paper定位与LLM-as-Judge方法学详细综述.md) §0–§1。
 
 ## 一、项目定位
 
@@ -36,12 +38,24 @@
 ```
 project_ex1_llm_judge_for_stm/
 ├── README.md                    (本文件)
+├── discussions/                 (学术讨论纪要：定位 / related work / 决策点)
+│   ├── 2026-05-08-19-20-31-AI-讨论-project_ex1学术定位与相关工作综述_v1.md
+│   └── 2026-05-08-19-39-19-AI-讨论-SE视角下methodology-paper定位与LLM-as-Judge方法学详细综述.md
 ├── experiments/                 (⚙️ 实验脚手架，原 state_machine_review_corpus/etl/，已迁出)
 │   ├── run_ablation_config.py
 │   ├── run_self_consistency_config.py
 │   ├── analyze_default_verify_v4.py
 │   ├── analyze_noise_floor.py
 │   └── ...
+├── llm_as_judge_methods_corpus/ (📚 LLM-as-Judge 方法学文献库，新建)
+│   ├── README.md / SUMMARY.md / GUIDE.md / DESC_GUIDE.md
+│   ├── g-eval/                  (G-Eval, Liu23 EMNLP)
+│   ├── mt-bench/                (MT-Bench, Zheng23 NeurIPS)
+│   ├── self-consistency/        (Self-Consistency, Wang23 ICLR)
+│   ├── constitutional-ai/       (Constitutional AI, Bai22)
+│   ├── tian-verbalized-confidence/ (Verbalized Confidence, Tian23 EMNLP)
+│   ├── prometheus/              (Prometheus, Kim24 ICLR)
+│   └── judgelm/                 (JudgeLM, Zhu23 arXiv)
 ├── src/                         (我们的正经代码，非"复现"包装)
 │   ├── expert_review/           (核心 reviewer 库)
 │   │   ├── agent.py             (ExpertReviewAgent 入口)
