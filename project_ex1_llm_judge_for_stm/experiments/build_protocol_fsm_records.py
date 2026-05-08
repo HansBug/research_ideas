@@ -5,7 +5,7 @@ Generates `protocol_fsm_human_review_records.parquet` (rows aligned to the same
 companion `_protocols.parquet` and `_availability.parquet` files.
 
 Run:
-    python -m state_machine_review_corpus.etl.build_protocol_fsm_records
+    python -m experiments.build_protocol_fsm_records
 """
 from __future__ import annotations
 

@@ -1,16 +1,16 @@
 """V4 verify: 5 reps of default config (rubric+iter_b on / strict-llm / airouter / max_workers=12 + retries=8).
 
 Reads:
-  state_machine_review_corpus/etl/out/phase14_combined/migration_verify/default_airouter_strict_rep{1..5}.json
+  experiments/out/phase14_combined/migration_verify/default_airouter_strict_rep{1..5}.json
 
 Compares to:
-  state_machine_review_corpus/etl/out/phase14_combined/week3_noise/noise_n1_w15_rep{1..5}.json
+  experiments/out/phase14_combined/week3_noise/noise_n1_w15_rep{1..5}.json
   (W3 N1 = rubric+iter_b on / NO strict-llm / miaocg-first / max_workers=6 + retries=0)
 
 Output: console + default_verify_v4_summary.json
 
 Run:
-  python -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.analyze_default_verify_v4
+  python -m project_ex1_llm_judge_for_stm.experiments.analyze_default_verify_v4
 """
 from __future__ import annotations
 

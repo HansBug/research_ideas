@@ -34,7 +34,7 @@ import json, re, pathlib
 text = pathlib.Path("/tmp/uploaded_chart_urls.txt").read_text()
 m = re.findall(r"!\[([^\]]+)\]\(([^)]+)\)", text)
 mapping = dict(m)
-out = pathlib.Path("/home/zhangshaoang/oo-projects/research_ideas/project_ex1_llm_judge_for_stm/state_machine_review_corpus/etl/out/chart_urls.json")
+out = pathlib.Path("/home/zhangshaoang/oo-projects/research_ideas/project_ex1_llm_judge_for_stm/experiments/out/chart_urls.json")
 out.write_text(json.dumps(mapping, indent=2))
 print("chart URLs:", json.dumps(mapping, indent=2))
 PY

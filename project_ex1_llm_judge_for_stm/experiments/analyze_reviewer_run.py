@@ -2,7 +2,7 @@
 human scores, per-paper breakdown, and (optionally) old-vs-new comparison.
 
 Usage:
-    python -m state_machine_review_corpus.etl.analyze_reviewer_run \
+    python -m experiments.analyze_reviewer_run \
         --baseline etl/out/experiment_baseline_result.jsonl \
         --new etl/out/experiment_new_result.jsonl \
         --output-json etl/out/experiment_analysis.json

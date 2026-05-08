@@ -80,8 +80,8 @@ return {
 ```
 
 **实施位置**：
-- `state_machine_review_corpus/etl/run_self_consistency_config.py::_aggregate_runs`
-- `state_machine_review_corpus/etl/run_self_consistency_config.py::_recompute_aggregated_metrics`
+- `experiments/run_self_consistency_config.py::_aggregate_runs`
+- `experiments/run_self_consistency_config.py::_recompute_aggregated_metrics`
 
 ## 五、修复前后对比
 
@@ -134,9 +134,9 @@ return {
 
 | 类型 | 路径 |
 |---|---|
-| 修复后的 main code | `state_machine_review_corpus/etl/run_self_consistency_config.py`（`_aggregate_runs` + `_recompute_aggregated_metrics`）|
-| 离线重聚合工具 | `state_machine_review_corpus/etl/sc_reaggregate_from_checkpoints.py` |
-| 自查脚本 | `state_machine_review_corpus/etl/sc_self_investigation.py` |
-| 自查数据快照 | `state_machine_review_corpus/etl/sc_self_investigation_data.json` |
-| 修复后 SC reports | `state_machine_review_corpus/etl/out/phase14_combined/week2/report_q3_*.json`<br>（注：`out/` 是 gitignored，但通过 `git add -f` 与 checkpoint 一同存档）|
+| 修复后的 main code | `experiments/run_self_consistency_config.py`（`_aggregate_runs` + `_recompute_aggregated_metrics`）|
+| 离线重聚合工具 | `experiments/sc_reaggregate_from_checkpoints.py` |
+| 自查脚本 | `experiments/sc_self_investigation.py` |
+| 自查数据快照 | `experiments/sc_self_investigation_data.json` |
+| 修复后 SC reports | `experiments/out/phase14_combined/week2/report_q3_*.json`<br>（注：`out/` 是 gitignored，但通过 `git add -f` 与 checkpoint 一同存档）|
 | Per-rerun checkpoints | `.../week2/checkpoints/week2_q3_q3_*_rerun{0,1,2}.json` |

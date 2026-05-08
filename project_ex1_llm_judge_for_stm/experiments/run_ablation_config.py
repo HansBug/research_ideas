@@ -1,7 +1,7 @@
 """Run a single ablation configuration on the slice and save results.
 
 Usage:
-    python -m state_machine_review_corpus.etl.run_ablation_config \
+    python -m experiments.run_ablation_config \
         --config A_only \
         --record-limit 12 --summary-limit 12 --component-limit 12 --protocol-limit 4 \
         --output etl/out/phase14_combined/report_iter_A_only.json

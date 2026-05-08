@@ -10,7 +10,7 @@ Writes:
   etl/sc_self_investigation_data.json (NOT touched — separate concern)
 
 Run:
-  python -m project_ex1_llm_judge_for_stm.state_machine_review_corpus.etl.analyze_noise_floor
+  python -m project_ex1_llm_judge_for_stm.experiments.analyze_noise_floor
 """
 from __future__ import annotations
 
