@@ -1809,6 +1809,7 @@ def _evaluate_task_bundle(
     temperature: float = 0.0,
     timeout: int = 180,
     max_workers: int = 1,
+    strict_llm: bool = False,
 ) -> dict[str, Any]:
     if llm_mode == "auto":
         agent = ExpertReviewAgent(
@@ -1851,6 +1852,17 @@ def _evaluate_task_bundle(
         else:
             result = cached["result"]
             latency = float(cached.get("latency_s", 0.0))
+        # 2026-05-08: strict LLM mode — 该 task 必须真正调用过 LLM，否则
+        # 整个 rep 立刻 fail（不静默走 deterministic-only fallback，避免数据
+        # 假象，确保实验稳定可复现）
+        if strict_llm and llm_mode == "auto" and not getattr(result.llm_usage_summary, "effective_llm_used", False):
+            raise RuntimeError(
+                f"STRICT_LLM violated: task {task.task_id} did not actually use LLM "
+                f"(effective_llm_used=False, attempts={result.llm_usage_summary.operation_attempt_count}, "
+                f"failures={result.llm_usage_summary.operation_failure_count}). "
+                f"Provider chain exhausted → deterministic-only fallback was triggered. "
+                f"Re-run with healthy LLM provider chain or remove --strict-llm."
+            )
         return task, result, latency
 
     if max_workers > 1:
@@ -2022,6 +2034,7 @@ def run_benchmark_iteration(
     temperature: float = 0.0,
     timeout: int = 180,
     max_workers: int = 1,
+    strict_llm: bool = False,
 ) -> dict[str, Any]:
     records, protocols, availability = _load_benchmark_tables(base_dir)
     if scope == "slice":
@@ -2072,6 +2085,7 @@ def run_benchmark_iteration(
         temperature=temperature,
         timeout=timeout,
         max_workers=max_workers,
+        strict_llm=strict_llm,
     )
 
 

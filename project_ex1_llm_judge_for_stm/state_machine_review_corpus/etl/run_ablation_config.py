@@ -55,6 +55,11 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--max-workers", type=int, default=1,
                         help="Task-level parallelism (default 1 = sequential, backward compat)")
+    # 2026-05-08: strict-llm mode — 该 task 必须真正调用过 LLM；如果整 chain
+    # exhaust 走 deterministic-only fallback，则整个 rep 立刻 fail，避免数据假象
+    parser.add_argument("--strict-llm", action=argparse.BooleanOptionalAction, default=False,
+                        help="STRICT: fail rep if any task falls back to deterministic-only "
+                             "(LLM chain exhaust). Required for reproducible LLM ablation experiments.")
     args = parser.parse_args()
 
     records, protocols, availability = _load_benchmark_tables(args.base_dir)
@@ -100,6 +105,7 @@ def main() -> None:
         temperature=args.temperature,
         timeout=args.timeout,
         max_workers=args.max_workers,
+        strict_llm=args.strict_llm,
     )
     elapsed = time.time() - t0
 
