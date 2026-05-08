@@ -65,21 +65,13 @@ class ExpertReviewAgent:
                 llm_provider=None,
                 backend_label=f"{backend_label}_deterministic",
             )
-        try:
-            return run_expert_review_workflow(
-                request,
-                llm=self._llm,
-                llm_model_name=self.model_name,
-                llm_provider=self._provider_key,
-                backend_label=f"{backend_label}_llm",
-            )
-        except Exception as exc:
-            result = run_expert_review_workflow(
-                request,
-                llm=None,
-                llm_model_name=self.model_name,
-                llm_provider=self._provider_key,
-                backend_label=f"{backend_label}_fallback",
-            )
-            result.notes.append(f"LLM-enabled runtime failed and fell back to deterministic flow: {type(exc).__name__}: {exc}")
-            return result
+        # 2026-05-08: 默认不再静默 fallback 到 deterministic。
+        # LLM workflow 抛异常时直接 raise，由 caller (e.g. strict_llm check) 决定
+        # 怎么处理。这避免了"silent degrade to deterministic"造成的实验数据假象。
+        return run_expert_review_workflow(
+            request,
+            llm=self._llm,
+            llm_model_name=self.model_name,
+            llm_provider=self._provider_key,
+            backend_label=f"{backend_label}_llm",
+        )

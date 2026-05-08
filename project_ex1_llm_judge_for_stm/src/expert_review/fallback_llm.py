@@ -83,12 +83,17 @@ class FallbackLLMClient:
     def invoke(self, messages: Any, **kwargs: Any) -> Any:
         """Try each provider in chain order. On failure, mark cooldown and try
         next. Raise the LAST exception only if ALL providers failed.
+
+        2026-05-08: When chain has only 1 provider, cooldown logic is bypassed
+        — there's nothing to fall back to, so cooldown only hurts (locks out
+        legitimate retries). Single-provider mode = always retry.
         """
+        single_provider = len(self._chain) == 1
         last_exc: Exception | None = None
         attempts: list[str] = []
         skipped: list[str] = []
         for provider_key, llm in self._chain:
-            if self._state.is_in_cooldown(provider_key):
+            if not single_provider and self._state.is_in_cooldown(provider_key):
                 skipped.append(provider_key)
                 continue
             attempts.append(provider_key)
@@ -98,8 +103,9 @@ class FallbackLLMClient:
                 self.last_provider_used = provider_key
                 return result
             except Exception as exc:
-                cooldown_s = self._cooldown_for(provider_key)
-                self._state.mark_failure(provider_key, cooldown_s, exc)
+                if not single_provider:
+                    cooldown_s = self._cooldown_for(provider_key)
+                    self._state.mark_failure(provider_key, cooldown_s, exc)
                 last_exc = exc
                 continue
         # All providers either in cooldown or failed
@@ -113,8 +119,9 @@ class FallbackLLMClient:
             self.last_provider_used = provider_key
             return result
         except Exception as exc:
-            cooldown_s = self._cooldown_for(provider_key)
-            self._state.mark_failure(provider_key, cooldown_s, exc)
+            if not single_provider:
+                cooldown_s = self._cooldown_for(provider_key)
+                self._state.mark_failure(provider_key, cooldown_s, exc)
             raise
 
     def bind(self, **kwargs: Any) -> "FallbackLLMClient":
@@ -187,10 +194,10 @@ def build_fallback_chain(
                 base_url=provider["base_url"],
                 temperature=temperature,
                 timeout=timeout,
-                # 2026-05-08: retry on 429/5xx/timeout — langchain-openai 默认指数 backoff
-                # 之前 max_retries=0 让 airouter 偶发 burst 限速立刻 raise，触发 strict-llm
-                # 误杀整 rep。改为 3 次，让短 spike 自动消化。
-                max_retries=3,
+                # 2026-05-08: 充分 retry 给 airouter reasoning model + transient 限速空间
+                # langchain-openai 默认指数 backoff（base=0.5s, max=2s, jitter）
+                # 8 次 retry = ~30s wallclock 累计，充分消化短 spike
+                max_retries=8,
             )
             if use_responses:
                 # use_responses_api routes to /v1/responses with proper reasoning-model handling
