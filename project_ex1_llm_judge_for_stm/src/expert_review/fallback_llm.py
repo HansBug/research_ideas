@@ -173,8 +173,15 @@ def build_fallback_chain(
                 break
         if not api_key:
             continue
+        # 2026-05-08: respect provider's wire_api preference
+        # airouter / findcg / miaocg / deepghs are reasoning-model providers
+        # (gpt-5.5 with hidden chain-of-thought) that work via /v1/responses.
+        # langchain ChatOpenAI's default /v1/chat/completions deadlocks against
+        # their reasoning + SSE stack. Setting use_responses_api=True fixes it.
+        wire_api = provider.get("wire_api", "chat_completions")
+        use_responses = wire_api == "responses"
         try:
-            llm = ChatOpenAI(
+            kwargs = dict(
                 model=model,
                 api_key=api_key,
                 base_url=provider["base_url"],
@@ -182,6 +189,10 @@ def build_fallback_chain(
                 timeout=timeout,
                 max_retries=0,
             )
+            if use_responses:
+                # use_responses_api routes to /v1/responses with proper reasoning-model handling
+                kwargs["use_responses_api"] = True
+            llm = ChatOpenAI(**kwargs)
         except Exception:
             continue
         chain.append((provider_key, llm))

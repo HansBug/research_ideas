@@ -24,22 +24,27 @@ PROVIDER_CONFIGS = {
     "airouter": {
         "base_url": "https://airouter.service.itstudio.club/v1",
         "env_keys": ("AIROUTER_API_KEY",),
+        "wire_api": "responses",  # codex 与 ours align：airouter gpt-5.5 是 reasoning 模型，走 /v1/responses
     },
     "deepghs": {
         "base_url": "https://new-api.deepghs.org/v1",
         "env_keys": ("DEEPGHS_API_KEY",),
+        "wire_api": "responses",
     },
     "findcg": {
         "base_url": "https://www.findcg.com/v1",
         "env_keys": ("FINDCG_API_KEY",),
+        "wire_api": "responses",
     },
     "miaocg": {
         "base_url": "https://api.miaocg.cn/v1",
         "env_keys": ("MIAOCG_API_KEY", "FINDCG_API_KEY"),
+        "wire_api": "responses",
     },
     "api68886868": {
         "base_url": "https://api.68886868.xyz/v1",
         "env_keys": ("API68886868_API_KEY",),
+        "wire_api": "chat_completions",  # 不支持 responses API
     },
 }
 
