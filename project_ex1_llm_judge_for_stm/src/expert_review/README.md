@@ -11,16 +11,20 @@
 
 ## 模块定位
 
-这个目录当前已经不是早期那种“单大文件 heuristic reviewer”。`Phase 5/6` 之后，正式运行时已经稳定收敛到：
+这个目录当前已经不是早期那种"单大文件 heuristic reviewer"。`Phase 5/6` 之后，正式运行时已经稳定收敛到：
 
 1. [`schemas/`](./schemas/)
 2. [`prompts/`](./prompts/)
 3. [`tools/`](./tools/)
 4. [`agents/`](./agents/)
 5. [`graph/`](./graph/)
-6. [`compatibility/`](./compatibility/)
+6. [`compatibility/`](./compatibility/)（向后兼容 shim）
 
 根层现在只保留对外入口、共享 schema、少量共享 helper，以及 benchmark 回放脚本，不再继续堆积长名字的大杂烩文件。
+
+> **注**：原 `legacy/` 目录在 W4.x 已删除（外部 0 引用，详见 `PYDOC_INVENTORY.md` §A1）；
+> 原 `Disagreement Arbiter` agent 已在 W3 ablation 验证 ΔHAI=+0.1556 后彻底下线（详见
+> `discussions/.../prompt实现一致性待处理清单.md` issue I-6）。
 
 ## 根层结构
 
@@ -40,6 +44,8 @@
 | [test_benchmark.py](./test_benchmark.py) | benchmark harness 的切片、coverage、LOFO 单测 |
 | [test_batch.py](./test_batch.py) | batch triage / export / CLI 面的最小回归测试 |
 | [GUIDE.md](./GUIDE.md) | 目录级维护规则 |
+| [PYDOC_INVENTORY.md](./PYDOC_INVENTORY.md) | docstring 写作 + 死代码盘点（W4.x） |
+| [PYDOC_ITEMS.md](./PYDOC_ITEMS.md) | 64 文件 / 440 items 的 docstring 写作 checklist |
 | [designs/README.md](./designs/README.md) | 设计与演化文档入口 |
 
 本轮已经把根层长名字文件收敛为更短、更可读的命名：
@@ -51,7 +57,10 @@
 5. `expert_review_utils.py` -> `utils.py`
 6. `test_expert_review.py` -> `test_review.py`
 
-历史 prompt / rubric 汇总文件也已经移到 [`legacy/`](./legacy/) 下，避免继续污染主路径。
+历史 prompt / rubric 文件原本归档在 `legacy/`，**W4.x 已彻底删除**（外部 0 引用）；
+新代码不再依赖任何 legacy 出口，老代码若有引用应直接改用
+[`prompts/rubric_dim_score.py`](./prompts/rubric_dim_score.py) +
+[`agents/rubric_scorer.py`](./agents/rubric_scorer.py)。
 
 ## 真实运行时架构
 
@@ -165,14 +174,17 @@
 
 ### Stage 3: Finalization
 
-该阶段负责 restraint、冲突裁决和输出合成：
+该阶段负责 restraint 与输出合成：
 
 1. `Missing-Evidence Critic`
    - 给 evidence discipline 上保险，抑制没有证据支撑的过度指控
-2. `Disagreement Arbiter`
-   - 在有参考模型时协调 traceability 与 equivalence 的潜在冲突
+2. ~~`Disagreement Arbiter`~~（**已下线**）
+   - W3 ablation 验证 ΔHAI=+0.1556（反向贡献）后彻底删除；
+     原 trace_conflict_count 信号现由 `deterministic_equivalence` 直接维护
 3. `Score Composer`
-   - 组合六个正式维度的结果并得到整体分数与 issue 集
+   - 组合六个正式维度的结果并得到整体分数与 issue 集；
+     6 个维度 LLM rubric call **并行**（非 sequential），见
+     [`agents/rubric_scorer.py`](./agents/rubric_scorer.py)
 4. `Final Synthesizer`
    - 生成最终 `ExpertReviewResult`，补齐 overall reason、notes、evidence summary 和 confidence
 

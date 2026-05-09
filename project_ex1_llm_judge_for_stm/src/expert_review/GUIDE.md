@@ -90,6 +90,17 @@
 
 真实主路径以 [`graph/runtime.py`](./graph/runtime.py) 为准。
 
+> **2026-05-09 W4.x 备注**：
+>
+> 1. 原 `Disagreement Arbiter` agent 已删除（W3 ablation 验证 ΔHAI=+0.1556），
+>    [`graph/edges.py`](./graph/edges.py) 与 [`agents/orchestrator.py`](./agents/orchestrator.py)
+>    中保留中文 audit 注释作历史 trail。
+> 2. 原 `legacy/` 整目录已删除（外部 0 引用，详见 [PYDOC_INVENTORY.md](./PYDOC_INVENTORY.md) §A1）；
+>    新代码不应再 import 任何 ``expert_review.legacy.*``。
+> 3. 已知实现疑点 / paper-level 描述与代码现状不一致项见
+>    [discussions/.../prompt实现一致性待处理清单.md](../../../discussions/2026-05-09-12-58-25-AI-讨论-prompt实现一致性待处理清单.md) （I-1 ~ I-20）；
+>    后续重构需要兼顾论文叙事一致性。
+
 维护时应遵守：
 
 1. graph 只做编排与阶段连接，不承载大段评分细则
@@ -106,7 +117,31 @@
 
 不要把“不知道放哪”的代码继续塞回根层。
 
-## 7. 文档组织规则
+## 7. 代码注释与 docstring 写作纪律（W4.x 起）
+
+本目录所有新增 / 修改的 Python 代码须遵守以下 docstring 与注释纪律：
+
+1. **代码注释一律中文**——避免再混入英文 inline 注释
+   （历史代码逐步重写中，仍可见少量英文注释）；
+2. **module / class / function / method** 都必须有 docstring；
+   覆盖率由 [`PYDOC_ITEMS.md`](./PYDOC_ITEMS.md) checklist 跟踪；
+3. **格式采用 reStructuredText (RST)**——配合 ``:param:`` /
+   ``:return:`` / ``:rtype:`` / ``:ivar:`` / ``:raises:`` /
+   ``.. note::`` 等指令；
+4. **module docstring 含 4 段**：
+   - 第一段：**作用**（本模块解决什么问题）；
+   - 第二段：**设计思路**（为什么这样实现 / 与上下游模块的边界 / 核心抽象）；
+   - 第三段：**关键约束 / 不变式**；
+   - 第四段（可选）：**已知 caveat / 历史变迁**（如某 phase 引入、某 issue 跟踪中）；
+5. **公共 API 必须配 ``Examples::`` 段**——含可被 ``pytest --doctest-modules``
+   验证的 ``>>> ...`` 例子；
+6. **修改代码时同步更新 docstring**；
+7. **不允许出现"silent fallback to deterministic 但不在 docstring 标注"**
+   的情况——这是 issue I-4 的根因。
+
+详细写作模板见 [PYDOC_INVENTORY.md §E](./PYDOC_INVENTORY.md#e-写作规范中文-rst-格式)。
+
+## 8. 文档组织规则
 
 设计与演化文档统一放在 [`designs/`](./designs/) 下，并继续按版本分目录维护。
 
@@ -119,7 +154,7 @@
 
 不要再把新的 `EXPERT_*.md` 平铺回 `reproduction/` 根目录，也不要让 README 与 phase 文档长期失真。
 
-## 8. 测试与回归入口
+## 9. 测试与回归入口
 
 最低限度的模块级回归入口如下：
 
@@ -141,7 +176,7 @@
 4. schema 兼容性改动
 5. benchmark harness 改动
 
-## 9. 当前阶段口径
+## 10. 当前阶段口径
 
 当前目录状态是：
 
