@@ -1,3 +1,11 @@
+"""``pragmatic_quality`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -44,6 +52,14 @@ GENERIC_NAME_TOKENS = {
 
 
 def _issue(issue_type: str, element_text: str, reason_text: str, *, element_kind: str = "quality_signal") -> ElementIssue:
+    """内部 helper：``_issue``。
+
+    :param issue_type: 见函数签名与上下文。
+    :param element_text: 见函数签名与上下文。
+    :param reason_text: 见函数签名与上下文。
+    :param element_kind: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     clean = element_text.strip() or issue_type
     return ElementIssue(
         element_id=f"quality_{normalize_id(clean) or normalize_id(issue_type) or 'signal'}",
@@ -55,6 +71,11 @@ def _issue(issue_type: str, element_text: str, reason_text: str, *, element_kind
 
 
 def _generic_name_count(dossier: Any) -> int:
+    """内部 helper：``_generic_name_count``。
+
+    :param dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     count = 0
     for item in dossier.elements:
         tokens = [part.lower() for part in (item.label or "").replace("_", " ").replace("-", " ").split() if part]
@@ -70,6 +91,15 @@ def deterministic_pragmatic_quality(
     input_dossier: Any,
     pred_dossier: Any,
 ) -> dict[str, Any]:
+    """``deterministic_pragmatic_quality`` 函数。
+
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     grounding_tokens = requirement_grounding_tokens(input_dossier)
     grounded_elements = 0
     unused_elements = 0
@@ -234,6 +264,17 @@ def pragmatic_quality_with_llm(
     pred_dossier: Any,
     base_report: dict[str, Any],
 ) -> dict[str, Any] | None:
+    """``pragmatic_quality_with_llm`` 函数。
+
+    :param llm: 见函数签名与上下文。
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param base_report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if llm is None:
         return None
     payload = invoke_llm_json(

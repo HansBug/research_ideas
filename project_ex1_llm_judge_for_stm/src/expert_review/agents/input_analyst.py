@@ -1,3 +1,25 @@
+"""Input Analyst agent —— 把 NL 需求文本解析为 :class:`InputDossier`。
+
+**作用**：
+
+1. 调用 :func:`inventory.parse_requirement_items` 把 NL 需求切成离散
+   的 requirement items；
+2. 用 semantic router 推断 prompt 暗含的 review 上下文（如"允许语义
+   等价"、"关注未支持额外结构"）；
+3. 用 semantic router 给每条需求打 intent 标签（``conditional_constraint``
+   / ``ambiguous_statement``）；
+4. 提取 entity_hints（去 stopwords 后的内容词）；
+5. 推断 observability 档位（high / medium / low），影响下游
+   confidence cap。
+
+**设计思路**：
+
+* **deterministic-only**：本 agent 不接收 LLM 参数；所有解析与分类
+  都通过 :mod:`semantic_router` 与 :mod:`inventory` 完成；
+* **observability 三档判定**：requirements 数 ≥ 4 或文本 ≥ 220 字符
+  → high；2-3 条 / 80-219 字符 → medium；其余 → low。
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -11,6 +33,11 @@ from .common import content_tokens
 
 
 def _make_evidence_item(source: str, locator: str | None, snippet: str, explanation: str) -> EvidenceItem:
+    """内部 helper：构造规范化的 :class:`EvidenceItem`。
+
+    与 :func:`agents.common.make_evidence_item` 等价的本地副本，避免
+    循环 import；snippet/explanation 会自动 strip。
+    """
     return EvidenceItem(
         source=source,
         locator=locator,
@@ -71,6 +98,10 @@ REQUIREMENT_INTENT_CATEGORIES = [
 
 
 def _dedupe_strings(items: list[str]) -> list[str]:
+    """内部 helper：按 normalize_id 去重保留首次原文。
+
+    与 :func:`agents.common.dedupe_strings` 等价的本地副本。
+    """
     seen: set[str] = set()
     result: list[str] = []
     for item in items:
@@ -84,6 +115,14 @@ def _dedupe_strings(items: list[str]) -> list[str]:
 
 
 def build_input_dossier(request: Any) -> InputDossier:
+    """把 :class:`ExpertReviewRequest` 中的 NL 需求与 prompt 解析为
+    :class:`InputDossier`。
+
+    :param request: :class:`ExpertReviewRequest` 实例
+    :return: 完整填充的 :class:`InputDossier`，含 requirements /
+        behaviors / constraints / ambiguities / evidence / observability
+        / entity_hints / context_clues
+    """
     raw_requirements = parse_requirement_items(request.input_text, [])
     requirements = [
         RequirementTraceResult(

@@ -1,3 +1,11 @@
+"""``test_batch`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -6,6 +14,9 @@ from .batch import BatchReviewItem, export_batch_run, load_batch_items, run_batc
 
 
 def _good_item() -> BatchReviewItem:
+    """内部 helper：``_good_item``。
+    :return: 见函数签名与上下文。
+    """
     return BatchReviewItem(
         item_id="good-1",
         prompt="Review the predicted printer state machine and focus on requirement coverage and unsupported extras.",
@@ -41,6 +52,9 @@ def _good_item() -> BatchReviewItem:
 
 
 def _bad_item() -> BatchReviewItem:
+    """内部 helper：``_bad_item``。
+    :return: 见函数签名与上下文。
+    """
     return BatchReviewItem(
         item_id="bad-1",
         prompt="Review the predicted printer state machine and focus on requirement coverage and unsupported extras.",
@@ -63,6 +77,8 @@ def _bad_item() -> BatchReviewItem:
 
 
 def test_run_batch_review_produces_triage_and_observability() -> None:
+    """``test_run_batch_review_produces_triage_and_observability`` 函数。
+    """
     run = run_batch_review([_good_item(), _bad_item()], llm_mode="off", rerun_count=1)
     assert run.summary["total_items"] == 2
     assert run.summary["success_count"] == 2
@@ -77,6 +93,10 @@ def test_run_batch_review_produces_triage_and_observability() -> None:
 
 
 def test_batch_load_and_export_round_trip(tmp_path) -> None:
+    """``test_batch_load_and_export_round_trip`` 函数。
+
+    :param tmp_path: 见函数签名与上下文。
+    """
     input_path = tmp_path / "batch.json"
     input_path.write_text(
         json.dumps(

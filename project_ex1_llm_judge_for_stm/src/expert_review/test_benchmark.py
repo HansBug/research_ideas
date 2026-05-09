@@ -1,3 +1,11 @@
+"""``test_benchmark`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import pandas as pd
@@ -23,6 +31,8 @@ from .schema import ElementIssue, EvidenceItem, ExpertReviewResult
 
 
 def _record_row(**overrides):
+    """内部 helper：``_record_row``。
+    """
     row = {
         "paper_slug": "paper-a",
         "paper_title": "Paper A",
@@ -64,6 +74,8 @@ def _record_row(**overrides):
 
 
 def _protocol_row(**overrides):
+    """内部 helper：``_protocol_row``。
+    """
     row = {
         "paper_slug": "paper-a",
         "paper_title": "Paper A",
@@ -86,6 +98,8 @@ def _protocol_row(**overrides):
 
 
 def _availability_row(**overrides):
+    """内部 helper：``_availability_row``。
+    """
     row = {
         "paper_slug": "paper-a",
         "paper_title": "Paper A",
@@ -102,6 +116,8 @@ def _availability_row(**overrides):
 
 
 def _component_row(**overrides):
+    """内部 helper：``_component_row``。
+    """
     row = _record_row(
         record_type="component_level_review",
         review_record_id="component-0",
@@ -130,6 +146,8 @@ def _component_row(**overrides):
 
 
 def _component_row_without_public_counts(**overrides):
+    """内部 helper：``_component_row_without_public_counts``。
+    """
     row = _component_row(
         review_record_id="component-missing",
         human_review_score=float("nan"),
@@ -143,6 +161,8 @@ def _component_row_without_public_counts(**overrides):
 
 
 def test_judgement_metrics_track_kappa_and_flip_rate() -> None:
+    """``test_judgement_metrics_track_kappa_and_flip_rate`` 函数。
+    """
     rows = [
         {"human_judgement": "good", "agent_judgement": "good", "eval_bucket": "record", "rerun_judgement_flip": False},
         {"human_judgement": "acceptable", "agent_judgement": "acceptable", "eval_bucket": "summary", "rerun_judgement_flip": True},
@@ -155,6 +175,8 @@ def test_judgement_metrics_track_kappa_and_flip_rate() -> None:
 
 
 def test_agent_critical_issue_set_recovers_action_effect_from_raw_issue_text() -> None:
+    """``test_agent_critical_issue_set_recovers_action_effect_from_raw_issue_text`` 函数。
+    """
     result = ExpertReviewResult(
         prompt="prompt",
         overall_score=0.52,
@@ -177,6 +199,8 @@ def test_agent_critical_issue_set_recovers_action_effect_from_raw_issue_text() -
 
 
 def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:
+    """``test_benchmark_coverage_summary_tracks_main_and_deferred_pools`` 函数。
+    """
     records = pd.DataFrame(
         [
             _record_row(review_record_id="sample-1", diagram_type="stm", llm_name="GPT-4o"),
@@ -243,6 +267,8 @@ def test_benchmark_coverage_summary_tracks_main_and_deferred_pools() -> None:
 
 
 def test_benchmark_split_bundle_keeps_family_keys_disjoint() -> None:
+    """``test_benchmark_split_bundle_keeps_family_keys_disjoint`` 函数。
+    """
     sample_rows = []
     for diagram_type, llm_name in [("stm", "GPT-4o"), ("stm", "Claude"), ("act", "GPT-4o"), ("sd", "Claude")]:
         for idx in range(2):
@@ -316,6 +342,8 @@ def test_benchmark_split_bundle_keeps_family_keys_disjoint() -> None:
 
 
 def test_lofo_task_bundles_namespace_family_holdouts_by_regime() -> None:
+    """``test_lofo_task_bundles_namespace_family_holdouts_by_regime`` 函数。
+    """
     records = pd.DataFrame(
         [
             _record_row(review_record_id="sample-stm-gpt4o", diagram_type="stm", llm_name="GPT-4o"),
@@ -360,6 +388,8 @@ def test_lofo_task_bundles_namespace_family_holdouts_by_regime() -> None:
 
 
 def test_full_task_bundle_builds_component_tasks_with_structured_public_counts() -> None:
+    """``test_full_task_bundle_builds_component_tasks_with_structured_public_counts`` 函数。
+    """
     records = pd.DataFrame([_component_row()])
     protocols = pd.DataFrame([_protocol_row(paper_slug="paper-a")])
     availability = pd.DataFrame([_availability_row(paper_slug="paper-a")])
@@ -379,6 +409,8 @@ def test_full_task_bundle_builds_component_tasks_with_structured_public_counts()
 
 
 def test_full_task_bundle_defers_component_rows_without_structured_public_counts() -> None:
+    """``test_full_task_bundle_defers_component_rows_without_structured_public_counts`` 函数。
+    """
     records = pd.DataFrame([_component_row_without_public_counts()])
     protocols = pd.DataFrame([_protocol_row(paper_slug="paper-a")])
     availability = pd.DataFrame([_availability_row(paper_slug="paper-a")])
@@ -392,6 +424,8 @@ def test_full_task_bundle_defers_component_rows_without_structured_public_counts
 
 
 def test_component_task_derives_human_score_from_public_counts_when_score_cell_missing() -> None:
+    """``test_component_task_derives_human_score_from_public_counts_when_score_cell_missing`` 函数。
+    """
     records = pd.DataFrame(
         [
             _component_row(
@@ -417,6 +451,8 @@ def test_component_task_derives_human_score_from_public_counts_when_score_cell_m
 
 
 def test_phase14_lockbox_gate_limits_core_metric_degrade() -> None:
+    """``test_phase14_lockbox_gate_limits_core_metric_degrade`` 函数。
+    """
     split_reports = {
         "validation": {
             "HAI": 86.0,
@@ -442,6 +478,8 @@ def test_phase14_lockbox_gate_limits_core_metric_degrade() -> None:
 
 
 def test_phase14_lofo_gate_exposes_generalization_gap_payload() -> None:
+    """``test_phase14_lofo_gate_exposes_generalization_gap_payload`` 函数。
+    """
     gate = _build_phase14_lofo_gate(
         {
             "record": {"avg_gap_vs_full": 2.0, "worst_holdout_gap_vs_full": 5.5, "worst_family": "record::a"},
@@ -456,6 +494,8 @@ def test_phase14_lofo_gate_exposes_generalization_gap_payload() -> None:
 
 
 def test_lockbox_residual_clusters_group_by_bucket_and_focus() -> None:
+    """``test_lockbox_residual_clusters_group_by_bucket_and_focus`` 函数。
+    """
     report = {
         "normalized_rows": [
             {
@@ -498,6 +538,8 @@ def test_lockbox_residual_clusters_group_by_bucket_and_focus() -> None:
 
 
 def test_phase14_promotion_evaluation_requires_validation_lockbox_lofo_and_residuals() -> None:
+    """``test_phase14_promotion_evaluation_requires_validation_lockbox_lofo_and_residuals`` 函数。
+    """
     split_reports = {
         "validation": {
             "HAI": 86.0,
@@ -534,13 +576,26 @@ def test_phase14_promotion_evaluation_requires_validation_lockbox_lofo_and_resid
 
 
 def test_evaluate_task_bundle_reuses_deterministic_review_cache(monkeypatch) -> None:
+    """``test_evaluate_task_bundle_reuses_deterministic_review_cache`` 函数。
+
+    :param monkeypatch: 见函数签名与上下文。
+    """
     call_counter = {"count": 0}
 
     class FakeAgent:
+        """``FakeAgent`` 数据/逻辑类；详见所在模块顶部 docstring。"""
         def __init__(self, provider_order=None):
+            """内部 helper：``__init__``。
+
+            :param provider_order: 见函数签名与上下文。
+            """
             self.provider_order = provider_order
 
         def review(self, request):
+            """``review`` 函数。
+
+            :param request: 见函数签名与上下文。
+            """
             call_counter["count"] += 1
             return ExpertReviewResult(
                 prompt=request.prompt,
@@ -586,6 +641,8 @@ def test_evaluate_task_bundle_reuses_deterministic_review_cache(monkeypatch) -> 
 
 
 def test_phase15_report_comparison_exposes_runtime_and_alignment_deltas() -> None:
+    """``test_phase15_report_comparison_exposes_runtime_and_alignment_deltas`` 函数。
+    """
     baseline = {
         "HAI": 86.0,
         "record_metrics": {"RAS": 84.0, "spearman_rho": 0.70, "pairwise_order_accuracy": 0.78},

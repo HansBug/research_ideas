@@ -1,3 +1,11 @@
+"""``dossier_merge`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.tools` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -10,6 +18,14 @@ from .known_format_lift import dedupe_strings
 
 
 def _make_evidence_item(source: str, locator: str | None, snippet: str, explanation: str) -> EvidenceItem:
+    """内部 helper：``_make_evidence_item``。
+
+    :param source: 见函数签名与上下文。
+    :param locator: 见函数签名与上下文。
+    :param snippet: 见函数签名与上下文。
+    :param explanation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return EvidenceItem(
         source=source,
         locator=locator,
@@ -19,10 +35,20 @@ def _make_evidence_item(source: str, locator: str | None, snippet: str, explanat
 
 
 def _element_merge_key(element: ArtifactElement) -> str:
+    """内部 helper：``_element_merge_key``。
+
+    :param element: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return normalize_id("|".join([element.kind, element.label or element.text]))
 
 
 def _relation_merge_key(relation: ArtifactRelation) -> str:
+    """内部 helper：``_relation_merge_key``。
+
+    :param relation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     base = "|".join(
         [
             relation.source_label,
@@ -38,6 +64,12 @@ def _relation_merge_key(relation: ArtifactRelation) -> str:
 
 
 def merge_artifact_dossiers(parser_dossier: ArtifactDossier, llm_payload: dict[str, Any]) -> ArtifactDossier:
+    """``merge_artifact_dossiers`` 函数。
+
+    :param parser_dossier: 见函数签名与上下文。
+    :param llm_payload: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     elements = list(parser_dossier.elements)
     relations = list(parser_dossier.relations)
     element_index = {_element_merge_key(item): idx for idx, item in enumerate(elements)}

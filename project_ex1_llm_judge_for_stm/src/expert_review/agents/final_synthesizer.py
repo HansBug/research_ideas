@@ -1,3 +1,11 @@
+"""``final_synthesizer`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -12,6 +20,11 @@ from .llm_helpers import invoke_llm_json
 
 
 def _dimension_score_map(dimension_results: list[Any]) -> dict[str, float]:
+    """内部 helper：``_dimension_score_map``。
+
+    :param dimension_results: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {str(item.dimension_name): float(item.score) for item in dimension_results}
 
 
@@ -21,6 +34,14 @@ def coarse_overall_judgement(
     overall_score: float,
     dimension_results: list[Any],
 ) -> str:
+    """``coarse_overall_judgement`` 函数。
+
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param overall_score: 见函数签名与上下文。
+    :param dimension_results: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not dimension_results:
         return judgement_from_score(overall_score)
     scores = _dimension_score_map(dimension_results)
@@ -61,6 +82,19 @@ def overall_reason(
     harmful_issues: list[Any],
     evidence_critic: dict[str, Any],
 ) -> str:
+    """``overall_reason`` 函数。
+
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param overall_score: 见函数签名与上下文。
+    :param dimension_results: 见函数签名与上下文。
+    :param trace_results: 见函数签名与上下文。
+    :param equivalence_report: 见函数签名与上下文。
+    :param quality_report: 见函数签名与上下文。
+    :param harmful_issues: 见函数签名与上下文。
+    :param evidence_critic: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     matched = sum(1 for item in trace_results if item.status == "matched")
     partial = sum(1 for item in trace_results if item.status == "partial")
     missing = sum(1 for item in trace_results if item.status == "missing")
@@ -138,6 +172,16 @@ def maybe_refine_overall_reason(
     notes: list[str],
     dimension_results: list[Any],
 ) -> str:
+    """``maybe_refine_overall_reason`` 函数。
+
+    :param llm: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param draft_reason: 见函数签名与上下文。
+    :param notes: 见函数签名与上下文。
+    :param dimension_results: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if llm is None:
         return draft_reason
     payload = invoke_llm_json(
@@ -175,6 +219,19 @@ def synthesize_result(
     notes: list[str],
     confidence: float,
 ) -> ExpertReviewResult:
+    """``synthesize_result`` 函数。
+
+    :param request: 见函数签名与上下文。
+    :param backend_label: 见函数签名与上下文。
+    :param overall_score: 见函数签名与上下文。
+    :param overall_reason_text: 见函数签名与上下文。
+    :param dimension_results: 见函数签名与上下文。
+    :param trace_results: 见函数签名与上下文。
+    :param harmful_issues: 见函数签名与上下文。
+    :param notes: 见函数签名与上下文。
+    :param confidence: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     policy_packet = {}
     if dimension_results and isinstance(dimension_results[0].metric_payload, dict):
         policy_packet = dict(dimension_results[0].metric_payload)

@@ -31,10 +31,21 @@ class _CooldownState:
     lock: threading.Lock = field(default_factory=threading.Lock)
 
     def is_in_cooldown(self, provider_key: str) -> bool:
+        """``is_in_cooldown`` 函数。
+
+        :param provider_key: 见函数签名与上下文。
+        :return: 见函数签名与上下文。
+        """
         with self.lock:
             return self.cooldowns.get(provider_key, 0.0) > time.time()
 
     def mark_failure(self, provider_key: str, cooldown_s: float, exc: Exception) -> None:
+        """``mark_failure`` 函数。
+
+        :param provider_key: 见函数签名与上下文。
+        :param cooldown_s: 见函数签名与上下文。
+        :param exc: 见函数签名与上下文。
+        """
         with self.lock:
             self.cooldowns[provider_key] = time.time() + cooldown_s
             self.failure_log.append({
@@ -46,6 +57,10 @@ class _CooldownState:
             })
 
     def mark_success(self, provider_key: str) -> None:
+        """``mark_success`` 函数。
+
+        :param provider_key: 见函数签名与上下文。
+        """
         with self.lock:
             # Successful call clears cooldown for this provider (it's alive again)
             self.cooldowns.pop(provider_key, None)
@@ -63,6 +78,13 @@ class FallbackLLMClient:
         default_cooldown: int = 180,
         state: _CooldownState | None = None,
     ) -> None:
+        """内部 helper：``__init__``。
+
+        :param chain: 见函数签名与上下文。
+        :param cooldown_seconds: 见函数签名与上下文。
+        :param default_cooldown: 见函数签名与上下文。
+        :param state: 见函数签名与上下文。
+        """
         if not chain:
             raise ValueError("FallbackLLMClient requires at least one (provider_key, llm) tuple")
         self._chain = chain  # [(provider_key, ChatOpenAI / RunnableBinding), ...]
@@ -78,6 +100,11 @@ class FallbackLLMClient:
         return self._chain[0][0]
 
     def _cooldown_for(self, provider_key: str) -> float:
+        """内部 helper：``_cooldown_for``。
+
+        :param provider_key: 见函数签名与上下文。
+        :return: 见函数签名与上下文。
+        """
         return float(self._cooldown_map.get(provider_key, self._default_cooldown))
 
     def invoke(self, messages: Any, **kwargs: Any) -> Any:
@@ -140,12 +167,20 @@ class FallbackLLMClient:
     # Some langchain helpers do `getattr(llm, '_default_response_format', None)`,
     # etc. Forward unknown attribute access to the primary provider's underlying client.
     def __getattr__(self, name: str) -> Any:
+        """内部 helper：``__getattr__``。
+
+        :param name: 见函数签名与上下文。
+        :return: 见函数签名与上下文。
+        """
         if name.startswith("_"):
             raise AttributeError(name)
         # Fall back to the first chain LLM's attribute
         return getattr(self._chain[0][1], name)
 
     def __repr__(self) -> str:
+        """内部 helper：``__repr__``。
+        :return: 见函数签名与上下文。
+        """
         keys = ",".join(pk for pk, _ in self._chain)
         return f"FallbackLLMClient(chain=[{keys}])"
 

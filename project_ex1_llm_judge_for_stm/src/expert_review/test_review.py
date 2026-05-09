@@ -1,3 +1,11 @@
+"""``test_review`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from .agents import llm_helpers as llm_helpers_module
@@ -18,6 +26,11 @@ from .tools.validation import evidence_summary_from_dimensions
 
 
 def build_request(with_reference: bool = True) -> ExpertReviewRequest:
+    """``build_request`` 函数。
+
+    :param with_reference: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     ref_output = """
     {
       "machine_name": "Printer",
@@ -69,10 +82,16 @@ def build_request(with_reference: bool = True) -> ExpertReviewRequest:
 
 
 def build_result(with_reference: bool = True):
+    """``build_result`` 函数。
+
+    :param with_reference: 见函数签名与上下文。
+    """
     return heuristic_expert_review(build_request(with_reference=with_reference))
 
 
 def test_heuristic_review_returns_structured_result() -> None:
+    """``test_heuristic_review_returns_structured_result`` 函数。
+    """
     result = build_result()
     assert result.prompt.startswith("Review the predicted printer state machine")
     assert result.used_review_backend.startswith("langgraph_multi_agent_v1")
@@ -88,6 +107,8 @@ def test_heuristic_review_returns_structured_result() -> None:
 
 
 def test_evidence_summary_prefers_locator_bearing_items() -> None:
+    """``test_evidence_summary_prefers_locator_bearing_items`` 函数。
+    """
     summary = evidence_summary_from_dimensions(
         [
             DimensionReviewResult(
@@ -113,6 +134,8 @@ def test_evidence_summary_prefers_locator_bearing_items() -> None:
 
 
 def test_coarse_overall_judgement_can_uplift_summary_level_result() -> None:
+    """``test_coarse_overall_judgement_can_uplift_summary_level_result`` 函数。
+    """
     regime = type("Regime", (), {"regime": "summary_only"})()
     dimension_results = [
         DimensionReviewResult("semantic_completeness", "Semantic Completeness", 0.82, "good", "reason"),
@@ -126,6 +149,8 @@ def test_coarse_overall_judgement_can_uplift_summary_level_result() -> None:
 
 
 def test_heuristic_review_flags_extra_structure() -> None:
+    """``test_heuristic_review_flags_extra_structure`` 函数。
+    """
     result = build_result()
     extras = [item for item in result.unsupported_model_elements if item.issue_type == "extra"]
     assert extras
@@ -133,6 +158,8 @@ def test_heuristic_review_flags_extra_structure() -> None:
 
 
 def test_heuristic_review_supports_missing_reference() -> None:
+    """``test_heuristic_review_supports_missing_reference`` 函数。
+    """
     result = build_result(with_reference=False)
     assert result.overall_score >= 0.0
     assert result.dimension_results
@@ -143,6 +170,8 @@ def test_heuristic_review_supports_missing_reference() -> None:
 
 
 def test_heuristic_review_supports_unknown_free_text_format() -> None:
+    """``test_heuristic_review_supports_unknown_free_text_format`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt="Help me review this behavior model and focus on coverage, missing behavior, and clarity.",
         input_text="R1: start moves the controller from Idle to Working.\nR2: error moves the controller into Fault.",
@@ -164,6 +193,8 @@ Working -> Fault : error
 
 
 def test_v1_runtime_gives_credit_to_equivalent_but_different_structure() -> None:
+    """``test_v1_runtime_gives_credit_to_equivalent_but_different_structure`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "Review the predicted state machine. Reward semantically equivalent but differently structured designs, "
@@ -219,6 +250,8 @@ def test_v1_runtime_gives_credit_to_equivalent_but_different_structure() -> None
 
 
 def test_v1_runtime_preserves_branch_family_credit_for_non_isomorphic_parallel_controls() -> None:
+    """``test_v1_runtime_preserves_branch_family_credit_for_non_isomorphic_parallel_controls`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "Review the predicted state machine. Reward semantically equivalent but differently structured designs, "
@@ -281,6 +314,8 @@ def test_v1_runtime_preserves_branch_family_credit_for_non_isomorphic_parallel_c
 
 
 def test_v1_runtime_penalizes_parallel_branch_collapse_with_cross_state_transitions() -> None:
+    """``test_v1_runtime_penalizes_parallel_branch_collapse_with_cross_state_transitions`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "Review the predicted state machine. Penalize unsupported cross-branch transitions when the reference "
@@ -330,6 +365,8 @@ def test_v1_runtime_penalizes_parallel_branch_collapse_with_cross_state_transiti
 
 
 def test_input_dossier_splits_inline_requirement_markers() -> None:
+    """``test_input_dossier_splits_inline_requirement_markers`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt="Review this model.",
         input_text="R1: login moves system from Idle to Ready. R2: powerOff only from Ready. R3: fault leads to Error.",
@@ -343,6 +380,8 @@ def test_input_dossier_splits_inline_requirement_markers() -> None:
 
 
 def test_parser_dossier_probes_ttool_xml_into_structure() -> None:
+    """``test_parser_dossier_probes_ttool_xml_into_structure`` 函数。
+    """
     dossier = build_parser_dossier(
         "prediction",
         """<?xml version="1.0" encoding="UTF-8"?>
@@ -369,6 +408,8 @@ def test_parser_dossier_probes_ttool_xml_into_structure() -> None:
 
 
 def test_merge_artifact_dossiers_reconciles_duplicate_llm_items() -> None:
+    """``test_merge_artifact_dossiers_reconciles_duplicate_llm_items`` 函数。
+    """
     parser_dossier = build_parser_dossier(
         "prediction",
         """
@@ -411,6 +452,8 @@ Idle --> Ready : login
 
 
 def test_v1_runtime_summary_policy_distinguishes_average_and_stddev_rows() -> None:
+    """``test_v1_runtime_summary_policy_distinguishes_average_and_stddev_rows`` 函数。
+    """
     average_request = ExpertReviewRequest(
         prompt=(
             "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
@@ -449,6 +492,8 @@ def test_v1_runtime_summary_policy_distinguishes_average_and_stddev_rows() -> No
 
 
 def test_summary_policy_library_infers_row_type_and_target_from_public_prompt() -> None:
+    """``test_summary_policy_library_infers_row_type_and_target_from_public_prompt`` 函数。
+    """
     prompt = (
         "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
         "This is a summary-level task for BD.\n"
@@ -460,6 +505,8 @@ def test_summary_policy_library_infers_row_type_and_target_from_public_prompt() 
 
 
 def test_policy_library_infers_record_diagram_type_from_prompt() -> None:
+    """``test_policy_library_infers_record_diagram_type_from_prompt`` 函数。
+    """
     prompt = (
         "You are an expert reviewer for generated software modeling artifacts.\n"
         "Target type: act / generated_behavior_model.\n"
@@ -469,6 +516,8 @@ def test_policy_library_infers_record_diagram_type_from_prompt() -> None:
 
 
 def test_v1_runtime_summary_policy_distinguishes_raw_public_row_and_smd_target() -> None:
+    """``test_v1_runtime_summary_policy_distinguishes_raw_public_row_and_smd_target`` 函数。
+    """
     raw_bd_request = ExpertReviewRequest(
         prompt=(
             "You are an expert reviewer for generated software modeling artifacts under partial public evidence.\n"
@@ -518,6 +567,8 @@ def test_v1_runtime_summary_policy_distinguishes_raw_public_row_and_smd_target()
 
 
 def test_v1_runtime_protocol_policy_exposes_vv_roles() -> None:
+    """``test_v1_runtime_protocol_policy_exposes_vv_roles`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "You are an expert reviewer of a human evaluation protocol for software modeling artifacts. "
@@ -544,6 +595,8 @@ def test_v1_runtime_protocol_policy_exposes_vv_roles() -> None:
 
 
 def test_runtime_supports_mixed_language_prompt_and_shared_anchor_artifacts() -> None:
+    """``test_runtime_supports_mixed_language_prompt_and_shared_anchor_artifacts`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt="请审查这个状态机模型，重点关注行为一致性、需求覆盖以及是否有无依据的额外结构。",
         input_text=(
@@ -576,6 +629,8 @@ def test_runtime_supports_mixed_language_prompt_and_shared_anchor_artifacts() ->
 
 
 def test_runtime_supports_cjk_model_identifiers_with_english_requirements() -> None:
+    """``test_runtime_supports_cjk_model_identifiers_with_english_requirements`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt="Review the predicted model and focus on requirement coverage and unsupported extras.",
         input_text=(
@@ -600,6 +655,8 @@ def test_runtime_supports_cjk_model_identifiers_with_english_requirements() -> N
 
 
 def test_policy_library_prefers_structured_multilingual_metadata() -> None:
+    """``test_policy_library_prefers_structured_multilingual_metadata`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "Evalue este artefacto resumido. Aunque el texto mencione un promedio, "
@@ -620,6 +677,10 @@ def test_policy_library_prefers_structured_multilingual_metadata() -> None:
 
 
 def test_record_level_policy_skips_summary_semantic_llm_calls(monkeypatch) -> None:
+    """``test_record_level_policy_skips_summary_semantic_llm_calls`` 函数。
+
+    :param monkeypatch: 见函数签名与上下文。
+    """
     request = build_request()
     contract = type(
         "Contract",
@@ -640,6 +701,8 @@ def test_record_level_policy_skips_summary_semantic_llm_calls(monkeypatch) -> No
     ref_dossier = build_parser_dossier("reference", request.ref_output)
 
     def _unexpected(*args, **kwargs):
+        """内部 helper：``_unexpected``。
+        """
         raise AssertionError("summary semantic classifier should not run for record-level policy construction")
 
     monkeypatch.setattr(policy_library_module, "infer_summary_row_type", _unexpected)
@@ -662,6 +725,10 @@ def test_record_level_policy_skips_summary_semantic_llm_calls(monkeypatch) -> No
 
 
 def test_review_policy_packet_skips_llm_refinement_for_record_level(monkeypatch) -> None:
+    """``test_review_policy_packet_skips_llm_refinement_for_record_level`` 函数。
+
+    :param monkeypatch: 见函数签名与上下文。
+    """
     request = build_request()
     contract = type(
         "Contract",
@@ -711,6 +778,8 @@ def test_review_policy_packet_skips_llm_refinement_for_record_level(monkeypatch)
 
 
 def test_runtime_scores_component_public_evidence_from_structured_metadata() -> None:
+    """``test_runtime_scores_component_public_evidence_from_structured_metadata`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "Review the published component evidence for the state-machine artifact. "
@@ -740,6 +809,8 @@ def test_runtime_scores_component_public_evidence_from_structured_metadata() -> 
 
 
 def test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text() -> None:
+    """``test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text`` 函数。
+    """
     request = ExpertReviewRequest(
         prompt=(
             "Eres un revisor experto del protocolo de evaluación humana para artefactos de modelado. "
@@ -762,10 +833,17 @@ def test_protocol_policy_detects_vv_roles_under_spanish_prompt_and_mixed_text() 
 
 
 def test_runtime_marks_llm_fallback_only_when_no_stage_returns_usable_llm_output(monkeypatch) -> None:
+    """``test_runtime_marks_llm_fallback_only_when_no_stage_returns_usable_llm_output`` 函数。
+
+    :param monkeypatch: 见函数签名与上下文。
+    """
     class DummyLLM:
+        """``DummyLLM`` 数据/逻辑类；详见所在模块顶部 docstring。"""
         pass
 
     def _always_fail_transport(*args, **kwargs):
+        """内部 helper：``_always_fail_transport``。
+        """
         raise RuntimeError("llm transport unavailable")
 
     monkeypatch.setattr(llm_helpers_module, "_invoke_transport", _always_fail_transport)
@@ -786,6 +864,10 @@ def test_runtime_marks_llm_fallback_only_when_no_stage_returns_usable_llm_output
 
 
 def test_missing_evidence_llm_cannot_invent_record_level_flags_without_base_warning(monkeypatch) -> None:
+    """``test_missing_evidence_llm_cannot_invent_record_level_flags_without_base_warning`` 函数。
+
+    :param monkeypatch: 见函数签名与上下文。
+    """
     monkeypatch.setattr(
         missing_evidence_critic_module,
         "invoke_llm_json",

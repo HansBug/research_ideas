@@ -1,3 +1,11 @@
+"""``utils`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -66,6 +74,9 @@ PROVIDER_FALLBACK_TIMEOUT = 60  # seconds per provider attempt
 
 
 def resolve_api_env() -> dict[str, str]:
+    """``resolve_api_env`` 函数。
+    :return: 见函数签名与上下文。
+    """
     resolved = dict(os.environ)
     env_files = [
         Path.home() / ".codex" / "findcg.env",
@@ -88,6 +99,11 @@ def resolve_api_env() -> dict[str, str]:
 
 
 def normalize_text(value: Any) -> str:
+    """``normalize_text`` 函数。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if value is None:
         return ""
     text = unicodedata.normalize("NFKC", str(value)).replace("\r\n", "\n").replace("\r", "\n").strip()
@@ -95,6 +111,11 @@ def normalize_text(value: Any) -> str:
 
 
 def normalize_id(value: Any) -> str:
+    """``normalize_id`` 函数。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = normalize_text(value).casefold()
     pieces: list[str] = []
     for char in text:
@@ -103,6 +124,11 @@ def normalize_id(value: Any) -> str:
 
 
 def is_cjk(char: str) -> bool:
+    """``is_cjk`` 函数。
+
+    :param char: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     code = ord(char)
     return (
         0x3400 <= code <= 0x4DBF
@@ -114,6 +140,11 @@ def is_cjk(char: str) -> bool:
 
 
 def unicode_word_tokens(value: Any) -> list[str]:
+    """``unicode_word_tokens`` 函数。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = normalize_text(value).casefold()
     tokens: list[str] = []
     current: list[str] = []
@@ -130,6 +161,11 @@ def unicode_word_tokens(value: Any) -> list[str]:
 
 
 def semantic_terms(value: Any) -> set[str]:
+    """``semantic_terms`` 函数。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = normalize_text(value).casefold()
     terms: set[str] = set()
     for token in unicode_word_tokens(text):
@@ -169,6 +205,11 @@ def semantic_terms(value: Any) -> set[str]:
 
 
 def safe_float(value: Any) -> float | None:
+    """``safe_float`` 函数。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if value is None:
         return None
     if isinstance(value, float) and math.isnan(value):
@@ -180,6 +221,12 @@ def safe_float(value: Any) -> float | None:
 
 
 def prf_from_sets(predicted: set[str], reference: set[str]) -> dict[str, float | int]:
+    """``prf_from_sets`` 函数。
+
+    :param predicted: 见函数签名与上下文。
+    :param reference: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     tp = len(predicted & reference)
     fp = len(predicted - reference)
     fn = len(reference - predicted)
@@ -197,6 +244,11 @@ def prf_from_sets(predicted: set[str], reference: set[str]) -> dict[str, float |
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
+    """``extract_json_object`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     decoder = json.JSONDecoder()
     for match in re.finditer(r"\{", text):
         try:
@@ -209,6 +261,11 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def ensure_json(text: str) -> dict[str, Any]:
+    """``ensure_json`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```[a-zA-Z0-9_-]*\n", "", cleaned)
@@ -217,6 +274,11 @@ def ensure_json(text: str) -> dict[str, Any]:
 
 
 def normalize_machine(payload: dict[str, Any]) -> dict[str, Any]:
+    """``normalize_machine`` 函数。
+
+    :param payload: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     result = {
         "machine_name": str(payload.get("machine_name", "")).strip(),
         "states": [],
@@ -294,6 +356,11 @@ def normalize_machine(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def count_machine_components(payload: dict[str, Any]) -> dict[str, int]:
+    """``count_machine_components`` 函数。
+
+    :param payload: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     machine = normalize_machine(payload)
     state_count = sum(1 for state in machine["states"] if state["name"])
     transition_count = sum(

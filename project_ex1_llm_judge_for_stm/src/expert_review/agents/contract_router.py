@@ -1,3 +1,22 @@
+"""Contract Router agent —— 从 prompt 推断评审契约 :class:`ReviewContract`。
+
+**作用**：解析用户给的 NL prompt，把 "评审应该关注什么 / 需要多严格 /
+是否有等价规则" 等元信息抽出来打包为 :class:`ReviewContract`，下发给
+后续 review_policy_builder 配置 dimension weight。
+
+**设计思路**：
+
+1. **deterministic 优先**：:func:`default_contract` 先用 semantic
+   router（基于词嵌入相似度的分类，见 :mod:`semantic_router`）做 9 类
+   focus + 2 类 strictness 分类；
+2. **LLM 精化可选**：:func:`route_contract` 在 LLM 可用时尝试 LLM 路径，
+   返回 JSON 的字段会覆盖 deterministic 默认；LLM 失败 / 返回非 dict
+   时回退 deterministic；
+3. **focus / strictness 类别静态固定**：``FOCUS_CATEGORIES`` 与
+   ``STRICTNESS_CATEGORIES`` 是 hard-coded 9+2 类——保证 routing 结果
+   可重复、可比对。
+"""
+
 from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
@@ -74,6 +93,12 @@ STRICTNESS_CATEGORIES = [
 
 
 def default_contract(prompt: str) -> ReviewContract:
+    """根据 NL prompt 用 semantic router 构造默认 :class:`ReviewContract`。
+
+    :param prompt: 评审 prompt
+    :return: 含 focus / strictness / 默认 equivalence/evidence rules 的
+        :class:`ReviewContract`
+    """
     focus = semantic_multi_label([prompt], FOCUS_CATEGORIES, task_name="contract_focus", allow_empty=False)["labels"]
     equivalence_rules = [
         "Equivalent but differently structured designs should receive credit when observable behavior is preserved.",
@@ -101,6 +126,13 @@ def default_contract(prompt: str) -> ReviewContract:
 
 
 def route_contract(prompt: str, llm: ChatOpenAI | None, notes: list[str]) -> ReviewContract:
+    """LLM 路径优先 + deterministic fallback 的 contract routing。
+
+    :param prompt: 评审 prompt
+    :param llm: LLM client（``None`` 直接走 deterministic）
+    :param notes: 由调用方提供的 list，用于追加 audit 笔记
+    :return: :class:`ReviewContract`
+    """
     fallback = default_contract(prompt)
     if llm is None:
         return fallback

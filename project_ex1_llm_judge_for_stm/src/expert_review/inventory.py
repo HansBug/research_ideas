@@ -1,3 +1,11 @@
+"""``inventory`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -20,6 +28,7 @@ from .utils import (
 
 @dataclass
 class RequirementItem:
+    """``RequirementItem`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     requirement_id: str
     text: str
 
@@ -33,6 +42,11 @@ INLINE_REQUIREMENT_PATTERN = re.compile(
 
 
 def _split_free_text_requirements(text: str) -> list[str]:
+    """内部 helper：``_split_free_text_requirements``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     paragraphs: list[str] = []
     current: list[str] = []
     for raw_line in text.splitlines():
@@ -66,6 +80,11 @@ def _split_free_text_requirements(text: str) -> list[str]:
 
 
 def _split_inline_explicit_requirements(text: str) -> list[RequirementItem]:
+    """内部 helper：``_split_inline_explicit_requirements``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     matches = list(INLINE_REQUIREMENT_PATTERN.finditer(text))
     if len(matches) <= 1:
         return []
@@ -81,6 +100,12 @@ def _split_inline_explicit_requirements(text: str) -> list[RequirementItem]:
 
 
 def parse_requirement_items(text: str | None, provided_items: list[dict[str, Any]]) -> list[RequirementItem]:
+    """``parse_requirement_items`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :param provided_items: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if provided_items:
         items: list[RequirementItem] = []
         for idx, item in enumerate(provided_items, start=1):
@@ -119,6 +144,11 @@ def parse_requirement_items(text: str | None, provided_items: list[dict[str, Any
 
 
 def parse_json_payload(value: str | None) -> dict[str, Any] | list[Any] | None:
+    """``parse_json_payload`` 函数。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if value is None:
         return None
     value = value.strip()
@@ -135,6 +165,11 @@ def parse_json_payload(value: str | None) -> dict[str, Any] | list[Any] | None:
 
 
 def extract_plain_elements(text: str) -> list[str]:
+    """``extract_plain_elements`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     elements: list[str] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
@@ -155,6 +190,11 @@ def extract_plain_elements(text: str) -> list[str]:
 
 
 def _dedupe_keep_order(items: list[str]) -> list[str]:
+    """内部 helper：``_dedupe_keep_order``。
+
+    :param items: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     seen: set[str] = set()
     result: list[str] = []
     for item in items:
@@ -167,6 +207,11 @@ def _dedupe_keep_order(items: list[str]) -> list[str]:
 
 
 def embedded_artifact_text(payload: dict[str, Any] | None) -> str:
+    """``embedded_artifact_text`` 函数。
+
+    :param payload: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not isinstance(payload, dict):
         return ""
     for key in (
@@ -186,6 +231,11 @@ def embedded_artifact_text(payload: dict[str, Any] | None) -> str:
 
 
 def extract_generic_inventory_from_text(text: str) -> dict[str, list[str]]:
+    """``extract_generic_inventory_from_text`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not text.strip():
         return {"states": [], "transitions": [], "blocks": [], "signals": [], "rules": []}
 
@@ -240,6 +290,12 @@ def extract_generic_inventory_from_text(text: str) -> dict[str, list[str]]:
 
 
 def merge_inventory(base: dict[str, list[str]], extra: dict[str, list[str]]) -> dict[str, list[str]]:
+    """``merge_inventory`` 函数。
+
+    :param base: 见函数签名与上下文。
+    :param extra: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {
         key: _dedupe_keep_order(list(base.get(key, [])) + list(extra.get(key, [])))
         for key in ["states", "transitions", "blocks", "signals", "rules"]
@@ -247,6 +303,11 @@ def merge_inventory(base: dict[str, list[str]], extra: dict[str, list[str]]) -> 
 
 
 def machine_elements_from_payload(payload: dict[str, Any] | None) -> dict[str, list[str]]:
+    """``machine_elements_from_payload`` 函数。
+
+    :param payload: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not isinstance(payload, dict):
         return {"states": [], "transitions": [], "blocks": [], "signals": [], "rules": []}
     machine = normalize_machine(payload)
@@ -339,6 +400,14 @@ def extract_model_inventory(
     reference_text: str | None,
     reference_json: str | None,
 ) -> dict[str, Any]:
+    """``extract_model_inventory`` 函数。
+
+    :param prediction_text: 见函数签名与上下文。
+    :param prediction_json: 见函数签名与上下文。
+    :param reference_text: 见函数签名与上下文。
+    :param reference_json: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     pred_payload = parse_json_payload(prediction_json) or parse_json_payload(prediction_text)
     ref_payload = parse_json_payload(reference_json) or parse_json_payload(reference_text)
     pred_text_material = "\n".join(item for item in [prediction_text or "", embedded_artifact_text(pred_payload)] if item)
@@ -366,6 +435,12 @@ def extract_model_inventory(
 
 
 def compute_set_match(predicted: list[str], reference: list[str]) -> dict[str, Any]:
+    """``compute_set_match`` 函数。
+
+    :param predicted: 见函数签名与上下文。
+    :param reference: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     pred = {normalize_id(item) for item in predicted if normalize_id(item)}
     ref = {normalize_id(item) for item in reference if normalize_id(item)}
     metrics = prf_from_sets(pred, ref)
@@ -380,6 +455,12 @@ def compute_set_match(predicted: list[str], reference: list[str]) -> dict[str, A
 def build_requirement_trace(
     requirements: list[RequirementItem], prediction_elements: dict[str, list[str]]
 ) -> list[dict[str, Any]]:
+    """``build_requirement_trace`` 函数。
+
+    :param requirements: 见函数签名与上下文。
+    :param prediction_elements: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     searchable = []
     for key, values in prediction_elements.items():
         for value in values:
@@ -463,6 +544,9 @@ def build_traceability_tool(requirements_json: str, prediction_inventory_json: s
 
 
 def get_review_tools() -> list[Any]:
+    """``get_review_tools`` 函数。
+    :return: 见函数签名与上下文。
+    """
     return [
         parse_requirements_tool,
         extract_model_inventory_tool,

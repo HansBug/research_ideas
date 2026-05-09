@@ -1,3 +1,11 @@
+"""``llm_telemetry`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import contextvars
@@ -9,6 +17,7 @@ from typing import Any, Iterator
 
 @dataclass(slots=True)
 class LLMOperationRecord:
+    """``LLMOperationRecord`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     operation: str
     success: bool
     json_mode: bool
@@ -25,6 +34,7 @@ class LLMOperationRecord:
 
 @dataclass(slots=True)
 class LLMUsageSummary:
+    """``LLMUsageSummary`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     llm_configured: bool = False
     configured_model_name: str | None = None
     configured_provider: str | None = None
@@ -49,15 +59,25 @@ class LLMUsageSummary:
 
 @dataclass(slots=True)
 class _MutableRunTracker:
+    """``_MutableRunTracker`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     llm_configured: bool
     configured_model_name: str | None
     configured_provider: str | None
     records: list[LLMOperationRecord] = field(default_factory=list)
 
     def record(self, item: LLMOperationRecord) -> None:
+        """``record`` 函数。
+
+        :param item: 见函数签名与上下文。
+        """
         self.records.append(item)
 
     def summarize(self, *, record_count: int = 1) -> LLMUsageSummary:
+        """``summarize`` 函数。
+
+        :param record_count: 见函数签名与上下文。
+        :return: 见函数签名与上下文。
+        """
         latencies = [item.latency_s for item in self.records]
         breakdown: dict[str, dict[str, int]] = {}
         for item in self.records:
@@ -94,6 +114,11 @@ class _MutableRunTracker:
 
 
 def _p95(values: list[float]) -> float:
+    """内部 helper：``_p95``。
+
+    :param values: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not values:
         return 0.0
     if len(values) == 1:
@@ -116,6 +141,13 @@ def llm_run_context(
     configured_model_name: str | None,
     configured_provider: str | None,
 ) -> Iterator[None]:
+    """``llm_run_context`` 函数。
+
+    :param llm_configured: 见函数签名与上下文。
+    :param configured_model_name: 见函数签名与上下文。
+    :param configured_provider: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     token = _RUN_TRACKER.set(
         _MutableRunTracker(
             llm_configured=llm_configured,
@@ -144,6 +176,21 @@ def record_llm_operation(
     total_tokens: int,
     error_type: str | None = None,
 ) -> None:
+    """``record_llm_operation`` 函数。
+
+    :param operation: 见函数签名与上下文。
+    :param success: 见函数签名与上下文。
+    :param json_mode: 见函数签名与上下文。
+    :param repair_used: 见函数签名与上下文。
+    :param used_stream: 见函数签名与上下文。
+    :param transport_call_count: 见函数签名与上下文。
+    :param failed_transport_call_count: 见函数签名与上下文。
+    :param latency_s: 见函数签名与上下文。
+    :param prompt_tokens: 见函数签名与上下文。
+    :param completion_tokens: 见函数签名与上下文。
+    :param total_tokens: 见函数签名与上下文。
+    :param error_type: 见函数签名与上下文。
+    """
     tracker = _RUN_TRACKER.get()
     if tracker is None:
         return
@@ -166,6 +213,11 @@ def record_llm_operation(
 
 
 def summarize_current_llm_usage(*, record_count: int = 1) -> LLMUsageSummary:
+    """``summarize_current_llm_usage`` 函数。
+
+    :param record_count: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     tracker = _RUN_TRACKER.get()
     if tracker is None:
         return LLMUsageSummary(token_cost_per_record=0.0)
@@ -173,6 +225,11 @@ def summarize_current_llm_usage(*, record_count: int = 1) -> LLMUsageSummary:
 
 
 def usage_dict_from_response(response: Any) -> dict[str, int]:
+    """``usage_dict_from_response`` 函数。
+
+    :param response: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     usage = getattr(response, "usage_metadata", None)
     if isinstance(usage, dict):
         prompt = usage.get("input_tokens", usage.get("prompt_tokens", 0))

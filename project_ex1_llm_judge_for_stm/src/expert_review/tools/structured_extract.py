@@ -1,3 +1,11 @@
+"""``structured_extract`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.tools` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -14,6 +22,9 @@ from .dossier_merge import merge_artifact_dossiers
 
 
 def render_artifact_schema_hint() -> dict[str, Any]:
+    """``render_artifact_schema_hint`` 函数。
+    :return: 见函数签名与上下文。
+    """
     return {
         "artifact_family_guess": "behavior_model",
         "summary": "Short evidence-grounded summary.",
@@ -48,6 +59,12 @@ def render_artifact_schema_hint() -> dict[str, Any]:
 
 
 def should_use_llm_extractor(dossier: ArtifactDossier, text: str | None) -> bool:
+    """``should_use_llm_extractor`` 函数。
+
+    :param dossier: 见函数签名与上下文。
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not text or not text.strip():
         return False
     if dossier.format_guess in {"json_structured_model", "plantuml_like"} and dossier.observability == "high":
@@ -65,6 +82,14 @@ def extract_artifact_dossier(
     llm: ChatOpenAI | None,
     notes: list[str],
 ) -> ArtifactDossier:
+    """``extract_artifact_dossier`` 函数。
+
+    :param role: 见函数签名与上下文。
+    :param text: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :param notes: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     parser_dossier = build_parser_dossier(role, text)
     if llm is None or not should_use_llm_extractor(parser_dossier, text):
         return parser_dossier

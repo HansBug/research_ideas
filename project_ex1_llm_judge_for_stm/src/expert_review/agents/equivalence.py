@@ -1,3 +1,11 @@
+"""``equivalence`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -24,6 +32,13 @@ from .llm_helpers import invoke_llm_json
 
 
 def _extra_issue_from_element(element: Any, issue_type: str, reason_text: str) -> ElementIssue:
+    """内部 helper：``_extra_issue_from_element``。
+
+    :param element: 见函数签名与上下文。
+    :param issue_type: 见函数签名与上下文。
+    :param reason_text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return ElementIssue(
         element_id=element.element_id,
         element_kind=element.kind,
@@ -34,6 +49,13 @@ def _extra_issue_from_element(element: Any, issue_type: str, reason_text: str) -
 
 
 def _extra_issue_from_relation(relation: Any, issue_type: str, reason_text: str) -> ElementIssue:
+    """内部 helper：``_extra_issue_from_relation``。
+
+    :param relation: 见函数签名与上下文。
+    :param issue_type: 见函数签名与上下文。
+    :param reason_text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return ElementIssue(
         element_id=relation.relation_id,
         element_kind=relation.kind,
@@ -44,6 +66,14 @@ def _extra_issue_from_relation(relation: Any, issue_type: str, reason_text: str)
 
 
 def _synthetic_issue(element_id: str, issue_type: str, element_text: str, reason_text: str) -> ElementIssue:
+    """内部 helper：``_synthetic_issue``。
+
+    :param element_id: 见函数签名与上下文。
+    :param issue_type: 见函数签名与上下文。
+    :param element_text: 见函数签名与上下文。
+    :param reason_text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return ElementIssue(
         element_id=element_id,
         element_kind="structure",
@@ -54,6 +84,12 @@ def _synthetic_issue(element_id: str, issue_type: str, element_text: str, reason
 
 
 def _detect_guard_polarity_conflict(pred_relation: Any, ref_relation: Any) -> bool:
+    """内部 helper：``_detect_guard_polarity_conflict``。
+
+    :param pred_relation: 见函数签名与上下文。
+    :param ref_relation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not pred_relation.condition or not ref_relation.condition:
         return False
     pred = pred_relation.condition.lower()
@@ -74,6 +110,12 @@ def _detect_guard_polarity_conflict(pred_relation: Any, ref_relation: Any) -> bo
 
 
 def _detect_action_effect_conflict(pred_relation: Any, ref_relation: Any) -> bool:
+    """内部 helper：``_detect_action_effect_conflict``。
+
+    :param pred_relation: 见函数签名与上下文。
+    :param ref_relation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     pred_action = str(getattr(pred_relation, "action", "") or "").strip()
     ref_action = str(getattr(ref_relation, "action", "") or "").strip()
     if not pred_action or not ref_action:
@@ -82,6 +124,11 @@ def _detect_action_effect_conflict(pred_relation: Any, ref_relation: Any) -> boo
 
 
 def _major_relation_labels(pred_dossier: Any) -> tuple[set[str], set[str]]:
+    """内部 helper：``_major_relation_labels``。
+
+    :param pred_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     major_names = major_element_name_set(pred_dossier)
     major_relations: set[str] = set()
     internal_relations: set[str] = set()
@@ -96,6 +143,12 @@ def _major_relation_labels(pred_dossier: Any) -> tuple[set[str], set[str]]:
 
 
 def _parallel_structure_diagnostics(pred_dossier: Any, ref_dossier: Any) -> dict[str, Any]:
+    """内部 helper：``_parallel_structure_diagnostics``。
+
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     ref_initial_targets = initial_targets_from_behaviors(ref_dossier)
     pred_initial_targets = initial_targets_from_behaviors(pred_dossier)
     ref_parallel_markers = int(ref_dossier.surface_markers.get("parallel", 0) or 0)
@@ -138,6 +191,13 @@ def deterministic_equivalence(
     pred_dossier: Any,
     ref_dossier: Any,
 ) -> dict[str, Any]:
+    """``deterministic_equivalence`` 函数。
+
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     grounding_tokens = requirement_grounding_tokens(input_dossier)
     supported_restructures: list[str] = []
     harmful_extras: list[ElementIssue] = []
@@ -345,6 +405,11 @@ def deterministic_equivalence(
 
 
 def _json_safe_report(report: dict[str, Any]) -> dict[str, Any]:
+    """内部 helper：``_json_safe_report``。
+
+    :param report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     safe: dict[str, Any] = {}
     for key, value in report.items():
         if isinstance(value, list) and value and isinstance(value[0], ElementIssue):
@@ -380,6 +445,15 @@ def equivalence_with_llm(
     ref_dossier: Any,
     base_report: dict[str, Any],
 ) -> dict[str, Any] | None:
+    """``equivalence_with_llm`` 函数。
+
+    :param llm: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :param base_report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     payload = invoke_llm_json(
         llm,
         [

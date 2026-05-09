@@ -1,3 +1,11 @@
+"""``semantic_router`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,6 +23,7 @@ from .utils import normalize_id, normalize_text, semantic_terms
 
 @dataclass(frozen=True, slots=True)
 class SemanticCategory:
+    """``SemanticCategory`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     name: str
     definition: str
     positive_examples: tuple[str, ...] = ()
@@ -28,11 +37,24 @@ def _invoke_llm_json(
     *,
     operation: str,
 ) -> dict[str, Any] | None:
+    """内部 helper：``_invoke_llm_json``。
+
+    :param llm: 见函数签名与上下文。
+    :param messages: 见函数签名与上下文。
+    :param operation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return invoke_llm_json(llm, messages, operation=operation)
 
 
 @lru_cache(maxsize=200000)
 def _semantic_similarity(left: str, right: str) -> float:
+    """内部 helper：``_semantic_similarity``。
+
+    :param left: 见函数签名与上下文。
+    :param right: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     left_text = normalize_text(left).casefold()
     right_text = normalize_text(right).casefold()
     if not left_text or not right_text:
@@ -49,6 +71,11 @@ def _semantic_similarity(left: str, right: str) -> float:
 
 
 def _category_payload(category: SemanticCategory) -> dict[str, Any]:
+    """内部 helper：``_category_payload``。
+
+    :param category: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {
         "name": category.name,
         "definition": category.definition,
@@ -58,6 +85,12 @@ def _category_payload(category: SemanticCategory) -> dict[str, Any]:
 
 
 def _category_score(texts: Sequence[str], category: SemanticCategory) -> float:
+    """内部 helper：``_category_score``。
+
+    :param texts: 见函数签名与上下文。
+    :param category: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     references = [
         category.name.replace("_", " "),
         category.definition,
@@ -82,6 +115,11 @@ def _category_score(texts: Sequence[str], category: SemanticCategory) -> float:
 
 @lru_cache(maxsize=50000)
 def _semantic_fragments(text: str) -> tuple[str, ...]:
+    """内部 helper：``_semantic_fragments``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     normalized = normalize_text(text)
     if not normalized:
         return ()
@@ -107,6 +145,11 @@ def _semantic_fragments(text: str) -> tuple[str, ...]:
 
 
 def _prepare_texts(texts: Iterable[Any]) -> list[str]:
+    """内部 helper：``_prepare_texts``。
+
+    :param texts: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     prepared: list[str] = []
     seen: set[str] = set()
     for item in texts:
@@ -128,6 +171,15 @@ def semantic_single_label(
     task_name: str,
     default_label: str = "unknown",
 ) -> dict[str, Any]:
+    """``semantic_single_label`` 函数。
+
+    :param texts: 见函数签名与上下文。
+    :param categories: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :param task_name: 见函数签名与上下文。
+    :param default_label: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     prepared = _prepare_texts(texts)
     if not categories:
         return {"label": default_label, "confidence": 0.0, "scores": {}, "source": "empty"}
@@ -188,6 +240,15 @@ def semantic_multi_label(
     task_name: str,
     allow_empty: bool = True,
 ) -> dict[str, Any]:
+    """``semantic_multi_label`` 函数。
+
+    :param texts: 见函数签名与上下文。
+    :param categories: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :param task_name: 见函数签名与上下文。
+    :param allow_empty: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     prepared = _prepare_texts(texts)
     if not categories:
         return {"labels": [], "confidence": 0.0, "scores": {}, "source": "empty"}

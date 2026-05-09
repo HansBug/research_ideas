@@ -1,3 +1,11 @@
+"""``known_format_lift`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.tools` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import html
@@ -14,6 +22,11 @@ from ..utils import count_machine_components, normalize_id
 
 
 def dedupe_strings(items: list[str]) -> list[str]:
+    """``dedupe_strings`` 函数。
+
+    :param items: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     seen: set[str] = set()
     result: list[str] = []
     for item in items:
@@ -27,6 +40,11 @@ def dedupe_strings(items: list[str]) -> list[str]:
 
 
 def guess_format(text: str | None) -> str:
+    """``guess_format`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not text or not text.strip():
         return "missing"
     stripped = text.strip()
@@ -52,6 +70,12 @@ def guess_format(text: str | None) -> str:
 
 
 def format_confidence(format_guess: str, text: str | None) -> float:
+    """``format_confidence`` 函数。
+
+    :param format_guess: 见函数签名与上下文。
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if format_guess == "missing":
         return 0.0
     if format_guess in {"json_structured_model", "plantuml_like", "ttool_xml"}:
@@ -66,6 +90,12 @@ def format_confidence(format_guess: str, text: str | None) -> float:
 
 
 def artifact_family_guess(inventory: dict[str, list[str]], text: str | None) -> str:
+    """``artifact_family_guess`` 函数。
+
+    :param inventory: 见函数签名与上下文。
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     architecture_signal = len(inventory.get("blocks", [])) + len(inventory.get("signals", []))
     behavior_signal = len(inventory.get("states", [])) + len(inventory.get("transitions", []))
     if architecture_signal >= max(3, behavior_signal + 2):
@@ -83,6 +113,11 @@ def artifact_family_guess(inventory: dict[str, list[str]], text: str | None) -> 
 
 
 def parse_transition_signature(text: str) -> tuple[str, str, str, str, str]:
+    """``parse_transition_signature`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     raw = text.strip()
     if "|" in raw:
         parts = raw.split("|")
@@ -110,6 +145,11 @@ def parse_transition_signature(text: str) -> tuple[str, str, str, str, str]:
 
 
 def _self_named_composite_count_from_text(text: str | None) -> int:
+    """内部 helper：``_self_named_composite_count_from_text``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     raw = text or ""
     count = 0
     for match in re.finditer(r"state\s+([\w\u3400-\u9FFF][\w\u3400-\u9FFF.-]*)\s*\{", raw):
@@ -125,6 +165,11 @@ def _self_named_composite_count_from_text(text: str | None) -> int:
 
 
 def _cross_composite_transition_risk_from_text(text: str | None) -> int:
+    """内部 helper：``_cross_composite_transition_risk_from_text``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     raw = text or ""
     composites = [
         match.group(1).strip()
@@ -149,6 +194,11 @@ def _cross_composite_transition_risk_from_text(text: str | None) -> int:
 
 
 def surface_markers_from_text(text: str | None) -> dict[str, int]:
+    """``surface_markers_from_text`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     raw = text or ""
     lowered = raw.lower()
     return {
@@ -165,6 +215,11 @@ def surface_markers_from_text(text: str | None) -> dict[str, int]:
 
 
 def _extract_xml_inventory(text: str | None) -> tuple[dict[str, list[str]], list[str]]:
+    """内部 helper：``_extract_xml_inventory``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     raw = text or ""
     inventory = {"states": [], "transitions": [], "blocks": [], "signals": [], "rules": []}
     notes: list[str] = []
@@ -225,6 +280,13 @@ def _extract_xml_inventory(text: str | None) -> tuple[dict[str, list[str]], list
 
 
 def _derive_behavior_lines(text: str | None, inventory: dict[str, list[str]], format_guess: str) -> list[str]:
+    """内部 helper：``_derive_behavior_lines``。
+
+    :param text: 见函数签名与上下文。
+    :param inventory: 见函数签名与上下文。
+    :param format_guess: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if inventory.get("transitions"):
         return dedupe_strings(inventory["transitions"] + inventory.get("rules", []))[:20]
     if format_guess in {"ttool_xml", "xml"}:
@@ -239,6 +301,12 @@ def _derive_behavior_lines(text: str | None, inventory: dict[str, list[str]], fo
 
 
 def _derive_constraint_lines(text: str | None, inventory: dict[str, list[str]]) -> list[str]:
+    """内部 helper：``_derive_constraint_lines``。
+
+    :param text: 见函数签名与上下文。
+    :param inventory: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     rules = list(inventory.get("rules", []))
     lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
     for line in lines:
@@ -251,6 +319,12 @@ def _derive_constraint_lines(text: str | None, inventory: dict[str, list[str]]) 
 
 
 def _derive_ambiguities(text: str | None, inventory: dict[str, list[str]]) -> list[str]:
+    """内部 helper：``_derive_ambiguities``。
+
+    :param text: 见函数签名与上下文。
+    :param inventory: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     ambiguities = list(inventory.get("rules", []))
     for line in (text or "").splitlines():
         clean = line.strip()
@@ -261,6 +335,11 @@ def _derive_ambiguities(text: str | None, inventory: dict[str, list[str]]) -> li
 
 
 def _canonical_names_from_inventory(inventory: dict[str, list[str]]) -> list[str]:
+    """内部 helper：``_canonical_names_from_inventory``。
+
+    :param inventory: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     names: list[str] = []
     for key in ["states", "blocks", "signals"]:
         names.extend(item.split("|", 1)[0].strip() for item in inventory.get(key, []))
@@ -274,6 +353,11 @@ def _canonical_names_from_inventory(inventory: dict[str, list[str]]) -> list[str
 
 
 def _explicit_state_names_from_text(text: str | None) -> list[str]:
+    """内部 helper：``_explicit_state_names_from_text``。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     raw = text or ""
     names = [
         match.group(1).strip()
@@ -288,6 +372,14 @@ def _observability_from_inventory(
     counts: dict[str, Any],
     format_guess: str,
 ) -> tuple[str, str]:
+    """内部 helper：``_observability_from_inventory``。
+
+    :param text: 见函数签名与上下文。
+    :param inventory: 见函数签名与上下文。
+    :param counts: 见函数签名与上下文。
+    :param format_guess: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     item_count = sum(len(inventory.get(key, [])) for key in ["states", "transitions", "blocks", "signals", "rules"])
     text_len = len((text or "").strip())
     transition_count = int(counts.get("transition_count", 0) or 0)
@@ -312,6 +404,13 @@ def _structural_warnings_from_probe(
     inventory: dict[str, list[str]],
     markers: dict[str, int],
 ) -> list[str]:
+    """内部 helper：``_structural_warnings_from_probe``。
+
+    :param format_guess: 见函数签名与上下文。
+    :param inventory: 见函数签名与上下文。
+    :param markers: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     warnings: list[str] = []
     if markers.get("self_named_composite", 0):
         warnings.append("Composite states appear to self-initialize inside their own body, which often indicates a structural modeling problem.")
@@ -331,6 +430,15 @@ def summary_from_inventory(
     observability: str,
     observability_reason: str,
 ) -> str:
+    """``summary_from_inventory`` 函数。
+
+    :param role: 见函数签名与上下文。
+    :param inventory: 见函数签名与上下文。
+    :param format_guess: 见函数签名与上下文。
+    :param observability: 见函数签名与上下文。
+    :param observability_reason: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     parts: list[str] = [f"{role} artifact detected as {format_guess}."]
     counts = {
         "states": len(inventory.get("states", [])),
@@ -349,6 +457,11 @@ def summary_from_inventory(
 
 
 def inventory_from_text(text: str | None) -> dict[str, Any]:
+    """``inventory_from_text`` 函数。
+
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     format_guess_value = guess_format(text)
     payload = parse_json_payload(text)
     parser_notes: list[str] = []

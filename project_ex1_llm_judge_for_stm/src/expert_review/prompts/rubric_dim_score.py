@@ -251,14 +251,29 @@ _DIM_RUBRICS = {
 
 
 def _format_rubric_table(rows: list[tuple[str, str]]) -> str:
+    """内部 helper：``_format_rubric_table``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return "\n".join(f"  {score}  {desc}" for score, desc in rows)
 
 
 def _format_anchors(anchors: list[tuple[str, str]]) -> str:
+    """内部 helper：``_format_anchors``。
+
+    :param anchors: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return "\n".join(f"  - {aid}: {desc}" for aid, desc in anchors)
 
 
 def _format_pitfalls(pitfalls: list[str]) -> str:
+    """内部 helper：``_format_pitfalls``。
+
+    :param pitfalls: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return "\n".join(f"  - {p}" for p in pitfalls)
 
 

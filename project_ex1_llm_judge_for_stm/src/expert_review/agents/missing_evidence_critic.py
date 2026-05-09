@@ -1,3 +1,11 @@
+"""``missing_evidence_critic`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -11,6 +19,11 @@ from .llm_helpers import invoke_llm_json
 
 
 def _dedup_str_list(values: list[str]) -> list[str]:
+    """内部 helper：``_dedup_str_list``。
+
+    :param values: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     result: list[str] = []
     seen: set[str] = set()
     for item in values:
@@ -33,6 +46,19 @@ def deterministic_missing_evidence_critic(
     equivalence_report: dict[str, Any],
     quality_report: dict[str, Any],
 ) -> dict[str, Any]:
+    """``deterministic_missing_evidence_critic`` 函数。
+
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param request: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :param equivalence_report: 见函数签名与上下文。
+    :param quality_report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     warnings: list[str] = []
     missing_flags: list[str] = []
     confidence_cap = float(policy_packet.get("base_confidence_cap", 0.72))
@@ -120,6 +146,21 @@ def missing_evidence_with_llm(
     quality_report: dict[str, Any],
     base_report: dict[str, Any],
 ) -> dict[str, Any] | None:
+    """``missing_evidence_with_llm`` 函数。
+
+    :param llm: 见函数签名与上下文。
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param request: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :param equivalence_report: 见函数签名与上下文。
+    :param quality_report: 见函数签名与上下文。
+    :param base_report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if llm is None:
         return None
     payload = invoke_llm_json(

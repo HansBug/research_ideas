@@ -1,3 +1,11 @@
+"""``benchmark`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import argparse
@@ -93,6 +101,7 @@ COMPONENT_REFERENCE_TEXT_ROOTS = (
 
 @dataclass(slots=True)
 class BenchmarkTask:
+    """``BenchmarkTask`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     task_id: str
     eval_bucket: str
     regime_expected: str
@@ -108,6 +117,12 @@ class BenchmarkTask:
 
 
 def _stable_token(value: Any, *, fallback: str = "na") -> str:
+    """内部 helper：``_stable_token``。
+
+    :param value: 见函数签名与上下文。
+    :param fallback: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = _safe_text(value).strip()
     if not text:
         return fallback
@@ -115,6 +130,11 @@ def _stable_token(value: Any, *, fallback: str = "na") -> str:
 
 
 def _p95(values: list[float]) -> float:
+    """内部 helper：``_p95``。
+
+    :param values: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not values:
         return 0.0
     if len(values) == 1:
@@ -125,6 +145,11 @@ def _p95(values: list[float]) -> float:
 
 
 def _family_key_for_record_row(row: pd.Series) -> str:
+    """内部 helper：``_family_key_for_record_row``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     paper_slug = _stable_token(row.get("paper_slug"), fallback="paper")
     record_type = _stable_token(row.get("record_type"), fallback="record")
     case_id = _stable_token(row.get("case_id"))
@@ -170,10 +195,20 @@ def _family_key_for_record_row(row: pd.Series) -> str:
 
 
 def _family_key_for_protocol_row(row: pd.Series) -> str:
+    """内部 helper：``_family_key_for_protocol_row``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return _stable_token(row.get("paper_slug"), fallback="protocol")
 
 
 def _prepare_record_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    """内部 helper：``_prepare_record_level_pool``。
+
+    :param records: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     df = records[
         records["record_type"].isin(RECORD_LEVEL_RECORD_TYPES)
         & records["pred_output_text"].notna()
@@ -186,6 +221,11 @@ def _prepare_record_level_pool(records: pd.DataFrame) -> pd.DataFrame:
 
 
 def _prepare_summary_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    """内部 helper：``_prepare_summary_level_pool``。
+
+    :param records: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     df = records[
         records["record_type"].isin(SUMMARY_LEVEL_RECORD_TYPES)
         & records["pred_output_text"].notna()
@@ -196,6 +236,11 @@ def _prepare_summary_level_pool(records: pd.DataFrame) -> pd.DataFrame:
 
 
 def _safe_json_dict(value: Any) -> dict[str, Any]:
+    """内部 helper：``_safe_json_dict``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = _safe_text(value).strip()
     if not text:
         return {}
@@ -207,6 +252,11 @@ def _safe_json_dict(value: Any) -> dict[str, Any]:
 
 
 def _safe_json_list(value: Any) -> list[Any]:
+    """内部 helper：``_safe_json_list``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = _safe_text(value).strip()
     if not text:
         return []
@@ -218,6 +268,11 @@ def _safe_json_list(value: Any) -> list[Any]:
 
 
 def _safe_float(value: Any) -> float | None:
+    """内部 helper：``_safe_float``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     try:
         score = float(value)
     except Exception:
@@ -228,6 +283,11 @@ def _safe_float(value: Any) -> float | None:
 
 
 def _safe_int(value: Any) -> int | None:
+    """内部 helper：``_safe_int``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     score = _safe_float(value)
     if score is None:
         return None
@@ -238,6 +298,13 @@ def _safe_int(value: Any) -> int | None:
 
 
 def _component_f1_from_counts(tp: int | None, fp: int | None, fn: int | None) -> float | None:
+    """内部 helper：``_component_f1_from_counts``。
+
+    :param tp: 见函数签名与上下文。
+    :param fp: 见函数签名与上下文。
+    :param fn: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if tp is None or fp is None or fn is None:
         return None
     precision = tp / (tp + fp) if tp + fp else 0.0
@@ -247,6 +314,11 @@ def _component_f1_from_counts(tp: int | None, fp: int | None, fn: int | None) ->
 
 @lru_cache(maxsize=128)
 def _reference_solution_text_by_basename(basename: str) -> str:
+    """内部 helper：``_reference_solution_text_by_basename``。
+
+    :param basename: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not basename:
         return ""
     txt_name = Path(basename).with_suffix(".txt").name
@@ -258,6 +330,11 @@ def _reference_solution_text_by_basename(basename: str) -> str:
 
 
 def _hydrate_component_public_evidence(row: pd.Series) -> dict[str, Any]:
+    """内部 helper：``_hydrate_component_public_evidence``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     details = _safe_json_dict(row.get("human_review_details_json"))
     source = _safe_json_dict(row.get("human_review_source_record_json"))
     original = _safe_json_list(row.get("human_review_original_text_json"))
@@ -321,6 +398,11 @@ def _hydrate_component_public_evidence(row: pd.Series) -> dict[str, Any]:
 
 
 def _prepare_component_level_table(records: pd.DataFrame) -> pd.DataFrame:
+    """内部 helper：``_prepare_component_level_table``。
+
+    :param records: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     df = records[records["record_type"].isin(COMPONENT_LEVEL_RECORD_TYPES)].copy()
     if not df.empty:
         df["family_key"] = df.apply(_family_key_for_record_row, axis=1)
@@ -332,6 +414,11 @@ def _prepare_component_level_table(records: pd.DataFrame) -> pd.DataFrame:
 
 
 def _prepare_component_level_pool(records: pd.DataFrame) -> pd.DataFrame:
+    """内部 helper：``_prepare_component_level_pool``。
+
+    :param records: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     df = _prepare_component_level_table(records)
     if not df.empty:
         df = df[df["component_main_eval_eligible"]].copy()
@@ -339,6 +426,11 @@ def _prepare_component_level_pool(records: pd.DataFrame) -> pd.DataFrame:
 
 
 def _prepare_protocol_level_pool(protocols: pd.DataFrame) -> pd.DataFrame:
+    """内部 helper：``_prepare_protocol_level_pool``。
+
+    :param protocols: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     df = protocols.copy()
     if not df.empty:
         df["family_key"] = df.apply(_family_key_for_protocol_row, axis=1)
@@ -350,6 +442,13 @@ def build_benchmark_inventory(
     protocols: pd.DataFrame,
     availability: pd.DataFrame,
 ) -> dict[str, pd.DataFrame]:
+    """``build_benchmark_inventory`` 函数。
+
+    :param records: 见函数签名与上下文。
+    :param protocols: 见函数签名与上下文。
+    :param availability: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     component_all = _prepare_component_level_table(records)
     return {
         "records_all": records.copy(),
@@ -364,10 +463,20 @@ def build_benchmark_inventory(
 
 
 def _counts_dict(series: pd.Series) -> dict[str, int]:
+    """内部 helper：``_counts_dict``。
+
+    :param series: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {str(key): int(value) for key, value in series.fillna("NA").value_counts().to_dict().items()}
 
 
 def build_component_alignment_schema(component_df: pd.DataFrame) -> dict[str, Any]:
+    """``build_component_alignment_schema`` 函数。
+
+    :param component_df: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if component_df.empty:
         return {
             "rows": 0,
@@ -397,6 +506,13 @@ def summarize_benchmark_coverage(
     protocols: pd.DataFrame,
     availability: pd.DataFrame,
 ) -> dict[str, Any]:
+    """``summarize_benchmark_coverage`` 函数。
+
+    :param records: 见函数签名与上下文。
+    :param protocols: 见函数签名与上下文。
+    :param availability: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     inventory = build_benchmark_inventory(records, protocols, availability)
     record_df = inventory["record_level"]
     summary_df = inventory["summary_level"]
@@ -464,6 +580,12 @@ def summarize_benchmark_coverage(
 
 
 def _rows_to_tasks(regime_name: str, df: pd.DataFrame) -> list[BenchmarkTask]:
+    """内部 helper：``_rows_to_tasks``。
+
+    :param regime_name: 见函数签名与上下文。
+    :param df: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if df.empty:
         return []
     if regime_name == "record":
@@ -483,6 +605,13 @@ def _family_split_assignments(
     seed: int,
     split_ratios: dict[str, float] | None = None,
 ) -> dict[str, set[str]]:
+    """内部 helper：``_family_split_assignments``。
+
+    :param df: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :param split_ratios: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     assignments = {split: set() for split in SPLIT_ORDER}
     if df.empty or "family_key" not in df:
         return assignments
@@ -533,6 +662,15 @@ def build_benchmark_split_bundle(
     seed: int = 7,
     split_ratios: dict[str, float] | None = None,
 ) -> dict[str, Any]:
+    """``build_benchmark_split_bundle`` 函数。
+
+    :param records: 见函数签名与上下文。
+    :param protocols: 见函数签名与上下文。
+    :param availability: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :param split_ratios: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     inventory = build_benchmark_inventory(records, protocols, availability)
     regime_frames = {
         "record": inventory["record_level"],
@@ -575,6 +713,13 @@ def build_lofo_task_bundles(
     protocols: pd.DataFrame,
     availability: pd.DataFrame,
 ) -> dict[str, Any]:
+    """``build_lofo_task_bundles`` 函数。
+
+    :param records: 见函数签名与上下文。
+    :param protocols: 见函数签名与上下文。
+    :param availability: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     inventory = build_benchmark_inventory(records, protocols, availability)
     regime_frames = {
         "record": inventory["record_level"],
@@ -603,6 +748,11 @@ def build_lofo_task_bundles(
 
 
 def _load_benchmark_tables(base_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """内部 helper：``_load_benchmark_tables``。
+
+    :param base_dir: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     records = pd.read_parquet(base_dir / "baseline_double_green_human_review_records.parquet")
     protocols = pd.read_parquet(base_dir / "baseline_double_green_human_review_protocols.parquet")
     availability = pd.read_parquet(base_dir / "baseline_double_green_human_review_availability.parquet")
@@ -610,6 +760,12 @@ def _load_benchmark_tables(base_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, 
 
 
 def _normalize_score(value: Any, unit: Any) -> float | None:
+    """内部 helper：``_normalize_score``。
+
+    :param value: 见函数签名与上下文。
+    :param unit: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     score = _safe_float(value)
     if score is None:
         return None
@@ -624,12 +780,23 @@ def _normalize_score(value: Any, unit: Any) -> float | None:
 
 
 def _safe_text(value: Any) -> str:
+    """内部 helper：``_safe_text``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if value is None:
         return ""
     return str(value)
 
 
 def _truncate_artifact(value: Any, limit: int) -> str:
+    """内部 helper：``_truncate_artifact``。
+
+    :param value: 见函数签名与上下文。
+    :param limit: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     text = _safe_text(value)
     if len(text) <= limit:
         return text
@@ -637,6 +804,11 @@ def _truncate_artifact(value: Any, limit: int) -> str:
 
 
 def _collect_strings_from_json(value: Any) -> list[str]:
+    """内部 helper：``_collect_strings_from_json``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     results: list[str] = []
     if isinstance(value, dict):
         for key, item in value.items():
@@ -653,6 +825,11 @@ def _collect_strings_from_json(value: Any) -> list[str]:
 
 
 def _taxonomy_from_text(texts: list[str]) -> set[str]:
+    """内部 helper：``_taxonomy_from_text``。
+
+    :param texts: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     tags: set[str] = set()
     for raw in texts:
         text = raw.lower()
@@ -678,6 +855,11 @@ def _taxonomy_from_text(texts: list[str]) -> set[str]:
 
 
 def _judgement_label_index(label: str) -> int:
+    """内部 helper：``_judgement_label_index``。
+
+    :param label: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     try:
         return JUDGEMENT_LABELS.index(str(label))
     except ValueError:
@@ -685,6 +867,12 @@ def _judgement_label_index(label: str) -> int:
 
 
 def _weighted_kappa(gold_labels: list[str], pred_labels: list[str]) -> float:
+    """内部 helper：``_weighted_kappa``。
+
+    :param gold_labels: 见函数签名与上下文。
+    :param pred_labels: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not gold_labels or not pred_labels or len(gold_labels) != len(pred_labels):
         return 0.0
     total = len(gold_labels)
@@ -705,6 +893,11 @@ def _weighted_kappa(gold_labels: list[str], pred_labels: list[str]) -> float:
 
 
 def _human_issue_set_from_record(row: pd.Series) -> set[str]:
+    """内部 helper：``_human_issue_set_from_record``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     texts: list[str] = []
     for key in ["human_review_summary", "human_review_original_text", "review_rubric_text", "public_artifact_limitations"]:
         value = _safe_text(row.get(key))
@@ -735,6 +928,11 @@ def _human_issue_set_from_record(row: pd.Series) -> set[str]:
 
 
 def _agent_issue_set(result: ExpertReviewResult) -> set[str]:
+    """内部 helper：``_agent_issue_set``。
+
+    :param result: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     tags: set[str] = set()
     issue_type_map = {
         "extra": {"unsupported_extra_structure"},
@@ -783,6 +981,11 @@ def _agent_issue_set(result: ExpertReviewResult) -> set[str]:
 
 
 def _agent_critical_issue_set(result: ExpertReviewResult) -> set[str]:
+    """内部 helper：``_agent_critical_issue_set``。
+
+    :param result: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     tags = set(_agent_issue_set(result)) & set(CRITICAL_ISSUE_TAXONOMY)
     extra_texts: list[str] = [result.overall_reason_text, *result.notes]
     for issue in result.unsupported_model_elements:
@@ -797,6 +1000,12 @@ def _agent_critical_issue_set(result: ExpertReviewResult) -> set[str]:
 
 def _issue_f1(human, agent) -> tuple[float, float, float]:
     # Coerce to set — checkpoint round-trip turns sets into lists
+    """内部 helper：``_issue_f1``。
+
+    :param human: 见函数签名与上下文。
+    :param agent: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     human = set(human) if not isinstance(human, set) else human
     agent = set(agent) if not isinstance(agent, set) else agent
     if not human and not agent:
@@ -812,6 +1021,12 @@ def _issue_f1(human, agent) -> tuple[float, float, float]:
 
 
 def _spearman(values_a: list[float], values_b: list[float]) -> float:
+    """内部 helper：``_spearman``。
+
+    :param values_a: 见函数签名与上下文。
+    :param values_b: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if len(values_a) <= 1 or len(values_b) <= 1:
         return 1.0
     ranks_a = pd.Series(values_a).rank(method="average")
@@ -825,6 +1040,13 @@ def _spearman(values_a: list[float], values_b: list[float]) -> float:
 
 
 def _pairwise_order_accuracy(rows: list[dict[str, Any]], score_key_a: str, score_key_b: str) -> float:
+    """内部 helper：``_pairwise_order_accuracy``。
+
+    :param rows: 见函数签名与上下文。
+    :param score_key_a: 见函数签名与上下文。
+    :param score_key_b: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if len(rows) <= 1:
         return 1.0
     total = 0
@@ -846,6 +1068,11 @@ def _pairwise_order_accuracy(rows: list[dict[str, Any]], score_key_a: str, score
 
 
 def _score_align(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_score_align``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     scored_rows = [row for row in rows if row["human_score"] is not None and row["agent_score"] is not None]
     if not scored_rows:
         return {
@@ -882,6 +1109,11 @@ def _score_align(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _equivalence_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_equivalence_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     scored = [row for row in rows if row["human_score"] is not None and row["agent_score"] is not None]
     if not scored:
         return {
@@ -911,6 +1143,11 @@ def _equivalence_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _calibration_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_calibration_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     scored = [row for row in rows if row["human_score"] is not None]
     if not scored:
         return {"ece": 1.0, "brier_score": 1.0, "high_confidence_error_rate": 1.0, "Calib": 0.0}
@@ -937,6 +1174,11 @@ def _calibration_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _stability_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_stability_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     rerun_values = [row.get("rerun_score_delta", 0.0) for row in rows if row.get("rerun_score_delta") is not None]
     rerun_std = statistics.mean(rerun_values) if rerun_values else 0.0
     issue_jaccard = statistics.mean(row.get("rerun_issue_jaccard", 1.0) for row in rows) if rows else 1.0
@@ -945,6 +1187,11 @@ def _stability_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _summary_discipline_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_summary_discipline_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not rows:
         return {
             "summary_only_element_claim_rate": 1.0,
@@ -962,6 +1209,11 @@ def _summary_discipline_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _protocol_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_protocol_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not rows:
         return {
             "regime_accuracy": 0.0,
@@ -990,6 +1242,11 @@ def _protocol_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _reason_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """内部 helper：``_reason_alignment_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not rows:
         return {"human_issue_coverage_recall": 0.0, "unsupported_claim_rate": 1.0, "ReasonAlign": 0.0}
     recalls = [row["issue_recall"] for row in rows]
@@ -1003,6 +1260,11 @@ def _reason_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _judgement_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_judgement_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     scored_rows = [row for row in rows if row.get("human_judgement") and row.get("agent_judgement")]
     if not scored_rows:
         return {
@@ -1040,6 +1302,11 @@ def _judgement_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _critical_issue_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_critical_issue_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     relevant_rows = [row for row in rows if row.get("eval_bucket") != "component"]
     by_type = {
         issue: {"support": 0, "recalled": 0, "recall": 0.0}
@@ -1068,6 +1335,11 @@ def _critical_issue_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _dimension_map(result: ExpertReviewResult) -> dict[str, Any]:
+    """内部 helper：``_dimension_map``。
+
+    :param result: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {item.dimension_name: item for item in result.dimension_results}
 
 
@@ -1078,6 +1350,11 @@ def _dimension_map(result: ExpertReviewResult) -> dict[str, Any]:
 
 
 def _contradiction_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_contradiction_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     inspected_rows = [row for row in rows if row.get("eval_bucket") != "protocol"]
     contradiction_counts = {
         "high_evidence_score_despite_limited_evidence": 0,
@@ -1127,6 +1404,12 @@ def _contradiction_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _macro_f1_for_labels(gold_labels: list[str], pred_labels: list[str]) -> float:
+    """内部 helper：``_macro_f1_for_labels``。
+
+    :param gold_labels: 见函数签名与上下文。
+    :param pred_labels: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     label_set = sorted(set(gold_labels) | set(pred_labels))
     if not label_set:
         return 1.0
@@ -1142,6 +1425,11 @@ def _macro_f1_for_labels(gold_labels: list[str], pred_labels: list[str]) -> floa
 
 
 def _component_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_component_alignment_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not rows:
         return {
             "rows": 0,
@@ -1200,6 +1488,11 @@ def _component_alignment_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _build_record_prompt(row: pd.Series) -> str:
+    """内部 helper：``_build_record_prompt``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     rubric = _safe_text(row.get("review_rubric_text")).strip()
     limitations = _safe_text(row.get("public_artifact_limitations")).strip()
     diagram_type = _safe_text(row.get("diagram_type")).strip() or "model"
@@ -1225,6 +1518,11 @@ def _build_record_prompt(row: pd.Series) -> str:
 
 
 def _build_summary_prompt(row: pd.Series) -> str:
+    """内部 helper：``_build_summary_prompt``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     rubric = _safe_text(row.get("review_rubric_text")).strip()
     limitations = _safe_text(row.get("public_artifact_limitations")).strip()
     target = _safe_text(row.get("review_target")).strip() or "artifact"
@@ -1253,6 +1551,11 @@ def _build_summary_prompt(row: pd.Series) -> str:
 
 
 def _summary_row_type_from_row(row: pd.Series) -> str:
+    """内部 helper：``_summary_row_type_from_row``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     review_record_id = _safe_text(row.get("review_record_id")).lower()
     record_type = _safe_text(row.get("record_type")).lower()
     if any(token in review_record_id for token in ["std_dev", "std dev", "stddev"]) or "std" in review_record_id:
@@ -1271,6 +1574,11 @@ def _summary_row_type_from_row(row: pd.Series) -> str:
 
 
 def _artifact_semantics_from_row(row: pd.Series) -> str | None:
+    """内部 helper：``_artifact_semantics_from_row``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     diagram_type = _safe_text(row.get("diagram_type")).strip().lower()
     return {
         "stm": "reactive_state_model",
@@ -1281,6 +1589,11 @@ def _artifact_semantics_from_row(row: pd.Series) -> str | None:
 
 
 def _summary_semantics_from_row(row: pd.Series) -> str:
+    """内部 helper：``_summary_semantics_from_row``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     row_type = _summary_row_type_from_row(row)
     if row_type == "aggregate_stddev":
         return "This published row is a standard-deviation or dispersion statistic."
@@ -1298,6 +1611,11 @@ def _summary_semantics_from_row(row: pd.Series) -> str:
 
 
 def _build_protocol_prompt(row: pd.Series) -> str:
+    """内部 helper：``_build_protocol_prompt``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return (
         "You are an expert reviewer of a human evaluation protocol for software modeling artifacts.\n"
         "There is no full per-record prediction/reference evidence in this task. Review what the protocol can validate, "
@@ -1307,6 +1625,11 @@ def _build_protocol_prompt(row: pd.Series) -> str:
 
 
 def _build_component_prompt(row: pd.Series) -> str:
+    """内部 helper：``_build_component_prompt``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     component_target = _safe_text(row.get("component_target") or row.get("review_target")).strip() or "Component"
     system_name = _safe_text(row.get("component_system_name") or row.get("case_name")).strip() or "the target system"
     strategy_name = _safe_text(row.get("component_strategy_name") or row.get("strategy_name")).strip() or "the published generation strategy"
@@ -1328,6 +1651,11 @@ def _build_component_prompt(row: pd.Series) -> str:
 
 
 def _build_component_pred_output(row: pd.Series) -> str:
+    """内部 helper：``_build_component_pred_output``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     payload = {
         "artifact_type": "public_component_audit",
         "component_target": _safe_text(row.get("component_target") or row.get("review_target")).strip(),
@@ -1342,6 +1670,11 @@ def _build_component_pred_output(row: pd.Series) -> str:
 
 
 def _build_component_input_text(row: pd.Series) -> str:
+    """内部 helper：``_build_component_input_text``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return "\n".join(
         [
             f"System: {_safe_text(row.get('component_system_name') or row.get('case_name')).strip() or 'Unknown'}",
@@ -1354,6 +1687,11 @@ def _build_component_input_text(row: pd.Series) -> str:
 
 
 def _build_record_task(row: pd.Series) -> BenchmarkTask:
+    """内部 helper：``_build_record_task``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return BenchmarkTask(
         task_id=str(row["review_record_id"]),
         eval_bucket="record",
@@ -1384,6 +1722,11 @@ def _build_record_task(row: pd.Series) -> BenchmarkTask:
 
 
 def _build_summary_task(row: pd.Series) -> BenchmarkTask:
+    """内部 helper：``_build_summary_task``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return BenchmarkTask(
         task_id=str(row["review_record_id"]),
         eval_bucket="summary",
@@ -1414,6 +1757,11 @@ def _build_summary_task(row: pd.Series) -> BenchmarkTask:
 
 
 def _build_protocol_task(row: pd.Series) -> BenchmarkTask:
+    """内部 helper：``_build_protocol_task``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     input_text = "\n\n".join(
         [
             f"Artifact under review: {_safe_text(row.get('artifact_under_review'))}",
@@ -1456,6 +1804,11 @@ def _build_protocol_task(row: pd.Series) -> BenchmarkTask:
 
 
 def _build_component_task(row: pd.Series) -> BenchmarkTask:
+    """内部 helper：``_build_component_task``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     component_target = _safe_text(row.get("component_target") or row.get("review_target")).strip() or "Component"
     return BenchmarkTask(
         task_id=str(row["review_record_id"]),
@@ -1497,6 +1850,14 @@ def _build_component_task(row: pd.Series) -> BenchmarkTask:
 
 
 def _sample_grouped(df: pd.DataFrame, limit: int, group_fields: list[str], seed: int) -> pd.DataFrame:
+    """内部 helper：``_sample_grouped``。
+
+    :param df: 见函数签名与上下文。
+    :param limit: 见函数签名与上下文。
+    :param group_fields: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if limit <= 0 or len(df) <= limit:
         return df.copy()
     rng = random.Random(seed)
@@ -1530,6 +1891,17 @@ def build_benchmark_slices(
     protocol_limit: int,
     seed: int,
 ) -> dict[str, list[BenchmarkTask]]:
+    """``build_benchmark_slices`` 函数。
+
+    :param records: 见函数签名与上下文。
+    :param protocols: 见函数签名与上下文。
+    :param record_limit: 见函数签名与上下文。
+    :param summary_limit: 见函数签名与上下文。
+    :param component_limit: 见函数签名与上下文。
+    :param protocol_limit: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     strong_record_df = _prepare_record_level_pool(records)
     summary_df = _prepare_summary_level_pool(records)
     component_df = _prepare_component_level_pool(records)
@@ -1560,6 +1932,13 @@ def build_full_available_task_bundle(
     protocols: pd.DataFrame,
     availability: pd.DataFrame,
 ) -> dict[str, list[BenchmarkTask]]:
+    """``build_full_available_task_bundle`` 函数。
+
+    :param records: 见函数签名与上下文。
+    :param protocols: 见函数签名与上下文。
+    :param availability: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     inventory = build_benchmark_inventory(records, protocols, availability)
     return {
         "record": _rows_to_tasks("record", inventory["record_level"]),
@@ -1570,6 +1949,11 @@ def build_full_available_task_bundle(
 
 
 def _regime_from_result(result: ExpertReviewResult) -> str:
+    """内部 helper：``_regime_from_result``。
+
+    :param result: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if result.dimension_results and result.dimension_results[0].metric_payload:
         regime = str(result.dimension_results[0].metric_payload.get("regime", "")).strip()
         if regime:
@@ -1587,6 +1971,12 @@ def _regime_from_result(result: ExpertReviewResult) -> str:
 
 
 def _dimension_score(result: ExpertReviewResult, name: str) -> float:
+    """内部 helper：``_dimension_score``。
+
+    :param result: 见函数签名与上下文。
+    :param name: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     for item in result.dimension_results:
         if item.dimension_name == name:
             return item.score
@@ -1594,6 +1984,11 @@ def _dimension_score(result: ExpertReviewResult, name: str) -> float:
 
 
 def _vv_role_coverage(result: ExpertReviewResult) -> float:
+    """内部 helper：``_vv_role_coverage``。
+
+    :param result: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     for item in result.dimension_results:
         if item.dimension_name != "evidence_discipline":
             continue
@@ -1621,6 +2016,13 @@ def _rerun_subset(
     *,
     rerun_count: int,
 ) -> dict[str, tuple[float, float, bool]]:
+    """内部 helper：``_rerun_subset``。
+
+    :param agent: 见函数签名与上下文。
+    :param tasks: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     result: dict[str, tuple[float, float, bool]] = {}
     if rerun_count <= 0:
         return result
@@ -1647,6 +2049,11 @@ def _rerun_subset(
 
 
 def _error_buckets_for_row(row: dict[str, Any]) -> list[str]:
+    """内部 helper：``_error_buckets_for_row``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if row.get("eval_bucket") == "component":
         return []
     buckets: set[str] = set()
@@ -1695,6 +2102,13 @@ def _build_error_map(
     record_metrics: dict[str, Any],
     summary_metrics: dict[str, Any],
 ) -> dict[str, Any]:
+    """内部 helper：``_build_error_map``。
+
+    :param normalized_rows: 见函数签名与上下文。
+    :param record_metrics: 见函数签名与上下文。
+    :param summary_metrics: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     bucket_counts = {bucket: 0 for bucket in PHASE7_ERROR_BUCKETS}
     top_examples: dict[str, list[dict[str, Any]]] = {bucket: [] for bucket in PHASE7_ERROR_BUCKETS}
     regime_confusions: dict[str, int] = defaultdict(int)
@@ -1758,6 +2172,11 @@ def _build_error_map(
 
 
 def _task_inventory(tasks_by_regime: dict[str, list[BenchmarkTask]]) -> dict[str, Any]:
+    """内部 helper：``_task_inventory``。
+
+    :param tasks_by_regime: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     inventory: dict[str, Any] = {}
     for regime_name, tasks in tasks_by_regime.items():
         inventory[regime_name] = {
@@ -1768,6 +2187,11 @@ def _task_inventory(tasks_by_regime: dict[str, list[BenchmarkTask]]) -> dict[str
 
 
 def _runtime_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_runtime_metrics``。
+
+    :param rows: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     latencies = [float(row.get("latency_s", 0.0) or 0.0) for row in rows]
     confidences = [float(row.get("agent_confidence", 0.0) or 0.0) for row in rows]
     llm_rows = [row for row in rows if bool(row.get("llm_configured"))]
@@ -1856,6 +2280,23 @@ def _evaluate_task_bundle(
     strict_llm: bool = False,
     checkpoint_dir: Path | None = None,
 ) -> dict[str, Any]:
+    """内部 helper：``_evaluate_task_bundle``。
+
+    :param tasks_by_regime: 见函数签名与上下文。
+    :param llm_mode: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :param report_label: 见函数签名与上下文。
+    :param metadata: 见函数签名与上下文。
+    :param review_cache: 见函数签名与上下文。
+    :param model: 见函数签名与上下文。
+    :param provider_order: 见函数签名与上下文。
+    :param temperature: 见函数签名与上下文。
+    :param timeout: 见函数签名与上下文。
+    :param max_workers: 见函数签名与上下文。
+    :param strict_llm: 见函数签名与上下文。
+    :param checkpoint_dir: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if llm_mode == "auto":
         agent = ExpertReviewAgent(
             model=model or DEFAULT_MODEL,
@@ -1903,10 +2344,19 @@ def _evaluate_task_bundle(
             print(f"[checkpoint] {report_label} loaded {loaded} cached task results from {checkpoint_dir}", flush=True)
 
     def _safe_task_id_for_filename(tid: str) -> str:
+        """内部 helper：``_safe_task_id_for_filename``。
+
+        :param tid: 见函数签名与上下文。
+        :return: 见函数签名与上下文。
+        """
         return _re.sub(r"[^A-Za-z0-9._-]+", "_", tid)[:200]
 
     def _process_task(task):
         # checkpoint hit — return cached without calling LLM
+        """内部 helper：``_process_task``。
+
+        :param task: 见函数签名与上下文。
+        """
         if task.task_id in task_checkpoints:
             return task_checkpoints[task.task_id]
         request = ExpertReviewRequest(
@@ -2126,6 +2576,27 @@ def run_benchmark_iteration(
     strict_llm: bool = False,
     checkpoint_dir: Path | None = None,
 ) -> dict[str, Any]:
+    """``run_benchmark_iteration`` 函数。
+
+    :param base_dir: 见函数签名与上下文。
+    :param record_limit: 见函数签名与上下文。
+    :param summary_limit: 见函数签名与上下文。
+    :param component_limit: 见函数签名与上下文。
+    :param protocol_limit: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :param llm_mode: 见函数签名与上下文。
+    :param scope: 见函数签名与上下文。
+    :param split_name: 见函数签名与上下文。
+    :param model: 见函数签名与上下文。
+    :param provider_order: 见函数签名与上下文。
+    :param temperature: 见函数签名与上下文。
+    :param timeout: 见函数签名与上下文。
+    :param max_workers: 见函数签名与上下文。
+    :param strict_llm: 见函数签名与上下文。
+    :param checkpoint_dir: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     records, protocols, availability = _load_benchmark_tables(base_dir)
     if scope == "slice":
         task_bundle = build_benchmark_slices(
@@ -2181,6 +2652,11 @@ def run_benchmark_iteration(
 
 
 def _summarize_lofo_reports(lofo_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_summarize_lofo_reports``。
+
+    :param lofo_reports: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for report in lofo_reports.values():
         regime = str(report.get("metadata", {}).get("lofo_regime", "unknown"))
@@ -2266,6 +2742,11 @@ def _summarize_lofo_reports(lofo_reports: dict[str, dict[str, Any]]) -> dict[str
 
 
 def _summarize_split_reports(split_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_summarize_split_reports``。
+
+    :param split_reports: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     summary: dict[str, Any] = {}
     for split in SPLIT_ORDER:
         report = split_reports.get(split)
@@ -2289,6 +2770,12 @@ def _summarize_lofo_generalization(
     full_report: dict[str, Any],
     lofo_summary: dict[str, Any],
 ) -> dict[str, Any]:
+    """内部 helper：``_summarize_lofo_generalization``。
+
+    :param full_report: 见函数签名与上下文。
+    :param lofo_summary: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     summary: dict[str, Any] = {}
     if "record" in lofo_summary:
         summary["record"] = {
@@ -2330,6 +2817,12 @@ def _summarize_lofo_generalization(
 
 
 def _core_metric_value(report: dict[str, Any], metric_name: str) -> float:
+    """内部 helper：``_core_metric_value``。
+
+    :param report: 见函数签名与上下文。
+    :param metric_name: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if metric_name == "HAI":
         return float(report.get("HAI", 0.0))
     if metric_name == "RAS":
@@ -2344,6 +2837,11 @@ def _core_metric_value(report: dict[str, Any], metric_name: str) -> float:
 
 
 def _build_phase14_lockbox_gate(split_reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """内部 helper：``_build_phase14_lockbox_gate``。
+
+    :param split_reports: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     validation_report = split_reports.get("validation")
     lockbox_report = split_reports.get("lockbox")
     if validation_report is None or lockbox_report is None:
@@ -2380,6 +2878,11 @@ def _build_phase14_lockbox_gate(split_reports: dict[str, dict[str, Any]]) -> dic
 
 
 def _build_phase14_lofo_gate(lofo_generalization: dict[str, Any]) -> dict[str, Any]:
+    """内部 helper：``_build_phase14_lofo_gate``。
+
+    :param lofo_generalization: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not lofo_generalization:
         return {
             "status": "failed",
@@ -2410,6 +2913,11 @@ def _build_phase14_lofo_gate(lofo_generalization: dict[str, Any]) -> dict[str, A
 
 
 def _score_delta(row: dict[str, Any]) -> float | None:
+    """内部 helper：``_score_delta``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     human_score = row.get("human_score")
     agent_score = row.get("agent_score")
     if human_score is None or agent_score is None:
@@ -2418,6 +2926,11 @@ def _score_delta(row: dict[str, Any]) -> float | None:
 
 
 def _lockbox_primary_bucket(row: dict[str, Any]) -> str:
+    """内部 helper：``_lockbox_primary_bucket``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     buckets = list(row.get("error_buckets") or [])
     if buckets:
         return str(buckets[0])
@@ -2436,6 +2949,11 @@ def _lockbox_primary_bucket(row: dict[str, Any]) -> str:
 
 
 def _lockbox_cluster_focus(row: dict[str, Any]) -> str:
+    """内部 helper：``_lockbox_cluster_focus``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata = row.get("metadata") or {}
     eval_bucket = str(row.get("eval_bucket", "unknown"))
     if eval_bucket == "record":
@@ -2452,6 +2970,12 @@ def _summarize_lockbox_residual_clusters(
     *,
     top_k: int = 6,
 ) -> dict[str, Any]:
+    """内部 helper：``_summarize_lockbox_residual_clusters``。
+
+    :param lockbox_report: 见函数签名与上下文。
+    :param top_k: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if lockbox_report is None:
         return {
             "status": "failed",
@@ -2529,6 +3053,14 @@ def _build_phase14_promotion_evaluation(
     lofo_generalization: dict[str, Any],
     lockbox_residuals: dict[str, Any],
 ) -> dict[str, Any]:
+    """内部 helper：``_build_phase14_promotion_evaluation``。
+
+    :param candidate_version: 见函数签名与上下文。
+    :param split_reports: 见函数签名与上下文。
+    :param lofo_generalization: 见函数签名与上下文。
+    :param lockbox_residuals: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     validation_report = split_reports.get("validation")
     validation_stage = {
         "status": "passed" if validation_report is not None else "failed",
@@ -2553,6 +3085,11 @@ def _build_phase14_promotion_evaluation(
     pds_gate_threshold = 95.0
 
     def _resolve_pds_gate(report: dict[str, Any] | None) -> dict[str, Any] | None:
+        """内部 helper：``_resolve_pds_gate``。
+
+        :param report: 见函数签名与上下文。
+        :return: 见函数签名与上下文。
+        """
         if report is None:
             return None
         existing = report.get("pds_gate")
@@ -2610,6 +3147,22 @@ def run_phase7_evaluation_bundle(
     temperature: float = 0.0,
     timeout: int = 180,
 ) -> dict[str, Any]:
+    """``run_phase7_evaluation_bundle`` 函数。
+
+    :param base_dir: 见函数签名与上下文。
+    :param record_limit: 见函数签名与上下文。
+    :param summary_limit: 见函数签名与上下文。
+    :param component_limit: 见函数签名与上下文。
+    :param protocol_limit: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :param llm_mode: 见函数签名与上下文。
+    :param model: 见函数签名与上下文。
+    :param provider_order: 见函数签名与上下文。
+    :param temperature: 见函数签名与上下文。
+    :param timeout: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     records, protocols, availability = _load_benchmark_tables(base_dir)
     coverage = summarize_benchmark_coverage(records, protocols, availability)
     slice_tasks = build_benchmark_slices(
@@ -2718,6 +3271,23 @@ def run_phase14_evaluation_bundle(
     temperature: float = 0.0,
     timeout: int = 180,
 ) -> dict[str, Any]:
+    """``run_phase14_evaluation_bundle`` 函数。
+
+    :param base_dir: 见函数签名与上下文。
+    :param record_limit: 见函数签名与上下文。
+    :param summary_limit: 见函数签名与上下文。
+    :param component_limit: 见函数签名与上下文。
+    :param protocol_limit: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :param llm_mode: 见函数签名与上下文。
+    :param candidate_version: 见函数签名与上下文。
+    :param model: 见函数签名与上下文。
+    :param provider_order: 见函数签名与上下文。
+    :param temperature: 见函数签名与上下文。
+    :param timeout: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     bundle = run_phase7_evaluation_bundle(
         base_dir=base_dir,
         record_limit=record_limit,
@@ -2754,10 +3324,22 @@ def run_phase14_evaluation_bundle(
 
 
 def _metric_delta(candidate: dict[str, Any], baseline: dict[str, Any], key: str) -> float:
+    """内部 helper：``_metric_delta``。
+
+    :param candidate: 见函数签名与上下文。
+    :param baseline: 见函数签名与上下文。
+    :param key: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return float(candidate.get(key, 0.0) or 0.0) - float(baseline.get(key, 0.0) or 0.0)
 
 
 def _phase15_recommendation(comparison: dict[str, Any]) -> str:
+    """内部 helper：``_phase15_recommendation``。
+
+    :param comparison: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     candidate_runtime = comparison["candidate_runtime"]
     candidate_alignment = comparison["candidate_alignment"]
     deltas = comparison["delta"]
@@ -2776,6 +3358,12 @@ def _build_phase15_report_comparison(
     baseline_report: dict[str, Any],
     candidate_report: dict[str, Any],
 ) -> dict[str, Any]:
+    """内部 helper：``_build_phase15_report_comparison``。
+
+    :param baseline_report: 见函数签名与上下文。
+    :param candidate_report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     delta = {
         "HAI": _metric_delta(candidate_report, baseline_report, "HAI"),
         "RAS": _metric_delta(candidate_report["record_metrics"], baseline_report["record_metrics"], "RAS"),
@@ -2888,6 +3476,24 @@ def run_phase15_comparison_bundle(
     temperature: float = 0.0,
     timeout: int = 180,
 ) -> dict[str, Any]:
+    """``run_phase15_comparison_bundle`` 函数。
+
+    :param base_dir: 见函数签名与上下文。
+    :param record_limit: 见函数签名与上下文。
+    :param summary_limit: 见函数签名与上下文。
+    :param component_limit: 见函数签名与上下文。
+    :param protocol_limit: 见函数签名与上下文。
+    :param seed: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :param comparison_scope: 见函数签名与上下文。
+    :param split_name: 见函数签名与上下文。
+    :param candidate_version: 见函数签名与上下文。
+    :param model: 见函数签名与上下文。
+    :param provider_order: 见函数签名与上下文。
+    :param temperature: 见函数签名与上下文。
+    :param timeout: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if comparison_scope == "phase14":
         baseline_payload = run_phase14_evaluation_bundle(
             base_dir=base_dir,
@@ -2969,6 +3575,11 @@ def run_phase15_comparison_bundle(
 
 
 def _format_report(report: dict[str, Any]) -> str:
+    """内部 helper：``_format_report``。
+
+    :param report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     sample_sizes = report["sample_sizes"]
     task_inventory = report.get("task_inventory", {})
     record = report["record_metrics"]
@@ -3057,6 +3668,11 @@ def _format_report(report: dict[str, Any]) -> str:
 
 
 def _jsonable_report(report: dict[str, Any]) -> dict[str, Any]:
+    """内部 helper：``_jsonable_report``。
+
+    :param report: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     jsonable = dict(report)
     jsonable["normalized_rows"] = [
         {key: value for key, value in row.items() if key != "result"}
@@ -3066,6 +3682,11 @@ def _jsonable_report(report: dict[str, Any]) -> dict[str, Any]:
 
 
 def _jsonable_phase7_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    """内部 helper：``_jsonable_phase7_bundle``。
+
+    :param bundle: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {
         "coverage": bundle["coverage"],
         "slice_report": _jsonable_report(bundle["slice_report"]),
@@ -3081,6 +3702,11 @@ def _jsonable_phase7_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
 
 
 def _jsonable_phase14_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    """内部 helper：``_jsonable_phase14_bundle``。
+
+    :param bundle: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     payload = _jsonable_phase7_bundle(bundle)
     payload.update(
         {
@@ -3094,6 +3720,11 @@ def _jsonable_phase14_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
 
 
 def _jsonable_phase15_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    """内部 helper：``_jsonable_phase15_bundle``。
+
+    :param bundle: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {
         "comparison_scope": bundle["comparison_scope"],
         "split_name": bundle["split_name"],
@@ -3106,6 +3737,11 @@ def _jsonable_phase15_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
 
 
 def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
+    """内部 helper：``_format_phase7_bundle``。
+
+    :param bundle: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     coverage = bundle["coverage"]
     component_schema = coverage["component_alignment_schema"]
     full_error_map = bundle["full_report"]["error_map"]
@@ -3277,6 +3913,11 @@ def _format_phase7_bundle(bundle: dict[str, Any]) -> str:
 
 
 def _format_phase14_bundle(bundle: dict[str, Any]) -> str:
+    """内部 helper：``_format_phase14_bundle``。
+
+    :param bundle: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     validation_report = bundle["split_reports"]["validation"]
     lockbox_report = bundle["split_reports"]["lockbox"]
     lockbox_gate = bundle["promotion_evaluation"]["stages"]["lockbox"]
@@ -3375,6 +4016,11 @@ def _format_phase14_bundle(bundle: dict[str, Any]) -> str:
 
 
 def _format_phase15_bundle(bundle: dict[str, Any]) -> str:
+    """内部 helper：``_format_phase15_bundle``。
+
+    :param bundle: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     comparison = bundle["comparison"]
     delta = comparison["delta"]
     baseline_runtime = comparison["baseline_runtime"]
@@ -3432,6 +4078,8 @@ def _format_phase15_bundle(bundle: dict[str, Any]) -> str:
 
 
 def main() -> None:
+    """``main`` 函数。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--benchmark-dir", type=Path, default=DEFAULT_BENCHMARK_DIR)
     parser.add_argument("--record-limit", type=int, default=18)

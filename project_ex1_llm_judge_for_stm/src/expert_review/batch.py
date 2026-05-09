@@ -1,3 +1,11 @@
+"""``batch`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import argparse
@@ -21,6 +29,7 @@ BATCH_SCHEMA_VERSION = "v1"
 
 @dataclass(slots=True)
 class BatchReviewItem:
+    """``BatchReviewItem`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     item_id: str
     prompt: str
     input_text: str
@@ -31,6 +40,7 @@ class BatchReviewItem:
 
 @dataclass(slots=True)
 class BatchTriagePolicy:
+    """``BatchTriagePolicy`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     direct_pass_score_min: float = 0.84
     direct_pass_confidence_min: float = 0.16
     direct_pass_evidence_min: float = 0.78
@@ -42,6 +52,7 @@ class BatchTriagePolicy:
 
 @dataclass(slots=True)
 class BatchReviewRow:
+    """``BatchReviewRow`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     item_id: str
     overall_score: float
     overall_judgement: str
@@ -66,6 +77,7 @@ class BatchReviewRow:
 
 @dataclass(slots=True)
 class BatchReviewRun:
+    """``BatchReviewRun`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     schema_version: str
     llm_mode: str
     triage_policy: BatchTriagePolicy
@@ -76,6 +88,11 @@ class BatchReviewRun:
 
 
 def batch_item_from_dict(payload: dict[str, Any]) -> BatchReviewItem:
+    """``batch_item_from_dict`` 函数。
+
+    :param payload: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     item_id = str(payload.get("item_id") or payload.get("id") or payload.get("task_id") or "").strip()
     if not item_id:
         raise ValueError("Batch review item requires `item_id`/`id`/`task_id`.")
@@ -90,6 +107,11 @@ def batch_item_from_dict(payload: dict[str, Any]) -> BatchReviewItem:
 
 
 def load_batch_items(path: Path) -> list[BatchReviewItem]:
+    """``load_batch_items`` 函数。
+
+    :param path: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if path.suffix.lower() == ".jsonl":
         items = [
             batch_item_from_dict(json.loads(line))
@@ -111,6 +133,11 @@ def load_batch_items(path: Path) -> list[BatchReviewItem]:
 
 
 def _build_request(item: BatchReviewItem) -> ExpertReviewRequest:
+    """内部 helper：``_build_request``。
+
+    :param item: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return ExpertReviewRequest(
         prompt=item.prompt,
         input_text=item.input_text,
@@ -121,6 +148,12 @@ def _build_request(item: BatchReviewItem) -> ExpertReviewRequest:
 
 
 def _dimension_score(result: Any, name: str) -> float:
+    """内部 helper：``_dimension_score``。
+
+    :param result: 见函数签名与上下文。
+    :param name: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     for item in getattr(result, "dimension_results", []):
         if getattr(item, "dimension_name", "") == name:
             return float(getattr(item, "score", 0.0))
@@ -128,10 +161,21 @@ def _dimension_score(result: Any, name: str) -> float:
 
 
 def _unsupported_issue_count(result: Any) -> int:
+    """内部 helper：``_unsupported_issue_count``。
+
+    :param result: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return len(list(getattr(result, "unsupported_model_elements", [])))
 
 
 def triage_review_result(result: Any, policy: BatchTriagePolicy | None = None) -> tuple[str, str, str]:
+    """``triage_review_result`` 函数。
+
+    :param result: 见函数签名与上下文。
+    :param policy: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     active_policy = BatchTriagePolicy() if policy is None else policy
     evidence_score = _dimension_score(result, "evidence_discipline")
     unsupported_count = _unsupported_issue_count(result)
@@ -174,6 +218,13 @@ def _review_once(
     llm_mode: str,
     agent: ExpertReviewAgent | None,
 ) -> Any:
+    """内部 helper：``_review_once``。
+
+    :param item: 见函数签名与上下文。
+    :param llm_mode: 见函数签名与上下文。
+    :param agent: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     request = _build_request(item)
     if llm_mode == "off":
         return heuristic_expert_review(request)
@@ -183,6 +234,11 @@ def _review_once(
 
 
 def _p95(values: list[float]) -> float:
+    """内部 helper：``_p95``。
+
+    :param values: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not values:
         return 0.0
     if len(values) == 1:
@@ -193,6 +249,11 @@ def _p95(values: list[float]) -> float:
 
 
 def _row_to_export_dict(row: BatchReviewRow) -> dict[str, Any]:
+    """内部 helper：``_row_to_export_dict``。
+
+    :param row: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     flat_result = dict(row.review_result.get("flat_result") or {})
     return {
         "item_id": row.item_id,
@@ -225,6 +286,13 @@ def export_batch_run(
     output_jsonl: Path | None = None,
     output_csv: Path | None = None,
 ) -> None:
+    """``export_batch_run`` 函数。
+
+    :param run: 见函数签名与上下文。
+    :param output_json: 见函数签名与上下文。
+    :param output_jsonl: 见函数签名与上下文。
+    :param output_csv: 见函数签名与上下文。
+    """
     payload = {
         "schema_version": run.schema_version,
         "llm_mode": run.llm_mode,
@@ -264,6 +332,19 @@ def run_batch_review(
     temperature: float = 0.0,
     timeout: int = 180,
 ) -> BatchReviewRun:
+    """``run_batch_review`` 函数。
+
+    :param items: 见函数签名与上下文。
+    :param llm_mode: 见函数签名与上下文。
+    :param max_retries: 见函数签名与上下文。
+    :param rerun_count: 见函数签名与上下文。
+    :param triage_policy: 见函数签名与上下文。
+    :param model: 见函数签名与上下文。
+    :param provider_order: 见函数签名与上下文。
+    :param temperature: 见函数签名与上下文。
+    :param timeout: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if llm_mode not in {"off", "auto"}:
         raise ValueError(f"Unsupported llm_mode: {llm_mode!r}")
 
@@ -423,6 +504,8 @@ def run_batch_review(
 
 
 def main() -> None:
+    """``main`` 函数。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--llm-mode", choices=["off", "auto"], default="off")

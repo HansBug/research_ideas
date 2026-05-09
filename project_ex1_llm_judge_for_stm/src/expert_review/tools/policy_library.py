@@ -1,3 +1,11 @@
+"""``policy_library`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.tools` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -259,12 +267,24 @@ SUMMARY_TARGET_AXIS_CATEGORIES = [
 
 
 def _metadata_value(request: Any, key: str) -> str | None:
+    """内部 helper：``_metadata_value``。
+
+    :param request: 见函数签名与上下文。
+    :param key: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata = getattr(request, "metadata", {}) or {}
     value = str(metadata.get(key) or "").strip()
     return value or None
 
 
 def _metadata_int(request: Any, key: str) -> int | None:
+    """内部 helper：``_metadata_int``。
+
+    :param request: 见函数签名与上下文。
+    :param key: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata = getattr(request, "metadata", {}) or {}
     value = metadata.get(key)
     try:
@@ -274,10 +294,20 @@ def _metadata_int(request: Any, key: str) -> int | None:
 
 
 def _joined_text(values: list[str]) -> str:
+    """内部 helper：``_joined_text``。
+
+    :param values: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return "\n".join(item for item in values if item)
 
 
 def _canonical_summary_target(value: str | None) -> str | None:
+    """内部 helper：``_canonical_summary_target``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not value:
         return None
     normalized = value.strip().casefold()
@@ -301,6 +331,11 @@ def _canonical_summary_target(value: str | None) -> str | None:
 
 
 def _canonical_diagram_type(value: str | None) -> str | None:
+    """内部 helper：``_canonical_diagram_type``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not value:
         return None
     normalized = value.strip().casefold()
@@ -331,6 +366,11 @@ def _canonical_diagram_type(value: str | None) -> str | None:
 
 
 def _summary_target_from_metadata(request: Any) -> str | None:
+    """内部 helper：``_summary_target_from_metadata``。
+
+    :param request: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return _canonical_summary_target(
         _metadata_value(request, "summary_target")
         or _metadata_value(request, "review_target")
@@ -339,6 +379,11 @@ def _summary_target_from_metadata(request: Any) -> str | None:
 
 
 def _summary_target_axis_from_metadata(request: Any) -> str | None:
+    """内部 helper：``_summary_target_axis_from_metadata``。
+
+    :param request: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     target = _summary_target_from_metadata(request)
     if target in {"BD", "UCD", "Properties"}:
         return "coarse_public_quality_target"
@@ -348,6 +393,11 @@ def _summary_target_axis_from_metadata(request: Any) -> str | None:
 
 
 def _artifact_semantics_from_metadata(request: Any) -> str | None:
+    """内部 helper：``_artifact_semantics_from_metadata``。
+
+    :param request: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     explicit = _canonical_diagram_type(_metadata_value(request, "artifact_semantics"))
     if explicit:
         return explicit
@@ -356,6 +406,11 @@ def _artifact_semantics_from_metadata(request: Any) -> str | None:
 
 
 def _component_profile_from_metadata(request: Any) -> dict[str, Any]:
+    """内部 helper：``_component_profile_from_metadata``。
+
+    :param request: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     component_target = _metadata_value(request, "component_target")
     if not component_target:
         return {
@@ -381,6 +436,12 @@ def _component_profile_from_metadata(request: Any) -> dict[str, Any]:
 
 
 def infer_summary_row_type(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
+    """``infer_summary_row_type`` 函数。
+
+    :param request: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata_hint = _metadata_value(request, "summary_row_type") if request is not None else None
     if metadata_hint:
         return metadata_hint
@@ -403,6 +464,12 @@ def infer_summary_row_type(*texts: str, request: Any | None = None, llm: ChatOpe
 
 
 def infer_summary_target(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
+    """``infer_summary_target`` 函数。
+
+    :param request: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata_hint = _summary_target_from_metadata(request) if request is not None else None
     if metadata_hint:
         return metadata_hint
@@ -416,6 +483,12 @@ def infer_summary_target(*texts: str, request: Any | None = None, llm: ChatOpenA
 
 
 def infer_record_diagram_type(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
+    """``infer_record_diagram_type`` 函数。
+
+    :param request: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata_hint = _artifact_semantics_from_metadata(request) if request is not None else None
     if metadata_hint:
         return metadata_hint
@@ -429,6 +502,12 @@ def infer_record_diagram_type(*texts: str, request: Any | None = None, llm: Chat
 
 
 def infer_summary_target_axis(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
+    """``infer_summary_target_axis`` 函数。
+
+    :param request: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     metadata_hint = _summary_target_axis_from_metadata(request) if request is not None else None
     if metadata_hint:
         return metadata_hint
@@ -445,6 +524,12 @@ def _summary_semantic_profile(summary_target: str, summary_row_type: str) -> dic
     # Tier 1 ablation 验证：summary_public_gain / summary_hidden_risk_scale 单独中和 |ΔHAI| < 0.05；
     # summary_target_semantic_bias 单独中和 ΔHAI = -0.25。
     # 真正承载 ΔHAI 的字段只有 summary_row_target_interaction_bias 与（次级的）target_bias。
+    """内部 helper：``_summary_semantic_profile``。
+
+    :param summary_target: 见函数签名与上下文。
+    :param summary_row_type: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if summary_target == "SMD":
         profile_name = "structure_intensive_target"
         target_bias = -0.03
@@ -490,6 +575,11 @@ def _record_semantic_profile(record_diagram_type: str) -> dict[str, Any]:
     # record_partial_penalty_scale / record_partial_only_penalty_scale 全部单独中和后 |ΔHAI| ≤ 0.07，
     # 且其中 record_high_fidelity_bonus_scale 在当前 dataset 上 if 分支一次也未触发（strict 0）。
     # 只保留 record_diagram_semantic_bias 与 record_alignment_matched_floor 这两个对 record 路径有信号的字段。
+    """内部 helper：``_record_semantic_profile``。
+
+    :param record_diagram_type: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if record_diagram_type == "act":
         return {
             "record_profile_name": "control_flow_explicit_profile",
@@ -516,11 +606,22 @@ def _record_semantic_profile(record_diagram_type: str) -> dict[str, Any]:
 
 
 def infer_aggregate_signal(*texts: str, request: Any | None = None, llm: ChatOpenAI | None = None) -> str:
+    """``infer_aggregate_signal`` 函数。
+
+    :param request: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     row_type = infer_summary_row_type(*texts, request=request, llm=llm)
     return _aggregate_signal_from_row_type(row_type)
 
 
 def _aggregate_signal_from_row_type(row_type: str) -> str:
+    """内部 helper：``_aggregate_signal_from_row_type``。
+
+    :param row_type: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return {
         "aggregate_stddev": "stddev",
         "aggregate_average": "average",
@@ -533,6 +634,12 @@ def _aggregate_signal_from_row_type(row_type: str) -> str:
 
 
 def detect_vv_roles(texts: list[str], *, llm: ChatOpenAI | None = None) -> list[str]:
+    """``detect_vv_roles`` 函数。
+
+    :param texts: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return semantic_multi_label(
         texts,
         VV_ROLE_CATEGORIES,
@@ -552,6 +659,17 @@ def build_review_policy(
     *,
     llm: ChatOpenAI | None = None,
 ) -> dict[str, Any]:
+    """``build_review_policy`` 函数。
+
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param request: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     focus = {str(item).strip().lower() for item in getattr(contract, "requested_focus", []) if str(item).strip()}
     contract_texts = [
         str(getattr(contract, "task_summary", "") or ""),

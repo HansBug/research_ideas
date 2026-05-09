@@ -1,3 +1,11 @@
+"""``review_policy_builder`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -21,6 +29,15 @@ def _clone_dimension(
     weight: float = 1.0,
     scoring_notes: list[str] | None = None,
 ) -> DimensionDefinition:
+    """内部 helper：``_clone_dimension``。
+
+    :param name: 见函数签名与上下文。
+    :param title: 见函数签名与上下文。
+    :param description: 见函数签名与上下文。
+    :param weight: 见函数签名与上下文。
+    :param scoring_notes: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return DimensionDefinition(
         name=name,
         title=title,
@@ -34,6 +51,12 @@ def _clone_dimension(
 
 
 def build_dimensions(contract: ReviewContract, regime: EvidenceRegime) -> list[DimensionDefinition]:
+    """``build_dimensions`` 函数。
+
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     focus = {normalize_id(item) for item in contract.requested_focus}
     return [
         _clone_dimension(
@@ -85,6 +108,18 @@ def build_review_policy_packet(
     ref_dossier: Any,
     notes: list[str],
 ) -> dict[str, Any]:
+    """``build_review_policy_packet`` 函数。
+
+    :param llm: 见函数签名与上下文。
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param request: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :param notes: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     policy_packet = build_review_policy(
         contract,
         regime,

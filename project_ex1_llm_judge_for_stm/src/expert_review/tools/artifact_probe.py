@@ -1,3 +1,11 @@
+"""``artifact_probe`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.tools` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import re
@@ -14,6 +22,14 @@ from .known_format_lift import (
 
 
 def _make_evidence_item(source: str, locator: str | None, snippet: str, explanation: str) -> EvidenceItem:
+    """内部 helper：``_make_evidence_item``。
+
+    :param source: 见函数签名与上下文。
+    :param locator: 见函数签名与上下文。
+    :param snippet: 见函数签名与上下文。
+    :param explanation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return EvidenceItem(
         source=source,
         locator=locator,
@@ -23,6 +39,14 @@ def _make_evidence_item(source: str, locator: str | None, snippet: str, explanat
 
 
 def _element_from_raw(kind: str, raw_value: str, idx: int, role: str) -> ArtifactElement:
+    """内部 helper：``_element_from_raw``。
+
+    :param kind: 见函数签名与上下文。
+    :param raw_value: 见函数签名与上下文。
+    :param idx: 见函数签名与上下文。
+    :param role: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     label = raw_value.split("|", 1)[0].strip()
     cleaned = raw_value.strip()
     if kind == "state":
@@ -44,6 +68,13 @@ def _element_from_raw(kind: str, raw_value: str, idx: int, role: str) -> Artifac
 
 
 def _relation_from_raw(raw_value: str, idx: int, role: str) -> ArtifactRelation:
+    """内部 helper：``_relation_from_raw``。
+
+    :param raw_value: 见函数签名与上下文。
+    :param idx: 见函数签名与上下文。
+    :param role: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     source, target, trigger, condition, action = parse_transition_signature(raw_value)
     description = raw_value.strip()
     if source or target:
@@ -68,10 +99,20 @@ def _relation_from_raw(raw_value: str, idx: int, role: str) -> ArtifactRelation:
 
 
 def _element_merge_key(element: ArtifactElement) -> str:
+    """内部 helper：``_element_merge_key``。
+
+    :param element: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return re.sub(r"\s+", "", "|".join([element.kind.lower(), (element.label or element.text).lower()]))
 
 
 def _relation_merge_key(relation: ArtifactRelation) -> str:
+    """内部 helper：``_relation_merge_key``。
+
+    :param relation: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     base = "|".join(
         [
             relation.source_label,
@@ -88,6 +129,12 @@ def _relation_merge_key(relation: ArtifactRelation) -> str:
 
 
 def _same_relation_family(left: ArtifactRelation, right: ArtifactRelation) -> bool:
+    """内部 helper：``_same_relation_family``。
+
+    :param left: 见函数签名与上下文。
+    :param right: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     left_pair = re.sub(r"\s+", "", "|".join([left.source_label, left.target_label]).lower())
     right_pair = re.sub(r"\s+", "", "|".join([right.source_label, right.target_label]).lower())
     if left_pair and right_pair and left_pair != right_pair:
@@ -102,6 +149,12 @@ def _same_relation_family(left: ArtifactRelation, right: ArtifactRelation) -> bo
 
 
 def merge_text_fragments(first: str, second: str) -> str:
+    """``merge_text_fragments`` 函数。
+
+    :param first: 见函数签名与上下文。
+    :param second: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     left = first.strip()
     right = second.strip()
     if not left:
@@ -116,6 +169,12 @@ def merge_text_fragments(first: str, second: str) -> str:
 
 
 def build_parser_dossier(role: str, text: str | None) -> ArtifactDossier:
+    """``build_parser_dossier`` 函数。
+
+    :param role: 见函数签名与上下文。
+    :param text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     probe = inventory_from_text(text)
     inventory = probe["inventory"]
     elements: list[ArtifactElement] = []

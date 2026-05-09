@@ -1,3 +1,25 @@
+"""Evidence Regime Estimator agent —— 推断本次评审属于哪种 evidence regime。
+
+**作用**：根据 prompt + dossiers 把本次评审分类到以下 regime 之一：
+
+* ``record_level``：完整 NL 需求 + 完整制品 (pred + ref)，可做 element-level 评判
+* ``summary_only``：只有汇总分数 / 公开 summary 行，无 element-level evidence
+* ``protocol_only``：评审 protocol / process / V&V roles，不评具体制品
+* ``mixed_evidence``：上述若干混合
+
+regime 决定下游 sanity bound、policy weight、confidence cap 等。
+
+**设计思路**：
+
+1. **优先看 metadata**：若 ``request.metadata["review_surface"]`` 显式
+   指定了 regime，直接采用；
+2. **其次用 semantic router**：把 prompt 文本归类到 3 个 surface
+   category 之一（``protocol_assurance`` / ``summary_public_score`` /
+   ``direct_artifact_review``）；
+3. **配合 dossier observability**：综合 has_prediction / has_reference
+   /pred_observability / ref_observability，得出最终 regime 标识。
+"""
+
 from __future__ import annotations
 
 from langchain_openai import ChatOpenAI
@@ -42,6 +64,11 @@ REVIEW_SURFACE_CATEGORIES = [
 
 
 def _metadata_surface(request: ExpertReviewRequest) -> str | None:
+    """从 ``request.metadata`` 读取显式 ``review_surface`` 提示。
+
+    :param request: :class:`ExpertReviewRequest`
+    :return: 非空字符串或 ``None``
+    """
     metadata = getattr(request, "metadata", {}) or {}
     value = str(metadata.get("review_surface") or "").strip()
     return value or None
@@ -53,6 +80,15 @@ def estimate_evidence_regime(
     ref_dossier: ArtifactDossier,
     llm: ChatOpenAI | None = None,
 ) -> EvidenceRegime:
+    """推断本次评审的 evidence regime 分类。
+
+    :param request: :class:`ExpertReviewRequest`
+    :param pred_dossier: 预测制品 dossier
+    :param ref_dossier: 参考制品 dossier
+    :param llm: 可选 LLM client（当前实现主要走 deterministic
+        + semantic_router 路径，``llm`` 仅作扩展位）
+    :return: 完整填充的 :class:`EvidenceRegime`
+    """
     has_prediction = bool((request.pred_output or "").strip())
     has_reference = bool((request.ref_output or "").strip())
     review_surface = _metadata_surface(request)

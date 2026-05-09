@@ -1,3 +1,11 @@
+"""``score_composer`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -10,6 +18,11 @@ from .rubric_scorer import RubricScore, llm_rubric_score
 
 
 def _missing_signal_count(items: list[str]) -> int:
+    """内部 helper：``_missing_signal_count``。
+
+    :param items: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     count = 0
     for item in items:
         text = str(item or "").strip()
@@ -20,6 +33,11 @@ def _missing_signal_count(items: list[str]) -> int:
 
 
 def _safe_int(value: Any) -> int | None:
+    """内部 helper：``_safe_int``。
+
+    :param value: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     try:
         return int(float(value))
     except Exception:
@@ -27,25 +45,54 @@ def _safe_int(value: Any) -> int | None:
 
 
 def _f1_from_tp_fp_fn(tp: int, fp: int, fn: int) -> float:
+    """内部 helper：``_f1_from_tp_fp_fn``。
+
+    :param tp: 见函数签名与上下文。
+    :param fp: 见函数签名与上下文。
+    :param fn: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     return 0.0 if precision + recall == 0 else (2 * precision * recall) / (precision + recall)
 
 
 def _normalized_locator_token(value: Any, fallback: str) -> str:
+    """内部 helper：``_normalized_locator_token``。
+
+    :param value: 见函数签名与上下文。
+    :param fallback: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     token = normalize_id(str(value or ""))
     return token or fallback
 
 
 def _requirement_locator(requirement_id: str) -> str:
+    """内部 helper：``_requirement_locator``。
+
+    :param requirement_id: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return f"input:requirement:{_normalized_locator_token(requirement_id, 'unknown_requirement')}"
 
 
 def _prediction_locator(element_id: str) -> str:
+    """内部 helper：``_prediction_locator``。
+
+    :param element_id: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     return f"prediction:element:{_normalized_locator_token(element_id, 'unknown_element')}"
 
 
 def _trace_dimension_evidence(trace_results: list[Any], *, limit: int = 2) -> list[EvidenceItem]:
+    """内部 helper：``_trace_dimension_evidence``。
+
+    :param trace_results: 见函数签名与上下文。
+    :param limit: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     status_priority = {"missing": 0, "partial": 1, "matched": 2}
     ranked = sorted(
         trace_results,
@@ -106,6 +153,22 @@ def compose_scores(
     *,
     llm: Any = None,
 ) -> tuple[list[DimensionReviewResult], list[ElementIssue], float]:
+    """``compose_scores`` 函数。
+
+    :param dimensions: 见函数签名与上下文。
+    :param request: 见函数签名与上下文。
+    :param contract: 见函数签名与上下文。
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :param ref_dossier: 见函数签名与上下文。
+    :param trace_results: 见函数签名与上下文。
+    :param equivalence_report: 见函数签名与上下文。
+    :param quality_report: 见函数签名与上下文。
+    :param evidence_critic: 见函数签名与上下文。
+    :param llm: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     matched, partial, missing = status_counts(trace_results)
     requirement_count = max(1, len(trace_results))
     matched_ratio = matched / requirement_count
@@ -818,6 +881,15 @@ def final_confidence(
     equivalence_report: dict[str, Any],
     evidence_critic: dict[str, Any],
 ) -> float:
+    """``final_confidence`` 函数。
+
+    :param regime: 见函数签名与上下文。
+    :param policy_packet: 见函数签名与上下文。
+    :param trace_results: 见函数签名与上下文。
+    :param equivalence_report: 见函数签名与上下文。
+    :param evidence_critic: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not trace_results:
         base = 0.42
     else:

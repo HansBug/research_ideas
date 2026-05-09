@@ -1,3 +1,11 @@
+"""``traceability`` 模块。
+
+**作用**：本模块属于 ``expert_review`` 体系内的辅助实现层；具体职责
+由内部 class / function 的 docstring 描述。
+
+**设计思路**：见包级 :mod:`expert_review.agents` 文档与
+``PYDOC_INVENTORY.md`` 盘点清单。
+"""
 from __future__ import annotations
 
 import json
@@ -20,6 +28,11 @@ from .llm_helpers import invoke_llm_json
 
 
 def _requirement_profile(requirement_text: str) -> dict[str, Any]:
+    """内部 helper：``_requirement_profile``。
+
+    :param requirement_text: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     lowered = requirement_text.lower()
     return {
         "requires_parallel": any(token in lowered for token in ["parallel", "orthogonal", "concurrent"]),
@@ -33,6 +46,12 @@ def _requirement_profile(requirement_text: str) -> dict[str, Any]:
 
 
 def _structural_requirement_support(requirement_text: str, pred_dossier: Any) -> tuple[float, list[str], str]:
+    """内部 helper：``_structural_requirement_support``。
+
+    :param requirement_text: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     profile = _requirement_profile(requirement_text)
     reasons: list[str] = []
     matched_ids: list[str] = []
@@ -76,6 +95,12 @@ def deterministic_traceability(
     input_dossier: Any,
     pred_dossier: Any,
 ) -> list[RequirementTraceResult]:
+    """``deterministic_traceability`` 函数。
+
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     candidates = candidate_texts_from_dossier(pred_dossier)
     results: list[RequirementTraceResult] = []
 
@@ -153,6 +178,13 @@ def traceability_with_llm(
     input_dossier: Any,
     pred_dossier: Any,
 ) -> list[RequirementTraceResult] | None:
+    """``traceability_with_llm`` 函数。
+
+    :param llm: 见函数签名与上下文。
+    :param input_dossier: 见函数签名与上下文。
+    :param pred_dossier: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if not input_dossier.requirements:
         return []
     candidates = candidate_texts_from_dossier(pred_dossier)

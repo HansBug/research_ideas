@@ -1,3 +1,27 @@
+"""``agents`` 子包入口 —— 12 个 agent 的统一 re-export。
+
+**作用**：把每个 agent 的对外 API（``deterministic_*`` /
+``*_with_llm`` / 装配函数等）re-export 到 ``expert_review.agents``
+名空间，方便 :mod:`graph.runtime` / :mod:`graph.nodes` 一处导入。
+
+**设计思路**：
+
+* 所有 agent 都符合 "deterministic / LLM 双路径" 模式：每个 agent
+  都先有 ``deterministic_*`` 函数作纯规则路径；对应有
+  ``*_with_llm`` 函数作 LLM-精化路径，LLM 失败 / 返回空时由调用方
+  fallback 到 deterministic 版本（在 :mod:`graph.nodes` 实现）；
+* :mod:`agents.orchestrator` 提供 stage 标识常量（PREPARATION_FANOUT
+  / ANALYSIS_FANOUT / FINAL_FANIN）+ ``record_agent_context`` /
+  ``record_fanout`` / ``run_parallel`` helper；
+* 12 个 agent 的目录结构与 :mod:`graph.edges` 中 stage 元组的成员
+  名直接对应。
+
+参考：
+
+* 主讨论 §3.4 6-dim form-filling pipeline
+* :mod:`graph.runtime` 主调度 + :mod:`graph.nodes` 节点封装
+"""
+
 from .contract_router import default_contract, route_contract
 from .evidence_regime_estimator import estimate_evidence_regime
 from .final_synthesizer import maybe_refine_overall_reason, overall_reason, synthesize_result

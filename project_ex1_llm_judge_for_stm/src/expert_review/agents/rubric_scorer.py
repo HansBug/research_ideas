@@ -74,6 +74,7 @@ _HARD_REJECT_MULTIPLIER = 2.0
 
 @dataclass(slots=True)
 class RubricScore:
+    """``RubricScore`` 数据/逻辑类；详见所在模块顶部 docstring。"""
     dimension: str
     score: float
     band: str
@@ -89,6 +90,12 @@ class RubricScore:
 
 
 def _truncate(text: str | None, limit: int = 800) -> str:
+    """内部 helper：``_truncate``。
+
+    :param text: 见函数签名与上下文。
+    :param limit: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     s = str(text or "").strip()
     if len(s) <= limit:
         return s
@@ -96,6 +103,11 @@ def _truncate(text: str | None, limit: int = 800) -> str:
 
 
 def _band_from_score(score: float) -> str:
+    """内部 helper：``_band_from_score``。
+
+    :param score: 见函数签名与上下文。
+    :return: 见函数签名与上下文。
+    """
     if score >= 0.85:
         return "excellent"
     if score >= 0.65:
