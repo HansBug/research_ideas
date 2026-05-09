@@ -20,7 +20,7 @@ ANALYSIS_FANOUT = (
 
 FINAL_FANIN = (
     "Missing-Evidence Critic",
-    "Disagreement Arbiter",
+    # 注：原 "Disagreement Arbiter" 节点已删除（见 graph/edges.py 同位置说明）
     "Score Composer",
     "Final Synthesizer",
 )

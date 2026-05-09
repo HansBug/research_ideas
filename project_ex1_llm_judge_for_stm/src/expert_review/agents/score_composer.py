@@ -548,7 +548,7 @@ def compose_scores(
                 else ""
             )
             + (
-                " The arbiter also found dependency-sensitive mismatches between supported states and their attached transitions."
+                " Dependency-sensitive mismatches between supported states and their attached transitions are also detected."
                 if dependency_breaks
                 else ""
             )
