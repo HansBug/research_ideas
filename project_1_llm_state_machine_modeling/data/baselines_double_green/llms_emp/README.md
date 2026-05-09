@@ -15,10 +15,11 @@ NL 需求 → PlantUML SysML 行为模型（STM / ACT / SD 三类）。
 
 | 文件 | 行数 | 列数 | 内容 |
 |------|------|------|------|
+| [`simple.parquet`](./simple.parquet) | 192 | 6 | **格式统一表（6 列：id / input / expected / predicted / model / notes）**；4 个数据集都有同 schema 文件，最简单的入口 |
 | [`raw_samples.parquet`](./raw_samples.parquet) | 107 | 32 | 公开账本原始 107 行（含未筛选样本） |
 | [`complete_samples.parquet`](./complete_samples.parquet) | 98 | 32 | 完整实验样本（同时含 input + output：38 STM / 21 ACT / 39 SD） |
 | [`human_review.parquet`](./human_review.parquet) | 192 | 31 | 公开逐样本人评（input + ref + pred + 评分 + 论文摘录） |
-| [`raw/`](./raw/) | — | — | 原始 ods/xlsx 等下载资源（**当前为空**，详见下文 §`原始资源现状`） |
+| [`raw/`](./raw/) | — | — | 原始 xlsx 资源：`Dataset.xlsx` / `Experiment Results.xlsx` / `ESE Expriment Results.xlsx` / Google Drive `README.md` |
 
 ## 关键字段
 
@@ -57,14 +58,16 @@ OUTPUT (plantuml_code):
   @enduml
 ```
 
-## 原始资源现状（⚠️ P0 待补）
+## 原始资源现状（✅ 已下载）
 
-build 脚本 [`build_baseline_double_green_parquets.py`](../../../discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_parquets.py) 当时把原始资源放在硬编码的 `/tmp/baseline_double_green/raw/llms_emp_gmodel/`，包含：
+`raw/` 已包含从 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) 下载的：
 
 - `Dataset.xlsx` —— 数据集主账本（NL 需求 + PlantUML 输出）
 - `Experiment Results.xlsx` —— 人工评审表
+- `ESE Expriment Results.xlsx` —— ESE 期刊扩展版人评（增量样本）
+- `README.md` —— 数据集发布说明
 
-**当前 `/tmp` 已失效**，原始 xlsx 已不在本机。**当前 parquet 即真源**，下游无影响；但若要重新跑 build 脚本（修复 bug / 扩字段），需要先从 [Google Drive](https://drive.google.com/drive/folders/10eo8KDqlBlkQZxPpPCB7R3-aBQZ7Rsm6?usp=drive_link) 重新下载到 [`raw/`](./raw/)。
+parquet 中所有路径字段已迁移到本目录的相对路径（`./raw/...`），可逐字段验证存在。
 
 ## 复用性建议
 

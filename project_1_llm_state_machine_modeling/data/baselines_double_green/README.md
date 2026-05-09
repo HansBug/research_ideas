@@ -13,33 +13,37 @@ baselines_double_green/
 ├── README.md                       # 本文档
 ├── llms_emp/                       # 数据集一：Generating SysML Behavior Models via LLMs (2025)
 │   ├── README.md                   # 该论文 mini README（来路 / 字段 / 例子）
+│   ├── simple.parquet              # ★ 格式统一表（6 列：id/input/expected/predicted/model/notes）
 │   ├── raw_samples.parquet         # 公开账本原始 107 行
 │   ├── complete_samples.parquet    # 清洗后 98 个完整样本
 │   ├── human_review.parquet        # 192 行逐样本人评
-│   └── raw/                        # 原始 ods/xlsx 下载位置（占位，需重新下载）
+│   └── raw/                        # Dataset.xlsx + Experiment Results.xlsx + ESE 扩展版 + README
 ├── ttool_ai/                       # 数据集二：System Architects Are not Alone Anymore (2024)
 │   ├── README.md
+│   ├── simple.parquet              # ★ 格式统一表
 │   ├── models.parquet              # 15 个 AVATAR 设计模型
 │   ├── state_machine_panels.parquet # 122 个 SM panel
 │   ├── states.parquet              # 708 状态摊平
 │   ├── transitions.parquet         # 798 迁移摊平（含时间约束 + 概率字段）
 │   ├── human_review.parquet        # 116 行人评
-│   └── raw/
+│   └── raw/                        # 3 spec.md + 3 .xml + results.ods（GitHub zebradile/ttool-ai）
 ├── light_control_nimbus/           # 数据集三：Nimbus Light-Control Case Study (2000)
 │   ├── README.md
+│   ├── simple.parquet              # ★ 格式统一表（predicted/model 全 None，论文非 LLM 工作）
 │   ├── documents.parquet           # 2 份原始文档全文
 │   ├── fragments.parquet           # 4 个可实验片段
 │   ├── variables.parquet           # 17 monitored/controlled 变量
 │   ├── states.parquet              # 20 层次状态
 │   ├── rules.parquet               # 16 RSML-e 规则
-│   └── raw/
+│   └── raw/                        # 2 PDF + 2 txt 抽取本
 ├── structure_event_driven/         # 数据集四：Structure-Event-Driven Frameworks (2026)
 │   ├── README.md
+│   ├── simple.parquet              # ★ 格式统一表（predicted 几乎全空，4open 未公开 prediction 文本）
 │   ├── cases.parquet               # 9 个 case
 │   ├── reference_solutions.parquet # 9 行 Umple ref + 7 类组件计数
 │   ├── metrics.parquet             # 512 行逐组件 TP/FN/FP/F1
 │   ├── human_review.parquet        # 512 行逐组件人评
-│   └── raw/
+│   └── raw/                        # 8 reference Umple txt + xlsx F1 表 + backend prompts
 ├── cross_paper/                    # 跨 4 篇论文统一汇总
 │   ├── README.md
 │   ├── dataset_catalog.parquet     # 4 数据集元数据
@@ -56,6 +60,28 @@ baselines_double_green/
     ├── README.md
     └── .gitignore
 ```
+
+### `simple.parquet` 是什么
+
+每个论文子目录都放了一个 6 列、schema 一致的 [`simple.parquet`](./llms_emp/simple.parquet)，是**最简单的入口**：
+
+| 列 | 含义 |
+|----|------|
+| `id` | 全数据集唯一 id（`<paper>::<sub-id>`） |
+| `input` | 自然语言输入 |
+| `expected` | 期望 STM 输出（论文 gold reference，nullable —— 如 ttool_ai 没公开 ref） |
+| `predicted` | 论文方法的 LLM 实际输出（nullable —— 如 light_control_nimbus 非 LLM 工作） |
+| `model` | predicted 的 LLM 名（nullable） |
+| `notes` | 备注（含 case_name / strategy / record_type 等切片信息） |
+
+各论文的 `simple.parquet` 行数 + 覆盖率：
+
+| 论文 | 行 | input | expected | predicted | model |
+|------|----|----- -|----------|-----------|-------|
+| `llms_emp` | 192 | 192 | 192 | 192 | 192（GPT-4 / GPT-4o / Claude / Kimi / Llama / DeepSeek 6 个 LLM） |
+| `ttool_ai` | 15 | 15 | 0（论文未公开 ref） | 15 | 15（统一标 "TTool-AI workflow (GPT-4)"） |
+| `light_control_nimbus` | 4 | 4 | 4 | 0（非 LLM 工作） | 0 |
+| `structure_event_driven` | 512 | 512 | 320 | 8 | 512（GPT-4o + Claude 3.5 Sonnet） |
 
 ## 2. 4 个数据集快览
 
@@ -74,15 +100,25 @@ baselines_double_green/
 - **生成脚本**：[`../../discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_parquets.py`](../../discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_parquets.py) 与 [`build_baseline_double_green_human_review_parquets.py`](../../discussions/2026-04-15-01-03-52-AI-讨论-baselines双绿数据集下载解析与parquet化.assets/build_baseline_double_green_human_review_parquets.py)（保留在原 discussion 资产目录，作为该 discussion 的产物历史）
 - **物理迁移**：21 个 parquet 在 2026-05-09 从原 `.assets/` 移到本目录，并按 4 篇论文拆到 4 个子目录 + `cross_paper/`；parquet 名称去掉了 `<paper>_` 前缀（目录名已含上下文）
 
-## ⚠️ 4. 原始资源现状（P0 待补）
+## 4. 路径与原始资源现状（✅ 已就绪，全链可追溯）
 
-build 脚本里硬编码了 `RAW_ROOT_DEFAULT = Path("/tmp/baseline_double_green/raw")` —— **当前 `/tmp` 已失效，原始 ods/xlsx/PDF 等已不在本机**。
+**已完成**（2026-05-09）：
 
-**结论**：
+1. ✅ **原始资源全部下载到 `<paper>/raw/`**（不再依赖 `/tmp`）：
+   - llms_emp: Google Drive 4 文件（Dataset.xlsx + Experiment Results.xlsx + ESE 扩展 + README）
+   - ttool_ai: GitHub `zebradile/ttool-ai` 7 文件（3 spec.md + 3 .xml + results.ods）
+   - light_control_nimbus: 2 PDF + 2 txt 抽取本
+   - structure_event_driven: 8 reference Umple txt + xlsx F1 表 + backend prompts + 1 prediction txt
+2. ✅ **parquet 中所有路径字段全部迁移到相对路径**（相对于 parquet 文件本身）：1952 处替换 + 1108 处置空（4open 未公开的 prediction 图像）
+3. ✅ **逐字段验证通过**：1952 处非空路径 100% 指向真实存在文件，0 缺失
 
-1. ✅ **当前 21 个 parquet 即真源**，下游 `scripts/` 在 parquet 之上工作，不依赖 raw/，所以 NL→STM benchmark 与 reviewer benchmark **完全可用**
-2. ⚠️ **若要重跑 build_*.py（修字段 / 扩字段 / 修 bug）**，需要先重新下载原始资源到各论文子目录的 `raw/` 下；每个子目录的 mini README 含具体下载方式
-3. 📌 **build 脚本应该改造**：把 `RAW_ROOT_DEFAULT` 默认从 `/tmp` 改到 `<本目录>/<paper>/raw/`；这样原始与 parquet 物理共置，永远可追溯
+**已知缺口**（不影响 parquet 真源使用）：
+
+- structure_event_driven 的 LLM prediction 图像（512 处）4open.science 未公开，相关字段已置空
+- `Final Single Prompt/Claude Sonnet 3.5/SSC7_*.txt` 是仅有的 1 个 prediction 文本（其他 511 个 prediction 仅有 metric 数字）
+- ttool_ai/human_review.parquet 的 reference output 全空（论文未公开 gold reference）
+
+**`build_*.py` 重跑指南**：build 脚本里仍硬编码 `RAW_ROOT_DEFAULT = Path("/tmp/baseline_double_green/raw")`；要在本仓库重跑需要把脚本默认指到 `<本目录>/<paper>/raw/`，或者通过环境变量覆盖。这一改造留作后续工作。
 
 ## 5. 用法（导出脚本）
 

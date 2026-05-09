@@ -17,12 +17,13 @@ NL 系统规范 → AVATAR (TTool 元模型) 设计模型，含 block diagrams +
 
 | 文件 | 行数 | 列数 | 内容 |
 |------|------|------|------|
+| [`simple.parquet`](./simple.parquet) | 15 | 6 | **格式统一表（6 列：id / input / expected / predicted / model / notes）**；4 个数据集都有同 schema 文件 |
 | [`models.parquet`](./models.parquet) | 15 | 21 | 15 个 AVATAR 设计模型（system spec + raw_xml + panel 计数） |
 | [`state_machine_panels.parquet`](./state_machine_panels.parquet) | 122 | 15 | 122 个状态机面板（panel-level XML + state/transition 计数） |
 | [`states.parquet`](./states.parquet) | 708 | 17 | 摊平后的 708 状态节点（含坐标 / 类型 / 连接点） |
 | [`transitions.parquet`](./transitions.parquet) | 798 | 26 | 摊平后的 798 迁移（**含时间约束 + 概率字段**） |
 | [`human_review.parquet`](./human_review.parquet) | 116 | 29 | 公开人评结果（多类记录：case-level / split-level / overall） |
-| [`raw/`](./raw/) | — | — | 原始 ods + spec markdown 等（**当前为空**，详见 §`原始资源现状`） |
+| [`raw/`](./raw/) | — | — | 原始 ods + spec markdown + xml（来自 GitHub `zebradile/ttool-ai`） |
 
 ## 关键字段
 
@@ -57,22 +58,17 @@ OUTPUT (raw_xml):
   每条 transition 的 (guard, action, after_min, after_max, distribution, probability)
 ```
 
-## 原始资源现状（⚠️ P0 待补）
+## 原始资源现状（✅ 已下载）
 
-build 脚本读取的原始资源：
+`raw/` 已从 [GitHub `zebradile/ttool-ai`](https://github.com/zebradile/ttool-ai) 拷贝到位：
 
-- `raw/ttool-ai/platooning/platoonings.md`
-- `raw/ttool-ai/AutomatedBraking/automatedbraking.md`
-- `raw/ttool-ai/SpaceBasedSystem/specification_spacebasedsystem.md`
-- `raw/ttool-ai/results.ods` —— 公开人评 ods 表
-- 以及 GitHub 仓库克隆的 spec/XML 树
+- `raw/platooning/platoonings.md` + `platoonings.xml`
+- `raw/AutomatedBraking/automatedbraking.md` + `automatedbraking.xml`
+- `raw/spacebasedsystem/spacebasedsystem.xml`
+- `raw/incoherencies/specification_spacebasedsystem.md`
+- `raw/results.ods` —— 公开人评 ods 表
 
-**当前 `/tmp/baseline_double_green/raw/ttool-ai/` 已失效**。若要重跑 build：
-
-```bash
-git clone https://github.com/zebradile/ttool-ai raw/repo
-# 然后把对应 spec / ods 路径复制到 raw/ 子目录里，路径与 build_*.py 中保持一致
-```
+parquet 中所有路径字段已迁移到本目录的相对路径（`./raw/...`），可逐字段验证存在。
 
 ## 复用性建议
 

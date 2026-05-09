@@ -15,12 +15,13 @@
 
 | 文件 | 行数 | 列数 | 内容 |
 |------|------|------|------|
+| [`simple.parquet`](./simple.parquet) | 4 | 6 | **格式统一表（6 列：id / input / expected / predicted / model / notes）**；本数据集 `predicted` 与 `model` 全为 None（论文非 LLM 工作） |
 | [`documents.parquet`](./documents.parquet) | 2 | 8 | 两份原始文档全文（Dagstuhl 挑战题 + Nimbus JUCS 论文） |
 | [`fragments.parquet`](./fragments.parquet) | 4 | 11 | 重建后的 4 个可实验 NL→RSML-e 片段 |
 | [`variables.parquet`](./variables.parquet) | 17 | 7 | 17 个 monitored / controlled 变量（含 range_or_type） |
 | [`states.parquet`](./states.parquet) | 20 | 7 | 20 个层次状态节点（parent_state_name + depth） |
 | [`rules.parquet`](./rules.parquet) | 16 | 8 | 16 条 RSML-e 规则（target_variable + assigned_value + condition） |
-| [`raw/`](./raw/) | — | — | 两份原始 PDF（**当前为空**，详见 §`原始资源现状`） |
+| [`raw/`](./raw/) | — | — | 2 份 PDF + 2 份 txt 抽取本（已下载） |
 
 ## 关键字段
 
@@ -66,25 +67,14 @@ OUTPUT (output_fragment_excerpt 层次状态名):
 
 注意 U3/U4 中的 `T1 minutes` —— 控制系统**时间约束**的经典 case。
 
-## 原始资源现状（⚠️ P0 待补）
+## 原始资源现状（✅ 已下载）
 
-build 脚本读取的原始资源：
+`raw/` 已包含 4 份资源：
 
-- `raw/light-control-original-case-study.txt` —— Dagstuhl 挑战题 PDF 提取的纯文本
-- `raw/light-case-jucs.txt` —— Nimbus 论文 PDF 提取的纯文本
+- `light-case-jucs.pdf` + `light-case-jucs.txt` —— Nimbus JUCS 论文（PDF + 抽取文本）
+- `Light_Control_Case_Study.pdf` + `light-control-original-case-study.txt` —— Dagstuhl 挑战题（来自 [Semantic Scholar synopsis](https://pdfs.semanticscholar.org/3a2f/1fb69fa1fa109e9a25343c379a81cb3744f2.pdf) 的 4 页 synopsis；原始 1992 年 Dagstuhl 链接 `rn.informatik.uni-kl.de/~recs` 已失效）
 
-**两份 PDF 在外部链接均可重新下载**：
-
-```bash
-# 在本目录的 raw/ 下放：
-wget -O raw/Light\ Control\ Case\ Study.pdf \
-    "https://www.st.cs.uni-saarland.de/edu/seminare/2005/advanced/papers/Light%20Control%20Case%20Study.pdf"
-wget -O raw/light-case-jucs.pdf \
-    "https://www-users.cse.umn.edu/~heimdahl/csci8801-fall06/readings/light-case-jucs.pdf"
-# 然后用 pdf_extractor 转 txt（或者直接复用 baselines/...nimbus-light-control/paper_content.txt）
-```
-
-> 提示：JUCS 论文 PDF 实际就是 [`../../../baselines/requirements-capture-and-evaluation-in-nimbus-light-control/paper.pdf`](../../../baselines/requirements-capture-and-evaluation-in-nimbus-light-control/paper.pdf) 的副本，可直接 cp 过来。
+parquet 中所有路径字段已迁移到本目录的相对路径（`./raw/...`），可逐字段验证存在。
 
 ## 复用性建议
 
