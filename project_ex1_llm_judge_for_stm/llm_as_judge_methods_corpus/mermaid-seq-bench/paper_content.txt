@@ -1,0 +1,1156 @@
+--- Page 1 ---
+MermaidSeqBench: An Evaluation Benchmark for NL-to-Mermaid
+Sequence Diagram Generation
+Basel Shbita, Farhan Ahmed, Chad DeLuca
+IBM Research, San Jose, CA, USA
+{basel,farhan.ahmed}@ibm.com,delucac@us.ibm.com
+Abstract
+Large language models (LLMs) have shown
+great promise in generating structured diagrams
+from natural language descriptions, particu-
+larly Mermaid sequence diagrams for soft-
+ware engineering. However, the lack of ex-
+isting benchmarks to assess the LLM’s correct-
+ness on this task hinders the reliable deploy-
+ment of these models in production environ-
+ments. To address this shortcoming, we in-
+troduceMermaidSeqBench, a human-verified
+and LLM-synthetically-extended benchmark
+for assessing LLM capabilities in generating
+Mermaid sequence diagrams from natural lan-
+guage prompts. The benchmark consists of 132
+samples developed via a hybrid methodology of
+human-verified flows, LLM-based augmenta-
+tion, and rule-based expansion. The evaluation
+uses an LLM-as-a-judge model to assess gener-
+ation across various fine-grained metrics such
+as syntax correctness, activation handling, error
+handling, and practical usability. To demon-
+strate the effectiveness and flexibility of our
+benchmark, we perform initial evaluations on
+numerous state-of-the-art LLMs with multiple
+LLM judges which reveal significant capabil-
+ity gaps across models and evaluation modes.
+MermaidSeqBench provides a foundation for
+evaluating structured diagram generation and
+establishes the correctness standards needed for
+real-world software engineering deployment.
+1 Introduction
+Large language models (LLMs) have demonstrated
+remarkable capabilities in programming tasks such
+as code generation (Jiang et al., 2024; Huynh and
+Lin, 2025), code documentation (Chakrabarty and
+Pal, 2024; Dvivedi et al., 2024), and coding assis-
+tants (Li et al., 2025). Furthermore, they show great
+promise in generating structured diagrams from nat-
+ural language descriptions (Guernsey, 2025). One
+type of structured diagram is a sequence diagram:
+a visual model used in software engineering that
+sequenceDiagram
+participant Alice
+participant Bob
+Alice ->> Bob : Hi Bob
+Bob ->> Alice : Hi Alice
+Figure 1: A sample sequence diagram visually repre-
+sented in UML (a UML sequence diagram) and the
+corresponding Mermaid code to textually represent it (a
+Mermaid sequence diagram).
+shows how objects, components, and processes
+interact with each other over time. Sequence di-
+agrams are most commonly visualized in Unified
+Modeling Language (UML) (Object Management
+Group, 2017), but can also be represented in a text-
+based syntax such as PlantUML (Roques, 2009) or
+Mermaid (Sveidqvist et al., 2014). A sample se-
+quence diagram visually represented in UML and
+textually in Mermaid is shown in Figure 1.
+LLMs have proven to be proficient in generating
+such text-based based sequence diagrams (Jahan
+et al., 2021; Wang et al., 2024). However, system-
+atic evaluations for assessing an LLM’s correctness
+in producing sequence diagrams remains largely
+underdeveloped. This has significant implications
+for software engineering since sequence diagrams
+are critical for modeling how components interact
+over time. In many real-world applications such
+as DevOps and system architecture documentation,
+structured diagrams with any flaws in the syntax or
+1arXiv:2511.14967v2  [cs.SE]  25 Apr 2026
+
+--- Page 2 ---
+logic would be catastrophic. Thus, it is currently
+difficult to trust an LLM with these mission-critical
+tasks since standard benchmarks do not exist to
+evaluate an LLM’s capability in this task. This
+has motivated research on developing evaluations
+for sequence diagram generation such as statisti-
+cal method (Ferrari et al., 2024) or an LLM-as-a-
+Judge (Ahmed et al., 2025).
+Mermaid (Sveidqvist et al., 2014), formally
+known as MermaidJS, is a diagramming tool that
+uses a Markdown-inspired syntax and is one such
+text-based method of representing sequence dia-
+grams. Sequence diagrams textually represented
+in Mermaid are aptly named Mermaid sequence
+diagrams. Prior work has shown that LLMs are ca-
+pable of effectively producing Mermaid sequence
+diagrams (Saxena et al., 2025). However, evalua-
+tion in this space is even more underexplored as
+there is a severe lack of existing benchmarks or
+even public datasets to evaluate an LLM’s Mer-
+maid sequence diagram generation capabilities. A
+lack of such proper assessments hinders both the re-
+liability and trustworthiness on allowing LLMs to
+be used to generate sequence diagrams for software
+engineering workflows. This has driven our work
+to create a reproducible, scalable, and fine-grained
+evaluation framework for this task.
+In this paper, we introduceMermaidSeqBench,
+a human-verified and LLM-synthetically extended
+benchmark for assessing an LLM’s capabilities
+in generating Mermaid sequence diagrams from
+natural language prompts. This benchmark at its
+core is a dataset that consists of 132 samples that
+started from a small, manually crafted set and
+were synthetically expanded human annotation, in-
+context LLM prompting, and rule-based variation
+generation. We also introduce a systematic evalu-
+ation method using an LLM-as-a-Judge to assess
+Mermaid sequence diagram generation across fine-
+grained metrics such as syntax correctness, activa-
+tion handling, error handling, and practical usabil-
+ity. This allows us to benchmark and numerically
+evaluate any LLM on its Mermaid sequence dia-
+gram generation capabilities.
+To demonstrate the effectiveness of Mermaid-
+SeqBench, we perform initial evaluations on three
+distinct families of models of similar sizes:Llama-
+3.1-8B-Instruct(Grattafiori et al., 2024),Qwen-2.5-
+7B-Instruct(Yang et al., 2025), andGranite-3.3-
+8B-Instruct(Granite Team, 2024). We then extend
+to models of the same families at smaller sizes to
+demonstrate the scaling effects and trends acrossdifferent model sizes. Lastly, to isolate and study
+scaling effects, we conduct an ablation over multi-
+ple sizes of theQwen-2.5instruction-tuned models
+which allows us to control architectural differences
+and focus solely on the model scale. For all of
+our evaluations, we use two large LLM judge mod-
+els:DeepSeek-V3(DeepSeek-AI et al., 2025) at
+671B andGPT-OSS(OpenAI et al., 2025) at 120B.
+This highlights both the effectiveness and flexibil-
+ity of our proposed benchmark as our results reveal
+significant capability gaps across models and the
+various evaluation modes.
+Our benchmark aims to provide a foundation
+for advancing research, not only in Mermaid se-
+quence diagram generation, but also structured dia-
+gram generation as a whole. As a result, we open-
+source MermaidSeqBench1and make the bench-
+mark dataset publicly accessible2in hopes of en-
+couraging further work in developing more rig-
+orous, fine-grained evaluation methodologies in
+this space. Furthermore, although we focus on
+NL-to-Mermaid sequence diagram evaluations, our
+methodology can be applied to other structural dia-
+grams or even other textual representations such as
+PlantUML.
+2 Related Work
+Existing work on evaluating LLM generation of
+Mermaid sequence diagrams remains largely un-
+derexplored and limited. Expanding to other forms
+of structural diagrams, Saxena et al. (2025) and
+Guernsey (2025) both explore methods on using
+LLMs to generate various structural diagrams in
+Mermaid syntax such as class, flow, and sequence
+diagrams. However, evaluations remain relatively
+simple through simple compliance or visualization
+checks which are not as robust or scalable.
+In the broader space, structural diagrams gener-
+ated by LLMs are typically represented textually
+in PlantUML (Roques, 2009). There are several
+works on LLM generation of PlantUML class, flow,
+case, and sequence diagrams (Guernsey, 2025;
+Wang et al., 2024; Rouabhia and Hadjadj, 2025;
+Eklund and Jonsson, 2025). Evaluations for these
+tasks provide more robust approaches. Rouab-
+hia and Hadjadj (2025) use statistical methods to
+validate the syntactic, structural, and behavioral
+consistency of the LLM generated UML class dia-
+1Code available at: https://github.com/IBM/
+MermaidSeqBench-Eval
+2Dataset available at: https://huggingface.co/
+datasets/ibm-research/MermaidSeqBench
+2
+
+--- Page 3 ---
+grams in similar way to existing code benchmarks
+such as HumanEval (Chen et al., 2021) or MBPP
+(Austin et al., 2021). Ferrari et al. (2024) utilize
+similar statistical methods to evaluate LLM gener-
+ated UML sequence diagrams on categories such as
+completeness, correctness, and adherence to stan-
+dards. Furthermore, Ahmed et al. (2025) explore
+using an LLM-as-a-Judge for evaluating the NL-to-
+PlantUML sequence diagram task.
+To the best our knowledge, no formal bench-
+mark or even public dataset exists for evaluating
+an LLM’s capabilities on producing Mermaid se-
+quence diagrams. Our work is the first to introduce
+such a benchmark, public dataset, and systematic
+evaluation framework to evaluating this task in a
+similar manner to code generation benchmarks.
+3 Methodology
+MermaidSeqBench provides the entire evaluation
+pipeline for benchmarking an LLM’s capabilities
+in generating Mermaid sequence diagrams. This
+compromises of both a dataset for generating out-
+puts and a systematic evaluation method involving
+an LLM-as-a-Judge for assessing the generations.
+We describe how we constructed the dataset in Sec-
+tion 3.1 and the evaluation method in Section 3.2.
+3.1 Dataset Construction
+The dataset consists of 132 samples, starting from
+a small set of manually crafted and verified flows.
+These were expanded via a hybrid method of com-
+bining human annotation, in-context LLM prompt-
+ing, and rule-based variation generation. Our
+methodology for constructing the dataset proceeds
+in three stages: (1) initial dataset construction; (2)
+synthetic expansion using scalable LLM-based gen-
+eration; and (3) systematic augmentation through
+rule-based variation. This pipeline enables us to
+create a benchmark that is both human-verified at
+its core and systematically extended for scalability
+and diversity. See Appendix A for some samples
+of Mermaid sequence diagrams from the bench-
+mark dataset along with the corresponding UML
+visualization.
+3.1.1 Initial Dataset Seeds
+We begin by constructing a small, high-quality seed
+set of ten Mermaid sequence diagrams. These were
+written manually by a subject matter expert (SME)
+given a set of natural language descriptions of dif-
+ferent sequence flows. Each flow was manually
+verified to confirm syntax, semantic plausibility,and completeness. This curated core serves as the
+foundation of the benchmark.
+3.1.2 Synthetic Expansion
+To scale beyond the core set, we employScal-
+able Synthetic Data Generation (SDG)(foundation-
+model-stack, 2025), an open-source general-
+purpose LLM-wrapper framework designed for
+producing large quantities of synthetic data. In
+this stage, we use in-context examples of full flows
+of valid sequence diagrams in Mermaid syntax to
+guide the LLM in generating additional diagram
+flows. This allows us to systematically extend the
+benchmark while maintaining fidelity to the Mer-
+maid syntax.
+TheSDGpipeline balances automation with con-
+trol by leveraging prompts that encourage diverse
+structural patterns while adhering to syntactic rules.
+We usedMistral-Large-Instruct(Mistral AI, 2024)
+(123B) as the primary generator. From the gener-
+ated pool, 30 samples were selected and verified
+through two complementary mechanisms: (1) man-
+ual rendering via the Mermaid Live Editor (Svei-
+dqvist and contributors, 2025) to ensure further
+syntactic correctness; and (2) manual verification
+with an SME to confirm completeness and adher-
+ence to constraints.
+3.1.3 Rule-Based Variation Augmentation
+Finally, we expand the resulting set through deter-
+ministic augmentation rules that produce approxi-
+mately a four-fold increase in coverage. These rule-
+based transformations systematically alter both con-
+trol flow structures and participant naming conven-
+tions, ensuring diversity in syntax without altering
+underlying semantics. In the first case, conditional
+constructs defined with alt,else , and endare pro-
+grammatically detected and reordered, including
+support for nested alternatives. This reordering pre-
+serves the logical meaning of the branches while
+producing structurally distinct representations of
+the same flow. In the second case, participant iden-
+tifiers are normalized into a canonical form, with
+substitutions consistently propagated across both
+the participant declarations and all subsequent mes-
+sage references. This guarantees syntactic validity
+while introducing surface-level variation in the rep-
+resentation of diagram entities.
+3.1.4 Natural Language Descriptions
+Each Mermaid diagram in the benchmark is paired
+with a structured natural language (NL) descrip-
+tion capturing itsPurpose,Main Components, and
+3
+
+--- Page 4 ---
+Interactions. This systematic format ensures that
+every diagram is grounded in a clear, unambiguous
+textual description, aligning with how interaction
+flows are typically documented in software design
+or requirements specifications. Together, these pair-
+ings yield a benchmark of 132 NL-Mermaid pairs
+in total. Examples of Mermaid syntax and rendered
+sequence diagrams can be found in Appendix A,
+while their corresponding natural language descrip-
+tions are detailed in Appendix B.
+By combining human-verified samples, syntheti-
+cally expanded instances, and rule-based variations,
+each paired with a structured natural language de-
+scription, MermaidSeqBench is both faithful to
+real-world Mermaid sequence diagram usage and
+broad enough to expose LLM limitations across a
+wide range of structures. This integrated method-
+ology ensures that the benchmark captures a wide
+range of diagramming scenarios.
+3.2 Evaluation Method
+The evaluation pipeline is a two step procedure: (1)
+the LLM is given the input prompt to generate Mer-
+maid code; and (2) a secondary judge LLM is used
+to assess the generated Mermaid code based on the
+task, description, prompt, and expected “ground
+truth” answer.
+3.2.1 Inference on Input Prompts
+The evaluation begins by performing model infer-
+ence using the input prompts from the benchmark
+dataset. Each sample is formatted in a fixed schema
+composed of a task directive, general guidelines,
+Mermaid syntax rules, and example input, an exam-
+ple output, purpose, main components, and interac-
+tions. The LLM is expected to produce a valid Mer-
+maid sequence diagram. To ensure reproducibility,
+all outputs are generated using greedy decoding
+(temperature = 0) with a maximum budget of 1,024
+new tokens per prompt.
+3.2.2 LLM-as-a-Judge Assessments
+MermaidSeqBench uses an LLM-as-a-Judge to as-
+sess generated Mermaid outputs. Any judge LLM
+can be used, but larger models are recommended
+as they tend to be more capable (Zheng et al., 2023;
+Thakur et al., 2025; Son et al., 2024). Since only
+the outputs of the judge model are needed, black-
+box API models may also be used.
+Each judge is prompted to assess generated Mer-
+maid outputs. Given an input description (in natural
+language) and a corresponding reference diagramsyntax, the judges rate candidate diagrams across
+six dimensions:Syntax,Mermaid Only,Logic,
+Completeness,Activation Handling, andError &
+Status Tracking. Each dimension is scored on a
+scale from 0 to 1, allowing both fine-grained and
+aggregate comparisons of model performance. To
+ensure transparency and reproducibility of our eval-
+uation methodology, we include the full set of judge
+prompts used to score model-generated Mermaid
+sequence diagrams. Each prompt is designed to
+assess a single well-defined evaluation dimension,
+enabling fine-grained analysis of model behavior.
+All judge prompts follow a common struc-
+ture: they present the generated Mermaid diagram
+(<AGENT_RESPONSE> ) and reference one accepted
+solution ( <EXPECTED_AGENT_RESPONSE> ) without
+requiring a verbatim match. The judge prompt
+can optionally include the original agent prompt
+(<AGENT_PROMPT> ). It also poses targeted ques-
+tions specific to the evaluation criterion. Judges
+are instructed to output both a numerical score in
+the range [0.0,1.0] and a brief explanation, using a
+standardized scoring rubric to promote consistency
+across criteria and models. The exact prompts used
+by the judge models for each of the six criteria are
+shown in Appendix C.
+4 Experiments and Discussion
+Our evaluations with MermaidSeqBench are aimed
+at demonstrating its utility for probing LLMs on
+structured sequence diagram generation tasks. Our
+focus is to establish baseline results for a selection
+of state-of-the-art models while highlighting the
+flexibility of MermaidSeqBench when paired with
+independent LLM judges. This setup allows us to
+identify capability gaps that are often overlooked
+in standard text-generation benchmarks.
+4.1 Experimental Setup
+Our experiments fall into two categories: (1) cross-
+family and cross-scale comparisons where we eval-
+uate on three different families of models at two
+similar scales each, and (2) intra-family scaling
+ablation where we evaluate the same model family
+across multiple sizes.
+1.Cross-Family and Cross-Scale:Our ini-
+tial evaluations are on three distinct fam-
+ilies of models of similar sizes:Llama-
+3.1-8B-Instruct(Grattafiori et al., 2024),
+Qwen-2.5-7B-Instruct(Yang et al., 2025),
+andGranite-3.3-8B-Instruct(Granite Team,
+4
+
+--- Page 5 ---
+Table 1: Model performance on MermaidSeqBench across six criteria, evaluated by two large LLM-as-a-Judge
+models. Scores are reported as percentages (originally in[0.0,1.0]). For all criteria, higher is better.
+DeepSeek-V3 (671B) GPT-OSS (120B)Syntax
+Mermaid Only
+Logic
+Completeness
+Activation Handling
+Error & Status Tracking
+Syntax
+Mermaid Only
+Logic
+Completeness
+Activation Handling
+Error & Status Tracking
+Llama-3.1-8B-Instruct 92.01 96.36 87.35 89.43 79.17 81.82 68.89 93.85 67.71 77.50 57.99 74.90
+Qwen-2.5-7B-Instruct 91.29 95.98 87.23 88.90 79.55 81.70 85.97 97.05 70.56 77.37 64.04 69.81
+Granite-3.3-8B-Instruct 86.97 94.13 83.03 83.75 74.13 76.97 65.15 88.35 58.90 65.08 47.08 63.24
+Llama-3.2-1B-Instruct 68.98 60.68 52.27 60.57 39.85 52.35 46.15 46.23 18.86 25.92 17.29 24.14
+Qwen-2.5-1.5B-Instruct 61.59 64.55 47.31 51.61 46.06 47.77 56.07 85.22 30.49 40.26 33.99 41.53
+Granite-3.3-2B-Instruct 75.27 90.98 70.23 74.55 63.71 71.86 39.60 78.59 34.11 46.50 29.01 53.97
+2024). We then extend to models within the
+same families, but of smaller sizes:Llama-
+3.2-1B-Instruct,Qwen-2.5-1.5B-Instruct, and
+Granite-3.3-2B-Instruct. This setup provides
+a balanced perspective on both lightweight
+and larger-scale variants across LLM families,
+enabling comparison of architectural differ-
+ences as well as scaling effects.
+2.Intra-Family Scaling Ablation:To isolate
+scaling effects, we conduct an ablation study
+over multiple sizes of the within a single
+model family to minimize variable factors.
+Due to the plethora of available sizes, we
+chose theQwen-2.5instruction-tuned models.
+Specifically, we evaluateQwen-2.5models at
+0.5B, 1.5B, 3B, 7B, 14B, 32B, and 72B pa-
+rameters using the same benchmark, prompts,
+and LLM-as-a-Judge setup. This experiment
+controls for architectural differences and fo-
+cuses solely on model scale.
+For both scenarios, we utilize two large mod-
+els as judges:DeepSeek-V3(DeepSeek-AI et al.,
+2025) (671B) andGPT-OSS(OpenAI et al., 2025)
+(120B). This allows us to mitigate individual model
+bias and ensure a more robust evaluation by cross-
+referencing the scoring of two distinct architectural
+implementations.
+4.2 Results
+We now present our evaluations on the two cate-
+gories of experiments and demonstrate how Mer-
+maidSeqBench has both the effectiveness and flex-
+ibility to reveal significant capability gaps acrossmodels and evaluation modes.
+4.2.1 Cross-Family and Cross-Scale
+Comparisons
+Table 1 shows the benchmark scores of theLlama,
+Qwen, andGranitefamilies of models for the
+two variants of sizes. Overall, the results reveal
+clear scaling effects across families: larger models
+within each family consistently outperform their
+smaller counterparts, an expected result as larger
+models are typically more performant. Among the
+larger models,LlamaandQwenachieve the highest
+scores across most criteria, particularly on syntax,
+logical flow, and activation usage.Granitefollows
+closely but lags slightly on error handling and com-
+pleteness.
+Beyond overall scaling trends, the results also
+highlight differences in how model families handle
+specific aspects of diagram generation. For exam-
+ple, theGranitemodels perform strongly on strict
+syntactic and “Mermaid Only” criteria, even at the
+2B scale, but lag on dimensions such as activation
+handling. TheQwenmodels excel at syntax, while
+Llamaexhibits a more balanced profile across met-
+rics. These divergences point to complementary
+strengths across families and indicate opportuni-
+ties for hybrid approaches to structured diagram
+generation.
+Since all six evaluation criteria are judged by
+two independent large models, the benchmark in-
+herently captures cross-judge variability and ro-
+bustness.DeepSeek-V3assigns higher and more
+consistent scores across all criteria, whileGPT-OSS
+tends to be stricter, especially for smaller models,
+5
+
+--- Page 6 ---
+Table 2:Qwen-2.5scaling results on MermaidSeqBench across six criteria, evaluated by two large LLM-as-a-Judge
+models. Scores are reported as percentages (originally in[0.0,1.0]). For all criteria, higher is better.
+DeepSeek-V3 (671B) GPT-OSS (120B)Syntax
+Mermaid Only
+Logic
+Completeness
+Activation Handling
+Error & Status Tracking
+Syntax
+Mermaid Only
+Logic
+Completeness
+Activation Handling
+Error & Status Tracking
+Qwen-2.5-0.5B-Instruct 58.90 77.12 36.93 44.39 26.52 38.07 48.95 65.45 13.91 18.41 13.85 15.90
+Qwen-2.5-1.5B-Instruct 61.59 64.55 47.31 51.61 46.06 47.77 56.07 85.22 30.49 40.26 33.99 41.53
+Qwen-2.5-3B-Instruct 62.20 69.39 60.57 63.64 55.91 58.94 66.80 92.67 46.86 55.35 49.92 58.87
+Qwen-2.5-7B-Instruct 91.29 95.98 87.23 88.90 79.55 81.70 85.97 97.05 70.56 77.37 64.04 69.81
+Qwen-2.5-14B-Instruct 83.79 88.94 84.77 85.19 72.31 70.55 80.87 97.50 76.65 80.06 63.06 70.97
+Qwen-2.5-32B-Instruct 87.92 89.39 86.29 86.82 75.21 72.16 90.32 97.73 78.72 83.23 80.20 70.55
+Qwen-2.5-72B-Instruct 88.56 90.00 86.33 86.36 75.91 72.46 87.14 97.95 83.38 87.69 80.85 70.66
+leading to more pronounced gaps. This emphasizes
+the value of employing multiple judge models, as
+they provide complementary perspectives and mit-
+igate the bias of any single model. Overall, these
+findings confirm that MermaidSeqBench exposes
+meaningful differences across model families and
+sizes, and emphasizes the need to have a system-
+atic, multi-faceted evaluation of LLMs on diagram
+generation tasks. We next analyze scaling effects
+in isolation via an intra-family ablation study.
+4.2.2 Intra-Family Scaling Ablation Analysis
+Table 2 reports results for theQwen-2.5family
+across multiple model sizes, revealing a clear and
+consistent improvement across all six evaluation
+criteria as model scale increases. The most pro-
+nounced gains occur when moving from the 3B
+to the 14B variants, particularly for logic, com-
+pleteness, and activation handling, suggesting that
+higher-capacity models better capture multi-step
+control flow and semantic coverage. Larger vari-
+ants (32B and 72B) approach saturation on syntax
+and “Mermaid Only” criteria, while continuing to
+yield incremental improvements on more seman-
+tically demanding dimensions such as error and
+status tracking. Across both LLM-as-a-Judge mod-
+els, these trends remain stable, though GPT-OSS
+exhibits stricter scoring at smaller scales. Overall,
+these results indicate that scaling within a single
+architecture substantially reduces capability gaps,
+and demonstrate that MermaidSeqBench is sen-
+sitive to fine-grained performance differences in-
+duced by model size.5 Future Work
+Looking ahead, two directions stand out. First, ex-
+tending the benchmark beyond Mermaid sequence
+diagrams to other formats such as flowcharts, Gantt,
+class, or user journey diagrams would broaden its
+applicability. Although we focus on Mermaid se-
+quence diagrams, our methodology is flexible to be
+applicable to other structured diagram format. Sec-
+ond, expanding evaluations to additional categories
+would help determine whether the capability gaps
+observed are even more prominent for other crite-
+ria. Together, these extensions would strengthen
+the benchmark for systematically probing the lim-
+its of LLMs in structured diagram generation to
+reliable deployment in such applications.
+6 Conclusion
+We introduced MermaidSeqBench, a benchmark
+for evaluating LLM capabilities in generating pre-
+cise, structured, and logically consistent Mermaid
+sequence diagrams. By combining human-verified
+flows with rule-based and LLM-driven expansion,
+we enable a systematic assessment of critical met-
+rics such as syntax, logic, completeness, activation
+handling, and error/status tracking. Our evaluations
+on several state-of-the-art LLMs reveal significant
+performance gaps that directly hinder operational
+reliability in production environments. These find-
+ings underscore the need for specialized bench-
+marks like MermaidSeqBench to identify model
+weaknesses and establish the correctness required
+for real-world software engineering workflows.
+6
+
+--- Page 7 ---
+Limitations and Ethical Considerations
+Our proposed benchmark has several limitations
+and ethical considerations. First, while we demon-
+strate a reproducible pipeline for dataset construc-
+tion, the seed test cases remain limited in scope
+and may be influenced by inductive bias from sub-
+ject matter experts, whose preferences may implic-
+itly shape the flows selected and verified. Second,
+the benchmark focuses exclusively on Mermaid se-
+quence diagrams, leaving out other diagram types
+and alternative syntaxes (e.g., PlantUML), which
+may limit generalizability. Third, our findings con-
+centrates on our selection of evaluation criteria;
+although these criteria are grounded and enable us
+to explore capability gaps across scales, other cate-
+gories remain unexplored and could yield greater
+insights. Finally, the reliance on LLM-as-a-judge
+and heuristic-based scorers introduces potential bi-
+ases and inconsistencies, especially in ill-defined
+evaluation settings where multiple valid solutions
+may exist. These factors highlight directions for fu-
+ture work in broadening coverage, scaling to larger
+models, and refining judge methodologies.
+References
+Khaled Ahmed, Jialing Song, Boqi Chen, Ou Wei, and
+Bingzhou Zheng. 2025. Mcet: Behavioral model
+correctness evaluation using large language models.
+Preprint, arXiv:2508.00630.
+Jacob Austin, Augustus Odena, Maxwell Nye, Maarten
+Bosma, Henryk Michalewski, David Dohan, Ellen
+Jiang, Carrie Cai, Michael Terry, Quoc Le, and
+Charles Sutton. 2021. Program synthesis with large
+language models.Preprint, arXiv:2108.07732.
+Sayak Chakrabarty and Souradip Pal. 2024. Free and
+customizable code documentation with llms: A fine-
+tuning approach.Preprint, arXiv:2412.00726.
+Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan,
+Henrique Ponde de Oliveira Pinto, Jared Kaplan,
+Harri Edwards, Yuri Burda, Nicholas Joseph, Greg
+Brockman, Alex Ray, Raul Puri, Gretchen Krueger,
+Michael Petrov, Heidy Khlaaf, Girish Sastry, Pamela
+Mishkin, Brooke Chan, Scott Gray, and 39 others.
+2021. Evaluating large language models trained on
+code.Preprint, arXiv:2107.03374.
+DeepSeek-AI, Aixin Liu, Bei Feng, Bing Xue, Bingx-
+uan Wang, Bochao Wu, Chengda Lu, Chenggang
+Zhao, Chengqi Deng, Chenyu Zhang, and 1 oth-
+ers. 2025. Deepseek-v3 technical report.Preprint,
+arXiv:2412.19437.
+Shubhang Shekhar Dvivedi, Vyshnav Vijay, Sai
+Leela Rahul Pujari, Shoumik Lodh, and Dhruv Ku-
+mar. 2024. A comparative analysis of large languagemodels for code documentation generation.Preprint,
+arXiv:2312.10349.
+Cecilia Eklund and Tom Jonsson. 2025. Benchmarking
+large language models in uml diagram generation
+from informal notations.
+Alessio Ferrari, Sallam Abualhaija, and Chetan Arora.
+2024. Model generation with llms: From re-
+quirements to uml sequence diagrams.Preprint,
+arXiv:2404.06371.
+foundation-model-stack. 2025. fms-dgt: Synthetic data
+generation for foundation models. https://github.
+com/foundation-model-stack/fms-dgt.
+IBM Granite Team. 2024. Granite 3.0 language mod-
+els.URL: https://github.com/ibm-granite/granite-
+3.0-language-models.
+Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri,
+Abhinav Pandey, Abhishek Kadian, Ahmad Al-
+Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten,
+Alex Vaughan, and 1 others. 2024. The llama 3 herd
+of models.Preprint, arXiv:2407.21783.
+Grant Guernsey. 2025. Harnessing large language mod-
+els for automated software diagram generation. Mas-
+ter’s thesis, University of Cincinnati.
+Nam Huynh and Beiyu Lin. 2025. Large language mod-
+els for code generation: A comprehensive survey of
+challenges, techniques, evaluation, and applications.
+Preprint, arXiv:2503.01245.
+Munima Jahan, Zahra Shakeri Hossein Abad, and
+Behrouz Far. 2021. Generating sequence diagram
+from natural language requirements. In2021 IEEE
+29th International Requirements Engineering Con-
+ference Workshops (REW), pages 39–48.
+Juyong Jiang, Fan Wang, Jiasi Shen, Sungju Kim,
+and Sunghun Kim. 2024. A survey on large
+language models for code generation.Preprint,
+arXiv:2406.00515.
+Xiaoyu Li and 1 others. 2025. Conversational ai as a
+coding assistant.arXiv preprint arXiv:2503.16508.
+Mistral AI. 2024. Mistral large instruct
+2411. https://huggingface.co/mistralai/
+Mistral-Large-Instruct-2411.
+Object Management Group. 2017. Unified modeling
+language (uml) specification, version 2.5.1. Techni-
+cal Report formal/2017-12-05, Object Management
+Group (OMG).
+OpenAI, :, Sandhini Agarwal, Lama Ahmad, Jason
+Ai, Sam Altman, Andy Applebaum, Edwin Arbus,
+Rahul K. Arora, Yu Bai, Bowen Baker, Haiming Bao,
+Boaz Barak, and 1 others. 2025. gpt-oss-120b & gpt-
+oss-20b model card.Preprint, arXiv:2508.10925.
+Arnaud Roques. 2009. Plantuml: Generate diagrams
+from textual descriptions. https://plantuml.
+com/.
+7
+
+--- Page 8 ---
+Djaber Rouabhia and Ismail Hadjadj. 2025. Behavioral
+augmentation of uml class diagrams: An empirical
+study of large language models for method genera-
+tion.Preprint, arXiv:2506.00788.
+Shobhit Sahai Saxena, Irshad Alam, Vaibhav Sharma,
+Umesh Vats, and Vijay Kumar Chundury. 2025. Dy-
+namic creation of uml diagrams using generative AI.
+Technical Disclosure Common.
+Guijin Son, Hyunwoo Ko, Hoyoung Lee, Yewon Kim,
+and Seunghyeok Hong. 2024. Llm-as-a-judge & re-
+ward model: What they can and cannot do.Preprint,
+arXiv:2409.11239.
+Knut Sveidqvist and Mermaid contributors. 2025. Mer-
+maid live editor.https://mermaid.live.
+Knut Sveidqvist, Sidharth Vinod, Ashish Jain, Neil Cu-
+zon, Tyler Liu, Alois Klink, Reda Al Sulais, Nikolay
+Rozhkov, Justin Greywolf, Steph Huynh, Matthieu
+Morel, Marc Faber, Yash Singh, Nacho Orlandoni,
+Per Brolin, and Mindaugas Laganeckas. 2014. Mer-
+maid: Javascript-based diagramming and charting
+tool.https://mermaid.js.org/.
+Aman Singh Thakur, Kartik Choudhary, Venkat Srinik
+Ramayapally, Sankaran Vaidyanathan, and Dieuwke
+Hupkes. 2025. Judging the judges: Evaluating align-
+ment and vulnerabilities in LLMs-as-judges. In
+Proceedings of the Fourth Workshop on Generation,
+Evaluation and Metrics (GEM²), pages 404–430, Vi-
+enna, Austria and virtual meeting. Association for
+Computational Linguistics.
+Beian Wang, Chong Wang, Peng Liang, Bing Li, and
+Cheng Zeng. 2024. How llms aid in uml modeling:
+An exploratory study with novice analysts.Preprint,
+arXiv:2404.17739.
+Qwen: An Yang, Baosong Yang, Beichen Zhang,
+Binyuan Hui, Bo Zheng, Bowen Yu, Chengyuan
+Li, Dayiheng Liu, Fei Huang, Haoran Wei, and 1
+others. 2025. Qwen2.5 technical report.Preprint,
+arXiv:2412.15115.
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan
+Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin,
+Zhuohan Li, Dacheng Li, Eric P. Xing, Hao Zhang,
+Joseph E. Gonzalez, and Ion Stoica. 2023. Judging
+llm-as-a-judge with mt-bench and chatbot arena. In
+Proceedings of the 37th International Conference on
+Neural Information Processing Systems, NIPS ’23,
+Red Hook, NY , USA. Curran Associates Inc.
+A Sequence Diagrams
+The UML sequence diagram in Figure 2 and the
+accompanying Listing 1 illustrate one of the test
+cases included in our benchmark dataset. The fig-
+ure presents the rendered Mermaid sequence dia-
+gram describing the flow in uploading documents
+with secure storage, while the listing provides the
+exact Mermaid syntax used to generate it.Our benchmark also includes more complex
+flows with multiple active actors. Figure 3 presents
+a sequence diagram demonstrating a user interac-
+tion with a Chatbot actor that may or may not in-
+voke an additional actor (i.e., a Customer Support
+Agent). Listing 2 shows the Mermaid syntax cor-
+responding to this diagram, which can be directly
+rendered to produce the figure.
+B Natural Language Descriptions of
+Sequence Diagrams
+For each Mermaid diagram provided in Ap-
+pendix A, we include the corresponding natural lan-
+guage description that served as the input prompt
+for generation and evaluation. Each description
+systematically covers: (1)Purpose:the overall
+intent of the sequence diagram; (2)Main Com-
+ponents:the participants involved and their roles;
+and (3)Interactions:the ordered set of messages
+and control-flow constructs.
+Listing 3 presents the natural language specifi-
+cation for the “Uploading Documents with Secure
+Storage” scenario (corresponding to the syntax pro-
+vided in Listing 1 and rendered in Figure 2), while
+Listing 4 provides the specification for the “Chat-
+bot Interaction for Customer Support” flow (corre-
+sponding to the syntax provided in Listing 2 and
+rendered in Figure 3).
+C LLM-as-a-Judge Prompts
+We list the prompts used by the judge models to
+evaluate across the six criteria:
+•Syntax(Listing 5)
+•Mermaid Only(Listing 6)
+•Logic(Listing 7)
+•Completeness(Listing 8)
+•Activation Handling(Listing 9)
+•Error & Status Tacking(Listing 10)
+8
+
+--- Page 9 ---
+sequenceDiagram
+participant U as User
+participant MA as Mobile App
+participant BFF as Backend for Frontend
+participant AAD as Azure AD
+participant DB as Database
+participant AS as Azure Blob Storage
+Note over U: Upload Document
+U->>MA: Upload document
+MA ->> BFF : Send document ( with session token )
+activate BFF
+BFF ->> AAD : Validate session token
+deactivate BFF
+activate AAD
+AAD -->> BFF : Token validated
+deactivate AAD
+activate BFF
+BFF ->> AAD : Check user permissions
+deactivate BFF
+activate AAD
+AAD -->> BFF : Permissions valid
+deactivate AAD
+activate BFF
+alt Invalid token , insufficient permissions , or
+file too large
+BFF -->>MA: Error message
+else Upload successful
+BFF ->>DB: Save document metadata
+activate DB
+DB -->> BFF : Metadata saved
+deactivate DB
+BFF ->>AS: Store document
+activate AS
+AS -->> BFF : Document stored
+deactivate AS
+BFF -->>MA: Confirmation
+end
+deactivate BFF
+Listing 1: Mermaid syntax illustrating the “Uploading
+Documents with Secure Storage” flow, as rendered and
+detailed in Figure 2.sequenceDiagram
+participant U as User
+participant MA as Mobile App
+participant BFF as Backend for Frontend
+participant CB as Chatbot
+participant CSA as Customer Support Agent
+Note over U: User Query
+U->>MA: Types a question or query
+MA ->> BFF : Sends query to BFF
+activate BFF
+BFF ->>CB: Forwards query to Chatbot
+activate CB
+CB ->> BFF : Sends initial response
+deactivate CB
+BFF ->>MA: Forwards initial response
+deactivate BFF
+MA ->>U: Displays initial response
+Note over CB: Follow -up Questions
+CB ->> BFF : Asks follow -up questions
+activate BFF
+BFF ->>MA: Forwards follow -up questions
+deactivate BFF
+MA ->>U: Displays follow -up questions
+U->>MA: Provides additional details
+MA ->> BFF : Sends additional details to BFF
+activate BFF
+BFF ->>CB: Forwards additional details
+deactivate BFF
+alt Chatbot cannot resolve the issue
+CB ->> CSA : Forwards escalated query
+Note over CSA : Agent Interaction
+CSA ->> BFF : Interacts with user
+activate BFF
+BFF ->>MA: Forwards agent interaction
+deactivate BFF
+MA ->>U: Displays agent interaction
+U->>MA: Responds to agent
+MA ->> BFF : Sends user response
+activate BFF
+BFF ->> CSA : Forwards user response
+deactivate BFF
+CSA ->> BFF : Provides solution or resolution
+activate BFF
+BFF ->>MA: Forwards solution or resolution
+deactivate BFF
+MA ->>U: Displays solution or resolution
+end
+Note over MA: Feedback
+MA ->>U: Prompts for feedback
+U->>MA: Provides feedback
+MA ->> BFF : Sends feedback
+activate BFF
+BFF ->> CSA : Forwards feedback
+deactivate BFF
+Listing 2: Mermaid syntax illustrating the “Chatbot
+Interaction for Customer Support” flow, as rendered and
+detailed in Figure 3.
+9
+
+--- Page 10 ---
+Figure 2: A UML sequence diagram from our benchmark, illustrating the “Uploading Documents with Secure
+Storage” flow. Participants include the User, Mobile App, Backend For Frontend (BFF), Azure AD, Database, and
+Azure Blob Storage. In this scenario, the User uploads a document through the Mobile App, which forwards the file
+and session token to the BFF. The BFF validates the token with Azure AD, checks the user’s permissions, and, if
+authorized, records document metadata in the Database and securely stores the file in cloud storage (Azure Blob
+Storage). A confirmation is then returned to the app, while alternate paths handle errors for unauthorized access or
+oversized files.
+10
+
+--- Page 11 ---
+Figure 3: A UML sequence diagram from our benchmark, illustrating the “Chatbot Interaction for Customer Support”
+flow. Participants include the User, Mobile App, Backend For Frontend, Chatbot, and Customer Support Agent.
+In this scenario, the User submits a query through the Mobile App, which forwards it via the BFF to the Chatbot.
+The Chatbot provides initial responses and may request clarifications; if unable to resolve the issue, it escalates
+the conversation to a Customer Support Agent. The Agent then interacts with the User through the Mobile App to
+provide a resolution, after which the app collects feedback from the User.
+11
+
+--- Page 12 ---
+Purpose : Uploading Documents with Secure Storage
+Main Components : User , Mobile App , BFF , Azure AD ,
+Database
+Interactions :
+1. User Action : User uploads a document (e.g., an
+ID or contract ) through the mobile app .
+2. Mobile App : Sends the document along with the
+session token to the BFF .
+3. BFF Validation :
+Validates the session token with Azure AD.
+Checks user permissions to ensure they are
+authorized to upload documents .
+4. Storage Process :
+The BFF saves metadata about the document (e.g.,
+file name , size , upload timestamp ) in the database
+.
+The actual document is securely stored in cloud
+storage (e.g., Azure Blob Storage ).
+5. Response :
+On successful upload , the BFF returns a
+confirmation to the app .
+If the user is unauthorized or the file exceeds
+size limits , an appropriate error is returned .
+Listing 3: Natural language specification for the
+“Uploading Documents with Secure Storage” flow,
+corresponding to the syntax in Listing 1 and the rendered
+diagram in Figure 2.
+Purpose : Chatbot interaction for customer support
+Main Components : User , Mobile App , Chatbot ,
+Customer Support Agent , BFF
+Interactions :
+1. User Query : The user types a question or query
+into the mobile app .
+2. Chatbot Engagement : The mobile app sends the
+query to the Chatbot via the BFF .
+3. Initial Response : The Chatbot processes the
+query and sends an initial response to the mobile
+app .
+4. Follow -up Questions : The Chatbot may ask follow
+-up questions to better understand the user's
+issue .
+5. Escalation : If the Chatbot cannot resolve the
+issue , it escalates the query to a Customer
+Support Agent .
+6. Agent Interaction : The Customer Support Agent
+receives the escalated query and interacts with
+the user through the mobile app .
+7. Resolution : The Customer Support Agent provides
+a solution or resolution to the user's issue .
+8. Feedback : The mobile app prompts the user to
+provide feedback on the support experience .
+Listing 4: Natural language specification for the
+“Chatbot Interaction for Customer Support” flow,
+corresponding to the syntax in Listing 2 and the rendered
+diagram in Figure 3.Evaluate the MermaidJS output under
+<AGENT_RESPONSE > for syntax and structural
+correctness based on MermaidJS rules .
+< EXPECTED_AGENT_RESPONSE > is provided below , treat
+it as one accepted solution reference ; do not
+require a verbatim match .
+#####
+<AGENT_RESPONSE >
+{ agent_response }
+#####
+< EXPECTED_AGENT_RESPONSE >
+{ expected_agent_response }
+#####
+Is it proper MermaidJS syntax ?
+Are all participants declared using`participant
+ActorName`syntax ?
+Are activation / deactivation statements used and
+properly balanced ?
+Are`alt`,`else`, and`end`blocks closed
+correctly and nested if needed ?
+#####
+---
+Provide a numerical score (0.000 to 1.000) and a
+concise explanation .
+Format the output as: <score >; <explanation >
+Scoring scale :
+- 0.000 to 0.200: Very poor ;
+- 0.201 to 0.400: Poor ;
+- 0.401 to 0.600: Fair ;
+- 0.601 to 0.800: Good ;
+- 0.801 to 0.999: Very good ;
+- 1.000: Perfect ;
+Listing 5: LLM-as-a-Judge prompt for evaluating
+MermaidJS syntax and structural correctness.
+Evaluate the agent's output under <AGENT_RESPONSE >
+to ensure it strictly contains MermaidJS code
+only .
+< EXPECTED_AGENT_RESPONSE > is provided below , treat
+it as one accepted solution reference ; do not
+require a verbatim match .
+#####
+<AGENT_RESPONSE >
+{ agent_response }
+#####
+< EXPECTED_AGENT_RESPONSE >
+{ expected_agent_response }
+#####
+Is the output wrapped in a valid Markdown block (e
+.g.,```sequenceDiagram )?
+Does it avoid extra explanation , narration , or
+formatting beyond valid Mermaid syntax ?
+Is the output clean , parsable , and renderable in
+Mermaid ?
+Responses with non - code text or mixed formatting
+should receive a lower score .
+#####
+---
+Provide a numerical score (0.000 to 1.000) and a
+concise explanation .
+Format the output as: <score >; <explanation >
+Scoring scale :
+- 0.000 to 0.200: Very poor ;
+- 0.201 to 0.400: Poor ;
+- 0.401 to 0.600: Fair ;
+- 0.601 to 0.800: Good ;
+- 0.801 to 0.999: Very good ;
+- 1.000: Perfect ;
+Listing 6: LLM-as-a-Judge prompt for evaluating on
+strictly containing MermaidJS code only.
+12
+
+--- Page 13 ---
+Evaluate the MermaidJS output under <
+AGENT_RESPONSE > based on the task description in <
+AGENT_PROMPT > (and , the reference in <
+EXPECTED_AGENT_RESPONSE >) for logic and flow
+completeness . The expected output is one accepted
+solution ; alternate but logically equivalent flows
+should not be penalized .
+#####
+<AGENT_PROMPT >
+{ agent_prompt }
+#####
+<AGENT_RESPONSE >
+{ agent_response }
+#####
+< EXPECTED_AGENT_RESPONSE >
+{ expected_agent_response }
+#####
+Is it proper MermaidJS syntax ?
+Does every request have a corresponding response ?
+Are alternate flows (e.g., success / failure , if/
+else ) represented completely and clearly ?
+Are nested decision branches handled as required ?
+Does the diagram account for every described
+interaction and path (or match the accepted
+reference flow )?
+#####
+---
+Provide a numerical score (0.000 to 1.000) and a
+concise explanation .
+Format the output as: <score >; <explanation >
+Scoring scale :
+- 0.000 to 0.200: Very poor ;
+- 0.201 to 0.400: Poor ;
+- 0.401 to 0.600: Fair ;
+- 0.601 to 0.800: Good ;
+- 0.801 to 0.999: Very good ;
+- 1.000: Perfect ;
+Listing 7: LLM-as-a-Judge prompt for evaluating
+MermaidJS logic and flow completeness.
+Evaluate the MermaidJS output under <
+AGENT_RESPONSE > based on <AGENT_PROMPT > for
+completeness . < EXPECTED_AGENT_RESPONSE > is
+provided below , treat it as one accepted solution
+reference ; do not require a verbatim match .
+#####
+<AGENT_PROMPT >
+{ agent_prompt }
+#####
+<AGENT_RESPONSE >
+{ agent_response }
+#####
+< EXPECTED_AGENT_RESPONSE >
+{ expected_agent_response }
+#####
+Is it proper MermaidJS syntax ?
+Does the diagram cover all participants , request /
+response pairs , and decision points described in
+the prompt (or equivalently as in the accepted
+reference )?
+Are alternate flows and error paths handled as
+required ?
+Does the output reflect full coverage of described
+behavior , including minor flows ?
+#####
+---
+Provide a numerical score (0.000 to 1.000) and a
+concise explanation .
+Format the output as: <score >; <explanation >
+Scoring scale :
+- 0.000 to 0.200: Very poor ;
+- 0.201 to 0.400: Poor ;
+- 0.401 to 0.600: Fair ;
+- 0.601 to 0.800: Good ;
+- 0.801 to 0.999: Very good ;
+- 1.000: Perfect ;
+Listing 8: LLM-as-a-Judge prompt for evaluating on
+MermaidJS completeness.Evaluate the use of activation and deactivation in
+the MermaidJS under <AGENT_RESPONSE > based on the
+<AGENT_PROMPT >. < EXPECTED_AGENT_RESPONSE > is
+provided below , treat it as one accepted solution
+reference ; do not require a verbatim match .
+#####
+<AGENT_PROMPT >
+{ agent_prompt }
+#####
+<AGENT_RESPONSE >
+{ agent_response }
+#####
+< EXPECTED_AGENT_RESPONSE >
+{ expected_agent_response }
+#####
+Is it proper MermaidJS syntax ?
+Does the diagram properly use`activate`and`
+deactivate`to show control of execution ?
+Are all activated participants deactivated
+appropriately ?
+Are there any unnecessary`deactivate`statements
+where no activation occurred ?
+Does this improve the diagram's readability and
+traceability of actions ?
+#####
+---
+Provide a numerical score (0.000 to 1.000) and a
+concise explanation .
+Format the output as: <score >; <explanation >
+Scoring scale :
+- 0.000 to 0.200: Very poor ;
+- 0.201 to 0.400: Poor ;
+- 0.401 to 0.600: Fair ;
+- 0.601 to 0.800: Good ;
+- 0.801 to 0.999: Very good ;
+- 1.000: Perfect ;
+Listing 9: LLM-as-a-Judge prompt for evaluating on
+MermaidJS activation handling.
+Evaluate how clearly the MermaidJS under <
+AGENT_RESPONSE > handles error cases and status
+updates , based on the <AGENT_PROMPT >. <
+EXPECTED_AGENT_RESPONSE > is provided below , treat
+it as one accepted solution reference ; do not
+require a verbatim match .
+#####
+<AGENT_PROMPT >
+{ agent_prompt }
+#####
+<AGENT_RESPONSE >
+{ agent_response }
+#####
+< EXPECTED_AGENT_RESPONSE >
+{ expected_agent_response }
+#####
+Is it proper MermaidJS syntax ?
+Does the diagram include explicit status updates ?
+Does the diagram clearly separate success and
+failure flows ?
+Does the diagram represent error - handling cases
+effectively ?
+Does the diagram track the state of key entities
+throughout the sequence ?
+#####
+---
+Provide a numerical score (0.000 to 1.000) and a
+concise explanation .
+Format the output as: <score >; <explanation >
+Scoring scale :
+- 0.000 to 0.200: Very poor ;
+- 0.201 to 0.400: Poor ;
+- 0.401 to 0.600: Fair ;
+- 0.601 to 0.800: Good ;
+- 0.801 to 0.999: Very good ;
+- 1.000: Perfect ;
+Listing 10: LLM-as-a-Judge prompt for evaluating on
+MermaidJS error and status tracking.
+13
