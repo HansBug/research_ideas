@@ -24,12 +24,15 @@
 
 用法示例::
 
+    # 默认输出到 stdout（推荐：流式管道给下游）
     python scripts/export_nl_to_stm.py --dataset llms_emp
-    python scripts/export_nl_to_stm.py --dataset all --output /tmp/nl2stm.jsonl
+
+    # 持久化时落到本目录 datasets/ 子目录（git 可追溯位置；禁止写 /tmp 等仓库外路径）
+    python scripts/export_nl_to_stm.py --dataset all --output datasets/nl2stm.jsonl
     python scripts/export_nl_to_stm.py --dataset structure_event_driven \\
         --include-non-eval-cases  # 把非 paper 评测 case 也带上
     python scripts/export_nl_to_stm.py --dataset all --format parquet \\
-        --output /tmp/nl2stm.parquet
+        --output datasets/nl2stm.parquet
 """
 
 from __future__ import annotations

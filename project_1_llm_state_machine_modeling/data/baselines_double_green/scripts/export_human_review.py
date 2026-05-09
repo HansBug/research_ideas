@@ -19,7 +19,7 @@
 
 用法示例::
 
-    # 全部 820 行
+    # 全部 820 行（默认输出到 stdout）
     python scripts/export_human_review.py
 
     # 只看 llms_emp 的人评
@@ -28,8 +28,8 @@
     # 只保留 input + ref + pred 三者都非空的（可直接训 reviewer）
     python scripts/export_human_review.py --require-triplet
 
-    # 输出 parquet
-    python scripts/export_human_review.py --format parquet -o /tmp/hr.parquet
+    # 持久化到本目录 datasets/ 子目录（git 可追溯位置；禁止写 /tmp 等仓库外路径）
+    python scripts/export_human_review.py --format parquet -o datasets/hr.parquet
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ PAPER_CHOICES = (
 
 
 def build_records(paper: str | None, require_triplet: bool) -> list[dict]:
-    df = pd.read_parquet(DATA_DIR / "baseline_double_green_human_review_records.parquet")
+    df = pd.read_parquet(DATA_DIR / "cross_paper" / "human_review_records.parquet")
     if paper:
         df = df[df["paper_slug"] == paper]
     if require_triplet:

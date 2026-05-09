@@ -23,15 +23,15 @@
 
 用法示例::
 
-    # 完整统一表（所有 4 数据集 + 人评）
+    # 完整统一表（所有 4 数据集 + 人评，默认输出到 stdout）
     python scripts/export_unified_benchmark.py
 
     # 只要 llms_emp + structure_event_driven（这俩才能严格 1:1 对齐人评）
     python scripts/export_unified_benchmark.py --strict-alignable-only
 
-    # 输出 parquet 并丢掉 reference_text 为空的
+    # 持久化到本目录 datasets/ 子目录（git 可追溯位置；禁止写 /tmp 等仓库外路径）
     python scripts/export_unified_benchmark.py --drop-no-ref \\
-        --format parquet -o /tmp/unified.parquet
+        --format parquet -o datasets/unified.parquet
 """
 
 from __future__ import annotations
@@ -68,7 +68,7 @@ def build_human_review_index() -> dict[tuple[str, str], list[dict]]:
     - ttool_ai：``case_name`` —— 1:N 弱对齐（case 下多个 variant 共享）
     - light_control_nimbus：``case_id``（实际 0 行有效）
     """
-    df = pd.read_parquet(DATA_DIR / "baseline_double_green_human_review_records.parquet")
+    df = pd.read_parquet(DATA_DIR / "cross_paper" / "human_review_records.parquet")
     index: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for _, row in df.iterrows():
         paper = row["paper_slug"]

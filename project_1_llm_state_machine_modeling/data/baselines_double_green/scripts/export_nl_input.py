@@ -14,11 +14,14 @@
 
 用法示例::
 
+    # 默认输出到 stdout（推荐：流式管道给下游）
     python scripts/export_nl_input.py --dataset all
-    python scripts/export_nl_input.py --dataset llms_emp --diagram-type stm \
-        --output /tmp/llms_emp_stm_inputs.jsonl
-    python scripts/export_nl_input.py --dataset all --format parquet \
-        --output /tmp/nl_inputs.parquet
+
+    # 持久化时落到本目录 datasets/ 子目录（git 可追溯位置；禁止写 /tmp 等仓库外路径）
+    python scripts/export_nl_input.py --dataset llms_emp --diagram-type stm \\
+        --output datasets/llms_emp_stm_inputs.jsonl
+    python scripts/export_nl_input.py --dataset all --format parquet \\
+        --output datasets/nl_inputs.parquet
 """
 
 from __future__ import annotations

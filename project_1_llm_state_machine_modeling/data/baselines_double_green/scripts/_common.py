@@ -38,7 +38,7 @@ def iter_llms_emp(diagram_filter: str | None = None) -> Iterator[dict]:
 
     :param diagram_filter: ``"stm"`` / ``"act"`` / ``"sd"`` 之一，None 表示全部
     """
-    df = _load("llms_emp_complete_samples.parquet")
+    df = _load("llms_emp/complete_samples.parquet")
     if diagram_filter:
         df = df[df["diagram_type"].str.lower() == diagram_filter.lower()]
     for _, row in df.iterrows():
@@ -66,7 +66,7 @@ def iter_ttool_ai() -> Iterator[dict]:
 
     一行一个 model 变体；reference_text 是完整 raw_xml（含状态机面板）。
     """
-    df = _load("ttool_ai_models.parquet")
+    df = _load("ttool_ai/models.parquet")
     for _, row in df.iterrows():
         yield {
             "record_id": f"ttool_ai::{row['case_name']}::{row['variant_name']}",
@@ -89,7 +89,7 @@ def iter_ttool_ai() -> Iterator[dict]:
 
 def iter_light_control_nimbus() -> Iterator[dict]:
     """逐条产出 ``light_control_nimbus`` 的 NL 需求片段 → RSML-e 输出片段样本。"""
-    df = _load("light_control_nimbus_fragments.parquet")
+    df = _load("light_control_nimbus/fragments.parquet")
     for _, row in df.iterrows():
         yield {
             "record_id": f"light_control_nimbus::{row['case_id']}::{row['fragment_id']}",
@@ -112,8 +112,8 @@ def iter_structure_event_driven(only_paper_eval: bool = True) -> Iterator[dict]:
 
     :param only_paper_eval: 仅产出 paper 评测 case（默认开），关闭则也含课堂练习
     """
-    df_cases = _load("structure_event_driven_cases.parquet")
-    df_refs = _load("structure_event_driven_reference_solutions.parquet")
+    df_cases = _load("structure_event_driven/cases.parquet")
+    df_refs = _load("structure_event_driven/reference_solutions.parquet")
 
     if only_paper_eval:
         df_cases = df_cases[df_cases["is_paper_evaluation_case"]]
