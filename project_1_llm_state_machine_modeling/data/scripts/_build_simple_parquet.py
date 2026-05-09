@@ -21,9 +21,10 @@ from pathlib import Path
 
 import pandas as pd
 
-DATA = Path("project_1_llm_state_machine_modeling/data/baselines_double_green")
+DATA = Path(__file__).resolve().parent.parent
 
 SCHEMA = ["id", "input", "expected", "predicted", "model", "notes"]
+ALL_SCHEMA = ["paper", *SCHEMA]
 
 
 def _norm(value):
@@ -128,6 +129,7 @@ BUILDERS = {
 
 
 def main():
+    all_frames = []
     for paper, fn in BUILDERS.items():
         df = fn()
         out_path = DATA / paper / "simple.parquet"
@@ -140,6 +142,17 @@ def main():
             "model_present": df["model"].notna().sum(),
         }
         print(f"▸ {paper}/simple.parquet: {coverage}")
+
+        # 给跨 paper 总表加 paper 列
+        df_all = df.copy()
+        df_all.insert(0, "paper", paper)
+        all_frames.append(df_all)
+
+    # 合并跨 paper all_simple.parquet（schema = ALL_SCHEMA）
+    all_df = pd.concat(all_frames, ignore_index=True)[ALL_SCHEMA]
+    all_path = DATA / "all_simple.parquet"
+    all_df.to_parquet(all_path, index=False)
+    print(f"\n▸ all_simple.parquet: {len(all_df)} 行（{dict(all_df['paper'].value_counts())}）")
 
 
 if __name__ == "__main__":

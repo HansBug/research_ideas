@@ -54,7 +54,7 @@ PAPER_CHOICES = (
 
 
 def build_records(paper: str | None, require_triplet: bool) -> list[dict]:
-    df = pd.read_parquet(DATA_DIR / "cross_paper" / "human_review_records.parquet")
+    df = pd.read_parquet(DATA_DIR / "human_review_records.parquet")
     if paper:
         df = df[df["paper_slug"] == paper]
     if require_triplet:

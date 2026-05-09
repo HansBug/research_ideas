@@ -68,7 +68,7 @@ def build_human_review_index() -> dict[tuple[str, str], list[dict]]:
     - ttool_ai：``case_name`` —— 1:N 弱对齐（case 下多个 variant 共享）
     - light_control_nimbus：``case_id``（实际 0 行有效）
     """
-    df = pd.read_parquet(DATA_DIR / "cross_paper" / "human_review_records.parquet")
+    df = pd.read_parquet(DATA_DIR / "human_review_records.parquet")
     index: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for _, row in df.iterrows():
         paper = row["paper_slug"]
