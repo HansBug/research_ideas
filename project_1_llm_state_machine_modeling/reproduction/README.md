@@ -51,6 +51,7 @@ venv/bin/python project_1_llm_state_machine_modeling/reproduction/run_all.py rep
 - [llm_client.py](./llm_client.py)：统一 LLM provider 访问与缓存。
 - [run_expert_review.py](./run_expert_review.py)：批量专家评审入口。
 - [align_ttool_expert_review.py](./align_ttool_expert_review.py)：TTool-AI 人类评分对齐实验入口。
+- [expert_review/batch.py](./expert_review/batch.py)：`expert_review` 内部 batch screening 入口。
 
 ## 主要子目录
 

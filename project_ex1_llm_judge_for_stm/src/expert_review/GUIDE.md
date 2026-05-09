@@ -1,0 +1,202 @@
+# Expert Review Guide
+
+## 1. 目录边界
+
+`expert_review/` 只承载本模块自己的三类内容：
+
+1. 可运行代码
+2. 模块级测试
+3. 模块级设计与阶段文档
+
+不要把以下内容继续混入本目录：
+
+1. `reproduction/` 根级工作流说明
+2. 其他 baseline 的实现
+3. parquet / json / 临时实验结果落盘
+4. 与 `expert_review` 无关的脚本或 notebook
+
+## 2. 阅读入口
+
+推荐阅读顺序：
+
+1. 先读 [README.md](./README.md)，理解根层结构、架构分层与执行方式
+2. 再读 [designs/README.md](./designs/README.md)，理解版本文档入口
+3. 如果要继续 phase 工作，读 [designs/v1/TODO.md](./designs/v1/TODO.md)
+4. 如果要确认 `Phase 6` 收口状态与冻结判断，读 [designs/v1/V1_ALIGNMENT_REPORT.md](./designs/v1/V1_ALIGNMENT_REPORT.md)
+5. 最后再进入具体代码目录
+
+## 3. 正式代码组织
+
+当前正式代码主干固定为：
+
+1. [`schemas/`](./schemas/)：内部 request / dossier / graph state / result 结构
+2. [`prompts/`](./prompts/)：contract、policy、extraction、analysis、synthesis prompt
+3. [`tools/`](./tools/)：artifact probe、lift、merge、validation、policy library 等工具
+4. [`agents/`](./agents/)：各 agent 的 deterministic 规则与 LLM refinement
+5. [`graph/`](./graph/)：阶段分组、节点包装、编排与运行时
+6. [`compatibility/`](./compatibility/)：历史 API 兼容层
+
+根层文件只允许承担以下职责：
+
+1. 包入口与 CLI：
+   - [`__init__.py`](./__init__.py)
+   - [`__main__.py`](./__main__.py)
+2. 对外稳定 schema 与共享 helper：
+   - [`schema.py`](./schema.py)
+   - [`inventory.py`](./inventory.py)
+   - [`utils.py`](./utils.py)
+3. 外部 agent 壳层与 provider 初始化：
+   - [`agent.py`](./agent.py)
+4. 离线 benchmark replay：
+   - [`benchmark.py`](./benchmark.py)
+5. batch screening 与导出：
+   - [`batch.py`](./batch.py)
+6. 模块级测试：
+   - [`test_review.py`](./test_review.py)
+   - [`test_benchmark.py`](./test_benchmark.py)
+   - [`test_batch.py`](./test_batch.py)
+
+除上述职责外，新增能力默认不得再落到根层。
+
+## 4. 根层命名规则
+
+根层文件名应保持短、稳、可扫读，避免重新引入 `expert_review_xxx.py` 这类又长又重复的命名。
+
+默认规则：
+
+1. 模块上下文已经由目录名 `expert_review/` 提供，不要再在文件名里重复 `expert_review`
+2. 单一职责文件优先使用短名：
+   - `agent.py`
+   - `schema.py`
+   - `inventory.py`
+   - `utils.py`
+   - `benchmark.py`
+3. 如果某类内容已经降级为历史兼容或归档材料，应下沉到 [`legacy/`](./legacy/) 或 [`compatibility/`](./compatibility/)
+4. 不要把新的 prompt / rubric / heuristic 聚合大文件重新平铺回根层
+
+## 5. 外部兼容要求
+
+后续重构必须优先保持以下外部入口稳定：
+
+1. `ExpertReviewRequest`
+2. `ExpertReviewResult`
+3. `review_artifacts()`
+4. `review_model()`
+5. `python -m expert_review`
+
+历史兼容逻辑统一收敛在 [`compatibility/legacy_api.py`](./compatibility/legacy_api.py)，不要把兼容分支重新散落回其他文件。
+
+## 6. 运行时维护规则
+
+真实主路径以 [`graph/runtime.py`](./graph/runtime.py) 为准。
+
+> **2026-05-09 W4.x 备注**：
+>
+> 1. 原 `Disagreement Arbiter` agent 已删除（W3 ablation 验证 ΔHAI=+0.1556），
+>    [`graph/edges.py`](./graph/edges.py) 与 [`agents/orchestrator.py`](./agents/orchestrator.py)
+>    中保留中文 audit 注释作历史 trail。
+> 2. 原 `legacy/` 整目录已删除（外部 0 引用，详见 [PYDOC_INVENTORY.md](./PYDOC_INVENTORY.md) §A1）；
+>    新代码不应再 import 任何 ``expert_review.legacy.*``。
+> 3. 已知实现疑点 / paper-level 描述与代码现状不一致项见
+>    [discussions/.../prompt实现一致性待处理清单.md](../../../discussions/2026-05-09-12-58-25-AI-讨论-prompt实现一致性待处理清单.md) （I-1 ~ I-20）；
+>    后续重构需要兼顾论文叙事一致性。
+
+维护时应遵守：
+
+1. graph 只做编排与阶段连接，不承载大段评分细则
+2. agents 负责单节点判断与 refinement 逻辑
+3. tools 负责可复用的抽取、校验、merge、policy helper
+4. schemas 负责数据结构，不混入 runtime side effect
+5. benchmark 不得反向侵入线上运行时依赖
+
+若新增能力涉及多个节点，优先判断它属于：
+
+1. 某个 agent 的职责扩展
+2. 某类共享工具的复用能力
+3. graph 的编排规则变动
+
+不要把“不知道放哪”的代码继续塞回根层。
+
+## 7. 代码注释与 docstring 写作纪律（W4.x 起）
+
+本目录所有新增 / 修改的 Python 代码须遵守以下 docstring 与注释纪律：
+
+1. **代码注释一律中文**——避免再混入英文 inline 注释
+   （历史代码逐步重写中，仍可见少量英文注释）；
+2. **module / class / function / method** 都必须有 docstring；
+   覆盖率由 [`PYDOC_ITEMS.md`](./PYDOC_ITEMS.md) checklist 跟踪；
+3. **格式采用 reStructuredText (RST)**——配合 ``:param:`` /
+   ``:return:`` / ``:rtype:`` / ``:ivar:`` / ``:raises:`` /
+   ``.. note::`` 等指令；
+4. **module docstring 含 4 段**：
+   - 第一段：**作用**（本模块解决什么问题）；
+   - 第二段：**设计思路**（为什么这样实现 / 与上下游模块的边界 / 核心抽象）；
+   - 第三段：**关键约束 / 不变式**；
+   - 第四段（可选）：**已知 caveat / 历史变迁**（如某 phase 引入、某 issue 跟踪中）；
+5. **公共 API 必须配 ``Examples::`` 段**——含可被 ``pytest --doctest-modules``
+   验证的 ``>>> ...`` 例子；
+6. **修改代码时同步更新 docstring**；
+7. **不允许出现"silent fallback to deterministic 但不在 docstring 标注"**
+   的情况——这是 issue I-4 的根因。
+
+详细写作模板见 [PYDOC_INVENTORY.md §E](./PYDOC_INVENTORY.md#e-写作规范中文-rst-格式)。
+
+## 8. 文档组织规则
+
+设计与演化文档统一放在 [`designs/`](./designs/) 下，并继续按版本分目录维护。
+
+当前重点入口：
+
+1. [designs/v0/README.md](./designs/v0/README.md)
+2. [designs/v1/README.md](./designs/v1/README.md)
+3. [designs/v1/TODO.md](./designs/v1/TODO.md)
+4. [designs/v1/V1_ALIGNMENT_REPORT.md](./designs/v1/V1_ALIGNMENT_REPORT.md)
+
+不要再把新的 `EXPERT_*.md` 平铺回 `reproduction/` 根目录，也不要让 README 与 phase 文档长期失真。
+
+## 9. 测试与回归入口
+
+最低限度的模块级回归入口如下：
+
+1. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_review.py`
+2. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_benchmark.py`
+3. `pytest project_ex1_llm_judge_for_stm/src/expert_review/test_batch.py`
+4. `python -m expert_review` 的 deterministic smoke
+5. [`benchmark.py`](./benchmark.py) 的 `run_benchmark_iteration(llm_mode='off')`
+6. `python -m expert_review.benchmark --scope phase7 --llm-mode off --rerun-count 0`
+7. `python -m expert_review.benchmark --scope phase14 --llm-mode off --rerun-count 0 --candidate-version ...`
+8. `python -m expert_review.batch --input ... --llm-mode off`
+9. `python -m expert_review.benchmark --scope phase15 --phase15-comparison-scope slice --model gpt-4o --provider-order airouter`
+
+只要涉及以下变更，完成后就应至少跑上述三类验证中的相关部分：
+
+1. 根层入口改动
+2. graph 编排改动
+3. agents 评分或 evidence discipline 改动
+4. schema 兼容性改动
+5. benchmark harness 改动
+
+## 10. 当前阶段口径
+
+当前目录状态是：
+
+1. `Phase 7` 已完成评测口径固定与 benchmark harness 扩展
+2. `Phase 8` 已完成 `record-level` 数值校准、压缩效应修复与 partial-heavy 定向惩罚
+3. `Phase 9` 已完成 `summary-level` 排序、public-row score semantics 与高分 public row 收口
+4. `Phase 10` 已完成 batch screening 输入协议、triage 阈值、结果导出与 `Milestone A` 验收
+5. `Phase 11` 已完成去硬特判、语义路由、多语言验证与 prompt/profile 收口
+6. `Phase 12` 已完成 `component_level_review` 正式接入、`CRAS` 与逐组件报告建立；最终口径是 `456` 条具备完整 `TP / FP / FN` structured public evidence 的 component row 进入主 benchmark，`56` 条证据不完整 row 显式 deferred，且整个 phase 明确不引入视觉/OCR/CV
+7. `Phase 13` 已完成 judgement / reason / evidence reliability 收口，并固定了当前 deterministic full benchmark 基线
+8. `Phase 14` 已完成 generalization surface 落地：默认验收现在是 `validation + lockbox + LOFO + lockbox residual audit`，并且 `benchmark.py` 已提供 `scope=phase14`
+9. `Phase 15` 已完成 deterministic / LLM-enabled 边界、LLM telemetry、`scope=phase15` 对比面与默认主路径判定：当前默认仍应保持 deterministic，LLM-enabled 仅作为可选补充路径
+10. 当前后续工作的核心目标已转到 `Phase 16`：ablation、paper-ready evidence package 与论文级 claims / non-claims 边界
+
+补充说明：
+
+1. 当前 `token_cost_per_record` 在 `Phase 15` 口径中指的是**每条样本的总 LLM token 预算**，而不是绑定某个 provider 计费单价的 USD；这样做是因为代理 provider 的实际结算口径并不稳定。
+2. 当前 runtime 已导出结构化 `llm_usage_summary`，其中可直接读取 `effective_llm_used`、`fallback_only`、成功/失败操作数、token 总量与 `latency_p50 / latency_p95`。
+
+因此后续改动默认应优先回答两件事：
+
+1. 这次改动是否真实改善 `CRAS / HAI / RAS / SAS / normalized_mae / unsupported_claim_rate / ece`，并说明它主要影响组件级、`record`、`summary` 还是 batch/generalization surface
+2. 这次改动是否会破坏当前已经稳定的 `PDS`、summary evidence discipline、batch triage 口径，以及 `Phase 14` 已固定下来的 `validation + lockbox + LOFO + residual audit` 验收框架

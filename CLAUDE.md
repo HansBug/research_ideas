@@ -32,6 +32,7 @@
 - `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
 - `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
+- `project_ex1_llm_judge_for_stm/` - **计划外项目（ex = extra/unplanned）**：针对状态机制品的 LLM-as-Judge 评审子系统，从 project_1 拆出独立。**边界**：本项目专注 reviewer 系统 + 评审方法学，不做 STM 生成（那是 project_1 的 baselines/）/ verification（那是 project_2/3）/ repair（project_4）。详见该目录下的 [README.md](./project_ex1_llm_judge_for_stm/README.md)。
 - `talks/` - 与导师、同门、合作者等人类讨论的纪要工作区
 - `tools/` - Python工具集（详见下方"工具使用说明"）
   - `pdf_extractor.py` - PDF文本提取工具
@@ -254,6 +255,39 @@ $$
 6. 例外只允许出现在**单篇派生文件的短条目字段**中：若某个论文集的 `GUIDE.md` 明确要求 `desc.md` / `survey.md` 里的分类字段写成 `emoji + 中文全称`，可以按该要求执行；但这条例外**不适用于** `SUMMARY.md` 等正式总账表格。
 
 换言之：**emoji 列负责紧凑编码，中文解释负责在列外统一定义。**
+
+#### 2.2.4 Markdown 学术讨论 / 综述 / 文献引用与定义规范
+
+当 Markdown 文档承担**学术讨论纪要 / 文献综述 / paper 写作起点**等正式职责（典型路径：`talks/.../minutes.md`、`discussions/*.md`、论文集 `SUMMARY.md` 中含跨文献综述部分、单篇 `DESC.md` 中含 §Related Work 引用句拟稿等），默认必须遵守以下规则：
+
+##### A. 参考文献位置
+
+1. **正式参考文献必须集中写在文档末尾的独立 §References / §参考文献 章节**，使用方括号编号 `[1] [2] [n]`。
+2. 正文内引用统一使用 `[n]` 短形（不要在正文里整段重复 author + year + venue + URL）。
+3. 编号原则：默认按**首次引用顺序** 编号；若文档分大类（如"Generic XX"、"SE-related XX"、"Foundational"），可在 §References 内分小节，但每条仍保留全局唯一编号。
+4. §References 每条至少包含：编号、作者、年份、标题、Venue（含会议 / 期刊全称）、URL（arXiv / 出版页 / DOI 任一）。
+5. 不要写"详见原文"这种空引用；每条必须给出可被点击或可被检索到的 URL / DOI。
+
+##### B. 关键术语定义
+
+讨论 / 综述类文档中**反复出现的核心术语**（如 LLM-as-Judge / rubric / noise floor / provider drift / state machine / Cohen $\kappa$ 等），默认应有一个**集中的"关键定义与术语"章节**（推荐放在 §背景 之后、§相关工作之前），并对每个术语标注：
+
+1. **定义类型**：标注为 **"领域已有定义"** 或 **"本研究新造定义"**。
+2. **领域已有定义** 必须给出参考文献（用 §References 中的编号 `[n]`）。若术语跨多家有不同口径，应说明本文使用哪一家口径。
+3. **本研究新造定义** 必须说明：
+   - **rationale**：为什么需要新造（既有定义不够 / 不准 / 不适用的具体原因）
+   - **如何定义**：操作化的判定方式或公式
+   - **与最近的既有概念的对照**：避免读者误以为是某个老概念
+4. 若某术语**部分借用某既有定义但有改动**（混合情况），应同时给参考文献 + 改动说明。
+
+##### C. 写作上的约束
+
+1. 正文中**首次出现**的关键术语，应同时使用其**完整中英文 + 编号引用**（如 "LLM-as-Judge [1]"）；之后再次出现可省去 `[n]`。
+2. 引用句拟稿（"paper §Related Work 引用方式拟稿"等）若直接放在 DESC.md / 讨论文档中，应保留方括号 `[Author25]` 或 `[n]` 占位，**不要把全文 author + year + venue 重复展开在正文**。
+3. 跨文档引用（如讨论文档引用 corpus 中的 DESC.md）使用 §2.2.1 的 Markdown 相对路径链接 `[xxx](./relative/path.md)`，不替代 §References 的正式条目。
+4. 若一份长讨论文档**确实没有正式 §References**（极短或纯内部记录），允许省略；但**只要文档中已经给出 `[n]` 短形引用**，就必须配套有末尾 §References。
+
+这条规范的目标是让讨论稿可以**直接被 paper writing 复用**：定义清晰、引用可追溯、相关工作可比对，避免后续从讨论稿到论文稿大量重写。
 
 #### 2.3 README.md 规范
 
@@ -739,6 +773,10 @@ talks/
 7. `raw.md` 是原始记忆入口，除非用户明确要求整理原稿，否则不应把它改写成 polished 纪要。
 8. 若讨论最终沉淀出明确的研究决策、任务拆分或对仓库已有材料的修订要求，应在 `minutes.md` 中写清楚落点路径或目标对象。
 9. 若用户说的是“补充记忆”“把这张图里的内容补进去”“先记下来再说”这类低结构任务，默认目标文件应是 `raw.md`，并默认采用“人工看图转录优先、工具识别辅助、模糊处显式保留”的策略。
+10. 若 `minutes.md` 或其他正式讨论稿涉及多篇文献引用、关键术语定义、§Related Work 拟稿等学术写作素材，必须遵守 [§2.2.4 Markdown 学术讨论 / 综述 / 文献引用与定义规范](#224-markdown-学术讨论--综述--文献引用与定义规范)：
+    - 参考文献集中放文档末尾，正文用 `[n]` 短形
+    - 关键术语单独章节集中定义，并标注是"领域已有定义（带参考文献）"还是"本研究新造（带 rationale + 操作化）"
+    - 这条同样适用于各 `project_*` / `project_ex*` 下的 `discussions/*.md`，不局限于 `talks/`
 
 ### 6. 推荐阅读与工作顺序
 
@@ -827,6 +865,17 @@ xxx(xxx): 中文标题
    - 若当前身份无法可靠映射到 GitHub 用户名，再说明原因，不要随意指定他人。
 6. 若本轮改动明显仍处于持续推进中，PR 默认应考虑添加 `status:wip` 或等价状态标签。
 7. 若本轮改动同时涉及规范更新、总账更新、结构调整等多种类型，label 应覆盖主要方面，但不应滥贴无关标签。
+
+## GitHub CLI 身份一致性规范
+
+当需要执行任何 `gh` 命令时，默认遵循以下硬性规则：
+
+1. 在执行前，必须先确认**当前仓库的 git 身份**与**准备使用的 GitHub CLI 身份**一致。
+2. `git 身份`至少应通过 `git config user.name` 与 `git config user.email` 确认；`gh 身份`至少应通过 `gh auth status`、当前活动账号以及仓库远端归属综合确认。
+3. 只有当 `gh` 当前活动账号能够与当前仓库里用于 `commit / push / PR / comment / edit / assign / label` 的身份稳定对应时，才允许继续执行 `gh` 操作。
+4. 若发现 `gh` 当前活动账号与当前仓库 git 身份不一致，必须先切换到一致的账号，再执行对应 `gh` 命令。
+5. 若本机找不到与当前仓库 git 身份稳定对应的 GitHub CLI 账号，或无法可靠证明两者一致，则**不得执行任何 `gh` 操作**；此时应如实说明原因和阻塞点，而不是用其他账号代操作。
+6. 这条规则适用于所有 `gh` 场景，包括但不限于：`pr view`、`pr create`、`pr edit`、`pr comment`、`issue comment`、`api` 直调、label / assignee / reviewer 修改等。
 
 ## 数据集信息
 
