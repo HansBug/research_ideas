@@ -1,8 +1,8 @@
-# project_ex1 — 项目归档准备 + 重构规划 + LLM-as-feedback 路线讨论
+# project_ex1 — 长线暂停 + 重构规划 + 未来路线（feedback / 强化学习）讨论
 
-> **时间**：2026-05-09 15:19:23 起稿
-> **形式**：W4.x 工作收口 + 项目归档前的最终盘点 + 后续路线说明
-> **状态**：本项目计划在当前 PR 上**说明状况后 merge 到 `main`**，随后**回归 `project_1`**继续推进；本文件是归档前的最后一份内部记录
+> **时间**：2026-05-09 15:19:23 起稿；2026-05-09 16:xx 二次完善（补"长线工作 + RL 方向 + 暂停投入但保留资产"口径）
+> **形式**：W4.x 工作收口 + 暂停投入前的最终盘点 + 长线方向说明
+> **状态**：本项目作为**长线工作**保留 —— 当前 PR 在说明状况后 merge 到 `main`，随后**优先回到 `project_1`**继续推进；ex1 的代码 / 数据 / 实验结论 / 文档**完整保留为长线资产**，**不再短期内继续投入新功能**，但**未来可重新激活**（最可能的两条路线见 §4：作为 `project_1` 的 feedback 源，或在强化学习场景下作为奖励信号 / critic）。本文件是这次暂停前的最后一份内部记录
 > **关联文档**：
 >
 > 1. [2026-05-08-19-20-31-AI-讨论-project_ex1学术定位与相关工作综述.md](./2026-05-08-19-20-31-AI-讨论-project_ex1学术定位与相关工作综述.md) — 学术定位主稿（v4.3）
@@ -12,13 +12,16 @@
 
 ## 0. 摘要
 
-本次讨论一次性沉淀以下三件事：
+本次讨论一次性沉淀以下四件事：
 
 1. **现状盘点**：W4.x 完整收口后的代码状态（pydoc 100%、死代码清理、阶段口径冻结）与遗留待办（20 条 prompt-implementation 不一致 + 6 大目录散乱）；
 2. **重构规划**：把 `src/` 当前混合状态（importable package + CLI 脚本 + 实验脚本 + 流程文档）拆成 6 大职责清晰的物理路径，并提供 9-commit TDD 增量执行计划，作为下一阶段重启时的施工说明书；
-3. **路线转向**：与导师讨论后，把 `LLM-as-Judge` 重新定位为 `LLM-as-feedback` —— 不再单独作为评估子系统存在，而是**作为 `project_1` 迭代式状态机建模闭环里的反馈源**进入下一阶段使用。
+3. **未来路线**：与导师讨论后形成两条可能方向 ——
+   - **路线 A（feedback）**：把 `LLM-as-Judge` 重新定位为 `LLM-as-feedback`，作为 `project_1` 迭代式状态机建模闭环里的反馈源；
+   - **路线 B（强化学习）**：把 anchored rubric + sanity bound + 8 指标体系作为 RL 场景下的**奖励信号 / critic**，用于训练或微调下一代 STM 生成器；
+4. **暂停投入与资产保留**：本项目的当前形态作为"独立 review 子系统"**告一段落**（不是"终结"，而是"暂停投入 + 资产保全"）。重构与方法重新落地的工作**不在本次合入前完成**；后续在 `project_1` 进展明朗、或 RL 路线有新需求时**择机重新激活**。
 
-本项目的当前形态作为"特别独立的 review 子系统"将进入归档状态。重构与方法重新落地的工作不在归档前完成，而是在 `project_1` 的下一轮工作中**以 feedback 角色被重新激活**。
+> **核心立场**：暂停 ≠ 放弃。本项目 W4.x 阶段已经形成稳定的方法学骨架（6 维 anchored rubric + 3-stage runtime + sanity bound + 8 指标）和可复用的实验数据 / 文献库，所有这些**都按"长线资产"标准保留**，不删、不下沉、不归档移除。
 
 ---
 
@@ -85,7 +88,7 @@
 
 ---
 
-## 2. 重构规划（推迟到归档之后或随 project_1 重新激活）
+## 2. 重构规划（推迟到下次重新激活时执行）
 
 ### 2.1 现状散乱情况
 
@@ -351,11 +354,15 @@ flowchart LR
 
 ---
 
-## 4. LLM-as-feedback 路线（导师讨论后的转向）
+## 4. 未来路线（导师讨论后的两条候选 + 共同基础）
 
-### 4.1 重新定位
+> **基本立场**：本项目作为**长线工作**保留。下面两条路线**互不排斥**，可以独立推进，也可以在合适时机合流。具体走哪条由 `project_1` 进展与外部需求决定，本文件不强行二选一。
 
-与导师本次讨论后形成的关键洞察：
+### 4.A 路线 A — LLM-as-feedback：融入 project_1 迭代式建模
+
+#### 4.A.1 重新定位
+
+与导师本次讨论后形成的第一个关键洞察：
 
 > **原 `LLM-as-Judge` 子系统可以重新定位为 `LLM-as-feedback`，融入 `project_1` 的迭代式状态机建模闭环。**
 
@@ -365,7 +372,7 @@ flowchart LR
 2. **`project_1` 本身是迭代式建模**：LLM 生成 STM → 评估 → 修复 → 再生成 → ……；
 3. 当前的 reviewer 输出**完全可以作为下一轮 prompt 的"建设性 critique" 部分**，从而把"被动评估"变成"主动 feedback signal"。
 
-### 4.2 可能的架构骨架
+#### 4.A.2 可能的架构骨架
 
 ```mermaid
 flowchart LR
@@ -396,7 +403,7 @@ flowchart LR
     style FEEDBACK fill:#ffe,stroke:#aa0
 ```
 
-### 4.3 与原方法叙事的差异
+#### 4.A.3 与原方法叙事的差异
 
 | 维度 | 原 `LLM-as-Judge` | 新 `LLM-as-feedback` |
 |------|-------------------|----------------------|
@@ -407,7 +414,7 @@ flowchart LR
 | 与论文写作绑定 | 直接作为 §Method | 作为 `project_1` 的子组件 + ablation 维度 |
 | Anchored rubric 的角色 | 评分锚点 | feedback 模板 + 引导 refine 方向 |
 
-### 4.4 对当前 ex1 工作的可重用性盘点
+#### 4.A.4 对当前 ex1 工作的可重用性盘点
 
 | 资产 | feedback 路线下的用途 |
 |------|----------------------|
@@ -420,79 +427,227 @@ flowchart LR
 | benchmark harness | **改造**为 closed-loop benchmark：评估"经过 N 轮 feedback 后的 STM 质量提升" |
 | 20 条不一致清单 | 大部分仍然有效，**优先级会随 feedback 角色变化**（如 I-15 mode shaping 优先级降低，I-1 evidence_discipline 优先级升高） |
 
-### 4.5 后续在 project_1 中重启时的入口
+#### 4.A.5 后续在 project_1 中重启时的入口
 
-1. 保留本项目作为**只读资产仓库**（package + corpus + discussions）
+1. 保留本项目作为**长线资产仓库**（package + corpus + discussions），不强制 read-only
 2. 在 `project_1` 中新建 `feedback/` 子模块，**通过 `import expert_review` 复用**而不是 fork
 3. 在 `project_1` 的迭代式 prompt 模板中，把 reviewer 输出作为**第二段 system context**（"以下是上一轮模型的 review 结论，请优先针对 ××× 进行修复"）
 4. 增加一个 closed-loop benchmark：`HAI 单点 vs HAI@3rd-iter vs HAI@5th-iter`，验证 feedback 是否真的带来收敛
 
 ---
 
-## 5. 项目归档计划
+### 4.B 路线 B — 强化学习场景下的奖励信号 / critic
 
-### 5.1 归档的范围
+#### 4.B.1 重新定位
 
-本项目以 `dev/project_ex1_split` 分支为最终状态进行归档：
+与导师本次讨论后形成的第二个关键洞察：
 
-1. **代码**：维持 W4.x 收口版本（pydoc 100%、死代码已清、3-stage runtime 稳定）
-2. **文档**：维持当前 README / GUIDE / 设计文档 / 学术定位主稿 / 不一致清单
-3. **数据**：state_machine_review_corpus 与 llm_as_judge_methods_corpus 不动
-4. **重构**：**不执行**（仅以本文件 §2 的形式留下施工说明书）
+> **本项目沉淀的 anchored rubric + sanity bound + 8 指标体系，可以作为强化学习场景下的奖励信号或 critic，用来训练 / 微调下一代 STM 生成器。**
 
-### 5.2 归档的方式
+这一定位与"路线 A（feedback）"的本质差别在于：
 
-1. 提交本讨论文件
-2. 推送到远端 `dev/project_ex1_split`
-3. 在 PR 评论中说明：
-   - 已完成内容（W4.x 收口 + pydoc 100% + 死代码清理 + benchmark harness 稳定）
-   - 遗留 20 条不一致（指向 [I-1 ~ I-20 清单](./2026-05-09-12-58-25-AI-讨论-prompt实现一致性待处理清单.md)）
-   - 重构已规划但**有意推迟**（指向本文件 §2）
-   - 路线转向（`LLM-as-feedback` 融入 `project_1`，指向本文件 §4）
-4. PR 合入 `main`
+1. **路线 A** 把 reviewer 当作**外部反馈管道**，模型本身不变，靠 prompt 迭代收敛；
+2. **路线 B** 把 reviewer 当作**奖励函数**，**模型本身被反向更新**（PPO / DPO / GRPO / RLVR / RLAIF 等任一 RL fine-tune 范式都可以接入）。
 
-### 5.3 PR 评论草稿
+#### 4.B.2 可能的接入位置（按 RL 框架习惯命名）
 
-> **建议在 PR 上贴的中文说明（待用户审定后再发布）：**
->
-> 本 PR 是 `project_ex1` 的 W4.x 收口 + 项目归档 PR。已完成：
->
-> 1. 中文 RST pydoc 4 级覆盖率 100%（419 zh + 15 en items）
-> 2. `legacy/` 目录整体删除 + Disagreement Arbiter 字符串残留清理
-> 3. README + GUIDE 与代码状态对齐，Phase 7 ~ 15 阶段口径冻结
-> 4. 学术定位主稿（v4.3）+ I-1 ~ I-20 不一致清单 + 重构规划 + 归档说明 4 份 discussion
-> 5. 42/42 unit tests + 全量 doctest 绿
->
-> 故意未做：
->
-> 1. 20 条 prompt-implementation 不一致 issue（详见清单）
-> 2. 6 大目录散乱的物理重构（已规划 9-commit 增量执行方案）
-> 3. benchmark.py（3127 行）的拆分
->
-> 后续路线：本子系统将以 `LLM-as-feedback` 形态重新激活到 `project_1` 的迭代式建模闭环里，而不是以独立子系统继续推进。详见 `discussions/2026-05-09-15-19-23-AI-讨论-项目归档与重构规划与LLM-as-feedback路线.md`。
->
-> 合入后本仓库的 `project_ex1_llm_judge_for_stm/` 目录将作为只读资产保留。
+| RL 组件 | 在本项目里对应什么 | 备注 |
+|---------|--------------------|------|
+| **Reward** | `Score Composer` 输出的 `overall_score`（或 8 指标加权） | 6 维 anchored rubric 是天然的 multi-objective reward 构造器 |
+| **Critic** | 6 维 deterministic estimate + LLM rubric refinement | 已经具备 `score + sanity_bound` 双输出，可直接当 critic 头 |
+| **Verifier (RLVR)** | `Missing-Evidence Critic` + `Equivalence Agent` 的 deterministic 部分 | 这部分**不依赖 LLM**，可作为 RL 训练时**稳定的 verifier 信号源** |
+| **Preference label (DPO/RLAIF)** | `judgement_from_score` 的 4 档离散标签 + per-dim score | 可批量生成 winner / loser pair |
+| **Reward shaping** | `mode-specific blend`（issue I-15）+ asymmetric sanity bound | 已经天然带"局部偏置 + 渐进收敛"的 shaping 结构 |
+| **Off-policy 数据** | 现有 benchmark harness 的 `phase7 / phase14 / phase15` 三套 scope + state_machine_review_corpus | 可直接作为 RL 训练初期的 cold-start 样本池 |
+
+#### 4.B.3 与路线 A 的耦合关系
+
+两条路线**可以独立推进**，也**可以分阶段合流**：
+
+```mermaid
+flowchart LR
+    EX1["project_ex1<br/>(当前长线资产)"]
+
+    A["路线 A: feedback<br/>(prompt-level 闭环)"]
+    B["路线 B: RL reward / critic<br/>(模型权重级闭环)"]
+
+    HYBRID["路线 A+B 合流<br/>(用 reviewer 同时做 prompt feedback 与 reward,<br/>训练时收紧权重, 推理时收紧上下文)"]
+
+    EX1 --> A
+    EX1 --> B
+    A -.可选合流.-> HYBRID
+    B -.可选合流.-> HYBRID
+
+    style EX1 fill:#eef,stroke:#446
+    style HYBRID fill:#fed,stroke:#c80,stroke-dasharray: 5 5
+```
+
+#### 4.B.4 路线 B 落地前需要先解决的依赖
+
+1. **I-7 noise floor 必须实现**：RL 场景下 reward 的方差控制远比 paper 评估关键
+2. **I-1 evidence_discipline 必须修复**：否则 reward 在 self-prediction 模式下会 reward-hack
+3. **新增 reward 单调性测试**：构造刻意降级的 STM，确认 reward 单调下降；这是 RL 训练前的 sanity test
+4. **Score Composer 的 mode 分发简化**：RL 场景下推荐主要用 `record_level`，避免 mode 切换带来 reward 震荡（同时也降低 issue I-15 的影响）
 
 ---
 
-## 6. 接力点（下次启动时优先看这里）
+### 4.C 两条路线的共同基础
 
-> 不论是直接重启 ex1，还是从 `project_1` 那侧反向复用，下面是**最快进入状态**的阅读路径。
+无论走 A、B 还是合流，下面这些**当前已经稳定**的资产都可以**直接复用**：
 
-### 6.1 重启 ex1 时
+1. 6 维 anchored rubric（[src/expert_review/agents/rubric_scorer.py](../src/expert_review/agents/rubric_scorer.py)）
+2. 3-stage runtime（[src/expert_review/graph/runtime.py](../src/expert_review/graph/runtime.py)）
+3. Sanity bound 机制（[src/expert_review/agents/score_composer.py](../src/expert_review/agents/score_composer.py)）
+4. 8 指标体系（[src/expert_review/benchmark.py](../src/expert_review/benchmark.py)）
+5. state_machine_review_corpus（评估材料）
+6. llm_as_judge_methods_corpus（14 篇文献，可拓展为 RL feedback / critic 文献）
+7. 学术定位主稿 v4.3（方法叙事骨架）
+8. I-1 ~ I-20 不一致清单（决定哪些 issue 在新路线下优先级会变化）
+
+---
+
+## 5. 暂停投入与资产保留计划
+
+### 5.1 暂停投入的范围
+
+本项目以 `dev/project_ex1_split` 分支为最后一次正式投入，合入 `main` 后**暂停新功能开发**，但**全部资产保留为长线资产**：
+
+1. **代码**：维持 W4.x 收口版本（pydoc 100%、死代码已清、3-stage runtime 稳定），**不删、不下沉**
+2. **文档**：维持当前 README / GUIDE / 设计文档 / 学术定位主稿 / 不一致清单 / 本暂停说明
+3. **数据**：state_machine_review_corpus（评估材料）+ llm_as_judge_methods_corpus（14 篇文献库）**不动**
+4. **实验产出 / 结论**：所有阶段产出的指标对比、ablation 结果、benchmark scope（`phase7 / phase14 / phase15`）**完整保留**
+5. **重构**：**不执行**（仅以本文件 §2 的形式留下施工说明书）
+6. **路线 B（RL）相关探索**：**不启动**（仅以本文件 §4.B 形式记录可能的接入位置）
+
+> **明确不做的事**：不删任何代码、不删任何 corpus、不删任何 discussion、不把 ex1 整个目录移到 archive/，也不在仓库结构上做任何"下沉"操作 —— 整个项目目录维持现状，作为可随时重新激活的资产。
+
+### 5.2 暂停投入的执行方式
+
+1. 提交本讨论文件（含本次"长线 + RL"完善）
+2. 推送到远端 `dev/project_ex1_split`
+3. 在 PR 评论中贴出**总结性 + 盘点性质**的 comment（草稿见 §5.3）
+4. PR 合入 `main`
+5. 本地 `git checkout main` 并同步远端最新
+6. 后续工作切换到 `project_1`
+
+### 5.3 PR 评论草稿（总结 + 盘点）
+
+> **建议在 PR 上贴的中文说明（用户审定后发布）：**
+
+```markdown
+## 📌 PR 性质
+
+本 PR 是 `project_ex1_llm_judge_for_stm` 的 **W4.x 收口 + 长线暂停投入** PR。
+
+合入后**本子系统作为长线工作保留**，不再短期投入新功能；后续可能以
+**LLM-as-feedback**（融入 project_1 迭代闭环）或 **RL 奖励信号 / critic**
+（用于训练下一代 STM 生成器）形态重新激活。
+
+详见 `project_ex1_llm_judge_for_stm/discussions/2026-05-09-15-19-23-AI-讨论-项目归档与重构规划与LLM-as-feedback路线.md`。
+
+---
+
+## ✅ 已完成（W4.x 阶段）
+
+### 工程层面
+
+- [x] 中文 RST pydoc 四级覆盖率 100%（module / class / function / method 共 **419 zh + 15 en items**）
+- [x] `legacy/` 目录整体删除（外部 0 引用）+ `Disagreement Arbiter` 字符串残留清理
+- [x] README + GUIDE 与代码状态对齐，Phase 7 ~ Phase 15 阶段口径全部冻结
+- [x] 42/42 unit tests + 全量 doctest 通过（TDD 增量推进，每步 commit 都验证）
+- [x] 3-stage runtime 稳定（PREPARATION / ANALYSIS / FINAL × 12 agents，已删除 1 个 dead arbiter）
+- [x] benchmark harness 稳定（`scope=phase7 / phase14 / phase15` 三套对比面）
+
+### 方法学层面
+
+- [x] 6 维 anchored rubric + 5+1 双轨聚合
+- [x] 3 道晋升门（Q1 双轨 / Q2 evidence consistency / Q3 multi-rep stability）
+- [x] Sanity bound 机制（per-dim + per-(regime, dim) 非对称）
+- [x] PDS / HAI / RAS / SAS / CRAS / normalized_mae / Calib / Stability 八指标体系闭环
+
+### 文档与材料层面
+
+- [x] 学术定位主稿 v4.3（含 3 张 mermaid + 28 条参考文献）
+- [x] LLM-as-Judge 文献库 14 篇（7 通用 + 7 SE 相关）+ STM 评估材料库
+- [x] I-1 ~ I-20 不一致清单 + 代码事实档案（II-A ~ II-L）
+- [x] 长线暂停说明（本 PR 引入）+ 完整 mermaid（顶层调用链 + 3-stage langgraph + Score Composer mode 分发 + Fallback 链 + 数据流字段映射）
+
+---
+
+## ⏸ 故意未做（已规划但暂不执行）
+
+- [ ] **20 条 prompt-implementation 不一致 issue 修复**（其中 P0 三条致命：I-1 evidence_discipline 错配 / I-7 noise floor 未实现 / I-12 Operability proxy 未实现）
+- [ ] **6 大目录散乱的物理重构**（9-commit TDD 增量执行计划已规划，见暂停说明 §2）
+- [ ] **`benchmark.py`（3127 行）拆分**为 `benchmark/{harness, metrics, splits}.py`
+- [ ] **强化学习路线 B 的任何探索**（仅记录可能接入位置）
+
+---
+
+## 📊 资产保留清单（长线资产，不删不动）
+
+| 类型 | 路径 | 说明 |
+|------|------|------|
+| 可导入 package | `src/expert_review/` | 64 个 .py，pydoc 100% |
+| 单元测试 | `src/expert_review/test_{review,benchmark,batch}.py` | 42 cases |
+| CLI / 实验脚本 | `src/{run,align}_*.py` + `experiments/` | 33 个 experiment 脚本完整保留 |
+| 学术 corpus | `llm_as_judge_methods_corpus/` | 14 篇 paper.pdf + DESC.md |
+| 评估 corpus | `state_machine_review_corpus/` | STM 评估材料 |
+| Discussions | `discussions/` | 学术稿 v4.3 + 不一致清单 + 暂停说明 三份 |
+| 设计文档 | `src/expert_review/designs/` | v0/v1 + V1_ALIGNMENT_REPORT |
+
+---
+
+## 🔮 未来重新激活的两条候选路线
+
+1. **路线 A — LLM-as-feedback**：把 reviewer 输出作为 `project_1` 迭代建模的反馈信号，关闭"生成 → 评估 → 修复"闭环
+2. **路线 B — RL 奖励 / critic**：把 6 维 anchored rubric + sanity bound + 8 指标作为 RL fine-tune 阶段的 reward / critic / verifier，反向更新模型权重
+
+两条路线**互不排斥、可独立推进、可阶段合流**。具体走哪条由 `project_1` 进展与外部需求决定。
+
+---
+
+## 🛣 后续接力点
+
+- **重启 ex1 / 重新进入重构**：先看暂停说明 §1.2（待办分级）+ §2（重构 9-commit 计划）
+- **在 `project_1` 中作为 feedback 复用**：先看暂停说明 §4.A + `src/expert_review/__init__.py` 暴露的对外 API
+- **走 RL 路线**：先看暂停说明 §4.B 的接入位置表 + 4.B.4 的依赖清单（I-7 / I-1 必须先修）
+
+---
+
+## ✋ 当前进度
+
+- 当前 W4.x 工作完整结束
+- 此 PR 合入后本地 checkout 回 `main`，**优先工作切换到 `project_1`**
+```
+
+---
+
+## 6. 接力点（下次重新激活时优先看这里）
+
+> 不论是直接重启 ex1 自身、从 `project_1` 那侧反向复用、还是走 RL 路线，下面是**最快进入状态**的阅读路径。
+
+### 6.1 直接重启 ex1（继续做评估子系统 / 修 P0 issue / 执行重构）
 
 1. 先看本文件 §1.2（待办）+ §2（重构规划）
 2. 再看 [I-1 ~ I-20 清单](./2026-05-09-12-58-25-AI-讨论-prompt实现一致性待处理清单.md) 的 P0 部分
 3. 再看 [学术定位主稿 v4.3](./2026-05-08-19-20-31-AI-讨论-project_ex1学术定位与相关工作综述.md) §10 决策点
 4. 最后看 [src/expert_review/README.md](../src/expert_review/README.md) + [GUIDE.md](../src/expert_review/GUIDE.md)
 
-### 6.2 在 project_1 中复用 ex1 时
+### 6.2 在 project_1 中作为 feedback 复用（路线 A）
 
-1. 先看本文件 §4（feedback 路线）
+1. 先看本文件 §4.A
 2. 再看 [src/expert_review/__init__.py](../src/expert_review/__init__.py) 暴露的对外 API：
    - `ExpertReviewRequest` / `ExpertReviewResult` / `review_artifacts()` / `review_model()`
 3. 再看 [src/expert_review/graph/runtime.py](../src/expert_review/graph/runtime.py) 的 `run_expert_review_workflow()` 与 §3.2 的 mermaid
 4. 再看 `state_machine_review_corpus/` 里的 STM 评估材料（可作为初始 fixture）
+
+### 6.3 在 RL 场景下作为 reward / critic 使用（路线 B）
+
+1. 先看本文件 §4.B 全节
+2. 再看 [src/expert_review/agents/score_composer.py](../src/expert_review/agents/score_composer.py) 的 6 维 score + sanity bound 输出结构
+3. 再看 [src/expert_review/agents/missing_evidence_critic.py](../src/expert_review/agents/missing_evidence_critic.py) 与 [src/expert_review/agents/equivalence.py](../src/expert_review/agents/equivalence.py) 的 deterministic 部分（作为 RLVR verifier 候选）
+4. 再看 [I-1 ~ I-20 清单](./2026-05-09-12-58-25-AI-讨论-prompt实现一致性待处理清单.md) 的 I-1 / I-7 / I-12（RL 路线启动前必须先修）
+5. 最后看 [src/expert_review/benchmark.py](../src/expert_review/benchmark.py) 的 `phase14 / phase15` scope（作为 RL 训练初期 cold-start 数据池）
 
 ### 6.3 关键数据 / 文件索引
 
@@ -512,8 +667,12 @@ flowchart LR
 
 ## 7. 备注与结束语
 
-1. 本项目作为**自研 LLM-as-Judge 子系统**的独立形态在此告一段落
-2. 6 维 anchored rubric + 3-stage runtime + sanity bound 的设计**已被验证可工作**，可以以"反馈源"的角色进入下一阶段使用
-3. 未完成的工程清理（重构 / I-1~I-20）**不阻塞 project_1 的复用** —— 因为这些 issue 主要影响"作为独立 paper 提交"时的方法叙事一致性，而**作为 feedback 源使用时大部分 issue 优先级会下降**
+1. 本项目作为**独立 LLM-as-Judge 子系统**的当前形态在此**暂停投入**，但**作为长线工作保留**：代码 / 数据 / 实验结论 / 文献库 / 文档全部维持现状，不删不动
+2. 6 维 anchored rubric + 3-stage runtime + sanity bound + 8 指标体系**已被验证可工作**，可以以以下任一形态进入下一阶段：
+   - 作为 `project_1` 的 feedback 源（路线 A）
+   - 作为 RL fine-tune 的 reward / critic / verifier（路线 B）
+   - 作为独立 paper 投稿的方法学骨架（修完 P0 三条后启动）
+3. 未完成的工程清理（重构 / I-1 ~ I-20）**不阻塞 project_1 的复用** —— 因为这些 issue 主要影响"作为独立 paper 提交"时的方法叙事一致性；**作为 feedback 源时大部分 issue 优先级会下降**；**作为 RL reward 时 I-1 / I-7 反而会上升为必须先修**
 4. 后续 paper 若要发表 ex1 单独工作，建议先解决 P0 的 3 条（I-1 / I-7 / I-12），P1 的剩余 issue 可以按"已知局限"在 §Limitations 中诚实记录
+5. **当前优先级**：暂停投入 → 合入 `main` → 切回 `project_1` 推进迭代式 STM 建模 → 如 `project_1` 进展需要 reviewer 反馈 / 训练信号，再回头按本文件 §4.A 或 §4.B 重新激活
 
