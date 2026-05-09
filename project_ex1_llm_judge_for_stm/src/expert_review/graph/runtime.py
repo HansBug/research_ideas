@@ -1,3 +1,36 @@
+"""LangGraph runtime —— pipeline 主调度器。
+
+**作用**：把 12 个 agent 节点（含 1 个已删除的 arbiter）按
+:func:`graph.subgraphs.ordered_stage_groups` 给出的 3-stage 顺序逐段
+执行，把状态写入共享 :class:`schemas.graph_state.ReviewGraphState`，
+最终返回 :class:`schema.ExpertReviewResult`。
+
+**设计思路**：
+
+1. **共享 state 容器**：所有 agent 通过 ``state.xxx`` 字段读写，避免
+   长参数列表；
+2. **stage 内部允许 fan-out 并行**：例如 PREPARATION 内 input /
+   prediction / reference 三个 extractor 并行；ANALYSIS 内 trace +
+   quality + (可选 equivalence) 并行；
+3. **不暴露 LangGraph 库依赖**：本模块不直接使用 langgraph 的 graph
+   构造，只做线性 + 局部并行调度。"langgraph" 出现在 backend_label
+   是历史名遗留，与库无关。
+4. **LLM 缺失降级**：``llm`` 参数可为 ``None``，此时所有 ``run_*_node``
+   走 deterministic 路径——pipeline 仍能完整跑完并产出
+   :class:`ExpertReviewResult`；
+5. **strict-llm 不在本层**：本 runtime 不实现 strict 校验，是
+   :func:`benchmark.run_benchmark_iteration` 的 ``strict_llm`` 参数
+   职责（issue I-4）。
+
+**关键约束**：
+
+* :func:`run_expert_review_workflow` 是模块对外唯一入口；
+* :func:`_default_equivalence_report` 在无 ref 时回填默认 equivalence，
+  其 confidence 0.58 / 0.52 是 hardcode（设计 bias，未来可参数化）；
+* :func:`_append_runtime_notes` 在 score_composer 后、final_synthesizer
+  前写入 audit notes；顺序敏感不可调换。
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -27,6 +60,23 @@ from .subgraphs import ordered_stage_groups
 
 
 def _default_equivalence_report(state: ReviewGraphState) -> dict[str, Any]:
+    """无参考制品时构造 fallback equivalence_report。
+
+    当 :attr:`ReviewGraphState.regime` 标识 ``has_reference == False``
+    时，equivalence agent 不会真正运行——本函数从 ``trace_results``
+    估算一个 weak 版本的 equivalence_strength 填进去，让下游
+    ``score_composer`` 仍有可用字段。
+
+    :param state: 当前 :class:`ReviewGraphState` 实例
+    :return: 与 :func:`agents.equivalence.deterministic_equivalence`
+        返回 dict 同 schema 的 fallback 版本，但
+        ``equivalence_strength`` 仅基于 trace_ratio
+    :rtype: dict[str, Any]
+
+    .. note::
+        confidence 字段 hardcode 为 0.58（record_level）/ 0.52（其它），
+        是 W2 时期经验值，尚未参数化。
+    """
     trace_matched = sum(1 for item in state.trace_results if item.status == "matched")
     trace_partial = sum(1 for item in state.trace_results if item.status == "partial")
     trace_ratio = (trace_matched + 0.5 * trace_partial) / max(1, len(state.trace_results))
@@ -47,6 +97,18 @@ def _default_equivalence_report(state: ReviewGraphState) -> dict[str, Any]:
 
 
 def _append_runtime_notes(state: ReviewGraphState) -> None:
+    """把 pipeline 关键过程信息追加到 ``state.notes`` (audit 用)。
+
+    在 score_composer 后、final_synthesizer 前调用——把当时已有的所有
+    stage label / context_packets / contract notes / policy profile /
+    dossier mode / regime rationale / vv_roles / quality notes /
+    missing_evidence flags / fan-out log 写入 ``state.notes``。
+
+    本函数对 state 做 in-place 修改，无返回值。
+
+    :param state: 当前 :class:`ReviewGraphState`，将在 ``state.notes``
+        末尾追加多条 audit 字符串
+    """
     state.notes.append(
         "Graph stages: "
         + " | ".join(f"{name}=" + ",".join(stage) for name, stage in ordered_stage_groups())
@@ -92,6 +154,39 @@ def run_expert_review_workflow(
     llm_provider: str | None = None,
     backend_label: str = "langgraph_multi_agent_v1",
 ) -> ExpertReviewResult:
+    """执行完整 3-stage 评审 pipeline，返回 :class:`ExpertReviewResult`。
+
+    Pipeline 流程：
+
+    1. **PREPARATION**: Contract Router → (并行) Input Analyst /
+       Prediction Extractor / Reference Extractor → Evidence Regime
+       Estimator → Review Policy Builder
+    2. **ANALYSIS**: (并行) Traceability Agent / Pragmatic Quality Agent /
+       (可选) Equivalence Agent
+    3. **FINAL**: Missing-Evidence Critic → Score Composer →
+       _append_runtime_notes → Final Synthesizer
+    4. 末尾：从 :func:`llm_telemetry.summarize_current_llm_usage`
+       拉 LLM usage summary 注入 result。
+
+    :param request: 待评审的 :class:`ExpertReviewRequest`
+    :param llm: 装配好的 LLM client（通常是
+        :class:`fallback_llm.FallbackLLMClient`）；``None`` 时全管线
+        走 deterministic 路径
+    :param llm_model_name: 用于回填 result.llm_model_name 字段
+    :param llm_provider: 用于回填 result.llm_provider 字段
+    :param backend_label: backend 标识（默认
+        ``"langgraph_multi_agent_v1"``，由 :class:`agent.ExpertReviewAgent`
+        在调用前会加 ``_llm`` / ``_deterministic`` 后缀）
+    :return: 完整填充后的 :class:`ExpertReviewResult`
+    :rtype: ExpertReviewResult
+
+    后处理 backend label 规则：
+
+    * 若 ``llm is not None`` 但实际 LLM usage summary 显示
+      ``effective_llm_used == False``（所有 stage 都走了 deterministic
+      fallback），label 后缀改为 ``"_fallback_only"`` 标记此次本质为
+      deterministic-only run，方便 strict_llm 路径过滤。
+    """
     with llm_run_context(
         llm_configured=llm is not None,
         configured_model_name=llm_model_name,
