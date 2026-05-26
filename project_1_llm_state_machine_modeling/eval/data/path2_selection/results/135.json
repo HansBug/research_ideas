@@ -1,0 +1,37 @@
+{
+  "case_id": "135",
+  "paper_slug": "autonomous-autopilot-control-system-small-scale-uavs",
+  "case_name": "Hierarchical FMS Command Sequencer for a Small-Scale UAV",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是小型 UAV 的 FMS/autopilot 命令序列器，按可编程 command list 执行 TakeOff、Waypoint、Circle、Landing、Jump 等任务，并把 active command 下发到 lateral/longitudinal/speed 控制模式。传感侧涉及位置、速度、GPS/pressure 高度、ground sonar/ultrasonic altimeter，执行侧控制 aileron、rudder、elevator、throttle/steering servo。",
+  "scale": {
+    "state_count": 18,
+    "event_count": 14,
+    "variable_count": 15,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确写 FMS is a state machine、active command object internally maintains a state machine，且 CmdAltitude 是 AltitudeAttain/AltitudeHold 的内部 mode state machine。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文示例含 ALTITUDE GT 300，Track/Direct waypoint transition 可由 perpendicular axis 或 transition radius 触发，TakeOff/Landing 还用 rotation speed、safe turning altitude、sonar altitude/flare altitude 等数值条件。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "未见 from any state/any mode 的 fault recovery；原文只局部提到 throttle control altitude is the default, for safety if the engine fails。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文写 lateral modes control the ailerons and rudder、longitudinal modes control the elevator、speed modes control the throttle，并在 TakeOff/Landing 中涉及 steering/rudder servo、full throttle、elevators 和 power cut。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：它同时有顶层 command sequencer、并行 FMS mode、嵌套 CmdAltitude 子状态机，能强测 C1；又有多类数值 guard 与真实飞控执行器，能覆盖 C2/C4。NL 与原文图文对应清楚，适合作为 HSM-layered T0 样本。",
+  "potential_pitfalls": "C3 证据偏弱，缺少明确 any-state fault/recovery；部分状态细节来自 PDF 图形，抽取时需避免把控制框图过度形式化。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "135"
+  }
+}

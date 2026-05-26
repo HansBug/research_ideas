@@ -1,0 +1,37 @@
+{
+  "case_id": "052",
+  "paper_slug": "energy-management-strategy-hybrid-micro-grid-renewable-energy",
+  "case_name": "Four-Scenario Micro-Grid EMS with SOC-Governed Battery Switching",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个混合微电网 EMS，用发电功率 PG、负载 PL、电池 SOC 和 utility grid availability 判断 PV/风电、电池、utility grid、柴油机之间的供能切换。典型流程是发电充足时供负载并给电池充电，SOC 满后送电网，发电不足时电池放电，SOC 到 20% 后切到电网或柴油机供电。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 7,
+    "variable_count": 4,
+    "transition_count": 10
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写 EMS 供电逻辑“through four scenarios”，并用 Stateflow ON/OFF 表示各输出；有场景/模式切换，但未见层次化 composite、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文给出多个数值 guard，如 `SOCmin < SOCbatt < SOCmax = 20% < SOCbatt < 100%`、`PG < PL = Battery Discharging`、`PPV + Pwind + Pbatt < PL`，并规定电池仅在可再生发电 `≥ 200 kW` 时充电。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只有局部退化处理：`when the utility grid was not available, then the diesel generator was switched on`，未见 any mode/from any state/all phases 的 cross-cutting fault 语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "Appendix action table 明确列出 `AC Load = ON`、`Battery = ON/OFF`、`Utility grid = ON`、`Diesel generator = ON`，对应负载供电、电池连接/断开、电网连接和柴油机开关等硬件出口。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2 和 C4：数值守卫密集，且直接驱动物理能源设备 ON/OFF，适合检验 semantic/sim feedback 对 EFSM interlock 的修正收益。NL 描述清晰，工业控制对象典型，能作为 T0 中较强的微电网能量管理样本。",
+  "potential_pitfalls": "C1 只有场景级模式切换而非真正层次状态机，C3 也只是 utility-grid unavailable 的局部 fallback，不适合作为 forced fault recovery 强样本。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "052"
+  }
+}

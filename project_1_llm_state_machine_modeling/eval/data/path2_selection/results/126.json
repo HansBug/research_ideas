@@ -1,0 +1,37 @@
+{
+  "case_id": "126",
+  "paper_slug": "hierarchical-framework-decision-making-trajectory-tracking-autonomous-vehicles",
+  "case_name": "Four-State Highway Behavior-Planning FSM",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是高速公路三车道自动驾驶的高层行为决策 FSM，传感器提供 EV 与周边车辆的位置、速度、加速度和航向，FSM 在跟车、自由行驶、左换道、右换道之间选择行为。选定状态后发给轨迹规划模块，下游用 LQR/PID 控制转向、油门和制动来跟踪轨迹。",
+  "scale": {
+    "state_count": 4,
+    "event_count": 6,
+    "variable_count": 6,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文明确说有 four driving states 和 six transition conditions，但这是扁平 Stateflow FSM，没有 composite state、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文称 relative distance and velocity are used to judge whether the adjacent lane is safe，并用 RSS safe distance，涉及前后车速度、响应时间、最大加速度和制动率等数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只描述 car following、free driving、left lane change、right lane change 四个驾驶状态及其转移，并未给出 any state/from any mode 的 fault、abort、reset 或 recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文下游控制层明确有 steering angle、throttle opening/brake 和 master cylinder pressure，但这些主要属于轨迹跟踪控制层，不是 FSM 状态内直接定义的硬件动作。"
+    }
+  },
+  "features_we_care_about": "该样本最有价值的是 C2：换道和跟车 guard 建立在 RSS 安全距离与多车辆相对运动变量上，适合检验 Z3 数值守卫反馈。它也是清晰、真实的 AV 行为规划 FSM，适合作为 T0 中的基础自动驾驶样本。",
+  "potential_pitfalls": "FSM 本身规模小且扁平，fault/recovery 轴基本没有收益，且容易与其他自动驾驶换道/跟车 FSM 样本同构。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "126"
+  }
+}

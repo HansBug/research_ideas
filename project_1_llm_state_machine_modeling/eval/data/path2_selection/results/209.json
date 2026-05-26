@@ -1,0 +1,37 @@
+{
+  "case_id": "209",
+  "paper_slug": "robust-accurate-drone-landing-moving-targets",
+  "case_name": "Three-stage visual-sliding-landing mission supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是一个面向移动 helipad 的多旋翼无人机视觉滑降任务监督器，使用 ArUco/相机/IMU 等感知来分阶段完成起飞、目标搜索、贴靠跟踪、gimbal 调整、最终下落与 fail-safe 恢复。执行侧涉及 yaw/roll/throttle、gimbal pitch 和 touchdown 后关停电机等硬件动作。",
+  "scale": {
+    "state_count": 13,
+    "event_count": 15,
+    "variable_count": 10,
+    "transition_count": 18
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 Figure 12 明确把状态机分成 Stage 1/2/3，并列出 Search Target、Leash Tracking、Guiding Target Tracking、Final Approach、Fail-safe 等 modes，但没有给出严格的 init/pseudo/nested-exit 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文给出 Take Off 达到 1 m、Gimbal Adjustment 中 distance 3 m/angle -45°、Hover/Landing 中 1.5 m leash -> 1 m 且 0° -> 20°，并在 safety envelope 中列出 slope 20°、relative velocity <1 m/s、credibility 95% 等数值约束。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文 Fail-safe 写到 hardware malfunction、RC communication loss、loss of sight of target 时返回 safe-stage，Figure 17 又细分 loss of sight、obstacles、hardware malfunction，但没有逐字写明 from any state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文写 Centering 可通过 yaw、roll、throttle 实现，Gimbal Adjustment 会移动 camera angle，Touchdown 会 shut down the motors，硬件出口清晰。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2 和 C4：数值阈值、相对速度、可信度、安全包络和物理执行动作都较明确，能让 parse/semantic/sim feedback 有实际 grounding。它还带三阶段 mode 结构和 fail-safe 分支，适合作为无人机控制类的差异化 T0 样本。",
+  "potential_pitfalls": "原文状态图更像 staged flowchart 而不是形式化 HSM，部分 transition trigger 和 guard 需要从段落语义中保守补全。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "209"
+  }
+}

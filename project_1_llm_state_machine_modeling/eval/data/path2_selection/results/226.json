@@ -1,0 +1,37 @@
+{
+  "case_id": "226",
+  "paper_slug": "low-speed-autonomous-vehicles-park-fsm",
+  "case_name": "Seven-state park-driving decision supervisor",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是一个园区低速自动驾驶车辆的决策监督 FSM，利用定位、车道、障碍物、可行驶区域、摄像头/激光雷达等感知信息，在巡航、跟车、等待、选道、局部规划和车辆控制之间切换。典型流程是在默认 3m/s 巡航或跟车时遇到静态障碍，判断对向车与障碍距离后等待、变道规划、路径跟踪并返回原车道。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 12,
+    "variable_count": 10,
+    "transition_count": 11
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "Figure 2 把状态分入 Lane Keeping 与 Lane Changing 两个虚线区域，且正文说 FSM 在不同 driving states 间切换，但未给出真正的 init/pseudo/嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文给出多个数值 guard：$d_{stop} < d_{actual} < d_{stop}+d_{follow}$、$d_{actual}<d_{stop}$、$v_{C0}<0.2$、$X_{ob}>12$、$8\\le X_{ob}\\le12$、$X_{ob}<8$。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "只有局部安全等待逻辑，如对向车存在时“stop and wait until the vehicles pass”以及 $X_{ob}<8$ 转 StopAndWait，未出现 any state/from any mode 的全局 fault recovery。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文明确 VehicleController 使用 lateral and longitudinal control 做 path tracking，DistanceKeeping 调整速度，pure pursuit 控制 front wheel angle，但硬件出口主要集中在转向/速度两类。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：它有清楚的车距、速度、障碍物距离阈值和路径安全约束，适合验证 Z3 guard reasoning 是否能给 agent loop 提供有效反馈。C1 也有一定价值，因为 Lane Keeping/Lane Changing 的模式分组和 StopAndWait 分支容易暴露扁平化建模时的错误转移。",
+  "potential_pitfalls": "主要风险是原文状态机仍偏扁平，缺少全局故障恢复和多执行器细节，C1/C3/C4 的 grounding 不如数值 guard 明确。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "226"
+  }
+}

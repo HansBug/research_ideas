@@ -1,0 +1,37 @@
+{
+  "case_id": "093",
+  "paper_slug": "multiple-ground-target-finding-inspection-multirotor-uas",
+  "case_name": "Search-Move-Descend-Inspect Multi-Target Mission Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制多旋翼 UAS 在搜索区域内自主发现多个地面目标、靠近、下降、悬停检查并转向下一个目标。它使用相机目标检测、内部地图/投票、GPS/高度传感与飞控命令，典型流程是 takeoff→search→move/re-estimate→descend/adjust→confirm/action→next target/land。",
+  "scale": {
+    "state_count": 12,
+    "event_count": 11,
+    "variable_count": 10,
+    "transition_count": 16
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 Figure 6 明确给出 main module FSM，含 Before Takeoff、Takeoff、Search、Move to target、Re-estimate、Descend、Adjust、Confirm、Action、Next Target、Land 等任务 mode，但没有层次化 composite/init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文 Eq.(12) 用目标距离和票数选择下一目标：Di = min Dj 且 Vi > H，同时 Eq.(10)(11) 用 x/y、像素中心、增益和分辨率做比例控制。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只在 confirm target 中说明目标未确认时从 internal map 移除并视为 false positive，且无目标满足 Eq.(12) 时 land，没有 any mode/from any state 的故障恢复切换。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说 main module commands are translated into autopilot specific control commands，并描述 UAS takeoff、descend、align/hover、climb、land 以及 action state 中的 inspection or spraying。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：距离、票数、阈值、FOV、比例控制和 false-positive 剔除形成清晰 EFSM 数值守卫，适合 parse/semantic/sim feedback。它也是真实 UAS 任务控制器，NL 流程完整，适合作为 T0 中的航行/机器人类差异化样本。",
+  "potential_pitfalls": "结构是扁平 FSM，缺少层次化 dead-end 和 cross-cutting fault recovery；硬件动作主要通过 autopilot 抽象，执行器多样性不强。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "093"
+  }
+}

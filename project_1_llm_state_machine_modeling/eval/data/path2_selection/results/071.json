@@ -1,0 +1,37 @@
+{
+  "case_id": "071",
+  "paper_slug": "finite-state-automaton-control-system-walking-machines",
+  "case_name": "Hierarchical Navigation-and-Gait Supervisor for a Walking Machine",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制多足 walking machine/hexapod 的全局导航、本地避障与步态选择；输入来自 proximity、GPS、compass、inclinometer 等传感器，输出为 body trajectory、leg-end movement 和 motor commands。典型流程是全局任务下发 waypoint，本地 FSM 执行前进/左绕/右绕/转向/停止，底层 gait FSM 在 tripod 与 wave gait 间切换。",
+  "scale": {
+    "state_count": 15,
+    "event_count": 19,
+    "variable_count": 15,
+    "transition_count": 32
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确写 overall system 是 “hierarchical (top-down) structure”，且 local navigation 下面还有 “two-tier description follows the concept of hierarchical FSMs”，包含 SinitSystem、SloadTarget 和 gait sub-behaviour 层。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文给出 foutofcorridor 由 “GPS combined with local odometry” 检查走廊边界、fnoheading_error 对应 heading error 在 tolerance 内且仿真含 +5° tolerance，但守卫多被封装成布尔 condition。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文 Nomenclature 写 “ffault Condition guarding transitions to Send_g, Sstop_l and Send_s”，Fault status 还包含 sensor failure、embedded system fault 和 data corruption，但未直接写 from any state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写 actuation control subsystem “generates the motor commands”，仿真器会响应 “movement of leg-ends based on the trajectory received”，硬件出口主要是同类腿部/关节驱动。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C1：它不是扁平控制器，而是 global/local/gait 三层协作 FSM，容易暴露层次初始化、子机挂起/恢复和退出语义问题。C2/C3/C4 都有可 grounding 的证据，但强度不如 C1。",
+  "potential_pitfalls": "数值 guard 与硬件动作在论文中多被抽象成 condition label 或 trajectory/motor command，若做 T0 子集需要避免把未给出的公式和底层 IK 细节脑补过度。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "071"
+  }
+}

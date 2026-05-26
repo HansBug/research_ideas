@@ -1,0 +1,37 @@
+{
+  "case_id": "081",
+  "paper_slug": "electro-hydraulic-telescopic-elevator-plc-control",
+  "case_name": "Priority-Based Four-Floor Telescopic Elevator PLC Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个四层伸缩式液压电梯 PLC 控制器，利用 F1-F4 按钮、楼层/接近磁传感器 P1-P4/P12-P34 判断请求与位置，并驱动电机、液压泵、4/3 双电磁阀和 2/2 单电磁阀完成上行、下行、减速与停车。典型流程是从一层 First_Pass 初始化后按楼层请求优先级选择上/下行目标，经过目标楼层接近传感器时减速并停靠。",
+  "scale": {
+    "state_count": 16,
+    "event_count": 12,
+    "variable_count": 12,
+    "transition_count": 25
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写到系统从 “First Pass” 到一层后按优先级进入上行/下行，且 Table 1 区分 U2/U3/U4、D1/D2/D3、SU2/SU3/SU4、SD1/SD2/SD3，说明有方向与减速模式切换但无真正层次嵌套。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "PLC 方程如 U2=(U2+P1·F2)·非P2、SU2=U2·P12、SD1=D1·P12 只使用按钮/传感器布尔条件，未给出数值型 transition guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文状态表和梯形图方程只覆盖楼层、上行、下行、上行减速和下行减速，没有 Error、Abort、Reset 或 any-state fault recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文明确列出 fixed pump driven by electric motor、4/3 double solenoid hydraulic valve、two 2/2 single solenoid valves，且 4/3 阀驱动上下行、2/2 阀用于接近目标层时减速。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：它是典型工业液压电梯对象，物理执行器和传感器映射清楚，适合展示 abstract action 与硬件解耦；同时 C1 有一定上/下行与减速模式切换，可用于检验普通 LLM 是否遗漏优先级互锁。",
+  "potential_pitfalls": "主要风险是控制逻辑本质较扁平，且缺少数值守卫和故障恢复语义，对 C2/C3 的 grounding 价值弱。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "081"
+  }
+}

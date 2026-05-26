@@ -1,0 +1,37 @@
+{
+  "case_id": "188",
+  "paper_slug": "smart-car-parking-system-rfid-iot",
+  "case_name": "RFID-Authenticated Entry and Slot-Occupancy Parking Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制 IoT 智慧停车系统的入口认证、开闸放行、车位占用同步和出场计费流程；入口 IR 检测车辆后触发 RFID EM-18 读卡，认证通过则由伺服电机开门，车位 IR 传感器把空闲/占用状态写入 Firebase，出场时按使用时长计费。",
+  "scale": {
+    "state_count": 6,
+    "event_count": 8,
+    "variable_count": 7,
+    "transition_count": 10
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文流程是“RFID 扫描→servo motor drives the gate to open→IR sensor detects occupancy→checking out”这种扁平阶段链，未出现 composite state、init/pseudo 或嵌套退出语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文写到记录 entry/exit time，parking fare is calculated based on the hours of usage，且超过 allotted time 后按小时追加收费，可形成 usage_hours 与 designated_time 的阈值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只写“When a car is detected by the IR sensor and the RFID card being read is valid”时开门，没有 any mode/from any state 的 error、abort、reset 或 fault-recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "明确硬件出口主要是“servo motor opens the entrance gate”，RFID EM-18 与 IR sensor 是输入传感器，执行器种类只有入口门伺服电机这一类。"
+    }
+  },
+  "features_we_care_about": "该样本的价值主要在 C2 的出入场时长计费 guard 和 C4 的门禁硬件动作解耦，NL 流程清楚且是典型真实 IoT 控制对象；但它更像小型 EFSM-interlock，而不是多模式/故障恢复样本。",
+  "potential_pitfalls": "case 规模偏小，原文没有无效 RFID、异常恢复、出口闸门或多层模式细节，容易只生成成普通扁平流程图。",
+  "verdict": "🔘 WEAK",
+  "_meta": {
+    "id": "188"
+  }
+}

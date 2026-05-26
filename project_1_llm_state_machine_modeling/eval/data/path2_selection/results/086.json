@@ -1,0 +1,37 @@
+{
+  "case_id": "086",
+  "paper_slug": "real-time-decision-making-for-autonomous-city-vehicles",
+  "case_name": "Multi-Phase Driving Maneuver DFA",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是城市自动驾驶高层 maneuver supervisor：由 World Model 的传感器/V2V/V2I 离散事件触发，在 q0 与多个 Run phase 间推进 overtaking 等驾驶动作。每个 Run phase 执行闭环控制并检查世界模型与安全前提，成功到 qF，前提失效则停车并进入 qE。",
+  "scale": {
+    "state_count": 8,
+    "event_count": 5,
+    "variable_count": 2,
+    "transition_count": 22
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 Fig.4 说明 overtaking maneuver 被分成 five phases，且 each phase represented by a Run state；但这是扁平 DFA phase progression，不是层次化 composite state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "原文把 traffic condition 表示为 discrete events，并定义 World Model events 的 k-tuple 且 wl∈{0,1}，没有距离阈值、算术合取或数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文说每个 Run state 都检查必要前提，前提不满足时 vehicle is stopped、Error symbol is generated，并进入 qE，等价于所有运行 phase 的统一 fault path。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟠",
+      "evidence": "原文只明确说 Run states execute control algorithms 以及异常时车辆被 stopped，未列出 steering/throttle/brake 等具体硬件执行器接口。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C3：多阶段 maneuver 的每个 Run state 都有 precondition check 到 Error/qE 的路径，适合检验 forced transition/AOP 风格反馈。C1 也有五阶段 phase progression，但 C2/C4 较弱，因此更适合作为 FSM-basic 覆盖样本。",
+  "potential_pitfalls": "原文的五阶段 overtaking 主要以 Fig.3/Fig.4 模板给出，未逐条列出每个 phase 的具体 guard，因此 transition_count 需要按通用 DFA 图估算。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "086"
+  }
+}

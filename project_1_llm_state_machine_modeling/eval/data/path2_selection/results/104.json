@@ -1,0 +1,37 @@
+{
+  "case_id": "104",
+  "paper_slug": "priority-rank-elevator-control-plc",
+  "case_name": "Four-rank privileged elevator service supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 是一个 PLC 电梯权限调度监督器，用 Normal、Rank1、Rank2、Rank3 四种授权模式决定普通呼叫、VIP 呼叫和更高优先级抢占时的服务顺序。系统依赖楼层/方向/舱内呼叫等输入，并驱动伺服电机、电梯运行/停止、门动作和疏散广播等执行行为。",
+  "scale": {
+    "state_count": 4,
+    "event_count": 8,
+    "variable_count": 8,
+    "transition_count": 13
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文写明“transition conditions from normal mode to privileged mode, and from any privileged mode to another rank”，且 privileged mode 内还复用 collective operation，存在多模式抢占与嵌套调度风险。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文把输出条件建立在 movement、directional input 和 proximity 上，并举例“If elevator is going up... up direction call... closest call; then gives output”，但数值关系主要是楼层接近/在途判断而非复杂算术。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文称在 Rank2、Rank3 或 Normal 下遇到 Rank1 call 时电梯“stops on the nearest floor”并广播疏散，可抽象为跨多个 mode 的强制安全/抢占路径，但不是通用 fault handler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文明确有 Panasonic PLC、sensors/contactors/relays、SCADA 监控 up/down movement 与 door opening/closing，并用 servo motor 建立 prototype，硬件动作出口充足。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C1 和 C4：它是典型工业控制对象，NL 中模式切换、优先级抢占和硬件执行语义都比较清楚，适合暴露 agent loop 中结构建模与硬件动作解耦的收益。C2 也有楼层接近/在途判断，可提供轻量 symbolic guard grounding。",
+  "potential_pitfalls": "C3 不是严格 fault recovery，而是 Rank1/VIP 抢占；C2 的数值条件在原文中多以 proximity/closest call 描述，公式化程度有限。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "104"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "011",
+  "paper_slug": "preliminary-design-of-robotic-control-software-for-mars-sample-return-capture-containment-and-return-system",
+  "case_name": "RSW Motion-Primitive Execution FSM for CCRS RTAS",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制火星样本返回 CCRS 的 RTAS 机器人运动原语执行流程，RSW 通过 RSCE/SE 驱动执行器并读取 10 Hz/100 Hz 遥测、hall sensor、接触开关和 load cell 等反馈。典型流程是启动初始化后进入 READY_ON，收到 motion primitive command 后依次 CONFIGURE、PRE_MOTION_CHECK、IN_MOTION、POST_MOTION_CHECK，正常返回 READY_ON，异常进入 FAULT。",
+  "scale": {
+    "state_count": 9,
+    "event_count": 11,
+    "variable_count": 6,
+    "transition_count": 15
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写明 RSW FSM 有 current state、requested state、run count、sequence number，Step 会执行 StateExit/StateEntry/StateRun，且 StateRun 依赖 current state 与 active motion primitive，但整体仍是扁平 FSM 而非层次化 composite state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文 motion primitive 参数包含 goal position、speed、duration、current limits、position ranges、maximum thresholds、dead band、stall tolerances 等数值约束，且 IN_MOTION 在 motion primitive stop conditions 满足时结束，但未给出显式复合算术 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文明确说 State requests 可在 anytime there is a fault condition 发起，且 Transitioning to FAULT is valid for all states，并且 unexpected worker results 或两周期未收到 RSCE acknowledgement 会使 FSM enter FAULT。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 Position Servo/Open-Loop/Active Limp/Active Hold 会控制 RTA actuators，并在 nominal phases actuate RA Feed Stage、EE Gripper、EE Torquer、RA Rotary Stage，还通过 SE/RSCE 发送 register write/start commands。"
+    }
+  },
+  "features_we_care_about": "该样本的强价值主要在 C3 全局 FAULT 路径和 C4 真实航天机器人硬件解耦，原文状态表、流程段落和硬件接口都比较清晰，适合作为 PATH2 中 externally-grounded feedback 的工业控制样本。",
+  "potential_pitfalls": "核心 FSM 偏扁平，数值 guard 多来自 motion primitive 参数和遥测阈值，原文没有把它们完整形式化为 transition guard。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "011"
+  }
+}

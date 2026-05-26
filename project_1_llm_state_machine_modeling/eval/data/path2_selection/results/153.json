@@ -1,0 +1,37 @@
+{
+  "case_id": "153",
+  "paper_slug": "autonomous-mobile-manipulation-wall-building-mbzirc-2020",
+  "case_name": "Brick-load/unload mobile-manipulation challenge supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制 MBZIRC 2020 砌墙挑战中的 Husky UGV + Schunk 机械臂移动操作流程，利用 RGB-D、LIDAR/IMU/GPS、磁贴视觉检测和触觉反馈驱动导航、对齐、抓取、运输与放砖。典型流程是在砖堆与墙面之间循环执行 Load Bricks / Unload Bricks，并在局部用 Two-Stage Approach 与四阶段 Brick Pickup 完成精确操作。",
+  "scale": {
+    "state_count": 15,
+    "event_count": 18,
+    "variable_count": 14,
+    "transition_count": 28
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文图 3-5 把 `Load Bricks`、`Unload Bricks` 展开为内部状态机，并说明 Figures 3, 4 and 5 integrate to form a complex behavior，含 `First Time?`、`Finished?` 等伪决策与嵌套退出。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Brick Pickup 的阶段切换含复合数值条件，例如原文写该阶段在 camera pitch angle reaches π/2 且 magnetic patch 的 `yp` sufficiently close to zero 时完成，后续还用 `xp`、`ψp`、`dz` 和比例控制公式。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只明确说触觉反馈可向 high-level control 提供 brick was dropped during transport 的信息，未在图 3-5 中给出 from any state / any mode 的 Error、Abort 或 Reset 强制恢复路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文明确涉及 UGV drive 的 `vx/ωz` 控制、6-DoF Schunk manipulator、controllable electromagnetic gripper、Realsense RGB-D 与 microswitch tactile feedback，硬件动作出口充足。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：C1/C2/C4 都有清晰 grounding，既有层次化任务监督器，又有视觉伺服数值 guard 和真实移动操作硬件动作。NL 描述相对独立、流程闭合，适合检验 agent loop 对 HSM 结构、数值条件和硬件动作抽象的修复收益。",
+  "potential_pitfalls": "主要风险是 C3 较弱，原文有掉砖反馈但没有明确的 cross-cutting fault-recovery 状态；另外若只抽 §4 而不纳入 §6.3，数值 guard 会被低估。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "153"
+  }
+}

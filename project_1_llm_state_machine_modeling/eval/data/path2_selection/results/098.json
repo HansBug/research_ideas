@@ -1,0 +1,37 @@
+{
+  "case_id": "098",
+  "paper_slug": "fuel-cell-electric-robot-energy-management",
+  "case_name": "Five-state maneuver-aware fuel-cell/battery EMS",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是燃料电池电动机器人的燃料电池-电池混合能量管理控制器，基于功率需求、功率变化、速度变化、SOC、氢耗效率等变量识别机动状态并选择 PEMFC 工作模式。典型流程是先把机器人分为静止、加速、牵引、减速、再生制动五类，再在 100 个场景规则中决定燃料电池最大功率、0.4 pu 高效点、关断以及电池充放电。",
+  "scale": {
+    "state_count": 5,
+    "event_count": 6,
+    "variable_count": 10,
+    "transition_count": 100
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 4.5 写明输入包括 robot movement states、PEMFC production modes、Pdemand modes 和 LFP battery SOC range，是多模式组合选择，但没有真正的层次化 init/exit 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "式(27)/(28)用 PFC、mean(Pdemand)、HCJEbat、HCJEH2 构造充放电不等式，式(29)还含 SOC−SOCinit、Pdemand−PB,rated 与 |OSR(t)| 的复合数值条件。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只有 battery overcharge control：当 SOC 高于初始值且电池可独立供电时令 fuel cell deactivated(PFC=0)，未出现 any state/from any mode 的 fault/error/recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文明确涉及 PEMFC 输出功率/关断、LFP battery charging/discharging、必要 power supply circuit activation 等物理电源硬件操作，但执行器种类不多。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：数值守卫密集、变量组合清楚，适合展示 symbolic guard reasoning 与 SAT-on-effect 反馈。它也是较典型的机器人混合能源 EMS，NL 描述独立且规则枚举明确。",
+  "potential_pitfalls": "结构上更像扁平 EFSM/规则表，C1 层次化 dead-end 与 C3 forced fault recovery 价值有限，且可能与其他能源管理互锁样本趋同。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "098"
+  }
+}

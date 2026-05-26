@@ -1,0 +1,37 @@
+{
+  "case_id": "121",
+  "paper_slug": "elevator-controller-based-on-ram-fpga",
+  "case_name": "Ten-Input Seven-Output Elevator LUT Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个两层电梯 FPGA/RAM 查表控制器，用厅外呼梯、轿内选层/开关门按钮以及门/楼层传感器形成 10 位输入地址，输出牵引电机、门电机、忙信号和开关复位控制。典型流程是接到呼梯后先关门，再驱动轿厢到目标楼层，停车并开门。",
+  "scale": {
+    "state_count": 8,
+    "event_count": 10,
+    "variable_count": 10,
+    "transition_count": 20
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文将控制器表述为 10×7 LUT/RAM，并说 Table 1 给出 20 steps of relation between address and data bits，流程是关门、下行、停梯开门的扁平查表链，没有 composite 或嵌套 init 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "原文把 X0-X9 都定义为 switch status 或 sensor status，并用 ON/HIGH、OFF/LOW 的二进制地址触发输出，未给出计数器、阈值或算术 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文输出只列 Y4 reset all the flip-flops、Y5 busy signal generation、Y6 reset X4/X5 flip-flops，没有 any state/from any mode 的 error、fault 或 recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文明确说 7 output lines command motors of the slide door and traction machine，并列出 Y0/Y1 上下行、Y2/Y3 开关门、Y4/Y6 复位触发器、Y5 busy signal。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：FPGA 输出线到牵引电机、门电机、busy 和复位硬件动作的映射很清楚，适合检验 abstract action 的硬件解耦。它也是一个真实楼宇机电 EFSM-interlock 样本，NL 和表格证据都较完整。",
+  "potential_pitfalls": "原文是 LUT 地址-数据表而非显式状态图，状态数估计有口径噪声，且与其他电梯 FPGA 样本题材接近，C1/C2/C3 grounding 较弱。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "121"
+  }
+}

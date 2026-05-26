@@ -1,0 +1,37 @@
+{
+  "case_id": "024",
+  "paper_slug": "vision-driven-trailer-loading-autonomous-surface-vehicles",
+  "case_name": "Trailer-docking supervisor for an autonomous surface vehicle",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个自主水面艇 ASV 的拖车装载监督控制器，使用前向摄像头检测 LED 面板和黑色 bunk boards，并通过左右舷 trolling motors 完成检测、航向校正、横向校正、纵向接近、重规划和停车完成流程。",
+  "scale": {
+    "state_count": 6,
+    "event_count": 7,
+    "variable_count": 4,
+    "transition_count": 7
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文称该方法使用 flat finite state machine，并明确有 Detect LED Panel、Correct Heading Error、Correct Lateral Error、Correct Longitudinal Error、Replan、Mission Complete 六个高层状态和 Replan 后 re-enters Correct Heading Error 的模式切换，但没有层次嵌套。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文给出 eang < 0.05 rad、elong < 0.1 m、elat 过大且 boat closer than 0.5 m to the bunk boards 进入 Replan，以及 |k1 elat|、|k2 elat| steps 这类数值守卫和算术动作。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只写到 misalignment due to sudden wave or perception error 时进入 Replan，以及 loses visual contact with the LED panel 时 stops its motion and transitions to Detect LED Panel，未明确 from any state/any mode 的 cross-cutting fault。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文物理执行器主要是 port and starboard trolling motor commands，控制动作包括 rotate、turn clockwise/counterclockwise、move forward/backwards 和 stop the motors，属于 1-2 类硬件出口。"
+    }
+  },
+  "features_we_care_about": "该样本最强价值在 C2：误差变量、阈值合取、距离 guard 和 PI/time-based 控制动作都很清楚，适合检验 symbolic guard/effect feedback。它也是一个真实移动平台对接控制对象，NL 主链完整，适合作为 PATH2 中 EFSM-interlock 类样本。",
+  "potential_pitfalls": "原文明确称 flat FSM，且没有 any-state fault 语义，因此 C1/C3 对 pyfcstm 层次化和 AOP forced transition 的覆盖有限。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "024"
+  }
+}

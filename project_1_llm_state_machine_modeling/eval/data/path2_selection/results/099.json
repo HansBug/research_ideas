@@ -1,0 +1,37 @@
+{
+  "case_id": "099",
+  "paper_slug": "smart-charging-architecture-power-quality-distribution",
+  "case_name": "Seven-state smart-charging power supervisor",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是配电网电能质量约束下的 EV 智能充电功率监督器，根据 PQ-Indic、SoC 和插枪状态在低红、低黄、绿、高黄、高红、待机、结束七个状态间切换。每次有效迁移都会计算新的充电功率，并通过充电站硬件/充电信号作用到车辆充电过程。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 3,
+    "variable_count": 13,
+    "transition_count": 38
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文说 FSM 有 seven states grouped to three different types，图注还说 operational states 可从 any operational states 转到 standby 和 end，但未定义真正的 composite/nested state 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文给出 PQ[PQ-Indic <= RY]、PQ[RY < PQ-Indic <= YG]、SoC = 100 等数值 guard，并在动作中使用 Ui(t+1)=max(delta*Ui(t), Cmin)、min(delta*Ui(t), Mi) 等公式。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只有 unplug、SoC=100 或 SoCend 到 standby/end 的跨 operational 状态迁移，没有 Error/Fault/Abort/Reset recovery handler 或 all-phases fault 处理路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说 action defines the new charging power，且 Smart Charger produces a charging signal sent to real charging station hardware，硬件出口主要是充电站/IEC 62196 Type 2 PWM 充电信号。"
+    }
+  },
+  "features_we_care_about": "该样本的主要价值在 C2：数值阈值 guard 与多参数功率更新公式很适合 parse + semantic + sim 反馈闭环；同时它是清晰的工业控制对象，状态、事件、guard、action 在原文中都有明确支撑。C1 和 C4 有一定收益，但不是层次化/多执行器强样本。",
+  "potential_pitfalls": "C3 基本缺失，且 operational states 的分组更像图示简化而非严格层次状态机，不能高估 composite/init dead-end 价值。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "099"
+  }
+}

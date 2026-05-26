@@ -1,0 +1,37 @@
+{
+  "case_id": "180",
+  "paper_slug": "home-automation-system-hardware-descriptive-tools",
+  "case_name": "Priority-Ordered Door-Alarm-and-Climate Home Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个家居自动化优先级扫描控制器，用门磁、烟雾/火警传感器、温控传感器和照度传感器驱动防盗告警、火警蜂鸣器、加热器、冷却器和灯光电流调节。典型流程是从 start 出发按 door/fire/temperature/luminosity 的优先顺序检查设备并回到 start 循环。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 7,
+    "variable_count": 4,
+    "transition_count": 22
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文只给出扁平优先扫描链：\"A sequential pattern of controlling the door, burglar alarm, fire alarm, temperature and luminosity is followed in a priority order\"，状态表也是 Start→fdoor→fire→t_cool→t_heat→l_dim→l_bright→start。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文/代码含清楚的数值阈值 guard：\"temp_sen > 'b1000110\" 到 t_cool、\"temp_sen < 'b1000110\" 到 t_heat，且 \"lum_sen > 00001111\" / \"lum_sen < 00001111\" 控制灯光电流。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "代码有全局 reset：\"if(reset=='b1) next_st=`start\"，但门警/火警只是优先扫描链中的局部告警分支，未明确写成 any mode/from any state 的 fault handler。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出多个物理输出：\"b_alrm\" 关闭前门、\"f_alrm\" 蜂鸣、\"t_heat\" 打开 heater、\"t_cool\" 打开 cooler、\"l_high/l_low\" 调节 light source current。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4 和 C2：它是典型硬件控制对象，执行器多、传感变量和阈值 guard 清楚，适合检验生成模型是否能把自然语言优先级控制逻辑落成可仿真的 EFSM。它不是层次化 case，但作为 T0 中的硬件解耦/阈值互锁样本有代表性。",
+  "potential_pitfalls": "结构偏扁平，C1/C3 grounding 较弱，且论文中 luminosity 的 high/low 输出描述存在轻微前后不一致。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "180"
+  }
+}

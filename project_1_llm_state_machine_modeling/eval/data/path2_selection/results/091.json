@@ -1,0 +1,37 @@
+{
+  "case_id": "091",
+  "paper_slug": "autonomous-forklift-navigation-cluttered-logistics-factory",
+  "case_name": "Rotate-Move-Avoid Forklift Navigation FSM",
+  "bucket": "FSM-basic",
+  "what_it_is": "该 case 控制拥挤物流工厂中自主叉车的走廊导航监督逻辑，利用 Lidar/视觉/里程计感知障碍与定位，并通过 CLMPC、局部规划器和差分驱动底盘执行旋转、前进、避障。典型流程是先 Rotate 对齐走廊，再 Move 沿中心路径行驶，检测到障碍后进入 Avoid，等待障碍清除后恢复避障/行驶。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 3,
+    "variable_count": 3,
+    "transition_count": 3
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文第8页明确说 FSM 有 Rotate、Move、Avoid 三个运行状态，并在检测障碍、障碍清除时切换，但没有层次化 composite/init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "FSM 转移条件主要是障碍检测/清除这类布尔感知条件；虽然原文另有 costmap 距离阈值和 CLMPC 约束，但 STM §2 没有把它们落成显式数值 transition guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文第6页有 Predictive Safety Stop，说明 CLMPC 发现前方无解碰撞风险时会立即停车，但没有写成 any mode/from any state 的统一 Error/Recovery 转移。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文第2页说明叉车是差分转向车辆，带两个驱动轮，FSM 中 Rotate/Move/Avoid 最终对应底盘旋转、前进和 yaw-rate 低层控制，但执行器类型主要集中在移动底盘。"
+    }
+  },
+  "features_we_care_about": "这是清晰、真实的工业移动机器人监督 FSM，NL 描述独立且流程完整，适合作为 ParseRate/SimRate 的基础样本。它对 C1 有一定模式切换价值，对 C4 有真实硬件动作映射，但不是强 C2/C3 样本。",
+  "potential_pitfalls": "case 规模较小且扁平，数值约束主要属于 A*/CLMPC 控制器而非 FSM guard，安全停车也不是显式 cross-cutting fault state。",
+  "verdict": "🔘 WEAK",
+  "_meta": {
+    "id": "091"
+  }
+}

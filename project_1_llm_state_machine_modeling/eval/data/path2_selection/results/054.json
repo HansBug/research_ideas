@@ -1,0 +1,37 @@
+{
+  "case_id": "054",
+  "paper_slug": "intelligent-water-tank-automation-system-using-fpga-for-efficient-water-management",
+  "case_name": "ADC-Threshold Pump Relay and LED Water-Tank FSM",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个基于 DE10-Nano FPGA 的水箱液位控制器，通过水位传感器和 MCP3208 ADC 读取液位，用阈值逻辑控制继电器驱动水泵，并用七段 LED 反馈低/中/满水位；典型流程是低于 25% 开泵，高于 90% 关泵，手动复位回 Idle。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 4,
+    "variable_count": 4,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文只给出扁平三态 FSM：\"Idle, Pump ON, and Pump OFF\"，迁移基于阈值和 manual override，没有层次化 composite state 或嵌套 init/exit 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文明确给出单一数值变量 guard：\"Pump ON, if VADC < Vlow = 1000 (25%)\" 与 \"Pump OFF, if VADC > Vhigh = 3600 (90%)\"，LED 还按 VADC 区间输出。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文有 \"manual override: Reset signal forcing Idle state\" 和 \"resetting the system to a safe state\"，但未明确 any mode/from any state 的 fault/error recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 MCP3208 ADC、relay module、DC motor pump、LED display，并说明 pin assignments 将 ADC 输入、relay control 和 LEDs 映射到 GPIO/输出端口，硬件动作解耦需求明确。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的价值主要在 C2 数值阈值 guard 和 C4 FPGA/继电器/泵/LED 硬件抽象，NL 描述清晰且对象是典型水箱控制系统。它更适合作为小型 EFSM-interlock 对照样本，而不是层次化 dead-end 或复杂 fault-recovery 主力样本。",
+  "potential_pitfalls": "状态结构只有扁平三态、数值变量基本只有 VADC，且 reset 语义不是明确的全局 fault handler，和其他阈值液位/泵控样本存在同构风险。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "054"
+  }
+}

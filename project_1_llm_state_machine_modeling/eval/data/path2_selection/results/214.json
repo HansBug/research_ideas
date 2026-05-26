@@ -1,0 +1,37 @@
+{
+  "case_id": "214",
+  "paper_slug": "controller-development-multi-layer-parking-equipment-stm32",
+  "case_name": "Automatic Parking Sequence with Manual/Fault Fallback",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制三层六车位机械式停车设备，STM32 通过限位/异常传感器读取状态，并经继电器驱动 M1/M2/M3 电机和语音报警。典型流程是在自动模式下按用户停车/取车请求进入子程序，停车时依次升托盘、旋转搬运器、前后移动立柱、下降托盘/搬运器，并在故障或紧急条件下转入停止/报警/手动调整。",
+  "scale": {
+    "state_count": 21,
+    "event_count": 18,
+    "variable_count": 16,
+    "transition_count": 32
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文第5页说明控制模式分为自动与手动，并按用户输入进入 parking/withdraw 子程序，存在模式与子流程切换，但未给出真正层次化 init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "Figure 9 的迁移条件主要是 mount、rotate、back/forward、tray、mounter 等限位到达信号；原文第4页说明传感器返回值多为开关量，缺少数值阈值或算术 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文第2页说明运行中若发生车辆过载、设备故障或超限，异常传感器会立即上报，控制器马上停止电机并播放语音提示，适合建成全局 fault/safety forced transition。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文第2页列出 M1、M2、M3 提供设备电气输出，第6页流程反复执行 M3/M1/M2 start/stop，并包含继电器输出与 voice alarm 等硬件动作。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C3 与 C4：真实工业设备中存在跨流程故障急停/报警语义，同时有多个明确执行器动作，适合检验 aspect forced transition 与 abstract handler 的收益。NL 流程清楚、T0 时间负担低，作为 20-case 子集里的硬件控制/互锁型样本有区分度。",
+  "potential_pitfalls": "C2 较弱，原文守卫基本是开关量限位信号而非数值约束，且取车流程只说与停车基本相同、未展开。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "214"
+  }
+}

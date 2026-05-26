@@ -1,0 +1,37 @@
+{
+  "case_id": "065",
+  "paper_slug": "enhancing-sustainable-farming-practices-through-fpga-technology",
+  "case_name": "Dry-Wet Threshold Irrigation Pump FSM",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个 FPGA 土壤湿度监测与灌溉泵控制 EFSM，用 10-bit 土壤湿度传感值和 DRY/WET 双阈值判断是否灌溉。典型流程是在 DRY 状态开泵，超过 WET_THRESHOLD 后转入 WET 并关泵，湿度低于 DRY_THRESHOLD 后再回到 DRY 开泵。",
+  "scale": {
+    "state_count": 2,
+    "event_count": 3,
+    "variable_count": 4,
+    "transition_count": 5
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文只给出 FSM comprising two states: DRY and WET，NL 也是 DRY/WET 双状态阈值切换，未见层次化 mode 或 pseudo/init 嵌套语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文称 moisture_level[9:0] 与 preset thresholds 通过 RTL_LT/RTL_GT 比较，guard 包括 moisture_level > WET_THRESHOLD 与 moisture_level < DRY_THRESHOLD。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文 §4.2.4 写 reset 后 FSM initializes to the DRY state, regardless of the previous state，可作为 from-any-state Reset forced transition。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文明确 water_pump 是直接 activates or deactivates the water pump 的 digital control signal，物理执行器主要是水泵。"
+    }
+  },
+  "features_we_care_about": "该样本是清晰独立的环境控制 EFSM，C2 有可符号化的双阈值 guard，C4 有真实水泵执行器，C3 还有跨状态 reset 语义。它适合作为 T0 子集中的小型硬件闭环控制样本，但不是复杂层次结构样本。",
+  "potential_pitfalls": "样本规模很小且结构扁平，数值守卫只是单一 moisture_level 的双阈值比较，C1 和复杂 Z3 收益有限。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "065"
+  }
+}

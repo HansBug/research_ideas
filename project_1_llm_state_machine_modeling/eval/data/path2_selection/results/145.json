@@ -1,0 +1,37 @@
+{
+  "case_id": "1",
+  "paper_slug": "smart-parking-system-plc-rfid",
+  "case_name": "RFID-Guided Slot Assignment and Plat-Shuttle Parking Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 是一个基于 PLC 的微型多层智慧停车控制器，用 RFID/数据库选择空车位，用 photodiode、limit switch 和按钮确认条件，并驱动升降、左右移动、旋转平台、入口闸桥和指示灯完成入库/出库。典型流程是读 RFID 后分入库/出库模式，选择目标车位，先取目标车板，再通过闸桥和平台动作让车辆进入或离开。",
+  "scale": {
+    "state_count": 19,
+    "event_count": 14,
+    "variable_count": 12,
+    "transition_count": 30
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 flowchart 明确说系统分为 “mode masuk” 和 “mode keluar”，且 STM §2 也整理为 separate `Mode Masuk` and `Mode Keluar` branches，但没有真正的层次化 composite state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "原文有 `indikator ID bernilai 0`、空车位写入 `nilai 1` 和 photodiode sensor 限制，但实际迁移主要是 RFID/按钮/传感器布尔条件，没有复合数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文只写到 `Indikator Penuh` 作为 pembatas 使系统不能再选择 `mode masuk`，以及 gerbang 作为 pengaman proses，未出现 any mode/from any state 式 fault recovery。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文输出表列出 `M1 Naik/Turun`、`M2 Kanan/Kiri`、`M3 Naik/Turun`、`M4 putar 180o/Kembali 0o` 和多个指示灯，硬件执行器出口充足。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C4：硬件动作丰富且流程有传感器互锁，适合检验 abstract action 与控制逻辑解耦；C1 也有入库/出库双模式分支，可暴露一定模式切换和初始化顺序错误。",
+  "potential_pitfalls": "数值 guard 很弱，异常恢复也只是满位/安全闸桥局部逻辑，不适合作为 Z3 或 forced fault recovery 的强样本。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "145"
+  }
+}

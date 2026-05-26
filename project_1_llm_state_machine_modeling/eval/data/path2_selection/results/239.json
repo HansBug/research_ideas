@@ -1,0 +1,37 @@
+{
+  "case_id": "239",
+  "paper_slug": "full-automated-drive-urban-environments-gomentum-station",
+  "case_name": "Urban automated-driving event supervisor for traffic lights, intersections, pedestrians, and roadwork",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是 GoMentum 城市场景自动驾驶车辆的高层事件监督器，用摄像头、LiDAR、雷达、V2X 等感知交通灯、路口横向车辆、行人和施工障碍。典型流程是在 GO 中巡航，遇到 PEDESTRIAN、TFL_RED 或 INT 后进入 STOP，等待 PED_CLEAR、TFL_GREEN 或 INT_OK 后恢复 GO，并通过轨迹与执行层完成转向、油门和制动。",
+  "scale": {
+    "state_count": 11,
+    "event_count": 17,
+    "variable_count": 8,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说“We use a hierarchical state machine”，并在 ROUTE_PLAN、GO、STOP 内含 IDLE/BUSY/ACTIVE 通信子状态，且状态切换要等 positive response，容易产生子状态 init/handshake dead-end。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "INT_OK 由 TTC 数值条件触发：原文称“If the TTC exceeds a threshold for a number of consecutive iterations, then the INT OK event is issued”，且 TTC 计算为 dclosing/vclosing。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文有 ERROR 状态和“Errors that are not handled by the state machine cause the vehicle to go to ERROR state”，并用 failure/timeout events 与 heartbeat 做 error recovery 反馈，但未严格写明 from any state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文执行层明确连接物理控制：“the controller determines the steering and gas/braking”，对应转向、油门、制动三类车辆执行输出。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 价值高：C1 有真实 HSM 与并行 handshaking 子状态，C2 有 TTC/连续迭代阈值这类数值守卫，C4 有真实车辆执行器输出，且 NL 与原文状态、事件、恢复条件对应清楚。",
+  "potential_pitfalls": "construction zone 的绕障逻辑更多落在 trajectory planning 而非顶层 FSM，且该 case 与其他自动驾驶事件监督器可能存在邻近相似。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "239"
+  }
+}

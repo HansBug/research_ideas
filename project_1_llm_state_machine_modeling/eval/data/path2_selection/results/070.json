@@ -1,0 +1,37 @@
+{
+  "case_id": "070",
+  "paper_slug": "control-strategies-low-voltage-dc-microgrids",
+  "case_name": "Two-Level Converter Signalling and Mode-Switch Controller",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制低压直流微电网中的接口变换器：上层负责信号序列发送/接收与母线电压监测，下层在 sleep、droop、power 三种工作模式间切换，用 DC bus signalling 协调电池、PV 和其他接口变换器的充放电/维持母线电压。",
+  "scale": {
+    "state_count": 6,
+    "event_count": 9,
+    "variable_count": 8,
+    "transition_count": 12
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说“The system state machine contains two levels”，且 State III “contains the second level state machines for the transfer between sleep mode, droop mode and power mode”。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "Figure 6.15 的模式迁移 guard 包含 `ss[1]=0?`、`ss[3]=1?`、`ss[1]=1&ss[3]=0?` 等信号位组合，另有 PV 限功率算法中的 `vbus > vlim`，但主要是位/阈值比较而非复杂算术。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文反而说明若 grid interface converter “broken or plugged out abruptly”，系统“cannot regulate the power actively”，没有 any-mode/from-any-state 的强制 fault recovery 路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文涉及 interface converter 调节 DC bus voltage、发送 signal series、switch on other sources for charging/discharging，以及 battery/PV 的充放电和功率限制，但主要围绕同类电力电子变换器动作。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C1：原文给出真实工业电力电子场景中的两级 HSM，且上层通信/监测状态和下层工作模式切换关系清楚。C2 的信号位 guard 和 C4 的硬件动作可提供辅助 grounding，但不是最强项。",
+  "potential_pitfalls": "C3 基本缺失，且 C2 数值 guard 多为 signal-bit/阈值比较，Z3 算术反馈收益有限。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "070"
+  }
+}

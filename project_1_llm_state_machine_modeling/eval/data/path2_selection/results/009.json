@@ -1,0 +1,37 @@
+{
+  "case_id": "009",
+  "paper_slug": "a-hierarchical-control-system-for-autonomous-driving-towards-urban-challenges",
+  "case_name": "Two-Stage Mission-and-Control FSM for Urban Driving",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是城市自动驾驶车辆的高层决策控制器，用感知、ROS 节点状态和任务数据在 Ready、SAG、Change-Lane、E-stop、avoid obstacle 等任务间切换。决策结果驱动局部规划与纵横向控制器，最终作用到加速、制动和转向。",
+  "scale": {
+    "state_count": 9,
+    "event_count": 13,
+    "variable_count": 10,
+    "transition_count": 20
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说 M-FSM 分为 Ready、SAG、CL、E-stop、avoid obstacle 五类，且 “M-FSM consists of a C-FSM”，CL 内又有 lane-keeping 和 lane-changing 两个控制状态。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "Table 1 的 condition 41 写明 “Un-complete obstacle avoiding mission, and the time for the mission is over”，可形成基于任务计时器的超时 guard，但其他条件多为符号事件。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文写 “When urgent situations appear, the E-stop mode is activated”，Table 1 又列出 10/20/30/40 均为 perception informs emergency circumstances，且 E-stop priority 最高。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "Figure 6 将 Longitudinal controller 输出到 Acceleration/Break、Lateral controller 输出到 Steering，结论也写到 commanding throttle, brake, steering angle。"
+    }
+  },
+  "features_we_care_about": "该样本同时覆盖层次化 mission/control FSM、跨模式 E-stop 恢复和真实车辆执行器输出，能很好支撑 C1、C3、C4 的 in-loop grounding。NL 条件表与 Figure 2 对应清楚，适合作为 PATH2 的 HSM-layered 样本。",
+  "potential_pitfalls": "C2 数值守卫主要来自 obstacle-avoidance timeout，DMM 本体多数 guard 是 condition code，若只抽任务 FSM 而不带控制器变量，Z3 收益会偏弱。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "009"
+  }
+}

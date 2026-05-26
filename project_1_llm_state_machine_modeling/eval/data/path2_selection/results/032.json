@@ -1,0 +1,37 @@
+{
+  "case_id": "032",
+  "paper_slug": "design-and-control-of-a-pneumatically-actuated-transtibial-prosthesis",
+  "case_name": "Four-phase impedance controller for the pneumatically actuated transtibial prosthesis",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制气动驱动经胫假肢的踝关节，用踝角 θ 和角速度判断 Heel Strike、Foot Flat、Maximum Dorsiflexion、Toe Off 四个步态事件。控制器按 Early/Middle/Late Stance 与 Swing 四相切换阻抗参数，再通过 PID 阀控气缸输出期望驱动力。",
+  "scale": {
+    "state_count": 4,
+    "event_count": 4,
+    "variable_count": 5,
+    "transition_count": 4
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写 finite-state machine 含 Four states，并将 gait cycle divided into four distinct stages，但没有 composite/nested state 或 init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文 §3.3 明确 switching conditions 基于 ankle angle θ and its derivative，且 heel strike 需 onset of plantarflexion 加 θ < Θ1，另有 θ > Θ2 与 θ < Θ3 阈值迁移。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文只说 foot switch sensors unreliable/susceptible to failure 后改用 θ/θdot，并用 θ < Θ1 avoid false switching，未出现 any-mode fault、abort、reset 或 recovery 状态。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说 torque command is converted to desired actuation force，PID obtains the valve command；硬件出口主要是 double-acting pneumatic cylinder 与 control valve。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2：数值阈值、角速度方向和合取 guard 很适合暴露 EFSM guard 误写与互锁问题；同时 C4 有真实气动假肢硬件输出，控制对象清晰且原文 NL 证据完整。",
+  "potential_pitfalls": "结构是顺序四相扁平 FSM，缺少层次化和 cross-cutting fault recovery，且与其他 gait-phase impedance controller 可能存在邻近同构风险。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "032"
+  }
+}

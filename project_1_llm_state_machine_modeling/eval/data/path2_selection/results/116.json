@@ -1,0 +1,37 @@
+{
+  "case_id": "116",
+  "paper_slug": "scale-model-parking-garage-integrating-automation-in-parking-facilities",
+  "case_name": "Circular Parking Garage Auto/Manual Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制一个 Beckhoff PLC + TwinCAT 实现的环形立体车库，在自动停车/取车和手动调试模式之间切换。它根据车位号执行楼层定位、平台旋转、门/车辆移动，并用急停、故障信号和 HMI 反馈保证安全停机与恢复。",
+  "scale": {
+    "state_count": 14,
+    "event_count": 16,
+    "variable_count": 12,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写 MAIN runs the overall system logic，AUTO_MODE controls the automatic parking and retrieval sequence，MAN_MODE allows manual operation，且 only one mode can be active at a time，说明有清晰模式切换但未显式给出 init/pseudo 嵌套语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "原文写 HMI 有 numeric input field for entering the desired parking slot number，测试中 PLC determines the target floor position based on the selected slot number，slots are grouped into ranges，属于明确的车位号/范围型数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文写急停 pressed 时 immediately deactivates all drives of the motors and halts system operation，且 PLC continuously checks the fault signals during system operation，故障时 disables further motion commands。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 big_stepper/small_stepper 控制 stepper motors、servo 控制 servo motor，并有 door actuation、motor enable signals、indicator lights 等物理输出。"
+    }
+  },
+  "features_we_care_about": "该样本的 C3 和 C4 很强：安全停机/故障恢复具有全局覆盖语义，且执行器种类丰富，适合展示 forced transition、aspect AOP 与 abstract handler 的价值。NL 描述也较清晰，控制对象是典型 PLC 机电系统，适合作为 PATH2 的 T0 工业控制样本。",
+  "potential_pitfalls": "层次结构主要来自 PLC 程序组织和 auto/manual 模式，并非原文形式化 HSM；数值 guard 也以车位号范围选择为主，算术复杂度有限。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "116"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "204",
+  "paper_slug": "pallet-manipulation-hierarchical-state-machine-experiment",
+  "case_name": "Pallet Delivery Hierarchical Perception-Manipulation Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "这是 RobEx 移动机器人托盘搬运的分层监督控制器，用立体视觉、候选区域检测、轨迹控制、叉臂红外传感器和叉车执行组件完成托盘识别、接近、位姿细化、插入叉臂与抬升。典型流程是从地面纹理建模开始，搜索候选托盘，接近获得更好视角，识别或拒绝候选，迭代细化位姿，最后接近并叉取托盘。",
+  "scale": {
+    "state_count": 15,
+    "event_count": 11,
+    "variable_count": 10,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文 Fig.4 明确称该实验使用 hierarchical state machine，包含 six macro states、Standby 和 Final destination，且 each macro state includes inner states，并有回退到 former states 的失败箭头。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文候选检测和位姿细化含多个数值 guard，例如 merge 条件同时比较 color 差值小于 Tc 与 size 大于 Ta，后续还用 white-pixel score 大于阈值、在 x,y,lambda 上迭代 argmin。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文写到 different failure conditions occur during each subtask 且 Error-triggered transitions are specified within each state description，Fig.4 也有多个 failure 回退箭头，但没有明确 from any state 的全局异常切换。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 DifferentialRobot 控制移动底盘、HeadNT2P 控制四自由度立体头、JointMotorArray 控制电机阵列、Fork 控制叉车，最终还由 Fork component 执行 lifting behavior。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 很有价值：C1 的层次化宏状态与内层状态非常明确，C2 有可落地的视觉/位姿数值阈值，C4 有真实机器人执行器解耦需求。它是典型工业移动操控任务，NL 描述清晰，和纯软件协议或小型扁平 FSM 不趋同。",
+  "potential_pitfalls": "主要风险是部分数值条件属于视觉算法内部判定，而不是 Fig.4 上显式标注的 transition guard，建模时需要把 candidate_found、target_accepted、final_pose 等事件进一步落成变量守卫。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "204"
+  }
+}

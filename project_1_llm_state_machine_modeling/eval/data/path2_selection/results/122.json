@@ -1,0 +1,37 @@
+{
+  "case_id": "122",
+  "paper_slug": "software-architecture-autonomous-uav-mission-management-control",
+  "case_name": "Planner-Execution Mission-Agent Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制自主 UAV 的任务规划与动作执行：Planner 根据 objectives、entities、态势变化生成或重生成 flight plan，Execution agent 再按 action 序列结合 GPS/姿态/空速等实时传感输入驱动 Autopilot、Direct Controls 和 Payload Management。典型流程是生成计划、按 Park/Taxi/Take-off/Climb/Travel/Recon/Landing 等动作逐步执行，并在态势变化时触发重规划。",
+  "scale": {
+    "state_count": 19,
+    "event_count": 14,
+    "variable_count": 18,
+    "transition_count": 27
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文明确说 Planner 有 ten states and sub-states：main state 下有 generate-plan/modify-plan，generate-plan 又分 old-plan/take-off/main-mission/approach，main-mission 再分 plan-sequencing/actions-definition/plan-optimization。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "Execution 描述含明确数值 guard，如 Mission Start Time reached、take-off speed reached、cleared the 15m level、desired altitude reached、distance to destination continuously verified、until the specified time limit，但多为简单阈值/距离条件。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "原文有 New Plan Trigger monitors all inputs、replanning can occur at any moment，并提到 airframe faults 可导致 re-arranging the Plan，但没有明确 from any state/any mode 强制进入 ErrorHandler 的异常恢复语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 Commands include Direct controls (speed, pitch, roll, yaw, brakes), Autopilot controls 和 Payload commands，且 Payload Management 会把 generic payload commands 转成 actual controls for the payload actuators。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 价值高：C1 的层次化 Planner 结构清晰，C4 的 UAV 控制输出也很明确，能同时考验 HSM 建模和 action/hardware handler 解耦。NL 与原文对应关系清楚，且航空任务管理对象与常见工业小控制器不完全同构。",
+  "potential_pitfalls": "C3 的 fault/recovery 更多是重规划和未来 Mission Manager/plan-optimization 语义，不是已实现的显式全局 ErrorHandler；C2 虽有数值阈值，但复合守卫不算特别强。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "122"
+  }
+}

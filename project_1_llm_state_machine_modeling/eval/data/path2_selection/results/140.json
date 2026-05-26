@@ -1,0 +1,37 @@
+{
+  "case_id": "140",
+  "paper_slug": "feasibility-of-onboard-processing-of-heuristic-path-planning-and-navigation-algorithms-within-suas-autopilot-computational-constraints",
+  "case_name": "Three-State Heuristic Stand-off Tracking FSM",
+  "bucket": "FSM-basic",
+  "what_it_is": "这是一个运行在 SUAS APM 自动驾驶仪上的移动地面目标 stand-off 跟踪 FSM，用 slant range、目标激活状态和代价项 Ji 判断当前跟踪强度。典型流程是在 guided mode 且 ground vehicle active 后进入初始判定，再在 Standard、Low Range、High Range 三种跟踪状态间切换，通过调整 loiter/navigation effort 维持期望半径。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 6,
+    "variable_count": 6,
+    "transition_count": 11
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "Figure 29 明确给出 `Standard Target Tracking`、`Low Range Target Tracking`、`High Range Target Tracking` 三个 tracking 状态，并有 `Initial State Check` 与退出节点，但没有层次化 composite state。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Figure 29 的迁移守卫包含 `(GV.SR < SR_desired) && (GV.J >= J_thresh.)`、`(GV.SR > SR_desired) && (GV.J >= J_thresh.)`，正文还给出 `Jthreshold = 0.003`、`control effort buffer set to 35m`、`desired radius of 150m`。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "Figure 29 中 Standard、Low Range、High Range 三个状态都用相同守卫 `(exit guided mode) || (GV.active = false)` 退出，可抽成 forced abort transition，但原文没有 ErrorHandler/fault recovery 语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟠",
+      "evidence": "Figure 29 的状态动作只写到 `Loiter navigation power calculation uses standard loiter radius / loiter radius + buffer / loiter radius - buffer`，物理执行器没有作为 FSM enter/during/exit 动作直接列出。"
+    }
+  },
+  "features_we_care_about": "该样本最有价值的是 C2：数值守卫清晰、阈值和 buffer 参数明确，适合检验 Z3 guard reasoning 与仿真 reachability。它来自真实 SUAS/APM 飞控场景，NL 和论文图都比较清楚，适合作为航空航天方向的小型 T0 case。",
+  "potential_pitfalls": "FSM 规模较小且结构扁平，C3 只是 guided mode/GV inactive 的统一退出，C4 的硬件动作多被 APM 底层导航逻辑吸收，可能与其他 tracking/loiter 类样本同构。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "140"
+  }
+}

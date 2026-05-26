@@ -1,0 +1,37 @@
+{
+  "case_id": "004",
+  "paper_slug": "development-of-automatic-packaging-system-using-plc-and-scada-for-industries",
+  "case_name": "Six-Bottle Carton Packing and Quality Gate",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制包装产线后端的纸箱成型、六瓶装箱、封箱与称重质检分流；用 automatic counter/sensor、weighing transmitter、product sensor 等输入，驱动 pneumatic arms、gate、conveyor、taping machine、LED、pushing pistons、label shooter、heat tunnel、cooling fan 等执行器完成放行或剔除。典型流程是纸箱成型后等待 bottle count 到 6 才开门装箱，随后贴带、称重，正确重量继续贴标/热缩/码垛/缠绕/装车，错误重量被推出输送线。",
+  "scale": {
+    "state_count": 13,
+    "event_count": 14,
+    "variable_count": 5,
+    "transition_count": 16
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文 §4.2-§4.5 按 Case Erector、Filling、Taping、Weighing 顺序展开，并在称重处有 accepted/reject/yellow 分支，但没有 composite state、init/pseudo 或 parent exit 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文明确给出 gate 只有在 bottle count=6 时打开，且称重阶段按 100 KG accepted、80 KG rejected 分流，设计方法还提到 PLC 使用 counters 和 comparators。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "异常路径只出现在局部称重质检：weight incorrect 时 LED 红灯、box is reject 并由 pushing pistons 推离 conveyor，没有 any mode/from any state 的 fault recovery。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 pneumatic arms、gate/conveyors、taping machine、LED、pushing pistons、product sensor and shooter、heat tunnel、cooling fan、three cranes、wrapping machine、air compressor、overhead conveyor 等多类硬件出口。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2+C4：`count=6`、`100 KG/80 KG`、12/24 箱计数等数值门控与真实 PLC/SCADA 执行器绑定清楚，适合检验 symbolic guard feedback 和 abstract hardware action。它是典型工业包装线 T0 EFSM，NL 描述清晰且与前端 bottle-filling case 不完全同构。",
+  "potential_pitfalls": "结构整体仍是扁平流水线，C1/C3 grounding 较弱，且后半段贴标/码垛/缠绕/装车可能被建模得过宽而稀释核心六瓶装箱与称重质检逻辑。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "004"
+  }
+}

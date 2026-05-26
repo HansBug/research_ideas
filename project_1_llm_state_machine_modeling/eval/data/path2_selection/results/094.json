@@ -1,0 +1,37 @@
+{
+  "case_id": "094",
+  "paper_slug": "human-robot-collaborative-assembly-eye-hand-fsm",
+  "case_name": "Eye-Hand Instruction-and-Mapping Assembly Supervisor",
+  "bucket": "HSM-layered",
+  "what_it_is": "该 case 控制虚拟装配中的人机协作机器人，用 Leap 手势、Tobii 眼动和 FSM 在自动抓取/搬运与手部映射装配之间切换。典型流程是识别手势与视线目标，经 PRM 自动抓取并移动积木，再进入 mapping 由手部位姿直接控制末端执行器完成装配。",
+  "scale": {
+    "state_count": 13,
+    "event_count": 10,
+    "variable_count": 10,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟢",
+      "evidence": "原文写 interaction mode divided into “instruction” and “mapping” modes，Figure 7 中 “Mapping” 还是带 default transition/history point 的 composite state，内部含 clip、clip_off1、clip_on 子状态。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟡",
+      "evidence": "Figure 7 有 `[G==1&&numbers==2]`、`[prmstate1==1]`、`[after(2,sec)]` 等数值/标志 guard，§2.2 还写 object is selected when eye and hand are close and maintained within 200 ms。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "Figure 7 多条 `[G==3]` 迁移汇入 Stop，原文也说 G3 可 stop the grabbing action / end the mapping state，但不是明确的 fault-recovery 语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文写 robot joints are controlled by the kinematics model in Simulink，且机器人要 grasp、move、rotate end effector，并用 G4 change the gripper to relax。"
+    }
+  },
+  "features_we_care_about": "该样本最有价值的是 C1：原文直接给出层次化 FSM 图、instruction/mapping 模式切换、default/history 伪状态和多条 guarded transition，适合检验 agent loop 的结构修复与仿真反馈收益。HRC 装配流程清晰、工业控制对象典型，NL 独立性也较好。",
+  "potential_pitfalls": "数值 guard 主要是离散标志、简单等值判断和 200 ms 阈值，Z3 算术推理收益有限，且异常处理更像用户停止/中止而非真正 fault recovery。",
+  "verdict": "✨ GOOD",
+  "_meta": {
+    "id": "094"
+  }
+}

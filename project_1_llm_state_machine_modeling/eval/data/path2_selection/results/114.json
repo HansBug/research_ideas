@@ -1,0 +1,37 @@
+{
+  "case_id": "114",
+  "paper_slug": "vertical-rotary-car-parking-plc-outseal",
+  "case_name": "Slot-Selected Rotary Parking and Retrieval Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "该 case 控制一个 8 车位垂直旋转停车库，PLC Outseal 读取 proximity/IR 传感器与 Android HMI 指令，驱动入口栏杆电机、旋转车库电机、继电器和 LED。典型流程是 Start 后检测进车、校验车辆位置、HMI 选车位并旋转停车，取车时选择车位、旋转到底部、人工确认 BENAR 后开闸放行。",
+  "scale": {
+    "state_count": 12,
+    "event_count": 18,
+    "variable_count": 6,
+    "transition_count": 24
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文 HMI 表把系统分成 Utama、Parkir Mobil、Ambil Mobil、Validasi Ambil Mobil、Darurat、Bagian Reset 等屏幕/模式，并有 Parkir/Ambil/SALAH 重试/急停分支，但未明确给出层次化 composite state 或 init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "原文表 3 同时记录 “Jumlah Mobil di Area Parkir” 与 “Nomor Ruang Parkir”，并写到车辆进出会增加/减少数量、HMI 有 “Reset Jumlah” 和 “Reset Counter” 用于车数与车位移动计数，可形成 count<8、current_slot==selected_slot 等数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟡",
+      "evidence": "原文把 “Keadaan darurat” 定义为流程不符合系统、用户取消停车/取车、车位移动计数错误或灾害等情况，并提供 “DARURAT ON/OFF”、CW/CCW、Palang Buka/Tutup，但没有明确说 from any state。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 “lampu led dan motor DC sebagai keluaran”，并说明继电器用于 motor DC CW/CCW 换向，另有入口 palang pintu 电机、rotary parking 电机和红/绿/黄 LED 输出。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 有价值，主要强在 C2 的车位号/车辆数/移动 counter 数值 EFSM，以及 C4 的多硬件输出解耦；同时它是典型 PLC 工业控制对象，NL 流程从进车、停车、取车到 emergency/reset 都比较完整。",
+  "potential_pitfalls": "原文是实现与测试说明，不是形式化需求；C1 层次结构和 C3 任意状态故障切换需要从 HMI 模式与 emergency 描述归纳，不能按强层次/强 cross-cutting 样本处理。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "114"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "case_id": "175",
+  "paper_slug": "automated-contingency-management-in-unmanned-aircraft-systems",
+  "case_name": "Centralized Safety Monitor FSM",
+  "bucket": "FSM-basic",
+  "what_it_is": "该 case 控制 UAS 自动应急管理中的中央 Safety Monitor，用 C2 失链、GNSS 退化、失控、失去间隔、越界等监测事件诊断飞行状态。典型流程是 Nominal operation 遇单一 contingency 进入对应 abnormal state，恢复后回到 Nominal，嵌套 contingency 或 emergency event 则进入 Out of control 并触发 FTS。",
+  "scale": {
+    "state_count": 7,
+    "event_count": 12,
+    "variable_count": 12,
+    "transition_count": 16
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文写 proposed FSM has seven states，且 emergency state is an unrecoverable state，但这是扁平 7 态模式切换，没有 composite/init/pseudo 层次语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟠",
+      "evidence": "Listing A.1 只给 event 枚举如 c2LinkLoss、gnssLossOfPerformance、c2LinkRcv，Figure 7.36 也是 Contingency injection [bool]，没有数值阈值或算术 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟢",
+      "evidence": "原文 SM1 要求 always be a transition for reaching the out of control state in one step，SMV 还写 state != outOfControl & emergencyEvent : outOfControl。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟡",
+      "evidence": "原文说 Safety Monitor will command the FTS，且 RPAS is equipped with a Flight Termination System able to terminate the flight expeditiously，但明确硬件出口主要就是 FTS。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C3：它有清楚的全局 emergency-to-OutOfControl/FTS 强制切换语义，且来自真实航空安全监视架构，并有 FSM 图与 NuSMV/Stateflow 形式化支撑。作为 FSM-basic，它能补一个高可信的 safety-monitor 样本，不与常见 PLC 顺序控制完全同构。",
+  "potential_pitfalls": "结构本体是扁平事件 FSM，C2 没有数值 guard，FTS 在原型中仅简化为停止仿真，C4 不宜高估。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "175"
+  }
+}

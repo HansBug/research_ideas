@@ -1,0 +1,37 @@
+{
+  "case_id": "203",
+  "paper_slug": "distributed-elevator-control-system-can",
+  "case_name": "Rank-Based CAN-Distributed Elevator Controller",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是一个基于 CAN 广播同步的多电梯分布式调度与运动控制器；每台 Lift-Object 根据楼层请求、轿厢目的地、当前楼层和 rank() 仲裁结果，在 STOP、UP、DOWN 之间切换，并驱动电机、门和指示灯完成服务。",
+  "scale": {
+    "state_count": 3,
+    "event_count": 5,
+    "variable_count": 4,
+    "transition_count": 6
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟡",
+      "evidence": "原文称 Lift-Object 只有 UP、DOWN、STOP 三个状态，且 STOP 是 UP/DOWN 的中心状态，存在模式切换但没有层次化 composite/init/pseudo 语义。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Fig.4 给出复合数值守卫 `[(fr > cf) || (cd > cf)] & [rank() = 1]` 和 `[(fr < cf) || (cd < cf)] & [rank() = 1]`，涉及 fr、cd、cf 与 rank() 仲裁。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "⚪",
+      "evidence": "原文明确说 Lift-Object 只有 UP、DOWN、STOP 三个 definite states，后续也只描述请求服务、CAN 同步和 rank()，未出现 Error/Abort/Reset/Recovery 等跨状态故障路径。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出 Direction Request-Lamp、Lift-Door、Lift-Motor 等 output signal/device，其中 Lift-Motor governs the up and down movement，Fig.4 还直接标出 Motor up/down/stop。"
+    }
+  },
+  "features_we_care_about": "该样本的 PATH2 价值主要在 C2 和 C4：数值 guard 与 rank() 仲裁适合 symbolic feedback，电梯电机、门和灯具又给 abstract action 硬件解耦提供清楚 grounding。它是典型楼宇机电控制对象，NL 和原文 Fig.4/Rank 段落对应较清晰。",
+  "potential_pitfalls": "C3 完全缺失，C1 也只是扁平三态切换，不适合展示层次化 dead-end 或 forced fault recovery 收益。",
+  "verdict": "🟢 OK",
+  "_meta": {
+    "id": "203"
+  }
+}

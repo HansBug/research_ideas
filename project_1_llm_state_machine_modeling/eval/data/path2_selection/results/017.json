@@ -1,0 +1,37 @@
+{
+  "case_id": "017",
+  "paper_slug": "center-articulated-hydrostatic-cotton-harvesting-rover",
+  "case_name": "Cotton-boll detection and harvesting supervisor",
+  "bucket": "EFSM-interlock",
+  "what_it_is": "这是中心铰接式棉花采摘车的任务级监督控制器，用 ZED stereo camera/YOLO 定位棉铃与末端执行器的三维位置，再控制车体前后移动、机械臂上下移动和采摘端执行采摘。典型流程是反复获取图像、计算最近棉铃坐标、按空间偏差选择移动/调臂/采摘或继续沿棉行导航。",
+  "scale": {
+    "state_count": 6,
+    "event_count": 7,
+    "variable_count": 7,
+    "transition_count": 7
+  },
+  "axes": {
+    "C1_dead_end_potential": {
+      "score": "🟠",
+      "evidence": "原文称 state machine had six necessary states and seven transitions，且 after every state reverted to state 0，说明是扁平闭环分支，没有层次化 composite mode。"
+    },
+    "C2_numerical_guard_richness": {
+      "score": "🟢",
+      "evidence": "Algorithm 1 明确给出 Yb > Ym、Yb = Ym and Zm > Zb、Yb = Ym and Zm = Zb and Xm - Xb < 37 cm 等多变量数值 guard。"
+    },
+    "C3_forced_fault_recovery": {
+      "score": "🟠",
+      "evidence": "Figure 14 只有局部异常/失败路径，如 g: fails if the camera doesn't get the images 和 f: boll not found after 2 attempts，没有 any state/from any mode 的强制故障恢复语义。"
+    },
+    "C4_hardware_decoupling": {
+      "score": "🟢",
+      "evidence": "原文列出液压轮马达由 servo/pump 控制、机械臂两轴 stepper motors、2.5 hp vacuum、12 VDC brush/impeller motor 等多个物理执行器。"
+    }
+  },
+  "features_we_care_about": "该样本对 PATH2 的主要价值在 C2 和 C4：数值空间 guard 清楚，且每个状态动作都能映射到真实农业机器人硬件执行器。NL 与原文状态图、Algorithm 1、硬件章节之间可追溯性强，适合检验 semantic/sim feedback 对 EFSM interlock 的收益。",
+  "potential_pitfalls": "C1/C3 较弱：结构基本是扁平 SMACH 分支闭环，缺少层次 mode 和 cross-cutting fault recovery；等号对齐条件也可能需要建模时补容差。",
+  "verdict": "💎 STRONG",
+  "_meta": {
+    "id": "017"
+  }
+}
