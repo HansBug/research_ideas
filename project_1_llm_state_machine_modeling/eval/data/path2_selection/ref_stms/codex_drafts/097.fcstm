@@ -1,0 +1,266 @@
+def int gps_initialized = 0;
+def int rtk_initialized = 0;
+def int cameras_initialized = 0;
+def int landed = 0;
+def int mission_complete = 0;
+def int semiellipse_search_active = 0;
+def int low_altitude_mode = 0;
+def int very_low_speed_mode = 0;
+def int high_speed_mode = 0;
+def int long_range_detector_active = 0;
+def int short_range_detector_active = 0;
+def int long_range_detection_count = 0;
+def int long_range_frame_window = 0;
+def int short_range_detection_count = 0;
+def int short_range_frame_window = 0;
+def int no_new_detection_frames = 0;
+def int detection_seen_this_frame = 0;
+def float xy_approach_distance_m = 0.0;
+def float target_standoff_m = 0.0;
+def int ball_aligned_with_gripper = 0;
+def int planned_trajectory_continued = 0;
+def int laser_sensor_ball_detected = 0;
+def int gripper_servo_command_required = 0;
+
+state SearchFollowCatchMissionController {
+    event START_MISSION;
+    event BALL_DETECTED;
+    event BALL_LEAVES_CAMERA_FIELD_OF_VIEW;
+    event LONG_RANGE_UAV_DETECTED;
+    event SHORT_RANGE_UAV_DETECTED;
+    event DETECTION_LOST;
+    event SUCCESSFUL_CATCH;
+
+    [*] -> START_STATE;
+
+    state START_STATE {
+        enter {
+            gps_initialized = 1;
+            rtk_initialized = 1;
+            cameras_initialized = 1;
+            landed = 1;
+            mission_complete = 0;
+            semiellipse_search_active = 0;
+            low_altitude_mode = 0;
+            very_low_speed_mode = 0;
+            high_speed_mode = 0;
+            long_range_detector_active = 0;
+            short_range_detector_active = 0;
+            long_range_detection_count = 0;
+            long_range_frame_window = 0;
+            short_range_detection_count = 0;
+            short_range_frame_window = 0;
+            no_new_detection_frames = 0;
+            detection_seen_this_frame = 0;
+            xy_approach_distance_m = 0.0;
+            target_standoff_m = 0.0;
+            ball_aligned_with_gripper = 0;
+            planned_trajectory_continued = 0;
+            laser_sensor_ball_detected = 0;
+            gripper_servo_command_required = 0;
+        }
+        enter abstract InitializeGpsRtkCameras;
+    }
+
+    state SEARCH {
+        enter {
+            landed = 0;
+            semiellipse_search_active = 1;
+            low_altitude_mode = 1;
+            very_low_speed_mode = 1;
+            high_speed_mode = 0;
+            long_range_detector_active = 1;
+            short_range_detector_active = 1;
+            target_standoff_m = 0.0;
+            ball_aligned_with_gripper = 0;
+            planned_trajectory_continued = 0;
+            laser_sensor_ball_detected = 0;
+            gripper_servo_command_required = 0;
+        }
+        enter abstract CommandSemiellipseSearchTrajectory;
+        enter abstract ActivateBothUavDetectors;
+    }
+
+    state FOLLOW_LONG_RANGE {
+        enter {
+            semiellipse_search_active = 0;
+            low_altitude_mode = 1;
+            very_low_speed_mode = 0;
+            high_speed_mode = 1;
+            long_range_detector_active = 1;
+            short_range_detector_active = 1;
+            xy_approach_distance_m = 5.0;
+            target_standoff_m = 0.0;
+        }
+        enter abstract CommandFastFiveMeterXyApproach;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state FOLLOW_SHORT_RANGE {
+        enter {
+            semiellipse_search_active = 0;
+            low_altitude_mode = 1;
+            very_low_speed_mode = 0;
+            high_speed_mode = 1;
+            long_range_detector_active = 0;
+            short_range_detector_active = 1;
+            target_standoff_m = 4.0;
+        }
+        enter abstract DisableLongRangeUavDetector;
+        enter abstract CommandFourMeterTargetStandoff;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state CATCH_BALL {
+        enter {
+            semiellipse_search_active = 0;
+            low_altitude_mode = 1;
+            very_low_speed_mode = 0;
+            high_speed_mode = 1;
+            long_range_detector_active = 0;
+            short_range_detector_active = 1;
+            ball_aligned_with_gripper = 1;
+            gripper_servo_command_required = 1;
+        }
+        enter abstract CommandMotionTowardBallDetection;
+        enter abstract AlignBallWithGripper;
+        enter abstract PrepareArduinoNanoGripperServo;
+        during abstract ReadLaserSensorInsideGripper;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
+    }
+
+    state LAND {
+        enter {
+            landed = 1;
+            mission_complete = 1;
+            semiellipse_search_active = 0;
+            low_altitude_mode = 0;
+            very_low_speed_mode = 0;
+            high_speed_mode = 0;
+            long_range_detector_active = 0;
+            short_range_detector_active = 0;
+            gripper_servo_command_required = 0;
+        }
+        enter abstract LandAtGivenPosition;
+    }
+
+    START_STATE -> SEARCH : START_MISSION;
+    SEARCH -> FOLLOW_LONG_RANGE : LONG_RANGE_UAV_DETECTED effect {
+        detection_seen_this_frame = 1;
+        no_new_detection_frames = 0;
+        xy_approach_distance_m = 5.0;
+    };
+    SEARCH -> FOLLOW_LONG_RANGE : if [long_range_detection_count >= 3 && long_range_frame_window >= 5] effect {
+        detection_seen_this_frame = 1;
+        no_new_detection_frames = 0;
+        xy_approach_distance_m = 5.0;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_LONG_RANGE : LONG_RANGE_UAV_DETECTED effect {
+        detection_seen_this_frame = 1;
+        xy_approach_distance_m = 5.0;
+    };
+    SEARCH -> FOLLOW_SHORT_RANGE : SHORT_RANGE_UAV_DETECTED effect {
+        detection_seen_this_frame = 1;
+        no_new_detection_frames = 0;
+        target_standoff_m = 4.0;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_SHORT_RANGE : SHORT_RANGE_UAV_DETECTED effect {
+        detection_seen_this_frame = 1;
+        no_new_detection_frames = 0;
+        target_standoff_m = 4.0;
+    };
+    FOLLOW_LONG_RANGE -> FOLLOW_SHORT_RANGE : if [short_range_detection_count >= 2 && short_range_frame_window >= 4] effect {
+        detection_seen_this_frame = 1;
+        no_new_detection_frames = 0;
+        target_standoff_m = 4.0;
+    };
+    FOLLOW_SHORT_RANGE -> FOLLOW_SHORT_RANGE : SHORT_RANGE_UAV_DETECTED effect {
+        detection_seen_this_frame = 1;
+        target_standoff_m = 4.0;
+    };
+    SEARCH -> CATCH_BALL : BALL_DETECTED effect {
+        detection_seen_this_frame = 1;
+    };
+    FOLLOW_SHORT_RANGE -> CATCH_BALL : BALL_DETECTED effect {
+        detection_seen_this_frame = 1;
+    };
+    CATCH_BALL -> CATCH_BALL : BALL_DETECTED effect {
+        detection_seen_this_frame = 1;
+        ball_aligned_with_gripper = 1;
+    };
+    CATCH_BALL -> CATCH_BALL : BALL_LEAVES_CAMERA_FIELD_OF_VIEW effect {
+        planned_trajectory_continued = 1;
+    };
+    FOLLOW_LONG_RANGE -> SEARCH : DETECTION_LOST effect {
+        long_range_detection_count = 0;
+        long_range_frame_window = 0;
+        short_range_detection_count = 0;
+        short_range_frame_window = 0;
+        detection_seen_this_frame = 0;
+        no_new_detection_frames = 0;
+    };
+    FOLLOW_LONG_RANGE -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        long_range_detection_count = 0;
+        long_range_frame_window = 0;
+        short_range_detection_count = 0;
+        short_range_frame_window = 0;
+        detection_seen_this_frame = 0;
+        no_new_detection_frames = 0;
+    };
+    FOLLOW_SHORT_RANGE -> SEARCH : DETECTION_LOST effect {
+        long_range_detection_count = 0;
+        long_range_frame_window = 0;
+        short_range_detection_count = 0;
+        short_range_frame_window = 0;
+        detection_seen_this_frame = 0;
+        no_new_detection_frames = 0;
+    };
+    FOLLOW_SHORT_RANGE -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        long_range_detection_count = 0;
+        long_range_frame_window = 0;
+        short_range_detection_count = 0;
+        short_range_frame_window = 0;
+        detection_seen_this_frame = 0;
+        no_new_detection_frames = 0;
+    };
+    CATCH_BALL -> SEARCH : DETECTION_LOST effect {
+        long_range_detection_count = 0;
+        long_range_frame_window = 0;
+        short_range_detection_count = 0;
+        short_range_frame_window = 0;
+        detection_seen_this_frame = 0;
+        no_new_detection_frames = 0;
+    };
+    CATCH_BALL -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        long_range_detection_count = 0;
+        long_range_frame_window = 0;
+        short_range_detection_count = 0;
+        short_range_frame_window = 0;
+        detection_seen_this_frame = 0;
+        no_new_detection_frames = 0;
+    };
+    CATCH_BALL -> LAND : SUCCESSFUL_CATCH effect {
+        laser_sensor_ball_detected = 1;
+    };
+}

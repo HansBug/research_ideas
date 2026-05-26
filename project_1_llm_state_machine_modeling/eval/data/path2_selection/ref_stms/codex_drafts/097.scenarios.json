@@ -1,0 +1,815 @@
+{
+  "scenarios": [
+    {
+      "name": "startup_to_search",
+      "description": "覆盖 E3/E4/E5/E6/E7：默认初始化后由 START_MISSION 进入 SEARCH，并启用低空半椭圆搜索与双探测器。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.START_STATE",
+          "expected_vars": {
+            "gps_initialized": 1,
+            "rtk_initialized": 1,
+            "cameras_initialized": 1,
+            "landed": 1
+          },
+          "name": "default_enters_start_state"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.START_MISSION"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "semiellipse_search_active": 1,
+            "low_altitude_mode": 1,
+            "very_low_speed_mode": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "landed": 0
+          },
+          "name": "operator_starts_search"
+        }
+      ]
+    },
+    {
+      "name": "figure17_event_path",
+      "description": "覆盖 Figure 17/Table 1 的事件主线：START_MISSION、LONG_RANGE_UAV_DETECTED、SHORT_RANGE_UAV_DETECTED、BALL_DETECTED、DETECTION_LOST、SUCCESSFUL_CATCH。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.START_STATE",
+          "expected_vars": {
+            "gps_initialized": 1,
+            "rtk_initialized": 1,
+            "cameras_initialized": 1,
+            "landed": 1
+          },
+          "name": "default_start"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.START_MISSION"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1
+          },
+          "name": "start_mission_to_search"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.LONG_RANGE_UAV_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "xy_approach_distance_m": 5.0,
+            "high_speed_mode": 1,
+            "detection_seen_this_frame": 0,
+            "no_new_detection_frames": 0
+          },
+          "name": "long_range_event_to_follow_long"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.DETECTION_LOST"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "no_new_detection_frames": 0
+          },
+          "name": "lost_from_follow_long_to_search"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.SHORT_RANGE_UAV_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0,
+            "short_range_detector_active": 1,
+            "detection_seen_this_frame": 0,
+            "no_new_detection_frames": 0
+          },
+          "name": "short_range_event_to_follow_short"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.DETECTION_LOST"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "high_speed_mode": 0
+          },
+          "name": "lost_from_follow_short_to_search"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.BALL_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "ball_aligned_with_gripper": 1,
+            "gripper_servo_command_required": 1,
+            "long_range_detector_active": 0,
+            "short_range_detector_active": 1,
+            "detection_seen_this_frame": 0
+          },
+          "name": "ball_event_to_catch"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.SUCCESSFUL_CATCH"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.LAND",
+          "expected_vars": {
+            "laser_sensor_ball_detected": 1,
+            "landed": 1,
+            "mission_complete": 1,
+            "long_range_detector_active": 0,
+            "short_range_detector_active": 0
+          },
+          "name": "successful_catch_to_land"
+        }
+      ]
+    },
+    {
+      "name": "long_range_guard_before_threshold",
+      "description": "覆盖 E8 的边界前条件：只有 2/5 长距检测时不能离开 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.SEARCH",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 1,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 1,
+        "high_speed_mode": 0,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 2,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 0,
+        "short_range_frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 0.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "long_range_detection_count": 2,
+            "long_range_frame_window": 5,
+            "semiellipse_search_active": 1,
+            "high_speed_mode": 0
+          },
+          "name": "two_of_five_stays_in_search"
+        }
+      ]
+    },
+    {
+      "name": "long_range_guard_reaches_threshold",
+      "description": "覆盖 E8/E9：3/5 长距检测触发 SEARCH 到 FOLLOW_LONG_RANGE，并设置 5 m XY 快速接近命令。",
+      "initial_state": "SearchFollowCatchMissionController.SEARCH",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 1,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 1,
+        "high_speed_mode": 0,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 0,
+        "short_range_frame_window": 0,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 0.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "xy_approach_distance_m": 5.0,
+            "high_speed_mode": 1,
+            "low_altitude_mode": 1,
+            "detection_seen_this_frame": 0,
+            "no_new_detection_frames": 0
+          },
+          "name": "three_of_five_enters_long_range_follow"
+        }
+      ]
+    },
+    {
+      "name": "long_range_new_detection_command",
+      "description": "覆盖 E9：FOLLOW_LONG_RANGE 中新的长距检测再次命令 5 m XY 快速接近并清零 detection lost 计数。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 0,
+        "short_range_frame_window": 0,
+        "no_new_detection_frames": 3,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 0.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.LONG_RANGE_UAV_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "xy_approach_distance_m": 5.0,
+            "no_new_detection_frames": 0,
+            "detection_seen_this_frame": 0,
+            "high_speed_mode": 1
+          },
+          "name": "new_long_range_detection_refreshes_motion"
+        }
+      ]
+    },
+    {
+      "name": "short_range_guard_before_threshold",
+      "description": "覆盖 E10 的边界前条件：只有 1/4 短距检测时仍停留在 FOLLOW_LONG_RANGE。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 1,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "short_range_detection_count": 1,
+            "short_range_frame_window": 4,
+            "target_standoff_m": 0.0,
+            "no_new_detection_frames": 1
+          },
+          "name": "one_of_four_stays_long_range"
+        }
+      ]
+    },
+    {
+      "name": "short_range_guard_reaches_threshold",
+      "description": "覆盖 E10/E11：2/4 短距检测触发 FOLLOW_SHORT_RANGE，并关闭长距探测器、保持 4 m 距离。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 2,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0,
+            "short_range_detector_active": 1,
+            "high_speed_mode": 1,
+            "detection_seen_this_frame": 0,
+            "no_new_detection_frames": 0
+          },
+          "name": "two_of_four_enters_short_range_follow"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_after_five_empty_frames",
+      "description": "覆盖 E15 与周期行为：FOLLOW_SHORT_RANGE 中连续无新检测帧累计到 5 后触发 detection-lost 回 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 0,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 2,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 4.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 1,
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0
+          },
+          "name": "empty_frame_1"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 2,
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0
+          },
+          "name": "empty_frame_2"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 3,
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0
+          },
+          "name": "empty_frame_3"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 4,
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0
+          },
+          "name": "empty_frame_4"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 5,
+            "target_standoff_m": 4.0,
+            "long_range_detector_active": 0
+          },
+          "name": "empty_frame_5_threshold_counted"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "high_speed_mode": 0
+          },
+          "name": "detection_lost_guard_returns_search"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_guard_from_follow_long",
+      "description": "覆盖 E15 的 FOLLOW_LONG_RANGE 数值 guard：无新检测帧达到 5 后回到 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 0,
+        "short_range_frame_window": 0,
+        "no_new_detection_frames": 4,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+          "expected_vars": {
+            "no_new_detection_frames": 5,
+            "xy_approach_distance_m": 5.0,
+            "high_speed_mode": 1
+          },
+          "name": "fifth_empty_frame_counted"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1
+          },
+          "name": "follow_long_lost_guard_returns_search"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_guard_from_catch_ball",
+      "description": "覆盖 E15 的 CATCH_BALL 数值 guard：抓球阶段无新检测帧达到 5 后回到 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.CATCH_BALL",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 0,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 2,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 4,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 4.0,
+        "ball_aligned_with_gripper": 1,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "no_new_detection_frames": 5,
+            "ball_aligned_with_gripper": 1,
+            "gripper_servo_command_required": 1
+          },
+          "name": "catch_fifth_empty_frame_counted"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "gripper_servo_command_required": 0
+          },
+          "name": "catch_lost_guard_returns_search"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_event_from_follow_long",
+      "description": "覆盖 Figure 17/E15：FOLLOW_LONG_RANGE 下 DETECTION_LOST 事件回到 SEARCH 并重置检测窗口。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_LONG_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 1,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 1,
+        "short_range_frame_window": 3,
+        "no_new_detection_frames": 2,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 0.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.DETECTION_LOST"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "long_range_detection_count": 0,
+            "short_range_detection_count": 0,
+            "no_new_detection_frames": 0,
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1
+          },
+          "name": "follow_long_lost_returns_search"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_event_from_follow_short",
+      "description": "覆盖 Figure 17/E15：FOLLOW_SHORT_RANGE 下 DETECTION_LOST 事件回到 SEARCH 并恢复双探测器搜索。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 0,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 2,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 3,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 4.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.DETECTION_LOST"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "short_range_detection_count": 0,
+            "no_new_detection_frames": 0,
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "high_speed_mode": 0
+          },
+          "name": "follow_short_lost_returns_search"
+        }
+      ]
+    },
+    {
+      "name": "catch_ball_continue_and_land",
+      "description": "覆盖 E12/E13/E14/E16/E17/E18：球检测进入抓取、出视野后继续轨迹，激光确认后降落结束。",
+      "initial_state": "SearchFollowCatchMissionController.FOLLOW_SHORT_RANGE",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 0,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 2,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 0,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 4.0,
+        "ball_aligned_with_gripper": 0,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.BALL_DETECTED"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "ball_aligned_with_gripper": 1,
+            "gripper_servo_command_required": 1,
+            "long_range_detector_active": 0,
+            "short_range_detector_active": 1,
+            "no_new_detection_frames": 0
+          },
+          "name": "ball_detected_enters_catch"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.BALL_LEAVES_CAMERA_FIELD_OF_VIEW"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.CATCH_BALL",
+          "expected_vars": {
+            "planned_trajectory_continued": 1,
+            "ball_aligned_with_gripper": 1,
+            "gripper_servo_command_required": 1,
+            "no_new_detection_frames": 1
+          },
+          "name": "ball_leaves_fov_continue_trajectory"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.SUCCESSFUL_CATCH"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.LAND",
+          "expected_vars": {
+            "laser_sensor_ball_detected": 1,
+            "landed": 1,
+            "mission_complete": 1,
+            "long_range_detector_active": 0,
+            "short_range_detector_active": 0,
+            "gripper_servo_command_required": 0
+          },
+          "name": "laser_success_lands"
+        }
+      ]
+    },
+    {
+      "name": "detection_lost_event_from_catch_ball",
+      "description": "覆盖 Figure 17/E15：CATCH_BALL 下 DETECTION_LOST 事件回到 SEARCH。",
+      "initial_state": "SearchFollowCatchMissionController.CATCH_BALL",
+      "initial_vars": {
+        "gps_initialized": 1,
+        "rtk_initialized": 1,
+        "cameras_initialized": 1,
+        "landed": 0,
+        "mission_complete": 0,
+        "semiellipse_search_active": 0,
+        "low_altitude_mode": 1,
+        "very_low_speed_mode": 0,
+        "high_speed_mode": 1,
+        "long_range_detector_active": 0,
+        "short_range_detector_active": 1,
+        "long_range_detection_count": 3,
+        "long_range_frame_window": 5,
+        "short_range_detection_count": 2,
+        "short_range_frame_window": 4,
+        "no_new_detection_frames": 2,
+        "detection_seen_this_frame": 0,
+        "xy_approach_distance_m": 5.0,
+        "target_standoff_m": 4.0,
+        "ball_aligned_with_gripper": 1,
+        "planned_trajectory_continued": 0,
+        "laser_sensor_ball_detected": 0,
+        "gripper_servo_command_required": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "SearchFollowCatchMissionController.DETECTION_LOST"
+          ],
+          "expected_state": "SearchFollowCatchMissionController.SEARCH",
+          "expected_vars": {
+            "no_new_detection_frames": 0,
+            "semiellipse_search_active": 1,
+            "long_range_detector_active": 1,
+            "short_range_detector_active": 1,
+            "gripper_servo_command_required": 0
+          },
+          "name": "catch_lost_returns_search"
+        }
+      ]
+    }
+  ]
+}

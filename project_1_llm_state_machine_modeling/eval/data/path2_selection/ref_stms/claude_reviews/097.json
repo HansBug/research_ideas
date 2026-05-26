@@ -1,0 +1,47 @@
+{
+  "case_id": "097",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟡",
+      "evidence": "6 states / 6 Table-1 events 与摘录 B/C 完全对应；BALL_LEAVES_CAMERA_FIELD_OF_VIEW 由 [E14] 'ball goes out of the camera field of view' 规范化得到合理；唯一小偏差是 SEARCH→CATCH_BALL on BALL_DETECTED 摘录 B 暗含链式 search→long→short→catch 顺序，Table 1 未限制 BALL_DETECTED 源状态，可视为合理扩展但弱于文本主线。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "所有阈值（3/5、2/4、5 m、4 m、5 frames）与硬件名（GPS/RTK/cameras、Long-Range/Short-Range Detector、Arduino Nano gripper servo、laser sensor）均锚定 [E3]-[E18]，零编造；引入的 *_frame_window 与 detection_seen_this_frame 是为表达 'consecutive frames' 数值守卫所必需的计数辅助变量（notes §5 已声明），属于可控的合理设计抽象而非 hallucination。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 在 3 个 running states 用 during {} 累计 no_new_detection_frames 正确映射 [E15]；C2 三处复合数值守卫均直接对应 [E8]/[E10]/[E15]；C3 主动不使用是正确的（原文无 global forced fault，DETECTION_LOST 只 from 三个 running states）；C4 共 11 个 abstract effector 全部对应原文具名硬件/动作，无凑数。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "14 scenarios 覆盖：启动链 / Figure 17 event 主线 / 两个 detection 阈值的 before/after 边界 / 三个 running states 的 5-frame guard 与 event 双触发路径（共 6 个）/ BALL_LEAVES_FOV 自循环 / SUCCESSFUL_CATCH→LAND；含 ≥3 cycle 的 detection_lost_after_five_empty_frames（6 steps）；所有具名 effector 被触达。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "var",
+      "name": "long_range_frame_window / short_range_frame_window / detection_seen_this_frame",
+      "issue": "原文未直接命名这些辅助计数；属于为在 pyfcstm 内显式表达 'X out of Y consecutive frames' 数值门槛所必需的工程抽象，notes §5 已声明，阈值本身来自 NL，可接受但建议在 STM 文档侧用一句话再标注一次以便人工 trace"
+    },
+    {
+      "type": "event",
+      "name": "BALL_LEAVES_CAMERA_FIELD_OF_VIEW",
+      "issue": "非 Table 1 事件名，由 [E14] '球出视野后继续 planned trajectory' 规范化引入，notes 已声明，可接受"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "（可选小修）在 STM.md §3.2 单篇派生侧的设计说明里，把 long_range_frame_window / short_range_frame_window / detection_seen_this_frame 三个辅助计数变量统一标注成 '为表达 X-of-Y 数值守卫引入的 instrumentation counter'，让人工 trace 时区分 NL 原生变量与设计变量",
+    "（可选小修）SEARCH → CATCH_BALL : BALL_DETECTED 直接转移在摘录 B 的主链描述中并不强；建议保留但在 notes §5 §偏差章节追加一句 '该直边覆盖 Table 1 BALL_DETECTED 未限制源状态的语义保守化处理'，或在 STM.md §0 一句话注明",
+    "（可选 enhancement）detection_seen_this_frame 的 'event 到来后重置 lost 计数' 行为目前依赖 effect + during {} 协同；可补一个微 scenario 显式展示 'follow_long_range 中先无检测累计 2 帧 → LONG_RANGE_UAV_DETECTED 重置为 0 → 再 cycle 1 帧' 以闭环 instrumentation 不变量"
+  ],
+  "missing_scenarios_suggestions": [
+    "long_range_event_resets_lost_counter: FOLLOW_LONG_RANGE 中 no_new_detection_frames=3 后 LONG_RANGE_UAV_DETECTED effect 清零 + 下一 cycle 不再 +1，闭环验证 detection_seen_this_frame 重置语义",
+    "short_range_threshold_from_search_direct: SEARCH 状态下 short_range_detection_count>=2 && short_range_frame_window>=4 是否经由 SHORT_RANGE_UAV_DETECTED 事件覆盖（当前 numeric guard 只在 FOLLOW_LONG_RANGE→FOLLOW_SHORT_RANGE 上，SEARCH→FOLLOW_SHORT_RANGE 只有事件路径，可补一个 scenario 明示该 asymmetry 是有意为之）"
+  ],
+  "overall_comment": "Codex draft 在 C-axis grounding 使用、NL 锚定与 scenarios 覆盖上整体扎实：阈值 / 硬件名 / fault 边界都贴着 [E1]-[E18] 走，未编造全局 forced fault 也未把 local DETECTION_LOST 错放进 ! * -> 语法；14 scenarios 含周期累积与边界对照较完整。仅有的可疑点是 *_frame_window 等辅助计数变量与 SEARCH→CATCH_BALL 直边属设计抽象而非语义错误，notes 已自我披露，建议在 STM.md 派生侧也补一句 trace 注释即可直接进入下一阶段。",
+  "_meta": {
+    "id": "097"
+  }
+}
