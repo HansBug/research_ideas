@@ -239,41 +239,72 @@ method 字段映射（在 run_path1.py 内部分发）：
 3. **token tracking**：每条 sample 记 input/output token，落到 summary.json
 4. **DSL 格式归一化**：A0_strong 出 Umple，A4_ours 出 pyfcstm DSL，由 method/eval/component_extractor.py 统一抽 7 类组件后再进 §6 评测
 
-## 6. 评测协议（套 structure_event_driven 7 类组件）
+## 6. 评测协议（严格对齐 [structure_event_driven 论文 §IV](../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/paper_content.txt) 的评测 scheme）
 
-### 6.1 7 类组件定义
+> **v3 修订**：v2 此节有 3 处隐藏不一致 — actions 范围、strict cascade rule、overall F1 计算 — 已全部修正与 baseline §IV-B/C 一致；不一致的部分（manual 评测 → LLM-judge alignment）在新 §6.4 显式说明 + 给出后续补偿动作。
 
-| 组件 | 抽取方式 | 比较单位 |
-| --- | --- | --- |
-| `states` | DSL 中所有 state 名 | 名称集合（语义等价允许） |
-| `transitions` | (src, event, dst) 三元组集合 | 三元组（src/dst 名称语义等价允许） |
-| `guards` | transition 上 [condition] 子句 | 表达式集合（语义等价允许） |
-| `actions` | transition / state 上 /effect 子句 | 表达式集合 |
-| `hierarchical_states` | composite state 名集合 | 名称集合 |
-| `parallel_regions` | parallel region 名集合 | 名称集合 |
-| `history_states` | history pseudo-state 集合 | 名称集合 |
+### 6.1 7 类组件定义（**严格与 baseline §IV-B 一致**）
 
-### 6.2 P/R/F1 计算
+| 组件 | 抽取方式 | 比较单位 | baseline 特殊规定 |
+| --- | --- | --- | --- |
+| `states` | DSL 中所有 state 名 | 名称集合（语义等价允许） | — |
+| `transitions` | (src, event, dst) 三元组集合 | 三元组（src/dst 名称语义等价允许） | **transitions to non-matching states 自动 FP**（strict cascade） |
+| `guards` | transition 上 [condition] 子句 | 表达式集合（语义等价允许） | **依赖 FP transition 的 guards 自动 FP** |
+| `actions` | transition 上 /effect 子句（**仅 transition actions**） | 表达式集合 | **baseline §IV-B 明确排除 state entry/exit/do actions** |
+| `hierarchical_states` | composite state 名集合 | 名称集合 | superstate 含相同 substates 视为等价 |
+| `parallel_regions` | parallel region 名集合 | 名称集合 | parallel region 含相同 substates 视为等价 |
+| `history_states` | history pseudo-state 集合 | 名称集合 | — |
+
+### 6.2 P/R/F1 计算（**与 baseline §IV-C 一致**）
 
 对每类组件 $c$ 计算：
 
 $$P_c = \frac{TP_c}{TP_c + FP_c}, \quad R_c = \frac{TP_c}{TP_c + FN_c}, \quad F_{1,c} = \frac{2 P_c R_c}{P_c + R_c}$$
 
-整体 macro-F1：
+**Overall F1（与 baseline 一致 — 不是 macro-F1）**：
 
-$$\text{macro-}F_1 = \frac{1}{|C|} \sum_{c \in C} F_{1,c}$$
+baseline §IV-C 明确 overall F1 是 "aggregating the true positives (TP), false positives (FP), and false negatives (FN) of all components"。我们采用同一公式：
 
-其中 $|C| = 7$。
+$$\text{overall-}P = \frac{\sum_c TP_c}{\sum_c (TP_c + FP_c)}, \quad \text{overall-}R = \frac{\sum_c TP_c}{\sum_c (TP_c + FN_c)}, \quad \text{overall-}F_1 = \frac{2 \cdot \text{overall-}P \cdot \text{overall-}R}{\text{overall-}P + \text{overall-}R}$$
 
-### 6.3 名称语义等价判定
+**注意**：v2 写的 macro-F1 是错的，已修正为 baseline 一致的 aggregate-F1。两种 F1 在组件分布不均时数值差异显著（如 history_states 每 case 仅 1 个，macro-F1 会被它放大），混用会导致与 baseline 论文数字不可比。
 
-由于 single ground truth 不存在，允许 LLM-judge 做一次性 alignment：
+### 6.3 名称语义等价判定（**人工评测，与 baseline 一致**）
 
-1. 把 prediction 的状态名 list 和 reference 的状态名 list 送 GPT-5.5
-2. 让它输出 alignment dict：`{pred_name: ref_name or null}`
-3. 用 alignment dict 标准化 prediction 名称后再算 TP/FP/FN
+baseline §IV-A 用 manual single-author evaluation 判定语义等价（"components that are intended to represent the same concept ... are graded as equivalent, even if their names differ"）。
 
-这一步只跑一次，alignment 结果固化在 `predictions.parquet` 的 `name_alignment` 列里，避免重复消耗 token。
+**paper 中正式评测协议也采用人工评测**，与 baseline 完全对齐 — §6.4 表中 Semantic equivalence 行标 "一致" 即指此。
+
+#### 实操辅助流程（**仅 sprint 内部提效，paper 中不进 protocol description**）
+
+为让单评测者在 sprint 时间内完成 10-20 runs × 7 组件 = 70-140 评审单元，采用 **LLM 预审 + 人工复核** 两步流程：
+
+1. **LLM 预审**：把 prediction 的状态名 list 和 reference 的状态名 list 一并送 LLM-judge（走 method/gpt_client.py，temperature=0, fixed seed）。它输出**初稿** alignment dict `{pred_name: ref_name or null}` + 简短 reasoning 作为 evidence
+2. **人工复核**：评测者基于 LLM 预审稿对每一项做 final decision（accept / modify / reject），重点核对 LLM 标 null 或低置信度的项
+3. 人工复核后的 alignment 是**评测金标准**，固化在 `predictions.parquet` 的 `name_alignment` 列里，同时保留 `llm_initial_proposal` / `human_final` / `disagreement_flag` 三个子字段供后续 inter-rater agreement 分析
+
+**paper §4 evaluation 仅描述人工评测协议**，LLM 预审作为 internal tooling 仅在 §6 / appendix 简短提及（"to improve evaluator efficiency, we used an LLM to propose initial alignments which were then manually verified by the author"）。这是工业界 SE 论文常用做法 — LLM-assisted labeling 但 final label 视为 human gold。
+
+### 6.4 与 baseline 评测协议的一致性（v3 修订 — 全维度对齐 baseline §IV）
+
+| 维度 | baseline §IV 协议 | 我们 sprint Path 1 协议 | 一致 / 差异 |
+| --- | --- | --- | --- |
+| 7 类组件清单 | states / transitions / guards / actions / hierarchical / parallel / history | 同 | **一致** |
+| `actions` 范围 | 仅 transition actions, **排除 state entry/exit/do** | 同（按 baseline 严格执行） | **一致** |
+| Strict cascade rule | transitions to non-matching states 自动 FP；依赖 FP transition 的 guards/actions 自动 FP | 同 | **一致** |
+| TP/FP/FN 分类 | 三类，含 exact match + semantic match | 同 | **一致** |
+| Component-level P/R/F1 | $P_c, R_c, F_{1,c}$ | 同 | **一致** |
+| Overall F1 | **aggregate TP/FP/FN across all components**（**NOT macro-F1**） | 同（v2 误写为 macro-F1，v3 已修正） | **一致** |
+| Semantic equivalence 判定 | manual single-author evaluation | **manual single-evaluator**（LLM 预审仅作内部提效辅助，不进 paper protocol） | **一致** |
+| Ground-truth 来源 | 8 个本科课程题的 expert-drawn diagrams | 同（但筛 T0 子集，可能不足 8 条） | **一致** |
+| 评估者 multiplicity | single author per approach | single human evaluator per approach | **一致** |
+
+**全部维度与 baseline 一致**，sprint Path 1 评测协议无显著偏离，对照 overall-F1 / component-F1 数字直接可比。
+
+**paper §6 limitations 仍需讨论的点**（与 baseline 共有，非我们引入）：
+
+1. **单评测者主观性**：可在方向定后用 random subset 加第二位评测者算 Cohen's $\kappa$，作为 inter-rater agreement evidence
+2. **LLM 预审是否偏置评测**：PATH1_REPORT §6 confounder 中披露；可选做 sensitivity analysis — 关闭 LLM 预审在 random 5 cases 上跑全人工 alignment 看 disagreement rate
 
 ## 7. 结果落盘 schema
 
@@ -348,3 +379,124 @@ sprint Phase 7 收口前用此 checklist 核验，缺哪条补哪条：
 - [ ] `method/STATUS.md` 更新 Path 1 进度行
 - [ ] GitHub PR 已开（PR 描述含 PATH1_REPORT 关键数字摘要）
 - [ ] Confounder 样本数 $\le$ 总样本数 30%（超过 30% 则方法实现可疑）
+
+## 11. Method + Contribution 详述（paper writing 直接复用素材）
+
+> 本节集中讲清楚 Path 1 视角下我们的 method 是什么、contribution 是什么；既给 sprint 末 PATH1_REPORT.md §7 (Claude 方向建议) 提供 anchored framing，也给方向定后正式 paper §1 contributions + §3 method 提供直接可复用的写作素材。
+
+### 11.1 Method overview — Agent loop with externally-grounded in-loop feedback
+
+```text
+NL input (structure_event T0 case from undergrad course problem)
+      |
+      v
+  [SpecExtractor]   走 method/gpt_client.py (LLM_MODEL from env)
+      |  out: structured spec JSON (states / events / vars / transitions / hierarchy)
+      v
+  [Modeler]         走 method/gpt_client.py
+      |  out: pyfcstm DSL text (few-shot grounded by pyfcstm sample-test/)
+      v
+  current_model
+      |
+      +----+ Feedback Sources (gated cascade) +-----+
+      |    |  ParseFeedback   (pyfcstm.dsl)         |
+      |    |  SemanticFeedback (pyfcstm.model)      |
+      |    |  SimFeedback     (pyfcstm.simulate    |
+      |    |                   + topology witness)  |
+      |    |  JudgeFeedback   (ex1 ExpertReviewAgent|
+      |    |                   走 method/gpt_client) |
+      |    +----+-------------------------------+   |
+      |         |
+      v         v
+  feedback_bundle (JSON schema)
+      |
+      v
+  [Repair]          走 method/gpt_client.py
+      |  out: new pyfcstm DSL (按 feedback 具体错误指针定向修复)
+      v
+  next_model --> 回到 Feedback Sources, iterate N=3 rounds
+      |
+      v
+  final_model (pyfcstm DSL) --> 进入 §6 评测协议算 P/R/F1 vs A0_strong
+```
+
+### 11.2 Method 各组件细节
+
+#### 11.2.1 三个 LLM agent
+
+1. **SpecExtractor**：NL → JSON spec
+   - **设计目的**：把"自由文本"压成"结构化中间表示"，避免 Modeler 直接面对 NL 时陷入语言细节歧义
+   - **prompt 全英文**（paper 投稿英文，统一）
+2. **Modeler**：spec → pyfcstm DSL 文本
+   - few-shot 用 pyfcstm 仓库 `sample-test/` 2-3 个例子注入语法 grounding
+3. **Repair**：(current DSL, feedback_bundle) → new DSL
+   - **prompt 显式约束**："按 feedback 中的具体错误指针 (line/col/state/transition) 做定向修复，不要大改"
+   - 防止 LLM 在 repair 阶段重写整个 DSL 导致丢失已经正确的部分
+
+#### 11.2.2 四个 deterministic feedback sources（externally grounded）
+
+| Source | pyfcstm 入口 | 输出 schema 核心字段 | 在 paper §3 method 里是哪一条 contribution |
+| --- | --- | --- | --- |
+| Parse | `pyfcstm.dsl.parse_with_grammar_entry` | `{ok, line, col, expected_tokens, got, snippet}` | C2 |
+| Semantic | `pyfcstm.model.parse_dsl_node_to_state_machine` | `{ok, missing_states, dangling_transitions, undefined_vars, type_mismatches}` | C2 |
+| Sim | `pyfcstm.simulate.SimulationRuntime` + `pyfcstm.topology` | `{ok, unreachable_states, deadlocks, witness_paths, safety_limit_hits}` | **C2 + C3 + C4** (sim + witness + speculative validation 都在这一路) |
+| Judge | ex1 `ExpertReviewAgent` (走 method/gpt_client) | `{rubric_scores: {coverage, fidelity, structure, executability, safety}, evidence_spans, overall}` | C5 |
+
+#### 11.2.3 Feedback 合并策略 + 迭代控制
+
+- **gated cascade**：Parse 过 → Semantic 过 → Sim 过 → Judge。任一卡住直接出反馈进 Repair，省 token
+- **迭代上限 $N=3$**：若某轮 feedback_bundle 为空（即 model 通过所有 source 检查），提前 break，标记 `status="converged_at_iter_X"`
+- **不收敛回退**：3 轮仍有 feedback 不为空时，取 iter_3 的 final_model 进评测，标记 `status="not_converged"`
+
+### 11.3 Contribution 详述（**Path 1 视角：method 为主，empirical lift 作 evidence**）
+
+> **v4 修订**：原 v3 把 "Quantitative empirical lift" 作 C1 主 contribution；用户 2026-05-26 明确反馈"两个论文都不要把其他的当成核心贡献"，v4 调整为 method 为主、empirical lift 作 evidence。
+
+Path 1 视角下我们的 5 条 contribution（前 4 条 method core，第 5 条 evidence）：
+
+#### C1 — In-loop deterministic feedback via speculative validation（**method core**）
+
+> "We integrate pyfcstm's cycle-based simulation runtime — featuring per-cycle deepcopy-snapshot speculative DFS validation bounded by 1000 steps, 64 stack frames, and structural-and-value signature pruning (`pyfcstm/simulate/runtime.py:_validate_transition` and `_run_cycle_on_context`) — as a **deterministic in-loop feedback source** for LLM-driven STM synthesis. Unlike Umple's generate-then-execute pipeline, pyfcstm rejects transitions whose downstream init / pseudo / parent-continuation chains cannot reach a stoppable boundary, and surfaces a structured `SimulationRuntimeDfsError` whose docstring enumerates the exact pathological patterns LLMs are known to emit (composite state with no enabled init transition, pseudo-state chains that never settle, mutually-blocking guards, exit-vs-parent-continuation cycles). This converts model checking from an offline batch artifact into an **online repair signal**."
+
+#### C2 — Language-independent expression IR enables symbolic reasoning without code generation（**method core**）
+
+> "The DSL ships a unified `Expr` IR (`pyfcstm/model/expr.py`) supporting the full arithmetic / bitwise / logical / ternary / 22-function math closure required by state-machine guards and effects. This same IR is simultaneously (a) numerically evaluable, (b) AST-round-trippable, (c) translatable to Z3 via `pyfcstm/solver/expr.py:expr_to_z3`, and (d) renderable into 9 target-language styles (`pyfcstm/render/expr.py:_KNOWN_STYLES`). We exploit this single IR to provide LLM agents with **guard SMT satisfiability checks** (`pyfcstm/solver/solve.py:solve`) and **symbolic effect propagation** (`pyfcstm/solver/operation.py:execute_operations`) as in-loop feedback signals — without ever leaving the DSL toolchain. Umple's host-language-bound guards cannot offer equivalent."
+
+#### C3 — DSL-native aspect AOP and forced fault paths（**method core**）
+
+> "We design our method around two pyfcstm DSL-level primitives that Umple and PlantUML lack: (i) **aspect actions** (`>> during before / after`) cascading from root to leaf states at every cycle (`pyfcstm/model/model.py:iter_on_during_aspect_recursively`), enabling first-class encoding of cross-cutting per-tick invariants, monitoring, and logging; and (ii) **forced transitions** (`!`) which the model layer recursively expands to every applicable descendant substate (`pyfcstm/model/model.py:_recursive_finish_states`), giving one-line declarative encoding of global escape paths. Although these primitives were originally motivated by control-system idioms, our experiments demonstrate they also improve STM-synthesis quality on the home-appliance benchmark."
+
+#### C4 — Abstract action + read-only context decouples symbolic STM from physical effectors（**method core**）
+
+> "Combining DSL-level abstract action declarations (`enter abstract Init;` / `during abstract Monitor;` / `>> during before abstract LogTick;`) with the Python-side `@abstract_handler` decorator and `ReadOnlyExecutionContext` (`pyfcstm/simulate/decorators.py` + `context.py`) lets the LLM synthesize STMs **without committing to a deployment target**. Handlers are injected at run-time through an immutable frozen context, and two-mode error handling (`abstract_error_mode={raise, log}`) captures handler failures into `error_info` / `abstract_handler_errors` fields for the agent loop to consume. Umple's lifecycle hooks are host-language-bound and provide no equivalent DSL-level abstraction."
+
+#### C5 — Empirical demonstration on structure_event_driven benchmark（**evidence section, NOT core contribution**）
+
+> "On the T0 subset of the structure_event_driven benchmark, our method achieves overall-F1 = $X$ on the same model (LLM_MODEL=GPT-5.5), lifting the overall-F1 of the strongest prior strategy (Hybrid SMF) by $\Delta$ percentage points, with the largest gains on `guards / actions / hierarchical_states`, the three categories the prior work identified as hardest (baseline Hybrid GPT-4o: guards=0.42 / actions=0.34)."
+
+**This empirical result is not the paper's core contribution** — it is the evidence supporting C1-C4. The core contribution is the method itself. paper §1 应当把 C1-C4 作为 numbered contributions，C5 在 §1 末段作为 "We empirically validate the method on..." evidence sentence 给出。
+
+### 11.4 paper §1 contributions 列表（Path 1 视角）
+
+按 paper §1 排序，前 4 条都是 method core：
+
+| # | 类别 | contribution |
+| --- | --- | --- |
+| 1 | **method** | In-loop deterministic feedback via speculative validation |
+| 2 | **method** | Language-independent expression IR enables symbolic reasoning without codegen |
+| 3 | **method** | DSL-native aspect AOP + forced fault paths |
+| 4 | **method** | Abstract action + read-only context for effector-agnostic STM synthesis |
+| 5 | **evidence** | Empirical demonstration on structure_event_driven T0 subset over Hybrid baseline |
+
+> 完整 LaTeX 模板 + 引用 key 等 paper drafting 阶段再具体写 — sprint 阶段保留 contribution 列表即可。
+
+### 11.5 与 6 个 baseline 的方法学定位（速查表，paper §2 related work 直接复用）
+
+| baseline | 方法学共同点 | 与我们的关键区别 |
+| --- | --- | --- |
+| structure_event_driven (#1) | 多步 prompting | **无 in-loop feedback**；仅后处理规则 |
+| llms_emp (#2) | 多步 + in-loop feedback | feedback 仅 rule-based grammar/semantics，**无 sim/reach/judge**；输出 PlantUML 而非 pyfcstm |
+| IEC 61499 (#3) | 控制系统 + sim feedback | **需要 human-in-the-loop comments**；与 fully automated 范式不可直接比 |
+| Automated Statechart Auto (#4) | 控制系统 | **微调而非 prompt-based**；Volvo 内部数据不可获取 |
+| Llama3 Umple (#5) | Umple 可执行性 check | 小模型 (8B)；**无 in-loop iterative repair** |
+| ttool-ai (#6) | 自动反馈循环 | feedback 是 JSON/syntax/约束 + post-hoc TTool simulator；**无 reachability witness** |

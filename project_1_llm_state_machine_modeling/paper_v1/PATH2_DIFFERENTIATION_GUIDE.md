@@ -335,3 +335,238 @@ sprint Phase 7 收口前用此 checklist 核验：
 - [ ] `method/STATUS.md` 更新 Path 2 进度行
 - [ ] GitHub PR 已开（PR 描述含 PATH2_REPORT 关键数字摘要）
 - [ ] Confounder 样本数 $\le$ 总样本数 30%
+
+## 11. Method + Contribution 详述（paper writing 直接复用素材）
+
+> 本节集中讲清楚 Path 2 视角下我们的 method 是什么、contribution 是什么；既给 sprint 末 PATH2_REPORT.md §7 (Claude 方向建议) 提供 anchored framing，也给方向定后正式 paper §1 contributions + §3 method 提供直接可复用的写作素材。
+
+### 11.1 Method overview — Agent loop with externally-grounded in-loop feedback
+
+```text
+NL input (sources/ T0 case from real industrial control system paper)
+      |
+      v
+  [SpecExtractor]   走 method/gpt_client.py (LLM_MODEL from env)
+      |  out: structured spec JSON (states / events / vars / transitions / hierarchy)
+      v
+  [Modeler]         走 method/gpt_client.py
+      |  out: pyfcstm DSL text (few-shot grounded by pyfcstm sample-test/)
+      v
+  current_model
+      |
+      +----+ Feedback Sources (gated cascade) +-----+
+      |    |  ParseFeedback   (pyfcstm.dsl)         |
+      |    |  SemanticFeedback (pyfcstm.model)      |
+      |    |  SimFeedback     (pyfcstm.simulate    |
+      |    |                   + topology witness)  |
+      |    |  JudgeFeedback   (ex1 ExpertReviewAgent|
+      |    |                   走 method/gpt_client) |
+      |    +----+-------------------------------+   |
+      |         |
+      v         v
+  feedback_bundle (JSON schema)
+      |
+      v
+  [Repair]          走 method/gpt_client.py
+      |  out: new pyfcstm DSL (按 feedback 具体错误指针定向修复)
+      v
+  next_model --> 回到 Feedback Sources, iterate N=3 rounds
+      |
+      v
+  final_model (pyfcstm DSL) --> 进入 §6 5 个 intrinsic 指标计算 + JudgeScore
+```
+
+### 11.2 Method 各组件细节
+
+#### 11.2.1 三个 LLM agent
+
+1. **SpecExtractor**：NL → JSON spec
+   - **设计目的**：把"自由文本"压成"结构化中间表示"，避免 Modeler 直接面对控制系统 NL 描述（含传感器 / 执行器 / 联锁 / 故障恢复等多重信息）时陷入语言细节歧义
+   - **prompt 全英文**（paper 投稿英文，统一）
+2. **Modeler**：spec → pyfcstm DSL 文本
+   - few-shot 用 pyfcstm 仓库 `sample-test/` 2-3 个例子注入语法 grounding
+3. **Repair**：(current DSL, feedback_bundle) → new DSL
+   - **prompt 显式约束**："按 feedback 中的具体错误指针 (line/col/state/transition) 做定向修复，不要大改"
+
+#### 11.2.2 四个 deterministic feedback sources（externally grounded）
+
+| Source | pyfcstm 入口 | 输出 schema 核心字段 | 在 paper §3 method 里是哪一条 contribution |
+| --- | --- | --- | --- |
+| Parse | `pyfcstm.dsl.parse_with_grammar_entry` | `{ok, line, col, expected_tokens, got, snippet}` | C3 |
+| Semantic | `pyfcstm.model.parse_dsl_node_to_state_machine` | `{ok, missing_states, dangling_transitions, undefined_vars, type_mismatches}` | C3 |
+| Sim | `pyfcstm.simulate.SimulationRuntime` + `pyfcstm.topology` | `{ok, unreachable_states, deadlocks, witness_paths, safety_limit_hits}` | **C3 + C4 + C5** (sim + witness + speculative validation 都在这一路) |
+| Judge | ex1 `ExpertReviewAgent` (走 method/gpt_client) | `{rubric_scores: {coverage, fidelity, structure, executability, safety}, evidence_spans, overall}` | C6 |
+
+#### 11.2.3 Feedback 合并策略 + 迭代控制
+
+- **gated cascade**：Parse 过 → Semantic 过 → Sim 过 → Judge
+- **迭代上限 $N=3$**：feedback_bundle 为空时提前 break，标记 `status="converged_at_iter_X"`
+- **不收敛回退**：3 轮仍有 feedback 不空时，取 iter_3 final_model 进评测，标 `status="not_converged"`
+
+### 11.3 Contribution 详述（**Path 2 视角：method 为主 + 强化 pyfcstm → 控制系统价值论证**）
+
+> **v4 修订（含 v4.1）**：原 v3 把 "Reference-free intrinsic + judge protocol" 与 "control system NL benchmark" 作 C1/C2 主 contribution，已撤销。v4.1 进一步根据用户反馈**删除原 C5 (Four-level event scoping + DSL-native module composition)**（理由：太侧重工程，不构成 paper-level method contribution），同时**新增 §11.3.0 三段论 framing 论证**（pyfcstm feature → LLM agent loop 能力 → 控制系统价值），把"为什么 pyfcstm 特性更贴合控制系统"这一论证链显式写清楚。
+
+#### 11.3.0 pyfcstm feature → LLM 能力 → 控制系统价值（**Path 2 核心 framing**）
+
+本子节回答：**为什么 pyfcstm 的差异化能力特别贴合控制系统 NL-to-STM 任务？只列特性不够 — 必须论证 pyfcstm feature 在 LLM agent loop 中给模型带来的具体能力，以及这些能力如何转化为控制系统场景的实际价值**。三段论：**pyfcstm feature → LLM agent capability → control system modeling value**。
+
+##### 11.3.0.1 控制系统 NL-to-STM 与一般 reactive system 的 4 个本质区别
+
+控制系统建模相对一般 reactive system（家电 / 办公设备 / 教学题）有 4 个本质区别：
+
+1. **周期执行范式**：控制系统跑在 control cycle 上（PLC 扫描周期 / 嵌入式 superloop / ROS spin 周期），每个 cycle "读传感器 → 决策 → 写执行器"；状态机停在某个 mode 时**每个 tick 都要做事**（积分、滤波、监控、watchdog）。一般 reactive system 是事件驱动 — 状态机停下来等下次事件
+2. **数值密集的守卫 / 效果**：控制系统 transition guard 含大量**复合数值条件**（温度阈值 / 距离阈值 / 流量约束 / 时序去抖 / 边沿检测）；effect 含 PID 计算 / 状态变量更新 / 累积量推进
+3. **硬件解耦需求**：控制系统 STM 在生成阶段**无法决定 target deployment**（PC 仿真 / RTOS / PLC / 嵌入式 MCU / ROS 节点），必须符号占位 + 后期注入；不能在 DSL 里直接写宿主语言代码
+4. **强 safety invariant + fault-recovery**：任何 mode 下都要 enforce 安全不变式（"温度 ≤ 最大值"、"距离 ≥ 最小值"、"流量 ∈ 允许区间"）；任何 mode 下 Error 事件触发都必须强制切到 fault-recovery 路径，**不能依赖具体 mode 内部的逻辑接收**
+
+这 4 个本质区别决定了"通用 LLM-based STM 工具链（Umple / PlantUML / Mermaid / SysML / TTool）在控制系统场景下不胜任"的根本原因 — 不是工具链不能"画"控制系统状态机，而是**它们不在 generation loop 中暴露上述 4 类需求所需的 grounding signal**。
+
+##### 11.3.0.2 三段论 mapping 表（4 行覆盖 4 条 method core）
+
+下面 4 行对应 §11.3 中 C1-C4 四条 method core 各自的 **"(a) pyfcstm 给了什么 feature → (b) 这个 feature 在 LLM agent loop 中带来什么能力 → (c) 这个能力在控制系统场景的实际价值"** 论证链：
+
+| pyfcstm feature | LLM agent loop 能力 | 控制系统场景价值 |
+| --- | --- | --- |
+| `SimulationRuntime` 内 deepcopy-snapshot speculative DFS validation + structured `SimulationRuntimeDfsError` (`pyfcstm/simulate/runtime.py:_validate_transition`) | agent 在每轮 repair 前能拿到"这条 transition 触发后该 mode 的子状态机能否 reach stable boundary"的 ground-truth 反馈，及具体 dead-end 模式（init 全失败 / pseudo 不停 / guard 互锁 / exit-vs-parent 循环） | 控制系统**多模式切换**（mode A → mode B）中"切过去后 mode B 子状态机无合法 init"这类 critical bug 在 generation 阶段就被识别，无需等到 deploy 后 runtime 死机；agent 拿到诊断后能定向修复 |
+| `Expr` IR + `pyfcstm/solver/` Z3 集成（`expr_to_z3` / `execute_operations` / `solve`） | agent 在每轮 repair 前能拿到"这条 transition 的 guard 是否可达 (SAT)" / "effect 后变量空间是否满足下一 invariant" 的 SMT-grade 反馈，覆盖 22 个数学函数闭包 | 控制系统**数值密集 guard** (温度阈值、流量约束、传感器去抖、PID 计算后续条件) 可被符号求解；agent 能发现"这条 guard 在变量定义域内永不为真"或"effect 后违反 safety invariant"这类静态可证伪逻辑错误 |
+| `>> during before/after` aspect actions (root→leaf→root cascade) + `!` forced transition (模型层递归展开到所有 descendant) | agent 可生成**跨所有叶子的 cross-cutting 行为**（监控、日志、安全断言）无需为每个 leaf 复制；可一行声明 fault-recovery escape 自动展开到所有适用子状态 | 控制系统**周期执行范式 + 强 safety invariant**：一行 `>> during after abstract AssertSafetyInvariant` 表达"任意 mode 下每周期都要检查安全上限"；**强 fault-recovery**：一行 `! * -> ErrorHandler :: Error` 表达"任意工作 mode 下 Error 都强制切到安全状态"；Umple 都需要在每一 mode level 手抄 |
+| `enter abstract` / `during abstract` / `>> during before abstract` + `@abstract_handler` decorator + `ReadOnlyExecutionContext` (frozen) | agent 可在 generation 阶段产出**hardware-effector 占位符**不需要决定 deployment target；handler 在 runtime 反射注入，frozen context 防止 handler 修改 vars；两档错误处理（raise / log）把 handler 异常落到 structured field 供 agent 消费 | 控制系统**硬件解耦需求**：同一 STM 模型在 PC 仿真 / RTOS / 嵌入式 MCU 之间无修改部署；测试时 mock handler、deploy 时实硬件 handler；STM 模型保持"语义骨架"不动 |
+
+##### 11.3.0.3 为什么 baseline 工具链（Umple / PlantUML / Mermaid / TTool / SysML）不胜任
+
+不是这些工具不能"画"出控制系统状态机；问题在于它们**不能给 LLM agent loop 提供上述 4 行的 grounding signal**：
+
+1. **Umple**：guard 是 host-language 代码片段，没有 language-independent IR → 无法 SMT 求解；no speculative validation → 死锁 / 不可达 transition 只在 codegen 后运行时暴露；no DSL-native aspect AOP → 控制系统 invariant 要手抄；no DSL-level abstract action → lifecycle hook 直接写宿主语言代码
+2. **PlantUML / Mermaid**：纯渲染工具，**没有 runtime / simulation / verification 能力** — 在控制系统 LLM agent loop 中只是"画状态机的工具"，无 grounding signal
+3. **ttool-ai**：有 JSON syntax check 但**没有 speculative validation**、**没有 Z3 solver**、**没有 aspect AOP**；TTool simulator 是 post-hoc 评分支撑，**不在 generation loop 内**
+4. **IEC 61499 iterative refinement**：有 softPLC simulation 但**需要人类评论介入**驱动迭代；不是 fully automated
+5. **SysML（标准而非工具）**：标准上有 statechart 表达力，但**没有特定 reference runtime 提供 in-loop grounding**
+
+因此，**pyfcstm 在 LLM-based control system STM synthesis 任务中的不可替代性，不是"它有什么独家 feature"，而是"它把控制系统建模所需的 4 类 grounding signal（dead-end check / SMT 可达性 / cross-cutting + forced escape / hardware decoupling）全部做在了一个 fully-automated DSL toolchain 之内"**。这是 Path 2 paper 的 method core 的真正立论基础，也是 §11.3 下面 4 条 C1-C4 contribution 的统一 framing 锚点。
+
+---
+
+Path 2 视角下我们的 5 条 contribution（前 4 条 method core，第 5 条 evidence + enabling tooling）。**Path 2 与 Path 1 的差异**：method core (C1-C4) 是 paper-wide 一致的 4 条；但 Path 2 强化每条 method core 与控制系统具体场景的对应关系；evidence section 用 sources/ 真实工业控制系统 NL 而非家电 benchmark。
+
+#### C1 — In-loop deterministic feedback via speculative validation（**method core**）
+
+> "We integrate pyfcstm's cycle-based simulation runtime — featuring per-cycle deepcopy-snapshot speculative DFS validation bounded by 1000 steps, 64 stack frames, and structural-and-value signature pruning (`pyfcstm/simulate/runtime.py:_validate_transition`) — as a deterministic in-loop feedback source. The runtime rejects transitions whose downstream init / pseudo / parent-continuation chains cannot reach a stoppable boundary, and surfaces a structured `SimulationRuntimeDfsError` whose docstring enumerates pathological STM patterns."
+
+**控制系统场景对应**：当 LLM 生成包含**多模式切换的控制器**时（如电梯模式切换、PLC 阶段控制、自动驾驶 supervisor mode 转换），speculative validation 能识别"某条 mode transition 触发后该 mode 的子状态机没有合法 init"这类病态。这对 Umple/PlantUML/Mermaid 这些**不在 runtime 层做 dead-end 检测**的工具链是无法替代的 grounding。
+
+#### C2 — Language-independent expression IR enables symbolic reasoning without code generation（**method core，控制系统场景的关键 enabler**）
+
+> "The DSL ships a unified `Expr` IR (`pyfcstm/model/expr.py`) supporting arithmetic / bitwise / logical / ternary / 22-function math closure required by state-machine guards and effects. The same IR is simultaneously (a) evaluable, (b) AST-round-trippable, (c) Z3-translatable via `pyfcstm/solver/expr.py:expr_to_z3`, and (d) renderable into 9 target languages. We exploit it to provide LLM agents with **guard SMT satisfiability** (`pyfcstm/solver/solve.py:solve`) and **symbolic effect propagation** (`pyfcstm/solver/operation.py:execute_operations`) as in-loop feedback — without ever leaving the DSL toolchain."
+
+**控制系统场景对应**：控制系统状态机大量依赖**数值变量 + 复杂守卫条件**（温度阈值、距离阈值、流量约束、传感器去抖、PID 计算）。pyfcstm DSL 内可直接表达这类逻辑：
+
+```fcstm
+def int debounce_count = 0;
+def float temp = 25.0;
+def float threshold = 80.0;
+state Wait {
+    during {
+        if [pressed >= 1] { debounce_count = debounce_count + 1; }
+        else              { debounce_count = 0; }
+    }
+}
+Wait -> Triggered : if [debounce_count >= 5 && abs(temp - target) < threshold] effect { debounce_count = 0; };
+```
+
+Z3-backed solver 让 agent loop 可以问"这条 transition 的 guard 是否可达？""effect 后变量空间满足下一 invariant 吗？" — Umple 的 host-language-bound guards 做不到。
+
+#### C3 — DSL-native aspect AOP and forced fault paths align with control-system idioms（**method core，控制系统直接对应**）
+
+> "We design our method around two pyfcstm DSL-level primitives that Umple, PlantUML, and Mermaid lack: (i) **aspect actions** `>> during before / after` cascading from root to leaf states at every cycle (`pyfcstm/model/model.py:iter_on_during_aspect_recursively`); and (ii) **forced transitions** `!` recursively expanded to every applicable descendant substate (`pyfcstm/model/model.py:_recursive_finish_states`)."
+
+**控制系统场景对应**：
+
+**Aspect actions** = 控制系统"每个周期都要做的事"的第一类原语：
+
+```fcstm
+state MotorControl {
+    >> during before { tick = tick + 1; }              // 每周期递增 watchdog
+    >> during after abstract AssertSafetyInvariant;    // 每周期注入 safety invariant 检查
+    state Running { during { command_torque = kp * (target - position); } }
+    state Stopped { during { command_torque = 0; } }
+}
+```
+
+`>> during after` 在任意活跃叶子状态后都自动注入（root→leaf→root cascade），对应"任意 mode 下 invariant 都必须 hold"。Umple 要在每个叶子的 `do` 内手抄一遍。
+
+**Forced transition** `!` = 控制系统"任何模式下 Error 触发必须切到 ErrorHandler"的一行 declarative encoding：
+
+```fcstm
+state Plant {
+    ! * -> ErrorHandler :: Error;   // 任何子状态下 Error 都强制 escape
+    state Idle;
+    state Running { state Phase1; state Phase2; [*] -> Phase1; }
+    state ErrorHandler { enter abstract NotifyOperator; }
+}
+```
+
+Umple 需要手写每一层 escape 或借助 nested state 隐含规则（agent report §6.3）。
+
+#### C4 — Abstract action + read-only context decouples symbolic STM from physical effectors（**method core，控制系统硬件解耦**）
+
+> "Combining DSL-level abstract action declarations with Python-side `@abstract_handler` decorator and `ReadOnlyExecutionContext` (`pyfcstm/simulate/decorators.py` + `context.py`) lets the LLM synthesize STMs without committing to a deployment target."
+
+**控制系统场景对应**：控制系统 STM 在生成阶段**不应该决定 deployment target**（PC 仿真 / RTOS / PLC / 嵌入式 MCU / ROS 节点）。pyfcstm 通过 DSL 级 abstract action 占位 + 反射式 handler 注入实现彻底解耦：
+
+```fcstm
+state CalibrationMode {
+    enter { offset = 0; samples = 0; }
+    enter abstract OpenValve;                          // hardware-specific, placeholder
+    during { offset = offset + read_sensor(); samples = samples + 1; }
+    exit { offset = offset / samples; }
+    exit abstract CloseValve;                          // hardware-specific, placeholder
+}
+```
+
+Python 侧：
+
+```python
+class HardwareHandlers:
+    @abstract_handler('Plant.CalibrationMode.OpenValve')
+    def open_valve(self, ctx):  # ctx is frozen ReadOnlyExecutionContext
+        gpio.set_pin(VALVE_OUT, HIGH)
+runtime.register_handlers_from_object(HardwareHandlers())
+```
+
+测试时 mock handler、部署时实硬件 handler — **STM 模型不变**。两档错误处理（`abstract_error_mode={raise, log}`）把 handler 异常落到 `error_info` / `abstract_handler_errors` 供 agent loop 消费。Umple 的 lifecycle hook 是 host-language-bound 代码，没有此抽象层（agent report §6.4 / §6.7）。
+
+#### C5 — Empirical demonstration on real industrial control system NL + reference-free evaluation enabling tooling（**evidence + enabling tooling，NOT core contribution**）
+
+> "We demonstrate the method on a 20-case T0 subset of [sources/](../sources/), spanning 9 real industrial control system domains. Since canonical reference STMs do not exist for real industrial requirements (the same NL can be modeled as multiple semantically-equivalent STMs), we develop a reference-free evaluation protocol combining five intrinsic metrics (`ParseRate`, `SemValidRate`, `SimRate`, `ReachabilityRate`) with an LLM-judge rubric score (`JudgeScore`). The protocol and benchmark are **enabling tooling** that makes the method's evaluation feasible in this domain, not the method itself."
+
+**Path 2 关键 framing**：我们**不与 baseline 的家电/通用 reactive system/domain model 一般性方法竞争** — 我们只干 baseline 工具链干不了的事：在真实工业控制系统 NL 上做 fully-automated grounded synthesis。reference-free protocol + sources/ benchmark 是让 method core (C1-C4) **能在这个差异化领域被实验验证的 supporting infrastructure**。core contribution 是 method 本身（C1-C4，且每条都对应 §11.3.0 三段论 framing 论证的一行）。
+
+### 11.4 paper §1 contributions 列表（Path 2 视角）
+
+按 paper §1 排序，前 4 条都是 method core，每条都对应 pyfcstm 一个 control-system-specific 能力 + §11.3.0 三段论 framing 论证的一行：
+
+| # | 类别 | contribution | 对应 pyfcstm feature | 控制系统场景价值 |
+| --- | --- | --- | --- | --- |
+| 1 | **method** | In-loop deterministic feedback via speculative validation | `SimulationRuntime` DFS validation + `SimulationRuntimeDfsError` | 多模式切换 dead-end 识别 |
+| 2 | **method** | Language-independent expression IR enables symbolic reasoning | `Expr` IR + `solver/` Z3 集成 + 跨 9 语言渲染 | 复杂数值守卫 + Z3 可达性 + 跨部署目标 |
+| 3 | **method** | DSL-native aspect AOP + forced fault paths | `>> during before/after` + `!` forced transition | per-tick invariant + 强制 fault-recovery escape |
+| 4 | **method** | Abstract action + read-only context for effector-agnostic STM synthesis | `enter abstract` + `@abstract_handler` + `ReadOnlyExecutionContext` | 硬件解耦 + handler 反射注入 |
+| 5 | **evidence + enabling** | 20-case industrial control system NL benchmark + reference-free intrinsic + judge protocol | — | sources/ 9 真实工业领域 |
+
+> 完整 LaTeX 模板 + 引用 key 等 paper drafting 阶段再具体写。
+
+### 11.5 与 6 个 baseline 的方法学定位（速查表，paper §2 related work 直接复用）
+
+完整 6-baseline 对照表见 §1.1。下面是 Path 2 视角的精简表：
+
+| baseline | 方法学共同点 | 与我们的关键区别 |
+| --- | --- | --- |
+| structure_event_driven (#1) | 多步 prompting | **无 in-loop feedback**；reference-based eval；家电而非控制系统 |
+| llms_emp (#2) | 多步 + in-loop feedback | feedback 仅 rule-based grammar/semantics，**无 sim/reach/judge**；reference-based eval；混合领域非纯控制系统 |
+| IEC 61499 (#3) | 控制系统 + sim feedback | **需要 human-in-the-loop comments**；输出 IEC 61499 code 而非 STM |
+| Automated Statechart Auto (#4) | 控制系统 | **微调而非 prompt-based**；Volvo 内部数据 + reference-based eval |
+| Llama3 Umple (#5) | Umple 可执行性 check | 小模型 (8B)；**无 control system 语义**；reference-based eval |
+| ttool-ai (#6) | 自动反馈循环 | feedback 是 JSON/syntax/约束 + post-hoc TTool simulator；**无 reachability witness**；系统级 spec 而非单 STM |
+
+**关键 framing 点**：Path 2 与 baseline 的差异不在"是否多步" / "是否有 in-loop feedback"（很多 baseline 都有），而在 **(i) 反馈源 grounding 强度（externally grounded multi-source vs internally grounded single-source）** + **(ii) 任务定位（reference-free industrial control system vs reference-based academic benchmark）**。这两个差异是 paper §1 contributions 的双锚点。
