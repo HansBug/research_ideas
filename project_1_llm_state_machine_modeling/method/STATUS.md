@@ -3,19 +3,40 @@
 > **branch**: `dev/method-agent-implementation`
 > **目标**：完整实现 + 跑通 our agent loop + 给出引导 md + smoke 通过；merge 到 main 后 Path 1 / Path 2 各自 PR rebase main 拿到这部分。
 
-## 整体阶段（v2 — 2026-05-26 加入 multi-step modeling + property generation）
+## 整体阶段（v3 — 2026-05-26 D 拆分：sim 与 property generation 配对实现）
+
+> **v2 → v3 修订依据**：用户 2026-05-26 反馈 — sim feedback 不依赖 property 就只能验证"不死锁 / 状态可达"这种通用 sanity，无法验证业务正确性；必须先有 property（提供 expected behavior oracle），sim 才能验证 model 行为是否符合 NL 需求。因此 sim 从 Phase D 中拆出，**与 property generation 在 Phase G 配对实现**。
 
 | Phase | 内容 | 状态 |
 | --- | --- | --- |
 | **A** | 脚手架 + pyfcstm submodule + 目录骨架 + README + STATUS | ✅ 完成 |
 | **B** | gpt_client.py 统一 LLM client + schema.py dataclass | ✅ 完成 (LLM endpoint ping 通) |
-| **C** | single-prompt modeling 路径：spec_extractor / modeler / repair 三个 agent + prompt | ✅ 完成 (端到端 smoke 跑通：NL → SpecJson → DSL → pyfcstm parse + sem OK) |
-| **D** | 四个 feedback source wrapper（parse / semantic / sim / judge） | 未开工 |
-| **E** | loop.py 主驱动 + gated cascade 合并 + iter 控制 + **modeling 路径切换 (single-prompt vs multi-step) CLI flag** | 未开工 |
-| **F (新增)** | **Multi-step modeling 模块**：基于用户硕士论文 MTI 方法学，拆 5 步 (identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm)；step 之间通过 JSON 上下文传递，每步 prompt 含统一的 task_description + step_prompt + domain_knowledge + format_description 结构 | 未开工 |
-| **G (新增)** | **Property generation 模块**：基于已生成的 pyfcstm model 元素 (states / events / transitions / variables) 自动生成**待验证性质 / 测试场景**（Gherkin-like 或 event sequence + expected state/var），配合 pyfcstm `SimulationRuntime` sim 验证 — 性质提供 sim oracle (expected behavior)，sim 提供执行验证 | 未开工 |
-| **H** | eval/component_extractor.py (Umple/pyfcstm 7 类组件抽取，Path 1 评测用) | 未开工 |
-| **I** | 端到端 smoke (single-prompt vs multi-step 对比) + 验收 + 生成模型 vs baseline 对比例子写进 README/STATUS + 文档收尾 + PR Ready | 未开工 |
+| **C** | single-prompt modeling 路径：spec_extractor / modeler / repair 三个 agent + prompt | ✅ 完成 (端到端 smoke 跑通) |
+| **D (修订)** | **parse + semantic feedback wrappers**（2 个 property-independent deterministic feedback）<br>`feedback/parse.py`：包 `pyfcstm.dsl.parse_with_grammar_entry`，从 `GrammarParseError.errors` 抽 line/col/got/snippet<br>`feedback/semantic.py`：包 `pyfcstm.model.parse_dsl_node_to_state_machine`，用 regex 从 SyntaxError message 分类 (undefined_vars / missing_states / dangling_transitions / type_mismatches) | ✅ 完成 (smoke verified：good DSL ok / parse_bad 给出 line+col+got+snippet / sem_bad 抽出 undefined_var) |
+| **E** | loop.py 主驱动 + gated cascade 合并 + iter 控制 + **modeling_mode CLI flag (single_prompt vs multi_step)** | 未开工 |
+| **F** | **Multi-step modeling 模块**（基于用户硕士论文 MTI 方法学）：拆 6 步 (identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm)；step 之间通过 JSON 上下文传递；每步 prompt 含统一 **7 段式骨架**（task / requirements / 上游 list / 本步任务 / domain knowledge / format / constraint / 起手占位） | 未开工 |
+| **G (修订 — 与 sim 配对，framing 校正)** | **Model test scenario generation + sim feedback 配对实现**：<br>**注意**：这里的 "scenario" / "property" 是 **model test case**（约定输入下的期望行为），**不是形式化验证的 LTL / CTL 性质**。框架对标 MTI 的 BDD scenario 三元组思路 — sim 是"用模型仿真代替代码运行的 testcase 执行环境"。<br><br>(1) test scenario generation 子模块（3 步流水，对应 MTI 论文的 mapping → Gherkin → 三元组）：<br>　• `elements_mapping`：NL requirement → 涉及的 model 元素 (states / events / variables) 子集<br>　• `scenario_generation`：基于 mapping 生成 Gherkin (Given/When/Then) 人类可读场景，覆盖关键 transition + edge case<br>　• `structure_scenario`：Gherkin → 三元组 mini-DSL `[s-InitialState, e-Event1, e-Event2, ..., expected: s-FinalState, v-Var=Val]`（机器可执行）<br><br>(2) `feedback/sim.py`：把三元组 scenario 喂给 `SimulationRuntime` — 用 initial_state 做 hot start，按 event_sequence 跑 `cycle(events=...)`，对比 `runtime.current_state` / `runtime.vars` vs scenario 中的 expected_final_*，输出 SimFeedback（`scenario_violations` / `unreachable_states` / `deadlocks` / `safety_limit_hit` / `SimulationRuntimeDfsError`）<br><br>**核心 framing**：单靠 sim 跑空 cycle 只能 verify "不死锁 / 状态可达"；要 verify "model 行为是否符合 NL 需求"，必须有 "NL → scenario (expected behavior) → sim 执行验证" 的 oracle 链。这是**用模型仿真做 testcase 验证**而不是 model checking | 未开工 |
+| **H** | judge feedback (ex1 ExpertReviewAgent adapter) — rubric 5 维 semantic 评分 | 未开工 |
+| **I** | eval/component_extractor.py (Umple / pyfcstm 抽 7 类组件，Path 1 评测用) | 未开工 |
+| **J** | 端到端验收：single_prompt vs multi_step 对比跑、生成模型 + property 例子写进 README/STATUS、PR mark Ready for Review | 未开工 |
+
+## Phase 依赖关系
+
+```
+A → B → C (single-prompt 已完成)
+        │
+        ├→ D (parse + sem) ─────────────┐
+        │                               ├→ E (loop driver) ──→ J (验收)
+        ├→ F (multi-step modeling) ────┤      ↑
+        │                               │      │
+        ├→ G (property + sim 配对) ─────┤      │
+        │                               │      │
+        ├→ H (judge) ───────────────────┘      │
+        │                                      │
+        └→ I (eval extractor, Path 1 用) ──────┘
+```
+
+Phase D / F / G / H / I 之间无依赖，可以并行做。Phase E (loop driver) 把它们串起来。Phase J 验收。
 
 ## 设计原则：modeling 路径作为 CLI 选项
 
