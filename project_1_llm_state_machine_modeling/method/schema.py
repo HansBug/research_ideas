@@ -124,63 +124,96 @@ class SemanticFeedback:
     error_message: Optional[str] = None
 
 
+StepStatusLiteral = Literal["pass", "fail", "error"]
+
+
+@dataclass
+class ScenarioStep:
+    """One step in a multi-step scenario.
+
+    Execution semantics (per step):
+
+      1. ``cycle()`` × ``before_cycles``         (empty cycles to let model advance freely)
+      2. depending on ``events``:
+           - ``None``        => skip the cycle entirely (no advancing this step)
+           - ``[]``          => ``cycle()``                (one cycle, no events injected)
+           - ``[e1, e2,...]``=> ``cycle(events=[e1,e2,...])`` (one cycle, all events injected as
+                                                          a single batch — supports pseudo-state
+                                                          chained jumps that need multiple events
+                                                          all triggered together)
+      3. checkpoint: assert state == ``expected_state`` (if not None) and ``actual_vars``
+         contains the listed ``expected_vars`` (if not None / non-empty). Vars NOT listed
+         in ``expected_vars`` are "don't care" (not checked).
+    """
+
+    before_cycles: int = 0
+    events: Optional[list[str]] = None
+    expected_state: Optional[str] = None
+    expected_vars: Optional[dict[str, Any]] = None
+    name: str = ""  # optional checkpoint label for trace
+
+
+@dataclass
+class StepResult:
+    """Outcome of executing one ScenarioStep against a runtime."""
+
+    step_index: int = 0
+    step_name: str = ""
+    status: StepStatusLiteral = "pass"
+    actual_state: str = ""                       # state at end of step
+    actual_vars: dict[str, Any] = field(default_factory=dict)  # all vars at end of step
+    state_assertion_ok: Optional[bool] = None    # None if expected_state was None
+    var_assertion_ok: Optional[bool] = None      # None if expected_vars was None/empty
+    var_mismatches: dict[str, dict[str, Any]] = field(default_factory=dict)  # {var: {expected, actual}}
+    runtime_error: Optional[str] = None          # set if status == 'error'
+
+
 @dataclass
 class TestScenario:
-    """A single model-level test scenario (analogous to MTI 三元组 / BDD case).
+    """A multi-step model-level test scenario (BDD-style, not LTL/CTL).
 
-    Represents "given this initial setup, after these events, the model should
-    end in this state with these variables set this way". The sim wrapper
-    feeds this into pyfcstm ``SimulationRuntime``, and any deviation between
-    predicted (``expected_*``) and actual (post-sim) state/vars becomes a
-    SimFeedback violation.
+    Composed of:
+      - hot-start setup (``initial_state`` + ``initial_vars``)
+      - a sequence of ``steps``, each is a (before_cycles, events, expected_*) tuple
+        with an embedded checkpoint
+
+    Empty ``steps`` list is legal — represents a "hot-start sanity check" scenario
+    that only verifies the runtime can be constructed at ``initial_state`` /
+    ``initial_vars`` without errors.
     """
 
     name: str = ""
     description: str = ""
-    initial_vars: dict[str, Any] = field(default_factory=dict)  # {} = use def defaults
-    events: list[str] = field(default_factory=list)  # full event paths, e.g. ["System.Reset"]
-    cycles_between_events: int = 1  # gap cycles in between each event injection
-    extra_cycles_after_events: int = 0  # extra cycles to run after the last event
-    expected_final_state: str = ""  # ".".join(state.path), e.g. "System.Red"
-    expected_vars: dict[str, Any] = field(default_factory=dict)  # subset of vars to assert
+    initial_state: Optional[str] = None  # hot-start state path (None => default initial transition)
+    initial_vars: dict[str, Any] = field(default_factory=dict)
+    steps: list[ScenarioStep] = field(default_factory=list)
 
 
 @dataclass
-class ScenarioViolation:
-    """One scenario fired against the model and the result didn't match expected."""
+class ScenarioResult:
+    """Per-scenario aggregate result (collects all step results + overall status)."""
 
-    scenario_name: str = ""
-    expected_state: str = ""
-    actual_state: str = ""
-    state_matches: bool = False
-    expected_vars: dict[str, Any] = field(default_factory=dict)
-    actual_vars: dict[str, Any] = field(default_factory=dict)
-    var_mismatches: dict[str, dict[str, Any]] = field(default_factory=dict)  # {var: {expected, actual}}
-    runtime_error: Optional[str] = None  # set if sim raised an exception mid-run
+    name: str = ""
+    description: str = ""
+    status: StepStatusLiteral = "pass"  # pass if all steps pass; fail if any step fail (no error); error if any step error
+    step_results: list[StepResult] = field(default_factory=list)
+    setup_error: Optional[str] = None  # SimulationRuntime construction failed (e.g. bad initial_state)
 
 
 @dataclass
 class SimFeedback:
-    """Output of ``pyfcstm.simulate.SimulationRuntime`` execution against a scenario suite.
+    """Output of running pyfcstm ``SimulationRuntime`` against a list of scenarios.
 
-    ``ok=True`` iff every scenario fires cleanly (no DfsError, no safety limit
-    hit) AND every scenario's expected state + vars match the actual post-sim
-    state/vars. Without scenarios (when ``scenarios`` arg is empty), this
-    degrades to a basic sanity check: parse + sem OK + at least one cycle
-    runs without DfsError.
+    ``ok=True`` iff every scenario's overall status is ``pass``. The detailed
+    per-scenario, per-step results (with state/vars/assertion info) are in
+    ``scenario_results`` and consumed downstream by the Repair agent prompt.
     """
 
     ok: bool = False
-    cycles_completed: int = 0
     n_scenarios: int = 0
     n_scenarios_passed: int = 0
-    scenario_violations: list[ScenarioViolation] = field(default_factory=list)
-    unreachable_states: list[str] = field(default_factory=list)
-    deadlocks: list[dict[str, Any]] = field(default_factory=list)
-    safety_limit_hit: bool = False
-    dfs_error_class: Optional[str] = None
-    dfs_error_message: Optional[str] = None
-    setup_error: Optional[str] = None  # parse/sem failed before sim could start
+    scenario_results: list[ScenarioResult] = field(default_factory=list)
+    setup_error: Optional[str] = None  # global parse/sem fail before any scenario could run
 
 
 @dataclass
