@@ -308,41 +308,55 @@ condition 字段分发（在 run_path2.py 内部）：
 3. **token tracking**：每 row 含 `token_usage = {prompt, completion, total}`，summary.json 含按 condition × bucket aggregate
 4. **资源预算估计**：5 conditions × 15 cases ≈ 75 主实验；A_full_ours 含 3 iter × ~6 LLM calls/iter ≈ 270 calls；A0_hybrid_* 含 4 step ≈ 60 calls；A0_single_* 含 1 call。**总计 ~345 LLM calls × 平均 ~20s + sim 验算 ~5s = ~2.5 hr wall time (单线程)** / **~25-30 min (并发 -P 6)**
 
-## 6. 评测指标 — Feature utilization rate（主）+ 4 intrinsic（辅）
+## 6. 评测指标 — VGC（主）+ 4 intrinsic（辅）+ Reference STM 对照（spot-check）
 
-> **v5 重大修订**：原 v4 主报道指标只是 4 个 intrinsic，且把 evaluation methodology 当作独立 contribution (原 C5 "reference-free protocol")。v5 重新定位：
-> 1. **Feature utilization rate** 升为 **§6 主报道指标**（也是 PATH2_REPORT.md §3 主表）— 这是 §1.2 失败模式与 §1.3 grounding 一对一映射的**直接证据**，比 intrinsic 更打到 differentiation argument 痛点
-> 2. **4 intrinsic** 降为**辅助指标**，且作为"反例 sanity"使用（如果 feature utilization 上去了但 intrinsic 反而下降，说明 grounding 错用 / 副作用 / overfit）
-> 3. **不再把 ref-free 当作 contribution** — evaluation methodology 在 §6 描述为 enabling tooling，不进 paper §1 contributions
+> **v5.1 修订（基于"reference-free 不是创新点"+ FUR tautology 修正讨论）**：原 v5 用 FUR (Feature Utilization Rate) 作主指标，但 FUR 测的是"生成 DSL 里有没有出现 pyfcstm-specific 语法"，对 Umple 的对照存在 tautology 嫌疑（Umple 当然不出现 `! * -> Error`，因为它没这个语法）。v5.1 把主指标改为 **VGC (Verifiable Grounding Coverage)** — 测的是"以可被 deterministic verifier 检查的方式表达 grounding semantic 的覆盖率"，把 differentiation 锚定在 **verifier 能力**而不是字面语法上。Umple 即使用 `do` activity / per-state fault transition / hook 表达了对应 semantic，VGC 也不满分，因为没有对应的 in-loop verifier 能 ground 这些 semantic 在 generation 阶段就回灌。
 
-### 6.1 `FeatureUtilizationRate`（主报道指标）— 4 类 pyfcstm grounding feature 各自的使用率
+### 6.1 `VerifiableGroundingCoverage`（主报道指标）— 把 differentiation 锚到 verifier 能力
 
-对生成的 DSL 文本直接 grep 统计 4 类 feature 出现次数，归一化到样本数：
+对每个生成 DSL，按下面 4 个 grounding semantic 各自判定：**(A) semantic 是否被表达；(B) 表达方式是否可被对应 toolchain 的 verifier 静态检测**。两者同时满足才算该 semantic "verifiably grounded"。
 
-| Feature | 检测模式（pyfcstm DSL）| Umple 对应物 | 对应控制系统特征 | 对应 contribution |
+| Grounding Semantic | pyfcstm 表达 + verifier | Umple 等价表达 + verifier | 对应控制系统特征 | 对应 contribution |
 | --- | --- | --- | --- | --- |
-| `DuringBlock` | `during\s*\{` 或 `during\s+[a-z]` 出现 | 无 DSL-level 等价；可勉强写成 `do` activity（语义不同）| 周期执行 | C1 |
-| `MultiVarGuard` | transition guard 含 ≥2 个 variable name 且含算术 / 复合比较运算符 | guard 是 host-language code → 不可静态比较 | 数值密集 | C2 |
-| `ForcedTransition` | `!\s*\*\s*->\s*` 或 `!\s+[A-Z]\w*\s*->` 出现 | 无 — 每个 fault edge 要手抄到每个 state | 强 invariant + fault recovery | C3 |
-| `AbstractAction` | `enter\s+abstract` / `during\s+abstract` / `exit\s+abstract` 出现 | 无 — action 是 host-language code | 硬件解耦 | C4 |
+| Per-cycle behavior | `during {}` / `>> during` aspect → `SimulationRuntime._run_cycle_on_context` 静态展开 + cycle-level execution check | `do` activity → **无 cycle-level verifier**（host language hook）| 周期执行 | C1 |
+| Numerical guard reasoning | `Expr` IR 含 ≥2 vars + 算术/比较 → `pyfcstm/solver/expr.py:expr_to_z3` SMT check | host-language guard code → **无 SMT translation 路径** | 数值密集 | C2 |
+| Forced fault path | `! * -> Error :: Event` → `_recursive_finish_states` 静态展开到 descendant + 完备性 check | per-state `to Error :: Event` × N → 可数但**无层次自动展开** | 强 invariant + fault recovery | C3 |
+| Hardware effector decoupling | `enter/during/exit abstract` + `@abstract_handler` reflection → `simulate/runtime.py` handler-binding check | host-language action body → **无 abstract / reflection 层** | 硬件解耦 | C4 |
 
 **指标定义**：
 
-$$\text{FUR}_{\text{feature}, \text{condition}} = \frac{\#\{i : \text{feature is used in dsl}_i\}}{N_{\text{Parse-ok}, \text{condition}}}$$
+$$\text{VGC}_{\text{condition}} = \frac{1}{4 \times N} \sum_{i=1}^{N} \sum_{g \in \{C1, C2, C3, C4\}} \mathbb{1}[\text{semantic } g \text{ is verifiably grounded in } \text{dsl}_i]$$
 
-注：分母只算该 condition 下 ParseRate 通过的样本（生成 DSL 必须是合法 syntax 才能 grep）。Umple condition 下，`DuringBlock` / `ForcedTransition` / `AbstractAction` 三项**结构性 = 0**（Umple DSL 无对应语法），`MultiVarGuard` 因 Umple guard 是不透明 host-language code 标 **N/A**。
+每个 case × 每个 grounding semantic 给一个二元 score (1 = verifiably grounded / 0 = not)，对 N case × 4 semantic 取均值。
 
-**预期结果（v5 sprint 期望）**：
+**判定流程**（per case × per semantic）：
 
-| Condition | DuringBlock | MultiVarGuard | ForcedTransition | AbstractAction |
-| --- | ---:| ---:| ---:| ---:|
-| A0_single_umple | 0% (struct) | N/A | 0% (struct) | 0% (struct) |
-| A0_hybrid_umple | 0% (struct) | N/A | 0% (struct) | 0% (struct) |
-| A0_single_pyfcstm | ~low (LLM 默认不主动用) | ~low | ~low | ~mid (因 NL 含具体硬件名) |
-| A0_hybrid_pyfcstm | mid (Hybrid 多步引导可能识别周期需求) | mid | ~low (forced transition 在 baseline strategy 里没被 prompt 引导) | mid |
-| A_full_ours | **high** (sim feedback push) | **high** (z3 grounding push) | **high** (semantic + sim 暴露 fault path 缺失) | **high** (multi-step modeler 主动占位) |
+1. **表达检测**：grep 出该 semantic 在 DSL 中的候选表达（pyfcstm 语法 / Umple 等价构造）
+2. **verifier 适用性**：对应 toolchain 的 verifier 能否对该表达做静态 grounding check
+3. 同时 ✓ → score = 1，否则 score = 0
 
-**A_full_ours 相对 A0_hybrid_pyfcstm 的 lift** 是 paper §4 主报道数字 — 它隔离了"DSL 选 pyfcstm 但单靠 prompting 还是用不上"vs"加了我们 agent loop 的 deterministic feedback 后 grounding 真正生效"两件事。
+**关键 framing**：Umple 在 C1/C3/C4 上即使写了 `do` / per-state `to Error` / inline action，VGC score 依然 0 —— 不是因为没表达，而是因为**没有 in-loop verifier 把这些 semantic 转成 deterministic feedback signal**。这把 differentiation 锚定到 verifier 能力（= C1-C4 contribution 的核心）而非字面语法。这同时解决了 v5 草案里 FUR 的 tautology 嫌疑（reviewer 不能再说"你只是测了 pyfcstm syntax 出现率"）。
+
+**预期结果（v5.1 sprint 期望）**：
+
+| Condition | C1 VGC | C2 VGC | C3 VGC | C4 VGC | mean VGC |
+| --- | ---:| ---:| ---:| ---:| ---:|
+| A0_single_umple | 0 (no cycle verifier) | 0 (no SMT) | 0 (no layered fault verifier) | 0 (no abstract layer) | 0% |
+| A0_hybrid_umple | 0 | 0 | 0 | 0 | 0% |
+| A0_single_pyfcstm | ~low (LLM 默认不主动用) | ~low | ~low | ~mid | low-mid |
+| A0_hybrid_pyfcstm | mid (Hybrid 引导可识别周期需求) | mid | low | mid | mid |
+| A_full_ours | **high** (sim feedback push) | **high** (Z3 grounding push) | **high** (sem+sim 暴露 fault path) | **high** (multi-step modeler 主动占位) | **high** |
+
+**A_full_ours vs A0_hybrid_pyfcstm 的 VGC mean lift** 是 paper §4 主报道数字 — 它隔离了"DSL 选 pyfcstm 但单靠 prompting 还是用不上"vs"加了我们 agent loop 的 deterministic feedback 后 grounding 真正生效"两件事。
+
+### 6.1.1 与 Reference STM 比对的强化判定（v5.1）
+
+对每个 case，**A 判定**（"semantic 是否被表达"）需要参照该 case 的 reference STM（见 §6.6）：
+
+- reference STM 里如有该 semantic（如原文支持 C3 forced fault）→ A 判定关注 method 输出是否**正确**实现了该 semantic（同 event / 同 target state / 同语义）
+- reference STM 里无该 semantic（如原文不支持 C1）→ method 输出的对应 semantic 不算分（防止"硬塞 feature"过拟合 VGC 指标）
+
+这样 VGC 同时 capture "差异化能力"和"语义正确性"两件事，避免单纯 grep 的 false-positive。
 
 ### 6.2 `ParseRate`（辅 intrinsic）
 
@@ -374,9 +388,142 @@ $$\text{ReachRate}_i = \frac{|\{s \in S_i : s \text{ reachable from initial}\}|}
 
 调用 `pyfcstm.topology` reachability API。**Umple condition 同样 N/A**。
 
-### 6.6 可选 spot-check（不再扯 ref-free calibration）
+### 6.6 Reference STM 起草 pipeline（v5.1 — 全 15 case 全做 + AI 辅助 + 人工签字）
 
-> **v5 重写 rationale**：原 v4 §6.6 把 audit-trail 抽查包装成 "reference-free intrinsic 与 manual gold 相关性证据"，作为 C5 contribution 的可信度桥。v5 删除 C5 后，audit-trail 单纯定位为 **spot-check：抽 3-5 case 看 feature utilization + intrinsic 上去是不是真对应 NL 需求被覆盖到了**，不再扯 ref-free protocol calibration。
+> **paper 口径**：reference STMs are **expert-authored** — author 在 AI 辅助起草基础上**逐 case 审阅签字**。AI 起草工具仅承担"机械化合规检查 + 草稿初稿"，**所有 ref 必须经过人工 audit 才进入 final set**。这是与 expansion NL pipeline 同源的"AI-assisted, expert-signed"流程。
+
+**Pipeline 设计**（4 阶段，全 15 case 适用）：
+
+```
+Stage A: codex 起草 + 自验证
+  ├─ input: STM.md §1 摘录 + §2 NL + expansion NL + paper.pdf + pyfcstm grammar + DSL examples
+  ├─ codex 通过 Bash tool 调用 pyfcstm.dsl.parse / model.parse / simulate 自检
+  ├─ 自检失败 → codex 内部 retry（max 5 iter）
+  └─ output: codex_drafts/<id>.fcstm + codex_drafts/<id>.notes.md
+        ↓
+Stage B: claude 交叉评审
+  ├─ input: Stage A 输出 + 同样的 source materials
+  ├─ claude 评审 (semantic correctness / faithfulness to NL / C-axis grounding 合理性 / 无 hallucination)
+  └─ output: claude_reviews/<id>.json
+        {verdict: APPROVE | REVISE, comments: [...]}
+        ↓
+Stage C: 共识 + 修订 loop（若 REVISE）
+  ├─ feedback claude comments → codex 修订
+  ├─ codex 修订后再 self-validate
+  ├─ revised draft → claude 再评审
+  └─ max 3 轮 outer loop；若仍 REVISE 标 status=needs_human_intervention
+        ↓
+Stage D: bundle 生成
+  ├─ 整合 NL（英文扩充）+ Chinese NL 译文 + ref pyfcstm DSL + verifier results + iteration history
+  └─ output: bundles/<id>.md（per-case 一份，**用户审阅的入口文件**）
+        ↓
+Stage E: 用户 audit（人工签字）
+  ├─ 用户逐 case 读 bundles/<id>.md
+  ├─ 签字 / 标修订建议 / 必要时重写 DSL
+  └─ output: audited/<id>.fcstm + audited/<id>.audit.md（user signed）
+```
+
+**Stage A codex 起草约束**：
+
+1. 必须读 STM.md §1 原文摘录 + §2 NL + paper.pdf + expansion NL 四源
+2. 必须通过 Bash 调用 pyfcstm 工具自检（parse + sem + sim 三关全过）
+3. 必须只用原文出现过的 mode / event / variable / threshold 名（**禁止无中生有**）
+4. 在原文支持的 C-axis 上**恰当**使用 pyfcstm grounding feature（不强行堆砌）
+5. 规模匹配 codex 评审时的 scale 估计（不过度膨胀）
+
+**Stage B claude 评审 rubric**（输出 JSON）：
+
+```json
+{
+  "verdict": "APPROVE | REVISE",
+  "semantic_correctness": {"score": "🟢/🟡/🟠/🔴", "evidence": "..."},
+  "nl_faithfulness": {"score": "🟢/🟡/🟠/🔴", "evidence": "..."},
+  "c_axis_grounding_appropriateness": {"score": "🟢/🟡/🟠/🔴", "evidence": "..."},
+  "hallucination_check": {"found": [], "comment": "..."},
+  "specific_revision_suggestions": ["..."],
+  "overall_comment": "..."
+}
+```
+
+**Stage D bundle 文件结构（用户审阅入口）**：
+
+```markdown
+---
+case_id: 097
+paper_slug: ...
+case_name: ...
+bucket: FSM-basic
+domain: ✈️
+generation:
+  codex_iter: 2
+  claude_iter: 1
+  claude_verdict: APPROVE
+  pyfcstm_verifier:
+    parse_ok: true
+    sem_ok: true
+    sim_ok: true (1 cycle, no deadlock)
+    reach_rate: 6/6
+---
+
+# Case <id>: <case_name>
+
+## 1. 英文 NL（扩充版，含 inline [E] 溯源 markers）
+
+[expanded_nl 原文，含 [E1] [E2] 等 markers]
+
+## 2. 中文 NL 译文
+
+[逐句中文翻译，便于审阅]
+
+## 3. Reference pyfcstm STM
+
+```pyfcstm
+... DSL ...
+```
+
+## 4. C-axis grounding 使用情况
+
+- **C1 (Per-cycle behavior)**: 用 / 未用，原因 ...
+- **C2 (Numerical guard)**: ...
+- **C3 (Forced fault)**: ...
+- **C4 (Abstract action)**: ...
+
+## 5. AI 起草 + 评审过程记录
+
+### 5.1 codex 起草笔记
+[codex_drafts/<id>.notes.md 内容]
+
+### 5.2 claude 交叉评审
+[claude_reviews/<id>.json 内容]
+
+### 5.3 迭代历史
+- iter 1: codex draft → parse 失败 line 23 → 修复
+- iter 2: parse OK / sem OK / sim OK → claude APPROVE → bundle 生成
+
+## 6. 用户审阅区（待填）
+
+- [ ] 签字 approve
+- [ ] 修订建议：
+- [ ] 重写：
+```
+
+**落盘结构**：
+
+```
+eval/data/path2_selection/ref_stms/
+├── codex_drafts/<id>.fcstm           # codex 一阶段起草
+├── codex_drafts/<id>.notes.md
+├── claude_reviews/<id>.json          # claude 评审结果
+├── verifier_logs/<id>.log            # pyfcstm 验证输出
+├── bundles/<id>.md                   # **用户审阅入口**（自动生成）
+├── audited/<id>.fcstm                # 用户签字后 final ref
+├── audited/<id>.audit.md             # 用户审阅笔记
+└── BUILD_STATUS.md                   # 15 case 进度总账
+```
+
+### 6.7 可选 spot-check（complement to VGC，仅做 manual eval 的 case）
+
+> **v5 重写 rationale**：原 v4 §6.6 把 audit-trail 抽查包装成 "reference-free intrinsic 与 manual gold 相关性证据"，作为 C5 contribution 的可信度桥。v5 删除 C5 后 + v5.1 加入 reference STM 后，spot-check 单纯定位为 "5-component 手工评测"作为 VGC + reference STM 之外的第三方独立信号。
 
 从 15 候选抽 3-5 case 走 [`../eval/`](../eval/) LLM-初审 + 人类签字 5-component manual eval：
 
