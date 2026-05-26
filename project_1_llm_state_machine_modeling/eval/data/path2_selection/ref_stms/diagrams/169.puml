@@ -1,0 +1,106 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| detection_confidence | float | 0.0 |
+| confidence_threshold | float | 0.0 |
+| range_uncertainty | float | 0.0 |
+| range_uncertainty_delta | float | 0.0 |
+| range_uncertainty_limit | float | 0.0 |
+endlegend
+
+state "PirateMissionSupervisor" as pirate_mission_supervisor <<composite>> {
+    state "Idle" as pirate_mission_supervisor__idle
+    state "Navigation" as pirate_mission_supervisor__navigation
+    state "Tracking" as pirate_mission_supervisor__tracking <<composite>> {
+        state "AcousticTriangulation" as pirate_mission_supervisor__tracking__acoustic_triangulation
+        state "Pursuit" as pirate_mission_supervisor__tracking__pursuit
+        state "Loiter" as pirate_mission_supervisor__tracking__loiter
+        state "ReLocalization" as pirate_mission_supervisor__tracking__re_localization
+        pirate_mission_supervisor__tracking__acoustic_triangulation --> [*] : /FailsafeInterrupt
+        pirate_mission_supervisor__tracking__acoustic_triangulation --> [*] : /CommunicationTimeout
+        pirate_mission_supervisor__tracking__acoustic_triangulation --> [*] : /MissionEnd
+        pirate_mission_supervisor__tracking__acoustic_triangulation --> [*] : /FailureMode
+        pirate_mission_supervisor__tracking__acoustic_triangulation --> [*] : OperationallyViableRange
+        pirate_mission_supervisor__tracking__pursuit --> [*] : /FailsafeInterrupt
+        pirate_mission_supervisor__tracking__pursuit --> [*] : /CommunicationTimeout
+        pirate_mission_supervisor__tracking__pursuit --> [*] : /MissionEnd
+        pirate_mission_supervisor__tracking__pursuit --> [*] : /FailureMode
+        pirate_mission_supervisor__tracking__pursuit --> [*] : OperationallyViableRange
+        pirate_mission_supervisor__tracking__loiter --> [*] : /FailsafeInterrupt
+        pirate_mission_supervisor__tracking__loiter --> [*] : /CommunicationTimeout
+        pirate_mission_supervisor__tracking__loiter --> [*] : /MissionEnd
+        pirate_mission_supervisor__tracking__loiter --> [*] : /FailureMode
+        pirate_mission_supervisor__tracking__loiter --> [*] : OperationallyViableRange
+        pirate_mission_supervisor__tracking__re_localization --> [*] : /FailsafeInterrupt
+        pirate_mission_supervisor__tracking__re_localization --> [*] : /CommunicationTimeout
+        pirate_mission_supervisor__tracking__re_localization --> [*] : /MissionEnd
+        pirate_mission_supervisor__tracking__re_localization --> [*] : /FailureMode
+        pirate_mission_supervisor__tracking__re_localization --> [*] : OperationallyViableRange
+        [*] --> pirate_mission_supervisor__tracking__acoustic_triangulation
+        pirate_mission_supervisor__tracking__acoustic_triangulation --> pirate_mission_supervisor__tracking__pursuit
+        pirate_mission_supervisor__tracking__pursuit --> pirate_mission_supervisor__tracking__loiter
+        pirate_mission_supervisor__tracking__loiter --> pirate_mission_supervisor__tracking__re_localization : range_uncertainty > range_uncertainty_limit
+        pirate_mission_supervisor__tracking__re_localization --> pirate_mission_supervisor__tracking__pursuit
+    }
+    state "VisualProcessing" as pirate_mission_supervisor__visual_processing <<composite>> {
+        state "DetectorVerification" as pirate_mission_supervisor__visual_processing__detector_verification
+        state "TrackingBurst" as pirate_mission_supervisor__visual_processing__tracking_burst
+        pirate_mission_supervisor__visual_processing__detector_verification --> [*] : /FailsafeInterrupt
+        pirate_mission_supervisor__visual_processing__detector_verification --> [*] : /CommunicationTimeout
+        pirate_mission_supervisor__visual_processing__detector_verification --> [*] : /MissionEnd
+        pirate_mission_supervisor__visual_processing__detector_verification --> [*] : /FailureMode
+        pirate_mission_supervisor__visual_processing__detector_verification --> [*] : TrackingIntervalComplete
+        pirate_mission_supervisor__visual_processing__tracking_burst --> [*] : /FailsafeInterrupt
+        pirate_mission_supervisor__visual_processing__tracking_burst --> [*] : /CommunicationTimeout
+        pirate_mission_supervisor__visual_processing__tracking_burst --> [*] : /MissionEnd
+        pirate_mission_supervisor__visual_processing__tracking_burst --> [*] : /FailureMode
+        pirate_mission_supervisor__visual_processing__tracking_burst --> [*] : TrackingIntervalComplete
+        [*] --> pirate_mission_supervisor__visual_processing__detector_verification
+        pirate_mission_supervisor__visual_processing__detector_verification --> pirate_mission_supervisor__visual_processing__tracking_burst : detection_confidence > confidence_threshold
+        pirate_mission_supervisor__visual_processing__tracking_burst --> pirate_mission_supervisor__visual_processing__detector_verification
+    }
+    state "ReturnToHome" as pirate_mission_supervisor__return_to_home
+    state "FaultHandling" as pirate_mission_supervisor__fault_handling
+    pirate_mission_supervisor__idle --> pirate_mission_supervisor__return_to_home : FailsafeInterrupt
+    pirate_mission_supervisor__idle --> pirate_mission_supervisor__return_to_home : CommunicationTimeout
+    pirate_mission_supervisor__idle --> pirate_mission_supervisor__return_to_home : MissionEnd
+    pirate_mission_supervisor__idle --> pirate_mission_supervisor__fault_handling : FailureMode
+    pirate_mission_supervisor__navigation --> pirate_mission_supervisor__return_to_home : FailsafeInterrupt
+    pirate_mission_supervisor__navigation --> pirate_mission_supervisor__return_to_home : CommunicationTimeout
+    pirate_mission_supervisor__navigation --> pirate_mission_supervisor__return_to_home : MissionEnd
+    pirate_mission_supervisor__navigation --> pirate_mission_supervisor__fault_handling : FailureMode
+    pirate_mission_supervisor__tracking --> pirate_mission_supervisor__return_to_home : FailsafeInterrupt
+    pirate_mission_supervisor__tracking --> pirate_mission_supervisor__return_to_home : CommunicationTimeout
+    pirate_mission_supervisor__tracking --> pirate_mission_supervisor__return_to_home : MissionEnd
+    pirate_mission_supervisor__tracking --> pirate_mission_supervisor__fault_handling : FailureMode
+    pirate_mission_supervisor__tracking --> pirate_mission_supervisor__visual_processing : Tracking.OperationallyViableRange
+    pirate_mission_supervisor__visual_processing --> pirate_mission_supervisor__return_to_home : FailsafeInterrupt
+    pirate_mission_supervisor__visual_processing --> pirate_mission_supervisor__return_to_home : CommunicationTimeout
+    pirate_mission_supervisor__visual_processing --> pirate_mission_supervisor__return_to_home : MissionEnd
+    pirate_mission_supervisor__visual_processing --> pirate_mission_supervisor__fault_handling : FailureMode
+    pirate_mission_supervisor__visual_processing --> pirate_mission_supervisor__tracking : VisualProcessing.TrackingIntervalComplete
+    pirate_mission_supervisor__return_to_home --> pirate_mission_supervisor__return_to_home : FailsafeInterrupt
+    pirate_mission_supervisor__return_to_home --> pirate_mission_supervisor__return_to_home : CommunicationTimeout
+    pirate_mission_supervisor__return_to_home --> pirate_mission_supervisor__return_to_home : MissionEnd
+    pirate_mission_supervisor__return_to_home --> pirate_mission_supervisor__fault_handling : FailureMode
+    pirate_mission_supervisor__fault_handling --> pirate_mission_supervisor__return_to_home : FailsafeInterrupt
+    pirate_mission_supervisor__fault_handling --> pirate_mission_supervisor__return_to_home : CommunicationTimeout
+    pirate_mission_supervisor__fault_handling --> pirate_mission_supervisor__return_to_home : MissionEnd
+    pirate_mission_supervisor__fault_handling --> pirate_mission_supervisor__fault_handling : FailureMode
+    [*] --> pirate_mission_supervisor__idle
+    pirate_mission_supervisor__idle --> pirate_mission_supervisor__navigation : Idle.MissionStart
+    pirate_mission_supervisor__navigation --> pirate_mission_supervisor__tracking : Navigation.TrackingMissionStart
+    pirate_mission_supervisor__fault_handling --> pirate_mission_supervisor__return_to_home
+}
+[*] --> pirate_mission_supervisor
+pirate_mission_supervisor --> [*]
+@enduml

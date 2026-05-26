@@ -96,6 +96,16 @@ try:
 except Exception:
     pass
 
+# Fallback 0.5: append missing close braces if claude truncated
+if data is None:
+    opens = text.count("{")
+    closes = text.count("}")
+    if opens > closes:
+        try:
+            data = json.loads(text + "}" * (opens - closes))
+        except Exception:
+            pass
+
 # Fallback 1: look for JSON starting with {"case_id" (anchor pattern)
 if data is None:
     import re as _re

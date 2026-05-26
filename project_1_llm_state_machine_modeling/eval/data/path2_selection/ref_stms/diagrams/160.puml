@@ -1,0 +1,95 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| degree_range_error | float | 0.0 |
+| movement_velocity_excess | float | 0.0 |
+| flight_height_excess | float | 0.0 |
+| start_end_position_discrepancy | float | 0.0 |
+| mission_command_available | int | 0 |
+| behavior_termination_condition | int | 0 |
+endlegend
+
+state "VtolUavMissionManager" as vtol_uav_mission_manager <<composite>> {
+    state "MissionControllerOff" as vtol_uav_mission_manager__mission_controller_off
+    state "StandBy" as vtol_uav_mission_manager__stand_by
+    state "SlowDown" as vtol_uav_mission_manager__slow_down
+    state "MissionMode" as vtol_uav_mission_manager__mission_mode <<composite>> {
+        state "ParseCommand" as vtol_uav_mission_manager__mission_mode__parse_command
+        state "PlausibilityCheck" as vtol_uav_mission_manager__mission_mode__plausibility_check
+        state "BehaviorActive" as vtol_uav_mission_manager__mission_mode__behavior_active
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : /ManualControl
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : StopCommand
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : /DataLinkLost
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : PayloadDirectedCommand
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : MissionPlanProcessed
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : FlyHomeObjective
+        vtol_uav_mission_manager__mission_mode__parse_command --> [*] : SearchTrackObjective
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : /ManualControl
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : StopCommand
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : /DataLinkLost
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : PayloadDirectedCommand
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : MissionPlanProcessed
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : FlyHomeObjective
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> [*] : SearchTrackObjective
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : /ManualControl
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : StopCommand
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : /DataLinkLost
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : PayloadDirectedCommand
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : MissionPlanProcessed
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : FlyHomeObjective
+        vtol_uav_mission_manager__mission_mode__behavior_active --> [*] : SearchTrackObjective
+        [*] --> vtol_uav_mission_manager__mission_mode__parse_command
+        vtol_uav_mission_manager__mission_mode__parse_command --> vtol_uav_mission_manager__mission_mode__plausibility_check : mission_command_available > 0
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> vtol_uav_mission_manager__mission_mode__behavior_active : degree_range_error <= 0.0 && movement_velocity_excess <= 0.0 && flight_height_excess <= 0.0 && start_end_position_discrepancy * start_end_position_discrepancy == 0.0
+        vtol_uav_mission_manager__mission_mode__plausibility_check --> vtol_uav_mission_manager__mission_mode__parse_command : degree_range_error > 0.0 || movement_velocity_excess > 0.0 || flight_height_excess > 0.0 || start_end_position_discrepancy != 0.0
+        vtol_uav_mission_manager__mission_mode__behavior_active --> vtol_uav_mission_manager__mission_mode__parse_command : behavior_termination_condition > 0
+    }
+    state "CommandMode" as vtol_uav_mission_manager__command_mode <<composite>> {
+        state "DirectCommandExecution" as vtol_uav_mission_manager__command_mode__direct_command_execution
+        vtol_uav_mission_manager__command_mode__direct_command_execution --> [*] : /ManualControl
+        vtol_uav_mission_manager__command_mode__direct_command_execution --> [*] : StopCommand
+        vtol_uav_mission_manager__command_mode__direct_command_execution --> [*] : /DataLinkLost
+        [*] --> vtol_uav_mission_manager__command_mode__direct_command_execution
+    }
+    state "FlyHome" as vtol_uav_mission_manager__fly_home
+    state "SearchAndTrackObject" as vtol_uav_mission_manager__search_and_track_object
+    vtol_uav_mission_manager__mission_controller_off --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__stand_by --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__stand_by --> vtol_uav_mission_manager__fly_home : DataLinkLost
+    vtol_uav_mission_manager__slow_down --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__slow_down --> vtol_uav_mission_manager__fly_home : DataLinkLost
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__slow_down : MissionMode.StopCommand
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__fly_home : DataLinkLost
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__command_mode : MissionMode.PayloadDirectedCommand
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__stand_by : MissionMode.MissionPlanProcessed
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__fly_home : MissionMode.FlyHomeObjective
+    vtol_uav_mission_manager__mission_mode --> vtol_uav_mission_manager__search_and_track_object : MissionMode.SearchTrackObjective
+    vtol_uav_mission_manager__command_mode --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__command_mode --> vtol_uav_mission_manager__slow_down : CommandMode.StopCommand
+    vtol_uav_mission_manager__command_mode --> vtol_uav_mission_manager__fly_home : DataLinkLost
+    vtol_uav_mission_manager__fly_home --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__fly_home --> vtol_uav_mission_manager__slow_down : FlyHome.StopCommand
+    vtol_uav_mission_manager__fly_home --> vtol_uav_mission_manager__fly_home : DataLinkLost
+    vtol_uav_mission_manager__search_and_track_object --> vtol_uav_mission_manager__mission_controller_off : ManualControl
+    vtol_uav_mission_manager__search_and_track_object --> vtol_uav_mission_manager__slow_down : SearchAndTrackObject.StopCommand
+    vtol_uav_mission_manager__search_and_track_object --> vtol_uav_mission_manager__fly_home : DataLinkLost
+    [*] --> vtol_uav_mission_manager__mission_mode
+    vtol_uav_mission_manager__stand_by --> vtol_uav_mission_manager__stand_by : StandBy.StopCommand
+    vtol_uav_mission_manager__slow_down --> vtol_uav_mission_manager__slow_down : SlowDown.StopCommand
+    vtol_uav_mission_manager__slow_down --> vtol_uav_mission_manager__stand_by
+    vtol_uav_mission_manager__fly_home --> vtol_uav_mission_manager__mission_mode : FlyHome.BehaviorTerminated
+    vtol_uav_mission_manager__search_and_track_object --> vtol_uav_mission_manager__mission_mode : SearchAndTrackObject.BehaviorTerminated
+}
+[*] --> vtol_uav_mission_manager
+vtol_uav_mission_manager --> [*]
+@enduml

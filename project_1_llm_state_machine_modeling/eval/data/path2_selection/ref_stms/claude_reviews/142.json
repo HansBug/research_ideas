@@ -1,0 +1,40 @@
+{
+  "case_id": "142",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "12 个状态忠实对应 STM §1 摘录 A/B/C 中 HMI setup、tank/filling、loadcell 关阀、五步封盖、pure/mixed 贴标、conveyor 闭环、warning+resume 的全部语义；CappingStepFailed 从 LidTransfer/VerticalAttach/ReturnInitial 回 CupArrival 准确对应 [E8] 'prosesin tüm işlemleri baştan başlar'。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "未发现编造的硬件名/状态/事件；resume_code 与 target_pulse_count 为合理推断（[E12] 'resume where stopped' / [E10] 'pulse counts determine travel distance'），25g·25mm·1pulse 仅为 sim 步长且 notes 已显式披露非论文物理速率。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 三处 during 都有 NL 依据 ([E4][E7][E10][E11])；C2 复合守卫覆盖 HMI 1-4/≤10、tank 0-250 mBar、loadcell≥desired、50mm、pulse≥target 全部数值阈值；C3 用 `!* -> Warning :: Problem` 表达跨过程 forced + 局部 CappingStepFailed 表达封盖内回滚，二分准确；C4 abstract effector 都映射具名硬件 (HMI/loadcell/86HS45/M542/encoder/vacuum/rodless cylinder)。"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "11 条 scenarios 覆盖 HMI 边界、复合 guard、压力越界、loadcell 阈值、capping 全序列、capping 失败重启、pure label+conveyor 全程、encoder 故障+resume、全局 Problem forced 路由；漏掉 selected_product_count==0/5+ 越界、resume_code==1 回 Setup、Filling 中 per-cycle 不达阈值的 ≥3 cycle 显式验证。"
+    }
+  },
+  "hallucinations_found": [],
+  "specific_revision_suggestions": [
+    "可选优化：scenario 中将 `desired_weight_g` 与 `target_pulse_count` 的初始化值与 notes §5 中 'sim helper 而非论文参数' 的说明保持一致语义，可在 scenario description 末尾 1 句标注 'config-only, not from paper'，避免后续读者误以为 100g/3pulses 是论文数据。",
+    "可选优化：`Filling.during` 中 `loadcell_weight_g += 25.0` 与 `VerticalAttach.during` 中 `+= 25.0` 步长虽 notes 披露，但可在 .fcstm 中加一行单行注释（若 pyfcstm 支持）指明这是 sim step，否则纯读 DSL 的读者无法分辨。"
+  ],
+  "missing_scenarios_suggestions": [
+    "hmi_rejects_zero_products: selected_product_count=0 时 Setup guard 不放行，覆盖 [E2] 'one or more' 下界",
+    "hmi_rejects_five_products: selected_product_count=5 时 Setup guard 不放行，覆盖 [E2] '4 different products' 上界",
+    "resume_from_setup_after_problem: 在 Setup 状态触发 Problem→Warning→Corrected，验证 resume_code==1 路由回 Setup（当前只测 resume_code=5/10 两条路径）",
+    "filling_per_cycle_progress: 从 Filling 进入后连续 ≥3 cycles 验证 loadcell_weight_g 累加但未达阈值时保持在 Filling，显式覆盖 C1 axis 的多周期行为"
+  ],
+  "overall_comment": "codex draft 在语义忠实性、C-axis grounding 选择与 hallucination 控制三个核心维度都达标，全局 forced + resume_code 的组合是本 case 模式化的亮点，五步封盖被合理压缩为四状态 + LidPushed/VacuumAtCupPosition 双事件门控、CappingStepFailed 局部非 forced 与 Problem 全局 forced 的双轨设计准确还原 [E8]/[E12] 的不同 fault scope。scenarios 已覆盖 11 条主线但缺少 HMI 越界下界、resume_code=1 路径和 Filling 多周期不达阈值这 3 类边界，属于增强项而非必修，APPROVE 直接进入下一阶段。",
+  "_meta": {
+    "id": "142",
+    "claude_model": "?",
+    "duration_ms": 102579,
+    "cost_usd": 1.4263050000000002
+  }
+}

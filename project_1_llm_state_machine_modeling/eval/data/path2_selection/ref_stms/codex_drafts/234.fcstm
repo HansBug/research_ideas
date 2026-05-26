@@ -1,0 +1,149 @@
+def int source_level = 1;
+def int destination_level = 1;
+def int level_difference = 0;
+def int levels_remaining = 0;
+
+state ParkingLiftController {
+    [*] -> AutoWaiting;
+
+    state AutoWaiting {
+        event AutoCommand;
+        event SwitchToManual;
+        enter abstract WaitForAutoDirectionAndLevelCommand;
+        enter abstract CheckPalletPositionOnLift;
+    }
+
+    pseudo state DirectionDecision;
+    pseudo state LevelCounterDecision;
+
+    state ManualIdle {
+        event ManualUpSpringCommand;
+        event ManualDownSpringCommand;
+        event SwitchToAuto;
+        enter abstract ManualMaintenanceReadyFromHmiOrTeachPendant;
+    }
+
+    state ManualInchingUp {
+        event SpringButtonReleased;
+        event HeightAntiLiftCut;
+        event OverTravelSensor;
+        during abstract CommandVfdForwardSlowSpeed;
+    }
+
+    state ManualInchingDown {
+        event SpringButtonReleased;
+        event HeightAntiLiftCut;
+        during abstract CommandVfdBackwardSlowSpeed;
+    }
+
+    state AutoMoveUpHigh {
+        event SlowForkSensor;
+        event HeightAntiLiftCut;
+        event OverTravelSensor;
+        during abstract CommandVfdForwardHighSpeed;
+        during abstract ReadVfdRunAndFaultStatus;
+    }
+
+    state AutoMoveUpSlow {
+        event StopForkSensor;
+        event HeightAntiLiftCut;
+        event OverTravelSensor;
+        during abstract CommandVfdForwardSlowSpeed;
+        during abstract ReadVfdRunAndFaultStatus;
+    }
+
+    state AutoMoveDownHigh {
+        event SlowForkSensor;
+        event HeightAntiLiftCut;
+        during abstract CommandVfdBackwardHighSpeed;
+        during abstract ReadVfdRunAndFaultStatus;
+    }
+
+    state AutoMoveDownSlow {
+        event StopForkSensor;
+        event HeightAntiLiftCut;
+        during abstract CommandVfdBackwardSlowSpeed;
+        during abstract ReadVfdRunAndFaultStatus;
+    }
+
+    state StoppedAtLevel {
+        event LevelConfirmationSensed;
+        event LevelConfirmationMissing;
+        enter abstract StopVfd;
+        enter abstract CheckLevelPositionAndSlatConfirmationSensors;
+    }
+
+    state TransferReady {
+        event Reset;
+        enter abstract ConfirmPalletTransferSafe;
+    }
+
+    state LevelErrorStop {
+        event Reset;
+        enter abstract GiveLevelDifferenceError;
+        enter abstract StopVfd;
+    }
+
+    state SafetyCutStop {
+        event Reset;
+        enter abstract CutAndStopLiftByHeightAntiLift;
+    }
+
+    state OverTravelAlarmStop {
+        event Reset;
+        enter abstract AlarmOverTravelSafePositionLimit;
+        enter abstract StopVfd;
+    }
+
+    AutoWaiting -> DirectionDecision :: AutoCommand effect {
+        level_difference = destination_level - source_level;
+    };
+    AutoWaiting -> ManualIdle :: SwitchToManual;
+
+    DirectionDecision -> AutoMoveUpHigh : if [level_difference < 0] effect {
+        levels_remaining = 0 - level_difference;
+    };
+    DirectionDecision -> AutoMoveDownHigh : if [level_difference > 0] effect {
+        levels_remaining = level_difference;
+    };
+    DirectionDecision -> TransferReady : if [level_difference == 0] effect {
+        levels_remaining = 0;
+    };
+
+    ManualIdle -> ManualInchingUp :: ManualUpSpringCommand;
+    ManualIdle -> ManualInchingDown :: ManualDownSpringCommand;
+    ManualIdle -> AutoWaiting :: SwitchToAuto;
+    ManualInchingUp -> ManualIdle :: SpringButtonReleased;
+    ManualInchingDown -> ManualIdle :: SpringButtonReleased;
+    ManualInchingUp -> SafetyCutStop :: HeightAntiLiftCut;
+    ManualInchingDown -> SafetyCutStop :: HeightAntiLiftCut;
+    ManualInchingUp -> OverTravelAlarmStop :: OverTravelSensor;
+
+    AutoMoveUpHigh -> AutoMoveUpSlow :: SlowForkSensor;
+    AutoMoveDownHigh -> AutoMoveDownSlow :: SlowForkSensor;
+    AutoMoveUpSlow -> LevelCounterDecision :: StopForkSensor effect {
+        levels_remaining = levels_remaining - 1;
+    };
+    AutoMoveDownSlow -> LevelCounterDecision :: StopForkSensor effect {
+        levels_remaining = levels_remaining - 1;
+    };
+
+    LevelCounterDecision -> AutoMoveUpHigh : if [levels_remaining > 0 && level_difference < 0];
+    LevelCounterDecision -> AutoMoveDownHigh : if [levels_remaining > 0 && level_difference > 0];
+    LevelCounterDecision -> StoppedAtLevel : if [levels_remaining <= 0];
+
+    AutoMoveUpHigh -> SafetyCutStop :: HeightAntiLiftCut;
+    AutoMoveUpSlow -> SafetyCutStop :: HeightAntiLiftCut;
+    AutoMoveDownHigh -> SafetyCutStop :: HeightAntiLiftCut;
+    AutoMoveDownSlow -> SafetyCutStop :: HeightAntiLiftCut;
+    AutoMoveUpHigh -> OverTravelAlarmStop :: OverTravelSensor;
+    AutoMoveUpSlow -> OverTravelAlarmStop :: OverTravelSensor;
+
+    StoppedAtLevel -> TransferReady :: LevelConfirmationSensed;
+    StoppedAtLevel -> LevelErrorStop :: LevelConfirmationMissing;
+
+    TransferReady -> AutoWaiting :: Reset;
+    LevelErrorStop -> AutoWaiting :: Reset;
+    SafetyCutStop -> AutoWaiting :: Reset;
+    OverTravelAlarmStop -> AutoWaiting :: Reset;
+}

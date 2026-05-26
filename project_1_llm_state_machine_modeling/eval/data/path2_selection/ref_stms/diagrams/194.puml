@@ -1,0 +1,108 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| ems_breaker | int | 0 |
+| utility_grid_transfer_switch | int | 0 |
+| grid_power_indicator | int | 1 |
+endlegend
+
+state "MicrogridEMS" as microgrid_ems <<composite>> {
+    state "GridConnected_CCY" as microgrid_ems__grid_connected_ccy
+    state "GridOnly_FCY" as microgrid_ems__grid_only_fcy
+    state "GridOnly_MCY" as microgrid_ems__grid_only_mcy
+    state "Islanding_CFN" as microgrid_ems__islanding_cfn
+    state "Synchronization_CFY" as microgrid_ems__synchronization_cfy
+    state "Outage_FFN" as microgrid_ems__outage_ffn
+    state "ManualTransferOpening_CMY" as microgrid_ems__manual_transfer_opening_cmy
+    [*] --> microgrid_ems__grid_connected_ccy
+    note on link
+    effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    }
+    end note
+    microgrid_ems__grid_connected_ccy --> microgrid_ems__grid_only_fcy : BatteryOrEMSInverterMalfunction
+    note on link
+    effect {
+        ems_breaker = 1;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    }
+    end note
+    microgrid_ems__grid_connected_ccy --> microgrid_ems__grid_only_mcy : BatteryOrEMSInverterUnderService
+    note on link
+    effect {
+        ems_breaker = 2;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    }
+    end note
+    microgrid_ems__grid_connected_ccy --> microgrid_ems__islanding_cfn : GridOutageOrVoltageInstability
+    note on link
+    effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 0;
+    }
+    end note
+    microgrid_ems__grid_connected_ccy --> microgrid_ems__outage_ffn : BothGridAndBatteryPacksOutOfPower
+    note on link
+    effect {
+        ems_breaker = 1;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 0;
+    }
+    end note
+    microgrid_ems__grid_connected_ccy --> microgrid_ems__manual_transfer_opening_cmy : MaintenanceStaffOpensTransferSwitch
+    note on link
+    effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 2;
+        grid_power_indicator = 1;
+    }
+    end note
+    microgrid_ems__islanding_cfn --> microgrid_ems__synchronization_cfy : UtilityGridPowerStable
+    note on link
+    effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 1;
+    }
+    end note
+    microgrid_ems__synchronization_cfy --> microgrid_ems__synchronization_cfy : FaultCleared
+    note on link
+    effect {
+        utility_grid_transfer_switch = 0;
+    }
+    end note
+    microgrid_ems__synchronization_cfy --> microgrid_ems__grid_connected_ccy : ems_breaker == 0 && utility_grid_transfer_switch == 0 && grid_power_indicator == 1
+    microgrid_ems__outage_ffn --> microgrid_ems__grid_only_fcy : UtilityGridPowerReturns
+    note on link
+    effect {
+        ems_breaker = 1;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    }
+    end note
+    microgrid_ems__outage_ffn --> microgrid_ems__islanding_cfn : EMSBatteryPowerReturns
+    note on link
+    effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 0;
+    }
+    end note
+}
+[*] --> microgrid_ems
+microgrid_ems --> [*]
+@enduml

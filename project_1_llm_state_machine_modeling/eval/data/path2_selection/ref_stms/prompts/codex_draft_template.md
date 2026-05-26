@@ -29,18 +29,29 @@
 ## 必须满足的硬约束
 
 1. **忠于原文**：所有 mode / event / variable / threshold 名必须能在 STM §1 原文摘录或 expansion NL provenance 找到对应；**禁止无中生有**
-2. **C-axis grounding 恰当使用**（不强行堆砌）：
-   - **C1 (周期执行)**：原文若有"each cycle / per tick / continuously / 持续 / 周期"语义 → 用 `during {...}` action 或 `>> during after` aspect
-   - **C2 (数值守卫)**：原文若有 ≥2 个变量 + 复合算术比较（如 `(temp > Tmax || pressure < Pmin) && debounce_count >= 3`） → 用 Expr IR 多变量算术 guard
-   - **C3 (forced fault)**：原文若有"任意 mode 下 Error / any state under emergency / from any phase Abort" 全局 fault 语义 → 用 `! * -> Error :: Event`（递归展开到所有 descendant）
-   - **C4 (硬件 effector)**：原文若有具名 sensor / actuator / valve / motor / heater / GPIO → 用 `enter abstract` / `during abstract` / `exit abstract` 占位
-   - **原文不支持的 C-axis 不要硬塞**（在 notes 里说明哪个 axis 未使用 + 原因）
-3. **规模匹配**：states 数大致与 codex 评审时的 scale 估计相当（不要膨胀到 30+）；优先 6-15 states
-4. **必须通过 pyfcstm 三关验证**：parse → sem → sim 全 OK
+2. **🚫 零 warning 零 error**（与 IDE 等价的 lint gate）：
+   - **禁止 write_only_variable**（dead assignment）：一个 var 在 enter/during/exit/effect 中被赋值但没有任何地方读它（不在任何 guard 表达式 / 其他 effect RHS 中出现）→ **不要声明它**。如果是"我用变量记录我进了哪个 state"这种装饰性 indicator，**直接用 mode 名 + abstract action 代替**，不要靠 var 存指示位
+   - **禁止 unused_variable**：声明了但全文一次都不读不写 → 删
+   - **禁止 unused_event**：state 上声明了 event 但没有任何 transition 用它 → 删
+   - **禁止 dead_transition**：source 状态不可达 / guard 写成 false 字面量 → 删
+   - **禁止 unreachable_state**：从 `[*] -> X` 初始链出发 BFS 走不到的 state → 删
+   - **判定方式**：`verify_pyfcstm_full.py` 内嵌 Stage 5 lint，**lint 必须输出 `warnings=0` 才算 ALL_OK**
+3. **变量的设计原则**：每个 `def TYPE x = ...;` 都必须有**实质用途**之一：
+   - (a) 在某条 transition 的 guard 中被读取（决定迁移）
+   - (b) 在另一个 effect 中被读取作为右值（用于运算）
+   - 单纯写值不读 → **不要声明**。原文里的"状态指示"用 mode 名 + abstract action 表达，不要靠 indicator var
+4. **C-axis grounding 恰当使用**（不强行堆砌）：
+   - **C1 (周期执行)**：原文若有"each cycle / per tick / continuously / 持续 / 周期"语义 → 用 `during {...}` action 或 `>> during after` aspect。**注意**：`during` 里的 effect 也必须有读者，不能是 write-only！
+   - **C2 (数值守卫)**：原文若有 ≥2 个变量 + 复合算术比较 → 用 Expr IR 多变量算术 guard。变量必须真的参与判定
+   - **C3 (forced fault)**：原文若有全局 fault 语义 → 用 `! * -> Error :: Event`
+   - **C4 (硬件 effector)**：原文若有具名 sensor / actuator → 用 `enter abstract` / `during abstract` / `exit abstract` 占位（这是 grounding 硬件，**不是用 var 来 mock 硬件状态**）
+   - **原文不支持的 C-axis 不要硬塞**
+5. **规模匹配**：states 6-15；变量数应该**很少**（典型 0-5 个），仅当真有 numerical/computed 状态时才用 var；事件只声明实际被 transition 用到的
+6. **必须通过 pyfcstm 完整验证**：parse → sem → sim → scenarios all-pass → lint 0-warning，全过才 ALL_OK
 
 ## 验证工具（**强制使用 Bash tool 反复调用**）
 
-### Stage 1: smoke 验证（parse + sem + sim 一次 cycle 不死锁）
+### Stage 1: smoke 验证（parse + sem + sim 一次 cycle 不死锁 + 0 warning）
 
 每次写完 DSL，先跑 smoke：
 
@@ -50,9 +61,13 @@ source venv/bin/activate
 python3 project_1_llm_state_machine_modeling/eval/data/path2_selection/ref_stms/verify_pyfcstm_full.py {{OUTPUT_FCSTM}}
 ```
 
-期望：`PARSE_OK / SEM_OK / SIM_OK / ALL_OK (smoke-only — no scenarios provided)`
+期望最后两行：`LINT_SUMMARY: warnings=0 by_code={}` + `ALL_OK`
 
-任一阶段失败 → 读错误 → 修复 → 再跑（max 5 iter）
+任一阶段失败 → 读错误 → 修复 → 再跑（max 5 iter）。**lint 失败的常见原因**：
+- `write_only_variable`：声明的 var 写了但没读 → 删掉该 var，把"状态指示"挪到 mode 名 / abstract action
+- `unused_event`：声明的 event 没用 → 删
+- `unused_variable`：完全没用 → 删
+- `unreachable_state` / `dead_transition`：去掉孤立 state / 重写 init transition 让它可达
 
 ### Stage 2: 必须生成 scenarios.json + 跑 NL 全特性覆盖验证
 

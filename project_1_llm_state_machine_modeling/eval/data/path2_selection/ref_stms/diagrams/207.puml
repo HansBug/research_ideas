@@ -1,0 +1,102 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| bud_count | int | 0 |
+| end_effector_offset_cm | float | 0.0 |
+| vines_pruned | int | 0 |
+| other_aisle_needed | int | 0 |
+| submodule_success | int | 0 |
+| software_issue | int | 0 |
+endlegend
+
+state "BumblebeeSupervisor" as bumblebee_supervisor <<composite>> {
+    state "Navigation" as bumblebee_supervisor__navigation <<composite>> {
+        state "GPSWaypointFollow" as bumblebee_supervisor__navigation__gps_waypoint_follow
+        state "RTKSet" as bumblebee_supervisor__navigation__rtk_set
+        state "NavigationInternalError" as bumblebee_supervisor__navigation__navigation_internal_error
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> [*] : vines_pruned >= 20
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> [*] : Done
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> [*] : Success
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> [*] : Failure
+        bumblebee_supervisor__navigation__rtk_set --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__navigation__rtk_set --> [*] : vines_pruned >= 20
+        bumblebee_supervisor__navigation__rtk_set --> [*] : Done
+        bumblebee_supervisor__navigation__rtk_set --> [*] : Success
+        bumblebee_supervisor__navigation__rtk_set --> [*] : Failure
+        bumblebee_supervisor__navigation__navigation_internal_error --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__navigation__navigation_internal_error --> [*] : vines_pruned >= 20
+        bumblebee_supervisor__navigation__navigation_internal_error --> [*] : Done
+        bumblebee_supervisor__navigation__navigation_internal_error --> [*] : Success
+        bumblebee_supervisor__navigation__navigation_internal_error --> [*] : Failure
+        [*] --> bumblebee_supervisor__navigation__gps_waypoint_follow
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> bumblebee_supervisor__navigation__rtk_set : other_aisle_needed >= 1
+        bumblebee_supervisor__navigation__rtk_set --> bumblebee_supervisor__navigation__gps_waypoint_follow : other_aisle_needed < 1
+        bumblebee_supervisor__navigation__gps_waypoint_follow --> bumblebee_supervisor__navigation__navigation_internal_error : software_issue >= 1
+        bumblebee_supervisor__navigation__rtk_set --> bumblebee_supervisor__navigation__navigation_internal_error : software_issue >= 1
+    }
+    state "Perception" as bumblebee_supervisor__perception <<composite>> {
+        state "Modeling3D" as bumblebee_supervisor__perception__modeling3_d
+        state "CutPointLocalization" as bumblebee_supervisor__perception__cut_point_localization
+        state "PerceptionInternalError" as bumblebee_supervisor__perception__perception_internal_error
+        bumblebee_supervisor__perception__modeling3_d --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__perception__modeling3_d --> [*] : bud_count >= 4
+        bumblebee_supervisor__perception__modeling3_d --> [*] : Failure
+        bumblebee_supervisor__perception__cut_point_localization --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__perception__cut_point_localization --> [*] : bud_count >= 4
+        bumblebee_supervisor__perception__cut_point_localization --> [*] : Failure
+        bumblebee_supervisor__perception__perception_internal_error --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__perception__perception_internal_error --> [*] : bud_count >= 4
+        bumblebee_supervisor__perception__perception_internal_error --> [*] : Failure
+        [*] --> bumblebee_supervisor__perception__modeling3_d
+        bumblebee_supervisor__perception__modeling3_d --> bumblebee_supervisor__perception__cut_point_localization : submodule_success >= 1
+        bumblebee_supervisor__perception__modeling3_d --> bumblebee_supervisor__perception__perception_internal_error : software_issue >= 1
+        bumblebee_supervisor__perception__cut_point_localization --> bumblebee_supervisor__perception__perception_internal_error : software_issue >= 1
+    }
+    state "Manipulation" as bumblebee_supervisor__manipulation <<composite>> {
+        state "ApproachTarget" as bumblebee_supervisor__manipulation__approach_target
+        state "Homing" as bumblebee_supervisor__manipulation__homing
+        state "ManipulationInternalError" as bumblebee_supervisor__manipulation__manipulation_internal_error
+        bumblebee_supervisor__manipulation__approach_target --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__manipulation__approach_target --> [*] : Success
+        bumblebee_supervisor__manipulation__approach_target --> [*] : Failure
+        bumblebee_supervisor__manipulation__homing --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__manipulation__homing --> [*] : Success
+        bumblebee_supervisor__manipulation__homing --> [*] : Failure
+        bumblebee_supervisor__manipulation__manipulation_internal_error --> [*] : /HardwareOrUnknownIssue
+        bumblebee_supervisor__manipulation__manipulation_internal_error --> [*] : Success
+        bumblebee_supervisor__manipulation__manipulation_internal_error --> [*] : Failure
+        [*] --> bumblebee_supervisor__manipulation__approach_target
+        bumblebee_supervisor__manipulation__approach_target --> bumblebee_supervisor__manipulation__homing : end_effector_offset_cm >= 15.0
+        bumblebee_supervisor__manipulation__approach_target --> bumblebee_supervisor__manipulation__manipulation_internal_error : software_issue >= 1
+        bumblebee_supervisor__manipulation__homing --> bumblebee_supervisor__manipulation__manipulation_internal_error : software_issue >= 1
+    }
+    state "Error" as bumblebee_supervisor__error
+    state "Complete" as bumblebee_supervisor__complete
+    bumblebee_supervisor__navigation --> bumblebee_supervisor__error : HardwareOrUnknownIssue
+    bumblebee_supervisor__navigation --> bumblebee_supervisor__complete : vines_pruned >= 20
+    bumblebee_supervisor__navigation --> bumblebee_supervisor__complete : Navigation.Done
+    bumblebee_supervisor__navigation --> bumblebee_supervisor__perception : Navigation.Success
+    bumblebee_supervisor__navigation --> bumblebee_supervisor__error : Navigation.Failure
+    bumblebee_supervisor__perception --> bumblebee_supervisor__error : HardwareOrUnknownIssue
+    bumblebee_supervisor__perception --> bumblebee_supervisor__manipulation : bud_count >= 4
+    bumblebee_supervisor__perception --> bumblebee_supervisor__error : Perception.Failure
+    bumblebee_supervisor__manipulation --> bumblebee_supervisor__error : HardwareOrUnknownIssue
+    bumblebee_supervisor__manipulation --> bumblebee_supervisor__navigation : Manipulation.Success
+    bumblebee_supervisor__manipulation --> bumblebee_supervisor__error : Manipulation.Failure
+    bumblebee_supervisor__error --> bumblebee_supervisor__error : HardwareOrUnknownIssue
+    bumblebee_supervisor__complete --> bumblebee_supervisor__error : HardwareOrUnknownIssue
+    [*] --> bumblebee_supervisor__navigation
+}
+[*] --> bumblebee_supervisor
+bumblebee_supervisor --> [*]
+@enduml

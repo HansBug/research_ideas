@@ -170,10 +170,40 @@ for sc in scenarios:
 print()
 print(f"SCENARIOS_SUMMARY: pass={n_pass} fail={n_fail} error={n_error} total={len(scenarios)}")
 
-if n_fail == 0 and n_error == 0:
-    print("ALL_OK")
-    sys.exit(0)
-else:
+if n_fail > 0 or n_error > 0:
     print("SCENARIOS_FAIL")
     print(json.dumps({"failures": failures}, ensure_ascii=False, indent=2))
     sys.exit(4)
+
+# Stage 5: lint (IDE-equivalent warnings — 0 warning gate)
+print()
+print("LINT_RUNNING...")
+import subprocess
+lint_path = Path(__file__).resolve().parent / "lint_pyfcstm.py"
+lint_proc = subprocess.run(
+    [sys.executable, str(lint_path), str(fcstm_path)],
+    capture_output=True, text=True, check=False,
+)
+lint_stdout = lint_proc.stdout
+try:
+    lint_report = json.loads(lint_stdout)
+    n_warns = lint_report.get("total", 0)
+    by_code = lint_report.get("by_code", {})
+except Exception:
+    n_warns = -1
+    by_code = {}
+    print(f"LINT_FAIL: cannot parse lint output\n{lint_stdout[:500]}", file=sys.stderr)
+    sys.exit(6)
+
+print(f"LINT_SUMMARY: warnings={n_warns} by_code={by_code}")
+if n_warns > 0:
+    print("LINT_FAIL (warnings present — must be 0 for ALL_OK)")
+    # Print up to 10 warnings inline for codex to see
+    for w in lint_report.get("warnings", [])[:10]:
+        print(f"  [{w['code']}] {w.get('message','')}")
+    if len(lint_report.get("warnings", [])) > 10:
+        print(f"  ... and {len(lint_report['warnings']) - 10} more")
+    sys.exit(5)
+
+print("ALL_OK")
+sys.exit(0)

@@ -1,0 +1,55 @@
+{
+  "case_id": "234",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "states/events/vars/transitions 均映射到 [E7]-[E21]，destination-source signed math + level counter 与 [E12]-[E14] 完全一致，方向慢速接近+停层确认+错误分支均还原 [E15]-[E17]"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "`SpringButtonReleased` 由 spring-action 语义合理推断；`level_difference==0 -> TransferReady` 与 `Reset` 作为全局错误恢复属于 NL 字面未覆盖的轻度防御性补全，但未引入新阈值/硬件"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 用 `during abstract` 表达 VFD 持续命令、C2 用多变量 Expr IR 表达 signed diff + counter、C3 克制不滥用 forced fault（[E18][E19] 仅限 movement 范围）、C4 abstract effector 全部对齐具名 PLC/VFD I/O"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "8 scenarios 覆盖 manual/auto/up-down/multi-level/error/safety/over-travel 主路径并含 ≥3-cycle 持续验证，但 ManualInchingUp→OverTravelAlarmStop、ManualInchingDown→SafetyCutStop 两条 manual 安全边未被任何 scenario 触达"
+    },
+    "hallucinations_found": [
+      {
+        "type": "event",
+        "name": "SpringButtonReleased",
+        "issue": "NL [E8] 仅说 'spring action button'，'released' 是基于 spring-return 语义的合理推断而非字面证据"
+      },
+      {
+        "type": "state",
+        "name": "TransferReady(via level_difference==0)",
+        "issue": "原文未讨论 source==destination 的零差值边界，codex 作为 defensive guard 直接进入 TransferReady"
+      },
+      {
+        "type": "event",
+        "name": "Reset",
+        "issue": "[E20] 中 Reset 是 PLC→VFD 接口命令，DSL 将其复用为四类错误/告警状态的统一恢复信号，语义略扩展"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "在 232 中保持现状的前提下，可在 notes.md §5 显式记录 'Reset 由 [E20] VFD reset 扩展为系统级错误恢复' 的语义抉择，避免下游误判 hallucination",
+      "可考虑把 `DirectionDecision -> TransferReady : if [level_difference == 0]` 改为回到 AutoWaiting（或加注释说明 zero-diff 视作 already-at-level），使其更贴近 NL 字面（NL 仅描述 negative→up / positive→down 两支）",
+      "可在 notes.md 补充 ManualInchingDown 不接 OverTravelSensor 的设计理由——目前 over-travel 仅 up 方向有，但 manual down 与 auto down 同样无 over-travel 转移，应该明示其依据 [E19] 'above safe position limits'"
+    ],
+    "missing_scenarios_suggestions": [
+      "manual_up_over_travel: 在 ManualInchingUp 中触发 OverTravelSensor，断言进入 OverTravelAlarmStop 后 Reset 回到 AutoWaiting，闭合 manual+over-travel 边",
+      "manual_down_height_antilift_cut: 进入 ManualInchingDown 后触发 HeightAntiLiftCut，断言进入 SafetyCutStop，闭合 manual down 的安全切断边",
+      "auto_down_height_antilift_in_slow: 当前 height_antilift 场景仅覆盖 AutoMoveDownHigh，可追加在 AutoMoveDownSlow 状态下触发 HeightAntiLiftCut，覆盖低速段切断"
+    ],
+    "overall_comment": "codex draft 在语义忠实性、NL grounding 与 C-axis 使用上均做得克制且有据可查，特别是合理拒绝引入 forced fault transition 与编造数值阈值，体现良好工程纪律。轻度 hallucination 集中在 Reset 复用与 zero-diff 边界等 defensive 补全，未达到 REVISE 阈值；scenarios 已覆盖主路径但遗漏 manual 安全/over-travel 两条边的端到端断言，建议下一轮迭代补 3 个场景并在 notes 中显式记录语义扩展抉择即可进入 path2_selection 下一阶段。"
+  },
+  "_meta": {
+    "id": "234",
+    "recovered_from_raw": true,
+    "added_close_braces": 1
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "case_id": "090",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟢",
+      "evidence": "15 个 mode 与 Figure 3 + 摘录 A 的 13 robot states 一致并显式补 StateEstimation；state_confirm/Rleft/Rright/front_range 全部对应原文 [E6][E7][E8]；speed/position 闭环二分匹配 [E13][E14]。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "主体零编造，仅 LeftCorner/RightCorner 的 during 抽象名 `Turn(Left|Right)90WithLowPitchRoll` 把原文 Table 1 row 11 (Dead-end) 的 'low pitch/roll' 属性误嫁接到 corner row 4/9；kc=0.2、Fs=40.0 已在 notes §5 显式声明为可执行占位而非原文常数。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟢",
+      "evidence": "C1 用根 `>> during before abstract` aspect + StateEstimation.during 计数器；C2 三条复合算术 guard 用 Expr IR；C3 显式不使用（原文无全局 forced fault path，仅局部 recovery，判断正确）；C4 多个 abstract action 落到 two micro-motors / wheel-leg / IMU / range / encoder。"
+    },
+    "nl_coverage": {
+      "emoji": "🟡",
+      "evidence": "7 个 scenario 覆盖 state_confirm 边界、kc=0.2 边界、Fs 边界、所有 junction/corner/branch/risk 模式、crash/dead-end/flip/open-space 恢复路径；轻度遗漏：缺 state_confirm<=1 时 guard 失败的反向断言、缺 normalized diff 略大于 kc 但小于 StraightSided 测试值的中间点、根 5Hz aspect 未被显式 scenario 触发。"
+    }
+  },
+  "hallucinations_found": [
+    {
+      "type": "effector",
+      "name": "TurnLeft90WithLowPitchRoll / TurnRight90WithLowPitchRoll",
+      "issue": "原文 Table 1 行 4 (Left corner) 只说 'turns left 90° while maintaining its center near the center of the junction'，'low pitch/roll' 属性出自行 11 Dead-end ([E18])，被误嫁接到 corner row 4/9；建议改为 `TurnLeft90AtCornerKeepingCenter` 之类的中性命名。"
+    }
+  ],
+  "specific_revision_suggestions": [
+    "LeftCorner.during 的 `TurnLeft90WithLowPitchRoll` 与 RightCorner.during 的 `TurnRight90WithLowPitchRoll` 改名为 `TurnLeft90KeepingJunctionCenter` / `TurnRight90KeepingJunctionCenter`，对齐 Table 1 row 4 原文措辞，避免把 Dead-end 的 low-pitch-roll 属性嫁接到 corner。",
+    "DeadEndTurnComplete 与 CrashCorrectionComplete 等 reset state_confirm=0，但 LeftCornerTurnComplete / RightCornerTurnComplete / TurnRight90Complete / CrossTurnRightComplete / ContinueStraightPastLeftBranch 没有同样的 reset effect — 建议要么全部 reset 保持一致性，要么在 notes 中说明这种差异是有意为之（毕竟 StraightCenter 没有 incrementer，下次回 StateEstimation 时 NewStateDetected 会重置，因此功能上不影响，但建议显式注释）。"
+  ],
+  "missing_scenarios_suggestions": [
+    "guard_fail_state_confirm_low: 验证 state_confirm=1 且 Rleft/Rright/front_range 满足数值条件时仍停留 StateEstimation（覆盖 [E6] 的 `> 1` 边界负向）",
+    "straight_sided_just_above_kc: Rleft=110/Rright=90，比值 0.1 — 这个值低于 kc — 应改为 Rleft=125/Rright=75 (比值 0.25) 即 kc=0.2 之外刚超阈值，验证 StraightSided 的最紧 kc 上侧边界",
+    "monitoring_aspect_per_cycle: 多 cycle 推进 StateEstimation 验证 during aspect 在每个 cycle 都执行（对应 [E20][E21] 5 Hz monitoring 的 ≥3 cycle 触达）"
+  ],
+  "overall_comment": "codex draft 总体语义忠实、C-axis 使用恰当、scenarios 主路径覆盖完备，可进入下一阶段。仅两处 corner during action 名误带 'low pitch/roll' 属性需要轻度改名以严格对齐 Table 1 行 4 措辞，并建议补 2-3 个负向/边界 scenario 提升数值 guard 的鲁棒性证据；reset effect 不一致是功能等价的小瑕疵，可在 notes 中显式说明而无须改 DSL。",
+  "_meta": {
+    "id": "090",
+    "claude_model": "?",
+    "duration_ms": 112259,
+    "cost_usd": 1.13651275
+  }
+}

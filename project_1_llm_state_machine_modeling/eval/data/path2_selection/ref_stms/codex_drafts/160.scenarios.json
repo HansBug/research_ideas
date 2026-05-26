@@ -1,0 +1,517 @@
+{
+  "scenarios": [
+    {
+      "name": "default_parse_command_waits",
+      "description": "覆盖 [E1]-[E4][E8][E18][E23]：默认进入 MissionMode.ParseCommand，且每 cycle 监督/飞控抽象动作不改变状态变量。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "default_initial_parse"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "parse_holds_without_command"
+        }
+      ]
+    },
+    {
+      "name": "plausibility_accepts_boundary_command",
+      "description": "覆盖 [E8][E11]-[E14]：mission command 可用且 degree/velocity/height/position 检查均在边界内时进入唯一 active behavior。",
+      "initial_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 1,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.PlausibilityCheck",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 1,
+            "behavior_termination_condition": 0
+          },
+          "name": "command_moves_to_plausibility_check"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.BehaviorActive",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 1,
+            "behavior_termination_condition": 0
+          },
+          "name": "boundary_attributes_accept"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "VtolUavMissionManager.MissionMode.BehaviorActive",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 1,
+            "behavior_termination_condition": 0
+          },
+          "name": "single_behavior_remains_active"
+        }
+      ]
+    },
+    {
+      "name": "plausibility_rejects_invalid_attributes",
+      "description": "覆盖 [E11]-[E14]：degree range、maximum velocity、maximum flight height 和 start/end position 任一越界时拒绝进入 behavior。",
+      "initial_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+      "initial_vars": {
+        "degree_range_error": 1.0,
+        "movement_velocity_excess": 1.0,
+        "flight_height_excess": 1.0,
+        "start_end_position_discrepancy": 1.0,
+        "mission_command_available": 1,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.PlausibilityCheck",
+          "expected_vars": {
+            "degree_range_error": 1.0,
+            "movement_velocity_excess": 1.0,
+            "flight_height_excess": 1.0,
+            "start_end_position_discrepancy": 1.0,
+            "mission_command_available": 1,
+            "behavior_termination_condition": 0
+          },
+          "name": "invalid_command_reaches_check"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 1.0,
+            "movement_velocity_excess": 1.0,
+            "flight_height_excess": 1.0,
+            "start_end_position_discrepancy": 1.0,
+            "mission_command_available": 1,
+            "behavior_termination_condition": 0
+          },
+          "name": "invalid_attributes_reject_to_parse"
+        }
+      ]
+    },
+    {
+      "name": "behavior_termination_returns_to_parse",
+      "description": "覆盖 [E7][E8]：active behavior 的 termination condition 为真时回到 ParseCommand。",
+      "initial_state": "VtolUavMissionManager.MissionMode.BehaviorActive",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 1
+          },
+          "name": "termination_guard_returns_parse"
+        }
+      ]
+    },
+    {
+      "name": "payload_from_parse_enters_command_mode",
+      "description": "覆盖 [E4][E9][E10]：payload-directed flight 可从 MissionMode.ParseCommand 进入 CommandMode。",
+      "initial_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.MissionMode.PayloadDirectedCommand"
+          ],
+          "expected_state": "VtolUavMissionManager.CommandMode.DirectCommandExecution",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "payload_parse_to_command"
+        }
+      ]
+    },
+    {
+      "name": "payload_from_plausibility_enters_command_mode",
+      "description": "覆盖 [E9][E10]：payload-directed flight 可从 MissionMode.PlausibilityCheck 进入 CommandMode。",
+      "initial_state": "VtolUavMissionManager.MissionMode.PlausibilityCheck",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 1,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.MissionMode.PayloadDirectedCommand"
+          ],
+          "expected_state": "VtolUavMissionManager.CommandMode.DirectCommandExecution",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 1,
+            "behavior_termination_condition": 0
+          },
+          "name": "payload_check_to_command"
+        }
+      ]
+    },
+    {
+      "name": "payload_from_behavior_enters_command_mode",
+      "description": "覆盖 [E7][E9][E10]：payload-directed flight 可从 MissionMode.BehaviorActive 打断当前 behavior 并进入 CommandMode。",
+      "initial_state": "VtolUavMissionManager.MissionMode.BehaviorActive",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.MissionMode.PayloadDirectedCommand"
+          ],
+          "expected_state": "VtolUavMissionManager.CommandMode.DirectCommandExecution",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "payload_behavior_to_command"
+        }
+      ]
+    },
+    {
+      "name": "stop_from_command_slowdown_then_standby",
+      "description": "覆盖 [E5][E6][E16][E23][E24]：CommandMode 收到 stop 后进入 SlowDown，再平滑切换到 StandBy 并持续 hover。",
+      "initial_state": "VtolUavMissionManager.CommandMode.DirectCommandExecution",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.CommandMode.StopCommand"
+          ],
+          "expected_state": "VtolUavMissionManager.SlowDown",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "stop_enters_slowdown"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.StandBy",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "slowdown_completes_to_standby"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "VtolUavMissionManager.StandBy",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "standby_hover_cycles"
+        }
+      ]
+    },
+    {
+      "name": "manual_control_outranks_stop",
+      "description": "覆盖 [E15]-[E17]：ManualControl 与 StopCommand 同 cycle 到达时，manual mode 优先进入 MissionControllerOff。",
+      "initial_state": "VtolUavMissionManager.MissionMode.BehaviorActive",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.ManualControl",
+            "VtolUavMissionManager.MissionMode.StopCommand"
+          ],
+          "expected_state": "VtolUavMissionManager.MissionControllerOff",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "manual_priority_over_stop"
+        }
+      ]
+    },
+    {
+      "name": "data_link_loss_forces_fly_home",
+      "description": "覆盖 [E18]-[E21]：supervisor 在 data-link loss 时跨层强制进入 FlyHome，并在 deliberate behavior 结束后回到 MissionMode。",
+      "initial_state": "VtolUavMissionManager.CommandMode.DirectCommandExecution",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.DataLinkLost"
+          ],
+          "expected_state": "VtolUavMissionManager.FlyHome",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "datalink_loss_to_fly_home"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.FlyHome.BehaviorTerminated"
+          ],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "fly_home_terminates_to_parse"
+        }
+      ]
+    },
+    {
+      "name": "supervisor_high_level_objectives",
+      "description": "覆盖 [E20][E21] 与 STM 摘录 B/C：Supervisor 可发 FlyHome 和 SearchAndTrackObject 高层 objective。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "default_parse_for_objective"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.MissionMode.FlyHomeObjective"
+          ],
+          "expected_state": "VtolUavMissionManager.FlyHome",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "fly_home_objective"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.FlyHome.BehaviorTerminated"
+          ],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "fly_home_returns_parse"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.MissionMode.SearchTrackObjective"
+          ],
+          "expected_state": "VtolUavMissionManager.SearchAndTrackObject",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "search_track_objective"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.SearchAndTrackObject.BehaviorTerminated"
+          ],
+          "expected_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "search_track_returns_parse"
+        }
+      ]
+    },
+    {
+      "name": "mission_processed_to_standby",
+      "description": "覆盖 [E5][E8]：mission plan processed 后退出 MissionMode 到 StandBy。",
+      "initial_state": "VtolUavMissionManager.MissionMode.ParseCommand",
+      "initial_vars": {
+        "degree_range_error": 0.0,
+        "movement_velocity_excess": 0.0,
+        "flight_height_excess": 0.0,
+        "start_end_position_discrepancy": 0.0,
+        "mission_command_available": 0,
+        "behavior_termination_condition": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "VtolUavMissionManager.MissionMode.MissionPlanProcessed"
+          ],
+          "expected_state": "VtolUavMissionManager.StandBy",
+          "expected_vars": {
+            "degree_range_error": 0.0,
+            "movement_velocity_excess": 0.0,
+            "flight_height_excess": 0.0,
+            "start_end_position_discrepancy": 0.0,
+            "mission_command_available": 0,
+            "behavior_termination_condition": 0
+          },
+          "name": "mission_processed_to_standby"
+        }
+      ]
+    }
+  ]
+}

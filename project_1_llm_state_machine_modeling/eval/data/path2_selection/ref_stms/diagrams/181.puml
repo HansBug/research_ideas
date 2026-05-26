@@ -1,0 +1,88 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| WLS | int | 0 |
+| TCS | int | 0 |
+| SKS | int | 0 |
+| MDS | int | 0 |
+| KPS | int | 0 |
+| water_voltage | float | 0.14 |
+| room_count | int | 0 |
+| wrong_code_checks | int | 0 |
+endlegend
+
+state "SmartHomeController" as smart_home_controller <<composite>> {
+    state "Initializing" as smart_home_controller__initializing
+    state "Scan" as smart_home_controller__scan
+    state "WaterPumpOn" as smart_home_controller__water_pump_on
+    state "WaterTankFull" as smart_home_controller__water_tank_full
+    state "TemperatureCheck" as smart_home_controller__temperature_check
+    state "TemperatureACOn" as smart_home_controller__temperature_ac_on
+    state "TemperatureACOff" as smart_home_controller__temperature_ac_off
+    state "SmokeAlarm" as smart_home_controller__smoke_alarm
+    state "RoomLightCheck" as smart_home_controller__room_light_check
+    state "RoomLightOn" as smart_home_controller__room_light_on
+    state "RoomLightOff" as smart_home_controller__room_light_off
+    state "RoomExitCheck" as smart_home_controller__room_exit_check
+    state "KeypadChecking" as smart_home_controller__keypad_checking
+    state "AccessGranted" as smart_home_controller__access_granted
+    state "AccessDenied" as smart_home_controller__access_denied
+    [*] --> smart_home_controller__initializing
+    smart_home_controller__initializing --> smart_home_controller__scan
+    smart_home_controller__scan --> smart_home_controller__water_pump_on : WLS == 1 && water_voltage == 0.13
+    smart_home_controller__scan --> smart_home_controller__temperature_check : WLS == 0 && TCS == 1
+    smart_home_controller__scan --> smart_home_controller__smoke_alarm : WLS == 0 && TCS == 0 && SKS == 1
+    smart_home_controller__scan --> smart_home_controller__room_light_check : WLS == 0 && TCS == 0 && SKS == 0 && MDS == 1
+    smart_home_controller__scan --> smart_home_controller__keypad_checking : WLS == 0 && TCS == 0 && SKS == 0 && MDS == 0 && KPS == 1
+    smart_home_controller__water_pump_on --> smart_home_controller__water_tank_full : WaterPumpOn.MaximumLevel
+    smart_home_controller__water_tank_full --> smart_home_controller__scan
+    smart_home_controller__temperature_check --> smart_home_controller__temperature_ac_on : TemperatureCheck.TemperatureTooHigh
+    smart_home_controller__temperature_check --> smart_home_controller__temperature_ac_off : TemperatureCheck.TemperatureNotHigh
+    smart_home_controller__temperature_ac_on --> smart_home_controller__scan
+    smart_home_controller__temperature_ac_off --> smart_home_controller__scan
+    smart_home_controller__smoke_alarm --> smart_home_controller__scan
+    smart_home_controller__room_light_check --> smart_home_controller__room_light_on : RoomLightCheck.EntranceDark
+    note on link
+    effect {
+        room_count = room_count + 1;
+    }
+    end note
+    smart_home_controller__room_light_check --> smart_home_controller__room_light_off : RoomLightCheck.EntranceLight
+    smart_home_controller__room_light_check --> smart_home_controller__room_exit_check : RoomLightCheck.Exit
+    smart_home_controller__room_light_on --> smart_home_controller__scan
+    smart_home_controller__room_light_off --> smart_home_controller__scan
+    smart_home_controller__room_exit_check --> smart_home_controller__room_light_off : room_count > 0
+    note on link
+    effect {
+        room_count = room_count - 1;
+    }
+    end note
+    smart_home_controller__room_exit_check --> smart_home_controller__scan : room_count == 0
+    smart_home_controller__keypad_checking --> smart_home_controller__access_granted : KeypadChecking.CodeCorrect
+    note on link
+    effect {
+        wrong_code_checks = 0;
+    }
+    end note
+    smart_home_controller__keypad_checking --> smart_home_controller__keypad_checking : KeypadChecking.CodeIncorrect
+    note on link
+    effect {
+        wrong_code_checks = wrong_code_checks + 1;
+    }
+    end note
+    smart_home_controller__keypad_checking --> smart_home_controller__access_denied : wrong_code_checks >= 3
+    smart_home_controller__access_granted --> smart_home_controller__scan
+    smart_home_controller__access_denied --> smart_home_controller__scan
+}
+[*] --> smart_home_controller
+smart_home_controller --> [*]
+@enduml

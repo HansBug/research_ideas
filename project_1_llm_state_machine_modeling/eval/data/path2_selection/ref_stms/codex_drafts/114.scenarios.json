@@ -1,0 +1,771 @@
+{
+  "scenarios": [
+    {
+      "name": "normal_parking_slot3_ir2_counter",
+      "description": "覆盖 Start、可用车位入场、IR1 ON 就绪、Parkir Mobil 选 1-8 中的 slot 3、OK、旋转计数与 IR2 达阈值停车，对应 E5-E12。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "RotaryParkingController.Off",
+          "expected_vars": {
+            "parked_count": 0,
+            "selected_slot": 0,
+            "movement_counter": 0
+          },
+          "name": "default_off"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Start"
+          ],
+          "expected_state": "RotaryParkingController.Ready",
+          "expected_vars": {
+            "parked_count": 0,
+            "selected_slot": 0,
+            "movement_counter": 0
+          },
+          "name": "start_ready"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ProximityOn"
+          ],
+          "expected_state": "RotaryParkingController.EntryGateOpen",
+          "expected_vars": {
+            "parked_count": 0
+          },
+          "name": "proximity_available_opens"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CarEntered"
+          ],
+          "expected_state": "RotaryParkingController.AlignmentCheck",
+          "expected_vars": {
+            "parked_count": 0
+          },
+          "name": "car_entered_alignment"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Infrared1On"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 0
+          },
+          "name": "ir1_ready_for_parking"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot3"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 3,
+            "movement_counter": 0
+          },
+          "name": "select_slot3"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OKPark"
+          ],
+          "expected_state": "RotaryParkingController.ParkingRotating",
+          "expected_vars": {
+            "selected_slot": 3,
+            "movement_counter": 1,
+            "parked_count": 0
+          },
+          "name": "ok_starts_rotary_motor"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "RotaryParkingController.ParkingRotating",
+          "expected_vars": {
+            "movement_counter": 2
+          },
+          "name": "cycle_counter_before_threshold"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Infrared2SpaceDetected"
+          ],
+          "expected_state": "RotaryParkingController.ParkingRotating",
+          "expected_vars": {
+            "movement_counter": 3,
+            "parked_count": 0
+          },
+          "name": "ir2_before_selected_count_keeps_rotating"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Infrared2SpaceDetected"
+          ],
+          "expected_state": "RotaryParkingController.ParkingComplete",
+          "expected_vars": {
+            "movement_counter": 0,
+            "parked_count": 1,
+            "selected_slot": 3
+          },
+          "name": "ir2_at_threshold_stops_and_counts"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "FinishBack"
+          ],
+          "expected_state": "RotaryParkingController.Ready",
+          "expected_vars": {
+            "parked_count": 1
+          },
+          "name": "finish_back_ready"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Stop"
+          ],
+          "expected_state": "RotaryParkingController.Off",
+          "expected_vars": {
+            "parked_count": 1,
+            "selected_slot": 3,
+            "movement_counter": 0
+          },
+          "name": "stop_returns_off"
+        }
+      ]
+    },
+    {
+      "name": "full_lot_guard_reset_jumlah",
+      "description": "覆盖 parked_count=8 满位 guard、栏杆保持关闭红灯、Reset Jumlah 恢复，对应 E1、E6、E7、E24。",
+      "initial_state": "RotaryParkingController.Ready",
+      "initial_vars": {
+        "parked_count": 8,
+        "selected_slot": 0,
+        "movement_counter": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ProximityOn"
+          ],
+          "expected_state": "RotaryParkingController.LotFull",
+          "expected_vars": {
+            "parked_count": 8
+          },
+          "name": "full_lot_red_closed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ResetJumlah"
+          ],
+          "expected_state": "RotaryParkingController.Ready",
+          "expected_vars": {
+            "parked_count": 0,
+            "selected_slot": 0
+          },
+          "name": "reset_jumlah_clears_count"
+        }
+      ]
+    },
+    {
+      "name": "ir1_off_adjustment_then_ready",
+      "description": "覆盖 IR1 OFF 表示位置不正确并要求用户调整，调整后回到 IR1 检查并进入 Parkir Mobil，对应 E8-E10。",
+      "initial_state": "RotaryParkingController.AlignmentCheck",
+      "initial_vars": {
+        "parked_count": 0,
+        "selected_slot": 0,
+        "movement_counter": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Infrared1Off"
+          ],
+          "expected_state": "RotaryParkingController.AdjustPosition",
+          "expected_vars": {
+            "selected_slot": 0
+          },
+          "name": "ir1_off_adjust"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "PositionAdjusted"
+          ],
+          "expected_state": "RotaryParkingController.AlignmentCheck",
+          "expected_vars": {
+            "selected_slot": 0
+          },
+          "name": "position_adjusted_recheck"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Infrared1On"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 0
+          },
+          "name": "ir1_on_hmi_parking"
+        }
+      ]
+    },
+    {
+      "name": "slot_boundary_rejects_invalid_accepts_slot8",
+      "description": "覆盖 slot 1-8 数值边界：selected_slot=0/9 被 OK 拒绝，slot 8 被接受并在 counter=8 时停车，对应 E10-E12。",
+      "initial_state": "RotaryParkingController.ParkingSlotSelected",
+      "initial_vars": {
+        "parked_count": 0,
+        "selected_slot": 0,
+        "movement_counter": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "OKPark"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 0,
+            "movement_counter": 0
+          },
+          "name": "slot0_rejected"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot8"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 8,
+            "movement_counter": 0
+          },
+          "name": "select_slot8"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OKPark"
+          ],
+          "expected_state": "RotaryParkingController.ParkingRotating",
+          "expected_vars": {
+            "selected_slot": 8,
+            "movement_counter": 1
+          },
+          "name": "slot8_accepted"
+        },
+        {
+          "before_cycles": 6,
+          "events": [
+            "Infrared2SpaceDetected"
+          ],
+          "expected_state": "RotaryParkingController.ParkingRotating",
+          "expected_vars": {
+            "movement_counter": 8,
+            "parked_count": 0
+          },
+          "name": "slot8_before_stop_guard"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Infrared2SpaceDetected"
+          ],
+          "expected_state": "RotaryParkingController.ParkingComplete",
+          "expected_vars": {
+            "movement_counter": 0,
+            "parked_count": 1,
+            "selected_slot": 8
+          },
+          "name": "slot8_stop_guard"
+        }
+      ]
+    },
+    {
+      "name": "retrieval_wrong_then_benar_exit_decrements",
+      "description": "覆盖 Ambil Mobil 选 slot、CW/CCW 取车旋转、selected slot 到底、SALAH 重复 Ambil Mobil、BENAR 开闸和出场 proximity 递减计数，对应 E13-E19。",
+      "initial_state": "RotaryParkingController.Ready",
+      "initial_vars": {
+        "parked_count": 2,
+        "selected_slot": 0,
+        "movement_counter": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "AmbilMobil"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "parked_count": 2,
+            "selected_slot": 0
+          },
+          "name": "ambil_mobil_screen"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OKRetrieve"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 0,
+            "movement_counter": 0,
+            "parked_count": 2
+          },
+          "name": "retrieve_slot0_rejected"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot1"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 1,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot1_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot2"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 2,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot2_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot3"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 3,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot3_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot4"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 4,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot4_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot5"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 5,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot5_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot6"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 6,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot6_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot7"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 7,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot7_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot8"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 8,
+            "movement_counter": 0
+          },
+          "name": "retrieval_slot8_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot2"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 2,
+            "movement_counter": 0
+          },
+          "name": "select_retrieval_slot2"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OKRetrieve"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalRotating",
+          "expected_vars": {
+            "movement_counter": 1,
+            "selected_slot": 2
+          },
+          "name": "ok_retrieve_rotating"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SelectedSlotBelow"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalRotating",
+          "expected_vars": {
+            "movement_counter": 2
+          },
+          "name": "below_before_threshold_keeps_lowering"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SelectedSlotBelow"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalValidation",
+          "expected_vars": {
+            "movement_counter": 0,
+            "selected_slot": 2
+          },
+          "name": "selected_slot_below_validation"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SALAH"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 0,
+            "movement_counter": 0,
+            "parked_count": 2
+          },
+          "name": "salah_repeats_ambil"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RetrievalSlot1"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalSlotSelected",
+          "expected_vars": {
+            "selected_slot": 1
+          },
+          "name": "select_retrieval_slot1"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OKRetrieve"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalRotating",
+          "expected_vars": {
+            "movement_counter": 1
+          },
+          "name": "retrieve_slot1_rotating"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SelectedSlotBelow"
+          ],
+          "expected_state": "RotaryParkingController.RetrievalValidation",
+          "expected_vars": {
+            "movement_counter": 0,
+            "selected_slot": 1
+          },
+          "name": "slot1_below_validation"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "BENAR"
+          ],
+          "expected_state": "RotaryParkingController.ExitGateOpen",
+          "expected_vars": {
+            "parked_count": 2,
+            "selected_slot": 1
+          },
+          "name": "benar_opens_exit_gate"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ExitProximityOn"
+          ],
+          "expected_state": "RotaryParkingController.Ready",
+          "expected_vars": {
+            "parked_count": 1,
+            "selected_slot": 0
+          },
+          "name": "exit_proximity_closes_and_decrements"
+        }
+      ]
+    },
+    {
+      "name": "parking_hmi_slot_buttons_1_to_8",
+      "description": "覆盖 Parkir Mobil HMI 的 slot 1-8 数字按钮都会设置 selected_slot，并保持等待 OK 的 mode，对应 E10-E11。",
+      "initial_state": "RotaryParkingController.ParkingSlotSelected",
+      "initial_vars": {
+        "parked_count": 0,
+        "selected_slot": 0,
+        "movement_counter": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot1"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 1,
+            "movement_counter": 0
+          },
+          "name": "parking_slot1_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot2"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 2,
+            "movement_counter": 0
+          },
+          "name": "parking_slot2_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot3"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 3,
+            "movement_counter": 0
+          },
+          "name": "parking_slot3_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot4"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 4,
+            "movement_counter": 0
+          },
+          "name": "parking_slot4_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot5"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 5,
+            "movement_counter": 0
+          },
+          "name": "parking_slot5_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot6"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 6,
+            "movement_counter": 0
+          },
+          "name": "parking_slot6_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot7"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 7,
+            "movement_counter": 0
+          },
+          "name": "parking_slot7_button"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ParkingSlot8"
+          ],
+          "expected_state": "RotaryParkingController.ParkingSlotSelected",
+          "expected_vars": {
+            "selected_slot": 8,
+            "movement_counter": 0
+          },
+          "name": "parking_slot8_button"
+        }
+      ]
+    },
+    {
+      "name": "emergency_manual_controls_and_reset_counter",
+      "description": "覆盖 DARURAT ON/OFF、CW/CCW lowering、Gate Open/Close、Reset Counter 和 Reset Jumlah 恢复路径，对应 E20-E24。",
+      "initial_state": "RotaryParkingController.ParkingRotating",
+      "initial_vars": {
+        "parked_count": 5,
+        "selected_slot": 4,
+        "movement_counter": 2
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "DaruratOn"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "parked_count": 5,
+            "selected_slot": 4,
+            "movement_counter": 0
+          },
+          "name": "darurat_on_from_rotation"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CWLower"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "movement_counter": 1
+          },
+          "name": "cw_lower_counts"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CCWLower"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "movement_counter": 2
+          },
+          "name": "ccw_lower_counts"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "GateOpen"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "movement_counter": 2,
+            "parked_count": 5
+          },
+          "name": "manual_gate_open"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "GateClose"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "movement_counter": 2,
+            "parked_count": 5
+          },
+          "name": "manual_gate_close"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ResetCounter"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "movement_counter": 0
+          },
+          "name": "reset_counter"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ResetJumlah"
+          ],
+          "expected_state": "RotaryParkingController.EmergencyManual",
+          "expected_vars": {
+            "parked_count": 0,
+            "selected_slot": 0
+          },
+          "name": "reset_jumlah"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "DaruratOff"
+          ],
+          "expected_state": "RotaryParkingController.Ready",
+          "expected_vars": {
+            "parked_count": 0,
+            "selected_slot": 0,
+            "movement_counter": 0
+          },
+          "name": "darurat_off_ready"
+        }
+      ]
+    }
+  ]
+}

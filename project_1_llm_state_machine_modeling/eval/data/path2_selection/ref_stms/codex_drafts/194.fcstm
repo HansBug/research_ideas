@@ -1,0 +1,104 @@
+def int ems_breaker = 0;
+def int utility_grid_transfer_switch = 0;
+def int grid_power_indicator = 1;
+
+state MicrogridEMS {
+    event BatteryOrEMSInverterMalfunction;
+    event BatteryOrEMSInverterUnderService;
+    event GridOutageOrVoltageInstability;
+    event UtilityGridPowerStable;
+    event FaultCleared;
+    event BothGridAndBatteryPacksOutOfPower;
+    event UtilityGridPowerReturns;
+    event EMSBatteryPowerReturns;
+    event MaintenanceStaffOpensTransferSwitch;
+
+    [*] -> GridConnected_CCY effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    };
+
+    state GridConnected_CCY {
+        enter abstract UtilityGridDeterminesBusVoltage;
+        enter abstract SolarAndBatteryOperateAsCurrentSourceInverters;
+        during abstract CommandChargeOrDischargePower;
+    }
+
+    state GridOnly_FCY {
+        enter abstract OpenEMSBreaker;
+        during abstract OperateRemainingDevicesAsGridConnected;
+    }
+
+    state GridOnly_MCY {
+        enter abstract OpenEMSBreakerForService;
+        during abstract OperateRemainingDevicesAsGridConnected;
+    }
+
+    state Islanding_CFN {
+        enter abstract SenseUtilityGridCurrentAndVoltage;
+        enter abstract OpenGridTransferSwitch;
+        enter abstract OperateEMSInverterAsVoltageSource;
+        during abstract MaintainVoltageFrequencyAndPowerBalance;
+    }
+
+    state Synchronization_CFY {
+        during abstract EnsureMagnitudeFrequencyPhaseSame;
+    }
+
+    state Outage_FFN {
+        enter abstract KeepEMSControlUnitActiveOnReservedPower;
+        during abstract MonitorSystemWithReservedPower;
+    }
+
+    state ManualTransferOpening_CMY {
+        enter abstract MaintenanceStaffManualOpening;
+    }
+
+    GridConnected_CCY -> GridOnly_FCY : BatteryOrEMSInverterMalfunction effect {
+        ems_breaker = 1;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    };
+    GridConnected_CCY -> GridOnly_MCY : BatteryOrEMSInverterUnderService effect {
+        ems_breaker = 2;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    };
+    GridConnected_CCY -> Islanding_CFN : GridOutageOrVoltageInstability effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 0;
+    };
+    GridConnected_CCY -> Outage_FFN : BothGridAndBatteryPacksOutOfPower effect {
+        ems_breaker = 1;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 0;
+    };
+    GridConnected_CCY -> ManualTransferOpening_CMY : MaintenanceStaffOpensTransferSwitch effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 2;
+        grid_power_indicator = 1;
+    };
+
+    Islanding_CFN -> Synchronization_CFY : UtilityGridPowerStable effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 1;
+    };
+    Synchronization_CFY -> Synchronization_CFY : FaultCleared effect {
+        utility_grid_transfer_switch = 0;
+    };
+    Synchronization_CFY -> GridConnected_CCY : if [ems_breaker == 0 && utility_grid_transfer_switch == 0 && grid_power_indicator == 1];
+
+    Outage_FFN -> GridOnly_FCY : UtilityGridPowerReturns effect {
+        ems_breaker = 1;
+        utility_grid_transfer_switch = 0;
+        grid_power_indicator = 1;
+    };
+    Outage_FFN -> Islanding_CFN : EMSBatteryPowerReturns effect {
+        ems_breaker = 0;
+        utility_grid_transfer_switch = 1;
+        grid_power_indicator = 0;
+    };
+}

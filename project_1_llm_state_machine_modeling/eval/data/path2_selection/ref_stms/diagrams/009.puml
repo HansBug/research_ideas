@@ -1,0 +1,58 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| ros_resource_age | int | 0 |
+| lane_change_demanded | int | 0 |
+endlegend
+
+state "UrbanDrivingDMM" as urban_driving_dmm <<composite>> {
+    state "Begin" as urban_driving_dmm__begin
+    state "Ready" as urban_driving_dmm__ready
+    state "StopAndGo" as urban_driving_dmm__stop_and_go
+    state "ChangeLane" as urban_driving_dmm__change_lane <<composite>> {
+        state "LaneKeeping" as urban_driving_dmm__change_lane__lane_keeping
+        state "LaneChanging" as urban_driving_dmm__change_lane__lane_changing
+        [*] --> urban_driving_dmm__change_lane__lane_keeping
+        urban_driving_dmm__change_lane__lane_keeping --> urban_driving_dmm__change_lane__lane_changing : lane_change_demanded >= 1
+        note on link
+        effect {
+            lane_change_demanded = 0;
+        }
+        end note
+        urban_driving_dmm__change_lane__lane_keeping --> [*] : LaneKeeping.Condition30Emergency
+        urban_driving_dmm__change_lane__lane_changing --> [*] : LaneChanging.Condition30Emergency
+        urban_driving_dmm__change_lane__lane_changing --> [*] : LaneChanging.Condition32LaneChangeComplete
+    }
+    state "EStop" as urban_driving_dmm__e_stop
+    state "AvoidObstacle" as urban_driving_dmm__avoid_obstacle
+    [*] --> urban_driving_dmm__begin
+    urban_driving_dmm__begin --> urban_driving_dmm__ready : Begin.Condition11ReadyToGo
+    urban_driving_dmm__ready --> urban_driving_dmm__e_stop : Ready.Condition10Emergency
+    urban_driving_dmm__ready --> urban_driving_dmm__avoid_obstacle : Ready.Condition14NeedAvoidObstacle
+    urban_driving_dmm__ready --> urban_driving_dmm__stop_and_go : Ready.Condition12StandardScenario
+    urban_driving_dmm__stop_and_go --> urban_driving_dmm__e_stop : StopAndGo.Condition20Emergency
+    urban_driving_dmm__stop_and_go --> urban_driving_dmm__avoid_obstacle : StopAndGo.Condition24NeedAvoidObstacle
+    urban_driving_dmm__stop_and_go --> urban_driving_dmm__change_lane : StopAndGo.Condition23DemandPathChange
+    urban_driving_dmm__stop_and_go --> urban_driving_dmm__ready : StopAndGo.Condition21FinishedSAG
+    urban_driving_dmm__change_lane --> urban_driving_dmm__e_stop : ChangeLane.LaneKeeping.Condition30Emergency
+    urban_driving_dmm__change_lane --> urban_driving_dmm__e_stop : ChangeLane.LaneChanging.Condition30Emergency
+    urban_driving_dmm__change_lane --> urban_driving_dmm__stop_and_go : ChangeLane.LaneChanging.Condition32LaneChangeComplete
+    urban_driving_dmm__e_stop --> urban_driving_dmm__e_stop : EStop.Condition00StayEmergency
+    urban_driving_dmm__e_stop --> urban_driving_dmm__ready : EStop.Condition01NonDangerousReady
+    urban_driving_dmm__avoid_obstacle --> urban_driving_dmm__e_stop : AvoidObstacle.Condition40Emergency
+    urban_driving_dmm__avoid_obstacle --> urban_driving_dmm__ready : AvoidObstacle.Condition41AvoidIncompleteTimeOver
+    urban_driving_dmm__avoid_obstacle --> urban_driving_dmm__avoid_obstacle : AvoidObstacle.Condition44HandlingAvoidObstacle
+    urban_driving_dmm__avoid_obstacle --> urban_driving_dmm__stop_and_go : AvoidObstacle.Condition42ObstacleAvoidComplete
+}
+[*] --> urban_driving_dmm
+urban_driving_dmm --> [*]
+@enduml

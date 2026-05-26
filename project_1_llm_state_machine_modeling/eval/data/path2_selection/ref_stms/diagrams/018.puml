@@ -1,0 +1,44 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| Sbox | float | 0.0 |
+| class_coefficient | float | 1.0 |
+| ET | float | 10.0 |
+| multiple_threats | int | 0 |
+endlegend
+
+state "MissionTaskFSM" as mission_task_fsm <<composite>> {
+    state "LongRangePenetration" as mission_task_fsm__long_range_penetration
+    state "FastApproach" as mission_task_fsm__fast_approach
+    state "DefinedTargetPointsApproach" as mission_task_fsm__defined_target_points_approach
+    state "ThreatDegreeEvaluation" as mission_task_fsm__threat_degree_evaluation
+    state "FastAvoidance" as mission_task_fsm__fast_avoidance
+    state "HighestThreatFastAvoidance" as mission_task_fsm__highest_threat_fast_avoidance
+    state "CircuitousFlight" as mission_task_fsm__circuitous_flight
+    [*] --> mission_task_fsm__long_range_penetration
+    mission_task_fsm__long_range_penetration --> mission_task_fsm__threat_degree_evaluation : LongRangePenetration.ThreatDetected
+    mission_task_fsm__fast_approach --> mission_task_fsm__threat_degree_evaluation : FastApproach.ThreatDetected
+    mission_task_fsm__defined_target_points_approach --> mission_task_fsm__threat_degree_evaluation : DefinedTargetPointsApproach.ThreatDetected
+    mission_task_fsm__circuitous_flight --> mission_task_fsm__threat_degree_evaluation : CircuitousFlight.ThreatDetected
+    mission_task_fsm__long_range_penetration --> mission_task_fsm__fast_approach : LongRangePenetration.TargetDetected
+    mission_task_fsm__fast_approach --> mission_task_fsm__defined_target_points_approach : FastApproach.TargetLost
+    mission_task_fsm__defined_target_points_approach --> mission_task_fsm__fast_approach : DefinedTargetPointsApproach.TargetRediscovered
+    mission_task_fsm__threat_degree_evaluation --> mission_task_fsm__highest_threat_fast_avoidance : multiple_threats >= 1 && Sbox * class_coefficient > ET
+    mission_task_fsm__threat_degree_evaluation --> mission_task_fsm__fast_avoidance : multiple_threats < 1 && Sbox * class_coefficient > ET
+    mission_task_fsm__threat_degree_evaluation --> mission_task_fsm__circuitous_flight : Sbox * class_coefficient < ET
+    mission_task_fsm__fast_avoidance --> mission_task_fsm__long_range_penetration : FastAvoidance.ThreatLost
+    mission_task_fsm__highest_threat_fast_avoidance --> mission_task_fsm__long_range_penetration : HighestThreatFastAvoidance.ThreatLost
+    mission_task_fsm__circuitous_flight --> mission_task_fsm__long_range_penetration : CircuitousFlight.ThreatLost
+}
+[*] --> mission_task_fsm
+mission_task_fsm --> [*]
+@enduml

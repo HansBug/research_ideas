@@ -1,0 +1,58 @@
+{
+  "case_id": "207",
+  "verdict": "APPROVE",
+  "scores": {
+    "semantic_correctness": {
+      "emoji": "🟡",
+      "evidence": "4 个 macro state + 各 sub-module 与 §1 摘录 B 一致，Success/Failure/Done forced 切换符合 Figure 13；但 vines_pruned>=20 把 field trial 的 20 棵藤当成 FSM 完成条件，与原文 [E12] '直到所有藤被修剪' 的开放循环略有偏差。"
+    },
+    "nl_faithfulness": {
+      "emoji": "🟡",
+      "evidence": "other_aisle_needed / submodule_success / software_issue 三个 0/1 flag 是 codex 为 scenario 热启动新造（笔记已声明），可接受；但 enter {bud_count=4} 与 enter {end_effector_offset_cm=15.0} 把变量在 entry 直接设为阈值，等价于把数值 guard 退化为入口自动跳转，原文 [E8][E9] 中这两个值是检测/规划输出，不是状态入口副作用。"
+    },
+    "c_axis_grounding_appropriateness": {
+      "emoji": "🟡",
+      "evidence": "C1 在 GPS/3D modeling/Approach/Homing 用 during abstract 恰当；C3 的 !* -> Error :: HardwareOrUnknownIssue 与 [E13] 横切语义一致；C4 abstract 命名贴合 [E4-E11][E14]；C2 三个数值 guard 中只有 bud_count、offset 来源稳定，vines_pruned>=20 ground 较弱且与 entry-setter 配合后形成 trivially-true 模式。"
+    },
+    "nl_coverage": {
+      "emoji": "🟢",
+      "evidence": "13 个 scenarios 覆盖 START→Navigation、RTK 折返、success 链、bud_count/offset 上下边界、Done、20-vine 完成、3 个 internal error→Failure、HardwareOrUnknownIssue 全局 fault；唯一较弱的是 per-cycle 仅在 GPSWaypointFollow 验证多周期。"
+    },
+    "hallucinations_found": [
+      {
+        "type": "threshold",
+        "name": "vines_pruned >= 20",
+        "issue": "20 来自 §1 摘录 D field trial 的样本数 (20 vines)，原文未声明 FSM 用 20 作为退出条件；建议改为开放循环或显式标注为 demo-scope 上限"
+      },
+      {
+        "type": "var",
+        "name": "submodule_success / other_aisle_needed / software_issue",
+        "issue": "原文未出现这些变量名，是 scenario 控制注入的 0/1 抽象 flag (codex 已在 notes 声明)，可保留但应在 STM 注释中明示是 abstract input"
+      },
+      {
+        "type": "effector",
+        "name": "AcquireFourteenViewpointImages",
+        "issue": "'fourteen viewpoints' 出自 [E7] 原文引用，可保留；但放在 Modeling3D 的 during 而非 cycle 内多次触发，与原文 14 视点静态拍摄略有口径差"
+      }
+    ],
+    "specific_revision_suggestions": [
+      "将 CutPointLocalization 的 enter {bud_count = 4;} 与 ApproachTarget 的 enter {end_effector_offset_cm = 15.0;} 移除或重写为 abstract 副作用（如 enter abstract DetectFourBudsPerCane），避免数值 guard 在 entry 即被强制满足而退化为 tautology",
+      "为 vines_pruned 计数补一处可解释来源：在 !Manipulation -> Navigation :: Success 的 transition 上加 effect '{ vines_pruned = vines_pruned + 1; }'，让 vines_pruned>=20 guard 真正反映 '每完成一棵藤递增' 而不是从初始变量直接被 scenario 注入；或在 STM 注释中明确 20 是 demo-scope 上限",
+      "Manipulation.Homing 的 exit abstract CloseAndOpenCuttingBlades 仅在 Manipulation.Success 事件触发下离开 Homing 时执行，与原文 [E11] '关合-打开为一次成功剪切' 对齐良好，无需修改；但建议补 1 个 scenario 步骤显式跨过 Homing → Navigation 验证 exit 副作用",
+      "scenarios 中 perception_internal_error_failure_path 与 manipulation_internal_error_failure_path 已覆盖 software_issue 分支，可再补 1 条 CutPointLocalization software_issue 路径（目前仅 Modeling3D 入口）以覆盖 [E13] 中 sub-process 的内部子状态",
+      "在 STM.md 注释或 ref 头部注释明示 other_aisle_needed/submodule_success/software_issue 为 abstract scenario inputs，区别于原文真实变量，避免下游误判为 hallucinated 域变量"
+    ],
+    "missing_scenarios_suggestions": [
+      "perception_cut_point_localization_software_issue: 从 CutPointLocalization 设置 software_issue=1 验证进入 PerceptionInternalError，补齐 [E13] 在 perception 内部第二个子状态的覆盖",
+      "approach_target_perpendicular_cycle: ApproachTarget 多周期 (≥3 cycles) 验证 OrientEndEffectorPerpendicularToBranch 的 during 持续行为，对应 [E10]",
+      "homing_inch_toward_cycle: Homing 多周期验证 InchTowardFinalPose during 行为，对应 [E11] 最终逼近",
+      "manipulation_cycle_increments_vines_pruned: 若采纳 success 上加 effect 计数器建议，应补 scenario 验证每次 Success 触发后 vines_pruned 增加 1"
+    ],
+    "overall_comment": "层次结构、forced fault、abstract effector 命名与 NL 对齐度高，scenarios 设计覆盖完整且通过自检，整体可作为 reference STM 进入下一阶段。两个主要可改之处是 'entry 副作用把变量直接设为 guard 阈值' 导致数值 guard 退化为 tautology，以及 vines_pruned>=20 缺少递增机制 — 这两点不阻塞 APPROVE，但建议在小迭代中调整以更忠实表达原文 [E8][E9][E12] 的检测/累计语义。"
+  },
+  "_meta": {
+    "id": "207",
+    "recovered_from_raw": true,
+    "added_close_braces": 1
+  }
+}

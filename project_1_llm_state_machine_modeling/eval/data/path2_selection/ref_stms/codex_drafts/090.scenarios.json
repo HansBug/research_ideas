@@ -1,0 +1,508 @@
+{
+  "scenarios": [
+    {
+      "name": "straight_center_confirm_guard_boundary",
+      "description": "覆盖 [E4]-[E7]：估计周期累计 state_confirm，在 state_confirm>1 且 Rleft/Rright 归一化差等于 kc、front_range 等于 Fs 时进入 StraightCenter。",
+      "initial_state": null,
+      "initial_vars": {
+        "state_confirm": 0,
+        "Rleft": 120.0,
+        "Rright": 80.0,
+        "front_range": 40.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1,
+            "Rleft": 120.0,
+            "Rright": 80.0,
+            "front_range": 40.0,
+            "kc": 0.2,
+            "Fs": 40.0
+          },
+          "name": "first_estimation_cycle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 2,
+            "Rleft": 120.0,
+            "Rright": 80.0,
+            "front_range": 40.0
+          },
+          "name": "confirm_counter_reaches_two"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 2,
+            "Rleft": 120.0,
+            "Rright": 80.0,
+            "front_range": 40.0
+          },
+          "name": "straight_center_at_kc_boundary"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1,
+            "Rleft": 120.0,
+            "Rright": 80.0,
+            "front_range": 40.0
+          },
+          "name": "new_state_resets_for_reassessment"
+        }
+      ]
+    },
+    {
+      "name": "straight_sided_above_kc_guard",
+      "description": "覆盖 [E7]：front_range 不小于 Fs 但 Rleft/Rright 归一化差超过 kc 时进入 StraightSided，而不是 StraightCenter。",
+      "initial_state": "JoeySupervisor.StateEstimation",
+      "initial_vars": {
+        "state_confirm": 2,
+        "Rleft": 130.0,
+        "Rright": 70.0,
+        "front_range": 41.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "JoeySupervisor.StraightSided",
+          "expected_vars": {
+            "state_confirm": 2,
+            "Rleft": 130.0,
+            "Rright": 70.0,
+            "front_range": 41.0
+          },
+          "name": "above_kc_goes_straight_sided"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1,
+            "Rleft": 130.0,
+            "Rright": 70.0,
+            "front_range": 41.0
+          },
+          "name": "straight_sided_reassessment"
+        }
+      ]
+    },
+    {
+      "name": "sided_front_range_below_fs",
+      "description": "覆盖 [E8]：front_range 小于 Fs 表示前方接近墙或障碍，进入 Sided 并完成 fine step steering。",
+      "initial_state": "JoeySupervisor.StateEstimation",
+      "initial_vars": {
+        "state_confirm": 2,
+        "Rleft": 100.0,
+        "Rright": 100.0,
+        "front_range": 39.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "JoeySupervisor.Sided",
+          "expected_vars": {
+            "state_confirm": 2,
+            "front_range": 39.0,
+            "Fs": 40.0
+          },
+          "name": "below_fs_enters_sided"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SidedSteeringComplete"
+          ],
+          "expected_state": "JoeySupervisor.StraightSided",
+          "expected_vars": {
+            "state_confirm": 2,
+            "front_range": 39.0
+          },
+          "name": "fine_step_steering_complete"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1,
+            "front_range": 39.0
+          },
+          "name": "sided_path_reassesses"
+        }
+      ]
+    },
+    {
+      "name": "junction_rightmost_and_branch_modes",
+      "description": "覆盖 [E9]-[E14]：T junction/Cross/RightBranch 走最右方向，LeftBranch 继续直行，并触达速度/位置闭环状态。",
+      "initial_state": "JoeySupervisor.StateEstimation",
+      "initial_vars": {
+        "state_confirm": 2,
+        "Rleft": 100.0,
+        "Rright": 100.0,
+        "front_range": 100.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ConfirmTJunction"
+          ],
+          "expected_state": "JoeySupervisor.TJunction",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_t_junction"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "TurnRight90Complete"
+          ],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "t_junction_turns_right"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "after_t_reassess"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmLeftBranch"
+          ],
+          "expected_state": "JoeySupervisor.LeftBranch",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_left_branch"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ContinueStraightPastLeftBranch"
+          ],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "left_branch_keeps_straight"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "after_left_branch_reassess"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmRightBranch"
+          ],
+          "expected_state": "JoeySupervisor.RightBranch",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_right_branch"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RightBranchTurnComplete"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "right_branch_turn_reassesses"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmCross"
+          ],
+          "expected_state": "JoeySupervisor.Cross",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_cross"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CrossTurnRightComplete"
+          ],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "cross_turns_right"
+        }
+      ]
+    },
+    {
+      "name": "corner_position_control_modes",
+      "description": "覆盖 [E12]-[E14] 与 STM 摘录 C：LeftCorner 和 RightCorner 都使用位置闭环完成 90 度转向后回到直行。",
+      "initial_state": "JoeySupervisor.StateEstimation",
+      "initial_vars": {
+        "state_confirm": 2,
+        "Rleft": 100.0,
+        "Rright": 100.0,
+        "front_range": 100.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ConfirmLeftCorner"
+          ],
+          "expected_state": "JoeySupervisor.LeftCorner",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_left_corner"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LeftCornerTurnComplete"
+          ],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "left_corner_turn_complete"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "corner_reassessment"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmRightCorner"
+          ],
+          "expected_state": "JoeySupervisor.RightCorner",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_right_corner"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "RightCornerTurnComplete"
+          ],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "right_corner_turn_complete"
+        }
+      ]
+    },
+    {
+      "name": "recovery_fault_paths",
+      "description": "覆盖 [E17]-[E19]：CrashLeft/CrashRight 30 度后退并重估，DeadEnd 180 度回转居中，FlipRisk 依据姿态慢速前后步进脱险。",
+      "initial_state": "JoeySupervisor.StateEstimation",
+      "initial_vars": {
+        "state_confirm": 2,
+        "Rleft": 100.0,
+        "Rright": 100.0,
+        "front_range": 100.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ConfirmCrashLeft"
+          ],
+          "expected_state": "JoeySupervisor.CrashLeft",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_crash_left"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CrashCorrectionComplete"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "crash_left_reassess"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmCrashRight"
+          ],
+          "expected_state": "JoeySupervisor.CrashRight",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_crash_right"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "CrashCorrectionComplete"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "crash_right_reassess"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmDeadEnd"
+          ],
+          "expected_state": "JoeySupervisor.DeadEnd",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_dead_end"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "DeadEndTurnComplete"
+          ],
+          "expected_state": "JoeySupervisor.StraightCenter",
+          "expected_vars": {
+            "state_confirm": 0
+          },
+          "name": "dead_end_turnaround_complete"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "NewStateDetected"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "after_dead_end_reassess"
+        },
+        {
+          "before_cycles": 1,
+          "events": [
+            "ConfirmFlipRisk"
+          ],
+          "expected_state": "JoeySupervisor.FlipRisk",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_flip_risk"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "FlipRiskEscaped"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "flip_risk_escape_reassess"
+        }
+      ]
+    },
+    {
+      "name": "open_space_reassess",
+      "description": "覆盖 [E2] 与 STM 摘录 C：OpenSpace/Manhole 被确认后缓慢接近并重新评估状态。",
+      "initial_state": "JoeySupervisor.StateEstimation",
+      "initial_vars": {
+        "state_confirm": 2,
+        "Rleft": 100.0,
+        "Rright": 100.0,
+        "front_range": 100.0,
+        "kc": 0.2,
+        "Fs": 40.0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "ConfirmOpenSpace"
+          ],
+          "expected_state": "JoeySupervisor.OpenSpace",
+          "expected_vars": {
+            "state_confirm": 2
+          },
+          "name": "confirmed_open_space"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OpenSpaceReassess"
+          ],
+          "expected_state": "JoeySupervisor.StateEstimation",
+          "expected_vars": {
+            "state_confirm": 1
+          },
+          "name": "open_space_reassesses"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,509 @@
+{
+  "scenarios": [
+    {
+      "name": "hmi_accepts_four_products_and_max_count",
+      "description": "覆盖 E1/E2：HMI 选择四种产品以内、production_count 等于默认最大 10 时进入等待灌装。",
+      "initial_state": null,
+      "initial_vars": {
+        "selected_product_count": 4,
+        "production_count": 10,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.Setup",
+          "expected_vars": {
+            "selected_product_count": 4,
+            "production_count": 10,
+            "resume_code": 1
+          },
+          "name": "default_enters_setup"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.WaitingForFill",
+          "expected_vars": {
+            "selected_product_count": 4,
+            "production_count": 10,
+            "resume_code": 2
+          },
+          "name": "hmi_guard_accepts_limit"
+        }
+      ]
+    },
+    {
+      "name": "hmi_rejects_count_above_default_max",
+      "description": "覆盖 E2：production_count 超过默认最大 10 时 HMI setup guard 不放行。",
+      "initial_state": null,
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 11,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.Setup",
+          "expected_vars": {
+            "production_count": 11,
+            "resume_code": 1
+          },
+          "name": "enters_setup"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.Setup",
+          "expected_vars": {
+            "production_count": 11,
+            "resume_code": 1
+          },
+          "name": "guard_blocks_over_limit"
+        }
+      ]
+    },
+    {
+      "name": "filling_waits_without_fill_signal",
+      "description": "覆盖 E3：tank level 在量程内但 filling_signal 未到达时不能打开阀门。",
+      "initial_state": "CupFillingLine.WaitingForFill",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 125.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 2
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.WaitingForFill",
+          "expected_vars": {
+            "filling_signal": 0,
+            "tank_level_mbar": 125.0,
+            "resume_code": 2
+          },
+          "name": "missing_signal_blocks_filling"
+        }
+      ]
+    },
+    {
+      "name": "filling_rejects_pressure_transmitter_over_range",
+      "description": "覆盖 E5：pressure transmitter 0-250 mBar 量程上界，tank_level_mbar 超过 250 不启动灌装。",
+      "initial_state": "CupFillingLine.WaitingForFill",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 1,
+        "tank_level_mbar": 251.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 2
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.WaitingForFill",
+          "expected_vars": {
+            "filling_signal": 1,
+            "tank_level_mbar": 251.0,
+            "resume_code": 2
+          },
+          "name": "over_range_blocks_filling"
+        }
+      ]
+    },
+    {
+      "name": "filling_opens_with_signal_and_valid_tank_range",
+      "description": "覆盖 E3/E5：filling_signal 到达且 tank_level_mbar 位于 0-250 mBar 量程内时打开电气气动阀并进入 Filling。",
+      "initial_state": "CupFillingLine.WaitingForFill",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 1,
+        "tank_level_mbar": 200.0,
+        "loadcell_weight_g": 80.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 2
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.Filling",
+          "expected_vars": {
+            "filling_signal": 1,
+            "tank_level_mbar": 200.0,
+            "loadcell_weight_g": 25.0,
+            "resume_code": 3
+          },
+          "name": "compound_guard_starts_filling"
+        }
+      ]
+    },
+    {
+      "name": "loadcell_closes_valve_at_desired_weight",
+      "description": "覆盖 E4：loadcell_weight_g 低于 desired_weight_g 时继续灌装，达到后关闭阀门并进入封盖第一步。",
+      "initial_state": "CupFillingLine.Filling",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 99.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 3
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.Filling",
+          "expected_vars": {
+            "loadcell_weight_g": 124.0,
+            "desired_weight_g": 100.0,
+            "resume_code": 3
+          },
+          "name": "below_threshold_continues"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.CupArrival",
+          "expected_vars": {
+            "loadcell_weight_g": 124.0,
+            "desired_weight_g": 100.0,
+            "resume_code": 4
+          },
+          "name": "threshold_reached_closes_valve"
+        }
+      ]
+    },
+    {
+      "name": "capping_sequence_reaches_mixed_label",
+      "description": "覆盖 E6/E7/E8/E9：封盖 cup arrival、vacuum transfer、50 mm attachment、return initial 后，多产品进入 mixed label。",
+      "initial_state": "CupFillingLine.CupArrival",
+      "initial_vars": {
+        "selected_product_count": 2,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 4
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "LidPushed"
+          ],
+          "expected_state": "CupFillingLine.LidTransfer",
+          "expected_vars": {
+            "selected_product_count": 2,
+            "resume_code": 5
+          },
+          "name": "lid_pushed_to_transfer"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "VacuumAtCupPosition"
+          ],
+          "expected_state": "CupFillingLine.VerticalAttach",
+          "expected_vars": {
+            "vertical_motion_mm": 25.0,
+            "resume_code": 6
+          },
+          "name": "vacuum_moves_lid_to_cup"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.VerticalAttach",
+          "expected_vars": {
+            "vertical_motion_mm": 50.0,
+            "resume_code": 6
+          },
+          "name": "fifty_mm_boundary_reached"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.ReturnInitial",
+          "expected_vars": {
+            "vertical_motion_mm": 50.0,
+            "resume_code": 7
+          },
+          "name": "rodless_cylinder_and_vacuum_return"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.LabelMixed",
+          "expected_vars": {
+            "selected_product_count": 2,
+            "resume_code": 9
+          },
+          "name": "multiple_products_get_mixed_label"
+        }
+      ]
+    },
+    {
+      "name": "capping_step_failure_restarts_sequence",
+      "description": "覆盖 E8：封盖任一步骤失败时整个 capping process 从 CupArrival 重新开始。",
+      "initial_state": "CupFillingLine.VerticalAttach",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 25.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 6
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "CappingStepFailed"
+          ],
+          "expected_state": "CupFillingLine.CupArrival",
+          "expected_vars": {
+            "vertical_motion_mm": 0.0,
+            "resume_code": 4
+          },
+          "name": "failure_returns_to_cup_arrival"
+        }
+      ]
+    },
+    {
+      "name": "single_product_gets_pure_label_and_conveyor_exits",
+      "description": "覆盖 E9/E10/E11：单产品进入 pure label，LabelApplied 后 step motor pulse 与 encoder feedback 周期累加并到达出口。",
+      "initial_state": "CupFillingLine.ReturnInitial",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 7
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.LabelPure",
+          "expected_vars": {
+            "selected_product_count": 1,
+            "resume_code": 8
+          },
+          "name": "single_product_gets_pure_label"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LabelApplied"
+          ],
+          "expected_state": "CupFillingLine.MovingToExit",
+          "expected_vars": {
+            "plc_pulse_count": 1,
+            "encoder_feedback_count": 1,
+            "target_pulse_count": 3,
+            "resume_code": 10
+          },
+          "name": "label_applied_starts_conveyor"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.MovingToExit",
+          "expected_vars": {
+            "plc_pulse_count": 2,
+            "encoder_feedback_count": 2,
+            "target_pulse_count": 3,
+            "resume_code": 10
+          },
+          "name": "second_pulse_cycle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.MovingToExit",
+          "expected_vars": {
+            "plc_pulse_count": 3,
+            "encoder_feedback_count": 3,
+            "target_pulse_count": 3,
+            "resume_code": 10
+          },
+          "name": "third_pulse_cycle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.ExitReady",
+          "expected_vars": {
+            "plc_pulse_count": 3,
+            "encoder_feedback_count": 3,
+            "target_pulse_count": 3,
+            "resume_code": 11
+          },
+          "name": "pulse_target_reaches_exit"
+        }
+      ]
+    },
+    {
+      "name": "encoder_fault_warns_then_resumes_conveyor",
+      "description": "覆盖 E11/E12：PLC 已发 pulse 但 encoder feedback 落后时报警；修正后回到 MovingToExit 并继续完成出口移动。",
+      "initial_state": "CupFillingLine.MovingToExit",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 2,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 10
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.Warning",
+          "expected_vars": {
+            "plc_pulse_count": 2,
+            "encoder_feedback_count": 0,
+            "resume_code": 10
+          },
+          "name": "encoder_lag_detects_error"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Corrected"
+          ],
+          "expected_state": "CupFillingLine.MovingToExit",
+          "expected_vars": {
+            "plc_pulse_count": 3,
+            "encoder_feedback_count": 3,
+            "resume_code": 10
+          },
+          "name": "correction_resumes_move"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "CupFillingLine.ExitReady",
+          "expected_vars": {
+            "plc_pulse_count": 3,
+            "encoder_feedback_count": 3,
+            "resume_code": 11
+          },
+          "name": "move_completes_after_resume"
+        }
+      ]
+    },
+    {
+      "name": "forced_problem_warning_resumes_lid_transfer",
+      "description": "覆盖 E12/C3：任意主/辅过程 Problem forced 到 Warning，Corrected 后根据 resume_code 回到停止的 LidTransfer。",
+      "initial_state": "CupFillingLine.LidTransfer",
+      "initial_vars": {
+        "selected_product_count": 1,
+        "production_count": 1,
+        "filling_signal": 0,
+        "tank_level_mbar": 0.0,
+        "loadcell_weight_g": 0.0,
+        "desired_weight_g": 100.0,
+        "vertical_motion_mm": 0.0,
+        "plc_pulse_count": 0,
+        "encoder_feedback_count": 0,
+        "target_pulse_count": 3,
+        "resume_code": 5
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "CupFillingLine.Problem"
+          ],
+          "expected_state": "CupFillingLine.Warning",
+          "expected_vars": {
+            "resume_code": 5,
+            "plc_pulse_count": 0,
+            "encoder_feedback_count": 0
+          },
+          "name": "global_problem_forces_warning"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Corrected"
+          ],
+          "expected_state": "CupFillingLine.LidTransfer",
+          "expected_vars": {
+            "resume_code": 5,
+            "plc_pulse_count": 0,
+            "encoder_feedback_count": 0
+          },
+          "name": "corrected_resumes_lid_transfer"
+        }
+      ]
+    }
+  ]
+}

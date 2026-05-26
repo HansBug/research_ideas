@@ -1,0 +1,381 @@
+{
+  "scenarios": [
+    {
+      "name": "ready_condition11_and_ros_resource_cycles",
+      "description": "覆盖 condition 11 进入 Ready，以及 E6 所述 ROS perception resource 在每个 cycle 更新。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "UrbanDrivingDMM.Begin",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "default_enters_begin"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition11ReadyToGo"
+          ],
+          "expected_state": "UrbanDrivingDMM.Ready",
+          "expected_vars": {
+            "ros_resource_age": 2,
+            "lane_change_demanded": 0
+          },
+          "name": "condition11_to_ready"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "UrbanDrivingDMM.Ready",
+          "expected_vars": {
+            "ros_resource_age": 5,
+            "lane_change_demanded": 0
+          },
+          "name": "three_resource_update_cycles"
+        }
+      ]
+    },
+    {
+      "name": "stop_and_go_change_lane_substates_and_completion",
+      "description": "覆盖 Stop-and-Go、condition 23 path change、Change-Lane 的 LaneKeeping/LaneChanging 层次和 condition 32 完成。",
+      "initial_state": "UrbanDrivingDMM.Ready",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition12StandardScenario"
+          ],
+          "expected_state": "UrbanDrivingDMM.StopAndGo",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 1
+          },
+          "name": "ready_to_stop_and_go"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition23DemandPathChange"
+          ],
+          "expected_state": "UrbanDrivingDMM.ChangeLane.LaneKeeping",
+          "expected_vars": {
+            "ros_resource_age": 2,
+            "lane_change_demanded": 1
+          },
+          "name": "condition23_to_change_lane"
+        },
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "UrbanDrivingDMM.ChangeLane.LaneChanging",
+          "expected_vars": {
+            "ros_resource_age": 3,
+            "lane_change_demanded": 0
+          },
+          "name": "lane_change_demand_enters_lane_changing"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition32LaneChangeComplete"
+          ],
+          "expected_state": "UrbanDrivingDMM.StopAndGo",
+          "expected_vars": {
+            "ros_resource_age": 4,
+            "lane_change_demanded": 0
+          },
+          "name": "condition32_lane_change_complete"
+        }
+      ]
+    },
+    {
+      "name": "obstacle_avoidance_handling_completion_and_timeout",
+      "description": "覆盖 obstacle detected/need avoid、condition 44 handling、condition 42 complete、condition 41 incomplete timeout。",
+      "initial_state": "UrbanDrivingDMM.Ready",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition14NeedAvoidObstacle"
+          ],
+          "expected_state": "UrbanDrivingDMM.AvoidObstacle",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "ready_to_avoid_obstacle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition44HandlingAvoidObstacle"
+          ],
+          "expected_state": "UrbanDrivingDMM.AvoidObstacle",
+          "expected_vars": {
+            "ros_resource_age": 2,
+            "lane_change_demanded": 0
+          },
+          "name": "condition44_keeps_handling"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition42ObstacleAvoidComplete"
+          ],
+          "expected_state": "UrbanDrivingDMM.StopAndGo",
+          "expected_vars": {
+            "ros_resource_age": 3,
+            "lane_change_demanded": 0
+          },
+          "name": "condition42_complete_to_stop_and_go"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition24NeedAvoidObstacle"
+          ],
+          "expected_state": "UrbanDrivingDMM.AvoidObstacle",
+          "expected_vars": {
+            "ros_resource_age": 4,
+            "lane_change_demanded": 0
+          },
+          "name": "stop_and_go_to_avoid_obstacle"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition41AvoidIncompleteTimeOver"
+          ],
+          "expected_state": "UrbanDrivingDMM.Ready",
+          "expected_vars": {
+            "ros_resource_age": 5,
+            "lane_change_demanded": 0
+          },
+          "name": "condition41_timeout_to_ready"
+        }
+      ]
+    },
+    {
+      "name": "ready_emergency_stay_and_recover",
+      "description": "覆盖 condition 10 进入 E-stop、condition 00 emergency 持续工作、condition 01 non-dangerous 回 Ready。",
+      "initial_state": "UrbanDrivingDMM.Ready",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition10Emergency"
+          ],
+          "expected_state": "UrbanDrivingDMM.EStop",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "condition10_to_estop"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition00StayEmergency"
+          ],
+          "expected_state": "UrbanDrivingDMM.EStop",
+          "expected_vars": {
+            "ros_resource_age": 2,
+            "lane_change_demanded": 0
+          },
+          "name": "condition00_stays_estop"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition01NonDangerousReady"
+          ],
+          "expected_state": "UrbanDrivingDMM.Ready",
+          "expected_vars": {
+            "ros_resource_age": 3,
+            "lane_change_demanded": 0
+          },
+          "name": "condition01_returns_ready"
+        }
+      ]
+    },
+    {
+      "name": "stop_and_go_emergency_priority_over_path_change",
+      "description": "覆盖 condition 20 fault path，并验证 E-stop 优先于 Change-Lane 的资源优先级语义。",
+      "initial_state": "UrbanDrivingDMM.StopAndGo",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition20Emergency",
+            "Condition23DemandPathChange"
+          ],
+          "expected_state": "UrbanDrivingDMM.EStop",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "condition20_wins_over_condition23"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition01NonDangerousReady"
+          ],
+          "expected_state": "UrbanDrivingDMM.Ready",
+          "expected_vars": {
+            "ros_resource_age": 2,
+            "lane_change_demanded": 0
+          },
+          "name": "recover_to_ready"
+        }
+      ]
+    },
+    {
+      "name": "avoid_obstacle_priority_over_path_change",
+      "description": "验证 obstacle avoiding priority 高于 Change-Lane：condition 24 与 condition 23 同 cycle 时进入 AvoidObstacle。",
+      "initial_state": "UrbanDrivingDMM.StopAndGo",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 1
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition24NeedAvoidObstacle",
+            "Condition23DemandPathChange"
+          ],
+          "expected_state": "UrbanDrivingDMM.AvoidObstacle",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 1
+          },
+          "name": "condition24_wins_over_condition23"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition42ObstacleAvoidComplete"
+          ],
+          "expected_state": "UrbanDrivingDMM.StopAndGo",
+          "expected_vars": {
+            "ros_resource_age": 2,
+            "lane_change_demanded": 1
+          },
+          "name": "complete_obstacle_after_priority_case"
+        }
+      ]
+    },
+    {
+      "name": "change_lane_keeping_emergency",
+      "description": "覆盖 Change-Lane/LaneKeeping 下 condition 30 perception emergency 进入 E-stop。",
+      "initial_state": "UrbanDrivingDMM.ChangeLane.LaneKeeping",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition30Emergency"
+          ],
+          "expected_state": "UrbanDrivingDMM.EStop",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "condition30_from_lane_keeping"
+        }
+      ]
+    },
+    {
+      "name": "lane_change_demand_guard_false_boundary",
+      "description": "覆盖 lane_change_demanded guard 的 false 边界：demand=0 时 LaneKeeping 不进入 LaneChanging。",
+      "initial_state": "UrbanDrivingDMM.ChangeLane.LaneKeeping",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "UrbanDrivingDMM.ChangeLane.LaneKeeping",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "demand_zero_stays_lane_keeping"
+        }
+      ]
+    },
+    {
+      "name": "change_lane_changing_emergency",
+      "description": "覆盖 Change-Lane/LaneChanging 下 condition 30 perception emergency 进入 E-stop。",
+      "initial_state": "UrbanDrivingDMM.ChangeLane.LaneChanging",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition30Emergency"
+          ],
+          "expected_state": "UrbanDrivingDMM.EStop",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "condition30_from_lane_changing"
+        }
+      ]
+    },
+    {
+      "name": "avoid_obstacle_emergency",
+      "description": "覆盖 AvoidObstacle 下 condition 40 perception emergency 进入 E-stop。",
+      "initial_state": "UrbanDrivingDMM.AvoidObstacle",
+      "initial_vars": {
+        "ros_resource_age": 0,
+        "lane_change_demanded": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [
+            "Condition40Emergency"
+          ],
+          "expected_state": "UrbanDrivingDMM.EStop",
+          "expected_vars": {
+            "ros_resource_age": 1,
+            "lane_change_demanded": 0
+          },
+          "name": "condition40_to_estop"
+        }
+      ]
+    }
+  ]
+}

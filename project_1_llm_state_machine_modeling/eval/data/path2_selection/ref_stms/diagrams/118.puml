@@ -1,0 +1,98 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| configuration_selected | int | 0 |
+| required_real_time_link_present | int | 0 |
+| monitoring_cycles | int | 0 |
+endlegend
+
+state "SubsystemLifecycleSupervisor" as subsystem_lifecycle_supervisor <<composite>> {
+    state "Offline" as subsystem_lifecycle_supervisor__offline
+    state "SoftwareInit" as subsystem_lifecycle_supervisor__software_init
+    state "HardwareInit" as subsystem_lifecycle_supervisor__hardware_init
+    state "PreOperational" as subsystem_lifecycle_supervisor__pre_operational
+    state "SafeOperational" as subsystem_lifecycle_supervisor__safe_operational
+    state "Operational" as subsystem_lifecycle_supervisor__operational
+    state "ErrorOperational" as subsystem_lifecycle_supervisor__error_operational
+    state "PostOperational" as subsystem_lifecycle_supervisor__post_operational
+    state "HardwareDeInit" as subsystem_lifecycle_supervisor__hardware_de_init
+    state "SoftwareDeInit" as subsystem_lifecycle_supervisor__software_de_init
+    subsystem_lifecycle_supervisor__offline --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__offline --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__offline --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__software_init --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__software_init --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__software_init --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__hardware_init --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__hardware_init --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__hardware_init --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__pre_operational --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__pre_operational --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__pre_operational --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__safe_operational --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__safe_operational --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__safe_operational --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__operational --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__operational --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__operational --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__operational --> subsystem_lifecycle_supervisor__safe_operational : MediumSeverityError
+    subsystem_lifecycle_supervisor__error_operational --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__error_operational --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__error_operational --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__post_operational --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__post_operational --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__post_operational --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__hardware_de_init --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__hardware_de_init --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__hardware_de_init --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    subsystem_lifecycle_supervisor__software_de_init --> subsystem_lifecycle_supervisor__error_operational : HighSeverityError
+    subsystem_lifecycle_supervisor__software_de_init --> subsystem_lifecycle_supervisor__error_operational : CriticalHardwareTemperatureLimit
+    subsystem_lifecycle_supervisor__software_de_init --> subsystem_lifecycle_supervisor__error_operational : JoystickOrRobotUnplugged
+    [*] --> subsystem_lifecycle_supervisor__offline
+    subsystem_lifecycle_supervisor__offline --> subsystem_lifecycle_supervisor__software_init : StartSubsystem
+    subsystem_lifecycle_supervisor__software_init --> subsystem_lifecycle_supervisor__hardware_init : PublishParameters
+    subsystem_lifecycle_supervisor__hardware_init --> subsystem_lifecycle_supervisor__pre_operational : InitializeHardware
+    note on link
+    effect {
+        configuration_selected = 0;
+        required_real_time_link_present = 0;
+    }
+    end note
+    subsystem_lifecycle_supervisor__pre_operational --> subsystem_lifecycle_supervisor__pre_operational : SelectConfiguration
+    note on link
+    effect {
+        configuration_selected = 1;
+    }
+    end note
+    subsystem_lifecycle_supervisor__pre_operational --> subsystem_lifecycle_supervisor__pre_operational : RealTimeLinkPresent
+    note on link
+    effect {
+        required_real_time_link_present = 1;
+    }
+    end note
+    subsystem_lifecycle_supervisor__pre_operational --> subsystem_lifecycle_supervisor__safe_operational : configuration_selected == 1 && required_real_time_link_present == 1
+    note on link
+    effect {
+        configuration_selected = 0;
+    }
+    end note
+    subsystem_lifecycle_supervisor__safe_operational --> subsystem_lifecycle_supervisor__operational : VerificationCompleted
+    subsystem_lifecycle_supervisor__operational --> subsystem_lifecycle_supervisor__post_operational : StopSubsystem
+    subsystem_lifecycle_supervisor__post_operational --> subsystem_lifecycle_supervisor__hardware_de_init : PostOperationalActionsRevoked
+    subsystem_lifecycle_supervisor__hardware_de_init --> subsystem_lifecycle_supervisor__software_de_init : HardwareActionsRevoked
+    subsystem_lifecycle_supervisor__software_de_init --> subsystem_lifecycle_supervisor__offline : SoftwareActionsRevoked
+    subsystem_lifecycle_supervisor__safe_operational --> subsystem_lifecycle_supervisor__safe_operational : LowSeverityOrProgressInformation
+    subsystem_lifecycle_supervisor__operational --> subsystem_lifecycle_supervisor__operational : LowSeverityOrProgressInformation
+}
+[*] --> subsystem_lifecycle_supervisor
+subsystem_lifecycle_supervisor --> [*]
+@enduml

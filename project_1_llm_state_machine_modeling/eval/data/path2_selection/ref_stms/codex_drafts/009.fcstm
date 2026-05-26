@@ -1,0 +1,71 @@
+def int ros_resource_age = 0;
+def int lane_change_demanded = 0;
+
+state UrbanDrivingDMM {
+    >> during before {
+        ros_resource_age = ros_resource_age + 1;
+    }
+
+    [*] -> Begin;
+
+    state Begin {
+        during abstract ReadLidarZedGpsImuEncoders;
+    }
+
+    state Ready {
+        during abstract ReadLidarZedGpsImuEncoders;
+    }
+
+    state StopAndGo {
+        during abstract ApplyAccelerationOrBraking;
+    }
+
+    state ChangeLane {
+        [*] -> LaneKeeping;
+
+        state LaneKeeping {
+            during abstract AdjustSteeringTurn;
+        }
+
+        state LaneChanging {
+            during abstract AdjustSteeringTurn;
+        }
+
+        LaneKeeping -> LaneChanging : if [lane_change_demanded >= 1] effect { lane_change_demanded = 0; };
+        LaneKeeping -> [*] :: Condition30Emergency;
+        LaneChanging -> [*] :: Condition30Emergency;
+        LaneChanging -> [*] :: Condition32LaneChangeComplete;
+    }
+
+    state EStop {
+        enter abstract ApplyBraking;
+        during abstract KeepEmergencyMode;
+    }
+
+    state AvoidObstacle {
+        during abstract FollowTrajectoryWithLongitudinalAndLateralControllers;
+    }
+
+    Begin -> Ready :: Condition11ReadyToGo;
+
+    Ready -> EStop :: Condition10Emergency;
+    Ready -> AvoidObstacle :: Condition14NeedAvoidObstacle;
+    Ready -> StopAndGo :: Condition12StandardScenario;
+
+    StopAndGo -> EStop :: Condition20Emergency;
+    StopAndGo -> AvoidObstacle :: Condition24NeedAvoidObstacle;
+    StopAndGo -> ChangeLane :: Condition23DemandPathChange;
+    StopAndGo -> Ready :: Condition21FinishedSAG;
+
+    ChangeLane -> EStop : /ChangeLane.LaneKeeping.Condition30Emergency;
+    ChangeLane -> EStop : /ChangeLane.LaneChanging.Condition30Emergency;
+    ChangeLane -> StopAndGo : /ChangeLane.LaneChanging.Condition32LaneChangeComplete;
+
+    EStop -> EStop :: Condition00StayEmergency;
+    EStop -> Ready :: Condition01NonDangerousReady;
+
+    AvoidObstacle -> EStop :: Condition40Emergency;
+    AvoidObstacle -> Ready :: Condition41AvoidIncompleteTimeOver;
+    AvoidObstacle -> AvoidObstacle :: Condition44HandlingAvoidObstacle;
+    AvoidObstacle -> StopAndGo :: Condition42ObstacleAvoidComplete;
+}

@@ -1,0 +1,294 @@
+@startuml
+hide empty description
+
+skinparam state {
+  BackgroundColor<<pseudo>> LightGray
+  BackgroundColor<<composite>> LightBlue
+  BorderColor<<pseudo>> Gray
+  FontStyle<<pseudo>> italic
+}
+
+legend top left
+|= Variable |= Type |= Initial Value |
+| parked_count | int | 0 |
+| selected_slot | int | 0 |
+| movement_counter | int | 0 |
+endlegend
+
+state "RotaryParkingController" as rotary_parking_controller <<composite>> {
+    state "Off" as rotary_parking_controller__off
+    state "Ready" as rotary_parking_controller__ready
+    state "EntryCheck" as rotary_parking_controller__entry_check <<pseudo>> #line.dotted
+    state "EntryGateOpen" as rotary_parking_controller__entry_gate_open
+    state "LotFull" as rotary_parking_controller__lot_full
+    state "AlignmentCheck" as rotary_parking_controller__alignment_check
+    state "AdjustPosition" as rotary_parking_controller__adjust_position
+    state "ParkingSlotSelected" as rotary_parking_controller__parking_slot_selected
+    state "ParkingRotating" as rotary_parking_controller__parking_rotating
+    state "ParkingComplete" as rotary_parking_controller__parking_complete
+    state "RetrievalSlotSelected" as rotary_parking_controller__retrieval_slot_selected
+    state "RetrievalRotating" as rotary_parking_controller__retrieval_rotating
+    state "RetrievalValidation" as rotary_parking_controller__retrieval_validation
+    state "ExitGateOpen" as rotary_parking_controller__exit_gate_open
+    state "EmergencyManual" as rotary_parking_controller__emergency_manual
+    state "ParkCommandCheck" as rotary_parking_controller__park_command_check <<pseudo>> #line.dotted
+    state "ParkStopCheck" as rotary_parking_controller__park_stop_check <<pseudo>> #line.dotted
+    state "RetrieveCommandCheck" as rotary_parking_controller__retrieve_command_check <<pseudo>> #line.dotted
+    state "RetrieveStopCheck" as rotary_parking_controller__retrieve_stop_check <<pseudo>> #line.dotted
+    [*] --> rotary_parking_controller__off
+    rotary_parking_controller__off --> rotary_parking_controller__ready : Off.Start
+    rotary_parking_controller__ready --> rotary_parking_controller__off : Ready.Stop
+    rotary_parking_controller__ready --> rotary_parking_controller__entry_check : Ready.ProximityOn
+    rotary_parking_controller__entry_check --> rotary_parking_controller__entry_gate_open : parked_count < 8
+    rotary_parking_controller__entry_check --> rotary_parking_controller__lot_full : parked_count >= 8
+    rotary_parking_controller__lot_full --> rotary_parking_controller__ready : LotFull.ResetJumlah
+    note on link
+    effect {
+        parked_count = 0;
+        selected_slot = 0;
+    }
+    end note
+    rotary_parking_controller__entry_gate_open --> rotary_parking_controller__alignment_check : EntryGateOpen.CarEntered
+    rotary_parking_controller__alignment_check --> rotary_parking_controller__parking_slot_selected : AlignmentCheck.Infrared1On
+    rotary_parking_controller__alignment_check --> rotary_parking_controller__adjust_position : AlignmentCheck.Infrared1Off
+    rotary_parking_controller__adjust_position --> rotary_parking_controller__alignment_check : AdjustPosition.PositionAdjusted
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot1
+    note on link
+    effect {
+        selected_slot = 1;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot2
+    note on link
+    effect {
+        selected_slot = 2;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot3
+    note on link
+    effect {
+        selected_slot = 3;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot4
+    note on link
+    effect {
+        selected_slot = 4;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot5
+    note on link
+    effect {
+        selected_slot = 5;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot6
+    note on link
+    effect {
+        selected_slot = 6;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot7
+    note on link
+    effect {
+        selected_slot = 7;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__parking_slot_selected : ParkingSlotSelected.ParkingSlot8
+    note on link
+    effect {
+        selected_slot = 8;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_slot_selected --> rotary_parking_controller__park_command_check : ParkingSlotSelected.OKPark
+    rotary_parking_controller__park_command_check --> rotary_parking_controller__parking_rotating : selected_slot >= 1 && selected_slot <= 8
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__park_command_check --> rotary_parking_controller__parking_slot_selected : selected_slot < 1 || selected_slot > 8
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_rotating --> rotary_parking_controller__park_stop_check : ParkingRotating.Infrared2SpaceDetected
+    rotary_parking_controller__park_stop_check --> rotary_parking_controller__parking_complete : movement_counter >= selected_slot && selected_slot >= 1 && selected_slot <= 8
+    note on link
+    effect {
+        parked_count = parked_count + 1;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__park_stop_check --> rotary_parking_controller__parking_rotating : movement_counter < selected_slot || selected_slot < 1 || selected_slot > 8
+    rotary_parking_controller__parking_complete --> rotary_parking_controller__ready : ParkingComplete.FinishBack
+    rotary_parking_controller__ready --> rotary_parking_controller__retrieval_slot_selected : Ready.AmbilMobil
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot1
+    note on link
+    effect {
+        selected_slot = 1;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot2
+    note on link
+    effect {
+        selected_slot = 2;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot3
+    note on link
+    effect {
+        selected_slot = 3;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot4
+    note on link
+    effect {
+        selected_slot = 4;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot5
+    note on link
+    effect {
+        selected_slot = 5;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot6
+    note on link
+    effect {
+        selected_slot = 6;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot7
+    note on link
+    effect {
+        selected_slot = 7;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieval_slot_selected : RetrievalSlotSelected.RetrievalSlot8
+    note on link
+    effect {
+        selected_slot = 8;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_slot_selected --> rotary_parking_controller__retrieve_command_check : RetrievalSlotSelected.OKRetrieve
+    rotary_parking_controller__retrieve_command_check --> rotary_parking_controller__retrieval_rotating : selected_slot >= 1 && selected_slot <= 8
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieve_command_check --> rotary_parking_controller__retrieval_slot_selected : selected_slot < 1 || selected_slot > 8
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_rotating --> rotary_parking_controller__retrieve_stop_check : RetrievalRotating.SelectedSlotBelow
+    rotary_parking_controller__retrieve_stop_check --> rotary_parking_controller__retrieval_validation : movement_counter >= selected_slot && selected_slot >= 1 && selected_slot <= 8
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieve_stop_check --> rotary_parking_controller__retrieval_rotating : movement_counter < selected_slot || selected_slot < 1 || selected_slot > 8
+    rotary_parking_controller__retrieval_validation --> rotary_parking_controller__exit_gate_open : RetrievalValidation.BENAR
+    rotary_parking_controller__retrieval_validation --> rotary_parking_controller__retrieval_slot_selected : RetrievalValidation.SALAH
+    note on link
+    effect {
+        selected_slot = 0;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__exit_gate_open --> rotary_parking_controller__ready : ExitGateOpen.ExitProximityOn
+    note on link
+    effect {
+        parked_count = parked_count - 1;
+        selected_slot = 0;
+    }
+    end note
+    rotary_parking_controller__ready --> rotary_parking_controller__emergency_manual : Ready.DaruratOn
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__parking_rotating --> rotary_parking_controller__emergency_manual : ParkingRotating.DaruratOn
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_rotating --> rotary_parking_controller__emergency_manual : RetrievalRotating.DaruratOn
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__retrieval_validation --> rotary_parking_controller__emergency_manual : RetrievalValidation.DaruratOn
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__lot_full --> rotary_parking_controller__emergency_manual : LotFull.DaruratOn
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__ready : EmergencyManual.DaruratOff
+    note on link
+    effect {
+        selected_slot = 0;
+        movement_counter = 0;
+    }
+    end note
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__emergency_manual : EmergencyManual.CWLower
+    note on link
+    effect {
+        movement_counter = movement_counter + 1;
+    }
+    end note
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__emergency_manual : EmergencyManual.CCWLower
+    note on link
+    effect {
+        movement_counter = movement_counter + 1;
+    }
+    end note
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__emergency_manual : EmergencyManual.GateOpen
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__emergency_manual : EmergencyManual.GateClose
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__emergency_manual : EmergencyManual.ResetJumlah
+    note on link
+    effect {
+        parked_count = 0;
+        selected_slot = 0;
+    }
+    end note
+    rotary_parking_controller__emergency_manual --> rotary_parking_controller__emergency_manual : EmergencyManual.ResetCounter
+    note on link
+    effect {
+        movement_counter = 0;
+    }
+    end note
+}
+[*] --> rotary_parking_controller
+rotary_parking_controller --> [*]
+@enduml

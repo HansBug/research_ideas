@@ -1,0 +1,769 @@
+{
+  "scenarios": [
+    {
+      "name": "manual_inching_spring_commands",
+      "description": "覆盖 [E7][E8][E9]：从自动等待切到手动维护，HMI/teach pendant spring-action 上下点动均以慢速保持，释放按钮返回手动空闲。",
+      "initial_state": null,
+      "initial_vars": {},
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "default_auto_waiting"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SwitchToManual"
+          ],
+          "expected_state": "ParkingLiftController.ManualIdle",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "switch_to_manual"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ManualUpSpringCommand"
+          ],
+          "expected_state": "ParkingLiftController.ManualInchingUp",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "manual_up_inching"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "ParkingLiftController.ManualInchingUp",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "manual_up_slow_held_for_three_cycles"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SpringButtonReleased"
+          ],
+          "expected_state": "ParkingLiftController.ManualIdle",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "release_manual_up"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ManualDownSpringCommand"
+          ],
+          "expected_state": "ParkingLiftController.ManualInchingDown",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "manual_down_inching"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SpringButtonReleased"
+          ],
+          "expected_state": "ParkingLiftController.ManualIdle",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "release_manual_down"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SwitchToAuto"
+          ],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "return_to_auto_waiting"
+        }
+      ]
+    },
+    {
+      "name": "auto_up_one_level_nominal",
+      "description": "覆盖 [E10]-[E16][E20][E21]：自动命令用 destination-source=-1 选择上行，counter=1，高速运行、fork 降速、stop fork 停止并确认到位。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 2,
+        "destination_level": 1,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_with_up_command_values"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpHigh",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "negative_difference_selects_up"
+        },
+        {
+          "before_cycles": 3,
+          "events": null,
+          "expected_state": "ParkingLiftController.AutoMoveUpHigh",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "up_high_speed_persists_for_three_cycles"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SlowForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpSlow",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "fork_sensor_reduces_speed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "StopForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.StoppedAtLevel",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 0
+          },
+          "name": "stop_sensor_stops_at_target"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LevelConfirmationSensed"
+          ],
+          "expected_state": "ParkingLiftController.TransferReady",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 0
+          },
+          "name": "level_confirmation_allows_transfer"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Reset"
+          ],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 0
+          },
+          "name": "vfd_reset_returns_to_waiting"
+        }
+      ]
+    },
+    {
+      "name": "auto_down_two_levels_counter",
+      "description": "覆盖 [E12][E14][E15]：destination-source=2 选择下行且 counter=2，第一次 stop fork 后还需继续移动，第二次 stop fork 后才停层检查。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 1,
+        "destination_level": 3,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_with_down_command_values"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveDownHigh",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 2
+          },
+          "name": "positive_difference_selects_down"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SlowForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveDownSlow",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 2
+          },
+          "name": "first_down_fork_reduces_speed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "StopForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveDownHigh",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 1
+          },
+          "name": "first_stop_decrements_counter_and_continues"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SlowForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveDownSlow",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 1
+          },
+          "name": "second_down_fork_reduces_speed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "StopForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.StoppedAtLevel",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 0
+          },
+          "name": "second_stop_reaches_target"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LevelConfirmationSensed"
+          ],
+          "expected_state": "ParkingLiftController.TransferReady",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 0
+          },
+          "name": "down_confirmation_allows_transfer"
+        }
+      ]
+    },
+    {
+      "name": "auto_zero_difference_boundary",
+      "description": "覆盖 [E12]-[E14] 的数值 guard 边界：destination-source=0 时不进入上行或下行，而是直接停在可转运确认态。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 2,
+        "destination_level": 2,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 2,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_zero_difference_values"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.TransferReady",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 2,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "zero_difference_goes_ready"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Reset"
+          ],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 2,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "reset_zero_difference_ready"
+        }
+      ]
+    },
+    {
+      "name": "level_confirmation_missing_error",
+      "description": "覆盖 [E16][E17]：自动停止后若 level confirmation sensor 未 sensed，则进入 error stop 而不是 transfer ready。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 2,
+        "destination_level": 1,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_before_error_path"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpHigh",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "begin_up_for_error_path"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SlowForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpSlow",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "slow_before_error_stop"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "StopForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.StoppedAtLevel",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 0
+          },
+          "name": "stopped_before_confirmation_error"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LevelConfirmationMissing"
+          ],
+          "expected_state": "ParkingLiftController.LevelErrorStop",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 0
+          },
+          "name": "missing_confirmation_enters_error"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Reset"
+          ],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 0
+          },
+          "name": "reset_from_level_error"
+        }
+      ]
+    },
+    {
+      "name": "height_antilift_cut_up_and_down",
+      "description": "覆盖 [E18]：Height/AntiLift 在上行与下行 movement 中均切断并停止 lift operation。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 1,
+        "destination_level": 3,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_before_safety_test"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SwitchToManual"
+          ],
+          "expected_state": "ParkingLiftController.ManualIdle",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "manual_idle_for_up_safety"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "ManualUpSpringCommand"
+          ],
+          "expected_state": "ParkingLiftController.ManualInchingUp",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "manual_up_before_height_antilift"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "HeightAntiLiftCut"
+          ],
+          "expected_state": "ParkingLiftController.SafetyCutStop",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "height_antilift_cuts_up_movement"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Reset"
+          ],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "reset_after_up_safety_cut"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveDownHigh",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 2
+          },
+          "name": "auto_down_before_height_antilift"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "HeightAntiLiftCut"
+          ],
+          "expected_state": "ParkingLiftController.SafetyCutStop",
+          "expected_vars": {
+            "source_level": 1,
+            "destination_level": 3,
+            "level_difference": 2,
+            "levels_remaining": 2
+          },
+          "name": "height_antilift_cuts_down_movement"
+        }
+      ]
+    },
+    {
+      "name": "over_travel_alarm_up_limit",
+      "description": "覆盖 [E19]：上行 movement 中 over-travel sensor 报警，进入 safe-position-limit alarm stop。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 2,
+        "destination_level": 1,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_before_overtravel"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpHigh",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "up_high_before_overtravel"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "OverTravelSensor"
+          ],
+          "expected_state": "ParkingLiftController.OverTravelAlarmStop",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "overtravel_sensor_alarms"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "Reset"
+          ],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 2,
+            "destination_level": 1,
+            "level_difference": -1,
+            "levels_remaining": 1
+          },
+          "name": "reset_after_overtravel_alarm"
+        }
+      ]
+    },
+    {
+      "name": "auto_up_two_levels_counter",
+      "description": "覆盖 [E12][E13][E15]：destination-source=-2 时上行 counter=2，第一次 stop fork 后 remaining 仍大于 0 并继续上行。",
+      "initial_state": null,
+      "initial_vars": {
+        "source_level": 3,
+        "destination_level": 1,
+        "level_difference": 0,
+        "levels_remaining": 0
+      },
+      "steps": [
+        {
+          "before_cycles": 0,
+          "events": [],
+          "expected_state": "ParkingLiftController.AutoWaiting",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": 0,
+            "levels_remaining": 0
+          },
+          "name": "auto_waiting_with_two_level_up_values"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "AutoCommand"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpHigh",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": -2,
+            "levels_remaining": 2
+          },
+          "name": "negative_two_difference_selects_up"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SlowForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpSlow",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": -2,
+            "levels_remaining": 2
+          },
+          "name": "first_up_fork_reduces_speed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "StopForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpHigh",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": -2,
+            "levels_remaining": 1
+          },
+          "name": "first_up_stop_decrements_counter_and_continues"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "SlowForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.AutoMoveUpSlow",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": -2,
+            "levels_remaining": 1
+          },
+          "name": "second_up_fork_reduces_speed"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "StopForkSensor"
+          ],
+          "expected_state": "ParkingLiftController.StoppedAtLevel",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": -2,
+            "levels_remaining": 0
+          },
+          "name": "second_up_stop_reaches_target"
+        },
+        {
+          "before_cycles": 0,
+          "events": [
+            "LevelConfirmationSensed"
+          ],
+          "expected_state": "ParkingLiftController.TransferReady",
+          "expected_vars": {
+            "source_level": 3,
+            "destination_level": 1,
+            "level_difference": -2,
+            "levels_remaining": 0
+          },
+          "name": "two_level_up_confirmation_allows_transfer"
+        }
+      ]
+    }
+  ]
+}
