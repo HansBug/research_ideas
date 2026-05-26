@@ -3,17 +3,47 @@
 > **branch**: `dev/method-agent-implementation`
 > **目标**：完整实现 + 跑通 our agent loop + 给出引导 md + smoke 通过；merge 到 main 后 Path 1 / Path 2 各自 PR rebase main 拿到这部分。
 
-## 整体阶段
+## 整体阶段（v2 — 2026-05-26 加入 multi-step modeling + property generation）
 
 | Phase | 内容 | 状态 |
 | --- | --- | --- |
 | **A** | 脚手架 + pyfcstm submodule + 目录骨架 + README + STATUS | ✅ 完成 |
 | **B** | gpt_client.py 统一 LLM client + schema.py dataclass | ✅ 完成 (LLM endpoint ping 通) |
-| **C** | 三个 LLM agent + prompt 模板（spec_extractor / modeler / repair） | ✅ 完成 (端到端 smoke 跑通：NL → SpecJson → DSL → pyfcstm parse + sem OK) |
+| **C** | single-prompt modeling 路径：spec_extractor / modeler / repair 三个 agent + prompt | ✅ 完成 (端到端 smoke 跑通：NL → SpecJson → DSL → pyfcstm parse + sem OK) |
 | **D** | 四个 feedback source wrapper（parse / semantic / sim / judge） | 未开工 |
-| **E** | loop.py 主驱动 + gated cascade 合并 + iter 控制 | 未开工 |
-| **F** | eval/component_extractor.py (Umple/pyfcstm 7 类组件抽取) | 未开工 |
-| **G** | 端到端 smoke 跑通 + 文档收尾 + push branch + 创建 PR Ready | 未开工 |
+| **E** | loop.py 主驱动 + gated cascade 合并 + iter 控制 + **modeling 路径切换 (single-prompt vs multi-step) CLI flag** | 未开工 |
+| **F (新增)** | **Multi-step modeling 模块**：基于用户硕士论文 MTI 方法学，拆 5 步 (identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm)；step 之间通过 JSON 上下文传递，每步 prompt 含统一的 task_description + step_prompt + domain_knowledge + format_description 结构 | 未开工 |
+| **G (新增)** | **Property generation 模块**：基于已生成的 pyfcstm model 元素 (states / events / transitions / variables) 自动生成**待验证性质 / 测试场景**（Gherkin-like 或 event sequence + expected state/var），配合 pyfcstm `SimulationRuntime` sim 验证 — 性质提供 sim oracle (expected behavior)，sim 提供执行验证 | 未开工 |
+| **H** | eval/component_extractor.py (Umple/pyfcstm 7 类组件抽取，Path 1 评测用) | 未开工 |
+| **I** | 端到端 smoke (single-prompt vs multi-step 对比) + 验收 + 生成模型 vs baseline 对比例子写进 README/STATUS + 文档收尾 + PR Ready | 未开工 |
+
+## 设计原则：modeling 路径作为 CLI 选项
+
+`method/loop.py` 必须支持两条 modeling 路径切换（用 `LoopConfig.modeling_mode` 字段）：
+
+| modeling_mode | 流程 | 用于 |
+| --- | --- | --- |
+| `"single_prompt"` | NL → SpecExtractor (1 步) → Modeler (1 步) → DSL | 当前 Phase C 已实现；对照组 |
+| `"multi_step"` (新) | NL → 5 步 MTI (state / event / variable / transition / action) → build_pyfcstm → DSL | 基于 user 硕士论文方法学，Phase F 实现；主对照组 |
+
+两种 modeling 路径共用同一套 feedback / repair / loop 机制（Phase D / E），保证 ablation 干净（仅 modeling 阶段差异）。
+
+## 设计原则：待验证性质 + sim 联合工作流
+
+Phase G 的待验证性质 generation 必须设计为可被 pyfcstm `SimulationRuntime` 消费的形式：
+
+1. **性质 schema**：每条性质至少含 `(scenario_name, initial_state, event_sequence, expected_final_state_or_var_constraint)`
+2. **生成方式**：从 model 已识别元素（state/event/var）出发，LLM 生成"覆盖关键 transition 的 scenario + expected outcome"
+3. **配合 sim 验证**：把 event_sequence 喂给 `SimulationRuntime.cycle(events=...)`，看跑完后 `runtime.current_state` / `runtime.vars` 是否匹配 expected — 这就是 model defects 的来源信号
+
+**核心 framing**：单靠 pyfcstm sim 跑空 cycle 只能 verify "不死锁 / 状态可达"；要 verify "model 行为是否符合 NL 需求"，必须有"NL 需求 → 期望行为 → sim 验证" 的 oracle 链。Phase G 就是补这条链。
+
+## 历史 commit
+
+| commit | 描述 |
+| --- | --- |
+| `6e...` | Phase A-C：脚手架 + pyfcstm submodule + 3 single-prompt agent + 端到端 smoke 跑通 |
+| (待填) | Phase D-I |
 
 ## Phase A-C 完成里程碑
 
