@@ -1,0 +1,29 @@
+{
+  "source": "mock_buggy",
+  "case_id": "abs-fsm-brake-control",
+  "condition": "pred_buggy",
+  "model_text_path": "pred_buggy_model.txt",
+  "_design_notes": "states: rename hold->neutral (semantic TP), add warning (FP). transitions: same 4 with semantic remap + extra spurious decrease->increase shortcut (FP). guards: 4 originals semantic match + 1 spurious cascade FP. one guard threshold slipped (slp < 0.01 vs <=0.01 → semantic or FP, let annotator judge).",
+  "states": [
+    {"id": "p0", "name": "increase", "parent": null, "text": "state increase — pressurize valve"},
+    {"id": "p1", "name": "neutral",  "parent": null, "text": "state neutral — both valves shut, n=0 (renamed from hold)"},
+    {"id": "p2", "name": "decrease", "parent": null, "text": "state decrease — release k1=0, k2=1, n=500"},
+    {"id": "p3", "name": "warning",  "parent": null, "text": "state warning — extra placeholder for fault alarm (not in NL)"}
+  ],
+  "transitions": [
+    {"id": "q0", "src": "increase", "tgt": "neutral",  "event": "", "guard": "slp < 0.01",   "action": "", "is_forced": false, "text": "increase -> neutral when [slp < 0.01]  (was <=, off-by-boundary)"},
+    {"id": "q1", "src": "neutral",  "tgt": "increase", "event": "", "guard": "slp > 0.01",   "action": "", "is_forced": false, "text": "neutral -> increase when [slp > 0.01]"},
+    {"id": "q2", "src": "neutral",  "tgt": "decrease", "event": "", "guard": "slp < -0.01",  "action": "", "is_forced": false, "text": "neutral -> decrease when [slp < -0.01]"},
+    {"id": "q3", "src": "decrease", "tgt": "neutral",  "event": "", "guard": "slp >= -0.01", "action": "", "is_forced": false, "text": "decrease -> neutral when [slp >= -0.01]"},
+    {"id": "q4", "src": "decrease", "tgt": "increase", "event": "", "guard": "slp > 0.05",   "action": "", "is_forced": false, "text": "decrease -> increase when [slp > 0.05] (spurious shortcut)"}
+  ],
+  "guards": [
+    {"id": "r0", "transition_id": "q0", "expr": "slp < 0.01",   "text": "guard [slp < 0.01] (boundary slipped from <=) on increase -> neutral"},
+    {"id": "r1", "transition_id": "q1", "expr": "slp > 0.01",   "text": "guard [slp > 0.01] on neutral -> increase"},
+    {"id": "r2", "transition_id": "q2", "expr": "slp < -0.01",  "text": "guard [slp < -0.01] on neutral -> decrease"},
+    {"id": "r3", "transition_id": "q3", "expr": "slp >= -0.01", "text": "guard [slp >= -0.01] on decrease -> neutral"},
+    {"id": "r4", "transition_id": "q4", "expr": "slp > 0.05",   "text": "guard [slp > 0.05] on spurious decrease -> increase shortcut"}
+  ],
+  "actions": [],
+  "hierarchical_states": []
+}
