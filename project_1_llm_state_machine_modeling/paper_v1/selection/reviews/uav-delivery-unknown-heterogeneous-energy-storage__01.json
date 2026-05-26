@@ -1,0 +1,92 @@
+{
+  "sample_id": "uav-delivery-unknown-heterogeneous-energy-storage__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The UAV controller is a flat five-state FSM: Wait, Bid?, Won?, Deliver, and Return; no parent/child modes or sub-FSMs are described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Bid guards use x=[d_j,m_j,SoC_i(t)] with f(x)=w^T x+b; delivery abort uses SoC(t) <= xi*SoC_takeoff; auction outcome also depends on bid comparisons and tie rules."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Actions include computing bid decisions and bid values, broadcasting task/UAV/bid tuples, recording bids, storing SoC_takeoff, flying/retrieving parcels, and updating the learned policy from outcomes."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "There is a dedicated Deliver-to-Return recovery transition when the low-charge abort threshold is met; it is explicit but not global from every state."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The state skeleton is in Fig.2a and Section 3.1, while detailed bid guards/evaluation formulas are in Section 3.2 and post-attempt learning behavior is in Section 3.3."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as bid, auction, and abort are operationally defined by explicit policy, auction, and SoC rules rather than left to external interpretation."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The policy update after returning is described outside the main state paragraph, so a modeler must attribute that prose action to the post-delivery/Return path."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The bidding decision combines distance, parcel mass, and SoC in a linear classifier, and the abort rule compares current SoC against xi times takeoff SoC."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state or parent-level entry/during/exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The abort/recovery rule is tied to the Deliver state, not declared as an any-state escape to a safe state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite-state initialization or pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "There are multiple arithmetic/comparison guard families: bid classifier, bid-loss complement, auction winner comparison, and SoC abort threshold."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "No cross-cutting transition over three or more substates and no parent-level continuous monitor is present."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Broadcasting bid tuples, recording bids, and updating a policy are abstract data/communication actions, but core delivery actions are concrete UAV behaviors."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "A UAV begins in the Wait state",
+    "returns to the FC if SoC(t) <= xi SoC takeoff"
+  ],
+  "one_line_pitch": "A flat but demanding EFSM where learned multi-variable bidding guards, auction communication, policy updates, and safety abort-return logic stress guard and action extraction.",
+  "verdict": "candidate",
+  "rationale": "This is not a hierarchy stress test, but it is a strong guard/action/fault-recovery sample. The controller's key transitions depend on learned arithmetic guards over task and energy variables, while state behavior includes communication, local record keeping, SoC storage, and online policy update side effects. The paper also splits controller structure, guard semantics, and update actions across multiple sections, creating a documented baseline-trap pattern.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 89305,
+      "cached_input_tokens": 69248,
+      "output_tokens": 6209,
+      "reasoning_output_tokens": 4522
+    },
+    "duration_s": 118.7,
+    "attempt": 1
+  }
+}

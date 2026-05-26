@@ -1,0 +1,92 @@
+{
+  "sample_id": "virtual-commissioning-wick-soilless-cultivations__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper says the NSM state machine has three hierarchical layers implemented by region, state, and substate variables, with a working composite state and nested waiting / nutrient-solution-generation behavior."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "The alarm transition is triggered by a Boolean disjunction: HMI alarm interrupter, mixing-tank volume above a high threshold, or acid/nutrient stock refill conditions; the process also uses level and pH/EC thresholds."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "The waiting state has exit behavior selecting the production-line tank, nutrient solution generation has entry behavior setting its initial substate, and state activity drives LEDs, pumps/valves, and the C200 compressor."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "A dedicated alarm state automatically stops the system in case of malfunctioning, but the text does not explicitly state a from-any-state recovery rule."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Physical actuator/sensor behavior is described in Section 4.1, while state names, composite-state rationale, alarm logic, and PLC state/substate implementation are described later in Section 5."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as alarm state, malfunctioning, high threshold limit, and tanks must be refilled imply domain safety/stop rules beyond a simple event label."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described narratively: C200 must work throughout nutrient-solution preparation, waiting selects the tank on exit, and LD coils keep actuators on while states remain active."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The alarm guard combines multiple monitored variables with OR semantics: HMI alarm, A240 high liquid volume, and low/refill conditions for acid or nutrient tanks."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "The nutrient solution generation composite state has its own entry behavior to set the initial nested substate and a parent-level C200 compressor action active across preparation steps."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The alarm state is a module-level stop branch, but the text does not explicitly say from any state or require duplication across all substates."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 2,
+      "evidence": "The NSM uses three hierarchical layers, and nutrient solution generation executes an entry behavior to choose the initial nested substate."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There is at least one multi-variable Boolean guard for alarm triggering, plus threshold guards, but the paper does not enumerate three or more complex guard formulas."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The C200 compressor is active for the whole nutrient solution generation composite state, giving a parent-level during/aspect action shared by nested steps."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The system includes operator-facing alarm/refill notification behavior, but most outputs are concrete actuators such as valves, pumps, LEDs, and compressor coils."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The NSM state machine has three hierarchical layers (i.e., composite behaviours) that are implemented with the region, state and substate scalar variables.",
+    "The alarm transition is triggered either when: the operator presses the alarm interrupter on the HMI; the liquid volume within the mixing tank is above a high threshold limit value; the acid or the concentrated nutrient tanks must be refilled."
+  ],
+  "one_line_pitch": "This is a hard industrial HSM stress test because hierarchy, parent-level actions, entry/exit behavior, threshold guards, and alarm-stop logic are distributed across the process description and PLC implementation.",
+  "verdict": "candidate",
+  "rationale": "The sample directly targets Apvrille-style weak points: hierarchical states are explicit, actions include entry/exit and parent-level actuator behavior, and guards combine several process and operator conditions. It also has a dedicated alarm stop path grounded in real sensor conditions. The information is split across physical-process prose, state-machine discussion, and PLC implementation details, making it a strong benchmark case rather than a thin toy FSM.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 762824,
+      "cached_input_tokens": 705152,
+      "output_tokens": 8675,
+      "reasoning_output_tokens": 5478
+    },
+    "duration_s": 215.3,
+    "attempt": 1
+  }
+}

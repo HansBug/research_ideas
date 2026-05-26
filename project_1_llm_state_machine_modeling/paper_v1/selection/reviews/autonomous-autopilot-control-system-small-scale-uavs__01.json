@@ -1,0 +1,92 @@
+{
+  "sample_id": "autonomous-autopilot-control-system-small-scale-uavs__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper states that the FMS is a state machine, active command objects maintain internal state machines, and CmdAltitude contains AltitudeAttain and AltitudeHold substates."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions include active-command completion, SetFMSMode conditions such as ALTITUDE GT 300, waypoint transition radius/perpendicular-axis tests, and landing sonar/distance conditions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Per update, the FMS calls Update on the active command, updates internal state, changes FMS modes/targets, signals a Reflection event, and CmdAltitude Entry/Update actions set PID modes and inputs."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The main autopilot paper mentions safety if the engine fails and Disabled/PilotCmd modes, but does not define an explicit fault-recovery or from-any-state escape transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "SetFMSMode appears in the sample mission script with ALTITUDE GT 300, while its command semantics are described later under Command: SetFMSMode; FMS update behavior, command behavior, and mode behavior are split across sections."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Domain terms such as rotation takeoff speed, safe turning altitude, glideslope, flare, and PilotCmd imply aviation-specific transition/action semantics beyond a flat event label."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "Most command actions are stated in the same command subsection or diagram as the state name, such as TakeOff full throttle/heading and CmdAltitude Entry/Update actions."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Waypoint completion can be triggered by perpendicular-axis penetration or transition radius, with the radius calculated from current aircraft state and performance characteristics."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "The parent FMS has recurring update behavior: it calls the active command Update method, checks IsComplete, transitions to the next command, and signals a Reflection event."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The main autopilot state-machine sections do not specify a from-any-state fault-to-safe transition or global recovery rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 2,
+      "evidence": "CmdAltitude has a non-trivial internal initial branch on altitude difference before reaching AltitudeAttain or AltitudeHold inside the broader FMS/command hierarchy."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are guard expressions over altitude, waypoint geometry, transition radius, sonar distance, and completion conditions, but only part of them are specified with explicit arithmetic/boolean structure."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The paper explicitly says CmdAltitude is implemented once as a common FMS control mode because many commands require attain-then-hold altitude logic, avoiding duplicated command-machine logic."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The FMS emits abstract mode instructions/targets and signals a Reflection event for monitors, though many lower-level effects are concrete actuator or PID commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The flight management system class is a state machine that controls the continuous feedback control system.",
+    "Since many different commands require the aircraft to attain then hold an altitude, this state machine was implemented as a common FMS control mode."
+  ],
+  "one_line_pitch": "This is a strong stress test because the mission sequencer mixes hierarchical command/mode state machines, geometric and threshold guards, recurring update actions, and reusable altitude-control sublogic.",
+  "verdict": "candidate",
+  "rationale": "The sample is fundamentally hierarchical: a top-level FMS command sequence delegates to command objects and reusable internal FMS mode machines such as CmdAltitude. It has rich actions and nontrivial guards from waypoint geometry, altitude thresholds, completion checks, and landing/takeoff conditions, which target known weak baseline areas. Fault recovery is weak in the main paper, but the hierarchy, guard/action density, cross-section splits, and common-mode reuse make it a top-tier stress-test candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 94911,
+      "cached_input_tokens": 69248,
+      "output_tokens": 9702,
+      "reasoning_output_tokens": 7733
+    },
+    "duration_s": 183.0,
+    "attempt": 1
+  }
+}

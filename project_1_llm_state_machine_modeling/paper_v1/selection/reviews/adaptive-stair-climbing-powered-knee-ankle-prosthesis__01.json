@@ -1,0 +1,92 @@
+{
+  "sample_id": "adaptive-stair-climbing-powered-knee-ankle-prosthesis__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper explicitly says the controller uses a finite-state machine with two states, Stance and Swing; no parent/child or composite state structure is described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Beyond the GRF thresholds for Swing/Stance, the control laws contain piecewise guarded conditions with boolean composition and arithmetic thresholds, e.g. theta_thigh ranges, theta_thighTHS + 5, and ankle ranges 20-30 degrees."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Swing continuously computes knee and ankle desired angles from thigh angle, thigh velocity, vertical acceleration, and shank angle; Stance switches to adaptive torque/impedance control based on knee/ankle angles at foot contact."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper discusses risks such as toe stubbing or tripping as limitations, but gives no explicit fault state, recovery transition, emergency stop, or abort path."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and phase-switching guards are given near Fig. 3, detailed Swing/Stance actions are described earlier through equations (1)-(8), and numeric GRF thresholds are in Table I."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as Stance, Swing, position controller, and impedance controller are used, but the paper spells out the relevant control behavior instead of relying on an unstated recovery or transition rule."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The two-state FSM paragraph only states Stance/Swing and GRF switching; the actions for each state must be attributed from narrative control-law prose and equations in the preceding controller section."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The guarded equations include boolean and arithmetic range conditions such as theta_thigh >= theta_thighTHS && theta_thigh < theta_thighTHS + 5, plus piecewise ankle angle ranges."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state or parent state with internal entry/during/exit behavior is present."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault, safe-state, or global recovery rule is specified."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite state or init/pseudostate chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The Swing controller has multiple guarded arithmetic expressions and piecewise ranges over thigh angle, thigh velocity, vertical acceleration, and shank angle, making expression normalization and consistency checking valuable."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "There is no cross-cutting transition over multiple substates and no parent-level during monitor to factor out."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "The outputs are concrete knee/ankle angle and torque commands, not effector-agnostic actions such as logging, publishing status, or notifying an operator."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 1,
+  "key_nl_quotes": [
+    "The proposed controller uses a finite-state machine with two states (i.e., Stance and Swing).",
+    "In Swing, we use a position controller that continuously adapts the desired angles of the knee joint and ankle joint based on the movements of the user's thigh."
+  ],
+  "one_line_pitch": "A deceptively small two-state prosthesis supervisor hides dense guarded arithmetic and continuous state-specific control actions split across prose, equations, figures, and tables.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test for guard and action extraction: the FSM skeleton is simple, but the meaningful behavior lives in guarded piecewise control laws and continuous per-phase output computations. It does not test hierarchy or fault recovery, yet it directly targets two of the weakest prior-baseline dimensions and has high baseline-trap density due to cross-section action attribution and arithmetic guards.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 97918,
+      "cached_input_tokens": 73344,
+      "output_tokens": 5281,
+      "reasoning_output_tokens": 3438
+    },
+    "duration_s": 104.8,
+    "attempt": 1
+  }
+}

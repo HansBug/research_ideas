@@ -1,0 +1,92 @@
+{
+  "sample_id": "enhanced-intelligent-energy-management-ac-microgrid__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The EEMS is described as two-layer control: an operating-mode test selects Mode1 or Mode2, and each mode contains battery state-machine states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Mode selection uses |PL-PPV| <= PBT_Max / > PBT_max, while states combine SoC_BT bounds with PL < PPV or PL > PPV; SC control also uses PBP=PPV+PBT plus SoC_SC bounds."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States assign computed power references such as PBT=PL-PPV, PBT=-PBT_max, PPV=PL+PBT_max, PG=PL-PPV-PBT_Max, and PSC based on PBP."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper describes normal fallback to grid-connected operation under low battery or power deficit, but no explicit fault, emergency-stop, rollback, or global recovery transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": false,
+      "evidence": "The relevant state names, guards, and actions are co-located in Figure 7 and the immediately adjacent Section 4.2 prose."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Domain terms such as battery floats, SC floats, stand-alone mode, and grid-connected mode imply control behavior such as zero battery/SC exchange or grid disconnection/connection."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The per-state actions are either listed directly in Figure 7 or restated in the same Section 4.2 paragraphs as the corresponding states."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards combine SoC_BT limits with PL/PPV comparisons and arithmetic mode tests such as |PL-PPV| <= PBT_Max."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Beyond the Mode1/Mode2 battery substates, a separate SC control method is declared over PBP=PPV+PBT and SoC_SC, applying across the battery-state result."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault or recovery rule is specified."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "The controller has a shallow composite structure where an initial operating-mode decision routes execution into Mode1 or Mode2 before selecting internal battery states."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "There are more than three arithmetic/boolean guards over PL, PPV, PBT_max, SoC_BT, PBP, and SoC_SC, making expression normalization and guard checking valuable."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The SC rule is a cross-cutting continuous control rule over PBP=PPV+PBT that applies after the battery state choice rather than being duplicated in each of the ten states."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "The actions are concrete power-reference assignments rather than abstract notification, logging, or channel-independent side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The proposed EEMS is a hybrid control strategy, which is composed of two stages: a state machine control to ensure the optimal operation of the battery, and an operating mode for the best operation of the SC.",
+    "Mode1: |PL−PPV| <= PBT_Max ... Mode2: |PL−PPV| > PBT_max ... For SoC_SC in [SoC_SC_min, SoC_SC_max], PBP = PBT + PPV."
+  ],
+  "one_line_pitch": "This is a strong stress-test because the state machine is hierarchical, guard-heavy, and action-rich, with a global SC compensation rule layered over ten arithmetic battery states.",
+  "verdict": "candidate",
+  "rationale": "The paper gives a concrete two-mode EEMS with ten internal battery states, arithmetic mode guards, SoC/load/PV guard combinations, and computed actions over battery, PV, grid, and supercapacitor power. It lacks explicit fault recovery, but its hierarchy, guarded arithmetic, and cross-cutting SC behavior target known weak spots in Umple-style baselines. The sample is sufficiently detailed to build a reference state machine and should be retained as a top stress-test candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 95921,
+      "cached_input_tokens": 69248,
+      "output_tokens": 5388,
+      "reasoning_output_tokens": 3438
+    },
+    "duration_s": 105.1,
+    "attempt": 1
+  }
+}

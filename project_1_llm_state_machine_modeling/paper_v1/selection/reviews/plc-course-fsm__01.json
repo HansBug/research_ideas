@@ -1,0 +1,92 @@
+{
+  "sample_id": "plc-course-fsm__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The sampled box-fill controller is presented as a separate flat three-state FSM with states 10, 20, and 30; no nested sub-states are defined inside these states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "The ladder/FSM logic uses composed Boolean guards: each rung has a permissive, entry condition, seal-in, and exit condition; state 20 is entered when the load state and proximity switch are active, and state 30 has multiple entry paths."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Actions are concrete PLC outputs: Y001 runs the conveyor in states 10 and 30, and Y002 energizes box fill in state 20; state coils also seal in and drop out."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The actual architecture includes a global safety permissive: the auto coil contains the external estop, and the paper states that the estop will stop the sequence."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and basic behavior are described around Figure 3, while rung-level guards, seal-in behavior, exit contacts, and output mapping are explained later around Figure 4/Figure 5."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "PLC terms such as permissive, seal-in, NO/NC contact, and external estop relay encode control semantics that must be mapped to state/transition rules."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The main state actions are explicitly stated with the state descriptions and again in the output mapping: conveyor in states 10/30 and fill output in state 20."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The generic and specific rung logic combines multiple Boolean variables with AND/OR/NOT-style ladder conditions, including permissive, entry, seal-in, and exit contacts."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state with its own entry/during/exit behavior is defined for this sampled three-state FSM."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The estop is embedded in the permissive used by the FSM rungs, so losing the safety permissive stops the sequence across the active states."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial initial pseudo-chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The sample has Boolean guard composition over PLC contacts, but no arithmetic guard constraints or clear contradiction-checking opportunity."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The estop/permissive rule applies across the three box-fill states, which pyfcstm could encode as one cross-cutting forced/aspect rule instead of duplicating it per transition or rung."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "The outputs are concrete PLC effectors, mainly conveyor run and box-fill valve/output, not abstract notifications or channel-independent side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "In state 10 the conveyor is running and we are looking for an empty box as indicated by the proximity switch. In state 20 the box is filled until the level switch is made. In state 30 the conveyor runs until the proximity switch clears.",
+    "Each rung of the FSM consists of a permissive, an entry condition, a seal in, and an exit condition."
+  ],
+  "one_line_pitch": "A compact PLC sequence that stresses guard/action attribution through ladder-style permissive, seal-in, and global estop semantics, despite having no hierarchy.",
+  "verdict": "backup",
+  "rationale": "This is a meaningful stress-test for guard extraction, action mapping, and cross-cutting safety permissives because the paper splits state behavior, rung logic, and outputs across different sections. It is not a top candidate because the sampled FSM is structurally flat and its actions are mostly direct PLC outputs rather than rich variable updates or abstract side effects. The global estop/permissive still creates a baseline trap that Umple-style encodings would need to duplicate across the three states.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 79474,
+      "cached_input_tokens": 67200,
+      "output_tokens": 7657,
+      "reasoning_output_tokens": 6058
+    },
+    "duration_s": 146.8,
+    "attempt": 1
+  }
+}

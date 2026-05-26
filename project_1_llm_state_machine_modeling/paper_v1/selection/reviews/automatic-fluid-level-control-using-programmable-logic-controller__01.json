@@ -1,0 +1,92 @@
+{
+  "sample_id": "automatic-fluid-level-control-using-programmable-logic-controller__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper organizes control by physical tanks and flat modes such as off/ready/reserve-low/reserve-full; it does not define nested or composite states."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Multiple sensor guards drive behavior: I3 on/off, I1 reserve minimum, I6 reserve upper, I2 operation-tank full, I5 below desired level, and I4 user-tank overflow."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Actions are actuator commands: stop the pump motor, open/close solenoid valves Q2/Q3/Q5, and result steps such as 'When I1 ON Q4 and Q5 is ON however motor Q1 is OFF'."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The reserve tank has dry-run protection: if liquid is finished, 'the motor operation to stop'; overflow sensors close valves, but no layered fault hierarchy is specified."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "I/O names are introduced in the block diagram, detailed tank rules appear in Section 3.2.2-3.2.4, and output combinations are later enumerated in Result & Simulation."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "The paper uses domain terms such as 'dry run' and says a manual start/stop switch will 'totally override the automatic system', requiring priority semantics beyond a simple event name."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are embedded in prose, e.g. the operation-tank full sensor makes the PLC 'close the solenoid valve Q2' and the lower sensor makes it 'open Q2'."
+    },
+    "T4_multivar_arith_guard": {
+      "present": false,
+      "evidence": "The actual control rules are mostly single-sensor threshold/on-off guards; no clear arithmetic or substantial multi-variable boolean guard is specified."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state with its own entry/during/exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The main switch and manual override are global: 'When I3 is off all the system off' and the manual start/stop switch 'will totally override the automatic system'."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 0,
+      "evidence": "The guards are simple sensor thresholds/on-off conditions, not arithmetic-plus-boolean constraints suitable for SMT consistency checking."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global off/manual override rule applies across the controller's tank-control conditions and could be encoded once as a forced transition instead of duplicated."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete PLC actuator commands to pumps, solenoid valves, and an indicator, not abstract log/publish/notify actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 1,
+  "key_nl_quotes": [
+    "When the system switch I3 is ON the overall system is ready ... if I3 is off ... the overall operation is off mode.",
+    "In this tanker there is a low level control system which controls the dry run implies that, if the water (liquid) is finished the motor operation to stop."
+  ],
+  "one_line_pitch": "A modest but useful PLC stress case where simple tank-level guards map to multiple actuator outputs, dry-run protection, and a global manual/off override split across the paper.",
+  "verdict": "backup",
+  "rationale": "This sample has meaningful guard/action/fault content, especially multiple level sensors mapped to pump and valve commands plus dry-run protection. It is weak on hierarchy and has mostly simple threshold guards, so it is not a top stress-test candidate for composite-state modeling. Its main benchmark value is baseline-trap density: the required state-machine semantics are scattered across block diagram text, tank descriptions, and result steps, with a global override/off rule.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 194900,
+      "cached_input_tokens": 172288,
+      "output_tokens": 6073,
+      "reasoning_output_tokens": 4056
+    },
+    "duration_s": 127.9,
+    "attempt": 1
+  }
+}

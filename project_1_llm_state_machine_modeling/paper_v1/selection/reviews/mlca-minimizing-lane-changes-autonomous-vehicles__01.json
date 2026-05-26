@@ -1,0 +1,92 @@
+{
+  "sample_id": "mlca-minimizing-lane-changes-autonomous-vehicles__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper defines a flat four-state FSM: Idle, Waiting, Moving Left, and Moving Right; no parent/child or composite states are described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions are dictated by Boolean guards over N, W, L, and R, including N AND W, N AND L/R, N AND (L OR R), N AND NOT L/R, and not-N => IDLE."
+    },
+    "A_actions_nontrivial": {
+      "score": 1,
+      "evidence": "Actions are limited to trivial state-variable assignments such as current_state <- WAITING/MOVING LEFT/IDLE and Output: state <- current_state; no actuator command, logging, monitoring, or rich side effect is specified."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "Sensor/obstacle failures are discussed as motivation, but MLCA defines no fault state, emergency stop, rollback, or explicit recovery transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": false,
+      "evidence": "The state names, guard variables, transition rules, and pseudocode are concentrated in Fig. 1, Section III.B, and Algorithm 1, an adjacent MLCA specification block rather than split across distant sections."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as safe gap, need to move, and can wait are explicitly mapped to Boolean variables L/R, N, and W; no extra transition rule must be inferred from unstated domain convention."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The only state behaviors are stated with the state definitions in the figure caption and algorithm; there are no separate narrative action descriptions that must be attributed back to states."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines multiple variables with Boolean composition, e.g., N AND (L OR R), plus N AND W, N AND L, and N AND NOT L/R."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state or parent-level entry/during/exit behavior is present."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "Algorithm 1 applies a global no-request escape before state-specific logic: if not N then current_state <- IDLE; the assertion not-N => current_state = IDLE makes this cross-cutting rule explicit."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite state or init/pseudostate chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The FSM has several Boolean-composed guards over shared variables N, W, L, and R, including N AND (L OR R), N AND NOT L, and N AND NOT R, suitable for expression-level consistency checking."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The not-N => IDLE rule applies from any current state, so a forced transition can encode one cross-cutting reset instead of duplicating it across the four flat states."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "The only output is the current state value; the paper does not specify abstract side effects such as publish status, notify operator, logging, or channel-independent effector commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The algorithm defines four distinct operational states: Idle, Waiting, Moving Left, and Moving Right.",
+    "if not N then current_state <- IDLE; continue"
+  ],
+  "one_line_pitch": "A compact autonomous-driving FSM whose correctness hinges on multi-variable Boolean guards and a global no-request reset that flat encodings must duplicate across states.",
+  "verdict": "backup",
+  "rationale": "This is a real and complete FSM sample, but its stress-test value is concentrated in guard synthesis rather than hierarchy, rich actions, or fault recovery. The Boolean transition logic is strong, including N AND (L OR R) and related negated guards, and the global not-N reset creates a baseline-trap pattern for flat Umple-style encodings. Because H=0 and F=0 with only trivial state-output actions, it is better as a backup stress case than a top candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 82175,
+      "cached_input_tokens": 67200,
+      "output_tokens": 6119,
+      "reasoning_output_tokens": 4448
+    },
+    "duration_s": 116.9,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "sample_id": "pirate-precision-imaging-real-time-autonomous-tracker-explorer__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "Paper explicitly describes a hierarchical FSM: top-level modes include idle, navigation, tracking, visual processing, RTH, and fault handling; composite modes encapsulate navigation and perception substates."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Multiple meaningful guards are described: RTH on communication timeout/mission end/failure modes, visual sensing based on operational range, re-localization when range uncertainty increases, detector update only above confidence threshold."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Mission controller issues navigation and actuation commands, triggers GPU perception start/stop, logs synchronized visual/acoustic data, updates target estimates, and uses estimates to adapt navigation and sensing."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "A global interrupt mechanism allows immediate transition to RTH from any active mode; RTH is triggered by communication timeout, mission end, or failure modes."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and hierarchy appear in Section 3.2, while tracking/loiter/re-localization behavior and visual activation are detailed later in Sections 3.3-3.5 and 5.2-6.5."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as RTH, fault handling, global failsafe, and fail-safe recovery imply recovery semantics beyond the fully enumerated transition details."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions for Tracking and Visual Processing are narrative: triangulate, pursue, loiter, collect visual data, re-enter localization, and resume pursuit are not colocated in a state-action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Waypoint acceptance uses a radial tolerance, range estimates trigger visual sensing/re-localization, and target relocation is detected through deviations in acoustic range measurements."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper states composite modes and internal substates, but does not explicitly assign parent-level entry/during/exit behavior separate from substate behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper states that a global interrupt enables RTH from any state via an interrupt-driven transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "Tracking has a shallow composite sequence beginning with acoustic triangulation before pursuit and loiter/re-localization, but no deep pseudo-state chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are range, timeout, confidence, and radial-distance guards, but not a dense set of explicit arithmetic-boolean guards suitable for strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global any-active-mode RTH interrupt is exactly an N-to-1 forced-transition pattern; continuous acoustic/range monitoring during tracking also fits parent-level during behavior."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The FSM emits status/telemetry, logs synchronized streams, and passes target location/object count, though many channels are concretely tied to Pi/GPU/UDP components."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Mission execution is structured as a finite state machine (FSM) governing distinct operational modes, including idle, navigation, tracking, visual processing, return-to-home (RTH), and fault handling.",
+    "Transition triggers are event-driven, and a global interrupt mechanism allows immediate transition to the RTH state from any active mode, ensuring fail-safe recovery.",
+    "This range estimate supports adaptive decision-making, such as enabling or disabling visual sensing, triggering re-localization when range uncertainty increases, and adjusting mission states during target approach and tracking."
+  ],
+  "one_line_pitch": "PIRATE is a hard stress-test because its hierarchical marine mission supervisor combines cross-section-defined tracking substates, range/timeout/confidence guards, active perception-navigation actions, and a global any-state RTH failsafe.",
+  "verdict": "candidate",
+  "rationale": "The paper explicitly frames mission execution as a hierarchical FSM with composite modes and an any-active-mode global interrupt to RTH. Its state behavior is not contained in one formal table: tracking, pursuit, loiter, visual activation, re-localization, logging, and perception-triggered navigation are spread across architecture, localization, visual pipeline, demo, and results sections. This creates strong baseline pressure on hierarchy, action attribution, guard extraction, and global recovery modeling without relying on hard exclusions.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 199637,
+      "cached_input_tokens": 161664,
+      "output_tokens": 7796,
+      "reasoning_output_tokens": 5360
+    },
+    "duration_s": 155.8,
+    "attempt": 1
+  }
+}

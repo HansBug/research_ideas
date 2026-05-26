@@ -1,0 +1,92 @@
+{
+  "sample_id": "formal-verification-of-autonomous-vehicle-platooning__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper groups the Uppaal agent automaton into IDLE, JOIN, LEAVE, SET-SPACE, and SW-STEERING regions, but the joining procedure itself is presented as a mostly flat protocol sequence rather than an explicit nested composite state."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Joining uses multi-condition guards: leader agreement depends on maximum platoon length and normal operation; Gwendolen plan guards combine beliefs such as join agreement, changed lane, speed controller, steering controller, closing enough, and set-spacing goal status; steering also depends on distance less than 20 metres."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Plan bodies and protocol steps include multiple actions: send join request, command increase/decrease spacing, perform lane change, enable speed controller, enable steering controller, and send joined-success acknowledgement to the leader."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The leader waits for the join acknowledgement only up to a bounded time; if it is not received, it sends a decrease-spacing command, waits for spacing acknowledgement, and returns to idle."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Joining semantics are split across Section 2.1 procedure and requirements, Section 3 Gwendolen plan code, and Section 4.3/4.4 Uppaal location/property descriptions such as wait_j_agr, rdy_ch_lane, and join_completed."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as normal operation, correct lane, sufficiently close, and automatic speed/steering controller carry platooning-control semantics not fully expanded in the local procedure text."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions such as changing lane, enabling controllers, and restoring spacing are described in narrative protocol prose and Gwendolen plans, while later Uppaal state names/properties require attributing those actions back to protocol states."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The plan guards combine several belief variables with negation/conjunction, and the protocol also uses numeric thresholds such as approximately 17 metres spacing and less than 20 metres joining distance."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state is given its own entry, during, or exit behavior beyond the flat joining-stage actions."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The timeout rollback is local to the leader's waiting-for-acknowledgement phase, not a from-any-state fault transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no explicit deep composite state or non-trivial init/pseudo-state chain in the joining sample."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Multiple guards combine beliefs, negations, goal-status checks, and distance/spacing thresholds, making structured guard IR and consistency checking useful."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "No cross-cutting forced transition over three or more substates and no parent-level continuous during monitor is specified."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The agent issues abstract messages and commands such as send join request, perform lane change, and enable controllers through the abstraction agent, but most outputs are still concrete vehicle-control commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "if the vehicle requests to join in front of vehicle X ... the leader sends an increase space command ... when ... enough spacing has been created ... it sends back an agreement",
+    "when the vehicle is close enough to the preceding vehicle, less than 20 metres, its automatic steering controller is enabled and it sends an acknowledgement to the leader"
+  ],
+  "one_line_pitch": "A multi-agent platoon joining protocol with conjunctive belief guards, staged controller handoff actions, spacing thresholds, message acknowledgements, and timeout rollback stresses exactly the guard/action semantics that prior Umple-style baselines lose.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test despite limited hierarchy because the paper provides rich guarded protocol behavior and non-trivial transition actions across leader, follower, and preceding vehicle roles. The joining semantics are also distributed across prose requirements, Gwendolen plans, and Uppaal properties, creating baseline-trap density independent of any target notation. The sample has a concrete timeout recovery path but no global from-any-state fault rule, so it is strong mainly on guards, actions, and cross-section semantic attribution.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 88835,
+      "cached_input_tokens": 69248,
+      "output_tokens": 6747,
+      "reasoning_output_tokens": 4932
+    },
+    "duration_s": 128.6,
+    "attempt": 1
+  }
+}

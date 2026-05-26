@@ -1,0 +1,92 @@
+{
+  "sample_id": "design-of-mobile-robot-for-air-ducts-exploration__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper presents a flat FSM with five peer states: Snooze, Navigate, Hole Area, Return, and Recovery; no parent state or nested sub-FSM is described."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "The FSM uses multiple meaningful guards/events such as goal_reached, hole_detected, robot_stuck, exploration_complete, exploration_stack_empty, robot_pose == starting_pose, and dead-end detection from convergence of relative displacement between successive goal positions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "State behavior includes refreshing custom costmaps, computing and sending goal poses, marking hole cells dangerous in local/global costmaps, popping or pursuing exploration-stack goals, invoking rotate_recovery, retracting the sweeping arm, backtracking, and rotating 180 degrees."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Recovery is a dedicated state for stuck and dead-end cases; it invokes rotate_recovery for stuck robots and performs arm retraction, backtracking, and 180-degree rotation for dead-ends."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and transition labels are concentrated in Figure 8 and Section 6.1, while important trigger logic and stack behavior are explained later in Section 7's navigation algorithm."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as robot_stuck, dead-end, Recovery, and manual recovery imply domain-specific recovery semantics that are only partly encoded as explicit transition rules."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described in prose under state subsections, e.g. Hole Area marks cells dangerous and Recovery invokes rotate_recovery or retracts/backtracks/rotates, rather than being co-located in a formal action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": false,
+      "evidence": "The FSM has multiple guards, but no explicit guard combines multiple variables with arithmetic or boolean composition; the dead-end convergence condition is arithmetic-like but not stated as a composed guard formula."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state or parent-level entry/during/exit behavior is present."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Recovery is reachable from Navigate and Return, but the paper does not declare an from-any-state global escape rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite-state initialization or pseudo-state chain appears in the sample."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 0,
+      "evidence": "The guards are mostly event/condition labels and simple stack or pose tests, not arithmetic-plus-boolean guard formulas suitable for SMT consistency checking."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "No cross-cutting transition applies to three or more substates, and no parent-mode continuous monitor is declared once for many substates."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some outputs are abstract ROS/navigation operations such as sending goal poses, refreshing costmaps, and marking cells dangerous, though many actions are concrete robot maneuvers."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 1,
+  "key_nl_quotes": [
+    "The states are: Snooze (Sa), Navigate (Sb), Hole Area (Sc), Return (Sd), Recovery (Se).",
+    "The recovery action for a dead-end is to backtrack the robot by a few centimeters, perform an in place rotation of 180deg, after which the robot proceeds to the next goal position in the exploration stack."
+  ],
+  "one_line_pitch": "A flat but action-heavy robot navigation FSM where prose-distributed recovery, costmap mutation, and exploration-stack behavior stress semantic extraction more than hierarchy encoding.",
+  "verdict": "candidate",
+  "rationale": "The sample has no hierarchy, but it is a strong stress case for guards, actions, and recovery: the controller branches on navigation completion, holes, stuck/dead-end conditions, stack emptiness, and return-home pose tests. Its hardest baseline traps are semantic rather than syntactic: actions and triggers are split between the FSM figure, state prose, and the navigation algorithm, forcing attribution of costmap, stack, and recovery behavior back to states. It clears the hard-exclusion checks and has H+G+A+F = 7, so it is a candidate despite limited pyfcstm-specific uniqueness.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 85826,
+      "cached_input_tokens": 56960,
+      "output_tokens": 2698,
+      "reasoning_output_tokens": 865
+    },
+    "duration_s": 57.0,
+    "attempt": 1
+  }
+}

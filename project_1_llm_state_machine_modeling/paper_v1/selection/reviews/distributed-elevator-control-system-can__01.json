@@ -1,0 +1,92 @@
+{
+  "sample_id": "distributed-elevator-control-system-can__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The ESM is explicitly flat: a Lift-Object has three definite states, UP, DOWN, and STOP, with no parent/child state structure."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions use composed guards such as [(fr > cf) || (cd > cf)] & [rank() = 1], and rank() compares position, direction, destination vector, distance, and lift index across other Lift-Objects."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "The ESM combines actuator outputs and variable updates: Motor up/down/stop, clear fr/cd, let passengers get on/off, plus periodic CAN state broadcasting and synchronization."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper does not define emergency-stop, fault rollback, abort, or recovery transitions; it only says rank() could be modified if an incorrect result appears."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The UP/DOWN/STOP states and simple guards appear in the ESM section, while the semantics of rank(), a transition guard, are expanded later in a separate Rank Determination section with cases A-D."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as 'more feasible', 'vicinity of the request', 'low index', and 'short-targeted' encode elevator-dispatch rules that are not fully formalized as equations in the NL."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "Main ESM actions are co-located with the state-machine figure and immediately surrounding ESM prose: motor commands, passenger service, and clearing fr/cd."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards combine fr, cd, cf, rank(), direction, position, destination vector, distance, and index using comparisons plus AND/OR composition."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state or parent state with its own entry/during/exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "There is no from-any-state fault or recovery rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite-state initialization or pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The ESM and rank() logic include many arithmetic/boolean guards over floor request, car destination, current floor, rank, direction, distance, and lift index."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The regular-mode CAN broadcast/synchronization cycle applies regardless of whether the lift is UP, DOWN, or STOP, so an aspect-style during rule can avoid duplicating it across all states."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some actions are abstract at the STM level, such as letting passengers get on/off and clearing or broadcasting requests, although many outputs are concrete motor, door, lamp, and CAN effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "STOP state is the central state from which UP and DOWN states originate.",
+    "The logic behind the rank() function checks the position, direction and the car destination vector of the current Lift-Object against the other Lift-Objects."
+  ],
+  "one_line_pitch": "This is a strong guard/action stress test because the apparent three-state elevator FSM hides distributed CAN synchronization and a rank() arbitration guard with many multi-variable dispatch cases.",
+  "verdict": "candidate",
+  "rationale": "The sample has no hierarchy or explicit fault recovery, but it is fundamentally about complex guarded dispatch and non-trivial actions. The paper gives a compact UP/DOWN/STOP ESM while spreading rank() semantics into a later multi-case arbitration section, creating a baseline trap for methods that lose guard context. Its periodic CAN broadcast and synchronized-process-data decision loop also give pyfcstm a real advantage through guard IR and aspect-style cross-state behavior.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 84418,
+      "cached_input_tokens": 68736,
+      "output_tokens": 5622,
+      "reasoning_output_tokens": 3911
+    },
+    "duration_s": 107.8,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "sample_id": "communication-within-multi-fsm-based-robotic-systems__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper explicitly says the control subsystem activities are defined using a hierarchical FSM, with states search, collect, and avoid, and each behavior modeled as a subFSM; implementation yields 12 FSMs/subFSMs."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "The collect terminal condition is a Boolean guard, not ball_det OR obst_det; vacuum control also uses radius threshold guards r >= rmin and r < rmin."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "In collect, the controller sets body cmd=MOVE, computes dx=x-w/2, computes velocity from ball radius, and turns the vacuum ON/OFF; virtual effectors then transform commands into PWM and dispatch them to hardware."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Obstacle detection interrupts nominal search/collect behavior: search terminates on ball or obstacle, collect terminates on not ball or obstacle, and whenever an obstacle is detected avoid is invoked using the bug algorithm."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The state set is introduced in the Activities/Fig. 6 discussion, buffer variables are defined in Structure, collect guards/actions are formalized later, and the submachine restart/wait implementation is in Section 7.2."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "The avoid behavior is summarized as using the 'bug algorithm' for obstacle avoidance, leaving internal avoidance states and return conditions to domain knowledge."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Only collect is formally decomposed; search is described narratively as moving the robot in search of balls, and avoid is described narratively as invoking the bug algorithm."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The collect terminal condition combines two sensor predicates with Boolean composition: not ball_det OR obst_det."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper associates behaviors/subFSMs with parent states, but does not specify additional parent-level entry/during/exit behavior beyond starting and waiting for the submachine."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Obstacle detection routes nominal behavior to avoid, but the paper does not state an explicit from-any-state fault-to-safe-state rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite hierarchy where top-level states invoke behavior submachines, but no deep or non-trivial init/pseudo-chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are 1-2 meaningful composed/threshold guard patterns, especially not ball_det OR obst_det and r compared with rmin, but not enough for a strong SMT-consistency case."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 1,
+      "evidence": "The obstacle-detection escape to avoid applies across the nominal mission flow, plausibly search and collect, but not across three or more substates."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The control subsystem writes abstract body/vacuum commands into buffers, while virtual effectors later convert them into PWM/hardware outputs."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The activities of cbc are defined using a hierarchical FSM cFbc presented in Fig. 6.",
+    "Each state of the FSM cFbc is associated with the corresponding behaviour: search, collect and avoid.",
+    "Whenever an obstacle is detected behaviour cBbc,avoid is invoked. It uses the bug algorithm for obstacle avoidance."
+  ],
+  "one_line_pitch": "A compact but high-signal HSM case where behavior submachines, Boolean sensor guards, computed actuator commands, and obstacle-avoidance interruption stress the weakest Umple-style baseline dimensions.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test sample because hierarchy is explicit and central, while the collect behavior combines guard logic with non-trivial computed outputs and actuator routing. The obstacle-avoidance transition adds a recovery-like escape path from nominal mission behavior, though it is not a full fault model. Baseline difficulty is high because important behavior details are distributed across structure, activity, and implementation prose, with some actions and avoidance behavior left implicit.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 445412,
+      "cached_input_tokens": 375296,
+      "output_tokens": 10258,
+      "reasoning_output_tokens": 7325
+    },
+    "duration_s": 211.2,
+    "attempt": 1
+  }
+}

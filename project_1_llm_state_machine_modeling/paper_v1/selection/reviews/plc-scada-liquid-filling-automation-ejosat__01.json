@@ -1,0 +1,92 @@
+{
+  "sample_id": "plc-scada-liquid-filling-automation-ejosat__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The paper states that the system has four main processes and that many auxiliary processes exist inside the main processes; capping is also decomposed into a five-step internal sequence."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Guards include production quantity > 1 for automatic mode, maximum quantity limited to 10, tank level at desired level AND fill signal before opening valves, target weight before valve close, and product-count choice for pure vs mixed labels."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Actions include opening/closing electropneumatic valves, real-time loadcell-based stopping, pushing a lid, vacuum transfer, 50 mm vertical capping motion, returning cylinder/vacuum, printing labels, issuing alarms, and encoder-based conveyor monitoring."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The paper describes material-out stop plus alarm, warning and correction during any main or auxiliary process problem, capping restart if one or more steps fails, conveyor error detection, and emergency buttons on SCADA screens."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The filling-line state information is split across abstract/HMI setup, SCADA screens, liquid filling process, capping process, labeling process, and conveyor-control sections rather than one local state table."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as HMI macro control, automatic production, closed-loop control, alarm clearing, emergency button, and correction scenarios imply control rules not fully enumerated as state transitions."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described narratively in process prose: valves open on level/fill conditions, loadcell closes the valve, capping uses vacuum/cylinders, and conveyor errors are inferred from encoder feedback."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard is boolean-composed: desired liquid level AND filling signal opens valves; other guards compare production quantity, target weight, product count, and encoder feedback."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper decomposes processes into substeps and auxiliary processes, but it does not clearly specify a parent state's own entry/during/exit behavior independent of its children."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "Cross-cutting recovery appears in rules such as any product running out stops production and raises an alarm, any main/auxiliary process problem triggers warning/correction, and any failed capping step restarts the whole capping process."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "The capping process is a shallow composite sequence with a default first step and restart-to-beginning behavior, but no deep init/pseudostate chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are meaningful guard expressions involving quantity limits, product count, tank level plus fill signal, target weight, and encoder mismatch, but not enough explicit arithmetic/boolean formulas for a strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The capping failure rule applies across five internal steps, and material-out/problem alarms are cross-cutting production rules; forced transitions or parent-level during monitoring would avoid duplicating many transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some side effects are abstract, such as alarm, warning, SCADA monitoring/evaluation, and operator intervention, while most actuator effects are concrete valves, motors, vacuum, and cylinders."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Sıvı seviye ölçümünün istenilen düzeyde olması ve dolum sinyalinin gelmesi ile pnömatik vanalar açılır.",
+    "Kapak takma işlemi esnasında işlem adımlarının biri veya birkaçında hata olması halinde prosesin tüm işlemleri baştan başlar."
+  ],
+  "one_line_pitch": "This is a strong industrial EFSM stress test because recipe-driven guards, closed-loop sensor guards, multi-actuator actions, composite capping steps, and cross-cutting recovery are scattered across the paper instead of given as a clean state table.",
+  "verdict": "candidate",
+  "rationale": "The paper defines more than wiring: it gives HMI parameter guards, loadcell and encoder feedback, a five-step capping sub-sequence, labeling branches, and several alarm/restart/recovery paths. It directly targets known baseline weaknesses because guards and actions must be reconstructed from distributed industrial prose, not copied from a formal statechart. The main caveat is that the hierarchy is process decomposition rather than a fully formal nested state-machine notation.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 125406,
+      "cached_input_tokens": 104960,
+      "output_tokens": 7572,
+      "reasoning_output_tokens": 5673
+    },
+    "duration_s": 147.6,
+    "attempt": 1
+  }
+}

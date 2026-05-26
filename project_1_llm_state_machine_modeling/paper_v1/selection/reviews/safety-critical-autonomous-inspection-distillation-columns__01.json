@@ -1,0 +1,92 @@
+{
+  "sample_id": "safety-critical-autonomous-inspection-distillation-columns__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The paper presents a flat seven-task FSM, but the actual Locomotion (Go to the manway) phase is internally split into two stages: waypoint movement with orientation alignment, then approach to the transition-ready position."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "The controller uses arithmetic safety guards/constraints: h1 for manway avoidance, h2 for tray boundary safety, and QP constraints requiring both CBF inequalities during locomotion; the FSM also has event guards such as manway detected, goal achieved, transition-ready configuration, and successful/failed transition."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States perform substantial actions: search controls body yaw/height, locomotion computes safe velocity and foot trajectories, pre/post motions modify joint/contact configurations, transition executes tray transfer, and the control stack outputs velocity, foot, joint, and actuator commands."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Transition failure is explicitly handled: if stable transition is not achieved the transition is terminated; if transition fails, the robot halts and a tether system pulls it back to the upper layer."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and high-level guards appear in Fig. 6/Section III-E, while state actions and conditions are expanded in non-adjacent Sections III-A/III-D and IV-A, e.g., Locomotion (Go to the manway) is defined in III-E but its two stages and CBF lifting behavior are described in IV-A."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Guard/action terms such as transition-ready configuration, locomotion-ready configuration, stable transition, and safe location carry domain-specific transition semantics not fully formalized in the state-machine list."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are partly narrative rather than co-located with the state list: Searching is later specified as yawing within +/-0.3 radians for 2 seconds until manway vertices are acquired; pre/post motions are detailed in the intermediate-motion section and figures."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The safety logic uses multi-variable arithmetic constraints, including h1(x_phi)=phi^T A phi + B phi + c and h2(x_phi)=-(phi-phi_bar)^T(phi-phi_bar)+(rp-epsilon)^2, combined in the QP constraints."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Although one locomotion phase has two stages, the paper does not define a true composite parent state with its own separate entry/during/exit behavior beyond those stages."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The halt behavior is tied to failed transitions, not declared as a from-any-state global escape rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is one shallow composite-like phase: Locomotion (Go to the manway) defaults into waypoint movement before approaching the transition-ready position."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Multiple arithmetic/boolean safety conditions appear across h1, h2, simultaneous QP CBF constraints, and near/inside-manway or near/outside-tray replanning checks."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Per-mode continuous safety behavior is declared over locomotion: CBF constraints and footstep replanning persist during inspection and waypoint navigation, then are lifted near the transition-ready location."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "The outputs are mostly concrete robot control commands rather than effector-agnostic events such as logging, publishing status, or notifying an operator."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Seven distinct tasks are defined to efficiently execute inspection missions as follows: Searching; Locomotion (Inspection); Locomotion (Go to the manway); Intermediate Motion (Pre-motion); Transition (Up/Down); Intermediate Motion (Post-motion); Locomotion (Go to the safe location).",
+    "However, if the transition fails, the robot halts, and an additional tether system is employed to pull the robot back to the upper column layer."
+  ],
+  "one_line_pitch": "This is a strong stress test because a compact seven-task FSM hides arithmetic CBF safety guards, continuous per-mode control actions, split prose-defined behaviors, and explicit transition-failure handling across several sections.",
+  "verdict": "candidate",
+  "rationale": "The sample is a real industrial inspection supervisor with meaningful state sequencing, arithmetic safety conditions, and non-trivial robot-control actions. Its baseline-trap density is high because the FSM list, action semantics, CBF guards, and failure behavior are distributed across separate sections and figures. It is not a hard-exclusion case: it has a clear state-machine abstraction and enough detail to build a reference model.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 175379,
+      "cached_input_tokens": 143232,
+      "output_tokens": 6099,
+      "reasoning_output_tokens": 4062
+    },
+    "duration_s": 120.8,
+    "attempt": 1
+  }
+}

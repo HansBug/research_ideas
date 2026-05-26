@@ -1,0 +1,92 @@
+{
+  "sample_id": "high-level-decision-making-autonomous-overtaking-mpc-switching-control__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "Algorithm 1 presents a high-level decision-making layer and lower-level path-planning process, but the discrete supervisor itself is a flat q in {1,-1,-2,2} mode set rather than nested composite states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Table 1 uses boolean/arithmetic guards such as q(k)=2 & x-XLV_l<=Xel & y>=-yf, while (14f)-(14g) add elliptical safety constraints over x,y, vehicle positions, DeltaX, DeltaY, and beta."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Each selected q maps to steering/acceleration commands in Table 1, Algorithm 1 executes q*, feeds back vehicle state z, and re-solves MPC; these are meaningful control actions but mostly direct command outputs."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Scenario IV describes a suddenly emerging oncoming vehicle causing emergency stop q(10)=-2, giving way, then restarting overtaking q(12)=2; this is a dedicated emergency/recovery behavior, not a global fault hierarchy."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Mode names are defined in Section 2.4, detailed control-input actions are in Table 1 in Section 3.1, and emergency stop/restart behavior is illustrated later in Section 4.2."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as opposite lane busy/free, safe gap, emergency stop, and give way imply transition semantics that must be decoded through driving-domain context and safety constraints."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The q set initially only names following lane, slowdown, stop, and overtaking; prose in the process/scenario descriptions attributes actions such as stop and wait, restart overtaking, and return to the original lane."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards and constraints combine multiple variables, for example x-XLV_l<=Xel & y>=-yf and the squared elliptical safety constraints in (14f)-(14g)."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper does not define a composite parent state with its own entry/during/exit behavior beyond named child states."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Emergency stop appears as scenario-specific q=-2 behavior, but the paper does not state a from-any-state fault-to-safe-state rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial init/pseudostate chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The sample has multiple arithmetic and boolean guard/constraint formulas, including q-transition restrictions, Table 1 conditions, and elliptical collision-avoidance constraints."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Physical and safety constraints are stated to hold during the overall maneuver and are checked at each MPC update across all four q modes, making a single aspect-style monitor preferable to duplicated per-mode rules."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The optimal high-level decision q* is transmitted to a lower-level path-planning module as an abstract command, although most actions are concrete steering/acceleration outputs."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "q in {1,-1,-2,2}:={following lane, slowdown, stop, overtaking}",
+    "During the overall maneuver, the constraints (2) and (3) should always be satisfied."
+  ],
+  "one_line_pitch": "A flat four-mode overtaking supervisor whose transitions are driven by multi-variable MPC constraints, split control-input tables, and emergency stop/restart behavior directly targets guard/action weaknesses in Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test candidate because the paper gives a real EFSM-like switching supervisor with non-trivial arithmetic guards, safety constraints, and mode-dependent control actions. The hierarchy signal is weak because the q modes are flat, but the guard and action complexity is high and the emergency stop/restart scenario adds recovery behavior. The baseline-trap density is high because state names, action mappings, and scenario semantics are distributed across sections and rely on driving-domain terms such as safe gap and give way.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 93966,
+      "cached_input_tokens": 68736,
+      "output_tokens": 7476,
+      "reasoning_output_tokens": 5426
+    },
+    "duration_s": 141.6,
+    "attempt": 1
+  }
+}

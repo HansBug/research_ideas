@@ -1,0 +1,92 @@
+{
+  "sample_id": "controller-development-multi-layer-parking-equipment-stm32__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The main software flow branches into automatic/manual operation and enters parking or withdraw subroutines; the parking process then expands into an internal sequence of motor/limit states."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Multiple transition guards are sensor/condition checks such as operational requirements, free parking spaces, mount limit reached, rotate limit reached, slow-down limits, stop limits, tray limit, and mounter limit."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "The parking sequence issues concrete actuator commands including M3 start/stop, M1 start/stop, M2 start/slow down/stop, tray up/down, mounter rotate/down, and uprights forward/back."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "During operation, accidents such as overload, equipment failure, or height limit violation cause the controller to stop motors immediately and play voice prompts; the main flow also includes emergency braking, fault detect, voice alarm, and manual adjustment."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Motor roles and global accident handling are described in the overall design section, while mode branching and the parking-process state/guard/action chain are in later software-flow figures."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as manual adjustment, emergency braking, fault detect, operational requirements, and voice alarm imply fallback and safety behavior beyond flat event names."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The fault action 'stop the motors right now' plus voice prompt is described in narrative prose, not directly inside the Figure 8 fault-detect node."
+    },
+    "T4_multivar_arith_guard": {
+      "present": false,
+      "evidence": "The guards are mostly single sensor or condition checks; no arithmetic or multi-variable boolean guard is specified."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Although parking is a subroutine/composite process, the paper does not assign separate entry/during/exit behavior to the parent state beyond its child steps."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper states that during operation, if an accident occurs, sensors report it and the controller immediately stops the motors and plays voice prompts."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite structure from main automatic mode into parking/withdraw subroutines, with parking having a default internal sequence."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 0,
+      "evidence": "The guards are numerous but simple limit/condition checks, not arithmetic or boolean-composed expressions suitable for SMT consistency advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The accident/fault rule applies during operation across many movement substates, so a forced cross-cutting transition would avoid duplicating emergency-stop behavior."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Voice alarm/prompt is an operator-facing side effect, while most other actions remain concrete motor and relay commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Control mode is divided into automatic and manual operation, and manual operation is apply to manual adjustment when the system can not run automatically due to equipment malfunctions or other problems.",
+    "During operation, ... if an accident occurs, Such as overloading of vehicles, equipment failure, and the vehicle exceed limited height, ... the controller stop the motors right now, and at the same time play voice prompts."
+  ],
+  "one_line_pitch": "A compact industrial parking-controller case with nested operation/subroutine structure, many sensor-guarded actuator steps, and a global emergency-stop/voice-alarm fallback that stresses action, guard, and cross-cutting recovery extraction.",
+  "verdict": "candidate",
+  "rationale": "The paper gives an explicit software-flow hierarchy from main control into parking/withdraw subroutines and a detailed parking sequence with repeated sensor guards and motor actions. Its strongest baseline trap is the global safety behavior: accident/fault conditions during operation require immediate motor stop and voice prompt across many possible movement states. The guards are not arithmetically complex, but the density of action attribution, mode fallback, and cross-cutting recovery makes it a strong stress-test sample.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 78796,
+      "cached_input_tokens": 63104,
+      "output_tokens": 4178,
+      "reasoning_output_tokens": 2821
+    },
+    "duration_s": 82.5,
+    "attempt": 1
+  }
+}
