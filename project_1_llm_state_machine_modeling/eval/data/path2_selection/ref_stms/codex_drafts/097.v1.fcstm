@@ -4,11 +4,6 @@ def int no_new_detection_frames = 0;
 def int detection_seen_this_frame = 0;
 
 state SearchFollowCatchMissionController {
-    event DETECTION_LOST;
-
-    ! * -> SEARCH :: DETECTION_LOST;
-    ! * -> SEARCH : if [no_new_detection_frames >= 5];
-
     [*] -> START_STATE;
 
     state START_STATE {
@@ -19,14 +14,6 @@ state SearchFollowCatchMissionController {
     state SEARCH {
         event LongRangeDetectionFrame;
         event LongRangeMissFrame;
-        enter {
-            if [no_new_detection_frames >= 5] {
-                detection_count = 0;
-                frame_window = 0;
-                no_new_detection_frames = 0;
-                detection_seen_this_frame = 0;
-            }
-        }
         enter abstract CommandSemiellipseSearchLowAltitude;
         enter abstract ActivateBothUavDetectors;
     }
@@ -76,7 +63,19 @@ state SearchFollowCatchMissionController {
                 no_new_detection_frames = no_new_detection_frames + 1;
             }
         }
-        during abstract ContinuePlannedTrajectoryAfterBallLeavesCameraFieldOfView;
+    }
+
+    state PLANNED_TRAJECTORY {
+        event SUCCESSFUL_CATCH;
+        enter abstract ContinuePlannedTrajectory;
+        during {
+            if [detection_seen_this_frame > 0] {
+                no_new_detection_frames = 0;
+                detection_seen_this_frame = 0;
+            } else {
+                no_new_detection_frames = no_new_detection_frames + 1;
+            }
+        }
     }
 
     state LAND {
@@ -126,6 +125,12 @@ state SearchFollowCatchMissionController {
         no_new_detection_frames = 0;
         detection_seen_this_frame = 1;
     };
+    FOLLOW_LONG_RANGE -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
     FOLLOW_LONG_RANGE -> FOLLOW_LONG_RANGE : if [frame_window >= 4 && detection_count < 2] effect {
         detection_count = 0;
         frame_window = 0;
@@ -140,6 +145,12 @@ state SearchFollowCatchMissionController {
     FOLLOW_SHORT_RANGE -> FOLLOW_SHORT_RANGE :: ShortRangeDetectionFrame effect {
         detection_seen_this_frame = 1;
     };
+    FOLLOW_SHORT_RANGE -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
 
     CATCH_BALL -> LAND :: SUCCESSFUL_CATCH effect {
         detection_count = 0;
@@ -150,5 +161,24 @@ state SearchFollowCatchMissionController {
     CATCH_BALL -> CATCH_BALL :: BALL_DETECTED effect {
         detection_seen_this_frame = 1;
     };
-    CATCH_BALL -> CATCH_BALL :: BALL_LEAVES_CAMERA_FIELD_OF_VIEW;
+    CATCH_BALL -> PLANNED_TRAJECTORY :: BALL_LEAVES_CAMERA_FIELD_OF_VIEW;
+    CATCH_BALL -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
+
+    PLANNED_TRAJECTORY -> LAND :: SUCCESSFUL_CATCH effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 1;
+    };
+    PLANNED_TRAJECTORY -> SEARCH : if [no_new_detection_frames >= 5] effect {
+        detection_count = 0;
+        frame_window = 0;
+        no_new_detection_frames = 0;
+        detection_seen_this_frame = 0;
+    };
 }

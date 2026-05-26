@@ -22,8 +22,19 @@ state "SearchFollowCatchMissionController" as search_follow_catch_mission_contro
     state "FOLLOW_LONG_RANGE" as search_follow_catch_mission_controller__follow_long_range
     state "FOLLOW_SHORT_RANGE" as search_follow_catch_mission_controller__follow_short_range
     state "CATCH_BALL" as search_follow_catch_mission_controller__catch_ball
-    state "PLANNED_TRAJECTORY" as search_follow_catch_mission_controller__planned_trajectory
     state "LAND" as search_follow_catch_mission_controller__land
+    search_follow_catch_mission_controller__start_state --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__start_state --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__search --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
+    search_follow_catch_mission_controller__land --> search_follow_catch_mission_controller__search : DETECTION_LOST
+    search_follow_catch_mission_controller__land --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
     [*] --> search_follow_catch_mission_controller__start_state
     search_follow_catch_mission_controller__start_state --> search_follow_catch_mission_controller__search : START_STATE.START_MISSION
     note on link
@@ -93,15 +104,6 @@ state "SearchFollowCatchMissionController" as search_follow_catch_mission_contro
         detection_seen_this_frame = 1;
     }
     end note
-    search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
-    note on link
-    effect {
-        detection_count = 0;
-        frame_window = 0;
-        no_new_detection_frames = 0;
-        detection_seen_this_frame = 0;
-    }
-    end note
     search_follow_catch_mission_controller__follow_long_range --> search_follow_catch_mission_controller__follow_long_range : frame_window >= 4 && detection_count < 2
     note on link
     effect {
@@ -124,15 +126,6 @@ state "SearchFollowCatchMissionController" as search_follow_catch_mission_contro
         detection_seen_this_frame = 1;
     }
     end note
-    search_follow_catch_mission_controller__follow_short_range --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
-    note on link
-    effect {
-        detection_count = 0;
-        frame_window = 0;
-        no_new_detection_frames = 0;
-        detection_seen_this_frame = 0;
-    }
-    end note
     search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__land : CATCH_BALL.SUCCESSFUL_CATCH
     note on link
     effect {
@@ -148,34 +141,7 @@ state "SearchFollowCatchMissionController" as search_follow_catch_mission_contro
         detection_seen_this_frame = 1;
     }
     end note
-    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__planned_trajectory : CATCH_BALL.BALL_LEAVES_CAMERA_FIELD_OF_VIEW
-    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
-    note on link
-    effect {
-        detection_count = 0;
-        frame_window = 0;
-        no_new_detection_frames = 0;
-        detection_seen_this_frame = 0;
-    }
-    end note
-    search_follow_catch_mission_controller__planned_trajectory --> search_follow_catch_mission_controller__land : PLANNED_TRAJECTORY.SUCCESSFUL_CATCH
-    note on link
-    effect {
-        detection_count = 0;
-        frame_window = 0;
-        no_new_detection_frames = 0;
-        detection_seen_this_frame = 1;
-    }
-    end note
-    search_follow_catch_mission_controller__planned_trajectory --> search_follow_catch_mission_controller__search : no_new_detection_frames >= 5
-    note on link
-    effect {
-        detection_count = 0;
-        frame_window = 0;
-        no_new_detection_frames = 0;
-        detection_seen_this_frame = 0;
-    }
-    end note
+    search_follow_catch_mission_controller__catch_ball --> search_follow_catch_mission_controller__catch_ball : CATCH_BALL.BALL_LEAVES_CAMERA_FIELD_OF_VIEW
 }
 [*] --> search_follow_catch_mission_controller
 search_follow_catch_mission_controller --> [*]
