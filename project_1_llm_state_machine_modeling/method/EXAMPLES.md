@@ -2,19 +2,20 @@
 
 > **目的**：展示 method 在不同控制系统 NL 上的端到端能力（multistep modeling → scenariogen → sim feedback），并通过**注入 model bug** 验证 sim feedback 对 model defect 的检测能力。
 >
-> **运行命令**（在仓库根、`source .env` 后）：
+> **运行命令**（仓库根、`source .env` 后）：
 > ```bash
 > PYTHONPATH=project_1_llm_state_machine_modeling venv/bin/python /tmp/phase_g_full_test.py
 > ```
 >
+> **运行环境**：`gpt-5.5`（via env `LLM_MODEL`），`temperature=0`，`seed=42`。LLM 非完全 deterministic — 同种子重跑可能有微小差异。
+>
 > **生成日期**：2026-05-26 (Phase G 完成节点)
-> **LLM**：`gpt-5.5`（via env `LLM_MODEL`）
 
 ---
 
 ## Part A — 3 个 NL 控制系统真实端到端跑通
 
-每个例子：NL → 6 步 MTI multistep modeling → 1 步 scenariogen → sim feedback。
+每例：NL → 6 步 MTI multistep modeling → 1 步 scenariogen → sim feedback 验证。
 
 ### Example A1 — 交通灯（guard-driven cyclic + global reset）
 
@@ -27,7 +28,7 @@
 > The timer increments by 1 every cycle while the controller is in any state.
 > A reset signal forces the controller back to Red from any state.
 
-**Multistep 输出 DSL** (492 chars, tokens=9997 / 6 LLM calls)：
+**Multistep 输出 DSL** (492 chars, 9997 tokens / 6 LLM calls)：
 
 ```fcstm
 def int timer = 0;
@@ -58,9 +59,29 @@ state TrafficLightController {
 
 pyfcstm `parse_with_grammar_entry` + `parse_dsl_node_to_state_machine` 全通过。
 
-**Scenariogen 产出** (tokens=2489)：7 scenarios
+**Scenariogen 产出 7 个 scenarios** (2489 tokens)：
 
-**Sim feedback**：2/7 pass。失败的 5 个都是 LLM scenario writer 的 cycle timing off-by-one bias（不是 model bug）— 如 LLM 期望 30 cycles 后 timer=0 在 Green，实际是 30 cycles 后 Red timer=30，transition 在第 31 cycle 触发。这正是 sim oracle 的价值：surface 出 LLM 不熟 runtime cycle 语义的认知 gap。
+| # | name | events | gap | extra | expected_state | expected_vars |
+| --- | --- | --- | ---: | ---: | --- | --- |
+| 1 | `initial_red_after_one_cycle` | — | 1 | 1 | `TrafficLightController.Red` | `{timer: 1}` |
+| 2 | `red_to_green_transition` | — | 1 | 31 | `TrafficLightController.Green` | `{timer: 1}` |
+| 3 | `green_to_yellow_transition` | — | 1 | 56 | `TrafficLightController.Yellow` | `{timer: 1}` |
+| 4 | `yellow_to_red_transition` | — | 1 | 61 | `TrafficLightController.Red` | `{timer: 1}` |
+| 5 | `reset_from_red_stays_red` | `[TrafficLightController.Reset]` | 1 | 1 | `TrafficLightController.Red` | `{timer: 1}` |
+| 6 | `reset_from_green_to_red` | `[TrafficLightController.Reset]` | 31 | 1 | `TrafficLightController.Red` | `{timer: 1}` |
+| 7 | `reset_from_yellow_to_red` | `[TrafficLightController.Reset]` | 56 | 1 | `TrafficLightController.Red` | `{timer: 1}` |
+
+**Sim feedback**：**4/7 pass**
+
+失败 3 个都是 LLM scenario writer 的 **cycle timing off-by-one bias**（不是 model bug）：
+
+| FAIL scenario | state_match? | var mismatch |
+| --- | :---: | --- |
+| `reset_from_red_stays_red` | ✅ | `timer: expected=1 actual=2` |
+| `reset_from_green_to_red` | ✅ | `timer: expected=1 actual=2` |
+| `reset_from_yellow_to_red` | ✅ | `timer: expected=1 actual=2` |
+
+**原因分析**：Reset 是 forced transition `! * -> Red :: Reset;`，LLM 期望 Reset 后到 Red、enter action 把 timer=0、再一个 during +1 = 1。但实际 cycle 顺序是：（1）当前 cycle 中 Red 的 during 跑 一次 timer+=1；（2）同 cycle 触发 Reset event；（3）下个 cycle 进 Red.enter timer=0；（4）再下个 cycle Red.during +1。中间多了一次 during 执行。
 
 ### Example A2 — 微波炉（event-driven + door interlock + auto-complete）
 
@@ -76,7 +97,7 @@ pyfcstm `parse_with_grammar_entry` + `parse_dsl_node_to_state_machine` 全通过
 > When the cook_timer reaches 120 in Cooking, it transitions back to Idle.
 > A reset signal forces the controller back to Idle from any state and resets cook_timer to 0.
 
-**Multistep 输出 DSL** (489 chars, tokens=10917 / 6 LLM calls)：
+**Multistep 输出 DSL** (489 chars, 10917 tokens / 6 LLM calls)：
 
 ```fcstm
 def int cook_timer = 0;
@@ -108,23 +129,42 @@ state MicrowaveController {
 
 pyfcstm parse + sem 全通过。
 
-**Scenariogen 产出** (tokens=2456)：7 scenarios
+**Scenariogen 产出 7 个 scenarios** (2456 tokens)：
 
-**Sim feedback**：4/7 pass。3 个失败都是 LLM scenario writer 算错 cook_timer (例如 `start_cooking_from_ready` 期待 timer=1 实际 timer=2，`cooking_auto_completes_at_120` 期待 timer=120 但 Idle 的 enter action 把它归零成 0)。
+| # | name | events | gap | extra | expected_state | expected_vars |
+| --- | --- | --- | ---: | ---: | --- | --- |
+| 1 | `idle_to_ready_on_door_close` | `[Idle.door_closed]` | 1 | 0 | `MicrowaveController.Ready` | `{cook_timer: 0}` |
+| 2 | `ready_to_cooking_on_start` | `[Idle.door_closed, Ready.start_pressed]` | 1 | 1 | `MicrowaveController.Cooking` | `{cook_timer: 1}` |
+| 3 | `cooking_timer_increments_without_events` | `[Idle.door_closed, Ready.start_pressed]` | 1 | 10 | `MicrowaveController.Cooking` | `{cook_timer: 11}` |
+| 4 | `pause_and_resume_cooking` | `[Idle.door_closed, Ready.start_pressed, Cooking.door_open, Paused.door_closed]` | 5 | 5 | `MicrowaveController.Cooking` | `{cook_timer: 16}` |
+| 5 | `cooking_auto_returns_to_idle_at_120` | `[Idle.door_closed, Ready.start_pressed]` | 1 | 120 | `MicrowaveController.Idle` | `{cook_timer: 120}` |
+| 6 | `reset_from_cooking_forces_idle` | `[Idle.door_closed, Ready.start_pressed, reset]` | 10 | 1 | `MicrowaveController.Idle` | `{cook_timer: 0}` |
+| 7 | `reset_from_paused_forces_idle` | `[Idle.door_closed, Ready.start_pressed, Cooking.door_open, reset]` | 3 | 1 | `MicrowaveController.Idle` | `{cook_timer: 0}` |
 
-### Example A3 — 三层电梯（event-driven multi-state floor controller）
+**Sim feedback**：**4/7 pass**
+
+| FAIL scenario | state_match? | var mismatch |
+| --- | :---: | --- |
+| `ready_to_cooking_on_start` | ✅ | `cook_timer: expected=1 actual=2` |
+| `pause_and_resume_cooking` | ✅ | `cook_timer: expected=16 actual=12` |
+| `cooking_auto_returns_to_idle_at_120` | ✅ | `cook_timer: expected=120 actual=0` |
+
+**原因分析**：
+- (5) `cooking_auto_returns_to_idle_at_120`：cook_timer ≥ 120 触发 Cooking → Idle，但 Idle 有 `enter { cook_timer = 0; }`，所以最终 cook_timer=0 而非 120。LLM 没意识到 Idle 的 enter action 会把它归零。
+- (2) (4) 同 traffic_light 一样的 cycle counting off-by-one。
+
+### Example A3 — 三层电梯（event-driven multi-state floor）
 
 **输入 NL**：
 
-> The elevator controller has three floor states (F1, F2, F3) and four motion states (MU2, MU3, MD1, MD2) for upward and downward travel.
-> The system starts at F1 (idle on floor 1).
-> Floor request events PS1, PS2, PS3 trigger motion: from F1, the event PS2 causes a transition to MU2 (moving up to floor 2); from F1, PS3 causes a transition to MU3.
-> From F2, the event PS3 causes a transition to MU3; from F2, PS1 causes a transition to MD1 (moving down to floor 1).
-> From F3, the event PS1 causes a transition to MD1; from F3, PS2 causes a transition to MD2 (moving down to floor 2).
-> Arrival sensor events S1, S2, S3 detect floor arrival: MU2 with S2 transitions to F2; MU3 with S3 transitions to F3; MD1 with S1 transitions to F1; MD2 with S2 transitions to F2.
-> A reset signal forces the elevator back to F1 from any state.
+> The elevator controller has three floor states (F1, F2, F3) and four motion states (MU2, MU3, MD1, MD2)...
+> Floor request events PS1/PS2/PS3 trigger motion: from F1 with PS2 to MU2, etc.
+> Arrival sensor events S1/S2/S3 detect arrival: MU2 + S2 → F2, etc.
+> A reset signal forces the elevator back to F1.
 
-**Multistep 输出 DSL** (394 chars, tokens=12965 / 6 LLM calls)：
+（完整 NL 见原始 input；为节省篇幅此处省略）
+
+**Multistep 输出 DSL** (394 chars, 12965 tokens / 6 LLM calls)：
 
 ```fcstm
 state ElevatorController {
@@ -153,70 +193,86 @@ state ElevatorController {
 }
 ```
 
-pyfcstm parse + sem 全通过。模型没有变量（纯 event-driven 多状态机）。
+模型纯事件驱动无变量。pyfcstm parse + sem 全通过。
 
-**Scenariogen 产出** (tokens=2717)：8 scenarios
+**Scenariogen 产出 8 个 scenarios** (2717 tokens)：
 
-**Sim feedback**：**8/8 pass 全通过 ✅**
+| # | name | events | expected_state |
+| --- | --- | --- | --- |
+| 1 | `startup_idle_at_f1` | — | `ElevatorController.F1` |
+| 2 | `f1_to_f2_via_mu2` | `[F1.PS2, MU2.S2]` | `ElevatorController.F2` |
+| 3 | `f1_to_f3_via_mu3` | `[F1.PS3, MU3.S3]` | `ElevatorController.F3` |
+| 4 | `f2_to_f3_transition` | `[F1.PS2, MU2.S2, F2.PS3, MU3.S3]` | `ElevatorController.F3` |
+| 5 | `f3_to_f1_via_md1` | `[F1.PS3, MU3.S3, F3.PS1, MD1.S1]` | `ElevatorController.F1` |
+| 6 | `f3_to_f2_via_md2` | `[F1.PS3, MU3.S3, F3.PS2, MD2.S2]` | `ElevatorController.F2` |
+| 7 | `f2_to_f1_via_md1` | `[F1.PS2, MU2.S2, F2.PS1, MD1.S1]` | `ElevatorController.F1` |
+| 8 | `reset_forces_return_to_f1` | `[F1.PS3, Reset]` | `ElevatorController.F1` |
 
-Elevator 是纯 event-driven 没有 cycle timing 复杂度，LLM 写的 scenario 100% 准确。这是 method 在"纯事件驱动"控制系统上工作良好的强证据。
+**Sim feedback**：**8/8 全通过 ✅**
+
+事件序列推理 + 无 cycle 计时 → LLM scenario writer 100% 准确。这是 method 在事件驱动控制系统上工作良好的强证据。
 
 ---
 
-## Part B — Mutation detection（验证 sim 检测 model bug 的能力）
+## Part B — Mutation Detection（验证 sim 检测 model bug 的能力）
 
-**Setup**：用 traffic light multistep DSL 作 baseline，注入 3 种不同的 bug，用**人工精心构造的 scenarios**（不让 LLM scenario writer 干扰）检验 sim 是否能 catch 每种 bug。
+**Setup**：在 traffic light multistep DSL 基础上注入 3 种不同 bug，用**人工精心构造的 4 个 scenarios**（基于 pyfcstm cycle 语义精确推导，避免 LLM scenario writer 干扰）验证 sim 检测能力。
 
 ### Hand-crafted 4 个 scenarios（精确基于 pyfcstm cycle 语义）
 
-```
-1. initial_red_after_1_cycle:           cycle×1 → expect Red, timer=1
-2. red_30_cycles_still_red_timer_30:    cycle×30 → expect Red, timer=30 (transition not yet fired)
-3. red_to_green_after_31_cycles:        cycle×31 → expect Green, timer=1 (transition fired, effect=0, during+1)
-4. reset_from_green_back_to_red:        cycle×30 + Reset → expect Red, timer=1 (enter sets 0, during +1)
-```
+| # | name | events | gap | extra | expected_state | expected_vars | 推导说明 |
+| --- | --- | --- | ---: | ---: | --- | --- | --- |
+| 1 | `initial_red_after_1_cycle` | — | 1 | 0 | `TrafficLightController.Red` | `{timer: 1}` | 1 cycle (during +1) |
+| 2 | `red_30_cycles_still_red_timer_30` | — | 1 | 29 | `TrafficLightController.Red` | `{timer: 30}` | 30 cycles, transition NEXT cycle |
+| 3 | `red_to_green_after_31_cycles` | — | 1 | 30 | `TrafficLightController.Green` | `{timer: 1}` | 31 cycle 触发 Red→Green, effect=0, Green.during +1 |
+| 4 | `reset_from_green_back_to_red_via_enter` | `[TrafficLightController.Reset]` | 30 | 0 | `TrafficLightController.Red` | `{timer: 1}` | 30 cycles 到 Green, Reset, 进 Red 的 enter timer=0, during +1 |
 
-### Original DSL — 4/4 pass ✅
+### Variant 1 — Original（baseline control）
+
+**Sim feedback**：**4/4 pass ✅**
 
 证明 hand-crafted scenarios 跟 pyfcstm runtime cycle 语义完全一致；method 输出的 DSL 行为正确。
 
-### Bug 1: unreachable_green
+### Variant 2 — Bug 1: `unreachable_green`
 
-注入：将 `Red -> Green : if [timer >= 30]` 改为 `if [timer >= 99999]`。
+**注入**：将 `Red -> Green : if [timer >= 30]` 改为 `if [timer >= 99999]`。Green/Yellow 都不可达。
 
-预期：`Red → Green` transition 永远不 fire，Green/Yellow 都不可达。
+**Sim feedback**：**3/4 pass — ✅ caught**
 
-**Sim feedback**：3/4 pass ✅ caught
-- `red_to_green_after_31_cycles` FAIL [state-mismatch]: expected=Green actual=Red, timer expected=1 actual=31
+| FAIL scenario | state_match? | actual vs expected |
+| --- | :---: | --- |
+| `red_to_green_after_31_cycles` | ❌ | expected=Green actual=Red; `timer: expected=1 actual=31` |
 
-### Bug 2: no_reset_path
+### Variant 3 — Bug 2: `no_reset_path`
 
-注入：从 DSL 中删除 `! * -> Red :: Reset;` 这一行。
+**注入**：删除 `! * -> Red :: Reset;` 这一行。Reset 事件不再被 forced transition 捕获。
 
-预期：Reset 事件不再 work（无 forced 转换捕获）。
+**Sim feedback**：**3/4 pass — ✅ caught**
 
-**Sim feedback**：3/4 pass ✅ caught
-- `reset_from_green_back_to_red_via_enter` FAIL: runtime_error=`LookupError: Cannot resolve event path 'TrafficLightController.Reset'`
+| FAIL scenario | violation 类型 | 详情 |
+| --- | --- | --- |
+| `reset_from_green_back_to_red_via_enter` | **runtime_error** | `LookupError: Cannot resolve event path 'TrafficLightController.Reset'` |
 
-### Bug 3: no_timer_reset_on_transition
+### Variant 4 — Bug 3: `no_timer_reset_on_transition`
 
-注入：将 `Red -> Green : if [timer >= 30] effect { timer = 0; };` 改为 `Red -> Green : if [timer >= 30];`（删除 effect block）。
+**注入**：删除 `Red -> Green : if [timer >= 30] effect { timer = 0; };` 中的 `effect { ... }`。transition 触发但 timer 不 reset。
 
-预期：transition 触发但 timer 不 reset，进入 Green 时 timer 仍是大值（继续 +1）。
+**Sim feedback**：**3/4 pass — ✅ caught**
 
-**Sim feedback**：3/4 pass ✅ caught
-- `red_to_green_after_31_cycles` FAIL [var-mismatch]: state=Green ✓ 但 timer expected=1 actual=31（说明 effect 缺失，timer 没被 reset）
+| FAIL scenario | state_match? | var mismatch |
+| --- | :---: | --- |
+| `red_to_green_after_31_cycles` | ✅ | `timer: expected=1 actual=31`（说明 effect 缺失，timer 没被 reset） |
 
 ### Mutation detection 总结
 
-| Variant | Sim 检测 | 检测 violation 类型 | 验证 sim 能力维度 |
+| Variant | Sim 检测 | violation 类型 | 验证 sim 能力维度 |
 | --- | --- | --- | --- |
 | original | 4/4 pass | — | 正确 model 给 clean signal |
-| bug1 unreachable_green | 3/4 pass | state-mismatch | catches structural reachability bug |
-| bug2 no_reset_path | 3/4 pass | runtime_error (LookupError) | catches missing transition / event |
-| bug3 no_timer_reset | 3/4 pass | var-mismatch | catches missing effect on transition |
+| bug1 `unreachable_green` | 3/4 pass ✅ | state-mismatch | catches structural reachability bug |
+| bug2 `no_reset_path` | 3/4 pass ✅ | runtime_error (LookupError) | catches missing transition / event |
+| bug3 `no_timer_reset` | 3/4 pass ✅ | var-mismatch | catches missing effect on transition |
 
-**3/3 buggy variants 都被 sim 抓到了**，且每种 bug 在不同 violation 维度（state / runtime_error / vars）surface，验证了 sim feedback 对多种 model defect 类型都有效。
+**3/3 buggy variants 都被 sim 抓到了**，且每种 bug 在不同 violation 维度（state / runtime_error / vars）surface，验证 sim feedback 对多种 model defect 类型都有效。
 
 ---
 
@@ -224,8 +280,8 @@ Elevator 是纯 event-driven 没有 cycle timing 复杂度，LLM 写的 scenario
 
 1. **Scenariogen + sim 配对成功**：3 个不同 NL 都能 end-to-end 跑通（pure guard-driven / event-driven mixed / pure event-driven 三种范式都 cover）
 2. **Sim oracle 链有效**：buggy mutation 测试证明 sim feedback 能 catch 3 类不同的 model bug — 这就是 `NL → property/scenario (expected) → sim 执行验证` 闭环的核心价值
-3. **LLM scenario writer 在 cycle timing 上有 off-by-one bias**：traffic_light 2/7、microwave 4/7 sim pass，但失败的都是 LLM 没真跑过 model 不熟 runtime 语义；这本身是个有意义的 finding — 提示**未来改进方向**是在 scenariogen 后用 sim 跑一次拿到 actual values，再 reflexion 一轮让 LLM 修正 expected
-4. **Elevator 8/8 全 pass**：纯事件驱动控制系统在 method 上工作良好；LLM scenario writer 对事件序列推理比对 cycle timing 推理强很多
+3. **LLM scenario writer 在 cycle timing 上有 off-by-one bias**：traffic_light 4/7、microwave 4/7 sim pass，失败的都是 LLM 没真跑过 model 不熟 runtime 语义；这本身是个有意义的 finding — 提示**未来改进方向**是在 scenariogen 后用 sim 跑一次拿到 actual values，再 reflexion 一轮让 LLM 修正 expected
+4. **Elevator 8/8 全 pass**：事件序列推理对 LLM 比 cycle timing 推理简单很多 — 后续如果 Path 2 主用控制系统数据，应该选含较多事件驱动 case 的样本
 
 ## 后续 Phase（基于这些 finding 调整）
 
