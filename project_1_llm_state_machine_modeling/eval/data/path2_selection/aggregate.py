@@ -26,6 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 POOL = ROOT / "pool.tsv"
 RESULTS_DIR = ROOT / "results"
+EXPANSIONS_DIR = ROOT / "expansions"
 REPORT = ROOT / "REPORT.md"
 
 SCORE_MAP = {"🟢": 3, "🟡": 2, "🟠": 1, "⚪": 0}
@@ -57,7 +58,7 @@ def load_pool() -> dict[str, dict]:
 
 
 def load_results(pool: dict) -> list[dict]:
-    """Return list of merged records: pool row + codex review."""
+    """Return list of merged records: pool row + codex review + (optional) expansion."""
     records = []
     for jp in sorted(RESULTS_DIR.glob("*.json")):
         cid = jp.stem
@@ -75,6 +76,13 @@ def load_results(pool: dict) -> list[dict]:
         data["paper_num"] = pool[cid]["paper_num"]
         data["domain"] = pool[cid].get("domain", "?")
         data["_id"] = cid
+        # Attach expansion if present
+        ep = EXPANSIONS_DIR / f"{cid}.json"
+        if ep.exists():
+            try:
+                data["_expansion"] = json.loads(ep.read_text())
+            except Exception:
+                pass
         records.append(data)
     return records
 
@@ -259,7 +267,7 @@ def render_card(rec: dict, rank: int) -> str:
     def line(k, label):
         v = ax.get(k, {})
         return f"- **{label}**: {v.get('score','⚪')} — {v.get('evidence','—')}"
-    return (
+    base = (
         f"##### {rank}. `[{rec['_id']}]` {rec.get('domain','?')} {rec['case_name']} ({rec['bucket']})\n"
         f"\n"
         f"- **领域**: {rec.get('domain','?')}\n"
@@ -274,6 +282,48 @@ def render_card(rec: dict, rank: int) -> str:
         f"- **对 PATH2 的价值**: {rec.get('features_we_care_about','—')}\n"
         f"- **风险**: {rec.get('potential_pitfalls','—')}\n"
     )
+    exp = rec.get("_expansion")
+    if exp:
+        meta = exp.get("_meta", {})
+        ax_cov = exp.get("axis_coverage", {})
+        prov = exp.get("provenance", [])
+        base += (
+            f"\n"
+            f"<details><summary><b>📝 扩充 NL（{meta.get('actual_word_count','?')} 词 / {meta.get('markers_count','?')} markers / {meta.get('provenance_count','?')} provenance entries）</b></summary>\n"
+            f"\n"
+            f"**Expanded NL**:\n"
+            f"\n"
+            f"> {exp.get('expanded_nl','—')}\n"
+            f"\n"
+            f"**Axis coverage**:\n"
+            f"\n"
+            f"- **C1**: {ax_cov.get('C1','—')}\n"
+            f"- **C2**: {ax_cov.get('C2','—')}\n"
+            f"- **C3**: {ax_cov.get('C3','—')}\n"
+            f"- **C4**: {ax_cov.get('C4','—')}\n"
+            f"\n"
+            f"**Provenance** ({len(prov)} entries):\n"
+            f"\n"
+        )
+        if prov:
+            base += "| marker | source | quote (≤30 词) | supports |\n"
+            base += "|---|---|---|---|\n"
+            for p in prov:
+                q = (p.get("quote","") or "").replace("|","\\|").replace("\n"," ").strip()
+                if len(q) > 100:
+                    q = q[:97] + "…"
+                supp = (p.get("supports","") or "").replace("|","\\|").replace("\n"," ").strip()
+                if len(supp) > 80:
+                    supp = supp[:77] + "…"
+                src = (p.get("source","") or "").replace("|","\\|").strip()
+                base += f"| [{p.get('marker','?')}] | {src} | {q} | {supp} |\n"
+        else:
+            base += "_（无 provenance 条目）_\n"
+        omissions = exp.get("intentional_omissions", "")
+        if omissions:
+            base += f"\n**Intentional omissions**: {omissions}\n"
+        base += "\n</details>\n"
+    return base
 
 
 def main():
