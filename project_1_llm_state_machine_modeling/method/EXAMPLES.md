@@ -350,3 +350,70 @@ status: converged   iters: 1   tokens: 12,284
 - 完整 JSON：`/tmp/phase_e_results.json`（每 iter 的 DSL / feedback / repair_target / sim_violations 全保留）
 - loop driver：[`loop.py`](./loop.py)
 - cascaded repair：[`agents/repair.py`](./agents/repair.py)（dispatcher）+ [`prompts/repair/`](./prompts/repair/) 4 个 sub-prompt
+
+## Phase E v2 — context 增强 (a) DSL grammar reference + (c) passing-scenarios 显式标注
+
+回看 Phase E v1 demo 的失败模式：(A2 microwave) repair 把 `: if [...]` 改成 `:: if [...]` 引 parse fail；(A2 traffic_light) repair 改 guard 时破坏 previously-passing scenario 造成 5/8↔4/8 oscillation。诊断 fix 阶段实际拿到的 context 发现：(a) fix prompt 没有 pyfcstm DSL 语法 cheat-sheet（凭"记忆"操作 operator 错位）+ (c) sim diagnostic 只列 failing scenarios 没有显式标"哪些 pass 不能动"。
+
+补这两项后重跑同一组 demo：
+
+| Config | v1 status | v1 iter trace | **v2 status** | **v2 iter trace** |
+| --- | --- | --- | --- | --- |
+| A2 traffic_light | not_converged | sim 5/8 → 4/8 → 5/8（osc 破坏 passing）| not_converged | 仍 not converge（boundary NL gap 是 deep 问题），但**不再 osc 破坏 passing** |
+| A2 microwave | not_converged | sim 7/8 → **parse_fail → parse_fail**（repair 改 `:`→`::`）| **converged ✓** | sim 7/8 → 7/8 → **8/8** ✓（iter 1 加 effect、iter 2 改阈值 120→119；全程 operator 未动）|
+| A2 elevator | converged 1-iter | 8/8 直接 early-exit | converged 1-iter | 8/8（unchanged）|
+| B inject M3 | converged 2-iter | `>=99999` → `>=30` 修复 ✓ | converged 2-iter | unchanged |
+| B inject M6 | not_converged | 7/8 → 7/8 → **parse_fail**（repair 引 parse bug）| not_converged | 7/8 → 7/8 → 7/8（**parse 稳定 OK**，但仍未修对 effect 值）|
+| C ablation A1 | converged 1-iter | 1 iter ✓ | converged 1-iter | unchanged |
+
+### (a) DSL grammar reference 改动
+
+把原 `prompts/repair/_grammar.md` 提升为共享 [`prompts/_pyfcstm_grammar.md`](./prompts/_pyfcstm_grammar.md) — comprehensive 12 章 + 3 个 worked examples (traffic light / 2-floor elevator / hybrid microwave) + pre-output self-check。同时被 4 个 agent 用：
+
+| Agent | 加载方式 |
+| --- | --- |
+| `agents/modeler.py` | `_load_prompt` 现在追加共享 grammar；`modeler.txt` 删除重复 cheat-sheet |
+| `agents/multistep/build_pyfcstm.py` | 同上；`prompts/multistep/build_pyfcstm.txt` 同步 slim |
+| `agents/repair.py` | 4 个 fix sub-prompt 加载时都追加共享 grammar |
+
+合并的 grammar 含 modeler.txt 原来更详尽的内容（包括 `:` 不只是 guards——也是 chain/absolute scope 的 event scoping operator；v1 grammar 把这个简化错了导致 LLM 也容易出错）+ cycle execution semantics（off-by-one 怎么来）+ "INVALID 形式" 反例表。
+
+### (c) Passing-scenarios 显式标注 改动
+
+`agents/repair.py:_build_user_msg` for `target=sim` 新结构：
+```
+## NL requirements
+## Current DSL
+## Scenarios currently PASSING — your edit MUST NOT regress these:   ← 新增
+   - `scenario_A`
+   - `scenario_B`
+   ...
+   Before outputting, mentally re-evaluate each of the above ...
+## FAILING scenarios — sim diagnostic
+## All frozen scenarios (full data — DO NOT EDIT)
+```
+
+`prompts/repair/fix_sim.txt` 加硬规则：
+> Do NOT regress passing scenarios: the user message lists the scenarios that currently PASS. After deciding on an edit, mentally re-evaluate each passing scenario against your proposed DSL. If your change would alter their result, the edit is wrong — reconsider.
+
+### 关键 trace — A2 microwave v2（grammar reference 治好了 parse 回归）
+
+```
+iter 0 [modeler]  parse=T sem=T sim=7/8 ✗
+                  Cooking -> Idle : if [cook_timer >= 120];
+
+iter 1 [repair]   parse=T sem=T sim=7/8 ✗  (target=sim)
+                  Cooking -> Idle : if [cook_timer >= 120] effect { cook_timer = 0; };
+                                                            ← 加 effect, `: if` 操作符没动 ✓
+
+iter 2 [repair]   parse=T sem=T sim=8/8 ✓ EARLY-EXIT
+                  Cooking -> Idle : if [cook_timer >= 119] effect { cook_timer = 0; };
+                                                            ← 阈值 120→119, 仍 `: if` ✓
+status: converged   tokens: 37,605
+```
+
+对比 v1 同一例 iter 1：`Cooking -> Idle :: if [cook_timer >= 120];`（错把 `:` 改成 `::`，parse 立即挂）—— grammar reference 直接杜绝此类失败。
+
+### 现存的 failure mode（actionable next steps）
+
+**(d) sim cycle trace 注入** 是接下来值得做的：B M6 inject 仍 not_converged 是 v2 后剩下的主要类型 — repair 没能从 `var_mismatches: timer=expected=1, actual=101` 反推到 `effect { timer = 100; }` 这条 root cause line。给 fix_sim 附加 sim cycle-by-cycle trace（"hot-start Red/timer=29 → cycle 1 fire Red→Green, effect timer=100, Green during +1 = 101"）应能让 LLM "看见"模型行为路径，提高 root-cause reasoning 命中率。

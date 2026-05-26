@@ -27,6 +27,9 @@ from method.schema import FeedbackBundle, ModelArtifact, TestScenario
 
 
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "repair"
+# Shared pyfcstm grammar reference — used by both modeler agents and the
+# repair sub-prompts to avoid drift between "how to generate" and "how to fix".
+_GRAMMAR_PATH = Path(__file__).resolve().parent.parent / "prompts" / "_pyfcstm_grammar.md"
 
 RepairTarget = Literal["parse", "semantic", "sim", "judge"]
 
@@ -39,10 +42,20 @@ _PROMPT_FILES: dict[RepairTarget, str] = {
 
 
 def _load_subprompt(target: RepairTarget) -> str:
+    """Load the sub-prompt for ``target`` and append the shared grammar reference.
+
+    Every fix sub-prompt benefits from the same pyfcstm DSL cheat-sheet —
+    historically the largest source of repair regressions was operator
+    confusion (`:` vs `::`) which the grammar reference now blocks.
+    """
     p = _PROMPT_DIR / _PROMPT_FILES[target]
     if not p.exists():
         raise FileNotFoundError(f"Repair sub-prompt not found: {p}")
-    return p.read_text(encoding="utf-8")
+    body = p.read_text(encoding="utf-8")
+    if _GRAMMAR_PATH.exists():
+        grammar = _GRAMMAR_PATH.read_text(encoding="utf-8")
+        return f"{body}\n\n---\n\n{grammar}"
+    return body
 
 
 def _strip_dsl_fence(content: str) -> str:
@@ -84,55 +97,77 @@ def _build_user_msg(
     nl: str,
     scenarios: Optional[list[TestScenario]] = None,
 ) -> str:
-    """Build a focused user message containing only the relevant diagnostic."""
-    payload: dict = {}
-    if target == "parse":
-        payload["parse"] = asdict(feedback.parse)
-    elif target == "semantic":
-        payload["semantic"] = asdict(feedback.semantic)
-    elif target == "sim":
-        sim_dict = asdict(feedback.sim)
-        # Drop already-passing scenarios to keep prompt tight.
-        sim_dict["scenario_results"] = [
-            sr for sr in sim_dict["scenario_results"] if sr["status"] != "pass"
-        ]
-        payload["sim"] = sim_dict
-    elif target == "judge":
-        payload["judge"] = asdict(feedback.judge)
+    """Build a focused user message containing only the relevant diagnostic.
 
-    diag_json = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
-
+    For target='sim' the message also surfaces a **passing-scenarios list**
+    (a regression-prevention guardrail per Phase E (c) decision): the LLM
+    is reminded that those scenarios currently pass and the edit must not
+    break them.
+    """
     parts = [
         f"## NL requirements\n\n{nl.strip()}\n",
         f"## Current DSL\n\n```\n{current_dsl}\n```\n",
-        f"## {target.capitalize()} diagnostic\n\n```\n{diag_json}\n```\n",
     ]
 
-    if target == "sim" and scenarios is not None:
-        # Include the frozen scenario set so the LLM knows what 'ground truth' looks like.
-        sc_json = json.dumps(
-            [
-                {
-                    "name": s.name,
-                    "description": s.description,
-                    "initial_state": s.initial_state,
-                    "initial_vars": s.initial_vars,
-                    "steps": [
-                        {
-                            "name": st.name,
-                            "before_cycles": st.before_cycles,
-                            "events": st.events,
-                            "expected_state": st.expected_state,
-                            "expected_vars": st.expected_vars,
-                        }
-                        for st in s.steps
-                    ],
-                }
-                for s in scenarios
-            ],
-            ensure_ascii=False, indent=2, default=str,
-        )
-        parts.append(f"## Frozen scenarios (ground truth — DO NOT EDIT)\n\n```\n{sc_json}\n```\n")
+    if target == "sim":
+        # Split scenario results into passing vs failing for explicit display.
+        all_results = list(feedback.sim.scenario_results)
+        passing_names = [sr.name for sr in all_results if sr.status == "pass"]
+        failing_results = [sr for sr in all_results if sr.status != "pass"]
+
+        if passing_names:
+            passing_block = "\n".join(f"- `{n}`" for n in passing_names)
+            parts.append(
+                "## Scenarios currently PASSING — your edit MUST NOT regress these\n\n"
+                f"{passing_block}\n\n"
+                "Before outputting, mentally re-evaluate each of the above against your "
+                "proposed DSL. If any would break, reconsider the edit.\n"
+            )
+
+        # Build sim diagnostic JSON containing only the failing scenarios
+        sim_payload = asdict(feedback.sim)
+        sim_payload["scenario_results"] = [asdict(sr) for sr in failing_results]
+        sim_payload["passing_scenario_names"] = passing_names  # also embedded for redundancy
+        diag_json = json.dumps({"sim": sim_payload}, ensure_ascii=False, indent=2, default=str)
+        parts.append(f"## FAILING scenarios — sim diagnostic\n\n```\n{diag_json}\n```\n")
+
+        if scenarios is not None:
+            sc_json = json.dumps(
+                [
+                    {
+                        "name": s.name,
+                        "description": s.description,
+                        "initial_state": s.initial_state,
+                        "initial_vars": s.initial_vars,
+                        "steps": [
+                            {
+                                "name": st.name,
+                                "before_cycles": st.before_cycles,
+                                "events": st.events,
+                                "expected_state": st.expected_state,
+                                "expected_vars": st.expected_vars,
+                            }
+                            for st in s.steps
+                        ],
+                    }
+                    for s in scenarios
+                ],
+                ensure_ascii=False, indent=2, default=str,
+            )
+            parts.append(
+                f"## All frozen scenarios (full data — DO NOT EDIT)\n\n```\n{sc_json}\n```\n"
+            )
+    else:
+        # parse / sem / judge: existing focused-diagnostic format
+        payload: dict = {}
+        if target == "parse":
+            payload["parse"] = asdict(feedback.parse)
+        elif target == "semantic":
+            payload["semantic"] = asdict(feedback.semantic)
+        elif target == "judge":
+            payload["judge"] = asdict(feedback.judge)
+        diag_json = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
+        parts.append(f"## {target.capitalize()} diagnostic\n\n```\n{diag_json}\n```\n")
 
     parts.append("Output the corrected pyfcstm DSL only.")
     return "\n".join(parts)

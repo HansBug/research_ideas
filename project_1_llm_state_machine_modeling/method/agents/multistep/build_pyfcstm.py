@@ -11,12 +11,18 @@ from method.gpt_client import chat
 
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "multistep" / "build_pyfcstm.txt"
+_GRAMMAR_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "_pyfcstm_grammar.md"
 
 
 def _load_prompt() -> str:
+    """Load the build_pyfcstm system prompt + append the shared grammar."""
     if not _PROMPT_PATH.exists():
         raise FileNotFoundError(f"build_pyfcstm prompt not found: {_PROMPT_PATH}")
-    return _PROMPT_PATH.read_text(encoding="utf-8")
+    body = _PROMPT_PATH.read_text(encoding="utf-8")
+    if _GRAMMAR_PATH.exists():
+        grammar = _GRAMMAR_PATH.read_text(encoding="utf-8")
+        return f"{body}\n\n---\n\n{grammar}"
+    return body
 
 
 _FENCE_RE = re.compile(r"```(?:fcstm|pyfcstm|dsl|text)?\s*\n?(.*?)```", re.DOTALL)
