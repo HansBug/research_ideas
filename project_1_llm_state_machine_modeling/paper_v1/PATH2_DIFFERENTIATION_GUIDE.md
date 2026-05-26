@@ -4,21 +4,101 @@
 >
 > **前置阅读**：先读 [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则），再读本文件。
 >
-> **版本**：v4（2026-05-27 — PR #11 共同基础落地后定稿；method/ + eval/ 全套实装完成，Phase H judge 跳过，5-intrinsic 简化为 4-intrinsic + 可选 audit-trail 抽查）
+> **版本**：v5（2026-05-27 — **categorical-differentiation framing 纠偏**：删除 "reference-free" 作为 contribution；§1 重写为"控制系统作为对象 + 4 本质特征 + baseline 4 类失败模式 + pyfcstm 4 条 grounding 一对一映射"；§5 实验从 2 conditions 扩到 **5**（Umple × {single, hybrid} + pyfcstm × {single, hybrid, agent-loop}），其中 Umple 两条用来直接展示"控制系统所需的 4 类 grounding feature 在 Umple DSL 层面表达不出来"的 expressiveness gap；§6 新增 **feature utilization rate** 为主报道指标；§11.3 v4.1 framing 提升为正文主线根基）
 
-## 1. 路线定位
+## 1. 路线定位与论证骨架
 
-Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 intrinsic metrics 显著 lift，paper 主打 reference-free evaluation + agent loop with externally grounded in-loop feedback**。
+**Path 2 = 差异化路线**。但"差异化"不是 evaluation 方法学层面的（不是"我们做了 reference-free"），而是**问题对象层面**：
 
-如果这条路最终被选定为正式 paper 方向，paper 主卖点将是：
+> **核心主张**：我们论证存在一类独立的 NL-to-STM 任务对象 — **真实工业控制系统** — 它的 4 个本质特征恰好是现有 LLM-based STM 生成 baseline 的盲区。我们提出 agent loop + pyfcstm 协同方案，pyfcstm 的 4 条 DSL-level grounding feature 一对一覆盖这 4 个特征，agent loop 把这 4 个 grounding 在 generation 阶段就回灌为 deterministic 反馈信号。在 15 个真实工业控制系统 case（来自 9 个工业领域）上跑 5-condition matrix，按桶 + 按 C-axis 分层报告 lift 与 feature utilization rate，证明 baseline 在 4 个特征上各自的失败模式和我们方法的 grounding 收益。
 
-> "We tackle NL-to-STM generation for real industrial control system requirements, where canonical reference STMs do not exist at scale. Several recent works have already integrated in-loop feedback into LLM-based STM generation: rule-based grammar/semantics checks (llms_emp), JSON/syntax/constraint checks with TTool simulator (ttool-ai), and softPLC simulation with human-in-the-loop comments (IEC 61499). **However, no existing work integrates (i) parse + semantic + simulation as a unified deterministic verifier signal with scenario-based bug-finding probes via mutation-coverage self-validation, and (ii) speculative validation from the runtime, all in a fully automated, no-human-in-the-loop pipeline targeting industrial control system NL.** We propose (a) an agent loop architecture with the above two components and scenariogen self-managed mutation coverage as in-loop bug-finding probes, and (b) a reference-free 4-intrinsic evaluation protocol with optional small-scale audit-trail calibration. On a 20-case T0 subset of [sources/](../sources/) (real industrial control NL from 9 domains, stratified across FSM/EFSM/HSM), our method lifts the 4-intrinsic mean from $X$ to $Y$, with the largest gains on `SimRate` (+$Z$pp) and `ReachabilityRate` (+$W$pp)."
+完整论证链由下面 7 步组成（每步对应 §1.X 一节）：
 
-> **v4 修订说明**：原 v3 主卖点含 "(ii) LLM-as-judge as in-loop semantic feedback" 和 "5-metric mean (含 JudgeScore)"；sprint 决定 Phase H (judge) 跳过 — 已实装的 3 个 deterministic feedback channel (parse + sem + sim) 加上 Phase E v3 (f) scenariogen 自管 6-mutation 覆盖率自检足以支撑 sprint 决策信号，judge 留作正式 paper 阶段补充。intrinsic 也相应从 5 个简化为 **4 个**（去 JudgeScore），并保留 [`../eval/`](../eval/) audit-trail manual-eval 基础设施作为可选的小规模校准信号（验证 intrinsic 与人类金标准 F1 的 Pearson 相关性）。
+1. **§1.1 控制系统 NL-to-STM 是一类独立问题对象**（不是 generic reactive system 的子集）
+2. **§1.2 这类问题有 4 个本质特征**（周期执行 / 数值密集 / 硬件解耦 / 强 invariant + fault recovery）
+3. **§1.3 现有 baseline 在这 4 个特征上有可枚举的失败模式**（每个特征对应一种生成 DSL 层面的具体 failure pattern）
+4. **§1.4 pyfcstm 4 条 DSL-level feature 一对一覆盖这 4 个特征**（三段论 mapping）
+5. **§1.5 仅靠 DSL 表达力不够 — 还需要 agent loop 把 grounding signal 回灌**（parse + sem + sim + scenariogen mutation coverage）
+6. **§1.6 我们是首个 fully-automated 把 pyfcstm 4 条 grounding capability 接入 LLM-based 控制系统 STM 生成的工作**
+7. **§1.7 6 baseline 方法学全景**（保留 v4 表格作为 paper §2 related work 直接复用素材）
 
-### 1.1 与 6 个主力 baseline 的方法学差异化（v3 新增）
+下面逐节展开。
 
-完整 6-baseline 对照表（与 [discussion §4.4](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md#44-6-个主力-baseline-方法学全景v3-新增) 同源，paper §2 related work 直接复用）：
+### 1.1 控制系统 NL-to-STM 是一类独立问题
+
+控制系统建模相对一般 reactive system（家电 / 办公设备 / UML 教学题 / 系统级 spec）有以下 4 个本质区别：
+
+1. **周期执行范式（cycle-based execution）**：控制系统跑在 control cycle 上（PLC 扫描周期 / 嵌入式 superloop / ROS spin 周期），每个 cycle "读传感器 → 决策 → 写执行器"；状态机停在某个 mode 时**每个 tick 都要做事**（积分、滤波、监控、watchdog）。一般 reactive system 是事件驱动 — 状态机停下来等下次事件。
+2. **数值密集的守卫 / 效果**：控制系统 transition guard 含大量**复合数值条件**（温度阈值 / 距离阈值 / 流量约束 / 时序去抖 / 边沿检测）；effect 含 PID 计算 / 状态变量更新 / 累积量推进。
+3. **硬件解耦需求**：控制系统 STM 在生成阶段**无法决定 target deployment**（PC 仿真 / RTOS / PLC / 嵌入式 MCU / ROS 节点），必须符号占位 + 后期注入；不能在 DSL 里直接写宿主语言代码。
+4. **强 safety invariant + fault-recovery**：任何 mode 下都要 enforce 安全不变式（"温度 ≤ 最大值"、"距离 ≥ 最小值"、"流量 ∈ 允许区间"）；任何 mode 下 Error 事件触发都必须强制切到 fault-recovery 路径，不能依赖具体 mode 内部的逻辑接收。
+
+这 4 个本质特征不是"工业控制系统比 reactive system 更复杂一点"的程度问题 — 而是 **categorical 区别**。一个生成 STM 的方法如果不在这 4 个维度上提供 grounding 机制，对控制系统建模就是结构性失败而不是性能问题。
+
+### 1.2 现有 baseline 在 4 个特征上的失败模式
+
+我们 surveyed 6 个主力 LLM-based NL-to-STM baseline（完整表见 §1.7）。它们的训练数据集和目标 DSL 都不为控制系统设计 — structure_event_driven 是 8 个家电 reactive system，llms_emp 是混合通用模型，req 是 Volvo 产品功能需求，umple/ttool-ai 是 UML/SysML 教学风格 spec。即便我们把它们的 generation strategy 复用到控制系统 NL 上，**生成的 STM 在 4 个特征上各自呈现可枚举的失败模式**：
+
+| 控制系统特征 | baseline 典型失败模式（具体到生成 DSL 层面） |
+| --- | --- |
+| **周期执行** | 生成的 STM 是 event-driven：transition only on external events；进入状态后**完全静默**（没 `during {}` 块或等价的 per-tick action），或者塞一段不可执行的伪代码 |
+| **数值密集 guards / effects** | 生成的 guard 退化为单 boolean (`if pressure_high`) 或塞 host-language 代码片段；多变量复合算术 guard（如 `if abs(temp - target) < epsilon AND debounce_count > 5`）**写不出来或写错** |
+| **硬件解耦** | Umple-like baseline 把动作绑死在 Java/PHP/Python；切换部署目标得**重写整个 STM**；或干脆把 hardware-specific code（GPIO 调用 / motor 驱动）直接塞进 action body |
+| **强 invariant + fault recovery** | 要么**漏掉 fault path**；要么为每个叶子状态**重复抄一遍 fault transition**（O(N) 复制）；invariant 检查塞进每个 state 的 entry action（同样 O(N) 复制） |
+
+这 4 类失败模式都可以在生成的 DSL 文本里直接 spot — 这意味着实验可以**直接统计**"生成 STM 是否用了对应 grounding feature"作为 differentiation 的硬证据，而不只是间接的 intrinsic lift。详见 §6 feature utilization rate 定义。
+
+### 1.3 pyfcstm 4 条 DSL-level feature 一对一覆盖 4 个特征
+
+pyfcstm 不是"通用 statechart DSL 再加几个 control-system-friendly feature"；它的 4 条核心 feature 各自对应上面 4 个特征中的一个，是有意识为控制系统建模设计的。三段论 mapping：
+
+| 控制系统特征 | pyfcstm DSL-level feature | LLM agent loop 中获得的能力 |
+| --- | --- | --- |
+| 周期执行 | `during { ... }` per-cycle action block + aspect `>> during before / after` (root→leaf→root cascade per cycle) | agent 可生成跨所有叶子的 cross-cutting per-tick 行为（监控、日志、安全断言），无需为每个 leaf 复制 |
+| 数值密集 guards / effects | `Expr` IR (`pyfcstm/model/expr.py`) + `pyfcstm/solver/` Z3 集成（`expr_to_z3` / `execute_operations` / `solve`），支持算术 / 比较 / 逻辑 / 位运算 / 22 个 math 函数 | agent 在每轮 repair 前能拿到 "这条 guard 是否可达 (SAT)"、"effect 后变量空间是否满足下一 invariant" 的 SMT-grade 反馈 |
+| 硬件解耦 | `enter abstract` / `during abstract` / `exit abstract` DSL 占位 + Python 侧 `@abstract_handler` decorator + `ReadOnlyExecutionContext` (frozen) | agent 可在 generation 阶段产出 hardware-effector 占位符不需要决定 deployment target；handler 在 runtime 反射注入；frozen context 防止 handler 修改 vars；两档错误处理把 handler 异常落到 structured field 供 agent 消费 |
+| 强 invariant + fault recovery | `>> during after` aspect action（每 cycle root→leaf→root cascade）+ `!` forced transition（模型层递归展开到所有 descendant，`_recursive_finish_states`） | 一行 `>> during after abstract AssertSafetyInvariant` 表达"任意 mode 下每周期都要检查安全上限"；一行 `! * -> ErrorHandler :: Error` 表达"任意工作 mode 下 Error 都强制切到安全状态" |
+
+这张表是 paper §3 method 的根基，也是 §11.3.0 三段论 framing 的核心 mapping。
+
+### 1.4 仅靠 DSL 表达力不够 — 还需要 agent loop
+
+pyfcstm DSL 提供的是**表达力**：把上述 4 类 grounding 写成代码的能力。但 LLM 单 prompt 生成 STM 时，**即使 target DSL 是 pyfcstm**，依然倾向于退化为简单 event-driven flat FSM，不主动用上 4 类 feature。
+
+我们的 agent loop 把 4 类 pyfcstm grounding capability 在 generation 阶段就转化为 **deterministic feedback signal** 回灌给 LLM：
+
+- **Parse feedback**（`pyfcstm.dsl.parse_with_grammar_entry`）：grammar 合法性
+- **Semantic feedback**（`pyfcstm.model.parse_dsl_node_to_state_machine`）：missing states / dangling transitions / undefined vars / type mismatches
+- **Sim feedback**（`pyfcstm.simulate.SimulationRuntime`）：speculative DFS validation 检测 dead-end + scenariogen self-managed 6-mutation coverage 作为 in-loop bug-finding probes（PR #11 Phase E v3 (f) 实装的 `method/scenariogen_validate.py`）
+- **Cascaded Repair**：按 earliest-failing channel 路由的 4 个 fix sub-prompt，共享 pyfcstm grammar reference
+
+迭代上限 $N = 3$ 轮 fully automated（不需要人类介入），与 IEC 61499 baseline 的人类评论式迭代精化形成对比。
+
+### 1.5 我们是首个 fully-automated 接入这套 grounding 的工作
+
+把 §1.3 的 pyfcstm DSL-level grounding 加上 §1.4 的 agent loop deterministic feedback 看作一个整体，我们是**首个** fully-automated 把这套"控制系统 4 特征对应的 grounding"接入 LLM-based STM 生成 pipeline 的工作。证据：
+
+1. **没有任何 baseline 把 4 类 grounding 同时接入 in-loop feedback**：llms_emp 只做 grammar/semantics rule-based check (a+b)，ttool-ai 只做 JSON/syntax/constraint check (a+b)，IEC 61499 主做 simulation 但需人类评论介入，Llama3 Umple 只做 pass@k 可执行性检查。
+2. **没有任何 baseline 做 speculative DFS validation from runtime**：pyfcstm `SimulationRuntime._validate_transition` 用 deepcopy-snapshot DFS 验证 transition 触发后下游 init/pseudo 链能否 reach stoppable boundary，并抛出 structured `SimulationRuntimeDfsError`。Umple/PlantUML/Mermaid/TTool 不直接给。
+3. **没有任何 baseline 做 scenariogen self-managed mutation coverage in loop**：PR #11 Phase E v3 (f) 实装的 `method/scenariogen_validate.py` 在 scenariogen 之后自动对 model 应用 6 类典型 LLM bug 突变跑 sim 自检覆盖率，覆盖率不足时 directive 反馈让 scenariogen 补 probes。
+4. **没有任何 baseline 做 fully automated 控制系统 NL-to-STM**：IEC 61499 是唯一做控制系统 + simulation feedback，但需要人类评论；其他 baseline 不做控制系统对象。
+
+### 1.6 4 条 method contribution（paper §1 直接复用）
+
+> **v5 修订说明**：原 v4 含 5 条 contribution，其中 C5 是"reference-free 4-intrinsic + audit-trail calibration evaluation protocol"。v5 删除 C5 — reference-free 不是我们的方法学创新，只是控制系统域固有约束的结果。Evaluation methodology (4 intrinsic + feature utilization + per-bucket / per-C-axis stratified analysis) 在 §6 描述为 **enabling tooling**，不进 paper §1 contributions 列表。
+
+paper §1 contributions（与 §11.3 v4.1 / §11.4 表格同源）：
+
+1. **C1 — In-loop deterministic feedback via speculative validation**：pyfcstm `SimulationRuntime` per-cycle deepcopy-snapshot speculative DFS validation 作为 deterministic in-loop feedback source，对应**周期执行**与**强 invariant** 两个控制系统特征。
+2. **C2 — Language-independent expression IR enables symbolic reasoning without code generation**：`Expr` IR + `solver/` Z3 集成提供 guard SMT satisfiability + symbolic effect propagation 作为 in-loop feedback，对应**数值密集 guards / effects**。
+3. **C3 — DSL-native aspect AOP + forced fault paths align with control-system idioms**：`>> during before/after` aspect + `!` forced transition 是 Umple/PlantUML 没有 DSL 级对应物的原语，对应**强 invariant + fault recovery**。
+4. **C4 — Abstract action + read-only context decouples symbolic STM from physical effectors**：`enter abstract` / `@abstract_handler` decorator / `ReadOnlyExecutionContext` 实现硬件 effector 解耦，对应**硬件解耦**。
+
+详细 contribution narrative 与控制系统场景对应见 §11.3.0（三段论 framing）、§11.3（每条 contribution 的 paper-ready 段落）、§11.4（contribution × pyfcstm feature × 控制系统场景价值速查表）。
+
+### 1.7 6 个主力 baseline 方法学全景（paper §2 related work 复用）
+
+完整 6-baseline 对照表（与 [discussion §4.4](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md#44-6-个主力-baseline-方法学全景v3-新增) 同源）：
 
 | # | baseline | 任务 / 输出 | LLM | 方法核心 | prompt-eng | simulation 反馈 | formal verification 反馈 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -29,31 +109,15 @@ Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 i
 | 5 | [Llama3 Umple](../baselines/umple/DESC.md) (2025) | NL → Umple state machine | Llama 3 (8B) | Zero-shot / One-shot / RAG 提示策略对比 | 高（系统消息 + RAG 选例） | **中**（Umple 可执行性 / pass@k 检查） | **低**（依赖 Umple 编译 / 语义可执行性，非独立 formal proof） |
 | 6 | [ttool-ai](../baselines/ttool-ai/DESC.md) (2024) | NL 系统规范 → SysML 块图 + 内部块图 + 状态机图 (AVATAR) | GPT-4 | **知识注入 + 自动反馈循环 + TTool 工具链** | 高（约束化 JSON 输出 + 自动反馈问答） | **中**（TTool simulator 观察行为，**评分支撑，非连续仿真闭环**） | **中-**（TTool 支持 model-checker，**反馈环主要检查 JSON / 语法 / 约束**，formal capability 是工具背景非主验证机制） |
 
-### 1.2 6 个 baseline 的方法学局限性（Path 2 学术合法性来源）
+**关键观察（与 §1.2 失败模式 + §1.5 automation gap 同源，但从 baseline survey 角度复述一遍）**：
 
-**关键观察**：6 个 baseline 中，3 个已有 in-loop feedback（#2 llms_emp / #3 IEC 61499 / #6 ttool-ai）。"我们 first to do in-loop feedback" 不成立。但是：
+1. 6 个 baseline 中**没有一个把控制系统作为对象**：1, 5 是家电 / UML 教学，2, 6 是混合通用 / 系统级 spec，3 是控制系统但需人介入，4 是 Volvo 产品功能需求。
+2. 6 个 baseline **没有一个 target 控制系统所需的 4 类 grounding feature**：Umple/Mermaid/PlantUML/SysML/AVATAR 在 DSL 层面都不提供 aspect AOP / forced transitions / abstract action / Expr IR + Z3 backend 这一整套。
+3. 因此即使把 baseline 的 generation strategy（Hybrid prompting / 两阶段 + RAG / 自动反馈循环）复用到控制系统 NL 上，**生成 STM 在 §1.2 4 个失败模式上仍会全面体现** — 这正是 §5 实验的 5-condition matrix 要直接验证的。
 
-1. **没有任何 baseline 同时做 parse + semantic + sim 三路并列反馈**：llms_emp 只 a+b（grammar / semantics rule-based），ttool-ai 主要 a+b（JSON / syntax），IEC 61499 主要 c（simulation 但需人介入）。Path 2 sprint 做的是 parse + sem + sim 三路 + **scenariogen 自管 6-mutation 覆盖率自检** 作为 in-loop bug-finding probes，覆盖 syntax / semantics / executability / bug-detection 4 个正交维度。
-2. **没有任何 baseline 做 scenario-based mutation-aware bug-finding probes in loop**：PR #11 Phase E v3 (f) 实装的 `method/scenariogen_validate.py` 在 scenariogen 之后自动对 model 应用 6 类典型 LLM bug 突变 (M1-M6) 跑 sim 自检覆盖率，覆盖率不足时 directive 反馈让 scenariogen 补 probes。这是工具链独有能力。
-3. **没有任何 baseline 做 speculative validation from runtime**：pyfcstm `SimulationRuntime` 在 execute transition 前 speculatively validate，其他工具链不给。
-4. **没有任何 baseline 做 fully automated control system NL-to-STM**：IEC 61499 是唯一做控制系统 + simulation feedback，但需要人类评论介入；其他 baseline 不做控制系统（家电 / domain model / 通用 reactive system / 系统级 spec）。
-5. **没有任何 baseline 提出 reference-free evaluation protocol**：所有 baseline 都依赖 reference STM 做 F1 评测。控制系统真实场景下不存在 canonical reference STM（同一需求可对应多个等价 STM），ref-based F1 在 construct level 就不成立。
+### 1.8 与 Umple 的差异化（paper §3 用）
 
-> **关于 reachability witness 与 LLM-as-judge 的两条**：原 v3 §1.2 把 "Reachability witness in loop" 和 "LLM-as-judge as in-loop semantic feedback" 列为我们的差异化点。v4 sprint 阶段两者均未实装：reachability witness 接口 (`pyfcstm.topology`) 主要在 dev 分支有，sprint 不依赖；LLM-as-judge (Phase H) 跳过。两者保留为 paper §3 method discussion 中的"工具链 ready，已规划但 sprint 范围外"列项，正式 paper 阶段补做。
-
-### 1.3 我们的 5 条核心创新点（paper §1 contributions 直接复用）
-
-> **v4 修订**：原 v3 含 6 条 contribution；C3 (Reachability witness as structured prompt input) 与 C5 (LLM-as-judge as in-loop semantic feedback) 因 sprint 未实装暂时移出 sprint-evidence 范围（保留作 paper §3 method discussion 中的工具链 ready 列项 + future work 占位）。sprint 实证以 C1 / C2 / C3 / C4 + scenariogen 自管 6-mutation 为主。
-
-1. **In-loop multi-source deterministic verifier feedback**：parse + semantic + simulation 三路并列接入 generation loop，覆盖 syntax / semantics / executability 3 个正交维度。
-2. **Fully automated no-human-in-the-loop**：IEC 61499 需要人类评论介入；ttool-ai 评分含教师 rubric；我们 fully automated 跑完 $N=3$ 轮。
-3. **Scenariogen self-managed mutation coverage as in-loop bug-finding probes**（v4 新加，Phase E v3 (f) 实装）：scenariogen 后跑 6-mutation 覆盖率自检，覆盖率不足自动 retry。所有 baseline 都不做这种"以 mutation 覆盖率反向驱动 scenario 充分性"的反馈环。
-4. **Speculative validation from runtime**：pyfcstm `SimulationRuntime` 直接给，PlantUML / Umple / Mermaid / TTool 都不直接给。
-5. **Reference-free 4-intrinsic + optional audit-trail calibration evaluation protocol**：4 个 intrinsic 指标（去 JudgeScore）+ 可选的小规模 LLM-初审-人类签字 audit-trail 抽查作为 intrinsic 可信度桥。**这一条本身可作为独立 contribution 发表**，独立于具体 agent loop architecture。
-
-### 1.4 与 Umple 的差异化（方向定后 paper §3 用）
-
-完整 Umple rebuttal 口径见 [2026-04-14 讨论稿](../discussions/2026-04-14-23-03-54-AI-讨论-pyfcstm作为LLM建模论文目标形式的必要性与Umple-rebuttal口径.md) §7。Path 2 sprint 阶段**不主打 DSL 本身贡献**；与 Umple 的差异由 pyfcstm `SimulationRuntime` 的 speculative validation + `topology` 的 reachability witness 自然落地，不在 §2 related work 中正面 PK。
+完整 Umple rebuttal 口径见 [2026-04-14 讨论稿](../discussions/2026-04-14-23-03-54-AI-讨论-pyfcstm作为LLM建模论文目标形式的必要性与Umple-rebuttal口径.md) §7。v5 立场：**与 Umple 的差异不是 DSL 表达力的 "我有你也可以加"，而是控制系统 4 特征的 grounding 机制必须配套设计**。Umple guards 是 host-language code → 无法 Z3 求解；Umple 无 speculative validation runtime → 死锁/不可达只在 codegen 后暴露；Umple 无 DSL-native aspect AOP → 控制系统 invariant 要手抄；Umple 无 DSL-level abstract action → lifecycle hook 直接写宿主语言代码。这 4 条不是 Umple 的"轻微遗憾"，而是它**不为控制系统建模设计**的结构性体现。详见 §11.3.0.3。
 
 ## 2. 接管前自检
 
@@ -135,60 +199,67 @@ columns:
 - meta: dict  # {domain, n_states_estimate, has_hierarchy, ...}
 ```
 
-## 4. method/ 共同基础调用方式
+## 4. 实验设计 — 5 条件矩阵
 
-Phase 0-3 已在 main 上落地（PR #11 commit `ff1e90ff`），Path 2 sprint 跑两个 method 标签：
+> **v5 设计依据**：要论证 §1.2 4 个失败模式 + §1.3 pyfcstm 4 条 grounding 的差异化效果，必须把"DSL 选择"与"generation strategy"两个变量分开测。Umple 两条 condition 用来直接 surface "控制系统所需 4 类 grounding 在 Umple DSL 层面表达不出来"的 expressiveness gap（feature utilization 在 Umple 下结构性为 0，因为 Umple 没这套 DSL 语义）；pyfcstm 三条 condition 在同 DSL target 下隔离 generation strategy 的 grounding 收益。
 
-### 4.1 `A0_baseline` — Path 2 的对照 baseline
+### 4.1 5 conditions 矩阵
 
-Path 2 主对手不是单独某个 baseline 论文的方法（详见 §1.1-§1.3 学术合法性论证），而是**展示我们在 reference-free intrinsic 上对 A0 single-prompt 的 lift**，作为 method efficacy 的内部对照。
+| Condition ID | 生成 DSL target | Generation strategy | iter | feedback_sources | 用途 |
+| --- | --- | --- | ---:| --- | --- |
+| `A0_single_umple` | Umple | Single-prompt | 1 | 空 | **DSL expressiveness gap baseline #1**：复用 baseline_structure_event paper §III.B Single-Prompt strategy，target 改为我们对照的工业控制系统。Umple 无 `during`/`!`/`abstract`/Expr IR + Z3 → feature utilization 4 项结构性为 0；intrinsic 中 SimRate/ReachRate 因 Umple 缺 runtime 无法计算（标 N/A） |
+| `A0_hybrid_umple` | Umple | Hybrid (4-step) | 4 | 空 | **DSL expressiveness gap baseline #2**：复用 baseline_structure_event paper §III.D Hybrid strategy（先 Single-Prompt 草稿，再 Structure-Driven + Event-Driven 迭代细化），target 仍是 Umple。证明即使用 baseline 论文最强 strategy，Umple DSL 层面仍缺 4 类 grounding。**这是 baseline 论文原始 setup 的忠实复现。** |
+| `A0_single_pyfcstm` | pyfcstm | Single-prompt | 1 | 空 | **DSL 同源对照 #1**：target 改为 pyfcstm，同 single-prompt strategy。pyfcstm DSL 提供 4 类 feature 但单 prompt 不主动用 → 看 feature utilization 默认水平 + intrinsic |
+| `A0_hybrid_pyfcstm` | pyfcstm | Hybrid (4-step) | 4 | 空 | **DSL 同源对照 #2**：target 仍是 pyfcstm，但用 baseline §III.D Hybrid strategy 替代 single-prompt（无 deterministic feedback）。隔离 "多步 prompting 本身的收益" 与 "deterministic feedback 的收益" 两个变量 |
+| `A_full_ours` | pyfcstm | Agent loop (MTI 6-step + cascaded repair) | 3 | `["parse", "semantic", "sim"]` | **我们的方法**：MTI 6-step modeler + parse/sem/sim 三路 deterministic feedback + scenariogen self-managed 6-mutation coverage（Phase H judge 跳过）|
 
-```python
-from method.loop import run_agent_loop
-from method.schema import LoopConfig
+实验主对比方向：
 
-result = run_agent_loop(
-    nl=row["nl_text"],
-    config=LoopConfig(
-        condition="A0",
-        n_iter=1,
-        feedback_sources=[],
-        modeling_mode="single_prompt",   # 等价 single-prompt baseline
-        # llm_model 默认 None；走 env LLM_MODEL
-    ),
-)
-```
+- **`A_full_ours` vs `A0_hybrid_pyfcstm`**：同 DSL target (pyfcstm)，同等步数级别的 strategy，差异只在 deterministic feedback。**主 lift 来源即 §1.5 fully-automated grounding loop 的纯收益。**
+- **`A_full_ours` vs `A0_hybrid_umple`**：完整 method-of-record (我们) vs 完整 baseline-of-record（structure_event_driven paper 最强 strategy + Umple DSL）。**这是 paper §4 主表的横向对比。**
+- **`A0_hybrid_pyfcstm` vs `A0_hybrid_umple`**：同 strategy (Hybrid)，同等步数 prompting，差异只在 DSL target。**直接 surface DSL expressiveness gap 的 evidence。**
+- **`A0_single_*` 系列**：作为 strategy-strength floor，验证 Hybrid 比 single-prompt 在 baseline setup 里确实更强（与 baseline 论文 §IV reported macro-F1 趋势对齐）
 
-### 4.2 `A_full_ours` — 我们的 full agent loop（无 judge）
+### 4.2 各 condition 的具体调用
 
-调用 method/ 共同基础（与 Path 1 完全一致的接口）：
+各 condition 通过 `method.loop.run_agent_loop(nl=..., config=LoopConfig(...))` 统一接口分发。LoopConfig 关键字段：
 
 ```python
-from method.loop import run_agent_loop
-from method.schema import LoopConfig, AgentLoopResult
+# A0_single_umple
+LoopConfig(condition="A0_single_umple", n_iter=1, feedback_sources=[],
+           modeling_mode="single_prompt", target_dsl="umple")
 
-result: AgentLoopResult = run_agent_loop(
-    nl=row["nl_text"],
-    config=LoopConfig(
-        condition="A_full",
-        n_iter=3,
-        feedback_sources=["parse", "semantic", "sim"],   # Phase H (judge) 跳过
-        modeling_mode="multi_step",                       # MTI 6-step
-        # llm_model 默认 None；走 env LLM_MODEL
-    ),
-)
-# result.scenariogen_coverage  含 Phase E v3 (f) 的 6-mutation 覆盖率自检结果
+# A0_hybrid_umple
+LoopConfig(condition="A0_hybrid_umple", n_iter=4, feedback_sources=[],
+           modeling_mode="hybrid", target_dsl="umple")
+
+# A0_single_pyfcstm
+LoopConfig(condition="A0_single_pyfcstm", n_iter=1, feedback_sources=[],
+           modeling_mode="single_prompt", target_dsl="pyfcstm")
+
+# A0_hybrid_pyfcstm
+LoopConfig(condition="A0_hybrid_pyfcstm", n_iter=4, feedback_sources=[],
+           modeling_mode="hybrid", target_dsl="pyfcstm")
+
+# A_full_ours
+LoopConfig(condition="A_full_ours", n_iter=3, feedback_sources=["parse","semantic","sim"],
+           modeling_mode="multi_step", target_dsl="pyfcstm")
 ```
 
-Path 2 特有：**不需要 reference**，evaluation 走 4-intrinsic（parse / sem / sim / reach）而非 component F1。可选 §6 audit-trail 抽查时使用 [`../eval/`](../eval/) 基础设施做小规模 manual eval 校准。
+实装侧需要在 PR #11 共同基础之上**新增**：
+
+1. **`method/loop.py` 加 `modeling_mode="hybrid"` 分支** — 复用 baseline_structure_event paper §III.D 的 4-step strategy（Single-Prompt draft → Structure-Driven refinement → Event-Driven refinement → 最终合并），但目标 DSL 由 `target_dsl` 字段决定
+2. **`method/loop.py` 加 `target_dsl` 字段** — 取值 `"umple"` 或 `"pyfcstm"`；影响 modeler / repair prompt 的 grammar reference 与 output validator
+3. **`method/prompts/modeler/hybrid_*.txt`** — 4 个新 prompt：`single_draft.txt` / `structure_review.txt` / `event_review.txt` / `merge.txt`，每个有 umple / pyfcstm 双版本（共 8 个文件）
+4. **Umple 输出层 intrinsic 计算适配** — Umple parse 走 `umple` CLI 或现有 reproduction/baselines 工具（已实装）；SimRate / ReachRate 在 Umple 下标 N/A，**这是 evidence 不是 bug**
 
 ### 4.3 `method/gpt_client.py` 统一 LLM client（Phase 0 已实装于 PR #11）
 
-实验主路所有 LLM 调用（spec / model / repair / NL summary）**全部走这一个 client**。
+实验主路所有 LLM 调用（spec / model / repair / hybrid sub-prompts）**全部走这一个 client**。
 
-**评测 annotator 例外**：[`../eval/annotate/{claude,codex}.py`](../eval/annotate/) 走 `claude` / `codex` CLI subprocess，不经 `gpt_client`；仅在 §6 可选 audit-trail 抽查时用到，配置项是 `.env` 里独立的 `CLAUDE_CMD/MODEL` + `CODEX_CMD/MODEL` 四件套。详见 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) §1.2。
+**评测 annotator 例外**：[`../eval/annotate/{claude,codex}.py`](../eval/annotate/) 走 `claude` / `codex` CLI subprocess，不经 `gpt_client`；仅在 §6 可选 audit-trail 抽查时用到。
 
-**约束**：代码**绝不**用 `python-dotenv` 或其他方式直接读 `.env` 文件；只读 `os.environ`。运行前由 shell `source .env` 把三件套加载到环境变量。
+**约束**：代码绝不直接读 `.env`，只读 `os.environ`。运行前 shell `source .env`。
 
 ```python
 # method/gpt_client.py 骨架
@@ -196,125 +267,153 @@ import os
 from openai import OpenAI
 
 def get_llm_client():
-    """从环境变量读三件套（运行前必须先 source 仓库根 .env）。
-    proxy 是 OpenAI-compatible gateway，模型切换不动 client，只改 LLM_MODEL."""
     return OpenAI(
-        base_url=os.environ["LLM_ENDPOINT"],  # KeyError if not sourced — fail loudly
+        base_url=os.environ["LLM_ENDPOINT"],
         api_key=os.environ["LLM_API_KEY"],
     )
 
 def get_default_model() -> str:
-    return os.environ["LLM_MODEL"]  # 同样 fail loudly，不允许 silent fallback
+    return os.environ["LLM_MODEL"]
 ```
 
-切换实验主路模型（GPT-5.5 → GPT-5.4 → ...）**只需要改 .env 的 LLM_MODEL 然后重新 source .env**，代码完全不动。
-
-> **proxy 模型覆盖说明**：当前 LLM_ENDPOINT 提供的 OpenAI-compatible 代理只挂 GPT 系列。cross-vendor sanity 跑 Claude 不在 sprint 范围。
-
+切换实验主路模型只改 `.env` 的 `LLM_MODEL` 后 `source`，代码不动。当前 `LLM_ENDPOINT` 提供的 OpenAI-compatible 代理只挂 GPT 系列；cross-vendor sanity 跑 Claude 不在 sprint 范围。
 ## 5. 实验脚本 `method/run_path2.py`
 
 CLI 接口（Phase 5 开工时由 Path 2 branch 实现，本指引固定接口规范）：
 
 ```bash
 # 先在 shell source 仓库根 .env 把三件套加载到环境变量
-# 代码不会读 .env 文件本身，只读 os.environ
 source .env
 
-# 然后跑 run_path2（model 走 env LLM_MODEL，CLI 不需要传）
+# 然后跑 5 conditions × 15 candidates
 python -m method.run_path2 \
   --samples project_1_llm_state_machine_modeling/eval/data/sources_path2.parquet \
-  --methods A0_baseline,A_full_ours \
-  --n-iter 3 \
+  --conditions A0_single_umple,A0_hybrid_umple,A0_single_pyfcstm,A0_hybrid_pyfcstm,A_full_ours \
   --out project_1_llm_state_machine_modeling/eval/results/sprint_path2/predictions.parquet \
   --resume
 ```
 
-method 字段映射（在 run_path2.py 内部分发）：
+condition 字段分发（在 run_path2.py 内部）：
 
-- `A0_baseline` → `method.loop.run_agent_loop(nl=..., config=LoopConfig(condition="A0", n_iter=1, feedback_sources=[], modeling_mode="single_prompt"))`
-- `A_full_ours` → `method.loop.run_agent_loop(nl=..., config=LoopConfig(condition="A_full", n_iter=3, feedback_sources=["parse","semantic","sim"], modeling_mode="multi_step"))`
+- `A0_single_umple` → `LoopConfig(n_iter=1, feedback_sources=[], modeling_mode="single_prompt", target_dsl="umple")`
+- `A0_hybrid_umple` → `LoopConfig(n_iter=4, feedback_sources=[], modeling_mode="hybrid", target_dsl="umple")`
+- `A0_single_pyfcstm` → `LoopConfig(n_iter=1, feedback_sources=[], modeling_mode="single_prompt", target_dsl="pyfcstm")`
+- `A0_hybrid_pyfcstm` → `LoopConfig(n_iter=4, feedback_sources=[], modeling_mode="hybrid", target_dsl="pyfcstm")`
+- `A_full_ours` → `LoopConfig(n_iter=3, feedback_sources=["parse","semantic","sim"], modeling_mode="multi_step", target_dsl="pyfcstm")`
 
-实现要点与 Path 1 一致（checkpoint + 失败容忍 + token tracking）。
+实现要点：
 
-## 6. 4 个 Intrinsic 指标定义与计算（+ 可选 audit-trail 抽查）
+1. **断点恢复（checkpoint per (case_id, condition) row）**：predictions.parquet 增量 append；run_path2 启动时跳过 already-done 行
+2. **失败容忍**：单 case × condition 失败（API 失败 / parse 失败 / sim handler 失败）记 status 不阻塞其他 case
+3. **token tracking**：每 row 含 `token_usage = {prompt, completion, total}`，summary.json 含按 condition × bucket aggregate
+4. **资源预算估计**：5 conditions × 15 cases ≈ 75 主实验；A_full_ours 含 3 iter × ~6 LLM calls/iter ≈ 270 calls；A0_hybrid_* 含 4 step ≈ 60 calls；A0_single_* 含 1 call。**总计 ~345 LLM calls × 平均 ~20s + sim 验算 ~5s = ~2.5 hr wall time (单线程)** / **~25-30 min (并发 -P 6)**
 
-> **v4 修订**：原 v3 列 5 个 intrinsic 含 `JudgeScore`；sprint 跳 Phase H (judge)，简化为 4 个 + 可选的小规模 manual eval 抽查（用 [`../eval/`](../eval/) 基础设施做 intrinsic-vs-manual 校准）。
+## 6. 评测指标 — Feature utilization rate（主）+ 4 intrinsic（辅）
 
-### 6.1 `ParseRate`
+> **v5 重大修订**：原 v4 主报道指标只是 4 个 intrinsic，且把 evaluation methodology 当作独立 contribution (原 C5 "reference-free protocol")。v5 重新定位：
+> 1. **Feature utilization rate** 升为 **§6 主报道指标**（也是 PATH2_REPORT.md §3 主表）— 这是 §1.2 失败模式与 §1.3 grounding 一对一映射的**直接证据**，比 intrinsic 更打到 differentiation argument 痛点
+> 2. **4 intrinsic** 降为**辅助指标**，且作为"反例 sanity"使用（如果 feature utilization 上去了但 intrinsic 反而下降，说明 grounding 错用 / 副作用 / overfit）
+> 3. **不再把 ref-free 当作 contribution** — evaluation methodology 在 §6 描述为 enabling tooling，不进 paper §1 contributions
 
-$$\text{ParseRate} = \frac{|\{i : \texttt{parse\_with\_grammar\_entry}(\text{dsl}_i) \text{ succeeds}\}|}{N}$$
+### 6.1 `FeatureUtilizationRate`（主报道指标）— 4 类 pyfcstm grounding feature 各自的使用率
 
-实现：捕获 `pyfcstm.dsl.parse_with_grammar_entry` 是否抛 grammar exception。
+对生成的 DSL 文本直接 grep 统计 4 类 feature 出现次数，归一化到样本数：
 
-### 6.2 `SemValidRate`
+| Feature | 检测模式（pyfcstm DSL）| Umple 对应物 | 对应控制系统特征 | 对应 contribution |
+| --- | --- | --- | --- | --- |
+| `DuringBlock` | `during\s*\{` 或 `during\s+[a-z]` 出现 | 无 DSL-level 等价；可勉强写成 `do` activity（语义不同）| 周期执行 | C1 |
+| `MultiVarGuard` | transition guard 含 ≥2 个 variable name 且含算术 / 复合比较运算符 | guard 是 host-language code → 不可静态比较 | 数值密集 | C2 |
+| `ForcedTransition` | `!\s*\*\s*->\s*` 或 `!\s+[A-Z]\w*\s*->` 出现 | 无 — 每个 fault edge 要手抄到每个 state | 强 invariant + fault recovery | C3 |
+| `AbstractAction` | `enter\s+abstract` / `during\s+abstract` / `exit\s+abstract` 出现 | 无 — action 是 host-language code | 硬件解耦 | C4 |
 
-$$\text{SemValidRate} = \frac{|\{i : \texttt{parse\_dsl\_node\_to\_state\_machine}(\text{ast}_i) \text{ succeeds}\}|}{N'}$$
+**指标定义**：
 
-实现：`pyfcstm.model.parse_dsl_node_to_state_machine` 是否抛 semantic exception（含 missing state / dangling transition / undefined var）。**分母 $N'$ 只算 Parse 通过的样本**（约束式定义），不要用所有 $N$。
+$$\text{FUR}_{\text{feature}, \text{condition}} = \frac{\#\{i : \text{feature is used in dsl}_i\}}{N_{\text{Parse-ok}, \text{condition}}}$$
 
-### 6.3 `SimRate`
+注：分母只算该 condition 下 ParseRate 通过的样本（生成 DSL 必须是合法 syntax 才能 grep）。Umple condition 下，`DuringBlock` / `ForcedTransition` / `AbstractAction` 三项**结构性 = 0**（Umple DSL 无对应语法），`MultiVarGuard` 因 Umple guard 是不透明 host-language code 标 **N/A**。
 
-$$\text{SimRate} = \frac{|\{i : \texttt{SimulationRuntime}(\text{sm}_i).\texttt{run\_until\_stable}() \text{ completes a full cycle}\}|}{N''}$$
+**预期结果（v5 sprint 期望）**：
 
-实现：跑 `SimulationRuntime` 一个完整 cycle，确认不触发 safety limit（1000 steps / 64 stack depth）。**分母 $N''$ 只算 SemValid 通过的样本**。
+| Condition | DuringBlock | MultiVarGuard | ForcedTransition | AbstractAction |
+| --- | ---:| ---:| ---:| ---:|
+| A0_single_umple | 0% (struct) | N/A | 0% (struct) | 0% (struct) |
+| A0_hybrid_umple | 0% (struct) | N/A | 0% (struct) | 0% (struct) |
+| A0_single_pyfcstm | ~low (LLM 默认不主动用) | ~low | ~low | ~mid (因 NL 含具体硬件名) |
+| A0_hybrid_pyfcstm | mid (Hybrid 多步引导可能识别周期需求) | mid | ~low (forced transition 在 baseline strategy 里没被 prompt 引导) | mid |
+| A_full_ours | **high** (sim feedback push) | **high** (z3 grounding push) | **high** (semantic + sim 暴露 fault path 缺失) | **high** (multi-step modeler 主动占位) |
 
-### 6.4 `ReachabilityRate`
+**A_full_ours 相对 A0_hybrid_pyfcstm 的 lift** 是 paper §4 主报道数字 — 它隔离了"DSL 选 pyfcstm 但单靠 prompting 还是用不上"vs"加了我们 agent loop 的 deterministic feedback 后 grounding 真正生效"两件事。
 
-对每个样本，定义状态可达性：
+### 6.2 `ParseRate`（辅 intrinsic）
 
-$$\text{ReachRate}_i = \frac{|\{s \in S_i : s \text{ is reachable from initial state}\}|}{|S_i|}$$
+$$\text{ParseRate} = \frac{|\{i : \texttt{parse}(\text{dsl}_i) \text{ succeeds}\}|}{N}$$
 
-样本均值：
+- pyfcstm condition：用 `pyfcstm.dsl.parse_with_grammar_entry`
+- Umple condition：用 reproduction/baselines 已实装的 Umple parser wrapper（或 fallback regex 检查）
 
-$$\text{ReachabilityRate} = \frac{1}{|N''|} \sum_{i \in N''} \text{ReachRate}_i$$
+ParseRate 在 5 conditions 间应大致相近（≥ 0.9），如不是说明该 condition 的 prompt strategy 有 systematic issue。
 
-其中 $N''$ 是 SemValid 通过的样本集合。实现：调用 `pyfcstm.topology` 子包的 reachability API。
+### 6.3 `SemValidRate`（辅 intrinsic）
 
-### 6.5 `JudgeScore`（**Phase H 跳过，sprint 不算**）
+$$\text{SemValidRate} = \frac{|\{i : \texttt{sem-parse}(\text{ast}_i) \text{ succeeds}\}|}{N_{\text{Parse-ok}}}$$
 
-> **v4 修订**：原 v3 把 JudgeScore 列为第 5 个 intrinsic（基于 [project_ex1 ExpertReviewAgent](../../project_ex1_llm_judge_for_stm/src/expert_review/agent.py) 的 rubric 5 维总分）。sprint Phase H 跳过 — 既因 ex1 ExpertReviewAgent adapter 尚未实装，也因 LLM-as-judge 的可信度需要 inter-rater agreement / drift 控制等独立配套实验才能站得住，超 sprint 范围。
->
-> sprint 4-intrinsic mean = `(ParseRate + SemValidRate + SimRate + ReachabilityRate) / 4`。
->
-> JudgeScore 留作正式 paper 阶段补充（可作为单独 contribution 发表"in-loop LLM judge 作为 STM 评测信号的方法与可信度评估"）。
+- pyfcstm：`pyfcstm.model.parse_dsl_node_to_state_machine` 不抛 missing state / dangling transition / undefined var
+- Umple：reproduction/baselines 的 Umple model load + 同类 sanity check
 
-### 6.6 可选 audit-trail 小规模抽查（intrinsic 可信度桥）
+### 6.4 `SimRate`（辅 intrinsic — pyfcstm only）
 
-从 20 cases 抽 3-5 case 走 [`../eval/`](../eval/) LLM-初审 + 人类签字 5-component manual eval，把抽查得到的人类 F1 与对应 sample 的 4-intrinsic mean 算 Pearson 相关：
+$$\text{SimRate} = \frac{|\{i : \texttt{SimulationRuntime}(\text{sm}_i).\texttt{run\_until\_stable}() \text{ completes}\}|}{N_{\text{Sem-ok, pyfcstm}}}$$
+
+跑一个完整 cycle 不触发 safety limit（1000 steps / 64 stack depth）。
+
+**Umple condition 标 N/A** — Umple 无 speculative validation runtime，这本身是 §1.2 失败模式 "周期执行" 的体现（不是 evaluation bug）。
+
+### 6.5 `ReachabilityRate`（辅 intrinsic — pyfcstm only）
+
+$$\text{ReachRate}_i = \frac{|\{s \in S_i : s \text{ reachable from initial}\}|}{|S_i|}$$
+
+调用 `pyfcstm.topology` reachability API。**Umple condition 同样 N/A**。
+
+### 6.6 可选 spot-check（不再扯 ref-free calibration）
+
+> **v5 重写 rationale**：原 v4 §6.6 把 audit-trail 抽查包装成 "reference-free intrinsic 与 manual gold 相关性证据"，作为 C5 contribution 的可信度桥。v5 删除 C5 后，audit-trail 单纯定位为 **spot-check：抽 3-5 case 看 feature utilization + intrinsic 上去是不是真对应 NL 需求被覆盖到了**，不再扯 ref-free protocol calibration。
+
+从 15 候选抽 3-5 case 走 [`../eval/`](../eval/) LLM-初审 + 人类签字 5-component manual eval：
 
 ```bash
-# 抽 3 case
 PYTHONPATH=. python eval/demo/run_demo.py \
   --cases case_a,case_b,case_c \
-  --conditions A_full_ours \
+  --conditions A_full_ours,A0_hybrid_pyfcstm \
   --component-kinds states,transitions,guards,actions,hierarchical_states
 
-# 你签字 eval/review/packs/<case>/A_full_ours/{states,...}.md
-
+# 你签字 eval/review/packs/<case>/<condition>/{states,...}.md
 PYTHONPATH=. python eval/demo/finalize_after_signoff.py
-# eval/results/full_annotations.parquet 与 sprint_path2/predictions.parquet 按 case_id join，
-# 算 Pearson(intrinsic_4_mean, manual_macro_F1)
 ```
 
-只在 intrinsic lift 显著 + 想验证可信度时做；不是 sprint 强制步骤，但能为 paper 提供"reference-free intrinsic 与 manual gold 相关性"的实证桥（这是 §1.3 contribution 5 "reference-free protocol" 的可信度支撑）。
+判定：spot-check 这 3-5 case 上，`A_full_ours` 是否在 manual eval 上对 baseline 有同方向 lift（不要求 Pearson，只要 sign-aligned）。如果 manual eval 与 feature utilization / intrinsic 方向**不一致**，在 PATH2_REPORT §7 confounder 中显式披露。**不是 sprint 强制项。**
 
 ## 7. 结果落盘 schema
 
 ### 7.1 `predictions.parquet`
 
+每行 = 1 (case_id, condition) 组合。15 candidates × 5 conditions = 75 行（备选另存为 backup_predictions.parquet）。
+
 ```text
 columns:
-- case_id: str  # source_dir 的 slug
+- case_id: str           # source_dir 的 slug
 - source_dir: str
-- bucket: str
-- method: str  # "A0_baseline" | "A_full_ours"
-- model: str  # 实际跑的 LLM_MODEL 值
-- final_dsl: str
+- bucket: str            # FSM-basic | EFSM-interlock | HSM-layered
+- domain: str            # 领域 emoji，与 sources/SUMMARY.md 同口径
+- condition: str         # A0_single_umple | A0_hybrid_umple | A0_single_pyfcstm | A0_hybrid_pyfcstm | A_full_ours
+- target_dsl: str        # umple | pyfcstm
+- model: str             # 实际跑的 LLM_MODEL 值
+- final_dsl: str         # 最终生成的 DSL 文本（Umple 或 pyfcstm，按 target_dsl 决定）
 - iter_traces: list[dict]
-- scenariogen_coverage: list[dict]  # Phase E v3 (f) 6-mutation 覆盖率自检（仅 A_full_ours 非空）
-- token_usage: dict
-- status: str
-- intrinsic_scores: dict  # {parse_ok, sem_ok, sim_ok, reach_rate}
+- scenariogen_coverage: list[dict]   # Phase E v3 (f) 6-mutation 覆盖率（仅 A_full_ours 非空）
+- token_usage: dict      # {prompt, completion, total}
+- status: str            # ok | partial | failed (含具体失败阶段)
+- feature_utilization: dict   # 主报道指标 — {during_block: bool, multi_var_guard: bool|None, forced_transition: bool, abstract_action: bool}
+- intrinsic_scores: dict # {parse_ok: bool, sem_ok: bool, sim_ok: bool|None, reach_rate: float|None}
 ```
 
 ### 7.2 `summary.json`
@@ -322,26 +421,52 @@ columns:
 ```json
 {
   "path": "path2",
-  "data": "sources_t0_20",
-  "n_samples": 20,
-  "n_per_bucket": {"FSM-basic": 6, "EFSM-interlock": 8, "HSM-layered": 6},
-  "methods": {
-    "A0_baseline": {
-      "parse_rate": 0.XX,
-      "sem_valid_rate": 0.XX,
-      "sim_rate": 0.XX,
-      "reachability_rate": 0.XX,
-      "mean_4_intrinsic": 0.XX,
+  "data": "sources_path2_candidates_15",
+  "n_samples": 15,
+  "n_per_bucket": {"FSM-basic": 3, "EFSM-interlock": 6, "HSM-layered": 6},
+  "conditions": ["A0_single_umple", "A0_hybrid_umple", "A0_single_pyfcstm", "A0_hybrid_pyfcstm", "A_full_ours"],
+  "per_condition": {
+    "A0_single_umple": {
+      "target_dsl": "umple",
+      "feature_utilization": {"during_block": 0.0, "multi_var_guard": null, "forced_transition": 0.0, "abstract_action": 0.0},
+      "intrinsic": {"parse_rate": 0.XX, "sem_valid_rate": 0.XX, "sim_rate": null, "reach_rate": null},
       "token_total": 12345
     },
-    "A_full_ours": {"... 同上 ...": null}
+    "...同结构 4 个 condition...": null
   },
-  "per_bucket_lift": {"FSM-basic": {}, "EFSM-interlock": {}, "HSM-layered": {}},
-  "intrinsic_lift_mean": 0.XX,
-  "audit_trail_subset": {
+  "primary_comparisons": {
+    "A_full_ours_vs_A0_hybrid_pyfcstm": {
+      "feature_utilization_lift": {"during_block": "+XXpp", "multi_var_guard": "+XXpp", "forced_transition": "+XXpp", "abstract_action": "+XXpp"},
+      "intrinsic_lift": {"parse_rate": "+Xpp", "sem_valid_rate": "+Xpp", "sim_rate": "+Xpp", "reach_rate": "+Xpp"},
+      "interpretation": "isolates deterministic feedback contribution (same DSL target, same step count)"
+    },
+    "A_full_ours_vs_A0_hybrid_umple": {
+      "feature_utilization_lift": "structural (Umple has 0% by construction)",
+      "intrinsic_lift": {"parse_rate": "+Xpp", "sem_valid_rate": "+Xpp"},
+      "interpretation": "method-of-record vs baseline-of-record (different DSL)"
+    },
+    "A0_hybrid_pyfcstm_vs_A0_hybrid_umple": {
+      "feature_utilization_lift": {"during_block": "+XXpp (Umple cannot)", "...": "..."},
+      "intrinsic_lift": {"sim_rate": "Umple N/A", "reach_rate": "Umple N/A"},
+      "interpretation": "isolates DSL expressiveness gap (same strategy)"
+    }
+  },
+  "per_bucket_lift": {
+    "FSM-basic": {"A_full_ours_vs_A0_hybrid_pyfcstm": {...}},
+    "EFSM-interlock": {...},
+    "HSM-layered": {...}
+  },
+  "per_c_axis_stratified_lift": {
+    "C1_exposed_cases": {"n": 6, "A_full_ours_vs_A0_hybrid_pyfcstm": {...}},
+    "C2_exposed_cases": {"n": 9, "...": "..."},
+    "C3_exposed_cases": {"n": 9, "...": "..."},
+    "C4_exposed_cases": {"n": 14, "...": "..."}
+  },
+  "spot_check_subset": {
     "sampled_cases": ["case_a", "case_b", "case_c"],
-    "manual_macro_f1_per_case": {},
-    "pearson_intrinsic_vs_manual": null
+    "manual_macro_f1_per_case_per_condition": {},
+    "sign_aligned_with_feature_utilization": null,
+    "sign_aligned_with_intrinsic": null
   },
   "confounders": []
 }
@@ -349,39 +474,52 @@ columns:
 
 ## 8. `PATH2_REPORT.md` 产出要求
 
-sprint 末 Phase 6 必须产出，**Claude 整理不下结论**。最低字段：
+sprint 末 Phase 6 必须产出，**Claude 整理不下结论**。v5 新 outline：
 
-1. **§1 实验配置**：sources/ T0+🟢 子集组成（3 桶分布）、LLM_MODEL 实际值、迭代轮数 $N$；显式声明 Phase H (judge) 跳过 + 4-intrinsic 模式
-2. **§2 主结果表**：`A0_baseline` vs `A_full_ours` 的 4 个 intrinsic + 4-metric mean
-3. **§3 lift 分布**：按 3 桶（FSM / EFSM / HSM）拆分 lift，看哪类样本最吃 method 红利
-4. **§4 每个样本 detail**：20 条样本各自的 intrinsic 4 维分数，便于 spot-check 异常样本
-5. **§5 信号判定**：按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) 的 S1/S2/S3/S4 把当前数据归类
-6. **§6 confounders 列表**：API 失败 / 全轮 parse 失败的样本；若做了 §6 audit-trail 抽查，列被抽查 case 的人类签字分布
-7. **§7 Claude 的方向建议 + rationale**：写明依据，不强推
-8. **§8 后续 paper 工作量预估**：若选 Path 2，1-2 个月内要补的工作（接 Phase H judge 补回 5-intrinsic / 扩 sources/ 到 60 条 / intrinsic-F1 Pearson calibration 用全集补 manual 标注 / 对照 llms_emp 两阶段 / 对照 ttool-ai 自动反馈 / cross-vendor 等）
+1. **§1 控制系统问题定义 + 4 失败模式 + 4 grounding 一对一映射**：直接复用 GUIDE §1.1-§1.4 内容（categorical 框架）；这是 PATH2_REPORT 的论证骨架，不是只在 §7 里出现
+2. **§2 method overview + 4 contribution 速查表**：复用 GUIDE §1.6 + §11.3 + §11.4；明确写 paper §1 contributions 是 C1-C4 method core（**不写 ref-free**）
+3. **§3 实验配置 + 5 conditions 矩阵**：sources_path2 数据集组成（3 桶 × 9 领域）、LLM_MODEL 实际值、5 conditions 详细参数（n_iter / strategy / target_dsl / feedback_sources）
+4. **§4 主结果表 — Feature utilization rate**：5 conditions × 4 feature 的使用率矩阵；高亮 A_full_ours vs A0_hybrid_pyfcstm 的 lift（隔离 deterministic feedback 收益）+ A0_hybrid_pyfcstm vs A0_hybrid_umple 的 gap（DSL expressiveness gap）
+5. **§5 辅助表 — 4 intrinsic lift × 5 conditions × 3 buckets**：Umple condition 在 SimRate / ReachRate 上的 N/A 不是数据缺失，是 §1.2 失败模式的体现
+6. **§6 per-C-axis stratified lift**：按 expansion axis_coverage 标签（C1🟢/C2🟢/C3🟢/C4🟢）分组，看 lift 是否真的落在对应 axis 上 — 这是 §1.3 三段论 mapping 的直接实证
+7. **§7 spot-check / confounders / 信号判定**：3-5 case manual eval 结果（如做了 §6.6）；API 失败 / parse 失败样本；按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) S1/S2/S3/S4 信号判定（**注意 v5 lift 算法不同**：S2 阈值改为"feature utilization mean lift ≥ 25pp"而非"4-intrinsic mean lift ≥ 20pp"）
+8. **§8 后续工作量预估**：若选 Path 2，1-2 个月内要补的工作 — 接 Phase H judge 补 LLM-as-judge 通道、扩 sources/ 到 60 条、跨 vendor sanity (Claude vs GPT-5.5)、对照 llms_emp 两阶段 / IEC 61499 / ttool-ai 等更强 baseline、formal verification benchmark 集成等
 
-## 9. 风险与回退（Path 2 特有）
+**关键差异与 v4 outline 对比**：
+
+- v4 §1 是 "实验配置 + meta info"；v5 §1 直接讲控制系统问题定义，是论证骨架
+- v4 §2 主表是 4-intrinsic；v5 §4 主表是 feature utilization
+- v5 新增 §6 per-C-axis stratified — 把 30 case 扩充 NL 的 axis_coverage 标签反向用于 lift 分组，是 §1.3 mapping 的直接验证
+- v5 §7 信号判定从"intrinsic mean lift"改为"feature utilization mean lift"
+
+## 9. 风险与回退（Path 2 特有 — v5 修订）
 
 | 风险 | 触发 | 回退 |
 | --- | --- | --- |
-| sources/ T0+🟢 子集 $< 20$ 条 | 池子不够选样 | 把 3 桶比例调整为实际可用样本的分层；不强行凑 20 条 |
-| `SimulationRuntime` 缺 abstract handler 报错 | 大量样本 SimRate=0 | 用 no-op handler，sim 只检 reachability 不验业务逻辑（在 PATH2_REPORT §6 confounder 中披露） |
-| `ReachabilityRate` wrapper 未实装 | Phase 2 没补 reachability 接口 | 临时降到 3-intrinsic mean（parse / sem / sim），在 PATH2_REPORT §1 明确披露 |
-| Intrinsic lift 过低（4-metric mean $< 15$pp） | `A_full_ours` 没比 `A0_baseline` 好多少 | 按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) S4 处理，在 PATH2_REPORT §7 给出"信号弱"判定，由用户综合判断 |
-| `ParseRate` A0_baseline 已经很高（$\ge 0.9$） | 单 prompt 就足够，lift 空间小 | 这本身是有意义的发现（"agent loop 在 parse 上不显著，但 sim/reach 上仍显著"），不必回退；在 §3 lift 分布按指标细分讨论 |
-| 可选 audit-trail 抽查中双 LLM 一致率过低 | `eval/review/packs/` 中 🔴 / 🟡 行占比 $> 30\%$ | 仅影响该 case，不阻塞 4-intrinsic 主指标；在 PATH2_REPORT §6 列分歧分布；如必要可全 abandon 抽查、保留纯 4-intrinsic 结果 |
-| `LLM_API_KEY` / `LLM_ENDPOINT` 未 source | 跑实验时 KeyError on `os.environ["LLM_ENDPOINT"]` | shell 跑 `source .env` 后重新执行；这是 Phase 0 自检必须 verify 的 |
+| Umple parse 出错率高 | reproduction/baselines 的 Umple parser wrapper 不稳 | 用 fallback regex 检查；在 PATH2_REPORT §7 confounder 显式披露 |
+| pyfcstm `SimulationRuntime` 缺 abstract handler 报错 | A0_*_pyfcstm 大量样本 SimRate=0 | 用 no-op handler，sim 只检 reachability 不验业务逻辑（在 PATH2_REPORT §7 confounder 披露） |
+| `ReachabilityRate` wrapper 未实装 | Phase 2 没补 reachability 接口 | 临时降到 3-intrinsic mean（parse / sem / sim），在 PATH2_REPORT §3 明确披露 |
+| **Feature utilization 在 A0_*_pyfcstm 上意外高** | 单 prompt / Hybrid 已经主动用 4 类 feature | 这本身是有意义发现（"prompt-only 已经能 push pyfcstm grounding"），不必回退；在 PATH2_REPORT §4 讨论收益归因 |
+| **Feature utilization lift 过低**（A_full_ours - A0_hybrid_pyfcstm mean lift $< 15$pp）| deterministic feedback 贡献不显著 | 按 discussion §4.1 S4 处理；可能需要补 LLM-as-judge feedback (Phase H) 才能拉开差距 |
+| **A0_hybrid_pyfcstm 与 A0_hybrid_umple feature utilization 都接近 0** | 说明 LLM 即使 target pyfcstm 也不主动用 4 类 feature | 这是核心 differentiation 论证：feature utilization gap 完全来自我们的 agent loop deterministic feedback；在 PATH2_REPORT §4 明确写 |
+| Umple Hybrid strategy 复现失败 | baseline_structure_event.py 的 Hybrid 4-step 行为不稳定 | 用 reproduction/baselines/baseline_structure_event.py 实装作为参考；若 reproduction 也跑不稳，标 confounder 不阻塞 |
+| 可选 spot-check 双 LLM 一致率过低 | `eval/review/packs/` 中 🔴 / 🟡 行占比 $> 30\%$ | 仅影响该 case，不阻塞主指标；在 PATH2_REPORT §7 confounder 披露 |
+| `LLM_API_KEY` / `LLM_ENDPOINT` 未 source | KeyError on `os.environ["LLM_ENDPOINT"]` | shell `source .env` 后重新执行 |
 
-## 10. 完成度自检 checklist
+## 10. 完成度自检 checklist（v5 修订）
 
 sprint Phase 7 收口前用此 checklist 核验：
 
-- [ ] `eval/data/sources_path2.parquet` 已落盘且 $= 20$ 条（或按风险表回退方案的实际数）
-- [ ] `eval/results/sprint_path2/predictions.parquet` 已落盘，每条样本含 A0_baseline / A_full_ours 两行
-- [ ] `eval/results/sprint_path2/summary.json` 含 §7.2 全字段（4-intrinsic + 可选 audit-trail subset）
-- [ ] `paper_v1/PATH2_REPORT.md` 含 §8 全 8 节
+- [x] `eval/data/sources_path2.parquet` 已落盘 = 15 candidates（commit `259e6ea7`）
+- [x] `eval/data/sources_path2_backup.parquet` 已落盘 = 15 backup（commit `259e6ea7`）
+- [ ] `method/loop.py` 加 `target_dsl` + `modeling_mode="hybrid"` 分支
+- [ ] `method/prompts/modeler/hybrid_*.txt` × {umple, pyfcstm} 两版（共 8 prompt 文件）
+- [ ] `method/run_path2.py` 实装 5-condition 分发 + checkpoint resume
+- [ ] `eval/results/sprint_path2/predictions.parquet` 已落盘，含 15 × 5 = 75 主行
+- [ ] `eval/results/sprint_path2/summary.json` 含 §7.2 全字段（feature utilization 主表 + 4 intrinsic 辅表 + per-bucket lift + per-C-axis stratified lift）
+- [ ] `paper_v1/PATH2_REPORT.md` 写出 v5 §1-§8 全 outline
 - [ ] `method/STATUS.md` 更新 Path 2 进度行
-- [ ] GitHub PR #10 已 update（PR 描述含 PATH2_REPORT 关键数字摘要）
+- [ ] GitHub PR #10 update（PR 描述含 PATH2_REPORT 关键 lift 数字）
 - [ ] Confounder 样本数 $\le$ 总样本数 30%
 
 ## 11. Method + Contribution 详述（paper writing 直接复用素材）
@@ -430,7 +568,7 @@ NL input (sources/ T0+🟢 case from real industrial control system paper)
 1. **MTI 6-step Multi-step Modeler**（PR #11 Phase F 实装）：NL → 6 步流水（identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm）→ pyfcstm DSL
    - **设计目的**：把"自由文本"压成 5 个结构化 list 后再 assemble DSL，避免单 prompt 直接面对控制系统 NL（含传感器 / 执行器 / 联锁 / 故障恢复等多重信息）时陷入语言细节歧义；与 sprint plan v3 "Spec-driven LLM" 概念一致
    - **prompt 全英文**（paper 投稿英文，统一）；共享 pyfcstm grammar reference (`method/prompts/_pyfcstm_grammar.md`)
-   - 替代方案 single_prompt（同代码内 `LoopConfig.modeling_mode="single_prompt"`）作 A0_baseline
+   - 替代方案 single_prompt（同代码内 `LoopConfig.modeling_mode="single_prompt"`）作 A0_single_pyfcstm；Hybrid 4-step 同代码（`modeling_mode="hybrid"`）作 A0_hybrid_pyfcstm
 2. **ScenarioGen**（PR #11 Phase G+E v3 实装）：NL + 模型 → 多 step BDD scenarios + 6 mutation 覆盖率自检
    - **scenariogen self-validation**：scenariogen 后自动跑 6-mutation 覆盖率检查；任一类未被 catch → 用 `extra_directive` retry 直到覆盖
 3. **Cascaded Repair**（PR #11 Phase E 实装）：(current DSL, feedback_bundle) → new DSL
@@ -586,11 +724,7 @@ runtime.register_handlers_from_object(HardwareHandlers())
 
 测试时 mock handler、部署时实硬件 handler — **STM 模型不变**。两档错误处理（`abstract_error_mode={raise, log}`）把 handler 异常落到 `error_info` / `abstract_handler_errors` 供 agent loop 消费。Umple 的 lifecycle hook 是 host-language-bound 代码，没有此抽象层（agent report §6.4 / §6.7）。
 
-#### C5 — Empirical demonstration on real industrial control system NL + reference-free evaluation enabling tooling（**evidence + enabling tooling，NOT core contribution**）
-
-> "We demonstrate the method on a 20-case T0 subset of [sources/](../sources/), spanning 9 real industrial control system domains. Since canonical reference STMs do not exist for real industrial requirements (the same NL can be modeled as multiple semantically-equivalent STMs), we develop a reference-free evaluation protocol combining four intrinsic metrics (`ParseRate`, `SemValidRate`, `SimRate`, `ReachabilityRate`) and (optionally) calibrate it against a small-scale audit-trail manual evaluation on 3-5 cases using a dual-LLM-assisted, expert-signed protocol (see [eval/](../eval/)). The protocol and benchmark are **enabling tooling** that makes the method's evaluation feasible in this domain, not the method itself. LLM-as-judge as an additional in-loop semantic signal is planned for the post-sprint paper phase (currently Phase H is skipped)."
-
-**Path 2 关键 framing**：我们**不与 baseline 的家电/通用 reactive system/domain model 一般性方法竞争** — 我们只干 baseline 工具链干不了的事：在真实工业控制系统 NL 上做 fully-automated grounded synthesis。reference-free protocol + sources/ benchmark 是让 method core (C1-C4) **能在这个差异化领域被实验验证的 supporting infrastructure**。core contribution 是 method 本身（C1-C4，且每条都对应 §11.3.0 三段论 framing 论证的一行）。
+> **v5 修订**：原 v4 含 C5 "Empirical demonstration on real industrial control system NL + reference-free evaluation enabling tooling"，v5 删除。Evaluation methodology + sources/ benchmark 在 §6 描述为 sprint enabling tooling，不进 paper §1 contributions。Paper §1 contributions 是 **C1-C4 四条 method core**，全部对应 §11.3.0 三段论 framing。
 
 ### 11.4 paper §1 contributions 列表（Path 2 视角）
 
@@ -602,7 +736,6 @@ runtime.register_handlers_from_object(HardwareHandlers())
 | 2 | **method** | Language-independent expression IR enables symbolic reasoning | `Expr` IR + `solver/` Z3 集成 + 跨 9 语言渲染 | 复杂数值守卫 + Z3 可达性 + 跨部署目标 |
 | 3 | **method** | DSL-native aspect AOP + forced fault paths | `>> during before/after` + `!` forced transition | per-tick invariant + 强制 fault-recovery escape |
 | 4 | **method** | Abstract action + read-only context for effector-agnostic STM synthesis | `enter abstract` + `@abstract_handler` + `ReadOnlyExecutionContext` | 硬件解耦 + handler 反射注入 |
-| 5 | **evidence + enabling** | 20-case industrial control system NL benchmark + reference-free 4-intrinsic + optional LLM-assisted manual-eval audit-trail calibration（[`../eval/`](../eval/)） | — | sources/ 9 真实工业领域；LLM judge as 5th intrinsic 留 future work |
 
 > 完整 LaTeX 模板 + 引用 key 等 paper drafting 阶段再具体写。
 
@@ -619,4 +752,4 @@ runtime.register_handlers_from_object(HardwareHandlers())
 | Llama3 Umple (#5) | Umple 可执行性 check | 小模型 (8B)；**无 control system 语义**；reference-based eval |
 | ttool-ai (#6) | 自动反馈循环 | feedback 是 JSON/syntax/约束 + post-hoc TTool simulator；**无 reachability witness**；系统级 spec 而非单 STM |
 
-**关键 framing 点**：Path 2 与 baseline 的差异不在"是否多步" / "是否有 in-loop feedback"（很多 baseline 都有），而在 **(i) 反馈源 grounding 强度（externally grounded multi-source vs internally grounded single-source）** + **(ii) 任务定位（reference-free industrial control system vs reference-based academic benchmark）**。这两个差异是 paper §1 contributions 的双锚点。
+**v5 关键 framing 点**：Path 2 与 baseline 的差异 = **(i) 任务对象**：我们是**真实工业控制系统**（不是 generic reactive system / domain model / 系统级 spec / UML 教学）+ **(ii) DSL 选择**：我们用 pyfcstm（不是 Umple/PlantUML/Mermaid/SysML/AVATAR），因为只有 pyfcstm 在 DSL 层面提供 4 类控制系统 grounding feature + **(iii) feedback 机制**：我们用 fully-automated agent loop 把 4 类 grounding 在 generation 阶段就回灌。这三个差异共同构成 paper §1 contributions 的**单锚点 — 控制系统的 4 类 grounding 必须在 NL-to-STM pipeline 全链路（任务对象 + DSL + feedback）一致**。
