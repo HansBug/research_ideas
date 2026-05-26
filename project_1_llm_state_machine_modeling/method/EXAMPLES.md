@@ -417,3 +417,120 @@ status: converged   tokens: 37,605
 ### 现存的 failure mode（actionable next steps）
 
 **(d) sim cycle trace 注入** 是接下来值得做的：B M6 inject 仍 not_converged 是 v2 后剩下的主要类型 — repair 没能从 `var_mismatches: timer=expected=1, actual=101` 反推到 `effect { timer = 100; }` 这条 root cause line。给 fix_sim 附加 sim cycle-by-cycle trace（"hot-start Red/timer=29 → cycle 1 fire Red→Green, effect timer=100, Green during +1 = 101"）应能让 LLM "看见"模型行为路径，提高 root-cause reasoning 命中率。
+
+---
+
+## Phase E v3 — scenariogen 自管 (e) cycle-counting 一致性 + (f) mutation self-validation
+
+诊断 v2 残留两类 failure（Case 1 A2 traffic_light scenarios 内部 cycle 口径冲突 / Case 2 B M6 scenarios 没有任何一条触达 buggy line）之后，把治理从 repair 阶段向上提到 **scenariogen 阶段**：让 scenariogen 自己解决内部一致性 + 自己保证 bug-finding 覆盖率。
+
+### (e) Cycle-counting 一致性 + NL-grounded 硬规则
+
+在 `prompts/scenariogen/generate_scenarios.txt` 顶部加两段硬规则：
+
+1. **HARD RULE: expected values come from NL, NOT from the DSL** ——
+   显式禁止 LLM 把 expected_state/vars 通过 "mental sim DSL" 得来。`expected_*`
+   只能来自 NL 语义。这条规则直接抑制 "scenarios match buggy model -> bug
+   surface 不出来" 的 false-positive 通路（Case 2 v2 失败的根因）。
+   prompt 内置反例：NL 说 timer 重置但 DSL 错为 `effect { timer = 100 }` 时，
+   LLM 必须写 `expected_vars={"timer": 1}` 而不是 101 — 这样 sim 才能 surface
+   `expected=1, actual=101`，repair 才能定位 effect line。
+2. **Cycle-counting consistency** —— 在同一次 output 内，所有涉及 "X reaches N
+   transitions to Y" 的 scenarios 必须用同一套 cycle-counting 口径（pre-during
+   guard + post-effect during 推 1）。boundary probe 强制用 hot-start 而非
+   `before_cycles=N-1` 数上去。配套 self-check 列表。
+
+### (f) Mutation-based 覆盖率 self-validation
+
+在 `loop.py` Stage 3 scenariogen 之后插一个**纯本地**的覆盖率检查：
+
+新建 `method/scenariogen_validate.py`，提供 6 个 **DSL-shape generic** mutator
+（不绑定具体 state/var 名）：
+
+- `M1_guard_off_by_one`：每个 `>= N` 试 `>= N-1`
+- `M2_wrong_transition_target`：每个 `A -> B` 换目标
+- `M3_unreachable_target`：每个 `>= N` 改成 `>= 99999`
+- `M4_missing_forced_transition`：删除每条 `! ...` 行
+- `M5_missing_effect`：删除每个 `effect { ... }` 块
+- `M6_wrong_effect_value`：每个 `var = N` 改成 `var = N+100`
+
+对原始 DSL apply 每类 mutation -> 跑 sim -> 检查"是否至少一个 scenario 在
+mutated variant 上 fail"。任何 mutation 类型未被 catch ->
+`coverage_directive()` 生成针对性指令 -> 再调一次 scenariogen 让它**追加**
+probes。最多 retry 2 次。
+
+变量：`generate_scenarios(..., extra_directive=...)` 把指令拼到 user message。
+LoopConfig 不变；`AgentLoopResult` 加 `scenariogen_coverage: list[dict]`
+记录每次 attempt 的 6 类 status，方便后续诊断。
+
+成本：每次 self-validate 本地 sim 6 类 × ≤3 variants = ~18 次秒级 sim 跑，零
+额外 LLM call；retry LLM call 仅在确有 gap 时触发。
+
+### Demo 矩阵 v2 vs v3 对比
+
+| Config | v2 status | v2 trace | **v3 status** | **v3 trace** |
+| --- | --- | --- | --- | --- |
+| **A2 traffic_light** | not_converged | sim 5/8 → 4/8 → 5/8（osc，scenarios 内部 cycle 口径冲突）| **converged 1-iter ✓** | sim 8/8 ✓（modeler 一次过；scenarios 内部一致，覆盖率 caug×4 + part×2）|
+| **A2 microwave** | converged 3-iter | 7/8 → 7/8 → 8/8 | **converged 1-iter ✓** | sim 9/9 ✓（首轮 caug×6 全过）|
+| A2 elevator | converged 1-iter | 8/8 | converged 1-iter | 8/8（unchanged）|
+| B inject M3 | converged 2-iter | `>=99999` → `>=30` 修复 | **not_converged 8/9** | guard 已修回 `>= 30`、effect timer=0；残余 1 scenario 是 scenarios 自己 cycle off-by-one（`before_cycles=29` 期望 Green，实际还差 1 cycle）|
+| **B inject M6** | not_converged | 7/8 → 7/8 → 7/8 → 7/8（scenarios match buggy model，bug 不 surface）| **converged 2-iter ✓** | 7/9 → **9/9 ✓**（retry1 直接把 buggy effect `timer = 100` 改回 `timer = 0`）|
+| C ablation A1 | converged 1-iter | unchanged | converged 1-iter | unchanged |
+
+### 关键 trace — B inject M6（v3 真改回 bug，v2 改不回去）
+
+```
+seed_dsl:  Red -> Green : if [timer >= 30] effect { timer = 100; };   ← injected M6
+
+scenariogen [initial]  → 9 scenarios
+  coverage: M1=part, M2=part, M3=part, M4=caug, M5=part, M6=part
+  → M6 not fully caught, build directive, retry
+
+scenariogen [retry1]   → 10 scenarios
+  coverage: M1=caug, M2=part, M3=part, M4=caug, M5=part, M6=part   ← 仍 part, 但
+                                                                   added probe 已经
+                                                                   能 trigger buggy
+                                                                   line
+iter 0 [seeded]   parse=T sem=T sim=7/9 ✗   target=sim
+                  Red -> Green : if [timer >= 30] effect { timer = 100; };
+                  violations include scenarios with expected timer=1 vs actual 101+
+
+iter 1 [repair]   parse=T sem=T sim=9/9 ✓   EARLY-EXIT
+                  Red -> Green : if [timer >= 30] effect { timer = 0; };
+                                                            ← buggy 100 改回 0 ✓
+status: converged   tokens: 27,494
+```
+
+### 关键 trace — A2 traffic_light（v2 osc/卡死 → v3 1-iter 过）
+
+v2 三轮反复在 `>= 30` / `>= 29` 之间 osc 还破坏 passing scenarios（scenarios 自相矛盾），现在 v3 modeler iter 0 直接 8/8 收敛 —— 不是 modeler 改强了，而是 **scenarios 内部不再自相矛盾** + **scenarios 不再 lean DSL**，让原本 valid 的 modeler output 不再被假阳性 false-fail 触发 repair。
+
+### v3 后剩下的失败模式
+
+**B M3 残余 1/9 fail**：scenariogen 这次写的 full_cycle scenario 用了
+`before_cycles=29, events=[]` 但默认初始化下需要 30 cycles 才能让 Red 的 during
+把 timer 推到 30 触发 guard。本质是 scenarios 自己 cycle off-by-one。
+
+**短期不再 chase 这类残余**：从 v1 → v2 → v3 的演变规律已经清楚 —— 治理向上
+推到 scenariogen 阶段比加 fix_sim trace 之类下游补丁更有效。下一步如果还要继续
+push，候选 (g) 是 sim 跑一遍 initial DSL 验证 scenarios 是否在 baseline 上自洽，
+若否就要求 scenariogen 修正。但 v3 已经把核心 framing failure 治好（B M6 truly
+fixed，A2 traffic_light 1-iter 过），优先级转向 Phase H (judge) / Phase I /
+Phase J 端到端 acceptance。
+
+### v3 文件改动
+
+- `prompts/scenariogen/generate_scenarios.txt`：顶部新增 "HARD RULE: expected
+  values come from NL, NOT from the DSL" + "Cycle-counting consistency" 两段
+- `agents/scenariogen/generate.py`：`generate_scenarios(..., extra_directive=...)`
+  支持 prompt-side targeted revision
+- `method/scenariogen_validate.py` **（新建）**：6 个 DSL-generic mutator +
+  `validate_coverage()` + `coverage_directive()`
+- `method/loop.py` Stage 3：scenariogen → coverage check → 最多 2 次 targeted
+  retry，把每次 attempt 的 status 写入 `result.scenariogen_coverage`
+- `method/schema.py`：`AgentLoopResult` 加 `scenariogen_coverage`
+
+### 入口资产（v3）
+
+- Demo 脚本：`/tmp/phase_e_demo.py`（v2 → v3 同一组配置，便于对比）
+- 完整 JSON 结果：`/tmp/phase_e_results.json`（含 `scenariogen_coverage` 字段）

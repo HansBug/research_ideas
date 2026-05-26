@@ -202,6 +202,73 @@ For each step:
   collect all violations)
 - `error` = runtime exception (DfsError, etc.) — sim **stops immediately**
 
+## HARD RULE: expected values come from NL, NOT from the DSL
+
+The DSL provided to you is what the upstream LLM **produced**. It may
+contain bugs — wrong guard threshold, wrong effect, wrong target, missing
+forced transition, etc. Your scenarios exist precisely to surface those
+bugs by running them through sim and watching them fail.
+
+You MUST therefore compute `expected_state` and `expected_vars` from **what
+the NL says the system should do**, not from "what would the given DSL
+actually produce when I trace it cycle-by-cycle". If you mentally re-run
+the DSL to derive expected values, your scenarios will pass on a buggy
+model by construction — exactly the opposite of what's wanted.
+
+The DSL is only there so you know the exact state / event / variable
+**identifiers** (paths, casing). All numbers (guard thresholds, effect
+constants, cycle counts) and all targets in your expected_* must come
+from NL phrasing alone.
+
+Example of the WRONG mindset (do not do this):
+
+> NL says "when timer reaches 30, transition to Green and reset timer".
+> DSL says `Red -> Green : if [timer >= 30] effect { timer = 100; };`
+> Cycle-tracing the DSL: after firing, effect sets timer=100, then
+> Green.during makes timer=101. So I'll write `expected_vars={"timer":101}`.
+
+That scenario will PASS on the buggy DSL, missing the `timer = 100` bug.
+The CORRECT mindset: NL says timer is reset. After Green.during pushes
+it from the reset value (0) by +1, we expect timer=1. Write
+`expected_vars={"timer": 1}`. Sim will then surface `expected=1, actual=101`
+and the loop's repair stage can fix the effect block.
+
+## Cycle-counting consistency (mandatory across the scenario set)
+
+Within a single scenario set you output, you MUST apply ONE consistent
+cycle-counting convention to every scenario. Mixing conventions across
+scenarios is a top failure mode — repair cannot converge because two
+scenarios encode contradictory expectations of the same NL transition.
+
+For "when X reaches N, transition to Y" the runtime semantics (verified
+against pyfcstm in the cheat-sheet below) work like this:
+
+- Guard is evaluated using vars at the START of a cycle (pre-during).
+- Suppose state P has `during { X = X + 1; }` and transition
+  `P -> Y : if [X >= N] effect { X = 0; }`.
+- After N cycles in P (X reaches N via during), the NEXT cycle's
+  pre-during check sees X=N → guard fires → effect resets X → Y.during
+  pushes X to 1. So the (N+1)-th cycle in P is the firing cycle.
+- Boundary "should NOT fire at threshold-1": hot-start with X=N-1, one
+  cycle → X becomes N, still in P (no fire this cycle).
+- Boundary "should fire at threshold": hot-start with X=N, one cycle →
+  guard fires immediately, transition + effect + Y.during → state=Y,
+  X=(post-during value from reset).
+
+Self-check before output:
+
+1. For every NL transition "when X reaches N", list every scenario in your
+   output that exercises it.
+2. Verify they all use the SAME convention above (pre-during guard, then
+   fire-or-during).
+3. Boundary probes must hot-start with `initial_vars={X: N-1}` /
+   `{X: N}` (NOT count up via `before_cycles`).
+4. expected_vars MUST come from NL semantics (e.g. "timer is reset" →
+   expected timer=0 immediately after fire, or =1 after one Y.during).
+   Do NOT read effect constants off the DSL.
+
+---
+
 ## Cycle counting cheat-sheet (CRITICAL — verified examples)
 
 ### Example A: pure guard-driven traffic light

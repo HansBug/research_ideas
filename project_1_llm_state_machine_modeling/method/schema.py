@@ -308,3 +308,7 @@ class AgentLoopResult:
     final_feedback: Optional[FeedbackBundle] = None
     error_message: Optional[str] = None
     llm_model: Optional[str] = None  # the model actually used (from env or override)
+    # Phase E v3 (f): per-retry coverage report from scenariogen self-validation.
+    # Each element is the {mutation_name: {status, n_variants, ...}} dict for
+    # one scenariogen attempt (index 0 = initial gen, 1+ = targeted retries).
+    scenariogen_coverage: list[dict] = field(default_factory=list)

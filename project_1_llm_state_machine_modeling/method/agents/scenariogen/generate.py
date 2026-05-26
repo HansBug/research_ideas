@@ -154,6 +154,7 @@ def generate_scenarios(
     *,
     seed: Optional[int] = None,
     model: Optional[str] = None,
+    extra_directive: Optional[str] = None,
 ) -> tuple[list[TestScenario], dict, dict]:
     """Generate multi-step test scenarios from NL + pyfcstm DSL.
 
@@ -168,10 +169,17 @@ def generate_scenarios(
     elements = _extract_model_elements(dsl_text)
     system_prompt = _load_prompt()
     elements_json = json.dumps(elements, ensure_ascii=False, indent=2, default=str)
+    directive_block = ""
+    if extra_directive:
+        directive_block = (
+            f"## Mandatory revision directive (overrides default behavior)\n\n"
+            f"{extra_directive.strip()}\n\n"
+        )
     user_msg = (
         f"Requirements:\n{requirements.strip()}\n\n"
         f"Model elements:\n{elements_json}\n\n"
         f"DSL:\n```\n{dsl_text}\n```\n\n"
+        f"{directive_block}"
         f"Generate multi-step test scenarios. Output JSON only."
     )
     messages = [

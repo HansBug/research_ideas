@@ -39,6 +39,7 @@ from method.agents.spec_extractor import extract_spec
 from method.feedback.parse import check_parse
 from method.feedback.semantic import check_semantic
 from method.feedback.sim import check_sim
+from method.scenariogen_validate import coverage_directive, validate_coverage
 from method.schema import (
     AgentLoopResult,
     FeedbackBundle,
@@ -150,6 +151,12 @@ def run_agent_loop(
             _accumulate_usage(result.token_usage, mod_usage)
 
     # ===== Stage 3: ScenarioGen (frozen — once per loop, only if sim enabled) =====
+    # Phase E v3 (f): after the first scenariogen call, run a 6-mutation
+    # coverage self-test on the initial DSL. If any mutation type is missed
+    # (no scenario detects it), ask scenariogen to add targeted probes.
+    # Capped at SCENARIOGEN_MAX_RETRIES retries (cheap: 6 short sim runs +
+    # at most a few extra LLM calls).
+    SCENARIOGEN_MAX_RETRIES = 2
     scenarios: Optional[list[TestScenario]] = None
     if "sim" in cfg.feedback_sources:
         try:
@@ -157,6 +164,27 @@ def run_agent_loop(
                 nl, current_dsl, seed=cfg.seed, model=cfg.llm_model
             )
             _accumulate_usage(result.token_usage, sc_usage)
+            # Mutation coverage self-validation + targeted retries
+            coverage_history: list[dict] = []
+            for retry in range(SCENARIOGEN_MAX_RETRIES):
+                cov = validate_coverage(current_dsl, scenarios)
+                coverage_history.append(cov)
+                directive = coverage_directive(cov)
+                if directive is None:
+                    break  # all mutation types caught (or n/a) — coverage OK
+                # regenerate with targeted directive (preserve previous + add)
+                try:
+                    scenarios, _, retry_usage = generate_scenarios(
+                        nl,
+                        current_dsl,
+                        seed=cfg.seed,
+                        model=cfg.llm_model,
+                        extra_directive=directive,
+                    )
+                    _accumulate_usage(result.token_usage, retry_usage)
+                except Exception:
+                    break  # retry failed — keep what we had
+            result.scenariogen_coverage = coverage_history
         except Exception as e:
             # scenariogen failure shouldn't kill the whole loop — sim just stays off.
             scenarios = None
