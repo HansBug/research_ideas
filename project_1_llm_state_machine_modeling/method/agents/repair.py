@@ -1,18 +1,18 @@
-"""Repair agent: (current DSL, structured feedback) → new DSL.
+"""Cascaded Repair agent: dispatch on the earliest-failing feedback source.
 
-The third stage of the agent loop, invoked when at least one of the four
-feedback sources signaled a problem. Reads the current pyfcstm DSL and the
-structured ``FeedbackBundle`` and produces a corrected DSL text.
+Per Phase E design decision: each feedback channel has a focused fix sub-prompt
+(``fix_parse.txt`` / ``fix_sem.txt`` / ``fix_sim.txt`` / ``fix_judge.txt``)
+that sees only its own diagnostic plus NL context. The cascade order is
 
-Design principles:
+    parse → semantic → sim → judge
 
-- **Minimal change**: the prompt instructs the model to touch only what
-  feedback identifies, not to reformat / rename / re-order.
-- **Priority cascade**: parse > semantic > sim > judge. The repair prompt
-  encodes this so the model fixes syntax before semantics before runtime
-  before LLM judgment.
-- **Repair is a single LLM call per iteration**, not a tool-use chain. The
-  feedback bundle is serialized as JSON into the user message.
+— the dispatcher picks the FIRST source whose ``ok=False`` and routes the
+repair through its sub-prompt. Other channels are not shown to the LLM,
+keeping each repair focused.
+
+This module preserves the public entry ``repair_model(...)`` used by the
+existing tests; behavior is now cascaded internally instead of a single
+union-prompt call.
 """
 
 from __future__ import annotations
@@ -20,23 +20,32 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from method.gpt_client import chat
-from method.schema import FeedbackBundle, ModelArtifact
+from method.schema import FeedbackBundle, ModelArtifact, TestScenario
 
 
-_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "repair.txt"
+_PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "repair"
+
+RepairTarget = Literal["parse", "semantic", "sim", "judge"]
+
+_PROMPT_FILES: dict[RepairTarget, str] = {
+    "parse":    "fix_parse.txt",
+    "semantic": "fix_sem.txt",
+    "sim":      "fix_sim.txt",
+    "judge":    "fix_judge.txt",  # Phase H placeholder
+}
 
 
-def _load_prompt() -> str:
-    if not _PROMPT_PATH.exists():
-        raise FileNotFoundError(f"Repair prompt not found: {_PROMPT_PATH}")
-    return _PROMPT_PATH.read_text(encoding="utf-8")
+def _load_subprompt(target: RepairTarget) -> str:
+    p = _PROMPT_DIR / _PROMPT_FILES[target]
+    if not p.exists():
+        raise FileNotFoundError(f"Repair sub-prompt not found: {p}")
+    return p.read_text(encoding="utf-8")
 
 
 def _strip_dsl_fence(content: str) -> str:
-    """Same fence stripping as modeler.py — keep them in sync."""
     s = content.strip()
     if not s.startswith("```"):
         return s
@@ -52,88 +61,141 @@ def _strip_dsl_fence(content: str) -> str:
     return s
 
 
-def _serialize_feedback(fb: FeedbackBundle) -> str:
-    """Serialize FeedbackBundle to compact JSON for the prompt.
+def select_repair_target(feedback: FeedbackBundle) -> Optional[RepairTarget]:
+    """Pick the earliest failing source in cascade order.
 
-    Only includes non-None sources to keep the prompt focused on actionable
-    feedback.
+    Returns None if all present sources are ok or none are present.
     """
+    if feedback.parse is not None and not feedback.parse.ok:
+        return "parse"
+    if feedback.semantic is not None and not feedback.semantic.ok:
+        return "semantic"
+    if feedback.sim is not None and not feedback.sim.ok:
+        return "sim"
+    if feedback.judge is not None and not feedback.judge.ok:
+        return "judge"
+    return None
+
+
+def _build_user_msg(
+    target: RepairTarget,
+    current_dsl: str,
+    feedback: FeedbackBundle,
+    nl: str,
+    scenarios: Optional[list[TestScenario]] = None,
+) -> str:
+    """Build a focused user message containing only the relevant diagnostic."""
     payload: dict = {}
-    if fb.parse is not None:
-        payload["parse"] = asdict(fb.parse)
-    if fb.semantic is not None:
-        payload["semantic"] = asdict(fb.semantic)
-    if fb.sim is not None:
-        payload["sim"] = asdict(fb.sim)
-    if fb.judge is not None:
-        # Judge can be large (evidence_spans) — keep it but truncate long fields
-        j = asdict(fb.judge)
-        if "evidence_spans" in j and len(j["evidence_spans"]) > 10:
-            j["evidence_spans"] = j["evidence_spans"][:10]
-            j["_truncated"] = True
-        payload["judge"] = j
-    return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
+    if target == "parse":
+        payload["parse"] = asdict(feedback.parse)
+    elif target == "semantic":
+        payload["semantic"] = asdict(feedback.semantic)
+    elif target == "sim":
+        sim_dict = asdict(feedback.sim)
+        # Drop already-passing scenarios to keep prompt tight.
+        sim_dict["scenario_results"] = [
+            sr for sr in sim_dict["scenario_results"] if sr["status"] != "pass"
+        ]
+        payload["sim"] = sim_dict
+    elif target == "judge":
+        payload["judge"] = asdict(feedback.judge)
+
+    diag_json = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
+
+    parts = [
+        f"## NL requirements\n\n{nl.strip()}\n",
+        f"## Current DSL\n\n```\n{current_dsl}\n```\n",
+        f"## {target.capitalize()} diagnostic\n\n```\n{diag_json}\n```\n",
+    ]
+
+    if target == "sim" and scenarios is not None:
+        # Include the frozen scenario set so the LLM knows what 'ground truth' looks like.
+        sc_json = json.dumps(
+            [
+                {
+                    "name": s.name,
+                    "description": s.description,
+                    "initial_state": s.initial_state,
+                    "initial_vars": s.initial_vars,
+                    "steps": [
+                        {
+                            "name": st.name,
+                            "before_cycles": st.before_cycles,
+                            "events": st.events,
+                            "expected_state": st.expected_state,
+                            "expected_vars": st.expected_vars,
+                        }
+                        for st in s.steps
+                    ],
+                }
+                for s in scenarios
+            ],
+            ensure_ascii=False, indent=2, default=str,
+        )
+        parts.append(f"## Frozen scenarios (ground truth — DO NOT EDIT)\n\n```\n{sc_json}\n```\n")
+
+    parts.append("Output the corrected pyfcstm DSL only.")
+    return "\n".join(parts)
 
 
 def repair_model(
     current_dsl: str,
     feedback: FeedbackBundle,
     *,
+    nl: str = "",
+    scenarios: Optional[list[TestScenario]] = None,
     iteration: int = 1,
     seed: Optional[int] = None,
     model: Optional[str] = None,
-) -> tuple[ModelArtifact, dict]:
-    """Run Repair on a current DSL + structured feedback.
+) -> tuple[ModelArtifact, dict, Optional[RepairTarget]]:
+    """Run one cascaded repair round.
+
+    Selects the earliest-failing feedback source, loads its dedicated
+    sub-prompt, and runs a single LLM call to produce a corrected DSL.
 
     Parameters
     ----------
     current_dsl
         The current pyfcstm DSL text (output of Modeler or previous Repair).
     feedback
-        ``FeedbackBundle`` from the deterministic + judge feedback sources.
-        At least one source should have ``ok=False`` (otherwise no repair is
-        needed and the caller should skip).
+        ``FeedbackBundle`` with at least one source reporting ``ok=False``.
+    nl
+        The original NL requirement document (used by every sub-prompt for
+        intent context).
+    scenarios
+        The frozen scenario list. Required when the repair target is ``sim``.
     iteration
-        Which loop iteration this repair belongs to (recorded on the
-        ``ModelArtifact``).
-    seed
-        Optional integer for LLM-call determinism.
-    model
-        Override the default ``LLM_MODEL`` env var.
+        Loop iteration number (stamped onto the returned ``ModelArtifact``).
+    seed, model
+        Standard LLM-call knobs.
 
     Returns
     -------
-    (artifact, usage)
-        ``artifact``: ``ModelArtifact`` with the corrected DSL and
-        ``produced_by='repair'``.
-        ``usage``: token usage dict from ``gpt_client.chat``.
+    (artifact, usage, target)
+        ``artifact`` is the new DSL (``produced_by='repair'``), ``usage`` is
+        the LLM token usage dict, ``target`` is the cascade source picked
+        (``None`` only if nothing was failing — caller should not invoke
+        repair in that case).
     """
     if not feedback.has_any_signal():
         raise ValueError("Repair called with an empty FeedbackBundle — nothing to fix.")
 
-    system_prompt = _load_prompt()
-    feedback_json = _serialize_feedback(feedback)
+    target = select_repair_target(feedback)
+    if target is None:
+        raise ValueError("Repair called with all-ok feedback — caller should have skipped.")
 
-    user_msg = (
-        f"## Current DSL\n\n```\n{current_dsl}\n```\n\n"
-        f"## Feedback bundle\n\n```\n{feedback_json}\n```\n\n"
-        "Output the corrected pyfcstm DSL only."
-    )
+    system_prompt = _load_subprompt(target)
+    user_msg = _build_user_msg(target, current_dsl, feedback, nl, scenarios)
 
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_msg},
     ]
-    content, usage = chat(
-        messages=messages,
-        model=model,
-        temperature=0.0,
-        seed=seed,
-    )
+    content, usage = chat(messages=messages, model=model, temperature=0.0, seed=seed)
     dsl_text = _strip_dsl_fence(content)
     artifact = ModelArtifact(
         dsl_text=dsl_text,
         iteration=iteration,
         produced_by="repair",
     )
-    return artifact, usage
+    return artifact, usage, target

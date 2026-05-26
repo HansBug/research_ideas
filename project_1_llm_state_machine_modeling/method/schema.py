@@ -57,6 +57,7 @@ class LoopConfig:
     condition: ConditionLiteral = "A4"
     n_iter: int = 3
     feedback_sources: list[str] = field(default_factory=lambda: ["parse", "semantic", "sim", "judge"])
+    modeling_mode: Literal["single_prompt", "multi_step"] = "multi_step"
     llm_model: Optional[str] = None
     seed: Optional[int] = None
 

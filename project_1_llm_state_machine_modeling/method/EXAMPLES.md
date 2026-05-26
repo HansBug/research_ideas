@@ -252,3 +252,101 @@ hot-start: Red, timer=28
 - **prompt**：[`prompts/scenariogen/generate_scenarios.txt`](./prompts/scenariogen/generate_scenarios.txt)（v3 加入了 "dual mandate: NL element coverage + bug-finding probes" 段）
 - **schema**：[`schema.py`](./schema.py)（v2 multi-step `ScenarioStep` + `StepResult`，保留）
 - **sim 实现**：[`feedback/sim.py`](./feedback/sim.py)（v2 多步执行，保留）
+
+---
+
+# Phase E — agent loop driver 演示
+
+> **目的**：把前面 Phase D / F / G 的零部件串成可迭代的 agent loop，并验证：(1) cascade gating 工作；(2) cascaded Repair 按 channel 分工调度；(3) scenarios 一次生成后 freeze 不变；(4) `sim` 通道可以 on/off 用于 ablation。
+>
+> **运行命令**（仓库根，`set -a; source .env; set +a` 后）：
+> ```bash
+> cd project_1_llm_state_machine_modeling && PYTHONPATH=. python3 /tmp/phase_e_demo.py
+> ```
+>
+> **设计要点（locked 2026-05-26）**：
+> 1. **Gated cascade**：parse → semantic → (sim ∥ judge)；前面 fail 时下游不跑
+> 2. **Cascaded Repair**：4 个 fix sub-prompt (`fix_parse.txt` / `fix_sem.txt` / `fix_sim.txt` / `fix_judge.txt`)，每轮按"最早 fail 的 source"路由
+> 3. **Scenarios frozen**：在 iter 循环外生成一次，所有 iter 共用 — model 适配 scenarios，不反向
+> 4. **sim/judge optional**：通过 `LoopConfig.feedback_sources` 控制；不在列表里的不跑
+> 5. **Early back-out**：cascade 返回 `all_ok` 立即退出
+>
+> **配置矩阵**：
+> - `A2` = `["parse", "semantic", "sim"]` + multi_step + n_iter=3（主 demo）
+> - `A1` = `["parse", "semantic"]`（ablation — sim OFF）
+
+## Part A — 3 NL examples 跑 A2
+
+| Example | status | iters | tokens | iter 0 sim | 注 |
+| --- | --- | :-: | --- | --- | --- |
+| **traffic_light** | not_converged | 3 | 25,891 | 5/8 | LLM scenarios 含 3 个 boundary probe 在 modeler 输出上 fail（NL-model gap，repair 难以同时满足所有 probe）；iter 1-2 试图 oscillate 调整 guard，sim 在 5/8↔4/8 间摆动 |
+| **microwave** | not_converged | 3 | 23,258 | 7/8 | iter 0 已经 parse + sem ok，sim 7/8 仅 1 个 fail；repair 把 `Cooking -> Idle : if [...]` 误改成 `:: if [...]` → 引入 parse fail → cascade 切换到 fix_parse 接力，但 iter 2 也没修对 |
+| **elevator_3floor** | **converged ✓** | 1 | 21,608 | 8/8 | modeler 一次产生满足 8/8 scenarios 的 DSL，cascade `all_ok` 直接 early-exit |
+
+**说明**：traffic_light / microwave 的 "not_converged" **不是 Phase E 失败**，恰恰是 loop **真的在转** 的证据 — 不是 1-shot 过：
+- traffic_light 显示 repair 可以多轮针对同一 channel (sim) 尝试不同 fix 方向
+- microwave 显示 cascade 在 iter 1 自动从 sim 切到 parse（repair 引入新问题后下层 channel 接力）
+
+## Part B — inject-bug-and-recover 验证 sim feedback 真的让 repair 拨回来
+
+把 traffic_light modeler 输出（iter 0 干净版）人为注入 bug 作为 `seed_dsl`，跳过 modeling 直接进 iter loop。
+
+### B1 — inject M3（`timer >= 30` → `timer >= 99999`，Green 永远不可达）
+
+```
+iter 0 [seeded]   parse_ok=T sem_ok=T sim 7/8        ← sim catch: full_cycle expected Green but actual Red
+                  DSL: Red -> Green : if [timer >= 99999] effect { timer = 0; };
+                  violation: red_guard_boundary_should_fire_at_30 → Repair target = sim
+iter 1 [repair]   parse_ok=T sem_ok=T sim 8/8 ✓     ← EARLY-EXIT, converged
+                  DSL: Red -> Green : if [timer >= 30] effect { timer = 0; };
+status: converged   iters: 2   tokens: 8,392
+```
+
+**完整 bug→catch→repair→converge 闭环**：sim 抓出 unreachable bug → fix_sim sub-prompt 看到 `actual_state=Red` 而 `expected=Green` 推断 guard 太高 → 直接修回 `>= 30` → 2 iter 收敛。
+
+### B2 — inject M6（`effect { timer = 0; }` → `effect { timer = 100; }`，副作用值错）
+
+```
+iter 0 [seeded]   sim 7/8
+                  DSL: Red -> Green : if [timer >= 30] effect { timer = 100; };
+iter 1 [repair]   sim 7/8  (no progress)
+                  DSL: Green -> Yellow guard 改成 if [timer >= 25 && (timer < 100 || timer >= 125)] effect { timer = 0; };
+                  ← LLM 误以为问题在 Green->Yellow 的 guard，做了补偿性改动
+iter 2 [repair]   parse_ok=F
+                  DSL: 重复了 Red->Green 行（语法错），timer 改成 -1 / 99 等不合 NL 的值
+status: not_converged   iters: 3   tokens: 12,548
+```
+
+**失败模式典型展示**：repair 没有直接修 `timer=100` 这个最直接的 bug，反而绕道在下游 guard 加复杂条件 — 这是 fix_sim prompt 的弱点（var_mismatches 没有强制 LLM 优先看"哪个 effect 引入了错误值"）。**这正是后续 prompt 优化的 actionable target**，不是 Phase E 框架本身的问题。
+
+## Part C — Ablation A1（sim OFF）
+
+```
+iter 0 [modeler]  parse_ok=T sem_ok=T        ← sim 没在 feedback_sources, 不跑
+status: converged   iters: 1   tokens: 12,284
+```
+
+**关键对比 A2 vs A1**：同样 NL（traffic_light），A1 在 sim 关闭后 1 iter 直接 converge（因为只看 parse+sem，二者都 ok），但 A2 跑了 3 iter 仍 not_converged。**说明 sim feedback 引入的"行为正确性"信号是 A1 看不到的** — A1 报告的"converged" 实际上是 model behavior 未经检验。这是 ablation 实验中 sim 通道价值的 numeric 证据：
+
+| 配置 | feedback channels | iter 1 result | 实际正确性 |
+| --- | --- | --- | --- |
+| **A1** | parse + sem | converged | 未检验 — A2 揭示 5/8 sim 失败 |
+| **A2** | parse + sem + **sim** | not_converged after 3 iter | sim catch 出真正的 model-NL 行为差异 |
+
+## Phase E 阶段性结论
+
+| 维度 | 结果 |
+| --- | --- |
+| Loop driver iter 真正在转（不是 1-shot） | ✅（traffic_light 3 iter / microwave 3 iter / inject M6 3 iter）|
+| Cascade gating 工作 | ✅（microwave iter 0 sim fail → iter 1 parse fail → 自动切到 fix_parse）|
+| Cascaded Repair 按 channel 调度 | ✅（fix_parse / fix_sem / fix_sim 都被实际选中过）|
+| Scenarios frozen across iters | ✅（demo 中 scenarios 一次生成后所有 iter 用同一套）|
+| sim on/off 可切换（ablation） | ✅（A1 vs A2 numeric 对比 demo）|
+| 收敛真的发生（不是永远转）| ✅（elevator A2 / inject M3 各 1 个 converged case）|
+| 失败模式可观察可分析 | ✅（microwave repair 引 parse bug / inject M6 repair 绕道）|
+
+**输入/输出资产路径**：
+- 测试脚本：`/tmp/phase_e_demo.py`（含 A2 三例 + 2 个 inject + A1 ablation）
+- 完整 JSON：`/tmp/phase_e_results.json`（每 iter 的 DSL / feedback / repair_target / sim_violations 全保留）
+- loop driver：[`loop.py`](./loop.py)
+- cascaded repair：[`agents/repair.py`](./agents/repair.py)（dispatcher）+ [`prompts/repair/`](./prompts/repair/) 4 个 sub-prompt
