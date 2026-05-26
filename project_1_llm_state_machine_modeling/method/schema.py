@@ -125,22 +125,62 @@ class SemanticFeedback:
 
 
 @dataclass
-class SimFeedback:
-    """Output of ``pyfcstm.simulate.SimulationRuntime`` execution.
+class TestScenario:
+    """A single model-level test scenario (analogous to MTI 三元组 / BDD case).
 
-    ``ok=True`` iff at least one full cycle ran without triggering safety limits
-    (1000 steps / 64 stack depth) and without ``SimulationRuntimeDfsError``.
+    Represents "given this initial setup, after these events, the model should
+    end in this state with these variables set this way". The sim wrapper
+    feeds this into pyfcstm ``SimulationRuntime``, and any deviation between
+    predicted (``expected_*``) and actual (post-sim) state/vars becomes a
+    SimFeedback violation.
+    """
+
+    name: str = ""
+    description: str = ""
+    initial_vars: dict[str, Any] = field(default_factory=dict)  # {} = use def defaults
+    events: list[str] = field(default_factory=list)  # full event paths, e.g. ["System.Reset"]
+    cycles_between_events: int = 1  # gap cycles in between each event injection
+    extra_cycles_after_events: int = 0  # extra cycles to run after the last event
+    expected_final_state: str = ""  # ".".join(state.path), e.g. "System.Red"
+    expected_vars: dict[str, Any] = field(default_factory=dict)  # subset of vars to assert
+
+
+@dataclass
+class ScenarioViolation:
+    """One scenario fired against the model and the result didn't match expected."""
+
+    scenario_name: str = ""
+    expected_state: str = ""
+    actual_state: str = ""
+    state_matches: bool = False
+    expected_vars: dict[str, Any] = field(default_factory=dict)
+    actual_vars: dict[str, Any] = field(default_factory=dict)
+    var_mismatches: dict[str, dict[str, Any]] = field(default_factory=dict)  # {var: {expected, actual}}
+    runtime_error: Optional[str] = None  # set if sim raised an exception mid-run
+
+
+@dataclass
+class SimFeedback:
+    """Output of ``pyfcstm.simulate.SimulationRuntime`` execution against a scenario suite.
+
+    ``ok=True`` iff every scenario fires cleanly (no DfsError, no safety limit
+    hit) AND every scenario's expected state + vars match the actual post-sim
+    state/vars. Without scenarios (when ``scenarios`` arg is empty), this
+    degrades to a basic sanity check: parse + sem OK + at least one cycle
+    runs without DfsError.
     """
 
     ok: bool = False
     cycles_completed: int = 0
+    n_scenarios: int = 0
+    n_scenarios_passed: int = 0
+    scenario_violations: list[ScenarioViolation] = field(default_factory=list)
     unreachable_states: list[str] = field(default_factory=list)
     deadlocks: list[dict[str, Any]] = field(default_factory=list)
     safety_limit_hit: bool = False
     dfs_error_class: Optional[str] = None
     dfs_error_message: Optional[str] = None
-    witness_path: list[str] = field(default_factory=list)
-    reach_rate: float = 0.0  # fraction of defined states reachable from initial
+    setup_error: Optional[str] = None  # parse/sem failed before sim could start
 
 
 @dataclass

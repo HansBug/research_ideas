@@ -15,7 +15,7 @@
 | **D (修订)** | **parse + semantic feedback wrappers**（2 个 property-independent deterministic feedback）<br>`feedback/parse.py`：包 `pyfcstm.dsl.parse_with_grammar_entry`，从 `GrammarParseError.errors` 抽 line/col/got/snippet<br>`feedback/semantic.py`：包 `pyfcstm.model.parse_dsl_node_to_state_machine`，用 regex 从 SyntaxError message 分类 (undefined_vars / missing_states / dangling_transitions / type_mismatches) | ✅ 完成 (smoke verified：good DSL ok / parse_bad 给出 line+col+got+snippet / sem_bad 抽出 undefined_var) |
 | **E** | loop.py 主驱动 + gated cascade 合并 + iter 控制 + **modeling_mode CLI flag (single_prompt vs multi_step)** | 未开工 |
 | **F** | **Multi-step modeling 模块**（基于用户硕士论文 MTI 方法学）：拆 6 步 (identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm)；step 之间通过 JSON 上下文传递；每步 prompt 含统一 **7 段式骨架**（task / requirements / 上游 list / 本步任务 / domain knowledge / format / constraint / 起手占位） | ✅ 完成 (端到端 smoke：6 步流水 9850 tokens → pyfcstm DSL parse + sem 全通过；输出比 single-prompt 更紧凑，用 `! * -> Red :: Reset` 1 行代替 single-prompt 的 3 行；effect 自动移到 target state 的 enter action) |
-| **G (修订 — 与 sim 配对，framing 校正)** | **Model test scenario generation + sim feedback 配对实现**：<br>**注意**：这里的 "scenario" / "property" 是 **model test case**（约定输入下的期望行为），**不是形式化验证的 LTL / CTL 性质**。框架对标 MTI 的 BDD scenario 三元组思路 — sim 是"用模型仿真代替代码运行的 testcase 执行环境"。<br><br>(1) test scenario generation 子模块（3 步流水，对应 MTI 论文的 mapping → Gherkin → 三元组）：<br>　• `elements_mapping`：NL requirement → 涉及的 model 元素 (states / events / variables) 子集<br>　• `scenario_generation`：基于 mapping 生成 Gherkin (Given/When/Then) 人类可读场景，覆盖关键 transition + edge case<br>　• `structure_scenario`：Gherkin → 三元组 mini-DSL `[s-InitialState, e-Event1, e-Event2, ..., expected: s-FinalState, v-Var=Val]`（机器可执行）<br><br>(2) `feedback/sim.py`：把三元组 scenario 喂给 `SimulationRuntime` — 用 initial_state 做 hot start，按 event_sequence 跑 `cycle(events=...)`，对比 `runtime.current_state` / `runtime.vars` vs scenario 中的 expected_final_*，输出 SimFeedback（`scenario_violations` / `unreachable_states` / `deadlocks` / `safety_limit_hit` / `SimulationRuntimeDfsError`）<br><br>**核心 framing**：单靠 sim 跑空 cycle 只能 verify "不死锁 / 状态可达"；要 verify "model 行为是否符合 NL 需求"，必须有 "NL → scenario (expected behavior) → sim 执行验证" 的 oracle 链。这是**用模型仿真做 testcase 验证**而不是 model checking | 未开工 |
+| **G (修订 — 与 sim 配对，framing 校正)** | **Model test scenario generation + sim feedback 配对实现**：<br>**注意**：这里的 "scenario" / "property" 是 **model test case**（约定输入下的期望行为），**不是形式化验证的 LTL / CTL 性质**。框架对标 MTI 的 BDD scenario 三元组思路 — sim 是"用模型仿真代替代码运行的 testcase 执行环境"。<br><br>(1) test scenario generation 子模块（**v4.2 简化为 1 步**：NL + model elements → JSON scenarios；MTI 3 步对照保留为 future work）：<br>　• `agents/scenariogen/generate.py` + `prompts/scenariogen/generate_scenarios.txt`<br><br>(2) `feedback/sim.py`：把 scenario 喂给 `SimulationRuntime` — 用 initial_vars 做 hot-start（cycle 1 + 后续 mutate `runtime.vars`），按 events 跑 `cycle(events=...)` 含 cycles_between/extra_cycles 配置，对比 `runtime.current_state` / `runtime.vars` vs scenario expected，输出 SimFeedback（`scenario_violations` / `unreachable_states` / `safety_limit_hit` / runtime_error）<br><br>**核心 framing**：单靠 sim 跑空 cycle 只能 verify "不死锁 / 状态可达"；要 verify "model 行为是否符合 NL 需求"，必须有 "NL → scenario (expected behavior) → sim 执行验证" 的 oracle 链。这是**用模型仿真做 testcase 验证**而不是 model checking | ✅ 完成（3 NL examples + 3 buggy variants 全验证，详见 [EXAMPLES.md](./EXAMPLES.md)）|
 | **H** | judge feedback (ex1 ExpertReviewAgent adapter) — rubric 5 维 semantic 评分 | 未开工 |
 | **I** | eval/component_extractor.py (Umple / pyfcstm 抽 7 类组件，Path 1 评测用) | 未开工 |
 | **J** | 端到端验收：single_prompt vs multi_step 对比跑、生成模型 + property 例子写进 README/STATUS、PR mark Ready for Review | 未开工 |
@@ -59,12 +59,26 @@ Phase G 的待验证性质 generation 必须设计为可被 pyfcstm `SimulationR
 
 **核心 framing**：单靠 pyfcstm sim 跑空 cycle 只能 verify "不死锁 / 状态可达"；要 verify "model 行为是否符合 NL 需求"，必须有"NL 需求 → 期望行为 → sim 验证" 的 oracle 链。Phase G 就是补这条链。
 
+## Phase G 验收证据（2026-05-26）
+
+| 维度 | 数据 |
+| --- | --- |
+| Part A 真实 NL 例子 | 3 个 (traffic_light, microwave, elevator_3floor) — 详见 [EXAMPLES.md §Part A](./EXAMPLES.md#part-a--3-个-nl-控制系统真实端到端跑通) |
+| Part A model 全 parse+sem | 3/3 ✅ |
+| Part A sim scenario pass rate | traffic_light 2/7, microwave 4/7, **elevator 8/8** ✅ |
+| 失败 scenarios 性质 | 绝大多数是 LLM scenario writer 的 cycle timing off-by-one bias（不是 model bug），是个有价值的 finding |
+| Part B mutation detection | 3/3 buggy variants 都被 sim caught — 详见 [EXAMPLES.md §Part B](./EXAMPLES.md#part-b--mutation-detection验证-sim-检测-model-bug-的能力) |
+| Part B mutation 覆盖维度 | state-mismatch / runtime_error / var-mismatch 3 类 |
+
 ## 历史 commit
 
 | commit | 描述 |
 | --- | --- |
 | `6e...` | Phase A-C：脚手架 + pyfcstm submodule + 3 single-prompt agent + 端到端 smoke 跑通 |
-| (待填) | Phase D-I |
+| `2447ad8a` | Phase D 完成（parse + sem feedback wrappers 含 smoke 通过）+ STATUS v3（D 拆分 + Phase G framing 校正）|
+| `f28c99b2` | Phase F multi-step MTI 端到端跑通 + 修 forced-effect grammar bug |
+| (待填) | Phase G 完成（scenariogen + sim feedback + EXAMPLES.md 含 3 NL + 3 buggy mutation 验收）|
+| (待填) | Phase E / H / I / J |
 
 ## Phase A-C 完成里程碑
 
