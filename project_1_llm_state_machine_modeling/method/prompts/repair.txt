@@ -81,12 +81,20 @@ A -> B :: Tick : if [counter > 0];                   // ✗ same (with explicit 
 A -> B if [counter > 0];                             // ✗ guard MUST have leading `:`
 ```
 
-### Forced transitions (`!` prefix) — same SCOPE / EFFECT rules
+### Forced transitions (`!` prefix) — same SCOPE rules, **NO effect block**
 
 ```
 ! Source -> Target :: Event;                  // descendants of Source → Target on Event
 ! * -> ErrorHandler :: Error;                 // ANY descendant → ErrorHandler on Error
 ! * -> ErrorHandler : if [error_flag > 0];    // ANY descendant → ErrorHandler when guard true
+```
+
+**CRITICAL — forced transitions DO NOT support `effect { ... }` blocks**
+(grammar terminates them with `;` only). If you need side-effects, move them
+to the target state's `enter { ... }` action:
+```
+// WRONG:  ! * -> Red :: Reset effect { timer = 0; };
+// RIGHT:  state Red { enter { timer = 0; } } + ! * -> Red :: Reset;
 ```
 
 ### Variable expressions inside guards / effects

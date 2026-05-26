@@ -114,7 +114,7 @@ A -> B : if [tick_seen >= 1 && counter > 0] effect { tick_seen = 0; };
 (or restructure: bring the event into the model only as an indicator variable
 that ``during`` increments, then transition on the variable.)
 
-### 6. Forced transitions (`!` prefix) — same SCOPE / EFFECT rules
+### 6. Forced transitions (`!` prefix) — same SCOPE rules, **NO effect block**
 
 ```
 ! Source -> Target :: Event;                  // any descendant of Source → Target on Event
@@ -124,6 +124,17 @@ that ``during`` increments, then transition on the variable.)
 
 Forced transitions are auto-expanded by the pyfcstm model layer to every
 applicable descendant — write it ONCE.
+
+**CRITICAL — forced transitions DO NOT support `effect { ... }` blocks** (grammar
+enforces termination with `;` only). If you need side-effects on the global
+escape, put them in the target state's `enter { ... }` lifecycle action:
+
+```
+// WRONG:  ! * -> Red :: Reset effect { timer = 0; };
+// RIGHT:
+state Red { enter { timer = 0; } }
+! * -> Red :: Reset;
+```
 
 ### 7. Variable expressions inside guards / effects
 
