@@ -4,7 +4,7 @@
 >
 > **前置阅读**：先读 [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则），再读本文件。
 >
-> **版本**：v3（2026-05-26 sprint 开工前定稿；v2→v3 主要加 §1.2 完整 6-baseline 对比表 + §1.3 学术合法性论证 + .env source 标准）
+> **版本**：v4（2026-05-27 — PR #11 共同基础落地后定稿；method/ + eval/ 全套实装完成，Phase H judge 跳过，5-intrinsic 简化为 4-intrinsic + 可选 audit-trail 抽查）
 
 ## 1. 路线定位
 
@@ -12,7 +12,9 @@ Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 i
 
 如果这条路最终被选定为正式 paper 方向，paper 主卖点将是：
 
-> "We tackle NL-to-STM generation for real industrial control system requirements, where canonical reference STMs do not exist. Several recent works have already integrated in-loop feedback into LLM-based STM generation: rule-based grammar/semantics checks (llms_emp), JSON/syntax/constraint checks with TTool simulator (ttool-ai), and softPLC simulation with human-in-the-loop comments (IEC 61499). **However, no existing work integrates (i) parse + semantic + simulation + reachability witness as a unified deterministic verifier signal, (ii) LLM-as-judge as in-loop semantic feedback, and (iii) speculative validation from the runtime, all in a fully automated, no-human-in-the-loop pipeline targeting industrial control system NL.** We propose (a) an agent loop architecture with the above three components and (b) a reference-free intrinsic + judge evaluation protocol. On a 20-case T0 subset of [sources/](../sources/) (real industrial control NL from 9 domains), our method lifts the 5-metric mean from $X$ to $Y$, with the largest gains on `SimRate` (+$Z$pp) and `ReachabilityRate` (+$W$pp)."
+> "We tackle NL-to-STM generation for real industrial control system requirements, where canonical reference STMs do not exist at scale. Several recent works have already integrated in-loop feedback into LLM-based STM generation: rule-based grammar/semantics checks (llms_emp), JSON/syntax/constraint checks with TTool simulator (ttool-ai), and softPLC simulation with human-in-the-loop comments (IEC 61499). **However, no existing work integrates (i) parse + semantic + simulation as a unified deterministic verifier signal with scenario-based bug-finding probes via mutation-coverage self-validation, and (ii) speculative validation from the runtime, all in a fully automated, no-human-in-the-loop pipeline targeting industrial control system NL.** We propose (a) an agent loop architecture with the above two components and scenariogen self-managed mutation coverage as in-loop bug-finding probes, and (b) a reference-free 4-intrinsic evaluation protocol with optional small-scale audit-trail calibration. On a 20-case T0 subset of [sources/](../sources/) (real industrial control NL from 9 domains, stratified across FSM/EFSM/HSM), our method lifts the 4-intrinsic mean from $X$ to $Y$, with the largest gains on `SimRate` (+$Z$pp) and `ReachabilityRate` (+$W$pp)."
+
+> **v4 修订说明**：原 v3 主卖点含 "(ii) LLM-as-judge as in-loop semantic feedback" 和 "5-metric mean (含 JudgeScore)"；sprint 决定 Phase H (judge) 跳过 — 已实装的 3 个 deterministic feedback channel (parse + sem + sim) 加上 Phase E v3 (f) scenariogen 自管 6-mutation 覆盖率自检足以支撑 sprint 决策信号，judge 留作正式 paper 阶段补充。intrinsic 也相应从 5 个简化为 **4 个**（去 JudgeScore），并保留 [`../eval/`](../eval/) audit-trail manual-eval 基础设施作为可选的小规模校准信号（验证 intrinsic 与人类金标准 F1 的 Pearson 相关性）。
 
 ### 1.1 与 6 个主力 baseline 的方法学差异化（v3 新增）
 
@@ -31,20 +33,23 @@ Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 i
 
 **关键观察**：6 个 baseline 中，3 个已有 in-loop feedback（#2 llms_emp / #3 IEC 61499 / #6 ttool-ai）。"我们 first to do in-loop feedback" 不成立。但是：
 
-1. **没有任何 baseline 同时做 5 路并列反馈**：parse + semantic + sim + reachability witness + LLM judge。llms_emp 只 a+b（grammar / semantics rule-based），ttool-ai 主要 a+b（JSON / syntax），IEC 61499 主要 c（simulation 但需人介入）。
-2. **没有任何 baseline 做 reachability witness in loop**：pyfcstm `topology` 子包独有。witness 不只是 boolean "状态 X 不可达"，还含从 initial state 到达失败原因的具体 transition 链。
+1. **没有任何 baseline 同时做 parse + semantic + sim 三路并列反馈**：llms_emp 只 a+b（grammar / semantics rule-based），ttool-ai 主要 a+b（JSON / syntax），IEC 61499 主要 c（simulation 但需人介入）。Path 2 sprint 做的是 parse + sem + sim 三路 + **scenariogen 自管 6-mutation 覆盖率自检** 作为 in-loop bug-finding probes，覆盖 syntax / semantics / executability / bug-detection 4 个正交维度。
+2. **没有任何 baseline 做 scenario-based mutation-aware bug-finding probes in loop**：PR #11 Phase E v3 (f) 实装的 `method/scenariogen_validate.py` 在 scenariogen 之后自动对 model 应用 6 类典型 LLM bug 突变 (M1-M6) 跑 sim 自检覆盖率，覆盖率不足时 directive 反馈让 scenariogen 补 probes。这是工具链独有能力。
 3. **没有任何 baseline 做 speculative validation from runtime**：pyfcstm `SimulationRuntime` 在 execute transition 前 speculatively validate，其他工具链不给。
 4. **没有任何 baseline 做 fully automated control system NL-to-STM**：IEC 61499 是唯一做控制系统 + simulation feedback，但需要人类评论介入；其他 baseline 不做控制系统（家电 / domain model / 通用 reactive system / 系统级 spec）。
 5. **没有任何 baseline 提出 reference-free evaluation protocol**：所有 baseline 都依赖 reference STM 做 F1 评测。控制系统真实场景下不存在 canonical reference STM（同一需求可对应多个等价 STM），ref-based F1 在 construct level 就不成立。
 
-### 1.3 我们的 6 条核心创新点（paper §1 contributions 直接复用）
+> **关于 reachability witness 与 LLM-as-judge 的两条**：原 v3 §1.2 把 "Reachability witness in loop" 和 "LLM-as-judge as in-loop semantic feedback" 列为我们的差异化点。v4 sprint 阶段两者均未实装：reachability witness 接口 (`pyfcstm.topology`) 主要在 dev 分支有，sprint 不依赖；LLM-as-judge (Phase H) 跳过。两者保留为 paper §3 method discussion 中的"工具链 ready，已规划但 sprint 范围外"列项，正式 paper 阶段补做。
 
-1. **In-loop multi-source deterministic verifier feedback**：parse + semantic + simulation + reachability witness 4 路并列接入 generation loop，覆盖 syntax / semantics / executability / coverage 4 个正交维度。
+### 1.3 我们的 5 条核心创新点（paper §1 contributions 直接复用）
+
+> **v4 修订**：原 v3 含 6 条 contribution；C3 (Reachability witness as structured prompt input) 与 C5 (LLM-as-judge as in-loop semantic feedback) 因 sprint 未实装暂时移出 sprint-evidence 范围（保留作 paper §3 method discussion 中的工具链 ready 列项 + future work 占位）。sprint 实证以 C1 / C2 / C3 / C4 + scenariogen 自管 6-mutation 为主。
+
+1. **In-loop multi-source deterministic verifier feedback**：parse + semantic + simulation 三路并列接入 generation loop，覆盖 syntax / semantics / executability 3 个正交维度。
 2. **Fully automated no-human-in-the-loop**：IEC 61499 需要人类评论介入；ttool-ai 评分含教师 rubric；我们 fully automated 跑完 $N=3$ 轮。
-3. **Reachability witness as structured prompt input**：pyfcstm `topology` 提供，含具体不可达原因的 transition 链作为 LLM 修复输入。所有 baseline 都不做。
+3. **Scenariogen self-managed mutation coverage as in-loop bug-finding probes**（v4 新加，Phase E v3 (f) 实装）：scenariogen 后跑 6-mutation 覆盖率自检，覆盖率不足自动 retry。所有 baseline 都不做这种"以 mutation 覆盖率反向驱动 scenario 充分性"的反馈环。
 4. **Speculative validation from runtime**：pyfcstm `SimulationRuntime` 直接给，PlantUML / Umple / Mermaid / TTool 都不直接给。
-5. **LLM-as-judge as in-loop semantic feedback (not standalone evaluator)**：借 [project_ex1](../../project_ex1_llm_judge_for_stm/) `ExpertReviewAgent` 作为 5 维 rubric semantic feedback，与 deterministic verifier 并列。所有 baseline 不把 LLM judge 用作 in-loop feedback。
-6. **Reference-free intrinsic + judge evaluation protocol**：5 个 intrinsic 指标 + judge rubric，**这一条本身可作为独立 contribution 发表**，独立于具体 agent loop architecture。
+5. **Reference-free 4-intrinsic + optional audit-trail calibration evaluation protocol**：4 个 intrinsic 指标（去 JudgeScore）+ 可选的小规模 LLM-初审-人类签字 audit-trail 抽查作为 intrinsic 可信度桥。**这一条本身可作为独立 contribution 发表**，独立于具体 agent loop architecture。
 
 ### 1.4 与 Umple 的差异化（方向定后 paper §3 用）
 
@@ -59,30 +64,36 @@ Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 i
 git branch --show-current
 # 应该输出: dev/path2-differentiation
 
-# 2. 确认 method/ 共同基础已 fork 自 main
-ls project_1_llm_state_machine_modeling/method/ 2>/dev/null
-# 应该有: agents/ feedback/ loop.py schema.py prompts/ gpt_client.py
+# 2. 确认 method/ + eval/ 共同基础已 fork 自 main
+ls project_1_llm_state_machine_modeling/method/ project_1_llm_state_machine_modeling/eval/ 2>/dev/null
+# method/: agents/ feedback/ loop.py schema.py prompts/ gpt_client.py scenariogen_validate.py
+# eval/:   PROTOCOL.md extract/ annotate/ review/ aggregate.py report.py demo/ data/
 
 # 3. 确认 pyfcstm 已安装
 python -c "from pyfcstm.dsl import parse_with_grammar_entry; print('ok')"
 python -c "from pyfcstm.simulate import SimulationRuntime; print('ok')"
 
-# 4. 确认 ex1 ExpertReviewAgent 可 import
-python -c "import sys; sys.path.insert(0, 'project_ex1_llm_judge_for_stm/src'); from expert_review.agent import ExpertReviewAgent; print('ok')"
+# 4. (Phase H 跳过) 原 v3 要求 ex1 ExpertReviewAgent 自检 — sprint 不做，跳过此步
+#    若方向定后补 Phase H 时再 verify:
+#    python -c "import sys; sys.path.insert(0, 'project_ex1_llm_judge_for_stm/src'); from expert_review.agent import ExpertReviewAgent; print('ok')"
 
-# 5. 确认 LLM env 三件套已 source 到当前 shell 环境变量
+# 5. 确认实验主路 LLM env 三件套已 source
 # 调用前必须先：source .env（仓库根，已 gitignore）
 # 代码绝不直接读取 .env 文件本身，只读 os.environ
 [ -n "$LLM_ENDPOINT" ] && [ -n "$LLM_API_KEY" ] && [ -n "$LLM_MODEL" ] && echo "env ok"
 # 若 ok 不出现，shell 里跑：source .env  然后重试
-# proxy 是 OpenAI-compatible，所有 vendor (GPT/Claude/Qwen/DeepSeek) 统一走这一个 endpoint
+# 该 proxy 是 OpenAI-compatible，sprint 实验主路 (method/loop) 走这一个 endpoint；
 # 切换 model 只改 LLM_MODEL 环境变量，不动 client 代码
 
-# 6. 查 sprint 进度
+# 6. (可选) 确认评测 annotator CLI — 仅在跑 §6 audit-trail 抽查时需要
+[ -n "$CLAUDE_CMD" ] && [ -n "$CLAUDE_MODEL" ] && [ -n "$CODEX_CMD" ] && [ -n "$CODEX_MODEL" ] && echo "annotator env ok"
+which claude codex
+
+# 7. 查 sprint 进度
 cat project_1_llm_state_machine_modeling/method/STATUS.md 2>/dev/null || echo "no STATUS yet"
 ```
 
-若 1-5 任一不通过，**停下来**，先确认 main 上 Phase 0-3 是否已稳定 — Path 2 branch 不应当独立做共同基础。
+若 1-3、5 任一不通过，**停下来**，先确认 main 上 PR #11 是否已合入 + 本 branch 是否已 rebase 到 main — Path 2 branch 不应当独立做共同基础。第 6 步仅在跑可选 audit-trail 抽查时是阻塞条件。
 
 ## 3. 数据规则（T0 硬约束 + 3 桶分层）
 
@@ -107,67 +118,75 @@ cat project_1_llm_state_machine_modeling/method/STATUS.md 2>/dev/null || echo "n
 筛完后落到：
 
 ```text
-reproduction/data/derived/path2_t0_subset.parquet
+project_1_llm_state_machine_modeling/eval/data/sources_path2.parquet
 ```
 
 schema：
 
 ```text
 columns:
+- case_id: str  # sources/<dir-name> slug
 - source_dir: str  # sources/<dir-name>/
-- nl_input: str  # 取 STM.md §2 整理后的自然语言描述
-- stm_md_path: str  # 引用，方便 traceback
+- nl_text: str  # 取 STM.md §2 整理后的自然语言描述
+- stm_md_path: str  # 反向到 sources/<dir>/STM.md 的指针
 - bucket: str  # "FSM-basic" | "EFSM-interlock" | "HSM-layered"
-- aa_t0_flag: str  # 双 A T0 标签（"AA-T0"）
+- rating: str  # 🟢
+- time_level: str  # T0
 - meta: dict  # {domain, n_states_estimate, has_hierarchy, ...}
 ```
 
 ## 4. method/ 共同基础调用方式
 
-Phase 0-3 在 main 上稳定后，Path 2 sprint 跑两个 method 标签：
+Phase 0-3 已在 main 上落地（PR #11 commit `ff1e90ff`），Path 2 sprint 跑两个 method 标签：
 
 ### 4.1 `A0_baseline` — Path 2 的对照 baseline
 
 Path 2 主对手不是单独某个 baseline 论文的方法（详见 §1.1-§1.3 学术合法性论证），而是**展示我们在 reference-free intrinsic 上对 A0 single-prompt 的 lift**，作为 method efficacy 的内部对照。
 
 ```python
-from method.loop import run_agent_loop, LoopConfig
+from method.loop import run_agent_loop
+from method.schema import LoopConfig
 
 result = run_agent_loop(
-    nl_input=row["nl_input"],
+    nl=row["nl_text"],
     config=LoopConfig(
-        condition="A0",  # single-prompt 直出 pyfcstm DSL，不接 feedback / repair
+        condition="A0",
         n_iter=1,
         feedback_sources=[],
+        modeling_mode="single_prompt",   # 等价 single-prompt baseline
         # llm_model 默认 None；走 env LLM_MODEL
     ),
 )
 ```
 
-### 4.2 `A4_ours` — 我们的 full agent loop
+### 4.2 `A_full_ours` — 我们的 full agent loop（无 judge）
 
 调用 method/ 共同基础（与 Path 1 完全一致的接口）：
 
 ```python
-from method.loop import run_agent_loop, LoopConfig
-from method.schema import AgentLoopResult
+from method.loop import run_agent_loop
+from method.schema import LoopConfig, AgentLoopResult
 
 result: AgentLoopResult = run_agent_loop(
-    nl_input=row["nl_input"],
+    nl=row["nl_text"],
     config=LoopConfig(
-        condition="A4",
+        condition="A_full",
         n_iter=3,
-        feedback_sources=["parse", "semantic", "sim", "judge"],
+        feedback_sources=["parse", "semantic", "sim"],   # Phase H (judge) 跳过
+        modeling_mode="multi_step",                       # MTI 6-step
         # llm_model 默认 None；走 env LLM_MODEL
     ),
 )
+# result.scenariogen_coverage  含 Phase E v3 (f) 的 6-mutation 覆盖率自检结果
 ```
 
-Path 2 特有：**不需要 reference**，因此 LoopConfig 里 `reference_dsl=None`，evaluation 走 intrinsic 而非 component F1。
+Path 2 特有：**不需要 reference**，evaluation 走 4-intrinsic（parse / sem / sim / reach）而非 component F1。可选 §6 audit-trail 抽查时使用 [`../eval/`](../eval/) 基础设施做小规模 manual eval 校准。
 
-### 4.3 `method/gpt_client.py` 统一 LLM client（v3 新增 — 必须实现在 Phase 0）
+### 4.3 `method/gpt_client.py` 统一 LLM client（Phase 0 已实装于 PR #11）
 
-所有 LLM 调用（spec / model / repair / judge / NL summary）**全部走这一个 client**。
+实验主路所有 LLM 调用（spec / model / repair / NL summary）**全部走这一个 client**。
+
+**评测 annotator 例外**：[`../eval/annotate/{claude,codex}.py`](../eval/annotate/) 走 `claude` / `codex` CLI subprocess，不经 `gpt_client`；仅在 §6 可选 audit-trail 抽查时用到，配置项是 `.env` 里独立的 `CLAUDE_CMD/MODEL` + `CODEX_CMD/MODEL` 四件套。详见 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) §1.2。
 
 **约束**：代码**绝不**用 `python-dotenv` 或其他方式直接读 `.env` 文件；只读 `os.environ`。运行前由 shell `source .env` 把三件套加载到环境变量。
 
@@ -188,7 +207,9 @@ def get_default_model() -> str:
     return os.environ["LLM_MODEL"]  # 同样 fail loudly，不允许 silent fallback
 ```
 
-切换模型（GPT-5.5 → GPT-5.4 → Claude → Qwen → DeepSeek）**只需要改 .env 的 LLM_MODEL 然后重新 source .env**，代码完全不动。
+切换实验主路模型（GPT-5.5 → GPT-5.4 → ...）**只需要改 .env 的 LLM_MODEL 然后重新 source .env**，代码完全不动。
+
+> **proxy 模型覆盖说明**：当前 LLM_ENDPOINT 提供的 OpenAI-compatible 代理只挂 GPT 系列。cross-vendor sanity 跑 Claude 不在 sprint 范围。
 
 ## 5. 实验脚本 `method/run_path2.py`
 
@@ -201,21 +222,23 @@ source .env
 
 # 然后跑 run_path2（model 走 env LLM_MODEL，CLI 不需要传）
 python -m method.run_path2 \
-  --t0-subset reproduction/data/derived/path2_t0_subset.parquet \
-  --methods A0_baseline,A4_ours \
+  --samples project_1_llm_state_machine_modeling/eval/data/sources_path2.parquet \
+  --methods A0_baseline,A_full_ours \
   --n-iter 3 \
-  --out reproduction/results/sprint_path2/predictions.parquet \
+  --out project_1_llm_state_machine_modeling/eval/results/sprint_path2/predictions.parquet \
   --resume
 ```
 
 method 字段映射（在 run_path2.py 内部分发）：
 
-- `A0_baseline` → `method.loop.run_agent_loop(condition="A0", n_iter=1, feedback_sources=[])`
-- `A4_ours` → `method.loop.run_agent_loop(condition="A4", n_iter=3, feedback_sources=["parse","semantic","sim","judge"])`
+- `A0_baseline` → `method.loop.run_agent_loop(nl=..., config=LoopConfig(condition="A0", n_iter=1, feedback_sources=[], modeling_mode="single_prompt"))`
+- `A_full_ours` → `method.loop.run_agent_loop(nl=..., config=LoopConfig(condition="A_full", n_iter=3, feedback_sources=["parse","semantic","sim"], modeling_mode="multi_step"))`
 
 实现要点与 Path 1 一致（checkpoint + 失败容忍 + token tracking）。
 
-## 6. 5 个 Intrinsic 指标定义与计算
+## 6. 4 个 Intrinsic 指标定义与计算（+ 可选 audit-trail 抽查）
+
+> **v4 修订**：原 v3 列 5 个 intrinsic 含 `JudgeScore`；sprint 跳 Phase H (judge)，简化为 4 个 + 可选的小规模 manual eval 抽查（用 [`../eval/`](../eval/) 基础设施做 intrinsic-vs-manual 校准）。
 
 ### 6.1 `ParseRate`
 
@@ -247,13 +270,33 @@ $$\text{ReachabilityRate} = \frac{1}{|N''|} \sum_{i \in N''} \text{ReachRate}_i$
 
 其中 $N''$ 是 SemValid 通过的样本集合。实现：调用 `pyfcstm.topology` 子包的 reachability API。
 
-### 6.5 `JudgeScore`
+### 6.5 `JudgeScore`（**Phase H 跳过，sprint 不算**）
 
-调用 [project_ex1 ExpertReviewAgent](../../project_ex1_llm_judge_for_stm/src/expert_review/agent.py)，把 pyfcstm DSL 渲染回 NL summary 后送 judge，输出 rubric 5 维总分（0-1）。
+> **v4 修订**：原 v3 把 JudgeScore 列为第 5 个 intrinsic（基于 [project_ex1 ExpertReviewAgent](../../project_ex1_llm_judge_for_stm/src/expert_review/agent.py) 的 rubric 5 维总分）。sprint Phase H 跳过 — 既因 ex1 ExpertReviewAgent adapter 尚未实装，也因 LLM-as-judge 的可信度需要 inter-rater agreement / drift 控制等独立配套实验才能站得住，超 sprint 范围。
+>
+> sprint 4-intrinsic mean = `(ParseRate + SemValidRate + SimRate + ReachabilityRate) / 4`。
+>
+> JudgeScore 留作正式 paper 阶段补充（可作为单独 contribution 发表"in-loop LLM judge 作为 STM 评测信号的方法与可信度评估"）。
 
-$$\text{JudgeScore} = \frac{1}{N} \sum_{i=1}^{N} \text{rubric\_total}_i$$
+### 6.6 可选 audit-trail 小规模抽查（intrinsic 可信度桥）
 
-**所有样本都参与**（含 parse 失败的样本，judge 直接打 0），因为 judge 的 input 是"DSL 文本"而非"可执行模型"。
+从 20 cases 抽 3-5 case 走 [`../eval/`](../eval/) LLM-初审 + 人类签字 5-component manual eval，把抽查得到的人类 F1 与对应 sample 的 4-intrinsic mean 算 Pearson 相关：
+
+```bash
+# 抽 3 case
+PYTHONPATH=. python eval/demo/run_demo.py \
+  --cases case_a,case_b,case_c \
+  --conditions A_full_ours \
+  --component-kinds states,transitions,guards,actions,hierarchical_states
+
+# 你签字 eval/review/packs/<case>/A_full_ours/{states,...}.md
+
+PYTHONPATH=. python eval/demo/finalize_after_signoff.py
+# eval/results/full_annotations.parquet 与 sprint_path2/predictions.parquet 按 case_id join，
+# 算 Pearson(intrinsic_4_mean, manual_macro_F1)
+```
+
+只在 intrinsic lift 显著 + 想验证可信度时做；不是 sprint 强制步骤，但能为 paper 提供"reference-free intrinsic 与 manual gold 相关性"的实证桥（这是 §1.3 contribution 5 "reference-free protocol" 的可信度支撑）。
 
 ## 7. 结果落盘 schema
 
@@ -264,14 +307,14 @@ columns:
 - case_id: str  # source_dir 的 slug
 - source_dir: str
 - bucket: str
-- method: str  # "A0_baseline" | "A4_ours"
+- method: str  # "A0_baseline" | "A_full_ours"
 - model: str  # 实际跑的 LLM_MODEL 值
 - final_dsl: str
 - iter_traces: list[dict]
+- scenariogen_coverage: list[dict]  # Phase E v3 (f) 6-mutation 覆盖率自检（仅 A_full_ours 非空）
 - token_usage: dict
 - status: str
-- intrinsic_scores: dict  # {parse_ok, sem_ok, sim_ok, reach_rate, judge_score}
-- judge_evidence: dict  # 来自 ExpertReviewAgent 的 rubric 5 维 + evidence spans
+- intrinsic_scores: dict  # {parse_ok, sem_ok, sim_ok, reach_rate}
 ```
 
 ### 7.2 `summary.json`
@@ -288,14 +331,18 @@ columns:
       "sem_valid_rate": 0.XX,
       "sim_rate": 0.XX,
       "reachability_rate": 0.XX,
-      "judge_score": 0.XX,
-      "mean_5_metrics": 0.XX,
+      "mean_4_intrinsic": 0.XX,
       "token_total": 12345
     },
-    "A4_ours": {"... 同上 ...": null}
+    "A_full_ours": {"... 同上 ...": null}
   },
   "per_bucket_lift": {"FSM-basic": {}, "EFSM-interlock": {}, "HSM-layered": {}},
   "intrinsic_lift_mean": 0.XX,
+  "audit_trail_subset": {
+    "sampled_cases": ["case_a", "case_b", "case_c"],
+    "manual_macro_f1_per_case": {},
+    "pearson_intrinsic_vs_manual": null
+  },
   "confounders": []
 }
 ```
@@ -304,36 +351,37 @@ columns:
 
 sprint 末 Phase 6 必须产出，**Claude 整理不下结论**。最低字段：
 
-1. **§1 实验配置**：sources/ T0 子集组成（3 桶分布）、LLM_MODEL 实际值、迭代轮数 $N$
-2. **§2 主结果表**：A0_baseline vs A4_ours 的 5 个 intrinsic + JudgeScore + 5-metric mean
+1. **§1 实验配置**：sources/ T0+🟢 子集组成（3 桶分布）、LLM_MODEL 实际值、迭代轮数 $N$；显式声明 Phase H (judge) 跳过 + 4-intrinsic 模式
+2. **§2 主结果表**：`A0_baseline` vs `A_full_ours` 的 4 个 intrinsic + 4-metric mean
 3. **§3 lift 分布**：按 3 桶（FSM / EFSM / HSM）拆分 lift，看哪类样本最吃 method 红利
-4. **§4 每个样本 detail**：20 条样本各自的 intrinsic 5 维分数，便于 spot-check 异常样本
+4. **§4 每个样本 detail**：20 条样本各自的 intrinsic 4 维分数，便于 spot-check 异常样本
 5. **§5 信号判定**：按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) 的 S1/S2/S3/S4 把当前数据归类
-6. **§6 confounders 列表**：API 失败 / 全轮 parse 失败 / judge 评分异常的样本
+6. **§6 confounders 列表**：API 失败 / 全轮 parse 失败的样本；若做了 §6 audit-trail 抽查，列被抽查 case 的人类签字分布
 7. **§7 Claude 的方向建议 + rationale**：写明依据，不强推
-8. **§8 后续 paper 工作量预估**：若选 Path 2，1-2 个月内要补的工作（手工标 10 条 reference / 扩 sources/ 到 60 条 / intrinsic-F1 Pearson calibration / 对照 llms_emp 两阶段 / 对照 ttool-ai 自动反馈 / cross-vendor 等）
+8. **§8 后续 paper 工作量预估**：若选 Path 2，1-2 个月内要补的工作（接 Phase H judge 补回 5-intrinsic / 扩 sources/ 到 60 条 / intrinsic-F1 Pearson calibration 用全集补 manual 标注 / 对照 llms_emp 两阶段 / 对照 ttool-ai 自动反馈 / cross-vendor 等）
 
 ## 9. 风险与回退（Path 2 特有）
 
 | 风险 | 触发 | 回退 |
 | --- | --- | --- |
-| sources/ T0 双 A 子集 $< 20$ 条 | 池子不够选样 | 把 3 桶比例调整为实际可用样本的分层；不强行凑 20 条凑出来 |
+| sources/ T0+🟢 子集 $< 20$ 条 | 池子不够选样 | 把 3 桶比例调整为实际可用样本的分层；不强行凑 20 条 |
 | `SimulationRuntime` 缺 abstract handler 报错 | 大量样本 SimRate=0 | 用 no-op handler，sim 只检 reachability 不验业务逻辑（在 PATH2_REPORT §6 confounder 中披露） |
-| `ExpertReviewAgent` 接入失败 | adapter schema breaking | 用简化 judge（单 prompt rubric scorer 走当前 LLM_MODEL），在 PATH2_REPORT 中标记 "JudgeScore_simplified" |
-| Intrinsic lift 过低（5-metric mean $< 15$pp） | A4_ours 没比 A0_baseline 好多少 | 按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) S4 处理，在 PATH2_REPORT §7 给出"信号弱"判定，由用户综合判断 |
+| `ReachabilityRate` wrapper 未实装 | Phase 2 没补 reachability 接口 | 临时降到 3-intrinsic mean（parse / sem / sim），在 PATH2_REPORT §1 明确披露 |
+| Intrinsic lift 过低（4-metric mean $< 15$pp） | `A_full_ours` 没比 `A0_baseline` 好多少 | 按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) S4 处理，在 PATH2_REPORT §7 给出"信号弱"判定，由用户综合判断 |
 | `ParseRate` A0_baseline 已经很高（$\ge 0.9$） | 单 prompt 就足够，lift 空间小 | 这本身是有意义的发现（"agent loop 在 parse 上不显著，但 sim/reach 上仍显著"），不必回退；在 §3 lift 分布按指标细分讨论 |
+| 可选 audit-trail 抽查中双 LLM 一致率过低 | `eval/review/packs/` 中 🔴 / 🟡 行占比 $> 30\%$ | 仅影响该 case，不阻塞 4-intrinsic 主指标；在 PATH2_REPORT §6 列分歧分布；如必要可全 abandon 抽查、保留纯 4-intrinsic 结果 |
 | `LLM_API_KEY` / `LLM_ENDPOINT` 未 source | 跑实验时 KeyError on `os.environ["LLM_ENDPOINT"]` | shell 跑 `source .env` 后重新执行；这是 Phase 0 自检必须 verify 的 |
 
 ## 10. 完成度自检 checklist
 
 sprint Phase 7 收口前用此 checklist 核验：
 
-- [ ] `reproduction/data/derived/path2_t0_subset.parquet` 已落盘且 $= 20$ 条（或按风险表回退方案的实际数）
-- [ ] `reproduction/results/sprint_path2/predictions.parquet` 已落盘，每条样本含 A0_baseline / A4_ours 两行
-- [ ] `reproduction/results/sprint_path2/summary.json` 含 §7.2 全字段
+- [ ] `eval/data/sources_path2.parquet` 已落盘且 $= 20$ 条（或按风险表回退方案的实际数）
+- [ ] `eval/results/sprint_path2/predictions.parquet` 已落盘，每条样本含 A0_baseline / A_full_ours 两行
+- [ ] `eval/results/sprint_path2/summary.json` 含 §7.2 全字段（4-intrinsic + 可选 audit-trail subset）
 - [ ] `paper_v1/PATH2_REPORT.md` 含 §8 全 8 节
 - [ ] `method/STATUS.md` 更新 Path 2 进度行
-- [ ] GitHub PR 已开（PR 描述含 PATH2_REPORT 关键数字摘要）
+- [ ] GitHub PR #10 已 update（PR 描述含 PATH2_REPORT 关键数字摘要）
 - [ ] Confounder 样本数 $\le$ 总样本数 30%
 
 ## 11. Method + Contribution 详述（paper writing 直接复用素材）
@@ -343,64 +391,66 @@ sprint Phase 7 收口前用此 checklist 核验：
 ### 11.1 Method overview — Agent loop with externally-grounded in-loop feedback
 
 ```text
-NL input (sources/ T0 case from real industrial control system paper)
+NL input (sources/ T0+🟢 case from real industrial control system paper)
       |
       v
-  [SpecExtractor]   走 method/gpt_client.py (LLM_MODEL from env)
-      |  out: structured spec JSON (states / events / vars / transitions / hierarchy)
+  [Multi-step Modeling]  走 method/gpt_client.py (LLM_MODEL from env)
+      |  6 步 MTI 流水 (identify_state → identify_event → identify_variable →
+      |                identify_transition → identify_action → build_pyfcstm)
       v
-  [Modeler]         走 method/gpt_client.py
-      |  out: pyfcstm DSL text (few-shot grounded by pyfcstm sample-test/)
-      v
-  current_model
+  current_model (pyfcstm DSL text)
       |
-      +----+ Feedback Sources (gated cascade) +-----+
-      |    |  ParseFeedback   (pyfcstm.dsl)         |
-      |    |  SemanticFeedback (pyfcstm.model)      |
-      |    |  SimFeedback     (pyfcstm.simulate    |
-      |    |                   + topology witness)  |
-      |    |  JudgeFeedback   (ex1 ExpertReviewAgent|
-      |    |                   走 method/gpt_client) |
-      |    +----+-------------------------------+   |
+      +----+ Feedback Sources (gated cascade) +----------+
+      |    |  ParseFeedback   (pyfcstm.dsl)              |
+      |    |  SemanticFeedback (pyfcstm.model)           |
+      |    |  SimFeedback     (pyfcstm.simulate         |
+      |    |                   + scenariogen 自管 mutation|
+      |    |                   coverage as bug probes)   |
+      |    |  [JudgeFeedback   — Phase H 跳过，sprint 不用] |
+      |    +----+--------------------------------+       |
       |         |
       v         v
   feedback_bundle (JSON schema)
       |
       v
-  [Repair]          走 method/gpt_client.py
-      |  out: new pyfcstm DSL (按 feedback 具体错误指针定向修复)
+  [Cascaded Repair]      走 method/gpt_client.py
+      |  4 个 fix sub-prompt：fix_parse / fix_sem / fix_sim / fix_judge(占位)
+      |  按 earliest-failing channel 路由 + 共享 pyfcstm grammar reference
       v
   next_model --> 回到 Feedback Sources, iterate N=3 rounds
       |
       v
-  final_model (pyfcstm DSL) --> 进入 §6 5 个 intrinsic 指标计算 + JudgeScore
+  final_model (pyfcstm DSL) --> 进入 §6 4 个 intrinsic 指标计算（+ 可选 audit-trail 抽查）
 ```
 
 ### 11.2 Method 各组件细节
 
-#### 11.2.1 三个 LLM agent
+#### 11.2.1 LLM agent 链
 
-1. **SpecExtractor**：NL → JSON spec
-   - **设计目的**：把"自由文本"压成"结构化中间表示"，避免 Modeler 直接面对控制系统 NL 描述（含传感器 / 执行器 / 联锁 / 故障恢复等多重信息）时陷入语言细节歧义
-   - **prompt 全英文**（paper 投稿英文，统一）
-2. **Modeler**：spec → pyfcstm DSL 文本
-   - few-shot 用 pyfcstm 仓库 `sample-test/` 2-3 个例子注入语法 grounding
-3. **Repair**：(current DSL, feedback_bundle) → new DSL
-   - **prompt 显式约束**："按 feedback 中的具体错误指针 (line/col/state/transition) 做定向修复，不要大改"
+1. **MTI 6-step Multi-step Modeler**（PR #11 Phase F 实装）：NL → 6 步流水（identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm）→ pyfcstm DSL
+   - **设计目的**：把"自由文本"压成 5 个结构化 list 后再 assemble DSL，避免单 prompt 直接面对控制系统 NL（含传感器 / 执行器 / 联锁 / 故障恢复等多重信息）时陷入语言细节歧义；与 sprint plan v3 "Spec-driven LLM" 概念一致
+   - **prompt 全英文**（paper 投稿英文，统一）；共享 pyfcstm grammar reference (`method/prompts/_pyfcstm_grammar.md`)
+   - 替代方案 single_prompt（同代码内 `LoopConfig.modeling_mode="single_prompt"`）作 A0_baseline
+2. **ScenarioGen**（PR #11 Phase G+E v3 实装）：NL + 模型 → 多 step BDD scenarios + 6 mutation 覆盖率自检
+   - **scenariogen self-validation**：scenariogen 后自动跑 6-mutation 覆盖率检查；任一类未被 catch → 用 `extra_directive` retry 直到覆盖
+3. **Cascaded Repair**（PR #11 Phase E 实装）：(current DSL, feedback_bundle) → new DSL
+   - 4 个 fix sub-prompt：`fix_parse.txt` / `fix_sem.txt` / `fix_sim.txt` / `fix_judge.txt`（占位）
+   - 按 earliest-failing channel 路由；fix_sim 含 passing-scenarios 显式 preservation 段
 
-#### 11.2.2 四个 deterministic feedback sources（externally grounded）
+#### 11.2.2 三个 deterministic feedback sources（externally grounded）+ scenariogen 自管
 
 | Source | pyfcstm 入口 | 输出 schema 核心字段 | 在 paper §3 method 里是哪一条 contribution |
 | --- | --- | --- | --- |
-| Parse | `pyfcstm.dsl.parse_with_grammar_entry` | `{ok, line, col, expected_tokens, got, snippet}` | C3 |
+| Parse | `pyfcstm.dsl.parse_with_grammar_entry` | `{ok, line, col, expected_tokens, got, snippet}` | C3 (deterministic verifier) |
 | Semantic | `pyfcstm.model.parse_dsl_node_to_state_machine` | `{ok, missing_states, dangling_transitions, undefined_vars, type_mismatches}` | C3 |
-| Sim | `pyfcstm.simulate.SimulationRuntime` + `pyfcstm.topology` | `{ok, unreachable_states, deadlocks, witness_paths, safety_limit_hits}` | **C3 + C4 + C5** (sim + witness + speculative validation 都在这一路) |
-| Judge | ex1 `ExpertReviewAgent` (走 method/gpt_client) | `{rubric_scores: {coverage, fidelity, structure, executability, safety}, evidence_spans, overall}` | C6 |
+| Sim | `pyfcstm.simulate.SimulationRuntime` + scenariogen 多 step BDD probes（含 6-mutation 自检）| `{ok, scenario_violations, per_step_var_mismatches, runtime_error}` | **C3 + C4 + scenariogen self-managed mutation coverage** |
+| ~~Judge~~ | ~~ex1 `ExpertReviewAgent`~~ | **Phase H 跳过，sprint 不接入；留作正式 paper 阶段补**  | ~~C6~~ → future work |
 
 #### 11.2.3 Feedback 合并策略 + 迭代控制
 
-- **gated cascade**：Parse 过 → Semantic 过 → Sim 过 → Judge
-- **迭代上限 $N=3$**：feedback_bundle 为空时提前 break，标记 `status="converged_at_iter_X"`
+- **gated cascade**：Parse 过 → Semantic 过 → Sim 过
+- **scenariogen frozen-once**：scenarios 在 iter 循环外生成一次 + mutation 覆盖率自检；model 适配 scenarios 不反向
+- **迭代上限 $N=3$**：feedback_bundle 全 ok 时提前 break，标记 `status="converged"`
 - **不收敛回退**：3 轮仍有 feedback 不空时，取 iter_3 final_model 进评测，标 `status="not_converged"`
 
 ### 11.3 Contribution 详述（**Path 2 视角：method 为主 + 强化 pyfcstm → 控制系统价值论证**）
@@ -538,7 +588,7 @@ runtime.register_handlers_from_object(HardwareHandlers())
 
 #### C5 — Empirical demonstration on real industrial control system NL + reference-free evaluation enabling tooling（**evidence + enabling tooling，NOT core contribution**）
 
-> "We demonstrate the method on a 20-case T0 subset of [sources/](../sources/), spanning 9 real industrial control system domains. Since canonical reference STMs do not exist for real industrial requirements (the same NL can be modeled as multiple semantically-equivalent STMs), we develop a reference-free evaluation protocol combining five intrinsic metrics (`ParseRate`, `SemValidRate`, `SimRate`, `ReachabilityRate`) with an LLM-judge rubric score (`JudgeScore`). The protocol and benchmark are **enabling tooling** that makes the method's evaluation feasible in this domain, not the method itself."
+> "We demonstrate the method on a 20-case T0 subset of [sources/](../sources/), spanning 9 real industrial control system domains. Since canonical reference STMs do not exist for real industrial requirements (the same NL can be modeled as multiple semantically-equivalent STMs), we develop a reference-free evaluation protocol combining four intrinsic metrics (`ParseRate`, `SemValidRate`, `SimRate`, `ReachabilityRate`) and (optionally) calibrate it against a small-scale audit-trail manual evaluation on 3-5 cases using a dual-LLM-assisted, expert-signed protocol (see [eval/](../eval/)). The protocol and benchmark are **enabling tooling** that makes the method's evaluation feasible in this domain, not the method itself. LLM-as-judge as an additional in-loop semantic signal is planned for the post-sprint paper phase (currently Phase H is skipped)."
 
 **Path 2 关键 framing**：我们**不与 baseline 的家电/通用 reactive system/domain model 一般性方法竞争** — 我们只干 baseline 工具链干不了的事：在真实工业控制系统 NL 上做 fully-automated grounded synthesis。reference-free protocol + sources/ benchmark 是让 method core (C1-C4) **能在这个差异化领域被实验验证的 supporting infrastructure**。core contribution 是 method 本身（C1-C4，且每条都对应 §11.3.0 三段论 framing 论证的一行）。
 
@@ -552,7 +602,7 @@ runtime.register_handlers_from_object(HardwareHandlers())
 | 2 | **method** | Language-independent expression IR enables symbolic reasoning | `Expr` IR + `solver/` Z3 集成 + 跨 9 语言渲染 | 复杂数值守卫 + Z3 可达性 + 跨部署目标 |
 | 3 | **method** | DSL-native aspect AOP + forced fault paths | `>> during before/after` + `!` forced transition | per-tick invariant + 强制 fault-recovery escape |
 | 4 | **method** | Abstract action + read-only context for effector-agnostic STM synthesis | `enter abstract` + `@abstract_handler` + `ReadOnlyExecutionContext` | 硬件解耦 + handler 反射注入 |
-| 5 | **evidence + enabling** | 20-case industrial control system NL benchmark + reference-free intrinsic + judge protocol | — | sources/ 9 真实工业领域 |
+| 5 | **evidence + enabling** | 20-case industrial control system NL benchmark + reference-free 4-intrinsic + optional LLM-assisted manual-eval audit-trail calibration（[`../eval/`](../eval/)） | — | sources/ 9 真实工业领域；LLM judge as 5th intrinsic 留 future work |
 
 > 完整 LaTeX 模板 + 引用 key 等 paper drafting 阶段再具体写。
 

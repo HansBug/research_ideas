@@ -16,9 +16,9 @@
 | **E** | loop.py 主驱动 + gated cascade 合并 + iter 控制 + **modeling_mode CLI flag (single_prompt vs multi_step)** + cascaded Repair（4 个 fix sub-prompt） + scenarios 冻结策略 + sim/judge optional 控制（ablation 用） | ✅ 完成（A2 跑通 3 NL examples + 2 个 inject-bug-recover trace；详见 [EXAMPLES.md §Phase E](./EXAMPLES.md#phase-e--agent-loop-driver-演示) ）|
 | **F** | **Multi-step modeling 模块**（基于用户硕士论文 MTI 方法学）：拆 6 步 (identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm)；step 之间通过 JSON 上下文传递；每步 prompt 含统一 **7 段式骨架**（task / requirements / 上游 list / 本步任务 / domain knowledge / format / constraint / 起手占位） | ✅ 完成 (端到端 smoke：6 步流水 9850 tokens → pyfcstm DSL parse + sem 全通过；输出比 single-prompt 更紧凑，用 `! * -> Red :: Reset` 1 行代替 single-prompt 的 3 行；effect 自动移到 target state 的 enter action) |
 | **G (修订 — 与 sim 配对，framing 校正)** | **Model test scenario generation + sim feedback 配对实现**：<br>**注意**：这里的 "scenario" / "property" 是 **model test case**（约定输入下的期望行为），**不是形式化验证的 LTL / CTL 性质**。框架对标 MTI 的 BDD scenario 三元组思路 — sim 是"用模型仿真代替代码运行的 testcase 执行环境"。<br><br>(1) test scenario generation 子模块（**v4.2 简化为 1 步**：NL + model elements → JSON scenarios；MTI 3 步对照保留为 future work）：<br>　• `agents/scenariogen/generate.py` + `prompts/scenariogen/generate_scenarios.txt`<br><br>(2) `feedback/sim.py`：把 scenario 喂给 `SimulationRuntime` — 用 initial_vars 做 hot-start（cycle 1 + 后续 mutate `runtime.vars`），按 events 跑 `cycle(events=...)` 含 cycles_between/extra_cycles 配置，对比 `runtime.current_state` / `runtime.vars` vs scenario expected，输出 SimFeedback（`scenario_violations` / `unreachable_states` / `safety_limit_hit` / runtime_error）<br><br>**核心 framing**：单靠 sim 跑空 cycle 只能 verify "不死锁 / 状态可达"；要 verify "model 行为是否符合 NL 需求"，必须有 "NL → scenario (expected behavior) → sim 执行验证" 的 oracle 链。这是**用模型仿真做 testcase 验证**而不是 model checking | ✅ 完成（3 NL examples + 3 buggy variants 全验证，详见 [EXAMPLES.md](./EXAMPLES.md)）|
-| **H** | judge feedback (ex1 ExpertReviewAgent adapter) — rubric 5 维 semantic 评分 | 未开工 |
-| **I** | eval/component_extractor.py (Umple / pyfcstm 抽 7 类组件，Path 1 评测用) | 未开工 |
-| **J** | 端到端验收：single_prompt vs multi_step 对比跑、生成模型 + property 例子写进 README/STATUS、PR mark Ready for Review | 未开工 |
+| **H** | judge feedback (ex1 ExpertReviewAgent adapter) — rubric 5 维 semantic 评分 | 🔁 sprint 跳过（loop.py 已留 hook，Phase E v3 已落 `feedback_sources` 配置项；adapter 留作方向定后正式 paper 阶段补做）|
+| **I** | Path 1 评测基础设施：5-component IR extractor + 双 LLM annotator + 中文 markdown 评审包 + audit-trail 汇总 | ✅ 完成（见 [`../eval/`](../eval/) — `extract/{umple,pyfcstm}.py` / `annotate/` / `review/` / `report.py` / `aggregate.py` / `demo/`；演习 67 rows × 26 列 audit-trail 跑通；评测协议见 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md)）|
+| **J** | 端到端验收：single_prompt vs multi_step 对比跑、生成模型 + property 例子写进 README/STATUS、PR mark Ready for Review | sprint 末 Phase 6-7 由两个 path branch 各自完成 |
 
 ## Phase 依赖关系
 
@@ -26,17 +26,17 @@
 A → B → C (single-prompt 已完成)
         │
         ├→ D (parse + sem) ─────────────┐
-        │                               ├→ E (loop driver) ──→ J (验收)
+        │                               ├→ E (loop driver) ──→ J (验收, by path branch)
         ├→ F (multi-step modeling) ────┤      ↑
         │                               │      │
         ├→ G (property + sim 配对) ─────┤      │
         │                               │      │
-        ├→ H (judge) ───────────────────┘      │
+        ├→ H (judge) ─[sprint 跳过]─────┘      │
         │                                      │
-        └→ I (eval extractor, Path 1 用) ──────┘
+        └→ I (eval 评测基础设施，Path 1 用) ───┘
 ```
 
-Phase D / F / G / H / I 之间无依赖，可以并行做。Phase E (loop driver) 把它们串起来。Phase J 验收。
+Phase D / F / G / H / I 之间无依赖，可以并行做。Phase E (loop driver) 把它们串起来。Phase H sprint 跳过（loop hook 已留）。Phase I 已实装为 [`../eval/`](../eval/) 整套 LLM-初审 + 人类签字 + audit-trail 评测基础设施（Path 1 主用，Path 2 可选作 audit-trail 抽查）。Phase J 由 path branch 各自完成。
 
 ## 设计原则：modeling 路径作为 CLI 选项
 
@@ -77,8 +77,12 @@ Phase G 的待验证性质 generation 必须设计为可被 pyfcstm `SimulationR
 | `6e...` | Phase A-C：脚手架 + pyfcstm submodule + 3 single-prompt agent + 端到端 smoke 跑通 |
 | `2447ad8a` | Phase D 完成（parse + sem feedback wrappers 含 smoke 通过）+ STATUS v3（D 拆分 + Phase G framing 校正）|
 | `f28c99b2` | Phase F multi-step MTI 端到端跑通 + 修 forced-effect grammar bug |
-| (待填) | Phase G 完成（scenariogen + sim feedback + EXAMPLES.md 含 3 NL + 3 buggy mutation 验收）|
-| (待填) | Phase E / H / I / J |
+| `de67d131` | Phase G v3 完成（scenarios 重定位为 bug-finding probes + 6 mutation differential）|
+| `1f26ff4c` | Phase E v1 完成（agent loop driver + cascaded Repair + ablation 支持） |
+| `255c0af9` | Phase E v2（fix prompt context (a)+(c) + 共享 grammar reference） |
+| `06536876` | Phase E v3（scenariogen 自管 cycle 一致性 + mutation self-validation） |
+| `ff1e90ff` | Phase I 实装为 `eval/` 整套 LLM-初审 + 人类签字 + audit-trail 评测基础设施 |
+| (待填，path branches) | Phase J 端到端验收 by Path 1 / Path 2 branch 各自完成 |
 
 ## Phase A-C 完成里程碑
 
@@ -105,11 +109,13 @@ Phase G 的待验证性质 generation 必须设计为可被 pyfcstm `SimulationR
 3. `method/README.md` 引导文档（目录定位 / LLM env 接入约束 / pyfcstm 集成方式 / 运行入口 / 接管入口）
 4. `method/STATUS.md`（本文件）
 
-## 下一步（Phase B）
+## 下一步（PR #11 merge 后两路并行）
 
-1. 写 `method/gpt_client.py`：`get_llm_client()` + `get_default_model()` 走 `os.environ`，**绝不读 .env 文件**
-2. 写 `method/schema.py`：核心 dataclass — `LoopConfig` / `AgentLoopResult` / `FeedbackBundle` / `ParseFeedback` / `SemanticFeedback` / `SimFeedback` / `JudgeFeedback` / `ModelArtifact`
-3. Phase B smoke：可以 import 但不需要跑实际 LLM（实际 LLM 跑放在 Phase G）
+PR #11 已含全部 Phase A-G + E v3 + I 共同基础。merge 到 main 后：
+
+1. **Path 1 branch** (`dev/path1-hard-comparison`)：rebase 到 main → 按 [`../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md`](../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) 推进 sprint Phase 4（sources/ T0+🟢 选样 + Hybrid baseline 重跑 + agent loop 跑 + eval/ pipeline 评测）→ Phase 6 出 PATH1_REPORT.md
+2. **Path 2 branch** (`dev/path2-differentiation`)：rebase 到 main → 按 [`../paper_v1/PATH2_DIFFERENTIATION_GUIDE.md`](../paper_v1/PATH2_DIFFERENTIATION_GUIDE.md) 推进 sprint Phase 5（sources/ T0+🟢 20 条分层 + 4-intrinsic + 可选 audit-trail 抽查）→ Phase 6 出 PATH2_REPORT.md
+3. **决策合流**：sprint 末 Phase 6 由用户综合两路数据拍板方向
 
 ## 关键约束
 

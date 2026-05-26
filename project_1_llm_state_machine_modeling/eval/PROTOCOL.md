@@ -79,19 +79,52 @@ cascade 体现 paper 的设计："components 的价值依附于它们 attach 到
 
 Macro F1 = 5 类组件 F1 的平均；overall F1 = aggregate (TP, FP, FN) across all 5 components 再算单一 F1。
 
-## 4. T0 子集筛选口径
+## 4. sources/ T0+🟢 分层抽样口径
 
-剔除含**显式时间约束**（SY 类）样本，留无时间或最多隐式时间样本（SQS / T0 类）：
-- `dishwasher`：含 "after 5 minutes" / "after 10 minutes" → **剔除**
-- `chess_clock`：核心是 "counting down to zero" → **剔除**
-- `bread_maker`：含 baking schedule 时间 → **剔除**
-- `thermomix`：含 "after Xmin" / "after 2min" → **剔除**
-- `printer`：无显式时间约束 → **保留**
-- `spa_manager`：含 "after2min" / "after5min" → **剔除**
-- `WUMPLE`：根据 ref 文本判定（待 A.1 筛）
-- `SSC7`：根据 ref 文本判定（待 A.1 筛）
+数据集为我们自建的 [`../sources/`](../sources/) 控制系统 NL 文库；按以下规则筛选 Path 1 / Path 2 各自的 evaluation 子集：
 
-预计 T0 子集 2-4 条。若不足 5 条，按 sprint plan §4.2 补 `llms_emp` stm 38 的 T0 子集。
+### 4.1 T0 时间级筛选
+
+**T0 定义**：样本的 STM.md §2 自然语言描述中不含显式时间约束。判定优先级：
+
+1. 文本含 `\b\d+\s*(second|seconds|minute|minutes|hour|hours|ms|millisecond)` 等时间量词 + 数字组合 → 非 T0
+2. 文本含 `after T_n` / `within T_n` / `every T_n` 等时间变量符号 → 非 T0
+3. 文本含 "timeout / time-out / delay / counting down / counts down / debounce / hysteresis" 等隐式时序词 → 非 T0
+4. STM.md §0 已标 "代表时间级别" 字段，优先复用该标签
+
+[`../sources/SUMMARY.md`](../sources/SUMMARY.md) 中样本已有人工 T0 / T1 / T2 / T3 标注；优先复用，标签不齐时按上述规则补判。
+
+### 4.2 评级筛选
+
+仅保留 🟢（直接可用）。当前 sources/ T0+🟢 候选池：
+
+| STM 类型 | 候选数 |
+| --- | ---: |
+| FSM | 68 |
+| EFSM | 174 |
+| HSM | 90 |
+| **合计** | **332** |
+
+### 4.3 排除规则（与 5-component 评测协议一致）
+
+剔除以下样本（即使 T0+🟢）：
+
+- NL 含 parallel / concurrent regions（如 "in parallel with"）— pyfcstm 不支持
+- NL 含 history-restore 语义（如 "resume to where it was before"）— pyfcstm 不支持
+- NL 只描述硬件 IO，无明确 STM 抽象的（state machine 隐性）
+
+### 4.4 Path 1 / Path 2 抽样规模
+
+| Path | 规模 | 分层 |
+| --- | --- | --- |
+| Path 1（硬刚） | 5-10 条 | FSM / EFSM / HSM 三类各抽若干，FSM 2 / EFSM 4 / HSM 2 起步 |
+| Path 2（差异化） | 20 条 | FSM-basic 6 / EFSM-interlock 8 / HSM-layered 6 |
+
+抽样种子固定（`seed=42`）确保可复现。具体抽样脚本由 path branch 各自实现（`eval/data/sample_path{1,2}.py`），输出 `eval/data/sources_path{1,2}.parquet`。
+
+### 4.5 不再使用 structure_event_driven 8 cases
+
+原 v3 sprint plan §4.2 把 Path 1 dataset 锁定在 `structure_event_driven` 8 cases。**v4 已切换到 sources/**：原因是 structure_event 9 个 case GT 均含 `reference_history_states_count ≥ 1`（每个 case 至少有一个 `.H` history pseudo-state），与 pyfcstm 形式不支持的范围冲突；按 §4.3 排除规则全部剔除后 dataset 为空。改用 sources/ 后我们对 reference 5-component IR 有完全的人工构建控制权，paper claim "small-scale manual benchmark" 更清晰，与 [评测口径分析 §6.4 第 5 条](../discussions/2026-04-15-14-51-21-AI-讨论-baselines双绿输入文本与sources样例对比及评测口径分析.md) 的建议一致。
 
 ## 5. 签字 markdown 格式约定
 
