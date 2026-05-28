@@ -1,0 +1,83 @@
+{
+  "case_id": "state-machine-based-hybrid-position-force-control-waste-mobile-robot__01",
+  "case_name": "Pick-and-drop supervisor for the waste-selection manipulator",
+  "expanded_nl": "The pick-and-drop controller for the 5DOF waste-selection manipulator is a state-machine supervisor organized around the main machine plus homing, position-control, and force-control sub-sections [E1]. At startup, each motor/DOF is initialized and homed [E2]; when homing completes, the controller enters stable state Si3, the starting point for later control sequences [E3]. A new task provides object type, target coordinates, and Z-axis rotation [E4]; the supervisor first drives the XOY positioning joints and then starts vertical motion and gripper orientation [E5]. The physical effectors behind those actions include the Festo EXCM planar gantry for horizontal XOY motion, the Festo EGSK electrical slide for OZ displacement, the Festo ERMO rotary motor for orientation, and the Festo HGPLE gripper jaws [E6]. During the task sequence, the Z-axis position error ΔPz is compared with the allowed error εPz, and the top-position move is issued before gripper opening and force computation steps [E7]. Once vertical position and orientation are ready, the supervisor changes the gripper DOF from position control to force control by updating the S-matrix, closes the jaws, and applies the reference force Fjaws to grip the target [E8]. While the gripper force remains within the force-error tolerance ΔFjaws ≤ εFjaws, the other four DOFs lift the object, rotate and move above the waste tray, then the supervisor switches back to position control and opens the jaws to drop it [E9]. The loop runs only while emergency stop ES is false, and the state list assigns SES to the emergency-stop case under the position/force-control diagrams [E10].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 C | paper.pdf p.6 Figure 4 / Section 3 | paper_content.txt 行 227-235",
+      "quote": "These are the homing state machine, the position control state machine, and the force control state machine.",
+      "supports": "main machine plus homing, position-control, and force-control sub-sections"
+    },
+    {
+      "marker": "E2",
+      "source": "paper.pdf p.16 §6 | paper_content.txt 行 563-568",
+      "quote": "initialize the motors and start the homing process for each motor",
+      "supports": "startup initialization and homing of each motor/DOF"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 C | paper.pdf p.6 Section 3 | paper_content.txt 行 236-239",
+      "quote": "transitions to the stable state Si3. This state is the starting point",
+      "supports": "controller enters Si3 as the starting point for later control sequences"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 D | paper.pdf p.7 Algorithm 1 | paper_content.txt 行 261-262",
+      "quote": "get (ObjType, Txyz, Rz)",
+      "supports": "new task provides object type, target coordinates, and Z-axis rotation"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 D | paper.pdf p.6 Section 3 | paper_content.txt 行 239-242",
+      "quote": "starting with the first two translation joints for positioning on XOY plane. Then, the vertical motion and orientation begin",
+      "supports": "first XOY positioning, then vertical motion and gripper orientation"
+    },
+    {
+      "marker": "E6",
+      "source": "paper.pdf p.4 §2 | paper_content.txt 行 177-186",
+      "quote": "Festo planar surface gantry EXCM / Festo electrical slide EGSK / Festo rotary motor ERMO / Festo HGPLE gripper",
+      "supports": "named physical effectors for XOY motion, OZ displacement, orientation, and gripper jaws"
+    },
+    {
+      "marker": "E7",
+      "source": "STM §1 摘录 D | paper.pdf p.7 Algorithm 1 | paper_content.txt 行 262-266, 290-291",
+      "quote": "if (∆P + z > εPz) GripperMove (Ttop) ... Jaws (open) Compute (Fjaws)",
+      "supports": "Z-axis position-error guard and top-position move before opening and force computation"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 D | paper.pdf p.6 Section 3 / p.7 Algorithm 1 | paper_content.txt 行 241-244, 270-272, 289",
+      "quote": "changing the control type ... within the S-matrix / using the reference force",
+      "supports": "switch from position to force control, update S-matrix, close jaws, and apply Fjaws"
+    },
+    {
+      "marker": "E9",
+      "source": "STM §1 摘录 D | paper.pdf p.6-7 Section 3 / Algorithm 1 | paper_content.txt 行 245-248, 273-279, 292-293",
+      "quote": "while (∆Fjaws ≤ εFjaws) GripperMove (Ttop) GripperRotate (Rtray) GripperMove (Ttray) / Jaws (open)",
+      "supports": "force-error tolerance, lift/rotate/move above tray, switch back, and open jaws"
+    },
+    {
+      "marker": "E10",
+      "source": "STM §1 摘录 B/D | paper.pdf p.5 Table 1, p.6-7 Algorithm 1 | paper_content.txt 行 220-221, 255, 280-282",
+      "quote": "while (!ES &&New Task) / SES Position Control/Force Control Emergency stop",
+      "supports": "loop conditioned on ES being false and SES emergency-stop state under position/force control"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "H 覆盖明确：[E1] 暴露 main + homing/position-control/force-control 子段结构，[E2][E3] 暴露启动后经 homing 落到 Si3 作为后续控制序列起点。",
+    "G_guards_arith": "G 钩子在 [E7][E9]：ΔPz 与 εPz 的 Z 轴误差比较、ΔFjaws ≤ εFjaws 的力误差容差条件均以自然语言表达，未写伪代码。",
+    "A_actions_nontrivial": "A 钩子在 [E6][E8][E9]：具体硬件执行器、S-matrix 更新、位置/力控切换、闭合/打开 gripper jaws 都是非平凡动作。",
+    "F_fault_recovery": "F 覆盖较弱但存在：[E10] 只支持 emergency stop 条件 ES 和 SES 急停状态；原文未给出急停后的自动恢复路径。",
+    "bd_baseline_traps": "expanded_nl 命中 cross-section、implicit-domain、implicit-action-prose 和 multivar-guard：状态层次来自 [E1]-[E3]，S-matrix/DOF/误差容差来自 [E7]-[E9]，硬件动作散落在 [E6]-[E9]。",
+    "ft_fcstm_fit": "pyfcstm fit 中等偏强：[E1]-[E3] 适合复合状态与 init 链，[E7][E9] 适合 Expr-IR 数值守卫，[E6][E8][E9] 适合 abstract action 与 effector 解耦；forced+aspect 横切语义只由 [E10] 弱支持。"
+  },
+  "word_count_estimate": 251,
+  "intentional_omissions": "没有加入原文未给出的阀门编号、传感器型号、超时阈值、从任意状态强制跳转到 Safe 的恢复路径。急停只写到 ES/SES，不扩展成自动恢复或全局 forced transition。",
+  "_meta": {
+    "id": "state-machine-based-hybrid-position-force-control-waste-mobile-robot__01",
+    "actual_word_count": 251,
+    "markers_count": 10,
+    "provenance_count": 10
+  }
+}

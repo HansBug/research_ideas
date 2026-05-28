@@ -1,0 +1,92 @@
+{
+  "sample_id": "pm-fsm-robust-quadrupedal-locomotion__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The controller builds a sub-automata matrix from a gait matrix: each global FSM row coordinates four per-leg sub-automata with s1/s2/s3 leg states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions and reflexes combine contact flags, current leg substate, and joint-angle target tests: swing-leg contact, all-joint target reach, early contact in s1, and dangling at s2 end."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "FSM outputs joint commands per tick; state actions include target-pose interpolation, leg extension/retraction/support motion, and reflex actions such as raising collided legs, retracting others, bending rear legs, and lowering torso."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The upstairs/downstairs reflex branches are dedicated recovery mechanisms for unexpected early contact and dangling legs, but there is no global any-state safe-state escape."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "s1/s2/s3 state meanings are in III-D/Fig. 4, transition guards in III-D, reflex guards/actions in III-E/Fig. 5, and continuous output equations in III-F."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as transfer/support phase and upstairs/downstairs reflex are mostly defined by the paper's own triggers and actions, not left as external domain shorthand."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are not only in the state list: reflex actions and per-state interpolated motion control are described later in narrative prose, figures, and equations."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Reflex guards combine leg state, contact condition, and joint target-angle status; global guards quantify over multiple swing legs or joints."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The global states compose leg substates, but the paper does not define separate parent entry/during/exit behavior beyond the leg-level behavior and FSM output computation."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Recovery is limited to s1 early-contact and s2 dangling cases; no from-any-state fault-to-safe transition is declared."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite/global FSM with default start state S1 and per-leg substates, but no deep non-trivial init pseudo-chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Several guards combine contact flags, leg substate, and target-angle comparisons, making a unified guard IR and consistency checking useful."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The same UR/DR reflex rules are stated once for leg extension/retraction but apply across multiple leg sub-automata and gait rows."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete locomotion commands and reflex-state inputs to the policy, not effector-agnostic logs, notifications, or publish-style side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "all swing legs make contacts",
+    "unexpected early contact happens while the leg is in the leg extension state"
+  ],
+  "one_line_pitch": "A nested leg/global locomotion FSM with multi-sensor guards, continuous joint actions, and terrain-reflex recovery forces baselines to reconstruct semantics split across architecture, reflex, and control sections.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test because hierarchy is fundamental: global gait states are built from four per-leg s1/s2/s3 sub-automata. The guards are contact- and angle-dependent rather than purely event-named, and the actions include continuous target-motion generation plus terrain reflexes. It lacks a global fault escape, but the dedicated upstairs/downstairs recovery branches still add meaningful recovery complexity.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 83596,
+      "cached_input_tokens": 68736,
+      "output_tokens": 6430,
+      "reasoning_output_tokens": 4940
+    },
+    "duration_s": 125.4,
+    "attempt": 1
+  }
+}

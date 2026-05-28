@@ -1,0 +1,92 @@
+{
+  "sample_id": "reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The top-level CONOPS is mostly a flat operational-mode FSM, but INIT is elaborated as an internal startup sequence beginning at a power-on pseudo-state, and the paper also describes a hierarchical FDIR architecture from unit to mission/system levels."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Mode switching depends on ground telecommand, task/init completion, battery below nominal, FDIR anomaly orders, sun visibility, battery <86%, battery >90%, and command validity checks."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Mode behavior includes boot-counter update, delayed antenna deployment with retries, subsystem initialization, payload power-off, beacon-rate changes, receiver-on commandability, housekeeping persistence, image acquisition/compression/storage, downlink, logging, alarms, and resets."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The paper defines hierarchical FDIR; for subsystem/system failures the safety monitor signals the flight planner to switch to SAFE, where non-vital units are powered off until ground contact."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "SAFE/CRITICAL/SUN-VIS/COMMUNICATION modes are described in CONOPS, while FDIR decision logic, safety-monitor signaling, logging, watchdogs, and safe-mode fallback details appear later in the application-layer implementation section."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as safe mode, fail-safe approach, hierarchical FDIR, safe-guarding configuration, and closed-mode CONOPS imply spacecraft fault-management rules beyond a simple event label."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are expressed in prose per mode rather than in a state table: payload off, beacon rate reduced, receiver always on, housekeeping persisted, ADCS low-power mode, command retries, alarms, and reset behavior."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The flight planner executes delayed commands only during Sun-Vis mode when enough power is available; communication mode also combines attitude monitoring, battery checks, and threshold-triggered fallback."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Although INIT has an internal startup sequence and the FDIR architecture is hierarchical, the paper does not clearly define a parent composite state with its own entry/during/exit behavior separate from child states."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "For failures at subsystem or system level, the safety monitor sends signals to the flight planner to switch to safe mode; SAFE is also entered after a system fault/failure event."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "INIT includes a power-on pseudo-state and a nontrivial startup chain with delayed antenna deployment, retry/reboot handling, subsystem initialization, and transition to SAFE, but no deep nested composite hierarchy is fully specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are several threshold and conjunction-style guards, including battery <86%, nominal/>90% battery, sun visibility, valid command checks, and Sun-Vis plus sufficient-power gating, but not enough explicit arithmetic/boolean guard formulas for strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Global anomaly/failure handling routes subsystem/system failures to SAFE across the operational mode space, and periodic monitoring/checking behavior is described for communication, housekeeping, health, pings, and battery state."
+    },
+    "C4_abstract_action": {
+      "strength": 2,
+      "evidence": "The controller uses abstract side effects such as event logging, error/failure reporting, alarms to higher FDIR levels, signals to the flight planner, telemetry counters, and ground reporting."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Masat-1 operating modes are ruled by a finite state machine.",
+    "For failures at the subsystem or system level, the safety monitor sends signals to the flight planner to switch to safe mode."
+  ],
+  "one_line_pitch": "This is a strong spacecraft-mode stress test because the modeler must recover mode guards, rich per-mode actions, and a global hierarchical FDIR safe-mode escape from prose spread across CONOPS and implementation sections.",
+  "verdict": "candidate",
+  "rationale": "The STM extraction is consistent with the paper's CONOPS and application-layer architecture: Masat-1 is explicitly governed by a finite-state operational-mode controller with battery, sun-visibility, task-completion, telecommand, and anomaly-triggered transitions. Its strongest stress-test value is in action attribution and global recovery: each mode has concrete operational side effects, while hierarchical FDIR routes major anomalies to SAFE. The hierarchy is not a fully nested statechart, but the INIT pseudo-state sequence and FDIR layers add enough structure to stress baselines beyond a flat event-only FSM.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 103152,
+      "cached_input_tokens": 67200,
+      "output_tokens": 6510,
+      "reasoning_output_tokens": 4049
+    },
+    "duration_s": 125.8,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "using-perception-cues-for-context-aware-navigation-in-dynamic-outdoor-environments__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The executor is a flat five-state FSM: IDLE, NORMAL, PEDESTRIAN, THREAT, and DONE; no parent/child or composite states are defined."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions use priority Boolean guards over pedestrian and threat cues: THREAT on weapon detection; PEDESTRIAN only in absence of threat and with pedestrians; NORMAL in absence of both."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions cancel the current navigation controller, send new goals to NaviGAN or IOC, and reconfigure IOC weights for normal or covert operation."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Weapon detection is a high-priority hazard escape into THREAT/covert mode from the running normal or pedestrian controller, with no return from threat mode until goal reached."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and transition arcs are in Figure 9/Section 3.3, while NORMAL, PEDESTRIAN, and THREAT behavior semantics are elaborated in Sections 3.3.1-3.3.3 and results."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as covert, socially compliant, and threat mode are explained by the paper; the transition rules are not left to outside domain knowledge."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The key transition actions are stated directly beside the state-machine discussion: cancel controller, reconfigure IOC, and send a new goal."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The state selection combines threat and pedestrian cues with Boolean priority, e.g. pedestrian mode only when P is present and T is absent; normal mode when both are absent."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite or parent state is specified, so there is no parent entry/during/exit behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The THREAT condition has highest priority: whenever a weapon is detected, the executor preempts the active normal or pedestrian controller and transitions to THREAT."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite-state init or pseudo-state chain exists."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The P/T priority guards are Boolean and mutually exclusive, but the sample has only a small number of such composed guards and little arithmetic."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Destination arrival is monitored from NORMAL, PEDESTRIAN, and THREAT, and threat preemption cuts across active behavior modes; forced transitions would avoid duplicating these arcs."
+    },
+    "C4_abstract_action": {
+      "strength": 2,
+      "evidence": "Actions are abstract software commands rather than actuator-level I/O: cancel a controller, send a goal to SCN/IOC, and set IOC normal/threat weights."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The state machine proceeds through five states, IDLE, NORMAL, PEDESTRIAN, THREAT, and DONE.",
+    "When the robot encounters a threat ... it cancels either the terrain-aware or socially compliant navigation controller ... reconfigures the IOC controller for covert operation, and sends a new goal to the IOC controller."
+  ],
+  "one_line_pitch": "A flat but action-heavy UGV supervisor with priority Boolean context guards, cross-cutting threat/arrival transitions, and abstract controller commands stresses guard and action extraction even without hierarchy.",
+  "verdict": "candidate",
+  "rationale": "The paper confirms that the STM extraction is accurate: this is a five-state behavior executor driven by perception cues. It lacks hierarchy, but it has strong guard and action complexity, including P/T priority logic, controller cancellation, goal reissue, and IOC reconfiguration. The high-priority THREAT preemption and cross-cutting arrival monitoring create baseline traps that Umple/PlantUML-style encodings must duplicate across states, making it a strong stress-test candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 146874,
+      "cached_input_tokens": 109568,
+      "output_tokens": 9692,
+      "reasoning_output_tokens": 7668
+    },
+    "duration_s": 186.1,
+    "attempt": 1
+  }
+}

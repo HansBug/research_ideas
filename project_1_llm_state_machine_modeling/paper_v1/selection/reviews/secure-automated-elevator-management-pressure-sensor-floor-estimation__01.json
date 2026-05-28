@@ -1,0 +1,92 @@
+{
+  "sample_id": "secure-automated-elevator-management-pressure-sensor-floor-estimation__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The paper describes a hierarchical multi-floor system: MFS contains the Elevator Handling System, and EHS branches into outside-elevator and inside-elevator error handling."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Destination selection depends on Grasp/Place/Charge completion flags; exit requires destination floor match AND door open; recovery uses counters such as PE<=3, pE<=2, AEE<=3 and fault/door/floor-indicator maxima."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Actions include calling/requesting elevator floors, translating floors to ADAM port/pin commands, closing/reinitializing sockets, moving/pressing/retrying, warning RRC, terminating transport, and returning to charge station."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "A dedicated Elevator Handling Error Management System classifies outside vs inside faults, performs retry and fallback branches, sends alarms/errors to RRC, and can stop the task and route the robot to charging."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The nominal supervisor is split across System Structure, AEMS destination selection, floor estimation/door guard, Section 4 recovery prose, and Figures 8-9 flowcharts."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as secure elevator handling, error handling system, higher-level controller RRC, and warning alarm imply supervisory recovery semantics beyond a flat event list."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are narrated in prose rather than co-located in a state table, e.g. correction retries, AEMS fallback, RRC reporting, task termination, and charge-station routing."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards combine multiple status variables and comparisons: task-status combinations select floors, destination==reading AND door open permits exit, and retry counters are compared with maxima."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "The EHS parent initializes error counters and manages outside/inside recovery branches; inside handling continuously monitors floor, door, landmarks, and counters."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The paper has layered recovery and escalation, but does not state a from-any-state transition to a universal safe state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite recovery structure with outside/inside handling and initialization, but no deep explicit pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Several guards combine booleans, equality checks, and counter thresholds, making a unified guard IR and consistency checks useful."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Inside-elevator handling continuously checks floor reader, door status, landmarks, and counters; reconnection also continuously checks incoming messages, fitting parent-mode during monitors."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some effects are abstract supervisory outputs such as warning alarms, error messages, reports to RRC, and task termination, while many actuator effects remain concrete."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "When the destination floor matches the estimated robot's current floor and the elevator's door status is recognized as open, the robot leaves the elevator.",
+    "If the functions listed above have failed in handling the elevator correctly, the MFS reports to the higher level controller RRC, terminates the current transportation operation, and directs the robot to the charging station."
+  ],
+  "one_line_pitch": "A layered robot-elevator supervisor with multi-variable floor/door/task guards, retry counters, socket and actuator side effects, and inside/outside recovery branches stresses exactly the guard, action, hierarchy, and recovery weaknesses of Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test sample because the control logic is distributed across architecture prose, tables, recovery narrative, and flowcharts, while the model itself requires hierarchy, compound guards, nontrivial actions, and fault recovery. The paper gives enough concrete behavior to build a reference STM, including destination selection, floor/door exit conditions, retry counters, AEMS fallback, and RRC escalation. No hard exclusion applies, and both BD and FT are high because the sample combines cross-section attribution traps with guard/action/recovery structures where pyfcstm primitives offer clear advantages.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 154884,
+      "cached_input_tokens": 130944,
+      "output_tokens": 4754,
+      "reasoning_output_tokens": 2959
+    },
+    "duration_s": 96.4,
+    "attempt": 1
+  }
+}

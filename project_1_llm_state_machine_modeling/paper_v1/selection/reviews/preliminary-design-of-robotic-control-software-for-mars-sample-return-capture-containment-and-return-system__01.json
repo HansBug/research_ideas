@@ -1,0 +1,92 @@
+{
+  "sample_id": "preliminary-design-of-robotic-control-software-for-mars-sample-return-capture-containment-and-return-system__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The RSW FSM is presented as a flat list of states: UNKNOWN, INITIALIZED, RSCE_ON, READY_ON, CONFIGURE, PRE_MOTION_CHECK, IN_MOTION, POST_MOTION_CHECK, and FAULT; the paper only mentions hierarchy as possible future work."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Multiple meaningful guards are described, including current_state versus requested_state, READY_ON plus motion command, nominal Worker Task result, stop command during execution states, unexpected Worker Task result, and two-cycle RSCE acknowledgement timeout."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions and per-cycle execution include StateExit/StateEntry cleanup, setting current state, incrementing run counts, sending RSCE register writes, sending Worker Task requests, starting motion, monitoring telemetry, clearing acknowledgement flags, forwarding telemetry, and producing event/status messages."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The paper states that transitioning to FAULT is valid for all states; high-priority stop commands put RSW in fault state, and stop commands during CONFIGURE/PRE_MOTION/IN_MOTION/POST_MOTION_CHECK return directly to READY_ON."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names/descriptions are in Table 1 and IV.D.1, while command categories, stop behavior, telemetry side effects, RSCE command details, and Worker Task behavior are spread across IV.B, IV.C, IV.D.2, IV.D.3, and Appendix Tables 6-9."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as fault state, controlled stop, uncontrolled stop, post-motion anomaly checks, and off-nominal hardware collisions imply domain-specific safety behavior beyond a simple named transition."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Table 1 gives compact state descriptions, but actions such as sending register writes in CONFIGURE, sending Worker Task requests in PRE_MOTION_CHECK, starting motion in IN_MOTION, and forwarding telemetry are described later in prose."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The stop rule combines a stop command with membership in several execution states, and the acknowledgement timeout combines an RSCE acknowledgement flag with a two-cycle counter before entering FAULT."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state with its own entry, during, or exit behavior is defined in the actual RSW FSM."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper explicitly says transitioning to FAULT is valid for all states, and also defines a stop-command escape from four execution states back to READY_ON."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no actual composite-state initialization or pseudo-state chain in the described FSM."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The model has some compound guards, especially stop-command state membership and acknowledgement timeout, but not three or more rich arithmetic-plus-boolean guard constraints."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The all-states FAULT transition and the stop-command escape across four execution states are cross-cutting rules that a forced-transition primitive can encode once instead of duplicating over many transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The FSM includes event/status/telemetry side effects such as event messages, HK telemetry, FSM information telemetry, and telemetry forwarding, although many are tied to concrete cFS/SB interfaces."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Transitioning to FAULT is valid for all states.",
+    "During CONFIGURE, RSW sends a series of register write commands to SE to prepare for motion primitive execution."
+  ],
+  "one_line_pitch": "A flat but industrially realistic flight-software FSM stress-tests action attribution, compound execution guards, per-cycle side effects, and global stop/fault recovery rules.",
+  "verdict": "candidate",
+  "rationale": "This is not a hierarchy stress test, but it is a strong action-and-fault stress test with a complete industrial FSM, explicit per-cycle execution semantics, and cross-cutting recovery paths. The baseline trap density is high because state behavior must be reconstructed from state tables, command sections, telemetry prose, Worker Task behavior, and appendix command tables. pyfcstm has a clear advantage from forced transitions for FAULT/STOP and abstract handling of event/status/telemetry side effects.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 127632,
+      "cached_input_tokens": 94208,
+      "output_tokens": 7134,
+      "reasoning_output_tokens": 4998
+    },
+    "duration_s": 147.2,
+    "attempt": 1
+  }
+}

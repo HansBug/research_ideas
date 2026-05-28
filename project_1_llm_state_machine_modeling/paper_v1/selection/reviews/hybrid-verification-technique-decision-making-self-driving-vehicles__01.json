@@ -1,0 +1,92 @@
+{
+  "sample_id": "hybrid-verification-technique-decision-making-self-driving-vehicles__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The parking behavior is described as a flat FSM: each behavior is a state, but no parent/child or composite state structure is specified."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Plan guards combine object type, distance ranges, and approach direction, e.g. pedestrian detected while distance >3m and <6m and object getting closer; PRISM checks also use x/y arithmetic collision constraints."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions generate exploration/parking/avoidance waypoints, update drive mode, add/remove beliefs, generate PTPs, and activate slow or stop modes."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The RA continuously monitors road users; if a moving object enters zone 1, the AV triggers AM1 brake-to-stop as a global safety escape."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "FSM framing appears in the autonomous behavior section, executable guards/actions in Figure 8 and Section 5.3, action meanings in Section 7.1, and zone stop/slow semantics in Section 7.3."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as slow mode, stop mode, and object avoidance are paired with explicit distance-triggered rules, so the main transitions do not require outside-domain decoding."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Some action semantics are not co-located with plan declarations: Figure 8 says activate slow mode, while Section 7.1 defines AM2 as reduced speed 2 mph and Section 7.3 explains zone-triggered slowdown/stop."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines multiple predicates and comparisons: pedestrian detected AND 3m < distance < 6m AND object getting closer."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state or parent-level entry/during/exit behavior is described for the parking FSM."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper states that as soon as a moving object comes across zone 1, the AV will stop, which functions as a cross-cutting emergency transition over the parking behavior."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Multiple guards combine object categories, distance thresholds, trajectory-zone predicates, approach direction, and arithmetic collision-distance formulas."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The zone-1 stop rule is a cross-cutting safety escape over multiple current behaviors and object classes; a forced transition would avoid duplicating it across states."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Actions such as generate waypoints, update drive mode, and generate PTP are high-level and effector-decoupled, but most side effects are still concrete motion-control commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "model each behavior as a state in a finite state machine with transitions controlled by the perceived driving context",
+    "if the distance between 6 m and 3 m, then the drive mode is switched to a slower mode ... otherwise, the vehicle is stopped"
+  ],
+  "one_line_pitch": "A flat but action-heavy autonomous-parking FSM with multi-predicate distance guards, belief updates, motion-plan generation, and a global emergency stop rule.",
+  "verdict": "candidate",
+  "rationale": "This is not a hierarchy stress test, but it is a strong guard/action/global-safety stress test. The paper gives explicit multi-condition guards over pedestrians, vehicles, distance zones, approach direction, and collision probability, while transitions perform nontrivial belief updates, waypoint generation, mode updates, and emergency braking. The important semantics are split across the behavior, executable-plan, predicate/action, and verification-example sections, making it a realistic baseline trap.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 149939,
+      "cached_input_tokens": 107520,
+      "output_tokens": 8637,
+      "reasoning_output_tokens": 6208
+    },
+    "duration_s": 170.5,
+    "attempt": 1
+  }
+}

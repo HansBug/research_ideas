@@ -1,0 +1,92 @@
+{
+  "sample_id": "stereoscopic-warehouse-control-system-based-on-plc__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The software is decomposed into delivery, pick-up, reset, and fault-protection subsystems, and the delivery subsystem has an internal multi-step sub-flow."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Guard logic includes delivery-signal detection, occupied-position branching, target-position reach checks, interlock logic, and an any-limit-switch safety condition over multiple inputs."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Transitions drive X/Y stepper motors, reverse/forward Z-axis fork motion, display operation errors and position numbers, actuate relay KM3, and run reset; actions are mostly concrete PLC outputs."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The paper defines a fault-protection subsystem and limit-switch/error paths that display an error, cut stepper power, or reset the stacker to the zero position."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Delivery/reset state flow is in the software-design section, while actuator mappings, sensor guards, relay actions, and interlock details are in earlier hardware sections."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as interlock, emergency shutdown, self-resetting, and fault protection imply control rules beyond plain event names."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described narratively across prose and hardware mapping rather than as a co-located state-action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The limit-switch fault condition is effectively a boolean OR over multiple PLC limit inputs, and the interlock encodes mutually exclusive drive conditions."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The paper decomposes the controller into subsystems and sub-flow steps, but does not give parent states independent entry/during/exit behavior beyond child steps."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "Limit-switch/failure handling is described as a system-level protection rule that cuts motor power regardless of the current movement step."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite delivery subsystem with a default start from delivery signal to position reading, but no deep pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "Boolean guard consistency matters for limit-switch OR conditions and forward/reverse interlocks, but the paper lacks rich arithmetic guard formulas."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Fault/limit protection applies across several motion substates, so a forced transition or parent-level monitor would avoid duplicating the same safety edge."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some outputs are abstract at the NL level, such as operation-error indication and current-position display, though most actions map to concrete motors, lamps, and relays."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "delivery subsystem, pick up subsystem, reset subsystem and fault protection subsystem",
+    "When the PLC receives any of the limit switch signal input"
+  ],
+  "one_line_pitch": "A compact industrial PLC stacker case with subsystem hierarchy, multi-sensor guards, motor/display/relay actions, and cross-cutting limit-switch protection that exposes known guard/action/context weaknesses of prior baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test sample because the paper gives a real sequential storage controller rather than only I/O wiring: the delivery sub-flow contains occupancy checks, X/Y/Z motion steps, fork placement, reset, and fault handling. Its weakest-baseline features are concentrated in guards, actions, and recovery: multi-input safety guards, interlock semantics, PLC output side effects, and system-level power cut/reset behavior. The hierarchy is shallow, but the cross-section split between software flow and hardware I/O mapping makes it difficult for single-pass Umple-style synthesis to preserve semantics.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 77814,
+      "cached_input_tokens": 68736,
+      "output_tokens": 6268,
+      "reasoning_output_tokens": 4931
+    },
+    "duration_s": 120.8,
+    "attempt": 1
+  }
+}

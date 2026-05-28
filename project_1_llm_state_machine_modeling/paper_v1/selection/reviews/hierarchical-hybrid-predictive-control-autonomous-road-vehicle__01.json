@@ -1,0 +1,92 @@
+{
+  "sample_id": "hierarchical-hybrid-predictive-control-autonomous-road-vehicle__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper has a hierarchical control framework and says a relevant FSM is chosen by scenario, but the highway maneuver FSM itself is a flat S1-S4 maneuver selector rather than explicit nested composite states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Switching rules use vf, vr, vt, vlcl, vlch, merge/exit, lane-change permission, and condition (26) combines target-lane position, spacing, slack, target-lane speed, and interval membership."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Each maneuver state is associated with MPC setup actions: filtering target obstacles, selecting references/constraints, tuning weights/objectives, and assigning vt,r/ye,r changes such as a lane-change step in ye,r."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The paper mentions emergency handling and an always-present collision-avoidance MPC constraint, but it does not define a dedicated fault state, rollback path, or global fault-to-safe transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and switching guards are in Section 3, while concrete MPC setup actions and lane-change reference updates are explained later in Section 4 Remark 1."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as lane-change allowed, merge or exit required, safe gap, and emergency handling require domain interpretation beyond a single enumerated transition table."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are narrated as MPC setup behavior and scenario behavior rather than listed as explicit per-state action clauses in the FSM definition."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards include interval tests on vt, comparisons against vf/vr, boolean lane-change permission, and condition (26) with arithmetic spacing and interval constraints."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state with its own entry/during/exit behavior is specified; the highway FSM is described as S1 Normal Tracking, S2 Following, S3 Leading, and S4 Lane Change."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The always-present collision-avoidance constraint is cross-cutting but is not a from-any-state fault recovery transition to a safe state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no deep composite state or non-trivial initial pseudo-state chain to validate."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The sample has several numeric and boolean guards, including lane-change allowance and speed intervals, but only a limited number are full arithmetic-plus-boolean formulas."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The MPC collision-avoidance inequality exists for every setup regardless of maneuver state, making it a natural parent-level during/aspect constraint."
+    },
+    "C4_abstract_action": {
+      "strength": 2,
+      "evidence": "The FSM outputs abstract MPC configurations such as references, constraints, obstacle filters, and weights, decoupled from concrete steering/brake/traction actuation."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The assigner is designed as a (set of) finite state machine(s)",
+    "vt > vlch or vt < vlcl"
+  ],
+  "one_line_pitch": "A strong stress test because the flat-looking maneuver FSM hides continuous multi-variable guards and abstract MPC-configuration actions spread across the control and MPC sections.",
+  "verdict": "candidate",
+  "rationale": "The sample is not strong on true hierarchical state nesting, but it is very strong on guarded EFSM behavior and non-trivial action semantics. The paper ties maneuver states to continuous MPC references, constraints, obstacle filtering, and lane-change eligibility, which directly targets known guard/action weaknesses in prior baselines. BD is high because state, guard, and action evidence is split across sections and relies on domain terms such as lane-change allowance and emergency handling. FT is high because pyfcstm-style expressions, aspects, and abstract actions would encode the always-on MPC safety constraint and effector-agnostic setup outputs more naturally than Umple-style flat transitions.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 179367,
+      "cached_input_tokens": 142208,
+      "output_tokens": 6830,
+      "reasoning_output_tokens": 4167
+    },
+    "duration_s": 142.8,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "planning-for-safe-abortable-overtaking-maneuvers-in-autonomous-driving__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The planner is a flat FSM with H = {L, F, O, A}; no parent state, nested mode, or composite sub-FSM is described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions are perceptual-event guards over EV/LV poses and velocities; sigma2 and sigma4 also include boolean alternatives such as favorable/manual request and collision-predicted/manual abort."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Each maneuver state determines pref and vref, then the safe/reachable-set and intermediate-reference process is repeated every time step and passed to NMPC to produce acceleration/steering commands."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The FSM has a dedicated Abort state and sigma4 transition when potential collision before completing the overtake is predicted, followed by sigma5 merge-back to Follow."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Formal states/events are in III.B.2, while concrete abort/retry behavior and deceleration/merge-back effects are described later in IV.B/Figs. 5-6."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms like favorable overtaking conditions, potential collision, safe distance, and merge back imply autonomous-driving rules not fully enumerated as transition formulas."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The core state-to-action mapping is co-located in III.B.2: each state directly defines its maneuver-specific reference pose and velocity."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Events are heuristic rules based on current EV/LV poses and velocities; sigma2/sigma4 use boolean OR with manual request/abort, and completion uses velocity-triangle position comparisons."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite or parent state is present, so there is no parent entry/during/exit behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Abort is a dedicated unsafe-overtake path, not an explicit from-any-state fault transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite-state init or pseudo-state chain exists."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "Several transition guards are pose/velocity and collision-prediction conditions, but the paper leaves many as heuristic events rather than fully specified guard formulas."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Safe/reachable sets, intermediate reference generation, and trajectory planning are repeated every time step and remain the same regardless of selected maneuver, making a shared during/aspect encoding concise."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "FSM states output abstract reference pose/velocity targets to a common trajectory-generation stack rather than directly encoding all actuator details, though NMPC eventually emits concrete acceleration/steering commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "The planner state machine M is written as M = (H, Sigma, delta, s0), where H = {L, F, O, A}.",
+    "sigma4 - when potential collision before completion of the overtake is predicted, or abort of the overtake is manually triggered."
+  ],
+  "one_line_pitch": "A flat but guard-heavy autonomous-driving FSM whose abort recovery, per-tick reference generation, and shared trajectory-planning actions directly target the guard/action weaknesses of Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is not a hierarchy stress case, but it is a strong guard/action/recovery stress case: transition events depend on EV/LV poses, velocities, collision prediction, and boolean manual overrides. The FSM also has meaningful continuous state outputs through pref, vref, safe/reachable-set updates, and NMPC commands rather than simple event-only transitions. The dedicated abort-and-merge-back path gives a clear recovery pattern, while the split between formal FSM definition and experimental behavior increases baseline trap density.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 83973,
+      "cached_input_tokens": 68736,
+      "output_tokens": 7591,
+      "reasoning_output_tokens": 5915
+    },
+    "duration_s": 143.0,
+    "attempt": 1
+  }
+}

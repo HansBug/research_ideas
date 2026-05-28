@@ -1,0 +1,92 @@
+{
+  "sample_id": "fuel-cell-electric-robot-energy-management__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The EMS is multi-level and combines robot movement states, PEMFC modes, demand modes, and SOC ranges, but the paper does not define explicit parent-child composite states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Guards use multi-variable arithmetic: OSR(t)=sign(Pdemand)+sign(Delta Pdemand)+sign(Delta v), charging/discharging inequalities, and BOCC terms over SOC, Pdemand, PB,rated, and OSR."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "The selector commands FC maximum power, FC deactivation, 0.4 pu maximum-efficiency mode, and battery charge/discharge across 100 scenarios; BOCC also turns the fuel cell off/on."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Battery overcharge control provides a dedicated protective recovery rule: if SOC is above initial and the battery can sustain load, set PFC=0; when SOC drops below initial, reactivate FC supply."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and OSR guards are in Section 4.1, while mode actions and BOCC override behavior are in Sections 4.5 and 4.6."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as regenerative braking and overcharge control are mostly accompanied by explicit equations or prose rules, so outside-domain decoding is limited."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described narratively after the state list, e.g., high-charge stationary/traction cases deactivate the fuel cell and other scenarios charge or discharge the battery."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Equations 27, 28, and 29 combine multiple variables with arithmetic inequalities and step-function products."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state with its own entry, during, or exit behavior is specified."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "BOCC is a cross-cutting overlay on the operational-mode selector that can deactivate or reactivate the fuel cell based on SOC and load conditions."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no deep composite state or non-trivial init pseudo-chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Several guards use arithmetic and boolean-like composition across Pdemand, Delta Pdemand, speed change, SOC, PB,rated, OSR, HCJEbat, and HCJEH2."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The BOCC rule applies across the scenario/mode space, so a forced or aspect-style encoding could avoid duplicating the same override across many transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are mainly concrete power-management commands, not effector-agnostic notifications, logs, or published events."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The proposed energy management strategy incorporates various states of robot movement, PEMFC production modes, P demand modes, and the LFP battery SOC range as inputs.",
+    "If the battery's SOC is higher than its initial SOC and the battery can provide enough power on its own, the fuel cell is deactivated."
+  ],
+  "one_line_pitch": "This is a guard-heavy EMS stress test where maneuver states, SOC zones, fuel-cell efficiency modes, and a cross-cutting overcharge override must be fused into one executable EFSM.",
+  "verdict": "candidate",
+  "rationale": "The sample has weak hierarchy but very strong guard and action complexity, with multiple arithmetic conditions governing robot state recognition, FC mode selection, battery charge/discharge, and BOCC override behavior. Its state names, guard definitions, and action consequences are split across several sections, creating a realistic baseline trap for prompt-only Umple-style extraction. The cross-cutting BOCC rule also makes it a good test of whether a modeling method can encode protective overrides without duplicating logic across many scenarios.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 147481,
+      "cached_input_tokens": 98816,
+      "output_tokens": 6862,
+      "reasoning_output_tokens": 4619
+    },
+    "duration_s": 136.1,
+    "attempt": 1
+  }
+}

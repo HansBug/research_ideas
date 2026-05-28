@@ -1,0 +1,71 @@
+{
+  "case_id": "railway-generic-electronic-interlocking-software-engineering-methods__01",
+  "case_name": "Route-3 request-call-occupation interlocking supervisor",
+  "expanded_nl": "The Route 3 interlocking supervisor belongs to a railway electronic interlocking model expressed with Boolean interlocking functions and UML statecharts [E1]. Route R3 enters a composite Route Request phase whose internal path first checks S3, then the required track and point elements, and later continues through set, call, and occupation phases when availability decisions succeed [E2]. A route is available only when no conflicting route is already set, the relevant signals are red and unused, the required track sections are unoccupied, and all required elements are free and available [E3]. During this request path, point w1 is position-checked; if it is not in the correct position, the interlocking instructs the point to change before continuing [E4]. When Route 3 is set, s3, s5, Tb, Tc, Ty, and w1 are expected to move from free configurations to yellow reserved indications, and the test reports that Route 3 is set [E5]. The call phase turns the route elements green and clears the start signal to green, meaning the route is called and ready for train occupation [E6]. During occupation, the train proceeds section by section, occupied sections and the start signal turn red, and after the train stops before the destination signal the reserved overlap, route, and required elements are cleared; the Route 3 test records the cleared elements as grey [E7]. If Tc is faulted, the route request cannot be issued; unrequested point-machine switching or faulty sensors turn all Route 3 elements red and cancel the route, while incorrect train detection during occupation turns all signalling elements red [E8].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Abstract | paper_content.txt 行 80-84",
+      "quote": "The interlocking system is modelled using Boolean interlocking functions and UML (Unified Modelling Language) statecharts.",
+      "supports": "railway electronic interlocking model expressed with Boolean interlocking functions and UML statecharts"
+    },
+    {
+      "marker": "E2",
+      "source": "paper.pdf p.106 (document p.84) Figure B.11 | paper_content.txt 行 3291-3293",
+      "quote": "Route R3; ROUTE REQUEST; Availability of S3; SET ROUTE; Route Call; Train Occupation",
+      "supports": "Route R3 default entry into Route Request and the route request/set/call/occupation phase structure"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 B | paper.pdf p.67-68 §4.5.2.1 | paper_content.txt 行 2198-2214",
+      "quote": "no conflicting routes ... signals are currently displaying a red aspect ... track sections are unoccupied ... required elements are free and available",
+      "supports": "compound availability guard over conflicting routes, signal state/use, track occupancy, and element availability"
+    },
+    {
+      "marker": "E4",
+      "source": "paper.pdf p.70 §4.5.2.2 | paper_content.txt 行 2304-2309; paper.pdf p.106 Figure B.11",
+      "quote": "If not, an instruction is sent to the interlocking to change it into the correct required position",
+      "supports": "point w1 position check and corrective point-changing action before continuing"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 C | paper.pdf p.128 (document p.106) Table E.17 | paper_content.txt 行 3801-3809",
+      "quote": "s3 = Yellow ... s5 = Yellow ... Tb = Yellow ... Tc = Yellow ... Ty = Yellow ... w1 = Yellow ... Route 3 is set.",
+      "supports": "Route 3 set action changes listed elements to yellow reserved indications"
+    },
+    {
+      "marker": "E6",
+      "source": "STM §1 摘录 B/C | paper.pdf p.68-69 §4.5.2.1 and p.129 Table E.18 | paper_content.txt 行 2255-2262, 3825-3833",
+      "quote": "track sections sequentially turn green ... start signal clears to green ... route is ready for occupation",
+      "supports": "route call turns elements green and clears the start signal for occupation"
+    },
+    {
+      "marker": "E7",
+      "source": "STM §1 摘录 B/C | paper.pdf p.69 §4.5.2.1 and p.129 Table E.19 | paper_content.txt 行 2270-2279, 3835-3844",
+      "quote": "track section ... turns red ... start signal then turns red ... reserved overlap, the route and required elements are cleared",
+      "supports": "occupation progression, red occupied indications, clearing behavior, and grey cleared Route 3 test result"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 C | paper.pdf p.130-131 (document p.108-109) Tables E.21-E.24 | paper_content.txt 行 3862-3926",
+      "quote": "Fault triggered for element Tc ... Route request is not issued ... All elements turn red ... Train detection operating incorrectly ... All signalling elements turn red.",
+      "supports": "Tc fault prevents request, and safety-critical events force red/cancel or red occupied response"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "expanded_nl 通过 Route R3 进入 composite Route Request、内部先检查 S3 并继续到 set/call/occupation phase 的表述暴露了 Route R3 → Route Request → 内部检查的层次和默认入口，见 [E2]。",
+    "G_guards_arith": "原文无数值阈值或算术守卫，未提供 G-arithmetic 覆盖；expanded_nl 仅忠实暴露 no conflicting route、signals red/unused、track sections unoccupied、elements free/available、point position 这类布尔复合 guard，见 [E3][E4]。",
+    "A_actions_nontrivial": "A 钩子主要在 point corrective instruction、yellow/green/red/grey element indication changes、start signal clearing、route clearing 等非平凡动作，见 [E4][E5][E6][E7]。",
+    "F_fault_recovery": "F 钩子在 Tc fault 阻止 route request，以及 set/call/occupation 场景中的 safety-critical event 使元素转 red、取消 route 或占用化的 fail-safe 响应，见 [E8]。",
+    "bd_baseline_traps": "expanded_nl 命中 implicit-domain 术语（Route R3、S3、Tc、point machine）、composite-internal 结构、布尔 multivar-guard 和 implicit-action-prose 的颜色/锁闭动作，且 [E8] 暴露接近 global-cross-cutting 的安全响应。",
+    "ft_fcstm_fit": "pyfcstm fit 中等：有复合 init/phase 链 [E2]、effector-agnostic abstract action 候选（signal/track/point indication 与 point instruction）[E4]-[E7]、forced-style fail-safe 响应 [E8]；但无数值 SMT 守卫或 per-tick aspect。"
+  },
+  "word_count_estimate": 258,
+  "intentional_omissions": "没有加入时间阈值、算术区间、传感器型号、阀门/继电器编号或额外恢复路径，因为原文只支持布尔可用性、颜色/占用状态和 Route 3 元素名。也没有写成 from any state 的全局跳转，因为原文只在 set/call/occupation 测试场景中验证 safety-critical response。",
+  "_meta": {
+    "id": "railway-generic-electronic-interlocking-software-engineering-methods__01",
+    "actual_word_count": 258,
+    "markers_count": 8,
+    "provenance_count": 8
+  }
+}

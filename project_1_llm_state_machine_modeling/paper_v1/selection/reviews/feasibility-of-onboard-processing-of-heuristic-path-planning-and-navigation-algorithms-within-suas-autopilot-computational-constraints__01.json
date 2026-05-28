@@ -1,0 +1,92 @@
+{
+  "sample_id": "feasibility-of-onboard-processing-of-heuristic-path-planning-and-navigation-algorithms-within-suas-autopilot-computational-constraints__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The extracted and paper-described controller is a flat FSM: Initial State Check, Standard Target Tracking, Low Range Target Tracking, and High Range Target Tracking; no parent/child states are described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions depend on combined slant-range and Ji conditions; the paper gives Jthreshold = 0.003 plus a 35 m buffer around the desired 150 m radius, implying arithmetic threshold guards such as range outside desired radius ± buffer together with Ji."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Alternate states change tracking behavior by scaling the level of effort used to maintain slant range; the first FSM also used a throttle multiplier to reduce turn radius. These are meaningful control-output actions, but mostly direct navigation commands."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The Ground_Vehicle class includes GV.active, a safety check that detects loss of ground-vehicle updates and lets the system failsafe to existing navigation logic."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names are in the FSM figures/STM extraction, guard thresholds are in the implementation paragraph, actions are described narratively, and the GV.active failsafe is in the later Ground Vehicle Class section."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "The paper uses domain terms such as loiter, follow-me, guided mode, and especially failsafe to existing navigation logic, which imply behavior not fully expanded as state-transition rules."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The key state action, scaling the level of effort used to maintain slant range, is described in prose rather than co-located in a state/action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Transition logic uses Ji thresholding together with slant-range deviation around desired radius ± 35 m, a multi-variable arithmetic/boolean guard pattern."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite or parent state is described; the FSM is flat."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "GV.active is a global safety check for missing ground-vehicle updates that triggers fallback to existing navigation logic, applying across the tracking controller rather than one local transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite states or init/pseudo-state chains are present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The FSM has arithmetic threshold guards over Ji and slant range, but the paper evidence supports a small number of such guards rather than a large guard set."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The GV.active failsafe is a cross-cutting fallback that would otherwise need to be duplicated from the three tracking states."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete autopilot/navigation/gimbal control effects, not effector-agnostic log/publish/notify actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "A second iteration FSM was proposed that, when appropriate, attempted to diminish the effects of this scenario by scaling the level of effort being used to maintain slant range.",
+    "The second iteration FSM was implemented on the APM with Jthreshold = 0.003 and control effort buffer set to 35m."
+  ],
+  "one_line_pitch": "A compact aerospace tracking FSM that stresses guard recovery and action attribution through arithmetic slant-range/Ji thresholds, prose-defined control actions, and a global telemetry-loss failsafe.",
+  "verdict": "candidate",
+  "rationale": "This is not a hierarchy stress test, but it is a strong guard/action/failsafe stress test grounded in a real SUAS controller. The transition logic combines Ji, slant-range deviation, and buffer arithmetic, while the state actions are spread through narrative prose and firmware-parameter sections. The GV.active fallback adds a cross-cutting recovery pattern that is awkward for flat Umple/PlantUML-style generation.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 702874,
+      "cached_input_tokens": 583552,
+      "output_tokens": 10750,
+      "reasoning_output_tokens": 6471
+    },
+    "duration_s": 225.2,
+    "attempt": 1
+  }
+}

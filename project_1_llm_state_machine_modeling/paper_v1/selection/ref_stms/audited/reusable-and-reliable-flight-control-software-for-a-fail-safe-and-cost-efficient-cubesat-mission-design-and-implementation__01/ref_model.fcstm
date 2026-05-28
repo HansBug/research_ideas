@@ -1,0 +1,161 @@
+// Masat-1 CubeSat Flight-Control Software — Path 1 golden V-rich reference STM
+//
+// Provenance: NL expansion `reusable-and-reliable-flight-control-software-...__01`
+// [E1]-[E26] + paper pp.18-27
+//
+// Discipline (golden V-rich exemplar vs cara low-V case):
+//   * V (variables) is RICH and BUSINESS-LOGIC-DRIVING:
+//     - numerical thresholds (battery_charge<86, battery_charge>=90)
+//     - retry counter (antenna_retries, max 3 before reboot)
+//     - branch flag (sun_visible)
+//     - FDIR fault flag (anomaly_detected)
+//     ALL directly gate transitions
+//   * @external annotations on sensor / ground / FDIR inputs — analyzer
+//     exempts from `unwritten_read_var` ERROR
+//   * pyfcstm transition syntax: each transition has EITHER event OR guard
+//     (not both); we split combined event+guard patterns into separate
+//     transitions, and forced transitions cannot carry effect blocks (effects
+//     moved to target-state .enter or source-state .during)
+//
+// See bundle.md for full design notes + per-var role.
+
+// ============================================================
+// V — External input variables (sensors / ground / FDIR)
+// ============================================================
+def int battery_charge   = 100;  // @external [E10][E16][E22] battery SoC percent
+def int sun_visible      = 1;    // @external [E13] 1=in sunlight, 0=in eclipse
+def int anomaly_detected = 0;    // @external [E24][E25] FDIR fault flag (raised by safety monitor)
+
+// ============================================================
+// V — Internal state variables (controller reads + writes)
+// ============================================================
+def int boot_counter     = 0;    // [E4] incremented each INIT entry / reboot
+def int antenna_retries  = 0;    // [E5][E6][E7] antenna redeploy attempt counter
+def int antenna_deployed = 0;    // [E5] 1 after successful deployment
+
+state Masat_1_FCS {
+    enter abstract storeTelemetryBuffer;
+
+    event GroundCmd_GoSafe;        // [E10][E15] ground forces SAFE
+    event GroundCmd_GoMission;     // [E10] ground command to leave SAFE
+    event GroundCmd_GoComm;        // [E10] ground starts communication
+    event TaskCompletion;          // [E10] internal task done
+    event AntennaAttempt;          // [E5][E6] attempt antenna deployment
+    event AntennaConfirmed;        // [E5] sensor confirms deployment
+
+    [*] -> INIT;
+
+    // ------------------------------------------------------------
+    // INIT — boot, deploy antenna (3 retries), then enter SAFE [E4-E9]
+    // ------------------------------------------------------------
+    state INIT {
+        enter {
+            boot_counter     = boot_counter + 1;
+            antenna_retries  = 0;
+            antenna_deployed = 0;
+        }
+        enter abstract initializeCOM_ADCS_payload;
+        // self-managed reboot when 3 retries exhausted [E7]:
+        // increments boot_counter and resets retries for next attempt cycle
+        during {
+            if [antenna_retries >= 3 && antenna_deployed == 0] {
+                boot_counter    = boot_counter + 1;
+                antenna_retries = 0;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------
+    // SAFE — vital subsystems only, reduced beacon, awaits ground [E13]
+    // SAFE entry also acknowledges any FDIR anomaly that triggered entry
+    // ------------------------------------------------------------
+    state SAFE {
+        enter {
+            anomaly_detected = 0;     // acknowledge fault that brought us here [E25]
+        }
+        enter abstract reduceToVitalSubsystems;
+        enter abstract reduceBeaconTo120s;
+    }
+
+    // ------------------------------------------------------------
+    // CRITICAL — low battery; subsystems → low power until recharged [E16-E18]
+    // ------------------------------------------------------------
+    state CRITICAL {
+        enter abstract switchSubsystemsLowPower;
+        enter abstract reduceBeaconTo120s;
+    }
+
+    // ------------------------------------------------------------
+    // IDLE — temporary mode; branch by sun visibility [E12]
+    // ------------------------------------------------------------
+    state IDLE;
+
+    // ------------------------------------------------------------
+    // SUN_VIS — secondary objectives, normal beacon [E20]
+    // ------------------------------------------------------------
+    state SUN_VIS {
+        enter abstract restoreBeaconTo60s;
+        enter abstract nadirPointingStandby;
+    }
+
+    // ------------------------------------------------------------
+    // ECLIPSE — payload off, low-power housekeeping
+    // ------------------------------------------------------------
+    state ECLIPSE {
+        enter abstract switchADCSLowPower;
+    }
+
+    // ------------------------------------------------------------
+    // COMMUNICATION — fully commandable, periodic battery check [E21-E22]
+    // ------------------------------------------------------------
+    state COMMUNICATION {
+        enter abstract waitForGroundCommand;
+    }
+
+    // ============================================================
+    // Transitions — V-driven business logic per NL [E*]
+    // ============================================================
+
+    // -- INIT antenna deployment loop (event-driven counter, V-driven retry limit) --
+    INIT -> INIT : AntennaAttempt effect {
+        antenna_retries = antenna_retries + 1;
+    }
+    INIT -> SAFE : AntennaConfirmed effect {
+        antenna_deployed = 1;
+    }
+
+    // -- SAFE / mission lifecycle (event-driven) --
+    SAFE -> IDLE : GroundCmd_GoMission;
+    SUN_VIS -> COMMUNICATION : GroundCmd_GoComm;
+    COMMUNICATION -> SUN_VIS : TaskCompletion;
+
+    // -- Low-battery handling (V-driven guards on battery_charge) [E16][E22] --
+    SAFE -> CRITICAL          : if [battery_charge < 86];
+    IDLE -> CRITICAL          : if [battery_charge < 86];
+    SUN_VIS -> CRITICAL       : if [battery_charge < 86];
+    ECLIPSE -> CRITICAL       : if [battery_charge < 86];
+    COMMUNICATION -> CRITICAL : if [battery_charge < 86];
+
+    // -- Battery recovery (V-driven) [E17] --
+    CRITICAL -> IDLE : if [battery_charge >= 90];
+
+    // -- IDLE branches by sun visibility (V-driven) [E12] --
+    IDLE -> SUN_VIS : if [sun_visible == 1];
+    IDLE -> ECLIPSE : if [sun_visible == 0];
+
+    // -- SUN_VIS ↔ ECLIPSE driven by sun visibility (V-driven) --
+    SUN_VIS -> ECLIPSE : if [sun_visible == 0];
+    ECLIPSE -> SUN_VIS : if [sun_visible == 1];
+
+    // ============================================================
+    // Forced FDIR transitions — cross-cutting [E24-E26]
+    // (forced transitions cannot carry effects in pyfcstm; effects live
+    //  in the target state's .enter)
+    // ============================================================
+
+    // Forced: any state, on FDIR anomaly → SAFE (cleared by SAFE.enter)
+    ! * -> SAFE : if [anomaly_detected == 1];
+
+    // Forced: any state, on explicit ground command → SAFE [E15]
+    ! * -> SAFE : GroundCmd_GoSafe;
+}

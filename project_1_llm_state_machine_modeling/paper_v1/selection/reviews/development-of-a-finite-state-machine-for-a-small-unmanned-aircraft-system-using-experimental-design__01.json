@@ -1,0 +1,92 @@
+{
+  "sample_id": "development-of-a-finite-state-machine-for-a-small-unmanned-aircraft-system-using-experimental-design__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper groups the flat state table by Maneuver: Straight/Turn/U-turn and uses separate maneuver scripts, but each wind-speed/direction/maneuver combination is just one flat state."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Appendix scripts compute relWindDir = windDir - cs.target_bearing, normalize it, then use boolean threshold guards such as relWindDir > -45 and < 45 plus nested windVel ranges."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "State branches issue multiple firmware updates such as Script.ChangeParam('LIM_ROLL_CD', ...), Script.ChangeParam('WP_RADIUS', ...), and Script.ChangeParam('WP_LOITER_RAD', ...)."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper validates reliability and variance reduction but defines no fault, abort, safe-state, rollback, or global recovery transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State formation is described in §3.8, parameter settings are listed in Table 13/§4.4, and the actual arithmetic guard code appears later in Appendix A."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as headwind, crosswind, loiter radius, and waypoint radius are defined or directly encoded; no outside rule such as fail-safe or manual override is required."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The state actions are co-located in Table 13 and in the corresponding Appendix A branches rather than requiring attribution from unrelated prose."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards depend on computed relWindDir from wind direction and target bearing, then combine angle thresholds with windVel threshold branches."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state has entry, during, or exit behavior beyond child states; the FSM is flat."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault or recovery rule is declared."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite-state initialization or pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "There are many arithmetic and boolean guards over relWindDir and windVel across the three maneuver scripts."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "The implemented sample does not declare a forced cross-cutting transition or parent-level during monitor; it uses flat branch logic in separate scripts."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete APM firmware parameter writes, not effector-agnostic publish/log/notify actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 2,
+  "fcstm_fit": 1,
+  "key_nl_quotes": [
+    "The FSM consists of 36 individual states defined by a combination of four wind directions, three wind speeds, and three ground maneuvers.",
+    "Once the SUAS enters a particular state, the FSM modifies the default APM:Plane firmware parameter settings to optimal settings."
+  ],
+  "one_line_pitch": "A flat but dense 36-state SUAS controller stresses guard extraction and multi-parameter transition actions through computed wind-relative thresholds and per-state autopilot tuning.",
+  "verdict": "candidate",
+  "rationale": "This is a strong guard/action stress test: the real implementation uses arithmetic relative-wind guards and multiple concrete APM parameter updates per selected state. It has only superficial hierarchy and no fault-recovery model, so it is not a broad H/F stress case, but it directly targets two of the weakest baseline components. BD is moderate because the state definition, action table, and executable guard logic are split across non-adjacent sections.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 197876,
+      "cached_input_tokens": 154496,
+      "output_tokens": 8028,
+      "reasoning_output_tokens": 5675
+    },
+    "duration_s": 158.0,
+    "attempt": 1
+  }
+}

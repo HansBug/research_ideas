@@ -1,0 +1,92 @@
+{
+  "sample_id": "power-dispatching-fsm-standalone-photovoltaic-hybrid-energy-storage__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper explicitly defines a hierarchical event-driven FSM: WMC selects Hybrid/Battery-only/Disconnected, and PFC refines Hybrid into Fully dispatchable/Limited/Disconnected and Battery-only into Connected/Disconnected."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transition tables include boolean and arithmetic guards such as SOCbat(t)>SOCbat,min && SOCsc(t)<SOCsc,min, Pmax,sc+Pmax,bat<PL(t), and Pbat(t)>Pmax,bat && Psc(t)<Pmax,sc."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States drive continuous power-reference updates and downstream PWM outputs: Limited updates the battery reference to 0.8Pbat(t), SC supplies the remainder, final references are checked, and SWC generates PWM signals for converters/inverter."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Dedicated safety disconnection transitions exist when SOC or power-capacity constraints fail, e.g., WMC Disconnected on low SOC and PFC Disconnected when combined storage power is insufficient for load."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The same controller element is split across sections: WMC modes and SOC guards are in Section 3.1, PFC child states and reference equations in Section 3.2, and PWM/control outputs in Section 4."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as Hybrid, Battery only, and Disconnected are accompanied by explicit transition tables and reference equations, so no unstated domain rule must be decoded."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "State diagrams/tables list modes and guards, while actions such as updating power references, checking final references, and generating PWM are described in prose/equations outside the state diagrams."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines multiple variables arithmetically or logically, e.g., Pmax,sc+Pmax,bat<PL(t) and Pbat(t)>Pmax,bat && Psc(t)<Pmax,sc."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Composite parent modes have their own behavior: Hybrid performs filtered battery/SC power sharing before child-state clipping, while Battery-only assigns the load to the battery and disables SC dispatch."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The paper has safety disconnection states, but does not state a from-any-state fault escape or global recovery transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There are shallow composite modes with child states, especially Hybrid with Fully dispatchable/Limited/Disconnected, but no deep or explicit non-trivial init pseudo-chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The FSM has several arithmetic/boolean guards over SOC, load demand, power ratings, and calculated power shares, making unified expression parsing and consistency checking useful."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Final power-rating checks and continuous reference/PWM generation are declared once at the PFC/SWC level and apply across multiple mode substates."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete control commands and references to converters/inverter PWM, not abstract notifications, logs, or channel-independent side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Power management strategies are developed in a hierarchical architecture as an event driven finite state machine.",
+    "The Hybrid mode consists of three states: Fully dispatchable, Limited and Disconnected."
+  ],
+  "one_line_pitch": "A hierarchical PV hybrid-storage dispatch supervisor with nested operating modes, arithmetic multi-variable guards, and continuous reference/PWM actions directly targets known weak spots in prior Umple-style LLM baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test case because hierarchy, guards, and actions are all central to the paper's control architecture rather than incidental details. The FSM combines SOC-based mode selection, load/power-rating guards, child-state dispatch logic, and continuous power-reference/PWM outputs. It lacks a true global fault escape, but its dedicated Disconnected safety paths and cross-section action attribution still make it challenging for baseline state-machine synthesis.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 82601,
+      "cached_input_tokens": 67200,
+      "output_tokens": 6754,
+      "reasoning_output_tokens": 5009
+    },
+    "duration_s": 130.1,
+    "attempt": 1
+  }
+}

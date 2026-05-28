@@ -1,0 +1,92 @@
+{
+  "sample_id": "autonomous-aerial-robot-high-speed-search-intercept__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper explicitly selects a flat FSM: it says the problem can be represented with \"a small number of states and events\" and lists START_STATE, SEARCH, FOLLOW_LONG_RANGE, FOLLOW_SHORT_RANGE, CATCH_BALL, and LAND without nested states."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Transition events use multiple count-window guards: LONG_RANGE_UAV_DETECTED is 3 detections on 5 frames, SHORT_RANGE_UAV_DETECTED is 2 detections on 4 frames, DETECTION_LOST is no detections in 5 frames, and SUCCESSFUL_CATCH is a laser-sensor condition."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States define continuous mission actions: activate/deactivate detectors, set UAV speed, establish navigation goals, execute a semiellipse search trajectory, move toward detections, align the gripper with the ball, continue the planned trajectory, and land."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The FSM includes DETECTION_LOST, defined as no new detections in 5 consecutive frames; the discussion states the target can be missed and FOLLOW/APPROACH can switch back to SEARCH."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and main actions are in Section 5.5, while state-specific control behavior for FOLLOW_SHORT_RANGE and CATCH_BALL appears earlier in Section 5.4, and detector counter/mode policy appears in Section 5.1.5."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as SEARCH, FOLLOW, CATCH_BALL, and DETECTION_LOST are accompanied by explicit motion, detector, or count-window descriptions rather than relying on unstated domain rules."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions such as using a more aggressive controller for FOLLOW_SHORT_RANGE and CATCH_BALL and planning the gripper catch trajectory are described in narrative prose outside the compact FSM state list."
+    },
+    "T4_multivar_arith_guard": {
+      "present": false,
+      "evidence": "The guards are count-window thresholds, but the paper does not state a transition guard combining multiple controller variables with an arithmetic or boolean formula."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state is defined, and no superstate entry/during/exit behavior is present."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Detection-loss fallback is not specified as a from-any-state global transition; it is discussed for missed target tracking in follow/approach behavior."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The FSM has count-window guards such as 3/5 detections, 2/4 detections, and 0/5 detections, but no contradiction-prone boolean guard network."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "No cross-cutting rule over three or more substates and no parent-level during monitor is specified."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Mission states issue abstract module-level commands such as detector activation, speed selection, and planner goals, although most effects are concrete UAV navigation behaviors."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 2,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The implemented FSM uses a number of states in order to control different parts of the system.",
+    "LONG_RANGE_UAV_DETECTED: There are 3 detections on 5 consecutive frames from the Long-Range Detector."
+  ],
+  "one_line_pitch": "An action-heavy UAV mission FSM with count-window perception guards and detection-loss fallback stresses baseline action attribution and guard extraction, but lacks hierarchy or global recovery.",
+  "verdict": "backup",
+  "rationale": "This is a real and well-specified mission controller with meaningful state actions, detector-mode side effects, thresholded perception events, and a recovery path back to search. It is a useful stress-test for action and guard extraction, especially because some state-specific behavior is distributed across the software-stack sections. It is secondary rather than top-tier because the FSM is flat, the guards are mostly simple count thresholds, and there is no composite-state or global fault pattern.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 155294,
+      "cached_input_tokens": 118784,
+      "output_tokens": 8841,
+      "reasoning_output_tokens": 6473
+    },
+    "duration_s": 171.7,
+    "attempt": 1
+  }
+}

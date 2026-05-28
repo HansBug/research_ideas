@@ -1,0 +1,96 @@
+// CARA Infusion Pump Mode_Control_Algorithm — Path 1 golden reference STM
+//
+// Provenance: NL expansion `cara-infusion-pump-formal-spec__01` [E1]-[E17]
+//             + paper p.19 Figure 11
+//
+// Discipline:
+//   * V (variables) set populated by 3 NL-explicit controller output signals
+//   * Transition effect blocks contain ONLY substantive controller actions
+//     that NL mentions; no mode-mirror, no event-paraphrase, no external-actor
+//
+// See bundle.md §0/§7 for action-discipline rationale and `def` discussion.
+
+// Controller output signals (V in EFSM 5-tuple, written by controller,
+// read by sim runtime / real hardware monitor). Static analyzer emits
+// `WARN write_only_var` for these — that's the correct semantics for
+// output signals (not the NL-fact-flag anti-pattern from codex v1).
+def int alarm_active    = 0;   // [E15] alarm signal to caregiver
+def int error_displayed = 0;   // [E11] CI error display/sound output
+def int release_control = 0;   // [E16] CARA releases pump control signal
+
+state Mode_Control_Algorithm {
+    // CARA stores incoming sensor readings in a shared buffer [E3]
+    enter abstract storeSensorReadings;
+
+    event InitiateAlgorithmicPumpControl;
+    event ChangeSetpoint;
+    event StartAC;
+    event TerminateAlgorithmicPumpControl;
+    event PumpOperationComplication;
+    // Four back-to-manual triggers from different CARA components [E17]
+    event CA_backManual;
+    event CB_backManual;
+    event CP_backManual;
+    event CC_backManual;
+
+    [*] -> Wait;
+
+    state Wait;
+
+    // Manual mode: built-in switch sets pump speed, default flow rate [E5][E6]
+    //
+    // Pulse-signal acknowledgement: on Autocontrol→Manual transitions the
+    // controller raises alarm_active / error_displayed / release_control as
+    // single-cycle pulse outputs visible to operator + external monitor;
+    // once we are back in Manual the controller acknowledges and clears
+    // these signals every cycle (closed-loop signal lifetime).
+    state Manual {
+        enter abstract useBuiltInPumpSwitch;
+        enter abstract applyDefaultFlowRate;
+        during {
+            if [alarm_active == 1] {
+                alarm_active = 0;
+            }
+            if [error_displayed == 1] {
+                error_displayed = 0;
+            }
+            if [release_control == 1] {
+                release_control = 0;
+            }
+        }
+    }
+
+    // Ask_StartAC submode: caregiver can edit target BP setpoint [E10][E13]
+    state Ask_StartAC;
+
+    // AutocontrolInit transient state: transfer pump control to algorithm [E7]
+    state AutocontrolInit {
+        enter abstract applyExternalControlVoltage;
+    }
+
+    // Autocontrol normal operation: continuously compute infusion rate + log [E8][E9]
+    state Autocontrol {
+        during abstract computeInfusionRateFromBP;
+        during abstract logInfusionData;
+    }
+
+    Wait            -> Manual;
+    Manual          -> Ask_StartAC     : InitiateAlgorithmicPumpControl;
+    Ask_StartAC     -> Ask_StartAC     : ChangeSetpoint;
+    Ask_StartAC     -> AutocontrolInit : StartAC;
+    AutocontrolInit -> Autocontrol;
+    Autocontrol     -> Manual : TerminateAlgorithmicPumpControl effect {
+        release_control = 1;
+    }
+    Autocontrol     -> Manual : PumpOperationComplication effect {
+        alarm_active    = 1;
+        error_displayed = 1;
+        release_control = 1;
+    }
+
+    // Forced fallback: any descendant state, on any caregiver-triggered backManual → Manual [E17]
+    ! * -> Manual : CA_backManual;
+    ! * -> Manual : CB_backManual;
+    ! * -> Manual : CP_backManual;
+    ! * -> Manual : CC_backManual;
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "control-system-design-of-water-filter-test-bench__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper defines four main states, then lower-level lobby/component FSMs: ΔP Measurement has Lobby1, Multi-pass enters Lobby2/TEST2 flow, Manual Control has Lobby3, and valves/pumps have their own state machines."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Multi-pass start requires a compound guard over four pumps, sensor pumps, valve A.V.2, valve B.V.12, and bypass status; valve and pump transitions add further boolean guards over valve states, pump states, levels, pressure, and delays."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Starting the multi-pass test turns dirt feed into the filter test system, collects reservoir water, turns sensor pumps on, starts counters/data gathering, and later turns bypass/cleaning valves and pumps into recovery configurations."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "Route E.1 is entered from every state on emergency stop or out-of-limit parameters; automatic stop1 and safety stop2 stop pumps, interrupt measurement, and move/hold the system in recoverable manual or safe behavior."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Main-state behavior is in §4.5.2, valve guards/actions in §4.5.3, pump guards/actions in §4.5.4, and stop-state behavior in §4.5.5, so one supervisor behavior must be assembled across non-adjacent sections."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Although terms such as emergency stop, safety stop2, bypass, and manual control are domain terms, the paper mostly spells out the required stop, reset, pump-blocking, and valve-synchronization rules."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Mode entry and transition actions are described narratively, such as setting valves on measurement entry and performing multiple pump/valve/counter actions on TEST2 start or finish, rather than as a compact state-action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The multi-pass start guard combines pump states, sensor pump states, valve directions, and bypass activity; bypass valves also use OR/AND-style conditions involving B.V.10/B.V.11 and pump states."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Parent modes carry behavior beyond their substates: entering ΔP or Multi-pass initializes valves and changes HMI-visible controls/data, while component FSMs run under the mode supervisor."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper explicitly states that E.1 can be entered from every state, and pumps must always be turned off when automatic stop1 or safety stop2 becomes active."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There are shallow composite mode entries with default lobby activation and valve initialization, but no clearly deep pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "There are at least three compound guards: multi-pass start, B.V.10/B.V.11 bypass synchronization, and pump start guards over multiple valves/pumps/limits."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Global stop E.1 and automatic/safety stop rules apply across many states and pumps, making forced transitions or parent-level aspects much shorter than duplicated Umple transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Most actions are concrete pump/valve commands, but the model also describes abstract HMI status display, visual indicators, warnings, counters, and data gathering."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "E.1 can be entered from every state of the system.",
+    "Pumps can never be turned on when safety stop2 state is active."
+  ],
+  "one_line_pitch": "A strong industrial HSM stress test with nested operating modes, multi-variable guards, heavy transition actions, and global stop/recovery behavior spread across supervisor, valve, pump, and safety sections.",
+  "verdict": "candidate",
+  "rationale": "This sample directly targets the weakest baseline areas: guarded transitions, actions, hierarchy, and fault recovery are all central rather than incidental. The paper gives enough concrete control detail to build a reference state machine, but the information is distributed across main-state, valve, pump, and inner-stop sections, which is exactly where single-prompt or syntax-repair baselines are likely to lose semantics.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 143510,
+      "cached_input_tokens": 115200,
+      "output_tokens": 6587,
+      "reasoning_output_tokens": 4521
+    },
+    "duration_s": 128.7,
+    "attempt": 1
+  }
+}

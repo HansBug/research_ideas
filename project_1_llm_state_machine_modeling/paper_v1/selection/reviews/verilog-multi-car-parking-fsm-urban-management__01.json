@@ -1,0 +1,92 @@
+{
+  "sample_id": "verilog-multi-car-parking-fsm-urban-management__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper mentions slot state groups and possible zoned sub-FSM modules reporting to a central controller, but the extracted controller itself is essentially flat: IDLE/WAIT PASSWORD/RIGHT PASS/WRONG PASS/STOP or IDLE/AUTH/SUCCESS/ALLOCATE/FAIL."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Transitions depend on entry sensor detection, carcount capacity checks, username/password authentication, full/empty conditions, and slot availability."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "On available authenticated entry, the controller opens the gate, increments carcount, updates display/LED status, and asserts a selected slot output; on failure it lights red LED and activates no slot."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "Authentication failure enters FAIL/WRONG PASS, triggers red LED, activates no slot, and eventually returns to IDLE, but there is no explicit emergency/fault recovery model."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names appear in Section III.A, capacity/action details appear around Figure 1, and the later proposed-method section gives another IDLE/AUTH/SUCCESS/ALLOCATE/FAIL flow with slot outputs."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as priority encoder-based nearest-slot allocation, symmetric entry/exit handling, and authentication imply allocation/deallocation and blocking rules beyond a single explicit transition table."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The state list is separate from narrative prose describing actions such as gate opening, carcount increment, display updates, green/red LEDs, and slot output activation."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards combine capacity and authentication logic: carcount < maximum slot capacity, username/password comparison, slot availability, and sensor-driven branching."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state is given with its own entry/during/exit behavior beyond child substates."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault, emergency-stop, or global recovery transition is described."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No explicit composite-state initialization or pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are a few meaningful guards over carcount, credentials, slot availability, and sensors, but not enough explicitly composed arithmetic/boolean guard formulas for a strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 0,
+      "evidence": "No global forced transition or parent-level continuous monitor applying across three or more substates is specified."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some outputs are abstract or channel-flexible, such as display/LED status updates and optional mobile notification or remote monitoring, while most core actions remain concrete."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "If a slot is available (i.e., carcount < maximum slot capacity), the system authenticates the vehicle, triggers the gate to open, increments the carcount register by 1, and updates a display unit or LED indicator.",
+    "If authentication fails, the FSM transitions to the FAIL state, triggering the red LED to alert the user of the unsuccessful login attempt. No slots are activated in this condition, and the system eventually returns to the IDLE state."
+  ],
+  "one_line_pitch": "A flat but action-heavy parking EFSM whose capacity, authentication, slot assignment, and output updates are scattered across sections, making it a strong semantic-reconstruction stress test for guard and action recall.",
+  "verdict": "backup",
+  "rationale": "The sample has meaningful EFSM complexity through capacity guards, authentication branching, carcount updates, gate/display/LED outputs, and slot activation. Its main weakness as a top stress-test candidate is the lack of real hierarchy and lack of a true fault-recovery/global escape pattern. It is still valuable as a backup case because key actions and guards are distributed across narrative sections rather than presented in one clean state table.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 80677,
+      "cached_input_tokens": 64640,
+      "output_tokens": 4708,
+      "reasoning_output_tokens": 3316
+    },
+    "duration_s": 92.5,
+    "attempt": 1
+  }
+}
