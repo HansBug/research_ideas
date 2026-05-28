@@ -43,38 +43,30 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
     from pyfcstm.model import parse_dsl_node_to_state_machine
 
     ast = parse_with_grammar_entry(dsl_text, "state_machine_dsl")
-    model = parse_dsl_node_to_state_machine(ast)
+    parse_dsl_node_to_state_machine(ast)
 
     states_out: list[dict[str, Any]] = []
     hierarchical_out: list[dict[str, Any]] = []
     sid_counter = 0
     hid_counter = 0
-    for s in model.walk_states():
+    transition_defs: list[tuple[tuple[str, ...], Any, bool]] = []
+
+    def _path_str(path: tuple[str, ...]) -> str:
+        return ".".join(path)
+
+    def _walk_state_defs(s: Any, path: tuple[str, ...], parent: str | None) -> None:
+        nonlocal sid_counter, hid_counter
         name = getattr(s, "name", None)
         if not name:
-            continue
-        path = _state_path_str(s)
-        parent = None
-        try:
-            parent_obj = getattr(s, "parent", None)
-            if parent_obj is not None:
-                parent = getattr(parent_obj, "name", None)
-        except Exception:
-            parent = None
-        # gather children
-        children = []
-        try:
-            for c in getattr(s, "states", {}).values():
-                children.append(getattr(c, "name", str(c)))
-        except Exception:
-            pass
+            return
+        children = [getattr(c, "name", str(c)) for c in getattr(s, "substates", [])]
         entry = {
             "id": f"s{sid_counter}",
             "name": name,
-            "path": path,
+            "path": _path_str(path),
             "parent": parent,
             "children": children,
-            "text": f"state {path}" + (f" {{ ... }} (children: {children})" if children else ""),
+            "text": f"state {_path_str(path)}" + (f" {{ ... }} (children: {children})" if children else ""),
         }
         states_out.append(entry)
         sid_counter += 1
@@ -86,6 +78,18 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
                 "text": entry["text"],
             })
             hid_counter += 1
+        for tr in getattr(s, "force_transitions", []) or []:
+            transition_defs.append((path, tr, True))
+        for tr in getattr(s, "transitions", []) or []:
+            transition_defs.append((path, tr, False))
+        for child in getattr(s, "substates", []) or []:
+            child_name = getattr(child, "name", str(child))
+            _walk_state_defs(child, (*path, child_name), name)
+
+    root = getattr(ast, "root_state", None)
+    if root is not None:
+        root_name = getattr(root, "name", "")
+        _walk_state_defs(root, (root_name,), None)
 
     transitions_out: list[dict[str, Any]] = []
     guards_out: list[dict[str, Any]] = []
@@ -93,50 +97,59 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
     tid = 0
     gid = 0
     aid = 0
-    for s in model.walk_states():
-        # transitions from this state
-        for tr in (getattr(s, "transitions", None) or []):
-            src = _state_path_str(s)
-            tgt_obj = getattr(tr, "target", None) or getattr(tr, "to", None)
-            if tgt_obj is None:
-                tgt = "?"
-            else:
-                tgt = _state_path_str(tgt_obj) if hasattr(tgt_obj, "path") or hasattr(tgt_obj, "name") else str(tgt_obj)
-            event = ""
-            event_obj = getattr(tr, "event", None) or getattr(tr, "trigger", None)
-            if event_obj is not None:
-                event = getattr(event_obj, "name", None) or str(event_obj| 6 | `parallel_regions` | `||` 分隔的 region 块 | **pyfcstm 不直接支持**（A_full_ours 该项结构性为 0）|
-| 7 | `history_states` | `.H` 标记（如 `Busy.H`） | **pyfcstm 不直接支持**（A_full_ours 该项结构性为 0）|
-)
-            guard_obj = getattr(tr, "guard", None) or getattr(tr, "condition", None)
-            guard_expr = _expr_to_str(guard_obj)
-            effect_obj = getattr(tr, "effect", None) or getattr(tr, "action", None)
-            effect_code = _expr_to_str(effect_obj)
-            is_forced = bool(getattr(tr, "is_forced", False) or getattr(tr, "forced", False))
-            text = f"{src} -> {tgt}"
-            if event:
-                text += f" :: {event}"
-            if guard_expr:
-                text += f" : if [{guard_expr}]"
-            if effect_code:
-                text += f" effect {{ {effect_code} }}"
-            transitions_out.append({
-                "id": f"t{tid}",
-                "src": src,
-                "tgt": tgt,
-                "event": event,
-                "guard": guard_expr,
-                "action": effect_code,
-                "is_forced": is_forced,
-                "text": text,
-            })
-            if guard_expr:
-                guards_out.append({"id": f"g{gid}", "transition_id": f"t{tid}", "expr": guard_expr, "text": text})
-                gid += 1
-            if effect_code:
-                actions_out.append({"id": f"a{aid}", "transition_id": f"t{tid}", "code": effect_code, "text": text})
-                aid += 1
-            tid += 1
+    def _state_ref_to_path(context_path: tuple[str, ...], ref: Any, *, is_source: bool) -> str:
+        marker = str(ref)
+        if marker == "INIT_STATE":
+            return "[*]"
+        if marker == "EXIT_STATE":
+            return "[*]"
+        if marker == "ALL":
+            return "*"
+        return _path_str((*context_path, marker))
+
+    def _event_name(event_id: Any) -> str:
+        if event_id is None:
+            return ""
+        path = getattr(event_id, "path", None)
+        if isinstance(path, (tuple, list)) and path:
+            return str(path[-1])
+        return str(event_id)
+
+    def _effect_code(ops: Any) -> str:
+        if not ops:
+            return ""
+        return " ".join(str(op) for op in ops)
+
+    for context_path, tr, is_forced in transition_defs:
+        src = _state_ref_to_path(context_path, getattr(tr, "from_state", ""), is_source=True)
+        tgt = _state_ref_to_path(context_path, getattr(tr, "to_state", ""), is_source=False)
+        event = _event_name(getattr(tr, "event_id", None))
+        guard_expr = _expr_to_str(getattr(tr, "condition_expr", None))
+        effect_code = _effect_code(getattr(tr, "post_operations", None))
+        text = f"{src} -> {tgt}"
+        if event:
+            text += f" :: {event}"
+        if guard_expr:
+            text += f" : if [{guard_expr}]"
+        if effect_code:
+            text += f" effect {{ {effect_code} }}"
+        transitions_out.append({
+            "id": f"t{tid}",
+            "src": src,
+            "tgt": tgt,
+            "event": event,
+            "guard": guard_expr,
+            "action": effect_code,
+            "is_forced": is_forced,
+            "text": text,
+        })
+        if guard_expr:
+            guards_out.append({"id": f"g{gid}", "transition_id": f"t{tid}", "expr": guard_expr, "text": text})
+            gid += 1
+        if effect_code:
+            actions_out.append({"id": f"a{aid}", "transition_id": f"t{tid}", "code": effect_code, "text": text})
+            aid += 1
+        tid += 1
 
     return ComponentSet(
         states=states_out,
@@ -144,8 +157,6 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
         guards=guards_out,
         actions=actions_out,
         hierarchical_states=hierarchical_out,
-        parallel_regions=[],   # pyfcstm 结构性不支持
-        history_states=[],     # pyfcstm 结构性不支持
         source="pyfcstm",
         raw_text=dsl_text,
     )
