@@ -476,6 +476,63 @@ state Root {
     assert any(e["kind"] == "missing_required_grounding" for e in feedback.local_rejection.evidence)
 
 
+def test_sd10_repair_review_rejects_state_grounding_replaced_by_same_name_event() -> None:
+    old_dsl = """
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    event Active;
+    event Start;
+    state Idle;
+    state NewThing;
+    [*] -> Idle;
+    Idle -> NewThing :: Start;
+    NewThing -> [*];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="state:Root.Active",
+                element_kind="state",
+                element_ref="Root.Active",
+                source_stage="SL-1",
+                evidence_text="Active state required",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Active state is required, while Active may also appear as another identifier",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "missing_required_grounding" and "state:Root.Active" in e["element_ids"] for e in feedback.local_rejection.evidence)
+
+
+def test_sd2_parse_reports_bad_dsl_directly() -> None:
+    feedback, meta = run_sd2_parse("state Root { state Idle; [*] -> ; }")
+
+    assert not feedback.ok
+    assert feedback.diagnostics
+    assert meta.stage_id == StageId.SD_2_PARSE.value
+    assert meta.status is StageStatus.FAIL
+
+
 def test_sd10_repair_review_tracks_advisory_design_target() -> None:
     advisory_context = StageContext()
     run_sd3_semantic(OK_DSL, advisory_context)
