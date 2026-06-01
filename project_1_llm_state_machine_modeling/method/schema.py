@@ -21,6 +21,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
+from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, FeedbackSource, StageKind, StageStatus
+
 
 # ---------------------------------------------------------------------------
 # LoopConfig — user-facing configuration
@@ -92,9 +94,6 @@ class ModelArtifact:
 # PR-0 stage contract metadata
 # ---------------------------------------------------------------------------
 
-StageStatus = Literal["ok", "fail", "skipped", "error", "advisory"]
-StageKindLiteral = Literal["LLM", "deterministic", "control"]
-
 
 @dataclass
 class StageResultMeta:
@@ -106,10 +105,10 @@ class StageResultMeta:
     """
 
     stage_id: str
-    stage_kind: StageKindLiteral | str
+    stage_kind: StageKind | str
     enabled: bool
     ran: bool
-    status: StageStatus
+    status: StageStatus | str
     ok: bool
     skipped_reason: Optional[str] = None
     stage_error: Optional[str] = None
@@ -118,6 +117,48 @@ class StageResultMeta:
     output_hash: Optional[str] = None
     prompt_hash: Optional[str] = None
     elapsed_ms: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.stage_kind, str):
+            self.stage_kind = StageKind(self.stage_kind)
+        if isinstance(self.status, str):
+            self.status = StageStatus(self.status)
+
+    def contract_errors(self) -> list[str]:
+        """Return PR-0 contract violations for this stage meta row.
+
+        A stage can legitimately report ``fail`` or ``advisory`` as an
+        execution result, but contract-shape problems (for example ``skipped``
+        without reason) must be visible to ``FeedbackBundle.all_ok`` and later
+        run-record validation.
+        """
+        errors: list[str] = []
+        if self.enabled and self.status == StageStatus.SKIPPED and not self.skipped_reason:
+            errors.append("skipped stage must provide skipped_reason")
+        if self.enabled and self.status == StageStatus.ERROR and not (self.stage_error or self.output_validation_error):
+            errors.append("error stage must provide stage_error or output_validation_error")
+        if self.enabled and self.ran and self.status == StageStatus.SKIPPED:
+            errors.append("skipped stage cannot be marked ran=True")
+        if self.enabled and not self.ran and self.status not in {StageStatus.SKIPPED, StageStatus.ERROR}:
+            errors.append("enabled stage that did not run must be skipped or error")
+        return errors
+
+    @property
+    def contract_ok(self) -> bool:
+        return not self.contract_errors()
+
+    @property
+    def blocks_all_ok(self) -> bool:
+        """Whether this meta row should make a feedback bundle non-ok."""
+        if not self.enabled:
+            return False
+        if not self.contract_ok:
+            return True
+        if self.status in {StageStatus.FAIL, StageStatus.ERROR}:
+            return True
+        if self.status == StageStatus.OK and not self.ok:
+            return True
+        return False
 
 
 @dataclass
@@ -488,18 +529,40 @@ class FeedbackBundle:
 
     @property
     def all_ok(self) -> bool:
-        """True iff all enabled sources produced ok feedback.
+        """True iff the configured feedback contract is satisfied.
 
-        Backward-compatible mode: if ``enabled_sources`` is empty, this keeps
-        the historical behavior and only inspects non-None feedback objects.
-        PR-0 mode: when ``enabled_sources`` is provided, every enabled source
-        must be present; enabled-but-missing is not silently ok.
+        Backward-compatible mode: when ``enabled_sources`` is empty, only
+        non-None feedback objects are inspected and stage meta is not required.
+
+        PR-0 contract mode: when ``enabled_sources`` is non-empty, only those
+        sources are authoritative.  Non-enabled feedback objects are ignored,
+        every enabled source must have an output object, and every enabled
+        source with a canonical ``SD/SL`` feedback stage must also have a
+        passing ``StageResultMeta`` row.
         """
-        if self.enabled_sources and self.missing_enabled_sources():
+        if not self.enabled_sources:
+            return all(src.ok for src in self._feedback_values() if src is not None)
+
+        if self.missing_enabled_sources():
             return False
-        for src in self._feedback_values():
-            if src is not None and not src.ok:
+
+        stage_metas = self._stage_meta_by_id()
+        for source in self.enabled_sources:
+            feedback = self._source_value(source)
+            if feedback is None or not getattr(feedback, "ok", False):
                 return False
+
+            nested_meta = getattr(feedback, "meta", None) if hasattr(feedback, "meta") else None
+            if hasattr(feedback, "meta"):
+                if nested_meta is None or nested_meta.blocks_all_ok:
+                    return False
+
+            stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
+            if stage_id is not None:
+                meta = stage_metas.get(stage_id) or nested_meta
+                if meta is None or meta.blocks_all_ok:
+                    return False
+
         return True
 
     def has_any_signal(self) -> bool:
@@ -519,9 +582,49 @@ class FeedbackBundle:
     def _source_value(self, source: str) -> Any:
         return getattr(self, source, None)
 
+    def _stage_meta_by_id(self) -> dict[str, StageResultMeta]:
+        """Current feedback-round stage meta rows keyed by ``stage_id``.
+
+        ``FeedbackBundle.stage_results`` is the authoritative meta set for the
+        current feedback bundle.  ``IterTrace.stage_results`` persists the same
+        information at iteration granularity for run-record/audit consumers.
+        """
+        return {meta.stage_id: meta for meta in self.stage_results}
+
     def missing_enabled_sources(self) -> list[str]:
         """Enabled feedback sources that do not have an output object yet."""
         return [source for source in self.enabled_sources if self._source_value(source) is None]
+
+    def missing_enabled_stage_metas(self) -> list[str]:
+        """Canonical stage IDs missing meta rows for enabled feedback sources."""
+        stage_metas = self._stage_meta_by_id()
+        missing: list[str] = []
+        for source in self.enabled_sources:
+            stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
+            feedback = self._source_value(source)
+            nested_meta = getattr(feedback, "meta", None) if feedback is not None and hasattr(feedback, "meta") else None
+            if stage_id is not None and stage_id not in stage_metas and nested_meta is None:
+                missing.append(stage_id)
+        return missing
+
+    def stage_contract_errors(self) -> list[str]:
+        """Human-readable stage contract errors for PR-0 tests/review."""
+        errors: list[str] = []
+        for source in self.missing_enabled_sources():
+            errors.append(f"enabled source missing feedback: {source}")
+        for stage_id in self.missing_enabled_stage_metas():
+            errors.append(f"enabled source missing stage meta: {stage_id}")
+        for meta in self.stage_results:
+            errors.extend(f"{meta.stage_id}: {error}" for error in meta.contract_errors())
+        for source in self.enabled_sources:
+            feedback = self._source_value(source)
+            if feedback is not None and hasattr(feedback, "meta"):
+                nested_meta = getattr(feedback, "meta")
+                if nested_meta is None:
+                    errors.append(f"enabled source missing nested meta: {source}")
+                else:
+                    errors.extend(f"{nested_meta.stage_id}: {error}" for error in nested_meta.contract_errors())
+        return errors
 
 
 # ---------------------------------------------------------------------------
@@ -599,6 +702,46 @@ class StageContextSummary:
     grounding_hash: Optional[str] = None
     scenario_set_id: Optional[str] = None
     warning_budget_keys: list[str] = field(default_factory=list)
+
+
+@dataclass
+class StageContext:
+    """Loop-internal working state shared by SD/SL stages.
+
+    This object may contain non-serializable pyfcstm AST/model/runtime objects.
+    Persisted artifacts must use ``to_summary()`` plus explicit stage records
+    and ``AgentLoopRunRecord`` payloads instead of serializing this object
+    wholesale.
+    """
+
+    nl: str = ""
+    current_dsl: str = ""
+    ast: Any | None = None
+    model: Any | None = None
+    inspect_json: dict[str, Any] | None = None
+    grounding_map: GroundingMap | None = None
+    scenario_set: ScenarioSet | None = None
+    warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
+    stage_results: list[StageResultMeta] = field(default_factory=list)
+
+    def to_summary(self) -> StageContextSummary:
+        return StageContextSummary(
+            current_dsl_hash=self._hash_placeholder(self.current_dsl),
+            has_ast=self.ast is not None,
+            has_model=self.model is not None,
+            inspect_hash=self._hash_placeholder(self.inspect_json),
+            grounding_hash=self._hash_placeholder(self.grounding_map),
+            scenario_set_id=self.scenario_set.scenario_set_id if self.scenario_set else None,
+            warning_budget_keys=sorted(self.warning_budget_state.keys()),
+        )
+
+    @staticmethod
+    def _hash_placeholder(value: Any) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value:
+            return ""
+        return "sha256:<computed-by-runner>"
 
 
 @dataclass

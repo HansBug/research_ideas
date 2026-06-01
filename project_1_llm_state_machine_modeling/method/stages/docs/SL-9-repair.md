@@ -2,26 +2,36 @@
 
 ## 目标
 
-冻结 `SL-9` 的 PR-0 最小 stage contract，供后续 PR-1A/PR-1B 向后兼容扩展。
+基于 NL、FixPlan/RevisedFixPlan 与 selected diagnostics 生成 candidate repaired DSL。
 
 ## 输入
 
-- `stage_id`: `SL-9`
-- `stage_kind`: `LLM`
-- `input`: 最小 JSON fixture 中的 `input` 对象。
+- `nl`: 原始需求。
+- `current_dsl`: 修复前 DSL。
+- `fix_plan_or_revised`: SD-8 输出。
+- `grammar_digest`: pyfcstm DSL 约束。
+- `preserve_list`: required grounded elements。
+
+### LLM 输入
+
+- NL + current_dsl + FixPlan/RevisedFixPlan + selected diagnostics + grammar + preserve list。
 
 ## 输出
 
-- `output`: 最小 JSON fixture 中的 `output` 对象。
-- `meta`: `StageResultMeta`，enabled stage 缺失输出不得静默视为 ok。
+- `candidate_dsl`: 候选修复 DSL。
+- `repair_summary`: LLM 声明的修改点与原因。
+
+### LLM 输出
+
+- candidate repaired DSL + repair summary。
 
 ## 函数名或 prompt generator 名
 
-PR-0 仅冻结名称槽位；具体实现由 PR-1A / PR-1B 向后兼容补齐。
+- `build_sl9_repair_prompt(...)`
 
 ## 最小示例
 
-见 [`../fixtures/SL-9.json`](../fixtures/SL-9.json)。
+见 [`../fixtures/SL-9.json`](../fixtures/SL-9.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
 
 ## 依赖关系
 
@@ -31,10 +41,12 @@ PR-0 仅冻结名称槽位；具体实现由 PR-1A / PR-1B 向后兼容补齐。
 
 - `skipped` 必须给出 `skipped_reason`。
 - `error` 必须给出 `stage_error` 或 `output_validation_error`。
-- `advisory` 不阻塞，但必须进入 trace / run record。
+- `fail` 表示 stage 正常执行但发现阻塞问题，必须使对应 feedback 非 ok。
+- `advisory` 不阻塞 `all_ok`，但必须进入 trace / run record。
+- enabled stage 缺失 `StageResultMeta` 不得静默视为 ok。
 
 ## 常见失败模式
 
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
-- prompt-ready summary 字段缺失。
+- prompt-ready summary、hash、provenance 或 review meta 字段缺失。

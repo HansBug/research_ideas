@@ -4,19 +4,44 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
+import method.schema as schema
 from method.schema import (
     AgentLoopRunRecord,
     BudgetState,
+    DesignFeedback,
     FeedbackBundle,
+    JudgeFeedback,
+    ModelReviewFeedback,
     ParseFeedback,
     SemanticFeedback,
+    StageContext,
     StageResultMeta,
 )
-from method.stages.ids import ALL_STAGE_SPECS, STAGE_SPECS_BY_ID, FeedbackSource, StageId, StageKind
+from method.stages import ids
+from method.stages.ids import (
+    ALL_STAGE_SPECS,
+    FEEDBACK_SOURCE_TO_STAGE_ID,
+    STAGE_SPECS_BY_ID,
+    FeedbackSource,
+    StageId,
+    StageKind,
+    StageStatus,
+)
 
 
 REPO = Path(__file__).resolve().parents[3]
 METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method"
+
+
+def ok_meta(stage_id: StageId | str, kind: StageKind | str = StageKind.DETERMINISTIC) -> StageResultMeta:
+    return StageResultMeta(
+        stage_id=stage_id.value if isinstance(stage_id, StageId) else stage_id,
+        stage_kind=kind.value if isinstance(kind, StageKind) else kind,
+        enabled=True,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
 
 
 def test_stage_ids_are_canonical_and_cover_pr0_loop_contract() -> None:
@@ -31,6 +56,7 @@ def test_stage_ids_are_canonical_and_cover_pr0_loop_contract() -> None:
         "SD-4",
         "SL-5",
         "SD-5A",
+        "SC-5F",
         "SD-6",
         "SL-7",
         "SD-8",
@@ -39,26 +65,132 @@ def test_stage_ids_are_canonical_and_cover_pr0_loop_contract() -> None:
         "SL-10B",
         "SC-11",
         "SC-12",
+        "SC-13",
     ]
     assert STAGE_SPECS_BY_ID["SD-4"].kind == StageKind.DETERMINISTIC
     assert STAGE_SPECS_BY_ID["SL-9"].kind == StageKind.LLM
     assert STAGE_SPECS_BY_ID["SC-12"].kind == StageKind.CONTROL
     assert StageId.SD_4_DESIGN.value == "SD-4"
+    assert StageId.SC_5F_SCENARIO_FREEZE.value == "SC-5F"
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value == "SC-11"
+    assert StageId.SC_13_TRACE_AUDIT.value == "SC-13"
     assert FeedbackSource.DESIGN.value == "design"
+    assert FEEDBACK_SOURCE_TO_STAGE_ID[FeedbackSource.DESIGN.value] == StageId.SD_4_DESIGN.value
+
+
+def test_schema_uses_canonical_stage_enums_from_ids_module() -> None:
+    assert schema.StageStatus is ids.StageStatus
+    assert schema.StageKind is ids.StageKind
+
+    meta = StageResultMeta(
+        stage_id=StageId.SD_2_PARSE.value,
+        stage_kind="deterministic",
+        enabled=True,
+        ran=True,
+        status="ok",
+        ok=True,
+    )
+
+    assert meta.stage_kind is StageKind.DETERMINISTIC
+    assert meta.status is StageStatus.OK
+    assert meta.contract_ok
+    assert not meta.blocks_all_ok
 
 
 def test_feedback_bundle_all_ok_respects_enabled_but_missing_contract() -> None:
     bundle = FeedbackBundle(
         enabled_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
         parse=ParseFeedback(ok=True),
+        stage_results=[ok_meta(StageId.SD_2_PARSE)],
     )
 
     assert not bundle.all_ok
     assert bundle.missing_enabled_sources() == [FeedbackSource.SEMANTIC.value]
 
     bundle.semantic = SemanticFeedback(ok=True)
+    assert not bundle.all_ok
+    assert bundle.missing_enabled_stage_metas() == [StageId.SD_3_SEMANTIC.value]
+
+    bundle.stage_results.append(ok_meta(StageId.SD_3_SEMANTIC))
     assert bundle.all_ok
     assert bundle.missing_enabled_sources() == []
+    assert bundle.missing_enabled_stage_metas() == []
+
+
+def test_feedback_bundle_enabled_mode_ignores_non_enabled_failed_feedback() -> None:
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.PARSE.value],
+        parse=ParseFeedback(ok=True),
+        judge=JudgeFeedback(ok=False),
+        stage_results=[ok_meta(StageId.SD_2_PARSE)],
+    )
+
+    assert bundle.all_ok
+    assert bundle.stage_contract_errors() == []
+
+
+def test_feedback_bundle_rejects_error_meta_and_nested_missing_meta() -> None:
+    error_meta = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.ERROR.value,
+        ok=False,
+        stage_error="inspect_model crashed",
+    )
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.DESIGN.value],
+        design=DesignFeedback(ok=True, meta=error_meta),
+        stage_results=[error_meta],
+    )
+
+    assert not bundle.all_ok
+    assert not error_meta.contract_errors()
+    assert error_meta.blocks_all_ok
+
+    missing_nested = FeedbackBundle(
+        enabled_sources=[FeedbackSource.MODEL_REVIEW.value],
+        model_review=ModelReviewFeedback(ok=True),
+        stage_results=[ok_meta(StageId.SL_7_MODEL_REVIEW, StageKind.LLM)],
+    )
+    assert not missing_nested.all_ok
+    assert "enabled source missing nested meta: model_review" in missing_nested.stage_contract_errors()
+
+
+def test_stage_result_meta_validates_skipped_and_error_contracts() -> None:
+    skipped_without_reason = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=False,
+        status=StageStatus.SKIPPED.value,
+        ok=True,
+    )
+    assert not skipped_without_reason.contract_ok
+    assert skipped_without_reason.blocks_all_ok
+
+    error_without_message = StageResultMeta(
+        stage_id=StageId.SD_6_SIM.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.ERROR.value,
+        ok=False,
+    )
+    assert not error_without_message.contract_ok
+    assert error_without_message.blocks_all_ok
+
+    advisory = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.ADVISORY.value,
+        ok=True,
+    )
+    assert advisory.contract_ok
+    assert not advisory.blocks_all_ok
 
 
 def test_feedback_bundle_legacy_non_none_mode_stays_backward_compatible() -> None:
@@ -72,17 +204,10 @@ def test_feedback_bundle_legacy_non_none_mode_stays_backward_compatible() -> Non
 
 
 def test_agent_loop_run_record_is_single_file_json_schema_fixture() -> None:
-    meta = StageResultMeta(
-        stage_id=StageId.SD_2_PARSE.value,
-        stage_kind=StageKind.DETERMINISTIC.value,
-        enabled=True,
-        ran=True,
-        status="ok",
-        ok=True,
-        input_hash="sha256:input",
-        output_hash="sha256:output",
-        elapsed_ms=12,
-    )
+    meta = ok_meta(StageId.SD_2_PARSE)
+    meta.input_hash = "sha256:input"
+    meta.output_hash = "sha256:output"
+    meta.elapsed_ms = 12
     record = AgentLoopRunRecord(
         schema_version="pr0.stage-contract.v1",
         run_id="run-test-0001",
@@ -105,10 +230,11 @@ def test_agent_loop_run_record_is_single_file_json_schema_fixture() -> None:
 
     assert decoded["run_id"] == "run-test-0001"
     assert decoded["stage_records"][0]["stage_id"] == "SD-2"
+    assert decoded["stage_records"][0]["status"] == StageStatus.OK.value
     assert decoded["redaction_report"] == []
 
 
-def test_budget_state_is_json_serializable_and_instance_keyed() -> None:
+def test_budget_state_and_stage_context_summary_are_json_serializable() -> None:
     state = BudgetState(
         instance_key="W_DEADLOCK_LEAF:state=Root.Idle",
         diagnostic_code="W_DEADLOCK_LEAF",
@@ -118,16 +244,28 @@ def test_budget_state_is_json_serializable_and_instance_keyed() -> None:
         last_status="budgeted_repair",
         last_stage=StageId.SD_4_DESIGN.value,
     )
+    context = StageContext(
+        nl="When Start occurs, move from Idle to Active.",
+        current_dsl="machine Sample {}",
+        ast=object(),
+        model=object(),
+        inspect_json={"diagnostics": []},
+        warning_budget_state={state.instance_key: state},
+    )
 
     payload = asdict(state)
+    summary = asdict(context.to_summary())
     assert payload["instance_key"].startswith("W_DEADLOCK_LEAF")
     assert json.loads(json.dumps(payload))["budget_remaining"] == 1
+    assert summary["has_ast"] and summary["has_model"]
+    assert summary["warning_budget_keys"] == ["W_DEADLOCK_LEAF:state=Root.Idle"]
 
 
-def test_stage_docs_skill_links_and_minimal_fixtures_exist() -> None:
+def test_stage_docs_skill_links_and_stage_specific_fixtures_exist() -> None:
     docs_root = METHOD_ROOT / "stages" / "docs"
     fixtures_root = METHOD_ROOT / "stages" / "fixtures"
     skill_root = METHOD_ROOT / "agent_loop_skill"
+    observed_statuses: set[str] = set()
 
     for spec in ALL_STAGE_SPECS:
         doc = docs_root / spec.doc_filename
@@ -135,15 +273,33 @@ def test_stage_docs_skill_links_and_minimal_fixtures_exist() -> None:
         text = doc.read_text(encoding="utf-8")
         for marker in ["## 目标", "## 输入", "## 输出", "## 函数名或 prompt generator 名", "## 最小示例", "## 失败语义"]:
             assert marker in text, f"{marker} missing in {doc}"
+        if spec.kind == StageKind.LLM:
+            assert "### LLM 输入" in text, f"LLM input section missing in {doc}"
+            assert "### LLM 输出" in text, f"LLM output section missing in {doc}"
 
         fixture = fixtures_root / f"{spec.stage_id}.json"
         assert fixture.exists(), f"missing fixture: {fixture}"
         data = json.loads(fixture.read_text(encoding="utf-8"))
         assert data["stage_id"] == spec.stage_id
-        assert "input" in data and "output" in data
+        assert data["stage_kind"] == spec.kind.value
+        assert "input" in data and "output" in data and "meta" in data
+        assert set(data["input"]) != {"summary"}, f"generic input fixture: {fixture}"
+        assert set(data["output"]) != {"summary"}, f"generic output fixture: {fixture}"
+        StageResultMeta(**data["meta"])
+        observed_statuses.add(data["meta"]["status"])
 
         skill_link = skill_root / "stages" / f"{spec.stage_id}.md"
-        assert skill_link.exists(), f"missing skill stage link: {skill_link}"
+        assert skill_link.is_symlink(), f"missing skill stage symlink: {skill_link}"
+        assert skill_link.resolve() == doc.resolve()
+
+    negative_fixture_names = ["NEG-SKIPPED", "NEG-ERROR", "NEG-ADVISORY", "NEG-BUDGET-EXHAUSTED"]
+    for name in negative_fixture_names:
+        data = json.loads((fixtures_root / f"{name}.json").read_text(encoding="utf-8"))
+        meta = StageResultMeta(**data["meta"])
+        observed_statuses.add(meta.status.value)
+        assert meta.contract_ok, f"negative fixture should be valid shape: {name}"
+
+    assert {"ok", "fail", "skipped", "error", "advisory"}.issubset(observed_statuses)
 
     for link_name in ["SKILL.md", "CLAUDE.md"]:
         link = skill_root / link_name

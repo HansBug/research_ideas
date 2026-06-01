@@ -1,36 +1,29 @@
-# SL-5 场景生成
+# SC-13 Trace/Audit
 
 ## 目标
 
-在 parse+semantic+design pass 后生成 TestScenario 候选；ScenarioSet 冻结前可按 coverage gap 重试。
+把一次完整 agent-loop 的流程、数据、日志、LLM interaction 与 final artifacts 写入单文件 run record。
 
 ## 输入
 
-- `nl`: 原始需求。
-- `current_dsl`: 当前 DSL。
-- `inspect_summary`: SD-4 摘要。
-- `grounding_map`: NL/model 元素映射。
-
-### LLM 输入
-
-- NL + current_dsl + inspect JSON + design 摘要 + GroundingMap。
+- `stage_records`: 全部 StageResultMeta。
+- `iteration_records`: 每轮 DSL/feedback/repair/review。
+- `llm_interactions`: prompt/response/replay meta。
+- `environment`: git/pyfcstm/dependency/seed。
 
 ## 输出
 
-- `scenario_candidates`: TestScenario 列表。
-- `scenario_rationale`: 每个 scenario 覆盖的行为/元素。
-
-### LLM 输出
-
-- TestScenario 列表候选。
+- `agent_loop_run_record`: schema-valid JSON payload。
+- `record_path`: `runs/<run_id>.agent_loop.json.gz`。
+- `redaction_report`: secret 脱敏说明。
 
 ## 函数名或 prompt generator 名
 
-- `build_sl5_scenario_generation_prompt(...)`
+- `write_agent_loop_run_record(...)`
 
 ## 最小示例
 
-见 [`../fixtures/SL-5.json`](../fixtures/SL-5.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
+见 [`../fixtures/SC-13.json`](../fixtures/SC-13.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
 
 ## 依赖关系
 

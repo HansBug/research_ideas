@@ -2,26 +2,25 @@
 
 ## 目标
 
-冻结 `SC-0` 的 PR-0 最小 stage contract，供后续 PR-1A/PR-1B 向后兼容扩展。
+初始化一次 agent-loop 的 `StageContext`、配置快照与 stage graph。
 
 ## 输入
 
-- `stage_id`: `SC-0`
-- `stage_kind`: `control`
-- `input`: 最小 JSON fixture 中的 `input` 对象。
+- `nl`: 原始自然语言需求。
+- `config`: loop condition、enabled stages、policy profile、dataset provenance。
 
 ## 输出
 
-- `output`: 最小 JSON fixture 中的 `output` 对象。
-- `meta`: `StageResultMeta`，enabled stage 缺失输出不得静默视为 ok。
+- `stage_context_summary`: 初始 DSL/hash 为空，budget 与 stage_records 初始化。
+- `run_record_seed`: run_id、created_at、schema_version。
 
 ## 函数名或 prompt generator 名
 
-PR-0 仅冻结名称槽位；具体实现由 PR-1A / PR-1B 向后兼容补齐。
+- `init_stage_context(...)`
 
 ## 最小示例
 
-见 [`../fixtures/SC-0.json`](../fixtures/SC-0.json)。
+见 [`../fixtures/SC-0.json`](../fixtures/SC-0.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
 
 ## 依赖关系
 
@@ -31,10 +30,12 @@ PR-0 仅冻结名称槽位；具体实现由 PR-1A / PR-1B 向后兼容补齐。
 
 - `skipped` 必须给出 `skipped_reason`。
 - `error` 必须给出 `stage_error` 或 `output_validation_error`。
-- `advisory` 不阻塞，但必须进入 trace / run record。
+- `fail` 表示 stage 正常执行但发现阻塞问题，必须使对应 feedback 非 ok。
+- `advisory` 不阻塞 `all_ok`，但必须进入 trace / run record。
+- enabled stage 缺失 `StageResultMeta` 不得静默视为 ok。
 
 ## 常见失败模式
 
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
-- prompt-ready summary 字段缺失。
+- prompt-ready summary、hash、provenance 或 review meta 字段缺失。

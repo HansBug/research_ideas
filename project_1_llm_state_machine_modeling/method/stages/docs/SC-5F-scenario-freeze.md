@@ -1,36 +1,27 @@
-# SL-5 场景生成
+# SC-5F 冻结 ScenarioSet
 
 ## 目标
 
-在 parse+semantic+design pass 后生成 TestScenario 候选；ScenarioSet 冻结前可按 coverage gap 重试。
+冻结 scenario oracle，记录 source_dsl_hash / inspect_hash / coverage_report；repair iteration 默认不自动换 oracle。
 
 ## 输入
 
-- `nl`: 原始需求。
-- `current_dsl`: 当前 DSL。
-- `inspect_summary`: SD-4 摘要。
-- `grounding_map`: NL/model 元素映射。
-
-### LLM 输入
-
-- NL + current_dsl + inspect JSON + design 摘要 + GroundingMap。
+- `scenario_candidates`: 已通过或达到预算上限的 scenarios。
+- `source_dsl_hash`: 冻结时 DSL hash。
+- `coverage_report`: SD-5A 报告。
 
 ## 输出
 
-- `scenario_candidates`: TestScenario 列表。
-- `scenario_rationale`: 每个 scenario 覆盖的行为/元素。
-
-### LLM 输出
-
-- TestScenario 列表候选。
+- `scenario_set`: frozen ScenarioSet。
+- `scenario_epoch`: 初始 epoch。
 
 ## 函数名或 prompt generator 名
 
-- `build_sl5_scenario_generation_prompt(...)`
+- `freeze_scenario_set(...)`
 
 ## 最小示例
 
-见 [`../fixtures/SL-5.json`](../fixtures/SL-5.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
+见 [`../fixtures/SC-5F.json`](../fixtures/SC-5F.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
 
 ## 依赖关系
 
