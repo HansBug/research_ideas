@@ -10,21 +10,14 @@ restore the 3-step variant (elements_mapping -> Gherkin -> structured).
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, Optional
 
 from method.gpt_client import chat
-from method.schema import ScenarioStep, TestScenario
-
-
-_PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "scenariogen" / "generate_scenarios.txt"
-
-
-def _load_prompt() -> str:
-    if not _PROMPT_PATH.exists():
-        raise FileNotFoundError(f"scenariogen prompt not found: {_PROMPT_PATH}")
-    return _PROMPT_PATH.read_text(encoding="utf-8")
+from method.schema import TestScenario
+from method.stages.sl_scenario_generation_prompt import (
+    build_sl5_scenario_generation_prompt,
+    parse_sl5_scenario_generation_response,
+)
 
 
 def _extract_model_elements(dsl_text: str) -> dict[str, Any]:
@@ -95,77 +88,6 @@ def _extract_model_elements(dsl_text: str) -> dict[str, Any]:
     }
 
 
-def _strip_json_fence(content: str) -> str:
-    s = content.strip()
-    if not s.startswith("```"):
-        return s
-    parts = s.split("```")
-    if len(parts) >= 2:
-        body = parts[1]
-        if body.startswith("json"):
-            body = body[4:]
-        elif body.startswith("JSON"):
-            body = body[4:]
-        return body.strip()
-    return s
-
-
-def _parse_step(raw: dict[str, Any]) -> ScenarioStep:
-    """Parse a single step dict (with None-aware handling for events / expected_*)."""
-    # events: None / [] / list[str]
-    events_raw = raw.get("events")
-    if events_raw is None:
-        events: Optional[list[str]] = None
-    elif isinstance(events_raw, list):
-        events = [str(e) for e in events_raw]
-    else:
-        # malformed — try to recover: treat as single-element
-        events = [str(events_raw)]
-
-    # expected_state: None / str
-    expected_state_raw = raw.get("expected_state")
-    expected_state: Optional[str] = None if expected_state_raw is None else str(expected_state_raw)
-
-    # expected_vars: None / dict
-    expected_vars_raw = raw.get("expected_vars")
-    if expected_vars_raw is None:
-        expected_vars: Optional[dict[str, Any]] = None
-    elif isinstance(expected_vars_raw, dict):
-        expected_vars = dict(expected_vars_raw)
-    else:
-        expected_vars = None  # malformed, treat as "don't care"
-
-    return ScenarioStep(
-        before_cycles=int(raw.get("before_cycles", 0)),
-        events=events,
-        expected_state=expected_state,
-        expected_vars=expected_vars,
-        name=str(raw.get("name", "")),
-    )
-
-
-def _parse_scenario(raw: dict[str, Any]) -> TestScenario:
-    """Parse a single scenario dict into a TestScenario with ScenarioStep list."""
-    initial_state_raw = raw.get("initial_state")
-    initial_state: Optional[str] = None if initial_state_raw is None else str(initial_state_raw)
-    initial_vars = raw.get("initial_vars") or {}
-    if not isinstance(initial_vars, dict):
-        initial_vars = {}
-
-    steps_raw = raw.get("steps", [])
-    if not isinstance(steps_raw, list):
-        steps_raw = []
-    steps = [_parse_step(s) for s in steps_raw if isinstance(s, dict)]
-
-    return TestScenario(
-        name=str(raw.get("name", "")),
-        description=str(raw.get("description", "")),
-        initial_state=initial_state,
-        initial_vars=dict(initial_vars),
-        steps=steps,
-    )
-
-
 def generate_scenarios(
     requirements: str,
     dsl_text: str,
@@ -185,25 +107,14 @@ def generate_scenarios(
         ``usage``: token usage dict.
     """
     elements = _extract_model_elements(dsl_text)
-    system_prompt = _load_prompt()
-    elements_json = json.dumps(elements, ensure_ascii=False, indent=2, default=str)
-    directive_block = ""
-    if extra_directive:
-        directive_block = (
-            f"## Mandatory revision directive (overrides default behavior)\n\n"
-            f"{extra_directive.strip()}\n\n"
-        )
-    user_msg = (
-        f"Requirements:\n{requirements.strip()}\n\n"
-        f"Model elements:\n{elements_json}\n\n"
-        f"DSL:\n```\n{dsl_text}\n```\n\n"
-        f"{directive_block}"
-        f"Generate multi-step test scenarios. Output JSON only."
+    messages = build_sl5_scenario_generation_prompt(
+        nl=requirements,
+        current_dsl=dsl_text,
+        inspect_json=elements,
+        design_summary={},
+        grounding_map=None,
+        coverage_directive=extra_directive,
     )
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_msg},
-    ]
     content, usage = chat(
         messages=messages,
         model=model,
@@ -211,15 +122,5 @@ def generate_scenarios(
         seed=seed,
         response_format={"type": "json_object"},
     )
-    raw_text = _strip_json_fence(content)
-    try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"scenariogen: non-JSON response: {raw_text[:300]}") from e
-
-    raw_list = parsed.get("scenarios", [])
-    if not isinstance(raw_list, list):
-        raise ValueError(f"scenariogen: 'scenarios' must be a list, got {type(raw_list).__name__}")
-
-    scenarios = [_parse_scenario(s) for s in raw_list if isinstance(s, dict)]
+    scenarios = parse_sl5_scenario_generation_response(content)
     return scenarios, elements, usage

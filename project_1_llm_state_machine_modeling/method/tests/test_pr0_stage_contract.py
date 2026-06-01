@@ -527,7 +527,8 @@ def test_sim_repair_prompt_accepts_json_loaded_sim_feedback() -> None:
         )
     )
 
-    message = loop.repair_model.__globals__["_build_user_msg"]("sim", "machine Sample {}", feedback, "nl")
+    selected, summary = loop.repair_model.__globals__["_build_repair_context"]("sim", feedback)
+    message = json.dumps({"selected_diagnostics": selected, "scenario_summary": summary}, ensure_ascii=False)
 
     assert "s_pass" in message
     assert "s_fail" in message

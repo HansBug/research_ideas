@@ -206,7 +206,7 @@ def run_agent_loop(
             _accumulate_usage(result.token_usage, mr.token_usage)
         else:
             artifact, mod_usage = generate_model(
-                spec, seed=cfg.seed, model=cfg.llm_model
+                spec, nl=nl, seed=cfg.seed, model=cfg.llm_model
             )
             current_dsl = artifact.dsl_text
             _accumulate_usage(result.token_usage, mod_usage)

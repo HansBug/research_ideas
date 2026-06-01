@@ -25,6 +25,7 @@
 ### LLM 输出
 
 - accept/reject/revise + drift evidence。
+- `required_revision`: reject/revise 时的必要修改说明。
 
 ## 函数名或 prompt generator 名
 
@@ -36,7 +37,9 @@
 
 ## 依赖关系
 
-由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
+- stage id 由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义。
+- prompt generator 位于 `method/stages/`，只返回 message pack / markdown prompt，不调用 LLM provider。
+- 若由 `method/agents/*` wrapper 使用，wrapper 必须复用本 stage 的 prompt generator，避免 prompt drift。
 
 ## 失败语义
 
@@ -48,6 +51,7 @@
 
 ## 常见失败模式
 
-- enabled stage 未产出 `StageResultMeta`。
-- output schema 与 fixture 不兼容。
-- prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+- prompt generator 直接调用 LLM provider、读取 `.env` 或绑定特定 provider。
+- output schema 与 fixture / fake response parser 不兼容。
+- prompt 缺少输入、输出 JSON/DSL schema、约束或禁止事项。
+- 内部 agent wrapper 与 stage prompt generator 维护两套不一致 prompt。
