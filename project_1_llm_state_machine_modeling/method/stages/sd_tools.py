@@ -613,8 +613,19 @@ def _component_index(model: Any) -> dict[str, set[str]]:
     return index
 
 
-def _grounded_element_present(index: dict[str, set[str]], element: GroundedElement) -> bool:
+def _element_ref_for_matching(element: GroundedElement) -> str:
     ref = (element.element_ref or "").strip()
+    element_id = (element.element_id or "").strip()
+    if "." not in ref and ":" in element_id:
+        _, id_ref = element_id.split(":", 1)
+        id_ref = id_ref.strip()
+        if "." in id_ref:
+            return id_ref
+    return ref
+
+
+def _grounded_element_present(index: dict[str, set[str]], element: GroundedElement) -> bool:
+    ref = _element_ref_for_matching(element)
     if not ref:
         return True
     leaf = _ref_leaf(ref)

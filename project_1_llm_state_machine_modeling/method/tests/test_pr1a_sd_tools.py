@@ -612,6 +612,64 @@ state Root {
     assert any(e["kind"] == "missing_required_grounding" and "state:Root.Outer.Active" in e["element_ids"] for e in feedback.local_rejection.evidence)
 
 
+def test_sd10_repair_review_uses_qualified_element_id_when_ref_is_leaf() -> None:
+    old_dsl = """
+state Root {
+    state Outer {
+        state Idle;
+        state Active;
+        [*] -> Idle;
+        Idle -> Active;
+        Active -> [*];
+    }
+    [*] -> Outer;
+    Outer -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    state Outer {
+        state Idle;
+        [*] -> Idle;
+        Idle -> [*];
+    }
+    state Other {
+        state Active;
+        [*] -> Active;
+        Active -> [*];
+    }
+    [*] -> Outer;
+    Outer -> Other;
+    Other -> [*];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="state:Root.Outer.Active",
+                element_kind="state",
+                element_ref="Active",
+                source_stage="SL-1",
+                evidence_text="Active under Outer is required; element_ref is a display leaf only",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Root.Outer.Active is required, not any state named Active",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "missing_required_grounding" and "state:Root.Outer.Active" in e["element_ids"] for e in feedback.local_rejection.evidence)
+
+
 def test_sd10_repair_review_rejects_qualified_event_replaced_by_same_leaf_elsewhere() -> None:
     old_dsl = """
 state Root {
