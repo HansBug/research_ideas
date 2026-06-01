@@ -63,6 +63,32 @@ def _coerce_bool(value: Any, field_name: str) -> bool:
     return value
 
 
+def _require_one_of(value: str, allowed: set[str], field_name: str) -> str:
+    """Validate runtime values for fields annotated as Literal."""
+    if value not in allowed:
+        allowed_text = ", ".join(sorted(allowed))
+        raise ValueError(f"{field_name} must be one of: {allowed_text}")
+    return value
+
+
+def _coerce_non_negative_number(value: Any, field_name: str) -> float:
+    """Coerce numeric metadata while rejecting bool/string lookalikes."""
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be a number")
+    if float(value) < 0:
+        raise ValueError(f"{field_name} must be >= 0")
+    return float(value)
+
+
+def _coerce_optional_int(value: Any, field_name: str) -> int | None:
+    """Coerce optional integer metadata while rejecting bool/string lookalikes."""
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int or None")
+    return value
+
+
 # ---------------------------------------------------------------------------
 # LoopConfig — user-facing configuration
 # ---------------------------------------------------------------------------
@@ -477,6 +503,8 @@ class ReviewRunMeta:
 
     def __post_init__(self) -> None:
         self.schema_validation_ok = _coerce_bool(self.schema_validation_ok, "ReviewRunMeta.schema_validation_ok")
+        self.temperature = _coerce_non_negative_number(self.temperature, "ReviewRunMeta.temperature")
+        self.seed = _coerce_optional_int(self.seed, "ReviewRunMeta.seed")
         if self.decision_threshold is not None:
             if not isinstance(self.decision_threshold, (int, float)) or isinstance(self.decision_threshold, bool):
                 raise TypeError("ReviewRunMeta.decision_threshold must be a number or None")
@@ -505,6 +533,16 @@ class ModelReviewFeedback:
 
     def __post_init__(self) -> None:
         self.ok = _coerce_bool(self.ok, "ModelReviewFeedback.ok")
+        self.decision = _require_one_of(
+            self.decision,
+            {"pass", "fail", "audit_only", "invalid_output"},
+            "ModelReviewFeedback.decision",
+        )
+        self.risk_level = _require_one_of(
+            self.risk_level,
+            {"none", "minor", "major"},
+            "ModelReviewFeedback.risk_level",
+        )
         self.review_meta = _coerce_nested_dataclass(self.review_meta, ReviewRunMeta)
         self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
 
@@ -526,6 +564,11 @@ class RepairReviewFeedback:
         self.ok = _coerce_bool(self.ok, "RepairReviewFeedback.ok")
         self.target_resolved = _coerce_bool(self.target_resolved, "RepairReviewFeedback.target_resolved")
         self.regression_detected = _coerce_bool(self.regression_detected, "RepairReviewFeedback.regression_detected")
+        self.drift_risk = _require_one_of(
+            self.drift_risk,
+            {"none", "minor", "major"},
+            "RepairReviewFeedback.drift_risk",
+        )
         self.local_rejection = _coerce_nested_dataclass(self.local_rejection, RepairRejection)
         self.review_meta = _coerce_nested_dataclass(self.review_meta, ReviewRunMeta)
         if self.delta_review is not None and self.review_meta is None:
@@ -622,6 +665,11 @@ class RepairRejection:
     def __post_init__(self) -> None:
         self.target_resolved = _coerce_bool(self.target_resolved, "RepairRejection.target_resolved")
         self.regression_detected = _coerce_bool(self.regression_detected, "RepairRejection.regression_detected")
+        self.drift_risk = _require_one_of(
+            self.drift_risk,
+            {"none", "minor", "major"},
+            "RepairRejection.drift_risk",
+        )
 
 
 @dataclass
@@ -633,6 +681,10 @@ class RevisedFixPlan:
     revision_count: int = 0
 
     def __post_init__(self) -> None:
+        if not isinstance(self.revision_count, int) or isinstance(self.revision_count, bool):
+            raise TypeError("RevisedFixPlan.revision_count must be an int")
+        if self.revision_count < 0:
+            raise ValueError("RevisedFixPlan.revision_count must be >= 0")
         self.original = _coerce_nested_dataclass(self.original, FixPlan)
         self.rejection = _coerce_nested_dataclass(self.rejection, RepairRejection)
 
@@ -792,6 +844,12 @@ class FeedbackBundle:
             if not getattr(feedback, "ok", False):
                 errors.append(f"enabled source not ok: {source}")
             if source == FeedbackSource.MODEL_REVIEW.value and getattr(feedback, "review_meta", None) is None:
+                errors.append(f"enabled source missing review_meta: {source}")
+            if (
+                source == FeedbackSource.REPAIR_REVIEW.value
+                and getattr(feedback, "delta_review", None) is not None
+                and getattr(feedback, "review_meta", None) is None
+            ):
                 errors.append(f"enabled source missing review_meta: {source}")
 
             if hasattr(feedback, "meta"):

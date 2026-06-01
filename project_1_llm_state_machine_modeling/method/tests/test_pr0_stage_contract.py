@@ -319,6 +319,12 @@ def test_review_run_meta_rejects_invalid_policy_threshold_and_retry() -> None:
         dict(decision_threshold=1.1),
         dict(decision_threshold=True),
         dict(retry_count=-1),
+        dict(retry_count="3"),
+        dict(temperature="hot"),
+        dict(temperature=True),
+        dict(temperature=-0.1),
+        dict(seed="42"),
+        dict(seed=True),
         dict(schema_validation_ok="yes"),
     ]
 
@@ -328,6 +334,53 @@ def test_review_run_meta_rejects_invalid_policy_threshold_and_retry() -> None:
 
     meta = ReviewRunMeta(decision_threshold=1, failure_policy="audit_only")
     assert meta.decision_threshold == 1.0
+
+
+def test_review_feedback_rejects_invalid_literal_decision_and_risk_fields() -> None:
+    bad_model_review_cases = [
+        dict(decision="accept"),
+        dict(risk_level="catastrophic"),
+    ]
+    for kwargs in bad_model_review_cases:
+        with pytest.raises(ValueError):
+            ModelReviewFeedback(ok=True, review_meta={"schema_validation_ok": True}, **kwargs)
+
+    with pytest.raises(ValueError):
+        RepairReviewFeedback(ok=True, drift_risk="catastrophic")
+
+    with pytest.raises(ValueError):
+        schema.RepairRejection(rejected_by_stage="SD-10", reason="bad", drift_risk="catastrophic")
+
+
+def test_repair_review_bundle_blocks_mutated_delta_review_without_review_meta() -> None:
+    meta = ok_meta(StageId.SD_10_REPAIR_REVIEW)
+    feedback = RepairReviewFeedback(ok=True, target_resolved=True, meta=meta)
+    feedback.delta_review = {"decision": "accept"}
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.REPAIR_REVIEW.value],
+        repair_review=feedback,
+        stage_results=[meta],
+    )
+
+    assert not bundle.all_ok
+    assert "enabled source missing review_meta: repair_review" in bundle.stage_contract_errors()
+
+
+def test_revised_fix_plan_rejects_invalid_revision_count() -> None:
+    original = {
+        "target": "parse",
+        "source_stage": StageId.SD_2_PARSE.value,
+        "source_feedback_id": "parse:error:1",
+        "severity": "error",
+    }
+    rejection = {
+        "rejected_by_stage": StageId.SD_10_REPAIR_REVIEW.value,
+        "reason": "scenario regression",
+    }
+
+    for revision_count in [-1, "1", True]:
+        with pytest.raises((TypeError, ValueError)):
+            schema.RevisedFixPlan(original=original, rejection=rejection, revision_count=revision_count)
 
 
 def test_enabled_model_review_requires_review_meta_for_all_ok() -> None:
