@@ -89,6 +89,55 @@ class ModelArtifact:
 
 
 # ---------------------------------------------------------------------------
+# PR-0 stage contract metadata
+# ---------------------------------------------------------------------------
+
+StageStatus = Literal["ok", "fail", "skipped", "error", "advisory"]
+StageKindLiteral = Literal["LLM", "deterministic", "control"]
+
+
+@dataclass
+class StageResultMeta:
+    """Uniform execution metadata for one ``SL-*`` / ``SD-*`` / ``SC-*`` stage.
+
+    PR-0 freezes this as the minimal cross-PR contract: every enabled stage must
+    either produce a meta row or be treated as an enabled-but-missing error by
+    ``FeedbackBundle.all_ok`` / later loop wiring.
+    """
+
+    stage_id: str
+    stage_kind: StageKindLiteral | str
+    enabled: bool
+    ran: bool
+    status: StageStatus
+    ok: bool
+    skipped_reason: Optional[str] = None
+    stage_error: Optional[str] = None
+    output_validation_error: Optional[str] = None
+    input_hash: Optional[str] = None
+    output_hash: Optional[str] = None
+    prompt_hash: Optional[str] = None
+    elapsed_ms: Optional[int] = None
+
+
+@dataclass
+class BudgetState:
+    """Per-diagnostic warning repair budget state.
+
+    The key is an instance-level diagnostic identity such as
+    ``W_DEADLOCK_LEAF:state=Root.Idle`` rather than only the warning code.
+    """
+
+    instance_key: str
+    diagnostic_code: str
+    repair_count: int = 0
+    budget_remaining: int = 0
+    budget_exhausted: bool = False
+    last_status: Optional[str] = None
+    last_stage: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
 # Feedback sources
 # ---------------------------------------------------------------------------
 
@@ -244,6 +293,180 @@ class JudgeFeedback:
 
 
 @dataclass
+class DesignDiagnosticItem:
+    """Normalized pyfcstm design-health diagnostic item."""
+
+    code: str
+    pyfcstm_severity: Literal["error", "warning", "info"]
+    policy_action: Literal[
+        "hard_block",
+        "budgeted_repair",
+        "advisory",
+        "info",
+        "requires_policy_classification",
+    ]
+    instance_key: str
+    refs: dict[str, Any] = field(default_factory=dict)
+    message: str = ""
+    suggested_fix_hints: list[dict[str, Any]] = field(default_factory=list)
+    budget_remaining: Optional[int] = None
+    budget_exhausted: bool = False
+
+
+@dataclass
+class DesignFeedback:
+    """Output contract for ``SD-4 DesignFeedback``."""
+
+    ok: bool = False
+    blocking_items: list[DesignDiagnosticItem] = field(default_factory=list)
+    advisory_items: list[DesignDiagnosticItem] = field(default_factory=list)
+    info_items: list[DesignDiagnosticItem] = field(default_factory=list)
+    policy_profile: str = "generated_candidate"
+    inspect_summary: dict[str, Any] = field(default_factory=dict)
+    meta: Optional[StageResultMeta] = None
+
+
+@dataclass
+class ReviewRunMeta:
+    """Replay/audit metadata for one LLM review or delta-review call."""
+
+    provider: str = ""
+    model_id: str = ""
+    resolved_model_id: Optional[str] = None
+    prompt_template_version: str = ""
+    prompt_hash: str = ""
+    input_hash: str = ""
+    temperature: float = 0.0
+    seed: Optional[int] = None
+    retry_count: int = 0
+    raw_output_hash: str = ""
+    raw_output_path: Optional[str] = None
+    parsed_schema_version: str = ""
+    schema_validation_ok: bool = False
+    schema_validation_error: Optional[str] = None
+    cache_key: str = ""
+
+
+@dataclass
+class ModelReviewFeedback:
+    """Output contract for ``SL-7 Lightweight Model Review``."""
+
+    ok: bool = False
+    decision: Literal["pass", "fail", "audit_only", "invalid_output"] = "audit_only"
+    risk_level: Literal["none", "minor", "major"] = "none"
+    findings: list[dict[str, Any]] = field(default_factory=list)
+    blocking_findings: list[dict[str, Any]] = field(default_factory=list)
+    review_meta: Optional[ReviewRunMeta] = None
+    meta: Optional[StageResultMeta] = None
+
+
+@dataclass
+class RepairReviewFeedback:
+    """Output contract for ``SD-10`` plus optional ``SL-10B`` delta review."""
+
+    ok: bool = False
+    target_resolved: bool = False
+    regression_detected: bool = False
+    drift_risk: Literal["none", "minor", "major"] = "none"
+    local_rejection: Optional["RepairRejection"] = None
+    delta_review: Optional[dict[str, Any]] = None
+    meta: Optional[StageResultMeta] = None
+
+
+@dataclass
+class GroundedElement:
+    """One model element grounded in NL/spec/upstream evidence."""
+
+    element_id: str
+    element_kind: Literal[
+        "state",
+        "event",
+        "variable",
+        "transition",
+        "guard",
+        "action",
+        "hierarchical_state",
+    ]
+    element_ref: str
+    source_stage: str
+    evidence_text: str
+    nl_span: Optional[tuple[int, int]] = None
+    requirement_id: Optional[str] = None
+    confidence: Optional[float] = None
+    requiredness: Literal["required", "optional", "speculative", "unknown"] = "unknown"
+
+
+@dataclass
+class GroundingMap:
+    """NL/spec provenance map consumed by repair and repair-review stages."""
+
+    elements: list[GroundedElement] = field(default_factory=list)
+    source_summary: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class ScenarioSet:
+    """Frozen scenario oracle plus provenance hashes."""
+
+    scenario_set_id: str = ""
+    scenarios: list[TestScenario] = field(default_factory=list)
+    source_dsl_hash: str = ""
+    source_inspect_hash: str = ""
+    source_grounding_hash: Optional[str] = None
+    coverage_report: dict[str, Any] = field(default_factory=dict)
+    epoch: int = 0
+    frozen: bool = True
+    invalidated_by: list[str] = field(default_factory=list)
+
+
+FixTarget = Literal["parse", "semantic", "design", "sim", "model_review"]
+
+
+@dataclass
+class FixPlan:
+    """Structured repair plan produced before ``SL-9 Repair``."""
+
+    target: FixTarget
+    source_stage: str
+    source_feedback_id: str
+    severity: Literal["error", "blocking_warning", "advisory_warning", "review_fail", "sim_fail"]
+    diagnostic_ids: list[str] = field(default_factory=list)
+    problem_summary: str = ""
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    suggested_fix_hints: list[dict[str, Any]] = field(default_factory=list)
+    recommended_strategy: list[str] = field(default_factory=list)
+    forbidden_edits: list[str] = field(default_factory=list)
+    nl_grounding_hints: list[str] = field(default_factory=list)
+    target_element_ids: list[str] = field(default_factory=list)
+    required_preserve_element_ids: list[str] = field(default_factory=list)
+    allowed_edit_kinds: list[str] = field(default_factory=list)
+    verification_plan: list[str] = field(default_factory=list)
+    max_edit_scope: str = ""
+    before_dsl_hash: str = ""
+
+
+@dataclass
+class RepairRejection:
+    """Evidence explaining why a repaired candidate was rejected."""
+
+    rejected_by_stage: str
+    reason: str
+    target_resolved: bool = False
+    regression_detected: bool = False
+    drift_risk: Literal["none", "minor", "major"] = "none"
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class RevisedFixPlan:
+    """Second-pass repair input = original plan plus rejection evidence."""
+
+    original: FixPlan
+    rejection: RepairRejection
+    revision_count: int = 0
+
+
+@dataclass
 class FeedbackBundle:
     """All 4 feedback signals for one round of an agent loop iteration.
 
@@ -257,17 +480,48 @@ class FeedbackBundle:
     semantic: Optional[SemanticFeedback] = None
     sim: Optional[SimFeedback] = None
     judge: Optional[JudgeFeedback] = None
+    design: Optional[DesignFeedback] = None
+    model_review: Optional[ModelReviewFeedback] = None
+    repair_review: Optional[RepairReviewFeedback] = None
+    enabled_sources: list[str] = field(default_factory=list)
+    stage_results: list[StageResultMeta] = field(default_factory=list)
 
     @property
     def all_ok(self) -> bool:
-        """True iff every non-None source reports ``ok``."""
-        for src in (self.parse, self.semantic, self.sim, self.judge):
+        """True iff all enabled sources produced ok feedback.
+
+        Backward-compatible mode: if ``enabled_sources`` is empty, this keeps
+        the historical behavior and only inspects non-None feedback objects.
+        PR-0 mode: when ``enabled_sources`` is provided, every enabled source
+        must be present; enabled-but-missing is not silently ok.
+        """
+        if self.enabled_sources and self.missing_enabled_sources():
+            return False
+        for src in self._feedback_values():
             if src is not None and not src.ok:
                 return False
         return True
 
     def has_any_signal(self) -> bool:
-        return any(src is not None for src in (self.parse, self.semantic, self.sim, self.judge))
+        return any(src is not None for src in self._feedback_values())
+
+    def _feedback_values(self) -> tuple[Any, ...]:
+        return (
+            self.parse,
+            self.semantic,
+            self.design,
+            self.sim,
+            self.judge,
+            self.model_review,
+            self.repair_review,
+        )
+
+    def _source_value(self, source: str) -> Any:
+        return getattr(self, source, None)
+
+    def missing_enabled_sources(self) -> list[str]:
+        """Enabled feedback sources that do not have an output object yet."""
+        return [source for source in self.enabled_sources if self._source_value(source) is None]
 
 
 # ---------------------------------------------------------------------------
@@ -284,6 +538,11 @@ class IterTrace:
     feedback: Optional[FeedbackBundle] = None
     repair: Optional[ModelArtifact] = None
     repair_skipped: bool = False  # True if feedback.all_ok and we early-exit
+    stage_results: list[StageResultMeta] = field(default_factory=list)
+    stage_context_summary: dict[str, Any] = field(default_factory=dict)
+    warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
+    scenario_epoch: Optional[int] = None
+    repair_review: Optional[RepairReviewFeedback] = None
 
 
 StatusLiteral = Literal[
@@ -318,7 +577,49 @@ class AgentLoopResult:
     final_feedback: Optional[FeedbackBundle] = None
     error_message: Optional[str] = None
     llm_model: Optional[str] = None  # the model actually used (from env or override)
+    run_record_path: Optional[str] = None
+    run_record_id: Optional[str] = None
     # Phase E v3 (f): per-retry coverage report from scenariogen self-validation.
     # Each element is the {mutation_name: {status, n_variants, ...}} dict for
     # one scenariogen attempt (index 0 = initial gen, 1+ = targeted retries).
     scenariogen_coverage: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class StageContextSummary:
+    """Persistable summary of the loop-internal StageContext.
+
+    This intentionally avoids storing pyfcstm runtime/model objects directly.
+    """
+
+    current_dsl_hash: str = ""
+    has_ast: bool = False
+    has_model: bool = False
+    inspect_hash: Optional[str] = None
+    grounding_hash: Optional[str] = None
+    scenario_set_id: Optional[str] = None
+    warning_budget_keys: list[str] = field(default_factory=list)
+
+
+@dataclass
+class AgentLoopRunRecord:
+    """Self-contained single-file audit/replay record for one agent-loop run."""
+
+    schema_version: str
+    run_id: str
+    created_at: str
+    status: Literal["success", "failed", "rejected", "budget_exhausted", "error"]
+    input_bundle: dict[str, Any]
+    run_config: dict[str, Any]
+    environment: dict[str, Any]
+    stage_graph: dict[str, Any]
+    stage_records: list[dict[str, Any]]
+    iteration_records: list[dict[str, Any]]
+    llm_interactions: list[dict[str, Any]] = field(default_factory=list)
+    deterministic_feedback: dict[str, Any] = field(default_factory=dict)
+    repair_history: list[dict[str, Any]] = field(default_factory=list)
+    scenario_history: list[dict[str, Any]] = field(default_factory=list)
+    final_artifacts: dict[str, Any] = field(default_factory=dict)
+    logs: list[dict[str, Any]] = field(default_factory=list)
+    replay_index: dict[str, Any] = field(default_factory=dict)
+    redaction_report: list[dict[str, Any]] = field(default_factory=list)
