@@ -782,15 +782,16 @@ def run_sd10_repair_review(
         _attach_meta(None, feedback, meta)
         return feedback, meta
 
+    design_feedback, _ = run_sd4_design(candidate_context)
+    remaining_design: list[DesignDiagnosticItem] = []
     if fix_plan.target == "design":
-        design_feedback, _ = run_sd4_design(candidate_context)
         remaining_design = _remaining_design_targets(design_feedback, fix_plan)
         if remaining_design:
             evidence.append({"kind": "design_target_unresolved", "items": [asdict(item) for item in remaining_design]})
-        remaining_keys = {item.instance_key for item in remaining_design}
-        new_blocking_design = [item for item in design_feedback.blocking_items if item.instance_key not in remaining_keys]
-        if new_blocking_design:
-            evidence.append({"kind": "new_blocking_design_diagnostic", "items": [asdict(item) for item in new_blocking_design]})
+    remaining_keys = {item.instance_key for item in remaining_design}
+    new_blocking_design = [item for item in design_feedback.blocking_items if item.instance_key not in remaining_keys]
+    if new_blocking_design:
+        evidence.append({"kind": "new_blocking_design_diagnostic", "items": [asdict(item) for item in new_blocking_design]})
 
     regression_detected = False
     sim_feedback = None

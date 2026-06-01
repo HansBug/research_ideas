@@ -804,6 +804,45 @@ state Root {
     assert any(e["kind"] == "new_blocking_design_diagnostic" for e in feedback.local_rejection.evidence)
 
 
+def test_sd10_repair_review_rejects_new_blocking_design_diagnostics_for_sim_target() -> None:
+    old_dsl = """
+state Root {
+    event Start;
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    event Start;
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> [*] :: Start;
+    Active -> [*];
+}
+"""
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="scenario", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Simulation repair must not introduce unreachable state or shadowed event warnings",
+        grounding_map=None,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    evidence = [e for e in feedback.local_rejection.evidence if e["kind"] == "new_blocking_design_diagnostic"]
+    assert evidence
+    codes = {item["code"] for item in evidence[0]["items"]}
+    assert "W_UNREACHABLE_STATE" in codes
+
+
 def test_sd10_repair_review_detects_scenario_regression() -> None:
     scenario_set, _ = freeze_scenario_set(
         [schema.TestScenario(name="hotstart_active", initial_state="Root.Active")],
