@@ -620,9 +620,13 @@ def _grounded_element_present(index: dict[str, set[str]], element: GroundedEleme
     leaf = _ref_leaf(ref)
     kind = element.element_kind
     if kind in {"state", "hierarchical_state"}:
-        return ref in index["state_paths"] or leaf in index["state_names"]
+        if "." in ref:
+            return ref in index["state_paths"]
+        return leaf in index["state_names"]
     if kind == "event":
-        return ref in index["event_refs"] or leaf in index["event_names"]
+        if "." in ref:
+            return ref in index["event_refs"]
+        return leaf in index["event_names"]
     if kind == "variable":
         return ref in index["variable_names"] or leaf in index["variable_names"]
     if kind == "transition":
@@ -770,6 +774,10 @@ def run_sd10_repair_review(
         remaining_design = _remaining_design_targets(design_feedback, fix_plan)
         if remaining_design:
             evidence.append({"kind": "design_target_unresolved", "items": [asdict(item) for item in remaining_design]})
+        remaining_keys = {item.instance_key for item in remaining_design}
+        new_blocking_design = [item for item in design_feedback.blocking_items if item.instance_key not in remaining_keys]
+        if new_blocking_design:
+            evidence.append({"kind": "new_blocking_design_diagnostic", "items": [asdict(item) for item in new_blocking_design]})
 
     regression_detected = False
     sim_feedback = None

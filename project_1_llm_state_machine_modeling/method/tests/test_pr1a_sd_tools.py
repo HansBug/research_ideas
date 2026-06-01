@@ -524,6 +524,128 @@ state Root {
     assert any(e["kind"] == "missing_required_grounding" and "state:Root.Active" in e["element_ids"] for e in feedback.local_rejection.evidence)
 
 
+def test_sd10_repair_review_rejects_qualified_state_replaced_by_same_leaf_elsewhere() -> None:
+    old_dsl = """
+state Root {
+    state Outer {
+        state Idle;
+        state Active;
+        [*] -> Idle;
+        Idle -> Active;
+        Active -> [*];
+    }
+    [*] -> Outer;
+    Outer -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    state Outer {
+        state Idle;
+        [*] -> Idle;
+        Idle -> [*];
+    }
+    state Other {
+        state Active;
+        [*] -> Active;
+        Active -> [*];
+    }
+    [*] -> Outer;
+    Outer -> Other;
+    Other -> [*];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="state:Root.Outer.Active",
+                element_kind="state",
+                element_ref="Root.Outer.Active",
+                source_stage="SL-1",
+                evidence_text="Active under Outer is required",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Root.Outer.Active is required, not any state named Active",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "missing_required_grounding" and "state:Root.Outer.Active" in e["element_ids"] for e in feedback.local_rejection.evidence)
+
+
+def test_sd10_repair_review_rejects_qualified_event_replaced_by_same_leaf_elsewhere() -> None:
+    old_dsl = """
+state Root {
+    state Outer {
+        event Start;
+        state Idle;
+        state Active;
+        [*] -> Idle;
+        Idle -> Active :: Start;
+        Active -> [*];
+    }
+    [*] -> Outer;
+    Outer -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    state Outer {
+        state Idle;
+        state Active;
+        [*] -> Idle;
+        Idle -> Active;
+        Active -> [*];
+    }
+    state Other {
+        event Start;
+        state Idle;
+        state Active;
+        [*] -> Idle;
+        Idle -> Active :: Start;
+        Active -> [*];
+    }
+    [*] -> Outer;
+    Outer -> Other;
+    Other -> [*];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="event:Root.Outer.Start",
+                element_kind="event",
+                element_ref="Root.Outer.Start",
+                source_stage="SL-1",
+                evidence_text="Start under Outer is required",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Root.Outer.Start is required, not any event named Start",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "missing_required_grounding" and "event:Root.Outer.Start" in e["element_ids"] for e in feedback.local_rejection.evidence)
+
+
 def test_sd2_parse_reports_bad_dsl_directly() -> None:
     feedback, meta = run_sd2_parse("state Root { state Idle; [*] -> ; }")
 
@@ -551,6 +673,47 @@ def test_sd10_repair_review_tracks_advisory_design_target() -> None:
     assert not feedback.ok
     assert feedback.local_rejection is not None
     assert any(e["kind"] == "design_target_unresolved" for e in feedback.local_rejection.evidence)
+
+
+def test_sd10_repair_review_rejects_new_blocking_design_diagnostics() -> None:
+    old_dsl = """
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    state Idle;
+    state Active;
+    state Orphan;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> [*];
+}
+"""
+    plan = FixPlan(
+        target="design",
+        source_stage=StageId.SD_4_DESIGN.value,
+        source_feedback_id="W_ALREADY_FIXED_TARGET",
+        severity="blocking_warning",
+        diagnostic_ids=["W_ALREADY_FIXED_TARGET"],
+    )
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Repair must not introduce new blocking design warnings",
+        grounding_map=None,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "new_blocking_design_diagnostic" for e in feedback.local_rejection.evidence)
 
 
 def test_sd10_repair_review_detects_scenario_regression() -> None:
