@@ -56,7 +56,7 @@ DOWNSTREAM_ADVISORY_WARNING_CODES = {
 
 # Backward-compatible bridge for legacy reference models that marked external
 # inputs in comments before pyfcstm grew first-class abstract-action guidance.
-_EXTERNAL_RE = re.compile(r"\bdef\s+\w+\s+(\w+)\s*=[^;]*;\s*//[^\n]*@(?:external|input)")
+_EXTERNAL_RE = re.compile(r"\bdef\s+\w+\s+(\w+)\s*=[^;]*;\s*//\s*@(?:external|input)\b")
 _EXTERNAL_SUPPRESSED_CODES = {"W_UNWRITTEN_READ_VAR", "W_GUARD_VARS_NEVER_CHANGE"}
 
 

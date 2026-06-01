@@ -59,6 +59,54 @@ def _component_counts(obj) -> dict[str, int]:
     }
 
 
+def _normal_transition(row: dict) -> dict:
+    return {
+        key: row.get(key, "")
+        for key in ["src", "tgt", "event", "guard", "action", "is_forced", "text"]
+    }
+
+
+def _normal_guard(row: dict) -> dict:
+    return {key: row.get(key, "") for key in ["transition_id", "expr", "text"]}
+
+
+def _normal_action(row: dict) -> dict:
+    return {
+        "transition_id": row.get("transition_id", ""),
+        "expr": row.get("expr", row.get("code", "")),
+        "text": row.get("text", ""),
+    }
+
+
+def _normal_hierarchical(row: dict) -> dict:
+    return {
+        "name": row.get("name", ""),
+        "children": row.get("children", []),
+        "text": row.get("text", ""),
+    }
+
+
+def _assert_signed_ref_rowwise_compatible(path: Path, components, signed: dict) -> None:
+    """Guard signed Path 1 IR compatibility beyond component counts.
+
+    The public fields below are used by review packs and row-key style audit
+    tooling.  Auxiliary fields such as ``*_path`` / ``scoped_text`` may differ
+    or be newly added, but these signed fields must stay row-wise stable.
+    """
+    assert [_normal_transition(t) for t in components.transitions] == [
+        _normal_transition(t) for t in signed.get("transitions", [])
+    ], f"Path 1 signed transition row drift for {path}"
+    assert [_normal_guard(g) for g in components.guards] == [
+        _normal_guard(g) for g in signed.get("guards", [])
+    ], f"Path 1 signed guard row drift for {path}"
+    assert [_normal_action(a) for a in components.actions] == [
+        _normal_action(a) for a in signed.get("actions", [])
+    ], f"Path 1 signed action row drift for {path}"
+    assert [_normal_hierarchical(h) for h in components.hierarchical_states] == [
+        _normal_hierarchical(h) for h in signed.get("hierarchical_states", [])
+    ], f"Path 1 signed hierarchical-state row drift for {path}"
+
+
 def smoke_fcstm(path: Path, signed_ref_path: Path | None = None) -> None:
     assert path.exists(), f"missing fcstm artifact: {path}"
     src = path.read_text(encoding="utf-8")
@@ -79,6 +127,7 @@ def smoke_fcstm(path: Path, signed_ref_path: Path | None = None) -> None:
             f"Path 1 signed component counts drift for {path}: "
             f"got {components.counts()} vs signed {_component_counts(signed)}"
         )
+        _assert_signed_ref_rowwise_compatible(path, components, signed)
         signed_forced = sum(1 for t in signed.get("transitions", []) if t.get("is_forced"))
         got_forced = sum(1 for t in components.transitions if t.get("is_forced"))
         assert got_forced == signed_forced, (

@@ -31,18 +31,44 @@ def _short_path(path: str | None) -> str | None:
     return text.split(".")[-1]
 
 
+def _component_path(path: str | None) -> str | None:
+    """Return the public ComponentSet path field.
+
+    Path 1 signed ``ref_components.json`` stores transition endpoints as
+    full dotted paths for hierarchical pyfcstm models.  Keep ``src`` / ``tgt``
+    compatible with that signed IR and expose short aliases separately.
+    """
+    if path is None:
+        return None
+    return str(path)
+
+
 def _event_leaf(event: str | None) -> str:
     if not event:
         return ""
     return str(event).split(".")[-1]
 
 
-def _event_text(event: str | None, event_scope: str | None) -> str:
-    """Render an inspect_model event back into a human-facing DSL fragment.
+def _legacy_event_text(event: str | None) -> str:
+    """Render event text in the legacy signed ComponentSet style.
+
+    Historical Path 1 signed refs normalized pyfcstm event transitions to
+    ``:: EventLeaf`` regardless of pyfcstm's internal local/chain/absolute
+    resolution.  Keep this as the public ``text`` field so row-wise audit packs
+    remain stable; retain exact scope information in ``event_scope`` and
+    ``scoped_text``.
+    """
+    if not event:
+        return ""
+    return f" :: {_event_leaf(str(event))}"
+
+
+def _scoped_event_text(event: str | None, event_scope: str | None) -> str:
+    """Render an inspect_model event back into a scoped DSL-like fragment.
 
     ``event`` keeps the fully-qualified path for machine comparison, while the
-    text snippet mirrors Path 1 signed refs: leaf event names plus the original
-    scope operator. Absolute events are rendered as root-relative ``:/...``.
+    scoped text mirrors pyfcstm's resolved scope operator.  This is deliberately
+    an auxiliary audit field; public ``text`` remains signed-IR compatible.
     """
     if not event:
         return ""
@@ -59,16 +85,19 @@ def _event_text(event: str | None, event_scope: str | None) -> str:
     return f" : {leaf}"
 
 
-def _transition_text(t: dict[str, Any]) -> str:
+def _transition_text(t: dict[str, Any], *, scoped: bool = False) -> str:
     src = t.get("from_path") or "?"
     tgt = t.get("to_path") or "?"
     text = f"{src} -> {tgt}"
-    text += _event_text(t.get("event"), t.get("event_scope"))
+    if scoped:
+        text += _scoped_event_text(t.get("event"), t.get("event_scope"))
+    else:
+        text += _legacy_event_text(t.get("event"))
     if t.get("guard"):
         text += f" : if [{t['guard']}]"
     if t.get("effect"):
         text += f" effect {{ {t['effect']} }}"
-    if t.get("is_forced"):
+    if scoped and t.get("is_forced"):
         text = "! " + text
     return text
 
@@ -121,16 +150,19 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
 
     def append_transition(t: dict[str, Any]) -> str:
         text = _transition_text(t)
+        scoped_text = _transition_text(t, scoped=True)
         tr_id = f"t{len(transitions_out)}"
         guard_expr = t.get("guard") or ""
         effect_code = t.get("effect") or ""
         transitions_out.append({
             "id": tr_id,
-            # Keep short src/tgt/event fields aligned with legacy signed
-            # ComponentSet JSON and the Umple extractor.  Full paths remain
-            # available in *_path / event_path for audit and debugging.
-            "src": _short_path(t.get("from_path")),
-            "tgt": _short_path(t.get("to_path")),
+            # Keep public src/tgt/text fields aligned with Path 1 signed
+            # ComponentSet JSON.  Short aliases and scoped text are auxiliary
+            # audit fields and do not enter TP/FP/FN matching.
+            "src": _component_path(t.get("from_path")),
+            "tgt": _component_path(t.get("to_path")),
+            "src_short": _short_path(t.get("from_path")),
+            "tgt_short": _short_path(t.get("to_path")),
             "from_path": t.get("from_path"),
             "to_path": t.get("to_path"),
             "event": _event_leaf(t.get("event")),
@@ -143,6 +175,7 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
             "forced_origin": t.get("forced_origin") or t.get("original_raw"),
             "expansion_count": t.get("expansion_count"),
             "text": text,
+            "scoped_text": scoped_text,
         })
         if guard_expr:
             guards_out.append({
@@ -157,6 +190,10 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
                 "transition_id": tr_id,
                 "kind": "transition_effect",
                 "code": effect_code,
+                # Historical signed Path 1 action rows used ``expr``.  Keep
+                # ``code`` for the documented ComponentSet schema and ``expr``
+                # for row-wise compatibility with existing audit artifacts.
+                "expr": effect_code,
                 "text": text,
             })
         return tr_id

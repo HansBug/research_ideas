@@ -9,7 +9,8 @@ from eval.extract.pyfcstm import extract_pyfcstm
 from method.agents.scenariogen.generate import _extract_model_elements
 from method.feedback.parse import check_parse
 from method.feedback.semantic import check_semantic
-from paper_v1.selection.ref_stms.verify_pyfcstm_static import analyze
+from paper_v1.selection.ref_stms.verify_pyfcstm_static import _EXTERNAL_RE, _severity, analyze
+from pyfcstm.utils.validate import ModelDiagnostic
 
 
 SIMPLE_OK_DSL = """
@@ -207,6 +208,7 @@ def test_extract_pyfcstm_uses_inspect_model_contract_without_lifecycle_eval_acti
             "transition_id": "t4",
             "kind": "transition_effect",
             "code": "x = x - 1;",
+            "expr": "x = x - 1;",
             "text": "Root.Outer.Idle -> Root.Outer.Active : if [x > 0] effect { x = x - 1; }",
         }
     ]
@@ -220,10 +222,13 @@ def test_extract_pyfcstm_counts_forced_transitions_at_declaration_level() -> Non
     forced = [t for t in components.transitions if t["is_forced"]]
     assert len(forced) == 1
     assert forced[0]["src"] == "*"
-    assert forced[0]["tgt"] == "Safe"
+    assert forced[0]["tgt"] == "Root.Safe"
+    assert forced[0]["tgt_short"] == "Safe"
     assert forced[0]["guard"] == "fault == 1"
     assert forced[0]["expansion_count"] == 2
     assert forced[0]["forced_origin"] == "! * -> Safe : if [fault == 1];"
+    assert forced[0]["text"] == "* -> Root.Safe : if [fault == 1]"
+    assert forced[0]["scoped_text"] == "! * -> Root.Safe : if [fault == 1]"
     assert components.counts()["guards"] == 1
     assert components.guards[0]["transition_id"] == forced[0]["id"]
     assert components.counts()["actions"] == 1
@@ -251,6 +256,11 @@ state Root {
         ("Reset", "absolute", "Root.Reset"),
     ]
     assert [t["text"] for t in event_rows] == [
+        "Root.A -> Root.B :: Tick",
+        "Root.B -> Root.A :: Tick",
+        "Root.A -> [*] :: Reset",
+    ]
+    assert [t["scoped_text"] for t in event_rows] == [
         "Root.A -> Root.B :: Tick",
         "Root.B -> Root.A : Tick",
         "Root.A -> [*] : /Reset",
@@ -288,6 +298,17 @@ state Root {
     mixed_codes = [code for _sev, code, _msg in analyze(mixed_src)]
     assert "W_UNWRITTEN_READ_VAR" in mixed_codes
     assert "W_GUARD_VARS_NEVER_CHANGE" in mixed_codes
+
+
+def test_static_verifier_external_marker_must_start_comment() -> None:
+    assert _EXTERNAL_RE.findall("def int ext = 0; // @external [E1]") == ["ext"]
+    assert _EXTERNAL_RE.findall("def int inp = 0; //   @input sensor") == ["inp"]
+    assert _EXTERNAL_RE.findall("def int x = 0; // notes about @external sensor") == []
+
+
+def test_static_verifier_unknown_warning_defaults_to_error() -> None:
+    diag = ModelDiagnostic(code="W_FAKE_FOR_TEST", severity="warning", message="synthetic", refs={})
+    assert _severity(diag) == "error"
 
 
 def test_locally_available_core_dataset_artifacts_remain_readable() -> None:
