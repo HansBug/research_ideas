@@ -122,6 +122,30 @@ Output a JSON object listing 4-8 test scenarios that **together** exercise:
 - **Edge cases / safety**: forced fault recovery (`! * -> ErrorHandler`),
   reset from any state, boundary timing.
 
+
+## Forced transition declaration-level fields (CRITICAL)
+
+The Model elements JSON uses a **declaration-level** view for pyfcstm forced
+transitions (`is_forced=true`). This is intentional: one DSL declaration such
+as `! * -> Safe :: Reset;` may expand at runtime to many concrete leaf edges,
+but it appears as **one** transition row in `Model elements.transitions`.
+
+For these rows:
+
+- `from: "*"` is a wildcard meaning "from any descendant leaf in the forced
+  transition's scope". It is **not** a literal state path. Never use `"*"` or
+  `"Root.*"` as `initial_state`, `expected_state`, or a state assertion.
+- To test a wildcard forced transition, hot-start from concrete leaf state
+  paths listed in `states` (for example two distinct modes), inject the forced
+  event / satisfy the forced guard, and assert the same target state.
+- `expansion_count=N` is an audit hint telling you how many concrete runtime
+  leaf edges pyfcstm expands from that declaration. If NL describes a global
+  reset / fault recovery, cover at least two distinct concrete hot-start leaves
+  when the scenario budget allows, instead of treating `*` as one state.
+- `forced_origin` is the original DSL declaration text. Use it to understand
+  the forced rule, scenario name, or description; do not copy it as an event or
+  state identifier.
+
 ## Output schema (STRICT JSON)
 
 ```

@@ -79,6 +79,18 @@ cascade 体现 paper 的设计："components 的价值依附于它们 attach 到
 
 Macro F1 = 5 类组件 F1 的平均；overall F1 = aggregate (TP, FP, FN) across all 5 components 再算单一 F1。
 
+### 3.5 pyfcstm forced transition 的声明级评测口径
+
+pyfcstm 运行时会把 `!` forced transition 展开为多个 leaf-level 行为边；但 Path 1 / Path 2 的人工签字包和 component-level F1 按 **DSL declaration-level component** 计数。也就是说，一行 `! * -> Safe : if [fault == 1];` 在 `transitions` 中只算 1 个 forced transition component；若该 forced declaration 带 guard，则在 `guards` 中只算 1 个 guard component；展开到多少个 descendant leaf 只作为 `expansion_count` 审计字段保留，不进入 TP/FP/FN 分母。
+
+原因：本文评测的是模型制品中的可审计结构元素，而不是 pyfcstm 仿真器内部的运行时展开边。该口径与 Path 1 已签字的 `ref_components.json` 保持一致，避免 forced recovery rule 在 HSM 中按 descendant 数量系统性膨胀。
+
+### 3.6 ref STM 静态验证的 downstream strict policy
+
+`pyfcstm.diagnostics.inspect_model()` 将部分设计健康度问题报告为 warning；本项目的 reference-STM drafting gate 会把其中若干 warning 提升为 error：`W_UNWRITTEN_READ_VAR`、`W_FORCED_NEVER_EXPANDS`、`W_GUARD_CONST_FALSE`。同时，历史 ref STM 中用 `// @external` 或 `// @input` 标记的外部输入变量继续豁免 `W_UNWRITTEN_READ_VAR` / `W_GUARD_VARS_NEVER_CHANGE`。
+
+这是一层下游方法学 policy，不改变 pyfcstm 原生 severity：pyfcstm 表达通用 DSL 诊断，本项目额外表达“作为人工签字 reference STM 是否足够可靠”的门禁语义。未知的新 `W_*` code 默认需要显式分类，避免上游诊断扩展后被静默放过。
+
 ## 4. sources/ T0+🟢 分层抽样口径
 
 数据集为我们自建的 [`../sources/`](../sources/) 控制系统 NL 文库；按以下规则筛选 Path 1 / Path 2 各自的 evaluation 子集：

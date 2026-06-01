@@ -30,50 +30,68 @@ def _load_prompt() -> str:
 def _extract_model_elements(dsl_text: str) -> dict[str, Any]:
     """Extract a compact summary of model elements from a pyfcstm DSL.
 
-    Run parse + sem first; if either fails, raise.
+    Uses the stable ``inspect_model().to_json()`` contract instead of direct
+    pyfcstm model attribute access.
     """
     from pyfcstm.dsl import parse_with_grammar_entry
     from pyfcstm.model import parse_dsl_node_to_state_machine
+    from pyfcstm.diagnostics import inspect_model
 
     ast = parse_with_grammar_entry(dsl_text, "state_machine_dsl")
     model = parse_dsl_node_to_state_machine(ast)
-
-    root_name = model.root_state.name
-    state_paths: list[str] = []
-    for s in model.walk_states():
-        if isinstance(s.path, tuple) and len(s.path) > 0:
-            state_paths.append(".".join(s.path))
-
-    event_paths: list[str] = []
-    seen_events: set[str] = set()
-    for s in model.walk_states():
-        events = getattr(s, "events", None) or {}
-        for ev_name, ev in events.items():
-            ev_path_tuple = getattr(ev, "path", None)
-            if ev_path_tuple is not None:
-                ev_full = ".".join(ev_path_tuple)
-                if ev_full not in seen_events:
-                    seen_events.add(ev_full)
-                    event_paths.append(ev_full)
+    data = inspect_model(model).to_json()
 
     variables: list[dict[str, Any]] = []
-    for var_name, var_def in (model.defines or {}).items():
-        var_type = "int"
-        init_val: Any = 0
-        if var_def is not None:
-            t_attr = getattr(var_def, "type", None) or getattr(var_def, "var_type", None)
-            if t_attr is not None:
-                var_type = str(t_attr).lower()
-            init_attr = getattr(var_def, "init", None) or getattr(var_def, "init_value", None) or getattr(var_def, "value", None)
-            if init_attr is not None:
-                init_val = getattr(init_attr, "value", init_attr)
-        variables.append({"name": var_name, "type": var_type, "init": init_val})
+    for var in data.get("variables", []):
+        variables.append({
+            "name": var.get("name"),
+            "type": var.get("type") or "int",
+            "init": var.get("init_value"),
+            "read_in_guards": var.get("read_in_guards", []),
+            "written_in_effects": var.get("written_in_effects", []),
+        })
+
+    transitions: list[dict[str, Any]] = []
+
+    # ``inspect_model().to_json()["transitions"]`` is a behavioral view that
+    # expands each ``!`` forced transition into concrete leaf-level edges.
+    # Scenario generation should see the same declaration-level artifact view as
+    # eval/PROTOCOL.md §3.5, otherwise one HSM recovery rule can dominate the
+    # LLM prompt with many leaf-specific duplicates.  Keep expansion_count and
+    # forced_origin as audit fields.
+    for forced in data.get("forced_transitions", []):
+        transitions.append({
+            "from": forced.get("from_path") or "*",
+            "to": forced.get("to_path"),
+            "event": forced.get("event"),
+            "event_scope": forced.get("event_scope"),
+            "guard": forced.get("guard"),
+            "effect": None,
+            "is_forced": True,
+            "forced_origin": forced.get("original_raw"),
+            "expansion_count": forced.get("expansion_count"),
+        })
+
+    for t in data.get("transitions", []):
+        if t.get("is_forced"):
+            continue
+        transitions.append({
+            "from": t.get("from_path"),
+            "to": t.get("to_path"),
+            "event": t.get("event"),
+            "event_scope": t.get("event_scope"),
+            "guard": t.get("guard"),
+            "effect": t.get("effect"),
+            "is_forced": False,
+        })
 
     return {
-        "root": root_name,
-        "states": state_paths,
-        "events": event_paths,
+        "root": data.get("root_state_path"),
+        "states": [s.get("path") for s in data.get("states", []) if s.get("path")],
+        "events": [e.get("qualified_name") for e in data.get("events", []) if e.get("qualified_name")],
         "variables": variables,
+        "transitions": transitions,
+        "metrics": data.get("metrics", {}),
     }
 
 

@@ -95,7 +95,12 @@ class ModelArtifact:
 
 @dataclass
 class ParseFeedback:
-    """Output of ``pyfcstm.dsl.parse_with_grammar_entry``."""
+    """Output of ``pyfcstm.dsl.parse_with_grammar_entry``.
+
+    ``diagnostics`` carries normalized parser-error entries extracted from
+    ``GrammarParseError.errors``. The human ``error_message`` is kept for
+    display only; repair logic should prefer the structured fields.
+    """
 
     ok: bool = False
     line: Optional[int] = None
@@ -105,6 +110,7 @@ class ParseFeedback:
     snippet: Optional[str] = None
     error_class: Optional[str] = None
     error_message: Optional[str] = None
+    diagnostics: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -112,15 +118,19 @@ class SemanticFeedback:
     """Output of ``pyfcstm.model.parse_dsl_node_to_state_machine``.
 
     ``ok=True`` iff AST → state-machine model conversion succeeded with no
-    diagnostics. ``missing_states`` / ``dangling_transitions`` / ``undefined_vars``
-    / ``type_mismatches`` are populated based on the exception inspector.
+    error-level diagnostics. Category fields are populated from stable
+    ``ModelDiagnostic.code`` / ``refs`` payloads. The full normalized
+    diagnostic list is preserved for LLM repair prompts and auditability.
     """
 
     ok: bool = False
     missing_states: list[str] = field(default_factory=list)
     dangling_transitions: list[dict[str, Any]] = field(default_factory=list)
+    unresolved_event_refs: list[dict[str, Any]] = field(default_factory=list)
     undefined_vars: list[str] = field(default_factory=list)
     type_mismatches: list[dict[str, Any]] = field(default_factory=list)
+    other_errors: list[dict[str, Any]] = field(default_factory=list)
+    diagnostics: list[dict[str, Any]] = field(default_factory=list)
     error_class: Optional[str] = None
     error_message: Optional[str] = None
 
