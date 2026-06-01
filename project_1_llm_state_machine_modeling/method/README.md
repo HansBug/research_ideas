@@ -112,7 +112,7 @@ result = run_agent_loop(
     config=LoopConfig(
         condition="A4",  # "A0" baseline / "A4" full agent loop
         n_iter=3,
-        feedback_sources=["parse", "semantic", "sim", "judge"],
+        feedback_sources=["parse", "semantic", "sim"],  # judge adapter 尚未接入，需显式 opt-in
     ),
 )
 ```
