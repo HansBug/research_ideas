@@ -24,6 +24,7 @@ from typing import Literal, Optional
 
 from method.gpt_client import chat
 from method.schema import FeedbackBundle, ModelArtifact, TestScenario
+from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 
 
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "repair"
@@ -222,10 +223,18 @@ def repair_model(
     system_prompt = _load_subprompt(target)
     user_msg = _build_user_msg(target, current_dsl, feedback, nl, scenarios)
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_msg},
-    ]
+    messages = build_sl9_repair_prompt(
+        nl=nl,
+        current_dsl=current_dsl,
+        fix_plan=None,
+        grounding_map=None,
+        selected_diagnostics={target: user_msg},
+        grammar_digest="",
+        preserve_list=[],
+        scenario_summary={"legacy_focused_feedback": True},
+        repair_target=target,
+        system_prompt=system_prompt,
+    )
     content, usage = chat(messages=messages, model=model, temperature=0.0, seed=seed)
     dsl_text = _strip_dsl_fence(content)
     artifact = ModelArtifact(

@@ -14,6 +14,10 @@ from typing import Optional
 
 from method.gpt_client import chat
 from method.schema import ModelArtifact, SpecJson
+from method.stages.sl_initial_modeling_prompt import (
+    build_sl1_initial_modeling_prompt,
+    extract_candidate_dsl_or_legacy,
+)
 
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "modeler.txt"
@@ -76,20 +80,18 @@ def generate_model(
         ``artifact``: ``ModelArtifact`` with the generated DSL text.
         ``usage``: token usage dict from ``gpt_client.chat``.
     """
-    system_prompt = _load_prompt()
-    spec_json_str = json.dumps(spec.raw if spec.raw else _spec_to_dict(spec), ensure_ascii=False, indent=2)
-
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Generate the pyfcstm DSL from this spec:\n\n{spec_json_str}"},
-    ]
+    spec_payload = spec.raw if spec.raw else _spec_to_dict(spec)
+    messages = build_sl1_initial_modeling_prompt(
+        nl="",
+        spec_json=spec_payload,
+    )
     content, usage = chat(
         messages=messages,
         model=model,
         temperature=0.0,
         seed=seed,
     )
-    dsl_text = _strip_dsl_fence(content)
+    dsl_text = extract_candidate_dsl_or_legacy(content)
     artifact = ModelArtifact(
         dsl_text=dsl_text,
         iteration=0,

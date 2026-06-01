@@ -16,6 +16,10 @@ from typing import Any, Optional
 
 from method.gpt_client import chat
 from method.schema import ScenarioStep, TestScenario
+from method.stages.sl_scenario_generation_prompt import (
+    build_sl5_scenario_generation_prompt,
+    parse_sl5_scenario_generation_response,
+)
 
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "scenariogen" / "generate_scenarios.txt"
@@ -185,25 +189,14 @@ def generate_scenarios(
         ``usage``: token usage dict.
     """
     elements = _extract_model_elements(dsl_text)
-    system_prompt = _load_prompt()
-    elements_json = json.dumps(elements, ensure_ascii=False, indent=2, default=str)
-    directive_block = ""
-    if extra_directive:
-        directive_block = (
-            f"## Mandatory revision directive (overrides default behavior)\n\n"
-            f"{extra_directive.strip()}\n\n"
-        )
-    user_msg = (
-        f"Requirements:\n{requirements.strip()}\n\n"
-        f"Model elements:\n{elements_json}\n\n"
-        f"DSL:\n```\n{dsl_text}\n```\n\n"
-        f"{directive_block}"
-        f"Generate multi-step test scenarios. Output JSON only."
+    messages = build_sl5_scenario_generation_prompt(
+        nl=requirements,
+        current_dsl=dsl_text,
+        inspect_json=elements,
+        design_summary={},
+        grounding_map=None,
+        coverage_directive=extra_directive,
     )
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_msg},
-    ]
     content, usage = chat(
         messages=messages,
         model=model,
@@ -211,15 +204,5 @@ def generate_scenarios(
         seed=seed,
         response_format={"type": "json_object"},
     )
-    raw_text = _strip_json_fence(content)
-    try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"scenariogen: non-JSON response: {raw_text[:300]}") from e
-
-    raw_list = parsed.get("scenarios", [])
-    if not isinstance(raw_list, list):
-        raise ValueError(f"scenariogen: 'scenarios' must be a list, got {type(raw_list).__name__}")
-
-    scenarios = [_parse_scenario(s) for s in raw_list if isinstance(s, dict)]
+    scenarios = parse_sl5_scenario_generation_response(content)
     return scenarios, elements, usage

@@ -33,9 +33,13 @@
 
 见 [`../fixtures/SL-9.json`](../fixtures/SL-9.json)。该 fixture 必须包含 stage-specific `input` / `output` 字段，不能退化为通用 `summary` 占位。
 
+Repair prompt 必须明确：`suggested_fix` / `suggested_fix_hints` 只是 hint, not a command；优先最小编辑、保护 NL-grounded required elements，并保持 passing scenarios 不回退。
+
 ## 依赖关系
 
-由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
+- stage id 由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义。
+- prompt generator 位于 `method/stages/`，只返回 message pack / markdown prompt，不调用 LLM provider。
+- 若由 `method/agents/*` wrapper 使用，wrapper 必须复用本 stage 的 prompt generator，避免 prompt drift。
 
 ## 失败语义
 
@@ -47,6 +51,7 @@
 
 ## 常见失败模式
 
-- enabled stage 未产出 `StageResultMeta`。
-- output schema 与 fixture 不兼容。
-- prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+- prompt generator 直接调用 LLM provider、读取 `.env` 或绑定特定 provider。
+- output schema 与 fixture / fake response parser 不兼容。
+- prompt 缺少输入、输出 JSON/DSL schema、约束或禁止事项。
+- 内部 agent wrapper 与 stage prompt generator 维护两套不一致 prompt。
