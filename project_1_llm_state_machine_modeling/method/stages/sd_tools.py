@@ -691,18 +691,20 @@ def _count_drift_evidence(old_summary: dict[str, Any], new_summary: dict[str, An
         new_value = int(new_summary.get(field) or 0)
         if old_value <= 0:
             continue
-        reduction = (old_value - new_value) / old_value
-        if reduction > 0.30:
-            evidence.append(
-                {
-                    "kind": "count_drift",
-                    "field": field,
-                    "old": old_value,
-                    "new": new_value,
-                    "reduction_ratio": round(reduction, 4),
-                    "fix_target": fix_plan.target,
-                }
-            )
+        drift = (new_value - old_value) / old_value
+        if abs(drift) > 0.30:
+            item = {
+                "kind": "count_drift",
+                "field": field,
+                "old": old_value,
+                "new": new_value,
+                "drift_ratio": round(drift, 4),
+                "direction": "increase" if drift > 0 else "decrease",
+                "fix_target": fix_plan.target,
+            }
+            if drift < 0:
+                item["reduction_ratio"] = round(abs(drift), 4)
+            evidence.append(item)
     old_forced = int(old_summary.get("n_forced_transitions") or 0)
     new_forced = int(new_summary.get("n_forced_transitions") or 0)
     if old_forced != new_forced:

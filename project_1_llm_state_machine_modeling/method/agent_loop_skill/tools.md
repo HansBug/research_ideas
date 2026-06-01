@@ -43,7 +43,7 @@ fix_plan, fix_meta = run_sd8_fix_plan(
 | `SC-5F` | `freeze_scenario_set(...)` | scenario candidates + hashes | `ScenarioSet`, `StageResultMeta` | 冻结 oracle，后续 repair 不随意重生成。 |
 | `SD-6` | `run_sd6_sim(current_dsl, scenario_set, context=None)` | DSL + frozen `ScenarioSet` | `SimFeedback`, `StageResultMeta` | scenario 缺失时显式 error，不静默跳过。 |
 | `SD-8` | `run_sd8_fix_plan(selected_feedback, source=..., ...)` | 最早失败 feedback + grounding | `FixPlan` 或 `RevisedFixPlan`, `StageResultMeta` | `suggested_fix_hints` 仅供参考；repair 可选择更优全局修复。 |
-| `SD-10` | `run_sd10_repair_review(nl=..., grounding_map=..., old_dsl=..., candidate_dsl=..., fix_plan=..., scenario_set=...)` | NL + grounding + before/after DSL + plan + oracle | `RepairReviewFeedback`, `StageResultMeta` | parse/semantic/design target/scenario regression/grounding/count drift/forced count 本地复验。 |
+| `SD-10` | `run_sd10_repair_review(nl=..., grounding_map=..., old_dsl=..., candidate_dsl=..., fix_plan=..., scenario_set=...)` | NL + grounding + before/after DSL + plan + oracle | `RepairReviewFeedback`, `StageResultMeta` | parse/semantic/design target/scenario regression/grounding/count drift（±30% 增减漂移）/forced count 本地复验。 |
 
 ## Warning budget
 

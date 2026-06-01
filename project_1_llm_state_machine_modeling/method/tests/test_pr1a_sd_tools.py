@@ -391,6 +391,36 @@ def test_sd10_repair_review_detects_count_and_forced_transition_drift() -> None:
     assert "count_drift" in kinds
 
 
+def test_sd10_repair_review_detects_count_increase_drift() -> None:
+    candidate_dsl = """
+state Root {
+    state Idle;
+    state Active;
+    state Extra1;
+    state Extra2;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> Extra1;
+    Extra1 -> Extra2;
+    Extra2 -> [*];
+}
+"""
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Repair must not introduce large unrelated model growth",
+        grounding_map=None,
+        old_dsl=OK_DSL,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.drift_risk == "major"
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "count_drift" and e["direction"] == "increase" for e in feedback.local_rejection.evidence)
+
+
 def test_sd10_repair_review_rejects_event_grounding_replaced_by_same_name_state() -> None:
     old_dsl = """
 state Root {

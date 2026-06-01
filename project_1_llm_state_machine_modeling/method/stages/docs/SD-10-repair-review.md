@@ -59,4 +59,4 @@ repair_review, meta = run_sd10_repair_review(
 )
 ```
 
-PR-1A deterministic checks 覆盖：candidate parse/semantic、design target 是否仍阻塞、frozen scenario regression、required `GroundingMap` 元素丢失、状态/事件/变量/迁移数量大幅删除、forced transition declaration-level count 漂移。真正的 NL 语义合理性仍留给后续可选 `SL-10B Delta Review` 或人工评审。
+PR-1A deterministic checks 覆盖：candidate parse/semantic、design target 是否仍阻塞、frozen scenario regression、required `GroundingMap` 元素丢失、状态/事件/变量/迁移数量大幅增减漂移、forced transition declaration-level count 漂移。真正的 NL 语义合理性仍留给后续可选 `SL-10B Delta Review` 或人工评审。
