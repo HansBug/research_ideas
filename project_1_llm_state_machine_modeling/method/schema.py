@@ -630,7 +630,7 @@ class FeedbackBundle:
                 errors.append(f"duplicate stage meta: {stage_id}")
 
         for source in self.enabled_sources:
-            if source not in FEEDBACK_SOURCE_TO_STAGE_ID:
+            if source not in FeedbackSource._value2member_map_:
                 errors.append(f"unknown enabled source: {source}")
 
             feedback = self._source_value(source)

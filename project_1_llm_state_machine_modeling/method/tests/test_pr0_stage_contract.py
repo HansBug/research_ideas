@@ -222,6 +222,24 @@ def test_feedback_bundle_rejects_wrong_or_disabled_nested_meta() -> None:
     assert "enabled source nested meta disabled: design/SD-4" in disabled_nested.stage_contract_errors()
 
 
+def test_feedback_bundle_distinguishes_unknown_source_from_legacy_judge() -> None:
+    unknown = FeedbackBundle(enabled_sources=["parser"])
+    assert not unknown.all_ok
+    assert "unknown enabled source: parser" in unknown.stage_contract_errors()
+
+    missing_judge = FeedbackBundle(enabled_sources=[FeedbackSource.JUDGE.value])
+    assert not missing_judge.all_ok
+    assert "unknown enabled source: judge" not in missing_judge.stage_contract_errors()
+    assert "enabled source missing feedback: judge" in missing_judge.stage_contract_errors()
+
+    provided_judge = FeedbackBundle(
+        enabled_sources=[FeedbackSource.JUDGE.value],
+        judge=JudgeFeedback(ok=True, overall=1.0),
+    )
+    assert provided_judge.all_ok
+    assert provided_judge.stage_contract_errors() == []
+
+
 def test_feedback_bundle_rejects_wrong_stage_results_even_when_feedback_ok() -> None:
     wrong_kind_meta = StageResultMeta(
         stage_id=StageId.SD_2_PARSE.value,
