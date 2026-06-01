@@ -17,20 +17,17 @@ union-prompt call.
 
 from __future__ import annotations
 
-import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from method.gpt_client import chat
 from method.schema import FeedbackBundle, ModelArtifact, TestScenario
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from method.stages.sl_prompt_common import strip_fence
 
 
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "repair"
-# Shared pyfcstm grammar reference — used by both modeler agents and the
-# repair sub-prompts to avoid drift between "how to generate" and "how to fix".
-_GRAMMAR_PATH = Path(__file__).resolve().parent.parent / "prompts" / "_pyfcstm_grammar.md"
 
 RepairTarget = Literal["parse", "semantic", "sim", "judge"]
 
@@ -43,36 +40,16 @@ _PROMPT_FILES: dict[RepairTarget, str] = {
 
 
 def _load_subprompt(target: RepairTarget) -> str:
-    """Load the sub-prompt for ``target`` and append the shared grammar reference.
+    """Load the focused repair sub-prompt for ``target``.
 
-    Every fix sub-prompt benefits from the same pyfcstm DSL cheat-sheet —
-    historically the largest source of repair regressions was operator
-    confusion (`:` vs `::`) which the grammar reference now blocks.
+    The shared pyfcstm grammar is appended once by the canonical SL-9 prompt
+    generator, not here, so the final system prompt does not contain duplicate
+    or empty grammar sections.
     """
     p = _PROMPT_DIR / _PROMPT_FILES[target]
     if not p.exists():
         raise FileNotFoundError(f"Repair sub-prompt not found: {p}")
-    body = p.read_text(encoding="utf-8")
-    if _GRAMMAR_PATH.exists():
-        grammar = _GRAMMAR_PATH.read_text(encoding="utf-8")
-        return f"{body}\n\n---\n\n{grammar}"
-    return body
-
-
-def _strip_dsl_fence(content: str) -> str:
-    s = content.strip()
-    if not s.startswith("```"):
-        return s
-    parts = s.split("```")
-    if len(parts) >= 2:
-        body = parts[1]
-        first_nl = body.find("\n")
-        if first_nl != -1:
-            first_line = body[:first_nl].strip().lower()
-            if first_line in ("fcstm", "pyfcstm", "dsl", "text", ""):
-                body = body[first_nl + 1:]
-        return body.rstrip().rstrip("`").rstrip()
-    return s
+    return p.read_text(encoding="utf-8")
 
 
 def select_repair_target(feedback: FeedbackBundle) -> Optional[RepairTarget]:
@@ -91,87 +68,67 @@ def select_repair_target(feedback: FeedbackBundle) -> Optional[RepairTarget]:
     return None
 
 
-def _build_user_msg(
+def _scenario_to_dict(scenario: TestScenario) -> dict[str, Any]:
+    return {
+        "name": scenario.name,
+        "description": scenario.description,
+        "initial_state": scenario.initial_state,
+        "initial_vars": scenario.initial_vars,
+        "steps": [
+            {
+                "name": step.name,
+                "before_cycles": step.before_cycles,
+                "events": step.events,
+                "expected_state": step.expected_state,
+                "expected_vars": step.expected_vars,
+            }
+            for step in scenario.steps
+        ],
+    }
+
+
+def _build_repair_context(
     target: RepairTarget,
-    current_dsl: str,
     feedback: FeedbackBundle,
-    nl: str,
     scenarios: Optional[list[TestScenario]] = None,
-) -> str:
-    """Build a focused user message containing only the relevant diagnostic.
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Build structured SL-9 diagnostics and scenario summary.
 
     For target='sim' the message also surfaces a **passing-scenarios list**
     (a regression-prevention guardrail per Phase E (c) decision): the LLM
     is reminded that those scenarios currently pass and the edit must not
     break them.
     """
-    parts = [
-        f"## NL requirements\n\n{nl.strip()}\n",
-        f"## Current DSL\n\n```\n{current_dsl}\n```\n",
-    ]
-
     if target == "sim":
         # Split scenario results into passing vs failing for explicit display.
         all_results = list(feedback.sim.scenario_results)
         passing_names = [sr.name for sr in all_results if sr.status == "pass"]
         failing_results = [sr for sr in all_results if sr.status != "pass"]
 
-        if passing_names:
-            passing_block = "\n".join(f"- `{n}`" for n in passing_names)
-            parts.append(
-                "## Scenarios currently PASSING — your edit MUST NOT regress these\n\n"
-                f"{passing_block}\n\n"
-                "Before outputting, mentally re-evaluate each of the above against your "
-                "proposed DSL. If any would break, reconsider the edit.\n"
-            )
-
         # Build sim diagnostic JSON containing only the failing scenarios
         sim_payload = asdict(feedback.sim)
         sim_payload["scenario_results"] = [asdict(sr) for sr in failing_results]
-        sim_payload["passing_scenario_names"] = passing_names  # also embedded for redundancy
-        diag_json = json.dumps({"sim": sim_payload}, ensure_ascii=False, indent=2, default=str)
-        parts.append(f"## FAILING scenarios — sim diagnostic\n\n```\n{diag_json}\n```\n")
-
+        sim_payload["passing_scenario_names"] = passing_names
+        selected_diagnostics = [{"source": "sim", "feedback": sim_payload}]
+        scenario_summary: dict[str, Any] = {
+            "passing_scenario_names": passing_names,
+            "failing_scenario_names": [sr.name for sr in failing_results],
+            "do_not_regress_passing_scenarios": True,
+        }
         if scenarios is not None:
-            sc_json = json.dumps(
-                [
-                    {
-                        "name": s.name,
-                        "description": s.description,
-                        "initial_state": s.initial_state,
-                        "initial_vars": s.initial_vars,
-                        "steps": [
-                            {
-                                "name": st.name,
-                                "before_cycles": st.before_cycles,
-                                "events": st.events,
-                                "expected_state": st.expected_state,
-                                "expected_vars": st.expected_vars,
-                            }
-                            for st in s.steps
-                        ],
-                    }
-                    for s in scenarios
-                ],
-                ensure_ascii=False, indent=2, default=str,
-            )
-            parts.append(
-                f"## All frozen scenarios (full data — DO NOT EDIT)\n\n```\n{sc_json}\n```\n"
-            )
-    else:
-        # parse / sem / judge: existing focused-diagnostic format
-        payload: dict = {}
-        if target == "parse":
-            payload["parse"] = asdict(feedback.parse)
-        elif target == "semantic":
-            payload["semantic"] = asdict(feedback.semantic)
-        elif target == "judge":
-            payload["judge"] = asdict(feedback.judge)
-        diag_json = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
-        parts.append(f"## {target.capitalize()} diagnostic\n\n```\n{diag_json}\n```\n")
+            scenario_summary["frozen_scenarios"] = [_scenario_to_dict(s) for s in scenarios]
+        return selected_diagnostics, scenario_summary
 
-    parts.append("Output the corrected pyfcstm DSL only.")
-    return "\n".join(parts)
+    payload: dict[str, Any] = {}
+    if target == "parse":
+        payload = asdict(feedback.parse)
+    elif target == "semantic":
+        payload = asdict(feedback.semantic)
+    elif target == "judge":
+        payload = asdict(feedback.judge)
+    else:
+        raise ValueError(f"unknown repair target: {target}")
+    return [{"source": target, "feedback": payload}], {}
 
 
 def repair_model(
@@ -221,22 +178,22 @@ def repair_model(
         raise ValueError("Repair called with all-ok feedback — caller should have skipped.")
 
     system_prompt = _load_subprompt(target)
-    user_msg = _build_user_msg(target, current_dsl, feedback, nl, scenarios)
+    selected_diagnostics, scenario_summary = _build_repair_context(target, feedback, scenarios)
 
     messages = build_sl9_repair_prompt(
         nl=nl,
         current_dsl=current_dsl,
         fix_plan=None,
         grounding_map=None,
-        selected_diagnostics={target: user_msg},
-        grammar_digest="",
+        selected_diagnostics=selected_diagnostics,
+        grammar_digest=None,
         preserve_list=[],
-        scenario_summary={"legacy_focused_feedback": True},
+        scenario_summary=scenario_summary,
         repair_target=target,
         system_prompt=system_prompt,
     )
     content, usage = chat(messages=messages, model=model, temperature=0.0, seed=seed)
-    dsl_text = _strip_dsl_fence(content)
+    dsl_text = strip_fence(content)
     artifact = ModelArtifact(
         dsl_text=dsl_text,
         iteration=iteration,

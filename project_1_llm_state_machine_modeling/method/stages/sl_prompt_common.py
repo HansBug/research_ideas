@@ -23,6 +23,13 @@ def read_text_if_exists(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def read_text_required(path: Path, *, label: str) -> str:
+    """Read a repo-local prompt file and fail loudly if it is missing."""
+    if not path.exists():
+        raise FileNotFoundError(f"{label} not found: {path}")
+    return path.read_text(encoding="utf-8")
+
+
 def load_grammar_digest(override: str | None = None) -> str:
     if override is not None:
         return override

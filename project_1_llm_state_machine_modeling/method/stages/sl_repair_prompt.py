@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from method.schema import FixPlan, RevisedFixPlan
-from method.stages.sl_prompt_common import fenced_json, fenced_text, load_grammar_digest, message_pack, to_jsonable
+from method.stages.sl_prompt_common import fenced_json, fenced_text, load_grammar_digest, message_pack
 
 
 def build_sl9_repair_prompt(
@@ -14,7 +14,7 @@ def build_sl9_repair_prompt(
     current_dsl: str,
     fix_plan: FixPlan | RevisedFixPlan | dict[str, Any] | None = None,
     grounding_map: Any | None = None,
-    selected_diagnostics: list[dict[str, Any]] | dict[str, Any] | None = None,
+    selected_diagnostics: list[dict[str, Any]] | None = None,
     grammar_digest: str | None = None,
     preserve_list: list[str] | None = None,
     scenario_summary: dict[str, Any] | None = None,

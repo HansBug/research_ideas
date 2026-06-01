@@ -372,25 +372,23 @@ status: converged   iters: 1   tokens: 12,284
 
 | Agent | 加载方式 |
 | --- | --- |
-| `agents/modeler.py` | `_load_prompt` 现在追加共享 grammar；`modeler.txt` 删除重复 cheat-sheet |
-| `agents/multistep/build_pyfcstm.py` | 同上；`prompts/multistep/build_pyfcstm.txt` 同步 slim |
-| `agents/repair.py` | 4 个 fix sub-prompt 加载时都追加共享 grammar |
+| `agents/modeler.py` | 通过 `build_sl1_initial_modeling_prompt(...)` 复用 canonical SL-1 prompt generator；共享 grammar 由 prompt generator 追加 |
+| `agents/multistep/build_pyfcstm.py` | 继续在 multistep builder 内加载共享 grammar；`prompts/multistep/build_pyfcstm.txt` 同步 slim |
+| `agents/repair.py` | 4 个 fix sub-prompt 提供 focused role guidance；共享 grammar 由 `build_sl9_repair_prompt(...)` 统一追加，避免重复/空 grammar section |
 
 合并的 grammar 含 modeler.txt 原来更详尽的内容（包括 `:` 不只是 guards——也是 chain/absolute scope 的 event scoping operator；v1 grammar 把这个简化错了导致 LLM 也容易出错）+ cycle execution semantics（off-by-one 怎么来）+ "INVALID 形式" 反例表。
 
 ### (c) Passing-scenarios 显式标注 改动
 
-`agents/repair.py:_build_user_msg` for `target=sim` 新结构：
+`agents/repair.py:_build_repair_context` for `target=sim` 现在生成结构化 SL-9 输入：
 ```
-## NL requirements
-## Current DSL
-## Scenarios currently PASSING — your edit MUST NOT regress these:   ← 新增
-   - `scenario_A`
-   - `scenario_B`
-   ...
-   Before outputting, mentally re-evaluate each of the above ...
-## FAILING scenarios — sim diagnostic
-## All frozen scenarios (full data — DO NOT EDIT)
+selected_diagnostics = [{"source": "sim", "feedback": { ... failing scenario_results only ... }}]
+scenario_summary = {
+  "passing_scenario_names": ["scenario_A", "scenario_B"],
+  "failing_scenario_names": [...],
+  "do_not_regress_passing_scenarios": true,
+  "frozen_scenarios": [...]
+}
 ```
 
 `prompts/repair/fix_sim.txt` 加硬规则：

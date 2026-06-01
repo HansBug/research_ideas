@@ -60,6 +60,10 @@ Blocking guidance:
 - path1_eval_risk/path2_grounding_risk are blocking only under matching policy.
 - minor structure smells are advisory.
 - If the input is insufficient for a safe decision, use `audit_only`.
+
+Required input fields include NL, current DSL, GroundingMap, inspect JSON,
+design diagnostics summary, sim summary, 5-component summary,
+warning budget exhausted list and ReviewPolicy.
 """
     payload = {
         "nl": nl,
@@ -68,9 +72,9 @@ Blocking guidance:
         "inspect_model_to_json": inspect_json or {},
         "design_diagnostics_summary": design_diagnostics_summary or {},
         "sim_summary": sim_summary or {},
-        "5-component summary": five_component_summary or {},
-        "warning budget exhausted": warning_budget_exhausted or [],
-        "ReviewPolicy": review_policy or {},
+        "five_component_summary": five_component_summary or {},
+        "warning_budget_exhausted": warning_budget_exhausted or [],
+        "review_policy": review_policy or {},
     }
     user = f"""
 ## SL-7 review input

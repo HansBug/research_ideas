@@ -6,16 +6,41 @@ from typing import Any
 
 from method.stages.sl_prompt_common import (
     PROMPTS_ROOT,
-    dumps_pretty,
     fenced_json,
     load_grammar_digest,
     message_pack,
     parse_json_response,
-    read_text_if_exists,
+    read_text_required,
     strip_fence,
 )
 
 MODEL_PROMPT_PATH = PROMPTS_ROOT / "modeler.txt"
+
+
+def _load_modeler_guidance() -> str:
+    """Load legacy modeler guidance without its raw-DSL output contract.
+
+    ``modeler.txt`` predates PR-1B and was written for a direct "return DSL
+    only" wrapper.  SL-1 needs the same generation rules but a different final
+    response contract: JSON containing ``candidate_dsl`` and
+    ``grounding_seeds``.  Keeping the old output-only rule in the same system
+    message makes the prompt self-contradictory, so this adapter deliberately
+    strips the legacy example/output section and rewrites rule 2.
+    """
+    base = read_text_required(MODEL_PROMPT_PATH, label="Modeler prompt")
+    guidance = base.split("## Example", 1)[0].strip()
+    guidance = guidance.replace(
+        "the agent-specific generation rules and example below.",
+        "the agent-specific generation rules below.",
+    )
+    guidance = guidance.replace(
+        "2. **Output ONLY the pyfcstm DSL code**, nothing else. No prose, no markdown\n"
+        "   code fences, no explanatory comments.",
+        "2. **Construct a complete pyfcstm DSL candidate**. The outer SL-1 JSON\n"
+        "   schema below controls the final response format; put the DSL text in\n"
+        "   `candidate_dsl` and do not emit raw DSL outside that JSON object.",
+    )
+    return guidance
 
 
 def build_sl1_initial_modeling_prompt(
@@ -27,7 +52,7 @@ def build_sl1_initial_modeling_prompt(
     prompt_template_version: str = "sl1-initial-modeling.v1",
 ) -> list[dict[str, str]]:
     """Build the SL-1 message pack without calling any LLM provider."""
-    base_prompt = read_text_if_exists(MODEL_PROMPT_PATH)
+    base_prompt = _load_modeler_guidance()
     grammar = load_grammar_digest(pyfcstm_grammar_digest)
     system = f"""
 You are SL-1 Initial Modeling for the project-1 agent loop.

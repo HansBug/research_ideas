@@ -10,25 +10,14 @@ restore the 3-step variant (elements_mapping -> Gherkin -> structured).
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, Optional
 
 from method.gpt_client import chat
-from method.schema import ScenarioStep, TestScenario
+from method.schema import TestScenario
 from method.stages.sl_scenario_generation_prompt import (
     build_sl5_scenario_generation_prompt,
     parse_sl5_scenario_generation_response,
 )
-
-
-_PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "scenariogen" / "generate_scenarios.txt"
-
-
-def _load_prompt() -> str:
-    if not _PROMPT_PATH.exists():
-        raise FileNotFoundError(f"scenariogen prompt not found: {_PROMPT_PATH}")
-    return _PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def _extract_model_elements(dsl_text: str) -> dict[str, Any]:
@@ -97,77 +86,6 @@ def _extract_model_elements(dsl_text: str) -> dict[str, Any]:
         "transitions": transitions,
         "metrics": data.get("metrics", {}),
     }
-
-
-def _strip_json_fence(content: str) -> str:
-    s = content.strip()
-    if not s.startswith("```"):
-        return s
-    parts = s.split("```")
-    if len(parts) >= 2:
-        body = parts[1]
-        if body.startswith("json"):
-            body = body[4:]
-        elif body.startswith("JSON"):
-            body = body[4:]
-        return body.strip()
-    return s
-
-
-def _parse_step(raw: dict[str, Any]) -> ScenarioStep:
-    """Parse a single step dict (with None-aware handling for events / expected_*)."""
-    # events: None / [] / list[str]
-    events_raw = raw.get("events")
-    if events_raw is None:
-        events: Optional[list[str]] = None
-    elif isinstance(events_raw, list):
-        events = [str(e) for e in events_raw]
-    else:
-        # malformed — try to recover: treat as single-element
-        events = [str(events_raw)]
-
-    # expected_state: None / str
-    expected_state_raw = raw.get("expected_state")
-    expected_state: Optional[str] = None if expected_state_raw is None else str(expected_state_raw)
-
-    # expected_vars: None / dict
-    expected_vars_raw = raw.get("expected_vars")
-    if expected_vars_raw is None:
-        expected_vars: Optional[dict[str, Any]] = None
-    elif isinstance(expected_vars_raw, dict):
-        expected_vars = dict(expected_vars_raw)
-    else:
-        expected_vars = None  # malformed, treat as "don't care"
-
-    return ScenarioStep(
-        before_cycles=int(raw.get("before_cycles", 0)),
-        events=events,
-        expected_state=expected_state,
-        expected_vars=expected_vars,
-        name=str(raw.get("name", "")),
-    )
-
-
-def _parse_scenario(raw: dict[str, Any]) -> TestScenario:
-    """Parse a single scenario dict into a TestScenario with ScenarioStep list."""
-    initial_state_raw = raw.get("initial_state")
-    initial_state: Optional[str] = None if initial_state_raw is None else str(initial_state_raw)
-    initial_vars = raw.get("initial_vars") or {}
-    if not isinstance(initial_vars, dict):
-        initial_vars = {}
-
-    steps_raw = raw.get("steps", [])
-    if not isinstance(steps_raw, list):
-        steps_raw = []
-    steps = [_parse_step(s) for s in steps_raw if isinstance(s, dict)]
-
-    return TestScenario(
-        name=str(raw.get("name", "")),
-        description=str(raw.get("description", "")),
-        initial_state=initial_state,
-        initial_vars=dict(initial_vars),
-        steps=steps,
-    )
 
 
 def generate_scenarios(

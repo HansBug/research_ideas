@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 
 import pytest
 
 from method.schema import (
+    FeedbackBundle,
     FixPlan,
     GroundedElement,
     GroundingMap,
+    ParseFeedback,
     RepairRejection,
     RevisedFixPlan,
     ScenarioResult,
     SimFeedback,
+    SpecJson,
     TestScenario as ScenarioCase,
 )
 from method.stages.sl_delta_review_prompt import (
@@ -21,7 +23,10 @@ from method.stages.sl_delta_review_prompt import (
     build_sl10b_delta_review_prompt,
     parse_sl10b_delta_review_response,
 )
-from method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt
+from method.stages.sl_initial_modeling_prompt import (
+    build_sl1_initial_modeling_prompt,
+    extract_candidate_dsl_or_legacy,
+)
 from method.stages.sl_model_review_prompt import (
     MODEL_REVIEW_CATEGORIES,
     build_sl7_model_review_prompt,
@@ -93,6 +98,8 @@ def test_sl1_prompt_generator_is_prompt_only_and_contains_schema() -> None:
     assert "candidate_dsl" in joined
     assert "grounding_seeds" in joined
     assert "Output JSON only" in joined
+    assert "Output ONLY the pyfcstm DSL code" not in joined
+    assert "only the DSL code" not in joined
     assert "When Start is pressed" in joined
     assert "pyfcstm grammar" in joined.lower()
     assert "chat(" not in joined
@@ -139,6 +146,35 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert len(scenarios) == 1
     assert isinstance(scenarios[0], ScenarioCase)
     assert scenarios[0].steps[0].expected_state == "Root.Active"
+
+
+def test_sl5_parser_accepts_string_before_cycles_and_rejects_non_numeric() -> None:
+    scenarios = parse_sl5_scenario_generation_response(
+        json.dumps(
+            {
+                "scenarios": [
+                    {
+                        "name": "string_cycles",
+                        "steps": [
+                            {
+                                "name": "wait",
+                                "before_cycles": "3",
+                                "events": [],
+                                "expected_state": "Root.Idle",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+    )
+
+    assert scenarios[0].steps[0].before_cycles == 3
+
+    with pytest.raises(ValueError, match="before_cycles"):
+        parse_sl5_scenario_generation_response(
+            json.dumps({"scenarios": [{"name": "bad", "steps": [{"before_cycles": "later"}]}]})
+        )
 
 
 @pytest.mark.parametrize("category", sorted(MODEL_REVIEW_CATEGORIES))
@@ -188,6 +224,9 @@ def test_sl7_prompt_contains_required_contract_fields() -> None:
     assert "5-component summary" in joined
     assert "warning budget exhausted" in joined
     assert "ReviewPolicy" in joined
+    assert "five_component_summary" in joined
+    assert "warning_budget_exhausted" in joined
+    assert "review_policy" in joined
     for category in MODEL_REVIEW_CATEGORIES:
         assert category in joined
 
@@ -226,6 +265,68 @@ def test_sl9_repair_prompt_accepts_fix_plan_and_revised_fix_plan() -> None:
     assert "hint, not a command" in joined
     assert "state:Idle" in joined
     assert "Output corrected pyfcstm DSL only" in joined
+
+
+def test_modeler_agent_passes_nl_into_sl1_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+    import method.agents.modeler as modeler
+
+    captured: dict[str, object] = {}
+
+    def fake_chat(*, messages, **kwargs):
+        captured["messages"] = messages
+        return (
+            json.dumps(
+                {
+                    "candidate_dsl": "state Root { [*] -> Idle; state Idle; }",
+                    "grounding_seeds": [],
+                    "assumptions": [],
+                }
+            ),
+            {},
+        )
+
+    monkeypatch.setattr(modeler, "chat", fake_chat)
+    modeler.generate_model(
+        SpecJson(states=["Idle"], raw={"states": ["Idle"]}),
+        nl="Original NL evidence.",
+    )
+
+    joined = "\n".join(m["content"] for m in captured["messages"])
+    assert "Original NL evidence." in joined
+
+
+def test_sl1_legacy_dsl_extractor_still_supports_fenced_raw_dsl() -> None:
+    assert (
+        extract_candidate_dsl_or_legacy("```pyfcstm\nstate Root { [*] -> Idle; state Idle; }\n```")
+        == "state Root { [*] -> Idle; state Idle; }"
+    )
+
+
+def test_repair_agent_uses_structured_sl9_inputs_without_repeating_nl_and_dsl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import method.agents.repair as repair
+
+    captured: dict[str, object] = {}
+
+    def fake_chat(*, messages, **kwargs):
+        captured["messages"] = messages
+        return ("state Root { [*] -> Idle; state Idle; }", {})
+
+    monkeypatch.setattr(repair, "chat", fake_chat)
+    repair.repair_model(
+        "state Root { [*] -> Idle; state Idle; }",
+        FeedbackBundle(parse=ParseFeedback(ok=False, error_message="parse failed")),
+        nl="Original NL.",
+    )
+
+    user = captured["messages"][1]["content"]
+    system = captured["messages"][0]["content"]
+    assert user.count("Original NL.") == 1
+    assert user.count("state Root { [*] -> Idle; state Idle; }") == 1
+    assert "selected_diagnostics" in user
+    assert '"source": "parse"' in user
+    assert "## pyfcstm grammar digest\n\n\n" not in system
 
 
 def test_sl10b_delta_review_prompt_and_parser_contract() -> None:
@@ -331,3 +432,11 @@ def test_sl_docs_and_skill_links_cover_pr1b_contract() -> None:
         "build_sl10b_delta_review_prompt",
     ]:
         assert generator_name in prompts_md
+
+    sl7_text = docs["SL-7"].read_text(encoding="utf-8")
+    for category in MODEL_REVIEW_CATEGORIES:
+        assert category in sl7_text
+
+    sl10b_text = docs["SL-10B"].read_text(encoding="utf-8")
+    for decision in DELTA_REVIEW_DECISIONS:
+        assert decision in sl10b_text

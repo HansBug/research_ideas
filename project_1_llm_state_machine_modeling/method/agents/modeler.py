@@ -8,8 +8,6 @@ Judge).
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Optional
 
 from method.gpt_client import chat
@@ -20,46 +18,10 @@ from method.stages.sl_initial_modeling_prompt import (
 )
 
 
-_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "modeler.txt"
-_GRAMMAR_PATH = Path(__file__).resolve().parent.parent / "prompts" / "_pyfcstm_grammar.md"
-
-
-def _load_prompt() -> str:
-    """Load the modeler system prompt + append the shared pyfcstm grammar.
-
-    Both modeler and repair agents read from the same grammar file so the
-    "how to generate" and "how to fix" sides of the loop stay in sync.
-    """
-    if not _PROMPT_PATH.exists():
-        raise FileNotFoundError(f"Modeler prompt not found: {_PROMPT_PATH}")
-    body = _PROMPT_PATH.read_text(encoding="utf-8")
-    if _GRAMMAR_PATH.exists():
-        grammar = _GRAMMAR_PATH.read_text(encoding="utf-8")
-        return f"{body}\n\n---\n\n{grammar}"
-    return body
-
-
-def _strip_dsl_fence(content: str) -> str:
-    """If the model wrapped the DSL in a ``` fenced block, strip it."""
-    s = content.strip()
-    if not s.startswith("```"):
-        return s
-    parts = s.split("```")
-    if len(parts) >= 2:
-        body = parts[1]
-        # First-line language tag (e.g. "fcstm" / "pyfcstm" / "dsl") gets stripped
-        first_nl = body.find("\n")
-        if first_nl != -1:
-            first_line = body[:first_nl].strip().lower()
-            if first_line in ("fcstm", "pyfcstm", "dsl", "text", ""):
-                body = body[first_nl + 1:]
-        return body.rstrip().rstrip("`").rstrip()
-    return s
-
-
 def generate_model(
     spec: SpecJson,
     *,
+    nl: str = "",
     seed: Optional[int] = None,
     model: Optional[str] = None,
 ) -> tuple[ModelArtifact, dict]:
@@ -69,6 +31,10 @@ def generate_model(
     ----------
     spec
         The structured spec from SpecExtractor.
+    nl
+        Original natural-language requirement text.  SL-1 uses this as the
+        primary evidence anchor for grounding seeds.  Older callers may omit it,
+        but loop integrations should pass the original NL through explicitly.
     seed
         Optional integer for LLM-call determinism (some providers honor this).
     model
@@ -82,7 +48,7 @@ def generate_model(
     """
     spec_payload = spec.raw if spec.raw else _spec_to_dict(spec)
     messages = build_sl1_initial_modeling_prompt(
-        nl="",
+        nl=nl,
         spec_json=spec_payload,
     )
     content, usage = chat(

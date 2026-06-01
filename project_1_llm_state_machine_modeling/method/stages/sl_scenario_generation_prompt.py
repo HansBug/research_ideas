@@ -82,8 +82,23 @@ def _parse_step(raw: dict[str, Any]) -> ScenarioStep:
     else:
         expected_vars = None
 
+    before_cycles_raw = raw.get("before_cycles", 0)
+    if before_cycles_raw is None:
+        before_cycles: int | bool = 0
+    elif isinstance(before_cycles_raw, bool):
+        # Preserve fail-loudly behavior in ScenarioStep instead of accepting
+        # bool as int via Python's int subclassing.
+        before_cycles = before_cycles_raw
+    else:
+        try:
+            before_cycles = int(before_cycles_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"SL-5 ScenarioStep.before_cycles must be int-compatible, got {before_cycles_raw!r}"
+            ) from exc
+
     return ScenarioStep(
-        before_cycles=raw.get("before_cycles", 0),
+        before_cycles=before_cycles,
         events=events,
         expected_state=expected_state,
         expected_vars=expected_vars,
