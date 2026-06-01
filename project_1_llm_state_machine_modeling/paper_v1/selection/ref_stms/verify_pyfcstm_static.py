@@ -26,6 +26,34 @@ DOWNSTREAM_STRICT_ERROR_CODES = {
     "W_GUARD_CONST_FALSE",
 }
 
+# Warnings that are intentionally advisory in the reference-STM drafting gate.
+# This explicit allow-list is the audit valve for future pyfcstm upgrades: an
+# unknown new W_* code is promoted to error by this downstream verifier until
+# the project classifies it here or in DOWNSTREAM_STRICT_ERROR_CODES.
+DOWNSTREAM_ADVISORY_WARNING_CODES = {
+    "W_UNREACHABLE_STATE",
+    "W_GUARD_CONST_TRUE",
+    "W_DURING_CONST_ASSIGN",
+    "W_UNUSED_EVENT",
+    "W_DEADLOCK_LEAF",
+    "W_INITIAL_UNCONDITIONAL_MISSING",
+    "W_DEAD_NAMED_ACTION",
+    "W_UNREFERENCED_VAR",
+    "W_GUARD_VARS_NEVER_CHANGE",
+    "W_WRITE_ONLY_VAR",
+    "W_REDUNDANT_TRANSITION",
+    "W_SELF_TRANSITION_NOP",
+    "W_EFFECT_SELF_ASSIGN",
+    "W_FORCED_OVERRIDES_NORMAL",
+    "W_SHADOWED_EVENT",
+    "W_NAMED_ACTION_SHADOWS_ANCESTOR",
+    "W_LITERAL_TYPE_NARROWING",
+    "W_ASPECT_NO_DESCENDANT_LEAF",
+    "W_HIGH_VAR_TO_LEAF_RATIO",
+    "W_DEEP_HIERARCHY",
+    "W_LARGE_COMPOSITE",
+}
+
 # Backward-compatible bridge for legacy reference models that marked external
 # inputs in comments before pyfcstm grew first-class abstract-action guidance.
 _EXTERNAL_RE = re.compile(r"\bdef\s+\w+\s+(\w+)\s*=[^;]*;\s*//[^\n]*@(?:external|input)")
@@ -50,6 +78,8 @@ def _is_external_suppressed(src_text: str, diag: ModelDiagnostic) -> bool:
 
 def _severity(diag: ModelDiagnostic) -> str:
     if diag.code in DOWNSTREAM_STRICT_ERROR_CODES:
+        return "error"
+    if str(diag.severity) == "warning" and diag.code not in DOWNSTREAM_ADVISORY_WARNING_CODES:
         return "error"
     return str(diag.severity)
 

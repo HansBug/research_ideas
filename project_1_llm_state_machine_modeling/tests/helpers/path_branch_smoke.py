@@ -8,6 +8,7 @@ extraction, scenariogen element extraction, and static verifier analysis.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -27,6 +28,10 @@ EXPECTED = {
     "path1": {
         "parquet": ARTIFACT_ROOT / "path1" / "sources_path1.parquet",
         "fcstm": ["cara.fcstm", "cubesat.fcstm"],
+        "signed_refs": {
+            "cara.fcstm": ARTIFACT_ROOT / "path1" / "cara_ref_components.json",
+            "cubesat.fcstm": ARTIFACT_ROOT / "path1" / "cubesat_ref_components.json",
+        },
     },
     "path2": {
         "parquet": ARTIFACT_ROOT / "path2" / "sources_path2.parquet",
@@ -45,7 +50,16 @@ def smoke_parquet(path: Path) -> None:
     assert df[text_cols[0]].astype(str).str.len().gt(20).all(), f"short NL text in {path}"
 
 
-def smoke_fcstm(path: Path) -> None:
+def _component_counts(obj) -> dict[str, int]:
+    if hasattr(obj, "counts"):
+        return obj.counts()
+    return {
+        key: len(obj.get(key, []))
+        for key in ["states", "transitions", "guards", "actions", "hierarchical_states"]
+    }
+
+
+def smoke_fcstm(path: Path, signed_ref_path: Path | None = None) -> None:
     assert path.exists(), f"missing fcstm artifact: {path}"
     src = path.read_text(encoding="utf-8")
     pf = check_parse(src)
@@ -58,17 +72,32 @@ def smoke_fcstm(path: Path) -> None:
     assert all("transition_id" in a and a.get("kind") == "transition_effect" for a in components.actions), (
         f"eval actions must remain transition effects only for {path}: {components.actions}"
     )
+    if signed_ref_path is not None:
+        assert signed_ref_path.exists(), f"missing signed Path 1 ref_components artifact: {signed_ref_path}"
+        signed = json.loads(signed_ref_path.read_text(encoding="utf-8"))
+        assert components.counts() == _component_counts(signed), (
+            f"Path 1 signed component counts drift for {path}: "
+            f"got {components.counts()} vs signed {_component_counts(signed)}"
+        )
+        signed_forced = sum(1 for t in signed.get("transitions", []) if t.get("is_forced"))
+        got_forced = sum(1 for t in components.transitions if t.get("is_forced"))
+        assert got_forced == signed_forced, (
+            f"forced transition declaration count drift for {path}: got {got_forced}, signed {signed_forced}"
+        )
     elements = _extract_model_elements(src)
     assert elements["states"] and elements["transitions"], f"empty scenariogen elements for {path}"
     static_diags = analyze(src)
     assert all(len(item) == 3 for item in static_diags), f"bad static diag tuple for {path}: {static_diags}"
+    if signed_ref_path is not None:
+        assert not [item for item in static_diags if item[0] == "error"], f"static verifier error for {path}: {static_diags}"
 
 
 def main() -> None:
     for path_name, spec in EXPECTED.items():
         smoke_parquet(spec["parquet"])
+        signed_refs = spec.get("signed_refs", {})
         for filename in spec["fcstm"]:
-            smoke_fcstm(ARTIFACT_ROOT / path_name / filename)
+            smoke_fcstm(ARTIFACT_ROOT / path_name / filename, signed_refs.get(filename))
     print("path1/path2 pyfcstm feedback smoke passed")
 
 

@@ -55,6 +55,22 @@ state Root {
 }
 """
 
+FORCED_DECL_DSL = """
+def int fault = 0;
+def int x = 0;
+state Root {
+    state Outer {
+        state A;
+        state B;
+        [*] -> A;
+        A -> B :: Tick effect { x = x + 1; };
+    }
+    state Safe;
+    [*] -> Outer;
+    ! * -> Safe : if [fault == 1];
+}
+"""
+
 
 REQUIRED_INSPECT_KEYS = {
     "root_state_path",
@@ -183,6 +199,8 @@ def test_extract_pyfcstm_uses_inspect_model_contract_without_lifecycle_eval_acti
     assert counts["guards"] == 1
     assert counts["actions"] == 1  # eval protocol: only transition effect, no lifecycle actions
     assert any(t["from_path"] == "Root.Outer.Idle" and t["to_path"] == "Root.Outer.Active" for t in components.transitions)
+    assert {s["name"]: s["parent"] for s in components.states}["Idle"] == "Outer"
+    assert next(h for h in components.hierarchical_states if h["name"] == "Root")["children"] == ["Outer", "Done"]
     assert components.actions == [
         {
             "id": "a0",
@@ -193,6 +211,50 @@ def test_extract_pyfcstm_uses_inspect_model_contract_without_lifecycle_eval_acti
         }
     ]
     assert all("transition_id" in a and a.get("kind") == "transition_effect" for a in components.actions)
+
+
+def test_extract_pyfcstm_counts_forced_transitions_at_declaration_level() -> None:
+    components = extract_pyfcstm(FORCED_DECL_DSL)
+
+    assert components.counts()["transitions"] == 4
+    forced = [t for t in components.transitions if t["is_forced"]]
+    assert len(forced) == 1
+    assert forced[0]["src"] == "*"
+    assert forced[0]["tgt"] == "Safe"
+    assert forced[0]["guard"] == "fault == 1"
+    assert forced[0]["expansion_count"] == 2
+    assert forced[0]["forced_origin"] == "! * -> Safe : if [fault == 1];"
+    assert components.counts()["guards"] == 1
+    assert components.guards[0]["transition_id"] == forced[0]["id"]
+    assert components.counts()["actions"] == 1
+    assert components.actions[0]["kind"] == "transition_effect"
+    assert components.actions[0]["transition_id"] != forced[0]["id"]
+
+
+def test_extract_pyfcstm_renders_event_scope_without_changing_machine_fields() -> None:
+    src = """
+state Root {
+    state A;
+    state B;
+    [*] -> A;
+    A -> B :: Tick;
+    B -> A : Tick;
+    A -> [*] : /Reset;
+}
+"""
+    components = extract_pyfcstm(src)
+
+    event_rows = [t for t in components.transitions if t["event"]]
+    assert [(t["event"], t["event_scope"], t["event_path"]) for t in event_rows] == [
+        ("Tick", "local", "Root.A.Tick"),
+        ("Tick", "chain", "Root.Tick"),
+        ("Reset", "absolute", "Root.Reset"),
+    ]
+    assert [t["text"] for t in event_rows] == [
+        "Root.A -> Root.B :: Tick",
+        "Root.B -> Root.A : Tick",
+        "Root.A -> [*] : /Reset",
+    ]
 
 
 def test_scenariogen_elements_use_inspect_model_contract() -> None:
@@ -228,8 +290,8 @@ state Root {
     assert "W_GUARD_VARS_NEVER_CHANGE" in mixed_codes
 
 
-def test_path1_and_path2_core_datasets_remain_readable() -> None:
-    """Smoke the core datasets named by PR #9/#10 when present locally."""
+def test_locally_available_core_dataset_artifacts_remain_readable() -> None:
+    """Smoke whichever core/path artifacts are available in this checkout."""
     candidates = [
         Path("project_1_llm_state_machine_modeling/eval/data/sources_path1.parquet"),
         Path("project_1_llm_state_machine_modeling/eval/data/sources_path2.parquet"),
