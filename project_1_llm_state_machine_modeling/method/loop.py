@@ -46,8 +46,10 @@ from method.schema import (
     IterTrace,
     LoopConfig,
     ModelArtifact,
+    StageResultMeta,
     TestScenario,
 )
+from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageStatus
 
 
 def _accumulate_usage(total: dict, step_usage: dict) -> None:
@@ -55,6 +57,33 @@ def _accumulate_usage(total: dict, step_usage: dict) -> None:
     for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
         total[k] = total.get(k, 0) + int(step_usage.get(k, 0))
     total["n_calls"] = total.get("n_calls", 0) + 1
+
+
+def _make_stage_meta(source: str, *, ok: bool, status: StageStatus | str | None = None) -> StageResultMeta | None:
+    """Build canonical PR-0 stage metadata for a feedback source when known."""
+    stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
+    if stage_id is None:
+        return None
+    spec = STAGE_SPECS_BY_ID[stage_id]
+    resolved_status = status or (StageStatus.OK if ok else StageStatus.FAIL)
+    return StageResultMeta(
+        stage_id=stage_id,
+        stage_kind=spec.kind,
+        enabled=True,
+        ran=True,
+        status=resolved_status,
+        ok=ok,
+    )
+
+
+def _record_feedback_meta(bundle: FeedbackBundle, source: str, feedback: object) -> None:
+    """Attach canonical stage meta to ``bundle`` and feedback objects that carry it."""
+    meta = _make_stage_meta(source, ok=bool(getattr(feedback, "ok", False)))
+    if meta is None:
+        return
+    bundle.stage_results.append(meta)
+    if hasattr(feedback, "meta"):
+        setattr(feedback, "meta", meta)
 
 
 def _run_cascade(
@@ -67,31 +96,38 @@ def _run_cascade(
 
     Order: parse → semantic → (sim, judge). Each source is run only if it
     is enabled in ``feedback_sources`` AND all preceding gating sources
-    passed.
+    passed.  PR-0 strict mode records ``enabled_sources`` immediately so an
+    enabled-but-unimplemented or gated-off source cannot accidentally make the
+    bundle converge.
     """
-    bundle = FeedbackBundle()
+    bundle = FeedbackBundle(enabled_sources=list(feedback_sources))
 
     # ---- parse ----
     if "parse" in feedback_sources:
         bundle.parse = check_parse(dsl)
+        _record_feedback_meta(bundle, "parse", bundle.parse)
         if not bundle.parse.ok:
             return bundle  # gating: skip downstream
 
     # ---- semantic ----
     if "semantic" in feedback_sources:
         bundle.semantic = check_semantic(dsl)
+        _record_feedback_meta(bundle, "semantic", bundle.semantic)
         if not bundle.semantic.ok:
             return bundle  # gating: skip downstream
 
     # ---- sim ----
     if "sim" in feedback_sources and scenarios is not None:
         bundle.sim = check_sim(dsl, scenarios)
+        _record_feedback_meta(bundle, "sim", bundle.sim)
         # Do NOT gate judge on sim failure — they are independent signals.
 
     # ---- judge (Phase H — placeholder, not implemented yet) ----
     if "judge" in feedback_sources:
         # bundle.judge = check_judge(dsl, nl, ...)
-        # For Phase E we leave this as None; Phase H will fill it.
+        # For Phase E/PR-0 this deliberately remains missing; strict
+        # FeedbackBundle semantics must therefore report all_ok=False rather
+        # than silently treating the placeholder as pass.
         pass
 
     return bundle

@@ -21,7 +21,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
-from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, FeedbackSource, StageKind, StageStatus
+from method.stages.ids import (
+    FEEDBACK_SOURCE_TO_STAGE_ID,
+    STAGE_SPECS_BY_ID,
+    FeedbackSource,
+    StageKind,
+    StageStatus,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +139,14 @@ class StageResultMeta:
         run-record validation.
         """
         errors: list[str] = []
+        spec = STAGE_SPECS_BY_ID.get(self.stage_id)
+        if spec is None:
+            errors.append(f"unknown stage_id: {self.stage_id}")
+        elif self.stage_kind != spec.kind:
+            errors.append(
+                f"stage_kind mismatch for {self.stage_id}: "
+                f"expected {spec.kind.value}, got {self.stage_kind.value}"
+            )
         if self.enabled and self.status == StageStatus.SKIPPED and not self.skipped_reason:
             errors.append("skipped stage must provide skipped_reason")
         if self.enabled and self.status == StageStatus.ERROR and not (self.stage_error or self.output_validation_error):
@@ -543,27 +557,7 @@ class FeedbackBundle:
         if not self.enabled_sources:
             return all(src.ok for src in self._feedback_values() if src is not None)
 
-        if self.missing_enabled_sources():
-            return False
-
-        stage_metas = self._stage_meta_by_id()
-        for source in self.enabled_sources:
-            feedback = self._source_value(source)
-            if feedback is None or not getattr(feedback, "ok", False):
-                return False
-
-            nested_meta = getattr(feedback, "meta", None) if hasattr(feedback, "meta") else None
-            if hasattr(feedback, "meta"):
-                if nested_meta is None or nested_meta.blocks_all_ok:
-                    return False
-
-            stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
-            if stage_id is not None:
-                meta = stage_metas.get(stage_id) or nested_meta
-                if meta is None or meta.blocks_all_ok:
-                    return False
-
-        return True
+        return not self.stage_contract_errors()
 
     def has_any_signal(self) -> bool:
         return any(src is not None for src in self._feedback_values())
@@ -591,39 +585,88 @@ class FeedbackBundle:
         """
         return {meta.stage_id: meta for meta in self.stage_results}
 
+    def _expected_stage_meta_for_source(self, source: str) -> tuple[str, StageResultMeta | None, bool]:
+        """Resolve and validate the canonical stage meta bound to a feedback source.
+
+        Returns ``(stage_id, meta, uses_nested)`` where ``meta`` is selected
+        only when its ``stage_id`` exactly equals the source's canonical stage.
+        Nested feedback ``meta`` is allowed for feedback dataclasses that carry
+        it, but it is never allowed to satisfy a different enabled stage.
+        """
+        stage_id = FEEDBACK_SOURCE_TO_STAGE_ID[source]
+        stage_meta = self._stage_meta_by_id().get(stage_id)
+        feedback = self._source_value(source)
+        nested_meta = getattr(feedback, "meta", None) if feedback is not None and hasattr(feedback, "meta") else None
+        if stage_meta is not None:
+            return stage_id, stage_meta, False
+        if nested_meta is not None and nested_meta.stage_id == stage_id:
+            return stage_id, nested_meta, True
+        return stage_id, None, False
+
     def missing_enabled_sources(self) -> list[str]:
         """Enabled feedback sources that do not have an output object yet."""
         return [source for source in self.enabled_sources if self._source_value(source) is None]
 
     def missing_enabled_stage_metas(self) -> list[str]:
-        """Canonical stage IDs missing meta rows for enabled feedback sources."""
-        stage_metas = self._stage_meta_by_id()
+        """Canonical stage IDs missing valid meta rows for enabled feedback sources."""
         missing: list[str] = []
         for source in self.enabled_sources:
-            stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
-            feedback = self._source_value(source)
-            nested_meta = getattr(feedback, "meta", None) if feedback is not None and hasattr(feedback, "meta") else None
-            if stage_id is not None and stage_id not in stage_metas and nested_meta is None:
+            if source not in FEEDBACK_SOURCE_TO_STAGE_ID:
+                continue
+            stage_id, meta, _uses_nested = self._expected_stage_meta_for_source(source)
+            if meta is None:
                 missing.append(stage_id)
         return missing
 
     def stage_contract_errors(self) -> list[str]:
         """Human-readable stage contract errors for PR-0 tests/review."""
         errors: list[str] = []
-        for source in self.missing_enabled_sources():
-            errors.append(f"enabled source missing feedback: {source}")
-        for stage_id in self.missing_enabled_stage_metas():
-            errors.append(f"enabled source missing stage meta: {stage_id}")
+        stage_counts: dict[str, int] = {}
         for meta in self.stage_results:
+            stage_counts[meta.stage_id] = stage_counts.get(meta.stage_id, 0) + 1
             errors.extend(f"{meta.stage_id}: {error}" for error in meta.contract_errors())
+        for stage_id, count in stage_counts.items():
+            if count > 1:
+                errors.append(f"duplicate stage meta: {stage_id}")
+
         for source in self.enabled_sources:
+            if source not in FEEDBACK_SOURCE_TO_STAGE_ID:
+                errors.append(f"unknown enabled source: {source}")
+
             feedback = self._source_value(source)
-            if feedback is not None and hasattr(feedback, "meta"):
+            if feedback is None:
+                errors.append(f"enabled source missing feedback: {source}")
+                continue
+            if not getattr(feedback, "ok", False):
+                errors.append(f"enabled source not ok: {source}")
+
+            if hasattr(feedback, "meta"):
                 nested_meta = getattr(feedback, "meta")
                 if nested_meta is None:
                     errors.append(f"enabled source missing nested meta: {source}")
                 else:
-                    errors.extend(f"{nested_meta.stage_id}: {error}" for error in nested_meta.contract_errors())
+                    errors.extend(f"{source}.meta/{nested_meta.stage_id}: {error}" for error in nested_meta.contract_errors())
+                    expected_stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
+                    if expected_stage_id is not None and nested_meta.stage_id != expected_stage_id:
+                        errors.append(
+                            f"enabled source nested meta stage mismatch: {source} "
+                            f"expected {expected_stage_id}, got {nested_meta.stage_id}"
+                        )
+                    if expected_stage_id is not None and not nested_meta.enabled:
+                        errors.append(f"enabled source nested meta disabled: {source}/{expected_stage_id}")
+
+        for source in self.enabled_sources:
+            if source not in FEEDBACK_SOURCE_TO_STAGE_ID:
+                continue
+            stage_id, meta, _uses_nested = self._expected_stage_meta_for_source(source)
+            if meta is None:
+                errors.append(f"enabled source missing stage meta: {stage_id}")
+                continue
+            if not meta.enabled:
+                errors.append(f"enabled source stage meta disabled: {stage_id}")
+            if meta.blocks_all_ok:
+                errors.append(f"enabled source stage meta blocks all_ok: {stage_id} status={meta.status.value} ok={meta.ok}")
+
         return errors
 
 

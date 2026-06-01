@@ -4,16 +4,21 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
+import method.loop as loop
 import method.schema as schema
 from method.schema import (
     AgentLoopRunRecord,
     BudgetState,
     DesignFeedback,
     FeedbackBundle,
+    FixPlan,
     JudgeFeedback,
     ModelReviewFeedback,
     ParseFeedback,
+    RepairReviewFeedback,
+    ScenarioSet,
     SemanticFeedback,
+    SimFeedback,
     StageContext,
     StageResultMeta,
 )
@@ -158,6 +163,130 @@ def test_feedback_bundle_rejects_error_meta_and_nested_missing_meta() -> None:
     assert "enabled source missing nested meta: model_review" in missing_nested.stage_contract_errors()
 
 
+def test_stage_result_meta_rejects_unknown_stage_and_kind_mismatch() -> None:
+    unknown = StageResultMeta(
+        stage_id="SD-404",
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
+    assert "unknown stage_id: SD-404" in unknown.contract_errors()
+    assert unknown.blocks_all_ok
+
+    wrong_kind = StageResultMeta(
+        stage_id=StageId.SD_2_PARSE.value,
+        stage_kind=StageKind.LLM.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
+    assert any("stage_kind mismatch for SD-2" in err for err in wrong_kind.contract_errors())
+    assert wrong_kind.blocks_all_ok
+
+
+def test_feedback_bundle_rejects_wrong_or_disabled_nested_meta() -> None:
+    wrong_nested_meta = StageResultMeta(
+        stage_id=StageId.SD_2_PARSE.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
+    wrong_nested = FeedbackBundle(
+        enabled_sources=[FeedbackSource.DESIGN.value],
+        design=DesignFeedback(ok=True, meta=wrong_nested_meta),
+        stage_results=[],
+    )
+    assert not wrong_nested.all_ok
+    errors = wrong_nested.stage_contract_errors()
+    assert "enabled source nested meta stage mismatch: design expected SD-4, got SD-2" in errors
+    assert "enabled source missing stage meta: SD-4" in errors
+
+    disabled_meta = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=False,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
+    disabled_nested = FeedbackBundle(
+        enabled_sources=[FeedbackSource.DESIGN.value],
+        design=DesignFeedback(ok=True, meta=disabled_meta),
+    )
+    assert not disabled_nested.all_ok
+    assert "enabled source nested meta disabled: design/SD-4" in disabled_nested.stage_contract_errors()
+
+
+def test_feedback_bundle_rejects_wrong_stage_results_even_when_feedback_ok() -> None:
+    wrong_kind_meta = StageResultMeta(
+        stage_id=StageId.SD_2_PARSE.value,
+        stage_kind=StageKind.LLM.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.PARSE.value],
+        parse=ParseFeedback(ok=True),
+        stage_results=[wrong_kind_meta],
+    )
+
+    assert not bundle.all_ok
+    assert any("stage_kind mismatch for SD-2" in err for err in bundle.stage_contract_errors())
+
+
+def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeypatch) -> None:
+    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(
+        loop,
+        "check_sim",
+        lambda dsl, scenarios: SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)),
+    )
+
+    bundle = loop._run_cascade(
+        "machine Sample {}",
+        feedback_sources=[
+            FeedbackSource.PARSE.value,
+            FeedbackSource.SEMANTIC.value,
+            FeedbackSource.SIM.value,
+            FeedbackSource.JUDGE.value,
+        ],
+        scenarios=[],
+    )
+
+    assert bundle.enabled_sources == ["parse", "semantic", "sim", "judge"]
+    assert bundle.parse and bundle.semantic and bundle.sim
+    assert bundle.judge is None
+    assert not bundle.all_ok
+    assert "enabled source missing feedback: judge" in bundle.stage_contract_errors()
+    assert [m.stage_id for m in bundle.stage_results] == ["SD-2", "SD-3", "SD-6"]
+
+
+def test_run_cascade_records_gated_missing_downstream_sources(monkeypatch) -> None:
+    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=False, error_message="boom"))
+
+    bundle = loop._run_cascade(
+        "broken",
+        feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
+        scenarios=None,
+    )
+
+    assert bundle.enabled_sources == ["parse", "semantic"]
+    assert bundle.parse is not None and not bundle.parse.ok
+    assert bundle.semantic is None
+    assert not bundle.all_ok
+    errors = bundle.stage_contract_errors()
+    assert "enabled source not ok: parse" in errors
+    assert "enabled source missing feedback: semantic" in errors
+
+
 def test_stage_result_meta_validates_skipped_and_error_contracts() -> None:
     skipped_without_reason = StageResultMeta(
         stage_id=StageId.SD_4_DESIGN.value,
@@ -261,6 +390,27 @@ def test_budget_state_and_stage_context_summary_are_json_serializable() -> None:
     assert summary["warning_budget_keys"] == ["W_DEADLOCK_LEAF:state=Root.Idle"]
 
 
+def validate_stage_fixture_output(stage_id: str, output: dict) -> None:
+    if stage_id == StageId.SD_2_PARSE.value:
+        ParseFeedback(**output["parse_feedback"])
+    elif stage_id == StageId.SD_3_SEMANTIC.value:
+        SemanticFeedback(**output["semantic_feedback"])
+    elif stage_id == StageId.SD_4_DESIGN.value:
+        DesignFeedback(**output["design_feedback"])
+    elif stage_id == StageId.SC_5F_SCENARIO_FREEZE.value:
+        ScenarioSet(**output["scenario_set"])
+    elif stage_id == StageId.SD_6_SIM.value:
+        SimFeedback(**output["sim_feedback"])
+    elif stage_id == StageId.SL_7_MODEL_REVIEW.value:
+        ModelReviewFeedback(**output["model_review_feedback"])
+    elif stage_id == StageId.SD_8_FIX_PLAN.value:
+        FixPlan(**output["fix_plan"])
+    elif stage_id == StageId.SD_10_REPAIR_REVIEW.value:
+        RepairReviewFeedback(**output["repair_review_feedback"])
+    elif stage_id == StageId.SC_13_TRACE_AUDIT.value:
+        AgentLoopRunRecord(**output["agent_loop_run_record"])
+
+
 def test_stage_docs_skill_links_and_stage_specific_fixtures_exist() -> None:
     docs_root = METHOD_ROOT / "stages" / "docs"
     fixtures_root = METHOD_ROOT / "stages" / "fixtures"
@@ -287,6 +437,7 @@ def test_stage_docs_skill_links_and_stage_specific_fixtures_exist() -> None:
         assert set(data["output"]) != {"summary"}, f"generic output fixture: {fixture}"
         StageResultMeta(**data["meta"])
         observed_statuses.add(data["meta"]["status"])
+        validate_stage_fixture_output(spec.stage_id, data["output"])
 
         skill_link = skill_root / "stages" / f"{spec.stage_id}.md"
         assert skill_link.is_symlink(), f"missing skill stage symlink: {skill_link}"
@@ -298,6 +449,11 @@ def test_stage_docs_skill_links_and_stage_specific_fixtures_exist() -> None:
         meta = StageResultMeta(**data["meta"])
         observed_statuses.add(meta.status.value)
         assert meta.contract_ok, f"negative fixture should be valid shape: {name}"
+        if name == "NEG-BUDGET-EXHAUSTED":
+            budget_state = BudgetState(**data["output"]["budget_state"])
+            assert budget_state.instance_key == data["input"]["instance_key"]
+            assert budget_state.diagnostic_code == data["input"]["diagnostic_code"]
+            assert budget_state.budget_exhausted
 
     assert {"ok", "fail", "skipped", "error", "advisory"}.issubset(observed_statuses)
 
