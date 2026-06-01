@@ -11,6 +11,7 @@ import method.schema as schema
 from method.schema import (
     AgentLoopRunRecord,
     BudgetState,
+    DesignDiagnosticItem,
     DesignFeedback,
     FeedbackBundle,
     FixPlan,
@@ -336,6 +337,66 @@ def test_review_run_meta_rejects_invalid_policy_threshold_and_retry() -> None:
     assert meta.decision_threshold == 1.0
 
 
+def test_design_feedback_coerces_and_validates_diagnostic_items_from_json_dicts() -> None:
+    design = DesignFeedback(
+        ok=True,
+        blocking_items=[
+            {
+                "code": "W_DEADLOCK_LEAF",
+                "pyfcstm_severity": "warning",
+                "policy_action": "budgeted_repair",
+                "instance_key": "W_DEADLOCK_LEAF:state=Active",
+                "budget_remaining": 1,
+                "budget_exhausted": False,
+            }
+        ],
+        advisory_items=[
+            {
+                "code": "W_OPTIONAL_COVERAGE",
+                "pyfcstm_severity": "warning",
+                "policy_action": "advisory",
+                "instance_key": "W_OPTIONAL_COVERAGE:state=Idle",
+            }
+        ],
+        info_items=[
+            {
+                "code": "I_REACHABLE",
+                "pyfcstm_severity": "info",
+                "policy_action": "info",
+                "instance_key": "I_REACHABLE:state=Active",
+            }
+        ],
+    )
+
+    assert isinstance(design.blocking_items[0], DesignDiagnosticItem)
+    assert isinstance(design.advisory_items[0], DesignDiagnosticItem)
+    assert isinstance(design.info_items[0], DesignDiagnosticItem)
+    assert design.blocking_items[0].policy_action == "budgeted_repair"
+
+
+def test_design_diagnostic_item_rejects_invalid_policy_fields() -> None:
+    base = {
+        "code": "W_DEADLOCK_LEAF",
+        "pyfcstm_severity": "warning",
+        "policy_action": "budgeted_repair",
+        "instance_key": "W_DEADLOCK_LEAF:state=Active",
+    }
+    bad_cases = [
+        dict(pyfcstm_severity="fatal"),
+        dict(policy_action="force_repair"),
+        dict(budget_remaining=-1),
+        dict(budget_remaining="1"),
+        dict(budget_exhausted="false"),
+    ]
+
+    for override in bad_cases:
+        with pytest.raises((TypeError, ValueError)):
+            DesignDiagnosticItem(**(base | override))
+
+    with pytest.raises(ValueError):
+        DesignFeedback(ok=True, blocking_items=[base | {"policy_action": "force_repair"}])
+
+
 def test_review_feedback_rejects_invalid_literal_decision_and_risk_fields() -> None:
     bad_model_review_cases = [
         dict(decision="accept"),
@@ -364,6 +425,33 @@ def test_repair_review_bundle_blocks_mutated_delta_review_without_review_meta() 
 
     assert not bundle.all_ok
     assert "enabled source missing review_meta: repair_review" in bundle.stage_contract_errors()
+
+
+def test_fix_plan_rejects_invalid_target_and_severity() -> None:
+    for kwargs in [
+        dict(target="judge", severity="error"),
+        dict(target="parse", severity="unknown"),
+    ]:
+        with pytest.raises(ValueError):
+            FixPlan(
+                source_stage=StageId.SD_8_FIX_PLAN.value,
+                source_feedback_id="fb-001",
+                **kwargs,
+            )
+
+    with pytest.raises(ValueError):
+        schema.RevisedFixPlan(
+            original={
+                "target": "judge",
+                "source_stage": StageId.SD_8_FIX_PLAN.value,
+                "source_feedback_id": "fb-001",
+                "severity": "unknown",
+            },
+            rejection={
+                "rejected_by_stage": StageId.SD_10_REPAIR_REVIEW.value,
+                "reason": "bad repair",
+            },
+        )
 
 
 def test_revised_fix_plan_rejects_invalid_revision_count() -> None:
@@ -691,6 +779,22 @@ def test_feedback_bundle_legacy_non_none_mode_stays_backward_compatible() -> Non
     assert not bundle.all_ok
 
 
+def test_agent_loop_run_record_rejects_invalid_status() -> None:
+    with pytest.raises(ValueError):
+        AgentLoopRunRecord(
+            schema_version="pr0.stage-contract.v1",
+            run_id="run-test-0001",
+            created_at="2026-06-01T00:00:00Z",
+            status="partial",
+            input_bundle={},
+            run_config={},
+            environment={},
+            stage_graph={},
+            stage_records=[],
+            iteration_records=[],
+        )
+
+
 def test_agent_loop_run_record_is_single_file_json_schema_fixture() -> None:
     meta = ok_meta(StageId.SD_2_PARSE)
     meta.input_hash = "sha256:input"
@@ -789,7 +893,9 @@ def validate_stage_fixture_output(stage_id: str, output: dict) -> None:
     elif stage_id == StageId.SD_3_SEMANTIC.value:
         SemanticFeedback(**output["semantic_feedback"])
     elif stage_id == StageId.SD_4_DESIGN.value:
-        DesignFeedback(**output["design_feedback"])
+        feedback = DesignFeedback(**output["design_feedback"])
+        for item in feedback.blocking_items + feedback.advisory_items + feedback.info_items:
+            assert isinstance(item, DesignDiagnosticItem)
     elif stage_id == StageId.SC_5F_SCENARIO_FREEZE.value:
         ScenarioSet(**output["scenario_set"])
     elif stage_id == StageId.SD_6_SIM.value:

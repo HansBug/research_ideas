@@ -65,6 +65,8 @@ def _coerce_bool(value: Any, field_name: str) -> bool:
 
 def _require_one_of(value: str, allowed: set[str], field_name: str) -> str:
     """Validate runtime values for fields annotated as Literal."""
+    if not isinstance(value, str):
+        raise TypeError(f"{field_name} must be a str")
     if value not in allowed:
         allowed_text = ", ".join(sorted(allowed))
         raise ValueError(f"{field_name} must be one of: {allowed_text}")
@@ -87,6 +89,22 @@ def _coerce_optional_int(value: Any, field_name: str) -> int | None:
     if not isinstance(value, int) or isinstance(value, bool):
         raise TypeError(f"{field_name} must be an int or None")
     return value
+
+
+def _coerce_non_negative_int(value: Any, field_name: str) -> int:
+    """Coerce required integer metadata while rejecting bool/string lookalikes."""
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field_name} must be an int")
+    if value < 0:
+        raise ValueError(f"{field_name} must be >= 0")
+    return value
+
+
+def _coerce_optional_non_negative_int(value: Any, field_name: str) -> int | None:
+    """Coerce optional non-negative integer metadata for JSON schema fields."""
+    if value is None:
+        return None
+    return _coerce_non_negative_int(value, field_name)
 
 
 # ---------------------------------------------------------------------------
@@ -460,6 +478,26 @@ class DesignDiagnosticItem:
     budget_remaining: Optional[int] = None
     budget_exhausted: bool = False
 
+    def __post_init__(self) -> None:
+        self.pyfcstm_severity = _require_one_of(
+            self.pyfcstm_severity,
+            {"error", "warning", "info"},
+            "DesignDiagnosticItem.pyfcstm_severity",
+        )
+        self.policy_action = _require_one_of(
+            self.policy_action,
+            {"hard_block", "budgeted_repair", "advisory", "info", "requires_policy_classification"},
+            "DesignDiagnosticItem.policy_action",
+        )
+        self.budget_remaining = _coerce_optional_non_negative_int(
+            self.budget_remaining,
+            "DesignDiagnosticItem.budget_remaining",
+        )
+        self.budget_exhausted = _coerce_bool(
+            self.budget_exhausted,
+            "DesignDiagnosticItem.budget_exhausted",
+        )
+
 
 @dataclass
 class DesignFeedback:
@@ -475,6 +513,9 @@ class DesignFeedback:
 
     def __post_init__(self) -> None:
         self.ok = _coerce_bool(self.ok, "DesignFeedback.ok")
+        self.blocking_items = _coerce_dataclass_list(self.blocking_items, DesignDiagnosticItem)
+        self.advisory_items = _coerce_dataclass_list(self.advisory_items, DesignDiagnosticItem)
+        self.info_items = _coerce_dataclass_list(self.info_items, DesignDiagnosticItem)
         self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
 
 
@@ -649,6 +690,18 @@ class FixPlan:
     verification_plan: list[str] = field(default_factory=list)
     max_edit_scope: str = ""
     before_dsl_hash: str = ""
+
+    def __post_init__(self) -> None:
+        self.target = _require_one_of(
+            self.target,
+            {"parse", "semantic", "design", "sim", "model_review"},
+            "FixPlan.target",
+        )
+        self.severity = _require_one_of(
+            self.severity,
+            {"error", "blocking_warning", "advisory_warning", "review_fail", "sim_fail"},
+            "FixPlan.severity",
+        )
 
 
 @dataclass
@@ -1046,3 +1099,10 @@ class AgentLoopRunRecord:
     logs: list[dict[str, Any]] = field(default_factory=list)
     replay_index: dict[str, Any] = field(default_factory=dict)
     redaction_report: list[dict[str, Any]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.status = _require_one_of(
+            self.status,
+            {"success", "failed", "rejected", "budget_exhausted", "error"},
+            "AgentLoopRunRecord.status",
+        )
