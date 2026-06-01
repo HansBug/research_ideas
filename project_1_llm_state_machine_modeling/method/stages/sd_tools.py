@@ -65,6 +65,7 @@ _ADVISORY_WARNING_CODES = {
     "W_DURING_CONST_ASSIGN",
 }
 DEFAULT_WARNING_REPAIR_BUDGET = 2
+COUNT_DRIFT_THRESHOLD = 0.30
 
 
 def _hash_text(text: str) -> str:
@@ -703,7 +704,7 @@ def _count_drift_evidence(old_summary: dict[str, Any], new_summary: dict[str, An
         if old_value <= 0:
             continue
         drift = (new_value - old_value) / old_value
-        if abs(drift) > 0.30:
+        if abs(drift) > COUNT_DRIFT_THRESHOLD:
             item = {
                 "kind": "count_drift",
                 "field": field,
@@ -743,6 +744,25 @@ def _remaining_design_targets(feedback: DesignFeedback, fix_plan: FixPlan) -> li
     return remaining
 
 
+def _design_feedback_for_review_baseline(nl: str, dsl_text: str) -> DesignFeedback | None:
+    """Return SD-4 feedback for a comparable repair-review baseline if possible.
+
+    Old DSL can be syntactically or semantically invalid for parse/semantic
+    repairs. In that case there is no reliable pre-repair design baseline, so
+    callers should conservatively treat candidate blocking diagnostics as
+    newly introduced.
+    """
+    context = StageContext(nl=nl, current_dsl=dsl_text)
+    parse_feedback, _ = run_sd2_parse(dsl_text, context)
+    if not parse_feedback.ok:
+        return None
+    semantic_feedback, _, _ = run_sd3_semantic(dsl_text, context)
+    if not semantic_feedback.ok:
+        return None
+    design_feedback, _ = run_sd4_design(context)
+    return design_feedback
+
+
 def run_sd10_repair_review(
     *,
     nl: str,
@@ -752,6 +772,13 @@ def run_sd10_repair_review(
     fix_plan: FixPlan,
     scenario_set: ScenarioSet | None = None,
 ) -> tuple[RepairReviewFeedback, StageResultMeta]:
+    """Review a repair candidate with local deterministic gates.
+
+    ``scenario_set=None`` means this SD-10 call does not have a frozen scenario
+    oracle available, so scenario-level regression is skipped while parse,
+    semantic, design-health, count-drift, forced-transition, and grounding
+    checks still run.
+    """
     evidence: list[dict[str, Any]] = []
     candidate_context = StageContext(nl=nl, current_dsl=candidate_dsl)
     parse_fb, _ = run_sd2_parse(candidate_dsl, candidate_context)
@@ -789,7 +816,13 @@ def run_sd10_repair_review(
         if remaining_design:
             evidence.append({"kind": "design_target_unresolved", "items": [asdict(item) for item in remaining_design]})
     remaining_keys = {item.instance_key for item in remaining_design}
-    new_blocking_design = [item for item in design_feedback.blocking_items if item.instance_key not in remaining_keys]
+    old_design_feedback = _design_feedback_for_review_baseline(nl, old_dsl)
+    old_blocking_keys = {item.instance_key for item in old_design_feedback.blocking_items} if old_design_feedback is not None else set()
+    new_blocking_design = [
+        item
+        for item in design_feedback.blocking_items
+        if item.instance_key not in remaining_keys and item.instance_key not in old_blocking_keys
+    ]
     if new_blocking_design:
         evidence.append({"kind": "new_blocking_design_diagnostic", "items": [asdict(item) for item in new_blocking_design]})
 

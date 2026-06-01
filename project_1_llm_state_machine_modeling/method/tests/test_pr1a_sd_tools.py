@@ -843,6 +843,31 @@ state Root {
     assert "W_UNREACHABLE_STATE" in codes
 
 
+def test_sd10_repair_review_does_not_label_preexisting_blocking_design_as_new() -> None:
+    dsl_with_preexisting_blocking = """
+state Root {
+    state Idle;
+    state Active;
+    state Orphan;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> [*];
+}
+"""
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="scenario", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="A sim-target repair should compare design diagnostics against the old DSL baseline",
+        grounding_map=None,
+        old_dsl=dsl_with_preexisting_blocking,
+        candidate_dsl=dsl_with_preexisting_blocking,
+        fix_plan=plan,
+    )
+
+    assert feedback.ok
+    assert feedback.local_rejection is None
+
+
 def test_sd10_repair_review_detects_scenario_regression() -> None:
     scenario_set, _ = freeze_scenario_set(
         [schema.TestScenario(name="hotstart_active", initial_state="Root.Active")],

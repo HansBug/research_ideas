@@ -60,3 +60,5 @@ repair_review, meta = run_sd10_repair_review(
 ```
 
 PR-1A deterministic checks 覆盖：candidate parse/semantic、design target 是否仍阻塞、frozen scenario regression、required `GroundingMap` 元素丢失、状态/事件/变量/迁移数量大幅增减漂移、forced transition declaration-level count 漂移。真正的 NL 语义合理性仍留给后续可选 `SL-10B Delta Review` 或人工评审。
+
+当 candidate 通过 parse/semantic 后，SD-10 会对所有 target 复跑 SD-4 设计健康检查；`new_blocking_design_diagnostic` 只表示 candidate 相对 `old_dsl` baseline 新增的 blocking design diagnostic，`old_dsl` 已存在且未被本次 repair target 覆盖的 blocking diagnostic 不会被误标为“新增”。若 `scenario_set=None`，仅跳过 frozen scenario regression，其他本地复验仍照常执行。
