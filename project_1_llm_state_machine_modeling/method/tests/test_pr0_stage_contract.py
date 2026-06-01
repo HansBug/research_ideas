@@ -253,6 +253,50 @@ def test_review_run_meta_contains_replay_decision_and_failure_policy_fields() ->
     assert meta.replay_key == "sl7:sha256:input"
 
 
+def test_model_review_feedback_coerces_nested_review_and_stage_meta_from_json_dicts() -> None:
+    fixture = json.loads((METHOD_ROOT / "stages" / "fixtures" / "SL-7.json").read_text(encoding="utf-8"))
+    feedback = ModelReviewFeedback(
+        **fixture["output"]["model_review_feedback"],
+        meta=fixture["meta"],
+    )
+
+    assert isinstance(feedback.review_meta, ReviewRunMeta)
+    assert feedback.review_meta.decision_threshold == 0.7
+    assert feedback.review_meta.failure_policy == "fail_closed"
+    assert feedback.review_meta.replay_key == "sl7:sha256:review-input"
+    assert isinstance(feedback.meta, StageResultMeta)
+    assert feedback.meta.stage_id == StageId.SL_7_MODEL_REVIEW.value
+
+
+def test_nested_feedback_meta_coercion_preserves_stage_contract_from_json_dicts() -> None:
+    meta_dict = {
+        "stage_id": StageId.SD_4_DESIGN.value,
+        "stage_kind": StageKind.DETERMINISTIC.value,
+        "enabled": True,
+        "ran": True,
+        "status": StageStatus.OK.value,
+        "ok": True,
+    }
+    design = DesignFeedback(ok=True, meta=meta_dict)
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.DESIGN.value],
+        design=design,
+        stage_results=[],
+    )
+
+    assert isinstance(design.meta, StageResultMeta)
+    assert bundle.all_ok
+
+
+def test_nested_dataclass_coercion_rejects_unknown_review_meta_keys() -> None:
+    try:
+        ModelReviewFeedback(review_meta={"provider": "fake", "unexpected": "drift"})
+    except TypeError as exc:
+        assert "unexpected" in str(exc)
+    else:
+        raise AssertionError("unknown nested review_meta keys must not be silently ignored")
+
+
 def test_feedback_bundle_distinguishes_unknown_source_from_legacy_judge() -> None:
     unknown = FeedbackBundle(enabled_sources=["parser"])
     assert not unknown.all_ok
@@ -581,7 +625,12 @@ def validate_stage_fixture_output(stage_id: str, output: dict) -> None:
     elif stage_id == StageId.SD_6_SIM.value:
         SimFeedback(**output["sim_feedback"])
     elif stage_id == StageId.SL_7_MODEL_REVIEW.value:
-        ModelReviewFeedback(**output["model_review_feedback"])
+        feedback = ModelReviewFeedback(**output["model_review_feedback"])
+        assert isinstance(feedback.review_meta, ReviewRunMeta)
+        assert feedback.review_meta.decision_threshold is not None
+        assert feedback.review_meta.failure_policy in {"fail_open", "fail_closed", "audit_only"}
+        assert feedback.review_meta.replay_key
+        assert "review_meta" not in output
     elif stage_id == StageId.SD_8_FIX_PLAN.value:
         FixPlan(**output["fix_plan"])
     elif stage_id == StageId.SD_10_REPAIR_REVIEW.value:

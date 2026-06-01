@@ -18,8 +18,8 @@
 
 ## 输出
 
-- `model_review_feedback`: decision/findings/risk/blocking_findings。
-- `review_meta`: provider/model/prompt hash/schema validation/cache key。
+- `model_review_feedback`: decision/findings/risk/blocking_findings，并内嵌 `review_meta`。
+- `model_review_feedback.review_meta`: provider/model/prompt hash/schema validation/cache key，以及 `decision_threshold`、`failure_policy`、`replay_key`。
 
 ### LLM 输出
 

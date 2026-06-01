@@ -30,6 +30,22 @@ from method.stages.ids import (
 )
 
 
+def _coerce_nested_dataclass(value: Any, cls: type[Any]) -> Any:
+    """Coerce JSON-loaded dicts into nested stdlib dataclasses.
+
+    PR-0 intentionally uses stdlib dataclasses instead of pydantic.  Without a
+    small coercion hook, dataclass construction from fixture/run-record JSON
+    would leave nested objects such as ``ModelReviewFeedback.review_meta`` as
+    plain dicts, silently breaking typed replay consumers.  Unknown keys remain
+    schema errors because ``cls(**value)`` is deliberately strict.
+    """
+    if value is None or isinstance(value, cls):
+        return value
+    if isinstance(value, dict):
+        return cls(**value)
+    raise TypeError(f"expected {cls.__name__} or dict, got {type(value).__name__}")
+
+
 # ---------------------------------------------------------------------------
 # LoopConfig — user-facing configuration
 # ---------------------------------------------------------------------------
@@ -390,6 +406,9 @@ class DesignFeedback:
     inspect_summary: dict[str, Any] = field(default_factory=dict)
     meta: Optional[StageResultMeta] = None
 
+    def __post_init__(self) -> None:
+        self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
+
 
 @dataclass
 class ReviewRunMeta:
@@ -427,6 +446,10 @@ class ModelReviewFeedback:
     review_meta: Optional[ReviewRunMeta] = None
     meta: Optional[StageResultMeta] = None
 
+    def __post_init__(self) -> None:
+        self.review_meta = _coerce_nested_dataclass(self.review_meta, ReviewRunMeta)
+        self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
+
 
 @dataclass
 class RepairReviewFeedback:
@@ -439,6 +462,9 @@ class RepairReviewFeedback:
     local_rejection: Optional["RepairRejection"] = None
     delta_review: Optional[dict[str, Any]] = None
     meta: Optional[StageResultMeta] = None
+
+    def __post_init__(self) -> None:
+        self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
 
 
 @dataclass

@@ -20,7 +20,7 @@
 ## 输出
 
 - `delta_review`: accept/reject/revise、drift evidence。
-- `review_meta`: provider/model/prompt hash/schema validation/cache key。
+- `review_meta`: provider/model/prompt hash/schema validation/cache key，以及 `decision_threshold`、`failure_policy`、`replay_key`。
 
 ### LLM 输出
 
