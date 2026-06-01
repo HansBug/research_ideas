@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from pathlib import Path
 
 import method.loop as loop
@@ -16,6 +16,7 @@ from method.schema import (
     ModelReviewFeedback,
     ParseFeedback,
     RepairReviewFeedback,
+    ReviewRunMeta,
     ScenarioSet,
     SemanticFeedback,
     SimFeedback,
@@ -222,6 +223,36 @@ def test_feedback_bundle_rejects_wrong_or_disabled_nested_meta() -> None:
     assert "enabled source nested meta disabled: design/SD-4" in disabled_nested.stage_contract_errors()
 
 
+def test_review_run_meta_contains_replay_decision_and_failure_policy_fields() -> None:
+    required = {
+        "provider",
+        "model_id",
+        "resolved_model_id",
+        "prompt_template_version",
+        "prompt_hash",
+        "input_hash",
+        "temperature",
+        "seed",
+        "retry_count",
+        "raw_output_hash",
+        "raw_output_path",
+        "parsed_schema_version",
+        "schema_validation_ok",
+        "schema_validation_error",
+        "cache_key",
+        "decision_threshold",
+        "failure_policy",
+        "replay_key",
+    }
+    actual = {f.name for f in fields(ReviewRunMeta)}
+
+    assert required <= actual
+    meta = ReviewRunMeta(decision_threshold=0.7, failure_policy="fail_closed", replay_key="sl7:sha256:input")
+    assert meta.decision_threshold == 0.7
+    assert meta.failure_policy == "fail_closed"
+    assert meta.replay_key == "sl7:sha256:input"
+
+
 def test_feedback_bundle_distinguishes_unknown_source_from_legacy_judge() -> None:
     unknown = FeedbackBundle(enabled_sources=["parser"])
     assert not unknown.all_ok
@@ -257,6 +288,56 @@ def test_feedback_bundle_rejects_wrong_stage_results_even_when_feedback_ok() -> 
 
     assert not bundle.all_ok
     assert any("stage_kind mismatch for SD-2" in err for err in bundle.stage_contract_errors())
+
+
+def test_feedback_bundle_rejects_conflicting_outer_and_nested_meta() -> None:
+    outer_ok = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.OK.value,
+        ok=True,
+    )
+    nested_error = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.ERROR.value,
+        ok=False,
+        stage_error="inspect_model crashed",
+    )
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.DESIGN.value],
+        design=DesignFeedback(ok=True, meta=nested_error),
+        stage_results=[outer_ok],
+    )
+
+    assert not bundle.all_ok
+    errors = bundle.stage_contract_errors()
+    assert any("conflicting stage meta for design/SD-4" in err for err in errors)
+    assert "enabled source nested meta blocks all_ok: design/SD-4 status=error ok=False" in errors
+
+
+def test_feedback_bundle_rejects_orphan_enabled_blocking_stage_meta() -> None:
+    parse_ok = ok_meta(StageId.SD_2_PARSE)
+    orphan_fail = StageResultMeta(
+        stage_id=StageId.SD_4_DESIGN.value,
+        stage_kind=StageKind.DETERMINISTIC.value,
+        enabled=True,
+        ran=True,
+        status=StageStatus.FAIL.value,
+        ok=False,
+    )
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.PARSE.value],
+        parse=ParseFeedback(ok=True),
+        stage_results=[parse_ok, orphan_fail],
+    )
+
+    assert not bundle.all_ok
+    assert "stage meta blocks all_ok: SD-4 status=fail ok=False" in bundle.stage_contract_errors()
 
 
 def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeypatch) -> None:
@@ -303,6 +384,52 @@ def test_run_cascade_records_gated_missing_downstream_sources(monkeypatch) -> No
     errors = bundle.stage_contract_errors()
     assert "enabled source not ok: parse" in errors
     assert "enabled source missing feedback: semantic" in errors
+
+
+def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) -> None:
+    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+
+    bundle = loop._run_cascade(
+        "machine Sample {}",
+        feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value],
+        scenarios=None,
+    )
+
+    assert bundle.sim is not None
+    assert not bundle.sim.ok
+    assert bundle.sim.setup_error == "scenario generation unavailable for enabled sim feedback"
+    errors = bundle.stage_contract_errors()
+    assert "enabled source not ok: sim" in errors
+    assert "stage meta blocks all_ok: SD-6 status=error ok=False" in errors
+    assert "enabled source stage meta blocks all_ok: SD-6 status=error ok=False" in errors
+
+
+def test_run_agent_loop_preserves_scenariogen_failure_root_cause(monkeypatch) -> None:
+    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+
+    def raise_scenariogen(*args, **kwargs):
+        raise RuntimeError("scenario provider down")
+
+    monkeypatch.setattr(loop, "generate_scenarios", raise_scenariogen)
+    monkeypatch.setattr(
+        loop,
+        "repair_model",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("repair should not hide scenariogen root cause")),
+    )
+
+    result = loop.run_agent_loop(
+        "When Start occurs, move from Idle to Active.",
+        schema.LoopConfig(n_iter=1, feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value]),
+        seed_dsl="machine Sample {}",
+    )
+
+    assert result.status == "not_converged"
+    assert result.error_message is not None
+    assert "scenariogen failed: RuntimeError: scenario provider down" in result.error_message
+    assert result.final_feedback is not None and result.final_feedback.sim is not None
+    assert result.final_feedback.sim.setup_error == "scenario generation unavailable for enabled sim feedback"
 
 
 def test_stage_result_meta_validates_skipped_and_error_contracts() -> None:
@@ -406,6 +533,40 @@ def test_budget_state_and_stage_context_summary_are_json_serializable() -> None:
     assert json.loads(json.dumps(payload))["budget_remaining"] == 1
     assert summary["has_ast"] and summary["has_model"]
     assert summary["warning_budget_keys"] == ["W_DEADLOCK_LEAF:state=Root.Idle"]
+
+
+def test_budget_state_rejects_impossible_states() -> None:
+    bad_cases = [
+        dict(
+            instance_key="W_DEADLOCK_LEAF:state=Active",
+            diagnostic_code="W_DEADLOCK_LEAF",
+            repair_count=-1,
+            budget_remaining=0,
+            budget_exhausted=False,
+        ),
+        dict(
+            instance_key="W_DEADLOCK_LEAF:state=Active",
+            diagnostic_code="W_DEADLOCK_LEAF",
+            repair_count=0,
+            budget_remaining=-1,
+            budget_exhausted=False,
+        ),
+        dict(
+            instance_key="W_DEADLOCK_LEAF:state=Active",
+            diagnostic_code="W_DEADLOCK_LEAF",
+            repair_count=2,
+            budget_remaining=1,
+            budget_exhausted=True,
+        ),
+    ]
+
+    for kwargs in bad_cases:
+        try:
+            BudgetState(**kwargs)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"BudgetState accepted impossible state: {kwargs}")
 
 
 def validate_stage_fixture_output(stage_id: str, output: dict) -> None:

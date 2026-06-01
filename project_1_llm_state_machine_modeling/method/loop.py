@@ -46,6 +46,7 @@ from method.schema import (
     IterTrace,
     LoopConfig,
     ModelArtifact,
+    SimFeedback,
     StageResultMeta,
     TestScenario,
 )
@@ -59,7 +60,14 @@ def _accumulate_usage(total: dict, step_usage: dict) -> None:
     total["n_calls"] = total.get("n_calls", 0) + 1
 
 
-def _make_stage_meta(source: str, *, ok: bool, status: StageStatus | str | None = None) -> StageResultMeta | None:
+def _make_stage_meta(
+    source: str,
+    *,
+    ok: bool,
+    status: StageStatus | str | None = None,
+    stage_error: str | None = None,
+    output_validation_error: str | None = None,
+) -> StageResultMeta | None:
     """Build canonical PR-0 stage metadata for a feedback source when known."""
     stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
     if stage_id is None:
@@ -73,6 +81,8 @@ def _make_stage_meta(source: str, *, ok: bool, status: StageStatus | str | None 
         ran=True,
         status=resolved_status,
         ok=ok,
+        stage_error=stage_error,
+        output_validation_error=output_validation_error,
     )
 
 
@@ -121,6 +131,21 @@ def _run_cascade(
         bundle.sim = check_sim(dsl, scenarios)
         _record_feedback_meta(bundle, "sim", bundle.sim)
         # Do NOT gate judge on sim failure — they are independent signals.
+    elif "sim" in feedback_sources and scenarios is None:
+        # Sim was explicitly enabled but the frozen scenario oracle is absent
+        # (for example because SL-5 scenariogen failed).  Emit explicit
+        # feedback/meta instead of silent enabled-but-missing fallback so repair
+        # target selection and run records preserve the true root cause.
+        setup_error = "scenario generation unavailable for enabled sim feedback"
+        bundle.sim = SimFeedback(ok=False, setup_error=setup_error)
+        meta = _make_stage_meta(
+            "sim",
+            ok=False,
+            status=StageStatus.ERROR,
+            stage_error=setup_error,
+        )
+        if meta is not None:
+            bundle.stage_results.append(meta)
 
     # ---- judge (Phase H — placeholder, not implemented yet) ----
     if "judge" in feedback_sources:
@@ -222,7 +247,8 @@ def run_agent_loop(
                     break  # retry failed — keep what we had
             result.scenariogen_coverage = coverage_history
         except Exception as e:
-            # scenariogen failure shouldn't kill the whole loop — sim just stays off.
+            # Preserve the scenario-generation root cause and let _run_cascade
+            # materialize it as explicit SD-6 error feedback if sim is enabled.
             scenarios = None
             result.error_message = f"scenariogen failed: {type(e).__name__}: {str(e)[:200]}"
 
@@ -279,9 +305,11 @@ def run_agent_loop(
             _accumulate_usage(result.token_usage, repair_usage)
             current_dsl = repair_artifact.dsl_text
         except Exception as e:
-            result.error_message = (
-                f"repair failed at iter {it}: {type(e).__name__}: {str(e)[:200]}"
-            )
+            repair_error = f"repair failed at iter {it}: {type(e).__name__}: {str(e)[:200]}"
+            if result.error_message:
+                result.error_message = f"{result.error_message}; {repair_error}"
+            else:
+                result.error_message = repair_error
             result.iter_traces.append(trace)
             break
 

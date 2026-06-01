@@ -1,9 +1,9 @@
 """Core dataclass schema for the agent loop.
 
-All structured data flowing between the three LLM agents (SpecExtractor /
-Modeler / Repair) and the four feedback sources (parse / semantic / sim /
-judge) is typed via the dataclasses below. Path 1 / Path 2 run scripts and the
-final report writers consume these as the single source of truth.
+All structured data flowing between the LLM stages, deterministic feedback
+stages, and control/audit stages is typed via the dataclasses below. Path 1 /
+Path 2 run scripts and the final report writers consume these as the single
+source of truth.
 
 Design choices:
 
@@ -11,8 +11,8 @@ Design choices:
   surface minimal. Submodule-style sprint code should not pull in heavyweight
   frameworks.
 - All "feedback" classes carry an ``ok: bool`` field so the loop driver can do
-  fast cascade checks (parse_ok -> sem_ok -> sim_ok -> judge).
-- ``IterTrace`` captures one round (model output + 4 feedback bundles + repair
+  fast contract checks in strict ``enabled_sources`` mode.
+- ``IterTrace`` captures one round (model output + feedback bundle + repair
   output) for full reconstructability of the agent loop trajectory.
 """
 
@@ -45,7 +45,7 @@ class LoopConfig:
     ----------
     condition
         One of ``"A0"`` (single-prompt baseline, n_iter=1, feedback_sources=[])
-        through ``"A4"`` (full agent loop with all 4 feedback sources, n_iter=3).
+        through ``"A4"`` (full agent loop with feedback sources, n_iter=3).
         Path 1 uses A0_strong (external baseline replication) + A4_ours.
         Path 2 uses A0_baseline + A4_ours.
     n_iter
@@ -53,8 +53,10 @@ class LoopConfig:
         feedback/repair phase entirely. The loop may exit early if all
         feedback sources return ``ok=True``.
     feedback_sources
-        List of feedback channels to run, in cascade order. Allowed values:
-        ``"parse"``, ``"semantic"``, ``"sim"``, ``"judge"``. Empty list = A0.
+        List of feedback channels to run, in cascade/contract order. Allowed
+        values are defined by ``FeedbackSource``: ``"parse"``, ``"semantic"``,
+        ``"design"``, ``"sim"``, ``"judge"``, ``"model_review"``,
+        ``"repair_review"``. Empty list = A0.
     llm_model
         Override the default ``LLM_MODEL`` env var. ``None`` => use env.
     seed
@@ -190,6 +192,14 @@ class BudgetState:
     budget_exhausted: bool = False
     last_status: Optional[str] = None
     last_stage: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.repair_count < 0:
+            raise ValueError("BudgetState.repair_count must be >= 0")
+        if self.budget_remaining < 0:
+            raise ValueError("BudgetState.budget_remaining must be >= 0")
+        if self.budget_exhausted and self.budget_remaining != 0:
+            raise ValueError("BudgetState.budget_exhausted requires budget_remaining == 0")
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +410,9 @@ class ReviewRunMeta:
     schema_validation_ok: bool = False
     schema_validation_error: Optional[str] = None
     cache_key: str = ""
+    decision_threshold: Optional[float] = None
+    failure_policy: Literal["fail_open", "fail_closed", "audit_only"] = "fail_closed"
+    replay_key: str = ""
 
 
 @dataclass
@@ -523,12 +536,13 @@ class RevisedFixPlan:
 
 @dataclass
 class FeedbackBundle:
-    """All 4 feedback signals for one round of an agent loop iteration.
+    """Feedback signals for one round of an agent loop iteration.
 
-    The loop driver uses ``all_ok`` to decide whether to keep iterating.
-    Cascade order: parse → semantic → sim → judge. If any earlier source
-    returns ``ok=False`` and ``stop_on_first_fail=True``, downstream sources
-    may be skipped (configured in loop.py).
+    The loop driver uses ``all_ok`` to decide whether to keep iterating. In
+    strict PR-0 mode, ``enabled_sources`` plus ``stage_results`` define the
+    authority boundary: enabled stage outputs and their nested feedback
+    ``meta`` entries must describe the same execution fact, and any enabled
+    blocking stage meta makes the bundle non-ok.
     """
 
     parse: Optional[ParseFeedback] = None
@@ -585,6 +599,29 @@ class FeedbackBundle:
         """
         return {meta.stage_id: meta for meta in self.stage_results}
 
+    @staticmethod
+    def _meta_conflict_fields(left: StageResultMeta, right: StageResultMeta) -> list[str]:
+        """Return core fields whose mismatch means two meta rows conflict."""
+        fields_to_compare = (
+            "stage_id",
+            "stage_kind",
+            "enabled",
+            "ran",
+            "status",
+            "ok",
+            "skipped_reason",
+            "stage_error",
+            "output_validation_error",
+            "input_hash",
+            "output_hash",
+            "prompt_hash",
+        )
+        return [
+            field_name
+            for field_name in fields_to_compare
+            if getattr(left, field_name) != getattr(right, field_name)
+        ]
+
     def _expected_stage_meta_for_source(self, source: str) -> tuple[str, StageResultMeta | None, bool]:
         """Resolve and validate the canonical stage meta bound to a feedback source.
 
@@ -625,6 +662,8 @@ class FeedbackBundle:
         for meta in self.stage_results:
             stage_counts[meta.stage_id] = stage_counts.get(meta.stage_id, 0) + 1
             errors.extend(f"{meta.stage_id}: {error}" for error in meta.contract_errors())
+            if meta.enabled and meta.blocks_all_ok:
+                errors.append(f"stage meta blocks all_ok: {meta.stage_id} status={meta.status.value} ok={meta.ok}")
         for stage_id, count in stage_counts.items():
             if count > 1:
                 errors.append(f"duplicate stage meta: {stage_id}")
@@ -654,6 +693,19 @@ class FeedbackBundle:
                         )
                     if expected_stage_id is not None and not nested_meta.enabled:
                         errors.append(f"enabled source nested meta disabled: {source}/{expected_stage_id}")
+                    if expected_stage_id is not None and nested_meta.blocks_all_ok:
+                        errors.append(
+                            f"enabled source nested meta blocks all_ok: "
+                            f"{source}/{expected_stage_id} status={nested_meta.status.value} ok={nested_meta.ok}"
+                        )
+                    stage_meta = self._stage_meta_by_id().get(expected_stage_id) if expected_stage_id else None
+                    if stage_meta is not None and expected_stage_id is not None:
+                        conflicts = self._meta_conflict_fields(stage_meta, nested_meta)
+                        if conflicts:
+                            errors.append(
+                                f"conflicting stage meta for {source}/{expected_stage_id}: "
+                                f"fields={','.join(conflicts)}"
+                            )
 
         for source in self.enabled_sources:
             if source not in FEEDBACK_SOURCE_TO_STAGE_ID:
