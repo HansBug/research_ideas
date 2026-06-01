@@ -15,16 +15,21 @@ from method.schema import (
     DesignFeedback,
     FeedbackBundle,
     FixPlan,
+    GroundedElement,
+    GroundingMap,
     JudgeFeedback,
     ModelReviewFeedback,
     ParseFeedback,
     RepairReviewFeedback,
     ReviewRunMeta,
+    ScenarioResult,
     ScenarioSet,
+    ScenarioStep,
     SemanticFeedback,
     SimFeedback,
     StageContext,
     StageResultMeta,
+    StepResult,
 )
 from method.stages import ids
 from method.stages.ids import (
@@ -397,6 +402,137 @@ def test_design_diagnostic_item_rejects_invalid_policy_fields() -> None:
         DesignFeedback(ok=True, blocking_items=[base | {"policy_action": "force_repair"}])
 
 
+def test_nested_json_boundary_payloads_coerce_to_dataclasses() -> None:
+    scenario_set = ScenarioSet(
+        scenario_set_id="scenario-set-pr0-001",
+        scenarios=[
+            {
+                "name": "start_reaches_active",
+                "steps": [{"events": ["Start"], "expected_state": "Active"}],
+            }
+        ],
+        epoch=0,
+        frozen=True,
+    )
+    sim = SimFeedback(
+        ok=False,
+        n_scenarios=1,
+        n_scenarios_passed=0,
+        scenario_results=[
+            {
+                "name": "start_reaches_active",
+                "status": "fail",
+                "step_results": [{"step_index": 0, "status": "fail", "actual_state": "Idle"}],
+            }
+        ],
+    )
+    grounding = GroundingMap(
+        elements=[
+            {
+                "element_id": "state:Idle",
+                "element_kind": "state",
+                "element_ref": "Root.Idle",
+                "source_stage": "SL-1",
+                "evidence_text": "Idle state",
+                "confidence": 1,
+            }
+        ]
+    )
+    context = StageContext(
+        grounding_map={
+            "elements": [
+                {
+                    "element_id": "state:Idle",
+                    "element_kind": "state",
+                    "element_ref": "Root.Idle",
+                    "source_stage": "SL-1",
+                    "evidence_text": "Idle state",
+                    "confidence": 1,
+                }
+            ]
+        },
+        scenario_set={
+            "scenario_set_id": "scenario-set-pr0-001",
+            "scenarios": [
+                {
+                    "name": "start_reaches_active",
+                    "steps": [{"events": ["Start"], "expected_state": "Active"}],
+                }
+            ],
+            "epoch": 0,
+            "frozen": True,
+        },
+    )
+
+    assert isinstance(scenario_set.scenarios[0], schema.TestScenario)
+    assert isinstance(scenario_set.scenarios[0].steps[0], ScenarioStep)
+    assert isinstance(sim.scenario_results[0], ScenarioResult)
+    assert isinstance(sim.scenario_results[0].step_results[0], StepResult)
+    assert isinstance(grounding.elements[0], GroundedElement)
+    assert isinstance(context.grounding_map, GroundingMap)
+    assert isinstance(context.grounding_map.elements[0], GroundedElement)
+    assert isinstance(context.scenario_set, ScenarioSet)
+    assert isinstance(context.scenario_set.scenarios[0], schema.TestScenario)
+
+
+def test_nested_json_boundary_payloads_reject_invalid_values() -> None:
+    bad_cases = [
+        lambda: ScenarioStep(before_cycles=-1),
+        lambda: ScenarioStep(before_cycles="1"),
+        lambda: StepResult(status="unknown"),
+        lambda: ScenarioResult(status="unknown"),
+        lambda: SimFeedback(n_scenarios=-1),
+        lambda: SimFeedback(n_scenarios_passed="1"),
+        lambda: ScenarioSet(epoch=-1),
+        lambda: GroundedElement(
+            element_id="bad",
+            element_kind="bogus_kind",
+            element_ref="Root.Bad",
+            source_stage="SL-1",
+            evidence_text="bad",
+        ),
+        lambda: GroundedElement(
+            element_id="bad",
+            element_kind="state",
+            element_ref="Root.Bad",
+            source_stage="SL-1",
+            evidence_text="bad",
+            requiredness="must",
+        ),
+        lambda: GroundedElement(
+            element_id="bad",
+            element_kind="state",
+            element_ref="Root.Bad",
+            source_stage="SL-1",
+            evidence_text="bad",
+            confidence=1.1,
+        ),
+    ]
+
+    for make in bad_cases:
+        with pytest.raises((TypeError, ValueError)):
+            make()
+
+
+def test_sim_repair_prompt_accepts_json_loaded_sim_feedback() -> None:
+    feedback = FeedbackBundle(
+        sim=SimFeedback(
+            ok=False,
+            n_scenarios=2,
+            n_scenarios_passed=1,
+            scenario_results=[
+                {"name": "s_pass", "status": "pass"},
+                {"name": "s_fail", "status": "fail"},
+            ],
+        )
+    )
+
+    message = loop.repair_model.__globals__["_build_user_msg"]("sim", "machine Sample {}", feedback, "nl")
+
+    assert "s_pass" in message
+    assert "s_fail" in message
+
+
 def test_review_feedback_rejects_invalid_literal_decision_and_risk_fields() -> None:
     bad_model_review_cases = [
         dict(decision="accept"),
@@ -642,6 +778,30 @@ def test_feedback_bundle_rejects_orphan_enabled_blocking_stage_meta() -> None:
     assert "stage meta blocks all_ok: SD-4 status=fail ok=False" in bundle.stage_contract_errors()
 
 
+def test_run_agent_loop_default_feedback_sources_exclude_unimplemented_judge(monkeypatch) -> None:
+    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(
+        loop,
+        "check_sim",
+        lambda dsl, scenarios: SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)),
+    )
+    monkeypatch.setattr(loop, "generate_scenarios", lambda *args, **kwargs: ([], {}, {}))
+    monkeypatch.setattr(loop, "validate_coverage", lambda *args, **kwargs: {})
+    monkeypatch.setattr(loop, "coverage_directive", lambda cov: None)
+
+    result = loop.run_agent_loop(
+        "Start moves Idle to Active.",
+        seed_dsl="machine Sample {}",
+    )
+
+    assert result.status == "converged"
+    assert result.error_message is None
+    assert result.final_feedback is not None
+    assert result.final_feedback.enabled_sources == ["parse", "semantic", "sim"]
+    assert result.iter_traces[0].stage_results == result.final_feedback.stage_results
+
+
 def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeypatch) -> None:
     monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
     monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
@@ -779,6 +939,24 @@ def test_feedback_bundle_legacy_non_none_mode_stays_backward_compatible() -> Non
     assert not bundle.all_ok
 
 
+def test_run_agent_loop_persists_stage_results_in_iter_trace(monkeypatch) -> None:
+    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+
+    result = loop.run_agent_loop(
+        "When Start occurs, move from Idle to Active.",
+        schema.LoopConfig(
+            n_iter=0,
+            feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
+        ),
+        seed_dsl="machine Sample {}",
+    )
+
+    assert result.final_feedback is not None
+    assert [m.stage_id for m in result.final_feedback.stage_results] == ["SD-2", "SD-3"]
+    assert [m.stage_id for m in result.iter_traces[0].stage_results] == ["SD-2", "SD-3"]
+
+
 def test_agent_loop_run_record_rejects_invalid_status() -> None:
     with pytest.raises(ValueError):
         AgentLoopRunRecord(
@@ -791,6 +969,31 @@ def test_agent_loop_run_record_rejects_invalid_status() -> None:
             environment={},
             stage_graph={},
             stage_records=[],
+            iteration_records=[],
+        )
+
+
+def test_agent_loop_run_record_rejects_invalid_stage_records() -> None:
+    with pytest.raises(ValueError, match="stage_records invalid"):
+        AgentLoopRunRecord(
+            schema_version="pr0.stage-contract.v1",
+            run_id="run-bad-stage-record",
+            created_at="2026-06-01T00:00:00Z",
+            status="success",
+            input_bundle={},
+            run_config={},
+            environment={},
+            stage_graph={},
+            stage_records=[
+                {
+                    "stage_id": "SD-404",
+                    "stage_kind": "deterministic",
+                    "enabled": True,
+                    "ran": True,
+                    "status": "ok",
+                    "ok": True,
+                }
+            ],
             iteration_records=[],
         )
 
@@ -897,9 +1100,17 @@ def validate_stage_fixture_output(stage_id: str, output: dict) -> None:
         for item in feedback.blocking_items + feedback.advisory_items + feedback.info_items:
             assert isinstance(item, DesignDiagnosticItem)
     elif stage_id == StageId.SC_5F_SCENARIO_FREEZE.value:
-        ScenarioSet(**output["scenario_set"])
+        scenario_set = ScenarioSet(**output["scenario_set"])
+        for scenario in scenario_set.scenarios:
+            assert isinstance(scenario, schema.TestScenario)
+            for step in scenario.steps:
+                assert isinstance(step, ScenarioStep)
     elif stage_id == StageId.SD_6_SIM.value:
-        SimFeedback(**output["sim_feedback"])
+        feedback = SimFeedback(**output["sim_feedback"])
+        for scenario_result in feedback.scenario_results:
+            assert isinstance(scenario_result, ScenarioResult)
+            for step_result in scenario_result.step_results:
+                assert isinstance(step_result, StepResult)
     elif stage_id == StageId.SL_7_MODEL_REVIEW.value:
         feedback = ModelReviewFeedback(**output["model_review_feedback"])
         assert isinstance(feedback.review_meta, ReviewRunMeta)

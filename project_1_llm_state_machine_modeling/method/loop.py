@@ -172,8 +172,8 @@ def run_agent_loop(
         Natural-language requirement text.
     config
         ``LoopConfig`` controlling modeling mode, iteration count, and which
-        feedback sources are enabled. Defaults to a full A4-style config
-        if None (but judge is currently a no-op until Phase H).
+        feedback sources are enabled. Defaults to the currently implemented
+        A4 subset (parse/semantic/sim); judge remains opt-in until Phase H.
     seed_dsl
         Optional pre-built DSL to skip the SpecExtractor + Modeler stages
         and start the iter loop from this text. Used in demos to inject a
@@ -276,6 +276,7 @@ def run_agent_loop(
                 produced_by="modeler" if it == 0 else "repair",
             ),
             feedback=bundle,
+            stage_results=list(bundle.stage_results),
         )
 
         # ---- early back-out on convergence ----

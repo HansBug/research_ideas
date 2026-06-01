@@ -133,7 +133,9 @@ class LoopConfig:
         List of feedback channels to run, in cascade/contract order. Allowed
         values are defined by ``FeedbackSource``: ``"parse"``, ``"semantic"``,
         ``"design"``, ``"sim"``, ``"judge"``, ``"model_review"``,
-        ``"repair_review"``. Empty list = A0.
+        ``"repair_review"``. Empty list = A0. The default excludes
+        ``"judge"`` because that adapter is intentionally a later Phase-H
+        integration point; callers may still enable it explicitly.
     llm_model
         Override the default ``LLM_MODEL`` env var. ``None`` => use env.
     seed
@@ -143,7 +145,7 @@ class LoopConfig:
 
     condition: ConditionLiteral = "A4"
     n_iter: int = 3
-    feedback_sources: list[str] = field(default_factory=lambda: ["parse", "semantic", "sim", "judge"])
+    feedback_sources: list[str] = field(default_factory=lambda: ["parse", "semantic", "sim"])
     modeling_mode: Literal["single_prompt", "multi_step"] = "multi_step"
     llm_model: Optional[str] = None
     seed: Optional[int] = None
@@ -372,6 +374,9 @@ class ScenarioStep:
     expected_vars: Optional[dict[str, Any]] = None
     name: str = ""  # optional checkpoint label for trace
 
+    def __post_init__(self) -> None:
+        self.before_cycles = _coerce_non_negative_int(self.before_cycles, "ScenarioStep.before_cycles")
+
 
 @dataclass
 class StepResult:
@@ -386,6 +391,14 @@ class StepResult:
     var_assertion_ok: Optional[bool] = None      # None if expected_vars was None/empty
     var_mismatches: dict[str, dict[str, Any]] = field(default_factory=dict)  # {var: {expected, actual}}
     runtime_error: Optional[str] = None          # set if status == 'error'
+
+    def __post_init__(self) -> None:
+        self.step_index = _coerce_non_negative_int(self.step_index, "StepResult.step_index")
+        self.status = _require_one_of(self.status, {"pass", "fail", "error"}, "StepResult.status")
+        if self.state_assertion_ok is not None:
+            self.state_assertion_ok = _coerce_bool(self.state_assertion_ok, "StepResult.state_assertion_ok")
+        if self.var_assertion_ok is not None:
+            self.var_assertion_ok = _coerce_bool(self.var_assertion_ok, "StepResult.var_assertion_ok")
 
 
 @dataclass
@@ -408,6 +421,9 @@ class TestScenario:
     initial_vars: dict[str, Any] = field(default_factory=dict)
     steps: list[ScenarioStep] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self.steps = _coerce_dataclass_list(self.steps, ScenarioStep)
+
 
 @dataclass
 class ScenarioResult:
@@ -418,6 +434,10 @@ class ScenarioResult:
     status: StepStatusLiteral = "pass"  # pass if all steps pass; fail if any step fail (no error); error if any step error
     step_results: list[StepResult] = field(default_factory=list)
     setup_error: Optional[str] = None  # SimulationRuntime construction failed (e.g. bad initial_state)
+
+    def __post_init__(self) -> None:
+        self.status = _require_one_of(self.status, {"pass", "fail", "error"}, "ScenarioResult.status")
+        self.step_results = _coerce_dataclass_list(self.step_results, StepResult)
 
 
 @dataclass
@@ -437,6 +457,12 @@ class SimFeedback:
 
     def __post_init__(self) -> None:
         self.ok = _coerce_bool(self.ok, "SimFeedback.ok")
+        self.n_scenarios = _coerce_non_negative_int(self.n_scenarios, "SimFeedback.n_scenarios")
+        self.n_scenarios_passed = _coerce_non_negative_int(
+            self.n_scenarios_passed,
+            "SimFeedback.n_scenarios_passed",
+        )
+        self.scenario_results = _coerce_dataclass_list(self.scenario_results, ScenarioResult)
 
 
 @dataclass
@@ -639,6 +665,24 @@ class GroundedElement:
     confidence: Optional[float] = None
     requiredness: Literal["required", "optional", "speculative", "unknown"] = "unknown"
 
+    def __post_init__(self) -> None:
+        self.element_kind = _require_one_of(
+            self.element_kind,
+            {"state", "event", "variable", "transition", "guard", "action", "hierarchical_state"},
+            "GroundedElement.element_kind",
+        )
+        self.requiredness = _require_one_of(
+            self.requiredness,
+            {"required", "optional", "speculative", "unknown"},
+            "GroundedElement.requiredness",
+        )
+        if self.confidence is not None:
+            if not isinstance(self.confidence, (int, float)) or isinstance(self.confidence, bool):
+                raise TypeError("GroundedElement.confidence must be a number or None")
+            if not 0 <= float(self.confidence) <= 1:
+                raise ValueError("GroundedElement.confidence must be within [0, 1]")
+            self.confidence = float(self.confidence)
+
 
 @dataclass
 class GroundingMap:
@@ -646,6 +690,9 @@ class GroundingMap:
 
     elements: list[GroundedElement] = field(default_factory=list)
     source_summary: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.elements = _coerce_dataclass_list(self.elements, GroundedElement)
 
 
 @dataclass
@@ -663,6 +710,8 @@ class ScenarioSet:
     invalidated_by: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        self.scenarios = _coerce_dataclass_list(self.scenarios, TestScenario)
+        self.epoch = _coerce_non_negative_int(self.epoch, "ScenarioSet.epoch")
         self.frozen = _coerce_bool(self.frozen, "ScenarioSet.frozen")
 
 
@@ -1106,3 +1155,8 @@ class AgentLoopRunRecord:
             {"success", "failed", "rejected", "budget_exhausted", "error"},
             "AgentLoopRunRecord.status",
         )
+        stage_metas = _coerce_dataclass_list(self.stage_records, StageResultMeta)
+        for meta in stage_metas:
+            errors = meta.contract_errors()
+            if errors:
+                raise ValueError(f"AgentLoopRunRecord.stage_records invalid {meta.stage_id}: {'; '.join(errors)}")
