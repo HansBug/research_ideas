@@ -39,3 +39,13 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口
+
+```python
+from method.stages.sd_tools import run_sd6_sim
+
+sim_feedback, meta = run_sd6_sim(current_dsl, frozen_scenario_set, context)
+```
+
+输入必须是 `ScenarioSet`；缺失时返回显式 `SimFeedback(ok=False, setup_error=...)` 与 `StageStatus.ERROR`，不得静默跳过 enabled sim。

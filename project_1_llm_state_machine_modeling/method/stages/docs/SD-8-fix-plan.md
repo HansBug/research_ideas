@@ -40,3 +40,18 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口
+
+```python
+from method.stages.sd_tools import run_sd8_fix_plan
+
+fix_plan, meta = run_sd8_fix_plan(
+    selected_feedback,
+    source="design",
+    grounding_map=grounding_map,
+    before_dsl=current_dsl,
+)
+```
+
+当 SD-10 拒绝 candidate 时，二次输入必须使用 `RevisedFixPlan(original=..., rejection=...)`，不能把 `FixPlan.target` 改成 `repair_review`。

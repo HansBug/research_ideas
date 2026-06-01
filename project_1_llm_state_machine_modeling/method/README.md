@@ -38,7 +38,7 @@ LLM_MODEL     — 主跑模型名（如 gpt-5.5）
 
 ## 3. pyfcstm 集成方式
 
-`pyfcstm` 作为 **git submodule** pin 到 `main` 分支 commit `693fcf57`（仓库根 `pyfcstm/`）。
+`pyfcstm` 作为 **git submodule** pin 到 `main` 分支 commit `5f811a0f`（仓库根 `pyfcstm/`）。
 
 ```bash
 # 初次 clone 时

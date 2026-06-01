@@ -43,3 +43,20 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口与本地复验
+
+```python
+from method.stages.sd_tools import run_sd10_repair_review
+
+repair_review, meta = run_sd10_repair_review(
+    nl=nl,
+    grounding_map=grounding_map,
+    old_dsl=before_dsl,
+    candidate_dsl=candidate_dsl,
+    fix_plan=fix_plan,
+    scenario_set=frozen_scenario_set,
+)
+```
+
+PR-1A deterministic checks 覆盖：candidate parse/semantic、design target 是否仍阻塞、frozen scenario regression、required `GroundingMap` 元素丢失、状态/事件/变量/迁移数量大幅删除、forced transition declaration-level count 漂移。真正的 NL 语义合理性仍留给后续可选 `SL-10B Delta Review` 或人工评审。

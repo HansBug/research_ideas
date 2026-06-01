@@ -42,3 +42,21 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口与策略
+
+```python
+from method.stages.sd_tools import run_sd4_design, mark_warning_repair_attempt
+
+design_feedback, meta = run_sd4_design(context, policy_profile="generated_candidate")
+blocking_keys = [item.instance_key for item in design_feedback.blocking_items]
+mark_warning_repair_attempt(context.warning_budget_state, blocking_keys)
+```
+
+PR-1A 实现的首批 `policy_profile`：
+
+- `generated_candidate`：high-risk `W_*` 在预算内阻塞修复，advisory `W_*` 与 `I_*` 只入 trace。
+- `signed_ref_model`：保持未知 warning 需分类的保守口径。
+- `path_smoke` / `audit_only`：warning 不触发自动修复，只进入 advisory trace。
+
+`suggested_fix_hints` 只作为 `FixPlan` 参考证据，不是必须执行的脚本。

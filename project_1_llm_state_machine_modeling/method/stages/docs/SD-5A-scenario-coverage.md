@@ -40,3 +40,19 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口
+
+```python
+from method.stages.sd_tools import run_sd5a_scenario_coverage, freeze_scenario_set
+
+coverage, meta = run_sd5a_scenario_coverage(current_dsl, scenario_candidates)
+scenario_set, freeze_meta = freeze_scenario_set(
+    scenario_candidates,
+    source_dsl_hash="sha256:...",
+    source_inspect_hash="sha256:...",
+    coverage_report=coverage["coverage_report"],
+)
+```
+
+SD-5A 只是 scenario coverage probe，不把 mutation miss 冒充为 pyfcstm structured diagnostic。

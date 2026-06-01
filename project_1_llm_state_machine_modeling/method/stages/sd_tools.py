@@ -1,0 +1,717 @@
+"""Deterministic SD-stage façade functions for the PR-1A backbone.
+
+The functions in this module are intentionally LLM-free and do not read
+``.env``.  They wrap existing parse/semantic/sim feedback implementations and
+pyfcstm ``inspect_model()`` diagnostics behind the PR-0 stage contract so that
+later loop wiring can call one canonical deterministic surface.
+"""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+from dataclasses import asdict
+from typing import Any, Iterable, Literal
+
+from method.feedback.parse import check_parse
+from method.feedback.semantic import check_semantic
+from method.feedback.sim import check_sim
+from method.schema import (
+    BudgetState,
+    DesignDiagnosticItem,
+    DesignFeedback,
+    FeedbackBundle,
+    FixPlan,
+    GroundedElement,
+    GroundingMap,
+    ModelReviewFeedback,
+    ParseFeedback,
+    RepairRejection,
+    RepairReviewFeedback,
+    RevisedFixPlan,
+    ScenarioSet,
+    SemanticFeedback,
+    SimFeedback,
+    StageContext,
+    StageResultMeta,
+)
+from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageId, StageStatus
+from method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
+
+DesignPolicyProfile = Literal["generated_candidate", "signed_ref_model", "path_smoke", "audit_only"]
+
+_HIGH_RISK_WARNING_CODES = {
+    "W_UNREACHABLE_STATE",
+    "W_DEADLOCK_LEAF",
+    "W_UNWRITTEN_READ_VAR",
+    "W_GUARD_CONST_FALSE",
+    "W_FORCED_NEVER_EXPANDS",
+    "W_INITIAL_UNCONDITIONAL_MISSING",
+    "W_GUARD_VARS_NEVER_CHANGE",
+}
+
+_ADVISORY_WARNING_CODES = {
+    "W_UNUSED_EVENT",
+    "W_WRITE_ONLY_VAR",
+    "W_UNREFERENCED_VAR",
+    "W_HIGH_VAR_TO_LEAF_RATIO",
+    "W_DEEP_HIERARCHY",
+    "W_LARGE_COMPOSITE",
+    "W_REDUNDANT_TRANSITION",
+    "W_SELF_TRANSITION_NOP",
+    "W_EFFECT_SELF_ASSIGN",
+    "W_GUARD_CONST_TRUE",
+    "W_DURING_CONST_ASSIGN",
+}
+DEFAULT_WARNING_REPAIR_BUDGET = 2
+
+
+def _hash_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _stage_meta(stage_id: StageId | str, *, ok: bool, status: StageStatus | str | None = None, stage_error: str | None = None) -> StageResultMeta:
+    sid = stage_id.value if isinstance(stage_id, StageId) else stage_id
+    spec = STAGE_SPECS_BY_ID[sid]
+    resolved = status or (StageStatus.OK if ok else StageStatus.FAIL)
+    return StageResultMeta(
+        stage_id=sid,
+        stage_kind=spec.kind,
+        enabled=True,
+        ran=True,
+        status=resolved,
+        ok=ok,
+        stage_error=stage_error,
+    )
+
+
+def _attach_meta(context: StageContext | None, feedback: Any, meta: StageResultMeta) -> StageResultMeta:
+    if hasattr(feedback, "meta"):
+        feedback.meta = meta
+    if context is not None:
+        context.stage_results.append(meta)
+    return meta
+
+
+def _span_to_dict(span: Any) -> dict[str, Any] | None:
+    if span is None:
+        return None
+    return {
+        "line": getattr(span, "line", None),
+        "column": getattr(span, "column", None),
+        "end_line": getattr(span, "end_line", None),
+        "end_column": getattr(span, "end_column", None),
+    }
+
+
+def _normalize_ref(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if hasattr(value, "line") and hasattr(value, "column"):
+        return _span_to_dict(value)
+    if isinstance(value, dict):
+        return {str(k): _normalize_ref(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_normalize_ref(v) for v in value]
+    return str(value)
+
+
+def _diag_to_dict(diag: Any) -> dict[str, Any]:
+    if isinstance(diag, dict):
+        return copy.deepcopy(diag)
+    return {
+        "code": getattr(diag, "code", None),
+        "severity": getattr(diag, "severity", None),
+        "message": getattr(diag, "message", ""),
+        "span": _span_to_dict(getattr(diag, "span", None)),
+        "refs": _normalize_ref(dict(getattr(diag, "refs", {}) or {})),
+    }
+
+
+def _diagnostic_instance_key(diag: dict[str, Any]) -> str:
+    code = str(diag.get("code") or "UNKNOWN")
+    refs = diag.get("refs") or {}
+    preferred_keys = (
+        "state_path",
+        "from_path",
+        "to_path",
+        "var_name",
+        "event_ref",
+        "transition_id",
+        "transition_span",
+        "reason",
+    )
+    parts = [f"{key}={refs[key]}" for key in preferred_keys if key in refs and refs[key] is not None]
+    if parts:
+        return f"{code}:" + ":".join(parts)
+    return f"{code}:" + hashlib.sha256(repr(sorted(refs.items())).encode("utf-8")).hexdigest()[:12]
+
+
+def _extract_suggested_fix_hints(diag: dict[str, Any]) -> list[dict[str, Any]]:
+    hints: list[dict[str, Any]] = []
+    refs = diag.get("refs") or {}
+    for payload in (diag.get("suggested_fix"), refs.get("suggested_fix")):
+        if isinstance(payload, dict):
+            hints.append(copy.deepcopy(payload))
+    code = diag.get("code")
+    try:
+        from pyfcstm.diagnostics.codes import CODE_REGISTRY
+
+        spec = CODE_REGISTRY.get(code)
+        if spec is not None:
+            if spec.suggested_fix is not None:
+                hints.append(asdict(spec.suggested_fix))
+            if spec.for_llm is not None:
+                hints.append(
+                    {
+                        "kind": "for_llm_guidance",
+                        "summary": spec.for_llm.summary,
+                        "recommended_actions": [dict(item) for item in spec.for_llm.recommended_actions],
+                        "do_not": list(spec.for_llm.do_not),
+                    }
+                )
+    except Exception:
+        pass
+    return hints
+
+
+def _budget_state_for(diag: dict[str, Any], warning_budget_state: dict[str, BudgetState]) -> BudgetState:
+    key = _diagnostic_instance_key(diag)
+    if key not in warning_budget_state:
+        warning_budget_state[key] = BudgetState(
+            instance_key=key,
+            diagnostic_code=str(diag.get("code") or "UNKNOWN"),
+            repair_count=0,
+            budget_remaining=DEFAULT_WARNING_REPAIR_BUDGET,
+            budget_exhausted=False,
+            last_status="new",
+            last_stage=StageId.SD_4_DESIGN.value,
+        )
+    return warning_budget_state[key]
+
+
+
+def mark_warning_repair_attempt(
+    warning_budget_state: dict[str, BudgetState],
+    instance_keys: Iterable[str],
+    *,
+    last_status: str = "repair_attempted",
+    last_stage: str = StageId.SL_9_REPAIR.value,
+) -> dict[str, BudgetState]:
+    """Decrement per-instance warning repair budgets after an SL-9 attempt.
+
+    PR-1A only provides the deterministic state transition; later loop wiring
+    decides exactly when to call it. Missing keys are ignored so stale review
+    evidence cannot create phantom budget entries.
+    """
+    for key in instance_keys:
+        state = warning_budget_state.get(key)
+        if state is None or state.budget_exhausted:
+            continue
+        state.repair_count += 1
+        state.budget_remaining = max(0, state.budget_remaining - 1)
+        state.budget_exhausted = state.budget_remaining == 0
+        state.last_status = last_status
+        state.last_stage = last_stage
+    return warning_budget_state
+
+
+def _design_policy_action(
+    diag: dict[str, Any],
+    state: BudgetState,
+    *,
+    policy_profile: DesignPolicyProfile = "generated_candidate",
+) -> str:
+    severity = diag.get("severity")
+    code = str(diag.get("code") or "")
+    if severity == "error" or code.startswith("E_"):
+        return "hard_block"
+    if severity == "info" or code.startswith("I_"):
+        return "info"
+    if not code.startswith("W_"):
+        return "requires_policy_classification"
+    if policy_profile in {"path_smoke", "audit_only"}:
+        return "advisory"
+    if code in _ADVISORY_WARNING_CODES:
+        return "advisory"
+    if code not in _HIGH_RISK_WARNING_CODES:
+        return "requires_policy_classification"
+    if state.budget_exhausted or state.budget_remaining <= 0:
+        return "advisory"
+    return "budgeted_repair"
+
+
+def _design_item_from_diag(
+    diag: dict[str, Any],
+    state: BudgetState | None = None,
+    *,
+    policy_profile: DesignPolicyProfile = "generated_candidate",
+) -> DesignDiagnosticItem:
+    if state is None:
+        state = BudgetState(
+            instance_key=_diagnostic_instance_key(diag),
+            diagnostic_code=str(diag.get("code") or "UNKNOWN"),
+        )
+    action = _design_policy_action(diag, state, policy_profile=policy_profile)
+    return DesignDiagnosticItem(
+        code=str(diag.get("code") or "UNKNOWN"),
+        pyfcstm_severity=str(diag.get("severity") or "warning"),
+        policy_action=action,
+        instance_key=state.instance_key,
+        refs=copy.deepcopy(diag.get("refs") or {}),
+        message=str(diag.get("message") or ""),
+        suggested_fix_hints=_extract_suggested_fix_hints(diag),
+        budget_remaining=state.budget_remaining,
+        budget_exhausted=state.budget_exhausted,
+    )
+
+
+def run_sd2_parse(current_dsl: str, context: StageContext | None = None) -> tuple[ParseFeedback, StageResultMeta]:
+    feedback = check_parse(current_dsl)
+    meta = _stage_meta(StageId.SD_2_PARSE, ok=feedback.ok)
+    _attach_meta(context, feedback, meta)
+    return feedback, meta
+
+
+def run_sd3_semantic(parse_ok_dsl: str, context: StageContext | None = None) -> tuple[SemanticFeedback, StageResultMeta, BuildResult]:
+    feedback = check_semantic(parse_ok_dsl)
+    build = update_context_with_build(context or StageContext(), parse_ok_dsl)
+    if context is not None:
+        context.current_dsl = parse_ok_dsl
+        context.ast = build.ast
+        context.model = build.model
+    meta = _stage_meta(StageId.SD_3_SEMANTIC, ok=feedback.ok)
+    _attach_meta(context, feedback, meta)
+    return feedback, meta, build
+
+
+def run_sd4_design(
+    context: StageContext,
+    *,
+    policy_profile: DesignPolicyProfile = "generated_candidate",
+    warning_budget_state: dict[str, BudgetState] | None = None,
+) -> tuple[DesignFeedback, StageResultMeta]:
+    if warning_budget_state is None:
+        warning_budget_state = context.warning_budget_state
+    if context.model is None:
+        feedback = DesignFeedback(ok=False, policy_profile=policy_profile, inspect_summary={"stage_error": "StageContext.model is missing"})
+        meta = _stage_meta(StageId.SD_4_DESIGN, ok=False, status=StageStatus.ERROR, stage_error="StageContext.model is missing")
+        _attach_meta(context, feedback, meta)
+        return feedback, meta
+
+    from pyfcstm.diagnostics import inspect_model
+
+    inspect_json = inspect_model(context.model).to_json()
+    context.inspect_json = inspect_json
+    diagnostics = [_diag_to_dict(diag) for diag in inspect_json.get("diagnostics", [])]
+    blocking: list[DesignDiagnosticItem] = []
+    advisory: list[DesignDiagnosticItem] = []
+    info: list[DesignDiagnosticItem] = []
+
+    for diag in diagnostics:
+        state = _budget_state_for(diag, warning_budget_state)
+        item = _design_item_from_diag(diag, state, policy_profile=policy_profile)
+        state.last_status = item.policy_action
+        state.last_stage = StageId.SD_4_DESIGN.value
+        if item.policy_action in {"hard_block", "budgeted_repair", "requires_policy_classification"}:
+            blocking.append(item)
+        elif item.policy_action == "info":
+            info.append(item)
+        else:
+            advisory.append(item)
+
+    feedback = DesignFeedback(
+        ok=not blocking,
+        blocking_items=blocking,
+        advisory_items=advisory,
+        info_items=info,
+        policy_profile=policy_profile,
+        inspect_summary={
+            "policy_profile": policy_profile,
+            "n_errors": sum(1 for d in diagnostics if d.get("severity") == "error"),
+            "n_warnings": sum(1 for d in diagnostics if d.get("severity") == "warning"),
+            "n_infos": sum(1 for d in diagnostics if d.get("severity") == "info"),
+            "diagnostic_codes": [d.get("code") for d in diagnostics],
+            "blocking_instance_keys": [item.instance_key for item in blocking],
+            "advisory_instance_keys": [item.instance_key for item in advisory],
+            "info_instance_keys": [item.instance_key for item in info],
+            "prompt_ready_summary": [
+                {
+                    "code": item.code,
+                    "action": item.policy_action,
+                    "instance_key": item.instance_key,
+                    "message": item.message,
+                    "refs": item.refs,
+                    "budget_remaining": item.budget_remaining,
+                }
+                for item in [*blocking, *advisory, *info]
+            ],
+            "warning_budget_state": {key: asdict(value) for key, value in sorted(warning_budget_state.items())},
+        },
+    )
+    status = StageStatus.OK if feedback.ok else StageStatus.FAIL
+    meta = _stage_meta(StageId.SD_4_DESIGN, ok=feedback.ok, status=status)
+    _attach_meta(context, feedback, meta)
+    return feedback, meta
+
+
+def run_sd5a_scenario_coverage(current_dsl: str, scenarios: Iterable[Any]) -> tuple[dict[str, Any], StageResultMeta]:
+    from method.scenariogen_validate import coverage_directive, validate_coverage
+
+    scenario_list = list(scenarios or [])
+    coverage_report = validate_coverage(current_dsl, scenario_list)
+    directive = coverage_directive(coverage_report)
+    output = {
+        "coverage_report": coverage_report,
+        "retry_directive": directive,
+        "coverage_gap": directive is not None,
+    }
+    meta = _stage_meta(StageId.SD_5A_SCENARIO_COVERAGE, ok=directive is None, status=StageStatus.OK if directive is None else StageStatus.ADVISORY)
+    return output, meta
+
+
+def freeze_scenario_set(
+    scenarios: Iterable[Any],
+    *,
+    source_dsl_hash: str,
+    source_inspect_hash: str = "",
+    source_grounding_hash: str | None = None,
+    coverage_report: dict[str, Any] | None = None,
+    epoch: int = 0,
+    scenario_set_id: str | None = None,
+) -> tuple[ScenarioSet, StageResultMeta]:
+    scenario_list = list(scenarios or [])
+    if scenario_set_id is None:
+        scenario_set_id = "scenario-set-" + hashlib.sha256(repr([getattr(s, "name", str(s)) for s in scenario_list]).encode("utf-8")).hexdigest()[:12]
+    scenario_set = ScenarioSet(
+        scenario_set_id=scenario_set_id,
+        scenarios=scenario_list,
+        source_dsl_hash=source_dsl_hash,
+        source_inspect_hash=source_inspect_hash,
+        source_grounding_hash=source_grounding_hash,
+        coverage_report=coverage_report or {},
+        epoch=epoch,
+        frozen=True,
+    )
+    meta = _stage_meta(StageId.SC_5F_SCENARIO_FREEZE, ok=True)
+    return scenario_set, meta
+
+
+def run_sd6_sim(current_dsl: str, scenario_set: ScenarioSet | None, context: StageContext | None = None) -> tuple[SimFeedback, StageResultMeta]:
+    if scenario_set is None:
+        feedback = SimFeedback(ok=False, setup_error="ScenarioSet is missing")
+        meta = _stage_meta(StageId.SD_6_SIM, ok=False, status=StageStatus.ERROR, stage_error="ScenarioSet is missing")
+        _attach_meta(context, feedback, meta)
+        return feedback, meta
+    feedback = check_sim(current_dsl, list(scenario_set.scenarios))
+    meta = _stage_meta(StageId.SD_6_SIM, ok=feedback.ok)
+    _attach_meta(context, feedback, meta)
+    return feedback, meta
+
+
+def _as_evidence(item: Any) -> dict[str, Any]:
+    if hasattr(item, "__dataclass_fields__"):
+        return asdict(item)
+    if isinstance(item, dict):
+        return copy.deepcopy(item)
+    return {"value": str(item)}
+
+
+def _grounding_hints(grounding_map: GroundingMap | None) -> tuple[list[str], list[str]]:
+    if grounding_map is None:
+        return [], []
+    target_ids = [e.element_id for e in grounding_map.elements]
+    required = [e.element_id for e in grounding_map.elements if e.requiredness == "required"]
+    return target_ids, required
+
+
+def run_sd8_fix_plan(
+    selected_feedback: Any,
+    *,
+    source: str,
+    source_stage: str | None = None,
+    grounding_map: GroundingMap | None = None,
+    before_dsl: str = "",
+    rejection: RepairRejection | None = None,
+    original: FixPlan | None = None,
+) -> tuple[FixPlan | RevisedFixPlan, StageResultMeta]:
+    if rejection is not None and original is not None:
+        revised = RevisedFixPlan(original=original, rejection=rejection, revision_count=1)
+        return revised, _stage_meta(StageId.SD_8_FIX_PLAN, ok=True)
+
+    target = source if source in {"parse", "semantic", "design", "sim", "model_review"} else "design"
+    severity = "error"
+    evidence: list[dict[str, Any]] = []
+    diagnostic_ids: list[str] = []
+    suggested_fix_hints: list[dict[str, Any]] = []
+    summary = ""
+
+    if isinstance(selected_feedback, ParseFeedback):
+        severity = "error"
+        evidence = selected_feedback.diagnostics or [_as_evidence(selected_feedback)]
+        diagnostic_ids = [str(d.get("code", "parse")) for d in selected_feedback.diagnostics]
+        summary = selected_feedback.error_message or "parse failed"
+    elif isinstance(selected_feedback, SemanticFeedback):
+        severity = "error"
+        evidence = selected_feedback.diagnostics or [_as_evidence(selected_feedback)]
+        diagnostic_ids = [str(d.get("code", "semantic")) for d in selected_feedback.diagnostics]
+        summary = selected_feedback.error_message or "semantic failed"
+    elif isinstance(selected_feedback, DesignFeedback):
+        items = selected_feedback.blocking_items or selected_feedback.advisory_items or selected_feedback.info_items
+        evidence = [asdict(item) for item in items]
+        diagnostic_ids = [item.instance_key for item in items]
+        suggested_fix_hints = [hint for item in items for hint in item.suggested_fix_hints]
+        severity = "blocking_warning" if selected_feedback.blocking_items else "advisory_warning"
+        summary = "; ".join(item.message or item.code for item in items[:3]) or "design feedback selected"
+    elif isinstance(selected_feedback, SimFeedback):
+        severity = "sim_fail"
+        evidence = [asdict(sr) for sr in selected_feedback.scenario_results if sr.status != "pass"]
+        diagnostic_ids = [sr.name for sr in selected_feedback.scenario_results if sr.status != "pass"]
+        summary = selected_feedback.setup_error or "simulation failed"
+    elif isinstance(selected_feedback, ModelReviewFeedback):
+        severity = "review_fail"
+        evidence = selected_feedback.blocking_findings or selected_feedback.findings
+        diagnostic_ids = [str(item.get("id") or item.get("code") or i) for i, item in enumerate(evidence)]
+        summary = "model review failed"
+
+    target_ids, required_ids = _grounding_hints(grounding_map)
+    plan = FixPlan(
+        target=target,
+        source_stage=source_stage or FEEDBACK_SOURCE_TO_STAGE_ID.get(source, StageId.SD_8_FIX_PLAN.value),
+        source_feedback_id=diagnostic_ids[0] if diagnostic_ids else f"{target}:feedback",
+        severity=severity,
+        diagnostic_ids=diagnostic_ids,
+        problem_summary=summary,
+        evidence=evidence,
+        suggested_fix_hints=suggested_fix_hints,
+        recommended_strategy=["Use diagnostics as hints; choose the smallest globally consistent repair."],
+        forbidden_edits=["Do not delete grounded required elements merely to silence diagnostics."],
+        target_element_ids=target_ids,
+        required_preserve_element_ids=required_ids,
+        before_dsl_hash=_hash_text(before_dsl) if before_dsl else "",
+    )
+    return plan, _stage_meta(StageId.SD_8_FIX_PLAN, ok=True)
+
+
+def _grounded_token_missing(candidate_dsl: str, element: GroundedElement) -> bool:
+    """Return whether a required grounded element disappeared from candidate DSL.
+
+    The check is intentionally conservative but must not let a surviving root
+    name such as ``Root`` prove that ``Root.Active`` is still present.  Full
+    references are preferred; for hierarchical refs we accept the leaf token as
+    shorthand because generated DSL may omit fully-qualified paths inside the
+    root block.
+    """
+    full_ref = (element.element_ref or "").strip()
+    if not full_ref:
+        return False
+    if full_ref in candidate_dsl:
+        return False
+    parts = [part for part in full_ref.split(".") if part]
+    leaf = parts[-1] if parts else full_ref
+    return bool(leaf) and leaf not in candidate_dsl
+
+
+def _path_str(value: Any) -> str:
+    if value is None:
+        return ""
+    path = getattr(value, "path", None)
+    if isinstance(path, (tuple, list)):
+        return ".".join(str(part) for part in path)
+    name = getattr(value, "name", None)
+    return str(name) if name is not None else str(value)
+
+
+def _iter_model_states(model: Any) -> list[Any]:
+    root = getattr(model, "root_state", None)
+    if root is None:
+        return []
+    try:
+        return list(root.walk_states())
+    except Exception:
+        states = [root]
+        for child in getattr(root, "substates", {}).values():
+            states.extend(_iter_model_states(type("M", (), {"root_state": child})()))
+        return states
+
+
+def _model_summary(model: Any) -> dict[str, Any]:
+    states = _iter_model_states(model)
+    state_paths = [_path_str(state) for state in states]
+    events: set[str] = set()
+    transitions: list[dict[str, Any]] = []
+    n_forced = 0
+    n_transition_effects = 0
+    for state in states:
+        state_path = _path_str(state)
+        for event_name in getattr(state, "events", {}) or {}:
+            events.add(f"{state_path}.{event_name}" if state_path else str(event_name))
+        for transition in getattr(state, "transitions", []) or []:
+            effects = list(getattr(transition, "effects", []) or [])
+            is_forced = bool(getattr(transition, "is_forced", False))
+            n_forced += int(is_forced)
+            n_transition_effects += len(effects)
+            transitions.append(
+                {
+                    "owner_state": state_path,
+                    "from": _path_str(getattr(transition, "from_state", None)),
+                    "to": _path_str(getattr(transition, "to_state", None)),
+                    "event": _path_str(getattr(transition, "event", None)),
+                    "has_guard": getattr(transition, "guard", None) is not None,
+                    "n_effects": len(effects),
+                    "is_forced": is_forced,
+                }
+            )
+    defines = getattr(model, "defines", {}) or {}
+    return {
+        "n_states": len(state_paths),
+        "state_paths": sorted(state_paths),
+        "n_events": len(events),
+        "event_refs": sorted(events),
+        "n_variables": len(defines),
+        "variable_names": sorted(str(name) for name in defines.keys()),
+        "n_transitions": len(transitions),
+        "transitions": transitions,
+        "n_forced_transitions": n_forced,
+        "n_transition_effects": n_transition_effects,
+    }
+
+
+def _count_drift_evidence(old_summary: dict[str, Any], new_summary: dict[str, Any], fix_plan: FixPlan) -> list[dict[str, Any]]:
+    evidence: list[dict[str, Any]] = []
+    count_fields = ("n_states", "n_events", "n_variables", "n_transitions")
+    for field in count_fields:
+        old_value = int(old_summary.get(field) or 0)
+        new_value = int(new_summary.get(field) or 0)
+        if old_value <= 0:
+            continue
+        reduction = (old_value - new_value) / old_value
+        if reduction > 0.30:
+            evidence.append(
+                {
+                    "kind": "count_drift",
+                    "field": field,
+                    "old": old_value,
+                    "new": new_value,
+                    "reduction_ratio": round(reduction, 4),
+                    "fix_target": fix_plan.target,
+                }
+            )
+    old_forced = int(old_summary.get("n_forced_transitions") or 0)
+    new_forced = int(new_summary.get("n_forced_transitions") or 0)
+    if old_forced != new_forced:
+        evidence.append(
+            {
+                "kind": "forced_transition_count_drift",
+                "old": old_forced,
+                "new": new_forced,
+                "fix_target": fix_plan.target,
+            }
+        )
+    return evidence
+
+
+def _remaining_design_targets(feedback: DesignFeedback, fix_plan: FixPlan) -> list[DesignDiagnosticItem]:
+    target_ids = set(fix_plan.diagnostic_ids or [])
+    if fix_plan.source_feedback_id:
+        target_ids.add(fix_plan.source_feedback_id)
+    if not target_ids:
+        return []
+    remaining: list[DesignDiagnosticItem] = []
+    for item in feedback.blocking_items:
+        if item.instance_key in target_ids or item.code in target_ids:
+            remaining.append(item)
+    return remaining
+
+
+def run_sd10_repair_review(
+    *,
+    nl: str,
+    grounding_map: GroundingMap | None,
+    old_dsl: str,
+    candidate_dsl: str,
+    fix_plan: FixPlan,
+    scenario_set: ScenarioSet | None = None,
+) -> tuple[RepairReviewFeedback, StageResultMeta]:
+    evidence: list[dict[str, Any]] = []
+    candidate_context = StageContext(nl=nl, current_dsl=candidate_dsl)
+    parse_fb, _ = run_sd2_parse(candidate_dsl, candidate_context)
+    if not parse_fb.ok:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="candidate parse failed",
+            target_resolved=False,
+            drift_risk="major",
+            evidence=parse_fb.diagnostics,
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _stage_meta(StageId.SD_10_REPAIR_REVIEW, ok=False, status=StageStatus.FAIL)
+        _attach_meta(None, feedback, meta)
+        return feedback, meta
+
+    sem_fb, _, _ = run_sd3_semantic(candidate_dsl, candidate_context)
+    if not sem_fb.ok:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="candidate semantic failed",
+            target_resolved=False,
+            drift_risk="major",
+            evidence=sem_fb.diagnostics,
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _stage_meta(StageId.SD_10_REPAIR_REVIEW, ok=False, status=StageStatus.FAIL)
+        _attach_meta(None, feedback, meta)
+        return feedback, meta
+
+    if fix_plan.target == "design":
+        design_feedback, _ = run_sd4_design(candidate_context)
+        remaining_design = _remaining_design_targets(design_feedback, fix_plan)
+        if remaining_design:
+            evidence.append({"kind": "design_target_unresolved", "items": [asdict(item) for item in remaining_design]})
+
+    regression_detected = False
+    sim_feedback = None
+    if scenario_set is not None:
+        sim_feedback, _ = run_sd6_sim(candidate_dsl, scenario_set, None)
+        regression_detected = not sim_feedback.ok
+        if regression_detected:
+            evidence.append({"kind": "scenario_regression", "sim_feedback": asdict(sim_feedback)})
+
+    old_build = build_model_from_dsl(old_dsl)
+    if old_build.model is not None and candidate_context.model is not None:
+        old_summary = _model_summary(old_build.model)
+        new_summary = _model_summary(candidate_context.model)
+        evidence.extend(_count_drift_evidence(old_summary, new_summary, fix_plan))
+
+    missing_required: list[str] = []
+    if grounding_map is not None:
+        for element in grounding_map.elements:
+            if element.requiredness == "required" and _grounded_token_missing(candidate_dsl, element):
+                missing_required.append(element.element_id)
+    if missing_required:
+        evidence.append({"kind": "missing_required_grounding", "element_ids": missing_required})
+
+    target_resolved = not evidence
+    major_drift_kinds = {"missing_required_grounding", "count_drift", "forced_transition_count_drift"}
+    has_major_drift = any(item.get("kind") in major_drift_kinds for item in evidence)
+    drift_risk = "major" if has_major_drift else ("minor" if regression_detected else "none")
+    rejection = None
+    if not target_resolved:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="; ".join(item["kind"] for item in evidence),
+            target_resolved=False,
+            regression_detected=regression_detected,
+            drift_risk=drift_risk,
+            evidence=evidence,
+        )
+    feedback = RepairReviewFeedback(
+        ok=target_resolved,
+        target_resolved=target_resolved,
+        regression_detected=regression_detected,
+        drift_risk=drift_risk,
+        local_rejection=rejection,
+    )
+    meta = _stage_meta(StageId.SD_10_REPAIR_REVIEW, ok=feedback.ok, status=StageStatus.OK if feedback.ok else StageStatus.FAIL)
+    _attach_meta(None, feedback, meta)
+    return feedback, meta
