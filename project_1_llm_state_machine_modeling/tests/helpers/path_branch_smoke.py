@@ -1,10 +1,13 @@
 """Smoke exported Path 1 / Path 2 artifacts against pyfcstm migration.
 
-CI exports representative artifacts from ``dev/path1-hard-comparison`` and
-``dev/path2-differentiation`` into ``/tmp/pr13_artifacts`` before running this
-script. The smoke intentionally exercises the same public functions used by
-Path 1/2 downstream code: parse feedback, semantic feedback, eval component
-extraction, scenariogen element extraction, and static verifier analysis.
+CI exports representative artifacts into ``/tmp/pr13_artifacts`` before
+running this script. The exported snapshots are fixed to the PR #9 / PR #10
+core dataset commits used for PR #13 regression: Path 1
+``b4ad12205bccf686a61671d1bdc7c28b1a22bab3`` and Path 2
+``bdb25d93408f0a86f8dde8238e67c1f2bfdbbb59``. The smoke intentionally
+exercises the same public functions used by Path 1/2 downstream code: parse
+feedback, semantic feedback, eval component extraction, scenariogen element
+extraction, and static verifier analysis.
 """
 from __future__ import annotations
 
