@@ -391,6 +391,111 @@ def test_sd10_repair_review_detects_count_and_forced_transition_drift() -> None:
     assert "count_drift" in kinds
 
 
+def test_sd10_repair_review_rejects_event_grounding_replaced_by_same_name_state() -> None:
+    old_dsl = """
+state Root {
+    state Idle;
+    state Active;
+    state Start;
+    [*] -> Idle;
+    Idle -> Active :: Start;
+    Active -> [*];
+}
+"""
+    candidate_dsl = """
+state Root {
+    state Idle;
+    state Active;
+    state Start;
+    [*] -> Idle;
+    Idle -> Active :: Reset;
+    Active -> [*];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="event:Start",
+                element_kind="event",
+                element_ref="Start",
+                source_stage="Path1",
+                evidence_text="Start event is required trigger",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="sim", source_stage=StageId.SD_6_SIM.value, source_feedback_id="sim", severity="sim_fail")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Start event triggers Active; Start state also exists",
+        grounding_map=grounding,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.drift_risk == "major"
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "missing_required_grounding" and "event:Start" in e["element_ids"] for e in feedback.local_rejection.evidence)
+
+
+def test_sd10_repair_review_rejects_comment_or_prefix_only_state_grounding() -> None:
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="state:Root.Active",
+                element_kind="state",
+                element_ref="Root.Active",
+                source_stage="SL-1",
+                evidence_text="Active state required by NL",
+                requiredness="required",
+            )
+        ]
+    )
+    plan = FixPlan(target="design", source_stage=StageId.SD_4_DESIGN.value, source_feedback_id="W", severity="blocking_warning")
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Active state is required",
+        grounding_map=grounding,
+        old_dsl=DEADLOCK_DSL,
+        candidate_dsl="""
+state Root {
+    state Idle;
+    state ActiveHelper;
+    // Active was deleted
+    [*] -> Idle;
+    Idle -> [*];
+}
+""",
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "missing_required_grounding" for e in feedback.local_rejection.evidence)
+
+
+def test_sd10_repair_review_tracks_advisory_design_target() -> None:
+    advisory_context = StageContext()
+    run_sd3_semantic(OK_DSL, advisory_context)
+    design_feedback, _ = run_sd4_design(advisory_context, policy_profile="audit_only")
+    assert design_feedback.advisory_items
+    plan, _ = run_sd8_fix_plan(design_feedback, source="design", before_dsl=OK_DSL)
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="Start moves Idle to Active",
+        grounding_map=None,
+        old_dsl=OK_DSL,
+        candidate_dsl=OK_DSL,
+        fix_plan=plan,
+    )
+
+    assert not feedback.ok
+    assert feedback.local_rejection is not None
+    assert any(e["kind"] == "design_target_unresolved" for e in feedback.local_rejection.evidence)
+
+
 def test_sd10_repair_review_detects_scenario_regression() -> None:
     scenario_set, _ = freeze_scenario_set(
         [schema.TestScenario(name="hotstart_active", initial_state="Root.Active")],

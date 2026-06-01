@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import re
 from dataclasses import asdict
 from typing import Any, Iterable, Literal
 
@@ -493,23 +494,36 @@ def run_sd8_fix_plan(
     return plan, _stage_meta(StageId.SD_8_FIX_PLAN, ok=True)
 
 
-def _grounded_token_missing(candidate_dsl: str, element: GroundedElement) -> bool:
-    """Return whether a required grounded element disappeared from candidate DSL.
+def _strip_line_comments(dsl_text: str) -> str:
+    return re.sub(r"//.*", "", dsl_text)
 
-    The check is intentionally conservative but must not let a surviving root
-    name such as ``Root`` prove that ``Root.Active`` is still present.  Full
-    references are preferred; for hierarchical refs we accept the leaf token as
-    shorthand because generated DSL may omit fully-qualified paths inside the
-    root block.
+
+def _identifier_token_present(text: str, token: str) -> bool:
+    if not token:
+        return False
+    return re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", text) is not None
+
+
+def _ref_leaf(value: str) -> str:
+    parts = [part for part in re.split(r"[.:/\s>\-]+", value) if part]
+    return parts[-1] if parts else value
+
+
+def _grounded_token_missing(candidate_dsl: str, element: GroundedElement) -> bool:
+    """Fallback textual required-element check with token boundaries.
+
+    SD-10 prefers typed checks against the parsed pyfcstm model.  This fallback
+    is used only when no candidate model is available, and therefore avoids raw
+    substring matching and strips line comments first.
     """
     full_ref = (element.element_ref or "").strip()
     if not full_ref:
         return False
-    if full_ref in candidate_dsl:
+    text = _strip_line_comments(candidate_dsl)
+    if "." in full_ref and full_ref in text:
         return False
-    parts = [part for part in full_ref.split(".") if part]
-    leaf = parts[-1] if parts else full_ref
-    return bool(leaf) and leaf not in candidate_dsl
+    leaf = _ref_leaf(full_ref)
+    return bool(leaf) and not _identifier_token_present(text, leaf)
 
 
 def _path_str(value: Any) -> str:
@@ -535,17 +549,106 @@ def _iter_model_states(model: Any) -> list[Any]:
         return states
 
 
+def _event_ref_str(event: Any) -> str:
+    if event is None:
+        return ""
+    name = getattr(event, "name", None)
+    state_path = getattr(event, "state_path", None)
+    if name is not None and isinstance(state_path, (tuple, list)) and state_path:
+        return ".".join([*(str(part) for part in state_path), str(name)])
+    return _path_str(event)
+
+
+def _transition_endpoint(owner_state: str, endpoint: Any) -> str:
+    raw = _path_str(endpoint)
+    if not raw or raw in {"INIT_STATE", "EXIT_STATE", "[*]"} or raw.startswith("Root."):
+        return raw
+    if owner_state and "." not in raw:
+        return f"{owner_state}.{raw}"
+    return raw
+
+
+def _component_index(model: Any) -> dict[str, set[str]]:
+    states = _iter_model_states(model)
+    index: dict[str, set[str]] = {
+        "state_paths": set(),
+        "state_names": set(),
+        "event_refs": set(),
+        "event_names": set(),
+        "variable_names": set(),
+        "transition_refs": set(),
+        "guard_refs": set(),
+        "action_refs": set(),
+    }
+    for state in states:
+        state_path = _path_str(state)
+        if state_path:
+            index["state_paths"].add(state_path)
+            index["state_names"].add(_ref_leaf(state_path))
+        for event_name in getattr(state, "events", {}) or {}:
+            event_ref = f"{state_path}.{event_name}" if state_path else str(event_name)
+            index["event_refs"].add(event_ref)
+            index["event_names"].add(str(event_name))
+        for transition in getattr(state, "transitions", []) or []:
+            from_ref = _transition_endpoint(state_path, getattr(transition, "from_state", None))
+            to_ref = _transition_endpoint(state_path, getattr(transition, "to_state", None))
+            event_ref = _event_ref_str(getattr(transition, "event", None))
+            event_leaf = _ref_leaf(event_ref) if event_ref else ""
+            if event_ref:
+                index["event_refs"].add(event_ref)
+                index["event_names"].add(event_leaf)
+            base = f"{from_ref}->{to_ref}"
+            index["transition_refs"].add(base)
+            if event_ref:
+                index["transition_refs"].add(f"{base}::{event_ref}")
+            if event_leaf and event_leaf != event_ref:
+                index["transition_refs"].add(f"{base}::{event_leaf}")
+            guard = getattr(transition, "guard", None)
+            if guard is not None:
+                index["guard_refs"].add(str(guard))
+            for effect in getattr(transition, "effects", []) or []:
+                index["action_refs"].add(str(effect))
+    defines = getattr(model, "defines", {}) or {}
+    index["variable_names"].update(str(name) for name in defines.keys())
+    return index
+
+
+def _grounded_element_present(index: dict[str, set[str]], element: GroundedElement) -> bool:
+    ref = (element.element_ref or "").strip()
+    if not ref:
+        return True
+    leaf = _ref_leaf(ref)
+    kind = element.element_kind
+    if kind in {"state", "hierarchical_state"}:
+        return ref in index["state_paths"] or leaf in index["state_names"]
+    if kind == "event":
+        return ref in index["event_refs"] or leaf in index["event_names"]
+    if kind == "variable":
+        return ref in index["variable_names"] or leaf in index["variable_names"]
+    if kind == "transition":
+        normalized_ref = re.sub(r"\s+", "", ref)
+        return any(re.sub(r"\s+", "", item) == normalized_ref for item in index["transition_refs"])
+    if kind == "guard":
+        return any(ref == item or leaf == _ref_leaf(item) for item in index["guard_refs"])
+    if kind == "action":
+        return any(ref == item or leaf == _ref_leaf(item) for item in index["action_refs"])
+    return False
+
+
+def _grounded_element_missing(candidate_dsl: str, element: GroundedElement, candidate_model: Any | None) -> bool:
+    if candidate_model is not None:
+        return not _grounded_element_present(_component_index(candidate_model), element)
+    return _grounded_token_missing(candidate_dsl, element)
+
+
 def _model_summary(model: Any) -> dict[str, Any]:
     states = _iter_model_states(model)
-    state_paths = [_path_str(state) for state in states]
-    events: set[str] = set()
+    index = _component_index(model)
     transitions: list[dict[str, Any]] = []
     n_forced = 0
     n_transition_effects = 0
     for state in states:
         state_path = _path_str(state)
-        for event_name in getattr(state, "events", {}) or {}:
-            events.add(f"{state_path}.{event_name}" if state_path else str(event_name))
         for transition in getattr(state, "transitions", []) or []:
             effects = list(getattr(transition, "effects", []) or [])
             is_forced = bool(getattr(transition, "is_forced", False))
@@ -554,22 +657,21 @@ def _model_summary(model: Any) -> dict[str, Any]:
             transitions.append(
                 {
                     "owner_state": state_path,
-                    "from": _path_str(getattr(transition, "from_state", None)),
-                    "to": _path_str(getattr(transition, "to_state", None)),
-                    "event": _path_str(getattr(transition, "event", None)),
+                    "from": _transition_endpoint(state_path, getattr(transition, "from_state", None)),
+                    "to": _transition_endpoint(state_path, getattr(transition, "to_state", None)),
+                    "event": _event_ref_str(getattr(transition, "event", None)),
                     "has_guard": getattr(transition, "guard", None) is not None,
                     "n_effects": len(effects),
                     "is_forced": is_forced,
                 }
             )
-    defines = getattr(model, "defines", {}) or {}
     return {
-        "n_states": len(state_paths),
-        "state_paths": sorted(state_paths),
-        "n_events": len(events),
-        "event_refs": sorted(events),
-        "n_variables": len(defines),
-        "variable_names": sorted(str(name) for name in defines.keys()),
+        "n_states": len(index["state_paths"]),
+        "state_paths": sorted(index["state_paths"]),
+        "n_events": len(index["event_names"]),
+        "event_refs": sorted(index["event_refs"]),
+        "n_variables": len(index["variable_names"]),
+        "variable_names": sorted(index["variable_names"]),
         "n_transitions": len(transitions),
         "transitions": transitions,
         "n_forced_transitions": n_forced,
@@ -618,7 +720,7 @@ def _remaining_design_targets(feedback: DesignFeedback, fix_plan: FixPlan) -> li
     if not target_ids:
         return []
     remaining: list[DesignDiagnosticItem] = []
-    for item in feedback.blocking_items:
+    for item in [*feedback.blocking_items, *feedback.advisory_items, *feedback.info_items]:
         if item.instance_key in target_ids or item.code in target_ids:
             remaining.append(item)
     return remaining
@@ -686,7 +788,7 @@ def run_sd10_repair_review(
     missing_required: list[str] = []
     if grounding_map is not None:
         for element in grounding_map.elements:
-            if element.requiredness == "required" and _grounded_token_missing(candidate_dsl, element):
+            if element.requiredness == "required" and _grounded_element_missing(candidate_dsl, element, candidate_context.model):
                 missing_required.append(element.element_id)
     if missing_required:
         evidence.append({"kind": "missing_required_grounding", "element_ids": missing_required})
