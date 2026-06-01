@@ -4,6 +4,8 @@ import json
 from dataclasses import asdict, fields
 from pathlib import Path
 
+import pytest
+
 import method.loop as loop
 import method.schema as schema
 from method.schema import (
@@ -268,6 +270,22 @@ def test_model_review_feedback_coerces_nested_review_and_stage_meta_from_json_di
     assert feedback.meta.stage_id == StageId.SL_7_MODEL_REVIEW.value
 
 
+def test_repair_review_feedback_coerces_delta_review_meta_from_sl10b_fixture() -> None:
+    fixture = json.loads((METHOD_ROOT / "stages" / "fixtures" / "SL-10B.json").read_text(encoding="utf-8"))
+    feedback = RepairReviewFeedback(
+        **fixture["output"]["repair_review_feedback"],
+        meta=fixture["meta"],
+    )
+
+    assert isinstance(feedback.review_meta, ReviewRunMeta)
+    assert feedback.review_meta.decision_threshold == 0.7
+    assert feedback.review_meta.failure_policy == "fail_closed"
+    assert feedback.review_meta.replay_key == "sl10b:sha256:delta-input"
+    assert feedback.delta_review and feedback.delta_review["decision"] == "accept"
+    assert isinstance(feedback.meta, StageResultMeta)
+    assert feedback.meta.stage_id == StageId.SL_10B_DELTA_REVIEW.value
+
+
 def test_nested_feedback_meta_coercion_preserves_stage_contract_from_json_dicts() -> None:
     meta_dict = {
         "stage_id": StageId.SD_4_DESIGN.value,
@@ -289,12 +307,111 @@ def test_nested_feedback_meta_coercion_preserves_stage_contract_from_json_dicts(
 
 
 def test_nested_dataclass_coercion_rejects_unknown_review_meta_keys() -> None:
-    try:
+    with pytest.raises(TypeError, match="unexpected"):
         ModelReviewFeedback(review_meta={"provider": "fake", "unexpected": "drift"})
-    except TypeError as exc:
-        assert "unexpected" in str(exc)
-    else:
-        raise AssertionError("unknown nested review_meta keys must not be silently ignored")
+
+
+def test_review_run_meta_rejects_invalid_policy_threshold_and_retry() -> None:
+    bad_cases = [
+        dict(failure_policy="silent_pass"),
+        dict(decision_threshold="not-a-float"),
+        dict(decision_threshold=-0.1),
+        dict(decision_threshold=1.1),
+        dict(decision_threshold=True),
+        dict(retry_count=-1),
+        dict(schema_validation_ok="yes"),
+    ]
+
+    for kwargs in bad_cases:
+        with pytest.raises((TypeError, ValueError)):
+            ReviewRunMeta(**kwargs)
+
+    meta = ReviewRunMeta(decision_threshold=1, failure_policy="audit_only")
+    assert meta.decision_threshold == 1.0
+
+
+def test_enabled_model_review_requires_review_meta_for_all_ok() -> None:
+    meta = ok_meta(StageId.SL_7_MODEL_REVIEW, StageKind.LLM)
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.MODEL_REVIEW.value],
+        model_review=ModelReviewFeedback(ok=True, decision="pass", meta=meta),
+        stage_results=[meta],
+    )
+
+    assert not bundle.all_ok
+    assert "enabled source missing review_meta: model_review" in bundle.stage_contract_errors()
+
+
+def test_repair_review_feedback_requires_review_meta_when_delta_review_present() -> None:
+    with pytest.raises(ValueError, match="review_meta is required"):
+        RepairReviewFeedback(ok=True, delta_review={"decision": "accept"})
+
+
+def test_feedback_bundle_coerces_stage_results_and_feedback_from_json_dicts() -> None:
+    meta_dict = {
+        "stage_id": StageId.SD_2_PARSE.value,
+        "stage_kind": StageKind.DETERMINISTIC.value,
+        "enabled": True,
+        "ran": True,
+        "status": StageStatus.OK.value,
+        "ok": True,
+    }
+    bundle = FeedbackBundle(
+        enabled_sources=[FeedbackSource.PARSE.value],
+        parse={"ok": True},
+        stage_results=[meta_dict],
+    )
+
+    assert isinstance(bundle.parse, ParseFeedback)
+    assert isinstance(bundle.stage_results[0], StageResultMeta)
+    assert bundle.all_ok
+
+
+def test_trace_and_context_coerce_stage_results_and_budget_state_from_json_dicts() -> None:
+    meta_dict = {
+        "stage_id": StageId.SD_4_DESIGN.value,
+        "stage_kind": StageKind.DETERMINISTIC.value,
+        "enabled": True,
+        "ran": True,
+        "status": StageStatus.ADVISORY.value,
+        "ok": True,
+    }
+    budget_dict = {
+        "instance_key": "W_DEADLOCK_LEAF:state=Active",
+        "diagnostic_code": "W_DEADLOCK_LEAF",
+        "repair_count": 1,
+        "budget_remaining": 0,
+        "budget_exhausted": True,
+    }
+
+    trace = schema.IterTrace(stage_results=[meta_dict], warning_budget_state={"w": budget_dict})
+    context = StageContext(stage_results=[meta_dict], warning_budget_state={"w": budget_dict})
+
+    assert isinstance(trace.stage_results[0], StageResultMeta)
+    assert isinstance(trace.warning_budget_state["w"], BudgetState)
+    assert isinstance(context.stage_results[0], StageResultMeta)
+    assert isinstance(context.warning_budget_state["w"], BudgetState)
+
+
+def test_revised_fix_plan_coerces_nested_dataclasses_from_json_dicts() -> None:
+    revised = schema.RevisedFixPlan(
+        original={
+            "target": "parse",
+            "source_stage": StageId.SD_2_PARSE.value,
+            "source_feedback_id": "parse:error:1",
+            "severity": "error",
+        },
+        rejection={
+            "rejected_by_stage": StageId.SD_10_REPAIR_REVIEW.value,
+            "reason": "scenario regression",
+            "target_resolved": False,
+            "regression_detected": True,
+        },
+    )
+
+    assert isinstance(revised.original, FixPlan)
+    assert isinstance(revised.rejection, schema.RepairRejection)
+    assert revised.rejection.regression_detected is True
 
 
 def test_feedback_bundle_distinguishes_unknown_source_from_legacy_judge() -> None:
@@ -634,7 +751,17 @@ def validate_stage_fixture_output(stage_id: str, output: dict) -> None:
     elif stage_id == StageId.SD_8_FIX_PLAN.value:
         FixPlan(**output["fix_plan"])
     elif stage_id == StageId.SD_10_REPAIR_REVIEW.value:
-        RepairReviewFeedback(**output["repair_review_feedback"])
+        feedback = RepairReviewFeedback(**output["repair_review_feedback"])
+        assert feedback.review_meta is None
+    elif stage_id == StageId.SL_10B_DELTA_REVIEW.value:
+        feedback = RepairReviewFeedback(**output["repair_review_feedback"])
+        assert isinstance(feedback.review_meta, ReviewRunMeta)
+        assert feedback.review_meta.decision_threshold is not None
+        assert feedback.review_meta.failure_policy in {"fail_open", "fail_closed", "audit_only"}
+        assert feedback.review_meta.replay_key
+        assert feedback.delta_review is not None
+        assert "review_meta" not in output
+        assert "delta_review" not in output
     elif stage_id == StageId.SC_13_TRACE_AUDIT.value:
         AgentLoopRunRecord(**output["agent_loop_run_record"])
 

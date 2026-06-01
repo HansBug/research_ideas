@@ -46,6 +46,23 @@ def _coerce_nested_dataclass(value: Any, cls: type[Any]) -> Any:
     raise TypeError(f"expected {cls.__name__} or dict, got {type(value).__name__}")
 
 
+def _coerce_dataclass_list(values: list[Any], cls: type[Any]) -> list[Any]:
+    """Coerce a JSON-loaded list of dicts into typed dataclass objects."""
+    return [_coerce_nested_dataclass(value, cls) for value in values]
+
+
+def _coerce_dataclass_dict(values: dict[str, Any], cls: type[Any]) -> dict[str, Any]:
+    """Coerce a JSON-loaded dict of dataclass payloads into typed objects."""
+    return {key: _coerce_nested_dataclass(value, cls) for key, value in values.items()}
+
+
+def _coerce_bool(value: Any, field_name: str) -> bool:
+    """Reject JSON/schema values that only look truthy/falsy."""
+    if not isinstance(value, bool):
+        raise TypeError(f"{field_name} must be a bool")
+    return value
+
+
 # ---------------------------------------------------------------------------
 # LoopConfig — user-facing configuration
 # ---------------------------------------------------------------------------
@@ -143,10 +160,17 @@ class StageResultMeta:
     elapsed_ms: Optional[int] = None
 
     def __post_init__(self) -> None:
+        self.enabled = _coerce_bool(self.enabled, "StageResultMeta.enabled")
+        self.ran = _coerce_bool(self.ran, "StageResultMeta.ran")
+        self.ok = _coerce_bool(self.ok, "StageResultMeta.ok")
         if isinstance(self.stage_kind, str):
             self.stage_kind = StageKind(self.stage_kind)
+        elif not isinstance(self.stage_kind, StageKind):
+            raise TypeError("StageResultMeta.stage_kind must be a StageKind or str")
         if isinstance(self.status, str):
             self.status = StageStatus(self.status)
+        elif not isinstance(self.status, StageStatus):
+            raise TypeError("StageResultMeta.status must be a StageStatus or str")
 
     def contract_errors(self) -> list[str]:
         """Return PR-0 contract violations for this stage meta row.
@@ -210,6 +234,11 @@ class BudgetState:
     last_stage: Optional[str] = None
 
     def __post_init__(self) -> None:
+        self.budget_exhausted = _coerce_bool(self.budget_exhausted, "BudgetState.budget_exhausted")
+        if not isinstance(self.repair_count, int) or isinstance(self.repair_count, bool):
+            raise TypeError("BudgetState.repair_count must be an int")
+        if not isinstance(self.budget_remaining, int) or isinstance(self.budget_remaining, bool):
+            raise TypeError("BudgetState.budget_remaining must be an int")
         if self.repair_count < 0:
             raise ValueError("BudgetState.repair_count must be >= 0")
         if self.budget_remaining < 0:
@@ -242,6 +271,9 @@ class ParseFeedback:
     error_message: Optional[str] = None
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "ParseFeedback.ok")
+
 
 @dataclass
 class SemanticFeedback:
@@ -263,6 +295,9 @@ class SemanticFeedback:
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     error_class: Optional[str] = None
     error_message: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "SemanticFeedback.ok")
 
 
 StepStatusLiteral = Literal["pass", "fail", "error"]
@@ -356,6 +391,9 @@ class SimFeedback:
     scenario_results: list[ScenarioResult] = field(default_factory=list)
     setup_error: Optional[str] = None  # global parse/sem fail before any scenario could run
 
+    def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "SimFeedback.ok")
+
 
 @dataclass
 class JudgeFeedback:
@@ -371,6 +409,9 @@ class JudgeFeedback:
     overall: float = 0.0
     evidence_spans: list[dict[str, Any]] = field(default_factory=list)
     judge_error: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "JudgeFeedback.ok")
 
 
 @dataclass
@@ -407,6 +448,7 @@ class DesignFeedback:
     meta: Optional[StageResultMeta] = None
 
     def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "DesignFeedback.ok")
         self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
 
 
@@ -433,6 +475,21 @@ class ReviewRunMeta:
     failure_policy: Literal["fail_open", "fail_closed", "audit_only"] = "fail_closed"
     replay_key: str = ""
 
+    def __post_init__(self) -> None:
+        self.schema_validation_ok = _coerce_bool(self.schema_validation_ok, "ReviewRunMeta.schema_validation_ok")
+        if self.decision_threshold is not None:
+            if not isinstance(self.decision_threshold, (int, float)) or isinstance(self.decision_threshold, bool):
+                raise TypeError("ReviewRunMeta.decision_threshold must be a number or None")
+            if not 0 <= float(self.decision_threshold) <= 1:
+                raise ValueError("ReviewRunMeta.decision_threshold must be within [0, 1]")
+            self.decision_threshold = float(self.decision_threshold)
+        if self.failure_policy not in {"fail_open", "fail_closed", "audit_only"}:
+            raise ValueError("ReviewRunMeta.failure_policy must be fail_open, fail_closed, or audit_only")
+        if not isinstance(self.retry_count, int) or isinstance(self.retry_count, bool):
+            raise TypeError("ReviewRunMeta.retry_count must be an int")
+        if self.retry_count < 0:
+            raise ValueError("ReviewRunMeta.retry_count must be >= 0")
+
 
 @dataclass
 class ModelReviewFeedback:
@@ -447,6 +504,7 @@ class ModelReviewFeedback:
     meta: Optional[StageResultMeta] = None
 
     def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "ModelReviewFeedback.ok")
         self.review_meta = _coerce_nested_dataclass(self.review_meta, ReviewRunMeta)
         self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
 
@@ -461,9 +519,17 @@ class RepairReviewFeedback:
     drift_risk: Literal["none", "minor", "major"] = "none"
     local_rejection: Optional["RepairRejection"] = None
     delta_review: Optional[dict[str, Any]] = None
+    review_meta: Optional[ReviewRunMeta] = None
     meta: Optional[StageResultMeta] = None
 
     def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "RepairReviewFeedback.ok")
+        self.target_resolved = _coerce_bool(self.target_resolved, "RepairReviewFeedback.target_resolved")
+        self.regression_detected = _coerce_bool(self.regression_detected, "RepairReviewFeedback.regression_detected")
+        self.local_rejection = _coerce_nested_dataclass(self.local_rejection, RepairRejection)
+        self.review_meta = _coerce_nested_dataclass(self.review_meta, ReviewRunMeta)
+        if self.delta_review is not None and self.review_meta is None:
+            raise ValueError("RepairReviewFeedback.review_meta is required when delta_review is present")
         self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
 
 
@@ -512,6 +578,9 @@ class ScenarioSet:
     frozen: bool = True
     invalidated_by: list[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self.frozen = _coerce_bool(self.frozen, "ScenarioSet.frozen")
+
 
 FixTarget = Literal["parse", "semantic", "design", "sim", "model_review"]
 
@@ -550,6 +619,10 @@ class RepairRejection:
     drift_risk: Literal["none", "minor", "major"] = "none"
     evidence: list[dict[str, Any]] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        self.target_resolved = _coerce_bool(self.target_resolved, "RepairRejection.target_resolved")
+        self.regression_detected = _coerce_bool(self.regression_detected, "RepairRejection.regression_detected")
+
 
 @dataclass
 class RevisedFixPlan:
@@ -558,6 +631,10 @@ class RevisedFixPlan:
     original: FixPlan
     rejection: RepairRejection
     revision_count: int = 0
+
+    def __post_init__(self) -> None:
+        self.original = _coerce_nested_dataclass(self.original, FixPlan)
+        self.rejection = _coerce_nested_dataclass(self.rejection, RepairRejection)
 
 
 @dataclass
@@ -580,6 +657,16 @@ class FeedbackBundle:
     repair_review: Optional[RepairReviewFeedback] = None
     enabled_sources: list[str] = field(default_factory=list)
     stage_results: list[StageResultMeta] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.parse = _coerce_nested_dataclass(self.parse, ParseFeedback)
+        self.semantic = _coerce_nested_dataclass(self.semantic, SemanticFeedback)
+        self.sim = _coerce_nested_dataclass(self.sim, SimFeedback)
+        self.judge = _coerce_nested_dataclass(self.judge, JudgeFeedback)
+        self.design = _coerce_nested_dataclass(self.design, DesignFeedback)
+        self.model_review = _coerce_nested_dataclass(self.model_review, ModelReviewFeedback)
+        self.repair_review = _coerce_nested_dataclass(self.repair_review, RepairReviewFeedback)
+        self.stage_results = _coerce_dataclass_list(self.stage_results, StageResultMeta)
 
     @property
     def all_ok(self) -> bool:
@@ -704,6 +791,8 @@ class FeedbackBundle:
                 continue
             if not getattr(feedback, "ok", False):
                 errors.append(f"enabled source not ok: {source}")
+            if source == FeedbackSource.MODEL_REVIEW.value and getattr(feedback, "review_meta", None) is None:
+                errors.append(f"enabled source missing review_meta: {source}")
 
             if hasattr(feedback, "meta"):
                 nested_meta = getattr(feedback, "meta")
@@ -767,6 +856,12 @@ class IterTrace:
     warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
     scenario_epoch: Optional[int] = None
     repair_review: Optional[RepairReviewFeedback] = None
+
+    def __post_init__(self) -> None:
+        self.feedback = _coerce_nested_dataclass(self.feedback, FeedbackBundle)
+        self.stage_results = _coerce_dataclass_list(self.stage_results, StageResultMeta)
+        self.warning_budget_state = _coerce_dataclass_dict(self.warning_budget_state, BudgetState)
+        self.repair_review = _coerce_nested_dataclass(self.repair_review, RepairReviewFeedback)
 
 
 StatusLiteral = Literal[
@@ -844,6 +939,12 @@ class StageContext:
     scenario_set: ScenarioSet | None = None
     warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
     stage_results: list[StageResultMeta] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.grounding_map = _coerce_nested_dataclass(self.grounding_map, GroundingMap)
+        self.scenario_set = _coerce_nested_dataclass(self.scenario_set, ScenarioSet)
+        self.warning_budget_state = _coerce_dataclass_dict(self.warning_budget_state, BudgetState)
+        self.stage_results = _coerce_dataclass_list(self.stage_results, StageResultMeta)
 
     def to_summary(self) -> StageContextSummary:
         return StageContextSummary(

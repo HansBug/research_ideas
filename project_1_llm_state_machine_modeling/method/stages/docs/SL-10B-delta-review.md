@@ -19,8 +19,8 @@
 
 ## 输出
 
-- `delta_review`: accept/reject/revise、drift evidence。
-- `review_meta`: provider/model/prompt hash/schema validation/cache key，以及 `decision_threshold`、`failure_policy`、`replay_key`。
+- `repair_review_feedback`: SD-10/SL-10B 共用的修复评审 payload，其中内嵌 `delta_review` 与 `review_meta`。
+- `repair_review_feedback.review_meta`: provider/model/prompt hash/schema validation/cache key，以及 `decision_threshold`、`failure_policy`、`replay_key`。
 
 ### LLM 输出
 

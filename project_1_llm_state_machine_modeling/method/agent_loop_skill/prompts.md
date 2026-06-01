@@ -12,4 +12,4 @@ PR-0 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑�
 
 ## LLM stage trace 要求
 
-每次真实调用必须保存 `ReviewRunMeta` 或等价 LLM interaction 记录：provider、model、resolved model、prompt template version、prompt hash、input hash、temperature、seed、retry、raw output hash/path、schema validation、cache/replay key、decision threshold、failure policy、replay key。
+每次真实调用必须保存 `ReviewRunMeta` 或等价 LLM interaction 记录：provider、model、resolved model、prompt template version、prompt hash、input hash、temperature、seed、retry、raw output hash/path、schema validation、cache key、decision threshold、failure policy、replay key。
