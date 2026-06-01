@@ -59,6 +59,10 @@ def _component_counts(obj) -> dict[str, int]:
     }
 
 
+def _normal_state(row: dict) -> dict:
+    return {key: row.get(key, "") for key in ["id", "name", "parent", "text"]}
+
+
 def _normal_transition(row: dict) -> dict:
     return {
         key: row.get(key, "")
@@ -93,6 +97,9 @@ def _assert_signed_ref_rowwise_compatible(path: Path, components, signed: dict) 
     tooling.  Auxiliary fields such as ``*_path`` / ``scoped_text`` may differ
     or be newly added, but these signed fields must stay row-wise stable.
     """
+    assert [_normal_state(s) for s in components.states] == [
+        _normal_state(s) for s in signed.get("states", [])
+    ], f"Path 1 signed state row drift for {path}"
     assert [_normal_transition(t) for t in components.transitions] == [
         _normal_transition(t) for t in signed.get("transitions", [])
     ], f"Path 1 signed transition row drift for {path}"
@@ -135,6 +142,12 @@ def smoke_fcstm(path: Path, signed_ref_path: Path | None = None) -> None:
         )
     elements = _extract_model_elements(src)
     assert elements["states"] and elements["transitions"], f"empty scenariogen elements for {path}"
+    scen_forced = [t for t in elements["transitions"] if t.get("is_forced")]
+    eval_forced = [t for t in components.transitions if t.get("is_forced")]
+    assert len(scen_forced) == len(eval_forced), (
+        f"scenariogen forced transition count must use declaration-level view for {path}: "
+        f"got {len(scen_forced)} vs eval {len(eval_forced)}"
+    )
     static_diags = analyze(src)
     assert all(len(item) == 3 for item in static_diags), f"bad static diag tuple for {path}: {static_diags}"
     if signed_ref_path is not None:

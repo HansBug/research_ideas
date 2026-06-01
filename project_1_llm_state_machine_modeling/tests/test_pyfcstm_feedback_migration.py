@@ -278,6 +278,19 @@ def test_scenariogen_elements_use_inspect_model_contract() -> None:
     assert elements["metrics"]["n_variables"] == 1
 
 
+def test_scenariogen_counts_forced_transitions_at_declaration_level() -> None:
+    elements = _extract_model_elements(FORCED_DECL_DSL)
+
+    forced = [t for t in elements["transitions"] if t["is_forced"]]
+    assert len(elements["transitions"]) == 4
+    assert len(forced) == 1
+    assert forced[0]["from"] == "*"
+    assert forced[0]["to"] == "Root.Safe"
+    assert forced[0]["guard"] == "fault == 1"
+    assert forced[0]["forced_origin"] == "! * -> Safe : if [fault == 1];"
+    assert forced[0]["expansion_count"] == 2
+
+
 def test_static_verifier_suppresses_legacy_external_guard_vars() -> None:
     external_src = """
 def int ext1 = 0; // @external [E1]

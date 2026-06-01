@@ -52,14 +52,37 @@ def _extract_model_elements(dsl_text: str) -> dict[str, Any]:
         })
 
     transitions: list[dict[str, Any]] = []
+
+    # ``inspect_model().to_json()["transitions"]`` is a behavioral view that
+    # expands each ``!`` forced transition into concrete leaf-level edges.
+    # Scenario generation should see the same declaration-level artifact view as
+    # eval/PROTOCOL.md §3.5, otherwise one HSM recovery rule can dominate the
+    # LLM prompt with many leaf-specific duplicates.  Keep expansion_count and
+    # forced_origin as audit fields.
+    for forced in data.get("forced_transitions", []):
+        transitions.append({
+            "from": forced.get("from_path") or "*",
+            "to": forced.get("to_path"),
+            "event": forced.get("event"),
+            "event_scope": forced.get("event_scope"),
+            "guard": forced.get("guard"),
+            "effect": None,
+            "is_forced": True,
+            "forced_origin": forced.get("original_raw"),
+            "expansion_count": forced.get("expansion_count"),
+        })
+
     for t in data.get("transitions", []):
+        if t.get("is_forced"):
+            continue
         transitions.append({
             "from": t.get("from_path"),
             "to": t.get("to_path"),
             "event": t.get("event"),
+            "event_scope": t.get("event_scope"),
             "guard": t.get("guard"),
             "effect": t.get("effect"),
-            "is_forced": bool(t.get("is_forced", False)),
+            "is_forced": False,
         })
 
     return {
