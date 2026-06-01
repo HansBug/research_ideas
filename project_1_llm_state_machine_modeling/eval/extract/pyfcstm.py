@@ -1,8 +1,10 @@
 """pyfcstm DSL → ComponentSet via ``pyfcstm.diagnostics.inspect_model``.
 
 This extractor deliberately avoids walking pyfcstm's internal model objects.
-The stable contract is the v0.4.0 ``inspect_model().to_json()`` payload, which
-contains states / transitions / variables / events / actions plus diagnostics.
+The stable contract is the v0.4.0 ``inspect_model().to_json()`` payload.
+Evaluation still follows ``eval/PROTOCOL.md``: ``actions`` means transition
+``effect { ... }`` only, not lifecycle ``enter`` / ``during`` / ``exit`` or
+aspect actions.
 
 pyfcstm does not directly support ``parallel_regions`` / ``history_states``;
 this project evaluates the 5 supported component classes only.
@@ -110,22 +112,6 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
                 "code": effect_code,
                 "text": text,
             })
-
-    for a in data.get("actions", []):
-        signature = a.get("signature") or ""
-        stage = a.get("stage") or ""
-        aspect = a.get("aspect")
-        kind = f"{stage}_{aspect}" if aspect else stage
-        actions_out.append({
-            "id": f"a{len(actions_out)}",
-            "state": a.get("state_path"),
-            "kind": kind,
-            "code": signature,
-            "name": a.get("name") or _last_path_segment(signature),
-            "is_ref": bool(a.get("is_ref", False)),
-            "ref_target": a.get("ref_target"),
-            "text": f"{a.get('state_path')} {kind} {signature}".strip(),
-        })
 
     return ComponentSet(
         states=states_out,

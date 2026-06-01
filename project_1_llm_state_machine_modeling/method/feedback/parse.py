@@ -123,9 +123,3 @@ def check_parse(dsl_text: str) -> ParseFeedback:
             error_message=first_msg[:500],
             diagnostics=[_error_to_diagnostic(err) for err in errors_list],
         )
-    except Exception as e:
-        return ParseFeedback(
-            ok=False,
-            error_class=type(e).__name__,
-            error_message=str(e)[:500],
-        )

@@ -24,13 +24,26 @@ def _span_to_dict(span: Any) -> dict[str, Any] | None:
     }
 
 
+def _normalize_ref(value: Any) -> Any:
+    """Convert pyfcstm diagnostic refs into JSON-friendly primitives."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if hasattr(value, "line") and hasattr(value, "column"):
+        return _span_to_dict(value)
+    if isinstance(value, dict):
+        return {str(k): _normalize_ref(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_normalize_ref(v) for v in value]
+    return str(value)
+
+
 def _diag_to_dict(diag: Any) -> dict[str, Any]:
     return {
         "code": getattr(diag, "code", None),
         "severity": getattr(diag, "severity", None),
         "message": getattr(diag, "message", None),
         "span": _span_to_dict(getattr(diag, "span", None)),
-        "refs": dict(getattr(diag, "refs", {}) or {}),
+        "refs": _normalize_ref(dict(getattr(diag, "refs", {}) or {})),
     }
 
 
@@ -56,6 +69,18 @@ def _populate_from_diag(fb: SemanticFeedback, diag: Any) -> None:
         elif var_name is not None:
             fb.undefined_vars.append(str(var_name))
     elif code == "E_MISSING_STATE":
+        if refs.get("reason") == "event_path_not_found":
+            fb.unresolved_event_refs.append({
+                "code": code,
+                "event_ref": refs.get("event_ref"),
+                "state_path": refs.get("state_path"),
+                "referenced_from": refs.get("referenced_from"),
+                "reason": refs.get("reason"),
+                "span": span,
+                "message": message,
+                "refs": _normalize_ref(refs),
+            })
+            return
         state_path = refs.get("state_path")
         if state_path is not None:
             fb.missing_states.append(str(state_path))
@@ -65,6 +90,17 @@ def _populate_from_diag(fb: SemanticFeedback, diag: Any) -> None:
             "reason": refs.get("reason"),
             "span": span,
             "message": message,
+        })
+    elif code in {"E_EVENT_REF_INVALID", "E_EVENT_NOT_FOUND"}:
+        fb.unresolved_event_refs.append({
+            "code": code,
+            "event_ref": refs.get("event_ref"),
+            "scope": refs.get("scope"),
+            "searched_from": refs.get("searched_from"),
+            "reason": refs.get("reason"),
+            "span": span,
+            "message": message,
+            "refs": _normalize_ref(refs),
         })
     elif code == "E_DANGLING_TRANSITION":
         fb.dangling_transitions.append({
@@ -82,6 +118,8 @@ def _populate_from_diag(fb: SemanticFeedback, diag: Any) -> None:
             "span": span,
             "message": message,
         })
+    else:
+        fb.other_errors.append(_diag_to_dict(diag))
 
 
 def _dedupe_preserve_order(values: list[str]) -> list[str]:
@@ -116,12 +154,6 @@ def check_semantic(dsl_text: str) -> SemanticFeedback:
             error_class="ParseFailedFirst",
             error_message=f"Parse failed before semantic check could run: {str(e)[:300]}",
         )
-    except Exception as e:
-        return SemanticFeedback(
-            ok=False,
-            error_class="ParseFailedFirst",
-            error_message=f"Parse failed before semantic check could run: {str(e)[:300]}",
-        )
 
     try:
         _model, diagnostics = parse_dsl_node_to_state_machine(ast, collect=True)
@@ -133,12 +165,6 @@ def check_semantic(dsl_text: str) -> SemanticFeedback:
                 error_class=type(e).__name__,
                 error_message=str(e)[:500],
             )
-    except Exception as e:
-        return SemanticFeedback(
-            ok=False,
-            error_class=type(e).__name__,
-            error_message=str(e)[:500],
-        )
 
     diagnostics = list(diagnostics or [])
     error_diags = [d for d in diagnostics if getattr(d, "severity", None) == "error"]

@@ -40,7 +40,12 @@ def _is_external_suppressed(src_text: str, diag: ModelDiagnostic) -> bool:
     if diag.code not in _EXTERNAL_SUPPRESSED_CODES:
         return False
     external_vars = set(_EXTERNAL_RE.findall(src_text))
-    return bool(diag.refs.get("var_name") in external_vars)
+    if diag.code == "W_UNWRITTEN_READ_VAR":
+        return bool(diag.refs.get("var_name") in external_vars)
+    if diag.code == "W_GUARD_VARS_NEVER_CHANGE":
+        guard_vars = diag.refs.get("guard_vars") or []
+        return bool(guard_vars) and all(str(var) in external_vars for var in guard_vars)
+    return False
 
 
 def _severity(diag: ModelDiagnostic) -> str:

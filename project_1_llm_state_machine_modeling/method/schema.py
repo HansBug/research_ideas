@@ -126,8 +126,10 @@ class SemanticFeedback:
     ok: bool = False
     missing_states: list[str] = field(default_factory=list)
     dangling_transitions: list[dict[str, Any]] = field(default_factory=list)
+    unresolved_event_refs: list[dict[str, Any]] = field(default_factory=list)
     undefined_vars: list[str] = field(default_factory=list)
     type_mismatches: list[dict[str, Any]] = field(default_factory=list)
+    other_errors: list[dict[str, Any]] = field(default_factory=list)
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     error_class: Optional[str] = None
     error_message: Optional[str] = None
