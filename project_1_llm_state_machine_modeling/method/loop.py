@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import uuid
 from dataclasses import asdict, is_dataclass
 from typing import Any, Optional
 
@@ -117,7 +118,8 @@ def _jsonable(value: Any) -> Any:
 
 
 def _default_run_id(nl: str, resolved_config: dict[str, Any]) -> str:
-    return "pr-c-" + hashlib.sha256(f"{nl}\n{resolved_config['condition_hash']}".encode("utf-8")).hexdigest()[:12]
+    input_hash = hashlib.sha256(f"{nl}\n{resolved_config['condition_hash']}".encode("utf-8")).hexdigest()[:12]
+    return f"pr-c-{input_hash}-{uuid.uuid4().hex[:12]}"
 
 
 def _provider_config_read(cfg: LoopConfig) -> bool:
@@ -292,6 +294,7 @@ def run_agent_loop(
 ) -> AgentLoopResult:
     """Run the canonical PR-C full-staged runtime."""
     cfg = config or LoopConfig()
+    cfg.validate_for_run()
     if seed_dsl is not None and cfg.condition_id == "full_staged_v1":
         raise ValueError(
             "LoopConfig() default full_staged_v1 must not use seed_dsl/hot-start DSL; "

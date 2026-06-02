@@ -138,6 +138,31 @@ def test_pr_c_default_entry_missing_real_env_provider_writes_provider_error_reco
     assert record.llm_interactions[-1]["retry_error"]["error_kind"] == "provider_error"
 
 
+def test_pr_c_default_run_id_is_unique_per_run_and_does_not_overwrite(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    for key in ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL"):
+        monkeypatch.delenv(key, raising=False)
+
+    nl = "Same NL and same LoopConfig should still produce independently auditable records."
+    first = loop.run_agent_loop(nl, schema.LoopConfig(output_dir=str(tmp_path)))
+    second = loop.run_agent_loop(nl, schema.LoopConfig(output_dir=str(tmp_path)))
+
+    assert first.run_record_path is not None
+    assert second.run_record_path is not None
+    assert first.run_record_path != second.run_record_path
+    assert first.run_record_id != second.run_record_id
+    assert len(list(tmp_path.glob("*.agent_loop.json.gz"))) == 2
+    assert read_agent_loop_run_record(first.run_record_path).run_id == first.run_record_id
+    assert read_agent_loop_run_record(second.run_record_path).run_id == second.run_record_id
+
+
+def test_pr_c_default_config_post_init_mutation_is_revalidated_at_run(tmp_path: Path) -> None:
+    cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="mutated-default-budget")
+    cfg.max_iterations = 0
+
+    with pytest.raises(ValueError, match="default path cannot silently change budget_policy"):
+        loop.run_agent_loop("Mutated config must not masquerade as full_staged_v1.", cfg)
+
+
 def test_pr_c_explicit_mock_profile_runs_full_staged_path_but_is_not_main_result(tmp_path: Path) -> None:
     provider = MockLLMProvider(responses=[_sl1_ok_raw(), _sl5_ok_raw(), _sl7_pass_raw()])
     cfg = _mock_loop_config(tmp_path)
@@ -271,6 +296,48 @@ def test_pr_c_run_record_redacts_secrets_from_nl_and_llm_interactions(tmp_path: 
     assert "<redacted:" in payload
     assert record.redaction_report
     assert any(item["field_path"].startswith("run_record.input_bundle.nl") for item in record.redaction_report)
+
+
+def test_pr_c_run_record_redaction_failure_fails_closed_without_secret(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    secret = "sk-pr26redactionleak12345"
+    responses = [_sl1_ok_raw(), _sl5_ok_raw(), _sl7_pass_raw()]
+
+    class FakeRealProvider:
+        provider_name = "fake-real-for-redaction-failure"
+        model_id = "fake-real-model"
+
+        def chat(self, **_kwargs: object) -> tuple[str, dict[str, int | str], str]:
+            return responses.pop(0), {
+                "prompt_tokens": 1,
+                "completion_tokens": 1,
+                "total_tokens": 2,
+                "model": self.model_id,
+            }, self.model_id
+
+    def broken_redactor(*_args: object, **_kwargs: object) -> tuple[object, list[dict[str, object]]]:
+        raise RuntimeError("simulated redaction crash")
+
+    monkeypatch.setattr(loop, "RealEnvLLMProvider", lambda: FakeRealProvider())
+    monkeypatch.setattr("method.llm_stages.redact_run_record_payload", broken_redactor)
+    cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="pr-c-redaction-fail-closed")
+
+    result = loop.run_agent_loop(f"Start moves Idle to Active. leaked token LLM_API_KEY={secret}", cfg)
+
+    assert result.status == "spec_failed"
+    assert result.run_record_path is not None
+    record = read_agent_loop_run_record(result.run_record_path)
+    payload = json.dumps(asdict(record), ensure_ascii=False, sort_keys=True)
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.final_artifacts["exclusion_reason"] == "redaction_failed"
+    assert record.final_artifacts["redaction_failed"] is True
+    assert record.input_bundle["nl"] == "<omitted:redaction_failed>"
+    assert secret not in payload
+    assert not is_path_result_eligible(record)
+    assert any(log.get("event") == "run_record_payload_redaction_failed" for log in record.logs)
+    assert record.llm_interactions[0]["omitted"] == "redaction_failed"
 
 
 def test_pr_c_run_record_write_failure_does_not_return_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

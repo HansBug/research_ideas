@@ -14,6 +14,7 @@ import hashlib
 import importlib.metadata
 import platform
 import subprocess
+import uuid
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1229,6 +1230,80 @@ def _eligibility(cfg: FullStagedRuntimeConfig, *, record_status: str, oracle_wea
     return True, "success_full_pass_with_non_weak_oracle", None
 
 
+def _redaction_failed_safe_payload(
+    *,
+    nl: str,
+    cfg: FullStagedRuntimeConfig,
+    state: _RunState,
+    exc: Exception,
+) -> dict[str, Any]:
+    """Return a minimal secret-safe payload when redaction itself fails.
+
+    PR-C's audit rule is fail-closed: an unredacted run record must never be
+    written as a Path1/Path2 eligible main result.  If the redaction engine
+    crashes, discard all raw text surfaces and persist only hashes plus the
+    audit-blocker reason so the run is still traceable without leaking secrets.
+    """
+
+    failure_log = {
+        "ts": _utc_now(),
+        "level": "error",
+        "event": "run_record_payload_redaction_failed",
+        "message": f"{type(exc).__name__}: {str(exc)[:300]}",
+        "fail_closed": True,
+    }
+    return {
+        "input_bundle": {
+            "nl": "<omitted:redaction_failed>",
+            "nl_hash": _hash_text(nl),
+            "initial_dsl_hash": _hash_text(cfg.initial_dsl),
+            "path_context": "<omitted:redaction_failed>",
+            "pr_b1_control_flow_only": False,
+            "default_loop_config_entry_integrated": bool(cfg.default_loop_config_entry_integrated),
+            "redaction_failed": True,
+        },
+        "deterministic_feedback": {
+            "omitted": "redaction_failed",
+            "iteration_count": len(state.iteration_records),
+        },
+        "repair_history": [],
+        "scenario_history": [],
+        "final_artifacts": {
+            "final_dsl": "<omitted:redaction_failed>",
+            "final_dsl_hash": _hash_text(state.current_dsl),
+            "verdict": "invalid",
+            "verdict_source_stage_id": StageId.SC_13_TRACE_AUDIT.value,
+            "verdict_reason": "run record redaction failed; raw payload omitted fail-closed",
+            "agent_loop_result_status": "spec_failed",
+            "oracle_weak": state.oracle_weak,
+            "main_result_eligible": False,
+            "inclusion_reason": None,
+            "exclusion_reason": "redaction_failed",
+            "error_message": f"run record redaction failed: {type(exc).__name__}: {str(exc)[:300]}",
+            "redaction_failed": True,
+        },
+        "logs": [*_jsonable(state.logs), failure_log],
+    }
+
+
+def _redaction_failed_safe_stage_records(stage_records: list[StageResultMeta]) -> list[dict[str, Any]]:
+    """Keep stage ordering/status audit data but drop text fields."""
+
+    safe_rows: list[dict[str, Any]] = []
+    for meta in stage_records:
+        row = _jsonable(meta)
+        if not isinstance(row, dict):
+            continue
+        for key in ("skipped_reason", "stage_error", "output_validation_error"):
+            if row.get(key):
+                row[key] = "<omitted:redaction_failed>"
+        status = row.get("status")
+        if status in {StageStatus.ERROR, StageStatus.ERROR.value} and not (row.get("stage_error") or row.get("output_validation_error")):
+            row["output_validation_error"] = "<omitted:redaction_failed>"
+        safe_rows.append(row)
+    return safe_rows
+
+
 def _build_record(
     *,
     cfg: FullStagedRuntimeConfig,
@@ -1285,6 +1360,8 @@ def _build_record(
         },
         "logs": _jsonable(state.logs),
     }
+    redaction_failed = False
+    redaction_failure_message: str | None = None
     try:
         from method.llm_stages import redact_run_record_payload
 
@@ -1292,28 +1369,54 @@ def _build_record(
         raw_payload = redacted_payload
         redaction_report.extend(_jsonable(payload_report))
     except Exception as exc:
-        raw_payload["logs"] = [
-            *list(raw_payload.get("logs", [])),
+        redaction_failed = True
+        redaction_failure_message = f"{type(exc).__name__}: {str(exc)[:300]}"
+        raw_payload = _redaction_failed_safe_payload(nl=nl, cfg=cfg, state=state, exc=exc)
+        redaction_report.append(
             {
-                "ts": _utc_now(),
-                "level": "warning",
-                "event": "run_record_payload_redaction_failed",
-                "message": str(exc),
-            },
-        ]
+                "field_path": "run_record",
+                "reason": "redaction_failed",
+                "replacement": "<omitted:redaction_failed>",
+                "affects_replay": True,
+            }
+        )
 
     return AgentLoopRunRecord(
         schema_version=RUN_RECORD_SCHEMA_VERSION,
         run_id=state.run_id,
         created_at=state.run_started_at,
-        status=state.final_record_status,  # type: ignore[arg-type]
+        status=("invalid" if redaction_failed else state.final_record_status),  # type: ignore[arg-type]
         input_bundle=raw_payload["input_bundle"],
         run_config=run_config,
         environment=_environment(cfg),
         stage_graph=_planned_stage_graph(state.stage_records),
-        stage_records=[_jsonable(meta) for meta in state.stage_records],
-        iteration_records=_jsonable(state.iteration_records),
-        llm_interactions=_jsonable(state.llm_interactions),
+        stage_records=(
+            _redaction_failed_safe_stage_records(state.stage_records)
+            if redaction_failed
+            else [_jsonable(meta) for meta in state.stage_records]
+        ),
+        iteration_records=(
+            [
+                {
+                    "omitted": "redaction_failed",
+                    "iteration_count": len(state.iteration_records),
+                    "redaction_failure": redaction_failure_message,
+                }
+            ]
+            if redaction_failed
+            else _jsonable(state.iteration_records)
+        ),
+        llm_interactions=(
+            [
+                {
+                    "omitted": "redaction_failed",
+                    "interaction_count": len(state.llm_interactions),
+                    "redaction_failure": redaction_failure_message,
+                }
+            ]
+            if redaction_failed
+            else _jsonable(state.llm_interactions)
+        ),
         deterministic_feedback=raw_payload["deterministic_feedback"],
         repair_history=raw_payload["repair_history"],
         scenario_history=raw_payload["scenario_history"],
@@ -1345,7 +1448,11 @@ def run_full_staged_deterministic_runtime(
     Final success is emitted solely by a later full pass with no blocking
     feedback.
     """
-    run_id = config.run_id or "pr-b1-" + hashlib.sha256(f"{nl}\n{config.initial_dsl}".encode("utf-8")).hexdigest()[:12]
+    if config.run_id:
+        run_id = config.run_id
+    else:
+        input_hash = hashlib.sha256(f"{nl}\n{config.initial_dsl}".encode("utf-8")).hexdigest()[:12]
+        run_id = f"pr-b1-{input_hash}-{uuid.uuid4().hex[:12]}"
     state = _RunState(run_id=run_id, run_started_at=_utc_now(), current_dsl=config.initial_dsl)
     _append_stage(state.stage_records, _meta(StageId.SC_0_START, ok=True))
 
@@ -1544,6 +1651,9 @@ def run_full_staged_deterministic_runtime(
         try:
             path = write_agent_loop_run_record(record, agent_loop_run_record_path(config.output_dir, run_id))
             result.run_record_path = str(path)
+            if record.status == "invalid" and record.final_artifacts.get("redaction_failed") is True:
+                result.status = "spec_failed"
+                result.error_message = str(record.final_artifacts.get("error_message") or "run record redaction failed")
         except Exception as exc:
             result.status = "spec_failed"
             result.error_message = f"run record write failed: {type(exc).__name__}: {str(exc)[:300]}"

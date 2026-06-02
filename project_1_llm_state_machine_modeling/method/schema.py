@@ -357,6 +357,27 @@ class LoopConfig:
                 {"real_env", "fake_replay", "mock"},
                 "LoopConfig.llm_provider_mode",
             )
+        self.validate_for_run()
+
+    def validate_for_run(self) -> None:
+        """Fail closed if a mutable ``LoopConfig`` was changed after init.
+
+        ``LoopConfig`` remains mutable for historical call sites, but PR-C's
+        experiment-default semantics require that callers cannot silently turn
+        ``full_staged_v1`` into a budget/stage/oracle ablation after
+        construction.  The public ``method.loop.run_agent_loop`` entry calls
+        this method immediately before resolving config hashes.
+        """
+
+        self.write_run_record = _coerce_bool(self.write_run_record, "LoopConfig.write_run_record")
+        self.max_iterations = _coerce_non_negative_int(self.max_iterations, "LoopConfig.max_iterations")
+        self.llm_max_retries = _coerce_non_negative_int(self.llm_max_retries, "LoopConfig.llm_max_retries")
+        self.scenario_max_retries = _coerce_non_negative_int(self.scenario_max_retries, "LoopConfig.scenario_max_retries")
+        self.llm_provider_mode = _require_one_of(
+            self.llm_provider_mode,
+            {"real_env", "fake_replay", "mock"},
+            "LoopConfig.llm_provider_mode",
+        )
         for key, value in self.stage_switches.items():
             if not isinstance(value, bool):
                 raise TypeError(f"LoopConfig.stage_switches.{key} must be a bool")
