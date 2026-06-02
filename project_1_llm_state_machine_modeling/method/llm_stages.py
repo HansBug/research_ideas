@@ -23,7 +23,7 @@ import hashlib
 import json
 import re
 from dataclasses import asdict, dataclass, field, is_dataclass
-from typing import Any, Callable, Optional, Protocol
+from typing import Any, Callable, Literal, Optional, Protocol
 
 from method.gpt_client import chat as real_env_chat
 from method.gpt_client import get_default_model
@@ -47,12 +47,35 @@ from method.stages.sl_prompt_common import strip_fence
 
 
 SECRET_TEXT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "env_secret_assignment",
+        re.compile(
+            r"\b(?:LLM_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|API_KEY|TOKEN|PASSWORD|PASSWD|SECRET|AUTHORIZATION)"
+            r"\s*[:=]\s*[^\s`\'\"<>]{8,}",
+            re.IGNORECASE,
+        ),
+    ),
     ("openai_api_key", re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{7,}")),
-    ("github_oauth_token", re.compile(r"gh[o|p|s|u|r]_[A-Za-z0-9_]{8,}")),
+    ("github_oauth_token", re.compile(r"gh[opsur]_[A-Za-z0-9_]{8,}")),
     ("github_pat", re.compile(r"github_pat_[A-Za-z0-9_]{8,}")),
     ("bearer_token", re.compile(r"Bearer\s+[A-Za-z0-9._\-]{12,}", re.IGNORECASE)),
 )
-SECRET_KEYWORDS = ("api_key", "apikey", "token", "password", "passwd", "secret", "authorization")
+SECRET_FIELD_EXACT_KEYS = {
+    "api_key",
+    "apikey",
+    "token",
+    "password",
+    "passwd",
+    "secret",
+    "authorization",
+    "access_token",
+    "refresh_token",
+    "bearer_token",
+    "llm_api_key",
+    "openai_api_key",
+    "anthropic_api_key",
+}
+SECRET_FIELD_SUFFIXES = ("_api_key", "_token", "_password", "_passwd", "_secret", "_authorization")
 
 
 @dataclass
@@ -83,8 +106,13 @@ class LLMStageConfig:
 class ChatProvider(Protocol):
     """Small provider protocol used by PR-B2 stage units."""
 
-    provider_name: str
-    model_id: str
+    @property
+    def provider_name(self) -> str:
+        ...
+
+    @property
+    def model_id(self) -> str:
+        ...
 
     def chat(
         self,
@@ -243,6 +271,19 @@ def _redact_text(value: str, path: str, report: list[dict[str, Any]], *, affects
     return redacted
 
 
+def _is_secret_field_key(key_text: str) -> bool:
+    """Return True for field names that semantically carry credentials.
+
+    Keep this narrower than a substring match: audit metadata such as
+    ``prompt_tokens`` / ``total_tokens`` must remain numeric for replay and cost
+    accounting, while fields like ``openai_api_key`` or ``access_token`` must be
+    removed from public run records.
+    """
+
+    normalized = re.sub(r"[^a-z0-9]+", "_", key_text.lower()).strip("_")
+    return normalized in SECRET_FIELD_EXACT_KEYS or normalized.endswith(SECRET_FIELD_SUFFIXES)
+
+
 def _redact_payload(value: Any, path: str, report: list[dict[str, Any]], *, affects_replay: bool = True) -> Any:
     if isinstance(value, str):
         return _redact_text(value, path, report, affects_replay=affects_replay)
@@ -251,8 +292,9 @@ def _redact_payload(value: Any, path: str, report: list[dict[str, Any]], *, affe
         for key, item in value.items():
             key_text = str(key)
             item_path = f"{path}.{key_text}" if path else key_text
-            if isinstance(item, str) and any(keyword in key_text.lower() for keyword in SECRET_KEYWORDS):
-                replacement = _redaction_placeholder(item, "secret_field")
+            if _is_secret_field_key(key_text):
+                secret_material = item if isinstance(item, str) else json.dumps(_jsonable(item), ensure_ascii=False, sort_keys=True, default=str)
+                replacement = _redaction_placeholder(str(secret_material), "secret_field")
                 report.append(_redaction_report_item(item_path, reason="secret_field", replacement=replacement, affects_replay=affects_replay))
                 redacted[key_text] = replacement
             else:
@@ -297,7 +339,7 @@ def _review_meta(
     validation_error: str | None,
     config: LLMStageConfig,
     retry_count: int,
-    failure_policy: str = "fail_closed",
+    failure_policy: Literal["fail_open", "fail_closed", "audit_only"] = "fail_closed",
 ) -> ReviewRunMeta:
     return ReviewRunMeta(
         provider=provider_name,
@@ -316,7 +358,7 @@ def _review_meta(
         schema_validation_error=validation_error,
         cache_key=f"{stage_id.value}:{_hash_payload(prompt_messages)}",
         decision_threshold=None,
-        failure_policy=failure_policy,  # type: ignore[arg-type]
+        failure_policy=failure_policy,
         replay_key=f"{stage_id.value}:{_hash_payload(prompt_messages)}",
     )
 
@@ -369,7 +411,7 @@ def _run_llm_stage(
     provider: Optional[ChatProvider] = None,
     response_format: Optional[dict[str, Any]] = None,
     empty_output_invalid: bool = True,
-    failure_policy: str = "fail_closed",
+    failure_policy: Literal["fail_open", "fail_closed", "audit_only"] = "fail_closed",
 ) -> LLMStageRun:
     chat_provider = _provider_for(config, provider)
     attempts: list[dict[str, Any]] = []
@@ -469,8 +511,9 @@ def _run_llm_stage(
             )
 
     retry_count = max(0, len(attempts) - 1)
-    retry_error = None if schema_ok else {"error_kind": last_error_kind or "unknown", "error_message": last_error or "unknown LLM failure"}
-    meta = _stage_meta(stage_id, ok=schema_ok, raw_output=last_raw, prompt_messages=prompt_messages, validation_error=None if schema_ok else retry_error["error_message"])
+    retry_error: dict[str, str] | None = None if schema_ok else {"error_kind": last_error_kind or "unknown", "error_message": last_error or "unknown LLM failure"}
+    validation_error = None if schema_ok or retry_error is None else retry_error["error_message"]
+    meta = _stage_meta(stage_id, ok=schema_ok, raw_output=last_raw, prompt_messages=prompt_messages, validation_error=validation_error)
     review_meta = _review_meta(
         stage_id=stage_id,
         provider_name=chat_provider.provider_name,
@@ -480,7 +523,7 @@ def _run_llm_stage(
         raw_output=last_raw,
         parsed_schema_version=parsed_schema_version,
         schema_ok=schema_ok,
-        validation_error=None if schema_ok else retry_error["error_message"],
+        validation_error=validation_error,
         config=config,
         retry_count=retry_count,
         failure_policy=failure_policy,
@@ -673,7 +716,7 @@ def _policy_mode(policy: dict[str, Any] | None, *, default: str) -> str:
     )
 
 
-def _review_failure_policy(mode: str) -> str:
+def _review_failure_policy(mode: str) -> Literal["fail_closed", "audit_only"]:
     return "audit_only" if mode == "audit_only" else "fail_closed"
 
 

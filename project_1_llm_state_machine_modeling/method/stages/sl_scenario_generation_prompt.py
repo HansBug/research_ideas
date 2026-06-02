@@ -107,19 +107,26 @@ def _parse_step(raw: dict[str, Any]) -> ScenarioStep:
 
 
 def _parse_scenario(raw: dict[str, Any]) -> TestScenario:
+    if not isinstance(raw, dict):
+        raise ValueError(f"SL-5 scenario item must be an object, got {type(raw).__name__}")
+
     steps_raw = raw.get("steps", [])
     if not isinstance(steps_raw, list):
-        steps_raw = []
+        raise ValueError("SL-5 scenario.steps must be a list when provided")
+    for index, step in enumerate(steps_raw):
+        if not isinstance(step, dict):
+            raise ValueError(f"SL-5 scenario.steps[{index}] must be an object")
+
     initial_state_raw = raw.get("initial_state")
     initial_vars = raw.get("initial_vars") or {}
     if not isinstance(initial_vars, dict):
-        initial_vars = {}
+        raise ValueError("SL-5 scenario.initial_vars must be an object when provided")
     return TestScenario(
         name=str(raw.get("name", "")),
         description=str(raw.get("description", "")),
         initial_state=None if initial_state_raw is None else str(initial_state_raw),
         initial_vars=dict(initial_vars),
-        steps=[_parse_step(step) for step in steps_raw if isinstance(step, dict)],
+        steps=[_parse_step(step) for step in steps_raw],
     )
 
 
@@ -128,4 +135,4 @@ def parse_sl5_scenario_generation_response(content: str) -> list[TestScenario]:
     raw_list = parsed.get("scenarios", [])
     if not isinstance(raw_list, list):
         raise ValueError("SL-5 scenarios must be a list")
-    return [_parse_scenario(item) for item in raw_list if isinstance(item, dict)]
+    return [_parse_scenario(item) for item in raw_list]

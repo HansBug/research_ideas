@@ -158,6 +158,41 @@ def test_pr_b2_sl5_retries_empty_output_and_returns_scenarios() -> None:
     assert result.interaction["parsed_output"]["scenarios"][0]["name"] == "start_idle"
 
 
+def test_pr_b2_sl5_retries_malformed_scenario_schema_instead_of_silently_downgrading() -> None:
+    malformed = json.dumps(
+        {
+            "scenarios": [
+                "not-an-object",
+                {"name": "bad-steps", "steps": "not-list"},
+            ]
+        },
+        ensure_ascii=False,
+    )
+    valid = json.dumps(
+        {
+            "scenarios": [
+                {
+                    "name": "valid-after-retry",
+                    "steps": [{"name": "check", "expected_state": "Root.Idle"}],
+                }
+            ]
+        },
+        ensure_ascii=False,
+    )
+    provider = MockLLMProvider(responses=[malformed, valid])
+
+    result = run_sl5_scenario_generation_llm(
+        nl="The controller starts in Idle.",
+        current_dsl=BASE_DSL,
+        config=_cfg(max_retries=1),
+        provider=provider,
+    )
+
+    assert result.ok is True
+    assert [attempt["status"] for attempt in result.interaction["attempts"]] == ["schema_invalid", "ok"]
+    assert result.parsed_output[0].name == "valid-after-retry"
+
+
 def test_pr_b2_sl9_repair_records_full_context_and_treats_suggested_fix_as_hint() -> None:
     candidate = """
 state Root {
@@ -327,6 +362,35 @@ def test_pr_b2_llm_stage_records_redact_prompt_raw_and_attempt_secrets() -> None
     assert {item["reason"] for item in result.redaction_report} >= {"openai_api_key", "github_pat"}
 
 
+def test_pr_b2_llm_stage_redacts_env_style_secrets_without_redacting_usage_tokens() -> None:
+    secret = "LLM_API_KEY=proxy-secret-1234567890abcdef"
+    provider = MockLLMProvider(
+        responses=[
+            json.dumps(
+                {
+                    "candidate_dsl": f"state Root {{ state Idle; }} // {secret}",
+                    "grounding_seeds": [],
+                },
+                ensure_ascii=False,
+            )
+        ]
+    )
+
+    result = run_sl1_initial_modeling_llm(
+        nl=f"Requirement accidentally includes env line {secret}",
+        config=_cfg(),
+        provider=provider,
+    )
+    record_text = json.dumps(result.interaction, ensure_ascii=False)
+
+    assert secret not in record_text
+    assert "proxy-secret-1234567890abcdef" not in record_text
+    assert "env_secret_assignment" in record_text
+    assert result.interaction["usage"]["total_tokens"] == 2
+    assert result.interaction["attempts"][0]["usage"]["prompt_tokens"] == 1
+    assert "env_secret_assignment" in {item["reason"] for item in result.redaction_report}
+
+
 def test_pr_b2_provider_errors_retry_as_llm_layer_without_deterministic_retry() -> None:
     provider = MockLLMProvider(errors=[RuntimeError("network down")], responses=[])
 
@@ -438,4 +502,3 @@ def test_pr_b2_sl10b_audit_policy_records_reject_without_blocking_accept_candida
     assert result.feedback.ok is True
     assert result.feedback.regression_detected is False
     assert result.feedback.review_meta.failure_policy == "audit_only"
-
