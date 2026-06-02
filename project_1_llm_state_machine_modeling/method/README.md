@@ -7,13 +7,14 @@
 > **创建日期**：2026-05-26（sprint 共同基础阶段）
 
 
-## 0. PR-A 默认入口语义（2026-06-02）
+## 0. PR-C 默认入口语义（2026-06-02）
 
-本目录当前处于 issue [#21](https://github.com/HansBug/research_ideas/issues/21) 的 PR-A 阶段：
+本目录当前处于 issue [#21](https://github.com/HansBug/research_ideas/issues/21) 的 PR-C 阶段：
 
-- `method.loop.run_agent_loop(nl, LoopConfig())` 已切换为 **canonical staged façade**，默认解析为 `experiment_default/full_staged_v1`。
-- PR-A 只交付 legacy 拆出、`LoopConfig` / ablation condition registry、planned stage graph 与 run-record config contract；真实 full runtime 在后续 PR-B1/B2/C 集成。
-- 因此 PR-A 阶段的默认入口不会调用 legacy / fake / hot-start runtime；若写 run record，也会标记 `contract_only=true` 与 `main_result_eligible=false`，不得作为 Path1/Path2 主实验结果。
+- `method.loop.run_agent_loop(nl, LoopConfig())` 已集成为 **canonical full staged runtime**，默认解析为 `experiment_default/full_staged_v1` 并调用 PR-B1 driver + PR-B2 real-env SL adapters。
+- 默认入口不再返回 PR-A `contract_only` façade；缺少真实 provider 配置或 provider/schema retry 耗尽时，也会写出 `AgentLoopRunRecord` 并以 `provider_error` / `invalid` 等可审计 verdict 退出。
+- fake / mock / replay / hot-start DSL 只能通过显式非默认 condition 或专用 smoke/replay 入口启用；默认 `LoopConfig()` 不允许 provider injection 或 `seed_dsl`，避免污染 Path1/Path2 主实验。
+- `AgentLoopRunRecord` 会记录 resolved config、condition hash、environment、provider/model 脱敏标识、stage/iteration/repair/scenario/LLM trace、eligibility 与 `redaction_report`；非默认/weak oracle/provider error/schema invalid/write failure 均不得进入高可信主结果。
 - 旧 A0-A4 loop 已迁移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，调用时发 `DeprecationWarning`，只用于历史诊断与 baseline 对照。
 
 默认 stage graph：

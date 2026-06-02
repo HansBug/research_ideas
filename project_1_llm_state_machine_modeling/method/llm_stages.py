@@ -305,6 +305,25 @@ def _redact_payload(value: Any, path: str, report: list[dict[str, Any]], *, affe
     return value
 
 
+def redact_run_record_payload(
+    value: Any,
+    *,
+    path: str = "run_record",
+    affects_replay: bool = True,
+) -> tuple[Any, list[dict[str, Any]]]:
+    """Redact secrets from non-LLM run-record surfaces.
+
+    PR-B2 already redacts each LLM interaction before it is appended to the run
+    record.  PR-C also stores raw NL, final DSL, repair history and logs in the
+    self-contained ``AgentLoopRunRecord``.  Those surfaces may accidentally
+    contain copied credentials (for example a user pasting ``LLM_API_KEY=...``
+    into NL), so expose the same redaction policy for the runtime driver.
+    """
+
+    report: list[dict[str, Any]] = []
+    return _redact_payload(value, path, report, affects_replay=affects_replay), report
+
+
 def _stage_meta(stage_id: StageId, *, ok: bool, raw_output: str, prompt_messages: list[dict[str, str]], validation_error: str | None = None) -> StageResultMeta:
     spec = STAGE_SPECS_BY_ID[stage_id.value]
     if ok:
@@ -553,6 +572,8 @@ def _run_llm_stage(
         "attempts": attempts,
         "retry_error": retry_error,
         "review_meta": asdict(review_meta),
+        "provider_mode": config.provider_mode,
+        "real_llm_provider_api": config.provider_mode == "real_env",
         "llm_retry_scope": "provider/network/schema/empty-output only; deterministic feedback is not retried here",
     }
     redaction_report: list[dict[str, Any]] = []
@@ -690,7 +711,7 @@ def run_sl9_repair_llm(
             raise ValueError("SL-9 candidate_dsl must be non-empty")
         return {"candidate_dsl": dsl}
 
-    return _run_llm_stage(
+    run = _run_llm_stage(
         stage_id=StageId.SL_9_REPAIR,
         prompt_template_version=version,
         prompt_messages=prompt,
@@ -700,6 +721,32 @@ def run_sl9_repair_llm(
         provider=provider,
         response_format=None,
     )
+    if run.ok and isinstance(run.parsed_output, dict):
+        normalized = _jsonable(run.parsed_output)
+        extra_report: list[dict[str, Any]] = []
+        run.interaction["parsed_output"] = (
+            _redact_payload(
+                normalized,
+                "llm_interaction.parsed_output",
+                extra_report,
+            )
+            if cfg.redact_secrets
+            else normalized
+        )
+        if run.interaction.get("attempts"):
+            for i, attempt in enumerate(run.interaction["attempts"]):
+                if attempt.get("status") == "ok":
+                    attempt["parsed_output"] = (
+                        _redact_payload(
+                            normalized,
+                            f"llm_interaction.attempts[{i}].parsed_output",
+                            extra_report,
+                        )
+                        if cfg.redact_secrets
+                        else normalized
+                    )
+        run.redaction_report.extend(extra_report)
+    return run
 
 
 
@@ -854,6 +901,7 @@ __all__ = [
     "LLMStageRun",
     "MockLLMProvider",
     "RealEnvLLMProvider",
+    "redact_run_record_payload",
     "run_sl1_initial_modeling_llm",
     "run_sl5_scenario_generation_llm",
     "run_sl7_model_review_llm",

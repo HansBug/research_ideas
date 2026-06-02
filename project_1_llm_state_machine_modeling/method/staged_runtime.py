@@ -11,6 +11,7 @@ real LLM adapters into the canonical ``method.loop`` entry point.
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import platform
 import subprocess
 from dataclasses import asdict, dataclass, field, is_dataclass
@@ -24,6 +25,7 @@ from method.schema import (
     AgentLoopRunRecord,
     DesignFeedback,
     FixPlan,
+    GroundedElement,
     GroundingMap,
     ModelReviewFeedback,
     ParseFeedback,
@@ -47,7 +49,7 @@ from method.stages.sd_tools import (
     run_sd10_repair_review,
 )
 
-RUN_RECORD_SCHEMA_VERSION = "pr-b1.full-staged-deterministic-runtime.v1"
+RUN_RECORD_SCHEMA_VERSION = "pr-c.default-full-staged-runtime.v1"
 
 
 @dataclass
@@ -101,6 +103,14 @@ class FullStagedRuntimeConfig:
     adapter_mode: str = "test_injected"
     allow_main_result_eligible: bool = False
     path_context: dict[str, Any] = field(default_factory=dict)
+    resolved_loop_config: dict[str, Any] = field(default_factory=dict)
+    run_config_extra: dict[str, Any] = field(default_factory=dict)
+    environment_extra: dict[str, Any] = field(default_factory=dict)
+    redaction_report: list[dict[str, Any]] = field(default_factory=list)
+    real_llm_provider_api: bool = False
+    provider_config_read: bool = False
+    provider_model_redacted: str = ""
+    default_loop_config_entry_integrated: bool = False
 
     def __post_init__(self) -> None:
         if self.max_iterations < 0:
@@ -231,6 +241,7 @@ class _RunState:
     result_status: str = "not_converged"
     error_message: str | None = None
     pre_scenario_repair_count: int = 0
+    redaction_report: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -281,16 +292,37 @@ def _git_commit() -> str:
         return "unknown"
 
 
+def _package_version(name: str) -> str:
+    try:
+        return importlib.metadata.version(name)
+    except Exception:
+        return "unknown"
+
+
 def _environment(cfg: FullStagedRuntimeConfig) -> dict[str, Any]:
-    return {
+    resolved = dict(cfg.resolved_loop_config or {})
+    provider_mode = str(resolved.get("llm_provider_mode") or cfg.adapter_mode)
+    payload = {
         "git_commit": _git_commit(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
         "runner": "method.staged_runtime.run_full_staged_deterministic_runtime",
         "adapter_mode": cfg.adapter_mode,
-        "real_llm_provider_api": False,
-        "provider_config_read": False,
+        "provider_mode": provider_mode,
+        "real_llm_provider_api": bool(cfg.real_llm_provider_api),
+        "provider_config_read": bool(cfg.provider_config_read),
+        "provider_model_redacted": cfg.provider_model_redacted or "<unknown>",
+        "pyfcstm_version": _package_version("pyfcstm"),
+        "dependency_versions": {
+            "python": platform.python_version(),
+            "pyfcstm": _package_version("pyfcstm"),
+            "openai": _package_version("openai"),
+        },
+        "config_hash": resolved.get("condition_hash"),
+        "resolved_config": _jsonable(resolved),
     }
+    payload.update(_jsonable(cfg.environment_extra))
+    return payload
 
 
 def _meta(stage_id: StageId, *, ok: bool = True, status: StageStatus | None = None, stage_error: str | None = None) -> StageResultMeta:
@@ -353,6 +385,9 @@ def _append_llm_stage_run(
     if iteration_stage_metas is not None:
         iteration_stage_metas.append(meta)
     interaction = dict(getattr(run, "interaction", {}) or {})
+    redaction_report = list(getattr(run, "redaction_report", []) or [])
+    if redaction_report:
+        interaction["redaction_report"] = _jsonable(redaction_report)
     if interaction:
         llm_interactions.append(interaction)
     retry_error = _retry_error_from_llm_stage_run(run)
@@ -631,7 +666,7 @@ def _run_scenario_generation_and_freeze(
         selected_coverage = dict(coverage)
         gap = bool(coverage.get("coverage_gap"))
         retry_exhausted = gap and attempt_index >= cfg.scenario_max_retries
-        weak = retry_exhausted
+        weak = retry_exhausted or bool(selected_coverage.get("oracle_weak"))
         scenario_history.append(
             _scenario_history_item(
                 iteration=iteration,
@@ -729,7 +764,7 @@ def _reuse_or_check_scenario_set(
     previous_scenarios = list(scenario_set.scenarios)
     selected_scenarios = list(scenario_set.scenarios)
     selected_coverage = dict(coverage)
-    weak = cfg.scenario_max_retries == 0
+    weak = cfg.scenario_max_retries == 0 or bool(selected_coverage.get("oracle_weak"))
     next_epoch = scenario_set.epoch + 1
 
     logs.append(
@@ -778,7 +813,7 @@ def _reuse_or_check_scenario_set(
         selected_coverage = dict(retry_coverage)
         retry_gap = bool(retry_coverage.get("coverage_gap"))
         retry_exhausted = retry_gap and retry_index >= cfg.scenario_max_retries
-        weak = retry_exhausted
+        weak = retry_exhausted or bool(selected_coverage.get("oracle_weak"))
         history.append(
             {
                 **_scenario_history_item(
@@ -1085,6 +1120,17 @@ def _run_repair_path(
     repair_review, repair_review_meta = adapters.repair_review(review_request)
     _append_stage(state.stage_records, repair_review_meta)
     repair_stage_ids.append(repair_review_meta.stage_id)
+    local_sd10_repair_review = _jsonable(repair_review)
+    repair_review_input_summary = {
+        "nl_hash": _hash_text(nl),
+        "has_grounding_map": cfg.grounding_map is not None,
+        "old_dsl_hash": _hash_text(state.current_dsl),
+        "candidate_dsl_hash": _hash_text(candidate_dsl),
+        "fix_plan_target": getattr(effective_fix_plan, "target", None),
+        "fix_plan_source_stage": getattr(effective_fix_plan, "source_stage", None),
+        "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+        "inputs": ["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixPlan", "ScenarioSet"],
+    }
 
     if repair_review.ok and adapters.delta_review is not None:
         delta_feedback_authoritative = False
@@ -1137,6 +1183,8 @@ def _run_repair_path(
         "fix_plan": _jsonable(effective_fix_plan),
         "candidate_dsl": candidate_dsl,
         "candidate_dsl_hash": _hash_text(candidate_dsl),
+        "repair_review_input_summary": repair_review_input_summary,
+        "sd10_repair_review": local_sd10_repair_review,
         "repair_review": _jsonable(repair_review),
         "accepted": accepted,
         "repair_stage_ids": list(repair_stage_ids),
@@ -1165,10 +1213,17 @@ def _eligibility(cfg: FullStagedRuntimeConfig, *, record_status: str, oracle_wea
     if record_status != "success":
         return False, None, "verdict_not_success"
     reasons: list[str] = []
+    resolved = cfg.resolved_loop_config or {}
+    condition_id = str(resolved.get("condition_id") or "")
+    provider_mode = str(resolved.get("llm_provider_mode") or "")
     if oracle_weak:
         reasons.append("weak_oracle")
     if not cfg.allow_main_result_eligible:
         reasons.append("deterministic_runtime_not_default_real_adapter")
+    if condition_id and condition_id != "full_staged_v1":
+        reasons.append("non_default_condition")
+    if provider_mode and provider_mode != "real_env":
+        reasons.append("non_real_provider_mode")
     if reasons:
         return False, None, ";".join(reasons)
     return True, "success_full_pass_with_non_weak_oracle", None
@@ -1185,36 +1240,37 @@ def _build_record(
         record_status=state.final_record_status,
         oracle_weak=state.oracle_weak,
     )
-    return AgentLoopRunRecord(
-        schema_version=RUN_RECORD_SCHEMA_VERSION,
-        run_id=state.run_id,
-        created_at=state.run_started_at,
-        status=state.final_record_status,  # type: ignore[arg-type]
-        input_bundle={
+    resolved_config = dict(cfg.resolved_loop_config or {})
+    run_config = {
+        **resolved_config,
+        "max_iterations": cfg.max_iterations,
+        "scenario_max_retries": cfg.scenario_max_retries,
+        "policy_profile": cfg.policy_profile,
+        "adapter_mode": cfg.adapter_mode,
+        "allow_main_result_eligible": cfg.allow_main_result_eligible,
+        "real_llm_provider_api": bool(cfg.real_llm_provider_api),
+        "default_loop_config_entry_integrated": bool(cfg.default_loop_config_entry_integrated),
+        "contract_only": False,
+    }
+    run_config.update(_jsonable(cfg.run_config_extra))
+    redaction_report = list(_jsonable(cfg.redaction_report) or [])
+    for interaction in state.llm_interactions:
+        if isinstance(interaction, dict) and interaction.get("redaction_report"):
+            redaction_report.extend(_jsonable(interaction.get("redaction_report")))
+
+    raw_payload = {
+        "input_bundle": {
             "nl": nl,
             "nl_hash": _hash_text(nl),
             "initial_dsl_hash": _hash_text(cfg.initial_dsl),
             "path_context": _jsonable(cfg.path_context),
-            "pr_b1_control_flow_only": True,
+            "pr_b1_control_flow_only": False,
+            "default_loop_config_entry_integrated": bool(cfg.default_loop_config_entry_integrated),
         },
-        run_config={
-            "max_iterations": cfg.max_iterations,
-            "scenario_max_retries": cfg.scenario_max_retries,
-            "policy_profile": cfg.policy_profile,
-            "adapter_mode": cfg.adapter_mode,
-            "allow_main_result_eligible": cfg.allow_main_result_eligible,
-            "real_llm_provider_api": False,
-            "default_loop_config_entry_integrated": False,
-        },
-        environment=_environment(cfg),
-        stage_graph=_planned_stage_graph(state.stage_records),
-        stage_records=[_jsonable(meta) for meta in state.stage_records],
-        iteration_records=_jsonable(state.iteration_records),
-        llm_interactions=_jsonable(state.llm_interactions),
-        deterministic_feedback=_jsonable(state.deterministic_feedback),
-        repair_history=_jsonable(state.repair_history),
-        scenario_history=_jsonable(state.scenario_history),
-        final_artifacts={
+        "deterministic_feedback": _jsonable(state.deterministic_feedback),
+        "repair_history": _jsonable(state.repair_history),
+        "scenario_history": _jsonable(state.scenario_history),
+        "final_artifacts": {
             "final_dsl": state.current_dsl,
             "final_dsl_hash": _hash_text(state.current_dsl),
             "verdict": state.final_verdict,
@@ -1227,7 +1283,42 @@ def _build_record(
             "exclusion_reason": exclusion_reason,
             "error_message": state.error_message,
         },
-        logs=_jsonable(state.logs),
+        "logs": _jsonable(state.logs),
+    }
+    try:
+        from method.llm_stages import redact_run_record_payload
+
+        redacted_payload, payload_report = redact_run_record_payload(raw_payload)
+        raw_payload = redacted_payload
+        redaction_report.extend(_jsonable(payload_report))
+    except Exception as exc:
+        raw_payload["logs"] = [
+            *list(raw_payload.get("logs", [])),
+            {
+                "ts": _utc_now(),
+                "level": "warning",
+                "event": "run_record_payload_redaction_failed",
+                "message": str(exc),
+            },
+        ]
+
+    return AgentLoopRunRecord(
+        schema_version=RUN_RECORD_SCHEMA_VERSION,
+        run_id=state.run_id,
+        created_at=state.run_started_at,
+        status=state.final_record_status,  # type: ignore[arg-type]
+        input_bundle=raw_payload["input_bundle"],
+        run_config=run_config,
+        environment=_environment(cfg),
+        stage_graph=_planned_stage_graph(state.stage_records),
+        stage_records=[_jsonable(meta) for meta in state.stage_records],
+        iteration_records=_jsonable(state.iteration_records),
+        llm_interactions=_jsonable(state.llm_interactions),
+        deterministic_feedback=raw_payload["deterministic_feedback"],
+        repair_history=raw_payload["repair_history"],
+        scenario_history=raw_payload["scenario_history"],
+        final_artifacts=raw_payload["final_artifacts"],
+        logs=raw_payload["logs"],
         replay_index={
             "stage_by_index": {str(i): meta.stage_id for i, meta in enumerate(state.stage_records)},
             "iteration_count": len(state.iteration_records),
@@ -1237,6 +1328,7 @@ def _build_record(
             "verdict": state.final_verdict,
             "verdict_source_stage_id": state.verdict_source_stage_id,
         },
+        redaction_report=redaction_report,
     )
 
 
@@ -1272,6 +1364,12 @@ def run_full_staged_deterministic_runtime(
                 parsed_output = getattr(initial_run, "parsed_output", {}) or {}
                 if isinstance(parsed_output, dict) and parsed_output.get("candidate_dsl"):
                     state.current_dsl = str(parsed_output["candidate_dsl"])
+                    seeds = parsed_output.get("grounding_seeds") or []
+                    if seeds and config.grounding_map is None:
+                        try:
+                            config.grounding_map = GroundingMap(elements=[GroundedElement(**item) if isinstance(item, dict) else item for item in seeds], source_summary={"source_stage": StageId.SL_1_INITIAL_MODELING.value})
+                        except Exception as exc:
+                            state.logs.append({"ts": _utc_now(), "level": "warning", "event": "grounding_seed_coercion_failed", "message": str(exc)})
             elif isinstance(initial_run, str) and initial_run:
                 state.current_dsl = initial_run
         except _LLMRetryExhausted as exc:
@@ -1437,7 +1535,7 @@ def run_full_staged_deterministic_runtime(
         final_dsl=state.current_dsl,
         status=state.result_status,  # type: ignore[arg-type]
         error_message=state.error_message,
-        llm_model="none-pr-b1-explicit-adapters",
+        llm_model=config.provider_model_redacted or "none-pr-b1-explicit-adapters",
         run_record_id=run_id,
     )
 

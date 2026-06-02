@@ -4,15 +4,17 @@
 > **目标**：完整实现 + 跑通 our agent loop + 给出引导 md + smoke 通过；merge 到 main 后 Path 1 / Path 2 各自 PR rebase main 拿到这部分。
 
 
-## PR-A 状态补充（issue #21，2026-06-02）
+## PR-C 状态补充（issue #21，2026-06-02）
 
-当前分支 PR-A 的目标不是交付真实 full runtime，而是先固定共享 contract：
+当前分支 PR-C 已将共享 contract、PR-B1 control-flow 与 PR-B2 LLM adapters 合流到默认入口：
 
 - `LoopConfig()` 默认解析为 `experiment_default/full_staged_v1`，包含 full staged stage switches、feedback/budget/scenario/LLM/record/eligibility policy 与 condition hash。
-- `method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation；PR-A 阶段只作为 canonical staged façade 写 contract-only run record，`main_result_eligible=false`。
+- `method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation，也不再停留在 PR-A contract-only façade；默认执行 full staged runtime。
+- 默认 `LoopConfig()` 使用 real-env LLM provider adapter；缺 provider 配置、provider retry exhaustion 或 schema invalid 会写出 run record 并以 `provider_error` / `invalid` 退出，不回退 fake。
 - 旧实现移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，并发 deprecation warning。
 - planned stage graph 已固定为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SD-10/SL-10B/SC-11/SC-12/SC-13`，每个 planned node 都有 `enabled/ran/status/skipped_reason` trace 字段。
-- 后续 PR-B1/B2/C 才负责真实 top-down runtime、真实 LLM stage 与默认入口实跑；PR-D 负责 Path1/Path2 representative real full run evidence。
+- run record 记录 resolved config / environment / provider-model 脱敏标识 / stage_records / iteration_records / llm_interactions / deterministic_feedback / repair_history / scenario_history / logs / final_artifacts / redaction_report。
+- PR-D 继续负责 Path1/Path2 representative real full run evidence 与上游 issue comment 汇报；PR-C 不声明模型质量已达到高可信主结果。
 
 
 ## PR-B2 状态补充（issue #21，2026-06-02）

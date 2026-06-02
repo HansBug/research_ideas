@@ -829,25 +829,29 @@ def test_planned_stage_graph_covers_full_staged_default_and_trace_fields() -> No
     assert graph["nodes"][0]["stage_kind"] == "control"
 
 
-def test_canonical_run_agent_loop_does_not_call_legacy_or_fake_runtime(tmp_path: Path) -> None:
+def test_canonical_run_agent_loop_default_full_staged_writes_auditable_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    for key in ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL"):
+        monkeypatch.delenv(key, raising=False)
     cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="contract-only")
 
     result = loop.run_agent_loop("Start moves Idle to Active.", cfg)
 
-    assert result.status == "contract_only"
+    assert result.status == "api_failed"
     assert result.run_record_path is not None
     assert result.resolved_config["condition_id"] == "full_staged_v1"
     assert result.planned_stage_graph["planned"][0] == "SC-0"
     from method.run_record import read_agent_loop_run_record, is_path_result_eligible
 
     record = read_agent_loop_run_record(result.run_record_path)
-    assert record.status == "contract_only"
+    assert record.status == "error"
     assert record.run_config["condition_id"] == "full_staged_v1"
     assert record.run_config["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
-    assert record.run_config["contract_only"] is True
+    assert record.run_config["contract_only"] is False
     assert record.run_config["compatibility_mode"] == "canonical_staged"
+    assert record.run_config["default_loop_config_entry_integrated"] is True
     assert record.stage_graph["planned"] == result.planned_stage_graph["planned"]
-    assert record.stage_graph["executed"] == []
+    assert record.stage_graph["executed"][:2] == ["SC-0", "SL-1"]
+    assert record.final_artifacts["verdict"] == "provider_error"
     assert record.final_artifacts["main_result_eligible"] is False
     assert not is_path_result_eligible(record)
 
