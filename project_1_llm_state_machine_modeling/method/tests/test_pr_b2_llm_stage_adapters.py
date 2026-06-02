@@ -412,6 +412,44 @@ def test_pr_b2_provider_errors_retry_as_llm_layer_without_deterministic_retry() 
     assert len(result.interaction["attempts"]) == 1
     assert provider.call_count == 1
 
+
+def test_pr_b2_schema_retry_exhaustion_returns_error_kind_without_sc12_verdict() -> None:
+    provider = MockLLMProvider(responses=["not json"])
+
+    result = run_sl1_initial_modeling_llm(
+        nl="Malformed JSON should remain an LLM-layer schema failure.",
+        config=_cfg(max_retries=0),
+        provider=provider,
+    )
+
+    assert result.ok is False
+    assert result.stage_meta.status == StageStatus.ERROR
+    assert result.interaction["retry_error"]["error_kind"] == "schema_invalid"
+    assert result.interaction["schema_validation_error"]
+    assert [attempt["status"] for attempt in result.interaction["attempts"]] == ["schema_invalid"]
+    assert "terminal_verdict_hint" not in result.interaction
+    assert "verdict" not in result.interaction["retry_error"]
+
+
+def test_pr_b2_empty_output_retry_exhaustion_returns_error_kind_without_sc12_verdict() -> None:
+    provider = MockLLMProvider(responses=[""])
+
+    result = run_sl5_scenario_generation_llm(
+        nl="Empty output should be reported to PR-B1/PR-C as invalid LLM output.",
+        current_dsl=BASE_DSL,
+        config=_cfg(max_retries=0),
+        provider=provider,
+    )
+
+    assert result.ok is False
+    assert result.stage_meta.status == StageStatus.ERROR
+    assert result.interaction["retry_error"]["error_kind"] == "empty_output"
+    assert result.interaction["schema_validation_error"] == "empty LLM output"
+    assert [attempt["status"] for attempt in result.interaction["attempts"]] == ["empty_output"]
+    assert "terminal_verdict_hint" not in result.interaction
+    assert "verdict" not in result.interaction["retry_error"]
+
+
 def test_pr_b2_sl7_audit_only_policy_records_but_does_not_block() -> None:
     provider = MockLLMProvider(
         responses=[
