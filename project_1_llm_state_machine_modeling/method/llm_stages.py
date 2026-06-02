@@ -51,7 +51,7 @@ SECRET_TEXT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "env_secret_assignment",
         re.compile(
             r"\b(?:LLM_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|API_KEY|TOKEN|PASSWORD|PASSWD|SECRET|AUTHORIZATION)"
-            r"\s*[:=]\s*[^\s`\'\"<>]{8,}",
+            r"\s*[:=]\s*\\?[\'\"]?[^\s`\'\"<>\\]{8,}\\?[\'\"]?",
             re.IGNORECASE,
         ),
     ),

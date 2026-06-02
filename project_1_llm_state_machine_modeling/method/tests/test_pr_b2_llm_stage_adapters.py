@@ -364,11 +364,12 @@ def test_pr_b2_llm_stage_records_redact_prompt_raw_and_attempt_secrets() -> None
 
 def test_pr_b2_llm_stage_redacts_env_style_secrets_without_redacting_usage_tokens() -> None:
     secret = "LLM_API_KEY=proxy-secret-1234567890abcdef"
+    quoted_secret = 'OPENAI_API_KEY="quoted-secret-1234567890abcdef"'
     provider = MockLLMProvider(
         responses=[
             json.dumps(
                 {
-                    "candidate_dsl": f"state Root {{ state Idle; }} // {secret}",
+                    "candidate_dsl": f"state Root {{ state Idle; }} // {secret} // {quoted_secret}",
                     "grounding_seeds": [],
                 },
                 ensure_ascii=False,
@@ -377,7 +378,7 @@ def test_pr_b2_llm_stage_redacts_env_style_secrets_without_redacting_usage_token
     )
 
     result = run_sl1_initial_modeling_llm(
-        nl=f"Requirement accidentally includes env line {secret}",
+        nl=f"Requirement accidentally includes env lines {secret} and {quoted_secret}",
         config=_cfg(),
         provider=provider,
     )
@@ -385,6 +386,8 @@ def test_pr_b2_llm_stage_redacts_env_style_secrets_without_redacting_usage_token
 
     assert secret not in record_text
     assert "proxy-secret-1234567890abcdef" not in record_text
+    assert quoted_secret not in record_text
+    assert "quoted-secret-1234567890abcdef" not in record_text
     assert "env_secret_assignment" in record_text
     assert result.interaction["usage"]["total_tokens"] == 2
     assert result.interaction["attempts"][0]["usage"]["prompt_tokens"] == 1
