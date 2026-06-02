@@ -106,6 +106,48 @@ def test_sl1_prompt_generator_is_prompt_only_and_contains_schema() -> None:
     assert "chat(" not in joined
 
 
+def test_pyfcstm_grammar_digest_documents_parseable_boolean_flag_subset() -> None:
+    grammar = (METHOD_ROOT / "prompts" / "_pyfcstm_grammar.md").read_text(encoding="utf-8")
+
+    assert "def bool armed = false;" not in grammar
+    assert "Boolean-like flags MUST be encoded as `int`" in grammar
+    assert "never `def bool`" in grammar
+    assert "no `// ...`, no `/* ... */`" in grammar
+    assert "root-level `! * -> Manual" in grammar
+    assert "Plain `during { ... }` is only used on leaf states" in grammar
+
+
+def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
+    sl1 = "\n".join(
+        message["content"]
+        for message in build_sl1_initial_modeling_prompt(
+            nl="A fault flag controls fallback.",
+            pyfcstm_grammar_digest="def int flag = 0; state Root { [*] -> Idle; state Idle; }",
+        )
+    )
+    sl9 = "\n".join(
+        message["content"]
+        for message in build_sl9_repair_prompt(
+            nl="A fault flag controls fallback.",
+            current_dsl="def bool fault = false; state Root { [*] -> Idle; state Idle; }",
+            fix_plan={"target": "parse"},
+            selected_diagnostics=[{"code": "SyntaxFailError", "got": "bool"}],
+            grammar_digest="def int flag = 0; state Root { [*] -> Idle; state Idle; }",
+            repair_target="parse",
+        )
+    )
+
+    assert "do not emit" in sl1
+    assert "`def bool`, `true`, `false`, `!flag`" in sl1
+    assert "target a state resolvable in that scope" in sl1
+    assert "`max(...)` or `min(...)`" in sl1
+    assert "Use plain `during { ... }` only on leaf states" in sl1
+    assert "Target-aware repair rules" in sl9
+    assert "meaningless self-assignments" in sl9
+    assert "Root-level forced transitions may only target states resolvable" in sl9
+    assert "E_DURING_ASPECT_INVALID" in sl9
+
+
 def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context() -> None:
     messages = build_sl5_scenario_generation_prompt(
         nl="Default init reaches Idle; Start reaches Active.",

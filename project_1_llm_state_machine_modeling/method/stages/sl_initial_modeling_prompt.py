@@ -87,6 +87,24 @@ Hard constraints:
 - Preserve NL-grounded required states/events/variables/transitions.
 - Do not invent behavior beyond NL/SpecJson/upstream lists.
 - Include grounding seeds for all required model elements you can identify.
+- Stay inside the currently parseable pyfcstm subset: declare variables only as
+  `def int` or `def float`; encode boolean-like flags as int 0/1; do not emit
+  `def bool`, `true`, `false`, `!flag`, C-style inline comments, or unknown
+  helper calls such as `ComputeRate(...)`, `max(...)` or `min(...)` in numeric
+  expressions. Also do not copy `//` or `/* ... */` comments from examples into
+  the DSL output.
+- Use plain `during {{ ... }}` only on leaf states; if a state has nested
+  children, use `>> during before/after {{ ... }}` or move the action to leaves.
+- For root-level forced transitions, target a state resolvable in that scope;
+  if a fallback target is nested, either place the forced transition in the
+  enclosing composite scope or introduce an NL-grounded root-level fallback
+  state. Do not target an unqualified nested leaf from the root. If a global
+  fallback target is nested, either place the forced transition in the enclosing
+  composite or introduce a root-level fallback state grounded in the NL.
+- Before output, self-check parse-critical syntax: one top-level state, every
+  composite has an initial transition, no event+guard on the same transition,
+  guards use `: if [...]`, forced transitions have no effect block, and no DSL
+  comments are present.
 
 ## pyfcstm grammar digest
 {grammar}

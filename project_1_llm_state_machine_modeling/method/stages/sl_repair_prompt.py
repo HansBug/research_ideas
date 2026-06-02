@@ -41,6 +41,32 @@ SL-9 Repair contract:
 - Keep passing scenarios from regressing.
 - Output corrected pyfcstm DSL only. No fences, no commentary.
 
+Target-aware repair rules:
+- If `repair_target` is `parse`, first eliminate all parse diagnostics and do
+  not introduce semantic regressions. Use only `def int` / `def float`; encode
+  boolean-like flags as int 0/1; do not emit `def bool`, `true`, `false`,
+  `!flag`, `//` comments, `/* ... */` comments, event+guard mixed transitions,
+  plain `during {{ ... }}` on composite states, or unknown helper calls such as `max(...)`
+  / `min(...)` / `ComputeRate(...)`.
+- If a rejection mentions dangling transitions, forced-transition expansion, or
+  unknown target states, repair state scope/path placement rather than merely
+  renaming. Root-level forced transitions may only target states resolvable from
+  the root scope; nested fallback targets need an enclosing-scope transition or
+  an NL-grounded root-level fallback state. Do not leave root-level forced
+  transitions pointing at unqualified nested leaves.
+- If diagnostics mention `E_DURING_ASPECT_INVALID`, remove plain `during` from
+  composite states by moving the action into descendant leaf states or changing
+  it to `>> during before/after` as required by pyfcstm.
+- If diagnostics are `W_UNWRITTEN_READ_VAR` or `W_GUARD_VARS_NEVER_CHANGE`,
+  distinguish external input variables from internal state variables. Do not
+  add meaningless self-assignments just to silence the warning. If the variable
+  is an external input (sensor/load/environment), prefer documenting that
+  modeling choice through grounded structure or using event/effect updates only
+  when NL provides them; if it is internal state, add a meaningful NL-grounded
+  write.
+- After editing, self-check from scratch: parse syntax, semantic target
+  resolution, design target, and preservation of required grounded elements.
+
 ## pyfcstm grammar digest
 {grammar}
 """

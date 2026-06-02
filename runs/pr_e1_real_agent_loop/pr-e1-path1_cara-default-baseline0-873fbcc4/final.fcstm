@@ -1,0 +1,43 @@
+def float target_BP = 120.0;
+def float measured_BP = 0.0;
+def float flow_rate = 0.0;
+def float control_voltage = 0.0;
+def bool pump_fault = false;
+def bool manual_request = false;
+def bool start_AC = false;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+
+    [*] -> Mode_Control_Algorithm;
+
+    state Manual {
+        enter { flow_rate = 0.0; }
+        during { if (!pump_fault && manual_request) { flow_rate = target_BP / 10.0; } }
+    }
+
+    state Mode_Control_Algorithm {
+        [*] -> Ask_StartAC;
+
+        state Ask_StartAC {
+            enter abstract InitAskStartAC;
+            during { if (start_AC) { start_AC = false; } }
+
+            Ask_StartAC -> AutocontrolInit :: StartAC;
+        }
+
+        state AutocontrolInit {
+            enter { flow_rate = 0.0; }
+            during abstract InitAutocontrol;
+            AutocontrolInit -> Autocontrol : if [!pump_fault];
+        }
+
+        state Autocontrol {
+            during { if (!pump_fault) { flow_rate = control_voltage; } }
+            Autocontrol -> Manual : if [pump_fault];
+        }
+    }
+}
