@@ -296,6 +296,7 @@ def _review_meta(
     validation_error: str | None,
     config: LLMStageConfig,
     retry_count: int,
+    failure_policy: str = "fail_closed",
 ) -> ReviewRunMeta:
     return ReviewRunMeta(
         provider=provider_name,
@@ -314,7 +315,7 @@ def _review_meta(
         schema_validation_error=validation_error,
         cache_key=f"{stage_id.value}:{_hash_payload(prompt_messages)}",
         decision_threshold=None,
-        failure_policy="fail_closed",
+        failure_policy=failure_policy,  # type: ignore[arg-type]
         replay_key=f"{stage_id.value}:{_hash_payload(prompt_messages)}",
     )
 
@@ -367,6 +368,7 @@ def _run_llm_stage(
     provider: Optional[ChatProvider] = None,
     response_format: Optional[dict[str, Any]] = None,
     empty_output_invalid: bool = True,
+    failure_policy: str = "fail_closed",
 ) -> LLMStageRun:
     chat_provider = _provider_for(config, provider)
     attempts: list[dict[str, Any]] = []
@@ -480,6 +482,7 @@ def _run_llm_stage(
         validation_error=None if schema_ok else retry_error["error_message"],
         config=config,
         retry_count=retry_count,
+        failure_policy=failure_policy,
     )
     prompt_messages_payload = prompt_messages if config.record_prompts else []
     raw_output_payload = last_raw if config.record_raw_outputs else ""
@@ -651,6 +654,41 @@ def run_sl9_repair_llm(
     )
 
 
+
+
+def _policy_mode(policy: dict[str, Any] | None, *, default: str) -> str:
+    if not isinstance(policy, dict):
+        return default
+    return str(
+        policy.get("mode")
+        or policy.get("model_review_mode")
+        or policy.get("delta_review_mode")
+        or policy.get("review_mode")
+        or default
+    )
+
+
+def _review_failure_policy(mode: str) -> str:
+    return "audit_only" if mode == "audit_only" else "fail_closed"
+
+
+def _sl7_feedback_ok(*, schema_ok: bool, decision: str, blocking_findings: list[dict[str, Any]], mode: str) -> bool:
+    if not schema_ok:
+        return False
+    if mode == "audit_only":
+        return True
+    if mode in {"blocking", "blocking_major_only"}:
+        return not (decision == "fail" and bool(blocking_findings))
+    return decision in {"pass", "audit_only"}
+
+
+def _sl10b_feedback_ok(*, schema_ok: bool, decision: str, mode: str) -> bool:
+    if not schema_ok:
+        return False
+    if mode == "audit_only":
+        return True
+    return decision == "accept"
+
 def run_sl7_model_review_llm(
     *,
     nl: str,
@@ -679,6 +717,7 @@ def run_sl7_model_review_llm(
         review_policy=review_policy,
         prompt_template_version=version,
     )
+    mode = _policy_mode(review_policy, default="blocking_major_only")
     run = _run_llm_stage(
         stage_id=StageId.SL_7_MODEL_REVIEW,
         prompt_template_version=version,
@@ -688,17 +727,19 @@ def run_sl7_model_review_llm(
         config=cfg,
         provider=provider,
         response_format={"type": "json_object"},
+        failure_policy=_review_failure_policy(mode),
     )
     parsed = run.parsed_output if isinstance(run.parsed_output, dict) else {}
     review_meta = ReviewRunMeta(**run.interaction["review_meta"])
     decision = parsed.get("decision", "invalid_output") if run.ok else "invalid_output"
     risk_level = parsed.get("risk_level", "major" if not run.ok else "none")
+    blocking_findings = parsed.get("blocking_findings", [])
     feedback = ModelReviewFeedback(
-        ok=run.ok and decision in {"pass", "audit_only"},
+        ok=_sl7_feedback_ok(schema_ok=run.ok, decision=decision, blocking_findings=blocking_findings, mode=mode),
         decision=decision,
         risk_level=risk_level,
         findings=parsed.get("findings", []),
-        blocking_findings=parsed.get("blocking_findings", []),
+        blocking_findings=blocking_findings,
         review_meta=review_meta,
         meta=run.stage_meta,
     )
@@ -714,6 +755,7 @@ def run_sl10b_delta_review_llm(
     candidate_dsl: str,
     fix_plan: FixPlan | RevisedFixPlan | dict[str, Any],
     diff_summary: dict[str, Any] | None = None,
+    delta_review_policy: dict[str, Any] | None = None,
     config: Optional[LLMStageConfig] = None,
     provider: Optional[ChatProvider] = None,
 ) -> LLMStageRun:
@@ -728,6 +770,7 @@ def run_sl10b_delta_review_llm(
         diff_summary=diff_summary,
         prompt_template_version=version,
     )
+    mode = _policy_mode(delta_review_policy, default="blocking_major_only")
     run = _run_llm_stage(
         stage_id=StageId.SL_10B_DELTA_REVIEW,
         prompt_template_version=version,
@@ -737,15 +780,17 @@ def run_sl10b_delta_review_llm(
         config=cfg,
         provider=provider,
         response_format={"type": "json_object"},
+        failure_policy=_review_failure_policy(mode),
     )
     parsed = run.parsed_output if isinstance(run.parsed_output, dict) else {}
     review_meta = ReviewRunMeta(**run.interaction["review_meta"])
     decision = parsed.get("decision", "revise") if run.ok else "revise"
     drift_risk = parsed.get("drift_risk", "major" if decision != "accept" else "none")
+    feedback_ok = _sl10b_feedback_ok(schema_ok=run.ok, decision=decision, mode=mode)
     feedback = RepairReviewFeedback(
-        ok=run.ok and decision == "accept",
-        target_resolved=run.ok and decision == "accept",
-        regression_detected=decision in {"reject", "revise"},
+        ok=feedback_ok,
+        target_resolved=feedback_ok,
+        regression_detected=(mode != "audit_only") and decision in {"reject", "revise"},
         drift_risk=drift_risk,
         delta_review=parsed if parsed else {"decision": "revise", "error": run.interaction.get("schema_validation_error")},
         review_meta=review_meta,

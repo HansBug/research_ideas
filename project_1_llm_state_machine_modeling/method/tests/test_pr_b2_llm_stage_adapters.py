@@ -46,6 +46,32 @@ def _grounding() -> GroundingMap:
     )
 
 
+
+def _sl7_fail_raw() -> str:
+    return json.dumps(
+        {
+            "decision": "fail",
+            "risk_level": "major",
+            "findings": [
+                {
+                    "category": "nl_fidelity",
+                    "severity": "major",
+                    "summary": "Active state is missing.",
+                    "evidence": ["NL requires Active"],
+                }
+            ],
+            "blocking_findings": [
+                {
+                    "category": "nl_fidelity",
+                    "severity": "major",
+                    "summary": "Active state is missing.",
+                    "evidence": ["NL requires Active"],
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+
 def _fix_plan() -> FixPlan:
     return FixPlan(
         target="design",
@@ -287,3 +313,98 @@ def test_pr_b2_provider_errors_retry_as_llm_layer_without_deterministic_retry() 
     assert result.interaction["retry_error"]["error_kind"] == "provider_error"
     assert len(result.interaction["attempts"]) == 1
     assert provider.call_count == 1
+
+def test_pr_b2_sl7_audit_only_policy_records_but_does_not_block() -> None:
+    provider = MockLLMProvider(
+        responses=[
+            json.dumps(
+                {
+                    "decision": "fail",
+                    "risk_level": "major",
+                    "findings": [
+                        {
+                            "category": "nl_fidelity",
+                            "severity": "major",
+                            "summary": "Audit-only finding should not block this condition.",
+                            "evidence": ["policy ablation"],
+                        }
+                    ],
+                    "blocking_findings": [
+                        {
+                            "category": "nl_fidelity",
+                            "severity": "major",
+                            "summary": "Audit-only finding should not block this condition.",
+                            "evidence": ["policy ablation"],
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            )
+        ]
+    )
+
+    result = run_sl7_model_review_llm(
+        nl="Audit-only review should be recorded for ablation.",
+        current_dsl=BASE_DSL,
+        grounding_map=_grounding(),
+        review_policy={"mode": "audit_only"},
+        config=_cfg(),
+        provider=provider,
+    )
+
+    assert result.stage_meta.status == StageStatus.OK
+    assert result.feedback.decision == "fail"
+    assert result.feedback.ok is True
+    assert result.feedback.review_meta.failure_policy == "audit_only"
+
+
+def test_pr_b2_sl7_blocking_major_policy_blocks_major_findings() -> None:
+    provider = MockLLMProvider(responses=[_sl7_fail_raw()])
+
+    result = run_sl7_model_review_llm(
+        nl="Blocking review should reject major NL drift.",
+        current_dsl=BASE_DSL,
+        grounding_map=_grounding(),
+        review_policy={"mode": "blocking_major_only"},
+        config=_cfg(),
+        provider=provider,
+    )
+
+    assert result.stage_meta.status == StageStatus.OK
+    assert result.feedback.decision == "fail"
+    assert result.feedback.ok is False
+    assert result.feedback.review_meta.failure_policy == "fail_closed"
+
+
+def test_pr_b2_sl10b_audit_policy_records_reject_without_blocking_accept_candidate_gate() -> None:
+    provider = MockLLMProvider(
+        responses=[
+            json.dumps(
+                {
+                    "decision": "reject",
+                    "drift_risk": "major",
+                    "drift_evidence": [{"summary": "candidate drift recorded for audit"}],
+                    "required_revision": ["would revise under blocking policy"],
+                },
+                ensure_ascii=False,
+            )
+        ]
+    )
+
+    result = run_sl10b_delta_review_llm(
+        nl="Delta review audit-only ablation.",
+        grounding_map=_grounding(),
+        old_dsl=BASE_DSL,
+        candidate_dsl="state Root { state Idle; [*] -> Idle; }",
+        fix_plan=_fix_plan(),
+        delta_review_policy={"mode": "audit_only"},
+        config=_cfg(),
+        provider=provider,
+    )
+
+    assert result.stage_meta.status == StageStatus.OK
+    assert result.feedback.delta_review["decision"] == "reject"
+    assert result.feedback.ok is True
+    assert result.feedback.regression_detected is False
+    assert result.feedback.review_meta.failure_policy == "audit_only"
+
