@@ -18,8 +18,10 @@ import subprocess
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
+from method.gpt_client import chat as llm_chat
+from method.gpt_client import get_default_model
 from method.run_record import agent_loop_run_record_path, write_agent_loop_run_record
 from method.schema import (
     AgentLoopResult,
@@ -136,8 +138,20 @@ class DeterministicLoopConfig:
     seed: int | None = None
     path_context: dict[str, Any] = field(default_factory=dict)
     review_policy: ReviewPolicy = field(default_factory=ReviewPolicy)
+    review_provider_mode: str = "fake_replay"
+    review_model: str | None = None
+    review_max_tokens: int | None = None
+    review_max_retries: int = 2
     review_replay_responses: dict[str, str] = field(default_factory=dict)
     review_provider_failures: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.review_provider_mode not in {"fake_replay", "real_env"}:
+            raise ValueError("DeterministicLoopConfig.review_provider_mode must be fake_replay or real_env")
+        if self.review_max_tokens is not None and self.review_max_tokens <= 0:
+            raise ValueError("DeterministicLoopConfig.review_max_tokens must be positive when provided")
+        if self.review_max_retries < 0:
+            raise ValueError("DeterministicLoopConfig.review_max_retries must be >= 0")
 
 
 def _utc_now() -> str:
@@ -410,6 +424,7 @@ def _make_review_meta(
     decision_threshold: float | None = None,
     schema_validation_error: str | None = None,
     seed: int | None = None,
+    retry_count: int = 0,
 ) -> ReviewRunMeta:
     return ReviewRunMeta(
         provider=provider,
@@ -420,7 +435,7 @@ def _make_review_meta(
         input_hash=_short_hash(prompt_messages),
         temperature=0.0,
         seed=seed,
-        retry_count=0,
+        retry_count=retry_count,
         raw_output_hash=_hash_text(raw_output) if raw_output else _hash_text(schema_validation_error or ""),
         raw_output_path=None,
         parsed_schema_version=parsed_schema_version,
@@ -442,6 +457,8 @@ def _review_interaction_payload(
     review_meta: ReviewRunMeta,
     schema_validation_ok: bool,
     note: str,
+    usage: dict[str, Any] | None = None,
+    attempts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "stage_id": stage_id.value,
@@ -467,6 +484,8 @@ def _review_interaction_payload(
         "decision_threshold": review_meta.decision_threshold,
         "failure_policy": review_meta.failure_policy,
         "review_meta": asdict(review_meta),
+        "usage": usage or {},
+        "attempts": attempts or [],
         "note": note,
     }
 
@@ -479,6 +498,221 @@ def _review_replay_lookup(cfg: DeterministicLoopConfig, stage_id: StageId, itera
     if stage_key in cfg.review_replay_responses:
         return cfg.review_replay_responses[stage_key], stage_key
     return None, key
+
+
+def _call_real_review_llm(
+    *,
+    prompt_messages: list[dict[str, str]],
+    cfg: DeterministicLoopConfig,
+    stage_id: StageId,
+) -> tuple[str, dict[str, Any], str]:
+    """Call the real OpenAI-compatible review provider configured by ``.env``.
+
+    PR-3 uses this only for representative handoff smoke.  The main agent-loop
+    experiment record still stores the full prompt, raw output, parsed output
+    and provider/model metadata; API keys are never persisted.
+    """
+    if stage_id.value in cfg.review_provider_failures:
+        raise RuntimeError("provider failure")
+    model_id = cfg.review_model or get_default_model()
+    raw_output, usage = llm_chat(
+        messages=prompt_messages,
+        model=cfg.review_model,
+        temperature=0.0,
+        seed=cfg.seed,
+        max_tokens=cfg.review_max_tokens,
+        response_format={"type": "json_object"},
+    )
+    return raw_output, usage, model_id
+
+
+def _review_attempt_payload(
+    *,
+    stage_id: StageId,
+    attempt_index: int,
+    status: str,
+    raw_output: str,
+    usage: dict[str, Any] | None,
+    model_id: str,
+    error_kind: str | None = None,
+    error_message: str | None = None,
+    parsed_output: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "stage_id": stage_id.value,
+        "attempt_index": attempt_index,
+        "status": status,
+        "schema_validation_ok": status == "ok",
+        "error_kind": error_kind,
+        "error_message": error_message,
+        "raw_output_hash": _hash_text(raw_output) if raw_output else _hash_text(error_message or ""),
+        "raw_output": raw_output,
+        "parsed_output": parsed_output or {},
+        "usage": usage or {},
+        "model_id": model_id,
+        "provider": "openai-compatible-env",
+    }
+
+
+def _llm_retry_log(
+    *,
+    stage_id: StageId,
+    attempt_index: int,
+    max_retries: int,
+    error_kind: str,
+    error_message: str,
+    raw_output: str,
+) -> dict[str, Any]:
+    return {
+        "ts": _utc_now(),
+        "level": "warning",
+        "event": "llm_review_attempt_failed",
+        "stage_id": stage_id.value,
+        "attempt_index": attempt_index,
+        "max_retries": max_retries,
+        "will_retry": attempt_index < max_retries,
+        "error_kind": error_kind,
+        "error_message": error_message,
+        "raw_output_hash": _hash_text(raw_output) if raw_output else _hash_text(error_message),
+    }
+
+
+def _run_real_review_llm_with_retry(
+    *,
+    prompt_messages: list[dict[str, str]],
+    cfg: DeterministicLoopConfig,
+    stage_id: StageId,
+    parser: Callable[[str], dict[str, Any]],
+    invalid_parsed_factory: Callable[[str], dict[str, Any]],
+    logs: list[dict[str, Any]],
+) -> tuple[str, dict[str, Any], str, dict[str, Any], bool, str | None, list[dict[str, Any]], int]:
+    """Call a real review LLM with bounded retry for provider/schema noise.
+
+    Retry is intentionally limited to LLM stages and only for two low-probability
+    failure classes that do not reflect deterministic model quality:
+    provider/network errors and invalid JSON/schema output.  Every attempt is
+    preserved in the run record so Path1/Path2 can audit retries instead of
+    silently smoothing over experimental instability.
+    """
+    max_retries = cfg.review_max_retries
+    attempts: list[dict[str, Any]] = []
+    last_raw_output = ""
+    last_usage: dict[str, Any] = {}
+    try:
+        last_model_id = cfg.review_model or get_default_model()
+    except Exception:
+        last_model_id = cfg.review_model or "env:LLM_MODEL"
+    last_error: str | None = None
+    last_error_kind = "unknown"
+    parsed = invalid_parsed_factory("no attempt")
+
+    for attempt_index in range(max_retries + 1):
+        try:
+            raw_output, usage, model_id = _call_real_review_llm(
+                prompt_messages=prompt_messages,
+                cfg=cfg,
+                stage_id=stage_id,
+            )
+            last_raw_output = raw_output
+            last_usage = usage
+            last_model_id = model_id
+        except Exception as e:
+            last_error_kind = "provider_error"
+            last_error = f"provider failure: {type(e).__name__}: {str(e)[:300]}"
+            attempts.append(
+                _review_attempt_payload(
+                    stage_id=stage_id,
+                    attempt_index=attempt_index,
+                    status="provider_error",
+                    raw_output="",
+                    usage={},
+                    model_id=last_model_id,
+                    error_kind=last_error_kind,
+                    error_message=last_error,
+                    parsed_output=invalid_parsed_factory(last_error),
+                )
+            )
+            logs.append(
+                _llm_retry_log(
+                    stage_id=stage_id,
+                    attempt_index=attempt_index,
+                    max_retries=max_retries,
+                    error_kind=last_error_kind,
+                    error_message=last_error,
+                    raw_output="",
+                )
+            )
+            continue
+
+        try:
+            parsed = parser(raw_output)
+            attempts.append(
+                _review_attempt_payload(
+                    stage_id=stage_id,
+                    attempt_index=attempt_index,
+                    status="ok",
+                    raw_output=raw_output,
+                    usage=usage,
+                    model_id=model_id,
+                    parsed_output=parsed,
+                )
+            )
+            if attempt_index > 0:
+                logs.append(
+                    {
+                        "ts": _utc_now(),
+                        "level": "info",
+                        "event": "llm_review_retry_recovered",
+                        "stage_id": stage_id.value,
+                        "attempt_index": attempt_index,
+                        "retry_count": attempt_index,
+                        "max_retries": max_retries,
+                    }
+                )
+            return raw_output, usage, model_id, parsed, True, None, attempts, attempt_index
+        except Exception as e:  # pragma: no cover - parser implementation is tested separately
+            last_error_kind = "schema_invalid"
+            last_error = f"schema invalid: {type(e).__name__}: {str(e)[:300]}"
+            parsed = invalid_parsed_factory(last_error)
+            attempts.append(
+                _review_attempt_payload(
+                    stage_id=stage_id,
+                    attempt_index=attempt_index,
+                    status="schema_invalid",
+                    raw_output=raw_output,
+                    usage=usage,
+                    model_id=model_id,
+                    error_kind=last_error_kind,
+                    error_message=last_error,
+                    parsed_output=parsed,
+                )
+            )
+            logs.append(
+                _llm_retry_log(
+                    stage_id=stage_id,
+                    attempt_index=attempt_index,
+                    max_retries=max_retries,
+                    error_kind=last_error_kind,
+                    error_message=last_error,
+                    raw_output=raw_output,
+                )
+            )
+
+    exhausted_error = f"retry exhausted after {max_retries} retries: {last_error or 'unknown LLM failure'}"
+    if attempts:
+        attempts[-1]["retry_exhausted"] = True
+    logs.append(
+        {
+            "ts": _utc_now(),
+            "level": "error",
+            "event": "llm_review_retry_exhausted",
+            "stage_id": stage_id.value,
+            "max_retries": max_retries,
+            "error_kind": last_error_kind,
+            "error_message": exhausted_error,
+        }
+    )
+    return last_raw_output, last_usage, last_model_id, parsed, False, exhausted_error, attempts, max_retries
 
 
 def _run_sl7_model_review(
@@ -507,63 +741,61 @@ def _run_sl7_model_review(
     )
     raw_output, replay_key = _review_replay_lookup(cfg, StageId.SL_7_MODEL_REVIEW, iteration)
     failure_policy = cfg.review_policy.review_meta_failure_policy(delta=False)
-    if StageId.SL_7_MODEL_REVIEW.value in cfg.review_provider_failures:
+    provider = "fake-replay"
+    model_id = "fake-sl7-review"
+    usage: dict[str, Any] = {}
+    attempts: list[dict[str, Any]] = []
+    retry_count = 0
+    note = "PR-2B fake/replay model review; no real provider/API called"
+    parsed: dict[str, Any]
+    schema_ok = False
+    error: str | None = None
+
+    if cfg.review_provider_mode == "real_env":
+        provider = "openai-compatible-env"
+        replay_key = "real-env:" + replay_key
+        note = "PR-3 real .env SL-7 model review call recorded in AgentLoopRunRecord; provider/schema noise uses bounded retry"
+        raw_output, usage, model_id, parsed, schema_ok, error, attempts, retry_count = _run_real_review_llm_with_retry(
+            prompt_messages=prompt_messages,
+            cfg=cfg,
+            stage_id=StageId.SL_7_MODEL_REVIEW,
+            parser=parse_sl7_model_review_response,
+            invalid_parsed_factory=lambda message: {
+                "decision": "invalid_output",
+                "risk_level": "major",
+                "findings": [],
+                "blocking_findings": [],
+                "error": message,
+            },
+            logs=logs,
+        )
+    elif StageId.SL_7_MODEL_REVIEW.value in cfg.review_provider_failures:
         error = "provider failure"
-        review_meta = _make_review_meta(
-            provider="fake-error",
-            model_id="fake-sl7-review",
-            prompt_template_version=prompt_version,
-            prompt_messages=prompt_messages,
-            raw_output="",
-            parsed_schema_version="ModelReviewFeedback.v1",
-            schema_validation_ok=False,
-            schema_validation_error=error,
-            failure_policy=failure_policy,
-            replay_key=replay_key,
-            decision_threshold=cfg.review_policy.decision_threshold,
-            seed=cfg.seed,
-        )
-        meta = _llm_interaction_meta(StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", ok=False, validation_error=error)
-        feedback = ModelReviewFeedback(ok=False, decision="invalid_output", risk_level="major", review_meta=review_meta, meta=meta)
-        llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", parsed_output={"decision": "invalid_output"}, review_meta=review_meta, schema_validation_ok=False, note="fake provider failure; no real provider/API called"))
+        parsed = {"decision": "invalid_output", "risk_level": "major", "findings": [], "blocking_findings": [], "error": error}
         logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_provider_failure", "stage_id": StageId.SL_7_MODEL_REVIEW.value})
-        return feedback, meta, True
-    if raw_output is None and not cfg.review_policy.require_replay:
-        raw_output = json.dumps({"decision": "audit_only", "risk_level": "none", "findings": [], "blocking_findings": []}, ensure_ascii=False)
-        replay_key = "default-fake:" + replay_key
-    if raw_output is None:
-        error = "replay miss"
-        review_meta = _make_review_meta(
-            provider="fake-replay",
-            model_id="fake-sl7-review",
-            prompt_template_version=prompt_version,
-            prompt_messages=prompt_messages,
-            raw_output="",
-            parsed_schema_version="ModelReviewFeedback.v1",
-            schema_validation_ok=False,
-            schema_validation_error=error,
-            failure_policy=failure_policy,
-            replay_key=replay_key,
-            decision_threshold=cfg.review_policy.decision_threshold,
-            seed=cfg.seed,
-        )
-        meta = _llm_interaction_meta(StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", ok=False, validation_error=error)
-        feedback = ModelReviewFeedback(ok=False, decision="invalid_output", risk_level="major", review_meta=review_meta, meta=meta)
-        llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", parsed_output={"decision": "invalid_output"}, review_meta=review_meta, schema_validation_ok=False, note="fake replay miss; no real provider/API called"))
-        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_replay_miss", "stage_id": StageId.SL_7_MODEL_REVIEW.value, "replay_key": replay_key})
-        return feedback, meta, True
-    try:
-        parsed = parse_sl7_model_review_response(raw_output)
-        schema_ok = True
-        error = None
-    except Exception as e:  # pragma: no cover - exact parser type is intentionally not part of contract
-        parsed = {"decision": "invalid_output", "risk_level": "major", "findings": [], "blocking_findings": [], "error": str(e)}
-        schema_ok = False
-        error = str(e)
-        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_invalid_output", "stage_id": StageId.SL_7_MODEL_REVIEW.value, "message": error})
+        provider = "fake-error"
+        raw_output = ""
+    else:
+        if raw_output is None and not cfg.review_policy.require_replay:
+            raw_output = json.dumps({"decision": "audit_only", "risk_level": "none", "findings": [], "blocking_findings": []}, ensure_ascii=False)
+            replay_key = "default-fake:" + replay_key
+        if raw_output is None:
+            error = "replay miss"
+            parsed = {"decision": "invalid_output", "risk_level": "major", "findings": [], "blocking_findings": [], "error": error}
+            logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_replay_miss", "stage_id": StageId.SL_7_MODEL_REVIEW.value, "replay_key": replay_key})
+            raw_output = ""
+        else:
+            try:
+                parsed = parse_sl7_model_review_response(raw_output)
+                schema_ok = True
+            except Exception as e:  # pragma: no cover - exact parser type is intentionally not part of contract
+                parsed = {"decision": "invalid_output", "risk_level": "major", "findings": [], "blocking_findings": [], "error": str(e)}
+                error = str(e)
+                logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_invalid_output", "stage_id": StageId.SL_7_MODEL_REVIEW.value, "message": error})
+
     review_meta = _make_review_meta(
-        provider="fake-replay",
-        model_id="fake-sl7-review",
+        provider=provider,
+        model_id=model_id,
         prompt_template_version=prompt_version,
         prompt_messages=prompt_messages,
         raw_output=raw_output,
@@ -574,6 +806,7 @@ def _run_sl7_model_review(
         replay_key=replay_key,
         decision_threshold=cfg.review_policy.decision_threshold,
         seed=cfg.seed,
+        retry_count=retry_count,
     )
     ok = schema_ok and (parsed.get("decision") in {"pass", "audit_only"} or cfg.review_policy.model_review_mode == "audit_only")
     meta = _llm_interaction_meta(StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, ok=ok, validation_error=error)
@@ -586,9 +819,20 @@ def _run_sl7_model_review(
         review_meta=review_meta,
         meta=meta,
     )
-    llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, parsed_output=parsed, review_meta=review_meta, schema_validation_ok=schema_ok, note="PR-2B fake/replay model review; no real provider/API called"))
+    llm_interactions.append(
+        _review_interaction_payload(
+            stage_id=StageId.SL_7_MODEL_REVIEW,
+            prompt_messages=prompt_messages,
+            raw_output=raw_output,
+            parsed_output=parsed,
+            review_meta=review_meta,
+            schema_validation_ok=schema_ok,
+            note=note,
+            usage=usage,
+            attempts=attempts,
+        )
+    )
     return feedback, meta, not schema_ok
-
 
 def _run_sl10b_delta_review(
     *,
@@ -614,32 +858,61 @@ def _run_sl10b_delta_review(
     )
     raw_output, replay_key = _review_replay_lookup(cfg, StageId.SL_10B_DELTA_REVIEW, iteration)
     failure_policy = cfg.review_policy.review_meta_failure_policy(delta=True)
-    error = None
+    provider = "fake-replay"
+    model_id = "fake-sl10b-delta-review"
+    usage: dict[str, Any] = {}
+    attempts: list[dict[str, Any]] = []
+    retry_count = 0
+    note = "PR-2B fake/replay delta review; no real provider/API called"
+    error: str | None = None
     schema_ok = False
-    if raw_output is None and not cfg.review_policy.require_replay:
-        raw_output = json.dumps({"decision": "accept", "drift_risk": "none", "drift_evidence": [], "required_revision": []}, ensure_ascii=False)
-        replay_key = "default-fake:" + replay_key
-    if StageId.SL_10B_DELTA_REVIEW.value in cfg.review_provider_failures:
+    parsed: dict[str, Any]
+
+    if cfg.review_provider_mode == "real_env":
+        provider = "openai-compatible-env"
+        replay_key = "real-env:" + replay_key
+        note = "PR-3 real .env SL-10B delta review call recorded in AgentLoopRunRecord; provider/schema noise uses bounded retry"
+        raw_output, usage, model_id, parsed, schema_ok, error, attempts, retry_count = _run_real_review_llm_with_retry(
+            prompt_messages=prompt_messages,
+            cfg=cfg,
+            stage_id=StageId.SL_10B_DELTA_REVIEW,
+            parser=parse_sl10b_delta_review_response,
+            invalid_parsed_factory=lambda message: {
+                "decision": "revise",
+                "drift_risk": "major",
+                "drift_evidence": [],
+                "required_revision": [],
+                "error": message,
+            },
+            logs=logs,
+        )
+    elif StageId.SL_10B_DELTA_REVIEW.value in cfg.review_provider_failures:
         raw_output = ""
         parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": "provider failure"}
         error = "provider failure"
+        provider = "fake-error"
         logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_provider_failure", "stage_id": StageId.SL_10B_DELTA_REVIEW.value})
-    elif raw_output is None:
-        raw_output = ""
-        parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": "replay miss"}
-        error = "replay miss"
-        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_replay_miss", "stage_id": StageId.SL_10B_DELTA_REVIEW.value, "replay_key": replay_key})
     else:
-        try:
-            parsed = parse_sl10b_delta_review_response(raw_output)
-            schema_ok = True
-        except Exception as e:  # pragma: no cover
-            parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": str(e)}
-            error = str(e)
-            logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_invalid_output", "stage_id": StageId.SL_10B_DELTA_REVIEW.value, "message": error})
+        if raw_output is None and not cfg.review_policy.require_replay:
+            raw_output = json.dumps({"decision": "accept", "drift_risk": "none", "drift_evidence": [], "required_revision": []}, ensure_ascii=False)
+            replay_key = "default-fake:" + replay_key
+        if raw_output is None:
+            raw_output = ""
+            parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": "replay miss"}
+            error = "replay miss"
+            logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_replay_miss", "stage_id": StageId.SL_10B_DELTA_REVIEW.value, "replay_key": replay_key})
+        else:
+            try:
+                parsed = parse_sl10b_delta_review_response(raw_output)
+                schema_ok = True
+            except Exception as e:  # pragma: no cover
+                parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": str(e)}
+                error = str(e)
+                logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_invalid_output", "stage_id": StageId.SL_10B_DELTA_REVIEW.value, "message": error})
+
     review_meta = _make_review_meta(
-        provider="fake-replay" if error != "provider failure" else "fake-error",
-        model_id="fake-sl10b-delta-review",
+        provider=provider,
+        model_id=model_id,
         prompt_template_version=prompt_version,
         prompt_messages=prompt_messages,
         raw_output=raw_output,
@@ -650,12 +923,24 @@ def _run_sl10b_delta_review(
         replay_key=replay_key,
         decision_threshold=cfg.review_policy.decision_threshold,
         seed=cfg.seed,
+        retry_count=retry_count,
     )
     ok = schema_ok and parsed.get("decision") == "accept"
     meta = _llm_interaction_meta(StageId.SL_10B_DELTA_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, ok=ok or cfg.review_policy.delta_review_mode == "audit_only", validation_error=error)
-    llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_10B_DELTA_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, parsed_output=parsed, review_meta=review_meta, schema_validation_ok=schema_ok, note="PR-2B fake/replay delta review; no real provider/API called"))
+    llm_interactions.append(
+        _review_interaction_payload(
+            stage_id=StageId.SL_10B_DELTA_REVIEW,
+            prompt_messages=prompt_messages,
+            raw_output=raw_output,
+            parsed_output=parsed,
+            review_meta=review_meta,
+            schema_validation_ok=schema_ok,
+            note=note,
+            usage=usage,
+            attempts=attempts,
+        )
+    )
     return parsed, review_meta, meta, not schema_ok
-
 
 def _make_sl9_meta(prompt_messages: list[dict[str, str]], candidate_dsl: str, *, ok: bool = True) -> StageResultMeta:
     meta = _meta(StageId.SL_9_REPAIR, ok=ok, status=StageStatus.OK if ok else StageStatus.ERROR)
@@ -800,10 +1085,13 @@ def _build_record(
             "max_iterations": cfg.max_iterations,
             "policy_profile": cfg.policy_profile,
             "seed": cfg.seed,
-            "real_llm_provider_api": False,
             "sl9_mode": "fake_replay_candidate_injection",
             "review_policy": asdict(cfg.review_policy),
-            "review_mode": "fake_replay_only",
+            "review_mode": cfg.review_provider_mode,
+            "review_model": cfg.review_model,
+            "review_max_tokens": cfg.review_max_tokens,
+            "review_max_retries": cfg.review_max_retries,
+            "real_llm_provider_api": cfg.review_provider_mode == "real_env",
         },
         environment=_environment(),
         stage_graph={

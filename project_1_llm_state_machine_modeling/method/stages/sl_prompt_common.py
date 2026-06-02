@@ -8,6 +8,7 @@ fixture/fake responses used by tests.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -83,10 +84,52 @@ def parse_json_response(content: str, *, context: str) -> dict[str, Any]:
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"{context}: response is not valid JSON: {raw[:300]}") from exc
+        repaired = _extract_json_object(raw)
+        if repaired is None:
+            raise ValueError(f"{context}: response is not valid JSON: {raw[:300]}") from exc
+        try:
+            parsed = json.loads(repaired)
+        except json.JSONDecodeError as repaired_exc:
+            raise ValueError(f"{context}: response is not valid JSON: {raw[:300]}") from repaired_exc
     if not isinstance(parsed, dict):
         raise ValueError(f"{context}: response JSON must be an object")
     return parsed
+
+
+def _extract_json_object(raw: str) -> str | None:
+    """Recover the first balanced JSON object from noisy LLM output.
+
+    Some OpenAI-compatible providers occasionally prepend prose, append
+    stop-sequence artifacts, or repeat partial JSON even when
+    ``response_format={"type": "json_object"}`` is requested.  For PR-3 smoke
+    this best-effort extraction is acceptable because the subsequent strict
+    schema parser still validates every required field.
+    """
+    match = re.search(r"\{", raw)
+    if match is None:
+        return None
+    start = match.start()
+    depth = 0
+    in_string = False
+    escape = False
+    for index, char in enumerate(raw[start:], start=start):
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[start : index + 1]
+    return None
 
 
 def require_one_of(value: Any, allowed: set[str], field_name: str) -> str:
