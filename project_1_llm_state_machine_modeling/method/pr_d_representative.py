@@ -18,7 +18,7 @@ import argparse
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
@@ -60,6 +60,9 @@ class RepresentativeRunSummary:
     verdict_reason: str | None
     final_dsl_length: int
     stage_ids: list[str]
+    planned_stage_ids: list[str]
+    executed_stage_ids: list[str]
+    executed_missing_stage_ids: list[str]
     llm_stage_ids: list[str]
     iteration_count: int
     repair_count: int
@@ -79,9 +82,11 @@ class RepresentativeRunSummary:
     condition_id: str | None
     policy_profile: str | None
     schema_valid: bool
+    schema_validation_error: str | None
     secret_redacted: bool
     redaction_report_count: int
-    stage_graph_full_staged: bool
+    planned_stage_graph_full_staged: bool
+    executed_trace_full_staged: bool
     no_legacy_scenario_unavailable: bool
 
 
@@ -191,7 +196,10 @@ def summarize_run(
     final = record.final_artifacts
     environment = record.environment
     resolved = environment.get("resolved_config") if isinstance(environment.get("resolved_config"), dict) else {}
-    stage_ids = _stage_ids_from_record(record)
+    planned_stage_ids = _planned_stage_ids_from_record(record)
+    executed_stage_ids = _executed_stage_ids_from_record(record)
+    executed_missing_stage_ids = _missing_required_stage_ids(executed_stage_ids)
+    schema_validation_error = _schema_validation_error(record)
     final_dsl = str(final.get("final_dsl") or result.final_dsl or "")
     payload_text = _record_public_text(record)
     no_legacy_scenario_unavailable = "scenario generation unavailable because initial DSL parse failed" not in payload_text
@@ -206,7 +214,10 @@ def summarize_run(
         verdict_source_stage_id=_optional_str(final.get("verdict_source_stage_id")),
         verdict_reason=_optional_str(final.get("verdict_reason")),
         final_dsl_length=len(final_dsl),
-        stage_ids=stage_ids,
+        stage_ids=executed_stage_ids,
+        planned_stage_ids=planned_stage_ids,
+        executed_stage_ids=executed_stage_ids,
+        executed_missing_stage_ids=executed_missing_stage_ids,
         llm_stage_ids=_llm_stage_ids(record),
         iteration_count=len(record.iteration_records),
         repair_count=len(record.repair_history),
@@ -225,10 +236,12 @@ def summarize_run(
         config_hash=_optional_str(environment.get("config_hash")),
         condition_id=_optional_str(resolved.get("condition_id")),
         policy_profile=_optional_str(resolved.get("policy_profile")),
-        schema_valid=True,
+        schema_valid=schema_validation_error is None,
+        schema_validation_error=schema_validation_error,
         secret_redacted=not _contains_obvious_secret(payload_text),
         redaction_report_count=len(record.redaction_report),
-        stage_graph_full_staged=_contains_full_staged_path(stage_ids),
+        planned_stage_graph_full_staged=_contains_full_staged_path(planned_stage_ids),
+        executed_trace_full_staged=_contains_full_staged_path(executed_stage_ids),
         no_legacy_scenario_unavailable=no_legacy_scenario_unavailable,
     )
 
@@ -243,18 +256,19 @@ def render_issue_comment(summaries: Sequence[RepresentativeRunSummary]) -> str:
         "",
         "### 总体结论",
         "",
-        "| Case | verdict | record status | main result eligible | oracle weak | stage graph | wiring断链 | run record |",
-        "|---|---|---|---:|---:|---|---|---|",
+        "| Case | verdict | record status | main result eligible | oracle weak | planned graph | executed trace | wiring断链 | run record |",
+        "|---|---|---|---:|---:|---|---|---|---|",
     ]
     for summary in summaries:
         lines.append(
-            "| {case} | `{verdict}` | `{record_status}` | {eligible} | {oracle_weak} | {graph} | {wiring} | `{path}` |".format(
+            "| {case} | `{verdict}` | `{record_status}` | {eligible} | {oracle_weak} | {planned_graph} | {executed_trace} | {wiring} | `{path}` |".format(
                 case=summary.case.title,
                 verdict=summary.verdict,
                 record_status=summary.record_status,
                 eligible=_yes_no(summary.main_result_eligible),
                 oracle_weak=_yes_no(summary.oracle_weak),
-                graph="✅" if summary.stage_graph_full_staged else "⚠️",
+                planned_graph="✅" if summary.planned_stage_graph_full_staged else "⚠️",
+                executed_trace=_executed_trace_cell(summary),
                 wiring="✅ 未出现" if summary.no_legacy_scenario_unavailable else "❌ 仍出现",
                 path=summary.run_record_path,
             )
@@ -268,6 +282,7 @@ def render_issue_comment(summaries: Sequence[RepresentativeRunSummary]) -> str:
             "",
             "- 若 verdict 为 `not_converged`，本 evidence 只能说明默认入口与 run-record 基础设施可审计执行，不能解释为模型质量已经达到高可信主结果。",
             "- 只有 verdict 为 `success` 且 `main_result_eligible=true` 时，才可作为 Path1/Path2 后续高可信主结果候选。",
+            "- `planned graph` 表示默认 staged path 的计划图是否齐备；`executed trace` 表示本次实际执行轨迹是否覆盖全部 stage。若 run 在 pre-scenario repair 阶段停止，后续 scenario / sim / review stage 会被列为未执行，不能误读为已完整执行。",
             "- 本 comment 不包含 provider secret；provider/model 仅以 run record 中的脱敏标识呈现。",
         ]
     )
@@ -292,6 +307,9 @@ def summaries_to_jsonable(summaries: Sequence[RepresentativeRunSummary]) -> list
                 "run_record_id": summary.run_record_id,
                 "run_record_path": summary.run_record_path,
                 "stage_ids": summary.stage_ids,
+                "planned_stage_ids": summary.planned_stage_ids,
+                "executed_stage_ids": summary.executed_stage_ids,
+                "executed_missing_stage_ids": summary.executed_missing_stage_ids,
                 "llm_stage_ids": summary.llm_stage_ids,
                 "iteration_count": summary.iteration_count,
                 "repair_count": summary.repair_count,
@@ -309,9 +327,11 @@ def summaries_to_jsonable(summaries: Sequence[RepresentativeRunSummary]) -> list
                 "condition_id": summary.condition_id,
                 "policy_profile": summary.policy_profile,
                 "schema_valid": summary.schema_valid,
+                "schema_validation_error": summary.schema_validation_error,
                 "secret_redacted": summary.secret_redacted,
                 "redaction_report_count": summary.redaction_report_count,
-                "stage_graph_full_staged": summary.stage_graph_full_staged,
+                "planned_stage_graph_full_staged": summary.planned_stage_graph_full_staged,
+                "executed_trace_full_staged": summary.executed_trace_full_staged,
                 "no_legacy_scenario_unavailable": summary.no_legacy_scenario_unavailable,
             }
         )
@@ -333,27 +353,45 @@ def _render_case_section(summary: RepresentativeRunSummary) -> list[str]:
         f"- provider/model：mode=`{summary.provider_mode}`，real_api=`{summary.real_llm_provider_api}`，config_read=`{summary.provider_config_read}`，model=`{summary.provider_model_redacted}`",
         f"- verdict：`{summary.verdict}`，record_status=`{summary.record_status}`，source_stage=`{summary.verdict_source_stage_id}`",
         f"- verdict reason：{summary.verdict_reason or '<none>'}",
+        f"- planned stage graph：full_staged=`{summary.planned_stage_graph_full_staged}`，stage_count=`{len(summary.planned_stage_ids)}`",
+        f"- executed trace：full_staged=`{summary.executed_trace_full_staged}`，executed_count=`{len(summary.executed_stage_ids)}`，missing_required=`{', '.join(summary.executed_missing_stage_ids) or '<none>'}`",
         f"- stage 摘要：iterations=`{summary.iteration_count}`，repairs=`{summary.repair_count}`，scenario_history=`{summary.scenario_history_count}`，LLM stages=`{', '.join(summary.llm_stage_ids) or '<none>'}`",
         f"- scenario：scenario_set_id=`{summary.scenario_set_id}`，epoch=`{summary.scenario_epoch}`，oracle_weak=`{summary.oracle_weak}`",
         f"- eligibility：main_result_eligible=`{summary.main_result_eligible}`，inclusion_reason=`{summary.inclusion_reason}`，exclusion_reason=`{summary.exclusion_reason}`",
-        f"- redaction/schema：schema_valid=`{summary.schema_valid}`，secret_redacted=`{summary.secret_redacted}`，redaction_report_count=`{summary.redaction_report_count}`",
+        f"- redaction/schema：schema_valid=`{summary.schema_valid}`，schema_error=`{summary.schema_validation_error}`，secret_redacted=`{summary.secret_redacted}`，redaction_report_count=`{summary.redaction_report_count}`",
         f"- 旧 wiring 断链检查：`scenario generation unavailable because initial DSL parse failed` 出现？`{not summary.no_legacy_scenario_unavailable}`",
         f"- final DSL length：`{summary.final_dsl_length}`",
     ]
 
 
-def _stage_ids_from_record(record: AgentLoopRunRecord) -> list[str]:
+def _planned_stage_ids_from_record(record: AgentLoopRunRecord) -> list[str]:
     ids: list[str] = []
     planned = record.stage_graph.get("planned") if isinstance(record.stage_graph, dict) else None
     if isinstance(planned, list):
-        ids.extend(str(stage_id) for stage_id in planned if stage_id)
+        ids.extend(_unique_stage_ids(planned))
+    return ids
+
+
+def _executed_stage_ids_from_record(record: AgentLoopRunRecord) -> list[str]:
+    ids: list[str] = []
     executed = record.stage_graph.get("executed") if isinstance(record.stage_graph, dict) else None
     if isinstance(executed, list):
-        ids.extend(str(stage_id) for stage_id in executed if stage_id)
+        ids.extend(_unique_stage_ids(executed))
     for stage_id in _stage_record_ids(record):
         if stage_id not in ids:
             ids.append(stage_id)
     return ids
+
+
+def _stage_ids_from_record(record: AgentLoopRunRecord) -> list[str]:
+    """Return executed stage IDs without mixing planned graph evidence.
+
+    A complete ``stage_graph.planned`` only proves that the default staged path
+    is wired.  PR-D summaries must not use planned IDs as evidence that a stage
+    actually ran.
+    """
+
+    return _executed_stage_ids_from_record(record)
 
 
 def _stage_record_ids(record: AgentLoopRunRecord) -> list[str]:
@@ -366,6 +404,19 @@ def _stage_record_ids(record: AgentLoopRunRecord) -> list[str]:
         if stage_id:
             ids.append(str(stage_id))
     return ids
+
+
+def _unique_stage_ids(stage_ids: Iterable[object]) -> list[str]:
+    ids: list[str] = []
+    for stage_id in stage_ids:
+        if stage_id and str(stage_id) not in ids:
+            ids.append(str(stage_id))
+    return ids
+
+
+def _missing_required_stage_ids(stage_ids: Iterable[str]) -> list[str]:
+    present = set(stage_ids)
+    return [stage_id for stage_id in FULL_STAGED_REQUIRED_STAGE_IDS if stage_id not in present]
 
 
 def _llm_stage_ids(record: AgentLoopRunRecord) -> list[str]:
@@ -396,6 +447,21 @@ def _latest_scenario_int(record: AgentLoopRunRecord, key: str) -> int | None:
 def _contains_full_staged_path(stage_ids: Iterable[str]) -> bool:
     present = set(stage_ids)
     return all(stage_id in present for stage_id in FULL_STAGED_REQUIRED_STAGE_IDS)
+
+
+def _schema_validation_error(record: AgentLoopRunRecord) -> str | None:
+    try:
+        AgentLoopRunRecord(**asdict(record))
+    except (TypeError, ValueError) as exc:
+        return str(exc)
+    return None
+
+
+def _executed_trace_cell(summary: RepresentativeRunSummary) -> str:
+    total = len(FULL_STAGED_REQUIRED_STAGE_IDS)
+    if summary.executed_trace_full_staged:
+        return f"✅ {len(summary.executed_stage_ids)}/{total}"
+    return f"⚠️ {len(summary.executed_stage_ids)}/{total}"
 
 
 def _record_public_text(record: AgentLoopRunRecord) -> str:

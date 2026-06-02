@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 from method.pr_d_representative import (
     FULL_STAGED_REQUIRED_STAGE_IDS,
     RepresentativeCase,
+    _schema_validation_error,
     assert_pr_d_provider_env,
     make_pr_d_config,
     missing_provider_env,
@@ -17,7 +19,7 @@ from method.pr_d_representative import (
     summaries_to_jsonable,
 )
 from method.run_record import write_agent_loop_run_record
-from method.schema import AgentLoopResult, AgentLoopRunRecord, StageResultMeta
+from method.schema import AgentLoopResult, AgentLoopRunRecord
 from method.stages.ids import STAGE_SPECS_BY_ID, StageStatus
 
 
@@ -38,6 +40,7 @@ def _stage_meta(stage_id: str, *, ok: bool = True) -> dict[str, object]:
 
 
 def _record(*, run_id: str = "pr-d-path1_cara", final_dsl: str = "state Root { [*] -> Idle; state Idle; }") -> AgentLoopRunRecord:
+    executed_stage_ids = ["SC-0", "SL-1", "SD-2", "SD-8", "SL-9", "SD-10", "SC-11", "SC-12", "SC-13"]
     return AgentLoopRunRecord(
         schema_version="pr-c.default-full-staged-runtime.v1",
         run_id=run_id,
@@ -71,42 +74,60 @@ def _record(*, run_id: str = "pr-d-path1_cara", final_dsl: str = "state Root { [
         },
         stage_graph={
             "planned": FULL_STAGED_REQUIRED_STAGE_IDS,
-            "executed": FULL_STAGED_REQUIRED_STAGE_IDS,
+            "executed": executed_stage_ids,
         },
-        stage_records=[_stage_meta(stage_id, ok=stage_id not in {"SC-12"}) for stage_id in FULL_STAGED_REQUIRED_STAGE_IDS],
+        stage_records=[_stage_meta(stage_id, ok=stage_id not in {"SC-12"}) for stage_id in executed_stage_ids],
         iteration_records=[
             {
                 "iteration": 0,
-                "stage_ids": FULL_STAGED_REQUIRED_STAGE_IDS,
-                "selected_feedback": {"source": "sim"},
-                "exit_reason": "SC-11 budget gate blocked SD-2 revalidation",
+                "stage_ids": executed_stage_ids,
+                "selected_feedback": {"source": "parse"},
+                "exit_reason": "candidate semantic failed before scenario generation",
             }
         ],
+        llm_interactions=[
+            {"stage_id": "SL-1", "provider": "real-env", "model_id": "gpt-test"},
+            {"stage_id": "SL-9", "provider": "real-env", "model_id": "gpt-test"},
+        ],
+        deterministic_feedback={"iterations": [{"parse": {"ok": True}, "semantic": {"ok": True}}]},
+        repair_history=[{"iteration": 0, "accepted": True}],
+        scenario_history=[],
+        final_artifacts={
+            "final_dsl": final_dsl,
+            "final_dsl_hash": "sha256:final",
+            "verdict": "not_converged",
+            "verdict_source_stage_id": "SC-11",
+            "verdict_reason": "candidate semantic failed",
+            "agent_loop_result_status": "not_converged",
+            "oracle_weak": False,
+            "main_result_eligible": False,
+            "inclusion_reason": None,
+            "exclusion_reason": "verdict_not_success",
+            "error_message": "candidate semantic failed before scenario generation",
+        },
+        logs=[{"event": "sc12_verdict", "verdict": "not_converged", "reason": "candidate semantic failed"}],
+        replay_index={"iteration_count": 1, "repair_count": 1, "scenario_history_count": 0},
+        redaction_report=[{"field_path": "input_bundle.nl", "reason": "test_redacted"}],
+    )
+
+
+def _full_record() -> AgentLoopRunRecord:
+    record = _record()
+    return replace(
+        record,
+        stage_graph={
+            "planned": FULL_STAGED_REQUIRED_STAGE_IDS,
+            "executed": FULL_STAGED_REQUIRED_STAGE_IDS,
+        },
+        stage_records=[_stage_meta(stage_id, ok=stage_id not in {"SC-12"}) for stage_id in FULL_STAGED_REQUIRED_STAGE_IDS],
         llm_interactions=[
             {"stage_id": "SL-1", "provider": "real-env", "model_id": "gpt-test"},
             {"stage_id": "SL-5", "provider": "real-env", "model_id": "gpt-test"},
             {"stage_id": "SL-9", "provider": "real-env", "model_id": "gpt-test"},
             {"stage_id": "SL-7", "provider": "real-env", "model_id": "gpt-test"},
         ],
-        deterministic_feedback={"iterations": [{"parse": {"ok": True}, "semantic": {"ok": True}}]},
-        repair_history=[{"iteration": 0, "accepted": True}],
         scenario_history=[{"scenario_set_id": "scenario-pr-d-path1", "epoch": 0, "n_scenarios": 1}],
-        final_artifacts={
-            "final_dsl": final_dsl,
-            "final_dsl_hash": "sha256:final",
-            "verdict": "not_converged",
-            "verdict_source_stage_id": "SC-11",
-            "verdict_reason": "SC-11 budget gate blocked SD-2 revalidation",
-            "agent_loop_result_status": "not_converged",
-            "oracle_weak": False,
-            "main_result_eligible": False,
-            "inclusion_reason": None,
-            "exclusion_reason": "verdict_not_success",
-            "error_message": "not converged in default budget",
-        },
-        logs=[{"event": "sc12_verdict", "verdict": "not_converged"}],
         replay_index={"iteration_count": 1, "repair_count": 1, "scenario_history_count": 1},
-        redaction_report=[{"field_path": "input_bundle.nl", "reason": "test_redacted"}],
     )
 
 
@@ -158,18 +179,55 @@ def test_pr_d_summary_and_comment_are_secret_safe(tmp_path: Path, monkeypatch: p
 
     assert summary.schema_valid is True
     assert summary.secret_redacted is True
-    assert summary.stage_graph_full_staged is True
+    assert summary.planned_stage_graph_full_staged is True
+    assert summary.executed_trace_full_staged is False
+    assert {"SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7", "SL-10B"}.issubset(summary.executed_missing_stage_ids)
     assert summary.no_legacy_scenario_unavailable is True
     assert summary.main_result_eligible is False
     assert summary.provider_mode == "real_env"
     assert summary.provider_config_read is True
-    assert summary.scenario_set_id == "scenario-pr-d-path1"
-    assert summary.scenario_epoch == 0
+    assert summary.scenario_set_id is None
+    assert summary.scenario_epoch is None
     assert "Path1 CARA representative NL" in comment
     assert "not_converged" in comment
+    assert "planned graph" in comment
+    assert "executed trace" in comment
+    assert "missing_required=`SD-3, SD-4, SL-5" in comment
     assert "scenario generation unavailable because initial DSL parse failed" in comment
     assert "sk-prd-secret" not in comment
     assert payload[0]["case_key"] == "path1_cara"
+    assert payload[0]["planned_stage_graph_full_staged"] is True
+    assert payload[0]["executed_trace_full_staged"] is False
+    assert "stage_graph_full_staged" not in payload[0]
+
+
+def test_pr_d_full_trace_summary_requires_executed_stage_ids(tmp_path: Path) -> None:
+    record = _full_record()
+    path = write_agent_loop_run_record(record, tmp_path / "pr-d-path1_cara.agent_loop.json.gz")
+    result = AgentLoopResult(
+        final_dsl=record.final_artifacts["final_dsl"],
+        status="not_converged",
+        error_message="not converged in default budget",
+        run_record_id=record.run_id,
+        run_record_path=str(path),
+    )
+
+    summary = summarize_run(_case(), result, record, path)
+
+    assert summary.planned_stage_graph_full_staged is True
+    assert summary.executed_trace_full_staged is True
+    assert summary.executed_missing_stage_ids == []
+    assert summary.scenario_set_id == "scenario-pr-d-path1"
+    assert summary.scenario_epoch == 0
+
+
+def test_pr_d_schema_validation_negative_case() -> None:
+    valid = _record()
+    invalid = _record()
+    invalid.stage_records = [{**invalid.stage_records[0], "ok": "yes"}]
+
+    assert _schema_validation_error(valid) is None
+    assert "StageResultMeta.ok must be a bool" in (_schema_validation_error(invalid) or "")
 
 
 def test_pr_d_runner_uses_injected_entry_and_writes_summary(tmp_path: Path) -> None:

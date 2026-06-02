@@ -4,10 +4,10 @@
 
 ### 总体结论
 
-| Case | verdict | record status | main result eligible | oracle weak | stage graph | wiring断链 | run record |
-|---|---|---|---:|---:|---|---|---|
-| Path1 CARA representative NL | `not_converged` | `rejected` | ❌ | ❌ | ✅ | ✅ 未出现 | `runs/pr_d_representative/pr-d-path1_cara.agent_loop.json.gz` |
-| Path2 LNG-ship EMS representative NL | `not_converged` | `rejected` | ❌ | ❌ | ✅ | ✅ 未出现 | `runs/pr_d_representative/pr-d-path2_lng_ems.agent_loop.json.gz` |
+| Case | verdict | record status | main result eligible | oracle weak | planned graph | executed trace | wiring断链 | run record |
+|---|---|---|---:|---:|---|---|---|---|
+| Path1 CARA representative NL | `not_converged` | `rejected` | ❌ | ❌ | ✅ | ⚠️ 9/17 | ✅ 未出现 | `runs/pr_d_representative/pr-d-path1_cara.agent_loop.json.gz` |
+| Path2 LNG-ship EMS representative NL | `not_converged` | `rejected` | ❌ | ❌ | ✅ | ⚠️ 11/17 | ✅ 未出现 | `runs/pr_d_representative/pr-d-path2_lng_ems.agent_loop.json.gz` |
 
 ### Path1 CARA representative NL
 
@@ -21,10 +21,12 @@
 - provider/model：mode=`real_env`，real_api=`True`，config_read=`True`，model=`gpt-5.5`
 - verdict：`not_converged`，record_status=`rejected`，source_stage=`SC-11`
 - verdict reason：candidate semantic failed
+- planned stage graph：full_staged=`True`，stage_count=`17`
+- executed trace：full_staged=`False`，executed_count=`9`，missing_required=`SD-3, SD-4, SL-5, SD-5A, SC-5F, SD-6, SL-7, SL-10B`
 - stage 摘要：iterations=`1`，repairs=`1`，scenario_history=`0`，LLM stages=`SL-1, SL-9`
 - scenario：scenario_set_id=`None`，epoch=`None`，oracle_weak=`False`
 - eligibility：main_result_eligible=`False`，inclusion_reason=`None`，exclusion_reason=`verdict_not_success`
-- redaction/schema：schema_valid=`True`，secret_redacted=`True`，redaction_report_count=`0`
+- redaction/schema：schema_valid=`True`，schema_error=`None`，secret_redacted=`True`，redaction_report_count=`0`
 - 旧 wiring 断链检查：`scenario generation unavailable because initial DSL parse failed` 出现？`False`
 - final DSL length：`1741`
 
@@ -40,10 +42,12 @@
 - provider/model：mode=`real_env`，real_api=`True`，config_read=`True`，model=`gpt-5.5`
 - verdict：`not_converged`，record_status=`rejected`，source_stage=`SC-11`
 - verdict reason：design_target_unresolved
+- planned stage graph：full_staged=`True`，stage_count=`17`
+- executed trace：full_staged=`False`，executed_count=`11`，missing_required=`SL-5, SD-5A, SC-5F, SD-6, SL-7, SL-10B`
 - stage 摘要：iterations=`1`，repairs=`1`，scenario_history=`0`，LLM stages=`SL-1, SL-9`
 - scenario：scenario_set_id=`None`，epoch=`None`，oracle_weak=`False`
 - eligibility：main_result_eligible=`False`，inclusion_reason=`None`，exclusion_reason=`verdict_not_success`
-- redaction/schema：schema_valid=`True`，secret_redacted=`True`，redaction_report_count=`0`
+- redaction/schema：schema_valid=`True`，schema_error=`None`，secret_redacted=`True`，redaction_report_count=`0`
 - 旧 wiring 断链检查：`scenario generation unavailable because initial DSL parse failed` 出现？`False`
 - final DSL length：`3933`
 
@@ -51,4 +55,5 @@
 
 - 若 verdict 为 `not_converged`，本 evidence 只能说明默认入口与 run-record 基础设施可审计执行，不能解释为模型质量已经达到高可信主结果。
 - 只有 verdict 为 `success` 且 `main_result_eligible=true` 时，才可作为 Path1/Path2 后续高可信主结果候选。
+- `planned graph` 表示默认 staged path 的计划图是否齐备；`executed trace` 表示本次实际执行轨迹是否覆盖全部 stage。若 run 在 pre-scenario repair 阶段停止，后续 scenario / sim / review stage 会被列为未执行，不能误读为已完整执行。
 - 本 comment 不包含 provider secret；provider/model 仅以 run record 中的脱敏标识呈现。
