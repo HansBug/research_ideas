@@ -22,13 +22,15 @@
 - [stages/](./stages/)
 
 
-## PR-A config / ablation contract
+## PR-C config / default runtime contract
 
-- 默认入口：`method.loop.run_agent_loop(nl, LoopConfig())`，其中 `LoopConfig()` 必须保持 `experiment_default/full_staged_v1`。
+- 默认入口：`method.loop.run_agent_loop(nl, LoopConfig())`，其中 `LoopConfig()` 必须保持 `experiment_default/full_staged_v1`，并执行 full staged runtime。
 - legacy：旧 A0-A4 loop 只能通过 `method.legacy_loop.run_legacy_agent_loop()` 显式调用，并视为 deprecated。
 - skill 使用者若要生成 ref model，应使用 `SL-*` prompt generators 自行调用 LLM/subagent；`SD-*` deterministic tools 可直接作为封装工具调用。
 - 任何 ablation 都要显式 `condition_id/base_condition_id/changed_factors/academic_question`，并在 run record 中记录 resolved config 与 condition hash。
-- PR-A 阶段 façade 只写 contract-only run record；`main_result_eligible=false`。真实 full runtime 在后续 PR-C 才可作为 Path1/Path2 主实验入口。
+- 默认入口接 PR-B1 driver + PR-B2 real-env LLM adapters；provider/schema/empty-output retry exhaustion 必须以 `provider_error` / `invalid` 等可追溯 verdict 退出并写 run record，不得回退 fake。
+- fake / mock / replay / hot-start 只能通过显式非默认 profile 或专用 smoke/replay runner 启用，并在 run record 中标记 `main_result_eligible=false` 或明确 exclusion reason。
+- run record 必须包含 stage / iteration / LLM interaction / deterministic feedback / repair / scenario / environment / final artifacts / redaction report；secret 不得以原文落盘。
 
 ## PR-B2 LLM stage adapter 边界
 
