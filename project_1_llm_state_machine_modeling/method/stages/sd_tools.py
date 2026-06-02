@@ -39,7 +39,7 @@ from method.schema import (
 from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageId, StageStatus
 from method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
 
-DesignPolicyProfile = Literal["generated_candidate", "signed_ref_model", "path_smoke", "audit_only"]
+DesignPolicyProfile = Literal["experiment_default", "generated_candidate", "signed_ref_model", "path_smoke", "audit_only"]
 
 _HIGH_RISK_WARNING_CODES = {
     "W_UNREACHABLE_STATE",

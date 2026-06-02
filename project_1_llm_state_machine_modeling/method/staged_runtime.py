@@ -149,7 +149,7 @@ def build_full_staged_runtime_adapters(
     scenario_generate: ScenarioGenerateAdapter,
     repair: RepairAdapter,
     model_review: ModelReviewAdapter,
-    policy_profile: str = "generated_candidate",
+    policy_profile: str = "experiment_default",
     delta_review: DeltaReviewAdapter | None = None,
 ) -> FullStagedRuntimeAdapters:
     """Build PR-B1 adapters from existing deterministic SD tools.
@@ -685,39 +685,23 @@ def _run_scenario_generation_and_freeze(
 
 def _reuse_or_check_scenario_set(
     *,
+    nl: str,
     current_dsl: str,
+    context: StageContext,
+    cfg: FullStagedRuntimeConfig,
     scenario_set: ScenarioSet,
     adapters: FullStagedRuntimeAdapters,
     iteration: int,
     stage_records: list[StageResultMeta],
     iteration_stage_metas: list[StageResultMeta],
+    llm_interactions: list[dict[str, Any]],
     logs: list[dict[str, Any]],
-) -> tuple[ScenarioSet, list[dict[str, Any]], bool]:
+) -> tuple[ScenarioSet, list[dict[str, Any]], bool, int]:
     coverage, coverage_meta = adapters.scenario_coverage(current_dsl, list(scenario_set.scenarios))
     _append_stage(stage_records, coverage_meta)
     iteration_stage_metas.append(coverage_meta)
-    weak = bool(coverage.get("coverage_gap"))
-    if weak:
-        scenario_set.coverage_report = {
-            **dict(scenario_set.coverage_report),
-            **dict(coverage),
-            "oracle_weak": True,
-            "weak_oracle_reason": "frozen_scenario_coverage_or_compatibility_gap",
-        }
-        logs.append(
-            {
-                "ts": _utc_now(),
-                "level": "warning",
-                "event": "frozen_scenario_coverage_gap",
-                "iteration": iteration,
-                "scenario_set_id": scenario_set.scenario_set_id,
-            }
-        )
-    freeze_meta = _meta(StageId.SC_5F_SCENARIO_FREEZE, ok=True)
-    freeze_meta.input_hash = _hash_text(current_dsl)
-    freeze_meta.output_hash = _hash_text(scenario_set.scenario_set_id)
-    _append_stage(stage_records, freeze_meta)
-    iteration_stage_metas.append(freeze_meta)
+
+    gap = bool(coverage.get("coverage_gap"))
     history = [
         _scenario_history_item(
             iteration=iteration,
@@ -726,13 +710,128 @@ def _reuse_or_check_scenario_set(
             coverage=coverage,
             coverage_meta=coverage_meta,
             retry_exhausted=False,
-            oracle_weak=weak,
+            oracle_weak=False,
         )
     ]
     history[0]["scenario_set_id"] = scenario_set.scenario_set_id
     history[0]["epoch"] = scenario_set.epoch
     history[0]["reused_frozen_oracle"] = True
-    return scenario_set, history, weak
+
+    if not gap:
+        freeze_meta = _meta(StageId.SC_5F_SCENARIO_FREEZE, ok=True)
+        freeze_meta.input_hash = _hash_text(current_dsl)
+        freeze_meta.output_hash = _hash_text(scenario_set.scenario_set_id)
+        _append_stage(stage_records, freeze_meta)
+        iteration_stage_metas.append(freeze_meta)
+        return scenario_set, history, False, scenario_set.epoch + 1
+
+    coverage_directive: Any | None = coverage.get("retry_directive") or {"retry_reason": "frozen_scenario_coverage_gap"}
+    previous_scenarios = list(scenario_set.scenarios)
+    selected_scenarios = list(scenario_set.scenarios)
+    selected_coverage = dict(coverage)
+    weak = cfg.scenario_max_retries == 0
+    next_epoch = scenario_set.epoch + 1
+
+    logs.append(
+        {
+            "ts": _utc_now(),
+            "level": "warning",
+            "event": "frozen_scenario_coverage_gap_targeted_retry",
+            "iteration": iteration,
+            "scenario_set_id": scenario_set.scenario_set_id,
+            "scenario_max_retries": cfg.scenario_max_retries,
+        }
+    )
+
+    for retry_index in range(1, cfg.scenario_max_retries + 1):
+        request = ScenarioGenerationRequest(
+            nl=nl,
+            current_dsl=current_dsl,
+            context=context,
+            attempt_index=retry_index,
+            coverage_directive=coverage_directive,
+            previous_scenarios=previous_scenarios,
+            scenario_epoch=next_epoch,
+        )
+        generated = adapters.scenario_generate(request)
+        generated = _append_llm_stage_run(
+            run=generated,
+            expected_stage_id=StageId.SL_5_SCENARIO_GENERATION,
+            stage_records=stage_records,
+            iteration_stage_metas=iteration_stage_metas,
+            llm_interactions=llm_interactions,
+        )
+        if _is_llm_stage_run(generated):
+            scenarios = list(getattr(generated, "parsed_output", []) or [])
+        else:
+            scenarios = list(generated or [])
+            sl5_meta = _meta(StageId.SL_5_SCENARIO_GENERATION, ok=True)
+            sl5_meta.input_hash = _hash_text(current_dsl)
+            sl5_meta.output_hash = _short_hash(scenarios)
+            _append_stage(stage_records, sl5_meta)
+            iteration_stage_metas.append(sl5_meta)
+
+        retry_coverage, retry_meta = adapters.scenario_coverage(current_dsl, scenarios)
+        _append_stage(stage_records, retry_meta)
+        iteration_stage_metas.append(retry_meta)
+        selected_scenarios = scenarios
+        selected_coverage = dict(retry_coverage)
+        retry_gap = bool(retry_coverage.get("coverage_gap"))
+        retry_exhausted = retry_gap and retry_index >= cfg.scenario_max_retries
+        weak = retry_exhausted
+        history.append(
+            {
+                **_scenario_history_item(
+                    iteration=iteration,
+                    attempt_index=retry_index,
+                    scenarios=scenarios,
+                    coverage=retry_coverage,
+                    coverage_meta=retry_meta,
+                    retry_exhausted=retry_exhausted,
+                    oracle_weak=weak,
+                ),
+                "targeted_retry_after_frozen_gap": True,
+                "previous_scenario_set_id": scenario_set.scenario_set_id,
+            }
+        )
+        if not retry_gap:
+            break
+        coverage_directive = retry_coverage.get("retry_directive") or {"retry_reason": "frozen_scenario_coverage_gap"}
+        previous_scenarios = scenarios
+
+    if weak:
+        selected_coverage = {
+            **selected_coverage,
+            "oracle_weak": True,
+            "weak_oracle_reason": "frozen_scenario_coverage_retry_exhausted",
+        }
+        logs.append(
+            {
+                "ts": _utc_now(),
+                "level": "warning",
+                "event": "frozen_scenario_coverage_retry_exhausted",
+                "iteration": iteration,
+                "previous_scenario_set_id": scenario_set.scenario_set_id,
+                "scenario_max_retries": cfg.scenario_max_retries,
+            }
+        )
+
+    refreshed_set, freeze_meta = freeze_scenario_set(
+        selected_scenarios,
+        source_dsl_hash=_hash_text(current_dsl),
+        source_inspect_hash=_short_hash(context.inspect_json) if context.inspect_json is not None else "",
+        source_grounding_hash=_short_hash(cfg.grounding_map) if cfg.grounding_map is not None else None,
+        coverage_report=selected_coverage,
+        epoch=next_epoch,
+    )
+    refreshed_set.coverage_report["oracle_weak"] = weak
+    _append_stage(stage_records, freeze_meta)
+    iteration_stage_metas.append(freeze_meta)
+    if history:
+        history[-1]["scenario_set_id"] = refreshed_set.scenario_set_id
+        history[-1]["epoch"] = refreshed_set.epoch
+        history[-1]["oracle_weak"] = weak
+    return refreshed_set, history, weak, refreshed_set.epoch + 1
 
 
 def _run_validation_pass(
@@ -793,15 +892,20 @@ def _run_validation_pass(
         scenario_history.extend(generated_history)
         oracle_weak = oracle_weak or weak_now
     else:
-        scenario_set, reused_history, weak_now = _reuse_or_check_scenario_set(
+        scenario_set, reused_history, weak_now, next_epoch = _reuse_or_check_scenario_set(
+            nl=nl,
             current_dsl=current_dsl,
+            context=context,
+            cfg=cfg,
             scenario_set=scenario_set,
             adapters=adapters,
             iteration=iteration,
             stage_records=stage_records,
             iteration_stage_metas=iteration_stage_metas,
+            llm_interactions=llm_interactions,
             logs=logs,
         )
+        scenario_epoch = next_epoch
         scenario_history.extend(reused_history)
         oracle_weak = oracle_weak or weak_now
 
