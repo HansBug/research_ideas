@@ -271,3 +271,19 @@ def test_pr_c_run_record_redacts_secrets_from_nl_and_llm_interactions(tmp_path: 
     assert "<redacted:" in payload
     assert record.redaction_report
     assert any(item["field_path"].startswith("run_record.input_bundle.nl") for item in record.redaction_report)
+
+
+def test_pr_c_run_record_write_failure_does_not_return_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    provider = MockLLMProvider(responses=[_sl1_ok_raw(), _sl5_ok_raw(), _sl7_pass_raw()])
+    cfg = _mock_loop_config(tmp_path, run_id="pr-c-write-failure")
+
+    def fail_write(*_args: object, **_kwargs: object) -> None:
+        raise OSError("simulated disk failure")
+
+    monkeypatch.setattr("method.staged_runtime.write_agent_loop_run_record", fail_write)
+    result = loop.run_agent_loop("Start moves Idle to Active.", cfg, llm_provider=provider)
+
+    assert result.status == "spec_failed"
+    assert result.run_record_path is None
+    assert result.error_message is not None
+    assert "run record write failed" in result.error_message

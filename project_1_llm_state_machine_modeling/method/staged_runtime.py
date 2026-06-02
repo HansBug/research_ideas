@@ -1541,6 +1541,11 @@ def run_full_staged_deterministic_runtime(
 
     if config.write_run_record:
         record = _build_record(cfg=config, nl=nl, state=state)
-        path = write_agent_loop_run_record(record, agent_loop_run_record_path(config.output_dir, run_id))
-        result.run_record_path = str(path)
+        try:
+            path = write_agent_loop_run_record(record, agent_loop_run_record_path(config.output_dir, run_id))
+            result.run_record_path = str(path)
+        except Exception as exc:
+            result.status = "spec_failed"
+            result.error_message = f"run record write failed: {type(exc).__name__}: {str(exc)[:300]}"
+            result.run_record_path = None
     return result
