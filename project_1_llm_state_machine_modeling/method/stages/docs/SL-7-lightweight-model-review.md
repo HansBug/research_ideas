@@ -8,7 +8,7 @@
 
 - `nl`: 原始需求。
 - `current_dsl`: 当前 DSL。
-- `inspect_summary`: SD-4 摘要。
+- `inspect_summary`: SD-4 / `inspect_model_to_json` 的有界摘要，保留 metrics、diagnostic code、状态/迁移/变量样本和截断标记。
 - `sim_summary`: SD-6 摘要。
 - `grounding_map`: NL/model 元素映射。
 - `five_component_summary`: Path1/Path2 兼容的 5-component 摘要。
@@ -17,7 +17,8 @@
 
 ### LLM 输入
 
-- NL + current_dsl + inspect diagnostics + sim summary + GroundingMap + 5-component summary + warning budget exhausted + ReviewPolicy。
+- NL + current_dsl + bounded inspect/design diagnostics summary + sim summary + GroundingMap + 5-component summary + warning budget exhausted + ReviewPolicy。
+- 大型 Path2 case 不应把完整 inspect JSON 原样塞入 prompt；prompt generator 必须保留可审阅信息边界，同时显式写入 `_truncated_items`，信息不足时让 LLM 输出 `audit_only`。
 
 ## 输出
 

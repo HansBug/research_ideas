@@ -30,6 +30,7 @@ from method.stages.sl_initial_modeling_prompt import (
 from method.stages.sl_model_review_prompt import (
     MODEL_REVIEW_CATEGORIES,
     build_sl7_model_review_prompt,
+    compact_sl7_review_input,
     parse_sl7_model_review_response,
 )
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
@@ -230,6 +231,76 @@ def test_sl7_prompt_contains_required_contract_fields() -> None:
     for category in MODEL_REVIEW_CATEGORIES:
         assert category in joined
 
+
+def test_sl7_prompt_compacts_large_inspect_and_design_payloads() -> None:
+    large_inspect = {
+        "root_state_path": "Root",
+        "states": [{"path": f"Root.S{i}", "children": [f"C{j}" for j in range(20)]} for i in range(40)],
+        "transitions": [{"source": f"S{i}", "target": f"S{i+1}", "guard": "x > 0" * 100} for i in range(40)],
+        "variables": [{"name": f"v{i}", "type": "float", "init": 0} for i in range(40)],
+        "events": [{"name": f"e{i}"} for i in range(40)],
+        "actions": [{"name": f"a{i}"} for i in range(40)],
+        "diagnostics": [{"code": "W_X", "severity": "warning", "message": "m" * 2000} for _ in range(40)],
+        "metrics": {"state_count": 40},
+    }
+    large_design = {
+        "ok": True,
+        "policy_profile": "path_smoke",
+        "blocking_items": [],
+        "advisory_items": [{"code": "W_X", "message": "long" * 1000, "refs": {"i": i}} for i in range(40)],
+        "info_items": [{"code": "I_X", "message": "long" * 1000, "refs": {"i": i}} for i in range(40)],
+        "inspect_summary": {"diagnostic_codes": ["W_X"] * 40, "prompt_ready_summary": "p" * 4000},
+    }
+
+    compact = compact_sl7_review_input(
+        inspect_json=large_inspect,
+        design_diagnostics_summary=large_design,
+        sim_summary={"ok": True, "scenario_results": [{"name": f"s{i}", "status": "pass"} for i in range(20)]},
+    )
+    messages = build_sl7_model_review_prompt(
+        nl="Start should activate the controller.",
+        current_dsl="state Root { [*] -> S0; state S0; }",
+        grounding_map=_grounding_map(),
+        inspect_json=large_inspect,
+        design_diagnostics_summary=large_design,
+        sim_summary={"ok": True, "scenario_results": [{"name": f"s{i}", "status": "pass"} for i in range(20)]},
+        review_policy={"mode": "audit_only"},
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert compact["inspect_model_to_json_summary"]["state_count"] == 40
+    assert compact["design_diagnostics_summary"]["advisory_count"] == 40
+    assert "_truncated_items" in joined
+    assert "inspect_model_to_json_summary" in joined
+    assert "design_diagnostics_summary" in joined
+    assert len(joined) < 30000
+    assert "m" * 2000 not in joined
+    assert "long" * 1000 not in joined
+
+
+
+def test_parse_json_response_preserves_backticks_inside_fenced_json_string() -> None:
+    raw = json.dumps(
+        {
+            "decision": "audit_only",
+            "risk_level": "none",
+            "findings": [
+                {
+                    "category": "structure_smell",
+                    "severity": "info",
+                    "summary": "DSL text contains a literal ``` fence marker in evidence.",
+                    "evidence": ["```pyfcstm\nstate Root { }\n```"],
+                }
+            ],
+            "blocking_findings": [],
+        },
+        ensure_ascii=False,
+    )
+
+    parsed = parse_sl7_model_review_response(f"```json\n{raw}\n```")
+
+    assert parsed["decision"] == "audit_only"
+    assert "```pyfcstm" in parsed["findings"][0]["evidence"][0]
 
 def test_sl9_repair_prompt_accepts_fix_plan_and_revised_fix_plan() -> None:
     plan = _fix_plan()

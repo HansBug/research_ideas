@@ -8,6 +8,7 @@ fixture/fake responses used by tests.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
@@ -66,16 +67,20 @@ def strip_fence(content: str) -> str:
     s = content.strip()
     if not s.startswith("```"):
         return s
-    parts = s.split("```")
-    if len(parts) >= 2:
-        body = parts[1]
-        first_nl = body.find("\n")
-        if first_nl != -1:
-            first_line = body[:first_nl].strip().lower()
-            if first_line in {"json", "fcstm", "pyfcstm", "dsl", "text", ""}:
-                body = body[first_nl + 1 :]
-        return body.strip()
-    return s
+    first_nl = s.find("\n")
+    if first_nl == -1:
+        return s
+    fence_header = s[3:first_nl].strip().lower()
+    if fence_header not in {"json", "fcstm", "pyfcstm", "dsl", "text", ""}:
+        return s
+    body = s[first_nl + 1 :]
+    # Only remove a closing fence that appears on its own final line.  Do not
+    # split on arbitrary ``` substrings because valid JSON strings may contain
+    # Markdown fence markers as data.
+    lines = body.splitlines()
+    if lines and lines[-1].strip() == "```":
+        body = "\n".join(lines[:-1])
+    return body.strip()
 
 
 def parse_json_response(content: str, *, context: str) -> dict[str, Any]:
@@ -83,10 +88,52 @@ def parse_json_response(content: str, *, context: str) -> dict[str, Any]:
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ValueError(f"{context}: response is not valid JSON: {raw[:300]}") from exc
+        repaired = _extract_json_object(raw)
+        if repaired is None:
+            raise ValueError(f"{context}: response is not valid JSON: {raw[:300]}") from exc
+        try:
+            parsed = json.loads(repaired)
+        except json.JSONDecodeError as repaired_exc:
+            raise ValueError(f"{context}: response is not valid JSON: {raw[:300]}") from repaired_exc
     if not isinstance(parsed, dict):
         raise ValueError(f"{context}: response JSON must be an object")
     return parsed
+
+
+def _extract_json_object(raw: str) -> str | None:
+    """Recover the first balanced JSON object from noisy LLM output.
+
+    Some OpenAI-compatible providers occasionally prepend prose, append
+    stop-sequence artifacts, or repeat partial JSON even when
+    ``response_format={"type": "json_object"}`` is requested.  For PR-3 smoke
+    this best-effort extraction is acceptable because the subsequent strict
+    schema parser still validates every required field.
+    """
+    match = re.search(r"\{", raw)
+    if match is None:
+        return None
+    start = match.start()
+    depth = 0
+    in_string = False
+    escape = False
+    for index, char in enumerate(raw[start:], start=start):
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[start : index + 1]
+    return None
 
 
 def require_one_of(value: Any, allowed: set[str], field_name: str) -> str:
