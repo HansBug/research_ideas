@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import method.llm_stages as llm_stages
 import method.loop as loop
 import method.schema as schema
 from method.llm_stages import MockLLMProvider
@@ -101,6 +102,24 @@ def _mock_loop_config(tmp_path: Path, *, run_id: str = "pr-c-mock-success") -> s
         llm_model="mock-model",
         max_iterations=1,
     )
+
+
+def _assert_redaction_stage_failure_record(record: schema.AgentLoopRunRecord, *, stage_id: str, secret: str) -> dict[str, object]:
+    payload = json.dumps(asdict(record), ensure_ascii=False, sort_keys=True)
+    interaction = next(item for item in record.llm_interactions if item["stage_id"] == stage_id)
+
+    assert record.status == "invalid"
+    assert record.final_artifacts["verdict"] == "invalid"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.final_artifacts["exclusion_reason"] == "verdict_not_success"
+    assert record.final_artifacts["verdict_source_stage_id"] == stage_id
+    assert "redaction_failed" in record.final_artifacts["verdict_reason"]
+    assert interaction["retry_error"]["error_kind"] == "redaction_failed"
+    assert interaction["omitted"] == "redaction_failed"
+    assert interaction["redaction_failure_path"].startswith("llm_interaction")
+    assert secret not in payload
+    assert not is_path_result_eligible(record)
+    return interaction
 
 
 def test_pr_c_default_entry_missing_real_env_provider_writes_provider_error_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -379,17 +398,102 @@ def test_pr_c_sl5_parsed_output_redaction_failure_writes_invalid_record(monkeypa
     payload = json.dumps(asdict(record), ensure_ascii=False, sort_keys=True)
     sl5 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value)
 
-    assert record.status == "invalid"
-    assert record.final_artifacts["verdict"] == "invalid"
-    assert record.final_artifacts["main_result_eligible"] is False
-    assert not is_path_result_eligible(record)
-    assert record.final_artifacts["exclusion_reason"] == "verdict_not_success"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value
-    assert "redaction_failed" in record.final_artifacts["verdict_reason"]
-    assert sl5["retry_error"]["error_kind"] == "redaction_failed"
-    assert sl5["omitted"] == "redaction_failed"
+    _assert_redaction_stage_failure_record(record, stage_id=StageId.SL_5_SCENARIO_GENERATION.value, secret=secret)
     assert sl5["redaction_failure_path"] == "llm_interaction.parsed_output"
-    assert secret not in payload
+    assert len(list(tmp_path.glob("*.agent_loop.json.gz"))) == 1
+
+
+def test_pr_c_sl5_adapter_internal_redaction_failure_writes_invalid_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    secret = "sk-pr26sl5internalredaction12345"
+    responses = [_sl1_ok_raw(), _sl5_ok_raw(), _sl7_pass_raw()]
+    original_private_redactor = llm_stages._redact_payload
+
+    class FakeRealProvider:
+        provider_name = "fake-real-for-sl5-internal-redaction-failure"
+        model_id = "fake-real-model"
+
+        def chat(self, **_kwargs: object) -> tuple[str, dict[str, int | str], str]:
+            return responses.pop(0), {
+                "prompt_tokens": 1,
+                "completion_tokens": 1,
+                "total_tokens": 2,
+                "model": self.model_id,
+            }, self.model_id
+
+    def broken_private_redactor(
+        value: object,
+        path: str,
+        report: list[dict[str, object]],
+        *,
+        affects_replay: bool = True,
+    ) -> object:
+        if path == "llm_interaction.parsed_output" and isinstance(value, dict) and "scenarios" in value:
+            raise RuntimeError("simulated SL-5 llm_stages parsed_output redaction crash")
+        return original_private_redactor(value, path, report, affects_replay=affects_replay)
+
+    monkeypatch.setattr(loop, "RealEnvLLMProvider", lambda: FakeRealProvider())
+    monkeypatch.setattr(llm_stages, "_redact_payload", broken_private_redactor)
+    cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="pr-c-sl5-internal-redaction-fail-closed")
+
+    result = loop.run_agent_loop(f"Start moves Idle to Active. leaked token LLM_API_KEY={secret}", cfg)
+
+    assert result.status == "spec_failed"
+    assert result.run_record_path is not None
+    record = read_agent_loop_run_record(result.run_record_path)
+    sl5 = _assert_redaction_stage_failure_record(record, stage_id=StageId.SL_5_SCENARIO_GENERATION.value, secret=secret)
+
+    assert sl5["redaction_failure_path"] == "llm_interaction.parsed_output"
+    assert len(list(tmp_path.glob("*.agent_loop.json.gz"))) == 1
+
+
+def test_pr_c_sl9_adapter_internal_redaction_failure_writes_invalid_record(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    secret = "sk-pr26sl9internalredaction12345"
+    bad_initial = json.dumps({"candidate_dsl": "state Root {", "grounding_seeds": [], "assumptions": []}, ensure_ascii=False)
+    responses = [bad_initial, _good_dsl()]
+    original_private_redactor = llm_stages._redact_payload
+    candidate_seen = {"count": 0}
+
+    class FakeRealProvider:
+        provider_name = "fake-real-for-sl9-internal-redaction-failure"
+        model_id = "fake-real-model"
+
+        def chat(self, **_kwargs: object) -> tuple[str, dict[str, int | str], str]:
+            return responses.pop(0), {
+                "prompt_tokens": 1,
+                "completion_tokens": 1,
+                "total_tokens": 2,
+                "model": self.model_id,
+            }, self.model_id
+
+    def broken_private_redactor(
+        value: object,
+        path: str,
+        report: list[dict[str, object]],
+        *,
+        affects_replay: bool = True,
+    ) -> object:
+        if (
+            path == "llm_interaction.parsed_output"
+            and isinstance(value, dict)
+            and str(value.get("candidate_dsl") or "").strip() == _good_dsl().strip()
+        ):
+            candidate_seen["count"] += 1
+            if candidate_seen["count"] >= 2:
+                raise RuntimeError("simulated SL-9 parsed_output redaction crash")
+        return original_private_redactor(value, path, report, affects_replay=affects_replay)
+
+    monkeypatch.setattr(loop, "RealEnvLLMProvider", lambda: FakeRealProvider())
+    monkeypatch.setattr(llm_stages, "_redact_payload", broken_private_redactor)
+    cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="pr-c-sl9-internal-redaction-fail-closed")
+
+    result = loop.run_agent_loop(f"Start moves Idle to Active. leaked token LLM_API_KEY={secret}", cfg)
+
+    assert result.status == "spec_failed"
+    assert result.run_record_path is not None
+    record = read_agent_loop_run_record(result.run_record_path)
+    sl9 = _assert_redaction_stage_failure_record(record, stage_id=StageId.SL_9_REPAIR.value, secret=secret)
+
+    assert sl9["redaction_failure_path"] == "llm_interaction.parsed_output"
     assert len(list(tmp_path.glob("*.agent_loop.json.gz"))) == 1
 
 

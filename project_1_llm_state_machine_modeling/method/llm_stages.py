@@ -419,6 +419,187 @@ def _attempt_payload(
     }
 
 
+def _redaction_failed_message(exc: Exception) -> str:
+    return f"LLM interaction redaction failed fail-closed: {type(exc).__name__}"
+
+
+def _redaction_failed_report(field_path: str) -> dict[str, Any]:
+    return {
+        "field_path": field_path,
+        "reason": "redaction_failed",
+        "replacement": "<omitted:redaction_failed>",
+        "affects_replay": True,
+    }
+
+
+def _safe_usage_summary(usage: dict[str, Any]) -> dict[str, Any]:
+    """Whitelist provider usage fields that are safe without a redactor."""
+
+    safe: dict[str, Any] = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        value = usage.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            safe[key] = value
+    model = usage.get("model")
+    if isinstance(model, str):
+        safe["model_hash"] = _hash_text(model)
+    return safe
+
+
+def _redaction_failed_stage_run(
+    *,
+    stage_id: StageId,
+    prompt_template_version: str,
+    prompt_messages: list[dict[str, str]],
+    parsed_schema_version: str,
+    config: LLMStageConfig,
+    provider_name: str,
+    model_id: str,
+    raw_output: str,
+    attempts: list[dict[str, Any]],
+    usage: dict[str, Any],
+    failure_policy: Literal["fail_open", "fail_closed", "audit_only"],
+    field_path: str,
+    exc: Exception,
+) -> LLMStageRun:
+    """Return a minimal safe failed stage run when redaction itself crashes.
+
+    PR-C treats redaction failures as audit failures, not as ordinary
+    best-effort logging warnings.  This helper intentionally discards prompt,
+    raw-output, parsed-output and attempt payload surfaces, preserving only
+    hashes and provider/model metadata so the runtime can still write a
+    secret-safe invalid run record.
+    """
+
+    message = _redaction_failed_message(exc)
+    retry_count = max(0, len(attempts) - 1)
+    meta = _stage_meta(
+        stage_id,
+        ok=False,
+        raw_output=raw_output,
+        prompt_messages=prompt_messages,
+        validation_error=message,
+    )
+    review_meta = _review_meta(
+        stage_id=stage_id,
+        provider_name=provider_name,
+        model_id=model_id,
+        prompt_template_version=prompt_template_version,
+        prompt_messages=prompt_messages,
+        raw_output=raw_output,
+        parsed_schema_version=parsed_schema_version,
+        schema_ok=False,
+        validation_error=message,
+        config=config,
+        retry_count=retry_count,
+        failure_policy=failure_policy,
+    )
+    interaction = {
+        "stage_id": stage_id.value,
+        "provider": provider_name,
+        "model_id": model_id,
+        "resolved_model_id": model_id,
+        "prompt_template_version": prompt_template_version,
+        "prompt_hash": review_meta.prompt_hash,
+        "input_hash": review_meta.input_hash,
+        "temperature": config.temperature,
+        "seed": config.seed,
+        "retry_count": retry_count,
+        "raw_output_hash": review_meta.raw_output_hash,
+        "raw_output_path": None,
+        "parsed_schema_version": parsed_schema_version,
+        "prompt_messages_omitted": "redaction_failed",
+        "raw_output_omitted": "redaction_failed",
+        "parsed_output_omitted": "redaction_failed",
+        "attempt_count": len(attempts),
+        "schema_validation_ok": False,
+        "schema_validation_error": message,
+        "usage": _safe_usage_summary(usage),
+        "retry_error": {
+            "error_kind": "redaction_failed",
+            "error_message": message,
+        },
+        "review_meta": asdict(review_meta),
+        "provider_mode": config.provider_mode,
+        "real_llm_provider_api": config.provider_mode == "real_env",
+        "redaction_failed": True,
+        "redaction_failure_path": field_path,
+        "omitted": "redaction_failed",
+        "llm_retry_scope": "provider/network/schema/empty-output only; deterministic feedback is not retried here",
+    }
+    return LLMStageRun(
+        stage_id=stage_id.value,
+        ok=False,
+        parsed_output={},
+        interaction=interaction,
+        stage_meta=meta,
+        redaction_report=[_redaction_failed_report(field_path)],
+    )
+
+
+def _mark_stage_run_redaction_failed(
+    run: LLMStageRun,
+    *,
+    stage_id: StageId,
+    field_path: str,
+    exc: Exception,
+) -> LLMStageRun:
+    """Fail-close an already-created LLMStageRun after adapter reshaping fails."""
+
+    message = _redaction_failed_message(exc)
+    run.ok = False
+    run.parsed_output = {}
+    run.stage_meta.ok = False
+    run.stage_meta.status = StageStatus.ERROR
+    run.stage_meta.stage_error = message
+    run.stage_meta.output_validation_error = message
+
+    old_interaction = dict(run.interaction or {})
+    review_meta = old_interaction.get("review_meta")
+    if isinstance(review_meta, dict):
+        review_meta = {
+            **review_meta,
+            "schema_validation_ok": False,
+            "schema_validation_error": message,
+            "failure_policy": review_meta.get("failure_policy", "fail_closed"),
+        }
+    safe_interaction = {
+        "stage_id": stage_id.value,
+        "provider": old_interaction.get("provider", "<unknown>"),
+        "model_id": old_interaction.get("model_id", "<unknown>"),
+        "resolved_model_id": old_interaction.get("resolved_model_id", old_interaction.get("model_id", "<unknown>")),
+        "prompt_template_version": old_interaction.get("prompt_template_version"),
+        "prompt_hash": old_interaction.get("prompt_hash"),
+        "input_hash": old_interaction.get("input_hash"),
+        "temperature": old_interaction.get("temperature"),
+        "seed": old_interaction.get("seed"),
+        "retry_count": old_interaction.get("retry_count", 0),
+        "raw_output_hash": old_interaction.get("raw_output_hash"),
+        "raw_output_path": None,
+        "parsed_schema_version": old_interaction.get("parsed_schema_version"),
+        "prompt_messages_omitted": "redaction_failed",
+        "raw_output_omitted": "redaction_failed",
+        "parsed_output_omitted": "redaction_failed",
+        "attempt_count": len(old_interaction.get("attempts", []) or []),
+        "schema_validation_ok": False,
+        "schema_validation_error": message,
+        "retry_error": {
+            "error_kind": "redaction_failed",
+            "error_message": message,
+        },
+        "review_meta": review_meta,
+        "provider_mode": old_interaction.get("provider_mode"),
+        "real_llm_provider_api": old_interaction.get("real_llm_provider_api"),
+        "redaction_failed": True,
+        "redaction_failure_path": field_path,
+        "omitted": "redaction_failed",
+        "llm_retry_scope": old_interaction.get("llm_retry_scope"),
+    }
+    run.interaction = {key: value for key, value in safe_interaction.items() if value is not None}
+    run.redaction_report.append(_redaction_failed_report(field_path))
+    return run
+
+
 def _run_llm_stage(
     *,
     stage_id: StageId,
@@ -578,7 +759,24 @@ def _run_llm_stage(
     }
     redaction_report: list[dict[str, Any]] = []
     if config.redact_secrets:
-        interaction = _redact_payload(interaction, "llm_interaction", redaction_report)
+        try:
+            interaction = _redact_payload(interaction, "llm_interaction", redaction_report)
+        except Exception as exc:
+            return _redaction_failed_stage_run(
+                stage_id=stage_id,
+                prompt_template_version=prompt_template_version,
+                prompt_messages=prompt_messages,
+                parsed_schema_version=parsed_schema_version,
+                config=config,
+                provider_name=chat_provider.provider_name,
+                model_id=last_model_id,
+                raw_output=last_raw,
+                attempts=attempts,
+                usage=last_usage,
+                failure_policy=failure_policy,
+                field_path="llm_interaction",
+                exc=exc,
+            )
     return LLMStageRun(stage_id=stage_id.value, ok=schema_ok, parsed_output=parsed, interaction=interaction, stage_meta=meta, redaction_report=redaction_report)
 
 
@@ -648,26 +846,44 @@ def run_sl5_scenario_generation_llm(
     # top-level JSON shape in the interaction record for audit/replay.  This is
     # done after the generic runner, so re-apply redaction to the reshaped
     # surfaces before returning them to run-record writers.
+    if not run.ok:
+        return run
     extra_report: list[dict[str, Any]] = []
     reshaped = {"scenarios": _jsonable(run.parsed_output)}
-    run.interaction["parsed_output"] = (
-        _redact_payload(reshaped, "llm_interaction.parsed_output", extra_report)
-        if cfg.redact_secrets
-        else reshaped
-    )
+    try:
+        run.interaction["parsed_output"] = (
+            _redact_payload(reshaped, "llm_interaction.parsed_output", extra_report)
+            if cfg.redact_secrets
+            else reshaped
+        )
+    except Exception as exc:
+        return _mark_stage_run_redaction_failed(
+            run,
+            stage_id=StageId.SL_5_SCENARIO_GENERATION,
+            field_path="llm_interaction.parsed_output",
+            exc=exc,
+        )
     if run.interaction.get("attempts"):
         for i, attempt in enumerate(run.interaction["attempts"]):
             if attempt.get("status") == "ok" and isinstance(attempt.get("parsed_output"), list):
                 attempt_reshaped = {"scenarios": attempt["parsed_output"]}
-                attempt["parsed_output"] = (
-                    _redact_payload(
-                        attempt_reshaped,
-                        f"llm_interaction.attempts[{i}].parsed_output",
-                        extra_report,
+                try:
+                    attempt["parsed_output"] = (
+                        _redact_payload(
+                            attempt_reshaped,
+                            f"llm_interaction.attempts[{i}].parsed_output",
+                            extra_report,
+                        )
+                        if cfg.redact_secrets
+                        else attempt_reshaped
                     )
-                    if cfg.redact_secrets
-                    else attempt_reshaped
-                )
+                except Exception as exc:
+                    return _mark_stage_run_redaction_failed(
+                        run,
+                        stage_id=StageId.SL_5_SCENARIO_GENERATION,
+                        field_path=f"llm_interaction.attempts[{i}].parsed_output",
+                        exc=exc,
+                    )
     run.redaction_report.extend(extra_report)
     return run
 
@@ -724,27 +940,43 @@ def run_sl9_repair_llm(
     if run.ok and isinstance(run.parsed_output, dict):
         normalized = _jsonable(run.parsed_output)
         extra_report: list[dict[str, Any]] = []
-        run.interaction["parsed_output"] = (
-            _redact_payload(
-                normalized,
-                "llm_interaction.parsed_output",
-                extra_report,
+        try:
+            run.interaction["parsed_output"] = (
+                _redact_payload(
+                    normalized,
+                    "llm_interaction.parsed_output",
+                    extra_report,
+                )
+                if cfg.redact_secrets
+                else normalized
             )
-            if cfg.redact_secrets
-            else normalized
-        )
+        except Exception as exc:
+            return _mark_stage_run_redaction_failed(
+                run,
+                stage_id=StageId.SL_9_REPAIR,
+                field_path="llm_interaction.parsed_output",
+                exc=exc,
+            )
         if run.interaction.get("attempts"):
             for i, attempt in enumerate(run.interaction["attempts"]):
                 if attempt.get("status") == "ok":
-                    attempt["parsed_output"] = (
-                        _redact_payload(
-                            normalized,
-                            f"llm_interaction.attempts[{i}].parsed_output",
-                            extra_report,
+                    try:
+                        attempt["parsed_output"] = (
+                            _redact_payload(
+                                normalized,
+                                f"llm_interaction.attempts[{i}].parsed_output",
+                                extra_report,
+                            )
+                            if cfg.redact_secrets
+                            else normalized
                         )
-                        if cfg.redact_secrets
-                        else normalized
-                    )
+                    except Exception as exc:
+                        return _mark_stage_run_redaction_failed(
+                            run,
+                            stage_id=StageId.SL_9_REPAIR,
+                            field_path=f"llm_interaction.attempts[{i}].parsed_output",
+                            exc=exc,
+                        )
         run.redaction_report.extend(extra_report)
     return run
 
