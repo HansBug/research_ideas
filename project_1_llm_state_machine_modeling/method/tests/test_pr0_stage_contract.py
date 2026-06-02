@@ -789,7 +789,6 @@ def test_canonical_loop_config_defaults_to_experiment_default_full_staged() -> N
     assert cfg.policy_profile == "experiment_default"
     assert cfg.llm_provider_mode == "real_env"
     assert cfg.max_iterations == 5
-    assert cfg.pre_scenario_max_repairs == 3
     assert cfg.llm_max_retries == 2
     assert cfg.scenario_max_retries == 2
     assert resolved["condition_id"] == "full_staged_v1"

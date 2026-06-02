@@ -170,7 +170,6 @@ def _default_feedback_policy() -> dict[str, Any]:
 def _default_budget_policy() -> dict[str, Any]:
     return {
         "max_iterations": 5,
-        "pre_scenario_max_repairs": 3,
         "llm_max_retries": 2,
         "scenario_max_retries": 2,
         "warning_repair_budget_per_instance": 1,
@@ -318,7 +317,6 @@ class LoopConfig:
     changed_factors: list[str] = field(default_factory=list)
     policy_profile: str = "experiment_default"
     max_iterations: int = 5
-    pre_scenario_max_repairs: int = 3
     llm_provider_mode: Literal["real_env", "fake_replay", "mock"] = "real_env"
     llm_max_retries: int = 2
     scenario_max_retries: int = 2
@@ -344,10 +342,6 @@ class LoopConfig:
     def __post_init__(self) -> None:
         self.write_run_record = _coerce_bool(self.write_run_record, "LoopConfig.write_run_record")
         self.max_iterations = _coerce_non_negative_int(self.max_iterations, "LoopConfig.max_iterations")
-        self.pre_scenario_max_repairs = _coerce_non_negative_int(
-            self.pre_scenario_max_repairs,
-            "LoopConfig.pre_scenario_max_repairs",
-        )
         self.llm_max_retries = _coerce_non_negative_int(self.llm_max_retries, "LoopConfig.llm_max_retries")
         self.scenario_max_retries = _coerce_non_negative_int(self.scenario_max_retries, "LoopConfig.scenario_max_retries")
         self.llm_provider_mode = _require_one_of(
@@ -412,7 +406,6 @@ class LoopConfig:
         self.eligibility_policy = _deepcopy_jsonable(condition.eligibility_policy)
         self.academic_question = condition.academic_question
         self.max_iterations = int(self.budget_policy.get("max_iterations", self.max_iterations))
-        self.pre_scenario_max_repairs = int(self.budget_policy.get("pre_scenario_max_repairs", self.pre_scenario_max_repairs))
         self.llm_max_retries = int(self.budget_policy.get("llm_max_retries", self.llm_max_retries))
         self.scenario_max_retries = int(self.budget_policy.get("scenario_max_retries", self.scenario_max_retries))
         self.llm_provider_mode = self.llm_policy.get("provider_mode", self.llm_provider_mode)
@@ -430,7 +423,6 @@ class LoopConfig:
         default_budget = defaults.budget_policy
         expected_budget = {
             "max_iterations": self.max_iterations,
-            "pre_scenario_max_repairs": self.pre_scenario_max_repairs,
             "llm_max_retries": self.llm_max_retries,
             "scenario_max_retries": self.scenario_max_retries,
             "warning_repair_budget_per_instance": self.budget_policy.get("warning_repair_budget_per_instance", 1),
@@ -485,7 +477,6 @@ class LoopConfig:
             "changed_factors": list(self.changed_factors),
             "policy_profile": self.policy_profile,
             "max_iterations": self.max_iterations,
-            "pre_scenario_max_repairs": self.pre_scenario_max_repairs,
             "llm_provider_mode": self.llm_provider_mode,
             "llm_max_retries": self.llm_max_retries,
             "scenario_max_retries": self.scenario_max_retries,
