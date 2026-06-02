@@ -797,6 +797,7 @@ def test_canonical_loop_config_defaults_to_experiment_default_full_staged() -> N
     assert resolved["feedback_sources"] == ["parse", "semantic", "design", "sim", "model_review"]
     assert resolved["record_policy"]["write_run_record"] is True
     assert resolved["eligibility_policy"]["exclude_weak_oracle"] is True
+    assert resolved["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
 
 
 def test_planned_stage_graph_covers_full_staged_default_and_trace_fields() -> None:
@@ -841,7 +842,9 @@ def test_canonical_run_agent_loop_does_not_call_legacy_or_fake_runtime(tmp_path:
     from method.run_record import read_agent_loop_run_record, is_path_result_eligible
 
     record = read_agent_loop_run_record(result.run_record_path)
+    assert record.status == "contract_only"
     assert record.run_config["condition_id"] == "full_staged_v1"
+    assert record.run_config["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
     assert record.run_config["contract_only"] is True
     assert record.run_config["compatibility_mode"] == "canonical_staged"
     assert record.stage_graph["planned"] == result.planned_stage_graph["planned"]
@@ -904,11 +907,36 @@ def test_explicit_ablation_condition_can_disable_stage_but_default_cannot() -> N
 
     assert cfg.condition_id == "no_model_review_v1"
     assert cfg.changed_factors == ["enable_model_review=false"]
+    assert cfg.academic_question == "轻量模型评审是否会降低 NL/DSL 语义漂移？"
+    assert cfg.resolved_config()["academic_question"] == "轻量模型评审是否会降低 NL/DSL 语义漂移？"
     assert "model_review" not in cfg.feedback_sources
     graph = loop.build_planned_stage_graph(cfg)
     sl7 = next(node for node in graph["nodes"] if node["stage_id"] == "SL-7")
     assert sl7["enabled"] is False
     assert sl7["skipped_reason"] == "disabled_by_condition"
+
+
+def test_direct_non_default_loop_config_requires_academic_question(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="requires explicit non-default academic_question"):
+        schema.LoopConfig(condition_id="iter3_v1", changed_factors=["max_iterations=3"], max_iterations=3)
+
+    cfg = schema.LoopConfig(
+        condition_id="iter3_v1",
+        condition_family="budget_ablation",
+        changed_factors=["max_iterations=3"],
+        max_iterations=3,
+        budget_policy={**schema._default_budget_policy(), "max_iterations": 3},
+        academic_question="迭代预算从 5 降到 3 是否影响收敛率？",
+        output_dir=str(tmp_path),
+        run_id="iter3-contract",
+    )
+    result = loop.run_agent_loop("NL", cfg)
+    from method.run_record import read_agent_loop_run_record
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert result.resolved_config["academic_question"] == "迭代预算从 5 降到 3 是否影响收敛率？"
+    assert record.run_config["academic_question"] == "迭代预算从 5 降到 3 是否影响收敛率？"
+    assert record.run_config["condition_id"] == "iter3_v1"
 
 
 def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeypatch) -> None:
@@ -1080,6 +1108,24 @@ def test_agent_loop_run_record_rejects_invalid_status() -> None:
             stage_records=[],
             iteration_records=[],
         )
+
+
+def test_agent_loop_run_record_accepts_contract_only_status() -> None:
+    record = AgentLoopRunRecord(
+        schema_version="pr-a.config-contract.v1",
+        run_id="contract-only",
+        created_at="2026-06-01T00:00:00Z",
+        status="contract_only",
+        input_bundle={},
+        run_config={},
+        environment={},
+        stage_graph={},
+        stage_records=[],
+        iteration_records=[],
+        final_artifacts={"main_result_eligible": False},
+    )
+
+    assert record.status == "contract_only"
 
 
 def test_agent_loop_run_record_rejects_invalid_stage_records() -> None:

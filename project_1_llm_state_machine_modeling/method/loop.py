@@ -143,7 +143,7 @@ def _write_contract_run_record(*, nl: str, cfg: LoopConfig, run_id: str, graph: 
         schema_version=RUN_RECORD_SCHEMA_VERSION,
         run_id=run_id,
         created_at=_utc_now(),
-        status="failed",
+        status="contract_only",
         input_bundle={
             "nl_hash": _hash_text(nl),
             "nl_preview": nl[:240],
@@ -207,7 +207,7 @@ def run_agent_loop(
     run_id = cfg.run_id or "pr-a-" + hashlib.sha256(f"{nl}\n{resolved_config['condition_hash']}".encode("utf-8")).hexdigest()[:12]
     graph = build_planned_stage_graph(cfg)
     result = AgentLoopResult(
-        status="contract_only",  # type: ignore[arg-type]
+        status="contract_only",
         llm_model=cfg.llm_model,
         run_record_id=run_id,
         error_message="PR-A canonical staged façade only; full runtime integration is deferred to PR-C.",

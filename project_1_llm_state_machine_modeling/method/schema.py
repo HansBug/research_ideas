@@ -112,6 +112,7 @@ def _coerce_optional_non_negative_int(value: Any, field_name: str) -> int | None
 # ---------------------------------------------------------------------------
 
 ConditionLiteral = Literal["A0", "A1", "A2", "A3", "A4"]
+DEFAULT_ACADEMIC_QUESTION = "默认满血 staged agent-loop 是否能提升 NL→FCSTM 建模可靠性与可审计性"
 
 
 def _deepcopy_jsonable(value: Any) -> Any:
@@ -286,7 +287,7 @@ def experiment_default_condition() -> AblationCondition:
         llm_policy=_default_llm_policy(),
         record_policy=_default_record_policy(),
         eligibility_policy=_default_eligibility_policy(),
-        academic_question="默认满血 staged agent-loop 是否能提升 NL→FCSTM 建模可靠性与可审计性",
+        academic_question=DEFAULT_ACADEMIC_QUESTION,
     )
 
 
@@ -326,6 +327,7 @@ class LoopConfig:
     llm_policy: dict[str, Any] = field(default_factory=_default_llm_policy)
     record_policy: dict[str, Any] = field(default_factory=_default_record_policy)
     eligibility_policy: dict[str, Any] = field(default_factory=_default_eligibility_policy)
+    academic_question: str = DEFAULT_ACADEMIC_QUESTION
     model_review_mode: str = "blocking_major_only"
     delta_review_mode: str = "blocking_major_only"
     write_run_record: bool = True
@@ -369,6 +371,8 @@ class LoopConfig:
         else:
             if not self.changed_factors:
                 raise ValueError("non-default LoopConfig requires explicit changed_factors")
+            if not self.academic_question or self.academic_question == DEFAULT_ACADEMIC_QUESTION:
+                raise ValueError("non-default LoopConfig requires explicit non-default academic_question")
 
     @property
     def n_iter(self) -> int:
@@ -404,6 +408,7 @@ class LoopConfig:
         self.llm_policy = _deepcopy_jsonable(condition.llm_policy)
         self.record_policy = _deepcopy_jsonable(condition.record_policy)
         self.eligibility_policy = _deepcopy_jsonable(condition.eligibility_policy)
+        self.academic_question = condition.academic_question
         self.max_iterations = int(self.budget_policy.get("max_iterations", self.max_iterations))
         self.pre_scenario_max_repairs = int(self.budget_policy.get("pre_scenario_max_repairs", self.pre_scenario_max_repairs))
         self.llm_max_retries = int(self.budget_policy.get("llm_max_retries", self.llm_max_retries))
@@ -490,6 +495,7 @@ class LoopConfig:
             "llm_policy": _deepcopy_jsonable(self.llm_policy),
             "record_policy": _deepcopy_jsonable(self.record_policy),
             "eligibility_policy": _deepcopy_jsonable(self.eligibility_policy),
+            "academic_question": self.academic_question,
             "model_review_mode": self.model_review_mode,
             "delta_review_mode": self.delta_review_mode,
             "write_run_record": self.write_run_record,
@@ -1501,7 +1507,7 @@ class AgentLoopRunRecord:
     schema_version: str
     run_id: str
     created_at: str
-    status: Literal["success", "failed", "rejected", "budget_exhausted", "error", "invalid"]
+    status: Literal["success", "failed", "rejected", "budget_exhausted", "error", "invalid", "contract_only"]
     input_bundle: dict[str, Any]
     run_config: dict[str, Any]
     environment: dict[str, Any]
@@ -1520,7 +1526,7 @@ class AgentLoopRunRecord:
     def __post_init__(self) -> None:
         self.status = _require_one_of(
             self.status,
-            {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"},
+            {"success", "failed", "rejected", "budget_exhausted", "error", "invalid", "contract_only"},
             "AgentLoopRunRecord.status",
         )
         stage_metas = _coerce_dataclass_list(self.stage_records, StageResultMeta)
