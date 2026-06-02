@@ -24,7 +24,7 @@
 | main_result_eligible | `false` |
 | token/cost/time | tokens=`{'prompt_tokens': 13906, 'completion_tokens': 1924, 'total_tokens': 15830, 'n_calls': 2}`, elapsed=`395.808s` |
 | run record | [`pr-e1-path1_cara-default-promptfix2-5e21d64d.agent_loop.json.gz`](./pr-e1-path1_cara-default-promptfix2-5e21d64d.agent_loop.json.gz) |
-| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`final.fcstm`](./final.fcstm), [`stdout.log`](./logs/stdout.log), [`stderr.log`](./logs/stderr.log) |
+| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |
 
 ### 2. 输入 NL（多行原文）
 

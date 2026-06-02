@@ -384,10 +384,10 @@ def run_one_pr_e1_case(
     output_root = Path(output_root)
     run_id = build_run_id(case, spec, run_tag=run_tag)
     run_dir = output_root / run_id
-    logs_dir = run_dir / "logs"
+    logs_dir = run_dir / "run_logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
-    stdout_path = logs_dir / "stdout.log"
-    stderr_path = logs_dir / "stderr.log"
+    stdout_path = logs_dir / "stdout.txt"
+    stderr_path = logs_dir / "stderr.txt"
     cfg = make_pr_e1_config(spec, output_dir=run_dir, run_id=run_id)
     started = time.monotonic()
     result: AgentLoopResult | None = None
@@ -656,7 +656,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| main_result_eligible | `{str(summary.main_result_eligible).lower()}` |",
         f"| token/cost/time | tokens=`{summary.token_usage}`, elapsed=`{summary.elapsed_seconds}s` |",
         f"| run record | [`{Path(summary.run_record_path).name}`](./{Path(summary.run_record_path).name}) |",
-        "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`final.fcstm`](./final.fcstm), [`stdout.log`](./logs/stdout.log), [`stderr.log`](./logs/stderr.log) |",
+        "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
         "",
         "### 2. 输入 NL（多行原文）",
         "",
@@ -722,8 +722,8 @@ def render_exception_report(case: PrE1Case, spec: ConditionSpec, summary: PrE1Ru
 - 本次调用 `method.loop.run_agent_loop` 未能写出 `AgentLoopRunRecord`。
 - verdict：`{summary.verdict}`。
 - reason：{summary.verdict_reason}
-- stdout：[`stdout.log`](./logs/stdout.log)
-- stderr：[`stderr.log`](./logs/stderr.log)
+- stdout：[`stdout.txt`](./run_logs/stdout.txt)
+- stderr：[`stderr.txt`](./run_logs/stderr.txt)
 
 ### 2. 输入 NL（多行原文）
 
@@ -745,7 +745,7 @@ def write_matrix_summary(summaries: Sequence[PrE1RunSummary], output_dir: str | 
     payload = [asdict(item) for item in summaries]
     (out / "summary.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (out / "SUMMARY.md").write_text(render_matrix_summary(summaries), encoding="utf-8")
-    (out / "pr_comment.md").write_text(render_pr_comment(summaries), encoding="utf-8")
+    (out / "pr_comment.md").write_text(render_pr_comment(summaries, output_dir=out), encoding="utf-8")
 
 
 def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
@@ -810,20 +810,21 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_pr_comment(summaries: Sequence[PrE1RunSummary]) -> str:
+def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | Path = "runs/pr_e1_real_agent_loop") -> str:
+    output_dir_text = _as_posix(output_dir)
     lines = [
-        "## PR-E1 baseline real-run evidence update",
+        "## PR-E1 real-run evidence update",
         "",
         "身份：主 session / PR-E1 runner。",
         "",
-        "本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `runs/pr_e1_real_agent_loop/`。",
+        f"本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
         "",
         "| Path | case | config | verdict | status | eligible | failure class | tokens | report |",
         "|---|---|---|---|---|---:|---|---:|---|",
     ]
     for s in summaries:
         lines.append(
-            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {s.token_usage.get('total_tokens', 0)} | `runs/pr_e1_real_agent_loop/{s.run_id}/report.md` |"
+            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {s.token_usage.get('total_tokens', 0)} | `{output_dir_text}/{s.run_id}/report.md` |"
         )
     lines.extend(
         [

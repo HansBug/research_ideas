@@ -46,8 +46,18 @@ Target-aware repair rules:
   not introduce semantic regressions. Use only `def int` / `def float`; encode
   boolean-like flags as int 0/1; do not emit `def bool`, `true`, `false`,
   `!flag`, `//` comments, `/* ... */` comments, event+guard mixed transitions,
-  plain `during {{ ... }}` on composite states, or unknown helper calls such as `max(...)`
-  / `min(...)` / `ComputeRate(...)`.
+  plain `during {{ ... }}` on composite states, C/JavaScript-style `if (expr)`,
+  `+=` / `-=` / `*=` / `/=`, or unknown helper calls such as `max(...)`
+  / `min(...)` / `ComputeRate(...)`. Use `if [expr] {{ ... }}` and ordinary
+  `x = x + 1;` assignments.
+- If diagnostics show undeclared event-like names inside guards, do not merely
+  declare them as variables. If the NL describes them as triggers/events, encode
+  them as `:: EventName` transitions; for alternative events, emit multiple
+  transitions instead of `[A || B]`.
+- If a parse repair creates or preserves NL-required states, make every required
+  state reachable through grounded initial/transition structure before returning
+  the candidate; otherwise SD-10 will reject the parse fix as a new blocking
+  design diagnostic or missing required grounding.
 - If a rejection mentions dangling transitions, forced-transition expansion, or
   unknown target states, repair state scope/path placement rather than merely
   renaming. Root-level forced transitions may only target states resolvable from

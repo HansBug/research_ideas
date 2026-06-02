@@ -115,6 +115,8 @@ def test_pyfcstm_grammar_digest_documents_parseable_boolean_flag_subset() -> Non
     assert "no `// ...`, no `/* ... */`" in grammar
     assert "root-level `! * -> Manual" in grammar
     assert "Plain `during { ... }` is only used on leaf states" in grammar
+    assert "if (expr)" in grammar
+    assert "NL events are represented with `:: EventName`" in grammar
 
 
 def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
@@ -142,10 +144,14 @@ def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
     assert "target a state resolvable in that scope" in sl1
     assert "`max(...)` or `min(...)`" in sl1
     assert "Use plain `during { ... }` only on leaf states" in sl1
+    assert "never `if (expr)`" in sl1
+    assert "Treat NL trigger names" in sl1
     assert "Target-aware repair rules" in sl9
     assert "meaningless self-assignments" in sl9
     assert "Root-level forced transitions may only target states resolvable" in sl9
     assert "E_DURING_ASPECT_INVALID" in sl9
+    assert "If diagnostics show undeclared event-like names" in sl9
+    assert "make every required" in sl9
 
 
 def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context() -> None:

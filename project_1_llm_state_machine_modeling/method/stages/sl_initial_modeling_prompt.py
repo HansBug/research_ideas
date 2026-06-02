@@ -93,6 +93,14 @@ Hard constraints:
   helper calls such as `ComputeRate(...)`, `max(...)` or `min(...)` in numeric
   expressions. Also do not copy `//` or `/* ... */` comments from examples into
   the DSL output.
+- Inside lifecycle action blocks, conditionals must be `if [expr] {{ ... }}` /
+  `else if [expr] {{ ... }}`, never `if (expr)`. Use ordinary assignments such
+  as `x = x + 1;`; do not use `+=`, `-=`, `*=`, or `/=`.
+- Treat NL trigger names (button press, reset, fault, back-to-manual, cut-in/out)
+  as events by default: encode them with `:: EventName`. Do not make undeclared
+  event names into guard variables or OR several event names inside `[A || B]`;
+  use separate event transitions unless the NL explicitly says these are input
+  variables.
 - Use plain `during {{ ... }}` only on leaf states; if a state has nested
   children, use `>> during before/after {{ ... }}` or move the action to leaves.
 - For root-level forced transitions, target a state resolvable in that scope;

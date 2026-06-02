@@ -43,6 +43,13 @@ pyfcstm parser. Boolean-like flags MUST be encoded as `int` variables with
 `fault > 0` or `fault == 0`, and effects should assign `fault = 1;` or
 `fault = 0;`. Do not emit `def bool`, `true`, `false`, C-style
 `!flag` flag tests, or unsupported helpers such as `max(...)` / `min(...)`.
+Assignments use ordinary `x = x + 1;` syntax, not C-style `x += 1;`.
+
+Discrete trigger names from the NL, such as button presses, reset events,
+fault events or back-to-manual events, should normally be encoded as event
+transitions with `:: EventName`. Do not turn several alternative events into an
+undeclared boolean guard like `[A || B]`; use separate event transitions unless
+the NL explicitly defines those names as boolean input variables.
 
 Variables are referenced inside guards `[<expr>]`, effects `{ <stmt>; }`,
 and lifecycle blocks (`enter` / `during` / `exit`). Every variable used
@@ -239,7 +246,9 @@ state Red { enter { timer = 0; } }
 | Math functions | `sin cos tan asin acos atan sinh cosh tanh sqrt cbrt exp log log10 log2 log1p abs ceil floor round trunc sign` |
 | Constants | `PI_CONST E_CONST TAU_CONST` |
 
-Inside `effect { ... }` you may also use nested conditionals:
+Inside `effect { ... }` you may also use nested conditionals. Action-block
+conditionals use square-bracket guards: write `if [expr] { ... }` and
+`else if [expr] { ... }`; never write C/JavaScript-style `if (expr)`.
 
 ```
 effect {
@@ -426,6 +435,11 @@ Before emitting your DSL, verify each of the following:
       explicitly supported by the expression function list above; otherwise use
       an abstract lifecycle action or a simple variable assignment grounded in
       NL.
+- [ ] Action-block conditionals are written as `if [expr] { ... }`, never
+      `if (expr) { ... }`; assignments do not use `+=`, `-=`, `*=`, `/=`.
+- [ ] NL events are represented with `:: EventName` transitions rather than
+      undeclared event-name guard variables; multiple alternative events use
+      multiple transitions.
 - [ ] Plain `during { ... }` is only used on leaf states. Composite states use
       `>> during before { ... }` / `>> during after { ... }` or move the action
       into descendant leaves.
