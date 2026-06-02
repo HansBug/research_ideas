@@ -24,6 +24,21 @@ SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -
 
 消融实验必须显式声明非默认 `condition_id` 与 `changed_factors`；任何关闭 stage、改 budget、改 oracle、禁用 review、切 fake/replay provider 的配置都不得污染 `LoopConfig()` 默认路径。
 
+
+## 0.1 PR-B2 LLM stage execution units（2026-06-02）
+
+PR-B2 在共享 contract 基础上新增 `llm_stages.py`，只交付 LLM stage / prompt / retry / interaction record 这一条线：
+
+- `run_sl1_initial_modeling_llm(...)`：真实或 mock provider 执行 `SL-1`，解析 `candidate_dsl` 与 `grounding_seeds`。
+- `run_sl5_scenario_generation_llm(...)`：执行 `SL-5`，解析 `TestScenario` 列表；`coverage_directive` 可作为输入，但 coverage gap 的触发与循环控制仍属于 PR-B1/PR-C runtime。
+- `run_sl7_model_review_llm(...)`：执行 lightweight model review，并返回 typed `ModelReviewFeedback`。
+- `run_sl9_repair_llm(...)`：执行 repair；prompt 必须携带 NL、`FixPlan/RevisedFixPlan`、selected diagnostics、preserve list 与 scenario summary；`suggested_fix` 仅为参考 hint，不是必须照抄的命令。
+- `run_sl10b_delta_review_llm(...)`：执行可选 delta review，并返回 typed `RepairReviewFeedback`。
+
+PR-B2 的 retry 只覆盖 LLM 层噪声：provider/network/schema-invalid/empty-output。parse、semantic、inspect、coverage、sim、RepairReview 等 deterministic failure 不在这里 retry，必须由 PR-B1/PR-C 的 top-down runtime 判定是否进入 repair 或下一轮完整验证。
+
+所有 stage unit 均产出可写入 `AgentLoopRunRecord.llm_interactions` 的 interaction payload：prompt、raw output、parsed output、schema validation、usage、provider/model、attempts、retry error、prompt/input/raw hash 与 redaction report。默认真实 provider 仍只通过 `method.gpt_client` 读取进程环境变量，不直接读取 `.env` 文件。
+
 ## 1. 目录定位
 
 本目录提供 NL → pyfcstm DSL 的 agent loop 完整实现，含：
@@ -79,6 +94,7 @@ method/
 ├── STATUS.md (sprint 进度跟踪)
 ├── __init__.py
 ├── gpt_client.py          统一 OpenAI-compatible LLM client (单一实例化入口)
+├── llm_stages.py          PR-B2 SL stage provider adapter / retry / interaction record
 ├── schema.py              FeedbackBundle / AgentLoopResult / LoopConfig dataclass
 ├── loop.py                主 agent loop driver (run_agent_loop 入口)
 ├── agents/
