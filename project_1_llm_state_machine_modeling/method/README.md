@@ -6,6 +6,24 @@
 >
 > **创建日期**：2026-05-26（sprint 共同基础阶段）
 
+
+## 0. PR-A 默认入口语义（2026-06-02）
+
+本目录当前处于 issue [#21](https://github.com/HansBug/research_ideas/issues/21) 的 PR-A 阶段：
+
+- `method.loop.run_agent_loop(nl, LoopConfig())` 已切换为 **canonical staged façade**，默认解析为 `experiment_default/full_staged_v1`。
+- PR-A 只交付 legacy 拆出、`LoopConfig` / ablation condition registry、planned stage graph 与 run-record config contract；真实 full runtime 在后续 PR-B1/B2/C 集成。
+- 因此 PR-A 阶段的默认入口不会调用 legacy / fake / hot-start runtime；若写 run record，也会标记 `contract_only=true` 与 `main_result_eligible=false`，不得作为 Path1/Path2 主实验结果。
+- 旧 A0-A4 loop 已迁移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，调用时发 `DeprecationWarning`，只用于历史诊断与 baseline 对照。
+
+默认 stage graph：
+
+```text
+SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SD-10 -> SL-10B -> SC-11 -> SC-12 -> SC-13
+```
+
+消融实验必须显式声明非默认 `condition_id` 与 `changed_factors`；任何关闭 stage、改 budget、改 oracle、禁用 review、切 fake/replay provider 的配置都不得污染 `LoopConfig()` 默认路径。
+
 ## 1. 目录定位
 
 本目录提供 NL → pyfcstm DSL 的 agent loop 完整实现，含：
@@ -105,15 +123,22 @@ venv/bin/python -m method.tests.test_smoke
 Path 1 / Path 2 各自的 `run_path1.py` / `run_path2.py` 在各自 branch 上实现，但都调本目录的 `method.loop.run_agent_loop` 作为唯一入口：
 
 ```python
-from method.loop import run_agent_loop, LoopConfig
+from method.loop import LoopConfig, run_agent_loop
 
 result = run_agent_loop(
-    nl_input="...",
-    config=LoopConfig(
-        condition="A4",  # "A0" baseline / "A4" full agent loop
-        n_iter=3,
-        feedback_sources=["parse", "semantic", "sim"],  # judge adapter 尚未接入，需显式 opt-in
-    ),
+    nl="...",
+    config=LoopConfig(),  # experiment_default/full_staged_v1
+)
+```
+
+历史 A0-A4 诊断入口必须显式调用 legacy module：
+
+```python
+from method.legacy_loop import LegacyLoopConfig, run_legacy_agent_loop
+
+legacy_result = run_legacy_agent_loop(
+    nl="...",
+    config=LegacyLoopConfig(condition="A4", n_iter=3, feedback_sources=["parse", "semantic", "sim"]),
 )
 ```
 
