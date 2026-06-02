@@ -220,6 +220,7 @@ def test_pre_scenario_parse_failure_repairs_before_scenario_generation(tmp_path:
     assert StageId.SL_5_SCENARIO_GENERATION.value not in stage_ids[: stage_ids.index(StageId.SD_8_FIX_PLAN.value)]
     assert record.iteration_records[0]["selected_feedback"]["source"] == "parse"
     assert record.iteration_records[0]["selected_feedback"]["pre_scenario"] is True
+    assert record.iteration_records[0]["selected_feedback"]["is_pre_scenario"] is True
     assert all("-pre" not in stage_id for stage_id in stage_ids)
 
 
@@ -411,6 +412,7 @@ def test_pre_scenario_semantic_failure_repairs_before_scenario_generation(tmp_pa
     assert scenario_calls[0].current_dsl == "sem-fixed"
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.iteration_records[0]["selected_feedback"]["source"] == "semantic"
+    assert record.iteration_records[0]["selected_feedback"]["is_pre_scenario"] is True
     assert StageId.SL_5_SCENARIO_GENERATION.value not in record.iteration_records[0]["stage_ids"]
     assert all("-pre" not in stage_id for stage_id in _stage_ids(record))
 
@@ -591,6 +593,57 @@ def test_llm_retry_exhausted_in_sl10b_exits_provider_error_before_sc11(tmp_path:
     assert StageId.SD_10_REPAIR_REVIEW.value in stage_ids
     assert StageId.SC_11_ACCEPT_CANDIDATE.value not in stage_ids
     assert record.repair_history == []
+
+
+def test_sl10b_audit_only_typed_feedback_does_not_override_acceptance(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-audit-delta":
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def audit_delta(_request: RepairRequest, _review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10B_DELTA_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10B_DELTA_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "reject", "drift_risk": "major", "audit_only": True},
+            feedback=RepairReviewFeedback(
+                ok=True,
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="major",
+                delta_review={"decision": "reject", "drift_risk": "major", "audit_only": True},
+                review_meta=_review_meta(StageId.SL_10B_DELTA_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={
+                "stage_id": StageId.SL_10B_DELTA_REVIEW.value,
+                "schema_validation_ok": True,
+                "retry_error": None,
+            },
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10B audit-only should not block SC-11",
+        FullStagedRuntimeConfig(initial_dsl="needs-audit-delta", run_id="pr-b1-sl10b-audit", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=lambda _request: "fixed", delta_review=audit_delta),
+    )
+
+    assert result.status == "converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    stage_ids = _stage_ids(record)
+    assert record.repair_history[0]["accepted"] is True
+    assert record.repair_history[0]["repair_review"]["delta_review"]["decision"] == "reject"
+    assert record.repair_history[0]["repair_review"].get("local_rejection") is None
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value in stage_ids
+    assert record.final_artifacts["verdict"] == "success"
 
 
 def test_optional_sl1_retry_exhaustion_exits_provider_error_before_validation(tmp_path: Path) -> None:

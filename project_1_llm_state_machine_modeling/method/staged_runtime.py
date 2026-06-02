@@ -852,6 +852,7 @@ def _selected_feedback_trace(source: str, feedback: Any, source_stage: str, *, s
             "source": source,
             "source_stage": source_stage,
             "pre_scenario": scenario_set is None,
+            "is_pre_scenario": scenario_set is None,
             "blocking": True,
         }
     )
@@ -982,6 +983,7 @@ def _run_repair_path(
     repair_stage_ids.append(repair_review_meta.stage_id)
 
     if repair_review.ok and adapters.delta_review is not None:
+        delta_feedback_authoritative = False
         delta_run = adapters.delta_review(review_request, repair_review)
         delta_run = _append_llm_stage_run(
             run=delta_run,
@@ -995,6 +997,7 @@ def _run_repair_path(
             delta_feedback = getattr(delta_run, "feedback", None)
             if isinstance(delta_feedback, RepairReviewFeedback):
                 repair_review = delta_feedback
+                delta_feedback_authoritative = True
             repair_stage_ids.append(getattr(delta_run, "stage_meta").stage_id)
         else:
             delta_payload, delta_meta = delta_run
@@ -1002,7 +1005,7 @@ def _run_repair_path(
             repair_stage_ids.append(delta_meta.stage_id)
         repair_review.delta_review = delta_payload
         decision = str(delta_payload.get("decision", "accept"))
-        if decision in {"reject", "revise"}:
+        if decision in {"reject", "revise"} and (not delta_feedback_authoritative or not repair_review.ok):
             repair_review.ok = False
             repair_review.target_resolved = False
             if repair_review.local_rejection is None:
