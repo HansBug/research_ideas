@@ -1,15 +1,16 @@
 """PR-2A deterministic integration loop.
 
-This runner wires the PR-0/PR-1A/PR-1B contracts into one local, replayable
-agent loop without calling any real LLM provider/API.  SL-9 is represented by
-deterministic candidate injection so the repair/RepairReview wiring can be
-tested without provider drift.  PR-2B can later replace that injection point
-with real replay-aware LLM calls.
+This runner wires the PR-0/PR-1A/PR-1B/PR-2B contracts into one local,
+replayable agent loop without calling any real LLM provider/API.  SL-9 is
+represented by deterministic candidate injection; PR-2B adds fake/replay
+SL-7 and SL-10B review wiring so review prompts, raw outputs, parsed outputs,
+ReviewRunMeta and failure behavior are auditable in one run record.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import platform
 import subprocess
@@ -27,6 +28,10 @@ from method.schema import (
     GroundingMap,
     IterTrace,
     ModelArtifact,
+    ModelReviewFeedback,
+    RepairRejection,
+    RepairReviewFeedback,
+    ReviewRunMeta,
     ScenarioSet,
     StageContext,
     StageResultMeta,
@@ -45,6 +50,8 @@ from method.stages.sd_tools import (
     run_sd8_fix_plan,
     run_sd10_repair_review,
 )
+from method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
+from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 
 SC_0_STAGE_GRAPH = [
@@ -56,15 +63,61 @@ SC_0_STAGE_GRAPH = [
     StageId.SD_5A_SCENARIO_COVERAGE.value,
     StageId.SC_5F_SCENARIO_FREEZE.value,
     StageId.SD_6_SIM.value,
+    StageId.SL_7_MODEL_REVIEW.value,
     StageId.SD_8_FIX_PLAN.value,
     StageId.SL_9_REPAIR.value,
     StageId.SD_10_REPAIR_REVIEW.value,
+    StageId.SL_10B_DELTA_REVIEW.value,
     StageId.SC_11_ACCEPT_CANDIDATE.value,
     StageId.SC_12_EXIT.value,
     StageId.SC_13_TRACE_AUDIT.value,
 ]
 
-RUN_RECORD_SCHEMA_VERSION = "pr2a.agent-loop-run-record.v1"
+RUN_RECORD_SCHEMA_VERSION = "pr2b.agent-loop-run-record.v1"
+
+
+@dataclass
+class ReviewPolicy:
+    """Policy for PR-2B fake/replay lightweight LLM reviews.
+
+    Defaults are audit-only so PR-2B cannot silently change the PR-2A
+    deterministic baseline or Path1/Path2 main-result eligibility.  Blocking
+    mode is opt-in and still uses fake/replay responses only.
+    """
+
+    enable_model_review: bool = False
+    enable_delta_review: bool = False
+    model_review_mode: str = "audit_only"
+    delta_review_mode: str = "audit_only"
+    failure_policy: str = "audit_only"
+    decision_threshold: float | None = None
+    require_replay: bool = True
+
+    def __post_init__(self) -> None:
+        for field_name in ("model_review_mode", "delta_review_mode"):
+            value = getattr(self, field_name)
+            if value not in {"audit_only", "blocking"}:
+                raise ValueError(f"ReviewPolicy.{field_name} must be audit_only or blocking")
+        if self.failure_policy not in {"audit_only", "fail_open", "fail_closed"}:
+            raise ValueError("ReviewPolicy.failure_policy must be audit_only, fail_open, or fail_closed")
+        if self.decision_threshold is not None and not 0 <= float(self.decision_threshold) <= 1:
+            raise ValueError("ReviewPolicy.decision_threshold must be within [0, 1]")
+
+    def review_meta_failure_policy(self, *, delta: bool = False) -> str:
+        mode = self.delta_review_mode if delta else self.model_review_mode
+        if mode == "blocking":
+            return "fail_closed"
+        if mode in {"fail_open", "fail_closed"}:
+            return mode
+        if self.failure_policy in {"fail_open", "fail_closed", "audit_only"}:
+            return self.failure_policy
+        return "audit_only"
+
+    def is_model_review_blocking(self, feedback: ModelReviewFeedback) -> bool:
+        return self.enable_model_review and self.model_review_mode == "blocking" and feedback.decision == "fail" and bool(feedback.blocking_findings)
+
+    def is_delta_review_blocking_reject(self, parsed: dict[str, Any]) -> bool:
+        return self.enable_delta_review and self.delta_review_mode == "blocking" and parsed.get("decision") in {"reject", "revise"}
 
 
 @dataclass
@@ -81,6 +134,9 @@ class DeterministicLoopConfig:
     policy_profile: str = "generated_candidate"
     seed: int | None = None
     path_context: dict[str, Any] = field(default_factory=dict)
+    review_policy: ReviewPolicy = field(default_factory=ReviewPolicy)
+    review_replay_responses: dict[str, str] = field(default_factory=dict)
+    review_provider_failures: list[str] = field(default_factory=list)
 
 
 def _utc_now() -> str:
@@ -193,25 +249,31 @@ def _feedback_bundle(
     semantic_feedback: Any = None,
     design_feedback: Any = None,
     sim_feedback: Any = None,
+    model_review_feedback: Any = None,
     stage_results: list[StageResultMeta] | None = None,
+    include_model_review: bool = False,
 ) -> FeedbackBundle:
+    enabled_sources = [
+        FeedbackSource.PARSE.value,
+        FeedbackSource.SEMANTIC.value,
+        FeedbackSource.DESIGN.value,
+        FeedbackSource.SIM.value,
+    ]
+    if include_model_review:
+        enabled_sources.append(FeedbackSource.MODEL_REVIEW.value)
     return FeedbackBundle(
-        enabled_sources=[
-            FeedbackSource.PARSE.value,
-            FeedbackSource.SEMANTIC.value,
-            FeedbackSource.DESIGN.value,
-            FeedbackSource.SIM.value,
-        ],
+        enabled_sources=enabled_sources,
         parse=parse_feedback,
         semantic=semantic_feedback,
         design=design_feedback,
         sim=sim_feedback,
+        model_review=model_review_feedback,
         stage_results=list(stage_results or []),
     )
 
 
-def _select_feedback(bundle: FeedbackBundle) -> tuple[str, Any, str] | None:
-    """Pick the first feedback item that should trigger PR-2A repair."""
+def _select_feedback(bundle: FeedbackBundle, review_policy: ReviewPolicy | None = None) -> tuple[str, Any, str] | None:
+    """Pick the first feedback item that should trigger repair."""
     if bundle.parse is not None and not bundle.parse.ok:
         return FeedbackSource.PARSE.value, bundle.parse, FEEDBACK_SOURCE_TO_STAGE_ID[FeedbackSource.PARSE.value]
     if bundle.semantic is not None and not bundle.semantic.ok:
@@ -220,6 +282,8 @@ def _select_feedback(bundle: FeedbackBundle) -> tuple[str, Any, str] | None:
         return FeedbackSource.DESIGN.value, bundle.design, FEEDBACK_SOURCE_TO_STAGE_ID[FeedbackSource.DESIGN.value]
     if bundle.sim is not None and not bundle.sim.ok:
         return FeedbackSource.SIM.value, bundle.sim, FEEDBACK_SOURCE_TO_STAGE_ID[FeedbackSource.SIM.value]
+    if review_policy is not None and bundle.model_review is not None and review_policy.is_model_review_blocking(bundle.model_review):
+        return FeedbackSource.MODEL_REVIEW.value, bundle.model_review, FEEDBACK_SOURCE_TO_STAGE_ID[FeedbackSource.MODEL_REVIEW.value]
     return None
 
 
@@ -243,6 +307,289 @@ def _environment() -> dict[str, Any]:
         "runner": "method.pr2a_loop.run_pr2a_deterministic_loop",
         "llm_provider": "none",
     }
+
+
+def _llm_interaction_meta(
+    stage_id: StageId,
+    *,
+    prompt_messages: list[dict[str, str]],
+    raw_output: str,
+    ok: bool,
+    validation_error: str | None = None,
+) -> StageResultMeta:
+    if ok:
+        status = StageStatus.OK
+    elif validation_error:
+        status = StageStatus.ERROR
+    else:
+        status = StageStatus.FAIL
+    meta = _meta(stage_id, ok=ok, status=status, stage_error=validation_error)
+    meta.prompt_hash = _short_hash(prompt_messages)
+    meta.input_hash = _short_hash(prompt_messages)
+    meta.output_hash = _hash_text(raw_output) if raw_output else _hash_text(validation_error or "")
+    meta.output_validation_error = validation_error
+    return meta
+
+
+def _make_review_meta(
+    *,
+    provider: str,
+    model_id: str,
+    prompt_template_version: str,
+    prompt_messages: list[dict[str, str]],
+    raw_output: str,
+    parsed_schema_version: str,
+    schema_validation_ok: bool,
+    failure_policy: str,
+    replay_key: str,
+    decision_threshold: float | None = None,
+    schema_validation_error: str | None = None,
+    seed: int | None = None,
+) -> ReviewRunMeta:
+    return ReviewRunMeta(
+        provider=provider,
+        model_id=model_id,
+        resolved_model_id=model_id,
+        prompt_template_version=prompt_template_version,
+        prompt_hash=_short_hash(prompt_messages),
+        input_hash=_short_hash(prompt_messages),
+        temperature=0.0,
+        seed=seed,
+        retry_count=0,
+        raw_output_hash=_hash_text(raw_output) if raw_output else _hash_text(schema_validation_error or ""),
+        raw_output_path=None,
+        parsed_schema_version=parsed_schema_version,
+        schema_validation_ok=schema_validation_ok,
+        schema_validation_error=schema_validation_error,
+        cache_key=replay_key,
+        decision_threshold=decision_threshold,
+        failure_policy=failure_policy,  # type: ignore[arg-type]
+        replay_key=replay_key,
+    )
+
+
+def _review_interaction_payload(
+    *,
+    stage_id: StageId,
+    prompt_messages: list[dict[str, str]],
+    raw_output: str,
+    parsed_output: dict[str, Any],
+    review_meta: ReviewRunMeta,
+    schema_validation_ok: bool,
+    note: str,
+) -> dict[str, Any]:
+    return {
+        "stage_id": stage_id.value,
+        "provider": review_meta.provider,
+        "model_id": review_meta.model_id,
+        "resolved_model_id": review_meta.resolved_model_id,
+        "prompt_template_version": review_meta.prompt_template_version,
+        "prompt_hash": review_meta.prompt_hash,
+        "input_hash": review_meta.input_hash,
+        "temperature": review_meta.temperature,
+        "seed": review_meta.seed,
+        "retry_count": review_meta.retry_count,
+        "raw_output_hash": review_meta.raw_output_hash,
+        "raw_output_path": review_meta.raw_output_path,
+        "parsed_schema_version": review_meta.parsed_schema_version,
+        "prompt_messages": prompt_messages,
+        "raw_output": raw_output,
+        "parsed_output": parsed_output,
+        "schema_validation_ok": schema_validation_ok,
+        "schema_validation_error": review_meta.schema_validation_error,
+        "cache_key": review_meta.cache_key,
+        "replay_key": review_meta.replay_key,
+        "decision_threshold": review_meta.decision_threshold,
+        "failure_policy": review_meta.failure_policy,
+        "review_meta": asdict(review_meta),
+        "note": note,
+    }
+
+
+def _review_replay_lookup(cfg: DeterministicLoopConfig, stage_id: StageId, iteration: int) -> tuple[str | None, str]:
+    key = f"{stage_id.value}:{iteration}"
+    if key in cfg.review_replay_responses:
+        return cfg.review_replay_responses[key], key
+    stage_key = stage_id.value
+    if stage_key in cfg.review_replay_responses:
+        return cfg.review_replay_responses[stage_key], stage_key
+    return None, key
+
+
+def _run_sl7_model_review(
+    *,
+    nl: str,
+    current_dsl: str,
+    context: StageContext,
+    bundle: FeedbackBundle,
+    cfg: DeterministicLoopConfig,
+    iteration: int,
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+) -> tuple[ModelReviewFeedback, StageResultMeta, bool]:
+    prompt_version = "sl7-model-review.v1"
+    review_policy_payload = asdict(cfg.review_policy)
+    prompt_messages = build_sl7_model_review_prompt(
+        nl=nl,
+        current_dsl=current_dsl,
+        grounding_map=cfg.grounding_map or context.grounding_map,
+        inspect_json=context.inspect_json,
+        design_diagnostics_summary=asdict(bundle.design) if bundle.design is not None else {},
+        sim_summary=asdict(bundle.sim) if bundle.sim is not None else {},
+        warning_budget_exhausted=[key for key, state in context.warning_budget_state.items() if getattr(state, "budget_exhausted", False)],
+        review_policy=review_policy_payload,
+        prompt_template_version=prompt_version,
+    )
+    raw_output, replay_key = _review_replay_lookup(cfg, StageId.SL_7_MODEL_REVIEW, iteration)
+    failure_policy = cfg.review_policy.review_meta_failure_policy(delta=False)
+    if StageId.SL_7_MODEL_REVIEW.value in cfg.review_provider_failures:
+        error = "provider failure"
+        review_meta = _make_review_meta(
+            provider="fake-error",
+            model_id="fake-sl7-review",
+            prompt_template_version=prompt_version,
+            prompt_messages=prompt_messages,
+            raw_output="",
+            parsed_schema_version="ModelReviewFeedback.v1",
+            schema_validation_ok=False,
+            schema_validation_error=error,
+            failure_policy=failure_policy,
+            replay_key=replay_key,
+            decision_threshold=cfg.review_policy.decision_threshold,
+            seed=cfg.seed,
+        )
+        meta = _llm_interaction_meta(StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", ok=False, validation_error=error)
+        feedback = ModelReviewFeedback(ok=False, decision="invalid_output", risk_level="major", review_meta=review_meta, meta=meta)
+        llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", parsed_output={"decision": "invalid_output"}, review_meta=review_meta, schema_validation_ok=False, note="fake provider failure; no real provider/API called"))
+        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_provider_failure", "stage_id": StageId.SL_7_MODEL_REVIEW.value})
+        return feedback, meta, True
+    if raw_output is None and not cfg.review_policy.require_replay:
+        raw_output = json.dumps({"decision": "audit_only", "risk_level": "none", "findings": [], "blocking_findings": []}, ensure_ascii=False)
+        replay_key = "default-fake:" + replay_key
+    if raw_output is None:
+        error = "replay miss"
+        review_meta = _make_review_meta(
+            provider="fake-replay",
+            model_id="fake-sl7-review",
+            prompt_template_version=prompt_version,
+            prompt_messages=prompt_messages,
+            raw_output="",
+            parsed_schema_version="ModelReviewFeedback.v1",
+            schema_validation_ok=False,
+            schema_validation_error=error,
+            failure_policy=failure_policy,
+            replay_key=replay_key,
+            decision_threshold=cfg.review_policy.decision_threshold,
+            seed=cfg.seed,
+        )
+        meta = _llm_interaction_meta(StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", ok=False, validation_error=error)
+        feedback = ModelReviewFeedback(ok=False, decision="invalid_output", risk_level="major", review_meta=review_meta, meta=meta)
+        llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output="", parsed_output={"decision": "invalid_output"}, review_meta=review_meta, schema_validation_ok=False, note="fake replay miss; no real provider/API called"))
+        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_replay_miss", "stage_id": StageId.SL_7_MODEL_REVIEW.value, "replay_key": replay_key})
+        return feedback, meta, True
+    try:
+        parsed = parse_sl7_model_review_response(raw_output)
+        schema_ok = True
+        error = None
+    except Exception as e:  # pragma: no cover - exact parser type is intentionally not part of contract
+        parsed = {"decision": "invalid_output", "risk_level": "major", "findings": [], "blocking_findings": [], "error": str(e)}
+        schema_ok = False
+        error = str(e)
+        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_invalid_output", "stage_id": StageId.SL_7_MODEL_REVIEW.value, "message": error})
+    review_meta = _make_review_meta(
+        provider="fake-replay",
+        model_id="fake-sl7-review",
+        prompt_template_version=prompt_version,
+        prompt_messages=prompt_messages,
+        raw_output=raw_output,
+        parsed_schema_version="ModelReviewFeedback.v1",
+        schema_validation_ok=schema_ok,
+        schema_validation_error=error,
+        failure_policy=failure_policy,
+        replay_key=replay_key,
+        decision_threshold=cfg.review_policy.decision_threshold,
+        seed=cfg.seed,
+    )
+    ok = schema_ok and (parsed.get("decision") in {"pass", "audit_only"} or cfg.review_policy.model_review_mode == "audit_only")
+    meta = _llm_interaction_meta(StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, ok=ok, validation_error=error)
+    feedback = ModelReviewFeedback(
+        ok=ok,
+        decision=parsed.get("decision", "invalid_output"),
+        risk_level=parsed.get("risk_level", "major"),
+        findings=parsed.get("findings", []),
+        blocking_findings=parsed.get("blocking_findings", []),
+        review_meta=review_meta,
+        meta=meta,
+    )
+    llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_7_MODEL_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, parsed_output=parsed, review_meta=review_meta, schema_validation_ok=schema_ok, note="PR-2B fake/replay model review; no real provider/API called"))
+    return feedback, meta, not schema_ok
+
+
+def _run_sl10b_delta_review(
+    *,
+    nl: str,
+    old_dsl: str,
+    candidate_dsl: str,
+    fix_plan: FixPlan,
+    cfg: DeterministicLoopConfig,
+    iteration: int,
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+) -> tuple[dict[str, Any], ReviewRunMeta, StageResultMeta, bool]:
+    prompt_version = "sl10b-delta-review.v1"
+    diff_summary = {"old_dsl_hash": _hash_text(old_dsl), "candidate_dsl_hash": _hash_text(candidate_dsl), "fix_plan_target": fix_plan.target}
+    prompt_messages = build_sl10b_delta_review_prompt(
+        nl=nl,
+        grounding_map=cfg.grounding_map,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        fix_plan=fix_plan,
+        diff_summary=diff_summary,
+        prompt_template_version=prompt_version,
+    )
+    raw_output, replay_key = _review_replay_lookup(cfg, StageId.SL_10B_DELTA_REVIEW, iteration)
+    failure_policy = cfg.review_policy.review_meta_failure_policy(delta=True)
+    error = None
+    schema_ok = False
+    if raw_output is None and not cfg.review_policy.require_replay:
+        raw_output = json.dumps({"decision": "accept", "drift_risk": "none", "drift_evidence": [], "required_revision": []}, ensure_ascii=False)
+        replay_key = "default-fake:" + replay_key
+    if StageId.SL_10B_DELTA_REVIEW.value in cfg.review_provider_failures:
+        raw_output = ""
+        parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": "provider failure"}
+        error = "provider failure"
+        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_provider_failure", "stage_id": StageId.SL_10B_DELTA_REVIEW.value})
+    elif raw_output is None:
+        raw_output = ""
+        parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": "replay miss"}
+        error = "replay miss"
+        logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_replay_miss", "stage_id": StageId.SL_10B_DELTA_REVIEW.value, "replay_key": replay_key})
+    else:
+        try:
+            parsed = parse_sl10b_delta_review_response(raw_output)
+            schema_ok = True
+        except Exception as e:  # pragma: no cover
+            parsed = {"decision": "revise", "drift_risk": "major", "drift_evidence": [], "required_revision": [], "error": str(e)}
+            error = str(e)
+            logs.append({"ts": _utc_now(), "level": "error", "event": "llm_review_invalid_output", "stage_id": StageId.SL_10B_DELTA_REVIEW.value, "message": error})
+    review_meta = _make_review_meta(
+        provider="fake-replay" if error != "provider failure" else "fake-error",
+        model_id="fake-sl10b-delta-review",
+        prompt_template_version=prompt_version,
+        prompt_messages=prompt_messages,
+        raw_output=raw_output,
+        parsed_schema_version="RepairReviewFeedback.delta_review.v1",
+        schema_validation_ok=schema_ok,
+        schema_validation_error=error,
+        failure_policy=failure_policy,
+        replay_key=replay_key,
+        decision_threshold=cfg.review_policy.decision_threshold,
+        seed=cfg.seed,
+    )
+    ok = schema_ok and parsed.get("decision") == "accept"
+    meta = _llm_interaction_meta(StageId.SL_10B_DELTA_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, ok=ok or cfg.review_policy.delta_review_mode == "audit_only", validation_error=error)
+    llm_interactions.append(_review_interaction_payload(stage_id=StageId.SL_10B_DELTA_REVIEW, prompt_messages=prompt_messages, raw_output=raw_output, parsed_output=parsed, review_meta=review_meta, schema_validation_ok=schema_ok, note="PR-2B fake/replay delta review; no real provider/API called"))
+    return parsed, review_meta, meta, not schema_ok
 
 
 def _make_sl9_meta(prompt_messages: list[dict[str, str]], candidate_dsl: str, *, ok: bool = True) -> StageResultMeta:
@@ -369,6 +716,8 @@ def _build_record(
             "seed": cfg.seed,
             "real_llm_provider_api": False,
             "sl9_mode": "fake_replay_candidate_injection",
+            "review_policy": asdict(cfg.review_policy),
+            "review_mode": "fake_replay_only",
         },
         environment=_environment(),
         stage_graph={
@@ -458,7 +807,25 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
         else:
             stage_records.extend(feedback_stage_results)
 
-        selected = _select_feedback(bundle)
+        if cfg.review_policy.enable_model_review and bundle.sim is not None and bundle.sim.ok:
+            model_review, model_review_meta, model_review_invalid = _run_sl7_model_review(
+                nl=nl,
+                current_dsl=current_dsl,
+                context=context,
+                bundle=bundle,
+                cfg=cfg,
+                iteration=iteration,
+                llm_interactions=llm_interactions,
+                logs=logs,
+            )
+            bundle.model_review = model_review
+            bundle.enabled_sources.append(FeedbackSource.MODEL_REVIEW.value)
+            bundle.stage_results.append(model_review_meta)
+            feedback_stage_results.append(model_review_meta)
+            stage_records.append(model_review_meta)
+            force_invalid_record = force_invalid_record or model_review_invalid
+
+        selected = _select_feedback(bundle, cfg.review_policy)
         design_payload = asdict(bundle.design) if bundle.design is not None else None
         sim_payload = asdict(bundle.sim) if bundle.sim is not None else None
         deterministic_feedback["iterations"].append(
@@ -468,6 +835,7 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
                 "semantic": asdict(bundle.semantic) if bundle.semantic is not None else None,
                 "design": design_payload,
                 "sim": sim_payload,
+                "model_review": asdict(bundle.model_review) if bundle.model_review is not None else None,
             }
         )
         trace = IterTrace(
@@ -490,6 +858,7 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             "scenario_epoch": scenario_set.epoch if scenario_set is not None else None,
             "selected_feedback": None,
             "repair_review": None,
+            "model_review": asdict(bundle.model_review) if bundle.model_review is not None else None,
         }
 
         if selected is None:
@@ -586,6 +955,34 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             scenario_set=scenario_set,
         )
         _append_stage(stage_records, repair_review_meta)
+        if repair_review.ok and cfg.review_policy.enable_delta_review:
+            delta_review, delta_meta, delta_stage_meta, delta_invalid = _run_sl10b_delta_review(
+                nl=nl,
+                old_dsl=current_dsl,
+                candidate_dsl=candidate_dsl,
+                fix_plan=effective_fix_plan,
+                cfg=cfg,
+                iteration=iteration,
+                llm_interactions=llm_interactions,
+                logs=logs,
+            )
+            _append_stage(stage_records, delta_stage_meta)
+            force_invalid_record = force_invalid_record or delta_invalid
+            repair_review.delta_review = delta_review
+            repair_review.review_meta = delta_meta
+            if cfg.review_policy.is_delta_review_blocking_reject(delta_review):
+                rejection = RepairRejection(
+                    rejected_by_stage=StageId.SL_10B_DELTA_REVIEW.value,
+                    reason="delta_review_" + str(delta_review.get("decision", "reject")),
+                    target_resolved=False,
+                    regression_detected=repair_review.regression_detected,
+                    drift_risk=delta_review.get("drift_risk", "major"),
+                    evidence=delta_review.get("drift_evidence", []),
+                )
+                repair_review.ok = False
+                repair_review.target_resolved = False
+                repair_review.drift_risk = rejection.drift_risk
+                repair_review.local_rejection = rejection
         iteration_record["repair_review"] = asdict(repair_review)
         trace.repair_review = repair_review
         repair_history.append(
