@@ -67,16 +67,20 @@ def strip_fence(content: str) -> str:
     s = content.strip()
     if not s.startswith("```"):
         return s
-    parts = s.split("```")
-    if len(parts) >= 2:
-        body = parts[1]
-        first_nl = body.find("\n")
-        if first_nl != -1:
-            first_line = body[:first_nl].strip().lower()
-            if first_line in {"json", "fcstm", "pyfcstm", "dsl", "text", ""}:
-                body = body[first_nl + 1 :]
-        return body.strip()
-    return s
+    first_nl = s.find("\n")
+    if first_nl == -1:
+        return s
+    fence_header = s[3:first_nl].strip().lower()
+    if fence_header not in {"json", "fcstm", "pyfcstm", "dsl", "text", ""}:
+        return s
+    body = s[first_nl + 1 :]
+    # Only remove a closing fence that appears on its own final line.  Do not
+    # split on arbitrary ``` substrings because valid JSON strings may contain
+    # Markdown fence markers as data.
+    lines = body.splitlines()
+    if lines and lines[-1].strip() == "```":
+        body = "\n".join(lines[:-1])
+    return body.strip()
 
 
 def parse_json_response(content: str, *, context: str) -> dict[str, Any]:

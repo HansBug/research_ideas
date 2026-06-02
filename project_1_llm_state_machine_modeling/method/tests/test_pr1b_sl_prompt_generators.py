@@ -278,6 +278,30 @@ def test_sl7_prompt_compacts_large_inspect_and_design_payloads() -> None:
     assert "long" * 1000 not in joined
 
 
+
+def test_parse_json_response_preserves_backticks_inside_fenced_json_string() -> None:
+    raw = json.dumps(
+        {
+            "decision": "audit_only",
+            "risk_level": "none",
+            "findings": [
+                {
+                    "category": "structure_smell",
+                    "severity": "info",
+                    "summary": "DSL text contains a literal ``` fence marker in evidence.",
+                    "evidence": ["```pyfcstm\nstate Root { }\n```"],
+                }
+            ],
+            "blocking_findings": [],
+        },
+        ensure_ascii=False,
+    )
+
+    parsed = parse_sl7_model_review_response(f"```json\n{raw}\n```")
+
+    assert parsed["decision"] == "audit_only"
+    assert "```pyfcstm" in parsed["findings"][0]["evidence"][0]
+
 def test_sl9_repair_prompt_accepts_fix_plan_and_revised_fix_plan() -> None:
     plan = _fix_plan()
     revised = RevisedFixPlan(
