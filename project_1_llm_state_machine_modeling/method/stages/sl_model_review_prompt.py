@@ -172,11 +172,12 @@ Blocking guidance:
 - minor structure smells are advisory.
 - If the input is insufficient for a safe decision, use `audit_only`.
 
-Required input fields include NL, current DSL, GroundingMap, bounded inspect
-JSON summary, bounded design diagnostics summary, sim summary, 5-component
-summary, warning budget exhausted list and ReviewPolicy.  Summary fields may
-contain `_truncated_items`; treat them as representative evidence and use
-`audit_only` if the bounded input is insufficient for a safe judgment.
+Required input fields include NL, current DSL, GroundingMap, and the bounded
+payload keys `inspect_model_to_json_summary`, `design_diagnostics_summary`,
+`sim_summary`, `five_component_summary`, `warning_budget_exhausted` and
+`review_policy`.  Summary fields may contain `_truncated_items`; treat them as
+representative evidence and use `audit_only` if the bounded input is
+insufficient for a safe judgment.
 """
     compact = compact_sl7_review_input(
         inspect_json=inspect_json,

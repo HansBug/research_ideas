@@ -221,7 +221,6 @@ def run_handoff_smoke(
 
     if real_llm:
         env = _require_llm_env()
-        cfg.review_policy.require_replay = False
         path_context["real_llm_smoke"] = {
             "provider_env": "LLM_ENDPOINT",
             "model": llm_model or get_default_model(),

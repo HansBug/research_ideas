@@ -8,7 +8,7 @@ from method.run_record import read_agent_loop_run_record
 from method.stages.ids import StageId
 
 
-CONFIG_ROOT = Path("project_1_llm_state_machine_modeling/method/handoff_smoke/configs")
+CONFIG_ROOT = Path(__file__).resolve().parents[1] / "handoff_smoke" / "configs"
 
 
 def _configs():
