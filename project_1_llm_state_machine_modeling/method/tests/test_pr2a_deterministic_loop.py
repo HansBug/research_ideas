@@ -284,6 +284,30 @@ def test_pr2a_repair_review_rejection_can_be_revised_and_repaired_on_second_cand
     assert record.repair_history[1]["revised_fix_plan"]["rejection"]["reason"]
 
 
+def test_pr2a_retry_can_use_last_iteration_slot_when_candidate_exists(tmp_path: Path) -> None:
+    result = run_pr2a_deterministic_loop(
+        "The Active state is required; retry budget equals the candidate count.",
+        DeterministicLoopConfig(
+            initial_dsl=DEADLOCK_DSL,
+            scenarios=_empty_scenarios(),
+            repair_candidates=[DRIFT_CANDIDATE_DSL, FIXED_DSL],
+            grounding_map=_grounding(),
+            run_id="pr2a-retry-last-slot",
+            output_dir=tmp_path,
+            max_iterations=2,
+        ),
+    )
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "converged"
+    assert result.final_dsl == FIXED_DSL
+    assert record.status == "success"
+    assert [entry["accepted"] for entry in record.repair_history] == [False, True]
+    assert record.repair_history[1]["plan_kind"] == "RevisedFixPlan"
+    assert record.iteration_records[1]["exit_reason"] == "candidate_accepted_by_repair_review"
+
+
 def test_pr2a_run_record_is_self_contained_for_prompt_and_rejected_candidate(tmp_path: Path) -> None:
     result = run_pr2a_deterministic_loop(
         "The Active state is required and the drift candidate must be auditable.",
@@ -307,6 +331,38 @@ def test_pr2a_run_record_is_self_contained_for_prompt_and_rejected_candidate(tmp
     assert record["llm_interactions"][0]["raw_output"] == DRIFT_CANDIDATE_DSL
     assert record["llm_interactions"][0]["parsed_output"]["candidate_dsl"] == DRIFT_CANDIDATE_DSL
     assert record["repair_history"][0]["candidate_dsl"] == DRIFT_CANDIDATE_DSL
+
+
+def test_pr2a_nan_path_context_writes_strict_json_invalid_record(tmp_path: Path) -> None:
+    result = run_pr2a_deterministic_loop(
+        "A non-finite path metric should not enter Path1/Path2 main results.",
+        DeterministicLoopConfig(
+            initial_dsl=INFO_ONLY_DSL,
+            scenarios=_empty_scenarios(),
+            run_id="pr2a-nan-context",
+            output_dir=tmp_path,
+            max_iterations=1,
+            path_context={"fold_score": float("nan"), "pos_inf": float("inf"), "neg_inf": float("-inf")},
+        ),
+    )
+
+    assert result.run_record_path is not None
+    raw_text = gzip.open(result.run_record_path, "rt", encoding="utf-8").read()
+    record = read_agent_loop_run_record(result.run_record_path)
+
+    assert "NaN" not in raw_text
+    assert "Infinity" not in raw_text
+    json.loads(
+        raw_text,
+        parse_constant=lambda constant: (_ for _ in ()).throw(ValueError(f"invalid constant {constant}")),
+    )
+    assert record.status == "invalid"
+    assert not is_path_result_eligible(record)
+    assert record.input_bundle["path_context"]["fold_score"] == "<non-json-float:nan>"
+    assert record.input_bundle["path_context"]["pos_inf"] == "<non-json-float:inf>"
+    assert record.input_bundle["path_context"]["neg_inf"] == "<non-json-float:-inf>"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.logs and record.logs[-1]["event"] == "record_payload_sanitized"
 
 
 def test_pr2a_non_json_path_context_writes_invalid_record_not_corrupt_gzip(tmp_path: Path) -> None:

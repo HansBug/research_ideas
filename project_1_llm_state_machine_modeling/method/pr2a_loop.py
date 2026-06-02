@@ -10,6 +10,7 @@ with real replay-aware LLM calls.
 from __future__ import annotations
 
 import hashlib
+import math
 import platform
 import subprocess
 from dataclasses import asdict, dataclass, field, is_dataclass
@@ -108,8 +109,14 @@ def _jsonable(value: Any) -> Any:
 
 def _strict_jsonable(value: Any) -> Any:
     """JSON-normalize run-record payloads while preserving audit visibility."""
-    if value is None or isinstance(value, (str, int, float, bool)):
+    if value is None or isinstance(value, (str, bool, int)):
         return value
+    if isinstance(value, float):
+        if math.isfinite(value):
+            return value
+        if math.isnan(value):
+            return "<non-json-float:nan>"
+        return "<non-json-float:inf>" if value > 0 else "<non-json-float:-inf>"
     if isinstance(value, dict):
         return {str(k): _strict_jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple, set)):
@@ -467,7 +474,9 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
         source, feedback, source_stage = selected
         iteration_record["selected_feedback"] = {"source": source, "source_stage": source_stage}
 
-        if iteration >= cfg.max_iterations - 1 or not cfg.repair_candidates:
+        pending_retry = pending_rejection is not None and pending_original_plan is not None
+        candidate_available = iteration < len(cfg.repair_candidates)
+        if not candidate_available or (iteration >= cfg.max_iterations - 1 and not pending_retry):
             _append_stage(stage_records, _meta(StageId.SC_12_EXIT, ok=False, status=StageStatus.FAIL))
             status = "failed"
             error_message = "repair budget exhausted or no deterministic candidate available"
@@ -567,9 +576,15 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             trace.repair = ModelArtifact(dsl_text=candidate_dsl, iteration=iteration + 1, produced_by="repair")
             current_dsl = candidate_dsl
             iteration_record["accepted_candidate"] = True
+            iteration_record["exit_reason"] = "candidate_accepted_by_repair_review"
             pending_rejection = None
             pending_original_plan = None
             iteration_records.append(iteration_record)
+            if iteration >= cfg.max_iterations - 1:
+                _append_stage(stage_records, _meta(StageId.SC_12_EXIT, ok=True))
+                status = "success"
+                result.status = "converged"
+                break
             continue
 
         pending_rejection = repair_review.local_rejection

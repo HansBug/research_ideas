@@ -37,7 +37,7 @@ def write_agent_loop_run_record(record: AgentLoopRunRecord, path: str | Path) ->
     path.parent.mkdir(parents=True, exist_ok=True)
     AgentLoopRunRecord(**asdict(record))
     payload = asdict(record)
-    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, allow_nan=False)
     tmp_path = path.with_name(path.name + ".tmp")
     try:
         with gzip.open(tmp_path, "wt", encoding="utf-8") as f:
@@ -53,7 +53,10 @@ def write_agent_loop_run_record(record: AgentLoopRunRecord, path: str | Path) ->
 def read_agent_loop_run_record(path: str | Path) -> AgentLoopRunRecord:
     """Load and validate a gzip-compressed ``AgentLoopRunRecord``."""
     with gzip.open(path, "rt", encoding="utf-8") as f:
-        payload: dict[str, Any] = json.load(f)
+        payload: dict[str, Any] = json.load(
+            f,
+            parse_constant=lambda constant: (_ for _ in ()).throw(ValueError(f"invalid JSON constant {constant}")),
+        )
     return AgentLoopRunRecord(**payload)
 
 
