@@ -409,6 +409,8 @@ def test_pr_b2_provider_errors_retry_as_llm_layer_without_deterministic_retry() 
     assert result.stage_meta.status == StageStatus.ERROR
     assert result.interaction["schema_validation_ok"] is False
     assert result.interaction["retry_error"]["error_kind"] == "provider_error"
+    assert "terminal_verdict_hint" not in result.interaction
+    assert "verdict" not in result.interaction["retry_error"]
     assert len(result.interaction["attempts"]) == 1
     assert provider.call_count == 1
 
