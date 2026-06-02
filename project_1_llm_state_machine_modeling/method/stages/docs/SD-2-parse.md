@@ -39,3 +39,14 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口
+
+```python
+from method.stages.sd_tools import run_sd2_parse
+
+feedback, meta = run_sd2_parse(current_dsl, context)
+assert meta.stage_id == "SD-2"
+```
+
+`run_sd2_parse` 复用 `method.feedback.parse.check_parse`，不调用 LLM、不读取 `.env`。

@@ -1,23 +1,63 @@
 # SD deterministic tools
 
-PR-0 约定：`SD-*` 是确定性工具层，不调用 LLM、不读取 `.env`。后续 PR-1A 实现 façade 时必须复用 canonical feedback wrappers，不能形成第二套 parse/semantic/sim/design 实现。
+PR-0/PR-1A 约定：`SD-*` 是确定性工具层，不调用 LLM、不读取 `.env`。这些入口用于 agent-loop runner、Path1/Path2 handoff smoke、Codex/Claude skill、人工 ref model 制作前的本地检查。
 
-最小工具名预留：
+## Python 入口
 
-- `run_sd2_parse(current_dsl, ...)`
-- `run_sd3_semantic(parse_ok_dsl, stage_context, ...)`
-- `run_sd4_design(stage_context.model, policy_profile, warning_budget_state, ...)`
-- `run_sd5a_scenario_coverage(current_dsl, scenario_candidates, ...)`
-- `freeze_scenario_set(scenario_candidates, source_dsl_hash, coverage_report, ...)`
-- `run_sd6_sim(current_dsl, frozen_scenario_set, ...)`
-- `run_sd8_fix_plan(selected_feedback, grounding_map, policy_profile, ...)`
-- `run_sd10_repair_review(nl, grounding_map, old_dsl, candidate_dsl, fix_plan, scenario_set, ...)`
-- `accept_repair_candidate(candidate_dsl, repair_review_feedback, ...)`
-- `write_agent_loop_run_record(stage_records, iteration_records, llm_interactions, ...)`
+推荐从总 façade `method.stages.sd_tools` 导入；若需要按 stage 拆分，也可使用 `method.stages.sd_parse` / `sd_semantic` / `sd_design` / `sd_scenario_coverage` / `sd_sim` / `sd_fix_plan` / `sd_repair_review` 这些薄 re-export 模块。
+
+```python
+from method.schema import StageContext
+from method.stages.sd_tools import (
+    freeze_scenario_set,
+    mark_warning_repair_attempt,
+    run_sd2_parse,
+    run_sd3_semantic,
+    run_sd4_design,
+    run_sd5a_scenario_coverage,
+    run_sd6_sim,
+    run_sd8_fix_plan,
+    run_sd10_repair_review,
+)
+
+context = StageContext(nl=nl)
+parse_feedback, parse_meta = run_sd2_parse(current_dsl, context)
+semantic_feedback, semantic_meta, build = run_sd3_semantic(current_dsl, context)
+design_feedback, design_meta = run_sd4_design(context, policy_profile="generated_candidate")
+fix_plan, fix_meta = run_sd8_fix_plan(
+    design_feedback,
+    source="design",
+    grounding_map=context.grounding_map,
+    before_dsl=current_dsl,
+)
+```
+
+## 工具清单
+
+| Stage | 函数 | 输入 | 输出 | 说明 |
+|---|---|---|---|---|
+| `SD-2` | `run_sd2_parse(current_dsl, context=None)` | pyfcstm DSL | `ParseFeedback`, `StageResultMeta` | 复用 `method.feedback.parse.check_parse`。 |
+| `SD-3` | `run_sd3_semantic(parse_ok_dsl, context=None)` | parse-ok DSL | `SemanticFeedback`, `StageResultMeta`, `BuildResult` | canonical build helper 写入 `StageContext.ast/model`，避免重复隐式构建。 |
+| `SD-4` | `run_sd4_design(context, policy_profile="generated_candidate")` | `StageContext.model`, warning budget | `DesignFeedback`, `StageResultMeta` | 消费 `inspect_model().to_json()`；E hard-block，high-risk W budgeted repair，I/info 入 trace。 |
+| `SD-5A` | `run_sd5a_scenario_coverage(current_dsl, scenarios)` | DSL + scenario candidates | coverage report, `StageResultMeta` | coverage probe；有缺口时给 retry directive。 |
+| `SC-5F` | `freeze_scenario_set(...)` | scenario candidates + hashes | `ScenarioSet`, `StageResultMeta` | 冻结 oracle，后续 repair 不随意重生成。 |
+| `SD-6` | `run_sd6_sim(current_dsl, scenario_set, context=None)` | DSL + frozen `ScenarioSet` | `SimFeedback`, `StageResultMeta` | scenario 缺失时显式 error，不静默跳过。 |
+| `SD-8` | `run_sd8_fix_plan(selected_feedback, source=..., ...)` | 最早失败 feedback + grounding | `FixPlan` 或 `RevisedFixPlan`, `StageResultMeta` | `suggested_fix_hints` 仅供参考；repair 可选择更优全局修复。 |
+| `SD-10` | `run_sd10_repair_review(nl=..., grounding_map=..., old_dsl=..., candidate_dsl=..., fix_plan=..., scenario_set=...)` | NL + grounding + before/after DSL + plan + oracle | `RepairReviewFeedback`, `StageResultMeta` | parse/semantic/design target/scenario regression/grounding/count drift（±30% 增减漂移）/forced count 本地复验。 |
+
+## Warning budget
+
+```python
+blocking_keys = [item.instance_key for item in design_feedback.blocking_items]
+mark_warning_repair_attempt(context.warning_budget_state, blocking_keys)
+```
+
+默认每个 high-risk warning instance 有 `DEFAULT_WARNING_REPAIR_BUDGET = 2` 次修复预算。预算耗尽后降级为 advisory，仍必须进入 trace / run record。
 
 ## 契约要点
 
 - enabled deterministic stage 必须产出 `StageResultMeta`。
 - `skipped` 必须带 `skipped_reason`；`error` 必须带 `stage_error` 或 `output_validation_error`。
 - `advisory` 不阻塞，但必须进入 trace / run record。
-- inspect_model 的 suggested_fix 只能作为 `FixPlan.suggested_fix_hints`，不是强制执行脚本。
+- `inspect_model` 的 suggested fix 只能作为 `FixPlan.suggested_fix_hints`，不是强制执行脚本。
+- SD 工具不调用 LLM、不读取 `.env`；需要 LLM 时只通过后续 `SL-*` prompt generator 或外部 agent 调用。

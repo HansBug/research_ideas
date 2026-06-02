@@ -104,7 +104,7 @@ Phase G 的待验证性质 generation 必须设计为可被 pyfcstm `SimulationR
 
 ## 当前 commit 含
 
-1. `pyfcstm` git submodule pin 到 main commit `693fcf57`（Merge PR #66 from HansBug/dev/vscode）
+1. `pyfcstm` git submodule pin 到 main commit `5f811a0f`（pyfcstm v0.4.0 / Layer1+Layer2 diagnostics）
 2. `method/` 目录骨架：`agents/` / `feedback/` / `prompts/` / `eval/` / `tests/` / `data/` + 各自 `__init__.py`
 3. `method/README.md` 引导文档（目录定位 / LLM env 接入约束 / pyfcstm 集成方式 / 运行入口 / 接管入口）
 4. `method/STATUS.md`（本文件）
@@ -121,7 +121,7 @@ PR #11 已含全部 Phase A-G + E v3 + I 共同基础。merge 到 main 后：
 
 - 所有 LLM 调用走 `method/gpt_client.py`，统一 OpenAI-compatible client
 - 代码绝不直接读 `.env` 文件；运行前 shell `source .env` 把三件套加载到 `os.environ`
-- pyfcstm 走 submodule (pin commit `693fcf57`)，升级方式：在 submodule 内 `git fetch && git checkout <new-commit>` 后回到主仓 `git add pyfcstm && git commit`
+- pyfcstm 走 submodule (pin commit `5f811a0f`)，升级方式：在 submodule 内 `git fetch && git checkout <new-commit>` 后回到主仓 `git add pyfcstm && git commit`
 - agent prompt **全英文**（paper 是英文 SE 论文，统一）
 
 ## 历史 commit

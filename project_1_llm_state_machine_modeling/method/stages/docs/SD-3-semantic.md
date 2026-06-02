@@ -39,3 +39,16 @@
 - enabled stage 未产出 `StageResultMeta`。
 - output schema 与 fixture 不兼容。
 - prompt-ready summary、hash、provenance 或 review meta 字段缺失。
+
+## PR-1A 工具入口与 handoff
+
+```python
+from method.schema import StageContext
+from method.stages.sd_tools import run_sd3_semantic
+
+context = StageContext(nl=nl)
+feedback, meta, build = run_sd3_semantic(parse_ok_dsl, context)
+assert context.model is build.model
+```
+
+`run_sd3_semantic` 复用 `method.feedback.semantic.check_semantic`，并通过 `method.stages.sd_context.build_model_from_dsl()` 走 canonical parse/build path，把 AST/model 显式写入 `StageContext` 供 SD-4/SD-6 复用。
