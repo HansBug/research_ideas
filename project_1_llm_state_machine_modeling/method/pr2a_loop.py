@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import platform
+import re
 import subprocess
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime, timezone
@@ -202,6 +203,70 @@ def _record_payload_sanitized_log(field: str, *, message: str | None = None) -> 
         "field": field,
         "message": message or "non-json record payload normalized; run excluded from Path1/Path2 main results",
     }
+
+
+SECRET_TEXT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("openai_api_key", re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{7,}")),
+    ("github_oauth_token", re.compile(r"gh[o|p|s|u|r]_[A-Za-z0-9_]{8,}")),
+    ("github_pat", re.compile(r"github_pat_[A-Za-z0-9_]{8,}")),
+    ("bearer_token", re.compile(r"Bearer\s+[A-Za-z0-9._\-]{12,}", re.IGNORECASE)),
+)
+SECRET_KEYWORDS = ("api_key", "apikey", "token", "password", "passwd", "secret", "authorization")
+
+
+def _redaction_placeholder(secret: str, reason: str) -> str:
+    digest = hashlib.sha256(secret.encode("utf-8")).hexdigest()[:16]
+    return f"<redacted:{reason}:sha256:{digest}>"
+
+
+def _redaction_report_item(path: str, *, reason: str, replacement: str, affects_replay: bool) -> dict[str, Any]:
+    return {
+        "field_path": path,
+        "reason": reason,
+        "replacement": replacement,
+        "affects_replay": affects_replay,
+    }
+
+
+def _redact_text(value: str, path: str, report: list[dict[str, Any]], *, affects_replay: bool) -> str:
+    redacted = value
+    for reason, pattern in SECRET_TEXT_PATTERNS:
+        def repl(match: re.Match[str]) -> str:
+            replacement = _redaction_placeholder(match.group(0), reason)
+            report.append(_redaction_report_item(path, reason=reason, replacement=replacement, affects_replay=affects_replay))
+            return replacement
+
+        redacted = pattern.sub(repl, redacted)
+    return redacted
+
+
+def _redact_run_record_payload(value: Any, path: str, report: list[dict[str, Any]], *, affects_replay: bool = True) -> Any:
+    """Remove common secrets before persisting the self-contained run record.
+
+    The agent-loop record is intended for Path1/Path2 audit and handoff.  It
+    must preserve prompt/response evidence, but not raw API keys or tokens.  The
+    replacement keeps a stable digest so replay/debug consumers can tell whether
+    two redacted values were the same without seeing the original secret.
+    """
+    if isinstance(value, str):
+        return _redact_text(value, path, report, affects_replay=affects_replay)
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key)
+            item_path = f"{path}.{key_text}" if path else key_text
+            if isinstance(item, str) and any(keyword in key_text.lower() for keyword in SECRET_KEYWORDS):
+                replacement = _redaction_placeholder(item, "secret_field")
+                report.append(_redaction_report_item(item_path, reason="secret_field", replacement=replacement, affects_replay=affects_replay))
+                redacted[key_text] = replacement
+            else:
+                redacted[key_text] = _redact_run_record_payload(item, item_path, report, affects_replay=affects_replay)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_run_record_payload(item, f"{path}[{i}]", report, affects_replay=affects_replay) for i, item in enumerate(value)]
+    if isinstance(value, tuple):
+        return [_redact_run_record_payload(item, f"{path}[{i}]", report, affects_replay=affects_replay) for i, item in enumerate(value)]
+    return value
 
 
 def _strict_record_field(field: str, value: Any, logs: list[dict[str, Any]]) -> tuple[Any, bool]:
@@ -685,17 +750,38 @@ def _build_record(
     force_invalid: bool = False,
 ) -> AgentLoopRunRecord:
     sanitized = force_invalid
-    path_context_payload, changed = _strict_record_field("input_bundle.path_context", cfg.path_context, logs)
+    redaction_report: list[dict[str, Any]] = []
+    nl_payload = _redact_run_record_payload(nl, "input_bundle.nl", redaction_report, affects_replay=True)
+    path_context_redacted = _redact_run_record_payload(cfg.path_context, "input_bundle.path_context", redaction_report, affects_replay=True)
+    iteration_records_redacted = _redact_run_record_payload(iteration_records, "iteration_records", redaction_report, affects_replay=True)
+    llm_interactions_redacted = _redact_run_record_payload(llm_interactions, "llm_interactions", redaction_report, affects_replay=True)
+    deterministic_feedback_redacted = _redact_run_record_payload(deterministic_feedback, "deterministic_feedback", redaction_report, affects_replay=True)
+    repair_history_redacted = _redact_run_record_payload(repair_history, "repair_history", redaction_report, affects_replay=True)
+    scenario_history_redacted = _redact_run_record_payload(scenario_history, "scenario_history", redaction_report, affects_replay=True)
+    final_dsl_payload = _redact_run_record_payload(current_dsl, "final_artifacts.final_dsl", redaction_report, affects_replay=True)
+    stage_records_redacted = _redact_run_record_payload([asdict(meta) for meta in stage_records], "stage_records", redaction_report, affects_replay=True)
+    error_message_payload = _redact_run_record_payload(error_message, "final_artifacts.error_message", redaction_report, affects_replay=False)
+
+    path_context_payload, changed = _strict_record_field("input_bundle.path_context", path_context_redacted, logs)
     sanitized = sanitized or changed
-    iteration_records_payload, changed = _strict_record_field("iteration_records", iteration_records, logs)
+    iteration_records_payload, changed = _strict_record_field("iteration_records", iteration_records_redacted, logs)
     sanitized = sanitized or changed
-    llm_interactions_payload, changed = _strict_record_field("llm_interactions", llm_interactions, logs)
+    llm_interactions_payload, changed = _strict_record_field("llm_interactions", llm_interactions_redacted, logs)
     sanitized = sanitized or changed
-    deterministic_feedback_payload, changed = _strict_record_field("deterministic_feedback", deterministic_feedback, logs)
+    deterministic_feedback_payload, changed = _strict_record_field("deterministic_feedback", deterministic_feedback_redacted, logs)
     sanitized = sanitized or changed
-    repair_history_payload, changed = _strict_record_field("repair_history", repair_history, logs)
+    repair_history_payload, changed = _strict_record_field("repair_history", repair_history_redacted, logs)
     sanitized = sanitized or changed
-    scenario_history_payload, changed = _strict_record_field("scenario_history", scenario_history, logs)
+    scenario_history_payload, changed = _strict_record_field("scenario_history", scenario_history_redacted, logs)
+    sanitized = sanitized or changed
+    final_dsl_payload, changed = _strict_record_field("final_artifacts.final_dsl", final_dsl_payload, logs)
+    sanitized = sanitized or changed
+    stage_records_payload, changed = _strict_record_field("stage_records", stage_records_redacted, logs)
+    sanitized = sanitized or changed
+    error_message_payload, changed = _strict_record_field("final_artifacts.error_message", error_message_payload, logs)
+    sanitized = sanitized or changed
+    logs_redacted = _redact_run_record_payload(logs, "logs", redaction_report, affects_replay=False)
+    logs_payload, changed = _strict_record_field("logs", logs_redacted, logs)
     sanitized = sanitized or changed
 
     final_status = "invalid" if sanitized else status
@@ -706,7 +792,7 @@ def _build_record(
         created_at=run_started_at,
         status=final_status,  # type: ignore[arg-type]
         input_bundle={
-            "nl": nl,
+            "nl": nl_payload,
             "initial_dsl_hash": _hash_text(cfg.initial_dsl),
             "path_context": path_context_payload,
         },
@@ -724,27 +810,27 @@ def _build_record(
             "planned": SC_0_STAGE_GRAPH,
             "executed": _stage_ids(stage_records),
         },
-        stage_records=[asdict(meta) for meta in stage_records],
+        stage_records=stage_records_payload,
         iteration_records=iteration_records_payload,
         llm_interactions=llm_interactions_payload,
         deterministic_feedback=deterministic_feedback_payload,
         repair_history=repair_history_payload,
         scenario_history=scenario_history_payload,
         final_artifacts={
-            "final_dsl": current_dsl,
+            "final_dsl": final_dsl_payload,
             "final_dsl_hash": _hash_text(current_dsl),
             "verdict": final_status,
             "main_result_eligible": main_result_eligible,
             "path_result_filter": "include only status == success and main_result_eligible == true",
-            "error_message": error_message,
+            "error_message": error_message_payload,
         },
-        logs=logs,
+        logs=logs_payload,
         replay_index={
             "stage_by_index": {str(i): meta.stage_id for i, meta in enumerate(stage_records)},
             "iteration_count": len(iteration_records),
             "record_replay_command": "python -m method.run_record <path>",
         },
-        redaction_report=[],
+        redaction_report=redaction_report,
     )
     return record
 

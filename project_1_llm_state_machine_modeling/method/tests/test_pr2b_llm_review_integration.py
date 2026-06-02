@@ -248,6 +248,76 @@ def test_pr2b_sl7_provider_failure_marks_record_invalid(tmp_path: Path) -> None:
     assert any(log["event"] == "llm_review_provider_failure" for log in record.logs)
 
 
+
+def test_pr2b_run_record_redacts_secrets_and_reports_paths(tmp_path: Path) -> None:
+    secret_nl = "Requirement accidentally contains sk-test-1234567890abcdef and gho_deadbeef12345678."
+    raw_with_secret = json.dumps(
+        {
+            "decision": "pass",
+            "risk_level": "none",
+            "findings": [{"category": "nl_fidelity", "severity": "info", "summary": "saw github_pat_deadbeef12345678", "evidence": []}],
+            "blocking_findings": [],
+        },
+        ensure_ascii=False,
+    )
+
+    result = run_pr2a_deterministic_loop(
+        secret_nl,
+        DeterministicLoopConfig(
+            initial_dsl=INFO_ONLY_DSL,
+            scenarios=_empty_scenarios(),
+            run_id="pr2b-redaction",
+            output_dir=tmp_path,
+            max_iterations=1,
+            review_policy=ReviewPolicy(enable_model_review=True),
+            review_replay_responses={"SL-7:0": raw_with_secret},
+            path_context={"api_key": "sk-context-1234567890abcdef"},
+        ),
+    )
+
+    raw_record = Path(result.run_record_path or "").read_bytes()
+    # gzip bytes can contain compressed substrings only by chance, so inspect decoded record too.
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    record_json = json.dumps(record.__dict__, ensure_ascii=False, default=str)
+
+    assert b"sk-test-1234567890abcdef" not in raw_record
+    assert "sk-test-1234567890abcdef" not in record_json
+    assert "gho_deadbeef12345678" not in record_json
+    assert "github_pat_deadbeef12345678" not in record_json
+    assert "sk-context-1234567890abcdef" not in record_json
+    assert record.redaction_report
+    assert {item["reason"] for item in record.redaction_report} >= {"openai_api_key", "github_oauth_token", "github_pat", "secret_field"}
+    assert any(item["field_path"].startswith("llm_interactions") for item in record.redaction_report)
+    assert any(item["field_path"] == "input_bundle.path_context.api_key" for item in record.redaction_report)
+    assert "<redacted:" in record.input_bundle["nl"]
+    assert "<redacted:" in record.llm_interactions[0]["raw_output"]
+
+
+def test_pr2b_invalid_review_secret_is_redacted_from_logs_and_stage_meta(tmp_path: Path) -> None:
+    secret = "sk-invalid-1234567890abcdef"
+    result = run_pr2a_deterministic_loop(
+        "Invalid output with secret must still redact every record surface.",
+        DeterministicLoopConfig(
+            initial_dsl=INFO_ONLY_DSL,
+            scenarios=_empty_scenarios(),
+            run_id="pr2b-redact-invalid-output",
+            output_dir=tmp_path,
+            max_iterations=1,
+            review_policy=ReviewPolicy(enable_model_review=True),
+            review_replay_responses={"SL-7:0": f"not-json {secret}"},
+        ),
+    )
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    record_json = json.dumps(record.__dict__, ensure_ascii=False, default=str)
+
+    assert record.status == "invalid"
+    assert secret not in record_json
+    assert record.redaction_report
+    assert any(item["field_path"].startswith("logs") for item in record.redaction_report)
+    assert any(item["field_path"].startswith("stage_records") for item in record.redaction_report)
+    assert any(item["field_path"].startswith("llm_interactions") for item in record.redaction_report)
+
 def test_pr2b_sl10b_delta_review_can_reject_sd10_accepted_candidate(tmp_path: Path) -> None:
     result = run_pr2a_deterministic_loop(
         "The Active state is required and delta review may reject semantic drift.",
