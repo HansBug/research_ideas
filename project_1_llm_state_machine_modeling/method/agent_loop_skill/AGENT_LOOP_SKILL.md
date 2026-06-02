@@ -2,6 +2,16 @@
 
 本目录是 project_1 agent-loop 的 repo-local skill 入口。PR-0 冻结 contract / docs / fixtures / run-record schema，不绑定具体 LLM provider。
 
+
+## PR-E2 e2e ref-model 使用入口
+
+PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill 后，自主完成 `NL + 完整论文子路径 -> FCSTM/pyfcstm ref model 候选` 的建模、检查、修复与留痕。
+
+- 详细流程见 [e2e_ref_model_guide.md](./e2e_ref_model_guide.md)。
+- PR-E2 实测 **不得** 调用 `method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
+- 允许长时间运行，时间限制只用于防止 CLI 死锁或失控；质量、grounding、验证和 PR comment 证据优先。
+- 所有样本产物必须能写成 PR comment：输入 NL、论文路径、读取材料、候选模型、检查反馈、repair 轨迹、最终判断和 skill 改进建议。
+
 ## 使用边界
 
 - `SD-*`：确定性工具，后续可被 Codex / Claude / ref-model pipeline / Path1 / Path2 直接调用。
