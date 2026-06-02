@@ -30,6 +30,7 @@ from method.schema import (
     StageContext,
     StageResultMeta,
     TestScenario,
+    RevisedFixPlan,
 )
 from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, FeedbackSource, StageId, StageStatus
 from method.stages.sd_tools import (
@@ -103,6 +104,19 @@ def _jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return _jsonable(asdict(value))
     return str(value)
+
+
+def _strict_jsonable(value: Any) -> Any:
+    """JSON-normalize run-record payloads while preserving audit visibility."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return {str(k): _strict_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_strict_jsonable(v) for v in value]
+    if is_dataclass(value):
+        return _strict_jsonable(asdict(value))
+    return f"<non-json:{type(value).__name__}>"
 
 
 def _meta(stage_id: StageId, *, ok: bool = True, status: StageStatus | None = None, stage_error: str | None = None) -> StageResultMeta:
@@ -275,17 +289,19 @@ def _build_record(
     scenario_history: list[dict[str, Any]],
     logs: list[dict[str, Any]],
     error_message: str | None = None,
+    force_invalid: bool = False,
 ) -> AgentLoopRunRecord:
-    main_result_eligible = status == "success"
+    final_status = "invalid" if force_invalid else status
+    main_result_eligible = final_status == "success"
     record = AgentLoopRunRecord(
         schema_version=RUN_RECORD_SCHEMA_VERSION,
         run_id=cfg.run_id,
         created_at=run_started_at,
-        status=status,  # type: ignore[arg-type]
+        status=final_status,  # type: ignore[arg-type]
         input_bundle={
             "nl": nl,
             "initial_dsl_hash": _hash_text(cfg.initial_dsl),
-            "path_context": cfg.path_context,
+            "path_context": _strict_jsonable(cfg.path_context),
         },
         run_config={
             "max_iterations": cfg.max_iterations,
@@ -308,7 +324,7 @@ def _build_record(
         final_artifacts={
             "final_dsl": current_dsl,
             "final_dsl_hash": _hash_text(current_dsl),
-            "verdict": status,
+            "verdict": final_status,
             "main_result_eligible": main_result_eligible,
             "path_result_filter": "include only status == success and main_result_eligible == true",
             "error_message": error_message,
@@ -341,6 +357,33 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
     status = "failed"
     error_message: str | None = None
     warning_budget_state: dict[str, Any] = {}
+    pending_rejection = None
+    pending_original_plan: FixPlan | None = None
+    force_invalid_record = False
+
+    try:
+        if _strict_jsonable(cfg.path_context) != cfg.path_context:
+            force_invalid_record = True
+            logs.append(
+                {
+                    "ts": _utc_now(),
+                    "level": "error",
+                    "event": "record_payload_sanitized",
+                    "field": "input_bundle.path_context",
+                    "message": "non-json path_context normalized; run excluded from Path1/Path2 main results",
+                }
+            )
+    except Exception as e:
+        force_invalid_record = True
+        logs.append(
+            {
+                "ts": _utc_now(),
+                "level": "error",
+                "event": "record_payload_sanitized",
+                "field": "input_bundle.path_context",
+                "message": f"path_context normalization failed: {type(e).__name__}: {e}",
+            }
+        )
 
     _append_stage(stage_records, _meta(StageId.SC_0_START, ok=True))
 
@@ -433,15 +476,29 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             result.status = "not_converged"
             break
 
-        fix_plan, fix_meta = run_sd8_fix_plan(
-            feedback,
-            source=source,
-            source_stage=source_stage,
-            grounding_map=cfg.grounding_map,
-            before_dsl=current_dsl,
-        )
+        if pending_rejection is not None and pending_original_plan is not None:
+            fix_plan, fix_meta = run_sd8_fix_plan(
+                None,
+                source="repair_review",
+                rejection=pending_rejection,
+                original=pending_original_plan,
+            )
+        else:
+            fix_plan, fix_meta = run_sd8_fix_plan(
+                feedback,
+                source=source,
+                source_stage=source_stage,
+                grounding_map=cfg.grounding_map,
+                before_dsl=current_dsl,
+            )
         _append_stage(stage_records, fix_meta)
-        assert isinstance(fix_plan, FixPlan)
+        if isinstance(fix_plan, RevisedFixPlan):
+            effective_fix_plan = fix_plan.original
+            plan_kind = "RevisedFixPlan"
+        else:
+            effective_fix_plan = fix_plan
+            plan_kind = "FixPlan"
+        assert isinstance(effective_fix_plan, FixPlan)
 
         candidate_dsl = cfg.repair_candidates[min(iteration, len(cfg.repair_candidates) - 1)]
         prompt_messages = build_sl9_repair_prompt(
@@ -449,8 +506,8 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             current_dsl=current_dsl,
             fix_plan=fix_plan,
             grounding_map=cfg.grounding_map,
-            selected_diagnostics=fix_plan.evidence,
-            preserve_list=fix_plan.required_preserve_element_ids,
+            selected_diagnostics=effective_fix_plan.evidence,
+            preserve_list=effective_fix_plan.required_preserve_element_ids,
             scenario_summary={
                 "scenario_set_id": scenario_set.scenario_set_id if scenario_set is not None else None,
                 "epoch": scenario_set.epoch if scenario_set is not None else None,
@@ -468,6 +525,9 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
                 "prompt_hash": sl9_meta.prompt_hash,
                 "input_hash": _hash_text(current_dsl),
                 "raw_output_hash": sl9_meta.output_hash,
+                "prompt_messages": prompt_messages,
+                "raw_output": candidate_dsl,
+                "parsed_output": {"candidate_dsl": candidate_dsl},
                 "schema_validation_ok": True,
                 "replay_key": f"fake-sl9:{run_id}:{iteration}",
                 "note": "PR-2A never calls a real LLM provider/API.",
@@ -484,7 +544,7 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             grounding_map=cfg.grounding_map,
             old_dsl=current_dsl,
             candidate_dsl=candidate_dsl,
-            fix_plan=fix_plan,
+            fix_plan=effective_fix_plan,
             scenario_set=scenario_set,
         )
         _append_stage(stage_records, repair_review_meta)
@@ -493,7 +553,10 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
         repair_history.append(
             {
                 "iteration": iteration,
-                "fix_plan": asdict(fix_plan),
+                "plan_kind": plan_kind,
+                "fix_plan": asdict(effective_fix_plan),
+                "revised_fix_plan": asdict(fix_plan) if isinstance(fix_plan, RevisedFixPlan) else None,
+                "candidate_dsl": candidate_dsl,
                 "candidate_dsl_hash": _hash_text(candidate_dsl),
                 "repair_review": asdict(repair_review),
                 "accepted": repair_review.ok,
@@ -504,6 +567,17 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
             trace.repair = ModelArtifact(dsl_text=candidate_dsl, iteration=iteration + 1, produced_by="repair")
             current_dsl = candidate_dsl
             iteration_record["accepted_candidate"] = True
+            pending_rejection = None
+            pending_original_plan = None
+            iteration_records.append(iteration_record)
+            continue
+
+        pending_rejection = repair_review.local_rejection
+        pending_original_plan = effective_fix_plan
+        if iteration < cfg.max_iterations - 1 and iteration + 1 < len(cfg.repair_candidates) and pending_rejection is not None:
+            _append_stage(stage_records, _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=False, status=StageStatus.FAIL))
+            iteration_record["accepted_candidate"] = False
+            iteration_record["exit_reason"] = "repair_review_rejected_retry_with_revised_fix_plan"
             iteration_records.append(iteration_record)
             continue
 
@@ -543,6 +617,7 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
         scenario_history=scenario_history,
         logs=logs,
         error_message=error_message,
+        force_invalid=force_invalid_record,
     )
     path = write_agent_loop_run_record(record, agent_loop_run_record_path(cfg.output_dir, run_id))
     result.run_record_path = str(path)

@@ -257,3 +257,75 @@ def test_pr2a_reader_rejects_schema_invalid_raw_run_record(tmp_path: Path) -> No
 
     with pytest.raises(ValueError, match="stage_records invalid"):
         read_agent_loop_run_record(path)
+
+
+def test_pr2a_repair_review_rejection_can_be_revised_and_repaired_on_second_candidate(tmp_path: Path) -> None:
+    result = run_pr2a_deterministic_loop(
+        "The Active state is required; reject drift then try the next repair candidate.",
+        DeterministicLoopConfig(
+            initial_dsl=DEADLOCK_DSL,
+            scenarios=_empty_scenarios(),
+            repair_candidates=[DRIFT_CANDIDATE_DSL, FIXED_DSL],
+            grounding_map=_grounding(),
+            run_id="pr2a-reject-then-fix",
+            output_dir=tmp_path,
+            max_iterations=3,
+        ),
+    )
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "converged"
+    assert result.final_dsl == FIXED_DSL
+    assert record.status == "success"
+    assert [entry["accepted"] for entry in record.repair_history] == [False, True]
+    assert record.repair_history[1]["plan_kind"] == "RevisedFixPlan"
+    assert record.repair_history[1]["revised_fix_plan"]["original"]["target"] == "design"
+    assert record.repair_history[1]["revised_fix_plan"]["rejection"]["reason"]
+
+
+def test_pr2a_run_record_is_self_contained_for_prompt_and_rejected_candidate(tmp_path: Path) -> None:
+    result = run_pr2a_deterministic_loop(
+        "The Active state is required and the drift candidate must be auditable.",
+        DeterministicLoopConfig(
+            initial_dsl=DEADLOCK_DSL,
+            scenarios=_empty_scenarios(),
+            repair_candidates=[DRIFT_CANDIDATE_DSL],
+            grounding_map=_grounding(),
+            run_id="pr2a-self-contained-reject",
+            output_dir=tmp_path,
+            max_iterations=2,
+        ),
+    )
+
+    raw_text = gzip.open(result.run_record_path or "", "rt", encoding="utf-8").read()
+    record = json.loads(raw_text)
+
+    assert record["status"] == "rejected"
+    assert "prompt_messages" in record["llm_interactions"][0]
+    assert "raw_output" in record["llm_interactions"][0]
+    assert record["llm_interactions"][0]["raw_output"] == DRIFT_CANDIDATE_DSL
+    assert record["llm_interactions"][0]["parsed_output"]["candidate_dsl"] == DRIFT_CANDIDATE_DSL
+    assert record["repair_history"][0]["candidate_dsl"] == DRIFT_CANDIDATE_DSL
+
+
+def test_pr2a_non_json_path_context_writes_invalid_record_not_corrupt_gzip(tmp_path: Path) -> None:
+    result = run_pr2a_deterministic_loop(
+        "A non-json path context should not corrupt the audit file.",
+        DeterministicLoopConfig(
+            initial_dsl="state Root {",
+            scenarios=_empty_scenarios(),
+            run_id="pr2a-non-json-context",
+            output_dir=tmp_path,
+            max_iterations=1,
+            path_context={"non_json": object()},
+        ),
+    )
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert record.status == "invalid"
+    assert not is_path_result_eligible(record)
+    assert record.input_bundle["path_context"]["non_json"].startswith("<non-json:")
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.logs and record.logs[-1]["event"] == "record_payload_sanitized"

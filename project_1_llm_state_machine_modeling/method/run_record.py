@@ -30,13 +30,23 @@ def write_agent_loop_run_record(record: AgentLoopRunRecord, path: str | Path) ->
 
     Validation happens both before and after gzip round-trip so callers cannot
     accidentally persist a dict shape that only works in memory.
+    The target file is replaced atomically only after JSON serialization and
+    gzip round-trip validation succeed, avoiding half-written corrupt records.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     AgentLoopRunRecord(**asdict(record))
-    with gzip.open(path, "wt", encoding="utf-8") as f:
-        json.dump(asdict(record), f, ensure_ascii=False, sort_keys=True)
-    read_agent_loop_run_record(path)
+    payload = asdict(record)
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    tmp_path = path.with_name(path.name + ".tmp")
+    try:
+        with gzip.open(tmp_path, "wt", encoding="utf-8") as f:
+            f.write(encoded)
+        read_agent_loop_run_record(tmp_path)
+        tmp_path.replace(path)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
     return path
 
 
