@@ -251,6 +251,8 @@ class AblationCondition:
             raise ValueError("AblationCondition.condition_family is required")
         if self.condition_id != "full_staged_v1" and not self.changed_factors:
             raise ValueError("non-default ablation condition must declare changed_factors")
+        if self.condition_id == "full_staged_v1" and not self.academic_question:
+            self.academic_question = DEFAULT_ACADEMIC_QUESTION
         if self.condition_id != "full_staged_v1" and not self.academic_question:
             raise ValueError("non-default ablation condition must declare academic_question")
         for key, value in self.stage_switches.items():

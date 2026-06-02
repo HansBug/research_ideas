@@ -916,6 +916,19 @@ def test_explicit_ablation_condition_can_disable_stage_but_default_cannot() -> N
     assert sl7["skipped_reason"] == "disabled_by_condition"
 
 
+
+
+def test_default_ablation_condition_preserves_default_academic_question() -> None:
+    condition = schema.AblationCondition(
+        condition_id="full_staged_v1",
+        condition_family="canonical_agent_loop",
+        academic_question="",
+    )
+    cfg = schema.LoopConfig(ablation_condition=condition)
+
+    assert condition.academic_question == schema.DEFAULT_ACADEMIC_QUESTION
+    assert cfg.resolved_config()["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
+
 def test_direct_non_default_loop_config_requires_academic_question(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="requires explicit non-default academic_question"):
         schema.LoopConfig(condition_id="iter3_v1", changed_factors=["max_iterations=3"], max_iterations=3)
