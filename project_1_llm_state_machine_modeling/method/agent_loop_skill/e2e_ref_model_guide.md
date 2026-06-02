@@ -39,7 +39,7 @@ STM.md
 bibtex.bib -> STM.md / DESC.md -> paper_content.txt -> paper.pdf（必要时核对）
 ```
 
-如果任务要求严格按仓库论文阅读规范重新生成派生文件，则应按根级规范先读 `bibtex.bib` 再通读 `paper_content.txt`；PR-E2 的 ref-model 实测可以先利用现有 `STM.md` / `DESC.md` 作为人工整理过的线索，但必须说明是否回看了原文提取文本。
+`STM.md` / `DESC.md` 可以作为人工整理过的索引，但不能替代论文证据。每个正式样本默认应至少抽读 `paper_content.txt` 中与状态机、状态表、流程图、控制算法、结果解释直接相关的章节；如果没有回看 `paper_content.txt`，必须在 PR comment 中明确说明原因，并把该样本标为 grounding 风险，reviewer 可按影响评为 I。
 
 ## 3. 推荐 e2e 流程
 
@@ -78,7 +78,15 @@ project_1_llm_state_machine_modeling/method/agent_loop_skill/stages/
 
 ### E3. Deterministic checks
 
-优先运行下列检查。若某个工具入口不可用，应记录不可用原因，不要静默跳过。
+正式样本必须至少尝试 `SD-2 -> SD-3 -> SD-4 -> SD-6`。`SD-6` 不是可随意省略的 optional polish：P1/P2 ref model 候选只有在行为 scenario 上跑过仿真，才有足够证据交给下游。若场景尚未充分，只能标记为 `部分可用 / oracle weak`，不能声称 ready。
+
+若某个工具入口不可用，应记录命令、错误摘要和影响分类，不要静默跳过。
+
+当前 pyfcstm parser 注意事项：
+
+- 变量类型以实际 parser 为准；当前已验证支持 `def int` / `def float`，不支持 `def bool`、`true`、`false`。布尔量请用 `int` flag（如 `0/1`）表达，并在注释中说明语义。
+- `// @external` / `// @input` 注释可作为人工/下游静态验证的语义标记，但当前 `run_sd4_design(..., policy_profile="generated_candidate")` 不消费该注释；因此它不能自动消除 `W_UNWRITTEN_READ_VAR` / `W_GUARD_VARS_NEVER_CHANGE`。
+- 外部传感输入优先用显式事件更新、环境采样 aspect、或 `int/float` 变量 + 清晰 PR comment 说明来建模；不要用无意义 self-assignment 只为消警。
 
 ```python
 from method.schema import StageContext, TestScenario, ScenarioSet
@@ -104,13 +112,21 @@ if semantic_feedback.ok:
 如需构造最小 scenario，可使用：
 
 ```python
-scenario = TestScenario(name="sanity", description="hot-start sanity", steps=[])
+import hashlib
+
+scenario = TestScenario(
+    name="sanity",
+    description="hot-start sanity",
+    initial_vars={"some_flag": 0},  # hot-start 时显式给出所需变量初值；不要依赖隐式环境
+    steps=[],
+)
 coverage, coverage_meta = run_sd5a_scenario_coverage(current_dsl, [scenario])
 scenario_set, freeze_meta = freeze_scenario_set(
     [scenario],
-    source_dsl=current_dsl,
-    inspect_json=context.inspect_json or {},
-    grounding_map=context.grounding_map,
+    source_dsl_hash="sha256:" + hashlib.sha256(current_dsl.encode("utf-8")).hexdigest(),
+    source_inspect_hash="sha256:" + hashlib.sha256(repr(context.inspect_json or {}).encode("utf-8")).hexdigest(),
+    source_grounding_hash="sha256:" + hashlib.sha256(repr(context.grounding_map).encode("utf-8")).hexdigest(),
+    coverage_report=coverage,
 )
 sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 ```
@@ -151,7 +167,45 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - 最终状态与质量分类；
 - skill 改进建议。
 
-## 4. PR comment 记录模板
+## 4. 建模习语与边界模板
+
+### 4.1 外部输入变量
+
+控制系统论文常把传感器、环境量或连续控制器输出作为状态机 guard 输入。PR-E2 推荐按以下优先级建模：
+
+1. **事件更新模式**：用事件表达外部输入变化，例如 `BPUpdated`、`RefreshSensors`，并在转移或 aspect 中更新变量。
+2. **环境采样 aspect 模式**：对每个控制周期都会刷新的输入，用 root-level aspect 表达采样意图；不要用无意义 self-assignment 伪造内部写入。
+3. **人工标记模式**：可在变量声明后写 `// @external` 或 `// @input` 辅助人工审计，但必须说明当前 SD-4 不消费该注释，不能把它当作自动通过依据。
+
+若 SD-4 因外部输入给出 blocking warning，producer 必须在 PR comment 中解释：这是模型错误、工具策略不匹配、还是需要补事件/aspect 的真实问题。
+
+### 4.2 事件作用域与初始 cycle
+
+复杂/层次模型中，局部事件、forced transition 与初始 transition 很容易造成“看起来能 parse，但 scenario 不触发”的假阳性。PR-E2 producer 必须遵守：
+
+- 在 scenario 中注入事件时，说明它是 root event 还是 nested/local event；必要时参考 `stages/SD-6.md` 和 pyfcstm 文档确认事件路径。
+- 对 composite state 的初始 transition，至少设置一个 hot-start sanity scenario，并在 comment 中说明初始 cycle 后实际落到哪个 leaf state。
+- 若模型使用 forced transition 或 local event，必须至少有一个 scenario 覆盖该边；否则标记为 `oracle weak`。
+- 若 scenario 需要 hot-start 到某个 nested state，必须显式提供 `initial_state` 与所需 `initial_vars`，不要依赖隐式变量默认值。
+
+### 4.3 Path-2 candidate 边界
+
+PR-E2 产物默认是 `ref model 候选`，不是 signed reference model。尤其是 Path-2 能源管理、医疗设备这类复杂论文，若只覆盖主链、抽象时间、或把连续时间条件事件化，必须写明：
+
+- 覆盖了哪些状态/转移/输出；
+- 没覆盖哪些子链、优先级、异常或连续控制语义；
+- 是否 `main_result_eligible` 只作为候选观察而非正式主结果；
+- 后续人工签核前需要补哪些证据。
+
+### 4.4 不可达/非法状态
+
+论文中的 illegal / invalid / fallback 状态可能被设计为“理论上不应进入，但必须有恢复边”。这类状态不应简单删除。推荐在 PR comment 中说明：
+
+- 它是 paper-defined abnormal state 还是模型误造的 dead state；
+- 是否有显式恢复边；
+- 若 SD-4 报 `W_UNREACHABLE_STATE`，该 warning 是合理提示还是需要 policy waiver / scenario 覆盖。
+
+## 5. PR comment 记录模板
 
 建议每个样本按下列结构写 PR comment；若模型过长，仍应保留最终候选模型全文或可审查摘录，并给出最小复现命令。
 
@@ -197,7 +251,7 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - skill 改进建议：...
 ````
 
-## 5. 常见误用与分级
+## 6. 常见误用与分级
 
 | 误用 | 影响 | review 等级 |
 |---|---|---|

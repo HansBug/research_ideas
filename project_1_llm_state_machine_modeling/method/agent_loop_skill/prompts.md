@@ -9,6 +9,8 @@ PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑�
 
 所有真实 LLM 输出都应在 PR comment 中至少摘要记录：输入上下文、输出候选、schema/格式检查、重试或修复原因。若输出过长，保留最终候选模型全文与关键失败/修复证据。
 
+PR-E2 producer 使用 SL prompt 时，应额外提醒模型：当前 pyfcstm parser 不支持 `def bool` / `true` / `false`，布尔语义用 `int` flag 表达；外部输入不能只靠 `// @external` 注释让 SD-4 自动通过。
+
 ## 使用边界
 
 - prompt generator 只返回 message pack 或 markdown prompt。

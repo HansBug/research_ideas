@@ -12,6 +12,11 @@ PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill �
 - 允许长时间运行，时间限制只用于防止 CLI 死锁或失控；质量、grounding、验证和 PR comment 证据优先。
 - 所有样本产物必须能写成 PR comment：输入 NL、论文路径、读取材料、候选模型、检查反馈、repair 轨迹、最终判断和 skill 改进建议。
 
+
+### PR-E2 语法与工具版本注意
+
+当前 skill 使用者必须以实际 `SD-2` parser 为准，而不是只相信历史 grammar 摘要：已知当前 parser 支持 `def int` / `def float`，不支持 `def bool`、`true`、`false`；外部输入注释 `// @external` 不会被默认 `SD-4` 自动消费。详细见 [e2e_ref_model_guide.md](./e2e_ref_model_guide.md)。
+
 ## 使用边界
 
 - `SD-*`：确定性工具，后续可被 Codex / Claude / ref-model pipeline / Path1 / Path2 直接调用。
