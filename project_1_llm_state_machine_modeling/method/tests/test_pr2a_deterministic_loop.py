@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import gzip
 import json
 from pathlib import Path
@@ -361,6 +362,33 @@ def test_pr2a_nan_path_context_writes_strict_json_invalid_record(tmp_path: Path)
     assert record.input_bundle["path_context"]["fold_score"] == "<non-json-float:nan>"
     assert record.input_bundle["path_context"]["pos_inf"] == "<non-json-float:inf>"
     assert record.input_bundle["path_context"]["neg_inf"] == "<non-json-float:-inf>"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.logs and record.logs[-1]["event"] == "record_payload_sanitized"
+
+
+def test_pr2a_dataclass_type_path_context_writes_invalid_record(tmp_path: Path) -> None:
+    @dataclass
+    class Marker:
+        value: int = 1
+
+    result = run_pr2a_deterministic_loop(
+        "A dataclass type in path context should still yield an audit record.",
+        DeterministicLoopConfig(
+            initial_dsl=INFO_ONLY_DSL,
+            scenarios=_empty_scenarios(),
+            run_id="pr2a-dataclass-type-context",
+            output_dir=tmp_path,
+            max_iterations=1,
+            path_context={"marker": Marker},
+        ),
+    )
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+
+    assert result.status == "converged"
+    assert record.status == "invalid"
+    assert not is_path_result_eligible(record)
+    assert record.input_bundle["path_context"]["marker"] == "<non-json:dataclass-type:Marker>"
     assert record.final_artifacts["main_result_eligible"] is False
     assert record.logs and record.logs[-1]["event"] == "record_payload_sanitized"
 

@@ -121,8 +121,10 @@ def _strict_jsonable(value: Any) -> Any:
         return {str(k): _strict_jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple, set)):
         return [_strict_jsonable(v) for v in value]
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _strict_jsonable(asdict(value))
+    if is_dataclass(value) and isinstance(value, type):
+        return f"<non-json:dataclass-type:{value.__name__}>"
     return f"<non-json:{type(value).__name__}>"
 
 
