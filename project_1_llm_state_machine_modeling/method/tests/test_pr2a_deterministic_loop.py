@@ -393,6 +393,34 @@ def test_pr2a_dataclass_type_path_context_writes_invalid_record(tmp_path: Path) 
     assert record.logs and record.logs[-1]["event"] == "record_payload_sanitized"
 
 
+def test_pr2a_nan_scenario_history_writes_invalid_audit_record(tmp_path: Path) -> None:
+    result = run_pr2a_deterministic_loop(
+        "A non-finite scenario value should still yield an audit record.",
+        DeterministicLoopConfig(
+            initial_dsl=INFO_ONLY_DSL,
+            scenarios=[TestScenario(name="nan-scenario", initial_vars={"x": float("nan")}, steps=[])],
+            run_id="pr2a-nan-scenario",
+            output_dir=tmp_path,
+            max_iterations=1,
+        ),
+    )
+
+    assert result.run_record_path is not None
+    raw_text = gzip.open(result.run_record_path, "rt", encoding="utf-8").read()
+    record = read_agent_loop_run_record(result.run_record_path)
+
+    assert "NaN" not in raw_text
+    json.loads(
+        raw_text,
+        parse_constant=lambda constant: (_ for _ in ()).throw(ValueError(f"invalid constant {constant}")),
+    )
+    assert record.status == "invalid"
+    assert not is_path_result_eligible(record)
+    assert record.scenario_history[0]["scenarios"][0]["initial_vars"]["x"] == "<non-json-float:nan>"
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert any(log["event"] == "record_payload_sanitized" and log["field"] == "scenario_history" for log in record.logs)
+
+
 def test_pr2a_non_json_path_context_writes_invalid_record_not_corrupt_gzip(tmp_path: Path) -> None:
     result = run_pr2a_deterministic_loop(
         "A non-json path context should not corrupt the audit file.",

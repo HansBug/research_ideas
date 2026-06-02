@@ -102,8 +102,10 @@ def _jsonable(value: Any) -> Any:
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple, set)):
         return [_jsonable(v) for v in value]
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _jsonable(asdict(value))
+    if is_dataclass(value) and isinstance(value, type):
+        return f"<non-json:dataclass-type:{value.__name__}>"
     return str(value)
 
 
@@ -126,6 +128,41 @@ def _strict_jsonable(value: Any) -> Any:
     if is_dataclass(value) and isinstance(value, type):
         return f"<non-json:dataclass-type:{value.__name__}>"
     return f"<non-json:{type(value).__name__}>"
+
+
+def _json_normalized_changed(original: Any, normalized: Any) -> bool:
+    try:
+        changed = normalized != original
+    except Exception:
+        return True
+    return changed if isinstance(changed, bool) else True
+
+
+def _record_payload_sanitized_log(field: str, *, message: str | None = None) -> dict[str, Any]:
+    return {
+        "ts": _utc_now(),
+        "level": "error",
+        "event": "record_payload_sanitized",
+        "field": field,
+        "message": message or "non-json record payload normalized; run excluded from Path1/Path2 main results",
+    }
+
+
+def _strict_record_field(field: str, value: Any, logs: list[dict[str, Any]]) -> tuple[Any, bool]:
+    try:
+        normalized = _strict_jsonable(value)
+    except Exception as e:
+        logs.append(
+            _record_payload_sanitized_log(
+                field,
+                message=f"record payload normalization failed: {type(e).__name__}: {e}",
+            )
+        )
+        return f"<non-json-normalization-error:{type(value).__name__}:{type(e).__name__}>", True
+    changed = _json_normalized_changed(value, normalized)
+    if changed:
+        logs.append(_record_payload_sanitized_log(field))
+    return normalized, changed
 
 
 def _meta(stage_id: StageId, *, ok: bool = True, status: StageStatus | None = None, stage_error: str | None = None) -> StageResultMeta:
@@ -300,7 +337,21 @@ def _build_record(
     error_message: str | None = None,
     force_invalid: bool = False,
 ) -> AgentLoopRunRecord:
-    final_status = "invalid" if force_invalid else status
+    sanitized = force_invalid
+    path_context_payload, changed = _strict_record_field("input_bundle.path_context", cfg.path_context, logs)
+    sanitized = sanitized or changed
+    iteration_records_payload, changed = _strict_record_field("iteration_records", iteration_records, logs)
+    sanitized = sanitized or changed
+    llm_interactions_payload, changed = _strict_record_field("llm_interactions", llm_interactions, logs)
+    sanitized = sanitized or changed
+    deterministic_feedback_payload, changed = _strict_record_field("deterministic_feedback", deterministic_feedback, logs)
+    sanitized = sanitized or changed
+    repair_history_payload, changed = _strict_record_field("repair_history", repair_history, logs)
+    sanitized = sanitized or changed
+    scenario_history_payload, changed = _strict_record_field("scenario_history", scenario_history, logs)
+    sanitized = sanitized or changed
+
+    final_status = "invalid" if sanitized else status
     main_result_eligible = final_status == "success"
     record = AgentLoopRunRecord(
         schema_version=RUN_RECORD_SCHEMA_VERSION,
@@ -310,7 +361,7 @@ def _build_record(
         input_bundle={
             "nl": nl,
             "initial_dsl_hash": _hash_text(cfg.initial_dsl),
-            "path_context": _strict_jsonable(cfg.path_context),
+            "path_context": path_context_payload,
         },
         run_config={
             "max_iterations": cfg.max_iterations,
@@ -325,11 +376,11 @@ def _build_record(
             "executed": _stage_ids(stage_records),
         },
         stage_records=[asdict(meta) for meta in stage_records],
-        iteration_records=iteration_records,
-        llm_interactions=llm_interactions,
-        deterministic_feedback=deterministic_feedback,
-        repair_history=repair_history,
-        scenario_history=scenario_history,
+        iteration_records=iteration_records_payload,
+        llm_interactions=llm_interactions_payload,
+        deterministic_feedback=deterministic_feedback_payload,
+        repair_history=repair_history_payload,
+        scenario_history=scenario_history_payload,
         final_artifacts={
             "final_dsl": current_dsl,
             "final_dsl_hash": _hash_text(current_dsl),
@@ -369,30 +420,6 @@ def run_pr2a_deterministic_loop(nl: str, cfg: DeterministicLoopConfig) -> AgentL
     pending_rejection = None
     pending_original_plan: FixPlan | None = None
     force_invalid_record = False
-
-    try:
-        if _strict_jsonable(cfg.path_context) != cfg.path_context:
-            force_invalid_record = True
-            logs.append(
-                {
-                    "ts": _utc_now(),
-                    "level": "error",
-                    "event": "record_payload_sanitized",
-                    "field": "input_bundle.path_context",
-                    "message": "non-json path_context normalized; run excluded from Path1/Path2 main results",
-                }
-            )
-    except Exception as e:
-        force_invalid_record = True
-        logs.append(
-            {
-                "ts": _utc_now(),
-                "level": "error",
-                "event": "record_payload_sanitized",
-                "field": "input_bundle.path_context",
-                "message": f"path_context normalization failed: {type(e).__name__}: {e}",
-            }
-        )
 
     _append_stage(stage_records, _meta(StageId.SC_0_START, ok=True))
 
