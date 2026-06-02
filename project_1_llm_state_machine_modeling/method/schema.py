@@ -1133,7 +1133,7 @@ class AgentLoopRunRecord:
     schema_version: str
     run_id: str
     created_at: str
-    status: Literal["success", "failed", "rejected", "budget_exhausted", "error"]
+    status: Literal["success", "failed", "rejected", "budget_exhausted", "error", "invalid"]
     input_bundle: dict[str, Any]
     run_config: dict[str, Any]
     environment: dict[str, Any]
@@ -1152,7 +1152,7 @@ class AgentLoopRunRecord:
     def __post_init__(self) -> None:
         self.status = _require_one_of(
             self.status,
-            {"success", "failed", "rejected", "budget_exhausted", "error"},
+            {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"},
             "AgentLoopRunRecord.status",
         )
         stage_metas = _coerce_dataclass_list(self.stage_records, StageResultMeta)
