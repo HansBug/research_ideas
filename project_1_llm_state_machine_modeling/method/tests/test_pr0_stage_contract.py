@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import warnings
 from dataclasses import asdict, fields
 from pathlib import Path
 
 import pytest
 
+import method.legacy_loop as legacy_loop
 import method.loop as loop
 import method.schema as schema
 from method.schema import (
@@ -527,7 +529,7 @@ def test_sim_repair_prompt_accepts_json_loaded_sim_feedback() -> None:
         )
     )
 
-    selected, summary = loop.repair_model.__globals__["_build_repair_context"]("sim", feedback)
+    selected, summary = legacy_loop.repair_model.__globals__["_build_repair_context"]("sim", feedback)
     message = json.dumps({"selected_diagnostics": selected, "scenario_summary": summary}, ensure_ascii=False)
 
     assert "s_pass" in message
@@ -779,40 +781,187 @@ def test_feedback_bundle_rejects_orphan_enabled_blocking_stage_meta() -> None:
     assert "stage meta blocks all_ok: SD-4 status=fail ok=False" in bundle.stage_contract_errors()
 
 
-def test_run_agent_loop_default_feedback_sources_exclude_unimplemented_judge(monkeypatch) -> None:
-    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+def test_canonical_loop_config_defaults_to_experiment_default_full_staged() -> None:
+    cfg = schema.LoopConfig()
+    resolved = cfg.resolved_config()
+
+    assert cfg.condition_id == "full_staged_v1"
+    assert cfg.policy_profile == "experiment_default"
+    assert cfg.llm_provider_mode == "real_env"
+    assert cfg.max_iterations == 5
+    assert cfg.pre_scenario_max_repairs == 3
+    assert cfg.llm_max_retries == 2
+    assert cfg.scenario_max_retries == 2
+    assert resolved["condition_id"] == "full_staged_v1"
+    assert resolved["condition_hash"].startswith("sha256:")
+    assert resolved["feedback_sources"] == ["parse", "semantic", "design", "sim", "model_review"]
+    assert resolved["record_policy"]["write_run_record"] is True
+    assert resolved["eligibility_policy"]["exclude_weak_oracle"] is True
+    assert resolved["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
+
+
+def test_planned_stage_graph_covers_full_staged_default_and_trace_fields() -> None:
+    graph = loop.build_planned_stage_graph(schema.LoopConfig())
+
+    assert graph["planned"] == [
+        "SC-0",
+        "SL-1",
+        "SD-2",
+        "SD-3",
+        "SD-4",
+        "SL-5",
+        "SD-5A",
+        "SC-5F",
+        "SD-6",
+        "SL-7",
+        "SD-8",
+        "SL-9",
+        "SD-10",
+        "SL-10B",
+        "SC-11",
+        "SC-12",
+        "SC-13",
+    ]
+    assert all({"enabled", "ran", "status", "skipped_reason"} <= set(node) for node in graph["nodes"])
+    assert all(node["enabled"] is True for node in graph["nodes"])
+    assert all(node["ran"] is False and node["status"] == "skipped" for node in graph["nodes"])
+    assert graph["nodes"][1]["stage_kind"] == "LLM"
+    assert graph["nodes"][2]["stage_kind"] == "deterministic"
+    assert graph["nodes"][0]["stage_kind"] == "control"
+
+
+def test_canonical_run_agent_loop_does_not_call_legacy_or_fake_runtime(tmp_path: Path) -> None:
+    cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="contract-only")
+
+    result = loop.run_agent_loop("Start moves Idle to Active.", cfg)
+
+    assert result.status == "contract_only"
+    assert result.run_record_path is not None
+    assert result.resolved_config["condition_id"] == "full_staged_v1"
+    assert result.planned_stage_graph["planned"][0] == "SC-0"
+    from method.run_record import read_agent_loop_run_record, is_path_result_eligible
+
+    record = read_agent_loop_run_record(result.run_record_path)
+    assert record.status == "contract_only"
+    assert record.run_config["condition_id"] == "full_staged_v1"
+    assert record.run_config["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
+    assert record.run_config["contract_only"] is True
+    assert record.run_config["compatibility_mode"] == "canonical_staged"
+    assert record.stage_graph["planned"] == result.planned_stage_graph["planned"]
+    assert record.stage_graph["executed"] == []
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert not is_path_result_eligible(record)
+
+
+def test_default_loop_rejects_seed_dsl_hot_start(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="must not use seed_dsl"):
+        loop.run_agent_loop("NL", schema.LoopConfig(output_dir=str(tmp_path)), seed_dsl="state Root {}")
+
+
+def test_legacy_loop_is_explicit_and_deprecated(monkeypatch) -> None:
+    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
     monkeypatch.setattr(
-        loop,
+        legacy_loop,
         "check_sim",
         lambda dsl, scenarios: SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)),
     )
-    monkeypatch.setattr(loop, "generate_scenarios", lambda *args, **kwargs: ([], {}, {}))
-    monkeypatch.setattr(loop, "validate_coverage", lambda *args, **kwargs: {})
-    monkeypatch.setattr(loop, "coverage_directive", lambda cov: None)
+    monkeypatch.setattr(legacy_loop, "generate_scenarios", lambda *args, **kwargs: ([], {}, {}))
+    monkeypatch.setattr(legacy_loop, "validate_coverage", lambda *args, **kwargs: {})
+    monkeypatch.setattr(legacy_loop, "coverage_directive", lambda cov: None)
 
-    result = loop.run_agent_loop(
-        "Start moves Idle to Active.",
-        seed_dsl="machine Sample {}",
-    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = legacy_loop.run_legacy_agent_loop(
+            "Start moves Idle to Active.",
+            seed_dsl="machine Sample {}",
+        )
 
     assert result.status == "converged"
-    assert result.error_message is None
+    assert any(item.category is DeprecationWarning for item in caught)
     assert result.final_feedback is not None
     assert result.final_feedback.enabled_sources == ["parse", "semantic", "sim"]
-    assert result.iter_traces[0].stage_results == result.final_feedback.stage_results
+
+
+def test_explicit_ablation_condition_can_disable_stage_but_default_cannot() -> None:
+    with pytest.raises(ValueError, match="cannot silently change stage_switches"):
+        schema.LoopConfig(stage_switches={**schema.DEFAULT_STAGE_SWITCHES, "enable_model_review": False})
+    with pytest.raises(ValueError, match="must write schema-valid run records"):
+        schema.LoopConfig(write_run_record=False)
+    with pytest.raises(ValueError, match="cannot silently change llm_policy"):
+        schema.LoopConfig(llm_policy={**schema._default_llm_policy(), "provider_mode": "fake_replay"})
+    with pytest.raises(ValueError, match="cannot silently weaken review modes"):
+        schema.LoopConfig(model_review_mode="audit_only")
+
+    switches = schema.DEFAULT_STAGE_SWITCHES.copy()
+    switches["enable_model_review"] = False
+    condition = schema.AblationCondition(
+        condition_id="no_model_review_v1",
+        condition_family="stage_ablation",
+        base_condition_id="full_staged_v1",
+        changed_factors=["enable_model_review=false"],
+        stage_switches=switches,
+        academic_question="轻量模型评审是否会降低 NL/DSL 语义漂移？",
+    )
+    cfg = schema.LoopConfig(ablation_condition=condition)
+
+    assert cfg.condition_id == "no_model_review_v1"
+    assert cfg.changed_factors == ["enable_model_review=false"]
+    assert cfg.academic_question == "轻量模型评审是否会降低 NL/DSL 语义漂移？"
+    assert cfg.resolved_config()["academic_question"] == "轻量模型评审是否会降低 NL/DSL 语义漂移？"
+    assert "model_review" not in cfg.feedback_sources
+    graph = loop.build_planned_stage_graph(cfg)
+    sl7 = next(node for node in graph["nodes"] if node["stage_id"] == "SL-7")
+    assert sl7["enabled"] is False
+    assert sl7["skipped_reason"] == "disabled_by_condition"
+
+
+
+
+def test_default_ablation_condition_preserves_default_academic_question() -> None:
+    condition = schema.AblationCondition(
+        condition_id="full_staged_v1",
+        condition_family="canonical_agent_loop",
+        academic_question="",
+    )
+    cfg = schema.LoopConfig(ablation_condition=condition)
+
+    assert condition.academic_question == schema.DEFAULT_ACADEMIC_QUESTION
+    assert cfg.resolved_config()["academic_question"] == schema.DEFAULT_ACADEMIC_QUESTION
+
+def test_direct_non_default_loop_config_requires_academic_question(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="requires explicit non-default academic_question"):
+        schema.LoopConfig(condition_id="iter3_v1", changed_factors=["max_iterations=3"], max_iterations=3)
+
+    cfg = schema.LoopConfig(
+        condition_id="iter3_v1",
+        condition_family="budget_ablation",
+        changed_factors=["max_iterations=3"],
+        max_iterations=3,
+        budget_policy={**schema._default_budget_policy(), "max_iterations": 3},
+        academic_question="迭代预算从 5 降到 3 是否影响收敛率？",
+        output_dir=str(tmp_path),
+        run_id="iter3-contract",
+    )
+    result = loop.run_agent_loop("NL", cfg)
+    from method.run_record import read_agent_loop_run_record
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert result.resolved_config["academic_question"] == "迭代预算从 5 降到 3 是否影响收敛率？"
+    assert record.run_config["academic_question"] == "迭代预算从 5 降到 3 是否影响收敛率？"
+    assert record.run_config["condition_id"] == "iter3_v1"
 
 
 def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeypatch) -> None:
-    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
     monkeypatch.setattr(
-        loop,
+        legacy_loop,
         "check_sim",
         lambda dsl, scenarios: SimFeedback(ok=True, n_scenarios=len(scenarios), n_scenarios_passed=len(scenarios)),
     )
 
-    bundle = loop._run_cascade(
+    bundle = legacy_loop._run_cascade(
         "machine Sample {}",
         feedback_sources=[
             FeedbackSource.PARSE.value,
@@ -832,9 +981,9 @@ def test_run_cascade_sets_enabled_sources_and_missing_judge_stays_non_ok(monkeyp
 
 
 def test_run_cascade_records_gated_missing_downstream_sources(monkeypatch) -> None:
-    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=False, error_message="boom"))
+    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=False, error_message="boom"))
 
-    bundle = loop._run_cascade(
+    bundle = legacy_loop._run_cascade(
         "broken",
         feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
         scenarios=None,
@@ -850,10 +999,10 @@ def test_run_cascade_records_gated_missing_downstream_sources(monkeypatch) -> No
 
 
 def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) -> None:
-    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
 
-    bundle = loop._run_cascade(
+    bundle = legacy_loop._run_cascade(
         "machine Sample {}",
         feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value],
         scenarios=None,
@@ -869,22 +1018,22 @@ def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) ->
 
 
 def test_run_agent_loop_preserves_scenariogen_failure_root_cause(monkeypatch) -> None:
-    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
 
     def raise_scenariogen(*args, **kwargs):
         raise RuntimeError("scenario provider down")
 
-    monkeypatch.setattr(loop, "generate_scenarios", raise_scenariogen)
+    monkeypatch.setattr(legacy_loop, "generate_scenarios", raise_scenariogen)
     monkeypatch.setattr(
-        loop,
+        legacy_loop,
         "repair_model",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("repair should not hide scenariogen root cause")),
     )
 
-    result = loop.run_agent_loop(
+    result = legacy_loop.run_legacy_agent_loop(
         "When Start occurs, move from Idle to Active.",
-        schema.LoopConfig(n_iter=1, feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value]),
+        schema.LegacyLoopConfig(n_iter=1, feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value, FeedbackSource.SIM.value]),
         seed_dsl="machine Sample {}",
     )
 
@@ -941,12 +1090,12 @@ def test_feedback_bundle_legacy_non_none_mode_stays_backward_compatible() -> Non
 
 
 def test_run_agent_loop_persists_stage_results_in_iter_trace(monkeypatch) -> None:
-    monkeypatch.setattr(loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
-    monkeypatch.setattr(loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_parse", lambda dsl: ParseFeedback(ok=True))
+    monkeypatch.setattr(legacy_loop, "check_semantic", lambda dsl: SemanticFeedback(ok=True))
 
-    result = loop.run_agent_loop(
+    result = legacy_loop.run_legacy_agent_loop(
         "When Start occurs, move from Idle to Active.",
-        schema.LoopConfig(
+        schema.LegacyLoopConfig(
             n_iter=0,
             feedback_sources=[FeedbackSource.PARSE.value, FeedbackSource.SEMANTIC.value],
         ),
@@ -972,6 +1121,24 @@ def test_agent_loop_run_record_rejects_invalid_status() -> None:
             stage_records=[],
             iteration_records=[],
         )
+
+
+def test_agent_loop_run_record_accepts_contract_only_status() -> None:
+    record = AgentLoopRunRecord(
+        schema_version="pr-a.config-contract.v1",
+        run_id="contract-only",
+        created_at="2026-06-01T00:00:00Z",
+        status="contract_only",
+        input_bundle={},
+        run_config={},
+        environment={},
+        stage_graph={},
+        stage_records=[],
+        iteration_records=[],
+        final_artifacts={"main_result_eligible": False},
+    )
+
+    assert record.status == "contract_only"
 
 
 def test_agent_loop_run_record_rejects_invalid_stage_records() -> None:

@@ -3,6 +3,17 @@
 > **branch**: `dev/method-agent-implementation`
 > **目标**：完整实现 + 跑通 our agent loop + 给出引导 md + smoke 通过；merge 到 main 后 Path 1 / Path 2 各自 PR rebase main 拿到这部分。
 
+
+## PR-A 状态补充（issue #21，2026-06-02）
+
+当前分支 PR-A 的目标不是交付真实 full runtime，而是先固定共享 contract：
+
+- `LoopConfig()` 默认解析为 `experiment_default/full_staged_v1`，包含 full staged stage switches、feedback/budget/scenario/LLM/record/eligibility policy 与 condition hash。
+- `method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation；PR-A 阶段只作为 canonical staged façade 写 contract-only run record，`main_result_eligible=false`。
+- 旧实现移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，并发 deprecation warning。
+- planned stage graph 已固定为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SD-10/SL-10B/SC-11/SC-12/SC-13`，每个 planned node 都有 `enabled/ran/status/skipped_reason` trace 字段。
+- 后续 PR-B1/B2/C 才负责真实 top-down runtime、真实 LLM stage 与默认入口实跑；PR-D 负责 Path1/Path2 representative real full run evidence。
+
 ## 整体阶段（v3 — 2026-05-26 D 拆分：sim 与 property generation 配对实现）
 
 > **v2 → v3 修订依据**：用户 2026-05-26 反馈 — sim feedback 不依赖 property 就只能验证"不死锁 / 状态可达"这种通用 sanity，无法验证业务正确性；必须先有 property（提供 expected behavior oracle），sim 才能验证 model 行为是否符合 NL 需求。因此 sim 从 Phase D 中拆出，**与 property generation 在 Phase G 配对实现**。

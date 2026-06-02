@@ -1,161 +1,186 @@
-"""Agent loop driver — orchestrates NL → spec → model → (feedback × repair)*.
+"""Canonical staged agent-loop façade for project_1.
 
-Phase E implementation. Wires together the per-stage agents and the four
-feedback wrappers behind a single ``run_agent_loop(nl, config)`` entry.
+PR-A intentionally stops using the old A0-A4 implementation as the default
+``method.loop.run_agent_loop`` entry.  The old implementation lives in
+``method.legacy_loop`` and emits a deprecation warning when called.
 
-## Design rules (locked-in 2026-05-26 after Phase G v3 review)
+This module currently provides the shared contract layer needed by PR-B1/B2/C:
 
-1. **Gated cascade** for feedback execution. Order: parse → semantic →
-   (sim, judge in parallel within the same iter). If parse fails the
-   downstream sources are not run (DSL is unparseable garbage; running sem/sim
-   on it is wasted budget). If sem fails sim/judge likewise skipped (model
-   can't be built).
-2. **Scenarios are frozen** once at the top of the loop. They are NOT
-   regenerated each iter — per user decision: model adapts to scenarios,
-   not the other way around. This pins the oracle so iterations are
-   measuring repair progress on a fixed target.
-3. **Cascaded repair** dispatches on the earliest-failing source. The
-   repair sub-prompts are focused (only see one diagnostic each).
-4. **sim / judge are optional**. Inclusion is governed by
-   ``config.feedback_sources`` — used for ablation experiments
-   (A0…A4 conditions in the schema).
-5. **Early back-out**: when the cascade returns ``all_ok`` the loop exits
-   immediately (no further repair). ``status='converged'``.
+- ``LoopConfig()`` resolves to ``experiment_default/full_staged_v1``.
+- ``build_planned_stage_graph`` exposes the full SC/SL/SD stage graph with
+  per-stage trace semantics.
+- ``run_agent_loop`` is a canonical staged façade that records the resolved
+  config and planned graph without dispatching to legacy/fake runtime.
 
-The function returns an ``AgentLoopResult`` capturing every iteration's
-model + feedback + repair so downstream evaluation can reconstruct the
-full trajectory.
+The real full staged runtime is deliberately integrated in later PRs.  Until
+then, this façade returns ``status='contract_only'`` and any run record it writes
+is marked ``main_result_eligible=false`` so Path1/Path2 cannot accidentally treat
+contract smoke output as experimental evidence.
 """
 
 from __future__ import annotations
 
-from typing import Optional
+import hashlib
+import platform
+import subprocess
+from dataclasses import asdict
+from datetime import datetime, timezone
+from typing import Any, Optional
 
-from method.agents.modeler import generate_model
-from method.agents.multistep import run_multistep_modeling
-from method.agents.repair import repair_model
-from method.agents.scenariogen import generate_scenarios
-from method.agents.spec_extractor import extract_spec
-from method.feedback.parse import check_parse
-from method.feedback.semantic import check_semantic
-from method.feedback.sim import check_sim
-from method.scenariogen_validate import coverage_directive, validate_coverage
-from method.schema import (
-    AgentLoopResult,
-    FeedbackBundle,
-    IterTrace,
-    LoopConfig,
-    ModelArtifact,
-    SimFeedback,
-    StageResultMeta,
-    TestScenario,
-)
-from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageStatus
+from method.run_record import agent_loop_run_record_path, write_agent_loop_run_record
+from method.schema import AgentLoopResult, AgentLoopRunRecord, LoopConfig, StageResultMeta
+from method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
+
+RUN_RECORD_SCHEMA_VERSION = "pr-a.config-contract.v1"
+
+_STAGE_SWITCH_BY_ID: dict[str, str | None] = {
+    StageId.SC_0_START.value: None,
+    StageId.SL_1_INITIAL_MODELING.value: "enable_initial_modeling",
+    StageId.SD_2_PARSE.value: "enable_parse",
+    StageId.SD_3_SEMANTIC.value: "enable_semantic",
+    StageId.SD_4_DESIGN.value: "enable_design_inspect",
+    StageId.SL_5_SCENARIO_GENERATION.value: "enable_scenario_generation",
+    StageId.SD_5A_SCENARIO_COVERAGE.value: "enable_scenario_coverage",
+    StageId.SC_5F_SCENARIO_FREEZE.value: "enable_scenario_generation",
+    StageId.SD_6_SIM.value: "enable_simulation",
+    StageId.SL_7_MODEL_REVIEW.value: "enable_model_review",
+    StageId.SD_8_FIX_PLAN.value: "enable_fix_plan",
+    StageId.SL_9_REPAIR.value: "enable_repair",
+    StageId.SD_10_REPAIR_REVIEW.value: "enable_repair_review",
+    StageId.SL_10B_DELTA_REVIEW.value: "enable_delta_review",
+    StageId.SC_11_ACCEPT_CANDIDATE.value: "enable_repair",
+    StageId.SC_12_EXIT.value: None,
+    StageId.SC_13_TRACE_AUDIT.value: "enable_run_record",
+}
 
 
-def _accumulate_usage(total: dict, step_usage: dict) -> None:
-    """Merge token usage from one LLM call into the running total."""
-    for k in ("prompt_tokens", "completion_tokens", "total_tokens"):
-        total[k] = total.get(k, 0) + int(step_usage.get(k, 0))
-    total["n_calls"] = total.get("n_calls", 0) + 1
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _make_stage_meta(
-    source: str,
-    *,
-    ok: bool,
-    status: StageStatus | str | None = None,
-    stage_error: str | None = None,
-    output_validation_error: str | None = None,
-) -> StageResultMeta | None:
-    """Build canonical PR-0 stage metadata for a feedback source when known."""
-    stage_id = FEEDBACK_SOURCE_TO_STAGE_ID.get(source)
-    if stage_id is None:
+def _hash_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _git_commit() -> str | None:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
         return None
-    spec = STAGE_SPECS_BY_ID[stage_id]
-    resolved_status = status or (StageStatus.OK if ok else StageStatus.FAIL)
-    return StageResultMeta(
-        stage_id=stage_id,
-        stage_kind=spec.kind,
-        enabled=True,
-        ran=True,
-        status=resolved_status,
-        ok=ok,
-        stage_error=stage_error,
-        output_validation_error=output_validation_error,
-    )
 
 
-def _record_feedback_meta(bundle: FeedbackBundle, source: str, feedback: object) -> None:
-    """Attach canonical stage meta to ``bundle`` and feedback objects that carry it."""
-    meta = _make_stage_meta(source, ok=bool(getattr(feedback, "ok", False)))
-    if meta is None:
-        return
-    bundle.stage_results.append(meta)
-    if hasattr(feedback, "meta"):
-        setattr(feedback, "meta", meta)
+def _environment_snapshot(cfg: LoopConfig) -> dict[str, Any]:
+    return {
+        "git_commit": _git_commit(),
+        "python_version": platform.python_version(),
+        "platform": platform.platform(),
+        "provider_mode": cfg.llm_provider_mode,
+        "llm_model_redacted": cfg.llm_model or "<env:LLM_MODEL>",
+        "condition_hash": cfg.resolved_config()["condition_hash"],
+    }
 
 
-def _run_cascade(
-    dsl: str,
-    *,
-    feedback_sources: list[str],
-    scenarios: Optional[list[TestScenario]],
-) -> FeedbackBundle:
-    """Run the gated feedback cascade once on a DSL text.
+def _stage_enabled(stage_id: str, cfg: LoopConfig) -> bool:
+    switch = _STAGE_SWITCH_BY_ID.get(stage_id)
+    if switch is None:
+        return True
+    return bool(cfg.stage_switches.get(switch, False))
 
-    Order: parse → semantic → (sim, judge). Each source is run only if it
-    is enabled in ``feedback_sources`` AND all preceding gating sources
-    passed.  PR-0 strict mode records ``enabled_sources`` immediately so an
-    enabled-but-unimplemented or gated-off source cannot accidentally make the
-    bundle converge.
+
+def build_planned_stage_graph(config: Optional[LoopConfig] = None) -> dict[str, Any]:
+    """Return the canonical full staged graph planned for a resolved config.
+
+    Each node has the same trace fields that later runtime stage records must
+    expose: ``enabled``, ``ran``, ``status`` and ``skipped_reason``.  PR-A uses
+    ``ran=false`` / ``status=skipped`` because this is a planning contract rather
+    than the full runtime implementation.
     """
-    bundle = FeedbackBundle(enabled_sources=list(feedback_sources))
-
-    # ---- parse ----
-    if "parse" in feedback_sources:
-        bundle.parse = check_parse(dsl)
-        _record_feedback_meta(bundle, "parse", bundle.parse)
-        if not bundle.parse.ok:
-            return bundle  # gating: skip downstream
-
-    # ---- semantic ----
-    if "semantic" in feedback_sources:
-        bundle.semantic = check_semantic(dsl)
-        _record_feedback_meta(bundle, "semantic", bundle.semantic)
-        if not bundle.semantic.ok:
-            return bundle  # gating: skip downstream
-
-    # ---- sim ----
-    if "sim" in feedback_sources and scenarios is not None:
-        bundle.sim = check_sim(dsl, scenarios)
-        _record_feedback_meta(bundle, "sim", bundle.sim)
-        # Do NOT gate judge on sim failure — they are independent signals.
-    elif "sim" in feedback_sources and scenarios is None:
-        # Sim was explicitly enabled but the frozen scenario oracle is absent
-        # (for example because SL-5 scenariogen failed).  Emit explicit
-        # feedback/meta instead of silent enabled-but-missing fallback so repair
-        # target selection and run records preserve the true root cause.
-        setup_error = "scenario generation unavailable for enabled sim feedback"
-        bundle.sim = SimFeedback(ok=False, setup_error=setup_error)
-        meta = _make_stage_meta(
-            "sim",
-            ok=False,
-            status=StageStatus.ERROR,
-            stage_error=setup_error,
+    cfg = config or LoopConfig()
+    nodes: list[dict[str, Any]] = []
+    for index, spec in enumerate(ALL_STAGE_SPECS):
+        enabled = _stage_enabled(spec.stage_id, cfg)
+        nodes.append(
+            {
+                "index": index,
+                "stage_id": spec.stage_id,
+                "stage_kind": spec.kind.value,
+                "name": spec.name,
+                "doc_filename": spec.doc_filename,
+                "enabled": enabled,
+                "ran": False,
+                "status": StageStatus.SKIPPED.value,
+                "skipped_reason": "planned_not_yet_run" if enabled else "disabled_by_condition",
+            }
         )
-        if meta is not None:
-            bundle.stage_results.append(meta)
+    return {
+        "schema_version": RUN_RECORD_SCHEMA_VERSION,
+        "condition_id": cfg.condition_id,
+        "condition_hash": cfg.resolved_config()["condition_hash"],
+        "planned": [node["stage_id"] for node in nodes],
+        "nodes": nodes,
+    }
 
-    # ---- judge (Phase H — placeholder, not implemented yet) ----
-    if "judge" in feedback_sources:
-        # bundle.judge = check_judge(dsl, nl, ...)
-        # For Phase E/PR-0 this deliberately remains missing; strict
-        # FeedbackBundle semantics must therefore report all_ok=False rather
-        # than silently treating the placeholder as pass.
-        pass
 
-    return bundle
+def _planned_stage_metas(graph: dict[str, Any]) -> list[StageResultMeta]:
+    return [
+        StageResultMeta(
+            stage_id=node["stage_id"],
+            stage_kind=node["stage_kind"],
+            enabled=node["enabled"],
+            ran=node["ran"],
+            status=node["status"],
+            ok=not node["enabled"],
+            skipped_reason=node["skipped_reason"],
+        )
+        for node in graph["nodes"]
+    ]
+
+
+def _write_contract_run_record(*, nl: str, cfg: LoopConfig, run_id: str, graph: dict[str, Any], result: AgentLoopResult) -> str:
+    stage_metas = _planned_stage_metas(graph)
+    resolved_config = cfg.resolved_config()
+    record = AgentLoopRunRecord(
+        schema_version=RUN_RECORD_SCHEMA_VERSION,
+        run_id=run_id,
+        created_at=_utc_now(),
+        status="contract_only",
+        input_bundle={
+            "nl_hash": _hash_text(nl),
+            "nl_preview": nl[:240],
+            "contract_only": True,
+        },
+        run_config={
+            **resolved_config,
+            "contract_only": True,
+            "runtime_implementation": "pending_pr_b1_b2_c",
+        },
+        environment=_environment_snapshot(cfg),
+        stage_graph={
+            "planned": graph["planned"],
+            "executed": [],
+            "nodes": graph["nodes"],
+        },
+        stage_records=[asdict(meta) for meta in stage_metas],
+        iteration_records=[],
+        final_artifacts={
+            "verdict": "contract_only_not_runtime",
+            "main_result_eligible": False,
+            "inclusion_reason": None,
+            "exclusion_reason": "PR-A façade records only config/stage-graph contract; full runtime lands in PR-C.",
+            "final_dsl": "",
+        },
+        logs=[
+            {
+                "ts": _utc_now(),
+                "level": "info",
+                "event": "canonical_staged_facade_contract_only",
+                "message": "run_agent_loop did not call legacy/fake runtime in PR-A",
+            }
+        ],
+    )
+    path = write_agent_loop_run_record(record, agent_loop_run_record_path(cfg.output_dir, run_id))
+    result.run_record_path = str(path)
+    return str(path)
 
 
 def run_agent_loop(
@@ -164,175 +189,31 @@ def run_agent_loop(
     *,
     seed_dsl: Optional[str] = None,
 ) -> AgentLoopResult:
-    """End-to-end agent loop entry.
+    """Canonical staged entry point.
 
-    Parameters
-    ----------
-    nl
-        Natural-language requirement text.
-    config
-        ``LoopConfig`` controlling modeling mode, iteration count, and which
-        feedback sources are enabled. Defaults to the currently implemented
-        A4 subset (parse/semantic/sim); judge remains opt-in until Phase H.
-    seed_dsl
-        Optional pre-built DSL to skip the SpecExtractor + Modeler stages
-        and start the iter loop from this text. Used in demos to inject a
-        deliberately buggy starting model and watch repair recover.
-
-    Returns
-    -------
-    AgentLoopResult
-        Captures spec, every iteration's (model, feedback, repair), token
-        usage totals, and convergence status.
+    PR-A exposes the default experiment contract but does not run the full
+    staged driver yet.  It also deliberately rejects ``seed_dsl`` in the default
+    condition because snapshot/hot-start DSL is not allowed on the future
+    Path1/Path2 main experiment path.
     """
     cfg = config or LoopConfig()
-    result = AgentLoopResult(llm_model=cfg.llm_model)
-
-    # ===== Stage 1: SpecExtractor (skipped if seed_dsl provided) =====
-    spec = None
-    if seed_dsl is None:
-        spec, spec_usage = extract_spec(nl, seed=cfg.seed, model=cfg.llm_model)
-        _accumulate_usage(result.token_usage, spec_usage)
-        result.spec = spec
-
-    # ===== Stage 2: Modeler (skipped if seed_dsl provided) =====
-    if seed_dsl is not None:
-        current_dsl = seed_dsl
-    else:
-        modeling_mode = getattr(cfg, "modeling_mode", "multi_step")
-        if modeling_mode == "multi_step":
-            mr = run_multistep_modeling(nl, seed=cfg.seed, model=cfg.llm_model)
-            current_dsl = mr.final_dsl
-            _accumulate_usage(result.token_usage, mr.token_usage)
-        else:
-            artifact, mod_usage = generate_model(
-                spec, nl=nl, seed=cfg.seed, model=cfg.llm_model
-            )
-            current_dsl = artifact.dsl_text
-            _accumulate_usage(result.token_usage, mod_usage)
-
-    # ===== Stage 3: ScenarioGen (frozen — once per loop, only if sim enabled) =====
-    # Phase E v3 (f): after the first scenariogen call, run a 6-mutation
-    # coverage self-test on the initial DSL. If any mutation type is missed
-    # (no scenario detects it), ask scenariogen to add targeted probes.
-    # Capped at SCENARIOGEN_MAX_RETRIES retries (cheap: 6 short sim runs +
-    # at most a few extra LLM calls).
-    SCENARIOGEN_MAX_RETRIES = 2
-    scenarios: Optional[list[TestScenario]] = None
-    if "sim" in cfg.feedback_sources:
-        try:
-            scenarios, _, sc_usage = generate_scenarios(
-                nl, current_dsl, seed=cfg.seed, model=cfg.llm_model
-            )
-            _accumulate_usage(result.token_usage, sc_usage)
-            # Mutation coverage self-validation + targeted retries
-            coverage_history: list[dict] = []
-            for retry in range(SCENARIOGEN_MAX_RETRIES):
-                cov = validate_coverage(current_dsl, scenarios)
-                coverage_history.append(cov)
-                directive = coverage_directive(cov)
-                if directive is None:
-                    break  # all mutation types caught (or n/a) — coverage OK
-                # regenerate with targeted directive (preserve previous + add)
-                try:
-                    scenarios, _, retry_usage = generate_scenarios(
-                        nl,
-                        current_dsl,
-                        seed=cfg.seed,
-                        model=cfg.llm_model,
-                        extra_directive=directive,
-                    )
-                    _accumulate_usage(result.token_usage, retry_usage)
-                except Exception:
-                    break  # retry failed — keep what we had
-            result.scenariogen_coverage = coverage_history
-        except Exception as e:
-            # Preserve the scenario-generation root cause and let _run_cascade
-            # materialize it as explicit SD-6 error feedback if sim is enabled.
-            scenarios = None
-            result.error_message = f"scenariogen failed: {type(e).__name__}: {str(e)[:200]}"
-
-    # ===== Stage 4: Iter loop =====
-    # If n_iter == 0 we still run the cascade ONCE to populate final_feedback,
-    # but skip any repair.
-    n_iter = max(cfg.n_iter, 1)
-    bundle: Optional[FeedbackBundle] = None
-    converged = False
-
-    for it in range(n_iter):
-        # ---- run cascade on current DSL ----
-        bundle = _run_cascade(
-            current_dsl,
-            feedback_sources=cfg.feedback_sources,
-            scenarios=scenarios,
+    if seed_dsl is not None and cfg.condition_id == "full_staged_v1":
+        raise ValueError(
+            "LoopConfig() default full_staged_v1 must not use seed_dsl/hot-start DSL; "
+            "use method.legacy_loop for historical diagnostics or an explicit replay condition."
         )
 
-        # ---- record iter trace ----
-        trace = IterTrace(
-            iteration=it,
-            model=ModelArtifact(
-                dsl_text=current_dsl,
-                iteration=it,
-                produced_by="modeler" if it == 0 else "repair",
-            ),
-            feedback=bundle,
-            stage_results=list(bundle.stage_results),
-        )
-
-        # ---- early back-out on convergence ----
-        if bundle.all_ok:
-            trace.repair_skipped = True
-            result.iter_traces.append(trace)
-            converged = True
-            break
-
-        # ---- repair (skip if this is the last iter — no point producing a DSL
-        #      we won't re-verify) ----
-        if cfg.n_iter == 0 or it == n_iter - 1:
-            result.iter_traces.append(trace)
-            break
-
-        try:
-            repair_artifact, repair_usage, _target = repair_model(
-                current_dsl,
-                bundle,
-                nl=nl,
-                scenarios=scenarios,
-                iteration=it + 1,
-                seed=cfg.seed,
-                model=cfg.llm_model,
-            )
-            trace.repair = repair_artifact
-            _accumulate_usage(result.token_usage, repair_usage)
-            current_dsl = repair_artifact.dsl_text
-        except Exception as e:
-            repair_error = f"repair failed at iter {it}: {type(e).__name__}: {str(e)[:200]}"
-            if result.error_message:
-                result.error_message = f"{result.error_message}; {repair_error}"
-            else:
-                result.error_message = repair_error
-            result.iter_traces.append(trace)
-            break
-
-        result.iter_traces.append(trace)
-
-    # ===== Finalize =====
-    result.final_dsl = current_dsl
-    if result.iter_traces:
-        result.final_artifact = result.iter_traces[-1].model
-    result.final_feedback = bundle
-    if converged:
-        result.status = "converged"
-    elif cfg.feedback_sources == []:
-        result.status = "ok_no_loop"
-    elif bundle is not None and bundle.parse is not None and not bundle.parse.ok:
-        # Distinguish "never parsed" from "parsed then regressed"
-        parse_ever_ok = any(
-            t.feedback and t.feedback.parse and t.feedback.parse.ok
-            for t in result.iter_traces
-        )
-        result.status = "not_converged" if parse_ever_ok else "parse_failed_all"
-    else:
-        result.status = "not_converged"
-
+    resolved_config = cfg.resolved_config()
+    run_id = cfg.run_id or "pr-a-" + hashlib.sha256(f"{nl}\n{resolved_config['condition_hash']}".encode("utf-8")).hexdigest()[:12]
+    graph = build_planned_stage_graph(cfg)
+    result = AgentLoopResult(
+        status="contract_only",
+        llm_model=cfg.llm_model,
+        run_record_id=run_id,
+        error_message="PR-A canonical staged façade only; full runtime integration is deferred to PR-C.",
+    )
+    result.resolved_config = resolved_config
+    result.planned_stage_graph = graph
+    if cfg.write_run_record:
+        _write_contract_run_record(nl=nl, cfg=cfg, run_id=run_id, graph=graph, result=result)
     return result

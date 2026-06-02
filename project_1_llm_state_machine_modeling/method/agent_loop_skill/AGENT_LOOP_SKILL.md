@@ -20,3 +20,12 @@
 - [tools.md](./tools.md)
 - [prompts.md](./prompts.md)
 - [stages/](./stages/)
+
+
+## PR-A config / ablation contract
+
+- 默认入口：`method.loop.run_agent_loop(nl, LoopConfig())`，其中 `LoopConfig()` 必须保持 `experiment_default/full_staged_v1`。
+- legacy：旧 A0-A4 loop 只能通过 `method.legacy_loop.run_legacy_agent_loop()` 显式调用，并视为 deprecated。
+- skill 使用者若要生成 ref model，应使用 `SL-*` prompt generators 自行调用 LLM/subagent；`SD-*` deterministic tools 可直接作为封装工具调用。
+- 任何 ablation 都要显式 `condition_id/base_condition_id/changed_factors/academic_question`，并在 run record 中记录 resolved config 与 condition hash。
+- PR-A 阶段 façade 只写 contract-only run record；`main_result_eligible=false`。真实 full runtime 在后续 PR-C 才可作为 Path1/Path2 主实验入口。

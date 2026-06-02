@@ -112,36 +112,409 @@ def _coerce_optional_non_negative_int(value: Any, field_name: str) -> int | None
 # ---------------------------------------------------------------------------
 
 ConditionLiteral = Literal["A0", "A1", "A2", "A3", "A4"]
+DEFAULT_ACADEMIC_QUESTION = "默认满血 staged agent-loop 是否能提升 NL→FCSTM 建模可靠性与可审计性"
+
+
+def _deepcopy_jsonable(value: Any) -> Any:
+    """Copy JSON-like config payloads without adding new dependencies."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return {str(k): _deepcopy_jsonable(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_deepcopy_jsonable(v) for v in value]
+    if isinstance(value, tuple):
+        return [_deepcopy_jsonable(v) for v in value]
+    return value
+
+
+DEFAULT_STAGE_SWITCHES: dict[str, bool] = {
+    "enforce_top_down_revalidation": True,
+    "enable_initial_modeling": True,
+    "enable_parse": True,
+    "enable_semantic": True,
+    "enable_design_inspect": True,
+    "enable_scenario_generation": True,
+    "enable_scenario_coverage": True,
+    "enable_simulation": True,
+    "enable_model_review": True,
+    "enable_fix_plan": True,
+    "enable_repair": True,
+    "enable_repair_review": True,
+    "enable_delta_review": True,
+    "enable_run_record": True,
+}
+
+
+def _default_stage_switches() -> dict[str, bool]:
+    return dict(DEFAULT_STAGE_SWITCHES)
+
+
+def _default_feedback_policy() -> dict[str, Any]:
+    return {
+        "parse_fail": "blocking",
+        "semantic_error": "blocking",
+        "design_error": "hard_block",
+        "design_high_conf_warning": "budgeted_repair",
+        "design_unknown_warning": "requires_policy_classification",
+        "design_info": "trace_only",
+        "scenario_coverage_gap": "targeted_retry_then_weak_oracle",
+        "sim_fail": "blocking",
+        "model_review": "blocking_major_only",
+        "repair_review": "blocking",
+        "delta_review": "blocking_major_only",
+        "suggested_fix": "context_only_not_mandatory",
+    }
+
+
+def _default_budget_policy() -> dict[str, Any]:
+    return {
+        "max_iterations": 5,
+        "pre_scenario_max_repairs": 3,
+        "llm_max_retries": 2,
+        "scenario_max_retries": 2,
+        "warning_repair_budget_per_instance": 1,
+        "token_budget": None,
+        "time_budget_seconds": None,
+    }
+
+
+def _default_scenario_policy() -> dict[str, Any]:
+    return {
+        "generation": "generate_if_absent_or_invalidated",
+        "freeze_after_coverage": True,
+        "reuse_frozen_oracle_after_repair": True,
+        "coverage_retry": "targeted",
+        "weak_oracle_marks_main_result_ineligible": True,
+    }
+
+
+def _default_llm_policy() -> dict[str, Any]:
+    return {
+        "provider_mode": "real_env",
+        "model": None,
+        "temperature": 0.0,
+        "seed": None,
+        "retry_on": ["provider_error", "network_error", "timeout", "rate_limit", "schema_invalid", "empty_output"],
+        "deterministic_stage_retry": False,
+    }
+
+
+def _default_record_policy() -> dict[str, Any]:
+    return {
+        "write_run_record": True,
+        "record_prompts": True,
+        "record_raw_outputs": True,
+        "redact_secrets": True,
+        "schema_invalid_excludes_main_result": True,
+        "record_path_suffix": ".agent_loop.json.gz",
+    }
+
+
+def _default_eligibility_policy() -> dict[str, Any]:
+    return {
+        "main_result_requires_success": True,
+        "exclude_weak_oracle": True,
+        "exclude_schema_invalid": True,
+        "exclude_unredacted_secret": True,
+        "exclude_fake_or_replay_default_path": True,
+    }
+
+
+@dataclass
+class AblationCondition:
+    """Research-facing condition contract for future ablation studies.
+
+    The contract intentionally stores policy dictionaries instead of locking a
+    complete experiment matrix in PR-A.  This gives PR-B1/B2/C a stable schema
+    while preserving academic traceability: every non-default condition must say
+    what changed and which research question it answers.
+    """
+
+    condition_id: str
+    condition_family: str
+    base_condition_id: str = "full_staged_v1"
+    changed_factors: list[str] = field(default_factory=list)
+    stage_switches: dict[str, bool] = field(default_factory=_default_stage_switches)
+    feedback_policy: dict[str, Any] = field(default_factory=_default_feedback_policy)
+    budget_policy: dict[str, Any] = field(default_factory=_default_budget_policy)
+    scenario_policy: dict[str, Any] = field(default_factory=_default_scenario_policy)
+    llm_policy: dict[str, Any] = field(default_factory=_default_llm_policy)
+    record_policy: dict[str, Any] = field(default_factory=_default_record_policy)
+    eligibility_policy: dict[str, Any] = field(default_factory=_default_eligibility_policy)
+    academic_question: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.condition_id:
+            raise ValueError("AblationCondition.condition_id is required")
+        if not self.condition_family:
+            raise ValueError("AblationCondition.condition_family is required")
+        if self.condition_id != "full_staged_v1" and not self.changed_factors:
+            raise ValueError("non-default ablation condition must declare changed_factors")
+        if self.condition_id == "full_staged_v1" and not self.academic_question:
+            self.academic_question = DEFAULT_ACADEMIC_QUESTION
+        if self.condition_id != "full_staged_v1" and not self.academic_question:
+            raise ValueError("non-default ablation condition must declare academic_question")
+        for key, value in self.stage_switches.items():
+            if not isinstance(value, bool):
+                raise TypeError(f"stage_switches.{key} must be a bool")
+
+    def to_resolved_dict(self) -> dict[str, Any]:
+        return {
+            "condition_id": self.condition_id,
+            "condition_family": self.condition_family,
+            "base_condition_id": self.base_condition_id,
+            "changed_factors": list(self.changed_factors),
+            "stage_switches": dict(self.stage_switches),
+            "feedback_policy": _deepcopy_jsonable(self.feedback_policy),
+            "budget_policy": _deepcopy_jsonable(self.budget_policy),
+            "scenario_policy": _deepcopy_jsonable(self.scenario_policy),
+            "llm_policy": _deepcopy_jsonable(self.llm_policy),
+            "record_policy": _deepcopy_jsonable(self.record_policy),
+            "eligibility_policy": _deepcopy_jsonable(self.eligibility_policy),
+            "academic_question": self.academic_question,
+        }
+
+
+def experiment_default_condition() -> AblationCondition:
+    return AblationCondition(
+        condition_id="full_staged_v1",
+        condition_family="canonical_agent_loop",
+        base_condition_id="full_staged_v1",
+        changed_factors=[],
+        stage_switches=_default_stage_switches(),
+        feedback_policy=_default_feedback_policy(),
+        budget_policy=_default_budget_policy(),
+        scenario_policy=_default_scenario_policy(),
+        llm_policy=_default_llm_policy(),
+        record_policy=_default_record_policy(),
+        eligibility_policy=_default_eligibility_policy(),
+        academic_question=DEFAULT_ACADEMIC_QUESTION,
+    )
+
+
+def _condition_hash(payload: dict[str, Any]) -> str:
+    import hashlib
+    import json
+
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+    return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 @dataclass
 class LoopConfig:
-    """Top-level config for one ``run_agent_loop`` call.
+    """Canonical full staged agent-loop config.
 
-    Attributes
-    ----------
-    condition
-        One of ``"A0"`` (single-prompt baseline, n_iter=1, feedback_sources=[])
-        through ``"A4"`` (full agent loop with feedback sources, n_iter=3).
-        Path 1 uses A0_strong (external baseline replication) + A4_ours.
-        Path 2 uses A0_baseline + A4_ours.
-    n_iter
-        Maximum number of (feedback → repair) iterations. ``0`` skips the
-        feedback/repair phase entirely. The loop may exit early if all
-        feedback sources return ``ok=True``.
-    feedback_sources
-        List of feedback channels to run, in cascade/contract order. Allowed
-        values are defined by ``FeedbackSource``: ``"parse"``, ``"semantic"``,
-        ``"design"``, ``"sim"``, ``"judge"``, ``"model_review"``,
-        ``"repair_review"``. Empty list = A0. The default excludes
-        ``"judge"`` because that adapter is intentionally a later Phase-H
-        integration point; callers may still enable it explicitly.
-    llm_model
-        Override the default ``LLM_MODEL`` env var. ``None`` => use env.
-    seed
-        Optional integer seed for LLM-call determinism (some providers honor
-        this).
+    ``LoopConfig()`` is the recommended default for Path1/Path2 main
+    experiments and resolves to ``experiment_default/full_staged_v1``.  Any
+    ablation that disables stages, weakens oracle policy, disables review, or
+    changes budgets must be declared through an explicit ``AblationCondition``
+    / ``condition_id`` instead of silently mutating the default path.
     """
+
+    condition_id: str = "full_staged_v1"
+    condition_family: str = "canonical_agent_loop"
+    base_condition_id: str = "full_staged_v1"
+    changed_factors: list[str] = field(default_factory=list)
+    policy_profile: str = "experiment_default"
+    max_iterations: int = 5
+    pre_scenario_max_repairs: int = 3
+    llm_provider_mode: Literal["real_env", "fake_replay", "mock"] = "real_env"
+    llm_max_retries: int = 2
+    scenario_max_retries: int = 2
+    stage_switches: dict[str, bool] = field(default_factory=_default_stage_switches)
+    feedback_policy: dict[str, Any] = field(default_factory=_default_feedback_policy)
+    budget_policy: dict[str, Any] = field(default_factory=_default_budget_policy)
+    scenario_policy: dict[str, Any] = field(default_factory=_default_scenario_policy)
+    llm_policy: dict[str, Any] = field(default_factory=_default_llm_policy)
+    record_policy: dict[str, Any] = field(default_factory=_default_record_policy)
+    eligibility_policy: dict[str, Any] = field(default_factory=_default_eligibility_policy)
+    academic_question: str = DEFAULT_ACADEMIC_QUESTION
+    model_review_mode: str = "blocking_major_only"
+    delta_review_mode: str = "blocking_major_only"
+    write_run_record: bool = True
+    output_dir: str = "runs"
+    run_id: Optional[str] = None
+    llm_model: Optional[str] = None
+    seed: Optional[int] = None
+    config_source: str = "LoopConfig()"
+    compatibility_mode: str = "canonical_staged"
+    ablation_condition: Optional[AblationCondition] = None
+
+    def __post_init__(self) -> None:
+        self.write_run_record = _coerce_bool(self.write_run_record, "LoopConfig.write_run_record")
+        self.max_iterations = _coerce_non_negative_int(self.max_iterations, "LoopConfig.max_iterations")
+        self.pre_scenario_max_repairs = _coerce_non_negative_int(
+            self.pre_scenario_max_repairs,
+            "LoopConfig.pre_scenario_max_repairs",
+        )
+        self.llm_max_retries = _coerce_non_negative_int(self.llm_max_retries, "LoopConfig.llm_max_retries")
+        self.scenario_max_retries = _coerce_non_negative_int(self.scenario_max_retries, "LoopConfig.scenario_max_retries")
+        self.llm_provider_mode = _require_one_of(
+            self.llm_provider_mode,
+            {"real_env", "fake_replay", "mock"},
+            "LoopConfig.llm_provider_mode",
+        )
+        if self.ablation_condition is not None:
+            self.ablation_condition = _coerce_nested_dataclass(self.ablation_condition, AblationCondition)
+            self._apply_ablation_condition(self.ablation_condition)
+            self.llm_provider_mode = _require_one_of(
+                self.llm_provider_mode,
+                {"real_env", "fake_replay", "mock"},
+                "LoopConfig.llm_provider_mode",
+            )
+        for key, value in self.stage_switches.items():
+            if not isinstance(value, bool):
+                raise TypeError(f"LoopConfig.stage_switches.{key} must be a bool")
+        if self.condition_id == "full_staged_v1":
+            if self.changed_factors:
+                raise ValueError("default full_staged_v1 must not declare changed_factors")
+            self._reject_implicit_default_ablation()
+        else:
+            if not self.changed_factors:
+                raise ValueError("non-default LoopConfig requires explicit changed_factors")
+            if not self.academic_question or self.academic_question == DEFAULT_ACADEMIC_QUESTION:
+                raise ValueError("non-default LoopConfig requires explicit non-default academic_question")
+
+    @property
+    def n_iter(self) -> int:
+        """Deprecated compatibility alias for legacy callers."""
+        return self.max_iterations
+
+    @property
+    def feedback_sources(self) -> list[str]:
+        """Canonical required feedback sources enabled by stage switches."""
+        sources: list[str] = []
+        if self.stage_switches.get("enable_parse", False):
+            sources.append(FeedbackSource.PARSE.value)
+        if self.stage_switches.get("enable_semantic", False):
+            sources.append(FeedbackSource.SEMANTIC.value)
+        if self.stage_switches.get("enable_design_inspect", False):
+            sources.append(FeedbackSource.DESIGN.value)
+        if self.stage_switches.get("enable_simulation", False):
+            sources.append(FeedbackSource.SIM.value)
+        if self.stage_switches.get("enable_model_review", False):
+            sources.append(FeedbackSource.MODEL_REVIEW.value)
+        return sources
+
+    def _apply_ablation_condition(self, condition: AblationCondition) -> None:
+        resolved = condition.to_resolved_dict()
+        self.condition_id = condition.condition_id
+        self.condition_family = condition.condition_family
+        self.base_condition_id = condition.base_condition_id
+        self.changed_factors = list(condition.changed_factors)
+        self.stage_switches = dict(condition.stage_switches)
+        self.feedback_policy = _deepcopy_jsonable(condition.feedback_policy)
+        self.budget_policy = _deepcopy_jsonable(condition.budget_policy)
+        self.scenario_policy = _deepcopy_jsonable(condition.scenario_policy)
+        self.llm_policy = _deepcopy_jsonable(condition.llm_policy)
+        self.record_policy = _deepcopy_jsonable(condition.record_policy)
+        self.eligibility_policy = _deepcopy_jsonable(condition.eligibility_policy)
+        self.academic_question = condition.academic_question
+        self.max_iterations = int(self.budget_policy.get("max_iterations", self.max_iterations))
+        self.pre_scenario_max_repairs = int(self.budget_policy.get("pre_scenario_max_repairs", self.pre_scenario_max_repairs))
+        self.llm_max_retries = int(self.budget_policy.get("llm_max_retries", self.llm_max_retries))
+        self.scenario_max_retries = int(self.budget_policy.get("scenario_max_retries", self.scenario_max_retries))
+        self.llm_provider_mode = self.llm_policy.get("provider_mode", self.llm_provider_mode)
+        self.write_run_record = bool(self.record_policy.get("write_run_record", self.write_run_record))
+        self.config_source = f"AblationCondition:{condition.condition_id}"
+
+    def _reject_implicit_default_ablation(self) -> None:
+        defaults = experiment_default_condition()
+        default_switches = defaults.stage_switches
+        if self.stage_switches != default_switches:
+            raise ValueError(
+                "LoopConfig() default path cannot silently change stage_switches; "
+                "declare a non-default condition_id with changed_factors for ablation"
+            )
+        default_budget = defaults.budget_policy
+        expected_budget = {
+            "max_iterations": self.max_iterations,
+            "pre_scenario_max_repairs": self.pre_scenario_max_repairs,
+            "llm_max_retries": self.llm_max_retries,
+            "scenario_max_retries": self.scenario_max_retries,
+            "warning_repair_budget_per_instance": self.budget_policy.get("warning_repair_budget_per_instance", 1),
+            "token_budget": self.budget_policy.get("token_budget"),
+            "time_budget_seconds": self.budget_policy.get("time_budget_seconds"),
+        }
+        if expected_budget != default_budget or self.budget_policy != default_budget:
+            raise ValueError(
+                "LoopConfig() default path cannot silently change budget_policy; "
+                "declare a non-default condition_id with changed_factors for ablation"
+            )
+        if self.feedback_policy != defaults.feedback_policy:
+            raise ValueError(
+                "LoopConfig() default path cannot silently change feedback_policy; "
+                "declare a non-default condition_id with changed_factors for feedback-policy ablation"
+            )
+        if self.scenario_policy != defaults.scenario_policy:
+            raise ValueError(
+                "LoopConfig() default path cannot silently change scenario_policy; "
+                "declare a non-default condition_id with changed_factors for scenario/oracle ablation"
+            )
+        if self.llm_policy != defaults.llm_policy:
+            raise ValueError(
+                "LoopConfig() default path cannot silently change llm_policy; "
+                "declare a non-default condition_id with changed_factors for provider/model/retry ablation"
+            )
+        if self.eligibility_policy != defaults.eligibility_policy:
+            raise ValueError(
+                "LoopConfig() default path cannot silently change eligibility_policy; "
+                "declare a non-default condition_id with changed_factors for eligibility ablation"
+            )
+        if self.model_review_mode != "blocking_major_only" or self.delta_review_mode != "blocking_major_only":
+            raise ValueError(
+                "LoopConfig() default path cannot silently weaken review modes; "
+                "declare a non-default condition_id with changed_factors for review ablation"
+            )
+        if self.record_policy != defaults.record_policy or self.write_run_record is not True:
+            raise ValueError(
+                "LoopConfig() default path must write schema-valid run records; "
+                "declare a non-default condition_id with changed_factors for record-policy ablation"
+            )
+        if self.llm_provider_mode != "real_env":
+            raise ValueError(
+                "LoopConfig() default path must use real_env; use explicit non-default condition for fake/replay/mock"
+            )
+
+    def resolved_config(self) -> dict[str, Any]:
+        payload = {
+            "condition_id": self.condition_id,
+            "condition_family": self.condition_family,
+            "base_condition_id": self.base_condition_id,
+            "changed_factors": list(self.changed_factors),
+            "policy_profile": self.policy_profile,
+            "max_iterations": self.max_iterations,
+            "pre_scenario_max_repairs": self.pre_scenario_max_repairs,
+            "llm_provider_mode": self.llm_provider_mode,
+            "llm_max_retries": self.llm_max_retries,
+            "scenario_max_retries": self.scenario_max_retries,
+            "stage_switches": dict(self.stage_switches),
+            "feedback_sources": self.feedback_sources,
+            "feedback_policy": _deepcopy_jsonable(self.feedback_policy),
+            "budget_policy": _deepcopy_jsonable(self.budget_policy),
+            "scenario_policy": _deepcopy_jsonable(self.scenario_policy),
+            "llm_policy": _deepcopy_jsonable(self.llm_policy),
+            "record_policy": _deepcopy_jsonable(self.record_policy),
+            "eligibility_policy": _deepcopy_jsonable(self.eligibility_policy),
+            "academic_question": self.academic_question,
+            "model_review_mode": self.model_review_mode,
+            "delta_review_mode": self.delta_review_mode,
+            "write_run_record": self.write_run_record,
+            "output_dir": self.output_dir,
+            "run_id": self.run_id,
+            "llm_model": self.llm_model,
+            "seed": self.seed,
+            "config_source": self.config_source,
+            "compatibility_mode": self.compatibility_mode,
+        }
+        payload["condition_hash"] = _condition_hash(payload)
+        return payload
+
+
+@dataclass
+class LegacyLoopConfig:
+    """Deprecated config for the old A0-A4 legacy loop."""
 
     condition: ConditionLiteral = "A4"
     n_iter: int = 3
@@ -1031,6 +1404,7 @@ StatusLiteral = Literal[
     "api_failed",         # LLM API failed (5xx, rate limit, etc.)
     "spec_failed",        # SpecExtractor failed to produce valid JSON
     "ok_no_loop",         # A0 condition: spec → model, no feedback/repair
+    "contract_only",      # PR-A façade: config/stage graph contract only
 ]
 
 
@@ -1062,6 +1436,8 @@ class AgentLoopResult:
     # Each element is the {mutation_name: {status, n_variants, ...}} dict for
     # one scenariogen attempt (index 0 = initial gen, 1+ = targeted retries).
     scenariogen_coverage: list[dict] = field(default_factory=list)
+    resolved_config: dict[str, Any] = field(default_factory=dict)
+    planned_stage_graph: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -1133,7 +1509,7 @@ class AgentLoopRunRecord:
     schema_version: str
     run_id: str
     created_at: str
-    status: Literal["success", "failed", "rejected", "budget_exhausted", "error", "invalid"]
+    status: Literal["success", "failed", "rejected", "budget_exhausted", "error", "invalid", "contract_only"]
     input_bundle: dict[str, Any]
     run_config: dict[str, Any]
     environment: dict[str, Any]
@@ -1152,7 +1528,7 @@ class AgentLoopRunRecord:
     def __post_init__(self) -> None:
         self.status = _require_one_of(
             self.status,
-            {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"},
+            {"success", "failed", "rejected", "budget_exhausted", "error", "invalid", "contract_only"},
             "AgentLoopRunRecord.status",
         )
         stage_metas = _coerce_dataclass_list(self.stage_records, StageResultMeta)
