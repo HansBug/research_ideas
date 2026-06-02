@@ -29,3 +29,10 @@
 - skill 使用者若要生成 ref model，应使用 `SL-*` prompt generators 自行调用 LLM/subagent；`SD-*` deterministic tools 可直接作为封装工具调用。
 - 任何 ablation 都要显式 `condition_id/base_condition_id/changed_factors/academic_question`，并在 run record 中记录 resolved config 与 condition hash。
 - PR-A 阶段 façade 只写 contract-only run record；`main_result_eligible=false`。真实 full runtime 在后续 PR-C 才可作为 Path1/Path2 主实验入口。
+
+## PR-B2 LLM stage adapter 边界
+
+- `method.llm_stages` 提供仓库内部可调用的 `SL-1/SL-5/SL-7/SL-9/SL-10B` execution units，用于 PR-C 集成。
+- skill 使用者仍可只使用 prompt generator 自行调用 LLM/subagent；`llm_stages.py` 是 method runtime 的 adapter，不改变 `SL-*` prompt-only 规范。
+- retry 只限 LLM 层 provider/network/schema/empty-output，不处理 deterministic stage fail。
+- 每个 adapter 输出 `interaction` payload 与 `redaction_report`，应写入后续 `AgentLoopRunRecord.llm_interactions`。

@@ -14,6 +14,18 @@
 - planned stage graph 已固定为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SD-10/SL-10B/SC-11/SC-12/SC-13`，每个 planned node 都有 `enabled/ran/status/skipped_reason` trace 字段。
 - 后续 PR-B1/B2/C 才负责真实 top-down runtime、真实 LLM stage 与默认入口实跑；PR-D 负责 Path1/Path2 representative real full run evidence。
 
+
+## PR-B2 状态补充（issue #21，2026-06-02）
+
+PR-B2 交付真实/mock LLM stage execution units，但仍不切默认 full runtime：
+
+- 新增 `llm_stages.py`，封装 `SL-1/SL-5/SL-7/SL-9/SL-10B` 的 provider adapter、schema/empty/provider retry 与 interaction record。
+- 默认真实 provider 通过 `method.gpt_client` 读取进程环境变量；单元测试使用 `MockLLMProvider`，不依赖真实 API。
+- LLM retry 只处理 provider/network/schema-invalid/empty-output；deterministic feedback failure 不在 PR-B2 中 retry。
+- `SL-9` repair prompt 保留 `suggested_fix` 作为 hint，不强制照抄，允许 LLM 基于 NL 与全局约束给出更合理修复。
+- `SL-5` 的 `coverage_directive` 可由上游传入；coverage gap 如何触发 targeted retry 属于 PR-B1/PR-C runtime 责任，PR-B2 只保证 SL-5 可被再次调用且记录完整。
+- interaction payload 记录 prompt、raw output、parsed output、usage、provider/model、attempts、retry error、schema validation、hash 与脱敏报告，为后续 Path1/Path2 实验可审计性服务。
+
 ## 整体阶段（v3 — 2026-05-26 D 拆分：sim 与 property generation 配对实现）
 
 > **v2 → v3 修订依据**：用户 2026-05-26 反馈 — sim feedback 不依赖 property 就只能验证"不死锁 / 状态可达"这种通用 sanity，无法验证业务正确性；必须先有 property（提供 expected behavior oracle），sim 才能验证 model 行为是否符合 NL 需求。因此 sim 从 Phase D 中拆出，**与 property generation 在 Phase G 配对实现**。
