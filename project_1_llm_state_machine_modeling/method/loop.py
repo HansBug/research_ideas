@@ -181,6 +181,78 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
     return normalized
 
 
+def _redaction_failure_message(exc: Exception) -> str:
+    return f"run record parsed_output redaction failed fail-closed: {type(exc).__name__}"
+
+
+def _mark_llm_run_redaction_failed(
+    run: Any,
+    *,
+    stage_id: StageId,
+    field_path: str,
+    exc: Exception,
+) -> Any:
+    """Fail-close an LLM stage run when interaction redaction crashes.
+
+    The canonical PR-C entry must still yield an auditable invalid run record
+    instead of letting a redaction exception escape before ``SC-13`` can write
+    the record.  Because the redaction engine itself is no longer trusted on
+    this branch, discard prompt/raw/parsed surfaces and keep only hashes plus a
+    safe exception type.
+    """
+
+    message = _redaction_failure_message(exc)
+    if hasattr(run, "ok"):
+        run.ok = False
+    if hasattr(run, "parsed_output"):
+        run.parsed_output = []
+
+    meta = getattr(run, "stage_meta", None)
+    if meta is not None:
+        meta.ok = False
+        meta.status = StageStatus.ERROR
+        meta.stage_error = message
+        meta.output_validation_error = message
+
+    old_interaction = dict(getattr(run, "interaction", {}) or {})
+    safe_interaction = {
+        "stage_id": stage_id.value,
+        "provider": old_interaction.get("provider", "<unknown>"),
+        "model_id": old_interaction.get("model_id", "<unknown>"),
+        "resolved_model_id": old_interaction.get("resolved_model_id", old_interaction.get("model_id", "<unknown>")),
+        "prompt_template_version": old_interaction.get("prompt_template_version"),
+        "prompt_hash": old_interaction.get("prompt_hash"),
+        "input_hash": old_interaction.get("input_hash"),
+        "raw_output_hash": old_interaction.get("raw_output_hash"),
+        "parsed_schema_version": old_interaction.get("parsed_schema_version"),
+        "schema_validation_ok": False,
+        "schema_validation_error": message,
+        "retry_count": old_interaction.get("retry_count", 0),
+        "retry_error": {
+            "error_kind": "redaction_failed",
+            "error_message": message,
+        },
+        "provider_mode": old_interaction.get("provider_mode"),
+        "real_llm_provider_api": old_interaction.get("real_llm_provider_api"),
+        "redaction_failed": True,
+        "redaction_failure_path": field_path,
+        "omitted": "redaction_failed",
+    }
+    run.interaction = {key: value for key, value in safe_interaction.items() if value is not None}
+
+    report = list(getattr(run, "redaction_report", []) or [])
+    report.append(
+        {
+            "field_path": field_path,
+            "reason": "redaction_failed",
+            "replacement": "<omitted:redaction_failed>",
+            "affects_replay": True,
+        }
+    )
+    run.redaction_report = report
+    return run
+
+
 def _build_runtime_adapters(
     cfg: LoopConfig,
     *,
@@ -208,10 +280,18 @@ def _build_runtime_adapters(
         if run.ok:
             run.parsed_output = _normalize_scenarios_for_runtime(list(run.parsed_output or []))
             run.interaction["scenario_hot_start_policy"] = "default_entry_clears_initial_state"
-            redacted_scenarios, scenario_redaction_report = redact_run_record_payload(
-                {"scenarios": _jsonable(run.parsed_output)},
-                path="llm_interaction.parsed_output",
-            )
+            try:
+                redacted_scenarios, scenario_redaction_report = redact_run_record_payload(
+                    {"scenarios": _jsonable(run.parsed_output)},
+                    path="llm_interaction.parsed_output",
+                )
+            except Exception as exc:
+                return _mark_llm_run_redaction_failed(
+                    run,
+                    stage_id=StageId.SL_5_SCENARIO_GENERATION,
+                    field_path="llm_interaction.parsed_output",
+                    exc=exc,
+                )
             run.interaction["parsed_output"] = redacted_scenarios
             for attempt in run.interaction.get("attempts", []):
                 if attempt.get("status") == "ok":
