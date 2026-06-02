@@ -43,6 +43,7 @@ from method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_
 from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 from method.stages.sl_scenario_generation_prompt import build_sl5_scenario_generation_prompt, parse_sl5_scenario_generation_response
+from method.stages.sl_prompt_common import strip_fence
 
 
 SECRET_TEXT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -637,7 +638,11 @@ def run_sl9_repair_llm(
     )
 
     def parse_repair(raw: str) -> dict[str, str]:
-        dsl = raw.strip()
+        # Real providers sometimes wrap DSL in Markdown fences despite the
+        # prompt saying "no fences".  Fence-wrapped DSL is an LLM formatting
+        # artifact, not a semantic repair decision; normalize it here so PR-C
+        # does not feed fenced text into deterministic parse/semantic stages.
+        dsl = strip_fence(raw)
         if not dsl:
             raise ValueError("SL-9 candidate_dsl must be non-empty")
         return {"candidate_dsl": dsl}

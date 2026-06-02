@@ -193,6 +193,37 @@ state Root {
     assert result.interaction["attempts"][0]["status"] == "ok"
 
 
+
+
+def test_pr_b2_sl9_normalizes_fenced_dsl_before_recording_candidate() -> None:
+    fenced_candidate = """```pyfcstm
+state Root {
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active;
+}
+```"""
+    provider = MockLLMProvider(responses=[fenced_candidate])
+
+    result = run_sl9_repair_llm(
+        nl="Idle must be able to move to Active.",
+        current_dsl=BASE_DSL,
+        fix_plan=_fix_plan(),
+        grounding_map=_grounding(),
+        selected_diagnostics=[{"code": "W_DEADLOCK_LEAF"}],
+        preserve_list=["state:Root.Idle"],
+        scenario_summary={"scenario_set_id": "scenario-1"},
+        repair_target="design",
+        config=_cfg(),
+        provider=provider,
+    )
+
+    assert result.ok is True
+    assert result.parsed_output["candidate_dsl"].startswith("state Root")
+    assert not result.parsed_output["candidate_dsl"].startswith("```")
+    assert result.interaction["parsed_output"]["candidate_dsl"] == result.parsed_output["candidate_dsl"]
+
 def test_pr_b2_sl7_and_sl10b_real_stage_units_return_typed_feedback() -> None:
     sl7_provider = MockLLMProvider(
         responses=[
