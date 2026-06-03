@@ -20,10 +20,12 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import gzip
 import json
 import os
 import re
+import subprocess
 import time
 import uuid
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -46,6 +48,45 @@ from method.schema import AgentLoopResult, AgentLoopRunRecord, experiment_defaul
 
 RunAgentLoopFn = Callable[[str, LoopConfig], AgentLoopResult]
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling"
+
+
+PATH1_ABS_NL = """The paper implements the single-wheel ABS hydraulic regulator as a three-state FSM coupled with a PID-based slip controller. Wheel speed and vehicle speed are used to compute the slip ratio, and the PID output drives the Stateflow supervisor instead of sending commands directly to the hydraulic valves.
+
+The FSM contains the states `increase`, `hold`, and `decrease`, where `increase` sets `k1=1, k2=0, n=0`, `hold` neutralizes both valves with `k1=0, k2=0, n=0`, and `decrease` sets `k1=0, k2=1, n=500` to release pressure.
+
+The transition guards split the slip-error space into four bands: `increase -> hold` when `slp <= 0.01`, `hold -> increase` when `slp > 0.01`, `hold -> decrease` when `slp < -0.01`, and `decrease -> hold` when `slp >= -0.01`.
+
+This gives a concrete discrete supervisor that maps slip-error thresholds to inlet-valve, return-valve, and pump actions while the continuous wheel-slip dynamics remain in the plant model."""
+
+
+PATH1_ABS_NL_ZH = """论文把单轮 ABS 液压调节器实现为一个三状态 FSM，并与基于滑移率的 PID 控制器耦合。轮速与车速用于计算滑移率，PID 输出驱动 Stateflow 监督器，而不是直接发送液压阀命令。
+
+FSM 包含 `increase`、`hold`、`decrease` 三个状态：`increase` 设置 `k1=1, k2=0, n=0`，`hold` 设置 `k1=0, k2=0, n=0`，`decrease` 设置 `k1=0, k2=1, n=500` 以释放压力。
+
+转移 guard 把滑移误差空间分成四个区间：`increase -> hold` 当 `slp <= 0.01`，`hold -> increase` 当 `slp > 0.01`，`hold -> decrease` 当 `slp < -0.01`，`decrease -> hold` 当 `slp >= -0.01`。
+
+这给出了一个具体的离散监督器，把滑移误差阈值映射为进油阀、回油阀与泵动作，而连续轮胎滑移动力学仍留在被控对象模型中。"""
+
+
+PATH1_ELEVATOR_NL = """The automatic elevator controller is built as a finite-state machine whose state space combines floor states `F1`, `F2`, and `F3` with motion states `MU2`, `MU3`, `MD1`, and `MD2` for upward and downward travel.
+
+In the normal workflow, the system starts from an ideal state on floor 1, chooses either the up or down branch according to floor requests, stops at the requested floor, and then immediately checks the next destination before deciding whether to continue moving.
+
+The controller uses `PS1/PS2/PS3` as floor-request inputs and `S1/S2/S3` as sensing inputs for arrival. From `F1`, `PS2` triggers `MU2` and `PS3` triggers `MU3`. From `F2`, `PS3` triggers `MU3` and `PS1` triggers `MD1`. From `F3`, `PS1` triggers `MD1` and `PS2` triggers `MD2`. Arrival sensors complete motion transitions: `MU2 + S2 -> F2`, `MU3 + S3 -> F3`, `MD1 + S1 -> F1`, and `MD2 + S2 -> F2`.
+
+The `hbrg` output distinguishes upward drive, downward drive, and stop conditions. A reset signal forces the controller back to floor 1 regardless of the outstanding request context."""
+
+
+PATH1_ELEVATOR_NL_ZH = """自动电梯控制器被构建为有限状态机，其状态空间由楼层状态 `F1`、`F2`、`F3` 与上/下行运动状态 `MU2`、`MU3`、`MD1`、`MD2` 组合而成。
+
+正常流程中，系统从 1 楼理想状态开始，根据楼层请求选择上行或下行分支，在请求楼层停止，然后立即检查下一目的地以决定是否继续移动。
+
+控制器使用 `PS1/PS2/PS3` 作为楼层请求输入，使用 `S1/S2/S3` 作为到位传感输入。从 `F1`，`PS2` 触发 `MU2`，`PS3` 触发 `MU3`；从 `F2`，`PS3` 触发 `MU3`，`PS1` 触发 `MD1`；从 `F3`，`PS1` 触发 `MD1`，`PS2` 触发 `MD2`。到位传感器完成运动转移：`MU2 + S2 -> F2`，`MU3 + S3 -> F3`，`MD1 + S1 -> F1`，`MD2 + S2 -> F2`。
+
+`hbrg` 输出区分上行驱动、下行驱动和停止状态。复位信号会无视当前请求上下文，强制控制器回到 1 楼。"""
+
 
 PATH1_CARA_NL_ZH = """运行时，CARA 围绕一台向患者输液的输液泵协调 Caregiver Interface、Blood Pressure Monitor、Algorithm 与 Pump Monitors，传感器读数会写入共享缓冲区供软件访问。泵具有手动和自动控制两种模式。手动模式下，泵速由内置开关设置，护理人员直接在泵上设置默认流量；自动控制模式下，泵速由外部控制电压设置。Algorithm 组件控制输液速率并记录输液相关日志；患者血压用于计算输液速率，血压越高流量越低。Caregiver Interface 允许护理人员修改目标血压，并启动或终止算法泵控制，同时显示和发出错误消息。在 Mode_Control_Algorithm 层次中，CARA 具有手动与自动控制相关的模式控制状态以及 Ask_StartAC 子模式；在 Ask_StartAC 中可以修改设定点，按下 StartAC 会进入 AutocontrolInit。正常自动控制期间，只有没有泵操作并发症时 CARA 才控制流量。如果出现输液管堵塞等泵故障，泵会激活报警信号，护理人员排除故障；当 CARA 正在控制泵时，软件会释放控制。作为跨组件回退，CA_backManual 或 CB_backManual、CP_backManual、CC_backManual 中任一事件都会使 CA_mode 变为 Manual，使手动操作成为共享恢复目标。"""
 
@@ -65,6 +106,10 @@ class PrE1Case:
     nl_zh: str
     source_url: str
     source_note: str = "issue #14 / PR-D representative NL"
+    source_path: str | None = None
+    paper_path: str | None = None
+    selection_rationale: str = ""
+    variable_participation_note: str = ""
 
 
 @dataclass(frozen=True)
@@ -110,6 +155,11 @@ class PrE1RunSummary:
     real_llm_provider_api: bool | None
     provider_config_read: bool | None
     git_commit: str | None
+    git_dirty: bool | None
+    git_diff_hash: str | None
+    prompt_snapshot_hash: str | None
+    reproducibility_path: str
+    clean_commit_bound: bool
     elapsed_seconds: float
     token_usage: dict[str, int]
     stage_count: int
@@ -146,6 +196,34 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
 
     cases = [
         PrE1Case(
+            case_key="path1_abs",
+            path="path1",
+            case_id="abs-fsm-brake-control",
+            title="Path1 ABS three-state brake supervisor",
+            nl=PATH1_ABS_NL,
+            nl_zh=PATH1_ABS_NL_ZH,
+            source_url="project_1_llm_state_machine_modeling/eval/data/sources/abs-fsm-brake-control/nl.md",
+            source_note="PR-E2 aligned Path1 sample / sources STM extracted NL",
+            source_path="project_1_llm_state_machine_modeling/sources/abs-fsm-brake-control",
+            paper_path="project_1_llm_state_machine_modeling/sources/abs-fsm-brake-control/paper.pdf",
+            selection_rationale="三态、guard、state action 均明确，适合检验 parse/semantic/design/sim 是否能走到后段。",
+            variable_participation_note="`slp` 是 guard 变量；`k1/k2/n` 是状态动作输出，变量不是纯吉祥物。",
+        ),
+        PrE1Case(
+            case_key="path1_elevator",
+            path="path1",
+            case_id="automatic-elevator-controller",
+            title="Path1 automatic elevator controller",
+            nl=PATH1_ELEVATOR_NL,
+            nl_zh=PATH1_ELEVATOR_NL_ZH,
+            source_url="project_1_llm_state_machine_modeling/eval/data/sources/automatic-elevator-controller/nl.md",
+            source_note="PR-E2 aligned Path1 sample / sources STM extracted NL",
+            source_path="project_1_llm_state_machine_modeling/sources/automatic-elevator-controller",
+            paper_path="project_1_llm_state_machine_modeling/sources/automatic-elevator-controller/paper.pdf",
+            selection_rationale="楼层态、运动态、请求事件、到位传感事件与 reset 都明确，适合检验事件建模和 forced fallback。",
+            variable_participation_note="`PS*`/`S*`/`reset` 更适合按事件建模；`hbrg` 是输出动作，变量压力低于 Path2 EFSM。",
+        ),
+        PrE1Case(
             case_key="path1_cara",
             path="path1",
             case_id="cara-infusion-pump-formal-spec__01",
@@ -153,6 +231,10 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
             nl=PATH1_CARA_NL,
             nl_zh=PATH1_CARA_NL_ZH,
             source_url="https://github.com/HansBug/research_ideas/issues/14#issuecomment-4598890685",
+            source_path="project_1_llm_state_machine_modeling/sources/cara-infusion-pump-formal-spec",
+            paper_path="project_1_llm_state_machine_modeling/sources/cara-infusion-pump-formal-spec/paper.pdf",
+            selection_rationale="issue #14 / PR-D 代表性医疗 EFSM，覆盖人工/自动模式、故障回退和跨组件事件。",
+            variable_participation_note="变量和事件混合；`CA_mode` 与 setpoint/blood pressure 语义强，但容易触发 grounding / required-element 保留问题。",
         ),
         PrE1Case(
             case_key="path2_lng_ems",
@@ -162,11 +244,15 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
             nl=PATH2_LNG_EMS_NL,
             nl_zh=PATH2_LNG_EMS_NL_ZH,
             source_url="https://github.com/HansBug/research_ideas/issues/14#issuecomment-4598890799",
+            source_path="project_1_llm_state_machine_modeling/sources/state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship",
+            paper_path="project_1_llm_state_machine_modeling/sources/state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship/paper.pdf",
+            selection_rationale="issue #14 / PR-D 代表性 Path2 EFSM，变量、guard、12 个状态和非法状态都明确。",
+            variable_participation_note="`PL/Ppv/Pw/SoC/eng*_Pmax` 是环境输入/容量边界，适合暴露 SD-4 对外部输入变量的处理能力。",
         ),
     ]
     if case_set == "mandatory":
-        selected = cases
-    elif case_set in {"all", "mandatory+screening"}:
+        selected = [case for case in cases if case.case_key in {"path1_cara", "path2_lng_ems"}]
+    elif case_set in {"all", "e2-aligned", "mandatory+screening"}:
         selected = cases
     else:
         selected = []
@@ -178,7 +264,7 @@ def pr_e1_cases(case_set: str = "mandatory", case_keys: Sequence[str] | None = N
         selected = [case for case in selected if case.case_key in set(case_keys)]
     if selected:
         return selected
-    allowed = ", ".join(["mandatory", "all", "mandatory+screening"])
+    allowed = ", ".join(["mandatory", "all", "e2-aligned", "mandatory+screening"])
     raise ValueError(f"unknown case-set {case_set!r}; allowed: {allowed}")
 
 
@@ -299,6 +385,167 @@ def build_run_id(case: PrE1Case, spec: ConditionSpec, *, run_tag: str | None = N
     return f"pr-e1-{case.case_key}-{spec.config_id}-{tag}-{uuid.uuid4().hex[:8]}"
 
 
+def _run_command(args: Sequence[str]) -> str:
+    try:
+        return subprocess.check_output(list(args), cwd=REPO_ROOT, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        return ""
+
+
+def _status_path(line: str) -> str:
+    value = line[3:] if len(line) > 3 else ""
+    if " -> " in value:
+        value = value.rsplit(" -> ", 1)[-1]
+    return value.strip().strip('"')
+
+
+def _is_under(path_text: str, root_text: str) -> bool:
+    path_text = path_text.strip("/")
+    root_text = root_text.strip("/")
+    return path_text == root_text or path_text.startswith(root_text + "/")
+
+
+def _git_dirty(*, exclude_paths: Sequence[str | Path] = ()) -> bool | None:
+    try:
+        status = _run_command(["git", "status", "--porcelain"])
+    except Exception:
+        return None
+    excludes = [(_as_repo_relative(path) if isinstance(path, Path) else str(path)).strip("/") for path in exclude_paths]
+    for line in status.splitlines():
+        path_text = _status_path(line)
+        if excludes and any(_is_under(path_text, root) for root in excludes):
+            continue
+        return True
+    return False
+
+
+def _hash_bytes(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def _hash_text(text: str) -> str:
+    return _hash_bytes(text.encode("utf-8"))
+
+
+def _git_diff_hash(*, exclude_paths: Sequence[str | Path] = ()) -> str | None:
+    pathspec = ["."]
+    for path in exclude_paths:
+        rel = _as_repo_relative(path) if isinstance(path, Path) else str(path)
+        pathspec.append(f":(exclude){rel.strip('/')}")
+    try:
+        diff = subprocess.check_output(["git", "diff", "--binary", "--", *pathspec], cwd=REPO_ROOT, stderr=subprocess.DEVNULL)
+        staged = subprocess.check_output(["git", "diff", "--cached", "--binary", "--", *pathspec], cwd=REPO_ROOT, stderr=subprocess.DEVNULL)
+    except Exception:
+        return None
+    return _hash_bytes(diff + b"\n--cached--\n" + staged)
+
+
+def _file_hash(path: Path) -> str | None:
+    try:
+        return _hash_bytes(path.read_bytes())
+    except Exception:
+        return None
+
+
+def _prompt_snapshot() -> dict[str, object]:
+    paths = [
+        PROJECT_ROOT / "method" / "prompts" / "_pyfcstm_grammar.md",
+        PROJECT_ROOT / "method" / "prompts" / "modeler.txt",
+        PROJECT_ROOT / "method" / "stages" / "sl_initial_modeling_prompt.py",
+        PROJECT_ROOT / "method" / "stages" / "sl_repair_prompt.py",
+        PROJECT_ROOT / "method" / "stages" / "sl_scenario_generation_prompt.py",
+        PROJECT_ROOT / "method" / "stages" / "sl_model_review_prompt.py",
+        PROJECT_ROOT / "method" / "stages" / "sl_delta_review_prompt.py",
+    ]
+    files = []
+    for path in paths:
+        files.append({"path": _as_repo_relative(path), "sha256": _file_hash(path)})
+    digest = _hash_text(json.dumps(files, ensure_ascii=False, sort_keys=True))
+    return {"digest": digest, "files": files}
+
+
+def _as_repo_relative(path: str | Path) -> str:
+    p = Path(path)
+    try:
+        return p.resolve().relative_to(REPO_ROOT).as_posix()
+    except Exception:
+        return p.as_posix()
+
+
+def build_reproducibility_payload(
+    *,
+    case: PrE1Case,
+    spec: ConditionSpec,
+    cfg: LoopConfig,
+    run_id: str,
+    output_root: Path,
+    started_at: str,
+) -> dict[str, object]:
+    prompt_snapshot = _prompt_snapshot()
+    output_rel = _as_repo_relative(output_root)
+    return {
+        "schema_version": "pr-e1-reproducibility.v1",
+        "started_at": started_at,
+        "run_id": run_id,
+        "case": {
+            "case_key": case.case_key,
+            "path": case.path,
+            "case_id": case.case_id,
+            "title": case.title,
+            "source_url": case.source_url,
+            "source_note": case.source_note,
+            "source_path": case.source_path,
+            "paper_path": case.paper_path,
+            "selection_rationale": case.selection_rationale,
+            "variable_participation_note": case.variable_participation_note,
+            "nl_hash": _hash_text(case.nl),
+            "nl_zh_hash": _hash_text(case.nl_zh),
+        },
+        "condition": asdict(spec),
+        "command": {
+            "module": "method.pr_e1_real_runs",
+            "canonical_example": (
+                "PYTHONPATH=project_1_llm_state_machine_modeling "
+                f"python -m method.pr_e1_real_runs --case-set e2-aligned "
+                f"--case-keys {case.case_key} --condition-set {spec.config_id} "
+                f"--output-dir {_as_repo_relative(output_root)} --run-tag <same-tag>"
+            ),
+        },
+        "resolved_loop_config": cfg.resolved_config(),
+        "git": {
+            "commit": _run_command(["git", "rev-parse", "HEAD"]) or None,
+            "branch": _run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"]) or None,
+            "dirty": _git_dirty(exclude_paths=[output_rel]),
+            "dirty_scope": f"outside_output_dir:{output_rel}",
+            "diff_hash": _git_diff_hash(exclude_paths=[output_rel]),
+        },
+        "prompt_snapshot": prompt_snapshot,
+        "provider": {
+            "required_env_present": {key: bool(os.environ.get(key)) for key in REQUIRED_ENV_KEYS},
+            "model_redacted": os.environ.get("LLM_MODEL") or cfg.llm_model or "<env:LLM_MODEL>",
+        },
+    }
+
+
+def write_reproducibility_payload(run_dir: Path, payload: dict[str, object]) -> Path:
+    path = run_dir / "reproducibility.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
+def _repro_digest(payload: dict[str, object]) -> tuple[bool | None, str | None, str | None]:
+    git_info = payload.get("git") if isinstance(payload.get("git"), dict) else {}
+    prompt = payload.get("prompt_snapshot") if isinstance(payload.get("prompt_snapshot"), dict) else {}
+    dirty = git_info.get("dirty") if isinstance(git_info, dict) else None
+    diff_hash = git_info.get("diff_hash") if isinstance(git_info, dict) else None
+    prompt_hash = prompt.get("digest") if isinstance(prompt, dict) else None
+    return (
+        bool(dirty) if dirty is not None else None,
+        str(diff_hash) if diff_hash is not None else None,
+        str(prompt_hash) if prompt_hash is not None else None,
+    )
+
+
 def run_pr_e1_matrix(
     *,
     output_dir: str | Path = "runs/pr_e1_real_agent_loop",
@@ -389,6 +636,15 @@ def run_one_pr_e1_case(
     stdout_path = logs_dir / "stdout.txt"
     stderr_path = logs_dir / "stderr.txt"
     cfg = make_pr_e1_config(spec, output_dir=run_dir, run_id=run_id)
+    repro_payload = build_reproducibility_payload(
+        case=case,
+        spec=spec,
+        cfg=cfg,
+        run_id=run_id,
+        output_root=output_root,
+        started_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    )
+    repro_path = write_reproducibility_payload(run_dir, repro_payload)
     started = time.monotonic()
     result: AgentLoopResult | None = None
     raised: Exception | None = None
@@ -401,10 +657,10 @@ def run_one_pr_e1_case(
                 print(f"PR-E1 run raised {type(exc).__name__}: {exc}", file=stderr_f)
     elapsed = time.monotonic() - started
     if raised is not None:
-        return _write_exception_artifacts(case, spec, cfg, run_id, run_dir, stdout_path, stderr_path, elapsed, raised)
+        return _write_exception_artifacts(case, spec, cfg, run_id, run_dir, stdout_path, stderr_path, repro_payload, repro_path, elapsed, raised)
     assert result is not None
     if not result.run_record_path:
-        return _write_missing_record_artifacts(case, spec, cfg, result, run_id, run_dir, stdout_path, stderr_path, elapsed)
+        return _write_missing_record_artifacts(case, spec, cfg, result, run_id, run_dir, stdout_path, stderr_path, repro_payload, repro_path, elapsed)
 
     record = read_agent_loop_run_record(result.run_record_path)
     summary = summarize_pr_e1_run(
@@ -416,6 +672,8 @@ def run_one_pr_e1_case(
         run_dir=run_dir,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
+        reproducibility_payload=repro_payload,
+        reproducibility_path=repro_path,
     )
     _write_per_run_artifacts(case, spec, result, record, summary, run_dir)
     return summary
@@ -431,6 +689,8 @@ def summarize_pr_e1_run(
     run_dir: Path,
     stdout_path: Path,
     stderr_path: Path,
+    reproducibility_payload: dict[str, object] | None = None,
+    reproducibility_path: Path | None = None,
 ) -> PrE1RunSummary:
     final = record.final_artifacts
     environment = record.environment
@@ -440,6 +700,8 @@ def summarize_pr_e1_run(
     final_dsl = str(final.get("final_dsl") or result.final_dsl or "")
     public_payload = _record_public_text(record)
     checks = run_record_checks(record, public_payload)
+    repro_dirty, repro_diff_hash, prompt_hash = _repro_digest(reproducibility_payload or {})
+    repro_path = reproducibility_path or (run_dir / "reproducibility.json")
     return PrE1RunSummary(
         case_key=case.case_key,
         path=case.path,
@@ -463,6 +725,11 @@ def summarize_pr_e1_run(
         real_llm_provider_api=_optional_bool(environment.get("real_llm_provider_api")),
         provider_config_read=_optional_bool(environment.get("provider_config_read")),
         git_commit=_optional_str(environment.get("git_commit")),
+        git_dirty=repro_dirty,
+        git_diff_hash=repro_diff_hash,
+        prompt_snapshot_hash=prompt_hash,
+        reproducibility_path=_as_posix(repro_path),
+        clean_commit_bound=(repro_dirty is False),
         elapsed_seconds=round(elapsed_seconds, 3),
         token_usage=_token_usage(record),
         stage_count=len(record.stage_records),
@@ -555,9 +822,12 @@ def _write_exception_artifacts(
     run_dir: Path,
     stdout_path: Path,
     stderr_path: Path,
+    reproducibility_payload: dict[str, object],
+    reproducibility_path: Path,
     elapsed: float,
     exc: Exception,
 ) -> PrE1RunSummary:
+    repro_dirty, repro_diff_hash, prompt_hash = _repro_digest(reproducibility_payload)
     summary = PrE1RunSummary(
         case_key=case.case_key,
         path=case.path,
@@ -580,7 +850,12 @@ def _write_exception_artifacts(
         provider_model_redacted=cfg.llm_model,
         real_llm_provider_api=cfg.llm_provider_mode == "real_env",
         provider_config_read=not missing_provider_env(),
-        git_commit=None,
+        git_commit=_optional_str((reproducibility_payload.get("git") or {}).get("commit") if isinstance(reproducibility_payload.get("git"), dict) else None),
+        git_dirty=repro_dirty,
+        git_diff_hash=repro_diff_hash,
+        prompt_snapshot_hash=prompt_hash,
+        reproducibility_path=_as_posix(reproducibility_path),
+        clean_commit_bound=(repro_dirty is False),
         elapsed_seconds=round(elapsed, 3),
         token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "n_calls": 0},
         stage_count=0,
@@ -618,10 +893,12 @@ def _write_missing_record_artifacts(
     run_dir: Path,
     stdout_path: Path,
     stderr_path: Path,
+    reproducibility_payload: dict[str, object],
+    reproducibility_path: Path,
     elapsed: float,
 ) -> PrE1RunSummary:
     exc = RuntimeError(f"run_agent_loop returned no run_record_path: {result.error_message}")
-    return _write_exception_artifacts(case, spec, cfg, run_id, run_dir, stdout_path, stderr_path, elapsed, exc)
+    return _write_exception_artifacts(case, spec, cfg, run_id, run_dir, stdout_path, stderr_path, reproducibility_payload, reproducibility_path, elapsed, exc)
 
 
 def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunRecord, summary: PrE1RunSummary) -> str:
@@ -650,13 +927,17 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         "| 运行入口 | `method.loop.run_agent_loop(nl, LoopConfig(...))` |",
         f"| LoopConfig 摘要 | `condition_id={summary.condition_id}`, `max_iterations={spec.max_iterations}`, `llm_max_retries={spec.llm_max_retries}`, `scenario_max_retries={spec.scenario_max_retries}`, `model_review_mode={spec.model_review_mode}`, `delta_review_mode={spec.delta_review_mode}` |",
         f"| Git commit | `{summary.git_commit}` |",
+        f"| clean / diff / prompt snapshot | clean=`{summary.clean_commit_bound}`, dirty=`{summary.git_dirty}`, diff_hash=`{summary.git_diff_hash}`, prompt_hash=`{summary.prompt_snapshot_hash}` |",
         f"| provider/model 脱敏标识 | mode=`{summary.provider_mode}`, model=`{summary.provider_model_redacted}`, real_api=`{summary.real_llm_provider_api}` |",
+        f"| source / paper | source=`{case.source_path or case.source_url}`, paper=`{case.paper_path or '<none>'}` |",
+        f"| 样本筛选理由 | {case.selection_rationale or '<none>'} |",
+        f"| 变量参与说明 | {case.variable_participation_note or '<none>'} |",
         f"| run_id | `{summary.run_id}` |",
         f"| final verdict/status | verdict=`{summary.verdict}`, record=`{summary.record_status}`, result=`{summary.result_status}` |",
         f"| main_result_eligible | `{str(summary.main_result_eligible).lower()}` |",
         f"| token/cost/time | tokens=`{summary.token_usage}`, elapsed=`{summary.elapsed_seconds}s` |",
         f"| run record | [`{Path(summary.run_record_path).name}`](./{Path(summary.run_record_path).name}) |",
-        "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
+        "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`reproducibility.json`](./reproducibility.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
         "",
         "### 2. 输入 NL（多行原文）",
         "",
@@ -724,6 +1005,8 @@ def render_exception_report(case: PrE1Case, spec: ConditionSpec, summary: PrE1Ru
 - reason：{summary.verdict_reason}
 - stdout：[`stdout.txt`](./run_logs/stdout.txt)
 - stderr：[`stderr.txt`](./run_logs/stderr.txt)
+- reproducibility：[`reproducibility.json`](./reproducibility.json)
+- clean / diff / prompt snapshot：clean=`{summary.clean_commit_bound}`, dirty=`{summary.git_dirty}`, diff_hash=`{summary.git_diff_hash}`, prompt_hash=`{summary.prompt_snapshot_hash}`
 
 ### 2. 输入 NL（多行原文）
 
@@ -754,19 +1037,24 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "",
         "本文件由 `python -m method.pr_e1_real_runs` 生成，用于汇总 PR-E1 真实运行证据。非 default 条件均为显式 exploratory condition，不应直接计入 Path1/Path2 主结果。",
         "",
+        "## 0. 可复现性边界",
+        "",
+        *_reproducibility_observation_lines(summaries),
+        "",
         "## 1. 运行矩阵总览",
         "",
-        "| Path | case | config | verdict | record | eligible | failure class | iter | repairs | scenarios | tokens | elapsed | report |",
-        "|---|---|---|---|---|---:|---|---:|---:|---:|---:|---:|---|",
+        "| Path | case | config | verdict | record | clean | eligible | failure class | iter | repairs | scenarios | tokens | elapsed | report |",
+        "|---|---|---|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|",
     ]
     for s in summaries:
         lines.append(
-            "| {path} | `{case}` | `{config}` | `{verdict}` | `{record}` | {eligible} | `{failure}` | {iters} | {repairs} | {scenarios} | {tokens} | {elapsed:.1f}s | [{run_id}](./{run_id}/report.md) |".format(
+            "| {path} | `{case}` | `{config}` | `{verdict}` | `{record}` | {clean} | {eligible} | `{failure}` | {iters} | {repairs} | {scenarios} | {tokens} | {elapsed:.1f}s | [{run_id}](./{run_id}/report.md) |".format(
                 path=s.path,
                 case=s.case_key,
                 config=s.config_id,
                 verdict=s.verdict,
                 record=s.record_status,
+                clean="✅" if s.clean_commit_bound else "❌",
                 eligible="✅" if s.main_result_eligible else "❌",
                 failure=s.primary_failure_class,
                 iters=s.iteration_count,
@@ -788,6 +1076,8 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         *_failure_observation_lines(summaries),
         "",
         "## 4. Path1/Path2 样本筛选建议",
+        "",
+        *_sample_observation_lines(summaries),
         "",
         "| 维度 | 推荐纳入 | 降优先级 / 排除 |",
         "|---|---|---|",
@@ -819,15 +1109,19 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
         "",
         f"本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
         "",
-        "| Path | case | config | verdict | status | eligible | failure class | tokens | report |",
-        "|---|---|---|---|---|---:|---|---:|---|",
+        "| Path | case | config | verdict | status | clean | eligible | failure class | tokens | report |",
+        "|---|---|---|---|---|---:|---:|---|---:|---|",
     ]
     for s in summaries:
         lines.append(
-            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {s.token_usage.get('total_tokens', 0)} | `{output_dir_text}/{s.run_id}/report.md` |"
+            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {s.token_usage.get('total_tokens', 0)} | `{output_dir_text}/{s.run_id}/report.md` |"
         )
     lines.extend(
         [
+            "",
+            "### 可复现性边界",
+            "",
+            *_reproducibility_observation_lines(summaries),
             "",
             "### 初步观察",
             "",
@@ -836,6 +1130,10 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
             "### 主要失败模式",
             "",
             *_failure_observation_lines(summaries),
+            "",
+            "### 样本筛选观察",
+            "",
+            *_sample_observation_lines(summaries),
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -857,8 +1155,48 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
         lines.append(
             f"- `{config_id}`：{successes}/{len(rows)} success，rejected={rejected}，budget_exhausted={budget}，total_tokens={total_tokens}。"
         )
-    if all(s.verdict != "success" for s in summaries):
-        lines.append("- 当前证据尚未显示单纯增加 `max_iterations` 足以解决问题；若 run 早停于 `rejected`，瓶颈更可能是 prompt/repair candidate quality 或样本变量语义，而不是迭代预算本身。")
+    max_iteration_values = {condition_specs()[s.config_id].max_iterations for s in summaries if s.config_id in condition_specs()}
+    observed_multi_iter = any(s.iteration_count > 1 for s in summaries)
+    if len(max_iteration_values) > 1 and not observed_multi_iter:
+        lines.append("- Q1/max_iterations：当前所有样本均未观察到 `iteration_count > 1`，因此只能说明这些 run 在首轮 repair review 之前/之处失败；不能把它外推为“增加 `max_iterations` 无用”。")
+    elif all(s.verdict != "success" for s in summaries):
+        lines.append("- Q1/max_iterations：当前证据未产生 success；若 run 早停于 `rejected`，瓶颈更可能是 prompt/repair candidate quality 或样本变量语义，而不是单纯迭代预算。")
+    if not any("SL-5" in s.executed_stage_ids for s in summaries):
+        lines.append("- Q1/scenario-review 维度：当前矩阵尚未进入 SL-5/SD-6/SL-7/SL-10B，因此 `scenario_max_retries`、`model_review_mode`、`delta_review_mode` 仍属于未回答问题。")
+    eligible_count = sum(1 for s in summaries if s.main_result_eligible)
+    lines.append(f"- 主结果候选：当前 {eligible_count}/{len(summaries)} run 可进入 main_result_eligible；其余只能作为 exploratory / infrastructure evidence。")
+    return lines
+
+
+def _reproducibility_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:
+    if not summaries:
+        return ["- 尚无 run，因此没有可复现性证据。"]
+    clean = sum(1 for s in summaries if s.clean_commit_bound)
+    lines = [f"- clean commit 绑定：{clean}/{len(summaries)} run 的 `reproducibility.json` 记录 dirty=false。"]
+    dirty_runs = [s.run_id for s in summaries if not s.clean_commit_bound]
+    if dirty_runs:
+        lines.append("- dirty / 不可确认 run 不应用作 paired causal conclusion，只能作为探索线索：" + ", ".join(f"`{run_id}`" for run_id in dirty_runs[:6]) + (" ..." if len(dirty_runs) > 6 else ""))
+    hashes = sorted({s.prompt_snapshot_hash for s in summaries if s.prompt_snapshot_hash})
+    lines.append(f"- prompt snapshot hash 种类：{len(hashes)}；用于确认同一轮 4 例是否共享同一 prompt/context 版本。")
+    lines.append("- 每个 run 的 `reproducibility.json` 保存 git commit、dirty flag、diff hash、prompt file hash、runner command/config 与 source/paper path。")
+    return lines
+
+
+def _sample_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:
+    if not summaries:
+        return ["- 尚无样本运行证据。"]
+    by_case: dict[str, list[PrE1RunSummary]] = {}
+    for s in summaries:
+        by_case.setdefault(s.case_key, []).append(s)
+    lines = [f"- 样本覆盖：{len(by_case)} 个 case，Path1={sum(1 for k in by_case if k.startswith('path1_'))}，Path2={sum(1 for k in by_case if k.startswith('path2_'))}。"]
+    for case_key, rows in sorted(by_case.items()):
+        classes = ", ".join(sorted({row.primary_failure_class for row in rows}))
+        max_iter_seen = max((row.iteration_count for row in rows), default=0)
+        lines.append(f"- `{case_key}`：失败/成功类别={classes or '<none>'}，最大 observed iteration_count={max_iter_seen}。")
+    if any(s.primary_failure_class == "design_or_variable_dynamics" for s in summaries):
+        lines.append("- 实证筛选更新：若论文变量主要是外部传感/环境输入，应在样本记录中明确“只读输入”身份；若模型需要内部状态变量，则必须有 NL-grounded write/action，否则容易被 SD-4 阻断。")
+    if any(s.primary_failure_class == "grounding_or_required_element_loss" for s in summaries):
+        lines.append("- 实证筛选更新：repair 能通过局部语法/语义但丢失 required grounded elements 的样本，应标为高风险，不应因为预算增大而视为质量提升。")
     return lines
 
 
@@ -1140,7 +1478,7 @@ def load_existing_summaries(output_dir: str | Path) -> list[PrE1RunSummary]:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run PR-E1 real agent-loop matrix and render reports.")
     parser.add_argument("--output-dir", default="runs/pr_e1_real_agent_loop")
-    parser.add_argument("--case-set", default="mandatory", choices=["mandatory", "all", "mandatory+screening"])
+    parser.add_argument("--case-set", default="mandatory", choices=["mandatory", "all", "e2-aligned", "mandatory+screening"])
     parser.add_argument("--condition-set", default="default,iter3,iter8")
     parser.add_argument("--case-keys", default="", help="Optional comma-separated subset of case_key values, e.g. path1_cara,path2_lng_ems.")
     parser.add_argument("--run-tag", default=None, help="Optional stable tag embedded into run_id for paired reruns.")

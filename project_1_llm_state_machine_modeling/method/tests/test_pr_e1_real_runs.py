@@ -135,6 +135,20 @@ def test_pr_e1_conditions_make_default_vs_exploratory_configs(tmp_path: Path) ->
     assert "max_iterations=8" in iter8_cfg.changed_factors
 
 
+def test_pr_e1_cases_include_mandatory_and_e2_aligned_screening_set() -> None:
+    mandatory = pr_e1_cases("mandatory")
+    e2_aligned = pr_e1_cases("e2-aligned")
+
+    assert [case.case_key for case in mandatory] == ["path1_cara", "path2_lng_ems"]
+    assert {case.case_key for case in e2_aligned} == {
+        "path1_abs",
+        "path1_elevator",
+        "path1_cara",
+        "path2_lng_ems",
+    }
+    assert all(case.source_path and case.selection_rationale for case in e2_aligned)
+
+
 def test_pr_e1_runner_writes_report_artifacts_with_fake_entry(tmp_path: Path) -> None:
     case = pr_e1_cases()[0]
 
@@ -168,6 +182,9 @@ def test_pr_e1_runner_writes_report_artifacts_with_fake_entry(tmp_path: Path) ->
         assert "输入 NL 中文翻译" in text
         assert "最终产出的 FCSTM DSL" in text
         assert "Iteration / repair / review 摘要" in text
+        assert "reproducibility.json" in text
+        assert Path(summary.reproducibility_path).exists()
+        assert summary.prompt_snapshot_hash
         assert summary.token_usage["total_tokens"] == 42
         assert summary.primary_failure_class == "design_or_variable_dynamics"
     assert (tmp_path / "SUMMARY.md").exists()
@@ -182,3 +199,4 @@ def test_pr_e1_matrix_summary_marks_exploratory_and_sample_screening() -> None:
     assert "非 default 条件均为显式 exploratory condition" in text
     assert "吉祥物变量" in text
     assert "先定义标准，再筛样本" in text
+    assert "可复现性边界" in text
