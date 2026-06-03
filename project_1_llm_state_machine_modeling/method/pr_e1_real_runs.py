@@ -32,7 +32,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from method.loop import LoopConfig, run_agent_loop
 from method.pr_d_representative import (
@@ -978,11 +978,15 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
     lines.extend(
         [
             "",
-            "### 6. 尝试记录与成本",
+            "### 6. Scenario 明细与逐轮通过情况",
+            "",
+            *_scenario_report_lines(record),
+            "",
+            "### 7. 尝试记录与成本",
             "",
             *_attempt_lines(record),
             "",
-            "### 7. 最终停止状态与后续含义",
+            "### 8. 最终停止状态与后续含义",
             "",
             f"- 停止状态：verdict=`{summary.verdict}`，record_status=`{summary.record_status}`。",
             f"- 主要原因分类：`{summary.primary_failure_class}`。",
@@ -1342,6 +1346,163 @@ def _iteration_table_rows(record: AgentLoopRunRecord) -> list[list[str]]:
             ]
         )
     return rows
+
+
+def _scenario_report_lines(record: AgentLoopRunRecord) -> list[str]:
+    """Render human-readable scenarios and per-iteration pass/fail matrix."""
+
+    scenarios = _latest_scenarios_from_record(record)
+    sim_by_iteration = _sim_results_by_iteration(record)
+    if not scenarios and not sim_by_iteration:
+        return [
+            "- 本 run 未生成或未执行 scenario；通常表示流程在 `SL-5` 之前因 provider/schema/parse/semantic/design 等问题退出。",
+        ]
+
+    lines: list[str] = [
+        "#### 6.1 Scenario pass/fail by iteration",
+        "",
+        "口径：`✅` = 该 scenario 在该轮 SD-6 simulation 通过；`❌` = 该轮失败；`⚪` = 该轮未执行或无该 scenario 结果。",
+        "",
+    ]
+    iteration_ids = sorted(sim_by_iteration)
+    scenario_names = _scenario_names_for_matrix(scenarios, sim_by_iteration)
+    if iteration_ids and scenario_names:
+        header = ["Scenario", "Intent"] + [f"Iter {idx + 1}" for idx in iteration_ids]
+        lines.append("| " + " | ".join(header) + " |")
+        lines.append("|" + "---|" * len(header))
+        descriptions = {str(item.get("name", "")): str(item.get("description", "")) for item in scenarios if isinstance(item, dict)}
+        for name in scenario_names:
+            row = [f"`{_escape_md(name)}`", _escape_md(_short_text(descriptions.get(name, ""), 120))]
+            for idx in iteration_ids:
+                status = sim_by_iteration.get(idx, {}).get(name)
+                row.append(_scenario_status_icon(status))
+            lines.append("| " + " | ".join(row) + " |")
+    else:
+        lines.append("- 没有可形成矩阵的 SD-6 simulation 结果。")
+
+    lines.extend(["", "#### 6.2 Scenario definitions", ""])
+    if scenarios:
+        for scenario in scenarios:
+            lines.extend(_scenario_definition_lines(scenario))
+    else:
+        lines.append("- 有 simulation 结果，但 run record 中没有可展示的 SL-5 scenario 定义。")
+
+    return lines
+
+
+def _latest_scenarios_from_record(record: AgentLoopRunRecord) -> list[dict[str, Any]]:
+    scenarios: list[dict[str, Any]] = []
+    for interaction in record.llm_interactions:
+        if not isinstance(interaction, dict) or interaction.get("stage_id") != "SL-5":
+            continue
+        parsed = interaction.get("parsed_output")
+        if isinstance(parsed, dict) and isinstance(parsed.get("scenarios"), list):
+            scenarios = [item for item in parsed["scenarios"] if isinstance(item, dict)]
+    return scenarios
+
+
+def _sim_results_by_iteration(record: AgentLoopRunRecord) -> dict[int, dict[str, str]]:
+    result: dict[int, dict[str, str]] = {}
+    feedback = record.deterministic_feedback if isinstance(record.deterministic_feedback, dict) else {}
+    iterations = feedback.get("iterations", []) if isinstance(feedback, dict) else []
+    if not isinstance(iterations, list):
+        return result
+    for fallback_index, item in enumerate(iterations):
+        if not isinstance(item, dict):
+            continue
+        iteration = item.get("iteration", fallback_index)
+        try:
+            iteration_index = int(iteration)
+        except (TypeError, ValueError):
+            iteration_index = fallback_index
+        sim = item.get("sim")
+        if not isinstance(sim, dict):
+            continue
+        scenario_results = sim.get("scenario_results")
+        if not isinstance(scenario_results, list):
+            continue
+        by_name: dict[str, str] = {}
+        for scenario_result in scenario_results:
+            if not isinstance(scenario_result, dict):
+                continue
+            name = str(scenario_result.get("name", ""))
+            if name:
+                by_name[name] = str(scenario_result.get("status", ""))
+        result[iteration_index] = by_name
+    return result
+
+
+def _scenario_names_for_matrix(scenarios: list[dict[str, Any]], sim_by_iteration: dict[int, dict[str, str]]) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    for scenario in scenarios:
+        name = str(scenario.get("name", "")) if isinstance(scenario, dict) else ""
+        if name and name not in seen:
+            names.append(name)
+            seen.add(name)
+    for by_name in sim_by_iteration.values():
+        for name in by_name:
+            if name and name not in seen:
+                names.append(name)
+                seen.add(name)
+    return names
+
+
+def _scenario_status_icon(status: str | None) -> str:
+    if status == "pass":
+        return "✅"
+    if status == "fail":
+        return "❌"
+    return "⚪"
+
+
+def _scenario_definition_lines(scenario: dict[str, Any]) -> list[str]:
+    name = str(scenario.get("name", "<unnamed>"))
+    description = str(scenario.get("description", ""))
+    initial_state = scenario.get("initial_state")
+    initial_vars = scenario.get("initial_vars") if isinstance(scenario.get("initial_vars"), dict) else {}
+    steps = scenario.get("steps") if isinstance(scenario.get("steps"), list) else []
+    lines = [
+        f"<details><summary>`{_escape_md(name)}` — {_escape_md(_short_text(description, 160))}</summary>",
+        "",
+        "| Field | Value |",
+        "|---|---|",
+        f"| description | {_escape_md(description or '<none>')} |",
+        f"| initial_state | `{_escape_md(str(initial_state)) if initial_state is not None else '<default-init>'}` |",
+        f"| initial_vars | `{_escape_md(json.dumps(initial_vars, ensure_ascii=False, sort_keys=True))}` |",
+        "",
+        "| Step | before_cycles | events | expected_state | expected_vars |",
+        "|---:|---:|---|---|---|",
+    ]
+    if not steps:
+        lines.append("| - | - | - | - | - |")
+    for index, step in enumerate(steps):
+        if not isinstance(step, dict):
+            continue
+        events = step.get("events")
+        expected_vars = step.get("expected_vars")
+        lines.append(
+            "| {idx} `{name}` | `{before}` | `{events}` | `{state}` | `{vars}` |".format(
+                idx=index,
+                name=_escape_md(str(step.get("name", ""))),
+                before=_escape_md(str(step.get("before_cycles", 0))),
+                events=_escape_md(json.dumps(events or [], ensure_ascii=False)),
+                state=_escape_md(str(step.get("expected_state")) if step.get("expected_state") is not None else ""),
+                vars=_escape_md(json.dumps(expected_vars or {}, ensure_ascii=False, sort_keys=True)),
+            )
+        )
+    lines.extend(["", "</details>", ""])
+    return lines
+
+
+def _short_text(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + f"...<truncated {len(text) - limit} chars>"
+
+
+def _escape_md(text: str) -> str:
+    return text.replace("|", "\\|").replace("\n", " ")
 
 
 def _attempt_lines(record: AgentLoopRunRecord) -> list[str]:
