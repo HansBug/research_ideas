@@ -40,8 +40,9 @@ Important boundaries:
 - If you choose "pass" while local_check_evidence reports unresolved targets,
   regression, or drift_risk="major", your evidence MUST explicitly address the
   local rejection reason/kind and explain why the NL + FixLog justify the
-  override. A silent pass over major local drift is invalid and will be
-  downgraded to rework by the runtime consistency gate.
+  override in `local_override_rationale`. A silent pass, or a pass that merely
+  mentions the local reason without a concrete override rationale, is invalid
+  and will be downgraded to rework by the runtime consistency gate.
 - Do not accept a candidate that drops NL-required states, events, guards,
   actions, or scenario obligations.
 - Do not reject a previously waived/rejected non-hard request again unless new
@@ -56,6 +57,7 @@ Output schema (STRICT JSON):
   "regression_detected": false,
   "drift_risk": "none|minor|major",
   "evidence": [{{"summary": "why this decision follows from NL/FixLog/local evidence"}}],
+  "local_override_rationale": ["required when passing despite major local_check_evidence"],
   "rework_instructions": ["required edits if decision is fail or rework"]
 }}
 """
@@ -103,6 +105,8 @@ def parse_sl10_repair_review_response(content: str) -> dict[str, Any]:
         parsed["evidence"] = parsed.get("drift_evidence")
     if "rework_instructions" not in parsed and "required_revision" in parsed:
         parsed["rework_instructions"] = parsed.get("required_revision")
+    if "local_override_rationale" not in parsed:
+        parsed["local_override_rationale"] = []
     parsed["decision"] = require_one_of(parsed.get("decision"), SL10_REVIEW_DECISIONS, "SL-10 decision")
     parsed["drift_risk"] = require_one_of(parsed.get("drift_risk"), SL10_REVIEW_RISKS, "SL-10 drift_risk")
     if not isinstance(parsed.get("target_resolved"), bool):
@@ -115,4 +119,7 @@ def parse_sl10_repair_review_response(content: str) -> dict[str, Any]:
     rework = parsed.get("rework_instructions", [])
     if not isinstance(rework, list):
         raise ValueError("SL-10 rework_instructions must be a list")
+    override = parsed.get("local_override_rationale", [])
+    if not isinstance(override, list):
+        raise ValueError("SL-10 local_override_rationale must be a list")
     return parsed

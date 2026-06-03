@@ -1296,6 +1296,7 @@ class SL10RepairReviewOutput:
     drift_risk: Literal["none", "minor", "major"] = "major"
     rework_instructions: list[str] = field(default_factory=list)
     evidence: list[dict[str, Any]] = field(default_factory=list)
+    local_override_rationale: list[str] = field(default_factory=list)
     local_check_evidence: dict[str, Any] = field(default_factory=dict)
     review_meta: Optional[ReviewRunMeta] = None
     meta: Optional[StageResultMeta] = None

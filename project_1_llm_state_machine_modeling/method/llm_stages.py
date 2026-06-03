@@ -1223,6 +1223,7 @@ def run_sl10_repair_review_llm(
         drift_risk=drift_risk,
         rework_instructions=instructions,
         evidence=parsed.get("evidence", []),
+        local_override_rationale=[str(item) for item in parsed.get("local_override_rationale", [])],
         local_check_evidence=local_check_evidence or {},
         review_meta=review_meta,
         meta=run.stage_meta,

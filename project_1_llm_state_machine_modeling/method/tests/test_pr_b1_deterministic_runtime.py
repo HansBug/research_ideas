@@ -863,7 +863,7 @@ def test_repair_review_rejection_uses_full_budget_before_final_rejected(tmp_path
     assert record.iteration_records[0]["rework_attempts_used"] == 3
     assert record.repair_history[-1]["repair_review"]["local_rejection"]["reason"] == "still_bad_attempt_2"
     assert record.replay_index["fix_log_count"] >= 7
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_10_REPAIR_REVIEW.value
 
 def test_weak_oracle_sim_failure_stops_without_repair_and_excludes_main_result(tmp_path: Path) -> None:
     repair_calls = {"n": 0}
@@ -1295,7 +1295,7 @@ def test_sl10_pass_without_major_local_evidence_ack_is_downgraded(tmp_path: Path
     sl10 = record.repair_history[0]["sl10_repair_review"]
     assert sl10["ok"] is False
     assert sl10["decision"] == "rework"
-    assert any("did not explicitly address" in text for text in sl10["rework_instructions"])
+    assert any("local_override_rationale" in text for text in sl10["rework_instructions"])
     assert StageId.SC_11_ACCEPT_CANDIDATE.value not in _stage_ids(record)
 
 
@@ -1335,3 +1335,168 @@ def test_reused_scenarios_are_refreshed_after_candidate_dsl_changes(tmp_path: Pa
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.scenario_history[-1]["targeted_retry_after_dsl_change"] is True
     assert record.scenario_history[-1]["previous_scenario_set_id"] != record.iteration_records[-1]["scenario_set_id"]
+
+
+def test_sl10_major_local_override_requires_structured_rationale(tmp_path: Path) -> None:
+    """Mentioning local drift in evidence alone must not silently pass SL-10."""
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-override":
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="forced_transition_count_drift; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[{"kind": "forced_transition_count_drift"}, {"kind": "missing_required_grounding"}],
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def superficial_sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "pass", "target_resolved": True, "regression_detected": False, "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "forced_transition_count_drift and missing_required_grounding are acceptable"}],
+                # Empty local_override_rationale is the regression: evidence mentions anchors, but no structured override.
+                local_override_rationale=[],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 needs structured override rationale for major local drift",
+        FullStagedRuntimeConfig(initial_dsl="needs-override", run_id="pr-b1-sl10-structured-override", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=lambda _request: "candidate", repair_review=local_major, sl10_review=superficial_sl10_pass),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.repair_history[0]["accepted"] is False
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_10_REPAIR_REVIEW.value
+    assert any("local_override_rationale" in text for text in record.repair_history[0]["sl10_repair_review"]["rework_instructions"])
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value not in _stage_ids(record)
+
+
+def test_sl10_major_local_override_can_pass_when_structured_and_grounded(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-override-pass":
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def local_major(_request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="forced_transition_count_drift; missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[{"kind": "forced_transition_count_drift"}, {"kind": "missing_required_grounding"}],
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def grounded_sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "pass", "target_resolved": True, "regression_detected": False, "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "forced_transition_count_drift and missing_required_grounding are explained by a required structural expansion"}],
+                local_override_rationale=[
+                    "forced_transition_count_drift is expected because one NL-required transition expands over wildcard sources",
+                    "missing_required_grounding is a matcher limitation; the required grounding IDs remain textually preserved",
+                ],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 may override major local drift only with structured grounded rationale",
+        FullStagedRuntimeConfig(initial_dsl="needs-override-pass", run_id="pr-b1-sl10-structured-override-pass", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=lambda _request: "fixed", repair_review=local_major, sl10_review=grounded_sl10_pass),
+    )
+
+    assert result.status == "converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.repair_history[0]["accepted"] is True
+    assert record.repair_history[0]["sl10_repair_review"]["local_override_rationale"]
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value in _stage_ids(record)
+
+
+def test_sl7_grounding_update_hints_are_recorded_and_forwarded(tmp_path: Path) -> None:
+    seen_grounding_maps: list[GroundingMap | None] = []
+
+    def model_review(dsl: str, context: StageContext, _feedback: dict[str, Any]) -> tuple[ModelReviewFeedback, StageResultMeta]:
+        if dsl == "needs-grounding-repair":
+            meta = _meta(StageId.SL_7_MODEL_REVIEW, ok=False, status=StageStatus.FAIL)
+            return ModelReviewFeedback(
+                ok=False,
+                decision="fail",
+                risk_level="major",
+                findings=[{"category": "nl_fidelity", "severity": "major", "summary": "GroundingMap admitted abstraction is insufficient", "evidence": ["missing required grounding for explicit command"]}],
+                blocking_findings=[{"category": "nl_fidelity", "severity": "major", "summary": "GroundingMap admitted abstraction is insufficient", "evidence": ["missing required grounding for explicit command"]}],
+                review_meta=_review_meta(),
+                meta=meta,
+            ), meta
+        return _ok_model_review(dsl, context, _feedback)
+
+    def repair(request: RepairRequest) -> str:
+        seen_grounding_maps.append(request.grounding_map)
+        return "fixed"
+
+    grounding = GroundingMap(source_summary={"source_stage": "test"})
+    result = run_full_staged_deterministic_runtime(
+        "GroundingMap should carry SL-7 discovered grounding gaps into repair context.",
+        FullStagedRuntimeConfig(initial_dsl="needs-grounding-repair", grounding_map=grounding, run_id="pr-b1-grounding-hints", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(model_review=model_review, repair=repair),
+    )
+
+    assert result.status == "converged"
+    assert seen_grounding_maps
+    runtime_hints = seen_grounding_maps[0].source_summary.get("runtime_grounding_update_hints") if seen_grounding_maps[0] else ""
+    assert runtime_hints and "missing required grounding" in runtime_hints.lower()
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.final_artifacts["grounding_update_hints"]
+    assert record.replay_index["grounding_update_hint_count"] >= 1
+    assert any(entry["phase"] == "request_batch" for entry in record.fix_log)

@@ -332,6 +332,7 @@ class _RunState:
     pending_original_fix_plan: FixPlan | None = None
     pending_rework_request: dict[str, Any] | None = None
     warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
+    grounding_update_hints: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -1306,6 +1307,18 @@ def _continue_after_design_waiver(
         _append_stage(stage_records, review_meta)
         iteration_stage_metas.append(review_meta)
     feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+    if isinstance(review_feedback, ModelReviewFeedback):
+        hints = _extract_grounding_update_hints(
+            source_stage_id=StageId.SL_7_MODEL_REVIEW.value,
+            payload=review_feedback,
+        )
+        _apply_grounding_update_hints(
+            cfg=cfg,
+            state=state,
+            hints=hints,
+            iteration=iteration,
+            source_stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        )
 
     return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
 
@@ -1315,6 +1328,7 @@ def _run_validation_pass(
     current_dsl: str,
     cfg: FullStagedRuntimeConfig,
     adapters: FullStagedRuntimeAdapters,
+    state: _RunState,
     scenario_set: ScenarioSet | None,
     scenario_epoch: int,
     oracle_weak: bool,
@@ -1439,6 +1453,18 @@ def _run_validation_pass(
         _append_stage(stage_records, review_meta)
         iteration_stage_metas.append(review_meta)
     feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+    if isinstance(review_feedback, ModelReviewFeedback):
+        hints = _extract_grounding_update_hints(
+            source_stage_id=StageId.SL_7_MODEL_REVIEW.value,
+            payload=review_feedback,
+        )
+        _apply_grounding_update_hints(
+            cfg=cfg,
+            state=state,
+            hints=hints,
+            iteration=iteration,
+            source_stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        )
 
     return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
 
@@ -1694,6 +1720,108 @@ def _local_repair_check_evidence(
     }
 
 
+_GROUNDING_HINT_KEYWORDS = (
+    "grounding",
+    "groundingmap",
+    "nl-ground",
+    "missing_required_grounding",
+    "required grounding",
+    "admitted abstraction",
+    "abstraction",
+    "omits",
+    "missing required",
+)
+
+
+def _extract_grounding_update_hints(*, source_stage_id: str, payload: Any) -> list[dict[str, Any]]:
+    """Extract sample-agnostic GroundingMap update hints from review evidence.
+
+    The loop must not hard-code benchmark-specific fixes, but it can preserve
+    a reviewer-discovered grounding gap in the cross-iteration ledger so SL-9
+    and SL-10 no longer have to rediscover the same NL/model mismatch from
+    scratch.  Hints are advisory: they update ``GroundingMap.source_summary``
+    and the FixLog, not the stage graph or deterministic pass/fail gates.
+    """
+
+    candidates: list[dict[str, Any]] = []
+    if isinstance(payload, ModelReviewFeedback):
+        raw_items = [*list(payload.findings or []), *list(payload.blocking_findings or [])]
+    elif isinstance(payload, SL10RepairReviewOutput):
+        raw_items = list(payload.evidence or [])
+        raw_items.extend({"summary": item} for item in list(payload.rework_instructions or []))
+    else:
+        raw_items = []
+    for index, item in enumerate(raw_items):
+        item_json = _jsonable(item)
+        rendered = json.dumps(item_json, ensure_ascii=False, sort_keys=True).lower()
+        if not any(keyword in rendered for keyword in _GROUNDING_HINT_KEYWORDS):
+            continue
+        category = item.get("category") if isinstance(item, dict) else None
+        candidates.append(
+            {
+                "source_stage_id": source_stage_id,
+                "index": index,
+                "category": str(category or "grounding_update_hint"),
+                "hint": _truncate_text(rendered, max_chars=700),
+                "raw": _compact_json(item_json, max_list_items=4),
+            }
+        )
+    return candidates
+
+
+def _apply_grounding_update_hints(
+    *,
+    cfg: FullStagedRuntimeConfig,
+    state: _RunState,
+    hints: list[dict[str, Any]],
+    iteration: int,
+    source_stage_id: str,
+) -> list[dict[str, Any]]:
+    if not hints:
+        return []
+    existing_hashes = {_hash_text(json.dumps(_jsonable(item), ensure_ascii=False, sort_keys=True)) for item in state.grounding_update_hints}
+    new_hints: list[dict[str, Any]] = []
+    for hint in hints:
+        digest = _hash_text(json.dumps(_jsonable(hint), ensure_ascii=False, sort_keys=True))
+        if digest in existing_hashes:
+            continue
+        hint = {**hint, "hint_hash": digest, "iteration": iteration}
+        new_hints.append(hint)
+        existing_hashes.add(digest)
+    if not new_hints:
+        return []
+    state.grounding_update_hints.extend(new_hints)
+    if cfg.grounding_map is not None:
+        summary = dict(cfg.grounding_map.source_summary or {})
+        previous = summary.get("runtime_grounding_update_hints")
+        previous_items: list[Any] = []
+        if previous:
+            try:
+                decoded = json.loads(str(previous))
+                if isinstance(decoded, list):
+                    previous_items = decoded
+            except Exception:
+                previous_items = [{"legacy": str(previous)}]
+        summary["runtime_grounding_update_hints"] = json.dumps(
+            [*previous_items, *_jsonable(new_hints)][-20:],
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        cfg.grounding_map.source_summary = summary
+    state.logs.append(
+        {
+            "ts": _utc_now(),
+            "level": "info",
+            "event": "grounding_update_hints_recorded",
+            "iteration": iteration,
+            "source_stage_id": source_stage_id,
+            "n_hints": len(new_hints),
+            "hint_hashes": [item["hint_hash"] for item in new_hints],
+        }
+    )
+    return new_hints
+
+
 def _default_sl10_output_from_local_checks(
     *,
     local_review: RepairReviewFeedback,
@@ -1738,10 +1866,11 @@ def _sl10_acknowledges_major_local_evidence(
     """Return whether an SL-10 pass explicitly engages major local evidence.
 
     SL-10 is allowed to overrule conservative deterministic checks, but the
-    override must be auditable.  For major local drift, require the reviewer
-    evidence to mention at least one local rejection reason/kind.  This keeps
-    the mechanism sample-agnostic while preventing silent LLM override of the
-    DMR evidence chain.
+    override must be auditable.  For major local drift, merely mentioning the
+    rejection reason is not enough: the reviewer must provide a structured
+    local override rationale, and that rationale must engage at least one local
+    rejection reason/kind.  This keeps the mechanism sample-agnostic while
+    preventing silent or superficial LLM override of the DMR evidence chain.
     """
 
     if local_review.drift_risk != "major" or not sl10.ok:
@@ -1749,6 +1878,9 @@ def _sl10_acknowledges_major_local_evidence(
     rejection = local_review.local_rejection
     if rejection is None:
         return True
+    rationales = [str(item).strip() for item in getattr(sl10, "local_override_rationale", []) or [] if str(item).strip()]
+    if not rationales:
+        return False
     anchors: set[str] = set()
     for chunk in re.split(r"[;,\s]+", rejection.reason or ""):
         chunk = chunk.strip().lower()
@@ -1762,8 +1894,9 @@ def _sl10_acknowledges_major_local_evidence(
                     anchors.add(value.strip().lower())
     if not anchors:
         return False
-    rendered = json.dumps(_jsonable(sl10.evidence), ensure_ascii=False, sort_keys=True).lower()
-    return any(anchor in rendered for anchor in anchors)
+    rendered_evidence = json.dumps(_jsonable(sl10.evidence), ensure_ascii=False, sort_keys=True).lower()
+    rendered_rationale = json.dumps(_jsonable(rationales), ensure_ascii=False, sort_keys=True).lower()
+    return any(anchor in rendered_evidence for anchor in anchors) and any(anchor in rendered_rationale for anchor in anchors)
 
 
 def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: RepairReviewFeedback) -> RepairReviewFeedback:
@@ -1790,7 +1923,8 @@ def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: Repa
         sl10.rework_instructions.append(
             "SL-10 pass was downgraded because local deterministic evidence "
             "reported major drift and SL-10 evidence did not explicitly "
-            "address the local rejection reason/kind."
+            "address the local rejection reason/kind with a structured "
+            "local_override_rationale."
         )
         if sl10.meta is not None:
             sl10.meta.ok = False
@@ -1902,6 +2036,37 @@ def _final_rejection_reason(
             f"{last_accepted_hash}; see last_rejected_candidate diagnostics in repair_history/FixLog"
         )
     return str(iteration_record.get("exit_reason") or "repair review rejected candidate")
+
+
+def _final_rejection_source_stage_id(iteration_record: dict[str, Any]) -> str:
+    """Choose the actual source for a rejected non-accepted repair path.
+
+    ``SC-11`` is reserved for accepted-candidate handoff/budget gates.  If the
+    candidate is rejected by SL-10 or local repair review, attributing the final
+    verdict to SC-11 hides the repair-loop root cause and makes the run record
+    misleading for academic failure analysis.
+    """
+
+    sl10 = iteration_record.get("sl10_repair_review")
+    if isinstance(sl10, dict) and str(sl10.get("decision") or "") in {"rework", "fail", "invalid_output"}:
+        return StageId.SL_10_REPAIR_REVIEW.value
+    local = iteration_record.get("local_check_evidence")
+    if isinstance(local, dict):
+        feedback = local.get("repair_review_feedback")
+        if isinstance(feedback, dict) and feedback.get("ok") is False:
+            return StageId.SL_10_REPAIR_REVIEW.value
+    repair_review = iteration_record.get("repair_review")
+    if isinstance(repair_review, dict) and repair_review.get("ok") is False:
+        rejection = repair_review.get("local_rejection")
+        if isinstance(rejection, dict):
+            rejected_by = str(rejection.get("rejected_by_stage") or "")
+            if rejected_by:
+                return rejected_by
+        return StageId.SL_10_REPAIR_REVIEW.value
+    selected = iteration_record.get("selected_feedback")
+    if isinstance(selected, dict):
+        return str(selected.get("source_stage") or StageId.SD_8_FIX_PLAN.value)
+    return StageId.SD_8_FIX_PLAN.value
 
 
 def _run_repair_path(
@@ -2192,6 +2357,7 @@ def _run_repair_path(
                         drift_risk=str(parsed.get("drift_risk") or "major"),  # type: ignore[arg-type]
                         rework_instructions=[str(item) for item in parsed.get("rework_instructions", [])],
                         evidence=_jsonable(parsed.get("evidence", [])),
+                        local_override_rationale=[str(item) for item in parsed.get("local_override_rationale", [])],
                         local_check_evidence=local_check_evidence,
                         review_meta=None,
                         meta=getattr(sl10_run, "stage_meta"),
@@ -2210,6 +2376,17 @@ def _run_repair_path(
 
         repair_review = _repair_review_from_sl10(sl10_output, local_review=local_review)
         accepted = bool(sl10_output.ok)
+        sl10_grounding_hints = _extract_grounding_update_hints(
+            source_stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            payload=sl10_output,
+        )
+        sl10_grounding_hints = _apply_grounding_update_hints(
+            cfg=cfg,
+            state=state,
+            hints=sl10_grounding_hints,
+            iteration=iteration,
+            source_stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+        )
         if accepted:
             sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
             _append_stage(state.stage_records, sc11_meta)
@@ -2227,7 +2404,7 @@ def _run_repair_path(
             local_check_evidence=local_check_evidence,
             sl10_review=sl10_output,
             next_action="sc11_accept_then_sd2" if accepted else ("sl9_rework" if rework_attempt + 1 < max_rework_attempts else "exit_rejected_rework_budget_exhausted"),
-            notes=sl10_output.rework_instructions,
+            notes=[*sl10_output.rework_instructions, *(f"grounding_update_hint:{item['hint_hash']}" for item in sl10_grounding_hints)],
         )
 
         repair_payload = {
@@ -2243,6 +2420,7 @@ def _run_repair_path(
             "local_check_evidence": _jsonable(local_check_evidence),
             "sd10_repair_review": local_sd10_repair_review,
             "sl10_repair_review": _jsonable(sl10_output),
+            "grounding_update_hints": _jsonable(sl10_grounding_hints),
             "repair_review": _jsonable(repair_review),
             "accepted": accepted,
             "repair_stage_ids": list(aggregate_stage_ids),
@@ -2261,6 +2439,7 @@ def _run_repair_path(
             "sl9_decision": _jsonable(sl9_decision),
             "local_check_evidence": _jsonable(local_check_evidence),
             "sl10_repair_review": _jsonable(sl10_output),
+            "grounding_update_hints": _jsonable(sl10_grounding_hints),
             "repair_review": _jsonable(repair_review),
             "accepted_candidate": accepted,
             "fix_log_entry_count": len(state.fix_log),
@@ -2449,6 +2628,7 @@ def _build_record(
             "verdict_reason": state.verdict_reason,
             "agent_loop_result_status": state.result_status,
             "oracle_weak": state.oracle_weak,
+            "grounding_update_hints": _jsonable(state.grounding_update_hints),
             "main_result_eligible": main_eligible,
             "inclusion_reason": inclusion_reason,
             "exclusion_reason": exclusion_reason,
@@ -2525,6 +2705,7 @@ def _build_record(
             "repair_count": len(state.repair_history),
             "fix_log_count": len(state.fix_log),
             "scenario_history_count": len(state.scenario_history),
+            "grounding_update_hint_count": len(state.grounding_update_hints),
             "pre_scenario_repair_count": state.pre_scenario_repair_count,
             "verdict": state.final_verdict,
             "verdict_source_stage_id": state.verdict_source_stage_id,
@@ -2611,6 +2792,7 @@ def run_full_staged_deterministic_runtime(
                 current_dsl=state.current_dsl,
                 cfg=config,
                 adapters=adapters,
+                state=state,
                 scenario_set=state.scenario_set,
                 scenario_epoch=state.scenario_epoch,
                 oracle_weak=state.oracle_weak,
@@ -2843,7 +3025,7 @@ def run_full_staged_deterministic_runtime(
             _mark_sc12_verdict(
                 state,
                 verdict="not_converged",
-                source_stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
+                source_stage_id=_final_rejection_source_stage_id(iteration_record),
                 reason=str(reason),
                 record_status="rejected",
                 result_status="not_converged",
@@ -2879,11 +3061,19 @@ def run_full_staged_deterministic_runtime(
         iteration += 1
     else:
         if state.verdict_source_stage_id is None:
+            source_stage_id = StageId.SC_11_ACCEPT_CANDIDATE.value
+            reason = "max_iterations exhausted"
+            if state.iteration_records:
+                last_iter = state.iteration_records[-1]
+                selected = last_iter.get("post_waiver_selected_feedback") or last_iter.get("selected_feedback")
+                if isinstance(selected, dict):
+                    source_stage_id = str(selected.get("source_stage") or source_stage_id)
+                    reason = _repair_selected_reason(selected)
             _mark_sc12_verdict(
                 state,
                 verdict="not_converged",
-                source_stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
-                reason="max_iterations exhausted",
+                source_stage_id=source_stage_id,
+                reason=reason,
                 record_status="budget_exhausted",
                 result_status="not_converged",
                 stage_ok=False,
