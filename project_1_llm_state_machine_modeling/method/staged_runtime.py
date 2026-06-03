@@ -32,6 +32,7 @@ from method.schema import (
     ModelReviewFeedback,
     ParseFeedback,
     RepairReviewFeedback,
+    RepairRejection,
     RevisedFixPlan,
     ScenarioSet,
     SemanticFeedback,
@@ -302,6 +303,8 @@ class _RunState:
     error_message: str | None = None
     pre_scenario_repair_count: int = 0
     redaction_report: list[dict[str, Any]] = field(default_factory=list)
+    pending_repair_rejection: RepairRejection | None = None
+    pending_original_fix_plan: FixPlan | None = None
 
 
 @dataclass
@@ -1117,13 +1120,21 @@ def _run_repair_path(
         selected_trace["variable_role_summary"] = variable_role_summary
     if selected_trace["pre_scenario"]:
         state.pre_scenario_repair_count += 1
-    fix_plan, fix_meta = run_sd8_fix_plan(
-        selected_feedback,
-        source=source,
-        source_stage=source_stage,
-        grounding_map=cfg.grounding_map,
-        before_dsl=state.current_dsl,
-    )
+    if state.pending_repair_rejection is not None and state.pending_original_fix_plan is not None:
+        fix_plan, fix_meta = run_sd8_fix_plan(
+            None,
+            source="repair_review",
+            rejection=state.pending_repair_rejection,
+            original=state.pending_original_fix_plan,
+        )
+    else:
+        fix_plan, fix_meta = run_sd8_fix_plan(
+            selected_feedback,
+            source=source,
+            source_stage=source_stage,
+            grounding_map=cfg.grounding_map,
+            before_dsl=state.current_dsl,
+        )
     _append_stage(state.stage_records, fix_meta)
     repair_stage_ids = [fix_meta.stage_id]
     effective_fix_plan = fix_plan.original if isinstance(fix_plan, RevisedFixPlan) else fix_plan
@@ -1278,12 +1289,14 @@ def _run_repair_path(
     }
     if accepted:
         state.current_dsl = candidate_dsl
+        state.pending_repair_rejection = None
+        state.pending_original_fix_plan = None
         iteration_patch["exit_reason"] = "candidate_accepted_for_next_full_pass"
     else:
-        state.final_record_status = "rejected"
-        state.result_status = "not_converged"
-        state.error_message = repair_review.local_rejection.reason if repair_review.local_rejection is not None else "repair review rejected candidate"
-        iteration_patch["exit_reason"] = state.error_message
+        state.pending_repair_rejection = repair_review.local_rejection
+        state.pending_original_fix_plan = effective_fix_plan if repair_review.local_rejection is not None else None
+        iteration_patch["exit_reason"] = repair_review.local_rejection.reason if repair_review.local_rejection is not None else "repair review rejected candidate"
+        iteration_patch["retryable_repair_rejection"] = repair_review.local_rejection is not None
     return accepted, iteration_patch
 
 
@@ -1678,12 +1691,22 @@ def run_full_staged_deterministic_runtime(
             break
         iteration_record.update(repair_patch)
         if not accepted:
-            reason = state.error_message or "repair review rejected candidate"
+            reason = iteration_record.get("exit_reason") or "repair review rejected candidate"
+            can_retry_rejection = (
+                state.pending_repair_rejection is not None
+                and state.pending_original_fix_plan is not None
+                and iteration + 1 < config.max_iterations
+            )
+            if can_retry_rejection:
+                iteration_record["exit_reason"] = "repair_review_rejected_retry_with_revised_fix_plan"
+                iteration_record["next_iteration_repair_plan"] = "RevisedFixPlan"
+                state.iteration_records.append(iteration_record)
+                continue
             _mark_sc12_verdict(
                 state,
                 verdict="not_converged",
                 source_stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
-                reason=reason,
+                reason=str(reason),
                 record_status="rejected",
                 result_status="not_converged",
                 stage_ok=False,

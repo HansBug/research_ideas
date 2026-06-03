@@ -485,6 +485,102 @@ def test_repair_review_rejection_records_regression_without_accepting_candidate(
     assert record.final_artifacts["main_result_eligible"] is False
 
 
+
+def test_repair_review_rejection_retries_with_revised_fix_plan_until_budget(tmp_path: Path) -> None:
+    repair_candidates = ["drift", "fixed"]
+    repair_calls: list[str] = []
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-fix":
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> str:
+        repair_calls.append(type(request.fix_plan).__name__)
+        return repair_candidates[len(repair_calls) - 1]
+
+    def review(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        if request.candidate_dsl == "drift":
+            rejection = RepairRejection(
+                rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+                reason="missing_required_grounding",
+                drift_risk="major",
+                evidence=[{"kind": "missing_grounding"}],
+            )
+            feedback = RepairReviewFeedback(
+                ok=False,
+                target_resolved=False,
+                drift_risk="major",
+                local_rejection=rejection,
+            )
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        else:
+            feedback = RepairReviewFeedback(ok=True, target_resolved=True, regression_detected=False, drift_risk="none")
+            meta = _meta(StageId.SD_10_REPAIR_REVIEW)
+        feedback.meta = meta
+        return feedback, meta
+
+    result = run_full_staged_deterministic_runtime(
+        "repair rejection should consume another full iteration with revised plan",
+        FullStagedRuntimeConfig(initial_dsl="needs-fix", run_id="pr-b1-reject-retry-revised", output_dir=tmp_path, max_iterations=3),
+        adapters=_base_adapters(design=design, repair=repair, repair_review=review),
+    )
+
+    assert result.status == "converged"
+    assert result.final_dsl == "fixed"
+    assert repair_calls == ["FixPlan", "RevisedFixPlan"]
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "success"
+    assert [entry["accepted"] for entry in record.repair_history] == [False, True]
+    assert record.repair_history[1]["plan_kind"] == "RevisedFixPlan"
+    assert record.iteration_records[0]["exit_reason"] == "repair_review_rejected_retry_with_revised_fix_plan"
+    assert record.iteration_records[0]["next_iteration_repair_plan"] == "RevisedFixPlan"
+    assert record.iteration_records[2]["exit_reason"] == "full_pass_all_required_feedback_ok"
+
+
+def test_repair_review_rejection_uses_full_budget_before_final_rejected(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_DEADLOCK_LEAF",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key=f"W_DEADLOCK_LEAF:state={context.current_dsl or 'Root'}",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def reject(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason=f"still_bad_attempt_{request.repair_attempt}",
+            drift_risk="major",
+        )
+        feedback = RepairReviewFeedback(ok=False, target_resolved=False, drift_risk="major", local_rejection=rejection)
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    result = run_full_staged_deterministic_runtime(
+        "repair rejection should not stop after one try when max_iterations allows retries",
+        FullStagedRuntimeConfig(initial_dsl="needs-fix", run_id="pr-b1-reject-uses-budget", output_dir=tmp_path, max_iterations=3),
+        adapters=_base_adapters(design=design, repair=lambda request: f"bad-{request.repair_attempt}", repair_review=reject),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "rejected"
+    assert len(record.iteration_records) == 3
+    assert len(record.repair_history) == 3
+    assert record.iteration_records[0]["exit_reason"] == "repair_review_rejected_retry_with_revised_fix_plan"
+    assert record.iteration_records[1]["exit_reason"] == "repair_review_rejected_retry_with_revised_fix_plan"
+    assert record.iteration_records[2]["exit_reason"] == "still_bad_attempt_2"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
+
 def test_weak_oracle_sim_failure_stops_without_repair_and_excludes_main_result(tmp_path: Path) -> None:
     repair_calls = {"n": 0}
 
