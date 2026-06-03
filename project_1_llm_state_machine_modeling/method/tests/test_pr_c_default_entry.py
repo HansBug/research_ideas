@@ -77,7 +77,7 @@ def _sl7_pass_raw() -> str:
     )
 
 
-def _sl10b_accept_raw() -> str:
+def _sl10_accept_raw() -> str:
     return json.dumps(
         {
             "decision": "accept",
@@ -275,9 +275,9 @@ def test_pr_c_default_entry_rejects_provider_injection_to_protect_real_env_path(
         loop.run_agent_loop("Start moves Idle to Active.", cfg, llm_provider=provider)
 
 
-def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10b_chain_before_scenariogen(tmp_path: Path) -> None:
+def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10_chain_before_scenariogen(tmp_path: Path) -> None:
     bad_initial = json.dumps({"candidate_dsl": "state Root {", "grounding_seeds": [], "assumptions": []}, ensure_ascii=False)
-    provider = MockLLMProvider(responses=[bad_initial, _good_dsl(), _sl10b_accept_raw(), _sl5_ok_raw(), _sl7_pass_raw()])
+    provider = MockLLMProvider(responses=[bad_initial, _good_dsl(), _sl10_accept_raw(), _sl5_ok_raw(), _sl7_pass_raw()])
     cfg = _mock_loop_config(tmp_path, run_id="pr-c-pre-scenario-repair")
     cfg.max_iterations = 2
 
@@ -293,8 +293,7 @@ def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10b_chain_before_scen
     assert record.repair_history[0]["repair_stage_ids"] == [
         StageId.SD_8_FIX_PLAN.value,
         StageId.SL_9_REPAIR.value,
-        StageId.SD_10_REPAIR_REVIEW.value,
-        StageId.SL_10B_DELTA_REVIEW.value,
+        StageId.SL_10_REPAIR_REVIEW.value,
         StageId.SC_11_ACCEPT_CANDIDATE.value,
     ]
     assert record.repair_history[0]["repair_review_input_summary"]["inputs"] == [
@@ -302,16 +301,20 @@ def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10b_chain_before_scen
         "GroundingMap",
         "old_dsl",
         "candidate_dsl",
-        "FixPlan",
+        "FixRequestBatch",
+        "SL9Decisions",
+        "FixLog",
+        "LocalCheckEvidence",
         "ScenarioSet",
     ]
     assert record.repair_history[0]["sd10_repair_review"]["review_meta"] is None
     sc11_index = stage_ids.index(StageId.SC_11_ACCEPT_CANDIDATE.value)
     assert stage_ids.index(StageId.SD_2_PARSE.value, sc11_index + 1) < stage_ids.index(StageId.SL_5_SCENARIO_GENERATION.value)
-    sl10b = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_10B_DELTA_REVIEW.value)
-    assert sl10b["review_meta"]["parsed_schema_version"] == "RepairReviewFeedback.delta_review.v1"
-    assert sl10b["review_meta"]["schema_validation_ok"] is True
-    assert record.repair_history[0]["repair_review"]["review_meta"]["parsed_schema_version"] == "RepairReviewFeedback.delta_review.v1"
+    sl10 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_10_REPAIR_REVIEW.value)
+    assert sl10["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
+    assert sl10["review_meta"]["schema_validation_ok"] is True
+    assert record.repair_history[0]["repair_review"]["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
+    assert record.repair_history[0]["repair_review_input_summary"]["has_nl_input"] is True
 
 
 def test_pr_c_run_record_redacts_secrets_from_nl_and_llm_interactions(tmp_path: Path) -> None:

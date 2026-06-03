@@ -16,6 +16,7 @@ import platform
 import re
 import subprocess
 import uuid
+import difflib
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,10 @@ from method.schema import (
     BudgetState,
     DesignFeedback,
     FixPlan,
+    FixLogEntry,
+    FixRequest,
+    FixRequestBatch,
+    FixRequestDecision,
     GroundedElement,
     GroundingMap,
     ModelReviewFeedback,
@@ -35,6 +40,9 @@ from method.schema import (
     RepairReviewFeedback,
     RepairRejection,
     RevisedFixPlan,
+    ReviewRunMeta,
+    SL9RepairDecisionOutput,
+    SL10RepairReviewOutput,
     ScenarioSet,
     SemanticFeedback,
     SimFeedback,
@@ -69,7 +77,8 @@ def _diagnostic_variable_role_summary(nl: str, selected_feedback: Any) -> dict[s
     diagnostics and generic SD-4 rationales without case IDs, benchmark names,
     or domain-specific hard-coded lexicons. SL-9 may use it to avoid inventing
     internal plant dynamics for variables already justified as external inputs,
-    while SD-10 remains the authority for acceptance/rejection.
+    while SL-10 receives the complete ledger and remains the authority for
+    repair acceptance/rework.
     """
 
     if not isinstance(selected_feedback, DesignFeedback):
@@ -129,7 +138,7 @@ class ScenarioGenerationRequest:
 
 @dataclass
 class RepairRequest:
-    """Input shared by PR-B1 ``SL-9`` repair and ``SD-10`` review adapters."""
+    """Input shared by PR-E1 ``SL-9`` repair and ``SL-10`` review adapters."""
 
     nl: str
     grounding_map: GroundingMap | None
@@ -142,6 +151,12 @@ class RepairRequest:
     iteration: int = 0
     repair_attempt: int = 0
     warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
+    fix_request_batch: FixRequestBatch | None = None
+    fix_log: list[dict[str, Any]] = field(default_factory=list)
+    sl9_decision: SL9RepairDecisionOutput | None = None
+    local_check_evidence: dict[str, Any] = field(default_factory=dict)
+    diff_summary: dict[str, Any] = field(default_factory=dict)
+    rework_locked: bool = False
 
 
 @dataclass
@@ -192,6 +207,7 @@ SimAdapter = Callable[[str, ScenarioSet, StageContext], tuple[SimFeedback, Stage
 ModelReviewAdapter = Callable[[str, StageContext, dict[str, Any]], Any]
 RepairAdapter = Callable[[RepairRequest], Any]
 RepairReviewAdapter = Callable[[RepairRequest], tuple[RepairReviewFeedback, StageResultMeta]]
+SL10ReviewAdapter = Callable[[RepairRequest, RepairReviewFeedback], Any]
 DeltaReviewAdapter = Callable[[RepairRequest, RepairReviewFeedback], Any]
 
 
@@ -213,6 +229,7 @@ class FullStagedRuntimeAdapters:
     model_review: ModelReviewAdapter
     repair: RepairAdapter
     repair_review: RepairReviewAdapter
+    sl10_review: SL10ReviewAdapter | None = None
     delta_review: DeltaReviewAdapter | None = None
     initial_modeling: InitialModelingAdapter | None = None
 
@@ -223,15 +240,16 @@ def build_full_staged_runtime_adapters(
     repair: RepairAdapter,
     model_review: ModelReviewAdapter,
     policy_profile: str = "experiment_default",
+    sl10_review: SL10ReviewAdapter | None = None,
     delta_review: DeltaReviewAdapter | None = None,
 ) -> FullStagedRuntimeAdapters:
     """Build PR-B1 adapters from existing deterministic SD tools.
 
     ``SL-5`` / ``SL-7`` / ``SL-9`` remain explicit callables so this helper does
     not hide fake providers or read provider configuration.  The deterministic
-    stages are wired to the #14 SD tool façade, including ``SD-10``'s local
-    repair-review gates (parse/semantic/design rerun, grounding drift and
-    scenario regression checks).
+    stages are wired to the #14 SD tool façade.  PR-E1 keeps those local
+    checks as evidence for ``SL-10`` instead of treating them as the final
+    semantic judge.
     """
 
     def semantic_adapter(current_dsl: str, context: StageContext) -> tuple[SemanticFeedback, StageResultMeta]:
@@ -267,6 +285,7 @@ def build_full_staged_runtime_adapters(
         model_review=model_review,
         repair=repair,
         repair_review=repair_review_adapter,
+        sl10_review=sl10_review,
         delta_review=delta_review,
     )
 
@@ -295,6 +314,7 @@ class _RunState:
     iteration_records: list[dict[str, Any]] = field(default_factory=list)
     deterministic_feedback: dict[str, Any] = field(default_factory=lambda: {"iterations": []})
     repair_history: list[dict[str, Any]] = field(default_factory=list)
+    fix_log: list[dict[str, Any]] = field(default_factory=list)
     scenario_history: list[dict[str, Any]] = field(default_factory=list)
     llm_interactions: list[dict[str, Any]] = field(default_factory=list)
     logs: list[dict[str, Any]] = field(default_factory=list)
@@ -308,6 +328,7 @@ class _RunState:
     redaction_report: list[dict[str, Any]] = field(default_factory=list)
     pending_repair_rejection: RepairRejection | None = None
     pending_original_fix_plan: FixPlan | None = None
+    pending_rework_request: dict[str, Any] | None = None
     warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
 
 
@@ -1114,6 +1135,278 @@ def _sl9_meta(current_dsl: str, fix_plan: FixPlan | RevisedFixPlan, candidate_ds
     return meta
 
 
+def _request_id(*, iteration: int, source_stage: str, feedback_id: str, index: int) -> str:
+    digest = hashlib.sha256(f"{iteration}:{source_stage}:{feedback_id}:{index}".encode("utf-8")).hexdigest()[:10]
+    safe_stage = source_stage.replace("-", "").lower()
+    return f"fixreq-{iteration}-{safe_stage}-{index}-{digest}"
+
+
+def _fix_request_batch_from_plan(
+    *,
+    iteration: int,
+    source: str,
+    source_stage: str,
+    selected_trace: dict[str, Any],
+    fix_plan: FixPlan | RevisedFixPlan,
+    effective_fix_plan: FixPlan,
+) -> FixRequestBatch:
+    evidence_items = list(effective_fix_plan.evidence or [])
+    diagnostic_ids = list(effective_fix_plan.diagnostic_ids or [])
+    n_requests = max(1, len(evidence_items), len(diagnostic_ids))
+    requests: list[FixRequest] = []
+    for index in range(n_requests):
+        feedback_id = diagnostic_ids[index] if index < len(diagnostic_ids) else effective_fix_plan.source_feedback_id
+        evidence = [evidence_items[index]] if index < len(evidence_items) else list(evidence_items)
+        # ``blocking_warning`` is a conservative deterministic block: SL-9 may
+        # reject/waive it with an auditable rationale so the next pass can
+        # continue after the warning budget is consumed. Parse/semantic/sim and
+        # model-review failures remain hard requests.
+        hard_block = effective_fix_plan.severity in {"error", "review_fail", "sim_fail"}
+        requests.append(
+            FixRequest(
+                request_id=_request_id(
+                    iteration=iteration,
+                    source_stage=source_stage,
+                    feedback_id=str(feedback_id or effective_fix_plan.source_feedback_id),
+                    index=index,
+                ),
+                target=effective_fix_plan.target,
+                source_stage=effective_fix_plan.source_stage,
+                source_feedback_id=str(feedback_id or effective_fix_plan.source_feedback_id),
+                severity=effective_fix_plan.severity,
+                hard_block=hard_block,
+                waiver_allowed=not hard_block,
+                problem_summary=effective_fix_plan.problem_summary,
+                evidence=evidence,
+                suggested_fix_hints=list(effective_fix_plan.suggested_fix_hints or []),
+                recommended_strategy=list(effective_fix_plan.recommended_strategy or []),
+                forbidden_edits=list(effective_fix_plan.forbidden_edits or []),
+                required_preserve_element_ids=list(effective_fix_plan.required_preserve_element_ids or []),
+                local_check_required=True,
+                legacy_fix_plan=_jsonable(effective_fix_plan),
+            )
+        )
+    return FixRequestBatch(
+        batch_id=f"fixbatch-{iteration}-{_hash_text(repr(_jsonable(selected_trace)))[:18].replace(':', '-')}",
+        iteration=iteration,
+        source=source,
+        source_stage=source_stage,
+        requests=requests,
+        selected_feedback_trace=_jsonable(selected_trace),
+        before_dsl_hash=effective_fix_plan.before_dsl_hash,
+        legacy_plan_kind="RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan",
+    )
+
+
+def _dsl_diff_summary(old_dsl: str, candidate_dsl: str) -> dict[str, Any]:
+    diff = list(
+        difflib.unified_diff(
+            old_dsl.splitlines(),
+            candidate_dsl.splitlines(),
+            fromfile="old.dsl",
+            tofile="candidate.dsl",
+            lineterm="",
+        )
+    )
+    return {
+        "old_dsl_hash": _hash_text(old_dsl),
+        "candidate_dsl_hash": _hash_text(candidate_dsl),
+        "n_diff_lines": len(diff),
+        "diff_excerpt": diff[:120],
+    }
+
+
+def _default_sl9_output(
+    *,
+    batch: FixRequestBatch,
+    candidate_dsl: str,
+    rework_locked: bool = False,
+) -> SL9RepairDecisionOutput:
+    return SL9RepairDecisionOutput(
+        decisions=[
+            FixRequestDecision(
+                request_id=request.request_id,
+                decision="accept",
+                rationale=(
+                    "default_accept_for_legacy_dsl_only_sl9_output"
+                    if not rework_locked
+                    else "rework_locked_request_must_continue_repair"
+                ),
+                accepted_edit_intent=[request.problem_summary] if request.problem_summary else [],
+                rework_locked=rework_locked,
+            )
+            for request in batch.requests
+        ],
+        candidate_dsl=candidate_dsl,
+        repair_rationale=["SL-9 returned DSL-only output; runtime accepted all current hard requests for compatibility."],
+        diff_summary={},
+    )
+
+
+def _coerce_sl9_decision_output(
+    parsed_output: Any,
+    *,
+    batch: FixRequestBatch,
+    candidate_dsl: str,
+    rework_locked: bool,
+) -> SL9RepairDecisionOutput:
+    if isinstance(parsed_output, SL9RepairDecisionOutput):
+        output = parsed_output
+    elif isinstance(parsed_output, dict) and isinstance(parsed_output.get("decisions"), list):
+        output = SL9RepairDecisionOutput(
+            decisions=[
+                decision if isinstance(decision, FixRequestDecision) else FixRequestDecision(**dict(decision))
+                for decision in parsed_output.get("decisions", [])
+            ],
+            candidate_dsl=str(parsed_output.get("candidate_dsl") or candidate_dsl),
+            repair_rationale=[str(item) for item in parsed_output.get("repair_rationale", [])],
+            diff_summary=dict(parsed_output.get("diff_summary", {}) or {}),
+        )
+    else:
+        output = _default_sl9_output(batch=batch, candidate_dsl=candidate_dsl, rework_locked=rework_locked)
+
+    known = {request.request_id for request in batch.requests}
+    existing = {decision.request_id for decision in output.decisions}
+    for missing in sorted(known - existing):
+        output.decisions.append(
+            FixRequestDecision(
+                request_id=missing,
+                decision="accept" if rework_locked else "reject",
+                rationale="runtime_filled_missing_sl9_decision",
+                rework_locked=rework_locked,
+            )
+        )
+    if rework_locked:
+        for decision in output.decisions:
+            decision.rework_locked = True
+            if decision.decision == "reject":
+                decision.decision = "accept"
+                decision.rationale = (
+                    (decision.rationale + "; ") if decision.rationale else ""
+                ) + "rework_locked_request_must_not_be_rejected_again"
+        if not output.accepted_request_ids and output.decisions:
+            output.decisions[0].decision = "accept"
+            output.decisions[0].rationale = "rework_locked_request_must_not_be_rejected_again"
+            output.decisions[0].rework_locked = True
+    if not output.candidate_dsl:
+        output.candidate_dsl = candidate_dsl
+    return output
+
+
+def _local_repair_check_evidence(
+    *,
+    repair_review: RepairReviewFeedback,
+    repair_review_meta: StageResultMeta,
+) -> dict[str, Any]:
+    return {
+        "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+        "legacy_local_check_stage_id": StageId.SD_10_REPAIR_REVIEW.value,
+        "local_check_note": "PR-E1 uses local parse/semantic/design/sim checks as SL-10 evidence, not as the final deterministic judge.",
+        "meta": _jsonable(repair_review_meta),
+        "repair_review_feedback": _jsonable(repair_review),
+    }
+
+
+def _default_sl10_output_from_local_checks(
+    *,
+    local_review: RepairReviewFeedback,
+    local_evidence: dict[str, Any],
+) -> SL10RepairReviewOutput:
+    decision = "pass" if local_review.ok else "rework"
+    rejection = local_review.local_rejection
+    review_meta = ReviewRunMeta(
+        provider="local-check-evidence-fallback",
+        model_id="none",
+        prompt_template_version="sl10-local-fallback.v1",
+        schema_validation_ok=True,
+        parsed_schema_version="SL10RepairReviewOutput.local_fallback.v1",
+        failure_policy="audit_only",
+        replay_key="SL-10:local-fallback",
+    )
+    return SL10RepairReviewOutput(
+        ok=local_review.ok,
+        decision=decision,
+        target_resolved=local_review.target_resolved,
+        regression_detected=local_review.regression_detected,
+        drift_risk=local_review.drift_risk,
+        rework_instructions=(
+            [rejection.reason] if rejection is not None and rejection.reason else []
+        ),
+        evidence=(
+            [{"summary": rejection.reason, "evidence": _jsonable(rejection.evidence)}]
+            if rejection is not None
+            else [{"summary": "local checks passed"}]
+        ),
+        local_check_evidence=local_evidence,
+        review_meta=review_meta,
+        meta=_meta(StageId.SL_10_REPAIR_REVIEW, ok=local_review.ok, status=StageStatus.OK if local_review.ok else StageStatus.FAIL),
+    )
+
+
+def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: RepairReviewFeedback) -> RepairReviewFeedback:
+    rejection = None
+    if not sl10.ok:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SL_10_REPAIR_REVIEW.value,
+            reason="; ".join(sl10.rework_instructions) or f"sl10_{sl10.decision}",
+            target_resolved=sl10.target_resolved,
+            regression_detected=sl10.regression_detected,
+            drift_risk=sl10.drift_risk,
+            evidence=sl10.evidence,
+        )
+    return RepairReviewFeedback(
+        ok=sl10.ok,
+        target_resolved=sl10.target_resolved,
+        regression_detected=sl10.regression_detected,
+        drift_risk=sl10.drift_risk,
+        local_rejection=rejection,
+        delta_review={
+            "legacy_field": "sl10_repair_review",
+            "decision": sl10.decision,
+            "evidence": _jsonable(sl10.evidence),
+            "local_check_evidence": _jsonable(sl10.local_check_evidence or local_review),
+        },
+        review_meta=sl10.review_meta,
+        meta=sl10.meta,
+    )
+
+
+def _fix_log_entry(
+    *,
+    state: _RunState,
+    iteration: int,
+    phase: str,
+    batch: FixRequestBatch,
+    decisions: list[FixRequestDecision] | None = None,
+    old_dsl: str = "",
+    candidate_dsl: str = "",
+    diff_summary: dict[str, Any] | None = None,
+    local_check_evidence: dict[str, Any] | None = None,
+    sl10_review: SL10RepairReviewOutput | None = None,
+    next_action: str = "",
+    notes: list[str] | None = None,
+) -> dict[str, Any]:
+    entry = FixLogEntry(
+        entry_id=f"fixlog-{len(state.fix_log)}-{phase}",
+        iteration=iteration,
+        repair_attempt=len(state.repair_history),
+        phase=phase,
+        batch_id=batch.batch_id,
+        request_batch=_jsonable(batch),
+        decisions=[_jsonable(decision) for decision in decisions or []],
+        old_dsl_hash=_hash_text(old_dsl) if old_dsl else "",
+        candidate_dsl_hash=_hash_text(candidate_dsl) if candidate_dsl else "",
+        diff_summary=_jsonable(diff_summary or {}),
+        local_check_evidence=_jsonable(local_check_evidence or {}),
+        sl10_review=_jsonable(sl10_review),
+        next_action=next_action,
+        notes=list(notes or []),
+    )
+    payload = _jsonable(entry)
+    state.fix_log.append(payload)
+    return payload
+
+
 def _run_repair_path(
     *,
     nl: str,
@@ -1131,7 +1424,9 @@ def _run_repair_path(
         selected_trace["variable_role_summary"] = variable_role_summary
     if selected_trace["pre_scenario"]:
         state.pre_scenario_repair_count += 1
-    if state.pending_repair_rejection is not None and state.pending_original_fix_plan is not None:
+
+    rework_locked = state.pending_repair_rejection is not None and state.pending_original_fix_plan is not None
+    if rework_locked:
         fix_plan, fix_meta = run_sd8_fix_plan(
             None,
             source="repair_review",
@@ -1151,6 +1446,24 @@ def _run_repair_path(
     effective_fix_plan = fix_plan.original if isinstance(fix_plan, RevisedFixPlan) else fix_plan
     assert isinstance(effective_fix_plan, FixPlan)
 
+    request_batch = _fix_request_batch_from_plan(
+        iteration=iteration,
+        source=source,
+        source_stage=source_stage,
+        selected_trace=selected_trace,
+        fix_plan=fix_plan,
+        effective_fix_plan=effective_fix_plan,
+    )
+    _fix_log_entry(
+        state=state,
+        iteration=iteration,
+        phase="request_batch",
+        batch=request_batch,
+        old_dsl=state.current_dsl,
+        next_action="sl9_decision_and_repair",
+        notes=["SD-8 produced FixRequestBatch; deterministic stage does not decide final repair."],
+    )
+
     if source == FeedbackSource.DESIGN.value and isinstance(selected_feedback, DesignFeedback):
         mark_warning_repair_attempt(
             validation.context.warning_budget_state,
@@ -1158,160 +1471,333 @@ def _run_repair_path(
         )
         state.warning_budget_state = validation.context.warning_budget_state
 
-    request = RepairRequest(
-        nl=nl,
-        grounding_map=cfg.grounding_map,
-        old_dsl=state.current_dsl,
-        fix_plan=fix_plan,
-        selected_feedback=selected_feedback,
-        selected_feedback_trace=selected_trace,
-        scenario_set=validation.scenario_set,
-        iteration=iteration,
-        repair_attempt=len(state.repair_history),
-    )
-    repair_run = adapters.repair(request)
-    repair_run = _append_llm_stage_run(
-        run=repair_run,
-        expected_stage_id=StageId.SL_9_REPAIR,
-        stage_records=state.stage_records,
-        iteration_stage_metas=None,
-        llm_interactions=state.llm_interactions,
-    )
-    if _is_llm_stage_run(repair_run):
-        parsed_output = getattr(repair_run, "parsed_output", {}) or {}
-        if not isinstance(parsed_output, dict):
-            raise TypeError("SL-9 LLMStageRun parsed_output must be a dict with candidate_dsl")
-        candidate_dsl = str(parsed_output.get("candidate_dsl") or "")
-        repair_stage_ids.append(getattr(repair_run, "stage_meta").stage_id)
-    else:
-        candidate_dsl = str(repair_run or "")
-        repair_meta = _sl9_meta(state.current_dsl, fix_plan, candidate_dsl)
-        _append_stage(state.stage_records, repair_meta)
-        repair_stage_ids.append(repair_meta.stage_id)
-        state.llm_interactions.append(
-            {
-                "stage_id": StageId.SL_9_REPAIR.value,
-                "provider": cfg.adapter_mode,
-                "model_id": "explicit-adapter",
-                "real_llm_provider_api": False,
-                "prompt_template_version": "pr-b1-repair-adapter.v1",
-                "input_hash": _hash_text(state.current_dsl),
-                "prompt_hash": repair_meta.prompt_hash,
-                "raw_output_hash": repair_meta.output_hash,
-                "raw_output": candidate_dsl,
-                "parsed_output": {"candidate_dsl": candidate_dsl},
-                "schema_validation_ok": bool(candidate_dsl),
-                "note": "PR-B1 deterministic runtime uses an explicitly injected repair adapter; no provider/env call.",
-            }
+    max_rework_attempts = max(1, cfg.max_iterations - iteration)
+    aggregate_stage_ids = list(repair_stage_ids)
+    last_iteration_patch: dict[str, Any] = {}
+    last_repair_review: RepairReviewFeedback | None = None
+    last_sl10_output: SL10RepairReviewOutput | None = None
+
+    for rework_attempt in range(max_rework_attempts):
+        attempt_rework_locked = rework_locked or rework_attempt > 0
+        request = RepairRequest(
+            nl=nl,
+            grounding_map=cfg.grounding_map,
+            old_dsl=state.current_dsl,
+            fix_plan=fix_plan,
+            selected_feedback=selected_feedback,
+            selected_feedback_trace=selected_trace,
+            scenario_set=validation.scenario_set,
+            iteration=iteration,
+            repair_attempt=len(state.repair_history),
+            fix_request_batch=request_batch,
+            fix_log=list(state.fix_log),
+            rework_locked=attempt_rework_locked,
         )
-    request.candidate_dsl = candidate_dsl
-
-    review_request = RepairRequest(
-        nl=nl,
-        grounding_map=cfg.grounding_map,
-        old_dsl=state.current_dsl,
-        fix_plan=effective_fix_plan,
-        selected_feedback=selected_feedback,
-        selected_feedback_trace=selected_trace,
-        scenario_set=validation.scenario_set,
-        candidate_dsl=candidate_dsl,
-        iteration=iteration,
-        repair_attempt=len(state.repair_history),
-        warning_budget_state=validation.context.warning_budget_state,
-    )
-    repair_review, repair_review_meta = adapters.repair_review(review_request)
-    _append_stage(state.stage_records, repair_review_meta)
-    repair_stage_ids.append(repair_review_meta.stage_id)
-    local_sd10_repair_review = _jsonable(repair_review)
-    repair_review_input_summary = {
-        "nl_hash": _hash_text(nl),
-        "has_grounding_map": cfg.grounding_map is not None,
-        "old_dsl_hash": _hash_text(state.current_dsl),
-        "candidate_dsl_hash": _hash_text(candidate_dsl),
-        "fix_plan_target": getattr(effective_fix_plan, "target", None),
-        "fix_plan_source_stage": getattr(effective_fix_plan, "source_stage", None),
-        "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
-        "inputs": ["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixPlan", "ScenarioSet"],
-    }
-
-    if repair_review.ok and adapters.delta_review is not None:
-        delta_feedback_authoritative = False
-        delta_run = adapters.delta_review(review_request, repair_review)
-        delta_run = _append_llm_stage_run(
-            run=delta_run,
-            expected_stage_id=StageId.SL_10B_DELTA_REVIEW,
+        repair_run = adapters.repair(request)
+        repair_run = _append_llm_stage_run(
+            run=repair_run,
+            expected_stage_id=StageId.SL_9_REPAIR,
             stage_records=state.stage_records,
             iteration_stage_metas=None,
             llm_interactions=state.llm_interactions,
         )
-        if _is_llm_stage_run(delta_run):
-            delta_payload = getattr(delta_run, "parsed_output", {}) or {}
-            delta_feedback = getattr(delta_run, "feedback", None)
-            if isinstance(delta_feedback, RepairReviewFeedback):
-                repair_review = delta_feedback
-                delta_feedback_authoritative = True
-            repair_stage_ids.append(getattr(delta_run, "stage_meta").stage_id)
+        parsed_output: Any = {}
+        if _is_llm_stage_run(repair_run):
+            parsed_output = getattr(repair_run, "parsed_output", {}) or {}
+            if not isinstance(parsed_output, dict):
+                raise TypeError("SL-9 LLMStageRun parsed_output must be a dict with candidate_dsl/decisions")
+            candidate_dsl = str(parsed_output.get("candidate_dsl") or "")
+            aggregate_stage_ids.append(getattr(repair_run, "stage_meta").stage_id)
         else:
-            delta_payload, delta_meta = delta_run
-            _append_stage(state.stage_records, delta_meta)
-            repair_stage_ids.append(delta_meta.stage_id)
-        repair_review.delta_review = delta_payload
-        decision = str(delta_payload.get("decision", "accept"))
-        if decision in {"reject", "revise"} and (not delta_feedback_authoritative or not repair_review.ok):
-            repair_review.ok = False
-            repair_review.target_resolved = False
-            if repair_review.local_rejection is None:
-                from method.schema import RepairRejection
+            if isinstance(repair_run, dict):
+                parsed_output = dict(repair_run)
+                candidate_dsl = str(parsed_output.get("candidate_dsl") or "")
+            else:
+                candidate_dsl = str(repair_run or "")
+                parsed_output = {"candidate_dsl": candidate_dsl}
+            repair_meta = _sl9_meta(state.current_dsl, fix_plan, candidate_dsl)
+            _append_stage(state.stage_records, repair_meta)
+            aggregate_stage_ids.append(repair_meta.stage_id)
+            state.llm_interactions.append(
+                {
+                    "stage_id": StageId.SL_9_REPAIR.value,
+                    "provider": cfg.adapter_mode,
+                    "model_id": "explicit-adapter",
+                    "real_llm_provider_api": False,
+                    "prompt_template_version": "pr-b1-repair-adapter.v2-fixrequest",
+                    "input_hash": _hash_text(state.current_dsl),
+                    "prompt_hash": repair_meta.prompt_hash,
+                    "raw_output_hash": repair_meta.output_hash,
+                    "raw_output": candidate_dsl,
+                    "parsed_output": {"candidate_dsl": candidate_dsl},
+                    "schema_validation_ok": bool(candidate_dsl),
+                    "note": "Explicit adapter returned DSL only; runtime fills per-request SL-9 decisions for compatibility.",
+                }
+            )
+        request.candidate_dsl = candidate_dsl
 
-                repair_review.local_rejection = RepairRejection(
-                    rejected_by_stage=StageId.SL_10B_DELTA_REVIEW.value,
-                    reason=f"delta_review_{decision}",
-                    drift_risk=str(delta_payload.get("drift_risk", "major")),  # type: ignore[arg-type]
-                    evidence=_jsonable(delta_payload.get("drift_evidence", [])),
-                )
+        sl9_decision = _coerce_sl9_decision_output(
+            parsed_output,
+            batch=request_batch,
+            candidate_dsl=candidate_dsl,
+            rework_locked=attempt_rework_locked,
+        )
+        sl9_decision.diff_summary = sl9_decision.diff_summary or _dsl_diff_summary(state.current_dsl, candidate_dsl)
+        request.sl9_decision = sl9_decision
+        request.diff_summary = dict(sl9_decision.diff_summary)
+        request.fix_log = list(state.fix_log)
 
-    accepted = bool(repair_review.ok)
-    if accepted:
-        sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
-    else:
-        sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=False, status=StageStatus.FAIL)
-    _append_stage(state.stage_records, sc11_meta)
-    repair_stage_ids.append(sc11_meta.stage_id)
+        _fix_log_entry(
+            state=state,
+            iteration=iteration,
+            phase="sl9_decision" if rework_attempt == 0 else "sl9_rework_decision",
+            batch=request_batch,
+            decisions=sl9_decision.decisions,
+            old_dsl=state.current_dsl,
+            candidate_dsl=candidate_dsl,
+            diff_summary=sl9_decision.diff_summary,
+            next_action="sl10_review" if sl9_decision.accepted_request_ids else "reject_or_waiver",
+            notes=[*sl9_decision.repair_rationale, *( ["rework_locked=true"] if attempt_rework_locked else [] )],
+        )
 
-    repair_payload = {
-        "iteration": iteration,
-        "selected_feedback": selected_trace,
-        "plan_kind": "RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan",
-        "fix_plan": _jsonable(effective_fix_plan),
-        "candidate_dsl": candidate_dsl,
-        "candidate_dsl_hash": _hash_text(candidate_dsl),
-        "repair_review_input_summary": repair_review_input_summary,
-        "sd10_repair_review": local_sd10_repair_review,
-        "repair_review": _jsonable(repair_review),
-        "accepted": accepted,
-        "repair_stage_ids": list(repair_stage_ids),
-        "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
-    }
-    state.repair_history.append(repair_payload)
+        if not sl9_decision.accepted_request_ids:
+            hard_rejected = any(req.hard_block for req in request_batch.requests)
+            waiver_continue = (
+                not hard_rejected
+                and bool(request_batch.requests)
+                and all(req.waiver_allowed for req in request_batch.requests)
+                and all(decision.decision == "reject" for decision in sl9_decision.decisions)
+            )
+            rejection = RepairRejection(
+                rejected_by_stage=StageId.SL_9_REPAIR.value,
+                reason="sl9_rejected_all_fix_requests" + (":hard_block" if hard_rejected else ":waiver_continue" if waiver_continue else ":waiver_only"),
+                target_resolved=waiver_continue,
+                regression_detected=False,
+                drift_risk="major" if hard_rejected else "minor",
+                evidence=[_jsonable(decision) for decision in sl9_decision.decisions],
+            )
+            repair_review = RepairReviewFeedback(
+                ok=waiver_continue,
+                target_resolved=waiver_continue,
+                drift_risk=rejection.drift_risk,
+                local_rejection=None if waiver_continue else rejection,
+            )
+            if waiver_continue:
+                sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
+                _append_stage(state.stage_records, sc11_meta)
+                aggregate_stage_ids.append(sc11_meta.stage_id)
+            _fix_log_entry(
+                state=state,
+                iteration=iteration,
+                phase="sl9_all_rejected",
+                batch=request_batch,
+                decisions=sl9_decision.decisions,
+                old_dsl=state.current_dsl,
+                candidate_dsl=candidate_dsl,
+                diff_summary=sl9_decision.diff_summary,
+                next_action="continue_after_waiver" if waiver_continue else "exit_rejected",
+                notes=[rejection.reason],
+            )
+            repair_payload = {
+                "iteration": iteration,
+                "selected_feedback": selected_trace,
+                "plan_kind": request_batch.legacy_plan_kind,
+                "fix_plan": _jsonable(effective_fix_plan),
+                "fix_request_batch": _jsonable(request_batch),
+                "sl9_decision": _jsonable(sl9_decision),
+                "candidate_dsl": candidate_dsl,
+                "candidate_dsl_hash": _hash_text(candidate_dsl),
+                "repair_review": _jsonable(repair_review),
+                "accepted": False,
+                "waiver_continue": waiver_continue,
+                "repair_stage_ids": list(aggregate_stage_ids),
+                "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+                "fix_log_entry_count": len(state.fix_log),
+            }
+            state.repair_history.append(repair_payload)
+            return waiver_continue, {
+                "selected_feedback": selected_trace,
+                "repair_stage_ids": list(aggregate_stage_ids),
+                "fix_request_batch": _jsonable(request_batch),
+                "sl9_decision": _jsonable(sl9_decision),
+                "repair_review": _jsonable(repair_review),
+                "accepted_candidate": False,
+                "waiver_continue": waiver_continue,
+                "exit_reason": "all_fix_requests_rejected_as_waiver_continue" if waiver_continue else rejection.reason,
+                "retryable_repair_rejection": False,
+            }
 
-    iteration_patch = {
-        "selected_feedback": selected_trace,
-        "repair_stage_ids": list(repair_stage_ids),
-        "repair_review": _jsonable(repair_review),
-        "accepted_candidate": accepted,
-    }
-    if accepted:
-        state.current_dsl = candidate_dsl
+        review_request = RepairRequest(
+            nl=nl,
+            grounding_map=cfg.grounding_map,
+            old_dsl=state.current_dsl,
+            fix_plan=effective_fix_plan,
+            selected_feedback=selected_feedback,
+            selected_feedback_trace=selected_trace,
+            scenario_set=validation.scenario_set,
+            candidate_dsl=candidate_dsl,
+            iteration=iteration,
+            repair_attempt=len(state.repair_history),
+            warning_budget_state=validation.context.warning_budget_state,
+            fix_request_batch=request_batch,
+            fix_log=list(state.fix_log),
+            sl9_decision=sl9_decision,
+            diff_summary=sl9_decision.diff_summary,
+            rework_locked=attempt_rework_locked,
+        )
+        local_review, local_meta = adapters.repair_review(review_request)
+        local_check_evidence = _local_repair_check_evidence(repair_review=local_review, repair_review_meta=local_meta)
+        review_request.local_check_evidence = local_check_evidence
+        local_sd10_repair_review = _jsonable(local_review)
+        repair_review_input_summary = {
+            "nl_hash": _hash_text(nl),
+            "has_nl_input": bool(nl),
+            "has_grounding_map": cfg.grounding_map is not None,
+            "old_dsl_hash": _hash_text(state.current_dsl),
+            "candidate_dsl_hash": _hash_text(candidate_dsl),
+            "fix_plan_target": getattr(effective_fix_plan, "target", None),
+            "fix_plan_source_stage": getattr(effective_fix_plan, "source_stage", None),
+            "fix_request_batch_id": request_batch.batch_id,
+            "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+            "inputs": ["NL", "GroundingMap", "old_dsl", "candidate_dsl", "FixRequestBatch", "SL9Decisions", "FixLog", "LocalCheckEvidence", "ScenarioSet"],
+            "local_check_stage_id": StageId.SD_10_REPAIR_REVIEW.value,
+            "active_review_stage_id": StageId.SL_10_REPAIR_REVIEW.value,
+            "rework_attempt": rework_attempt,
+            "rework_locked": attempt_rework_locked,
+        }
+
+        if adapters.sl10_review is not None:
+            sl10_run = adapters.sl10_review(review_request, local_review)
+            sl10_run = _append_llm_stage_run(
+                run=sl10_run,
+                expected_stage_id=StageId.SL_10_REPAIR_REVIEW,
+                stage_records=state.stage_records,
+                iteration_stage_metas=None,
+                llm_interactions=state.llm_interactions,
+            )
+            if _is_llm_stage_run(sl10_run):
+                sl10_output = getattr(sl10_run, "feedback", None)
+                if not isinstance(sl10_output, SL10RepairReviewOutput):
+                    parsed = getattr(sl10_run, "parsed_output", {}) or {}
+                    sl10_output = SL10RepairReviewOutput(
+                        ok=bool(parsed.get("decision") == "pass"),
+                        decision=str(parsed.get("decision") or "invalid_output"),  # type: ignore[arg-type]
+                        target_resolved=bool(parsed.get("target_resolved", False)),
+                        regression_detected=bool(parsed.get("regression_detected", True)),
+                        drift_risk=str(parsed.get("drift_risk") or "major"),  # type: ignore[arg-type]
+                        rework_instructions=[str(item) for item in parsed.get("rework_instructions", [])],
+                        evidence=_jsonable(parsed.get("evidence", [])),
+                        local_check_evidence=local_check_evidence,
+                        review_meta=None,
+                        meta=getattr(sl10_run, "stage_meta"),
+                    )
+                sl10_output.local_check_evidence = sl10_output.local_check_evidence or local_check_evidence
+                aggregate_stage_ids.append(getattr(sl10_run, "stage_meta").stage_id)
+            else:
+                sl10_output, sl10_meta = sl10_run
+                _append_stage(state.stage_records, sl10_meta)
+                aggregate_stage_ids.append(sl10_meta.stage_id)
+        else:
+            sl10_output = _default_sl10_output_from_local_checks(local_review=local_review, local_evidence=local_check_evidence)
+            assert sl10_output.meta is not None
+            _append_stage(state.stage_records, sl10_output.meta)
+            aggregate_stage_ids.append(sl10_output.meta.stage_id)
+
+        repair_review = _repair_review_from_sl10(sl10_output, local_review=local_review)
+        accepted = bool(sl10_output.ok)
+        if accepted:
+            sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
+            _append_stage(state.stage_records, sc11_meta)
+            aggregate_stage_ids.append(sc11_meta.stage_id)
+
+        _fix_log_entry(
+            state=state,
+            iteration=iteration,
+            phase="sl10_review" if rework_attempt == 0 else "sl10_rework_review",
+            batch=request_batch,
+            decisions=sl9_decision.decisions,
+            old_dsl=state.current_dsl,
+            candidate_dsl=candidate_dsl,
+            diff_summary=sl9_decision.diff_summary,
+            local_check_evidence=local_check_evidence,
+            sl10_review=sl10_output,
+            next_action="sc11_accept_then_sd2" if accepted else ("sl9_rework" if rework_attempt + 1 < max_rework_attempts else "exit_rejected_rework_budget_exhausted"),
+            notes=sl10_output.rework_instructions,
+        )
+
+        repair_payload = {
+            "iteration": iteration,
+            "selected_feedback": selected_trace,
+            "plan_kind": request_batch.legacy_plan_kind,
+            "fix_plan": _jsonable(effective_fix_plan),
+            "fix_request_batch": _jsonable(request_batch),
+            "sl9_decision": _jsonable(sl9_decision),
+            "candidate_dsl": candidate_dsl,
+            "candidate_dsl_hash": _hash_text(candidate_dsl),
+            "repair_review_input_summary": repair_review_input_summary,
+            "local_check_evidence": _jsonable(local_check_evidence),
+            "sd10_repair_review": local_sd10_repair_review,
+            "sl10_repair_review": _jsonable(sl10_output),
+            "repair_review": _jsonable(repair_review),
+            "accepted": accepted,
+            "repair_stage_ids": list(aggregate_stage_ids),
+            "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+            "fix_log_entry_count": len(state.fix_log),
+            "rework_attempt": rework_attempt,
+        }
+        state.repair_history.append(repair_payload)
+
+        last_repair_review = repair_review
+        last_sl10_output = sl10_output
+        last_iteration_patch = {
+            "selected_feedback": selected_trace,
+            "repair_stage_ids": list(aggregate_stage_ids),
+            "fix_request_batch": _jsonable(request_batch),
+            "sl9_decision": _jsonable(sl9_decision),
+            "local_check_evidence": _jsonable(local_check_evidence),
+            "sl10_repair_review": _jsonable(sl10_output),
+            "repair_review": _jsonable(repair_review),
+            "accepted_candidate": accepted,
+            "fix_log_entry_count": len(state.fix_log),
+            "rework_attempts_used": rework_attempt + 1,
+        }
+        if accepted:
+            state.current_dsl = candidate_dsl
+            state.pending_repair_rejection = None
+            state.pending_original_fix_plan = None
+            state.pending_rework_request = None
+            last_iteration_patch["exit_reason"] = "candidate_accepted_for_next_full_pass"
+            return True, last_iteration_patch
+
         state.pending_repair_rejection = None
         state.pending_original_fix_plan = None
-        iteration_patch["exit_reason"] = "candidate_accepted_for_next_full_pass"
-    else:
-        state.pending_repair_rejection = repair_review.local_rejection
-        state.pending_original_fix_plan = effective_fix_plan if repair_review.local_rejection is not None else None
-        iteration_patch["exit_reason"] = repair_review.local_rejection.reason if repair_review.local_rejection is not None else "repair review rejected candidate"
-        iteration_patch["retryable_repair_rejection"] = repair_review.local_rejection is not None
-    return accepted, iteration_patch
+        state.pending_rework_request = _jsonable(sl10_output)
+        if rework_attempt + 1 < max_rework_attempts:
+            continue
+        last_iteration_patch["exit_reason"] = repair_review.local_rejection.reason if repair_review.local_rejection is not None else "sl10 repair review requested rework"
+        last_iteration_patch["retryable_repair_rejection"] = False
+        last_iteration_patch["next_iteration_repair_plan"] = "<none:sl10_rework_budget_exhausted>"
+        return False, last_iteration_patch
 
+    fallback_reason = "sl10_rework_budget_exhausted"
+    if last_repair_review is not None and last_repair_review.local_rejection is not None:
+        fallback_reason = last_repair_review.local_rejection.reason
+    if last_sl10_output is not None:
+        _fix_log_entry(
+            state=state,
+            iteration=iteration,
+            phase="sl10_rework_budget_exhausted",
+            batch=request_batch,
+            old_dsl=state.current_dsl,
+            next_action="exit_rejected",
+            notes=[fallback_reason],
+        )
+    last_iteration_patch.setdefault("selected_feedback", selected_trace)
+    last_iteration_patch.setdefault("repair_stage_ids", list(aggregate_stage_ids))
+    last_iteration_patch.setdefault("accepted_candidate", False)
+    last_iteration_patch["exit_reason"] = fallback_reason
+    last_iteration_patch["retryable_repair_rejection"] = False
+    return False, last_iteration_patch
 
 def _eligibility(cfg: FullStagedRuntimeConfig, *, record_status: str, oracle_weak: bool) -> tuple[bool, str | None, str | None]:
     if record_status != "success":
@@ -1370,6 +1856,7 @@ def _redaction_failed_safe_payload(
             "iteration_count": len(state.iteration_records),
         },
         "repair_history": [],
+        "fix_log": [],
         "scenario_history": [],
         "final_artifacts": {
             "final_dsl": "<omitted:redaction_failed>",
@@ -1447,6 +1934,7 @@ def _build_record(
         },
         "deterministic_feedback": _jsonable(state.deterministic_feedback),
         "repair_history": _jsonable(state.repair_history),
+        "fix_log": _jsonable(state.fix_log),
         "scenario_history": _jsonable(state.scenario_history),
         "final_artifacts": {
             "final_dsl": state.current_dsl,
@@ -1522,6 +2010,7 @@ def _build_record(
         ),
         deterministic_feedback=raw_payload["deterministic_feedback"],
         repair_history=raw_payload["repair_history"],
+        fix_log=raw_payload["fix_log"],
         scenario_history=raw_payload["scenario_history"],
         final_artifacts=raw_payload["final_artifacts"],
         logs=raw_payload["logs"],
@@ -1529,6 +2018,7 @@ def _build_record(
             "stage_by_index": {str(i): meta.stage_id for i, meta in enumerate(state.stage_records)},
             "iteration_count": len(state.iteration_records),
             "repair_count": len(state.repair_history),
+            "fix_log_count": len(state.fix_log),
             "scenario_history_count": len(state.scenario_history),
             "pre_scenario_repair_count": state.pre_scenario_repair_count,
             "verdict": state.final_verdict,

@@ -28,6 +28,7 @@ from method.llm_stages import (
     run_sl5_scenario_generation_llm,
     run_sl7_model_review_llm,
     run_sl9_repair_llm,
+    run_sl10_repair_review_llm,
     run_sl10b_delta_review_llm,
 )
 from method.schema import AgentLoopResult, LoopConfig, StageContext
@@ -56,8 +57,7 @@ _STAGE_SWITCH_BY_ID: dict[str, str | None] = {
     StageId.SL_7_MODEL_REVIEW.value: "enable_model_review",
     StageId.SD_8_FIX_PLAN.value: "enable_fix_plan",
     StageId.SL_9_REPAIR.value: "enable_repair",
-    StageId.SD_10_REPAIR_REVIEW.value: "enable_repair_review",
-    StageId.SL_10B_DELTA_REVIEW.value: "enable_delta_review",
+    StageId.SL_10_REPAIR_REVIEW.value: "enable_repair_review",
     StageId.SC_11_ACCEPT_CANDIDATE.value: "enable_repair",
     StageId.SC_12_EXIT.value: None,
     StageId.SC_13_TRACE_AUDIT.value: "enable_run_record",
@@ -354,6 +354,8 @@ def _build_runtime_adapters(
             nl=request.nl,
             current_dsl=request.old_dsl,
             fix_plan=request.fix_plan,
+            fix_request_batch=request.fix_request_batch,
+            fix_log=request.fix_log,
             grounding_map=request.grounding_map,
             selected_diagnostics=[request.selected_feedback_trace],
             preserve_list=(request.fix_plan.required_preserve_element_ids if hasattr(request.fix_plan, "required_preserve_element_ids") else []),
@@ -387,12 +389,41 @@ def _build_runtime_adapters(
             provider=provider,
         )
 
+    def sl10_review(request: RepairRequest, _local_review: Any) -> Any:
+        if request.fix_request_batch is None or request.sl9_decision is None:
+            raise TypeError("SL-10 repair review requires FixRequestBatch and SL9 decisions")
+        return run_sl10_repair_review_llm(
+            nl=request.nl,
+            grounding_map=request.grounding_map,
+            old_dsl=request.old_dsl,
+            candidate_dsl=request.candidate_dsl,
+            request_batch=request.fix_request_batch,
+            sl9_decisions=request.sl9_decision.decisions,
+            fix_log=request.fix_log,
+            diff_summary=request.diff_summary,
+            local_check_evidence=request.local_check_evidence,
+            scenario_summary=(
+                {
+                    "scenario_set_id": request.scenario_set.scenario_set_id,
+                    "epoch": request.scenario_set.epoch,
+                    "n_scenarios": len(request.scenario_set.scenarios),
+                    "coverage_report": request.scenario_set.coverage_report,
+                }
+                if request.scenario_set is not None
+                else {"pre_scenario": True}
+            ),
+            review_policy={"mode": cfg.delta_review_mode, **_jsonable(cfg.feedback_policy)},
+            config=llm_cfg,
+            provider=provider,
+        )
+
     adapters = build_full_staged_runtime_adapters(
         scenario_generate=scenario_generate,
         repair=repair,
         model_review=model_review,
         policy_profile=cfg.policy_profile,
-        delta_review=delta_review,
+        sl10_review=sl10_review,
+        delta_review=None,
     )
     adapters.initial_modeling = initial_modeling
     adapters.scenario_coverage = _scenario_coverage_adapter

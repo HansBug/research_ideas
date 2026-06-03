@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from method.schema import FixPlan, RevisedFixPlan
+from method.schema import FixPlan, FixRequestBatch, RevisedFixPlan
 from method.stages.sl_prompt_common import fenced_json, fenced_text, load_grammar_digest, message_pack
 
 
@@ -13,6 +13,8 @@ def build_sl9_repair_prompt(
     nl: str,
     current_dsl: str,
     fix_plan: FixPlan | RevisedFixPlan | dict[str, Any] | None = None,
+    fix_request_batch: FixRequestBatch | dict[str, Any] | None = None,
+    fix_log: list[dict[str, Any]] | None = None,
     grounding_map: Any | None = None,
     selected_diagnostics: list[dict[str, Any]] | None = None,
     grammar_digest: str | None = None,
@@ -33,13 +35,25 @@ def build_sl9_repair_prompt(
 Template version: {prompt_template_version}.
 
 SL-9 Repair contract:
-- Input may be a FixPlan or RevisedFixPlan.  If RevisedFixPlan is present,
-  preserve the original target and address the RepairRejection evidence.
+- Input may include a FixRequestBatch.  For every request in the batch, give
+  an explicit accept/reject decision.  At least one accepted request is required
+  before producing a repaired candidate.  If all requests are rejected, explain
+  why in the decisions and leave candidate_dsl empty.
+- Input may also include a legacy FixPlan or RevisedFixPlan.  If RevisedFixPlan
+  is present, preserve the original target and address the RepairRejection
+  evidence.
+- Read the complete FixLog ledger before deciding. Do not keep re-fixing a
+  request that has already been rejected/waived unless new evidence appears.
+- If a request is marked rework_locked by SL-10, you must continue repairing it
+  and must not reject it again.
 - `suggested_fix` / `suggested_fix_hints` are a hint, not a command. Prefer a
   globally coherent minimal edit that satisfies NL and verification evidence.
 - Preserve NL-grounded required elements in GroundingMap.
 - Keep passing scenarios from regressing.
-- Output corrected pyfcstm DSL only. No fences, no commentary.
+- Prefer strict JSON with fields `decisions`, `candidate_dsl`,
+  `repair_rationale`, and `diff_summary`. Legacy DSL-only output is tolerated
+  for compatibility, but the default PR-E1 path should emit JSON so the request
+  ledger is auditable.
 - Treat any `variable_role_summary` in `selected_diagnostics` as advisory
   context for external-input vs internal-state decisions. It is not a command
   to silence warnings; SD-10 still decides whether the candidate is acceptable.
@@ -121,6 +135,8 @@ Target-aware repair rules:
         "repair_target": repair_target,
         "plan_kind": plan_kind,
         "fix_plan_or_revised_fix_plan": fix_plan,
+        "fix_request_batch": fix_request_batch,
+        "fix_log": fix_log or [],
         "grounding_map": grounding_map,
         "selected_diagnostics": selected_diagnostics or [],
         "preserve_list": preserve_list or [],
@@ -137,6 +153,25 @@ Target-aware repair rules:
 ## SL-9 structured repair input
 {fenced_json(payload)}
 
-Repair the DSL with the smallest safe edit. Output corrected pyfcstm DSL only.
+Repair the DSL with the smallest safe edit.
+
+Return strict JSON when possible:
+{{
+  "decisions": [
+    {{
+      "request_id": "id from FixRequestBatch",
+      "decision": "accept|reject",
+      "rationale": "why",
+      "waiver": false,
+      "accepted_edit_intent": ["short edit intent"]
+    }}
+  ],
+  "candidate_dsl": "complete pyfcstm DSL if at least one request is accepted",
+  "repair_rationale": ["short rationale"],
+  "diff_summary": {{"summary": "human-readable diff intent"}}
+}}
+
+If the provider cannot safely return JSON, Output corrected pyfcstm DSL only;
+the runtime will treat all current hard requests as accepted for compatibility.
 """
     return message_pack(system, user)

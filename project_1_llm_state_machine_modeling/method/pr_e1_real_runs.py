@@ -123,7 +123,7 @@ class ConditionSpec:
     llm_max_retries: int = 2
     scenario_max_retries: int = 2
     model_review_mode: str = "blocking_major_only"
-    delta_review_mode: str = "blocking_major_only"
+    repair_review_mode: str = "blocking_major_only"
     exploratory: bool = False
     changed_factors: tuple[str, ...] = field(default_factory=tuple)
     academic_question: str = ""
@@ -375,7 +375,7 @@ def make_pr_e1_config(spec: ConditionSpec, *, output_dir: str | Path, run_id: st
         llm_policy=llm_policy,
         academic_question=spec.academic_question,
         model_review_mode=spec.model_review_mode,
-        delta_review_mode=spec.delta_review_mode,
+        delta_review_mode=spec.repair_review_mode,
         output_dir=str(output_dir),
         run_id=run_id,
     )
@@ -926,7 +926,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| case_id | `{case.case_id}` |",
         f"| config_id | `{spec.config_id}` |",
         "| 运行入口 | `method.loop.run_agent_loop(nl, LoopConfig(...))` |",
-        f"| LoopConfig 摘要 | `condition_id={summary.condition_id}`, `max_iterations={spec.max_iterations}`, `llm_max_retries={spec.llm_max_retries}`, `scenario_max_retries={spec.scenario_max_retries}`, `model_review_mode={spec.model_review_mode}`, `delta_review_mode={spec.delta_review_mode}` |",
+        f"| LoopConfig 摘要 | `condition_id={summary.condition_id}`, `max_iterations={spec.max_iterations}`, `llm_max_retries={spec.llm_max_retries}`, `scenario_max_retries={spec.scenario_max_retries}`, `model_review_mode={spec.model_review_mode}`, `repair_review_mode={spec.repair_review_mode}` |",
         f"| Git commit | `{summary.git_commit}` |",
         f"| clean / diff / prompt snapshot | clean=`{summary.clean_commit_bound}`, dirty=`{summary.git_dirty}`, diff_hash=`{summary.git_diff_hash}`, prompt_hash=`{summary.prompt_snapshot_hash}` |",
         f"| provider/model 脱敏标识 | mode=`{summary.provider_mode}`, model=`{summary.provider_model_redacted}`, real_api=`{summary.real_llm_provider_api}` |",
@@ -970,8 +970,8 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
             "",
             "### 5. Iteration / repair / review 摘要",
             "",
-            "| Iter | selected feedback | repair? | SD-10 | SL-10B | 回到 SD-2? | verdict/备注 |",
-            "|---:|---|---|---|---|---|---|",
+            "| Iter | selected feedback | repair? | FixRequestBatch | SL-9 | local checks | SL-10 | 回到 SD-2? | verdict/备注 |",
+            "|---:|---|---|---|---|---|---|---|---|",
         ]
     )
     for row in _iteration_table_rows(record):
@@ -1217,7 +1217,7 @@ def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output
                 "",
                 _read_report_section(s.report_path, start="### 7. Repair / blocking feedback 明细", end="<details><summary>Repair", max_chars=7000),
                 "",
-                f"> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 SD-10/SL-10B 审查证据见 `{report_path}` §7。",
+                f"> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 local-check evidence 与 SL-10 审查证据见 `{report_path}` §7。",
                 "",
                 "</details>",
                 "",
@@ -1276,7 +1276,7 @@ def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> lis
     elif all(s.verdict != "success" for s in summaries):
         lines.append("- Q1/max_iterations：当前证据未产生 success；若 run 早停于 `rejected`，瓶颈更可能是 prompt/repair candidate quality 或样本变量语义，而不是单纯迭代预算。")
     if not any("SL-5" in s.executed_stage_ids for s in summaries):
-        lines.append("- Q1/scenario-review 维度：当前矩阵尚未进入 SL-5/SD-6/SL-7/SL-10B，因此 `scenario_max_retries`、`model_review_mode`、`delta_review_mode` 仍属于未回答问题。")
+        lines.append("- Q1/scenario-review 维度：当前矩阵尚未进入 SL-5/SD-6/SL-7/SL-10，因此 `scenario_max_retries`、`model_review_mode`、`repair_review_mode` 仍属于未回答问题。")
     eligible_count = sum(1 for s in summaries if s.main_result_eligible)
     lines.append(f"- 主结果候选：当前 {eligible_count}/{len(summaries)} run 可进入 main_result_eligible；其余只能作为 exploratory / infrastructure evidence。")
     return lines
@@ -1356,33 +1356,43 @@ def _stage_table_rows(record: AgentLoopRunRecord, summary: PrE1RunSummary) -> li
 
 def _iteration_table_rows(record: AgentLoopRunRecord) -> list[list[str]]:
     if not record.iteration_records:
-        return [["-", "<none>", "no", "<none>", "<none>", "no", "no iteration record"]]
+        return [["-", "<none>", "no", "<none>", "<none>", "<none>", "<none>", "no", "no iteration record"]]
     rows: list[list[str]] = []
     for item in record.iteration_records:
-        selected = item.get("selected_feedback") if isinstance(item, dict) else None
+        if not isinstance(item, dict):
+            continue
+        selected = item.get("selected_feedback") if isinstance(item.get("selected_feedback"), dict) else None
         source_stage = selected.get("source_stage") if isinstance(selected, dict) else None
         source = selected.get("source") if isinstance(selected, dict) else None
-        repair_review = item.get("repair_review") if isinstance(item, dict) else None
-        sd10 = "<none>"
-        sl10b = "<none>"
-        if isinstance(repair_review, dict):
-            sd10 = "accept" if repair_review.get("ok") else "reject"
+        batch = item.get("fix_request_batch") if isinstance(item.get("fix_request_batch"), dict) else {}
+        requests = batch.get("requests") if isinstance(batch, dict) else None
+        batch_text = "<none>"
+        if isinstance(requests, list):
+            batch_text = f"{batch.get('batch_id') or '<batch>'} / n={len(requests)}"
+        sl9 = item.get("sl9_decision") if isinstance(item.get("sl9_decision"), dict) else {}
+        sl9_text = _sl9_decision_compact(sl9)
+        local_evidence = item.get("local_check_evidence") if isinstance(item.get("local_check_evidence"), dict) else {}
+        local_text = _local_check_compact(local_evidence)
+        sl10 = item.get("sl10_repair_review") if isinstance(item.get("sl10_repair_review"), dict) else None
+        repair_review = item.get("repair_review") if isinstance(item.get("repair_review"), dict) else None
+        if sl10 is None and isinstance(repair_review, dict):
             delta = repair_review.get("delta_review")
-            if isinstance(delta, dict):
-                sl10b = str(delta.get("decision") or "<none>")
+            sl10 = delta if isinstance(delta, dict) else repair_review
+        sl10_text = _sl10_review_compact(sl10 if isinstance(sl10, dict) else {})
         rows.append(
             [
                 str(item.get("iteration", "-")),
                 f"`{source_stage or source or '<none>'}`",
                 "yes" if item.get("repair_stage_ids") else "no",
-                sd10,
-                sl10b,
+                _escape_md(_short_text(batch_text, 220)),
+                _escape_md(_short_text(sl9_text, 220)),
+                _escape_md(_short_text(local_text, 220)),
+                _escape_md(_short_text(sl10_text, 220)),
                 "yes" if item.get("accepted_candidate") else "no",
                 str(item.get("exit_reason") or ""),
             ]
         )
     return rows
-
 
 def _scenario_report_lines(record: AgentLoopRunRecord) -> list[str]:
     """Render human-readable scenarios and per-iteration pass/fail matrix."""
@@ -1542,35 +1552,36 @@ def _escape_md(text: str) -> str:
 
 
 def _repair_report_lines(record: AgentLoopRunRecord) -> list[str]:
-    """Render each repair block with cause, guidance, candidate, and diff evidence."""
+    """Render each repair block with cause, requests, decisions, candidate, diff and review evidence."""
 
     repairs = [item for item in record.repair_history if isinstance(item, dict)]
     if not repairs:
         return [
-            "- 本 run 未进入 `SD-8/SL-9/SD-10` repair block；通常表示流程在 repair 前已成功、被 provider/schema 错误中断，或在 pre-repair 阶段直接退出。",
+            "- 本 run 未进入 `SD-8/SL-9/SL-10` repair block；通常表示流程在 repair 前已成功、被 provider/schema 错误中断，或在 pre-repair 阶段直接退出。",
         ]
 
     lines: list[str] = [
-        "口径：本节只记录 agent-loop 真实进入 repair block 后已有证据；`diff` 基于 run record 中可恢复的 before/candidate DSL 文本生成，若 before DSL 未落盘则明确标注不可恢复。",
+        "口径：本节记录 agent-loop 真实进入 repair block 后的证据链：FixRequestBatch、SL-9 per-request accept/reject、candidate diff、local-check evidence、SL-10(NL+FixLog) 审阅，以及完整 FixLog ledger 摘录。",
         "",
-        "| Repair | iteration | accepted | source | blocking diagnostics | SD-10 / SL-10B | candidate hash |",
-        "|---:|---:|---:|---|---|---|---|",
+        "| Repair | iteration | accepted | source | blocking diagnostics | SL-9 decisions | SL-10 / local checks | candidate hash |",
+        "|---:|---:|---:|---|---|---|---|---|",
     ]
     for index, item in enumerate(repairs, start=1):
         selected = item.get("selected_feedback") if isinstance(item.get("selected_feedback"), dict) else {}
         fix_plan = item.get("fix_plan") if isinstance(item.get("fix_plan"), dict) else {}
-        rr = _repair_review_dict(item)
-        sl10b = _delta_review_dict(rr)
+        sl10 = _sl10_review_dict(item)
+        local = _local_check_dict(item)
         source = selected.get("source_stage") or selected.get("source") or fix_plan.get("source_stage") or "<none>"
         diagnostics = _diagnostic_list(selected, fix_plan)
         lines.append(
-            "| {idx} | `{iteration}` | {accepted} | `{source}` | {diagnostics} | {review} | `{candidate_hash}` |".format(
+            "| {idx} | `{iteration}` | {accepted} | `{source}` | {diagnostics} | {sl9} | {review} | `{candidate_hash}` |".format(
                 idx=index,
                 iteration=item.get("iteration", "-"),
                 accepted="✅" if item.get("accepted") is True else "❌",
                 source=_escape_md(str(source)),
                 diagnostics=_escape_md(_join_limited(diagnostics, limit=5)),
-                review=_escape_md(_repair_review_compact(rr, sl10b)),
+                sl9=_escape_md(_short_text(_sl9_decision_compact(_sl9_decision_dict(item)), 220)),
+                review=_escape_md(_short_text(_sl10_and_local_compact(sl10, local), 260)),
                 candidate_hash=_escape_md(str(item.get("candidate_dsl_hash") or "<none>")),
             )
         )
@@ -1578,8 +1589,8 @@ def _repair_report_lines(record: AgentLoopRunRecord) -> list[str]:
     lines.append("")
     for index, item in enumerate(repairs, start=1):
         lines.extend(_single_repair_detail_lines(index, item, repairs, record))
+    lines.extend(_fix_log_ledger_lines(record))
     return lines
-
 
 def _single_repair_detail_lines(
     index: int,
@@ -1590,7 +1601,8 @@ def _single_repair_detail_lines(
     selected = item.get("selected_feedback") if isinstance(item.get("selected_feedback"), dict) else {}
     fix_plan = item.get("fix_plan") if isinstance(item.get("fix_plan"), dict) else {}
     rr = _repair_review_dict(item)
-    sl10b = _delta_review_dict(rr)
+    sl10 = _sl10_review_dict(item)
+    local_checks = _local_check_dict(item)
     candidate_dsl = str(item.get("candidate_dsl") or "")
     before_dsl = _before_dsl_for_repair(index - 1, item, repairs, record)
     diff_lines = _dsl_diff_lines(before_dsl, candidate_dsl)
@@ -1599,7 +1611,9 @@ def _single_repair_detail_lines(
     evidence_lines = _fix_plan_evidence_lines(fix_plan)
     hint_lines = _fix_plan_hint_lines(fix_plan)
     variable_role_lines = _variable_role_lines(selected)
-    rr_lines = _repair_review_detail_lines(rr, sl10b)
+    rr_lines = _repair_review_detail_lines(rr, sl10, local_checks)
+    batch_lines = _fix_request_batch_lines(_fix_request_batch_dict(item))
+    sl9_lines = _sl9_decision_lines(_sl9_decision_dict(item))
     before_hash = _escape_md(str(fix_plan.get("before_dsl_hash") or _repair_input_summary(item).get("old_dsl_hash") or "<unknown>"))
     candidate_hash = _escape_md(str(item.get("candidate_dsl_hash") or _repair_input_summary(item).get("candidate_dsl_hash") or "<unknown>"))
     source = selected.get("source_stage") or selected.get("source") or fix_plan.get("source_stage") or "<none>"
@@ -1622,7 +1636,9 @@ def _single_repair_detail_lines(
     if variable_role_lines:
         lines.extend(["", "#### 变量角色与上下文提示", ""])
         lines.extend(variable_role_lines)
-    lines.extend(["", "#### SD-8 fix plan / 修改建议", ""])
+    lines.extend(["", "#### SD-8 FixRequestBatch / 修改请求", ""])
+    lines.extend(batch_lines or ["- 未记录 fix_request_batch；兼容旧 run record 时请查看 fix_plan。"])
+    lines.extend(["", "#### SD-8 legacy fix plan / 修改建议", ""])
     lines.extend(hint_lines or ["- fix_plan 未记录 suggested_fix_hints / recommended_strategy。"])
     forbidden = fix_plan.get("forbidden_edits")
     preserve = fix_plan.get("required_preserve_element_ids")
@@ -1630,6 +1646,8 @@ def _single_repair_detail_lines(
         lines.append(f"- forbidden_edits：`{_escape_md(_join_limited([str(x) for x in forbidden], limit=6))}`。")
     if isinstance(preserve, list) and preserve:
         lines.append(f"- required_preserve_element_ids：`{_escape_md(_join_limited([str(x) for x in preserve], limit=12))}`。")
+    lines.extend(["", "#### SL-9 per-request 决策", ""])
+    lines.extend(sl9_lines or ["- 未记录 SL-9 structured decisions；可能为旧 DSL-only 输出。"] )
     lines.extend(["", "#### SL-9 candidate / 最终修改执行方案", ""])
     if candidate_dsl:
         lines.extend(["```pyfcstm", candidate_preview, "```"])
@@ -1637,7 +1655,7 @@ def _single_repair_detail_lines(
         lines.append("- 本 repair 未记录 candidate_dsl。")
     lines.extend(["", "#### Candidate diff（before -> candidate）", ""])
     lines.extend(diff_lines)
-    lines.extend(["", "#### SD-10 / SL-10B 审查结果", ""])
+    lines.extend(["", "#### SL-10 审查结果", ""])
     lines.extend(rr_lines)
     lines.extend(["", "</details>", ""])
     return lines
@@ -1654,6 +1672,153 @@ def _repair_review_dict(item: dict[str, Any]) -> dict[str, Any]:
 def _repair_input_summary(item: dict[str, Any]) -> dict[str, Any]:
     value = item.get("repair_review_input_summary")
     return value if isinstance(value, dict) else {}
+
+def _fix_request_batch_dict(item: dict[str, Any]) -> dict[str, Any]:
+    value = item.get("fix_request_batch")
+    return value if isinstance(value, dict) else {}
+
+
+def _sl9_decision_dict(item: dict[str, Any]) -> dict[str, Any]:
+    value = item.get("sl9_decision")
+    return value if isinstance(value, dict) else {}
+
+
+def _sl10_review_dict(item: dict[str, Any]) -> dict[str, Any]:
+    value = item.get("sl10_repair_review")
+    if isinstance(value, dict):
+        return value
+    rr = item.get("repair_review")
+    if isinstance(rr, dict):
+        delta = rr.get("delta_review")
+        if isinstance(delta, dict) and delta.get("legacy_field") == "sl10_repair_review":
+            return delta
+    return {}
+
+
+def _local_check_dict(item: dict[str, Any]) -> dict[str, Any]:
+    value = item.get("local_check_evidence")
+    if isinstance(value, dict):
+        return value
+    sl10 = _sl10_review_dict(item)
+    value = sl10.get("local_check_evidence")
+    return value if isinstance(value, dict) else {}
+
+
+def _fix_request_batch_lines(batch: dict[str, Any]) -> list[str]:
+    if not batch:
+        return []
+    requests = batch.get("requests") if isinstance(batch.get("requests"), list) else []
+    lines = [
+        f"- batch_id：`{_escape_md(str(batch.get('batch_id') or '<none>'))}`；source_stage=`{_escape_md(str(batch.get('source_stage') or '<none>'))}`；legacy_plan_kind=`{_escape_md(str(batch.get('legacy_plan_kind') or '<none>'))}`；requests=`{len(requests)}`。"
+    ]
+    if requests:
+        lines.extend(["", "| request_id | severity | hard | waiver | problem | evidence |", "|---|---|---:|---:|---|---|"])
+        for req in requests[:10]:
+            if not isinstance(req, dict):
+                continue
+            evidence = req.get("evidence") if isinstance(req.get("evidence"), list) else []
+            ev_text = _join_limited([str((ev or {}).get("code") or (ev or {}).get("kind") or (ev or {}).get("instance_key") or ev) for ev in evidence if isinstance(ev, dict)], limit=3)
+            lines.append(
+                "| `{rid}` | `{sev}` | {hard} | {waiver} | {problem} | `{ev}` |".format(
+                    rid=_escape_md(str(req.get("request_id") or "<none>")),
+                    sev=_escape_md(str(req.get("severity") or "<none>")),
+                    hard="✅" if req.get("hard_block") else "❌",
+                    waiver="✅" if req.get("waiver_allowed") else "❌",
+                    problem=_escape_md(_short_text(str(req.get("problem_summary") or ""), 220)),
+                    ev=_escape_md(ev_text),
+                )
+            )
+        if len(requests) > 10:
+            lines.append(f"- ……另有 `{len(requests) - 10}` 个 request 见 run record。")
+    return lines
+
+
+def _sl9_decision_lines(decision: dict[str, Any]) -> list[str]:
+    if not decision:
+        return []
+    decisions = decision.get("decisions") if isinstance(decision.get("decisions"), list) else []
+    lines = [
+        f"- accepted_request_ids：`{_escape_md(_join_limited([str(x) for x in decision.get('accepted_request_ids', [])], limit=12)) if isinstance(decision.get('accepted_request_ids'), list) else '<derived-from-table>'}`；candidate_len=`{len(str(decision.get('candidate_dsl') or ''))}`。"
+    ]
+    if decisions:
+        lines.extend(["", "| request_id | decision | waiver | rework_locked | rationale / intent |", "|---|---|---:|---:|---|"])
+        for row in decisions[:12]:
+            if not isinstance(row, dict):
+                continue
+            intent = row.get("accepted_edit_intent") if isinstance(row.get("accepted_edit_intent"), list) else []
+            text = str(row.get("rationale") or row.get("rejected_reason") or "")
+            if intent:
+                text += "；intent=" + _join_limited([str(x) for x in intent], limit=3)
+            lines.append(
+                "| `{rid}` | `{decision}` | {waiver} | {locked} | {text} |".format(
+                    rid=_escape_md(str(row.get("request_id") or "<none>")),
+                    decision=_escape_md(str(row.get("decision") or "<none>")),
+                    waiver="✅" if row.get("waiver") else "❌",
+                    locked="✅" if row.get("rework_locked") else "❌",
+                    text=_escape_md(_short_text(text, 360)),
+                )
+            )
+    rationale = decision.get("repair_rationale")
+    if isinstance(rationale, list) and rationale:
+        lines.append("- repair_rationale：" + "；".join(_escape_md(_short_text(str(x), 240)) for x in rationale[:5]))
+    diff = decision.get("diff_summary")
+    if isinstance(diff, dict) and diff:
+        lines.append(f"- diff_summary：`{_escape_md(_short_text(json.dumps(diff, ensure_ascii=False, sort_keys=True), 700))}`。")
+    return lines
+
+
+def _sl9_decision_compact(decision: dict[str, Any]) -> str:
+    if not decision:
+        return "<none>"
+    rows = decision.get("decisions") if isinstance(decision.get("decisions"), list) else []
+    accepted = 0
+    rejected = 0
+    waived = 0
+    if isinstance(rows, list):
+        accepted = sum(1 for row in rows if isinstance(row, dict) and row.get("decision") == "accept")
+        rejected = sum(1 for row in rows if isinstance(row, dict) and row.get("decision") == "reject")
+        waived = sum(1 for row in rows if isinstance(row, dict) and row.get("waiver"))
+    return f"accept={accepted}, reject={rejected}, waiver={waived}"
+
+
+def _local_check_compact(local: dict[str, Any]) -> str:
+    if not local:
+        return "<none>"
+    feedback = local.get("repair_review_feedback") if isinstance(local.get("repair_review_feedback"), dict) else {}
+    meta = local.get("meta") if isinstance(local.get("meta"), dict) else {}
+    if feedback:
+        local_rej = feedback.get("local_rejection") if isinstance(feedback.get("local_rejection"), dict) else {}
+        return "ok={ok}, target={target}, regression={regression}, drift={drift}, local_stage={stage}, reason={reason}".format(
+            ok=feedback.get("ok"),
+            target=feedback.get("target_resolved"),
+            regression=feedback.get("regression_detected"),
+            drift=feedback.get("drift_risk") or local_rej.get("drift_risk"),
+            stage=local.get("legacy_local_check_stage_id") or meta.get("stage_id") or "<none>",
+            reason=_short_text(str(local_rej.get("reason") or ""), 120),
+        )
+    return _short_text(json.dumps(local, ensure_ascii=False, sort_keys=True), 220)
+
+
+def _sl10_review_compact(sl10: dict[str, Any]) -> str:
+    if not sl10:
+        return "<none>"
+    return "decision={decision}, ok={ok}, target={target}, regression={regression}, drift={drift}, rework={rework}".format(
+        decision=sl10.get("decision"),
+        ok=sl10.get("ok"),
+        target=sl10.get("target_resolved"),
+        regression=sl10.get("regression_detected"),
+        drift=sl10.get("drift_risk"),
+        rework=_join_limited([str(x) for x in sl10.get("rework_instructions", [])], limit=2) if isinstance(sl10.get("rework_instructions"), list) else "<none>",
+    )
+
+
+def _sl10_and_local_compact(sl10: dict[str, Any], local: dict[str, Any]) -> str:
+    parts = []
+    if sl10:
+        parts.append("SL-10 " + _sl10_review_compact(sl10))
+    if local:
+        parts.append("local " + _local_check_compact(local))
+    return "; ".join(parts) or "<none>"
 
 
 def _delta_review_dict(repair_review: dict[str, Any]) -> dict[str, Any] | None:
@@ -1767,41 +1932,101 @@ def _variable_role_lines(selected: dict[str, Any]) -> list[str]:
 
 
 def _repair_review_compact(repair_review: dict[str, Any], delta_review: dict[str, Any] | None) -> str:
-    if not repair_review:
-        return "<none>"
-    local = repair_review.get("local_rejection") if isinstance(repair_review.get("local_rejection"), dict) else {}
-    reason = repair_review.get("reason") or local.get("reason") or ""
-    delta = ""
-    if delta_review:
-        delta = f"; delta={delta_review.get('decision') or delta_review.get('ok') or '<recorded>'}"
-    return "SD-10 ok={ok}, target={target}, regression={regression}, drift={drift}, reason={reason}{delta}".format(
-        ok=repair_review.get("ok"),
-        target=repair_review.get("target_resolved"),
-        regression=repair_review.get("regression_detected"),
-        drift=repair_review.get("drift_risk") or local.get("drift_risk"),
-        reason=_short_text(str(reason), 160),
-        delta=delta,
-    )
+    """Backward-compatible compact text for legacy callers."""
+
+    sl10 = delta_review if isinstance(delta_review, dict) and delta_review.get("legacy_field") == "sl10_repair_review" else {}
+    return _sl10_and_local_compact(sl10, {"repair_review_feedback": repair_review})
 
 
-def _repair_review_detail_lines(repair_review: dict[str, Any], delta_review: dict[str, Any] | None) -> list[str]:
-    if not repair_review:
-        return ["- 未记录 repair_review / sd10_repair_review。"]
-    lines = [
-        f"- SD-10 ok=`{repair_review.get('ok')}`，target_resolved=`{repair_review.get('target_resolved')}`，regression_detected=`{repair_review.get('regression_detected')}`，drift_risk=`{repair_review.get('drift_risk')}`。",
-    ]
-    local = repair_review.get("local_rejection")
-    if isinstance(local, dict):
-        lines.append(f"- local_rejection：reason=`{_escape_md(str(local.get('reason') or '<none>'))}`，rejected_by_stage=`{local.get('rejected_by_stage')}`。")
-        evidence = local.get("evidence")
-        if isinstance(evidence, list):
+def _repair_review_detail_lines(
+    repair_review: dict[str, Any],
+    sl10_review: dict[str, Any] | None,
+    local_check_evidence: dict[str, Any] | None,
+) -> list[str]:
+    if not repair_review and not sl10_review and not local_check_evidence:
+        return ["- 未记录 repair_review / sl10_repair_review / local_check_evidence。"]
+    lines: list[str] = []
+    if sl10_review:
+        lines.append(
+            f"- SL-10 decision=`{sl10_review.get('decision')}`，ok=`{sl10_review.get('ok')}`，target_resolved=`{sl10_review.get('target_resolved')}`，regression_detected=`{sl10_review.get('regression_detected')}`，drift_risk=`{sl10_review.get('drift_risk')}`。"
+        )
+        meta = sl10_review.get("review_meta")
+        if isinstance(meta, dict):
+            lines.append(
+                f"- SL-10 review_meta：schema=`{meta.get('parsed_schema_version')}`，failure_policy=`{meta.get('failure_policy')}`，replay_key=`{_escape_md(str(meta.get('replay_key') or '<none>'))}`。"
+            )
+        evidence = sl10_review.get("evidence")
+        if isinstance(evidence, list) and evidence:
             for index, item in enumerate(evidence[:6], start=1):
-                if isinstance(item, dict):
-                    lines.append(f"  - local evidence {index}: `{_escape_md(str(item.get('kind') or '<unknown>'))}` {_escape_md(_short_text(json.dumps(item, ensure_ascii=False, sort_keys=True), 500))}")
-    if delta_review:
-        lines.append(f"- SL-10B delta_review：`{_escape_md(_short_text(json.dumps(delta_review, ensure_ascii=False, sort_keys=True), 900))}`。")
+                lines.append(f"  - SL-10 evidence {index}: `{_escape_md(_short_text(json.dumps(item, ensure_ascii=False, sort_keys=True), 700))}`")
+        rework = sl10_review.get("rework_instructions")
+        if isinstance(rework, list) and rework:
+            lines.append("- SL-10 rework_instructions：" + "；".join(_escape_md(_short_text(str(x), 360)) for x in rework[:6]))
     else:
-        lines.append("- SL-10B delta_review：`<none>`（通常是 SD-10 本地审查已拒绝，未进入 LLM delta review）。")
+        lines.append("- SL-10：`<none>`（旧 record 或本 run 未进入 LLM repair review）。")
+
+    local = local_check_evidence or {}
+    if local:
+        feedback = local.get("repair_review_feedback") if isinstance(local.get("repair_review_feedback"), dict) else {}
+        lines.append(
+            f"- local checks evidence：stage=`{local.get('legacy_local_check_stage_id') or local.get('stage_id')}`；note={_escape_md(_short_text(str(local.get('local_check_note') or '<none>'), 360))}。"
+        )
+        if feedback:
+            lines.append(
+                f"  - local ok=`{feedback.get('ok')}`，target_resolved=`{feedback.get('target_resolved')}`，regression_detected=`{feedback.get('regression_detected')}`，drift_risk=`{feedback.get('drift_risk')}`。"
+            )
+            local_rejection = feedback.get("local_rejection")
+            if isinstance(local_rejection, dict):
+                lines.append(
+                    f"  - local_rejection：reason=`{_escape_md(str(local_rejection.get('reason') or '<none>'))}`，rejected_by_stage=`{local_rejection.get('rejected_by_stage')}`。"
+                )
+                evidence = local_rejection.get("evidence")
+                if isinstance(evidence, list):
+                    for index, item in enumerate(evidence[:6], start=1):
+                        if isinstance(item, dict):
+                            lines.append(f"    - local evidence {index}: `{_escape_md(str(item.get('kind') or '<unknown>'))}` {_escape_md(_short_text(json.dumps(item, ensure_ascii=False, sort_keys=True), 500))}")
+    elif repair_review:
+        lines.append(
+            f"- legacy repair_review：ok=`{repair_review.get('ok')}`，target_resolved=`{repair_review.get('target_resolved')}`，regression_detected=`{repair_review.get('regression_detected')}`，drift_risk=`{repair_review.get('drift_risk')}`。"
+        )
+    return lines
+
+
+def _fix_log_ledger_lines(record: AgentLoopRunRecord) -> list[str]:
+    fix_log = record.fix_log if isinstance(record.fix_log, list) else []
+    if not fix_log:
+        return ["", "#### FixLog ledger", "", "- 本 run record 未记录 FixLog ledger（可能是旧格式或未进入 repair）。"]
+    lines: list[str] = [
+        "",
+        "#### FixLog ledger",
+        "",
+        "口径：FixLog 是跨 iteration 的 append-only repair 台账，记录 request batch、SL-9 accept/reject、diff/local evidence、SL-10 批示和下一步动作。",
+        "",
+        "| # | iteration | phase | batch | decisions | next_action | candidate | notes |",
+        "|---:|---:|---|---|---|---|---|---|",
+    ]
+    for index, entry in enumerate(fix_log[:30], start=1):
+        if not isinstance(entry, dict):
+            continue
+        decisions = entry.get("decisions") if isinstance(entry.get("decisions"), list) else []
+        accept = sum(1 for row in decisions if isinstance(row, dict) and row.get("decision") == "accept")
+        reject = sum(1 for row in decisions if isinstance(row, dict) and row.get("decision") == "reject")
+        notes = entry.get("notes") if isinstance(entry.get("notes"), list) else []
+        lines.append(
+            "| {idx} | `{iteration}` | `{phase}` | `{batch}` | accept={accept}, reject={reject} | `{next}` | `{candidate}` | {notes} |".format(
+                idx=index,
+                iteration=entry.get("iteration", "-"),
+                phase=_escape_md(str(entry.get("phase") or "<none>")),
+                batch=_escape_md(str(entry.get("batch_id") or "<none>")),
+                accept=accept,
+                reject=reject,
+                next=_escape_md(str(entry.get("next_action") or "<none>")),
+                candidate=_escape_md(str(entry.get("candidate_dsl_hash") or "<none>")),
+                notes=_escape_md(_join_limited([str(x) for x in notes], limit=3)),
+            )
+        )
+    if len(fix_log) > 30:
+        lines.append(f"- ……另有 `{len(fix_log) - 30}` 条 FixLog entry 见 run record。")
     return lines
 
 
@@ -1937,7 +2162,7 @@ def _stage_feedback_summary(record: AgentLoopRunRecord, stage_id: str) -> str:
         return _design_summary(record)
     if stage_id == "SD-6":
         return _det_feedback_ok(record, "sim")
-    if stage_id == "SD-10":
+    if stage_id == "SL-10":
         return _repair_review_summary(record)
     if stage_id == "SC-12":
         return str(record.final_artifacts.get("verdict_reason") or "")[:160]
@@ -1956,10 +2181,9 @@ def _stage_action_summary(stage_id: str) -> str:
         "SC-5F": "冻结 scenario oracle",
         "SD-6": "执行 scenario simulation",
         "SL-7": "LLM model review",
-        "SD-8": "生成 FixPlan",
-        "SL-9": "LLM repair candidate",
-        "SD-10": "本地 repair review",
-        "SL-10B": "LLM delta review",
+        "SD-8": "生成 FixRequestBatch",
+        "SL-9": "LLM per-request accept/reject + repair",
+        "SL-10": "LLM repair review（输入 NL/FixLog/local evidence）",
         "SC-11": "接受/拒绝候选",
         "SC-12": "写 final verdict",
         "SC-13": "写审计 run record",

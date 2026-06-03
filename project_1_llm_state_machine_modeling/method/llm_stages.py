@@ -29,11 +29,13 @@ from method.gpt_client import chat as real_env_chat
 from method.gpt_client import get_default_model
 from method.schema import (
     FixPlan,
+    FixRequestBatch,
     GroundingMap,
     ModelReviewFeedback,
     RepairReviewFeedback,
     ReviewRunMeta,
     RevisedFixPlan,
+    SL10RepairReviewOutput,
     StageResultMeta,
     TestScenario,
 )
@@ -42,6 +44,7 @@ from method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt
 from method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt, parse_sl1_initial_modeling_response
 from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt, parse_sl10_repair_review_response
 from method.stages.sl_scenario_generation_prompt import build_sl5_scenario_generation_prompt, parse_sl5_scenario_generation_response
 from method.stages.sl_prompt_common import strip_fence
 
@@ -895,6 +898,8 @@ def run_sl9_repair_llm(
     nl: str,
     current_dsl: str,
     fix_plan: FixPlan | RevisedFixPlan | dict[str, Any] | None = None,
+    fix_request_batch: FixRequestBatch | dict[str, Any] | None = None,
+    fix_log: list[dict[str, Any]] | None = None,
     grounding_map: Any | None = None,
     selected_diagnostics: list[dict[str, Any]] | None = None,
     grammar_digest: str | None = None,
@@ -910,6 +915,8 @@ def run_sl9_repair_llm(
         nl=nl,
         current_dsl=current_dsl,
         fix_plan=fix_plan,
+        fix_request_batch=fix_request_batch,
+        fix_log=fix_log,
         grounding_map=grounding_map,
         selected_diagnostics=selected_diagnostics,
         grammar_digest=grammar_digest,
@@ -920,11 +927,24 @@ def run_sl9_repair_llm(
     )
 
     def parse_repair(raw: str) -> dict[str, str]:
+        stripped = strip_fence(raw)
+        try:
+            parsed = json.loads(stripped)
+        except Exception:
+            parsed = None
+        if isinstance(parsed, dict) and parsed.get("candidate_dsl") is not None:
+            dsl = strip_fence(str(parsed.get("candidate_dsl") or ""))
+            if not dsl and any(decision.get("decision") == "accept" for decision in parsed.get("decisions", []) if isinstance(decision, dict)):
+                raise ValueError("SL-9 candidate_dsl must be non-empty when a request is accepted")
+            return {
+                **parsed,
+                "candidate_dsl": dsl,
+            }
         # Real providers sometimes wrap DSL in Markdown fences despite the
         # prompt saying "no fences".  Fence-wrapped DSL is an LLM formatting
         # artifact, not a semantic repair decision; normalize it here so PR-C
         # does not feed fenced text into deterministic parse/semantic stages.
-        dsl = strip_fence(raw)
+        dsl = stripped
         if not dsl:
             raise ValueError("SL-9 candidate_dsl must be non-empty")
         return {"candidate_dsl": dsl}
@@ -1129,6 +1149,69 @@ def run_sl10b_delta_review_llm(
     return run
 
 
+def run_sl10_repair_review_llm(
+    *,
+    nl: str,
+    grounding_map: Any,
+    old_dsl: str,
+    candidate_dsl: str,
+    request_batch: Any,
+    sl9_decisions: Any,
+    fix_log: list[dict[str, Any]] | None = None,
+    diff_summary: dict[str, Any] | None = None,
+    local_check_evidence: dict[str, Any] | None = None,
+    scenario_summary: dict[str, Any] | None = None,
+    review_policy: dict[str, Any] | None = None,
+    config: Optional[LLMStageConfig] = None,
+    provider: Optional[ChatProvider] = None,
+) -> LLMStageRun:
+    cfg = config or LLMStageConfig()
+    version = "sl10-repair-review.v1"
+    prompt = build_sl10_repair_review_prompt(
+        nl=nl,
+        grounding_map=grounding_map,
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
+        request_batch=request_batch,
+        sl9_decisions=sl9_decisions,
+        fix_log=fix_log,
+        diff_summary=diff_summary,
+        local_check_evidence=local_check_evidence,
+        scenario_summary=scenario_summary,
+        prompt_template_version=version,
+    )
+    mode = _policy_mode(review_policy, default="blocking_major_only")
+    run = _run_llm_stage(
+        stage_id=StageId.SL_10_REPAIR_REVIEW,
+        prompt_template_version=version,
+        prompt_messages=prompt,
+        parser=parse_sl10_repair_review_response,
+        parsed_schema_version="SL10RepairReviewOutput.v1",
+        config=cfg,
+        provider=provider,
+        response_format={"type": "json_object"},
+        failure_policy=_review_failure_policy(mode),
+    )
+    parsed = run.parsed_output if isinstance(run.parsed_output, dict) else {}
+    review_meta = ReviewRunMeta(**run.interaction["review_meta"])
+    decision = parsed.get("decision", "invalid_output") if run.ok else "invalid_output"
+    ok = bool(run.ok and decision == "pass")
+    feedback = SL10RepairReviewOutput(
+        ok=ok,
+        decision=decision,
+        target_resolved=bool(parsed.get("target_resolved", ok)),
+        regression_detected=bool(parsed.get("regression_detected", not ok)),
+        drift_risk=parsed.get("drift_risk", "none" if ok else "major"),
+        rework_instructions=[str(item) for item in parsed.get("rework_instructions", [])],
+        evidence=parsed.get("evidence", []),
+        local_check_evidence=local_check_evidence or {},
+        review_meta=review_meta,
+        meta=run.stage_meta,
+    )
+    run.feedback = feedback
+    return run
+
+
 __all__ = [
     "ChatProvider",
     "LLMStageConfig",
@@ -1140,5 +1223,6 @@ __all__ = [
     "run_sl5_scenario_generation_llm",
     "run_sl7_model_review_llm",
     "run_sl9_repair_llm",
+    "run_sl10_repair_review_llm",
     "run_sl10b_delta_review_llm",
 ]

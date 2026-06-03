@@ -2,18 +2,18 @@
 
 ## 目标
 
-接受通过 RepairReview 的 candidate，更新 current_dsl、budget、scenario epoch 与 trace。
+接受通过 `SL-10` repair review 的 candidate，更新 `current_dsl` 并进入下一轮 `SD-2` 完整重验；`SC-11` 不是 final success。
 
 ## 输入
 
-- `candidate_dsl`: 已通过 SD-10/SL-10B 的 DSL。
-- `repair_review_feedback`: 接受依据。
-- `budget_updates`: warning budget 变化。
+- `candidate_dsl`: 已通过 `SL-10` 的 DSL。
+- `sl10_repair_review`: `pass` 决策及 NL / FixLog / local evidence 依据。
+- `fix_log`: request / decision / diff / review ledger。
 
 ## 输出
 
 - `current_dsl`: 更新后的 DSL。
-- `acceptance_record`: accepted_by、hash、iteration、preserved scenario epoch。
+- `acceptance_record`: accepted_by=`SL-10`、hash、iteration、preserved scenario epoch。
 
 ## 函数名或 prompt generator 名
 

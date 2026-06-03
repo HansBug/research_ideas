@@ -149,25 +149,25 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 若 parse / semantic / design / sim / review 任一失败：
 
 1. 选择最早 blocking feedback；
-2. 用 `SD-8 FixPlan` 产出结构化修复计划；
+2. 用 `SD-8 FixRequestBatch / legacy FixPlan` 产出结构化修复计划；
 3. 使用 `SL-9` prompt generator 或 agent 自行修复；
-4. 用 `SD-10 RepairReview` 或等价本地检查确认未引入漂移；
+4. 用 `local repair checks / SL-10 RepairReview` 或等价本地检查确认未引入漂移；
 5. 回到 E3 重新从 parse 开始检查。
 
 注意：`suggested_fix` 只是规则诊断的参考 hint，不是必须照抄的编辑命令。agent 可以基于 NL 与全局约束提出更合理的修复方案。
 
-`SD-10 RepairReview` 的结果必须分级处理：
+`local repair checks / SL-10 RepairReview` 的结果必须分级处理：
 
 - `regression_detected=true` 或 candidate parse/semantic fail：必须继续修复，不能 waiver。
 - 新增 blocking design diagnostic：必须修复，除非能明确证明是工具 policy 与论文外部输入之间的已知不匹配，并在 comment 中给出 external-input waiver。
 - `count_drift` / `forced_transition_count_drift` / `missing_required_grounding`：不能简单忽略。若它来自必要的结构性修复（例如为 nested region 增加 root-level release state，或 `GroundingMap` 使用聚合 ref 而当前 SD-10 只支持精确元素 ref），必须给出逐项 waiver：旧模型缺陷、修复为何必要、论文证据、frozen scenario regression 结果，以及为什么不会改变 NL 语义。
-- 如果只需要最终 acceptance gate，可对最终 DSL 做一次 no-op `SD-10`（`old_dsl == candidate_dsl`）作为“残余回归检查”，但这不能替代对真实 repair delta 的 waiver / 解释。
+- 如果只需要最终 acceptance gate，可对最终 DSL 做一次 no-op local repair check（`old_dsl == candidate_dsl`）作为“残余回归检查”，但这不能替代对真实 repair delta 的 waiver / 解释。
 
-因此，PR comment 中应区分：`SD-10 pass`、`SD-10 conservative fail + explicit waiver`、`SD-10 fail unresolved`。只有前两者可以作为 ref-model 候选交接；第三种应标为 not ready。
+因此，PR comment 中应区分：`SL-10 pass`、`local-check conservative fail + explicit waiver`、`SL-10/local-check fail unresolved`。只有前两者可以作为 ref-model 候选交接；第三种应标为 not ready。
 
 ### E5. Optional lightweight review
 
-可以使用 `SL-7` / `SL-10B` prompt generator 组织外部 LLM 评审，但必须记录：
+可以使用 `SL-7` / `SL-10` prompt generator 组织外部 LLM 评审，但必须记录：
 
 - 输入摘要；
 - provider / CLI；
@@ -235,7 +235,7 @@ PR-E2 最低准出：`final_tier >= T2`，且不得存在 critical contradiction
 - NFRR 评价：claim、NL coverage ledger、obligation ledger、scenario provenance ledger、八维 vector、tier、cap reasons、allowed_use、准出结论；
 - 作为 ref model 的学术质量评审：覆盖、抽象、未覆盖语义、是否达到 NFRR 最低准出 / Ground-Truth candidate 目标、仍需人工签核的问题；
 - 合成变量 / 合成状态 / 离散化抽象声明：列出所有非论文直接定义的变量、状态或事件，并说明其存在理由；
-- advisory / warning waiver：尤其是 external input、output-only variable、SD-10 conservative fail 的逐项处理；
+- advisory / warning waiver：尤其是 external input、output-only variable、local-check conservative fail 的逐项处理；
 - skill 改进建议。
 
 若本轮 skill 修改后 4 个样本没有重跑，不能声称“本轮已 ready”；只能标为局部修复或文档修正。
@@ -418,7 +418,7 @@ reviewer 的 review 范畴包括：
 | scenario/sim 覆盖 | ... | ... |
 | main_result_eligible | true/false | ... |
 | 合成变量/离散化抽象 | ... | 标明 synthetic / paper-defined / scenario-only |
-| warning / SD-10 waiver | ... | pass / conservative fail + waiver / unresolved fail |
+| warning / SL-10 waiver | ... | pass / conservative fail + waiver / unresolved fail |
 | 人工签核前待补 | ... | ... |
 
 ### 最终判断

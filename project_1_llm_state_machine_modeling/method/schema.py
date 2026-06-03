@@ -1182,6 +1182,169 @@ class RevisedFixPlan:
 
 
 @dataclass
+class FixRequest:
+    """One actionable repair request produced by ``SD-8``.
+
+    PR-E1 deliberately separates deterministic request construction from LLM
+    repair decisions.  A request records what evidence needs attention and
+    whether it is a hard block; it is not itself a mandatory edit script.
+    """
+
+    request_id: str
+    target: str
+    source_stage: str
+    source_feedback_id: str
+    severity: str
+    hard_block: bool = True
+    waiver_allowed: bool = False
+    problem_summary: str = ""
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    suggested_fix_hints: list[dict[str, Any]] = field(default_factory=list)
+    recommended_strategy: list[str] = field(default_factory=list)
+    forbidden_edits: list[str] = field(default_factory=list)
+    required_preserve_element_ids: list[str] = field(default_factory=list)
+    local_check_required: bool = True
+    legacy_fix_plan: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if not self.request_id:
+            raise ValueError("FixRequest.request_id is required")
+        self.hard_block = _coerce_bool(self.hard_block, "FixRequest.hard_block")
+        self.waiver_allowed = _coerce_bool(self.waiver_allowed, "FixRequest.waiver_allowed")
+        self.local_check_required = _coerce_bool(self.local_check_required, "FixRequest.local_check_required")
+        if self.hard_block and self.waiver_allowed:
+            raise ValueError("hard-block FixRequest cannot be waiver_allowed")
+
+
+@dataclass
+class FixRequestBatch:
+    """A batch of repair requests for one selected feedback point."""
+
+    batch_id: str
+    iteration: int
+    source: str
+    source_stage: str
+    requests: list[FixRequest] = field(default_factory=list)
+    selected_feedback_trace: dict[str, Any] = field(default_factory=dict)
+    before_dsl_hash: str = ""
+    legacy_plan_kind: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.batch_id:
+            raise ValueError("FixRequestBatch.batch_id is required")
+        self.iteration = _coerce_non_negative_int(self.iteration, "FixRequestBatch.iteration")
+        self.requests = _coerce_dataclass_list(self.requests, FixRequest)
+
+    @property
+    def has_hard_block(self) -> bool:
+        return any(request.hard_block for request in self.requests)
+
+
+@dataclass
+class FixRequestDecision:
+    """SL-9 decision for one ``FixRequest``."""
+
+    request_id: str
+    decision: Literal["accept", "reject"] = "accept"
+    rationale: str = ""
+    waiver: bool = False
+    accepted_edit_intent: list[str] = field(default_factory=list)
+    rejected_reason: str = ""
+    rework_locked: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.request_id:
+            raise ValueError("FixRequestDecision.request_id is required")
+        self.decision = _require_one_of(
+            self.decision,
+            {"accept", "reject"},
+            "FixRequestDecision.decision",
+        )
+        self.waiver = _coerce_bool(self.waiver, "FixRequestDecision.waiver")
+        self.rework_locked = _coerce_bool(self.rework_locked, "FixRequestDecision.rework_locked")
+
+
+@dataclass
+class SL9RepairDecisionOutput:
+    """Structured output of ``SL-9`` request decision + repair."""
+
+    decisions: list[FixRequestDecision] = field(default_factory=list)
+    candidate_dsl: str = ""
+    repair_rationale: list[str] = field(default_factory=list)
+    diff_summary: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.decisions = _coerce_dataclass_list(self.decisions, FixRequestDecision)
+
+    @property
+    def accepted_request_ids(self) -> list[str]:
+        return [decision.request_id for decision in self.decisions if decision.decision == "accept"]
+
+    @property
+    def rejected_request_ids(self) -> list[str]:
+        return [decision.request_id for decision in self.decisions if decision.decision == "reject"]
+
+
+@dataclass
+class SL10RepairReviewOutput:
+    """LLM repair review output for the PR-E1 ``SL-10`` stage."""
+
+    ok: bool = False
+    decision: Literal["pass", "fail", "rework", "invalid_output"] = "invalid_output"
+    target_resolved: bool = False
+    regression_detected: bool = False
+    drift_risk: Literal["none", "minor", "major"] = "major"
+    rework_instructions: list[str] = field(default_factory=list)
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    local_check_evidence: dict[str, Any] = field(default_factory=dict)
+    review_meta: Optional[ReviewRunMeta] = None
+    meta: Optional[StageResultMeta] = None
+
+    def __post_init__(self) -> None:
+        self.ok = _coerce_bool(self.ok, "SL10RepairReviewOutput.ok")
+        self.target_resolved = _coerce_bool(self.target_resolved, "SL10RepairReviewOutput.target_resolved")
+        self.regression_detected = _coerce_bool(self.regression_detected, "SL10RepairReviewOutput.regression_detected")
+        self.decision = _require_one_of(
+            self.decision,
+            {"pass", "fail", "rework", "invalid_output"},
+            "SL10RepairReviewOutput.decision",
+        )
+        self.drift_risk = _require_one_of(
+            self.drift_risk,
+            {"none", "minor", "major"},
+            "SL10RepairReviewOutput.drift_risk",
+        )
+        self.review_meta = _coerce_nested_dataclass(self.review_meta, ReviewRunMeta)
+        self.meta = _coerce_nested_dataclass(self.meta, StageResultMeta)
+
+
+@dataclass
+class FixLogEntry:
+    """One append-only repair-ledger entry persisted in run records."""
+
+    entry_id: str
+    iteration: int
+    repair_attempt: int
+    phase: str
+    batch_id: str = ""
+    request_batch: dict[str, Any] | None = None
+    decisions: list[dict[str, Any]] = field(default_factory=list)
+    old_dsl_hash: str = ""
+    candidate_dsl_hash: str = ""
+    diff_summary: dict[str, Any] = field(default_factory=dict)
+    local_check_evidence: dict[str, Any] = field(default_factory=dict)
+    sl10_review: dict[str, Any] | None = None
+    next_action: str = ""
+    notes: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not self.entry_id:
+            raise ValueError("FixLogEntry.entry_id is required")
+        self.iteration = _coerce_non_negative_int(self.iteration, "FixLogEntry.iteration")
+        self.repair_attempt = _coerce_non_negative_int(self.repair_attempt, "FixLogEntry.repair_attempt")
+
+
+@dataclass
 class FeedbackBundle:
     """Feedback signals for one round of an agent loop iteration.
 
@@ -1536,6 +1699,7 @@ class AgentLoopRunRecord:
     llm_interactions: list[dict[str, Any]] = field(default_factory=list)
     deterministic_feedback: dict[str, Any] = field(default_factory=dict)
     repair_history: list[dict[str, Any]] = field(default_factory=list)
+    fix_log: list[dict[str, Any]] = field(default_factory=list)
     scenario_history: list[dict[str, Any]] = field(default_factory=list)
     final_artifacts: dict[str, Any] = field(default_factory=dict)
     logs: list[dict[str, Any]] = field(default_factory=list)

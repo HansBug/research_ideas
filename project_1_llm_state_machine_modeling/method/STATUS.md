@@ -4,24 +4,24 @@
 > **目标**：完整实现 + 跑通 our agent loop + 给出引导 md + smoke 通过；merge 到 main 后 Path 1 / Path 2 各自 PR rebase main 拿到这部分。
 
 
-## PR-C 状态补充（issue #21，2026-06-02）
+## PR-E1 状态补充（issue #21，2026-06-03）
 
-当前分支 PR-C 已将共享 contract、PR-B1 control-flow 与 PR-B2 LLM adapters 合流到默认入口：
+当前分支 PR-E1 在 PR-C/PR-D 默认入口基础上继续调整 repair 子架构与真实运行证据链：
 
 - `LoopConfig()` 默认解析为 `experiment_default/full_staged_v1`，包含 full staged stage switches、feedback/budget/scenario/LLM/record/eligibility policy 与 condition hash。
 - `method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation，也不再停留在 PR-A contract-only façade；默认执行 full staged runtime。
 - 默认 `LoopConfig()` 使用 real-env LLM provider adapter；缺 provider 配置、provider retry exhaustion 或 schema invalid 会写出 run record 并以 `provider_error` / `invalid` 退出，不回退 fake。
 - 旧实现移到 `method.legacy_loop.run_legacy_agent_loop()` / `LegacyLoopConfig`，并发 deprecation warning。
-- planned stage graph 已固定为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SD-10/SL-10B/SC-11/SC-12/SC-13`，每个 planned node 都有 `enabled/ran/status/skipped_reason` trace 字段。
-- run record 记录 resolved config / environment / provider-model 脱敏标识 / stage_records / iteration_records / llm_interactions / deterministic_feedback / repair_history / scenario_history / logs / final_artifacts / redaction_report。
-- PR-D 继续负责 Path1/Path2 representative real full run evidence 与上游 issue comment 汇报；PR-C 不声明模型质量已达到高可信主结果。
+- planned stage graph 已更新为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SL-10/SC-11/SC-12/SC-13`，每个 planned node 都有 `enabled/ran/status/skipped_reason` trace 字段。
+- run record 记录 resolved config / environment / provider-model 脱敏标识 / stage_records / iteration_records / llm_interactions / deterministic_feedback / repair_history / fix_log / scenario_history / logs / final_artifacts / redaction_report。
+- PR-E1 继续负责四例真实 agent-loop 重跑、NFRR v3 质量诊断与 reviewer 闭环；当前不声明模型质量已达到高可信主结果。
 
 
 ## PR-B2 状态补充（issue #21，2026-06-02）
 
 PR-B2 交付真实/mock LLM stage execution units，但仍不切默认 full runtime：
 
-- 新增 `llm_stages.py`，封装 `SL-1/SL-5/SL-7/SL-9/SL-10B` 的 provider adapter、schema/empty/provider retry 与 interaction record。
+- 新增/更新 `llm_stages.py`，封装 `SL-1/SL-5/SL-7/SL-9/SL-10` 的默认 provider adapter、schema/empty/provider retry 与 interaction record；旧 `SL-10B` 保留为 legacy/ablation。
 - 默认真实 provider 通过 `method.gpt_client` 读取进程环境变量；单元测试使用 `MockLLMProvider`，不依赖真实 API。
 - LLM retry 只处理 provider/network/schema-invalid/empty-output；deterministic feedback failure 不在 PR-B2 中 retry。
 - `SL-9` repair prompt 保留 `suggested_fix` 作为 hint，不强制照抄，允许 LLM 基于 NL 与全局约束给出更合理修复。

@@ -29,7 +29,7 @@ def _stage_meta(stage_id: str, *, ok: bool = True) -> dict[str, object]:
 
 
 def _record(run_id: str, *, condition_id: str = "full_staged_v1") -> AgentLoopRunRecord:
-    executed = ["SC-0", "SL-1", "SD-2", "SD-3", "SD-4", "SD-8", "SL-9", "SD-10", "SC-11", "SC-12", "SC-13"]
+    executed = ["SC-0", "SL-1", "SD-2", "SD-3", "SD-4", "SD-8", "SL-9", "SL-10", "SC-11", "SC-12", "SC-13"]
     return AgentLoopRunRecord(
         schema_version="pr-c.default-full-staged-runtime.v1",
         run_id=run_id,
@@ -52,7 +52,7 @@ def _record(run_id: str, *, condition_id: str = "full_staged_v1") -> AgentLoopRu
                 "iteration": 0,
                 "stage_ids": ["SD-2", "SD-3", "SD-4"],
                 "selected_feedback": {"source": "design", "source_stage": "SD-4", "blocking": True},
-                "repair_stage_ids": ["SD-8", "SL-9", "SD-10", "SC-11"],
+                "repair_stage_ids": ["SD-8", "SL-9", "SL-10", "SC-11"],
                 "repair_review": {"ok": False, "target_resolved": False, "drift_risk": "none", "delta_review": None},
                 "accepted_candidate": False,
                 "exit_reason": "design_target_unresolved",
@@ -98,7 +98,7 @@ def _record(run_id: str, *, condition_id: str = "full_staged_v1") -> AgentLoopRu
                 "candidate_dsl": "state Root { [*] -> Idle; state Idle; }",
                 "repair_review": {"ok": False, "target_resolved": False, "drift_risk": "none"},
                 "accepted": False,
-                "repair_stage_ids": ["SD-8", "SL-9", "SD-10", "SC-11"],
+                "repair_stage_ids": ["SD-8", "SL-9", "SL-10", "SC-11"],
             }
         ],
         scenario_history=[],
@@ -185,7 +185,7 @@ def test_pr_e1_runner_writes_report_artifacts_with_fake_entry(tmp_path: Path) ->
         assert "Repair / blocking feedback 明细" in text
         assert "为什么进入修复" in text
         assert "Candidate diff" in text
-        assert "SD-10 / SL-10B 审查结果" in text
+        assert "SL-10 审查结果" in text
         assert "reproducibility.json" in text
         assert Path(summary.reproducibility_path).exists()
         assert summary.prompt_snapshot_hash

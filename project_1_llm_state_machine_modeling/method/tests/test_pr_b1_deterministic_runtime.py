@@ -15,6 +15,7 @@ from method.schema import (
     RepairRejection,
     RepairReviewFeedback,
     ReviewRunMeta,
+    SL10RepairReviewOutput,
     SemanticFeedback,
     SimFeedback,
     StageContext,
@@ -442,6 +443,57 @@ def test_unknown_warning_requires_policy_classification_and_blocks(tmp_path: Pat
     assert record.deterministic_feedback["iterations"][0]["design"]["blocking_items"][0]["policy_action"] == "requires_policy_classification"
 
 
+def test_sl9_can_reject_waiver_allowed_design_warning_and_continue_next_stage(tmp_path: Path) -> None:
+    calls = {"design": 0, "repair": 0}
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        calls["design"] += 1
+        if calls["design"] == 1:
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        calls["repair"] += 1
+        assert request.fix_request_batch is not None
+        assert request.fix_request_batch.requests[0].waiver_allowed is True
+        return {
+            "decisions": [
+                {
+                    "request_id": request.fix_request_batch.requests[0].request_id,
+                    "decision": "reject",
+                    "waiver": True,
+                    "rationale": "warning already reviewed as acceptable external/input-style issue",
+                }
+            ],
+            "candidate_dsl": "",
+            "repair_rationale": ["no edit needed"],
+            "diff_summary": {"summary": "no-op waiver"},
+        }
+
+    result = run_full_staged_deterministic_runtime(
+        "warning can be waived and flow should continue",
+        FullStagedRuntimeConfig(initial_dsl="warning-only", run_id="pr-b1-sl9-waiver-continue", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=repair),
+    )
+
+    assert result.status == "converged"
+    assert result.final_dsl == "warning-only"
+    assert calls["repair"] == 1
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.repair_history[0]["waiver_continue"] is True
+    assert record.repair_history[0]["accepted"] is False
+    assert record.iteration_records[0]["waiver_continue"] is True
+    assert record.iteration_records[0]["exit_reason"] == "all_fix_requests_rejected_as_waiver_continue"
+    assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"
+    assert record.fix_log[-1]["next_action"] == "continue_after_waiver"
+
+
 def test_repair_review_rejection_records_regression_without_accepting_candidate(tmp_path: Path) -> None:
     def sim(_dsl: str, scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
         return SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, setup_error="scenario failed"), _meta(StageId.SD_6_SIM, ok=False)
@@ -534,14 +586,17 @@ def test_repair_review_rejection_retries_with_revised_fix_plan_until_budget(tmp_
 
     assert result.status == "converged"
     assert result.final_dsl == "fixed"
-    assert repair_calls == ["FixPlan", "RevisedFixPlan"]
+    assert repair_calls == ["FixPlan", "FixPlan"]
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.status == "success"
     assert [entry["accepted"] for entry in record.repair_history] == [False, True]
-    assert record.repair_history[1]["plan_kind"] == "RevisedFixPlan"
-    assert record.iteration_records[0]["exit_reason"] == "repair_review_rejected_retry_with_revised_fix_plan"
-    assert record.iteration_records[0]["next_iteration_repair_plan"] == "RevisedFixPlan"
-    assert record.iteration_records[2]["exit_reason"] == "full_pass_all_required_feedback_ok"
+    assert record.repair_history[0]["rework_attempt"] == 0
+    assert record.repair_history[1]["rework_attempt"] == 1
+    assert record.repair_history[1]["repair_review_input_summary"]["rework_locked"] is True
+    assert record.iteration_records[0]["exit_reason"] == "candidate_accepted_for_next_full_pass"
+    assert record.iteration_records[0]["rework_attempts_used"] == 2
+    assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"
+    assert record.replay_index["fix_log_count"] >= 5
 
 
 def test_repair_review_rejection_uses_full_budget_before_final_rejected(tmp_path: Path) -> None:
@@ -574,11 +629,13 @@ def test_repair_review_rejection_uses_full_budget_before_final_rejected(tmp_path
     assert result.status == "not_converged"
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.status == "rejected"
-    assert len(record.iteration_records) == 3
+    assert len(record.iteration_records) == 1
     assert len(record.repair_history) == 3
-    assert record.iteration_records[0]["exit_reason"] == "repair_review_rejected_retry_with_revised_fix_plan"
-    assert record.iteration_records[1]["exit_reason"] == "repair_review_rejected_retry_with_revised_fix_plan"
-    assert record.iteration_records[2]["exit_reason"] == "still_bad_attempt_2"
+    assert [entry["rework_attempt"] for entry in record.repair_history] == [0, 1, 2]
+    assert record.iteration_records[0]["exit_reason"] == "still_bad_attempt_2"
+    assert record.iteration_records[0]["retryable_repair_rejection"] is False
+    assert record.iteration_records[0]["rework_attempts_used"] == 3
+    assert record.replay_index["fix_log_count"] >= 7
     assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
 
 def test_weak_oracle_sim_failure_stops_without_repair_and_excludes_main_result(tmp_path: Path) -> None:
@@ -797,7 +854,7 @@ def test_llm_retry_exhausted_in_sl9_exits_invalid_without_sd10_or_sc11(tmp_path:
     assert record.repair_history == []
 
 
-def test_llm_retry_exhausted_in_sl10b_exits_provider_error_before_sc11(tmp_path: Path) -> None:
+def test_llm_retry_exhausted_in_sl10_exits_provider_error_before_sc11(tmp_path: Path) -> None:
     def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         if context.current_dsl == "needs-delta-review":
             item = DesignDiagnosticItem(
@@ -810,12 +867,12 @@ def test_llm_retry_exhausted_in_sl10b_exits_provider_error_before_sc11(tmp_path:
         return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
 
     result = run_full_staged_deterministic_runtime(
-        "SL-10B provider exhausted",
-        FullStagedRuntimeConfig(initial_dsl="needs-delta-review", run_id="pr-b1-sl10b-provider", output_dir=tmp_path, max_iterations=2),
+        "SL-10 provider exhausted",
+        FullStagedRuntimeConfig(initial_dsl="needs-delta-review", run_id="pr-b1-sl10-provider", output_dir=tmp_path, max_iterations=2),
         adapters=_base_adapters(
             design=design,
             repair=lambda _request: "candidate",
-            delta_review=lambda _request, _review: _retry_exhausted_run(StageId.SL_10B_DELTA_REVIEW, "provider_error"),
+            sl10_review=lambda _request, _local_review: _retry_exhausted_run(StageId.SL_10_REPAIR_REVIEW, "provider_error"),
         ),
     )
 
@@ -824,13 +881,14 @@ def test_llm_retry_exhausted_in_sl10b_exits_provider_error_before_sc11(tmp_path:
     stage_ids = _stage_ids(record)
     assert record.status == "error"
     assert record.final_artifacts["verdict"] == "provider_error"
-    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_10B_DELTA_REVIEW.value
-    assert StageId.SD_10_REPAIR_REVIEW.value in stage_ids
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SL_10_REPAIR_REVIEW.value
+    assert StageId.SL_10_REPAIR_REVIEW.value in stage_ids
+    assert StageId.SD_10_REPAIR_REVIEW.value not in stage_ids
     assert StageId.SC_11_ACCEPT_CANDIDATE.value not in stage_ids
     assert record.repair_history == []
 
 
-def test_sl10b_audit_only_typed_feedback_does_not_override_acceptance(tmp_path: Path) -> None:
+def test_sl10_typed_pass_feedback_controls_candidate_acceptance(tmp_path: Path) -> None:
     def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         if context.current_dsl == "needs-audit-delta":
             item = DesignDiagnosticItem(
@@ -842,40 +900,42 @@ def test_sl10b_audit_only_typed_feedback_does_not_override_acceptance(tmp_path: 
             return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
         return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
 
-    def audit_delta(_request: RepairRequest, _review: RepairReviewFeedback) -> Any:
-        meta = _meta(StageId.SL_10B_DELTA_REVIEW, ok=True)
+    def sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
         return SimpleNamespace(
-            stage_id=StageId.SL_10B_DELTA_REVIEW.value,
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
             ok=True,
-            parsed_output={"decision": "reject", "drift_risk": "major", "audit_only": True},
-            feedback=RepairReviewFeedback(
+            parsed_output={"decision": "pass", "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
                 ok=True,
+                decision="pass",
                 target_resolved=True,
                 regression_detected=False,
-                drift_risk="major",
-                delta_review={"decision": "reject", "drift_risk": "major", "audit_only": True},
-                review_meta=_review_meta(StageId.SL_10B_DELTA_REVIEW),
+                drift_risk="minor",
+                evidence=[{"kind": "typed-sl10-pass"}],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
                 meta=meta,
             ),
             stage_meta=meta,
             interaction={
-                "stage_id": StageId.SL_10B_DELTA_REVIEW.value,
+                "stage_id": StageId.SL_10_REPAIR_REVIEW.value,
                 "schema_validation_ok": True,
                 "retry_error": None,
             },
         )
 
     result = run_full_staged_deterministic_runtime(
-        "SL-10B audit-only should not block SC-11",
-        FullStagedRuntimeConfig(initial_dsl="needs-audit-delta", run_id="pr-b1-sl10b-audit", output_dir=tmp_path, max_iterations=2),
-        adapters=_base_adapters(design=design, repair=lambda _request: "fixed", delta_review=audit_delta),
+        "SL-10 typed pass should control SC-11",
+        FullStagedRuntimeConfig(initial_dsl="needs-audit-delta", run_id="pr-b1-sl10-pass", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(design=design, repair=lambda _request: "fixed", sl10_review=sl10_pass),
     )
 
     assert result.status == "converged"
     record = read_agent_loop_run_record(result.run_record_path or "")
     stage_ids = _stage_ids(record)
     assert record.repair_history[0]["accepted"] is True
-    assert record.repair_history[0]["repair_review"]["delta_review"]["decision"] == "reject"
+    assert record.repair_history[0]["sl10_repair_review"]["decision"] == "pass"
+    assert record.repair_history[0]["repair_review"]["delta_review"]["decision"] == "pass"
     assert record.repair_history[0]["repair_review"].get("local_rejection") is None
     assert StageId.SC_11_ACCEPT_CANDIDATE.value in stage_ids
     assert record.final_artifacts["verdict"] == "success"
