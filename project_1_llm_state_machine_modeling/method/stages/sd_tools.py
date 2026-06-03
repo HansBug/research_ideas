@@ -31,10 +31,12 @@ from method.schema import (
     RepairReviewFeedback,
     RevisedFixPlan,
     ScenarioSet,
+    ScenarioStep,
     SemanticFeedback,
     SimFeedback,
     StageContext,
     StageResultMeta,
+    TestScenario,
 )
 from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageId, StageStatus
 from method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
@@ -500,6 +502,98 @@ def freeze_scenario_set(
     return scenario_set, meta
 
 
+_NORMALIZED_HOT_START_MARKER = "[PR-E1/default-normalized:"
+_ORIGINAL_INITIAL_STATE_RE = re.compile(r"original_initial_state=([^;\]]+)")
+
+
+def _normalized_original_initial_state(description: str | None) -> str | None:
+    if not description or _NORMALIZED_HOT_START_MARKER not in description:
+        return None
+    match = _ORIGINAL_INITIAL_STATE_RE.search(description)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    return value or None
+
+
+def _same_state_path(left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    a = left.strip()
+    b = right.strip()
+    return a == b or a.endswith(f".{b}") or b.endswith(f".{a}")
+
+
+def _default_runtime_state(current_dsl: str) -> str | None:
+    probe = TestScenario(
+        name="__pr_e1_default_init_probe__",
+        steps=[ScenarioStep(events=[], name="default_initial_dispatch_probe")],
+    )
+    feedback = check_sim(current_dsl, [probe])
+    if not feedback.scenario_results:
+        return None
+    result = feedback.scenario_results[0]
+    if not result.step_results:
+        return None
+    return result.step_results[0].actual_state or None
+
+
+def _weak_normalized_hot_start_failures(current_dsl: str, scenario_set: ScenarioSet, feedback: SimFeedback) -> dict[str, Any] | None:
+    """Return weak-oracle evidence only when every failure is truly hot-start-only.
+
+    PR-E1 clears SL-5 hot-start ``initial_state`` before running scenarios on
+    the default path.  The marker attached by ``_normalize_scenarios_for_runtime``
+    is only provenance: it does **not** by itself prove a weak oracle.  A
+    normalized failure is weak only when its original hot-start state differs
+    from the model's default runtime state.  If the original state is the same
+    as the default state, the failure is reproducible from default init and must
+    remain ordinary SD-6 blocking feedback so the repair loop can see it.
+    """
+
+    default_state = _default_runtime_state(current_dsl)
+    weak: list[dict[str, str | None]] = []
+    real_or_unknown: list[dict[str, str | None]] = []
+    scenarios = list(scenario_set.scenarios)
+    for scenario, result in zip(scenarios, feedback.scenario_results):
+        if result.status == "pass":
+            continue
+        original_state = _normalized_original_initial_state(getattr(scenario, "description", ""))
+        if default_state is None:
+            real_or_unknown.append({"scenario_name": result.name, "reason": "default_state_probe_failed", "original_initial_state": original_state, "default_state": default_state})
+        elif original_state is None:
+            real_or_unknown.append({"scenario_name": result.name, "reason": "no_normalized_hot_start_provenance", "default_state": default_state})
+        elif _same_state_path(original_state, default_state):
+            real_or_unknown.append(
+                {
+                    "scenario_name": result.name,
+                    "reason": "failure_reproducible_from_default_initial_state",
+                    "original_initial_state": original_state,
+                    "default_state": default_state,
+                }
+            )
+        else:
+            weak.append(
+                {
+                    "scenario_name": result.name,
+                    "reason": "original_hot_start_state_not_default_reachable_without_prefix",
+                    "original_initial_state": original_state,
+                    "default_state": default_state,
+                }
+            )
+    if weak and not real_or_unknown:
+        return {
+            "scenario_names": [item["scenario_name"] for item in weak],
+            "default_state": default_state,
+            "weak_failures": weak,
+            "policy": (
+                "Default main path clears SL-5 hot-start initial_state. "
+                "Only failures whose original hot-start state differs from the default runtime state "
+                "are treated as weak oracle evidence; default-state failures remain repairable SD-6 feedback."
+            ),
+        }
+    return None
+
+
 def run_sd6_sim(current_dsl: str, scenario_set: ScenarioSet | None, context: StageContext | None = None) -> tuple[SimFeedback, StageResultMeta]:
     if scenario_set is None:
         feedback = SimFeedback(ok=False, setup_error="ScenarioSet is missing")
@@ -508,22 +602,11 @@ def run_sd6_sim(current_dsl: str, scenario_set: ScenarioSet | None, context: Sta
         return feedback, meta
     feedback = check_sim(current_dsl, list(scenario_set.scenarios))
     if not feedback.ok:
-        normalized_hot_start_failures = [
-            result.name
-            for scenario, result in zip(list(scenario_set.scenarios), feedback.scenario_results)
-            if result.status != "pass" and "[PR-E1/default-normalized:" in (scenario.description or "")
-        ]
-        if normalized_hot_start_failures:
+        weak_evidence = _weak_normalized_hot_start_failures(current_dsl, scenario_set, feedback)
+        if weak_evidence is not None:
             feedback.oracle_weak = True
             feedback.weak_oracle_reason = "normalized_hot_start_scenario_failed"
-            feedback.weak_oracle_evidence = {
-                "scenario_names": normalized_hot_start_failures,
-                "policy": (
-                    "Default main path clears SL-5 hot-start initial_state. "
-                    "Failures on scenarios originally depending on hot-start are weak oracle evidence, "
-                    "not a safe DSL repair target."
-                ),
-            }
+            feedback.weak_oracle_evidence = weak_evidence
     meta = _stage_meta(StageId.SD_6_SIM, ok=feedback.ok)
     _attach_meta(context, feedback, meta)
     return feedback, meta

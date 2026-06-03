@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from method.feedback.sim import check_sim
 from method.loop import _normalize_scenarios_for_runtime
-from method.schema import ScenarioStep, TestScenario
+from method.schema import ScenarioSet, ScenarioStep, StageContext, TestScenario
+from method.stages.sd_tools import run_sd6_sim
 
 
 ELEVATOR_DSL = """
@@ -74,3 +75,62 @@ def test_sim_hot_start_initial_vars_are_completed_from_dsl_defaults() -> None:
 
     assert sim.ok
     assert sim.scenario_results[0].setup_error is None
+
+
+
+def test_normalized_default_state_failure_remains_repairable_sim_feedback() -> None:
+    dsl = """
+state Root {
+    [*] -> A;
+    state A;
+    state B;
+    state C;
+    A -> C :: go;
+}
+"""
+    raw = TestScenario(
+        name="real_wrong_target_after_hotstart_normalization",
+        description="valid oracle: event go from initial A should reach B",
+        initial_state="Root.A",
+        steps=[ScenarioStep(events=["go"], expected_state="Root.B", name="go_should_reach_B")],
+    )
+
+    normalized = _normalize_scenarios_for_runtime([raw])
+    feedback, _ = run_sd6_sim(
+        dsl,
+        ScenarioSet(scenario_set_id="s", scenarios=normalized, source_dsl_hash="x"),
+        StageContext(nl="", current_dsl=dsl),
+    )
+
+    assert not feedback.ok
+    assert feedback.oracle_weak is False
+    assert feedback.scenario_results[0].step_results[0].actual_state == "Root.C"
+
+
+def test_normalized_non_default_hot_start_failure_is_weak_oracle() -> None:
+    dsl = """
+state Root {
+    [*] -> A;
+    state A;
+    state B;
+    state C;
+    B -> C :: go;
+}
+"""
+    raw = TestScenario(
+        name="hot_start_only_probe",
+        initial_state="Root.B",
+        steps=[ScenarioStep(events=["go"], expected_state="Root.C", name="go_from_B")],
+    )
+
+    normalized = _normalize_scenarios_for_runtime([raw])
+    feedback, _ = run_sd6_sim(
+        dsl,
+        ScenarioSet(scenario_set_id="s", scenarios=normalized, source_dsl_hash="x"),
+        StageContext(nl="", current_dsl=dsl),
+    )
+
+    assert not feedback.ok
+    assert feedback.oracle_weak is True
+    assert feedback.weak_oracle_reason == "normalized_hot_start_scenario_failed"
+    assert feedback.weak_oracle_evidence["default_state"] == "Root.A"
