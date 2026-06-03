@@ -29,6 +29,7 @@ from method.schema import (
     AgentLoopRunRecord,
     BudgetState,
     DesignFeedback,
+    DesignDiagnosticItem,
     FixPlan,
     FixLogEntry,
     FixRequest,
@@ -1122,6 +1123,192 @@ def _reuse_or_check_scenario_set(
     return refreshed_set, history, weak, refreshed_set.epoch + 1
 
 
+
+def _clone_stage_context(context: StageContext, *, current_dsl: str | None = None) -> StageContext:
+    """Clone reusable validation context after a waived SD-4 warning.
+
+    A waiver is not a repaired candidate and must not jump to SC-11.  To
+    continue the same validation pass after SD-4, keep the parsed/semantic
+    artifacts and warning-budget ledger while letting downstream SL-5/SD-6/SL-7
+    observe the original model.
+    """
+
+    cloned = StageContext(
+        nl=context.nl,
+        current_dsl=current_dsl if current_dsl is not None else context.current_dsl,
+        grounding_map=context.grounding_map,
+        scenario_set=context.scenario_set,
+        warning_budget_state=context.warning_budget_state,
+    )
+    cloned.ast = context.ast
+    cloned.model = context.model
+    cloned.inspect_json = context.inspect_json
+    return cloned
+
+
+def _make_waived_design_feedback(feedback: DesignFeedback) -> DesignFeedback:
+    """Move current blocking design warnings into advisory scope after SL-9 waiver.
+
+    This is a control-flow marker only: the original SD-4 result remains in
+    deterministic_feedback and FixLog.  Downstream SL-5/SD-6/SL-7 receive this
+    as an auditable advisory so a non-hard warning can be waived without
+    consuming an SC-11 repair-acceptance iteration.
+    """
+
+    waived: list[DesignDiagnosticItem] = []
+    for item in feedback.blocking_items:
+        payload = _jsonable(item)
+        if isinstance(payload, dict):
+            payload["policy_action"] = "advisory"
+            existing = str(payload.get("rationale") or "").strip()
+            suffix = "Waived by SL-9 as a non-hard request; downstream validation continued without a DSL edit."
+            payload["rationale"] = f"{existing} {suffix}".strip()
+            try:
+                waived.append(DesignDiagnosticItem(**payload))
+            except Exception:
+                waived.append(item)
+        else:
+            waived.append(item)
+    return DesignFeedback(
+        ok=True,
+        blocking_items=[],
+        advisory_items=[*waived, *feedback.advisory_items],
+        info_items=list(feedback.info_items),
+        policy_profile=feedback.policy_profile,
+        inspect_summary={
+            **dict(feedback.inspect_summary or {}),
+            "waiver_continue_from_blocking_items": [item.instance_key for item in feedback.blocking_items],
+            "waiver_continue_note": "SL-9 rejected all waiverable SD-4 requests; continuing downstream validation in the same iteration without SC-11 candidate acceptance.",
+        },
+        meta=feedback.meta,
+    )
+
+
+def _continue_after_design_waiver(
+    *,
+    nl: str,
+    current_dsl: str,
+    cfg: FullStagedRuntimeConfig,
+    adapters: FullStagedRuntimeAdapters,
+    validation: _ValidationPass,
+    iteration: int,
+    state: _RunState,
+    stage_records: list[StageResultMeta],
+    llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]],
+) -> _ValidationPass:
+    """Continue SD-4-waived validation through SL-5/SD-6/SL-7 in-place."""
+
+    source, selected_feedback, source_stage = validation.selected or ("", None, "")
+    if source != FeedbackSource.DESIGN.value or source_stage != StageId.SD_4_DESIGN.value or not isinstance(selected_feedback, DesignFeedback):
+        return validation
+
+    context = _clone_stage_context(validation.context, current_dsl=current_dsl)
+    waived_design = _make_waived_design_feedback(selected_feedback)
+    context.warning_budget_state = validation.context.warning_budget_state
+
+    feedback = dict(validation.feedback)
+    feedback[FeedbackSource.DESIGN.value] = waived_design
+    iteration_stage_metas = list(validation.stage_metas)
+    scenario_history = list(validation.scenario_history)
+    scenario_set = validation.scenario_set
+    oracle_weak = validation.oracle_weak
+    scenario_epoch = state.scenario_epoch
+
+    waiver_meta = _meta(StageId.SD_4_DESIGN, ok=True, status=StageStatus.ADVISORY)
+    waiver_meta.input_hash = _hash_text(current_dsl)
+    waiver_meta.output_hash = _short_hash([item.instance_key for item in selected_feedback.blocking_items])
+    waiver_meta.skipped_reason = "waiver_continue: non-hard SD-4 blocking warnings were rejected/waived by SL-9; continuing downstream validation without DSL edit"
+    _append_stage(stage_records, waiver_meta)
+    iteration_stage_metas.append(waiver_meta)
+
+    if scenario_set is None:
+        scenario_set, generated_history, weak_now, next_epoch = _run_scenario_generation_and_freeze(
+            nl=nl,
+            current_dsl=current_dsl,
+            context=context,
+            cfg=cfg,
+            adapters=adapters,
+            iteration=iteration,
+            stage_records=stage_records,
+            iteration_stage_metas=iteration_stage_metas,
+            llm_interactions=llm_interactions,
+            logs=logs,
+            scenario_epoch=scenario_epoch,
+        )
+        scenario_history.extend(generated_history)
+        oracle_weak = weak_now
+        scenario_epoch = next_epoch
+    else:
+        scenario_set, reused_history, weak_now, next_epoch = _reuse_or_check_scenario_set(
+            nl=nl,
+            current_dsl=current_dsl,
+            context=context,
+            cfg=cfg,
+            scenario_set=scenario_set,
+            adapters=adapters,
+            iteration=iteration,
+            stage_records=stage_records,
+            iteration_stage_metas=iteration_stage_metas,
+            llm_interactions=llm_interactions,
+            logs=logs,
+        )
+        scenario_history.extend(reused_history)
+        oracle_weak = weak_now
+        scenario_epoch = next_epoch
+
+    context.scenario_set = scenario_set
+    sim_feedback, sim_meta = adapters.sim(current_dsl, scenario_set, context)
+    feedback[FeedbackSource.SIM.value] = sim_feedback
+    _append_stage(stage_records, sim_meta)
+    iteration_stage_metas.append(sim_meta)
+    if not sim_feedback.ok:
+        if getattr(sim_feedback, "oracle_weak", False):
+            logs.append(
+                {
+                    "ts": _utc_now(),
+                    "level": "warning",
+                    "event": "sim_failed_but_oracle_weak",
+                    "iteration": iteration,
+                    "weak_oracle_reason": getattr(sim_feedback, "weak_oracle_reason", ""),
+                    "weak_oracle_evidence": _jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
+                    "after_waiver_continue": True,
+                }
+            )
+            oracle_weak = True
+        return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
+
+    review_run = adapters.model_review(
+        current_dsl,
+        context,
+        {
+            "parse": feedback.get(FeedbackSource.PARSE.value),
+            "semantic": feedback.get(FeedbackSource.SEMANTIC.value),
+            "design": waived_design,
+            "sim": sim_feedback,
+            "oracle_weak": oracle_weak,
+            "waiver_continue": True,
+        },
+    )
+    review_run = _append_llm_stage_run(
+        run=review_run,
+        expected_stage_id=StageId.SL_7_MODEL_REVIEW,
+        stage_records=stage_records,
+        iteration_stage_metas=iteration_stage_metas,
+        llm_interactions=llm_interactions,
+    )
+    if _is_llm_stage_run(review_run):
+        review_feedback = getattr(review_run, "feedback", None)
+        if not isinstance(review_feedback, ModelReviewFeedback):
+            raise TypeError("SL-7 LLMStageRun must carry ModelReviewFeedback in .feedback")
+    else:
+        review_feedback, review_meta = review_run
+        _append_stage(stage_records, review_meta)
+        iteration_stage_metas.append(review_meta)
+    feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+
+    return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
+
 def _run_validation_pass(
     *,
     nl: str,
@@ -1893,9 +2080,17 @@ def _run_repair_path(
                 local_rejection=None if waiver_continue else rejection,
             )
             if waiver_continue:
-                sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
-                _append_stage(state.stage_records, sc11_meta)
-                aggregate_stage_ids.append(sc11_meta.stage_id)
+                state.logs.append(
+                    {
+                        "ts": _utc_now(),
+                        "level": "info",
+                        "event": "sl9_all_rejected_waiver_continue",
+                        "iteration": iteration,
+                        "source_stage": source_stage,
+                        "batch_id": request_batch.batch_id,
+                        "note": "no candidate DSL; downstream validation continues without SC-11 acceptance",
+                    }
+                )
             _fix_log_entry(
                 state=state,
                 iteration=iteration,
@@ -1925,7 +2120,7 @@ def _run_repair_path(
                 "fix_log_entry_count": len(state.fix_log),
             }
             state.repair_history.append(repair_payload)
-            return waiver_continue, {
+            return False, {
                 "selected_feedback": selected_trace,
                 "repair_stage_ids": list(aggregate_stage_ids),
                 "fix_request_batch": _jsonable(request_batch),
@@ -2405,7 +2600,8 @@ def run_full_staged_deterministic_runtime(
         )
 
     iterations = config.max_iterations
-    for iteration in range(iterations):
+    iteration = 0
+    while iteration < iterations:
         if state.verdict_source_stage_id is not None:
             break
         iteration_stage_start = len(state.stage_records)
@@ -2512,6 +2708,120 @@ def run_full_staged_deterministic_runtime(
             state.iteration_records.append(iteration_record)
             break
         iteration_record.update(repair_patch)
+
+        if bool(repair_patch.get("waiver_continue")) and not accepted:
+            try:
+                continued_validation = _continue_after_design_waiver(
+                    nl=nl,
+                    current_dsl=state.current_dsl,
+                    cfg=config,
+                    adapters=adapters,
+                    validation=validation,
+                    iteration=iteration,
+                    state=state,
+                    stage_records=state.stage_records,
+                    llm_interactions=state.llm_interactions,
+                    logs=state.logs,
+                )
+            except _LLMRetryExhausted as exc:
+                _mark_retry_exhausted(state, exc)
+                iteration_record["exit_reason"] = state.verdict_reason
+                iteration_record["repair_stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])[len(iteration_record["stage_ids"]) :]
+                state.iteration_records.append(iteration_record)
+                break
+
+            state.warning_budget_state = continued_validation.context.warning_budget_state
+            state.scenario_set = continued_validation.scenario_set
+            if continued_validation.scenario_set is not None:
+                state.scenario_epoch = max(state.scenario_epoch, continued_validation.scenario_set.epoch + 1)
+            state.oracle_weak = continued_validation.oracle_weak
+            state.scenario_history.extend(continued_validation.scenario_history)
+            state.deterministic_feedback["iterations"].append(
+                {
+                    "iteration": iteration,
+                    "continued_after_waiver": True,
+                    "parse": _jsonable(continued_validation.feedback.get(FeedbackSource.PARSE.value)),
+                    "semantic": _jsonable(continued_validation.feedback.get(FeedbackSource.SEMANTIC.value)),
+                    "design": _jsonable(continued_validation.feedback.get(FeedbackSource.DESIGN.value)),
+                    "sim": _jsonable(continued_validation.feedback.get(FeedbackSource.SIM.value)),
+                    "model_review": _jsonable(continued_validation.feedback.get(FeedbackSource.MODEL_REVIEW.value)),
+                    "stage_ids": _stage_ids(continued_validation.stage_metas),
+                    "scenario_epoch": continued_validation.scenario_epoch,
+                    "oracle_weak": continued_validation.oracle_weak,
+                }
+            )
+            if continued_validation.selected is not None:
+                source, feedback_obj, source_stage = continued_validation.selected
+                iteration_record["post_waiver_selected_feedback"] = _selected_feedback_trace(
+                    source,
+                    feedback_obj,
+                    source_stage,
+                    scenario_set=continued_validation.scenario_set,
+                )
+            else:
+                iteration_record["post_waiver_selected_feedback"] = None
+            iteration_record["post_waiver_stage_ids"] = _stage_ids(continued_validation.stage_metas[len(validation.stage_metas) :])
+            iteration_record["post_waiver_scenario_epoch"] = continued_validation.scenario_epoch
+            iteration_record["post_waiver_oracle_weak"] = continued_validation.oracle_weak
+            iteration_record["stage_ids"] = _stage_ids(state.stage_records[iteration_stage_start:])
+
+            weak_sim_feedback = continued_validation.feedback.get(FeedbackSource.SIM.value)
+            if (
+                continued_validation.selected is None
+                and isinstance(weak_sim_feedback, SimFeedback)
+                and not weak_sim_feedback.ok
+                and getattr(weak_sim_feedback, "oracle_weak", False)
+            ):
+                reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+                _mark_sc12_verdict(
+                    state,
+                    verdict="not_converged",
+                    source_stage_id=StageId.SD_6_SIM.value,
+                    reason=reason,
+                    record_status="failed",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                iteration_record["exit_reason"] = reason
+                state.iteration_records.append(iteration_record)
+                break
+            if continued_validation.selected is None:
+                source_stage_id = continued_validation.stage_metas[-1].stage_id if continued_validation.stage_metas else StageId.SD_4_DESIGN.value
+                _mark_sc12_verdict(
+                    state,
+                    verdict="success",
+                    source_stage_id=source_stage_id,
+                    reason="full_pass_all_required_feedback_ok_after_waiver_continue",
+                )
+                iteration_record["exit_reason"] = "full_pass_all_required_feedback_ok_after_waiver_continue"
+                state.iteration_records.append(iteration_record)
+                break
+            # A downstream hard failure after a no-edit waiver is a fresh
+            # blocking issue at the current DSL.  Continue with another loop
+            # iteration if budget remains; otherwise report the actual
+            # downstream source instead of an SC-11 candidate budget gate.
+            iteration_record["exit_reason"] = "waiver_continue_revealed_downstream_blocking_feedback"
+            state.iteration_records.append(iteration_record)
+            if iteration + 1 >= config.max_iterations:
+                reason = _final_rejection_reason(
+                    iteration_record={"selected_feedback": iteration_record.get("post_waiver_selected_feedback")},
+                    repair_history=state.repair_history,
+                )
+                _mark_sc12_verdict(
+                    state,
+                    verdict="not_converged",
+                    source_stage_id=(iteration_record.get("post_waiver_selected_feedback") or {}).get("source_stage") or StageId.SD_4_DESIGN.value,
+                    reason=str(reason),
+                    record_status="budget_exhausted",
+                    result_status="not_converged",
+                    stage_ok=False,
+                    stage_status=StageStatus.FAIL,
+                )
+                break
+            iteration += 1
+            continue
+
         if not accepted:
             reason = iteration_record.get("exit_reason") or "repair review rejected candidate"
             can_retry_rejection = (
@@ -2523,6 +2833,7 @@ def run_full_staged_deterministic_runtime(
                 iteration_record["exit_reason"] = "repair_review_rejected_retry_with_revised_fix_plan"
                 iteration_record["next_iteration_repair_plan"] = "RevisedFixPlan"
                 state.iteration_records.append(iteration_record)
+                iteration += 1
                 continue
             reason = _final_rejection_reason(
                 iteration_record=iteration_record,
@@ -2565,6 +2876,7 @@ def run_full_staged_deterministic_runtime(
         state.iteration_records.append(iteration_record)
         # Accepted candidate deliberately falls through to the next loop
         # iteration, which starts from SD-2.  No success may be emitted here.
+        iteration += 1
     else:
         if state.verdict_source_stage_id is None:
             _mark_sc12_verdict(

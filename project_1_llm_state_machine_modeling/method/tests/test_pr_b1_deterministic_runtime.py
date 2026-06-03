@@ -615,10 +615,110 @@ def test_sl9_can_reject_waiver_allowed_design_warning_and_continue_next_stage(tm
     assert record.repair_history[0]["waiver_continue"] is True
     assert record.repair_history[0]["accepted"] is False
     assert record.iteration_records[0]["waiver_continue"] is True
-    assert record.iteration_records[0]["exit_reason"] == "all_fix_requests_rejected_as_waiver_continue"
-    assert record.iteration_records[1]["exit_reason"] == "full_pass_all_required_feedback_ok"
+    assert record.iteration_records[0]["exit_reason"] == "full_pass_all_required_feedback_ok_after_waiver_continue"
+    assert record.iteration_records[0]["post_waiver_selected_feedback"] is None
     assert record.fix_log[-1]["next_action"] == "continue_after_waiver"
 
+
+def test_last_iteration_waiver_continue_does_not_consume_sc11_budget(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_UNWRITTEN_READ_VAR",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="W_UNWRITTEN_READ_VAR:var_name=EnvCapacity",
+            refs={"var_name": "EnvCapacity"},
+            message="EnvCapacity is read but never written",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {
+                    "request_id": request.fix_request_batch.requests[0].request_id,
+                    "decision": "reject",
+                    "waiver": True,
+                    "rationale": "EnvCapacity is an NL-grounded external input; no DSL edit is safe.",
+                }
+            ],
+            "candidate_dsl": "",
+            "repair_rationale": ["no edit; continue validation after waiver"],
+            "diff_summary": {"summary": "no-op waiver"},
+        }
+
+    result = run_full_staged_deterministic_runtime(
+        "controller reads EnvCapacity as an external input and then validates downstream behavior",
+        FullStagedRuntimeConfig(initial_dsl="warning-only", run_id="pr-b1-last-waiver", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=repair),
+    )
+
+    assert result.status == "converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "success"
+    assert len(record.iteration_records) == 1
+    only_iter = record.iteration_records[0]
+    assert only_iter["waiver_continue"] is True
+    assert only_iter["accepted_candidate"] is False
+    assert only_iter["post_waiver_selected_feedback"] is None
+    assert only_iter["exit_reason"] == "full_pass_all_required_feedback_ok_after_waiver_continue"
+    assert "budget_gate" not in only_iter
+    stage_ids = _stage_ids(record)
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value not in stage_ids
+    assert StageId.SL_5_SCENARIO_GENERATION.value in stage_ids
+    assert StageId.SD_6_SIM.value in stage_ids
+    assert StageId.SL_7_MODEL_REVIEW.value in stage_ids
+    assert record.fix_log[-1]["next_action"] == "continue_after_waiver"
+
+
+def test_waiver_continue_reveals_downstream_block_without_sc11_candidate(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_UNWRITTEN_READ_VAR",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="W_UNWRITTEN_READ_VAR:var_name=EnvCapacity",
+            refs={"var_name": "EnvCapacity"},
+            message="EnvCapacity is read but never written",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        assert request.fix_request_batch is not None
+        return {
+            "decisions": [
+                {
+                    "request_id": request.fix_request_batch.requests[0].request_id,
+                    "decision": "reject",
+                    "waiver": True,
+                    "rationale": "external input warning waived",
+                }
+            ],
+            "candidate_dsl": "",
+            "repair_rationale": ["no edit"],
+        }
+
+    def sim(_dsl: str, scenarios_or_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        n = len(getattr(scenarios_or_set, "scenarios", []) or [])
+        return SimFeedback(ok=False, n_scenarios=n, n_scenarios_passed=0, setup_error="downstream scenario failed"), _meta(StageId.SD_6_SIM, ok=False)
+
+    result = run_full_staged_deterministic_runtime(
+        "warning waiver should continue and expose downstream simulation failure",
+        FullStagedRuntimeConfig(initial_dsl="warning-then-sim-fails", run_id="pr-b1-waiver-downstream", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=repair, sim=sim),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "budget_exhausted"
+    only_iter = record.iteration_records[0]
+    assert only_iter["waiver_continue"] is True
+    assert only_iter["post_waiver_selected_feedback"]["source"] == "sim"
+    assert only_iter["exit_reason"] == "waiver_continue_revealed_downstream_blocking_feedback"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_6_SIM.value
+    assert "SD-6 sim failure" in record.final_artifacts["verdict_reason"]
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value not in _stage_ids(record)
 
 def test_repair_review_rejection_records_regression_without_accepting_candidate(tmp_path: Path) -> None:
     def sim(_dsl: str, scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
