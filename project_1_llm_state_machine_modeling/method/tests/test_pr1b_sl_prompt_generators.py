@@ -115,7 +115,8 @@ def test_pyfcstm_grammar_digest_documents_parseable_boolean_flag_subset() -> Non
     assert "Boolean-like flags MUST be encoded as `int`" in grammar
     assert "never `def bool`" in grammar
     assert "no `// ...`, no `/* ... */`" in grammar
-    assert "root-level `! * -> SafeMode" in grammar
+    assert "root-level `! * -> Manual ..." in grammar
+    assert "exists only as a nested child" in grammar
     assert "Plain `during { ... }` is only used on leaf states" in grammar
     assert "if (expr)" in grammar
     assert "NL events are represented with `:: EventName`" in grammar

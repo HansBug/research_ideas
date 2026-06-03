@@ -1205,6 +1205,20 @@ def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output
                 f"| logs | `{output_dir_text}/{s.run_id}/run_logs/stdout.txt`, `{output_dir_text}/{s.run_id}/run_logs/stderr.txt` |",
                 f"| checks / repro | `{output_dir_text}/{s.run_id}/checks.json`, `{output_dir_text}/{s.run_id}/reproducibility.json` |",
                 "",
+                "#### 全流程摘要表（report §4 摘录）",
+                "",
+                _read_report_section(s.report_path, start="### 4. 全流程真实摘要表", end="### 5. Iteration / repair / review 摘要", max_chars=15000),
+                "",
+                "#### Scenario 逐轮通过矩阵（report §6.1 摘录）",
+                "",
+                _read_report_section(s.report_path, start="#### 6.1 Scenario pass/fail by iteration", end="#### 6.2 Scenario definitions", max_chars=5000),
+                "",
+                "#### Repair / blocking feedback 概览（report §7 摘录）",
+                "",
+                _read_report_section(s.report_path, start="### 7. Repair / blocking feedback 明细", end="<details><summary>Repair", max_chars=7000),
+                "",
+                f"> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 SD-10/SL-10B 审查证据见 `{report_path}` §7。",
+                "",
                 "</details>",
                 "",
             ]
@@ -1220,6 +1234,23 @@ def _read_comment_artifact(path: str, *, max_chars: int) -> str:
     if len(text) <= max_chars:
         return text.rstrip()
     return text[:max_chars].rstrip() + "\n... <truncated in PR comment; see artifact path>"
+
+
+def _read_report_section(path: str, *, start: str, end: str, max_chars: int) -> str:
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except Exception:
+        return "<report section not available>"
+    start_index = text.find(start)
+    if start_index < 0:
+        return "<report section not found>"
+    end_index = text.find(end, start_index + len(start))
+    section = text[start_index : end_index if end_index >= 0 else len(text)].strip()
+    if section.startswith(start):
+        section = section[len(start) :].strip()
+    if len(section) <= max_chars:
+        return section
+    return section[:max_chars].rstrip() + f"\n... <truncated {len(section) - max_chars} chars in PR comment; see report.md>"
 
 
 def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:

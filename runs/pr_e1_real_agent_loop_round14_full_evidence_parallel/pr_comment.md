@@ -120,11 +120,67 @@ state System {
 | failure class | `success` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `1` / `0` / `0` / `1` |
-| token / elapsed | `{'prompt_tokens': 28726, 'completion_tokens': 6475, 'total_tokens': 35201, 'n_calls': 3}` / `162.149s` |
+| token / elapsed | `{'completion_tokens': 6475, 'n_calls': 3, 'prompt_tokens': 28726, 'total_tokens': 35201}` / `162.149s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/run_logs/stderr.txt` |
 | checks / repro | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/checks.json`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/reproducibility.json` |
+
+#### 全流程摘要表（report §4 摘录）
+
+| Stage | 是否 LLM | iteration | 结果 | 获取的信息 / 反馈 | 本阶段做了什么 | DSL 修改 | artifact/log |
+|---|---:|---:|---:|---|---|---|---|
+| `SC-0` | 否 | - | ✅ | trace/control | 初始化 run state | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SL-1` | 是 | - | ✅ | LLM calls=1, tokens=8203 | 生成初始 DSL 与 grounding seeds | initial len=611 | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=0, advisory=17, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SL-5` | 是 | 0 | ✅ | LLM calls=1, tokens=12794 | 生成模型测试 scenario | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SD-5A` | 否 | 0 | ✅ | trace/control | 检查 scenario coverage | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SC-5F` | 否 | 0 | ✅ | trace/control | 冻结 scenario oracle | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SD-6` | 否 | 0 | ✅ | ok=True, diag=0 | 执行 scenario simulation | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SL-7` | 是 | 0 | ✅ | LLM calls=1, tokens=14204 | LLM model review | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SC-12` | 否 | - | ✅ | full_pass_all_required_feedback_ok | 写 final verdict | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+| `SC-13` | 否 | - | ✅ | trace/control | 写审计 run record | 无/见 record | [`record`](./pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d.agent_loop.json.gz) |
+
+#### Scenario 逐轮通过矩阵（report §6.1 摘录）
+
+口径：`✅` = 该 scenario 在该轮 SD-6 simulation 通过；`❌` = 该轮失败；`⚪` = 该轮未执行或无该 scenario 结果。
+
+| Scenario | Intent | Iter 1 |
+|---|---|---|
+| `default_init_increase_then_hold_at_upper_boundary` | default-init dispatches to increase and, with slp exactly 0.01, the next cycle takes increase -> hold while checking bot...<truncated 24 chars> | ✅ |
+| `increase_no_hold_above_upper_boundary` | explicit-hot-start in increase with slp just above 0.01 should not satisfy increase -> hold and should keep increase out...<truncated 12 chars> | ✅ |
+| `hold_to_increase_above_upper_boundary` | explicit-hot-start in hold with slp greater than 0.01 should take hold -> increase and command inlet pressure increase. | ✅ |
+| `hold_stays_at_upper_boundary` | explicit-hot-start in hold with slp exactly 0.01 should not take hold -> increase because that guard is strictly greater...<truncated 11 chars> | ✅ |
+| `hold_to_decrease_below_lower_boundary` | explicit-hot-start in hold with slp less than -0.01 should take hold -> decrease and command pressure release. | ✅ |
+| `hold_stays_at_lower_boundary` | explicit-hot-start in hold with slp exactly -0.01 should not take hold -> decrease because that guard is strictly less t...<truncated 10 chars> | ✅ |
+| `decrease_to_hold_at_lower_boundary` | explicit-hot-start in decrease with slp exactly -0.01 should take decrease -> hold because the recovery guard is inclusi...<truncated 3 chars> | ✅ |
+| `decrease_stays_below_lower_boundary` | explicit-hot-start in decrease with slp just below -0.01 should not satisfy decrease -> hold and should keep release-pre...<truncated 21 chars> | ✅ |
+
+#### Repair / blocking feedback 概览（report §7 摘录）
+
+- 本 run 未进入 `SD-8/SL-9/SD-10` repair block；通常表示流程在 repair 前已成功、被 provider/schema 错误中断，或在 pre-repair 阶段直接退出。
+
+### 8. 尝试记录与成本
+
+- `SL-1`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 2066, 'model': 'gpt-5.5', 'prompt_tokens': 6137, 'total_tokens': 8203}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-5`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 2407, 'model': 'gpt-5.5', 'prompt_tokens': 10387, 'total_tokens': 12794}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-7`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 2002, 'model': 'gpt-5.5', 'prompt_tokens': 12202, 'total_tokens': 14204}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+
+### 9. 最终停止状态与后续含义
+
+- 停止状态：verdict=`success`，record_status=`success`。
+- 主要原因分类：`success`。
+- required stages executed：`12/17`，missing=`SD-8, SL-9, SD-10, SL-10B, SC-11`。
+- repairs：`0/0` accepted；scenario_history=`1`。
+- 配置含义：`recommended baseline candidate`；该结果可用于评估默认入口本身。
+- 样本含义：若出现 `design_or_variable_dynamics`，应重点审查变量是否仅作为 guard/input 常量而没有事件/动作更新；若出现 pre-scenario parse/semantic 失败，则应先优化 pyfcstm grammar adherence。
+
+> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 SD-10/SL-10B 审查证据见 `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_abs-default-round14fullevidenceparallel-5bb9395d/report.md` §7。
 
 </details>
 
@@ -233,11 +289,68 @@ state CARA {
 | failure class | `success` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `1` / `0` / `0` / `1` |
-| token / elapsed | `{'prompt_tokens': 35065, 'completion_tokens': 11769, 'total_tokens': 46834, 'n_calls': 3}` / `486.406s` |
+| token / elapsed | `{'completion_tokens': 11769, 'n_calls': 3, 'prompt_tokens': 35065, 'total_tokens': 46834}` / `486.406s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/run_logs/stderr.txt` |
 | checks / repro | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/checks.json`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/reproducibility.json` |
+
+#### 全流程摘要表（report §4 摘录）
+
+| Stage | 是否 LLM | iteration | 结果 | 获取的信息 / 反馈 | 本阶段做了什么 | DSL 修改 | artifact/log |
+|---|---:|---:|---:|---|---|---|---|
+| `SC-0` | 否 | - | ✅ | trace/control | 初始化 run state | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SL-1` | 是 | - | ✅ | LLM calls=1, tokens=11802 | 生成初始 DSL 与 grounding seeds | initial len=2012 | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=0, advisory=14, info=1 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SL-5` | 是 | 0 | ✅ | LLM calls=1, tokens=16755 | 生成模型测试 scenario | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SD-5A` | 否 | 0 | ✅ | trace/control | 检查 scenario coverage | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SC-5F` | 否 | 0 | ✅ | trace/control | 冻结 scenario oracle | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SD-6` | 否 | 0 | ✅ | ok=True, diag=0 | 执行 scenario simulation | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SL-7` | 是 | 0 | ✅ | LLM calls=1, tokens=18277 | LLM model review | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SC-12` | 否 | - | ✅ | full_pass_all_required_feedback_ok | 写 final verdict | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+| `SC-13` | 否 | - | ✅ | trace/control | 写审计 run record | 无/见 record | [`record`](./pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc.agent_loop.json.gz) |
+
+#### Scenario 逐轮通过矩阵（report §6.1 摘录）
+
+口径：`✅` = 该 scenario 在该轮 SD-6 simulation 通过；`❌` = 该轮失败；`⚪` = 该轮未执行或无该 scenario 结果。
+
+| Scenario | Intent | Iter 1 |
+|---|---|---|
+| `default_init_enters_manual_with_manual_outputs` | default-init: first cycle should dispatch into Manual, release software control, and use manual switch/default flow sett...<truncated 5 chars> | ✅ |
+| `manual_initiate_start_autocontrol_sequence` | explicit-hot-start: caregiver initiates algorithmic control, changes setpoint in Ask_StartAC, presses StartAC into Autoc...<truncated 44 chars> | ✅ |
+| `autocontrol_normal_no_fault_stays_normal` | explicit-hot-start: with pump_fault at the no-fault boundary, normal autocontrol should continue computing flow and logg...<truncated 4 chars> | ✅ |
+| `autocontrol_fault_enters_pumpfault_alarm` | explicit-hot-start: a pump-operation fault during normal autocontrol should enter PumpFault, activate alarm, and release...<truncated 18 chars> | ✅ |
+| `fault_removed_returns_to_manual_and_clears_alarm` | explicit-hot-start: after caregiver removes the pump fault, FaultRemoved should return to Manual and clear fault/alarm i...<truncated 10 chars> | ✅ |
+| `ca_backmanual_forces_manual_from_autocontrol_normal` | explicit-hot-start: cross-component CA_backManual fallback from AutocontrolNormal should force Manual as the shared reco...<truncated 12 chars> | ✅ |
+| `cb_backmanual_forces_manual_from_pumpfault` | explicit-hot-start: cross-component CB_backManual fallback from PumpFault should force Manual as the shared recovery tar...<truncated 4 chars> | ✅ |
+| `cp_backmanual_forces_manual_from_ask_startac` | explicit-hot-start: cross-component CP_backManual fallback from Ask_StartAC should force Manual instead of continuing to...<truncated 17 chars> | ✅ |
+| `cc_backmanual_forces_manual_from_autocontrol_init` | explicit-hot-start: cross-component CC_backManual fallback from AutocontrolInit should force Manual before normal autoco...<truncated 17 chars> | ✅ |
+
+#### Repair / blocking feedback 概览（report §7 摘录）
+
+- 本 run 未进入 `SD-8/SL-9/SD-10` repair block；通常表示流程在 repair 前已成功、被 provider/schema 错误中断，或在 pre-repair 阶段直接退出。
+
+### 8. 尝试记录与成本
+
+- `SL-1`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 5608, 'model': 'gpt-5.5', 'prompt_tokens': 6194, 'total_tokens': 11802}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-5`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 3689, 'model': 'gpt-5.5', 'prompt_tokens': 13066, 'total_tokens': 16755}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-7`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 2472, 'model': 'gpt-5.5', 'prompt_tokens': 15805, 'total_tokens': 18277}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+
+### 9. 最终停止状态与后续含义
+
+- 停止状态：verdict=`success`，record_status=`success`。
+- 主要原因分类：`success`。
+- required stages executed：`12/17`，missing=`SD-8, SL-9, SD-10, SL-10B, SC-11`。
+- repairs：`0/0` accepted；scenario_history=`1`。
+- 配置含义：`recommended baseline candidate`；该结果可用于评估默认入口本身。
+- 样本含义：若出现 `design_or_variable_dynamics`，应重点审查变量是否仅作为 guard/input 常量而没有事件/动作更新；若出现 pre-scenario parse/semantic 失败，则应先优化 pyfcstm grammar adherence。
+
+> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 SD-10/SL-10B 审查证据见 `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_cara-default-round14fullevidenceparallel-da86a4dc/report.md` §7。
 
 </details>
 
@@ -326,11 +439,67 @@ state AutomaticElevatorController {
 | failure class | `success` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `1` / `0` / `0` / `1` |
-| token / elapsed | `{'prompt_tokens': 26372, 'completion_tokens': 7265, 'total_tokens': 33637, 'n_calls': 3}` / `399.823s` |
+| token / elapsed | `{'completion_tokens': 7265, 'n_calls': 3, 'prompt_tokens': 26372, 'total_tokens': 33637}` / `399.823s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/run_logs/stderr.txt` |
 | checks / repro | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/checks.json`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/reproducibility.json` |
+
+#### 全流程摘要表（report §4 摘录）
+
+| Stage | 是否 LLM | iteration | 结果 | 获取的信息 / 反馈 | 本阶段做了什么 | DSL 修改 | artifact/log |
+|---|---:|---:|---:|---|---|---|---|
+| `SC-0` | 否 | - | ✅ | trace/control | 初始化 run state | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SL-1` | 是 | - | ✅ | LLM calls=1, tokens=9182 | 生成初始 DSL 与 grounding seeds | initial len=669 | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=0, advisory=1, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SL-5` | 是 | 0 | ✅ | LLM calls=1, tokens=13753 | 生成模型测试 scenario | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SD-5A` | 否 | 0 | ✅ | trace/control | 检查 scenario coverage | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SC-5F` | 否 | 0 | ✅ | trace/control | 冻结 scenario oracle | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SD-6` | 否 | 0 | ✅ | ok=True, diag=0 | 执行 scenario simulation | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SL-7` | 是 | 0 | ✅ | LLM calls=1, tokens=10702 | LLM model review | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SC-12` | 否 | - | ✅ | full_pass_all_required_feedback_ok | 写 final verdict | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+| `SC-13` | 否 | - | ✅ | trace/control | 写审计 run record | 无/见 record | [`record`](./pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f.agent_loop.json.gz) |
+
+#### Scenario 逐轮通过矩阵（report §6.1 摘录）
+
+口径：`✅` = 该 scenario 在该轮 SD-6 simulation 通过；`❌` = 该轮失败；`⚪` = 该轮未执行或无该 scenario 结果。
+
+| Scenario | Intent | Iter 1 |
+|---|---|---|
+| `default_init_to_floor1_stopped` | default-init verifies the initial transition dispatches to floor F1 with stopped hbrg output, then an empty cycle does n...<truncated 25 chars> | ✅ |
+| `f1_request_f2_then_continue_to_f3` | default-init covers F1 PS2 upward motion to MU2, S2 arrival at F2, immediate PS3 check to continue upward to MU3, and S3...<truncated 15 chars> | ✅ |
+| `f1_direct_request_f3` | default-init verifies PS3 from F1 targets direct upward motion MU3, then S3 stops at F3. | ✅ |
+| `f3_request_f2_then_continue_to_f1` | explicit-hot-start at F3 covers PS2 downward motion to MD2, S2 arrival at F2, immediate PS1 check to continue downward t...<truncated 28 chars> | ✅ |
+| `f3_direct_request_f1` | explicit-hot-start at F3 verifies PS1 targets direct downward motion MD1 and S1 stops at F1. | ✅ |
+| `reset_forces_floor1_from_up_motion` | explicit-hot-start from upward motion MU3 verifies Reset forces floor F1 and stopped hbrg regardless of outstanding upwa...<truncated 19 chars> | ✅ |
+| `reset_forces_floor1_from_down_motion` | explicit-hot-start from downward motion MD2 verifies Reset forces floor F1 and stopped hbrg regardless of outstanding do...<truncated 23 chars> | ✅ |
+| `reset_forces_floor1_from_floor_state` | explicit-hot-start from floor state F2 verifies Reset forces floor F1 and stopped hbrg even when already stopped at a no...<truncated 11 chars> | ✅ |
+
+#### Repair / blocking feedback 概览（report §7 摘录）
+
+- 本 run 未进入 `SD-8/SL-9/SD-10` repair block；通常表示流程在 repair 前已成功、被 provider/schema 错误中断，或在 pre-repair 阶段直接退出。
+
+### 8. 尝试记录与成本
+
+- `SL-1`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 3000, 'model': 'gpt-5.5', 'prompt_tokens': 6182, 'total_tokens': 9182}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-5`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 2561, 'model': 'gpt-5.5', 'prompt_tokens': 11192, 'total_tokens': 13753}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-7`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 1704, 'model': 'gpt-5.5', 'prompt_tokens': 8998, 'total_tokens': 10702}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+
+### 9. 最终停止状态与后续含义
+
+- 停止状态：verdict=`success`，record_status=`success`。
+- 主要原因分类：`success`。
+- required stages executed：`12/17`，missing=`SD-8, SL-9, SD-10, SL-10B, SC-11`。
+- repairs：`0/0` accepted；scenario_history=`1`。
+- 配置含义：`recommended baseline candidate`；该结果可用于评估默认入口本身。
+- 样本含义：若出现 `design_or_variable_dynamics`，应重点审查变量是否仅作为 guard/input 常量而没有事件/动作更新；若出现 pre-scenario parse/semantic 失败，则应先优化 pyfcstm grammar adherence。
+
+> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 SD-10/SL-10B 审查证据见 `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path1_elevator-default-round14fullevidenceparallel-0ebf931f/report.md` §7。
 
 </details>
 
@@ -593,10 +762,100 @@ state LNGShipEMS {
 | failure class | `semantic_or_topology` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SD-8 -> SL-9 -> SD-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-8 -> SL-9 -> SD-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SD-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SD-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SD-10 -> SC-11 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `5` / `5` / `0` / `3` |
-| token / elapsed | `{'prompt_tokens': 586211, 'completion_tokens': 47560, 'total_tokens': 633771, 'n_calls': 10}` / `2242.674s` |
+| token / elapsed | `{'completion_tokens': 47560, 'n_calls': 10, 'prompt_tokens': 586211, 'total_tokens': 633771}` / `2242.674s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/run_logs/stderr.txt` |
 | checks / repro | `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/checks.json`, `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/reproducibility.json` |
+
+#### 全流程摘要表（report §4 摘录）
+
+| Stage | 是否 LLM | iteration | 结果 | 获取的信息 / 反馈 | 本阶段做了什么 | DSL 修改 | artifact/log |
+|---|---:|---:|---:|---|---|---|---|
+| `SC-0` | 否 | - | ✅ | trace/control | 初始化 run state | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-1` | 是 | - | ✅ | LLM calls=1, tokens=15194 | 生成初始 DSL 与 grounding seeds | initial len=6902 | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ⚠️ | blocking=54, advisory=135, info=0; blocking=54, advisory=135, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-8` | 否 | 0 | ✅ | trace/control | 生成 FixPlan | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-9` | 是 | 0 | ✅ | LLM calls=5, tokens=431547 | LLM repair candidate | candidate len=7059,6902,6873,7339,7041 | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-10` | 否 | 0 | ⚠️ | ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=maj | 本地 repair review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-11` | 否 | 0 | ⚠️ | trace/control | 接受/拒绝候选 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ⚠️ | blocking=54, advisory=135, info=0; blocking=54, advisory=135, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-8` | 否 | 0 | ✅ | trace/control | 生成 FixPlan | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-9` | 是 | 0 | ✅ | LLM calls=5, tokens=431547 | LLM repair candidate | candidate len=7059,6902,6873,7339,7041 | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-10` | 否 | 0 | ⚠️ | ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=maj | 本地 repair review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-11` | 否 | 0 | ⚠️ | trace/control | 接受/拒绝候选 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=54, advisory=135, info=0; blocking=54, advisory=135, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-5` | 是 | 2 | ✅ | LLM calls=1, tokens=22396 | 生成模型测试 scenario | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-5A` | 否 | 2 | ✅ | trace/control | 检查 scenario coverage | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-5F` | 否 | 2 | ✅ | trace/control | 冻结 scenario oracle | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-6` | 否 | 2 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 执行 scenario simulation | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-7` | 是 | 2 | ✅ | LLM calls=3, tokens=164634 | LLM model review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-8` | 否 | 0 | ✅ | trace/control | 生成 FixPlan | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-9` | 是 | 0 | ✅ | LLM calls=5, tokens=431547 | LLM repair candidate | candidate len=7059,6902,6873,7339,7041 | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-10` | 否 | 0 | ⚠️ | ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=maj | 本地 repair review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-11` | 否 | 0 | ⚠️ | trace/control | 接受/拒绝候选 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=54, advisory=135, info=0; blocking=54, advisory=135, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-5A` | 否 | 2 | ✅ | trace/control | 检查 scenario coverage | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-5F` | 否 | 2 | ✅ | trace/control | 冻结 scenario oracle | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-6` | 否 | 2 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 执行 scenario simulation | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-7` | 是 | 2 | ✅ | LLM calls=3, tokens=164634 | LLM model review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-8` | 否 | 0 | ✅ | trace/control | 生成 FixPlan | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-9` | 是 | 0 | ✅ | LLM calls=5, tokens=431547 | LLM repair candidate | candidate len=7059,6902,6873,7339,7041 | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-10` | 否 | 0 | ⚠️ | ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=maj | 本地 repair review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-11` | 否 | 0 | ⚠️ | trace/control | 接受/拒绝候选 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=54, advisory=135, info=0; blocking=54, advisory=135, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0; blocking=0, advisory=189, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-5A` | 否 | 2 | ✅ | trace/control | 检查 scenario coverage | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-5F` | 否 | 2 | ✅ | trace/control | 冻结 scenario oracle | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-6` | 否 | 2 | ✅ | ok=True, diag=0; ok=True, diag=0; ok=True, diag=0 | 执行 scenario simulation | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-7` | 是 | 2 | ✅ | LLM calls=3, tokens=164634 | LLM model review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-8` | 否 | 0 | ✅ | trace/control | 生成 FixPlan | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SL-9` | 是 | 0 | ✅ | LLM calls=5, tokens=431547 | LLM repair candidate | candidate len=7059,6902,6873,7339,7041 | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SD-10` | 否 | 0 | ⚠️ | ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=major; ok=False, target_resolved=False, drift=maj | 本地 repair review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-11` | 否 | 0 | ⚠️ | trace/control | 接受/拒绝候选 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-12` | 否 | - | ⚠️ | new_blocking_design_diagnostic; scenario_regression; forced_transition_count_drift; missing_required_grounding | 写 final verdict | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+| `SC-13` | 否 | - | ✅ | trace/control | 写审计 run record | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0.agent_loop.json.gz) |
+
+#### Scenario 逐轮通过矩阵（report §6.1 摘录）
+
+口径：`✅` = 该 scenario 在该轮 SD-6 simulation 通过；`❌` = 该轮失败；`⚪` = 该轮未执行或无该 scenario 结果。
+
+| Scenario | Intent | Iter 3 | Iter 4 | Iter 5 |
+|---|---|---|---|---|
+| `default_init_then_zero_load_charge` | default-init probe: first cycle must dispatch to IdleNoLoad, then zero load with RES and SoC below 0.95 must transition ...<truncated 20 chars> | ✅ | ✅ | ✅ |
+| `forced_idle_no_load_no_res` | explicit-hot-start probe: from a non-idle operating state, PL=0 with no RES must force IdleNoLoad with all dispatch outp...<truncated 8 chars> | ✅ | ✅ | ✅ |
+| `zero_load_spare_soc_boundary` | explicit-hot-start probe: with PL=0 and RES present, SoC exactly 0.95 should route renewable power to spare, not chargin...<truncated 2 chars> | ✅ | ✅ | ✅ |
+| `res_covers_charge_below_soc_boundary` | explicit-hot-start probe: when RES covers positive load and SoC is just below 0.95, residual RES must charge the battery...<truncated 1 chars> | ✅ | ✅ | ✅ |
+| `res_covers_spare_at_soc_boundary` | explicit-hot-start probe: when RES covers positive load and SoC is exactly 0.95, residual RES must become spare power. | ✅ | ✅ | ✅ |
+| `battery_assist_low_deficit_soc_boundary` | explicit-hot-start probe: with RES below load, SoC exactly 0.2 and deficit within battery power, battery assist should c...<truncated 17 chars> | ✅ | ✅ | ✅ |
+| `lng_low_soc_charge_margin` | explicit-hot-start probe: low SoC with LNG-capable deficit should include the Pgmax/5 charging margin. | ✅ | ✅ | ✅ |
+| `lng_normal_after_battery_limit` | explicit-hot-start probe: normal SoC with deficit above battery limit but within LNG capacity should request LNG only. | ✅ | ✅ | ✅ |
+| `lng_and_engine3_capacity_boundary` | explicit-hot-start probe: deficit above LNG capacity but within LNG plus engine3 should cut in LNG and engine3 only. | ✅ | ✅ | ✅ |
+| `dg1_low_soc_charge_margin` | explicit-hot-start probe: low SoC diesel-generator branch should add the Pd1max/10 charging margin and cut in DG1. | ✅ | ✅ | ✅ |
+| `dg1_normal_and_dg2_last_priority` | explicit-hot-start probe: normal DG1 branch should cover an intermediate deficit, then a separate high deficit hot-start...<truncated 44 chars> | ✅ | ✅ | ✅ |
+| `dg2_and_overload_extreme_cases` | explicit-hot-start probe: DG2 should cover demand beyond DG1 capacity, while extreme demand beyond all thermal resources...<truncated 49 chars> | ✅ | ✅ | ✅ |
+
+#### Repair / blocking feedback 概览（report §7 摘录）
+
+口径：本节只记录 agent-loop 真实进入 repair block 后已有证据；`diff` 基于 run record 中可恢复的 before/candidate DSL 文本生成，若 before DSL 未落盘则明确标注不可恢复。
+
+| Repair | iteration | accepted | source | blocking diagnostics | SD-10 / SL-10B | candidate hash |
+|---:|---:|---:|---|---|---|---|
+| 1 | `0` | ❌ | `SD-4` | W_UNWRITTEN_READ_VAR:var_name=Pd2max, W_UNWRITTEN_READ_VAR:var_name=Pbat_Pmax, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.BatteryAssist, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.LNGCoveredNormal, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.DG2Covered, ... +53 | SD-10 ok=False, target=False, regression=False, drift=major, reason=missing_required_grounding | `sha256:93caebf626f3e191c1aa3fa4e47d5767b9697dcd6806f3c540cd8eba6fa27c91` |
+| 2 | `1` | ❌ | `SD-4` | W_UNWRITTEN_READ_VAR:var_name=Pd2max, W_UNWRITTEN_READ_VAR:var_name=Pbat_Pmax, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.BatteryAssist, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.LNGCoveredNormal, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.DG2Covered, ... +53 | SD-10 ok=False, target=False, regression=False, drift=major, reason=missing_required_grounding | `sha256:180df4cf113445e8e8ed80c4a7699aec96a916a393847d1d19d37639fb3a5a13` |
+| 3 | `2` | ❌ | `SL-7` | W_UNWRITTEN_READ_VAR:var_name=Pd2max, W_UNWRITTEN_READ_VAR:var_name=Pbat_Pmax, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.BatteryAssist, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.LNGCoveredNormal, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.DG2Covered, ... +49 | SD-10 ok=False, target=False, regression=True, drift=major, reason=scenario_regression; missing_required_grounding | `sha256:302f510d4d02007c3eb00a902b754fdc37e3d30fe9e1d7e6711f423fe90c9f63` |
+| 4 | `3` | ❌ | `SL-7` | W_UNWRITTEN_READ_VAR:var_name=Pd2max, W_UNWRITTEN_READ_VAR:var_name=Pbat_Pmax, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.BatteryAssist, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.LNGCoveredNormal, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.DG2Covered, ... +49 | SD-10 ok=False, target=False, regression=False, drift=major, reason=missing_required_grounding | `sha256:fe8c613b70a699a7b91fc62e878399f1ffd7cd8e9882a089319e4c8115ce959f` |
+| 5 | `4` | ❌ | `SL-7` | W_UNWRITTEN_READ_VAR:var_name=Pd2max, W_UNWRITTEN_READ_VAR:var_name=Pbat_Pmax, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.BatteryAssist, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.LNGCoveredNormal, W_GUARD_VARS_NEVER_CHANGE:from_path=LNGShipEMS.IdleNoLoad:to_path=LNGShipEMS.DG2Covered, ... +49 | SD-10 ok=False, target=False, regression=True, drift=major, reason=new_blocking_design_diagnostic; scenario_regression; forced_transition_count_drift; missing_required_grounding | `sha256:372f20d03a9f02ee8ffc77cc2d117143e9863993c6619dc4a7cecf3d4bd1110d` |
+
+> 完整 repair 细节、进入修复原因、SD-8 修改建议、SL-9 candidate、before→candidate diff 与 SD-10/SL-10B 审查证据见 `runs/pr_e1_real_agent_loop_round14_full_evidence_parallel/pr-e1-path2_lng_ems-default-round14fullevidenceparallel-a78258a0/report.md` §7。
 
 </details>
