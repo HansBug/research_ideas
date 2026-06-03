@@ -40,6 +40,15 @@ SL-9 Repair contract:
 - Preserve NL-grounded required elements in GroundingMap.
 - Keep passing scenarios from regressing.
 - Output corrected pyfcstm DSL only. No fences, no commentary.
+- Do not rewrite event-triggered transitions into chain-scope `: Event`
+  transitions merely to satisfy a scenario. In the parseable subset, NL trigger
+  names should normally stay as local `:: EventName` transitions; scenario
+  paths can use local event names after an initial empty cycle or full
+  root-qualified event paths. A repair must not make the DSL less parseable or
+  less faithful just to match an over-qualified scenario path.
+- Output exactly one complete DSL file. Never splice two copies of the root
+  state, never duplicate `state Root {{`/`state System {{`, and never output a
+  diff/patch fragment.
 
 Target-aware repair rules:
 - If `repair_target` is `parse`, first eliminate all parse diagnostics and do
@@ -73,7 +82,13 @@ Target-aware repair rules:
   is an external input (sensor/load/environment), prefer documenting that
   modeling choice through grounded structure or using event/effect updates only
   when NL provides them; if it is internal state, add a meaningful NL-grounded
-  write.
+  write. If all guard variables are external inputs, keep the guard and do not
+  invent plant dynamics.
+- If the selected feedback is simulation failure, inspect whether the scenario
+  itself violates pyfcstm execution semantics before editing DSL: default-init scenarios usually need an empty cycle before the first event, and local
+  events such as `PS2`/`StartAC` can be injected by local name once the source
+  leaf is active. Do not change correct `:: Event` transitions into `: Event`
+  because of an over-qualified or premature event in the scenario.
 - After editing, self-check from scratch: parse syntax, semantic target
   resolution, design target, and preservation of required grounded elements.
 

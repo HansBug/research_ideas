@@ -152,6 +152,9 @@ def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
     assert "E_DURING_ASPECT_INVALID" in sl9
     assert "If diagnostics show undeclared event-like names" in sl9
     assert "make every required" in sl9
+    assert "Do not rewrite event-triggered transitions into chain-scope `: Event`" in sl9
+    assert "Output exactly one complete DSL file" in sl9
+    assert "default-init scenarios usually need an empty cycle" in sl9
 
 
 def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context() -> None:
@@ -169,6 +172,9 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert "TestScenario" in joined
     assert "GroundingMap" in joined
     assert "Cover Start transition" in joined
+    assert "before_cycles: 1" in joined
+    assert "local names such as `Start`, `Reset`, `PS2`" in joined
+    assert "Avoid over-asserting weak or incidental variables" in joined
 
     scenarios = parse_sl5_scenario_generation_response(
         json.dumps(

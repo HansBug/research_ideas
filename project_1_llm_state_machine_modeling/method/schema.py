@@ -888,6 +888,7 @@ class DesignDiagnosticItem:
     suggested_fix_hints: list[dict[str, Any]] = field(default_factory=list)
     budget_remaining: Optional[int] = None
     budget_exhausted: bool = False
+    rationale: str = ""
 
     def __post_init__(self) -> None:
         self.pyfcstm_severity = _require_one_of(

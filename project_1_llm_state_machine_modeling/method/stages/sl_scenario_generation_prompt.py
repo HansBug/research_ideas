@@ -42,6 +42,21 @@ Additional PR-1B contract:
 - Output strict JSON with a top-level `scenarios` list compatible with
   method.schema.TestScenario / ScenarioStep.
 - Do not change the DSL and do not invent requirements not grounded in NL.
+- Respect pyfcstm simulation semantics: when `initial_state` is omitted, the
+  runtime starts at the root and the first empty `cycle()` dispatches the
+  `[*] -> ...` initial transition. Therefore, scenarios that fire an event from
+  the default initial leaf should normally set `before_cycles: 1` before the
+  first event step. Do not expect a leaf state immediately at step 0 unless you
+  explicitly hot-start that leaf.
+- Prefer events as local names such as `Start`, `Reset`, `PS2` once the runtime
+  is already in the source state. If you use a qualified event path, use either
+  the full root-qualified path (e.g. `Root.Region.Source.Event`) or an absolute
+  path understood by pyfcstm; do not repeat the root twice and do not use a
+  parent-relative path from inside the source leaf such as `Region.Source.Event`.
+- Avoid over-asserting weak or incidental variables. Only set
+  `expected_vars` for state/action outputs explicitly grounded in the NL/DSL;
+  leave sensor/environment inputs as don't-care unless the NL gives a concrete
+  value and the scenario sets it in `initial_vars`.
 """
     payload = {
         "nl": nl,

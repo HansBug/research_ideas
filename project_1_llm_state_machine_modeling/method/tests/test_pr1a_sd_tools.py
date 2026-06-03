@@ -80,6 +80,20 @@ state Root {
 }
 """
 
+EXTERNAL_SENSOR_DSL = """
+def float PL = 0.0;
+def float Ppv = 0.0;
+def float Pw = 0.0;
+def float SoC = 0.0;
+state Root {
+    [*] -> RESChargeBattery;
+    state RESChargeBattery;
+    state RESSpare;
+    RESChargeBattery -> RESSpare : if [Ppv + Pw >= PL && SoC >= 0.95];
+    RESSpare -> RESChargeBattery : if [Ppv + Pw < PL || SoC < 0.95];
+}
+"""
+
 FORCED_DSL = """
 state Root {
     state Idle;
@@ -195,6 +209,31 @@ def test_sd4_design_routes_advisory_warnings_and_audit_policy() -> None:
     assert any(item.code == "W_UNWRITTEN_READ_VAR" for item in strict_feedback.blocking_items)
     assert audit_feedback.ok
     assert any(item.code == "W_UNWRITTEN_READ_VAR" for item in audit_feedback.advisory_items)
+
+
+def test_sd4_design_downgrades_nl_grounded_external_input_warnings() -> None:
+    context = StageContext(
+        nl=(
+            "The EMS reads load demand PL, renewable contributions Ppv and Pw, "
+            "and battery state of charge SoC as external sensor inputs."
+        )
+    )
+    run_sd3_semantic(EXTERNAL_SENSOR_DSL, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert meta.status is StageStatus.OK
+    assert not feedback.blocking_items
+    advisory_codes = [item.code for item in feedback.advisory_items]
+    assert "W_UNWRITTEN_READ_VAR" in advisory_codes
+    assert "W_GUARD_VARS_NEVER_CHANGE" in advisory_codes
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["PL", "Ppv", "Pw", "SoC"]
+    assert all(
+        item.rationale
+        for item in feedback.advisory_items
+        if item.code in {"W_UNWRITTEN_READ_VAR", "W_GUARD_VARS_NEVER_CHANGE"}
+    )
 
 
 def test_warning_budget_attempt_decrements_to_advisory() -> None:

@@ -170,11 +170,36 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
     unless an explicit smoke/replay profile opts into hot-start behavior.
     """
 
+    from method.schema import ScenarioStep
+
     normalized: list[Any] = []
     for scenario in scenarios:
+        changed = False
         if hasattr(scenario, "initial_state") and getattr(scenario, "initial_state") is not None:
             clone = type(scenario)(**asdict(scenario))
             clone.initial_state = None
+            changed = True
+        else:
+            clone = scenario
+        steps = list(getattr(clone, "steps", []) or [])
+        if steps:
+            first = steps[0]
+            if (
+                getattr(first, "events", None)
+                and getattr(first, "before_cycles", 0) == 0
+            ):
+                steps[0] = ScenarioStep(
+                    before_cycles=1,
+                    events=list(first.events) if first.events is not None else None,
+                    expected_state=first.expected_state,
+                    expected_vars=dict(first.expected_vars) if first.expected_vars is not None else None,
+                    name=first.name,
+                )
+                changed = True
+        if changed:
+            if clone is scenario:
+                clone = type(scenario)(**asdict(scenario))
+            clone.steps = steps
             normalized.append(clone)
         else:
             normalized.append(scenario)

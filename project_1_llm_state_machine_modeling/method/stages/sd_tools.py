@@ -67,6 +67,97 @@ _ADVISORY_WARNING_CODES = {
 DEFAULT_WARNING_REPAIR_BUDGET = 2
 COUNT_DRIFT_THRESHOLD = 0.30
 
+_EXTERNAL_INPUT_NL_HINTS = (
+    "reads",
+    "read",
+    "sensor",
+    "sensing",
+    "input",
+    "load demand",
+    "demand",
+    "renewable",
+    "battery state of charge",
+    "state of charge",
+    "capacity",
+    "capacity bound",
+    "capacity bounds",
+    "wheel speed",
+    "vehicle speed",
+    "slip",
+    "slip ratio",
+    "environment",
+    "external",
+    "time-varying",
+)
+
+
+def _external_input_variables_from_nl(nl: str) -> set[str]:
+    """Infer obvious read-only sensor/environment variables from NL text.
+
+    This is intentionally conservative and deterministic.  It exists because
+    PR-E1 real runs showed a systematic false-positive pattern: variables such
+    as ``PL/Ppv/Pw/SoC`` or wheel/vehicle speed are environment inputs used in
+    guards, not internal state variables that the FCSTM should invent writes
+    for.  Treating those warnings as blocking caused SL-9 to add ungrounded
+    dynamics or to churn without improving the model.  We only downgrade
+    warnings when the variable token appears near input/sensor/capacity words
+    in the original NL.
+    """
+
+    if not nl:
+        return set()
+    found: set[str] = set()
+    # Prefer compact identifier-like tokens that can be pyfcstm variable names.
+    for match in re.finditer(r"\b[A-Za-z_][A-Za-z0-9_]*\b", nl):
+        token = match.group(0)
+        if len(token) > 40:
+            continue
+        start = max(0, match.start() - 96)
+        end = min(len(nl), match.end() + 96)
+        window = nl[start:end].lower()
+        if any(hint in window for hint in _EXTERNAL_INPUT_NL_HINTS):
+            found.add(token)
+    # Add common acronym variants whose explanatory phrase often carries the
+    # input hint instead of the token itself.
+    lower = nl.lower()
+    if "state of charge" in lower:
+        found.add("SoC")
+    if "load demand" in lower:
+        found.add("PL")
+    if "wheel speed" in lower:
+        found.add("wheel_speed")
+    if "vehicle speed" in lower:
+        found.add("vehicle_speed")
+    if "slip ratio" in lower or "slip-error" in lower or "slip error" in lower:
+        found.add("slp")
+    return found
+
+
+def _guard_vars(item: DesignDiagnosticItem) -> set[str]:
+    raw = item.refs.get("guard_vars")
+    if isinstance(raw, list):
+        return {str(v) for v in raw}
+    return set()
+
+
+def _external_input_advisory_rationale(item: DesignDiagnosticItem, nl_external_vars: set[str]) -> str | None:
+    if item.code == "W_UNWRITTEN_READ_VAR":
+        var = str(item.refs.get("var_name") or "")
+        if var and var in nl_external_vars:
+            return (
+                f"Downgraded because `{var}` is NL-grounded as an external "
+                "sensor/environment input; adding invented writes would be "
+                "less faithful than leaving it read-only."
+            )
+    if item.code == "W_GUARD_VARS_NEVER_CHANGE":
+        vars_in_guard = _guard_vars(item)
+        if vars_in_guard and vars_in_guard.issubset(nl_external_vars):
+            return (
+                "Downgraded because all guard variables are NL-grounded "
+                f"external inputs: {', '.join(sorted(vars_in_guard))}."
+            )
+    return None
+
 
 def _hash_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -306,6 +397,8 @@ def run_sd4_design(
     inspect_json = inspect_model(context.model).to_json()
     context.inspect_json = inspect_json
     diagnostics = [_diag_to_dict(diag) for diag in inspect_json.get("diagnostics", [])]
+    declared_vars = set(str(name) for name in (getattr(context.model, "defines", {}) or {}).keys())
+    nl_external_vars = _external_input_variables_from_nl(context.nl) & declared_vars
     blocking: list[DesignDiagnosticItem] = []
     advisory: list[DesignDiagnosticItem] = []
     info: list[DesignDiagnosticItem] = []
@@ -313,6 +406,13 @@ def run_sd4_design(
     for diag in diagnostics:
         state = _budget_state_for(diag, warning_budget_state)
         item = _design_item_from_diag(diag, state, policy_profile=policy_profile)
+        external_rationale = _external_input_advisory_rationale(item, nl_external_vars)
+        if external_rationale is not None and item.policy_action == "budgeted_repair":
+            item.policy_action = "advisory"
+            item.rationale = external_rationale
+            state.last_status = "external_input_advisory"
+        elif external_rationale is not None:
+            item.rationale = external_rationale
         state.last_status = item.policy_action
         state.last_stage = StageId.SD_4_DESIGN.value
         if item.policy_action in {"hard_block", "budgeted_repair", "requires_policy_classification"}:
@@ -349,6 +449,7 @@ def run_sd4_design(
                 for item in [*blocking, *advisory, *info]
             ],
             "warning_budget_state": {key: asdict(value) for key, value in sorted(warning_budget_state.items())},
+            "nl_external_input_vars": sorted(nl_external_vars),
         },
     )
     status = StageStatus.OK if feedback.ok else StageStatus.FAIL
