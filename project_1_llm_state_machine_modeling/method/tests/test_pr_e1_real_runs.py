@@ -182,6 +182,10 @@ def test_pr_e1_runner_writes_report_artifacts_with_fake_entry(tmp_path: Path) ->
         assert "输入 NL 中文翻译" in text
         assert "最终产出的 FCSTM DSL" in text
         assert "Iteration / repair / review 摘要" in text
+        assert "Repair / blocking feedback 明细" in text
+        assert "为什么进入修复" in text
+        assert "Candidate diff" in text
+        assert "SD-10 / SL-10B 审查结果" in text
         assert "reproducibility.json" in text
         assert Path(summary.reproducibility_path).exists()
         assert summary.prompt_snapshot_hash

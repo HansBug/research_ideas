@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import difflib
 import hashlib
 import gzip
 import json
@@ -982,11 +983,15 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
             "",
             *_scenario_report_lines(record),
             "",
-            "### 7. 尝试记录与成本",
+            "### 7. Repair / blocking feedback 明细",
+            "",
+            *_repair_report_lines(record),
+            "",
+            "### 8. 尝试记录与成本",
             "",
             *_attempt_lines(record),
             "",
-            "### 8. 最终停止状态与后续含义",
+            "### 9. 最终停止状态与后续含义",
             "",
             f"- 停止状态：verdict=`{summary.verdict}`，record_status=`{summary.record_status}`。",
             f"- 主要原因分类：`{summary.primary_failure_class}`。",
@@ -1503,6 +1508,370 @@ def _short_text(text: str, limit: int) -> str:
 
 def _escape_md(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ")
+
+
+def _repair_report_lines(record: AgentLoopRunRecord) -> list[str]:
+    """Render each repair block with cause, guidance, candidate, and diff evidence."""
+
+    repairs = [item for item in record.repair_history if isinstance(item, dict)]
+    if not repairs:
+        return [
+            "- 本 run 未进入 `SD-8/SL-9/SD-10` repair block；通常表示流程在 repair 前已成功、被 provider/schema 错误中断，或在 pre-repair 阶段直接退出。",
+        ]
+
+    lines: list[str] = [
+        "口径：本节只记录 agent-loop 真实进入 repair block 后已有证据；`diff` 基于 run record 中可恢复的 before/candidate DSL 文本生成，若 before DSL 未落盘则明确标注不可恢复。",
+        "",
+        "| Repair | iteration | accepted | source | blocking diagnostics | SD-10 / SL-10B | candidate hash |",
+        "|---:|---:|---:|---|---|---|---|",
+    ]
+    for index, item in enumerate(repairs, start=1):
+        selected = item.get("selected_feedback") if isinstance(item.get("selected_feedback"), dict) else {}
+        fix_plan = item.get("fix_plan") if isinstance(item.get("fix_plan"), dict) else {}
+        rr = _repair_review_dict(item)
+        sl10b = _delta_review_dict(rr)
+        source = selected.get("source_stage") or selected.get("source") or fix_plan.get("source_stage") or "<none>"
+        diagnostics = _diagnostic_list(selected, fix_plan)
+        lines.append(
+            "| {idx} | `{iteration}` | {accepted} | `{source}` | {diagnostics} | {review} | `{candidate_hash}` |".format(
+                idx=index,
+                iteration=item.get("iteration", "-"),
+                accepted="✅" if item.get("accepted") is True else "❌",
+                source=_escape_md(str(source)),
+                diagnostics=_escape_md(_join_limited(diagnostics, limit=5)),
+                review=_escape_md(_repair_review_compact(rr, sl10b)),
+                candidate_hash=_escape_md(str(item.get("candidate_dsl_hash") or "<none>")),
+            )
+        )
+
+    lines.append("")
+    for index, item in enumerate(repairs, start=1):
+        lines.extend(_single_repair_detail_lines(index, item, repairs, record))
+    return lines
+
+
+def _single_repair_detail_lines(
+    index: int,
+    item: dict[str, Any],
+    repairs: Sequence[dict[str, Any]],
+    record: AgentLoopRunRecord,
+) -> list[str]:
+    selected = item.get("selected_feedback") if isinstance(item.get("selected_feedback"), dict) else {}
+    fix_plan = item.get("fix_plan") if isinstance(item.get("fix_plan"), dict) else {}
+    rr = _repair_review_dict(item)
+    sl10b = _delta_review_dict(rr)
+    candidate_dsl = str(item.get("candidate_dsl") or "")
+    before_dsl = _before_dsl_for_repair(index - 1, item, repairs, record)
+    diff_lines = _dsl_diff_lines(before_dsl, candidate_dsl)
+    candidate_preview = _code_block_text(candidate_dsl, max_chars=9000)
+    diagnostics = _diagnostic_list(selected, fix_plan)
+    evidence_lines = _fix_plan_evidence_lines(fix_plan)
+    hint_lines = _fix_plan_hint_lines(fix_plan)
+    variable_role_lines = _variable_role_lines(selected)
+    rr_lines = _repair_review_detail_lines(rr, sl10b)
+    before_hash = _escape_md(str(fix_plan.get("before_dsl_hash") or _repair_input_summary(item).get("old_dsl_hash") or "<unknown>"))
+    candidate_hash = _escape_md(str(item.get("candidate_dsl_hash") or _repair_input_summary(item).get("candidate_dsl_hash") or "<unknown>"))
+    source = selected.get("source_stage") or selected.get("source") or fix_plan.get("source_stage") or "<none>"
+    problem_summary = str(fix_plan.get("problem_summary") or selected.get("source") or "<none>")
+
+    lines = [
+        f"<details><summary>Repair {index} / iteration `{item.get('iteration', '-')}` / source `{_escape_md(str(source))}` / accepted={'✅' if item.get('accepted') is True else '❌'}</summary>",
+        "",
+        "#### 为什么进入修复",
+        "",
+        f"- selected feedback source：`{_escape_md(str(source))}`；blocking=`{selected.get('blocking')}`；pre_scenario=`{selected.get('pre_scenario') or selected.get('is_pre_scenario')}`。",
+        f"- problem_summary：{_escape_md(_short_text(problem_summary, 600))}",
+        f"- diagnostic ids：`{_escape_md(_join_limited(diagnostics, limit=12))}`。",
+        f"- before_dsl_hash：`{before_hash}`；candidate_dsl_hash：`{candidate_hash}`。",
+        "",
+        "#### 错误证据 / diagnostics",
+        "",
+    ]
+    lines.extend(evidence_lines or ["- fix_plan 未记录结构化 evidence；请查看 run record 原文。"])
+    if variable_role_lines:
+        lines.extend(["", "#### 变量角色与上下文提示", ""])
+        lines.extend(variable_role_lines)
+    lines.extend(["", "#### SD-8 fix plan / 修改建议", ""])
+    lines.extend(hint_lines or ["- fix_plan 未记录 suggested_fix_hints / recommended_strategy。"])
+    forbidden = fix_plan.get("forbidden_edits")
+    preserve = fix_plan.get("required_preserve_element_ids")
+    if isinstance(forbidden, list) and forbidden:
+        lines.append(f"- forbidden_edits：`{_escape_md(_join_limited([str(x) for x in forbidden], limit=6))}`。")
+    if isinstance(preserve, list) and preserve:
+        lines.append(f"- required_preserve_element_ids：`{_escape_md(_join_limited([str(x) for x in preserve], limit=12))}`。")
+    lines.extend(["", "#### SL-9 candidate / 最终修改执行方案", ""])
+    if candidate_dsl:
+        lines.extend(["```pyfcstm", candidate_preview, "```"])
+    else:
+        lines.append("- 本 repair 未记录 candidate_dsl。")
+    lines.extend(["", "#### Candidate diff（before -> candidate）", ""])
+    lines.extend(diff_lines)
+    lines.extend(["", "#### SD-10 / SL-10B 审查结果", ""])
+    lines.extend(rr_lines)
+    lines.extend(["", "</details>", ""])
+    return lines
+
+
+def _repair_review_dict(item: dict[str, Any]) -> dict[str, Any]:
+    for key in ("repair_review", "sd10_repair_review"):
+        value = item.get(key)
+        if isinstance(value, dict):
+            return value
+    return {}
+
+
+def _repair_input_summary(item: dict[str, Any]) -> dict[str, Any]:
+    value = item.get("repair_review_input_summary")
+    return value if isinstance(value, dict) else {}
+
+
+def _delta_review_dict(repair_review: dict[str, Any]) -> dict[str, Any] | None:
+    value = repair_review.get("delta_review")
+    return value if isinstance(value, dict) else None
+
+
+def _diagnostic_list(selected: dict[str, Any], fix_plan: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for key in ("blocking_instance_keys", "diagnostic_codes"):
+        raw = selected.get(key)
+        if isinstance(raw, list):
+            values.extend(str(item) for item in raw if item is not None)
+    raw_plan = fix_plan.get("diagnostic_ids")
+    if isinstance(raw_plan, list):
+        values.extend(str(item) for item in raw_plan if item is not None)
+    return _dedupe_keep_order(values)
+
+
+def _fix_plan_evidence_lines(fix_plan: dict[str, Any]) -> list[str]:
+    evidence = fix_plan.get("evidence")
+    if not isinstance(evidence, list):
+        return []
+    lines: list[str] = []
+    for index, item in enumerate(evidence[:8], start=1):
+        if not isinstance(item, dict):
+            continue
+        code = item.get("code") or item.get("kind") or "<unknown>"
+        instance = item.get("instance_key") or item.get("id") or ""
+        message = item.get("message") or item.get("reason") or item.get("summary") or ""
+        policy = item.get("policy_action") or item.get("pyfcstm_severity") or ""
+        refs = item.get("refs")
+        refs_text = json.dumps(refs, ensure_ascii=False, sort_keys=True) if isinstance(refs, dict) else ""
+        lines.append(
+            "- {idx}. `{code}` `{instance}` policy=`{policy}`：{message}{refs}".format(
+                idx=index,
+                code=_escape_md(str(code)),
+                instance=_escape_md(str(instance)),
+                policy=_escape_md(str(policy)),
+                message=_escape_md(_short_text(str(message), 360)),
+                refs=f"；refs=`{_escape_md(_short_text(refs_text, 300))}`" if refs_text else "",
+            )
+        )
+    if len(evidence) > 8:
+        lines.append(f"- ……另有 `{len(evidence) - 8}` 条 evidence 见 run record。")
+    return lines
+
+
+def _fix_plan_hint_lines(fix_plan: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    strategy = fix_plan.get("recommended_strategy")
+    if isinstance(strategy, list) and strategy:
+        lines.append("- recommended_strategy：" + "；".join(_escape_md(_short_text(str(item), 220)) for item in strategy[:6]))
+    hints = fix_plan.get("suggested_fix_hints")
+    if isinstance(hints, list):
+        for index, hint in enumerate(hints[:6], start=1):
+            if isinstance(hint, dict):
+                summary = str(hint.get("summary") or hint.get("kind") or "")
+                actions = hint.get("recommended_actions")
+                action_text = _summarize_recommended_actions(actions)
+                do_not = hint.get("do_not")
+                do_not_text = _join_limited([str(x) for x in do_not], limit=3) if isinstance(do_not, list) else ""
+                tail = []
+                if action_text:
+                    tail.append(f"actions={action_text}")
+                if do_not_text:
+                    tail.append(f"do_not={do_not_text}")
+                lines.append(f"- hint {index}：{_escape_md(_short_text(summary, 300))}" + (f"；`{_escape_md('；'.join(tail))}`" if tail else ""))
+            else:
+                lines.append(f"- hint {index}：{_escape_md(_short_text(str(hint), 300))}")
+    return lines
+
+
+def _summarize_recommended_actions(actions: Any) -> str:
+    if not isinstance(actions, list):
+        return ""
+    parts: list[str] = []
+    for action in actions[:4]:
+        if isinstance(action, dict):
+            label = action.get("kind") or action.get("action") or action.get("summary") or action.get("description") or action
+            parts.append(_short_text(str(label), 120))
+        else:
+            parts.append(_short_text(str(action), 120))
+    return _join_limited(parts, limit=4)
+
+
+def _variable_role_lines(selected: dict[str, Any]) -> list[str]:
+    summary = selected.get("variable_role_summary")
+    if not isinstance(summary, dict):
+        return []
+    lines = [
+        f"- policy：{_escape_md(_short_text(str(summary.get('policy') or '<none>'), 500))}",
+        f"- source：{_escape_md(str(summary.get('source') or '<none>'))}",
+    ]
+    variables = summary.get("variables")
+    if isinstance(variables, dict) and variables:
+        lines.extend(["", "| Variable | role_hint | nl_token_present | diagnostics |", "|---|---|---:|---|"])
+        for name, meta in sorted(variables.items()):
+            if isinstance(meta, dict):
+                codes = meta.get("diagnostic_codes")
+                code_text = _join_limited([str(x) for x in codes], limit=5) if isinstance(codes, list) else ""
+                lines.append(
+                    "| `{name}` | `{role}` | {present} | `{codes}` |".format(
+                        name=_escape_md(str(name)),
+                        role=_escape_md(str(meta.get("role_hint") or "<none>")),
+                        present="✅" if meta.get("nl_token_present") else "❌",
+                        codes=_escape_md(code_text),
+                    )
+                )
+    return lines
+
+
+def _repair_review_compact(repair_review: dict[str, Any], delta_review: dict[str, Any] | None) -> str:
+    if not repair_review:
+        return "<none>"
+    local = repair_review.get("local_rejection") if isinstance(repair_review.get("local_rejection"), dict) else {}
+    reason = repair_review.get("reason") or local.get("reason") or ""
+    delta = ""
+    if delta_review:
+        delta = f"; delta={delta_review.get('decision') or delta_review.get('ok') or '<recorded>'}"
+    return "SD-10 ok={ok}, target={target}, regression={regression}, drift={drift}, reason={reason}{delta}".format(
+        ok=repair_review.get("ok"),
+        target=repair_review.get("target_resolved"),
+        regression=repair_review.get("regression_detected"),
+        drift=repair_review.get("drift_risk") or local.get("drift_risk"),
+        reason=_short_text(str(reason), 160),
+        delta=delta,
+    )
+
+
+def _repair_review_detail_lines(repair_review: dict[str, Any], delta_review: dict[str, Any] | None) -> list[str]:
+    if not repair_review:
+        return ["- 未记录 repair_review / sd10_repair_review。"]
+    lines = [
+        f"- SD-10 ok=`{repair_review.get('ok')}`，target_resolved=`{repair_review.get('target_resolved')}`，regression_detected=`{repair_review.get('regression_detected')}`，drift_risk=`{repair_review.get('drift_risk')}`。",
+    ]
+    local = repair_review.get("local_rejection")
+    if isinstance(local, dict):
+        lines.append(f"- local_rejection：reason=`{_escape_md(str(local.get('reason') or '<none>'))}`，rejected_by_stage=`{local.get('rejected_by_stage')}`。")
+        evidence = local.get("evidence")
+        if isinstance(evidence, list):
+            for index, item in enumerate(evidence[:6], start=1):
+                if isinstance(item, dict):
+                    lines.append(f"  - local evidence {index}: `{_escape_md(str(item.get('kind') or '<unknown>'))}` {_escape_md(_short_text(json.dumps(item, ensure_ascii=False, sort_keys=True), 500))}")
+    if delta_review:
+        lines.append(f"- SL-10B delta_review：`{_escape_md(_short_text(json.dumps(delta_review, ensure_ascii=False, sort_keys=True), 900))}`。")
+    else:
+        lines.append("- SL-10B delta_review：`<none>`（通常是 SD-10 本地审查已拒绝，未进入 LLM delta review）。")
+    return lines
+
+
+def _before_dsl_for_repair(
+    zero_based_index: int,
+    item: dict[str, Any],
+    repairs: Sequence[dict[str, Any]],
+    record: AgentLoopRunRecord,
+) -> str | None:
+    input_summary = _repair_input_summary(item)
+    old_dsl = input_summary.get("old_dsl")
+    if isinstance(old_dsl, str) and old_dsl:
+        return old_dsl
+    fix_plan = item.get("fix_plan") if isinstance(item.get("fix_plan"), dict) else {}
+    wanted_hash = str(fix_plan.get("before_dsl_hash") or input_summary.get("old_dsl_hash") or "")
+    hashed_before = _initial_or_current_dsl_for_hash(record, wanted_hash)
+    if hashed_before:
+        return hashed_before
+    if zero_based_index > 0:
+        previous_item = repairs[zero_based_index - 1]
+        previous = previous_item.get("candidate_dsl")
+        if previous_item.get("accepted") is not True:
+            previous = None
+        if isinstance(previous, str) and previous:
+            return previous
+    return _initial_or_current_dsl_for_hash(record, "")
+
+
+def _initial_or_current_dsl_for_hash(record: AgentLoopRunRecord, wanted_hash: str) -> str | None:
+    candidates: list[str] = []
+    for interaction in record.llm_interactions:
+        if not isinstance(interaction, dict):
+            continue
+        parsed = interaction.get("parsed_output")
+        if isinstance(parsed, dict):
+            for key in ("candidate_dsl", "dsl", "model_dsl", "repaired_dsl"):
+                value = parsed.get(key)
+                if isinstance(value, str) and value:
+                    candidates.append(value)
+    final_dsl = record.final_artifacts.get("final_dsl") if isinstance(record.final_artifacts, dict) else None
+    if isinstance(final_dsl, str) and final_dsl:
+        candidates.append(final_dsl)
+    if wanted_hash:
+        for text in candidates:
+            if _hash_text(text) == wanted_hash:
+                return text
+    return candidates[0] if candidates else None
+
+
+def _dsl_diff_lines(before_dsl: str | None, candidate_dsl: str) -> list[str]:
+    if before_dsl and candidate_dsl:
+        raw_lines = list(
+            difflib.unified_diff(
+                before_dsl.splitlines(),
+                candidate_dsl.splitlines(),
+                fromfile="before.fcstm",
+                tofile="candidate.fcstm",
+                lineterm="",
+            )
+        )
+        if not raw_lines:
+            return ["- before 与 candidate 文本完全一致；无 diff。"]
+        truncated = raw_lines[:220]
+        suffix = []
+        if len(raw_lines) > len(truncated):
+            suffix = [f"... <truncated {len(raw_lines) - len(truncated)} diff lines; see run record candidate_dsl>"]
+        return ["```diff", *truncated, *suffix, "```"]
+    if candidate_dsl:
+        return [
+            "- 完整 before DSL 文本不可恢复：run record 只保存了 before hash / compact summary；下面只能展示 candidate。若需要严格 before->after diff，应后续让 `repair_review_input_summary` 或 repair_history 落盘 `old_dsl`。",
+            "```pyfcstm",
+            _code_block_text(candidate_dsl, max_chars=9000),
+            "```",
+        ]
+    return ["- 无 candidate DSL，因此无法生成 diff。"]
+
+
+def _code_block_text(text: str, *, max_chars: int) -> str:
+    stripped = text.rstrip()
+    if len(stripped) <= max_chars:
+        return stripped
+    return stripped[:max_chars].rstrip() + f"\n... <truncated {len(stripped) - max_chars} chars; see run record>"
+
+
+def _join_limited(values: Sequence[str], *, limit: int) -> str:
+    cleaned = [value for value in values if value]
+    head = cleaned[:limit]
+    text = ", ".join(head)
+    if len(cleaned) > limit:
+        text += f", ... +{len(cleaned) - limit}"
+    return text or "<none>"
+
+
+def _dedupe_keep_order(values: Sequence[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value not in seen:
+            result.append(value)
+            seen.add(value)
+    return result
 
 
 def _attempt_lines(record: AgentLoopRunRecord) -> list[str]:
