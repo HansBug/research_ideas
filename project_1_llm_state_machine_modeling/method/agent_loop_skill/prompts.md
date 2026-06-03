@@ -11,6 +11,8 @@ PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑�
 
 PR-E2 producer 使用 SL prompt 时，应额外提醒模型：当前 pyfcstm parser 不支持 `def bool` / `true` / `false`，布尔语义用 `int` flag 表达；外部输入不能只靠 `// @external` 注释让 SD-4 自动通过。
 
+PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md)：不要只让 LLM 给“高/中/低质量”评价，而要输出 NFRR claim、NL coverage ledger、obligation alignment、scenario/mutation evidence、八维 vector、tier、cap reasons 与 allowed_use。若目标是 Ground-Truth 级 ref-model candidate，prompt 中应显式要求 `final_tier >= T3` 的证据包；若达不到，则必须如实降级为 `T2 within_NL_candidate` 或 diagnostic evidence。
+
 ## 使用边界
 
 - prompt generator 只返回 message pack 或 markdown prompt。

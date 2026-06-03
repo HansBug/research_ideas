@@ -9,6 +9,9 @@
 3. **修改范围**：若需要改 skill，本 PR 默认只允许改 `project_1_llm_state_machine_modeling/method/agent_loop_skill/` 及其子路径。若发现来自上游语法 prompt / grammar digest 的硬伤会直接误导 skill 使用者（例如实际 parser 不支持却在 grammar 中要求的语法），可作为特例修改 `project_1_llm_state_machine_modeling/method/prompts/_pyfcstm_grammar.md`；此类改动必须先核对相邻 PR（尤其 PR-E1）已有 diff，尽量采用相同修正以避免 merge 后冲突。
 4. **质量优先**：允许 Codex / Claude Code 长时间运行。时间限制只用于防止死锁或 CLI 挂死，不应用来牺牲论文阅读、验证或 repair 质量。
 5. **证据留痕**：每个样本的输入、读取路径、候选模型、检查反馈、修复轨迹和最终判断都必须能写入 PR comment。
+6. **NFRR 必填**：每个样本必须按 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md) 给出 NFRR claim、八维 vector、tier、cap reasons、allowed_use 与 `calibration_status=uncalibrated_candidate_gate`。
+7. **最低准出**：若样本未达到 `final_tier >= T2`、`SD-2/SD-3 pass`、无 unwaived `SD-4` blocking、至少一个 obligation-anchored `SD-6` scenario pass、无 critical contradiction / reachable test-harness pollution，只能称为 diagnostic evidence，不能称为 ref-model candidate。
+8. **Ground-Truth candidate 目标**：若声称“Ground Truth 级别 ref model 蓝本”，应达到 `final_tier >= T3`、`FE=3`、`REC=3`、`BVS=3`、`evidence_mode in {NL+paper, authoritative_NL}`、`obligation_independence in {independent_adjudicated, model_blind_independent}`；未人工签核前必须写 `signed_reference=false`。
 
 ## 2. 推荐输入格式
 
@@ -51,6 +54,7 @@ bibtex.bib -> STM.md / DESC.md -> paper_content.txt -> paper.pdf（必要时核�
 project_1_llm_state_machine_modeling/method/agent_loop_skill/SKILL.md
 project_1_llm_state_machine_modeling/method/agent_loop_skill/tools.md
 project_1_llm_state_machine_modeling/method/agent_loop_skill/prompts.md
+project_1_llm_state_machine_modeling/method/agent_loop_skill/nfrr_evaluation_guide.md
 project_1_llm_state_machine_modeling/method/agent_loop_skill/stages/
 ```
 
@@ -163,7 +167,23 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - 是否 blocking；
 - 对模型质量的影响。
 
-### E6. Final evidence package
+### E6. NFRR evaluation and exit gate
+
+完成最终候选模型后，必须读取 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md)，基于 `NL + final FCSTM model`（可选 `paper_dir`）生成 NFRR report。NFRR report 不得只写“高/中/低质量”，必须包含：
+
+- `claim`：`evidence_mode`、`scope_type`、`obligation_independence`、`allowed_use_rule_id`、`allowed_use`、`signed_reference`、`calibration_status`；
+- NL coverage ledger 与 obligation ledger；
+- obligation-to-model alignment；
+- `SD-2/SD-3/SD-4` 检查摘要；
+- obligation-anchored scenario 与 `SD-6` 结果；
+- mutation / DMR 证据或 explicit limitation；
+- waiver ledger；
+- `FE/NGF/REC/GAS/SCB/AAT/BVS/DMR` 八维分数；
+- `tier_before_cap`、`cap_reasons`、`final_tier`。
+
+PR-E2 最低准出：`final_tier >= T2`，且不得存在 critical contradiction、reachable test-harness pollution、unwaived `SD-4` blocking 或 `SD-6` 全失败。若目标是“Ground Truth 级别 ref model 蓝本”，应达到 `final_tier >= T3`，但没有人工/专家签核时仍必须写 `signed_reference=false`。
+
+### E7. Final evidence package
 
 每次 skill 修改并 push 后，必须重新跑一轮 4 个样本（Path-1 至少 2 个、Path-2 至少 2 个），并把每个样本作为独立 PR comment 留痕。PR-E2 不要求完全复制 PR-E1 的 run-record 格式，但每个样本 comment 至少应接近 PR-E1 报告的信息密度，包含：
 
@@ -177,7 +197,8 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - 全流程真实摘要表：stage、是否 LLM、轮次、结果、获取的信息/反馈、本阶段做了什么、DSL 修改、artifact/命令；
 - deterministic checks / review checks 结果；
 - repair 轨迹与每次修复依据；
-- 作为 ref model 的学术质量评审：覆盖、抽象、未覆盖语义、是否 `main_result_eligible`、仍需人工签核的问题；
+- NFRR 评价：claim、八维 vector、tier、cap reasons、allowed_use、准出结论；
+- 作为 ref model 的学术质量评审：覆盖、抽象、未覆盖语义、是否达到 NFRR 最低准出 / Ground-Truth candidate 目标、仍需人工签核的问题；
 - 合成变量 / 合成状态 / 离散化抽象声明：列出所有非论文直接定义的变量、状态或事件，并说明其存在理由；
 - advisory / warning waiver：尤其是 external input、output-only variable、SD-10 conservative fail 的逐项处理；
 - skill 改进建议。

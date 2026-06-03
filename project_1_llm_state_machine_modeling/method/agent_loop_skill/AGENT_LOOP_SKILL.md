@@ -10,9 +10,12 @@
 PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill 后，自主完成 `NL + 完整论文子路径 -> FCSTM/pyfcstm ref model 候选` 的建模、检查、修复与留痕。
 
 - 详细流程见 [e2e_ref_model_guide.md](./e2e_ref_model_guide.md)。
+- 模型质量评价与准出标准见 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md)；PR-E2 产物必须给出 NFRR claim/vector/tier/cap/allowed_use。
 - PR-E2 实测 **不得** 调用 `method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
 - 允许长时间运行，时间限制只用于防止 CLI 死锁或失控；质量、grounding、验证和 PR comment 证据优先。
-- 所有样本产物必须能写成 PR comment：输入 NL、论文路径、读取材料、候选模型、检查反馈、repair 轨迹、最终判断和 skill 改进建议。
+- 所有样本产物必须能写成 PR comment：输入 NL、论文路径、读取材料、候选模型、检查反馈、repair 轨迹、NFRR 评价、最终判断和 skill 改进建议。
+- 单个 sample 最低准出：`final_tier >= T2`、`SD-2/SD-3` pass、无 unwaived `SD-4` blocking、至少一个 obligation-anchored `SD-6` scenario pass、无 critical contradiction / reachable test-harness pollution。
+- Ground-Truth 级 ref-model candidate 目标准出：`final_tier >= T3`、`evidence_mode in {NL+paper, authoritative_NL}`、`obligation_independence in {independent_adjudicated, model_blind_independent}`、`FE=3`、`REC=3`、`BVS=3`，且仍必须标 `signed_reference=false`，除非已有人工/专家签核。
 
 
 ### PR-E2 语法与工具版本注意
