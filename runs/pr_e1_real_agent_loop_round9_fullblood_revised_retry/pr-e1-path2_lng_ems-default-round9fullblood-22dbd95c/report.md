@@ -1,0 +1,224 @@
+## path2 / state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship / default 真实运行结果：Path2 LNG-ship EMS representative NL
+
+### 0. 准确边界与结论
+
+- 运行入口：`method.loop.run_agent_loop(nl, LoopConfig(...))`。
+- 是否使用 fake / fixture / hot-start / replay：否；本次使用真实默认入口/显式 PR-E1 探索条件，没有 fake、fixture、hot-start 或 replay。
+- final verdict：`provider_error`；record_status：`error`；result_status：`api_failed`。
+- main_result_eligible：`false`。
+- 一句话结论：`provider_or_retry`；停止原因：SL-5 retry exhausted: provider_error: provider failure: InternalServerError: Error code: 502 - {'type': 'https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-502/', 'title': 'Error 502: Bad gateway', 'status': 502, 'detail': 'The origin web server returned an invalid or incomplete response to Cloudflare. This typically indic。
+
+### 1. 基本信息
+
+| 字段 | 值 |
+|---|---|
+| Path | `path2` |
+| case_id | `state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship` |
+| config_id | `default` |
+| 运行入口 | `method.loop.run_agent_loop(nl, LoopConfig(...))` |
+| LoopConfig 摘要 | `condition_id=full_staged_v1`, `max_iterations=5`, `llm_max_retries=2`, `scenario_max_retries=2`, `model_review_mode=blocking_major_only`, `delta_review_mode=blocking_major_only` |
+| Git commit | `37456f1da859d2cdd7afe6bc0868afaf8a94afc1` |
+| clean / diff / prompt snapshot | clean=`True`, dirty=`False`, diff_hash=`sha256:2a69ad5797ac568a81bddcef615104303a97261094685f4edd8d4484e889ea09`, prompt_hash=`sha256:c7306e971211f1c4d7bcd2f201ad2a67b5d0fbcdda5205b1af319b8fa7dbf700` |
+| provider/model 脱敏标识 | mode=`real_env`, model=`gpt-5.5`, real_api=`True` |
+| source / paper | source=`project_1_llm_state_machine_modeling/sources/state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship`, paper=`project_1_llm_state_machine_modeling/sources/state-transitions-logical-design-for-hybrid-energy-generation-with-renewable-energy-sources-in-lng-ship/paper.pdf` |
+| 样本筛选理由 | issue #14 / PR-D 代表性 Path2 EFSM，变量、guard、12 个状态和非法状态都明确。 |
+| 变量参与说明 | `PL/Ppv/Pw/SoC/eng*_Pmax` 是环境输入/容量边界，适合暴露 SD-4 对外部输入变量的处理能力。 |
+| run_id | `pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c` |
+| final verdict/status | verdict=`provider_error`, record=`error`, result=`api_failed` |
+| main_result_eligible | `false` |
+| token/cost/time | tokens=`{'prompt_tokens': 36402, 'completion_tokens': 3532, 'total_tokens': 39934, 'n_calls': 4}`, elapsed=`504.04s` |
+| run record | [`pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`reproducibility.json`](./reproducibility.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |
+
+### 2. 输入 NL（多行原文）
+
+```text
+The LNG-ship EMS manages a ship energy system with PVs, WECs, DGs, LNG, batteries, and time-varying ship loads, issuing cut-in and cut-out commands for generating units and loads. It controls power dispatch between generating units and load demand during changing time periods and operating conditions, dynamically switching states to maintain power balance as resources and demands vary. The FSM reads load demand PL, renewable contributions Ppv and Pw, battery state of charge SoC, and engine capacity bounds such as eng3_Pmax, then returns requested generator power, battery discharge or charging power, and spare power. The twelve finite states are selected by logical transition conditions over demand, generation, capacity, and SoC. When Ppv + Pw covers PL, the EMS serves all ship demand from RES and charges batteries while SoC is below 0.95, or treats residual renewable power as spare once SoC is at least 0.95. When Ppv + Pw is below PL, dispatch follows the stated priority: RES first, batteries when SoC is suitable, LNG before diesel units, and DG1/DG2 only as the last priority. Low-SoC branches add explicit charging margins, including Pgmax/5 in an LNG-covered case and Pd1max/10 in later diesel-generator cases. When PL = 0, RES production is sent to battery charging or to spare power according to SoC thresholds. The overload completion state is illegal: if extreme demand exceeds all RES and thermal resources, EMS activates all thermal generating units, covers the lack by battery discharge, and the state shall never occur in practice.
+```
+
+### 2.1 输入 NL 中文翻译
+
+```text
+LNG 船 EMS 管理一个包含光伏、波浪能、柴油机、LNG、电池和随时间变化船舶负载的船舶能源系统，并向发电单元与负载发出切入/切出命令。它在变化的时段和运行条件下控制发电单元与负载需求之间的功率调度，随着资源和需求变化动态切换状态以保持功率平衡。FSM 读取负载需求 PL、可再生贡献 Ppv 和 Pw、电池荷电状态 SoC，以及 eng3_Pmax 等发动机容量边界，然后返回请求的发电机功率、电池放电或充电功率以及备用功率。十二个有限状态由需求、发电、容量和 SoC 上的逻辑转移条件选择。当 Ppv + Pw 覆盖 PL 时，EMS 用 RES 满足全部船舶需求，并在 SoC 低于 0.95 时给电池充电，或在 SoC 至少为 0.95 时把剩余可再生功率视为备用功率。当 Ppv + Pw 低于 PL 时，调度遵循优先级：RES 优先，SoC 合适时使用电池，LNG 先于柴油机，DG1/DG2 只作为最后优先级。低 SoC 分支加入明确充电裕量，包括 LNG 覆盖场景中的 Pgmax/5，以及后续柴油发电机场景中的 Pd1max/10。当 PL = 0 时，RES 产出根据 SoC 阈值送往电池充电或备用功率。过载完成状态是非法状态：若极端需求超过全部 RES 与热力资源，EMS 会激活全部热发电单元并用电池放电弥补缺口，该状态实践中不应发生。
+```
+
+### 3. 最终产出的 FCSTM DSL
+
+```pyfcstm
+def float PL = 0;
+def float Ppv = 0;
+def float Pw = 0;
+def float SoC = 0;
+def float eng3_Pmax = 0;
+def float Pgmax = 0;
+def float Pd1max = 0;
+def float requested_generator_power = 0;
+def float battery_power = 0;
+def float spare_power = 0;
+
+state LNG_Ship_EMS {
+    [*] -> RES_Cover_Charge;
+
+    state RES_Cover_Charge {
+        enter {
+            requested_generator_power = 0;
+            battery_power = Ppv + Pw - PL;
+            spare_power = 0;
+        }
+    }
+
+    state RES_Cover_Spare {
+        enter {
+            requested_generator_power = 0;
+            battery_power = 0;
+            spare_power = Ppv + Pw - PL;
+        }
+    }
+
+    state NoLoad_Charge {
+        enter {
+            requested_generator_power = 0;
+            battery_power = Ppv + Pw;
+            spare_power = 0;
+        }
+    }
+
+    state NoLoad_Spare {
+        enter {
+            requested_generator_power = 0;
+            battery_power = 0;
+            spare_power = Ppv + Pw;
+        }
+    }
+
+    state Deficit_Battery_Discharge {
+        enter {
+            battery_power = PL - (Ppv + Pw);
+        }
+    }
+
+    state LNG_Cover_Normal {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+        }
+    }
+
+    state LNG_Cover_LowSoC {
+        enter {
+            requested_generator_power = (PL - (Ppv + Pw)) + (Pgmax / 5);
+        }
+    }
+
+    state DG_Cover_Normal {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+        }
+    }
+
+    state DG_Cover_LowSoC {
+        enter {
+            requested_generator_power = (PL - (Ppv + Pw)) + (Pd1max / 10);
+        }
+    }
+
+    state LNG_DG_Combined {
+        enter {
+            requested_generator_power = PL - (Ppv + Pw);
+        }
+    }
+
+    state Full_Thermal_Battery_Support {
+        enter {
+            requested_generator_power = eng3_Pmax;
+            battery_power = PL - (Ppv + Pw) - eng3_Pmax;
+        }
+    }
+
+    state Illegal_Overload {
+        enter {
+            requested_generator_power = eng3_Pmax;
+            battery_power = PL - (Ppv + Pw) - eng3_Pmax;
+        }
+    }
+
+    RES_Cover_Charge -> RES_Cover_Spare : if [Ppv + Pw >= PL && SoC >= 0.95];
+    RES_Cover_Spare -> RES_Cover_Charge : if [Ppv + Pw >= PL && SoC < 0.95 && PL > 0];
+
+    RES_Cover_Charge -> NoLoad_Charge : if [PL == 0 && SoC < 0.95];
+    RES_Cover_Spare -> NoLoad_Spare : if [PL == 0 && SoC >= 0.95];
+
+    NoLoad_Charge -> NoLoad_Spare : if [SoC >= 0.95];
+    NoLoad_Spare -> NoLoad_Charge : if [SoC < 0.95];
+
+    RES_Cover_Charge -> Deficit_Battery_Discharge : if [Ppv + Pw < PL && SoC > 0];
+    RES_Cover_Spare -> Deficit_Battery_Discharge : if [Ppv + Pw < PL && SoC > 0];
+
+    Deficit_Battery_Discharge -> LNG_Cover_Normal : if [Ppv + Pw < PL && SoC >= 0.5];
+    Deficit_Battery_Discharge -> LNG_Cover_LowSoC : if [Ppv + Pw < PL && SoC < 0.5];
+
+    LNG_Cover_Normal -> DG_Cover_Normal : if [PL - (Ppv + Pw) > eng3_Pmax && SoC >= 0.5];
+    LNG_Cover_LowSoC -> DG_Cover_LowSoC : if [PL - (Ppv + Pw) > eng3_Pmax && SoC < 0.5];
+
+    DG_Cover_Normal -> LNG_DG_Combined : if [PL - (Ppv + Pw) > eng3_Pmax];
+    DG_Cover_LowSoC -> LNG_DG_Combined : if [PL - (Ppv + Pw) > eng3_Pmax];
+
+    LNG_DG_Combined -> Full_Thermal_Battery_Support : if [PL - (Ppv + Pw) > eng3_Pmax];
+
+    Full_Thermal_Battery_Support -> Illegal_Overload : if [PL - (Ppv + Pw) > eng3_Pmax && SoC <= 0];
+
+    Illegal_Overload -> [*];
+
+    NoLoad_Charge -> RES_Cover_Charge : if [PL > 0 && Ppv + Pw >= PL && SoC < 0.95];
+    NoLoad_Spare -> RES_Cover_Spare : if [PL > 0 && Ppv + Pw >= PL && SoC >= 0.95];
+}
+```
+
+### 4. 全流程真实摘要表
+
+| Stage | 是否 LLM | iteration | 结果 | 获取的信息 / 反馈 | 本阶段做了什么 | DSL 修改 | artifact/log |
+|---|---:|---:|---:|---|---|---|---|
+| `SC-0` | 否 | - | ✅ | trace/control | 初始化 run state | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SL-1` | 是 | - | ✅ | LLM calls=1, tokens=8537 | 生成初始 DSL 与 grounding seeds | initial len=3515 | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ⚠️ | blocking=1, advisory=28, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-8` | 否 | 0 | ✅ | trace/control | 生成 FixPlan | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SL-9` | 是 | 0 | ✅ | LLM calls=1, tokens=18495 | LLM repair candidate | candidate len=3545 | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-10` | 否 | 0 | ✅ | ok=True, target_resolved=True, drift=none | 本地 repair review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SL-10B` | 是 | 0 | ✅ | LLM calls=1, tokens=12902 | LLM delta review | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SC-11` | 否 | 0 | ✅ | trace/control | 接受/拒绝候选 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-2` | 否 | 0 | ✅ | ok=True, diag=0 | 解析 pyfcstm DSL | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-3` | 否 | 0 | ✅ | ok=True, diag=0 | AST→state-machine semantic check | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SD-4` | 否 | 0 | ✅ | blocking=1, advisory=28, info=0 | 设计健康与变量/guard 检查 | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SL-5` | 是 | 1 | ❌ | LLM calls=1, tokens=0 | 生成模型测试 scenario | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SC-12` | 否 | 1 | ❌ | SL-5 retry exhausted: provider_error: provider failure: InternalServerError: Error code: 502 - {'type': 'https://developers.cloudflare.com/support/troubleshooti | 写 final verdict | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+| `SC-13` | 否 | - | ✅ | trace/control | 写审计 run record | 无/见 record | [`record`](./pr-e1-path2_lng_ems-default-round9fullblood-22dbd95c.agent_loop.json.gz) |
+
+### 5. Iteration / repair / review 摘要
+
+| Iter | selected feedback | repair? | SD-10 | SL-10B | 回到 SD-2? | verdict/备注 |
+|---:|---|---|---|---|---|---|
+| 0 | `SD-4` | yes | accept | accept | yes | candidate_accepted_for_next_full_pass |
+| 1 | `<none>` | no | <none> | <none> | no | SL-5 retry exhausted: provider_error: provider failure: InternalServerError: Error code: 502 - {'type': 'https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-5xx-errors/error-502/', 'title': 'Error 502: Bad gateway', 'status': 502, 'detail': 'The origin web server returned an invalid or incomplete response to Cloudflare. This typically indic |
+
+### 6. 尝试记录与成本
+
+- `SL-1`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 2323, 'model': 'gpt-5.5', 'prompt_tokens': 6214, 'total_tokens': 8537}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-9`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 1099, 'model': 'gpt-5.5', 'prompt_tokens': 17396, 'total_tokens': 18495}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-10B`：retry_count=`0`，schema_ok=`True`，usage=`{'completion_tokens': 110, 'model': 'gpt-5.5', 'prompt_tokens': 12792, 'total_tokens': 12902}`，attempts=`1`。
+  - attempt 0: error_kind=`None`，model=`gpt-5.5`。
+- `SL-5`：retry_count=`2`，schema_ok=`False`，usage=`{}`，attempts=`3`。
+  - attempt 0: error_kind=`provider_error`，model=`gpt-5.5`。
+  - attempt 1: error_kind=`provider_error`，model=`gpt-5.5`。
+  - attempt 2: error_kind=`provider_error`，model=`gpt-5.5`。
+
+### 7. 最终停止状态与后续含义
+
+- 停止状态：verdict=`provider_error`，record_status=`error`。
+- 主要原因分类：`provider_or_retry`。
+- required stages executed：`16/17`，missing=`SD-5A, SC-5F, SD-6, SL-7`。
+- repairs：`1/1` accepted；scenario_history=`0`。
+- 配置含义：`recommended baseline candidate`；该结果可用于评估默认入口本身。
+- 样本含义：若出现 `design_or_variable_dynamics`，应重点审查变量是否仅作为 guard/input 常量而没有事件/动作更新；若出现 pre-scenario parse/semantic 失败，则应先优化 pyfcstm grammar adherence。
