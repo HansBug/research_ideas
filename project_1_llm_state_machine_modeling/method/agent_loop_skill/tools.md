@@ -2,6 +2,19 @@
 
 PR-0/PR-1A 约定：`SD-*` 是确定性工具层，不调用 LLM、不读取 `.env`。这些入口用于 agent-loop runner、Path1/Path2 handoff smoke、Codex/Claude skill、人工 ref model 制作前的本地检查。
 
+
+## PR-E2 skill-driven e2e 调用提醒
+
+PR-E2 的 agent 可以直接调用本页 `SD-*` deterministic tools 来检查候选模型，但不得把这些工具包在 `method.loop.run_agent_loop(...)` 或一键 runner 里间接执行。推荐最小顺序是：
+
+```text
+run_sd2_parse -> run_sd3_semantic -> run_sd4_design -> SD-5A/SC-5F/SD-6 -> SD-8/SL-9 repair -> SD-10 review -> 回到 SD-2
+```
+
+若某个工具因 import、语法或 pyfcstm 版本问题不可用，必须在 PR comment 中记录命令、错误摘要和影响分类；不能静默跳过并声称模型已通过验证。
+
+特别注意：`SC-5F freeze_scenario_set` 的实际参数是 `source_dsl_hash` / `source_inspect_hash` / `source_grounding_hash`，不是原始 DSL 或 inspect dict；`SD-6` 对正式样本是 required 行为检查，不是可省略 polish。
+
 ## Python 入口
 
 推荐从总 façade `method.stages.sd_tools` 导入；若需要按 stage 拆分，也可使用 `method.stages.sd_parse` / `sd_semantic` / `sd_design` / `sd_scenario_coverage` / `sd_sim` / `sd_fix_plan` / `sd_repair_review` 这些薄 re-export 模块。
