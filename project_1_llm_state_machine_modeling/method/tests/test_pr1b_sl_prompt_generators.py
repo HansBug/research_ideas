@@ -156,6 +156,11 @@ def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
     assert "Do not rewrite event-triggered transitions into chain-scope `: Event`" in sl9
     assert "Output exactly one complete DSL file" in sl9
     assert "default-init scenarios usually need an empty cycle" in sl9
+    assert "mental NL obligation ledger" in sl1
+    assert "A parseable empty shell is not" in sl1
+    assert "nfrr_quality_cap" in sl9
+    assert "agent_loop_root_cause" in sl9
+    assert "structurally too small for explicit NL obligations" in sl9
 
 
 def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context() -> None:
@@ -386,6 +391,47 @@ def test_sl7_prompt_contains_required_contract_fields() -> None:
     assert "review_policy" in joined
     for category in MODEL_REVIEW_CATEGORIES:
         assert category in joined
+    assert "NFRR v3 is a review rubric, not a deterministic SD hard gate" in joined
+    assert "T2 within-scope candidate" in joined
+    assert "nfrr_quality_cap" in joined
+    assert "agent_loop_root_cause" in joined
+    assert "Do not stop at \"model quality is poor\"" in joined
+
+
+def test_sl7_nfrr_quality_categories_parse_and_do_not_imply_sd_gate() -> None:
+    parsed = parse_sl7_model_review_response(
+        json.dumps(
+            {
+                "decision": "fail",
+                "risk_level": "major",
+                "findings": [
+                    {
+                        "category": "nfrr_quality_cap",
+                        "severity": "major",
+                        "summary": "T1 cap: NL requires multiple branches but DSL is an empty shell.",
+                        "evidence": [{"tier": "T1", "cap_reasons": ["critical_required_missing"]}],
+                    },
+                    {
+                        "category": "agent_loop_root_cause",
+                        "severity": "major",
+                        "summary": "Likely SL-1 obligation extraction missed required transitions.",
+                        "evidence": [{"stage": "SL-1"}],
+                    },
+                ],
+                "blocking_findings": [
+                    {
+                        "category": "agent_loop_root_cause",
+                        "severity": "major",
+                        "summary": "Fix root cause rather than only reporting poor quality.",
+                        "evidence": [{"stage": "SL-1"}],
+                    }
+                ],
+            }
+        )
+    )
+
+    assert parsed["findings"][0]["category"] == "nfrr_quality_cap"
+    assert parsed["blocking_findings"][0]["category"] == "agent_loop_root_cause"
 
 
 def test_sl7_prompt_compacts_large_inspect_and_design_payloads() -> None:

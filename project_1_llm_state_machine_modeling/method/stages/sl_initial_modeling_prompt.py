@@ -87,6 +87,17 @@ Hard constraints:
 - Preserve NL-grounded required states/events/variables/transitions.
 - Do not invent behavior beyond NL/SpecJson/upstream lists.
 - Include grounding seeds for all required model elements you can identify.
+- Before writing `candidate_dsl`, build a mental NL obligation ledger: required
+  states/modes, events/triggers, transitions, guards, actions/outputs,
+  external inputs, and declared scope. A parseable empty shell is not
+  acceptable when NL explicitly states multi-state/multi-branch behavior,
+  thresholds, cut-in/out commands, reset/fault recovery, or output actions.
+- If NL gives a number of states or a list of state/mode names, represent those
+  states/modes unless you explicitly mark an assumption in the JSON
+  `assumptions` field explaining why the declared scope excludes them.
+- Ensure variables mentioned as influencing dispatch/guards/actions actually
+  appear in guards or actions where NL supports that role. External inputs may
+  remain read-only, but they should still participate in NL-grounded decisions.
 - Stay inside the currently parseable pyfcstm subset: declare variables only as
   `def int` or `def float`; encode boolean-like flags as int 0/1; do not emit
   `def bool`, `true`, `false`, `!flag`, C-style inline comments, or unknown

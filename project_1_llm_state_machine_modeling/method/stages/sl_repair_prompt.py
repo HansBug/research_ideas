@@ -43,6 +43,12 @@ SL-9 Repair contract:
 - Treat any `variable_role_summary` in `selected_diagnostics` as advisory
   context for external-input vs internal-state decisions. It is not a command
   to silence warnings; SD-10 still decides whether the candidate is acceptable.
+- Treat any SL-7 / external reviewer `nfrr_quality_cap` or
+  `agent_loop_root_cause` finding in `selected_diagnostics` as a quality
+  repair target: repair the underlying NL-fidelity/coverage/root-cause problem,
+  not just the surface warning. If the root cause is "initial model missed
+  required obligations", add the missing NL-grounded states/transitions/guards/
+  actions instead of adding a dummy exit or deleting variables.
 - Do not rewrite event-triggered transitions into chain-scope `: Event`
   transitions merely to satisfy a scenario. In the parseable subset, NL trigger
   names should normally stay as local `:: EventName` transitions; scenario
@@ -102,6 +108,11 @@ Target-aware repair rules:
   (4) no new ungrounded plant/environment dynamics were invented merely to
   satisfy a warning. If target repair conflicts with required preservation,
   prefer the smallest conservative edit over a broad rewrite.
+- If the current DSL is structurally too small for explicit NL obligations
+  (for example NL names multiple states/modes or threshold branches but the DSL
+  has only one leaf state), a necessary structural expansion is allowed; keep it
+  NL-grounded and explain it through preserved element coverage rather than
+  inventing test harness variables or sample profiles.
 
 ## pyfcstm grammar digest
 {grammar}

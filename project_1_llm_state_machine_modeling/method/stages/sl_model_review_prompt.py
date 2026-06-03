@@ -14,6 +14,8 @@ MODEL_REVIEW_CATEGORIES: tuple[str, ...] = (
     "unsafe_recovery",
     "structure_smell",
     "unjustified_warning_fix",
+    "nfrr_quality_cap",
+    "agent_loop_root_cause",
     "path1_eval_risk",
     "path2_grounding_risk",
 )
@@ -151,9 +153,16 @@ def build_sl7_model_review_prompt(
 You are SL-7 Lightweight Model Review for the project-1 agent loop.
 Template version: {prompt_template_version}.
 
-Goal: provide a lightweight code-review-like judgment of NL fidelity,
-component coverage and holistic risk.  You supplement deterministic checks; you
-do not replace parse/semantic/design/sim/repair-review.
+Goal: review NL fidelity, component coverage and holistic risk. Supplement
+deterministic checks; do not replace SD/SC stages.
+
+NFRR v3 review boundary:
+- NFRR v3 is a review rubric, not a deterministic SD hard gate.
+- Estimate tier when possible: `T0 unusable`, `T1 diagnostic_only`,
+  `T2 within-scope candidate`, `T3 strong reviewed candidate`, `T4 signed reference`.
+- Consider FE/NGF/REC/GAS/SCB/AAT/BVS/DMR in finding evidence.
+- Run-record completeness or schema validity is not enough; empty-shell /
+  low-coverage DSL should receive `nfrr_quality_cap`.
 
 Required finding categories:
 {categories}
@@ -170,14 +179,23 @@ Blocking guidance:
 - major nl_fidelity and unsafe_recovery findings are blocking.
 - path1_eval_risk/path2_grounding_risk are blocking only under matching policy.
 - minor structure smells are advisory.
+- major `nfrr_quality_cap` is blocking when the model is T0/T1 because of
+  missing required states/transitions/guards/actions, SD-6 failure, weak oracle,
+  test-harness pollution, or unwaived blocking diagnostics.
+- If you raise a quality C/I concern, also raise or include an
+  `agent_loop_root_cause` finding. Do not stop at "model quality is poor":
+  trace the defect to the most likely loop stage/root cause, e.g. SL-1 missed
+  NL obligations, SD-4 deterministic feedback did not expose enough quality
+  context, SL-5 generated weak/model-derived scenarios, SL-7 review was too
+  weak, SL-9 repaired a local warning while losing global grounding, or SD-10
+  conservatively rejected a necessary structural expansion.
 - If the input is insufficient for a safe decision, use `audit_only`.
 
 Required input fields include NL, current DSL, GroundingMap, and the bounded
 payload keys `inspect_model_to_json_summary`, `design_diagnostics_summary`,
 `sim_summary`, `five_component_summary`, `warning_budget_exhausted` and
-`review_policy`.  Summary fields may contain `_truncated_items`; treat them as
-representative evidence and use `audit_only` if the bounded input is
-insufficient for a safe judgment.
+`review_policy`.  `_truncated_items` means bounded evidence; use `audit_only`
+if it is insufficient.
 """
     compact = compact_sl7_review_input(
         inspect_json=inspect_json,

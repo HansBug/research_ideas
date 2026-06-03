@@ -23,7 +23,8 @@
 ## 输出
 
 - `model_review_feedback`: decision/findings/risk/blocking_findings，并内嵌 `review_meta`。
-- findings category 必须映射到：`nl_fidelity`、`component_coverage`、`coverage_gap`、`over_simplification`、`unsafe_recovery`、`structure_smell`、`unjustified_warning_fix`、`path1_eval_risk`、`path2_grounding_risk`。
+- findings category 必须映射到：`nl_fidelity`、`component_coverage`、`coverage_gap`、`over_simplification`、`unsafe_recovery`、`structure_smell`、`unjustified_warning_fix`、`nfrr_quality_cap`、`agent_loop_root_cause`、`path1_eval_risk`、`path2_grounding_risk`。
+- `nfrr_quality_cap` / `agent_loop_root_cause` 只用于 SL-7 的 NFRR v3 reviewer 口径：NFRR 是评审 rubric，不是 SD-4/SD-10 deterministic hard gate；质量 C/I 必须追溯到可修复的 agent-loop 根因。
 - `model_review_feedback.review_meta`: provider/model/prompt hash/schema validation/cache key，以及 `decision_threshold`、`failure_policy`、`replay_key`。
 
 ### LLM 输出
