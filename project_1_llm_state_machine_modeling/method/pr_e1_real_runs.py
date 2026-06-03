@@ -37,7 +37,6 @@ from typing import Any, Callable, Iterable, Sequence
 
 from method.loop import LoopConfig, run_agent_loop
 from method.pr_d_representative import (
-    FULL_STAGED_REQUIRED_STAGE_IDS,
     PATH1_CARA_NL,
     PATH2_LNG_EMS_NL,
     assert_pr_d_provider_env,
@@ -51,6 +50,23 @@ RunAgentLoopFn = Callable[[str, LoopConfig], AgentLoopResult]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROJECT_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling"
+
+PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS = [
+    "SC-0",
+    "SL-1",
+    "SD-2",
+    "SD-3",
+    "SD-4",
+    "SL-5",
+    "SD-5A",
+    "SC-5F",
+    "SD-6",
+    "SL-7",
+    "SC-12",
+    "SC-13",
+]
+
+PR_E1_REPAIR_STAGE_IDS = ["SD-8", "SL-9", "SL-10", "SC-11"]
 
 
 PATH1_ABS_NL = """The paper implements the single-wheel ABS hydraulic regulator as a three-state FSM coupled with a PID-based slip controller. Wheel speed and vehicle speed are used to compute the slip ratio, and the PID output drives the Stateflow supervisor instead of sending commands directly to the hydraulic valves.
@@ -700,7 +716,8 @@ def summarize_pr_e1_run(
     environment = record.environment
     resolved = environment.get("resolved_config") if isinstance(environment.get("resolved_config"), dict) else {}
     executed_stage_ids = _executed_stage_ids(record)
-    missing_required = [stage_id for stage_id in FULL_STAGED_REQUIRED_STAGE_IDS if stage_id not in set(executed_stage_ids)]
+    required_stage_ids = _required_stage_ids_for_record(record)
+    missing_required = [stage_id for stage_id in required_stage_ids if stage_id not in set(executed_stage_ids)]
     final_dsl = str(final.get("final_dsl") or result.final_dsl or "")
     public_payload = _record_public_text(record)
     checks = run_record_checks(record, public_payload)
@@ -775,6 +792,34 @@ def run_record_checks(record: AgentLoopRunRecord, public_payload: str | None = N
         "redaction_report_count": len(record.redaction_report),
         "main_result_eligible_by_helper": is_path_result_eligible(record),
     }
+
+
+def _required_stage_ids_for_record(record: AgentLoopRunRecord) -> list[str]:
+    """Return PR-E1 required stages without treating legacy stages as missing.
+
+    PR-D's helper still counted legacy ``SD-10`` / ``SL-10B`` as required.  In
+    PR-E1 the default repair path is ``SL-10`` with local checks as evidence,
+    while ``SD-8/SL-9/SC-11`` are required only when a repair block actually
+    occurs.  Reporting legacy stages as "missing" on a success run confuses
+    reviewers and can falsely imply incomplete execution.
+    """
+
+    stage_ids = {str(item.get("stage_id")) for item in record.stage_records if isinstance(item, dict)}
+    required = list(PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS)
+    if any(stage_id in stage_ids for stage_id in PR_E1_REPAIR_STAGE_IDS):
+        for stage_id in PR_E1_REPAIR_STAGE_IDS:
+            if stage_id not in required:
+                required.append(stage_id)
+    return required
+
+
+def _required_stage_ids_for_summary(summary: PrE1RunSummary) -> list[str]:
+    required = list(PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS)
+    if any(stage_id in set(summary.executed_stage_ids) for stage_id in PR_E1_REPAIR_STAGE_IDS):
+        for stage_id in PR_E1_REPAIR_STAGE_IDS:
+            if stage_id not in required:
+                required.append(stage_id)
+    return required
 
 
 def _fix_log_next_actions(record: AgentLoopRunRecord) -> list[str]:
@@ -860,6 +905,10 @@ def classify_primary_failure(record: AgentLoopRunRecord) -> str:
     verdict = str(final.get("verdict") or "")
     reason = str(final.get("verdict_reason") or final.get("error_message") or "").lower()
     if verdict == "success":
+        if final.get("main_result_eligible") is not True:
+            if final.get("oracle_weak") is True or "oracle" in str(final.get("exclusion_reason") or "").lower():
+                return "success_but_weak_oracle_ineligible"
+            return "success_but_main_ineligible"
         return "success"
     if verdict == "provider_error" or "provider" in reason or "retry exhausted" in reason:
         return "provider_or_retry"
@@ -957,7 +1006,7 @@ def _write_exception_artifacts(
         token_usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "n_calls": 0},
         stage_count=0,
         executed_stage_ids=[],
-        missing_required_stage_ids=list(FULL_STAGED_REQUIRED_STAGE_IDS),
+        missing_required_stage_ids=list(PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS),
         llm_stage_ids=[],
         iteration_count=0,
         repair_count=0,
@@ -1097,7 +1146,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
             "",
             f"- 停止状态：verdict=`{summary.verdict}`，record_status=`{summary.record_status}`。",
             f"- 主要原因分类：`{summary.primary_failure_class}`。",
-            f"- required stages executed：`{len(summary.executed_stage_ids)}/{len(FULL_STAGED_REQUIRED_STAGE_IDS)}`，missing=`{', '.join(summary.missing_required_stage_ids) or '<none>'}`。",
+            f"- required stages executed：`{len(summary.executed_stage_ids)}/{len(_required_stage_ids_for_summary(summary))}`，missing=`{', '.join(summary.missing_required_stage_ids) or '<none>'}`。",
             f"- repairs：`{summary.accepted_repair_count}/{summary.repair_count}` accepted；scenario_history=`{summary.scenario_history_count}`。",
             f"- 配置含义：`{spec.recommendation_role}`；{'该结果只作 exploratory/config evidence，不进入主结果。' if spec.exploratory else '该结果可用于评估默认入口本身。'}",
             "- 样本含义：若出现 `design_or_variable_dynamics`，应重点审查变量是否仅作为 guard/input 常量而没有事件/动作更新；若出现 pre-scenario parse/semantic 失败，则应先优化 pyfcstm grammar adherence。",

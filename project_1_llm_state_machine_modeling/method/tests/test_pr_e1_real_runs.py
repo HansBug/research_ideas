@@ -233,6 +233,51 @@ def test_pr_e1_failure_class_is_trace_driven_for_sd6_sl10_rework() -> None:
     assert classify_primary_failure(record) == "repair_review_rework_budget"
 
 
+def test_pr_e1_success_with_weak_oracle_is_not_plain_success() -> None:
+    record = _record("weak-success")
+    record.status = "success"
+    record.final_artifacts["verdict"] = "success"
+    record.final_artifacts["verdict_reason"] = "full_pass_all_required_feedback_ok"
+    record.final_artifacts["oracle_weak"] = True
+    record.final_artifacts["main_result_eligible"] = False
+    record.final_artifacts["exclusion_reason"] = "weak_oracle"
+
+    from method.pr_e1_real_runs import classify_primary_failure
+
+    assert classify_primary_failure(record) == "success_but_weak_oracle_ineligible"
+
+
+def test_pr_e1_missing_required_stages_do_not_require_legacy_sd10_sl10b(tmp_path: Path) -> None:
+    record = _record("pr-e1-required")
+    record.status = "success"
+    record.stage_records = [_stage_meta(stage_id, ok=True) for stage_id in ["SC-0", "SL-1", "SD-2", "SD-3", "SD-4", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7", "SC-12", "SC-13"]]
+    record.final_artifacts["verdict"] = "success"
+    record.final_artifacts["main_result_eligible"] = True
+    path = write_agent_loop_run_record(record, tmp_path / "required.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="converged", run_record_id="required", run_record_path=str(path))
+
+    from method.pr_e1_real_runs import summarize_pr_e1_run
+
+    summary = summarize_pr_e1_run(
+        case=pr_e1_cases()[0],
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    assert "SD-10" not in summary.missing_required_stage_ids
+    assert "SL-10B" not in summary.missing_required_stage_ids
+    assert "SD-8" not in summary.missing_required_stage_ids
+    assert "SL-9" not in summary.missing_required_stage_ids
+    assert "SC-11" not in summary.missing_required_stage_ids
+
+
 
 def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> None:
     record = _record("source-summary")
