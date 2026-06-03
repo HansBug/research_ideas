@@ -54,7 +54,7 @@ project_1_llm_state_machine_modeling/method/agent_loop_skill/prompts.md
 project_1_llm_state_machine_modeling/method/agent_loop_skill/stages/
 ```
 
-输出记录：列出实际读取的 skill 文件。
+输出记录：列出实际读取的 skill 文件。`SKILL.md` / `CLAUDE.md` 当前是指向 `AGENT_LOOP_SKILL.md` 的软链接；如果 agent 环境无法跟随 symlink，应直接读取 `AGENT_LOOP_SKILL.md`，并在 PR comment 中说明这是入口解析差异而不是 skill 缺失。
 
 ### E1. Evidence grounding
 
@@ -66,9 +66,10 @@ project_1_llm_state_machine_modeling/method/agent_loop_skill/stages/
 - 输出动作；
 - guard / 阈值 / 定时；
 - 异常、复位、回退或非法状态；
-- 原文证据位置或整理文件位置。
+- 原文证据位置或整理文件位置；
+- 合成变量 / 合成状态 / 离散化抽象：例如把“门关闭后运行”抽象成 `door_closed`，或把连续控制量离散成 `0/1/2/3` 档位。
 
-输出记录：一张简短 grounding 表，说明每个状态/转移来自哪里。
+输出记录：一张简短 grounding 表，说明每个状态/转移来自哪里；凡不是论文直接命名、而是为了可观测性或仿真引入的变量/状态，都必须标为 `synthetic abstraction`，并说明它不应被下游误当成 paper-defined ground truth。
 
 ### E2. Initial candidate modeling
 
@@ -143,6 +144,15 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 
 注意：`suggested_fix` 只是规则诊断的参考 hint，不是必须照抄的编辑命令。agent 可以基于 NL 与全局约束提出更合理的修复方案。
 
+`SD-10 RepairReview` 的结果必须分级处理：
+
+- `regression_detected=true` 或 candidate parse/semantic fail：必须继续修复，不能 waiver。
+- 新增 blocking design diagnostic：必须修复，除非能明确证明是工具 policy 与论文外部输入之间的已知不匹配，并在 comment 中给出 external-input waiver。
+- `count_drift` / `forced_transition_count_drift` / `missing_required_grounding`：不能简单忽略。若它来自必要的结构性修复（例如为 nested region 增加 root-level release state，或 `GroundingMap` 使用聚合 ref 而当前 SD-10 只支持精确元素 ref），必须给出逐项 waiver：旧模型缺陷、修复为何必要、论文证据、frozen scenario regression 结果，以及为什么不会改变 NL 语义。
+- 如果只需要最终 acceptance gate，可对最终 DSL 做一次 no-op `SD-10`（`old_dsl == candidate_dsl`）作为“残余回归检查”，但这不能替代对真实 repair delta 的 waiver / 解释。
+
+因此，PR comment 中应区分：`SD-10 pass`、`SD-10 conservative fail + explicit waiver`、`SD-10 fail unresolved`。只有前两者可以作为 ref-model 候选交接；第三种应标为 not ready。
+
 ### E5. Optional lightweight review
 
 可以使用 `SL-7` / `SL-10B` prompt generator 组织外部 LLM 评审，但必须记录：
@@ -168,6 +178,8 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - deterministic checks / review checks 结果；
 - repair 轨迹与每次修复依据；
 - 作为 ref model 的学术质量评审：覆盖、抽象、未覆盖语义、是否 `main_result_eligible`、仍需人工签核的问题；
+- 合成变量 / 合成状态 / 离散化抽象声明：列出所有非论文直接定义的变量、状态或事件，并说明其存在理由；
+- advisory / warning waiver：尤其是 external input、output-only variable、SD-10 conservative fail 的逐项处理；
 - skill 改进建议。
 
 若本轮 skill 修改后 4 个样本没有重跑，不能声称“本轮已 ready”；只能标为局部修复或文档修正。
@@ -184,6 +196,17 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 
 若 SD-4 因外部输入给出 blocking warning，producer 必须在 PR comment 中解释：这是模型错误、工具策略不匹配、还是需要补事件/aspect 的真实问题。
 
+**大表驱动 / 外部连续输入的边界**：能源管理、医疗设备等论文常用状态表或阈值表描述“任意外部输入 -> 状态/动作”。这类 ref model 的最终语义应优先保留真实外部输入变量，例如 `PL`、`Ppv`、`Pw`、`SoC`，由 scenario `initial_vars` 或外部环境层提供取值；不要把 12 个测试 scenario 写成 `sample_case == 1..12` 并在模型本体里硬编码输入 profile。
+
+允许使用 `RefreshInputs` / `SampleInputs` 事件表达“环境刷新已发生”，也允许在 scenario 中用 hot-start / initial_vars 直接设置外部输入；但如果引入 `sample_case`，它必须被明确标为 **test harness / scenario driver**，不得冒充论文定义的控制变量，也不得作为最终 ref model 的主语义。若为了通过当前 `generated_candidate` SD-4 policy 而不得不使用 external-input waiver，应记录：
+
+- 哪些变量是外部输入；
+- 为什么没有内部 transition 写入它们；
+- `SD-4` 的 `W_UNWRITTEN_READ_VAR` / `W_GUARD_VARS_NEVER_CHANGE` 是否属于工具 policy 与外部输入语义不匹配；
+- `SD-6` 是否用多个 `initial_vars` scenario 覆盖关键 nominal / abnormal / edge 分支。
+
+**输出变量 advisory**：执行器输出、报警 flag、日志计数、显示码等变量经常只在 effects/enter 中写入、由 scenario 观测，而不参与 guard。这类 `W_UNREFERENCED_VAR` / `W_WRITE_ONLY_VAR` 通常是可接受 advisory；不要为了消警把 output-only 变量伪造进 guard。
+
 ### 4.2 事件作用域与初始 cycle
 
 复杂/层次模型中，局部事件、forced transition 与初始 transition 很容易造成“看起来能 parse，但 scenario 不触发”的假阳性。PR-E2 producer 必须遵守：
@@ -192,6 +215,38 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - 对 composite state 的初始 transition，至少设置一个 hot-start sanity scenario，并在 comment 中说明初始 cycle 后实际落到哪个 leaf state。
 - 若模型使用 forced transition 或 local event，必须至少有一个 scenario 覆盖该边；否则标记为 `oracle weak`。
 - 若 scenario 需要 hot-start 到某个 nested state，必须显式提供 `initial_state` 与所需 `initial_vars`，不要依赖隐式变量默认值。
+
+#### 4.2.1 事件作用域最小示例
+
+`:: Event` 会创建/引用 source state namespace 下的 local event；`: /Event` 引用 root-level 绝对事件。若 scenario 注入的是 `events=["/Start"]`，transition 也应写 root-absolute event，而不是 local event。
+
+```fcstm
+state Root {
+    event Start;
+    [*] -> A;
+    state A;
+    state B;
+    A -> B :: Start;
+    A -> B : /Start;
+}
+```
+
+上例第一条 transition 使用 local event `Root.A.Start`；第二条使用 root event `Root.Start`。正式输出模型中不要保留解释性注释。
+
+```python
+TestScenario(
+    name="trigger_root_start",
+    initial_state="Root.A",
+    initial_vars={...},
+    steps=[ScenarioStep(name="start", events=["/Start"], expected_state="Root.B")],
+)
+```
+
+如果同名事件在多个 nested state 中出现，producer 必须在 comment 中说明它是 local event、parent-relative event 还是 root-absolute event，并用至少一个 scenario 覆盖真实注入路径。
+
+#### 4.2.2 浮点阈值与整数化
+
+若论文阈值很小或容易触发浮点比较噪声，可以把连续量做可解释的整数化，例如把 slip `0.01` 表达为 `slp_x100 >= 1`，并在 PR comment 中说明比例尺、单位和未覆盖的连续动力学。整数化只能用于降低 DSL/sim 噪声，不能改变阈值方向或扩大/缩小安全边界。
 
 ### 4.3 Path-2 candidate 边界
 
@@ -306,6 +361,8 @@ reviewer 的 review 范畴包括：
 | 状态/变量/guard/action 覆盖 | ... | ... |
 | scenario/sim 覆盖 | ... | ... |
 | main_result_eligible | true/false | ... |
+| 合成变量/离散化抽象 | ... | 标明 synthetic / paper-defined / scenario-only |
+| warning / SD-10 waiver | ... | pass / conservative fail + waiver / unresolved fail |
 | 人工签核前待补 | ... | ... |
 
 ### 最终判断

@@ -1,5 +1,7 @@
 # Agent Loop Skill（PR-0 Contract）
 
+> 入口说明：本目录中的 `SKILL.md` 与 `CLAUDE.md` 是指向本文件的软链接。若某个 agent / CLI 环境不能正确跟随 symlink，应直接读取 `AGENT_LOOP_SKILL.md`，三者在语义上等价；PR comment 中需要如实记录实际读取的是哪个入口。
+
 本目录是 project_1 agent-loop 的 repo-local skill 入口。PR-0 冻结 contract / docs / fixtures / run-record schema，不绑定具体 LLM provider。
 
 
