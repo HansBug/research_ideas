@@ -104,6 +104,22 @@ def _mock_loop_config(tmp_path: Path, *, run_id: str = "pr-c-mock-success") -> s
     )
 
 
+def test_pr_c_default_llm_policy_does_not_hard_limit_stage_output_tokens() -> None:
+    """Default real runs should keep full-provider output budget.
+
+    PR-E1 full-blood runs assume a provider/model context of at least 128k and
+    must not silently cap structured DSL/JSON outputs through ``LoopConfig()``.
+    If a token cap is needed for a diagnostic, it must be declared by an
+    explicit non-default condition instead of contaminating the main path.
+    """
+
+    cfg = schema.LoopConfig()
+    stage_cfg = loop._llm_stage_config(cfg)
+
+    assert "max_tokens" not in cfg.llm_policy
+    assert stage_cfg.max_tokens is None
+
+
 def _assert_redaction_stage_failure_record(record: schema.AgentLoopRunRecord, *, stage_id: str, secret: str) -> dict[str, object]:
     payload = json.dumps(asdict(record), ensure_ascii=False, sort_keys=True)
     interaction = next(item for item in record.llm_interactions if item["stage_id"] == stage_id)

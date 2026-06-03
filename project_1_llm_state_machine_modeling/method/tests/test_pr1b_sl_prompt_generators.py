@@ -37,6 +37,7 @@ from method.stages.sl_model_review_prompt import (
 from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 from method.stages.sl_scenario_generation_prompt import (
     build_sl5_scenario_generation_prompt,
+    compact_sl5_inspect_for_prompt,
     parse_sl5_scenario_generation_response,
 )
 
@@ -221,6 +222,58 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert len(scenarios) == 1
     assert isinstance(scenarios[0], ScenarioCase)
     assert scenarios[0].steps[0].expected_state == "Root.Active"
+
+
+def test_sl5_prompt_compacts_large_inspect_payload_and_avoids_duplicate_dsl() -> None:
+    """SL-5 should not resend huge raw inspect graphs or duplicate full DSL.
+
+    PR-E1 real LNG diagnostics showed repeated provider 5xx around a large
+    structured SL-5 request.  This is a general prompt-shape problem, not a
+    benchmark special case: scenario generation needs a compact model summary
+    plus one DSL block, not the full SD-4 inspect payload and the same DSL
+    twice.  This test must not impose a small context-window assumption.
+    """
+
+    current_dsl = "state Root { [*] -> S0; " + " ".join(f"state S{i};" for i in range(50)) + " }"
+    large_inspect = {
+        "root_state_path": "Root",
+        "states": [
+            {"path": f"Root.S{i}", "children": [f"Root.S{i}.C{j}" for j in range(20)], "long": "s" * 1000}
+            for i in range(60)
+        ],
+        "transitions": [
+            {"source": f"Root.S{i}", "target": f"Root.S{i+1}", "guard": "x > 0 " * 200, "effect": "y = y + 1;" * 80}
+            for i in range(59)
+        ],
+        "variables": [{"name": f"v{i}", "type": "float", "dataflow": "d" * 1000} for i in range(60)],
+        "events": [{"name": f"E{i}", "detail": "e" * 1000} for i in range(60)],
+        "actions": [{"state": f"Root.S{i}", "text": "a" * 1000} for i in range(60)],
+        "diagnostics": [{"code": "W_X", "severity": "warning", "message": "m" * 2000} for _ in range(60)],
+        "metrics": {"state_count": 60, "transition_count": 59},
+        "var_dataflow": {"very_large": "v" * 20000},
+        "reachability_graph": {"very_large": "r" * 20000},
+        "action_ref_graph": {"very_large": "a" * 20000},
+    }
+
+    compact = compact_sl5_inspect_for_prompt(large_inspect)
+    messages = build_sl5_scenario_generation_prompt(
+        nl="Exercise representative state transitions.",
+        current_dsl=current_dsl,
+        inspect_json=large_inspect,
+        design_summary={"blocking_items": [], "context": "c" * 10000},
+        grounding_map=_grounding_map(),
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert compact["state_count"] == 60
+    assert compact["transition_count"] == 59
+    assert "_truncated_items" in json.dumps(compact, ensure_ascii=False)
+    assert "compact_inspect_summary" in joined
+    assert "\"current_dsl\"" not in joined
+    assert joined.count("```pyfcstm") == 1
+    assert "m" * 2000 not in joined
+    assert "very_large" not in joined
+    assert len(joined) < len(json.dumps(large_inspect, ensure_ascii=False))
 
 
 def test_sl9_prompt_contains_preserve_checklist_and_variable_role_context() -> None:

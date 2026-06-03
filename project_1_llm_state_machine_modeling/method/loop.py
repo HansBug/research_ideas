@@ -145,6 +145,7 @@ def _llm_stage_config(cfg: LoopConfig) -> LLMStageConfig:
         model=cfg.llm_model,
         temperature=float(cfg.llm_policy.get("temperature", 0.0)),
         seed=cfg.seed,
+        max_tokens=cfg.llm_policy.get("max_tokens"),
         max_retries=cfg.llm_max_retries,
         record_prompts=bool(record_policy.get("record_prompts", True)),
         record_raw_outputs=bool(record_policy.get("record_raw_outputs", True)),
