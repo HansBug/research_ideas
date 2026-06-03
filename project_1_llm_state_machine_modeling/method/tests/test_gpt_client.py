@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from method import gpt_client
-from method.gpt_client import DEFAULT_REQUEST_TIMEOUT_SECONDS, get_request_timeout_seconds
+from method.gpt_client import DEFAULT_REQUEST_TIMEOUT_SECONDS, LLMRequestTimeoutError, get_request_timeout_seconds
 
 
 def test_gpt_client_default_request_timeout_is_fail_fast(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,3 +71,13 @@ def test_gpt_client_keeps_sdk_hidden_retries_disabled_without_timeout(monkeypatc
     assert captured["base_url"] == "https://example.test/v1"
     assert "timeout" not in captured
     assert captured["max_retries"] == 0
+
+
+def test_gpt_client_repo_deadline_interrupts_hung_call() -> None:
+    started = time.monotonic()
+
+    with pytest.raises(LLMRequestTimeoutError, match="exceeded"):
+        with gpt_client._request_deadline(0.05):  # noqa: SLF001 - verifies repo-level hard deadline.
+            time.sleep(10)
+
+    assert time.monotonic() - started < 1.0

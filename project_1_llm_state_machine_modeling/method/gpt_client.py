@@ -33,13 +33,20 @@ samples, which would invalidate the experiment.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import os
+import signal
+import threading
 from typing import Optional
 
 from openai import OpenAI
 
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 600.0
 DEFAULT_SDK_MAX_RETRIES = 0
+
+
+class LLMRequestTimeoutError(TimeoutError):
+    """Raised when the repo-level LLM request deadline expires."""
 
 
 def get_request_timeout_seconds() -> float | None:
@@ -100,6 +107,43 @@ def get_llm_client() -> OpenAI:
     return OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=DEFAULT_SDK_MAX_RETRIES)
 
 
+@contextmanager
+def _request_deadline(timeout_seconds: float | None):
+    """Apply a repo-level hard deadline around a single provider request.
+
+    OpenAI/httpx timeouts are still passed to the SDK, but PR-E1 real runs have
+    shown that a local proxy/socket chain may remain parked in ``poll`` longer
+    than the SDK timeout.  A POSIX alarm gives the experiment an outer,
+    auditable fail-fast boundary so provider infrastructure failures are
+    persisted as LLM-stage ``provider_error`` attempts instead of leaving the
+    whole run without a record.
+
+    The alarm is only installed in the main thread, which is the normal mode
+    for the per-case PR-E1 worker processes.  In other contexts we fall back to
+    the SDK timeout to avoid unsafe cross-thread signal handling.
+    """
+
+    if timeout_seconds is None or timeout_seconds <= 0:
+        yield
+        return
+    if threading.current_thread() is not threading.main_thread() or not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    def _handle_timeout(signum: int, frame: object) -> None:  # noqa: ARG001
+        raise LLMRequestTimeoutError(f"LLM provider request exceeded {timeout_seconds:g} seconds")
+
+    old_handler = signal.getsignal(signal.SIGALRM)
+    old_timer = signal.getitimer(signal.ITIMER_REAL)
+    signal.signal(signal.SIGALRM, _handle_timeout)
+    signal.setitimer(signal.ITIMER_REAL, timeout_seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, old_timer[0], old_timer[1])
+        signal.signal(signal.SIGALRM, old_handler)
+
+
 def get_default_model() -> str:
     """Return the default LLM model from ``LLM_MODEL`` env var.
 
@@ -158,7 +202,8 @@ def chat(
     if response_format is not None:
         kwargs["response_format"] = response_format
 
-    resp = client.chat.completions.create(**kwargs)
+    with _request_deadline(get_request_timeout_seconds()):
+        resp = client.chat.completions.create(**kwargs)
     content = resp.choices[0].message.content or ""
     usage = {
         "prompt_tokens": getattr(resp.usage, "prompt_tokens", 0),
