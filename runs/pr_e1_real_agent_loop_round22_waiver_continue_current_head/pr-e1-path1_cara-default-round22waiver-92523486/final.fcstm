@@ -1,0 +1,90 @@
+def int ca_mode = 0;
+def int patient_bp = 0;
+def int target_bp = 0;
+def int requested_bp = 0;
+def int flow_rate = 0;
+def int sensor_buffer = 0;
+def int log_count = 0;
+def int alarm_signal = 0;
+def int control_released = 0;
+def int pump_speed = 0;
+def int default_flow_rate = 0;
+def int control_voltage = 0;
+def int pump_complication = 0;
+
+state CARA {
+    ! * -> Manual :: CA_backManual;
+    ! * -> Manual :: CB_backManual;
+    ! * -> Manual :: CP_backManual;
+    ! * -> Manual :: CC_backManual;
+    ! * -> PumpFault : if [pump_complication > 0];
+
+    [*] -> Manual;
+
+    state Manual {
+        enter {
+            ca_mode = 0;
+            control_voltage = 0;
+            control_released = 1;
+        }
+        during {
+            pump_speed = default_flow_rate;
+            sensor_buffer = patient_bp;
+        }
+    }
+
+    state Ask_StartAC {
+        enter {
+            ca_mode = 1;
+            control_released = 0;
+        }
+        during {
+            sensor_buffer = patient_bp;
+        }
+    }
+
+    state AutocontrolInit {
+        enter {
+            ca_mode = 2;
+            control_released = 0;
+            flow_rate = target_bp - patient_bp;
+        }
+    }
+
+    state AutocontrolNormal {
+        enter {
+            ca_mode = 3;
+            control_released = 0;
+        }
+        during {
+            sensor_buffer = patient_bp;
+            flow_rate = target_bp - patient_bp;
+            if [pump_complication == 0] {
+                control_voltage = flow_rate;
+                log_count = log_count + 1;
+            } else {
+                control_voltage = 0;
+            }
+        }
+    }
+
+    state PumpFault {
+        enter {
+            alarm_signal = 1;
+            control_voltage = 0;
+            control_released = 1;
+        }
+        exit {
+            alarm_signal = 0;
+            control_released = 1;
+        }
+    }
+
+    Manual -> Ask_StartAC :: InitiateAC;
+    Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = requested_bp; };
+    Ask_StartAC -> AutocontrolInit :: StartAC;
+    AutocontrolInit -> AutocontrolNormal;
+    AutocontrolNormal -> Manual :: TerminateAC;
+    Ask_StartAC -> Manual :: TerminateAC;
+    PumpFault -> Manual :: FaultRemoved;
+}
