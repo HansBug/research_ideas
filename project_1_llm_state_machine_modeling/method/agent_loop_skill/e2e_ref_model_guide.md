@@ -10,7 +10,7 @@
 4. **质量优先**：允许 Codex / Claude Code 长时间运行。时间限制只用于防止死锁或 CLI 挂死，不应用来牺牲论文阅读、验证或 repair 质量。
 5. **证据留痕**：每个样本的输入、读取路径、候选模型、检查反馈、修复轨迹和最终判断都必须能写入 PR comment。
 6. **NFRR 必填**：每个样本必须按 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md) 给出 NFRR claim、八维 vector、tier、cap reasons、allowed_use 与 `calibration_status=uncalibrated_candidate_gate`。
-7. **最低准出**：若样本未达到 `final_tier >= T2`、`SD-2/SD-3 pass`、无 unwaived `SD-4` blocking、至少一个 obligation-anchored `SD-6` scenario pass、无 critical contradiction / reachable test-harness pollution，只能称为 diagnostic evidence，不能称为 ref-model candidate。
+7. **最低准出**：若样本未达到 `final_tier >= T2`、`SD-2/SD-3 pass`、无 unwaived `SD-4` blocking、至少一个 `counted_for_main_BVS=true` 的 obligation-anchored `SD-6` scenario pass、无 critical contradiction / reachable test-harness pollution，只能称为 diagnostic evidence，不能称为 ref-model candidate。hot-start/debug scenario 不能用于满足最低准出。
 8. **Ground-Truth candidate 目标**：若声称“Ground Truth 级别 ref model 蓝本”，应达到 `final_tier >= T3`、`FE=3`、`REC=3`、`BVS=3`、`evidence_mode in {NL+paper, authoritative_NL}`、`obligation_independence in {independent_adjudicated, model_blind_independent}`；未人工签核前必须写 `signed_reference=false`。
 
 ## 2. 推荐输入格式
@@ -120,8 +120,8 @@ if semantic_feedback.ok:
 import hashlib
 
 scenario = TestScenario(
-    name="sanity",
-    description="hot-start sanity",
+    name="diagnostic_hot_start_sanity",
+    description="diagnostic_hot_start sanity; do not count this as main BVS evidence",
     initial_vars={"some_flag": 0},  # hot-start 时显式给出所需变量初值；不要依赖隐式环境
     steps=[],
 )
@@ -135,6 +135,14 @@ scenario_set, freeze_meta = freeze_scenario_set(
 )
 sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 ```
+
+上述示例只展示 SD-6 API 的最小调用方式。它是 `diagnostic_hot_start`，只能用于 debug / sanity，不得计入 NFRR 的主 BVS 证据。若要计入主 BVS，scenario 必须在 NFRR ledger 中标为以下三类之一：
+
+1. `default_prefix`：从默认初态出发；
+2. `reachable_prefix`：从默认初态显式执行事件 / guard 前缀到达目标状态，并在 comment 中列出前缀；若当前 SD-6 runtime 只能用 `initial_state` 近似执行，需要额外写 `runtime_execution_mode=runtime_hotstart_surrogate` 与状态快照理由；
+3. `external_input_initial_vars`：只注入论文 / NL 明确给出的外部输入变量，并配套 external-input ledger。
+
+不要把 synthetic observability variables、output-only variables 或为了 scenario 方便而写的 test profile 标成 `external_input_initial_vars`。
 
 ### E4. Repair loop
 
@@ -181,7 +189,34 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 - `FE/NGF/REC/GAS/SCB/AAT/BVS/DMR` 八维分数；
 - `tier_before_cap`、`cap_reasons`、`final_tier`。
 
-PR-E2 最低准出：`final_tier >= T2`，且不得存在 critical contradiction、reachable test-harness pollution、unwaived `SD-4` blocking 或 `SD-6` 全失败。若目标是“Ground Truth 级别 ref model 蓝本”，应达到 `final_tier >= T3`，但没有人工/专家签核时仍必须写 `signed_reference=false`。
+#### Scenario provenance integrity audit
+
+在给出 `BVS` 分数前，必须先做 scenario provenance 真实性自检。每条 scenario 至少记录：
+
+| 字段 | 含义 |
+|---|---|
+| `scenario_id` | 场景编号 |
+| `covered_obligation_ids` | 覆盖的 obligation |
+| `oracle_source` | NL span / paper span / human assumption；不得来自当前模型运行结果 |
+| `provenance` | `default_prefix` / `reachable_prefix` / `external_input_initial_vars` / `diagnostic_hot_start` / `model_derived_oracle` |
+| `prefix_generation` | `default` / `manual_from_NL` / `bfs_depth_K` / `heuristic` / `none` |
+| `reachable_prefix_witness` | 若 `initial_state` 非空且要计入主 BVS，必须列出从默认初态到该状态的事件/guard 前缀 |
+| `runtime_execution_mode` | `executed_prefix` / `runtime_hotstart_surrogate` / `default_runtime`；若是 surrogate 必须说明 runtime 限制 |
+| `state_snapshot_justification` | surrogate 初始化内部/output-only 变量时，说明这些值来自 state entry/invariant 或 prefix actions，不是外部输入 |
+| `initial_state` | 若非空，说明为什么不是 diagnostic hot-start |
+| `external_input_ledger_ref` | 仅 `external_input_initial_vars` 必填 |
+| `counted_for_main_BVS` | 是否计入主 BVS |
+| `sd6_result` | pass / fail / not_run |
+
+反例与处理：
+
+1. **synthetic observability var 错标 external input**：如 `current_floor`、`direction`、`hbrg` 这类由模型输出或仅为观测引入的变量，不能作为 `external_input_initial_vars` 的依据。若从中间楼层 hot-start，只能标 `diagnostic_hot_start`，除非给出从默认初态到该楼层的 reachable prefix。
+2. **中间状态 hot-start 覆盖主链**：直接 `initial_state=SomeMiddleState` 且无前缀，只能 debug；不能把它算进 BVS 主证据。若因 SD-6 缺少 step-level 变量刷新 / timer fast-forward 而必须 surrogate 执行，需要列出 reachable prefix、外部输入 ledger 和 state snapshot justification。
+3. **model-derived oracle**：若 expected state / vars 是跑当前模型后反推出来的，不得计入主 BVS。
+4. **scope retro-shrink**：不能先看模型覆盖了什么，再把难覆盖的 NL span 标为 out-of-scope；所有 NL spans 必须先分类。
+5. **hot-start dominance**：若 critical/major scenario obligations 的主证据主要依赖 `diagnostic_hot_start`，应降低 BVS 与 final tier，而不是用 scenario pass-rate 刷分。
+
+PR-E2 最低准出：`final_tier >= T2`，且不得存在 critical contradiction、reachable test-harness pollution、unwaived `SD-4` blocking、缺失 NL/obligation/scenario provenance ledger、或 `SD-6` 全失败。最低准出所依赖的 scenario 必须 `counted_for_main_BVS=true`；`diagnostic_hot_start` / `model_derived_oracle` 不能满足最低准出。若目标是“Ground Truth 级别 ref model 蓝本”，应达到 `final_tier >= T3`，但没有人工/专家签核时仍必须写 `signed_reference=false`。
 
 ### E7. Final evidence package
 
@@ -197,7 +232,7 @@ PR-E2 最低准出：`final_tier >= T2`，且不得存在 critical contradiction
 - 全流程真实摘要表：stage、是否 LLM、轮次、结果、获取的信息/反馈、本阶段做了什么、DSL 修改、artifact/命令；
 - deterministic checks / review checks 结果；
 - repair 轨迹与每次修复依据；
-- NFRR 评价：claim、八维 vector、tier、cap reasons、allowed_use、准出结论；
+- NFRR 评价：claim、NL coverage ledger、obligation ledger、scenario provenance ledger、八维 vector、tier、cap reasons、allowed_use、准出结论；
 - 作为 ref model 的学术质量评审：覆盖、抽象、未覆盖语义、是否达到 NFRR 最低准出 / Ground-Truth candidate 目标、仍需人工签核的问题；
 - 合成变量 / 合成状态 / 离散化抽象声明：列出所有非论文直接定义的变量、状态或事件，并说明其存在理由；
 - advisory / warning waiver：尤其是 external input、output-only variable、SD-10 conservative fail 的逐项处理；

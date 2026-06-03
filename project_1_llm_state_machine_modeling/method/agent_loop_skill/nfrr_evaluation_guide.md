@@ -161,7 +161,7 @@ Obligation 是从 NL 中抽取出的、模型应该表达的可评价语义单�
 
 1. 原始 bullet / 段落句号 / 分号级子句作为最小 span；
 2. 不任意细切成词级义务；
-3. 每个 span 必须分类，不能留空。
+3. 每个 span 必须分类，不能留空；PR-E2 样本 comment 若没有给出可复核的 NL coverage ledger，不允许声明 REC=3 / NGF=3，也不得进入 ready evidence。
 
 #### S1.2 每个 NL span 的分类
 
@@ -188,7 +188,7 @@ Obligation 是从 NL 中抽取出的、模型应该表达的可评价语义单�
 
 #### S1.4 防刷分硬规则
 
-- 每个 NL span 都必须被分类；未分类 span 最高 `T1`。
+- 每个 NL span 都必须被分类；未分类 span 最高 `T1`。如果 report/comment 完全缺少 NL coverage ledger，则视为 `NL_SPAN_UNCLASSIFIED`，最高 `T1`。
 - 含有状态/事件/guard/action/reset/fault/temporal 语义的 span 若被标为 out-of-scope，必须引用 declared_scope 或 paper/任务边界；否则最高 `T1`。
 - 若 evaluator 已经看过 model，只能标 `two_pass_self_check` 或 `single_self_assessment`，不能假装 model-blind。
 
@@ -407,6 +407,11 @@ Scenario 的 expected outcome 必须来自 obligation ledger，而不是从当�
   "expected_vars": {"from obligation": "..."},
   "provenance": "default_prefix|reachable_prefix|external_input_initial_vars|diagnostic_hot_start",
   "prefix_generation": "bfs_depth_K|manual_from_NL|heuristic|none",
+  "reachable_prefix_witness": "event/guard prefix from default state, required when initial_state is non-empty and provenance=reachable_prefix",
+  "runtime_execution_mode": "executed_prefix|runtime_hotstart_surrogate|default_runtime",
+  "state_snapshot_justification": "required when runtime_hotstart_surrogate initializes internal/output vars",
+  "external_input_ledger_ref": "required when provenance=external_input_initial_vars or reachable prefix relies on refreshed external inputs",
+  "counted_for_main_BVS": true,
   "sd6_result": "pass|fail|not_run"
 }
 ```
@@ -424,10 +429,37 @@ model_derived_oracle=true
 | provenance | 是否计入 BVS 主证据 | 说明 |
 |---|---|---|
 | `default_prefix` | 是 | 从默认初态出发 |
-| `reachable_prefix` | 是 | 从默认初态显式走到中间状态 |
-| `external_input_initial_vars` | 是 | 用 initial_vars 注入外部输入值，必须有 external-input ledger |
+| `reachable_prefix` | 是 | 从默认初态显式走到中间状态；若 SD-6 因当前 runtime 限制用 `initial_state` 近似执行，必须给出 `reachable_prefix_witness` 与 `runtime_execution_mode=runtime_hotstart_surrogate` |
+| `external_input_initial_vars` | 是 | 从默认初态出发并只用 `initial_vars` 注入外部输入值，必须有 external-input ledger；若同时指定 `initial_state`，还必须满足 `reachable_prefix` 规则 |
 | `diagnostic_hot_start` | 否 | 只能 debug，不能作为主证据 |
 | `model_derived_oracle` | 否 | 只能 debug，不能作为主证据 |
+
+#### S6.2.1 Scenario provenance hard rules
+
+1. `initial_state` 非空不自动等于 `reachable_prefix`。只有同时给出从默认初态到该状态的事件 / guard 前缀，且该前缀来自 NL/paper obligation、paper 状态表或可复核搜索，才可标为 `reachable_prefix`。该前缀必须写入 `reachable_prefix_witness`；若只是“这个状态看起来可达”的口头判断，仍按 `diagnostic_hot_start` 处理。
+2. 当前 `SD-6` `ScenarioStep` 不支持 step-level 变量刷新 / timer fast-forward；因此允许有限的 `runtime_hotstart_surrogate`：用 `initial_state` 执行目标 source-state 场景，但只有同时满足以下条件才可计入主 BVS：a) `reachable_prefix_witness` 说明该 source state 从默认初态可达；b) 所有内部 / output-only `initial_vars` 都等于该 source state 的 entry/during invariant 或已在前缀中由动作产生；c) 外部输入刷新变量有 external-input ledger；d) expected outcome 仍来自 NL/paper obligation 而不是当前模型运行结果；e) report 明确写 `runtime_execution_mode=runtime_hotstart_surrogate`。
+3. `external_input_initial_vars` 只能注入传感器、环境量、连续控制器输出、状态表输入等 NL/paper 明确给出的外部输入。synthetic observability variables、output-only variables、test profile variables、为了断言方便添加的 helper variables 不得作为 external input。
+4. 每个 `external_input_initial_vars` scenario 必须引用 external-input ledger，列出变量、证据、为什么不由模型内部写入，以及对应的 NL/paper source。若 scenario 同时使用 `initial_state`，则还必须引用 reachable-prefix witness；否则即使变量是外部输入，也只能算 `diagnostic_hot_start`。
+5. 若 expected state / expected vars 来自当前 model inventory、当前模型运行结果或手工观察当前 DSL 后反推，必须标为 `model_derived_oracle=true`，不得计入主 BVS。
+6. NFRR report 必须统计：
+
+```text
+main_scenario_count
+counted_main_bvs_count
+diagnostic_hot_start_count
+model_derived_oracle_count
+external_input_initial_vars_count
+reachable_or_default_prefix_count
+hot_start_main_obligation_ratio
+```
+
+其中：
+
+```text
+hot_start_main_obligation_ratio = critical+major obligations whose only scenario evidence is diagnostic_hot_start / all critical+major scenario-obligations
+```
+
+若 `hot_start_main_obligation_ratio >= 0.5`，则 `BVS` 最高为 `1`，并触发 final tier 最高 `T1` 的 hard cap。若比例在 `[0.25, 0.5)`，则 `BVS` 最高为 `2`，且必须在 `cap_reasons` 中记录 `HOT_START_PARTIAL_DEPENDENCE`。若 scenario provenance ledger 缺失或没有 `counted_for_main_BVS` 字段，则 BVS 最高为 `1`，并触发 `SCENARIO_PROVENANCE_MISSING`。
 
 #### S6.3 Reachable prefix 生成算法
 
@@ -507,13 +539,13 @@ criticality_weight:
   minor = 1
 
 scenario_generation_coverage = obligations_with_runnable_or_executed_main_scenario / all critical+major scenario-obligations
-scenario_pass_rate = passed main scenarios / runnable main scenarios
+scenario_pass_rate = passed counted main scenarios / runnable counted main scenarios
 
 mutation_generation_coverage = obligations_with_generated_targeted_mutant / all critical+major mutable-obligations
 mutation_caught_rate = caught targeted mutants / runnable targeted mutants
 ```
 
-`scenario-obligation` / `mutable-obligation` 分母只统计 S1 中判定为 required 且 critical/major 的 obligation，不包含 `non_modelable_context`、`optional_obligation` 或无关背景。
+`scenario-obligation` / `mutable-obligation` 分母只统计 S1 中判定为 required 且 critical/major 的 obligation，不包含 `non_modelable_context`、`optional_obligation` 或无关背景。`diagnostic_hot_start` 与 `model_derived_oracle` 不进入 runnable counted main scenario 分子；若把它们计入 pass-rate，应视为评分错误。
 
 若 strict waiver 将某项移出分母，必须记录：
 
@@ -535,7 +567,7 @@ not-covered 数
 | **GAS** | guard/action 一致性 | guard/action critical contradiction | guard/action 覆盖 <0.4 或无 boundary probe | guard/action 覆盖 >=0.7，关键 boundary 部分 pass | guard/action 覆盖 >=0.9，critical boundary/action probes pass |
 | **SCB** | scope 边界清晰度 | scope 缺失且事后排除 NL 义务 | scope 模糊或 out-of-scope 理由弱 | scope 清楚，NL spans 全分类，out-of-scope 有理由 | producer/task-declared scope 与 evaluator 验证一致，claim/allowed_use 清楚 |
 | **AAT** | 抽象与假设透明度 | helper/synthetic/external/waiver 污染无说明 | 有说明但缺 evidence 或混入本体 | 主要 synthetic/external/waiver 有 ledger | 所有 abstraction/external/input/output-only/waiver 均有 evidence+rationale+risk |
-| **BVS** | 行为验证强度 | 无 scenario、SD-6 fail、或主证据是 model-derived oracle | 只有 sanity/hot-start/heuristic prefix，或 scenario_generation_coverage <0.4 | scenario_generation_coverage >=0.6 且 pass_rate >=0.7，覆盖至少一条主链，oracle_weak=false | scenario_generation_coverage >=0.8，critical scenario obligations 全覆盖，pass_rate >=0.9，覆盖主链+边界+异常，oracle 全部 obligation-anchored |
+| **BVS** | 行为验证强度 | 无 scenario、SD-6 fail、或主证据是 model-derived oracle | 只有 sanity/hot-start/heuristic prefix，缺少 scenario provenance ledger，或 counted scenario_generation_coverage <0.4 | counted scenario_generation_coverage >=0.6 且 counted pass_rate >=0.7，覆盖至少一条主链，oracle_weak=false，hot-start 依赖未支配 critical/major 义务 | counted scenario_generation_coverage >=0.8，critical scenario obligations 全覆盖，counted pass_rate >=0.9，覆盖主链+边界+异常，oracle 全部 obligation-anchored，且 provenance/前缀/external-input ledger 完整 |
 | **DMR** | 诊断/变异敏感性 | 无 mutation，或 original model 未通过对应 scenario | mutation_generation_coverage <0.4 或 caught_rate <0.5 | mutation_generation_coverage >=0.6 且 caught_rate >=0.6，覆盖至少两类 mutant | mutation_generation_coverage >=0.8 且 caught_rate >=0.8；critical guard/action/reset/target mutants 无 survivor |
 
 若 NL 中没有 guard/action obligation，GAS 标 `N/A`，tier 判定时视为满足最低门槛，但必须说明“NL 中无 guard/action 义务”。
@@ -560,10 +592,13 @@ not-covered 数
 | critical contradiction | T1 |
 | critical required obligation missing | T1 |
 | 未分类 NL span 且可能含模型义务 | T1 |
+| 缺少可审计 NL coverage ledger / obligation ledger | T1 |
 | out-of-scope 无 declared_scope / evidence 支撑 | T1 |
 | unwaived SD-4 blocking | T1 |
 | reachable test harness pollution | T1 |
 | main scenario 全部 diagnostic_hot_start 或 model-derived oracle | T1 |
+| 缺少 scenario provenance ledger 或缺少 `counted_for_main_BVS` 字段 | T1 |
+| `hot_start_main_obligation_ratio >= 0.5` | T1 |
 | SD-6 fail / oracle_weak=true | T1 |
 | required weighted_recall <0.7 | T1 |
 | no scenario matrix | T1 |
@@ -723,7 +758,22 @@ allowed_use 不得超过 reviewer_queue
     {"obligation_id": "O-001", "label": "matched_exact", "field_score": 1.0, "model_element_path": "Root.A->B"}
   ],
   "scenarios": [
-    {"scenario_id": "S-001", "covered_obligation_ids": ["O-001"], "oracle_source": "NL-1", "provenance": "reachable_prefix", "sd6_result": "pass"}
+    {
+      "scenario_id": "S-001",
+      "covered_obligation_ids": ["O-001"],
+      "oracle_source": "NL-1",
+      "expected_state": "Root.Target",
+      "expected_vars": {"x": 1},
+      "provenance": "reachable_prefix",
+      "prefix_generation": "manual_from_NL",
+      "reachable_prefix_witness": "default -> A via Start",
+      "runtime_execution_mode": "executed_prefix",
+      "state_snapshot_justification": null,
+      "initial_state": null,
+      "external_input_ledger_ref": null,
+      "counted_for_main_BVS": true,
+      "sd6_result": "pass"
+    }
   ],
   "mutations": [
     {"mutation_id": "M-001", "obligation_id": "O-001", "mutant": "wrong_transition_target", "original_pass": true, "mutated_fail": true, "caught": true}
@@ -736,7 +786,14 @@ allowed_use 不得超过 reviewer_queue
     "scenario_generation_coverage": 0.0,
     "scenario_pass_rate": 0.0,
     "mutation_generation_coverage": 0.0,
-    "mutation_caught_rate": 0.0
+    "mutation_caught_rate": 0.0,
+    "main_scenario_count": 0,
+    "counted_main_bvs_count": 0,
+    "diagnostic_hot_start_count": 0,
+    "model_derived_oracle_count": 0,
+    "external_input_initial_vars_count": 0,
+    "reachable_or_default_prefix_count": 0,
+    "hot_start_main_obligation_ratio": 0.0
   },
   "scores": {
     "FE": 0,
@@ -766,6 +823,9 @@ OUT_OF_SCOPE_UNSUPPORTED
 UNWAIVED_SD4_BLOCKING
 TEST_HARNESS_POLLUTION
 MODEL_DERIVED_ORACLE
+SCENARIO_PROVENANCE_MISSING
+HOT_START_DOMINANCE
+HOT_START_PARTIAL_DEPENDENCE
 SD6_FAIL
 ORACLE_WEAK
 LOW_REQUIRED_RECALL
@@ -896,7 +956,7 @@ allowed_use in {within_NL_candidate, reviewer_queue, paper_grounded_candidate}
 calibration_status = uncalibrated_candidate_gate
 SD-2/SD-3 pass
 SD-4 无 unwaived blocking
-至少一个 obligation-anchored scenario 通过 SD-6
+至少一个 `counted_for_main_BVS=true` 的 obligation-anchored scenario 通过 SD-6
 无 reachable test harness pollution
 无 critical contradiction
 ```
