@@ -542,6 +542,9 @@ def _stage_trace(stage_id: str, feedback: Any = None) -> dict[str, Any]:
                 "n_scenarios": feedback.n_scenarios,
                 "n_scenarios_passed": feedback.n_scenarios_passed,
                 "setup_error": feedback.setup_error,
+                "oracle_weak": getattr(feedback, "oracle_weak", False),
+                "weak_oracle_reason": getattr(feedback, "weak_oracle_reason", ""),
+                "weak_oracle_evidence": _jsonable(getattr(feedback, "weak_oracle_evidence", {})),
             }
         )
     return payload
@@ -578,7 +581,7 @@ def _select_first_blocking(feedback: dict[str, Any]) -> tuple[str, Any, str] | N
         return FeedbackSource.DESIGN.value, design, StageId.SD_4_DESIGN.value
 
     sim = feedback.get(FeedbackSource.SIM.value)
-    if isinstance(sim, SimFeedback) and not sim.ok:
+    if isinstance(sim, SimFeedback) and not sim.ok and not getattr(sim, "oracle_weak", False):
         return FeedbackSource.SIM.value, sim, StageId.SD_6_SIM.value
 
     review = feedback.get(FeedbackSource.MODEL_REVIEW.value)
@@ -951,6 +954,18 @@ def _run_validation_pass(
     _append_stage(stage_records, sim_meta)
     iteration_stage_metas.append(sim_meta)
     if not sim_feedback.ok:
+        if getattr(sim_feedback, "oracle_weak", False):
+            logs.append(
+                {
+                    "ts": _utc_now(),
+                    "level": "warning",
+                    "event": "sim_failed_but_oracle_weak",
+                    "iteration": iteration,
+                    "weak_oracle_reason": getattr(sim_feedback, "weak_oracle_reason", ""),
+                    "weak_oracle_evidence": _jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
+                }
+            )
+            oracle_weak = True
         return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
 
     review_run = adapters.model_review(
@@ -1550,6 +1565,28 @@ def run_full_staged_deterministic_runtime(
             "scenario_set_id": validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
         }
 
+        weak_sim_feedback = validation.feedback.get(FeedbackSource.SIM.value)
+        if (
+            validation.selected is None
+            and isinstance(weak_sim_feedback, SimFeedback)
+            and not weak_sim_feedback.ok
+            and getattr(weak_sim_feedback, "oracle_weak", False)
+        ):
+            reason = f"sim_failed_but_oracle_weak:{getattr(weak_sim_feedback, 'weak_oracle_reason', '') or 'weak_oracle'}"
+            _mark_sc12_verdict(
+                state,
+                verdict="not_converged",
+                source_stage_id=StageId.SD_6_SIM.value,
+                reason=reason,
+                record_status="failed",
+                result_status="not_converged",
+                stage_ok=False,
+                stage_status=StageStatus.FAIL,
+            )
+            iteration_record["exit_reason"] = reason
+            state.iteration_records.append(iteration_record)
+            break
+
         if validation.selected is None:
             source_stage_id = validation.stage_metas[-1].stage_id if validation.stage_metas else StageId.SC_0_START.value
             _mark_sc12_verdict(
@@ -1629,7 +1666,7 @@ def run_full_staged_deterministic_runtime(
                 stage_status=StageStatus.FAIL,
             )
 
-    if state.final_record_status not in {"success", "rejected", "budget_exhausted", "error", "invalid"}:
+    if state.final_record_status not in {"success", "failed", "rejected", "budget_exhausted", "error", "invalid"}:
         state.final_record_status = "failed"
         state.final_verdict = "not_converged"
         state.result_status = "not_converged"

@@ -53,6 +53,16 @@ def _vars_to_dict(runtime_vars: Any) -> dict[str, Any]:
         return {k: runtime_vars[k] for k in getattr(runtime_vars, "keys", lambda: [])()}
 
 
+def _default_initial_vars(model: Any) -> dict[str, Any]:
+    """Return pyfcstm variable defaults in a plain dict when available."""
+
+    defaults: dict[str, Any] = {}
+    for name, define in (getattr(model, "defines", {}) or {}).items():
+        init = getattr(define, "init", None)
+        defaults[str(name)] = getattr(init, "value", init)
+    return defaults
+
+
 def _numeric_equal(a: Any, b: Any) -> bool:
     """Treat int/float numeric equality as equal (1 == 1.0)."""
     if a == b:
@@ -132,12 +142,13 @@ def _run_one_scenario(model: Any, scenario: TestScenario) -> ScenarioResult:
         # Note: pyfcstm requires initial_vars (even if empty dict) whenever initial_state
         # is specified. Default-init (no initial_state) leaves the runtime at the root
         # state — the first cycle() then dispatches into the initial leaf via [*] -> X.
+        default_vars = _default_initial_vars(model)
         kwargs: dict[str, Any] = {"abstract_error_mode": "log"}
         if scenario.initial_state is not None:
             kwargs["initial_state"] = scenario.initial_state
-            kwargs["initial_vars"] = dict(scenario.initial_vars) if scenario.initial_vars else {}
+            kwargs["initial_vars"] = {**default_vars, **(dict(scenario.initial_vars) if scenario.initial_vars else {})}
         elif scenario.initial_vars:
-            kwargs["initial_vars"] = dict(scenario.initial_vars)
+            kwargs["initial_vars"] = {**default_vars, **dict(scenario.initial_vars)}
         runtime = SimulationRuntime(model, **kwargs)
     except SimulationRuntimeDfsError as e:
         sresult.status = "error"

@@ -507,6 +507,23 @@ def run_sd6_sim(current_dsl: str, scenario_set: ScenarioSet | None, context: Sta
         _attach_meta(context, feedback, meta)
         return feedback, meta
     feedback = check_sim(current_dsl, list(scenario_set.scenarios))
+    if not feedback.ok:
+        normalized_hot_start_failures = [
+            result.name
+            for scenario, result in zip(list(scenario_set.scenarios), feedback.scenario_results)
+            if result.status != "pass" and "[PR-E1/default-normalized:" in (scenario.description or "")
+        ]
+        if normalized_hot_start_failures:
+            feedback.oracle_weak = True
+            feedback.weak_oracle_reason = "normalized_hot_start_scenario_failed"
+            feedback.weak_oracle_evidence = {
+                "scenario_names": normalized_hot_start_failures,
+                "policy": (
+                    "Default main path clears SL-5 hot-start initial_state. "
+                    "Failures on scenarios originally depending on hot-start are weak oracle evidence, "
+                    "not a safe DSL repair target."
+                ),
+            }
     meta = _stage_meta(StageId.SD_6_SIM, ok=feedback.ok)
     _attach_meta(context, feedback, meta)
     return feedback, meta

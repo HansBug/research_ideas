@@ -175,10 +175,12 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
     normalized: list[Any] = []
     for scenario in scenarios:
         changed = False
+        hot_start_cleared = False
         if hasattr(scenario, "initial_state") and getattr(scenario, "initial_state") is not None:
             clone = type(scenario)(**asdict(scenario))
             clone.initial_state = None
             changed = True
+            hot_start_cleared = True
         else:
             clone = scenario
         steps = list(getattr(clone, "steps", []) or [])
@@ -200,6 +202,12 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
             if clone is scenario:
                 clone = type(scenario)(**asdict(scenario))
             clone.steps = steps
+            if hot_start_cleared:
+                clone.description = (
+                    (clone.description + " " if clone.description else "")
+                    + "[PR-E1/default-normalized: original SL-5 hot-start initial_state was cleared; "
+                    "treat failures as weak-oracle evidence unless independently reproduced from default init.]"
+                ).strip()
             normalized.append(clone)
         else:
             normalized.append(scenario)

@@ -30,6 +30,7 @@ def test_default_entry_scenario_normalization_adds_first_empty_cycle_for_events(
     assert normalized.initial_state is None
     assert normalized.steps[0].before_cycles == 1
     assert normalized.steps[0].events == ["PS2"]
+    assert "[PR-E1/default-normalized:" in normalized.description
     sim = check_sim(ELEVATOR_DSL, [normalized])
     assert sim.ok
 
@@ -44,3 +45,32 @@ def test_unadjusted_default_entry_first_event_is_a_scenario_error_not_dsl_failur
 
     assert not sim.ok
     assert sim.scenario_results[0].status == "error"
+
+
+ABS_DSL = """
+def int k1 = 0;
+def int k2 = 0;
+def int n = 0;
+def float slp = 0.0;
+
+state ABS {
+    [*] -> increase;
+    state increase { enter { k1 = 1; k2 = 0; n = 0; } }
+    state hold { enter { k1 = 0; k2 = 0; n = 0; } }
+    increase -> hold : if [slp <= 0.01];
+}
+"""
+
+
+def test_sim_hot_start_initial_vars_are_completed_from_dsl_defaults() -> None:
+    scenario = TestScenario(
+        name="partial_hot_start_vars",
+        initial_state="ABS.increase",
+        initial_vars={"slp": 0.02},
+        steps=[ScenarioStep(events=[], expected_state="ABS.increase", expected_vars={"k1": 0, "k2": 0, "n": 0})],
+    )
+
+    sim = check_sim(ABS_DSL, [scenario])
+
+    assert sim.ok
+    assert sim.scenario_results[0].setup_error is None

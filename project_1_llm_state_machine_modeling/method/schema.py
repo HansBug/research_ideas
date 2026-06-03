@@ -839,6 +839,9 @@ class SimFeedback:
     n_scenarios_passed: int = 0
     scenario_results: list[ScenarioResult] = field(default_factory=list)
     setup_error: Optional[str] = None  # global parse/sem fail before any scenario could run
+    oracle_weak: bool = False
+    weak_oracle_reason: str = ""
+    weak_oracle_evidence: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.ok = _coerce_bool(self.ok, "SimFeedback.ok")
@@ -848,6 +851,7 @@ class SimFeedback:
             "SimFeedback.n_scenarios_passed",
         )
         self.scenario_results = _coerce_dataclass_list(self.scenario_results, ScenarioResult)
+        self.oracle_weak = _coerce_bool(self.oracle_weak, "SimFeedback.oracle_weak")
 
 
 @dataclass

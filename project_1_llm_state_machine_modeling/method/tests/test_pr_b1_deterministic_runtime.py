@@ -451,6 +451,44 @@ def test_repair_review_rejection_records_regression_without_accepting_candidate(
     assert record.final_artifacts["main_result_eligible"] is False
 
 
+def test_weak_oracle_sim_failure_stops_without_repair_and_excludes_main_result(tmp_path: Path) -> None:
+    repair_calls = {"n": 0}
+
+    def weak_sim(_dsl: str, scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        return (
+            SimFeedback(
+                ok=False,
+                n_scenarios=1,
+                n_scenarios_passed=0,
+                oracle_weak=True,
+                weak_oracle_reason="normalized_hot_start_scenario_failed",
+                weak_oracle_evidence={"scenario_names": ["hot_start_probe"]},
+            ),
+            _meta(StageId.SD_6_SIM, ok=False),
+        )
+
+    def repair(_request: RepairRequest) -> str:
+        repair_calls["n"] += 1
+        return "should-not-run"
+
+    result = run_full_staged_deterministic_runtime(
+        "weak sim oracle should not drive repair",
+        FullStagedRuntimeConfig(initial_dsl="stable", run_id="pr-b1-weak-sim-no-repair", output_dir=tmp_path, max_iterations=2),
+        adapters=_base_adapters(sim=weak_sim, repair=repair),
+    )
+
+    assert result.status == "not_converged"
+    assert repair_calls["n"] == 0
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.status == "failed"
+    assert record.final_artifacts["verdict"] == "not_converged"
+    assert record.final_artifacts["verdict_source_stage_id"] == StageId.SD_6_SIM.value
+    assert record.final_artifacts["oracle_weak"] is True
+    assert record.final_artifacts["main_result_eligible"] is False
+    assert record.iteration_records[0]["selected_feedback"] is None
+    assert StageId.SD_8_FIX_PLAN.value not in _stage_ids(record)
+
+
 def test_pre_scenario_semantic_failure_repairs_before_scenario_generation(tmp_path: Path) -> None:
     scenario_calls: list[ScenarioGenerationRequest] = []
     semantic_calls: list[str] = []
