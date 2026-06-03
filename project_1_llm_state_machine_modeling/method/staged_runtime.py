@@ -374,6 +374,150 @@ def _short_hash(value: Any) -> str:
     return "sha256:" + hashlib.sha256(repr(_jsonable(value)).encode("utf-8")).hexdigest()
 
 
+MAX_FIX_REQUESTS_PER_BATCH = 12
+MAX_FIX_REQUEST_EVIDENCE_ITEMS = 1
+MAX_FIX_REQUEST_HINTS = 4
+MAX_FIX_TEXT_CHARS = 1200
+
+
+def _truncate_text(value: Any, *, max_chars: int = MAX_FIX_TEXT_CHARS) -> str:
+    text = str(value or "")
+    if len(text) <= max_chars:
+        return text
+    omitted = len(text) - max_chars
+    return f"{text[:max_chars]}…<truncated {omitted} chars>"
+
+
+def _compact_json(value: Any, *, max_text_chars: int = MAX_FIX_TEXT_CHARS, max_list_items: int = 8, depth: int = 0) -> Any:
+    """Return a prompt-safe compact JSON value.
+
+    The full diagnostic payload is still persisted in deterministic feedback
+    and run records.  SL-9/SL-10 only need bounded summaries; otherwise large
+    SD-4 batches repeat nested legacy plans and can exceed provider request
+    limits before the repair decision is even made.
+    """
+
+    if value is None or isinstance(value, (int, float, bool)):
+        return value
+    if isinstance(value, str):
+        return _truncate_text(value, max_chars=max_text_chars)
+    if depth >= 4:
+        return _truncate_text(repr(_jsonable(value)), max_chars=max_text_chars)
+    if isinstance(value, dict):
+        compact: dict[str, Any] = {}
+        for key, item in list(value.items())[:max_list_items]:
+            compact[str(key)] = _compact_json(item, max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1)
+        if len(value) > max_list_items:
+            compact["_omitted_keys"] = len(value) - max_list_items
+        return compact
+    if isinstance(value, (list, tuple, set)):
+        seq = list(value)
+        compact_list = [_compact_json(item, max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1) for item in seq[:max_list_items]]
+        if len(seq) > max_list_items:
+            compact_list.append({"_omitted_items": len(seq) - max_list_items})
+        return compact_list
+    return _compact_json(_jsonable(value), max_text_chars=max_text_chars, max_list_items=max_list_items, depth=depth + 1)
+
+
+def _diagnostic_signature(item: dict[str, Any]) -> str:
+    code = str(item.get("code") or item.get("type") or item.get("name") or item.get("id") or "")
+    variable = str(item.get("variable") or item.get("var") or item.get("element") or "")
+    message = str(item.get("message") or item.get("summary") or item.get("value") or "")
+    return f"{code}:{variable}:{message[:120]}"
+
+
+def _compact_fix_request_for_prompt(request: FixRequest) -> dict[str, Any]:
+    return {
+        "request_id": request.request_id,
+        "target": request.target,
+        "source_stage": request.source_stage,
+        "source_feedback_id": request.source_feedback_id,
+        "severity": request.severity,
+        "hard_block": request.hard_block,
+        "waiver_allowed": request.waiver_allowed,
+        "problem_summary": _truncate_text(request.problem_summary),
+        "evidence": _compact_json(request.evidence[:MAX_FIX_REQUEST_EVIDENCE_ITEMS]),
+        "suggested_fix_hints": _compact_json(request.suggested_fix_hints[:MAX_FIX_REQUEST_HINTS]),
+        "recommended_strategy": [_truncate_text(item, max_chars=300) for item in request.recommended_strategy[:4]],
+        "forbidden_edits": [_truncate_text(item, max_chars=300) for item in request.forbidden_edits[:4]],
+        "required_preserve_element_ids": list(request.required_preserve_element_ids[:30]),
+        "local_check_required": request.local_check_required,
+    }
+
+
+def _compact_fix_request_batch_for_prompt(batch: FixRequestBatch | dict[str, Any] | None) -> dict[str, Any] | None:
+    if batch is None:
+        return None
+    if isinstance(batch, FixRequestBatch):
+        return {
+            "batch_id": batch.batch_id,
+            "iteration": batch.iteration,
+            "source": batch.source,
+            "source_stage": batch.source_stage,
+            "before_dsl_hash": batch.before_dsl_hash,
+            "legacy_plan_kind": batch.legacy_plan_kind,
+            "request_count": len(batch.requests),
+            "requests": [_compact_fix_request_for_prompt(request) for request in batch.requests[:MAX_FIX_REQUESTS_PER_BATCH]],
+            "selected_feedback_trace": _compact_json(batch.selected_feedback_trace, max_list_items=6),
+        }
+    return _compact_json(batch)
+
+
+def _compact_fix_log_for_prompt(fix_log: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    compact: list[dict[str, Any]] = []
+    for entry in (fix_log or [])[-8:]:
+        compact.append(
+            {
+                "entry_id": entry.get("entry_id"),
+                "iteration": entry.get("iteration"),
+                "phase": entry.get("phase"),
+                "batch_id": entry.get("batch_id"),
+                "decisions": _compact_json(entry.get("decisions") or [], max_list_items=MAX_FIX_REQUESTS_PER_BATCH),
+                "old_dsl_hash": entry.get("old_dsl_hash"),
+                "candidate_dsl_hash": entry.get("candidate_dsl_hash"),
+                "diff_summary": _compact_json(entry.get("diff_summary") or {}, max_list_items=6),
+                "local_check_evidence": _compact_json(entry.get("local_check_evidence") or {}, max_list_items=6),
+                "sl10_review": _compact_json(entry.get("sl10_review") or {}, max_list_items=6),
+                "next_action": entry.get("next_action"),
+                "notes": _compact_json(entry.get("notes") or [], max_list_items=6),
+            }
+        )
+    if fix_log and len(fix_log) > len(compact):
+        compact.insert(0, {"_omitted_older_fix_log_entries": len(fix_log) - len(compact)})
+    return compact
+
+
+def _compact_sl9_input_for_prompt(
+    *,
+    fix_plan: FixPlan | RevisedFixPlan | dict[str, Any] | None,
+    fix_request_batch: FixRequestBatch | dict[str, Any] | None,
+    fix_log: list[dict[str, Any]] | None,
+    grounding_map: Any | None,
+    selected_diagnostics: list[dict[str, Any]] | None,
+    preserve_list: list[str] | None,
+    scenario_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    plan = fix_plan.original if isinstance(fix_plan, RevisedFixPlan) else fix_plan
+    return {
+        "fix_plan_summary": {
+            "kind": "RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan" if fix_plan is not None else "none",
+            "target": getattr(plan, "target", None),
+            "source_stage": getattr(plan, "source_stage", None),
+            "severity": getattr(plan, "severity", None),
+            "source_feedback_id": getattr(plan, "source_feedback_id", None),
+            "problem_summary": _truncate_text(getattr(plan, "problem_summary", "")),
+            "diagnostic_ids": list(getattr(plan, "diagnostic_ids", []) or [])[:MAX_FIX_REQUESTS_PER_BATCH],
+            "required_preserve_element_ids": list(getattr(plan, "required_preserve_element_ids", []) or [])[:30],
+        },
+        "fix_request_batch": _compact_fix_request_batch_for_prompt(fix_request_batch),
+        "fix_log": _compact_fix_log_for_prompt(fix_log),
+        "grounding_map_summary": _compact_json(grounding_map, max_list_items=16),
+        "selected_diagnostics": _compact_json((selected_diagnostics or [])[:MAX_FIX_REQUESTS_PER_BATCH], max_list_items=MAX_FIX_REQUESTS_PER_BATCH),
+        "preserve_list": list((preserve_list or [])[:30]),
+        "scenario_summary": _compact_json(scenario_summary or {}, max_list_items=12),
+    }
+
+
 def _git_commit() -> str:
     try:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
@@ -1041,7 +1185,7 @@ def _run_validation_pass(
         )
         scenario_epoch = next_epoch
         scenario_history.extend(generated_history)
-        oracle_weak = oracle_weak or weak_now
+        oracle_weak = weak_now
     else:
         scenario_set, reused_history, weak_now, next_epoch = _reuse_or_check_scenario_set(
             nl=nl,
@@ -1058,7 +1202,7 @@ def _run_validation_pass(
         )
         scenario_epoch = next_epoch
         scenario_history.extend(reused_history)
-        oracle_weak = oracle_weak or weak_now
+        oracle_weak = weak_now
 
     context.scenario_set = scenario_set
     sim_feedback, sim_meta = adapters.sim(current_dsl, scenario_set, context)
@@ -1168,18 +1312,56 @@ def _fix_request_batch_from_plan(
     fix_plan: FixPlan | RevisedFixPlan,
     effective_fix_plan: FixPlan,
 ) -> FixRequestBatch:
-    evidence_items = list(effective_fix_plan.evidence or [])
-    diagnostic_ids = list(effective_fix_plan.diagnostic_ids or [])
-    n_requests = max(1, len(evidence_items), len(diagnostic_ids))
+    raw_evidence_items = list(effective_fix_plan.evidence or [])
+    raw_diagnostic_ids = list(effective_fix_plan.diagnostic_ids or [])
+    raw_n_requests = max(1, len(raw_evidence_items), len(raw_diagnostic_ids))
+    request_pairs: list[tuple[str, list[dict[str, Any]]]] = []
+    seen_signatures: set[str] = set()
+    for index in range(raw_n_requests):
+        raw_evidence = raw_evidence_items[index] if index < len(raw_evidence_items) else None
+        evidence = [_compact_json(raw_evidence)] if isinstance(raw_evidence, dict) else ([] if raw_evidence is None else [_compact_json(_jsonable(raw_evidence))])
+        feedback_id = raw_diagnostic_ids[index] if index < len(raw_diagnostic_ids) else effective_fix_plan.source_feedback_id
+        signature = str(feedback_id or "")
+        if raw_evidence is not None:
+            signature = f"{signature}:{_diagnostic_signature(_jsonable(raw_evidence) if isinstance(_jsonable(raw_evidence), dict) else {'value': raw_evidence})}"
+        if signature in seen_signatures:
+            continue
+        seen_signatures.add(signature)
+        request_pairs.append((str(feedback_id or effective_fix_plan.source_feedback_id), evidence))
+        if len(request_pairs) >= MAX_FIX_REQUESTS_PER_BATCH:
+            break
+    if not request_pairs:
+        request_pairs = [(str(effective_fix_plan.source_feedback_id or f"{effective_fix_plan.target}:feedback"), [])]
+
+    compact_selected_trace = {
+        **_compact_json(selected_trace, max_list_items=8),
+        "fix_request_compaction": {
+            "raw_request_candidates": raw_n_requests,
+            "emitted_requests": len(request_pairs),
+            "max_requests": MAX_FIX_REQUESTS_PER_BATCH,
+            "evidence_per_request": MAX_FIX_REQUEST_EVIDENCE_ITEMS,
+            "reason": "bounded_prompt_and_repair_ledger",
+        },
+    }
     requests: list[FixRequest] = []
-    for index in range(n_requests):
-        feedback_id = diagnostic_ids[index] if index < len(diagnostic_ids) else effective_fix_plan.source_feedback_id
-        evidence = [evidence_items[index]] if index < len(evidence_items) else list(evidence_items)
+    for index, (feedback_id, evidence) in enumerate(request_pairs):
         # ``blocking_warning`` is a conservative deterministic block: SL-9 may
         # reject/waive it with an auditable rationale so the next pass can
         # continue after the warning budget is consumed. Parse/semantic/sim and
         # model-review failures remain hard requests.
         hard_block = effective_fix_plan.severity in {"error", "review_fail", "sim_fail"}
+        legacy_plan_summary = {
+            "target": effective_fix_plan.target,
+            "source_stage": effective_fix_plan.source_stage,
+            "source_feedback_id": effective_fix_plan.source_feedback_id,
+            "severity": effective_fix_plan.severity,
+            "problem_summary": _truncate_text(effective_fix_plan.problem_summary),
+            "diagnostic_count": len(raw_diagnostic_ids),
+            "evidence_count": len(raw_evidence_items),
+            "required_preserve_element_ids": list(effective_fix_plan.required_preserve_element_ids or [])[:30],
+            "before_dsl_hash": effective_fix_plan.before_dsl_hash,
+            "compacted": True,
+        }
         requests.append(
             FixRequest(
                 request_id=_request_id(
@@ -1194,23 +1376,23 @@ def _fix_request_batch_from_plan(
                 severity=effective_fix_plan.severity,
                 hard_block=hard_block,
                 waiver_allowed=not hard_block,
-                problem_summary=effective_fix_plan.problem_summary,
-                evidence=evidence,
-                suggested_fix_hints=list(effective_fix_plan.suggested_fix_hints or []),
-                recommended_strategy=list(effective_fix_plan.recommended_strategy or []),
-                forbidden_edits=list(effective_fix_plan.forbidden_edits or []),
-                required_preserve_element_ids=list(effective_fix_plan.required_preserve_element_ids or []),
+                problem_summary=_truncate_text(effective_fix_plan.problem_summary),
+                evidence=evidence[:MAX_FIX_REQUEST_EVIDENCE_ITEMS],
+                suggested_fix_hints=_compact_json(list(effective_fix_plan.suggested_fix_hints or [])[:MAX_FIX_REQUEST_HINTS]),
+                recommended_strategy=[_truncate_text(item, max_chars=300) for item in list(effective_fix_plan.recommended_strategy or [])[:4]],
+                forbidden_edits=[_truncate_text(item, max_chars=300) for item in list(effective_fix_plan.forbidden_edits or [])[:4]],
+                required_preserve_element_ids=list(effective_fix_plan.required_preserve_element_ids or [])[:30],
                 local_check_required=True,
-                legacy_fix_plan=_jsonable(effective_fix_plan),
+                legacy_fix_plan=legacy_plan_summary,
             )
         )
     return FixRequestBatch(
-        batch_id=f"fixbatch-{iteration}-{_hash_text(repr(_jsonable(selected_trace)))[:18].replace(':', '-')}",
+        batch_id=f"fixbatch-{iteration}-{_hash_text(repr(_jsonable(compact_selected_trace)))[:18].replace(':', '-')}",
         iteration=iteration,
         source=source,
         source_stage=source_stage,
         requests=requests,
-        selected_feedback_trace=_jsonable(selected_trace),
+        selected_feedback_trace=_jsonable(compact_selected_trace),
         before_dsl_hash=effective_fix_plan.before_dsl_hash,
         legacy_plan_kind="RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan",
     )

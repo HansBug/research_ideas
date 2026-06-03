@@ -38,6 +38,10 @@ from method.staged_runtime import (
     RepairRequest,
     ScenarioGenerationRequest,
     build_full_staged_runtime_adapters,
+    _compact_fix_log_for_prompt,
+    _compact_fix_request_batch_for_prompt,
+    _compact_json,
+    _compact_sl9_input_for_prompt,
     run_full_staged_deterministic_runtime,
 )
 from method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
@@ -350,9 +354,7 @@ def _build_runtime_adapters(
         )
 
     def repair(request: RepairRequest) -> Any:
-        return run_sl9_repair_llm(
-            nl=request.nl,
-            current_dsl=request.old_dsl,
+        compact = _compact_sl9_input_for_prompt(
             fix_plan=request.fix_plan,
             fix_request_batch=request.fix_request_batch,
             fix_log=request.fix_log,
@@ -369,6 +371,17 @@ def _build_runtime_adapters(
                 if request.scenario_set is not None
                 else {"pre_scenario": True}
             ),
+        )
+        return run_sl9_repair_llm(
+            nl=request.nl,
+            current_dsl=request.old_dsl,
+            fix_plan=compact["fix_plan_summary"],
+            fix_request_batch=compact["fix_request_batch"],
+            fix_log=compact["fix_log"],
+            grounding_map=compact["grounding_map_summary"],
+            selected_diagnostics=compact["selected_diagnostics"],
+            preserve_list=compact["preserve_list"],
+            scenario_summary=compact["scenario_summary"],
             repair_target=getattr(request.fix_plan, "target", None),
             config=llm_cfg,
             provider=provider,
@@ -394,15 +407,15 @@ def _build_runtime_adapters(
             raise TypeError("SL-10 repair review requires FixRequestBatch and SL9 decisions")
         return run_sl10_repair_review_llm(
             nl=request.nl,
-            grounding_map=request.grounding_map,
+            grounding_map=_compact_json(request.grounding_map, max_list_items=16),
             old_dsl=request.old_dsl,
             candidate_dsl=request.candidate_dsl,
-            request_batch=request.fix_request_batch,
-            sl9_decisions=request.sl9_decision.decisions,
-            fix_log=request.fix_log,
-            diff_summary=request.diff_summary,
-            local_check_evidence=request.local_check_evidence,
-            scenario_summary=(
+            request_batch=_compact_fix_request_batch_for_prompt(request.fix_request_batch),
+            sl9_decisions=_compact_json(request.sl9_decision.decisions, max_list_items=16),
+            fix_log=_compact_fix_log_for_prompt(request.fix_log),
+            diff_summary=_compact_json(request.diff_summary, max_list_items=8),
+            local_check_evidence=_compact_json(request.local_check_evidence, max_list_items=10),
+            scenario_summary=_compact_json(
                 {
                     "scenario_set_id": request.scenario_set.scenario_set_id,
                     "epoch": request.scenario_set.epoch,
@@ -411,6 +424,8 @@ def _build_runtime_adapters(
                 }
                 if request.scenario_set is not None
                 else {"pre_scenario": True}
+                ,
+                max_list_items=12,
             ),
             review_policy={"mode": cfg.delta_review_mode, **_jsonable(cfg.feedback_policy)},
             config=llm_cfg,

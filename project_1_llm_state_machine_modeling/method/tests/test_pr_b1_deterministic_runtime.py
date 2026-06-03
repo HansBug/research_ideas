@@ -28,8 +28,10 @@ from method.staged_runtime import (
     RepairRequest,
     ScenarioGenerationRequest,
     build_full_staged_runtime_adapters,
+    _compact_sl9_input_for_prompt,
     run_full_staged_deterministic_runtime,
 )
+from method.stages.sl_repair_prompt import build_sl9_repair_prompt
 from method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
 
 
@@ -291,6 +293,65 @@ def test_repair_request_carries_generic_variable_role_summary(tmp_path: Path) ->
         assert sample_token not in rendered
 
 
+def test_design_fix_request_batch_is_bounded_for_prompt_safety(tmp_path: Path) -> None:
+    captured: dict[str, Any] = {}
+    long_text = "very long diagnostic evidence " * 200
+
+    def design(_context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        items = [
+            DesignDiagnosticItem(
+                code=f"W_MANY_{i % 5}",
+                pyfcstm_severity="warning",
+                message=f"{long_text} #{i}",
+                instance_key=f"diag-{i}",
+                policy_action="budgeted_repair",
+                suggested_fix_hints=[{"hint": long_text, "index": i}],
+            )
+            for i in range(100)
+        ]
+        return DesignFeedback(ok=False, blocking_items=items), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def repair(request: RepairRequest) -> dict[str, object]:
+        assert request.fix_request_batch is not None
+        captured["batch"] = request.fix_request_batch
+        compact = _compact_sl9_input_for_prompt(
+            fix_plan=request.fix_plan,
+            fix_request_batch=request.fix_request_batch,
+            fix_log=request.fix_log,
+            grounding_map=request.grounding_map,
+            selected_diagnostics=[request.selected_feedback_trace],
+            preserve_list=[],
+            scenario_summary={"pre_scenario": True},
+        )
+        prompt = build_sl9_repair_prompt(
+            nl=request.nl,
+            current_dsl=request.old_dsl,
+            fix_plan=compact["fix_plan_summary"],
+            fix_request_batch=compact["fix_request_batch"],
+            fix_log=compact["fix_log"],
+            selected_diagnostics=compact["selected_diagnostics"],
+            grounding_map=compact["grounding_map_summary"],
+            preserve_list=compact["preserve_list"],
+            scenario_summary=compact["scenario_summary"],
+        )
+        captured["prompt_len"] = sum(len(message["content"]) for message in prompt)
+        decisions = [{"request_id": item.request_id, "decision": "reject", "rationale": "external warning", "waiver": True} for item in request.fix_request_batch.requests]
+        return {"decisions": decisions, "candidate_dsl": "", "repair_rationale": ["waived compact warning batch"]}
+
+    result = run_full_staged_deterministic_runtime(
+        "prompt-safe bounded repair batch",
+        FullStagedRuntimeConfig(initial_dsl="stable", run_id="pr-b1-prompt-safe-fixbatch", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=repair),
+    )
+
+    assert result.status in {"converged", "not_converged"}
+    batch = captured["batch"]
+    assert len(batch.requests) <= 12
+    assert batch.selected_feedback_trace["fix_request_compaction"]["raw_request_candidates"] == 100
+    assert batch.selected_feedback_trace["fix_request_compaction"]["emitted_requests"] == len(batch.requests)
+    assert captured["prompt_len"] < 200_000
+
+
 def test_coverage_retry_exhaustion_marks_weak_oracle_and_excludes_main_result(tmp_path: Path) -> None:
     scenario_calls: list[ScenarioGenerationRequest] = []
     adapters = _base_adapters(scenario_coverage=_gap_coverage, scenario_calls=scenario_calls)
@@ -384,6 +445,71 @@ def test_frozen_scenario_gap_uses_targeted_retry_before_weak_oracle(tmp_path: Pa
     assert record.final_artifacts["verdict"] == "success"
     assert record.scenario_history[-1]["targeted_retry_after_frozen_gap"] is True
     assert record.scenario_history[-1]["oracle_weak"] is False
+
+
+def test_historical_weak_oracle_is_cleared_after_successful_targeted_refresh(tmp_path: Path) -> None:
+    scenario_calls: list[ScenarioGenerationRequest] = []
+    coverage_calls: list[tuple[str, list[str]]] = []
+    fixed_attempts = {"n": 0}
+
+    def scenario_generate(request: ScenarioGenerationRequest) -> list[TestScenario]:
+        scenario_calls.append(request)
+        return [TestScenario(name=f"{request.current_dsl}_scenario_{request.attempt_index}", steps=[])]
+
+    def scenario_coverage(dsl: str, scenarios: list[TestScenario]) -> tuple[dict[str, Any], StageResultMeta]:
+        coverage_calls.append((dsl, [scenario.name for scenario in scenarios]))
+        if dsl == "needs-sim-repair":
+            return {
+                "coverage_report": {"ok": False},
+                "coverage_gap": True,
+                "retry_directive": {"missing": ["initial_model_mutation"]},
+            }, _meta(StageId.SD_5A_SCENARIO_COVERAGE, ok=False, status=StageStatus.ADVISORY)
+        if dsl == "fixed":
+            fixed_attempts["n"] += 1
+            if fixed_attempts["n"] == 1:
+                return {
+                    "coverage_report": {"ok": True},
+                    "coverage_gap": False,
+                    "retry_directive": None,
+                }, _meta(StageId.SD_5A_SCENARIO_COVERAGE)
+        return {
+            "coverage_report": {"ok": True},
+            "coverage_gap": False,
+            "retry_directive": None,
+        }, _meta(StageId.SD_5A_SCENARIO_COVERAGE)
+
+    def sim(dsl: str, scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        if dsl == "needs-sim-repair":
+            return SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, setup_error="needs repair"), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=1, n_scenarios_passed=1), _meta(StageId.SD_6_SIM)
+
+    result = run_full_staged_deterministic_runtime(
+        "historical weak oracle should not poison refreshed current oracle",
+        FullStagedRuntimeConfig(
+            initial_dsl="needs-sim-repair",
+            run_id="pr-b1-weak-cleared-after-refresh",
+            output_dir=tmp_path,
+            max_iterations=2,
+            scenario_max_retries=1,
+            allow_main_result_eligible=True,
+            adapter_mode="real_env",
+        ),
+        adapters=_base_adapters(
+            scenario_generate=scenario_generate,
+            scenario_coverage=scenario_coverage,
+            sim=sim,
+            repair=lambda _request: "fixed",
+        ),
+    )
+
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert result.status == "converged"
+    assert record.scenario_history[1]["oracle_weak"] is True
+    assert record.scenario_history[-1]["targeted_retry_after_dsl_change"] is True
+    assert record.scenario_history[-1]["oracle_weak"] is False
+    assert record.final_artifacts["oracle_weak"] is False
+    assert record.final_artifacts["main_result_eligible"] is True
+    assert is_path_result_eligible(record)
 
 
 def test_model_review_blocking_enters_sd8_but_audit_only_does_not(tmp_path: Path) -> None:
