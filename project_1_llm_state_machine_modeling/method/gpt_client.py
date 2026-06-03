@@ -14,6 +14,10 @@ before running any method script):
   ``https://sub2api-new-api.deepghs.org/``)
 - ``LLM_API_KEY``: Bearer token for the proxy
 - ``LLM_MODEL``: Default model name to call (e.g. ``gpt-5.5``)
+- ``LLM_REQUEST_TIMEOUT_SECONDS``: Optional request timeout. Defaults to
+  ``600`` seconds so provider/proxy hangs become retryable provider failures
+  instead of stalling long PR-E1 experiments forever. Set to ``0`` or
+  ``none`` to disable the explicit timeout for one-off diagnostics.
 
 The code reads these via ``os.environ`` only — **the ``.env`` file is never
 read directly**. Switching the active model is done by editing ``.env`` and
@@ -33,6 +37,32 @@ import os
 from typing import Optional
 
 from openai import OpenAI
+
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 600.0
+
+
+def get_request_timeout_seconds() -> float | None:
+    """Return the OpenAI client request timeout from process env.
+
+    This timeout is intentionally separate from output length: ``max_tokens``
+    stays unset unless callers explicitly pass it.  The timeout only prevents
+    provider/proxy sockets from hanging forever, which would otherwise make
+    invalid infrastructure failures indistinguishable from slow experiments.
+    """
+
+    raw = os.environ.get("LLM_REQUEST_TIMEOUT_SECONDS")
+    if raw is None or not raw.strip():
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    value = raw.strip().lower()
+    if value in {"0", "none", "null", "off", "false", "disabled"}:
+        return None
+    try:
+        timeout = float(value)
+    except ValueError as exc:
+        raise ValueError("LLM_REQUEST_TIMEOUT_SECONDS must be a positive number, 0, or none") from exc
+    if timeout <= 0:
+        return None
+    return timeout
 
 
 def get_llm_client() -> OpenAI:
@@ -58,7 +88,10 @@ def get_llm_client() -> OpenAI:
     if not base_url.endswith("/v1"):
         base_url = base_url + "/v1"
 
-    return OpenAI(base_url=base_url, api_key=api_key)
+    timeout = get_request_timeout_seconds()
+    if timeout is None:
+        return OpenAI(base_url=base_url, api_key=api_key)
+    return OpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
 
 
 def get_default_model() -> str:
