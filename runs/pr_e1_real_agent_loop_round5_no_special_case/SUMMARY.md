@@ -7,6 +7,7 @@
 - clean commit 绑定：4/4 run 的 `reproducibility.json` 记录 dirty=false。
 - prompt snapshot hash 种类：1；用于确认同一轮 4 例是否共享同一 prompt/context 版本。
 - 每个 run 的 `reproducibility.json` 保存 git commit、dirty flag、diff hash、prompt file hash、runner command/config 与 source/paper path。
+- Post-review note：本轮 run record 绑定的 prompt snapshot 来自 `97ffece9`；`a3afc1eb` 已进一步清理默认 prompt/grammar/modeler 中的样本词级 hint，后续正式实验应使用 `a3afc1eb` 之后的 post-fix prompt。
 
 ## 1. 运行矩阵总览
 
