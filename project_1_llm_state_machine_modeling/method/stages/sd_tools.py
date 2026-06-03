@@ -69,69 +69,50 @@ _ADVISORY_WARNING_CODES = {
 DEFAULT_WARNING_REPAIR_BUDGET = 2
 COUNT_DRIFT_THRESHOLD = 0.30
 
-_EXTERNAL_INPUT_NL_HINTS = (
-    "reads",
-    "read",
-    "sensor",
-    "sensing",
-    "input",
-    "load demand",
-    "demand",
-    "renewable",
-    "battery state of charge",
-    "state of charge",
-    "capacity",
-    "capacity bound",
-    "capacity bounds",
-    "wheel speed",
-    "vehicle speed",
-    "slip",
-    "slip ratio",
-    "environment",
-    "external",
-    "time-varying",
+_EXTERNAL_INPUT_DECLARATION_PATTERNS = (
+    re.compile(
+        r"\b(?:reads?|measures?|observes?|monitors?|samples?)\b"
+        r"(?P<segment>[^.;:\n]{0,180})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:external|environment(?:al)?|sensor|input|measured|observed|monitored)\s+"
+        r"(?:variables?|values?|signals?|inputs?|parameters?|readings?)\b"
+        r"(?P<segment>[^.;:\n]{0,180})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?P<segment>[^.;:\n]{0,180})"
+        r"\b(?:as|from)\s+"
+        r"(?:external|environment(?:al)?|sensor|input)\s+"
+        r"(?:variables?|values?|signals?|inputs?|parameters?|readings?)\b",
+        re.IGNORECASE,
+    ),
 )
+_NL_IDENTIFIER_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
 
 
 def _external_input_variables_from_nl(nl: str) -> set[str]:
-    """Infer obvious read-only sensor/environment variables from NL text.
+    """Infer explicitly declared read-only environment variables from NL text.
 
-    This is intentionally conservative and deterministic.  It exists because
-    PR-E1 real runs showed a systematic false-positive pattern: variables such
-    as ``PL/Ppv/Pw/SoC`` or wheel/vehicle speed are environment inputs used in
-    guards, not internal state variables that the FCSTM should invent writes
-    for.  Treating those warnings as blocking caused SL-9 to add ungrounded
-    dynamics or to churn without improving the model.  We only downgrade
-    warnings when the variable token appears near input/sensor/capacity words
-    in the original NL.
+    The detector is deliberately *sample-agnostic*: it only uses generic
+    linguistic declarations such as "reads ...", "sensor variables ...", or
+    "... as external inputs".  It must not contain benchmark-domain lexicons,
+    case IDs, or acronym aliases by hand.  Ambiguous cases stay blocking so
+    SL-9 can reason about external-vs-internal variable intent from the full
+    prompt instead of the deterministic loop overfitting to known samples.
     """
 
     if not nl:
         return set()
     found: set[str] = set()
-    # Prefer compact identifier-like tokens that can be pyfcstm variable names.
-    for match in re.finditer(r"\b[A-Za-z_][A-Za-z0-9_]*\b", nl):
-        token = match.group(0)
-        if len(token) > 40:
-            continue
-        start = max(0, match.start() - 96)
-        end = min(len(nl), match.end() + 96)
-        window = nl[start:end].lower()
-        if any(hint in window for hint in _EXTERNAL_INPUT_NL_HINTS):
-            found.add(token)
-    # Add common acronym variants whose explanatory phrase often carries the
-    # input hint instead of the token itself.
-    lower = nl.lower()
-    if "state of charge" in lower:
-        found.add("SoC")
-    if "load demand" in lower:
-        found.add("PL")
-    if "wheel speed" in lower:
-        found.add("wheel_speed")
-    if "vehicle speed" in lower:
-        found.add("vehicle_speed")
-    if "slip ratio" in lower or "slip-error" in lower or "slip error" in lower:
-        found.add("slp")
+    for pattern in _EXTERNAL_INPUT_DECLARATION_PATTERNS:
+        for match in pattern.finditer(nl):
+            segment = match.group("segment")
+            for token_match in _NL_IDENTIFIER_RE.finditer(segment):
+                token = token_match.group(0)
+                if len(token) <= 40:
+                    found.add(token)
     return found
 
 

@@ -236,6 +236,37 @@ def test_sd4_design_downgrades_nl_grounded_external_input_warnings() -> None:
     )
 
 
+def test_sd4_external_input_downgrade_is_generic_not_benchmark_special_case() -> None:
+    generic_context = StageContext(
+        nl=(
+            "The controller reads plant variables PL, Ppv, Pw, and SoC from "
+            "external input signals before selecting the next mode."
+        )
+    )
+    run_sd3_semantic(EXTERNAL_SENSOR_DSL, generic_context)
+
+    generic_feedback, _ = run_sd4_design(generic_context)
+
+    assert generic_feedback.ok
+    assert generic_feedback.inspect_summary["nl_external_input_vars"] == ["PL", "Ppv", "Pw", "SoC"]
+
+    ambiguous_context = StageContext(
+        nl=(
+            "The controller uses load demand, renewable contribution, battery "
+            "state of charge, capacity, wheel speed, vehicle speed, and slip "
+            "ratio terminology, but does not explicitly say that PL, Ppv, Pw, "
+            "or SoC are read-only inputs."
+        )
+    )
+    run_sd3_semantic(EXTERNAL_SENSOR_DSL, ambiguous_context)
+
+    ambiguous_feedback, _ = run_sd4_design(ambiguous_context)
+
+    assert not ambiguous_feedback.ok
+    assert ambiguous_feedback.inspect_summary["nl_external_input_vars"] == []
+    assert any(item.code == "W_GUARD_VARS_NEVER_CHANGE" for item in ambiguous_feedback.blocking_items)
+
+
 def test_warning_budget_attempt_decrements_to_advisory() -> None:
     context = StageContext()
     run_sd3_semantic(DEADLOCK_DSL, context)

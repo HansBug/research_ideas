@@ -1096,6 +1096,7 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "- 是否已有足够 run record/report 证明 PR-E1 达成“实测 agent-loop 参数探索与问题闭环”的目标。",
         "- C/I 级问题只应指向学术可靠性、可复现性、run-record/secret/schema 污染或主结论越界；纯工程 polish 默认 M。",
         "- 若 reviewer 建议 micro-fix，必须不改变 SC/SD/SL stage graph，并用 paired rerun 对比。",
+        "- 必须审查是否存在针对 ABS/CARA/Elevator/LNG 等具体样本的 lexical special-case、hard-coded hint、case_id 分支或 benchmark overfit；这类不具备普适性/学术解释力的优化应按 C/I 级处理。",
     ])
     return "\n".join(lines).rstrip() + "\n"
 
@@ -1134,6 +1135,12 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
             "### 样本筛选观察",
             "",
             *_sample_observation_lines(summaries),
+            "",
+            "### Reviewer 追加审查项：禁止样本特判 / benchmark overfit",
+            "",
+            "- 后续三路 reviewer 需显式检查 agent-loop / prompt / deterministic policy 是否包含针对 ABS、CARA、Elevator、LNG EMS 或本 PR 4 个样本的 lexical special-case、case_id 分支、hard-coded hint、结果导向参数。",
+            "- 允许的优化必须是普适、可解释、可迁移的机制；例如通过 prompt 要求 LLM 区分外部输入与内部状态，而不是在代码中写样本专用词表。",
+            "- 若发现样本特判影响 blocking/advisory、repair target、scenario oracle 或主结论归类，应至少按 I 级处理；若污染 main_result_eligible 或论文结论则按 C 级处理。",
             "",
             "### 4 例详细输入 / 输出 / artifact",
             "",
