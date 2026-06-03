@@ -1134,9 +1134,76 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
             "### 样本筛选观察",
             "",
             *_sample_observation_lines(summaries),
+            "",
+            "### 4 例详细输入 / 输出 / artifact",
+            "",
+            *_per_run_comment_detail_lines(summaries, output_dir_text=output_dir_text),
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output_dir_text: str) -> list[str]:
+    if not summaries:
+        return ["- 尚无 per-run 详情。"]
+    cases = {case.case_key: case for case in pr_e1_cases("all")}
+    lines: list[str] = []
+    for s in summaries:
+        case = cases.get(s.case_key)
+        final_dsl = _read_comment_artifact(s.final_dsl_path, max_chars=12000)
+        report_path = f"{output_dir_text}/{s.run_id}/report.md"
+        run_record_name = Path(s.run_record_path).name if s.run_record_path else "<none>"
+        lines.extend(
+            [
+                f"<details><summary>{s.path} / {s.case_key} / {s.config_id} / {s.verdict}</summary>",
+                "",
+                "#### NL 输入（原文）",
+                "",
+                "```text",
+                case.nl if case is not None else "<case metadata missing>",
+                "```",
+                "",
+                "#### NL 输入中文翻译",
+                "",
+                "```text",
+                case.nl_zh if case is not None else "<case metadata missing>",
+                "```",
+                "",
+                "#### FCSTM 输出",
+                "",
+                "```pyfcstm",
+                final_dsl,
+                "```",
+                "",
+                "#### agent-loop 过程与日志路径",
+                "",
+                "| 项 | 值 |",
+                "|---|---|",
+                f"| verdict / status | `{s.verdict}` / `{s.record_status}` |",
+                f"| failure class | `{s.primary_failure_class}` |",
+                f"| executed stages | `{' -> '.join(s.executed_stage_ids)}` |",
+                f"| iter / repairs / accepted / scenarios | `{s.iteration_count}` / `{s.repair_count}` / `{s.accepted_repair_count}` / `{s.scenario_history_count}` |",
+                f"| token / elapsed | `{s.token_usage}` / `{s.elapsed_seconds}s` |",
+                f"| full stage table | `{report_path}` §4 |",
+                f"| run record | `{output_dir_text}/{s.run_id}/{run_record_name}` |",
+                f"| logs | `{output_dir_text}/{s.run_id}/run_logs/stdout.txt`, `{output_dir_text}/{s.run_id}/run_logs/stderr.txt` |",
+                f"| checks / repro | `{output_dir_text}/{s.run_id}/checks.json`, `{output_dir_text}/{s.run_id}/reproducibility.json` |",
+                "",
+                "</details>",
+                "",
+            ]
+        )
+    return lines
+
+
+def _read_comment_artifact(path: str, *, max_chars: int) -> str:
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except Exception:
+        return "<artifact not available>"
+    if len(text) <= max_chars:
+        return text.rstrip()
+    return text[:max_chars].rstrip() + "\n... <truncated in PR comment; see artifact path>"
 
 
 def _configuration_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:
