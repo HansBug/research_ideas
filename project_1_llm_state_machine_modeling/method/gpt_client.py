@@ -39,6 +39,7 @@ from typing import Optional
 from openai import OpenAI
 
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 600.0
+DEFAULT_SDK_MAX_RETRIES = 0
 
 
 def get_request_timeout_seconds() -> float | None:
@@ -88,10 +89,15 @@ def get_llm_client() -> OpenAI:
     if not base_url.endswith("/v1"):
         base_url = base_url + "/v1"
 
+    # The agent loop already has auditable stage-level retry records
+    # (``LoopConfig.llm_max_retries``).  The OpenAI SDK default is another
+    # hidden retry layer, which can multiply provider/proxy 50x or timeout
+    # stalls and leave PR-E1 evidence without a precise failing stage.  Keep the
+    # transport client fail-fast and let the loop record every retry attempt.
     timeout = get_request_timeout_seconds()
     if timeout is None:
-        return OpenAI(base_url=base_url, api_key=api_key)
-    return OpenAI(base_url=base_url, api_key=api_key, timeout=timeout)
+        return OpenAI(base_url=base_url, api_key=api_key, max_retries=DEFAULT_SDK_MAX_RETRIES)
+    return OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=DEFAULT_SDK_MAX_RETRIES)
 
 
 def get_default_model() -> str:
