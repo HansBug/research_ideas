@@ -267,6 +267,63 @@ def test_sd4_external_input_downgrade_is_generic_not_benchmark_special_case() ->
     assert any(item.code == "W_GUARD_VARS_NEVER_CHANGE" for item in ambiguous_feedback.blocking_items)
 
 
+
+def test_sd4_external_input_detector_does_not_capture_post_connector_control_words() -> None:
+    dsl = """
+def int mode = 0;
+def float T = 0.0;
+state Root {
+    [*] -> Idle;
+    state Idle;
+    state Active;
+    Idle -> Active : if [mode > 0];
+    Active -> Idle;
+}
+"""
+    context = StageContext(
+        nl="The controller reads temperature T before selecting the next mode."
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert not feedback.ok
+    assert meta.status is StageStatus.FAIL
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["T"]
+    assert any(
+        item.code == "W_UNWRITTEN_READ_VAR" and item.refs.get("var_name") == "mode"
+        for item in feedback.blocking_items
+    )
+    assert any(
+        item.code == "W_GUARD_VARS_NEVER_CHANGE" and item.refs.get("guard_vars") == ["mode"]
+        for item in feedback.blocking_items
+    )
+
+
+def test_sd4_external_input_detector_preserves_explicit_declaration_before_connector() -> None:
+    dsl = """
+def int mode = 0;
+state Root {
+    [*] -> Idle;
+    state Idle;
+    state Active;
+    Idle -> Active : if [mode > 0];
+    Active -> Idle;
+}
+"""
+    context = StageContext(
+        nl="The controller reads mode as an external input before selecting Active."
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert meta.status is StageStatus.OK
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["mode"]
+    assert not feedback.blocking_items
+    assert any(item.code == "W_GUARD_VARS_NEVER_CHANGE" for item in feedback.advisory_items)
+
 def test_warning_budget_attempt_decrements_to_advisory() -> None:
     context = StageContext()
     run_sd3_semantic(DEADLOCK_DSL, context)

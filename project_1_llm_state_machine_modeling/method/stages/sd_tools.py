@@ -90,6 +90,28 @@ _EXTERNAL_INPUT_DECLARATION_PATTERNS = (
     ),
 )
 _NL_IDENTIFIER_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
+_EXTERNAL_INPUT_SEGMENT_STOP_RE = re.compile(
+    r"\b(?:before|after|when|while|where|then|otherwise|until|unless|because|so\s+that)\b",
+    re.IGNORECASE,
+)
+
+
+def _trim_external_input_segment(segment: str) -> str:
+    """Keep only the declaration phrase, not subsequent control-flow prose.
+
+    PR-E1 uses this detector only as a conservative deterministic hint for
+    NL-declared read-only environment inputs.  A phrase such as
+    ``reads temperature T before selecting the next mode`` should ground ``T``
+    but must not accidentally classify a declared variable named ``mode`` as an
+    external input merely because it appears after the temporal connector
+    ``before``.  Explicit declarations before the connector, including
+    ``reads mode as an external input before ...``, remain detectable.
+    """
+
+    match = _EXTERNAL_INPUT_SEGMENT_STOP_RE.search(segment)
+    if not match:
+        return segment
+    return segment[: match.start()]
 
 
 def _external_input_variables_from_nl(nl: str) -> set[str]:
@@ -108,7 +130,7 @@ def _external_input_variables_from_nl(nl: str) -> set[str]:
     found: set[str] = set()
     for pattern in _EXTERNAL_INPUT_DECLARATION_PATTERNS:
         for match in pattern.finditer(nl):
-            segment = match.group("segment")
+            segment = _trim_external_input_segment(match.group("segment"))
             for token_match in _NL_IDENTIFIER_RE.finditer(segment):
                 token = token_match.group(0)
                 if len(token) <= 40:
