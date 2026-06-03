@@ -211,10 +211,10 @@ NOT support `effect { ... }` blocks** (grammar enforces termination with
 
 Target names on forced transitions must be semantically resolvable from the
 scope where the forced transition is written. If the intended target is a
-nested leaf such as `Root.Mode.Manual`, either place the forced transition
-inside the enclosing composite scope that can resolve `Manual`, or target a
+nested leaf such as `Root.Mode.SafeMode`, either place the forced transition
+inside the enclosing composite scope that can resolve `SafeMode`, or target a
 state declared in the same scope as the forced transition. Do not write a
-root-level `! * -> Manual ...` when `Manual` exists only as a nested child of
+root-level `! * -> SafeMode ...` when `SafeMode` exists only as a nested child of
 `Mode`; pyfcstm will reject it as an unknown target. In that situation, either
 move the forced declaration into `Mode`, or introduce an NL-grounded root-level
 fallback state and target that state from the root-level forced transition.
@@ -335,31 +335,34 @@ Notes:
   allowed). Side-effect of resetting `timer = 0` is put in `Red.enter`.
 - Each guard transition uses `: if [...] effect { ... };` form.
 
-### Example B — 2-floor elevator (event-driven)
+### Example B — Synthetic actuator (event-driven)
 
-NL: Two floors F1 / F2 connected by motion state MU2. Floor request PS2
-moves up from F1; arrival sensor S2 completes at F2. Reset returns to F1
-from F2.
+This is a synthetic toy example for grammar illustration, not a benchmark case.
+
+NL: A three-state actuator starts in `Waiting`; `BeginMove` moves it to
+`Moving`; `ArriveDone` completes at `Done`. `ResetEvent` returns from `Done`
+to `Waiting`.
 
 ```
-state Elevator {
-    ! F2 -> F1 :: Reset;
-    [*] -> F1;
-    state F1;
-    state F2;
-    state MU2;
-    F1 -> MU2 :: PS2;
-    MU2 -> F2 :: S2;
+state SyntheticActuator {
+    ! Done -> Waiting :: ResetEvent;
+    [*] -> Waiting;
+    state Waiting;
+    state Moving;
+    state Done;
+    Waiting -> Moving :: BeginMove;
+    Moving -> Done :: ArriveDone;
 }
 ```
 
 Notes:
-- Each event-triggered transition uses `:: <event>` (LOCAL scope) — `PS2`,
-  `S2` and `Reset` each live in their own source state's namespace.
-- The forced `! F2 -> F1 :: Reset;` means "from any descendant of F2, go
-  to F1 on Reset" — in this flat model F2 has no descendants so it's
-  equivalent to `F2 -> F1 :: Reset;`, but `!` is idiomatic for
-  global-escape patterns.
+- Each event-triggered transition uses `:: <event>` (LOCAL scope) —
+  `BeginMove`, `ArriveDone` and `ResetEvent` each live in their own source
+  state's namespace.
+- The forced `! Done -> Waiting :: ResetEvent;` means "from any descendant of
+  Done, go to Waiting on ResetEvent" — in this flat model Done has no
+  descendants so it is equivalent to `Done -> Waiting :: ResetEvent;`, but `!`
+  is idiomatic for global-escape patterns.
 
 ### Example C — Microwave with hybrid event + guard
 

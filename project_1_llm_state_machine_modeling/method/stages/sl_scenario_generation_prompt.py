@@ -48,8 +48,9 @@ Additional PR-1B contract:
   the default initial leaf should normally set `before_cycles: 1` before the
   first event step. Do not expect a leaf state immediately at step 0 unless you
   explicitly hot-start that leaf.
-- Prefer events as local names such as `Start`, `Reset`, `PS2` once the runtime
-  is already in the source state. If you use a qualified event path, use either
+- Prefer NL/DSL-grounded local event names, for example `StartEvent` or
+  `ResetEvent`, once the runtime is already in the source state. If you use a
+  qualified event path, use either
   the full root-qualified path (e.g. `Root.Region.Source.Event`) or an absolute
   path understood by pyfcstm; do not repeat the root twice and do not use a
   parent-relative path from inside the source leaf such as `Region.Source.Event`.

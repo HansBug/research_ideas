@@ -85,8 +85,8 @@ Target-aware repair rules:
   write. If all guard variables are external inputs, keep the guard and do not
   invent plant dynamics.
 - If the selected feedback is simulation failure, inspect whether the scenario
-  itself violates pyfcstm execution semantics before editing DSL: default-init scenarios usually need an empty cycle before the first event, and local
-  events such as `PS2`/`StartAC` can be injected by local name once the source
+  itself violates pyfcstm execution semantics before editing DSL: default-init scenarios usually need an empty cycle before the first event, and NL/DSL-grounded local
+  events such as `StartEvent` or `FaultEvent` can be injected by local name once the source
   leaf is active. Do not change correct `:: Event` transitions into `: Event`
   because of an over-qualified or premature event in the scenario.
 - After editing, self-check from scratch: parse syntax, semantic target

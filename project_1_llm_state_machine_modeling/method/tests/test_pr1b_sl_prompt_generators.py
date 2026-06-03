@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -113,7 +114,7 @@ def test_pyfcstm_grammar_digest_documents_parseable_boolean_flag_subset() -> Non
     assert "Boolean-like flags MUST be encoded as `int`" in grammar
     assert "never `def bool`" in grammar
     assert "no `// ...`, no `/* ... */`" in grammar
-    assert "root-level `! * -> Manual" in grammar
+    assert "root-level `! * -> SafeMode" in grammar
     assert "Plain `during { ... }` is only used on leaf states" in grammar
     assert "if (expr)" in grammar
     assert "NL events are represented with `:: EventName`" in grammar
@@ -173,7 +174,9 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert "GroundingMap" in joined
     assert "Cover Start transition" in joined
     assert "before_cycles: 1" in joined
-    assert "local names such as `Start`, `Reset`, `PS2`" in joined
+    assert "NL/DSL-grounded local event names" in joined
+    assert "`StartEvent`" in joined
+    assert "`ResetEvent`" in joined
     assert "Avoid over-asserting weak or incidental variables" in joined
 
     scenarios = parse_sl5_scenario_generation_response(
@@ -201,6 +204,65 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert len(scenarios) == 1
     assert isinstance(scenarios[0], ScenarioCase)
     assert scenarios[0].steps[0].expected_state == "Root.Active"
+
+
+
+def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens() -> None:
+    """Guard against benchmark overfit in default agent-loop prompts.
+
+    PR-E1 may keep concrete sample metadata in ``pr_e1_real_runs.py`` and run
+    artifacts, but the reusable SL prompt contracts and grammar digest must not
+    contain lexical hints from the evaluated ABS/CARA/Elevator/LNG samples.
+    """
+
+    sample_specific_tokens = {
+        "ABS",
+        "CARA",
+        "Elevator",
+        "LNG",
+        "StartAC",
+        "Ask_StartAC",
+        "Autocontrol",
+        "PS1",
+        "PS2",
+        "PS3",
+        "path1_cara",
+        "path2_lng",
+        "case_id",
+        "case_key",
+    }
+    prompts = {
+        "SL-1": "\n".join(
+            message["content"]
+            for message in build_sl1_initial_modeling_prompt(
+                nl="A synthetic actuator starts waiting; BeginMove enters Moving; ArriveDone enters Done.",
+                spec_json={"states": ["Waiting", "Moving", "Done"], "events": ["BeginMove", "ArriveDone"]},
+            )
+        ),
+        "SL-5": "\n".join(
+            message["content"]
+            for message in build_sl5_scenario_generation_prompt(
+                nl="A synthetic actuator starts waiting; BeginMove enters Moving; ArriveDone enters Done.",
+                current_dsl="state SyntheticActuator { [*] -> Waiting; state Waiting; state Moving; state Done; Waiting -> Moving :: BeginMove; Moving -> Done :: ArriveDone; }",
+            )
+        ),
+        "SL-9": "\n".join(
+            message["content"]
+            for message in build_sl9_repair_prompt(
+                nl="A synthetic actuator starts waiting; BeginMove enters Moving; ArriveDone enters Done.",
+                current_dsl="state SyntheticActuator { [*] -> Waiting; state Waiting; }",
+                fix_plan={"target": "design"},
+            )
+        ),
+    }
+
+    for prompt_name, prompt_text in prompts.items():
+        hits = sorted(
+            token
+            for token in sample_specific_tokens
+            if re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", prompt_text)
+        )
+        assert hits == [], f"{prompt_name} prompt contains PR-E1 sample-specific token(s): {hits}"
 
 
 def test_sl5_parser_accepts_string_before_cycles_and_rejects_non_numeric() -> None:
