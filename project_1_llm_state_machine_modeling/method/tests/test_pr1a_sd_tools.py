@@ -1135,3 +1135,59 @@ def test_sd_tools_outputs_are_json_serializable() -> None:
 
     assert asdict(design_feedback)["blocking_items"]
     assert asdict(plan)["target"] == "design"
+
+
+def test_sd4_adds_variable_participation_advisories_without_blocking_outputs() -> None:
+    dsl = """
+def int unused = 0;
+def int output_signal = 0;
+def int internal_written = 0;
+def int guard_input = 0;
+state Root {
+    [*] -> Idle;
+    state Idle {
+        enter { output_signal = 1; internal_written = 2; }
+    }
+    state Active;
+    Idle -> Active : if [guard_input > 0];
+    Active -> [*];
+}
+"""
+    context = StageContext(
+        nl="The controller reads guard_input as an external input and sets output_signal as an output command."
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, _meta = run_sd4_design(context)
+
+    advisories = {(item.code, item.refs.get("var_name")) for item in feedback.advisory_items}
+    assert ("W_VARIABLE_DECLARED_NEVER_USED", "unused") in advisories
+    assert ("W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT", "internal_written") in advisories
+    assert ("W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT", "output_signal") not in advisories
+    assert all(item.policy_action == "advisory" for item in feedback.advisory_items if item.code.startswith("W_VARIABLE_"))
+
+
+def test_sd6_sim_preserves_ended_runtime_as_structured_feedback() -> None:
+    dsl = """
+state System {
+    [*] -> Initial;
+    state Initial;
+    Initial -> [*];
+}
+"""
+    scenario = schema.TestScenario(
+        name="completion_to_final",
+        initial_state="System.Initial",
+        steps=[schema.ScenarioStep(events=[], expected_state="System", name="take_completion")],
+    )
+    scenario_set, _ = freeze_scenario_set([scenario], source_dsl_hash="sha256:test")
+
+    feedback, meta = run_sd6_sim(dsl, scenario_set, None)
+
+    assert not feedback.ok
+    assert meta.status is StageStatus.FAIL
+    assert feedback.scenario_results[0].status == "fail"
+    step = feedback.scenario_results[0].step_results[0]
+    assert step.status == "fail"
+    assert step.actual_state == "<ended>"
+    assert step.runtime_error is None

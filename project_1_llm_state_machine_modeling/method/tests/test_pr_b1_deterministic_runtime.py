@@ -632,9 +632,10 @@ def test_repair_review_rejection_uses_full_budget_before_final_rejected(tmp_path
     assert len(record.iteration_records) == 1
     assert len(record.repair_history) == 3
     assert [entry["rework_attempt"] for entry in record.repair_history] == [0, 1, 2]
-    assert record.iteration_records[0]["exit_reason"] == "still_bad_attempt_2"
+    assert record.iteration_records[0]["exit_reason"] == "SD-4 design diagnostics: W_DEADLOCK_LEAF"
     assert record.iteration_records[0]["retryable_repair_rejection"] is False
     assert record.iteration_records[0]["rework_attempts_used"] == 3
+    assert record.repair_history[-1]["repair_review"]["local_rejection"]["reason"] == "still_bad_attempt_2"
     assert record.replay_index["fix_log_count"] >= 7
     assert record.final_artifacts["verdict_source_stage_id"] == StageId.SC_11_ACCEPT_CANDIDATE.value
 
@@ -1002,3 +1003,109 @@ state Root {
     assert record.run_config["policy_profile"] == "experiment_default"
     assert design["policy_profile"] == record.run_config["policy_profile"]
     assert design["inspect_summary"]["policy_profile"] == record.run_config["policy_profile"]
+
+
+def test_sl10_pass_without_major_local_evidence_ack_is_downgraded(tmp_path: Path) -> None:
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        if context.current_dsl == "needs-major-local-review":
+            item = DesignDiagnosticItem(
+                code="W_DEADLOCK_LEAF",
+                pyfcstm_severity="warning",
+                policy_action="budgeted_repair",
+                instance_key="W_DEADLOCK_LEAF:state=Idle",
+            )
+            return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+        return DesignFeedback(ok=True), _meta(StageId.SD_4_DESIGN)
+
+    def local_major(request: RepairRequest) -> tuple[RepairReviewFeedback, StageResultMeta]:
+        rejection = RepairRejection(
+            rejected_by_stage=StageId.SD_10_REPAIR_REVIEW.value,
+            reason="missing_required_grounding",
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            evidence=[{"kind": "missing_required_grounding", "element_ids": ["state:Required"]}],
+        )
+        feedback = RepairReviewFeedback(
+            ok=False,
+            target_resolved=False,
+            regression_detected=False,
+            drift_risk="major",
+            local_rejection=rejection,
+        )
+        meta = _meta(StageId.SD_10_REPAIR_REVIEW, ok=False)
+        feedback.meta = meta
+        return feedback, meta
+
+    def silent_sl10_pass(_request: RepairRequest, _local_review: RepairReviewFeedback) -> Any:
+        meta = _meta(StageId.SL_10_REPAIR_REVIEW, ok=True)
+        return SimpleNamespace(
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            ok=True,
+            parsed_output={"decision": "pass", "target_resolved": True, "regression_detected": False, "drift_risk": "minor"},
+            feedback=SL10RepairReviewOutput(
+                ok=True,
+                decision="pass",
+                target_resolved=True,
+                regression_detected=False,
+                drift_risk="minor",
+                evidence=[{"summary": "looks acceptable without naming the local rejection"}],
+                review_meta=_review_meta(StageId.SL_10_REPAIR_REVIEW),
+                meta=meta,
+            ),
+            stage_meta=meta,
+            interaction={"stage_id": StageId.SL_10_REPAIR_REVIEW.value, "schema_validation_ok": True},
+        )
+
+    result = run_full_staged_deterministic_runtime(
+        "SL-10 pass must acknowledge major local drift",
+        FullStagedRuntimeConfig(initial_dsl="needs-major-local-review", run_id="pr-b1-sl10-major-local-gate", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=lambda _request: "candidate", repair_review=local_major, sl10_review=silent_sl10_pass),
+    )
+
+    assert result.status == "not_converged"
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.repair_history[0]["accepted"] is False
+    sl10 = record.repair_history[0]["sl10_repair_review"]
+    assert sl10["ok"] is False
+    assert sl10["decision"] == "rework"
+    assert any("did not explicitly address" in text for text in sl10["rework_instructions"])
+    assert StageId.SC_11_ACCEPT_CANDIDATE.value not in _stage_ids(record)
+
+
+
+def test_reused_scenarios_are_refreshed_after_candidate_dsl_changes(tmp_path: Path) -> None:
+    scenario_calls: list[ScenarioGenerationRequest] = []
+    coverage_calls: list[tuple[str, list[str]]] = []
+
+    def scenario_generate(request: ScenarioGenerationRequest) -> list[TestScenario]:
+        scenario_calls.append(request)
+        return [TestScenario(name=f"{request.current_dsl}_scenario_{request.attempt_index}", steps=[])]
+
+    def scenario_coverage(dsl: str, scenarios: list[TestScenario]) -> tuple[dict[str, Any], StageResultMeta]:
+        coverage_calls.append((dsl, [scenario.name for scenario in scenarios]))
+        return {"coverage_report": {"ok": True}, "coverage_gap": False, "retry_directive": None}, _meta(StageId.SD_5A_SCENARIO_COVERAGE)
+
+    def sim(dsl: str, _scenario_set: Any, _context: StageContext) -> tuple[SimFeedback, StageResultMeta]:
+        if dsl == "needs-refresh-repair":
+            return SimFeedback(ok=False, n_scenarios=1, n_scenarios_passed=0, setup_error="needs repair"), _meta(StageId.SD_6_SIM, ok=False)
+        return SimFeedback(ok=True, n_scenarios=1, n_scenarios_passed=1), _meta(StageId.SD_6_SIM)
+
+    result = run_full_staged_deterministic_runtime(
+        "accepted candidate should refresh stale scenario oracle",
+        FullStagedRuntimeConfig(initial_dsl="needs-refresh-repair", run_id="pr-b1-refresh-stale-scenarios", output_dir=tmp_path, max_iterations=2, scenario_max_retries=1),
+        adapters=_base_adapters(scenario_generate=scenario_generate, scenario_coverage=scenario_coverage, sim=sim, repair=lambda _request: "fixed"),
+    )
+
+    assert result.status == "converged"
+    assert [call.current_dsl for call in scenario_calls] == ["needs-refresh-repair", "fixed"]
+    assert scenario_calls[1].previous_scenarios[0].name == "needs-refresh-repair_scenario_0"
+    assert scenario_calls[1].coverage_directive["retry_reason"] == "dsl_changed_since_scenario_freeze"
+    assert coverage_calls == [
+        ("needs-refresh-repair", ["needs-refresh-repair_scenario_0"]),
+        ("fixed", ["needs-refresh-repair_scenario_0"]),
+        ("fixed", ["fixed_scenario_1"]),
+    ]
+    record = read_agent_loop_run_record(result.run_record_path or "")
+    assert record.scenario_history[-1]["targeted_retry_after_dsl_change"] is True
+    assert record.scenario_history[-1]["previous_scenario_set_id"] != record.iteration_records[-1]["scenario_set_id"]

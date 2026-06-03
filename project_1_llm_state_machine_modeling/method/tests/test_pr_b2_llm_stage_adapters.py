@@ -12,9 +12,10 @@ from method.llm_stages import (
     run_sl5_scenario_generation_llm,
     run_sl7_model_review_llm,
     run_sl9_repair_llm,
+    run_sl10_repair_review_llm,
     run_sl10b_delta_review_llm,
 )
-from method.schema import FixPlan, GroundedElement, GroundingMap
+from method.schema import FixPlan, FixRequest, FixRequestBatch, FixRequestDecision, GroundedElement, GroundingMap
 from method.stages.ids import StageId, StageStatus
 
 
@@ -545,3 +546,64 @@ def test_pr_b2_sl10b_audit_policy_records_reject_without_blocking_accept_candida
     assert result.feedback.ok is True
     assert result.feedback.regression_detected is False
     assert result.feedback.review_meta.failure_policy == "audit_only"
+
+
+def test_pr_b2_sl10_pass_with_unresolved_regression_is_downgraded_to_rework() -> None:
+    provider = MockLLMProvider(
+        responses=[
+            json.dumps(
+                {
+                    "decision": "pass",
+                    "target_resolved": False,
+                    "regression_detected": True,
+                    "drift_risk": "major",
+                    "evidence": [{"summary": "contradictory pass"}],
+                    "rework_instructions": [],
+                },
+                ensure_ascii=False,
+            )
+        ]
+    )
+    batch = FixRequestBatch(
+        batch_id="b1",
+        iteration=0,
+        source="sim",
+        source_stage=StageId.SD_6_SIM.value,
+        requests=[
+            FixRequest(
+                request_id="r1",
+                target="sim",
+                source_stage=StageId.SD_6_SIM.value,
+                source_feedback_id="sim",
+                severity="sim_fail",
+                hard_block=True,
+            )
+        ],
+    )
+
+    result = run_sl10_repair_review_llm(
+        nl="The model must satisfy the scenario.",
+        grounding_map=None,
+        old_dsl=BASE_DSL,
+        candidate_dsl=BASE_DSL,
+        request_batch=batch,
+        sl9_decisions=[FixRequestDecision(request_id="r1", decision="accept")],
+        local_check_evidence={
+            "repair_review_feedback": {
+                "ok": False,
+                "target_resolved": False,
+                "regression_detected": True,
+                "drift_risk": "major",
+            }
+        },
+        config=_cfg(),
+        provider=provider,
+    )
+
+    assert result.ok is True  # schema-level success
+    assert result.feedback.ok is False
+    assert result.feedback.decision == "rework"
+    assert result.feedback.target_resolved is False
+    assert result.feedback.regression_detected is True
+    assert result.feedback.drift_risk == "major"
+    assert any("downgraded" in item for item in result.feedback.rework_instructions)

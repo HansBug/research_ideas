@@ -57,6 +57,8 @@ _ADVISORY_WARNING_CODES = {
     "W_UNUSED_EVENT",
     "W_WRITE_ONLY_VAR",
     "W_UNREFERENCED_VAR",
+    "W_VARIABLE_DECLARED_NEVER_USED",
+    "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
     "W_HIGH_VAR_TO_LEAF_RATIO",
     "W_DEEP_HIERARCHY",
     "W_LARGE_COMPOSITE",
@@ -117,6 +119,11 @@ _CAPACITY_LIKE_IDENTIFIER_RE = re.compile(
     r"(?:max|min|limit|bound|cap(?:acity)?)",
     re.IGNORECASE,
 )
+_OUTPUT_ROLE_RE = re.compile(
+    r"\b(?:output|outputs|actuator|actuators|command|commands|signal|signals|"
+    r"valve|valves|pump|drive|alarm|display|sound|sets?|set)\b",
+    re.IGNORECASE,
+)
 
 
 def _trim_external_input_segment(segment: str) -> str:
@@ -173,6 +180,84 @@ def _diagnostic_read_only_guard_vars(diagnostics: Iterable[dict[str, Any]]) -> s
         if diag.get("code") == "W_GUARD_VARS_NEVER_CHANGE" and isinstance(guard_vars, list):
             names.update(str(name) for name in guard_vars)
     return names
+
+
+def _nl_mentions_output_role(nl: str, name: str) -> bool:
+    if not nl or not name:
+        return False
+    for match in re.finditer(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", nl):
+        start = max(0, match.start() - 90)
+        end = min(len(nl), match.end() + 90)
+        if _OUTPUT_ROLE_RE.search(nl[start:end]):
+            return True
+    return False
+
+
+def _variable_usage_advisories(
+    *,
+    inspect_json: dict[str, Any],
+    existing_diagnostics: Iterable[dict[str, Any]],
+    nl: str,
+) -> list[dict[str, Any]]:
+    """Add reviewer-facing variable participation diagnostics.
+
+    These advisories do not block repair.  They make "declared but never used"
+    and "written output but never read" visible in reports, while preserving
+    NL-grounded output variables such as actuator commands.
+    """
+
+    existing = {
+        (str(item.get("code")), str((item.get("refs") or {}).get("var_name") or ""))
+        for item in existing_diagnostics
+    }
+    advisories: list[dict[str, Any]] = []
+    for var in inspect_json.get("variables", []) or []:
+        if not isinstance(var, dict):
+            continue
+        name = str(var.get("name") or "")
+        if not name:
+            continue
+        read_sites = [
+            *(var.get("read_in_states") or []),
+            *(var.get("read_in_guards") or []),
+        ]
+        write_sites = [
+            *(var.get("written_in_states") or []),
+            *(var.get("written_in_effects") or []),
+        ]
+        if not read_sites and not write_sites and ("W_VARIABLE_DECLARED_NEVER_USED", name) not in existing:
+            advisories.append(
+                {
+                    "code": "W_VARIABLE_DECLARED_NEVER_USED",
+                    "severity": "warning",
+                    "message": f"Variable '{name}' is declared but never read or written in guards/actions/effects.",
+                    "span": None,
+                    "refs": {"var_name": name, "init_value": var.get("init_value")},
+                }
+            )
+        elif (
+            write_sites
+            and not read_sites
+            and not _nl_mentions_output_role(nl, name)
+            and ("W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT", name) not in existing
+        ):
+            advisories.append(
+                {
+                    "code": "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+                    "severity": "warning",
+                    "message": (
+                        f"Variable '{name}' is written but never read, and the NL text does not clearly "
+                        "ground it as an output/actuator/signal."
+                    ),
+                    "span": None,
+                    "refs": {
+                        "var_name": name,
+                        "written_in_states": var.get("written_in_states") or [],
+                        "written_in_effects": var.get("written_in_effects") or [],
+                    },
+                }
+            )
+    return advisories
 
 
 def _grounding_role_texts(grounding_map: GroundingMap | None) -> list[str]:
@@ -517,6 +602,13 @@ def run_sd4_design(
     inspect_json = inspect_model(context.model).to_json()
     context.inspect_json = inspect_json
     diagnostics = [_diag_to_dict(diag) for diag in inspect_json.get("diagnostics", [])]
+    diagnostics.extend(
+        _variable_usage_advisories(
+            inspect_json=inspect_json,
+            existing_diagnostics=diagnostics,
+            nl=context.nl,
+        )
+    )
     declared_vars = set(str(name) for name in (getattr(context.model, "defines", {}) or {}).keys())
     read_only_guard_vars = _diagnostic_read_only_guard_vars(diagnostics)
     external_input_ledger = _external_input_role_ledger(

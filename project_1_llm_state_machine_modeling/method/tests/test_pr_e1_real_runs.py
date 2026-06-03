@@ -204,3 +204,74 @@ def test_pr_e1_matrix_summary_marks_exploratory_and_sample_screening() -> None:
     assert "吉祥物变量" in text
     assert "先定义标准，再筛样本" in text
     assert "可复现性边界" in text
+
+
+def test_pr_e1_failure_class_is_trace_driven_for_sd6_sl10_rework() -> None:
+    record = _record("trace-classifier")
+    record.status = "rejected"
+    record.iteration_records = [
+        {
+            "iteration": 4,
+            "selected_feedback": {"source": "sim", "source_stage": "SD-6", "n_scenarios": 15, "n_scenarios_passed": 10},
+            "exit_reason": "SD-6 sim failure: 10/15 scenarios passed",
+        }
+    ]
+    record.repair_history = [
+        {
+            "iteration": 4,
+            "selected_feedback": {"source": "sim", "source_stage": "SD-6"},
+            "candidate_dsl_hash": "sha256:rejected",
+            "accepted": False,
+            "sl10_repair_review": {"decision": "rework", "rework_instructions": ["semantic sounding text"]},
+        }
+    ]
+    record.final_artifacts["verdict"] = "not_converged"
+    record.final_artifacts["verdict_reason"] = "semantic transition text from last rejected candidate"
+
+    from method.pr_e1_real_runs import classify_primary_failure
+
+    assert classify_primary_failure(record) == "repair_review_rework_budget"
+
+
+
+def test_pr_e1_summary_records_fixlog_and_final_dsl_source(tmp_path: Path) -> None:
+    record = _record("source-summary")
+    final_hash = "sha256:accepted"
+    record.final_artifacts["final_dsl_hash"] = final_hash
+    record.repair_history = [
+        {"iteration": 0, "candidate_dsl_hash": final_hash, "accepted": True, "sl10_repair_review": {"decision": "pass"}, "selected_feedback": {"source_stage": "SL-7"}},
+        {"iteration": 1, "candidate_dsl_hash": "sha256:rejected", "accepted": False, "sl10_repair_review": {"decision": "rework", "rework_instructions": ["do not use"]}},
+    ]
+    record.fix_log = [
+        {"next_action": "sl10_review"},
+        {"next_action": "sc11_accept_then_sd2"},
+        {"next_action": "exit_rejected_rework_budget_exhausted"},
+    ]
+    record.iteration_records = [
+        {"iteration": 0, "exit_reason": "candidate_accepted_for_next_full_pass"},
+        {"iteration": 1, "exit_reason": "SD-6 sim failure: 1/2 scenarios passed"},
+    ]
+    path = write_agent_loop_run_record(record, tmp_path / "source-summary.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=record.final_artifacts["final_dsl"], status="not_converged", run_record_id="source-summary", run_record_path=str(path))
+    case = pr_e1_cases()[0]
+    spec = condition_specs()["default"]
+
+    from method.pr_e1_real_runs import summarize_pr_e1_run
+
+    summary = summarize_pr_e1_run(
+        case=case,
+        spec=spec,
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    assert summary.fix_log_next_actions[-1] == "exit_rejected_rework_budget_exhausted"
+    assert summary.iteration_exit_reasons[-1].startswith("SD-6 sim failure")
+    assert summary.final_dsl_source["repair_history_index"] == 0
+    assert summary.final_dsl_source["last_rejected_candidate"]["candidate_dsl_hash"] == "sha256:rejected"

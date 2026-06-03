@@ -30,7 +30,7 @@ import subprocess
 import time
 import uuid
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import MISSING, asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
@@ -181,6 +181,9 @@ class PrE1RunSummary:
     stdout_path: str
     stderr_path: str
     primary_failure_class: str
+    fix_log_next_actions: list[str] = field(default_factory=list)
+    iteration_exit_reasons: list[str] = field(default_factory=list)
+    final_dsl_source: dict[str, object] = field(default_factory=dict)
 
 
 REQUIRED_ENV_KEYS = ("LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL")
@@ -703,6 +706,7 @@ def summarize_pr_e1_run(
     checks = run_record_checks(record, public_payload)
     repro_dirty, repro_diff_hash, prompt_hash = _repro_digest(reproducibility_payload or {})
     repro_path = reproducibility_path or (run_dir / "reproducibility.json")
+    final_dsl_hash = _optional_str(final.get("final_dsl_hash"))
     return PrE1RunSummary(
         case_key=case.case_key,
         path=case.path,
@@ -742,7 +746,7 @@ def summarize_pr_e1_run(
         accepted_repair_count=sum(1 for item in record.repair_history if isinstance(item, dict) and item.get("accepted") is True),
         scenario_history_count=len(record.scenario_history),
         final_dsl_length=len(final_dsl),
-        final_dsl_hash=_optional_str(final.get("final_dsl_hash")),
+        final_dsl_hash=final_dsl_hash,
         run_record_path=_as_posix(result.run_record_path),
         report_path=_as_posix(run_dir / "report.md"),
         summary_path=_as_posix(run_dir / "summary.json"),
@@ -751,6 +755,9 @@ def summarize_pr_e1_run(
         stdout_path=_as_posix(stdout_path),
         stderr_path=_as_posix(stderr_path),
         primary_failure_class=classify_primary_failure(record),
+        fix_log_next_actions=_fix_log_next_actions(record),
+        iteration_exit_reasons=_iteration_exit_reasons(record),
+        final_dsl_source=_final_dsl_source(record, final_dsl_hash),
     )
 
 
@@ -770,6 +777,82 @@ def run_record_checks(record: AgentLoopRunRecord, public_payload: str | None = N
     }
 
 
+def _fix_log_next_actions(record: AgentLoopRunRecord) -> list[str]:
+    actions: list[str] = []
+    for entry in record.fix_log if isinstance(record.fix_log, list) else []:
+        if isinstance(entry, dict) and entry.get("next_action") is not None:
+            actions.append(str(entry["next_action"]))
+    return actions
+
+
+def _iteration_exit_reasons(record: AgentLoopRunRecord) -> list[str]:
+    reasons: list[str] = []
+    for entry in record.iteration_records if isinstance(record.iteration_records, list) else []:
+        if isinstance(entry, dict) and entry.get("exit_reason") is not None:
+            reasons.append(str(entry["exit_reason"]))
+    return reasons
+
+
+def _final_dsl_source(record: AgentLoopRunRecord, final_dsl_hash: str | None = None) -> dict[str, object]:
+    """Locate which accepted repair, if any, produced ``final.fcstm``."""
+
+    wanted = final_dsl_hash or _optional_str(record.final_artifacts.get("final_dsl_hash"))
+    source: dict[str, object] = {
+        "final_dsl_hash": wanted,
+        "source_kind": "initial_or_unrepaired",
+    }
+    if not wanted:
+        return source
+    for index, item in enumerate(record.repair_history if isinstance(record.repair_history, list) else []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("candidate_dsl_hash") == wanted:
+            source.update(
+                {
+                    "source_kind": "repair_candidate",
+                    "repair_history_index": index,
+                    "iteration": item.get("iteration"),
+                    "accepted": item.get("accepted"),
+                    "sl10_decision": (item.get("sl10_repair_review") or {}).get("decision") if isinstance(item.get("sl10_repair_review"), dict) else None,
+                    "selected_source_stage": (item.get("selected_feedback") or {}).get("source_stage") if isinstance(item.get("selected_feedback"), dict) else None,
+                }
+            )
+            break
+    rejected: list[dict[str, object]] = []
+    for index, item in enumerate(record.repair_history if isinstance(record.repair_history, list) else []):
+        if not isinstance(item, dict) or item.get("accepted") is True:
+            continue
+        sl10 = item.get("sl10_repair_review") if isinstance(item.get("sl10_repair_review"), dict) else {}
+        rejected.append(
+            {
+                "repair_history_index": index,
+                "iteration": item.get("iteration"),
+                "candidate_dsl_hash": item.get("candidate_dsl_hash"),
+                "sl10_decision": sl10.get("decision") if isinstance(sl10, dict) else None,
+                "rework_instructions": sl10.get("rework_instructions") if isinstance(sl10, dict) else None,
+            }
+        )
+    if rejected:
+        source["last_rejected_candidate"] = rejected[-1]
+    return source
+
+
+def _last_repair(record: AgentLoopRunRecord) -> dict[str, Any]:
+    for item in reversed(record.repair_history if isinstance(record.repair_history, list) else []):
+        if isinstance(item, dict):
+            return item
+    return {}
+
+
+def _last_selected_feedback(record: AgentLoopRunRecord) -> dict[str, Any]:
+    for item in reversed(record.iteration_records if isinstance(record.iteration_records, list) else []):
+        if isinstance(item, dict) and isinstance(item.get("selected_feedback"), dict):
+            return item["selected_feedback"]
+    repair = _last_repair(record)
+    selected = repair.get("selected_feedback")
+    return selected if isinstance(selected, dict) else {}
+
+
 def classify_primary_failure(record: AgentLoopRunRecord) -> str:
     """Classify the main stop reason for PR-E1 reviewer triage."""
 
@@ -780,6 +863,19 @@ def classify_primary_failure(record: AgentLoopRunRecord) -> str:
         return "success"
     if verdict == "provider_error" or "provider" in reason or "retry exhausted" in reason:
         return "provider_or_retry"
+    selected = _last_selected_feedback(record)
+    selected_stage = str(selected.get("source_stage") or "")
+    selected_source = str(selected.get("source") or "")
+    last_repair = _last_repair(record)
+    sl10 = last_repair.get("sl10_repair_review") if isinstance(last_repair.get("sl10_repair_review"), dict) else {}
+    if selected_stage == "SD-6" or selected_source == "sim":
+        if isinstance(sl10, dict) and sl10.get("decision") == "rework":
+            return "repair_review_rework_budget"
+        return "scenario_or_sim_oracle"
+    if selected_stage == "SL-7" or selected_source == "model_review":
+        return "model_review_or_quality"
+    if isinstance(sl10, dict) and sl10.get("decision") == "rework":
+        return "repair_review_rework_budget"
     if "parse" in reason or "syntax" in reason:
         return "dsl_parse_or_grammar"
     if "semantic" in reason or "dangling" in reason or "forced_transition" in reason:
@@ -877,6 +973,9 @@ def _write_exception_artifacts(
         stdout_path=_as_posix(stdout_path),
         stderr_path=_as_posix(stderr_path),
         primary_failure_class="provider_or_retry" if missing_provider_env() else "record_or_schema",
+        fix_log_next_actions=[],
+        iteration_exit_reasons=[],
+        final_dsl_source={},
     )
     (run_dir / "final.fcstm").write_text("", encoding="utf-8")
     (run_dir / "summary.json").write_text(json.dumps(asdict(summary), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -936,6 +1035,9 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| run_id | `{summary.run_id}` |",
         f"| final verdict/status | verdict=`{summary.verdict}`, record=`{summary.record_status}`, result=`{summary.result_status}` |",
         f"| main_result_eligible | `{str(summary.main_result_eligible).lower()}` |",
+        f"| final.fcstm 来源 | `{_escape_md(json.dumps(summary.final_dsl_source, ensure_ascii=False, sort_keys=True))}` |",
+        f"| FixLog next_action 序列 | `{_escape_md(_join_limited(summary.fix_log_next_actions, limit=12))}` |",
+        f"| iteration exit_reason 序列 | `{_escape_md(_join_limited(summary.iteration_exit_reasons, limit=8))}` |",
         f"| token/cost/time | tokens=`{summary.token_usage}`, elapsed=`{summary.elapsed_seconds}s` |",
         f"| run record | [`{Path(summary.run_record_path).name}`](./{Path(summary.run_record_path).name}) |",
         "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`reproducibility.json`](./reproducibility.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
@@ -2331,7 +2433,21 @@ def load_existing_summaries(output_dir: str | Path) -> list[PrE1RunSummary]:
     if not path.exists():
         return []
     payload = json.loads(path.read_text(encoding="utf-8"))
-    return [PrE1RunSummary(**item) for item in payload]
+    fields = PrE1RunSummary.__dataclass_fields__
+    normalized: list[PrE1RunSummary] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        row: dict[str, object] = {}
+        for key, info in fields.items():
+            if key in item:
+                row[key] = item[key]
+            elif info.default is not MISSING:
+                row[key] = info.default
+            elif info.default_factory is not MISSING:  # type: ignore[comparison-overlap]
+                row[key] = info.default_factory()  # type: ignore[misc]
+        normalized.append(PrE1RunSummary(**row))
+    return normalized
 
 
 def main(argv: Sequence[str] | None = None) -> int:

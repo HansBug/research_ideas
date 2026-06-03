@@ -37,6 +37,11 @@ Important boundaries:
 - Local parse/semantic/design/sim checks are evidence, not your only source of
   truth. If local checks are conservative, decide whether the NL + FixLog
   justify a pass, fail, or rework.
+- If you choose "pass" while local_check_evidence reports unresolved targets,
+  regression, or drift_risk="major", your evidence MUST explicitly address the
+  local rejection reason/kind and explain why the NL + FixLog justify the
+  override. A silent pass over major local drift is invalid and will be
+  downgraded to rework by the runtime consistency gate.
 - Do not accept a candidate that drops NL-required states, events, guards,
   actions, or scenario obligations.
 - Do not reject a previously waived/rejected non-hard request again unless new

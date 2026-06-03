@@ -46,11 +46,33 @@ def _state_path_str(state: Any) -> str:
     return str(name) if name is not None else str(state)
 
 
+def _safe_current_state_path(runtime: Any) -> str:
+    """Best-effort runtime state capture that never masks the original error.
+
+    ``pyfcstm`` raises from ``runtime.current_state`` after the runtime reaches
+    a final/ended configuration.  SD-6 must preserve that situation as
+    structured scenario evidence instead of raising a second exception while it
+    is already converting the original runtime error into ``StepResult``.
+    """
+
+    try:
+        return _state_path_str(runtime.current_state)
+    except Exception:
+        return "<ended>"
+
+
 def _vars_to_dict(runtime_vars: Any) -> dict[str, Any]:
     try:
         return dict(runtime_vars)
     except Exception:
         return {k: runtime_vars[k] for k in getattr(runtime_vars, "keys", lambda: [])()}
+
+
+def _safe_vars_dict(runtime: Any) -> dict[str, Any]:
+    try:
+        return _vars_to_dict(runtime.vars)
+    except Exception:
+        return {}
 
 
 def _default_initial_vars(model: Any) -> dict[str, Any]:
@@ -100,8 +122,8 @@ def _execute_step(runtime: Any, step: ScenarioStep, step_index: int) -> StepResu
         runtime.cycle(events=list(step.events))
 
     # 3. capture actual state + vars
-    sr.actual_state = _state_path_str(runtime.current_state)
-    sr.actual_vars = _vars_to_dict(runtime.vars)
+    sr.actual_state = _safe_current_state_path(runtime)
+    sr.actual_vars = _safe_vars_dict(runtime)
 
     # 4. state assertion (if non-None)
     if step.expected_state is not None:
@@ -175,8 +197,8 @@ def _run_one_scenario(model: Any, scenario: TestScenario) -> ScenarioResult:
                 step_name=step.name or f"step_{i}",
                 status="error",
                 runtime_error=f"SimulationRuntimeDfsError: {str(e)[:300]}",
-                actual_state=_state_path_str(getattr(runtime, "current_state", None)),
-                actual_vars=_vars_to_dict(getattr(runtime, "vars", {})),
+                actual_state=_safe_current_state_path(runtime),
+                actual_vars=_safe_vars_dict(runtime),
             )
             sresult.step_results.append(sr)
             hit_runtime_error = True
@@ -187,8 +209,8 @@ def _run_one_scenario(model: Any, scenario: TestScenario) -> ScenarioResult:
                 step_name=step.name or f"step_{i}",
                 status="error",
                 runtime_error=f"{type(e).__name__}: {str(e)[:300]}",
-                actual_state=_state_path_str(getattr(runtime, "current_state", None)),
-                actual_vars=_vars_to_dict(getattr(runtime, "vars", {})),
+                actual_state=_safe_current_state_path(runtime),
+                actual_vars=_safe_vars_dict(runtime),
             )
             sresult.step_results.append(sr)
             hit_runtime_error = True

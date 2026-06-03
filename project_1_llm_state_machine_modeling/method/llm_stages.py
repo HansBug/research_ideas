@@ -1195,14 +1195,33 @@ def run_sl10_repair_review_llm(
     parsed = run.parsed_output if isinstance(run.parsed_output, dict) else {}
     review_meta = ReviewRunMeta(**run.interaction["review_meta"])
     decision = parsed.get("decision", "invalid_output") if run.ok else "invalid_output"
-    ok = bool(run.ok and decision == "pass")
+    target_resolved = bool(parsed.get("target_resolved", decision == "pass"))
+    regression_detected = bool(parsed.get("regression_detected", decision != "pass"))
+    drift_risk = parsed.get("drift_risk", "none" if decision == "pass" else "major")
+    ok = bool(
+        run.ok
+        and decision == "pass"
+        and target_resolved
+        and not regression_detected
+        and drift_risk in {"none", "minor"}
+    )
+    if run.ok and decision == "pass" and not ok:
+        decision = "rework"
+        instructions = [str(item) for item in parsed.get("rework_instructions", [])]
+        instructions.append(
+            "SL-10 pass was downgraded because its own fields reported "
+            f"target_resolved={target_resolved}, "
+            f"regression_detected={regression_detected}, drift_risk={drift_risk}."
+        )
+    else:
+        instructions = [str(item) for item in parsed.get("rework_instructions", [])]
     feedback = SL10RepairReviewOutput(
         ok=ok,
         decision=decision,
-        target_resolved=bool(parsed.get("target_resolved", ok)),
-        regression_detected=bool(parsed.get("regression_detected", not ok)),
-        drift_risk=parsed.get("drift_risk", "none" if ok else "major"),
-        rework_instructions=[str(item) for item in parsed.get("rework_instructions", [])],
+        target_resolved=target_resolved,
+        regression_detected=regression_detected,
+        drift_risk=drift_risk,
+        rework_instructions=instructions,
         evidence=parsed.get("evidence", []),
         local_check_evidence=local_check_evidence or {},
         review_meta=review_meta,

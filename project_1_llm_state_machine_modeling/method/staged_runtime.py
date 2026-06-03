@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.metadata
+import json
 import platform
 import re
 import subprocess
@@ -823,6 +824,8 @@ def _reuse_or_check_scenario_set(
     llm_interactions: list[dict[str, Any]],
     logs: list[dict[str, Any]],
 ) -> tuple[ScenarioSet, list[dict[str, Any]], bool, int]:
+    current_dsl_hash = _hash_text(current_dsl)
+    dsl_changed_since_freeze = bool(scenario_set.source_dsl_hash and scenario_set.source_dsl_hash != current_dsl_hash)
     coverage, coverage_meta = adapters.scenario_coverage(current_dsl, list(scenario_set.scenarios))
     _append_stage(stage_records, coverage_meta)
     iteration_stage_metas.append(coverage_meta)
@@ -842,8 +845,11 @@ def _reuse_or_check_scenario_set(
     history[0]["scenario_set_id"] = scenario_set.scenario_set_id
     history[0]["epoch"] = scenario_set.epoch
     history[0]["reused_frozen_oracle"] = True
+    history[0]["dsl_changed_since_freeze"] = dsl_changed_since_freeze
+    history[0]["previous_source_dsl_hash"] = scenario_set.source_dsl_hash
+    history[0]["current_dsl_hash"] = current_dsl_hash
 
-    if not gap:
+    if not gap and not dsl_changed_since_freeze:
         freeze_meta = _meta(StageId.SC_5F_SCENARIO_FREEZE, ok=True)
         freeze_meta.input_hash = _hash_text(current_dsl)
         freeze_meta.output_hash = _hash_text(scenario_set.scenario_set_id)
@@ -851,21 +857,28 @@ def _reuse_or_check_scenario_set(
         iteration_stage_metas.append(freeze_meta)
         return scenario_set, history, False, scenario_set.epoch + 1
 
-    coverage_directive: Any | None = coverage.get("retry_directive") or {"retry_reason": "frozen_scenario_coverage_gap"}
+    coverage_directive: Any | None = coverage.get("retry_directive") or {
+        "retry_reason": "dsl_changed_since_scenario_freeze" if dsl_changed_since_freeze else "frozen_scenario_coverage_gap",
+        "previous_scenario_set_id": scenario_set.scenario_set_id,
+        "previous_source_dsl_hash": scenario_set.source_dsl_hash,
+        "current_dsl_hash": current_dsl_hash,
+    }
     previous_scenarios = list(scenario_set.scenarios)
     selected_scenarios = list(scenario_set.scenarios)
     selected_coverage = dict(coverage)
-    weak = cfg.scenario_max_retries == 0 or bool(selected_coverage.get("oracle_weak"))
+    weak = (cfg.scenario_max_retries == 0 and (gap or dsl_changed_since_freeze)) or bool(selected_coverage.get("oracle_weak"))
     next_epoch = scenario_set.epoch + 1
 
     logs.append(
         {
             "ts": _utc_now(),
             "level": "warning",
-            "event": "frozen_scenario_coverage_gap_targeted_retry",
+            "event": "frozen_scenario_refresh_targeted_retry",
             "iteration": iteration,
             "scenario_set_id": scenario_set.scenario_set_id,
             "scenario_max_retries": cfg.scenario_max_retries,
+            "coverage_gap": gap,
+            "dsl_changed_since_freeze": dsl_changed_since_freeze,
         }
     )
 
@@ -916,8 +929,11 @@ def _reuse_or_check_scenario_set(
                     retry_exhausted=retry_exhausted,
                     oracle_weak=weak,
                 ),
-                "targeted_retry_after_frozen_gap": True,
+                "targeted_retry_after_frozen_gap": gap,
+                "targeted_retry_after_dsl_change": dsl_changed_since_freeze,
                 "previous_scenario_set_id": scenario_set.scenario_set_id,
+                "previous_source_dsl_hash": scenario_set.source_dsl_hash,
+                "current_dsl_hash": current_dsl_hash,
             }
         )
         if not retry_gap:
@@ -929,16 +945,18 @@ def _reuse_or_check_scenario_set(
         selected_coverage = {
             **selected_coverage,
             "oracle_weak": True,
-            "weak_oracle_reason": "frozen_scenario_coverage_retry_exhausted",
+            "weak_oracle_reason": "scenario_refresh_retry_exhausted",
         }
         logs.append(
             {
                 "ts": _utc_now(),
                 "level": "warning",
-                "event": "frozen_scenario_coverage_retry_exhausted",
+                "event": "scenario_refresh_retry_exhausted",
                 "iteration": iteration,
                 "previous_scenario_set_id": scenario_set.scenario_set_id,
                 "scenario_max_retries": cfg.scenario_max_retries,
+                "coverage_gap": gap,
+                "dsl_changed_since_freeze": dsl_changed_since_freeze,
             }
         )
 
@@ -1343,7 +1361,72 @@ def _default_sl10_output_from_local_checks(
     )
 
 
+def _sl10_acknowledges_major_local_evidence(
+    sl10: SL10RepairReviewOutput,
+    *,
+    local_review: RepairReviewFeedback,
+) -> bool:
+    """Return whether an SL-10 pass explicitly engages major local evidence.
+
+    SL-10 is allowed to overrule conservative deterministic checks, but the
+    override must be auditable.  For major local drift, require the reviewer
+    evidence to mention at least one local rejection reason/kind.  This keeps
+    the mechanism sample-agnostic while preventing silent LLM override of the
+    DMR evidence chain.
+    """
+
+    if local_review.drift_risk != "major" or not sl10.ok:
+        return True
+    rejection = local_review.local_rejection
+    if rejection is None:
+        return True
+    anchors: set[str] = set()
+    for chunk in re.split(r"[;,\s]+", rejection.reason or ""):
+        chunk = chunk.strip().lower()
+        if len(chunk) >= 4:
+            anchors.add(chunk)
+    for item in rejection.evidence:
+        if isinstance(item, dict):
+            for key in ("kind", "code", "summary", "reason"):
+                value = item.get(key)
+                if isinstance(value, str) and len(value.strip()) >= 4:
+                    anchors.add(value.strip().lower())
+    if not anchors:
+        return False
+    rendered = json.dumps(_jsonable(sl10.evidence), ensure_ascii=False, sort_keys=True).lower()
+    return any(anchor in rendered for anchor in anchors)
+
+
 def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: RepairReviewFeedback) -> RepairReviewFeedback:
+    if sl10.decision == "pass" and (
+        not sl10.target_resolved
+        or sl10.regression_detected
+        or sl10.drift_risk == "major"
+    ):
+        sl10.ok = False
+        sl10.decision = "rework"
+        sl10.rework_instructions.append(
+            "SL-10 pass was downgraded by runtime consistency gate because "
+            f"target_resolved={sl10.target_resolved}, "
+            f"regression_detected={sl10.regression_detected}, "
+            f"drift_risk={sl10.drift_risk}."
+        )
+        if sl10.meta is not None:
+            sl10.meta.ok = False
+            sl10.meta.status = StageStatus.FAIL
+            sl10.meta.stage_error = sl10.rework_instructions[-1]
+    if not _sl10_acknowledges_major_local_evidence(sl10, local_review=local_review):
+        sl10.ok = False
+        sl10.decision = "rework"
+        sl10.rework_instructions.append(
+            "SL-10 pass was downgraded because local deterministic evidence "
+            "reported major drift and SL-10 evidence did not explicitly "
+            "address the local rejection reason/kind."
+        )
+        if sl10.meta is not None:
+            sl10.meta.ok = False
+            sl10.meta.status = StageStatus.FAIL
+            sl10.meta.stage_error = sl10.rework_instructions[-1]
     rejection = None
     if not sl10.ok:
         rejection = RepairRejection(
@@ -1405,6 +1488,51 @@ def _fix_log_entry(
     payload = _jsonable(entry)
     state.fix_log.append(payload)
     return payload
+
+
+def _repair_selected_reason(selected_trace: dict[str, Any]) -> str:
+    source_stage = str(selected_trace.get("source_stage") or "")
+    source = str(selected_trace.get("source") or "")
+    if source_stage == StageId.SD_6_SIM.value or source == FeedbackSource.SIM.value:
+        setup_error = selected_trace.get("setup_error")
+        if setup_error:
+            return f"SD-6 sim failure: {setup_error}"
+        passed = selected_trace.get("n_scenarios_passed")
+        total = selected_trace.get("n_scenarios")
+        return f"SD-6 sim failure: {passed}/{total} scenarios passed"
+    if source_stage == StageId.SL_7_MODEL_REVIEW.value or source == FeedbackSource.MODEL_REVIEW.value:
+        return "SL-7 model review blocked candidate"
+    if source_stage == StageId.SD_4_DESIGN.value or source == FeedbackSource.DESIGN.value:
+        codes = selected_trace.get("diagnostic_codes")
+        if isinstance(codes, list) and codes:
+            return "SD-4 design diagnostics: " + ", ".join(str(item) for item in codes[:8])
+        return "SD-4 design diagnostics blocked candidate"
+    if source_stage == StageId.SD_3_SEMANTIC.value or source == FeedbackSource.SEMANTIC.value:
+        return "SD-3 semantic feedback blocked candidate"
+    if source_stage == StageId.SD_2_PARSE.value or source == FeedbackSource.PARSE.value:
+        return "SD-2 parse feedback blocked candidate"
+    return source_stage or source or "repair feedback blocked candidate"
+
+
+def _final_rejection_reason(
+    *,
+    iteration_record: dict[str, Any],
+    repair_history: list[dict[str, Any]],
+) -> str:
+    selected = iteration_record.get("selected_feedback")
+    if isinstance(selected, dict):
+        return _repair_selected_reason(selected)
+    last_accepted_hash = ""
+    for item in reversed(repair_history):
+        if isinstance(item, dict) and item.get("accepted") is True:
+            last_accepted_hash = str(item.get("candidate_dsl_hash") or "")
+            break
+    if last_accepted_hash:
+        return (
+            "repair budget exhausted after validating accepted candidate "
+            f"{last_accepted_hash}; see last_rejected_candidate diagnostics in repair_history/FixLog"
+        )
+    return str(iteration_record.get("exit_reason") or "repair review rejected candidate")
 
 
 def _run_repair_path(
@@ -2214,6 +2342,11 @@ def run_full_staged_deterministic_runtime(
                 iteration_record["next_iteration_repair_plan"] = "RevisedFixPlan"
                 state.iteration_records.append(iteration_record)
                 continue
+            reason = _final_rejection_reason(
+                iteration_record=iteration_record,
+                repair_history=state.repair_history,
+            )
+            iteration_record["exit_reason"] = reason
             _mark_sc12_verdict(
                 state,
                 verdict="not_converged",
