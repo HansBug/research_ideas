@@ -668,8 +668,14 @@ def run_sd8_fix_plan(
         problem_summary=summary,
         evidence=evidence,
         suggested_fix_hints=suggested_fix_hints,
-        recommended_strategy=["Use diagnostics as hints; choose the smallest globally consistent repair."],
-        forbidden_edits=["Do not delete grounded required elements merely to silence diagnostics."],
+        recommended_strategy=[
+            "Use diagnostics as hints; choose the smallest globally consistent repair.",
+            "Before returning a candidate, verify every required_preserve_element_id still has a concrete DSL representation.",
+        ],
+        forbidden_edits=[
+            "Do not delete grounded required elements merely to silence diagnostics.",
+            "Do not invent internal plant/environment dynamics merely to make external input variables appear written.",
+        ],
         target_element_ids=target_ids,
         required_preserve_element_ids=required_ids,
         before_dsl_hash=_hash_text(before_dsl) if before_dsl else "",

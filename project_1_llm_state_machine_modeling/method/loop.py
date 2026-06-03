@@ -309,6 +309,7 @@ def _build_runtime_adapters(
             design_summary={"iteration": request.attempt_index, "context": request.context.to_summary()},
             grounding_map=request.context.grounding_map,
             coverage_directive=str(request.coverage_directive) if request.coverage_directive is not None else None,
+            previous_scenarios=request.previous_scenarios,
             config=llm_cfg,
             provider=provider,
         )

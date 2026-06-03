@@ -818,11 +818,12 @@ def run_sl5_scenario_generation_llm(
     design_summary: dict[str, Any] | None = None,
     grounding_map: Any | None = None,
     coverage_directive: str | None = None,
+    previous_scenarios: list[Any] | None = None,
     config: Optional[LLMStageConfig] = None,
     provider: Optional[ChatProvider] = None,
 ) -> LLMStageRun:
     cfg = config or LLMStageConfig()
-    version = "sl5-scenario-generation.v1"
+    version = "sl5-scenario-generation.v2"
     prompt = build_sl5_scenario_generation_prompt(
         nl=nl,
         current_dsl=current_dsl,
@@ -830,6 +831,7 @@ def run_sl5_scenario_generation_llm(
         design_summary=design_summary,
         grounding_map=grounding_map,
         coverage_directive=coverage_directive,
+        previous_scenarios=previous_scenarios,
         prompt_template_version=version,
     )
     run = _run_llm_stage(
@@ -903,7 +905,7 @@ def run_sl9_repair_llm(
     provider: Optional[ChatProvider] = None,
 ) -> LLMStageRun:
     cfg = config or LLMStageConfig()
-    version = "sl9-repair.v1"
+    version = "sl9-repair.v2"
     prompt = build_sl9_repair_prompt(
         nl=nl,
         current_dsl=current_dsl,

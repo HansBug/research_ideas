@@ -256,6 +256,40 @@ def test_repair_accept_returns_to_sd2_before_success(tmp_path: Path) -> None:
     assert record.repair_history[0]["accepted"] is True
 
 
+def test_repair_request_carries_generic_variable_role_summary(tmp_path: Path) -> None:
+    captured: dict[str, Any] = {}
+
+    def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
+        item = DesignDiagnosticItem(
+            code="W_UNWRITTEN_READ_VAR",
+            pyfcstm_severity="warning",
+            policy_action="budgeted_repair",
+            instance_key="W_UNWRITTEN_READ_VAR:var_name=plant_input",
+            refs={"var_name": "plant_input", "guard_vars": ["plant_input"]},
+            message="plant_input is read by guards but never written",
+            rationale="Downgraded because `plant_input` is NL-grounded as an external sensor/environment input.",
+        )
+        return DesignFeedback(ok=False, blocking_items=[item]), _meta(StageId.SD_4_DESIGN, ok=False)
+
+    def repair(request: RepairRequest) -> str:
+        captured["trace"] = request.selected_feedback_trace
+        return "fixed"
+
+    result = run_full_staged_deterministic_runtime(
+        "The controller reads plant_input from external input signals before selecting Active.",
+        FullStagedRuntimeConfig(initial_dsl="needs-variable-role", run_id="pr-b1-var-role", output_dir=tmp_path, max_iterations=1),
+        adapters=_base_adapters(design=design, repair=repair),
+    )
+
+    assert result.status in {"not_converged", "converged"}
+    summary = captured["trace"]["variable_role_summary"]
+    assert summary["variables"]["plant_input"]["role_hint"] == "external_input_candidate"
+    assert summary["variables"]["plant_input"]["nl_token_present"] is True
+    rendered = str(summary)
+    for sample_token in ["ABS", "CARA", "Elevator", "LNG", "PS2", "StartAC"]:
+        assert sample_token not in rendered
+
+
 def test_coverage_retry_exhaustion_marks_weak_oracle_and_excludes_main_result(tmp_path: Path) -> None:
     scenario_calls: list[ScenarioGenerationRequest] = []
     adapters = _base_adapters(scenario_coverage=_gap_coverage, scenario_calls=scenario_calls)

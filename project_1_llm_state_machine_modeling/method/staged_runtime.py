@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import platform
+import re
 import subprocess
 import uuid
 from dataclasses import asdict, dataclass, field, is_dataclass
@@ -51,6 +52,64 @@ from method.stages.sd_tools import (
 )
 
 RUN_RECORD_SCHEMA_VERSION = "pr-c.default-full-staged-runtime.v1"
+
+
+def _identifier_token_present(text: str, token: str) -> bool:
+    if not token:
+        return False
+    return re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", text) is not None
+
+
+def _diagnostic_variable_role_summary(nl: str, selected_feedback: Any) -> dict[str, Any]:
+    """Build sample-agnostic variable-role context for repair prompts.
+
+    This is intentionally advisory: it summarizes variables mentioned by
+    diagnostics and generic SD-4 rationales without case IDs, benchmark names,
+    or domain-specific hard-coded lexicons. SL-9 may use it to avoid inventing
+    internal plant dynamics for variables already justified as external inputs,
+    while SD-10 remains the authority for acceptance/rejection.
+    """
+
+    if not isinstance(selected_feedback, DesignFeedback):
+        return {}
+    variables: dict[str, dict[str, Any]] = {}
+    for item in [*selected_feedback.blocking_items, *selected_feedback.advisory_items, *selected_feedback.info_items]:
+        refs = item.refs or {}
+        names: set[str] = set()
+        var_name = refs.get("var_name")
+        if var_name is not None:
+            names.add(str(var_name))
+        guard_vars = refs.get("guard_vars")
+        if isinstance(guard_vars, list):
+            names.update(str(name) for name in guard_vars)
+        for name in sorted(names):
+            entry = variables.setdefault(
+                name,
+                {
+                    "diagnostic_codes": [],
+                    "diagnostic_instance_keys": [],
+                    "role_hint": "unknown",
+                    "rationales": [],
+                    "nl_token_present": _identifier_token_present(nl, name),
+                },
+            )
+            entry["diagnostic_codes"].append(item.code)
+            entry["diagnostic_instance_keys"].append(item.instance_key)
+            if item.rationale:
+                entry["rationales"].append(item.rationale)
+                if "external" in item.rationale.lower():
+                    entry["role_hint"] = "external_input_candidate"
+    if not variables:
+        return {}
+    return {
+        "source": "SD-4 diagnostic refs and generic NL external-input rationale",
+        "policy": (
+            "Advisory only. Do not invent writes for external_input_candidate "
+            "variables unless NL explicitly gives update semantics; add "
+            "meaningful NL-grounded writes only for internal state variables."
+        ),
+        "variables": variables,
+    }
 
 
 @dataclass
@@ -1053,6 +1112,9 @@ def _run_repair_path(
     assert validation.selected is not None
     source, selected_feedback, source_stage = validation.selected
     selected_trace = _selected_feedback_trace(source, selected_feedback, source_stage, scenario_set=validation.scenario_set)
+    variable_role_summary = _diagnostic_variable_role_summary(nl, selected_feedback)
+    if variable_role_summary:
+        selected_trace["variable_role_summary"] = variable_role_summary
     if selected_trace["pre_scenario"]:
         state.pre_scenario_repair_count += 1
     fix_plan, fix_meta = run_sd8_fix_plan(

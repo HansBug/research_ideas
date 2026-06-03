@@ -159,6 +159,13 @@ def test_sl1_and_sl9_prompts_carry_pr_e1_parse_subset_constraints() -> None:
 
 
 def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context() -> None:
+    previous = [
+        ScenarioCase(
+            name="default_init_reaches_idle",
+            description="default-init probe",
+            steps=[{"before_cycles": 1, "expected_state": "Root.Idle"}],
+        )
+    ]
     messages = build_sl5_scenario_generation_prompt(
         nl="Default init reaches Idle; Start reaches Active.",
         current_dsl="state Root { [*] -> Idle; state Idle; state Active; Idle -> Active :: Start; }",
@@ -166,6 +173,7 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
         design_summary={"blocking_items": []},
         grounding_map=_grounding_map(),
         coverage_directive="Cover Start transition.",
+        previous_scenarios=previous,
     )
     joined = "\n".join(m["content"] for m in messages)
 
@@ -178,6 +186,10 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert "`StartEvent`" in joined
     assert "`ResetEvent`" in joined
     assert "Avoid over-asserting weak or incidental variables" in joined
+    assert "previous_scenarios" in joined
+    assert "default_init_reaches_idle" in joined
+    assert "preserve their names" in joined
+    assert "initial-state provenance" in joined
 
     scenarios = parse_sl5_scenario_generation_response(
         json.dumps(
@@ -204,6 +216,34 @@ def test_sl5_prompt_parser_returns_typed_scenarios_and_prompt_includes_context()
     assert len(scenarios) == 1
     assert isinstance(scenarios[0], ScenarioCase)
     assert scenarios[0].steps[0].expected_state == "Root.Active"
+
+
+def test_sl9_prompt_contains_preserve_checklist_and_variable_role_context() -> None:
+    messages = build_sl9_repair_prompt(
+        nl="The controller reads sensor value ext from external input signals before selecting Active.",
+        current_dsl="def int ext = 0; state Root { [*] -> Idle; state Idle; state Active; Idle -> Active : if [ext > 0]; }",
+        fix_plan=_fix_plan(),
+        selected_diagnostics=[
+            {
+                "source": "design",
+                "source_stage": "SD-4",
+                "variable_role_summary": {
+                    "source": "SD-4 diagnostic refs and generic NL external-input rationale",
+                    "variables": {"ext": {"role_hint": "external_input_candidate"}},
+                },
+            }
+        ],
+        preserve_list=["state:Idle", "transition:Idle_to_Active"],
+        grammar_digest=_grammar_digest(),
+        repair_target="design",
+    )
+    joined = "\n".join(m["content"] for m in messages)
+
+    assert "variable_role_summary" in joined
+    assert "external-input vs internal-state" in joined
+    assert "required_preserve_element_ids" in joined
+    assert "no unrelated grounded branch was deleted" in joined
+    assert "no new ungrounded plant/environment dynamics were invented" in joined
 
 
 

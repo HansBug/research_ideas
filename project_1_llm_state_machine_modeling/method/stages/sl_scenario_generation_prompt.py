@@ -25,7 +25,8 @@ def build_sl5_scenario_generation_prompt(
     design_summary: dict[str, Any] | None = None,
     grounding_map: Any | None = None,
     coverage_directive: str | None = None,
-    prompt_template_version: str = "sl5-scenario-generation.v1",
+    previous_scenarios: list[Any] | None = None,
+    prompt_template_version: str = "sl5-scenario-generation.v2",
 ) -> list[dict[str, str]]:
     base_prompt = read_text_if_exists(SCENARIO_PROMPT_PATH)
     system = f"""
@@ -58,6 +59,16 @@ Additional PR-1B contract:
   `expected_vars` for state/action outputs explicitly grounded in the NL/DSL;
   leave sensor/environment inputs as don't-care unless the NL gives a concrete
   value and the scenario sets it in `initial_vars`.
+- If `previous_scenarios` is non-empty, treat them as the current oracle draft:
+  preserve their names, intent, and already-covered probes unless they are
+  impossible under the DSL. Add or strengthen only the gaps named in
+  `coverage_directive`; do not replace a previously useful probe with an
+  unrelated happy-path scenario.
+- For every scenario, make initial-state provenance explicit in `description`:
+  say `default-init` when `initial_state` is omitted, or `explicit-hot-start`
+  when a non-default `initial_state` is intentionally used. Hot starts are
+  allowed only when they are needed to target a nested source state and must not
+  hide failures that are reproducible from the default initial state.
 """
     payload = {
         "nl": nl,
@@ -66,6 +77,7 @@ Additional PR-1B contract:
         "design_summary": design_summary or {},
         "grounding_map": grounding_map,
         "coverage_directive": coverage_directive,
+        "previous_scenarios": previous_scenarios or [],
     }
     user = f"""
 ## SL-5 input bundle

@@ -344,6 +344,8 @@ def test_sd8_fix_plan_uses_design_feedback_hints_as_reference_not_command() -> N
     assert plan.severity == "blocking_warning"
     assert plan.suggested_fix_hints
     assert any("hints" in strategy.lower() or "smallest" in strategy.lower() for strategy in plan.recommended_strategy)
+    assert any("required_preserve_element_id" in strategy for strategy in plan.recommended_strategy)
+    assert any("plant/environment dynamics" in edit for edit in plan.forbidden_edits)
     assert "state:Root.Active" in plan.required_preserve_element_ids
     assert plan.before_dsl_hash.startswith("sha256:")
 

@@ -20,7 +20,7 @@ def build_sl9_repair_prompt(
     scenario_summary: dict[str, Any] | None = None,
     repair_target: str | None = None,
     system_prompt: str | None = None,
-    prompt_template_version: str = "sl9-repair.v1",
+    prompt_template_version: str = "sl9-repair.v2",
 ) -> list[dict[str, str]]:
     grammar = load_grammar_digest(grammar_digest)
     plan_kind = "RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan"
@@ -40,6 +40,9 @@ SL-9 Repair contract:
 - Preserve NL-grounded required elements in GroundingMap.
 - Keep passing scenarios from regressing.
 - Output corrected pyfcstm DSL only. No fences, no commentary.
+- Treat any `variable_role_summary` in `selected_diagnostics` as advisory
+  context for external-input vs internal-state decisions. It is not a command
+  to silence warnings; SD-10 still decides whether the candidate is acceptable.
 - Do not rewrite event-triggered transitions into chain-scope `: Event`
   transitions merely to satisfy a scenario. In the parseable subset, NL trigger
   names should normally stay as local `:: EventName` transitions; scenario
@@ -91,6 +94,14 @@ Target-aware repair rules:
   because of an over-qualified or premature event in the scenario.
 - After editing, self-check from scratch: parse syntax, semantic target
   resolution, design target, and preservation of required grounded elements.
+- Before final output, run this preservation checklist mentally and obey it:
+  (1) every `required_preserve_element_ids` entry is still represented by a
+  matching state/event/variable/transition/guard/action; (2) the selected
+  diagnostic target is addressed or explicitly left conservative because a fix
+  would break required grounding; (3) no unrelated grounded branch was deleted;
+  (4) no new ungrounded plant/environment dynamics were invented merely to
+  satisfy a warning. If target repair conflicts with required preservation,
+  prefer the smallest conservative edit over a broad rewrite.
 
 ## pyfcstm grammar digest
 {grammar}
