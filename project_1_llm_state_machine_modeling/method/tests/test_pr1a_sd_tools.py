@@ -324,6 +324,72 @@ state Root {
     assert not feedback.blocking_items
     assert any(item.code == "W_GUARD_VARS_NEVER_CHANGE" for item in feedback.advisory_items)
 
+
+def test_sd4_external_input_ledger_uses_plant_boundary_without_sample_lexicon() -> None:
+    dsl = """
+def float error_signal = 0.0;
+state Root {
+    [*] -> Increase;
+    state Increase;
+    state Hold;
+    Increase -> Hold : if [error_signal <= 0.01];
+    Hold -> Increase : if [error_signal > 0.01];
+}
+"""
+    context = StageContext(
+        nl=(
+            "The discrete supervisor switches on error_signal thresholds, "
+            "while the continuous dynamics remain in the plant model."
+        )
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert meta.status is StageStatus.OK
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["error_signal"]
+    rendered = str(feedback.inspect_summary["external_input_role_ledger"])
+    for sample_token in ["ABS", "CARA", "Elevator", "LNG", "SoC", "PL", "slp"]:
+        assert sample_token not in rendered
+
+
+def test_sd4_external_input_ledger_uses_capacity_boundary_and_grounding() -> None:
+    dsl = """
+def float load = 0.0;
+def float p_limit = 0.0;
+state Root {
+    [*] -> Low;
+    state Low;
+    state High;
+    Low -> High : if [load > p_limit];
+    High -> Low : if [load <= p_limit];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="variable:load",
+                element_kind="variable",
+                element_ref="load",
+                source_stage="SL-1",
+                evidence_text="controller reads load input",
+                requiredness="required",
+            )
+        ]
+    )
+    context = StageContext(
+        nl="The controller reads load and uses capacity limits such as p_limit.",
+        grounding_map=grounding,
+    )
+    run_sd3_semantic(dsl, context)
+
+    feedback, _meta = run_sd4_design(context)
+
+    assert feedback.ok
+    assert feedback.inspect_summary["nl_external_input_vars"] == ["load", "p_limit"]
+
+
 def test_warning_budget_attempt_decrements_to_advisory() -> None:
     context = StageContext()
     run_sd3_semantic(DEADLOCK_DSL, context)
@@ -499,6 +565,48 @@ def test_sd10_repair_review_rejects_unresolved_design_target() -> None:
     assert not feedback.ok
     assert feedback.local_rejection is not None
     assert any(e["kind"] == "design_target_unresolved" for e in feedback.local_rejection.evidence)
+
+
+def test_sd10_repair_review_accepts_external_input_target_after_shared_budget_and_grounding() -> None:
+    dsl = """
+def float sensor_input = 0.0;
+state Root {
+    [*] -> Idle;
+    state Idle;
+    state Active;
+    Idle -> Active : if [sensor_input > 0.0];
+    Active -> Idle : if [sensor_input <= 0.0];
+}
+"""
+    grounding = GroundingMap(
+        elements=[
+            GroundedElement(
+                element_id="variable:sensor_input",
+                element_kind="variable",
+                element_ref="sensor_input",
+                source_stage="SL-1",
+                evidence_text="controller reads sensor_input from external process",
+                requiredness="required",
+            )
+        ],
+        source_summary={"assumptions": ["sensor_input is computed by the plant process"]},
+    )
+    context = StageContext(nl="The continuous process computes sensor_input outside the discrete controller.", grounding_map=grounding)
+    run_sd3_semantic(dsl, context)
+    design_feedback, _ = run_sd4_design(context)
+    plan, _ = run_sd8_fix_plan(design_feedback, source="design", grounding_map=grounding, before_dsl=dsl)
+
+    feedback, _meta = run_sd10_repair_review(
+        nl="The continuous process computes sensor_input outside the discrete controller.",
+        grounding_map=grounding,
+        old_dsl=dsl,
+        candidate_dsl=dsl,
+        fix_plan=plan,
+        warning_budget_state=context.warning_budget_state,
+    )
+
+    assert feedback.ok
+    assert feedback.target_resolved
 
 
 def test_sd10_repair_review_detects_count_and_forced_transition_drift() -> None:

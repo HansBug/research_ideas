@@ -66,9 +66,12 @@ Additional PR-1B contract:
   unrelated happy-path scenario.
 - For every scenario, make initial-state provenance explicit in `description`:
   say `default-init` when `initial_state` is omitted, or `explicit-hot-start`
-  when a non-default `initial_state` is intentionally used. Hot starts are
-  allowed only when they are needed to target a nested source state and must not
-  hide failures that are reproducible from the default initial state.
+  when a non-default `initial_state` is intentionally used. Explicit hot starts
+  are valid for local probes from reachable non-default leaves, especially when
+  replaying the whole prefix would make one scenario long and fragile. They
+  must still be NL/DSL-grounded and must not hide a default-initialization
+  failure. If you omit `initial_state`, add an empty first cycle before the
+  first event so the default `[*]` transition has dispatched.
 """
     payload = {
         "nl": nl,

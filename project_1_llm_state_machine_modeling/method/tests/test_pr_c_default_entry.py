@@ -53,7 +53,7 @@ def _sl5_ok_raw() -> str:
             "scenarios": [
                 {
                     "name": "start_reaches_active",
-                    "initial_state": "Root.Idle",
+                    "initial_state": None,
                     "steps": [
                         {"events": [], "expected_state": "Root.Idle"},
                         {"events": [], "expected_state": "Root.Active"},
@@ -241,7 +241,7 @@ def test_pr_c_explicit_mock_profile_preserves_review_meta_environment_and_eligib
     assert record.deterministic_feedback["iterations"][0]["design"]["info_items"]
     assert record.scenario_history[0]["scenario_set_id"] == record.iteration_records[0]["scenario_set_id"]
     sl5 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_5_SCENARIO_GENERATION.value)
-    assert sl5["scenario_hot_start_policy"] == "default_entry_clears_initial_state"
+    assert sl5["scenario_hot_start_policy"] == "preserve_explicit_hot_start_add_default_init_cycle"
     assert sl5["parsed_output"]["scenarios"][0]["initial_state"] is None
     sl7 = next(item for item in record.llm_interactions if item["stage_id"] == StageId.SL_7_MODEL_REVIEW.value)
     assert sl7["review_meta"]["provider"] == "mock"

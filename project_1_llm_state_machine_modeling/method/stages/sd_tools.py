@@ -94,6 +94,29 @@ _EXTERNAL_INPUT_SEGMENT_STOP_RE = re.compile(
     r"\b(?:before|after|when|while|where|then|otherwise|until|unless|because|so\s+that)\b",
     re.IGNORECASE,
 )
+_EXTERNAL_ROLE_CUE_RE = re.compile(
+    r"\b(?:external|environment(?:al)?|sensor|input|read(?:s|ings)?|measured|"
+    r"observed|monitored|plant|process|physical|dynamics?|computed|capacity\s+bounds?|"
+    r"limits?|margins?)\b",
+    re.IGNORECASE,
+)
+_PLANT_BOUNDARY_RE = re.compile(
+    r"\b(?:continuous|plant|process|physical|environment(?:al)?)\b[^.\n;]{0,120}"
+    r"\b(?:dynamics?|model|computed|calculated|estimated|remain|outside)\b|"
+    r"\b(?:dynamics?|computed|calculated|estimated)\b[^.\n;]{0,120}"
+    r"\b(?:plant|process|physical|environment(?:al)?|outside)\b",
+    re.IGNORECASE,
+)
+_CAPACITY_BOUNDARY_RE = re.compile(
+    r"\b(?:capacity\s+bounds?|capacity\s+limits?|power\s+limits?|maximum\s+capacity|"
+    r"max(?:imum)?\s+power|charging\s+margins?|margins?)\b",
+    re.IGNORECASE,
+)
+_CAPACITY_LIKE_IDENTIFIER_RE = re.compile(
+    r"(?:^|_)(?:[A-Za-z0-9]*max|[A-Za-z0-9]*min|limit|bound|cap(?:acity)?)$|"
+    r"(?:max|min|limit|bound|cap(?:acity)?)",
+    re.IGNORECASE,
+)
 
 
 def _trim_external_input_segment(segment: str) -> str:
@@ -138,6 +161,84 @@ def _external_input_variables_from_nl(nl: str) -> set[str]:
     return found
 
 
+def _diagnostic_read_only_guard_vars(diagnostics: Iterable[dict[str, Any]]) -> set[str]:
+    """Return vars that pyfcstm currently sees only as read/guard inputs."""
+
+    names: set[str] = set()
+    for diag in diagnostics:
+        refs = diag.get("refs") or {}
+        if diag.get("code") == "W_UNWRITTEN_READ_VAR" and refs.get("var_name") is not None:
+            names.add(str(refs["var_name"]))
+        guard_vars = refs.get("guard_vars")
+        if diag.get("code") == "W_GUARD_VARS_NEVER_CHANGE" and isinstance(guard_vars, list):
+            names.update(str(name) for name in guard_vars)
+    return names
+
+
+def _grounding_role_texts(grounding_map: GroundingMap | None) -> list[str]:
+    if grounding_map is None:
+        return []
+    texts: list[str] = []
+    for element in grounding_map.elements:
+        if element.element_kind == "variable":
+            texts.append(f"{element.element_ref} {element.evidence_text}")
+    for value in (grounding_map.source_summary or {}).values():
+        if isinstance(value, str):
+            texts.append(value)
+        elif isinstance(value, (list, tuple)):
+            texts.extend(str(item) for item in value)
+        elif value is not None:
+            texts.append(str(value))
+    return texts
+
+
+def _external_input_role_ledger(
+    *,
+    nl: str,
+    declared_vars: set[str],
+    read_only_guard_vars: set[str],
+    grounding_map: GroundingMap | None,
+) -> dict[str, list[str]]:
+    """Build a conservative, sample-agnostic external-input role ledger.
+
+    The ledger is intentionally not a quality gate.  It only downgrades
+    high-risk pyfcstm warnings when the NL / SL-1 grounding contains generic
+    controller-boundary evidence that a variable is a read-only plant,
+    sensor, environment, or capacity input.  It must not depend on benchmark
+    case IDs or domain-specific aliases such as ABS/CARA/LNG/SoC/PL.
+    """
+
+    ledger: dict[str, list[str]] = {}
+
+    def add(name: str, reason: str) -> None:
+        if name in declared_vars:
+            ledger.setdefault(name, [])
+            if reason not in ledger[name]:
+                ledger[name].append(reason)
+
+    for name in _external_input_variables_from_nl(nl) & declared_vars:
+        add(name, "explicit NL read/external/sensor/input declaration")
+
+    if _PLANT_BOUNDARY_RE.search(nl):
+        for name in read_only_guard_vars & declared_vars:
+            if _identifier_token_present(nl, name):
+                add(name, "NL states continuous/plant/process dynamics are outside the discrete controller")
+
+    if _CAPACITY_BOUNDARY_RE.search(nl):
+        for name in read_only_guard_vars & declared_vars:
+            if _identifier_token_present(nl, name) and _CAPACITY_LIKE_IDENTIFIER_RE.search(name):
+                add(name, "NL describes capacity/limit/margin quantities as controller inputs or bounds")
+
+    for text in _grounding_role_texts(grounding_map):
+        if not _EXTERNAL_ROLE_CUE_RE.search(text):
+            continue
+        for name in read_only_guard_vars & declared_vars:
+            if _identifier_token_present(text, name):
+                add(name, "SL-1 grounding/assumption text contains generic external-input role cues")
+
+    return ledger
+
+
 def _guard_vars(item: DesignDiagnosticItem) -> set[str]:
     raw = item.refs.get("guard_vars")
     if isinstance(raw, list):
@@ -145,7 +246,19 @@ def _guard_vars(item: DesignDiagnosticItem) -> set[str]:
     return set()
 
 
-def _external_input_advisory_rationale(item: DesignDiagnosticItem, nl_external_vars: set[str]) -> str | None:
+def _external_input_advisory_rationale(item: DesignDiagnosticItem, external_input_ledger: dict[str, list[str]]) -> str | None:
+    nl_external_vars = set(external_input_ledger)
+
+    def reason_for(names: Iterable[str]) -> str:
+        reasons: list[str] = []
+        for name in sorted(set(names)):
+            for reason in external_input_ledger.get(name, []):
+                if reason not in reasons:
+                    reasons.append(reason)
+        if not reasons:
+            return ""
+        return " Evidence: " + "; ".join(reasons) + "."
+
     if item.code == "W_UNWRITTEN_READ_VAR":
         var = str(item.refs.get("var_name") or "")
         if var and var in nl_external_vars:
@@ -153,6 +266,7 @@ def _external_input_advisory_rationale(item: DesignDiagnosticItem, nl_external_v
                 f"Downgraded because `{var}` is NL-grounded as an external "
                 "sensor/environment input; adding invented writes would be "
                 "less faithful than leaving it read-only."
+                + reason_for([var])
             )
     if item.code == "W_GUARD_VARS_NEVER_CHANGE":
         vars_in_guard = _guard_vars(item)
@@ -160,6 +274,7 @@ def _external_input_advisory_rationale(item: DesignDiagnosticItem, nl_external_v
             return (
                 "Downgraded because all guard variables are NL-grounded "
                 f"external inputs: {', '.join(sorted(vars_in_guard))}."
+                + reason_for(vars_in_guard)
             )
     return None
 
@@ -403,7 +518,14 @@ def run_sd4_design(
     context.inspect_json = inspect_json
     diagnostics = [_diag_to_dict(diag) for diag in inspect_json.get("diagnostics", [])]
     declared_vars = set(str(name) for name in (getattr(context.model, "defines", {}) or {}).keys())
-    nl_external_vars = _external_input_variables_from_nl(context.nl) & declared_vars
+    read_only_guard_vars = _diagnostic_read_only_guard_vars(diagnostics)
+    external_input_ledger = _external_input_role_ledger(
+        nl=context.nl,
+        declared_vars=declared_vars,
+        read_only_guard_vars=read_only_guard_vars,
+        grounding_map=context.grounding_map,
+    )
+    nl_external_vars = set(external_input_ledger)
     blocking: list[DesignDiagnosticItem] = []
     advisory: list[DesignDiagnosticItem] = []
     info: list[DesignDiagnosticItem] = []
@@ -411,7 +533,7 @@ def run_sd4_design(
     for diag in diagnostics:
         state = _budget_state_for(diag, warning_budget_state)
         item = _design_item_from_diag(diag, state, policy_profile=policy_profile)
-        external_rationale = _external_input_advisory_rationale(item, nl_external_vars)
+        external_rationale = _external_input_advisory_rationale(item, external_input_ledger)
         if external_rationale is not None and item.policy_action == "budgeted_repair":
             item.policy_action = "advisory"
             item.rationale = external_rationale
@@ -455,6 +577,10 @@ def run_sd4_design(
             ],
             "warning_budget_state": {key: asdict(value) for key, value in sorted(warning_budget_state.items())},
             "nl_external_input_vars": sorted(nl_external_vars),
+            "external_input_role_ledger": [
+                {"var_name": name, "role_hint": "external_input_candidate", "evidence": reasons}
+                for name, reasons in sorted(external_input_ledger.items())
+            ],
         },
     )
     status = StageStatus.OK if feedback.ok else StageStatus.FAIL
@@ -796,6 +922,16 @@ def _component_index(model: Any) -> dict[str, set[str]]:
         if state_path:
             index["state_paths"].add(state_path)
             index["state_names"].add(_ref_leaf(state_path))
+        for stage_name, attr_name in (
+            ("enter", "on_enters"),
+            ("during", "on_durings"),
+            ("exit", "on_exits"),
+        ):
+            for action_block in getattr(state, attr_name, []) or []:
+                action_ref = f"{state_path}.{stage_name}" if state_path else stage_name
+                index["action_refs"].add(action_ref)
+                for operation in getattr(action_block, "operations", []) or []:
+                    index["action_refs"].add(str(operation))
         for event_name in getattr(state, "events", {}) or {}:
             event_ref = f"{state_path}.{event_name}" if state_path else str(event_name)
             index["event_refs"].add(event_ref)
@@ -816,6 +952,7 @@ def _component_index(model: Any) -> dict[str, set[str]]:
                 index["transition_refs"].add(f"{base}::{event_leaf}")
             guard = getattr(transition, "guard", None)
             if guard is not None:
+                index["guard_refs"].add(base)
                 index["guard_refs"].add(str(guard))
             for effect in getattr(transition, "effects", []) or []:
                 index["action_refs"].add(str(effect))
@@ -948,13 +1085,19 @@ def _remaining_design_targets(feedback: DesignFeedback, fix_plan: FixPlan) -> li
     if not target_ids:
         return []
     remaining: list[DesignDiagnosticItem] = []
-    for item in [*feedback.blocking_items, *feedback.advisory_items, *feedback.info_items]:
+    for item in feedback.blocking_items:
         if item.instance_key in target_ids or item.code in target_ids:
             remaining.append(item)
     return remaining
 
 
-def _design_feedback_for_review_baseline(nl: str, dsl_text: str) -> DesignFeedback | None:
+def _design_feedback_for_review_baseline(
+    nl: str,
+    dsl_text: str,
+    *,
+    grounding_map: GroundingMap | None = None,
+    warning_budget_state: dict[str, BudgetState] | None = None,
+) -> DesignFeedback | None:
     """Return SD-4 feedback for a comparable repair-review baseline if possible.
 
     Old DSL can be syntactically or semantically invalid for parse/semantic
@@ -962,7 +1105,12 @@ def _design_feedback_for_review_baseline(nl: str, dsl_text: str) -> DesignFeedba
     callers should conservatively treat candidate blocking diagnostics as
     newly introduced.
     """
-    context = StageContext(nl=nl, current_dsl=dsl_text)
+    context = StageContext(
+        nl=nl,
+        current_dsl=dsl_text,
+        grounding_map=grounding_map,
+        warning_budget_state=copy.deepcopy(warning_budget_state or {}),
+    )
     parse_feedback, _ = run_sd2_parse(dsl_text, context)
     if not parse_feedback.ok:
         return None
@@ -981,6 +1129,7 @@ def run_sd10_repair_review(
     candidate_dsl: str,
     fix_plan: FixPlan,
     scenario_set: ScenarioSet | None = None,
+    warning_budget_state: dict[str, BudgetState] | None = None,
 ) -> tuple[RepairReviewFeedback, StageResultMeta]:
     """Review a repair candidate with local deterministic gates.
 
@@ -990,7 +1139,12 @@ def run_sd10_repair_review(
     checks still run.
     """
     evidence: list[dict[str, Any]] = []
-    candidate_context = StageContext(nl=nl, current_dsl=candidate_dsl)
+    candidate_context = StageContext(
+        nl=nl,
+        current_dsl=candidate_dsl,
+        grounding_map=grounding_map,
+        warning_budget_state=copy.deepcopy(warning_budget_state or {}),
+    )
     parse_fb, _ = run_sd2_parse(candidate_dsl, candidate_context)
     if not parse_fb.ok:
         rejection = RepairRejection(
@@ -1026,7 +1180,12 @@ def run_sd10_repair_review(
         if remaining_design:
             evidence.append({"kind": "design_target_unresolved", "items": [asdict(item) for item in remaining_design]})
     remaining_keys = {item.instance_key for item in remaining_design}
-    old_design_feedback = _design_feedback_for_review_baseline(nl, old_dsl)
+    old_design_feedback = _design_feedback_for_review_baseline(
+        nl,
+        old_dsl,
+        grounding_map=grounding_map,
+        warning_budget_state=warning_budget_state,
+    )
     old_blocking_keys = {item.instance_key for item in old_design_feedback.blocking_items} if old_design_feedback is not None else set()
     new_blocking_design = [
         item

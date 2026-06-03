@@ -163,11 +163,15 @@ def _scenario_coverage_adapter(current_dsl: str, scenarios: list[Any]) -> tuple[
 
 
 def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
-    """Clear SL-5 hot-start guesses on the canonical default path.
+    """Normalize SL-5 scenarios for pyfcstm default-entry timing.
 
-    ``TestScenario.initial_state`` is a hot-start convenience.  The PR-C
-    default runtime should validate from the model's own initial transition
-    unless an explicit smoke/replay profile opts into hot-start behavior.
+    ``TestScenario.initial_state`` is a legitimate scenario-scoped operation in
+    pyfcstm: it lets the oracle probe behavior from a reachable non-default
+    leaf without forcing every scenario to replay a long prefix from the root.
+    The canonical default runtime therefore preserves hot starts and only adds
+    one empty pre-cycle when a scenario starts from default init and immediately
+    injects an event.  This keeps default-entry timing correct without turning
+    valid non-default transition probes into weak-oracle failures.
     """
 
     from method.schema import ScenarioStep
@@ -175,19 +179,14 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
     normalized: list[Any] = []
     for scenario in scenarios:
         changed = False
-        hot_start_cleared = False
         original_initial_state = getattr(scenario, "initial_state", None)
-        if hasattr(scenario, "initial_state") and original_initial_state is not None:
-            clone = type(scenario)(**asdict(scenario))
-            clone.initial_state = None
-            changed = True
-            hot_start_cleared = True
-        else:
-            clone = scenario
+        clone = scenario
         steps = list(getattr(clone, "steps", []) or [])
         if steps:
             first = steps[0]
             if (
+                original_initial_state is None
+                and
                 getattr(first, "events", None)
                 and getattr(first, "before_cycles", 0) == 0
             ):
@@ -203,13 +202,11 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
             if clone is scenario:
                 clone = type(scenario)(**asdict(scenario))
             clone.steps = steps
-            if hot_start_cleared:
-                clone.description = (
-                    (clone.description + " " if clone.description else "")
-                    + f"[PR-E1/default-normalized: original_initial_state={original_initial_state}; "
-                    "original SL-5 hot-start initial_state was cleared; "
-                    "treat failures as weak-oracle candidates unless independently classified against default init.]"
-                ).strip()
+            clone.description = (
+                (clone.description + " " if clone.description else "")
+                + "[PR-E1/default-init-cycle-normalized: added one empty cycle before first event; "
+                "scenario initial_state was preserved.]"
+            ).strip()
             normalized.append(clone)
         else:
             normalized.append(scenario)
@@ -315,7 +312,7 @@ def _build_runtime_adapters(
         )
         if run.ok:
             run.parsed_output = _normalize_scenarios_for_runtime(list(run.parsed_output or []))
-            run.interaction["scenario_hot_start_policy"] = "default_entry_clears_initial_state"
+            run.interaction["scenario_hot_start_policy"] = "preserve_explicit_hot_start_add_default_init_cycle"
             try:
                 redacted_scenarios, scenario_redaction_report = redact_run_record_payload(
                     {"scenarios": _jsonable(run.parsed_output)},

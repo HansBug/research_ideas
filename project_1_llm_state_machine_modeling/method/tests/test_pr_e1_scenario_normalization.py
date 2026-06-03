@@ -22,7 +22,6 @@ state ElevatorController {
 def test_default_entry_scenario_normalization_adds_first_empty_cycle_for_events() -> None:
     raw = TestScenario(
         name="request_second_floor",
-        initial_state="ElevatorController.F1",
         steps=[ScenarioStep(events=["PS2"], expected_state="ElevatorController.MU2")],
     )
 
@@ -31,7 +30,22 @@ def test_default_entry_scenario_normalization_adds_first_empty_cycle_for_events(
     assert normalized.initial_state is None
     assert normalized.steps[0].before_cycles == 1
     assert normalized.steps[0].events == ["PS2"]
-    assert "[PR-E1/default-normalized:" in normalized.description
+    assert "[PR-E1/default-init-cycle-normalized:" in normalized.description
+    sim = check_sim(ELEVATOR_DSL, [normalized])
+    assert sim.ok
+
+
+def test_explicit_hot_start_is_preserved_for_non_default_local_probes() -> None:
+    raw = TestScenario(
+        name="request_second_floor_from_f1",
+        initial_state="ElevatorController.F1",
+        steps=[ScenarioStep(events=["PS2"], expected_state="ElevatorController.MU2")],
+    )
+
+    normalized = _normalize_scenarios_for_runtime([raw])[0]
+
+    assert normalized.initial_state == "ElevatorController.F1"
+    assert normalized.steps[0].before_cycles == 0
     sim = check_sim(ELEVATOR_DSL, [normalized])
     assert sim.ok
 
@@ -91,7 +105,6 @@ state Root {
     raw = TestScenario(
         name="real_wrong_target_after_hotstart_normalization",
         description="valid oracle: event go from initial A should reach B",
-        initial_state="Root.A",
         steps=[ScenarioStep(events=["go"], expected_state="Root.B", name="go_should_reach_B")],
     )
 
@@ -107,7 +120,7 @@ state Root {
     assert feedback.scenario_results[0].step_results[0].actual_state == "Root.C"
 
 
-def test_normalized_non_default_hot_start_failure_is_weak_oracle() -> None:
+def test_non_default_hot_start_failure_is_ordinary_sim_feedback_when_preserved() -> None:
     dsl = """
 state Root {
     [*] -> A;
@@ -130,7 +143,5 @@ state Root {
         StageContext(nl="", current_dsl=dsl),
     )
 
-    assert not feedback.ok
-    assert feedback.oracle_weak is True
-    assert feedback.weak_oracle_reason == "normalized_hot_start_scenario_failed"
-    assert feedback.weak_oracle_evidence["default_state"] == "Root.A"
+    assert feedback.ok
+    assert feedback.oracle_weak is False

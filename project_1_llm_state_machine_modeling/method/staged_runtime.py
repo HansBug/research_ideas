@@ -25,6 +25,7 @@ from method.run_record import agent_loop_run_record_path, write_agent_loop_run_r
 from method.schema import (
     AgentLoopResult,
     AgentLoopRunRecord,
+    BudgetState,
     DesignFeedback,
     FixPlan,
     GroundedElement,
@@ -140,6 +141,7 @@ class RepairRequest:
     candidate_dsl: str = ""
     iteration: int = 0
     repair_attempt: int = 0
+    warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
 
 
 @dataclass
@@ -252,6 +254,7 @@ def build_full_staged_runtime_adapters(
             candidate_dsl=request.candidate_dsl,
             fix_plan=request.fix_plan,
             scenario_set=request.scenario_set,
+            warning_budget_state=request.warning_budget_state,
         )
 
     return FullStagedRuntimeAdapters(
@@ -305,6 +308,7 @@ class _RunState:
     redaction_report: list[dict[str, Any]] = field(default_factory=list)
     pending_repair_rejection: RepairRejection | None = None
     pending_original_fix_plan: FixPlan | None = None
+    warning_budget_state: dict[str, BudgetState] = field(default_factory=dict)
 
 
 @dataclass
@@ -948,8 +952,15 @@ def _run_validation_pass(
     stage_records: list[StageResultMeta],
     logs: list[dict[str, Any]],
     llm_interactions: list[dict[str, Any]],
+    warning_budget_state: dict[str, BudgetState] | None = None,
 ) -> _ValidationPass:
-    context = StageContext(nl=nl, current_dsl=current_dsl, grounding_map=cfg.grounding_map, scenario_set=scenario_set)
+    context = StageContext(
+        nl=nl,
+        current_dsl=current_dsl,
+        grounding_map=cfg.grounding_map,
+        scenario_set=scenario_set,
+        warning_budget_state=warning_budget_state or {},
+    )
     feedback: dict[str, Any] = {}
     iteration_stage_metas: list[StageResultMeta] = []
     scenario_history: list[dict[str, Any]] = []
@@ -1145,6 +1156,7 @@ def _run_repair_path(
             validation.context.warning_budget_state,
             [item.instance_key for item in selected_feedback.blocking_items],
         )
+        state.warning_budget_state = validation.context.warning_budget_state
 
     request = RepairRequest(
         nl=nl,
@@ -1205,6 +1217,7 @@ def _run_repair_path(
         candidate_dsl=candidate_dsl,
         iteration=iteration,
         repair_attempt=len(state.repair_history),
+        warning_budget_state=validation.context.warning_budget_state,
     )
     repair_review, repair_review_meta = adapters.repair_review(review_request)
     _append_stage(state.stage_records, repair_review_meta)
@@ -1562,9 +1575,16 @@ def run_full_staged_deterministic_runtime(
                 if isinstance(parsed_output, dict) and parsed_output.get("candidate_dsl"):
                     state.current_dsl = str(parsed_output["candidate_dsl"])
                     seeds = parsed_output.get("grounding_seeds") or []
+                    assumptions = parsed_output.get("assumptions") or []
                     if seeds and config.grounding_map is None:
                         try:
-                            config.grounding_map = GroundingMap(elements=[GroundedElement(**item) if isinstance(item, dict) else item for item in seeds], source_summary={"source_stage": StageId.SL_1_INITIAL_MODELING.value})
+                            config.grounding_map = GroundingMap(
+                                elements=[GroundedElement(**item) if isinstance(item, dict) else item for item in seeds],
+                                source_summary={
+                                    "source_stage": StageId.SL_1_INITIAL_MODELING.value,
+                                    "assumptions": assumptions,
+                                },
+                            )
                         except Exception as exc:
                             state.logs.append({"ts": _utc_now(), "level": "warning", "event": "grounding_seed_coercion_failed", "message": str(exc)})
             elif isinstance(initial_run, str) and initial_run:
@@ -1602,6 +1622,7 @@ def run_full_staged_deterministic_runtime(
                 stage_records=state.stage_records,
                 logs=state.logs,
                 llm_interactions=state.llm_interactions,
+                warning_budget_state=state.warning_budget_state,
             )
         except _LLMRetryExhausted as exc:
             _mark_retry_exhausted(state, exc)
@@ -1618,6 +1639,7 @@ def run_full_staged_deterministic_runtime(
                 }
             )
             break
+        state.warning_budget_state = validation.context.warning_budget_state
         state.scenario_set = validation.scenario_set
         if validation.scenario_set is not None:
             state.scenario_epoch = max(state.scenario_epoch, validation.scenario_set.epoch + 1)
