@@ -1,6 +1,26 @@
 # Agent Loop Skill（PR-0 Contract）
 
+> 入口说明：本目录中的 `SKILL.md` 与 `CLAUDE.md` 是指向本文件的软链接。若某个 agent / CLI 环境不能正确跟随 symlink，应直接读取 `AGENT_LOOP_SKILL.md`，三者在语义上等价；PR comment 中需要如实记录实际读取的是哪个入口。
+
 本目录是 project_1 agent-loop 的 repo-local skill 入口。PR-0 冻结 contract / docs / fixtures / run-record schema，不绑定具体 LLM provider。
+
+
+## PR-E2 e2e ref-model 使用入口
+
+PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill 后，自主完成 `NL + 完整论文子路径 -> FCSTM/pyfcstm ref model 候选` 的建模、检查、修复与留痕。
+
+- 详细流程见 [e2e_ref_model_guide.md](./e2e_ref_model_guide.md)。
+- 模型质量评价与准出标准见 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md)；PR-E2 产物必须给出 NFRR claim/vector/tier/cap/allowed_use，并且必须包含可审计的 NL span ledger、obligation ledger、scenario provenance ledger 与 waiver ledger。
+- PR-E2 实测 **不得** 调用 `method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
+- 允许长时间运行，时间限制只用于防止 CLI 死锁或失控；质量、grounding、验证和 PR comment 证据优先。
+- 所有样本产物必须能写成 PR comment：输入 NL、论文路径、读取材料、候选模型、检查反馈、repair 轨迹、NFRR 评价、最终判断和 skill 改进建议。
+- 单个 sample 最低准出：`final_tier >= T2`、`SD-2/SD-3` pass、无 unwaived `SD-4` blocking、至少一个可计入主 BVS 的 obligation-anchored `SD-6` scenario pass、无 critical contradiction / reachable test-harness pollution。可计入主 BVS 的 scenario 只能是 `default_prefix`、有可复核前缀的 `reachable_prefix`，或带 external-input ledger 的 `external_input_initial_vars`；`diagnostic_hot_start` / `model_derived_oracle` 只能 debug，不能作为最低准出或 BVS 主证据。
+- Ground-Truth 级 ref-model candidate 目标准出：`final_tier >= T3`、`evidence_mode in {NL+paper, authoritative_NL}`、`obligation_independence in {independent_adjudicated, model_blind_independent}`、`FE=3`、`REC=3`、`BVS=3`，且 NFRR scenario ledger 必须证明 critical scenario obligations 不是主要依赖 hot-start；未人工/专家签核前仍必须标 `signed_reference=false`。
+
+
+### PR-E2 语法与工具版本注意
+
+当前 skill 使用者必须以实际 `SD-2` parser 为准，而不是只相信历史 grammar 摘要：已知当前 parser 支持 `def int` / `def float`，不支持 `def bool`、`true`、`false`；外部输入注释 `// @external` 不会被默认 `SD-4` 自动消费。详细见 [e2e_ref_model_guide.md](./e2e_ref_model_guide.md)。
 
 ## 使用边界
 

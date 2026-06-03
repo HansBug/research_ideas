@@ -2,6 +2,17 @@
 
 PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑定内部 LLM wrapper。仓库内部 `agents/*` wrapper 也复用同一 prompt generator，避免 prompt drift。
 
+
+## PR-E2 外部 agent 使用方式
+
+在 PR-E2 中，Codex / Claude Code 可以使用本页 `SL-*` prompt generator 或 stage 文档作为提示蓝本，自行调用自身 CLI / subagent / 其他 provider 产出候选、场景、repair 或 review。不要误解为 skill 会自动绑定唯一 provider。
+
+所有真实 LLM 输出都应在 PR comment 中至少摘要记录：输入上下文、输出候选、schema/格式检查、重试或修复原因。若输出过长，保留最终候选模型全文与关键失败/修复证据。
+
+PR-E2 producer 使用 SL prompt 时，应额外提醒模型：当前 pyfcstm parser 不支持 `def bool` / `true` / `false`，布尔语义用 `int` flag 表达；外部输入不能只靠 `// @external` 注释让 SD-4 自动通过。
+
+PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md)：不要只让 LLM 给“高/中/低质量”评价，而要输出 NFRR claim、NL coverage ledger、obligation alignment、scenario/mutation evidence、八维 vector、tier、cap reasons 与 allowed_use。若目标是 Ground-Truth 级 ref-model candidate，prompt 中应显式要求 `final_tier >= T3` 的证据包；若达不到，则必须如实降级为 `T2 within_NL_candidate` 或 diagnostic evidence。
+
 ## 使用边界
 
 - prompt generator 只返回 message pack 或 markdown prompt。

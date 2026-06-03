@@ -211,10 +211,10 @@ NOT support `effect { ... }` blocks** (grammar enforces termination with
 
 Target names on forced transitions must be semantically resolvable from the
 scope where the forced transition is written. If the intended target is a
-nested leaf such as `Root.Mode.SafeMode`, either place the forced transition
-inside the enclosing composite scope that can resolve `SafeMode`, or target a
+nested leaf such as `Root.Mode.Manual`, either place the forced transition
+inside the enclosing composite scope that can resolve `Manual`, or target a
 state declared in the same scope as the forced transition. Do not write a
-root-level `! * -> SafeMode ...` when `SafeMode` exists only as a nested child of
+root-level `! * -> Manual ...` when `Manual` exists only as a nested child of
 `Mode`; pyfcstm will reject it as an unknown target. In that situation, either
 move the forced declaration into `Mode`, or introduce an NL-grounded root-level
 fallback state and target that state from the root-level forced transition.
