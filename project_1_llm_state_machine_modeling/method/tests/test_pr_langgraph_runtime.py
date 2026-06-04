@@ -136,6 +136,8 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
     assert consistency["missing_stage_ids"] == []
     assert consistency["opaque_wrapper"] is False
     assert consistency["delegated_monolithic_runtime"] is False
+    assert StageId.SC_12_EXIT.value in consistency["duplicate_stage_ids"]
+    assert consistency["duplicate_stage_id_nodes"][StageId.SC_12_EXIT.value]
 
 
 def test_langgraph_stategraph_writes_metadata_and_preserves_run_record(tmp_path: Path) -> None:
@@ -175,6 +177,8 @@ def test_langgraph_stategraph_writes_metadata_and_preserves_run_record(tmp_path:
     assert env["checkpoint_backend"] == "memory"
     assert env["checkpoint_serde"] == "pickle"
     assert env["resumed_from_checkpoint"] is False
+    assert env["checkpoint_resume_smoke"]["scope"] == "toy_ledger_langgraph_api_smoke"
+    assert env["checkpoint_resume_smoke"]["real_agent_loop_resume_supported"] is False
     assert env["checkpoint_resume_smoke"]["fix_log_append_only"] is True
     assert env["checkpoint_resume_smoke"]["final_fix_log_count"] == 3
     assert record.run_config["runtime_implementation"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
@@ -182,6 +186,34 @@ def test_langgraph_stategraph_writes_metadata_and_preserves_run_record(tmp_path:
     assert record.run_config["graph_node_registry"]["opaque_wrapper"] is False
     assert record.run_config["graph_node_registry"]["delegated_monolithic_runtime"] is False
     assert record.final_artifacts["main_result_eligible"] is False
+
+
+def test_graph_config_hash_changes_with_run_config(tmp_path: Path) -> None:
+    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+
+    def run_with(max_iterations: int, run_id: str) -> str:
+        result = run_full_staged_langgraph_runtime(
+            "Graph config hash should bind run policy, not only node registry.",
+            config=LoopConfig(
+                condition_id=f"langgraph_hash_mock_{max_iterations}",
+                condition_family="test_profile",
+                base_condition_id="full_staged_v1",
+                changed_factors=["llm_provider_mode=mock", f"max_iterations={max_iterations}"],
+                llm_provider_mode="mock",
+                academic_question="test-only graph_config_hash sensitivity",
+                output_dir=str(tmp_path),
+                run_id=run_id,
+                max_iterations=max_iterations,
+                compatibility_mode="langgraph_stategraph",
+            ),
+            initial_dsl=_stable_dsl(),
+            adapters=_adapters(),
+        )
+        record = read_agent_loop_run_record(result.run_record_path or "")
+        assert record.environment["graph_config_hash"] == record.run_config["graph_config_hash"]
+        return str(record.environment["graph_config_hash"])
+
+    assert run_with(1, "pr-langgraph-hash-maxiter-1") != run_with(2, "pr-langgraph-hash-maxiter-2")
 
 
 def test_loop_config_has_no_runtime_backend_option_and_default_entry_is_langgraph(tmp_path: Path) -> None:
@@ -280,6 +312,9 @@ def test_checkpoint_resume_smoke_uses_langgraph_history_and_append_only_fixlog()
 
     smoke = _checkpoint_resume_smoke()
 
+    assert smoke["scope"] == "toy_ledger_langgraph_api_smoke"
+    assert smoke["real_agent_loop_resume_supported"] is False
+    assert "not evidence" in smoke["academic_claim"]
     assert smoke["checked_breakpoints"] == ["after_SD-8", "after_SL-9", "after_SL-10_rework"]
     assert smoke["checkpoint_history_count"] >= 4
     assert smoke["final_fix_log_count"] == 3
@@ -290,3 +325,27 @@ def test_checkpoint_resume_smoke_uses_langgraph_history_and_append_only_fixlog()
     assert [item["prefix_count"] for item in smoke["resume_checks"]] == [1, 2, 3]
     assert all(item["prefix_preserved"] for item in smoke["resume_checks"])
     assert "StateGraph" in smoke["resume_api"]
+
+
+def test_targeted_scenario_refresh_preserves_previous_oracle_by_name() -> None:
+    from method.staged_runtime import _merge_scenario_sets_by_name
+
+    previous = [
+        TestScenario(name="default_init", description="root smoke"),
+        TestScenario(name="fault_recovery", description="old definition"),
+    ]
+    targeted = [
+        TestScenario(name="fault_recovery", description="updated stronger definition"),
+        TestScenario(name="effect_probe", description="new mutation probe"),
+    ]
+
+    merged, audit = _merge_scenario_sets_by_name(previous, targeted)
+
+    assert [scenario.name for scenario in merged] == ["default_init", "fault_recovery", "effect_probe"]
+    assert merged[1].description == "updated stronger definition"
+    assert audit["merge_policy"] == "preserve_previous_scenarios_by_name"
+    assert audit["previous_count"] == 2
+    assert audit["new_count"] == 2
+    assert audit["merged_count"] == 3
+    assert audit["new_only_names"] == ["effect_probe"]
+    assert audit["updated_existing_names"] == ["fault_recovery"]

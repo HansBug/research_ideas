@@ -273,12 +273,22 @@ def graph_registry_consistency(planned_stage_graph: dict[str, Any], registry: di
 
     planned = [str(item) for item in planned_stage_graph.get("planned", [])]
     covered: list[str] = []
+    node_stage_pairs: list[dict[str, str]] = []
     for node in registry.get("nodes", []):
-        covered.extend(str(stage_id) for stage_id in node.get("stage_ids", []))
+        node_id = str(node.get("node_id") or "")
+        for stage_id in node.get("stage_ids", []):
+            covered_stage_id = str(stage_id)
+            covered.append(covered_stage_id)
+            node_stage_pairs.append({"node_id": node_id, "stage_id": covered_stage_id})
     covered_set = set(covered)
     planned_set = set(planned)
     missing = [stage_id for stage_id in planned if stage_id not in covered_set]
     extra = [stage_id for stage_id in covered if stage_id not in planned_set]
+    duplicate_stage_ids = sorted({stage_id for stage_id in covered if covered.count(stage_id) > 1})
+    duplicate_stage_id_nodes = {
+        stage_id: [item["node_id"] for item in node_stage_pairs if item["stage_id"] == stage_id]
+        for stage_id in duplicate_stage_ids
+    }
     opaque = bool(registry.get("opaque_wrapper")) or len(registry.get("nodes", [])) <= 1
     delegated_monolithic = bool(registry.get("delegated_monolithic_runtime")) or any(
         str(node.get("delegation_target") or "").endswith("run_full_staged_deterministic_runtime")
@@ -293,6 +303,13 @@ def graph_registry_consistency(planned_stage_graph: dict[str, Any], registry: di
         "delegated_monolithic_runtime": delegated_monolithic,
         "planned_count": len(planned),
         "covered_count": len(covered),
+        "duplicate_stage_ids": duplicate_stage_ids,
+        "duplicate_stage_id_nodes": duplicate_stage_id_nodes,
+        "duplicate_stage_id_policy": (
+            "allowed_when_one SC/SD/SL stage is represented by both a stage_group node "
+            "and a routing/audit control node; duplicates are reported for audit and "
+            "do not by themselves make registry coverage invalid"
+        ),
     }
 
 
@@ -413,6 +430,15 @@ def _checkpoint_resume_smoke() -> dict[str, Any]:
 
     resume_append_only = all(item["append_only"] for item in resume_checks)
     return {
+        "scope": "toy_ledger_langgraph_api_smoke",
+        "real_agent_loop_resume_supported": False,
+        "real_agent_loop_resume_scope": "not_claimed_in_PR_langgraph_round1",
+        "academic_claim": (
+            "This smoke validates LangGraph interrupt/resume API shape and append-only "
+            "ledger behavior on a minimal FixLog-like state only. It is not evidence "
+            "that an interrupted real agent-loop run can be resumed for main-result "
+            "statistics."
+        ),
         "checked_breakpoints": labels,
         "checkpoint_history_count": len(history),
         "final_fix_log_count": len(final_state.get("fix_log", []) or []),
@@ -1211,16 +1237,26 @@ def run_full_staged_langgraph_runtime(
     compat = langgraph_compat_smoke()
     if not compat.get("ok"):
         raise RuntimeError(f"LangGraph compatibility smoke failed: {compat}")
+    resolved = resolved_config or config.resolved_config()
     graph_config = {
         "registry": registry,
-        "planned": planned.get("planned", []),
+        "planned_stage_graph": planned,
+        "resolved_config": resolved,
+        "condition_hash": resolved.get("condition_hash"),
+        "condition_id": config.condition_id,
+        "max_iterations": config.max_iterations,
+        "scenario_max_retries": config.scenario_max_retries,
+        "policy_profile": config.policy_profile,
+        "llm_provider_mode": config.llm_provider_mode,
         "runtime_backend": "langgraph_default",
         "checkpoint_backend": "memory",
+        "checkpoint_serde": "pickle",
+        "runtime_schema_version": GRAPH_RUNTIME_SCHEMA_VERSION,
+        "node_edge_schema_version": NODE_EDGE_SCHEMA_VERSION,
     }
     graph_config_hash = _hash_payload(graph_config)
     metadata = _graph_runtime_metadata(registry=registry, compat=compat, graph_config_hash=graph_config_hash)
     run_id = run_id or config.run_id or f"pr-langgraph-{hashlib.sha256(nl.encode('utf-8')).hexdigest()[:12]}"
-    resolved = resolved_config or config.resolved_config()
     runtime_cfg = FullStagedRuntimeConfig(
         initial_dsl=initial_dsl,
         run_id=run_id,

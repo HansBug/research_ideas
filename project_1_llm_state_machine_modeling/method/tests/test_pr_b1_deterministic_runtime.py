@@ -438,7 +438,7 @@ def test_frozen_scenario_gap_uses_targeted_retry_before_weak_oracle(tmp_path: Pa
     assert coverage_calls == [
         ("needs-sim-repair", ["needs-sim-repair_initial_1"]),
         ("fixed", ["needs-sim-repair_initial_1"]),
-        ("fixed", ["fixed_retry_2"]),
+        ("fixed", ["needs-sim-repair_initial_1", "fixed_retry_2"]),
     ]
 
     record = read_agent_loop_run_record(result.run_record_path or "")
@@ -446,6 +446,8 @@ def test_frozen_scenario_gap_uses_targeted_retry_before_weak_oracle(tmp_path: Pa
     assert record.final_artifacts["verdict"] == "success"
     assert record.scenario_history[-1]["targeted_retry_after_frozen_gap"] is True
     assert record.scenario_history[-1]["oracle_weak"] is False
+    assert record.scenario_history[-1]["scenario_merge_policy"]["merge_policy"] == "preserve_previous_scenarios_by_name"
+    assert record.scenario_history[-1]["scenario_merge_policy"]["preserved_previous_count"] == 1
 
 
 def test_historical_weak_oracle_is_cleared_after_successful_targeted_refresh(tmp_path: Path) -> None:
@@ -1331,10 +1333,12 @@ def test_reused_scenarios_are_refreshed_after_candidate_dsl_changes(tmp_path: Pa
     assert coverage_calls == [
         ("needs-refresh-repair", ["needs-refresh-repair_scenario_0"]),
         ("fixed", ["needs-refresh-repair_scenario_0"]),
-        ("fixed", ["fixed_scenario_1"]),
+        ("fixed", ["needs-refresh-repair_scenario_0", "fixed_scenario_1"]),
     ]
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.scenario_history[-1]["targeted_retry_after_dsl_change"] is True
+    assert record.scenario_history[-1]["scenario_merge_policy"]["merge_policy"] == "preserve_previous_scenarios_by_name"
+    assert record.scenario_history[-1]["scenario_merge_policy"]["preserved_previous_count"] == 1
     assert record.scenario_history[-1]["previous_scenario_set_id"] != record.iteration_records[-1]["scenario_set_id"]
 
 
@@ -1462,6 +1466,11 @@ def test_sl10_major_local_override_can_pass_when_structured_and_grounded(tmp_pat
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.repair_history[0]["accepted"] is True
     assert record.repair_history[0]["sl10_repair_review"]["local_override_rationale"]
+    override_audit = record.repair_history[0]["repair_review"]["delta_review"]["local_override_audit"]
+    assert override_audit["kind"] == "local_major_drift_override_audit"
+    assert override_audit["candidate_dsl_hash"].startswith("sha256:")
+    assert override_audit["local_check_evidence_hash"].startswith("sha256:")
+    assert "missing_required_grounding" in override_audit["local_rejection_reason"]
     assert StageId.SC_11_ACCEPT_CANDIDATE.value in _stage_ids(record)
 
 

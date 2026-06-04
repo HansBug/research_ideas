@@ -1309,6 +1309,47 @@ def _scenario_history_item(
     }
 
 
+def _merge_scenario_sets_by_name(
+    previous_scenarios: list[TestScenario],
+    new_scenarios: list[TestScenario],
+) -> tuple[list[TestScenario], dict[str, Any]]:
+    """Merge targeted SL-5 refresh scenarios without shrinking the oracle.
+
+    A coverage refresh after a DSL edit is often asked to add probes for the
+    remaining mutation gaps.  Providers may then return only those new probes.
+    Replacing the frozen oracle with that subset makes later simulations pass a
+    much smaller test set and turns the run into weak-oracle evidence.  Keep the
+    operation sample-agnostic and append-only at the scenario-name level:
+    existing scenarios are preserved unless SL-5 returns the same name again,
+    in which case the latest definition intentionally updates that probe.
+    """
+
+    merged_by_name: dict[str, TestScenario] = {}
+    order: list[str] = []
+    unnamed_index = 0
+    for source, scenarios in (("previous", previous_scenarios), ("new", new_scenarios)):
+        for scenario in scenarios:
+            name = str(getattr(scenario, "name", "") or "").strip()
+            if not name:
+                name = f"__unnamed_{source}_{unnamed_index}"
+                unnamed_index += 1
+            if name not in merged_by_name:
+                order.append(name)
+            merged_by_name[name] = scenario
+    merged = [merged_by_name[name] for name in order]
+    previous_names = [str(getattr(scenario, "name", "") or "") for scenario in previous_scenarios]
+    new_names = [str(getattr(scenario, "name", "") or "") for scenario in new_scenarios]
+    return merged, {
+        "merge_policy": "preserve_previous_scenarios_by_name",
+        "previous_count": len(previous_scenarios),
+        "new_count": len(new_scenarios),
+        "merged_count": len(merged),
+        "new_only_names": [name for name in new_names if name and name not in set(previous_names)],
+        "updated_existing_names": [name for name in new_names if name and name in set(previous_names)],
+        "preserved_previous_count": len([name for name in previous_names if name]),
+    }
+
+
 def _run_scenario_generation_and_freeze(
     *,
     nl: str,
@@ -1362,9 +1403,18 @@ def _run_scenario_generation_and_freeze(
             parsed_summary={"attempt_index": attempt_index, "kind": "scenario_generation"},
         )
         if _is_llm_stage_run(generated):
-            scenarios = list(getattr(generated, "parsed_output", []) or [])
+            raw_scenarios = list(getattr(generated, "parsed_output", []) or [])
         else:
-            scenarios = list(generated or [])
+            raw_scenarios = list(generated or [])
+        scenarios, scenario_merge = _merge_scenario_sets_by_name(previous_scenarios, raw_scenarios)
+        if _is_llm_stage_run(generated):
+            try:
+                generated.parsed_output = scenarios
+                if isinstance(getattr(generated, "interaction", None), dict):
+                    generated.interaction["scenario_merge_policy"] = scenario_merge
+            except Exception:
+                pass
+        else:
             sl5_meta = _meta(StageId.SL_5_SCENARIO_GENERATION, ok=True)
             sl5_meta.input_hash = _hash_text(current_dsl)
             sl5_meta.output_hash = _short_hash(scenarios)
@@ -1386,7 +1436,9 @@ def _run_scenario_generation_and_freeze(
             attempt_index=attempt_index,
             status=str(coverage_meta.status),
             n_scenarios=len(scenarios),
+            raw_generated_scenario_count=len(raw_scenarios),
             scenario_names=[scenario.name for scenario in scenarios],
+            scenario_merge_policy=scenario_merge,
             coverage=_compact_json(coverage, max_list_items=8),
             jump="SC-5F" if not gap else ("SL-5 retry" if attempt_index < cfg.scenario_max_retries else "SC-5F weak_oracle"),
         )
@@ -1403,6 +1455,7 @@ def _run_scenario_generation_and_freeze(
                 oracle_weak=weak,
             )
         )
+        scenario_history[-1]["scenario_merge_policy"] = _jsonable(scenario_merge)
         if not gap:
             break
         retry_directive = coverage.get("retry_directive")
@@ -1581,9 +1634,18 @@ def _reuse_or_check_scenario_set(
             parsed_summary={"attempt_index": retry_index, "kind": "scenario_refresh"},
         )
         if _is_llm_stage_run(generated):
-            scenarios = list(getattr(generated, "parsed_output", []) or [])
+            raw_scenarios = list(getattr(generated, "parsed_output", []) or [])
         else:
-            scenarios = list(generated or [])
+            raw_scenarios = list(generated or [])
+        scenarios, scenario_merge = _merge_scenario_sets_by_name(previous_scenarios, raw_scenarios)
+        if _is_llm_stage_run(generated):
+            try:
+                generated.parsed_output = scenarios
+                if isinstance(getattr(generated, "interaction", None), dict):
+                    generated.interaction["scenario_merge_policy"] = scenario_merge
+            except Exception:
+                pass
+        else:
             sl5_meta = _meta(StageId.SL_5_SCENARIO_GENERATION, ok=True)
             sl5_meta.input_hash = _hash_text(current_dsl)
             sl5_meta.output_hash = _short_hash(scenarios)
@@ -1605,7 +1667,9 @@ def _reuse_or_check_scenario_set(
             attempt_index=retry_index,
             status=str(retry_meta.status),
             n_scenarios=len(scenarios),
+            raw_generated_scenario_count=len(raw_scenarios),
             scenario_names=[scenario.name for scenario in scenarios],
+            scenario_merge_policy=scenario_merge,
             coverage=_compact_json(retry_coverage, max_list_items=8),
             jump="SC-5F" if not retry_gap else ("SL-5 retry" if retry_index < cfg.scenario_max_retries else "SC-5F weak_oracle"),
         )
@@ -1627,6 +1691,7 @@ def _reuse_or_check_scenario_set(
                 "previous_scenario_set_id": scenario_set.scenario_set_id,
                 "previous_source_dsl_hash": scenario_set.source_dsl_hash,
                 "current_dsl_hash": current_dsl_hash,
+                "scenario_merge_policy": _jsonable(scenario_merge),
             }
         )
         if not retry_gap:
@@ -2797,7 +2862,13 @@ def _sl10_acknowledges_major_local_evidence(
     return any(anchor in rendered_evidence for anchor in anchors) and any(anchor in rendered_rationale for anchor in anchors)
 
 
-def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: RepairReviewFeedback) -> RepairReviewFeedback:
+def _repair_review_from_sl10(
+    sl10: SL10RepairReviewOutput,
+    *,
+    local_review: RepairReviewFeedback,
+    candidate_dsl_hash: str | None = None,
+    local_check_evidence_hash: str | None = None,
+) -> RepairReviewFeedback:
     if sl10.decision == "pass" and (
         not sl10.target_resolved
         or sl10.regression_detected
@@ -2838,6 +2909,25 @@ def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: Repa
             sl10.meta.ok = False
             sl10.meta.status = StageStatus.FAIL
             sl10.meta.stage_error = sl10.rework_instructions[-1]
+    local_override_audit: dict[str, Any] | None = None
+    if sl10.ok and local_review.drift_risk == "major" and local_review.local_rejection is not None:
+        local_override_audit = {
+            "kind": "local_major_drift_override_audit",
+            "policy": (
+                "SL-10 may override conservative local major-drift evidence only "
+                "when local_override_rationale explicitly engages the local "
+                "reason/kind; the runtime binds that override to candidate and "
+                "local-evidence hashes for run-record audit."
+            ),
+            "candidate_dsl_hash": candidate_dsl_hash,
+            "local_check_evidence_hash": local_check_evidence_hash,
+            "local_rejection_reason": local_review.local_rejection.reason,
+            "local_rejection_evidence_hash": _short_hash(local_review.local_rejection.evidence),
+            "local_override_rationale_hash": _short_hash(sl10.local_override_rationale),
+            "local_override_rationale_count": len(sl10.local_override_rationale),
+        }
+        sl10.evidence.append(local_override_audit)
+
     rejection = None
     if not sl10.ok:
         rejection = RepairRejection(
@@ -2848,18 +2938,21 @@ def _repair_review_from_sl10(sl10: SL10RepairReviewOutput, *, local_review: Repa
             drift_risk=sl10.drift_risk,
             evidence=sl10.evidence,
         )
+    delta_review = {
+        "legacy_field": "sl10_repair_review",
+        "decision": sl10.decision,
+        "evidence": _jsonable(sl10.evidence),
+        "local_check_evidence": _jsonable(sl10.local_check_evidence or local_review),
+    }
+    if local_override_audit is not None:
+        delta_review["local_override_audit"] = _jsonable(local_override_audit)
     return RepairReviewFeedback(
         ok=sl10.ok,
         target_resolved=sl10.target_resolved,
         regression_detected=sl10.regression_detected,
         drift_risk=sl10.drift_risk,
         local_rejection=rejection,
-        delta_review={
-            "legacy_field": "sl10_repair_review",
-            "decision": sl10.decision,
-            "evidence": _jsonable(sl10.evidence),
-            "local_check_evidence": _jsonable(sl10.local_check_evidence or local_review),
-        },
+        delta_review=delta_review,
         review_meta=sl10.review_meta,
         meta=sl10.meta,
     )
@@ -3394,7 +3487,12 @@ def _run_repair_path(
             _append_stage(state.stage_records, sl10_output.meta)
             aggregate_stage_ids.append(sl10_output.meta.stage_id)
 
-        repair_review = _repair_review_from_sl10(sl10_output, local_review=local_review)
+        repair_review = _repair_review_from_sl10(
+            sl10_output,
+            local_review=local_review,
+            candidate_dsl_hash=_hash_text(candidate_dsl),
+            local_check_evidence_hash=_short_hash(local_check_evidence),
+        )
         accepted = bool(sl10_output.ok)
         previous_candidate_hashes = [
             str(entry.get("candidate_dsl_hash") or "")
