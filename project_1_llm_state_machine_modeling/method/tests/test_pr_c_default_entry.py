@@ -315,6 +315,14 @@ def test_pr_c_pre_scenario_repair_uses_main_sd8_sl9_sd10_sl10_chain_before_scena
     assert sl10["review_meta"]["schema_validation_ok"] is True
     assert record.repair_history[0]["repair_review"]["review_meta"]["parsed_schema_version"] == "SL10RepairReviewOutput.v1"
     assert record.repair_history[0]["repair_review_input_summary"]["has_nl_input"] is True
+    events = [item["event"] for item in record.logs]
+    assert "repair_path_enter" in events
+    assert "fix_request_batch" in events
+    assert "stage_result" in events
+    assert any(item.get("stage_id") == StageId.SL_9_REPAIR.value and item.get("candidate_dsl") and "state Active" in item.get("candidate_dsl") for item in record.logs)
+    assert any(item.get("stage_id") == StageId.SC_11_ACCEPT_CANDIDATE.value and item.get("candidate_dsl") and "state Active" in item.get("candidate_dsl") for item in record.logs)
+    assert record.fix_log[0]["old_dsl"] == "state Root {"
+    assert any(entry.get("candidate_dsl") and "state Active" in entry.get("candidate_dsl") for entry in record.fix_log)
 
 
 def test_pr_c_run_record_redacts_secrets_from_nl_and_llm_interactions(tmp_path: Path) -> None:

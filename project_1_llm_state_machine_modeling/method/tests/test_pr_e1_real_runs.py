@@ -182,12 +182,17 @@ def test_pr_e1_runner_writes_report_artifacts_with_fake_entry(tmp_path: Path) ->
         assert "输入 NL 中文翻译" in text
         assert "最终产出的 FCSTM DSL" in text
         assert "Iteration / repair / review 摘要" in text
+        assert "完整流程日志" in text
+        assert "stage/control-flow replay ledger" in text
+        assert "flow_log.json" in text
         assert "Repair / blocking feedback 明细" in text
         assert "为什么进入修复" in text
         assert "Candidate diff" in text
         assert "SL-10 审查结果" in text
         assert "reproducibility.json" in text
         assert Path(summary.reproducibility_path).exists()
+        assert (report.parent / "flow_log.json").exists()
+        assert (report.parent / "fix_log.json").exists()
         assert summary.prompt_snapshot_hash
         assert summary.token_usage["total_tokens"] == 42
         assert summary.primary_failure_class == "design_or_variable_dynamics"

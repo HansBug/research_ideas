@@ -607,3 +607,24 @@ def test_pr_b2_sl10_pass_with_unresolved_regression_is_downgraded_to_rework() ->
     assert result.feedback.regression_detected is True
     assert result.feedback.drift_risk == "major"
     assert any("downgraded" in item for item in result.feedback.rework_instructions)
+
+
+def test_pr_b2_llm_stage_attempts_emit_progress_and_elapsed(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setenv("AGENT_LOOP_PROGRESS_LOG", "true")
+    provider = MockLLMProvider(responses=[_sl7_fail_raw()])
+
+    result = run_sl7_model_review_llm(
+        nl="Blocking review should reject major NL drift.",
+        current_dsl=BASE_DSL,
+        grounding_map=_grounding(),
+        review_policy={"mode": "blocking_major_only"},
+        config=_cfg(),
+        provider=provider,
+    )
+
+    captured = capsys.readouterr().out
+    assert result.ok is True
+    assert "[agent-loop][SL-7] attempt_start" in captured
+    assert "[agent-loop][SL-7] attempt_schema_ok" in captured
+    attempt = result.interaction["attempts"][0]
+    assert attempt["elapsed_seconds"] >= 0

@@ -13,9 +13,11 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
 import re
 import subprocess
+import sys
 import uuid
 import difflib
 from dataclasses import asdict, dataclass, field, is_dataclass
@@ -356,6 +358,77 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _runtime_log_enabled() -> bool:
+    raw = os.environ.get("AGENT_LOOP_PROGRESS_LOG", os.environ.get("LLM_PROGRESS_LOG", "true"))
+    if raw is None:
+        return True
+    return raw.strip().lower() not in {"0", "false", "no", "off", "disabled"}
+
+
+def _terminal_value(value: Any, *, max_chars: int = 220) -> str:
+    if value is None:
+        return "<none>"
+    if isinstance(value, (str, int, float, bool)):
+        text = str(value)
+    else:
+        text = json.dumps(_jsonable(value), ensure_ascii=False, sort_keys=True, default=str)
+    text = text.replace("\n", "\\n")
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + f"...<truncated {len(text) - max_chars} chars>"
+
+
+def _append_flow_log(
+    logs: list[dict[str, Any]],
+    *,
+    event: str,
+    level: str = "info",
+    stage_id: str | None = None,
+    iteration: int | None = None,
+    **payload: Any,
+) -> dict[str, Any]:
+    """Append and print a replay-oriented agent-loop flow event.
+
+    ``AgentLoopRunRecord.logs`` is the durable ledger.  The stdout line is a
+    human-facing mirror so a shell ``tee`` also captures the same control-flow
+    story.  Prompt/raw LLM payloads are still kept in ``llm_interactions``; this
+    logger records stage entry/result/jump decisions and DSL snapshots needed to
+    reconstruct the loop without reading Python internals.
+    """
+
+    row: dict[str, Any] = {
+        "ts": _utc_now(),
+        "level": level,
+        "event": event,
+    }
+    if stage_id is not None:
+        row["stage_id"] = stage_id
+    if iteration is not None:
+        row["iteration"] = iteration
+    row.update(_jsonable(payload))
+    logs.append(row)
+    if _runtime_log_enabled():
+        prefix = "[agent-loop]"
+        if stage_id:
+            prefix += f"[{stage_id}]"
+        if iteration is not None:
+            prefix += f"[iter={iteration}]"
+        brief = {
+            key: value
+            for key, value in row.items()
+            if key not in {"ts", "level", "event", "dsl", "old_dsl", "candidate_dsl", "final_dsl", "nl"}
+        }
+        detail = " ".join(f"{key}={_terminal_value(value)}" for key, value in brief.items())
+        print(f"{prefix} {level.upper()} {event}" + (f" {detail}" if detail else ""), file=sys.stdout, flush=True)
+        for dsl_key in ("dsl", "old_dsl", "candidate_dsl", "final_dsl"):
+            dsl = row.get(dsl_key)
+            if isinstance(dsl, str) and dsl:
+                print(f"{prefix} {dsl_key} BEGIN", file=sys.stdout, flush=True)
+                print(dsl, file=sys.stdout, flush=True)
+                print(f"{prefix} {dsl_key} END", file=sys.stdout, flush=True)
+    return row
+
+
 def _hash_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -600,6 +673,9 @@ def _append_llm_stage_run(
     stage_records: list[StageResultMeta],
     iteration_stage_metas: list[StageResultMeta] | None,
     llm_interactions: list[dict[str, Any]],
+    logs: list[dict[str, Any]] | None = None,
+    iteration: int | None = None,
+    parsed_summary: Any | None = None,
 ) -> Any:
     """Append PR-B2 stage metadata and raise on retry exhaustion.
 
@@ -625,10 +701,48 @@ def _append_llm_stage_run(
         interaction["redaction_report"] = _jsonable(redaction_report)
     if interaction:
         llm_interactions.append(interaction)
+    if logs is not None:
+        _log_llm_stage_result(
+            logs,
+            run=run,
+            stage_id=expected_stage_id,
+            iteration=iteration,
+            parsed_summary=parsed_summary,
+        )
     retry_error = _retry_error_from_llm_stage_run(run)
     if getattr(run, "ok") is False and retry_error is not None:
         raise _LLMRetryExhausted(stage_id=stage_id, retry_error=retry_error, interaction=interaction)
     return run
+
+
+def _log_llm_stage_result(
+    logs: list[dict[str, Any]],
+    *,
+    run: Any,
+    stage_id: StageId,
+    iteration: int | None = None,
+    parsed_summary: Any | None = None,
+) -> None:
+    interaction = dict(getattr(run, "interaction", {}) or {})
+    meta = getattr(run, "stage_meta", None)
+    usage = interaction.get("usage") if isinstance(interaction.get("usage"), dict) else {}
+    attempts = interaction.get("attempts") if isinstance(interaction.get("attempts"), list) else []
+    retry_error = interaction.get("retry_error") if isinstance(interaction.get("retry_error"), dict) else None
+    _append_flow_log(
+        logs,
+        event="llm_stage_result",
+        level="info" if getattr(run, "ok", False) else "warning",
+        stage_id=stage_id.value,
+        iteration=iteration,
+        ok=bool(getattr(run, "ok", False)),
+        status=str(getattr(meta, "status", "")) if meta is not None else "",
+        retry_count=interaction.get("retry_count"),
+        schema_validation_ok=interaction.get("schema_validation_ok"),
+        attempt_count=len(attempts),
+        usage=usage,
+        retry_error=retry_error,
+        parsed_summary=parsed_summary if parsed_summary is not None else _compact_json(getattr(run, "parsed_output", None), max_list_items=8),
+    )
 
 
 def _verdict_for_retry_error(error_kind: str) -> tuple[str, str]:
@@ -684,15 +798,17 @@ def _mark_sc12_verdict(
     state.verdict_reason = reason
     state.result_status = result_status
     state.error_message = None if verdict == "success" else reason
-    state.logs.append(
-        {
-            "ts": _utc_now(),
-            "level": "info" if verdict == "success" else "warning",
-            "event": "sc12_verdict",
-            "verdict": verdict,
-            "source_stage_id": source_stage_id,
-            "reason": reason,
-        }
+    _append_flow_log(
+        state.logs,
+        event="sc12_verdict",
+        level="info" if verdict == "success" else "warning",
+        stage_id=StageId.SC_12_EXIT.value,
+        verdict=verdict,
+        source_stage_id=source_stage_id,
+        reason=reason,
+        result_status=result_status,
+        record_status=record_status,
+        final_dsl=state.current_dsl,
     )
     return meta
 
@@ -784,6 +900,65 @@ def _stage_trace(stage_id: str, feedback: Any = None) -> dict[str, Any]:
     return payload
 
 
+def _feedback_brief(stage_id: str, feedback: Any) -> dict[str, Any]:
+    """Compact stage-result payload for flow logs and report reconstruction."""
+
+    payload = _stage_trace(stage_id, feedback)
+    if isinstance(feedback, DesignFeedback):
+        payload.update(
+            {
+                "blocking_count": len(feedback.blocking_items),
+                "advisory_count": len(feedback.advisory_items),
+                "info_count": len(feedback.info_items),
+                "blocking_summaries": [
+                    {
+                        "code": item.code,
+                        "instance_key": item.instance_key,
+                        "policy_action": item.policy_action,
+                        "rationale": _truncate_text(item.rationale, max_chars=360),
+                    }
+                    for item in feedback.blocking_items[:8]
+                ],
+            }
+        )
+    elif isinstance(feedback, SemanticFeedback):
+        payload.update(
+            {
+                "diagnostic_count": len(getattr(feedback, "diagnostics", []) or []),
+                "missing_states": list((getattr(feedback, "missing_states", []) or [])[:12]),
+                "dangling_transitions": list((getattr(feedback, "dangling_transitions", []) or [])[:12]),
+                "unresolved_event_refs": list((getattr(feedback, "unresolved_event_refs", []) or [])[:12]),
+                "undefined_vars": list((getattr(feedback, "undefined_vars", []) or [])[:12]),
+                "type_mismatches": list((getattr(feedback, "type_mismatches", []) or [])[:12]),
+            }
+        )
+    elif isinstance(feedback, ParseFeedback):
+        payload.update(
+            {
+                "diagnostic_count": len(feedback.diagnostics),
+                "error_class": feedback.error_class,
+                "line": feedback.line,
+                "col": feedback.col,
+                "message": _truncate_text(feedback.error_message, max_chars=360),
+            }
+        )
+    elif isinstance(feedback, SimFeedback):
+        payload.update(
+            {
+                "scenario_results": _compact_json(getattr(feedback, "scenario_results", []), max_list_items=12),
+            }
+        )
+    elif isinstance(feedback, ModelReviewFeedback):
+        payload.update(
+            {
+                "finding_count": len(feedback.findings),
+                "blocking_count": len(feedback.blocking_findings),
+                "finding_summaries": _compact_json([*feedback.blocking_findings, *feedback.findings], max_list_items=8),
+            }
+        )
+    return payload
+
+
 def _source_for_stage(stage_id: str) -> str:
     for source, sid in FEEDBACK_SOURCE_TO_STAGE_ID.items():
         if sid == stage_id:
@@ -870,6 +1045,16 @@ def _run_scenario_generation_and_freeze(
     weak = False
 
     for attempt_index in range(cfg.scenario_max_retries + 1):
+        _append_flow_log(
+            logs,
+            event="stage_enter",
+            stage_id=StageId.SL_5_SCENARIO_GENERATION.value,
+            iteration=iteration,
+            reason="scenario_set_absent" if attempt_index == 0 else "scenario_coverage_gap_retry",
+            attempt_index=attempt_index,
+            coverage_directive=_compact_json(coverage_directive, max_list_items=6),
+            previous_scenario_names=[scenario.name for scenario in previous_scenarios],
+        )
         request = ScenarioGenerationRequest(
             nl=nl,
             current_dsl=current_dsl,
@@ -886,6 +1071,9 @@ def _run_scenario_generation_and_freeze(
             stage_records=stage_records,
             iteration_stage_metas=iteration_stage_metas,
             llm_interactions=llm_interactions,
+            logs=logs,
+            iteration=iteration,
+            parsed_summary={"attempt_index": attempt_index, "kind": "scenario_generation"},
         )
         if _is_llm_stage_run(generated):
             scenarios = list(getattr(generated, "parsed_output", []) or [])
@@ -903,6 +1091,19 @@ def _run_scenario_generation_and_freeze(
         selected_scenarios = scenarios
         selected_coverage = dict(coverage)
         gap = bool(coverage.get("coverage_gap"))
+        _append_flow_log(
+            logs,
+            event="stage_result",
+            stage_id=StageId.SD_5A_SCENARIO_COVERAGE.value,
+            iteration=iteration,
+            ok=not gap,
+            attempt_index=attempt_index,
+            status=str(coverage_meta.status),
+            n_scenarios=len(scenarios),
+            scenario_names=[scenario.name for scenario in scenarios],
+            coverage=_compact_json(coverage, max_list_items=8),
+            jump="SC-5F" if not gap else ("SL-5 retry" if attempt_index < cfg.scenario_max_retries else "SC-5F weak_oracle"),
+        )
         retry_exhausted = gap and attempt_index >= cfg.scenario_max_retries
         weak = retry_exhausted or bool(selected_coverage.get("oracle_weak"))
         scenario_history.append(
@@ -928,14 +1129,12 @@ def _run_scenario_generation_and_freeze(
             "oracle_weak": True,
             "weak_oracle_reason": "scenario_coverage_retry_exhausted",
         }
-        logs.append(
-            {
-                "ts": _utc_now(),
-                "level": "warning",
-                "event": "scenario_coverage_retry_exhausted",
-                "iteration": iteration,
-                "scenario_max_retries": cfg.scenario_max_retries,
-            }
+        _append_flow_log(
+            logs,
+            event="scenario_coverage_retry_exhausted",
+            level="warning",
+            iteration=iteration,
+            scenario_max_retries=cfg.scenario_max_retries,
         )
 
     scenario_set, freeze_meta = freeze_scenario_set(
@@ -949,6 +1148,19 @@ def _run_scenario_generation_and_freeze(
     scenario_set.coverage_report["oracle_weak"] = weak
     _append_stage(stage_records, freeze_meta)
     iteration_stage_metas.append(freeze_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SC_5F_SCENARIO_FREEZE.value,
+        iteration=iteration,
+        ok=True,
+        scenario_set_id=scenario_set.scenario_set_id,
+        epoch=scenario_set.epoch,
+        n_scenarios=len(scenario_set.scenarios),
+        oracle_weak=weak,
+        source_dsl_hash=scenario_set.source_dsl_hash,
+        jump="SD-6",
+    )
     if scenario_history:
         scenario_history[-1]["scenario_set_id"] = scenario_set.scenario_set_id
         scenario_history[-1]["epoch"] = scenario_set.epoch
@@ -977,6 +1189,19 @@ def _reuse_or_check_scenario_set(
     iteration_stage_metas.append(coverage_meta)
 
     gap = bool(coverage.get("coverage_gap"))
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_5A_SCENARIO_COVERAGE.value,
+        iteration=iteration,
+        ok=not gap and not dsl_changed_since_freeze,
+        reason="reuse_frozen_scenario_set",
+        scenario_set_id=scenario_set.scenario_set_id,
+        coverage_gap=gap,
+        dsl_changed_since_freeze=dsl_changed_since_freeze,
+        coverage=_compact_json(coverage, max_list_items=8),
+        jump="SC-5F reuse" if not gap and not dsl_changed_since_freeze else "SL-5 targeted_retry",
+    )
     history = [
         _scenario_history_item(
             iteration=iteration,
@@ -1001,6 +1226,18 @@ def _reuse_or_check_scenario_set(
         freeze_meta.output_hash = _hash_text(scenario_set.scenario_set_id)
         _append_stage(stage_records, freeze_meta)
         iteration_stage_metas.append(freeze_meta)
+        _append_flow_log(
+            logs,
+            event="stage_result",
+            stage_id=StageId.SC_5F_SCENARIO_FREEZE.value,
+            iteration=iteration,
+            ok=True,
+            reason="reused_frozen_scenario_set",
+            scenario_set_id=scenario_set.scenario_set_id,
+            epoch=scenario_set.epoch,
+            n_scenarios=len(scenario_set.scenarios),
+            jump="SD-6",
+        )
         return scenario_set, history, False, scenario_set.epoch + 1
 
     coverage_directive: Any | None = coverage.get("retry_directive") or {
@@ -1015,20 +1252,28 @@ def _reuse_or_check_scenario_set(
     weak = (cfg.scenario_max_retries == 0 and (gap or dsl_changed_since_freeze)) or bool(selected_coverage.get("oracle_weak"))
     next_epoch = scenario_set.epoch + 1
 
-    logs.append(
-        {
-            "ts": _utc_now(),
-            "level": "warning",
-            "event": "frozen_scenario_refresh_targeted_retry",
-            "iteration": iteration,
-            "scenario_set_id": scenario_set.scenario_set_id,
-            "scenario_max_retries": cfg.scenario_max_retries,
-            "coverage_gap": gap,
-            "dsl_changed_since_freeze": dsl_changed_since_freeze,
-        }
+    _append_flow_log(
+        logs,
+        event="frozen_scenario_refresh_targeted_retry",
+        level="warning",
+        iteration=iteration,
+        scenario_set_id=scenario_set.scenario_set_id,
+        scenario_max_retries=cfg.scenario_max_retries,
+        coverage_gap=gap,
+        dsl_changed_since_freeze=dsl_changed_since_freeze,
     )
 
     for retry_index in range(1, cfg.scenario_max_retries + 1):
+        _append_flow_log(
+            logs,
+            event="stage_enter",
+            stage_id=StageId.SL_5_SCENARIO_GENERATION.value,
+            iteration=iteration,
+            reason="targeted_refresh_after_frozen_gap_or_dsl_change",
+            attempt_index=retry_index,
+            coverage_directive=_compact_json(coverage_directive, max_list_items=6),
+            previous_scenario_names=[scenario.name for scenario in previous_scenarios],
+        )
         request = ScenarioGenerationRequest(
             nl=nl,
             current_dsl=current_dsl,
@@ -1045,6 +1290,9 @@ def _reuse_or_check_scenario_set(
             stage_records=stage_records,
             iteration_stage_metas=iteration_stage_metas,
             llm_interactions=llm_interactions,
+            logs=logs,
+            iteration=iteration,
+            parsed_summary={"attempt_index": retry_index, "kind": "scenario_refresh"},
         )
         if _is_llm_stage_run(generated):
             scenarios = list(getattr(generated, "parsed_output", []) or [])
@@ -1062,6 +1310,19 @@ def _reuse_or_check_scenario_set(
         selected_scenarios = scenarios
         selected_coverage = dict(retry_coverage)
         retry_gap = bool(retry_coverage.get("coverage_gap"))
+        _append_flow_log(
+            logs,
+            event="stage_result",
+            stage_id=StageId.SD_5A_SCENARIO_COVERAGE.value,
+            iteration=iteration,
+            ok=not retry_gap,
+            attempt_index=retry_index,
+            status=str(retry_meta.status),
+            n_scenarios=len(scenarios),
+            scenario_names=[scenario.name for scenario in scenarios],
+            coverage=_compact_json(retry_coverage, max_list_items=8),
+            jump="SC-5F" if not retry_gap else ("SL-5 retry" if retry_index < cfg.scenario_max_retries else "SC-5F weak_oracle"),
+        )
         retry_exhausted = retry_gap and retry_index >= cfg.scenario_max_retries
         weak = retry_exhausted or bool(selected_coverage.get("oracle_weak"))
         history.append(
@@ -1093,17 +1354,15 @@ def _reuse_or_check_scenario_set(
             "oracle_weak": True,
             "weak_oracle_reason": "scenario_refresh_retry_exhausted",
         }
-        logs.append(
-            {
-                "ts": _utc_now(),
-                "level": "warning",
-                "event": "scenario_refresh_retry_exhausted",
-                "iteration": iteration,
-                "previous_scenario_set_id": scenario_set.scenario_set_id,
-                "scenario_max_retries": cfg.scenario_max_retries,
-                "coverage_gap": gap,
-                "dsl_changed_since_freeze": dsl_changed_since_freeze,
-            }
+        _append_flow_log(
+            logs,
+            event="scenario_refresh_retry_exhausted",
+            level="warning",
+            iteration=iteration,
+            previous_scenario_set_id=scenario_set.scenario_set_id,
+            scenario_max_retries=cfg.scenario_max_retries,
+            coverage_gap=gap,
+            dsl_changed_since_freeze=dsl_changed_since_freeze,
         )
 
     refreshed_set, freeze_meta = freeze_scenario_set(
@@ -1117,6 +1376,20 @@ def _reuse_or_check_scenario_set(
     refreshed_set.coverage_report["oracle_weak"] = weak
     _append_stage(stage_records, freeze_meta)
     iteration_stage_metas.append(freeze_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SC_5F_SCENARIO_FREEZE.value,
+        iteration=iteration,
+        ok=True,
+        reason="refreshed_scenario_set",
+        scenario_set_id=refreshed_set.scenario_set_id,
+        epoch=refreshed_set.epoch,
+        n_scenarios=len(refreshed_set.scenarios),
+        oracle_weak=weak,
+        source_dsl_hash=refreshed_set.source_dsl_hash,
+        jump="SD-6",
+    )
     if history:
         history[-1]["scenario_set_id"] = refreshed_set.scenario_set_id
         history[-1]["epoch"] = refreshed_set.epoch
@@ -1200,6 +1473,15 @@ def _continue_after_design_waiver(
 ) -> _ValidationPass:
     """Continue SD-4-waived validation through SL-5/SD-6/SL-7 in-place."""
 
+    _append_flow_log(
+        logs,
+        event="waiver_continue_validation_enter",
+        iteration=iteration,
+        source_stage=StageId.SD_4_DESIGN.value,
+        reason="SL-9 rejected/waived non-hard SD-4 requests; continue downstream without SC-11 DSL edit",
+        current_dsl_hash=_hash_text(current_dsl),
+        current_dsl=current_dsl,
+    )
     source, selected_feedback, source_stage = validation.selected or ("", None, "")
     if source != FeedbackSource.DESIGN.value or source_stage != StageId.SD_4_DESIGN.value or not isinstance(selected_feedback, DesignFeedback):
         return validation
@@ -1222,6 +1504,15 @@ def _continue_after_design_waiver(
     waiver_meta.skipped_reason = "waiver_continue: non-hard SD-4 blocking warnings were rejected/waived by SL-9; continuing downstream validation without DSL edit"
     _append_stage(stage_records, waiver_meta)
     iteration_stage_metas.append(waiver_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_4_DESIGN.value,
+        iteration=iteration,
+        ok=True,
+        reason="waiver_continue_design_items_marked_non_blocking_for_downstream_validation",
+        jump="SL-5" if scenario_set is None else "SD-5A",
+    )
 
     if scenario_set is None:
         scenario_set, generated_history, weak_now, next_epoch = _run_scenario_generation_and_freeze(
@@ -1259,26 +1550,53 @@ def _continue_after_design_waiver(
         scenario_epoch = next_epoch
 
     context.scenario_set = scenario_set
+    _append_flow_log(
+        logs,
+        event="stage_enter",
+        stage_id=StageId.SD_6_SIM.value,
+        iteration=iteration,
+        reason="waiver_continue_scenario_set_ready",
+        scenario_set_id=scenario_set.scenario_set_id,
+        n_scenarios=len(scenario_set.scenarios),
+    )
     sim_feedback, sim_meta = adapters.sim(current_dsl, scenario_set, context)
     feedback[FeedbackSource.SIM.value] = sim_feedback
     _append_stage(stage_records, sim_meta)
     iteration_stage_metas.append(sim_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_6_SIM.value,
+        iteration=iteration,
+        ok=sim_feedback.ok,
+        status=str(sim_meta.status),
+        feedback=_feedback_brief(StageId.SD_6_SIM.value, sim_feedback),
+        jump="SL-7" if sim_feedback.ok else ("SC-12 weak_oracle" if getattr(sim_feedback, "oracle_weak", False) else "SD-8 next iteration"),
+    )
     if not sim_feedback.ok:
         if getattr(sim_feedback, "oracle_weak", False):
-            logs.append(
-                {
-                    "ts": _utc_now(),
-                    "level": "warning",
-                    "event": "sim_failed_but_oracle_weak",
-                    "iteration": iteration,
-                    "weak_oracle_reason": getattr(sim_feedback, "weak_oracle_reason", ""),
-                    "weak_oracle_evidence": _jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
-                    "after_waiver_continue": True,
-                }
+            _append_flow_log(
+                logs,
+                event="sim_failed_but_oracle_weak",
+                level="warning",
+                stage_id=StageId.SD_6_SIM.value,
+                iteration=iteration,
+                weak_oracle_reason=getattr(sim_feedback, "weak_oracle_reason", ""),
+                weak_oracle_evidence=_jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
+                after_waiver_continue=True,
             )
             oracle_weak = True
         return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
 
+    _append_flow_log(
+        logs,
+        event="stage_enter",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        reason="waiver_continue_SD-6 ok",
+        scenario_set_id=scenario_set.scenario_set_id,
+        oracle_weak=oracle_weak,
+    )
     review_run = adapters.model_review(
         current_dsl,
         context,
@@ -1297,6 +1615,8 @@ def _continue_after_design_waiver(
         stage_records=stage_records,
         iteration_stage_metas=iteration_stage_metas,
         llm_interactions=llm_interactions,
+        logs=logs,
+        iteration=iteration,
     )
     if _is_llm_stage_run(review_run):
         review_feedback = getattr(review_run, "feedback", None)
@@ -1307,6 +1627,15 @@ def _continue_after_design_waiver(
         _append_stage(stage_records, review_meta)
         iteration_stage_metas.append(review_meta)
     feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        ok=not _model_review_blocks(review_feedback),
+        feedback=_feedback_brief(StageId.SL_7_MODEL_REVIEW.value, review_feedback),
+        jump="SD-8 next iteration" if _model_review_blocks(review_feedback) else "SC-12 success",
+    )
     if isinstance(review_feedback, ModelReviewFeedback):
         hints = _extract_grounding_update_hints(
             source_stage_id=StageId.SL_7_MODEL_REVIEW.value,
@@ -1338,6 +1667,15 @@ def _run_validation_pass(
     llm_interactions: list[dict[str, Any]],
     warning_budget_state: dict[str, BudgetState] | None = None,
 ) -> _ValidationPass:
+    _append_flow_log(
+        logs,
+        event="iteration_validation_enter",
+        iteration=iteration,
+        current_dsl_hash=_hash_text(current_dsl),
+        scenario_set_id=scenario_set.scenario_set_id if scenario_set is not None else None,
+        oracle_weak=oracle_weak,
+        dsl=current_dsl,
+    )
     context = StageContext(
         nl=nl,
         current_dsl=current_dsl,
@@ -1349,24 +1687,57 @@ def _run_validation_pass(
     iteration_stage_metas: list[StageResultMeta] = []
     scenario_history: list[dict[str, Any]] = []
 
+    _append_flow_log(logs, event="stage_enter", stage_id=StageId.SD_2_PARSE.value, iteration=iteration, reason="full_validation_pass")
     parse_feedback, parse_meta = adapters.parse(current_dsl, context)
     feedback[FeedbackSource.PARSE.value] = parse_feedback
     _append_stage(stage_records, parse_meta)
     iteration_stage_metas.append(parse_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_2_PARSE.value,
+        iteration=iteration,
+        ok=parse_feedback.ok,
+        status=str(parse_meta.status),
+        feedback=_feedback_brief(StageId.SD_2_PARSE.value, parse_feedback),
+        jump="SD-3" if parse_feedback.ok else "SD-8",
+    )
     if not parse_feedback.ok:
         return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, None)
 
+    _append_flow_log(logs, event="stage_enter", stage_id=StageId.SD_3_SEMANTIC.value, iteration=iteration, reason="SD-2 ok")
     semantic_feedback, semantic_meta = adapters.semantic(current_dsl, context)
     feedback[FeedbackSource.SEMANTIC.value] = semantic_feedback
     _append_stage(stage_records, semantic_meta)
     iteration_stage_metas.append(semantic_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_3_SEMANTIC.value,
+        iteration=iteration,
+        ok=semantic_feedback.ok,
+        status=str(semantic_meta.status),
+        feedback=_feedback_brief(StageId.SD_3_SEMANTIC.value, semantic_feedback),
+        jump="SD-4" if semantic_feedback.ok else "SD-8",
+    )
     if not semantic_feedback.ok:
         return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, None)
 
+    _append_flow_log(logs, event="stage_enter", stage_id=StageId.SD_4_DESIGN.value, iteration=iteration, reason="SD-3 ok")
     design_feedback, design_meta = adapters.design(context)
     feedback[FeedbackSource.DESIGN.value] = design_feedback
     _append_stage(stage_records, design_meta)
     iteration_stage_metas.append(design_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_4_DESIGN.value,
+        iteration=iteration,
+        ok=not bool(design_feedback.blocking_items),
+        status=str(design_meta.status),
+        feedback=_feedback_brief(StageId.SD_4_DESIGN.value, design_feedback),
+        jump="SD-8" if design_feedback.blocking_items else ("SL-5" if scenario_set is None else "SD-5A"),
+    )
     if design_feedback.blocking_items:
         return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, None)
 
@@ -1406,25 +1777,52 @@ def _run_validation_pass(
         oracle_weak = weak_now
 
     context.scenario_set = scenario_set
+    _append_flow_log(
+        logs,
+        event="stage_enter",
+        stage_id=StageId.SD_6_SIM.value,
+        iteration=iteration,
+        reason="scenario_set_ready",
+        scenario_set_id=scenario_set.scenario_set_id,
+        n_scenarios=len(scenario_set.scenarios),
+    )
     sim_feedback, sim_meta = adapters.sim(current_dsl, scenario_set, context)
     feedback[FeedbackSource.SIM.value] = sim_feedback
     _append_stage(stage_records, sim_meta)
     iteration_stage_metas.append(sim_meta)
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SD_6_SIM.value,
+        iteration=iteration,
+        ok=sim_feedback.ok,
+        status=str(sim_meta.status),
+        feedback=_feedback_brief(StageId.SD_6_SIM.value, sim_feedback),
+        jump="SL-7" if sim_feedback.ok else ("SC-12 weak_oracle" if getattr(sim_feedback, "oracle_weak", False) else "SD-8"),
+    )
     if not sim_feedback.ok:
         if getattr(sim_feedback, "oracle_weak", False):
-            logs.append(
-                {
-                    "ts": _utc_now(),
-                    "level": "warning",
-                    "event": "sim_failed_but_oracle_weak",
-                    "iteration": iteration,
-                    "weak_oracle_reason": getattr(sim_feedback, "weak_oracle_reason", ""),
-                    "weak_oracle_evidence": _jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
-                }
+            _append_flow_log(
+                logs,
+                event="sim_failed_but_oracle_weak",
+                level="warning",
+                stage_id=StageId.SD_6_SIM.value,
+                iteration=iteration,
+                weak_oracle_reason=getattr(sim_feedback, "weak_oracle_reason", ""),
+                weak_oracle_evidence=_jsonable(getattr(sim_feedback, "weak_oracle_evidence", {})),
             )
             oracle_weak = True
         return _ValidationPass(context, feedback, iteration_stage_metas, _select_first_blocking(feedback), scenario_set, scenario_history, oracle_weak, scenario_set.epoch)
 
+    _append_flow_log(
+        logs,
+        event="stage_enter",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        reason="SD-6 ok",
+        scenario_set_id=scenario_set.scenario_set_id,
+        oracle_weak=oracle_weak,
+    )
     review_run = adapters.model_review(
         current_dsl,
         context,
@@ -1442,6 +1840,8 @@ def _run_validation_pass(
         stage_records=stage_records,
         iteration_stage_metas=iteration_stage_metas,
         llm_interactions=llm_interactions,
+        logs=logs,
+        iteration=iteration,
     )
     if _is_llm_stage_run(review_run):
         review_feedback = getattr(review_run, "feedback", None)
@@ -1453,6 +1853,16 @@ def _run_validation_pass(
         _append_stage(stage_records, review_meta)
         iteration_stage_metas.append(review_meta)
     feedback[FeedbackSource.MODEL_REVIEW.value] = review_feedback
+    _append_flow_log(
+        logs,
+        event="stage_result",
+        stage_id=StageId.SL_7_MODEL_REVIEW.value,
+        iteration=iteration,
+        ok=not _model_review_blocks(review_feedback),
+        status=str(review_meta.status),
+        feedback=_feedback_brief(StageId.SL_7_MODEL_REVIEW.value, review_feedback),
+        jump="SD-8" if _model_review_blocks(review_feedback) else "SC-12 success",
+    )
     if isinstance(review_feedback, ModelReviewFeedback):
         hints = _extract_grounding_update_hints(
             source_stage_id=StageId.SL_7_MODEL_REVIEW.value,
@@ -1808,16 +2218,14 @@ def _apply_grounding_update_hints(
             sort_keys=True,
         )
         cfg.grounding_map.source_summary = summary
-    state.logs.append(
-        {
-            "ts": _utc_now(),
-            "level": "info",
-            "event": "grounding_update_hints_recorded",
-            "iteration": iteration,
-            "source_stage_id": source_stage_id,
-            "n_hints": len(new_hints),
-            "hint_hashes": [item["hint_hash"] for item in new_hints],
-        }
+    _append_flow_log(
+        state.logs,
+        event="grounding_update_hints_recorded",
+        level="info",
+        stage_id=source_stage_id,
+        iteration=iteration,
+        n_hints=len(new_hints),
+        hint_hashes=[item["hint_hash"] for item in new_hints],
     )
     return new_hints
 
@@ -1980,6 +2388,8 @@ def _fix_log_entry(
         batch_id=batch.batch_id,
         request_batch=_jsonable(batch),
         decisions=[_jsonable(decision) for decision in decisions or []],
+        old_dsl=old_dsl,
+        candidate_dsl=candidate_dsl,
         old_dsl_hash=_hash_text(old_dsl) if old_dsl else "",
         candidate_dsl_hash=_hash_text(candidate_dsl) if candidate_dsl else "",
         diff_summary=_jsonable(diff_summary or {}),
@@ -2086,6 +2496,18 @@ def _run_repair_path(
         selected_trace["variable_role_summary"] = variable_role_summary
     if selected_trace["pre_scenario"]:
         state.pre_scenario_repair_count += 1
+    _append_flow_log(
+        state.logs,
+        event="repair_path_enter",
+        stage_id=StageId.SD_8_FIX_PLAN.value,
+        iteration=iteration,
+        source=source,
+        source_stage=source_stage,
+        selected_feedback=selected_trace,
+        current_dsl_hash=_hash_text(state.current_dsl),
+        current_dsl=state.current_dsl,
+        jump="SD-8",
+    )
 
     rework_locked = state.pending_repair_rejection is not None and state.pending_original_fix_plan is not None
     if rework_locked:
@@ -2107,6 +2529,17 @@ def _run_repair_path(
     repair_stage_ids = [fix_meta.stage_id]
     effective_fix_plan = fix_plan.original if isinstance(fix_plan, RevisedFixPlan) else fix_plan
     assert isinstance(effective_fix_plan, FixPlan)
+    _append_flow_log(
+        state.logs,
+        event="stage_result",
+        stage_id=StageId.SD_8_FIX_PLAN.value,
+        iteration=iteration,
+        ok=True,
+        status=str(fix_meta.status),
+        plan_kind="RevisedFixPlan" if isinstance(fix_plan, RevisedFixPlan) else "FixPlan",
+        fix_plan=_compact_json(effective_fix_plan, max_list_items=10),
+        jump="SL-9",
+    )
 
     request_batch = _fix_request_batch_from_plan(
         iteration=iteration,
@@ -2125,6 +2558,17 @@ def _run_repair_path(
         next_action="sl9_decision_and_repair",
         notes=["SD-8 produced FixRequestBatch; deterministic stage does not decide final repair."],
     )
+    _append_flow_log(
+        state.logs,
+        event="fix_request_batch",
+        stage_id=StageId.SD_8_FIX_PLAN.value,
+        iteration=iteration,
+        batch_id=request_batch.batch_id,
+        request_count=len(request_batch.requests),
+        hard_block=request_batch.has_hard_block,
+        requests=_jsonable(request_batch.requests),
+        next_action="SL-9",
+    )
 
     if source == FeedbackSource.DESIGN.value and isinstance(selected_feedback, DesignFeedback):
         mark_warning_repair_attempt(
@@ -2141,6 +2585,18 @@ def _run_repair_path(
 
     for rework_attempt in range(max_rework_attempts):
         attempt_rework_locked = rework_locked or rework_attempt > 0
+        _append_flow_log(
+            state.logs,
+            event="stage_enter",
+            stage_id=StageId.SL_9_REPAIR.value,
+            iteration=iteration,
+            reason="fix_requests_ready" if not attempt_rework_locked else "sl10_rework_locked",
+            rework_attempt=rework_attempt,
+            rework_locked=attempt_rework_locked,
+            batch_id=request_batch.batch_id,
+            request_ids=[request.request_id for request in request_batch.requests],
+            old_dsl=state.current_dsl,
+        )
         request = RepairRequest(
             nl=nl,
             grounding_map=cfg.grounding_map,
@@ -2162,6 +2618,8 @@ def _run_repair_path(
             stage_records=state.stage_records,
             iteration_stage_metas=None,
             llm_interactions=state.llm_interactions,
+            logs=state.logs,
+            iteration=iteration,
         )
         parsed_output: Any = {}
         if _is_llm_stage_run(repair_run):
@@ -2208,6 +2666,20 @@ def _run_repair_path(
         request.sl9_decision = sl9_decision
         request.diff_summary = dict(sl9_decision.diff_summary)
         request.fix_log = list(state.fix_log)
+        _append_flow_log(
+            state.logs,
+            event="stage_result",
+            stage_id=StageId.SL_9_REPAIR.value,
+            iteration=iteration,
+            ok=bool(sl9_decision.accepted_request_ids),
+            rework_attempt=rework_attempt,
+            accepted_request_ids=sl9_decision.accepted_request_ids,
+            rejected_request_ids=sl9_decision.rejected_request_ids,
+            decisions=_jsonable(sl9_decision.decisions),
+            diff_summary=sl9_decision.diff_summary,
+            jump="SL-10" if sl9_decision.accepted_request_ids else "waiver_continue_or_exit",
+            candidate_dsl=candidate_dsl,
+        )
 
         _fix_log_entry(
             state=state,
@@ -2245,16 +2717,16 @@ def _run_repair_path(
                 local_rejection=None if waiver_continue else rejection,
             )
             if waiver_continue:
-                state.logs.append(
-                    {
-                        "ts": _utc_now(),
-                        "level": "info",
-                        "event": "sl9_all_rejected_waiver_continue",
-                        "iteration": iteration,
-                        "source_stage": source_stage,
-                        "batch_id": request_batch.batch_id,
-                        "note": "no candidate DSL; downstream validation continues without SC-11 acceptance",
-                    }
+                _append_flow_log(
+                    state.logs,
+                    event="sl9_all_rejected_waiver_continue",
+                    level="info",
+                    stage_id=StageId.SL_9_REPAIR.value,
+                    iteration=iteration,
+                    source_stage=source_stage,
+                    batch_id=request_batch.batch_id,
+                    note="no candidate DSL; downstream validation continues without SC-11 acceptance",
+                    jump="continue_after_current_stage",
                 )
             _fix_log_entry(
                 state=state,
@@ -2318,6 +2790,16 @@ def _run_repair_path(
         local_review, local_meta = adapters.repair_review(review_request)
         local_check_evidence = _local_repair_check_evidence(repair_review=local_review, repair_review_meta=local_meta)
         review_request.local_check_evidence = local_check_evidence
+        _append_flow_log(
+            state.logs,
+            event="stage_result",
+            stage_id=StageId.SD_10_REPAIR_REVIEW.value,
+            iteration=iteration,
+            ok=local_review.ok,
+            status=str(local_meta.status),
+            local_check_evidence=local_check_evidence,
+            jump="SL-10",
+        )
         local_sd10_repair_review = _jsonable(local_review)
         repair_review_input_summary = {
             "nl_hash": _hash_text(nl),
@@ -2337,6 +2819,18 @@ def _run_repair_path(
         }
 
         if adapters.sl10_review is not None:
+            _append_flow_log(
+                state.logs,
+                event="stage_enter",
+                stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+                iteration=iteration,
+                reason="candidate_dsl_and_local_evidence_ready",
+                rework_attempt=rework_attempt,
+                batch_id=request_batch.batch_id,
+                inputs=repair_review_input_summary["inputs"],
+                old_dsl_hash=_hash_text(state.current_dsl),
+                candidate_dsl_hash=_hash_text(candidate_dsl),
+            )
             sl10_run = adapters.sl10_review(review_request, local_review)
             sl10_run = _append_llm_stage_run(
                 run=sl10_run,
@@ -2344,6 +2838,8 @@ def _run_repair_path(
                 stage_records=state.stage_records,
                 iteration_stage_metas=None,
                 llm_interactions=state.llm_interactions,
+                logs=state.logs,
+                iteration=iteration,
             )
             if _is_llm_stage_run(sl10_run):
                 sl10_output = getattr(sl10_run, "feedback", None)
@@ -2376,6 +2872,22 @@ def _run_repair_path(
 
         repair_review = _repair_review_from_sl10(sl10_output, local_review=local_review)
         accepted = bool(sl10_output.ok)
+        _append_flow_log(
+            state.logs,
+            event="stage_result",
+            stage_id=StageId.SL_10_REPAIR_REVIEW.value,
+            iteration=iteration,
+            ok=accepted,
+            rework_attempt=rework_attempt,
+            decision=sl10_output.decision,
+            target_resolved=sl10_output.target_resolved,
+            regression_detected=sl10_output.regression_detected,
+            drift_risk=sl10_output.drift_risk,
+            rework_instructions=sl10_output.rework_instructions,
+            evidence=_compact_json(sl10_output.evidence, max_list_items=8),
+            local_override_rationale=sl10_output.local_override_rationale,
+            jump="SC-11" if accepted else ("SL-9 rework" if rework_attempt + 1 < max_rework_attempts else "SC-12 rejected"),
+        )
         sl10_grounding_hints = _extract_grounding_update_hints(
             source_stage_id=StageId.SL_10_REPAIR_REVIEW.value,
             payload=sl10_output,
@@ -2391,6 +2903,18 @@ def _run_repair_path(
             sc11_meta = _meta(StageId.SC_11_ACCEPT_CANDIDATE, ok=True)
             _append_stage(state.stage_records, sc11_meta)
             aggregate_stage_ids.append(sc11_meta.stage_id)
+            _append_flow_log(
+                state.logs,
+                event="stage_result",
+                stage_id=StageId.SC_11_ACCEPT_CANDIDATE.value,
+                iteration=iteration,
+                ok=True,
+                reason="SL-10 accepted candidate; next iteration must restart at SD-2",
+                old_dsl_hash=_hash_text(state.current_dsl),
+                candidate_dsl_hash=_hash_text(candidate_dsl),
+                jump="SD-2 next iteration",
+                candidate_dsl=candidate_dsl,
+            )
 
         _fix_log_entry(
             state=state,
@@ -2734,9 +3258,28 @@ def run_full_staged_deterministic_runtime(
         run_id = f"pr-b1-{input_hash}-{uuid.uuid4().hex[:12]}"
     state = _RunState(run_id=run_id, run_started_at=_utc_now(), current_dsl=config.initial_dsl)
     _append_stage(state.stage_records, _meta(StageId.SC_0_START, ok=True))
+    _append_flow_log(
+        state.logs,
+        event="run_start",
+        stage_id=StageId.SC_0_START.value,
+        run_id=run_id,
+        max_iterations=config.max_iterations,
+        scenario_max_retries=config.scenario_max_retries,
+        adapter_mode=config.adapter_mode,
+        real_llm_provider_api=config.real_llm_provider_api,
+        initial_dsl_hash=_hash_text(state.current_dsl),
+        initial_dsl=state.current_dsl,
+    )
 
     if adapters.initial_modeling is not None:
         try:
+            _append_flow_log(
+                state.logs,
+                event="stage_enter",
+                stage_id=StageId.SL_1_INITIAL_MODELING.value,
+                reason="initial_modeling_adapter_available",
+                nl_hash=_hash_text(nl),
+            )
             initial_context = StageContext(nl=nl, current_dsl=state.current_dsl, grounding_map=config.grounding_map)
             initial_run = adapters.initial_modeling(nl, initial_context)
             initial_run = _append_llm_stage_run(
@@ -2745,11 +3288,23 @@ def run_full_staged_deterministic_runtime(
                 stage_records=state.stage_records,
                 iteration_stage_metas=None,
                 llm_interactions=state.llm_interactions,
+                logs=state.logs,
             )
             if _is_llm_stage_run(initial_run):
                 parsed_output = getattr(initial_run, "parsed_output", {}) or {}
                 if isinstance(parsed_output, dict) and parsed_output.get("candidate_dsl"):
                     state.current_dsl = str(parsed_output["candidate_dsl"])
+                    _append_flow_log(
+                        state.logs,
+                        event="stage_result",
+                        stage_id=StageId.SL_1_INITIAL_MODELING.value,
+                        ok=True,
+                        candidate_dsl_hash=_hash_text(state.current_dsl),
+                        grounding_seed_count=len(parsed_output.get("grounding_seeds") or []),
+                        assumption_count=len(parsed_output.get("assumptions") or []),
+                        jump="SD-2",
+                        candidate_dsl=state.current_dsl,
+                    )
                     seeds = parsed_output.get("grounding_seeds") or []
                     assumptions = parsed_output.get("assumptions") or []
                     if seeds and config.grounding_map is None:
@@ -2762,9 +3317,24 @@ def run_full_staged_deterministic_runtime(
                                 },
                             )
                         except Exception as exc:
-                            state.logs.append({"ts": _utc_now(), "level": "warning", "event": "grounding_seed_coercion_failed", "message": str(exc)})
+                            _append_flow_log(
+                                state.logs,
+                                event="grounding_seed_coercion_failed",
+                                level="warning",
+                                stage_id=StageId.SL_1_INITIAL_MODELING.value,
+                                message=str(exc),
+                            )
             elif isinstance(initial_run, str) and initial_run:
                 state.current_dsl = initial_run
+                _append_flow_log(
+                    state.logs,
+                    event="stage_result",
+                    stage_id=StageId.SL_1_INITIAL_MODELING.value,
+                    ok=True,
+                    candidate_dsl_hash=_hash_text(state.current_dsl),
+                    jump="SD-2",
+                    candidate_dsl=state.current_dsl,
+                )
         except _LLMRetryExhausted as exc:
             _mark_retry_exhausted(state, exc)
 
@@ -2785,6 +3355,14 @@ def run_full_staged_deterministic_runtime(
     while iteration < iterations:
         if state.verdict_source_stage_id is not None:
             break
+        _append_flow_log(
+            state.logs,
+            event="iteration_enter",
+            iteration=iteration,
+            current_dsl_hash=_hash_text(state.current_dsl),
+            scenario_set_id=state.scenario_set.scenario_set_id if state.scenario_set is not None else None,
+            oracle_weak=state.oracle_weak,
+        )
         iteration_stage_start = len(state.stage_records)
         try:
             validation = _run_validation_pass(
@@ -2829,6 +3407,16 @@ def run_full_staged_deterministic_runtime(
         if validation.selected is not None:
             source, selected_feedback, source_stage = validation.selected
             selected_trace = _selected_feedback_trace(source, selected_feedback, source_stage, scenario_set=validation.scenario_set)
+        _append_flow_log(
+            state.logs,
+            event="iteration_validation_result",
+            iteration=iteration,
+            selected_feedback=selected_trace,
+            stage_ids=_stage_ids(validation.stage_metas),
+            scenario_set_id=validation.scenario_set.scenario_set_id if validation.scenario_set is not None else None,
+            oracle_weak=state.oracle_weak,
+            jump="SC-12 success" if selected_trace is None else "SD-8 repair",
+        )
 
         iteration_record: dict[str, Any] = {
             "iteration": iteration,
@@ -2890,6 +3478,19 @@ def run_full_staged_deterministic_runtime(
             state.iteration_records.append(iteration_record)
             break
         iteration_record.update(repair_patch)
+        _append_flow_log(
+            state.logs,
+            event="iteration_repair_result",
+            iteration=iteration,
+            accepted=accepted,
+            repair_patch=_compact_json(repair_patch, max_list_items=10),
+            current_dsl_hash=_hash_text(state.current_dsl),
+            jump=(
+                "waiver_continue"
+                if bool(repair_patch.get("waiver_continue")) and not accepted
+                else ("SD-2 next iteration" if accepted else "SC-12 or retry")
+            ),
+        )
 
         if bool(repair_patch.get("waiver_continue")) and not accepted:
             try:
@@ -3088,6 +3689,20 @@ def run_full_staged_deterministic_runtime(
             state.error_message = "runtime exited without convergence"
 
     _append_stage(state.stage_records, _meta(StageId.SC_13_TRACE_AUDIT, ok=True))
+    _append_flow_log(
+        state.logs,
+        event="run_end",
+        stage_id=StageId.SC_13_TRACE_AUDIT.value,
+        run_id=run_id,
+        verdict=state.final_verdict,
+        result_status=state.result_status,
+        record_status=state.final_record_status,
+        final_dsl_hash=_hash_text(state.current_dsl),
+        stage_count=len(state.stage_records),
+        iteration_count=len(state.iteration_records),
+        repair_count=len(state.repair_history),
+        final_dsl=state.current_dsl,
+    )
 
     result = AgentLoopResult(
         final_dsl=state.current_dsl,

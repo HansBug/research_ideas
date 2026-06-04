@@ -447,6 +447,10 @@ def _hash_text(text: str) -> str:
     return _hash_bytes(text.encode("utf-8"))
 
 
+def _short_hash_text(text: str) -> str:
+    return _hash_text(text)[:19]
+
+
 def _git_diff_hash(*, exclude_paths: Sequence[str | Path] = ()) -> str | None:
     pathspec = ["."]
     for path in exclude_paths:
@@ -957,6 +961,8 @@ def _write_per_run_artifacts(
         json.dumps(run_record_checks(record), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    (run_dir / "flow_log.json").write_text(json.dumps(record.logs, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (run_dir / "fix_log.json").write_text(json.dumps(record.fix_log, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (run_dir / "report.md").write_text(render_run_report(case, spec, record, summary), encoding="utf-8")
 
 
@@ -1029,6 +1035,8 @@ def _write_exception_artifacts(
     (run_dir / "final.fcstm").write_text("", encoding="utf-8")
     (run_dir / "summary.json").write_text(json.dumps(asdict(summary), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (run_dir / "checks.json").write_text(json.dumps({"schema_valid": False, "schema_error": "no run record produced", "secret_redacted": True}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (run_dir / "flow_log.json").write_text("[]\n", encoding="utf-8")
+    (run_dir / "fix_log.json").write_text("[]\n", encoding="utf-8")
     (run_dir / "report.md").write_text(render_exception_report(case, spec, summary), encoding="utf-8")
     return summary
 
@@ -1089,7 +1097,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| iteration exit_reason 序列 | `{_escape_md(_join_limited(summary.iteration_exit_reasons, limit=8))}` |",
         f"| token/cost/time | tokens=`{summary.token_usage}`, elapsed=`{summary.elapsed_seconds}s` |",
         f"| run record | [`{Path(summary.run_record_path).name}`](./{Path(summary.run_record_path).name}) |",
-        "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`reproducibility.json`](./reproducibility.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
+        "| summary/log/final DSL | [`summary.json`](./summary.json), [`checks.json`](./checks.json), [`reproducibility.json`](./reproducibility.json), [`flow_log.json`](./flow_log.json), [`fix_log.json`](./fix_log.json), [`final.fcstm`](./final.fcstm), [`stdout.txt`](./run_logs/stdout.txt), [`stderr.txt`](./run_logs/stderr.txt) |",
         "",
         "### 2. 输入 NL（多行原文）",
         "",
@@ -1118,6 +1126,12 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         lines.append("| " + " | ".join(row) + " |")
     lines.extend(
         [
+            "",
+            "### 4.1 完整流程日志（stage/control-flow replay ledger）",
+            "",
+            "口径：本节来自 `AgentLoopRunRecord.logs`，与 [`flow_log.json`](./flow_log.json) 一致；用于复现每个 stage 如何进入、得到什么批示、跳转到哪里，以及每次 DSL 产物/候选如何变化。",
+            "",
+            *_flow_log_lines(record),
             "",
             "### 5. Iteration / repair / review 摘要",
             "",
@@ -1544,6 +1558,62 @@ def _iteration_table_rows(record: AgentLoopRunRecord) -> list[list[str]]:
             ]
         )
     return rows
+
+
+def _flow_log_lines(record: AgentLoopRunRecord) -> list[str]:
+    logs = record.logs if isinstance(record.logs, list) else []
+    if not logs:
+        return ["- 本 run record 未记录流程日志；这通常表示旧格式记录或流程在日志初始化前异常退出。"]
+    lines: list[str] = [
+        "| # | ts | stage | iter | event | result / jump | DSL evidence |",
+        "|---:|---|---|---:|---|---|---|",
+    ]
+    for index, item in enumerate(logs[:80], start=1):
+        if not isinstance(item, dict):
+            continue
+        dsl_bits = []
+        for key in ("dsl", "current_dsl", "old_dsl", "candidate_dsl", "final_dsl"):
+            value = item.get(key)
+            if isinstance(value, str) and value:
+                dsl_bits.append(f"{key}:len={len(value)},hash={_short_hash_text(value)}")
+        if item.get("candidate_dsl_hash") and not any(part.startswith("candidate_dsl:") for part in dsl_bits):
+            dsl_bits.append(f"candidate_hash={item.get('candidate_dsl_hash')}")
+        if item.get("current_dsl_hash") and not any(part.startswith("current_dsl:") for part in dsl_bits):
+            dsl_bits.append(f"current_hash={item.get('current_dsl_hash')}")
+        if item.get("final_dsl_hash") and not any(part.startswith("final_dsl:") for part in dsl_bits):
+            dsl_bits.append(f"final_hash={item.get('final_dsl_hash')}")
+        result_payload = {
+            key: item.get(key)
+            for key in (
+                "ok",
+                "status",
+                "reason",
+                "decision",
+                "jump",
+                "accepted",
+                "selected_feedback",
+                "request_count",
+                "accepted_request_ids",
+                "rejected_request_ids",
+                "verdict",
+            )
+            if key in item
+        }
+        lines.append(
+            "| {idx} | `{ts}` | `{stage}` | `{iteration}` | `{event}` | {result} | {dsl} |".format(
+                idx=index,
+                ts=_escape_md(str(item.get("ts") or "")),
+                stage=_escape_md(str(item.get("stage_id") or "<control>")),
+                iteration=_escape_md(str(item.get("iteration") if item.get("iteration") is not None else "-")),
+                event=_escape_md(str(item.get("event") or "<none>")),
+                result=_escape_md(_short_text(json.dumps(result_payload, ensure_ascii=False, sort_keys=True), 420)),
+                dsl=_escape_md(_join_limited(dsl_bits, limit=5) or "<none>"),
+            )
+        )
+    if len(logs) > 80:
+        lines.append(f"- ……另有 `{len(logs) - 80}` 条流程日志见 [`flow_log.json`](./flow_log.json) / run record。")
+    return lines
+
 
 def _scenario_report_lines(record: AgentLoopRunRecord) -> list[str]:
     """Render human-readable scenarios and per-iteration pass/fail matrix."""
@@ -2407,14 +2477,21 @@ def _status_icon(status: str, ok: bool) -> str:
 
 
 def _token_usage(record: AgentLoopRunRecord) -> dict[str, int]:
-    usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "n_calls": 0}
+    usage = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "prompt_chars": 0,
+        "completion_chars": 0,
+        "n_calls": 0,
+    }
     for interaction in record.llm_interactions:
         if not isinstance(interaction, dict):
             continue
         stage_usage = interaction.get("usage")
         if isinstance(stage_usage, dict):
             usage["n_calls"] += 1
-            for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens", "prompt_chars", "completion_chars"):
                 value = stage_usage.get(key, 0)
                 if isinstance(value, int):
                     usage[key] += value

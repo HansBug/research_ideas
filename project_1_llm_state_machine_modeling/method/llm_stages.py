@@ -21,7 +21,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import sys
+import time
 from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any, Callable, Literal, Optional, Protocol
 
@@ -79,6 +82,22 @@ SECRET_FIELD_EXACT_KEYS = {
     "anthropic_api_key",
 }
 SECRET_FIELD_SUFFIXES = ("_api_key", "_token", "_password", "_passwd", "_secret", "_authorization")
+
+
+def _stage_progress_enabled() -> bool:
+    raw = os.environ.get("AGENT_LOOP_PROGRESS_LOG", os.environ.get("LLM_PROGRESS_LOG", "true"))
+    return str(raw).strip().lower() not in {"0", "false", "no", "off", "disabled"}
+
+
+def _stage_progress(stage_id: StageId, message: str, **payload: Any) -> None:
+    if not _stage_progress_enabled():
+        return
+    safe = " ".join(
+        f"{key}={str(value).replace(chr(10), ' ')[:180]}"
+        for key, value in payload.items()
+        if value is not None
+    )
+    print(f"[agent-loop][{stage_id.value}] {message}" + (f" {safe}" if safe else ""), file=sys.stdout, flush=True)
 
 
 @dataclass
@@ -405,8 +424,9 @@ def _attempt_payload(
     provider_name: str,
     error_kind: str | None = None,
     error_message: str | None = None,
+    elapsed_seconds: float | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "stage_id": stage_id.value,
         "attempt_index": attempt_index,
         "status": status,
@@ -420,6 +440,9 @@ def _attempt_payload(
         "model_id": model_id,
         "provider": provider_name,
     }
+    if elapsed_seconds is not None:
+        payload["elapsed_seconds"] = elapsed_seconds
+    return payload
 
 
 def _redaction_failed_message(exc: Exception) -> str:
@@ -627,6 +650,16 @@ def _run_llm_stage(
     schema_ok = False
 
     for attempt_index in range(config.max_retries + 1):
+        attempt_started = time.monotonic()
+        _stage_progress(
+            stage_id,
+            "attempt_start",
+            attempt=f"{attempt_index}/{config.max_retries}",
+            provider=chat_provider.provider_name,
+            model=last_model_id,
+            prompt_chars=sum(len(str(message.get("content", ""))) for message in prompt_messages),
+            response_format=response_format.get("type") if isinstance(response_format, dict) else None,
+        )
         try:
             raw_output, usage, model_id = chat_provider.chat(
                 messages=prompt_messages,
@@ -640,8 +673,10 @@ def _run_llm_stage(
             last_usage = usage
             last_model_id = model_id
         except Exception as exc:  # provider/network/timeout/rate-limit are provider-layer here.
+            elapsed = time.monotonic() - attempt_started
             last_error_kind = "provider_error"
             last_error = f"provider failure: {type(exc).__name__}: {str(exc)[:300]}"
+            _stage_progress(stage_id, "attempt_provider_error", attempt=attempt_index, elapsed=f"{elapsed:.2f}s", error=last_error)
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -654,13 +689,16 @@ def _run_llm_stage(
                     provider_name=chat_provider.provider_name,
                     error_kind=last_error_kind,
                     error_message=last_error,
+                    elapsed_seconds=elapsed,
                 )
             )
             continue
 
         if empty_output_invalid and not raw_output.strip():
+            elapsed = time.monotonic() - attempt_started
             last_error_kind = "empty_output"
             last_error = "empty LLM output"
+            _stage_progress(stage_id, "attempt_empty_output", attempt=attempt_index, elapsed=f"{elapsed:.2f}s")
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -673,6 +711,7 @@ def _run_llm_stage(
                     provider_name=chat_provider.provider_name,
                     error_kind=last_error_kind,
                     error_message=last_error,
+                    elapsed_seconds=elapsed,
                 )
             )
             continue
@@ -682,6 +721,15 @@ def _run_llm_stage(
             schema_ok = True
             last_error = None
             last_error_kind = None
+            elapsed = time.monotonic() - attempt_started
+            _stage_progress(
+                stage_id,
+                "attempt_schema_ok",
+                attempt=attempt_index,
+                elapsed=f"{elapsed:.2f}s",
+                raw_chars=len(raw_output),
+                usage=_jsonable(usage),
+            )
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -692,12 +740,15 @@ def _run_llm_stage(
                     usage=usage,
                     model_id=model_id,
                     provider_name=chat_provider.provider_name,
+                    elapsed_seconds=elapsed,
                 )
             )
             break
         except Exception as exc:
+            elapsed = time.monotonic() - attempt_started
             last_error_kind = "schema_invalid"
             last_error = f"schema invalid: {type(exc).__name__}: {str(exc)[:300]}"
+            _stage_progress(stage_id, "attempt_schema_invalid", attempt=attempt_index, elapsed=f"{elapsed:.2f}s", raw_chars=len(raw_output), error=last_error)
             attempts.append(
                 _attempt_payload(
                     stage_id=stage_id,
@@ -710,6 +761,7 @@ def _run_llm_stage(
                     provider_name=chat_provider.provider_name,
                     error_kind=last_error_kind,
                     error_message=last_error,
+                    elapsed_seconds=elapsed,
                 )
             )
 

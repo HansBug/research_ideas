@@ -81,3 +81,63 @@ def test_gpt_client_repo_deadline_interrupts_hung_call() -> None:
             time.sleep(10)
 
     assert time.monotonic() - started < 1.0
+
+from types import SimpleNamespace
+
+
+def _chunk(text: str):
+    return SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=text))])
+
+
+def test_gpt_client_chat_streams_by_default_and_aggregates_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCompletions:
+        def create(self, **kwargs: object):
+            captured.update(kwargs)
+            assert kwargs["stream"] is True
+            return iter([_chunk("hello"), _chunk(" "), _chunk("world")])
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setenv("LLM_MODEL", "mock-stream-model")
+    monkeypatch.setenv("LLM_PROGRESS_LOG", "false")
+    monkeypatch.delenv("LLM_STREAM", raising=False)
+    monkeypatch.setattr(gpt_client, "get_llm_client", lambda: fake_client)
+
+    content, usage = gpt_client.chat(messages=[{"role": "user", "content": "Say hello"}])
+
+    assert content == "hello world"
+    assert captured["model"] == "mock-stream-model"
+    assert "max_tokens" not in captured
+    assert usage["stream"] is True
+    assert usage["chunk_count"] == 3
+    assert usage["completion_chars"] == len("hello world")
+    assert usage["prompt_chars"] == len("Say hello")
+
+
+def test_gpt_client_chat_can_disable_stream_for_control_diagnostics(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeCompletions:
+        def create(self, **kwargs: object):
+            captured.update(kwargs)
+            assert "stream" not in kwargs
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="non-stream ok"))],
+                usage=SimpleNamespace(prompt_tokens=2, completion_tokens=3, total_tokens=5),
+            )
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    monkeypatch.setenv("LLM_MODEL", "mock-non-stream-model")
+    monkeypatch.setenv("LLM_STREAM", "false")
+    monkeypatch.setenv("LLM_PROGRESS_LOG", "false")
+    monkeypatch.setattr(gpt_client, "get_llm_client", lambda: fake_client)
+
+    content, usage = gpt_client.chat(messages=[{"role": "user", "content": "Say hello"}], max_tokens=123)
+
+    assert content == "non-stream ok"
+    assert captured["model"] == "mock-non-stream-model"
+    assert captured["max_tokens"] == 123
+    assert usage["stream"] is False
+    assert usage["total_tokens"] == 5
+    assert usage["completion_chars"] == len("non-stream ok")

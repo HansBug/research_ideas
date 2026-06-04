@@ -1330,6 +1330,8 @@ class FixLogEntry:
     batch_id: str = ""
     request_batch: dict[str, Any] | None = None
     decisions: list[dict[str, Any]] = field(default_factory=list)
+    old_dsl: str = ""
+    candidate_dsl: str = ""
     old_dsl_hash: str = ""
     candidate_dsl_hash: str = ""
     diff_summary: dict[str, Any] = field(default_factory=dict)
