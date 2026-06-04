@@ -1,6 +1,6 @@
 # SoSyM 2026 README
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:31:26`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -43,7 +43,7 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Theme Section: Software and Systems Modeling in Industry 5.0 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | 2026-07-15 待补时刻 | 🟡 专刊征稿 | Springer collection；[SoSyM theme sections](https://www.sosym.org/theme_sections) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | Springer 仅给日期，未给具体时刻；另有 2026-02-15 intent 与 2026-10-15 notification。 |
+| Theme Section: Software and Systems Modeling in Industry 5.0 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | 2026-07-15 待补时刻 | 🟡 专刊征稿 | Springer collection；[SoSyM theme sections](https://www.sosym.org/theme_sections) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | Springer 仅给日期，未给具体时刻；另有 2026-02-15 intent（✅ 已过去）与 2026-10-15 notification。 |
 | Theme Section: Engineering of Digital Twins | [rolling theme section](https://www.sosym.org/edtconf_journal_first/) | 滚动投稿 | 🟢 滚动开放 | SoSyM official site | 仅入 rolling / 待补记录 | 和 Industry 5.0 是不同条目；EDTConf'26 相关日期只表示若希望会议展示的目标节点，不写成普通 SoSyM 截稿。 |
 
 ## 5. 年度论文入口与数量
@@ -84,6 +84,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:31:26` | 根据 deepseek reviewer 修复后复审意见，将 Industry 5.0 的 2026-02-15 intent 节点显式标为已过去，与 TIMELINE.md 状态口径对齐。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 21:15` | 根据 review 补充 Industry 5.0 CFP 提到的 SoSyM online submission system 将变更的 caveat。 |
 | `2026-06-04 20:43` | 初始化 SoSyM 2026 年度 README，记录 Industry 5.0 专刊 deadline，并拆分 Digital Twins rolling theme section。 |
