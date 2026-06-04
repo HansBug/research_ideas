@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 23:04`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -12,10 +12,11 @@
 2. 每个 venue 的研究方向、官方入口、出版入口、`DBLP` 入口和 project 相关性。
 3. 自 `2022` 年以来每一年的年度主页、`CFP` / important dates / author guidelines、submission system、program / accepted papers、proceedings / volume issue、论文名录页面和论文数量，并在表格中直接挂可点击超链接。
 4. 尚未召开但已经能找到官方年度主页、`CFP` 或 important dates 的未来年度信息。
-5. 以 [TIMELINE.md](./TIMELINE.md) 按年份串联所有投稿相关 important dates，形成跨 venue 时间线。
-6. venue 当前阶段状态，例如投稿中、已截稿、审稿中、通知后、会期临近、已结束、期刊滚动开放等。
+5. 以 [TIMELINE.md](./TIMELINE.md) 按事件发生年份串联所有投稿相关 important dates，形成跨 venue 时间线。
+6. 每个会议 / 期刊的核心人员情报：组织委员会、PC / Research Track chair、Steering Committee、领域权威及其研究方向、代表作、近年论文线索。
+7. venue 当前阶段状态，例如投稿中、已截稿、审稿中、通知后、会期临近、已结束、期刊滚动开放等。
 
-换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口 / 论文集 / 期刊卷期入口在哪里，并能直接从表格点击跳转。**
+换言之，这里回答的问题是：**哪些 CCF venue 值得持续盯、每一年官网与关键时间点在哪里、什么时候该准备投稿、年度论文入口 / 论文集 / 期刊卷期入口在哪里、谁是该 venue 当前最值得关注的组织者 / PC / 领域权威，并能直接从表格点击跳转。**
 
 ## 2. 与现有材料的关系
 
@@ -100,6 +101,7 @@
 3. **TIMELINE.md 的事件行必须保留可点击来源链**：每条 dated event 至少链接事件官方来源和本库年度 README；若会议已结束或论文入口已发布，应同时挂年度主页、论文集 / 论文名录链接。
 4. **缺失链接要显式标注**：未公布写 `未公布`，已检索未找到写 `⏳ 已检索未公布`，待人工补证写 `待补`；不得留空，也不得把第三方聚合页伪装成官方来源。
 5. **链接优先级必须清楚**：官方页面优先；出版商页面用于 proceedings / volume issue；DBLP 只能作论文名录或计数 fallback；PR #5 和旧材料只作发现线索。
+6. **核心人员情报必须可追溯**：会议至少记录当前 / 未来年度 General Chair、Program / Research Track Chair、Steering Committee 与本仓库强相关的领域权威；期刊至少记录 Editor-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership 与相关 special issue guest editor，并给出官方角色页、个人主页或 DBLP / Google Scholar 等来源；期刊人员必须保留 `核验等级 / 当前性`。
 
 ## 7. 标准目录结构
 
@@ -158,9 +160,17 @@ ccf_venues/
 5. 若要新增 venue，先查 [01-venue-scope.md](./01-venue-scope.md)，确认是否属于当前批次。
 6. 最后进入 `<conf|journal>-<rank>-<slug>/` 维护具体 venue。
 
+并行 PR 合流时，PR-1A 会议试点负责会议事实、会议核心人员和会议 dated events；PR-1B 期刊试点负责期刊事实、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events。共享规范可互相吸收，事实表不得互相覆盖或回退。
+
 ## 10. 更新日志
+
+> 更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 23:04` | 吸收 PR-1A / PR-1B 合流协议：TIMELINE 改按事件发生年份，会议 / 期刊核心人员分轨，期刊人员保留 `核验等级 / 当前性`，并明确并行 PR 事实 owner 不互相覆盖。 |
+| `2026-06-04 22:20` | 明确模板占位链接、根表计数口径与年度更新日志提示的 review 修复要求。 |
+| `2026-06-04 21:55` | 将核心人员情报和更新日志降序要求同步为本库入口级维护口径。 |
+| `2026-06-04 21:42` | 补充核心人员情报的收录目标，要求每个 venue 维护组织者、PC / Steering 与领域权威的可追溯信息。 |
 | `2026-06-04 19:37` | 补充 venue 根 README、年度 README 与 TIMELINE 必须直接挂核心 URL / Markdown 超链接的要求。 |
 | `2026-06-04 18:55` | 明确默认未来检索/占位下限为当前年份 + 2（当前到 2028），更远未来若已有官方 CFP / important dates 也必须纳入。 |

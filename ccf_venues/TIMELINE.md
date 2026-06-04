@@ -1,7 +1,7 @@
 # `ccf_venues/` TIMELINE
 
-> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
-> 数据范围：`2022` 至当前年份 + 2 为默认检索与占位下限；已公布 CFP / important dates 的更远未来年度也必须纳入；当前初始化至少覆盖到 `2028`
+> 信息更新时间：`2026-06-04 23:04`（Asia/Shanghai）
+> 数据范围：按**事件发生年份**覆盖 `2022` 至当前年份 + 2；已公布 CFP / important dates 的更远未来年度也必须纳入；当前初始化至少覆盖到 `2028`
 > 数据来源：各 venue README / 年度 README；本文件是汇总索引，不是事实真源。
 
 ## 1. 文档用途
@@ -12,11 +12,11 @@
 2. 哪些期刊 special issue 或 topical collection 与会议截稿形成时间冲突。
 3. 后续 project_1~4 做投稿规划、论文检索和调研冲刺时，应优先盯哪些时间窗口。
 
-当前文档只固定结构与维护口径；由于正式 venue 年度 README 尚未补齐，本文件不声称已经覆盖任何真实 venue 数据。
+当前文档已开始随 PR-1B 回填期刊数据；会议 venue 与其他 P0 venue 仍等待后续 PR 补齐。PR-1A 负责会议 dated events，PR-1B 负责期刊 rolling 表与期刊 special issue dated events；合并时两类事实必须共存。
 
 ## 2. 维护口径
 
-1. **按年份分节**：每个年份一个二级章节，例如 `2028`、`2027`、`2026`，年份按降序排列。
+1. **按事件发生年份分节**：每个年份一个二级章节，例如 `2028`、`2027`、`2026`，年份按降序排列；会议 edition 的投稿 ddl 若发生在前一年，进入前一年章节，并在 Venue 字段保留 edition。
 2. **节内按时间升序**：同一年内的表格必须按实际日期时间从早到晚排列。
 3. **年度 README 是事实源**：各 venue 年度 README 保存原始核验事实；本文件只做跨 venue 汇总索引。
 4. **来源可点击**：每个时间点都必须同时给出事件官方来源、官方年度主页、本库年度 README 链接；若论文集 / 论文名录 / 期刊卷期入口已发布，也必须直接挂链接。
@@ -24,7 +24,8 @@
 6. **未来检索下限**：每轮实际搜索默认至少检索到当前年份 + 2；若当前年份 + 1 / +2 没有官方信息，也要在对应 venue 年度页或待补记录中说明已检索但未公布。
 7. **更远未来年度**：当前年份 + 3 或更远不强制占位，但只要能找到官方年度主页、`CFP`、important dates 或投稿入口，就必须新增对应年份章节。
 8. **期刊区别处理**：rolling submission 不伪造日期，放入“期刊滚动投稿 / 未定日期”；只有 special issue / topical collection 等带明确 ddl 的期刊事件进入年度 dated timeline。
-9. **避免超大图**：如果某一年事件超过 `40` 条，按 `A 类 / B 类 / C 类` 或 `会议 / 期刊专刊` 拆成多张 Mermaid 图，仍保持同一年度总表。
+9. **并行 PR owner**：PR-1A 负责会议 dated events；PR-1B 负责期刊 rolling 表和期刊 special issue dated events。冲突解决时不得用单边 PR 的空白年度表覆盖另一边已核验事件。
+10. **避免超大图**：如果某一年事件超过 `40` 条，按 `A 类 / B 类 / C 类` 或 `会议 / 期刊专刊` 拆成多张 Mermaid 图，仍保持同一年度总表。
 
 
 ## 3. 核心链接字段
@@ -44,7 +45,7 @@
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 | P0 venue 补齐后回填未来 / 活跃窗口。 |
+| 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | 官方仅给日期，未给具体时刻；另有 intent 2026-02-15 与 notification 2026-10-15。 |
 
 ## 5. 事件类型口径
 
@@ -56,6 +57,7 @@
 | `Notification` | 录用通知 | 是 |
 | `Camera-ready` | 终稿截止 | 是 |
 | `Conference` | 会期 | 是，按起止日期表示 |
+| `Intent` | 期刊专刊 / theme section 的 intent to submit 日期 | 是 |
 | `Special issue` | 期刊专刊 / topical collection 截止 | 是 |
 | `Rolling submission` | 期刊常规滚动投稿 | 否，只在未定日期表中说明 |
 | `Proceedings online` | 论文集或年度论文名录上线 | 可选，默认不进图 |
@@ -69,7 +71,7 @@
 
 ## 7. 2028 时间线
 
-> 当前状态：等待 P0 venue 年度 README 补齐后回填；若某 venue 尚未发布 2028 官方主页，则保留 `⏳ 待官网` 或 `⏳ 已检索未公布` 状态。 若已找到 2029 或更远官方 CFP / important dates，应在本节之前新增对应更高年份章节。
+> 当前状态：PR-1B 已对 TSE / TOSEM / SoSyM 做 2028 与 `2029+` 未公布核查；当前没有 dated event，rolling 入口见第 14 节。其他 P0 venue 等待后续 PR 回填；若已找到 2029 或更远官方 CFP / important dates，应在本节之前新增对应更高年份章节。
 
 ### 7.1 2028 投稿事件总表
 
@@ -91,7 +93,7 @@ gantt
 
 ## 8. 2027 时间线
 
-> 当前状态：等待 P0 venue 年度 README 补齐后回填；若某 venue 尚未发布 2027 官方主页，则保留 `⏳ 待官网` 或 `⏳ 已检索未公布` 状态。
+> 当前状态：PR-1B 已对 TSE / TOSEM / SoSyM 做 2027 与 `2029+` 未公布核查；当前没有 dated event，rolling 入口见第 14 节。其他 P0 venue 等待后续 PR 回填。
 
 ### 8.1 2027 投稿事件总表
 
@@ -113,24 +115,28 @@ gantt
 
 ## 9. 2026 时间线
 
-> 当前状态：等待 P0 venue 年度 README 补齐后回填。
+> 当前状态：PR-1B 已回填 SoSyM 2026 Industry 5.0 theme section；TSE / TOSEM / SoSyM 常规 rolling 投稿见第 14 节。
 
 ### 9.1 2026 投稿事件总表
 
 | 日期时间 | Venue | 类型-CCF | Track / 事项 | 日期类型 | 阶段状态 | 事件官方来源 | 年度主页 | 论文集 / 名录 | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | ⏳ 待核验 | P0 venue 补齐后按时间升序维护。 |
+| 2026-02-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Intent | ✅ 已过去 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | 官方仅给日期；intent to submit 已过去，保留为专刊完整日期链。 |
+| 2026-07-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Special issue | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | Paper submission deadline；官方仅给日期，未给具体时刻。 |
+| 2026-10-15 待补时刻 | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 期刊专刊-CCF B | Theme Section: Software and Systems Modeling in Industry 5.0 | Notification | 🟡 专刊征稿 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [Springer SoSyM](https://link.springer.com/journal/10270) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | submission deadline 尚未到；notification 为后续节点。 |
 
 ### 9.2 2026 Mermaid 可视化
 
 ```mermaid
 gantt
-  title CCF Venue Important Dates 2026 TODO
+  title CCF Venue Important Dates 2026
   dateFormat YYYY-MM-DD
   axisFormat %m-%d
 
-  section TODO
-  P0 dates TODO :milestone, todo2026, 2026-01-01, 1d
+  section SoSyM
+  Industry 5.0 intent :milestone, sosym_industry_intent, 2026-02-15, 1d
+  Industry 5.0 submit :milestone, sosym_industry_submit, 2026-07-15, 1d
+  Industry 5.0 notify :milestone, sosym_industry_notify, 2026-10-15, 1d
 ```
 
 ## 10. 2025 时间线
@@ -226,13 +232,18 @@ gantt
 
 | 年份 | Journal | CCF | 投稿模式 | Author guidelines | Submission system | Special issue / topical collection | 截止时间 | Volume / issue | Online first | 本库年度页 | 核验状态 | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 待补 | 未定 | 待补 | 待补 | 待补 | ⏳ 待核验 | rolling submission 不进入 Mermaid dated timeline。 |
+| 2026 | [TSE](./journal-a-tse/README.md) | A | 常规 rolling submission | [IEEE CS Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated special issue | 未定 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE 2026](./journal-a-tse/2026/README.md) | 🟡 部分核验 | Publishing Portal 是入口；实际 peer-review destination / TSE 专属 ScholarOne 子站待官方当前页确认。 |
+| 2026 | [TOSEM](./journal-a-tosem/README.md) | A | 常规 rolling submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | Agentic AI 线索，deadline 未公布 | 未定 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [TOSEM 2026](./journal-a-tosem/2026/README.md) | 🟡 部分核验 | ACM DL 动态访问受限；TOSEM ScholarOne 仍作为候选入口，canonical 跳转待人工确认。 |
+| 2026 | [SoSyM](./journal-b-sosym/README.md) | B | 常规 rolling submission；theme section 另列 | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/) | Industry 5.0: 2026-07-15 待补时刻；Digital Twins: rolling | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [SoSyM 2026](./journal-b-sosym/2026/README.md) | 🟡 部分核验 | Industry 5.0 与 Digital Twins 是不同 theme section；Industry 5.0 CFP 提示 SoSyM online submission system 将变更。 |
 
 ## 15. 待补与冲突记录
 
 | Venue | 年份 | 问题 | 当前处理 | 下一步 |
 |---|---|---|---|---|
-| 待补 | 待补 | P0 venue 尚未建立年度 README | 保留 timeline 骨架 | 后续逐 venue 补齐后回填 |
+| TSE | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 IEEE CSDL / DBLP 发布后补录 |
+| TOSEM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 ACM DL / DBLP 发布后补录 |
+| SoSyM | 2027 / 2028 / 2029+ | 未发现官方年度卷期、online-first 年度入口或 dated special issue | 年度页写 `⏳ 已检索未公布`；不预设未来卷号 | 后续待 Springer / DBLP 发布后补录 |
+| SoSyM | 2026 | Digital Twins 是独立 rolling theme section，且 EDTConf'26 日期是 presentation target，不是普通 SoSyM 投稿 deadline | 只放 rolling / 待补记录，不进主 dated timeline | 后续若官方给出固定 journal submission deadline，再同步年度表与 Mermaid |
 
 ## 16. Mermaid 示例与维护规范
 
@@ -263,9 +274,24 @@ gantt
 
 更新 Mermaid 后，应至少人工检查 Markdown 预览；若本地有 Mermaid CLI，可运行渲染检查，但不得为了通过渲染而删掉表格事实。
 
-## 17. 更新日志
+## 17. PR-1A / PR-1B 合流提示
+
+| 合流对象 | 当前 owner | 合并时必须保留 | 不应做 |
+|---|---|---|---|
+| 会议 dated events | PR-1A | ICSE / MoDELS / ETAPS 等会议的 abstract、submission、notification、camera-ready、conference dates；按事件发生年份落表 | 不要用 PR-1B 的空白年度 TODO 行覆盖会议事件 |
+| 期刊 dated events | PR-1B | SoSyM Industry 5.0 intent、submission、notification 等带明确日期的 theme section 事件 | 不要因为会议 PR 回填而删除期刊专刊事件 |
+| 期刊 rolling / 未定日期表 | PR-1B | TSE / TOSEM / SoSyM 的 rolling submission、author guidelines、submission system、volume / online-first 入口 | 不要把 rolling journal 伪造成 dated Mermaid deadline |
+| Mermaid 年度图 | 对应事件 owner | 与年度总表一致的事件集合，必要时按会议 / 期刊专刊拆图 | 不要为解决冲突删表格事实或删另一 owner 的图块 |
+
+## 18. 更新日志
+
+更新日志按时间降序排列，最新记录置于最上方。
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 23:04` | 吸收 PR-1A 合流协议：TIMELINE 改用事件发生年份口径，新增并行 PR owner 提示，强调会议 dated events、期刊 rolling 表和 SoSyM Industry 5.0 dated event 合并后必须共存。 |
+| `2026-06-04 22:05` | 根据正式复审把 SoSyM Industry 5.0 已过 intent 节点标为已过去，避免误读为未来投稿点。 |
+| `2026-06-04 21:15` | 根据实现后 review 修正 rolling 表：TOSEM 改用 author-guidelines / Just Accepted / ScholarOne 候选入口，TSE 与 SoSyM 补充投稿入口 caveat，2027/2028 年份说明补充 PR-1B 已核查但无 dated event。 |
+| `2026-06-04 20:43` | 回填 PR-1B 期刊试点信息：SoSyM Industry 5.0 dated event、TSE / TOSEM / SoSyM rolling 行、未来年度未公布与 Digital Twins 口径记录。 |
 | `2026-06-04 19:37` | 补充 TIMELINE 事件表必须挂事件官方来源、年度主页、论文集 / 名录和本库年度页链接的要求。 |
 | `2026-06-04 18:55` | 明确默认未来检索/占位下限为当前年份 + 2（当前到 2028），更远未来若已有官方 CFP / important dates 也必须纳入。 |
