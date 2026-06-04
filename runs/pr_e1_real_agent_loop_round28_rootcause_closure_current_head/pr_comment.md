@@ -4,12 +4,12 @@
 
 本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/`。
 
-| Path | case | config | verdict | status | clean | eligible | failure class | token usage | report |
-|---|---|---|---|---|---:|---:|---|---|---|
-| path1 | `path1_abs` | `default` | `success` | `success` | ✅ | ✅ | `success` | 38218 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_abs-default-round28rootcause-d269a32a/report.md` |
-| path1 | `path1_cara` | `default` | `success` | `success` | ✅ | ✅ | `success` | 460349 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_cara-default-round28rootcause-f4151902/report.md` |
-| path1 | `path1_elevator` | `default` | `success` | `success` | ✅ | ✅ | `success` | 35042 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_elevator-default-round28rootcause-52e7389e/report.md` |
-| path2 | `path2_lng_ems` | `default` | `success` | `success` | ✅ | ✅ | `success` | 465148 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/report.md` |
+| Path | case | config | verdict | status | clean | eligible | path2 blueprint | failure class | token usage | report |
+|---|---|---|---|---|---:|---:|---|---|---|---|
+| path1 | `path1_abs` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 38218 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_abs-default-round28rootcause-d269a32a/report.md` |
+| path1 | `path1_cara` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 460349 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_cara-default-round28rootcause-f4151902/report.md` |
+| path1 | `path1_elevator` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 35042 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_elevator-default-round28rootcause-52e7389e/report.md` |
+| path2 | `path2_lng_ems` | `default` | `success` | `success` | ✅ | ✅ | ❌ | `success` | 465148 | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/report.md` |
 
 ### 可复现性边界
 
@@ -21,6 +21,13 @@
 
 - `default`：4/4 success，rejected=0，budget_exhausted=0，total_tokens=998757。
 - 主结果候选：当前 4/4 个非 infrastructure run 可进入 main_result_eligible；provider/network invalid=0 个，只能作为 infrastructure evidence。
+
+### 主结果候选 vs Path2 ref-model 蓝本边界
+
+- Path2 run-validity：1/1 个 Path2 run 的 `main_result_eligible=true`；这只表示 run/schema/secret/trace/final verdict 可进入主结果候选。
+- Path2 blueprint-validity：0/1 个 Path2 run 当前可作为 `path2_ref_model_blueprint_eligible=true`；该字段比 `main_result_eligible` 更严格。
+- `path2_lng_ems`：main_result_eligible=`true`，path2_ref_model_blueprint_eligible=`false`，state_mode_decorative=`true`；reason=state_mode_decorative: final DSL is dominated by root-level forced guard reclassification; valid as FE/BVS or dispatch-classifier stress evidence, but not a Path2 ref-model blueprint
+- 解释：`path2_ref_model_blueprint_eligible=false` 不会把有效 run 改成 provider invalid；它只禁止把 state-mode-decorative / 条件分类式模型宣传为 Path2 ref-model 主蓝本。
 
 ### 主要失败模式
 
@@ -119,9 +126,12 @@ state SingleWheelABSHydraulicRegulator {
 |---|---|
 | verdict / status | `success` / `success` |
 | failure class | `success` |
+| main_result_eligible | `true` |
+| path2_ref_model_blueprint | `n/a`；<none> |
+| state_mode_decorative | `false` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `1` / `0` / `0` / `1` |
-| token / elapsed | `{'prompt_tokens': 30758, 'completion_tokens': 7460, 'total_tokens': 38218, 'estimated_prompt_tokens': 29805, 'estimated_completion_tokens': 4664, 'estimated_total_tokens': 34469, 'prompt_chars': 119218, 'completion_chars': 18650, 'n_calls': 3, 'token_usage_available': True, 'token_usage_unavailable_calls': 0}` / `142.385s` |
+| token / elapsed | `{'completion_chars': 18650, 'completion_tokens': 7460, 'estimated_completion_tokens': 4664, 'estimated_prompt_tokens': 29805, 'estimated_total_tokens': 34469, 'n_calls': 3, 'prompt_chars': 119218, 'prompt_tokens': 30758, 'token_usage_available': True, 'token_usage_unavailable_calls': 0, 'total_tokens': 38218}` / `142.385s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_abs-default-round28rootcause-d269a32a/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_abs-default-round28rootcause-d269a32a/pr-e1-path1_abs-default-round28rootcause-d269a32a.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_abs-default-round28rootcause-d269a32a/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_abs-default-round28rootcause-d269a32a/run_logs/stderr.txt` |
@@ -335,9 +345,12 @@ state CARA {
 |---|---|
 | verdict / status | `success` / `success` |
 | failure class | `success` |
+| main_result_eligible | `true` |
+| path2_ref_model_blueprint | `n/a`；<none> |
+| state_mode_decorative | `false` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SL-5 -> SD-5A -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-5A -> SL-5 -> SD-5A -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-5A -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `4` / `3` / `3` / `8` |
-| token / elapsed | `{'prompt_tokens': 408024, 'completion_tokens': 52325, 'total_tokens': 460349, 'estimated_prompt_tokens': 442654, 'estimated_completion_tokens': 42931, 'estimated_total_tokens': 485585, 'prompt_chars': 1770596, 'completion_chars': 171705, 'n_calls': 15, 'token_usage_available': True, 'token_usage_unavailable_calls': 0}` / `996.721s` |
+| token / elapsed | `{'completion_chars': 171705, 'completion_tokens': 52325, 'estimated_completion_tokens': 42931, 'estimated_prompt_tokens': 442654, 'estimated_total_tokens': 485585, 'n_calls': 15, 'prompt_chars': 1770596, 'prompt_tokens': 408024, 'token_usage_available': True, 'token_usage_unavailable_calls': 0, 'total_tokens': 460349}` / `996.721s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_cara-default-round28rootcause-f4151902/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_cara-default-round28rootcause-f4151902/pr-e1-path1_cara-default-round28rootcause-f4151902.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_cara-default-round28rootcause-f4151902/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_cara-default-round28rootcause-f4151902/run_logs/stderr.txt` |
@@ -565,9 +578,12 @@ state AutomaticElevatorController {
 |---|---|
 | verdict / status | `success` / `success` |
 | failure class | `success` |
+| main_result_eligible | `true` |
+| path2_ref_model_blueprint | `n/a`；<none> |
+| state_mode_decorative | `false` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `1` / `0` / `0` / `1` |
-| token / elapsed | `{'prompt_tokens': 26987, 'completion_tokens': 8055, 'total_tokens': 35042, 'estimated_prompt_tokens': 26285, 'estimated_completion_tokens': 5900, 'estimated_total_tokens': 32185, 'prompt_chars': 105132, 'completion_chars': 23593, 'n_calls': 3, 'token_usage_available': True, 'token_usage_unavailable_calls': 0}` / `153.05s` |
+| token / elapsed | `{'completion_chars': 23593, 'completion_tokens': 8055, 'estimated_completion_tokens': 5900, 'estimated_prompt_tokens': 26285, 'estimated_total_tokens': 32185, 'n_calls': 3, 'prompt_chars': 105132, 'prompt_tokens': 26987, 'token_usage_available': True, 'token_usage_unavailable_calls': 0, 'total_tokens': 35042}` / `153.05s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_elevator-default-round28rootcause-52e7389e/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_elevator-default-round28rootcause-52e7389e/pr-e1-path1_elevator-default-round28rootcause-52e7389e.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_elevator-default-round28rootcause-52e7389e/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path1_elevator-default-round28rootcause-52e7389e/run_logs/stderr.txt` |
@@ -930,9 +946,12 @@ state LNGShipEMS {
 |---|---|
 | verdict / status | `success` / `success` |
 | failure class | `success` |
+| main_result_eligible | `true` |
+| path2_ref_model_blueprint | `false`；state_mode_decorative: final DSL is dominated by root-level forced guard reclassification; valid as FE/BVS or dispatch-classifier stress evidence, but not a Path2 ref-model blueprint |
+| state_mode_decorative | `true` |
 | executed stages | `SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SL-5 -> SD-5A -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SD-2 -> SD-3 -> SD-4 -> SD-5A -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SC-12 -> SC-13` |
 | iter / repairs / accepted / scenarios | `4` / `3` / `3` / `5` |
-| token / elapsed | `{'prompt_tokens': 417182, 'completion_tokens': 47966, 'total_tokens': 465148, 'estimated_prompt_tokens': 412139, 'estimated_completion_tokens': 31678, 'estimated_total_tokens': 443817, 'prompt_chars': 1648540, 'completion_chars': 126690, 'n_calls': 13, 'token_usage_available': True, 'token_usage_unavailable_calls': 0}` / `914.868s` |
+| token / elapsed | `{'completion_chars': 126690, 'completion_tokens': 47966, 'estimated_completion_tokens': 31678, 'estimated_prompt_tokens': 412139, 'estimated_total_tokens': 443817, 'n_calls': 13, 'prompt_chars': 1648540, 'prompt_tokens': 417182, 'token_usage_available': True, 'token_usage_unavailable_calls': 0, 'total_tokens': 465148}` / `914.868s` |
 | full stage table | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/report.md` §4 |
 | run record | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577.agent_loop.json.gz` |
 | logs | `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/run_logs/stdout.txt`, `runs/pr_e1_real_agent_loop_round28_rootcause_closure_current_head/pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/run_logs/stderr.txt` |

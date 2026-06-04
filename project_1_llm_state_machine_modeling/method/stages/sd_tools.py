@@ -290,7 +290,7 @@ def _external_input_role_ledger(
     high-risk pyfcstm warnings when the NL / SL-1 grounding contains generic
     controller-boundary evidence that a variable is a read-only plant,
     sensor, environment, or capacity input.  It must not depend on benchmark
-    case IDs or domain-specific aliases such as ABS/CARA/LNG/SoC/PL.
+    case IDs or domain-specific benchmark aliases.
     """
 
     ledger: dict[str, list[str]] = {}

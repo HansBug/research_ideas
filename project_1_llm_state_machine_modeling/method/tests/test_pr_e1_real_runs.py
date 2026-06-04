@@ -384,6 +384,114 @@ def test_pr_e1_case_metadata_marks_external_inputs_outputs_and_state_mode_policy
     assert "state_mode_decorative" in cases["path2_lng_ems"].state_mode_participation_note
 
 
+
+def test_pr_e1_path2_blueprint_eligibility_is_stricter_than_main_result(tmp_path: Path) -> None:
+    record = _record("path2-blueprint")
+    record.status = "success"
+    record.stage_records = [_stage_meta(stage_id, ok=True) for stage_id in ["SC-0", "SL-1", "SD-2", "SD-3", "SD-4", "SL-5", "SD-5A", "SC-5F", "SD-6", "SL-7", "SC-12", "SC-13"]]
+    forced_classifier_dsl = """def float load_demand = 0.0;
+def float supply_capacity = 0.0;
+
+state DispatchClassifier {
+    ! * -> Surplus : if [supply_capacity >= load_demand];
+    ! * -> Balanced : if [supply_capacity == load_demand];
+    ! * -> BatteryAssist : if [supply_capacity < load_demand];
+    ! * -> EngineAssist : if [supply_capacity + 10 >= load_demand];
+    ! * -> ShedLoad : if [supply_capacity + 10 < load_demand];
+    ! * -> Recovery : if [load_demand == 0];
+    [*] -> Surplus;
+    state Surplus;
+    state Balanced;
+    state BatteryAssist;
+    state EngineAssist;
+    state ShedLoad;
+    state Recovery;
+}
+"""
+    record.final_artifacts.update(
+        {
+            "final_dsl": forced_classifier_dsl,
+            "final_dsl_hash": "sha256:path2",
+            "verdict": "success",
+            "verdict_reason": "full_pass_all_required_feedback_ok",
+            "agent_loop_result_status": "success",
+            "main_result_eligible": True,
+            "exclusion_reason": None,
+        }
+    )
+    path = write_agent_loop_run_record(record, tmp_path / "path2-blueprint.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=forced_classifier_dsl, status="success", run_record_id="path2-blueprint", run_record_path=str(path))
+
+    from method.pr_e1_real_runs import render_matrix_summary, summarize_pr_e1_run
+
+    summary = summarize_pr_e1_run(
+        case={case.case_key: case for case in pr_e1_cases("all")}["path2_lng_ems"],
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    assert summary.main_result_eligible is True
+    assert summary.state_mode_decorative_detected is True
+    assert summary.path2_ref_model_blueprint_eligible is False
+    assert "dispatch-classifier" in summary.path2_ref_model_blueprint_reason
+    rendered = render_matrix_summary([summary])
+    assert "Path2 ref-model blueprint" in rendered
+    assert "main_result_eligible=`true`" in rendered
+    assert "path2_ref_model_blueprint_eligible=`false`" in rendered
+
+
+def test_pr_e1_path2_blueprint_allows_non_decorative_mode_model(tmp_path: Path) -> None:
+    record = _record("path2-modeful")
+    record.status = "success"
+    modeful_dsl = """state ModefulDispatch {
+    [*] -> Standby;
+    state Standby;
+    state Dispatching;
+    state Faulted;
+    Standby -> Dispatching :: StartDispatch;
+    Dispatching -> Standby :: StopDispatch;
+    ! * -> Faulted :: FaultDetected;
+}
+"""
+    record.final_artifacts.update(
+        {
+            "final_dsl": modeful_dsl,
+            "final_dsl_hash": "sha256:modeful",
+            "verdict": "success",
+            "agent_loop_result_status": "success",
+            "main_result_eligible": True,
+            "exclusion_reason": None,
+        }
+    )
+    path = write_agent_loop_run_record(record, tmp_path / "path2-modeful.agent_loop.json.gz")
+    result = AgentLoopResult(final_dsl=modeful_dsl, status="success", run_record_id="path2-modeful", run_record_path=str(path))
+
+    from method.pr_e1_real_runs import summarize_pr_e1_run
+
+    summary = summarize_pr_e1_run(
+        case={case.case_key: case for case in pr_e1_cases("all")}["path2_lng_ems"],
+        spec=condition_specs()["default"],
+        result=result,
+        record=record,
+        elapsed_seconds=1.0,
+        run_dir=tmp_path,
+        stdout_path=tmp_path / "stdout.txt",
+        stderr_path=tmp_path / "stderr.txt",
+        reproducibility_payload={},
+        reproducibility_path=tmp_path / "reproducibility.json",
+    )
+
+    assert summary.main_result_eligible is True
+    assert summary.state_mode_decorative_detected is False
+    assert summary.path2_ref_model_blueprint_eligible is True
+
 def test_pr_e1_matrix_summary_separates_provider_invalid_denominator() -> None:
     ok = PrE1RunSummary(
         case_key="path1_abs",

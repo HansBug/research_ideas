@@ -344,8 +344,9 @@ def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens(
     """Guard against benchmark overfit in default agent-loop prompts.
 
     PR-E1 may keep concrete sample metadata in ``pr_e1_real_runs.py`` and run
-    artifacts, but the reusable SL prompt contracts and grammar digest must not
-    contain lexical hints from the evaluated ABS/CARA/Elevator/LNG samples.
+    artifacts, but reusable SL prompt contracts and shared legacy/skill prompt
+    files must not contain lexical hints from the evaluated
+    ABS/CARA/Elevator/LNG samples.
     """
 
     sample_specific_tokens = {
@@ -359,6 +360,11 @@ def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens(
         "PS1",
         "PS2",
         "PS3",
+        "MU2",
+        "MU3",
+        "MD1",
+        "MD2",
+        "automatic-elevator",
         "path1_cara",
         "path2_lng",
         "case_id",
@@ -388,6 +394,16 @@ def test_default_agent_loop_prompts_do_not_contain_pr_e1_sample_specific_tokens(
             )
         ),
     }
+    shared_prompt_files = [
+        METHOD_ROOT / "prompts" / "_pyfcstm_grammar.md",
+        METHOD_ROOT / "prompts" / "modeler.txt",
+        METHOD_ROOT / "prompts" / "spec_extractor.txt",
+        METHOD_ROOT / "prompts" / "multistep" / "identify_event.txt",
+        METHOD_ROOT / "prompts" / "multistep" / "identify_transition.txt",
+        METHOD_ROOT / "prompts" / "multistep" / "build_pyfcstm.txt",
+        METHOD_ROOT / "agent_loop_skill" / "nfrr_evaluation_guide.md",
+    ]
+    prompts.update({f"file:{path.relative_to(METHOD_ROOT)}": path.read_text(encoding="utf-8") for path in shared_prompt_files})
 
     for prompt_name, prompt_text in prompts.items():
         hits = sorted(

@@ -10,17 +10,24 @@
 
 ## 1. 运行矩阵总览
 
-| Path | case | config | verdict | record | clean | eligible | failure class | iter | repairs | scenarios | tokens | elapsed | report |
-|---|---|---|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|
-| path1 | `path1_abs` | `default` | `success` | `success` | ✅ | ✅ | `success` | 1 | 0 | 1 | 38218 | 142.4s | [pr-e1-path1_abs-default-round28rootcause-d269a32a](./pr-e1-path1_abs-default-round28rootcause-d269a32a/report.md) |
-| path1 | `path1_cara` | `default` | `success` | `success` | ✅ | ✅ | `success` | 4 | 3 | 8 | 460349 | 996.7s | [pr-e1-path1_cara-default-round28rootcause-f4151902](./pr-e1-path1_cara-default-round28rootcause-f4151902/report.md) |
-| path1 | `path1_elevator` | `default` | `success` | `success` | ✅ | ✅ | `success` | 1 | 0 | 1 | 35042 | 153.1s | [pr-e1-path1_elevator-default-round28rootcause-52e7389e](./pr-e1-path1_elevator-default-round28rootcause-52e7389e/report.md) |
-| path2 | `path2_lng_ems` | `default` | `success` | `success` | ✅ | ✅ | `success` | 4 | 3 | 5 | 465148 | 914.9s | [pr-e1-path2_lng_ems-default-round28rootcause-9b55c577](./pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/report.md) |
+| Path | case | config | verdict | record | clean | eligible | path2 blueprint | failure class | iter | repairs | scenarios | tokens | elapsed | report |
+|---|---|---|---|---|---:|---:|---|---|---:|---:|---:|---:|---:|---|
+| path1 | `path1_abs` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 1 | 0 | 1 | 38218 | 142.4s | [pr-e1-path1_abs-default-round28rootcause-d269a32a](./pr-e1-path1_abs-default-round28rootcause-d269a32a/report.md) |
+| path1 | `path1_cara` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 4 | 3 | 8 | 460349 | 996.7s | [pr-e1-path1_cara-default-round28rootcause-f4151902](./pr-e1-path1_cara-default-round28rootcause-f4151902/report.md) |
+| path1 | `path1_elevator` | `default` | `success` | `success` | ✅ | ✅ | ⚪ | `success` | 1 | 0 | 1 | 35042 | 153.1s | [pr-e1-path1_elevator-default-round28rootcause-52e7389e](./pr-e1-path1_elevator-default-round28rootcause-52e7389e/report.md) |
+| path2 | `path2_lng_ems` | `default` | `success` | `success` | ✅ | ✅ | ❌ | `success` | 4 | 3 | 5 | 465148 | 914.9s | [pr-e1-path2_lng_ems-default-round28rootcause-9b55c577](./pr-e1-path2_lng_ems-default-round28rootcause-9b55c577/report.md) |
 
 ## 2. 初步配置结论
 
 - `default`：4/4 success，rejected=0，budget_exhausted=0，total_tokens=998757。
 - 主结果候选：当前 4/4 个非 infrastructure run 可进入 main_result_eligible；provider/network invalid=0 个，只能作为 infrastructure evidence。
+
+## 2.1 主结果候选 vs Path2 ref-model 蓝本边界
+
+- Path2 run-validity：1/1 个 Path2 run 的 `main_result_eligible=true`；这只表示 run/schema/secret/trace/final verdict 可进入主结果候选。
+- Path2 blueprint-validity：0/1 个 Path2 run 当前可作为 `path2_ref_model_blueprint_eligible=true`；该字段比 `main_result_eligible` 更严格。
+- `path2_lng_ems`：main_result_eligible=`true`，path2_ref_model_blueprint_eligible=`false`，state_mode_decorative=`true`；reason=state_mode_decorative: final DSL is dominated by root-level forced guard reclassification; valid as FE/BVS or dispatch-classifier stress evidence, but not a Path2 ref-model blueprint
+- 解释：`path2_ref_model_blueprint_eligible=false` 不会把有效 run 改成 provider invalid；它只禁止把 state-mode-decorative / 条件分类式模型宣传为 Path2 ref-model 主蓝本。
 
 ## 3. 主要失败模式
 

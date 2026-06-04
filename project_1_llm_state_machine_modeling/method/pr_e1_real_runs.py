@@ -206,6 +206,9 @@ class PrE1RunSummary:
     stdout_path: str
     stderr_path: str
     primary_failure_class: str
+    state_mode_decorative_detected: bool = False
+    path2_ref_model_blueprint_eligible: bool | None = None
+    path2_ref_model_blueprint_reason: str = ""
     fix_log_next_actions: list[str] = field(default_factory=list)
     iteration_exit_reasons: list[str] = field(default_factory=list)
     final_dsl_source: dict[str, object] = field(default_factory=dict)
@@ -794,6 +797,13 @@ def summarize_pr_e1_run(
     repro_dirty, repro_diff_hash, prompt_hash = _repro_digest(reproducibility_payload or {})
     repro_path = reproducibility_path or (run_dir / "reproducibility.json")
     final_dsl_hash = _optional_str(final.get("final_dsl_hash"))
+    state_mode_decorative = _state_mode_decorative_detected(case, final_dsl)
+    path2_blueprint_eligible, path2_blueprint_reason = _path2_ref_model_blueprint_policy(
+        case=case,
+        main_result_eligible=bool(final.get("main_result_eligible")) and is_path_result_eligible(record),
+        state_mode_decorative=state_mode_decorative,
+        final_dsl=final_dsl,
+    )
     return PrE1RunSummary(
         case_key=case.case_key,
         path=case.path,
@@ -842,6 +852,9 @@ def summarize_pr_e1_run(
         stdout_path=_as_posix(stdout_path),
         stderr_path=_as_posix(stderr_path),
         primary_failure_class=classify_primary_failure(record),
+        state_mode_decorative_detected=state_mode_decorative,
+        path2_ref_model_blueprint_eligible=path2_blueprint_eligible,
+        path2_ref_model_blueprint_reason=path2_blueprint_reason,
         fix_log_next_actions=_fix_log_next_actions(record),
         iteration_exit_reasons=_iteration_exit_reasons(record),
         final_dsl_source=_final_dsl_source(record, final_dsl_hash),
@@ -1029,6 +1042,64 @@ def classify_primary_failure(record: AgentLoopRunRecord) -> str:
     return "model_quality_or_unclassified"
 
 
+def _state_mode_decorative_detected(case: PrE1Case, final_dsl: str) -> bool:
+    """Detect whether a Path2 dispatch model uses states as stateless labels.
+
+    PR-E1 needs to separate two notions that were easy to conflate:
+    ``main_result_eligible`` is a run-validity / trace-validity flag, while a
+    Path2 reference-model blueprint additionally needs state-dependent mode
+    memory.  The LNG EMS sample is intentionally useful as a FE/BVS stress
+    case, but when the final DSL is dominated by root-level forced
+    reclassification (``! * -> ... if [...]``) and has no non-forced
+    inter-state transition, the state labels mostly classify the current input
+    snapshot rather than representing a modeful controller.
+    """
+
+    if case.path != "path2":
+        return False
+    transition_lines = [
+        line.strip()
+        for line in final_dsl.splitlines()
+        if "->" in line and not line.lstrip().startswith("[*]")
+    ]
+    if not transition_lines:
+        return False
+    forced = [line for line in transition_lines if line.startswith("!")]
+    non_forced = [line for line in transition_lines if not line.startswith("!")]
+    guard_forced = [line for line in forced if " if [" in line or ": if [" in line]
+    return bool(guard_forced) and len(guard_forced) >= 6 and not non_forced
+
+
+def _path2_ref_model_blueprint_policy(
+    *,
+    case: PrE1Case,
+    main_result_eligible: bool,
+    state_mode_decorative: bool,
+    final_dsl: str,
+) -> tuple[bool | None, str]:
+    """Return the stricter Path2 reference-blueprint eligibility.
+
+    ``None`` means "not applicable" for Path1.  ``False`` for Path2 does not
+    invalidate the run; it only prevents a valid trace/run from being described
+    as a Path2 ref-model blueprint when it is merely a dispatch/classifier
+    stress artifact.
+    """
+
+    if case.path != "path2":
+        return None, "not_applicable_to_path1"
+    if not main_result_eligible:
+        return False, "run_not_main_result_eligible"
+    if state_mode_decorative:
+        return (
+            False,
+            "state_mode_decorative: final DSL is dominated by root-level forced guard reclassification; "
+            "valid as FE/BVS or dispatch-classifier stress evidence, but not a Path2 ref-model blueprint",
+        )
+    if final_dsl.count("->") <= 1:
+        return False, "insufficient transition structure for Path2 ref-model blueprint"
+    return True, "path2 default run has non-decorative state/mode structure under current heuristic"
+
+
 def _write_per_run_artifacts(
     case: PrE1Case,
     spec: ConditionSpec,
@@ -1111,6 +1182,9 @@ def _write_exception_artifacts(
         stdout_path=_as_posix(stdout_path),
         stderr_path=_as_posix(stderr_path),
         primary_failure_class="provider_or_retry" if missing_provider_env() else "record_or_schema",
+        state_mode_decorative_detected=False,
+        path2_ref_model_blueprint_eligible=False if case.path == "path2" else None,
+        path2_ref_model_blueprint_reason="no valid run record; infrastructure/schema diagnostic only" if case.path == "path2" else "",
         fix_log_next_actions=[],
         iteration_exit_reasons=[],
         final_dsl_source={},
@@ -1155,6 +1229,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"- 是否使用 fake / fixture / hot-start / replay：{boundary}",
         f"- final verdict：`{summary.verdict}`；record_status：`{summary.record_status}`；result_status：`{summary.result_status}`。",
         f"- main_result_eligible：`{str(summary.main_result_eligible).lower()}`。",
+        f"- Path2 ref-model blueprint eligible：`{_path2_blueprint_display(summary)}`；reason：{summary.path2_ref_model_blueprint_reason or '<none>'}。",
         f"- 一句话结论：`{summary.primary_failure_class}`；停止原因：{summary.verdict_reason or '<none>'}。",
         "",
         "### 1. 基本信息",
@@ -1175,6 +1250,8 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| run_id | `{summary.run_id}` |",
         f"| final verdict/status | verdict=`{summary.verdict}`, record=`{summary.record_status}`, result=`{summary.result_status}` |",
         f"| main_result_eligible | `{str(summary.main_result_eligible).lower()}` |",
+        f"| state_mode_decorative_detected | `{str(summary.state_mode_decorative_detected).lower()}` |",
+        f"| path2_ref_model_blueprint_eligible | `{_path2_blueprint_display(summary)}`；{_escape_md(summary.path2_ref_model_blueprint_reason or '<none>')} |",
         f"| final.fcstm 来源 | `{_escape_md(json.dumps(summary.final_dsl_source, ensure_ascii=False, sort_keys=True))}` |",
         f"| FixLog next_action 序列 | `{_escape_md(_join_limited(summary.fix_log_next_actions, limit=12))}` |",
         f"| iteration exit_reason 序列 | `{_escape_md(_join_limited(summary.iteration_exit_reasons, limit=8))}` |",
@@ -1246,6 +1323,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
             f"- required stages executed：`{len(summary.executed_stage_ids)}/{len(_required_stage_ids_for_summary(summary))}`，missing=`{', '.join(summary.missing_required_stage_ids) or '<none>'}`。",
             f"- repairs：`{summary.accepted_repair_count}/{summary.repair_count}` accepted；scenario_history=`{summary.scenario_history_count}`。",
             f"- 配置含义：`{spec.recommendation_role}`；{'该结果只作 exploratory/config evidence，不进入主结果。' if spec.exploratory else '该结果可用于评估默认入口本身。'}",
+            "- 主结果/蓝本边界：`main_result_eligible` 只表示该 run 非 provider-invalid 且 trace/schema/secret/final-verdict 口径可进入主结果候选；`path2_ref_model_blueprint_eligible=false` 时，模型仍可作为 FE/BVS 或 dispatch-classifier 压力测试证据，但不得称为 Path2 ref-model 主蓝本。",
             "- 样本含义：若出现 `design_or_variable_dynamics`，应重点审查变量是否仅作为 guard/input 常量而没有事件/动作更新；若出现 pre-scenario parse/semantic 失败，则应先优化 pyfcstm grammar adherence。",
         ]
     )
@@ -1300,12 +1378,12 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "",
         "## 1. 运行矩阵总览",
         "",
-        "| Path | case | config | verdict | record | clean | eligible | failure class | iter | repairs | scenarios | tokens | elapsed | report |",
-        "|---|---|---|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|",
+        "| Path | case | config | verdict | record | clean | eligible | path2 blueprint | failure class | iter | repairs | scenarios | tokens | elapsed | report |",
+        "|---|---|---|---|---|---:|---:|---|---|---:|---:|---:|---:|---:|---|",
     ]
     for s in summaries:
         lines.append(
-            "| {path} | `{case}` | `{config}` | `{verdict}` | `{record}` | {clean} | {eligible} | `{failure}` | {iters} | {repairs} | {scenarios} | {tokens} | {elapsed:.1f}s | [{run_id}](./{run_id}/report.md) |".format(
+            "| {path} | `{case}` | `{config}` | `{verdict}` | `{record}` | {clean} | {eligible} | {blueprint} | `{failure}` | {iters} | {repairs} | {scenarios} | {tokens} | {elapsed:.1f}s | [{run_id}](./{run_id}/report.md) |".format(
                 path=s.path,
                 case=s.case_key,
                 config=s.config_id,
@@ -1313,6 +1391,7 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
                 record=s.record_status,
                 clean="✅" if s.clean_commit_bound else "❌",
                 eligible="✅" if s.main_result_eligible else "❌",
+                blueprint=_path2_blueprint_icon(s),
                 failure=s.primary_failure_class,
                 iters=s.iteration_count,
                 repairs=s.repair_count,
@@ -1327,6 +1406,10 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
         "## 2. 初步配置结论",
         "",
         *_configuration_observation_lines(summaries),
+        "",
+        "## 2.1 主结果候选 vs Path2 ref-model 蓝本边界",
+        "",
+        *_path2_blueprint_observation_lines(summaries),
         "",
         "## 3. 主要失败模式",
         "",
@@ -1367,12 +1450,12 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
         "",
         f"本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
         "",
-        "| Path | case | config | verdict | status | clean | eligible | failure class | token usage | report |",
-        "|---|---|---|---|---|---:|---:|---|---|---|",
+        "| Path | case | config | verdict | status | clean | eligible | path2 blueprint | failure class | token usage | report |",
+        "|---|---|---|---|---|---:|---:|---|---|---|---|",
     ]
     for s in summaries:
         lines.append(
-            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | `{s.primary_failure_class}` | {_escape_md(_token_display(s.token_usage))} | `{output_dir_text}/{s.run_id}/report.md` |"
+            f"| {s.path} | `{s.case_key}` | `{s.config_id}` | `{s.verdict}` | `{s.record_status}` | {'✅' if s.clean_commit_bound else '❌'} | {'✅' if s.main_result_eligible else '❌'} | {_path2_blueprint_icon(s)} | `{s.primary_failure_class}` | {_escape_md(_token_display(s.token_usage))} | `{output_dir_text}/{s.run_id}/report.md` |"
         )
     lines.extend(
         [
@@ -1384,6 +1467,10 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
             "### 初步观察",
             "",
             *_configuration_observation_lines(summaries),
+            "",
+            "### 主结果候选 vs Path2 ref-model 蓝本边界",
+            "",
+            *_path2_blueprint_observation_lines(summaries),
             "",
             "### 主要失败模式",
             "",
@@ -1445,6 +1532,9 @@ def _per_run_comment_detail_lines(summaries: Sequence[PrE1RunSummary], *, output
                 "|---|---|",
                 f"| verdict / status | `{s.verdict}` / `{s.record_status}` |",
                 f"| failure class | `{s.primary_failure_class}` |",
+                f"| main_result_eligible | `{str(s.main_result_eligible).lower()}` |",
+                f"| path2_ref_model_blueprint | `{_path2_blueprint_display(s)}`；{_escape_md(s.path2_ref_model_blueprint_reason or '<none>')} |",
+                f"| state_mode_decorative | `{str(s.state_mode_decorative_detected).lower()}` |",
                 f"| executed stages | `{' -> '.join(s.executed_stage_ids)}` |",
                 f"| iter / repairs / accepted / scenarios | `{s.iteration_count}` / `{s.repair_count}` / `{s.accepted_repair_count}` / `{s.scenario_history_count}` |",
                 f"| token / elapsed | `{s.token_usage}` / `{s.elapsed_seconds}s` |",
@@ -2584,6 +2674,47 @@ def _token_display(usage: dict[str, Any]) -> str:
     return "unknown"
 
 
+def _path2_blueprint_display(summary: PrE1RunSummary) -> str:
+    value = summary.path2_ref_model_blueprint_eligible
+    if value is None:
+        return "n/a"
+    return str(value).lower()
+
+
+def _path2_blueprint_icon(summary: PrE1RunSummary) -> str:
+    value = summary.path2_ref_model_blueprint_eligible
+    if value is None:
+        return "⚪"
+    return "✅" if value else "❌"
+
+
+def _path2_blueprint_observation_lines(summaries: Sequence[PrE1RunSummary]) -> list[str]:
+    path2_rows = [row for row in summaries if row.path == "path2"]
+    if not path2_rows:
+        return ["- 当前没有 Path2 run，因此 ref-model blueprint eligibility 不适用。"]
+    eligible = sum(1 for row in path2_rows if row.path2_ref_model_blueprint_eligible is True)
+    valid_runs = sum(1 for row in path2_rows if row.main_result_eligible)
+    lines = [
+        f"- Path2 run-validity：{valid_runs}/{len(path2_rows)} 个 Path2 run 的 `main_result_eligible=true`；这只表示 run/schema/secret/trace/final verdict 可进入主结果候选。",
+        f"- Path2 blueprint-validity：{eligible}/{len(path2_rows)} 个 Path2 run 当前可作为 `path2_ref_model_blueprint_eligible=true`；该字段比 `main_result_eligible` 更严格。",
+    ]
+    for row in path2_rows:
+        lines.append(
+            "- `{case}`：main_result_eligible=`{main}`，path2_ref_model_blueprint_eligible=`{blueprint}`，"
+            "state_mode_decorative=`{decorative}`；reason={reason}".format(
+                case=row.case_key,
+                main=str(row.main_result_eligible).lower(),
+                blueprint=_path2_blueprint_display(row),
+                decorative=str(row.state_mode_decorative_detected).lower(),
+                reason=row.path2_ref_model_blueprint_reason or "<none>",
+            )
+        )
+    lines.append(
+        "- 解释：`path2_ref_model_blueprint_eligible=false` 不会把有效 run 改成 provider invalid；它只禁止把 state-mode-decorative / 条件分类式模型宣传为 Path2 ref-model 主蓝本。"
+    )
+    return lines
+
+
 def _sum_numeric(values: Sequence[Any]) -> int | None:
     total = 0
     seen = False
@@ -2732,8 +2863,46 @@ def load_existing_summaries(output_dir: str | Path) -> list[PrE1RunSummary]:
                 row[key] = info.default
             elif info.default_factory is not MISSING:  # type: ignore[comparison-overlap]
                 row[key] = info.default_factory()  # type: ignore[misc]
-        normalized.append(PrE1RunSummary(**row))
+        summary = PrE1RunSummary(**row)
+        case = {case.case_key: case for case in pr_e1_cases("all")}.get(summary.case_key)
+        needs_path2_quality_migration = (
+            case is not None
+            and case.path == "path2"
+            and (summary.path2_ref_model_blueprint_eligible is None or not summary.path2_ref_model_blueprint_reason)
+        )
+        if (
+            "state_mode_decorative_detected" not in item
+            or "path2_ref_model_blueprint_eligible" not in item
+            or "path2_ref_model_blueprint_reason" not in item
+            or needs_path2_quality_migration
+        ):
+            summary = _migrate_loaded_summary_quality_fields(summary)
+        normalized.append(summary)
     return normalized
+
+
+def _migrate_loaded_summary_quality_fields(summary: PrE1RunSummary) -> PrE1RunSummary:
+    cases = {case.case_key: case for case in pr_e1_cases("all")}
+    case = cases.get(summary.case_key)
+    if case is None:
+        return summary
+    try:
+        final_dsl = Path(summary.final_dsl_path).read_text(encoding="utf-8")
+    except Exception:
+        final_dsl = ""
+    decorative = _state_mode_decorative_detected(case, final_dsl)
+    blueprint, reason = _path2_ref_model_blueprint_policy(
+        case=case,
+        main_result_eligible=summary.main_result_eligible,
+        state_mode_decorative=decorative,
+        final_dsl=final_dsl,
+    )
+    return replace(
+        summary,
+        state_mode_decorative_detected=decorative,
+        path2_ref_model_blueprint_eligible=blueprint,
+        path2_ref_model_blueprint_reason=reason,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
