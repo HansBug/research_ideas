@@ -1,0 +1,363 @@
+[
+  {
+    "adapter_mode": "real_env",
+    "event": "run_start",
+    "initial_dsl": "",
+    "initial_dsl_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "level": "info",
+    "max_iterations": 5,
+    "real_llm_provider_api": true,
+    "run_id": "pr-e1-path1_cara-default-round27cleanbudget-a69af242",
+    "scenario_max_retries": 2,
+    "stage_id": "SC-0",
+    "ts": "2026-06-04T05:35:27Z"
+  },
+  {
+    "event": "stage_enter",
+    "level": "info",
+    "nl_hash": "sha256:286212ffceec60d90bab51da2822c893d6640368fdb40fe2318b915469aa7cca",
+    "reason": "initial_modeling_adapter_available",
+    "stage_id": "SL-1",
+    "ts": "2026-06-04T05:35:27Z"
+  },
+  {
+    "attempt_count": 1,
+    "event": "llm_stage_result",
+    "level": "info",
+    "ok": true,
+    "parsed_summary": {
+      "assumptions": [
+        "Because the NL did not specify a distinct completion event for AutocontrolInit, the candidate uses an immediate bare transition from AutocontrolInit to AutocontrolNormal to make normal autocontrol reachable.",
+        "CA_mode is encoded as an int with 0 representing Manual and 1 representing Autocontrol, because the parseable subset supports int/float variables only.",
+        "The inverse relationship between blood pressure and flow rate is modeled as flow_rate = target_bp - blood_pressure; the NL did not provide a precise clinical control formula or saturation bounds.",
+        "Pump fault occurrence is modeled as an input flag pump_fault rather than a discrete occlusion event, because the NL names pump fault as a condition/complication.",
+        "Log-file recording is abstracted as incrementing log_count during normal autocontrol because the DSL has no file I/O primitive."
+      ],
+      "candidate_dsl": "def float blood_pressure = 0.0;\ndef float bp_buffer = 0.0;\ndef float target_bp = 100.0;\ndef float setpoint = 100.0;\ndef float flow_rate = 0.0;\ndef float default_flow_rate = 1.0;\ndef float built_in_switch_speed = 1.0;\ndef float pump_speed = 0.0;\ndef float control_voltage = 0.0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int control_released = 0;\ndef int CA_mode = 0;\ndef int log_count = 0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        >> during before { bp_buffer = blood_pressure; }\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                control_voltage = 0.0;\n                control_released = 1;\n            }\n            during {\n                pump_speed = built_in_switch_speed;\n                flow_rate = default_flow_rate;\n            }\n        }\n\n        state Ask_StartAC {\n            enter { control_released = 0; }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1…<truncated 1068 chars>",
+      "grounding_seeds": [
+        {
+          "confidence": 0.93,
+          "element_id": "hierarchical_state:CARA",
+          "element_kind": "hierarchical_state",
+          "element_ref": "CARA",
+          "evidence_text": "At run time, CARA coordinates the Caregiver Interface, Blood Pressure Monitor, Algorithm, and Pump Monitors around an infusion pump.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.94,
+          "element_id": "hierarchical_state:Mode_Control_Algorithm",
+          "element_kind": "hierarchical_state",
+          "element_ref": "CARA.Mode_Control_Algorithm",
+          "evidence_text": "In the Mode_Control_Algorithm hierarchy, CARA has manual and autocontrol-related mode-control states plus an Ask_StartAC submode.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.96,
+          "element_id": "state:Manual",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.Manual",
+          "evidence_text": "The pump has manual and autocontrol modes. In manual mode, pump speed is set with the built-in switch.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.97,
+          "element_id": "state:Ask_StartAC",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.Ask_StartAC",
+          "evidence_text": "CARA has ... an Ask_StartAC submode; within Ask_StartAC, the setpoint can be changed and pressing StartAC enters AutocontrolInit.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.97,
+          "element_id": "state:AutocontrolInit",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.AutocontrolInit",
+          "evidence_text": "Pressing StartAC enters AutocontrolInit.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.9,
+          "element_id": "state:AutocontrolNormal",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.AutocontrolNormal",
+          "evidence_text": "During normal autocontrol, CARA controls flow rate only while there are no pump-operation complications.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.91,
+          "element_id": "state:PumpFault",
+          "element_kind": "state",
+          "element_ref": "CARA.Mode_Control_Algorithm.PumpFault",
+          "evidence_text": "If a pump fault such as fluid-tubing occlusion occurs, the pump activates alarm signals.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "confidence": 0.96,
+          "element_id": "variable:blood_pressure",
+          "element_kind": "variable",
+          "element_ref": "blood_pressure",
+          "evidence_text": "Patient blood pressure is used to compute the infusion rate.",
+          "requiredness": "required",
+          "source_stage": "SL-1"
+        },
+        {
+          "_omitted_items": 40
+        }
+      ]
+    },
+    "retry_count": 0,
+    "retry_error": null,
+    "schema_validation_ok": true,
+    "stage_id": "SL-1",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T05:37:32Z",
+    "usage": {
+      "chunk_count": 5246,
+      "completion_chars": 20476,
+      "completion_tokens": 6801,
+      "elapsed_seconds": 125.01710757000546,
+      "estimated_completion_tokens": 5119,
+      "estimated_prompt_tokens": 6481,
+      "estimated_total_tokens": 11600,
+      "first_chunk_seconds": 30.508478946008836,
+      "message_count": 2,
+      "model": "gpt-5.5",
+      "prompt_chars": 25924,
+      "prompt_tokens": 6308,
+      "stream": true,
+      "stream_include_usage_requested": true,
+      "stream_usage_zero_reported": false,
+      "token_usage_available": true,
+      "token_usage_estimation_method": null,
+      "total_tokens": 13109
+    }
+  },
+  {
+    "assumption_count": 5,
+    "candidate_dsl": "def float blood_pressure = 0.0;\ndef float bp_buffer = 0.0;\ndef float target_bp = 100.0;\ndef float setpoint = 100.0;\ndef float flow_rate = 0.0;\ndef float default_flow_rate = 1.0;\ndef float built_in_switch_speed = 1.0;\ndef float pump_speed = 0.0;\ndef float control_voltage = 0.0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int control_released = 0;\ndef int CA_mode = 0;\ndef int log_count = 0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        >> during before { bp_buffer = blood_pressure; }\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                control_voltage = 0.0;\n                control_released = 1;\n            }\n            during {\n                pump_speed = built_in_switch_speed;\n                flow_rate = default_flow_rate;\n            }\n        }\n\n        state Ask_StartAC {\n            enter { control_released = 0; }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                control_released = 0;\n                alarm_signal = 0;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                flow_rate = target_bp - blood_pressure;\n                control_voltage = flow_rate;\n                pump_speed = control_voltage;\n                log_count = log_count + 1;\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                control_released = 1;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAC;\n        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = setpoint; };\n        Ask_StartAC -> AutocontrolInit :: StartAC;\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolInit -> Manual :: TerminateAC;\n        AutocontrolNormal -> Manual :: TerminateAC;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: FaultRemoved effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n            control_released = 1;\n        };\n    }\n}",
+    "candidate_dsl_hash": "sha256:e06bee7e42bb04cfe640833688602a87d6514349536c08434468a9a3ffb10d0f",
+    "event": "stage_result",
+    "grounding_seed_count": 48,
+    "jump": "SD-2",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SL-1",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "current_dsl_hash": "sha256:e06bee7e42bb04cfe640833688602a87d6514349536c08434468a9a3ffb10d0f",
+    "event": "iteration_enter",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "current_dsl_hash": "sha256:e06bee7e42bb04cfe640833688602a87d6514349536c08434468a9a3ffb10d0f",
+    "dsl": "def float blood_pressure = 0.0;\ndef float bp_buffer = 0.0;\ndef float target_bp = 100.0;\ndef float setpoint = 100.0;\ndef float flow_rate = 0.0;\ndef float default_flow_rate = 1.0;\ndef float built_in_switch_speed = 1.0;\ndef float pump_speed = 0.0;\ndef float control_voltage = 0.0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int control_released = 0;\ndef int CA_mode = 0;\ndef int log_count = 0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        >> during before { bp_buffer = blood_pressure; }\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                control_voltage = 0.0;\n                control_released = 1;\n            }\n            during {\n                pump_speed = built_in_switch_speed;\n                flow_rate = default_flow_rate;\n            }\n        }\n\n        state Ask_StartAC {\n            enter { control_released = 0; }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                control_released = 0;\n                alarm_signal = 0;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                flow_rate = target_bp - blood_pressure;\n                control_voltage = flow_rate;\n                pump_speed = control_voltage;\n                log_count = log_count + 1;\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                control_released = 1;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAC;\n        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = setpoint; };\n        Ask_StartAC -> AutocontrolInit :: StartAC;\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolInit -> Manual :: TerminateAC;\n        AutocontrolNormal -> Manual :: TerminateAC;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: FaultRemoved effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n            control_released = 1;\n        };\n    }\n}",
+    "event": "iteration_validation_enter",
+    "iteration": 0,
+    "level": "info",
+    "oracle_weak": false,
+    "scenario_set_id": null,
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "full_validation_pass",
+    "stage_id": "SD-2",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "col": null,
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "error_class": null,
+      "line": null,
+      "message": "",
+      "ok": true,
+      "source": "parse",
+      "source_stage": "SD-2"
+    },
+    "iteration": 0,
+    "jump": "SD-3",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-2",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-2 ok",
+    "stage_id": "SD-3",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "dangling_transitions": [],
+      "diagnostic_count": 0,
+      "diagnostics": [],
+      "missing_states": [],
+      "ok": true,
+      "source": "semantic",
+      "source_stage": "SD-3",
+      "type_mismatches": [],
+      "undefined_vars": [],
+      "unresolved_event_refs": []
+    },
+    "iteration": 0,
+    "jump": "SD-4",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-3",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "reason": "SD-3 ok",
+    "stage_id": "SD-4",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "event": "stage_result",
+    "feedback": {
+      "advisory_count": 19,
+      "blocking_count": 0,
+      "blocking_instance_keys": [],
+      "blocking_summaries": [],
+      "diagnostic_codes": [
+        "W_HIGH_VAR_TO_LEAF_RATIO",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_UNREFERENCED_VAR",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "W_VARIABLE_WRITTEN_NEVER_READ_AND_NOT_NL_OUTPUT",
+        "I_TRANSITION_NEVER_EVENT_TRIGGERED"
+      ],
+      "info_count": 1,
+      "ok": true,
+      "policy_actions": [
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "advisory",
+        "info"
+      ],
+      "source": "design",
+      "source_stage": "SD-4"
+    },
+    "iteration": 0,
+    "jump": "SL-5",
+    "level": "info",
+    "ok": true,
+    "stage_id": "SD-4",
+    "status": "StageStatus.OK",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "attempt_index": 0,
+    "coverage_directive": null,
+    "event": "stage_enter",
+    "iteration": 0,
+    "level": "info",
+    "previous_scenario_names": [],
+    "reason": "scenario_set_absent",
+    "stage_id": "SL-5",
+    "ts": "2026-06-04T05:37:32Z"
+  },
+  {
+    "attempt_count": 3,
+    "event": "llm_stage_result",
+    "iteration": 0,
+    "level": "warning",
+    "ok": false,
+    "parsed_summary": {
+      "attempt_index": 0,
+      "kind": "scenario_generation"
+    },
+    "retry_count": 2,
+    "retry_error": {
+      "error_kind": "provider_error",
+      "error_message": "provider failure: APIConnectionError: Connection error."
+    },
+    "schema_validation_ok": false,
+    "stage_id": "SL-5",
+    "status": "StageStatus.ERROR",
+    "ts": "2026-06-04T05:39:50Z",
+    "usage": {}
+  },
+  {
+    "event": "sc12_verdict",
+    "final_dsl": "def float blood_pressure = 0.0;\ndef float bp_buffer = 0.0;\ndef float target_bp = 100.0;\ndef float setpoint = 100.0;\ndef float flow_rate = 0.0;\ndef float default_flow_rate = 1.0;\ndef float built_in_switch_speed = 1.0;\ndef float pump_speed = 0.0;\ndef float control_voltage = 0.0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int control_released = 0;\ndef int CA_mode = 0;\ndef int log_count = 0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        >> during before { bp_buffer = blood_pressure; }\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                control_voltage = 0.0;\n                control_released = 1;\n            }\n            during {\n                pump_speed = built_in_switch_speed;\n                flow_rate = default_flow_rate;\n            }\n        }\n\n        state Ask_StartAC {\n            enter { control_released = 0; }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                control_released = 0;\n                alarm_signal = 0;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                flow_rate = target_bp - blood_pressure;\n                control_voltage = flow_rate;\n                pump_speed = control_voltage;\n                log_count = log_count + 1;\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                control_released = 1;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAC;\n        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = setpoint; };\n        Ask_StartAC -> AutocontrolInit :: StartAC;\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolInit -> Manual :: TerminateAC;\n        AutocontrolNormal -> Manual :: TerminateAC;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: FaultRemoved effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n            control_released = 1;\n        };\n    }\n}",
+    "level": "warning",
+    "reason": "SL-5 retry exhausted: provider_error: provider failure: APIConnectionError: Connection error.",
+    "record_status": "error",
+    "result_status": "api_failed",
+    "source_stage_id": "SL-5",
+    "stage_id": "SC-12",
+    "ts": "2026-06-04T05:39:50Z",
+    "verdict": "provider_error"
+  },
+  {
+    "event": "run_end",
+    "final_dsl": "def float blood_pressure = 0.0;\ndef float bp_buffer = 0.0;\ndef float target_bp = 100.0;\ndef float setpoint = 100.0;\ndef float flow_rate = 0.0;\ndef float default_flow_rate = 1.0;\ndef float built_in_switch_speed = 1.0;\ndef float pump_speed = 0.0;\ndef float control_voltage = 0.0;\ndef int pump_fault = 0;\ndef int alarm_signal = 0;\ndef int control_released = 0;\ndef int CA_mode = 0;\ndef int log_count = 0;\n\nstate CARA {\n    [*] -> Mode_Control_Algorithm;\n\n    state Mode_Control_Algorithm {\n        ! * -> Manual :: CA_backManual;\n        ! * -> Manual :: CB_backManual;\n        ! * -> Manual :: CP_backManual;\n        ! * -> Manual :: CC_backManual;\n\n        >> during before { bp_buffer = blood_pressure; }\n\n        [*] -> Manual;\n\n        state Manual {\n            enter {\n                CA_mode = 0;\n                control_voltage = 0.0;\n                control_released = 1;\n            }\n            during {\n                pump_speed = built_in_switch_speed;\n                flow_rate = default_flow_rate;\n            }\n        }\n\n        state Ask_StartAC {\n            enter { control_released = 0; }\n        }\n\n        state AutocontrolInit {\n            enter {\n                CA_mode = 1;\n                control_released = 0;\n                alarm_signal = 0;\n            }\n        }\n\n        state AutocontrolNormal {\n            during {\n                flow_rate = target_bp - blood_pressure;\n                control_voltage = flow_rate;\n                pump_speed = control_voltage;\n                log_count = log_count + 1;\n            }\n        }\n\n        state PumpFault {\n            enter {\n                alarm_signal = 1;\n                control_released = 1;\n            }\n        }\n\n        Manual -> Ask_StartAC :: InitiateAC;\n        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = setpoint; };\n        Ask_StartAC -> AutocontrolInit :: StartAC;\n        AutocontrolInit -> AutocontrolNormal;\n        AutocontrolInit -> Manual :: TerminateAC;\n        AutocontrolNormal -> Manual :: TerminateAC;\n        AutocontrolNormal -> PumpFault : if [pump_fault > 0];\n        PumpFault -> Manual :: FaultRemoved effect {\n            pump_fault = 0;\n            alarm_signal = 0;\n            control_released = 1;\n        };\n    }\n}",
+    "final_dsl_hash": "sha256:e06bee7e42bb04cfe640833688602a87d6514349536c08434468a9a3ffb10d0f",
+    "iteration_count": 1,
+    "level": "info",
+    "record_status": "error",
+    "repair_count": 0,
+    "result_status": "api_failed",
+    "run_id": "pr-e1-path1_cara-default-round27cleanbudget-a69af242",
+    "stage_count": 8,
+    "stage_id": "SC-13",
+    "ts": "2026-06-04T05:39:50Z",
+    "verdict": "provider_error"
+  }
+]

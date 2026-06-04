@@ -1,0 +1,82 @@
+def float blood_pressure = 0.0;
+def float bp_buffer = 0.0;
+def float target_bp = 100.0;
+def float setpoint = 100.0;
+def float flow_rate = 0.0;
+def float default_flow_rate = 1.0;
+def float built_in_switch_speed = 1.0;
+def float pump_speed = 0.0;
+def float control_voltage = 0.0;
+def int pump_fault = 0;
+def int alarm_signal = 0;
+def int control_released = 0;
+def int CA_mode = 0;
+def int log_count = 0;
+
+state CARA {
+    [*] -> Mode_Control_Algorithm;
+
+    state Mode_Control_Algorithm {
+        ! * -> Manual :: CA_backManual;
+        ! * -> Manual :: CB_backManual;
+        ! * -> Manual :: CP_backManual;
+        ! * -> Manual :: CC_backManual;
+
+        >> during before { bp_buffer = blood_pressure; }
+
+        [*] -> Manual;
+
+        state Manual {
+            enter {
+                CA_mode = 0;
+                control_voltage = 0.0;
+                control_released = 1;
+            }
+            during {
+                pump_speed = built_in_switch_speed;
+                flow_rate = default_flow_rate;
+            }
+        }
+
+        state Ask_StartAC {
+            enter { control_released = 0; }
+        }
+
+        state AutocontrolInit {
+            enter {
+                CA_mode = 1;
+                control_released = 0;
+                alarm_signal = 0;
+            }
+        }
+
+        state AutocontrolNormal {
+            during {
+                flow_rate = target_bp - blood_pressure;
+                control_voltage = flow_rate;
+                pump_speed = control_voltage;
+                log_count = log_count + 1;
+            }
+        }
+
+        state PumpFault {
+            enter {
+                alarm_signal = 1;
+                control_released = 1;
+            }
+        }
+
+        Manual -> Ask_StartAC :: InitiateAC;
+        Ask_StartAC -> Ask_StartAC :: ChangeSetpoint effect { target_bp = setpoint; };
+        Ask_StartAC -> AutocontrolInit :: StartAC;
+        AutocontrolInit -> AutocontrolNormal;
+        AutocontrolInit -> Manual :: TerminateAC;
+        AutocontrolNormal -> Manual :: TerminateAC;
+        AutocontrolNormal -> PumpFault : if [pump_fault > 0];
+        PumpFault -> Manual :: FaultRemoved effect {
+            pump_fault = 0;
+            alarm_signal = 0;
+            control_released = 1;
+        };
+    }
+}
