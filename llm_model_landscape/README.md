@@ -2,7 +2,7 @@
 
 本目录是仓库根目录下的 **LLM 模型现状微型文库**，用于长期维护 `project_1` 及后续博士研究中会用到的常见大语言模型、开放权重模型与 hosted API 模型的上下文窗口、最大输出、价格、发布时间、可获取方式与官方来源。
 
-> 维护口径：本目录不是论文原文文库，也不是 benchmark 结果库；它是一个固定三件套的小型模型信息总账。默认只维护 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)，除非后续明确需要自动化脚本或快照证据，否则不新增更多 Markdown 分册。
+> 维护口径：本目录不是论文原文文库，也不是 benchmark 结果库；它是一个小型模型信息文库。核心入口仍是 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)，但完整大表按主题拆到少量稳定分册，避免 [SUMMARY.md](./SUMMARY.md) 过长。
 
 ## 1. 文库定位
 
@@ -64,11 +64,20 @@
 |---|---|---|
 | [README.md](./README.md) | 说明本文库定位、范围、收录标准和 AI 工作入口 | 先判断一个模型信息是否应该进入本文库 |
 | [GUIDE.md](./GUIDE.md) | 规定长期维护流程、排序规则、字段口径、来源优先级和一致性检查 | 实际更新模型表之前必须先读 |
-| [SUMMARY.md](./SUMMARY.md) | 模型信息总账，包含 baseline 模型清单、hosted API 表、各系列专项表和更新日志 | 查询当前模型状态和后续实验建议 |
+| [SUMMARY.md](./SUMMARY.md) | 维护统计结论、重点模型摘要、风险记录、更新日志和各完整表链接 | 快速了解当前模型现状与推荐关注对象；事实核验回到完整表分册 |
+| [baseline_models.md](./baseline_models.md) | `project_1/baselines` 论文中使用/提到的 LLM 完整表、年度统计和热门模型族分析 | 分析每年 paper 最常使用哪些模型族 |
+| [openai_models.md](./openai_models.md) | OpenAI / GPT / Codex 系列完整表 | 查询 GPT、reasoning、Codex 等模型的发布时间、context、输出上限与价格 |
+| [claude_models.md](./claude_models.md) | Anthropic Claude 系列完整表 | 查询 Opus、Sonnet、Haiku 各代模型的发布时间、context 与价格 |
+| [gemini_models.md](./gemini_models.md) | Google Gemini 系列完整表 | 查询 Gemini 3.x/2.5/2.0/1.5 等模型的生命周期、context 与价格入口 |
+| [deepseek_models.md](./deepseek_models.md) | DeepSeek hosted API 与开放权重完整表 | 区分 V4 hosted、R1/V3/V3.2 等 checkpoint 与 alias 风险 |
+| [qwen_models.md](./qwen_models.md) | Qwen hosted API 与开放权重完整表 | 区分 Qwen Cloud hosted API 与 Hugging Face/GitHub 开放权重 |
+| [llama_models.md](./llama_models.md) | Meta Llama 系列完整表 | 查询 Llama 4/3.x/2 的发布时间与 context |
+| [grok_models.md](./grok_models.md) | xAI Grok 系列完整表 | 查询 Grok 4.3/4.20/历史线与迁移风险 |
+| [other_open_models.md](./other_open_models.md) | 其他常见开放权重/开源模型完整表 | 查询 OpenAI gpt-oss、Kimi/Moonshot、Mistral、Gemma、Granite、Nemotron、Phi、GLM、InternLM、Baichuan、Yi、CogVLM、Falcon、GPT-J/GPT-Neo 等 |
 
 ## 6. 单条模型记录约束
 
-本文库不采用“单模型一个目录”的结构。每个模型条目默认直接写入 [SUMMARY.md](./SUMMARY.md) 的表格中，并至少包含：
+本文库不采用“单模型一个目录”的结构。每个模型条目默认写入对应的完整表分册，[SUMMARY.md](./SUMMARY.md) 只保留统计结论、当前重点模型摘要和跳转链接；涉及价格、context、max output、来源等事实核验时，以完整表分册为准。单条模型记录至少包含：
 
 1. 模型族或 provider。
 2. 精确 model ID 或代表模型名。
@@ -84,7 +93,8 @@
 
 1. 先读 [README.md](./README.md)：确认文库边界与收录标准。
 2. 再读 [GUIDE.md](./GUIDE.md)：确认来源优先级、表格字段、发布时间降序排序规则。
-3. 再读 [SUMMARY.md](./SUMMARY.md)：查看当前总账、更新日志和待复查项。
-4. 若更新来自 issue/PR/讨论纪要，应把一次性讨论内容整合进 [SUMMARY.md](./SUMMARY.md)，不要机械追加重复段落。
-5. 若模型信息来自官方网页，应记录具体链接和核验日期；如果来源不稳定，应在风险项中标注。
+3. 再读 [SUMMARY.md](./SUMMARY.md)：查看统计结论、重点模型、完整表索引、更新日志和待复查项。
+4. 需要完整模型数据时，跳转到 [baseline_models.md](./baseline_models.md)、[openai_models.md](./openai_models.md)、[claude_models.md](./claude_models.md)、[gemini_models.md](./gemini_models.md)、[deepseek_models.md](./deepseek_models.md)、[qwen_models.md](./qwen_models.md)、[llama_models.md](./llama_models.md)、[grok_models.md](./grok_models.md)、[other_open_models.md](./other_open_models.md)。
+5. 若更新来自 issue/PR/讨论纪要，应把一次性讨论内容整合进对应完整表，再在 [SUMMARY.md](./SUMMARY.md) 更新统计结论或重点模型，不要机械追加重复段落。
+6. 若模型信息来自官方网页，应记录具体链接和核验日期；如果来源不稳定，应在风险项中标注。
 

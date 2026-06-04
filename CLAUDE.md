@@ -34,7 +34,7 @@
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
 - `project_ex1_llm_judge_for_stm/` - **计划外项目（ex = extra/unplanned）**：针对状态机制品的 LLM-as-Judge 评审子系统，从 project_1 拆出独立。**边界**：本项目专注 reviewer 系统 + 评审方法学，不做 STM 生成（那是 project_1 的 baselines/）/ verification（那是 project_2/3）/ repair（project_4）。详见该目录下的 [README.md](./project_ex1_llm_judge_for_stm/README.md)。
 - `talks/` - 与导师、同门、合作者等人类讨论的纪要工作区
-- `llm_model_landscape/` - **根目录 LLM 模型现状微型文库**：长期维护 project_1 及后续研究常用 LLM / hosted API / 开放权重模型的发布时间、上下文窗口、最大输出、官方价格与来源链接；默认固定三件套 [README.md](./llm_model_landscape/README.md)、[GUIDE.md](./llm_model_landscape/GUIDE.md)、[SUMMARY.md](./llm_model_landscape/SUMMARY.md)，所有模型表默认按发布时间从高到低排序。
+- `llm_model_landscape/` - **根目录 LLM 模型现状微型文库**：长期维护 project_1 及后续研究常用 LLM / hosted API / 开放权重模型的发布时间、上下文窗口、最大输出、官方价格与来源链接；以 [README.md](./llm_model_landscape/README.md)、[GUIDE.md](./llm_model_landscape/GUIDE.md)、[SUMMARY.md](./llm_model_landscape/SUMMARY.md) 为入口，并用 [baseline_models.md](./llm_model_landscape/baseline_models.md)、[openai_models.md](./llm_model_landscape/openai_models.md)、[claude_models.md](./llm_model_landscape/claude_models.md)、[gemini_models.md](./llm_model_landscape/gemini_models.md)、[deepseek_models.md](./llm_model_landscape/deepseek_models.md)、[qwen_models.md](./llm_model_landscape/qwen_models.md)、[llama_models.md](./llm_model_landscape/llama_models.md)、[grok_models.md](./llm_model_landscape/grok_models.md)、[other_open_models.md](./llm_model_landscape/other_open_models.md) 维护完整表；所有模型表默认按发布时间从高到低排序，baseline 文献表按 year 从高到低排序。
 - `tools/` - Python工具集（详见下方"工具使用说明"）
   - `pdf_extractor.py` - PDF文本提取工具
   - `init_talk_workspace.py` - 讨论工作区初始化工具
@@ -45,7 +45,7 @@
 
 **讨论纪要组织方式**：根目录 `talks/` 专门用于维护与人类讨论形成的纪要草稿与定稿，不按论文集结构管理；其具体规则见下方“讨论纪要工作区规范”。
 
-**LLM 模型现状文库组织方式**：根目录 [llm_model_landscape/](./llm_model_landscape/) 是固定三件套微型文库，用于维护模型可用性、发布时间、context / max output、价格和官方来源。处理模型选型、baseline 模型矩阵、LLM 价格/上下文窗口更新、Qwen/Llama/Grok/DeepSeek/Gemini/GPT/Claude 等模型信息时，默认先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md)，再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md)，最后更新或查询 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md)。所有正式模型表默认按**发布时间从高到低**排列，且必须使用可点击官方来源链接。
+**LLM 模型现状文库组织方式**：根目录 [llm_model_landscape/](./llm_model_landscape/) 是 LLM 模型现状微型文库，用于维护模型可用性、发布时间、context / max output、价格和官方来源。处理模型选型、baseline 模型矩阵、LLM 价格/上下文窗口更新、Qwen/Llama/Grok/DeepSeek/Gemini/GPT/Claude 等模型信息时，默认先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md)，再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md)，最后读 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 获取统计结论与重点模型；需要完整表时跳转到各分册。所有正式模型表默认按**发布时间从高到低**排列，且必须使用可点击官方来源链接。
 
 ## 工具使用说明
 
@@ -194,14 +194,15 @@ some_project/
 
 ### LLM 模型现状微型文库规范
 
-根目录 [llm_model_landscape/](./llm_model_landscape/) 不按“单论文路径 + 论文集路径”展开，而是一个固定三件套微型文库。后续凡是涉及模型现状、模型价格、上下文窗口、最大输出、模型发布时间、API/开放权重可获取性、baseline 模型矩阵的工作，默认遵循以下规则：
+根目录 [llm_model_landscape/](./llm_model_landscape/) 不按“单论文路径 + 论文集路径”展开，而是一个入口文件 + 稳定完整表分册的微型文库。后续凡是涉及模型现状、模型价格、上下文窗口、最大输出、模型发布时间、API/开放权重可获取性、baseline 模型矩阵的工作，默认遵循以下规则：
 
 1. 先读 [llm_model_landscape/README.md](./llm_model_landscape/README.md) 明确收录范围。
 2. 再读 [llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md) 明确来源优先级、价格口径、排序规则和一致性检查。
-3. 以 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 作为长期总账，issue/PR/comment 中的一次性调研若有长期价值，应整合回该文件。
-4. 所有正式模型表默认按**发布时间从高到低**排序；同一系列中 hosted API、开放权重、legacy/alias 必须区分。
-5. 每条模型信息必须有可点击官方来源链接；没有官方来源的内容只能标为待核验，不能写成既定事实。
-6. [AGENTS.md](./AGENTS.md) 是 [CLAUDE.md](./CLAUDE.md) 的软链接，更新这类仓库级引导时只修改 [CLAUDE.md](./CLAUDE.md)，不要重复编辑两份。
+3. 以 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 作为统计结论、重点模型与分册索引入口；完整表分别维护在 [baseline_models.md](./llm_model_landscape/baseline_models.md)、[openai_models.md](./llm_model_landscape/openai_models.md)、[claude_models.md](./llm_model_landscape/claude_models.md)、[gemini_models.md](./llm_model_landscape/gemini_models.md)、[deepseek_models.md](./llm_model_landscape/deepseek_models.md)、[qwen_models.md](./llm_model_landscape/qwen_models.md)、[llama_models.md](./llm_model_landscape/llama_models.md)、[grok_models.md](./llm_model_landscape/grok_models.md)、[other_open_models.md](./llm_model_landscape/other_open_models.md)。
+4. issue/PR/comment 中的一次性调研若有长期价值，应先整合进对应完整表，再更新 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md) 的统计结论或重点模型。
+5. 所有正式模型表默认按**发布时间从高到低**排序；baseline 文献表按 year 从高到低排序；同一系列中 hosted API、开放权重、legacy/alias 必须区分。
+6. 每条模型信息必须有可点击官方来源链接；没有官方来源的内容只能标为待核验，不能写成既定事实。
+7. [AGENTS.md](./AGENTS.md) 是 [CLAUDE.md](./CLAUDE.md) 的软链接，更新这类仓库级引导时只修改 [CLAUDE.md](./CLAUDE.md)，不要重复编辑两份。
 
 #### 2.2.1 Markdown 链接规范
 
