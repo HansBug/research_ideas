@@ -54,7 +54,7 @@
 | Online first / Articles in press | ⏳ 已检索未公布 |
 | Publisher article list / search | ⏳ 已检索未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 计数口径 | 不预设未来卷号；待 DBLP / Springer 发布后再按 PR-1B baseline 复核。 |
+| 计数口径 | 不预设未来卷号；待 DBLP / Springer 发布后再按当前 DBLP baseline 复核。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 

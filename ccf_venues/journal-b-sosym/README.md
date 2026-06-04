@@ -44,7 +44,7 @@
 | Sophia Jit | Assistant Editor | University of Toronto | [SoSyM official site](https://www.sosym.org/)；[Springer editorial board](https://link.springer.com/journal/10270/editorial-board) | [DBLP](https://dblp.org/search?q=Sophia%20Jit)；[Schwartz Reisman Institute community](https://srinstitute.utoronto.ca/our-community) | requirements engineering for AI、human-aligned / trustworthy / explainable AI | [DBLP 近年论文入口](https://dblp.org/search?q=Sophia%20Jit) | P2/P3 强；P1/P4 中到强 | SoSyM 官方当前 roster 核验 | `2026-06-04 22:31` |
 | Martin Schindler | Assistant Editor | RWTH Aachen University | [SoSyM official site](https://www.sosym.org/)；[Springer editorial board](https://link.springer.com/journal/10270/editorial-board) | [SE@RWTH profile](https://www.forum.informatik.rwth-aachen.de/staff/Martin.Schindler/) | DSL、model-driven development、model composition、UML/P、工具基础设施 | [SE@RWTH publication list](https://www.forum.informatik.rwth-aachen.de/staff/Martin.Schindler/)；DBLP 待精确 disambiguation | P1 强；P2/P3 间接；P4 中 | SoSyM 官方当前 roster 核验 | `2026-06-04 22:31` |
 
-补充说明：SoSyM 官方页还列出 SoSyM Ambassadors 与 Advisory Board；PR-1B 暂不展开这些长期网络，后续如需做投稿关系图谱可在专项 PR 中补全。
+补充说明：SoSyM 官方页还列出 SoSyM Ambassadors 与 Advisory Board；当前暂不展开这些长期网络，后续如需做投稿关系图谱可在专项 PR 中补全。
 
 ## 4. 与本仓库 project 的关系
 

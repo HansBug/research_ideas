@@ -54,7 +54,7 @@
 | Online first / Articles in press | [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) |
 | Publisher article list / search | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
 | DBLP 年度页 | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) |
-| 计数口径 | 2026 仍可能进行中，不作为年度闭合数；以 DBLP 年度页 `entry article` 条目数作为 PR-1B baseline（抓取时间：`2026-06-04 22:05`）；未按 publisher article type 排除 editorial、erratum 或 front matter，后续用 ACM DL issue TOC / Just Accepted 交叉核验。 |
+| 计数口径 | 2026 仍可能进行中，不作为年度闭合数；以 DBLP 年度页 `entry article` 条目数作为当前 DBLP baseline（抓取时间：`2026-06-04 22:05`）；未按 publisher article type 排除 editorial、erratum 或 front matter，后续用 ACM DL issue TOC / Just Accepted 交叉核验。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 

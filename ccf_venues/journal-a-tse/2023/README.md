@@ -54,7 +54,7 @@
 | Online first / Articles in press | [TSE archive](https://www.computer.org/csdl/journal/ts) |
 | Publisher article list / search | [TSE archive](https://www.computer.org/csdl/journal/ts) |
 | DBLP 年度页 | [DBLP TSE Volume 49](https://dblp.org/db/journals/tse/tse49.html) |
-| 计数口径 | 以 DBLP 年度页 `entry article` 条目数作为 PR-1B baseline（抓取时间：`2026-06-04 22:05`）；未按 publisher article type 排除 editorial、erratum 或 front matter，后续用 IEEE CSDL volume / Early Access 交叉核验。 |
+| 计数口径 | 以 DBLP 年度页 `entry article` 条目数作为当前 DBLP baseline（抓取时间：`2026-06-04 22:05`）；未按 publisher article type 排除 editorial、erratum 或 front matter，后续用 IEEE CSDL volume / Early Access 交叉核验。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 

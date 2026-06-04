@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-04 23:04`（Asia/Shanghai）
+> 信息更新时间：`2026-06-05 00:36`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -12,7 +12,7 @@
 2. 维护每个 venue 的稳定信息：官方主页、scope、出版方、CCF 等级、project 相关性。
 3. 维护自 `2022` 年以来每个年度的官方主页、`CFP` / important dates、submission system、program / accepted papers、proceedings / volume issue、论文名录入口和论文数量，并把这些入口以 Markdown 超链接挂进表格。
 4. 对尚未召开但已有官方信息的年度，记录当前状态和关键 ddl。
-5. 维护 [TIMELINE.md](./TIMELINE.md)，按年份汇总跨 venue 投稿相关 important dates。
+5. 维护 [TIMELINE.md](./TIMELINE.md)，按事件发生年份汇总跨 venue 投稿相关 important dates。
 6. 维护会议 / 期刊核心人员情报，至少覆盖官方角色、主要研究方向、代表作或近 5 年论文入口、与本仓库 project 的关系和核验状态。
 7. 给后续论文初筛、投稿计划、前沿追踪提供稳定入口。
 
@@ -168,7 +168,7 @@ yyyy-mm-dd hh:mm
 
 期刊根 README 应维护“核心编辑人员情报”小节。默认覆盖 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership、与本仓库强相关的 editorial board 成员，以及当年 special issue / topical collection guest editor。期刊人员表必须保留 `核验等级 / 当前性` 列，区分官方当前 roster、官方公告、个人 / 机构页候选线索和 legacy / 运营线索。
 
-完整人员表放在各 venue 根 README；[SUMMARY.md](./SUMMARY.md) 只记录覆盖状态、主要缺口和跨 PR 合流提示，不复制全量人员表。
+完整人员表放在各 venue 根 README；[SUMMARY.md](./SUMMARY.md) 只记录覆盖状态、主要缺口和跨类型合流提示，不复制全量人员表。
 
 ## 6. 会议 README 结构规范
 
@@ -193,8 +193,8 @@ yyyy-mm-dd hh:mm
 | Abstract deadline | 精确到分钟；无则 `未公布` |
 | Submission deadline | 精确到分钟；无则 `未公布` |
 | Notification | 精确到分钟；无则 `未公布` |
-| 会期 | 起止日期或日期时间；根表建议写 `yyyy-mm-dd..yyyy-mm-dd`，跨年或多地会议须在备注中解释 |
-| 论文数量 | 仅已召开且可核验时填写；必须在备注或年度 README 写明计数口径，例如 research papers、all accepted papers、main conference only、DBLP `entry article` baseline |
+| 会期 | 起止日期或日期时间；根 README 年度汇总表统一使用 `yyyy-mm-dd..yyyy-mm-dd`，跨年或多地会议须在备注中解释；TIMELINE 表格可使用更适合人读的区间写法 |
+| 论文数量 | 仅已召开且可核验时填写；根 README 单元格必须携带计数口径，例如 `Research Track: 245`、`DBLP inproceedings: 27`、`ETAPS umbrella: 138；TACAS: 56`；年度 README 继续解释计数来源 |
 | 论文名录 | 官方 program / accepted papers / proceedings 优先，`DBLP` 可作 fallback，必须是可点击链接 |
 | 核验状态 | 例如 `已核验`、`部分核验`、`待补` |
 
@@ -346,7 +346,7 @@ yyyy-mm-dd hh:mm
 1. 新增或修改任何年度 README 中的投稿相关 important date 后，必须同步检查 [TIMELINE.md](./TIMELINE.md)。
 2. 若某个时间点因官方来源冲突被标为 `⚠️ 矛盾待解`，TIMELINE 表格也必须保留该状态，不得只在 venue 年度 README 中记录。
 3. [TIMELINE.md](./TIMELINE.md) 只汇总已进入本库的 venue，不替代 P1/P2 待补清单。
-4. PR-1A / 会议填充负责维护会议 dated events；PR-1B / 期刊填充负责维护期刊 rolling 表和期刊 special issue dated events。并行 PR 合并时不得互相删除对方已经核验的事件行。
+4. 会议填充负责维护会议 dated events；期刊填充负责维护期刊 rolling 表和期刊 special issue dated events。合流时不得互相删除已经核验的事件行。
 
 ## 12. 初始化 PR 自审流程
 
@@ -373,16 +373,16 @@ yyyy-mm-dd hh:mm
 10. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
 11. 在相关 README 文末更新日志中按时间降序插入记录。
 
-## 14. PR-1A / PR-1B 并行合流协议
+## 14. 会议 / 期刊合流与事实共存规则
 
-本库已经进入会议试点 PR-1A 与期刊试点 PR-1B 并行阶段。两个 PR 都会修改 [GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md)、[TIMELINE.md](./TIMELINE.md) 和 [templates/](./templates/)，因此合并时必须遵守以下协议：
+本库的会议数据、期刊数据、共享规范和模板会被不同轮次持续维护。任何合流或冲突解决都必须遵守以下长期规则：
 
-1. **共享规范优先**：时间格式、更新日志降序、Markdown 链接占位、核心 URL、核心人员情报、TIMELINE 事件年份规则属于共享规范；任一 PR 修正后，另一 PR 只吸收协议层，不复制对方事实表。
-2. **事实 ownership 分离**：PR-1A 负责会议事实、会议年度 README、会议核心人员和会议 dated events；PR-1B 负责期刊事实、期刊年度 README、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events。
-3. **SUMMARY 不互相回退**：PR-1A 已填充的会议不得被 PR-1B 写回 `⏳ 待建`；PR-1B 已填充的期刊不得被 PR-1A 写回 `⏳ 待建`。并行期间若本 PR 不拥有对方事实，状态写“由 PR-1A/PR-1B 负责，本 PR 不覆盖”。
-4. **TIMELINE 不互相删除**：会议 dated events、期刊 rolling 表和 SoSyM Industry 5.0 dated events 合并后必须共存；冲突解决时以“事件发生年份 + 来源可点击 + owner 不互删”为准。
+1. **共享规范优先**：时间格式、更新日志降序、Markdown 链接占位、核心 URL、核心人员情报和 TIMELINE 事件发生年份规则属于共享规范；任一轮修正后，后续维护应吸收协议层规则。
+2. **事实类型分离**：会议事实、会议年度 README、会议核心人员和会议 dated events，与期刊事实、期刊年度 README、期刊核心编辑人员、期刊 rolling 表和期刊 special issue dated events 分开维护。
+3. **SUMMARY 不回退事实**：已经完成基础核验的会议或期刊不得被后续空白占位写回 `⏳ 待建`；若某轮不处理某类事实，应保留既有状态和链接。
+4. **TIMELINE 不互删事件**：会议 dated events、期刊 rolling 表和期刊 special issue dated events 合流后必须共存；冲突解决时以“事件发生年份 + 来源可点击 + 已核验事实不删除”为准。
 5. **模板统一协议**：外部 URL 占位符使用纯文本占位，内部已知路径使用相对 Markdown 链接；更新日志提示统一为“更新日志按时间降序排列，最新记录置于最上方。”。
-6. **试点踩坑保留边界**：PR-1A 的会议踩坑和 PR-1B 的期刊踩坑都应保留，但不得把对方试点的具体 deadline、论文数量或人员 roster 复制到本 PR 的事实表。
+6. **试点经验保留边界**：会议试点和期刊试点的踩坑结论都应保留在 [SUMMARY.md](./SUMMARY.md) 的对应小节，但不得把某一类试点的 deadline、论文数量或人员 roster 复制成另一类事实。
 
 ## 15. 更新日志
 
@@ -390,6 +390,7 @@ yyyy-mm-dd hh:mm
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-05 00:36` | 合入期刊试点后完成共享规则合流：正文改为会议 / 期刊长期事实共存规则，保留期刊核验等级、会议核心人员分层、模板占位链接和 TIMELINE 事件发生年份口径。 |
 | `2026-06-04 23:04` | 吸收 PR-1A 合流协议：明确会议 / 期刊核心人员分轨、TIMELINE 事件发生年份规则、模板占位链接规则和并行 PR 事实 ownership。 |
 | `2026-06-04 22:05` | 根据正式复审补充期刊核心编辑人员的核验等级 / 当前性规则，明确候选线索和 legacy 运营线索不得写成当前 roster。 |
 | `2026-06-04 21:30` | 补充全库更新日志降序规则，并新增期刊核心编辑人员情报规则：期刊 PR 必须核验核心编辑的研究方向、代表作和近 5 年论文入口。 |
