@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-04 23:04`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 23:27`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -154,7 +154,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 - ACM DL 正文和年度 issue 入口在命令行环境下较易受动态访问影响，DBLP 年度页是更稳定的书目信息 fallback。
 - 投稿入口改为 [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)，并保留 ACM DL TOSEM 当前页 / ACM submission sites 作为核查入口；canonical 入口仍需人工点击 ACM DL `Submit Manuscript` 当前跳转确认。
 - ACM Papers for Practitioners 不是 TOSEM canonical online-first / Just Accepted archive；PR-1B 已改用 [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) 并保留动态访问受限说明。
-- 核心编辑人员画像已补入 [journal-a-tosem/README.md](./journal-a-tosem/README.md)：ACM DL editorial-board 在命令行环境返回 403，旧镜像 roster 存在过期风险；当前表已新增 `核验等级 / 当前性`，并将 Laura Lander 迁出当前核心编辑人员正表，只作为 legacy / 运营待核验线索保留。
+- 核心编辑人员画像已补入 [journal-a-tosem/README.md](./journal-a-tosem/README.md)：ACM DL editorial-board 在命令行环境返回 403，旧镜像 roster 存在过期风险；PR-1B 已改用 ACM Editors-in-Chief 总页、ACM Updates / People of ACM、个人主页 / 机构页等替代路径交叉核验；Wayback 或 ACM publications staff 只能作为后续补证入口，不能写成已尝试。当前表已新增 `核验等级 / 当前性`，并将 Laura Lander 迁出当前核心编辑人员正表，只作为 legacy / 运营待核验线索保留。
 - Agentic AI special issue 仅能作为线索记录，未发现明确 deadline，不能写入 Gantt。
 - 2022-2026 已用 DBLP volume/year 建 `entry article` baseline：2022=86、2023=161、2024=223、2025=242、2026=115；2026 仍可能进行中，不作为年度闭合数。
 - 后续 PR 若要提高核验等级，应优先补 ACM DL issue TOC / Just Accepted 与 DBLP 的计数差异说明。
@@ -182,6 +182,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 23:27` | 修复复审 I 级问题：补充 TOSEM 在 ACM DL editorial-board 403 后的替代核验路径，并统一 SoSyM 复审时间戳为分钟粒度。 |
 | `2026-06-04 23:04` | 吸收 PR-1A 合流协议：SUMMARY 标注会议试点 owner，补充跨 PR 合流记录，并把 TIMELINE 事件发生年份、核心人员和模板占位协议纳入验收口径。 |
 | `2026-06-04 22:05` | 根据正式复审补充 2022-2026 DBLP `entry article` baseline，并把 TSE / TOSEM 核心人员画像改为显式证据等级分层。 |
 | `2026-06-04 21:46` | 根据用户补充要求，把期刊核心编辑人员画像纳入 PR-1B 试点产物和后续 GUIDE 规则，三本期刊根 README 已补当前公开可核验的核心人员表。 |

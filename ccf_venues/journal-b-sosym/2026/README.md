@@ -1,6 +1,6 @@
 # SoSyM 2026 README
 
-> 信息更新时间：`2026-06-04 22:31:26`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:31`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -84,7 +84,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-06-04 22:31:26` | 根据 deepseek reviewer 修复后复审意见，将 Industry 5.0 的 2026-02-15 intent 节点显式标为已过去，与 TIMELINE.md 状态口径对齐。 |
+| `2026-06-04 22:31` | 根据 deepseek reviewer 修复后复审意见，将 Industry 5.0 的 2026-02-15 intent 节点显式标为已过去，与 TIMELINE.md 状态口径对齐。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 21:15` | 根据 review 补充 Industry 5.0 CFP 提到的 SoSyM online submission system 将变更的 caveat。 |
 | `2026-06-04 20:43` | 初始化 SoSyM 2026 年度 README，记录 Industry 5.0 专刊 deadline，并拆分 Digital Twins rolling theme section。 |
