@@ -25,19 +25,19 @@
 
 | 文件 | 内容 | 维护口径 |
 |---|---|---|
-| [baseline_models.md](./baseline_models.md) | `project_1/baselines` 论文中使用/提到的 LLM 完整表、年度统计和热门模型族分析 | 按论文年份降序；同年内部保持当前整理顺序 |
-| [openai_models.md](./openai_models.md) | OpenAI / GPT / Codex 系列完整表 | 按官方发布时间降序 |
-| [claude_models.md](./claude_models.md) | Anthropic Claude 系列完整表 | 按官方发布时间降序 |
-| [gemini_models.md](./gemini_models.md) | Google Gemini 系列完整表 | 按官方发布时间降序；实验前重查精确 ID |
-| [deepseek_models.md](./deepseek_models.md) | DeepSeek hosted API 与开放权重完整表 | 按官方发布时间降序，alias 单独标注 |
-| [qwen_models.md](./qwen_models.md) | Qwen hosted API 与开放权重完整表 | 按官方发布时间降序；hosted 与 open-weight 分清 |
-| [llama_models.md](./llama_models.md) | Meta Llama 系列完整表 | 按官方发布时间降序 |
-| [grok_models.md](./grok_models.md) | xAI Grok 系列完整表 | 按官方发布时间降序；`2026-current` 表示 docs-visible latest |
-| [other_open_models.md](./other_open_models.md) | OpenAI gpt-oss、Kimi/Moonshot、Mistral、Gemma、Granite、Nemotron、Phi、GLM、InternLM、Baichuan、Yi、CogVLM、Falcon、GPT-J/GPT-Neo 等 | 按可核验发布时间降序；年份级条目同年内部不表达严格先后，后续补精确日期 |
+| [01-baseline-models.md](./01-baseline-models.md) | `project_1/baselines` 论文中使用/提到的 LLM 完整表、年度统计和热门模型族分析 | 按论文年份降序；同年内部保持当前整理顺序 |
+| [02-openai-models.md](./02-openai-models.md) | OpenAI / GPT / Codex 系列完整表 | 按官方发布时间降序 |
+| [03-claude-models.md](./03-claude-models.md) | Anthropic Claude 系列完整表 | 按官方发布时间降序 |
+| [04-gemini-models.md](./04-gemini-models.md) | Google Gemini 系列完整表 | 按官方发布时间降序；实验前重查精确 ID |
+| [05-deepseek-models.md](./05-deepseek-models.md) | DeepSeek hosted API 与开放权重完整表 | 按官方发布时间降序，alias 单独标注 |
+| [06-qwen-models.md](./06-qwen-models.md) | Qwen hosted API 与开放权重完整表 | 按官方发布时间降序；hosted 与 open-weight 分清 |
+| [07-llama-models.md](./07-llama-models.md) | Meta Llama 系列完整表 | 按官方发布时间降序 |
+| [08-grok-models.md](./08-grok-models.md) | xAI Grok 系列完整表 | 按官方发布时间降序；`2026-current` 表示 docs-visible latest |
+| [09-other-open-models.md](./09-other-open-models.md) | OpenAI gpt-oss、Kimi/Moonshot、Mistral、Gemma、Granite、Nemotron、Phi、GLM、InternLM、Baichuan、Yi、CogVLM、Falcon、GPT-J/GPT-Neo 等 | 按可核验发布时间降序；年份级条目同年内部不表达严格先后，后续补精确日期 |
 
 ## 3. `project_1` baseline 模型使用统计结论
 
-完整表与年度统计见 [baseline_models.md](./baseline_models.md)。
+完整表与年度统计见 [01-baseline-models.md](./01-baseline-models.md)。
 
 ### 3.1 年度分布
 
@@ -64,7 +64,7 @@
 
 ## 4. OpenAI GPT 当前重点模型
 
-完整表见 [openai_models.md](./openai_models.md)。
+完整表见 [02-openai-models.md](./02-openai-models.md)。
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
@@ -74,7 +74,7 @@
 
 ## 5. Claude 当前重点模型
 
-完整表见 [claude_models.md](./claude_models.md)。
+完整表见 [03-claude-models.md](./03-claude-models.md)。
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
@@ -84,7 +84,7 @@
 
 ## 6. Gemini 当前重点模型
 
-完整表见 [gemini_models.md](./gemini_models.md)。
+完整表见 [04-gemini-models.md](./04-gemini-models.md)。
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
@@ -94,7 +94,7 @@
 
 ## 7. DeepSeek 当前重点模型
 
-完整表见 [deepseek_models.md](./deepseek_models.md)。
+完整表见 [05-deepseek-models.md](./05-deepseek-models.md)。
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
@@ -104,7 +104,7 @@
 
 ## 8. Qwen 当前重点模型
 
-完整表见 [qwen_models.md](./qwen_models.md)。
+完整表见 [06-qwen-models.md](./06-qwen-models.md)。
 
 | 优先级 | 模型 | 类型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|---|
@@ -115,7 +115,7 @@
 
 ## 9. Llama 当前重点模型
 
-完整表见 [llama_models.md](./llama_models.md)。
+完整表见 [07-llama-models.md](./07-llama-models.md)。
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
@@ -127,7 +127,7 @@
 
 ## 10. Grok 当前重点模型
 
-完整表见 [grok_models.md](./grok_models.md)。
+完整表见 [08-grok-models.md](./08-grok-models.md)。
 
 | 优先级 | 模型 | 为什么当前值得关注 | 风险/注意 |
 |---:|---|---|---|
@@ -137,7 +137,7 @@
 
 ## 11. 其他常见模型当前重点系列
 
-完整表见 [other_open_models.md](./other_open_models.md)。
+完整表见 [09-other-open-models.md](./09-other-open-models.md)。
 
 | 优先级 | 系列 | 当前值得关注的代表 | 为什么值得关注 | 风险/注意 |
 |---:|---|---|---|---|
@@ -183,7 +183,7 @@
 
 | 时间 | 更新内容 | 备注 |
 |---|---|---|
-| 2026-06-04 16:05:00 | 将 SUMMARY 中完整大表拆分为 [baseline_models.md](./baseline_models.md)、[openai_models.md](./openai_models.md)、[claude_models.md](./claude_models.md)、[gemini_models.md](./gemini_models.md)、[deepseek_models.md](./deepseek_models.md)、[qwen_models.md](./qwen_models.md)、[llama_models.md](./llama_models.md)、[grok_models.md](./grok_models.md)、[other_open_models.md](./other_open_models.md) | SUMMARY 改为统计结论、重点模型与链接索引 |
+| 2026-06-04 16:05:00 | 将 SUMMARY 中完整大表拆分为 [01-baseline-models.md](./01-baseline-models.md)、[02-openai-models.md](./02-openai-models.md)、[03-claude-models.md](./03-claude-models.md)、[04-gemini-models.md](./04-gemini-models.md)、[05-deepseek-models.md](./05-deepseek-models.md)、[06-qwen-models.md](./06-qwen-models.md)、[07-llama-models.md](./07-llama-models.md)、[08-grok-models.md](./08-grok-models.md)、[09-other-open-models.md](./09-other-open-models.md) | SUMMARY 改为统计结论、重点模型与链接索引 |
 | 2026-06-04 15:31:19 | 初始化根目录 LLM 模型现状微型文库，建立 README/GUIDE/SUMMARY 三件套，并把 issue #32 调研内容整理为长期总账 | 各模型表按发布时间降序；后续仍需持续核验价格与生命周期 |
 
 ## 15. 后续建议
