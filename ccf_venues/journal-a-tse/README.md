@@ -1,6 +1,6 @@
 # TSE README
 
-> 信息更新时间：`2026-06-04 21:46`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -30,17 +30,17 @@
 
 ## 3. 核心编辑人员情报
 
-本节只记录当前公开可核验的 editorial leadership，不展开全量 editorial board。TSE 的 CSDL 落地页在命令行环境中是动态页，当前人员以 IEEE Computer Society 公告、TSE 相关官方会议页、个人主页 / DBLP / 机构页交叉核验；研究方向与 P1-P4 相关性为基于公开资料的判断。
+本节只记录当前公开可核验的 editorial leadership 及候选核心人员线索，不展开全量 editorial board。TSE 的 CSDL 落地页在命令行环境中是动态页，当前人员以 IEEE Computer Society 公告、TSE 相关官方会议页、个人主页 / DBLP / 机构页交叉核验；研究方向与 P1-P4 相关性为基于公开资料的判断。`核验等级 / 当前性` 列用于区分“官方当前 roster / 官方公告 / 个人或机构候选线索”，避免把待复核人员误读为已完全核验。
 
-| 姓名 | 期刊角色 | 单位 | 角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核查时间 |
-|---|---|---|---|---|---|---|---|---|
-| Mauro Pezzè | Editor-in-Chief（2026 起） | USI Università della Svizzera italiana；Università degli Studi di Milano-Bicocca | [IEEE CS 2026 EIC 公告](https://www.computer.org/press-room/2026-eics-announced)；[ICSE 2026 TSE Editorial Board Meeting](https://conf.researchr.org/details/icse-2026/icse-2026-meetings-and-bof/10/TSE-Journal-Editorial-Board-Meeting) | [USI 主页](https://www.inf.usi.ch/faculty/pezze/vitae.html)；[DBLP](https://dblp.org/search?q=Mauro%20Pezz%C3%A8) | 软件测试、程序分析、测试 oracle、自愈 / 自适应软件系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Mauro%20Pezz%C3%A8)：Tratto / LLM test oracles / Prevent 等 | P2/P3/P4 强；P1 中 | `2026-06-04 21:46` |
-| Marsha Chechik | Associate Editor-in-Chief（公开材料标注 2023-present，待 TSE 当前 roster 复核） | University of Toronto | [SIGSOFT 2024 选举材料](https://www.acm.org/binaries/content/assets/sigs/elections/2024-sigsoft.pdf) | [个人主页](https://www.cs.toronto.edu/~chechik/)；[DBLP](https://dblp.org/search?q=Marsha%20Chechik) | 软件建模与分析、规约与验证、需求工程、Safe AI 软件工程 | [DBLP 近年论文入口](https://dblp.org/search?q=Marsha%20Chechik)：AI agents norms、FOL* satisfiability、controller verification 等 | P1/P2/P3 强；P4 中 | `2026-06-04 21:46` |
-| Massimiliano Di Penta | Associate Editor-in-Chief（公开机构页仍列出，待 TSE 当前 roster 复核） | University of Sannio | [USI visiting professor page](https://www.inf.usi.ch/it/ricerca-informatica/programma-visiting-professor) | [个人主页](https://mdipenta.github.io/)；[DBLP](https://dblp.org/search?q=Massimiliano%20Di%20Penta) | 软件演化、软件分析、技术债、软件工程推荐系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Massimiliano%20Di%20Penta)：refactoring、technical debt、software evolution 等 | P4 强；P2 中；P1/P3 弱到中 | `2026-06-04 21:46` |
-| Tao Zhang | Associate Editor-in-Chief（2026-present） | Macau University of Science and Technology | [个人 CV](https://cszhangtao.github.io/assets/CV.pdf)；[ICSSIP 2026 keynote page](https://icssip.net/speaker.html) | [DBLP](https://dblp.org/search?q=Tao%20Zhang)；[个人 CV](https://cszhangtao.github.io/assets/CV.pdf) | 软件测试、程序分析、调试与修复、LLM for SE、漏洞检测 | [DBLP 近年论文入口](https://dblp.org/search?q=Tao%20Zhang)：smart contract state analysis、HLS bug detection、PLM for SE tasks 等 | P1/P2/P3/P4 强 | `2026-06-04 21:46` |
-| Yingfei Xiong | Associate Editor-in-Chief（2026-2028） | Peking University | [个人主页](https://xiongyingfei.github.io/index.html)；[services 页](https://xiongyingfei.github.io/services.html) | [个人主页](https://xiongyingfei.github.io/index.html)；[DBLP](https://dblp.org/search?q=Yingfei%20Xiong) | 程序综合、程序修复、fault localization、程序正确性、LLM agents | [个人主页近年论文](https://xiongyingfei.github.io/index.html)：PredicateFix、HoarePrompt、LLM agent cost reduction、SmartFL 等 | P1/P2/P4 强；P3 中到强 | `2026-06-04 21:46` |
+| 姓名 | 期刊角色 | 单位 | 角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验等级 / 当前性 | 核查时间 |
+|---|---|---|---|---|---|---|---|---|---|
+| Mauro Pezzè | Editor-in-Chief（2026 起） | USI Università della Svizzera italiana；Università degli Studi di Milano-Bicocca | [IEEE CS 2026 EIC 公告](https://www.computer.org/press-room/2026-eics-announced)；[ICSE 2026 TSE Editorial Board Meeting](https://conf.researchr.org/details/icse-2026/icse-2026-meetings-and-bof/10/TSE-Journal-Editorial-Board-Meeting) | [USI 主页](https://www.inf.usi.ch/faculty/pezze/vitae.html)；[DBLP](https://dblp.org/search?q=Mauro%20Pezz%C3%A8) | 软件测试、程序分析、测试 oracle、自愈 / 自适应软件系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Mauro%20Pezz%C3%A8)：Tratto / LLM test oracles / Prevent 等 | P2/P3/P4 强；P1 中 | 官方公告核验；IEEE CS press-room 可能需浏览器访问，ICSE 2026 TSE meeting 交叉核验 | `2026-06-04 22:05` |
+| Marsha Chechik | Associate Editor-in-Chief（候选线索，待 TSE 当前 roster 复核） | University of Toronto | [SIGSOFT 2024 选举材料](https://www.acm.org/binaries/content/assets/sigs/elections/2024-sigsoft.pdf) | [个人主页](https://www.cs.toronto.edu/~chechik/)；[DBLP](https://dblp.org/search?q=Marsha%20Chechik) | 软件建模与分析、规约与验证、需求工程、Safe AI 软件工程 | [DBLP 近年论文入口](https://dblp.org/search?q=Marsha%20Chechik)：AI agents norms、FOL* satisfiability、controller verification 等 | P1/P2/P3 强；P4 中 | 间接 / 候选线索；来源为 2024 年材料，且与 SoSyM EIC 同期角色需 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
+| Massimiliano Di Penta | Associate Editor-in-Chief（候选线索，待 TSE 当前 roster 复核） | University of Sannio | 待补 TSE 角色直接来源；[USI visiting professor page](https://www.inf.usi.ch/it/ricerca-informatica/programma-visiting-professor) 仅作机构线索 | [个人主页](https://mdipenta.github.io/)；[DBLP](https://dblp.org/search?q=Massimiliano%20Di%20Penta) | 软件演化、软件分析、技术债、软件工程推荐系统 | [DBLP 近年论文入口](https://dblp.org/search?q=Massimiliano%20Di%20Penta)：refactoring、technical debt、software evolution 等 | P4 强；P2 中；P1/P3 弱到中 | 候选线索；当前行不作为已官方核验的 TSE AEiC 事实，待 TSE roster 或个人 service 页直接确认 | `2026-06-04 22:05` |
+| Tao Zhang | Associate Editor-in-Chief（2026-present，待 TSE 当前 roster 复核） | Macau University of Science and Technology | [个人 CV](https://cszhangtao.github.io/assets/CV.pdf)；[ICSSIP 2026 keynote page](https://icssip.net/speaker.html) | [DBLP](https://dblp.org/search?q=Tao%20Zhang)；[个人 CV](https://cszhangtao.github.io/assets/CV.pdf) | 软件测试、程序分析、调试与修复、LLM for SE、漏洞检测 | [DBLP 近年论文入口](https://dblp.org/search?q=Tao%20Zhang)：smart contract state analysis、HLS bug detection、PLM for SE tasks 等 | P1/P2/P3/P4 强 | 个人 / 会议公开材料交叉线索；待 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
+| Yingfei Xiong | Associate Editor-in-Chief（2026-2028，待 TSE 当前 roster 复核） | Peking University | [个人主页](https://xiongyingfei.github.io/index.html)；[services 页](https://xiongyingfei.github.io/services.html) | [个人主页](https://xiongyingfei.github.io/index.html)；[DBLP](https://dblp.org/search?q=Yingfei%20Xiong) | 程序综合、程序修复、fault localization、程序正确性、LLM agents | [个人主页近年论文](https://xiongyingfei.github.io/index.html)：PredicateFix、HoarePrompt、LLM agent cost reduction、SmartFL 等 | P1/P2/P4 强；P3 中到强 | 个人主页 service 页核验；待 IEEE / TSE 当前 roster 复核 | `2026-06-04 22:05` |
 
-补充说明：上表是 PR-1B 的核心人员试点口径，不声称覆盖 TSE 全量 editorial board；Co-Editor-in-Chief 当前名单未找到公开可核验来源。
+补充说明：上表是 PR-1B 的核心人员试点口径，不声称覆盖 TSE 全量 editorial board；Co-Editor-in-Chief 当前名单未找到公开可核验来源。除 Mauro Pezzè 的 EiC 角色外，AEiC 条目均按候选 / 间接线索处理，后续需用 IEEE / TSE 当前 roster 做一次人工快照。
 
 ## 4. 与本仓库 project 的关系
 
@@ -68,18 +68,19 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 待复核 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 待复核 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 52](https://dblp.org/db/journals/tse/tse52.html) | 待复核 | 🟡 部分核验 |
-| [`2025`](./2025/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated CFP | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 51](https://dblp.org/db/journals/tse/tse51.html) | 待复核 | 🟡 部分核验 |
-| [`2024`](./2024/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 50](https://dblp.org/db/journals/tse/tse50.html) | 待复核 | 🟡 部分核验 |
-| [`2023`](./2023/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 49](https://dblp.org/db/journals/tse/tse49.html) | 待复核 | 🟡 部分核验 |
-| [`2022`](./2022/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 48](https://dblp.org/db/journals/tse/tse48.html) | 待复核 | 🟡 部分核验 |
+| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 52](https://dblp.org/db/journals/tse/tse52.html) | 98 | 🟡 部分核验 |
+| [`2025`](./2025/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated CFP | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 51](https://dblp.org/db/journals/tse/tse51.html) | 228 | 🟡 部分核验 |
+| [`2024`](./2024/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 50](https://dblp.org/db/journals/tse/tse50.html) | 182 | 🟡 部分核验 |
+| [`2023`](./2023/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 49](https://dblp.org/db/journals/tse/tse49.html) | 278 | 🟡 部分核验 |
+| [`2022`](./2022/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 48](https://dblp.org/db/journals/tse/tse48.html) | 284 | 🟡 部分核验 |
 
 ## 7. 维护备注
 
 - TSE 常规投稿按 rolling submission 处理，不进入 dated Mermaid。
-- 年度论文数量暂不硬填；后续按 DBLP year 作为 baseline，并用 IEEE CSDL / Early Access 交叉核验。
+- 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 IEEE CSDL / Early Access 按 article type 交叉核验。
+- IEEE CSDL 根 archive 当前不提供稳定年度分卷 permalink，根表 Volume / issue 列统一指向主 archive；年度区分以 DBLP volume/year 为可点击 fallback。
 - 2027、2028 和 `2029+` 未发现官方年度卷期或专刊 deadline，已保留核查记录，不预设未来卷号。
 
 ## 8. TIMELINE.md 同步提示
@@ -93,6 +94,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 根据正式复审补充 TSE 人员核验等级和年度 DBLP `entry article` baseline，并明确 IEEE CSDL 年度 permalink 限制。 |
 | `2026-06-04 21:46` | 补充 TSE 当前公开可核验的核心编辑人员情报，并记录研究方向、近年论文入口和与 P1-P4 的相关性判断。 |
 | `2026-06-04 21:15` | 根据 review 修正投稿入口表述：Publishing Portal 只作入口，actual peer-review destination 待官方当前页确认；TSE 2025 周年条目从 special issue 字段降为备注。 |
 | `2026-06-04 20:43` | 初始化 TSE 期刊 README，记录 IEEE / CCF / DBLP 核心入口和 2022-2028 年度占位。 |

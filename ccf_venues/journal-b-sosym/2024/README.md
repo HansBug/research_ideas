@@ -1,6 +1,6 @@
 # SoSyM 2024 README
 
-> 信息更新时间：`2026-06-04 20:43`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -49,12 +49,12 @@
 
 | 字段 | 内容 |
 |---|---|
-| 年度论文数量 | 待复核 |
+| 年度论文数量 | DBLP `entry article` baseline：75 |
 | 出版商年度入口 / Volume issue | [Volume 23, Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/23-1) |
 | Online first / Articles in press | [SoSyM online](https://www.sosym.org/online/) |
 | Publisher article list / search | [Springer SoSyM](https://link.springer.com/journal/10270) |
 | DBLP 年度页 | [DBLP SoSyM Volume 23](https://dblp.org/db/journals/sosym/sosym23.html) |
-| 计数口径 | PR-1B 暂以 DBLP volume/year 为 baseline，后续用 Springer issue pages 按 article type 交叉核验。 |
+| 计数口径 | 以 DBLP 年度页 `entry article` 条目数作为 PR-1B baseline（抓取时间：`2026-06-04 22:05`）；未按 publisher article type 排除 editorial、erratum 或 front matter，后续用 Springer issue pages / SoSyM online 交叉核验。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -78,6 +78,9 @@
 
 ## 9. 更新日志
 
+更新日志按时间降序排列，最新记录置于最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 20:43` | 初始化 SoSyM 2024 年度 README。 |

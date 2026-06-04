@@ -1,6 +1,6 @@
 # `ccf_venues/` SUMMARY
 
-> 信息更新时间：`2026-06-04 21:46`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 当前整体状态
 
@@ -17,7 +17,7 @@
 | PR-1B 验收目标 | 三个期刊目录、年度页、TIMELINE rolling / dated event、SUMMARY 统计与试点踩坑记录可复查 |
 | 当前优先批次 | P0-A 建模 / 需求 / 软工综合；P0-B 形式化验证 / 测试验证 |
 
-说明：当前统计只表示 PR-1B 已建立并完成基础核验的三个期刊 venue；它们仍标为 `🟡 部分核验`，年度论文数量、publisher issue / online-first 口径、部分投稿入口和部分 editorial roster 仍需后续人工复核，不作为“事实完全闭环”的样板。
+说明：当前统计只表示 PR-1B 已建立并完成基础核验的三个期刊 venue；它们仍标为 `🟡 部分核验`。2022-2026 年度论文数量已落 DBLP `entry article` baseline，但 publisher issue / online-first 口径、部分投稿入口和部分 editorial roster 仍需后续人工复核，不作为“事实完全闭环”的样板。
 
 ## 2. 当前可复用的既有资源
 
@@ -130,9 +130,9 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 
 - 模板字段基本够用，但 IEEE TSE 页面、IEEE CSDL archive、IEEE Author Center / Publishing Portal、IEEE CFP 各自承担不同职责，不能把一个入口写成所有字段的事实来源。
 - 投稿入口区分 [IEEE Publishing Portal](https://publishingportal.ieee.org/) 入口、Author Center 说明和实际 peer-review destination；TSE 专属 ScholarOne 子站未获官方当前页确认前只写作待核验 destination，不写成既定事实。
-- 核心编辑人员画像已补入 [journal-a-tse/README.md](./journal-a-tse/README.md)：TSE CSDL 动态页不易抓取，PR-1B 以 IEEE CS EIC 公告、TSE 官方会议页、个人 / 机构主页和 DBLP 交叉核验；AEiC 部分仍需后续用官方当前 roster 复核。
-- 2022-2026 可用 DBLP volume/year 建 baseline，2027/2028/2029+ 未发现官方年度卷期，不预设未来卷号。
-- IEEE CSDL / Early Access 与 DBLP 年度归属可能错位，论文数量暂写 `待复核`。
+- 核心编辑人员画像已补入 [journal-a-tse/README.md](./journal-a-tse/README.md)：TSE CSDL 动态页不易抓取，PR-1B 以 IEEE CS EIC 公告、TSE 官方会议页、个人 / 机构主页和 DBLP 交叉核验；表中已新增 `核验等级 / 当前性`，除 Mauro Pezzè EiC 外的 AEiC 条目均按候选 / 间接线索处理，仍需后续用官方当前 roster 复核。
+- 2022-2026 已用 DBLP volume/year 建 `entry article` baseline：2022=284、2023=278、2024=182、2025=228、2026=98；2026 仍可能进行中，不作为年度闭合数。
+- IEEE CSDL / Early Access 与 DBLP 年度归属可能错位，后续仍需按 publisher article type 交叉核验。
 - TSE 常规 rolling submission 不进入 Mermaid；未发现 active dated special issue。
 
 ### 8.2 TOSEM
@@ -140,9 +140,9 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 - ACM DL 正文和年度 issue 入口在命令行环境下较易受动态访问影响，DBLP 年度页是更稳定的书目信息 fallback。
 - 投稿入口改为 [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)，并保留 ACM DL TOSEM 当前页 / ACM submission sites 作为核查入口；canonical 入口仍需人工点击 ACM DL `Submit Manuscript` 当前跳转确认。
 - ACM Papers for Practitioners 不是 TOSEM canonical online-first / Just Accepted archive；PR-1B 已改用 [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) 并保留动态访问受限说明。
-- 核心编辑人员画像已补入 [journal-a-tosem/README.md](./journal-a-tosem/README.md)：ACM DL editorial-board 在命令行环境返回 403，旧镜像 roster 存在过期风险，因此当前人员以 ACM 公告 / ACM 访谈 / 个人与机构页交叉核验。
+- 核心编辑人员画像已补入 [journal-a-tosem/README.md](./journal-a-tosem/README.md)：ACM DL editorial-board 在命令行环境返回 403，旧镜像 roster 存在过期风险；当前表已新增 `核验等级 / 当前性`，并将 Laura Lander 迁出当前核心编辑人员正表，只作为 legacy / 运营待核验线索保留。
 - Agentic AI special issue 仅能作为线索记录，未发现明确 deadline，不能写入 Gantt。
-- 2022-2026 DBLP volume/year 可作为 baseline，2027/2028/2029+ 未发现官方年度卷期；论文数量暂不硬填。
+- 2022-2026 已用 DBLP volume/year 建 `entry article` baseline：2022=86、2023=161、2024=223、2025=242、2026=115；2026 仍可能进行中，不作为年度闭合数。
 - 后续 PR 若要提高核验等级，应优先补 ACM DL issue TOC / Just Accepted 与 DBLP 的计数差异说明。
 
 ### 8.3 SoSyM
@@ -150,6 +150,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 - SoSyM 同时存在 Springer journal page、Springer collections、SoSyM official site、Manuscript Central、DBLP 多个入口；根 README 和年度 README 必须分列主页、投稿、theme section、卷期、online-first 与 DBLP。
 - SoSyM 投稿入口当前记录 [Manuscript Central](https://mc.manuscriptcentral.com/sosym)，但 Industry 5.0 CFP 已提示 SoSyM online submission system 将变更；后续必须以 Springer submission guidelines / SoSyM 当前 submission notes 为准。
 - 核心编辑人员画像已补入 [journal-b-sosym/README.md](./journal-b-sosym/README.md)：官方站和 Springer editorial board 可直接核验 Editors-in-Chief / Associate Editor-in-Chief / Assistant Editors；Advisory Board 与 Ambassadors 暂不展开，避免把“核心人员”扩成全量关系网。
+- 2022-2026 已用 DBLP volume/year 建 `entry article` baseline：2022=108、2023=98、2024=75、2025=91、2026=30；2026 仍可能进行中，不作为年度闭合数。
 - Industry 5.0 与 Engineering of Digital Twins 是两个独立 theme section；Industry 5.0 有 2026-02-15 intent、2026-07-15 submission、2026-10-15 notification，Digital Twins 是 rolling theme section，EDTConf'26 日期不是普通 SoSyM 投稿 deadline。
 - SoSyM 2026 Industry 5.0 已同步进 [TIMELINE.md](./TIMELINE.md) dated event；Digital Twins 只进 rolling / 待补记录，不进主 Mermaid。
 - 2027/2028/2029+ 未发现官方年度卷期或 dated CFP；年度页写 `⏳ 已检索未公布`，不预设未来卷号。
@@ -157,7 +158,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 ### 8.4 对后续 PR 的流程建议
 
 - PR-1A / 后续会议 PR 若修改 [TIMELINE.md](./TIMELINE.md)，应保留期刊 rolling 表与 SoSyM Industry 5.0 dated event，避免会议数据回填时误删期刊行。
-- PR-4 / PR-5 若开始做年度论文数量，应单独开计数复核 PR：先用 DBLP year / volume 建 baseline，再用 publisher issue / online-first 交叉核验，不要混用口径。
+- PR-4 / PR-5 若继续做年度论文数量，应单独开计数复核 PR：以本 PR 的 DBLP `entry article` baseline 为起点，再用 publisher issue / online-first 按 article type 交叉核验，不要混用口径。
 - 期刊试点暴露出的主要问题不是模板字段缺失，而是同一字段需要明确“官方入口 / 投稿入口 / 出版入口 / DBLP fallback”的证据优先级。
 - 后续期刊 PR 必须把核心编辑人员作为情报维度：优先核验 Editor-in-Chief / Editors-in-Chief / Managing Editor / editorial leadership，记录研究方向、代表作或近 5 年论文入口，并把 roster 完整性限制写清楚。
 
@@ -167,6 +168,7 @@ P0 是“强相关先做完”的后续数据填充边界。初始化 PR 只把�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 根据正式复审补充 2022-2026 DBLP `entry article` baseline，并把 TSE / TOSEM 核心人员画像改为显式证据等级分层。 |
 | `2026-06-04 21:46` | 根据用户补充要求，把期刊核心编辑人员画像纳入 PR-1B 试点产物和后续 GUIDE 规则，三本期刊根 README 已补当前公开可核验的核心人员表。 |
 | `2026-06-04 21:15` | 根据实现后 multi-agent review 修正试点口径：SUMMARY 统计改为“基础核验”，TOSEM 投稿 / author guidelines / Just Accepted 链接降噪，TSE 和 SoSyM 投稿入口补充动态 destination / system-change caveat。 |
 | `2026-06-04 20:43` | 回填 PR-1B 期刊试点状态：完成 TSE / TOSEM / SoSyM 根 README 与 21 个年度 README，更新 TIMELINE 同步状态，并新增期刊试点踩坑记录。 |

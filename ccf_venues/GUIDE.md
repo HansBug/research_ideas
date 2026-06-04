@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-04 21:30`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -192,12 +192,22 @@ yyyy-mm-dd hh:mm
 2. 基本信息：缩写、全称、CCF 大类与等级、出版商、ISSN、主页、author guidelines、submission system。
 3. Scope 与栏目类型。
 4. 投稿模式：rolling submission、special issue、open access / hybrid、article type。
-5. 核心编辑人员情报：至少覆盖 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership 或官网列出的等价核心角色；每人记录姓名、期刊角色、单位、官方来源、主页或学术入口、主要研究方向、代表作或近 5 年代表论文入口、与本仓库 project 的相关性判断和核查时间。
+5. 核心编辑人员情报：至少覆盖 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership 或官网列出的等价核心角色；每人记录姓名、期刊角色、单位、官方来源、主页或学术入口、主要研究方向、代表作或近 5 年代表论文入口、与本仓库 project 的相关性判断、核验等级 / 当前性和核查时间。
 6. 与本仓库 project 的相关性表。
 7. `2022` 年以来年度汇总表，按年份降序排列。
 8. 文末更新日志表。
 
 期刊核心编辑人员情报应优先写在期刊根 README，作为当前 editorial leadership 入口。年度 README 不重复长期核心编辑人员；只有当某年度 special issue / topical collection 有 guest editor、年度 editorial team 或人员变更与当年事实直接相关时，才在年度 README 中单独记录。
+
+期刊核心编辑人员表必须显式区分证据等级和当前性，避免把候选线索写成已核验 roster。推荐使用 `核验等级 / 当前性` 列，至少区分：
+
+1. `官方当前 roster 核验`：来自 journal editorial board / editorial team / editors 当前页。
+2. `官方公告核验`：来自 publisher / society 对 EiC、Co-EiC 或等价核心角色的任命公告，但不等同于完整 roster。
+3. `官方访谈 / 期刊公告维护角色`：可记录 Information Director、special section guest editor 等角色，但必须说明不等同于完整 editorial leadership。
+4. `个人 / 机构页候选线索`：可作为发现线索，必须写“待官方 roster 复核”，不得写成已完全核验当前角色。
+5. `legacy / 运营线索`：历史镜像、非 publisher 域名、运营联系人等只能放在补充说明或待复核小节，不应混入当前核心编辑人员正表。
+
+研究方向、代表作或近 5 年论文入口来自公开资料时，必须说明是基于公开主页、DBLP、机构页等的判断，不是期刊官方评价。
 
 期刊年度汇总表至少包含：
 
@@ -335,6 +345,7 @@ yyyy-mm-dd hh:mm
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 根据正式复审补充期刊核心编辑人员的核验等级 / 当前性规则，明确候选线索和 legacy 运营线索不得写成当前 roster。 |
 | `2026-06-04 21:30` | 补充全库更新日志降序规则，并新增期刊核心编辑人员情报规则：期刊 PR 必须核验核心编辑的研究方向、代表作和近 5 年论文入口。 |
 | `2026-06-04 19:37` | 新增核心 URL 字段与 Markdown 超链接规范，要求 venue 根表、年度页和 TIMELINE 都挂可点击链接。 |
 | `2026-06-04 18:55` | 明确后续搜索必须至少到当前年份 + 2；当前初始化覆盖到 2028，更远未来若已有官方信息也继续纳入。 |

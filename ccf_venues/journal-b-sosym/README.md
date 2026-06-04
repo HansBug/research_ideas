@@ -1,6 +1,6 @@
 # SoSyM README
 
-> 信息更新时间：`2026-06-04 21:46`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -72,20 +72,20 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| [`2028`](./2028/README.md) | 🟢 滚动开放 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 待复核 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟢 滚动开放 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 待复核 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 专刊征稿 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | 2026-07-15 待补时刻 | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | 待复核 | 🟡 部分核验 |
-| [`2025`](./2025/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 多个已关闭 special / theme section | 滚动投稿 | [Vol. 24 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/24-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 24](https://dblp.org/db/journals/sosym/sosym24.html) | 待复核 | 🟡 部分核验 |
-| [`2024`](./2024/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 23 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/23-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 23](https://dblp.org/db/journals/sosym/sosym23.html) | 待复核 | 🟡 部分核验 |
-| [`2023`](./2023/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 22 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/22-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 22](https://dblp.org/db/journals/sosym/sosym22.html) | 待复核 | 🟡 部分核验 |
-| [`2022`](./2022/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 21 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/21-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 21](https://dblp.org/db/journals/sosym/sosym21.html) | 待复核 | 🟡 部分核验 |
+| [`2028`](./2028/README.md) | 🟢 滚动开放 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 滚动开放 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟡 专刊征稿 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | 2026-07-15 待补时刻 | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | 30 | 🟡 部分核验 |
+| [`2025`](./2025/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 多个已关闭 special / theme section | 滚动投稿 | [Vol. 24 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/24-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 24](https://dblp.org/db/journals/sosym/sosym24.html) | 91 | 🟡 部分核验 |
+| [`2024`](./2024/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 23 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/23-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 23](https://dblp.org/db/journals/sosym/sosym23.html) | 75 | 🟡 部分核验 |
+| [`2023`](./2023/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 22 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/22-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 22](https://dblp.org/db/journals/sosym/sosym22.html) | 98 | 🟡 部分核验 |
+| [`2022`](./2022/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 21 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/21-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 21](https://dblp.org/db/journals/sosym/sosym21.html) | 108 | 🟡 部分核验 |
 
 ## 7. 维护备注
 
 - SoSyM regular / tool / expert voice papers 可 rolling submission，不进入 dated Mermaid。
 - Industry 5.0 theme section 有 2026-07-15 submission deadline，已同步进 [../TIMELINE.md](../TIMELINE.md)。
 - Engineering of Digital Twins 是 SoSyM official site 给出的 rolling theme section，和 Industry 5.0 是不同条目；EDTConf'26 相关日期只作为“若希望会议展示”的目标节点记录，不写成普通 SoSyM 截稿。
-- 年度论文数量暂不硬填；后续按 DBLP volume/year 为 baseline，并用 Springer issue pages 交叉核验。
+- 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 Springer issue pages / SoSyM online 按 article type 交叉核验。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -98,6 +98,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 根据正式复审补充 SoSyM 年度 DBLP `entry article` baseline，并保留 publisher 交叉核验 caveat。 |
 | `2026-06-04 21:46` | 补充 SoSyM 当前核心编辑人员情报，覆盖 Editors-in-Chief、Associate Editor-in-Chief 和 Assistant Editors，并记录研究方向、近年论文入口和 P1-P4 相关性。 |
 | `2026-06-04 21:15` | 根据 review 将 Industry 5.0 CFP 中 SoSyM online submission system 将变更的 caveat 上移到根 README 头表和核心链接索引。 |
 | `2026-06-04 20:43` | 初始化 SoSyM 期刊 README，记录 Springer / SoSyM official / CCF / DBLP 核心入口和 2022-2028 年度占位。 |

@@ -1,6 +1,6 @@
 # TOSEM 2026 README
 
-> 信息更新时间：`2026-06-04 21:15`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -49,12 +49,12 @@
 
 | 字段 | 内容 |
 |---|---|
-| 年度论文数量 | 待复核 |
+| 年度论文数量 | DBLP `entry article` baseline：115 |
 | 出版商年度入口 / Volume issue | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html)；[ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
 | Online first / Articles in press | [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) |
 | Publisher article list / search | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
 | DBLP 年度页 | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) |
-| 计数口径 | 2026 仍进行中；PR-1B 暂以 DBLP volume/year 为 baseline，后续用 ACM DL issue TOC 交叉核验。 |
+| 计数口径 | 2026 仍可能进行中，不作为年度闭合数；以 DBLP 年度页 `entry article` 条目数作为 PR-1B baseline（抓取时间：`2026-06-04 22:05`）；未按 publisher article type 排除 editorial、erratum 或 front matter，后续用 ACM DL issue TOC / Just Accepted 交叉核验。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -77,7 +77,10 @@
 
 ## 9. 更新日志
 
+更新日志按时间降序排列，最新记录置于最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 21:15` | 根据 review 统一 TOSEM author guidelines、ScholarOne 候选入口、Just Accepted 和 DBLP canonical 年度链接口径。 |
 | `2026-06-04 20:43` | 初始化 TOSEM 2026 年度 README，并记录 Agentic AI special issue 线索。 |

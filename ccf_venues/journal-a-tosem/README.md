@@ -1,6 +1,6 @@
 # TOSEM README
 
-> 信息更新时间：`2026-06-04 21:46`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -31,15 +31,16 @@
 
 ## 3. 核心编辑人员情报
 
-本节只记录当前公开可核验的 editorial leadership / 期刊运营关键角色，不展开全量 editorial board。ACM DL editorial-board 在命令行环境返回 403，旧镜像 roster 存在过期风险；当前人员以 ACM 公告 / ACM 访谈 / 个人主页 / 机构页交叉核验，研究方向与 P1-P4 相关性为基于公开资料的判断。
+本节只记录当前公开可核验的 editorial leadership / 期刊运营关键角色，不展开全量 editorial board。ACM DL editorial-board 在命令行环境返回 403，旧镜像 roster 存在过期风险；当前人员以 ACM 公告 / ACM 访谈 / 个人主页 / 机构页交叉核验，研究方向与 P1-P4 相关性为基于公开资料的判断。`核验等级 / 当前性` 列用于区分“ACM 官方当前角色 / 官方访谈中的维护角色 / special section 或个人服务线索 / legacy 运营线索”。
 
-| 姓名 | 期刊角色 | 单位 | 角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核查时间 |
-|---|---|---|---|---|---|---|---|---|
-| Abhik Roychoudhury | Editor-in-Chief（2025-2027） | National University of Singapore | [ACM Updates](https://www.acm.org/media-center/acm-updates)；[ACM Editors-in-Chief](https://www.acm.org/publications/journals/editors-in-chief)；[People of ACM](https://www.acm.org/articles/people-of-acm/2025/abhik-roychoudhury) | [NUS profile](https://www.comp.nus.edu.sg/cs/people/abhik/)；[个人主页](https://abhikrc.com/)；[DBLP](https://dblp.org/search?q=Abhik%20Roychoudhury) | 程序分析、程序修复、软件测试、软件安全、AI agents | [NUS selected publications](https://www.comp.nus.edu.sg/cs/people/abhik/)；AutoCodeRover / program repair / testing 相关近年论文 | P1/P2/P3 强；P4 最强 | `2026-06-04 21:46` |
-| Cristian Cadar | Information Director | Imperial College London | [People of ACM](https://www.acm.org/articles/people-of-acm/2025/abhik-roychoudhury) | [个人主页](https://www.doc.ic.ac.uk/~cristic/)；[DBLP](https://dblp.org/search?q=Cristian%20Cadar) | 软件可靠性、软件安全、程序分析、动态符号执行、KLEE | [个人主页 / SRG 项目](https://www.doc.ic.ac.uk/~cristic/)；Covrig / KLEE / parser testing 相关近年入口 | P1/P2/P3 强；P4 中到强 | `2026-06-04 21:46` |
-| Aldeida Aleti | Information Director | Monash University | [People of ACM](https://www.acm.org/articles/people-of-acm/2025/abhik-roychoudhury) | [Monash profile](https://research.monash.edu/en/persons/aldeida-aleti/)；[DBLP](https://dblp.org/search?q=Aldeida%20Aleti) | Automated Software Engineering、AI / optimisation for SE、测试生成、code repair | [Monash profile publication list](https://research.monash.edu/en/persons/aldeida-aleti/)：AI for SE、text-to-testcase generation、LLM fine-tuning 等 | P1/P2/P4 强；P3 中到强 | `2026-06-04 21:46` |
-| Shin Hwei Tan | Associate Editor；special section Guest Editor-in-Chief | Concordia University | [ACM-W profile](https://women.acm.org/acm-w-above-and-beyond-dr-shin-hwei-tans-journey/)；[个人主页 service](https://www.shinhwei.com/) | [个人主页](https://www.shinhwei.com/)；[DBLP](https://dblp.org/search?q=Shin%20Hwei%20Tan) | 自动程序修复、软件测试、程序分析、genetic improvement、SE ethics | [个人主页 publications](https://www.shinhwei.com/)：LLM-based program repair、PyTorch silent bug detection 等 | P1/P2/P3 强；P4 最强 | `2026-06-04 21:46` |
-| Laura Lander | Managing Editor, ACM Journals（运营侧） | ACM Journals / ACM HQ | [TOSEM legacy public editors page](https://www.codes-isss.org/tosem_subdomain/editors/) | 未找到公开学术主页 | 期刊运营 / 稿件流程；未见公开学术研究方向 | 不适用 | 与 P1-P4 学术主题无直接耦合；与投稿流程维护相关 | `2026-06-04 21:46` |
+| 姓名 | 期刊角色 | 单位 | 角色来源 | 主页 / 学术入口 | 主要研究方向 | 代表作 / 近 5 年论文入口 | 与本仓库相关性 | 核验等级 / 当前性 | 核查时间 |
+|---|---|---|---|---|---|---|---|---|---|
+| Abhik Roychoudhury | Editor-in-Chief（2025-2027） | National University of Singapore | [ACM Updates](https://www.acm.org/media-center/acm-updates)；[ACM Editors-in-Chief](https://www.acm.org/publications/journals/editors-in-chief)；[People of ACM](https://www.acm.org/articles/people-of-acm/2025/abhik-roychoudhury) | [NUS profile](https://www.comp.nus.edu.sg/cs/people/abhik/)；[个人主页](https://abhikrc.com/)；[DBLP](https://dblp.org/search?q=Abhik%20Roychoudhury) | 程序分析、程序修复、软件测试、软件安全、AI agents | [NUS selected publications](https://www.comp.nus.edu.sg/cs/people/abhik/)；AutoCodeRover / program repair / testing 相关近年论文 | P1/P2/P3 强；P4 最强 | ACM 官方 EiC 公告 / EiC 总页核验 | `2026-06-04 22:05` |
+| Cristian Cadar | Information Director | Imperial College London | [People of ACM](https://www.acm.org/articles/people-of-acm/2025/abhik-roychoudhury) | [个人主页](https://www.doc.ic.ac.uk/~cristic/)；[DBLP](https://dblp.org/search?q=Cristian%20Cadar) | 软件可靠性、软件安全、程序分析、动态符号执行、KLEE | [个人主页 / SRG 项目](https://www.doc.ic.ac.uk/~cristic/)；Covrig / KLEE / parser testing 相关近年入口 | P1/P2/P3 强；P4 中到强 | ACM 访谈中列出的维护角色；待 ACM DL editorial board 当前页人工复核 | `2026-06-04 22:05` |
+| Aldeida Aleti | Information Director | Monash University | [People of ACM](https://www.acm.org/articles/people-of-acm/2025/abhik-roychoudhury) | [Monash profile](https://research.monash.edu/en/persons/aldeida-aleti/)；[DBLP](https://dblp.org/search?q=Aldeida%20Aleti) | Automated Software Engineering、AI / optimisation for SE、测试生成、code repair | [Monash profile publication list](https://research.monash.edu/en/persons/aldeida-aleti/)：AI for SE、text-to-testcase generation、LLM fine-tuning 等 | P1/P2/P4 强；P3 中到强 | ACM 访谈中列出的维护角色；待 ACM DL editorial board 当前页人工复核 | `2026-06-04 22:05` |
+| Shin Hwei Tan | Associate Editor；special section Guest Editor-in-Chief | Concordia University | [ACM-W profile](https://women.acm.org/acm-w-above-and-beyond-dr-shin-hwei-tans-journey/)；[个人主页 service](https://www.shinhwei.com/) | [个人主页](https://www.shinhwei.com/)；[DBLP](https://dblp.org/search?q=Shin%20Hwei%20Tan) | 自动程序修复、软件测试、程序分析、genetic improvement、SE ethics | [个人主页 publications](https://www.shinhwei.com/)：LLM-based program repair、PyTorch silent bug detection 等 | P1/P2/P3 强；P4 最强 | special section / 个人 service 线索；不等同于 TOSEM 当前 editorial leadership 完整 roster | `2026-06-04 22:05` |
+
+运营线索：`codes-isss.org` 的 [TOSEM legacy public editors page](https://www.codes-isss.org/tosem_subdomain/editors/) 曾列出 Laura Lander 为 ACM Journals Managing Editor，但该域名不是 ACM 官方维护域名，且同页包含历史 roster 信息；PR-1B 仅把它作为 legacy / 运营线索保留，不放入当前核心编辑人员正表。Laura Lander 未找到公开学术主页，未记录研究方向或代表作；若后续能从 ACM HQ / ACM publications staff 官方入口确认，应另行补回。
 
 补充说明：ACM DL 当前环境下对 [TOSEM editorial board](https://dl.acm.org/journal/tosem/editorial-board) 返回 403；旧公开镜像页仍含历史 EiC 信息，不作为当前 roster 真源。当前未核到公开 Co-EiC / Associate EiC 完整名单。
 
@@ -69,19 +70,19 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 待复核 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 待复核 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | Agentic AI 线索，deadline 未公布 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 35](https://dblp.org/db/journals/tosem/tosem35.html) | 待复核 | 🟡 部分核验 |
-| [`2025`](./2025/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 34](https://dblp.org/db/journals/tosem/tosem34.html) | 待复核 | 🟡 部分核验 |
-| [`2024`](./2024/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 33](https://dblp.org/db/journals/tosem/tosem33.html) | 待复核 | 🟡 部分核验 |
-| [`2023`](./2023/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 32](https://dblp.org/db/journals/tosem/tosem32.html) | 待复核 | 🟡 部分核验 |
-| [`2022`](./2022/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 31](https://dblp.org/db/journals/tosem/tosem31.html) | 待复核 | 🟡 部分核验 |
+| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | Agentic AI 线索，deadline 未公布 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 35](https://dblp.org/db/journals/tosem/tosem35.html) | 115 | 🟡 部分核验 |
+| [`2025`](./2025/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 active CFP；Agentic AI 未见 2025 dated deadline | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 34](https://dblp.org/db/journals/tosem/tosem34.html) | 242 | 🟡 部分核验 |
+| [`2024`](./2024/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 33](https://dblp.org/db/journals/tosem/tosem33.html) | 223 | 🟡 部分核验 |
+| [`2023`](./2023/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 32](https://dblp.org/db/journals/tosem/tosem32.html) | 161 | 🟡 部分核验 |
+| [`2022`](./2022/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 31](https://dblp.org/db/journals/tosem/tosem31.html) | 86 | 🟡 部分核验 |
 
 ## 7. 维护备注
 
 - TOSEM 常规投稿按 rolling submission 处理，不进入 dated Mermaid。
 - 当前未发现 TOSEM special issue 的明确 deadline；Agentic AI special issue 仅作为线索记录，不能写入 Gantt。
-- 年度论文数量暂不硬填；后续按 DBLP volume/year 作为 baseline，并用 ACM DL issue TOC 交叉核验。
+- 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 ACM DL issue TOC / Just Accepted 按 article type 交叉核验。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -94,6 +95,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 22:05` | 根据正式复审补充 TOSEM 人员核验等级、迁出 legacy 运营线索，并补入年度 DBLP `entry article` baseline。 |
 | `2026-06-04 21:46` | 补充 TOSEM 当前公开可核验的核心编辑 / 信息维护 / 运营人员情报，并记录 ACM DL editorial-board 动态访问限制与旧 roster 风险。 |
 | `2026-06-04 21:15` | 根据 review 将 author guidelines 改为 TOSEM 专属 ACM DL 路径，submission system 降噪为 TOSEM ScholarOne 候选入口，并将 online-first 主入口改为 ACM DL Just Accepted。 |
 | `2026-06-04 20:43` | 初始化 TOSEM 期刊 README，记录 ACM / CCF / DBLP 核心入口和 2022-2028 年度占位。 |
