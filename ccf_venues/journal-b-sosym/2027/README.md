@@ -1,6 +1,6 @@
 # SoSyM 2027 README
 
-> 信息更新时间：`2026-06-04 20:43`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:15`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -12,7 +12,7 @@
 | Volume / issues | ⏳ 已检索未公布 |
 | 期刊主页 | [Springer SoSyM](https://link.springer.com/journal/10270) |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) |
-| Submission system | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) |
+| Submission system | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym)；online submission system 将变更，以最新 submission guidelines 为准 |
 | Special issues / topical collections | 无已知 SoSyM 2027 active dated CFP |
 | Articles in press / online first | ⏳ 已检索未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
@@ -22,22 +22,22 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| Journal homepage | [Springer SoSyM](https://link.springer.com/journal/10270) | [SoSyM official site](https://www.sosym.org/) 作补充 | `2026-06-04 20:43` |
-| Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM submission notes](https://www.sosym.org/submission/) | `2026-06-04 20:43` |
-| Submission system | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [submission notes](https://www.sosym.org/submission/) 说明 Manuscript Central 提交流程 | `2026-06-04 20:43` |
-| Special issue / topical collection CFP | 无已知 | 未发现 2027 active dated CFP | `2026-06-04 20:43` |
-| Volume / issue archive | ⏳ 已检索未公布 | 已查 Springer volumes / DBLP venue index，未发现 2027 年度卷期 | `2026-06-04 20:43` |
-| Articles in press / online first | ⏳ 已检索未公布 | 已查 SoSyM online / Springer journal home，未发现 2027 年度入口 | `2026-06-04 20:43` |
-| Annual article list / publisher search | ⏳ 已检索未公布 | 后续待 Springer 发布后补录 | `2026-06-04 20:43` |
-| DBLP 年度页 | ⏳ 已检索未公布 | 已查 [DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html)，未发现 2027 年度页 | `2026-06-04 20:43` |
+| Journal homepage | [Springer SoSyM](https://link.springer.com/journal/10270) | [SoSyM official site](https://www.sosym.org/) 作补充 | `2026-06-04 21:15` |
+| Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM submission notes](https://www.sosym.org/submission/) | `2026-06-04 21:15` |
+| Submission system | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [submission notes](https://www.sosym.org/submission/) 说明 Manuscript Central 提交流程；Industry 5.0 CFP 已提示 SoSyM online submission system 将变更 | `2026-06-04 21:15` |
+| Special issue / topical collection CFP | 无已知 | 未发现 2027 active dated CFP | `2026-06-04 21:15` |
+| Volume / issue archive | ⏳ 已检索未公布 | 已查 Springer volumes / DBLP venue index，未发现 2027 年度卷期 | `2026-06-04 21:15` |
+| Articles in press / online first | ⏳ 已检索未公布 | 已查 SoSyM online / Springer journal home，未发现 2027 年度入口 | `2026-06-04 21:15` |
+| Annual article list / publisher search | ⏳ 已检索未公布 | 后续待 Springer 发布后补录 | `2026-06-04 21:15` |
+| DBLP 年度页 | ⏳ 已检索未公布 | 已查 [DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html)，未发现 2027 年度页 | `2026-06-04 21:15` |
 
 ## 3. 投稿与出版节奏
 
 | 项目 | 内容 | 官方来源 | 核查时间 |
 |---|---|---|---|
-| 常规投稿 | Regular / tool / expert voice 等可 rolling submission | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | `2026-06-04 20:43` |
-| Article types | Regular、tool、expert voice、theme / special section 等 | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | `2026-06-04 20:43` |
-| Open access / hybrid | Hybrid journal | [Springer SoSyM](https://link.springer.com/journal/10270) | `2026-06-04 20:43` |
+| 常规投稿 | Regular / tool / expert voice 等可 rolling submission | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | `2026-06-04 21:15` |
+| Article types | Regular、tool、expert voice、theme / special section 等 | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | `2026-06-04 21:15` |
+| Open access / hybrid | Hybrid journal | [Springer SoSyM](https://link.springer.com/journal/10270) | `2026-06-04 21:15` |
 
 ## 4. Special issue / topical collection
 
@@ -65,12 +65,12 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 期刊主页 | [Springer SoSyM](https://link.springer.com/journal/10270)；[SoSyM official site](https://www.sosym.org/) | `2026-06-04 20:43` | 稳定入口可用。 |
-| Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines)；[SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | `2026-06-04 20:43` | 常规投稿入口可用；Manuscript Central 直链已记录。 |
-| Special issue / topical collection | [Springer collections](https://link.springer.com/journal/10270/collections)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | `2026-06-04 20:43` | 未发现 2027 active dated CFP。 |
-| Volume / issue / online first | [Springer volumes and issues](https://link.springer.com/journal/10270/volumes-and-issues)；[SoSyM online](https://www.sosym.org/online/) | `2026-06-04 20:43` | 未发现 2027 年度卷期 / online-first 年度入口。 |
-| DBLP fallback | [DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) | `2026-06-04 20:43` | 未发现 2027 年度页。 |
-| `2029+` 核查 | [Springer volumes and issues](https://link.springer.com/journal/10270/volumes-and-issues)；[Springer collections](https://link.springer.com/journal/10270/collections)；[DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) | `2026-06-04 20:43` | 未发现 `2029+` 官方年度卷期 / CFP。 |
+| 期刊主页 | [Springer SoSyM](https://link.springer.com/journal/10270)；[SoSyM official site](https://www.sosym.org/) | `2026-06-04 21:15` | 稳定入口可用。 |
+| Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines)；[SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | `2026-06-04 21:15` | 常规投稿入口可用；Manuscript Central 直链已记录，但 Industry 5.0 CFP 已提示 SoSyM online submission system 将变更。 |
+| Special issue / topical collection | [Springer collections](https://link.springer.com/journal/10270/collections)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | `2026-06-04 21:15` | 未发现 2027 active dated CFP。 |
+| Volume / issue / online first | [Springer volumes and issues](https://link.springer.com/journal/10270/volumes-and-issues)；[SoSyM online](https://www.sosym.org/online/) | `2026-06-04 21:15` | 未发现 2027 年度卷期 / online-first 年度入口。 |
+| DBLP fallback | [DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) | `2026-06-04 21:15` | 未发现 2027 年度页。 |
+| `2029+` 核查 | [Springer volumes and issues](https://link.springer.com/journal/10270/volumes-and-issues)；[Springer collections](https://link.springer.com/journal/10270/collections)；[DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) | `2026-06-04 21:15` | 未发现 `2029+` 官方年度卷期 / CFP。 |
 
 ## 8. TIMELINE.md 同步提示
 
@@ -81,4 +81,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:15` | 根据 review 补充 Industry 5.0 CFP 提到的 SoSyM online submission system 将变更的 caveat。 |
 | `2026-06-04 20:43` | 初始化 SoSyM 2027 年度 README，并记录未来年度已检索未公布状态。 |

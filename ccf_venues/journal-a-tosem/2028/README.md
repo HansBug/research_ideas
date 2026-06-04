@@ -1,6 +1,6 @@
 # TOSEM 2028 README
 
-> 信息更新时间：`2026-06-04 20:43`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:15`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -11,8 +11,8 @@
 | 出版商 | ACM |
 | Volume / issues | ⏳ 已检索未公布 |
 | 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
-| Author guidelines | [ACM Author Rights](https://authors.acm.org/author-resources/author-rights) |
-| Submission system | [ACM ScholarOne 默认入口](https://mc.manuscriptcentral.com/acm) |
+| Author guidelines | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) |
+| Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) |
 | Special issues / topical collections | 无已知 TOSEM 2028 dated special issue |
 | Articles in press / online first | ⏳ 已检索未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
@@ -22,22 +22,22 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| Journal homepage | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | ACM 官方入口 | `2026-06-04 20:43` |
-| Author guidelines | [ACM Author Rights](https://authors.acm.org/author-resources/author-rights) | ACM 通用作者规范；TOSEM-specific 细则以当前主页为准 | `2026-06-04 20:43` |
-| Submission system | [ACM ScholarOne 默认入口](https://mc.manuscriptcentral.com/acm) | ACM 官方投稿站点给出 ScholarOne 默认入口；TOSEM-specific 入口仍以 ACM DL 当前页为准 | `2026-06-04 20:43` |
-| Special issue / topical collection CFP | 无已知 | 未发现 2028 TOSEM dated special issue | `2026-06-04 20:43` |
-| Volume / issue archive | ⏳ 已检索未公布 | 已查 ACM DL TOSEM / DBLP stream，未发现 2028 年度卷期 | `2026-06-04 20:43` |
-| Articles in press / online first | ⏳ 已检索未公布 | 已查 ACM DL TOSEM / PFP TOSEM，未发现 2028 年度入口 | `2026-06-04 20:43` |
-| Annual article list / publisher search | ⏳ 已检索未公布 | 后续待 ACM DL 发布后补录 | `2026-06-04 20:43` |
-| DBLP 年度页 | ⏳ 已检索未公布 | 已查 [DBLP TOSEM](https://dblp.org/db/journals/tosem/index.html) 和 [DBLP stream](https://dblp.org/streams/journals/tosem)，未发现 2028 年度页 | `2026-06-04 20:43` |
+| Journal homepage | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | ACM 官方入口 | `2026-06-04 21:15` |
+| Author guidelines | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | TOSEM-specific author guidelines；ACM DL 动态访问可能受限 | `2026-06-04 21:15` |
+| Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | TOSEM ScholarOne 子站为候选入口；canonical 入口仍需人工点击 ACM DL TOSEM Submit Manuscript 当前页确认 | `2026-06-04 21:15` |
+| Special issue / topical collection CFP | 无已知 | 未发现 2028 TOSEM dated special issue | `2026-06-04 21:15` |
+| Volume / issue archive | ⏳ 已检索未公布 | 已查 ACM DL TOSEM / DBLP TOSEM，未发现 2028 年度卷期 | `2026-06-04 21:15` |
+| Articles in press / online first | ⏳ 已检索未公布 | 已查 ACM DL TOSEM / Just Accepted，未发现 2028 年度入口 | `2026-06-04 21:15` |
+| Annual article list / publisher search | ⏳ 已检索未公布 | 后续待 ACM DL 发布后补录 | `2026-06-04 21:15` |
+| DBLP 年度页 | ⏳ 已检索未公布 | 已查 [DBLP TOSEM](https://dblp.org/db/journals/tosem/index.html)，未发现 2028 年度页 | `2026-06-04 21:15` |
 
 ## 3. 投稿与出版节奏
 
 | 项目 | 内容 | 官方来源 | 核查时间 |
 |---|---|---|---|
-| 常规投稿 | Rolling submission | [ACM ScholarOne 默认入口](https://mc.manuscriptcentral.com/acm) | `2026-06-04 20:43` |
-| Article types | ACM journal articles / accepted manuscripts；TOSEM-specific 以当前 ACM DL 页面为准 | [ACM Journals](https://www.acm.org/publications/journals) | `2026-06-04 20:43` |
-| Open access / rights | ACM 作者权利与出版政策 | [ACM Author Rights](https://authors.acm.org/author-resources/author-rights) | `2026-06-04 20:43` |
+| 常规投稿 | Rolling submission | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | `2026-06-04 21:15` |
+| Article types | ACM journal articles / accepted manuscripts；TOSEM-specific 以当前 ACM DL 页面为准 | [ACM Journals](https://www.acm.org/publications/journals) | `2026-06-04 21:15` |
+| Open access / rights | ACM 作者权利与出版政策 | [ACM Author Rights](https://authors.acm.org/author-resources/author-rights) | `2026-06-04 21:15` |
 
 ## 4. Special issue / topical collection
 
@@ -64,12 +64,12 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 20:43` | 官方入口可用。 |
-| Author guidelines / submission | [ACM Author Rights](https://authors.acm.org/author-resources/author-rights)；[ACM ScholarOne 默认入口](https://mc.manuscriptcentral.com/acm)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 20:43` | Rolling submission 入口按 ACM ScholarOne 默认入口记录。 |
-| Special issue / topical collection | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 20:43` | 未发现 2028 dated special issue。 |
-| Volume / issue / online first | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 20:43` | 未发现 2028 年度卷期。 |
-| DBLP fallback | [DBLP TOSEM](https://dblp.org/db/journals/tosem/index.html)；[DBLP stream](https://dblp.org/streams/journals/tosem) | `2026-06-04 20:43` | 未发现 2028 年度页。 |
-| `2029+` 核查 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem)；[DBLP stream](https://dblp.org/streams/journals/tosem) | `2026-06-04 20:43` | 未发现 `2029+` 官方年度卷期 / CFP。 |
+| 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 官方入口可用。 |
+| Author guidelines / submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines)；[TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 21:15` | Rolling submission 入口按 TOSEM ScholarOne 候选入口记录；canonical 入口待 ACM DL 当前页人工确认。 |
+| Special issue / topical collection | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 未发现 2028 dated special issue。 |
+| Volume / issue / online first | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 未发现 2028 年度卷期。 |
+| DBLP fallback | [DBLP TOSEM](https://dblp.org/db/journals/tosem/index.html) | `2026-06-04 21:15` | 未发现 2028 年度页。 |
+| `2029+` 核查 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem)；[DBLP TOSEM](https://dblp.org/db/journals/tosem/index.html) | `2026-06-04 21:15` | 未发现 `2029+` 官方年度卷期 / CFP。 |
 
 ## 8. TIMELINE.md 同步提示
 
@@ -80,4 +80,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:15` | 根据 review 统一 TOSEM author guidelines、ScholarOne 候选入口、Just Accepted 和 DBLP canonical 年度链接口径。 |
 | `2026-06-04 20:43` | 初始化 TOSEM 2028 年度 README，并记录未来年度已检索未公布状态。 |

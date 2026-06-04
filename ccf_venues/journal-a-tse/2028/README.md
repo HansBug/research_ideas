@@ -1,6 +1,6 @@
 # TSE 2028 README
 
-> 信息更新时间：`2026-06-04 20:43`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:15`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -24,7 +24,7 @@
 |---|---|---|---|
 | Journal homepage | [TSE](https://www.computer.org/csdl/journal/ts) | IEEE CS 官方入口 | `2026-06-04 20:43` |
 | Author guidelines | [IEEE CS Author Resources](https://www.computer.org/publications/author-resources/) | TSE-specific 细则以当前主页为准 | `2026-06-04 20:43` |
-| Submission system | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 不写成 TSE 专属 ScholarOne；以 IEEE Publishing Portal 为保守入口 | `2026-06-04 20:43` |
+| Submission system | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | Publishing Portal 是 IEEE 投稿入口；实际 peer-review destination 与 TSE 专属 ScholarOne 子站待官方当前页确认 | `2026-06-04 20:43` |
 | Special issue / topical collection CFP | 无已知 | 未发现 2028 TSE dated special issue | `2026-06-04 20:43` |
 | Volume / issue archive | ⏳ 已检索未公布 | 已查 TSE archive / DBLP venue index，未发现 2028 年度卷期 | `2026-06-04 20:43` |
 | Articles in press / online first | ⏳ 已检索未公布 | 已查 TSE archive，未发现 2028 年度入口 | `2026-06-04 20:43` |

@@ -1,6 +1,6 @@
 # `ccf_venues/` GUIDE
 
-> 信息更新时间：`2026-06-04 19:37`（Asia/Shanghai）
+> 信息更新时间：`2026-06-04 21:30`（Asia/Shanghai）
 
 ## 1. 目标与任务边界
 
@@ -68,6 +68,7 @@ yyyy-mm-dd hh:mm
 2. 若官方给出 timezone，必须保留 timezone，例如 `2026-01-15 23:59 AoE`。
 3. 若官方给出多个时区，以官方原文为准，不擅自换算；如需换算，另加一列 `北京时间换算`。
 4. `信息更新时间` 与 `更新日志` 也统一精确到分钟，不写秒。
+5. 所有名为“更新日志”的表格必须按时间降序排列，最新记录放在表头后的第一行；新增日志时不得简单追加到表格末尾。若本轮修改触及某个文件，必须顺手校正该文件更新日志顺序。
 
 ## 4. 来源优先级
 
@@ -87,6 +88,13 @@ yyyy-mm-dd hh:mm
 4. 官方 special issue `CFP` 页面。
 5. `DBLP` 年度页面，用于年度论文名录 fallback 或计数核验。
 
+期刊核心编辑人员情报的来源优先级：
+
+1. 官方 journal editorial board / editorial team / editors 页面。
+2. 出版商 journal 页面中的 Editor-in-Chief / Editors-in-Chief / Managing Editor / Editorial Board leadership 信息。
+3. 个人主页、机构主页、实验室主页。
+4. DBLP、Google Scholar、Semantic Scholar、ORCID 等学术入口。
+5. 第三方介绍页只可作为发现线索，不得单独支撑研究方向、代表作或近年论文结论。
 
 ## 5. 核心 URL 字段与超链接规范
 
@@ -184,9 +192,12 @@ yyyy-mm-dd hh:mm
 2. 基本信息：缩写、全称、CCF 大类与等级、出版商、ISSN、主页、author guidelines、submission system。
 3. Scope 与栏目类型。
 4. 投稿模式：rolling submission、special issue、open access / hybrid、article type。
-5. 与本仓库 project 的相关性表。
-6. `2022` 年以来年度汇总表，按年份降序排列。
-7. 文末更新日志表。
+5. 核心编辑人员情报：至少覆盖 Editor-in-Chief / Editors-in-Chief、Co-Editor-in-Chief、Associate / Area Editor-in-Chief、Managing Editor、Editorial Board leadership 或官网列出的等价核心角色；每人记录姓名、期刊角色、单位、官方来源、主页或学术入口、主要研究方向、代表作或近 5 年代表论文入口、与本仓库 project 的相关性判断和核查时间。
+6. 与本仓库 project 的相关性表。
+7. `2022` 年以来年度汇总表，按年份降序排列。
+8. 文末更新日志表。
+
+期刊核心编辑人员情报应优先写在期刊根 README，作为当前 editorial leadership 入口。年度 README 不重复长期核心编辑人员；只有当某年度 special issue / topical collection 有 guest editor、年度 editorial team 或人员变更与当年事实直接相关时，才在年度 README 中单独记录。
 
 期刊年度汇总表至少包含：
 
@@ -311,15 +322,19 @@ yyyy-mm-dd hh:mm
 2. 根据 [01-venue-scope.md](./01-venue-scope.md) 选择本轮 venue。
 3. 新建或更新 `<conf|journal>-<rank>-<slug>/README.md`。
 4. 从最新年份开始，按降序补年度 README，默认覆盖到 `2022`。
-5. 回填上级 venue README 的年度汇总表。
-6. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt；事件行必须包含事件官方来源、年度主页、本库年度页，已结束年度还应尽量包含论文集 / 论文名录链接。
-7. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度和待补清单。
-8. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
-9. 在相关 README 文末更新日志中追加记录。
+5. 若目标是期刊 venue，补根 README 的核心编辑人员情报；若暂不能核验，写明缺口、检索入口和核查时间。年度页只在 special issue guest editor、年度 editorial team 或人员变更与当年事实直接相关时单独记录。
+6. 回填上级 venue README 的年度汇总表。
+7. 若更新内容涉及投稿相关 important date，同步回填 [TIMELINE.md](./TIMELINE.md) 的年度表格与 Mermaid Gantt；事件行必须包含事件官方来源、年度主页、本库年度页，已结束年度还应尽量包含论文集 / 论文名录链接。
+8. 回填 [SUMMARY.md](./SUMMARY.md) 的覆盖进度、核心人员覆盖状态和待补清单。
+9. 检查所有链接可点击、所有时间精确到分钟、所有状态符合口径，且 Mermaid 语法可预览。
+10. 在相关 README 文末更新日志中按时间降序插入记录。
 
 ## 14. 更新日志
 
+更新日志按时间降序排列，最新记录置于最上方。
+
 | 时间 | 更新内容 |
 |---|---|
+| `2026-06-04 21:30` | 补充全库更新日志降序规则，并新增期刊核心编辑人员情报规则：期刊 PR 必须核验核心编辑的研究方向、代表作和近 5 年论文入口。 |
 | `2026-06-04 19:37` | 新增核心 URL 字段与 Markdown 超链接规范，要求 venue 根表、年度页和 TIMELINE 都挂可点击链接。 |
 | `2026-06-04 18:55` | 明确后续搜索必须至少到当前年份 + 2；当前初始化覆盖到 2028，更远未来若已有官方信息也继续纳入。 |
