@@ -6,7 +6,7 @@
 
 1. **禁止调用顶层 agent-loop runtime**：不得调用 `method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
 2. **允许调用底层工具箱**：可以调用 `SD-*` deterministic tools、`SL-*` prompt generators、pyfcstm parse/build/inspect/sim utilities，以及仓库内只读论文材料。
-3. **修改范围**：若需要改 skill，本 PR 默认只允许改 `project_1_llm_state_machine_modeling/method/agent_loop_skill/` 及其子路径。若发现来自上游语法 prompt / grammar digest 的硬伤会直接误导 skill 使用者（例如实际 parser 不支持却在 grammar 中要求的语法），可作为特例修改 `project_1_llm_state_machine_modeling/method/prompts/_pyfcstm_grammar.md`；此类改动必须先核对相邻 PR（尤其 PR-E1）已有 diff，尽量采用相同修正以避免 merge 后冲突。
+3. **修改范围**：PR-skill-fix 默认只允许改 `project_1_llm_state_machine_modeling/method/agent_loop_skill/` 及其子路径。`agent_loop_skill/stages/*.md` 多为指向共享 `method/stages/docs/` 的 symlink，本 PR 默认把这些 target 视为只读；如发现旧口径，优先在 skill 路径内用 wrapper guide / index / health check 修正，不直接突破范围修改共享 stage docs。
 4. **质量优先**：允许 Codex / Claude Code 长时间运行。时间限制只用于防止死锁或 CLI 挂死，不应用来牺牲论文阅读、验证或 repair 质量。
 5. **证据留痕**：每个样本的输入、读取路径、候选模型、检查反馈、修复轨迹和最终判断都必须能写入 PR comment。
 6. **NFRR 必填**：每个样本必须按 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md) 给出 NFRR claim、八维 vector、tier、cap reasons、allowed_use 与 `calibration_status=uncalibrated_candidate_gate`。
@@ -149,12 +149,12 @@ sim_feedback, sim_meta = run_sd6_sim(current_dsl, scenario_set, context)
 若 parse / semantic / design / sim / review 任一失败：
 
 1. 选择最早 blocking feedback；
-2. 用 `SD-8 FixRequestBatch / legacy FixPlan` 产出结构化修复计划；
+2. 用 `SD-8` 产出 legacy `FixPlan` / `RevisedFixPlan` 后，按 PR-E1 口径整理为 `FixRequestBatch`；
 3. 使用 `SL-9` prompt generator 或 agent 自行修复；
 4. 用 `local repair checks / SL-10 RepairReview` 或等价本地检查确认未引入漂移；
 5. 回到 E3 重新从 parse 开始检查。
 
-注意：`suggested_fix` 只是规则诊断的参考 hint，不是必须照抄的编辑命令。agent 可以基于 NL 与全局约束提出更合理的修复方案。
+注意：`SL-9` 必须读取 `FixRequestBatch` 与完整 `FixLog`，逐 request 给出 accept/reject/waiver；`suggested_fix` 只是规则诊断的参考 hint，不是必须照抄的编辑命令。agent 可以基于 NL 与全局约束提出更合理的修复方案。
 
 `local repair checks / SL-10 RepairReview` 的结果必须分级处理：
 

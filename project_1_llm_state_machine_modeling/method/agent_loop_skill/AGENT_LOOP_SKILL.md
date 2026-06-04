@@ -39,7 +39,8 @@ PR-E2 需要测试的是 Codex / Claude Code 能否拿到本 repo-local skill �
 
 - [tools.md](./tools.md)
 - [prompts.md](./prompts.md)
-- [stages/](./stages/)
+- [stages/README.md](./stages/README.md)
+- [health_check.py](./health_check.py)
 
 
 ## PR-C config / default runtime contract

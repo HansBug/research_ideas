@@ -31,6 +31,15 @@ PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evalua
 | SL-10 | `build_sl10_repair_review_prompt(...)` | NL、GroundingMap、old DSL、candidate DSL、FixRequestBatch、SL-9 decisions、完整 FixLog、diff、local check evidence | JSON：pass/fail/rework + evidence + rework_instructions |
 | SL-10B | `build_sl10b_delta_review_prompt(...)` | NL、GroundingMap、old DSL、candidate DSL、FixPlan/RevisedFixPlan、diff summary | legacy/ablation：accept/reject/revise + drift evidence |
 
+最小 repair prompt 顺序：
+
+```text
+SD-8 legacy FixPlan/RevisedFixPlan
+-> 整理为 FixRequestBatch
+-> build_sl9_repair_prompt(..., fix_request_batch=..., fix_log=...)
+-> build_sl10_repair_review_prompt(..., fix_request_batch=..., sl9_decisions=..., fix_log=..., local_check_evidence=...)
+```
+
 ## Fake response / parser 测试
 
 - snapshot test 覆盖 prompt 文本中的关键 contract 字段。
